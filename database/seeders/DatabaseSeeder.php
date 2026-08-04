@@ -40,6 +40,16 @@ class DatabaseSeeder extends Seeder
     {
         $this->seedReferenceData();
         $this->seedUsers();
+
+        $this->call([
+            SemestersSeeder::class,
+            VenuesSeeder::class,
+            ModulesSeeder::class,
+            TimeSlotsSeeder::class,
+            ClassSessionsSeeder::class,
+            HolidaysSeeder::class,
+            ClassExceptionsSeeder::class,
+        ]);
     }
 
     private function seedReferenceData(): void
@@ -142,9 +152,9 @@ class DatabaseSeeder extends Seeder
             $studentCount = self::STUDENT_COUNTS[$this->cohortCode($cohort)] ?? 10;
             $yy = $this->intakeYearShort($cohort->intake);
             $progCode = $cohort->programme->programme_code;
-            $key = $yy . $progCode;
+            $key = $yy.$progCode;
 
-            if (!isset($counters[$key])) {
+            if (! isset($counters[$key])) {
                 $counters[$key] = 1;
             }
 
@@ -154,8 +164,8 @@ class DatabaseSeeder extends Seeder
                 $counters[$key]++;
 
                 $user = User::create([
-                    'name' => 'Student ' . $studentId,
-                    'email' => strtolower($studentId) . '@student.tarc.edu.my',
+                    'name' => 'Student '.$studentId,
+                    'email' => strtolower($studentId).'@student.tarc.edu.my',
                     'password' => Hash::make(self::DEFAULT_PASSWORD),
                     'role' => 'student',
                 ]);
