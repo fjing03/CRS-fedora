@@ -15,6 +15,11 @@
             color: var(--color-on-surface-variant);
         }
 
+        /* ───── Table always visible (even when empty) ───── */
+        #timetable {
+            min-height: 48px;
+        }
+
         /* ───── Responsive ───── */
         @media (max-width: 1024px) {
             .grid-scroll { overflow-x: auto; }

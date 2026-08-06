@@ -134,3 +134,9 @@
 | Timestamp | Location | Change | Detail |
 |-----------|----------|--------|--------|
 | 2026-08-04 | — | Refactored: replaced inline page-header/week-nav/empty-state/grid-table/modal with `@include('partials.…')` (OOP Phase 1) | Page uses `ui-page-header`, `ui-week-nav`, `ui-grid-table`, `ui-empty-state`, `ui-class-detail-modal` partials. |
+
+### `resources/views/ui-design-templates/CohortTimetable-UI-design-template.blade.php` — Playwright fix
+
+| Timestamp | Location | Change | Detail |
+|-----------|----------|--------|--------|
+| 2026-08-06 | `@section('page-styles')` | Fix: `#timetable` zero-height when no cohort selected | `#timetable` had 0 height (empty `<thead>`/`<tbody>`) in default "Select a cohort" state, causing Playwright visibility check to fail. Added `#timetable { min-height: 48px; }` so the element is visible even when empty. Found by Playwright smoke suite (S-5 selector timeout detection). |

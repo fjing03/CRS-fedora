@@ -229,7 +229,7 @@
                         holidayLabel: holidayLabel,
                     });
                 }
-                arr.push({ label: `Week ${w}`, range: `${fmt(new Date(ms))} ~ ${fmt(new Date(ms + 6 * 86400000))}`, rangeShort: `${fmtShort(new Date(ms))} ~ ${fmtShort(new Date(ms + 6 * 86400000))}`, days });
+                arr.push({ label: `Week ${w}`, range: `${fmt(new Date(ms))} ~ ${fmt(new Date(ms + 6 * 86400000))}`, rangeShort: `${fmtShort(new Date(ms))} ~ ${fmtShort(new Date(ms + 6 * 86400000))}`, days, start: new Date(ms), end: new Date(ms + 6 * 86400000) });
             }
             return arr;
         })();
