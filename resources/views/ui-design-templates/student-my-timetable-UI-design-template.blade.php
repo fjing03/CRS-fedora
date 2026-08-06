@@ -14,14 +14,7 @@
 @section('content')
 
         <!-- ─── Page Header ─── -->
-        <div class="page-header">
-            <h1 class="page-title">My Timetable</h1>
-            <div class="page-chips">
-                <span class="semester-chip" id="semesterChip"></span>
-                <span class="semester-chip">RSD3(S1)G2</span>
-            </div>
-            <p class="page-desc">View your weekly class schedule across all sessions.</p>
-        </div>
+        @include('partials.ui-page-header', ['title' => 'My Timetable', 'description' => 'View your weekly class schedule across all sessions.', 'chips' => [['label' => 'RSD3(S1)G2']]])
 
         <!-- ─── Semester Progress ─── -->
         <div class="semester-progress" id="semesterProgress">
@@ -31,39 +24,15 @@
 
         <!-- ─── Semester Bar ─── -->
         <div class="semester-bar">
-            <div class="week-nav">
-                <button class="week-arrow" onclick="prevWeek()" aria-label="Previous week">&#8249;</button>
-                <select class="week-select" id="weekSelect" onchange="selectWeek(this.value)"></select>
-                <button class="week-arrow" onclick="nextWeek()" aria-label="Next week">&#8250;</button>
-            </div>
-            @include('partials.ui-today-btn')
+            @include('partials.ui-week-nav', ['prevOnclick' => 'prevWeek()', 'nextOnclick' => 'nextWeek()', 'selectId' => 'weekSelect', 'selectOnclick' => 'selectWeek(this.value)'])
         </div>
 
         <!-- ─── Week Subtitle ─── -->
         <div class="week-subtitle" id="weekSubtitle"></div>
 
         <!-- ─── Grid Wrapper ─── -->
-        <div class="grid-wrapper">
-            <div class="grid-scroll" id="gridScroll">
-                <table class="timetable" id="timetable">
-                    <thead id="tableHead"></thead>
-                    <tbody id="tableBody"></tbody>
-                </table>
-            </div>
-            <div class="empty-state" id="emptyState" style="display:none;">
-                <div class="empty-icon">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-                        <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
-                        <line x1="16" y1="2" x2="16" y2="6"/>
-                        <line x1="8" y1="2" x2="8" y2="6"/>
-                        <line x1="3" y1="10" x2="21" y2="10"/>
-                        <line x1="10" y1="14" x2="14" y2="18"/>
-                        <line x1="14" y1="14" x2="10" y2="18"/>
-                    </svg>
-                </div>
-                <div class="empty-title">No classes this week<br>All classes for this week have been cancelled.</div>
-            </div>
-        </div>
+        @include('partials.ui-grid-table')
+            @include('partials.ui-empty-state', ['title' => 'No classes this week', 'text' => 'All classes for this week have been cancelled.'])
 
         <!-- ─── Legend Bar ─── -->
         @include('partials.ui-legend-bar')
@@ -80,19 +49,7 @@
         ])
 
     <!-- ═══ View-Only Modal ═══ -->
-    <div class="modal-overlay" id="classModal" style="display:none" onclick="closeModalOutside(event)">
-        <div class="modal">
-            <div class="modal-header">
-                <span class="modal-title" id="modalTitle">Class Details</span>
-                <span class="modal-status-badge" id="modalStatusBadge">Normal</span>
-                <button class="modal-close" onclick="closeModal()">&times;</button>
-            </div>
-            <div class="modal-body" id="modalBody"></div>
-            <div class="modal-footer" style="justify-content:flex-end;">
-                <button class="btn-close-modal" onclick="closeModal()">Close</button>
-            </div>
-        </div>
-    </div>
+    @include('partials.ui-class-detail-modal')
 
     <!-- ═══ Copy Toast ═══ -->
     <div class="copy-toast" id="copyToast"></div>
@@ -100,12 +57,6 @@
 @endsection
 
 @section('page-scripts')
-        const dayNames = ['MONDAY', 'TUESDAY', 'WEDNESAY', 'THURSDAY', 'FRIDAY', 'SATURDAY', 'SUNDAY'];
-        const dayNamesCorrect = ['MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY', 'SUNDAY'];
-
-        function fmt(d) {
-            return String(d.getDate()).padStart(2, '0') + ' ' + d.toLocaleString('en', { month: 'short' }) + ' ' + d.getFullYear();
-        }
 
         function fmtShort(d) {
             return String(d.getDate()).padStart(2, '0') + ' ' + d.toLocaleString('en', { month: 'short' });
@@ -134,7 +85,7 @@
                         abbr: ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'][d],
                         date: fmt(dt),
                         sunday: d === 6,
-                        today: (function() { var t = new Date('2026-09-03'); t.setHours(0,0,0,0); return dt.getTime() === t.getTime(); })(),
+                        today: (function() { var t = new Date('2026-08-02'); t.setHours(0,0,0,0); return dt.getTime() === t.getTime(); })(),
                         holiday: holiday,
                         holidayLabel: holidayLabel,
                     });
@@ -188,13 +139,6 @@
             });
         }
 
-        function currentWeekIndex() {
-            const semesterStart = new Date(MockData.semester.startDate);
-            const today = new Date('2026-09-03');
-            today.setHours(0, 0, 0, 0);
-            const idx = Math.floor((today - semesterStart) / 86400000 / 7);
-            return Math.max(0, Math.min(weekData.length - 1, idx));
-        }
         let currentWeek = currentWeekIndex();
 
         const WEEK_KEY = 'studentMyTimetableWeek';
@@ -206,21 +150,6 @@
         }
         function saveWeek() {
             try { localStorage.setItem(WEEK_KEY, String(currentWeek)); } catch (e) {}
-        }
-
-        function updateWeekSubtitle() {
-            const el = document.getElementById('weekSubtitle');
-            if (el) {
-                el.textContent = 'Week ' + (currentWeek + 1) + ' of ' + MockData.semester.weeks + ' \u00B7 ' + fmt(weekData[currentWeek].start) + ' \u00B7 ' + fmt(weekData[currentWeek].end);
-            }
-        }
-
-        function updateProgress() {
-            const pct = ((currentWeek + 1) / MockData.semester.weeks) * 100;
-            const fill = document.getElementById('progressFill');
-            const label = document.getElementById('progressLabel');
-            if (fill) fill.style.width = pct + '%';
-            if (label) label.textContent = 'Week ' + (currentWeek + 1) + ' of ' + MockData.semester.weeks;
         }
 
         function buildWeekOptions() {
@@ -264,7 +193,7 @@
                 { label: 'Class Type', value: event.type === 'L' ? 'Lecture (L)' : 'Tutorial (T)' },
                 { label: 'Lecturer', value: event.lecturer },
                 { label: 'Venue', value: event.venue || '\u2014' },
-                { label: 'Day', value: dayNamesCorrect[event.di] },
+                { label: 'Day', value: dayNames[event.di] },
                 { label: 'Date', value: weekData[currentWeek].days[event.di].date },
                 { label: 'Time', value: startStr + ' \u2013 ' + endStr },
                 { label: 'Status', value: displayStatus.charAt(0).toUpperCase() + displayStatus.slice(1) },
@@ -518,6 +447,7 @@ updateWeekSubtitle();
 
             buildWeekOptions();
             buildTimetable();
+            initWeekKeyboardShortcuts();
 
 updateWeekSubtitle();
             updateProgress();

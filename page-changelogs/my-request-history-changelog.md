@@ -1,5 +1,11 @@
 # Changelog — Lecturer My Request History
 
+## [2026-08-03] Refactor: Rows Per Page promoted to shared OOP component
+
+### Changed
+- **Rows Per Page (RPP)**: Removed local CSS/HTML/JS; now uses shared `partials.ui-rpp` Blade partial + `initRpp()` from `ui-common.js` + `.rpp-wrapper`/`.rpp-select` from `theme.css`
+- localStorage key changed from `'mrh-rows-per-page'` to `'rpp-page-size'` (shared across pages)
+
 ## Files Changed
 
 ### `resources/views/ui-design-templates/my-request-history-UI-design-template.blade.php`
@@ -90,6 +96,22 @@
 | 2026-08-03 04:30 | Lines 1163–1172 | Single cancel toast | Refactored `confirmCancelAction` click handler: saves removed item before splice, calls `showToast('Request #{id} cancelled.', undoCallback)` to allow re-insertion. |
 | 2026-08-03 04:30 | Lines 1203–1208 | Batch cancel toast | Refactored `confirmBatchCancelAction` click handler: saves removed items before filter, calls `showToast('{N} requests cancelled.', undoCallback)` to allow re-insertion. |
 | 2026-08-03 05:30 | Line 775 | Bug fix | Changed `const mockRequests` to `let mockRequests` — batch cancel handler was reassigning the variable (`mockRequests = mockRequests.filter(...)`) which threw `TypeError: Assignment to constant variable`. |
+
+### `resources/views/ui-design-templates/my-request-history-UI-design-template.blade.php` — OOP Phase 1 partial extraction
+
+| Timestamp | Location | Change | Detail |
+|-----------|----------|--------|--------|
+| 2026-08-04 | — | Refactored: replaced inline page-header/week-nav/empty-state/grid-table with `@include('partials.…')` (OOP Phase 1) | Page uses `ui-page-header`, `ui-week-nav`, `ui-grid-table`, `ui-empty-state` partials. |
+| 2026-08-06 | Lines 758, 835–838 | Column merge | Merged `Type` column into `Course Code & Name` — now shows `BMIT6767 (T)` / `Object-Ooped Programming` on two lines. Removed `.col-type` CSS, reduced min-width 1315px→1235px. |
+
+### `public/css/theme.css`
+
+| Timestamp | Location | Change | Detail |
+|-----------|----------|--------|--------|
+| 2026-08-06 | Lines 8–12 | Scrollbar visibility | Increased scrollbar height 6px→8px, added track background (`surface-variant`), added `scrollbar-color`/`scrollbar-width` on `.grid-scroll` for cross-browser visibility |
+| 2026-08-06 | Line 514 | Cell type style | Added `.cell-type` (opacity 0.5, font-size 12px) for inline type label ` (L)` / ` (T)` in merged Course Code column |
+| 2026-08-06 | Line 834, 74 | Requested At two-line format | Added `<br>` between date/time and relative age — now shows `30 Jun 2026, 8:03 PM` / `(37 days ago)`. Added `white-space: normal` to `.timetable td.col-requested-at` to override global `nowrap`. |
+| 2026-08-06 | Line 419 | Scrollbar always-visible | Changed `.grid-scroll` from `overflow-x: auto` to `overflow-x: scroll` so horizontal scrollbar is always rendered (not just on hover), ensuring users discover scrollable right-side columns |
 
 ### `routes/web.php`
 

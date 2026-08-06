@@ -71,35 +71,16 @@
         }
 
         /* ───── Column Widths ───── */
-        .col-no { width: 50px; }
-        .col-requested-at { width: 145px; }
-        .col-code { width: 200px; }
-        .col-type { width: 80px; }
+        .timetable td.col-requested-at { width: 180px; white-space: normal; }
         .col-original { width: 170px; }
         .col-replacement { width: 170px; }
         .col-original, .col-replacement { white-space: normal; }
         .col-venue { width: 75px; }
-        .col-students { width: 80px; }
         .col-cohort { width: 120px; }
         .col-status { width: 130px; }
 
-        /* ───── Multi-line Cell ───── */
-        .cell-class-block {
-            line-height: 1.55;
-            white-space: pre-line;
-        }
-        .cell-class-block .class-day-date {
-            font-weight: 600;
-            color: var(--color-on-surface);
-        }
-        .cell-class-block .class-time {
-            font-size: 12px;
-            color: var(--color-on-surface-variant);
-        }
-        .cell-class-block .class-duration {
-            color: var(--color-on-surface);
-            font-weight: 500;
-        }
+        .grid-scroll .timetable { min-width: 1235px; }
+
         .col-replacement .cell-class-block .class-time {
             font-weight: 600;
         }
@@ -219,28 +200,6 @@
         }
         .btn-outline:hover {
             background: var(--color-surface-variant);
-        }
-
-        /* ───── F1: Rows Per Page Selector ───── */
-        .rows-per-page-wrapper {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-        .rows-per-page-wrapper label {
-            font-size: 12px;
-            color: var(--color-on-surface-variant);
-            font-weight: 500;
-        }
-        .rows-per-page-select {
-            padding: 4px 8px;
-            border-radius: 6px;
-            border: 1px solid var(--color-outline);
-            background: var(--color-surface);
-            color: var(--color-on-surface);
-            font-family: inherit;
-            font-size: 12px;
-            cursor: pointer;
         }
 
         /* ───── F2: Bulk Selection ───── */
@@ -407,7 +366,6 @@
         }
 
         /* ───── Responsive Card View ───── */
-        .card-view { display: none; }
         .request-card {
             background: var(--color-surface);
             border: 1px solid var(--color-outline);
@@ -466,11 +424,7 @@
 @section('content')
 
         <!-- ─── Page Header ─── -->
-        <div class="page-header">
-            <h1 class="page-title">My Request History</h1>
-            <span class="semester-chip" id="semesterChip"></span>
-            <p class="page-desc">View and monitor all replacement requests submitted during the current semester.</p>
-        </div>
+        @include('partials.ui-page-header', ['title' => 'My Request History', 'description' => 'View and monitor all replacement requests submitted during the current semester.'])
 
         <!-- ─── Toolbar ─── -->
         <div class="toolbar">
@@ -490,11 +444,7 @@
                     <option value="Cancelled">Cancelled</option>
                     <option value="Completed">Completed</option>
                 </select>
-                <div class="week-nav">
-                    <button class="week-arrow" onclick="prevWeekFilter()" aria-label="Previous week">&#8249;</button>
-                    <select class="week-select" id="weekFilter" onchange="weekFilterChanged()"></select>
-                    <button class="week-arrow" onclick="nextWeekFilter()" aria-label="Next week">&#8250;</button>
-                </div>
+                @include('partials.ui-week-nav', ['prevOnclick' => 'prevWeekFilter()', 'nextOnclick' => 'nextWeekFilter()', 'selectId' => 'weekFilter', 'selectOnclick' => 'weekFilterChanged(this.value)', 'showTodayBtn' => false])
                 <label class="toggle-wrapper" id="completedToggle">
                     <input type="checkbox" id="hideCompleted" checked>
                     <span class="toggle-track"><span class="toggle-thumb"></span></span>
@@ -510,29 +460,14 @@
         <div class="sort-hint">Click column headers to sort (Requested At, Course Code, Original Class)</div>
 
         <!-- ─── Grid Wrapper ─── -->
-        <div class="grid-wrapper" id="gridWrapper">
-            <div class="grid-scroll">
-                <table class="timetable" id="timetable">
-                    <thead id="tableHead"></thead>
-                    <tbody id="tableBody"></tbody>
-                </table>
-            </div>
-        </div>
+        @include('partials.ui-grid-table', ['wrapperId' => 'gridWrapper'])
 
         <!-- ─── Card View (mobile) ─── -->
         <div class="card-view" id="cardView"></div>
 
         <!-- ─── Pagination ─── -->
         <div class="pagination-bar" id="paginationBar">
-            <div class="rows-per-page-wrapper">
-                <label for="rowsPerPage">Rows:</label>
-                <select class="rows-per-page-select" id="rowsPerPage">
-                    <option value="10">10</option>
-                    <option value="25">25</option>
-                    <option value="50">50</option>
-                    <option value="all">All</option>
-                </select>
-            </div>
+            @include('partials.ui-rpp', ['id' => 'rowsPerPage', 'default' => 10, 'options' => [10, 25, 50, 'all']])
             <span class="pagination-info" id="paginationInfo">Showing 1-10 of 20</span>
             <div class="pagination-controls" id="paginationControls"></div>
         </div>
@@ -556,17 +491,7 @@
         ])
 
         <!-- ─── Empty State ─── -->
-        <div class="empty-state" id="emptyState" style="display:none">
-            <svg class="empty-icon" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round">
-                <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
-                <line x1="16" y1="2" x2="16" y2="6"/>
-                <line x1="8" y1="2" x2="8" y2="6"/>
-                <line x1="3" y1="10" x2="21" y2="10"/>
-            </svg>
-            <h3 class="empty-title" id="emptyTitle">You haven't submitted any replacement requests for this semester.</h3>
-            <p class="empty-text" id="emptyText">Submit a replacement request for any conflicted class.</p>
-            <button class="empty-cta" id="emptyCta" onclick="window.location.href='/replacement-arrangement'" style="display:none">Submit a Replacement Request</button>
-        </div>
+        @include('partials.ui-empty-state', ['title' => "You haven't submitted any replacement requests for this semester.", 'text' => 'Submit a replacement request for any conflicted class.', 'ctaLabel' => 'Submit a Replacement Request', 'ctaOnclick' => "window.location.href='/replacement-arrangement'"])
 
     <!-- ═══ View Details Modal ═══ -->
     <div class="modal-overlay" id="modalOverlay">
@@ -664,9 +589,6 @@
             return map[status] || '';
         }
 
-        function dayAbbr(day) {
-            return day.substring(0, 3);
-        }
 
         function isoDayName(iso) {
             var p = iso.split('-');
@@ -833,13 +755,12 @@
             const columns = [
                 { label: 'Requested At', cls: 'col-requested-at', sortable: true, field: 'requestedAt' },
                 { label: 'Course Code & Name', cls: 'col-code', sortable: true, field: 'courseCode' },
-                { label: 'Type', cls: 'col-type', sortable: false },
                 { label: 'Original Class', cls: 'col-original', sortable: true, field: 'classDate' },
                 { label: 'Requested Replacement', cls: 'col-replacement', sortable: false },
                 { label: 'Requested Venue', cls: 'col-venue', sortable: false },
                 { label: 'Students', cls: 'col-students', sortable: false },
                 { label: 'Affected Cohort(s)', cls: 'col-cohort', sortable: false },
-                { label: 'Status (Click for detail)', cls: 'col-status', sortable: false },
+                { label: 'Status', cls: 'col-status', sortable: false },
                 { label: 'Quick Cancel', cls: 'col-actions', sortable: false },
             ];
             columns.forEach(function(col) {
@@ -883,7 +804,7 @@
 
                     const globalIndex = offset + i;
                     const isPending = r.status === 'Pending';
-                    const badgeHtml = '<span class="badge ' + statusClass(r.status) + '" onclick="openModal(' + globalIndex + ')">' + r.status + '</span>';
+                    const badgeHtml = '<span class="badge ' + statusClass(r.status) + '">' + r.status + '</span>';
 
                     const days = getRequestAge(r.requestedAt);
                     const ageCls = ageClass(days);
@@ -910,9 +831,8 @@
                     row.appendChild(checkTd);
 
                     var cells = [
-                        { html: '<span class="' + ageCls + '">' + formatDateTime(r.requestedAt) + ' <span class="age-relative">(' + relativeTime(days) + ')</span></span>', cls: 'col-requested-at' },
-                        { html: '<span class="cell-code">' + r.courseCode + '</span><span class="cell-name">' + r.courseName + '</span>', cls: 'col-code' },
-                        { html: r.classType === 'L' ? 'Lecture' : 'Tutorial', cls: 'col-type' },
+                        { html: '<span class="' + ageCls + '">' + formatDateTime(r.requestedAt) + '<br><span class="age-relative">(' + relativeTime(days) + ')</span></span>', cls: 'col-requested-at' },
+                        { html: '<span class="cell-code">' + r.courseCode + ' <span class="cell-type">(' + r.classType + ')</span></span><span class="cell-name">' + r.courseName + '</span>', cls: 'col-code' },
                         { html: formatClassBlock(r), cls: 'col-original' },
                         { html: formatReplacementBlock(r), cls: 'col-replacement' },
                         { html: r.venue, cls: 'col-venue' },
@@ -927,6 +847,11 @@
                         td.innerHTML = cell.html;
                         row.appendChild(td);
                     });
+                    row.addEventListener('click', function(e) {
+                        if (e.target.closest('.bulk-checkbox') || e.target.closest('.btn-inline-cancel')) return;
+                        openModal(globalIndex);
+                    });
+                    row.style.cursor = 'pointer';
                     body.appendChild(row);
                 });
             }
@@ -1212,26 +1137,6 @@
             updateWeekArrowState();
         }
 
-        function prevWeekFilter() {
-            var sel = document.getElementById('weekFilter');
-            if (sel.selectedIndex > 0) {
-                sel.selectedIndex--;
-                sel.dispatchEvent(new Event('change'));
-            }
-        }
-
-        function nextWeekFilter() {
-            var sel = document.getElementById('weekFilter');
-            if (sel.selectedIndex < sel.options.length - 1) {
-                sel.selectedIndex++;
-                sel.dispatchEvent(new Event('change'));
-            }
-        }
-
-        function updateWeekArrowState() {
-            var sel = document.getElementById('weekFilter');
-            updateWeekArrows(sel.selectedIndex <= 0, sel.selectedIndex >= sel.options.length - 1);
-        }
 
         document.addEventListener('DOMContentLoaded', function() {
             var weekSel = document.getElementById('weekFilter');
@@ -1248,6 +1153,7 @@
 
             renderTable();
             updateWeekArrowState();
+            initWeekKeyboardShortcuts();
 
             document.getElementById('searchInput').addEventListener('input', function() {
                 pageState.currentPage = 1;
@@ -1264,13 +1170,6 @@
                 saveFilters();
                 renderTable();
             });
-            document.getElementById('rowsPerPage').addEventListener('change', function() {
-                var val = this.value;
-                rowsPerPage = val === 'all' ? Infinity : parseInt(val);
-                localStorage.setItem('mrh-rows-per-page', rowsPerPage === Infinity ? 'all' : rowsPerPage);
-                pageState.currentPage = 1;
-                renderTable();
-            });
             document.getElementById('clearFilters').addEventListener('click', function() {
                 document.getElementById('searchInput').value = '';
                 document.getElementById('statusFilter').value = 'all';
@@ -1283,11 +1182,17 @@
             });
 
             restoreFilters();
-            var savedRows = localStorage.getItem('mrh-rows-per-page');
-            if (savedRows) {
-                rowsPerPage = savedRows === 'all' ? Infinity : parseInt(savedRows);
-                document.getElementById('rowsPerPage').value = savedRows === 'all' ? 'all' : savedRows;
-            }
+
+            initRpp({
+                selectId: 'rowsPerPage',
+                storageKey: 'rpp-page-size',
+                defaultVal: 10,
+                onChange: function(size) {
+                    rowsPerPage = size;
+                    pageState.currentPage = 1;
+                    renderTable();
+                }
+            });
 
             document.getElementById('modalOverlay').addEventListener('click', function(e) {
                 closeOnOverlayClick(e, closeModal);

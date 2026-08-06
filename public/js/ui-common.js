@@ -42,9 +42,43 @@ function updateWeekArrows(prevDisabled, nextDisabled) {
     if (next) next.disabled = nextDisabled;
 }
 
+// ───── Week helpers (shared by timetable pages) ─────
+
+function currentWeekIndex() {
+    const semesterStart = new Date(MockData.semester.startDate);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const idx = Math.floor((today - semesterStart) / 86400000 / 7);
+    return Math.max(0, Math.min(MockData.semester.weeks - 1, idx));
+}
+
+function updateProgress() {
+    const pct = ((currentWeek + 1) / MockData.semester.weeks) * 100;
+    const fill = document.getElementById('progressFill');
+    const label = document.getElementById('progressLabel');
+    if (fill) fill.style.width = pct + '%';
+    if (label) label.textContent = 'Week ' + (currentWeek + 1) + ' of ' + MockData.semester.weeks;
+}
+
+function fmt(d) {
+    return String(d.getDate()).padStart(2, '0') + ' ' + d.toLocaleString('en', { month: 'short' }) + ' ' + d.getFullYear();
+}
+
+function updateWeekSubtitle() {
+    const el = document.getElementById('weekSubtitle');
+    if (el) {
+        el.textContent = 'Week ' + (currentWeek + 1) + ' of ' + MockData.semester.weeks + ' \u00B7 ' + fmt(weekData[currentWeek].start) + ' \u00B7 ' + fmt(weekData[currentWeek].end);
+    }
+}
+
+function updateWeekArrowState() {
+    var sel = document.getElementById('weekFilter');
+    updateWeekArrows(sel.selectedIndex <= 0, sel.selectedIndex >= sel.options.length - 1);
+}
+
 // ───── Today button (shared by all timetable pages) ─────
-// Each page must define: currentWeekIndex(), buildTimetable(), updateWeekSubtitle()
-// Optionally define: updateSummary(), updateProgress(), saveWeek()
+// Each page must define: buildTimetable()
+// Optionally define: updateSummary(), saveWeek()
 
 function jumpToToday() {
     currentWeek = currentWeekIndex();
@@ -135,6 +169,39 @@ function makeSortableHeader(col, sortState, render) {
 }
 
 // ───── Pagination ─────
+
+/**
+ * Initialize a Rows Per Page selector.
+ * @param {object} cfg
+ * @param {string} cfg.selectId - ID of the <select> element
+ * @param {string} cfg.storageKey - localStorage key (null = no persistence)
+ * @param {number|string} cfg.defaultVal - Default page size ('all' for Infinity)
+ * @param {function} cfg.onChange - Callback receiving the new page size (number or Infinity)
+ */
+function initRpp(cfg) {
+    var sel = document.getElementById(cfg.selectId);
+    if (!sel) return;
+
+    if (cfg.storageKey) {
+        var saved = localStorage.getItem(cfg.storageKey);
+        if (saved !== null) {
+            sel.value = saved;
+        }
+    }
+
+    var initial = sel.value;
+    var parsed = initial === 'all' ? Infinity : parseInt(initial) || cfg.defaultVal;
+    cfg.onChange(parsed);
+
+    sel.addEventListener('change', function () {
+        var val = this.value;
+        var pageSize = val === 'all' ? Infinity : parseInt(val) || cfg.defaultVal;
+        if (cfg.storageKey) {
+            localStorage.setItem(cfg.storageKey, val);
+        }
+        cfg.onChange(pageSize);
+    });
+}
 
 function paginate(cfg) {
     const totalPages = Math.ceil(cfg.data.length / cfg.pageSize);
@@ -233,6 +300,25 @@ function ripple(e, btn) {
 }
 
 // ───── Mobile Navigation ─────
+
+/**
+ * Initialize keyboard shortcuts for week navigation ([ and ]).
+ * Each page must define either prevWeek()/nextWeek() or prevWeekFilter()/nextWeekFilter().
+ */
+function initWeekKeyboardShortcuts() {
+    document.addEventListener('keydown', function(e) {
+        if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.tagName === 'SELECT') return;
+        if (e.key === '[') {
+            e.preventDefault();
+            if (typeof prevWeek === 'function') prevWeek();
+            else if (typeof prevWeekFilter === 'function') prevWeekFilter();
+        } else if (e.key === ']') {
+            e.preventDefault();
+            if (typeof nextWeek === 'function') nextWeek();
+            else if (typeof nextWeekFilter === 'function') nextWeekFilter();
+        }
+    });
+}
 
 function initMobileNav() {
     const hamburger = document.getElementById('navHamburger');
@@ -364,15 +450,27 @@ let _toastTimer = null;
  * @param {string} message - Success message to display
  * @param {function|null} undoCallback - Function to call when Undo is clicked (null = no Undo button)
  * @param {number} duration - Auto-dismiss time in ms (default 5000)
+ * @param {string} [linkText] - Optional text for a clickable link in the toast
+ * @param {string} [linkUrl] - Optional URL for the clickable link
+ * @param {string} [details] - Optional secondary detail text (shown below message)
  */
-function showToast(message, undoCallback, duration = 5000) {
+function showToast(message, undoCallback, duration = 5000, linkText = '', linkUrl = '', details = '') {
     const bar = document.getElementById('toastBar');
     if (!bar) return;
 
     const msgEl = bar.querySelector('.toast-message');
+    const detailsEl = bar.querySelector('.toast-details');
     const undoBtn = bar.querySelector('.toast-undo');
+    const linkEl = bar.querySelector('.toast-link');
 
     msgEl.textContent = message;
+
+    if (details && detailsEl) {
+        detailsEl.textContent = details;
+        detailsEl.style.display = 'block';
+    } else if (detailsEl) {
+        detailsEl.style.display = 'none';
+    }
 
     if (undoCallback) {
         undoBtn.style.display = 'inline-block';
@@ -382,6 +480,14 @@ function showToast(message, undoCallback, duration = 5000) {
         };
     } else {
         undoBtn.style.display = 'none';
+    }
+
+    if (linkText && linkUrl && linkEl) {
+        linkEl.textContent = linkText;
+        linkEl.href = linkUrl;
+        linkEl.style.display = 'inline-block';
+    } else if (linkEl) {
+        linkEl.style.display = 'none';
     }
 
     bar.classList.add('visible');
@@ -394,4 +500,37 @@ function dismissToast() {
     const bar = document.getElementById('toastBar');
     if (bar) bar.classList.remove('visible');
     clearTimeout(_toastTimer);
+}
+
+// ───── Day Helpers ─────
+
+const dayNames = ['MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY', 'SUNDAY'];
+
+function dayAbbr(day) {
+    return day.substring(0, 3);
+}
+
+// ───── Week Filter Navigation ─────
+
+function weekFilterChanged(opts) {
+    pageState.currentPage = 1;
+    if (opts && typeof opts.onBeforeRebuild === 'function') opts.onBeforeRebuild();
+    buildTable();
+    updateWeekArrowState();
+}
+
+function prevWeekFilter() {
+    const sel = document.getElementById('weekFilter');
+    if (sel.selectedIndex > 0) {
+        sel.selectedIndex--;
+        sel.dispatchEvent(new Event('change'));
+    }
+}
+
+function nextWeekFilter() {
+    const sel = document.getElementById('weekFilter');
+    if (sel.selectedIndex < sel.options.length - 1) {
+        sel.selectedIndex++;
+        sel.dispatchEvent(new Event('change'));
+    }
 }

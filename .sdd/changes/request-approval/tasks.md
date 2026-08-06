@@ -49,13 +49,13 @@
 
 ## Task 5 — Create/extend mock-data.js + write mock data + helper functions
 
-- [ ] Check whether `public/js/mock-data.js` already exists (created by the `centralized-mock-data` change). **If it exists: DO NOT overwrite** — extend/verify it keeps the compatibility globals `approvalRequests` (this page's 20 entries) and `URGENCY_REFERENCE_DATE` intact; the `window.MockData` sections are owned by the other change. **If it does not exist:** create it with `const approvalRequests = [...]` (20 entries) and `const URGENCY_REFERENCE_DATE = new Date('2026-08-29T00:00:00')` per the contract in proposal.md.
+- [ ] Check whether `public/js/mock-data.js` already exists (created by the `centralized-mock-data` change). **If it exists: DO NOT overwrite** — extend/verify it keeps `MockData.approvalRequests` (this page's 20 entries) and `MockData.urgencyReferenceDate` intact; the `window.MockData` sections are owned by the other change. **If it does not exist:** create it with `window.MockData.approvalRequests = [...]` (20 entries) and `window.MockData.urgencyReferenceDate = new Date('2026-08-29T00:00:00')` per the contract in proposal.md.
 - [ ] Add `<script src="/js/mock-data.js"></script>` to `layouts/ui-template.blade.php` immediately after the `ui-common.js` script tag (must load BEFORE the page's inline script); if the tag already exists (added by `centralized-mock-data`), no change needed
-- [ ] Write 20 distinct mock entries in `approvalRequests[]` array (in mock-data.js) — all with `lecturer` field, using distinct values: lecturers (Kylian Mbappe, Dembele, Hakimi, Neymar, Vinicius), course codes (BMIT2201, BMIT3302, BMIT4403, BMIT5504, BMIT6605, BMIT7706, BMIT8807, BMIT9908), cohorts (DIT2, DSE2, DCS2, DAI2, DNE2, DDA2 — all with (S1) suffix), venues (C201, C202, D103, D104, E201, E202), durations 1-3 hours, class dates spanning Aug 31 - Sep 27 (Weeks 1-4). Status distribution: 8 Pending, 5 Approved, 4 Rejected, 2 Completed, 1 Cancelled
+- [ ] Write 20 distinct mock entries in `MockData.approvalRequests[]` array (in mock-data.js) — all with `lecturer` field, using distinct values: lecturers (Kylian Mbappe, Dembele, Hakimi, Neymar, Vinicius), course codes (BMIT2201, BMIT3302, BMIT4403, BMIT5504, BMIT6605, BMIT7706, BMIT8807, BMIT9908), cohorts (DIT2, DSE2, DCS2, DAI2, DNE2, DDA2 — all with (S1) suffix), venues (C201, C202, D103, D104, E201, E202), durations 1-3 hours, class dates spanning Aug 31 - Sep 27 (Weeks 1-4). Status distribution: 8 Pending, 5 Approved, 4 Rejected, 2 Completed, 1 Cancelled
 - [ ] Add `slotValidity` field to all 20 entries (FR 3.4): `'valid'` or `'conflict'`, ~4-5 entries 'conflict' with `conflictReason` string (e.g. "Room C202 already occupied"), rest 'valid'
 - [ ] Ensure at least 3-4 entries have `classDate` within 3 days of `2026-08-29` — use class dates **Aug 31 and Sep 1** (both "Urgent" AND inside Week 1; Aug 29/30 fall outside all weekRanges so entries with those dates vanish under the week filter — do NOT use them)
 - [ ] Verify NO other page's inline mock data was touched (my-request-history keeps its own distinct dataset — migrating it is future work)
-- [ ] In the page's `@section('page-scripts')`: reference shared `weekRanges` from ui-common.js AND `approvalRequests`/`URGENCY_REFERENCE_DATE` from mock-data.js — do NOT redeclare any of them in the page script (a duplicate `const` would throw "Identifier already declared" and kill the whole inline script). Same 4-week structure: Week 1: 31 Aug-6 Sep, Week 2: 7-13 Sep, Week 3: 14-20 Sep, Week 4: 21-27 Sep
+- [ ] In the page's `@section('page-scripts')`: reference shared `weekRanges` from ui-common.js AND `MockData.approvalRequests`/`MockData.urgencyReferenceDate` from mock-data.js — do NOT redeclare any of them in the page script (a duplicate `const` would throw "Identifier already declared" and kill the whole inline script). Same 4-week structure: Week 1: 31 Aug-6 Sep, Week 2: 7-13 Sep, Week 3: 14-20 Sep, Week 4: 21-27 Sep
 - [ ] Use shared helper functions from `ui-common.js` (promoted in Task 1 — do NOT copy them): `formatDateTime(iso)`, `statusClass(status)`, `dayAbbr(day)`, `isoDayName(iso)`, `formatClassBlock(r)`, `formatReplacementBlock(r)`, `getWeekRange(weekVal)`, `isInWeek(classDate, weekVal)`, `getWeekNumber(iso)`, `weekRanges` — all loaded via the layout's `<script src="/js/ui-common.js">` before the page's inline script
 - [ ] Write NEW page-local helper functions: `urgencyLevel(classDate)`, `urgencyClass(level)`, `urgencyLabel(level)`, `urgencyDays(classDate)` (these use `URGENCY_REFERENCE_DATE` from mock-data.js)
 - [ ] Verify no syntax errors in all JS code
@@ -88,8 +88,8 @@
 - [ ] Add Slot Validity field (FR 3.4) to modal Section 3 after Replacement Venue: render via `slotValidityHtml(r)` — `<span class="slot-valid">✓ Valid</span>` (green, `--color-primary`) or `<span class="slot-conflict">⚠ Conflict — <reason></span>` (red, `--color-error`). Add `.slot-valid` / `.slot-conflict` CSS
 - [ ] Write `closeModal()` function (same as my-request-history) — can use shared `closeOnOverlayClick(e, closeFn)` from ui-common.js; do NOT use `closeOnEsc` for closeModal — Escape is handled by the ONE keydown handler in the DOMContentLoaded line below (wiring closeOnEsc(closeModal) here AND the custom handler would make Escape close BOTH modals at once when the reject modal is open)
 - [ ] Place `#rejectReasonModal` AFTER `#modalOverlay` in the DOM (both use `.modal-overlay` z-index 100 → DOM order decides which is on top)
-- [ ] Write `approveRequest(id)` function: `confirm()` → `alert()` — does NOT modify approvalRequests or re-render
-- [ ] Write Rejection Reason modal (FR 3.6): HTML overlay `#rejectReasonModal` with textarea `#rejectReasonInput`, Cancel (`#cancelRejectBtn`) + Confirm Reject (`#confirmRejectBtn`, disabled initially); functions `openRejectModal(id)` (clears input, shows modal, focuses textarea), `updateRejectConfirmState()` (enables Confirm only when input has non-whitespace), `rejectRequest()` (re-validates, `confirm()` including reason → `alert()`, then close), `closeRejectModal()` — does NOT modify approvalRequests or re-render
+- [ ] Write `approveRequest(id)` function: `confirm()` → `alert()` — does NOT modify MockData.approvalRequests or re-render
+- [ ] Write Rejection Reason modal (FR 3.6): HTML overlay `#rejectReasonModal` with textarea `#rejectReasonInput`, Cancel (`#cancelRejectBtn`) + Confirm Reject (`#confirmRejectBtn`, disabled initially); functions `openRejectModal(id)` (clears input, shows modal, focuses textarea), `updateRejectConfirmState()` (enables Confirm only when input has non-whitespace), `rejectRequest()` (re-validates, `confirm()` including reason — label is `selectedIds.size + ' request(s)'` for bulk or `'Request #' + currentRejectId` for single → `alert()`, then `closeRejectModal()`, `selectedIds.clear()`, `renderTable()`, `reviewNextAfterAction(currentRejectId)`), `closeRejectModal()` — does NOT modify MockData.approvalRequests
 - [ ] Write `DOMContentLoaded` handler: populate week filter dropdown, set status filter to 'Pending', call `renderTable()`, attach event listeners (search input, status filter, week filter, clear filters, modal overlay click, Escape key — use ONE Escape keydown handler that closes the topmost modal: `if (rejectReasonModal.classList.contains('show')) closeRejectModal(); else closeModal();`. Do NOT call `closeOnEsc` twice — it attaches an unconditional listener per call and would close both modals at once)
 - [ ] "Reset Filters" button: resets search to '', status to 'Pending', week to 'all' (NOT 'all' for status — resets to 'Pending'), page to 1, sort to `requestedAt` asc
 - [ ] Verify modal opens on badge click and View button click
@@ -135,31 +135,49 @@
 - [ ] Verify mock-data.js loads: Network tab shows `/js/mock-data.js` loaded with 200; no "Identifier already declared" console errors
 - [ ] Verify other pages unaffected: `http://localhost:8000/replacement-home-ui` and `http://localhost:8000/my-timetable-ui` still load with no console errors
 - [ ] Regression: `http://localhost:8000/my-request-history-ui` still works after helper promotion (sorting, week filter, pagination, modal, Cancel button)
+- [ ] Test keyboard shortcuts: ArrowDown/ArrowUp moves row highlight; Enter opens modal for highlighted row; Escape clears highlight; A on Pending opens approval notes modal; R on Pending opens rejection reason modal
+- [ ] Test keyboard shortcuts paused in modal: open any modal, press ArrowDown — no row highlight change; close modal, verify shortcuts resume
+- [ ] Test review next auto-approve: approve a Pending row — next Pending row's modal opens automatically; approve the last Pending — modal closes, no more Pending highlighted
+- [ ] Test review next auto-reject: reject a Pending row — next Pending row's modal opens automatically; reject the last Pending — modal closes
+- [ ] Test slot validity icon: Proposed Replacement column shows ✓ (green) for valid, ⚠ (red) for conflict, ? (amber) for tentative entries
+- [ ] Test toast notifications: approve a request — verify toast appears bottom-left with message + Undo button + close ✕; verify toast auto-dismisses after 5s; verify no browser alert() appears
+- [ ] Test undo: approve a request → toast appears → click Undo → verify row reverts to Pending; verify nav badge count restores
+- [ ] Test undo after reject: reject a request → click Undo → verify row reverts to Pending
+- [ ] Test toast without undo: trigger validation error (reject with empty reason) — verify toast shows without Undo, auto-dismisses after 3s
+- [ ] Test animated transitions: approve a request — verify row flashes green briefly; reject — verify row flashes red briefly
+- [ ] Test smart grouping: select "Group by Course" — verify rows grouped under collapsible course headers with count badges; click header — verify collapse/expand with animation; select "Group by Lecturer" — verify lecturer grouping; select "No grouping" — flat table returns
+- [ ] Test grouping + pagination: verify group headers count toward pagination; verify groups split correctly across pages
+- [ ] Test grouping + keyboard: verify ArrowDown/ArrowUp skips group headers, only navigates data rows
+- [ ] Test mini timeline: open detail modal — verify 3-step timeline (Submitted/Viewed/Reviewed) at top; completed steps = green dots, active = pulsing amber, pending = grey
+- [ ] Test skeleton loading: refresh page — verify skeleton shimmer rows appear ~300ms before real content
+- [ ] Verify no console errors on any interaction
 
-**Effort:** 30 minutes
+**Effort:** 45 minutes
 
 ## Task 9 — Create changelog
 
 - [ ] Update/replace `page-changelogs/request-approval-changelog.md` (file already exists, dated 2026-08-01) — follow the existing changelog format (see `page-changelogs/my-request-history-changelog.md` for reference); reconcile pre-existing entries with the actual implemented state (entries claiming the page/route/nav are done are incorrect until implementation completes)
 - [ ] Document all files changed: new template, mock-data.js creation, layout script tag, route addition, nav bar modification, ui-common.js helper promotion, my-request-history refactor
-- [ ] Document key design decisions: 10-column table + checkbox column, urgency system with fixed reference date, in-table approve/reject (no state update), default Pending filter, modal footer button toggling, 8 PL-efficiency features
-- [ ] Document OOP decisions: 10 shared helpers promoted to ui-common.js (single source of truth), mock-data.js shared data module (data separated from logic), my-request-history refactored to consume shared versions
+- [ ] Document key design decisions: 11-column table + checkbox column, urgency system with fixed reference date, in-table approve/reject (no state update), default Pending filter, modal footer button toggling, 17 PL-efficiency features (toast notifications, undo stack, animated transitions, smart grouping, mini timeline, skeleton loading + 11 earlier features)
+- [ ] Document OOP decisions: 10 shared helpers promoted to ui-common.js (single source of truth), mock-data.js shared data module (data separated from logic), my-request-history refactored to consume shared versions, toast/undo bar reused from shared ui-common.js
 
 **Effort:** 15 minutes
 
-## Task 10 — Build HTML for 8 PL-efficiency features
+## Task 10 — Build HTML for 17 PL-efficiency features
 
 - [ ] Add checkbox column header (`<th class="col-checkbox"><input type="checkbox" id="selectAll" onchange="toggleSelectAll()"></th>`) as first `<th>` in the `<thead>` (before the `#` column header)
 - [ ] Add batch action bar HTML above the `<table>`: `<div class="batch-bar" id="batchBar" style="display:none"><span class="batch-count" id="batchCount"></span><button class="btn-approve" onclick="bulkApprove()">Approve Selected</button><button class="btn-reject" onclick="bulkReject()">Reject Selected</button></div>`
 - [ ] Add urgency filter chip group in `.toolbar-left` between the status `<select>` and the week `<select>`: 3 buttons with `data-urgency="all"|"urgent"|"normal"`, "All" has `.active` class by default
+- [ ] Add "Group by" `<select id="groupFilter">` in `.toolbar-left` after urgency chips, before week filter: options "No grouping" (value none), "Group by Course" (value course), "Group by Lecturer" (value lecturer)
 - [ ] Add approval notes modal HTML `#approveNotesModal` AFTER `#rejectReasonModal` in the DOM: overlay + modal with `#approveNotesSummary` div, `#approveNotesInput` textarea, Cancel button, Approve button `#confirmApproveBtn`
 - [ ] Add reject preset chips HTML inside `#rejectReasonModal .modal-body` ABOVE the textarea: 5 `.reject-preset-chip` buttons ("Venue unavailable", "Insufficient notice", "Slot conflict", "Lecturer unavailable", "Other")
 - [ ] Add nav badge `<span class="nav-badge" id="navPendingBadge"></span>` inside the "Request Approval" `<a>` in `ui-nav-bar.blade.php`
+- [ ] Add `viewedAt` and `reviewedAt` fields (ISO strings or null) to each of the 20 `MockData.approvalRequests` entries in `public/js/mock-data.js` — used by mini timeline (§7p)
 - [ ] Verify all new HTML IDs are unique and don't conflict with existing IDs
 
 **Effort:** 1.5 hours
 
-## Task 11 — Write CSS for 8 PL-efficiency features
+## Task 11 — Write CSS for 17 PL-efficiency features
 
 - [ ] Add `.col-checkbox` width (35px) + checkbox styling (`accent-color: var(--color-primary)`)
 - [ ] Add `.batch-bar` (flex, gap, padding, background, border, border-radius, margin-bottom) + `.batch-count` (font-size, font-weight)
@@ -168,28 +186,49 @@
 - [ ] Add `.reject-presets` (flex, wrap, gap, margin-bottom) + `.reject-preset-chip` (padding, border-radius, border, background, color, font-size, cursor, transition) + hover
 - [ ] Add `.nav-badge` (inline-block, min-width, height, line-height, border-radius, background error, color on-error, font-size, font-weight, text-align, margin-left, padding)
 - [ ] Add `.row-viewed td:first-child` (left-border 3px solid primary)
+- [ ] Add `.row-active` (background primary-container !important, border-left 3px solid primary) — keyboard highlight (§7i)
+- [ ] Add `.slot-icon` (font-size 11px, margin-left 4px, font-weight 600) + `.slot-valid` (green), `.slot-conflict` (red), `.slot-tentative` (amber) — slot validity preview (§7k)
+- [ ] Add `.row-flash-approved` / `.row-flash-rejected` (0.6s animation fade from secondary/error container to transparent) — animated transitions (§7n)
+- [ ] Add `.group-header` (cursor pointer, background surface-variant, font-size 13px, padding) + `.group-arrow` (margin-right 6px) + `.group-count` (badge-style: background primary-container, border-radius 10px, padding 2px 8px, font-size 11px) — smart grouping (§7o)
+- [ ] Add `.group-body` (transition max-height 0.3s ease, opacity 0.2s, overflow hidden) + `.group-body.collapsed` (max-height 0, opacity 0) — group collapse animation (§7n)
+- [ ] Add `.request-timeline` (flex, align-items center, padding, border-bottom, margin-bottom) + `.timeline-step` (flex column, align-items center, gap 4px) + `.timeline-dot` (width 12px, height 12px, border-radius 50%, border 2px solid outline) + `.timeline-step.completed .timeline-dot` (background secondary) + `.timeline-step.active .timeline-dot` (background tertiary, animation pulse) + `.timeline-label` (font-size 11px) + `.timeline-time` (font-size 10px, opacity 0.7) + `.timeline-connector` (flex 1, height 2px, min-width 40px) + `.timeline-connector.completed` (background secondary) + `@keyframes pulse` — mini timeline (§7p)
 - [ ] Verify no CSS syntax errors
 
-**Effort:** 1 hour
+**Effort:** 1.5 hours
 
-## Task 12 — Write JS for 8 PL-efficiency features
+## Task 12 — Write JS for 17 PL-efficiency features
 
 - [ ] Add `selectedIds = new Set()` state variable + `toggleSelectAll()`, `toggleRowSelect(id)`, `updateBatchBar()` functions (§7.1 bulk)
-- [ ] Add `bulkApprove()` function: builds summary from `selectedIds`, `confirm()` with multi-line summary (§7.2), `alert()`, clears `selectedIds`, calls `renderTable()`
-- [ ] Add `bulkReject()` function: calls `openRejectModal(null)` — `rejectRequest()` checks if `currentRejectId === null` and applies reason to all `selectedIds` entries
+- [ ] Add `bulkApprove()` function: builds summary from `selectedIds`, `confirm()` with multi-line summary (§7.2), `showToast()` with undo, clears `selectedIds`, calls `renderTable()`
+- [ ] Add `bulkReject()` function: calls `openRejectModal(null)` — `rejectRequest()` checks if `currentRejectId === null` and applies reason to all `selectedIds` entries; after confirm: `selectedIds.clear()`, `renderTable()`, `reviewNextAfterAction(null)`
 - [ ] Add `approveSummary(r)` helper: builds multi-line string from request object (§7.2 confirm summary)
 - [ ] Add `formatShortDate(iso)` helper: returns "31 Aug 2026" from "2026-08-31"
 - [ ] Add `applyRejectPreset(text)` function: sets `#rejectReasonInput` value, calls `updateRejectConfirmState()` (§7.3 presets)
 - [ ] Add `urgencyFilter = 'all'` state + `setUrgencyFilter(level)` function: toggles `.active` class, resets page to 1, calls `renderTable()` (§7.4 urgency filter)
 - [ ] Add `requestAgeHtml(requestedAt)` function: computes days since `requestedAt`, returns HTML with `.age-fresh`/`.age-waiting`/`.age-stale` class (§7.5 request age)
 - [ ] Add `currentApproveIds = []` state + `openApproveNotesModal(ids)` function: builds summary, shows modal (§7.6 approval notes)
-- [ ] Add `confirmApproveWithNotes()` function: reads notes, `confirm()` with notes, `alert()`, clears state, calls `renderTable()` (§7.6)
+- [ ] Add `confirmApproveWithNotes()` function: reads notes, `confirm()` with notes, `showToast()` with undo, clears state, calls `renderTable()` (§7.6)
 - [ ] Add `closeApproveNotesModal()` function
 - [ ] Add `viewedIds = new Set()` state + mark viewed in `openModal()` (§7.8 viewed indicator)
 - [ ] Add `updateNavBadge()` function: counts Pending, sets `#navPendingBadge` text + visibility (§7.7 nav badge)
-- [ ] Update `renderTable()`: add checkbox column (col 0), add request age sub-label in col 2, add urgency filter after status+week+search filtering, add `.row-viewed` class to `<tr>` if viewed, call `updateBatchBar()` at end
-- [ ] Update `DOMContentLoaded`: init urgency filter chip listeners, call `updateNavBadge()`, wire `#approveNotesModal` overlay click, extend Escape handler to 3-layer: approveNotes → rejectReason → detail modal
+- [ ] Add `activeRowIndex = -1` state + keyboard `keydown` listener (§7i): ArrowUp/ArrowDown navigate, Enter opens modal, A/R approve/reject, Escape clears highlight; pause when any `.modal.show` is open
+- [ ] Add `highlightRow()` function: toggles `.row-active` on data rows only — filter out `.group-header` rows with `querySelectorAll('#dataTable tbody tr:not(.group-header)')` to skip group headers during keyboard navigation
+- [ ] Add `reviewNextAfterAction(actedOnId)` function (§7j): finds next Pending after acted-on index, opens modal or closes if none left; called from `confirmApproveWithNotes()` and `rejectRequest()`
+- [ ] Add slot validity icon rendering in `renderTable()` (§7k): map `slotValidity` → ✓/⚠/? with `.slot-valid`/`.slot-conflict`/`.slot-tentative` classes
+- [ ] Replace all `alert()` calls with `showToast(message, undoCallback, duration)` (§7l): single approve → `showToast('Request #X approved.', undoFn, 5000)`, single reject → `showToast('Request #X rejected.', undoFn, 5000)`, bulk approve → `showToast('N request(s) approved.', undoFn, 5000)`, bulk reject → `showToast('N request(s) rejected.', undoFn, 5000)`, validation error → `showToast('Please provide a rejection reason.', null, 3000)`
+- [ ] Add undo callbacks (§7m): capture `prevStatus` before status change, pass restore function as `showToast` undoCallback — reverts status, re-renders, re-updates nav badge
+- [ ] Add row flash animation (§7n): after `renderTable()` following approve/reject, find `<tr>` by data-id, add `.row-flash-approved` or `.row-flash-rejected` class, remove after 600ms via setTimeout
+- [ ] Add `groupField = 'none'` state + `collapsedGroups = new Set()` + `setGroupFilter(value)` function (§7o): resets page to 1, calls `renderTable()`
+- [ ] Add `toggleGroup(key)` function (§7o): adds/removes key from `collapsedGroups`, re-renders
+- [ ] Update `renderTable()` (§7o): when `groupField !== 'none'`, group `currentFiltered` by course/lecturer, insert `<tr class="group-header">` rows, wrap group bodies in `<tbody class="group-body">` with `.collapsed` class for collapsed groups; when `groupField === 'none'`, render flat as before
+- [ ] Add `buildTimeline(r)` function (§7p): generates HTML for 3-step timeline (Submitted/Viewed/Reviewed) from `r.requestedAt`, `r.viewedAt`, `r.reviewedAt`
+- [ ] Update `openModal()` (§7p): call `buildTimeline(r)` and prepend result to `.modal-body` before Section 1
+- [ ] Add `showSkeleton()` function (§7q): generates 10 skeleton rows + 4 skeleton card values using `.skeleton` class from theme.css
+- [ ] Add `isInitialLoad = true` flag (§7q): set in DOMContentLoaded after skeleton delay; when `renderTable()` called from filter/sort change (isInitialLoad=false), call `showSkeleton()` + 150ms setTimeout before real render
+- [ ] Update `DOMContentLoaded` (§7q): call `showSkeleton()` first, then 300ms delay before `renderTable()` + `updateNavBadge()`, then set `isInitialLoad = false`
+- [ ] Update `renderTable()`: add checkbox column (col 0), add request age sub-label in col 2, add urgency filter after status+week+search filtering, add `.row-viewed` class to `<tr>` if viewed, call `updateBatchBar()` at end, call `highlightRow()` at end
+- [ ] Update `DOMContentLoaded`: init urgency filter chip listeners, call `updateNavBadge()`, wire `#approveNotesModal` overlay click, extend Escape handler to 3-layer: approveNotes → rejectReason → detail modal, add keyboard `keydown` listener
 - [ ] Update `approveRequest(id)`: call `openApproveNotesModal([id])` instead of bare `confirm()` (§7.6 approval notes flow)
 - [ ] Verify no console errors on all interactions
 
-**Effort:** 2 hours
+**Effort:** 4 hours

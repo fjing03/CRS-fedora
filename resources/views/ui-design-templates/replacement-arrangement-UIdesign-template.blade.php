@@ -206,16 +206,18 @@
         }
 
         .time-header-col {
-            width: 130px;
-            min-width: 130px;
+            width: 110px;
+            min-width: 110px;
+            max-width: 110px;
             left: 0;
             z-index: 30 !important;
         }
         thead .time-header-col { z-index: 40 !important; }
 
         .time-col {
-            width: 130px;
-            min-width: 130px;
+            width: 110px;
+            min-width: 110px;
+            max-width: 110px;
             left: 0;
             position: sticky;
             z-index: 15;
@@ -268,7 +270,7 @@
 
         .timetable td.hour-cell {
             padding: 0;
-            height: 52px;
+            height: 80px;
             min-width: 80px;
             cursor: default;
         }
@@ -299,6 +301,7 @@
         .cell-occupied {
             background: var(--color-error-container);
             cursor: not-allowed;
+            height: 100%;
         }
 
         .cell-selected {
@@ -330,11 +333,13 @@
         .cell-pending {
             background: var(--color-tertiary-container);
             cursor: not-allowed;
+            height: 100%;
         }
 
         .cell-reserved {
             background: var(--color-surface-variant);
             cursor: not-allowed;
+            height: 100%;
         }
 
         .timetable tr:last-child td { border-bottom: none; }
@@ -670,7 +675,7 @@
                 padding: 8px 14px;
                 font-size: 12px;
             }
-            .time-header-col, .time-col { width: 100px; min-width: 100px; }
+            .time-header-col, .time-col { width: 14%; min-width: 120px; }
             .hour-header, .timetable td.hour-cell { min-width: 60px; }
             .header-logo { height: 44px; }
             .sel-summary-grid { grid-template-columns: 1fr; }
@@ -722,6 +727,89 @@
             }
         }
 
+        /* ───── F3: Progress Indicator ───── */
+        .progress-wrapper {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin: 8px 0;
+        }
+        .progress-bar {
+            flex: 1;
+            height: 8px;
+            background: var(--color-outline);
+            border-radius: 4px;
+            overflow: hidden;
+        }
+        .progress-fill {
+            height: 100%;
+            border-radius: 4px;
+            transition: width 0.3s, background 0.3s;
+            background: var(--color-outline);
+        }
+        .progress-text {
+            font-size: 12px;
+            color: var(--color-on-surface-variant);
+            white-space: nowrap;
+        }
+
+        /* ───── F4: Venue Capacity Badge ───── */
+        .venue-warning {
+            color: var(--color-error);
+            margin-left: 4px;
+        }
+
+        /* ───── F7: Toast Notification — handled by shared ui-common.js ───── */
+
+        /* ───── F1: Keyboard Shortcuts ───── */
+        .cell-focused {
+            outline: 2px solid var(--color-primary);
+            outline-offset: -2px;
+        }
+        .help-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.5);
+            z-index: 100;
+            display: none;
+            align-items: center;
+            justify-content: center;
+        }
+        .help-overlay.active {
+            display: flex;
+        }
+        .help-card {
+            background: var(--color-surface);
+            border-radius: 12px;
+            padding: 24px;
+            max-width: 400px;
+            width: 90%;
+            box-shadow: var(--shadow-lg);
+        }
+        .help-card h3 {
+            margin: 0 0 16px 0;
+            font-size: 16px;
+            color: var(--color-on-surface);
+        }
+        .help-card .shortcut-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 6px 0;
+            font-size: 13px;
+            color: var(--color-on-surface-variant);
+        }
+        .help-card .shortcut-key {
+            font-family: monospace;
+            background: var(--color-surface-variant);
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 12px;
+        }
+        .help-card .help-close {
+            margin-top: 16px;
+            text-align: right;
+        }
+
 @endsection
 
 @section('content')
@@ -744,17 +832,11 @@
         </svg>
     </button>
 
-    <div class="page-header">
-        <span class="semester-chip" id="semesterChip"></span>
-    </div>
+    @include('partials.ui-page-header', [])
 
         <div class="toolbar">
             <div class="toolbar-left">
-                <div class="week-nav">
-                    <button class="week-arrow" onclick="prevWeek()" aria-label="Previous week">&#8249;</button>
-                    <select class="selector-dropdown" id="weekSelector" onchange="onWeekChange()"></select>
-                    <button class="week-arrow" onclick="nextWeek()" aria-label="Next week">&#8250;</button>
-                </div>
+                @include('partials.ui-week-nav', ['prevOnclick' => 'prevWeek()', 'nextOnclick' => 'nextWeek()', 'selectId' => 'weekSelector', 'selectOnclick' => 'onWeekChange()', 'selectClass' => 'selector-dropdown', 'showTodayBtn' => false])
             </div>
             <div class="toolbar-center">
                 <div class="toolbar-subtitle">BMIT6767 Kylian Mbappe Dembele (L)</div>
@@ -762,24 +844,20 @@
             </div>
             <div class="toolbar-right">
                 <select class="selector-dropdown" id="buildingSelector" onchange="onVenueChange()">
-                    <option>B103</option>
-                    <option>B104</option>
-                    <option>B105</option>
-                    <option>B106</option>
                 </select>
             </div>
         </div>
 
         <div class="hint-text">Select an available (green) time slot</div>
 
-        <div class="grid-wrapper">
-            <div class="grid-scroll" id="gridScroll">
-                <table class="timetable" id="timetable">
-                    <thead id="tableHead"></thead>
-                    <tbody id="tableBody"></tbody>
-                </table>
+        <div class="progress-wrapper" id="progressWrapper">
+            <div class="progress-bar" id="progressBar">
+                <div class="progress-fill" id="progressFill"></div>
             </div>
+            <span class="progress-text" id="progressText">Selected 0 of 4 slots</span>
         </div>
+
+        @include('partials.ui-grid-table')
 
         <div class="legend">
             <div class="legend-item">
@@ -870,7 +948,7 @@
             </div>
         </div>
 
-    <div class="modal-overlay" id="confirmModal" style="display:none">
+        <div class="modal-overlay" id="confirmModal" style="display:none">
         <div class="modal">
             <div class="modal-header">
                 <span class="modal-title" id="modalTitle">Confirm</span>
@@ -884,6 +962,23 @@
         </div>
     </div>
 
+<div class="help-overlay" id="helpOverlay">
+    <div class="help-card">
+        <h3>Keyboard Shortcuts</h3>
+        <div class="shortcut-row"><span>Navigate grid</span><span class="shortcut-key">↑ ↓ ← →</span></div>
+        <div class="shortcut-row"><span>Select / deselect slot</span><span class="shortcut-key">Enter / Space</span></div>
+        <div class="shortcut-row"><span>Undo last selection</span><span class="shortcut-key">Ctrl+Z</span></div>
+        <div class="shortcut-row"><span>Previous week</span><span class="shortcut-key">[</span></div>
+        <div class="shortcut-row"><span>Next week</span><span class="shortcut-key">]</span></div>
+        <div class="shortcut-row"><span>Switch venue (1-3)</span><span class="shortcut-key">Ctrl+1/2/3</span></div>
+        <div class="shortcut-row"><span>Close modal / clear focus</span><span class="shortcut-key">Escape</span></div>
+        <div class="shortcut-row"><span>Show this help</span><span class="shortcut-key">?</span></div>
+        <div class="help-close">
+            <button class="btn btn-outline" onclick="hideHelp()">Close</button>
+        </div>
+    </div>
+</div>
+
 @endsection
 
 @section('page-scripts')
@@ -896,6 +991,8 @@
         let currentWeek = 0;
         let currentVenue = 'B103';
         let selectedCells = [];
+        let selectionHistory = [];
+        let focusedCell = { day: null, hour: null };
 
         function saveCurrentWeek() {
             if (!selectedSlotsByVenue[currentVenue]) selectedSlotsByVenue[currentVenue] = {};
@@ -941,6 +1038,7 @@
             const btn = document.querySelector('.btn-primary');
             if (btn) btn.disabled = selectedCells.length === 0;
             updateSelectionSummary();
+            updateProgress();
         }
 
         function updateSelectionSummary() {
@@ -1143,6 +1241,7 @@
 
         function toggleCell(di, hi, el) {
             if (el.classList.contains('cell-selected')) {
+                pushHistory({ action: 'deselect', day: di, hour: hi, venue: currentVenue, week: currentWeek });
                 el.classList.remove('cell-selected');
                 el.classList.add('cell-available');
                 el.innerHTML = timeLabelHtml(hi);
@@ -1164,6 +1263,11 @@
                 el.classList.add('cell-selected');
                 el.innerHTML = '<span class="sel-text"></span>' + timeLabelHtml(hi);
                 selectedCells.push({ day: di, hour: hi, el });
+                pushHistory({ action: 'select', day: di, hour: hi, venue: currentVenue, week: currentWeek });
+                const conflict = checkConflict(di, hi);
+                if (conflict) {
+                    showToast('This slot overlaps with your ' + conflict + ' class');
+                }
                 saveCurrentWeek();
                 updateCounter();
             }
@@ -1248,6 +1352,28 @@
             confirmCallback = null;
         }
 
+        function buildSubmissionToastMessage() {
+            const slots = [];
+            for (const venue in selectedSlotsByVenue) {
+                for (const week in selectedSlotsByVenue[venue]) {
+                    for (const slot of selectedSlotsByVenue[venue][week]) {
+                        const dayNames = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+                        const dayData = weekData[week].days[slot.day];
+                        const dayName = dayNames[slot.day];
+                        const dateStr = dayData.date.replace(/ \d{4}$/, '');
+                        const startStr = hours[slot.hour];
+                        const endStr = add30min(startStr);
+                        const timeRange = to12h(startStr) + '–' + to12h(endStr);
+                        slots.push(venue + ' · ' + dayName + ', ' + dateStr + ' · ' + timeRange);
+                    }
+                }
+            }
+            return {
+                message: '\u2713 Submitted \u2014 Pending Approval',
+                details: slots.join('  |  ')
+            };
+        }
+
         function proceed() {
             if (selectedCells.length === 0) {
                 showConfirmModal('No Selection', 'Please select at least one timeslot before proceeding.', null);
@@ -1267,8 +1393,16 @@
                  <div style="border:1px solid var(--color-outline);border-radius:8px;padding:10px 14px;max-height:200px;overflow-y:auto;">${listHtml}</div>`,
                 function() {
                     hideConfirmModal();
-                    showConfirmModal('Submitted', 'Your replacement request has been submitted for approval.', null);
-                    showToast('Replacement request submitted.', null);
+                    const toast = buildSubmissionToastMessage();
+                    selectedCells.forEach(c => {
+                        c.el.classList.remove('cell-selected');
+                        c.el.classList.add('cell-available');
+                        c.el.innerHTML = timeLabelHtml(c.hour);
+                    });
+                    selectedCells = [];
+                    Object.keys(selectedSlotsByVenue).forEach(k => { selectedSlotsByVenue[k] = {}; });
+                    updateCounter();
+                    showToast(toast.message, null, 5000, 'View \u2192', '/my-request-history-ui', toast.details);
                 }
             );
         }
@@ -1366,7 +1500,200 @@
             navigateTo('/');
         }
 
+        function updateProgress() {
+            const count = getGlobalTotal();
+            const max = MAX_SELECTION;
+            const pct = max > 0 ? (count / max) * 100 : 0;
+            const fill = document.getElementById('progressFill');
+            const text = document.getElementById('progressText');
+            if (fill) {
+                fill.style.width = pct + '%';
+                if (count === 0) fill.style.background = 'var(--color-outline)';
+                else if (count < max) fill.style.background = 'var(--color-tertiary)';
+                else fill.style.background = 'var(--color-secondary)';
+            }
+            if (text) text.textContent = 'Selected ' + count + ' of ' + max + ' slots';
+        }
+
+        function buildVenueDropdown() {
+            const sel = document.getElementById('buildingSelector');
+            const venues = MockData.venues || [];
+            const cohortStudents = 35; // DFT2(S1) + DSF2(S1) combined
+            sel.innerHTML = '';
+            venues.forEach(v => {
+                const opt = document.createElement('option');
+                opt.value = v.code;
+                const typeLabel = v.type === 'LectureHall' ? 'Lecture Hall' : v.type;
+                opt.textContent = v.code + ' — ' + typeLabel + ' (' + v.capacity + ' seats)';
+                if (v.capacity < cohortStudents) {
+                    opt.textContent += ' ⚠';
+                }
+                sel.appendChild(opt);
+            });
+        }
+
+        function checkConflict(dayIndex, hourIndex) {
+            const weekLabel = weekData[currentWeek].label;
+            const semesterWeek = parseInt(weekLabel.replace('Week ', ''));
+            const events = MockData.myTimetable.eventsByWeek[semesterWeek] || [];
+            for (let i = 0; i < events.length; i++) {
+                const e = events[i];
+                if (e.di === dayIndex && hourIndex >= e.start && hourIndex < e.end) {
+                    return e.code;
+                }
+            }
+            return null;
+        }
+
+        function pushHistory(entry) {
+            selectionHistory.push(entry);
+        }
+
+        function undoSelection() {
+            if (selectionHistory.length === 0) return;
+            const last = selectionHistory.pop();
+            const body = document.getElementById('tableBody');
+            const cellDiv = body.querySelector(
+                'td[data-day="' + last.day + '"][data-hour="' + last.hour + '"] .cell-content'
+            );
+            if (!cellDiv) return;
+
+            if (last.action === 'select') {
+                cellDiv.classList.remove('cell-selected');
+                cellDiv.classList.add('cell-available');
+                cellDiv.innerHTML = timeLabelHtml(last.hour);
+                selectedCells = selectedCells.filter(c => !(c.day === last.day && c.hour === last.hour));
+                if (selectedSlotsByVenue[last.venue] && selectedSlotsByVenue[last.venue][last.week]) {
+                    const slots = selectedSlotsByVenue[last.venue][last.week];
+                    const idx = slots.findIndex(s => s.day === last.day && s.hour === last.hour);
+                    if (idx !== -1) slots.splice(idx, 1);
+                }
+            } else if (last.action === 'deselect') {
+                if (cellDiv.classList.contains('cell-available')) {
+                    cellDiv.classList.remove('cell-available');
+                    cellDiv.classList.add('cell-selected');
+                    cellDiv.innerHTML = '<span class="sel-text"></span>' + timeLabelHtml(last.hour);
+                    selectedCells.push({ day: last.day, hour: last.hour, el: cellDiv });
+                    if (!selectedSlotsByVenue[last.venue]) selectedSlotsByVenue[last.venue] = {};
+                    if (!selectedSlotsByVenue[last.venue][last.week]) selectedSlotsByVenue[last.venue][last.week] = [];
+                    selectedSlotsByVenue[last.venue][last.week].push({ day: last.day, hour: last.hour });
+                }
+            }
+            updateCounter();
+            showToast('Selection undone');
+        }
+
+        function focusCell(day, hour) {
+            unfocusCell();
+            const body = document.getElementById('tableBody');
+            const td = body.querySelector('td[data-day="' + day + '"][data-hour="' + hour + '"]');
+            if (td) {
+                const cellDiv = td.querySelector('.cell-content');
+                if (cellDiv) cellDiv.classList.add('cell-focused');
+            }
+            focusedCell = { day: day, hour: hour };
+        }
+
+        function unfocusCell() {
+            if (focusedCell.day !== null && focusedCell.hour !== null) {
+                const body = document.getElementById('tableBody');
+                const td = body.querySelector('td[data-day="' + focusedCell.day + '"][data-hour="' + focusedCell.hour + '"]');
+                if (td) {
+                    const cellDiv = td.querySelector('.cell-content');
+                    if (cellDiv) cellDiv.classList.remove('cell-focused');
+                }
+            }
+            focusedCell = { day: null, hour: null };
+        }
+
+        function showHelp() {
+            document.getElementById('helpOverlay').classList.add('active');
+        }
+
+        function hideHelp() {
+            document.getElementById('helpOverlay').classList.remove('active');
+        }
+
+        function handleKeyDown(e) {
+            const modal = document.getElementById('confirmModal');
+            if (modal && modal.style.display === 'flex') {
+                if (e.key === 'Escape') hideConfirmModal(e);
+                return;
+            }
+            const help = document.getElementById('helpOverlay');
+            if (help && help.classList.contains('active')) {
+                if (e.key === 'Escape') hideHelp();
+                return;
+            }
+
+            const days = getDays();
+            const maxDay = days.length - 1;
+            const maxHour = hours.length - 1;
+
+            switch (e.key) {
+                case 'ArrowUp':
+                    e.preventDefault();
+                    if (focusedCell.day === null) focusCell(0, 0);
+                    else if (focusedCell.day > 0) focusCell(focusedCell.day - 1, focusedCell.hour);
+                    break;
+                case 'ArrowDown':
+                    e.preventDefault();
+                    if (focusedCell.day === null) focusCell(0, 0);
+                    else if (focusedCell.day < maxDay) focusCell(focusedCell.day + 1, focusedCell.hour);
+                    break;
+                case 'ArrowLeft':
+                    e.preventDefault();
+                    if (focusedCell.day === null) focusCell(0, 0);
+                    else if (focusedCell.hour > 0) focusCell(focusedCell.day, focusedCell.hour - 1);
+                    break;
+                case 'ArrowRight':
+                    e.preventDefault();
+                    if (focusedCell.day === null) focusCell(0, 0);
+                    else if (focusedCell.hour < maxHour) focusCell(focusedCell.day, focusedCell.hour + 1);
+                    break;
+                case 'Enter':
+                case ' ':
+                    e.preventDefault();
+                    if (focusedCell.day !== null) {
+                        const body = document.getElementById('tableBody');
+                        const td = body.querySelector('td[data-day="' + focusedCell.day + '"][data-hour="' + focusedCell.hour + '"]');
+                        if (td) {
+                            const cellDiv = td.querySelector('.cell-content');
+                            if (cellDiv) toggleCell(focusedCell.day, focusedCell.hour, cellDiv);
+                        }
+                    }
+                    break;
+                case 'Escape':
+                    unfocusCell();
+                    break;
+                case '?':
+                    showHelp();
+                    break;
+                case 'z':
+                case 'Z':
+                    if (e.ctrlKey || e.metaKey) {
+                        e.preventDefault();
+                        undoSelection();
+                    }
+                    break;
+                case '1':
+                case '2':
+                case '3':
+                    if (e.ctrlKey || e.metaKey) {
+                        e.preventDefault();
+                        const venueIdx = parseInt(e.key) - 1;
+                        const venueSel = document.getElementById('buildingSelector');
+                        if (venueIdx < venueSel.options.length) {
+                            venueSel.selectedIndex = venueIdx;
+                            onVenueChange();
+                        }
+                    }
+                    break;
+            }
+        }
+
         document.addEventListener('DOMContentLoaded', function() {
+            buildVenueDropdown();
             document.getElementById('semesterChip').textContent = MockData.semester.chipText;
             const sel = document.getElementById('weekSelector');
             const isMobile = window.innerWidth <= 768;
@@ -1382,5 +1709,8 @@
             }).join('');
             sel.value = currentWeek;
             buildTimetable();
+
+            document.addEventListener('keydown', handleKeyDown);
+            initWeekKeyboardShortcuts();
         });
 @endsection

@@ -5,20 +5,15 @@
 @section('page-styles')
 
         /* ───── Column Widths ───── */
-        .col-no { width: 50px; }
-        .col-code { width: 200px; }
-        .col-type { width: 90px; }
-        .col-week { width: 80px; }
-        .col-date { width: 110px; }
-        .col-day { width: 80px; }
+        .col-original { width: 200px; }
+        .col-original { white-space: normal; }
         .col-urgency { width: 100px; }
-        .col-time { width: 130px; }
-        .col-duration { width: 70px; }
         .col-venue { width: 70px; }
-        .col-students { width: 80px; }
         .col-cohort { width: 130px; }
         .col-reason { width: 140px; vertical-align: middle; }
         .col-action { width: 150px; }
+
+        .grid-scroll .timetable { min-width: 1120px; }
 
         /* ───── Urgency ───── */
         .urgency-high { color: var(--color-error); font-weight: 700; }
@@ -74,7 +69,6 @@
         }
 
         /* ───── Responsive Card View ───── */
-        .card-view { display: none; }
         .replacement-card {
             background: var(--color-surface);
             border: 1px solid var(--color-outline);
@@ -129,6 +123,7 @@
         @media (max-width: 768px) {
             .grid-wrapper, .pagination-bar, .sort-hint { display: none !important; }
             .card-view { display: block; }
+            #kbShortcutsBtn { display: none !important; }
         }
 
 @endsection
@@ -136,11 +131,7 @@
 @section('content')
 
         <!-- ─── Page Header ─── -->
-        <div class="page-header">
-            <h1 class="page-title">Replacement Arrangement</h1>
-            <span class="semester-chip" id="semesterChip"></span>
-            <p class="page-desc">The following classes require replacement arrangements. Select a class to submit a replacement request.</p>
-        </div>
+        @include('partials.ui-page-header', ['title' => 'Replacement Arrangement', 'description' => 'The following classes require replacement arrangements. Select a class to submit a replacement request.'])
 
         <!-- ─── Toolbar ─── -->
         <div class="toolbar">
@@ -152,34 +143,27 @@
                     </svg>
                     <input class="search-input" id="searchInput" placeholder="Search by course code or name...">
                 </div>
-                <div class="week-nav">
-                    <button class="week-arrow" onclick="prevWeekFilter()" aria-label="Previous week">&#8249;</button>
-                    <select class="week-select" id="weekFilter" onchange="weekFilterChanged(this.value)"></select>
-                    <button class="week-arrow" onclick="nextWeekFilter()" aria-label="Next week">&#8250;</button>
-                </div>
+                @include('partials.ui-week-nav', ['prevOnclick' => 'prevWeekFilter()', 'nextOnclick' => 'nextWeekFilter()', 'selectId' => 'weekFilter', 'selectOnclick' => 'weekFilterChanged(this.value)', 'showTodayBtn' => false])
             </div>
             <div class="toolbar-right">
                 <span class="result-count" id="resultCount">Showing 14 of 14 classes</span>
+                <button id="kbShortcutsBtn" class="btn-icon" onclick="showKeyboardShortcuts()" title="Keyboard Shortcuts" style="margin-left:auto; width:36px; height:36px; display:flex; align-items:center; justify-content:center; border:1px solid var(--color-outline); border-radius:8px; color:var(--color-on-surface-variant); background:var(--color-surface); cursor:pointer;">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2" ry="2"/><path d="M6 8h.001"/><path d="M10 8h.001"/><path d="M14 8h.001"/><path d="M18 8h.001"/><path d="M8 12h.001"/><path d="M12 12h.001"/><path d="M16 12h.001"/><path d="M7 16h10"/></svg>
+                </button>
             </div>
         </div>
 
-        <div class="sort-hint">Click <strong>Date</strong> or <strong>Course Code &amp; Name</strong> to sort</div>
+        <div class="sort-hint">Click <strong>Course Code &amp; Name</strong> or <strong>Original Class</strong> to sort</div>
 
         <!-- ─── Grid Wrapper ─── -->
-        <div class="grid-wrapper">
-            <div class="grid-scroll">
-                <table class="timetable" id="timetable">
-                    <thead id="tableHead"></thead>
-                    <tbody id="tableBody"></tbody>
-                </table>
-            </div>
-        </div>
+        @include('partials.ui-grid-table')
 
         <!-- ─── Card View (mobile) ─── -->
         <div class="card-view" id="cardView"></div>
 
         <!-- ─── Pagination ─── -->
         <div class="pagination-bar" id="paginationBar">
+            @include('partials.ui-rpp', ['id' => 'rppSelect', 'default' => 10, 'options' => [10, 25, 50, 'all']])
             <span class="pagination-info" id="paginationInfo">Showing 1-10 of 14</span>
             <div class="pagination-controls" id="paginationControls"></div>
         </div>
@@ -196,15 +180,52 @@
         ])
 
         <!-- ─── Empty State ─── -->
-        <div class="empty-state" id="emptyState" style="display:none">
-            <svg class="empty-icon" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round">
-                <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
-                <line x1="16" y1="2" x2="16" y2="6"/>
-                <line x1="8" y1="2" x2="8" y2="6"/>
-                <line x1="3" y1="10" x2="21" y2="10"/>
-            </svg>
-            <h3 class="empty-title">No classes currently require replacement arrangements.</h3>
-            <p class="empty-text">Try adjusting your search or filter criteria.</p>
+        @include('partials.ui-empty-state', ['title' => 'No classes currently require replacement arrangements.', 'text' => 'Try adjusting your search or filter criteria.'])
+
+        <!-- Keyboard Shortcuts Modal -->
+        <div class="modal-overlay" id="keyboardModal">
+            <div class="modal" style="max-width:420px">
+                <div class="modal-header">
+                    <h3 class="modal-title">Keyboard Shortcuts</h3>
+                    <button class="modal-close" onclick="hideKeyboardShortcuts()">✕</button>
+                </div>
+                <div class="modal-body">
+                    <div class="modal-field"><span class="modal-field-label">Focus search</span><span class="modal-field-value"><code style="padding:2px 6px;border:1px solid var(--color-outline);border-radius:4px;font-size:12px;background:var(--color-surface-variant)">/</code></span></div>
+                    <div class="modal-field"><span class="modal-field-label">Clear filters</span><span class="modal-field-value"><code style="padding:2px 6px;border:1px solid var(--color-outline);border-radius:4px;font-size:12px;background:var(--color-surface-variant)">Esc</code></span></div>
+                    <div class="modal-field"><span class="modal-field-label">Next page</span><span class="modal-field-value"><code style="padding:2px 6px;border:1px solid var(--color-outline);border-radius:4px;font-size:12px;background:var(--color-surface-variant)">→</code></span></div>
+                    <div class="modal-field"><span class="modal-field-label">Previous page</span><span class="modal-field-value"><code style="padding:2px 6px;border:1px solid var(--color-outline);border-radius:4px;font-size:12px;background:var(--color-surface-variant)">←</code></span></div>
+                    <div class="modal-field"><span class="modal-field-label">Open quick view</span><span class="modal-field-value"><code style="padding:2px 6px;border:1px solid var(--color-outline);border-radius:4px;font-size:12px;background:var(--color-surface-variant)">Enter</code></span></div>
+                    <div class="modal-field"><span class="modal-field-label">Show shortcuts</span><span class="modal-field-value"><code style="padding:2px 6px;border:1px solid var(--color-outline);border-radius:4px;font-size:12px;background:var(--color-surface-variant)">?</code></span></div>
+                    <p style="margin-top:12px;font-size:11px;color:var(--color-on-surface-variant);text-align:center">Shortcuts only work when no input field is focused.</p>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn-close-modal" onclick="hideKeyboardShortcuts()">Close</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Quick View Modal -->
+        <style>
+            #quickViewModal .modal-footer {
+                justify-content: space-between !important;
+                width: 100% !important;
+            }
+        </style>
+        <div class="modal-overlay" id="quickViewModal">
+            <div class="modal" style="max-width:500px">
+                <div class="modal-header">
+                    <h3 class="modal-title" id="qvTitle">Replacement Details</h3>
+                    <button class="modal-close" onclick="hideQuickView()">✕</button>
+                </div>
+                <div class="modal-body" id="qvBody"></div>
+                <div class="modal-footer">
+                    <button class="btn-action" id="qvArrangeBtn" onclick="qvArrange()">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+                        Arrange Replacement
+                    </button>
+                    <button class="btn-close-modal" onclick="hideQuickView()">Close</button>
+                </div>
+            </div>
         </div>
 
 @endsection
@@ -221,6 +242,16 @@
                 'Emergency Leave': 'badge-emergency-leave'
             };
             return map[reason] || '';
+        }
+
+        function formatClassBlock(c) {
+            var d = dayAbbr(c.day);
+            var dateStr = formatDate(c.date);
+            var wn = computeWeek(c.date);
+            var weekTag = wn ? ' (Week ' + wn + ')' : '';
+            var timeStr = to12h(c.timeStart) + ' to ' + to12h(c.timeEnd);
+            var hrs = c.duration + ' hr' + (c.duration > 1 ? 's' : '');
+            return '<div class="cell-class-block"><span class="class-day-date">' + d + ', ' + dateStr + weekTag + '</span><br><span class="class-time">' + timeStr + '</span> <span class="class-duration">(' + hrs + ')</span></div>';
         }
 
         function daysLeft(iso) {
@@ -257,8 +288,8 @@
             return 'Week ' + weekNum + ' \u00B7 ' + fmtFull(start) + ' ~ ' + fmtFull(end);
         }
 
+        var state = { rpp: 10 };
         const pageState = { currentPage: 1 };
-        const pageSize = 10;
         let sortState = { field: 'date', dir: 'asc' };
         let currentFiltered = [];
 
@@ -292,8 +323,8 @@
 
             currentFiltered = filtered;
 
-            const offset = (pageState.currentPage - 1) * pageSize;
-            const pageData = filtered.slice(offset, offset + pageSize);
+            const offset = (pageState.currentPage - 1) * state.rpp;
+            const pageData = filtered.slice(offset, offset + state.rpp);
 
             const head = document.getElementById('tableHead');
             const body = document.getElementById('tableBody');
@@ -304,13 +335,8 @@
             const columns = [
                 { label: '#', cls: 'col-no', sortable: false },
                 { label: 'Course Code & Name', cls: 'col-code', sortable: true, field: 'code' },
-                { label: 'Type', cls: 'col-type', sortable: false },
-                { label: 'Week', cls: 'col-week', sortable: false },
-                { label: 'Date', cls: 'col-date', sortable: true, field: 'date' },
-                { label: 'Day', cls: 'col-day', sortable: false },
+                { label: 'Original Class', cls: 'col-original', sortable: true, field: 'date' },
                 { label: 'Days Left', cls: 'col-urgency', sortable: false },
-                { label: 'Time', cls: 'col-time', sortable: false },
-                { label: 'Hrs', cls: 'col-duration', sortable: false },
                 { label: 'Venue', cls: 'col-venue', sortable: false },
                 { label: 'Students', cls: 'col-students', sortable: false },
                 { label: 'Affected Cohort(s)', cls: 'col-cohort', sortable: false },
@@ -333,19 +359,14 @@
                     const row = document.createElement('tr');
                     var cells = [
                         { html: String(offset + i + 1), cls: 'col-no' },
-                        { html: '<span class="cell-code">' + c.code + '</span><span class="cell-name">' + c.name + '</span>', cls: 'col-code' },
-                        { html: c.type === 'L' ? 'Lecture' : 'Tutorial', cls: 'col-type' },
-                        { html: 'Week ' + computeWeek(c.date), cls: 'col-week' },
-                        { html: formatDate(c.date), cls: 'col-date' },
-                        { html: c.day, cls: 'col-day' },
+                        { html: '<span class="cell-code">' + c.code + '</span><span class="cell-name">' + c.name + ' <span style="font-weight:400;font-size:12px;color:var(--color-on-surface-variant)">(' + (c.type === 'L' ? 'L' : 'T') + ')</span></span>', cls: 'col-code' },
+                        { html: formatClassBlock(c), cls: 'col-original' },
                         { html: '<span class="' + urgencyClass(daysLeft(c.date)) + '">' + daysLeft(c.date) + ' days</span>', cls: 'col-urgency' },
-                        { html: to12h(c.timeStart) + ' - ' + to12h(c.timeEnd), cls: 'col-time' },
-                        { html: String(c.duration) + 'h', cls: 'col-duration' },
                         { html: c.venue, cls: 'col-venue' },
                         { html: String(c.totalStudents), cls: 'col-students' },
                         { html: c.cohorts.join('<br>'), cls: 'col-cohort' },
                         { html: '<span class="badge ' + badgeClass(c.conflictReason) + '">' + c.conflictReason + '</span>', cls: 'col-reason' },
-                        { html: '<button class="btn-action" onclick="goToReplacementWith(\'' + c.code + '\',\'' + c.date + '\')"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg> Arrange Replacement</button>', cls: 'col-action' },
+                        { html: '<button class="btn-action" onclick="event.stopPropagation(); goToReplacementWith(\'' + c.code + '\',\'' + c.date + '\')"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg> Arrange Replacement</button>', cls: 'col-action' },
                     ];
                     cells.forEach(function(cell) {
                         const td = document.createElement('td');
@@ -353,11 +374,15 @@
                         td.innerHTML = cell.html;
                         row.appendChild(td);
                     });
+                    (function(row, idx) {
+                        row.onclick = function() { quickView(idx); };
+                        row.style.cursor = 'pointer';
+                    })(row, i);
                     body.appendChild(row);
                 });
             }
 
-            paginate({ data: currentFiltered, pageSize: pageSize, state: pageState, infoId: 'paginationInfo', controlsId: 'paginationControls', render: buildTable });
+            paginate({ data: currentFiltered, pageSize: state.rpp, state: pageState, infoId: 'paginationInfo', controlsId: 'paginationControls', render: buildTable });
             updateResultCount({ elId: 'resultCount', data: currentFiltered, total: conflictedClasses.length, label: 'classes' });
             updateSummary();
             renderCards();
@@ -430,38 +455,151 @@
             window.location.href = '/replacement-arrangement?code=' + encodeURIComponent(code) + '&date=' + encodeURIComponent(date);
         }
 
-        function weekFilterChanged() {
+
+        function showKeyboardShortcuts() {
+            var el = document.getElementById('keyboardModal');
+            if (el) { el.classList.add('show'); }
+        }
+
+        function hideKeyboardShortcuts() {
+            var el = document.getElementById('keyboardModal');
+            if (el) { el.classList.remove('show'); }
+        }
+
+        var qvCurrent = null;
+
+        function quickView(idx) {
+            var c = currentFiltered[idx];
+            if (!c) return;
+
+            qvCurrent = c;
+            document.getElementById('qvTitle').textContent = c.name + ' (' + c.type + ')';
+
+            var daysLeftVal = daysLeft(c.date);
+            var urgencyCls = daysLeftVal <= 3 ? 'urgent' : daysLeftVal <= 7 ? 'warning' : 'safe';
+            var wn = computeWeek(c.date);
+            var weekTag = wn ? ' (Week ' + wn + ')' : '';
+
+            var fields = [
+                { label: 'Course Code', value: c.code },
+                { label: 'Course Name', value: c.name },
+                { label: 'Type', value: c.type === 'L' ? 'Lecture' : 'Tutorial' },
+                { label: 'Week', value: 'Week ' + (wn || '-') },
+                { label: 'Day', value: c.day },
+                { label: 'Date', value: formatDate(c.date) + weekTag },
+                { label: 'Time', value: to12h(c.timeStart) + ' to ' + to12h(c.timeEnd) + ' (' + c.duration + ' hr' + (c.duration > 1 ? 's' : '') + ')' },
+                { label: 'Venue', value: c.venue },
+                { label: 'Students', value: String(c.totalStudents) },
+                { label: 'Affected Cohort(s)', value: c.cohorts.join(', ') },
+                { label: 'Days Left', value: daysLeftVal + ' days' },
+                { label: 'Conflict Reason', value: c.conflictReason },
+            ];
+
+            var html = fields.map(function(f) {
+                return '<div class="modal-field"><span class="modal-field-label">' + f.label + '</span><span class="modal-field-value">' + (f.value || '<span style="color:var(--color-on-surface-variant);font-style:italic">—</span>') + '</span></div>';
+            }).join('');
+
+            document.getElementById('qvBody').innerHTML = html;
+            document.getElementById('quickViewModal').classList.add('show');
+        }
+
+        function qvArrange() {
+            if (qvCurrent) {
+                var c = qvCurrent.code;
+                var d = qvCurrent.date;
+                hideQuickView();
+                goToReplacementWith(c, d);
+            }
+        }
+
+        function hideQuickView() {
+            qvCurrent = null;
+            document.getElementById('quickViewModal').classList.remove('show');
+        }
+
+        function clearAll() {
+            document.getElementById('searchInput').value = '';
+            document.getElementById('weekFilter').value = 'all';
+            sortState.field = 'date';
+            sortState.dir = 'asc';
             pageState.currentPage = 1;
             buildTable();
             updateWeekArrowState();
         }
 
-        function prevWeekFilter() {
-            const sel = document.getElementById('weekFilter');
-            if (sel.selectedIndex > 0) {
-                sel.selectedIndex--;
-                sel.dispatchEvent(new Event('change'));
+        function goNextPage() {
+            var totalPages = Math.ceil(currentFiltered.length / state.rpp);
+            if (pageState.currentPage < totalPages) {
+                pageState.currentPage++;
+                buildTable();
             }
         }
 
-        function nextWeekFilter() {
-            const sel = document.getElementById('weekFilter');
-            if (sel.selectedIndex < sel.options.length - 1) {
-                sel.selectedIndex++;
-                sel.dispatchEvent(new Event('change'));
+        function goPrevPage() {
+            if (pageState.currentPage > 1) {
+                pageState.currentPage--;
+                buildTable();
             }
         }
 
-        function updateWeekArrowState() {
-            const sel = document.getElementById('weekFilter');
-            updateWeekArrows(sel.selectedIndex <= 0, sel.selectedIndex >= sel.options.length - 1);
-        }
+        document.addEventListener('keydown', function(e) {
+            var tag = (e.target || {}).tagName || '';
+            var isInput = (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT');
+
+            if (e.key === '/' && !isInput) {
+                e.preventDefault();
+                var s = document.getElementById('searchInput');
+                if (s) s.focus();
+                return;
+            }
+            if (e.key === 'Escape') {
+                var qvEl = document.getElementById('quickViewModal');
+                if (qvEl && qvEl.classList.contains('show')) {
+                    hideQuickView();
+                    return;
+                }
+                var el = document.getElementById('keyboardModal');
+                if (el && el.classList.contains('show')) {
+                    hideKeyboardShortcuts();
+                    return;
+                }
+                clearAll();
+                return;
+            }
+            if (e.key === '?' && !isInput) {
+                e.preventDefault();
+                showKeyboardShortcuts();
+                return;
+            }
+            if (isInput) return;
+            if (e.key === 'ArrowRight') { goNextPage(); }
+            if (e.key === 'ArrowLeft') { goPrevPage(); }
+            if (e.key === 'Enter') {
+                var focused = document.querySelector('.table-body tr:focus, .table-body tr:focus-within');
+                if (focused) {
+                    var rows = Array.from(document.querySelectorAll('.table-body tr'));
+                    var idx = rows.indexOf(focused);
+                    if (idx >= 0) { quickView(idx); }
+                }
+            }
+        });
 
         document.addEventListener('DOMContentLoaded', function() {
             document.getElementById('semesterChip').textContent = MockData.semester.chipText;
             populateWeekDropdown();
             buildTable();
             updateWeekArrowState();
+            initWeekKeyboardShortcuts();
+            initRpp({
+                selectId: 'rppSelect',
+                storageKey: 'rpp-page-size',
+                defaultVal: 10,
+                onChange: function(size) {
+                    state.rpp = size;
+                    pageState.currentPage = 1;
+                    buildTable();
+                }
+            });
             document.getElementById('searchInput').addEventListener('input', function() {
                 pageState.currentPage = 1;
                 buildTable();

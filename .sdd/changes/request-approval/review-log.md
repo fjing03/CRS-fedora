@@ -334,3 +334,79 @@ Chain remains FROZEN. `/sdd-apply` implementer should action Gap A (strip `.togg
  - design.md §18 lacked DOM stacking note — proposal §7c and Task 10 already cover it; self-containedness improved by the §12 Escape fix (which references approveNotesModal)
 
 ### ✅ PASS — all artifacts re-frozen (proposal.md, design.md, tasks.md).
+
+## CHAIN UNFROZEN — 3 keyboard/UX features — 2026-08-01
+
+### 🔴 Fixed
+ - (none — decision-level unfreeze to add new features)
+
+### 🟡 Addressed
+ - User requested 3 additional UX features:
+   1. Keyboard shortcuts — Arrow keys navigate rows, Enter opens modal, A approves, R rejects (Small)
+   2. Review next auto-advance — after approve/reject/close, auto-open next Pending request (Small)
+   3. Slot validity preview icon — tiny ✓/⚠ in Proposed Replacement column (Tiny)
+ - Chain unfrozen to add these to proposal.md (§7i-§7k), design.md (§21-§23), tasks.md (Task 12 update, Task 8 update)
+ - Total task count remains 12; effort delta: ~45 min added to Task 12
+
+
+## CHAIN RE-FROZEN — 3 keyboard/UX features — 2026-08-01
+
+### 🔴 Fixed
+ - **Critical:** `rejectRequest()` in design.md §7 — was single-item only, showed "#null" for bulk; now uses conditional label (`selectedIds.size + ' request(s)'` for bulk, `'Request #' + currentRejectId` for single), clears `selectedIds`, re-renders, and calls `reviewNextAfterAction()`
+ - **Critical:** `rejectRequest()` in tasks.md Task 8 and Task 12 — updated to describe bulk-mode label branching, `selectedIds.clear()`, `renderTable()`, `reviewNextAfterAction()` call
+ - **Minor:** proposal.md §7k tooltip for "Valid" was "Slot available"; updated design.md §23 to match proposal: "Slot available — no conflict"
+
+### 🟡 Addressed
+ - Expanded Task 8 smoke test: split "review next auto-advance" into two items — one for approve path, one for reject path
+ - Proposal §7k, design.md §21-§23, tasks.md Task 11/12: all consistent across artifacts
+
+### ✅ PASS
+ - All 3 features (keyboard shortcuts §7i/§21, review next §7j/§22, slot validity icons §7k/§23) are now fully specified, cross-artifact consistent, and ready for `/sdd-apply`
+ - Chain is re-frozen
+
+
+## CHAIN UNFROZEN — 6 advanced UX features — 2026-08-01
+
+### 🔴 Fixed
+ - (none — decision-level unfreeze to add new features)
+
+### 🟡 Addressed
+ - User requested 6 advanced UI/UX features:
+   1. §7l/§24 — Toast notifications (replace all alert() with showToast() from ui-common.js)
+   2. §7m/§25 — Undo stack (3-5 sec toast with Undo button, reverts approve/reject)
+   3. §7n/§26 — Animated transitions (row status flash, filter fade, group expand/collapse)
+   4. §7o/§27 — Smart grouping (Group by dropdown: None/Course/Lecturer, collapsible section headers)
+   5. §7p/§28 — Mini timeline (request lifecycle dots in detail modal: Submitted → Viewed → Reviewed)
+   6. §7q/§29 — Skeleton loading (shimmer rows on filter change, 300ms simulated delay)
+ - Existing infra reused: showToast() in ui-common.js:387, skeleton CSS in theme.css:1570, toast HTML in ui-template.blade.php:44
+ - Chain unfrozen to add to proposal.md (§7l-§7q), design.md (§24-§29), tasks.md (Task 10/11/12/8 updates)
+
+
+## CHAIN RE-FROZEN — 6 advanced UX features — 2026-08-01
+
+### 🔴 Fixed
+ - (none — all items were 🟡, fixed without critical blockers)
+
+### 🟡 Addressed
+ - **Skeleton on filter/sort changes:** Added `isInitialLoad` flag to design.md §29 + tasks Task 12; initial load shows 300ms skeleton, filter/sort changes show 150ms skeleton flash
+ - **Keyboard nav skips group headers:** Updated `highlightRow()` in design.md §21 to use `querySelectorAll('#dataTable tbody tr:not(.group-header)')` — group header rows are excluded from keyboard navigation; updated tasks Task 12 bullet
+ - **Undo after review-next disorientation:** Added design note in design.md §25 documenting the accepted UX quirk — toast shows undo for previous request while modal shows next request; noted as design-phase simulation quirk
+
+### ✅ PASS
+ - All 6 advanced UX features (toast §7l/§24, undo §7m/§25, animations §7n/§26, grouping §7o/§27, timeline §7p/§28, skeleton §7q/§29) are now fully specified, cross-artifact consistent, and ready for `/sdd-apply`
+ - Chain is re-frozen
+
+
+## CHAIN RE-FROZEN — MockData convention fix — 2026-08-01
+
+### 🔴 Fixed
+ - **Convention compliance:** All 3 artifacts updated to reference `MockData.approvalRequests` / `MockData.urgencyReferenceDate` instead of bare globals `approvalRequests` / `URGENCY_REFERENCE_DATE`. Matches mandated spec (AGENTS.md rule 4 / sdd-propose-ui-page.md §4): "read from `window.MockData.*`."
+ - proposal.md: §6, §7m, §10.6, Files Changed table — all updated
+ - design.md: Technical Approach, §4 comment, §5 note, §7/§8/§9/§12/§25/§28 code snippets, §30 Dependencies, File Changes table — all updated
+ - tasks.md: Tasks 5, 8, 12 — all updated
+ - Note: `const approvalRequests = [` in design.md §4 stays as-is — it shows the mock-data.js file content (the data definition), not page-script usage
+
+### ✅ PASS
+ - All artifacts now consistent with `window.MockData.*` convention
+ - Chain re-frozen
+
