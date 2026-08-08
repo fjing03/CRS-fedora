@@ -984,9 +984,6 @@
 @section('page-scripts')
         const MAX_SELECTION = 4;
 
-        const weekData = MockData.arrangementWeeks;
-        const venueSlotData = MockData.venueSlots;
-
         let selectedSlotsByVenue = {};
         let currentWeek = 0;
         let currentVenue = 'B103';
@@ -1692,7 +1689,14 @@
             }
         }
 
-        document.addEventListener('DOMContentLoaded', function() {
+        document.addEventListener('DOMContentLoaded', async function() {
+            await loadMockSection('/api/v1/semester', 'semester');
+            await loadMockSection('/api/v1/timetable/my', 'myTimetable');
+            await loadMockSection('/api/v1/arrangement/slots?cohort_ids=1&session_type=L&duration=60&week_number=11', 'arrangementSlots');
+
+            const weekData = MockData.arrangementWeeks;
+            const venueSlotData = MockData.venueSlots;
+
             buildVenueDropdown();
             document.getElementById('semesterChip').textContent = MockData.semester.chipText;
             const sel = document.getElementById('weekSelector');

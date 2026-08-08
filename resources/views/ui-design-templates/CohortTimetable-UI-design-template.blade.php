@@ -127,77 +127,6 @@
 @section('page-scripts')
 
         /* ════════════════════════════════════════════
-           MOCK DATA — Weeks, Faculties, Cohorts, Events
-           ════════════════════════════════════════════ */
-
-        const weekData = (function() {
-            const start = new Date(MockData.semester.startDate);
-            start.setHours(0, 0, 0, 0);
-            const arr = [];
-            const todayMs = (function() { const t = new Date('2026-08-02'); t.setHours(0, 0, 0, 0); return t.getTime(); })();
-            for (let w = 1; w <= 14; w++) {
-                const ms = start.getTime() + (w - 1) * 7 * 86400000;
-                const mon = new Date(ms);
-                const sun = new Date(ms + 6 * 86400000);
-                const fmt = d => `${String(d.getDate()).padStart(2,'0')} ${['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][d.getMonth()]} ${d.getFullYear()}`;
-                const fmtShort = d => `${String(d.getDate()).padStart(2,'0')} ${['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][d.getMonth()]}`;
-                const days = [];
-                for (let d = 0; d < 7; d++) {
-                    const dt = new Date(ms + d * 86400000);
-                    days.push({
-                        abbr: ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'][d],
-                        date: fmt(dt),
-                        sunday: d === 6,
-                        today: dt.getTime() === todayMs,
-                        holiday: MockData.holidays.some(function(h) { return h.week === w && h.dayIndex === d; }),
-                    });
-                }
-                arr.push({ label: `Week ${w}`, range: `${fmt(mon)} ~ ${fmt(sun)}`, rangeShort: `${fmtShort(mon)} ~ ${fmtShort(sun)}`, days });
-            }
-            return arr;
-        })();
-
-        /* ───── Read from centralized MockData ───── */
-        const facultyData = MockData.cohortTimetable.faculties;
-
-        // Rebuild allEvents from centralized data
-        const allEvents = {};
-        MockData.cohortTimetable.events.forEach(function(entry) {
-            if (!allEvents[entry.cohortId]) allEvents[entry.cohortId] = {};
-            if (!allEvents[entry.cohortId][entry.week]) allEvents[entry.cohortId][entry.week] = [];
-            allEvents[entry.cohortId][entry.week].push(Object.assign({}, entry.event));
-        });
-
-        // Reconstruct RSD3 G2: populate ALL 14 weeks with base events, then apply flag overrides.
-        var rsd3g2Cohort = 'rsd3s1g2';
-        if (!allEvents[rsd3g2Cohort]) allEvents[rsd3g2Cohort] = {};
-        for (var w = 0; w < 14; w++) {
-            allEvents[rsd3g2Cohort][w] = [];
-            MockData.cohortTimetable.rsd3g2Base.forEach(function(evt) {
-                var copy = Object.assign({}, evt);
-                if (!copy.status) copy.status = 'normal';
-                allEvents[rsd3g2Cohort][w].push(copy);
-            });
-        }
-        MockData.cohortTimetable.rsd3g2Flags && Object.keys(MockData.cohortTimetable.rsd3g2Flags).forEach(function(w) {
-            var weekIdx = parseInt(w);
-            MockData.cohortTimetable.rsd3g2Flags[w].forEach(function(entry) {
-                var flagCode = entry[0], flagStatus = entry[1], flagDate = entry[2] || '';
-                var weekEvents = allEvents[rsd3g2Cohort][weekIdx];
-                weekEvents.forEach(function(evt) {
-                    if (evt.code === flagCode) {
-                        evt.status = flagStatus;
-                        if (flagDate) evt.remarks = flagDate;
-                    }
-                });
-            });
-        });
-
-        /* ───── State ───── */
-        let currentWeek = currentWeekIndex();
-        let selectedCohortId = null;
-
-        /* ════════════════════════════════════════════
            DROPDOWN POPULATION
            ════════════════════════════════════════════ */
 
@@ -577,7 +506,81 @@
            INIT
            ════════════════════════════════════════════ */
 
-        document.addEventListener('DOMContentLoaded', function() {
+        document.addEventListener('DOMContentLoaded', async function() {
+            await loadMockSection('/api/v1/semester', 'semester');
+            await loadMockSection('/api/v1/timetable/cohort?cohort_id=dft1s1g1', 'cohortTimetable');
+
+            /* ════════════════════════════════════════════
+               MOCK DATA — Weeks, Faculties, Cohorts, Events
+               ════════════════════════════════════════════ */
+
+            const weekData = (function() {
+                const start = new Date(MockData.semester.startDate);
+                start.setHours(0, 0, 0, 0);
+                const arr = [];
+                const todayMs = (function() { const t = new Date('2026-08-02'); t.setHours(0, 0, 0, 0); return t.getTime(); })();
+                for (let w = 1; w <= 14; w++) {
+                    const ms = start.getTime() + (w - 1) * 7 * 86400000;
+                    const mon = new Date(ms);
+                    const sun = new Date(ms + 6 * 86400000);
+                    const fmt = d => `${String(d.getDate()).padStart(2,'0')} ${['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][d.getMonth()]} ${d.getFullYear()}`;
+                    const fmtShort = d => `${String(d.getDate()).padStart(2,'0')} ${['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][d.getMonth()]}`;
+                    const days = [];
+                    for (let d = 0; d < 7; d++) {
+                        const dt = new Date(ms + d * 86400000);
+                        days.push({
+                            abbr: ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'][d],
+                            date: fmt(dt),
+                            sunday: d === 6,
+                            today: dt.getTime() === todayMs,
+                            holiday: MockData.holidays.some(function(h) { return h.week === w && h.dayIndex === d; }),
+                        });
+                    }
+                    arr.push({ label: `Week ${w}`, range: `${fmt(mon)} ~ ${fmt(sun)}`, rangeShort: `${fmtShort(mon)} ~ ${fmtShort(sun)}`, days });
+                }
+                return arr;
+            })();
+
+            /* ───── Read from centralized MockData ───── */
+            const facultyData = MockData.cohortTimetable.faculties;
+
+            // Rebuild allEvents from centralized data
+            const allEvents = {};
+            MockData.cohortTimetable.events.forEach(function(entry) {
+                if (!allEvents[entry.cohortId]) allEvents[entry.cohortId] = {};
+                if (!allEvents[entry.cohortId][entry.week]) allEvents[entry.cohortId][entry.week] = [];
+                allEvents[entry.cohortId][entry.week].push(Object.assign({}, entry.event));
+            });
+
+            // Reconstruct RSD3 G2: populate ALL 14 weeks with base events, then apply flag overrides.
+            var rsd3g2Cohort = 'rsd3s1g2';
+            if (!allEvents[rsd3g2Cohort]) allEvents[rsd3g2Cohort] = {};
+            for (var w = 0; w < 14; w++) {
+                allEvents[rsd3g2Cohort][w] = [];
+                MockData.cohortTimetable.rsd3g2Base.forEach(function(evt) {
+                    var copy = Object.assign({}, evt);
+                    if (!copy.status) copy.status = 'normal';
+                    allEvents[rsd3g2Cohort][w].push(copy);
+                });
+            }
+            MockData.cohortTimetable.rsd3g2Flags && Object.keys(MockData.cohortTimetable.rsd3g2Flags).forEach(function(w) {
+                var weekIdx = parseInt(w);
+                MockData.cohortTimetable.rsd3g2Flags[w].forEach(function(entry) {
+                    var flagCode = entry[0], flagStatus = entry[1], flagDate = entry[2] || '';
+                    var weekEvents = allEvents[rsd3g2Cohort][weekIdx];
+                    weekEvents.forEach(function(evt) {
+                        if (evt.code === flagCode) {
+                            evt.status = flagStatus;
+                            if (flagDate) evt.remarks = flagDate;
+                        }
+                    });
+                });
+            });
+
+            /* ───── State ───── */
+            let currentWeek = currentWeekIndex();
+            let selectedCohortId = null;
+
             document.getElementById('semesterChip').textContent = MockData.semester.chipText;
             populateWeeks();
             populateFaculties();

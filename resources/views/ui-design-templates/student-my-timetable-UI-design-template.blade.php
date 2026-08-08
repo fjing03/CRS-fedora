@@ -62,73 +62,7 @@
             return String(d.getDate()).padStart(2, '0') + ' ' + d.toLocaleString('en', { month: 'short' });
         }
 
-        const weekData = (function() {
-            const start = new Date(MockData.semester.startDate);
-            start.setHours(0, 0, 0, 0);
-            const arr = [];
-            for (let w = 0; w < MockData.semester.weeks; w++) {
-                const ms = start.getTime() + w * 7 * 86400000;
-                const startDate = new Date(ms);
-                const endDate = new Date(ms + 6 * 86400000);
-                const days = [];
-                for (let d = 0; d < 7; d++) {
-                    const dt = new Date(ms + d * 86400000);
-                    let holiday = false;
-                    let holidayLabel = '';
-                    MockData.holidays.forEach(function(h) {
-                        if (h.week === w + 1 && h.dayIndex === d) {
-                            holiday = true;
-                            holidayLabel = h.label;
-                        }
-                    });
-                    days.push({
-                        abbr: ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'][d],
-                        date: fmt(dt),
-                        sunday: d === 6,
-                        today: (function() { var t = new Date('2026-08-02'); t.setHours(0,0,0,0); return dt.getTime() === t.getTime(); })(),
-                        holiday: holiday,
-                        holidayLabel: holidayLabel,
-                    });
-                }
-                arr.push({
-                    label: 'Week ' + (w + 1),
-                    start: startDate,
-                    end: endDate,
-                    range: fmt(startDate) + ' ~ ' + fmt(endDate),
-                    rangeShort: fmtShort(startDate) + ' ~ ' + fmtShort(endDate),
-                    days: days,
-                });
-            }
-            return arr;
-        })();
-
-        const eventsByWeek = {};
-        for (let w = 0; w < MockData.semester.weeks; w++) {
-            eventsByWeek[w] = MockData.cohortTimetable.rsd3g2Base.map(function(c) {
-                return Object.assign({}, c, { status: 'normal', remarks: '', meta: {} });
-            });
-        }
-        Object.entries(MockData.cohortTimetable.rsd3g2Flags).forEach(function(entry) {
-            const w = entry[0];
-            const list = entry[1];
-            list.forEach(function(flag) {
-                const code = flag[0];
-                const status = flag[1];
-                const remarks = flag[2];
-                const evArr = eventsByWeek[w];
-                if (evArr) {
-                    const ev = evArr.find(function(e) { return e.code === code; });
-                    if (ev) {
-                        ev.status = status;
-                        ev.remarks = remarks;
-                        if (status === 'pending') {
-                            ev.requestedAt = '01 Sep 2026, 09:15 AM';
-                            ev.requestedBy = ev.lecturer;
-                        }
-                    }
-                }
-            });
-        });
+        let weekData, eventsByWeek, currentWeek;
 
         function getVisibleEvents(weekIdx) {
             const weekEvents = eventsByWeek[weekIdx] || [];
@@ -138,8 +72,6 @@
                 return cancelled.indexOf(e.code) === -1;
             });
         }
-
-        let currentWeek = currentWeekIndex();
 
         const WEEK_KEY = 'studentMyTimetableWeek';
         function loadSavedWeek() {
@@ -436,7 +368,79 @@ updateWeekSubtitle();
 
         initTodayBtn();
 
-        document.addEventListener('DOMContentLoaded', function() {
+        document.addEventListener('DOMContentLoaded', async function() {
+            await loadMockSection('/api/v1/semester', 'semester');
+            await loadMockSection('/api/v1/timetable/student', 'studentTimetable');
+
+            weekData = (function() {
+                const start = new Date(MockData.semester.startDate);
+                start.setHours(0, 0, 0, 0);
+                const arr = [];
+                for (let w = 0; w < MockData.semester.weeks; w++) {
+                    const ms = start.getTime() + w * 7 * 86400000;
+                    const startDate = new Date(ms);
+                    const endDate = new Date(ms + 6 * 86400000);
+                    const days = [];
+                    for (let d = 0; d < 7; d++) {
+                        const dt = new Date(ms + d * 86400000);
+                        let holiday = false;
+                        let holidayLabel = '';
+                        MockData.holidays.forEach(function(h) {
+                            if (h.week === w + 1 && h.dayIndex === d) {
+                                holiday = true;
+                                holidayLabel = h.label;
+                            }
+                        });
+                        days.push({
+                            abbr: ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'][d],
+                            date: fmt(dt),
+                            sunday: d === 6,
+                            today: (function() { var t = new Date('2026-08-02'); t.setHours(0,0,0,0); return dt.getTime() === t.getTime(); })(),
+                            holiday: holiday,
+                            holidayLabel: holidayLabel,
+                        });
+                    }
+                    arr.push({
+                        label: 'Week ' + (w + 1),
+                        start: startDate,
+                        end: endDate,
+                        range: fmt(startDate) + ' ~ ' + fmt(endDate),
+                        rangeShort: fmtShort(startDate) + ' ~ ' + fmtShort(endDate),
+                        days: days,
+                    });
+                }
+                return arr;
+            })();
+
+            eventsByWeek = {};
+            for (let w = 0; w < MockData.semester.weeks; w++) {
+                eventsByWeek[w] = MockData.cohortTimetable.rsd3g2Base.map(function(c) {
+                    return Object.assign({}, c, { status: 'normal', remarks: '', meta: {} });
+                });
+            }
+            Object.entries(MockData.cohortTimetable.rsd3g2Flags).forEach(function(entry) {
+                const w = entry[0];
+                const list = entry[1];
+                list.forEach(function(flag) {
+                    const code = flag[0];
+                    const status = flag[1];
+                    const remarks = flag[2];
+                    const evArr = eventsByWeek[w];
+                    if (evArr) {
+                        const ev = evArr.find(function(e) { return e.code === code; });
+                        if (ev) {
+                            ev.status = status;
+                            ev.remarks = remarks;
+                            if (status === 'pending') {
+                                ev.requestedAt = '01 Sep 2026, 09:15 AM';
+                                ev.requestedBy = ev.lecturer;
+                            }
+                        }
+                    }
+                });
+            });
+
+            currentWeek = currentWeekIndex();
             loadSavedWeek();
 
             const chipEl = document.getElementById('semesterChip');
@@ -449,7 +453,7 @@ updateWeekSubtitle();
             buildTimetable();
             initWeekKeyboardShortcuts();
 
-updateWeekSubtitle();
+            updateWeekSubtitle();
             updateProgress();
         });
 

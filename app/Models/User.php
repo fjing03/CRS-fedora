@@ -40,8 +40,8 @@ class User extends Authenticatable implements MustVerifyEmailContract, PasskeyUs
     public function loginId(): string
     {
         return match ($this->role) {
-            'student' => $this->student?->student_id ?? '',
-            'lecturer' => $this->lecturer?->staff_id ?? '',
+            'student' => $this->student->student_id ?? '',
+            'lecturer' => $this->lecturer->staff_id ?? '',
             default => '',
         };
     }
@@ -56,11 +56,13 @@ class User extends Authenticatable implements MustVerifyEmailContract, PasskeyUs
         return $this->role === 'lecturer';
     }
 
+    /** @return HasOne<Student, $this> */
     public function student(): HasOne
     {
         return $this->hasOne(Student::class, 'user_id');
     }
 
+    /** @return HasOne<Lecturer, $this> */
     public function lecturer(): HasOne
     {
         return $this->hasOne(Lecturer::class, 'user_id');

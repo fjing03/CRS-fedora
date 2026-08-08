@@ -200,52 +200,7 @@
 
 @section('page-scripts')
 
-        const weekData = (function() {
-            const start = new Date(MockData.semester.startDate); // semester start, Monday
-            start.setHours(0, 0, 0, 0);
-            const arr = [];
-            const todayMs = (function() { const t = new Date('2026-08-02'); t.setHours(0, 0, 0, 0); return t.getTime(); })();
-            const fmt = d => `${String(d.getDate()).padStart(2,'0')} ${['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][d.getMonth()]} ${d.getFullYear()}`;
-            const fmtShort = d => `${String(d.getDate()).padStart(2,'0')} ${['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][d.getMonth()]}`;
-            for (let w = 1; w <= 14; w++) {
-                const ms = start.getTime() + (w - 1) * 7 * 86400000;
-                const days = [];
-                for (let d = 0; d < 7; d++) {
-                    const dt = new Date(ms + d * 86400000);
-                    let holiday = false;
-                    let holidayLabel = '';
-                    MockData.holidays.forEach(function(h) {
-                        if (h.week === w && h.dayIndex === d) {
-                            holiday = true;
-                            holidayLabel = h.label;
-                        }
-                    });
-                    days.push({
-                        abbr: ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'][d],
-                        date: fmt(dt),
-                        sunday: d === 6,
-                        today: dt.getTime() === todayMs,
-                        holiday: holiday,
-                        holidayLabel: holidayLabel,
-                    });
-                }
-                arr.push({ label: `Week ${w}`, range: `${fmt(new Date(ms))} ~ ${fmt(new Date(ms + 6 * 86400000))}`, rangeShort: `${fmtShort(new Date(ms))} ~ ${fmtShort(new Date(ms + 6 * 86400000))}`, days, start: new Date(ms), end: new Date(ms + 6 * 86400000) });
-            }
-            return arr;
-        })();
-
-        const seedEvents = MockData.myTimetable.eventsByWeek[MockData.myTimetable.seedWeek];
-        const weeklyTemplate = seedEvents.filter(e => e.status === 'normal');
-        const eventsByWeek = {};
-        for (let i = 0; i < MockData.semester.weeks; i++) {
-            const explicit = MockData.myTimetable.eventsByWeek[i];
-            if (explicit !== undefined) {
-                eventsByWeek[i] = explicit;
-            } else {
-                eventsByWeek[i] = weeklyTemplate.slice();
-            }
-        }
-        const eventsData = eventsByWeek;
+        /* MockData reads relocated into DOMContentLoaded callback below (frontend-read-wiring) */
 
         let currentWeek = currentWeekIndex();
 
@@ -535,7 +490,57 @@
             saveWeek();
         }
 
-        document.addEventListener('DOMContentLoaded', function() {
+        document.addEventListener('DOMContentLoaded', async function() {
+            await loadMockSection('/api/v1/semester', 'semester');
+            await loadMockSection('/api/v1/timetable/my', 'myTimetable');
+
+            var weekData = (function() {
+                const start = new Date(MockData.semester.startDate); // semester start, Monday
+                start.setHours(0, 0, 0, 0);
+                const arr = [];
+                const todayMs = (function() { const t = new Date('2026-08-02'); t.setHours(0, 0, 0, 0); return t.getTime(); })();
+                const fmt = d => `${String(d.getDate()).padStart(2,'0')} ${['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][d.getMonth()]} ${d.getFullYear()}`;
+                const fmtShort = d => `${String(d.getDate()).padStart(2,'0')} ${['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][d.getMonth()]}`;
+                for (let w = 1; w <= 14; w++) {
+                    const ms = start.getTime() + (w - 1) * 7 * 86400000;
+                    const days = [];
+                    for (let d = 0; d < 7; d++) {
+                        const dt = new Date(ms + d * 86400000);
+                        let holiday = false;
+                        let holidayLabel = '';
+                        MockData.holidays.forEach(function(h) {
+                            if (h.week === w && h.dayIndex === d) {
+                                holiday = true;
+                                holidayLabel = h.label;
+                            }
+                        });
+                        days.push({
+                            abbr: ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'][d],
+                            date: fmt(dt),
+                            sunday: d === 6,
+                            today: dt.getTime() === todayMs,
+                            holiday: holiday,
+                            holidayLabel: holidayLabel,
+                        });
+                    }
+                    arr.push({ label: `Week ${w}`, range: `${fmt(new Date(ms))} ~ ${fmt(new Date(ms + 6 * 86400000))}`, rangeShort: `${fmtShort(new Date(ms))} ~ ${fmtShort(new Date(ms + 6 * 86400000))}`, days, start: new Date(ms), end: new Date(ms + 6 * 86400000) });
+                }
+                return arr;
+            })();
+
+            var seedEvents = MockData.myTimetable.eventsByWeek[MockData.myTimetable.seedWeek];
+            var weeklyTemplate = seedEvents.filter(e => e.status === 'normal');
+            var eventsByWeek = {};
+            for (let i = 0; i < MockData.semester.weeks; i++) {
+                const explicit = MockData.myTimetable.eventsByWeek[i];
+                if (explicit !== undefined) {
+                    eventsByWeek[i] = explicit;
+                } else {
+                    eventsByWeek[i] = weeklyTemplate.slice();
+                }
+            }
+            var eventsData = eventsByWeek;
+
             loadSavedWeek();
             document.getElementById('semesterChip').textContent = MockData.semester.chipText;
             const sel = document.getElementById('weekSelect');

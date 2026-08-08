@@ -534,3 +534,20 @@ function nextWeekFilter() {
         sel.dispatchEvent(new Event('change'));
     }
 }
+
+// ───── Mock Data Loader ─────
+
+async function loadMockSection(url, section, fallback = true) {
+    try {
+        const res = await fetch(url);
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+        const data = await res.json();
+        Object.assign(window.MockData, data);
+        return true;
+    } catch (err) {
+        if (fallback) {
+            console.warn('[api] fallback to mock:', url, err);
+        }
+        return false;
+    }
+}

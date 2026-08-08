@@ -49,6 +49,7 @@ class DatabaseSeeder extends Seeder
             ClassSessionsSeeder::class,
             HolidaysSeeder::class,
             ClassExceptionsSeeder::class,
+            ReplacementRequestsSeeder::class,
         ]);
     }
 
@@ -183,7 +184,7 @@ class DatabaseSeeder extends Seeder
     {
         preg_match('/(\d{4})/', $intake, $matches);
 
-        return substr($matches[1], -2);
+        return isset($matches[1]) ? substr($matches[1], -2) : '';
     }
 
     private function cohortCode(Cohort $cohort): string

@@ -553,7 +553,7 @@
 @endsection
 
 @section('page-scripts')
-        let mockRequests = MockData.requests;
+        let mockRequests = [];
 
         const weekRanges = [
             { value: '1', label: 'Week 1 \u00b7 31 Aug 2026 ~ 06 Sep 2026', labelShort: 'Week 1 \u00b7 31 Aug ~ 06 Sep', start: '2026-08-31', end: '2026-09-06' },
@@ -1138,7 +1138,11 @@
         }
 
 
-        document.addEventListener('DOMContentLoaded', function() {
+        document.addEventListener('DOMContentLoaded', async function() {
+            await loadMockSection('/api/v1/semester', 'semester');
+            await loadMockSection('/api/v1/requests/my', 'requests');
+            mockRequests = MockData.requests;
+
             var weekSel = document.getElementById('weekFilter');
             weekSel.innerHTML = '<option value="all">All Weeks</option>';
             var isMobile = window.innerWidth <= 768;
