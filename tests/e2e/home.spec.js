@@ -7,6 +7,6 @@ test.describe('Home pages', () => {
   });
 
   test('Replacement Home', async ({ page }) => {
-    await checkPage(page, '/replacement-home-ui', ['#timetable'], 'Replacement Arrangement');
+    await checkPage(page, '/replacement-home-ui', ['#searchInput', '#cardView'], 'Replacement');
   });
 });

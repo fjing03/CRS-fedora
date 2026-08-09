@@ -231,6 +231,7 @@
 @endsection
 
 @section('page-scripts')
+        var conflictedClasses;
         function badgeClass(reason) {
             const map = {
                 'Public Holiday': 'badge-holiday',
@@ -585,7 +586,7 @@
         document.addEventListener('DOMContentLoaded', async function() {
             await loadMockSection('/api/v1/semester', 'semester');
             await loadMockSection('/api/v1/requests/conflicts', 'conflictedClasses');
-            const conflictedClasses = MockData.conflictedClasses;
+            conflictedClasses = MockData.conflictedClasses;
             document.getElementById('semesterChip').textContent = MockData.semester.chipText;
             populateWeekDropdown();
             buildTable();

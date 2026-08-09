@@ -3,6 +3,6 @@ import { checkPage } from './helpers/page-check.js';
 
 test.describe('Arrangement page', () => {
   test('Replacement Arrangement', async ({ page }) => {
-    await checkPage(page, '/replacement-arrangement', ['#timetable'], 'Replacement Arrangement');
+    await checkPage(page, '/replacement-arrangement', ['#buildingSelector', '#progressWrapper'], 'Replacement');
   });
 });

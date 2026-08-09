@@ -126,6 +126,8 @@
 
 @section('page-scripts')
 
+        var weekData, facultyData, allEvents, currentWeek, selectedCohortId;
+
         /* ════════════════════════════════════════════
            DROPDOWN POPULATION
            ════════════════════════════════════════════ */
@@ -514,7 +516,7 @@
                MOCK DATA — Weeks, Faculties, Cohorts, Events
                ════════════════════════════════════════════ */
 
-            const weekData = (function() {
+            weekData = (function() {
                 const start = new Date(MockData.semester.startDate);
                 start.setHours(0, 0, 0, 0);
                 const arr = [];
@@ -542,10 +544,10 @@
             })();
 
             /* ───── Read from centralized MockData ───── */
-            const facultyData = MockData.cohortTimetable.faculties;
+            facultyData = MockData.cohortTimetable.faculties;
 
             // Rebuild allEvents from centralized data
-            const allEvents = {};
+            allEvents = {};
             MockData.cohortTimetable.events.forEach(function(entry) {
                 if (!allEvents[entry.cohortId]) allEvents[entry.cohortId] = {};
                 if (!allEvents[entry.cohortId][entry.week]) allEvents[entry.cohortId][entry.week] = [];
@@ -578,8 +580,8 @@
             });
 
             /* ───── State ───── */
-            let currentWeek = currentWeekIndex();
-            let selectedCohortId = null;
+            currentWeek = currentWeekIndex();
+            selectedCohortId = null;
 
             document.getElementById('semesterChip').textContent = MockData.semester.chipText;
             populateWeeks();

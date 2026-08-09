@@ -990,6 +990,7 @@
         let selectedCells = [];
         let selectionHistory = [];
         let focusedCell = { day: null, hour: null };
+        var weekData, venueSlotData;
 
         function saveCurrentWeek() {
             if (!selectedSlotsByVenue[currentVenue]) selectedSlotsByVenue[currentVenue] = {};
@@ -1694,8 +1695,8 @@
             await loadMockSection('/api/v1/timetable/my', 'myTimetable');
             await loadMockSection('/api/v1/arrangement/slots?cohort_ids=1&session_type=L&duration=60&week_number=11', 'arrangementSlots');
 
-            const weekData = MockData.arrangementWeeks;
-            const venueSlotData = MockData.venueSlots;
+            weekData = MockData.arrangementWeeks;
+            venueSlotData = MockData.venueSlots;
 
             buildVenueDropdown();
             document.getElementById('semesterChip').textContent = MockData.semester.chipText;

@@ -201,6 +201,7 @@
 @section('page-scripts')
 
         /* MockData reads relocated into DOMContentLoaded callback below (frontend-read-wiring) */
+        var weekData, eventsByWeek, eventsData, seedEvents, weeklyTemplate;
 
         let currentWeek = currentWeekIndex();
 
@@ -494,7 +495,7 @@
             await loadMockSection('/api/v1/semester', 'semester');
             await loadMockSection('/api/v1/timetable/my', 'myTimetable');
 
-            var weekData = (function() {
+            weekData = (function() {
                 const start = new Date(MockData.semester.startDate); // semester start, Monday
                 start.setHours(0, 0, 0, 0);
                 const arr = [];
@@ -528,9 +529,9 @@
                 return arr;
             })();
 
-            var seedEvents = MockData.myTimetable.eventsByWeek[MockData.myTimetable.seedWeek];
-            var weeklyTemplate = seedEvents.filter(e => e.status === 'normal');
-            var eventsByWeek = {};
+            seedEvents = MockData.myTimetable.eventsByWeek[MockData.myTimetable.seedWeek];
+            weeklyTemplate = seedEvents.filter(e => e.status === 'normal');
+            eventsByWeek = {};
             for (let i = 0; i < MockData.semester.weeks; i++) {
                 const explicit = MockData.myTimetable.eventsByWeek[i];
                 if (explicit !== undefined) {
@@ -539,7 +540,7 @@
                     eventsByWeek[i] = weeklyTemplate.slice();
                 }
             }
-            var eventsData = eventsByWeek;
+            eventsData = eventsByWeek;
 
             loadSavedWeek();
             document.getElementById('semesterChip').textContent = MockData.semester.chipText;
