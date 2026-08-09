@@ -31,10 +31,13 @@
     </div>
 
     <script src="/js/ui-common.js"></script>
-    <script src="/js/mock-data.js"></script>
+    <script src="/js/mock-data.js?v=3"></script>
     <script>
         document.addEventListener('DOMContentLoaded', function() {
+            var pageKey = document.body.dataset.page;
+            if (pageKey) initScrollRestore(pageKey);
             updateIcon(document.documentElement.classList.contains('dark')); initMobileNav();
+            if (typeof updateNavBadge === 'function') updateNavBadge();
         });
 
         @yield('page-scripts')

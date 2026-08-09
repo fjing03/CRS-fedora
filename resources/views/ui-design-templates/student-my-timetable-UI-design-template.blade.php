@@ -395,7 +395,7 @@ updateWeekSubtitle();
                             abbr: ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'][d],
                             date: fmt(dt),
                             sunday: d === 6,
-                            today: (function() { var t = new Date('2026-08-02'); t.setHours(0,0,0,0); return dt.getTime() === t.getTime(); })(),
+                            today: dt.getTime() === getTodayMs(),
                             holiday: holiday,
                             holidayLabel: holidayLabel,
                         });

@@ -409,15 +409,58 @@ function initCollapsibleCards() {
 
 function showSkeleton(container, type = 'rows', count = 5) {
     container.innerHTML = '';
+    const isTbody = container.tagName === 'TBODY';
     for (let i = 0; i < count; i++) {
-        const el = document.createElement('div');
-        el.className = `skeleton skeleton-${type === 'rows' ? 'row' : 'card'}`;
-        container.appendChild(el);
+        if (isTbody) {
+            const tr = document.createElement('tr');
+            const td = document.createElement('td');
+            td.colSpan = 9;
+            td.innerHTML = '<div class="skeleton skeleton-row"></div>';
+            tr.appendChild(td);
+            container.appendChild(tr);
+        } else {
+            const el = document.createElement('div');
+            el.className = `skeleton skeleton-${type === 'rows' ? 'row' : 'card'}`;
+            container.appendChild(el);
+        }
     }
 }
 
 function hideSkeleton(container) {
-    container.innerHTML = '';
+    if (!container) return;
+    container.querySelectorAll('.skeleton, .skeleton-row, .skeleton-card').forEach(el => el.remove());
+    container.querySelectorAll('tr').forEach(tr => {
+        if (tr.querySelector('.skeleton')) tr.remove();
+    });
+}
+
+function withSkeleton(callback, container, count = 10, delay = 400) {
+    showSkeleton(container, 'rows', count);
+    const hide = () => setTimeout(() => hideSkeleton(container), delay);
+    setTimeout(() => {
+        try {
+            const result = callback();
+            if (result && typeof result.then === 'function') {
+                return result.then(hide, (err) => { hide(); throw err; });
+            }
+            hide();
+        } catch (err) { hide(); throw err; }
+    }, 50);
+}
+
+function showSummarySkeleton() {
+    document.querySelectorAll('.summary-card .summary-value').forEach(el => {
+        el.dataset.original = el.innerHTML;
+        el.innerHTML = '<div class="skeleton" style="height:24px;width:40px;display:inline-block"></div>';
+    });
+}
+
+function hideSummarySkeleton() {
+    document.querySelectorAll('.summary-card .summary-value').forEach(el => {
+        if (el.dataset.original !== undefined) {
+            delete el.dataset.original;
+        }
+    });
 }
 
 // ───── Scroll Restoration ─────
@@ -429,6 +472,20 @@ function saveScrollPosition(key) {
 function restoreScrollPosition(key) {
     const pos = sessionStorage.getItem('scroll_' + key);
     if (pos) window.scrollTo(0, parseInt(pos));
+}
+
+function clearScrollPosition(key) {
+    sessionStorage.removeItem('scroll_' + key);
+}
+
+function initScrollRestore(pageKey) {
+    window.addEventListener('pageshow', (e) => {
+        if (e.persisted) restoreScrollPosition(pageKey);
+    });
+    document.querySelectorAll('.nav-item, .nav-drawer-item').forEach(link => {
+        link.addEventListener('click', () => clearScrollPosition(pageKey));
+    });
+    window._scrollToTop = function() { window.scrollTo(0, 0); };
 }
 
 // Auto-save on scroll (debounced)
@@ -549,5 +606,109 @@ async function loadMockSection(url, section, fallback = true) {
             console.warn('[api] fallback to mock:', url, err);
         }
         return false;
+    }
+}
+
+// ── Promoted from my-request-history (shared helpers) ──
+
+const weekRanges = [
+    { value: '1', label: 'Week 1 \u00b7 31 Aug 2026 ~ 06 Sep 2026', labelShort: 'Week 1 \u00b7 31 Aug ~ 06 Sep', start: '2026-08-31', end: '2026-09-06' },
+    { value: '2', label: 'Week 2 \u00b7 07 Sep 2026 ~ 13 Sep 2026', labelShort: 'Week 2 \u00b7 07 Sep ~ 13 Sep', start: '2026-09-07', end: '2026-09-13' },
+    { value: '3', label: 'Week 3 \u00b7 14 Sep 2026 ~ 20 Sep 2026', labelShort: 'Week 3 \u00b7 14 Sep ~ 20 Sep', start: '2026-09-14', end: '2026-09-20' },
+    { value: '4', label: 'Week 4 \u00b7 21 Sep 2026 ~ 27 Sep 2026', labelShort: 'Week 4 \u00b7 21 Sep ~ 27 Sep', start: '2026-09-21', end: '2026-09-27' },
+];
+
+function formatDateTime(iso) {
+    if (!iso) return '';
+    const [datePart, timePart] = iso.split('T');
+    const [y, mo, d] = datePart.split('-');
+    const [h, mi] = timePart.split(':');
+    const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    const day = parseInt(d);
+    const month = months[parseInt(mo) - 1];
+    const year = parseInt(y);
+    let hh = parseInt(h);
+    const mm = mi;
+    const ampm = hh >= 12 ? 'PM' : 'AM';
+    hh = hh === 0 ? 12 : hh > 12 ? hh - 12 : hh;
+    return day + ' ' + month + ' ' + year + ', ' + hh + ':' + mm + ' ' + ampm;
+}
+
+function statusClass(status) {
+    const map = {
+        'Pending': 'status-pending',
+        'Approved': 'status-approved',
+        'Rejected': 'status-rejected',
+        'Cancelled': 'status-cancelled',
+        'Completed': 'status-completed'
+    };
+    return map[status] || '';
+}
+
+
+function isoDayName(iso) {
+    var p = iso.split('-');
+    var d = new Date(parseInt(p[0]), parseInt(p[1]) - 1, parseInt(p[2]));
+    return ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'][d.getDay()];
+}
+
+function formatClassBlock(r) {
+    var d = dayAbbr(r.classDay);
+    var dateStr = formatDate(r.classDate);
+    var wn = getWeekNumber(r.classDate);
+    var weekTag = wn ? ' (Week ' + wn + ')' : '';
+    var timeStr = to12h(r.timeStart) + ' to ' + to12h(r.timeEnd);
+    var hrs = r.duration + ' hr' + (r.duration > 1 ? 's' : '');
+    return '<div class="cell-class-block"><span class="class-day-date">' + d + ', ' + dateStr + weekTag + '</span><br><span class="class-time">' + timeStr + '</span> <span class="class-duration">(' + hrs + ')</span></div>';
+}
+
+function formatReplacementBlock(r) {
+    if (!r.replacementDate) return '<span style="color:var(--color-on-surface-variant);opacity:0.5">&mdash;</span>';
+    var d = dayAbbr(isoDayName(r.replacementDate));
+    var dateStr = formatDate(r.replacementDate);
+    var wn = getWeekNumber(r.replacementDate);
+    var weekTag = wn ? ' (Week ' + wn + ')' : '';
+    var statusCls = statusClass(r.status);
+    var venue = r.replacementVenue || r.venue || '—';
+    return '<div class="cell-class-block">'
+        + '<span class="class-day-date">' + d + ', ' + dateStr + weekTag + '</span><br>'
+        + '<span class="class-time ' + statusCls + '">' + r.replacementTime + '</span><br>'
+        + '<span class="class-venue">' + venue + '</span>'
+        + '</div>';
+}
+
+function getWeekRange(weekVal) {
+    const found = weekRanges.find(function(w) { return w.value === weekVal; });
+    return found || null;
+}
+
+function isInWeek(classDate, weekVal) {
+    if (weekVal === 'all') return true;
+    const range = getWeekRange(weekVal);
+    if (!range) return true;
+    return classDate >= range.start && classDate <= range.end;
+}
+
+function getWeekNumber(iso) {
+    for (var i = 0; i < weekRanges.length; i++) {
+        if (iso >= weekRanges[i].start && iso <= weekRanges[i].end) return weekRanges[i].value;
+    }
+    return '';
+}
+
+function getTodayMs() {
+    var t = new Date();
+    t.setHours(0, 0, 0, 0);
+    return t.getTime();
+}
+
+function updateNavBadge() {
+    var count = (window.MockData && MockData.approvalRequests)
+        ? MockData.approvalRequests.filter(function(r) { return r.status === 'Pending'; }).length
+        : 0;
+    var badge = document.getElementById('navPendingBadge');
+    if (badge) {
+        badge.textContent = count;
+        badge.style.display = count > 0 ? 'inline-block' : 'none';
     }
 }

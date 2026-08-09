@@ -71,15 +71,8 @@
         }
 
         /* ───── Column Widths ───── */
-        .timetable td.col-requested-at { width: 180px; white-space: normal; }
-        .col-original { width: 170px; }
-        .col-replacement { width: 170px; }
+        .col-checkbox { width: 40px; text-align: center; }
         .col-original, .col-replacement { white-space: normal; }
-        .col-venue { width: 75px; }
-        .col-cohort { width: 120px; }
-        .col-status { width: 130px; }
-
-        .grid-scroll .timetable { min-width: 1235px; }
 
         .col-replacement .cell-class-block .class-time {
             font-weight: 600;
@@ -101,7 +94,7 @@
             color: #3b82f6;
         }
 
-        /* ───── Status Badges ───── */
+        /* ───── Status Badges (page-specific overrides) ───── */
         .badge {
             display: inline-block;
             padding: 4px 10px;
@@ -121,26 +114,6 @@
             opacity: 0.7;
             margin-top: 2px;
         }
-        .status-pending {
-            background: var(--color-tertiary-container);
-            color: var(--color-on-tertiary-container);
-        }
-        .status-approved {
-            background: var(--color-secondary-container);
-            color: var(--color-on-secondary-container);
-        }
-        .status-rejected {
-            background: var(--color-error-container);
-            color: var(--color-on-error-container);
-        }
-        .status-cancelled {
-            background: var(--color-surface-variant);
-            color: var(--color-on-surface-variant);
-        }
-        .status-completed {
-            background: var(--color-primary-container);
-            color: var(--color-on-primary-container);
-        }
 
         /* ───── Summary Card Colors ───── */
         .summary-card.card-total .summary-value { color: var(--color-on-primary-container); }
@@ -157,66 +130,9 @@
             background: var(--color-primary-container);
         }
 
-        .modal-section-title {
-            font-size: 11px;
-            font-weight: 700;
-            color: var(--color-on-surface-variant);
-            opacity: 0.7;
-            text-transform: uppercase;
-            letter-spacing: 0.8px;
-            padding: 10px 0 4px;
-        }
-        .modal-section-title:first-child {
-            padding-top: 0;
-        }
 
-        .btn-danger {
-            padding: 8px 20px;
-            border-radius: 8px;
-            border: 1px solid var(--color-error);
-            background: transparent;
-            color: var(--color-error);
-            font-family: inherit;
-            font-size: 13px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: background 0.15s, color 0.15s;
-        }
-        .btn-danger:hover {
-            background: var(--color-error);
-            color: #fff;
-        }
-        .btn-outline {
-            padding: 8px 20px;
-            border-radius: 8px;
-            border: 1px solid var(--color-outline);
-            background: transparent;
-            color: var(--color-on-surface);
-            font-family: inherit;
-            font-size: 13px;
-            font-weight: 500;
-            cursor: pointer;
-            transition: background 0.15s;
-        }
-        .btn-outline:hover {
-            background: var(--color-surface-variant);
-        }
 
-        /* ───── F2: Bulk Selection ───── */
-        .bulk-checkbox {
-            width: 16px;
-            height: 16px;
-            accent-color: var(--color-primary);
-            cursor: pointer;
-            margin: 0 auto;
-            display: block;
-        }
-        .bulk-checkbox:disabled {
-            opacity: 0.3;
-            cursor: not-allowed;
-        }
-        .col-checkbox { width: 40px; text-align: center; }
-        .row-selected { background: var(--color-primary-container) !important; }
+
         .bulk-action-bar {
             display: none;
             position: fixed;
@@ -270,13 +186,17 @@
         }
 
         /* ───── F3: Request Age Indicator ───── */
-        .age-green { color: var(--color-secondary) !important; }
-        .age-amber { color: var(--color-tertiary) !important; }
-        .age-red { color: var(--color-error) !important; }
-        .age-relative { font-size: 11px; opacity: 0.7; }
+        .request-age { font-size: 11px; color: var(--color-on-surface-variant); margin-top: 2px; }
+        .request-age::before { content: '● '; font-size: 8px; }
+        .age-fresh::before { color: var(--color-primary); }
+        .age-waiting::before { color: var(--color-tertiary); }
+        .age-stale::before { color: var(--color-error); }
+        .age-fresh { color: var(--color-primary); }
+        .age-waiting { color: var(--color-tertiary); }
+        .age-stale { color: var(--color-error); }
 
         /* ───── F4: Quick Actions in Rows ───── */
-        .col-actions { width: 70px; text-align: center; }
+        .col-actions { text-align: center; }
         .btn-inline-cancel {
             padding: 4px 10px;
             border-radius: 6px;
@@ -300,35 +220,31 @@
         .timeline {
             padding: 8px 0 4px 0;
         }
-        .timeline-item {
+        .timeline-step {
             display: flex;
             align-items: flex-start;
             gap: 12px;
             position: relative;
             padding-bottom: 16px;
         }
-        .timeline-item:last-child { padding-bottom: 0; }
-        .timeline-dot-wrap {
+        .timeline-step:last-child { padding-bottom: 0; }
+        .timeline-connector {
             display: flex;
             flex-direction: column;
             align-items: center;
             flex-shrink: 0;
-            width: 20px;
+            width: 2px;
+            min-height: 16px;
+            background: var(--color-outline);
+            margin-top: 4px;
         }
+        .timeline-step:last-child .timeline-connector { display: none; }
         .timeline-dot {
             width: 10px;
             height: 10px;
             border-radius: 50%;
             flex-shrink: 0;
         }
-        .timeline-line {
-            width: 2px;
-            flex: 1;
-            min-height: 16px;
-            background: var(--color-outline);
-            margin-top: 4px;
-        }
-        .timeline-item:last-child .timeline-line { display: none; }
         .timeline-text {
             flex: 1;
             font-size: 12px;
@@ -555,86 +471,6 @@
 @section('page-scripts')
         let mockRequests = [];
 
-        const weekRanges = [
-            { value: '1', label: 'Week 1 \u00b7 31 Aug 2026 ~ 06 Sep 2026', labelShort: 'Week 1 \u00b7 31 Aug ~ 06 Sep', start: '2026-08-31', end: '2026-09-06' },
-            { value: '2', label: 'Week 2 \u00b7 07 Sep 2026 ~ 13 Sep 2026', labelShort: 'Week 2 \u00b7 07 Sep ~ 13 Sep', start: '2026-09-07', end: '2026-09-13' },
-            { value: '3', label: 'Week 3 \u00b7 14 Sep 2026 ~ 20 Sep 2026', labelShort: 'Week 3 \u00b7 14 Sep ~ 20 Sep', start: '2026-09-14', end: '2026-09-20' },
-            { value: '4', label: 'Week 4 \u00b7 21 Sep 2026 ~ 27 Sep 2026', labelShort: 'Week 4 \u00b7 21 Sep ~ 27 Sep', start: '2026-09-21', end: '2026-09-27' },
-        ];
-
-        function formatDateTime(iso) {
-            if (!iso) return '';
-            const [datePart, timePart] = iso.split('T');
-            const [y, mo, d] = datePart.split('-');
-            const [h, mi] = timePart.split(':');
-            const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-            const day = parseInt(d);
-            const month = months[parseInt(mo) - 1];
-            const year = parseInt(y);
-            let hh = parseInt(h);
-            const mm = mi;
-            const ampm = hh >= 12 ? 'PM' : 'AM';
-            hh = hh === 0 ? 12 : hh > 12 ? hh - 12 : hh;
-            return day + ' ' + month + ' ' + year + ', ' + hh + ':' + mm + ' ' + ampm;
-        }
-
-        function statusClass(status) {
-            const map = {
-                'Pending': 'status-pending',
-                'Approved': 'status-approved',
-                'Rejected': 'status-rejected',
-                'Cancelled': 'status-cancelled',
-                'Completed': 'status-completed'
-            };
-            return map[status] || '';
-        }
-
-
-        function isoDayName(iso) {
-            var p = iso.split('-');
-            var d = new Date(parseInt(p[0]), parseInt(p[1]) - 1, parseInt(p[2]));
-            return ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'][d.getDay()];
-        }
-
-        function formatClassBlock(r) {
-            var d = dayAbbr(r.classDay);
-            var dateStr = formatDate(r.classDate);
-            var wn = getWeekNumber(r.classDate);
-            var weekTag = wn ? ' (Week ' + wn + ')' : '';
-            var timeStr = to12h(r.timeStart) + ' to ' + to12h(r.timeEnd);
-            var hrs = r.duration + ' hr' + (r.duration > 1 ? 's' : '');
-            return '<div class="cell-class-block"><span class="class-day-date">' + d + ', ' + dateStr + weekTag + '</span><br><span class="class-time">' + timeStr + '</span> <span class="class-duration">(' + hrs + ')</span></div>';
-        }
-
-        function formatReplacementBlock(r) {
-            if (!r.replacementDate) return '<span style="color:var(--color-on-surface-variant);opacity:0.5">&mdash;</span>';
-            var d = dayAbbr(isoDayName(r.replacementDate));
-            var dateStr = formatDate(r.replacementDate);
-            var wn = getWeekNumber(r.replacementDate);
-            var weekTag = wn ? ' (Week ' + wn + ')' : '';
-            var statusCls = statusClass(r.status);
-            return '<div class="cell-class-block"><span class="class-day-date">' + d + ', ' + dateStr + weekTag + '</span><br><span class="class-time ' + statusCls + '">' + r.replacementTime + '</span></div>';
-        }
-
-        function getWeekRange(weekVal) {
-            const found = weekRanges.find(function(w) { return w.value === weekVal; });
-            return found || null;
-        }
-
-        function isInWeek(classDate, weekVal) {
-            if (weekVal === 'all') return true;
-            const range = getWeekRange(weekVal);
-            if (!range) return true;
-            return classDate >= range.start && classDate <= range.end;
-        }
-
-        function getWeekNumber(iso) {
-            for (var i = 0; i < weekRanges.length; i++) {
-                if (iso >= weekRanges[i].start && iso <= weekRanges[i].end) return weekRanges[i].value;
-            }
-            return '';
-        }
-
         const pageState = { currentPage: 1 };
         let rowsPerPage = parseInt(localStorage.getItem('mrh-rows-per-page')) || 10;
         let sortState = { field: 'requestedAt', dir: 'desc' };
@@ -643,24 +479,12 @@
         let searchDebounce = null;
         let focusedRowIndex = -1;
 
-        function getRequestAge(requestedAt) {
-            const now = new Date();
-            const then = new Date(requestedAt);
-            const diffMs = now - then;
-            const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
-            return Math.max(0, diffDays);
-        }
-
-        function ageClass(days) {
-            if (days <= 2) return 'age-green';
-            if (days <= 7) return 'age-amber';
-            return 'age-red';
-        }
-
-        function relativeTime(days) {
-            if (days === 0) return 'Today';
-            if (days === 1) return '1 day ago';
-            return days + ' days ago';
+        function requestAgeHtml(requestedAt) {
+            const REFERENCE_DATE = new Date('2026-08-29T00:00:00');
+            const diff = Math.floor((REFERENCE_DATE - new Date(requestedAt).getTime()) / 86400000);
+            if (diff < 0) return '<div class="request-age request-age--unknown">—</div>';
+            const cls = diff <= 1 ? 'age-fresh' : diff <= 3 ? 'age-waiting' : 'age-stale';
+            return '<div class="request-age ' + cls + '">' + diff + ' day' + (diff !== 1 ? 's' : '') + ' ago</div>';
         }
 
         function saveFilters() {
@@ -804,10 +628,7 @@
 
                     const globalIndex = offset + i;
                     const isPending = r.status === 'Pending';
-                    const badgeHtml = '<span class="badge ' + statusClass(r.status) + '">' + r.status + '</span>';
-
-                    const days = getRequestAge(r.requestedAt);
-                    const ageCls = ageClass(days);
+                    const badgeHtml = '<span class="badge ' + statusClass(r.status) + '" onclick="openModalById(' + r.id + ')">' + r.status + '</span>';
 
                     const checkTd = document.createElement('td');
                     checkTd.className = 'col-checkbox';
@@ -831,7 +652,7 @@
                     row.appendChild(checkTd);
 
                     var cells = [
-                        { html: '<span class="' + ageCls + '">' + formatDateTime(r.requestedAt) + '<br><span class="age-relative">(' + relativeTime(days) + ')</span></span>', cls: 'col-requested-at' },
+                        { html: formatDateTime(r.requestedAt) + requestAgeHtml(r.requestedAt), cls: 'col-requested-at' },
                         { html: '<span class="cell-code">' + r.courseCode + ' <span class="cell-type">(' + r.classType + ')</span></span><span class="cell-name">' + r.courseName + '</span>', cls: 'col-code' },
                         { html: formatClassBlock(r), cls: 'col-original' },
                         { html: formatReplacementBlock(r), cls: 'col-replacement' },
@@ -849,7 +670,7 @@
                     });
                     row.addEventListener('click', function(e) {
                         if (e.target.closest('.bulk-checkbox') || e.target.closest('.btn-inline-cancel')) return;
-                        openModal(globalIndex);
+                        openModalById(r.id);
                     });
                     row.style.cursor = 'pointer';
                     body.appendChild(row);
@@ -876,15 +697,13 @@
             if (!container) return;
             container.innerHTML = '';
             currentFiltered.forEach(function(r, i) {
-                var days = getRequestAge(r.requestedAt);
-                var ageCls = ageClass(days);
                 var card = document.createElement('div');
                 card.className = 'request-card';
                 card.setAttribute('role', 'button');
                 card.setAttribute('tabindex', '0');
-                card.addEventListener('click', function() { openModal(i); });
+                card.addEventListener('click', function() { openModalById(r.id); });
                 card.addEventListener('keydown', function(e) {
-                    if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openModal(i); }
+                    if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openModalById(r.id); }
                 });
                 card.innerHTML =
                     '<div class="card-header">' +
@@ -897,7 +716,7 @@
                         to12h(r.timeStart) + ' – ' + to12h(r.timeEnd) + ' · ' + r.venue +
                     '</div>' +
                     '<div class="card-footer">' +
-                        '<span class="' + ageCls + ' card-age">' + relativeTime(days) + '</span>' +
+                        requestAgeHtml(r.requestedAt) +
                         '<span>' + r.cohorts.join(', ') + '</span>' +
                     '</div>';
                 container.appendChild(card);
@@ -1015,8 +834,8 @@
             document.getElementById('summaryRejected').textContent = rejected;
         }
 
-        function openModal(index) {
-            const r = currentFiltered[index];
+        function openModalById(id) {
+            const r = mockRequests.find(x => x.id === id);
             if (!r) return;
             const body = document.getElementById('modalBody');
             var html = '';
@@ -1076,15 +895,21 @@
                 var submittedTime = formatDateTime(r.requestedAt);
                 var reviewTime = r.reviewedAt ? formatDateTime(r.reviewedAt) : null;
                 var statusColor = r.status === 'Pending' ? 'var(--color-tertiary)' : r.status === 'Approved' ? 'var(--color-secondary)' : 'var(--color-error)';
-                html += '<div class="timeline-item"><div class="timeline-dot-wrap"><div class="timeline-dot" style="background:var(--color-primary)"></div><div class="timeline-line"></div></div><div class="timeline-text"><div class="timeline-label">Request Submitted</div><div class="timeline-time">' + submittedTime + '</div></div></div>';
-                html += '<div class="timeline-item"><div class="timeline-dot-wrap"><div class="timeline-dot" style="background:var(--color-outline)"></div><div class="timeline-line"></div></div><div class="timeline-text"><div class="timeline-label">Under Review</div><div class="timeline-time">' + (reviewTime || '—') + '</div></div></div>';
-                html += '<div class="timeline-item"><div class="timeline-dot-wrap"><div class="timeline-dot" style="background:' + statusColor + '"></div></div><div class="timeline-text"><div class="timeline-label">' + r.status + '</div><div class="timeline-time">' + (reviewTime || '—') + '</div></div></div>';
+                html += '<div class="timeline-step"><div class="timeline-connector"><div class="timeline-dot" style="background:var(--color-primary)"></div></div><div class="timeline-text"><div class="timeline-label">Request Submitted</div><div class="timeline-time">' + submittedTime + '</div></div></div>';
+                html += '<div class="timeline-step"><div class="timeline-connector"><div class="timeline-dot" style="background:var(--color-outline)"></div></div><div class="timeline-text"><div class="timeline-label">Under Review</div><div class="timeline-time">' + (reviewTime || '—') + '</div></div></div>';
+                html += '<div class="timeline-step"><div class="timeline-connector"><div class="timeline-dot" style="background:' + statusColor + '"></div></div><div class="timeline-text"><div class="timeline-label">' + r.status + '</div><div class="timeline-time">' + (reviewTime || '—') + '</div></div></div>';
                 html += '</div>';
             }
 
             body.innerHTML = html;
             document.getElementById('modalOverlay').classList.add('show');
             document.getElementById('cancelRequestBtn').style.display = r.status === 'Pending' ? 'inline-block' : 'none';
+        }
+
+        function openModal(index) {
+            const r = currentFiltered[index];
+            if (!r) return;
+            openModalById(r.id);
         }
 
         function closeModal() {
@@ -1155,24 +980,31 @@
 
             document.getElementById('semesterChip').textContent = MockData.semester.chipText;
 
-            renderTable();
+            showSummarySkeleton();
+            withSkeleton(function() { renderTable(); hideSummarySkeleton(); }, document.getElementById('tableBody'), 10, 400);
             updateWeekArrowState();
             initWeekKeyboardShortcuts();
 
             document.getElementById('searchInput').addEventListener('input', function() {
                 pageState.currentPage = 1;
                 saveFilters();
-                renderTable();
+                window.scrollTo(0, 0);
+                showSummarySkeleton();
+                withSkeleton(function() { renderTable(); hideSummarySkeleton(); }, document.getElementById('tableBody'), 10, 400);
             });
             document.getElementById('statusFilter').addEventListener('change', function() {
                 pageState.currentPage = 1;
                 saveFilters();
-                renderTable();
+                window.scrollTo(0, 0);
+                showSummarySkeleton();
+                withSkeleton(function() { renderTable(); hideSummarySkeleton(); }, document.getElementById('tableBody'), 10, 400);
             });
             document.getElementById('hideCompleted').addEventListener('change', function() {
                 pageState.currentPage = 1;
                 saveFilters();
-                renderTable();
+                window.scrollTo(0, 0);
+                showSummarySkeleton();
+                withSkeleton(function() { renderTable(); hideSummarySkeleton(); }, document.getElementById('tableBody'), 10, 400);
             });
             document.getElementById('clearFilters').addEventListener('click', function() {
                 document.getElementById('searchInput').value = '';
@@ -1181,7 +1013,9 @@
                 document.getElementById('hideCompleted').checked = true;
                 localStorage.removeItem('mrh-filters');
                 pageState.currentPage = 1;
-                renderTable();
+                window.scrollTo(0, 0);
+                showSummarySkeleton();
+                withSkeleton(function() { renderTable(); hideSummarySkeleton(); }, document.getElementById('tableBody'), 10, 400);
                 updateWeekArrowState();
             });
 
@@ -1194,7 +1028,9 @@
                 onChange: function(size) {
                     rowsPerPage = size;
                     pageState.currentPage = 1;
-                    renderTable();
+                    window.scrollTo(0, 0);
+                    showSummarySkeleton();
+                    withSkeleton(function() { renderTable(); hideSummarySkeleton(); }, document.getElementById('tableBody'), 10, 400);
                 }
             });
 
@@ -1230,8 +1066,8 @@
                     highlightFocusedRow(rows);
                 } else if (e.key === 'Enter' && focusedRowIndex >= 0) {
                     e.preventDefault();
-                    var badge = rows[focusedRowIndex].querySelector('.badge');
-                    if (badge) badge.click();
+                    var rowId = parseInt(rows[focusedRowIndex].dataset.id);
+                    if (rowId) openModalById(rowId);
                 } else if (e.key === 'Escape') {
                     focusedRowIndex = -1;
                     clearFocusedRow(rows);
@@ -1244,7 +1080,7 @@
             if (deepLinkId) {
                 var idx = currentFiltered.findIndex(function(r) { return r.id === deepLinkId; });
                 if (idx !== -1) {
-                    setTimeout(function() { openModal(idx); }, 100);
+                    setTimeout(function() { openModalById(deepLinkId); }, 100);
                 }
             }
         });
