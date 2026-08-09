@@ -360,7 +360,7 @@ class ApiReadController extends Controller
             ];
         })->values();
 
-        return response()->json(['conflicts' => $mapped]);
+        return response()->json(['conflictedClasses' => $mapped]);
     }
 
     public function myTimetable(): JsonResponse
