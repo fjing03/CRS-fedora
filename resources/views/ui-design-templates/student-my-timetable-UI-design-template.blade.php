@@ -354,9 +354,9 @@
                 hours.forEach(function(_, hi) { slotMap[hi] = null; });
 
                 dayEvents.forEach(function(e) {
-                    for (let hi = e.start; hi <= e.end; hi++) {
+                    for (let hi = e.start; hi < e.end; hi++) {
                         if (hi === e.start) {
-                            slotMap[hi] = { event: e, span: e.end - e.start + 1 };
+                            slotMap[hi] = { event: e, span: e.end - e.start };
                         } else {
                             slotMap[hi] = { event: null, span: 0, occupied: true };
                         }
@@ -394,7 +394,7 @@
                         }
 
                         const startTime = to12h(hours[e.start]);
-                        const endTime = to12h(hours[e.end + 1] || add30min(hours[e.end]));
+                        const endTime = to12h(hours[e.end]);
 
                         let extraHtml = '';
                         if (e.status === 'replacement') {
