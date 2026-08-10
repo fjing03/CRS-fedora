@@ -33,10 +33,10 @@ return [
     */
 
     // ──────────────────────────────────────────────────────────────────────
-    // [SESSION TIMEOUT]  NFR 2.4 requires 30 min. Set to 1 min for testing.
-    // Change `lifetime` below (and .env SESSION_LIFETIME) when ready for prod.
+    // [SESSION LIFETIME] Hard ceiling — 30 days (max role lifetime).
+    // Per-role expiry enforced by EnsureSessionLifetime middleware.
     // ──────────────────────────────────────────────────────────────────────
-    'lifetime' => (int) env('SESSION_LIFETIME', 1),
+    'lifetime' => (int) env('SESSION_LIFETIME', 43200),
 
     'expire_on_close' => env('SESSION_EXPIRE_ON_CLOSE', false),
 

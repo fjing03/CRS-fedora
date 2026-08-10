@@ -5,15 +5,22 @@ namespace App\Providers;
 use App\Actions\Fortify\CreateNewUser;
 use App\Actions\Fortify\ResetUserPassword;
 use App\Http\Requests\LoginRequest as AppLoginRequest;
+use App\Http\Responses\LoginResponse;
+use App\Http\Responses\LogoutResponse;
 use App\Models\Lecturer;
 use App\Models\Student;
 use App\Models\User;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
+use Laravel\Fortify\Contracts\LoginResponse as LoginResponseContract;
+use Laravel\Fortify\Contracts\LogoutResponse as LogoutResponseContract;
 use Laravel\Fortify\Fortify;
 use Laravel\Fortify\Http\Requests\LoginRequest;
 
@@ -22,6 +29,8 @@ class FortifyServiceProvider extends ServiceProvider
     public function register(): void
     {
         $this->app->bind(LoginRequest::class, AppLoginRequest::class);
+        $this->app->bind(LoginResponseContract::class, LoginResponse::class);
+        $this->app->bind(LogoutResponseContract::class, LogoutResponse::class);
     }
 
     public function boot(): void
@@ -76,6 +85,16 @@ class FortifyServiceProvider extends ServiceProvider
             $loginType = $request->input('login_type');
             $loginId = $request->input('login_id');
 
+            if ($loginType === 'staff') {
+                $lockout = Cache::get("login_lockout:{$loginId}");
+                if ($lockout) {
+                    session(['lockout_expires' => now()->addMinutes($lockout['minutes'])->timestamp]);
+                    throw ValidationException::withMessages([
+                        'login_id' => "Account locked. Try again in {$lockout['minutes']} min. Forgot password? Reset at TARUMT intranet.",
+                    ]);
+                }
+            }
+
             $user = null;
 
             if ($loginType === 'student') {
@@ -91,7 +110,30 @@ class FortifyServiceProvider extends ServiceProvider
             }
 
             if ($user instanceof User && Hash::check($password, $user->password)) {
+                if ($loginType === 'staff') {
+                    Cache::forget("login_fail:{$loginId}");
+                    Cache::forget("login_lockout:{$loginId}");
+                }
+                $minutes = $user->isStudent() ? 43200 : 30; // Production: 30 | Testing: 1
+                session(['role_lifetime' => $minutes]);
+                session(['login_type' => $loginType]);
+                cookie()->queue('login_type', $loginType, 43200);
+
                 return $user;
+            }
+
+            if ($loginType === 'staff' && $user instanceof User) {
+                $failKey = "login_fail:{$loginId}";
+                $attempts = Cache::get($failKey, 0) + 1;
+                Cache::put($failKey, $attempts, 600);
+                if ($attempts >= 3) {
+                    Cache::put("login_lockout:{$loginId}", ['minutes' => 10], 600);
+                    Cache::forget($failKey);
+                    session(['lockout_expires' => now()->addMinutes(10)->timestamp]);
+                    throw ValidationException::withMessages([
+                        'login_id' => 'Account locked. Try again in 10 min. Forgot password? Reset at TARUMT intranet.',
+                    ]);
+                }
             }
 
             return null;

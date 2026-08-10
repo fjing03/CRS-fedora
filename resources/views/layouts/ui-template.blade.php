@@ -25,16 +25,21 @@
         @include('partials.ui-nav-bar', ['activeNav' => $activeNav ?? '', 'notifCount' => $notifCount ?? 3])
     @endif
 
+    @include('partials.ui-session-countdown')
 
     <div class="app-container">
         @yield('content')
     </div>
 
     <script src="/js/ui-common.js"></script>
-    <script src="/js/mock-data.js"></script>
+    <script src="/js/mock-data.js?v=3"></script>
+    <script src="/js/session-countdown.js"></script>
     <script>
         document.addEventListener('DOMContentLoaded', function() {
+            var pageKey = document.body.dataset.page;
+            if (pageKey) initScrollRestore(pageKey);
             updateIcon(document.documentElement.classList.contains('dark')); initMobileNav();
+            if (typeof updateNavBadge === 'function') updateNavBadge();
         });
 
         @yield('page-scripts')
@@ -42,9 +47,15 @@
 
     <!-- Toast/Undo Bar (shared) -->
     <div class="toast-bar" id="toastBar">
-        <span class="toast-message"></span>
-        <button class="toast-undo" style="display:none">Undo</button>
-        <button class="toast-close" onclick="dismissToast()">✕</button>
+        <div class="toast-content">
+            <span class="toast-message"></span>
+            <span class="toast-details"></span>
+        </div>
+        <div class="toast-actions">
+            <a class="toast-link" href="#" style="display:none"></a>
+            <button class="toast-undo" style="display:none">Undo</button>
+            <button class="toast-close" onclick="dismissToast()">✕</button>
+        </div>
     </div>
 </body>
 </html>
