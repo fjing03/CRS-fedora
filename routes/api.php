@@ -3,7 +3,7 @@
 use App\Http\Controllers\Api\ApiReadController;
 use Illuminate\Support\Facades\Route;
 
-Route::prefix('v1')->middleware('web')->group(function () {
+Route::prefix('v1')->group(function () {
     Route::get('/semester', [ApiReadController::class, 'semester']);
     Route::get('/meta/cohorts', [ApiReadController::class, 'cohorts']);
     Route::get('/timetable/my', [ApiReadController::class, 'myTimetable']);

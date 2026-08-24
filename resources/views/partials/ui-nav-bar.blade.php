@@ -39,7 +39,6 @@
         </button>
 
         @auth
-        <span class="session-dot" title="Session active"></span>
         <div class="user-panel">
             <div class="user-profile">
                 <div class="user-avatar">{{ Auth::user()->initials() }}</div>

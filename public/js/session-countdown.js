@@ -12,6 +12,7 @@ document.addEventListener('DOMContentLoaded', function () {
     var modalCountdown = document.getElementById('modal-countdown');
     var logoutForm = document.getElementById('countdown-logout-form');
     var modalShown = false;
+    var panel = document.querySelector('.user-panel');
 
     function update() {
         var expiresAt = lastActivity + lifetime * 60;
@@ -29,6 +30,11 @@ document.addEventListener('DOMContentLoaded', function () {
 
         if (remaining <= 120 && el.style.display === 'none') {
             el.style.display = 'flex';
+        }
+
+        if (panel) {
+            panel.classList.toggle('danger', remaining <= 30);
+            panel.classList.toggle('warning', remaining > 30 && remaining <= 60);
         }
 
         if (remaining <= 60 && !modalShown && modal) {

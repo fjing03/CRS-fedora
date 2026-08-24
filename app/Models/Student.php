@@ -12,11 +12,13 @@ class Student extends Model
 
     protected $fillable = ['user_id', 'student_id', 'cohort_id'];
 
+    /** @return BelongsTo<User, $this> */
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
     }
 
+    /** @return BelongsTo<Cohort, $this> */
     public function cohort(): BelongsTo
     {
         return $this->belongsTo(Cohort::class);
