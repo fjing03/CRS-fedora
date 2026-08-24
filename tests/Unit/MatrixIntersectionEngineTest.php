@@ -71,6 +71,7 @@ final class MatrixIntersectionEngineTest extends TestCase
             'tutorial_group' => 1,
             'academic_year' => '2026',
             'intake' => 'March 2026',
+            'student_count' => 1,
         ])->id;
 
         $this->cohortTwoId = Cohort::create([
@@ -80,6 +81,7 @@ final class MatrixIntersectionEngineTest extends TestCase
             'tutorial_group' => 2,
             'academic_year' => '2026',
             'intake' => 'March 2026',
+            'student_count' => 1,
         ])->id;
 
         $this->lecturerId = User::factory()->lecturer()->create()->id;
@@ -173,6 +175,8 @@ final class MatrixIntersectionEngineTest extends TestCase
         }
 
         DB::table('students')->insert($rows);
+
+        DB::table('cohorts')->where('id', $cohortId)->increment('student_count', $count);
     }
 
     private function seedSlots(
@@ -596,6 +600,15 @@ final class MatrixIntersectionEngineTest extends TestCase
 
         $this->assertArrayHasKey($this->venueMediumId, $singleCohort);
         $this->assertArrayNotHasKey($this->venueMediumId, $bothCohorts);
+    }
+
+    public function test_required_headcount_reads_denormalized_cohort_counts(): void
+    {
+        DB::table('cohorts')->where('id', $this->cohortOneId)->update(['student_count' => 24]);
+        DB::table('cohorts')->where('id', $this->cohortTwoId)->update(['student_count' => 19]);
+        DB::table('students')->whereIn('cohort_id', [$this->cohortOneId, $this->cohortTwoId])->delete();
+
+        $this->assertSame(43, $this->invokePrivate('requiredHeadcount', [[$this->cohortOneId, $this->cohortTwoId]]));
     }
 
     public function test_s12_provided_venue_still_filtered_by_type(): void

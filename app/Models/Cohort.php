@@ -14,10 +14,11 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @property int $tutorial_group
  * @property string $academic_year
  * @property string|null $intake
+ * @property int|null $student_count
  */
 class Cohort extends Model
 {
-    protected $fillable = ['programme_id', 'current_year', 'semester', 'tutorial_group', 'academic_year', 'intake'];
+    protected $fillable = ['programme_id', 'current_year', 'semester', 'tutorial_group', 'academic_year', 'intake', 'student_count'];
 
     /** @return BelongsTo<Programme, $this> */
     public function programme(): BelongsTo

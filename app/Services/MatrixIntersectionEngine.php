@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\ClassSession;
+use App\Models\Cohort;
 use App\Models\Student;
 use App\Models\TimeSlot;
 use App\Models\Venue;
@@ -286,14 +287,26 @@ final class MatrixIntersectionEngine
 
     /**
      * Sum of students across the target cohorts (multi-cohort sessions share one room).
+     * Reads the denormalized cohorts.student_count when populated; falls back to a live
+     * Student count for cohorts predating the column.
      *
      * @param  array<int, int>  $cohortIds
      */
     private function requiredHeadcount(array $cohortIds): int
     {
-        return Student::query()
-            ->whereIn('cohort_id', $cohortIds)
-            ->count();
+        if ($cohortIds === []) {
+            return 0;
+        }
+
+        $counts = Cohort::query()
+            ->whereIn('id', $cohortIds)
+            ->pluck('student_count', 'id');
+
+        if ($counts->contains(fn ($count): bool => $count === null)) {
+            return (int) Student::query()->whereIn('cohort_id', $cohortIds)->count();
+        }
+
+        return (int) $counts->sum();
     }
 
     /**

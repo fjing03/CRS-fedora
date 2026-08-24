@@ -92,6 +92,7 @@ class DatabaseSeeder extends Seeder
                 'tutorial_group' => $c['group'],
                 'academic_year' => $c['academic_year'],
                 'intake' => $c['intake'],
+                'student_count' => self::STUDENT_COUNTS[sprintf('%s%d(S%d)G%d', $c['programme']->programme_code, $c['year'], $c['sem'], $c['group'])] ?? 10,
             ]);
         }
     }
