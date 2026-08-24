@@ -139,6 +139,16 @@ Not yet migrated — design during Sprint 1 (canonical names per FR 4.8 / NFR 5.
 - `replacement_requests` (time_slot_id, proposer, PL, timestamps, rejection reason)
 - `audit_logs` (PL identity, timestamp, action, slot ID, rejection reason, **OCC validation outcomes per FR 4.12**)
 
+### Applied optimization deltas (`2026_08_24_000001_optimize_replacement_requests_and_indexes.php`, SDD: db-optimization-pass1)
+- `replacement_requests.class_session_id` + `replacement_time_slot_id`: FK cascade → **RESTRICT** (`proposer_id`/`semester_id` remain CASCADE deliberately)
+- Partial unique `uq_replacement_requests_active_block (class_session_id, week_number) WHERE status IN ('pending','approved')` — one active request per original block occurrence
+- Indexes: `idx_replacement_requests_time_slot`, `idx_replacement_requests_proposer_submitted (proposer_id, submitted_at)`, `idx_audit_logs_time_slot`
+- `cohorts.student_count` (nullable smallint, CHECK > 0; seeder-authoritative from §8 STUDENT_COUNTS) — engine headcount reads it with live-COUNT fallback
+- `audit_logs.action` CHECK widened to seven values incl. `'class_cancelled'` (FR 2.16 audit support)
+
+### Applied delta (`2026_08_24_000002_add_room_name_to_venues_table.php`, SDD: venue-room-name)
+- `venues.room_name` VARCHAR(60) NULLABLE — D8/FR 4.2 "room name"; seeder backfills pattern labels (`Tutorial Room B100`, `Lecture Hall B110`, `Computer Lab B009`, `Cisco Lab B006`) — replace with official FOCS names when available. Terminology ruling: entity reported as **Subject** = table `modules` (FR 4.7 'modules', FR 3.3 'subject'); `session_cohorts` pivot stands in place of planned `module_cohort`.
+
 ---
 
 ## 6. User Roles & Permissions Matrix

@@ -12,13 +12,14 @@ use Illuminate\Support\Carbon;
 /**
  * @property int $id
  * @property string $room_code
+ * @property string|null $room_name
  * @property int $capacity
  * @property string $room_type
  * @property string $allowed_session_types
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
  */
-#[Fillable(['room_code', 'capacity', 'room_type', 'allowed_session_types'])]
+#[Fillable(['room_code', 'room_name', 'capacity', 'room_type', 'allowed_session_types'])]
 class Venue extends Model
 {
     /** @use HasFactory<VenueFactory> */

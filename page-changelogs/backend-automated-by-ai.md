@@ -199,3 +199,48 @@ Implements Objective 1 of CodingMAIN §3 (Multi-Entity Matrix Intersection Engin
 - PHPStan (`vendor/bin/phpstan analyse --memory-limit=1G`): 0 new errors; 19 pre-existing frozen-model errors unchanged
 - Pint: clean on all new/touched files; `Lecturer.php`/`Student.php` `class_attributes_separation` failures are pre-existing (untouched frozen files)
 - Commit: `feat(engine): add MatrixIntersectionEngine with 4-vector set intersection`
+
+---
+
+## 2026-08-24 — db-optimization-pass1 (schema optimization)
+
+SDD change: `.sdd/changes/db-optimization-pass1/` (proposal/design/tasks frozen, 3 review rounds PASS).
+
+### `database/migrations/` (new)
+
+| Timestamp | File | Change |
+|-----------|------|--------|
+| 2026-08-24 | `2026_08_24_000001_optimize_replacement_requests_and_indexes.php` | FK cascade→RESTRICT on `replacement_requests.class_session_id` + `replacement_time_slot_id`; partial unique `uq_replacement_requests_active_block (class_session_id, week_number) WHERE status IN ('pending','approved')`; indexes `idx_replacement_requests_time_slot`, `idx_replacement_requests_proposer_submitted`, `idx_audit_logs_time_slot`; `cohorts.student_count` smallint CHECK(>0) + convergence backfill; `audit_logs.action` CHECK += `'class_cancelled'`. Full down() reversal. |
+
+### Code
+
+| Timestamp | Location | Change |
+|-----------|----------|--------|
+| 2026-08-24 | `app/Models/Cohort.php` | `$fillable` + docblock += `student_count` |
+| 2026-08-24 | `database/seeders/DatabaseSeeder.php` | cohort create payload += `student_count` from STUDENT_COUNTS (`?? 10` fallback mirrors seedStudents) |
+| 2026-08-24 | `app/Services/MatrixIntersectionEngine.php` | `requiredHeadcount()` reads denormalized `cohorts.student_count`; NULL-aware fallback to live Student COUNT |
+
+### Tests
+
+| Timestamp | Location | Change |
+|-----------|----------|--------|
+| 2026-08-24 | `tests/Unit/MatrixIntersectionEngineTest.php` | fixtures carry student_count invariant; new fast-path test `test_required_headcount_reads_denormalized_cohort_counts` |
+| 2026-08-24 | `tests/Unit/DbIntegrityConstraintsTest.php` | NEW — D1 unique guard, restrict-FK blocks deletes, proposer-cascade exclusion sanity, class_cancelled audit accepted |
+
+## Verified
+
+- `migrate:fresh --seed` → rollback --step=1 → re-migrate round-trip clean; post-rollback CHECK restored to original six values
+- EXPLAIN: slot lookup uses `idx_replacement_requests_time_slot`
+- Duplicate active-block INSERT → unique violation; referenced time_slot/class_session DELETE → RESTRICT error; `class_cancelled` insert OK / bogus rejected
+- Pint: clean on all touched files (repo-wide parallel run times out — pre-existing infra)
+- `php artisan test`: 87/94; the 7 failures proven identical on baseline `92f16d7` (middleware 403-view redirects ×4, auth-wiring role/logout redirect assertions ×3) — zero regressions
+
+## 2026-08-24 — venue-room-name (D8/FR 4.2 attribute)
+
+| Timestamp | Location | Change |
+|-----------|----------|--------|
+| 2026-08-24 | `database/migrations/2026_08_24_000002_add_room_name_to_venues_table.php` | NEW — `venues.room_name` VARCHAR(60) nullable; down() drops it |
+| 2026-08-24 | `app/Models/Venue.php` | Fillable + docblock += `room_name` |
+| 2026-08-24 | `database/seeders/VenuesSeeder.php` | backfill pattern names via type-label match (`Tutorial Room B100`, `Lecture Hall B110`, `Computer Lab B009`, `Cisco Lab B006`) |
+
+Verified: `\d venues` shows column; 23/23 rows named; rollback removes cleanly; Pint clean. Pattern names are placeholders — replace in seeder with official FOCS labels when available.

@@ -40,8 +40,16 @@ class VenuesSeeder extends Seeder
         ];
 
         foreach ($rooms as [$code, $type, $allowed, $capacity]) {
+            $typeLabel = match ($type) {
+                'tutorial' => 'Tutorial Room',
+                'lecture_hall' => 'Lecture Hall',
+                'lab' => 'Computer Lab',
+                'cisco_lab' => 'Cisco Lab',
+            };
+
             DB::table('venues')->insert([
                 'room_code' => $code,
+                'room_name' => "$typeLabel $code",
                 'room_type' => $type,
                 'allowed_session_types' => $allowed,
                 'capacity' => $capacity,
