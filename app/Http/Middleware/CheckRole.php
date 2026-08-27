@@ -11,8 +11,12 @@ class CheckRole
 {
     public function handle(Request $request, Closure $next, string $role): Response
     {
-        if (! Auth::check() || Auth::user()->role !== $role) {
-            return redirect('/errors/403');
+        if (! Auth::check()) {
+            return redirect('/');
+        }
+
+        if (Auth::user()->role !== $role) {
+            abort(403);
         }
 
         return $next($request);

@@ -45,7 +45,7 @@ class MiddlewareTest extends TestCase
     {
         $user = User::factory()->create(['role' => 'lecturer']);
         $response = $this->actingAs($user)->get('/_test-role');
-        $response->assertRedirect('/');
+        $response->assertForbidden();
     }
 
     public function test_check_role_blocks_guest(): void
@@ -79,14 +79,14 @@ class MiddlewareTest extends TestCase
         ]);
 
         $response = $this->actingAs($user)->get('/_test-pl');
-        $response->assertRedirect('/');
+        $response->assertForbidden();
     }
 
     public function test_check_pl_blocks_student(): void
     {
         $user = User::factory()->create(['role' => 'student']);
         $response = $this->actingAs($user)->get('/_test-pl');
-        $response->assertRedirect('/');
+        $response->assertForbidden();
     }
 
     public function test_check_pl_blocks_guest(): void

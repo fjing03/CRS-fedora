@@ -18,7 +18,7 @@ class CheckPl
         $user = Auth::user();
 
         if (! $user->isLecturer() || ! $user->lecturer?->is_pl) {
-            return redirect('/errors/403');
+            abort(403);
         }
 
         return $next($request);

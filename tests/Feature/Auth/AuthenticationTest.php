@@ -79,7 +79,7 @@ class AuthenticationTest extends TestCase
             'password' => 'password',
         ]);
 
-        $response->assertRedirect(route('dashboard'));
+        $response->assertRedirect('/student-my-timetable-ui');
         $this->assertAuthenticatedAs($this->studentUser);
     }
 
@@ -91,7 +91,7 @@ class AuthenticationTest extends TestCase
             'password' => 'password',
         ]);
 
-        $response->assertRedirect(route('dashboard'));
+        $response->assertRedirect('/my-timetable-ui');
         $this->assertAuthenticatedAs($this->lecturerUser);
     }
 
@@ -123,7 +123,7 @@ class AuthenticationTest extends TestCase
     {
         $response = $this->actingAs($this->studentUser)->post(route('logout'));
 
-        $response->assertRedirect(route('home'));
+        $response->assertRedirect('/login/student');
         $this->assertGuest();
     }
 }
