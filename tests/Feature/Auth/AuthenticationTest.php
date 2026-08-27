@@ -18,6 +18,7 @@ class AuthenticationTest extends TestCase
     use RefreshDatabase;
 
     private User $studentUser;
+
     private User $lecturerUser;
 
     protected function setUp(): void

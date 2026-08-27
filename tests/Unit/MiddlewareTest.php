@@ -2,16 +2,12 @@
 
 namespace Tests\Unit;
 
-use App\Http\Middleware\CheckPl;
-use App\Http\Middleware\CheckRole;
 use App\Models\Department;
 use App\Models\Faculty;
 use App\Models\Lecturer;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
-use Illuminate\Support\Facades\Hash;
 use Tests\TestCase;
 
 class MiddlewareTest extends TestCase
@@ -19,6 +15,7 @@ class MiddlewareTest extends TestCase
     use RefreshDatabase;
 
     private Faculty $faculty;
+
     private Department $dept;
 
     protected function setUp(): void

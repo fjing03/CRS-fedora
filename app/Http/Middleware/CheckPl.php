@@ -11,13 +11,13 @@ class CheckPl
 {
     public function handle(Request $request, Closure $next): Response
     {
-        if (!Auth::check()) {
+        if (! Auth::check()) {
             return redirect('/');
         }
 
         $user = Auth::user();
 
-        if (!$user->isLecturer() || !$user->lecturer?->is_pl) {
+        if (! $user->isLecturer() || ! $user->lecturer?->is_pl) {
             return redirect('/errors/403');
         }
 

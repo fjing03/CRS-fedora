@@ -9,12 +9,12 @@ use SplFileObject;
 class CsvTimetableSeeder extends Seeder
 {
     private const DAY_MAP = [
-        'Monday'    => 0,
-        'Tuesday'   => 1,
+        'Monday' => 0,
+        'Tuesday' => 1,
         'Wednesday' => 2,
-        'Thursday'  => 3,
-        'Friday'    => 4,
-        'Saturday'  => 5,
+        'Thursday' => 3,
+        'Friday' => 4,
+        'Saturday' => 5,
     ];
 
     public function run(): void
@@ -46,7 +46,7 @@ class CsvTimetableSeeder extends Seeder
             }
         }
 
-        $this->command->info("Parsed " . count($rows) . " rows from CSV.");
+        $this->command->info('Parsed '.count($rows).' rows from CSV.');
 
         $modules = $this->ensureModules();
         $cohorts = $this->ensureCohorts();
@@ -55,13 +55,13 @@ class CsvTimetableSeeder extends Seeder
         $inserted = 0;
 
         foreach ($rows as $row) {
-            $staffId    = trim($row[0]);
-            $dayStr     = trim($row[2]);
-            $timeStart  = $this->parseTime(trim($row[3]));
-            $timeEnd    = $this->parseTime(trim($row[4]));
+            $staffId = trim($row[0]);
+            $dayStr = trim($row[2]);
+            $timeStart = $this->parseTime(trim($row[3]));
+            $timeEnd = $this->parseTime(trim($row[4]));
             $modulePart = trim($row[5]);
-            $venueRaw   = trim($row[6]);
-            $cohortRaw  = trim($row[7]);
+            $venueRaw = trim($row[6]);
+            $cohortRaw = trim($row[7]);
 
             if (! isset($lecturerCache[$staffId])) {
                 $lecturerCache[$staffId] = DB::table('lecturers')
@@ -76,7 +76,7 @@ class CsvTimetableSeeder extends Seeder
             }
 
             preg_match('/^(\S+)\s*\((\w)\)$/', $modulePart, $m);
-            $moduleCode  = $m[1] ?? $modulePart;
+            $moduleCode = $m[1] ?? $modulePart;
             $sessionType = $m[2] ?? 'L';
 
             $venueCode = preg_replace('/\s*[-–].*$/', '', $venueRaw);
@@ -103,16 +103,16 @@ class CsvTimetableSeeder extends Seeder
             }
 
             $csId = DB::table('class_sessions')->insertGetId([
-                'semester_id'   => $semesterId,
-                'module_id'     => $moduleId,
-                'lecturer_id'   => $lecturerUserId,
-                'day_of_week'   => $dayOfWeek,
-                'start_time'    => $timeStart,
-                'end_time'      => $timeEnd,
-                'venue_id'      => $venueId,
-                'session_type'  => $sessionType,
-                'created_at'    => now(),
-                'updated_at'    => now(),
+                'semester_id' => $semesterId,
+                'module_id' => $moduleId,
+                'lecturer_id' => $lecturerUserId,
+                'day_of_week' => $dayOfWeek,
+                'start_time' => $timeStart,
+                'end_time' => $timeEnd,
+                'venue_id' => $venueId,
+                'session_type' => $sessionType,
+                'created_at' => now(),
+                'updated_at' => now(),
             ]);
 
             $this->occupyTimeSlots($semesterId, $csId, $venueId, $dayOfWeek, $timeStart, $timeEnd);
@@ -137,7 +137,7 @@ class CsvTimetableSeeder extends Seeder
 
                 DB::table('session_cohorts')->insert([
                     'class_session_id' => $csId,
-                    'cohort_id'        => $cohortId,
+                    'cohort_id' => $cohortId,
                 ]);
             }
 
@@ -175,7 +175,7 @@ class CsvTimetableSeeder extends Seeder
     private function occupyTimeSlots(int $semesterId, int $csId, int $venueId, int $dayOfWeek, string $start, string $end): void
     {
         $startMin = $this->toMinutes($start);
-        $endMin   = $this->toMinutes($end);
+        $endMin = $this->toMinutes($end);
 
         DB::table('time_slots')
             ->where('semester_id', $semesterId)
@@ -183,11 +183,11 @@ class CsvTimetableSeeder extends Seeder
             ->where('day_of_week', $dayOfWeek)
             ->where('status', 'available')
             ->where(function ($q) use ($startMin, $endMin) {
-                $q->whereRaw("EXTRACT(HOUR FROM start_time) * 60 + EXTRACT(MINUTE FROM start_time) >= ?", [$startMin])
-                  ->whereRaw("EXTRACT(HOUR FROM start_time) * 60 + EXTRACT(MINUTE FROM start_time) < ?", [$endMin]);
+                $q->whereRaw('EXTRACT(HOUR FROM start_time) * 60 + EXTRACT(MINUTE FROM start_time) >= ?', [$startMin])
+                    ->whereRaw('EXTRACT(HOUR FROM start_time) * 60 + EXTRACT(MINUTE FROM start_time) < ?', [$endMin]);
             })
             ->update([
-                'status'           => 'occupied',
+                'status' => 'occupied',
                 'class_session_id' => $csId,
             ]);
     }
@@ -201,9 +201,9 @@ class CsvTimetableSeeder extends Seeder
 
     private function parseTime(string $raw): string
     {
-        $raw   = strtolower(trim($raw));
-        $isPm  = str_contains($raw, 'pm');
-        $raw   = str_replace(['am', 'pm'], '', $raw);
+        $raw = strtolower(trim($raw));
+        $isPm = str_contains($raw, 'pm');
+        $raw = str_replace(['am', 'pm'], '', $raw);
         [$h, $m] = explode(':', $raw);
         $h = (int) $h;
         $m = (int) $m;
@@ -232,7 +232,7 @@ class CsvTimetableSeeder extends Seeder
 
     private function ensureModules(): array
     {
-        $map      = [];
+        $map = [];
         $existing = DB::table('modules')->pluck('id', 'module_code')->toArray();
 
         $needed = ['AMSE1003', 'BMSE3153', 'BMSE2163', 'AMSE2003', 'BMIT2043', 'AMIS1003', 'BMCS1013', 'BMCS1113'];
@@ -242,11 +242,11 @@ class CsvTimetableSeeder extends Seeder
                 $map[$code] = $existing[$code];
             } else {
                 $id = DB::table('modules')->insertGetId([
-                    'module_code'           => $code,
-                    'module_name'           => $code,
+                    'module_code' => $code,
+                    'module_name' => $code,
                     'allowed_session_types' => 'L,T,P',
-                    'created_at'            => now(),
-                    'updated_at'            => now(),
+                    'created_at' => now(),
+                    'updated_at' => now(),
                 ]);
                 $map[$code] = $id;
                 $this->command->info("Created module: {$code}");
@@ -297,14 +297,14 @@ class CsvTimetableSeeder extends Seeder
                 }
 
                 $id = DB::table('cohorts')->insertGetId([
-                    'programme_id'   => $programmeId,
-                    'current_year'   => $n['year'],
-                    'semester'       => $n['sem'],
+                    'programme_id' => $programmeId,
+                    'current_year' => $n['year'],
+                    'semester' => $n['sem'],
                     'tutorial_group' => $n['group'],
-                    'academic_year'  => '2025/26',
-                    'intake'         => 'June 2023',
-                    'created_at'     => now(),
-                    'updated_at'     => now(),
+                    'academic_year' => '2025/26',
+                    'intake' => 'June 2023',
+                    'created_at' => now(),
+                    'updated_at' => now(),
                 ]);
 
                 $map[$key] = $id;

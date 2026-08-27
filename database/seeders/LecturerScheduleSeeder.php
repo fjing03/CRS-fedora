@@ -3,11 +3,6 @@
 namespace Database\Seeders;
 
 use App\Models\ClassSession;
-use App\Models\Cohort;
-use App\Models\Module;
-use App\Models\SessionCohort;
-use App\Models\User;
-use App\Models\Venue;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
 use SplFileObject;
@@ -15,12 +10,12 @@ use SplFileObject;
 class LecturerScheduleSeeder extends Seeder
 {
     private const DAY_MAP = [
-        'Monday'    => 0,
-        'Tuesday'   => 1,
+        'Monday' => 0,
+        'Tuesday' => 1,
         'Wednesday' => 2,
-        'Thursday'  => 3,
-        'Friday'    => 4,
-        'Saturday'  => 5,
+        'Thursday' => 3,
+        'Friday' => 4,
+        'Saturday' => 5,
     ];
 
     public function run(): void
@@ -54,7 +49,7 @@ class LecturerScheduleSeeder extends Seeder
             }
         }
 
-        $this->command->info("Parsed " . count($rows) . " rows from CSV.");
+        $this->command->info('Parsed '.count($rows).' rows from CSV.');
 
         $modules = $this->ensureModules();
         $cohorts = $this->ensureCohorts();
@@ -72,12 +67,12 @@ class LecturerScheduleSeeder extends Seeder
         $inserted = 0;
 
         foreach ($rows as $row) {
-            $dayStr     = trim($row[2]);
-            $timeStart  = $this->parseTime(trim($row[3]));
-            $timeEnd    = $this->parseTime(trim($row[4]));
+            $dayStr = trim($row[2]);
+            $timeStart = $this->parseTime(trim($row[3]));
+            $timeEnd = $this->parseTime(trim($row[4]));
             $modulePart = trim($row[5]);
-            $venueRaw   = trim($row[6]);
-            $cohortRaw  = trim($row[7]);
+            $venueRaw = trim($row[6]);
+            $cohortRaw = trim($row[7]);
 
             preg_match('/^(\S+)\s*\((\w)\)$/', $modulePart, $m);
             $moduleCode = $m[1] ?? $modulePart;
@@ -107,16 +102,16 @@ class LecturerScheduleSeeder extends Seeder
             }
 
             $csId = ClassSession::insertGetId([
-                'semester_id'   => $semesterId,
-                'module_id'     => $moduleId,
-                'lecturer_id'   => $lecturerUserId,
-                'day_of_week'   => $dayOfWeek,
-                'start_time'    => $timeStart,
-                'end_time'      => $timeEnd,
-                'venue_id'      => $venueId,
-                'session_type'  => $sessionType,
-                'created_at'    => now(),
-                'updated_at'    => now(),
+                'semester_id' => $semesterId,
+                'module_id' => $moduleId,
+                'lecturer_id' => $lecturerUserId,
+                'day_of_week' => $dayOfWeek,
+                'start_time' => $timeStart,
+                'end_time' => $timeEnd,
+                'venue_id' => $venueId,
+                'session_type' => $sessionType,
+                'created_at' => now(),
+                'updated_at' => now(),
             ]);
 
             $cohortNames = array_map('trim', explode('/', $cohortRaw));
@@ -150,7 +145,7 @@ class LecturerScheduleSeeder extends Seeder
 
                 DB::table('session_cohorts')->insert([
                     'class_session_id' => $csId,
-                    'cohort_id'        => $cohortId,
+                    'cohort_id' => $cohortId,
                 ]);
             }
 
@@ -174,13 +169,13 @@ class LecturerScheduleSeeder extends Seeder
             ->where('status', 'available')
             ->where(function ($q) use ($startMin, $endMin) {
                 $q->where(function ($q2) use ($startMin) {
-                    $q2->whereRaw("EXTRACT(HOUR FROM start_time) * 60 + EXTRACT(MINUTE FROM start_time) >= ?", [$startMin]);
+                    $q2->whereRaw('EXTRACT(HOUR FROM start_time) * 60 + EXTRACT(MINUTE FROM start_time) >= ?', [$startMin]);
                 })->where(function ($q2) use ($endMin) {
-                    $q2->whereRaw("EXTRACT(HOUR FROM start_time) * 60 + EXTRACT(MINUTE FROM start_time) < ?", [$endMin]);
+                    $q2->whereRaw('EXTRACT(HOUR FROM start_time) * 60 + EXTRACT(MINUTE FROM start_time) < ?', [$endMin]);
                 });
             })
             ->update([
-                'status'           => 'occupied',
+                'status' => 'occupied',
                 'class_session_id' => $csId,
             ]);
     }
@@ -234,11 +229,11 @@ class LecturerScheduleSeeder extends Seeder
                 $map[$code] = $existing[$code];
             } else {
                 $id = DB::table('modules')->insertGetId([
-                    'module_code'           => $code,
-                    'module_name'           => $code,
+                    'module_code' => $code,
+                    'module_name' => $code,
                     'allowed_session_types' => 'L,T,P',
-                    'created_at'            => now(),
-                    'updated_at'            => now(),
+                    'created_at' => now(),
+                    'updated_at' => now(),
                 ]);
                 $map[$code] = $id;
                 $this->command->info("Created module: {$code}");
@@ -289,14 +284,14 @@ class LecturerScheduleSeeder extends Seeder
                 }
 
                 $id = DB::table('cohorts')->insertGetId([
-                    'programme_id'   => $programmeId,
-                    'current_year'   => $n['year'],
-                    'semester'       => $n['sem'],
+                    'programme_id' => $programmeId,
+                    'current_year' => $n['year'],
+                    'semester' => $n['sem'],
                     'tutorial_group' => $n['group'],
-                    'academic_year'  => '2025/26',
-                    'intake'         => 'June 2024',
-                    'created_at'     => now(),
-                    'updated_at'     => now(),
+                    'academic_year' => '2025/26',
+                    'intake' => 'June 2024',
+                    'created_at' => now(),
+                    'updated_at' => now(),
                 ]);
 
                 $map[$key] = $id;
