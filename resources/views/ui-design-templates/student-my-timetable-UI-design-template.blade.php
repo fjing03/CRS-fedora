@@ -2,19 +2,30 @@
     'activeNav' => 'my-timetable',
     'pageKey' => 'studentMyTimetable',
     'navItems' => [
-        ['key'=>'dashboard','label'=>'Dashboard','href'=>'/dashboard'],
-        ['key'=>'my-timetable','label'=>'My Timetable','href'=>'/student-my-timetable-ui'],
-        ['key'=>'replacement-history','label'=>'Replacement History','href'=>'/my-request-history-ui'],
+        ['key'=>'my-timetable','label'=>'Student My Timetable','href'=>'/student-my-timetable-ui'],
+        ['key'=>'upcoming-replacements','label'=>'Upcoming Replacements','href'=>'/upcoming-replacements-ui'],
     ],
     'notifCount' => 3,
 ])
 
-@section('title', 'My Timetable')
+@section('title', 'Student My Timetable')
+
+@section('page-styles')
+    .timetable td.hour-cell.offday-slot {
+        background: transparent;
+    }
+    .timetable td.today-cell.offday-slot {
+        background: transparent;
+    }
+    .timetable td.hour-cell.offday-slot .cell-empty {
+        background: transparent;
+    }
+@endsection
 
 @section('content')
 
         <!-- ─── Page Header ─── -->
-        @include('partials.ui-page-header', ['title' => 'My Timetable', 'description' => 'View your weekly class schedule across all sessions.', 'chips' => [['label' => 'RSD3(S1)G2']]])
+        @include('partials.ui-page-header', ['title' => 'Student My Timetable', 'description' => 'View your weekly class schedule across all sessions.', 'chips' => [['label' => 'RSD3(S1)G2']]])
 
         <!-- ─── Semester Progress ─── -->
         <div class="semester-progress" id="semesterProgress">
@@ -40,11 +51,16 @@
         <!-- ─── Weekly Summary Bar ─── -->
         @include('partials.ui-summary-bar', [
             'cards' => [
-                ['class' => 'card-total', 'valueId' => 'sumTotal', 'label' => 'Total Classes'],
-                ['class' => 'card-hours', 'valueId' => 'sumHours', 'label' => 'Class Hours'],
-                ['class' => 'card-replacement', 'valueId' => 'sumReplacement', 'label' => 'Replacements'],
-                ['class' => 'card-pending', 'valueId' => 'sumPending', 'label' => 'Pending'],
-                ['class' => 'card-conflict', 'valueId' => 'sumConflict', 'label' => 'Conflicts'],
+                ['class' => 'card-total', 'valueId' => 'sumTotal', 'label' => 'Total Classes',
+                    'description' => 'Total classes in <strong>your timetable</strong> this week.'],
+                ['class' => 'card-hours', 'valueId' => 'sumHours', 'label' => 'Class Hours',
+                    'description' => 'Total <strong>class hours</strong> you have this week (each slot = <strong>30 minutes</strong>).'],
+                ['class' => 'card-replacement', 'valueId' => 'sumReplacement', 'label' => 'Replacements',
+                    'description' => 'Classes where a <strong>different lecturer</strong> is covering this week.'],
+                ['class' => 'card-pending', 'valueId' => 'sumPending', 'label' => 'Pending',
+                    'description' => 'Replacement requests still <strong>being processed</strong> for your classes.'],
+                ['class' => 'card-conflict', 'valueId' => 'sumConflict', 'label' => 'Conflicts',
+                    'description' => '<strong>Scheduling overlaps</strong> in your timetable that need attention.'],
             ]
         ])
 
@@ -58,11 +74,40 @@
 
 @section('page-scripts')
 
-        function fmtShort(d) {
-            return String(d.getDate()).padStart(2, '0') + ' ' + d.toLocaleString('en', { month: 'short' });
-        }
+        const weekData = generateWeekData();
 
-        let weekData, eventsByWeek, currentWeek;
+        const eventsByWeek = {};
+        for (let w = 0; w < MockData.semester.weeks; w++) {
+            eventsByWeek[w] = MockData.cohortTimetable.rsd3g2Base.map(function(c) {
+                return Object.assign({}, c, { status: 'normal', remarks: '', meta: {} });
+            });
+        }
+        Object.entries(MockData.cohortTimetable.rsd3g2Flags).forEach(function(entry) {
+            const w = entry[0];
+            const list = entry[1];
+            list.forEach(function(flag) {
+                const code = flag[0];
+                const status = flag[1];
+                const remarks = flag[2];
+                const flagRequestedAt = flag[3] || '';
+                const evArr = eventsByWeek[w];
+                if (evArr) {
+                    const ev = evArr.find(function(e) { return e.code === code; });
+                    if (ev) {
+                        ev.status = status;
+                        ev.remarks = remarks;
+                        if (flagRequestedAt) {
+                            ev.requestedAt = flagRequestedAt;
+                        } else if (status === 'pending') {
+                            ev.requestedAt = '01 Sep 2026, 09:15 AM';
+                        }
+                        if (status === 'pending') {
+                            ev.requestedBy = ev.lecturer;
+                        }
+                    }
+                }
+            });
+        });
 
         function getVisibleEvents(weekIdx) {
             const weekEvents = eventsByWeek[weekIdx] || [];
@@ -73,81 +118,26 @@
             });
         }
 
+        let currentWeek = currentWeekIndex();
+
+        const weekNav = new WeekNavigator(MockData.semester, weekData);
+        weekNav._currentWeek = currentWeek;
+
         const WEEK_KEY = 'studentMyTimetableWeek';
-        function loadSavedWeek() {
-            const saved = parseInt(localStorage.getItem(WEEK_KEY));
-            if (!isNaN(saved) && saved >= 0 && saved < weekData.length) {
-                currentWeek = saved;
-            }
-        }
-        function saveWeek() {
-            try { localStorage.setItem(WEEK_KEY, String(currentWeek)); } catch (e) {}
-        }
+        function loadSavedWeek() { weekNav.load(); currentWeek = weekNav.currentWeek; }
+        function saveWeek() { weekNav.save(); }
 
         function buildWeekOptions() {
-            const sel = document.getElementById('weekSelect');
-            var isMobile = window.innerWidth <= 768;
-            sel.innerHTML = weekData.map(function(w, i) {
-                var label = isMobile
-                    ? 'Week ' + (i + 1) + ' \u00B7 ' + w.rangeShort
-                    : 'Week ' + (i + 1) + ' \u00B7 ' + fmt(w.start) + ' ~ ' + fmt(w.end);
-                return '<option value="' + i + '">' + label + '</option>';
-            }).join('');
-            sel.selectedIndex = currentWeek;
+            populateWeekSelect('weekSelect', { ranges: false, selected: currentWeek });
         }
 
         function openModal(event) {
-            document.getElementById('modalTitle').textContent = event.code || 'Class Details';
-
-            const days = weekData[currentWeek].days;
-            const isConflict = days[event.di] && days[event.di].holiday;
-            const displayStatus = isConflict ? 'conflict' : event.status;
-
-            const badge = document.getElementById('modalStatusBadge');
-            badge.textContent = displayStatus.charAt(0).toUpperCase() + displayStatus.slice(1);
-            badge.className = 'modal-status-badge ' + displayStatus;
-
-            const startStr = to12h(hours[event.start]);
-            const endStr = to12h(hours[event.end + 1] || add30min(hours[event.end]));
-
-            let timelineHtml = '';
-            if (event.status === 'pending') {
-                timelineHtml = '<div class="status-timeline">' +
-                    '<div class="step completed">Submitted \u2713</div>' +
-                    '<div class="step active">Under Review</div>' +
-                    '<div class="step">Awaiting Replacement</div>' +
-                '</div>';
-            }
-
-            const fields = [
-                { label: 'Subject Code', value: event.code },
-                { label: 'Subject Name', value: event.name },
-                { label: 'Class Type', value: event.type === 'L' ? 'Lecture (L)' : 'Tutorial (T)' },
-                { label: 'Lecturer', value: event.lecturer },
-                { label: 'Venue', value: event.venue || '\u2014' },
-                { label: 'Day', value: dayNames[event.di] },
-                { label: 'Date', value: weekData[currentWeek].days[event.di].date },
-                { label: 'Time', value: startStr + ' \u2013 ' + endStr },
-                { label: 'Status', value: displayStatus.charAt(0).toUpperCase() + displayStatus.slice(1) },
-                { label: 'Remarks', value: event.remarks || '\u2014' },
-            ];
-
-            if (event.status === 'pending') {
-                fields.splice(fields.length - 1, 0,
-                    { label: 'Requested At', value: event.requestedAt || '\u2014' },
-                    { label: 'Requested By', value: event.requestedBy || '\u2014' }
-                );
-            }
-
-            const fieldsHtml = fields.map(function(f) {
-                return '<div class="modal-field">' +
-                    '<span class="field-label">' + f.label + '</span>' +
-                    '<span class="field-value">' + f.value + '</span>' +
-                '</div>';
-            }).join('');
-
-            document.getElementById('modalBody').innerHTML = timelineHtml + fieldsHtml;
-            document.getElementById('classModal').style.display = 'flex';
+            openClassModal({
+                event: event,
+                dayIndex: event.di,
+                days: weekData[currentWeek].days,
+                title: event.code || 'Class Details'
+            });
         }
 
         function closeModal() {
@@ -161,287 +151,56 @@
         closeOnEsc(closeModal);
 
         function buildTimetable() {
-            const head = document.getElementById('tableHead');
-            const body = document.getElementById('tableBody');
-            const tableEl = document.getElementById('timetable');
-            const emptyEl = document.getElementById('emptyState');
-            head.innerHTML = '';
-            body.innerHTML = '';
-
-            const data = weekData[currentWeek];
-            const days = data.days;
-            const visibleEvents = getVisibleEvents(currentWeek);
-
-            if (visibleEvents.length === 0) {
-                tableEl.style.display = 'none';
-                emptyEl.style.display = 'flex';
-                updateSummary();
-                return;
-            }
-
-            tableEl.style.display = '';
-            emptyEl.style.display = 'none';
-
-            const timeHeaderRow = document.createElement('tr');
-            const cornerTh = document.createElement('th');
-            cornerTh.className = 'time-header-col';
-            cornerTh.style.cssText = 'position: sticky; left: 0; z-index: 40;';
-            cornerTh.innerHTML = '<span style="font-size:13px;font-weight:600;">Day / Time</span>';
-            timeHeaderRow.appendChild(cornerTh);
-
-            for (let i = 0; i < hours.length; i += 2) {
-                const th = document.createElement('th');
-                th.className = 'hour-header';
-                th.colSpan = 2;
-                th.innerHTML = '<span class="hour-top">' + hours[i] + '</span><span class="hour-bottom">' + (hours[i + 2] || add30min(hours[i + 1])) + '</span>';
-                timeHeaderRow.appendChild(th);
-            }
-            head.appendChild(timeHeaderRow);
-
-            days.forEach(function(day, di) {
-                const tr = document.createElement('tr');
-
-                const dayTd = document.createElement('td');
-                let dayColClass = 'time-col';
-                if (day.today) dayColClass += ' today';
-                if (day.holiday || day.sunday) dayColClass += ' offday';
-                dayTd.className = dayColClass;
-                dayTd.innerHTML = buildDayHtml(day);
-                tr.appendChild(dayTd);
-
-                const dayEvents = visibleEvents.filter(function(e) { return e.di === di; });
-
-                const slotMap = {};
-                hours.forEach(function(_, hi) { slotMap[hi] = null; });
-
-                dayEvents.forEach(function(e) {
-                    for (let hi = e.start; hi < e.end; hi++) {
-                        if (hi === e.start) {
-                            slotMap[hi] = { event: e, span: e.end - e.start };
-                        } else {
-                            slotMap[hi] = { event: null, span: 0, occupied: true };
-                        }
-                    }
-                });
-
-                hours.forEach(function(h, hi) {
-                    const td = document.createElement('td');
-                    let cellClass = 'hour-cell';
-                    if (day.today) cellClass += ' today-cell';
-                    if (day.sunday || day.holiday) cellClass += ' offday-slot';
-                    td.className = cellClass;
-                    td.dataset.day = di;
-                    td.dataset.hour = hi;
-
-                    const info = slotMap[hi];
-
-                    if (info && info.event) {
-                        const e = info.event;
-                        const isConflict = day.holiday;
-                        const div = document.createElement('div');
-                        div.className = 'event-block span-' + info.span;
-                        div.setAttribute('tabindex', '0');
-                        div.__eventData = e;
-                        div.dataset.name = e.name || '';
-                        div.dataset.venue = e.venue || '';
-                        if (isConflict) {
-                            div.classList.add('event-public-holiday');
-                        } else if (e.status === 'normal') {
-                            div.classList.add('event-normal');
-                        } else if (e.status === 'replacement') {
-                            div.classList.add('event-replacement');
-                        } else if (e.status === 'pending') {
-                            div.classList.add('event-pending');
-                        }
-
-                        const startTime = to12h(hours[e.start]);
-                        const endTime = to12h(hours[e.end]);
-
-                        let extraHtml = '';
-                        if (e.status === 'replacement') {
-                            extraHtml = '<span class="ev-note">(Replaced for ' + e.remarks + ')</span>';
-                        }
-
-                        div.innerHTML =
-                            '<span class="ev-code">' + e.code + '(' + e.type + ')</span>' +
-                            '<span class="ev-venue">' + e.venue + '</span>' +
-                            '<span class="ev-time">' + startTime + ' - ' + endTime + '</span>' +
-                            extraHtml;
-
-                        div.addEventListener('click', function() { openModal(e); });
-                        td.appendChild(div);
-
-                        if (info.span > 1) {
-                            td.colSpan = info.span;
-                        }
-                    } else if (info && info.occupied) {
-                        td.style.display = 'none';
-                    } else {
-                        const div = document.createElement('div');
-                        div.className = 'cell-empty';
-                        td.appendChild(div);
-                    }
-
-                    tr.appendChild(td);
-                });
-
-                body.appendChild(tr);
+            currentWeek = weekNav.currentWeek;
+            buildTimetableGrid({
+                events: getVisibleEvents(currentWeek),
+                days: weekData[currentWeek].days,
+                onEventClick: function(e) { openModal(e); },
+                tooltipExtra: function(e) {
+                    // Tooltip shows the lecturer — students don't see who teaches from the block.
+                    return e.lecturer || '—';
+                },
+                replacementNoteFn: function(e) {
+                    return buildReplacementNote(e);
+                }
             });
-
             updateSummary();
         }
 
         function updateSummary() {
-            const visibleEvents = getVisibleEvents(currentWeek);
-            const days = weekData[currentWeek].days;
-            let total = visibleEvents.length;
-            let replacement = 0, pending = 0, conflict = 0, classHours = 0;
-
-            visibleEvents.forEach(function(e) {
-                if (e.status === 'replacement') replacement++;
-                if (e.status === 'pending') pending++;
-                if (days[e.di] && days[e.di].holiday) conflict++;
-                classHours += (e.end - e.start + 1) * 0.5;
-            });
-
-            document.getElementById('sumTotal').textContent = total;
-            document.getElementById('sumHours').textContent = (classHours % 1 === 0 ? classHours : classHours.toFixed(1));
-            document.getElementById('sumReplacement').textContent = replacement;
-            document.getElementById('sumPending').textContent = pending;
-            document.getElementById('sumConflict').textContent = conflict;
+            computeSummary(getVisibleEvents(currentWeek), weekData[currentWeek].days);
             updateWeekArrows(currentWeek <= 0, currentWeek >= weekData.length - 1);
         }
 
         function prevWeek() {
-            if (currentWeek > 0) {
-                currentWeek--;
-                buildTimetable();
-    
-    document.getElementById('weekSelect').selectedIndex = currentWeek;
-                updateWeekSubtitle();
-                updateProgress();
-                saveWeek();
-            }
+            weekNav.prevWeek();
+            currentWeek = weekNav.currentWeek;
         }
 
         function nextWeek() {
-            if (currentWeek < weekData.length - 1) {
-                currentWeek++;
-                buildTimetable();
-    
-    document.getElementById('weekSelect').selectedIndex = currentWeek;
-                updateWeekSubtitle();
-                updateProgress();
-                saveWeek();
-            }
+            weekNav.nextWeek();
+            currentWeek = weekNav.currentWeek;
         }
 
         function selectWeek(index) {
-            currentWeek = parseInt(index);
-            buildTimetable();
-
-updateWeekSubtitle();
-            updateProgress();
-            saveWeek();
+            weekNav.selectWeek(parseInt(index, 10));
+            currentWeek = weekNav.currentWeek;
         }
 
-        document.addEventListener('keydown', function(e) {
-            if (e.target.tagName === 'SELECT' || document.getElementById('classModal').style.display === 'flex') return;
-            if (e.key === 'ArrowLeft') { prevWeek(); }
-            if (e.key === 'ArrowRight') { nextWeek(); }
-            if (e.key === 'Enter' && e.target.classList.contains('event-block')) {
-                const eventData = e.target.__eventData;
-                if (eventData) openModal(eventData);
-            }
+        initTimetableKeyboardHandlers({
+            prevWeek: prevWeek,
+            nextWeek: nextWeek,
+            openModal: openModal,
+            modalId: 'classModal'
         });
 
-        document.addEventListener('click', function(e) {
-            if (e.target.classList.contains('ev-code')) {
-                navigator.clipboard.writeText(e.target.textContent).then(function() {
-                    const toast = document.getElementById('copyToast');
-                    toast.textContent = 'Copied ' + e.target.textContent;
-                    toast.classList.add('show');
-                    setTimeout(function() { toast.classList.remove('show'); }, 1500);
-                });
-            }
-        });
+        initEvCodeCopy('copyToast');
 
-        initTodayBtn();
+        weekNav.initTodayBtn();
 
-        document.addEventListener('DOMContentLoaded', async function() {
-            await loadMockSection('/api/v1/semester', 'semester');
-            await loadMockSection('/api/v1/timetable/student', 'studentTimetable');
-
-            weekData = (function() {
-                const start = new Date(MockData.semester.startDate);
-                start.setHours(0, 0, 0, 0);
-                const arr = [];
-                for (let w = 0; w < MockData.semester.weeks; w++) {
-                    const ms = start.getTime() + w * 7 * 86400000;
-                    const startDate = new Date(ms);
-                    const endDate = new Date(ms + 6 * 86400000);
-                    const days = [];
-                    for (let d = 0; d < 7; d++) {
-                        const dt = new Date(ms + d * 86400000);
-                        let holiday = false;
-                        let holidayLabel = '';
-                        MockData.holidays.forEach(function(h) {
-                            if (h.week === w + 1 && h.dayIndex === d) {
-                                holiday = true;
-                                holidayLabel = h.label;
-                            }
-                        });
-                        days.push({
-                            abbr: ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'][d],
-                            date: fmt(dt),
-                            sunday: d === 6,
-                            today: dt.getTime() === getTodayMs(),
-                            holiday: holiday,
-                            holidayLabel: holidayLabel,
-                        });
-                    }
-                    arr.push({
-                        label: 'Week ' + (w + 1),
-                        start: startDate,
-                        end: endDate,
-                        range: fmt(startDate) + ' ~ ' + fmt(endDate),
-                        rangeShort: fmtShort(startDate) + ' ~ ' + fmtShort(endDate),
-                        days: days,
-                    });
-                }
-                return arr;
-            })();
-
-            eventsByWeek = {};
-            for (let w = 0; w < MockData.semester.weeks; w++) {
-                eventsByWeek[w] = MockData.cohortTimetable.rsd3g2Base.map(function(c) {
-                    return Object.assign({}, c, { status: 'normal', remarks: '', meta: {} });
-                });
-            }
-            Object.entries(MockData.cohortTimetable.rsd3g2Flags).forEach(function(entry) {
-                const w = entry[0];
-                const list = entry[1];
-                list.forEach(function(flag) {
-                    const code = flag[0];
-                    const status = flag[1];
-                    const remarks = flag[2];
-                    const evArr = eventsByWeek[w];
-                    if (evArr) {
-                        const ev = evArr.find(function(e) { return e.code === code; });
-                        if (ev) {
-                            ev.status = status;
-                            ev.remarks = remarks;
-                            if (status === 'pending') {
-                                ev.requestedAt = '01 Sep 2026, 09:15 AM';
-                                ev.requestedBy = ev.lecturer;
-                            }
-                        }
-                    }
-                });
-            });
-
-            currentWeek = currentWeekIndex();
-            loadSavedWeek();
+        document.addEventListener('DOMContentLoaded', function() {
+            weekNav.load();
+            currentWeek = weekNav.currentWeek;
 
             const chipEl = document.getElementById('semesterChip');
             if (chipEl) chipEl.textContent = MockData.semester.chipText;
@@ -453,25 +212,9 @@ updateWeekSubtitle();
             buildTimetable();
             initWeekKeyboardShortcuts();
 
-            updateWeekSubtitle();
+updateWeekSubtitle();
             updateProgress();
         });
 
-        // Mobile swipe gestures for week navigation
-        if (window.innerWidth <= 768) {
-            const gridScroll = document.querySelector('.grid-scroll');
-            if (gridScroll) {
-                initSwipeGesture({
-                    element: gridScroll,
-                    onSwipeLeft: () => {
-                        const nextBtn = document.querySelector('[onclick*="nextWeek"], [data-action="next"]');
-                        if (nextBtn) nextBtn.click();
-                    },
-                    onSwipeRight: () => {
-                        const prevBtn = document.querySelector('[onclick*="prevWeek"], [data-action="prev"]');
-                        if (prevBtn) prevBtn.click();
-                    }
-                });
-            }
-        }
+        initGridSwipeGestures(prevWeek, nextWeek);
 @endsection

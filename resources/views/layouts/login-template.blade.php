@@ -7,9 +7,10 @@
     <script>
         (function() {
             var saved = localStorage.getItem('theme');
-            if (saved === 'light') {
-                document.documentElement.className = 'light';
+            if (saved && ['dark', 'light'].includes(saved)) {
+                document.documentElement.className = saved;
             }
+            // Default is 'dark' from HTML
         })();
     </script>
     <script src="/js/ui-common.js"></script>
@@ -20,7 +21,6 @@
             --input-border: var(--color-outline);
             --card-bg: color-mix(in srgb, var(--color-surface) 65%, transparent);
             --card-border: var(--color-outline);
-            --glass-blur: blur(28px);
             --shadow-card: var(--shadow-lg);
             --login-btn-bg: var({{ $btnColorToken }});
             --login-btn-color: var({{ $btnColorOnToken }});
@@ -81,11 +81,9 @@
             z-index: 20;
             width: 40px;
             height: 40px;
-            border-radius: 12px;
+            border-radius: var(--radius-lg);
             border: 1px solid var(--card-border);
             background: var(--card-bg);
-            backdrop-filter: var(--glass-blur);
-            -webkit-backdrop-filter: var(--glass-blur);
             color: var(--color-on-surface-variant);
             cursor: pointer;
             display: flex;
@@ -106,14 +104,13 @@
             margin: 24px;
             padding: 48px 44px 40px;
             background: var(--card-bg);
-            backdrop-filter: var(--glass-blur);
-            -webkit-backdrop-filter: var(--glass-blur);
             border: 1px solid var(--card-border);
-            border-radius: 24px;
-            box-shadow: var(--shadow-card);
+            border-radius: var(--radius-lg);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
             transition: background 0.4s ease, border-color 0.4s ease, box-shadow 0.4s ease;
             animation: fadeSlideUp 0.8s cubic-bezier(0.16, 1, 0.3, 1) both;
         }
+        .light .login-card { box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08); }
 
         @keyframes fadeSlideUp {
             0% { opacity: 0; transform: translateY(30px) scale(0.98); }
@@ -180,7 +177,7 @@
             align-items: center;
             background: var(--input-bg);
             border: 1px solid var(--input-border);
-            border-radius: 14px;
+            border-radius: var(--radius-lg);
             transition: border-color 0.3s ease, box-shadow 0.3s ease, background 0.3s ease;
         }
         .input-wrapper:hover { background: rgba(84, 92, 102, 0.18); }
@@ -188,9 +185,9 @@
         .input-wrapper:focus-within {
             border-color: var(--color-primary);
             background: var(--input-bg);
-            box-shadow: 0 0 0 3px rgba(141, 181, 230, 0.1);
+            box-shadow: 0 0 0 3px rgba(0, 77, 152, 0.1);
         }
-        .light .input-wrapper:focus-within { box-shadow: 0 0 0 3px rgba(26, 95, 180, 0.08); }
+        .light .input-wrapper:focus-within { box-shadow: 0 0 0 3px rgba(0, 77, 152, 0.08); }
 
         .input-icon {
             padding: 0 0 0 14px;
@@ -238,32 +235,31 @@
 
         .login-btn {
             width: 100%;
-            padding: 16px;
+            padding: 10px 24px;
             border: none;
-            border-radius: 14px;
+            border-radius: var(--radius-md);
             background: var(--login-btn-bg);
             color: var(--login-btn-color);
-            font-size: 15px;
-            font-weight: 600;
+            font-size: 14px;
+            font-weight: 500;
             cursor: pointer;
             display: flex;
             align-items: center;
             justify-content: center;
             gap: 8px;
-            transition: transform 0.15s ease, box-shadow 0.3s ease, background 0.25s ease, opacity 0.2s;
-            font-family: inherit;
+            transition: box-shadow 0.2s ease, background 0.2s ease, opacity 0.2s;
+            font-family: -apple-system, BlinkMacSystemFont, 'Inter', 'Segoe UI', Roboto, sans-serif;
             position: relative;
             overflow: hidden;
             animation: fadeSlideUp 0.6s ease 0.48s both;
         }
         .login-btn:hover:not(:disabled) {
-            transform: translateY(-2px);
-            box-shadow: 0 8px 25px rgba(151, 230, 194, 0.2);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
             background: var(--login-btn-hover-dark);
         }
-        .light .login-btn:hover:not(:disabled) { box-shadow: 0 8px 25px rgba(46, 194, 126, 0.2); background: var(--login-btn-hover-light); }
-        .login-btn:active:not(:disabled) { transform: translateY(0) scale(0.99); }
-        .login-btn:disabled { background: var(--color-outline); opacity: 0.4; cursor: not-allowed; transform: none; box-shadow: none; }
+        .light .login-btn:hover:not(:disabled) { box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1); background: var(--login-btn-hover-light); }
+        .login-btn:active:not(:disabled) { transform: scale(0.98); }
+        .login-btn:disabled { background: var(--color-outline); opacity: 0.4; cursor: var(--cursor-cancel); transform: none; box-shadow: none; }
 
         .login-btn .spinner {
             width: 18px;
@@ -311,7 +307,7 @@
         .error-msg {
             background: color-mix(in srgb, var(--color-error) 15%, transparent);
             border: 1px solid var(--color-error);
-            border-radius: 12px;
+            border-radius: var(--radius-md);
             padding: 12px 16px;
             margin-bottom: 20px;
             font-size: 14px;
@@ -328,13 +324,13 @@
         }
 
         @media (max-width: 480px) {
-            .login-card { padding: 32px 24px 28px; margin: 12px; border-radius: 20px; max-width: 100%; }
+            .login-card { padding: 32px 24px 28px; margin: 12px; border-radius: var(--radius-lg); max-width: 100%; }
             .logo-img { max-width: 200px; }
             .login-btn { padding: 14px; }
             .theme-toggle { top: 16px; right: 16px; width: 36px; height: 36px; }
         }
         @media (max-width: 380px) {
-            .login-card { padding: 28px 20px 24px; border-radius: 16px; }
+            .login-card { padding: 28px 20px 24px; border-radius: var(--radius-xl); }
         }
     </style>
     @yield('page-styles')
@@ -407,17 +403,6 @@
                 </div>
             </div>
 
-            @if(($showLockout ?? false) && session('lockout_expires'))
-                @include('partials.ui-lockout-countdown', ['expiresAt' => session('lockout_expires')])
-            @endif
-
-            @if(isset($rememberHint))
-            <label class="remember-me">
-                <input type="checkbox" name="remember" value="1"> Remember me
-            </label>
-            <p class="remember-hint">{{ $rememberHint }}</p>
-            @endif
-
             <button class="login-btn" type="submit" id="loginBtn" disabled>
                 <span class="spinner"></span>
                 <span class="btn-text">Log in</span>
@@ -456,8 +441,5 @@
         });
     </script>
     @yield('page-scripts')
-    @if($showLockout ?? false)
-    <script src="/js/lockout-countdown.js"></script>
-    @endif
 </body>
 </html>

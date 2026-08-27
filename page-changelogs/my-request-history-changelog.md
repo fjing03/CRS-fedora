@@ -1,5 +1,341 @@
 # Changelog — Lecturer My Request History
 
+## [2026-08-16] Replaced hardcoded inline styles with shared utility classes
+
+Refactored 3 hardcoded inline style instances to use shared CSS classes from `theme.css`. Paragraph descriptions use `.page-desc`, title+badge rows use `.kicker` + `.badge-sm`.
+
+### Files Changed
+
+#### `resources/views/ui-design-templates/my-request-history-UI-design-template.blade.php`
+
+| Line | Before | After |
+|---|---|---|
+| 589 | `style="font-size:14px;color:..."` | `class="page-desc" style="color:var(--color-on-surface);line-height:1.5;margin-bottom:12px"` |
+| 627-630 | `style="display:flex;align-items:center;gap:6px"` + badge inline override | `class="kicker"` + `class="badge badge-sm"` |
+| 636 | `style="font-size:14px;color:..."` | `class="page-desc" style="color:var(--color-on-surface);line-height:1.5;margin-bottom:8px"` |
+
+---
+
+## [2026-08-15] Promote bulk selection to shared OOP BulkSelection class
+
+### Summary
+
+Replaced the page-local `selectedIds` Set + `updateBulkBar()`/`clearAllSelections()` DOM code with the shared `BulkSelection` class from `ui-common.js` (same OOP pattern as `ModalController`). The local `bulk` instance is configured with `checkboxSelector: '.row-checkbox'` and `headerCheckboxId: 'headerCheckbox'` so `bulk.clear()` also resets row + header checkboxes. `updateBulkBar()`/`clearAllSelections()` now just delegate to `bulk.updateBar()`/`bulk.clear()`.
+
+### Files Changed
+
+#### `resources/views/ui-design-templates/my-request-history-UI-design-template.blade.php`
+
+| Location | Change | Detail |
+|---|---|---|
+| State | Updated | `let selectedIds = new Set()` → `let bulk = new BulkSelection({...checkboxSelector, headerCheckboxId})`. |
+| Header/row checkbox handlers | Updated | Use `bulk.add/delete`; drop redundant `updateBulkBar()` calls. |
+| `updateBulkBar()` | Updated | Delegates to `bulk.updateBar()`. |
+| `clearAllSelections()` | Updated | Delegates to `bulk.clear()` (which resets row + header checkboxes). |
+| Batch cancel | Updated | `selectedIds.*` → `bulk.*`. |
+
+---
+
+## [2026-08-15] Detail modal: status description as its own row
+
+Status description now shown in a dedicated **Status Description** row (was inline caption). Description from `statusDesc()` map.
+
+#### `resources/views/ui-design-templates/my-request-history-UI-design-template.blade.php`
+
+| Location | Change | Detail |
+|---|---|---|
+| `openModalById()` | Updated | Split `Status` (badge) and `Status Description` rows. |
+
+---
+
+## [2026-08-15] Detail modal refinements: gray × close, body status badge, split rows, dot colours
+
+### Summary
+
+- **Close button** — normal gray `×` (was red dot); removed header `modal-status-badge`.
+- **Status badge + description in body**.
+- **One value per row** — Subject Code/Name, Start/End Time split; status description via `statusDesc`.
+- **Timeline dot colours vary by status** (`dot-*`).
+
+### Files Changed
+
+#### `resources/views/ui-design-templates/my-request-history-UI-design-template.blade.php`
+
+| Location | Change | Detail |
+|---|---|---|
+| Modal shell | Updated | Removed header `modal-status-badge`. |
+| `openModalById()` | Updated | Split rows, timeline `dot-*`, removed `status` header cfg. |
+
+---
+
+## [2026-08-15] Detail modal redesign: category tabs + unified detail sheet
+
+### Summary
+
+The Request Details modal now uses the shared `DetailModal` "Detail Sheet" system:
+- Identity header (left-aligned title + subtitle, status badge top-right).
+- Global horizontal timeline (Request Submitted → Under Review → Status) pinned above the tabs.
+- Category tabs: **General Info / Original Class / Replacement Class**.
+- Groups instead of boxed sections; definition rows without per-row borders; `--strong`/`--muted` emphasis.
+- Removed the old `div.timeline` page CSS; all fields preserved.
+
+### Files Changed
+
+#### `resources/views/ui-design-templates/my-request-history-UI-design-template.blade.php`
+
+| Location | Change | Detail |
+|---|---|---|
+| Modal shell | Updated | `.modal-title#modalTitle` + `.modal-status-badge`; body emptied. |
+| `openModalById()` | Rewritten | Uses `DetailModal.render` with global timeline + 3 tabs. |
+| Page styles | Removed | Old `.timeline`/`.timeline-*` F6 CSS block. |
+
+---
+
+## [2026-08-15] Row polish: plain class time, consistent AM/PM, corrected tips, age legend
+
+### Summary
+
+- **Class time plain text** — "Requested Replacement" time no longer gets a coloured `status-*` chip; removed the page-specific `.class-time.status-*` badge CSS. It's plain bold text.
+- **Consistent time format** — replacement time ranges now render as `11:00 AM to 1:00 PM` via `DateHelper.format12hRange` (table + modal); modal "Original Time" uses `to` between 12h times.
+- **Header tips** — Requested At tip documents age colours; Original Class tip corrected ("its state varies…" — not all are being replaced).
+- **Request age** — `requestAgeHtml` now relative to actual today (was hardcoded `2026-08-29`), shows **Today**/**Yesterday**, keeps colour legend (green ≤1 day, amber 2–3, red 4+). Guide block documents the colours.
+
+### Files Changed
+
+#### `resources/views/ui-design-templates/my-request-history-UI-design-template.blade.php`
+
+| Location | Change | Detail |
+|---|---|---|
+| Page styles | Updated | Removed `.col-replacement .class-time.status-*` badge CSS block. |
+| `replacementBlock` call | Updated | `replacementBlock(r, { showVenue: false, colorStatus: false })`. |
+| Header columns | Updated | Requested At + Original Class tips rewritten. |
+| Details modal | Updated | Original Time `to12h(a) to to12h(b)`; Replacement Time via `format12hRange`. |
+| Guide block | Updated | Added request-age colour legend item. |
+| Summary bar | Updated | Page-specific card descriptions. |
+
+---
+
+## [2026-08-15] Nav label, Requested Replacement column, status-chip colors
+
+### Summary
+
+Three page-scoped polish changes to the My Request History page:
+1. The header nav label "Replacement History" was renamed to "Request History" for this page only (throttled per-page via `$navItems` override through the shared layout).
+2. The "Requested Replacement" column no longer renders venue data (the separate "Requested Venue" column already shows it); its header tooltip was updated accordingly. The shared `HtmlBuilder.replacementBlock()` gained a `showVenue` option so venue is still shown on other pages (request-approval) that use the shared helper.
+3. The `class-time.status-*` time chips on this page now use `color-*-container` backgrounds with `color-on-*-container` font colors (consistent with status badges) instead of flat `--color-warning/success/error/primary` text.
+
+### Files Changed
+
+#### `resources/views/layouts/ui-template.blade.php`
+
+| Location | Change | Detail |
+|---|---|---|
+| nav-bar include | Updated | Pass `'navItems' => $navItems ?? null` through to `partials.ui-nav-bar` so a page/route can override nav labels per-page. `$navItems` defaults to `null` → partial uses its built-in defaults for all other pages. |
+
+#### `routes/web.php`
+
+| Location | Change | Detail |
+|---|---|---|
+| `GET /my-request-history-ui` | Updated | Pass a `navItems` array with the replacement-history label changed to "Request History"; other nav items identical to the shared default. |
+
+#### `public/js/ui-common.js`
+
+| Location | Change | Detail |
+|---|---|---|
+| `HtmlBuilder.replacementBlock(r, opts)` | Updated | Accepts optional `opts.showVenue`. When `false`, omits the `<span class="class-venue">` from the block. Default (`opts` absent) keeps venue, preserving request-approval rendering. |
+
+#### `resources/views/ui-design-templates/my-request-history-UI-design-template.blade.php`
+
+| Location | Change | Detail |
+|---|---|---|
+| `columns[]` Requested Replacement | Updated | Header tooltip changed from "Proposed new date, time, and venue" → "Proposed new date and time". |
+| table body `col-replacement` cell | Updated | Calls `HtmlBuilder.replacementBlock(r, { showVenue: false })` so no venue renders in the column. |
+| page-styles | Added | Page-scoped `.col-replacement .class-time.status-*` rules: `status-pending` → tertiary-container/on-tertiary-container, `status-approved` → success-container/on-success-container, `status-rejected` → error-container/on-error-container, `status-cancelled` → surface-variant/on-surface-variant, `status-completed` → primary-container/on-primary-container; each with `display:inline-block; padding:2px 8px; border-radius:var(--radius-xs)`. Scoped to this page only (via `.col-replacement` + this page's `<style>` block). |
+
+---
+
+## [2026-08-15] Summary stats now follow the week/status/search filters
+
+### Summary
+
+The summary cards previously always showed stats for the whole semester (all 20 requests) regardless of the active week/status/search filter — contradicting the hint text "Stats are for this week only". Now `updateSummary()` reads from `currentFiltered` instead of the full `mockRequests` array, so the cards always reflect the selected period (All Weeks or Week N, plus any search/status/Exclude-Completed filters).
+
+### Files Changed
+
+#### `resources/views/ui-design-templates/my-request-history-UI-design-template.blade.php`
+
+| Location | Change | Detail |
+|---|---|---|
+| `updateSummary()` | Updated | Total/Approved/Pending/Rejected/Hours now computed from `currentFiltered` (the filtered table data) instead of the full `mockRequests` list. |
+
+#### `resources/views/partials/ui-summary-bar.blade.php`
+
+| Location | Change | Detail |
+|---|---|---|
+| summary hint | Updated | Hint text changed from "Stats are for **this week only**." to "Stats are for the **selected period** (filters apply)." since stats now reflect the selected filters. |
+
+---
+
+## [2026-08-13] Phase 3 UX Enhancement: Collapsible Guide Block
+
+### Summary
+
+Added an expandable guide block with page-specific workflow instructions.
+
+### Files Changed
+
+#### `resources/views/ui-design-templates/my-request-history-UI-design-template.blade.php`
+
+| Timestamp | Location | Change | Detail |
+|-----------|----------|--------|--------|
+| 2026-08-13 | Lines 290-299 | Added | `@include('partials.ui-guide-block')` with 6 workflow tips |
+
+---
+
+## [2026-08-13] Phase 3 UX Enhancement: Table Header Tooltips
+
+### Summary
+
+Added hover tooltips to all column headers for better usability.
+
+### Files Changed
+
+#### `resources/views/ui-design-templates/my-request-history-UI-design-template.blade.php`
+
+| Timestamp | Location | Change | Detail |
+|-----------|----------|--------|--------|
+| 2026-08-13 | Lines 552-562 | Added | `tip` property to each column definition with user-friendly descriptions |
+| 2026-08-13 | Lines 564-569 | Modified | `makeSortableHeader()` now uses `col.tip` for `title` attribute |
+
+---
+
+## [2026-08-13] Fix blank right-side gap — gridWrapper flex root cause
+
+### Summary
+
+The large blank space on the right of the timetable was NOT caused by `table-layout` — it was caused by the page JS setting `gridWrapper.style.display = 'flex'` in `renderTable()`. A flex container's child (`.grid-scroll`) shrinks to its content width instead of stretching to fill, so the table only occupied ~1479px of an ~1864px wrapper, leaving ~385px of empty space.
+
+Fix: `renderTable()` now resets `gridWrapper.style.display = ''` (block default), matching the behavior of the `/request-approval-ui` page. The table now fills the wrapper width via the existing `width: 100%` + `table-layout: auto` from `theme.css`, with `th` widths acting as preferred minimums so columns expand proportionally (not equally) on desktop.
+
+### Files Changed
+
+#### `resources/views/ui-design-templates/my-request-history-UI-design-template.blade.php`
+
+| Timestamp | Location | Change | Detail |
+|-----------|----------|--------|--------|
+| 2026-08-13 | `renderTable()` show branch | Fix | Changed `gridWrapper.style.display = 'flex'` → `''` (block). Flex made `.grid-scroll` a shrink-to-content flex item, leaving blank space on the right. Block makes it stretch to fill the wrapper. |
+
+### Verified (no page-level horizontal overflow)
+
+Tablet/small laptop (1200px, 1024px, 900px): table keeps readable column widths (~1317px natural content width); horizontal scrolling happens inside `.grid-scroll`, not the page. Mobile (≤768px): card layout preserved, table hidden. `body { overflow-x: hidden }` (theme.css:141) is a pre-existing base rule and is NOT relied upon — verified no page overflow even with `body { overflow-x: visible }`. No cell content overflow at any tested width.
+
+---
+
+## [2026-08-13] Table layout: fixed → auto with th widths (fill container)
+
+### Summary
+
+Changed timetable from `table-layout: fixed` to `auto` (inherited from `theme.css`). Added explicit `width` on `th` elements to force columns to expand and fill the container — eliminates dead space on the right at full screen. `table-layout: auto` still allows content to wrap naturally. Horizontal scroll kicks in when screen is too small.
+
+### Files Changed
+
+#### `resources/views/ui-design-templates/my-request-history-UI-design-template.blade.php`
+
+| Timestamp | Location | Change | Detail |
+|-----------|----------|--------|--------|
+| 2026-08-13 | `@section('page-styles')` | Changed | Removed `table-layout: fixed` override and `min-width: 1120px`. Added explicit `th` widths: `.col-requested-at` 150px, `.col-code` 220px, `.col-original` 200px, `.col-replacement` 200px, `.col-venue` 110px, `.col-students` 80px, `.col-cohort` 140px, `.col-status` 120px, `.col-actions` 100px. Table now fills full container width with no dead space. |
+
+---
+
+## [2026-08-13] Table layout: fixed → auto (responsive)
+
+### Summary
+
+Changed timetable from `table-layout: fixed` to `auto` (inherited from `theme.css`). Removed all explicit column widths — columns now size by content and adapt to screen width. Added `min-width: 1120px` to prevent table from collapsing too narrow. Horizontal scroll kicks in naturally when screen is too small.
+
+### Files Changed
+
+#### `resources/views/ui-design-templates/my-request-history-UI-design-template.blade.php`
+
+| Timestamp | Location | Change | Detail |
+|-----------|----------|--------|--------|
+| 2026-08-13 | `@section('page-styles')` | Changed | Removed `table-layout: fixed` override and all explicit column widths (`.col-code`, `.col-original`, `.col-replacement`, `.col-venue`, `.col-students`, `.col-cohort`, `.col-status`, `.col-actions`, `.col-requested-at`). Added `min-width: 1120px` on `.grid-scroll .timetable`. Table now uses `table-layout: auto` from `theme.css`. |
+
+---
+
+## [2026-08-13] Bug fixes: skeleton loading + emptyCta null reference
+
+### Summary
+
+Fixed skeleton loading bug where `hideSummary()` restored stale innerHTML from `dataset.original`, overwriting correct values set by `updateSummary()`. Fixed null reference error on `emptyCta` element (missing ID in shared partial).
+
+### Files Changed
+
+#### `public/js/ui-common.js`
+
+| Timestamp | Location | Change | Detail |
+|-----------|----------|--------|--------|
+| 2026-08-13 | `SkeletonLoader.hideSummary()` | Fixed | Removed `el.innerHTML = el.dataset.original` restore — `updateSummary()` already sets correct values via `textContent`. Now only cleans up `dataset.original`. |
+
+#### `resources/views/partials/ui-empty-state.blade.php`
+
+| Timestamp | Location | Change | Detail |
+|-----------|----------|--------|--------|
+| 2026-08-13 | Line 17 | Fixed | Added `id="emptyCta"` to CTA button — JS references this ID but it was missing, causing null reference in `renderTable()` empty-state branches. |
+
+---
+
+## [2026-08-10] Phase 2 Template Migration: Inline helpers → Shared OOP classes
+
+### Summary
+
+Refactored `renderCards()` to use `HtmlBuilder.myRequestCard()`.
+
+### Files Changed
+
+#### `resources/views/ui-design-templates/my-request-history-UI-design-template.blade.php`
+
+| Timestamp | Location | Change | Detail |
+|-----------|----------|--------|--------|
+| 2026-08-10 | Lines 760-773 | Refactored | `renderCards()` now uses `HtmlBuilder.myRequestCard(r, opts)` |
+
+#### `public/js/ui-common.js`
+
+| Timestamp | Location | Change | Detail |
+|-----------|----------|--------|--------|
+| 2026-08-10 | HtmlBuilder class | Added | `HtmlBuilder.myRequestCard(r, opts)` — constructs my-request-history card HTML |
+
+---
+
+### Summary
+
+SDD change request applied. Bug fix: `openModal(index)` now delegates to `openModalById(id)` for consistent modal handling. Feature alignment: unified timeline classes (`.timeline-step`, `.timeline-dot`, `.timeline-connector`, `.timeline-text`) and unified request age format (`age-fresh`/`age-waiting`/`age-stale` with colored dots). 11 CSS classes promoted to `theme.css` — no duplicated CSS remains in page template.
+
+### Files Changed
+
+#### `resources/views/ui-design-templates/my-request-history-UI-design-template.blade.php`
+
+| Timestamp | Location | Change | Detail |
+|-----------|----------|--------|--------|
+| 2026-08-06 | JS: openModalById | Bug fix | Unified modal opener — `openModal(index)` now delegates to `openModalById(id)` |
+| 2026-08-06 | CSS: timeline classes | Feature alignment | Timeline uses unified `.timeline-step`, `.timeline-dot`, `.timeline-connector`, `.timeline-text` classes (matching request-approval pattern) |
+| 2026-08-06 | CSS: request age | Feature alignment | Unified age format: `.age-fresh` (≤1 day, primary color), `.age-waiting` (≤3 days, tertiary color), `.age-stale` (>3 days, error color) with colored dots |
+| 2026-08-06 | Page styles | CSS dedup | Verified no duplicated CSS classes remain — promoted classes (status badges, buttons, bulk selection) now only in `theme.css` |
+
+#### `public/css/theme.css`
+
+| Timestamp | Location | Change | Detail |
+|-----------|----------|--------|--------|
+| 2026-08-06 | After line 1741 | CSS promotion | Added 11 promoted classes shared by request-approval and my-request-history: `.status-pending`, `.status-approved`, `.status-rejected`, `.status-cancelled`, `.status-completed`, `.modal-section-title`, `.btn-danger`, `.btn-outline`, `.col-checkbox`, `.row-selected`, `.bulk-checkbox` |
+
+---
+
+## [2026-08-03] Refactor: Rows Per Page promoted to shared OOP component
+
+### Changed
+- **Rows Per Page (RPP)**: Removed local CSS/HTML/JS; now uses shared `partials.ui-rpp` Blade partial + `initRpp()` from `ui-common.js` + `.rpp-wrapper`/`.rpp-select` from `theme.css`
+- localStorage key changed from `'mrh-rows-per-page'` to `'rpp-page-size'` (shared across pages)
+
 ## Files Changed
 
 ### `resources/views/ui-design-templates/my-request-history-UI-design-template.blade.php`
@@ -91,8 +427,36 @@
 | 2026-08-03 04:30 | Lines 1203–1208 | Batch cancel toast | Refactored `confirmBatchCancelAction` click handler: saves removed items before filter, calls `showToast('{N} requests cancelled.', undoCallback)` to allow re-insertion. |
 | 2026-08-03 05:30 | Line 775 | Bug fix | Changed `const mockRequests` to `let mockRequests` — batch cancel handler was reassigning the variable (`mockRequests = mockRequests.filter(...)`) which threw `TypeError: Assignment to constant variable`. |
 
+### `resources/views/ui-design-templates/my-request-history-UI-design-template.blade.php` — OOP Phase 1 partial extraction
+
+| Timestamp | Location | Change | Detail |
+|-----------|----------|--------|--------|
+| 2026-08-04 | — | Refactored: replaced inline page-header/week-nav/empty-state/grid-table with `@include('partials.…')` (OOP Phase 1) | Page uses `ui-page-header`, `ui-week-nav`, `ui-grid-table`, `ui-empty-state` partials. |
+| 2026-08-06 | Lines 758, 835–838 | Column merge | Merged `Type` column into `Course Code & Name` — now shows `BMIT6767 (T)` / `Object-Ooped Programming` on two lines. Removed `.col-type` CSS, reduced min-width 1315px→1235px. |
+
+### `public/css/theme.css`
+
+| Timestamp | Location | Change | Detail |
+|-----------|----------|--------|--------|
+| 2026-08-06 | Lines 8–12 | Scrollbar visibility | Increased scrollbar height 6px→8px, added track background (`surface-variant`), added `scrollbar-color`/`scrollbar-width` on `.grid-scroll` for cross-browser visibility |
+| 2026-08-06 | Line 514 | Cell type style | Added `.cell-type` (opacity 0.5, font-size 12px) for inline type label ` (L)` / ` (T)` in merged Course Code column |
+| 2026-08-06 | Line 834, 74 | Requested At two-line format | Added `<br>` between date/time and relative age — now shows `30 Jun 2026, 8:03 PM` / `(37 days ago)`. Added `white-space: normal` to `.timetable td.col-requested-at` to override global `nowrap`. |
+| 2026-08-06 | Line 419 | Scrollbar always-visible | Changed `.grid-scroll` from `overflow-x: auto` to `overflow-x: scroll` so horizontal scrollbar is always rendered (not just on hover), ensuring users discover scrollable right-side columns |
+| 2026-08-13 | `@section('page-styles')` | macOS-style update (Phase 4) | Removed toggle CSS (promoted to `theme.css`). Removed filter-chip CSS (promoted to `theme.css`). Removed hardcoded status colors `#f59e0b`/`#10b981`/`#ef4444`/`#3b82f6` (now in `theme.css`). Fixed `.btn-bulk-cancel:hover` and `.btn-inline-cancel:hover` color from `#fff` to `var(--color-on-error)`. |
+| 2026-08-13 | Lines 370–395, 390–408 | macOS modal button order | Reordered cancel-confirm and batch-cancel modal footers: dismiss button ("No, Keep It" / "No, Keep Them") moved to `modal-footer-left`, destructive action ("Yes, Cancel Request" / "Yes, Cancel All") stays in `modal-footer-right` — matches macOS Cancel-left / action-right convention. |
+
 ### `routes/web.php`
 
 | Timestamp | Location | Change | Detail |
 |-----------|----------|--------|--------|
 | 2026-07-20 18:00 | Line 28 (new) | New route | Added `Route::get('/my-request-history-ui', ...)` returning view `ui-design-templates.my-request-history-UI-design-template` |
+
+### `public/css/theme.css`
+
+| Timestamp | Location | Change | Detail |
+|-----------|----------|--------|--------|
+| 2026-08-13 | End of file | Promoted toggle + filter-chip CSS | Moved `.toggle-wrapper`/`.toggle-track`/`.toggle-thumb`/`.toggle-label` and `.filter-chips`/`.filter-chip`/`.filter-chip-remove` from page-specific to shared `theme.css` — used by my-request-history and request-approval. Added `:focus-within` ring on toggle. Fixed `toggle-thumb` background from `#fff` to `var(--color-surface)`. Fixed `filter-chip-remove:hover` color from `#fff` to `var(--color-on-primary)`. |
+| 2026-08-13 | End of file | Status time colors | Added `.class-time.status-pending` → `var(--color-warning)`, `.status-approved` → `var(--color-success)`, `.status-rejected` → `var(--color-error)`, `.status-completed` → `var(--color-primary)` — replaces hardcoded `#f59e0b`, `#10b981`, `#ef4444`, `#3b82f6` in both request pages. |
+| 2026-08-13 | `public/js/mock-data.js` | Week filter fix | Semester `startDate` shifted from `2026-06-15` to `2026-07-27` so mock data dates (relative to today) fall in filterable weeks. `parseDate` in `ui-common.js` fixed: `.split("-")` → `.split(" ")` to match space-separated date format. |
+| 2026-08-15 | `<th>` headers | Header hover tooltips | Switched from native `title` to JS `initHeaderTooltips()` with a fixed-position tooltip div — tooltips appear above headers, avoids `overflow:hidden` clipping on `.grid-wrapper`. |
+| 2026-08-15 | Week filter | Fix infinite recursion | Removed local `function weekFilterChanged(value)` override — its declaration was hoisted and shadowed the shared function in ui-common.js, causing `_sharedWeekFilterChanged = window.weekFilterChanged` to capture itself → stack overflow. Now uses shared `weekFilterChanged()` directly. |

@@ -31,12 +31,12 @@ window.MockData = {
             String(d.getDate()).padStart(2, '0') + '-' +
             ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'][d.getMonth()] + '-' +
             d.getFullYear();
-        const start = new Date('2026-06-15');   // Week-1 Monday
-        const end = new Date('2026-09-20');      // Week-14 Sunday (start + 13*7 + 6 days)
+        const start = new Date(2026, 6, 27);   // Week-1 Monday (local time)
+        const end = new Date(2026, 9, 26);      // Week-14 Sunday (start + 13*7 + 6 days)
         return {
             label: '202605 Semester',
-            startDate: '2026-06-15',
-            endDate: '2026-09-20',
+            startDate: '2026-07-27',
+            endDate: '2026-10-26',
             weeks: 14,
             chipText: '202605 Semester · ' + fmtChip(start) + ' ~ ' + fmtChip(end),
         };
@@ -55,6 +55,11 @@ window.MockData = {
         { week: 5, dayIndex: 2, label: 'Public Holiday' }, // Week 5 Wednesday
         { week: 7, dayIndex: 4, label: 'Public Holiday' }, // Week 7 Friday
     ],
+
+    // ─────────────────────────────────────────────────────────────────────
+    // §2.2b  currentUser — logged-in staff (mock phase).
+    // ─────────────────────────────────────────────────────────────────────
+    currentUser: { name: 'En. Lim Jia Zheng', staffId: '5770' },
 
     // ─────────────────────────────────────────────────────────────────────
     // §2.3  cohorts — registry mirroring dataset/cohorts.md + CodingMAIN §8
@@ -139,6 +144,25 @@ window.MockData = {
     ],
 
     // ─────────────────────────────────────────────────────────────────────
+    // §2.5a  courses — global registry of all unique courses across all
+    // cohorts. Used by replacement-arrangement Subject dropdown.
+    // `type`: L (Lecture) or T (Tutorial) — determines allowed venue types.
+    // `cohorts`: all cohorts taking this course.
+    // `studentCount`: total students across all cohorts.
+    // ─────────────────────────────────────────────────────────────────────
+    courses: [
+        { code: 'BMIT6767', name: 'Object-Oriented Programming',   type: 'L', cohorts: ['DFT2 (S1)'],                  cohortCounts: [24],  studentCount: 24 },
+        { code: 'BMIT1234', name: 'Data Structures',               type: 'T', cohorts: ['DFT2 (S1)'],                  cohortCounts: [22],  studentCount: 22 },
+        { code: 'BMIT5678', name: 'Database Systems',              type: 'L', cohorts: ['DSF2 (S1)'],                  cohortCounts: [28],  studentCount: 28 },
+        { code: 'BMIT9012', name: 'Computer Networks',             type: 'L', cohorts: ['RSD3(S1)G1', 'RSD3(S1)G2'],  cohortCounts: [14, 11],  studentCount: 25 },
+        { code: 'BMIT5555', name: 'Software Engineering',          type: 'L', cohorts: ['CSF2 (S1)'],                  cohortCounts: [30],  studentCount: 30 },
+        { code: 'BMIT6666', name: 'Mobile App Development',        type: 'T', cohorts: ['CSF2 (S1)'],                  cohortCounts: [30],  studentCount: 30 },
+        { code: 'BMIT3456', name: 'Artificial Intelligence',       type: 'L', cohorts: ['RAF2 (S1)'],                  cohortCounts: [26],  studentCount: 26 },
+        { code: 'BMIT7890', name: 'Project Management',            type: 'L', cohorts: ['RBU2 (S1)'],                  cohortCounts: [20],  studentCount: 20 },
+        { code: 'BMIT9999', name: 'Machine Learning',              type: 'T', cohorts: ['DMF2 (S1)'],                  cohortCounts: [18],  studentCount: 18 },
+    ],
+
+    // ─────────────────────────────────────────────────────────────────────
     // §2.6  myTimetable — was MyTimetable inline `eventsData`.
     // `seedWeek` defines the one fully-populated week (11); every other week
     // copies its status==='normal' events (weekly-repeat). The page MUST derive
@@ -157,7 +181,7 @@ window.MockData = {
                 { di: 1, start: 0,  end: 3,  code: 'BMIT5678', type: 'L', venue: 'B105', lecturer: 'En. Lim Jia Zheng', cohort: 'DSF2 (S1)', studentCount: 28, status: 'normal', name: 'Database Systems', remarks: '' },
                 { di: 1, start: 14, end: 16, code: 'BMIT5678', type: 'T', venue: 'B105', lecturer: 'En. Lim Jia Zheng', cohort: 'DSF2 (S1)', status: 'replacement', name: 'Database Systems', remarks: '08-Sep-2026' },
                 { di: 2, start: 2,  end: 5,  code: 'BMIT9012', type: 'L', venue: 'B106', lecturer: 'Pn. Surayaini Basri', cohort: 'RSD3(S1)G1 + RSD3(S1)G2', cohorts: ['RSD3(S1)G1', 'RSD3(S1)G2'], studentCounts: [16, 9], status: 'normal', name: 'Computer Networks', remarks: '' },
-                { di: 2, start: 12, end: 15, code: 'BMIT9012', type: 'T', venue: 'B106', lecturer: 'Pn. Surayaini Basri', cohort: 'RSD2 (S1)', status: 'pending', name: 'Computer Networks', remarks: '', requestedAt: '05 Sep 2026, 11:00 AM', requestedBy: 'Pn. Surayaini Basri' },
+                { di: 2, start: 12, end: 15, code: 'BMIT9012', type: 'T', venue: 'B106', lecturer: 'Pn. Surayaini Basri', cohort: 'RSD2 (S1)', status: 'pending', name: 'Computer Networks', remarks: '', requestedAt: '05 Sep 2026, 11:00 AM', requestedBy: 'Pn. Surayaini Basri', requestId: 3 },
                 { di: 3, start: 4,  end: 7,  code: 'BMIT5555', type: 'L', venue: 'B110', lecturer: 'Dr. Lim Wei Ming', cohort: 'CSF2 (S1)', status: 'normal', name: 'Software Engineering', remarks: '' },
                 { di: 3, start: 10, end: 12, code: 'BMIT6666', type: 'T', venue: 'B111', lecturer: 'Pn. Sarah Tan', cohort: 'CSF2 (S1)', status: 'replacement', name: 'Mobile App Development', remarks: '09-Sep-2026' },
                 { di: 4, start: 0,  end: 3,  code: 'BMIT3456', type: 'L', venue: 'B103', lecturer: 'Dr. Chang Foo Chung', cohort: 'RAF2 (S1)', status: 'normal', name: 'Artificial Intelligence', remarks: '' },
@@ -172,23 +196,23 @@ window.MockData = {
                 { di: 1, start: 14, end: 16, code: 'BMIT5678', type: 'T', venue: 'B105', lecturer: 'En. Lim Jia Zheng', cohort: 'DSF2 (S1)', status: 'replacement', name: 'Database Systems', remarks: '22-Sep-2026' },
                 { di: 2, start: 2,  end: 5,  code: 'BMIT9012', type: 'L', venue: 'B106', lecturer: 'Pn. Surayaini Basri', cohort: 'RSD3(S1)G1 + RSD3(S1)G2', cohorts: ['RSD3(S1)G1', 'RSD3(S1)G2'], studentCounts: [16, 9], status: 'normal', name: 'Computer Networks', remarks: '' },
                 { di: 2, start: 12, end: 15, code: 'BMIT9012', type: 'T', venue: 'B106', lecturer: 'Pn. Surayaini Basri', cohort: 'RSD2 (S1)', status: 'normal', name: 'Computer Networks', remarks: '' },
-                { di: 3, start: 4,  end: 7,  code: 'BMIT5555', type: 'L', venue: 'B110', lecturer: 'Dr. Lim Wei Ming', cohort: 'CSF2 (S1)', status: 'pending', name: 'Software Engineering', remarks: '', requestedAt: '19 Sep 2026, 02:30 PM', requestedBy: 'Dr. Lim Wei Ming' },
+                { di: 3, start: 4,  end: 7,  code: 'BMIT5555', type: 'L', venue: 'B110', lecturer: 'Dr. Lim Wei Ming', cohort: 'CSF2 (S1)', status: 'pending', name: 'Software Engineering', remarks: '', requestedAt: '19 Sep 2026, 02:30 PM', requestedBy: 'Dr. Lim Wei Ming', requestId: 8 },
                 { di: 3, start: 10, end: 12, code: 'BMIT6666', type: 'T', venue: 'B111', lecturer: 'Pn. Sarah Tan', cohort: 'CSF2 (S1)', status: 'normal', name: 'Mobile App Development', remarks: '' },
                 { di: 4, start: 0,  end: 3,  code: 'BMIT3456', type: 'L', venue: 'B103', lecturer: 'Dr. Chang Foo Chung', cohort: 'RAF2 (S1)', status: 'normal', name: 'Artificial Intelligence', remarks: '' },
                 { di: 4, start: 5,  end: 7,  code: 'BMIT3456', type: 'T', venue: 'B103', lecturer: 'Dr. Chang Foo Chung', cohort: 'RAF2 (S1)', status: 'replacement', name: 'Artificial Intelligence', remarks: '23-Sep-2026' },
                 { di: 5, start: 2,  end: 5,  code: 'BMIT7890', type: 'L', venue: 'B201', lecturer: 'En. Jefther Edward', cohort: 'RBU2 (S1)', status: 'normal', name: 'Project Management', remarks: '' },
-                { di: 5, start: 12, end: 14, code: 'BMIT9999', type: 'T', venue: 'B202', lecturer: 'Dr. Tan Ah Meng', cohort: 'DMF2 (S1)', status: 'pending', name: 'Machine Learning', remarks: '', requestedAt: '20 Sep 2026, 09:00 AM', requestedBy: 'Dr. Tan Ah Meng' },
+                { di: 5, start: 12, end: 14, code: 'BMIT9999', type: 'T', venue: 'B202', lecturer: 'Dr. Tan Ah Meng', cohort: 'DMF2 (S1)', status: 'pending', name: 'Machine Learning', remarks: '', requestedAt: '20 Sep 2026, 09:00 AM', requestedBy: 'Dr. Tan Ah Meng', requestId: 12 },
             ],
             9: [
                 { di: 0, start: 4,  end: 7,  code: 'BMIT6767', type: 'L', venue: 'B103', lecturer: 'Dr. Christopher Lazarus', cohort: 'DFT2 (S1)', studentCount: 24, status: 'replacement', name: 'Object-Oriented Programming', remarks: '05-Oct-2026' },
                 { di: 0, start: 12, end: 14, code: 'BMIT1234', type: 'T', venue: 'B104', lecturer: 'Dr. Christopher Lazarus', cohort: 'DFT2 (S1)', studentCount: 22, status: 'normal', name: 'Data Structures', remarks: '' },
                 { di: 1, start: 0,  end: 3,  code: 'BMIT5678', type: 'L', venue: 'B105', lecturer: 'En. Lim Jia Zheng', cohort: 'DSF2 (S1)', studentCount: 28, status: 'normal', name: 'Database Systems', remarks: '' },
-                { di: 1, start: 14, end: 16, code: 'BMIT5678', type: 'T', venue: 'B105', lecturer: 'En. Lim Jia Zheng', cohort: 'DSF2 (S1)', status: 'pending', name: 'Database Systems', remarks: '', requestedAt: '03 Oct 2026, 10:15 AM', requestedBy: 'En. Lim Jia Zheng' },
+                { di: 1, start: 14, end: 16, code: 'BMIT5678', type: 'T', venue: 'B105', lecturer: 'En. Lim Jia Zheng', cohort: 'DSF2 (S1)', status: 'pending', name: 'Database Systems', remarks: '', requestedAt: '03 Oct 2026, 10:15 AM', requestedBy: 'En. Lim Jia Zheng', requestId: 16 },
                 { di: 2, start: 2,  end: 5,  code: 'BMIT9012', type: 'L', venue: 'B106', lecturer: 'Pn. Surayaini Basri', cohort: 'RSD3(S1)G1 + RSD3(S1)G2', cohorts: ['RSD3(S1)G1', 'RSD3(S1)G2'], studentCounts: [16, 9], status: 'normal', name: 'Computer Networks', remarks: '' },
                 { di: 2, start: 12, end: 15, code: 'BMIT9012', type: 'T', venue: 'B106', lecturer: 'Pn. Surayaini Basri', cohort: 'RSD2 (S1)', status: 'replacement', name: 'Computer Networks', remarks: '06-Oct-2026' },
                 { di: 3, start: 4,  end: 7,  code: 'BMIT5555', type: 'L', venue: 'B110', lecturer: 'Dr. Lim Wei Ming', cohort: 'CSF2 (S1)', status: 'normal', name: 'Software Engineering', remarks: '' },
                 { di: 3, start: 10, end: 12, code: 'BMIT6666', type: 'T', venue: 'B111', lecturer: 'Pn. Sarah Tan', cohort: 'CSF2 (S1)', status: 'normal', name: 'Mobile App Development', remarks: '' },
-                { di: 4, start: 0,  end: 3,  code: 'BMIT3456', type: 'L', venue: 'B103', lecturer: 'Dr. Chang Foo Chung', cohort: 'RAF2 (S1)', status: 'pending', name: 'Artificial Intelligence', remarks: '', requestedAt: '04 Oct 2026, 03:45 PM', requestedBy: 'Dr. Chang Foo Chung' },
+                { di: 4, start: 0,  end: 3,  code: 'BMIT3456', type: 'L', venue: 'B103', lecturer: 'Dr. Chang Foo Chung', cohort: 'RAF2 (S1)', status: 'pending', name: 'Artificial Intelligence', remarks: '', requestedAt: '04 Oct 2026, 03:45 PM', requestedBy: 'Dr. Chang Foo Chung', requestId: 20 },
                 { di: 4, start: 5,  end: 7,  code: 'BMIT3456', type: 'T', venue: 'B103', lecturer: 'Dr. Chang Foo Chung', cohort: 'RAF2 (S1)', status: 'normal', name: 'Artificial Intelligence', remarks: '' },
                 { di: 5, start: 2,  end: 5,  code: 'BMIT7890', type: 'L', venue: 'B201', lecturer: 'En. Jefther Edward', cohort: 'RBU2 (S1)', status: 'replacement', name: 'Project Management', remarks: '07-Oct-2026' },
                 { di: 5, start: 12, end: 14, code: 'BMIT9999', type: 'T', venue: 'B202', lecturer: 'Dr. Tan Ah Meng', cohort: 'DMF2 (S1)', status: 'normal', name: 'Machine Learning', remarks: '' },
@@ -205,7 +229,7 @@ window.MockData = {
                 { di: 4, start: 0,  end: 3,  code: 'BMIT3456', type: 'L', venue: 'B103', lecturer: 'Dr. Chang Foo Chung', cohort: 'RAF2 (S1)', status: 'normal', name: 'Artificial Intelligence', remarks: '' },
                 { di: 4, start: 5,  end: 7,  code: 'BMIT3456', type: 'T', venue: 'B103', lecturer: 'Dr. Chang Foo Chung', cohort: 'RAF2 (S1)', status: 'normal', name: 'Artificial Intelligence', remarks: '' },
                 { di: 5, start: 2,  end: 5,  code: 'BMIT7890', type: 'L', venue: 'B201', lecturer: 'En. Jefther Edward', cohort: 'RBU2 (S1)', status: 'normal', name: 'Project Management', remarks: '' },
-                { di: 5, start: 12, end: 14, code: 'BMIT9999', type: 'T', venue: 'B202', lecturer: 'Dr. Tan Ah Meng', cohort: 'DMF2 (S1)', status: 'pending', name: 'Machine Learning', remarks: '', requestedAt: '03 Sep 2026, 10:30 AM', requestedBy: 'Dr. Tan Ah Meng' },
+                { di: 5, start: 12, end: 14, code: 'BMIT9999', type: 'T', venue: 'B202', lecturer: 'Dr. Tan Ah Meng', cohort: 'DMF2 (S1)', status: 'pending', name: 'Machine Learning', remarks: '', requestedAt: '03 Sep 2026, 10:30 AM', requestedBy: 'Dr. Tan Ah Meng', requestId: 16 },
             ],
         },
     },
@@ -246,30 +270,93 @@ window.MockData = {
 
         // Flat list: { cohortId, week, event } — non-rsd3g2 addEvent() calls verbatim.
         events: [
-            // ═══ FOCS / RSD2 (S1) ═══
-            { cohortId: 'rsd2s1', week: 0, event: { di: 0, start: 4,  end: 7,  code: 'BMIT6767', type: 'L', venue: 'B103', lecturer: 'Dr. Christopher Lazarus', status: 'normal',       name: 'Object-Oriented Programming', remarks: '' } },
-            { cohortId: 'rsd2s1', week: 0, event: { di: 1, start: 0,  end: 3,  code: 'BMIT5678', type: 'L', venue: 'B105', lecturer: 'En. Lim Jia Zheng',      status: 'normal',       name: 'Database Systems',            remarks: '' } },
-            { cohortId: 'rsd2s1', week: 0, event: { di: 2, start: 12, end: 15, code: 'BMIT5555', type: 'L', venue: 'B110', lecturer: 'Dr. Lim Wei Ming',        status: 'normal',       name: 'Software Engineering',         remarks: '' } },
-            { cohortId: 'rsd2s1', week: 0, event: { di: 3, start: 6,  end: 9,  code: 'BMIT9012', type: 'L', venue: 'B106', lecturer: 'Pn. Surayaini Basri',      status: 'normal',       name: 'Computer Networks',           remarks: '' } },
-            { cohortId: 'rsd2s1', week: 0, event: { di: 4, start: 10, end: 13, code: 'BMIT3456', type: 'T', venue: 'B103', lecturer: 'Dr. Chang Foo Chung',      status: 'normal',       name: 'Artificial Intelligence',      remarks: '' } },
-            { cohortId: 'rsd2s1', week: 0, event: { di: 4, start: 16, end: 19, code: 'BMIT4040', type: 'L', venue: 'B301', lecturer: 'En. Ahmad Faiz',           status: 'normal',       name: 'Web Development',              remarks: '' } },
+            // ═══ FOCS / RSD2 (S1) — B103 schedule (same every week, statuses vary) ═══
+            // Mon 09:00-12:00  BMIT6767 Object-Oriented Programming (L) — Dr. Christopher Lazarus
+            // Wed 14:00-16:00  BMIT3456 Artificial Intelligence (T) — Dr. Chang Foo Chung
+            // Fri 10:00-13:00  BMIT7070 Advanced Software Engineering (L) — Prof. Dr. Khoo Teik Huat
+            { cohortId: 'rsd2s1', week: 0,  event: { di: 0, start: 4, end: 6, code: 'BMIT6767', type: 'L', venue: 'B103', lecturer: 'Dr. Christopher Lazarus', status: 'normal',      name: 'Object-Oriented Programming',    remarks: '' } },
+            { cohortId: 'rsd2s1', week: 0,  event: { di: 2, start: 8, end: 9, code: 'BMIT3456', type: 'T', venue: 'B103', lecturer: 'Dr. Chang Foo Chung',      status: 'normal',      name: 'Artificial Intelligence',         remarks: '' } },
+            { cohortId: 'rsd2s1', week: 0,  event: { di: 4, start: 5, end: 7, code: 'BMIT7070', type: 'L', venue: 'B103', lecturer: 'Prof. Dr. Khoo Teik Huat', status: 'normal',      name: 'Advanced Software Engineering',   remarks: '' } },
 
-            { cohortId: 'rsd2s1', week: 1, event: { di: 0, start: 4,  end: 7,  code: 'BMIT6767', type: 'L', venue: 'B103', lecturer: 'Dr. Christopher Lazarus', status: 'normal',       name: 'Object-Oriented Programming', remarks: '' } },
-            { cohortId: 'rsd2s1', week: 1, event: { di: 1, start: 0,  end: 3,  code: 'BMIT5678', type: 'L', venue: 'B105', lecturer: 'En. Lim Jia Zheng',      status: 'replacement',  name: 'Database Systems',            remarks: '24-Aug-2026' } },
-            { cohortId: 'rsd2s1', week: 1, event: { di: 2, start: 12, end: 15, code: 'BMIT5555', type: 'L', venue: 'B110', lecturer: 'Dr. Lim Wei Ming',        status: 'normal',       name: 'Software Engineering',         remarks: '' } },
-            { cohortId: 'rsd2s1', week: 1, event: { di: 3, start: 6,  end: 9,  code: 'BMIT9012', type: 'L', venue: 'B106', lecturer: 'Pn. Surayaini Basri',      status: 'normal',       name: 'Computer Networks',           remarks: '' } },
-            { cohortId: 'rsd2s1', week: 1, event: { di: 4, start: 10, end: 13, code: 'BMIT3456', type: 'T', venue: 'B103', lecturer: 'Dr. Chang Foo Chung',      status: 'normal',       name: 'Artificial Intelligence',      remarks: '' } },
-            { cohortId: 'rsd2s1', week: 1, event: { di: 5, start: 0,  end: 3,  code: 'BMIT4040', type: 'L', venue: 'B301', lecturer: 'En. Ahmad Faiz',           status: 'normal',       name: 'Web Development',              remarks: '' } },
+            { cohortId: 'rsd2s1', week: 1,  event: { di: 0, start: 4, end: 6, code: 'BMIT6767', type: 'L', venue: 'B103', lecturer: 'Dr. Christopher Lazarus', status: 'normal',      name: 'Object-Oriented Programming',    remarks: '' } },
+            { cohortId: 'rsd2s1', week: 1,  event: { di: 2, start: 8, end: 9, code: 'BMIT3456', type: 'T', venue: 'B103', lecturer: 'Dr. Chang Foo Chung',      status: 'replacement', name: 'Artificial Intelligence',         remarks: '24-Aug-2026' } },
+            { cohortId: 'rsd2s1', week: 1,  event: { di: 4, start: 5, end: 7, code: 'BMIT7070', type: 'L', venue: 'B103', lecturer: 'Prof. Dr. Khoo Teik Huat', status: 'normal',      name: 'Advanced Software Engineering',   remarks: '' } },
 
-            { cohortId: 'rsd2s1', week: 2, event: { di: 0, start: 4,  end: 7,  code: 'BMIT6767', type: 'L', venue: 'B103', lecturer: 'Dr. Christopher Lazarus', status: 'normal',       name: 'Object-Oriented Programming', remarks: '' } },
-            { cohortId: 'rsd2s1', week: 2, event: { di: 1, start: 0,  end: 3,  code: 'BMIT5678', type: 'L', venue: 'B105', lecturer: 'En. Lim Jia Zheng',      status: 'normal',       name: 'Database Systems',            remarks: '' } },
-            { cohortId: 'rsd2s1', week: 2, event: { di: 2, start: 10, end: 13, code: 'BMIT9999', type: 'T', venue: 'B202', lecturer: 'Dr. Tan Ah Meng',          status: 'pending',      name: 'Machine Learning',            remarks: '', requestedAt: '03 Sep 2026, 10:30 AM', requestedBy: 'Dr. Tan Ah Meng' } },
-            { cohortId: 'rsd2s1', week: 2, event: { di: 3, start: 6,  end: 9,  code: 'BMIT9012', type: 'L', venue: 'B106', lecturer: 'Pn. Surayaini Basri',      status: 'replacement',  name: 'Computer Networks',           remarks: '26-Aug-2026' } },
-            { cohortId: 'rsd2s1', week: 2, event: { di: 3, start: 12, end: 15, code: 'BMIT5555', type: 'L', venue: 'B110', lecturer: 'Dr. Lim Wei Ming',        status: 'normal',       name: 'Software Engineering',         remarks: '' } },
-            { cohortId: 'rsd2s1', week: 2, event: { di: 4, start: 10, end: 13, code: 'BMIT3456', type: 'T', venue: 'B103', lecturer: 'Dr. Chang Foo Chung',      status: 'normal',       name: 'Artificial Intelligence',      remarks: '' } },
-            { cohortId: 'rsd2s1', week: 2, event: { di: 4, start: 16, end: 19, code: 'BMIT4040', type: 'L', venue: 'B301', lecturer: 'En. Ahmad Faiz',           status: 'normal',       name: 'Web Development',              remarks: '' } },
+            { cohortId: 'rsd2s1', week: 2,  event: { di: 0, start: 4, end: 6, code: 'BMIT6767', type: 'L', venue: 'B103', lecturer: 'Dr. Christopher Lazarus', status: 'normal',      name: 'Object-Oriented Programming',    remarks: '' } },
+            { cohortId: 'rsd2s1', week: 2,  event: { di: 2, start: 8, end: 9, code: 'BMIT3456', type: 'T', venue: 'B103', lecturer: 'Dr. Chang Foo Chung',      status: 'pending',     name: 'Artificial Intelligence',         remarks: '', requestedAt: '02 Sep 2026, 02:15 PM', requestedBy: 'Dr. Chang Foo Chung' } },
+            { cohortId: 'rsd2s1', week: 2,  event: { di: 4, start: 10, end: 13, code: 'BMIT7070', type: 'L', venue: 'B103', lecturer: 'Prof. Dr. Khoo Teik Huat', status: 'pending', name: 'Advanced Software Engineering',   remarks: '', requestedAt: '08 Aug 2026, 09:00 AM', requestedBy: 'Prof. Dr. Khoo Teik Huat' } },
 
-            // ═══ FOCS / RSD3 (S1) G1 ═══
+            { cohortId: 'rsd2s1', week: 3,  event: { di: 0, start: 4, end: 6, code: 'BMIT6767', type: 'L', venue: 'B103', lecturer: 'Dr. Christopher Lazarus', status: 'conflict',    name: 'Object-Oriented Programming',    remarks: 'Lecturer on leave' } },
+            { cohortId: 'rsd2s1', week: 3,  event: { di: 1, start: 0, end: 1, code: 'BMIT2233', type: 'T', venue: 'B103', lecturer: 'En. Ali',                    status: 'pending',     name: 'Data Structures',                remarks: '', requestedAt: '05 Aug 2026, 10:00 AM', requestedBy: 'En. Ali' } },
+            { cohortId: 'rsd2s1', week: 3,  event: { di: 2, start: 8, end: 9, code: 'BMIT3456', type: 'T', venue: 'B103', lecturer: 'Dr. Chang Foo Chung',      status: 'normal',      name: 'Artificial Intelligence',         remarks: '' } },
+            { cohortId: 'rsd2s1', week: 3,  event: { di: 3, start: 12, end: 13, code: 'BMIT4455', type: 'T', venue: 'B103', lecturer: 'Dr. Sarah',                 status: 'pending',     name: 'Network Security',               remarks: '', requestedAt: '06 Aug 2026, 02:30 PM', requestedBy: 'Dr. Sarah' } },
+            { cohortId: 'rsd2s1', week: 3,  event: { di: 4, start: 5, end: 7, code: 'BMIT7070', type: 'L', venue: 'B103', lecturer: 'Prof. Dr. Khoo Teik Huat', status: 'normal',      name: 'Advanced Software Engineering',   remarks: '' } },
+
+            { cohortId: 'rsd2s1', week: 4,  event: { di: 0, start: 4, end: 6, code: 'BMIT6767', type: 'L', venue: 'B103', lecturer: 'Dr. Christopher Lazarus', status: 'normal',      name: 'Object-Oriented Programming',    remarks: '' } },
+            { cohortId: 'rsd2s1', week: 4,  event: { di: 2, start: 8, end: 9, code: 'BMIT3456', type: 'T', venue: 'B103', lecturer: 'Dr. Chang Foo Chung',      status: 'normal',      name: 'Artificial Intelligence',         remarks: '' } },
+            { cohortId: 'rsd2s1', week: 4,  event: { di: 4, start: 5, end: 7, code: 'BMIT7070', type: 'L', venue: 'B103', lecturer: 'Prof. Dr. Khoo Teik Huat', status: 'normal',      name: 'Advanced Software Engineering',   remarks: '' } },
+
+            { cohortId: 'rsd2s1', week: 5,  event: { di: 0, start: 4, end: 6, code: 'BMIT6767', type: 'L', venue: 'B103', lecturer: 'Dr. Christopher Lazarus', status: 'replacement', name: 'Object-Oriented Programming',    remarks: '07-Sep-2026' } },
+            { cohortId: 'rsd2s1', week: 5,  event: { di: 1, start: 0, end: 1, code: 'BMIT2233', type: 'T', venue: 'B103', lecturer: 'En. Ali',                    status: 'pending',     name: 'Data Structures',                remarks: '', requestedAt: '12 Aug 2026, 11:00 AM', requestedBy: 'En. Ali' } },
+            { cohortId: 'rsd2s1', week: 5,  event: { di: 2, start: 8, end: 9, code: 'BMIT3456', type: 'T', venue: 'B103', lecturer: 'Dr. Chang Foo Chung',      status: 'pending',     name: 'Artificial Intelligence',         remarks: '', requestedAt: '05 Sep 2026, 11:00 AM', requestedBy: 'Dr. Chang Foo Chung' } },
+            { cohortId: 'rsd2s1', week: 5,  event: { di: 3, start: 12, end: 13, code: 'BMIT4455', type: 'T', venue: 'B103', lecturer: 'Dr. Sarah',                 status: 'pending',     name: 'Network Security',               remarks: '', requestedAt: '13 Aug 2026, 03:00 PM', requestedBy: 'Dr. Sarah' } },
+            { cohortId: 'rsd2s1', week: 5,  event: { di: 4, start: 5, end: 7, code: 'BMIT7070', type: 'L', venue: 'B103', lecturer: 'Prof. Dr. Khoo Teik Huat', status: 'normal',      name: 'Advanced Software Engineering',   remarks: '' } },
+
+            { cohortId: 'rsd2s1', week: 6,  event: { di: 0, start: 4, end: 6, code: 'BMIT6767', type: 'L', venue: 'B103', lecturer: 'Dr. Christopher Lazarus', status: 'normal',      name: 'Object-Oriented Programming',    remarks: '' } },
+            { cohortId: 'rsd2s1', week: 6,  event: { di: 1, start: 0, end: 1, code: 'BMIT2233', type: 'T', venue: 'B103', lecturer: 'En. Ali',                    status: 'pending',     name: 'Data Structures',                remarks: '', requestedAt: '19 Aug 2026, 10:00 AM', requestedBy: 'En. Ali' } },
+            { cohortId: 'rsd2s1', week: 6,  event: { di: 2, start: 8, end: 9, code: 'BMIT3456', type: 'T', venue: 'B103', lecturer: 'Dr. Chang Foo Chung',      status: 'normal',      name: 'Artificial Intelligence',         remarks: '' } },
+            { cohortId: 'rsd2s1', week: 6,  event: { di: 3, start: 12, end: 13, code: 'BMIT4455', type: 'T', venue: 'B103', lecturer: 'Dr. Sarah',                 status: 'pending',     name: 'Network Security',               remarks: '', requestedAt: '20 Aug 2026, 02:30 PM', requestedBy: 'Dr. Sarah' } },
+            { cohortId: 'rsd2s1', week: 6,  event: { di: 4, start: 5, end: 7, code: 'BMIT7070', type: 'L', venue: 'B103', lecturer: 'Prof. Dr. Khoo Teik Huat', status: 'conflict',    name: 'Advanced Software Engineering',   remarks: 'Venue double-booked' } },
+
+            { cohortId: 'rsd2s1', week: 7,  event: { di: 0, start: 4, end: 6, code: 'BMIT6767', type: 'L', venue: 'B103', lecturer: 'Dr. Christopher Lazarus', status: 'normal',      name: 'Object-Oriented Programming',    remarks: '' } },
+            { cohortId: 'rsd2s1', week: 7,  event: { di: 1, start: 0, end: 1, code: 'BMIT2233', type: 'T', venue: 'B103', lecturer: 'En. Ali',                    status: 'pending',     name: 'Data Structures',                remarks: '', requestedAt: '26 Aug 2026, 10:00 AM', requestedBy: 'En. Ali' } },
+            { cohortId: 'rsd2s1', week: 7,  event: { di: 2, start: 8, end: 9, code: 'BMIT3456', type: 'T', venue: 'B103', lecturer: 'Dr. Chang Foo Chung',      status: 'replacement', name: 'Artificial Intelligence',         remarks: '10-Sep-2026' } },
+            { cohortId: 'rsd2s1', week: 7,  event: { di: 3, start: 12, end: 13, code: 'BMIT4455', type: 'T', venue: 'B103', lecturer: 'Dr. Sarah',                 status: 'pending',     name: 'Network Security',               remarks: '', requestedAt: '27 Aug 2026, 02:30 PM', requestedBy: 'Dr. Sarah' } },
+            { cohortId: 'rsd2s1', week: 7,  event: { di: 4, start: 5, end: 7, code: 'BMIT7070', type: 'L', venue: 'B103', lecturer: 'Prof. Dr. Khoo Teik Huat', status: 'normal',      name: 'Advanced Software Engineering',   remarks: '' } },
+
+            { cohortId: 'rsd2s1', week: 8,  event: { di: 0, start: 4, end: 6, code: 'BMIT6767', type: 'L', venue: 'B103', lecturer: 'Dr. Christopher Lazarus', status: 'pending',     name: 'Object-Oriented Programming',    remarks: '', requestedAt: '08 Sep 2026, 03:30 PM', requestedBy: 'Dr. Christopher Lazarus' } },
+            { cohortId: 'rsd2s1', week: 8,  event: { di: 2, start: 8, end: 9, code: 'BMIT3456', type: 'T', venue: 'B103', lecturer: 'Dr. Chang Foo Chung',      status: 'normal',      name: 'Artificial Intelligence',         remarks: '' } },
+            { cohortId: 'rsd2s1', week: 8,  event: { di: 4, start: 5, end: 7, code: 'BMIT7070', type: 'L', venue: 'B103', lecturer: 'Prof. Dr. Khoo Teik Huat', status: 'replacement', name: 'Advanced Software Engineering',   remarks: '12-Sep-2026' } },
+
+            { cohortId: 'rsd2s1', week: 9,  event: { di: 0, start: 4, end: 6, code: 'BMIT6767', type: 'L', venue: 'B103', lecturer: 'Dr. Christopher Lazarus', status: 'normal',      name: 'Object-Oriented Programming',    remarks: '' } },
+            { cohortId: 'rsd2s1', week: 9,  event: { di: 2, start: 8, end: 9, code: 'BMIT3456', type: 'T', venue: 'B103', lecturer: 'Dr. Chang Foo Chung',      status: 'conflict',    name: 'Artificial Intelligence',         remarks: 'Clash with BMIT6767' } },
+            { cohortId: 'rsd2s1', week: 9,  event: { di: 4, start: 5, end: 7, code: 'BMIT7070', type: 'L', venue: 'B103', lecturer: 'Prof. Dr. Khoo Teik Huat', status: 'normal',      name: 'Advanced Software Engineering',   remarks: '' } },
+
+            { cohortId: 'rsd2s1', week: 10, event: { di: 0, start: 4, end: 6, code: 'BMIT6767', type: 'L', venue: 'B103', lecturer: 'Dr. Christopher Lazarus', status: 'replacement', name: 'Object-Oriented Programming',    remarks: '14-Sep-2026' } },
+            { cohortId: 'rsd2s1', week: 10, event: { di: 2, start: 8, end: 9, code: 'BMIT3456', type: 'T', venue: 'B103', lecturer: 'Dr. Chang Foo Chung',      status: 'normal',      name: 'Artificial Intelligence',         remarks: '' } },
+            { cohortId: 'rsd2s1', week: 10, event: { di: 4, start: 5, end: 7, code: 'BMIT7070', type: 'L', venue: 'B103', lecturer: 'Prof. Dr. Khoo Teik Huat', status: 'pending',     name: 'Advanced Software Engineering',   remarks: '', requestedAt: '12 Sep 2026, 09:00 AM', requestedBy: 'Prof. Dr. Khoo Teik Huat' } },
+
+            { cohortId: 'rsd2s1', week: 11, event: { di: 0, start: 4, end: 6, code: 'BMIT6767', type: 'L', venue: 'B103', lecturer: 'Dr. Christopher Lazarus', status: 'normal',      name: 'Object-Oriented Programming',    remarks: '' } },
+            { cohortId: 'rsd2s1', week: 11, event: { di: 2, start: 8, end: 9, code: 'BMIT3456', type: 'T', venue: 'B103', lecturer: 'Dr. Chang Foo Chung',      status: 'normal',      name: 'Artificial Intelligence',         remarks: '' } },
+            { cohortId: 'rsd2s1', week: 11, event: { di: 4, start: 5, end: 7, code: 'BMIT7070', type: 'L', venue: 'B103', lecturer: 'Prof. Dr. Khoo Teik Huat', status: 'normal',      name: 'Advanced Software Engineering',   remarks: '' } },
+
+            { cohortId: 'rsd2s1', week: 12, event: { di: 0, start: 4, end: 6, code: 'BMIT6767', type: 'L', venue: 'B103', lecturer: 'Dr. Christopher Lazarus', status: 'normal',      name: 'Object-Oriented Programming',    remarks: '' } },
+            { cohortId: 'rsd2s1', week: 12, event: { di: 2, start: 8, end: 9, code: 'BMIT3456', type: 'T', venue: 'B103', lecturer: 'Dr. Chang Foo Chung',      status: 'replacement', name: 'Artificial Intelligence',         remarks: '21-Sep-2026' } },
+            { cohortId: 'rsd2s1', week: 12, event: { di: 4, start: 5, end: 7, code: 'BMIT7070', type: 'L', venue: 'B103', lecturer: 'Prof. Dr. Khoo Teik Huat', status: 'conflict',    name: 'Advanced Software Engineering',   remarks: 'Public holiday' } },
+
+            { cohortId: 'rsd2s1', week: 13, event: { di: 0, start: 4, end: 6, code: 'BMIT6767', type: 'L', venue: 'B103', lecturer: 'Dr. Christopher Lazarus', status: 'pending',     name: 'Object-Oriented Programming',    remarks: '', requestedAt: '20 Sep 2026, 04:00 PM', requestedBy: 'Dr. Christopher Lazarus' } },
+            { cohortId: 'rsd2s1', week: 13, event: { di: 2, start: 8, end: 9, code: 'BMIT3456', type: 'T', venue: 'B103', lecturer: 'Dr. Chang Foo Chung',      status: 'normal',      name: 'Artificial Intelligence',         remarks: '' } },
+            { cohortId: 'rsd2s1', week: 13, event: { di: 4, start: 5, end: 7, code: 'BMIT7070', type: 'L', venue: 'B103', lecturer: 'Prof. Dr. Khoo Teik Huat', status: 'normal',      name: 'Advanced Software Engineering',   remarks: '' } },
+
+            // Other venues (kept minimal)
+            { cohortId: 'rsd2s1', week: 0,  event: { di: 1, start: 0, end: 3, code: 'BMIT5678', type: 'L', venue: 'B105', lecturer: 'En. Lim Jia Zheng',      status: 'normal',      name: 'Database Systems',               remarks: '' } },
+            { cohortId: 'rsd2s1', week: 1,  event: { di: 1, start: 0, end: 3, code: 'BMIT5678', type: 'L', venue: 'B105', lecturer: 'En. Lim Jia Zheng',      status: 'replacement', name: 'Database Systems',               remarks: '24-Aug-2026' } },
+            { cohortId: 'rsd2s1', week: 2,  event: { di: 1, start: 0, end: 3, code: 'BMIT5678', type: 'L', venue: 'B105', lecturer: 'En. Lim Jia Zheng',      status: 'pending',     name: 'Database Systems',               remarks: '', requestedAt: '25 Aug 2026, 10:00 AM', requestedBy: 'En. Lim Jia Zheng', requestId: 5 } },
+            { cohortId: 'rsd2s1', week: 3,  event: { di: 1, start: 0, end: 3, code: 'BMIT5678', type: 'L', venue: 'B105', lecturer: 'En. Lim Jia Zheng',      status: 'conflict',   name: 'Database Systems',               remarks: 'Venue unavailable due to maintenance' } },
+            { cohortId: 'rsd2s1', week: 5,  event: { di: 1, start: 0, end: 3, code: 'BMIT5678', type: 'L', venue: 'B105', lecturer: 'En. Lim Jia Zheng',      status: 'conflict',   name: 'Database Systems',               remarks: 'Lecturer on medical leave' } },
+            { cohortId: 'rsd2s1', week: 8,  event: { di: 1, start: 0, end: 3, code: 'BMIT5678', type: 'L', venue: 'B105', lecturer: 'En. Lim Jia Zheng',      status: 'conflict',   name: 'Database Systems',               remarks: 'Room double-booked with BMIT9012' } },
+            { cohortId: 'rsd2s1', week: 0,  event: { di: 3, start: 8, end: 10, code: 'BMIT1234', type: 'T', venue: 'B104', lecturer: 'Dr. Christopher Lazarus', status: 'conflict',   name: 'Data Structures',                remarks: 'Clash with BMIT5555 lecture' } },
+            { cohortId: 'rsd2s1', week: 4,  event: { di: 3, start: 8, end: 10, code: 'BMIT1234', type: 'T', venue: 'B104', lecturer: 'Dr. Christopher Lazarus', status: 'conflict',   name: 'Data Structures',                remarks: 'Venue under renovation' } },
+            { cohortId: 'rsd2s1', week: 7,  event: { di: 3, start: 8, end: 10, code: 'BMIT1234', type: 'T', venue: 'B104', lecturer: 'Dr. Christopher Lazarus', status: 'conflict',   name: 'Data Structures',                remarks: 'Exam week scheduling error' } },
+            { cohortId: 'rsd2s1', week: 1,  event: { di: 2, start: 2, end: 5, code: 'BMIT9012', type: 'L', venue: 'B106', lecturer: 'Pn. Surayaini Basri',     status: 'conflict',   name: 'Computer Networks',              remarks: 'Public holiday' } },
+            { cohortId: 'rsd2s1', week: 6,  event: { di: 2, start: 2, end: 5, code: 'BMIT9012', type: 'L', venue: 'B106', lecturer: 'Pn. Surayaini Basri',     status: 'conflict',   name: 'Computer Networks',              remarks: 'Lecturer travelling for conference' } },
+            { cohortId: 'rsd2s1', week: 10, event: { di: 2, start: 2, end: 5, code: 'BMIT9012', type: 'L', venue: 'B106', lecturer: 'Pn. Surayaini Basri',     status: 'conflict',   name: 'Computer Networks',              remarks: 'Lab equipment failure' } },
+            { cohortId: 'rsd2s1', week: 2,  event: { di: 3, start: 4, end: 7, code: 'BMIT5555', type: 'L', venue: 'B110', lecturer: 'Dr. Lim Wei Ming',         status: 'conflict',   name: 'Software Engineering',           remarks: 'Fire alarm testing in building' } },
+            { cohortId: 'rsd2s1', week: 9,  event: { di: 3, start: 4, end: 7, code: 'BMIT5555', type: 'L', venue: 'B110', lecturer: 'Dr. Lim Wei Ming',         status: 'conflict',   name: 'Software Engineering',           remarks: 'Venue double-booked' } },
+            { cohortId: 'rsd2s1', week: 11, event: { di: 3, start: 4, end: 7, code: 'BMIT5555', type: 'L', venue: 'B110', lecturer: 'Dr. Lim Wei Ming',         status: 'conflict',   name: 'Software Engineering',           remarks: 'Lecturer hospitalised' } },
+            { cohortId: 'rsd2s1', week: 3,  event: { di: 5, start: 10, end: 12, code: 'BMIT6666', type: 'T', venue: 'B111', lecturer: 'Pn. Sarah Tan',            status: 'conflict',   name: 'Mobile App Development',         remarks: 'Lab server down' } },
+            { cohortId: 'rsd2s1', week: 7,  event: { di: 5, start: 10, end: 12, code: 'BMIT6666', type: 'T', venue: 'B111', lecturer: 'Pn. Sarah Tan',            status: 'conflict',   name: 'Mobile App Development',         remarks: 'Power outage in lab' } },
+            { cohortId: 'rsd2s1', week: 12, event: { di: 5, start: 10, end: 12, code: 'BMIT6666', type: 'T', venue: 'B111', lecturer: 'Pn. Sarah Tan',            status: 'conflict',   name: 'Mobile App Development',         remarks: 'Scheduling conflict with another class' } },
             { cohortId: 'rsd3s1g1', week: 0, event: { di: 0, start: 8,  end: 11, code: 'BMIT7070', type: 'L', venue: 'A101', lecturer: 'Prof. Dr. Khoo Teik Huat', status: 'normal',  name: 'Advanced Software Engineering', remarks: '' } },
             { cohortId: 'rsd3s1g1', week: 0, event: { di: 1, start: 12, end: 15, code: 'BMIT7072', type: 'L', venue: 'A104', lecturer: 'Prof. Dr. Suresh',         status: 'normal',  name: 'Capstone Project',              remarks: '' } },
             { cohortId: 'rsd3s1g1', week: 0, event: { di: 2, start: 0,  end: 3,  code: 'BMIT8080', type: 'L', venue: 'A102', lecturer: 'Dr. Patricia Gomez',       status: 'normal',  name: 'Cloud Architecture',            remarks: '' } },
@@ -294,6 +381,31 @@ window.MockData = {
             { cohortId: 'dsf2s1', week: 0, event: { di: 2, start: 4,  end: 7,  code: 'BMIT2020', type: 'L', venue: 'B202', lecturer: 'Mr. Ravi Kumar',     status: 'normal',      name: 'Programming Fundamentals',   remarks: '' } },
             { cohortId: 'dsf2s1', week: 0, event: { di: 3, start: 0,  end: 3,  code: 'BMIT2222', type: 'L', venue: 'B205', lecturer: 'Dr. Wong Mei Ling', status: 'normal',      name: 'Mathematics for Computing', remarks: '' } },
             { cohortId: 'dsf2s1', week: 0, event: { di: 4, start: 8,  end: 11, code: 'BMIT3030', type: 'T', venue: 'B203', lecturer: 'Ms. Siti Aminah',   status: 'normal',      name: 'Data Structures',           remarks: '' } },
+
+            // ═══ Additional venues for variety ═══
+            // B014 — morning classes only
+            { cohortId: 'dft2s1', week: 0, event: { di: 0, start: 0,  end: 3,  code: 'BMIT6061', type: 'T', venue: 'B014', lecturer: 'Ms. Chen Hui Xin',  status: 'normal',  name: 'UI/UX Design',              remarks: '' } },
+            { cohortId: 'dft2s1', week: 0, event: { di: 2, start: 0,  end: 3,  code: 'BMIT6062', type: 'L', venue: 'B014', lecturer: 'En. Zulkifli',       status: 'normal',  name: 'Networking Basics',          remarks: '' } },
+            { cohortId: 'dft2s1', week: 1, event: { di: 0, start: 0,  end: 3,  code: 'BMIT6061', type: 'T', venue: 'B014', lecturer: 'Ms. Chen Hui Xin',  status: 'replacement', name: 'UI/UX Design',           remarks: '24-Aug-2026' } },
+            { cohortId: 'dft2s1', week: 1, event: { di: 2, start: 0,  end: 3,  code: 'BMIT6062', type: 'L', venue: 'B014', lecturer: 'En. Zulkifli',       status: 'pending',  name: 'Networking Basics',          remarks: '', requestedAt: '25 Aug 2026, 10:00 AM', requestedBy: 'En. Zulkifli' } },
+            { cohortId: 'dft2s1', week: 2, event: { di: 0, start: 0,  end: 3,  code: 'BMIT6061', type: 'T', venue: 'B014', lecturer: 'Ms. Chen Hui Xin',  status: 'normal',  name: 'UI/UX Design',              remarks: '' } },
+            { cohortId: 'dft2s1', week: 2, event: { di: 2, start: 0,  end: 3,  code: 'BMIT6062', type: 'L', venue: 'B014', lecturer: 'En. Zulkifli',       status: 'conflict', name: 'Networking Basics',          remarks: 'Conflicts with BMIT6061' } },
+
+            // B015 — afternoon classes only
+            { cohortId: 'dft2s1', week: 0, event: { di: 1, start: 10, end: 13, code: 'BMIT4040', type: 'L', venue: 'B015', lecturer: 'En. Ahmad Faiz',     status: 'normal',  name: 'Web Development',            remarks: '' } },
+            { cohortId: 'dft2s1', week: 0, event: { di: 3, start: 10, end: 13, code: 'BMIT5050', type: 'L', venue: 'B015', lecturer: 'Pn. Farah Hanum',    status: 'normal',  name: 'Database Design',            remarks: '' } },
+            { cohortId: 'dft2s1', week: 1, event: { di: 1, start: 10, end: 13, code: 'BMIT4040', type: 'L', venue: 'B015', lecturer: 'En. Ahmad Faiz',     status: 'pending', name: 'Web Development',            remarks: '', requestedAt: '25 Aug 2026, 02:00 PM', requestedBy: 'En. Ahmad Faiz' } },
+            { cohortId: 'dft2s1', week: 1, event: { di: 3, start: 10, end: 13, code: 'BMIT5050', type: 'L', venue: 'B015', lecturer: 'Pn. Farah Hanum',    status: 'replacement', name: 'Database Design',         remarks: '27-Aug-2026' } },
+            { cohortId: 'dft2s1', week: 2, event: { di: 1, start: 10, end: 13, code: 'BMIT4040', type: 'L', venue: 'B015', lecturer: 'En. Ahmad Faiz',     status: 'conflict', name: 'Web Development',            remarks: 'Venue double-booked' } },
+            { cohortId: 'dft2s1', week: 2, event: { di: 3, start: 10, end: 13, code: 'BMIT5050', type: 'L', venue: 'B015', lecturer: 'Pn. Farah Hanum',    status: 'normal',  name: 'Database Design',            remarks: '' } },
+
+            // B016 — mixed morning + afternoon
+            { cohortId: 'dft2s1', week: 0, event: { di: 0, start: 4,  end: 7,  code: 'BMIT6060', type: 'L', venue: 'B016', lecturer: 'Dr. Lim Wei Ming',   status: 'normal',  name: 'Cybersecurity Fundamentals', remarks: '' } },
+            { cohortId: 'dft2s1', week: 0, event: { di: 4, start: 10, end: 13, code: 'BMIT6061', type: 'T', venue: 'B016', lecturer: 'Ms. Chen Hui Xin',   status: 'normal',  name: 'UI/UX Design',               remarks: '' } },
+            { cohortId: 'dft2s1', week: 1, event: { di: 0, start: 4,  end: 7,  code: 'BMIT6060', type: 'L', venue: 'B016', lecturer: 'Dr. Lim Wei Ming',   status: 'replacement', name: 'Cybersecurity Fundamentals', remarks: '25-Aug-2026' } },
+            { cohortId: 'dft2s1', week: 1, event: { di: 4, start: 10, end: 13, code: 'BMIT6061', type: 'T', venue: 'B016', lecturer: 'Ms. Chen Hui Xin',   status: 'pending', name: 'UI/UX Design',               remarks: '', requestedAt: '26 Aug 2026, 11:30 AM', requestedBy: 'Ms. Chen Hui Xin' } },
+            { cohortId: 'dft2s1', week: 2, event: { di: 0, start: 4,  end: 7,  code: 'BMIT6060', type: 'L', venue: 'B016', lecturer: 'Dr. Lim Wei Ming',   status: 'conflict', name: 'Cybersecurity Fundamentals', remarks: 'Lecturer unavailable' } },
+            { cohortId: 'dft2s1', week: 2, event: { di: 4, start: 10, end: 13, code: 'BMIT6061', type: 'T', venue: 'B016', lecturer: 'Ms. Chen Hui Xin',   status: 'replacement', name: 'UI/UX Design',            remarks: '28-Aug-2026' } },
 
             { cohortId: 'dsf2s1', week: 1, event: { di: 0, start: 0,  end: 3,  code: 'BMIT1010', type: 'L', venue: 'B201', lecturer: 'Ms. Nurul Aini',     status: 'normal',       name: 'Introduction to Computing', remarks: '' } },
             { cohortId: 'dsf2s1', week: 1, event: { di: 1, start: 12, end: 15, code: 'BMIT1111', type: 'L', venue: 'B204', lecturer: 'Mr. Tan Kok Wai',   status: 'normal',       name: 'Operating Systems',         remarks: '' } },
@@ -350,16 +462,20 @@ window.MockData = {
             { di: 4, start: 0,  end: 3,  code: 'BMIT7073', type: 'L', venue: 'A105', lecturer: 'Ms. Lim Pei Shan',         name: 'IT Ethics' },
             { di: 1, start: 8,  end: 11, code: 'BMIT7074', type: 'T', venue: 'A106', lecturer: 'Dr. Koh Li May',           name: 'Software Testing' },
             { di: 3, start: 12, end: 15, code: 'BMIT7075', type: 'L', venue: 'A106', lecturer: 'Ms. Lim Pei Shan',         name: 'Mobile Application Development' },
+            { di: 2, start: 2,  end: 5,  code: 'BMIT5678', type: 'L', venue: 'B106', lecturer: 'En. Lim Jia Zheng',        name: 'Database Systems' },
+            { di: 4, start: 8,  end: 10, code: 'BMIT2233', type: 'T', venue: 'B103', lecturer: 'En. Lim Jia Zheng',        name: 'Data Structures' },
         ],
         rsd3g2Flags: {
-            1:  [['BMIT7072', 'replacement', '26-Aug-2026'], ['BMIT7074', 'replacement', '25-Aug-2026']],
-            2:  [['BMIT7073', 'pending', ''], ['BMIT7075', 'pending', '']],
+            0:  [],
+            1:  [['BMIT7072', 'replacement', '26-Aug-2026'], ['BMIT7074', 'replacement', '25-Aug-2026'], ['BMIT5678', 'replacement', '24-Aug-2026']],
+            2:  [['BMIT7073', 'pending', ''], ['BMIT7075', 'pending', ''], ['BMIT2233', 'pending', '', '25 Aug 2026, 10:00 AM', 12]],
             3:  [['BMIT7070', 'replacement', '27-Aug-2026']],
-            4:  [['BMIT7071', 'pending', '']],
-            7:  [['BMIT7074', 'replacement', '01-Sep-2026']],
-            9:  [['BMIT7075', 'pending', '']],
-            11: [['BMIT7072', 'replacement', '08-Sep-2026']],
-            13: [['BMIT7071', 'pending', '']],
+            4:  [['BMIT7071', 'pending', ''], ['BMIT5678', 'pending', '', '03 Sep 2026, 09:30 AM', 5]],
+            5:  [['BMIT2233', 'replacement', '07-Sep-2026']],
+            7:  [['BMIT7074', 'replacement', '01-Sep-2026'], ['BMIT5678', 'replacement', '01-Sep-2026']],
+            9:  [['BMIT7075', 'pending', ''], ['BMIT2233', 'pending', '', '08 Sep 2026, 11:00 AM', 16]],
+            11: [['BMIT7072', 'replacement', '08-Sep-2026'], ['BMIT5678', 'replacement', '08-Sep-2026']],
+            13: [['BMIT7071', 'pending', ''], ['BMIT2233', 'pending', '', '15 Sep 2026, 02:30 PM', 8]],
         },
     },
 
@@ -522,6 +638,45 @@ window.MockData = {
             [2, 0, 0], [2, 1, 0], [2, 2, 0], [2, 3, 0],
         ],
     },
+
+    // ─────────────────────────────────────────────────────────────────────
+    // §2.12 upcomingReplacements — consumed by the student Upcoming
+    // Replacements page (/upcoming-replacements-ui, stub UI pending — see
+    // page-changelogs/todo list/upcoming-replacements-ui-plan.md).
+    // Rows are keyed to real rsd3g2Base courses + rsd3g2Flags weeks so the
+    // timetable grid and this list stay consistent.
+    //   Original slot: di/start/end in the same 30-min index space as
+    //     rsd3g2Base (hours map in ui-common.js).
+    //   Replacement slot: newDi/newStart/newEnd + display strings;
+    //     null when still awaiting PL approval (`status:'pending'`).
+    //   status: 'replacement' = approved & upcoming (blue,
+    //     .badge-replacement) | 'pending' = awaiting PL (yellow,
+    //     .badge-pending).
+    // Read-only — slice()/spread before mutating.
+    // ─────────────────────────────────────────────────────────────────────
+    upcomingReplacements: [
+        {
+            id: 1, code: 'BMIT7074', name: 'Software Testing', type: 'T',
+            lecturer: 'Dr. Koh Li May', cohort: 'RSD3(S1)G2',
+            week: 1, status: 'replacement', requestedAt: '25-Aug-2026',
+            di: 1, start: 8, end: 11, originalDay: 'Tuesday',  originalTime: '12:00 – 14:00', originalVenue: 'A106',
+            newDi: 3, newStart: 4, newEnd: 7, newDay: 'Thursday', newTime: '10:00 – 12:00', newVenue: 'B005',
+        },
+        {
+            id: 2, code: 'BMIT2233', name: 'Data Structures', type: 'T',
+            lecturer: 'En. Lim Jia Zheng', cohort: 'RSD3(S1)G2',
+            week: 2, status: 'pending', requestedAt: '',
+            di: 4, start: 8, end: 10, originalDay: 'Friday', originalTime: '12:00 – 13:30', originalVenue: 'B103',
+            newDi: null, newStart: null, newEnd: null, newDay: null, newTime: null, newVenue: null,
+        },
+        {
+            id: 3, code: 'BMIT5678', name: 'Database Systems', type: 'L',
+            lecturer: 'En. Lim Jia Zheng', cohort: 'RSD3(S1)G2',
+            week: 7, status: 'replacement', requestedAt: '01-Sep-2026',
+            di: 2, start: 2, end: 5, originalDay: 'Wednesday', originalTime: '09:00 – 12:00', originalVenue: 'B106',
+            newDi: 0, newStart: 12, newEnd: 15, newDay: 'Monday', newTime: '14:00 – 16:00', newVenue: 'B110',
+        },
+    ],
 
 };
 

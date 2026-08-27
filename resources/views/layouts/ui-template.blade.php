@@ -9,9 +9,10 @@
     <script>
         (function() {
             var saved = localStorage.getItem('theme');
-            if (saved === 'light') {
-                document.documentElement.className = 'light';
+            if (saved && ['dark', 'light'].includes(saved)) {
+                document.documentElement.className = saved;
             }
+            // Default is 'dark' from HTML
         })();
     </script>
     <link rel="stylesheet" href="/css/theme.css">
@@ -22,24 +23,25 @@
 <body data-page="{{ $pageKey ?? '' }}">
 
     @if(!isset($hideNav) || !$hideNav)
-        @include('partials.ui-nav-bar', ['activeNav' => $activeNav ?? '', 'notifCount' => $notifCount ?? 3])
+        @include('partials.ui-nav-bar', ['activeNav' => $activeNav ?? '', 'notifCount' => $notifCount ?? 3, 'navItems' => $navItems ?? null])
+        @include('partials.ui-logout-modal')
     @endif
 
-    @include('partials.ui-session-countdown')
 
     <div class="app-container">
         @yield('content')
     </div>
 
-    <script src="/js/ui-common.js"></script>
     <script src="/js/mock-data.js?v=3"></script>
-    <script src="/js/session-countdown.js"></script>
+    <script src="/js/ui-common.js?v=7"></script>
+    <script src="/js/logout-modal.js"></script>
     <script>
         document.addEventListener('DOMContentLoaded', function() {
             var pageKey = document.body.dataset.page;
             if (pageKey) initScrollRestore(pageKey);
             updateIcon(document.documentElement.classList.contains('dark')); initMobileNav();
             if (typeof updateNavBadge === 'function') updateNavBadge();
+            if (typeof initDataTipTooltips === 'function') initDataTipTooltips();
         });
 
         @yield('page-scripts')
@@ -54,7 +56,7 @@
         <div class="toast-actions">
             <a class="toast-link" href="#" style="display:none"></a>
             <button class="toast-undo" style="display:none">Undo</button>
-            <button class="toast-close" onclick="dismissToast()">✕</button>
+            <button class="toast-close" onclick="toast.dismiss()">✕</button>
         </div>
     </div>
 </body>

@@ -1,5 +1,63 @@
 # Changelog — Student My Timetable
 
+## [2026-08-24] Nav swap: Request History → Upcoming Replacements (TASK-006)
+
+Student role drops "Request History" (Ch1 §1.1.4 view-only — status is already
+visible via timetable colors per FR 1.3) and gains "Upcoming Replacements"
+(FR 1.4). The `/my-request-history-ui` route stays for lecturers/PLs.
+
+### Files Changed
+
+#### `resources/views/ui-design-templates/student-my-timetable-UI-design-template.blade.php`
+
+| Location | Change | Detail |
+|---|---|---|
+| Line 6 (`navItems`) | Replaced | `['key'=>'replacement-history', …]` → `['key'=>'upcoming-replacements','label'=>'Upcoming Replacements','href'=>'/upcoming-replacements-ui']` |
+
+New page stub + route + `MockData.upcomingReplacements` dataset recorded in
+`upcoming-replacements-ui-changelog.md`; UI build spec in
+`todo list/upcoming-replacements-ui-plan.md`.
+
+---
+
+## [2026-08-16] Today button now persists week selection
+
+The "Today" button now saves the current week to `localStorage` (via `WeekNavigator.jumpToToday()` calling `this.save()`), consistent with arrow/dropdown navigation. Previously, clicking Today would jump the view but not persist — a page refresh would revert to the old week.
+
+### Files Changed
+
+#### `public/js/ui-common.js`
+
+| Location | Change | Detail |
+|---|---|---|
+| `WeekNavigator.jumpToToday()` | Updated | Now calls `this.save()` after updating the UI, matching the behavior of `prevWeek()`/`nextWeek()`/`selectWeek()`. |
+
+---
+
+## [2026-08-15] Event hover tooltip shows lecturer instead of venue
+
+The event-block tooltip previously showed `name · venue` (venue already on the block). It now shows the **lecturer** (`name · Prof. Dr. Khoo Teik Huat`) — the key info a student doesn't get from the block. Uses the new `tooltipExtra(event)` option on the shared `buildTimetableGrid`.
+
+### Files Changed
+
+#### `resources/views/ui-design-templates/student-my-timetable-UI-design-template.blade.php`
+
+| Location | Change | Detail |
+|---|---|---|
+| `buildTimetable()` | Updated | Passes `tooltipExtra` returning `event.lecturer`. |
+
+#### `public/js/ui-common.js` + `public/css/theme.css`
+
+Shared: `buildTimetableGrid` now sets `dataset.tip2` from `cfg.tooltipExtra`; `.event-block::after` reads `attr(data-tip2)`.
+
+---
+
+## [2026-08-15] Class detail modal redesign: unified detail sheet
+
+The Class Detail modal now uses the shared `DetailModal` "Detail Sheet" via the shared `openClassModal()` (single flat group, definition rows, identity header). No page-specific changes needed.
+
+---
+
 ## SDD Change: `student-my-timetable-ui`
 **Date:** 2026-08-02
 **Scope:** View-only weekly timetable for students + rule #6 CSS promotion + 14 UI enhancements
@@ -71,3 +129,34 @@
 ## Lint/Type Check
 - PHPStan: 20 pre-existing errors in Models/Providers/Seeders (none in files we modified)
 - Pint: not run (timed out; no PHP files modified in our changes — all Blade/JS/CSS)
+
+---
+
+## [2026-08-10] Phase 2 Template Migration: Inline helpers → Shared OOP classes
+
+### Summary
+
+Migrated inline `fmtShort()` function to `DateHelper.fmtShort()` from `ui-common.js`. Removed 3-line inline function definition.
+
+### Files Changed
+
+#### `resources/views/ui-design-templates/student-my-timetable-UI-design-template.blade.php`
+
+| Timestamp | Location | Change | Detail |
+|-----------|----------|--------|--------|
+| 2026-08-10 | Lines 61-63 | Removed | Deleted inline `fmtShort(d)` function definition |
+| 2026-08-10 | Line 98 | Replaced | `fmtShort(startDate)` → `DateHelper.fmtShort(startDate)` |
+
+#### `public/js/ui-common.js`
+
+| Timestamp | Location | Change | Detail |
+|-----------|----------|--------|--------|
+| 2026-08-10 | DateHelper class | Added | `DateHelper.fmtShort(d)` static method — returns "DD Mon" format |
+| 2026-08-10 | DateHelper class | Added | `DateHelper.weekRangeLabel(weekNum)` static method — returns responsive week range label |
+
+---
+
+Page uses `ui-page-header`, `ui-week-nav`, `ui-grid-table`, `ui-empty-state`, `ui-class-detail-modal` partials.
+| 2026-08-13 | `public/css/theme.css` (shared) | macOS table fix | `.timetable`: `border-collapse:collapse` → `separate` + `border-spacing:4px`; removed 1px cell borders; hover uses `var(--color-surface-variant)`; removed zebra striping. `.badge` border-radius 6px→8px. |
+| 2026-08-14 | Page styles | Offday-slot today-cell fix | Added `.today-cell.offday-slot { background: transparent; }` override so PH/Sunday empty cells are not red when today. |
+| 2026-08-14 | `prevWeek/nextWeek/selectWeek` | WeekNavigator delegation | Local nav logic replaced with `weekNav.prevWeek()/nextWeek()/selectWeek()`; `buildTimetable()` syncs `currentWeek = weekNav.currentWeek`. Removed manual select-index/subtitle/progress/arrow/save updates. |

@@ -1,5 +1,66 @@
 # Changelog — Cohort Timetable UI
 
+## [2026-08-16] Today button now persists week selection
+
+The "Today" button now saves the current week to `cohortTimetableState` (via a local `goToday()` wrapper that calls `weekNav.jumpToToday()` + `saveState()`), consistent with arrow/dropdown navigation. Previously, clicking Today would jump the view but not persist — a page refresh would revert to the old week.
+
+### Files Changed
+
+#### `resources/views/ui-design-templates/CohortTimetable-UI-design-template.blade.php`
+
+| Location | Change | Detail |
+|---|---|---|
+| `goToday()` | Added | New wrapper function that calls `weekNav.jumpToToday()`, syncs `currentWeek`, and calls `saveState()` — same pattern as `prevWeek()`/`nextWeek()`/`selectWeek()`. |
+| Today button listener | Updated | Replaced `weekNav.initTodayBtn()` with a single listener that calls `goToday()`, ensuring `cohortTimetableState` is persisted. |
+
+---
+
+## [2026-08-15] Event hover tooltip shows lecturer instead of venue
+
+The event-block tooltip previously showed `name · venue` (venue already on the block). It now shows the **lecturer** (`name · Dr. Christopher Lazarus`) — useful since the cohort is the page context and the lecturer isn't on the block. Uses the new `tooltipExtra(event)` option on the shared `buildTimetableGrid`.
+
+### Files Changed
+
+#### `resources/views/ui-design-templates/CohortTimetable-UI-design-template.blade.php`
+
+| Location | Change | Detail |
+|---|---|---|
+| `buildTimetable()` | Updated | Passes `tooltipExtra` returning `event.lecturer`. |
+
+#### `public/js/ui-common.js` + `public/css/theme.css`
+
+Shared: `buildTimetableGrid` now sets `dataset.tip2` from `cfg.tooltipExtra`; `.event-block::after` reads `attr(data-tip2)`.
+
+---
+
+## [2026-08-15] Class detail modal redesign: unified detail sheet
+
+The Class Detail modal now uses the shared `DetailModal` "Detail Sheet" via the shared `openClassModal()` (single flat group, definition rows). Cohort extra field preserved. No page-specific changes needed.
+
+---
+
+## [2026-08-15] Page-specific summary card descriptions
+
+Added page-specific `description` text to each summary card (Total Classes / Teaching Hours / Replacements / Pending / Conflicts) instead of relying on the shared generic descriptions. (`CohortTimetable-UI-design-template.blade.php` summary bar.)
+
+---
+
+## [2026-08-13] Phase 3 UX Enhancement: Collapsible Guide Block
+
+### Summary
+
+Added an expandable guide block with page-specific workflow instructions.
+
+### Files Changed
+
+#### `resources/views/ui-design-templates/CohortTimetable-UI-design-template.blade.php`
+
+| Timestamp | Location | Change | Detail |
+|-----------|----------|--------|--------|
+| 2026-08-13 | Lines 41-48 | Added | `@include('partials.ui-guide-block')` with 4 workflow tips |
+
+---
+
 ## Files Changed
 
 ### `resources/views/ui-design-templates/CohortTimetable-UI-design-template.blade.php` (new)
@@ -128,3 +189,12 @@
 | Timestamp | Location | Change | Detail |
 |-----------|----------|--------|--------|
 | 2026-07-30 | All sections | Task completion | All 8 task sections marked complete with implementation details and verified test results |
+
+### `resources/views/ui-design-templates/CohortTimetable-UI-design-template.blade.php` — OOP Phase 1 partial extraction
+
+| Timestamp | Location | Change | Detail |
+|-----------|----------|--------|--------|
+| 2026-08-04 | — | Refactored: replaced inline page-header/week-nav/empty-state/grid-table/modal with `@include('partials.…')` (OOP Phase 1) | Page uses `ui-page-header`, `ui-week-nav`, `ui-grid-table`, `ui-empty-state`, `ui-class-detail-modal` partials. |
+| 2026-08-13 | `public/css/theme.css` (shared) | macOS table fix | `.timetable`: `border-collapse:collapse` → `separate` + `border-spacing:4px`; removed 1px cell borders; hover uses `var(--color-surface-variant)`; removed zebra striping. `.badge` border-radius 6px→8px. |
+| 2026-08-14 | `@section('page-styles')` | Offday-slot today-cell fix | Added `.today-cell.offday-slot { background: transparent; }` override so PH/Sunday empty cells are not red when today. |
+| 2026-08-14 | `prevWeek/nextWeek/selectWeek` | WeekNavigator delegation | Local nav logic replaced with `weekNav.prevWeek()/nextWeek()/selectWeek()`; `buildTimetable()` syncs `currentWeek = weekNav.currentWeek`; `saveState()` kept after each nav. |

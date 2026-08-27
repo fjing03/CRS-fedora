@@ -70,7 +70,7 @@ A web application that replaces the manual Google-Sheets-based class replacement
 
 ### Replacement flow decisions (user-confirmed 2026-08-01)
 1. **Student counts:** fixed per cohort (see §8) — capacity-filter demos are reproducible.
-2. **Timetable data:** will be **synthesized** (no real sheets provided) — I generate a realistic 14-week dataset for 14 cohorts / 14 staff / 23 rooms, aligned with the MPU-3133 & MPU-3232 use cases; user reviews it.
+2. **Timetable data:** mainly past semester timetable PDFs from TAR UMT Sabah, with self-modifications for prototype needs (room capacities, MPU-3133 & MPU-3232 groupings) — a realistic 14-week dataset for 14 cohorts / 14 staff / 23 rooms; user reviews it.
 3. **Original block release:** after PL approval, the original class block is marked replaced/cancelled and its old time+room become **bookable by others**; the new slot becomes `occupied`.
 4. **PL Master Configuration Panel: DROPPED** — not in FR&NFR; specs V2 mention is superseded by FR&NFR as source of truth.
 5. **Notifications:** implement exactly FR 1.9 (students on timetable updates), 2.13 (proposer on outcome), 4.15 (PL on submission), 4.16 (all emails via database-backed queue). No cross-lecturer alerts unless requested later.
@@ -101,6 +101,13 @@ composer run types:check      # phpstan analyse
 composer run test             # lint:check + types:check + phpunit
 npm run dev / npm run build   # vite (not heavily used; UI uses static /css /js)
 ```
+
+### Fix stale Blade cache (after UI changes)
+`php artisan view:clear` is broken (missing cache path). Use this instead:
+```bash
+pkill -9 php && rm -f storage/framework/views/*.php && php artisan serve --port=8000 &
+```
+**Always kill old server first** — old processes hold stale compiled views in memory.
 
 ### Test login
 - Default password for ALL seeded users: `Tarumt@2026`
@@ -334,8 +341,8 @@ Source: `../final/FR&NFR.md` — Chapter 3, §3.4 (verbatim).
 ### Venues (23 Block B rooms — NOT yet seeded, need `venues` migration)
 - Tutorial (16): B002, B014–B018, B100–B109 | Lecture Halls (2): B110, B111 | Labs (4): B005, B009–B011 | Cisco Lab (1): B006
 
-### Timetable dataset (TO BE SYNTHESIZED — Sprint 1)
-- No real timetable sheets were provided; I will synthesize a realistic 14-week dataset in `dataset/timetable.md` (modules with session types L/T/P, class blocks per cohort, room assignments, MPU-3133 + MPU-3232 use cases embedded). User reviews before seeding.
+### Timetable dataset (Sprint 1 — based on past PDFs with self-modifications)
+- Mainly past semester timetable PDFs from TAR UMT Sabah, with self-modifications for prototype needs (room capacities, MPU-3133 & MPU-3232 groupings). I will prepare a realistic 14-week dataset in `dataset/timetable.md` (modules with session types L/T/P, class blocks per cohort, room assignments). User reviews before seeding.
 
 ### High-risk use cases (engine validation targets)
 1. **Cross-faculty (MPU-3133 Falsafah dan Isu Semasa):** shared across RAF2, RBU1, RSD3 → must compute unified slot across faculties; venue filter = exclude labs (tutorial rooms + lecture halls allowed, per user decision; conflicts with older Ch1 wording).
@@ -463,6 +470,11 @@ These ten rules are **non-negotiable** for every page and every future change:
 
 ### 2. Composition
 - **Blade partials** via `@include('partials.ui-nav-bar', ['activeNav' => ...])`, `@include('partials.ui-summary-bar', ['cards' => [...]])`, `partials.head`, `partials.settings-heading`.
+- `ui-page-header` — page title + semester chip + description
+- `ui-week-nav` — week navigation arrows + select + optional today button
+- `ui-empty-state` — empty state with icon, title, text, optional CTA
+- `ui-grid-table` — grid-wrapper + scrollable timetable shell
+- `ui-class-detail-modal` — modal overlay for class details
 - PHP: Laravel service classes + middleware composition (e.g. `App\Concerns\PasswordValidationRules` trait mixed into Fortify actions).
 
 ### 3. Encapsulation & DRY — shared modules
@@ -546,6 +558,11 @@ dataset/cohorts.md, lecturers.md     ← master datasets
 resources/views/layouts/ui-template.blade.php   ← shared layout (inheritance)
 resources/views/partials/ui-nav-bar.blade.php   ← shared nav (composition)
 resources/views/partials/ui-summary-bar.blade.php
+resources/views/partials/ui-page-header.blade.php        ← page header partial (title + chips + description)
+resources/views/partials/ui-week-nav.blade.php           ← week navigation partial (arrows + select + today btn)
+resources/views/partials/ui-empty-state.blade.php        ← empty state partial (icon + title + text + CTA)
+resources/views/partials/ui-grid-table.blade.php         ← grid table partial (wrapper + scroll + table shell)
+resources/views/partials/ui-class-detail-modal.blade.php ← class detail modal partial (overlay + header + body + footer)
 public/css/theme.css                 ← ALL shared CSS
 public/js/ui-common.js               ← ALL shared JS helpers
 public/js/mock-data.js               ← ALL mock data (window.MockData), single source — pages READ ONLY

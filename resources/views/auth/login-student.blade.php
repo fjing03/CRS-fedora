@@ -12,5 +12,4 @@
     'formatHint' => 'Format: 2 digits + 3 letters + 4 digits',
     'loginType' => 'student',
     'roleSwitchHtml' => 'Staff? <a href="' . route('login.staff') . '">Staff Login</a>',
-    'rememberHint' => 'Keep me logged in for 30 days',
 ])

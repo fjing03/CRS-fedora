@@ -4,127 +4,29 @@
 
 @section('page-styles')
 
-        /* ───── Toggle ───── */
-        .toggle-wrapper {
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            cursor: pointer;
-            user-select: none;
-            white-space: nowrap;
-        }
-        .toggle-wrapper input {
-            position: absolute;
-            opacity: 0;
-            width: 0;
-            height: 0;
-            pointer-events: none;
-        }
-        .toggle-track {
-            position: relative;
-            width: 36px;
-            height: 20px;
-            border-radius: 10px;
-            background: var(--color-outline);
-            transition: background 0.2s;
-            flex-shrink: 0;
-        }
-        .toggle-thumb {
-            position: absolute;
-            top: 2px;
-            left: 2px;
-            width: 16px;
-            height: 16px;
-            border-radius: 50%;
-            background: #fff;
-            transition: transform 0.2s;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.2);
-        }
-        .toggle-wrapper input:checked + .toggle-track {
-            background: var(--color-primary, #4f46e5);
-        }
-        .toggle-wrapper input:checked + .toggle-track .toggle-thumb {
-            transform: translateX(16px);
-        }
-        .toggle-label {
-            font-size: 13px;
-            color: var(--color-on-surface-variant);
-            font-weight: 500;
-        }
-
-        /* ───── Clear Button ───── */
-        .btn-clear {
-            padding: 6px 12px;
-            border-radius: 6px;
-            border: 1px solid var(--color-outline);
-            background: transparent;
-            color: var(--color-on-surface-variant);
-            font-size: 12px;
-            font-weight: 500;
-            cursor: pointer;
-            transition: background 0.15s, color 0.15s;
-            margin-left: 8px;
-        }
-        .btn-clear:hover {
-            background: var(--color-surface-variant);
-            color: var(--color-on-surface);
-        }
-
         /* ───── Column Widths ───── */
-        .col-no { width: 50px; }
-        .col-requested-at { width: 145px; }
-        .col-code { width: 200px; }
-        .col-type { width: 80px; }
-        .col-original { width: 170px; }
-        .col-replacement { width: 170px; }
         .col-original, .col-replacement { white-space: normal; }
-        .col-venue { width: 75px; }
-        .col-students { width: 80px; }
-        .col-cohort { width: 120px; }
-        .col-status { width: 130px; }
 
-        /* ───── Multi-line Cell ───── */
-        .cell-class-block {
-            line-height: 1.55;
-            white-space: pre-line;
-        }
-        .cell-class-block .class-day-date {
-            font-weight: 600;
-            color: var(--color-on-surface);
-        }
-        .cell-class-block .class-time {
-            font-size: 12px;
-            color: var(--color-on-surface-variant);
-        }
-        .cell-class-block .class-duration {
-            color: var(--color-on-surface);
-            font-weight: 500;
-        }
+        /* th widths force columns to fill the container; td inherits from th via table-layout: auto */
+        .timetable th.col-requested-at { width: 150px; }
+        .timetable th.col-code { width: 220px; }
+        .timetable th.col-original { width: 200px; }
+        .timetable th.col-replacement { width: 200px; }
+        .timetable th.col-venue { width: 110px; }
+        .timetable th.col-students { width: 80px; }
+        .timetable th.col-cohort { width: 140px; }
+        .timetable th.col-status { width: 120px; }
+        .timetable th.col-actions { width: 100px; }
+
         .col-replacement .cell-class-block .class-time {
             font-weight: 600;
         }
-        .col-replacement .cell-class-block .class-time.status-pending {
-            color: #f59e0b;
-        }
-        .col-replacement .cell-class-block .class-time.status-approved {
-            color: #10b981;
-        }
-        .col-replacement .cell-class-block .class-time.status-rejected {
-            color: #ef4444;
-        }
-        .col-replacement .cell-class-block .class-time.status-cancelled {
-            color: var(--color-on-surface-variant);
-            opacity: 0.6;
-        }
-        .col-replacement .cell-class-block .class-time.status-completed {
-            color: #3b82f6;
-        }
 
-        /* ───── Status Badges ───── */
+        /* ───── Status Badges (page-specific overrides) ───── */
         .badge {
             display: inline-block;
             padding: 4px 10px;
-            border-radius: 6px;
+            border-radius: var(--radius-sm);
             font-size: 12px;
             font-weight: 600;
             cursor: pointer;
@@ -140,124 +42,12 @@
             opacity: 0.7;
             margin-top: 2px;
         }
-        .status-pending {
-            background: var(--color-tertiary-container);
-            color: var(--color-on-tertiary-container);
-        }
-        .status-approved {
-            background: var(--color-secondary-container);
-            color: var(--color-on-secondary-container);
-        }
-        .status-rejected {
-            background: var(--color-error-container);
-            color: var(--color-on-error-container);
-        }
-        .status-cancelled {
-            background: var(--color-surface-variant);
-            color: var(--color-on-surface-variant);
-        }
-        .status-completed {
-            background: var(--color-primary-container);
-            color: var(--color-on-primary-container);
-        }
 
-        /* ───── Summary Card Colors ───── */
-        .summary-card.card-total .summary-value { color: var(--color-on-primary-container); }
-        .summary-card.card-approved .summary-value { color: var(--color-secondary); }
-        .summary-card.card-pending .summary-value { color: var(--color-tertiary); }
-        .summary-card.card-rejected .summary-value { color: var(--color-error); }
-        .summary-card.card-hours .summary-value { color: var(--color-on-surface); }
-        .summary-card.card-hours {
-            border: 1px dashed var(--color-outline-strong);
-            background: var(--color-surface-variant);
-        }
-        .summary-card.card-total {
-            border: 2px solid var(--color-primary);
-            background: var(--color-primary-container);
-        }
+        /* ───── Summary Card Colors (approved/rejected/total accents in theme.css) ───── */
 
-        .modal-section-title {
-            font-size: 11px;
-            font-weight: 700;
-            color: var(--color-on-surface-variant);
-            opacity: 0.7;
-            text-transform: uppercase;
-            letter-spacing: 0.8px;
-            padding: 10px 0 4px;
-        }
-        .modal-section-title:first-child {
-            padding-top: 0;
-        }
 
-        .btn-danger {
-            padding: 8px 20px;
-            border-radius: 8px;
-            border: 1px solid var(--color-error);
-            background: transparent;
-            color: var(--color-error);
-            font-family: inherit;
-            font-size: 13px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: background 0.15s, color 0.15s;
-        }
-        .btn-danger:hover {
-            background: var(--color-error);
-            color: #fff;
-        }
-        .btn-outline {
-            padding: 8px 20px;
-            border-radius: 8px;
-            border: 1px solid var(--color-outline);
-            background: transparent;
-            color: var(--color-on-surface);
-            font-family: inherit;
-            font-size: 13px;
-            font-weight: 500;
-            cursor: pointer;
-            transition: background 0.15s;
-        }
-        .btn-outline:hover {
-            background: var(--color-surface-variant);
-        }
 
-        /* ───── F1: Rows Per Page Selector ───── */
-        .rows-per-page-wrapper {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-        .rows-per-page-wrapper label {
-            font-size: 12px;
-            color: var(--color-on-surface-variant);
-            font-weight: 500;
-        }
-        .rows-per-page-select {
-            padding: 4px 8px;
-            border-radius: 6px;
-            border: 1px solid var(--color-outline);
-            background: var(--color-surface);
-            color: var(--color-on-surface);
-            font-family: inherit;
-            font-size: 12px;
-            cursor: pointer;
-        }
 
-        /* ───── F2: Bulk Selection ───── */
-        .bulk-checkbox {
-            width: 16px;
-            height: 16px;
-            accent-color: var(--color-primary);
-            cursor: pointer;
-            margin: 0 auto;
-            display: block;
-        }
-        .bulk-checkbox:disabled {
-            opacity: 0.3;
-            cursor: not-allowed;
-        }
-        .col-checkbox { width: 40px; text-align: center; }
-        .row-selected { background: var(--color-primary-container) !important; }
         .bulk-action-bar {
             display: none;
             position: fixed;
@@ -280,7 +70,7 @@
         }
         .btn-bulk-cancel {
             padding: 6px 14px;
-            border-radius: 6px;
+            border-radius: var(--radius-sm);
             border: 1px solid var(--color-error);
             background: transparent;
             color: var(--color-error);
@@ -292,11 +82,11 @@
         }
         .btn-bulk-cancel:hover {
             background: var(--color-error);
-            color: #fff;
+            color: var(--color-on-error);
         }
         .btn-bulk-clear {
             padding: 6px 14px;
-            border-radius: 6px;
+            border-radius: var(--radius-sm);
             border: 1px solid var(--color-outline);
             background: transparent;
             color: var(--color-on-surface-variant);
@@ -310,17 +100,12 @@
             background: var(--color-surface-variant);
         }
 
-        /* ───── F3: Request Age Indicator ───── */
-        .age-green { color: var(--color-secondary) !important; }
-        .age-amber { color: var(--color-tertiary) !important; }
-        .age-red { color: var(--color-error) !important; }
-        .age-relative { font-size: 11px; opacity: 0.7; }
+        /* ───── F3: Request Age Indicator (base .request-age styles in theme.css) ───── */
 
         /* ───── F4: Quick Actions in Rows ───── */
-        .col-actions { width: 70px; text-align: center; }
         .btn-inline-cancel {
             padding: 4px 10px;
-            border-radius: 6px;
+            border-radius: var(--radius-sm);
             border: 1px solid var(--color-error);
             background: transparent;
             color: var(--color-error);
@@ -334,55 +119,7 @@
         tr:hover .btn-inline-cancel { opacity: 1; }
         .btn-inline-cancel:hover {
             background: var(--color-error);
-            color: #fff;
-        }
-
-        /* ───── F6: Status History Timeline ───── */
-        .timeline {
-            padding: 8px 0 4px 0;
-        }
-        .timeline-item {
-            display: flex;
-            align-items: flex-start;
-            gap: 12px;
-            position: relative;
-            padding-bottom: 16px;
-        }
-        .timeline-item:last-child { padding-bottom: 0; }
-        .timeline-dot-wrap {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            flex-shrink: 0;
-            width: 20px;
-        }
-        .timeline-dot {
-            width: 10px;
-            height: 10px;
-            border-radius: 50%;
-            flex-shrink: 0;
-        }
-        .timeline-line {
-            width: 2px;
-            flex: 1;
-            min-height: 16px;
-            background: var(--color-outline);
-            margin-top: 4px;
-        }
-        .timeline-item:last-child .timeline-line { display: none; }
-        .timeline-text {
-            flex: 1;
-            font-size: 12px;
-            line-height: 1.4;
-        }
-        .timeline-label {
-            font-weight: 600;
-            color: var(--color-on-surface);
-        }
-        .timeline-time {
-            font-size: 11px;
-            color: var(--color-on-surface-variant);
-            margin-top: 1px;
+            color: var(--color-on-error);
         }
 
         /* ───── F7: Keyboard Shortcuts ───── */
@@ -392,10 +129,10 @@
         .empty-cta {
             margin-top: 16px;
             padding: 10px 24px;
-            border-radius: 8px;
+            border-radius: var(--radius-sm);
             border: none;
-            background: var(--color-secondary);
-            color: var(--color-on-secondary);
+            background: var(--color-success);
+            color: var(--color-on-success);
             font-family: inherit;
             font-size: 13px;
             font-weight: 600;
@@ -406,58 +143,10 @@
             filter: brightness(1.08);
         }
 
-        /* ───── Responsive Card View ───── */
-        .card-view { display: none; }
-        .request-card {
-            background: var(--color-surface);
-            border: 1px solid var(--color-outline);
-            border-radius: var(--radius-md);
-            padding: 14px 16px;
-            margin-bottom: 8px;
-            cursor: pointer;
-            transition: background 0.15s, box-shadow 0.15s;
-        }
-        .request-card:hover {
-            background: var(--color-surface-variant);
-            box-shadow: var(--shadow-sm);
-        }
-        .request-card:active {
-            transform: scale(0.99);
-        }
-        .card-header {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            margin-bottom: 8px;
-        }
-        .card-code {
-            font-size: 14px;
-            font-weight: 700;
-            color: var(--color-on-surface);
-        }
-        .card-body {
-            font-size: 12px;
-            color: var(--color-on-surface-variant);
-            line-height: 1.6;
-        }
-        .card-body strong {
-            color: var(--color-on-surface);
-            font-weight: 600;
-        }
-        .card-footer {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            margin-top: 8px;
-            padding-top: 8px;
-            border-top: 1px solid var(--color-outline);
-            font-size: 11px;
-            color: var(--color-on-surface-variant);
-        }
-        .card-age { font-weight: 600; }
+        /* ───── Responsive Card View (base .request-card styles in theme.css) ───── */
 
         @media (max-width: 768px) {
-            .grid-wrapper, .pagination-bar, .sort-hint { display: none !important; }
+            .grid-wrapper, .pagination-bar, .sort-hint, .filter-chips { display: none !important; }
             .card-view { display: block; }
         }
 
@@ -466,11 +155,20 @@
 @section('content')
 
         <!-- ─── Page Header ─── -->
-        <div class="page-header">
-            <h1 class="page-title">My Request History</h1>
-            <span class="semester-chip" id="semesterChip"></span>
-            <p class="page-desc">View and monitor all replacement requests submitted during the current semester.</p>
-        </div>
+        @include('partials.ui-page-header', ['title' => 'My Request History', 'description' => 'View and monitor all replacement requests submitted during the current semester.'])
+
+        @include('partials.ui-guide-block', [
+            'guideTitle' => 'How to use this page',
+            'guideItems' => [
+                '<strong>Sort</strong> — click any column header to sort ascending/descending',
+                '<strong>Search</strong> — type in the search box to filter by course code, name, or keywords',
+                '<strong>Filter</strong> — use the status dropdown to view requests by approval status',
+                '<strong>Hover headers</strong> — hover a column name to see what it means',
+                '<strong>Cancel request</strong> — tick the checkbox on pending requests then use "Cancel Selected"',
+                '<strong>View details</strong> — click the details icon on any row to see the full request',
+                '<strong>Request age</strong> — colour indicates how long ago it was submitted: <span style="color:var(--color-primary)">● ≤1 day</span> <span style="color:var(--color-tertiary)">● 2–3 days</span> <span style="color:var(--color-error)">● 4+ days</span>',
+            ]
+        ])
 
         <!-- ─── Toolbar ─── -->
         <div class="toolbar">
@@ -490,11 +188,7 @@
                     <option value="Cancelled">Cancelled</option>
                     <option value="Completed">Completed</option>
                 </select>
-                <div class="week-nav">
-                    <button class="week-arrow" onclick="prevWeekFilter()" aria-label="Previous week">&#8249;</button>
-                    <select class="week-select" id="weekFilter" onchange="weekFilterChanged()"></select>
-                    <button class="week-arrow" onclick="nextWeekFilter()" aria-label="Next week">&#8250;</button>
-                </div>
+                @include('partials.ui-week-nav', ['prevOnclick' => 'prevWeekFilter()', 'nextOnclick' => 'nextWeekFilter()', 'selectId' => 'weekFilter', 'selectOnclick' => 'weekFilterChanged(this.value)', 'showTodayBtn' => false])
                 <label class="toggle-wrapper" id="completedToggle">
                     <input type="checkbox" id="hideCompleted" checked>
                     <span class="toggle-track"><span class="toggle-thumb"></span></span>
@@ -509,30 +203,17 @@
 
         <div class="sort-hint">Click column headers to sort (Requested At, Course Code, Original Class)</div>
 
+        <div class="filter-chips" id="filterChips"></div>
+
         <!-- ─── Grid Wrapper ─── -->
-        <div class="grid-wrapper" id="gridWrapper">
-            <div class="grid-scroll">
-                <table class="timetable" id="timetable">
-                    <thead id="tableHead"></thead>
-                    <tbody id="tableBody"></tbody>
-                </table>
-            </div>
-        </div>
+        @include('partials.ui-grid-table', ['wrapperId' => 'gridWrapper', 'tableClass' => 'timetable data-table'])
 
         <!-- ─── Card View (mobile) ─── -->
         <div class="card-view" id="cardView"></div>
 
         <!-- ─── Pagination ─── -->
         <div class="pagination-bar" id="paginationBar">
-            <div class="rows-per-page-wrapper">
-                <label for="rowsPerPage">Rows:</label>
-                <select class="rows-per-page-select" id="rowsPerPage">
-                    <option value="10">10</option>
-                    <option value="25">25</option>
-                    <option value="50">50</option>
-                    <option value="all">All</option>
-                </select>
-            </div>
+            @include('partials.ui-rpp', ['id' => 'rowsPerPage', 'default' => 10, 'options' => [10, 25, 50, 'all']])
             <span class="pagination-info" id="paginationInfo">Showing 1-10 of 20</span>
             <div class="pagination-controls" id="paginationControls"></div>
         </div>
@@ -547,41 +228,36 @@
         <!-- ─── Summary Stat Cards ─── -->
         @include('partials.ui-summary-bar', [
             'cards' => [
-                ['class' => 'card-total', 'valueId' => 'summaryTotal', 'label' => 'Total Requests'],
-                ['class' => 'card-hours', 'valueId' => 'summaryHours', 'label' => 'Replacement Hours'],
-                ['class' => 'card-approved', 'valueId' => 'summaryApproved', 'label' => 'Approved'],
-                ['class' => 'card-pending', 'valueId' => 'summaryPending', 'label' => 'Pending'],
-                ['class' => 'card-rejected', 'valueId' => 'summaryRejected', 'label' => 'Rejected'],
+                ['class' => 'card-total', 'valueId' => 'summaryTotal', 'label' => 'Total Requests',
+                    'description' => 'Replacement requests <strong>you submitted</strong> that match your current filters.'],
+                ['class' => 'card-hours', 'valueId' => 'summaryHours', 'label' => 'Replacement Hours',
+                    'description' => 'Total <strong>replacement class hours</strong> across your filtered requests.'],
+                ['class' => 'card-approved', 'valueId' => 'summaryApproved', 'label' => 'Approved',
+                    'description' => 'Your requests that have been <strong>approved</strong> and are ready to proceed.'],
+                ['class' => 'card-pending', 'valueId' => 'summaryPending', 'label' => 'Pending',
+                    'description' => 'Your requests still <strong>waiting for approval</strong> or a volunteer.'],
+                ['class' => 'card-rejected', 'valueId' => 'summaryRejected', 'label' => 'Rejected',
+                    'description' => 'Your requests that were <strong>declined</strong> and need an alternative arrangement.'],
             ]
         ])
 
         <!-- ─── Empty State ─── -->
-        <div class="empty-state" id="emptyState" style="display:none">
-            <svg class="empty-icon" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round">
-                <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
-                <line x1="16" y1="2" x2="16" y2="6"/>
-                <line x1="8" y1="2" x2="8" y2="6"/>
-                <line x1="3" y1="10" x2="21" y2="10"/>
-            </svg>
-            <h3 class="empty-title" id="emptyTitle">You haven't submitted any replacement requests for this semester.</h3>
-            <p class="empty-text" id="emptyText">Submit a replacement request for any conflicted class.</p>
-            <button class="empty-cta" id="emptyCta" onclick="window.location.href='/replacement-arrangement'" style="display:none">Submit a Replacement Request</button>
-        </div>
+        @include('partials.ui-empty-state', ['title' => "You haven't submitted any replacement requests for this semester.", 'text' => 'Submit a replacement request for any conflicted class.', 'ctaLabel' => 'Submit a Replacement Request', 'ctaOnclick' => "window.location.href='/replacement-arrangement?from=my-request-history'"])
 
     <!-- ═══ View Details Modal ═══ -->
     <div class="modal-overlay" id="modalOverlay">
         <div class="modal" id="detailsModal">
             <div class="modal-header">
-                <h3 class="modal-title">Request Details</h3>
+                <span class="modal-title" id="modalTitle">Request Details</span>
                 <button class="modal-close" onclick="closeModal()">✕</button>
             </div>
             <div class="modal-body" id="modalBody"></div>
             <div class="modal-footer">
                 <div class="modal-footer-left">
-                    <button class="btn-danger" id="cancelRequestBtn" style="display:none" onclick="openCancelConfirm()">Cancel Request</button>
+                    <button class="btn-outline" onclick="closeModal()">Close</button>
                 </div>
                 <div class="modal-footer-right">
-                    <button class="btn-outline" onclick="closeModal()">Close</button>
+                    <button class="btn-danger" id="cancelRequestBtn" style="display:none" onclick="openCancelConfirm()">Cancel Request</button>
                 </div>
             </div>
         </div>
@@ -598,9 +274,10 @@
                 <p style="font-size:14px;color:var(--color-on-surface);line-height:1.5">Are you sure you want to cancel this replacement request? This action cannot be undone.</p>
             </div>
             <div class="modal-footer">
-                <div class="modal-footer-left"></div>
-                <div class="modal-footer-right">
+                <div class="modal-footer-left">
                     <button class="btn-outline" onclick="closeCancelConfirm()">No, Keep It</button>
+                </div>
+                <div class="modal-footer-right">
                     <button class="btn-danger" id="confirmCancelAction">Yes, Cancel Request</button>
                 </div>
             </div>
@@ -616,9 +293,10 @@
             </div>
             <div class="modal-body" id="batchCancelBody"></div>
             <div class="modal-footer">
-                <div class="modal-footer-left"></div>
-                <div class="modal-footer-right">
+                <div class="modal-footer-left">
                     <button class="btn-outline" onclick="closeBatchCancelConfirm()">No, Keep Them</button>
+                </div>
+                <div class="modal-footer-right">
                     <button class="btn-danger" id="confirmBatchCancelAction">Yes, Cancel All</button>
                 </div>
             </div>
@@ -628,118 +306,16 @@
 @endsection
 
 @section('page-scripts')
+        initHeaderTooltips();
         let mockRequests = MockData.requests;
-
-        const weekRanges = [
-            { value: '1', label: 'Week 1 \u00b7 31 Aug 2026 ~ 06 Sep 2026', labelShort: 'Week 1 \u00b7 31 Aug ~ 06 Sep', start: '2026-08-31', end: '2026-09-06' },
-            { value: '2', label: 'Week 2 \u00b7 07 Sep 2026 ~ 13 Sep 2026', labelShort: 'Week 2 \u00b7 07 Sep ~ 13 Sep', start: '2026-09-07', end: '2026-09-13' },
-            { value: '3', label: 'Week 3 \u00b7 14 Sep 2026 ~ 20 Sep 2026', labelShort: 'Week 3 \u00b7 14 Sep ~ 20 Sep', start: '2026-09-14', end: '2026-09-20' },
-            { value: '4', label: 'Week 4 \u00b7 21 Sep 2026 ~ 27 Sep 2026', labelShort: 'Week 4 \u00b7 21 Sep ~ 27 Sep', start: '2026-09-21', end: '2026-09-27' },
-        ];
-
-        function formatDateTime(iso) {
-            if (!iso) return '';
-            const [datePart, timePart] = iso.split('T');
-            const [y, mo, d] = datePart.split('-');
-            const [h, mi] = timePart.split(':');
-            const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-            const day = parseInt(d);
-            const month = months[parseInt(mo) - 1];
-            const year = parseInt(y);
-            let hh = parseInt(h);
-            const mm = mi;
-            const ampm = hh >= 12 ? 'PM' : 'AM';
-            hh = hh === 0 ? 12 : hh > 12 ? hh - 12 : hh;
-            return day + ' ' + month + ' ' + year + ', ' + hh + ':' + mm + ' ' + ampm;
-        }
-
-        function statusClass(status) {
-            const map = {
-                'Pending': 'status-pending',
-                'Approved': 'status-approved',
-                'Rejected': 'status-rejected',
-                'Cancelled': 'status-cancelled',
-                'Completed': 'status-completed'
-            };
-            return map[status] || '';
-        }
-
-        function dayAbbr(day) {
-            return day.substring(0, 3);
-        }
-
-        function isoDayName(iso) {
-            var p = iso.split('-');
-            var d = new Date(parseInt(p[0]), parseInt(p[1]) - 1, parseInt(p[2]));
-            return ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'][d.getDay()];
-        }
-
-        function formatClassBlock(r) {
-            var d = dayAbbr(r.classDay);
-            var dateStr = formatDate(r.classDate);
-            var wn = getWeekNumber(r.classDate);
-            var weekTag = wn ? ' (Week ' + wn + ')' : '';
-            var timeStr = to12h(r.timeStart) + ' to ' + to12h(r.timeEnd);
-            var hrs = r.duration + ' hr' + (r.duration > 1 ? 's' : '');
-            return '<div class="cell-class-block"><span class="class-day-date">' + d + ', ' + dateStr + weekTag + '</span><br><span class="class-time">' + timeStr + '</span> <span class="class-duration">(' + hrs + ')</span></div>';
-        }
-
-        function formatReplacementBlock(r) {
-            if (!r.replacementDate) return '<span style="color:var(--color-on-surface-variant);opacity:0.5">&mdash;</span>';
-            var d = dayAbbr(isoDayName(r.replacementDate));
-            var dateStr = formatDate(r.replacementDate);
-            var wn = getWeekNumber(r.replacementDate);
-            var weekTag = wn ? ' (Week ' + wn + ')' : '';
-            var statusCls = statusClass(r.status);
-            return '<div class="cell-class-block"><span class="class-day-date">' + d + ', ' + dateStr + weekTag + '</span><br><span class="class-time ' + statusCls + '">' + r.replacementTime + '</span></div>';
-        }
-
-        function getWeekRange(weekVal) {
-            const found = weekRanges.find(function(w) { return w.value === weekVal; });
-            return found || null;
-        }
-
-        function isInWeek(classDate, weekVal) {
-            if (weekVal === 'all') return true;
-            const range = getWeekRange(weekVal);
-            if (!range) return true;
-            return classDate >= range.start && classDate <= range.end;
-        }
-
-        function getWeekNumber(iso) {
-            for (var i = 0; i < weekRanges.length; i++) {
-                if (iso >= weekRanges[i].start && iso <= weekRanges[i].end) return weekRanges[i].value;
-            }
-            return '';
-        }
 
         const pageState = { currentPage: 1 };
         let rowsPerPage = parseInt(localStorage.getItem('mrh-rows-per-page')) || 10;
         let sortState = { field: 'requestedAt', dir: 'desc' };
         let currentFiltered = [];
-        let selectedIds = new Set();
+        let bulk = new BulkSelection({ barId: 'bulkActionBar', countId: 'bulkCount', checkboxSelector: '.row-checkbox', headerCheckboxId: 'headerCheckbox' });
         let searchDebounce = null;
         let focusedRowIndex = -1;
-
-        function getRequestAge(requestedAt) {
-            const now = new Date();
-            const then = new Date(requestedAt);
-            const diffMs = now - then;
-            const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
-            return Math.max(0, diffDays);
-        }
-
-        function ageClass(days) {
-            if (days <= 2) return 'age-green';
-            if (days <= 7) return 'age-amber';
-            return 'age-red';
-        }
-
-        function relativeTime(days) {
-            if (days === 0) return 'Today';
-            if (days === 1) return '1 day ago';
-            return days + ' days ago';
-        }
 
         function saveFilters() {
             var filters = {
@@ -759,6 +335,30 @@
                 if (filters.search) document.getElementById('searchInput').value = filters.search;
                 if (typeof filters.excludeCompleted === 'boolean') document.getElementById('hideCompleted').checked = filters.excludeCompleted;
             } catch (e) {}
+        }
+
+        function renderFilterChips() {
+            var container = document.getElementById('filterChips');
+            var chips = [];
+            var status = document.getElementById('statusFilter').value;
+            var search = document.getElementById('searchInput').value.trim();
+            var week = document.getElementById('weekFilter').value;
+            var excludeCompleted = document.getElementById('hideCompleted').checked;
+
+            if (status !== 'all') {
+                chips.push('<span class="filter-chip">Status: ' + status + '<button class="filter-chip-remove" onclick="document.getElementById(\'statusFilter\').value=\'all\';pageState.currentPage=1;saveFilters();renderTable()" title="Remove">&times;</button></span>');
+            }
+            if (week !== 'all') {
+                var weekLabel = document.getElementById('weekFilter').selectedOptions[0] ? document.getElementById('weekFilter').selectedOptions[0].textContent : week;
+                chips.push('<span class="filter-chip">Week: ' + weekLabel + '<button class="filter-chip-remove" onclick="document.getElementById(\'weekFilter\').value=\'all\';pageState.currentPage=1;saveFilters();renderTable()" title="Remove">&times;</button></span>');
+            }
+            if (search) {
+                chips.push('<span class="filter-chip">Search: "' + search + '"<button class="filter-chip-remove" onclick="document.getElementById(\'searchInput\').value=\'\';pageState.currentPage=1;saveFilters();renderTable()" title="Remove">&times;</button></span>');
+            }
+            if (excludeCompleted) {
+                chips.push('<span class="filter-chip">Exclude Completed<button class="filter-chip-remove" onclick="document.getElementById(\'hideCompleted\').checked=false;pageState.currentPage=1;saveFilters();renderTable()" title="Remove">&times;</button></span>');
+            }
+            container.innerHTML = chips.length > 0 ? '<span class="filter-chips-label">Active Filters:</span>' + chips.join('') : '';
         }
 
         function renderTable() {
@@ -819,28 +419,26 @@
                     cb.checked = headerCheck.checked;
                     var id = parseInt(cb.dataset.id);
                     if (headerCheck.checked) {
-                        selectedIds.add(id);
+                        bulk.add(id);
                     } else {
-                        selectedIds.delete(id);
+                        bulk.delete(id);
                     }
                 });
-                updateBulkBar();
                 highlightSelectedRows();
             });
             thCheck.appendChild(headerCheck);
             tr.appendChild(thCheck);
 
             const columns = [
-                { label: 'Requested At', cls: 'col-requested-at', sortable: true, field: 'requestedAt' },
-                { label: 'Course Code & Name', cls: 'col-code', sortable: true, field: 'courseCode' },
-                { label: 'Type', cls: 'col-type', sortable: false },
-                { label: 'Original Class', cls: 'col-original', sortable: true, field: 'classDate' },
-                { label: 'Requested Replacement', cls: 'col-replacement', sortable: false },
-                { label: 'Requested Venue', cls: 'col-venue', sortable: false },
-                { label: 'Students', cls: 'col-students', sortable: false },
-                { label: 'Affected Cohort(s)', cls: 'col-cohort', sortable: false },
-                { label: 'Status (Click for detail)', cls: 'col-status', sortable: false },
-                { label: 'Quick Cancel', cls: 'col-actions', sortable: false },
+                { label: 'Requested At', cls: 'col-requested-at', sortable: true, field: 'requestedAt', tip: 'When the replacement was requested. Age colour: green ≤1 day, amber 2–3 days, red 4+ days' },
+                { label: 'Course Code & Name', cls: 'col-code', sortable: true, field: 'courseCode', tip: 'Course affected by the conflict' },
+                { label: 'Original Class', cls: 'col-original', sortable: true, field: 'classDate', tip: 'Original class the request refers to — its state varies (still upcoming, replaced, cancelled, holiday, etc.)' },
+                { label: 'Requested Replacement', cls: 'col-replacement', sortable: false, tip: 'Proposed new date and time' },
+                { label: 'Requested Venue', cls: 'col-venue', sortable: false, tip: 'Venue requested for the replacement' },
+                { label: 'Students', cls: 'col-students', sortable: false, tip: 'Number of enrolled students' },
+                { label: 'Cohort(s)', cls: 'col-cohort', sortable: false, tip: 'Affected student cohorts' },
+                { label: 'Status', cls: 'col-status', sortable: false, tip: 'Current approval status' },
+                { label: 'Quick Cancel', cls: 'col-actions', sortable: false, tip: 'Cancel a pending request' },
             ];
             columns.forEach(function(col) {
                 tr.appendChild(makeSortableHeader(col, sortState, function() {
@@ -853,8 +451,12 @@
             const isFullyEmpty = mockRequests.length === 0;
             const isFilteredEmpty = pageData.length === 0;
 
+            updateResultCount({ elId: 'resultCount', data: currentFiltered, total: mockRequests.length, label: 'results' });
+            updateSummary();
+            bulk.updateBar();
+
             if (isFullyEmpty) {
-                document.getElementById('emptyState').style.display = 'block';
+                document.getElementById('emptyState').style.display = 'flex';
                 document.getElementById('emptyTitle').textContent = "You haven't submitted any replacement requests for this semester.";
                 document.getElementById('emptyText').textContent = 'Submit a replacement request for any conflicted class.';
                 document.getElementById('emptyCta').style.display = 'inline-block';
@@ -862,7 +464,7 @@
                 document.getElementById('paginationBar').style.display = 'none';
                 document.getElementById('summaryBar').style.display = 'none';
             } else if (isFilteredEmpty) {
-                document.getElementById('emptyState').style.display = 'block';
+                document.getElementById('emptyState').style.display = 'flex';
                 document.getElementById('emptyTitle').textContent = 'No replacement requests match your search or filter criteria.';
                 document.getElementById('emptyText').textContent = 'Try adjusting your filters.';
                 document.getElementById('emptyCta').style.display = 'none';
@@ -871,7 +473,7 @@
                 document.getElementById('summaryBar').style.display = 'none';
             } else {
                 document.getElementById('emptyState').style.display = 'none';
-                document.getElementById('gridWrapper').style.display = 'block';
+                document.getElementById('gridWrapper').style.display = '';
                 document.getElementById('paginationBar').style.display = 'flex';
                 document.getElementById('summaryBar').style.display = 'grid';
 
@@ -879,14 +481,11 @@
                     const row = document.createElement('tr');
                     row.dataset.id = r.id;
                     row.dataset.pending = r.status === 'Pending' ? 'true' : 'false';
-                    if (selectedIds.has(r.id)) row.classList.add('row-selected');
+                    if (bulk.has(r.id)) row.classList.add('row-selected');
 
                     const globalIndex = offset + i;
                     const isPending = r.status === 'Pending';
-                    const badgeHtml = '<span class="badge ' + statusClass(r.status) + '" onclick="openModal(' + globalIndex + ')">' + r.status + '</span>';
-
-                    const days = getRequestAge(r.requestedAt);
-                    const ageCls = ageClass(days);
+                    const badgeHtml = '<span class="badge ' + statusClass(r.status) + '" onclick="openModalById(' + r.id + ')">' + r.status + '</span>';
 
                     const checkTd = document.createElement('td');
                     checkTd.className = 'col-checkbox';
@@ -895,26 +494,24 @@
                     rowCheck.className = 'bulk-checkbox row-checkbox';
                     rowCheck.dataset.id = r.id;
                     rowCheck.disabled = !isPending;
-                    if (selectedIds.has(r.id)) rowCheck.checked = true;
+                    if (bulk.has(r.id)) rowCheck.checked = true;
                     rowCheck.addEventListener('change', function() {
                         var id = parseInt(this.dataset.id);
                         if (this.checked) {
-                            selectedIds.add(id);
+                            bulk.add(id);
                         } else {
-                            selectedIds.delete(id);
+                            bulk.delete(id);
                         }
-                        updateBulkBar();
                         highlightSelectedRows();
                     });
                     checkTd.appendChild(rowCheck);
                     row.appendChild(checkTd);
 
                     var cells = [
-                        { html: '<span class="' + ageCls + '">' + formatDateTime(r.requestedAt) + ' <span class="age-relative">(' + relativeTime(days) + ')</span></span>', cls: 'col-requested-at' },
-                        { html: '<span class="cell-code">' + r.courseCode + '</span><span class="cell-name">' + r.courseName + '</span>', cls: 'col-code' },
-                        { html: r.classType === 'L' ? 'Lecture' : 'Tutorial', cls: 'col-type' },
-                        { html: formatClassBlock(r), cls: 'col-original' },
-                        { html: formatReplacementBlock(r), cls: 'col-replacement' },
+                        { html: formatDateTime(r.requestedAt) + requestAgeHtml(r.requestedAt), cls: 'col-requested-at' },
+                        { html: '<span class="cell-code">' + r.courseCode + ' <span class="cell-type">(' + r.classType + ')</span></span><span class="cell-name">' + r.courseName + '</span>', cls: 'col-code' },
+                        { html: HtmlBuilder.classBlock(r), cls: 'col-original' },
+                        { html: HtmlBuilder.replacementBlock(r, { showVenue: false, colorStatus: false }), cls: 'col-replacement' },
                         { html: r.venue, cls: 'col-venue' },
                         { html: String(r.totalStudents), cls: 'col-students' },
                         { html: r.cohorts.join('<br>'), cls: 'col-cohort' },
@@ -927,6 +524,11 @@
                         td.innerHTML = cell.html;
                         row.appendChild(td);
                     });
+                    row.addEventListener('click', function(e) {
+                        if (e.target.closest('.bulk-checkbox') || e.target.closest('.btn-inline-cancel')) return;
+                        openModalById(r.id);
+                    });
+                    row.style.cursor = 'pointer';
                     body.appendChild(row);
                 });
             }
@@ -940,10 +542,8 @@
                 paginate({ data: currentFiltered, pageSize: effectivePageSize, state: pageState, infoId: 'paginationInfo', controlsId: 'paginationControls', render: renderTable });
             }
 
-            updateResultCount({ elId: 'resultCount', data: currentFiltered, total: mockRequests.length, label: 'results' });
-            updateSummary();
-            updateBulkBar();
             renderCards();
+            renderFilterChips();
         }
 
         function renderCards() {
@@ -951,30 +551,17 @@
             if (!container) return;
             container.innerHTML = '';
             currentFiltered.forEach(function(r, i) {
-                var days = getRequestAge(r.requestedAt);
-                var ageCls = ageClass(days);
                 var card = document.createElement('div');
                 card.className = 'request-card';
                 card.setAttribute('role', 'button');
                 card.setAttribute('tabindex', '0');
-                card.addEventListener('click', function() { openModal(i); });
+                card.addEventListener('click', function() { openModalById(r.id); });
                 card.addEventListener('keydown', function(e) {
-                    if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openModal(i); }
+                    if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openModalById(r.id); }
                 });
-                card.innerHTML =
-                    '<div class="card-header">' +
-                        '<span class="card-code">' + r.courseCode + ' (' + (r.classType === 'L' ? 'Lecture' : 'Tutorial') + ')</span>' +
-                        '<span class="badge ' + statusClass(r.status) + '">' + r.status + '</span>' +
-                    '</div>' +
-                    '<div class="card-body">' +
-                        '<strong>' + r.courseName + '</strong><br>' +
-                        dayAbbr(r.classDay) + ', ' + formatDate(r.classDate) + '<br>' +
-                        to12h(r.timeStart) + ' – ' + to12h(r.timeEnd) + ' · ' + r.venue +
-                    '</div>' +
-                    '<div class="card-footer">' +
-                        '<span class="' + ageCls + ' card-age">' + relativeTime(days) + '</span>' +
-                        '<span>' + r.cohorts.join(', ') + '</span>' +
-                    '</div>';
+                card.innerHTML = HtmlBuilder.myRequestCard(r, {
+                    requestAgeHtml: requestAgeHtml
+                });
                 container.appendChild(card);
             });
         }
@@ -982,7 +569,7 @@
         function highlightSelectedRows() {
             document.querySelectorAll('#tableBody tr').forEach(function(row) {
                 var id = parseInt(row.dataset.id);
-                if (selectedIds.has(id)) {
+                if (bulk.has(id)) {
                     row.classList.add('row-selected');
                 } else {
                     row.classList.remove('row-selected');
@@ -991,14 +578,7 @@
         }
 
         function updateBulkBar() {
-            var bar = document.getElementById('bulkActionBar');
-            var countEl = document.getElementById('bulkCount');
-            if (selectedIds.size > 0) {
-                bar.classList.add('visible');
-                countEl.textContent = selectedIds.size + ' selected';
-            } else {
-                bar.classList.remove('visible');
-            }
+            bulk.updateBar();
         }
 
         function quickCancel(id) {
@@ -1006,8 +586,8 @@
             if (!r) return;
             pendingCancelId = id;
             document.getElementById('cancelConfirmBody').innerHTML =
-                '<p style="font-size:14px;color:var(--color-on-surface);line-height:1.5;margin-bottom:12px">Are you sure you want to cancel this replacement request? This action cannot be undone.</p>' +
-                '<div style="background:var(--color-surface-variant);border-radius:8px;padding:12px;font-size:13px;line-height:1.6">' +
+                '<p class="page-desc" style="color:var(--color-on-surface);line-height:1.5;margin-bottom:12px">Are you sure you want to cancel this replacement request? This action cannot be undone.</p>' +
+                '<div style="background:var(--color-surface-variant);border-radius:var(--radius-sm);padding:12px;font-size:13px;line-height:1.6">' +
                 '<strong>' + r.courseCode + '</strong> — ' + r.courseName + '<br>' +
                 'Class: ' + r.classDay + ', ' + formatDate(r.classDate) + '<br>' +
                 'Status: <span class="badge ' + statusClass(r.status) + '">' + r.status + '</span>' +
@@ -1021,12 +601,12 @@
                 var idx = mockRequests.findIndex(function(r) { return r.id === pendingCancelId; });
                 if (idx !== -1) {
                     var removed = mockRequests.splice(idx, 1)[0];
-                    selectedIds.delete(pendingCancelId);
+                    bulk.delete(pendingCancelId);
                     pendingCancelId = null;
                     closeCancelConfirm();
                     closeModal();
                     renderTable();
-                    showToast('Request #' + removed.id + ' cancelled.', function() {
+                    toast.show('Request #' + removed.id + ' cancelled.', function() {
                         mockRequests.splice(idx, 0, removed);
                         renderTable();
                     });
@@ -1035,25 +615,25 @@
         });
 
         function batchCancelSelected() {
-            var count = selectedIds.size;
+            var count = bulk.size;
             if (count === 0) return;
             var rows = [];
             mockRequests.forEach(function(r) {
-                if (selectedIds.has(r.id)) {
+                if (bulk.has(r.id)) {
                     rows.push(r);
                 }
             });
             var listHtml = rows.map(function(r) {
                 return '<div style="padding:8px 0;border-bottom:1px solid var(--color-outline);font-size:13px;line-height:1.5">' +
-                    '<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">' +
+                    '<div class="kicker">' +
                     '<strong>' + r.courseCode + '</strong> — ' + r.courseName +
-                    ' <span class="badge ' + statusClass(r.status) + '" style="font-size:10px;padding:2px 6px">' + r.status + '</span></div>' +
+                    ' <span class="badge ' + statusClass(r.status) + ' badge-sm">' + r.status + '</span></div>' +
                     '<div style="color:var(--color-on-surface-variant);font-size:12px;margin-top:2px">' +
                     r.classDay + ', ' + formatDate(r.classDate) + ' &middot; ' + r.timeStart + ' – ' + r.timeEnd + ' &middot; ' + r.venue +
                     '</div></div>';
             }).join('');
             document.getElementById('batchCancelBody').innerHTML =
-                '<p style="font-size:14px;color:var(--color-on-surface);line-height:1.5;margin-bottom:8px">Cancel ' + count + ' selected request(s)? This action cannot be undone.</p>' +
+                '<p class="page-desc" style="color:var(--color-on-surface);line-height:1.5;margin-bottom:8px">Cancel ' + count + ' selected request(s)? This action cannot be undone.</p>' +
                 '<div style="max-height:200px;overflow-y:auto">' + listHtml + '</div>';
             document.getElementById('batchCancelOverlay').style.display = 'flex';
         }
@@ -1063,25 +643,25 @@
         }
 
         document.getElementById('confirmBatchCancelAction').addEventListener('click', function() {
-            var removed = mockRequests.filter(function(r) { return selectedIds.has(r.id); });
-            mockRequests = mockRequests.filter(function(r) { return !selectedIds.has(r.id); });
+            var removed = mockRequests.filter(function(r) { return bulk.has(r.id); });
+            mockRequests = mockRequests.filter(function(r) { return !bulk.has(r.id); });
             var count = removed.length;
-            selectedIds.clear();
+            bulk.clear();
             closeBatchCancelConfirm();
             renderTable();
-            showToast(count + ' request' + (count !== 1 ? 's' : '') + ' cancelled.', function() {
+            toast.show(count + ' request' + (count !== 1 ? 's' : '') + ' cancelled.', function() {
                 mockRequests.push.apply(mockRequests, removed);
                 renderTable();
             });
         });
 
         function updateSummary() {
-            const total = mockRequests.length;
-            const approved = mockRequests.filter(function(r) { return r.status === 'Approved'; }).length;
-            const pending = mockRequests.filter(function(r) { return r.status === 'Pending'; }).length;
-            const rejected = mockRequests.filter(function(r) { return r.status === 'Rejected'; }).length;
+            const total = currentFiltered.length;
+            const approved = currentFiltered.filter(function(r) { return r.status === 'Approved'; }).length;
+            const pending = currentFiltered.filter(function(r) { return r.status === 'Pending'; }).length;
+            const rejected = currentFiltered.filter(function(r) { return r.status === 'Rejected'; }).length;
             let hours = 0;
-            mockRequests.forEach(function(r) { hours += r.duration || 0; });
+            currentFiltered.forEach(function(r) { hours += r.duration || 0; });
 
             document.getElementById('summaryTotal').textContent = total;
             document.getElementById('summaryHours').textContent = hours;
@@ -1090,80 +670,90 @@
             document.getElementById('summaryRejected').textContent = rejected;
         }
 
-        function openModal(index) {
-            const r = currentFiltered[index];
+        function cohortBreakdown(r) {
+            if (!r.cohortCounts) return String(r.totalStudents);
+            var parts = [];
+            for (var ci = 0; ci < r.cohorts.length; ci++) {
+                parts.push(r.cohortCounts[ci]);
+            }
+            return parts.join(' + ') + ' = ' + r.totalStudents;
+        }
+
+        function statusDesc(s) {
+            var map = { 'Pending': 'Awaiting approval', 'Approved': 'Replacement scheduled', 'Rejected': 'Request declined', 'Cancelled': 'Request withdrawn', 'Completed': 'Replacement conducted' };
+            return map[s] || '';
+        }
+
+        function openModalById(id) {
+            const r = mockRequests.find(x => x.id === id);
             if (!r) return;
-            const body = document.getElementById('modalBody');
-            var html = '';
 
-            function field(label, value) {
-                if (value === null || value === '') return '';
-                return '<div class="modal-field"><span class="modal-field-label">' + label + '</span><span class="modal-field-value">' + value + '</span></div>';
-            }
+            const statusDot = r.status === 'Pending' ? 'dot-warning' : r.status === 'Approved' || r.status === 'Completed' ? 'dot-success' : r.status === 'Rejected' ? 'dot-error' : 'dot-primary';
 
-            function section(title) {
-                return '<div class="modal-section-title">' + title + '</div>'; }
+            // Global timeline (always visible above the tabs); dot colour follows each step's status
+            const reviewTime = r.reviewedAt ? formatDateTime(r.reviewedAt) : null;
+            const timeline = [
+                { label: 'Request Submitted', time: formatDateTime(r.requestedAt), state: 'completed' },
+                { label: 'Under Review', time: reviewTime || '—', state: r.status === 'Pending' ? 'active' : 'completed', dot: r.status === 'Pending' ? 'dot-warning' : 'dot-success' },
+                { label: r.status, time: reviewTime || '—', state: r.status === 'Pending' ? 'pending' : 'completed', dot: statusDot }
+            ];
 
-            function cohortBreakdown(r) {
-                if (!r.cohortCounts) return String(r.totalStudents);
-                var parts = [];
-                for (var ci = 0; ci < r.cohorts.length; ci++) {
-                    parts.push(r.cohortCounts[ci]);
-                }
-                return parts.join(' + ') + ' = ' + r.totalStudents;
-            }
+            // Tab 1: General Info
+            const genRows =
+                DetailModal.row('Request No.', '#' + r.id, { strong: true }) +
+                DetailModal.row('Requested At', formatDateTime(r.requestedAt)) +
+                DetailModal.row('Status', '<span class="badge ' + statusClass(r.status) + '">' + r.status + '</span>') +
+                DetailModal.row('Status Description', statusDesc(r.status)) +
+                (r.status === 'Rejected' && r.rejectionReason ? DetailModal.row('Rejection Reason', r.rejectionReason, { strong: true }) : '') +
+                DetailModal.row('Subject Code', r.courseCode, { strong: true }) +
+                DetailModal.row('Subject Name', r.courseName) +
+                DetailModal.row('Class Type', r.classType === 'L' ? 'Lecture' : 'Tutorial');
+            const genSection = DetailModal.section('General Info', genRows);
 
-            function statusDesc(s) {
-                var map = { 'Pending': 'Awaiting approval', 'Approved': 'Replacement scheduled', 'Rejected': 'Request declined', 'Cancelled': 'Request withdrawn', 'Completed': 'Replacement conducted' };
-                return map[s] || '';
-            }
+            // Tab 2: Original Class Detail — one value per row
+            const origSection = DetailModal.section('Original Class',
+                DetailModal.row('Cohort(s)', r.cohorts.join(', ')) +
+                DetailModal.row('Total Students', cohortBreakdown(r)) +
+                DetailModal.row('Original Date', formatDate(r.classDate)) +
+                DetailModal.row('Original Day', r.classDay) +
+                DetailModal.row('Start Time', to12h(r.timeStart), { strong: true }) +
+                DetailModal.row('End Time', to12h(r.timeEnd)) +
+                DetailModal.row('Duration', String(r.duration) + ' hours') +
+                DetailModal.row('Original Venue', r.venue)
+            );
 
-            html += section('General Info');
-            html += field('Request No.', '#' + r.id);
-            html += field('Requested At', formatDateTime(r.requestedAt));
-            html += field('Status', '<span class="badge ' + statusClass(r.status) + '">' + r.status + '</span><span style="color:var(--color-on-surface-variant);font-size:12px;margin-left:8px">' + statusDesc(r.status) + '</span>');
-            if (r.status === 'Rejected') {
-                html += field('Rejection Reason', r.rejectionReason);
-            }
-            html += field('Course Code', r.courseCode);
-            html += field('Course Name', r.courseName);
-            html += field('Class Type', r.classType === 'L' ? 'Lecture' : 'Tutorial');
+            // Tab 3: Requested Replacement Class
+            const repSection = DetailModal.section('Replacement Class',
+                DetailModal.row('Replacement Date', r.replacementDate ? formatDate(r.replacementDate) : null) +
+                DetailModal.row('Replacement Time', r.replacementTime ? DateHelper.format12hRange(r.replacementTime) : null, { strong: true }) +
+                DetailModal.row('Replacement Venue', r.replacementVenue || '—') +
+                DetailModal.row('Reviewed By', r.reviewedBy) +
+                DetailModal.row('Reviewed At', r.reviewedAt ? formatDateTime(r.reviewedAt) : null)
+            );
 
-            html += section('Original Class Detail');
-            html += field('Affected Cohort(s)', r.cohorts.join(', '));
-            html += field('Total Students', cohortBreakdown(r));
-            html += field('Original Date', formatDate(r.classDate));
-            html += field('Original Day', r.classDay);
-            html += field('Original Time', to12h(r.timeStart) + ' – ' + to12h(r.timeEnd));
-            html += field('Duration', String(r.duration) + ' hours');
-            html += field('Original Venue', r.venue);
+            DetailModal.render({
+                modalId: 'modalOverlay',
+                title: 'Request Details',
+                subtitle: '#' + r.id + ' · ' + r.courseCode + ' — ' + r.courseName,
+                timeline: timeline,
+                tabs: [
+                    { key: 'general', label: 'General Info', html: genSection },
+                    { key: 'original', label: 'Original Class', html: origSection },
+                    { key: 'replacement', label: 'Replacement Class', html: repSection }
+                ]
+            });
 
-            html += section('Requested Replacement Class');
-            html += field('Replacement Date', r.replacementDate ? formatDate(r.replacementDate) : null);
-            html += field('Replacement Time', r.replacementTime);
-            html += field('Replacement Venue', r.replacementVenue || '—');
-            html += field('Reviewed By', r.reviewedBy);
-            html += field('Reviewed At', r.reviewedAt ? formatDateTime(r.reviewedAt) : null);
-
-            if (r.status === 'Pending' || r.status === 'Approved' || r.status === 'Rejected') {
-                html += '<div class="modal-section-title">Request Timeline</div>';
-                html += '<div class="timeline">';
-                var submittedTime = formatDateTime(r.requestedAt);
-                var reviewTime = r.reviewedAt ? formatDateTime(r.reviewedAt) : null;
-                var statusColor = r.status === 'Pending' ? 'var(--color-tertiary)' : r.status === 'Approved' ? 'var(--color-secondary)' : 'var(--color-error)';
-                html += '<div class="timeline-item"><div class="timeline-dot-wrap"><div class="timeline-dot" style="background:var(--color-primary)"></div><div class="timeline-line"></div></div><div class="timeline-text"><div class="timeline-label">Request Submitted</div><div class="timeline-time">' + submittedTime + '</div></div></div>';
-                html += '<div class="timeline-item"><div class="timeline-dot-wrap"><div class="timeline-dot" style="background:var(--color-outline)"></div><div class="timeline-line"></div></div><div class="timeline-text"><div class="timeline-label">Under Review</div><div class="timeline-time">' + (reviewTime || '—') + '</div></div></div>';
-                html += '<div class="timeline-item"><div class="timeline-dot-wrap"><div class="timeline-dot" style="background:' + statusColor + '"></div></div><div class="timeline-text"><div class="timeline-label">' + r.status + '</div><div class="timeline-time">' + (reviewTime || '—') + '</div></div></div>';
-                html += '</div>';
-            }
-
-            body.innerHTML = html;
-            document.getElementById('modalOverlay').classList.add('show');
             document.getElementById('cancelRequestBtn').style.display = r.status === 'Pending' ? 'inline-block' : 'none';
         }
 
+        function openModal(index) {
+            const r = currentFiltered[index];
+            if (!r) return;
+            openModalById(r.id);
+        }
+
         function closeModal() {
-            document.getElementById('modalOverlay').classList.remove('show');
+            DetailModal.close();
         }
 
         function confirmCancelRequest() {
@@ -1182,10 +772,7 @@
         }
 
         function clearAllSelections() {
-            selectedIds.clear();
-            document.querySelectorAll('.row-checkbox').forEach(function(cb) { cb.checked = false; });
-            var headerCheck = document.getElementById('headerCheckbox');
-            if (headerCheck) headerCheck.checked = false;
+            bulk.clear();   // clears ids + unchecks .row-checkbox + #headerCheckbox
             highlightSelectedRows();
             updateBulkBar();
         }
@@ -1205,71 +792,32 @@
             rows.forEach(function(r) { r.classList.remove('row-focused'); });
         }
 
-        function weekFilterChanged() {
-            pageState.currentPage = 1;
-            saveFilters();
-            renderTable();
-            updateWeekArrowState();
-        }
+        // Week filter change — uses shared weekFilterChanged() from ui-common.js.
+        // It reads the select value, resets page, calls renderTable(), updates arrows.
 
-        function prevWeekFilter() {
-            var sel = document.getElementById('weekFilter');
-            if (sel.selectedIndex > 0) {
-                sel.selectedIndex--;
-                sel.dispatchEvent(new Event('change'));
-            }
-        }
 
-        function nextWeekFilter() {
-            var sel = document.getElementById('weekFilter');
-            if (sel.selectedIndex < sel.options.length - 1) {
-                sel.selectedIndex++;
-                sel.dispatchEvent(new Event('change'));
-            }
-        }
-
-        function updateWeekArrowState() {
-            var sel = document.getElementById('weekFilter');
-            updateWeekArrows(sel.selectedIndex <= 0, sel.selectedIndex >= sel.options.length - 1);
-        }
 
         document.addEventListener('DOMContentLoaded', function() {
-            var weekSel = document.getElementById('weekFilter');
-            weekSel.innerHTML = '<option value="all">All Weeks</option>';
-            var isMobile = window.innerWidth <= 768;
-            weekRanges.forEach(function(w) {
-                var opt = document.createElement('option');
-                opt.value = w.value;
-                opt.textContent = isMobile ? w.labelShort : w.label;
-                weekSel.appendChild(opt);
-            });
+            populateWeekSelect('weekFilter', { includeAll: true });
 
             document.getElementById('semesterChip').textContent = MockData.semester.chipText;
 
-            renderTable();
+            SkeletonLoader.showSummary();
+            SkeletonLoader.with(function() { renderTable(); SkeletonLoader.hideSummary(); }, document.getElementById('tableBody'), 10, 400);
             updateWeekArrowState();
+            initWeekKeyboardShortcuts();
 
             document.getElementById('searchInput').addEventListener('input', function() {
-                pageState.currentPage = 1;
                 saveFilters();
-                renderTable();
+                rebuildTable({ render: renderTable });
             });
             document.getElementById('statusFilter').addEventListener('change', function() {
-                pageState.currentPage = 1;
                 saveFilters();
-                renderTable();
+                rebuildTable({ render: renderTable });
             });
             document.getElementById('hideCompleted').addEventListener('change', function() {
-                pageState.currentPage = 1;
                 saveFilters();
-                renderTable();
-            });
-            document.getElementById('rowsPerPage').addEventListener('change', function() {
-                var val = this.value;
-                rowsPerPage = val === 'all' ? Infinity : parseInt(val);
-                localStorage.setItem('mrh-rows-per-page', rowsPerPage === Infinity ? 'all' : rowsPerPage);
-                pageState.currentPage = 1;
-                renderTable();
+                rebuildTable({ render: renderTable });
             });
             document.getElementById('clearFilters').addEventListener('click', function() {
                 document.getElementById('searchInput').value = '';
@@ -1277,17 +825,20 @@
                 document.getElementById('weekFilter').value = 'all';
                 document.getElementById('hideCompleted').checked = true;
                 localStorage.removeItem('mrh-filters');
-                pageState.currentPage = 1;
-                renderTable();
-                updateWeekArrowState();
+                rebuildTable({ render: renderTable, after: updateWeekArrowState });
             });
 
             restoreFilters();
-            var savedRows = localStorage.getItem('mrh-rows-per-page');
-            if (savedRows) {
-                rowsPerPage = savedRows === 'all' ? Infinity : parseInt(savedRows);
-                document.getElementById('rowsPerPage').value = savedRows === 'all' ? 'all' : savedRows;
-            }
+
+            initRpp({
+                selectId: 'rowsPerPage',
+                storageKey: 'rpp-page-size',
+                defaultVal: 10,
+                onChange: function(size) {
+                    rowsPerPage = size;
+                    rebuildTable({ render: renderTable });
+                }
+            });
 
             document.getElementById('modalOverlay').addEventListener('click', function(e) {
                 closeOnOverlayClick(e, closeModal);
@@ -1321,8 +872,8 @@
                     highlightFocusedRow(rows);
                 } else if (e.key === 'Enter' && focusedRowIndex >= 0) {
                     e.preventDefault();
-                    var badge = rows[focusedRowIndex].querySelector('.badge');
-                    if (badge) badge.click();
+                    var rowId = parseInt(rows[focusedRowIndex].dataset.id);
+                    if (rowId) openModalById(rowId);
                 } else if (e.key === 'Escape') {
                     focusedRowIndex = -1;
                     clearFocusedRow(rows);
@@ -1333,10 +884,16 @@
             var urlParams = new URLSearchParams(window.location.search);
             var deepLinkId = parseInt(urlParams.get('id'));
             if (deepLinkId) {
-                var idx = currentFiltered.findIndex(function(r) { return r.id === deepLinkId; });
-                if (idx !== -1) {
-                    setTimeout(function() { openModal(idx); }, 100);
-                }
+                var tryCount = 0;
+                var poll = setInterval(function() {
+                    tryCount++;
+                    if (mockRequests.find(function(r) { return r.id === deepLinkId; })) {
+                        clearInterval(poll);
+                        openModalById(deepLinkId);
+                    } else if (tryCount > 20) {
+                        clearInterval(poll);
+                    }
+                }, 100);
             }
         });
 @endsection
