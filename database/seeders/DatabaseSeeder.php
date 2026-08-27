@@ -182,7 +182,9 @@ class DatabaseSeeder extends Seeder
 
     private function intakeYearShort(string $intake): string
     {
-        preg_match('/(\d{4})/', $intake, $matches);
+        if (preg_match('/(\d{4})/', $intake, $matches) !== 1) {
+            throw new \InvalidArgumentException("Intake without a year: {$intake}");
+        }
 
         return substr($matches[1], -2);
     }

@@ -217,6 +217,9 @@ class LecturerScheduleSeeder extends Seeder
         return $raw;
     }
 
+    /**
+     * @return array<string, int>
+     */
     private function ensureModules(): array
     {
         $map = [];
@@ -247,6 +250,9 @@ class LecturerScheduleSeeder extends Seeder
         return $map;
     }
 
+    /**
+     * @return array<string, int>
+     */
     private function ensureCohorts(): array
     {
         $map = [];

@@ -7,49 +7,17 @@ use Illuminate\Support\Facades\DB;
 
 class VenuesSeeder extends Seeder
 {
-    public function run(): void
+    /**
+     * Block B venue groups per CodingMAIN §3 rules.
+     *
+     * @param  array<int, string>  $codes
+     */
+    private function insertGroup(array $codes, string $label, string $type, string $allowed, int $capacity): void
     {
-        $rooms = [
-            // Tutorial Rooms (capacity 35, allowed L/T)
-            ['B002', 'tutorial', 'L,T', 35],
-            ['B014', 'tutorial', 'L,T', 35],
-            ['B015', 'tutorial', 'L,T', 35],
-            ['B016', 'tutorial', 'L,T', 35],
-            ['B017', 'tutorial', 'L,T', 35],
-            ['B018', 'tutorial', 'L,T', 35],
-            ['B100', 'tutorial', 'L,T', 35],
-            ['B101', 'tutorial', 'L,T', 35],
-            ['B102', 'tutorial', 'L,T', 35],
-            ['B103', 'tutorial', 'L,T', 35],
-            ['B104', 'tutorial', 'L,T', 35],
-            ['B105', 'tutorial', 'L,T', 35],
-            ['B106', 'tutorial', 'L,T', 35],
-            ['B107', 'tutorial', 'L,T', 35],
-            ['B108', 'tutorial', 'L,T', 35],
-            ['B109', 'tutorial', 'L,T', 35],
-            // Lecture Halls (capacity 80, allowed L only)
-            ['B110', 'lecture_hall', 'L', 80],
-            ['B111', 'lecture_hall', 'L', 80],
-            // Computer Labs (capacity 28, allowed P only)
-            ['B005', 'lab', 'P', 28],
-            ['B009', 'lab', 'P', 28],
-            ['B010', 'lab', 'P', 28],
-            ['B011', 'lab', 'P', 28],
-            // Cisco Lab (capacity 32, allowed P only)
-            ['B006', 'cisco_lab', 'P', 32],
-        ];
-
-        foreach ($rooms as [$code, $type, $allowed, $capacity]) {
-            $typeLabel = match ($type) {
-                'tutorial' => 'Tutorial Room',
-                'lecture_hall' => 'Lecture Hall',
-                'lab' => 'Computer Lab',
-                'cisco_lab' => 'Cisco Lab',
-            };
-
+        foreach ($codes as $code) {
             DB::table('venues')->insert([
                 'room_code' => $code,
-                'room_name' => "$typeLabel $code",
+                'room_name' => "{$label} {$code}",
                 'room_type' => $type,
                 'allowed_session_types' => $allowed,
                 'capacity' => $capacity,
@@ -57,5 +25,23 @@ class VenuesSeeder extends Seeder
                 'updated_at' => now(),
             ]);
         }
+    }
+
+    public function run(): void
+    {
+        // Tutorial Rooms (capacity 35, allowed L/T)
+        $this->insertGroup(
+            ['B002', 'B014', 'B015', 'B016', 'B017', 'B018', 'B100', 'B101', 'B102', 'B103', 'B104', 'B105', 'B106', 'B107', 'B108', 'B109'],
+            'Tutorial Room', 'tutorial', 'L,T', 35,
+        );
+
+        // Lecture Halls (capacity 80, allowed L only)
+        $this->insertGroup(['B110', 'B111'], 'Lecture Hall', 'lecture_hall', 'L', 80);
+
+        // Computer Labs (capacity 28, allowed P only)
+        $this->insertGroup(['B005', 'B009', 'B010', 'B011'], 'Computer Lab', 'lab', 'P', 28);
+
+        // Cisco Lab (capacity 32, allowed P only)
+        $this->insertGroup(['B006'], 'Cisco Lab', 'cisco_lab', 'P', 32);
     }
 }

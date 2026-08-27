@@ -147,6 +147,9 @@ class CsvTimetableSeeder extends Seeder
         $this->command->info("Inserted {$inserted} class sessions.");
     }
 
+    /**
+     * @param  array<string, int>  $cohorts
+     */
     private function resolveCohort(string $raw, array $cohorts): ?int
     {
         if (isset($cohorts[$raw])) {
@@ -230,6 +233,9 @@ class CsvTimetableSeeder extends Seeder
         return trim($raw);
     }
 
+    /**
+     * @return array<string, int>
+     */
     private function ensureModules(): array
     {
         $map = [];
@@ -260,6 +266,9 @@ class CsvTimetableSeeder extends Seeder
         return $map;
     }
 
+    /**
+     * @return array<string, int>
+     */
     private function ensureCohorts(): array
     {
         $map = [];
