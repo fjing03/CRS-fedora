@@ -82,11 +82,7 @@ vendor/bin/phpunit --no-progress
 
 Git policy (`CodingMAINfedora.md` §10.6): `origin` = `fjing03/CRS-fedora.git` ONLY. Never push to `upstream`.
 
-Current: `fedora-backend` is 4 commits ahead of `origin/fedora-jing` + merge commit.
-```bash
-git push origin fedora-backend        # or fedora-backend:fedora-backend as needed
-# Do NOT run: git push upstream ...
-```
+- [x] 2026-08-31: pushed `fedora-backend` → `origin` (`fjing03/CRS-fedora.git`) `7058f7a..4f9fd85`. `upstream` untouched — policy held.
 
 ---
 
