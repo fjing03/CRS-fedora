@@ -1,5 +1,15 @@
 # Changelog — Student My Timetable
 
+## [2026-08-31] Sync upstream/fjing UI refactor (merge fd8c403)
+
+Merged `upstream/fjing` (267 commits `cfc1bb1..f44cc5c`) into `fedora-backend`. Policy: **theirs-first for UI**; backend-only files kept local. Brings the page to upstream's latest state on top of the TASK-006 nav swap documented below. Verification: `migrate:fresh --seed` green, PHPStan 0, PHPUnit 94/94, smoke 12/12 routes 200 (`/student-my-timetable-ui` 200).
+
+### Files Changed
+- `resources/views/ui-design-templates/student-my-timetable-UI-design-template.blade.php` — conflict → **theirs**
+- Shared: `theme.css`, `ui-common.js`, `mock-data.js`, `layouts/ui-template`, `partials/ui-nav-bar` — **theirs**
+
+---
+
 ## [2026-08-24] Nav swap: Request History → Upcoming Replacements (TASK-006)
 
 Student role drops "Request History" (Ch1 §1.1.4 view-only — status is already

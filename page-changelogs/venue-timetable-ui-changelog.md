@@ -1,5 +1,16 @@
 # Changelog — Venue Timetable UI
 
+## [2026-08-31] Sync upstream/fjing UI refactor (merge fd8c403)
+
+Merged `upstream/fjing` (267 commits `cfc1bb1..f44cc5c`) into `fedora-backend`; brings the full upstream SDD implementation (4becd3f) of this page to this PC. **New page on fedora-backend** — route `/venue-timetable-ui` smoke-tested 200. Playwright e2e spec arrived too; `@playwright/test` added as devDependency — browsers not yet installed on this PC (`npx playwright install` pending, deferred to Phase 2 wiring).
+
+### Files Changed
+- `resources/views/ui-design-templates/venue-timetable-UI-design-template.blade.php` — **theirs**
+- `tests/venue-timetable.spec.ts` — **theirs** (575-line Playwright spec)
+- Shared: `theme.css`, `ui-common.js`, `mock-data.js`, `layouts/ui-template`, `partials/ui-nav-bar` — **theirs**
+
+---
+
 ## [2026-08-15] Detail modal: status description as its own row
 
 Added a **Status Description** row ("Replacement request awaiting approval" / "Class booked for this venue") separate from the Status badge.

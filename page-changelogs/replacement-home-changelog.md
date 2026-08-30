@@ -1,5 +1,15 @@
 # Changelog — Replacement Home Dashboard
 
+## [2026-08-31] Sync upstream/fjing UI refactor (merge fd8c403)
+
+Merged `upstream/fjing` (267 commits `cfc1bb1..f44cc5c`) into `fedora-backend`. Policy: **theirs-first for UI**; backend-only files kept local. Verification: PHPStan 0, PHPUnit 94/94, smoke 12/12 routes 200 (`/replacement-home-ui` 200).
+
+### Files Changed
+- `resources/views/ui-design-templates/replacement-home-UI-design-template.blade.php` — **theirs**
+- Shared: `theme.css`, `ui-common.js`, `mock-data.js`, `layouts/ui-template`, `partials/ui-nav-bar`, `partials/ui-logout-modal` + `public/js/logout-modal.js`, `public/css/macos-design.css` — **theirs**
+
+---
+
 ## [2026-08-16] Replaced hardcoded inline styles with shared utility classes
 
 Refactored keyboard shortcut hint text to use `.hint-text` class from `theme.css`.

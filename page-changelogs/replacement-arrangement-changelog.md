@@ -1,5 +1,16 @@
 # Changelog — Replacement Arrangement (Selected Subject Page)
 
+## [2026-08-31] Sync upstream/fjing UI refactor (merge fd8c403)
+
+Merged `upstream/fjing` (267 commits `cfc1bb1..f44cc5c`) into `fedora-backend`. Policy: **theirs-first for UI**; backend-only files (`MatrixIntersectionEngine`, `OCCValidator`) kept local for the upcoming wiring phase. Verification: PHPStan 0, PHPUnit 94/94, smoke 12/12 routes 200 (`/replacement-arrangement` 200).
+
+### Files Changed
+- `resources/views/ui-design-templates/replacement-arrangement-UIdesign-template.blade.php` — **theirs**
+- `resources/views/partials/ui-venue-dropdown.blade.php` — **theirs**
+- Shared: `theme.css`, `ui-common.js`, `mock-data.js`, `layouts/ui-template`, `partials/ui-nav-bar` — **theirs**
+
+---
+
 ## [2026-08-19] Fix: week-navigation confirmation preserves selection + back button checks saved slots
 
 ### Problem

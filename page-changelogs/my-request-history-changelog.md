@@ -1,5 +1,15 @@
 # Changelog — Lecturer My Request History
 
+## [2026-08-31] Sync upstream/fjing UI refactor (merge fd8c403)
+
+Merged `upstream/fjing` (267 commits `cfc1bb1..f44cc5c`) into `fedora-backend`. Policy: **theirs-first for UI**; backend-only files kept local. Note: upstream TASK-006 (`f44cc5c`) repointed the **student** nav from request history to `/upcoming-replacements-ui` (see student-my-timetable + upcoming-replacements logs); this lecturer history page remains served at `/my-request-history-ui`. Verification: PHPStan 0, PHPUnit 94/94, smoke 12/12 routes 200.
+
+### Files Changed
+- `resources/views/ui-design-templates/my-request-history-UI-design-template.blade.php` — **theirs**
+- Shared: `theme.css`, `ui-common.js`, `mock-data.js`, `layouts/ui-template`, `partials/ui-nav-bar` — **theirs**
+
+---
+
 ## [2026-08-16] Replaced hardcoded inline styles with shared utility classes
 
 Refactored 3 hardcoded inline style instances to use shared CSS classes from `theme.css`. Paragraph descriptions use `.page-desc`, title+badge rows use `.kicker` + `.badge-sm`.

@@ -1,5 +1,15 @@
 # Changelog — Upcoming Replacements (Student)
 
+## [2026-08-31] Sync upstream/fjing UI refactor (merge fd8c403)
+
+Merged `upstream/fjing` (267 commits `cfc1bb1..f44cc5c`) into `fedora-backend`; page state on this PC brought up to upstream HEAD (`f44cc5c`). Route `/upcoming-replacements-ui` confirmed live (smoke 200).
+
+### Files Changed
+- `resources/views/ui-design-templates/upcoming-replacements-UI-design-template.blade.php` — **theirs**
+- `routes/web.php` — **theirs** (route registration)
+
+---
+
 ## [2026-08-24] Stub page + route + mock data (TASK-006 Phase 1)
 
 Student role drops "Request History" and gets "Upcoming Replacements" instead

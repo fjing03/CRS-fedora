@@ -1,5 +1,16 @@
 # Changelog — Lecturer My Timetable
 
+## [2026-08-31] Sync upstream/fjing UI refactor (merge fd8c403)
+
+Merged `upstream/fjing` (`FjingXR/class-replacement-system.git`, 267 commits `cfc1bb1..f44cc5c`) into `fedora-backend`. Policy: **theirs-first for UI** — upstream's refactored UI replaces the local copy; backend-only files (`app/Services`, `database/`) kept local. 13 conflicted UI files resolved with theirs. Verification: `migrate:fresh --seed` green (23 venues / 4 types), PHPStan 0 errors, PHPUnit 94/94, smoke 12/12 routes HTTP 200.
+
+### Files Changed
+- `resources/views/ui-design-templates/MyTimetable-UI-design-template.blade.php` — conflict → **theirs**
+- Shared partials updated via merge: `ui-legend-bar`, `ui-summary-bar`, `ui-today-btn`, `ui-class-detail-modal`, `ui-empty-state`, `ui-grid-table`, `ui-guide-block`
+- Shared assets: `theme.css`, `ui-common.js`, `mock-data.js`, `layouts/ui-template`, `partials/ui-nav-bar` — **theirs**
+
+---
+
 ## [2026-08-16] Replaced hardcoded inline styles with shared utility classes
 
 Refactored hardcoded `font-size`/`font-weight`/`color` inline styles to use shared CSS classes from `theme.css`. Specifically, the cancel-modal description text now uses `.section-heading-sub`.

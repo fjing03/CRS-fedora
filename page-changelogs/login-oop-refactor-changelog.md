@@ -1,5 +1,16 @@
 # Login Pages OOP Refactor Changelog
 
+## [2026-08-31] Sync upstream/fjing login refactor (merge fd8c403)
+
+Merged `upstream/fjing` (267 commits) into `fedora-backend`. Login pages were conflicted (add/add) → resolved **theirs**, pulling upstream's OOP refactor (`40ba963`) and the staff-login optional `P` prefix fix (`eeaa5c4`, TASK-004). This closes the pending FR 2.1 prefix-support item flagged in CodingMAIN §7.4. Smoke: `/login/student` + `/login/staff` 200; PHPUnit auth tests 94/94 (incl. role-based post-login/logout redirects).
+
+### Files Changed
+- `resources/views/auth/login-staff.blade.php`, `resources/views/auth/login-student.blade.php` — conflict → **theirs**
+- `resources/views/layouts/login-template.blade.php` — conflict (add/add) → **theirs**
+- `app/Http/Responses/LoginResponse.php`, `LogoutResponse.php` — pint style only; behavior unchanged (role-based redirects per NFR 3.4)
+
+---
+
 ## Date: 2026-08-09
 ## Type: refactor
 

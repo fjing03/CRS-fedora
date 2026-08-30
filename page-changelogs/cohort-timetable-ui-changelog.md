@@ -1,5 +1,15 @@
 # Changelog — Cohort Timetable UI
 
+## [2026-08-31] Sync upstream/fjing UI refactor (merge fd8c403)
+
+Merged `upstream/fjing` (267 commits `cfc1bb1..f44cc5c`) into `fedora-backend`. Policy: **theirs-first for UI**; backend-only files kept local. Verification: `migrate:fresh --seed` green, PHPStan 0, PHPUnit 94/94, smoke 12/12 routes 200.
+
+### Files Changed
+- `resources/views/ui-design-templates/CohortTimetable-UI-design-template.blade.php` — conflict → **theirs**
+- Shared: `theme.css`, `ui-common.js`, `mock-data.js`, `layouts/ui-template`, `partials/ui-nav-bar`, legend/summary/today/empty-state/grid-table partials — **theirs**
+
+---
+
 ## [2026-08-16] Today button now persists week selection
 
 The "Today" button now saves the current week to `cohortTimetableState` (via a local `goToday()` wrapper that calls `weekNav.jumpToToday()` + `saveState()`), consistent with arrow/dropdown navigation. Previously, clicking Today would jump the view but not persist — a page refresh would revert to the old week.
