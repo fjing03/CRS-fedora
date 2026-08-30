@@ -76,6 +76,8 @@ vendor/bin/phpstan analyse --memory-limit=1G --no-progress
 vendor/bin/phpunit --no-progress
 ```
 
+- [x] 2026-08-31: pint **passed**, PHPStan **0 errors**, PHPUnit **94/94** (377 assertions) — all green on `da3ee50`
+
 ### 2.3 Push (ONLY when you say)
 
 Git policy (`CodingMAINfedora.md` §10.6): `origin` = `fjing03/CRS-fedora.git` ONLY. Never push to `upstream`.
