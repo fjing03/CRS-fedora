@@ -22,17 +22,17 @@ Chain strategy: feature-branch-chain
 
 ## Phase 0 — Foundation
 
-- [ ] 0.1 `config/app.php`: add `'mock_fallback' => env('APP_MOCK_FALLBACK', false)` (D10)
-- [ ] 0.2 Create minimal `app/Models/Semester.php` (D9, no migration)
-- [ ] 0.3 `routes/web.php`: D10 branch helper + 9 closures → `->middleware(['auth','role:…'|'pl'])`, auth first
+- [x] 0.1 `config/app.php`: add `'mock_fallback' => env('APP_MOCK_FALLBACK', false)` (D10)
+- [x] 0.2 Create minimal `app/Models/Semester.php` (D9, no migration)
+- [x] 0.3 `routes/web.php`: D10 branch helper + 9 closures → `->middleware(['auth','role:…'|'pl'])`, auth first
 
 ## Phase 1 — Slice A: RBAC + timetables
 
-- [ ] 1.1 RED `tests/Feature/RouteGateMatrixTest.php`: 9 routes × guest/student/lecturer/PL (rbac spec)
-- [ ] 1.2 Apply buckets per rbac spec — `auth` (cohort-timetable), `role:student` (student pages ×2), `role:lecturer` (×5), `pl` (request-approval); 1.1 green
-- [ ] 1.3 `app/Livewire/MyTimetable|CohortTimetable|StudentMyTimetable` + views: own sessions (FR 2.2), detail modal incl. conflicted (FR 2.3), own-cohort scoping (FR 1.2), statuses (FR 1.3) read-only
-- [ ] 1.4 §10.0 table-A legend, empty week, Conflict styling in all 3 views
-- [ ] 1.5 Update 3 page-changelogs (D10 divergence duty)
+- [x] 1.1 RED `tests/Feature/RouteGateMatrixTest.php`: 9 routes × guest/student/lecturer/PL (rbac spec)
+- [x] 1.2 Apply buckets per rbac spec — `auth` (cohort-timetable), `role:student` (student pages ×2), `role:lecturer` (×5), `pl` (request-approval); 1.1 green
+- [x] 1.3 `app/Livewire/MyTimetable|CohortTimetable|StudentMyTimetable` + views: own sessions (FR 2.2), detail modal incl. conflicted (FR 2.3), own-cohort scoping (FR 1.2), statuses (FR 1.3) read-only
+- [x] 1.4 §10.0 table-A legend, empty week, Conflict styling in all 3 views
+- [x] 1.5 Update 3 page-changelogs (D10 divergence duty)
 
 ## Phase 2 — Slice B: replacement flow
 
