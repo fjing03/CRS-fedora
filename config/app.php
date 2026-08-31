@@ -17,6 +17,19 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Mock Data Fallback (SDD: wire-backend-into-refactored-ui, D10)
+    |--------------------------------------------------------------------------
+    |
+    | When true, the 9 UI routes serve the untouched legacy mock templates
+    | (byte-identical) instead of the wired Livewire components. Same RBAC
+    | middleware applies in both modes. Route-level branch: routes/web.php.
+    |
+    */
+
+    'mock_fallback' => (bool) env('APP_MOCK_FALLBACK', false),
+
+    /*
+    |--------------------------------------------------------------------------
     | Application Environment
     |--------------------------------------------------------------------------
     |

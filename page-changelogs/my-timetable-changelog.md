@@ -1,5 +1,25 @@
 # Changelog — Lecturer My Timetable
 
+## [2026-08-31] Wired to real data via Livewire (SDD wire-backend-into-refactored-ui, Slice A)
+
+Page now served by `App\Livewire\MyTimetable` (full-page Livewire component) instead of the mock closure. Legacy template `MyTimetable-UI-design-template.blade.php` untouched on disk — served only when `APP_MOCK_FALLBACK=true` (config `app.mock_fallback`, design D10) or before the component existed (transitional rule).
+
+### Mock → real mappings
+| Mock | Real |
+|---|---|
+| `MockData.myTimetable.eventsByWeek` (seed week + repeat) | `ClassSession` where lecturer = viewer, per-week events built by `App\Concerns\ResolvesTimetableTimeline` (promoted shared builder, §10.0.6) |
+| `MockData.semester` chip/dates | `Semesters` table (`Semester::active()`, design D9) |
+| `MockData.holidays` | `holidays` table |
+| `MockData.currentUser` | `auth()->user()` (+ staff_id) |
+
+### Dropped / deferred (divergence duty)
+- **Cancel Class button + confirm overlay removed from the detail modal** — `CancelClass` action ships in Slice B (tasks 2.5–2.6); mock fake-success toast deleted. Replace Now kept (navigates to the arrangement flow, wired in Slice B).
+- Pending/approved overlays now derive from `replacement_requests` + `class_exceptions` (were hardcoded mock rows).
+- Week navigation/keyboard/swipe/scroll-restore preserved 1:1 via the shared `ui-common.js` engine fed with server JSON (design Risk-2 mitigation; component root: single `<div class="lw-page">`).
+
+
+---
+
 ## [2026-08-31] Sync upstream/fjing UI refactor (merge fd8c403)
 
 Merged `upstream/fjing` (`FjingXR/class-replacement-system.git`, 267 commits `cfc1bb1..f44cc5c`) into `fedora-backend`. Policy: **theirs-first for UI** — upstream's refactored UI replaces the local copy; backend-only files (`app/Services`, `database/`) kept local. 13 conflicted UI files resolved with theirs. Verification: `migrate:fresh --seed` green (23 venues / 4 types), PHPStan 0 errors, PHPUnit 94/94, smoke 12/12 routes HTTP 200.

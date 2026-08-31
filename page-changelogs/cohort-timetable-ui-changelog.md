@@ -1,5 +1,23 @@
 # Changelog — Cohort Timetable UI
 
+## [2026-08-31] Wired to real data via Livewire (SDD wire-backend-into-refactored-ui, Slice A)
+
+Page served by `App\Livewire\CohortTimetable`; faculty/cohort selects are JS-owned (`wire:ignore` block) and push `cohortId` to the server (`$wire.set`) — the component re-queries all events per cohort. Students are pinned to their own cohort (FR 1.2): selects preselected + disabled, scoping enforced server-side.
+
+### Mock → real mappings
+| Mock | Real |
+|---|---|
+| `MockData.cohortTimetable.faculties/cohorts` | `faculties → programmes → cohorts` (display code `PROG{Y}(S{S})G{G}`) |
+| `rsd3g2Base` + flag overrides | real `ClassSession` × `session_cohorts` + `class_exceptions` + request overlays |
+| mine-vs-others colouring (`MockData.currentUser.name` compare) | `lecturer_id === viewer` (`isMine` flag) — same classes `event-mine`/`event-others`/`-pending` |
+
+### Notes
+- Empty state copy unchanged; "No classes scheduled" appears for weeks with all sessions cancelled.
+- Others' Pending uses the generic pending class in Slice A (mock's `event-others-pending` grey retained via statusClassFn).
+
+
+---
+
 ## [2026-08-31] Sync upstream/fjing UI refactor (merge fd8c403)
 
 Merged `upstream/fjing` (267 commits `cfc1bb1..f44cc5c`) into `fedora-backend`. Policy: **theirs-first for UI**; backend-only files kept local. Verification: `migrate:fresh --seed` green, PHPStan 0, PHPUnit 94/94, smoke 12/12 routes 200.

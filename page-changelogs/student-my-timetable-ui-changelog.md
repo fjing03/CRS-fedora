@@ -1,5 +1,22 @@
 # Changelog — Student My Timetable
 
+## [2026-08-31] Wired to real data via Livewire (SDD wire-backend-into-refactored-ui, Slice A)
+
+Page served by `App\Livewire\StudentMyTimetable` — strictly read-only (FR 1.5–1.8). Student nav (2 items) preserved through the component's layout data. Semester chip in header shows the real cohort code (FR 1.2 scoping via `students.cohort_id`).
+
+### Mock → real mappings
+| Mock | Real |
+|---|---|
+| `rsd3g2Base` weekly repeat | own-cohort `ClassSession` per week (via `session_cohorts`) |
+| `studentTimetable.cancelledFlags` | `class_exceptions` rows (cancelled weeks excluded server-side) |
+| `notificationCount: 3` badge | `notifCount: 0` until notifications exist (Slice C, FR 1.9) |
+
+### Divergence duty
+- Pending/approved request statuses (FR 1.3) now derive from `replacement_requests` overlays (pending → amber occurrence "Pending since…", approved → blue replacement at the new day/time/venue).
+
+
+---
+
 ## [2026-08-31] Sync upstream/fjing UI refactor (merge fd8c403)
 
 Merged `upstream/fjing` (267 commits `cfc1bb1..f44cc5c`) into `fedora-backend`. Policy: **theirs-first for UI**; backend-only files kept local. Brings the page to upstream's latest state on top of the TASK-006 nav swap documented below. Verification: `migrate:fresh --seed` green, PHPStan 0, PHPUnit 94/94, smoke 12/12 routes 200 (`/student-my-timetable-ui` 200).

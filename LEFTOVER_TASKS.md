@@ -90,17 +90,11 @@ Git policy (`CodingMAINfedora.md` §10.6): `origin` = `fjing03/CRS-fedora.git` O
 
 **Goal:** Wire backend into refactored UI (user said "wire the backend, shall i use sdd skills?").
 
-- [ ] Load `sdd-workflow` skill (mandatory before any `/sdd-*`)
-- [ ] `sdd-propose` change `wire-backend-into-refactored-ui` under `.sdd/changes/` — follow `prompts/sdd-propose-ui-page.md` for any NEW pages (venue-timetable, upcoming-replacements)
-- [ ] Map each refactored template → Livewire/controller → existing services:
-  - `MatrixIntersectionEngine` (4-vector), `OCCValidator` + `OCCResult`, slot state machine
-  - RBAC gates `CheckRole`/`CheckPl` on all new routes (FR 4.13/4.14)
-  - Emails via DB queue (FR 1.9/2.13/4.15/4.16)
-  - Replace `window.MockData` reads with real DB data
-  - Theme tokens per `theme.css` §10.0
-- [ ] `design.md` → `tasks.md` → apply incrementally (engine → OCC → approval/dashboard/emails)
-
-Existing SDD context: `.sdd/changes/` has 18 prior changes (see `ls .sdd/changes/`).
+- [x] Load `sdd-workflow` skill (mandatory before any `/sdd-*`)
+- [x] SDD change `wire-backend-into-refactored-ui` — **PACKAGE COMPLETE 2026-08-31** (all 4 batches reviewed & frozen): `proposal.md` (2 rounds), `design.md` (2 rounds, D1–D10), `specs/` ×4 (2 rounds), `tasks.md` (1 round) — see `.sdd/changes/wire-backend-into-refactored-ui/review-log.md`. Locked decisions: Livewire components · 3 chained slices · MockData kept as fallback · log mailer + DB queue.
+- [ ] `sdd-apply` Slice A → B → C (auto-chain, no decision needed; hand T1/T2 advisories to apply agent)
+- [ ] Map each refactored template → Livewire component → existing services (per frozen design.md)
+- [ ] `design.md` → `tasks.md` apply incrementally (engine → OCC → approval/dashboard/emails), verify each with `composer run test` gates
 
 ---
 
