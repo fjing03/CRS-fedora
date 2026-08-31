@@ -1,7 +1,7 @@
 {{-- Livewire full-page view (SDD wire-backend-into-refactored-ui). All roles;
-     students pinned to own cohort (FR 1.2). Faculty/cohort selects are
-     JS-owned (wire:ignore) and push cohortId to the server ($wire.set) —
-     the component re-queries allEvents for the chosen cohort. --}}
+     students receive only their own cohort's events server-side (FR 1.2).
+     Faculty/cohort selects are JS-owned and switch client-side over the
+     preloaded eventsByCohort payload — no server roundtrip needed. --}}
 
 @section('title', 'Cohort Timetable — Class Replacement System')
 
@@ -44,16 +44,15 @@
         ]
     ])
 
-    <!-- ─── Semester Bar (JS-owned selects → $wire.set; wire:ignore keeps the
-         populated options alive across Livewire morphs) ─── -->
-    <div class="semester-bar" wire:ignore>
+    <!-- ─── Semester Bar ─── -->
+    <div class="semester-bar">
         <select id="facultySelect" onchange="onFacultyChange(this.value)" @if($isStudent) disabled @endif>
             <option value="">Select Faculty</option>
         </select>
         <select id="cohortSelect" onchange="onCohortChange(this.value)" disabled>
             <option value="">Select Cohort</option>
         </select>
-        @include('partials.ui-week-nav', ['prevOnclick' => 'prevWeek()', 'nextOnclick' => 'nextWeek()', 'selectId' => 'weekSelect', 'selectOnclick' => 'selectWeek(this.value)', 'disabled' => !$cohortId])
+        @include('partials.ui-week-nav', ['prevOnclick' => 'prevWeek()', 'nextOnclick' => 'nextWeek()', 'selectId' => 'weekSelect', 'selectOnclick' => 'selectWeek(this.value)', 'disabled' => $pinnedCohortId === null])
     </div>
 
     <!-- ─── Grid Wrapper ─── -->
@@ -93,209 +92,223 @@
     @include('partials.ui-class-detail-modal', ['modalId' => 'eventModal'])
 
     <script>
-        /* ───── Real-data bridge ───── */
-        MockData.semester = @json($semesterJs);
-        MockData.holidays = @json($holidaysJs);
-        MockData.currentUser = @json(['name' => auth()->user()?->name ?? '', 'staffId' => (string) (auth()->user()?->lecturer?->staff_id ?? '')]);
+        /* ───── Real-data bridge. DOMContentLoaded: mock-data.js / ui-common.js
+           are parsed AFTER @yield('content') in the layout body, so top-level
+           access here would throw before they load. ───── */
+        document.addEventListener('DOMContentLoaded', function () {
+            MockData.semester = @json($semesterJs);
+            MockData.holidays = @json($holidaysJs);
+            MockData.currentUser = @json(['name' => auth()->user()?->name ?? '', 'staffId' => (string) (auth()->user()?->lecturer?->staff_id ?? '')]);
 
-        const weekData = generateWeekData();
-        let allEvents = @json($eventsByWeek);
-        const facultyData = @json($faculties);
-        const isStudentViewer = @json($isStudent);
-        const serverCohortId = @json($cohortId);
+            window.weekData = generateWeekData();
+            const weekData = window.weekData;
+            const eventsByCohort = @json($eventsByCohort);
+            const facultyData = @json($faculties);
+            const isStudentViewer = @json($isStudent);
+            const pinnedCohortId = @json($pinnedCohortId);
 
-        let currentWeek = {{ (int) ($currentWeek ?? 0) }};
+            window.currentWeek = {{ (int) ($currentWeek ?? 0) }};
+            let currentWeek = window.currentWeek;
+            let selectedCohortId = pinnedCohortId;
 
-        const weekNav = new WeekNavigator(MockData.semester, weekData);
-        weekNav._currentWeek = currentWeek;
-
-        /* ════════════════ DROPDOWN POPULATION ════════════════ */
-
-        function populateFaculties() {
-            const sel = document.getElementById('facultySelect');
-            sel.innerHTML = '<option value="">Select Faculty</option>' +
-                facultyData.map(f => `<option value="${f.id}">${f.name}</option>`).join('');
-        }
-
-        function populateCohorts(fid) {
-            const sel = document.getElementById('cohortSelect');
-            const faculty = facultyData.find(f => String(f.id) === String(fid));
-            sel.innerHTML = '<option value="">Select Cohort</option>' +
-                (faculty ? faculty.cohorts.map(c => `<option value="${c.id}">${c.name}</option>`).join('') : '');
-            sel.disabled = !faculty;
-        }
-
-        function onFacultyChange(fid) {
-            populateCohorts(fid);
-            document.getElementById('weekSelect').disabled = true;
-            $wire.$set('cohortId', null);
-            showGuidance();
-        }
-
-        function onCohortChange(cid) {
-            if (!cid) {
-                document.getElementById('weekSelect').disabled = true;
-                showGuidance();
-                $wire.$set('cohortId', null);
-                return;
-            }
-            currentWeek = currentWeekIndex();
+            const weekNav = new WeekNavigator(MockData.semester, weekData);
             weekNav._currentWeek = currentWeek;
-            document.getElementById('weekSelect').selectedIndex = currentWeek;
-            document.getElementById('weekSelect').disabled = false;
-            // Server re-queries allEvents for this cohort, then the update hook rebuilds.
-            $wire.$set('cohortId', parseInt(cid, 10));
-        }
 
-        function showGuidance() {
-            document.getElementById('emptyState').style.display = 'flex';
-            document.getElementById('emptyTitle').textContent = 'Select a faculty first';
-            document.getElementById('emptyText').textContent = 'Choose a faculty, then pick a cohort to view its weekly timetable.';
-            document.getElementById('timetable').querySelector('thead').innerHTML = '';
-            document.getElementById('timetable').querySelector('tbody').innerHTML = '';
-            ['sumTotal','sumHours','sumReplacement','sumPending','sumConflict'].forEach(id => {
-                const el = document.getElementById(id);
-                if (el) el.textContent = '0';
-            });
-            updateWeekArrows(true, true);
-        }
+            /* ════════ DROPDOWNS ════════ */
 
-        /* ════════════════ WEEK NAVIGATION ════════════════ */
-
-        function prevWeek() {
-            weekNav.prevWeek();
-            currentWeek = weekNav.currentWeek;
-            buildTimetable();
-        }
-
-        function nextWeek() {
-            weekNav.nextWeek();
-            currentWeek = weekNav.currentWeek;
-            buildTimetable();
-        }
-
-        function selectWeek(index) {
-            weekNav.selectWeek(parseInt(index, 10));
-            currentWeek = weekNav.currentWeek;
-            buildTimetable();
-        }
-
-        function goToday() {
-            weekNav.jumpToToday();
-            currentWeek = weekNav.currentWeek;
-            buildTimetable();
-        }
-
-        /* ════════════════ GRID ════════════════ */
-
-        function buildTimetable() {
-            if (!serverCohortId && !$wire.cohortId) {
-                showGuidance();
-                return;
+            function populateFaculties() {
+                const sel = document.getElementById('facultySelect');
+                sel.innerHTML = '<option value="">Select Faculty</option>' +
+                    facultyData.map(f => `<option value="${f.id}">${f.name}</option>`).join('');
             }
 
-            const weekEvents = allEvents[currentWeek] || [];
+            function populateCohorts(fid) {
+                const sel = document.getElementById('cohortSelect');
+                const faculty = facultyData.find(f => String(f.id) === String(fid));
+                sel.innerHTML = '<option value="">Select Cohort</option>' +
+                    (faculty ? faculty.cohorts.map(c => `<option value="${c.id}">${c.name}</option>`).join('') : '');
+                sel.disabled = !faculty || isStudentViewer;
+            }
 
-            if (weekEvents.length === 0) {
+            function onFacultyChange(fid) {
+                populateCohorts(fid);
+                document.getElementById('weekSelect').disabled = true;
+                selectedCohortId = null;
+                showGuidance();
+            }
+
+            function onCohortChange(cid) {
+                selectedCohortId = cid ? parseInt(cid, 10) : null;
+                document.getElementById('weekSelect').disabled = !selectedCohortId;
+                if (!selectedCohortId) {
+                    showGuidance();
+                    return;
+                }
+                currentWeek = currentWeekIndex();
+                weekNav._currentWeek = currentWeek;
+                document.getElementById('weekSelect').selectedIndex = currentWeek;
+                buildTimetable();
+            }
+
+            window.onFacultyChange = onFacultyChange;
+            window.onCohortChange = onCohortChange;
+
+            function showGuidance() {
                 document.getElementById('emptyState').style.display = 'flex';
-                document.getElementById('emptyTitle').textContent = 'No classes scheduled';
-                document.getElementById('emptyText').textContent = 'No classes scheduled for this cohort in the selected week.';
-                ['sumTotal','sumHours','sumReplacement','sumPending','sumConflict'].forEach(id => {
+                document.getElementById('emptyTitle').textContent = 'Select a faculty first';
+                document.getElementById('emptyText').textContent = 'Choose a faculty, then pick a cohort to view its weekly timetable.';
+                document.getElementById('tableHead').innerHTML = '';
+                document.getElementById('tableBody').innerHTML = '';
+                ['sumTotal', 'sumHours', 'sumReplacement', 'sumPending', 'sumConflict'].forEach(id => {
                     document.getElementById(id).textContent = '0';
                 });
-                updateWeekArrows(currentWeek <= 0, currentWeek >= weekData.length - 1);
-                return;
+                updateWeekArrows(true, true);
             }
 
-            document.getElementById('emptyState').style.display = 'none';
+            /* ════════ WEEK NAVIGATION ════════ */
 
-            buildTimetableGrid({
-                events: weekEvents,
-                days: weekData[currentWeek].days,
-                onEventClick: function(e, di) { openModal(e, di); },
-                tooltipExtra: function(e) { return e.lecturer || '—'; },
-                statusClassFn: function(div, e, isConflict) {
-                    if (isConflict) { div.classList.add('event-public-holiday'); return; }
-                    const isMine = e.isMine === true;
-                    if (e.status === 'pending') {
-                        div.classList.add(isMine ? 'event-mine-pending' : 'event-others-pending');
-                    } else {
-                        div.classList.add(isMine ? 'event-mine' : 'event-others');
-                    }
-                },
-                replacementNoteFn: function(e) {
-                    return buildReplacementNote(e, { checkOwnership: function(ev) { return ev.isMine === true; } });
+            function prevWeek() {
+                weekNav.prevWeek();
+                currentWeek = weekNav.currentWeek;
+                buildTimetable();
+            }
+
+            function nextWeek() {
+                weekNav.nextWeek();
+                currentWeek = weekNav.currentWeek;
+                buildTimetable();
+            }
+
+            function selectWeek(index) {
+                weekNav.selectWeek(parseInt(index, 10));
+                currentWeek = weekNav.currentWeek;
+                buildTimetable();
+            }
+
+            function goToday() {
+                weekNav.jumpToToday();
+                currentWeek = weekNav.currentWeek;
+                buildTimetable();
+            }
+
+            /* ════════ GRID ════════ */
+
+            function updateSummary() {
+                const weekEvents = (eventsByCohort[selectedCohortId] || [])[currentWeek] || [];
+                computeSummary(weekEvents, weekData[currentWeek].days);
+                updateWeekArrows(currentWeek <= 0, currentWeek >= weekData.length - 1);
+            }
+
+            function buildTimetable() {
+                currentWeek = weekNav.currentWeek;
+                if (!selectedCohortId) {
+                    showGuidance();
+                    return;
                 }
-            });
-            computeSummary(weekEvents, weekData[currentWeek].days);
-            updateWeekArrows(currentWeek <= 0, currentWeek >= weekData.length - 1);
-        }
 
-        /* ════════════════ MODAL ════════════════ */
+                const weekEvents = (eventsByCohort[selectedCohortId] || [])[currentWeek] || [];
 
-        function openModal(event, di) {
-            openClassModal({
-                event: event,
-                dayIndex: (di !== undefined ? di : event.di),
-                days: weekData[currentWeek].days,
-                modalId: 'eventModal',
-                extraFields: [
-                    { label: 'Cohort', value: event.cohort || '—' }
-                ]
-            });
-        }
+                if (weekEvents.length === 0) {
+                    document.getElementById('emptyState').style.display = 'flex';
+                    document.getElementById('emptyTitle').textContent = 'No classes scheduled';
+                    document.getElementById('emptyText').textContent = 'No classes scheduled for this cohort in the selected week.';
+                    ['sumTotal', 'sumHours', 'sumReplacement', 'sumPending', 'sumConflict'].forEach(id => {
+                        document.getElementById(id).textContent = '0';
+                    });
+                    updateWeekArrows(currentWeek <= 0, currentWeek >= weekData.length - 1);
+                    return;
+                }
 
-        function closeModal() {
-            document.getElementById('eventModal').style.display = 'none';
-        }
+                document.getElementById('emptyState').style.display = 'none';
 
-        function closeModalOutside(e) {
-            closeOnOverlayClick(e, closeModal);
-        }
+                buildTimetableGrid({
+                    events: weekEvents,
+                    days: weekData[currentWeek].days,
+                    onEventClick: function (e, di) { openModal(e, di); },
+                    tooltipExtra: function (e) { return e.lecturer || '—'; },
+                    statusClassFn: function (div, e, isConflict) {
+                        if (isConflict) { div.classList.add('event-public-holiday'); return; }
+                        const isMine = e.isMine === true;
+                        if (e.status === 'pending') {
+                            div.classList.add(isMine ? 'event-mine-pending' : 'event-others-pending');
+                        } else {
+                            div.classList.add(isMine ? 'event-mine' : 'event-others');
+                        }
+                    },
+                    replacementNoteFn: function (e) {
+                        return buildReplacementNote(e, { checkOwnership: function (ev) { return ev.isMine === true; } });
+                    }
+                });
+                computeSummary(weekEvents, weekData[currentWeek].days);
+                updateWeekArrows(currentWeek <= 0, currentWeek >= weekData.length - 1);
+            }
 
-        closeOnEsc(closeModal);
+            /* ════════ MODAL ════════ */
 
-        /* ════════════════ INIT ════════════════ */
+            function openModal(event, di) {
+                openClassModal({
+                    event: event,
+                    dayIndex: (di !== undefined ? di : event.di),
+                    days: weekData[currentWeek].days,
+                    modalId: 'eventModal',
+                    extraFields: [
+                        { label: 'Cohort', value: event.cohort || '—' }
+                    ]
+                });
+            }
 
-        document.addEventListener('DOMContentLoaded', function() {
+            function closeModal() {
+                document.getElementById('eventModal').style.display = 'none';
+            }
+
+            function closeModalOutside(e) {
+                closeOnOverlayClick(e, closeModal);
+            }
+
+            closeOnEsc(closeModal);
+
+            /* ════════ INIT ════════ */
+
             document.getElementById('semesterChip').textContent = MockData.semester.chipText;
             populateWeekSelect('weekSelect', { ranges: false, selected: currentWeek });
             populateFaculties();
 
-            if (isStudentViewer) {
-                // FR 1.2: students are pinned — preselect and lock the selects.
-                if (serverCohortId) {
-                    const facultySel = document.getElementById('facultySelect');
-                    facultySel.value = String(@json($facultyId));
-                    populateCohorts(@json($facultyId));
-                    document.getElementById('cohortSelect').value = String(serverCohortId);
-                    buildTimetable();
-                } else {
-                    showGuidance();
+            if (selectedCohortId) {
+                // Students arrive pinned (FR 1.2): preselect faculty + cohort, lock selects.
+                const facultySel = document.getElementById('facultySelect');
+                const facultyOfCohort = facultyData.find(f =>
+                    f.cohorts.some(c => String(c.id) === String(selectedCohortId)));
+                if (facultyOfCohort) {
+                    facultySel.value = String(facultyOfCohort.id);
+                    populateCohorts(facultyOfCohort.id);
+                    document.getElementById('cohortSelect').value = String(selectedCohortId);
                 }
+                document.getElementById('weekSelect').disabled = false;
+                buildTimetable();
             } else {
                 showGuidance();
             }
+
+            document.getElementById('todayBtn')?.addEventListener('click', goToday);
+            initWeekKeyboardShortcuts();
+
+            initTimetableKeyboardHandlers({
+                prevWeek: prevWeek,
+                nextWeek: nextWeek,
+                openModal: openModal,
+                modalId: 'eventModal'
+            });
+
+            initGridSwipeGestures(prevWeek, nextWeek);
+
+            /* onclick= handlers in partials resolve via window */
+            window.prevWeek = prevWeek;
+            window.nextWeek = nextWeek;
+            window.selectWeek = selectWeek;
+            window.closeModal = closeModal;
+            window.closeModalOutside = closeModalOutside;
+            window.buildTimetable = buildTimetable;
+            window.updateSummary = updateSummary;
         });
-
-        /* Server roundtrip finished (cohort switch) → refresh client data + grid */
-        document.addEventListener('livewire:updated', () => {
-            allEvents = @json($eventsByWeek);
-            if ($wire.cohortId) {
-                buildTimetable();
-            }
-        });
-
-        document.getElementById('todayBtn')?.addEventListener('click', goToday);
-        initWeekKeyboardShortcuts();
-
-        initTimetableKeyboardHandlers({
-            prevWeek: prevWeek,
-            nextWeek: nextWeek,
-            openModal: openModal,
-            modalId: 'eventModal'
-        });
-
-        initGridSwipeGestures(prevWeek, nextWeek);
     </script>
 </div>

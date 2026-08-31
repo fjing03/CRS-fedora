@@ -13,33 +13,24 @@ use Livewire\Attributes\Title;
 use Livewire\Component;
 
 /**
- * Cohort Timetable — all roles (rbac-route-gating spec). Students are pinned
- * to their own cohort (FR 1.2); lecturers/PLs may view any cohort.
+ * Cohort Timetable — all roles (rbac-route-gating spec). Students receive
+ * only their own cohort's events (FR 1.2); lecturers/PLs get every cohort
+ * and switch client-side (same as the legacy mock behaviour).
  */
 class CohortTimetable extends Component
 {
     use ResolvesTimetableTimeline;
 
-    public ?int $facultyId = null;
-
-    public ?int $cohortId = null;
-
     #[Title('Cohort Timetable')]
     public function mount(): void
     {
-        $user = auth()->user();
-        if ($user !== null && $user->isStudent()) {
-            // FR 1.2 scoping: students are pinned to their own cohort.
-            $this->cohortId = $user->student?->cohort_id;
-            $this->facultyId = $this->cohortId !== null
-                ? Cohort::with('programme')->find($this->cohortId)?->programme?->faculty_id
-                : null;
-        }
+        //
     }
 
     public function render(): View
     {
         $semester = $this->timelineSemester();
+        $isStudent = auth()->user()?->isStudent() ?? false;
 
         $faculties = [];
         foreach (Faculty::with(['programmes.cohorts'])->orderBy('faculty_code')->get() as $f) {
@@ -56,48 +47,79 @@ class CohortTimetable extends Component
             $faculties[] = ['id' => $f->id, 'name' => $f->faculty_code, 'cohorts' => $cohorts];
         }
 
-        $eventsByWeek = [];
+        $eventsByCohort = $this->eventsByCohort($isStudent);
 
-        if ($this->cohortId !== null) {
-            $sessions = ClassSession::query()
-                ->with(['module', 'venue', 'cohorts.programme', 'lecturer'])
-                ->join('session_cohorts', 'session_cohorts.class_session_id', '=', 'class_sessions.id')
-                ->where('session_cohorts.cohort_id', $this->cohortId)
-                ->where('class_sessions.semester_id', $semester !== null ? $semester->id : 1)
-                ->orderBy('day_of_week')
-                ->orderBy('start_time')
-                ->get(['class_sessions.*']);
+        return view('livewire.cohort-timetable', [
+            'faculties' => $faculties,
+            'eventsByCohort' => $eventsByCohort,
+            'weekData' => $this->weekData(),
+            'semesterJs' => $this->semesterJs(),
+            'holidaysJs' => $this->holidaysForJs(),
+            'currentWeek' => $this->currentTimelineWeekIndex(),
+            'isStudent' => $isStudent,
+            'pinnedCohortId' => $isStudent ? (auth()->user()->student?->cohort_id) : null,
+        ])
+            ->extends('layouts.ui-template', ['activeNav' => 'cohort-timetables', 'pageKey' => 'cohortTimetable'])
+            ->section('content');
+    }
 
-            $requests = ReplacementRequest::query()
-                ->with(['proposer', 'replacementTimeSlot.venue'])
-                ->whereIn('class_session_id', $sessions->modelKeys())
-                ->whereIn('status', ['pending', 'approved'])
-                ->get();
+    /**
+     * Per-cohort per-week event maps. Students: own cohort only (FR 1.2).
+     *
+     * @return array<int, array<int, array<int, array<string, mixed>>>>
+     */
+    private function eventsByCohort(bool $isStudent): array
+    {
+        $semester = $this->timelineSemester();
 
-            $exceptions = ClassException::query()
-                ->whereIn('class_session_id', $sessions->modelKeys())
-                ->get();
+        $sessions = ClassSession::query()
+            ->with(['module', 'venue', 'cohorts.programme', 'lecturer'])
+            ->where('semester_id', $semester !== null ? $semester->id : 1)
+            ->orderBy('day_of_week')
+            ->orderBy('start_time')
+            ->get();
 
-            $cohort = Cohort::with('programme')->find($this->cohortId);
+        $requests = ReplacementRequest::query()
+            ->with(['proposer', 'replacementTimeSlot.venue'])
+            ->whereIn('class_session_id', $sessions->modelKeys())
+            ->whereIn('status', ['pending', 'approved'])
+            ->get();
 
-            $eventsByWeek = $this->buildEventsByWeek(
-                $sessions,
+        $exceptions = ClassException::query()
+            ->whereIn('class_session_id', $sessions->modelKeys())
+            ->get();
+
+        $cohortIds = $isStudent
+            ? [auth()->user()?->student?->cohort_id]
+            : $sessions->flatMap(fn ($s) => $s->cohorts->pluck('id'))->unique()->values()->all();
+
+        $out = [];
+        foreach ($cohortIds as $cohortId) {
+            if ($cohortId === null) {
+                continue;
+            }
+            $cohortId = (int) $cohortId;
+
+            $cohortSessions = $sessions->filter(
+                fn ($s) => $s->cohorts->contains('id', $cohortId),
+            )->values();
+
+            if ($cohortSessions->isEmpty()) {
+                $out[$cohortId] = [];
+
+                continue;
+            }
+
+            $cohort = Cohort::with('programme')->find($cohortId);
+
+            $out[$cohortId] = $this->buildEventsByWeek(
+                $cohortSessions,
                 $requests,
                 $exceptions,
                 $cohort !== null ? $this->cohortCode($cohort) : null,
             );
         }
 
-        return view('livewire.cohort-timetable', [
-            'faculties' => $faculties,
-            'eventsByWeek' => $eventsByWeek,
-            'weekData' => $this->weekData(),
-            'semesterJs' => $this->semesterJs(),
-            'holidaysJs' => $this->holidaysForJs(),
-            'currentWeek' => $this->currentTimelineWeekIndex(),
-            'isStudent' => auth()->user()?->isStudent() ?? false,
-        ])
-            ->extends('layouts.ui-template', ['activeNav' => 'cohort-timetables', 'pageKey' => 'cohortTimetable'])
-            ->section('content');
+        return $out;
     }
 }

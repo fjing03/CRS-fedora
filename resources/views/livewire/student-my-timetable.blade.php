@@ -62,73 +62,82 @@
     <div class="copy-toast" id="copyToast"></div>
 
     <script>
-        /* ───── Real-data bridge ───── */
-        MockData.semester = @json($semesterJs);
-        MockData.holidays = @json($holidaysJs);
+        /* Real-data bridge. DOMContentLoaded: mock-data.js / ui-common.js are
+           parsed AFTER @yield('content') in the layout body, so top-level
+           access here would throw before they load. */
+        document.addEventListener('DOMContentLoaded', function () {
+            MockData.semester = @json($semesterJs);
+            MockData.holidays = @json($holidaysJs);
 
-        const weekData = generateWeekData();
-        const eventsData = @json($eventsByWeek);
+            window.weekData = generateWeekData();
+            const weekData = window.weekData;
+            const eventsData = @json($eventsByWeek);
 
-        let currentWeek = {{ (int) ($currentWeek ?? 0) }};
+            window.currentWeek = {{ (int) ($currentWeek ?? 0) }};
+            let currentWeek = window.currentWeek;
 
-        const weekNav = new WeekNavigator(MockData.semester, weekData);
-        weekNav._currentWeek = currentWeek;
+            const weekNav = new WeekNavigator(MockData.semester, weekData);
+            weekNav._currentWeek = currentWeek;
 
-        function openModal(event) {
-            openClassModal({
-                event: event,
-                dayIndex: event.di,
-                days: weekData[currentWeek].days,
-                title: event.code || 'Class Details'
-            });
-        }
+            function openModal(event) {
+                openClassModal({
+                    event: event,
+                    dayIndex: event.di,
+                    days: weekData[currentWeek].days,
+                    title: event.code || 'Class Details'
+                });
+            }
 
-        function closeModal() {
-            document.getElementById('classModal').style.display = 'none';
-        }
+            function closeModal() {
+                document.getElementById('classModal').style.display = 'none';
+            }
 
-        function closeModalOutside(e) {
-            closeOnOverlayClick(e, closeModal);
-        }
+            function closeModalOutside(e) {
+                closeOnOverlayClick(e, closeModal);
+            }
 
-        closeOnEsc(closeModal);
+            closeOnEsc(closeModal);
 
-        function buildTimetable() {
-            currentWeek = weekNav.currentWeek;
-            buildTimetableGrid({
-                events: eventsData[currentWeek] || [],
-                days: weekData[currentWeek].days,
-                onEventClick: function(e) { openModal(e); },
-                tooltipExtra: function(e) { return e.lecturer || '—'; },
-                replacementNoteFn: function(e) { return buildReplacementNote(e); }
-            });
-            updateSummary();
-        }
+            function buildTimetable() {
+                currentWeek = weekNav.currentWeek;
+                buildTimetableGrid({
+                    events: eventsData[currentWeek] || [],
+                    days: weekData[currentWeek].days,
+                    onEventClick: function (e) { openModal(e); },
+                    tooltipExtra: function (e) { return e.lecturer || '—'; },
+                    replacementNoteFn: function (e) { return buildReplacementNote(e); }
+                });
+                updateSummary();
+            }
 
-        function updateSummary() {
-            computeSummary(eventsData[currentWeek] || [], weekData[currentWeek].days);
-            updateWeekArrows(currentWeek <= 0, currentWeek >= weekData.length - 1);
-        }
+            function updateSummary() {
+                computeSummary(eventsData[currentWeek] || [], weekData[currentWeek].days);
+                updateWeekArrows(currentWeek <= 0, currentWeek >= weekData.length - 1);
+            }
 
-        function prevWeek() {
-            weekNav.prevWeek();
-            currentWeek = weekNav.currentWeek;
-            saveWeek();
-        }
+            function prevWeek() {
+                weekNav.prevWeek();
+                currentWeek = weekNav.currentWeek;
+                window.currentWeek = currentWeek;
+                saveWeek();
+            }
 
-        function nextWeek() {
-            weekNav.nextWeek();
-            currentWeek = weekNav.currentWeek;
-            saveWeek();
-        }
+            function nextWeek() {
+                weekNav.nextWeek();
+                currentWeek = weekNav.currentWeek;
+                window.currentWeek = currentWeek;
+                saveWeek();
+            }
 
-        function selectWeek(index) {
-            weekNav.selectWeek(parseInt(index, 10));
-            currentWeek = weekNav.currentWeek;
-            saveWeek();
-        }
+            function selectWeek(index) {
+                weekNav.selectWeek(parseInt(index, 10));
+                currentWeek = weekNav.currentWeek;
+                window.currentWeek = currentWeek;
+                saveWeek();
+            }
 
-        document.addEventListener('DOMContentLoaded', function() {
+            function saveWeek() { weekNav.save(); window.currentWeek = currentWeek; }
+
             weekNav.load();
             currentWeek = weekNav.currentWeek;
 
@@ -140,20 +149,29 @@
             buildTimetable();
             updateWeekSubtitle();
             updateProgress();
+
+            weekNav.initTodayBtn();
+            initWeekKeyboardShortcuts();
+
+            initTimetableKeyboardHandlers({
+                prevWeek: prevWeek,
+                nextWeek: nextWeek,
+                openModal: openModal,
+                modalId: 'classModal'
+            });
+
+            initEvCodeCopy('copyToast');
+
+            initGridSwipeGestures(prevWeek, nextWeek);
+
+            /* onclick= handlers in partials resolve via window */
+            window.prevWeek = prevWeek;
+            window.nextWeek = nextWeek;
+            window.selectWeek = selectWeek;
+            window.closeModal = closeModal;
+            window.closeModalOutside = closeModalOutside;
+            window.buildTimetable = buildTimetable;
+            window.updateSummary = updateSummary;
         });
-
-        weekNav.initTodayBtn();
-        initWeekKeyboardShortcuts();
-
-        initTimetableKeyboardHandlers({
-            prevWeek: prevWeek,
-            nextWeek: nextWeek,
-            openModal: openModal,
-            modalId: 'classModal'
-        });
-
-        initEvCodeCopy('copyToast');
-
-        initGridSwipeGestures(prevWeek, nextWeek);
     </script>
 </div>

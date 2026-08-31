@@ -105,103 +105,110 @@
     <div class="copy-toast" id="copyToast"></div>
 
     <script>
-        /* ───── Real-data bridge: shared engine consumes server-fed registries ───── */
-        MockData.semester = @json($semesterJs);
-        MockData.holidays = @json($holidaysJs);
-        MockData.currentUser = @json(['name' => auth()->user()?->name ?? '', 'staffId' => (string) (auth()->user()?->lecturer?->staff_id ?? '')]);
+        /* Real-data bridge. DOMContentLoaded: mock-data.js / ui-common.js are
+           parsed AFTER @yield('content') in the layout body, so top-level
+           access here would throw before they load. */
+        document.addEventListener('DOMContentLoaded', function () {
+            MockData.semester = @json($semesterJs);
+            MockData.holidays = @json($holidaysJs);
+            MockData.currentUser = @json(['name' => auth()->user()?->name ?? '', 'staffId' => (string) (auth()->user()?->lecturer?->staff_id ?? '')]);
 
-        const weekData = generateWeekData();
-        const eventsData = @json($eventsByWeek);
+            window.weekData = generateWeekData();
+            const weekData = window.weekData;
+            const eventsData = @json($eventsByWeek);
 
-        let currentWeek = {{ (int) ($currentWeek ?? 0) }};
-        let currentModalEvent = null;
+            window.currentWeek = {{ (int) ($currentWeek ?? 0) }};
+            let currentWeek = window.currentWeek;
+            window.currentModalEvent = null;
 
-        const weekNav = new WeekNavigator(MockData.semester, weekData);
-        weekNav._currentWeek = currentWeek;
+            const weekNav = new WeekNavigator(MockData.semester, weekData);
+            weekNav._currentWeek = currentWeek;
 
-        function saveWeek() { weekNav.save(); }
+            function saveWeek() { weekNav.save(); window.currentWeek = currentWeek; }
 
-        function openModal(event) {
-            currentModalEvent = event;
+            function openModal(event) {
+                window.currentModalEvent = event;
 
-            const days = weekData[currentWeek].days;
-            const isConflict = days[event.di] && days[event.di].holiday;
+                const days = weekData[currentWeek].days;
+                const isConflict = days[event.di] && days[event.di].holiday;
 
-            const replaceBtn = document.getElementById('btnReplaceNow');
-            replaceBtn.style.display = isConflict ? 'flex' : 'none';
+                const replaceBtn = document.getElementById('btnReplaceNow');
+                replaceBtn.style.display = isConflict ? 'flex' : 'none';
 
-            let cohortValue = event.cohort;
-            let studentValue = event.studentCount ? String(event.studentCount) : '—';
-            if (event.cohorts && event.cohorts.length > 1 && event.studentCount) {
-                studentValue = String(event.studentCount);
+                let cohortValue = event.cohort;
+                let studentValue = event.studentCount ? String(event.studentCount) : '—';
+                if (event.cohorts && event.cohorts.length > 1 && event.studentCount) {
+                    studentValue = String(event.studentCount);
+                }
+
+                openClassModal({
+                    event: event,
+                    dayIndex: event.di,
+                    days: days,
+                    modalId: 'classModal',
+                    title: 'Class Details',
+                    extraFields: [
+                        { label: 'Cohort', value: cohortValue },
+                        { label: 'Total Students', value: studentValue }
+                    ]
+                });
             }
 
-            openClassModal({
-                event: event,
-                dayIndex: event.di,
-                days: days,
-                modalId: 'classModal',
-                title: 'Class Details',
-                extraFields: [
-                    { label: 'Cohort', value: cohortValue },
-                    { label: 'Total Students', value: studentValue }
-                ]
-            });
-        }
+            function closeModal() {
+                document.getElementById('classModal').style.display = 'none';
+            }
 
-        function closeModal() {
-            document.getElementById('classModal').style.display = 'none';
-        }
+            function closeModalOutside(e) {
+                closeOnOverlayClick(e, closeModal);
+            }
 
-        function closeModalOutside(e) {
-            closeOnOverlayClick(e, closeModal);
-        }
+            closeOnEsc(closeModal);
 
-        closeOnEsc(closeModal);
+            function buildTimetable() {
+                currentWeek = weekNav.currentWeek;
+                buildTimetableGrid({
+                    events: eventsData[currentWeek] || [],
+                    days: weekData[currentWeek].days,
+                    onEventClick: function (e) { openModal(e); },
+                    tooltipExtra: function (e) {
+                        // Viewer is the lecturer — tooltip shows the cohort(s).
+                        if (e.cohorts && e.cohorts.length) return e.cohorts.join(' + ');
+                        return e.cohort || e.venue || '—';
+                    },
+                    replacementNoteFn: function (e) {
+                        return buildReplacementNote(e);
+                    }
+                });
+                updateSummary();
+            }
 
-        function buildTimetable() {
-            currentWeek = weekNav.currentWeek;
-            buildTimetableGrid({
-                events: eventsData[currentWeek] || [],
-                days: weekData[currentWeek].days,
-                onEventClick: function(e) { openModal(e); },
-                tooltipExtra: function(e) {
-                    // Viewer is the lecturer — tooltip shows the cohort(s).
-                    if (e.cohorts && e.cohorts.length) return e.cohorts.join(' + ');
-                    return e.cohort || e.venue || '—';
-                },
-                replacementNoteFn: function(e) {
-                    return buildReplacementNote(e);
-                }
-            });
-            updateSummary();
-        }
+            function updateSummary() {
+                const events = eventsData[currentWeek] || [];
+                computeSummary(events, weekData[currentWeek].days);
+                updateWeekArrows(currentWeek <= 0, currentWeek >= weekData.length - 1);
+            }
 
-        function updateSummary() {
-            const events = eventsData[currentWeek] || [];
-            computeSummary(events, weekData[currentWeek].days);
-            updateWeekArrows(currentWeek <= 0, currentWeek >= weekData.length - 1);
-        }
+            function prevWeek() {
+                weekNav.prevWeek();
+                currentWeek = weekNav.currentWeek;
+                window.currentWeek = currentWeek;
+                saveWeek();
+            }
 
-        function prevWeek() {
-            weekNav.prevWeek();
-            currentWeek = weekNav.currentWeek;
-            saveWeek();
-        }
+            function nextWeek() {
+                weekNav.nextWeek();
+                currentWeek = weekNav.currentWeek;
+                window.currentWeek = currentWeek;
+                saveWeek();
+            }
 
-        function nextWeek() {
-            weekNav.nextWeek();
-            currentWeek = weekNav.currentWeek;
-            saveWeek();
-        }
+            function selectWeek(index) {
+                weekNav.selectWeek(parseInt(index, 10));
+                currentWeek = weekNav.currentWeek;
+                window.currentWeek = currentWeek;
+                saveWeek();
+            }
 
-        function selectWeek(index) {
-            weekNav.selectWeek(parseInt(index, 10));
-            currentWeek = weekNav.currentWeek;
-            saveWeek();
-        }
-
-        document.addEventListener('DOMContentLoaded', function() {
             weekNav.load();
             currentWeek = weekNav.currentWeek;
             document.getElementById('semesterChip').textContent = MockData.semester.chipText;
@@ -210,20 +217,30 @@
             buildTimetable();
             updateWeekSubtitle();
             updateProgress();
+
+            weekNav.initTodayBtn();
+            initWeekKeyboardShortcuts();
+
+            initTimetableKeyboardHandlers({
+                prevWeek: prevWeek,
+                nextWeek: nextWeek,
+                openModal: openModal,
+                modalId: 'classModal'
+            });
+
+            initEvCodeCopy('copyToast');
+
+            initGridSwipeGestures(prevWeek, nextWeek);
+
+            /* onclick= handlers in partials resolve via window */
+            window.prevWeek = prevWeek;
+            window.nextWeek = nextWeek;
+            window.selectWeek = selectWeek;
+            window.openModal = openModal;
+            window.buildTimetable = buildTimetable;
+            window.updateSummary = updateSummary;
+            window.closeModal = closeModal;
+            window.closeModalOutside = closeModalOutside;
         });
-
-        weekNav.initTodayBtn();
-        initWeekKeyboardShortcuts();
-
-        initTimetableKeyboardHandlers({
-            prevWeek: prevWeek,
-            nextWeek: nextWeek,
-            openModal: openModal,
-            modalId: 'classModal'
-        });
-
-        initEvCodeCopy('copyToast');
-
-        initGridSwipeGestures(prevWeek, nextWeek);
     </script>
 </div>

@@ -109,12 +109,13 @@ function updateWeekArrowState() {
 
 function jumpToToday() {
     currentWeek = currentWeekIndex();
-    buildTimetable();
+    window.currentWeek = currentWeek;
+    if (typeof window.buildTimetable === 'function') window.buildTimetable();
     var sel = document.getElementById('weekSelect');
     if (sel) sel.selectedIndex = currentWeek;
-    if (typeof updateWeekSubtitle === 'function') updateWeekSubtitle();
-    if (typeof updateSummary === 'function') updateSummary();
-    if (typeof updateProgress === 'function') updateProgress();
+    if (typeof window.updateWeekSubtitle === 'function') window.updateWeekSubtitle();
+    if (typeof window.updateSummary === 'function') window.updateSummary();
+    if (typeof window.updateProgress === 'function') window.updateProgress();
     var grid = document.querySelector('.grid-wrapper');
     if (grid) grid.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
