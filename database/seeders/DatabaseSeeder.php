@@ -110,24 +110,25 @@ class DatabaseSeeder extends Seeder
         $dacb = Department::where('dept_code', 'DACB')->first();
 
         $lecturersData = [
-            ['staff_id' => '5425', 'name' => 'Pn. Surayaini Binti Basri', 'email' => 'surayaini@tarc.edu.my', 'is_pl' => true, 'dept' => $dcit],
-            ['staff_id' => '5516', 'name' => 'En. Mohd Nur Rahmat Bin Mohd Taat', 'email' => 'mohdnurrahmat@tarc.edu.my', 'is_pl' => true, 'dept' => $dcit],
-            ['staff_id' => '4288', 'name' => 'Dr. Christopher Lazarus', 'email' => 'christopherl@tarc.edu.my', 'is_pl' => false, 'dept' => $dcit],
-            ['staff_id' => '3221', 'name' => 'Pn. Lee Yee Fong', 'email' => 'leeyeefong@tarc.edu.my', 'is_pl' => false, 'dept' => $dcit],
-            ['staff_id' => '3825', 'name' => 'Pn. Teng Nga Sing', 'email' => 'tengns@tarc.edu.my', 'is_pl' => false, 'dept' => $dcit],
-            ['staff_id' => '4127', 'name' => 'Pn. Patricia G Kissol', 'email' => 'patriciagk@tarc.edu.my', 'is_pl' => false, 'dept' => $dcit],
-            ['staff_id' => '2873', 'name' => 'Cik Ellis Chieng', 'email' => 'chienge@tarc.edu.my', 'is_pl' => false, 'dept' => $dcit],
-            ['staff_id' => '5514', 'name' => 'Ts. Norshikin Binti Zainal Abidin', 'email' => 'norshikin@tarc.edu.my', 'is_pl' => false, 'dept' => $dcit],
-            ['staff_id' => '5599', 'name' => 'En. Jefther Edward', 'email' => 'jeftheredward@tarc.edu.my', 'is_pl' => false, 'dept' => $dcit],
-            ['staff_id' => '5652', 'name' => 'En. Daniel Royd Michael', 'email' => 'danielroyd@tarc.edu.my', 'is_pl' => false, 'dept' => $dcit],
-            ['staff_id' => '5770', 'name' => 'En. Lim Jia Zheng', 'email' => 'limjz@tarc.edu.my', 'is_pl' => false, 'dept' => $dcit],
-            ['staff_id' => '3799', 'name' => 'En. Muada Bin Ojih', 'email' => 'muadao@tarc.edu.my', 'is_pl' => false, 'dept' => $dssh],
-            ['staff_id' => '4363', 'name' => 'Pn. Tan Sharon', 'email' => 'tans@tarc.edu.my', 'is_pl' => false, 'dept' => $dacb],
-            ['staff_id' => '5254', 'name' => 'Dr. Chang Foo Chung', 'email' => 'changfc@tarc.edu.my', 'is_pl' => false, 'dept' => $dacb],
+            ['staff_id' => '5425', 'honorific' => 'Pn.', 'name' => 'Surayaini Binti Basri', 'email' => 'surayaini@tarc.edu.my', 'is_pl' => true, 'dept' => $dcit],
+            ['staff_id' => '5516', 'honorific' => 'En.', 'name' => 'Mohd Nur Rahmat Bin Mohd Taat', 'email' => 'mohdnurrahmat@tarc.edu.my', 'is_pl' => true, 'dept' => $dcit],
+            ['staff_id' => '4288', 'honorific' => 'Dr.', 'name' => 'Christopher Lazarus', 'email' => 'christopherl@tarc.edu.my', 'is_pl' => false, 'dept' => $dcit],
+            ['staff_id' => '3221', 'honorific' => 'Pn.', 'name' => 'Lee Yee Fong', 'email' => 'leeyeefong@tarc.edu.my', 'is_pl' => false, 'dept' => $dcit],
+            ['staff_id' => '3825', 'honorific' => 'Pn.', 'name' => 'Teng Nga Sing', 'email' => 'tengns@tarc.edu.my', 'is_pl' => false, 'dept' => $dcit],
+            ['staff_id' => '4127', 'honorific' => 'Pn.', 'name' => 'Patricia G Kissol', 'email' => 'patriciagk@tarc.edu.my', 'is_pl' => false, 'dept' => $dcit],
+            ['staff_id' => '2873', 'honorific' => 'Cik', 'name' => 'Ellis Chieng', 'email' => 'chienge@tarc.edu.my', 'is_pl' => false, 'dept' => $dcit],
+            ['staff_id' => '5514', 'honorific' => 'Ts.', 'name' => 'Norshikin Binti Zainal Abidin', 'email' => 'norshikin@tarc.edu.my', 'is_pl' => false, 'dept' => $dcit],
+            ['staff_id' => '5599', 'honorific' => 'En.', 'name' => 'Jefther Edward', 'email' => 'jeftheredward@tarc.edu.my', 'is_pl' => false, 'dept' => $dcit],
+            ['staff_id' => '5652', 'honorific' => 'En.', 'name' => 'Daniel Royd Michael', 'email' => 'danielroyd@tarc.edu.my', 'is_pl' => false, 'dept' => $dcit],
+            ['staff_id' => '5770', 'honorific' => 'En.', 'name' => 'Lim Jia Zheng', 'email' => 'limjz@tarc.edu.my', 'is_pl' => false, 'dept' => $dcit],
+            ['staff_id' => '3799', 'honorific' => 'En.', 'name' => 'Muada Bin Ojih', 'email' => 'muadao@tarc.edu.my', 'is_pl' => false, 'dept' => $dssh],
+            ['staff_id' => '4363', 'honorific' => 'Pn.', 'name' => 'Tan Sharon', 'email' => 'tans@tarc.edu.my', 'is_pl' => false, 'dept' => $dacb],
+            ['staff_id' => '5254', 'honorific' => 'Dr.', 'name' => 'Chang Foo Chung', 'email' => 'changfc@tarc.edu.my', 'is_pl' => false, 'dept' => $dacb],
         ];
 
         foreach ($lecturersData as $l) {
             $user = User::create([
+                'honorific' => $l['honorific'],
                 'name' => $l['name'],
                 'email' => $l['email'],
                 'password' => Hash::make(self::DEFAULT_PASSWORD),

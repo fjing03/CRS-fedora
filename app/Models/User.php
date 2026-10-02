@@ -20,6 +20,7 @@ use Laravel\Passkeys\PasskeyAuthenticatable;
 /**
  * @property int $id
  * @property string $name
+ * @property string|null $honorific
  * @property string $email
  * @property Carbon|null $email_verified_at
  * @property string $password
@@ -30,7 +31,7 @@ use Laravel\Passkeys\PasskeyAuthenticatable;
  * @property Student|null $student
  * @property Lecturer|null $lecturer
  */
-#[Fillable(['name', 'email', 'password', 'role'])]
+#[Fillable(['name', 'honorific', 'email', 'password', 'role'])]
 #[Hidden(['password', 'remember_token'])]
 class User extends Authenticatable implements MustVerifyEmailContract, PasskeyUser
 {
@@ -74,6 +75,13 @@ class User extends Authenticatable implements MustVerifyEmailContract, PasskeyUs
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
         ];
+    }
+
+    public function displayName(): string
+    {
+        return $this->honorific
+            ? trim($this->honorific.' '.$this->name)
+            : $this->name;
     }
 
     public function initials(): string

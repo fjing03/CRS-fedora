@@ -8,7 +8,7 @@
 <body style="font-family: sans-serif; padding: 2rem;">
     @php
         $user = Auth::user();
-        $name = $user->name;
+        $name = $user->displayName();
         $id = $user->loginId();
     @endphp
 
