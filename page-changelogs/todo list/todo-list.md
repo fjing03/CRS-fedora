@@ -176,7 +176,7 @@ All use existing `theme.css` tokens. No new variables needed.
 - **Priority:** `high`
 - **Affected files:**
   - `resources/views/auth/login-staff.blade.php:10-12` — updated `idRegex` `^\d+$` → `^P?\d{4}$`, `idPlaceholder` `e.g. 6767` → `e.g. P5425 or 5425`, `formatHint` `Numeric staff ID only` → `4 digits, optional "P" prefix`
-  - Login handler (backend) — strip optional `P` prefix before Fortify authentication — **deferred** (frontend-only fix per `staff-id-p-prefix-frontend-fix-plan.md:§7`)
+  - Login handler (backend) — strip optional `P` prefix before Fortify authentication — **COMPLETED 2026-10-06:** `FortifyServiceProvider.php` staff branch strips leading uppercase `P` before lookup + lockout keys (verified live: `P5425`/`5425` both log in, `p5425`/`P54255` rejected, student path untouched) — see `page-changelogs/login-oop-refactor-changelog.md` 2026-10-06 entry
   - `page-changelogs/login-oop-refactor-changelog.md` — recorded change 2026-08-21 § Fix: Staff ID Optional "P" Prefix
 
 **Description:**
@@ -185,7 +185,7 @@ Update the Staff login form validation to accept Staff IDs with an optional "P" 
 **Changes:**
 
 1. `login-staff.blade.php:10-12` — updated regex `^\d+$` → `^P?\d{4}$`, placeholder `e.g. P5425 or 5425`, hint `4 digits, optional "P" prefix` — verified `P5425`+`5425` enabled, `p5425`/bad lengths disabled
-2. Backend — strip optional `P` prefix from `login_id` for staff logins before Fortify authenticates (seeder stores pure digits) — deferred, see plan §7
+2. Backend — strip optional `P` prefix from `login_id` for staff logins before Fortify authenticates (seeder stores pure digits) — **COMPLETED 2026-10-06** (see TASK-004 / login-oop-refactor changelog)
 3. Verified client-side validation for both `P5425` and `5425` formats + student control `25RSD0001` unchanged
 
 **Full plan:** See `staff-id-p-prefix-frontend-fix-plan.md` — executed 2026-08-21, cache cleared `pkill -9 php && rm -f storage/framework/views/*.php`

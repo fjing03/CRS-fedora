@@ -85,6 +85,11 @@ class FortifyServiceProvider extends ServiceProvider
             $loginId = $request->input('login_id');
 
             if ($loginType === 'staff') {
+                // FR 2.1 — staff IDs accept an optional uppercase "P" prefix (P5425 = 5425).
+                // The DB stores pure digits, so normalise before the lookup and the
+                // lockout/failure cache keys, so both forms share the same counters.
+                $loginId = preg_replace('/^P(?=\d)/', '', (string) $loginId);
+
                 $lockout = Cache::get("login_lockout:{$loginId}");
                 if ($lockout) {
                     session(['lockout_expires' => now()->addMinutes($lockout['minutes'])->timestamp]);

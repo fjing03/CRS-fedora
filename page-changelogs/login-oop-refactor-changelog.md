@@ -1,5 +1,24 @@
 # Login Pages OOP Refactor Changelog
 
+## [2026-10-06] Backend: strip optional "P" prefix for staff logins (TASK-004 final step)
+
+Frontend already accepts `^P?\d{4}$` (eeaa5c4) but the seeder stores pure digits — so a `P5425` submission found no lecturer and failed. Backend now normalises before lookup.
+
+### Files Changed
+- `app/Providers/FortifyServiceProvider.php` — in the staff branch of `Fortify::authenticateUsing()`: `$loginId = preg_replace('/^P(?=\d)/', '', (string) $loginId);` placed **before** the lockout/failure cache keys, so `P5425` and `5425` share the same fail-counter (`login_fail:{id}` / `login_lockout:{id}`). Uppercase `P` only — lowercase `p5425` is not stripped and falls through to a normal failed lookup (matches client regex `^P?\d{4}$`).
+- Student path untouched (`$loginId` normalised only when `login_type === 'staff'`).
+
+### Verification (server restarted, stale compiled views cleared)
+- [x] `P5425` + `Tarumt@2026` → 302 `/my-timetable-ui` (logged in)
+- [x] `5425` + `Tarumt@2026` → 302 `/my-timetable-ui` (logged in)
+- [x] `p5425` → back to `/login/staff` (rejected)
+- [x] `5425` + wrong password → back to `/login/staff` (rejected)
+- [x] `P54255` (5 digits) → back to `/login/staff` (rejected)
+- [x] Control — student `25DFT0001` (no P-strip) → 302 `/student-my-timetable-ui`
+- [x] `vendor/bin/pint --test` + `vendor/bin/phpstan analyse` (file) — 0 errors
+
+---
+
 ## [2026-08-31] Sync upstream/fjing login refactor (merge fd8c403)
 
 Merged `upstream/fjing` (267 commits) into `fedora-backend`. Login pages were conflicted (add/add) → resolved **theirs**, pulling upstream's OOP refactor (`40ba963`) and the staff-login optional `P` prefix fix (`eeaa5c4`, TASK-004). This closes the pending FR 2.1 prefix-support item flagged in CodingMAIN §7.4. Smoke: `/login/student` + `/login/staff` 200; PHPUnit auth tests 94/94 (incl. role-based post-login/logout redirects).
