@@ -1,6 +1,6 @@
 # Tasks — Phase 3: MatrixIntersectionEngine
 
-> **Status:** Tasks for design.md + specs (frozen, Batches 2+3). This is **Batch 4** — pending review.
+> **Status:** COMPLETE — 40/40 tasks. Batches 2+3 frozen; Batch 4 completed and verified 2026-10-06 (suite + targeted integration run green) without a formal review round.
 > **Working tree:** `fedora-jing` at `/home/jinglinux/tarumt/CRS-fedora`. Frozen artifacts: proposal.md, design.md, specs/intersection-engine/spec.md.
 > Each task ≤ 2 hours. Quality gate after each task: PHPUnit targeted run stays green; Pint + PHPStan at task 10.
 
@@ -94,10 +94,10 @@
 
 **DoD:** real-seed acceptance gate passes.
 
-- [ ] `tests/Feature/MatrixIntersectionEngineTest.php` — `RefreshDatabase` + real `DatabaseSeeder`
-- [ ] Known scenario: lecturer 4288 / DFT2 cohorts, week 5, 'L', 60 — non-empty, green-per-vectors, pinned window (`day:1, 10:00:00, B002`), no day-2 windows
-- [ ] Timing assert `< 500ms` (generous; widen if flaky — never delete)
-- [ ] Run: `php vendor/phpunit/phpunit/phpunit --no-coverage tests/Feature/MatrixIntersectionEngineTest.php`
+- [x] `tests/Feature/MatrixIntersectionEngineTest.php` — `RefreshDatabase` + real `DatabaseSeeder`
+- [x] Known scenario: lecturer 4288 / DFT2 cohorts, week 5, 'L', 60 — non-empty, green-per-vectors, pinned window (`day:1, 10:00:00, B002`), no day-2 windows
+- [x] Timing assert `< 500ms` (generous; widen if flaky — never delete)
+- [x] Run: `php vendor/phpunit/phpunit/phpunit --no-coverage tests/Feature/MatrixIntersectionEngineTest.php` — passed 2026-10-06, 1 test / 134 assertions / 6.4s
 
 ## Task 10 — Quality gates + changelog + commit
 
