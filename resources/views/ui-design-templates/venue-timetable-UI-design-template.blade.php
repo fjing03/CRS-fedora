@@ -1,4 +1,5 @@
-@extends('layouts.ui-template', ['activeNav' => 'venue-timetable', 'pageKey' => 'venueTimetable'])
+@extends('layouts.ui-template', [
+        'homeUrl' => '/my-timetable-ui','activeNav' => 'venue-timetable', 'pageKey' => 'venueTimetable'])
 
 @section('title', 'Venue Timetable — Class Replacement System')
 
@@ -51,7 +52,7 @@
         /* ───── Booking Banner ───── */
         .booking-banner {
             background: var(--color-primary);
-            color: #fff;
+            color: var(--color-on-primary);
             padding: 10px 16px;
             border-radius: var(--radius-sm);
             font-size: 14px;
@@ -247,6 +248,9 @@
                 gap: 8px;
                 padding: 8px 0;
             }
+            /* the card list is the mobile booking surface — the desktop grid
+               cannot fit a phone viewport */
+            body[data-page='venueTimetable'] #timetable { display: none; }
             .venue-event-card {
                 background: var(--color-surface);
                 border: 1px solid var(--color-outline);
@@ -283,13 +287,23 @@
             }
             .venue-available-card {
                 background: var(--color-primary);
-                color: #fff;
+                color: var(--color-on-primary);
                 border-radius: var(--radius-sm);
                 padding: 12px;
                 cursor: pointer;
                 text-align: center;
                 font-weight: 600;
             }
+            /* F-6 (round-2): day separator above each day's run of slot cards */
+            .m-slot-day {
+                font-size: 11px;
+                font-style: italic;
+                color: var(--color-on-surface-variant);
+                opacity: 0.7;
+                margin: 10px 2px 2px;
+                padding-left: 2px;
+            }
+            .m-slot-day:first-child { margin-top: 0; }
             .summary-bar {
                 display: grid;
                 grid-template-columns: 1fr 1fr;
@@ -299,6 +313,10 @@
 
         /* ───── Available slot hover label ───── */
         .cell-available { --hover-label: 'Book ?'; }
+        /* too late in the day for a full booking — hover says so instead */
+        .cell-available.cell-no-fit { --hover-label: 'Not bookable'; cursor: not-allowed; }
+        /* booked classes open their details on click */
+        .cell-content.cell-has-details { cursor: pointer; }
 
 
 
@@ -350,7 +368,7 @@
                 <button class="fav-btn" id="favStar" data-tip="Add to Favourites">&#9734;</button>
             </div>
             @include('partials.ui-week-nav', ['prevOnclick' => 'prevWeek()', 'nextOnclick' => 'nextWeek()', 'selectId' => 'weekSelect', 'selectOnclick' => 'selectWeek(this.value)', 'disabled' => false])
-            <button class="print-btn" title="Coming soon" disabled style="margin-left:auto;">
+            <button class="print-btn" title="Coming soon" onclick="toast.show('Printing is coming soon')" style="margin-left:auto;">
                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <polyline points="6 9 6 2 18 2 18 9"/>
                     <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/>
@@ -379,6 +397,9 @@
             <span>Click any green slot to book this venue</span>
         </div>
 
+        <!-- ─── Lead-Time Notice (contextual: shown while the viewed week is blocked) ─── -->
+        <div class="lead-time-note" id="leadTimeNote" style="display:none"></div>
+
         <!-- ─── Grid Wrapper ─── -->
         @include('partials.ui-grid-table')
 
@@ -390,12 +411,15 @@
             'items' => [
                 ['color' => 'var(--color-success-container)', 'label' => 'Available', 'tip' => 'Free slot — click to book this venue'],
                 ['color' => 'var(--color-tertiary-container)', 'label' => 'Pending', 'tip' => 'Replacement request awaiting approval'],
-                ['color' => 'var(--color-error-container)', 'label' => 'Unavailable', 'tip' => 'Cannot book — slot is booked, Sunday, or public holiday'],
+                ['color' => 'var(--color-error-container)', 'label' => 'Unavailable', 'tip' => 'Cannot book — slot is booked, Sunday, public holiday, or less than 3 working days away'],
             ]
         ])
 
-        <!-- ─── Summary Bar ─── -->
-        @include('partials.ui-summary-bar', [
+        {{-- ─── Summary Bar — commented out: the four counts (Total/Available/Pending/Unavailable)
+             add little value for the booking journey (the grid already shows the same state
+             colour-coded; the legend explains it). Restore by uncommenting; the
+             updateSummaries() writers are null-guarded so the page runs without it. --}}
+        {{-- @include('partials.ui-summary-bar', [
             'cards' => [
                 ['class' => 'card-total', 'valueId' => 'sumTotal', 'label' => 'Total Slots',
                     'description' => 'All time slots shown for <strong>this venue</strong> in the selected week.'],
@@ -406,7 +430,7 @@
                 ['class' => 'card-conflict', 'valueId' => 'sumUnavailable', 'label' => 'Unavailable',
                     'description' => '<strong>Cannot book</strong> — booked class, Sunday, or public holiday.'],
             ]
-        ])
+        ]) --}}
 
         <!-- ─── Empty State ─── -->
         @include('partials.ui-empty-state', ['title' => 'Select a venue', 'text' => 'Choose a venue from the dropdown to view its weekly schedule.'])
@@ -459,17 +483,11 @@
 
         const weekData = generateWeekData();
 
-        function getTodayMs() {
-            const d = new Date();
-            d.setHours(0, 0, 0, 0);
-            return d.getTime();
-        }
-
         /* ════════════════════════════════════════════
            WEEK NAVIGATION (shared WeekNavigator)
            ════════════════════════════════════════════ */
 
-        const weekNav = new WeekNavigator(MockData.semester, weekData);
+        const weekNav = new WeekNavigator(MockData.semester, weekData, null, 'venueTimetableWeek');
 
         /* ════════════════════════════════════════════
            STATE PERSISTENCE (venue only)
@@ -521,8 +539,9 @@
             /* week dropdown */
             const weekSelect = document.getElementById('weekSelect');
             populateWeekSelect(weekSelect.id || 'weekSelect', {
-                ranges: false,
-                labelFn: function(w) { return w.label + ' — ' + w.range; }
+                ranges: false
+                /* labels = shared default ("Week N · DD Mon YYYY ~ DD Mon YYYY"),
+                   matching the arrangement page's week select */
             });
 
             /* default to today, then weekNav.load overrides if saved */
@@ -575,8 +594,11 @@
             const code = venueDropdown ? venueDropdown.getSelected() : null;
             if (!code) return;
 
-            currentVenue = MockData.venues.find(v => v.code === code);
-            if (!currentVenue) return;
+            /* resolve first — an unknown/stale code must not clobber the
+               currently selected venue */
+            const venueObj = MockData.venues.find(v => v.code === code);
+            if (!venueObj) return;
+            currentVenue = venueObj;
 
             /* update favourite star */
             updateFavStar();
@@ -646,7 +668,7 @@
                         <span class="history-code">${e.code}</span>
                         <span>${e.cohort || ''}</span>
                         <span>${start} – ${end}</span>
-                        <span class="history-status badge badge-${e.status}">${e.status}</span>
+                        <span class="history-status badge badge-${e.status}">${StatusText.label(e.status)}</span>
                     `;
                     panel.appendChild(row);
                 });
@@ -696,6 +718,10 @@
            ════════════════════════════════════════════ */
 
         function buildTimetable() {
+            /* the grid is about to be replaced — a live Book tooltip would go
+               stale, and so would the tracked keyboard cell */
+            hideAvailableTooltip();
+            focusedCell = null;
             currentWeek = weekNav.currentWeek;
             document.getElementById('hintText').style.display = 'none';
             document.getElementById('emptyState').style.display = 'none';
@@ -711,6 +737,20 @@
             }
 
             const weekEvents = getVenueEvents(currentVenue.code, currentWeek);
+
+            /* F-6 (round-2): the mobile slot list is long (every 30-min
+               bookable start = one card) — group the cards under a small day
+               header, re-emitted with each builder pass so week/venue swaps
+               stay consistent (list itself is cleared above). */
+            let lastSlotDay = null;
+            function mobileSlotDayHeader(di) {
+                if (di === lastSlotDay) return;
+                lastSlotDay = di;
+                const hd = document.createElement('div');
+                hd.className = 'm-slot-day';
+                hd.textContent = days[di].abbr + ' · ' + days[di].date;
+                document.getElementById('mobileCardList').appendChild(hd);
+            }
 
             if (weekEvents.length === 0) {
                 /* No classes booked — show hint */
@@ -738,10 +778,20 @@
                         } else {
                             div.classList.add('cell-occupied');
                         }
+                        /* booked classes open their detail modal on desktop too */
+                        div.classList.add('cell-has-details');
+                        div.tabIndex = 0;
+                        div.setAttribute('role', 'button');
+                        div.setAttribute('aria-label', `View class details: ${e.code} ${hours[hi]}`);
+                        div._evt = e;
+                        div._di = di;
+                        div.addEventListener('click', function() { openModal(e, di); });
+                        div.addEventListener('focus', function() { focusedCell = div; });
 
                         td.appendChild(div);
 
                         /* mobile card */
+                        mobileSlotDayHeader(di);
                         const card = createEventCard(e, di);
                         document.getElementById('mobileCardList').appendChild(card);
                     } else if (info && info.occupied) {
@@ -753,10 +803,18 @@
                             div.classList.add('cell-occupied');
                         }
                         td.appendChild(div);
+                    } else if (isSlotTooSoon(weekData, currentWeek, di)) {
+                        /* lead-time rule: inside the 3-working-day window —
+                           rendered read-only (no Book tooltip, no keyboard) */
+                        const div = document.createElement('div');
+                        div.className = 'cell-content cell-too-soon';
+                        td.appendChild(div);
                     } else {
                         /* Available slot */
                         const div = document.createElement('div');
                         div.className = 'cell-content cell-available';
+                        /* a booking can't fit if it would run past the day end */
+                        if (hi + BOOK_SPAN > hours.length) div.classList.add('cell-no-fit');
                         div.tabIndex = 0;
                         div.dataset.day = di;
                         div.dataset.hour = hi;
@@ -764,11 +822,14 @@
                         div.setAttribute('aria-label', `Available slot: ${days[di].abbr} ${hours[hi]}`);
 
                         div.addEventListener('click', function(ev) {
+                            focusedCell = div;
                             showAvailableTooltip(ev, di, hi);
                         });
+                        div.addEventListener('focus', function() { focusedCell = div; });
                         td.appendChild(div);
 
                         /* mobile available card */
+                        mobileSlotDayHeader(di);
                         const mobileCard = document.createElement('div');
                         mobileCard.className = 'venue-available-card';
                         mobileCard.textContent = `${days[di].abbr} ${hours[hi]}`;
@@ -779,6 +840,19 @@
                     }
                 }
             });
+
+            /* mobile: the card list IS the booking surface — reveal it after a
+               rebuild (the builder hides it first to clear stale cards) */
+            const mcl = document.getElementById('mobileCardList');
+            if (mcl) mcl.style.display = (mcl.children.length && window.matchMedia('(max-width: 768px)').matches) ? '' : 'none';
+            /* keep it honest across viewport resizes (no rebuild needed) */
+            window.addEventListener('resize', function() {
+                const mcl = document.getElementById('mobileCardList');
+                if (mcl) mcl.style.display = (mcl.children.length && window.matchMedia('(max-width: 768px)').matches) ? '' : 'none';
+            });
+
+            /* lead-time banner (contextual: shown while the viewed week is blocked) */
+            renderLeadTimeNote('leadTimeNote', weekData, currentWeek);
 
             updateSummaries(weekEvents);
         }
@@ -796,7 +870,7 @@
             card.innerHTML = `
                 <div class="venue-event-header">
                     <span class="venue-event-code">${e.code}</span>
-                    <span class="venue-event-status ${statusClass}">${e.status}</span>
+                    <span class="venue-event-status ${statusClass}">${StatusText.label(e.status)}</span>
                 </div>
                 <div class="venue-event-body">
                     <div class="venue-event-row"><span class="venue-event-label">Cohort</span><span class="venue-event-value">${e.cohort}</span></div>
@@ -813,6 +887,10 @@
            ════════════════════════════════════════════ */
 
         function updateSummaries(events) {
+            /* The four summary cards are commented out on this page (venue-only
+               cleanup) — exit early when they're absent so the rebuild never
+               touches a null node. The counting stays for a painless restore. */
+            if (!document.getElementById('sumTotal')) return;
             /* Count exactly what the grid renders (same cells), so the stats
                always match the timetable — including overlapping bookings that
                share the same hour slot.
@@ -821,14 +899,17 @@
             let occupied = 0;
             let pending = 0;
             let available = 0;
+            let tooSoon = 0;
             if (currentVenue) {
                 occupied = document.querySelectorAll('.timetable .cell-content.cell-occupied').length;
                 pending = document.querySelectorAll('.timetable .cell-content.cell-pending').length;
                 available = document.querySelectorAll('.timetable .cell-content.cell-available').length;
+                tooSoon = document.querySelectorAll('.timetable .cell-content.cell-too-soon').length;
             }
             const sunday = document.querySelectorAll('.timetable .cell-content.cell-sun').length;
             const ph = document.querySelectorAll('.timetable .cell-content.cell-ph').length;
-            const unavailable = occupied + sunday + ph;
+            /* unavailable = booked + Sunday + holiday + lead-time blackout */
+            const unavailable = occupied + sunday + ph + tooSoon;
 
             document.getElementById('sumTotal').textContent = available + pending + unavailable;
             document.getElementById('sumAvailable').textContent = available;
@@ -857,7 +938,7 @@
                     DetailModal.row('Cohort', e.cohort || '—') +
                     DetailModal.row('Start Time', startTime, { strong: true }) +
                     DetailModal.row('End Time', endTime) +
-                    DetailModal.row('Status', '<span class="badge badge-' + e.status + '">' + e.status + '</span>') +
+                    DetailModal.row('Status', '<span class="badge badge-' + e.status + '">' + StatusText.label(e.status) + '</span>') +
                     DetailModal.row('Status Description', e.status === 'pending' ? 'Replacement request awaiting approval' : 'Class booked for this venue') +
                     DetailModal.row('Remarks', e.remarks || '—')
                 )
@@ -872,7 +953,16 @@
            AVAILABLE SLOT TOOLTIP
            ════════════════════════════════════════════ */
 
+        /* Slots one booking spans on the arrangement page (its default
+           MAX_SELECTION: 4 half-hour slots = 2h). A booking starting too late in
+           the day can't fit — don't offer Book on those cells. */
+        const BOOK_SPAN = 4;
+
         function showAvailableTooltip(ev, di, hi) {
+            if (hi + BOOK_SPAN > hours.length) {
+                toast.show('A booking needs ' + (BOOK_SPAN * 30) + ' minutes — not enough time left in the day.');
+                return;
+            }
             const tooltip = document.getElementById('availableTooltip');
             const dayName = weekData[currentWeek].days[di]?.abbr || '';
             const dateStr = weekData[currentWeek].days[di]?.date || '';
@@ -909,6 +999,13 @@
 
         function bookVenue(venueCode, date, time) {
             hideAvailableTooltip();
+            /* a fresh Book click is a new intent: if THIS slot was previously
+               cancelled (auto-select discarded) or its banner dismissed, start clean */
+            const bookingKey = venueCode + '|' + date + '|' + time;
+            try {
+                if (sessionStorage.getItem('bookingIntentCancelled') === bookingKey) sessionStorage.removeItem('bookingIntentCancelled');
+                if (sessionStorage.getItem('bookingIntentDismissed') === bookingKey) sessionStorage.removeItem('bookingIntentDismissed');
+            } catch (e) {}
             let url = `/replacement-arrangement?venue=${encodeURIComponent(venueCode)}&date=${encodeURIComponent(date)}&time=${encodeURIComponent(time)}&from=venue-timetable`;
             if (currentCourseCode) url += `&code=${encodeURIComponent(currentCourseCode)}`;
             if (currentCohort) url += `&cohort=${encodeURIComponent(currentCohort)}`;
@@ -935,13 +1032,13 @@
                 return;
             }
 
-            /* Arrow navigation on grid */
+            /* Arrow navigation on grid (available AND booked cells are focusable) */
             if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Enter'].includes(e.key)) {
                 const active = document.activeElement;
-                if (!active || !active.classList.contains('cell-available')) return;
+                if (!active || !active.classList.contains('cell-content') || active.tabIndex !== 0) return;
 
                 e.preventDefault();
-                const cells = Array.from(document.querySelectorAll('.cell-available'));
+                const cells = Array.from(document.querySelectorAll('.cell-content[tabindex="0"]'));
                 const idx = cells.indexOf(active);
                 if (idx === -1) return;
 
@@ -951,7 +1048,11 @@
                 else if (e.key === 'ArrowDown') next = Math.min(idx + 7, cells.length - 1);
                 else if (e.key === 'ArrowUp') next = Math.max(idx - 7, 0);
                 else if (e.key === 'Enter') {
-                    showAvailableTooltip(null, parseInt(active.dataset.day), parseInt(active.dataset.hour));
+                    /* booked cells open their details; available cells the Book tooltip */
+                    if (active._evt) openModal(active._evt, active._di);
+                    else if (active.classList.contains('cell-available')) {
+                        showAvailableTooltip(null, parseInt(active.dataset.day), parseInt(active.dataset.hour));
+                    }
                     return;
                 }
 

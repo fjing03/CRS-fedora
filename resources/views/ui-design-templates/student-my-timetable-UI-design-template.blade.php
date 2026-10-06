@@ -1,11 +1,11 @@
 @extends('layouts.ui-template', [
+        'homeUrl' => '/student-my-timetable-ui',
     'activeNav' => 'my-timetable',
     'pageKey' => 'studentMyTimetable',
     'navItems' => [
         ['key'=>'my-timetable','label'=>'Student My Timetable','href'=>'/student-my-timetable-ui'],
-        ['key'=>'upcoming-replacements','label'=>'Upcoming Replacements','href'=>'/upcoming-replacements-ui'],
+        ['key'=>'replacement-history','label'=>'Replacement History','href'=>'/replacement-history-ui'],
     ],
-    'notifCount' => 3,
 ])
 
 @section('title', 'Student My Timetable')
@@ -35,7 +35,7 @@
 
         <!-- ─── Semester Bar ─── -->
         <div class="semester-bar">
-            @include('partials.ui-week-nav', ['prevOnclick' => 'prevWeek()', 'nextOnclick' => 'nextWeek()', 'selectId' => 'weekSelect', 'selectOnclick' => 'selectWeek(this.value)'])
+            @include('partials.ui-week-nav', ['prevOnclick' => 'prevWeek()', 'nextOnclick' => 'nextWeek()', 'selectId' => 'weekSelect', 'selectOnclick' => 'selectWeek(this.value)', 'showPrint' => true])
         </div>
 
         <!-- ─── Week Subtitle ─── -->
@@ -120,7 +120,7 @@
 
         let currentWeek = currentWeekIndex();
 
-        const weekNav = new WeekNavigator(MockData.semester, weekData);
+        const weekNav = new WeekNavigator(MockData.semester, weekData, null, 'studentTimetableWeek');
         weekNav._currentWeek = currentWeek;
 
         const WEEK_KEY = 'studentMyTimetableWeek';
@@ -204,9 +204,6 @@
 
             const chipEl = document.getElementById('semesterChip');
             if (chipEl) chipEl.textContent = MockData.semester.chipText;
-
-            const notifBadge = document.getElementById('notifBadge');
-            if (notifBadge) notifBadge.textContent = MockData.studentTimetable.notificationCount;
 
             buildWeekOptions();
             buildTimetable();

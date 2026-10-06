@@ -57,6 +57,12 @@
     --color-outline: rgba(155, 170, 190, 0.20);
     --color-outline-strong: rgba(155, 170, 190, 0.35);
 
+    /* Dimming scrim behind overlays (AD-10) */
+    --color-scrim: rgba(0, 0, 0, 0.60);
+
+    /* Sizing tokens (theme-invariant) */
+    --top-bar-height: 56px;
+
     /* macOS-inspired shadows */
     --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.12), 0 1px 2px rgba(0, 0, 0, 0.24);
     --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.15), 0 2px 4px rgba(0, 0, 0, 0.12);
@@ -118,6 +124,9 @@
     --color-outline: rgba(30, 50, 70, 0.12);
     --color-outline-strong: rgba(30, 50, 70, 0.25);
 
+    /* Dimming scrim behind overlays (AD-10) */
+    --color-scrim: rgba(0, 0, 0, 0.50);
+
     /* macOS-inspired shadows — lighter for light mode */
     --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.06), 0 1px 2px rgba(0, 0, 0, 0.04);
     --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.07), 0 2px 4px rgba(0, 0, 0, 0.04);
@@ -155,7 +164,7 @@ body {
     left: 0;
     right: 0;
     z-index: 50;
-    height: 56px;
+    height: var(--top-bar-height);
     display: flex;
     align-items: center;
     background: var(--color-primary-container);
@@ -280,6 +289,219 @@ body {
     align-items: center;
     justify-content: center;
     box-shadow: 0 0 0 2px var(--color-primary-container);
+}
+
+/* ── Notification Panel ── */
+.notif-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    z-index: 998;
+    background: var(--color-scrim);
+}
+.notif-overlay.open { display: block; }
+
+.notif-panel {
+    position: fixed;
+    top: calc(var(--top-bar-height) + 8px);
+    right: 12px;
+    width: min(360px, calc(100vw - 24px));
+    background: var(--color-surface);
+    border: 1px solid var(--color-outline);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-lg);
+    z-index: 999;
+    display: none;
+    flex-direction: column;
+    overflow: hidden;
+}
+.notif-panel.open { display: flex; }
+
+.notif-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 8px 16px;
+    border-bottom: 1px solid var(--color-outline);
+    flex-shrink: 0;
+}
+.notif-head-title {
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--color-on-surface);
+}
+.notif-head-actions {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+.notif-unread-pill {
+    min-width: 18px;
+    height: 18px;
+    padding: 0 5px;
+    border-radius: var(--radius-pill);
+    background: var(--color-primary);
+    color: var(--color-on-primary);
+    font-size: 11px;
+    font-weight: 700;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    box-sizing: border-box;
+}
+
+.notif-close {
+    width: 30px;
+    height: 30px;
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--color-outline);
+    background: transparent;
+    color: var(--color-on-surface-variant);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    flex-shrink: 0;
+}
+.notif-close:hover {
+    background: var(--color-surface-variant);
+    color: var(--color-on-surface);
+    border-color: var(--color-outline-strong);
+}
+
+/* T17 — "Unread only" filter row, slim strip under the head (AD-19/AD-20).
+   Toggle switch itself is the globally promoted .toggle-wrapper (theme.css
+   3135) — only sizing context for the panel lives here. */
+.notif-filters {
+    display: flex;
+    align-items: center;
+    padding: 6px 16px;
+    border-bottom: 1px solid var(--color-outline);
+    flex-shrink: 0;
+}
+.notif-filters .toggle-label {
+    font-size: 12px; /* 0.75rem — family convention, fits 360px panel */
+}
+
+#notifMarkAll {
+    min-height: 44px;
+    padding: 0 10px;
+    border: none;
+    border-radius: var(--radius-sm);
+    background: transparent;
+    color: var(--color-primary);
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    transition: background var(--transition);
+    flex-shrink: 0;
+}
+#notifMarkAll:hover { background: var(--color-surface-variant); }
+
+.notif-list {
+    flex: 1;
+    overflow-y: auto;
+    /* AD-9: desktop list cap so rows stay reachable on a short viewport
+       (design.md D7 froze 380 over the proposal's "~420px"). Mobile instead
+       scrolls the whole sheet (design.md:152) — the cap reverts below 768. */
+    max-height: 380px;
+}
+
+.notif-row {
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    align-items: center;
+    gap: 12px;
+    padding: 8px 16px;
+    min-height: 44px;
+    color: var(--color-on-surface);
+    text-decoration: none;
+    cursor: pointer;
+    transition: background var(--transition);
+}
+.notif-row:hover { background: var(--color-surface-variant); }
+
+/* T17 — muted history row in "all" mode (AD-20): same hover, demoted title. */
+.notif-row--read .notif-row-title {
+    font-weight: 400;
+    color: var(--color-on-surface-variant);
+}
+
+.notif-row-icon {
+    width: 36px;
+    height: 36px;
+    border-radius: var(--radius-sm);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+.notif-row-icon svg { display: block; }
+
+.notif-tile-submitted { background: var(--color-primary-container);   color: var(--color-on-primary-container); }
+.notif-tile-awaiting  { background: var(--color-tertiary-container);  color: var(--color-on-tertiary-container); }
+.notif-tile-approved  { background: var(--color-success-container);  color: var(--color-on-success-container); }
+.notif-tile-rejected  { background: var(--color-error-container);     color: var(--color-on-error-container); }
+.notif-tile-update    { background: var(--color-surface-variant);     color: var(--color-on-surface-variant); }
+
+.notif-row-body {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+}
+.notif-row-title {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--color-on-surface);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.notif-row-desc {
+    font-size: 12px; /* 0.75rem */
+    color: var(--color-on-surface-variant);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.notif-row-time {
+    font-size: 12px; /* 0.75rem */
+    color: var(--color-on-surface-variant);
+    white-space: nowrap;
+}
+
+.notif-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 32px 16px;
+    color: var(--color-on-surface-variant);
+    font-size: 13px;
+    text-align: center;
+}
+
+/* ── Mobile Notification Panel Overrides ── */
+@media (max-width: 768px) {
+    .notif-panel {
+        top: var(--top-bar-height);
+        left: 0;
+        right: 0;
+        width: 100%;
+        border-radius: 0;
+        border-inline: 0;
+        max-height: calc(100dvh - var(--top-bar-height));
+        overflow-y: auto;
+    }
+    /* mobile: the sheet scrolls as a whole (design.md:152) — no inner cap */
+    .notif-list { max-height: none; }
 }
 
 .user-panel {
@@ -664,6 +886,11 @@ html.dark .filter-select {
 .badge-replacement { background: var(--color-primary); color: var(--color-on-primary); }
 .badge-pending { background: var(--color-warning); color: var(--color-on-warning); }
 .badge-conflict { background: var(--color-error); color: var(--color-on-error); }
+/* Neutral "Past" qualifier chip (upcoming-replacements) — §10.0 rule 2: same name+color for the same meaning */
+.badge-past {
+    background: var(--color-surface-variant);
+    color: var(--color-on-surface-variant);
+}
 
 /* ───── Cell Class Block (multi-line cell) ───── */
 .cell-class-block {
@@ -1046,6 +1273,12 @@ html.dark .filter-select {
 .legend-item { display: flex; align-items: center; gap: 6px; font-size: 0.85rem; }
 .legend-swatch { width: 14px; height: 14px; border-radius: var(--radius-sm); flex-shrink: 0; }
 .legend-hint { font-size: 11px; color: var(--color-on-surface-variant); opacity: 0.5; font-style: italic; }
+.legend-hint .hint-touch { display: none; }
+/* touch devices tap instead of hover (F-5, ui-legend-bar dual copy) */
+@media (hover: none) {
+    .legend-hint .hint-hover { display: none; }
+    .legend-hint .hint-touch { display: inline; }
+}
 
 /* ── Summary card colors (macOS accent style) ────────────── */
 .summary-card.card-total .summary-value    { color: var(--color-success); }
@@ -1383,6 +1616,24 @@ html.dark .filter-select {
     background: transparent;
     color: var(--color-on-surface-variant);
 }
+/* ── Print action (enabled stub — click shows the shared "coming soon" toast) ── */
+.print-btn {
+    width: 32px;
+    height: 32px;
+    border-radius: var(--radius-sm);
+    border: none;
+    background: transparent;
+    color: var(--color-on-surface-variant);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-left: auto; /* rightmost slot of the toolbar row */
+}
+.print-btn:hover {
+    background: var(--color-primary-container);
+    color: var(--color-primary);
+}
 /* ── Week Nav: arrows + week-select stay together ── */
 .week-nav {
     display: flex;
@@ -1402,10 +1653,12 @@ html.dark .filter-select {
     appearance: none;
     -webkit-appearance: none;
     -moz-appearance: none;
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%233d5a48' stroke-width='1.5' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%239EAAB8' stroke-width='1.5' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
     background-repeat: no-repeat;
     background-position: right 10px center;
     min-width: 180px;
+    height: 36px;
+    padding: 0 32px 0 12px;
     transition: border-color 0.15s, box-shadow 0.15s;
 }
 .week-select:hover {
@@ -1420,8 +1673,11 @@ html.dark .filter-select {
     background: var(--color-surface);
     color: var(--color-on-surface);
 }
-html.dark .week-select {
-    color-scheme: dark;
+.light .week-select {
+    color-scheme: light;
+    /* light theme: same chevron; stroke mirrors --color-on-surface-variant
+       (light: #5A6978) — SVG data-URIs cannot use var() */
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%235A6978' stroke-width='1.5' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
 }
 .semester-bar select:not(.week-select) {
     font-family: inherit;
@@ -1436,7 +1692,7 @@ html.dark .week-select {
     appearance: none;
     -webkit-appearance: none;
     -moz-appearance: none;
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%233d5a48' stroke-width='1.5' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%236BA3E0' stroke-width='1.5' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
     background-repeat: no-repeat;
     background-position: right 8px center;
     min-width: 160px;
@@ -1444,6 +1700,10 @@ html.dark .week-select {
 .semester-bar select:not(.week-select) option {
     background: var(--color-surface);
     color: var(--color-on-surface);
+}
+.light .semester-bar select:not(.week-select) {
+    color-scheme: light;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%23003366' stroke-width='1.5' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
 }
 html.dark .semester-bar select:not(.week-select) {
     color-scheme: dark;
@@ -1707,6 +1967,7 @@ html.dark .semester-bar select:not(.week-select) {
 .event-selection:hover {
     filter: brightness(1.08);
     box-shadow: inset 0 0 0 1.5px var(--color-primary);
+    border-color: var(--color-error);
 }
 
 .event-selection-preview {
@@ -1903,6 +2164,73 @@ html.dark .semester-bar select:not(.week-select) {
     pointer-events: none;
 }
 .cell-ph:hover::after { opacity: 1; }
+
+/* ── Lead-time rule: too soon to book (read-only) ───────────── */
+.cell-too-soon {
+    background: var(--color-surface-variant);
+    --hover-label: 'Min. 3 working days ahead';
+    cursor: var(--cursor-cancel);
+}
+.cell-too-soon::after {
+    content: var(--hover-label);
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--color-surface-variant);
+    color: var(--color-on-surface-variant);
+    font-size: 13px;
+    font-weight: 600;
+    border-radius: var(--radius-sm);
+    opacity: 0;
+    transition: opacity 0.15s;
+    pointer-events: none;
+}
+.cell-too-soon:hover::after { opacity: 1; }
+
+/* ── Lead-time notice (banner family, neutral info tone) ────── */
+.lead-time-note {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--color-surface-variant);
+    color: var(--color-on-surface-variant);
+    border: 1px solid color-mix(in srgb, var(--color-outline) 35%, transparent);
+    border-radius: var(--radius-md);
+    padding: 8px 12px;
+    font-size: 13px;
+    margin: 0 0 10px;
+}
+.lead-time-note svg { flex-shrink: 0; }
+.lead-time-note strong { font-weight: 600; color: var(--color-success); }
+
+/* ── Earliest-bookable flash (the jump lands on the boundary day row) ── */
+@keyframes bookable-pulse {
+    0%, 100% { box-shadow: 0 0 0 0 transparent; }
+    45% { box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-success) 45%, transparent); }
+}
+tr.bookable-flash > td { animation: bookable-pulse 1.15s ease-in-out 1; }
+
+/* ── Bookable badge ("Bookings open" on the earliest bookable day) ──
+   Same geometry as the Today/OFF/Holiday badge family; success green =
+   the actionable/bookable color (matches the banner date and the
+   boundary-day flash), while solid primary stays on the today-badge */
+.bookable-badge {
+    display: block;
+    margin-top: 2px;
+    padding: 1px 6px;
+    border-radius: var(--radius-sm);
+    background: var(--color-success);
+    color: var(--color-on-success);
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+    text-align: center;
+    white-space: normal;
+    word-break: break-word;
+}
 .cell-ph:hover { filter: brightness(1.2); z-index: 5; cursor: var(--cursor-cancel); }
 
 /* ── Sunday/offday hover label ──────────────────────────────── */
@@ -1934,6 +2262,14 @@ html.dark .semester-bar select:not(.week-select) {
 /* ── Today button ───────────────────────────────────────────── */
 .today-btn { width: auto; min-width: 32px; height: 32px; padding: 0 10px; border-radius: var(--radius-sm); border: none; background: var(--color-primary-container); color: var(--color-on-primary-container); cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 4px; transition: background 0.15s; flex-shrink: 0; font-size: 13px; }
 .today-btn:hover { opacity: 0.85; }
+/* "Earliest bookable" variant: success-container to match the green
+   BOOKINGS OPEN badge / banner date / boundary-day flash — the one
+   bookable thread; the default Today button stays primary-container */
+.today-btn.today-btn-earliest {
+    background: var(--color-success-container);
+    color: var(--color-on-success-container);
+    border: 1px solid color-mix(in srgb, var(--color-success) 35%, transparent);
+}
 
 /* ── Nested Venue Dropdown ──────────────────────────────────── */
 .venue-dd {
@@ -1947,13 +2283,13 @@ html.dark .semester-bar select:not(.week-select) {
     gap: 6px;
     min-width: 240px;
     height: 36px;
-    padding: 0 12px;
+    padding: 0 24px 0 12px;
     border: 1px solid var(--color-outline);
-    border-radius: var(--radius-sm);
+    border-radius: var(--radius-md); /* same as the week-select family */
     background: var(--color-surface);
     color: var(--color-on-surface);
-    font-size: 14px;
-    font-weight: 500;
+    font-size: 13px; /* the week-select family typography */
+    font-weight: 600;
     cursor: pointer;
     transition: border-color 0.15s, box-shadow 0.15s;
     text-align: left;
@@ -1963,6 +2299,18 @@ html.dark .semester-bar select:not(.week-select) {
 }
 .venue-dd-trigger:hover {
     border-color: var(--color-outline-strong);
+}
+/* the chevron is the shared dropdown arrow (same 10x6 stroke-1.5 shape as the
+   native selects'; currentColor = theme-adaptive, token-safe) */
+.venue-dd-trigger .venue-dd-label {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    min-width: 0; /* lets the label shrink inside the capped trigger */
+}
+.venue-dd-trigger .dd-arrow {
+    flex-shrink: 0; /* the arrow stays put while the label ellipsizes */
+    color: var(--color-on-surface-variant);
 }
 .venue-dd.open .venue-dd-trigger {
     border-color: var(--color-primary);
@@ -2098,18 +2446,19 @@ html.dark .semester-bar select:not(.week-select) {
 .event-block::after { content: attr(data-name) ' · ' attr(data-tip2); position: absolute; bottom: 100%; left: 50%; transform: translateX(-50%); background: var(--color-inverse-surface); color: var(--color-on-inverse-surface); padding: 4px 8px; border-radius: var(--radius-xs); font-size: 0.75rem; white-space: nowrap; opacity: 0; pointer-events: none; transition: opacity 0.15s; z-index: 50; }
 .event-block:hover::after { opacity: 1; }
 .event-block.event-selection::after {
-    content: "REMOVE?";
+    content: "Remove these slots?";
     position: absolute;
     top: 50%; left: 50%;
+    bottom: auto; /* generic .event-block::after sets bottom:100% — would squash the pill */
     transform: translate(-50%, -50%);
-    font-size: 11px; font-weight: 700;
-    color: var(--color-on-primary);
+    font-size: 12px; font-weight: 700;
+    color: var(--color-on-error);
+    background: var(--color-error);
+    padding: 3px 12px;
+    border-radius: 999px;
     opacity: 0; transition: opacity 0.15s;
     pointer-events: none; white-space: nowrap;
     z-index: 51;
-    background: transparent;
-    padding: 0;
-    border-radius: 0;
 }
 .event-block.event-selection:hover::after { opacity: 1; }
 .ev-code { cursor: pointer; }

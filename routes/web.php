@@ -46,10 +46,10 @@ $uiPages = [
         'nav' => 'my-timetable',
         'mw' => ['auth', 'role:student'],
     ],
-    '/upcoming-replacements-ui' => [
-        'component' => 'App\Livewire\UpcomingReplacements',
-        'legacy' => 'ui-design-templates.upcoming-replacements-UI-design-template',
-        'nav' => 'upcoming-replacements',
+    '/replacement-history-ui' => [
+        'component' => 'App\Livewire\ReplacementHistory',
+        'legacy' => 'ui-design-templates.replacement-history-UI-design-template',
+        'nav' => 'replacement-history',
         'mw' => ['auth', 'role:student'],
     ],
     '/replacement-home-ui' => [

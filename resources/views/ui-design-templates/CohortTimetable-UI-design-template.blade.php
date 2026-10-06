@@ -1,4 +1,5 @@
-@extends('layouts.ui-template', ['activeNav' => 'cohort-timetables', 'pageKey' => 'cohortTimetable'])
+@extends('layouts.ui-template', [
+        'homeUrl' => '/my-timetable-ui','activeNav' => 'cohort-timetables', 'pageKey' => 'cohortTimetable'])
 
 @section('title', 'Cohort Timetable — Class Replacement System')
 
@@ -63,7 +64,7 @@
             <select id="cohortSelect" onchange="onCohortChange()" disabled>
                 <option value="">Select Cohort</option>
             </select>
-            @include('partials.ui-week-nav', ['prevOnclick' => 'prevWeek()', 'nextOnclick' => 'nextWeek()', 'selectId' => 'weekSelect', 'selectOnclick' => 'selectWeek(this.value)', 'disabled' => true])
+            @include('partials.ui-week-nav', ['prevOnclick' => 'prevWeek()', 'nextOnclick' => 'nextWeek()', 'selectId' => 'weekSelect', 'selectOnclick' => 'selectWeek(this.value)', 'disabled' => true, 'showPrint' => true])
         </div>
 
         <!-- ─── Grid Wrapper ─── -->
@@ -156,7 +157,7 @@
         let currentWeek = currentWeekIndex();
         let selectedCohortId = null;
 
-        const weekNav = new WeekNavigator(MockData.semester, weekData);
+        const weekNav = new WeekNavigator(MockData.semester, weekData, null, 'cohortTimetableWeek');
         weekNav._currentWeek = currentWeek;
 
         /* ════════════════════════════════════════════

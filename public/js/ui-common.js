@@ -18,7 +18,10 @@ function toggleTheme() {
 }
 
 function navigateHome() {
-    window.location.href = '/';
+    /* R-3 (round-3): logo goes to the page's role home (staff → My Timetable,
+       student → Student My Timetable); pages without a homeUrl land on the
+       welcome view. The layout emits window.PAGE_HOME. */
+    window.location.href = window.PAGE_HOME || '/';
 }
 
 function updateWeekArrows(prevDisabled, nextDisabled) {
@@ -33,7 +36,7 @@ function updateWeekArrows(prevDisabled, nextDisabled) {
 function currentWeekIndex() {
     const parts = MockData.semester.startDate.split('-');
     const semesterStart = new Date(parts[0], parts[1] - 1, parts[2]);
-    const today = new Date();
+    const today = new Date(getTodayMs());
     today.setHours(0, 0, 0, 0);
     const idx = Math.floor((today - semesterStart) / 86400000 / 7);
     return Math.max(0, Math.min(MockData.semester.weeks - 1, idx));
@@ -81,7 +84,178 @@ function generateWeekData() {
         }
         arr.push({ label: `Week ${w}`, range: `${fmt(mon)} ~ ${fmt(sun)}`, rangeShort: `${fmtShort(mon)} ~ ${fmtShort(sun)}`, days });
     }
+    /* mark the semester's earliest bookable day (the lead-time boundary) —
+       grid builders render the "Bookings open" chip in its time-col when the
+       page opts in (cfg.bookableBadge) */
+    const fb = firstBookableDay(arr);
+    if (fb) arr[fb.week].days[fb.day].firstBookable = true;
     return arr;
+}
+
+// ───── Lead-Time Rule (3 working days) ─────
+/**
+ * The first selectable date under the lead-time rule: the 3rd working day
+ * from the MockData.mockNow anchor (Mon-Fri, skipping the page's holiday
+ * flags). A slot on this date IS selectable (>= 3, per the agreed boundary).
+ * @param {Array} weekData — page week data (days carry .date 'DD Mon YYYY' + .holiday)
+ * @returns {Date}
+ */
+function leadTimeCutoff(weekData) {
+    const today = new Date(getTodayMs());
+    const holidays = new Set();
+    (weekData || []).forEach(function(w) {
+        (w.days || []).forEach(function(d) { if (d.holiday) holidays.add(d.date); });
+    });
+    const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    const wd = new Date(today);
+    let count = 0;
+    while (count < 3) {
+        wd.setDate(wd.getDate() + 1);
+        const dow = wd.getDay();
+        if (dow === 0 || dow === 6) continue; /* weekend */
+        if (holidays.has(String(wd.getDate()).padStart(2, '0') + ' ' + months[wd.getMonth()] + ' ' + wd.getFullYear())) continue;
+        count++;
+    }
+    return wd;
+}
+
+/**
+ * True when a slot may NOT be selected: it lies in the past or fewer than
+ * 3 working days from the MockData.mockNow anchor.
+ * @param {Array}  weekData — page week data (days carry .date 'DD Mon YYYY' + .holiday)
+ * @param {number} weekIdx
+ * @param {number} dayIdx
+ * @returns {boolean} true = the cell renders read-only
+ */
+function isSlotTooSoon(weekData, weekIdx, dayIdx) {
+    const day = weekData && weekData[weekIdx] && weekData[weekIdx].days && weekData[weekIdx].days[dayIdx];
+    if (!day) return false;
+    const slot = new Date(day.date);
+    slot.setHours(0, 0, 0, 0);
+    const today = new Date(getTodayMs());
+    if (slot <= today) return true; /* past, or today itself */
+    return slot < leadTimeCutoff(weekData);
+}
+
+/**
+ * A week is BOOKABLE when at least one day can host a replacement request:
+ * not Sunday, not a holiday, and not too-soon (past / inside the
+ * 3-working-day window). Drives the arrangement page's hidden-unbookable
+ * weeks rule and its "Earliest bookable" destination — one source of truth
+ * with isSlotTooSoon so they can never drift apart.
+ * @param {Array}  weekData
+ * @param {number} weekIdx
+ * @returns {boolean} true = at least one selectable slot exists that week
+ */
+function weekHasBookableSlot(weekData, weekIdx) {
+    const week = weekData && weekData[weekIdx];
+    if (!week) return false;
+    for (var d = 0; d < week.days.length; d++) {
+        const day = week.days[d];
+        if (day.sunday || day.abbr === 'Sun' || day.holiday) continue;
+        if (isSlotTooSoon(weekData, weekIdx, d)) continue;
+        return true;
+    }
+    return false;
+}
+
+/**
+ * The earliest bookable day in a given week (first day that can host a
+ * request) — i.e. the lead-time boundary day for that week.
+ * @param {Array}  weekData
+ * @param {number} weekIdx
+ * @returns {number} day index, or -1 when the week has no bookable day
+ */
+function firstBookableDayIn(weekData, weekIdx) {
+    const week = weekData && weekData[weekIdx];
+    if (!week) return -1;
+    for (var d = 0; d < week.days.length; d++) {
+        const day = week.days[d];
+        if (day.sunday || day.abbr === 'Sun' || day.holiday) continue;
+        if (isSlotTooSoon(weekData, weekIdx, d)) continue;
+        return d;
+    }
+    return -1;
+}
+
+/**
+ * The earliest bookable day across the whole semester — the "Earliest
+ * bookable" destination: { week, day } indexes, or null when no week is
+ * bookable at all (end-of-semester edge; pages must guard).
+ * @param {Array} weekData
+ * @returns {{week:number, day:number}|null}
+ */
+function firstBookableDay(weekData) {
+    if (!weekData) return null;
+    for (var w = 0; w < weekData.length; w++) {
+        const d = firstBookableDayIn(weekData, w);
+        if (d >= 0) return { week: w, day: d };
+    }
+    return null;
+}
+
+/**
+ * Pulses the earliest bookable day row so the arrangement page's
+ * "Earliest bookable" action lands on the exact origin (the lead-time
+ * boundary day), not just somewhere in the week. Day rows carry
+ * tr[data-dayIndex]; the pulse uses the shared success token.
+ * @param {Array}  weekData
+ * @param {number} weekIdx — the week on screen (must hold a bookable day)
+ */
+function flashEarliestBookableDay(weekData, weekIdx) {
+    const body = document.getElementById('tableBody');
+    const dayIdx = firstBookableDayIn(weekData, weekIdx);
+    if (!body || dayIdx < 0) return;
+    const rows = body.querySelectorAll('tr[data-dayIndex="' + dayIdx + '"]');
+    rows.forEach(function(r) {
+        r.classList.remove('bookable-flash');
+        void r.offsetWidth; /* restart the animation on repeat clicks */
+        r.classList.add('bookable-flash');
+    });
+    setTimeout(function() {
+        rows.forEach(function(r) { r.classList.remove('bookable-flash'); });
+    }, 1300);
+}
+
+/**
+ * Renders the contextual lead-time banner: visible only while the viewed
+ * week contains blocked days (past / inside the 3-working-day window).
+ * Same banner family as the booking-intent notice, neutral info tone.
+ * @param {string} elId
+ * @param {Array}  weekData
+ * @param {number} weekIdx — the week currently on screen
+ */
+function renderLeadTimeNote(elId, weekData, weekIdx) {
+    const el = document.getElementById(elId);
+    if (!el) return;
+    const week = weekData && weekData[weekIdx];
+    const blocked = [];
+    let fullyPast = true;
+    if (week) {
+        const today = new Date(getTodayMs());
+        week.days.forEach(function(d, dIdx) {
+            if (isSlotTooSoon(weekData, weekIdx, dIdx)) blocked.push(dIdx);
+            const dt = new Date(d.date);
+            dt.setHours(0, 0, 0, 0);
+            if (dt >= today) fullyPast = false;
+        });
+    }
+    if (!blocked.length) { el.innerHTML = ''; el.style.display = 'none'; return; }
+    const cutoff = leadTimeCutoff(weekData);
+    const days = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+    const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    const dateStr = days[cutoff.getDay()] + ', ' + String(cutoff.getDate()).padStart(2, '0') + ' ' + months[cutoff.getMonth()] + ' ' + cutoff.getFullYear();
+    /* copy: a fully-past week reads differently from the current one */
+    const lead = fullyPast
+        ? 'This week has already passed'
+        : 'This week is within 3 working days of today';
+    const copy = fullyPast || blocked.length >= 5
+        ? lead + ' \u2014 bookable from <strong>' + dateStr + '</strong> onward.'
+        : 'Some slots this week are too soon \u2014 bookable from <strong>' + dateStr + '</strong> onward.';
+    el.className = 'lead-time-note';
+    el.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>'
+        + '<span>' + copy + '</span>';
+    el.style.display = '';
 }
 
 function updateWeekSubtitle() {
@@ -126,11 +300,21 @@ function initTodayBtn() {
 }
 
 class WeekNavigator {
-    constructor(semesterData, weekData, selectId) {
+    constructor(semesterData, weekData, selectId, storageKey, weekFilter) {
         this._semester = semesterData;
         this._weekData = weekData;
         this._currentWeek = 0;
         this._selectId = selectId || 'weekSelect';
+        /* namespaced by default (sweep-fixes-round-1, F-11): pages that don't
+           pass a key get one derived from their select id, so sibling pages
+           can't overwrite each other's saved position anymore (the old
+           shared-collision note below). Explicit keys win when passed. */
+        this._storageKey = storageKey || ('weekNav-' + (this._selectId || 'weekSelect'));
+        /* optional visibility filter (page-supplied): when present, weeks
+           failing it (e.g. no bookable slot) are skipped in navigation and
+           resolved away on load/select; null = every week is navigable
+           (venue-timetable keeps its full list — it's a browsing/history page) */
+        this._weekFilter = weekFilter || null;
     }
 
     get currentWeek() {
@@ -147,8 +331,8 @@ class WeekNavigator {
 
     jumpToToday() {
         this._currentWeek = this._currentWeekIndex();
-        this._buildTimetable();
         this._updateSelect();
+        this._buildTimetable();
         this._updateSubtitle();
         this._updateProgress();
         this._scrollToGrid();
@@ -156,11 +340,12 @@ class WeekNavigator {
     }
 
     prevWeek() {
-        if (this._currentWeek > 0) {
+        const target = this._resolveStep(this._currentWeek - 1, -1);
+        if (target >= 0 && target < this._currentWeek) {
             this._beforeNavigate();
-            this._currentWeek--;
-            this._buildTimetable();
+            this._currentWeek = target;
             this._updateSelect();
+            this._buildTimetable();
             this._updateSubtitle();
             this._updateProgress();
             this._updateArrows();
@@ -169,11 +354,12 @@ class WeekNavigator {
     }
 
     nextWeek() {
-        if (this._currentWeek < this._semester.weeks - 1) {
+        const target = this._resolveStep(this._currentWeek + 1, 1);
+        if (target >= 0 && target > this._currentWeek) {
             this._beforeNavigate();
-            this._currentWeek++;
-            this._buildTimetable();
+            this._currentWeek = target;
             this._updateSelect();
+            this._buildTimetable();
             this._updateSubtitle();
             this._updateProgress();
             this._updateArrows();
@@ -182,14 +368,63 @@ class WeekNavigator {
     }
 
     selectWeek(index) {
+        if (this._weekFilter && !this._weekFilter(index)) {
+            const resolved = this._resolveStep(index, 1);
+            if (resolved < 0) return; /* nothing visible — stay put */
+            index = resolved;
+        }
         this._beforeNavigate();
         this._currentWeek = index;
-        this._buildTimetable();
         this._updateSelect();
+        this._buildTimetable();
         this._updateSubtitle();
         this._updateProgress();
         this._updateArrows();
         this.save();
+    }
+
+    /**
+     * Steps from `from` in direction `dir` (-1 back / +1 forward) until a
+     * week passes the visibility filter; -1 when none does. Without a
+     * filter this is the identity (`from` itself), so unfiltered pages
+     * behave exactly as before.
+     */
+    _resolveStep(from, dir) {
+        var i = from;
+        var max = this._semester.weeks - 1;
+        while (i >= 0 && i <= max) {
+            if (!this._weekFilter || this._weekFilter(i)) return i;
+            i += dir;
+        }
+        return -1;
+    }
+
+    /** First visible (weekFilter-passing) week index, or -1 when none. */
+    firstVisibleWeek() {
+        return this._resolveStep(0, 1);
+    }
+
+    /**
+     * "Earliest bookable" destination: jump to the first week that can host
+     * a request and flash its boundary day. Falls back to real "today" when
+     * no week is bookable at all (end-of-semester edge — grid renders
+     * read-only rather than the dropdown going empty).
+     */
+    jumpToEarliestBookable() {
+        var target = this.firstVisibleWeek();
+        if (target < 0) return this.jumpToToday();
+        if (target !== this._currentWeek) {
+            this._beforeNavigate();
+            this._currentWeek = target;
+            this._updateSelect();
+            this._buildTimetable();
+            this._updateSubtitle();
+            this._updateProgress();
+            this._updateArrows();
+            this._scrollToGrid();
+            this.save();
+        }
+        if (typeof this.flashEarliestBookable === 'function') this.flashEarliestBookable();
     }
 
     onWeekChange() {
@@ -203,13 +438,25 @@ class WeekNavigator {
 
     save() {
         try {
-            localStorage.setItem('currentWeek', this._currentWeek);
+            localStorage.setItem(this._storageKey, this._currentWeek);
         } catch (e) { /* ignore */ }
     }
 
     load() {
         try {
-            var saved = localStorage.getItem('currentWeek');
+            /* one-time legacy migration (F-11): pages that used to share the
+               generic 'currentWeek' key adopt it once, then it is retired —
+               first visited page inherits the old position, later pages fall
+               through to today. Harmless because demo week picks don't persist. */
+            var saved = localStorage.getItem(this._storageKey);
+            if (saved === null) {
+                var legacy = localStorage.getItem('currentWeek');
+                if (legacy !== null) {
+                    localStorage.setItem(this._storageKey, legacy);
+                    localStorage.removeItem('currentWeek');
+                    saved = legacy;
+                }
+            }
             if (saved !== null) {
                 var idx = parseInt(saved, 10);
                 if (!isNaN(idx)) {
@@ -217,6 +464,12 @@ class WeekNavigator {
                 }
             }
         } catch (e) { /* ignore */ }
+        /* snap to a visible week when the saved one is hidden now (e.g. a
+           stored week that no longer holds a bookable slot) */
+        if (this._weekFilter && !this._weekFilter(this._currentWeek)) {
+            var fv = this.firstVisibleWeek();
+            if (fv >= 0) this._currentWeek = fv;
+        }
     }
 
     initKeyboard() {
@@ -262,7 +515,7 @@ class WeekNavigator {
     _currentWeekIndex() {
         var parts = this._semester.startDate.split('-');
         var semesterStart = new Date(parts[0], parts[1] - 1, parts[2]);
-        var today = new Date();
+        var today = new Date(getTodayMs());
         today.setHours(0, 0, 0, 0);
         var idx = Math.floor((today - semesterStart) / 86400000 / 7);
         return Math.max(0, Math.min(this._semester.weeks - 1, idx));
@@ -274,7 +527,16 @@ class WeekNavigator {
 
     _updateSelect() {
         var sel = document.getElementById(this._selectId);
-        if (sel) sel.selectedIndex = this._currentWeek;
+        if (!sel) return;
+        /* with a filter the options are a subset — match by value, not position */
+        if (this._weekFilter) {
+            var v = String(this._currentWeek);
+            for (var o = 0; o < sel.options.length; o++) {
+                if (sel.options[o].value === v) { sel.selectedIndex = o; return; }
+            }
+            return;
+        }
+        sel.selectedIndex = this._currentWeek;
     }
 
     _updateSubtitle() {
@@ -302,6 +564,12 @@ class WeekNavigator {
     _updateArrows() {
         var prev = document.querySelector('.week-arrow[aria-label="Previous week"]');
         var next = document.querySelector('.week-arrow[aria-label="Next week"]');
+        /* with a filter, arrow ends = the visible set's edges */
+        if (this._weekFilter) {
+            if (prev) prev.disabled = this._resolveStep(this._currentWeek - 1, -1) < 0;
+            if (next) next.disabled = this._resolveStep(this._currentWeek + 1, 1) < 0;
+            return;
+        }
         if (prev) prev.disabled = this._currentWeek <= 0;
         if (next) next.disabled = this._currentWeek >= this._semester.weeks - 1;
     }
@@ -407,6 +675,12 @@ function buildTimetableGrid(cfg) {
         if (day.holiday || day.sunday) dayColClass += ' offday';
         dayTd.className = dayColClass;
         dayTd.innerHTML = HtmlBuilder.dayHeader(day);
+        /* "Bookings open" chip: the semester's earliest bookable day, when the
+           page opts in (cfg.bookableBadge) — data-driven via generateWeekData's
+           firstBookable flag, so it tracks the anchor and never hardcodes */
+        if (cfg.bookableBadge && day.firstBookable) {
+            dayTd.insertAdjacentHTML('beforeend', '<span class="bookable-badge">Bookings open</span>');
+        }
         tr.appendChild(dayTd);
 
         if (cfg.cellRender) {
@@ -561,8 +835,28 @@ function computeSummary(events, days) {
  * @param {Array} cfg.extraFields - Additional fields to append before Status
  * @param {string} [cfg.modalId='classModal'] - Modal element ID
  * @param {string} [cfg.title] - Custom title (default: event.code)
+ * @param {Array} [cfg.groups] - Grouped layout: [{ heading, rows: [{ label, value, strong? }] }].
+ *   When present, renders one section per group (tidier for multi-category modals)
+ *   and replaces the flat single-section layout. Additive — omit for the original behavior.
  */
 function openClassModal(cfg) {
+    // ── Grouped layout (additive, §10.0 rule 6 — detail without overwhelm) ──
+    if (cfg.groups) {
+        const bodyHtml = cfg.groups.map(function(g) {
+            return DetailModal.section(g.heading, g.rows.map(function(r) {
+                return DetailModal.row(r.label, r.value, { strong: r.strong });
+            }).join(''));
+        }).join('');
+        DetailModal.render({
+            modalId: cfg.modalId || 'classModal',
+            title: cfg.title || 'Class Details',
+            subtitle: cfg.subtitle || '',
+            timeline: cfg.timeline || null,
+            body: bodyHtml
+        });
+        return;
+    }
+
     const event = cfg.event;
     const di = cfg.dayIndex;
     const days = cfg.days;
@@ -1080,6 +1374,15 @@ class TableController {
 
 // ───── Modal helpers ─────
 
+// Shared detail-modal close (promoted from per-page copies, §10.0 rule 7 —
+// the ui-class-detail-modal partial hardcodes onclick="closeModal()").
+// Pages may still define their own closeModal (their later script blocks
+// override this) — new pages only need a copy if they use a different modal id.
+function closeModal() {
+    var m = document.getElementById('classModal');
+    if (m) m.style.display = 'none';
+}
+
 function closeOnEsc(closeFn) {
     document.addEventListener('keydown', function(e) {
         if (e.key === 'Escape') closeFn();
@@ -1088,6 +1391,17 @@ function closeOnEsc(closeFn) {
 
 function closeOnOverlayClick(e, closeFn) {
     if (e.target === e.currentTarget) closeFn();
+}
+
+// ───── Summary visibility helper ─────
+
+// Auto-hide the summary section (cards + hint) when a filtered view is empty —
+// there is nothing to summarize (§10.0 rule 7, promoted from
+// replacement-history / my-request-history / replacement-home /
+// request-approval which all follow the same pattern).
+function syncSummarySection(visible) {
+    var s = document.getElementById('summarySection');
+    if (s) s.style.display = visible ? '' : 'none';
 }
 
 class ModalController {
@@ -1230,6 +1544,28 @@ function initWeekKeyboardShortcuts() {
     });
 }
 
+// ───── Mobile Navigation Drawer ─────
+
+function openNavDrawer() {
+    // AD-12 direction 2: opening the drawer closes the notifications panel.
+    // typeof guard — hoisted drawer code may run before panel definitions
+    // in some load orders (ui-template inline script vs ui-common.js).
+    if (typeof closeNotifPanel === 'function') closeNotifPanel();
+    const drawer = document.getElementById('navDrawer');
+    const overlay = document.getElementById('navDrawerOverlay');
+    drawer.classList.add('open');
+    overlay.classList.add('open');
+    document.body.style.overflow = 'hidden';
+}
+
+function closeNavDrawer() {
+    const drawer = document.getElementById('navDrawer');
+    const overlay = document.getElementById('navDrawerOverlay');
+    drawer.classList.remove('open');
+    overlay.classList.remove('open');
+    document.body.style.overflow = '';
+}
+
 function initMobileNav() {
     const hamburger = document.getElementById('navHamburger');
     const drawer = document.getElementById('navDrawer');
@@ -1238,26 +1574,14 @@ function initMobileNav() {
 
     if (!hamburger || !drawer || !overlay) return;
 
-    function openDrawer() {
-        drawer.classList.add('open');
-        overlay.classList.add('open');
-        document.body.style.overflow = 'hidden';
-    }
-
-    function closeDrawer() {
-        drawer.classList.remove('open');
-        overlay.classList.remove('open');
-        document.body.style.overflow = '';
-    }
-
     function toggleDrawer() {
-        if (drawer.classList.contains('open')) closeDrawer();
-        else openDrawer();
+        if (drawer.classList.contains('open')) closeNavDrawer();
+        else openNavDrawer();
     }
 
     hamburger.addEventListener('click', toggleDrawer);
-    closeBtn.addEventListener('click', closeDrawer);
-    overlay.addEventListener('click', closeDrawer);
+    closeBtn.addEventListener('click', closeNavDrawer);
+    overlay.addEventListener('click', closeNavDrawer);
 
     // Swipe left to close
     let touchStartX = 0;
@@ -1266,14 +1590,358 @@ function initMobileNav() {
     }, { passive: true });
     drawer.addEventListener('touchend', (e) => {
         const diff = touchStartX - e.changedTouches[0].clientX;
-        if (diff > 50) closeDrawer();
+        if (diff > 50) closeNavDrawer();
     }, { passive: true });
 
     // Close on Escape
     document.addEventListener('keydown', (e) => {
-        if (e.key === 'Escape' && drawer.classList.contains('open')) closeDrawer();
+        if (e.key === 'Escape' && drawer.classList.contains('open')) closeNavDrawer();
     });
 }
+
+// ───── Notifications Panel (shared, read-state via localStorage) ─────
+// Consumes window.MockData.notifications (mock-data.js §2.13, read-only) —
+// never mutated at runtime. UNREAD STATE IS PER USER (F-2 pre-wire): one
+// mailbox per logged-in user under 'notifications-read-user-<staffId>' — the
+// backend day this store moves to the server (user_id natural key) and rows
+// arrive already recipient-scoped. The row's `role` is only the CATEGORY the
+// panel views by page context (AD-2); the badge/pill always count the whole
+// mailbox. All element lookups are guarded: the panel partial (T6) may be absent.
+
+const NOTIF_ROLE_BY_PAGE = { // AD-2 — body[data-page] → panel role
+    studentMyTimetable: 'student',
+    replacementHistory: 'student',
+    requestApproval: 'pl',
+};
+
+const NOTIF_GLYPHS = { // 16px lucide-style stroke glyphs (design §5)
+    submitted: '<path d="M22 12h-6l-2 3h-4l-2-3H2"/><path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/>',
+    awaiting:  '<circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>',
+    approved:  '<circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/>',
+    rejected:  '<circle cx="12" cy="12" r="10"/><path d="m15 9-6 6"/><path d="m9 9 6 6"/>',
+    update:    '<rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>',
+};
+
+function notifUserId() { // F-2 pre-wire — mailbox owner (backend: auth user id)
+    return (window.MockData && MockData.currentUser && MockData.currentUser.staffId) || 'demo';
+}
+
+function notifReadKey() { // per-USER mailbox (was per-role: 'notifications-read-<role>')
+    return 'notifications-read-user-' + notifUserId();
+}
+
+/** The user's mailbox: rows addressed to the current user. Mock phase: every
+ *  row carries recipientId = the persona (derived in mock-data.js §2.13); the
+ *  backend day the API returns only the user's own rows, so this becomes a
+ *  no-op guard. */
+function notifMailboxRows() {
+    var uid = notifUserId();
+    return window.MockData.notifications.filter(function(n) {
+        return !n.recipientId || n.recipientId === uid;
+    });
+}
+
+function currentNotifRole() { // AD-2 — fallback 'lecturer' for anything else/missing
+    const pageKey = document.body ? document.body.dataset.page : null;
+    return (pageKey && NOTIF_ROLE_BY_PAGE[pageKey]) || 'lecturer';
+}
+
+/** AD-16 — <1 "just now", <60 "Xm", <1440 "Xh", <2880 "Yesterday", else "Xd". */
+function relTime(minutesAgo) {
+    var m = Number(minutesAgo) || 0;
+    if (m < 1) return 'just now';
+    if (m < 60) return m + 'm ago';
+    if (m < 1440) return Math.floor(m / 60) + 'h ago';
+    if (m < 2880) return 'Yesterday';
+    return Math.floor(m / 1440) + 'd ago';
+}
+
+/** Absolute time for the row tooltip, e.g. "2 Oct, 9:41 AM". */
+function notifAbsTime(minutesAgo) {
+    var d = new Date(Date.now() - minutesAgo * 60000);
+    var months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    var hh = d.getHours();
+    const ampm = hh >= 12 ? 'PM' : 'AM';
+    hh = hh === 0 ? 12 : hh > 12 ? hh - 12 : hh;
+    return d.getDate() + ' ' + months[d.getMonth()] + ', ' + hh + ':' + String(d.getMinutes()).padStart(2, '0') + ' ' + ampm;
+}
+
+function notifGlyph(type) {
+    return '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'
+        + (NOTIF_GLYPHS[type] || NOTIF_GLYPHS.update) + '</svg>';
+}
+
+/** Read id set for the user's mailbox. Missing key / invalid JSON → empty set (key never reseeded once present). */
+function getNotifReads() {
+    try {
+        var raw = localStorage.getItem(notifReadKey());
+        if (raw === null) return new Set();
+        var arr = JSON.parse(raw);
+        return Array.isArray(arr) ? new Set(arr) : new Set();
+    } catch (e) {
+        return new Set();
+    }
+}
+
+function persistNotifReads(reads) {
+    try {
+        localStorage.setItem(notifReadKey(), JSON.stringify(Array.from(reads)));
+    } catch (e) { /* storage unavailable — badge just stays volatile */ }
+}
+
+/**
+ * Bell badge refresh (AD-7). Safe on ANY page — on pages without the bell
+ * (e.g. replacement-arrangement) every element lookup is guarded.
+ * Seeds the localStorage key at FIRST PAINT ONLY (AD-8): if the key is absent
+ * it is written once with every pre-seen (`read: true`) row of the WHOLE
+ * mailbox plus anything already marked read under the retired per-role store
+ * (F-2 legacy migration — old keys are consumed and removed); present keys
+ * (even `[]`) are never reseeded. Badge/pill count = mailbox unread TOTAL,
+ * regardless of which category the page views.
+ */
+function refreshNotifBadge() {
+    if (!window.MockData || !window.MockData.notifications) return;
+    const key = notifReadKey();
+
+    if (localStorage.getItem(key) === null) {
+        const seed = new Set(window.MockData.notifications
+            .filter(function (n) { return n.read === true; })
+            .map(function (n) { return n.id; }));
+        try {
+            ['student', 'pl', 'lecturer'].forEach(function (r) {
+                var raw = localStorage.getItem('notifications-read-' + r);
+                if (raw) JSON.parse(raw).forEach(function (id) { seed.add(id); });
+                localStorage.removeItem('notifications-read-' + r);
+            });
+        } catch (e) { /* ignore malformed legacy stores */ }
+        persistNotifReads(seed);
+    }
+
+    const reads = getNotifReads();
+    updateNotifHeaderState(notifMailboxRows()
+        .filter(function (n) { return !reads.has(n.id); }).length);
+}
+
+/** Header state shared by refreshNotifBadge + panel opens (AD-5):
+ *  ONE count — the user's mailbox unread TOTAL (badge + pill + mark-all all
+ *  follow it; the panel's per-category list no longer drives the header). */
+function updateNotifHeaderState(count) {
+    var badge = document.getElementById('notifBadge');
+    if (badge) {
+        badge.textContent = count;
+        badge.style.display = count > 0 ? 'flex' : 'none';
+    }
+    var pill = document.getElementById('notifUnreadPill');
+    if (pill) {
+        pill.textContent = count;
+        pill.style.display = count > 0 ? 'inline-flex' : 'none';
+    }
+    var markAll = document.getElementById('notifMarkAll');
+    if (markAll) markAll.style.display = count > 0 ? 'inline-flex' : 'none';
+}
+
+/** AD-5 — render unread rows (anchor links, D4) + caught-up/empty swap.
+ *  T17 — "Unread only" filter (AD-19/AD-20): missing #notifUnreadOnly or
+ *  checked → exactly the old unread-only behavior (unsorted, frozen order).
+ *  Unchecked → all of the role's rows, newest first (minutesAgo ascending,
+ *  sorted on a copy — MockData is read-only). Read rows get .notif-row--read
+ *  (muted); badge/pill/mark-all always follow the unread count. */
+function renderNotifList() {
+    const list = document.getElementById('notifList');
+    if (!list) return;
+    if (!window.MockData || !window.MockData.notifications) return;
+
+    const role = currentNotifRole();             /* AD-2 — view category only */
+    const reads = getNotifReads();               /* per-user mailbox store */
+    const unread = notifMailboxRows().filter(function (n) {
+        return n.role === role && !reads.has(n.id);
+    });
+
+    const filterEl = document.getElementById('notifUnreadOnly');
+    const unreadOnly = !filterEl || filterEl.checked;
+    const all = !!filterEl && !filterEl.checked;
+    let rows = unread;
+    if (all) {
+        rows = notifMailboxRows()
+            .filter(function (n) { return n.role === role; })
+            .slice() // MockData read-only (AGENTS.md §4)
+            .sort(function (a, b) { return a.minutesAgo - b.minutesAgo; });
+    }
+
+    list.innerHTML = rows.map(function (n) {
+        return '<a class="notif-row' + (reads.has(n.id) ? ' notif-row--read' : '') + '" data-id="' + escHtml(n.id) + '" href="' + escHtml(n.link) + '"'
+            + ' data-tip="' + escHtml(n.title + ' — ' + n.desc) + '" aria-label="' + escHtml(n.title + ' — ' + n.desc) + '">'
+            + '<span class="notif-row-icon notif-tile-' + escHtml(n.type) + '">' + notifGlyph(n.type) + '</span>'
+            + '<span class="notif-row-body">'
+            + '<span class="notif-row-title">' + escHtml(n.title) + '</span>'
+            + '<span class="notif-row-desc">' + escHtml(n.desc) + '</span>'
+            + '</span>'
+            + '<span class="notif-row-time" data-tip="' + escHtml(notifAbsTime(n.minutesAgo)) + '" data-tip-pos="left">' + escHtml(relTime(n.minutesAgo)) + '</span>'
+            + '</a>';
+    }).join('');
+
+    // Caught-up swap (AD-5): only in unread-only mode at 0 unread. "All" mode
+    // never shows caught-up — it always has rows unless the category has none.
+    // NOTE: the header (badge/pill/mark-all) is NOT resynced here — it counts
+    // the whole mailbox (F-2); the list is only the viewed category.
+    const empty = document.getElementById('notifEmpty');
+    const showEmpty = (unreadOnly && unread.length === 0) || rows.length === 0;
+    if (empty) empty.style.display = showEmpty ? 'flex' : 'none';
+    list.style.display = showEmpty ? 'none' : '';
+}
+
+/** Add one id to the user's mailbox read set, persist, refresh the badge. */
+function markNotifRead(id) {
+    if (!window.MockData || !window.MockData.notifications) return;
+    const reads = getNotifReads();
+    reads.add(id);
+    persistNotifReads(reads);
+    refreshNotifBadge();
+}
+
+/** Mark the WHOLE mailbox read (backend semantics: every unread row of this
+ *  user, all categories) + refresh badge and list. */
+function markAllNotifsRead() {
+    if (!window.MockData || !window.MockData.notifications) return;
+    const reads = getNotifReads();
+    window.MockData.notifications.forEach(function (n) {
+        reads.add(n.id);
+    });
+    persistNotifReads(reads);
+    refreshNotifBadge();
+    renderNotifList();
+}
+
+function openNotifPanel() { // AD-12 direction 1 — drawer never stacks with panel
+    closeNavDrawer();    const panel = document.getElementById('notifPanel');
+    const overlay = document.getElementById('notifOverlay');
+    const bell = document.querySelector('.notif-btn');
+    if (panel) panel.classList.add('open');
+    if (overlay) overlay.classList.add('open');
+    if (bell) bell.setAttribute('aria-expanded', 'true');
+    document.body.style.overflow = 'hidden'; // AD-11 — inline lock, both breakpoints
+    refreshNotifBadge(); // header state follows the mailbox (F-2 pre-wire)
+    renderNotifList();
+}
+
+function closeNotifPanel() {
+    const panel = document.getElementById('notifPanel');
+    const overlay = document.getElementById('notifOverlay');
+    const bell = document.querySelector('.notif-btn');
+    if (panel) panel.classList.remove('open');
+    if (overlay) overlay.classList.remove('open');
+    if (bell) bell.setAttribute('aria-expanded', 'false');
+    // Release the body lock only if the nav drawer isn't open too (AD-11) —
+    // releasing while the drawer holds its own lock would let the body scroll.
+    const drawer = document.getElementById('navDrawer');
+    if (!drawer || !drawer.classList.contains('open')) {
+        document.body.style.overflow = '';
+    }
+}
+
+function toggleNotifPanel() {
+    const panel = document.getElementById('notifPanel');
+    if (!panel) return;
+    if (panel.classList.contains('open')) closeNotifPanel();
+    else openNotifPanel();
+}
+
+// ───── TEMP — UI testing only, DELETE BEFORE SUBMISSION ─────
+
+/** Console helper: clears the user read key (incl. legacy per-role stores) + reloads. */
+function resetNotifDemo() {
+    try {
+        localStorage.removeItem(notifReadKey());
+        ['student', 'pl', 'lecturer'].forEach(function (r) {
+            localStorage.removeItem('notifications-read-' + r);
+        });
+    } catch (e) { /* ignore */ }
+    window.location.reload();
+}
+
+/** One-shot for demo shots: re-mark (or un-mark) a single row, no reload. */
+function notifDevToggle(id) {
+    const reads = getNotifReads();
+    if (reads.has(id)) reads.delete(id); else reads.add(id);
+    persistNotifReads(reads);
+    refreshNotifBadge();
+    if (document.getElementById('notifPanel').classList.contains('open')) renderNotifList();
+}
+
+/** Quick reference of all 12 ids — paste in console: notifIds() */
+function notifIds() {
+    return MockData.notifications.map(function (n) { return n.id + ' (' + n.role + (n.read ? ', seed-read' : '') + ')'; });
+}
+
+
+/**
+ * Wire the panel (idempotent). Self-contained DOMContentLoaded hook (AD-7) —
+ * the layout's boot chain lives in ui-template.blade.php and may also call
+ * refreshNotifBadge(); both paths are cheap + guarded for missing markup.
+ */
+function initNotifPanel() {
+    if (window.__notifPanelInitialized) return;
+    window.__notifPanelInitialized = true;
+
+    const panel = document.getElementById('notifPanel');
+    const overlay = document.getElementById('notifOverlay');
+
+    // Bell / ✕ / Mark-all: only wire elements the partial does NOT own via
+    // inline onclick (T6) so handlers never double-fire.
+    const bell = document.querySelector('.notif-btn');
+    if (bell && !bell.hasAttribute('onclick')) {
+        bell.addEventListener('click', toggleNotifPanel);
+    }
+    if (overlay) overlay.addEventListener('click', closeNotifPanel); // outside click (AD-13)
+
+    const closeBtn = panel ? panel.querySelector('.notif-close') : null;
+    if (closeBtn && !closeBtn.hasAttribute('onclick')) {
+        closeBtn.addEventListener('click', closeNotifPanel);
+    }
+    const markAll = document.getElementById('notifMarkAll');
+    if (markAll && !markAll.hasAttribute('onclick')) {
+        markAll.addEventListener('click', markAllNotifsRead);
+    }
+
+    // Row click = mark read + re-render + restore scroll, BEFORE the anchor's
+    // native navigation (D4). Capture phase so it runs ahead of default nav;
+    // preventDefault is deliberately omitted (AD-15).
+    const list = document.getElementById('notifList');
+    if (list) {
+        list.addEventListener('click', function (e) {
+            const row = e.target.closest ? e.target.closest('.notif-row') : null;
+            if (!row || !row.getAttribute('data-id')) return;
+            const scrollTop = list.scrollTop;
+            markNotifRead(row.getAttribute('data-id'));
+            renderNotifList();
+            list.scrollTop = scrollTop;
+        }, true);
+    }
+
+    // T17 — "Unread only" toggle: re-render with scroll preserved (AD-15) and
+    // header state untouched (badge always follows the unread count).
+    const unreadOnlyToggle = document.getElementById('notifUnreadOnly');
+    if (unreadOnlyToggle) {
+        unreadOnlyToggle.addEventListener('change', function () {
+            const scrollTop = list ? list.scrollTop : 0;
+            renderNotifList();
+            if (list) list.scrollTop = scrollTop;
+        });
+    }
+
+    // Esc closes only while the panel is open (AD-13).
+    document.addEventListener('keydown', function (e) {
+        if (e.key !== 'Escape') return;
+        const p = document.getElementById('notifPanel');
+        if (p && p.classList.contains('open')) closeNotifPanel();
+    });
+
+    refreshNotifBadge();
+}
+
+document.addEventListener('DOMContentLoaded', function () {
+    initNotifPanel();
+});
 
 // ───── Swipe Gesture ─────
 
@@ -1398,11 +2066,48 @@ class DateHelper {
     }
 
     static getTodayMs() {
-        var t = new Date();
-        t.setHours(0, 0, 0, 0);
-        return t.getTime();
+        /* anchored to MockData.mockNow (the fixed demo "today") when present,
+           falling back to the real clock once that anchor is deleted —
+           TODO(backend) note sits in mock-data.js mockNow; both stay in sync. */
+        var src = (window.MockData && MockData.mockNow) ? new Date(MockData.mockNow) : new Date();
+        src.setHours(0, 0, 0, 0);
+        return src.getTime();
     }
 }
+
+// ───── Days-left display contract (replacement-home surfaces: table cell,
+// mobile card footer, quick-view modal Status row — 3rd-duplication promo) ─────
+
+/* daysLeft → label: <0 "Overdue" · 0 "Today" · 1 "1 day left" · else "N days left".
+   Urgency classes reuse the table vocabulary (urgency-high/mid/low — the only
+   defined CSS); overdue renders in the same red as imminent (error semantics). */
+function daysLeftLabel(days) {
+    /* overdue carries the day count (user ask, 2026-10-06): the diff is
+       against the MockData.mockNow anchor, same as every other lead-time
+       computation — flips to real "today" at the go-live switch */
+    if (days < 0) {
+        const n = Math.abs(days);
+        return 'Overdue (' + n + (n === 1 ? ' day' : ' days') + ' ago)';
+    }
+    if (days === 0) return 'Today';
+    if (days === 1) return '1 day left';
+    return days + ' days left';
+}
+
+/* Status enum → display label (§10.0: same name for the same meaning).
+   Some datasets store lowercase enums ('normal') vs Title-case ('Pending') —
+   this renders ONE Title-case vocabulary everywhere. CSS badge classes stay
+   keyed by the raw enum (badge-normal etc.), so visuals are untouched. */
+const StatusText = {
+    map: { normal: 'Normal', replacement: 'Replacement', pending: 'Pending',
+           approved: 'Approved', rejected: 'Rejected', conflict: 'Conflict' },
+    label(status) {
+        var s = String(status);
+        var hit = this.map[s.toLowerCase()];
+        if (hit) return hit;
+        return s.charAt(0).toUpperCase() + s.slice(1);
+    }
+};
 
 // ───── Backward-compatible global aliases (delegate to DateHelper) ─────
 
@@ -1519,7 +2224,7 @@ class HtmlBuilder {
             { html: opts.index, cls: 'col-no' },
             { html: '<span class="cell-code">' + c.code + '</span><span class="cell-name">' + c.name + ' <span class="cell-type-label">(' + typeLabel + ')</span></span>', cls: 'col-code' },
             { html: opts.formatClassBlock(c), cls: 'col-original' },
-            { html: '<span class="' + urgencyCls + '">' + days + ' days</span>', cls: 'col-urgency' },
+            { html: '<span class="' + urgencyCls + '">' + daysLeftLabel(days) + '</span>', cls: 'col-urgency' },
             { html: c.venue, cls: 'col-venue' },
             { html: String(c.totalStudents), cls: 'col-students' },
             { html: c.cohorts.join('<br>'), cls: 'col-cohort' },
@@ -1542,7 +2247,7 @@ class HtmlBuilder {
             DateHelper.to12h(c.timeStart) + ' – ' + DateHelper.to12h(c.timeEnd) + ' · ' + c.venue +
             '</div>' +
             '<div class="rc-footer">' +
-            '<span class="' + urgencyCls + '">' + days + ' days left</span>' +
+            '<span class="' + urgencyCls + '">' + daysLeftLabel(days) + '</span>' +
             '<span>' + c.cohorts.join(', ') + '</span>' +
             '</div>';
     }
@@ -1800,6 +2505,7 @@ function weekFilterChanged(opts) {
 
 function prevWeekFilter() {
     const sel = document.getElementById('weekFilter');
+    if (!sel) return; /* page has no week filter — its own keyboard nav applies */
     if (sel.selectedIndex > 0) {
         sel.selectedIndex--;
         sel.dispatchEvent(new Event('change'));
@@ -1808,6 +2514,7 @@ function prevWeekFilter() {
 
 function nextWeekFilter() {
     const sel = document.getElementById('weekFilter');
+    if (!sel) return;
     if (sel.selectedIndex < sel.options.length - 1) {
         sel.selectedIndex++;
         sel.dispatchEvent(new Event('change'));
@@ -1928,14 +2635,48 @@ function populateWeekSelect(selectId, cfg) {
     const useRanges = cfg.ranges !== false; // default: weekRanges (string "1".."14")
     const source = useRanges ? weekRanges : weekData;
 
+    /* remember this select's cfg so a runtime breakpoint-crossing (768) can
+       re-format labels (full ↔ compact) without a reload — same spirit as the
+       venue mobileCardList resize hook. Re-runs preserve the selection. */
+    populateWeekSelect._registry = populateWeekSelect._registry || {};
+    populateWeekSelect._registry[selectId] = cfg;
+    populateWeekSelect._mobileState = populateWeekSelect._mobileState || {};
+    populateWeekSelect._mobileState[selectId] = isMobile;
+    if (!populateWeekSelect._resizeWired) {
+        populateWeekSelect._resizeWired = true;
+        var _pwTimer;
+        window.addEventListener('resize', function() {
+            clearTimeout(_pwTimer);
+            _pwTimer = setTimeout(function() {
+                var mobileNow = window.innerWidth <= 768;
+                Object.keys(populateWeekSelect._registry).forEach(function(id) {
+                    var el = document.getElementById(id);
+                    if (!el || populateWeekSelect._mobileState[id] === mobileNow) return;
+                    var preserve = el.value;
+                    populateWeekSelect(id, populateWeekSelect._registry[id]);
+                    el.value = preserve; /* cfg.selected may be stale after re-populate */
+                });
+            }, 200);
+        });
+    }
+
     let html = '';
     if (cfg.includeAll) html += '<option value="all">All Weeks</option>';
 
-    source.forEach(function(w, i) {
-        const value = useRanges ? w.value : i;
+    /* optional visibility filter (weekData path only): only weeks passing it
+       become options, keeping ABSOLUTE week numbers as values so saved
+       positions, URL params and cross-page references stay meaningful */
+    const filter = (cfg.weekFilter && !useRanges) ? cfg.weekFilter : null;
+    const list = filter
+        ? source.map(function(w, i) { return { w: w, i: i }; }).filter(function(x) { return filter(x.i); })
+        : source;
+
+    list.forEach(function(x, i) {
+        const w = list === source ? x : x.w;
+        const value = useRanges ? w.value : (list === source ? i : x.i);
         let label;
         if (cfg.labelFn) {
-            label = cfg.labelFn(w, i, isMobile, useRanges);
+            label = cfg.labelFn(w, value, isMobile, useRanges);
         } else if (useRanges) {
             label = isMobile ? (w.labelShort || w.label) : w.label;
         } else {
@@ -2001,7 +2742,16 @@ class BackNavigator {
     static getBackUrl() {
         var params = new URLSearchParams(window.location.search);
         var from = params.get('from');
-        return BackNavigator.#routes[from] || BackNavigator.getDefault();
+        var url = BackNavigator.#routes[from] || BackNavigator.getDefault();
+        /* keep the booking context alive across the round-trip: the venue page's
+           "Booking for:" banner runs on these params */
+        if (from === 'venue-timetable') {
+            var keep = [];
+            if (params.get('code')) keep.push('code=' + encodeURIComponent(params.get('code')));
+            if (params.get('cohort')) keep.push('cohort=' + encodeURIComponent(params.get('cohort')));
+            if (keep.length) url += '?' + keep.join('&');
+        }
+        return url;
     }
 
     static navigate() {
@@ -2123,11 +2873,22 @@ class VenueDropdown {
     /* ── Public API ─────────────────────────────────────────── */
 
     select(code) {
+        /* unknown/stale code (e.g. a favourite left over from older mock data):
+           ignore instead of selecting into a phantom venue */
+        if (!this.venues.some(v => v.code === code)) return;
         this.selectedCode = code;
         this._updateTrigger();
         this._updateActive();
         this._close();
         this.onSelect(code);
+    }
+
+    /**
+     * Venues that survive the active filter (or all venues when unfiltered) —
+     * used by Ctrl+1/2/3 venue switching and the "fits N students" note.
+     */
+    getFiltered() {
+        return this.filter ? this.venues.filter(this.filter) : this.venues.slice();
     }
 
     getSelected() {
@@ -2562,14 +3323,20 @@ class VenueDropdown {
     /* ── Helpers ────────────────────────────────────────────── */
 
     _updateTrigger() {
+        /* the chevron is a separate svg (same shared arrow as the week-select);
+           only the label span receives text */
+        const label = this.trigger.querySelector('.venue-dd-label');
         if (!this.selectedCode) {
-            this.trigger.textContent = 'Select a venue ▾';
+            if (label) label.textContent = 'Select a venue';
+            else this.trigger.textContent = 'Select a venue';
             return;
         }
         const v = this.venues.find(x => x.code === this.selectedCode);
         if (v) {
             const typeLabel = v.type === 'LectureHall' ? 'Lecture Hall' : v.type;
-            this.trigger.textContent = v.code + ' — ' + typeLabel + ' (' + v.capacity + ' seats) ▾';
+            const text = v.code + ' \u2014 ' + typeLabel + ' (' + v.capacity + ' seats)';
+            if (label) label.textContent = text;
+            else this.trigger.textContent = text; /* legacy markup fallback */
         }
     }
 

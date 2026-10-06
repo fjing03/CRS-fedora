@@ -34,16 +34,17 @@ A web application that replaces the manual Google-Sheets-based class replacement
 | 1 | **Multi-Entity Matrix Intersection Engine** | 4-vector deterministic set intersection: lecturer availability × cohort free schedules (1+ cohorts) × room occupancy × capacity filter. Returns color-coded weekly grid. | 🔲 Not built |
 | 2 | **Optimistic Concurrency Control (OCC) layer** | Millisecond-precision transactional validation at submission time; abort + rollback + UI alert on conflict. ACID transactions. | 🔲 Not built |
 | 3 | **FCFS Digital Approval Dashboard** | Chronological queue; one-click approve (→ Occupied) or reject with mandatory reason (→ Available); timestamped audit trail. | 🔲 Not built (UI template planned) |
-| 4 | **Role-Based Access Control (RBAC) + notifications** | 3 tiers: Student (view-only), Lecturer (create/submit/cancel own), PL (hybrid = admin + lecturer rights). Email notifications: PL on submission, proposer on outcome. | 🟡 Partially built (auth + roles) |
+| 4 | **Role-Based Access Control (RBAC) + notifications** | 3 tiers: Student (view-only), Lecturer (create/submit/cancel own — FR 4.13), PL (hybrid = lecturer rights + approve/reject). Email notifications: PL on submission (FR 4.15), lecturer on outcome (FR 2.13), students on timetable updates (FR 1.9) — all via queue (FR 4.16). | 🟡 Partially built (auth + roles) |
 | 5 | **Prototype Deployment** | Laravel + PostgreSQL, seeded with 14 cohorts, 14 staff, 23 rooms. | 🟡 Partially built (seeders) |
 
 ### Slot State Machine (Objective 1–3 core)
 
+> ⚠ **FR 4.11 sync note (2026-10-01):** the latest FR&NFR lists **three** statuses — *Available, Pending, Occupied*. `reserved` is kept as a **derived view**, not a 4th DB status: DB `status = pending` + `proposer_id ≠ current user` → rendered grey ("Reserved by Another Faculty"); `proposer_id = me` → yellow ("Pending (Self)"). Same row, two colours. Decide the exact encoding during Sprint 2 schema design.
+
 | State | Meaning |
 |-------|---------|
 | `available` | Free — satisfies lecturer × cohort(s) × room × capacity |
-| `pending` | Drafted by current user, awaiting PL approval ("Pending (Self)") |
-| `reserved` | Claimed by another lecturer's submission (FCFS priority) — "Reserved by Another Faculty" |
+| `pending` | Submitted, awaiting PL approval — yellow if mine (Pending (Self)), grey if another lecturer's (Reserved by Another) |
 | `occupied` | PL approved (locked permanently) or blocked by master timetable |
 
 ### Visual grid colors (Module 2)
@@ -73,7 +74,7 @@ A web application that replaces the manual Google-Sheets-based class replacement
 2. **Timetable data:** mainly past semester timetable PDFs from TAR UMT Sabah, with self-modifications for prototype needs (room capacities, MPU-3133 & MPU-3232 groupings) — a realistic 14-week dataset for 14 cohorts / 14 staff / 23 rooms; user reviews it.
 3. **Original block release:** after PL approval, the original class block is marked replaced/cancelled and its old time+room become **bookable by others**; the new slot becomes `occupied`.
 4. **PL Master Configuration Panel: DROPPED** — not in FR&NFR; specs V2 mention is superseded by FR&NFR as source of truth.
-5. **Notifications:** implement exactly FR 1.9 (students on timetable updates), 2.13 (proposer on outcome), 4.15 (PL on submission), 4.16 (all emails via database-backed queue). No cross-lecturer alerts unless requested later.
+5. **Notifications:** implement exactly FR 1.9 (students on timetable updates), 4.15 (PL on submission), 2.13 (lecturer on outcome); all sent via DB-backed queue (FR 4.16). No cross-lecturer alerts unless requested later. *(Old numbering: 1.5 / 4.15 / 4.16 — renumbered in latest FR&NFR.)*
 6. **MPU-3133 venue rule:** tutorial rooms + lecture halls OK, labs excluded (see §3 venue rules).
 
 ---
@@ -142,7 +143,7 @@ Not yet migrated — design during Sprint 1 (canonical names per FR 4.8 / NFR 5.
 - `venues` (room code, capacity, room type Tutorial/Lecture Hall/Lab/Cisco Lab, allowed session types L/T/P)
 - `timetable_blocks` / `class_sessions` (lecturer, cohort(s), module, day, time, duration, venue, session type)
 - `modules` (code, name, session type constraints)
-- **`time_slots`** (FR 4.8 canon): slot record with **integer `version` column (OCC pattern)** + `status` column driving the state machine (`available` / `pending` / `reserved` / `occupied`)
+- **`time_slots`** (FR 4.8 canon): slot record with **integer `version` column (OCC pattern)** + `status` column driving the state machine (`available` / `pending` / `reserved` / `occupied` — see §3 state-machine note re FR 4.11)
 - `replacement_requests` (time_slot_id, proposer, PL, timestamps, rejection reason)
 - `audit_logs` (PL identity, timestamp, action, slot ID, rejection reason, **OCC validation outcomes per FR 4.12**)
 
@@ -183,20 +184,19 @@ Not yet migrated — design during Sprint 1 (canonical names per FR 4.8 / NFR 5.
 
 ## 7. Requirements (FR & NFR)
 
-Source: `../final/FR&NFR.md` — Chapter 3, §3.4 (verbatim).
-> **Rev. 2026-08-24:** resynced to the revised FR&NFR — FR renumbered (Student 1.1–1.9, Lecturer 2.1–2.16, PL 3.1–3.7, System 4.1–4.16); lecturer *edit* of pending requests removed (cancel only); new FRs: class-details view + start replacement (2.3–2.4), venue timetable (2.14), own request history (2.15), self-cancellation with reason (2.16); MPU rule generalized to FR 4.7; NFR 2.4 split into staff-30min / **new NFR 2.5 student-30-days**; **new NFR 3.5–3.6** light/dark theme.
+Source: `../final/FR&NFR.md` — Chapter 3, §3.4 (verbatim; reader-facing glosses and citations trimmed). **Synced 2026-10-01: 48 FRs / 26 NFRs.** Each FR is traceable to one or more of the 5 objectives (§3). Login already supports Student/Staff ID via Fortify `username = login_id` (FR 1.1, 2.1 — incl. optional "P" prefix ✓).
 
 ### 7.1 Traceability map (FR → Objective)
 
 | FR # | Requirement summary | Objective |
 |------|--------------------|-----------|
-| 1.1–1.9 | Student login by ID; view cohort timetable; view cohort request status + upcoming replacement details; no create/edit/delete/modify; email on timetable updates | 3, 4, 5 |
-| 2.1–2.16 | Lecturer login by staff ID (optional `P` prefix); own timetable; click class (incl conflicted) → details → start replacement; venue dropdown default original; real-time recalc ≤500ms; colour-coded grid; click green slot; submit; cancel own pending; cannot see/edit others'; cannot approve/reject; email on outcome; venue timetable; own history; cancel own class with reason | 1, 2, 3, 4 |
-| 3.1–3.7 | PL inherits lecturer rights (2.1–2.16); FCFS queue earliest-first showing proposer/subject/cohorts/time/venue; pre-computed slot validity; 1-click approve; mandatory reject reason; full audit trail | 1, 2, 3 |
-| 4.1–4.2 | Seed 14 lecturers / 14 cohorts / 23 Block B rooms; room metadata (name, capacity, type, allowed session L/T/P) | 1, 5 |
-| 4.3–4.7 | 4-way set intersection; "No available slots" message; 3-vector for single cohort; empty result when fully occupied; session-type venue filtering | 1 |
-| 4.8–4.12 | OCC via integer version column on `time_slots`; exactly one concurrent submission wins + conflict alert; 4-state machine; OCC outcomes logged | 2 |
-| 4.13–4.16 | RBAC 3 roles; unauthenticated → login redirect; email to PL on submission; emails via database-backed queue | 4, 5 |
+| 1.1–1.9 | Student login by ID; cohort timetable; request status for cohort; view upcoming replacement details; **cannot create / edit / delete / modify timetable data (4 separate FRs)**; email on timetable updates (now FR 1.9) | 3, 4, 5 |
+| 2.1–2.16 | Staff ID login (4 digits, optional "P" prefix); own timetable; click class (incl. conflicted/cancelled) → details; start replacement from details; venue dropdown (default original); venue change recalculates ≤500 ms; colour-coded grid; click green slot; submit; **cancel own pending (edit dropped)**; cannot see/edit others'; cannot approve/reject; email on outcome; **view selected venue timetable; view own request history; cancel own scheduled class with reason** | 1, 2, 3, 4, 5 |
+| 3.1–3.7 | PL inherits lecturer rights **except FR 2.11 & 2.12** (may see others' requests, may approve/reject); FCFS queue sorted by submission time; queue shows proposer/subject/cohorts/time/venue; pre-computed slot validity; 1-click approve; mandatory reject reason; full audit trail | 1, 2, 3, 4 |
+| 4.1–4.2 | Seed 14 teaching staff / 14 cohorts / 23 Block B rooms; room metadata (name, capacity, type, allowed session L/T/P combo) | 5, 1 |
+| 4.3–4.7 | Four-part check = 3-set intersection (lecturer × cohorts × room) + capacity as 4th part; "No available slots" message; 3-vector for single cohort (capacity still applies); empty result when fully occupied; session-type venue filtering | 1 |
+| 4.8–4.12 | OCC via integer version column on `time_slots`; exactly one concurrent submission wins; conflict alert to loser; slot state machine (Available / Pending / Occupied — **3 states now, see §3 note**); OCC outcomes logged | 2, 3 |
+| 4.13–4.16 | RBAC 3 roles (Lecturer = create/submit/**cancel** own); unauthenticated → login redirect; email to PL on submission; **all emails via database-backed queue** | 4, 5 |
 
 ### 7.2 Functional Requirements (verbatim, FR&NFR.md §3.4.1)
 
@@ -215,7 +215,7 @@ Source: `../final/FR&NFR.md` — Chapter 3, §3.4 (verbatim).
 | 2.0 | **Lecturer** |
 | 2.1 | Lecturers shall be able to log in using Staff ID (four digits with an optional "P" prefix, e.g., P5425 or 5425) and password. |
 | 2.2 | Lecturers shall be able to view their own teaching timetable. |
-| 2.3 | Lecturers shall be able to click a class on their own timetable, including conflicted classes, to view its details. |
+| 2.3 | Lecturers shall be able to click a class on their own timetable, including conflicted or cancelled classes, to view its details. |
 | 2.4 | Lecturers shall be able to start a replacement for a class from its details view. |
 | 2.5 | Lecturers shall be able to select a replacement venue from a dropdown that defaults to the original venue of the class. |
 | 2.6 | Lecturers shall be able to change the venue dropdown while arranging a replacement, which shall recalculate available slots within 500 ms. |
@@ -230,27 +230,27 @@ Source: `../final/FR&NFR.md` — Chapter 3, §3.4 (verbatim).
 | 2.15 | Lecturers shall be able to view the history of their own replacement requests. |
 | 2.16 | Lecturers shall be able to cancel their own scheduled class by providing a valid reason. |
 | 3.0 | **Programme Leader** |
-| 3.1 | Programme Leaders shall inherit all Lecturer privileges (2.1-2.16). |
-| 3.2 | Programme Leaders shall be able to view a first-come-first-served queue of all pending replacement requests, sorted by submission time (earliest first). |
+| 3.1 | Programme Leaders shall inherit all lecturer privileges except FR 2.11 and FR 2.12 (FR 2.1–2.10, 2.13–2.16). |
+| 3.2 | Programme Leaders shall be able to view a FCFS queue of all pending replacement requests, sorted by submission time (earliest first). |
 | 3.3 | Programme Leaders shall be able to view the proposer name, subject, affected cohort(s), proposed time, and proposed venue for each request in the queue. |
 | 3.4 | Programme Leaders shall be able to view the pre-computed slot validity for each request. |
 | 3.5 | Programme Leaders shall be able to approve a request with one click. |
 | 3.6 | Programme Leaders shall be able to reject a request by providing a mandatory reason. |
 | 3.7 | Programme Leaders shall have every approval and rejection action automatically recorded in the audit trail, including Programme Leader identity, timestamp, action taken, slot ID, and rejection reason (if any). |
 | 4.0 | **System** |
-| 4.1 | The system shall store timetable data for 14 lecturers, 14 cohorts, and 23 Block B rooms as seed data. |
-| 4.2 | The system shall store each room's details including room name, capacity, room type (Tutorial / Lecture Hall / Lab / Cisco Lab), and allowed session type (L / T / P). |
-| 4.3 | The system shall compute a four-way set intersection of lecturer availability, cohort free schedules (supporting multiple cohorts), room vacancy, and capacity-aware venue filtering. |
+| 4.1 | The system shall store timetable data for 14 teaching staff, 14 cohorts, and 23 Block B rooms as seed data. |
+| 4.2 | The system shall store each room's details including room name, capacity, room type (Tutorial / Lecture Hall / Lab / Cisco Lab), and allowed session types (L, T, P, or a combination). |
+| 4.3 | The system shall apply a four-part check with a three-set intersection of lecturer availability, cohort free schedules (supporting multiple cohorts), and room vacancy, plus venue filtering that checks room capacity as the fourth part. |
 | 4.4 | The system shall display a "No available slots" message when no common slot is found. |
-| 4.5 | The system shall compute intersection with three vectors (lecturer x one cohort x room) for single-cohort requests. |
+| 4.5 | The system shall compute the intersection for single-cohort requests with one cohort schedule (lecturer x one cohort x room), and the capacity check shall still apply. |
 | 4.6 | The system shall return an empty result set when a lecturer is fully occupied for the entire day. |
-| 4.7 | For modules with session-type restrictions, the system shall filter venues to only those that allow the module's session type. *(Supersedes MPU-3133-specific wording — see §3 venue rules.)* |
-| 4.8 | The system shall implement Optimistic Concurrency Control using an integer version column pattern on the time_slots table. |
+| 4.7 | For modules with session-type restrictions, the system shall filter venues to only those that allow the module's session type. |
+| 4.8 | The system shall implement Optimistic Concurrency Control using an integer version column pattern on the time_slots table (Kung & Robinson, 1981). |
 | 4.9 | The system shall allow exactly one submission to succeed when two lecturers submit a request for the same slot at the same time. |
 | 4.10 | The system shall return a conflict alert to the lecturer whose submission did not succeed. |
-| 4.11 | The system shall manage the slot state machine transitioning a slot's status through Available, Pending (Self), Reserved (Other), and Occupied. |
-| 4.12 | The system shall log all Optimistic Concurrency Control validation outcomes in the audit trail. |
-| 4.13 | The system shall enforce Role-Based Access Control with three roles: Student (view-only), Lecturer (create/submit/cancel own), and Programme Leader (hybrid). |
+| 4.11 | The system shall manage the slot state machine transitioning a slot's status through Available, Pending, and Occupied (state-machine method in Harel, 1987). |
+| 4.12 | The system shall log all Optimistic Concurrency Control validation outcomes in the audit trail (Kung & Robinson, 1981). |
+| 4.13 | The system shall enforce Role-Based Access Control with three roles: Student (view-only), Lecturer (create/submit/cancel own), and Programme Leader (hybrid — inherits lecturer privileges plus approve and reject rights). |
 | 4.14 | The system shall redirect unauthenticated users to the login page. |
 | 4.15 | The system shall send an automated email notification to the Programme Leader when a new replacement request is submitted. |
 | 4.16 | The system shall send all email notifications in the background through a database-backed queue. |
@@ -261,26 +261,26 @@ Source: `../final/FR&NFR.md` — Chapter 3, §3.4 (verbatim).
 |-----|-------------|
 | 1.0 | **Performance** |
 | 1.1 | The system shall complete the matrix intersection calculation within 500 milliseconds from user input to grid display. |
-| 1.2 | The system shall complete Optimistic Concurrency Control (OCC) validation at near database-write speed with no noticeable delay to the user. |
+| 1.2 | The system shall complete Optimistic Concurrency Control (OCC) validation with less than 100 ms extra time beyond the database write. |
 | 1.3 | The system shall load all dashboard pages within 2 seconds under normal load. |
 | 1.4 | The system shall process queued email jobs within 1 minute of the queue worker starting. |
 | 2.0 | **Security** |
 | 2.1 | The system shall enforce role-based permission checks on all dashboard routes using Laravel middleware. |
 | 2.2 | The system shall hash all passwords using Bcrypt and never store passwords in plain text. |
-| 2.3 | The system shall use Laravel's Eloquent Object-Relational Mapping (ORM) for all database queries to prevent SQL injection. |
-| 2.4 | The system shall terminate inactive staff sessions after 30 minutes. |
-| 2.5 | The system shall terminate inactive student sessions after 30 days. |
-| 2.6 | The system shall apply Cross-Site Request Forgery (CSRF) token verification on all POST, PUT, and DELETE form submissions. |
+| 2.3 | The system shall use Laravel's Eloquent ORM for all database queries to prevent SQL injection. |
+| 2.4 | The system shall terminate inactive **staff** sessions after 30 minutes. |
+| 2.5 | The system shall terminate inactive **student** sessions after 30 days. |
+| 2.6 | The system shall apply CSRF token verification on all POST, PUT, and DELETE form submissions. |
 | 3.0 | **Usability** |
 | 3.1 | The system shall provide a responsive web interface that works on desktop, tablet, and mobile screen sizes. |
 | 3.2 | The system shall display the slot availability grid with colour-coded cells labelled with their meaning for accessibility. |
 | 3.3 | The system shall display error messages in clear and understandable language. |
-| 3.4 | The system shall redirect each user to their role-appropriate dashboard immediately after login. |
+| 3.4 | The system shall redirect each user to their own timetable page immediately after login. |
 | 3.5 | The system shall support light and dark themes. |
 | 3.6 | The system shall remember the user's chosen theme across sessions. |
 | 4.0 | **Reliability** |
-| 4.1 | The system shall guarantee that no double-booking occurs under any concurrent submission scenario. |
-| 4.2 | The system shall maintain at least 99% uptime. |
+| 4.1 | The system shall guarantee that no double-booking occurs under any situation where many users submit at the same time. |
+| 4.2 | The system shall maintain at least 99% uptime during the evaluation and demonstration periods. |
 | 4.3 | The system shall support database backup via PostgreSQL pg_dump. |
 | 5.0 | **Maintainability** |
 | 5.1 | The system shall follow the PHP Standard Recommendation 12 (PSR-12) coding standard, verifiable through Laravel Pint. |
@@ -290,18 +290,20 @@ Source: `../final/FR&NFR.md` — Chapter 3, §3.4 (verbatim).
 | 6.1 | The system shall support up to 50 concurrent users without performance degradation. |
 | 6.2 | The system shall process email notifications through a separate queue worker to avoid blocking the web application. |
 | 7.0 | **Legal and Ethical** |
-| 7.1 | The system shall process only the minimum necessary data: timetable schedules, staff names, staff IDs, student names, student IDs, cohort codes, and TAR UMT email addresses. |
+| 7.1 | The system shall process only the minimum necessary data: timetable schedules, staff names, staff IDs, student names, student IDs, cohort codes, and TAR UMT email addresses (Personal Data Protection Act 2010 [Act 709]). |
 | 7.2 | The system shall be developed only on localhost to ensure no university data leaves TAR UMT. |
 
 ### 7.4 NFR implementation notes (verified against codebase where marked ✓)
 - **NFR 2.2 ✓** — Bcrypt hashing is Laravel default; seeder uses `Hash::make`.
 - **NFR 2.6 ✓** — CSRF protection is Laravel default (VerifyCsrfToken middleware).
+- **NFR 1.2** — OCC validation must add <100 ms beyond the DB write (benchmark in Sprint 2).
 - **NFR 2.4 ✓ / 2.5 ✓** — per-role session lifetimes via `EnsureSessionLifetime` middleware (auth-wiring): staff 30 min, student 43200 min (= 30 days); `config/session.php` ceiling set accordingly.
 - **NFR 3.4 ✓** — post-login redirect per role via custom `LoginResponse` (student → `/student-my-timetable-ui`, staff → `/my-timetable-ui`).
-- **NFR 3.5 ✓ / 3.6 ✓** — light/dark theme toggle + `localStorage('theme')` persistence in `ui-common.js`.
+- **NFR 3.5 / 3.6 ✓** — light/dark theme toggle + `localStorage('theme')` persistence (`ui-common.js`, `ui-template.blade.php` pre-CSS guard).
 - **NFR 5.1 ✓** — Pint configured (`pint.json`, `composer run lint:check`).
 - **NFR 5.2 ✓** — all schema changes live in `database/migrations/`.
 - **NFR 5.3 ✓** — `App\Services\MatrixIntersectionEngine`, `App\Services\OCCValidator` (+ `OCCResult`) exist; full Sprint-2 wiring pending.
+- **NFR 7.1** — data allowlist: schedules, staff/student names + IDs, cohort codes, TAR UMT emails only.
 - **FR 4.16 / NFR 6.2 / 1.4** — `QUEUE_CONNECTION` must be a database-backed queue; run `php artisan queue:work` as a separate worker (Sprint 3).
 - **FR 2.1 ⚠ pending** — Staff ID with optional `P` prefix (`P5425`): current login validation accepts digits only (`^\d+$`); prefix normalization to add during auth hardening.
 - **NFR 7.2** — never deploy beyond localhost; no external data egress.
@@ -388,6 +390,7 @@ These ten rules are **non-negotiable** for every page and every future change:
 1. **Colors must be consistent across all pages.**
    - ALL colors come from the CSS custom-property token set in `public/css/theme.css` (`--color-bg`, `--color-surface`, `--color-primary`/`secondary`/`tertiary`/`error` + their `-container`/`-on-*` variants, defined once for dark + once for light).
    - **NEVER hardcode hex/rgb/rgba** in a page's `@section('page-styles')`. Use `var(--color-...)`. If a new color is needed, add the token to `theme.css` once.
+   - **Sole sanctioned exception (FOUC guard)** — the shared layout's pre-theme paint in `resources/views/layouts/ui-template.blade.php`: `html.dark { background: #0D1B2A; }` / `html.light { background: #F0F3F7; }`. These literals run before `theme.css` loads so a dark-mode reload never flashes white; `var(--color-...)` cannot be used here (the token file isn't parsed yet). If the theme's background token ever changes, update BOTH literals together (grep `html.dark`). No other hardcoded color is permitted — sanctions end here.
    - Slot-grid colors are fixed token-mapped: Green=`--color-secondary`, Red=`--color-error`, Yellow=`--color-tertiary`, Grey=`--color-outline-strong`, Blue=`--color-primary`. Status badges use the same mapping on every page.
 
 2. **Use the same name + same color for the same meaning everywhere.**

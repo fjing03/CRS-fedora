@@ -1,4 +1,5 @@
-@extends('layouts.ui-template', ['activeNav' => 'my-timetable', 'pageKey' => 'myTimetable'])
+@extends('layouts.ui-template', [
+        'homeUrl' => '/my-timetable-ui','activeNav' => 'my-timetable', 'pageKey' => 'myTimetable'])
 
 @section('title', 'My Timetable')
 
@@ -174,7 +175,7 @@
 
         <!-- ─── Semester Bar ─── -->
         <div class="semester-bar">
-            @include('partials.ui-week-nav', ['prevOnclick' => 'prevWeek()', 'nextOnclick' => 'nextWeek()', 'selectId' => 'weekSelect', 'selectOnclick' => 'selectWeek(this.value)'])
+            @include('partials.ui-week-nav', ['prevOnclick' => 'prevWeek()', 'nextOnclick' => 'nextWeek()', 'selectId' => 'weekSelect', 'selectOnclick' => 'selectWeek(this.value)', 'showPrint' => true])
         </div>
 
         <!-- ─── Week Subtitle ─── -->
@@ -258,7 +259,7 @@
         let currentWeek = currentWeekIndex();
         let currentModalEvent = null;
 
-        const weekNav = new WeekNavigator(MockData.semester, weekData);
+        const weekNav = new WeekNavigator(MockData.semester, weekData, null, 'myTimetableWeek');
         weekNav._currentWeek = currentWeek;
 
         /* ───── Week persistence: keep the user's chosen week across refresh ───── */

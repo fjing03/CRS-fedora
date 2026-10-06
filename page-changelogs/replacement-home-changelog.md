@@ -1,5 +1,12 @@
 # Changelog — Replacement Home Dashboard
 
+## [2026-10-02] Empty state above summary + summary auto-hides when empty
+
+- The `ui-empty-state` include moved **above** the "Summary Dashboard" strip in the DOM.
+- When the filtered conflicted-class list is empty, the whole `#summarySection` (5 cards + hint) is now **hidden** — previously only `#summaryBar` was hidden while the hint stayed visible.
+- Uses the new shared `syncSummarySection(visible)` helper in `ui-common.js` (§10.0 rule 7 promotion — same pattern on my-request-history, replacement-home, request-approval, upcoming-replacements).
+- Verified: default view shows summary; "ZZZNOFIND" search shows the empty state and hides the summary; clearing restores both. 0 console errors.
+
 ## [2026-08-31] Sync upstream/fjing UI refactor (merge fd8c403)
 
 Merged `upstream/fjing` (267 commits `cfc1bb1..f44cc5c`) into `fedora-backend`. Policy: **theirs-first for UI**; backend-only files kept local. Verification: PHPStan 0, PHPUnit 94/94, smoke 12/12 routes 200 (`/replacement-home-ui` 200).
@@ -244,3 +251,47 @@ Migrated inline `computeWeek()` to `getWeekNumber()`, `weekRangeLabel()` to `Dat
 | 2026-08-13 | Lines 214–225 | macOS modal button order | Reordered quick-view modal footer: Close button moved before Arrange Replacement button — matches macOS dismiss-left / action-right convention. |
 | 2026-08-13 | `public/js/mock-data.js` | Week filter fix | Semester `startDate` shifted from `2026-06-15` to `2026-07-27` so mock data dates (relative to today) fall in filterable weeks. `parseDate` in `ui-common.js` fixed: `.split("-")` → `.split(" ")` to match space-separated date format. |
 | 2026-08-15 | `<th>` headers | Header hover tooltips | Switched from native `title` to JS `initHeaderTooltips()` with a fixed-position tooltip div — tooltips appear above headers, avoids `overflow:hidden` clipping on `.grid-wrapper`. |
+
+### Postscript — sweep-fixes-round-1 (2026-10-06, F-1)
+
+**Negative days-left fixed across all three surfaces** (pre-submission sweep F-1):
+
+1. `daysLeft()` now runs on the shared demo anchor `DateHelper.getTodayMs()` (was the raw
+   browser clock — diverged from the lead-time pages; same one-line go-live pattern).
+2. New shared `daysLeftLabel()` (ui-common, 3rd-duplication promo): `<0 → "Overdue"`,
+   `0 → "Today"`, singular "1 day left", else "N days left" — rendered by the table
+   DAYS LEFT cell, the mobile `.rc-footer` card, and the quick-view modal Status row
+   (user decision: label Overdue and KEEP the row + button; the arrangement page's
+   lead-time banner explains why no weeks are selectable).
+3. Modal Status Description gains the negative branch: "Class date has passed — a
+   replacement can no longer be arranged automatically" (was "Urgent — arrange soon" for
+   −31 days). Modal urgency classes unified onto the defined vocabulary
+   (`urgencyClass()` → urgency-high/mid/low); the undefined `.urgency-urgent/warning/normal`
+   dead classes are gone. User decision noted in `.sdd/changes/sweep-fixes-round-1`.
+
+### Postscript — sweep-fixes-round-3 (2026-10-06, sortable Days Left + Venue)
+
+**Days Left** and **Venue** columns are now sortable (user request) via the shared
+`makeSortableHeader` house pattern: Days Left sorts on the computed urgency value —
+ascending = Overdue/most-urgent first, descending = nearest-to-today first (this
+page's conflicted classes are all past-dated in the demo dataset, so both directions
+order within the Overdue block; ordering is identical to Original Class since
+Days Left derives from the date — the header is the affordance users think in).
+Venue sorts alphabetically, grouping the same rooms. Students / Cohort(s) /
+Conflict Reason stay non-sortable (cohorts = multi-value like My Request History;
+Conflict Reason already has a dedicated filter dropdown).
+
+### Postscript — copy-fix-overdue (2026-10-06)
+
+**Overdue Status Description corrected** (user catch): the detail modal said
+"a replacement can no longer be arranged automatically" — false, the Overdue row's
+Arrange button works and the arrangement page books the passed class into any
+upcoming week (the 3-working-day rule applies to the chosen *slot*, not the passed
+class date). New copy: "Class date has passed — you can still arrange a replacement
+in any upcoming week". Supersedes the round-1 F-1 wording.
+
+**Addendum (2026-10-06, user ask):** the Overdue label now carries the day count —
+shared `daysLeftLabel()` (ui-common) renders **"Overdue (N days ago)"** with singular
+handling, so the table cell, card view and detail modal all show it; `.col-urgency`
+widened 100→150px to fit without wrapping. Diff computed against the `mockNow` anchor
+like every other lead-time value.

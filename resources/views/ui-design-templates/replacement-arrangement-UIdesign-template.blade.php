@@ -1,10 +1,29 @@
-@extends('layouts.ui-template', ['activeNav' => 'replacement-arrangement', 'hideNav' => true, 'pageKey' => 'replacementArrangement'])
+@extends('layouts.ui-template', [
+        'homeUrl' => '/my-timetable-ui','activeNav' => 'replacement-arrangement', 'hideNav' => true, 'pageKey' => 'replacementArrangement'])
 
 @section('title', 'Replacement Arrangement — Class Replacement System')
 
 @section('page-styles')
 
-        .cell-available { --hover-label: 'Select ?'; }
+        /* Hover chip removed — the preview block carries the message instead */
+        .cell-available::after { content: none; }
+        .event-selection-preview .preview-label {
+            position: absolute;
+            left: 50%;
+            top: 50%;
+            transform: translate(-50%, -50%);
+            padding: 3px 12px;
+            border-radius: 999px;
+            background: var(--color-tertiary);
+            color: var(--color-on-tertiary);
+            font-size: 12px;
+            font-weight: 700;
+            white-space: nowrap;
+        }
+        .event-selection-preview.preview-fail .preview-label {
+            background: var(--color-error);
+            color: var(--color-on-error);
+        }
 
         .top-bar {
             position: fixed;
@@ -92,8 +111,9 @@
         }
 
         .selector-dropdown {
-            padding: 6px 32px 6px 12px;
-            border-radius: var(--radius-sm);
+            height: 36px;
+            padding: 0 32px 0 12px;
+            border-radius: var(--radius-md); /* the week-select family */
             border: 1px solid var(--color-outline);
             background: var(--color-surface);
             color: var(--color-on-surface);
@@ -106,9 +126,12 @@
             appearance: none;
             -webkit-appearance: none;
             -moz-appearance: none;
-            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%233d5a48' stroke-width='1.5' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%239EAAB8' stroke-width='1.5' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
             background-repeat: no-repeat;
             background-position: right 10px center;
+        }
+        .light .selector-dropdown {
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%235A6978' stroke-width='1.5' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
         }
         .selector-dropdown:hover { border-color: var(--color-primary); }
         .selector-dropdown:focus { border-color: var(--color-primary); box-shadow: 0 0 0 3px rgba(var(--color-primary-rgb, 0, 77, 152), 0.15); }
@@ -143,83 +166,173 @@
             display: flex;
             align-items: flex-start;
             justify-content: space-between;
-            gap: 16px;
+            gap: 8px;
             flex-wrap: wrap;
         }
         .toolbar-primary {
             display: flex;
-            flex-direction: column;
-            gap: 4px;
+            flex-direction: row; /* slot picker sits to the right of the subject selector */
+            flex-wrap: wrap; /* drops below the select when the row is too tight */
+            align-items: center;
+            gap: 12px;
             flex: 1;
             min-width: 280px;
         }
         .toolbar-primary .selector-dropdown {
-            width: 100%;
-            max-width: 320px;
+            flex: 1 1 220px;
+            min-width: 0;
+            max-width: 225px; /* subject label ellipsizes before the week select does */
         }
         .toolbar-primary .toolbar-subtitle {
             font-size: 14px;
             font-weight: 500;
             color: var(--color-on-surface);
         }
-        .course-label-center {
-            width: 100%;
-            margin: 0 0 12px;
+        /* ── Conflict Schedule context strip (icon-led segments) ── */
+        .conflict-strip-wrap { width: 100%; margin: 0 0 12px; }
+        .conflict-strip {
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 6px 14px;
+            background: var(--color-surface);
+            border: 1px solid var(--color-outline);
+            border-radius: var(--radius-md);
+            padding: 7px 12px;
         }
-        .title-row {
-            font-size: 14px;
-            line-height: 1.7;
+        .cs-head {
+            display: inline-flex;
+            align-items: center;
+            gap: 7px;
+            background: var(--color-error-container);
+            color: var(--color-on-error-container);
+            font-size: 13px;
+            font-weight: 600;
+            padding: 5px 11px 5px 8px;
+            border-radius: var(--radius-sm);
+            white-space: nowrap;
+        }
+        .cs-head svg { flex-shrink: 0; }
+        .cs-seg {
+            display: inline-flex;
+            align-items: center;
+            gap: 7px;
+            min-width: 0;
+            font-size: 13px;
             color: var(--color-on-surface);
         }
-        .title-label {
-            font-weight: 600;
-            color: var(--color-on-bg);
-        }
-        .title-not-selected {
-            color: var(--color-on-surface-variant);
-            font-style: italic;
-        }
-        .title-hint {
+        .cs-seg svg { flex-shrink: 0; color: var(--color-on-surface-variant); }
+        .cs-val { min-width: 0; }
+        .cs-val strong { color: var(--color-on-bg); font-weight: 600; }
+        .cs-none { color: var(--color-on-surface-variant); font-style: italic; }
+        .cs-hint { font-size: 12px; margin-left: 4px; font-style: normal; }
+        .cs-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            margin-left: auto;
+            background: var(--color-primary-container);
+            color: var(--color-on-primary-container);
             font-size: 12px;
-            color: var(--color-on-surface-variant);
-            font-style: normal;
-            margin-left: 4px;
+            font-weight: 600;
+            padding: 4px 10px;
+            border-radius: 999px;
+            white-space: nowrap;
+        }
+        @media (max-width: 900px) {
+            .cs-badge { margin-left: 0; }
+        }
+
+        /* ── Booking intent banner (arrival from venue-timetable "Book" action) ── */
+        .booking-intent {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background: var(--color-primary-container);
+            color: var(--color-on-primary-container);
+            border: 1px solid color-mix(in srgb, var(--color-primary) 35%, transparent);
+            border-radius: var(--radius-md);
+            padding: 8px 12px;
+            font-size: 13px;
+            margin: 0 0 10px;
+        }
+        .booking-intent svg { flex-shrink: 0; }
+        .booking-intent strong { font-weight: 600; }
+        .bi-close {
+            margin-left: auto;
+            background: none;
+            border: none;
+            color: inherit;
+            cursor: pointer;
+            font-size: 16px;
+            line-height: 1;
+            padding: 2px 6px;
+            border-radius: var(--radius-sm);
+        }
+        /* conflict variant: booked slot can't be auto-selected */
+        .booking-intent-manual {
+            background: var(--color-error-container);
+            color: var(--color-on-error-container);
+            border-color: color-mix(in srgb, var(--color-error) 35%, transparent);
         }
         .semester-chip { display: none; }
         .page-header .semester-chip { display: none; }
         .toolbar-filters {
             display: flex;
             align-items: center;
-            gap: 12px;
+            gap: 6px;
             flex-shrink: 0;
+        }
+        @media (min-width: 769px) and (max-width: 1200px) {
+            /* the week-nav group wraps to its own right-aligned line BEFORE the
+               subject/venue pair gets squeezed by the wider full-label select */
+            .toolbar-filters {
+                flex: 1 0 100%;
+                justify-content: flex-end;
+            }
+            /* pack the group together on the wrapped line (the auto margin's
+               "rightmost slot" pattern only applies to the single-row layout) */
+            .toolbar-filters .print-btn { margin-left: 0; }
         }
         .toolbar-center {
             display: flex;
             align-items: center;
-            flex-shrink: 0;
+            gap: 6px; /* venue trigger + favourite need breathing room */
+            flex: 0 0 auto; /* content-sized — leftover space goes to the subject/slot pair */
+        }
+        .toolbar-center .venue-dd-trigger {
+            min-width: 0;
+            max-width: 216px; /* widest current label + arrow; longer names ellipsize (tip carries the full name) */
         }
 
         /* ── Slot Dropdown (custom) ── */
         .slot-dd {
             position: relative;
-            margin-top: 4px;
+            flex: 1 1 180px;
+            max-width: 240px;
         }
         .slot-dd-trigger {
             display: flex;
             align-items: center;
             gap: 8px;
-            padding: 8px 14px;
+            height: 36px;
+            padding: 0 12px;
             border: 1px solid var(--color-outline);
-            border-radius: var(--radius-md);
+            border-radius: var(--radius-md); /* the week-select family */
             background: var(--color-surface);
             color: var(--color-on-surface);
             font-family: inherit;
             font-size: 13px;
-            font-weight: 500;
+            font-weight: 600;
             cursor: pointer;
             transition: border-color 0.15s, box-shadow 0.15s;
-            min-width: 240px;
+            width: 100%;
             text-align: left;
+        }
+        .slot-dd-trigger span {
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
         }
         .slot-dd-trigger:hover {
             border-color: var(--color-primary);
@@ -318,25 +431,21 @@
             box-shadow: inset 0 0 0 1px var(--color-primary);
             cursor: pointer;
         }
-        .cell-selected .sel-text {
-            font-size: 10px;
-            font-weight: 700;
-            color: var(--color-on-primary-container);
-            text-transform: uppercase;
-            letter-spacing: 0.3px;
-            line-height: 1.2;
-            text-align: center;
-            pointer-events: none;
+        /* Selected block: time range at rest; hover/focus shows the theme's
+           danger pill (theme.css .event-block.event-selection::after) */
+        .event-selection .ev-time-label {
             display: flex;
             align-items: center;
             justify-content: center;
+            height: 100%;
+            font-size: 11px;
+            font-weight: 700;
+            letter-spacing: 0.3px;
+            color: var(--color-on-primary-container);
+            transition: opacity 0.15s;
         }
-        .cell-selected .sel-text::before {
-            content: "";
-        }
-        .cell-selected:hover .sel-text::before {
-            content: "Click Me to Remove Slots";
-        }
+        .event-selection:hover .ev-time-label,
+        .event-selection:focus-visible .ev-time-label { opacity: 0; }
 
         .cell-time-label { display: none; }
 
@@ -413,19 +522,35 @@
         .btn-primary {
             background: var(--color-primary);
             color: var(--color-on-primary);
-            box-shadow: 0 2px 8px rgba(151, 230, 194, 0.2);
+            transition: transform 0.15s, filter 0.15s, box-shadow var(--transition);
         }
+        /* Hover/active mirror the shared .btn-action design (replacement-home) */
         .btn-primary:hover {
-            box-shadow: 0 4px 16px rgba(151, 230, 194, 0.3);
-            filter: brightness(1.05);
+            filter: brightness(1.08);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
         }
-        .light .btn-primary { box-shadow: 0 2px 8px rgba(46, 194, 126, 0.2); }
-        .light .btn-primary:hover { box-shadow: 0 4px 16px rgba(46, 194, 126, 0.3); }
+        .btn-primary:active {
+            transform: scale(0.97);
+        }
 
         /* ── When block is selected, disable hover on other cells ── */
         .has-selection .cell-available { cursor: var(--cursor-cancel) !important; }
         .has-selection .cell-available:hover { filter: none; box-shadow: none; }
         .has-selection .cell-available:hover::after { opacity: 0 !important; }
+
+        /* Grid locked until a subject is picked — free cells read as not-allowed */
+        .timetable.no-subject .cell-available { cursor: var(--cursor-cancel); }
+        .attention-pulse { animation: attention-pulse 1.2s ease-out 1; }
+        @keyframes attention-pulse {
+            0%   { box-shadow: 0 0 0 0 color-mix(in srgb, var(--color-primary) 45%, transparent); }
+            70%  { box-shadow: 0 0 0 8px color-mix(in srgb, var(--color-primary) 0%, transparent); }
+            100% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--color-primary) 0%, transparent); }
+        }
+
+        /* Footer button tooltips — the wrapper span keeps hover alive while the
+           inner button is disabled (disabled controls swallow mouse events) */
+        .btn-tip { display: inline-flex; cursor: var(--cursor-cancel); }
+        .btn-tip .btn:disabled { pointer-events: none; }
 
         .btn-primary:disabled {
             opacity: 0.35;
@@ -599,7 +724,20 @@
             font-size: 12px;
             color: var(--color-on-surface-variant);
             text-align: center;
-            opacity: 0.65;
+        }
+        .sel-summary-tip .tip-action {
+            color: var(--color-primary);
+            font-weight: 700;
+        }
+        html.dark .sel-summary-tip .tip-action {
+            color: var(--color-on-primary-container); /* dark navy primary is too dim on the dark surface */
+        }
+        .sel-summary-tip .tip-success {
+            color: var(--color-success);
+            font-weight: 700;
+        }
+        html.dark .sel-summary-tip .tip-success {
+            color: var(--color-on-success-container); /* dark green success is too dim on the dark surface */
         }
 
         @media (max-width: 1024px) {
@@ -609,6 +747,10 @@
         }
 
         @media (max-width: 768px) {
+            /* the 7×22 grid cannot squeeze into a phone viewport — scroll it
+               instead of clipping (selection needs the real grid) */
+            .grid-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+            .grid-scroll table { min-width: 820px; }
             .top-title { font-size: 16px; }
             .top-logo { height: 26px; }
             .toolbar-restructure {
@@ -620,12 +762,18 @@
                 width: 100%;
             }
             .toolbar-primary .selector-dropdown {
+                flex-basis: 100%;
+                max-width: 100%;
+            }
+            .slot-dd {
+                flex-basis: 100%;
                 max-width: 100%;
             }
             .toolbar-filters {
                 flex-direction: column;
                 align-items: stretch;
                 gap: 8px;
+                flex-basis: auto; /* column parent — basis would otherwise be height */
             }
             .toolbar-center {
                 flex-direction: column;
@@ -810,8 +958,6 @@
 
     @include('partials.ui-page-header', [])
 
-    <div class="course-label-center" id="subjectInfo"></div>
-
         @include('partials.ui-guide-block', [
             'guideTitle' => 'How to use this page',
             'guideItems' => [
@@ -823,6 +969,13 @@
             ]
         ])
 
+        <div class="booking-intent-wrap" id="bookingIntent"></div>
+
+        <!-- ─── Lead-Time Notice (bookings open ≥ 3 working days out) ─── -->
+        <div class="hint-text" id="leadTimeNote" style="display:none"></div>
+
+        <div class="conflict-strip-wrap" id="subjectInfo"></div>
+
         <div class="toolbar toolbar-restructure">
             <div class="toolbar-primary">
                 <select class="selector-dropdown" id="subjectSelector" onchange="onSubjectChange()">
@@ -833,7 +986,7 @@
                 <div class="slot-dd" id="slotPicker" style="display:none;">
                     <button class="slot-dd-trigger" type="button" id="slotTrigger" onclick="toggleSlotPanel()">
                         <span id="slotTriggerText">Select a slot to replace</span>
-                        <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+                        <svg xmlns="http://www.w3.org/2000/svg" width="10" height="6" viewBox="0 0 10 6" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M1 1l4 4 4-4"/></svg>
                     </button>
                     <div class="slot-dd-panel" id="slotPanel"></div>
                     <div class="slot-dd-tooltip" id="slotTooltip"></div>
@@ -844,7 +997,7 @@
                 <button class="fav-btn" id="favStar" data-tip="Add to Favourites">&#9734;</button>
             </div>
             <div class="toolbar-filters">
-                @include('partials.ui-week-nav', ['prevOnclick' => 'weekNav.prevWeek()', 'nextOnclick' => 'weekNav.nextWeek()', 'selectId' => 'weekSelector', 'selectOnclick' => 'weekNav.selectWeek(parseInt(this.value, 10))', 'showTodayBtn' => true])
+                @include('partials.ui-week-nav', ['prevOnclick' => 'weekNav.prevWeek()', 'nextOnclick' => 'weekNav.nextWeek()', 'selectId' => 'weekSelector', 'selectOnclick' => 'weekNav.selectWeek(parseInt(this.value, 10))', 'showTodayBtn' => true, 'showPrint' => true, 'todayLabel' => 'Earliest bookable', 'todayTip' => 'Jump to the earliest bookable slot', 'todayIcon' => 'earliest'])
             </div>
         </div>
 
@@ -901,7 +1054,6 @@
                     <line x1="10" y1="16" x2="14" y2="16"/>
                 </svg>
                 <p>No time slots selected.</p>
-                <p>Click an available (green) time slot to begin.</p>
             </div>
             <div class="sel-summary-grid" id="summaryGrid"></div>
             <div class="sel-summary-info" id="summaryInfo">
@@ -920,7 +1072,7 @@
                     </div>
                 </div>
             </div>
-            <div class="sel-summary-tip" id="summaryTip">Tip: Click an available (green) time slot to begin.</div>
+            <div class="sel-summary-tip" id="summaryTip">Tip: Click an <span class="tip-success">available (green)</span> time slot to begin.</div>
         </div>
 
         <div class="footer-area">
@@ -936,20 +1088,24 @@
                     Clear this Page
                 </button>
                 --}}
-                <button class="btn btn-danger" id="clearAllBtn" disabled onclick="clearAll()">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <polyline points="3 6 5 6 21 6"/>
-                        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
-                    </svg>
-                    Clear ALL
-                </button>
-                <button class="btn btn-primary" onclick="proceed()">
-                    Submit Request
-                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                        <line x1="5" y1="12" x2="19" y2="12"/>
-                        <polyline points="12 5 19 12 12 19"/>
-                    </svg>
-                </button>
+                <span class="btn-tip" id="clearTip" data-tip="Nothing to clear yet — select a time slot first">
+                    <button class="btn btn-danger" id="clearAllBtn" disabled onclick="clearAll()">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <polyline points="3 6 5 6 21 6"/>
+                            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+                        </svg>
+                        Clear ALL
+                    </button>
+                </span>
+                <span class="btn-tip" id="submitTip" data-tip="Select a time slot first to enable submission">
+                    <button class="btn btn-primary" onclick="proceed()">
+                        Submit Request
+                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                            <line x1="5" y1="12" x2="19" y2="12"/>
+                            <polyline points="12 5 19 12 12 19"/>
+                        </svg>
+                    </button>
+                </span>
             </div>
         </div>
 
@@ -967,7 +1123,7 @@
         </div>
     </div>
 
-<div class="help-overlay" id="helpOverlay">
+<div class="help-overlay" id="helpOverlay" onclick="if(event.target===this)hideHelp()">
     <div class="help-card">
         <h3>Keyboard Shortcuts</h3>
         <div class="shortcut-row"><span>Navigate grid</span><span class="shortcut-key">↑ ↓ ← →</span></div>
@@ -990,13 +1146,23 @@
         // Max selectable slots — derived from the original class duration passed via
         // URL (duration in hours × 2 = 30-min slots), defaulting to 4 slots (2 hours).
         let MAX_SELECTION = 4;
+        /* the size of ONE block (slots) — derived from the original class
+           duration via URL; the multi-week BUDGET stays MAX_SELECTION */
+        let BLOCK_SPAN = 4;
 
         const weekData = generateWeekData();
         const venueSlotData = MockData.venueSlots;
 
         let selectedSlotsByVenue = {};
-        var weekNav = new WeekNavigator(MockData.semester, weekData, 'weekSelector');
+        var weekNav = new WeekNavigator(MockData.semester, weekData, 'weekSelector', 'arrangementWeek',
+            /* hide the unbookable weeks (no bookable slot: past/current/holiday
+               weeks are skipped — the selector lists absolute week numbers) */
+            function(i) { return weekHasBookableSlot(weekData, i); });
         weekNav.onBeforeNavigate = function() { saveCurrentWeek(); };
+        /* the "Earliest bookable" action flashes the lead-time boundary day */
+        weekNav.flashEarliestBookable = function() { flashEarliestBookableDay(weekData, weekNav.currentWeek); };
+        /* restore-after-week-jump already happens inside buildTimetable()
+           (loadCurrentWeek) — no after-navigate hook needed here */
         let currentVenue = 'B103';
         let venueDropdown = null;
         let selectedBlock = null;          // { day, startHour, endHour } or null
@@ -1055,12 +1221,26 @@
         }
 
         function updateCounter() {
+            /* multi-week model: the counter and button states reflect ALL saved
+               selections, not just the week on screen */
+            const total = getGlobalTotal();
             const el = document.getElementById('selCount');
-            if (el) el.textContent = selectedBlock ? (selectedBlock.endHour - selectedBlock.startHour) : 0;
+            if (el) el.textContent = total;
+            const has = total > 0;
             const btn = document.querySelector('.btn-primary');
-            if (btn) btn.disabled = !selectedBlock;
+            if (btn) btn.disabled = !has;
             const clearBtn = document.getElementById('clearAllBtn');
-            if (clearBtn) clearBtn.disabled = !selectedBlock;
+            if (clearBtn) clearBtn.disabled = !has;
+            /* Footer button tooltips — state-aware (buttons render above via the shared
+               data-tip system; the wrapper span keeps hover alive while disabled) */
+            const submitTip = document.getElementById('submitTip');
+            if (submitTip) submitTip.setAttribute('data-tip', has
+                ? 'Send your replacement request for approval'
+                : 'Select a time slot first to enable submission');
+            const clearTip = document.getElementById('clearTip');
+            if (clearTip) clearTip.setAttribute('data-tip', has
+                ? 'Clear all your selected slots'
+                : 'Nothing to clear yet — select a time slot first');
             updateSelectionSummary();
             updateSelectionProgress();
             updateSummaryStats();
@@ -1089,26 +1269,29 @@
         }
 
         function updateSelectionSummary() {
-            const currWeek = weekNav.currentWeek;
+            /* multi-week model: the panel lists EVERY saved selection (any week),
+               matching the Submit dialog and the enabled Submit button */
             const allBlocks = [];
             Object.keys(selectedSlotsByVenue).forEach(venueKey => {
                 const venueData = selectedSlotsByVenue[venueKey];
                 if (!venueData) return;
-                const block = venueData[currWeek];
-                if (block) {
-                    const days = weekData[currWeek].days;
+                Object.keys(venueData).forEach(weekKey => {
+                    const block = venueData[weekKey];
+                    if (!block) return;
+                    const days = weekData[weekKey].days;
                     allBlocks.push({
                         venue: venueKey,
-                        weekIdx: currWeek,
-                        weekLabel: weekData[currWeek].label,
+                        weekIdx: parseInt(weekKey, 10),
+                        weekLabel: weekData[weekKey].label,
                         day: days[block.day],
                         dayIdx: block.day,
                         startHour: block.startHour,
                         endHour: block.endHour,
                         slotCount: block.endHour - block.startHour
                     });
-                }
+                });
             });
+            allBlocks.sort((a, b) => a.weekIdx - b.weekIdx || a.dayIdx - b.dayIdx || a.startHour - b.startHour);
 
             const grid = document.getElementById('summaryGrid');
 
@@ -1119,7 +1302,7 @@
                 grid.style.display = 'none';
                 grid.innerHTML = '';
                 document.getElementById('summaryInfo').style.display = 'none';
-                document.getElementById('summaryTip').textContent = 'Tip: Click an available (green) time slot to begin.';
+                document.getElementById('summaryTip').innerHTML = 'Tip: Click an <span class="tip-success">available (green)</span> time slot to begin.';
                 return;
             }
 
@@ -1138,7 +1321,7 @@
                 card.dataset.venue = b.venue;
                 card.dataset.week = b.weekIdx;
                 card.innerHTML = `
-                    <button class="card-remove" onclick="deselectBlock()" aria-label="Remove">×</button>
+                    <button class="card-remove" onclick="removeSavedBlock('${b.venue}', ${b.weekIdx})" data-tip="Remove this selection" aria-label="Remove">×</button>
                     <div class="card-venue">${b.venue}</div>
                     <div class="card-day">${b.weekLabel} · ${b.day.abbr}</div>
                     <div class="card-date">${b.day.date}</div>
@@ -1160,11 +1343,11 @@
 
             const tip = document.getElementById('summaryTip');
             if (getGlobalTotal() >= MAX_SELECTION) {
-                tip.textContent = 'Tip: Maximum selection reached.';
+                tip.innerHTML = 'Tip: Maximum selection reached. <span class="tip-action">Click the selected block to remove it.</span>';
             } else if (allBlocks.length > 0) {
-                tip.textContent = 'Tip: Click the selected block to remove it.';
+                tip.innerHTML = 'Tip: <span class="tip-action">Click the selected block to remove it.</span>';
             } else {
-                tip.textContent = 'Tip: Click an available (green) time slot to begin.';
+                tip.innerHTML = 'Tip: Click an <span class="tip-success">available (green)</span> time slot to begin.';
             }
         }
 
@@ -1184,7 +1367,7 @@
                     }
                 }
             }
-            pushHistory({ action: 'deselect', block: { ...selectedBlock } });
+            pushHistory({ action: 'deselect', block: { ...selectedBlock }, venue: currentVenue.code || currentVenue, week: weekNav.currentWeek });
             selectedBlock = null;
             if (!selectedSlotsByVenue[currentVenue]) selectedSlotsByVenue[currentVenue] = {};
             selectedSlotsByVenue[currentVenue][weekNav.currentWeek] = null;
@@ -1244,17 +1427,26 @@
             const div = document.createElement('div');
             div.className = 'event-block event-selection';
             div.setAttribute('tabindex', '0');
-            div.addEventListener('click', () => deselectBlock());
+            const startStr = hours[selectedBlock.startHour];
+            const endStr = add30min(hours[selectedBlock.endHour - 1]);
+            div.innerHTML = `<span class="ev-time-label">${to12h(startStr)} – ${to12h(endStr)}</span>`;
+            div.addEventListener('click', () => userDeselectSelectedBlock());
             firstTd.appendChild(div);
             // Disable hover on other available cells
             const table = body.closest('.timetable');
             if (table) table.classList.add('has-selection');
+            // Blocked-state hint: green slots explain why they can't be picked (renders above
+            // the cell via the shared data-tip tooltip) until the selection is cleared
+            body.querySelectorAll('.cell-content.cell-available').forEach(c => {
+                c.setAttribute('data-tip', 'Clear your selection first — click it to remove');
+            });
         }
 
         function clearMergedBlock(body) {
             if (!body) body = document.getElementById('tableBody');
             // Remove existing event-block
             body.querySelectorAll('.event-selection').forEach(el => el.remove());
+            body.querySelectorAll('.cell-content[data-tip]').forEach(c => c.removeAttribute('data-tip'));
             // Reset colSpan and display on all cells
             if (selectedBlock) {
                 for (let h = selectedBlock.startHour; h < selectedBlock.endHour; h++) {
@@ -1274,7 +1466,7 @@
         }
 
         function canPlaceBlock(day, startHour) {
-            const span = MAX_SELECTION;
+            const span = BLOCK_SPAN;
             if (startHour + span > hours.length) return false;
             for (let h = startHour; h < startHour + span; h++) {
                 if (!isCellAvailable(day, h)) return false;
@@ -1285,18 +1477,31 @@
         function selectBlock(day, startHour) {
             if (selectedBlock) {
                 showAlertModal('Clear current selection', 'You already have a selected block. Clear it first before selecting a new one.');
-                return;
+                return false;
             }
-            const span = MAX_SELECTION;
-            if (!canPlaceBlock(day, startHour)) return;
+            const span = BLOCK_SPAN;
+            if (!canPlaceBlock(day, startHour)) {
+                toast.show(startHour + span > hours.length
+                    ? 'Not enough time left in the day for a ' + (span * 30) + '-minute selection.'
+                    : 'That slot is no longer available.');
+                return false;
+            }
+            /* multi-week budget: MAX_SELECTION slots in total across every week */
+            if (getGlobalTotal() + span > MAX_SELECTION) {
+                toast.show('You\u2019ve reached the ' + MAX_SELECTION + '-slot maximum \u2014 clear another week\u2019s selection first.');
+                return false;
+            }
+            /* a real (manual) selection completes the booking — drop the intent banner */
+            if (pendingBookingIntent) { pendingBookingIntent = null; bookingIntentMemory = null; renderBookingIntent(); }
             selectedBlock = { day, startHour, endHour: startHour + span };
             previewRange = null;
             const body = document.getElementById('tableBody');
             renderMergedBlock(body);
             if (!selectedSlotsByVenue[currentVenue]) selectedSlotsByVenue[currentVenue] = {};
             selectedSlotsByVenue[currentVenue][weekNav.currentWeek] = { day, startHour, endHour: startHour + span };
-            pushHistory({ action: 'select', block: { ...selectedBlock } });
+            pushHistory({ action: 'select', block: { ...selectedBlock }, venue: currentVenue.code || currentVenue, week: weekNav.currentWeek });
             updateCounter();
+            return true;
         }
 
         let previewRange = null;
@@ -1304,9 +1509,10 @@
         function previewBlock(day, startHour, el) {
             clearPreview();
             if (selectedBlock) return;
-            const span = MAX_SELECTION;
+            const span = BLOCK_SPAN;
             const body = document.getElementById('tableBody');
-            const ok = canPlaceBlock(day, startHour);
+            const noSubject = !currentCourse; /* locked grid: preview explains instead of inviting */
+            const ok = !noSubject && canPlaceBlock(day, startHour);
             previewRange = { day, startHour, endHour: startHour + span };
             const firstTd = body.querySelector(`td[data-day="${day}"][data-hour="${startHour}"]`);
             if (!firstTd) return;
@@ -1320,6 +1526,10 @@
             const borderSpacing = parseInt(getComputedStyle(table).borderSpacing) || 0;
             div.style.width = (firstTd.offsetWidth * span + (span - 1) * borderSpacing) + 'px';
             div.style.pointerEvents = 'none';
+            const label = document.createElement('span');
+            label.className = 'preview-label';
+            label.textContent = ok ? 'Select these slots?' : (noSubject ? 'Pick a subject first' : 'Not enough slots');
+            div.appendChild(label);
             if (!ok) firstTd.style.cursor = 'not-allowed';
             table.appendChild(div);
         }
@@ -1334,11 +1544,30 @@
         }
 
         function buildTimetable() {
+            clearPreview(); /* a rebuild invalidates any open hover preview */
             const days = getDays();
+
+            /* F-9 (round-2): venue-parity accessible bookable cell — focusable,
+               announced, keyboard-operable; keyboard focus gets the same block
+               preview mouse users get on hover. */
+            function setupAvailableCell(div, di, hi) {
+                div.tabIndex = 0;
+                div.setAttribute('role', 'button');
+                div.setAttribute('aria-label', 'Available slot: ' + days[di].abbr + ' ' + hours[hi]);
+                div.addEventListener('click', () => toggleCell(di, hi, div));
+                div.addEventListener('mouseenter', () => previewBlock(di, hi, div));
+                div.addEventListener('mouseleave', () => clearPreview());
+                div.addEventListener('focus', () => previewBlock(di, hi, div));
+                div.addEventListener('blur', () => clearPreview());
+                div.addEventListener('keydown', (e) => {
+                    if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggleCell(di, hi, div); }
+                });
+            }
 
             buildTimetableGrid({
                 events: [],
                 days: days,
+                bookableBadge: true,
                 cellRender: function(td, di, hi, day) {
                     const div = document.createElement('div');
                     div.className = 'cell-content';
@@ -1356,17 +1585,19 @@
                             div.className += ' cell-pending';
                         } else if (cellData[2] === 4) {
                             div.className += ' cell-reserved';
+                        } else if (isSlotTooSoon(weekData, weekNav.currentWeek, di)) {
+                            /* lead-time rule: inside the 3-working-day window — read-only */
+                            div.className += ' cell-too-soon';
                         } else {
                             div.className += ' cell-available';
-                            div.addEventListener('click', () => toggleCell(di, hi, div));
-                            div.addEventListener('mouseenter', () => previewBlock(di, hi, div));
-                            div.addEventListener('mouseleave', () => clearPreview());
+                            setupAvailableCell(div, di, hi);
                         }
+                    } else if (isSlotTooSoon(weekData, weekNav.currentWeek, di)) {
+                        /* lead-time rule: inside the 3-working-day window — read-only */
+                        div.className += ' cell-too-soon';
                     } else {
                         div.className += ' cell-available';
-                        div.addEventListener('click', () => toggleCell(di, hi, div));
-                        div.addEventListener('mouseenter', () => previewBlock(di, hi, div));
-                        div.addEventListener('mouseleave', () => clearPreview());
+                        setupAvailableCell(div, di, hi);
                     }
 
                     const timeLabel = document.createElement('span');
@@ -1380,6 +1611,7 @@
 
             loadCurrentWeek();
             updateCounter();
+            renderLeadTimeNote('leadTimeNote', weekData, weekNav.currentWeek);
             weekNav._updateArrows();
         }
 
@@ -1388,9 +1620,20 @@
         }
 
         function toggleCell(di, hi, el) {
+            // Grid locked until a subject is picked: guide instead of selecting
+            if (!currentCourse) {
+                toast.show('Select a subject first to trigger the timeslots selector');
+                pulseSubjectSelector();
+                return;
+            }
+            // Lead-time rule: too-soon cells are read-only
+            if (el.classList.contains('cell-too-soon')) {
+                toast.show('Slots must be at least 3 working days from today.');
+                return;
+            }
             // If clicking inside the current block, deselect it
             if (selectedBlock && di === selectedBlock.day && hi >= selectedBlock.startHour && hi < selectedBlock.endHour) {
-                deselectBlock();
+                discardSelection();
                 return;
             }
             // Otherwise try to place a new block starting at this cell
@@ -1399,8 +1642,19 @@
             }
         }
 
+        /* Draw the eye to the subject dropdown (used when a locked grid cell is clicked) */
+        function pulseSubjectSelector() {
+            const sel = document.getElementById('subjectSelector');
+            if (!sel) return;
+            sel.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+            sel.classList.remove('attention-pulse');
+            void sel.offsetWidth; /* restart the animation */
+            sel.classList.add('attention-pulse');
+            setTimeout(function() { sel.classList.remove('attention-pulse'); }, 1300);
+        }
+
         function clearSelection() {
-            deselectBlock();
+            discardSelection();
         }
 
         function onVenueChange() {
@@ -1412,8 +1666,16 @@
                     'You have selected slots on the grid. Changing the <strong>venue</strong> will clear them. Continue?',
                     function() {
                         hideConfirmModal();
+                        /* keep the booking armed for the next subject pick —
+                           capture BEFORE the discard clears the block */
+                        const rearm = bookingIntentMemory && intentMatchesBlock(
+                            currentVenue.code || currentVenue, weekNav.currentWeek, selectedBlock);
                         deselectBlock();
                         applyVenueChange(newVenue);
+                        if (rearm) {
+                            pendingBookingIntent = { ...bookingIntentMemory };
+                            renderBookingIntent();
+                        }
                     }
                 );
                 // Cancel path: snap the dropdown back to the current venue
@@ -1494,7 +1756,16 @@
                 'You have selected slots on the grid. Changing the <strong>' + actionLabel + '</strong> will remove them. Continue?',
                 function() {
                     hideConfirmModal();
-                    deselectBlock();
+                    /* the change must not spend the booking: if the block being
+                       cleared IS the booking's pre-fill, re-arm the intent so the
+                       next subject application re-selects it */
+                    if (bookingIntentMemory && intentMatchesBlock(
+                            currentVenue.code || currentVenue, weekNav.currentWeek, selectedBlock)) {
+                        pendingBookingIntent = { ...bookingIntentMemory };
+                        /* signal that the booking is armed again (N5) */
+                        renderBookingIntent();
+                    }
+                    discardSelection();
                     proceedFn();
                 }
             );
@@ -1532,20 +1803,28 @@
         }
 
         function proceed() {
-            if (!selectedBlock) {
+            if (getGlobalTotal() === 0) {
                 showConfirmModal('No Selection', 'Please select at least one timeslot before proceeding.', null);
                 return;
             }
-            const days = weekData[weekNav.currentWeek].days;
-            const weekLabel = weekData[weekNav.currentWeek].label;
-            const day = days[selectedBlock.day];
-            const startStr = hours[selectedBlock.startHour];
-            const endStr = add30min(hours[selectedBlock.endHour - 1]);
-            const slotCount = selectedBlock.endHour - selectedBlock.startHour;
-            const listHtml = `<div style="padding:3px 0;font-size:13px;">${currentVenue} · (${weekLabel}) ${day.abbr}, ${day.date} — ${to12h(startStr)} ~ ${to12h(endStr)} · ${slotCount} slots</div>`;
+            /* multi-week model: summarize EVERY saved selection, not just the week on screen */
+            const shortDayNames = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+            const rows = [];
+            for (const venue in selectedSlotsByVenue) {
+                for (const week in selectedSlotsByVenue[venue]) {
+                    const block = selectedSlotsByVenue[venue][week];
+                    if (!block) continue;
+                    const dayData = weekData[week].days[block.day];
+                    const startStr = hours[block.startHour];
+                    const endStr = add30min(hours[block.endHour - 1]);
+                    const slotCount = block.endHour - block.startHour;
+                    rows.push(`<div style="padding:3px 0;font-size:13px;">${venue} · (${weekData[week].label}) ${shortDayNames[block.day]}, ${dayData.date} — ${to12h(startStr)} ~ ${to12h(endStr)} · ${slotCount} slots</div>`);
+                }
+            }
+            const listHtml = rows.join('');
             showConfirmModal(
                 'Confirm Your Selection',
-                `<div style="margin-bottom:12px;font-weight:500;">You are about to submit a replacement request for the following block:</div>
+                `<div style="margin-bottom:12px;font-weight:500;">You are about to submit a replacement request for the following ${rows.length > 1 ? rows.length + ' blocks' : 'block'}:</div>
                  <div style="border:1px solid var(--color-outline);border-radius:var(--radius-sm);padding:10px 14px;max-height:200px;overflow-y:auto;">${listHtml}</div>`,
                 function() {
                     hideConfirmModal();
@@ -1553,11 +1832,13 @@
                     if (selectedOriginalSlot) {
                         setRecentSlot(selectedOriginalSlot);
                     }
-                    const toast = buildSubmissionToastMessage();
+                    const sub = buildSubmissionToastMessage();
                     deselectBlock();
                     Object.keys(selectedSlotsByVenue).forEach(k => { selectedSlotsByVenue[k] = {}; });
+                    /* the request is sent — Ctrl+Z must not resurrect its slots */
+                    selectionHistory.length = 0;
                     updateCounter();
-                    toast.show(toast.message, null, 5000, 'View \u2192', '/my-request-history-ui', toast.details);
+                    toast.show(sub.message, null, 5000, 'View \u2192', '/my-request-history-ui', sub.details);
                 }
             );
         }
@@ -1565,20 +1846,27 @@
         function clearAll() {
             showConfirmModal(
                 'Clear All Selections',
-                'Are you sure you want to clear all selections across <strong>ALL</strong> weeks? This action cannot be undone.',
+                'Are you sure you want to clear all selections across <strong>ALL</strong> weeks? You can undo this from the toast that appears.',
                 function() {
                     hideConfirmModal();
                     var savedBlock = selectedBlock ? { ...selectedBlock } : null;
                     var savedSlots = JSON.parse(JSON.stringify(selectedSlotsByVenue));
+                    var savedVenue = currentVenue.code || currentVenue;
+                    var savedWeek = weekNav.currentWeek;
                     Object.keys(selectedSlotsByVenue).forEach(k => { selectedSlotsByVenue[k] = {}; });
                     deselectBlock();
                     updateCounter();
                     toast.show('All selections cleared.', function() {
                         Object.keys(savedSlots).forEach(k => { selectedSlotsByVenue[k] = savedSlots[k]; });
-                        if (savedBlock) {
+                        /* only re-render when the view hasn't moved since the clear —
+                           restoring a foreign week's block onto the current grid
+                           would bake it into the wrong week on the next navigation */
+                        if (savedBlock && savedVenue === (currentVenue.code || currentVenue) && savedWeek === weekNav.currentWeek) {
                             selectedBlock = savedBlock;
                             const body = document.getElementById('tableBody');
                             renderMergedBlock(body);
+                        } else {
+                            selectedBlock = null;
                         }
                         updateCounter();
                     });
@@ -1592,19 +1880,11 @@
                     'Unsaved Changes',
                     'You have selections that will be lost if you leave this page. Are you sure you want to leave?',
                     function() {
-                        var savedBlock = selectedBlock ? { ...selectedBlock } : null;
-                        var savedSlots = JSON.parse(JSON.stringify(selectedSlotsByVenue));
+                        /* Confirmed leave → navigate at once; selections are in-memory
+                           and die with the page (no clearing ceremony / undo toast).
+                           allowUnload bypasses the beforeunload guard (no double prompt). */
                         hideConfirmModal();
-                        Object.keys(selectedSlotsByVenue).forEach(k => { selectedSlotsByVenue[k] = {}; });
-                        deselectBlock();
-                        toast.show('Selections cleared.', function() {
-                            Object.keys(savedSlots).forEach(k => { selectedSlotsByVenue[k] = savedSlots[k]; });
-                            if (savedBlock) {
-                                selectedBlock = savedBlock;
-                                const body = document.getElementById('tableBody');
-                                renderMergedBlock(body);
-                            }
-                        });
+                        allowUnload = true;
                         window.location.href = url;
                     }
                 );
@@ -1619,23 +1899,12 @@
                     'Unsaved Changes',
                     'You have selections that will be lost if you leave this page. Are you sure you want to go back?',
                     function() {
+                        /* Confirmed leave → navigate at once; selections are in-memory
+                           and die with the page (no clearing ceremony / 5s undo wait).
+                           allowUnload bypasses the beforeunload guard (no double prompt). */
                         hideConfirmModal();
-                        var savedBlock = selectedBlock ? { ...selectedBlock } : null;
-                        var savedSlots = JSON.parse(JSON.stringify(selectedSlotsByVenue));
-                        Object.keys(selectedSlotsByVenue).forEach(k => { selectedSlotsByVenue[k] = {}; });
-                        deselectBlock();
-                        updateCounter();
-                        var navTimer = setTimeout(function() { BackNavigator.navigate(); }, 5000);
-                        toast.show('Selections cleared.', function() {
-                            clearTimeout(navTimer);
-                            Object.keys(savedSlots).forEach(k => { selectedSlotsByVenue[k] = savedSlots[k]; });
-                            if (savedBlock) {
-                                selectedBlock = savedBlock;
-                                const body = document.getElementById('tableBody');
-                                renderMergedBlock(body);
-                            }
-                            updateCounter();
-                        });
+                        allowUnload = true;
+                        BackNavigator.navigate();
                     }
                 );
             } else {
@@ -1643,8 +1912,49 @@
             }
         }
 
+        /* Browser-level guard for the paths the in-page modal can't reach:
+           refresh, close, address-bar navigation and the browser's own
+           back/forward arrows. Browser controls the dialog text ("Changes
+           you made may not be saved") — we only decide whether it appears. */
+        let allowUnload = false;
+        window.addEventListener('beforeunload', function(e) {
+            if (!allowUnload && (selectedBlock || getGlobalTotal() > 0)) {
+                e.preventDefault();
+                e.returnValue = '';
+                return '';
+            }
+        });
+
+        /* bfcache restore (browser back/forward): Chrome resurrects the frozen page
+           exactly as left — selections, undo history AND the allowUnload bypass all
+           survive. The user already confirmed leaving ("selections will be lost"),
+           so re-arm the guard and come back to a clean slate. */
+        /* Chrome re-fills form controls on back/forward reloads: the subject dropdown
+           can DISPLAY a value the page's JS never applied (currentCourse still null),
+           leaving the grid locked under a filled selector. Reconcile so what is shown
+           is what is applied. Runs on every load — restoration precedes pageshow. */
+        function reconcileSubjectState() {
+            const sel = document.getElementById('subjectSelector');
+            if (sel && sel.value && !currentCourse) onSubjectChange();
+        }
+
+        window.addEventListener('pageshow', function(e) {
+            reconcileSubjectState();
+            if (!e.persisted) {
+                /* belt & braces: form-restoration timing varies — re-check shortly */
+                setTimeout(reconcileSubjectState, 120);
+                return; /* normal load — nothing else to do */
+            }
+            allowUnload = false;
+            Object.keys(selectedSlotsByVenue).forEach(k => { selectedSlotsByVenue[k] = {}; });
+            deselectBlock();        /* removes merged block + restores green cells */
+            selectionHistory = [];  /* cleared after deselectBlock (it pushes an entry) — stale Ctrl+Z can't resurrect */
+            updateCounter();        /* re-sync counter/summary/footer (also covers the no-block case) */
+        });
+
         function navigateHome() {
-            navigateTo('/');
+            /* R-3 (round-3): same role-home rule as the shell — was hardcoded '/' */
+            navigateTo(window.PAGE_HOME || '/');
         }
 
         function updateSelectionProgress() {
@@ -1683,19 +1993,34 @@
             if (selectionHistory.length === 0) return;
             const last = selectionHistory.pop();
             const body = document.getElementById('tableBody');
+            const venueNow = currentVenue.code || currentVenue;
 
             if (last.action === 'select') {
-                // Undo a block selection → deselect it
-                if (selectedBlock && selectedBlock.day === last.block.day && selectedBlock.startHour === last.block.startHour) {
+                // Undo a block selection → deselect it, but only if the view is
+                // still where the selection happened — otherwise the wrong
+                // week's/venue's block would be removed
+                if (selectedBlock && last.venue === venueNow && last.week === weekNav.currentWeek
+                    && selectedBlock.day === last.block.day && selectedBlock.startHour === last.block.startHour) {
                     deselectBlock();
                 }
             } else if (last.action === 'deselect') {
-                // Undo a block deselect → re-select it
+                // Undo a block deselect → re-select it into its ORIGINAL
+                // week/venue; re-render only when the view still matches —
+                // restoring a foreign week's block onto the current grid would
+                // bake it into the wrong week on the next navigation
                 if (!selectedBlock) {
-                    selectedBlock = { ...last.block };
-                    renderMergedBlock(body);
-                    if (!selectedSlotsByVenue[currentVenue]) selectedSlotsByVenue[currentVenue] = {};
-                    selectedSlotsByVenue[currentVenue][weekNav.currentWeek] = { day: selectedBlock.day, startHour: selectedBlock.startHour, endHour: selectedBlock.endHour };
+                    /* lead-time rule: a slot that has slipped inside the
+                       3-working-day window can no longer be resurrected */
+                    if (isSlotTooSoon(weekData, last.week, last.block.day)) {
+                        toast.show('That slot is now within 3 working days of today — it can no longer be selected.');
+                        return;
+                    }
+                    if (!selectedSlotsByVenue[last.venue]) selectedSlotsByVenue[last.venue] = {};
+                    selectedSlotsByVenue[last.venue][last.week] = { ...last.block };
+                    if (last.venue === venueNow && last.week === weekNav.currentWeek) {
+                        selectedBlock = { ...last.block };
+                        renderMergedBlock(body);
+                    }
                 }
             }
             updateCounter();
@@ -1709,6 +2034,8 @@
             if (td) {
                 const cellDiv = td.querySelector('.cell-content');
                 if (cellDiv) cellDiv.classList.add('cell-focused');
+                /* keep the ring visible while arrowing through a tall grid */
+                td.scrollIntoView({ block: 'nearest' });
             }
             focusedCell = { day: day, hour: hour };
         }
@@ -1742,6 +2069,14 @@
             const help = document.getElementById('helpOverlay');
             if (help && help.classList.contains('active')) {
                 if (e.key === 'Escape') hideHelp();
+                return;
+            }
+
+            /* let form controls keep their native keys — the grid must not
+               hijack arrows/space/enter from the subject or week selects */
+            const tag = ((e.target && e.target.tagName) || '').toLowerCase();
+            if (tag === 'select' || tag === 'input' || tag === 'textarea') {
+                if (e.key === 'Escape') e.target.blur();
                 return;
             }
 
@@ -1785,6 +2120,14 @@
                 case 'Escape':
                     unfocusCell();
                     break;
+                case '[':
+                    e.preventDefault();
+                    weekNav.prevWeek();
+                    break;
+                case ']':
+                    e.preventDefault();
+                    weekNav.nextWeek();
+                    break;
                 case '?':
                     showHelp();
                     break;
@@ -1800,7 +2143,12 @@
                 case '3':
                     if (e.ctrlKey || e.metaKey) {
                         e.preventDefault();
-                        /* Ctrl+1-9 to select venue by index — handled by VenueDropdown internally */
+                        /* switch to the Nth venue of the (filtered) dropdown list */
+                        if (venueDropdown && typeof venueDropdown.getFiltered === 'function') {
+                            const list = venueDropdown.getFiltered();
+                            const v = list[parseInt(e.key, 10) - 1];
+                            if (v) venueDropdown.select(v.code);
+                        }
                     }
                     break;
             }
@@ -1815,6 +2163,10 @@
             const el = document.getElementById('subjectInfo');
             const hasSubject = !!currentCourse;
             const hasSlot = !!selectedOriginalSlot;
+
+            /* Grid lock affordance: free cells read as not-allowed until a subject is picked */
+            const timetableEl = document.getElementById('timetable');
+            if (timetableEl) timetableEl.classList.toggle('no-subject', !hasSubject);
 
             // Line 1: Subject
             const subjectLine = hasSubject
@@ -1848,12 +2200,34 @@
                 }
             }
 
-            el.innerHTML = `<div class="title-subtitle">Conflict Schedule</div>
-                <div class="title-row"><span class="title-label">Subject:</span> ${subjectLine ? subjectLine : '<span class="title-not-selected">Not selected</span>' + (!hasSubject ? '<span class="title-hint">— Select a Subject first</span>' : '')}</div>
-                <div class="title-row"><span class="title-label">Time Slot:</span> ${slotLine ? slotLine : '<span class="title-not-selected">Not selected</span>' + (!hasSlot ? '<span class="title-hint">— Then pick a Conflict Slot</span>' : '')}</div>
-                <div class="title-row"><span class="title-label">Cohorts:</span> ${cohortsLine ? cohortsLine : '<span class="title-not-selected">Not selected</span>'}</div>
-                <div class="title-row"><span class="title-label">Total Students:</span> ${totalLine ? totalLine : '0'}</div>
-            `;
+            el.innerHTML = `<div class="conflict-strip">
+                <div class="cs-head">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                    Conflict Schedule
+                </div>
+                <div class="cs-seg">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
+                    ${subjectLine
+                        ? `<span class="cs-val"><strong>${currentCourse.code}</strong> — ${currentCourse.name} (${currentCourse.type})</span>`
+                        : `<span class="cs-val cs-none">Not selected${!hasSubject ? '<span class="cs-hint">— Select a Subject first</span>' : ''}</span>`}
+                </div>
+                <div class="cs-seg">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                    ${slotLine
+                        ? `<span class="cs-val">${slotLine}</span>`
+                        : `<span class="cs-val cs-none">Not selected${!hasSlot ? '<span class="cs-hint">— Then pick a Conflict Slot</span>' : ''}</span>`}
+                </div>
+                <div class="cs-seg">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                    ${cohortsLine
+                        ? `<span class="cs-val">${cohortsLine}</span>`
+                        : `<span class="cs-val cs-none">Not selected</span>`}
+                </div>
+                <div class="cs-badge" data-tip="Total students">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                    ${totalLine ? totalLine : '0'}
+                </div>
+            </div>`;
         }
 
         function buildSubjectDropdown() {
@@ -1888,7 +2262,232 @@
             applySubjectChange(code);
         }
 
+        /* ───── Booking intent (arrival from venue-timetable "Book" action) ─────
+           The handoff carries ?venue&date&time — the venue page's "Book" click
+           already confirmed that exact slot, so once a subject exists we
+           auto-select it instead of making the user hunt for it again. */
+        let pendingBookingIntent = null;
+        let intentBannerSuppressed = false; /* sticky ×: reminder stays dismissed for this booking */
+        let intentNeedsManual = false;      /* booked slot can't be auto-selected (overflow/unavailable) */
+        let intentTooSoon = false;          /* ...specifically because it's inside the 3-working-day window */
+        let bookingIntentMemory = null;     /* persistent copy of the booking — survives the one-shot
+                                               consume so subject/venue changes can re-arm it */
+        let intentCancelled = false;        /* user discarded the auto-select — reload must not resurrect it */
+
+        function intentKey(i) { return i.venue + '|' + i.dateStr + '|' + i.timeStr; }
+
+        function bookingKeyFromParams() {
+            return (urlParams.venue || '') + '|' + (urlParams.date || '') + '|' + (urlParams.time || '');
+        }
+
+        function resolveBookingIntent() {
+            pendingBookingIntent = null;
+            intentBannerSuppressed = false;
+            intentNeedsManual = false;
+            intentTooSoon = false;
+            intentCancelled = false;
+            if (!urlParams.date || !urlParams.time) return;
+            const hourIndex = hours.indexOf(urlParams.time);
+            if (hourIndex < 0) return;
+            /* the shared week (localStorage) is usually already right; if the
+               booked date lives in another week, jump to it */
+            let weekIdx = weekNav.currentWeek;
+            let dayIndex = (weekData[weekIdx].days || []).findIndex(function(d) { return d.date === urlParams.date; });
+            if (dayIndex < 0) {
+                for (let w = 0; w < weekData.length && dayIndex < 0; w++) {
+                    const di = (weekData[w].days || []).findIndex(function(d) { return d.date === urlParams.date; });
+                    if (di >= 0) { weekIdx = w; dayIndex = di; }
+                }
+                if (dayIndex >= 0 && weekIdx !== weekNav.currentWeek) weekNav.selectWeek(weekIdx);
+            }
+            if (dayIndex < 0) return;
+            pendingBookingIntent = {
+                dayIndex: dayIndex,
+                hourIndex: hourIndex,
+                weekIndex: weekIdx,
+                venue: urlParams.venue || '',
+                dateStr: urlParams.date,
+                timeStr: urlParams.time,
+                dayAbbr: (weekData[weekIdx].days[dayIndex] || {}).abbr || ''
+            };
+            bookingIntentMemory = { ...pendingBookingIntent };
+            /* a dismissed reminder stays dismissed for the SAME booking across
+               navigation (sessionStorage) — the auto-select feature still works */
+            try { intentBannerSuppressed = sessionStorage.getItem('bookingIntentDismissed') === intentKey(pendingBookingIntent); }
+            catch (e) { intentBannerSuppressed = false; }
+            /* a discarded auto-select also stays discarded for the SAME booking:
+               the user explicitly removed the block, so reloads don't resurrect it */
+            try { intentCancelled = sessionStorage.getItem('bookingIntentCancelled') === intentKey(pendingBookingIntent); }
+            catch (e) { intentCancelled = false; }
+            renderBookingIntent();
+        }
+
+        function renderBookingIntent() {
+            const el = document.getElementById('bookingIntent');
+            if (!el) return;
+            if (!pendingBookingIntent || intentBannerSuppressed || intentCancelled) { el.innerHTML = ''; return; }
+            const i = pendingBookingIntent;
+            /* conflict case: the slot can't be auto-selected — error-toned notice */
+            if (intentNeedsManual) {
+                const reason = intentTooSoon
+                    ? 'is within 3 working days — please pick a later slot manually.'
+                    : 'is conflicted — please select an available slot manually.';
+                el.innerHTML = `<div class="booking-intent booking-intent-manual">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                    <span><strong>Your booked slot (${i.dayAbbr}, ${i.dateStr} · ${i.timeStr}) ${reason}</strong>
+                    <button class="bi-close" onclick="dismissBookingIntent()" data-tip="Dismiss booking reminder">&times;</button>
+                </div>`;
+                return;
+            }
+            const msg = currentCourse ? 'will pre-fill when you next pick a subject.' : 'pick a subject to pre-fill the slots.';
+            el.innerHTML = `<div class="booking-intent">
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                <span><strong>Booking ${i.venue} · ${i.dayAbbr}, ${i.dateStr} · ${i.timeStr}</strong> — ${msg}</span>
+                <button class="bi-close" onclick="dismissBookingIntent()" data-tip="Dismiss booking reminder">&times;</button>
+            </div>`;
+        }
+
+        function dismissBookingIntent() {
+            if (pendingBookingIntent) {
+                try { sessionStorage.setItem('bookingIntentDismissed', intentKey(pendingBookingIntent)); } catch (e) {}
+            }
+            intentBannerSuppressed = true;
+            renderBookingIntent();
+        }
+
+        function pulseTargetCell(dayIndex, hourIndex) {
+            const cell = document.querySelector(`#tableBody td[data-day="${dayIndex}"][data-hour="${hourIndex}"] .cell-content`);
+            if (!cell) return;
+            cell.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+            cell.classList.remove('attention-pulse');
+            void cell.offsetWidth; /* restart the animation */
+            cell.classList.add('attention-pulse');
+            setTimeout(function() { cell.classList.remove('attention-pulse'); }, 1300);
+        }
+
+        /* Whether the booked slot can be auto-selected is known once the grid sits
+           on the booked venue — evaluated at the end of applyUrlParams, i.e. on
+           arrival and before any user interaction. If it can't fit, the user is
+           told immediately instead of after picking a subject. */
+        function evaluateBookingFit() {
+            if (!pendingBookingIntent) return;
+            const i = pendingBookingIntent;
+            intentNeedsManual = !canPlaceBlock(i.dayIndex, i.hourIndex);
+            intentTooSoon = intentNeedsManual && isSlotTooSoon(weekData, i.weekIndex, i.dayIndex);
+            if (intentNeedsManual) {
+                pulseTargetCell(i.dayIndex, i.hourIndex); /* the banner names the slot in words — no toast needed */
+            }
+            renderBookingIntent();
+        }
+
+        /* The user explicitly discarded a selection — remember it for THIS booking
+           (sessionStorage, same key family as the banner dismissal) so a reload of
+           the same URL doesn't silently re-select the block they removed. */
+        function markBookingCancelled() {
+            bookingIntentMemory = null; /* the booking is spent — changes must not re-arm it */
+            if (!urlParams.date || !urlParams.time) return;
+            try { sessionStorage.setItem('bookingIntentCancelled', bookingKeyFromParams()); } catch (e) {}
+        }
+
+        /* Explicit user discard of the current block: kill the (now stale)
+           "Pre-selected…" toast, remember the booking as handled, then deselect. */
+        function discardSelection() {
+            toast.dismiss();
+            deselectBlock();
+        }
+
+        /* the intent is only spent when the user explicitly removes THE booked
+           block (clicking it / its summary card) — subject or venue changes keep
+           the booking alive for the next subject pick */
+        function intentMatchesBlock(venueKey, weekKey, block) {
+            /* the live intent is usually already consumed at check time —
+               compare against the persistent booking memory as fallback */
+            const i = pendingBookingIntent || bookingIntentMemory;
+            if (!i || !block) return false;
+            return i.venue === venueKey && i.weekIndex === parseInt(weekKey, 10)
+                && i.dayIndex === block.day && i.hourIndex === block.startHour;
+        }
+
+        function userDeselectSelectedBlock() {
+            const block = selectedBlock ? { ...selectedBlock } : null;
+            const venueKey = currentVenue.code || currentVenue;
+            const weekKey = weekNav.currentWeek;
+            discardSelection();
+            if (intentMatchesBlock(venueKey, weekKey, block)) markBookingCancelled();
+        }
+
+        /* summary-card × — remove one saved block (any week/venue) */
+        function removeSavedBlock(venueKey, weekKey) {
+            const data = selectedSlotsByVenue[venueKey];
+            if (!data || !data[weekKey]) return;
+            const removed = { ...data[weekKey] };
+            const isCurrentView = venueKey === (currentVenue.code || currentVenue)
+                && parseInt(weekKey, 10) === weekNav.currentWeek;
+            if (isCurrentView && selectedBlock) {
+                discardSelection();
+            } else {
+                data[weekKey] = null;
+                updateCounter();
+            }
+            if (intentMatchesBlock(venueKey, weekKey, removed)) markBookingCancelled();
+        }
+
+        /* Fires once a subject exists (URL auto-pick or user pick): */
+        function consumeBookingIntent() {
+            if (!pendingBookingIntent || !currentCourse) return;
+            const i = pendingBookingIntent;
+            const venueNow = currentVenue.code || currentVenue;
+            const onBookedGrid = weekNav.currentWeek === i.weekIndex && venueNow === i.venue;
+
+            if (intentCancelled) {
+                /* the user already discarded this booking's auto-select — the intent
+                   is spent: clear the banner, select nothing, stay quiet */
+                pendingBookingIntent = null;
+                renderBookingIntent();
+                return;
+            }
+
+            /* an identical selection (restored from per-week memory) already fulfils it */
+            if (selectedBlock && onBookedGrid && selectedBlock.day === i.dayIndex && selectedBlock.startHour === i.hourIndex) {
+                pendingBookingIntent = null;
+                renderBookingIntent();
+                return;
+            }
+
+            /* browsed away from the booking's week/venue before picking a subject?
+               the booking owns the context — snap the grid back (per-week memory
+               keeps any selection made elsewhere); skipped while a selection is
+               active so nothing is discarded behind the user's back */
+            if (!onBookedGrid && !selectedBlock) {
+                if (weekNav.currentWeek !== i.weekIndex) weekNav.selectWeek(i.weekIndex);
+                if ((currentVenue.code || currentVenue) !== i.venue) venueDropdown.select(i.venue);
+            }
+
+            if (selectedBlock) {
+                /* a different selection is in the way — guide manually instead of
+                   dropping a jarring "clear first" modal mid-flow */
+                intentNeedsManual = true;
+                pulseTargetCell(i.dayIndex, i.hourIndex);
+                renderBookingIntent();
+                return;
+            }
+
+            if (intentNeedsManual || !canPlaceBlock(i.dayIndex, i.hourIndex)) {
+                intentNeedsManual = true;
+                pulseTargetCell(i.dayIndex, i.hourIndex);
+                renderBookingIntent();
+                return;
+            }
+
+            pendingBookingIntent = null;
+            renderBookingIntent();
+            if (selectBlock(i.dayIndex, i.hourIndex)) {
+                toast.show('Pre-selected from your venue booking — click the block to adjust.');
+            }
+        }
+
         function applySubjectChange(code) {
+            clearPreview(); /* subject state changed — any open hover preview is stale */
             const noteEl = document.getElementById('venueCountNote');
 
             if (!code) {
@@ -1912,6 +2511,7 @@
             renderSlotPicker(slots);
             renderTitleSummary();
             buildVenueFilter();
+            consumeBookingIntent();
         }
 
         function buildVenueFilter() {
@@ -2077,13 +2677,24 @@
         }
 
         function commitSlotSelection(slot, index) {
+            /* F-8 (round-2): the block size follows the picked conflict slot's
+               duration — same clamp family as the URL branch (0.5–4 h → ≤8
+               slots; slot indices are 30-min units) so a venue-arrival pick
+               (subject + slot chosen on this page) sizes the block exactly
+               like a home-path entry with &duration=. URL branch keeps
+               INITIAL authority; MAX_SELECTION floor stays ≥ BLOCK_SPAN. */
+            const slotSpan = Math.min(Math.max(slot.end - slot.start + 1, 1), 8);
+            if (slotSpan !== BLOCK_SPAN) {
+                BLOCK_SPAN = slotSpan;
+                MAX_SELECTION = Math.max(MAX_SELECTION, BLOCK_SPAN);
+            }
             selectedOriginalSlot = slot;
             const triggerText = document.getElementById('slotTriggerText');
             const startStr = to12h(hours[slot.start]);
             const endStr = to12h(hours[slot.end + 1] || add30min(hours[slot.end]));
             const dateParts = slot.date.split(' ');
             const shortDate = dateParts[1] + ' ' + dateParts[0];
-            triggerText.textContent = 'W' + slot.week + ' · ' + shortDate + ', ' + startStr + ' - ' + endStr;
+            triggerText.textContent = 'W' + slot.week + ' · ' + shortDate + ' · ' + startStr + '–' + endStr;
 
             // Update selected state in panel
             document.querySelectorAll('.slot-dd-item').forEach(item => {
@@ -2205,15 +2816,27 @@
         }
 
         function applyUrlParams() {
-            const sel = document.getElementById('subjectSelector');
-            if (urlParams.code) {
-                sel.value = urlParams.code;
-                onSubjectChange();
+            /* a hand-typed/tampered venue param must not render a phantom venue:
+               ignore it — and the booking that named it — and load the default */
+            if (urlParams.venue && !MockData.venues.some(v => v.code === urlParams.venue)) {
+                urlParams.venue = null;
+                urlParams.date = null;
+                urlParams.time = null;
             }
+            /* Booking intent (venue-timetable "Book" handoff): resolve date+time
+               into a grid target first — the shared week is already restored */
+            resolveBookingIntent();
+            const sel = document.getElementById('subjectSelector');
+            /* venue BEFORE subject, so the booking-intent auto-select (fired by
+               the subject pick below) lands on the booked venue's grid */
             if (urlParams.venue) {
                 if (venueDropdown) {
                     venueDropdown.select(urlParams.venue);
                 }
+            }
+            if (urlParams.code) {
+                sel.value = urlParams.code;
+                onSubjectChange();
             }
             
             // Auto-select original slot if day/start/end/originalVenue params provided
@@ -2229,15 +2852,18 @@
                     selectSlot(matchingSlot, slotIndex);
                 }
             }
+            evaluateBookingFit();
         }
 
         document.addEventListener('DOMContentLoaded', function() {
             readUrlParams();
-            // If the original class duration was passed in (hours), cap the selection
-            // at that many 30-min slots so the replacement matches the class length.
+            // If the original class duration was passed in (hours), size the block
+            // span from it — clamped to 0.5–4h; the multi-week BUDGET stays at
+            // least the approved 4 slots so a shorter class can still book twice.
             if (urlParams.duration && !isNaN(parseFloat(urlParams.duration))) {
-                const hrs = parseFloat(urlParams.duration);
-                if (hrs > 0) MAX_SELECTION = Math.round(hrs * 2);
+                const hrs = Math.min(Math.max(parseFloat(urlParams.duration), 0.5), 4);
+                BLOCK_SPAN = Math.round(hrs * 2);
+                MAX_SELECTION = Math.max(MAX_SELECTION, BLOCK_SPAN);
             }
             buildSubjectDropdown();
             renderTitleSummary();
@@ -2251,6 +2877,14 @@
                     onSelect: function(code) { onVenueChange(); }
                 }
             );
+            /* Full venue label as a data-tip (renders above) — the trigger ellipsizes at the
+               single-row width cap; kept current for every trigger text change */
+            const venueTrigger = document.querySelector('#buildingSelectorDropdown .venue-dd-trigger');
+            const syncVenueTip = function() {
+                venueTrigger.setAttribute('data-tip', venueTrigger.textContent.replace(/\s*▾\s*$/, '').trim());
+            };
+            new MutationObserver(syncVenueTip).observe(venueTrigger, { childList: true, characterData: true, subtree: true });
+            syncVenueTip();
             updateFavStar();
             document.getElementById('favStar').addEventListener('click', toggleFavourite);
             document.getElementById('semesterChip').textContent = MockData.semester.chipText;
@@ -2259,19 +2893,33 @@
             populateWeekSelect('weekSelector', {
                 ranges: false,
                 selected: weekNav.currentWeek,
-                labelFn: function(w, i, isMobile) {
-                    const first = w.days[0].date;
-                    const last = w.days[w.days.length - 1].date;
-                    if (isMobile) {
-                        const shortFirst = first.replace(/ \d{4}$/, '');
-                        const shortLast = last.replace(/ \d{4}$/, '');
-                        return w.label + ' \u00B7 ' + shortFirst + ' ~ ' + shortLast;
-                    }
-                    return w.label + ' \u00B7 ' + first + ' ~ ' + last;
-                }
+                /* unbookable weeks (no bookable slot) are hidden from the list —
+                   WeekNavigator's weekFilter keeps navigation consistent */
+                weekFilter: function(i) { return weekHasBookableSlot(weekData, i); }
+                /* labels = shared default: full "Week N · DD Mon YYYY ~ DD Mon YYYY"
+                   on desktop (matches the venue page), compact on mobile */
             });
+            /* dated tooltip on the "Earliest bookable" action (computed, not hardcoded);
+               the boundary day's chip lives in the grid time-col (cfg.bookableBadge) */
+            const earliest = firstBookableDay(weekData);
+            const earliestBtn = document.getElementById('earliestBtn');
+            if (earliestBtn && earliest) {
+                const dayNames = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+                const edate = weekData[earliest.week].days[earliest.day];
+                earliestBtn.setAttribute('data-tip', 'Jump to the earliest bookable slot \u2014 ' + dayNames[earliest.day] + ', ' + edate.date + ' (Week ' + (earliest.week + 1) + ')');
+            }
             /* applyUrlParams AFTER week selector is ready (triggers onVenueChange → buildTimetable) */
             applyUrlParams();
+            /* Subject tooltip: guides the first pick, then mirrors the full subject info
+               (the single-row select ellipsizes long names) */
+            const subjectSel = document.getElementById('subjectSelector');
+            const syncSubjectTip = function() {
+                subjectSel.setAttribute('data-tip', subjectSel.value
+                    ? subjectSel.options[subjectSel.selectedIndex].text
+                    : 'Select a subject first to trigger the timeslots selector');
+            };
+            subjectSel.addEventListener('change', syncSubjectTip);
+            syncSubjectTip();
             lastSubject = document.getElementById('subjectSelector').value;
             /* ensure grid always renders on load (applyUrlParams only triggers via venue param) */
             buildTimetable();
@@ -2279,15 +2927,14 @@
             document.addEventListener('keydown', handleKeyDown);
             initWeekKeyboardShortcuts();
 
-            document.getElementById('todayBtn')?.addEventListener('click', function() {
+            document.getElementById('earliestBtn')?.addEventListener('click', function() {
                 try {
                     saveCurrentWeek();
-                    weekNav.jumpToToday();
-                    weekNav.save();
+                    weekNav.jumpToEarliestBookable();
                     var sel = document.getElementById('weekSelector');
                     if (sel) sel.value = weekNav.currentWeek;
                 } catch (err) {
-                    window.__todayBtnError = err.message + ' | ' + (err.stack || '').split('\n').slice(0,3).join(' ');
+                    window.__earliestBtnError = err.message + ' | ' + (err.stack || '').split('\n').slice(0,3).join(' ');
                 }
             });
         });

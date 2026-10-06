@@ -326,3 +326,20 @@ Added an expandable guide block with page-specific workflow instructions.
 | 2026-08-13 | `public/css/theme.css` (shared) | macOS table fix | `.timetable`: `border-collapse:collapse` → `separate` + `border-spacing:4px`; removed 1px cell borders; hover uses `var(--color-surface-variant)`; removed zebra striping. `.badge` border-radius 6px→8px. |
 | 2026-08-14 | `@section('page-styles')` | Offday-slot today-cell fix | Added `.today-cell.offday-slot { background: transparent; }` override so PH/Sunday empty cells are not red when today. |
 | 2026-08-14 | `prevWeek/nextWeek/selectWeek` | WeekNavigator delegation | Local nav logic replaced with `weekNav.prevWeek()/nextWeek()/selectWeek()`; `buildTimetable()` syncs `currentWeek = weekNav.currentWeek`. Removed manual select-index/subtitle/progress/arrow/save updates. |
+
+## [2026-10-03] Disabled print icon on the week-nav toolbar
+
+Shared `ui-week-nav` gained an opt-in `'showPrint' => true` arg rendering a printer icon-button
+(inline SVG, `.print-btn` in theme.css), right-aligned at the toolbar edge via `margin-left: auto`.
+Enabled stub: click fires the shared `toast.show('Printing is coming soon')` bottom-left toast bar;
+`title="Coming soon"` native tooltip on hover. No JS beyond the one-liner onclick.
+
+### Postscript — sweep-fixes-round-1 (2026-10-06, F-11)
+
+**Week persistence key namespaced.** WeekNavigator's generic `currentWeek` default was a
+cross-page overwrite hazard (my-timetable / cohort / student all defaulted to it). Now:
+each page passes an explicit key — this page saves to `myTimetableWeek`, cohort-timetable
+to `cohortTimetableWeek`, student-my-timetable to `studentTimetableWeek`; any keyless
+WeekNavigator derives `weekNav-<selectId>`. One-time migration in `load()` adopts a legacy
+`currentWeek` value on first visit then retires the old key (verified live: legacy value
+inherited, old key gone; default week math unchanged).

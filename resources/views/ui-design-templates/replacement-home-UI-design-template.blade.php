@@ -1,4 +1,5 @@
-@extends('layouts.ui-template', ['activeNav' => 'replacement-arrangement', 'pageKey' => 'replacementHome'])
+@extends('layouts.ui-template', [
+        'homeUrl' => '/my-timetable-ui','activeNav' => 'replacement-arrangement', 'pageKey' => 'replacementHome'])
 
 @section('title', 'Replacement Arrangement — Class Replacement System')
 
@@ -7,7 +8,7 @@
         /* ───── Column Widths ───── */
         .col-original { width: 200px; }
         .col-original { white-space: normal; }
-        .col-urgency { width: 100px; }
+        .col-urgency { width: 150px; } /* fits "Overdue (12 days ago)" without wrapping */
         .col-venue { width: 70px; }
         .col-cohort { width: 130px; }
         .col-reason { width: 140px; vertical-align: middle; }
@@ -179,6 +180,9 @@
             <div class="pagination-controls" id="paginationControls"></div>
         </div>
 
+        <!-- ─── Empty State (above the summary; summary auto-hides when the view is empty) ─── -->
+        @include('partials.ui-empty-state', ['title' => 'No classes currently require replacement arrangements.', 'text' => 'Try adjusting your search or filter criteria.'])
+
         <!-- ─── Summary Dashboard ─── -->
         @include('partials.ui-summary-bar', [
             'cards' => [
@@ -194,9 +198,6 @@
                     'description' => 'Number of <strong>different courses</strong> affected by the conflicts.'],
             ]
         ])
-
-        <!-- ─── Empty State ─── -->
-        @include('partials.ui-empty-state', ['title' => 'No classes currently require replacement arrangements.', 'text' => 'Try adjusting your search or filter criteria.'])
 
         <!-- Keyboard Shortcuts Modal -->
         <div class="modal-overlay" id="keyboardModal">
@@ -272,7 +273,10 @@
         }
 
         function daysLeft(iso) {
-            const now = new Date();
+            /* one clock with the rest of the app: the shared demo anchor
+               (DateHelper.getTodayMs) — not the raw browser date (which
+               diverged from the lead-time pages during the mock phase). */
+            const now = new Date(getTodayMs());
             now.setHours(0, 0, 0, 0);
             const target = new Date(iso + 'T00:00:00');
             return Math.ceil((target - now) / (1000 * 60 * 60 * 24));
@@ -312,6 +316,14 @@
                     } else if (sortState.field === 'code') {
                         va = a.code;
                         vb = b.code;
+                    } else if (sortState.field === 'daysLeft') {
+                        /* R-4b (round-3): computed urgency — numeric, so Overdue
+                           (negative) sorts before future classes ascending */
+                        va = daysLeft(a.date);
+                        vb = daysLeft(b.date);
+                    } else if (sortState.field === 'venue') {
+                        va = a.venue;
+                        vb = b.venue;
                     }
                     return compareBy(sortState, va, vb);
                 });
@@ -332,8 +344,8 @@
                 { label: '#', cls: 'col-no', sortable: false, tip: 'Row number' },
                 { label: 'Course Code & Name', cls: 'col-code', sortable: true, field: 'code', tip: 'Course affected by the conflict' },
                 { label: 'Original Class', cls: 'col-original', sortable: true, field: 'date', tip: 'Original class session with a conflict' },
-                { label: 'Days Left', cls: 'col-urgency', sortable: false, tip: 'Days remaining before the original class' },
-                { label: 'Venue', cls: 'col-venue', sortable: false, tip: 'Assigned venue for the class' },
+                { label: 'Days Left', cls: 'col-urgency', sortable: true, field: 'daysLeft', tip: 'Days remaining before the original class — ascending puts Overdue/most urgent first' },
+                { label: 'Venue', cls: 'col-venue', sortable: true, field: 'venue', tip: 'Assigned venue for the class' },
                 { label: 'Students', cls: 'col-students', sortable: false, tip: 'Number of enrolled students' },
                 { label: 'Cohort(s)', cls: 'col-cohort', sortable: false, tip: 'Affected student cohorts' },
                 { label: 'Conflict Reason', cls: 'col-reason', sortable: false, tip: 'Why the scheduling conflict exists' },
@@ -418,7 +430,7 @@
             document.getElementById('summaryCourses').textContent = courses.size;
 
             const show = filtered.length > 0;
-            document.getElementById('summaryBar').style.display = show ? 'grid' : 'none';
+            syncSummarySection(show);
         }
 
         function populateWeekDropdown() {
@@ -454,7 +466,7 @@
             qvCurrent = c;
 
             var daysLeftVal = daysLeft(c.date);
-            var urgencyCls = daysLeftVal <= 3 ? 'urgency-urgent' : daysLeftVal <= 7 ? 'urgency-warning' : 'urgency-normal';
+            var urgencyCls = urgencyClass(daysLeftVal); /* single vocabulary: table's urgency-high/mid/low */
             var wn = getWeekNumber(c.date);
             var weekTag = wn ? ' (Week ' + wn + ')' : '';
             var typeLabel = c.type === 'L' ? 'Lecture' : 'Tutorial';
@@ -464,8 +476,8 @@
                 title: 'Replacement Details',
                 subtitle: c.code + ' · ' + c.name + ' (' + typeLabel + ')',
                 body: DetailModal.section('Replacement Details',
-                    DetailModal.row('Status', '<span class="urgency-badge ' + urgencyCls + '">' + daysLeftVal + ' days left</span>') +
-                    DetailModal.row('Status Description', daysLeftVal <= 3 ? 'Urgent — arrange a replacement soon' : daysLeftVal <= 7 ? 'Approaching — plan a replacement' : 'Within normal lead time') +
+                    DetailModal.row('Status', '<span class="urgency-badge ' + urgencyCls + '">' + daysLeftLabel(daysLeftVal) + '</span>') +
+                    DetailModal.row('Status Description', daysLeftVal < 0 ? 'Class date has passed — you can still arrange a replacement in any upcoming week' : daysLeftVal <= 3 ? 'Urgent — arrange a replacement soon' : daysLeftVal <= 7 ? 'Approaching — plan a replacement' : 'Within normal lead time') +
                     DetailModal.row('Conflict Reason', '<span class="badge ' + badgeClass(c.conflictReason) + '">' + c.conflictReason + '</span>') +
                     DetailModal.row('Subject Code', c.code, { strong: true }) +
                     DetailModal.row('Subject Name', c.name) +

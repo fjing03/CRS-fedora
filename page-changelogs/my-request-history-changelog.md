@@ -1,5 +1,12 @@
 # Changelog — Lecturer My Request History
 
+## [2026-10-02] Empty state above summary + summary auto-hides when empty
+
+- The `ui-empty-state` include moved **above** the summary strip in the DOM.
+- When no requests match (fully empty or filtered-empty), the whole `#summarySection` (cards + hint) is now **hidden** — previously only `#summaryBar` was hidden while the "Stats reflect…" hint stayed visible as clutter.
+- Uses the new shared `syncSummarySection(visible)` helper in `ui-common.js` (§10.0 rule 7 promotion — same pattern now on my-request-history, replacement-home, request-approval, upcoming-replacements).
+- Verified: default view shows summary; "ZZZNOFIND" search shows the empty state and hides the summary; clearing restores both. 0 console errors.
+
 ## [2026-08-31] Sync upstream/fjing UI refactor (merge fd8c403)
 
 Merged `upstream/fjing` (267 commits `cfc1bb1..f44cc5c`) into `fedora-backend`. Policy: **theirs-first for UI**; backend-only files kept local. Note: upstream TASK-006 (`f44cc5c`) repointed the **student** nav from request history to `/upcoming-replacements-ui` (see student-my-timetable + upcoming-replacements logs); this lecturer history page remains served at `/my-request-history-ui`. Verification: PHPStan 0, PHPUnit 94/94, smoke 12/12 routes 200.
@@ -470,3 +477,26 @@ SDD change request applied. Bug fix: `openModal(index)` now delegates to `openMo
 | 2026-08-13 | `public/js/mock-data.js` | Week filter fix | Semester `startDate` shifted from `2026-06-15` to `2026-07-27` so mock data dates (relative to today) fall in filterable weeks. `parseDate` in `ui-common.js` fixed: `.split("-")` → `.split(" ")` to match space-separated date format. |
 | 2026-08-15 | `<th>` headers | Header hover tooltips | Switched from native `title` to JS `initHeaderTooltips()` with a fixed-position tooltip div — tooltips appear above headers, avoids `overflow:hidden` clipping on `.grid-wrapper`. |
 | 2026-08-15 | Week filter | Fix infinite recursion | Removed local `function weekFilterChanged(value)` override — its declaration was hoisted and shadowed the shared function in ui-common.js, causing `_sharedWeekFilterChanged = window.weekFilterChanged` to capture itself → stack overflow. Now uses shared `weekFilterChanged()` directly. |
+
+### Postscript — sweep-fixes-round-1 (2026-10-06, F-10)
+
+**Owner scoping made explicit.** Sweep join showed `MockData.requests` and the approval
+page's `approvalRequests` share zero rows — the history set was implicitly persona-scoped
+by construction (no examiner-facing contradiction after all; report downgraded 🟡→💡).
+Contract made explicit: `MockData.requests` rows gain a `requester` field (derived in one
+place at the mock-data aliasing block, rows copied per the read-only convention; backend
+day = API returns ownership-scoped rows, drop the derivation) + a one-line page filter
+`requester === MockData.currentUser.name` (no-op today, protects the page the moment
+extra requesters appear). Counts unchanged (17 of 20 with Exclude Completed).
+
+### Postscript — sweep-fixes-round-3 (2026-10-06, audit no-op)
+
+Audited as part of the sortable-table consolidation: this page was already on the
+shared `makeSortableHeader`/`compareBy` helpers — no code change. Logo click now
+lands on My Timetable (homeUrl param).
+
+**Extension (same round, 2026-10-06):** four previously display-only columns are now
+sortable — **Requested Replacement** (date, then time), **Requested Venue**,
+**Students** (numeric), **Status** (process order Pending → Approved → Rejected →
+Completed, not alphabetical). **Cohort(s) stays non-sortable on purpose:** rows can
+carry several cohorts, so a sort key would be misleading; its header tip says so.

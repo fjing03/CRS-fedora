@@ -257,3 +257,167 @@ Added an expandable guide block with page-specific workflow instructions.
 | 2026-08-13 | `public/css/theme.css` (shared) | CSS tooltip + legend refactor | Added `[data-tip]` CSS tooltip system (above element, inverse-surface bg, arrow, opacity transition). Legend bar: `flex-direction: column`, hint moved to top-left above swatches. Legend swatches use container tokens matching cell backgrounds. Legend bar has `background: var(--color-surface)` for consistent rendering. |
 | 2026-08-14 | `buildTimetable()` | OOP refactor | Hand-built `<table>` replaced with shared `buildTimetableGrid({cellRender})` from ui-common.js. cellRender handles holiday/Sunday (cell-ph/cell-sun), event/occupied (cell-pending/cell-occupied), available cells + booking tooltip + mobile available cards. |
 | 2026-08-14 | `prevWeek/nextWeek/selectWeek`, today btn | WeekNavigator delegation | Local nav logic replaced with `weekNav.prevWeek()/nextWeek()/selectWeek()` + `currentWeek` re-sync. Today button now uses `weekNav.initTodayBtn()` (class jumpToToday) + persist listener. |
+
+## [2026-10-03] Disabled print icon on the week-nav toolbar
+
+Shared `ui-week-nav` gained an opt-in `'showPrint' => true` arg rendering a printer icon-button
+(inline SVG, `.print-btn` in theme.css), right-aligned at the toolbar edge via `margin-left: auto`.
+Enabled stub: click fires the shared `toast.show('Printing is coming soon')` bottom-left toast bar;
+`title="Coming soon"` native tooltip on hover. No JS beyond the one-liner onclick.
+
+Venue Timetable renders its own identical hand-placed button (`.print-btn`, inline
+`margin-left:auto`, same toast onclick) instead of the partial arg — the page's `showPrint` stays
+off so exactly one button renders per page.
+
+Venue Timetable renders its own identical hand-placed button (`.print-btn`, inline
+`margin-left:auto`) instead of the partial arg — the page's `showPrint` stays off so exactly one
+button renders per page.
+
+## [2026-10-03] Book offered only when the slot can fit a booking
+
+The venue page advertised "Book" on cells too late in the day for the arrangement page's
+4-slot booking span (e.g. 18:00) — users landed straight into the conflict state. Cells where
+start + BOOK_SPAN (= 4 half-hour slots, matching the arrangement's default MAX_SELECTION) would
+run past day end now carry .cell-no-fit: hover label "Not bookable" + not-allowed cursor, and
+clicking shows an explanatory toast ("A booking needs 120 minutes — not enough time left in the
+day.") instead of the Book tooltip. Fitting cells behave exactly as before. Also: the page's
+week position moved to its own localStorage key ('venueTimetableWeek'), so browsing the
+replacement-arrangement grid no longer jumps this page's week. 0 console errors.
+
+### Follow-up: a fresh Book click resets that booking's sticky memories
+
+If a slot's auto-select was previously discarded (bookingIntentCancelled) or its reminder
+dismissed (bookingIntentDismissed), re-booking the SAME slot from the venue page now clears
+those keys before navigating — a fresh Book click is a fresh intent, so the banner shows and
+the auto-select fires again. Other bookings' memories are untouched.
+
+## [2026-10-03] Round-2 fixes: Class Details on desktop + tooltip staleness + keyboard
+
+1. **Class Details modal was unreachable on desktop**: occupied/pending cells had no click
+   listener (openModal was wired only to the mobile cards). Desktop cells now open the modal
+   (cursor pointer, focusable, aria-label), keyboard focus tracked.
+2. **Book tooltip went stale across week/venue switches**: the tooltip survived grid rebuilds
+   still offering the old date/venue. buildTimetable now dismisses it on every rebuild.
+3. **Keyboard B shortcut needed arrow-key navigation first**: clicking or focusing a cell now
+   sets the tracked cell, so B works after click/Tab too.
+
+Verified: occupied/pending modals on desktop, tooltip dismissal on week + venue change,
+B-after-click, plus the venue-side regression set — 0 console errors.
+
+## [2026-10-03] Round-3 fixes: mobile card list finally visible + keyboard reaches booked cells
+
+1. **Mobile card list was built but never shown**: buildTimetable hid #mobileCardList and nothing
+   re-showed it — 100+ cards (booked classes AND bookable slots) were dead markup at phone widths
+   while the 7×22 desktop grid squeezed into 356px with no scroll. The list now reveals after
+   every rebuild when cards exist (media-query aware), #timetable hides on ≤768px via
+   body[data-page] scoped CSS, and a resize listener keeps both honest without a rebuild.
+2. **Keyboard dead-end on booked cells**: occupied/pending cells are focusable (round 2) but
+   arrows/Enter did nothing on them. Arrow navigation now walks ALL focusable cells; Enter on a
+   booked cell opens its Class Details modal (Enter on available cells still opens the Book
+   tooltip; B stays available-only).
+
+Verified: card list on mobile (B103 booked cards + B002 bookable cards), week change re-render,
+desktop unaffected, Enter/arrow/B keyboard paths, resize both directions — 0 console errors.
+
+## [2026-10-04] Round-4 fixes: stale keyboard cell + venue guard
+
+1. **B shortcut used a detached cell**: focusedCell survived grid rebuilds — B after a week/venue
+   switch opened the Book tooltip from the old cell. buildTimetable now clears it (mirroring the
+   tooltip dismissal).
+2. **Unknown venue codes could clobber the selection**: onVenueChange assigned
+   `currentVenue = MockData.venues.find(...)` BEFORE its guard — a stale favourite code left
+   currentVenue undefined (trigger stale, page half-broken). VenueDropdown.select() now validates
+   against the master list (ignores unknown codes), and onVenueChange resolves into a temp before
+   committing. (Not user-reachable in the mock — the panel only lists real venues — hardening.)
+3. Shared: week-filter keyboard fallback ([ / ]) no longer crashes on pages without #weekFilter.
+
+Verified star sync across venue switches, favourites cap tooltip, B-after-rebuild, and the
+regression set — 0 console errors.
+
+## [2026-10-04] Lead-time rule: venue booking blocked < 3 working days out
+
+Same rule as the arrangement page (shared `isSlotTooSoon`, MOCK_NOW anchor — see that page's
+changelog entry): otherwise-free cells inside the 3-working-day window (and past days) render
+read-only (`cell-too-soon`, hover "Min. 3 working days ahead") — **no Book tooltip, no
+keyboard, no mobile bookable card**. Booked/pending classes still render normally, including in
+past weeks (read-only browsing of history stays intact).
+
+The summary bar counts too-soon cells as Unavailable (Unavailable = booked + Sunday + holiday +
+too soon) so Total stays consistent; the legend tooltip documents the new reason.
+
+Verified: Week 11 Mon/Tue blocked + Wed–Sat bookable, booked classes visible inside blocked
+days, past weeks read-only with classes shown, summary arithmetic, no tooltip on too-soon
+cells, mobile card list reduced to informational cards — 0 console errors.
+
+**Follow-up:** the lead-time rule is announced in the UI — a notice under the venue header
+("Bookable from Wednesday, 07 Oct 2026 onward — replacement requests need at least 3 working
+days' notice."), date computed from MOCK_NOW + holidays via the shared
+`leadTimeCutoff()`/`renderLeadTimeNote()` helpers.
+
+**Rework:** the lead-time notice moved above the grid and became a contextual banner (booking-
+banner family, neutral info tone) — shown while the viewed week has blocked days, hidden on
+fully open weeks, copy adapts (passed week / current week / partially blocked).
+
+**Tweak:** the lead-time banner's date ("Wednesday, 07 Oct 2026") uses the success/green
+token so the opening date reads as the focal point.
+
+**Fix ("Today" consistency):** the venue template's local `getTodayMs()` shadow (pre-refactor
+leftover) was deleted — it silently overrode the shared mock-anchored helper, making this page
+read the REAL clock while the arrangement read `MockData.mockNow`. Both pages now use the one
+shared anchor.
+
+**Note (no visible change):** the shared `ui-today-btn` partial and `WeekNavigator` gained an
+"earliest bookable" variant used by the replacement-arrangement page (where unbookable weeks
+are hidden and "Today" would point off the visible range). The venue page keeps its full week
+list and "Today" — it's the browsing/history page, so no change applies here.
+
+**Note (no visible change):** the "Book from" grid chip is opt-in (cfg.bookableBadge) — only
+the replacement-arrangement page renders it; this page keeps its full week list + "Today"
+button (id todayBtn, unchanged).
+
+**Note (no visible change):** the BOOKINGS OPEN badge (success-green) remains opt-in on the
+replacement-arrangement page; this page keeps its today-badge (primary) and full week list.
+
+**Note (shared anchor move):** `MockData.mockNow` → Mon 5 Oct 2026 — the venue's current week
+is now Week 10 (05 Oct ~ 11 Oct) with the TODAY badge on the Mon column; the lead-time
+blackout boundary becomes Thu 08 Oct on both pages.
+
+**Tweak (label parity):** the venue's week select drops its custom labelFn and uses the shared
+default — "Week 10 · 28 Sep 2026 ~ 04 Oct 2026" (· separator, both years) — now identical in
+format to the arrangement's selector. Nothing else changes.
+
+**Tweak (summary cards commented out):** the four summary cards (Total Slots / Available /
+Pending / Unavailable) are Blade-commented on this page — the grid already shows the same
+state colour-coded and the legend explains it, so the counts added little value to the booking
+journey. The shared `ui-summary-bar` partial is untouched (8 other pages use it); the include
+is restored by uncommenting, and `updateSummaries()` is null-guarded + keeps its counting so
+the page runs without the cards.
+
+**Tweak (dropdown arrow consistency):** the venue dropdown trigger now uses the SAME design as
+the week-select family — the label and the chevron are split (label span + shared 10×6
+stroke-1.5 chevron SVG, currentColor/token-toned), so the filled "▾" text glyph is gone;
+typography aligned to the week select (13px/600, height 36px, radius-md — was 14px/500,
+radius-sm). The old stale-green arrow hex (#3d5a48, an orphan of a previous palette) is
+replaced across ALL selects by per-theme strokes mirroring the tokens
+(dark/on-surface-variant #9EAAB8, light #5A6978; semester-bar selects mirror
+on-primary-container #6BA3E0 / #003366) since SVG data-URIs cannot use var().
+
+### Postscript — sweep-fixes-round-1 (2026-10-06, F-4)
+
+**Status badges no longer leak raw lowercase enums.** New shared `StatusText.label()`
+promoted to ui-common (3 sites on this page = the duplication threshold): history card
+(:660), event card (:846), modal Status row (:914) now print
+"Normal" / "Replacement" / "Pending" (Title case §10.0 vocabulary) while the
+`badge-*` CSS keys stay raw-enum — zero visual/color change, text only.
+
+### Postscript — sweep-fixes-round-2 (2026-10-06, F-6 + token fix)
+
+1. **F-6 — mobile slot list grouped by day**: the builder emits an italic `.m-slot-day`
+   header ("Thu · 08 Oct 2026") before each day's run of cards (event cards AND bookable
+   cards), so the 60+ button wall becomes day-sectioned. Headers re-emit with every
+   builder pass (verified Week 11 → 5 headers, Week 12 → 6 fresh, no duplicates/stale),
+   card flow unchanged (click → Book tooltip → arrangement).
+2. **Token fix (static scan T9):** `color: #fff` ×2 (booking banner, `.venue-available-card`)
+   → `var(--color-on-primary)` — the live pass on this page in the sweep skipped the token
+   scan; the static grep across all 9 templates caught them. Zero visual change (on-primary
+   = white on primary in both themes).
