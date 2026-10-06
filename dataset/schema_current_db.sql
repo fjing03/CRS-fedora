@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict nPrlJJbaCAeYq2TncJdidcOGiE6MRjBUrYCTB7Y5j4DmhZKSfhet94rClaqhz0q
+\restrict lflPdHW1IeKoppScEs17VZWejoRZ92SLhqUrJfeThRFoadaZTJw6UgIjEc5S0ff
 
 -- Dumped from database version 18.6
 -- Dumped by pg_dump version 18.6
@@ -676,6 +676,7 @@ CREATE TABLE public.time_slots (
     created_at timestamp(0) without time zone,
     updated_at timestamp(0) without time zone,
     CONSTRAINT time_slots_day_of_week_check CHECK (((day_of_week >= 0) AND (day_of_week <= 5))),
+    CONSTRAINT time_slots_slot_duration_check CHECK ((end_time = (start_time + '00:30:00'::interval))),
     CONSTRAINT time_slots_start_time_minute_check CHECK ((EXTRACT(minute FROM start_time) = ANY (ARRAY[(0)::numeric, (30)::numeric]))),
     CONSTRAINT time_slots_status_check CHECK (((status)::text = ANY ((ARRAY['available'::character varying, 'pending'::character varying, 'occupied'::character varying])::text[]))),
     CONSTRAINT time_slots_week_number_check CHECK (((week_number >= 1) AND (week_number <= 14)))
@@ -953,6 +954,14 @@ ALTER TABLE ONLY public.class_sessions
 
 
 --
+-- Name: cohorts cohorts_natural_key_unique; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.cohorts
+    ADD CONSTRAINT cohorts_natural_key_unique UNIQUE (programme_id, academic_year, intake, current_year, semester, tutorial_group);
+
+
+--
 -- Name: cohorts cohorts_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -1014,6 +1023,14 @@ ALTER TABLE ONLY public.failed_jobs
 
 ALTER TABLE ONLY public.holidays
     ADD CONSTRAINT holidays_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: holidays holidays_semester_id_week_number_day_of_week_unique; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.holidays
+    ADD CONSTRAINT holidays_semester_id_week_number_day_of_week_unique UNIQUE (semester_id, week_number, day_of_week);
 
 
 --
@@ -1255,13 +1272,6 @@ CREATE INDEX class_sessions_venue_id_day_of_week_start_time_index ON public.clas
 --
 
 CREATE INDEX failed_jobs_connection_queue_failed_at_index ON public.failed_jobs USING btree (connection, queue, failed_at);
-
-
---
--- Name: holidays_semester_id_week_number_day_of_week_index; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX holidays_semester_id_week_number_day_of_week_index ON public.holidays USING btree (semester_id, week_number, day_of_week);
 
 
 --
@@ -1589,5 +1599,5 @@ ALTER TABLE ONLY public.time_slots
 -- PostgreSQL database dump complete
 --
 
-\unrestrict nPrlJJbaCAeYq2TncJdidcOGiE6MRjBUrYCTB7Y5j4DmhZKSfhet94rClaqhz0q
+\unrestrict lflPdHW1IeKoppScEs17VZWejoRZ92SLhqUrJfeThRFoadaZTJw6UgIjEc5S0ff
 

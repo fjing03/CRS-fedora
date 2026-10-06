@@ -49,8 +49,23 @@ Concurring — `holidays.day_of_week CHECK 0–5` excluding Sunday is fine as lo
 
 ---
 
-## Notes for sender (not part of the reply)
+## Follow-up 2026-10-06 (same day) — fresh pg_dump delivered
 
-- The "already applied / verified" claims are backed by `pg_constraint` lookups run against the live DB today — safe to send as written.
-- Don't expand on the f1/f13/f22 label internals unless asked; "label polish parked, re-layout underway" is the right amount of detail for this reviewer.
-- When the ERD re-layout lands, this reply's "parked" paragraph should be closed out with the re-exported PNG + re-dumped schema in the same message.
+Your verification artifact is in: `dataset/schema_current_db.sql` re-run **after** the migrations
+(`pg_dump --schema-only --no-owner --no-privileges`, 1603 lines, 26 tables). The three checks you
+planned are all visible in the dump itself, so you can confirm without DB access:
+
+| Your check | New anchor (`schema:NNN` vs the 2026-10-06 post-migration dump) | Result |
+|---|---|---|
+| `time_slots_slot_duration_check` present | `schema:679` — `CHECK ((end_time = (start_time + '00:30:00'::interval)))` in the table def | ✅ |
+| `cohorts_natural_key_unique` present | `schema:961` — UNIQUE on `(programme_id, academic_year, intake, current_year, semester, tutorial_group)` | ✅ |
+| `holidays_semester_id_week_number_day_of_week_unique` present | `schema:1033` — UNIQUE on `(semester_id, week_number, day_of_week)` | ✅ |
+| old plain holidays index gone | no `CREATE INDEX holidays_semester_id_week_number_day_of_week_index` anywhere in the dump — the name survives only as the UNIQUE constraint | ✅ |
+| `time_slots_no_double_book_idx` intact (partial) | `schema:1344` | ✅ |
+| `uq_replacement_requests_active_block` intact (partial) | `schema:1365` — `WHERE status IN ('pending','approved')` | ✅ |
+| FK count | corroborates your independent count: **27 domain FKs** (audit_logs 3, class_exceptions 1, class_sessions 4, cohorts 1, departments 1, holidays 1, lecturers 2, passkeys 1, programmes 1, replacement_requests 5, session_cohorts 2, students 2, time_slots 3); Laravel's `sessions.user_id` carries no FK in the dump | ✅ |
+| `class_exceptions_class_session_id_week_number_unique` (your review #1) | still the single composite UK — `schema:937` | ✅ |
+
+Your stale-anchors note is accepted — the review file's pre-migration refs are stale from ~line 1200 on; the table above gives you the replacements for the constraint/index anchors you cited, so the refresh is mechanical.
+
+**Still pending on our side (unchanged):** the re-exported PNG. It needs the label-placement re-layout finished first (the 3 presentation-only edges); dump-side re-diff can start already. When the PNG lands it closes the parked paragraph in one go.

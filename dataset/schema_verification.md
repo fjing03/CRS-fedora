@@ -5,7 +5,7 @@ Source: live DB `class_replacement` (PostgreSQL @ 127.0.0.1), read-only queries.
 
 ## Deliverable
 
-- **`schema_current_db.sql`** — `pg_dump --schema-only --no-owner --no-privileges` of the real DB (1593 lines, all **26 tables** = 17 domain + 9 Laravel infra: cache, cache_locks, failed_jobs, job_batches, jobs, migrations, password_reset_tokens, passkeys, sessions).
+- **`schema_current_db.sql`** — `pg_dump --schema-only --no-owner --no-privileges` of the real DB (all **26 tables** = 18 domain incl. `passkeys` + 8 Laravel infra: cache, cache_locks, failed_jobs, job_batches, jobs, migrations, password_reset_tokens, sessions).
 - This is the Postgres equivalent of the requested `mysqldump --no-data`; `mysqldump` does not apply here (DB is PostgreSQL).
 - Paired deliverable: **`ERD_current_db.drawio`** — generated from this same DB; FK set verified equal to the DB's 26 foreign keys.
 
@@ -41,6 +41,6 @@ Items 5/6 → applied as Laravel migrations (user-approved, branch `fedora-backe
 
 Item 5 (`class_exceptions.reason` → varchar(255)) — **skipped**: longest value in use is 15 chars and no bug; keeping the tighter width is the safer schema.
 
-Pre-checks were clean (0 holiday dupes, 0 cohort dupes, 0 slot-duration violations), so no rows were dropped/altered by the constraints. Post-apply verification: constraints visible in `pg_dump`/`\d*`, and migrations ran without warnings. `dataset/schema_current_db.sql` is now one step behind (pre-migration dump) — re-dump when regenerating `ERD_current_db.drawio`.
+Pre-checks were clean (0 holiday dupes, 0 cohort dupes, 0 slot-duration violations), so no rows were dropped/altered by the constraints. Post-apply verification: constraints visible in `pg_dump`/`\d*`, and migrations ran without warnings. `dataset/schema_current_db.sql` re-dumped 2026-10-06 **after** the migrations (1603 lines, 26 tables) — now contains the 3 new constraints; pre-migration line refs (e.g. the helper review's `schema:NNN`) are stale from ~line 1200 on (see `erd_schema_review_reply.md` follow-up for fresh anchors).
 
 ERD regeneration (data verified, layout/label work) is parked — see `ERD_current_db.drawio` blocker note in the chat summary.
