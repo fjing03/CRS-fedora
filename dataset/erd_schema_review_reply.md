@@ -37,7 +37,10 @@ The full-redraw generator already implements every point of your §5:
 
 The PNG you reviewed (17 tables) is the previous revision — current `ERD_current_db.drawio` supersedes it.
 
-**Parked, not forgotten:** final label-placement polish — 3 FK labels have no legal clear position at the current column pitch (`faculties→departments`, the `semester_id` semesters→time_slots edge, and one `class_session_id` route); a column re-layout + reroute is under way. Presentation-only issue: markers, topology and notation are already correct. Re-exported PNG + a **fresh `pg_dump`** (your `schema:NNN` line refs point at the pre-migration dump; `dataset/schema_current_db.sql` predates the 3 migrations) will land with it.
+**Parked item — CLOSED 2026-10-06 evening.** The label-placement re-layout landed: column pitch widened (100/560/1040/1520/1980 → two 135px gutters), `semesters→time_slots` rerouted through the semesters/modules gap on the left, the `class_session_id` edges rerouted (one into `replacement_requests` left face, one under `class_exceptions` via the 860–910 corridor), and the label solver now places **all 27 labels clear of every table box and of each other** (independent gate: `labels=27 issues=0`). Deliverables for the re-diff:
+- **`dataset/ERD_current_db.png`** — re-exported from the final drawio (crop, scale 1)
+- `dataset/ERD_current_db.drawio` — final XML (18 tables, 27 edges, notes box)
+- **`dataset/schema_current_db.sql`** — fresh post-migration dump (delivered above)
 
 ## 3. Concurring on your no-action list
 
@@ -68,4 +71,4 @@ planned are all visible in the dump itself, so you can confirm without DB access
 
 Your stale-anchors note is accepted — the review file's pre-migration refs are stale from ~line 1200 on; the table above gives you the replacements for the constraint/index anchors you cited, so the refresh is mechanical.
 
-**Still pending on our side (unchanged):** the re-exported PNG. It needs the label-placement re-layout finished first (the 3 presentation-only edges); dump-side re-diff can start already. When the PNG lands it closes the parked paragraph in one go.
+**Update:** the re-exported PNG has landed too (`dataset/ERD_current_db.png`) — all label placements are now solver-verified clear, so both halves of the re-diff (dump-side and PNG-side) can run in one pass; the parked paragraph above is closed.
