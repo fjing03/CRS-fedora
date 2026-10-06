@@ -244,3 +244,44 @@ SDD change: `.sdd/changes/db-optimization-pass1/` (proposal/design/tasks frozen,
 | 2026-08-24 | `database/seeders/VenuesSeeder.php` | backfill pattern names via type-label match (`Tutorial Room B100`, `Lecture Hall B110`, `Computer Lab B009`, `Cisco Lab B006`) |
 
 Verified: `\d venues` shows column; 23/23 rows named; rollback removes cleanly; Pint clean. Pattern names are placeholders — replace in seeder with official FOCS labels when available.
+
+---
+
+## 2026-08-04 — phase4-occ-validator (optimistic concurrency control)
+
+SDD change: `.sdd/changes/phase4-occ-validator/` — proposal/design/specs frozen (Batches 1–3, PASS). `tasks.md` (Batch 4) was never reviewed; completed and audited 2026-10-06.
+
+### `app/Services/` (new)
+
+| Timestamp | Location | Change |
+|-----------|----------|--------|
+| 2026-08-04 | `app/Services/OCCResult.php` | NEW — `final readonly` value object: public `bool $success`, `?string $conflictReason`, `?TimeSlot $timeSlot`; static factories `success($slot)` / `conflict($reason)`; private ctor forces factory-only construction |
+| 2026-08-04 | `app/Services/OCCValidator.php` | NEW — `final class`, no constructor deps. `validateAndReserve(timeSlotId, userId, replacementRequestId)` runs in `DB::transaction`: Step 1 request pending + slot match → Step 2 `lockForUpdate()` → Step 3 status must be `available` → Step 4 raw `UPDATE time_slots SET status, version = version+1 WHERE id = ? AND version = ?` (affected 0 → `concurrent_reserve_conflict`) → Step 5 `refresh()` → Step 6 audit. All failures route through `auditConflict()` |
+
+### `app/Models/` + factories
+
+| Timestamp | Location | Change |
+|-----------|----------|--------|
+| 2026-08-04 | `app/Models/ReplacementRequest.php` | `#[Fillable]` (semester_id, proposer_id, class_session_id, week_number, replacement_time_slot_id, approver_id, status, rejection_reason, remarks, submitted_at, decided_at); `casts()` week_number→integer, submitted_at/decided_at→datetime; 4 × `belongsTo` |
+| 2026-08-04 | `app/Models/AuditLog.php` | `#[Fillable]` (user_id, action, replacement_request_id, time_slot_id, old_status, new_status, occ_validation_result, details); `casts()` details→array; 3 × `belongsTo` |
+| 2026-08-04 | `database/factories/{ReplacementRequest,AuditLog}Factory.php` | Compact + permissive; unit tests override per scenario |
+
+### Tests
+
+| Timestamp | Location | Change |
+|-----------|----------|--------|
+| 2026-08-04 | `tests/Unit/OCCValidatorTest.php` | 11 tests — S-1..S-11: happy path (status→pending, version 1→2, success audit), occupied/pending conflict, version mismatch → `concurrent_reserve_conflict`, request not-found/not-pending/slot-mismatch/cancelled, audit-on-conflict, slot not-found, explicit version corruption (D8) |
+| 2026-10-06 | `tests/Feature/OCCValidatorTest.php` | NEW — **S-12 integration** on real `DatabaseSeeder` (Task 6, was missing): reserve an `available` seeded slot → success + status `pending` + version 1→2 + success audit row; sequential second call → conflict `slot_not_available` with no further version bump; exactly 2 audit rows survive |
+
+### Related fix (2026-10-06)
+
+| Timestamp | Location | Change |
+|-----------|----------|--------|
+| 2026-10-06 | `tests/Feature/TimetableWiringTest.php` | fixture correction — 2 `time_slots` inserts changed `end_time` `16:00:00` → `14:30:00`. Schema invariant is 30-min grid cells (all 38,640 seeded rows are exactly 30 min); the 2-hour rows were impossible data. Forced by new CHECK `time_slots_slot_duration_check`. Assertions untouched — they assert `start` index 12 (= 14:00), never `end`. |
+
+## Verified
+
+- `php vendor/phpunit/phpunit/phpunit --no-coverage`: **105/105 pass** (458 assertions) — 104 baseline + new S-12
+- PHPStan (`vendor/bin/phpstan analyse --memory-limit=1G --no-progress`): **0 errors**
+- Pint: clean on all touched files (`public/adminer.php` is a pre-existing vendored baseline)
+- Commit: `feat(occ): add OCCValidator with optimistic locking and audit trail` (`a8d5b92`)

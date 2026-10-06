@@ -171,7 +171,7 @@ class TimetableWiringTest extends TestCase
 
         $slot = TimeSlot::create([
             'semester_id' => $this->semester->id, 'class_session_id' => null, 'week_number' => 5,
-            'day_of_week' => 3, 'start_time' => '14:00:00', 'end_time' => '16:00:00',
+            'day_of_week' => 3, 'start_time' => '14:00:00', 'end_time' => '14:30:00',
             'venue_id' => $this->venue->id, 'status' => 'pending', 'version' => 1,
         ]);
 
@@ -197,7 +197,7 @@ class TimetableWiringTest extends TestCase
 
         $slot = TimeSlot::create([
             'semester_id' => $this->semester->id, 'class_session_id' => null, 'week_number' => 6,
-            'day_of_week' => 4, 'start_time' => '14:00:00', 'end_time' => '16:00:00',
+            'day_of_week' => 4, 'start_time' => '14:00:00', 'end_time' => '14:30:00',
             'venue_id' => $this->venue->id, 'status' => 'pending', 'version' => 1,
         ]);
 
