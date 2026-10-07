@@ -74,7 +74,7 @@ class StudentMyTimetable extends Component
                 'pageKey' => 'studentMyTimetable',
                 'navItems' => [
                     ['key' => 'my-timetable', 'label' => 'Student My Timetable', 'href' => '/student-my-timetable-ui'],
-                    ['key' => 'upcoming-replacements', 'label' => 'Upcoming Replacements', 'href' => '/upcoming-replacements-ui'],
+                    ['key' => 'replacement-history', 'label' => 'Replacement History', 'href' => '/replacement-history-ui'],
                 ],
                 'notifCount' => 0,
             ])

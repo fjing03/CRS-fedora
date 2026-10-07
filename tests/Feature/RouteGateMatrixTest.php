@@ -17,7 +17,7 @@ use Tests\TestCase;
  *
  * Buckets (design route table, auth FIRST per D3):
  *  - auth (all roles):        /cohort-timetable-ui
- *  - role:student:            /student-my-timetable-ui, /upcoming-replacements-ui
+ *  - role:student:            /student-my-timetable-ui, /replacement-history-ui
  *  - role:lecturer (+PL):     /my-timetable-ui, /replacement-home-ui, /replacement-arrangement,
  *                             /my-request-history-ui, /venue-timetable-ui
  *  - pl:                      /request-approval-ui
@@ -30,7 +30,7 @@ class RouteGateMatrixTest extends TestCase
         '/my-timetable-ui',
         '/cohort-timetable-ui',
         '/student-my-timetable-ui',
-        '/upcoming-replacements-ui',
+        '/replacement-history-ui',
         '/replacement-home-ui',
         '/replacement-arrangement',
         '/my-request-history-ui',
@@ -38,7 +38,7 @@ class RouteGateMatrixTest extends TestCase
         '/request-approval-ui',
     ];
 
-    private const STUDENT_ONLY = ['/student-my-timetable-ui', '/upcoming-replacements-ui'];
+    private const STUDENT_ONLY = ['/student-my-timetable-ui', '/replacement-history-ui'];
 
     private const LECTURER_ONLY = [
         '/my-timetable-ui',
