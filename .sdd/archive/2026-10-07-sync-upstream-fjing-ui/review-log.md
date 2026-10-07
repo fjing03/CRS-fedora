@@ -1039,3 +1039,12 @@ Round count: Batch 4, 4 of 5 (Round 5 unspent). **All 4 batches frozen — the c
 ### ⚖️ Verdict
 
 **PASS — no 🔴 outstanding.** Safe to proceed: commit the change's own `.sdd/` files → T7.3 housekeeping → `/sdd-archive` → report (no push).
+
+## 🟡 Settlement — post-verify housekeeping — 2026-10-07
+
+All four verify-pass 🟡 observations explicitly settled (user-requested); none converts into a 🔴.
+
+- **[V-4] CLOSED — re-run first-hand at final HEAD `0201ea8` (post-archive):** lint:check flags only `public/adminer.php`; phpstan `{"result":"passed","errors":0}`; phpunit `{"result":"passed","tests":105,"assertions":458}` — all three byte-identical to the recorded truth. Zero reliance on recorded numbers remains.
+- **[V-1] CLOSED — root-caused + re-pinned:** both measurements were the same behavior from two angles. Unauthenticated `GET /replacement-history-ui` = **302 → `/login/student`** (curl, no-follow); with `-L` (fetch-follows-redirect semantics) the same request reports **200** at effective URL `/login/student`, body = login page (17312 B ≈ reviewer's 17310). Mock-gate inference: if a future change ever asserts unauthenticated behavior, prefer the **no-follow status + redirect target** as the canonical form.
+- **[V-2] PARKED — confirmed already ledgered:** design §13 rows 1–2 — the 3 surviving slot-state `reserved` contradictions (:47 §3 row, :54 grey line, **:146 §4 domain-model 4-value enum**, the sharpest) and the `pkill -9 php` pair (`AGENTS.md:37` + `CodingMAIN.md:108`) both belong to the **same doc-repair follow-up change**; :398/:417 are legitimate UI semantics (grey = another lecturer's pending request), exempt. Line-shifts from :46→:47 etc. anticipated by S7.
+- **[V-3] CLOSED — no action by design:** union semantics preserved; no grep gate exists for the shorthand.
