@@ -285,3 +285,37 @@ SDD change: `.sdd/changes/phase4-occ-validator/` — proposal/design/specs froze
 - PHPStan (`vendor/bin/phpstan analyse --memory-limit=1G --no-progress`): **0 errors**
 - Pint: clean on all touched files (`public/adminer.php` is a pre-existing vendored baseline)
 - Commit: `feat(occ): add OCCValidator with optimistic locking and audit trail` (`a8d5b92`)
+
+## 2026-10-07 — sync-upstream-fjing-ui (merge upstream/fjing 36c4d2c)
+
+SDD change: `.sdd/changes/sync-upstream-fjing-ui/` — proposal/design/specs/tasks all frozen (Batches 1–4, B4-R4 PASS). Verify pass 2026-10-07: **PASS, no 🔴** (see `.sdd/changes/sync-upstream-fjing-ui/review-log.md`, verify entry below). Merge commit `e686e3c` (parents `2982ce8` + `36c4d2c`).
+
+### Merge outcomes
+
+| Timestamp | Location | Change |
+|-----------|----------|--------|
+| 2026-10-07 | `routes/web.php` | Conflict resolved, ours-first: `$uiPages` array + `foreach` loop kept; upstream's explicit `Route::get` closures resolve away. Key `/upcoming-replacements-ui` **→** `/replacement-history-ui` with the 4-field mapping (`component => App\Livewire\ReplacementHistory`, `legacy => ui-design-templates.replacement-history-UI-design-template`, `nav => replacement-history`, `mw => ['auth','role:student']`). Route-parity grep post-merge = **8**; `upcoming-replacements` = 0 occurrences |
+| 2026-10-07 | `CodingMAIN.md` | 14-hunk conflict resolved per frozen design §4.2 ledger: 11 × theirs; **H4 (RBAC matrix) ours** (cohort-scoped `FR 1.3–1.4` row survives — upstream's `View global replacement history ledger` row violates FR 1.3/1.4/2.15); **H9 theirs all 13 rows** (FR 4.11 = 3-state *Available, Pending, Occupied*; ours' 4-state sentinel + FR-4.7 supersession gloss dropped deliberately); **H14 union** (ours: 2.4/2.5 ✓ `EnsureSessionLifetime`, 3.4 ✓ `LoginResponse`, 5.3 ✓ +`OCCResult`, FR-4.16 queue row + Sprint 3, FR 2.1 ⚠ pending prefix; theirs: 3.5/3.6 pre-CSS guard, NFR 1.2 <100 ms, NFR 7.1 allowlist; 5.1/5.2 identical) |
+| 2026-10-07 | `page-changelogs/{my-request-history,replacement-home,request-approval}-changelog.md` | Content conflicts: upstream 2026-10-02 block first, ours 2026-08-31 after — newest-first, both sides retained, none dropped |
+| 2026-10-07 | `page-changelogs/upcoming-replacements-ui-changelog.md` | **Deleted** (modify/delete conflict — upstream deleted; accepted, not resurrected) |
+| 2026-10-07 | `page-changelogs/todo list/todo-list.md` | Auto-merged silently (both-modified): our `633eeb3` TASK-004 rollover lines + upstream's TASK-006 completion edits both retained |
+| 2026-10-07 | `public/js/ui-common.js` | Auto-merged; 13 shared-helper symbols verified alive; 0 conflict markers |
+| 2026-10-07 | `app/Livewire/StudentMyTimetable.php:77` | Post-merge edit: `navItems` entry → `['key' => 'replacement-history', 'label' => 'Replacement History', 'href' => '/replacement-history-ui']` |
+| 2026-10-07 | `tests/Feature/RouteGateMatrixTest.php:20,33,41` | Post-merge edit: hardcoded `const` route arrays updated `/upcoming-replacements-ui` → `/replacement-history-ui` (3 spots) |
+
+### Extractions from `origin/fedora-frontend` (`35a51d1`)
+
+| Timestamp | Location | Change |
+|-----------|----------|--------|
+| 2026-10-07 | `BACKEND-TASKS.md` | NEW — extracted via `git show` (608 lines; backend full task breakdown) |
+| 2026-10-07 | `database/seeders/ReplacementRequestsSeeder.php` | NEW — extracted via `git show` (117 lines) |
+| 2026-10-07 | `tests/e2e/**` | NEW — overlay `git checkout` staged 13 frontend-only paths (12 specs + `helpers/page-check.js`); ours-only `tests/e2e/auth-wiring.spec.js` untouched (add/overlay semantics, no blob to overwrite) |
+| 2026-10-07 | `playwright.config.ts` | Ours retained — no diff vs merge-time HEAD tag (`backup/pre-merge-225449`); the `fedora-frontend` copy absent from the source by construction |
+
+## Verified
+
+- `php vendor/phpunit/phpunit/phpunit --no-coverage`: **105/105 pass** (458 assertions) — includes the retargeted `RouteGateMatrixTest`
+- PHPStan (`vendor/bin/phpstan analyse --memory-limit=1G --no-progress`): **0 errors**
+- Pint (`composer run lint:check`): flags only `public/adminer.php` — pre-merge-identical vendored baseline
+- Smoke: restart (`pkill -f "artisan serve"`, never `pkill -9 php`) + views purge; logged-in student session → `GET /replacement-history-ui` **200**, `class="nav-item active" href="/replacement-history-ui"`; login redirect to `/student-my-timetable-ui` re-verifies NFR 3.4 live. Recorded nuance: unauthenticated probes are auth-gated (reviewer re-measured = 200 login page; recorded = 302 → `/login/student`) — never 500 either way
+- Spec greps: ours-4-state 0 / 3-state 1 / FR-4.7 gloss 0 / H4 cohort-scoped 1 / H4 global-ledger 0

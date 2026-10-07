@@ -43,18 +43,48 @@ Verified geometry at explore time:
 | Renumber conflicts as "just take theirs" wholesale | 10 of 12 are *append-both* or *keep-mine* — not discardable. |
 | Run `pkill -9 php` before gate verification | Matches `php-fpm` (PID 960 master + 5 workers), killing the FPM pool. Replaced with `pkill -f "artisan serve"` — see open questions. |
 
-## 5. Conflict set — exactly 12 files
+## 5. Conflict set — 12 changed-file overlaps, of which **6 are real git conflicts**
 
 Computed as the intersection of `f44cc5c..HEAD` and `f44cc5c..upstream/fjing` changed-file sets.
-Independently re-verified after upstream advanced to `36c4d2c`: **unchanged at 12.**
+Independently re-verified after upstream advanced to `36c4d2c`: **unchanged at 12 overlaps.**
 
-### 5.1 Hard conflicts (3)
+> **⚠ CORRECTION 2026-10-06 (unfreeze, Batch 1 Round 4).** A changed-file intersection
+> *over-approximates* conflicts — it reports every path both sides touched, including paths git
+> merges cleanly. Ground truth from a read-only trial merge
+> (`git merge-tree --write-tree --name-only HEAD upstream/fjing` → **exit 1, 6 conflicts**):
+>
+> | # | Path | Type |
+> |---|---|---|
+> | 1 | `CodingMAIN.md` | content |
+> | 2 | `routes/web.php` | content |
+> | 3 | `page-changelogs/my-request-history-changelog.md` | content |
+> | 4 | `page-changelogs/replacement-home-changelog.md` | content |
+> | 5 | `page-changelogs/request-approval-changelog.md` | content |
+> | 6 | `page-changelogs/upcoming-replacements-ui-changelog.md` | modify/delete — git leaves *our* version in the tree; `git rm` accepts upstream's deletion |
+>
+> **Auto-merge cleanly — the 7 paths to *verify* (not resolve):** `public/js/ui-common.js`;
+> page-changelogs for `cohort-timetable-ui`, `my-timetable`, `replacement-arrangement`,
+> `student-my-timetable-ui`, `venue-timetable`; and `page-changelogs/todo list/todo-list.md`.
+>
+> ⚠ `todo list/todo-list.md` is the **only both-modified** one (our `633eeb3` + upstream) and the
+> only one *not* in the original 12-path analysis — it was introduced by the concurrent session
+> after that analysis ran. It merges silently because the edits don't overlap, which also means
+> nothing will flag it if git's result is wrong. **Check it explicitly.**
+>
+> **This is the canonical list.** `proposal.md` *What* item 1, *In scope*, and success criterion 2
+> all defer to it; do not restate the count elsewhere.
+>
+> The per-file rules below therefore serve **two** purposes: as resolution instructions for the 6,
+> and as **post-merge verification checks** for the 6 that merge silently — confirm git's result
+> actually honors the intent rather than assuming it does.
+
+### 5.1 Hard conflicts (2 real + 1 verify-only)
 
 | File | Resolution rule |
 |---|---|
 | `routes/web.php` | **Keep our `$uiPages` array** (lines 30–96; upstream still uses plain closures). Set `'/replacement-history-ui' => ['component' => 'App\Livewire\ReplacementHistory', 'legacy' => 'ui-design-templates.replacement-history-UI-design-template', 'nav' => 'replacement-history', 'mw' => ['auth','role:student']]`. Safe because line 88 `class_exists()` falls back to the legacy view — the component does not exist yet. |
 | `CodingMAIN.md` | **Theirs** for the Objective-4 row, notifications, §6/§7.2/§7.3. **Mine** for MPU-3133 FR 4.7 (~line 59) and Staff-ID login (~line 111). |
-| `public/js/ui-common.js` | Merge manually — keep shared-helper globals (commit `0a62f1a` depends on them). |
+| `public/js/ui-common.js` | **⚠ Does not actually conflict — git auto-merges it.** Treat this row as a *verification check only*: after the merge, confirm the shared-helper globals (which commit `0a62f1a` depends on) survived intact. Do **not** hand-rewrite it — that risks breaking `to12h`/`formatDate`/table-sort helpers that merged correctly. |
 
 ### 5.2 Append-both (8) — `page-changelogs/*`
 
@@ -109,11 +139,14 @@ and `mock-data.js` comment — both already say "renamed from upcoming-replaceme
 
 ## 10. Known open questions
 
-- **Process restart method.** Planned command was `pkill -9 php`, which also matches `php-fpm`
-  and would kill PID 960 (master) + 5 workers. Proposed replacement: `pkill -f "artisan serve"`.
-  Not yet confirmed by the user.
+- ~~**Process restart method.**~~ **RESOLVED 2026-10-06** — user confirmed `pkill -f "artisan serve"`
+  in place of `pkill -9 php` (which regex-matches the 6 live `php-fpm` processes, PIDs 960,
+  974–978). Deviates from `AGENTS.md:37`; that line needs a follow-up amendment. Recorded in
+  `proposal.md` Risks and `review-log.md` [B1-6].
 - Whether `auth-wiring` (the one stale UI change upstream did *not* archive) should be archived
-  alongside the other 6 after the merge, or kept active.
+  alongside the other 6 after the merge, or kept active. → **deferred to Wave 3 input** in
+  `proposal.md`; note it has 58 lines of locally-added tasks since the merge base, so it is
+  active work rather than a stale leftover.
 
 ## 11. Out of scope
 
