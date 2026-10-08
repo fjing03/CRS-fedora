@@ -25,7 +25,9 @@ return Application::configure(basePath: dirname(__DIR__))
             'pl' => CheckPl::class,
         ]);
 
-        $middleware->append(EnsureSessionLifetime::class);
+        // web-group APPEND (not global): must run AFTER StartSession in the web
+        // group, or session() sees an unloaded store and expiry can never fire.
+        $middleware->web(append: EnsureSessionLifetime::class);
 
         $middleware->redirectGuestsTo(fn (Request $request) => route('login.student'));
     })

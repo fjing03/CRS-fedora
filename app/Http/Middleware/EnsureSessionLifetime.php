@@ -20,11 +20,12 @@ class EnsureSessionLifetime
             } else {
                 $elapsed = now()->timestamp - $lastActivity;
                 if ($elapsed > $roleLifetime * 60) {
+                    // read login_type BEFORE invalidate() wipes the session data
+                    $loginType = session('login_type', 'student');
+
                     Auth::logout();
                     session()->invalidate();
                     session()->regenerateToken();
-
-                    $loginType = session('login_type', 'student');
 
                     return redirect($loginType === 'staff' ? '/login/staff' : '/login/student')->withErrors([
                         'login_id' => 'Session expired. Please log in again.',
