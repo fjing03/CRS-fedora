@@ -42,11 +42,11 @@
 
 ## Task 6 — Records + archive (design §7, proposal criterion 6 + What step 5)
 
-- [ ] **T6.1** Append merge entry to `page-changelogs/backend-automated-by-ai.md` (delta summary, census note, gate + smoke results).
-- [ ] **T6.2** `/sdd-verify` pass (reviewer subagent, self-run per standing instruction) against the frozen proposal criteria 1–6 → verdict in review-log.md.
-- [ ] **T6.3** Commit: merge commit (T2.1, upstream content only) already exists; then `docs(sdd)` commit with this change's `.sdd/` dir + changelog append.
-- [ ] **T6.4** `/sdd-archive` → `.sdd/archive/2026-10-08-merge-upstream-fjing-4dc4d06/` + yaml `status: archived` / `archived: 2026-10-08` → archive commit.
-- [ ] **T6.5** Report to user. **No push** — local until the user explicitly authorizes `git push origin fedora-backend`.
+- [x] **T6.1** Append merge entry to `page-changelogs/backend-automated-by-ai.md` (delta summary, census note, gate + smoke results).
+- [x] **T6.2** `/sdd-verify` pass (reviewer subagent, self-run per standing instruction) against the frozen proposal criteria 1–6 → verdict in review-log.md.
+- [x] **T6.3** Commit: merge commit (T2.1, upstream content only) already exists; then `docs(sdd)` commit with this change's `.sdd/` dir + changelog append.
+- [x] **T6.4** `/sdd-archive` → `.sdd/archive/2026-10-08-merge-upstream-fjing-4dc4d06/` + yaml `status: archived` / `archived: 2026-10-08` → archive commit.
+- [x] **T6.5** Report to user. **No push** — local until the user explicitly authorizes `git push origin fedora-backend`. *✅ Reported: 8 commits ahead of origin, awaiting push authorization.*
 
 ## Execution notes
 
