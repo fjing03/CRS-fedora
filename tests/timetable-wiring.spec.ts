@@ -68,12 +68,19 @@ test.describe('Slice A — real-data timetables', () => {
 
     await expect(page.locator('.timetable .event-block').first()).toBeVisible();
 
-    // Today = semester start (week 1) → Prev is disabled, Next is enabled.
-    await page.click('.week-arrow[aria-label="Next week"]');
-    await expect(page.locator('#weekSubtitle')).toContainText('Week 2');
+    // The current week is DATE-RELATIVE (the real-records import set the
+    // canonical 202605 semester: today = Week 3, not Week 1) — read it and
+    // assert relative movement instead of hardcoded week numbers.
+    const subtitle = page.locator('#weekSubtitle');
+    const startLabel = (await subtitle.textContent()) ?? '';
+    const startWeek = parseInt(startLabel.match(/Week (\d+)/)?.[1] ?? '1', 10);
+    expect(startWeek).toBeGreaterThanOrEqual(1);
 
-    await page.selectOption('#weekSelect', '3'); // index 3 = week 4
-    await expect(page.locator('#weekSubtitle')).toContainText('Week 4');
+    await page.click('.week-arrow[aria-label="Next week"]');
+    await expect(subtitle).toContainText(`Week ${startWeek + 1}`);
+
+    await page.selectOption('#weekSelect', '0'); // index 0 = week 1
+    await expect(subtitle).toContainText('Week 1');
   });
 
   test('Cohort Timetable lets a lecturer pick faculty + cohort and render', async ({ page }) => {

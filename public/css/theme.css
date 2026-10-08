@@ -3625,3 +3625,10 @@ body {
     padding: 0.5rem 1rem;
     cursor: pointer;
 }
+
+/* ── Venue Timetable cell states (SDD: venue-timetable-db) ────── */
+/* §10.0: Your Classes = primary, Pending = tertiary-container,      */
+/* Others' = neutral surface-variant. Applied via statusClassFn.     */
+.vt-cell-yours { background: var(--color-primary) !important; color: var(--color-on-primary) !important; }
+.vt-cell-pending { background: var(--color-tertiary-container) !important; color: var(--color-on-tertiary-container) !important; }
+.vt-cell-others { background: var(--color-surface-variant) !important; color: var(--color-on-surface-variant) !important; }

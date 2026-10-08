@@ -414,3 +414,20 @@ Primary entry: `.sdd/changes/import-real-schedule-records/` (proposal/design/tas
 - Temporary window: server + client + extend expiry tests **3/3**; lifetime reverted to 30
 - Gates: phpunit **115/115** (809 assertions), phpstan-1G **0**, Playwright auth-full **15 pass** + nav-identity **3/3** (zero console errors) at production lifetime
 - Review trail: `.sdd/archive/<date>-wire-session-countdown/review-log.md` (proposal R1 PASS · design R2 PASS · tasks R2 PASS · verify PASS)
+
+## 2026-10-08 — venue-timetable-db (SDD change, verified + archived)
+
+| Timestamp | Location | Change |
+|-----------|----------|--------|
+| 2026-10-08 | `app/Livewire/VenueTimetable.php` | NEW — DB-backed Venue Timetable (READ-only v1): render-only component on the ResolvesTimetableTimeline trait; all-weeks occupied/pending slots → shared `baseEvent` contract (`slotIndex()` math, `module_name`, null-safe ownership via `lecturer_id === auth()->id()` — class_sessions.lecturer_id holds the USER id); per-week DB-status totals; `?venue=` deep link with unknown-code fallback; VenueDropdown contract mapping (Tutorial/LectureHall/Lab/CiscoLab). Booking write path deliberately excluded (Slice B) |
+| 2026-10-08 | `resources/views/livewire/venue-timetable.blade.php` | NEW — Slice A house pattern: client-side WeekNavigator (`venueTimetableWeek` key), shared grid engine via `statusClassFn` (yours=primary / pending=tertiary / others=surface-variant), ui-legend-bar 4 venue items, ui-summary-bar (Total/Available/Pending/Occupied — holiday cells annotated in-grid, not re-counted), empty-state for free weeks, honest "booking arrives with Slice B" hint, no booking affordances |
+| 2026-10-08 | `public/css/theme.css` | 3 token-only cell classes: `.vt-cell-yours` / `.vt-cell-pending` / `.vt-cell-others` |
+| 2026-10-08 | `tests/Feature/VenueTimetableTest.php` + `tests/venue-db.spec.ts` | NEW — 6 feature tests (frozen real anchors: B006 W1 = 48 occupied/72 available/120 total; W8-Monday holiday payload; unknown-venue fallback; 403 gating) + 3 browser tests (deep link preselect, real module in cells, modal extraFields, client-side week nav, 4-type dropdown drill-down + `?venue=` switch, zero console errors) |
+| 2026-10-08 | `tests/timetable-wiring.spec.ts` | Re-pinned: "week navigation" test assumed Today = Week 1 (stale semester dates) — the real-records import set canonical 202605 dates (today = Week 3); assertions now date-relative (read current week, assert +1 movement, then jump to Week 1). Import-era collateral, not a regression of the venue change |
+
+## Verified
+
+- Gates: phpunit **121/121** (819 assertions; was 115/809), phpstan-1G **0**, Playwright venue-db **3/3** + timetable-wiring **5/5** + nav-identity **3/3**
+- SQL spot-audit: B006 W1 48 occ/72 avail; B006 W8 38/82 (Mon holiday); B002 W1 2/118, W8 0/120 — all match the rendered grid/cards
+- Route flip: `/venue-timetable-ui` now serves the Livewire component (single-point branch); legacy template untouched as fallback
+- Review trail: proposal R2 · design R3 (+ apply-time UNFREEZE: week/venue switching moved to the client-side Slice A pattern — Livewire morphs don't re-execute init scripts) · tasks R2 · verify PASS — `.sdd/archive/…venue-timetable-db/review-log.md`

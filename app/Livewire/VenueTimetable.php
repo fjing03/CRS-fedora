@@ -1,0 +1,171 @@
+<?php
+
+namespace App\Livewire;
+
+use App\Concerns\ResolvesTimetableTimeline;
+use App\Models\TimeSlot;
+use App\Models\Venue;
+use Illuminate\Contracts\View\View;
+use Illuminate\Support\Facades\DB;
+use Livewire\Attributes\Title;
+use Livewire\Component;
+
+/**
+ * Venue Timetable — real slot-level data (SDD: venue-timetable-db).
+ * READ-only v1: grid, slot states, class details, summary — all from
+ * time_slots/class_sessions. Booking arrives with Slice B (affordances
+ * deliberately absent, honest hint instead).
+ *
+ * Render-only (Slice A house pattern): week nav is the shared client-side
+ * WeekNavigator over the all-weeks event map; venue switching happens via
+ * `?venue=` full-render links (mount reads the param once — deep links work,
+ * scripts re-run naturally on navigation).
+ */
+class VenueTimetable extends Component
+{
+    use ResolvesTimetableTimeline;
+
+    public string $venueCode = '';
+
+    #[Title('Venue Timetable')]
+    public function mount(): void
+    {
+        $requested = (string) request()->query('venue', '');
+        $venue = Venue::where('room_code', $requested)->first()
+            ?? Venue::orderBy('room_code')->first();
+
+        $this->venueCode = $venue !== null ? $venue->room_code : '';
+    }
+
+    public function render(): View
+    {
+        $venue = Venue::where('room_code', $this->venueCode)->first();
+
+        if ($venue === null) {
+            // Empty venues table (fresh DB) — render with empty payloads.
+            return $this->renderPayload(
+                collect(),
+                ['code' => '', 'name' => '', 'capacity' => 0],
+                array_fill(0, $this->timelineWeeks(), []),
+                array_fill(0, $this->timelineWeeks(), ['total' => 0, 'available' => 0, 'pending' => 0, 'occupied' => 0]),
+            );
+        }
+
+        // VenueDropdown contract (ui-common.js): code/name/capacity + display type.
+        $venuesJs = Venue::orderBy('room_code')->get(['id', 'room_code', 'room_name', 'room_type', 'capacity'])
+            ->map(fn (Venue $v) => [
+                'code' => $v->room_code,
+                'name' => $v->room_name ?? $v->room_code,
+                'capacity' => (int) $v->capacity,
+                'type' => match ($v->room_type) {
+                    'lecture_hall' => 'LectureHall',
+                    'cisco_lab' => 'CiscoLab',
+                    'lab' => 'Lab',
+                    default => 'Tutorial',
+                },
+            ]);
+
+        // All-weeks events (no week filter) — grouped into the contiguous
+        // eventsByWeek map the shared grid engine consumes (index w-1).
+        $slots = TimeSlot::with(['classSession.module', 'classSession.lecturer', 'classSession.cohorts.programme'])
+            ->where('venue_id', $venue->id)
+            ->whereIn('status', ['occupied', 'pending'])
+            ->get();
+
+        $weeks = $this->timelineWeeks();
+        $eventsByWeek = array_fill(0, $weeks, []);
+        $myUserId = auth()->id();
+
+        foreach ($slots as $slot) {
+            $session = $slot->classSession;
+            $w = (int) $slot->week_number;
+            if ($session === null || $w < 1 || $w > $weeks) {
+                continue;
+            }
+
+            $eventsByWeek[$w - 1][] = [
+                'id' => $slot->id,
+                'di' => (int) $slot->day_of_week,
+                'start' => $this->slotIndex($slot->start_time),
+                'end' => $this->slotIndex($slot->end_time) - 1,
+                'code' => $session->module->module_code,
+                'name' => $session->module->module_name,
+                'type' => $session->session_type,
+                'venue' => $venue->room_code,
+                'lecturer' => $session->lecturer->name,
+                'cohort' => $this->cohortLabel($session->cohorts),
+                'cohorts' => $session->cohorts->map(fn ($c) => $this->cohortCode($c))->all(),
+                'studentCount' => (int) $session->cohorts->sum('student_count'),
+                'status' => $slot->status === 'pending' ? 'pending' : 'normal',
+                'remarks' => '',
+                'mine' => $session->lecturer_id === $myUserId,
+            ];
+        }
+
+        // Per-week slot totals (DB-status-only card semantics — design §2):
+        // holiday rows keep status='available', so they count as Available;
+        // the grid annotates them visually via the holidays overlay instead.
+        $totalsByWeek = array_fill(0, $weeks, ['total' => 0, 'available' => 0, 'pending' => 0, 'occupied' => 0]);
+        DB::table('time_slots')
+            ->where('venue_id', $venue->id)
+            ->selectRaw('week_number, status, count(*) as c')
+            ->groupBy('week_number', 'status')
+            ->get()
+            ->each(function ($row) use (&$totalsByWeek, $weeks) {
+                $w = (int) $row->week_number;
+                if ($w < 1 || $w > $weeks || ! isset($totalsByWeek[$w - 1][$row->status])) {
+                    return;
+                }
+                $totalsByWeek[$w - 1][$row->status] = (int) $row->c;
+                $totalsByWeek[$w - 1]['total'] += (int) $row->c;
+            });
+
+        return $this->renderPayload($venuesJs, [
+            'code' => $venue->room_code,
+            'name' => $venue->room_name ?? $venue->room_code,
+            'capacity' => (int) $venue->capacity,
+        ], $eventsByWeek, $totalsByWeek);
+    }
+
+    /**
+     * @param  \Illuminate\Support\Collection<int, array{code: string, name: string, capacity: int, type: 'CiscoLab'|'Lab'|'LectureHall'|'Tutorial'}>  $venuesJs
+     * @param  array{code: string, name: string, capacity: int}  $venue
+     * @param  array<int, array<int, array<string, mixed>>>  $eventsByWeek
+     * @param  array<int, array<string, int>>  $totalsByWeek
+     */
+    private function renderPayload(
+        \Illuminate\Support\Collection $venuesJs,
+        array $venue,
+        array $eventsByWeek,
+        array $totalsByWeek,
+    ): View {
+        return view('livewire.venue-timetable', [
+            'venuesJs' => $venuesJs,
+            'venue' => $venue,
+            'eventsByWeek' => $eventsByWeek,
+            'totalsByWeek' => $totalsByWeek,
+            'weekData' => $this->weekData(),
+            'semesterJs' => $this->semesterJs(),
+            'holidaysJs' => $this->holidaysForJs(),
+        ])
+            ->extends('layouts.ui-template', ['activeNav' => 'venue-timetable', 'pageKey' => 'venueTimetable'])
+            ->section('content');
+    }
+
+    /**
+     * Multi-cohort label (trait cohortCode per cohort, joined) — mirrors baseEvent.
+     *
+     * @param  \Illuminate\Support\Collection<int, \App\Models\Cohort>  $cohorts
+     */
+    private function cohortLabel($cohorts): string
+    {
+        if ($cohorts->isEmpty()) {
+            return '—';
+        }
+        if ($cohorts->count() === 1) {
+            return $this->cohortCode($cohorts->first());
+        }
+
+        return $cohorts->map(fn ($c) => $this->cohortCode($c))->implode(' + ');
+    }
+}
