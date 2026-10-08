@@ -23,19 +23,19 @@ Gates after every code task: `php vendor/phpunit/phpunit/phpunit --no-coverage`,
 
 ## Phase B — importer core (specs/real-schedule-importer R2–R8)
 
-- [ ] **T3a — RealScheduleSeeder skeleton + CSV parsing.** New
+- [x] **T3a — RealScheduleSeeder skeleton + CSV parsing.** New
       `database/seeders/RealScheduleSeeder.php`: CSV parsing (R1.2–R1.3) with
       loud aborts, zero writes on failure.
-- [ ] **T3b — Phase 0 preflight assertions + warnings.** All R2.1–R2.5
+- [x] **T3b — Phase 0 preflight assertions + warnings.** All R2.1–R2.5
       assertions; R2.6 lab-rule (11 rows) + missing-title warnings; R2.7
       abort-with-zero-writes semantics.
-- [ ] **T4 — Phase 1 delete + Phase 2 references.** Live-count-asserted delete
+- [x] **T4 — Phase 1 delete + Phase 2 references.** Live-count-asserted delete
       order (R4.1–R4.3, single transaction); semesters dates, holidays replace
       (3 rows), module upsert with observed-union allowed_session_types (R5).
-- [ ] **T5 — Phase 3 sessions/links/prune/occupancy.** 101 inserts, 155 links,
+- [x] **T5 — Phase 3 sessions/links/prune/occupancy.** 101 inserts, 155 links,
       module prune (R6.3), per-session exact-count occupancy with holiday-pair
       exclusion (R6.4). Transaction shared with Phase 2.
-- [ ] **T6 — Phase 4 verification pass.** All R7.1 checks incl. explicit
+- [x] **T6 — Phase 4 verification pass.** All R7.1 checks incl. explicit
       GROUP BY double-booking query; final `crs:db-row-counts` print (R7.2 —
       call wired here; only exercised once T8 lands); R7.4 count/state-level
       scope.
