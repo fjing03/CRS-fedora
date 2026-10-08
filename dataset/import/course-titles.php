@@ -17,8 +17,8 @@
 //                 already sat in the venue extractor for the lab-exception table.
 //
 // Codes NOT listed here fall back to module_name = the code itself and are
-// reported by the importer (currently 8: AMSE2002, AMSE2003, AMSE2013,
-// BMIT3273, MPU-2212, MPU-2302, MPU-3103, MPU-3302).
+// reported by the importer (currently 4: AMSE2002, AMSE2003, AMSE2013,
+// MPU-2302).
 
 return [
     // ── supplied by the user 2026-10-06 ──────────────────────────────────
@@ -64,4 +64,7 @@ return [
     'BMSE3153' => 'Software Project Management',
     // ── user-directed additions 2026-10-08 (continued) ───────────────────
     'BMIT3273' => 'Cloud Computing',
+    'MPU-2212' => 'BAHASA KEBANGSAAN A',
+    'MPU-3103' => 'Penghayatan Etika dan Peradaban',
+    'MPU-3302' => 'Integrity and Anti-corruption',
 ];

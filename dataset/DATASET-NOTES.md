@@ -93,8 +93,7 @@ MPU-3232 L,T     MPU-3302 T
 
 ## 6. Module titles status
 
-35 of 42 codes have real titles (22 from the .py single source + 13
+38 of 42 codes have real titles (22 from the .py single source + 16
 user-directed via Downloads/mock-data.js and direct correction — see
-`dataset/import/course-titles.php` header). 7 codes remain code-fallback
-(importer reports them): AMSE2002, AMSE2003, AMSE2013, MPU-2212, MPU-2302,
-MPU-3103, MPU-3302.
+`dataset/import/course-titles.php` header). 4 codes remain code-fallback
+(importer reports them): AMSE2002, AMSE2003, AMSE2013, MPU-2302.

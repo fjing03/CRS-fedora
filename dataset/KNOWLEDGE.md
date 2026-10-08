@@ -388,8 +388,7 @@ is not edited):
    W14 Thu (Christmas Eve), W14 Fri (Christmas Day) only.
 5. **is_pl**: the datasets carry no PL data; the seed sets 5425 **and 5516** to
    is_pl=true (both preserved by the import — users untouched).
-6. **Module titles**: 35 of the 42 dataset codes now have real titles
-   (22 from the .py source + 13 more user-directed via Downloads/mock-data.js
+6. **Module titles**: 38 of the 42 dataset codes now have real titles
+   (22 from the .py source + 16 more user-directed via Downloads/mock-data.js
    and direct correction on 2026-10-08 — see `dataset/import/course-titles.php`).
-   7 codes remain code-fallback: AMSE2002, AMSE2003, AMSE2013, MPU-2212,
-   MPU-2302, MPU-3103, MPU-3302.
+   4 codes remain code-fallback: AMSE2002, AMSE2003, AMSE2013, MPU-2302.
