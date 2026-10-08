@@ -26,3 +26,7 @@ issues/std timetable.png
 backups/
 .commandcode/
 dataset/import/*.csv -text
+
+# Playwright run artifacts (reports are regenerated per run)
+test-results/
+playwright-report/
