@@ -136,3 +136,64 @@ one place after the literal — §2.13 contract comment added (backend day: drop
 4. Sortable-header consolidation recorded in request-approval's postscript — the
    shared `makeSortableHeader`/`compareBy` are now the single implementation
    across all three data tables (student table included).
+
+### Postscript — group/detail-modals round (2026-10-07, tabbed class modals)
+
+1. `ui-common.js` — new shared helper `renderModalGroups(opts, groups)`: 2+ groups
+   render a `.modal-tabs` bar (one tab per category, matching
+   my-request-history's Request Details); 1 group renders a plain stacked body.
+2. `openClassModal` flat layout now **auto-groups** rows into
+   `Class Information` / `Schedule` / `Status` buckets (label-list based,
+   unknown labels default to Class Information) and renders via the helper —
+   so my-timetable, cohort-timetable and student-my-timetable class modals are
+   tabbed with zero per-page markup changes (`extraFields` unaffected:
+   Cohort/Total Students land in Class Information).
+3. `openClassModal(cfg.groups)` branch (replacement-history page) now renders
+   through the same helper — 4 tabs: Class / Original Slot / New Slot / Status.
+
+Verified: playwright smoke on all 8 modal pages — tab bar present, tab 2 click
+switches panel, 0 console errors (`/tmp/opencode/modal_tabs_smoke.py`).
+
+### Postscript — replacement origin trail (2026-10-07)
+
+1. `ui-common.js` — `openClassModal` flat branch: for a confirmed replacement
+   block (status `replacement`) the modal now inserts an **Original Class**
+   category (Original Date/Time/Venue + Original Conflict) built from
+   `event.replacedFor`/`replacedReason`, falling back to a date-shaped
+   `remarks` string at cohort level. Bucket rule `label.startsWith('Original ')`
+   → Original Class; the tab order is
+   Class Information / Schedule / Original Class / Status. A date-only
+   `remarks` under a replacement block is removed from the Remarks row (it now
+   lives in Original Date).
+2. `seed_mock_data.py` (outer repo) — the demo statuses were rebuilt as
+   **conflict → replacement pairs**: MY_STATUS_DEMO adds 'conflict' overlays on
+   the same block in the earlier week (weeks 0/1/7) and my replacement events
+   carry structured `replacedFor` + `replacedReason`; cohort-level replacement
+   flags point their remark at the prior week's same-weekday date and add the
+   matching original-conflict flag (deduped). Removes the incoherent remarks
+   (e.g. '25-Nov-2026' printed under a Friday block that sits 27-Nov).
+   Demo states 19 → 25; validator `/tmp/opencode/check_mock.js` extended
+   (all 47 checks pass) with a "replacement remarks point at prior week" check.
+
+### Postscript — missing conflict colouring (2026-10-07, fix)
+
+`.event-conflict` (theme.css:1935) existed but was never applied by the shared
+default classifier: `buildTimetableGrid`'s default chain handled
+normal/replacement/pending only, so a conflict-status event rendered with
+**no status class** (unstyled grey block) on student-my-timetable and
+my-timetable; the cohort page's custom `statusClassFn` also mapped conflict
+into the blue mine/others branches. Added a `conflict` branch to both — §10.0
+legend A (Conflict = red) now actually renders on all three timetable pages
+(verified: `.event-block ... event-conflict`, red border).
+
+### Postscript — holiday badge fix (2026-10-07)
+
+`openClassModal` built badge class from the RAW `event.status` but badge text
+from `displayStatus` (holiday remap → 'conflict') → on a holiday the modal
+showed a **green** `badge-normal` chip reading "Conflict" while the grid block
+was red `event-public-holiday`. Unified one `st` token (`public-holiday` vs
+event status) for class + text; added the paired `.badge-public-holiday` row
+to `theme.css` (red — §10.0 legend "Conflict / Public Holiday"); holiday
+statusDesc now says "Class falls on a public holiday — no class runs".
+Verified on student/my/cohort timetable pages at week 8 (Mon 9 Nov): red
+"Public Holiday" badge everywhere, 0 console errors.

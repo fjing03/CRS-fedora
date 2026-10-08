@@ -754,6 +754,9 @@ function buildTimetableGrid(cfg) {
                     cfg.statusClassFn(div, e, isConflict);
                 } else if (isConflict) {
                     div.classList.add('event-public-holiday');
+                } else if (e.status === 'conflict') {
+                    // §10.0 legend A: Conflict = red (conflicted original class)
+                    div.classList.add('event-conflict');
                 } else if (e.status === 'normal') {
                     div.classList.add('event-normal');
                 } else if (e.status === 'replacement') {
@@ -836,24 +839,45 @@ function computeSummary(events, days) {
  * @param {string} [cfg.modalId='classModal'] - Modal element ID
  * @param {string} [cfg.title] - Custom title (default: event.code)
  * @param {Array} [cfg.groups] - Grouped layout: [{ heading, rows: [{ label, value, strong? }] }].
- *   When present, renders one section per group (tidier for multi-category modals)
- *   and replaces the flat single-section layout. Additive — omit for the original behavior.
+ *   When present, renders one category per group; 2+ groups become a tab bar
+ *   (same tabbed taxonomy as my-request-history's Request Details). Additive —
+ *   omit for the flat event layout.
  */
-function openClassModal(cfg) {
-    // ── Grouped layout (additive, §10.0 rule 6 — detail without overwhelm) ──
-    if (cfg.groups) {
-        const bodyHtml = cfg.groups.map(function(g) {
-            return DetailModal.section(g.heading, g.rows.map(function(r) {
+/**
+ * Render grouped rows inside a detail modal: 2+ groups → a modal tab bar with
+ * one tab per category (like my-request-history's Request Details); a single
+ * group → plain stacked body. Shared by openClassModal and page modals.
+ * @param {object} opts - { modalId, title, subtitle?, timeline? }
+ * @param {Array} groups - [{ heading, rows: [{ label, value, strong? }] }]
+ * @returns {number} category count rendered (1 = plain body, 2+ = tabs)
+ */
+function renderModalGroups(opts, groups) {
+    const tabs = (groups || []).filter(g => g.rows && g.rows.length).map(function (g) {
+        return {
+            key: String(g.heading).toLowerCase().replace(/[^a-z0-9]+/g, '-'),
+            label: g.heading,
+            html: DetailModal.section(g.heading, g.rows.map(function (r) {
                 return DetailModal.row(r.label, r.value, { strong: r.strong });
-            }).join(''));
-        }).join('');
-        DetailModal.render({
+            }).join(''))
+        };
+    });
+    if (tabs.length > 1) {
+        DetailModal.render(Object.assign({}, opts, { tabs: tabs }));
+    } else {
+        DetailModal.render(Object.assign({}, opts, { body: tabs.length ? tabs[0].html : '' }));
+    }
+    return tabs.length;
+}
+
+function openClassModal(cfg) {
+    // ── Grouped layout (additive, §10.0 rules 5/6 — grouped categories as tabs) ──
+    if (cfg.groups) {
+        renderModalGroups({
             modalId: cfg.modalId || 'classModal',
             title: cfg.title || 'Class Details',
             subtitle: cfg.subtitle || '',
-            timeline: cfg.timeline || null,
-            body: bodyHtml
-        });
+            timeline: cfg.timeline || null
+        }, cfg.groups);
         return;
     }
 
@@ -862,12 +886,19 @@ function openClassModal(cfg) {
     const days = cfg.days;
 
     const isConflict = days[di] && days[di].holiday;
-    const displayStatus = isConflict ? 'conflict' : event.status;
+    // §10.0 rule 2 — one source: badge class AND badge text from the same `st`.
+    // A class falling on a public holiday is "Public Holiday" (red), NOT
+    // "Conflict" — holiday ≠ clash, two different §10.0 meanings. Grid block
+    // already styles it event-public-holiday; the badge now matches.
+    const st = isConflict ? 'public-holiday' : (event.status || 'normal');
+    const displayStatus = st === 'public-holiday'
+        ? 'Public Holiday'
+        : st.charAt(0).toUpperCase() + st.slice(1);
 
     const startStr = to12h(hours[event.start]);
     const endStr = to12h(hours[event.end + 1] || add30min(hours[event.end]));
 
-    const statusDesc = event.status === 'pending' ? 'Replacement request awaiting approval' : event.status === 'conflict' ? 'Scheduling conflict — needs attention' : 'Scheduled class with no issues';
+    const statusDesc = isConflict ? 'Class falls on a public holiday — no class runs' : event.status === 'pending' ? 'Replacement request awaiting approval' : event.status === 'conflict' ? 'Scheduling conflict — needs attention' : 'Scheduled class with no issues';
 
     const rows = [
         { label: 'Subject Code', value: event.code },
@@ -879,7 +910,7 @@ function openClassModal(cfg) {
         { label: 'Date', value: days[di].date },
         { label: 'Start Time', value: startStr, strong: true },
         { label: 'End Time', value: endStr },
-        { label: 'Status', value: '<span class="badge badge-' + (event.status || 'normal') + '">' + displayStatus.charAt(0).toUpperCase() + displayStatus.slice(1) + '</span>' },
+        { label: 'Status', value: '<span class="badge badge-' + st + '">' + displayStatus + '</span>' },
         { label: 'Status Description', value: statusDesc },
         { label: 'Remarks', value: event.remarks || '\u2014' },
     ];
@@ -896,11 +927,56 @@ function openClassModal(cfg) {
         cfg.extraFields.forEach((f, i) => { rows.splice(statusIdx + i, 0, f); });
     }
 
-    const bodyHtml = DetailModal.section('Class Information',
-        rows.map(r => DetailModal.row(r.label, r.value, { strong: r.strong })).join('')
-    );
+    // ── Confirmed replacement: show the replaced original conflicted class ──
+    // `replacedFor` (dd-Mon-yyyy, seeded) or a date-shaped remarks string at
+    // cohort level. The original kept the weekly slot, so its time/venue are
+    // this block's own schedule.
+    if (String(event.status) === 'replacement') {
+        const rf = event.replacedFor ||
+            ((event.remarks || '').match(/^\d{2}-[A-Z][a-z]{2}-\d{4}$/) || [])[0];
+        if (rf) {
+            const m = rf.match(/^(\d{2})-([A-Za-z]{3})-(\d{4})$/);
+            const MONTHS = { jan: 0, feb: 1, mar: 2, apr: 3, may: 4, jun: 5,
+                jul: 6, aug: 7, sep: 8, oct: 9, nov: 10, dec: 11 };
+            const dayName = m && MONTHS[m[2].toLowerCase()] !== undefined
+                ? dayNames[(new Date(+m[3], MONTHS[m[2].toLowerCase()], +m[1]).getDay() + 6) % 7] || ''
+                : '';
+            const stIdx = rows.findIndex(f => f.label === 'Status');
+            rows.splice(stIdx, 0,
+                { label: 'Original Date', value: (dayName ? dayName + ', ' : '') + rf, strong: true },
+                { label: 'Original Time', value: startStr + ' \u2013 ' + endStr },
+                { label: 'Original Venue', value: event.venue || '\u2014' });
+            if (event.replacedReason) {
+                rows.splice(stIdx + 3, 0, { label: 'Original Conflict', value: event.replacedReason });
+            }
+            // the raw date no longer belongs under Remarks — it lives in Original Date
+            for (let i = rows.length - 1; i >= 0; i--) {
+                if (rows[i].label === 'Remarks' && rows[i].value === rf) { rows.splice(i, 1); }
+            }
+        }
+    }
 
-    DetailModal.render({
+    // ── Auto-grouped layout (§10.0 rules 5/6 — detail grouped, not a wall) ──
+    // Same three-category taxonomy the request-history modal uses. Rows keep
+    // their order inside each bucket; unknown labels default to Class Information.
+    const STATUS_LABELS = ['Status', 'Status Description', 'Requested At', 'Requested By', 'Rejection Reason', 'Remarks'];
+    const SCHEDULE_LABELS = ['Day', 'Date', 'Start Time', 'End Time', 'Duration', 'Venue'];
+    function bucketOf(label) {
+        if (label.indexOf('Original ') === 0) return 'Original Class';
+        if (STATUS_LABELS.indexOf(label) >= 0) return 'Status';
+        if (SCHEDULE_LABELS.indexOf(label) >= 0) return 'Schedule';
+        return 'Class Information';
+    }
+    const buckets = rows.reduce(function (acc, r) {
+        const k = bucketOf(r.label);
+        (acc[k] = acc[k] || []).push(r);
+        return acc;
+    }, {});
+    const groups = ['Class Information', 'Schedule', 'Original Class', 'Status']
+        .filter(k => buckets[k] && buckets[k].length)
+        .map(k => ({ heading: k, rows: buckets[k] }));
+
+    renderModalGroups({
         modalId: cfg.modalId || 'classModal',
         title: cfg.title || 'Class Details',
         subtitle: (event.code || '') + (event.name ? ' \u2014 ' + event.name : ''),
@@ -911,8 +987,7 @@ function openClassModal(cfg) {
                 { label: 'Awaiting Replacement', time: 'Next', state: 'pending' },
               ]
             : null,
-        body: bodyHtml
-    });
+    }, groups);
 
     // Add "View Full Request" button to footer right side for own pending requests
     if (event.status === 'pending' && event.requestId) {
@@ -2156,7 +2231,11 @@ class HtmlBuilder {
     static dayHeader(day) {
         let html = '<span class="day-label">' + day.abbr + '</span><span class="date-label">' + day.date + '</span>';
         if (day.holiday) {
-            html += '<span class="holiday-badge">' + (day.holidayLabel || 'Public Holiday') + '</span>';
+            /* generic badge text (displays PUBLIC HOLIDAY via the existing
+               uppercase transform); the specific holiday name, when known,
+               rides the shared data-tip hover tooltip */
+            const tipAttr = day.holidayLabel ? ' data-tip="' + day.holidayLabel + '"' : '';
+            html += '<span class="holiday-badge"' + tipAttr + '>Public Holiday</span>';
         }
         if (day.today) {
             html += '<span class="today-badge">Today</span>';

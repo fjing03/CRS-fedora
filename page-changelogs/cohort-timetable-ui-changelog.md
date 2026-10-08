@@ -238,3 +238,56 @@ Enabled stub: click fires the shared `toast.show('Printing is coming soon')` bot
 
 Week persistence key namespaced to `cohortTimetableWeek` (was the shared generic
 `currentWeek`). Migration + default-week behaviour handled centrally in `WeekNavigator`.
+
+### Postscript — holiday-badge-generic-label (2026-10-07, shared ui-common)
+
+Day-header holiday badges now read generically as **PUBLIC HOLIDAY** (markup
+text `Public Holiday`; the badge CSS already uppercases it), with the specific
+holiday name — e.g. `Deepavali Holiday (In Lieu)`, `Christmas Eve` — shown on
+hover via the shared `data-tip` tooltip system. Label-less holiday flags show
+no tooltip. One-line change in `HtmlBuilder.dayHeader` (ui-common.js:2155);
+applies to every timetable page via the shared builder.
+
+
+---
+
+## [2026-10-07] Class modal grouped into tabs (shared DetailModal taxonomy)
+
+Same as my-timetable: `openClassModal` auto-groups rows into Class Information /
+Schedule / Status tabs via `renderModalGroups` (ui-common.js). The page's
+`extraFields` Cohort row now lives in the Class Information tab.
+
+---
+
+## [2026-10-07] Confirmed replacement modal shows the replaced original class
+
+Same shared enhancement via `openClassModal`: replacement-flagged blocks whose
+remarks hold a dd-Mon-yyyy date get an **Original Class** tab (date/weekday,
+time, venue — no reason row, cohort flags carry no reason). Replacement flag
+remarks now point at the prior week's same-weekday date (coherent with the
+red original-conflict flag added there).
+
+---
+
+## [2026-10-07] Conflict blocks now render red (was: blue)
+
+`statusClassFn` mapped conflict-status events into the blue mine/others
+branches; added an explicit `.event-conflict` branch — same red as every other
+page (§10.0 legend A).
+
+## [2026-10-07] Demo conflict reasons made venue-coherent (follow-up)
+
+Conflict-flag remarks now come from the venue-aware `default_reason` in the
+seeder (labs → "Lab equipment failure", else "Lecturer on leave"); a 4th
+element on a COHORT_STATUS_DEMO pick overrides it explicitly. Example:
+RSD3(S1)G2 BMIT3084 red block (Mon 21-Sep, B006 Cisco Lab) now says
+"Lab equipment failure" instead of the unsupported "Clash with another
+module".
+
+### Postscript — legend label clarification (2026-10-07)
+
+Legend item "Conflict" relabelled to **"Conflict / Public Holiday"** (color
+token and tip unchanged — the tip already read "Scheduling conflict or
+public holiday"). Aligns the label with what the error-container color
+actually encodes on this page: conflicted classes AND classes falling on
+public holidays (both render via the holiday/conflict styling).
