@@ -13,10 +13,9 @@
  *     temporary staff lifetime of 1 minute in FortifyServiceProvider
  *     (run with: PW_SHORT_LIFETIME=1 npx playwright test tests/auth-full.spec.ts)
  *
- * NOT tested here: the client-side session countdown
- * (resources/views/partials/ui-session-countdown.blade.php) — it is an
- * unfinished stub: 26 lines of HTML, no JavaScript, and @include'd nowhere.
- * A client-countdown test should be added when that feature is built.
+ * Client-side session countdown: covered by the two gated tests in the
+ * "session expiry" describe below — added by SDD change wire-session-countdown
+ * (2026-10-08), which also wired the partial into ui-template.
  *
  * Lockout safety: staff accounts lock after 3 wrong-password attempts
  * (FortifyServiceProvider). Only ONE wrong attempt is made against the real
@@ -159,5 +158,34 @@ test.describe('session expiry (staff, temporary 1-minute test lifetime)', () => 
     await page2.goto('/my-timetable-ui');
     await page2.waitForURL('**/login/staff', { timeout: 10_000 });
     await expect(page2.locator('.error-msg')).toContainText('Session expired');
+  });
+
+  test('client countdown auto-logs-out after role_lifetime', async ({ page }) => {
+    await login(page, '5425', 'staff');
+
+    // Stay on the page: at ≤ 60 s the modal shows; at 0 the partial's JS
+    // submits its hidden logout form (design §2 single logout path).
+    await page.waitForURL('**/login/staff', { timeout: 85_000 });
+
+    // session must be dead
+    await page.goto('/my-timetable-ui');
+    await page.waitForURL('**/login**', { timeout: 10_000 });
+  });
+
+  test('extend keeps the session alive', async ({ page }) => {
+    await login(page, '5425', 'staff');
+
+    // At a 1-minute lifetime the bar and modal are visible immediately.
+    await expect(page.locator('.session-modal-overlay')).toBeVisible({ timeout: 15_000 });
+
+    // The overlay covers the bottom bar, so the reachable extend affordance is
+    // the modal's "Stay logged in" button (same location.reload() mechanism).
+    await page.click('.session-modal .btn-primary');
+    await page.waitForURL('**/my-timetable-ui', { timeout: 15_000 });
+
+    // Still authenticated and the countdown restarted.
+    expect(page.url()).toContain('/my-timetable-ui');
+    await expect(page.locator('.session-modal-overlay')).toBeVisible({ timeout: 15_000 });
+    await expect(page.locator('#countdown-min')).toHaveText('1', { timeout: 10_000 });
   });
 });

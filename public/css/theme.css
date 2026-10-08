@@ -3545,3 +3545,83 @@ body {
 .class-time.status-rejected { color: var(--color-error); }
 .class-time.status-cancelled { color: var(--color-on-surface-variant); opacity: 0.6; }
 .class-time.status-completed { color: var(--color-primary); }
+
+/* ── Session countdown (partial: ui-session-countdown) ─────────── */
+/* SDD: wire-session-countdown — tokens only, dark-mode via token switching. */
+.session-countdown {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: 900;
+    display: none; /* JS toggles inline style.display */
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    padding: 0.5rem 1rem;
+    background: var(--color-surface-variant);
+    color: var(--color-on-surface-variant);
+    border-top: 1px solid var(--color-outline);
+    font-size: 0.85rem;
+}
+.btn-extend {
+    background: var(--color-secondary);
+    color: var(--color-on-secondary);
+    border: none;
+    border-radius: 0.375rem;
+    padding: 0.375rem 0.75rem;
+    font-size: 0.8rem;
+    cursor: pointer;
+    white-space: nowrap;
+}
+.btn-extend:hover { filter: brightness(0.95); }
+
+.session-modal-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 1000;
+    display: none; /* JS toggles inline style.display */
+    align-items: center;
+    justify-content: center;
+    background: color-mix(in srgb, var(--color-bg) 70%, transparent);
+}
+.session-modal {
+    background: var(--color-surface);
+    color: var(--color-on-surface);
+    border: 1px solid var(--color-outline);
+    border-radius: 0.75rem;
+    padding: 1.5rem;
+    max-width: 24rem;
+    width: calc(100% - 2rem);
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+.session-modal h3 {
+    margin: 0;
+    color: var(--color-error);
+    font-size: 1.1rem;
+}
+.session-modal p { margin: 0; font-size: 0.9rem; }
+.session-modal-actions {
+    display: flex;
+    gap: 0.5rem;
+    justify-content: flex-end;
+    margin-top: 0.25rem;
+}
+.session-modal-actions .btn-primary {
+    background: var(--color-primary);
+    color: var(--color-on-primary);
+    border: none;
+    border-radius: 0.375rem;
+    padding: 0.5rem 1rem;
+    cursor: pointer;
+}
+.session-modal-actions .btn-secondary {
+    background: var(--color-error-container);
+    color: var(--color-on-error-container);
+    border: none;
+    border-radius: 0.375rem;
+    padding: 0.5rem 1rem;
+    cursor: pointer;
+}

@@ -36,6 +36,7 @@
         {{-- LOGOUT MODAL DISABLED — logout now submits the form directly (see ui-nav-bar)
         @include('partials.ui-logout-modal')
         --}}
+        @include('partials.ui-session-countdown')
     @endif
 
 
