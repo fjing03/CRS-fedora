@@ -1,12 +1,33 @@
 @php
-  $items = $navItems ?? [
-    ['key'=>'my-timetable','label'=>'My Timetable','href'=>'/my-timetable-ui'],
-    ['key'=>'cohort-timetables','label'=>'Cohort Timetables','href'=>'/cohort-timetable-ui'],
-    ['key'=>'venue-timetable','label'=>'Venue Timetable','href'=>'/venue-timetable-ui'],
-    ['key'=>'replacement-arrangement','label'=>'Replacement Arrangement','href'=>'/replacement-home-ui'],
-    ['key'=>'replacement-history','label'=>'Request History','href'=>'/my-request-history-ui'],
-    ['key'=>'request-approval','label'=>'Request Approval','href'=>'/request-approval-ui','badge'=>true],
-  ];
+    // Wave 3a (wire-existing-backend): real identity + role-aware nav.
+    // Whitelists per frozen design §2 — keys match route `nav` values so
+    // activeNav highlighting works; colliding keys (my-timetable,
+    // replacement-history) are disambiguated by role-specific hrefs.
+    $user = auth()->user();
+    $roleItems = null;
+    if ($user) {
+        $isStudent = $user->isStudent();
+        $isPl = ($user->lecturer?->is_pl ?? false);
+        $roleItems = $isStudent ? [
+            ['key'=>'cohort-timetables','label'=>'Cohort Timetables','href'=>'/cohort-timetable-ui'],
+            ['key'=>'my-timetable','label'=>'My Timetable','href'=>'/student-my-timetable-ui'],
+            ['key'=>'replacement-history','label'=>'Request History','href'=>'/replacement-history-ui'],
+        ] : array_values(array_filter([
+            ['key'=>'my-timetable','label'=>'My Timetable','href'=>'/my-timetable-ui'],
+            ['key'=>'cohort-timetables','label'=>'Cohort Timetables','href'=>'/cohort-timetable-ui'],
+            ['key'=>'venue-timetable','label'=>'Venue Timetable','href'=>'/venue-timetable-ui'],
+            ['key'=>'replacement-arrangement','label'=>'Replacement Arrangement','href'=>'/replacement-home-ui'],
+            ['key'=>'replacement-history','label'=>'Request History','href'=>'/my-request-history-ui'],
+            $isPl ? ['key'=>'request-approval','label'=>'Request Approval','href'=>'/request-approval-ui','badge'=>true] : null,
+        ]));
+    }
+    $items = $navItems ?? $roleItems ?? [];
+    $identity = $user ? [
+        'name'     => $user->displayName(),
+        'id'       => $user->loginId(),
+        'initials' => $user->initials(),
+        'role'     => $user->isStudent() ? 'Student' : (($user->lecturer?->is_pl ?? false) ? 'Lecturer (PL)' : 'Lecturer'),
+    ] : null;
 @endphp
 
 <div class="top-bar">
@@ -37,11 +58,11 @@
 
         <div class="user-panel" id="userPanel">
             <div class="user-profile">
-                <div class="user-avatar">LJZ</div>
+                <div class="user-avatar">{{ $identity['initials'] ?? '' }}</div>
                 <div class="user-info">
-                    <span class="user-name">En. Lim Jia Zheng</span>
-                    <span class="user-id">5770</span>
-                    <span class="user-role">Lecturer</span>
+                    <span class="user-name">{{ $identity['name'] ?? '' }}</span>
+                    <span class="user-id">{{ $identity['id'] ?? '' }}</span>
+                    <span class="user-role">{{ $identity['role'] ?? '' }}</span>
                 </div>
             </div>
 
@@ -84,11 +105,11 @@
     </div>
     <div class="nav-drawer-user">
         <div class="nav-drawer-user-info">
-            <div class="nav-drawer-user-avatar">LJZ</div>
+            <div class="nav-drawer-user-avatar">{{ $identity['initials'] ?? '' }}</div>
             <div class="nav-drawer-user-details">
-                <span class="nav-drawer-user-name">En. Lim Jia Zheng</span>
-                <span class="nav-drawer-user-id">5770</span>
-                <span class="nav-drawer-user-role">Lecturer</span>
+                <span class="nav-drawer-user-name">{{ $identity['name'] ?? '' }}</span>
+                <span class="nav-drawer-user-id">{{ $identity['id'] ?? '' }}</span>
+                <span class="nav-drawer-user-role">{{ $identity['role'] ?? '' }}</span>
             </div>
         </div>
         {{-- onclick="showLogoutModal()" — logout modal disabled --}}

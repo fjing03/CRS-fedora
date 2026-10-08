@@ -72,10 +72,9 @@ class StudentMyTimetable extends Component
             ->extends('layouts.ui-template', [
                 'activeNav' => 'my-timetable',
                 'pageKey' => 'studentMyTimetable',
-                'navItems' => [
-                    ['key' => 'my-timetable', 'label' => 'Student My Timetable', 'href' => '/student-my-timetable-ui'],
-                    ['key' => 'replacement-history', 'label' => 'Replacement History', 'href' => '/replacement-history-ui'],
-                ],
+                // navItems intentionally NOT passed: wire-existing-backend's
+                // partial now derives the role-aware whitelist (student sees
+                // Cohort Timetables + Student My Timetable + Request History).
                 'notifCount' => 0,
             ])
             ->section('content');
