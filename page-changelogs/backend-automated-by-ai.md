@@ -357,3 +357,13 @@ SDD change: `.sdd/changes/merge-upstream-fjing-4dc4d06/` — proposal/design/tas
 - Gates at merge commit: phpunit **110/110** (523 assertions, no drift), phpstan-1G **0**, pint adminer-only
 - Live smoke: HTTP 200 ×3 (staff 5425 → venue-timetable + replacement-home; student 25RSD0001 → cohort-timetable); served assets carry the merge (`event-conflict`/`event-block`, `.badge-public-holiday`, real subject names)
 - Wave 3 (`wire-backend-into-refactored-ui`) now wires against the newest UI
+
+## 2026-10-08 — wire-existing-backend (Wave 3a: identity + role-aware nav)
+
+Subordinate summary row — primary entry: `page-changelogs/auth-wiring-changelog.md` (2026-10-08 section).
+
+- `ui-nav-bar.blade.php`: real identity via `auth()->user()` (`User::displayName()/loginId()/initials()`; role line `Lecturer (PL)`/`Lecturer`/`Student`) in desktop panel + mobile drawer — **resolves the 5425-shows-5770 bug**; per-role nav whitelists replace the static 6-item list
+- `app/Livewire/StudentMyTimetable.php`: stale 2-item `navItems` override dropped (Slice-A stopgap; execution-discovered, design §2 premise corrected declaratively)
+- `tests/Feature/NavIdentityTest.php`: NEW — 3 roles × panel identity + nav (incl. PL gating)
+- Gates: phpunit **113/113** (550), phpstan-1G **0**, pint adminer-only; live: 0 mock-identity hits for real users, auth matrix unchanged, retrieval tuples live (BMIT9012+B107 / BMIT2222+B101)
+- Deferred: `mock-data.js` `currentUser` block + 3 legacy ownership consumers (B/C); `navPendingBadge`/`notifBadge` real feeds (Slice C); partial's session-age script (old auth-wiring change)
