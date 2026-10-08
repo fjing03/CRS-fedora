@@ -16,3 +16,14 @@ User-reported: logging in as staff `5425` shows the panel as `5770` ("Lim Jia Zh
 3. Grep sweep for other hardcoded-identity surfaces (`5770`, `LJZ`, currentUser) once wiring lands.
 
 **Status:** diagnostic only — must feed this change's proposal/design when unfrozen (design:31,52 still names `UpcomingReplacements` → needs the 3-batch unfreeze per design §13 of sync-upstream-fjing-ui).
+
+---
+
+## Post-3a queued addendum — 2026-10-08 (standing rule for Slice B/C + all future upstream merges)
+
+**Real-records guard (user-approved queue):** the user will insert REAL database records (CSV + MD sources) before Slices B/C resume. Two standing obligations feed this change's proposal/design and every future upstream-merge change:
+
+1. **Records-intact check (mandatory, every upstream merge):** capture row counts for ALL tables (esp. user-supplied: users/lecturers/students/cohorts/class_sessions/venues/modules + any new real-record tables) BEFORE and AFTER the merge; assert equality. Any drift = the merge touched data paths it must not → stop and inspect. Cheap `psql` count snapshot + diff; goes into the merge change's tasks as a gate.
+2. **No re-seed on the demo DB:** after real records land, `php artisan migrate:fresh --seed` on `class_replacement` is FORBIDDEN (wipes user data). The testing DB (`class_replacement_testing`) is unaffected — Feature tests seed their own copy per test. Import must ship as a re-runnable script (source CSV/MD kept in-repo) so a reset can rebuild.
+
+*(Addendum vehicle follows the post-Wave-1 precedent above; to be absorbed when this change's artifacts are unfrozen for B/C — together with the `UpcomingReplacements` → `ReplacementHistory` rename unfreeze.)*
