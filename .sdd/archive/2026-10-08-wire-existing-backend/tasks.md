@@ -36,9 +36,9 @@ Every task ≤ 2h; execution notes appended per task.
 
 - [x] **T6.1** Append entries: `page-changelogs/auth-wiring-changelog.md` (primary — identity wiring + role-aware nav + the 5770-bug resolution) + subordinate wave-summary row in `backend-automated-by-ai.md`.
 - [x] **T6.2** `/sdd-verify` (reviewer subagent, self-run per standing instruction) against frozen criteria 1–7 → verdict in review-log.md.
-- [ ] **T6.3** Commits: `feat(auth): wire real identity + role-aware nav into ui-nav-bar partial` (partial + test) → `docs(sdd)` (this change's `.sdd/` + changelogs).
-- [ ] **T6.4** `/sdd-archive` → `.sdd/archive/2026-10-08-wire-existing-backend/` + yaml → archive commit.
-- [ ] **T6.5** Report to user. **No push** without explicit authorization.
+- [x] **T6.3** Commits: `feat(auth): wire real identity + role-aware nav into ui-nav-bar partial` (partial + test) → `docs(sdd)` (this change's `.sdd/` + changelogs).
+- [x] **T6.4** `/sdd-archive` → `.sdd/archive/2026-10-08-wire-existing-backend/` + yaml → archive commit.
+- [x] **T6.5** Report to user. **No push** without explicit authorization. *✅ Reported: local commits ahead of origin, awaiting push authorization.*
 
 ## Execution notes
 
