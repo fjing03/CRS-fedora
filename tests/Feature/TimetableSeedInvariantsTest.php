@@ -9,29 +9,68 @@ use RuntimeException;
 use Tests\TestCase;
 
 /**
- * SDD change `repair-timetable-seed-data` — the five frozen invariants (design §5, T-1..T-5).
+ * SDD change `import-real-schedule-records` — the seed invariants, re-pinned to
+ * the REAL semester-202505 datasets (T-1..T-5 kept, T-6/T-7 added).
  *
- * Full-seed precondition via OCCValidatorTest's suite-proven explicit `$this->seed()`
+ * Full-seed precondition via the suite-proven explicit `$this->seed()`
  * pattern, run inside RefreshDatabase's per-test transaction (the seed rolls back with
  * it, so tests share no mutable state). The `$seed = true` property path is deliberately
  * NOT used: RefreshDatabaseState::$migrated is process-global, so a RefreshDatabase
  * class that ran migrate:fresh earlier in the same process — without seeding — would
  * leave this class silently un-seeded.
  *
- * Frozen §1 numbers under test: 35 class_sessions / 44 session_cohorts rows /
- * 1988 occupied time_slots / all 14 cohorts covered / 0 overlap pairs.
+ * Frozen numbers under test: 101 class_sessions / 155 session_cohorts rows /
+ * 3963 occupied time_slots (4116 − 153 holiday-affected: W8 Mon 62 + W14 Thu 54
+ * + W14 Fri 37) / all 14 cohorts covered / venue+lecturer overlap-free /
+ * exactly ONE documented cohort-overlap pair (user decision (c)).
  */
 final class TimetableSeedInvariantsTest extends TestCase
 {
     use RefreshDatabase;
 
-    private const EXPECTED_SESSIONS = 35;
+    private const EXPECTED_SESSIONS = 101;
 
-    private const EXPECTED_SESSION_COHORTS = 44;
+    private const EXPECTED_SESSION_COHORTS = 155;
 
-    private const EXPECTED_OCCUPIED_SLOTS = 1988;
+    private const EXPECTED_OCCUPIED_SLOTS = 3963;
 
     private const EXPECTED_COHORTS = 14;
+
+    /** Holiday grid pairs [week, day] — mirrors RealScheduleSeeder (W8 Mon, W14 Thu, W14 Fri). */
+    private const HOLIDAY_PAIRS = [[8, 0], [14, 3], [14, 4]];
+
+    private const TYPE_LETTER_MAP = [
+        'Lecture' => 'L',
+        'Tutorial' => 'T',
+        'Practical' => 'P',
+    ];
+
+    /**
+     * T-4 venue-type guard: the EXACT 17 L/T-in-Practical-only-lab rows kept
+     * as printed (DATASET-NOTES §3, signature module|room|day|type|start–end,
+     * sorted). 9 non-Networking violations + 8 Networking/IoT (AMIT2034×2 in
+     * B010 = room-level exception; the other 6 sit in B006, the spec's
+     * Networking/IoT room). MUST stay in sorted order — T-4 compares exactly.
+     */
+    private const LAB_LT_ALLOWANCE = [
+        'AMCS1013|B006|1|T|13:30–14:30',
+        'AMCS1043|B011|2|T|10:00–11:00',
+        'AMIS1003|B010|4|T|15:30–16:30',
+        'AMIT2033|B006|2|L|14:00–16:00',
+        'AMIT2033|B006|2|T|16:00–17:00',
+        'AMIT2034|B010|1|L|13:30–15:30',
+        'AMIT2034|B010|1|T|15:30–16:30',
+        'AMSE1003|B009|2|T|09:00–10:00',
+        'BMCS3033|B011|4|T|09:30–10:30',
+        'BMIS2003|B006|1|L|11:00–13:00',
+        'BMIT1173|B009|3|T|12:00–13:00',
+        'BMIT1723|B011|2|L|13:30–14:30',
+        'BMIT2013|B009|1|L|14:00–16:00',
+        'BMIT2154|B006|0|L|09:00–11:00',
+        'BMIT2154|B006|0|T|11:00–12:00',
+        'BMIT3084|B006|0|L|13:00–15:00',
+        'BMIT3084|B006|4|T|10:00–11:00',
+    ];
 
     /**
      * Seed the full demo database. Runs before every test; RefreshDatabase rolls the
@@ -40,9 +79,8 @@ final class TimetableSeedInvariantsTest extends TestCase
     private function seedFreshDemoDatabase(): void
     {
         // nextval() is not transactional in PostgreSQL: an earlier test in this process
-        // can leave the sequence advanced after its rollback, which would shift the
-        // position-identified class ids (templates 1..35) the fixture seeders pin
-        // (ReplacementRequestsSeeder's class_session_id 9/12/22 — design §6.2).
+        // can leave the sequence advanced after its rollback. Position ids are no longer
+        // pinned (parity is content-based), but the reset stays as cheap hygiene.
         DB::statement("SELECT setval(pg_get_serial_sequence('class_sessions', 'id'), 1, false)");
 
         $this->seed(DatabaseSeeder::class);
@@ -67,6 +105,28 @@ final class TimetableSeedInvariantsTest extends TestCase
     private function overlaps(string $aStart, string $aEnd, string $bStart, string $bEnd): bool
     {
         return strcmp($aStart, $bEnd) < 0 && strcmp($bStart, $aEnd) < 0;
+    }
+
+    /**
+     * Canonical signature for a cohort-overlap row (T-2): day, the two modules
+     * and the two time windows each in sorted order — so the whitelist matches
+     * regardless of which session of the pair got the lower id.
+     *
+     * @param  object{module_1: string, start_1: string, end_1: string, module_2: string, start_2: string, end_2: string, day_of_week: int|string}  $o
+     */
+    private function overlapSignature(object $o): string
+    {
+        $modules = [(string) $o->module_1, (string) $o->module_2];
+        sort($modules);
+        // DB times carry seconds ('11:00:00') — normalize to HH:MM so the
+        // whitelist reads exactly like DATASET-NOTES §2.
+        $windows = [
+            substr((string) $o->start_1, 0, 5).'–'.substr((string) $o->end_1, 0, 5),
+            substr((string) $o->start_2, 0, 5).'–'.substr((string) $o->end_2, 0, 5),
+        ];
+        sort($windows);
+
+        return implode('|', [(int) $o->day_of_week, implode('+', $modules), implode('+', $windows)]);
     }
 
     /**
@@ -106,15 +166,22 @@ final class TimetableSeedInvariantsTest extends TestCase
     {
         $this->seedFreshDemoDatabase();
 
-        $sessions = DB::table('class_sessions')->select('id', 'start_time', 'end_time')->get();
+        $sessions = DB::table('class_sessions')->select('id', 'day_of_week', 'start_time', 'end_time')->get();
         $this->assertNotEmpty($sessions, 'T-1: no class_sessions rows — the seeder did not run.');
+
+        $holidayWeeksByDay = [];
+        foreach (self::HOLIDAY_PAIRS as [$week, $day]) {
+            $holidayWeeksByDay[$day][] = $week;
+        }
 
         $totalOccupied = 0;
 
         foreach ($sessions as $session) {
-            // 2-h session -> 4 cells x 14 weeks = 56; the one 3-h session (tpl BMIT7072) -> 84.
+            // Holiday rule (spec R6.4): a Mon/Thu/Fri session occupies 13 weeks
+            // (W8 Mon, W14 Thu, W14 Fri stay available); others occupy 14.
             $durationMinutes = (int) round((strtotime($session->end_time) - strtotime($session->start_time)) / 60);
-            $expected = (int) ceil($durationMinutes / 30) * 14;
+            $holidayWeeks = $holidayWeeksByDay[(int) $session->day_of_week] ?? [];
+            $expected = (int) ceil($durationMinutes / 30) * (14 - count($holidayWeeks));
 
             $occupied = (int) DB::table('time_slots')
                 ->where('semester_id', 1)
@@ -261,20 +328,23 @@ final class TimetableSeedInvariantsTest extends TestCase
             )
             ->get();
 
-        $cohortOverlapMessages = $cohortOverlaps->map(fn ($overlap): string => sprintf(
-            'cohort %s (id %d): session %d (%s %s–%s) overlaps session %d (%s %s–%s), day %d',
-            $this->cohortName($overlap),
-            $overlap->cohort_id,
-            $overlap->class_session_id,
-            $overlap->module_1,
-            $overlap->start_1,
-            $overlap->end_1,
-            $overlap->sc2_class_session_id ?? $overlap->class_session_id,
-            $overlap->module_2,
-            $overlap->start_2,
-            $overlap->end_2,
-            $overlap->day_of_week,
-        ))->all();
+        $cohortOverlapRows = $cohortOverlaps->map(fn ($overlap): array => [
+            'signature' => $this->overlapSignature($overlap),
+            'message' => sprintf(
+                'cohort %s (id %d): session %d (%s %s–%s) overlaps session %d (%s %s–%s), day %d',
+                $this->cohortName($overlap),
+                $overlap->cohort_id,
+                $overlap->class_session_id,
+                $overlap->module_1,
+                $overlap->start_1,
+                $overlap->end_1,
+                $overlap->sc2_class_session_id ?? $overlap->class_session_id,
+                $overlap->module_2,
+                $overlap->start_2,
+                $overlap->end_2,
+                $overlap->day_of_week,
+            ),
+        ])->all();
 
         $this->assertSame(
             [],
@@ -288,10 +358,42 @@ final class TimetableSeedInvariantsTest extends TestCase
             "T-2: sessions sharing a lecturer on overlapping times are forbidden (back-to-back is legal):\n".implode("\n", $lecturerOverlaps),
         );
 
+        // User decision (c): the ONE source cohort double-booking is KEPT as
+        // printed — DFT2(S1)G1 Wednesday, AMIT2014 10:00–12:00 (B009) vs
+        // AMIT2034 11:00–13:00 (B005), overlap 11:00–12:00 (DATASET-NOTES §2).
+        // Exactly one cohort-overlap row is allowed and it must be THIS tuple;
+        // the matched-count guard prevents silent whitelist rot (an empty
+        // violation set with a dead whitelist must not pass).
+        $allowedOverlapSignatures = [
+            '2|AMIT2014+AMIT2034|10:00–12:00+11:00–13:00',
+        ];
+
+        $unexpectedCohortOverlaps = [];
+        $matchedWhitelist = 0;
+        foreach ($cohortOverlapRows as $row) {
+            if (in_array($row['signature'], $allowedOverlapSignatures, true)) {
+                $matchedWhitelist++;
+
+                continue;
+            }
+            $unexpectedCohortOverlaps[] = $row['message'];
+        }
+
         $this->assertSame(
             [],
-            $cohortOverlapMessages,
-            "T-2: a cohort must not appear in two overlapping sessions (back-to-back is legal):\n".implode("\n", $cohortOverlapMessages),
+            $unexpectedCohortOverlaps,
+            "T-2: a cohort must not appear in two overlapping sessions (back-to-back is legal; the single\n".
+            "documented DFT2 Wednesday clash is whitelisted — anything else is a regression):\n".implode("\n", $unexpectedCohortOverlaps),
+        );
+
+        $this->assertSame(
+            count($allowedOverlapSignatures),
+            $matchedWhitelist,
+            sprintf(
+                'T-2: whitelist rot guard — expected exactly %d whitelisted cohort-overlap row(s), found %d.',
+                count($allowedOverlapSignatures),
+                $matchedWhitelist,
+            ),
         );
     }
 
@@ -327,118 +429,135 @@ final class TimetableSeedInvariantsTest extends TestCase
         );
     }
 
-    public function test_t4_mpu_cohort_sets_per_spec(): void
+    public function test_t4_mpu_cohort_sets_match_dataset(): void
     {
         $this->seedFreshDemoDatabase();
 
-        $moduleCohorts = DB::table('session_cohorts')
+        // Expected MPU-* cohort sets and session types, straight from the
+        // dataset's own truth: the programme CSV (one row per cohort instance;
+        // MPU-* are the dataset's general-studies codes).
+        $csvPath = base_path('dataset/import/programmes-schedules-202505.csv');
+        $this->assertFileExists($csvPath, 'T-4: the programme dataset CSV must exist.');
+        $lines = file($csvPath, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
+        $this->assertNotFalse($lines, 'T-4: programme dataset CSV unreadable.');
+
+        $expectedCohorts = [];
+        $expectedTypes = [];
+        foreach ($lines as $i => $line) {
+            if ($i === 0) {
+                continue; // header
+            }
+            $cells = array_map('trim', (array) str_getcsv($line));
+            $course = $cells[5] ?? '';
+            if (! str_starts_with($course, 'MPU-')) {
+                continue;
+            }
+            $expectedCohorts[$course][$cells[0]] = true;
+            $expectedTypes[$course][self::TYPE_LETTER_MAP[$cells[6]] ?? '?'] = true;
+        }
+
+        $this->assertGreaterThanOrEqual(
+            5,
+            count($expectedCohorts),
+            sprintf('T-4: the dataset must print at least 5 MPU-* codes, found %d — CSV drift?', count($expectedCohorts)),
+        );
+
+        // DB side: cohort labels + session types per MPU code.
+        $rows = DB::table('session_cohorts')
             ->join('class_sessions', 'class_sessions.id', '=', 'session_cohorts.class_session_id')
             ->join('cohorts', 'cohorts.id', '=', 'session_cohorts.cohort_id')
             ->join('programmes', 'programmes.id', '=', 'cohorts.programme_id')
             ->join('modules', 'modules.id', '=', 'class_sessions.module_id')
-            ->where('modules.module_code', 'MPU-3133')
+            ->where('modules.module_code', 'like', 'MPU-%')
             ->select(
-                'cohorts.id',
+                'modules.module_code',
+                'class_sessions.session_type',
                 'programmes.programme_code',
                 'cohorts.current_year',
                 'cohorts.semester',
                 'cohorts.tutorial_group',
             )
-            ->get()
-            ->unique('id');
+            ->get();
 
-        $mpu3133Names = $moduleCohorts->map(fn ($cohort): string => $this->cohortName($cohort))->values()->all();
-
-        foreach (['RAF2(S3)G2', 'RAF2(S3)G4', 'RBU1(S1)G1'] as $required) {
-            $this->assertContains(
-                $required,
-                $mpu3133Names,
-                sprintf('T-4: MPU-3133 cohort set must include %s; present: [%s].', $required, implode(', ', $mpu3133Names)),
-            );
+        $dbCohorts = [];
+        $dbTypes = [];
+        foreach ($rows as $row) {
+            $dbCohorts[$row->module_code][$this->cohortName($row)] = true;
+            $dbTypes[$row->module_code][$row->session_type] = true;
         }
 
-        $hasRsdCohort = $moduleCohorts->contains(fn ($cohort): bool => $cohort->programme_code === 'RSD');
-        $this->assertTrue(
-            $hasRsdCohort,
-            sprintf('T-4: MPU-3133 cohort set must include >= 1 RSD-programme cohort; present: [%s].', implode(', ', $mpu3133Names)),
-        );
+        // Set equality per code, CSV ↔ DB, both directions.
+        $mismatches = [];
+        foreach ($expectedCohorts as $code => $labels) {
+            $dbLabels = array_keys($dbCohorts[$code] ?? []);
+            $csvLabels = array_keys($labels);
+            sort($dbLabels);
+            sort($csvLabels);
+            if ($dbLabels !== $csvLabels) {
+                $mismatches[] = sprintf('%s cohorts: DB [%s] vs CSV [%s]', $code, implode(', ', $dbLabels), implode(', ', $csvLabels));
+            }
 
-        $foreign = $moduleCohorts
-            ->reject(fn ($cohort): bool => in_array($cohort->programme_code, ['RAF', 'RBU', 'RSD'], true))
-            ->map(fn ($cohort): string => sprintf('%s (programme %s)', $this->cohortName($cohort), $cohort->programme_code))
-            ->all();
+            $dbTypeList = array_keys($dbTypes[$code] ?? []);
+            $csvTypeList = array_keys($expectedTypes[$code]);
+            sort($dbTypeList);
+            sort($csvTypeList);
+            if ($dbTypeList !== $csvTypeList) {
+                $mismatches[] = sprintf('%s session types: DB [%s] vs CSV [%s]', $code, implode(', ', $dbTypeList), implode(', ', $csvTypeList));
+            }
+        }
+        $extraCodes = array_values(array_diff(array_keys($dbCohorts), array_keys($expectedCohorts)));
+        if ($extraCodes !== []) {
+            $mismatches[] = sprintf('DB serves MPU codes absent from the CSV: [%s]', implode(', ', $extraCodes));
+        }
 
         $this->assertSame(
             [],
-            $foreign,
-            sprintf("T-4: MPU-3133 must serve no cohort outside the RAF/RBU/RSD programmes (programme_code NOT IN ('RAF','RBU','RSD') join filter):\n%s", implode("\n", $foreign)),
+            $mismatches,
+            "T-4: MPU-* cohort sets / session types must equal the programme dataset exactly:\n".implode("\n", $mismatches),
         );
 
-        $mpu3232Names = DB::table('session_cohorts')
-            ->join('class_sessions', 'class_sessions.id', '=', 'session_cohorts.class_session_id')
-            ->join('cohorts', 'cohorts.id', '=', 'session_cohorts.cohort_id')
-            ->join('programmes', 'programmes.id', '=', 'cohorts.programme_id')
-            ->join('modules', 'modules.id', '=', 'class_sessions.module_id')
-            ->where('modules.module_code', 'MPU-3232')
-            ->select(
-                'cohorts.id',
-                'programmes.programme_code',
-                'cohorts.current_year',
-                'cohorts.semester',
-                'cohorts.tutorial_group',
-            )
-            ->get()
-            ->unique('id')
-            ->map(fn ($cohort): string => $this->cohortName($cohort))
-            ->values()
-            ->all();
-
-        // canonicalizing = order-insensitive set compare (the doc order is irrelevant
-        // for a set; PHPUnit has no assertSameCanonicalizing — this is the real name).
-        $this->assertEqualsCanonicalizing(
-            ['RSD2(S1)G2', 'RSD2(S1)G3', 'RSD3(S1)G3'],
-            $mpu3232Names,
-            sprintf('T-4: MPU-3232 cohort set must be exactly {RSD2(S1)G2, RSD2(S1)G3, RSD3(S1)G3}; found: [%s].', implode(', ', $mpu3232Names)),
-        );
-
-        $mpu3232Types = DB::table('class_sessions')
-            ->join('modules', 'modules.id', '=', 'class_sessions.module_id')
-            ->where('modules.module_code', 'MPU-3232')
-            ->pluck('session_type');
-
-        $this->assertTrue(
-            $mpu3232Types->contains('L'),
-            sprintf('T-4: MPU-3232 must have >= 1 L session; found session types: [%s].', implode(', ', $mpu3232Types->all())),
-        );
-
-        $this->assertTrue(
-            $mpu3232Types->contains('T'),
-            sprintf('T-4: MPU-3232 must have >= 1 T session; found session types: [%s].', implode(', ', $mpu3232Types->all())),
-        );
-
+        // T-4 (venue-type guard, design §4): labs are Practical-only per
+        // venues.allowed_session_types, but the printed source genuinely puts
+        // these L/T blocks in labs — kept as printed (user decision) with the
+        // 17 documented rows allowed (DATASET-NOTES §3: 9 non-Networking
+        // violations + 8 Networking/IoT, of which AMIT2034×2 sit in B010 — a
+        // room-level exception). The exact-list compare is anti-rot in BOTH
+        // directions: a regression OR a silently vacated allowance fails.
         $typeViolations = DB::table('class_sessions')
             ->join('venues', 'venues.id', '=', 'class_sessions.venue_id')
+            ->join('modules', 'modules.id', '=', 'class_sessions.module_id')
             ->select(
-                'class_sessions.id',
+                'class_sessions.day_of_week',
+                'class_sessions.start_time',
+                'class_sessions.end_time',
                 'class_sessions.session_type',
                 'venues.room_code',
                 'venues.allowed_session_types',
+                'modules.module_code',
             )
             ->get()
             ->filter(fn ($row): bool => ! str_contains((string) $row->allowed_session_types, (string) $row->session_type))
             ->map(fn ($row): string => sprintf(
-                'session %d: type %s not in venue %s allowed_session_types [%s]',
-                $row->id,
-                $row->session_type,
+                '%s|%s|%d|%s|%s–%s',
+                $row->module_code,
                 $row->room_code,
-                $row->allowed_session_types,
+                (int) $row->day_of_week,
+                $row->session_type,
+                substr((string) $row->start_time, 0, 5),
+                substr((string) $row->end_time, 0, 5),
             ))
+            ->sort()
+            ->values()
             ->all();
 
         $this->assertSame(
-            [],
+            self::LAB_LT_ALLOWANCE,
             $typeViolations,
-            sprintf("T-4: every session's session_type must be contained in its venue's allowed_session_types:\n%s", implode("\n", $typeViolations)),
+            sprintf(
+                "T-4: L/T sessions in Practical-only labs must be EXACTLY the 17 documented rows (DATASET-NOTES §3):\nDB: [%s]\nallowed: [%s]",
+                implode('], [', $typeViolations),
+                implode('], [', self::LAB_LT_ALLOWANCE),
+            ),
         );
     }
 
@@ -448,8 +567,9 @@ final class TimetableSeedInvariantsTest extends TestCase
 
         ['sessions' => $docRows, 'counts' => $docCounts] = $this->parseTimetableDoc();
 
-        // (a) anti-truncation: the doc table itself holds exactly 35 session rows —
-        // the Counts self-report is NOT trusted for this number ([Z3] rows excluded).
+        // (a) anti-truncation: the doc table itself must hold exactly
+        // EXPECTED_SESSIONS session rows — the Counts self-report is NOT
+        // trusted for this number ([Z3] rows excluded).
         $this->assertCount(
             self::EXPECTED_SESSIONS,
             $docRows,
@@ -586,6 +706,69 @@ final class TimetableSeedInvariantsTest extends TestCase
             $dbWithoutDoc,
             "T-5: live seeded sessions missing from the doc:\n".implode("\n", $dbWithoutDoc),
         );
+    }
+
+    public function test_t6_semester_holidays_and_accounts(): void
+    {
+        $this->seedFreshDemoDatabase();
+
+        // Semester dates canonical (design §3.4: 2026-09-21 → 2026-12-27).
+        $semester = DB::table('semesters')->where('semester_code', '202605')->first();
+        $this->assertNotNull($semester, 'T-6: semester 202605 must exist.');
+        $this->assertSame('2026-09-21', $semester->start_date, 'T-6: semester start_date must be the canonical W1 Monday.');
+        $this->assertSame('2026-12-27', $semester->end_date, 'T-6: semester end_date must be the canonical W14 Sunday.');
+
+        // Holidays: exactly the 3 canonical grid rows (Deepavali Sunday 8 Nov
+        // is outside the Mon–Sat grid — docs-only, not a DB row).
+        $holidays = DB::table('holidays')->where('semester_id', $semester->id)->get();
+        $this->assertCount(3, $holidays, 'T-6: exactly 3 canonical holiday rows.');
+        $expectedLabels = ['Deepavali Holiday (In Lieu)', 'Christmas Eve', 'Christmas Day'];
+        foreach (self::HOLIDAY_PAIRS as $index => [$week, $day]) {
+            $row = $holidays->first(fn ($h): bool => (int) $h->week_number === $week && (int) $h->day_of_week === $day);
+            $this->assertNotNull($row, "T-6: holiday row W{$week} D{$day} missing.");
+            $this->assertSame($expectedLabels[$index], $row->label, "T-6: holiday W{$week} D{$day} label mismatch.");
+
+            $busy = DB::table('time_slots')
+                ->where('semester_id', $semester->id)
+                ->where('week_number', $week)
+                ->where('day_of_week', $day)
+                ->where('status', '!=', 'available')
+                ->count();
+            $this->assertSame(0, $busy, "T-6: {$busy} non-available slots on holiday W{$week} D{$day}.");
+        }
+
+        // Login accounts intact (prompt requirement; NavIdentityTest depends
+        // on 5425's identity): 5425 PL, 5770 plain, 25RSD0001 student.
+        $pl = DB::table('users')
+            ->join('lecturers', 'lecturers.user_id', '=', 'users.id')
+            ->where('lecturers.staff_id', '5425')
+            ->first(['users.name', 'users.honorific', 'lecturers.is_pl']);
+        $this->assertNotNull($pl, 'T-6: staff account 5425 must exist.');
+        $this->assertSame('Surayaini Binti Basri', $pl->name, 'T-6: 5425 name mismatch.');
+        $this->assertSame('Pn.', $pl->honorific, 'T-6: 5425 honorific mismatch.');
+        $this->assertTrue((bool) $pl->is_pl, 'T-6: 5425 must keep is_pl = true.');
+
+        $plain = DB::table('users')
+            ->join('lecturers', 'lecturers.user_id', '=', 'users.id')
+            ->where('lecturers.staff_id', '5770')
+            ->first(['lecturers.is_pl']);
+        $this->assertNotNull($plain, 'T-6: staff account 5770 must exist.');
+        $this->assertFalse((bool) $plain->is_pl, 'T-6: 5770 must stay a plain lecturer (is_pl = false).');
+
+        $student = DB::table('students')->where('student_id', '25RSD0001')->first();
+        $this->assertNotNull($student, 'T-6: student account 25RSD0001 must exist.');
+    }
+
+    public function test_t7_import_verify_command_passes_on_fresh_seed(): void
+    {
+        $this->seedFreshDemoDatabase();
+
+        // R3.3/R3.4: on the imported state the idempotent re-run IS
+        // verify-only — preflight fingerprint + Phase 4 read-only checks,
+        // exit 0, zero writes. This exercises the command's verify branch in
+        // CI, not only on the demo DB.
+        $this->artisan('crs:import-real-schedule', ['--verify' => true])
+            ->assertExitCode(0);
     }
 
     /**

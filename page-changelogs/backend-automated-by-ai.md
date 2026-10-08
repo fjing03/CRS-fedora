@@ -367,3 +367,27 @@ Subordinate summary row — primary entry: `page-changelogs/auth-wiring-changelo
 - `tests/Feature/NavIdentityTest.php`: NEW — 3 roles × panel identity + nav (incl. PL gating)
 - Gates: phpunit **113/113** (550), phpstan-1G **0**, pint adminer-only; live: 0 mock-identity hits for real users, auth matrix unchanged, retrieval tuples live (BMIT9012+B107 / BMIT2222+B101)
 - Deferred: `mock-data.js` `currentUser` block + 3 legacy ownership consumers (B/C); `navPendingBadge`/`notifBadge` real feeds (Slice C); partial's session-age script (old auth-wiring change)
+
+## 2026-10-08 — import-real-schedule-records (real 202505 records replace hand-made seeds)
+
+Primary entry: `.sdd/changes/import-real-schedule-records/` (proposal/design/tasks/specs frozen via reviewer rounds; execution notes + row-count snapshots in `execution/`).
+
+| Timestamp | Location | Change |
+|-----------|----------|--------|
+| 2026-10-08 | `database/seeders/RealScheduleSeeder.php` | NEW — importer core: Phase 0 preflight (101/101/155 rows, 147 h, 42 codes, 3-way venue↔lecturer↔programme consistency, cohort/venue/staff resolution), Phase 1 delete (live-count asserted, FK-safe order), Phases 2+3 (semester dates → 2026-09-21…2026-12-27; holidays → 3 canonical rows; 42 module upserts with observed-union `allowed_session_types`; 101 sessions + 155 links; prune 34 unreferenced modules; per-session exact-count occupancy with holiday rule), Phase 4 read-only verify |
+| 2026-10-08 | `app/Console/Commands/ImportRealScheduleCommand.php` | NEW — `crs:import-real-schedule {--verify}`: mode gate (0→additive, 35→replace, 101+fingerprint→verify-only, else abort), exit codes, end-of-run records-intact snapshot |
+| 2026-10-08 | `app/Console/Commands/DbRowCountsCommand.php` | NEW — `crs:db-row-counts`: information_schema enumeration (no hardcoded table list), TSV out; the standing **records-intact gate** for future merges |
+| 2026-10-08 | `database/seeders/` | Chain rewired: `…TimeSlotsSeeder → HolidaysSeeder (3 canonical rows) → RealScheduleSeeder`; DELETED `ClassSessionsSeeder`, `ClassExceptionsSeeder`, `ReplacementRequestsSeeder`, `CsvTimetableSeeder`, `LecturerScheduleSeeder` (resolves Wave-2 Q5) |
+| 2026-10-08 | `dataset/import/` + `dataset/DATASET-NOTES.md` + `dataset/KNOWLEDGE.md` | Durable in-repo dataset copy (3 in-scope CSVs byte-identical, `course-titles.php` 37 titles, `lecturer-ids.php` 14 ids) + corrected counts (155/101/101 — recheck headline stale) + lab partition + canonical holidays |
+| 2026-10-08 | `dataset/generate-timetable-doc.php` | Ported off the deleted seeder → plain DB queries; `dataset/timetable.md` regenerated from real data (101/155/3963; T-5 fixture) |
+| 2026-10-08 | `tests/Feature/TimetableSeedInvariantsTest.php` | Re-pinned to real data: 101/155/3963; T-1 day-aware occupancy (holiday rule); T-2 one-tuple cohort-overlap whitelist (DFT2 Wed AMIT2014×AMIT2034, user decision) with anti-rot guard; T-4 MPU sets derived from the programme CSV + 17-row lab L/T allowance (DATASET-NOTES §3); NEW T-6 (semester/holidays/accounts) + T-7 (`crs:import-real-schedule --verify` in-CI) |
+| 2026-10-08 | `tests/Feature/MatrixIntersectionEngineTest.php` | Re-pinned: green window 4288/DFT2(S1)G1 = Thu 11:00–12:00 B002 (derived from dataset); holiday assertions → canonical W8 Mon / W14 Thu / W14 Fri |
+| 2026-10-08 | demo DB `class_replacement` | Import executed: 35→**101** sessions, 44→**155** links, **3963** occupied slots (holiday rule), holidays **3**, modules **42**, semester dates canonical, overlays 3+15 → **0/0** (Slice B/C re-demos); users/students/lecturers/cohorts/venues untouched |
+| 2026-10-08 | backups/ | Fresh pre-import backup `class_replacement-pre-import2-20261008.dump` (26/26 data tables verified; gitignored) |
+
+## Verified
+
+- Gates: phpunit **115/115** (809 assertions; was 113/550), phpstan-1G **0**, pint adminer-only baseline unchanged
+- Import evidence: before/after row-count snapshots (`execution/rowcounts-{before,after}.txt`) differ in exactly 6 tables; verify-mode re-run after import PASSES (idempotency proof)
+- Live smoke: Playwright `tests/nav-identity.spec.ts` **3/3** (5425 identity+drawer, student panel, 5770 plain); 5425 owns 10 real sessions (dataset "Su 10"), 350 occupied slots; 25RSD0001's cohort RSD1(S1)G1 has 11 session links
+- Known-degraded demo (intentional, user decision (a)): My Request History / approval inbox are empty until Slice B/C re-demo against real sessions; `tests/MANUAL-TEST-CASES.md` TC-07 updated

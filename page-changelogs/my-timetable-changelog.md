@@ -390,3 +390,21 @@ labs (B005/B006/B009-B011) → "Lab equipment failure", other venues →
 "Lecturer on leave". Both halves of each conflict→replacement pair carry the
 same reason; the raw cycle and overrides live in
 `seed_mock_data.py` (CONFLICT_REMARKS / default_reason / reason override).
+
+## [2026-10-08] Real timetable records (semester 202505 datasets) replace hand-made seeds
+
+Backend data change — no markup/CSS changes to this page (SDD
+`import-real-schedule-records`).
+
+- The 35 hand-made demo sessions are GONE; My Timetable now renders the **101
+  real class sessions** extracted from the aSc PDFs (validated datasets:
+  101 blocks / 147 h, cross-checked 3-way lecturer↔venue↔cohort, 46/46
+  re-checks) — 5425 now sees her own real week (10 blocks), not fixtures.
+- Sessions are status-neutral: normal/pending/replacement states come from the
+  app's own request tables (currently empty until Slice B/C re-demos).
+- Holiday styling anchors moved to the canonical demo calendar
+  (semester 2026-09-21 → 2026-12-27): **W8 Mon** (Deepavali in lieu), **W14
+  Thu** (Christmas Eve), **W14 Fri** (Christmas Day) — replacing the 5 old
+  placeholder rows (W1/W3/W5/W7).
+- Invariants re-pinned and green: 101/155/3963 (occupied incl. holiday rule),
+  0 orphans, 0 venue double-bookings; full suite 115/115.

@@ -24,3 +24,5 @@ yarn-error.log
 /.zed
 issues/std timetable.png
 backups/
+.commandcode/
+dataset/import/*.csv -text

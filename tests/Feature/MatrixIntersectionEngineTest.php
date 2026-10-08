@@ -46,14 +46,15 @@ final class MatrixIntersectionEngineTest extends TestCase
 
         $this->assertNotEmpty($results, 'Expected at least one green window for 4288 / DFT2(S1)G1, week 5');
 
-        foreach ($results as $result) {
-            $this->assertNotSame(2, $result['day'], 'No window may fall on holiday day 2 (S-17)');
-        }
-
+        // Derivation (dataset/import CSVs + DATASET-NOTES): 4288 teaches Thu
+        // 09:00–11:00 only; DFT2(S1)G1 teaches Thu 09:00–11:00 and 13:30–14:30;
+        // B002's only weekly block is Mon 14:00–15:00. So Thu 11:00–13:30 is
+        // green for lecturer AND cohort with B002 free — the pinned window is
+        // its first hour. Week 5 carries no canonical holiday.
         $pinned = [
-            'day' => 1,
-            'start_time' => '10:00:00',
-            'end_time' => '11:00:00',
+            'day' => 3,
+            'start_time' => '11:00:00',
+            'end_time' => '12:00:00',
             'venue_code' => 'B002',
         ];
 
@@ -72,8 +73,23 @@ final class MatrixIntersectionEngineTest extends TestCase
 
         $this->assertTrue(
             $hasPinnedWindow,
-            sprintf('Expected pinned window %s (S-17) in results', json_encode($pinned))
+            sprintf('Expected pinned window %s (re-pinned to real 202505 data) in results', json_encode($pinned))
         );
+
+        // Canonical holidays (W8 Mon, W14 Thu, W14 Fri): no returned window may
+        // fall on a holiday day of its week, and the week must still offer
+        // windows on the holiday-free days (guards a vacuous all-empty pass).
+        foreach ([[8, [0]], [14, [3, 4]]] as [$holidayWeek, $holidayDays]) {
+            $weekResults = $engine->findAvailableSlots((int) $lecturer->id, [(int) $cohort->id], $semesterId, $holidayWeek, 'L', 60);
+            $this->assertNotEmpty($weekResults, "Week {$holidayWeek} must still offer green windows off the holiday day(s).");
+            foreach ($weekResults as $result) {
+                $this->assertNotContains(
+                    $result['day'],
+                    $holidayDays,
+                    "No window may fall on holiday W{$holidayWeek} day {$result['day']} (canonical holidays).",
+                );
+            }
+        }
 
         $timeSlotIds = [];
 
@@ -98,25 +114,25 @@ final class MatrixIntersectionEngineTest extends TestCase
         $pinnedSlot = TimeSlot::query()
             ->where('semester_id', $semesterId)
             ->where('week_number', 5)
-            ->where('day_of_week', 1)
-            ->where('start_time', '10:00:00')
+            ->where('day_of_week', 3)
+            ->where('start_time', '11:00:00')
             ->where('venue_id', $venueB002->id)
             ->firstOrFail();
 
         $this->assertTrue(
             $engine->validateSlot((int) $pinnedSlot->id, (int) $lecturer->id, [(int) $cohort->id], 'L', 5),
-            'Pinned slot must validate green (S-13)'
+            'Pinned slot must validate green (re-pinned to real 202505 data)'
         );
 
         $holidaySlot = TimeSlot::query()
             ->where('semester_id', $semesterId)
-            ->where('week_number', 5)
-            ->where('day_of_week', 2)
+            ->where('week_number', 8)
+            ->where('day_of_week', 0)
             ->firstOrFail();
 
         $this->assertFalse(
-            $engine->validateSlot((int) $holidaySlot->id, (int) $lecturer->id, [(int) $cohort->id], 'L', 5),
-            'Day-2 slot must not validate (S-10)'
+            $engine->validateSlot((int) $holidaySlot->id, (int) $lecturer->id, [(int) $cohort->id], 'L', 8),
+            'W8-Monday slot must not validate (canonical holiday, replaces the old W5-Wednesday fixture)'
         );
     }
 }

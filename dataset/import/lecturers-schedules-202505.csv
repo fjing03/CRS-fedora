@@ -1,0 +1,102 @@
+staff_id,lecturer,day,start,end,duration_hours,course,session_type,venue,cohorts,source
+2873,Cik Ellis Chieng,Monday,09:00,11:00,2,AMIT2014,Lecture,B016,DFT2(S1)G1,11.07.2025 202505-lecturer.pdf p.31
+2873,Cik Ellis Chieng,Tuesday,09:00,11:00,2,AMIS1012,Lecture,B110,DFT2(S1)G1/DSF2(S1)G1,11.07.2025 202505-lecturer.pdf p.31
+2873,Cik Ellis Chieng,Tuesday,11:00,12:00,1,AMIS1012,Tutorial,B108,DSF2(S1)G1,11.07.2025 202505-lecturer.pdf p.31
+2873,Cik Ellis Chieng,Tuesday,12:00,13:00,1,AMIS1012,Tutorial,B108,DFT2(S1)G1,11.07.2025 202505-lecturer.pdf p.31
+2873,Cik Ellis Chieng,Wednesday,10:00,12:00,2,AMIT2014,Practical,B009 - Lab 1,DFT2(S1)G1,11.07.2025 202505-lecturer.pdf p.31
+3221,Pn. Lee Yee Fong,Monday,09:00,11:00,2,BMSE3153,Lecture,B102,RSD3(S1)G2/RSD3(S1)G3,11.07.2025 202505-lecturer.pdf p.40
+3221,Pn. Lee Yee Fong,Monday,11:00,13:00,2,BMIT2203,Lecture,B016,RSD2(S1)G2/RSD2(S1)G3,11.07.2025 202505-lecturer.pdf p.40
+3221,Pn. Lee Yee Fong,Wednesday,11:00,12:00,1,BMIT2203,Tutorial,B014,RSD2(S1)G2/RSD2(S1)G3,11.07.2025 202505-lecturer.pdf p.40
+3221,Pn. Lee Yee Fong,Thursday,09:30,10:30,1,BMIT2203,Practical,B009 - Lab 1,RSD2(S1)G2/RSD2(S1)G3,11.07.2025 202505-lecturer.pdf p.40
+3799,En. Muada Bin Ojih,Monday,10:00,11:00,1,MPU-2302,Tutorial,B101,DFT1(S1)G1,11.07.2025 202505-lecturer.pdf p.45
+3799,En. Muada Bin Ojih,Monday,11:00,12:00,1,MPU-3103,Tutorial,B017,RBU1(S1)G1/RSD1(S1)G1,11.07.2025 202505-lecturer.pdf p.45
+3799,En. Muada Bin Ojih,Wednesday,11:00,12:00,1,MPU-3302,Tutorial,B106,RAF2(S3)G2/RAF2(S3)G4,11.07.2025 202505-lecturer.pdf p.45
+3799,En. Muada Bin Ojih,Thursday,11:00,12:00,1,MPU-3133,Tutorial,B015,RBU1(S1)G1/RAF2(S3)G4/RAF2(S3)G2/RSD2(S1)G2/RSD2(S1)G3,11.07.2025 202505-lecturer.pdf p.45
+3799,En. Muada Bin Ojih,Thursday,13:30,14:30,1,MPU-2212,Tutorial,B103,DFT2(S1)G1,11.07.2025 202505-lecturer.pdf p.45
+3825,Pn. Teng Nga Sing,Tuesday,14:00,16:00,2,AMCS1043,Lecture,B014,DFT1(S1)G1,11.07.2025 202505-lecturer.pdf p.54
+3825,Pn. Teng Nga Sing,Wednesday,10:00,11:00,1,AMCS1043,Tutorial,B011 - Lab 3,DFT1(S1)G1,11.07.2025 202505-lecturer.pdf p.54
+3825,Pn. Teng Nga Sing,Wednesday,11:00,12:00,1,AMCS1043,Practical,B011 - Lab 3,DFT1(S1)G1,11.07.2025 202505-lecturer.pdf p.54
+3825,Pn. Teng Nga Sing,Wednesday,13:30,14:30,1,BMIT1723,Lecture,B011 - Lab 3,RBU1(S1)G1,11.07.2025 202505-lecturer.pdf p.54
+3825,Pn. Teng Nga Sing,Wednesday,14:30,16:30,2,BMIT1723,Practical,B011 - Lab 3,RBU1(S1)G1,11.07.2025 202505-lecturer.pdf p.54
+3825,Pn. Teng Nga Sing,Thursday,14:00,15:00,1,BMCS1053,Practical,B009 - Lab 1,RSD1(S1)G1,11.07.2025 202505-lecturer.pdf p.54
+4127,Pn. Patricia G Kissol,Monday,13:30,15:30,2,BMMS1743,Lecture,B105,RBU1(S1)G1,11.07.2025 202505-lecturer.pdf p.51
+4127,Pn. Patricia G Kissol,Tuesday,13:30,15:00,1.5,BMMS1743,Tutorial,B105,RBU1(S1)G1,11.07.2025 202505-lecturer.pdf p.51
+4127,Pn. Patricia G Kissol,Thursday,13:30,15:00,1.5,AMMS1623,Tutorial,B106,DSF1(S1)G1,11.07.2025 202505-lecturer.pdf p.51
+4127,Pn. Patricia G Kissol,Friday,10:00,12:00,2,AMMS3653,Lecture,B100,DSF2(S1)G1,11.07.2025 202505-lecturer.pdf p.51
+4127,Pn. Patricia G Kissol,Friday,15:00,16:30,1.5,AMMS3653,Tutorial,B016,DSF2(S1)G1,11.07.2025 202505-lecturer.pdf p.51
+4288,Dr. Christopher Lazarus,Monday,09:00,11:00,2,BMIT2154,Lecture,B006 - Lab4 (CISCO),RSD2(S1)G1,11.07.2025 202505-lecturer.pdf p.28
+4288,Dr. Christopher Lazarus,Monday,11:00,12:00,1,BMIT2154,Tutorial,B006 - Lab4 (CISCO),RSD2(S1)G1,11.07.2025 202505-lecturer.pdf p.28
+4288,Dr. Christopher Lazarus,Monday,13:00,15:00,2,BMIT3084,Lecture,B006 - Lab4 (CISCO),RSD3(S1)G2,11.07.2025 202505-lecturer.pdf p.28
+4288,Dr. Christopher Lazarus,Tuesday,11:00,13:00,2,BMIS2003,Lecture,B006 - Lab4 (CISCO),RSD3(S1)G1,11.07.2025 202505-lecturer.pdf p.28
+4288,Dr. Christopher Lazarus,Wednesday,09:00,11:00,2,BMIT2154,Practical,B006 - Lab4 (CISCO),RSD2(S1)G1,11.07.2025 202505-lecturer.pdf p.28
+4288,Dr. Christopher Lazarus,Thursday,09:00,11:00,2,BMIS2003,Practical,B006 - Lab4 (CISCO),RSD3(S1)G1,11.07.2025 202505-lecturer.pdf p.28
+4288,Dr. Christopher Lazarus,Friday,10:00,11:00,1,BMIT3084,Tutorial,B006 - Lab4 (CISCO),RSD3(S1)G2,11.07.2025 202505-lecturer.pdf p.28
+4288,Dr. Christopher Lazarus,Friday,11:00,13:00,2,BMIT3084,Practical,B006 - Lab4 (CISCO),RSD3(S1)G2,11.07.2025 202505-lecturer.pdf p.28
+4363,Pn. Tan Sharon,Monday,14:00,15:00,1,MPU-3232,Lecture,B002,RSD2(S1)G2/RSD2(S1)G3/RSD3(S1)G3,11.07.2025 202505-lecturer.pdf p.53
+5254,Dr. Chang Foo Chung,Wednesday,10:00,12:00,2,BBBE1033,Lecture,B102,RBU1(S1)G1,11.07.2025 202505-lecturer.pdf p.27
+5254,Dr. Chang Foo Chung,Thursday,09:00,10:30,1.5,BBBE1033,Tutorial,B106,RBU1(S1)G1,11.07.2025 202505-lecturer.pdf p.27
+5254,Dr. Chang Foo Chung,Friday,10:00,11:00,1,MPU-3232,Tutorial,B103,RSD2(S1)G2/RSD2(S1)G3/RSD3(S1)G3,11.07.2025 202505-lecturer.pdf p.27
+5425,Pn. Surayaini Binti Basri,Monday,09:00,11:00,2,AMSE1003,Lecture,B111,DSF1(S1)G1,11.07.2025 202505-lecturer.pdf p.52
+5425,Pn. Surayaini Binti Basri,Tuesday,13:00,14:00,1,BMSE3153,Practical,B009 - Lab 1,RSD3(S1)G2/RSD3(S1)G3,11.07.2025 202505-lecturer.pdf p.52
+5425,Pn. Surayaini Binti Basri,Wednesday,09:00,10:00,1,AMSE1003,Tutorial,B009 - Lab 1,DSF1(S1)G1,11.07.2025 202505-lecturer.pdf p.52
+5425,Pn. Surayaini Binti Basri,Wednesday,11:00,12:00,1,AMSE1003,Practical,B010 - Lab 2,DSF1(S1)G1,11.07.2025 202505-lecturer.pdf p.52
+5425,Pn. Surayaini Binti Basri,Wednesday,13:00,15:00,2,BMSE2163,Lecture,B015,RSD2(S1)G2/RSD2(S1)G1,11.07.2025 202505-lecturer.pdf p.52
+5425,Pn. Surayaini Binti Basri,Wednesday,15:00,16:00,1,BMSE2163,Tutorial,B015,RSD2(S1)G2/RSD2(S1)G1,11.07.2025 202505-lecturer.pdf p.52
+5425,Pn. Surayaini Binti Basri,Thursday,09:00,11:00,2,AMSE2003,Lecture,B100,DSF2(S1)G1,11.07.2025 202505-lecturer.pdf p.52
+5425,Pn. Surayaini Binti Basri,Thursday,11:00,12:00,1,AMSE2003,Tutorial,B100,DSF2(S1)G1,11.07.2025 202505-lecturer.pdf p.52
+5425,Pn. Surayaini Binti Basri,Thursday,12:00,13:00,1,BMSE2163,Practical,B010 - Lab 2,RSD2(S1)G2/RSD2(S1)G1,11.07.2025 202505-lecturer.pdf p.52
+5425,Pn. Surayaini Binti Basri,Friday,09:00,10:00,1,AMSE2003,Practical,B010 - Lab 2,DSF2(S1)G1,11.07.2025 202505-lecturer.pdf p.52
+5514,Ts. Norshikin Binti Zainal Abidin,Monday,11:00,13:00,2,AMCS1013,Lecture,B111,DFT1(S1)G1/DSF1(S1)G1,11.07.2025 202505-lecturer.pdf p.55
+5514,Ts. Norshikin Binti Zainal Abidin,Monday,14:00,15:00,1,AMCS1013,Tutorial,B016,DFT1(S1)G1,11.07.2025 202505-lecturer.pdf p.55
+5514,Ts. Norshikin Binti Zainal Abidin,Tuesday,09:00,10:00,1,AMCS1013,Practical,B009 - Lab 1,DFT1(S1)G1,11.07.2025 202505-lecturer.pdf p.55
+5514,Ts. Norshikin Binti Zainal Abidin,Tuesday,13:30,14:30,1,AMCS1013,Tutorial,B006 - Lab4 (CISCO),DSF1(S1)G1,11.07.2025 202505-lecturer.pdf p.55
+5514,Ts. Norshikin Binti Zainal Abidin,Tuesday,14:30,15:30,1,AMCS1013,Practical,B006 - Lab4 (CISCO),DSF1(S1)G1,11.07.2025 202505-lecturer.pdf p.55
+5514,Ts. Norshikin Binti Zainal Abidin,Wednesday,09:00,11:00,2,BMIT3173,Lecture,B014,RSD3(S1)G3/RSD3(S1)G1,11.07.2025 202505-lecturer.pdf p.55
+5514,Ts. Norshikin Binti Zainal Abidin,Wednesday,11:00,13:00,2,BMIT2073,Lecture,B015,RSD3(S1)G3/RSD3(S1)G2,11.07.2025 202505-lecturer.pdf p.55
+5514,Ts. Norshikin Binti Zainal Abidin,Wednesday,14:00,16:00,2,BMIT2073,Practical,B010 - Lab 2,RSD3(S1)G3/RSD3(S1)G2,11.07.2025 202505-lecturer.pdf p.55
+5514,Ts. Norshikin Binti Zainal Abidin,Thursday,14:00,16:00,2,BMIT3173,Practical,B006 - Lab4 (CISCO),RSD3(S1)G3/RSD3(S1)G1,11.07.2025 202505-lecturer.pdf p.55
+5514,Ts. Norshikin Binti Zainal Abidin,Friday,11:00,13:00,2,BMCS2053,Lecture,B103,RSD2(S1)G1/RSD2(S1)G2/RSD2(S1)G3,11.07.2025 202505-lecturer.pdf p.55
+5514,Ts. Norshikin Binti Zainal Abidin,Friday,14:00,15:00,1,BMCS2053,Tutorial,B103,RSD2(S1)G1/RSD2(S1)G2/RSD2(S1)G3,11.07.2025 202505-lecturer.pdf p.55
+5514,Ts. Norshikin Binti Zainal Abidin,Friday,15:00,16:00,1,BMCS2053,Practical,B009 - Lab 1,RSD2(S1)G1/RSD2(S1)G2/RSD2(S1)G3,11.07.2025 202505-lecturer.pdf p.55
+5516,En. Mohd Nur Rahmat Bin Mohd Taat,Monday,13:00,15:00,2,BMIT2043,Lecture,B106,RSD2(S1)G1,11.07.2025 202505-lecturer.pdf p.43
+5516,En. Mohd Nur Rahmat Bin Mohd Taat,Tuesday,10:00,12:00,2,AMIS1003,Lecture,B111,DFT1(S1)G1/DSF1(S1)G1,11.07.2025 202505-lecturer.pdf p.43
+5516,En. Mohd Nur Rahmat Bin Mohd Taat,Tuesday,12:00,13:00,1,AMIS1003,Tutorial,B018,DFT1(S1)G1,11.07.2025 202505-lecturer.pdf p.43
+5516,En. Mohd Nur Rahmat Bin Mohd Taat,Tuesday,15:00,16:00,1,BMIT2043,Tutorial,B016,RSD2(S1)G1,11.07.2025 202505-lecturer.pdf p.43
+5516,En. Mohd Nur Rahmat Bin Mohd Taat,Tuesday,16:00,17:00,1,BMIT2043,Practical,B009 - Lab 1,RSD2(S1)G1,11.07.2025 202505-lecturer.pdf p.43
+5516,En. Mohd Nur Rahmat Bin Mohd Taat,Wednesday,09:00,11:00,2,BMCS1013,Lecture,B105,RSD1(S1)G1,11.07.2025 202505-lecturer.pdf p.43
+5516,En. Mohd Nur Rahmat Bin Mohd Taat,Wednesday,11:00,12:00,1,BMCS1013,Tutorial,B105,RSD1(S1)G1,11.07.2025 202505-lecturer.pdf p.43
+5516,En. Mohd Nur Rahmat Bin Mohd Taat,Wednesday,13:00,15:00,2,BMCS1113,Lecture,B102,RSD1(S1)G1,11.07.2025 202505-lecturer.pdf p.43
+5516,En. Mohd Nur Rahmat Bin Mohd Taat,Wednesday,15:00,16:00,1,BMCS1113,Tutorial,B102,RSD1(S1)G1,11.07.2025 202505-lecturer.pdf p.43
+5516,En. Mohd Nur Rahmat Bin Mohd Taat,Thursday,09:00,10:00,1,BMCS1113,Practical,B005 - Lab 5,RSD1(S1)G1,11.07.2025 202505-lecturer.pdf p.43
+5516,En. Mohd Nur Rahmat Bin Mohd Taat,Thursday,10:00,11:00,1,BMCS1013,Practical,B005 - Lab 5,RSD1(S1)G1,11.07.2025 202505-lecturer.pdf p.43
+5516,En. Mohd Nur Rahmat Bin Mohd Taat,Friday,15:30,16:30,1,AMIS1003,Tutorial,B010 - Lab 2,DSF1(S1)G1,11.07.2025 202505-lecturer.pdf p.43
+5599,En. Jefther Edward,Monday,09:00,11:00,2,BMIT1173,Lecture,B107,RSD1(S1)G1/RSD2(S1)G3,11.07.2025 202505-lecturer.pdf p.35
+5599,En. Jefther Edward,Tuesday,09:00,11:00,2,BMCS2063,Lecture,B017,RSD2(S1)G1/RSD2(S1)G2/RSD2(S1)G3,11.07.2025 202505-lecturer.pdf p.35
+5599,En. Jefther Edward,Tuesday,12:00,14:00,2,BMCS2063,Practical,B005 - Lab 5,RSD2(S1)G1/RSD2(S1)G2/RSD2(S1)G3,11.07.2025 202505-lecturer.pdf p.35
+5599,En. Jefther Edward,Tuesday,14:00,16:00,2,BMIT3273,Lecture,B107,RSD3(S1)G2/RSD3(S1)G3/RSD3(S1)G1,11.07.2025 202505-lecturer.pdf p.35
+5599,En. Jefther Edward,Wednesday,09:00,11:00,2,AMSE2013,Lecture,B015,DSF2(S1)G1,11.07.2025 202505-lecturer.pdf p.35
+5599,En. Jefther Edward,Wednesday,15:00,16:00,1,AMSE2013,Tutorial,B106,DSF2(S1)G1,11.07.2025 202505-lecturer.pdf p.35
+5599,En. Jefther Edward,Thursday,12:00,13:00,1,BMIT1173,Tutorial,B009 - Lab 1,RSD1(S1)G1/RSD2(S1)G3,11.07.2025 202505-lecturer.pdf p.35
+5599,En. Jefther Edward,Thursday,13:00,14:00,1,BMIT1173,Practical,B009 - Lab 1,RSD1(S1)G1/RSD2(S1)G3,11.07.2025 202505-lecturer.pdf p.35
+5599,En. Jefther Edward,Thursday,14:30,15:30,1,AMSE2002,Practical,B011 - Lab 3,DSF2(S1)G1,11.07.2025 202505-lecturer.pdf p.35
+5599,En. Jefther Edward,Thursday,15:30,16:30,1,AMSE2013,Practical,B011 - Lab 3,DSF2(S1)G1,11.07.2025 202505-lecturer.pdf p.35
+5599,En. Jefther Edward,Friday,14:30,16:30,2,BMIT3273,Practical,B006 - Lab4 (CISCO),RSD3(S1)G2/RSD3(S1)G3/RSD3(S1)G1,11.07.2025 202505-lecturer.pdf p.35
+5652,En. Daniel Royd Michael,Monday,09:00,11:00,2,AMSE2002,Lecture,B103,DSF2(S1)G1,11.07.2025 202505-lecturer.pdf p.26
+5652,En. Daniel Royd Michael,Monday,13:30,15:30,2,BMCS3033,Lecture,B018,RSD3(S1)G1,11.07.2025 202505-lecturer.pdf p.26
+5652,En. Daniel Royd Michael,Tuesday,13:30,15:30,2,AMIT2034,Lecture,B010 - Lab 2,DSF2(S1)G1/DFT2(S1)G1,11.07.2025 202505-lecturer.pdf p.26
+5652,En. Daniel Royd Michael,Tuesday,15:30,16:30,1,AMIT2034,Tutorial,B010 - Lab 2,DSF2(S1)G1/DFT2(S1)G1,11.07.2025 202505-lecturer.pdf p.26
+5652,En. Daniel Royd Michael,Wednesday,11:00,13:00,2,AMIT2034,Practical,B005 - Lab 5,DSF2(S1)G1/DFT2(S1)G1,11.07.2025 202505-lecturer.pdf p.26
+5652,En. Daniel Royd Michael,Wednesday,14:00,16:00,2,AMIT2033,Lecture,B006 - Lab4 (CISCO),DFT2(S1)G1,11.07.2025 202505-lecturer.pdf p.26
+5652,En. Daniel Royd Michael,Wednesday,16:00,17:00,1,AMIT2033,Tutorial,B006 - Lab4 (CISCO),DFT2(S1)G1,11.07.2025 202505-lecturer.pdf p.26
+5652,En. Daniel Royd Michael,Thursday,09:00,11:00,2,BMIS2113,Lecture,B105,RSD3(S1)G2/RSD3(S1)G3/RSD2(S1)G1,11.07.2025 202505-lecturer.pdf p.26
+5652,En. Daniel Royd Michael,Thursday,11:00,12:00,1,BMIS2113,Tutorial,B105,RSD3(S1)G2/RSD3(S1)G3/RSD2(S1)G1,11.07.2025 202505-lecturer.pdf p.26
+5652,En. Daniel Royd Michael,Thursday,13:00,14:00,1,BMIS2113,Practical,B005 - Lab 5,RSD3(S1)G2/RSD3(S1)G3/RSD2(S1)G1,11.07.2025 202505-lecturer.pdf p.26
+5652,En. Daniel Royd Michael,Friday,09:30,10:30,1,BMCS3033,Tutorial,B011 - Lab 3,RSD3(S1)G1,11.07.2025 202505-lecturer.pdf p.26
+5652,En. Daniel Royd Michael,Friday,13:00,14:00,1,AMIT2033,Practical,B006 - Lab4 (CISCO),DFT2(S1)G1,11.07.2025 202505-lecturer.pdf p.26
+5770,En. Lim Jia Zheng,Monday,11:00,13:00,2,AMCS2093,Lecture,B110,DFT2(S1)G1/DSF2(S1)G1,11.07.2025 202505-lecturer.pdf p.41
+5770,En. Lim Jia Zheng,Tuesday,14:00,16:00,2,BMIT2013,Lecture,B009 - Lab 1,RSD2(S1)G2/RSD2(S1)G3,11.07.2025 202505-lecturer.pdf p.41
+5770,En. Lim Jia Zheng,Wednesday,09:00,11:00,2,BMIT2013,Practical,B010 - Lab 2,RSD2(S1)G2/RSD2(S1)G3,11.07.2025 202505-lecturer.pdf p.41
+5770,En. Lim Jia Zheng,Wednesday,14:00,15:00,1,AMCS2093,Tutorial,B106,DSF2(S1)G1,11.07.2025 202505-lecturer.pdf p.41
+5770,En. Lim Jia Zheng,Thursday,13:30,14:30,1,AMCS2093,Practical,B010 - Lab 2,DSF2(S1)G1,11.07.2025 202505-lecturer.pdf p.41
+5770,En. Lim Jia Zheng,Thursday,14:30,15:30,1,AMCS2093,Tutorial,B107,DFT2(S1)G1,11.07.2025 202505-lecturer.pdf p.41
+5770,En. Lim Jia Zheng,Friday,11:00,12:00,1,AMCS2093,Practical,B011 - Lab 3,DFT2(S1)G1,11.07.2025 202505-lecturer.pdf p.41

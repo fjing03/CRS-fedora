@@ -46,10 +46,8 @@ class DatabaseSeeder extends Seeder
             VenuesSeeder::class,
             ModulesSeeder::class,
             TimeSlotsSeeder::class,
-            ClassSessionsSeeder::class,
             HolidaysSeeder::class,
-            ClassExceptionsSeeder::class,
-            ReplacementRequestsSeeder::class,
+            RealScheduleSeeder::class,
         ]);
     }
 

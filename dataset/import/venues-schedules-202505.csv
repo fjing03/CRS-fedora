@@ -1,0 +1,102 @@
+venue,room_label,day,start,end,duration_hours,course,session_type,lecturer,cohorts,source
+B002,Tuorial Room,Monday,14:00,15:00,1,MPU-3232,Lecture,Sharon,RSD2(S1)G2/RSD2(S1)G3/RSD3(S1)G3,11.07.2025 202505-classroom.pdf p.11
+B005,Computer Laboratory 5,Tuesday,12:00,14:00,2,BMCS2063,Practical,Jefther,RSD2(S1)G1/RSD2(S1)G2/RSD2(S1)G3,11.07.2025 202505-classroom.pdf p.12
+B005,Computer Laboratory 5,Wednesday,11:00,13:00,2,AMIT2034,Practical,Daniel,DSF2(S1)G1/DFT2(S1)G1,11.07.2025 202505-classroom.pdf p.12
+B005,Computer Laboratory 5,Thursday,09:00,10:00,1,BMCS1113,Practical,Rahmat,RSD1(S1)G1,11.07.2025 202505-classroom.pdf p.12
+B005,Computer Laboratory 5,Thursday,10:00,11:00,1,BMCS1013,Practical,Rahmat,RSD1(S1)G1,11.07.2025 202505-classroom.pdf p.12
+B005,Computer Laboratory 5,Thursday,13:00,14:00,1,BMIS2113,Practical,Daniel,RSD3(S1)G2/RSD3(S1)G3/RSD2(S1)G1,11.07.2025 202505-classroom.pdf p.12
+B006,Computer Laboratory 4: CISCO Lab,Monday,09:00,11:00,2,BMIT2154,Lecture,Dr Chris,RSD2(S1)G1,11.07.2025 202505-classroom.pdf p.13
+B006,Computer Laboratory 4: CISCO Lab,Monday,11:00,12:00,1,BMIT2154,Tutorial,Dr Chris,RSD2(S1)G1,11.07.2025 202505-classroom.pdf p.13
+B006,Computer Laboratory 4: CISCO Lab,Monday,13:00,15:00,2,BMIT3084,Lecture,Dr Chris,RSD3(S1)G2,11.07.2025 202505-classroom.pdf p.13
+B006,Computer Laboratory 4: CISCO Lab,Tuesday,11:00,13:00,2,BMIS2003,Lecture,Dr Chris,RSD3(S1)G1,11.07.2025 202505-classroom.pdf p.13
+B006,Computer Laboratory 4: CISCO Lab,Tuesday,13:30,14:30,1,AMCS1013,Tutorial,Ts Shikin,DSF1(S1)G1,11.07.2025 202505-classroom.pdf p.13
+B006,Computer Laboratory 4: CISCO Lab,Tuesday,14:30,15:30,1,AMCS1013,Practical,Ts Shikin,DSF1(S1)G1,11.07.2025 202505-classroom.pdf p.13
+B006,Computer Laboratory 4: CISCO Lab,Wednesday,09:00,11:00,2,BMIT2154,Practical,Dr Chris,RSD2(S1)G1,11.07.2025 202505-classroom.pdf p.13
+B006,Computer Laboratory 4: CISCO Lab,Wednesday,14:00,16:00,2,AMIT2033,Lecture,Daniel,DFT2(S1)G1,11.07.2025 202505-classroom.pdf p.13
+B006,Computer Laboratory 4: CISCO Lab,Wednesday,16:00,17:00,1,AMIT2033,Tutorial,Daniel,DFT2(S1)G1,11.07.2025 202505-classroom.pdf p.13
+B006,Computer Laboratory 4: CISCO Lab,Thursday,09:00,11:00,2,BMIS2003,Practical,Dr Chris,RSD3(S1)G1,11.07.2025 202505-classroom.pdf p.13
+B006,Computer Laboratory 4: CISCO Lab,Thursday,14:00,16:00,2,BMIT3173,Practical,Ts Shikin,RSD3(S1)G3/RSD3(S1)G1,11.07.2025 202505-classroom.pdf p.13
+B006,Computer Laboratory 4: CISCO Lab,Friday,10:00,11:00,1,BMIT3084,Tutorial,Dr Chris,RSD3(S1)G2,11.07.2025 202505-classroom.pdf p.13
+B006,Computer Laboratory 4: CISCO Lab,Friday,11:00,13:00,2,BMIT3084,Practical,Dr Chris,RSD3(S1)G2,11.07.2025 202505-classroom.pdf p.13
+B006,Computer Laboratory 4: CISCO Lab,Friday,13:00,14:00,1,AMIT2033,Practical,Daniel,DFT2(S1)G1,11.07.2025 202505-classroom.pdf p.13
+B006,Computer Laboratory 4: CISCO Lab,Friday,14:30,16:30,2,BMIT3273,Practical,Jefther,RSD3(S1)G2/RSD3(S1)G3/RSD3(S1)G1,11.07.2025 202505-classroom.pdf p.13
+B009,Computer Laboratory 1,Tuesday,09:00,10:00,1,AMCS1013,Practical,Ts Shikin,DFT1(S1)G1,11.07.2025 202505-classroom.pdf p.14
+B009,Computer Laboratory 1,Tuesday,13:00,14:00,1,BMSE3153,Practical,Su,RSD3(S1)G2/RSD3(S1)G3,11.07.2025 202505-classroom.pdf p.14
+B009,Computer Laboratory 1,Tuesday,14:00,16:00,2,BMIT2013,Lecture,Jia Zheng,RSD2(S1)G2/RSD2(S1)G3,11.07.2025 202505-classroom.pdf p.14
+B009,Computer Laboratory 1,Tuesday,16:00,17:00,1,BMIT2043,Practical,Rahmat,RSD2(S1)G1,11.07.2025 202505-classroom.pdf p.14
+B009,Computer Laboratory 1,Wednesday,09:00,10:00,1,AMSE1003,Tutorial,Su,DSF1(S1)G1,11.07.2025 202505-classroom.pdf p.14
+B009,Computer Laboratory 1,Wednesday,10:00,12:00,2,AMIT2014,Practical,Ellis,DFT2(S1)G1,11.07.2025 202505-classroom.pdf p.14
+B009,Computer Laboratory 1,Thursday,09:30,10:30,1,BMIT2203,Practical,Lee,RSD2(S1)G2/RSD2(S1)G3,11.07.2025 202505-classroom.pdf p.14
+B009,Computer Laboratory 1,Thursday,12:00,13:00,1,BMIT1173,Tutorial,Jefther,RSD1(S1)G1/RSD2(S1)G3,11.07.2025 202505-classroom.pdf p.14
+B009,Computer Laboratory 1,Thursday,13:00,14:00,1,BMIT1173,Practical,Jefther,RSD1(S1)G1/RSD2(S1)G3,11.07.2025 202505-classroom.pdf p.14
+B009,Computer Laboratory 1,Thursday,14:00,15:00,1,BMCS1053,Practical,Teng,RSD1(S1)G1,11.07.2025 202505-classroom.pdf p.14
+B009,Computer Laboratory 1,Friday,15:00,16:00,1,BMCS2053,Practical,Ts Shikin,RSD2(S1)G1/RSD2(S1)G2/RSD2(S1)G3,11.07.2025 202505-classroom.pdf p.14
+B010,Computer Laboratory 2,Tuesday,13:30,15:30,2,AMIT2034,Lecture,Daniel,DSF2(S1)G1/DFT2(S1)G1,11.07.2025 202505-classroom.pdf p.15
+B010,Computer Laboratory 2,Tuesday,15:30,16:30,1,AMIT2034,Tutorial,Daniel,DSF2(S1)G1/DFT2(S1)G1,11.07.2025 202505-classroom.pdf p.15
+B010,Computer Laboratory 2,Wednesday,09:00,11:00,2,BMIT2013,Practical,Jia Zheng,RSD2(S1)G2/RSD2(S1)G3,11.07.2025 202505-classroom.pdf p.15
+B010,Computer Laboratory 2,Wednesday,11:00,12:00,1,AMSE1003,Practical,Su,DSF1(S1)G1,11.07.2025 202505-classroom.pdf p.15
+B010,Computer Laboratory 2,Wednesday,14:00,16:00,2,BMIT2073,Practical,Ts Shikin,RSD3(S1)G3/RSD3(S1)G2,11.07.2025 202505-classroom.pdf p.15
+B010,Computer Laboratory 2,Thursday,12:00,13:00,1,BMSE2163,Practical,Su,RSD2(S1)G2/RSD2(S1)G1,11.07.2025 202505-classroom.pdf p.15
+B010,Computer Laboratory 2,Thursday,13:30,14:30,1,AMCS2093,Practical,Jia Zheng,DSF2(S1)G1,11.07.2025 202505-classroom.pdf p.15
+B010,Computer Laboratory 2,Friday,09:00,10:00,1,AMSE2003,Practical,Su,DSF2(S1)G1,11.07.2025 202505-classroom.pdf p.15
+B010,Computer Laboratory 2,Friday,15:30,16:30,1,AMIS1003,Tutorial,Rahmat,DSF1(S1)G1,11.07.2025 202505-classroom.pdf p.15
+B011,Computer Laboratory 3,Wednesday,10:00,11:00,1,AMCS1043,Tutorial,Teng,DFT1(S1)G1,11.07.2025 202505-classroom.pdf p.16
+B011,Computer Laboratory 3,Wednesday,11:00,12:00,1,AMCS1043,Practical,Teng,DFT1(S1)G1,11.07.2025 202505-classroom.pdf p.16
+B011,Computer Laboratory 3,Wednesday,13:30,14:30,1,BMIT1723,Lecture,Teng,RBU1(S1)G1,11.07.2025 202505-classroom.pdf p.16
+B011,Computer Laboratory 3,Wednesday,14:30,16:30,2,BMIT1723,Practical,Teng,RBU1(S1)G1,11.07.2025 202505-classroom.pdf p.16
+B011,Computer Laboratory 3,Thursday,14:30,15:30,1,AMSE2002,Practical,Jefther,DSF2(S1)G1,11.07.2025 202505-classroom.pdf p.16
+B011,Computer Laboratory 3,Thursday,15:30,16:30,1,AMSE2013,Practical,Jefther,DSF2(S1)G1,11.07.2025 202505-classroom.pdf p.16
+B011,Computer Laboratory 3,Friday,09:30,10:30,1,BMCS3033,Tutorial,Daniel,RSD3(S1)G1,11.07.2025 202505-classroom.pdf p.16
+B011,Computer Laboratory 3,Friday,11:00,12:00,1,AMCS2093,Practical,Jia Zheng,DFT2(S1)G1,11.07.2025 202505-classroom.pdf p.16
+B014,Tutorial Room,Tuesday,14:00,16:00,2,AMCS1043,Lecture,Teng,DFT1(S1)G1,11.07.2025 202505-classroom.pdf p.17
+B014,Tutorial Room,Wednesday,09:00,11:00,2,BMIT3173,Lecture,Ts Shikin,RSD3(S1)G3/RSD3(S1)G1,11.07.2025 202505-classroom.pdf p.17
+B014,Tutorial Room,Wednesday,11:00,12:00,1,BMIT2203,Tutorial,Lee,RSD2(S1)G2/RSD2(S1)G3,11.07.2025 202505-classroom.pdf p.17
+B015,Tutorial Room,Wednesday,09:00,11:00,2,AMSE2013,Lecture,Jefther,DSF2(S1)G1,11.07.2025 202505-classroom.pdf p.18
+B015,Tutorial Room,Wednesday,11:00,13:00,2,BMIT2073,Lecture,Ts Shikin,RSD3(S1)G3/RSD3(S1)G2,11.07.2025 202505-classroom.pdf p.18
+B015,Tutorial Room,Wednesday,13:00,15:00,2,BMSE2163,Lecture,Su,RSD2(S1)G2/RSD2(S1)G1,11.07.2025 202505-classroom.pdf p.18
+B015,Tutorial Room,Wednesday,15:00,16:00,1,BMSE2163,Tutorial,Su,RSD2(S1)G2/RSD2(S1)G1,11.07.2025 202505-classroom.pdf p.18
+B015,Tutorial Room,Thursday,11:00,12:00,1,MPU-3133,Tutorial,Muada,RBU1(S1)G1/RAF2(S3)G4/RAF2(S3)G2/RSD2(S1)G2/RSD2(S1)G3,11.07.2025 202505-classroom.pdf p.18
+B016,Tutorial Room,Monday,09:00,11:00,2,AMIT2014,Lecture,Ellis,DFT2(S1)G1,11.07.2025 202505-classroom.pdf p.19
+B016,Tutorial Room,Monday,11:00,13:00,2,BMIT2203,Lecture,Lee,RSD2(S1)G2/RSD2(S1)G3,11.07.2025 202505-classroom.pdf p.19
+B016,Tutorial Room,Monday,14:00,15:00,1,AMCS1013,Tutorial,Ts Shikin,DFT1(S1)G1,11.07.2025 202505-classroom.pdf p.19
+B016,Tutorial Room,Tuesday,15:00,16:00,1,BMIT2043,Tutorial,Rahmat,RSD2(S1)G1,11.07.2025 202505-classroom.pdf p.19
+B016,Tutorial Room,Friday,15:00,16:30,1.5,AMMS3653,Tutorial,Patricia,DSF2(S1)G1,11.07.2025 202505-classroom.pdf p.19
+B017,Tutorial Room,Monday,11:00,12:00,1,MPU-3103,Tutorial,Muada,RBU1(S1)G1/RSD1(S1)G1,11.07.2025 202505-classroom.pdf p.20
+B017,Tutorial Room,Tuesday,09:00,11:00,2,BMCS2063,Lecture,Jefther,RSD2(S1)G1/RSD2(S1)G2/RSD2(S1)G3,11.07.2025 202505-classroom.pdf p.20
+B018,Tutorial Room,Monday,13:30,15:30,2,BMCS3033,Lecture,Daniel,RSD3(S1)G1,11.07.2025 202505-classroom.pdf p.21
+B018,Tutorial Room,Tuesday,12:00,13:00,1,AMIS1003,Tutorial,Rahmat,DFT1(S1)G1,11.07.2025 202505-classroom.pdf p.21
+B100,Tutorial Room,Thursday,09:00,11:00,2,AMSE2003,Lecture,Su,DSF2(S1)G1,11.07.2025 202505-classroom.pdf p.22
+B100,Tutorial Room,Thursday,11:00,12:00,1,AMSE2003,Tutorial,Su,DSF2(S1)G1,11.07.2025 202505-classroom.pdf p.22
+B100,Tutorial Room,Friday,10:00,12:00,2,AMMS3653,Lecture,Patricia,DSF2(S1)G1,11.07.2025 202505-classroom.pdf p.22
+B101,Tutorial Room,Monday,10:00,11:00,1,MPU-2302,Tutorial,Muada,DFT1(S1)G1,11.07.2025 202505-classroom.pdf p.23
+B102,Tutorial Room,Monday,09:00,11:00,2,BMSE3153,Lecture,Lee,RSD3(S1)G2/RSD3(S1)G3,11.07.2025 202505-classroom.pdf p.24
+B102,Tutorial Room,Wednesday,10:00,12:00,2,BBBE1033,Lecture,Chang,RBU1(S1)G1,11.07.2025 202505-classroom.pdf p.24
+B102,Tutorial Room,Wednesday,13:00,15:00,2,BMCS1113,Lecture,Rahmat,RSD1(S1)G1,11.07.2025 202505-classroom.pdf p.24
+B102,Tutorial Room,Wednesday,15:00,16:00,1,BMCS1113,Tutorial,Rahmat,RSD1(S1)G1,11.07.2025 202505-classroom.pdf p.24
+B103,Tutorial Room,Monday,09:00,11:00,2,AMSE2002,Lecture,Daniel,DSF2(S1)G1,11.07.2025 202505-classroom.pdf p.25
+B103,Tutorial Room,Thursday,13:30,14:30,1,MPU-2212,Tutorial,Muada,DFT2(S1)G1,11.07.2025 202505-classroom.pdf p.25
+B103,Tutorial Room,Friday,10:00,11:00,1,MPU-3232,Tutorial,Chang,RSD2(S1)G2/RSD2(S1)G3/RSD3(S1)G3,11.07.2025 202505-classroom.pdf p.25
+B103,Tutorial Room,Friday,11:00,13:00,2,BMCS2053,Lecture,Ts Shikin,RSD2(S1)G1/RSD2(S1)G2/RSD2(S1)G3,11.07.2025 202505-classroom.pdf p.25
+B103,Tutorial Room,Friday,14:00,15:00,1,BMCS2053,Tutorial,Ts Shikin,RSD2(S1)G1/RSD2(S1)G2/RSD2(S1)G3,11.07.2025 202505-classroom.pdf p.25
+B105,Tutorial Room,Monday,13:30,15:30,2,BMMS1743,Lecture,Patricia,RBU1(S1)G1,11.07.2025 202505-classroom.pdf p.27
+B105,Tutorial Room,Tuesday,13:30,15:00,1.5,BMMS1743,Tutorial,Patricia,RBU1(S1)G1,11.07.2025 202505-classroom.pdf p.27
+B105,Tutorial Room,Wednesday,09:00,11:00,2,BMCS1013,Lecture,Rahmat,RSD1(S1)G1,11.07.2025 202505-classroom.pdf p.27
+B105,Tutorial Room,Wednesday,11:00,12:00,1,BMCS1013,Tutorial,Rahmat,RSD1(S1)G1,11.07.2025 202505-classroom.pdf p.27
+B105,Tutorial Room,Thursday,09:00,11:00,2,BMIS2113,Lecture,Daniel,RSD3(S1)G2/RSD3(S1)G3/RSD2(S1)G1,11.07.2025 202505-classroom.pdf p.27
+B105,Tutorial Room,Thursday,11:00,12:00,1,BMIS2113,Tutorial,Daniel,RSD3(S1)G2/RSD3(S1)G3/RSD2(S1)G1,11.07.2025 202505-classroom.pdf p.27
+B106,Tutorial Room,Monday,13:00,15:00,2,BMIT2043,Lecture,Rahmat,RSD2(S1)G1,11.07.2025 202505-classroom.pdf p.28
+B106,Tutorial Room,Wednesday,11:00,12:00,1,MPU-3302,Tutorial,Muada,RAF2(S3)G2/RAF2(S3)G4,11.07.2025 202505-classroom.pdf p.28
+B106,Tutorial Room,Wednesday,14:00,15:00,1,AMCS2093,Tutorial,Jia Zheng,DSF2(S1)G1,11.07.2025 202505-classroom.pdf p.28
+B106,Tutorial Room,Wednesday,15:00,16:00,1,AMSE2013,Tutorial,Jefther,DSF2(S1)G1,11.07.2025 202505-classroom.pdf p.28
+B106,Tutorial Room,Thursday,09:00,10:30,1.5,BBBE1033,Tutorial,Chang,RBU1(S1)G1,11.07.2025 202505-classroom.pdf p.28
+B106,Tutorial Room,Thursday,13:30,15:00,1.5,AMMS1623,Tutorial,Patricia,DSF1(S1)G1,11.07.2025 202505-classroom.pdf p.28
+B107,Tutorial Room,Monday,09:00,11:00,2,BMIT1173,Lecture,Jefther,RSD1(S1)G1/RSD2(S1)G3,11.07.2025 202505-classroom.pdf p.29
+B107,Tutorial Room,Tuesday,14:00,16:00,2,BMIT3273,Lecture,Jefther,RSD3(S1)G2/RSD3(S1)G3/RSD3(S1)G1,11.07.2025 202505-classroom.pdf p.29
+B107,Tutorial Room,Thursday,14:30,15:30,1,AMCS2093,Tutorial,Jia Zheng,DFT2(S1)G1,11.07.2025 202505-classroom.pdf p.29
+B108,Tutorial Room,Tuesday,11:00,12:00,1,AMIS1012,Tutorial,Ellis,DSF2(S1)G1,11.07.2025 202505-classroom.pdf p.30
+B108,Tutorial Room,Tuesday,12:00,13:00,1,AMIS1012,Tutorial,Ellis,DFT2(S1)G1,11.07.2025 202505-classroom.pdf p.30
+B110,Lecture Hall 1,Monday,11:00,13:00,2,AMCS2093,Lecture,Jia Zheng,DFT2(S1)G1/DSF2(S1)G1,11.07.2025 202505-classroom.pdf p.32
+B110,Lecture Hall 1,Tuesday,09:00,11:00,2,AMIS1012,Lecture,Ellis,DFT2(S1)G1/DSF2(S1)G1,11.07.2025 202505-classroom.pdf p.32
+B111,Lecture Hall 2,Monday,09:00,11:00,2,AMSE1003,Lecture,Su,DSF1(S1)G1,11.07.2025 202505-classroom.pdf p.33
+B111,Lecture Hall 2,Monday,11:00,13:00,2,AMCS1013,Lecture,Ts Shikin,DFT1(S1)G1/DSF1(S1)G1,11.07.2025 202505-classroom.pdf p.33
+B111,Lecture Hall 2,Tuesday,10:00,12:00,2,AMIS1003,Lecture,Rahmat,DFT1(S1)G1/DSF1(S1)G1,11.07.2025 202505-classroom.pdf p.33

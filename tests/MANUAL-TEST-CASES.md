@@ -76,16 +76,19 @@
 
 ## TC-07: My Request History
 
+> Post real-records import (SDD `import-real-schedule-records`): the 3 demo
+> replacement requests were dropped with the hand-made seed sessions; Slice B/C
+> of `wire-backend-into-refactored-ui` re-demos them against real sessions.
+> Until then this page shows the empty state.
+
 | Step | Action | Expected Result |
 |------|--------|-----------------|
 | 1 | Open `http://127.0.0.1:8000/my-request-history-ui` | Page loads, search bar and result count visible |
-| 2 | Check request cards | At least 3 cards appear (from ReplacementRequestsSeeder) |
-| 3 | Check card fields | Each card shows: course code, class date/time, venue, status badge (Pending/Approved/Rejected) |
-| 4 | Check status badges | Pending = yellow/orange, Approved = green, Rejected = red |
-| 5 | Type "BMIT" in search bar | Cards filter to show only matching entries |
-| 6 | Clear search bar | All cards reappear |
-| 7 | Check result count text | Updates correctly (e.g. "Showing 3 of 3 requests") |
-| 8 | Check browser console | No JS errors |
+| 2 | Check request cards | Empty state renders (no demo requests until Slice B/C re-demos them) |
+| 3 | Type "BMIT" in search bar | Search operates over the empty set without errors |
+| 4 | Clear search bar | Empty state re-renders |
+| 5 | Check result count text | Shows the zero state (e.g. "Showing 0 of 0 requests") |
+| 6 | Check browser console | No JS errors |
 
 ---
 

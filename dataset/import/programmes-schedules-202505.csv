@@ -1,0 +1,156 @@
+cohort,day,start,end,duration_hours,course,session_type,lecturer,venue,source
+DFT1(S1)G1,Monday,10:00,11:00,1,MPU-2302,Tutorial,Muada (3799),B101,11.07.2025 202505-Programme.pdf p.24
+DFT1(S1)G1,Monday,11:00,13:00,2,AMCS1013,Lecture,Ts Shikin (5514),B111,11.07.2025 202505-Programme.pdf p.24
+DFT1(S1)G1,Monday,14:00,15:00,1,AMCS1013,Tutorial,Ts Shikin (5514),B016,11.07.2025 202505-Programme.pdf p.24
+DFT1(S1)G1,Tuesday,09:00,10:00,1,AMCS1013,Practical,Ts Shikin (5514),B009 - Lab 1,11.07.2025 202505-Programme.pdf p.24
+DFT1(S1)G1,Tuesday,10:00,12:00,2,AMIS1003,Lecture,Rahmat (5516),B111,11.07.2025 202505-Programme.pdf p.24
+DFT1(S1)G1,Tuesday,12:00,13:00,1,AMIS1003,Tutorial,Rahmat (5516),B018,11.07.2025 202505-Programme.pdf p.24
+DFT1(S1)G1,Tuesday,14:00,16:00,2,AMCS1043,Lecture,Teng (3825),B014,11.07.2025 202505-Programme.pdf p.24
+DFT1(S1)G1,Wednesday,10:00,11:00,1,AMCS1043,Tutorial,Teng (3825),B011 - Lab 3,11.07.2025 202505-Programme.pdf p.24
+DFT1(S1)G1,Wednesday,11:00,12:00,1,AMCS1043,Practical,Teng (3825),B011 - Lab 3,11.07.2025 202505-Programme.pdf p.24
+DFT2(S1)G1,Monday,09:00,11:00,2,AMIT2014,Lecture,Ellis (2873),B016,11.07.2025 202505-Programme.pdf p.25
+DFT2(S1)G1,Monday,11:00,13:00,2,AMCS2093,Lecture,Jia Zheng (5770),B110,11.07.2025 202505-Programme.pdf p.25
+DFT2(S1)G1,Tuesday,09:00,11:00,2,AMIS1012,Lecture,Ellis (2873),B110,11.07.2025 202505-Programme.pdf p.25
+DFT2(S1)G1,Tuesday,12:00,13:00,1,AMIS1012,Tutorial,Ellis (2873),B108,11.07.2025 202505-Programme.pdf p.25
+DFT2(S1)G1,Tuesday,13:30,15:30,2,AMIT2034,Lecture,Daniel (5652),B010 - Lab 2,11.07.2025 202505-Programme.pdf p.61
+DFT2(S1)G1,Tuesday,15:30,16:30,1,AMIT2034,Tutorial,Daniel (5652),B010 - Lab 2,11.07.2025 202505-Programme.pdf p.61
+DFT2(S1)G1,Wednesday,10:00,12:00,2,AMIT2014,Practical,Ellis (2873),B009 - Lab 1,11.07.2025 202505-Programme.pdf p.25
+DFT2(S1)G1,Wednesday,11:00,13:00,2,AMIT2034,Practical,Daniel (5652),B005 - Lab 5,11.07.2025 202505-Programme.pdf p.61
+DFT2(S1)G1,Wednesday,14:00,16:00,2,AMIT2033,Lecture,Daniel (5652),B006 - Lab4 (CISCO),11.07.2025 202505-Programme.pdf p.25
+DFT2(S1)G1,Wednesday,16:00,17:00,1,AMIT2033,Tutorial,Daniel (5652),B006 - Lab4 (CISCO),11.07.2025 202505-Programme.pdf p.25
+DFT2(S1)G1,Thursday,13:30,14:30,1,MPU-2212,Tutorial,Muada (3799),B103,11.07.2025 202505-Programme.pdf p.25
+DFT2(S1)G1,Thursday,14:30,15:30,1,AMCS2093,Tutorial,Jia Zheng (5770),B107,11.07.2025 202505-Programme.pdf p.25
+DFT2(S1)G1,Friday,11:00,12:00,1,AMCS2093,Practical,Jia Zheng (5770),B011 - Lab 3,11.07.2025 202505-Programme.pdf p.25
+DFT2(S1)G1,Friday,13:00,14:00,1,AMIT2033,Practical,Daniel (5652),B006 - Lab4 (CISCO),11.07.2025 202505-Programme.pdf p.25
+DSF1(S1)G1,Monday,09:00,11:00,2,AMSE1003,Lecture,Su (5425),B111,11.07.2025 202505-Programme.pdf p.30
+DSF1(S1)G1,Monday,11:00,13:00,2,AMCS1013,Lecture,Ts Shikin (5514),B111,11.07.2025 202505-Programme.pdf p.30
+DSF1(S1)G1,Tuesday,10:00,12:00,2,AMIS1003,Lecture,Rahmat (5516),B111,11.07.2025 202505-Programme.pdf p.30
+DSF1(S1)G1,Tuesday,13:30,14:30,1,AMCS1013,Tutorial,Ts Shikin (5514),B006 - Lab4 (CISCO),11.07.2025 202505-Programme.pdf p.30
+DSF1(S1)G1,Tuesday,14:30,15:30,1,AMCS1013,Practical,Ts Shikin (5514),B006 - Lab4 (CISCO),11.07.2025 202505-Programme.pdf p.30
+DSF1(S1)G1,Wednesday,09:00,10:00,1,AMSE1003,Tutorial,Su (5425),B009 - Lab 1,11.07.2025 202505-Programme.pdf p.30
+DSF1(S1)G1,Wednesday,11:00,12:00,1,AMSE1003,Practical,Su (5425),B010 - Lab 2,11.07.2025 202505-Programme.pdf p.30
+DSF1(S1)G1,Thursday,13:30,15:00,1.5,AMMS1623,Tutorial,Patricia (4127),B106,11.07.2025 202505-Programme.pdf p.30
+DSF1(S1)G1,Friday,15:30,16:30,1,AMIS1003,Tutorial,Rahmat (5516),B010 - Lab 2,11.07.2025 202505-Programme.pdf p.30
+DSF2(S1)G1,Monday,09:00,11:00,2,AMSE2002,Lecture,Daniel (5652),B103,11.07.2025 202505-Programme.pdf p.31
+DSF2(S1)G1,Monday,11:00,13:00,2,AMCS2093,Lecture,Jia Zheng (5770),B110,11.07.2025 202505-Programme.pdf p.31
+DSF2(S1)G1,Tuesday,09:00,11:00,2,AMIS1012,Lecture,Ellis (2873),B110,11.07.2025 202505-Programme.pdf p.31
+DSF2(S1)G1,Tuesday,11:00,12:00,1,AMIS1012,Tutorial,Ellis (2873),B108,11.07.2025 202505-Programme.pdf p.31
+DSF2(S1)G1,Tuesday,13:30,15:30,2,AMIT2034,Lecture,Daniel (5652),B010 - Lab 2,11.07.2025 202505-Programme.pdf p.31
+DSF2(S1)G1,Tuesday,15:30,16:30,1,AMIT2034,Tutorial,Daniel (5652),B010 - Lab 2,11.07.2025 202505-Programme.pdf p.31
+DSF2(S1)G1,Wednesday,09:00,11:00,2,AMSE2013,Lecture,Jefther (5599),B015,11.07.2025 202505-Programme.pdf p.31
+DSF2(S1)G1,Wednesday,11:00,13:00,2,AMIT2034,Practical,Daniel (5652),B005 - Lab 5,11.07.2025 202505-Programme.pdf p.31
+DSF2(S1)G1,Wednesday,14:00,15:00,1,AMCS2093,Tutorial,Jia Zheng (5770),B106,11.07.2025 202505-Programme.pdf p.31
+DSF2(S1)G1,Wednesday,15:00,16:00,1,AMSE2013,Tutorial,Jefther (5599),B106,11.07.2025 202505-Programme.pdf p.31
+DSF2(S1)G1,Thursday,09:00,11:00,2,AMSE2003,Lecture,Su (5425),B100,11.07.2025 202505-Programme.pdf p.31
+DSF2(S1)G1,Thursday,11:00,12:00,1,AMSE2003,Tutorial,Su (5425),B100,11.07.2025 202505-Programme.pdf p.31
+DSF2(S1)G1,Thursday,13:30,14:30,1,AMCS2093,Practical,Jia Zheng (5770),B010 - Lab 2,11.07.2025 202505-Programme.pdf p.31
+DSF2(S1)G1,Thursday,14:30,15:30,1,AMSE2002,Practical,Jefther (5599),B011 - Lab 3,11.07.2025 202505-Programme.pdf p.31
+DSF2(S1)G1,Thursday,15:30,16:30,1,AMSE2013,Practical,Jefther (5599),B011 - Lab 3,11.07.2025 202505-Programme.pdf p.31
+DSF2(S1)G1,Friday,09:00,10:00,1,AMSE2003,Practical,Su (5425),B010 - Lab 2,11.07.2025 202505-Programme.pdf p.31
+DSF2(S1)G1,Friday,10:00,12:00,2,AMMS3653,Lecture,Patricia (4127),B100,11.07.2025 202505-Programme.pdf p.31
+DSF2(S1)G1,Friday,15:00,16:30,1.5,AMMS3653,Tutorial,Patricia (4127),B016,11.07.2025 202505-Programme.pdf p.31
+RAF2(S3)G2,Wednesday,11:00,12:00,1,MPU-3302,Tutorial,Muada (3799),B106,11.07.2025 202505-Programme.pdf p.35
+RAF2(S3)G2,Thursday,11:00,12:00,1,MPU-3133,Tutorial,Muada (3799),B015,11.07.2025 202505-Programme.pdf p.35
+RAF2(S3)G4,Wednesday,11:00,12:00,1,MPU-3302,Tutorial,Muada (3799),B106,11.07.2025 202505-Programme.pdf p.37
+RAF2(S3)G4,Thursday,11:00,12:00,1,MPU-3133,Tutorial,Muada (3799),B015,11.07.2025 202505-Programme.pdf p.37
+RSD2(S1)G2,Monday,11:00,13:00,2,BMIT2203,Lecture,Lee (3221),B016,11.07.2025 202505-Programme.pdf p.40
+RSD2(S1)G2,Monday,14:00,15:00,1,MPU-3232,Lecture,Sharon (4363),B002,11.07.2025 202505-Programme.pdf p.40
+RSD2(S1)G2,Tuesday,09:00,11:00,2,BMCS2063,Lecture,Jefther (5599),B017,11.07.2025 202505-Programme.pdf p.40
+RSD2(S1)G2,Tuesday,12:00,14:00,2,BMCS2063,Practical,Jefther (5599),B005 - Lab 5,11.07.2025 202505-Programme.pdf p.40
+RSD2(S1)G2,Tuesday,14:00,16:00,2,BMIT2013,Lecture,Jia Zheng (5770),B009 - Lab 1,11.07.2025 202505-Programme.pdf p.40
+RSD2(S1)G2,Wednesday,09:00,11:00,2,BMIT2013,Practical,Jia Zheng (5770),B010 - Lab 2,11.07.2025 202505-Programme.pdf p.40
+RSD2(S1)G2,Wednesday,11:00,12:00,1,BMIT2203,Tutorial,Lee (3221),B014,11.07.2025 202505-Programme.pdf p.40
+RSD2(S1)G2,Wednesday,13:00,15:00,2,BMSE2163,Lecture,Su (5425),B015,11.07.2025 202505-Programme.pdf p.40
+RSD2(S1)G2,Wednesday,15:00,16:00,1,BMSE2163,Tutorial,Su (5425),B015,11.07.2025 202505-Programme.pdf p.40
+RSD2(S1)G2,Thursday,09:30,10:30,1,BMIT2203,Practical,Lee (3221),B009 - Lab 1,11.07.2025 202505-Programme.pdf p.40
+RSD2(S1)G2,Thursday,11:00,12:00,1,MPU-3133,Tutorial,Muada (3799),B015,11.07.2025 202505-Programme.pdf p.40
+RSD2(S1)G2,Thursday,12:00,13:00,1,BMSE2163,Practical,Su (5425),B010 - Lab 2,11.07.2025 202505-Programme.pdf p.40
+RSD2(S1)G2,Friday,10:00,11:00,1,MPU-3232,Tutorial,Chang (5254),B103,11.07.2025 202505-Programme.pdf p.40
+RSD2(S1)G2,Friday,11:00,13:00,2,BMCS2053,Lecture,Ts Shikin (5514),B103,11.07.2025 202505-Programme.pdf p.40
+RSD2(S1)G2,Friday,14:00,15:00,1,BMCS2053,Tutorial,Ts Shikin (5514),B103,11.07.2025 202505-Programme.pdf p.40
+RSD2(S1)G2,Friday,15:00,16:00,1,BMCS2053,Practical,Ts Shikin (5514),B009 - Lab 1,11.07.2025 202505-Programme.pdf p.40
+RSD2(S1)G3,Monday,09:00,11:00,2,BMIT1173,Lecture,Jefther (5599),B107,11.07.2025 202505-Programme.pdf p.41
+RSD2(S1)G3,Monday,11:00,13:00,2,BMIT2203,Lecture,Lee (3221),B016,11.07.2025 202505-Programme.pdf p.41
+RSD2(S1)G3,Monday,14:00,15:00,1,MPU-3232,Lecture,Sharon (4363),B002,11.07.2025 202505-Programme.pdf p.41
+RSD2(S1)G3,Tuesday,09:00,11:00,2,BMCS2063,Lecture,Jefther (5599),B017,11.07.2025 202505-Programme.pdf p.41
+RSD2(S1)G3,Tuesday,12:00,14:00,2,BMCS2063,Practical,Jefther (5599),B005 - Lab 5,11.07.2025 202505-Programme.pdf p.41
+RSD2(S1)G3,Tuesday,14:00,16:00,2,BMIT2013,Lecture,Jia Zheng (5770),B009 - Lab 1,11.07.2025 202505-Programme.pdf p.41
+RSD2(S1)G3,Wednesday,09:00,11:00,2,BMIT2013,Practical,Jia Zheng (5770),B010 - Lab 2,11.07.2025 202505-Programme.pdf p.41
+RSD2(S1)G3,Wednesday,11:00,12:00,1,BMIT2203,Tutorial,Lee (3221),B014,11.07.2025 202505-Programme.pdf p.41
+RSD2(S1)G3,Thursday,09:30,10:30,1,BMIT2203,Practical,Lee (3221),B009 - Lab 1,11.07.2025 202505-Programme.pdf p.41
+RSD2(S1)G3,Thursday,11:00,12:00,1,MPU-3133,Tutorial,Muada (3799),B015,11.07.2025 202505-Programme.pdf p.41
+RSD2(S1)G3,Thursday,12:00,13:00,1,BMIT1173,Tutorial,Jefther (5599),B009 - Lab 1,11.07.2025 202505-Programme.pdf p.41
+RSD2(S1)G3,Thursday,13:00,14:00,1,BMIT1173,Practical,Jefther (5599),B009 - Lab 1,11.07.2025 202505-Programme.pdf p.41
+RSD2(S1)G3,Friday,10:00,11:00,1,MPU-3232,Tutorial,Chang (5254),B103,11.07.2025 202505-Programme.pdf p.41
+RSD2(S1)G3,Friday,11:00,13:00,2,BMCS2053,Lecture,Ts Shikin (5514),B103,11.07.2025 202505-Programme.pdf p.41
+RSD2(S1)G3,Friday,14:00,15:00,1,BMCS2053,Tutorial,Ts Shikin (5514),B103,11.07.2025 202505-Programme.pdf p.41
+RSD2(S1)G3,Friday,15:00,16:00,1,BMCS2053,Practical,Ts Shikin (5514),B009 - Lab 1,11.07.2025 202505-Programme.pdf p.41
+RSD3(S1)G3,Monday,09:00,11:00,2,BMSE3153,Lecture,Lee (3221),B102,11.07.2025 202505-Programme.pdf p.44
+RSD3(S1)G3,Monday,14:00,15:00,1,MPU-3232,Lecture,Sharon (4363),B002,11.07.2025 202505-Programme.pdf p.44
+RSD3(S1)G3,Tuesday,13:00,14:00,1,BMSE3153,Practical,Su (5425),B009 - Lab 1,11.07.2025 202505-Programme.pdf p.44
+RSD3(S1)G3,Tuesday,14:00,16:00,2,BMIT3273,Lecture,Jefther (5599),B107,11.07.2025 202505-Programme.pdf p.44
+RSD3(S1)G3,Wednesday,09:00,11:00,2,BMIT3173,Lecture,Ts Shikin (5514),B014,11.07.2025 202505-Programme.pdf p.44
+RSD3(S1)G3,Wednesday,11:00,13:00,2,BMIT2073,Lecture,Ts Shikin (5514),B015,11.07.2025 202505-Programme.pdf p.44
+RSD3(S1)G3,Wednesday,14:00,16:00,2,BMIT2073,Practical,Ts Shikin (5514),B010 - Lab 2,11.07.2025 202505-Programme.pdf p.44
+RSD3(S1)G3,Thursday,09:00,11:00,2,BMIS2113,Lecture,Daniel (5652),B105,11.07.2025 202505-Programme.pdf p.44
+RSD3(S1)G3,Thursday,11:00,12:00,1,BMIS2113,Tutorial,Daniel (5652),B105,11.07.2025 202505-Programme.pdf p.44
+RSD3(S1)G3,Thursday,13:00,14:00,1,BMIS2113,Practical,Daniel (5652),B005 - Lab 5,11.07.2025 202505-Programme.pdf p.44
+RSD3(S1)G3,Thursday,14:00,16:00,2,BMIT3173,Practical,Ts Shikin (5514),B006 - Lab4 (CISCO),11.07.2025 202505-Programme.pdf p.44
+RSD3(S1)G3,Friday,10:00,11:00,1,MPU-3232,Tutorial,Chang (5254),B103,11.07.2025 202505-Programme.pdf p.44
+RSD3(S1)G3,Friday,14:30,16:30,2,BMIT3273,Practical,Jefther (5599),B006 - Lab4 (CISCO),11.07.2025 202505-Programme.pdf p.44
+RBU1(S1)G1,Monday,11:00,12:00,1,MPU-3103,Tutorial,Muada (3799),B017,11.07.2025 202505-Programme.pdf p.45
+RBU1(S1)G1,Monday,13:30,15:30,2,BMMS1743,Lecture,Patricia (4127),B105,11.07.2025 202505-Programme.pdf p.45
+RBU1(S1)G1,Tuesday,13:30,15:00,1.5,BMMS1743,Tutorial,Patricia (4127),B105,11.07.2025 202505-Programme.pdf p.45
+RBU1(S1)G1,Wednesday,10:00,12:00,2,BBBE1033,Lecture,Chang (5254),B102,11.07.2025 202505-Programme.pdf p.45
+RBU1(S1)G1,Wednesday,13:30,14:30,1,BMIT1723,Lecture,Teng (3825),B011 - Lab 3,11.07.2025 202505-Programme.pdf p.45
+RBU1(S1)G1,Wednesday,14:30,16:30,2,BMIT1723,Practical,Teng (3825),B011 - Lab 3,11.07.2025 202505-Programme.pdf p.45
+RBU1(S1)G1,Thursday,09:00,10:30,1.5,BBBE1033,Tutorial,Chang (5254),B106,11.07.2025 202505-Programme.pdf p.45
+RBU1(S1)G1,Thursday,11:00,12:00,1,MPU-3133,Tutorial,Muada (3799),B015,11.07.2025 202505-Programme.pdf p.45
+RSD3(S1)G2,Monday,09:00,11:00,2,BMSE3153,Lecture,Lee (3221),B102,11.07.2025 202505-Programme.pdf p.57
+RSD3(S1)G2,Monday,13:00,15:00,2,BMIT3084,Lecture,Dr Chris (4288),B006 - Lab4 (CISCO),11.07.2025 202505-Programme.pdf p.57
+RSD3(S1)G2,Tuesday,13:00,14:00,1,BMSE3153,Practical,Su (5425),B009 - Lab 1,11.07.2025 202505-Programme.pdf p.57
+RSD3(S1)G2,Tuesday,14:00,16:00,2,BMIT3273,Lecture,Jefther (5599),B107,11.07.2025 202505-Programme.pdf p.57
+RSD3(S1)G2,Wednesday,11:00,13:00,2,BMIT2073,Lecture,Ts Shikin (5514),B015,11.07.2025 202505-Programme.pdf p.57
+RSD3(S1)G2,Wednesday,14:00,16:00,2,BMIT2073,Practical,Ts Shikin (5514),B010 - Lab 2,11.07.2025 202505-Programme.pdf p.57
+RSD3(S1)G2,Thursday,09:00,11:00,2,BMIS2113,Lecture,Daniel (5652),B105,11.07.2025 202505-Programme.pdf p.57
+RSD3(S1)G2,Thursday,11:00,12:00,1,BMIS2113,Tutorial,Daniel (5652),B105,11.07.2025 202505-Programme.pdf p.57
+RSD3(S1)G2,Thursday,13:00,14:00,1,BMIS2113,Practical,Daniel (5652),B005 - Lab 5,11.07.2025 202505-Programme.pdf p.57
+RSD3(S1)G2,Friday,10:00,11:00,1,BMIT3084,Tutorial,Dr Chris (4288),B006 - Lab4 (CISCO),11.07.2025 202505-Programme.pdf p.57
+RSD3(S1)G2,Friday,11:00,13:00,2,BMIT3084,Practical,Dr Chris (4288),B006 - Lab4 (CISCO),11.07.2025 202505-Programme.pdf p.57
+RSD3(S1)G2,Friday,14:30,16:30,2,BMIT3273,Practical,Jefther (5599),B006 - Lab4 (CISCO),11.07.2025 202505-Programme.pdf p.57
+RSD3(S1)G1,Monday,13:30,15:30,2,BMCS3033,Lecture,Daniel (5652),B018,11.07.2025 202505-Programme.pdf p.58
+RSD3(S1)G1,Tuesday,11:00,13:00,2,BMIS2003,Lecture,Dr Chris (4288),B006 - Lab4 (CISCO),11.07.2025 202505-Programme.pdf p.58
+RSD3(S1)G1,Tuesday,14:00,16:00,2,BMIT3273,Lecture,Jefther (5599),B107,11.07.2025 202505-Programme.pdf p.58
+RSD3(S1)G1,Wednesday,09:00,11:00,2,BMIT3173,Lecture,Ts Shikin (5514),B014,11.07.2025 202505-Programme.pdf p.58
+RSD3(S1)G1,Thursday,09:00,11:00,2,BMIS2003,Practical,Dr Chris (4288),B006 - Lab4 (CISCO),11.07.2025 202505-Programme.pdf p.58
+RSD3(S1)G1,Thursday,14:00,16:00,2,BMIT3173,Practical,Ts Shikin (5514),B006 - Lab4 (CISCO),11.07.2025 202505-Programme.pdf p.58
+RSD3(S1)G1,Friday,09:30,10:30,1,BMCS3033,Tutorial,Daniel (5652),B011 - Lab 3,11.07.2025 202505-Programme.pdf p.58
+RSD3(S1)G1,Friday,14:30,16:30,2,BMIT3273,Practical,Jefther (5599),B006 - Lab4 (CISCO),11.07.2025 202505-Programme.pdf p.58
+RSD2(S1)G1,Monday,09:00,11:00,2,BMIT2154,Lecture,Dr Chris (4288),B006 - Lab4 (CISCO),11.07.2025 202505-Programme.pdf p.59
+RSD2(S1)G1,Monday,11:00,12:00,1,BMIT2154,Tutorial,Dr Chris (4288),B006 - Lab4 (CISCO),11.07.2025 202505-Programme.pdf p.59
+RSD2(S1)G1,Monday,13:00,15:00,2,BMIT2043,Lecture,Rahmat (5516),B106,11.07.2025 202505-Programme.pdf p.59
+RSD2(S1)G1,Tuesday,09:00,11:00,2,BMCS2063,Lecture,Jefther (5599),B017,11.07.2025 202505-Programme.pdf p.59
+RSD2(S1)G1,Tuesday,12:00,14:00,2,BMCS2063,Practical,Jefther (5599),B005 - Lab 5,11.07.2025 202505-Programme.pdf p.59
+RSD2(S1)G1,Tuesday,15:00,16:00,1,BMIT2043,Tutorial,Rahmat (5516),B016,11.07.2025 202505-Programme.pdf p.59
+RSD2(S1)G1,Tuesday,16:00,17:00,1,BMIT2043,Practical,Rahmat (5516),B009 - Lab 1,11.07.2025 202505-Programme.pdf p.59
+RSD2(S1)G1,Wednesday,09:00,11:00,2,BMIT2154,Practical,Dr Chris (4288),B006 - Lab4 (CISCO),11.07.2025 202505-Programme.pdf p.59
+RSD2(S1)G1,Wednesday,13:00,15:00,2,BMSE2163,Lecture,Su (5425),B015,11.07.2025 202505-Programme.pdf p.59
+RSD2(S1)G1,Wednesday,15:00,16:00,1,BMSE2163,Tutorial,Su (5425),B015,11.07.2025 202505-Programme.pdf p.59
+RSD2(S1)G1,Thursday,09:00,11:00,2,BMIS2113,Lecture,Daniel (5652),B105,11.07.2025 202505-Programme.pdf p.59
+RSD2(S1)G1,Thursday,11:00,12:00,1,BMIS2113,Tutorial,Daniel (5652),B105,11.07.2025 202505-Programme.pdf p.59
+RSD2(S1)G1,Thursday,12:00,13:00,1,BMSE2163,Practical,Su (5425),B010 - Lab 2,11.07.2025 202505-Programme.pdf p.59
+RSD2(S1)G1,Thursday,13:00,14:00,1,BMIS2113,Practical,Daniel (5652),B005 - Lab 5,11.07.2025 202505-Programme.pdf p.59
+RSD2(S1)G1,Friday,11:00,13:00,2,BMCS2053,Lecture,Ts Shikin (5514),B103,11.07.2025 202505-Programme.pdf p.59
+RSD2(S1)G1,Friday,14:00,15:00,1,BMCS2053,Tutorial,Ts Shikin (5514),B103,11.07.2025 202505-Programme.pdf p.59
+RSD2(S1)G1,Friday,15:00,16:00,1,BMCS2053,Practical,Ts Shikin (5514),B009 - Lab 1,11.07.2025 202505-Programme.pdf p.59
+RSD1(S1)G1,Monday,09:00,11:00,2,BMIT1173,Lecture,Jefther (5599),B107,11.07.2025 202505-Programme.pdf p.60
+RSD1(S1)G1,Monday,11:00,12:00,1,MPU-3103,Tutorial,Muada (3799),B017,11.07.2025 202505-Programme.pdf p.60
+RSD1(S1)G1,Wednesday,09:00,11:00,2,BMCS1013,Lecture,Rahmat (5516),B105,11.07.2025 202505-Programme.pdf p.60
+RSD1(S1)G1,Wednesday,11:00,12:00,1,BMCS1013,Tutorial,Rahmat (5516),B105,11.07.2025 202505-Programme.pdf p.60
+RSD1(S1)G1,Wednesday,13:00,15:00,2,BMCS1113,Lecture,Rahmat (5516),B102,11.07.2025 202505-Programme.pdf p.60
+RSD1(S1)G1,Wednesday,15:00,16:00,1,BMCS1113,Tutorial,Rahmat (5516),B102,11.07.2025 202505-Programme.pdf p.60
+RSD1(S1)G1,Thursday,09:00,10:00,1,BMCS1113,Practical,Rahmat (5516),B005 - Lab 5,11.07.2025 202505-Programme.pdf p.60
+RSD1(S1)G1,Thursday,10:00,11:00,1,BMCS1013,Practical,Rahmat (5516),B005 - Lab 5,11.07.2025 202505-Programme.pdf p.60
+RSD1(S1)G1,Thursday,12:00,13:00,1,BMIT1173,Tutorial,Jefther (5599),B009 - Lab 1,11.07.2025 202505-Programme.pdf p.60
+RSD1(S1)G1,Thursday,13:00,14:00,1,BMIT1173,Practical,Jefther (5599),B009 - Lab 1,11.07.2025 202505-Programme.pdf p.60
+RSD1(S1)G1,Thursday,14:00,15:00,1,BMCS1053,Practical,Teng (3825),B009 - Lab 1,11.07.2025 202505-Programme.pdf p.60
