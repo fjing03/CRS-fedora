@@ -62,3 +62,11 @@ Deferred (recorded): `mock-data.js` `currentUser` block + 3 legacy ownership con
 - Live: 5425 panel = `Pn. Surayaini Binti Basri / 5425 / Lecturer (PL)` + approval link, **0** mock-identity hits; student panel = own identity, 3 student links, **0** lecturer-only links
 - Auth matrix unchanged (guest 302 → login.student; wrong role 403); retrieval live (5425: BMIT9012+B107; student: BMIT2222+B101)
 - Gates: phpunit **113/113** (110 + 3), phpstan-1G 0, pint adminer-only
+
+### Follow-up (same day) — Playwright browser-level guard
+
+| Timestamp | Location | Change |
+|-----------|----------|--------|
+| 2026-10-08 | `tests/nav-identity.spec.ts` | NEW — Playwright (chromium) spec for the JS-runtime layer PHPUnit/curl cannot see: real-browser panel identity (5425/25RSD0001/5770), zero mock text rendered, approval-link count (2 = nav + drawer), mobile-viewport drawer interaction (hamburger is a ≤768px surface), and **zero JS page errors** on load. 3/3 pass against the running app |
+
+*Supplements `NavIdentityTest` (HTTP-level); not part of the archived change's frozen scope — added as follow-up verification at user request.*
