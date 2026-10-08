@@ -319,3 +319,25 @@ SDD change: `.sdd/changes/sync-upstream-fjing-ui/` — proposal/design/specs/tas
 - Pint (`composer run lint:check`): flags only `public/adminer.php` — pre-merge-identical vendored baseline
 - Smoke: restart (`pkill -f "artisan serve"`, never `pkill -9 php`) + views purge; logged-in student session → `GET /replacement-history-ui` **200**, `class="nav-item active" href="/replacement-history-ui"`; login redirect to `/student-my-timetable-ui` re-verifies NFR 3.4 live. Recorded nuance: unauthenticated probes are auth-gated (reviewer re-measured = 200 login page; recorded = 302 → `/login/student`) — never 500 either way
 - Spec greps: ours-4-state 0 / 3-state 1 / FR-4.7 gloss 0 / H4 cohort-scoped 1 / H4 global-ledger 0
+
+## 2026-10-08 — repair-timetable-seed-data (Wave 2 seed repair)
+
+SDD change: `.sdd/changes/repair-timetable-seed-data/` — proposal/design/specs/tasks all frozen (Batches 1–4; reviewer rounds 2/3/1/1). Verify pass 2026-10-08: **PASS, 0 🔴** (see the change's review-log.md; 2 🟡 recorded — [W-1] T6.1 main-side-fix deviation sanctioned+disclosed after 3 consecutive subagent-spawn transport failures, [W-2] T-2 diagnostic alias deferred to follow-up).
+
+### Repair outcomes
+
+| Timestamp | Location | Change |
+|-----------|----------|--------|
+| 2026-10-08 | `database/seeders/ClassSessionsSeeder.php` | Fail-fast occupancy: whole template loop in one `DB::transaction`; `markTimeSlotsOccupied` returns affected rows; post-loop assert == `ceil(duration/30)*14` (venue-keyed, cohort-independent) else `RuntimeException` (module/room/day/window). **The silent no-op (clash templates seeded zero time_slots and the run finished green) is structurally impossible** |
+| 2026-10-08 | `database/seeders/ClassSessionsSeeder.php` | E-table: tpl#25 re-timed B005 Fri 10–12; tpl#29 merged multi [RAF2G2+G4] @ B110; tpl#30 dup deleted; tpl#32 → B111 Mon 14–16 [RSD2G2+RSD2G3+RSD3G3]; tpl#33 → [RSD2G2]; NEW MPU-3133 multi [RSD3G1+G2+G3] @ B111 Wed 14–16; NEW MPU-3232 T rows @ B102 Thu 16–18 [RSD2G3] + B102 Fri 14–16 [RSD3G3] — per BACKEND-TASKS.md:222–223 spec |
+| 2026-10-08 | `database/seeders/DatabaseSeeder.php` | One-line chain: `ReplacementRequestsSeeder::class` after `ClassExceptionsSeeder` (its 9/12/22 hardcodes survive the id-shift; T5.4 verified) |
+| 2026-10-08 | `dataset/generate-timetable-doc.php` + `dataset/timetable.md` | NEW authoritative generator (frozen design §4.2 verbatim, pint-formatted; byte-identical doc across the excursion) + generated 61-line baseline; regen `git diff --exit-code` clean |
+| 2026-10-08 | `tests/Feature/TimetableSeedInvariantsTest.php` | NEW — 5 invariants (T-1..T-5): orphans+exact occupancy / overlap-free venue+lecturer+cohort / 14-cohort coverage / MPU spec sets+cap+L+T+venue types / full bidirectional doc↔DB parity (zero sampling) |
+
+## Verified
+
+- `php artisan migrate:fresh --seed`: exit 0, **zero `RuntimeException`** (fail-fast live); post-seed: **35** sessions / **44** session_cohorts / **1988** occupied (0 with null class_session_id) / **3** requests / **15** exceptions / **orphans = []** (pre-repair: 33/37/3 orphans {25,30,32}/0 requests)
+- `php vendor/phpunit/phpunit/phpunit --no-coverage`: **110/110** (105 baseline + 5 new, 523 assertions)
+- PHPStan (`--memory-limit=1G --no-progress`): **0 errors**; Pint: adminer-only baseline (the generator's formatting excursion closed byte-identically)
+- Live smoke (post-restart): RSD3(S1)G3 student sees MPU-3232 + MPU-3133 rows; RSD2(S1)G1 student sees neither — spec-cohort visibility verified in-browser
+- Note: `dataset/timetable.md`'s "20–30 blocks per week" spec variance (now 35) + 1-hour-blocks debt recorded in the change's design §8; the seed repair's AGENTS.md-required gates were satisfied via the phpstan-1G form (plain `types:check` stays prohibited by criterion 5 of the sync change)
