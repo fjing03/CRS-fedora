@@ -49,6 +49,7 @@ class DatabaseSeeder extends Seeder
             ClassSessionsSeeder::class,
             HolidaysSeeder::class,
             ClassExceptionsSeeder::class,
+            ReplacementRequestsSeeder::class,
         ]);
     }
 

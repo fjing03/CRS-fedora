@@ -22,32 +22,51 @@ class ClassSessionsSeeder extends Seeder
             ->pluck('id', 'module_code')
             ->toArray();
 
+        $roomCodes = array_flip($venues);
+        $moduleCodes = array_flip($moduleIds);
+
         $sessions = $this->getSessionTemplates($lecturers, $venues, $moduleIds);
 
-        foreach ($sessions as $s) {
-            $sessionId = DB::table('class_sessions')->insertGetId([
-                'semester_id' => 1,
-                'module_id' => $s['module_id'],
-                'lecturer_id' => $s['lecturer_id'],
-                'venue_id' => $s['venue_id'],
-                'day_of_week' => $s['day_of_week'],
-                'start_time' => $s['start_time'],
-                'end_time' => $s['end_time'],
-                'session_type' => $s['session_type'],
-                'created_at' => now(),
-                'updated_at' => now(),
-            ]);
-
-            $cohorts = $s['cohorts'] ?? [];
-            foreach ($cohorts as $cohortId) {
-                DB::table('session_cohorts')->insert([
-                    'class_session_id' => $sessionId,
-                    'cohort_id' => $cohortId,
+        DB::transaction(function () use ($sessions, $roomCodes, $moduleCodes): void {
+            foreach ($sessions as $s) {
+                $sessionId = DB::table('class_sessions')->insertGetId([
+                    'semester_id' => 1,
+                    'module_id' => $s['module_id'],
+                    'lecturer_id' => $s['lecturer_id'],
+                    'venue_id' => $s['venue_id'],
+                    'day_of_week' => $s['day_of_week'],
+                    'start_time' => $s['start_time'],
+                    'end_time' => $s['end_time'],
+                    'session_type' => $s['session_type'],
+                    'created_at' => now(),
+                    'updated_at' => now(),
                 ]);
-            }
 
-            $this->markTimeSlotsOccupied($s, $sessionId);
-        }
+                $cohorts = $s['cohorts'] ?? [];
+                foreach ($cohorts as $cohortId) {
+                    DB::table('session_cohorts')->insert([
+                        'class_session_id' => $sessionId,
+                        'cohort_id' => $cohortId,
+                    ]);
+                }
+
+                $affected = $this->markTimeSlotsOccupied($s, $sessionId);
+
+                $expected = (int) ceil((strtotime($s['end_time']) - strtotime($s['start_time'])) / 60 / 30 * 14);
+                if ($affected !== $expected) {
+                    throw new \RuntimeException(sprintf(
+                        'ClassSessionsSeeder: occupancy mismatch for %s @ %s day %d %s-%s — affected %d of expected %d (template overlap or grid drift). Fix the template; do not re-run blindly.',
+                        $moduleCodes[$s['module_id']] ?? $s['module_id'],
+                        $roomCodes[$s['venue_id']] ?? $s['venue_id'],
+                        $s['day_of_week'],
+                        $s['start_time'],
+                        $s['end_time'],
+                        $affected,
+                        $expected,
+                    ));
+                }
+            }
+        });
     }
 
     /**
@@ -63,12 +82,14 @@ class ClassSessionsSeeder extends Seeder
     }
 
     /**
-     * @param  array<string, int>  $s
+     * @param  array<string, mixed>  $s
+     * @return int accumulated affected rows across the 14 weekly UPDATEs
      */
-    private function markTimeSlotsOccupied(array $s, int $sessionId): void
+    private function markTimeSlotsOccupied(array $s, int $sessionId): int
     {
+        $affected = 0;
         for ($week = 1; $week <= 14; $week++) {
-            DB::table('time_slots')
+            $affected += DB::table('time_slots')
                 ->where('semester_id', 1)
                 ->where('week_number', $week)
                 ->where('day_of_week', $s['day_of_week'])
@@ -83,6 +104,8 @@ class ClassSessionsSeeder extends Seeder
                     'updated_at' => now(),
                 ]);
         }
+
+        return $affected;
     }
 
     /**
@@ -368,8 +391,8 @@ class ClassSessionsSeeder extends Seeder
                 'lecturer_id' => $this->lookup($lecturers, '5516'),
                 'venue_id' => $venues['B005'],
                 'day_of_week' => 4,
-                'start_time' => '08:00:00',
-                'end_time' => '10:00:00',
+                'start_time' => '10:00:00',
+                'end_time' => '12:00:00',
                 'session_type' => 'P',
                 'cohorts' => [$cohortIds['DFT1(S1)G1']->id],
             ],
@@ -408,7 +431,7 @@ class ClassSessionsSeeder extends Seeder
                 'cohorts' => [$cohortIds['RSD1(S1)G1']->id],
             ],
 
-            // ===== RAF2(S3)G2 — MPU-3133 =====
+            // ===== Multi-cohort: RAF2(S3)G2 + RAF2(S3)G4 — MPU-3133 (merged; tpl#30 dup deleted) =====
             [
                 'module_id' => $moduleIds['MPU-3133'],
                 'lecturer_id' => $this->lookup($lecturers, '4363'),
@@ -417,19 +440,7 @@ class ClassSessionsSeeder extends Seeder
                 'start_time' => '10:00:00',
                 'end_time' => '12:00:00',
                 'session_type' => 'L',
-                'cohorts' => [$cohortIds['RAF2(S3)G2']->id],
-            ],
-
-            // ===== RAF2(S3)G4 — MPU-3133 =====
-            [
-                'module_id' => $moduleIds['MPU-3133'],
-                'lecturer_id' => $this->lookup($lecturers, '4363'),
-                'venue_id' => $venues['B110'],
-                'day_of_week' => 2,
-                'start_time' => '10:00:00',
-                'end_time' => '12:00:00',
-                'session_type' => 'L',
-                'cohorts' => [$cohortIds['RAF2(S3)G4']->id],
+                'cohorts' => [$cohortIds['RAF2(S3)G2']->id, $cohortIds['RAF2(S3)G4']->id],
             ],
 
             // ===== Multi-cohort: RAF2(S3)G2 + RAF2(S3)G4 + RBU1(S1)G1 — MPU-3133 =====
@@ -444,16 +455,16 @@ class ClassSessionsSeeder extends Seeder
                 'cohorts' => [$cohortIds['RAF2(S3)G2']->id, $cohortIds['RAF2(S3)G4']->id, $cohortIds['RBU1(S1)G1']->id],
             ],
 
-            // ===== RBU1(S1)G1 — MPU-3232 =====
+            // ===== Multi-cohort: RSD2(S1)G2 + RSD2(S1)G3 + RSD3(S1)G3 — MPU-3232 =====
             [
                 'module_id' => $moduleIds['MPU-3232'],
                 'lecturer_id' => $this->lookup($lecturers, '5254'),
-                'venue_id' => $venues['B110'],
+                'venue_id' => $venues['B111'],
                 'day_of_week' => 0,
                 'start_time' => '14:00:00',
                 'end_time' => '16:00:00',
                 'session_type' => 'L',
-                'cohorts' => [$cohortIds['RBU1(S1)G1']->id],
+                'cohorts' => [$cohortIds['RSD2(S1)G2']->id, $cohortIds['RSD2(S1)G3']->id, $cohortIds['RSD3(S1)G3']->id],
             ],
             [
                 'module_id' => $moduleIds['MPU-3232'],
@@ -463,7 +474,43 @@ class ClassSessionsSeeder extends Seeder
                 'start_time' => '14:00:00',
                 'end_time' => '16:00:00',
                 'session_type' => 'T',
-                'cohorts' => [$cohortIds['RBU1(S1)G1']->id],
+                'cohorts' => [$cohortIds['RSD2(S1)G2']->id],
+            ],
+
+            // ===== Multi-cohort: RSD3(S1)G1 + RSD3(S1)G2 + RSD3(S1)G3 — MPU-3133 (spec: cross-faculty RSD3) =====
+            [
+                'module_id' => $moduleIds['MPU-3133'],
+                'lecturer_id' => $this->lookup($lecturers, '4363'),
+                'venue_id' => $venues['B111'],
+                'day_of_week' => 2,
+                'start_time' => '14:00:00',
+                'end_time' => '16:00:00',
+                'session_type' => 'L',
+                'cohorts' => [$cohortIds['RSD3(S1)G1']->id, $cohortIds['RSD3(S1)G2']->id, $cohortIds['RSD3(S1)G3']->id],
+            ],
+
+            // ===== RSD2(S1)G3 — MPU-3232 (spec: cross-year stacking T) =====
+            [
+                'module_id' => $moduleIds['MPU-3232'],
+                'lecturer_id' => $this->lookup($lecturers, '5254'),
+                'venue_id' => $venues['B102'],
+                'day_of_week' => 3,
+                'start_time' => '16:00:00',
+                'end_time' => '18:00:00',
+                'session_type' => 'T',
+                'cohorts' => [$cohortIds['RSD2(S1)G3']->id],
+            ],
+
+            // ===== RSD3(S1)G3 — MPU-3232 =====
+            [
+                'module_id' => $moduleIds['MPU-3232'],
+                'lecturer_id' => $this->lookup($lecturers, '5254'),
+                'venue_id' => $venues['B102'],
+                'day_of_week' => 4,
+                'start_time' => '14:00:00',
+                'end_time' => '16:00:00',
+                'session_type' => 'T',
+                'cohorts' => [$cohortIds['RSD3(S1)G3']->id],
             ],
         ];
     }
