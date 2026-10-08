@@ -341,3 +341,19 @@ SDD change: `.sdd/changes/repair-timetable-seed-data/` — proposal/design/specs
 - PHPStan (`--memory-limit=1G --no-progress`): **0 errors**; Pint: adminer-only baseline (the generator's formatting excursion closed byte-identically)
 - Live smoke (post-restart): RSD3(S1)G3 student sees MPU-3232 + MPU-3133 rows; RSD2(S1)G1 student sees neither — spec-cohort visibility verified in-browser
 - Note: `dataset/timetable.md`'s "20–30 blocks per week" spec variance (now 35) + 1-hour-blocks debt recorded in the change's design §8; the seed repair's AGENTS.md-required gates were satisfied via the phpstan-1G form (plain `types:check` stays prohibited by criterion 5 of the sync change)
+
+## 2026-10-08 — merge-upstream-fjing-4dc4d06 (upstream UI delta sync)
+
+SDD change: `.sdd/changes/merge-upstream-fjing-4dc4d06/` — proposal/design/tasks frozen (reviewer rounds 2/3/1); verify **PASS, 0 🔴, 0 🟡**.
+
+| Timestamp | Location | Change |
+|-----------|----------|--------|
+| 2026-10-08 | merge commit (parents `52e25ca` + `4dc4d06`) | Synced parked upstream delta `36c4d2c..4dc4d06` (5 commits, 23 paths, UI/docs/SDD-history): venue timetable cohort-style event blocks (`a86e327`), mock-data real subject names (`f5d12ed`), holiday badges (`142ec2e`), tabbed info modals (`bc748a3`), replacement origin trail + conflict colouring (`4dc4d06`) |
+| 2026-10-08 | resolution ledger | **None** — `merge-tree` preflight clean vs pinned SHA; 7 path-overlap files auto-merged (6 changelogs append-only + `ui-common.js` where upstream's 7 hunks avoid our Wave-1 `jumpToToday` guards; S2b added-line parity 99 ⊆ 104 proves zero hunk drops) |
+
+## Verified
+
+- Post-merge census equality: `HEAD^1..HEAD` = exactly the 23 delta paths (both `comm` directions empty); `ui-nav-bar.blade.php` untouched — Wave-3 scope intact; `mock-data.js currentUser` still hardcoded 5770 (Wave 3's job)
+- Gates at merge commit: phpunit **110/110** (523 assertions, no drift), phpstan-1G **0**, pint adminer-only
+- Live smoke: HTTP 200 ×3 (staff 5425 → venue-timetable + replacement-home; student 25RSD0001 → cohort-timetable); served assets carry the merge (`event-conflict`/`event-block`, `.badge-public-holiday`, real subject names)
+- Wave 3 (`wire-backend-into-refactored-ui`) now wires against the newest UI
