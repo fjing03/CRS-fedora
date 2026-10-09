@@ -43,6 +43,8 @@ Frozen baseline: `proposal.md` (Round 2 PASS). Baseline context: `explore-brief.
 
 ## 3. Verify plan (pinned gate list)
 
+> **Apply-time erratum (2026-10-09):** the upstream subset was expected green on the assumption it exercises mock pages. Reality: fedora's UI routes are auth-FIRST (`routes/web.php` D3 — identical middleware for component and legacy template), and `APP_MOCK_FALLBACK` is off — so the auth-free upstream specs (0 login calls) get login-redirected and fail on real-DB data. The pre-merge spec versions have the same auth-free structure (verified at `da20c58`) — they were never green in fedora and were never part of the pre-change gate list. The subset is **inapplicable in the backend fork** (same class as the `cancel-class.spec.ts` exclusion): upstream specs verify the pure-UI repo surface; fedora's real-page coverage is `venue-db` + `timetable-wiring` + `nav-identity` + phpunit. Incidental result on apply: 29/100 passed (the auth-insensitive subset).
+
 | Gate | Expectation |
 |---|---|
 | `composer run lint:check` | clean |
@@ -51,7 +53,7 @@ Frozen baseline: `proposal.md` (Round 2 PASS). Baseline context: `explore-brief.
 | `tests/venue-db.spec.ts` | 3/3 |
 | `tests/timetable-wiring.spec.ts` | 5/5 |
 | `tests/nav-identity.spec.ts` | 3/3 |
-| Upstream subset: `tests/confirm-guards.spec.ts`, `tests/ui-regression.spec.ts`, `tests/venue-timetable.spec.ts` | green (they run against mock-UI pages, unchanged in structure by the backend) |
+| Upstream subset: `tests/confirm-guards.spec.ts`, `tests/ui-regression.spec.ts`, `tests/venue-timetable.spec.ts` | **N/A in fedora — see erratum below** |
 
 **Excluded from gates:** `tests/cancel-class.spec.ts` (NEW upstream, 480 lines) — write-path mock-UI flow, login-heavy (rate-limit 5/min per ID makes it flaky in this environment), and unrelated to any fedora backend surface. Deferred debt: run it once spec infra is tuned; recorded in review-log at verify.
 

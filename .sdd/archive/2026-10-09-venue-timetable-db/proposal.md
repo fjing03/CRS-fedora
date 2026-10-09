@@ -27,8 +27,12 @@ declarative note.
 2. **Real data reads** (per explore-brief mapping table):
    - venue dropdown + venue-type filter over the 23 real `venues` rows
      (`room_type`: tutorial 16 / lab 4 / lecture_hall 2 / cisco_lab 1)
-   - slot grid from `time_slots WHERE venue_id AND week_number` with real statuses
-     (available / occupied / pending) and holiday annotation from the `holidays` table
+   - slot grid from `time_slots WHERE venue_id` (all weeks — the component builds the
+     full-semester eventsByWeek map; week filtering is client-side via WeekNavigator)
+     with real statuses (available / occupied / pending) and holiday annotation from the
+     `holidays` table *(erratum 2026-10-09 at archive: originally worded "WHERE venue_id
+     AND week_number" — the shipped implementation has no server-side week filter; the
+     WeekNavigator consumes the all-weeks map per the unfrozen design §1/§2)*
    - occupied-slot details from real `class_sessions` (module code + title, lecturer,
      cohort codes, session type); "Your Classes" legend state = session owned by the
      logged-in lecturer

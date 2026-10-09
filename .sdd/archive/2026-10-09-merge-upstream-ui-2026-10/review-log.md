@@ -49,3 +49,21 @@
 - (none)
 
 **Verdict: PASS** — tasks.md is FROZEN as of this round. All batches frozen → proceed to apply.
+
+## apply — 2026-10-09 (T1–T8 execution notes)
+### Apply-time errata (declarative, ledgered)
+1. **Upstream spec subset → N/A in fedora.** Design §3 expected the upstream de-staled specs green; wrong assumption. Fedora's UI routes are auth-FIRST (D3, identical middleware for component/legacy) with `APP_MOCK_FALLBACK` off, while upstream specs make auth-free mock-UI assumptions (0 login calls). Verified pre-merge spec (`da20c58`) has the same structure → never green in fedora, never in the pre-change gate list. Same class as the `cancel-class.spec.ts` exclusion. Real-page coverage stands on venue-db (3/3) + timetable-wiring (5/5) + nav-identity (3/3) + phpunit (123/123). Incidental upstream-subset result: 29/100 passed. design §3 + tasks T8 updated with the erratum.
+2. **`public/adminer.php` pint failure is pre-existing** (last touched by old upstream commit `bc3bc28`; merge and composer config untouched by this batch). Fixed in passing under the lint:check gate (cosmetic fixers) and noted here.
+3. **Legend swatch colours adapted to the real grid** where they differ from upstream's mock-event classes: Your Classes = `--color-primary` and Others' Classes = `--color-surface-variant` (match `.vt-cell-yours`/`.vt-cell-others` per §10.0 same-name-same-colour); pending/conflict swatches upstream-verbatim. Labels/tips otherwise verbatim with the honest Available tip per frozen design.
+4. **Twin-merge test target adjusted**: the occupied/pending partial unique index makes even crafted twin rows impossible, so the defensive merge is unit-tested directly via reflection on `VenueTimetable::mergeTwinEvents()` (severity, cohort join, student sum, mine-OR, singleton pass-through) instead of a DB-path test. Design §2.3's "crafted-row feature test" intent preserved.
+5. **Server restart footgun noted**: `pkill -f "[a]rtisan serve"` inside a compound shell command kills the issuing shell (pattern matches the wrapper's own command line). Split into a standalone invocation; AGENTS.md's `pkill -9 php` line remains superseded.
+### Gates (final)
+- lint:check ✅ · phpstan --memory-limit=1G 0 ✅ · phpunit 123/123 (829 assertions) ✅ · venue-db 3/3 (incl. 4288 ownership cards 8/14 live) ✅ · timetable-wiring 5/5 ✅ · nav-identity 3/3 ✅
+
+## verify — 2026-10-09
+### ✅ Verdict: VERIFY PASSES
+- All 5 checks green: frozen-requirement traceability (component/blade/tests/changelog), merge scope + conflict resolution (both sides kept, prepend convention), gate results consistent (phpunit 123/123, venue-db 3/3 with live 4288 ownership 8/14, upstream subset N/A per §3 erratum), all 5 apply-time errata ledgered, venue-timetable-db final state consistent with its frozen set.
+### 🟡 Addressed
+- T9 premature archive checkbox corrected before archiving (was ticked while neither change was archived).
+- Traceability note: the ownership flag is `mine` in shipped code (the baseEvent contract key the modal/engine consume); merge design/T4 called it `isMine` — substantively identical, note closes the gap.
+- W8 SQL spot-check result recorded: B006 W8 total=120, occupied=38 (matches the pre-merge audit).

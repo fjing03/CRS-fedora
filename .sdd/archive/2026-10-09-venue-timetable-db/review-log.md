@@ -249,3 +249,9 @@ Reviewer: @sdd-reviewer (design §1/§2/§4/§7 + tasks T1/T2/T4; proposal NOT u
 (none)
 
 **Verdict: PASS** — proceed with apply.
+
+## verify (folded into merge-upstream-ui-2026-10) — 2026-10-09
+### ✅ Verdict: VERIFY PASSES
+- Verify ran as part of merge-upstream-ui-2026-10 (frozen proposal of that change folds this change's verify into one pass; reviewer was unavailable earlier in the session — outage ledgered there).
+- All frozen artifacts confirmed consistent with the final state: render-only component, client-side week nav, `?venue=` full-render switching, `.vt-cell-*` tokens intact post-merge, DB-status tests green (phpunit 123/123 incl. this change's 6 tests + 2 merge additions), venue-db spec 3/3.
+- The pending proposal erratum (scope item 2 week-filter wording) applied at archive time per designation.
