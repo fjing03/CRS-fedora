@@ -1,5 +1,21 @@
 # Changelog — Venue Timetable UI
 
+## [2026-10-09] Post-merge design parity: 7-item legend + ownership cards (SDD merge-upstream-ui-2026-10)
+
+After merging `upstream/fjing` (`e7f8036`, 21 commits — the 2026-10-09 UI batch), the DB-backed Livewire page (`App\Livewire\VenueTimetable`) was adapted to the post-merge venue design. READ-only v1 unchanged: no Book button, no cancel modal (write path = Slice B).
+
+### Page changes
+- **Legend 4 → 7 items** (upstream parity): Available / Your Classes / Others' Classes / Others' Pending / Your Pending / Your Conflict (`event-conflict` swatch) / Others' Conflict. Swatch colours match the real grid cells (`.vt-cell-*`); Available tip stays honest ("Free slot…", no "click to book").
+- **Summary cards**: Pending card (always 0 in v1 data) replaced by **My Teaching Classes** (`#sumMyClasses` — viewer's session rows, each class counts separately) and **My Teaching Hours** (`#sumMyHours` — viewer's occupied slots × 0.5 h, trailing `.0` stripped). Total / Available / Occupied kept.
+- **Twin-merge (defensive)**: same venue+day+start events collapse into one block by severity (conflict > pending > replacement > normal), cohorts joined, students summed — impossible in v1 data (partial unique index); unit-tested via reflection.
+- **`statusClassFn` gains the `conflict → event-conflict` contract** (unreachable in v1 — no fake data).
+
+### Verification
+- phpunit 123/123 (829 assertions; +ownership-cards and twin-merge tests) · phpstan 0 · lint clean · venue-db 3/3 (live `4288` ownership check: B006 W1 → 8 classes / 14 h) · timetable-wiring 5/5 · nav-identity 3/3.
+- Upstream auth-free mock specs are N/A on fedora's auth-first real-data routes (see SDD review-log erratum).
+
+---
+
 ## [2026-08-31] Sync upstream/fjing UI refactor (merge fd8c403)
 
 Merged `upstream/fjing` (267 commits `cfc1bb1..f44cc5c`) into `fedora-backend`; brings the full upstream SDD implementation (4becd3f) of this page to this PC. **New page on fedora-backend** — route `/venue-timetable-ui` smoke-tested 200. Playwright e2e spec arrived too; `@playwright/test` added as devDependency — browsers not yet installed on this PC (`npx playwright install` pending, deferred to Phase 2 wiring).

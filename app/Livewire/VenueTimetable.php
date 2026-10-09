@@ -3,9 +3,11 @@
 namespace App\Livewire;
 
 use App\Concerns\ResolvesTimetableTimeline;
+use App\Models\Cohort;
 use App\Models\TimeSlot;
 use App\Models\Venue;
 use Illuminate\Contracts\View\View;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Livewire\Attributes\Title;
 use Livewire\Component;
@@ -47,7 +49,7 @@ class VenueTimetable extends Component
                 collect(),
                 ['code' => '', 'name' => '', 'capacity' => 0],
                 array_fill(0, $this->timelineWeeks(), []),
-                array_fill(0, $this->timelineWeeks(), ['total' => 0, 'available' => 0, 'pending' => 0, 'occupied' => 0]),
+                array_fill(0, $this->timelineWeeks(), ['total' => 0, 'available' => 0, 'occupied' => 0, 'myClasses' => 0, 'myHours' => '0']),
             );
         }
 
@@ -75,6 +77,11 @@ class VenueTimetable extends Component
         $weeks = $this->timelineWeeks();
         $eventsByWeek = array_fill(0, $weeks, []);
         $myUserId = auth()->id();
+        // Per-week MY-slot accumulation for the ownership cards (occupied only —
+        // pending bookings are not teaching). myClasses counts session ROWS
+        // (each class counts separately, upstream wording), myHours = slots × 0.5.
+        $mySlotCount = array_fill(0, $weeks, 0);
+        $mySessionIds = array_fill(0, $weeks, []);
 
         foreach ($slots as $slot) {
             $session = $slot->classSession;
@@ -83,7 +90,9 @@ class VenueTimetable extends Component
                 continue;
             }
 
-            $eventsByWeek[$w - 1][] = [
+            $isMine = $session->lecturer_id === $myUserId;
+
+            $event = [
                 'id' => $slot->id,
                 'di' => (int) $slot->day_of_week,
                 'start' => $this->slotIndex($slot->start_time),
@@ -98,14 +107,30 @@ class VenueTimetable extends Component
                 'studentCount' => (int) $session->cohorts->sum('student_count'),
                 'status' => $slot->status === 'pending' ? 'pending' : 'normal',
                 'remarks' => '',
-                'mine' => $session->lecturer_id === $myUserId,
+                'mine' => $isMine,
             ];
+
+            if ($isMine && $slot->status === 'occupied') {
+                $mySlotCount[$w - 1]++;
+                $mySessionIds[$w - 1][$session->id] = true;
+            }
+
+            // Twin-merge pre-bucketing (combined lectures): same venue + day +
+            // start collapses in mergeTwinEvents() after the loop. The
+            // occupied/pending partial unique index makes real twins
+            // impossible until Slice B — the merge is defensive contract
+            // parity, unit-tested directly (see VenueTimetableTest).
+            $eventsByWeek[$w - 1][$event['di'].':'.$event['start']][] = $event;
         }
 
-        // Per-week slot totals (DB-status-only card semantics — design §2):
+        // Grid engine consumes a list — merge twins per week and strip keys.
+        $eventsByWeek = array_map(fn (array $weekMap): array => $this->mergeTwinEvents($weekMap), $eventsByWeek);
+
+        // Per-week slot totals (DB-status card semantics — merge design §2.2):
         // holiday rows keep status='available', so they count as Available;
         // the grid annotates them visually via the holidays overlay instead.
-        $totalsByWeek = array_fill(0, $weeks, ['total' => 0, 'available' => 0, 'pending' => 0, 'occupied' => 0]);
+        // sumPending is GONE (no v1 pending data); ownership cards replace it.
+        $totalsByWeek = array_fill(0, $weeks, ['total' => 0, 'available' => 0, 'occupied' => 0, 'myClasses' => 0, 'myHours' => '0']);
         DB::table('time_slots')
             ->where('venue_id', $venue->id)
             ->selectRaw('week_number, status, count(*) as c')
@@ -120,6 +145,12 @@ class VenueTimetable extends Component
                 $totalsByWeek[$w - 1]['total'] += (int) $row->c;
             });
 
+        foreach ($mySlotCount as $i => $count) {
+            $totalsByWeek[$i]['myClasses'] = count($mySessionIds[$i]);
+            // 28 slots → '14', 27 slots → '13.5' (strip trailing .0).
+            $totalsByWeek[$i]['myHours'] = rtrim(rtrim(sprintf('%.1f', $count * 0.5), '0'), '.');
+        }
+
         return $this->renderPayload($venuesJs, [
             'code' => $venue->room_code,
             'name' => $venue->room_name ?? $venue->room_code,
@@ -128,13 +159,13 @@ class VenueTimetable extends Component
     }
 
     /**
-     * @param  \Illuminate\Support\Collection<int, array{code: string, name: string, capacity: int, type: 'CiscoLab'|'Lab'|'LectureHall'|'Tutorial'}>  $venuesJs
+     * @param  Collection<int, array{code: string, name: string, capacity: int, type: 'CiscoLab'|'Lab'|'LectureHall'|'Tutorial'}>  $venuesJs
      * @param  array{code: string, name: string, capacity: int}  $venue
      * @param  array<int, array<int, array<string, mixed>>>  $eventsByWeek
-     * @param  array<int, array<string, int>>  $totalsByWeek
+     * @param  array<int, array<string, int|string>>  $totalsByWeek
      */
     private function renderPayload(
-        \Illuminate\Support\Collection $venuesJs,
+        Collection $venuesJs,
         array $venue,
         array $eventsByWeek,
         array $totalsByWeek,
@@ -153,9 +184,50 @@ class VenueTimetable extends Component
     }
 
     /**
+     * Twin-merge: keyed events (di:start → list) collapse into single blocks.
+     * Status by severity (conflict > pending > replacement > normal), cohort
+     * labels joined, cohort codes unioned, students summed, mine = OR.
+     *
+     * @param  array<string, array<int, array<string, mixed>>>  $keyed
+     * @return array<int, array<string, mixed>>
+     */
+    private function mergeTwinEvents(array $keyed): array
+    {
+        return array_values(array_map(fn (array $twins): array => $this->reduceTwins($twins), $keyed));
+    }
+
+    /**
+     * @param  array<int, array<string, mixed>>  $twins
+     * @return array<string, mixed>
+     */
+    private function reduceTwins(array $twins): array
+    {
+        $merged = $twins[0];
+        $severity = ['normal' => 0, 'replacement' => 1, 'pending' => 2, 'conflict' => 3];
+
+        foreach (array_slice($twins, 1) as $twin) {
+            if (($severity[$twin['status']] ?? 0) > ($severity[$merged['status']] ?? 0)) {
+                $merged['status'] = $twin['status'];
+            }
+            if (str_contains((string) $merged['cohort'], (string) $twin['cohort']) === false) {
+                $merged['cohort'] = trim((string) $merged['cohort'].' + '.$twin['cohort'], ' +');
+            }
+            foreach ($twin['cohorts'] as $cohortCode) {
+                if (! in_array($cohortCode, $merged['cohorts'], true)) {
+                    $merged['cohorts'][] = $cohortCode;
+                }
+            }
+            $merged['studentCount'] += $twin['studentCount'];
+            $merged['mine'] = $merged['mine'] || $twin['mine'];
+        }
+
+        return $merged;
+    }
+
+    /**
      * Multi-cohort label (trait cohortCode per cohort, joined) — mirrors baseEvent.
      *
-     * @param  \Illuminate\Support\Collection<int, \App\Models\Cohort>  $cohorts
+     * @param  Collection<int, Cohort>  $cohorts
      */
     private function cohortLabel($cohorts): string
     {

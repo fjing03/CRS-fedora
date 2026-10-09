@@ -83,12 +83,84 @@ final class VenueTimetableTest extends TestCase
         });
 
         $component->assertViewHas('totalsByWeek', function ($totals): bool {
+            // 5425 (user 1) teaches nothing in B006 — ownership cards are 0.
             return count($totals) === 14
                 && $totals[0]['total'] === 120   // 6 days × 20 slots
                 && $totals[0]['occupied'] === 48
                 && $totals[0]['available'] === 72
-                && $totals[0]['pending'] === 0;
+                && $totals[0]['myClasses'] === 0
+                && $totals[0]['myHours'] === '0';
         });
+    }
+
+    public function test_ownership_cards_count_only_the_viewers_rows(): void
+    {
+        // BMIT2154 Mon-09:00 in B006 W1 belongs to user 3 (frozen anchor).
+        $bmit2154 = TimeSlot::query()
+            ->where('week_number', 1)
+            ->where('status', 'occupied')
+            ->whereHas('classSession', fn ($q) => $q->whereHas('module', fn ($m) => $m->where('module_code', 'BMIT2154'))
+                ->whereHas('venue', fn ($v) => $v->where('room_code', 'B006')))
+            ->with('classSession')
+            ->firstOrFail();
+        $owner = User::findOrFail($bmit2154->classSession->lecturer_id);
+
+        // Expected values derived from the DB directly (not hardcoded): the
+        // owner's distinct sessions + occupied slots in B006 W1.
+        $ownerSlots = TimeSlot::query()
+            ->where('week_number', 1)
+            ->where('status', 'occupied')
+            ->whereHas('classSession', fn ($q) => $q->where('lecturer_id', $owner->id)
+                ->whereHas('venue', fn ($v) => $v->where('room_code', 'B006')))
+            ->get();
+        $expectedClasses = $ownerSlots->pluck('class_session_id')->unique()->count();
+        $expectedHours = rtrim(rtrim(sprintf('%.1f', $ownerSlots->count() * 0.5), '0'), '.');
+        $this->assertGreaterThan(0, $expectedClasses);
+
+        $component = Livewire::withQueryParams(['venue' => 'B006'])
+            ->actingAs($owner)
+            ->test(VenueTimetable::class);
+
+        $component->assertViewHas('totalsByWeek', function ($totals) use ($expectedClasses, $expectedHours): bool {
+            return $totals[0]['myClasses'] === $expectedClasses
+                && $totals[0]['myHours'] === $expectedHours;
+        });
+    }
+
+    public function test_twin_merge_collapses_combined_lectures_by_severity(): void
+    {
+        // Real twins cannot exist (occupied/pending partial unique index), so
+        // the defensive merge is unit-tested directly via reflection.
+        $method = (new \ReflectionClass(VenueTimetable::class))->getMethod('mergeTwinEvents');
+        $method->setAccessible(true);
+
+        $base = fn (array $over) => array_merge([
+            'id' => 1, 'di' => 0, 'start' => 2, 'end' => 3, 'code' => 'BMIT2154',
+            'name' => 'Switching and Routing Technologies', 'type' => 'L', 'venue' => 'B006',
+            'lecturer' => 'Dr. Christopher Lazarus', 'cohort' => 'RSD3S1G1',
+            'cohorts' => ['RSD3S1G1'], 'studentCount' => 20, 'status' => 'normal',
+            'remarks' => '', 'mine' => false,
+        ], $over);
+
+        $merged = $method->invoke(new VenueTimetable, [
+            '0:2' => [
+                $base(['id' => 1, 'cohort' => 'RSD3S1G1', 'cohorts' => ['RSD3S1G1'], 'studentCount' => 20, 'status' => 'normal', 'mine' => false]),
+                $base(['id' => 2, 'cohort' => 'RSD3S1G2', 'cohorts' => ['RSD3S1G2'], 'studentCount' => 18, 'status' => 'pending', 'mine' => true]),
+            ],
+            '1:4' => [
+                $base(['id' => 3, 'di' => 1, 'start' => 4, 'cohort' => 'RSD3S1G1', 'cohorts' => ['RSD3S1G1'], 'studentCount' => 20, 'status' => 'normal']),
+            ],
+        ]);
+
+        $this->assertCount(2, $merged);
+        $twin = $merged[0];
+        $this->assertSame('pending', $twin['status']);          // severity wins
+        $this->assertSame('RSD3S1G1 + RSD3S1G2', $twin['cohort']); // cohorts joined
+        $this->assertSame(['RSD3S1G1', 'RSD3S1G2'], $twin['cohorts']);
+        $this->assertSame(38, $twin['studentCount']);           // students summed
+        $this->assertTrue($twin['mine']);                       // mine = OR
+        $this->assertSame(1, $twin['id']);                      // first slot id kept
+        $this->assertSame(3, $merged[1]['id']);                 // singleton passed through
     }
 
     public function test_mine_flag_true_only_for_the_owning_lecturer(): void

@@ -39,12 +39,18 @@ test('deep link preselects the venue; grid paints real modules; modal works', as
 });
 
 test('summary cards numeric and repaint on client-side week navigation', async ({ page }) => {
-  await loginAsStaff(page);
+  // Ownership cards are viewer-specific: 5425 teaches nothing in B006, so the
+  // cards test logs in as 4288 (Dr. Christopher Lazarus, user 3) — SQL-verified
+  // B006 week-1 owner: 8 classes / 28 slots = 14 h (merge-upstream-ui-2026-10).
+  await loginAsStaff(page, '4288');
   await page.goto('/venue-timetable-ui?venue=B006');
 
   const total = page.locator('#sumTotal');
   await expect(total).toHaveText('120', { timeout: 15_000 }); // 6 days × 20 slots
   await expect(page.locator('#sumOccupied')).toHaveText('48');
+  await expect(page.locator('#sumAvailable')).toHaveText('72');
+  await expect(page.locator('#sumMyClasses')).toHaveText('8');
+  await expect(page.locator('#sumMyHours')).toHaveText('14');
 
   // client-side week navigation repaints grid + summary
   await page.click('.week-arrow[aria-label="Next week"]');
