@@ -36,6 +36,30 @@ class DatabaseSeeder extends Seeder
         'RBU1(S1)G1' => 20,
     ];
 
+    /**
+     * Demo names for the RSD3(S1)G2 cohort's 14 students, applied in sequence
+     * (user-supplied 2026-10-09); all other students keep the 'Student <id>'
+     * placeholder.
+     *
+     * @var list<string>
+     */
+    private const RSD3G2_STUDENT_NAMES = [
+        'Victor Wembanyama',
+        'Kyrie Irving',
+        'Allen Iverson',
+        'Stephen Curry',
+        'Kevin Durant',
+        'Bill Russell',
+        'Cristiano Ronaldo',
+        'Kobe Bryant',
+        'Michael Jordan',
+        'Leo Messi',
+        'Neymar',
+        'Tom Brady',
+        'James Harden',
+        'Luka Modric',
+    ];
+
     public function run(): void
     {
         $this->seedReferenceData();
@@ -150,7 +174,8 @@ class DatabaseSeeder extends Seeder
         $counters = [];
 
         foreach ($cohorts as $cohort) {
-            $studentCount = self::STUDENT_COUNTS[$this->cohortCode($cohort)] ?? 10;
+            $cohortKey = $this->cohortCode($cohort);
+            $studentCount = self::STUDENT_COUNTS[$cohortKey] ?? 10;
             $yy = $this->intakeYearShort($cohort->intake);
             $progCode = $cohort->programme->programme_code;
             $key = $yy.$progCode;
@@ -164,8 +189,12 @@ class DatabaseSeeder extends Seeder
                 $studentId = sprintf('%s%s%04d', $yy, $progCode, $seq);
                 $counters[$key]++;
 
+                $name = $cohortKey === 'RSD3(S1)G2' && $i < count(self::RSD3G2_STUDENT_NAMES)
+                    ? self::RSD3G2_STUDENT_NAMES[$i]
+                    : 'Student '.$studentId;
+
                 $user = User::create([
-                    'name' => 'Student '.$studentId,
+                    'name' => $name,
                     'email' => strtolower($studentId).'@student.tarc.edu.my',
                     'password' => Hash::make(self::DEFAULT_PASSWORD),
                     'role' => 'student',

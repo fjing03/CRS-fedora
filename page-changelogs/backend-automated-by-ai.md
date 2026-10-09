@@ -431,3 +431,7 @@ Primary entry: `.sdd/changes/import-real-schedule-records/` (proposal/design/tas
 - SQL spot-audit: B006 W1 48 occ/72 avail; B006 W8 38/82 (Mon holiday); B002 W1 2/118, W8 0/120 — all match the rendered grid/cards
 - Route flip: `/venue-timetable-ui` now serves the Livewire component (single-point branch); legacy template untouched as fallback
 - Review trail: proposal R2 · design R3 (+ apply-time UNFREEZE: week/venue switching moved to the client-side Slice A pattern — Livewire morphs don't re-execute init scripts) · tasks R2 · verify PASS — `.sdd/archive/…venue-timetable-db/review-log.md`
+
+## 2026-10-09 — RSD3G2 demo student names
+
+`DatabaseSeeder` names the 14 RSD3(S1)G2 students in sequence (23RSD0015–0028: Victor Wembanyama, Kyrie Irving, Allen Iverson, Stephen Curry, Kevin Durant, Bill Russell, Cristiano Ronaldo, Kobe Bryant, Michael Jordan, Leo Messi, Neymar, Tom Brady, James Harden, Luka Modric); all other students keep the `Student <id>` placeholder. Applied to the demo DB via targeted placeholder-only updates (first attempt mis-hit DSF1G1 due to a bad cohort lookup — fully reverted, cohort map verified from the cohorts table: all 14 cohorts match `STUDENT_COUNTS`, 252 total). Gates: phpunit 123/123 (829), phpstan 0.
