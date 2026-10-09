@@ -35,4 +35,4 @@ and the matching `page-changelogs/*.md` to learn house style before designing.
 - Before finishing a task that touches PHP: run `composer run lint:check` + `composer run types:check`.
 - After any UI page change: update the matching `page-changelogs/*.md`.
 - **After any UI Blade change:** clear stale cache before verifying: `pkill -f "[a]rtisan serve" || true && rm -f storage/framework/views/*.php && php artisan serve --port=8000 &`. Always kill old server first — old processes hold stale compiled views in memory. (Never `pkill -9 php` — it force-kills every PHP process on the machine.)
-- DB is PostgreSQL (`class_replacement`, user `philler`). Reset demo data: `php artisan migrate:fresh --seed`.
+- DB is PostgreSQL (`class_replacement`, user `philler`). **The demo DB is never re-seeded and never `migrate:fresh`** — it holds real imported data; treat it as fragile. Tests use the disposable `class_replacement_testing`, where `php artisan migrate:fresh --seed` is fine. To restore the demo DB to the pristine imported state (e.g. before a demo), use the snapshot + restore steps in `/home/jinglinux/tarumt/backups/README.md`.

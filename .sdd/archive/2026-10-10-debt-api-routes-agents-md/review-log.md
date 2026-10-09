@@ -23,3 +23,7 @@
 ### Notes
 - T1 applied with a one-clause addition beyond the literal line swap: appended "(Never `pkill -9 php` — it force-kills every PHP process on the machine.)" so future agents see the *reason*, not just the new command. Declarative doc clarification, same intent.
 - Flagged to user, out of scope here: AGENTS.md line 38 ("Reset demo data: `php artisan migrate:fresh --seed`") is the same class of harmful instruction (forbidden on the demo DB) — needs its own decision.
+
+## post-archive addendum — 2026-10-10 (user-approved fold-in, same debt class)
+- AGENTS.md line 38 ("Reset demo data: `php artisan migrate:fresh --seed`") fixed — same harmful-instruction class as line 37, explicitly agreed with user. New text: demo DB never re-seeded / never migrate:fresh; migrate:fresh --seed allowed only on class_replacement_testing; pristine-state restore via snapshot at /home/jinglinux/tarumt/backups/README.md.
+- Safety snapshot taken OUTSIDE the repo: /home/jinglinux/tarumt/backups/class_replacement-pristine-2026-10-10.dump (303 KB, 26 tables, verified counts) + README with exact restore procedure for presentation resets.
