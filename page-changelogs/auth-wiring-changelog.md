@@ -1,5 +1,9 @@
 # Changelog — Auth Wiring
 
+## [2026-10-09] Student nav whitelist 3 → 2 (SDD student-nav-remove-cohort)
+
+`partials/ui-nav-bar.blade.php`: the student `roleItems` whitelist drops the **Cohort Timetables** entry — students see **My Timetable** (`/student-my-timetable-ui`) + **Request History** (`/replacement-history-ui`) only, on both the desktop bar and the mobile drawer (single `$items` source). Paired route change: `/cohort-timetable-ui` mw → `role:lecturer` (see `cohort-timetable-ui-changelog.md`). Tests updated: `RouteGateMatrixTest` (cohort → lecturer bucket), `NavIdentityTest` (cohort link absent), `nav-identity.spec.ts` (whitelist 2 + direct-visit 403). Lecturer/PL whitelists untouched.
+
 ## Files Changed
 
 ### `.sdd/changes/auth-wiring/sdd.yaml`

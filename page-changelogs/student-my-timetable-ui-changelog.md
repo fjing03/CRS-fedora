@@ -1,5 +1,9 @@
 # Changelog — Student My Timetable
 
+## [2026-10-09] Nav postscript (SDD student-nav-remove-cohort)
+
+The top nav on this page now shows **2 items** (My Timetable, Request History) — Cohort Timetables was removed from the student side; see `auth-wiring-changelog.md` for the whitelist change and `cohort-timetable-ui-changelog.md` for the route gate. This page remains the students' FR 1.2 own-cohort view.
+
 ## [2026-08-31] Wired to real data via Livewire (SDD wire-backend-into-refactored-ui, Slice A)
 
 Page served by `App\Livewire\StudentMyTimetable` — strictly read-only (FR 1.5–1.8). Student nav (2 items) preserved through the component's layout data. Semester chip in header shows the real cohort code (FR 1.2 scoping via `students.cohort_id`).

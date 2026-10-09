@@ -16,9 +16,9 @@ use Tests\TestCase;
  * Route-gate matrix over the 9 UI routes × 4 actors (rbac-route-gating spec).
  *
  * Buckets (design route table, auth FIRST per D3):
- *  - auth (all roles):        /cohort-timetable-ui
  *  - role:student:            /student-my-timetable-ui, /replacement-history-ui
- *  - role:lecturer (+PL):     /my-timetable-ui, /replacement-home-ui, /replacement-arrangement,
+ *  - role:lecturer (+PL):     /my-timetable-ui, /cohort-timetable-ui,
+ *                             /replacement-home-ui, /replacement-arrangement,
  *                             /my-request-history-ui, /venue-timetable-ui
  *  - pl:                      /request-approval-ui
  */
@@ -42,6 +42,7 @@ class RouteGateMatrixTest extends TestCase
 
     private const LECTURER_ONLY = [
         '/my-timetable-ui',
+        '/cohort-timetable-ui',
         '/replacement-home-ui',
         '/replacement-arrangement',
         '/my-request-history-ui',
@@ -105,7 +106,7 @@ class RouteGateMatrixTest extends TestCase
     public function test_student_sees_all_role_pages_and_is_forbidden_on_staff_pages(): void
     {
         foreach (self::ALL_ROUTES as $uri) {
-            if (in_array($uri, self::STUDENT_ONLY) || $uri === '/cohort-timetable-ui') {
+            if (in_array($uri, self::STUDENT_ONLY)) {
                 $this->actingAs($this->student)->get($uri)->assertOk();
             } else {
                 $this->actingAs($this->student)->get($uri)->assertForbidden();
@@ -116,7 +117,7 @@ class RouteGateMatrixTest extends TestCase
     public function test_lecturer_sees_lecturer_pages_and_is_forbidden_on_student_and_pl_pages(): void
     {
         foreach (self::ALL_ROUTES as $uri) {
-            if ($uri === '/cohort-timetable-ui' || in_array($uri, self::LECTURER_ONLY)) {
+            if (in_array($uri, self::LECTURER_ONLY)) {
                 if ($uri === '/request-approval-ui') {
                     $this->actingAs($this->lecturer)->get($uri)->assertForbidden();
                 } else {

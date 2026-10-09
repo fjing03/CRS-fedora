@@ -38,7 +38,7 @@ $uiPages = [
         'component' => CohortTimetable::class,
         'legacy' => 'ui-design-templates.CohortTimetable-UI-design-template',
         'nav' => 'cohort-timetables',
-        'mw' => ['auth'],
+        'mw' => ['auth', 'role:lecturer'],
     ],
     '/student-my-timetable-ui' => [
         'component' => StudentMyTimetable::class,

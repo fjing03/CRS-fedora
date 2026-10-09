@@ -1,5 +1,11 @@
 # Changelog — Cohort Timetable UI
 
+## [2026-10-09] Page becomes lecturer/PL-only (SDD student-nav-remove-cohort)
+
+`/cohort-timetable-ui` is no longer on the student side: the student nav whitelist drops **Cohort Timetables** (students keep My Timetable + Request History), and the route mw tightens `['auth']` → `['auth', 'role:lecturer']` — students hitting the URL directly get 403 instead of their pinned cohort view. FR 1.2 is unaffected: students still see their own cohort's weekly schedule via **Student My Timetable** (pinned cohort chip). Lecturer and PL nav keep the Cohort Timetables item; the route `nav` key is unchanged so their active-state highlighting still works. The component's student-pinning branch becomes unreachable (left in place, defensive).
+
+---
+
 ## [2026-08-31] Wired to real data via Livewire (SDD wire-backend-into-refactored-ui, Slice A)
 
 Page served by `App\Livewire\CohortTimetable`; faculty/cohort selects are JS-owned (`wire:ignore` block) and push `cohortId` to the server (`$wire.set`) — the component re-queries all events per cohort. Students are pinned to their own cohort (FR 1.2): selects preselected + disabled, scoping enforced server-side.

@@ -96,10 +96,13 @@ final class NavIdentityTest extends TestCase
         $response->assertSee('25RSD0001', false);
         $response->assertSee('Student', false);
 
-        // Positive: the student whitelist carries all three student links.
+        // Positive: the student whitelist carries both student links
+        // (student-nav-remove-cohort: Cohort Timetables removed from the student side).
         $response->assertSee('/student-my-timetable-ui', false);
         $response->assertSee('/replacement-history-ui', false);
-        $response->assertSee('/cohort-timetable-ui', false);
+
+        // Negative: cohort timetable page removed from the student side (nav + route).
+        $response->assertDontSee('href="/cohort-timetable-ui"', false);
 
         // Negative: lecturer-only links absent from the student's HTML.
         $response->assertDontSee('href="/my-timetable-ui"', false);
