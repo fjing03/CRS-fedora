@@ -7,19 +7,22 @@ use App\Models\Lecturer;
 use App\Models\Student;
 use App\Models\TimeSlot;
 use App\Models\User;
+use App\Models\Venue;
 use Database\Seeders\DatabaseSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Livewire\Livewire;
 use Tests\TestCase;
 
 /**
- * SDD change `venue-timetable-db` — the VenueTimetable Livewire component
- * against the REAL seeded schedule (suite-proven explicit `$this->seed()`
- * pattern inside RefreshDatabase's per-test transaction).
+ * SDD changes `venue-timetable-db` + `venue-event-blocks-db` — the
+ * VenueTimetable Livewire component against the REAL seeded schedule
+ * (suite-proven explicit `$this->seed()` pattern inside RefreshDatabase's
+ * per-test transaction).
  *
  * Frozen anchors (real data): B006 week 1 has 48 occupied slots; one of its
  * Monday-09:00 sessions is BMIT2154 "Switching and Routing Technologies"
  * (lecturer user_id 3); the component is render-only (no week/venue actions).
+ * Holidays (canonical seed): W8 Monday, W14 Wed+Thu.
  */
 final class VenueTimetableTest extends TestCase
 {
@@ -213,6 +216,66 @@ final class VenueTimetableTest extends TestCase
             }
 
             return false;
+        });
+    }
+
+    public function test_own_class_on_public_holiday_is_in_payload_and_excluded_from_available(): void
+    {
+        // Crafted-row PH test (venue-event-blocks-db spec R2 payload contract):
+        // the viewer's own session on the W8 Monday holiday must appear in
+        // eventsByWeek, count in the ownership cards, and its day's free slots
+        // must be EXCLUDED from sumAvailable (the grid renders that day as
+        // offday cells — counting them Available contradicted the legend tip).
+        $viewer = $this->staffUser('5425');   // teaches zero B006 classes (frozen anchor)
+        $venue = Venue::where('room_code', 'B006')->firstOrFail();
+
+        // Craft onto an existing free W8-Monday slot (avoids the occupied
+        // partial unique index; keeps row counts stable for the total card).
+        $slot = TimeSlot::query()
+            ->where('venue_id', $venue->id)
+            ->where('week_number', 8)
+            ->where('day_of_week', 0)
+            ->where('status', 'available')
+            ->firstOrFail();
+        $session = \App\Models\ClassSession::create([
+            'semester_id' => $slot->semester_id,
+            'module_id' => \App\Models\Module::query()->firstOrFail()->id,
+            'lecturer_id' => $viewer->id,
+            'day_of_week' => 0,
+            'start_time' => $slot->start_time,
+            'end_time' => $slot->end_time,
+            'venue_id' => $venue->id,
+            'session_type' => 'L',
+        ]);
+        $slot->update(['class_session_id' => $session->id, 'status' => 'occupied']);
+
+        // Expected totals derived from the DB itself (house style): Available
+        // = free W8 slots NOT on the holiday day. Guard: there must be free
+        // holiday-day slots, or the exclusion assertion proves nothing.
+        $freeW8 = TimeSlot::where('venue_id', $venue->id)->where('week_number', 8);
+        $offdayFree = (clone $freeW8)->where('day_of_week', 0)->where('status', 'available')->count();
+        $this->assertGreaterThan(0, $offdayFree);
+        $expectedAvailable = $freeW8->where('status', 'available')->count() - $offdayFree;
+
+        $component = Livewire::withQueryParams(['venue' => 'B006'])
+            ->actingAs($viewer)
+            ->test(VenueTimetable::class);
+
+        $component->assertViewHas('eventsByWeek', function ($events): bool {
+            foreach ($events[7] as $ev) {
+                if ($ev['di'] === 0 && $ev['mine'] === true) {
+                    return true;   // the crafted own class on the holiday day
+                }
+            }
+
+            return false;
+        });
+
+        $component->assertViewHas('totalsByWeek', function ($totals) use ($expectedAvailable): bool {
+            return $totals[7]['total'] === 120
+                && $totals[7]['myClasses'] === 1
+                && $totals[7]['myHours'] === '0.5'
+                && $totals[7]['available'] === $expectedAvailable;
         });
     }
 

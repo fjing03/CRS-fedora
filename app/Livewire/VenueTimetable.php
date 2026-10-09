@@ -128,23 +128,40 @@ class VenueTimetable extends Component
         // Grid engine consumes a list — merge twins per week and strip keys.
         $eventsByWeek = array_map(fn (array $weekMap): array => $this->mergeTwinEvents($weekMap), $eventsByWeek);
 
-        // Per-week slot totals (DB-status card semantics — merge design §2.2):
-        // holiday rows keep status='available', so they count as Available;
-        // the grid annotates them visually via the holidays overlay instead.
+        // Per-week slot totals (venue-event-blocks-db design §3):
+        // Available = free slots EXCLUDING Sunday and public-holiday slots —
+        // our own legend tip says those can't be booked and the grid renders
+        // them as offday cells, so counting them Available was a semantics
+        // bug (holiday rows do keep status='available' in the DB).
         // sumPending is GONE (no v1 pending data); ownership cards replace it.
+        $offdayByWeek = [];
+        $semester = $this->timelineSemester();
+        if ($semester !== null) {
+            $semester->holidays()->get(['week_number', 'day_of_week'])->each(function ($h) use (&$offdayByWeek): void {
+                $offdayByWeek[(int) $h->week_number][(int) $h->day_of_week] = true;
+            });
+        }
+        // Sundays (day_of_week 6) — no DB rows exist (6×20 grid); excluded
+        // for contract completeness with the cellRender offday rules.
+        $isOffday = fn (int $w, int $day): bool => $day === 6 || isset($offdayByWeek[$w][$day]);
+
         $totalsByWeek = array_fill(0, $weeks, ['total' => 0, 'available' => 0, 'occupied' => 0, 'myClasses' => 0, 'myHours' => '0']);
         DB::table('time_slots')
             ->where('venue_id', $venue->id)
-            ->selectRaw('week_number, status, count(*) as c')
-            ->groupBy('week_number', 'status')
+            ->selectRaw('week_number, day_of_week, status, count(*) as c')
+            ->groupBy('week_number', 'day_of_week', 'status')
             ->get()
-            ->each(function ($row) use (&$totalsByWeek, $weeks) {
+            ->each(function ($row) use (&$totalsByWeek, $weeks, $isOffday): void {
                 $w = (int) $row->week_number;
                 if ($w < 1 || $w > $weeks || ! isset($totalsByWeek[$w - 1][$row->status])) {
                     return;
                 }
-                $totalsByWeek[$w - 1][$row->status] = (int) $row->c;
-                $totalsByWeek[$w - 1]['total'] += (int) $row->c;
+                $c = (int) $row->c;
+                $totalsByWeek[$w - 1][$row->status] += $c;
+                $totalsByWeek[$w - 1]['total'] += $c;
+                if ($row->status === 'available' && $isOffday($w, (int) $row->day_of_week)) {
+                    $totalsByWeek[$w - 1]['available'] -= $c;
+                }
             });
 
         foreach ($mySlotCount as $i => $count) {

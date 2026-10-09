@@ -1,7 +1,9 @@
-{{-- Livewire full-page view (SDD: venue-timetable-db). Real slot-level data feeds
-     the shared grid engine; READ-only v1 (booking = Slice B). Legacy mock template
-     untouched for the D10 fallback. Week nav is client-side (Slice A pattern);
-     venue switching navigates `?venue=` (full render, scripts re-run). --}}
+{{-- Livewire full-page view (SDD: venue-timetable-db; rewritten to event blocks
+     by venue-event-blocks-db). Real slot-level data feeds the shared grid
+     engine in cellRender mode — the frozen two-axis block language (colour =
+     status, border = ownership). READ-only v1 (booking = Slice B). Legacy mock
+     template untouched for the D10 fallback. Week nav is client-side (Slice A
+     pattern); venue switching navigates `?venue=` (full render, scripts re-run). --}}
 
 @section('title', 'Venue Timetable')
 
@@ -38,7 +40,7 @@
         'guideItems' => [
             '<strong>Venue selection</strong> — pick a venue from the dropdown; the grid shows its full semester',
             '<strong>Week navigation</strong> — use arrows, the dropdown or Today button to browse weeks',
-            '<strong>Slot colours</strong> — Available (green), Your Classes (blue), Others\' (grey), Pending (amber), Conflict (striped red — yours loud, others\' quiet)',
+            '<strong>Slot colours</strong> — colour = status (green = class, amber = pending, red = conflict / public holiday), border = ownership (thick = yours, hairline = others\'); your own classes on holidays show loud red — they won\'t run',
             '<strong>View details</strong> — click an occupied slot to see module, lecturer and cohorts',
         ]
     ])
@@ -69,32 +71,30 @@
     @include('partials.ui-grid-table')
         @include('partials.ui-empty-state', ['title' => 'No classes this week', 'text' => 'This venue is free all week.'])
 
-    <!-- ─── Legend Bar ─── 7 items, post-merge design parity (merge-upstream-ui-2026-10 §2.2).
-         Swatch colours match THIS grid's actual cell classes (.vt-cell-*) where they differ
-         from upstream's mock-event classes; pending/conflict swatches are upstream-verbatim. -->
-    @include('partials.ui-legend-bar', ['items' => [
+    <!-- ─── Legend Bar ─── 4 items + ownership hint (venue-event-blocks-db design §2,
+         frozen upstream design at f8b35a2). Available tip stays honest for the
+         read-only page (booking = Slice B); swatches carry real block classes. -->
+    @include('partials.ui-legend-bar', ['ownershipHint' => true, 'items' => [
         ['color' => 'var(--color-success-container)', 'label' => 'Available', 'tip' => "Free slot — booking arrives with the replacement workflow (Sunday, holiday and lead-time slots can't be booked)"],
-        ['color' => 'var(--color-primary)', 'label' => 'Your Classes', 'tip' => 'Normal or replacement sessions assigned to you'],
-        ['color' => 'var(--color-surface-variant)', 'label' => "Others' Classes", 'tip' => 'Normal or replacement sessions by other lecturers'],
-        ['color' => 'var(--color-surface-variant)', 'label' => "Others' Pending", 'tip' => 'Replacement request by other lecturers, awaiting PL approval'],
-        ['color' => 'var(--color-tertiary-container)', 'label' => 'Your Pending', 'tip' => 'Your replacement request, awaiting PL approval'],
-        ['class' => 'event-conflict', 'label' => 'Your Conflict', 'tip' => 'Your conflicted class — striped, needs your attention'],
-        ['color' => 'var(--color-error-container)', 'label' => "Others' Conflict", 'tip' => "Other lecturers' conflicted classes — plain red, no action needed from you"],
+        ['class' => 'event-normal', 'label' => 'Normal', 'tip' => 'Scheduled class with no issues (replacement sessions fold in here on this page)'],
+        ['class' => 'event-pending', 'label' => 'Pending', 'tip' => 'Replacement request awaiting PL approval'],
+        ['class' => 'event-conflict', 'label' => 'Conflict / Public Holiday', 'tip' => "This class will not run as scheduled — scheduling conflict or public holiday (remaining holiday slots show as empty 'PH' cells)"],
     ]])
 
-    <!-- ─── Weekly Summary Bar ─── pinned 5-card set (merge-upstream-ui-2026-10 proposal) -->
+    <!-- ─── Weekly Summary Bar ─── pinned 5-card set (Occupied kept: documented
+         deviation, venue-event-blocks-db design §3); keyword spans per upstream -->
     @include('partials.ui-summary-bar', [
         'cards' => [
             ['class' => 'card-total', 'valueId' => 'sumTotal', 'label' => 'Total Slots',
-                'description' => 'All bookable <strong>30-minute slots</strong> for this venue in the selected week (6 days × 20 slots).'],
+                'description' => 'All time slots shown for <span class="info-keyword">this venue</span> in the selected week.'],
             ['class' => 'card-available', 'valueId' => 'sumAvailable', 'label' => 'Available',
-                'description' => '<strong>Free time slots</strong> for this venue in the selected week.'],
+                'description' => '<span class="info-keyword">Free time slots</span> that can be booked for this venue — Sundays and public holidays excluded.'],
             ['class' => 'card-replacement', 'valueId' => 'sumMyClasses', 'label' => 'My Teaching Classes',
-                'description' => 'Sessions <strong>you teach</strong> in this venue this week — <strong>each class counts separately</strong>.'],
+                'description' => 'Sessions <span class="info-keyword">you teach</span> in this venue this week — <strong>each class counts separately</strong>.'],
             ['class' => 'card-hours', 'valueId' => 'sumMyHours', 'label' => 'My Teaching Hours',
-                'description' => 'Total hours of <strong>your classes</strong> in this venue this week (each slot = <strong>30 minutes</strong>).'],
+                'description' => 'Total hours of <span class="info-keyword">your classes</span> in this venue this week (each slot = <strong>30 minutes</strong>).'],
             ['class' => 'card-conflict', 'valueId' => 'sumOccupied', 'label' => 'Occupied',
-                'description' => 'Slots occupied by <strong>scheduled classes</strong> in the selected week.'],
+                'description' => 'Slots occupied by <span class="info-keyword">scheduled classes</span> in the selected week.'],
         ]
     ])
 
@@ -176,16 +176,62 @@
                 buildTimetableGrid({
                     events: eventsData[currentWeek] || [],
                     days: weekData[currentWeek].days,
-                    onEventClick: function (e) { openModal(e); },
-                    statusClassFn: function (div, e) {
-                        if (e.status === 'conflict') { div.classList.add(e.mine ? 'event-conflict' : 'event-public-holiday'); return; } // owner-gated: mine loud, others quiet red (upstream parity)
-                        if (e.status === 'pending') { div.classList.add('vt-cell-pending'); return; }
-                        if (e.mine) { div.classList.add('vt-cell-yours'); return; }
-                        div.classList.add('vt-cell-others');
-                    },
-                    tooltipExtra: function (e) {
-                        if (e.cohorts && e.cohorts.length) return e.cohorts.join(' + ');
-                        return e.cohort || '—';
+                    /* Page paints every cell (venue-event-blocks-db design §1):
+                       cellRender mode = the frozen two-axis block language.
+                       PH/Sunday empties get offday cells; free slots stay
+                       honest green (booking = Slice B); blocks carry
+                       colour=status + border=ownership. */
+                    cellRender: function (td, di, hi, day, info) {
+                        /* PH-day exception (holiday ONLY — Sundays hide all
+                           events): the viewer's OWN classes still render as
+                           loud red blocks on public-holiday days ("your class
+                           won't run"); everyone else's stay empty 'PH' cells. */
+                        const offMine = info && info.event && day.holiday && info.event.mine;
+                        if ((day.sunday || day.holiday) && !offMine) {
+                            const div = document.createElement('div');
+                            div.className = 'cell-content ' + (day.holiday ? 'cell-ph' : 'cell-sun');
+                            td.appendChild(div);
+                        } else if (info && info.event) {
+                            const e = info.event;
+                            const div = document.createElement('div');
+                            div.className = 'event-block span-' + info.span;   // span = e.end - e.start + 1 (half-hours)
+                            div.setAttribute('tabindex', '0');
+                            div.setAttribute('role', 'button');
+                            div.setAttribute('aria-label', 'View class details: ' + e.code + ' ' + hours[hi]);
+                            div._evt = e; div._di = di; div.__eventData = e;   // parity with default builder (keyboard handlers)
+                            div.dataset.name = e.name || '';
+                            div.dataset.venue = e.venue || '';
+                            /* `.event-block::after` renders "name · lecturer · status"
+                               (data-name + this data-tip2 — uniform format). */
+                            div.dataset.tip2 = (e.lecturer || '—') + ' · ' + eventStatusLabel(e, day.holiday);
+                            if (day.holiday) {
+                                /* own class on a public holiday — loud red, it won't run */
+                                div.classList.add('event-conflict');
+                            } else if (e.status === 'pending') {
+                                div.classList.add(e.mine ? 'event-mine-pending' : 'event-others-pending');
+                            } else if (e.status === 'conflict') {
+                                // owner-gated: mine loud 3px red; others' hairline red (§10.0 two-axis)
+                                div.classList.add(e.mine ? 'event-conflict' : 'event-public-holiday');
+                            } else {
+                                div.classList.add(e.mine ? 'event-mine' : 'event-others');
+                            }
+                            const startTime = to12h(hours[e.start]);
+                            const endTime = to12h(hours[e.end + 1] || add30min(hours[e.end]));
+                            div.innerHTML =
+                                '<span class="ev-code">' + e.code + '(' + e.type + ')</span>' +
+                                '<span class="ev-venue">' + e.venue + '</span>' +
+                                '<span class="ev-time">' + startTime + ' - ' + endTime + '</span>';
+                            div.addEventListener('click', function () { openModal(e); });
+                            td.appendChild(div);
+                            if (info.span > 1) td.colSpan = info.span;   // parity: builder sets it only when span > 1
+                        } else if (info && info.occupied) {
+                            td.style.display = 'none';                   // continuation consumed by head's colSpan
+                        } else {
+                            /* Free slot — honest green (booking arrives with Slice B) */
+                            const div = document.createElement('div');
+                            div.className = 'cell-empty';
+                            td.appendChild(div);
+                        }
                     }
                 });
                 updateSummary();

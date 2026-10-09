@@ -1,5 +1,23 @@
 # Changelog — Venue Timetable UI
 
+## [2026-10-10] Event-blocks rewrite: two-axis language, 4-item legend, PH own-class red (SDD venue-event-blocks-db)
+
+After merging `upstream/fjing` (`f8b35a2`, 12 commits — the frozen venue design), the DB-backed Livewire page (`App\Livewire\VenueTimetable` + `venue-timetable.blade.php`) was rewritten from status cells (`.vt-cell-*`) to the cohort-style **event blocks**. READ-only v1 unchanged: no Book button, no cancel modal (write path = Slice B).
+
+### Page changes
+- **Two-axis block language (§10.0)**: colour = status, border = ownership (3px thick = viewer's own classes, 0.5px hairline = others'). The page now drives the shared grid engine in `cellRender` mode (upstream mock pattern) — free slots stay honest green, occupied continuation slots collapse, blocks carry `event-mine` / `event-others` / pending & conflict pairs.
+- **Legend 7 → 4 items** (frozen design): Available / Normal (`event-normal`) / Pending (`event-pending`) / Conflict / Public Holiday (`event-conflict`) + the ownership hint line ("thick border (3px) = your classes · thin border (0.5px) = others'"). Guide-block slot-colour bullet rewritten to the same language.
+- **PH-day own-class exception**: the viewer's OWN classes on public-holiday days render loud red (`event-conflict` — "your class won't run"); everyone else's stay empty `PH` cells. Sundays always empty. Reachable against real data (W8 Mon, W14 Wed/Thu).
+- **Tooltip contract**: `data-tip2` = `lecturer · status` (`eventStatusLabel`, holiday-aware); theme.css `::after` composes the rendered tooltip `name · lecturer · status`.
+- **Summary semantics fix**: Available now **excludes Sunday and public-holiday slots** (they can't be booked — the old totals counted holiday rows as Available while the legend tip said otherwise). Cards kept: Total (120) / Available / My Teaching Classes / My Teaching Hours / **Occupied** (`#sumOccupied` — deliberate deviation from upstream's "Unavailable"; read-only page counts what's booked). **Deviation note**: My-Teaching counts the viewer's own PH-day blocks (they render as red blocks), unlike upstream's offday-skip — grid-faithful by design.
+- **Venue dropdown**: B006 (CiscoLab) now reachable under **Lab** (3 categories — merged `_typeOf` folds CiscoLab into Lab); room options carry full-name `data-tip`s.
+- Booking stays out: the Slice-B hint line remains; no fabricated pending/conflict data (conflict stays derived — B005 AMIT2034).
+
+### Verification
+- phpunit 130/130 · phpstan 0 · lint clean · venue-db 5/5 (4-item legend, block classes, PH cells, B005 conflict both sides, dropdown cascade) · timetable-wiring · nav-identity · records-intact (101 sessions / 38640 slots unchanged across the merge).
+
+---
+
 ## [2026-10-09] B005 diploma-cohort conflict — derived flag, owner-gated (SDD b005-diploma-conflict)
 
 First enforcement of `VENUE-RESTRICTIONS.md`: the audit's single violation (AMIT2034 P, Wed 11:00–13:00, B005, combined DFT+DSF diploma lecture) now renders as a **schedule conflict needing replacement**. Derived at render time — no DB mutation, the 3-state slot machine (FR 4.11) is untouched.
