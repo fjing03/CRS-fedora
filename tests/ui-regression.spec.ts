@@ -68,10 +68,12 @@ test.describe('UI Regression Test Cases', () => {
   // Section 2: Week Navigation
   test.describe('Section 2: Week Navigation', () => {
     const todayPages = [
-      { url: '/my-timetable-ui', storageKey: 'currentWeek' },
+      // WeekNavigator localStorage keys (oop-js-refactor): one key per page,
+      // not the old shared 'currentWeek'.
+      { url: '/my-timetable-ui', storageKey: 'myTimetableWeek' },
       { url: '/cohort-timetable-ui', storageKey: 'cohortTimetableState' },
-      { url: '/venue-timetable-ui', storageKey: 'currentWeek' },
-      { url: '/student-my-timetable-ui', storageKey: 'currentWeek' },
+      { url: '/venue-timetable-ui', storageKey: 'venueTimetableWeek' },
+      { url: '/student-my-timetable-ui', storageKey: 'studentTimetableWeek' },
     ];
 
     for (const { url, storageKey } of todayPages) {
@@ -125,7 +127,12 @@ test.describe('UI Regression Test Cases', () => {
     for (const [url, modalSelector] of modalPages) {
       test(`TC-3.x Modal opens on ${url}`, async ({ page }) => {
         await page.goto(`${BASE}${url}`, { waitUntil: 'networkidle' });
-        const clickable = page.locator('.event-block, .replacement-card, .timetable tbody tr, .request-row').first();
+        // NOTE: a bare 'tbody tr' matches BEFORE its child .event-block in
+        // DOM order, and clicking the row opens nothing — always prefer the
+        // block/card itself over its row container.
+        const block = page.locator('.event-block').first();
+        const card = page.locator('.replacement-card, .request-row').first();
+        const clickable = (await block.isVisible().catch(() => false)) ? block : card;
         if (await clickable.isVisible().catch(() => false)) {
           await clickable.click();
           await expect(page.locator(modalSelector).first()).toBeVisible({ timeout: 5000 });
@@ -137,69 +144,76 @@ test.describe('UI Regression Test Cases', () => {
 
   // Section 4: Replacement Flow
   test.describe('Section 4: Replacement Flow', () => {
-    const flowUrl = `${BASE}/replacement-arrangement?code=BMIT5555&date=2026-09-04&duration=2&from=replacement-home`;
+    // Toolbar restructure: the ?code= URL param no longer pre-selects the
+    // subject — the grid is locked until a subject is picked manually.
+    const flowUrl = `${BASE}/replacement-arrangement`;
+
+    async function openFlow(page) {
+      await page.goto(flowUrl, { waitUntil: 'networkidle' });
+      await page.locator('#subjectSelector').selectOption({ index: 1 });
+      await page.locator('.timetable .cell-content.cell-available').first()
+        .waitFor({ state: 'visible', timeout: 10000 });
+    }
 
     test('TC-4.1 Select slot and verify summary updates', async ({ page }) => {
-      await page.goto(flowUrl, { waitUntil: 'networkidle' });
+      await openFlow(page);
       const available = page.locator('.timetable .cell-content.cell-available').first();
-      if (await available.isVisible().catch(() => false)) {
-        await available.click();
-        const progress = page.locator('#progressText').first();
-        await expect(progress).toContainText('Selected 1 of 4 slots', { timeout: 5000 });
-        await available.click();
-        await expect(progress).toContainText('Selected 0 of 4 slots', { timeout: 5000 });
-      }
+      await available.click();
+      // the click selects a whole merged block (subject-duration span)
+      await expect(page.locator('.timetable .event-block.event-selection')).toBeVisible({ timeout: 5000 });
+      await expect(page.locator('#infoTotal')).toContainText(' of 4 slots');
+      await expect(page.locator('#infoTotal')).not.toHaveText('0 of 4 slots');
+      // clicking the merged block toggles it off again
+      await page.locator('.timetable .event-block.event-selection').first().click();
+      await expect(page.locator('#infoTotal')).toContainText('0 of 4 slots', { timeout: 5000 });
     });
 
     test('TC-4.2 Maximum selection enforcement', async ({ page }) => {
-      await page.goto(flowUrl, { waitUntil: 'networkidle' });
-      const progress = page.locator('#progressText').first();
-      const available = page.locator('.timetable .cell-content.cell-available');
-      const cells = await available.count();
-      for (let i = 0; i < Math.min(cells, 5); i++) {
-        await available.nth(i).click();
+      await openFlow(page);
+      // duration defaults to 4 slots; the first click selects a whole block
+      await page.locator('.timetable .cell-content.cell-available').first().click();
+      await expect(page.locator('#infoTotal')).toContainText('4 of 4 slots', { timeout: 5000 });
+      // a further selection must be refused
+      const others = page.locator('.timetable .cell-content.cell-available');
+      if ((await others.count()) > 0) {
+        await others.first().click();
+        await page.waitForTimeout(300);
+        await expect(page.locator('#infoTotal')).toContainText('4 of 4 slots');
       }
-      const text = await progress.textContent().catch(() => '');
-      expect(text).toContain('Selected 4 of 4 slots');
     });
 
     test('TC-4.3 Clear All resets selection', async ({ page }) => {
-      await page.goto(flowUrl, { waitUntil: 'networkidle' });
-      const available = page.locator('.timetable .cell-content.cell-available').first();
-      if (await available.isVisible().catch(() => false)) {
-        await available.click();
-        await available.click();
-        const clear = page.locator('#clearAllBtn, button:has-text("Clear ALL"), .clear-all').first();
-        if (await clear.isVisible().catch(() => false)) await clear.click();
-        const progress = page.locator('#progressText').first();
-        await expect(progress).toContainText('Selected 0 of 4 slots', { timeout: 5000 });
-      }
+      await openFlow(page);
+      await page.locator('.timetable .cell-content.cell-available').first().click();
+      await expect(page.locator('#infoTotal')).not.toContainText('0 of 4 slots');
+      await page.locator('#clearAllBtn').click();
+      // critical action — confirm popup first (AGENTS §9)
+      await expect(page.locator('#confirmModal')).toBeVisible({ timeout: 5000 });
+      await page.locator('#confirmModal #modalConfirmBtn').click();
+      await expect(page.locator('#infoTotal')).toContainText('0 of 4 slots', { timeout: 5000 });
     });
 
     test('TC-4.4 Submit request confirmation modal', async ({ page }) => {
-      await page.goto(flowUrl, { waitUntil: 'networkidle' });
-      const available = page.locator('.timetable .cell-content.cell-available').first();
-      if (await available.isVisible().catch(() => false)) {
-        await available.click();
-        const submit = page.locator('#submitRequestBtn, button:has-text("Submit Request"), .submit-request').first();
-        if (await submit.isVisible().catch(() => false)) await submit.click();
-        const modal = page.locator('#submitConfirmModal, .confirmation-modal, .modal').first();
-        await expect(modal).toBeVisible({ timeout: 5000 });
-      }
+      await openFlow(page);
+      await page.locator('.timetable .cell-content.cell-available').first().click();
+      await page.locator('button:has-text("Submit Request")').first().click();
+      await expect(page.locator('#confirmModal')).toBeVisible({ timeout: 5000 });
     });
 
     test('TC-4.5 Submit request confirm sends request', async ({ page }) => {
-      await page.goto(flowUrl, { waitUntil: 'networkidle' });
-      const available = page.locator('.timetable .cell-content.cell-available').first();
-      if (await available.isVisible().catch(() => false)) {
-        await available.click();
-        const submit = page.locator('#submitRequestBtn, button:has-text("Submit Request"), .submit-request').first();
-        if (await submit.isVisible().catch(() => false)) await submit.click();
-        const confirm = page.locator('#confirmSubmitBtn, button:has-text("Confirm"), .confirm-submit').first();
-        if (await confirm.isVisible().catch(() => false)) await confirm.click();
-        const toast = page.locator('.toast, .notification, [role="status"]').first();
-        await expect(toast).toBeVisible({ timeout: 5000 }).catch(() => {});
+      await openFlow(page);
+      await page.locator('.timetable .cell-content.cell-available').first().click();
+      await page.locator('button:has-text("Submit Request")').first().click();
+      const confirm = page.locator('#confirmModal button.btn-primary, #confirmModal #modalConfirmBtn').first();
+      if (await confirm.isVisible().catch(() => false)) {
+        await confirm.click();
+        await page.waitForTimeout(400);
       }
+      // accepted outcomes: navigated away (request recorded) or a toast/notice
+      const navigated = !page.url().includes('replacement-arrangement');
+      const noticed = await page.locator('#toastBar.visible, .toast, .notification, [role="status"]').first()
+        .isVisible().catch(() => false);
+      expect(navigated || noticed).toBeTruthy();
     });
   });
 
@@ -241,6 +255,36 @@ test.describe('UI Regression Test Cases', () => {
         pending.isVisible().catch(() => false),
       ]);
       expect(counts.some(Boolean)).toBe(true);
+    });
+  });
+
+  // Section 7: Summary Cards — My Teaching / Own Records
+  test.describe('Section 7: Summary Cards — My Teaching / Own Records', () => {
+    test('TC-7.1 Cohort summary: My Teaching cards count each class separately', async ({ page }) => {
+      await page.goto(`${BASE}/cohort-timetable-ui`, { waitUntil: 'networkidle' });
+      await page.locator('#facultySelect').selectOption('focs');
+      await page.locator('#cohortSelect').selectOption('dft2s1');
+      await page.locator('#weekSelect').selectOption('0');
+      await expect(page.locator('#sumMyClasses')).toHaveText('3');   // AMCS2093 (L)+(T)+(P) — three classes, not one subject
+      await expect(page.locator('#sumMyHours')).toHaveText('4');     // 2h + 1h + 1h
+      // untouched cards keep their ids and stay numeric
+      expect(Number(await page.locator('#sumTotal').textContent())).not.toBeNaN();
+      expect(Number(await page.locator('#sumHours').textContent())).not.toBeNaN();
+      expect(Number(await page.locator('#sumConflict').textContent())).not.toBeNaN();
+    });
+
+    test('TC-7.2 Replacement Home is own-records: table and cards scoped to the logged-in lecturer', async ({ page }) => {
+      await page.goto(`${BASE}/replacement-home-ui`, { waitUntil: 'networkidle' });
+      // 4 of the 14 seeded conflicts belong to En. Lim Jia Zheng (§2.10 lecturer field)
+      await expect(page.locator('#tableBody tr')).toHaveCount(4);
+      await expect(page.locator('#summaryMyConflicted')).toHaveText('4');
+      await expect(page.locator('#summaryMyHours')).toHaveText('8');
+      await expect(page.locator('#summaryMyCourses')).toHaveText('2');
+      // others' conflicts are gone (id 3 — AMCS1013, Ts. Norshikin)
+      await expect(page.locator('#tableBody tr:has-text("AMCS1013")')).toHaveCount(0);
+      // replaced cards are gone entirely
+      await expect(page.locator('#summaryVenues')).toHaveCount(0);
+      await expect(page.locator('#summaryStudents')).toHaveCount(0);
     });
   });
 });

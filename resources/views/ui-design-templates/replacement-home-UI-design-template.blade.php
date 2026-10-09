@@ -43,6 +43,42 @@
             color: var(--color-on-error);
         }
 
+        /* ───── Just-cancelled Chip ───── */
+        .just-cancelled-chip {
+            display: inline-block;
+            background: var(--color-error-container);
+            color: var(--color-on-error-container);
+            padding: 2px 8px;
+            border-radius: var(--radius-sm);
+            font-size: 10px;
+            font-weight: 600;
+            margin-left: 6px;
+            vertical-align: middle;
+            white-space: nowrap;
+        }
+
+        /* Undo affordance beside the chip (toast-snooze companion) */
+        .just-cancelled-undo {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 18px;
+            height: 18px;
+            margin-left: 4px;
+            padding: 0;
+            border: 1px solid var(--color-outline);
+            border-radius: var(--radius-sm);
+            background: transparent;
+            color: var(--color-on-surface-variant);
+            cursor: pointer;
+            vertical-align: middle;
+            transition: background 0.15s ease, color 0.15s ease;
+        }
+        .just-cancelled-undo:hover {
+            background: var(--color-surface-variant);
+            color: var(--color-on-surface);
+        }
+
         /* ───── Summary Card Colors ───── */
         .summary-card.card-conflict .summary-value { color: var(--color-error); }
         .summary-card.card-venues .summary-value { color: var(--color-primary); }
@@ -158,7 +194,7 @@
                 @include('partials.ui-week-nav', ['prevOnclick' => 'prevWeekFilter()', 'nextOnclick' => 'nextWeekFilter()', 'selectId' => 'weekFilter', 'selectOnclick' => 'weekFilterChanged(this.value)', 'showTodayBtn' => false])
             </div>
             <div class="toolbar-right">
-                <span class="result-count" id="resultCount">Showing 14 of 14 classes</span>
+                <span class="result-count" id="resultCount">Showing 4 of 4 classes</span>
                 {{--<button id="kbShortcutsBtn" class="btn-icon" onclick="showKeyboardShortcuts()" title="Keyboard Shortcuts" style="margin-left:auto; width:36px; height:36px; display:flex; align-items:center; justify-content:center; border:1px solid var(--color-outline); border-radius:8px; color:var(--color-on-surface-variant); background:var(--color-surface); cursor:pointer;">
                     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2" ry="2"/><path d="M6 8h.001"/><path d="M10 8h.001"/><path d="M14 8h.001"/><path d="M18 8h.001"/><path d="M8 12h.001"/><path d="M12 12h.001"/><path d="M16 12h.001"/><path d="M7 16h10"/></svg>
                 </button>--}}
@@ -176,26 +212,23 @@
         <!-- ─── Pagination ─── -->
         <div class="pagination-bar" id="paginationBar">
             @include('partials.ui-rpp', ['id' => 'rppSelect', 'default' => 10, 'options' => [10, 25, 50, 'all']])
-            <span class="pagination-info" id="paginationInfo">Showing 1-10 of 14</span>
+            <span class="pagination-info" id="paginationInfo">Showing 1-10 of 4</span>
             <div class="pagination-controls" id="paginationControls"></div>
         </div>
 
         <!-- ─── Empty State (above the summary; summary auto-hides when the view is empty) ─── -->
         @include('partials.ui-empty-state', ['title' => 'No classes currently require replacement arrangements.', 'text' => 'Try adjusting your search or filter criteria.'])
 
-        <!-- ─── Summary Dashboard ─── -->
+        <!-- ─── Summary Dashboard (own-records scope — the table lists only
+              the logged-in lecturer's conflicted classes) ─── -->
         @include('partials.ui-summary-bar', [
             'cards' => [
-                ['class' => 'card-conflict', 'valueId' => 'summaryConflicted', 'label' => 'Total Conflicted',
-                    'description' => 'Classes in the selected period that <strong>need a replacement</strong> arrangement.'],
-                ['class' => 'card-venues', 'valueId' => 'summaryVenues', 'label' => 'Venues Affected',
-                    'description' => 'Number of <strong>unique venues</strong> involved in the conflicted classes.'],
-                ['class' => 'card-students', 'valueId' => 'summaryStudents', 'label' => 'Students Affected',
-                    'description' => 'Total <strong>students impacted</strong> by the scheduling conflicts.'],
-                ['class' => 'card-duration', 'valueId' => 'summaryDuration', 'label' => 'Duration Hours',
-                    'description' => 'Total <strong>hours of class time</strong> that need to be rescheduled.'],
-                ['class' => 'card-courses', 'valueId' => 'summaryCourses', 'label' => 'Distinct Courses',
-                    'description' => 'Number of <strong>different courses</strong> affected by the conflicts.'],
+                ['class' => 'card-conflict', 'valueId' => 'summaryMyConflicted', 'label' => 'My Conflicted Classes',
+                    'description' => '<strong>Your classes</strong> that need a replacement arrangement.'],
+                ['class' => 'card-duration', 'valueId' => 'summaryMyHours', 'label' => 'My Hours to Cover',
+                    'description' => 'Total <strong>hours of your class time</strong> that need to be rescheduled.'],
+                ['class' => 'card-courses', 'valueId' => 'summaryMyCourses', 'label' => 'My Courses',
+                    'description' => 'Number of <strong>your different courses</strong> affected by the conflicts.'],
             ]
         ])
 
@@ -249,7 +282,18 @@
 
 @section('page-scripts')
         initHeaderTooltips();
-        const conflictedClasses = MockData.conflictedClasses;
+        /* Own-records scope: this page is the logged-in lecturer's personal
+           conflict dashboard — only classes THEY teach are listed/counted.
+           A FUNCTION (not a load-time snapshot) so rows the ClassCancellation
+           ledger appends at runtime (always own, lecturer set by
+           rowFromEvent) are picked up on every rebuild. Seeded rows carry
+           `lecturer` (§2.10). */
+        function myConflictedRows() {
+            return MockData.conflictedClasses.filter(function (c) {
+                return c.lecturer === MockData.currentUser.name;
+            });
+        }
+        const conflictedClasses = myConflictedRows();   // initial snapshot for early readers
 
         function badgeClass(reason) {
             const map = {
@@ -298,7 +342,7 @@
             const reason = 'all';
             const weekVal = document.getElementById('weekFilter').value;
 
-            let filtered = conflictedClasses.filter(function(c) {
+            let filtered = myConflictedRows().filter(function(c) {
                 const matchesSearch = query === '' ||
                     c.code.toLowerCase().includes(query) ||
                     c.name.toLowerCase().includes(query);
@@ -378,6 +422,37 @@
                         td.innerHTML = cell.html;
                         row.appendChild(td);
                     });
+                    /* S13 — "Just cancelled" chip iff THIS row has its own
+                       un-undone, un-consumed ledger entry (per-entry chips,
+                       §6 stack semantics). Page-local placement — cell index
+                       2 is the Original Class block (col-original); do NOT
+                       mutate shared HtmlBuilder.replacementHomeRow (§5).
+                       Undo clears it on the next buildTable (S14). */
+                    const cxlEntries = ClassCancellation.allEntries();
+                    if (cxlEntries.some(function(entry) {
+                            return entry.row && entry.row.id === c.id &&
+                                   !entry.consumed && entry.chip;
+                        })) {
+                        const chip = document.createElement('span');
+                        chip.className = 'just-cancelled-chip';
+                        chip.textContent = 'Just cancelled';
+                        row.children[2].appendChild(chip);
+                        /* Undo affordance — keeps undo reachable when the
+                           load toast was ✕-snoozed for the session
+                           (toast-snooze fix, 2026-10-08). Icon-first, stops
+                           row propagation so quickView doesn't fire. */
+                        const undoBtn = document.createElement('button');
+                        undoBtn.type = 'button';
+                        undoBtn.className = 'just-cancelled-undo';
+                        undoBtn.setAttribute('data-tip', 'Undo cancellation');
+                        undoBtn.setAttribute('aria-label', 'Undo cancellation');
+                        undoBtn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"></polyline><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"></path></svg>';
+                        undoBtn.onclick = function(ev) {
+                            ev.stopPropagation();
+                            undoCancelledByRowId(c.id);
+                        };
+                        row.children[2].appendChild(undoBtn);
+                    }
                     (function(row, idx) {
                         row.onclick = function() { quickView(idx); };
                         row.style.cursor = 'pointer';
@@ -387,9 +462,22 @@
             }
 
             paginate({ data: currentFiltered, pageSize: state.rpp, state: pageState, infoId: 'paginationInfo', controlsId: 'paginationControls', render: buildTable });
-            updateResultCount({ elId: 'resultCount', data: currentFiltered, total: conflictedClasses.length, label: 'classes' });
+            updateResultCount({ elId: 'resultCount', data: currentFiltered, total: myConflictedRows().length, label: 'classes' });
             updateSummary();
             renderCards();
+        }
+
+        /* Undo a cancellation from the home list (toast-snooze companion):
+           restores the class everywhere via ClassCancellation.undo, rebuilds
+           the table (row + chip + undo button vanish), mirrors the S14 toast. */
+        function undoCancelledByRowId(rowId) {
+            const entry = ClassCancellation.allEntries().find(function(e) {
+                return e.row && e.row.id === rowId && !e.consumed;
+            });
+            if (!entry) return;
+            ClassCancellation.undo(entry);
+            buildTable();
+            toast.show('Class restored.', null);
         }
 
         function renderCards() {
@@ -415,19 +503,15 @@
         }
 
         function updateSummary() {
-            const total = conflictedClasses.length;
+            const total = myConflictedRows().length;
             const filtered = currentFiltered;
 
-            const venues = new Set(filtered.map(function(c) { return c.venue; }));
-            const students = filtered.reduce(function(sum, c) { return sum + c.totalStudents; }, 0);
             const duration = filtered.reduce(function(sum, c) { return sum + c.duration; }, 0);
             const courses = new Set(filtered.map(function(c) { return c.code; }));
 
-            document.getElementById('summaryConflicted').textContent = total;
-            document.getElementById('summaryVenues').textContent = venues.size;
-            document.getElementById('summaryStudents').textContent = students;
-            document.getElementById('summaryDuration').textContent = duration;
-            document.getElementById('summaryCourses').textContent = courses.size;
+            document.getElementById('summaryMyConflicted').textContent = total;
+            document.getElementById('summaryMyHours').textContent = duration;
+            document.getElementById('summaryMyCourses').textContent = courses.size;
 
             const show = filtered.length > 0;
             syncSummarySection(show);

@@ -198,7 +198,8 @@ function firstBookableDay(weekData) {
  * Pulses the earliest bookable day row so the arrangement page's
  * "Earliest bookable" action lands on the exact origin (the lead-time
  * boundary day), not just somewhere in the week. Day rows carry
- * tr[data-dayIndex]; the pulse uses the shared success token.
+ * tr[data-day-index] (builder sets tr.dataset.dayIndex); the pulse uses the
+ * shared success token.
  * @param {Array}  weekData
  * @param {number} weekIdx — the week on screen (must hold a bookable day)
  */
@@ -206,7 +207,7 @@ function flashEarliestBookableDay(weekData, weekIdx) {
     const body = document.getElementById('tableBody');
     const dayIdx = firstBookableDayIn(weekData, weekIdx);
     if (!body || dayIdx < 0) return;
-    const rows = body.querySelectorAll('tr[data-dayIndex="' + dayIdx + '"]');
+    const rows = body.querySelectorAll('tr[data-day-index="' + dayIdx + '"]');
     rows.forEach(function(r) {
         r.classList.remove('bookable-flash');
         void r.offsetWidth; /* restart the animation on repeat clicks */
@@ -684,7 +685,7 @@ function buildTimetableGrid(cfg) {
         tr.appendChild(dayTd);
 
         if (cfg.cellRender) {
-            const dayEvents = cfg.events.filter(e => e.di === di);
+            const dayEvents = cfg.events.filter(e => e.di === di && e.status !== 'cancelled');
             const slotMap = {};
             hours.forEach((_, hi) => { slotMap[hi] = null; });
             dayEvents.forEach(e => {
@@ -712,7 +713,7 @@ function buildTimetableGrid(cfg) {
             return;
         }
 
-        const dayEvents = cfg.events.filter(e => e.di === di);
+        const dayEvents = cfg.events.filter(e => e.di === di && e.status !== 'cancelled');
 
         const slotMap = {};
         hours.forEach((_, hi) => { slotMap[hi] = null; });
@@ -809,6 +810,26 @@ function buildTimetableGrid(cfg) {
  * @param {Array} events - Array of event objects for the current week
  * @param {Array} days - Array of day objects from weekData
  */
+/* ───── My-teaching stats (shared: cohort + venue summary bars) ───── */
+
+/**
+ * Count + hours of the classes taught by the logged-in lecturer within a
+ * page's (already week/filter-scoped) events array. Dedupes via the grid's
+ * own slotMap semantics (last-write-wins per day:start) so merged-cohort
+ * duplicate rows count once — the number always matches visible blocks.
+ * Offday events are skipped by callers whose grid renders them as PH cells.
+ */
+function myTeachingStats(events) {
+    const heads = {};
+    (events || []).forEach(function (e) {
+        if (!e || e.lecturer !== MockData.currentUser.name) return;
+        heads[e.di + ':' + e.start] = e;               // last-write-wins = grid slotMap semantics
+    });
+    const mine = Object.keys(heads).map(function (k) { return heads[k]; });
+    const hours = mine.reduce(function (s, e) { return s + (e.end - e.start + 1) * 0.5; }, 0);
+    return { classes: mine.length, hours: hours };
+}
+
 function computeSummary(events, days) {
     let total = events.length;
     let replacement = 0, pending = 0, conflict = 0, hrs = 0;
@@ -816,15 +837,26 @@ function computeSummary(events, days) {
     events.forEach(e => {
         if (e.status === 'replacement') replacement++;
         if (e.status === 'pending') pending++;
-        if (days[e.di] && days[e.di].holiday) conflict++;
+        if (e.status === 'conflict' || (days[e.di] && days[e.di].holiday)) conflict++;
         hrs += (e.end - e.start + 1) * 0.5;
     });
 
-    document.getElementById('sumTotal').textContent = total;
-    document.getElementById('sumHours').textContent = (hrs % 1 === 0 ? hrs : hrs.toFixed(1));
-    document.getElementById('sumReplacement').textContent = replacement;
-    document.getElementById('sumPending').textContent = pending;
-    document.getElementById('sumConflict').textContent = conflict;
+    /* Null-guarded: pages whose summary bar drops a card (e.g. cohort's
+       Replacements/Pending → My Teaching cards) keep the shared builder
+       crash-free; existing ids keep their exact previous behavior. */
+    const set = function (id, v) {
+        const el = document.getElementById(id);
+        if (el) el.textContent = v;
+    };
+    set('sumTotal', total);
+    set('sumHours', (hrs % 1 === 0 ? hrs : hrs.toFixed(1)));
+    set('sumReplacement', replacement);
+    set('sumPending', pending);
+    set('sumConflict', conflict);
+
+    const my = myTeachingStats(events);
+    set('sumMyClasses', my.classes);
+    set('sumMyHours', (my.hours % 1 === 0 ? my.hours : my.hours.toFixed(1)));
 }
 
 // ───── Shared modal open helper ─────
@@ -903,7 +935,7 @@ function openClassModal(cfg) {
     const rows = [
         { label: 'Subject Code', value: event.code },
         { label: 'Subject Name', value: event.name },
-        { label: 'Class Type', value: event.type === 'L' ? 'Lecture (L)' : 'Tutorial (T)' },
+        { label: 'Class Type', value: event.type === 'L' ? 'Lecture (L)' : event.type === 'P' ? 'Practical (P)' : 'Tutorial (T)' },
         { label: 'Lecturer', value: event.lecturer },
         { label: 'Venue', value: event.venue || '\u2014' },
         { label: 'Day', value: dayNames[di] || days[di].abbr },
@@ -989,24 +1021,30 @@ function openClassModal(cfg) {
             : null,
     }, groups);
 
-    // Add "View Full Request" button to footer right side for own pending requests
-    if (event.status === 'pending' && event.requestId) {
-        var overlay = document.getElementById(cfg.modalId || 'classModal');
-        var footer = overlay.querySelector('.modal-footer');
-        if (footer) {
-            // Remove any previously appended buttons to avoid duplicates
-            footer.querySelectorAll('a.btn-action').forEach(function(b) { b.remove(); });
-            var viewBtn = document.createElement('a');
-            viewBtn.href = '/my-request-history-ui?id=' + event.requestId;
-            viewBtn.className = 'btn-action';
-            viewBtn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg> View Full Request';
-            viewBtn.style.textDecoration = 'none';
-            var rightGroup = footer.querySelector('.modal-footer-right');
-            if (rightGroup) {
-                rightGroup.appendChild(viewBtn);
-            } else {
-                footer.appendChild(viewBtn);
-            }
+    // Footer cleanup runs on EVERY open: the footer is static markup, so an
+    // anchor appended for a previous pending class would otherwise linger on
+    // a normal class's modal (reported 2026-10-08 — "why View Full Request?").
+    var _mOverlay = document.getElementById(cfg.modalId || 'classModal');
+    var _mFooter = _mOverlay ? _mOverlay.querySelector('.modal-footer') : null;
+    if (_mFooter) {
+        _mFooter.querySelectorAll('a.btn-action').forEach(function(b) { b.remove(); });
+    }
+
+    // Add "View Full Request" button to footer right side for OWN pending
+    // requests only: requests[] ids resolve on my-request-history, so another
+    // lecturer's pending (e.g. cohort page) must not link into this user's
+    // request history (reported 2026-10-08 — id-collision leak).
+    if (event.status === 'pending' && event.requestId && event.requestedBy === MockData.currentUser.name && _mFooter) {
+        var viewBtn = document.createElement('a');
+        viewBtn.href = '/my-request-history-ui?id=' + event.requestId;
+        viewBtn.className = 'btn-action';
+        viewBtn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg> View Full Request';
+        viewBtn.style.textDecoration = 'none';
+        var rightGroup = _mFooter.querySelector('.modal-footer-right');
+        if (rightGroup) {
+            rightGroup.appendChild(viewBtn);
+        } else {
+            _mFooter.appendChild(viewBtn);
         }
     }
 }
@@ -2436,11 +2474,14 @@ window.addEventListener('scroll', () => {
 class ToastManager {
     constructor() {
         this._timer = null;
+        this._current = null;
     }
 
-    show(message, undoCallback, duration = 5000, linkText = '', linkUrl = '', details = '') {
+    show(message, undoCallback, duration = 5000, linkText = '', linkUrl = '', details = '', onManualDismiss = null, onAutoDismiss = null) {
         const bar = document.getElementById('toastBar');
         if (!bar) return;
+
+        this._current = { message: message, onManualDismiss: onManualDismiss, onAutoDismiss: onAutoDismiss };
 
         const msgEl = bar.querySelector('.toast-message');
         const detailsEl = bar.querySelector('.toast-details');
@@ -2459,8 +2500,12 @@ class ToastManager {
         if (undoCallback) {
             undoBtn.style.display = 'inline-block';
             undoBtn.onclick = () => {
-                undoCallback();
+                /* Dismiss FIRST (U1, 2026-10-08): callbacks commonly show
+                   their own confirmation toast — dismissing AFTER the callback
+                   wiped the callback's bar ~0 ms after it appeared, so the
+                   user saw the toast vanish with no feedback. */
                 this.dismiss();
+                undoCallback();
             };
         } else {
             undoBtn.style.display = 'none';
@@ -2477,13 +2522,31 @@ class ToastManager {
         bar.classList.add('visible');
 
         clearTimeout(this._timer);
-        this._timer = setTimeout(() => this.dismiss(), duration);
+        this._timer = setTimeout(() => {
+            this.dismiss();
+            /* Full display = seen (2026-10-08 decision): a toast that survived
+               its whole duration retires itself via onAutoDismiss (e.g. the
+               cancellation undo toast snoozes). Manual ✕ goes through close()
+               instead; navigating away early kills the timer — no hook, and
+               the toast legitimately re-shows on the next load. */
+            const hook = this._current && this._current.onAutoDismiss;
+            if (hook) hook();
+        }, duration);
     }
 
     dismiss() {
         const bar = document.getElementById('toastBar');
         if (bar) bar.classList.remove('visible');
         clearTimeout(this._timer);
+    }
+
+    /* Manual close (the ✕ in the layout toast bar). Unlike the auto-timeout
+       dismiss(), this fires the current toast's onManualDismiss hook so a
+       dismissal can have consequences (e.g. snoozing the cancellation toast). */
+    close() {
+        this.dismiss();
+        const hook = this._current && this._current.onManualDismiss;
+        if (hook) hook();
     }
 }
 
@@ -3439,3 +3502,786 @@ class VenueDropdown {
         this._updateActiveParents();
     }
 }
+
+// ───── ClassCancellation (cancel-class-enhancement — design §1) ─────
+
+/**
+ * Owns the whole cancel-class lifecycle: isCancellable guards (S1–S5),
+ * reason validation (S7/S8), twin mutation across myTimetable +
+ * cohortTimetable (§3), the sessionStorage ledger (§2) and the undo toast
+ * (§6). Storage touches are ALL guarded (§10): a throwing sessionStorage
+ * degrades to the in-memory mirror (same-session undo only, documented
+ * trade-off — file:// / privacy modes).
+ */
+const ClassCancellation = {
+    /* §1 reason vocabulary — deliberately reuses the conflictedClasses
+       conflictReason enum ('Medical Leave', 'Annual Leave', 'Official Event'
+       already exist there) + cancellation-specific entries + catch-all
+       'Other'. */
+    REASONS: ['Medical Leave', 'Annual Leave', 'Official Event',
+              'Family Emergency', 'Venue/Facility Issue', 'Other'],
+    LEDGER_KEY: 'classCancellationLedger',  // sessionStorage — tab-scope demo reset
+    UNDO_TOAST_MS: 5000,
+    _seq: 0,               // entry-id suffix — no same-millisecond collision
+    _MONTHS: ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'],
+    _memLedger: [],        // §10 fallback mirror when storage throws
+
+    /* §3 matching key: 0-indexed week + code + di (0 = Mon) + start
+       (half-hour index) + lecturer. A merged-cohort myTimetable block
+       intentionally matches SEVERAL cohortTimetable twins (S16). */
+    matchKeyOf(event, weekIndex) {
+        return { week: weekIndex, code: event.code, di: event.di,
+                 start: event.start, lecturer: event.lecturer };
+    },
+
+    /* S7/S8 — Yes-button gating: reason required + in the vocabulary;
+       'Other' demands a non-empty trimmed detail. */
+    validate(reason, detail) {
+        if (!reason || this.REASONS.indexOf(reason) < 0) {
+            return { ok: false, hint: 'Please select a cancellation reason.' };
+        }
+        if (reason === 'Other' && !String(detail || '').trim()) {
+            return { ok: false, hint: 'Please describe the reason for "Other".' };
+        }
+        return { ok: true, hint: '' };
+    },
+
+    /* S1–S5 guards, recomputed per call (cheap; the confirm path re-checks
+       at S6): own class + status 'normal' OR 'replacement' (a confirmed
+       replacement slot is still the lecturer's own scheduled class — FR
+       2.16; 2026-10-08 SDD-waived extension, priorStatus preserved for
+       undo) + non-holiday, non-Sunday day + END datetime strictly in the
+       future (real clock per design §1). */
+    isCancellable(event, days, weekIndex) {
+        if (!event) return false;
+        if (event.lecturer !== MockData.currentUser.name) return false;  // S2
+        if (event.status !== 'normal' && event.status !== 'replacement') return false; // S3
+        const day = days && days[event.di];
+        if (!day || day.holiday || day.sunday || day.abbr === 'Sun') return false; // S4
+        const end = this.endDateTime(event, days, weekIndex);
+        return !!end && end.getTime() > Date.now();                      // S5
+    },
+
+    /**
+     * The class's END datetime as a real Date (the S5/S6 boundary).
+     *
+     * Parse (deterministic — design §10 pin):
+     * - DATE: `days[event.di].date` in the pinned 'DD Mon YYYY' format
+     *   produced by generateWeekData's `fmt` ('21 Sep 2026'). Split on
+     *   whitespace → [dd, Mon, yyyy]; the month index comes from the same
+     *   English short-month vocabulary (_MONTHS) — the string is NEVER
+     *   handed to the Date constructor, so no locale/parse anxiety.
+     * - TIME: derived EXACTLY like the grid renders it (§1): the end time
+     *   string is `hours[event.end + 1] || add30min(hours[event.end])`
+     *   over the shared `hours` half-hour array. Those values are 'HH:MM'
+     *   24h strings in this dataset ('13:00'); a 12h companion ('1:00 PM')
+     *   is tolerated by _parseTime for robustness.
+     * Both halves assemble in LOCAL time via new Date(y, mo, dd, hh, mm);
+     * callers compare against the real clock.
+     * Returns null for a malformed/unmatched day (guards treat null > now
+     * as false → not cancellable, never a throw).
+     */
+    endDateTime(event, days, weekIndex) {
+        const day = days && days[event.di];
+        if (!day) return null;
+        const p = String(day.date).trim().split(/\s+/);
+        const mo = this._MONTHS.indexOf(p[1]);
+        if (p.length !== 3 || mo < 0) return null;
+        const minutes = this._parseTime(hours[event.end + 1] || DateHelper.add30min(hours[event.end]));
+        return new Date(parseInt(p[2], 10), mo, parseInt(p[0], 10),
+                        Math.floor(minutes / 60), minutes % 60);
+    },
+
+    /* 'HH:MM' 24h or 'H:MM AM/PM' 12h → minutes since midnight (0 fallback). */
+    _parseTime(t) {
+        const m = String(t).trim().match(/^(\d{1,2}):(\d{2})\s*([AaPp][Mm])?$/);
+        if (!m) return 0;
+        let h = parseInt(m[1], 10);
+        const mi = parseInt(m[2], 10);
+        if (m[3]) {
+            if (/[pP]/.test(m[3]) && h < 12) h += 12;
+            if (/[aA]/.test(m[3]) && h === 12) h = 0;
+        }
+        return h * 60 + mi;
+    },
+
+    /* Any accepted time vocabulary → 'HH:MM' 24h (row timeStart/timeEnd). */
+    _to24h(t) {
+        const minutes = this._parseTime(t);
+        return String(Math.floor(minutes / 60)).padStart(2, '0') + ':' +
+               String(minutes % 60).padStart(2, '0');
+    },
+
+    /* Row-label formatter: 'DFT2(S1)' → 'DFT2 (S1)' and 'RSD2(S1)G2' →
+       'RSD2 (S1) G2' — the spacing of the existing conflictedClasses rows
+       + faculties cohort labels. Unrecognized strings pass through
+       verbatim (also keeps already-formatted row labels intact). */
+    formatCohortLabel(c) {
+        const m = String(c).trim().match(/^([A-Z]{3}\d)\(S(\d)\)(?:G(\d))?$/);
+        if (!m) return String(c).trim();
+        return m[1] + ' (S' + m[2] + ')' + (m[3] ? ' G' + m[3] : '');
+    },
+
+    /* Row cohort labels: prefer event.cohorts, else split the merged
+       'A + B' cohort string some events carry (§2.6 single blocks store
+       one cohort in event.cohort only). */
+    cohortLabels(event) {
+        const raw = Array.isArray(event.cohorts) ? event.cohorts :
+            (event.cohort ? String(event.cohort).split(' + ') : []);
+        return raw.map(this.formatCohortLabel, this);
+    },
+
+    _eventMatches(ev, mk) {
+        return !!ev && ev.code === mk.code && ev.di === mk.di &&
+               ev.start === mk.start && ev.lecturer === mk.lecturer;
+    },
+
+    /* §3 twin matching across BOTH stores (0-indexed weeks on both sides
+       — myTimetable.eventsByWeek keys, cohortTimetable item.week). The
+       cohort store nests each block in item.event, so resolve/unions take
+       {store:'my'|'cohort', eventRef} pairs; multi-match is expected for
+       merged-cohort blocks (S16), zero is valid for cohortTimetable-only
+       blocks (row totalStudents = 0 per §3). */
+    resolveMatches(mk) {
+        const out = [];
+        if (!mk) return out;
+        const week = (MockData.myTimetable && MockData.myTimetable.eventsByWeek)[mk.week];
+        if (Array.isArray(week)) {
+            week.forEach(function(ev) {
+                if (this._eventMatches(ev, mk)) out.push({ store: 'my', eventRef: ev });
+            }, this);
+        }
+        (MockData.cohortTimetable.events || []).forEach(function(item) {
+            if (item.week === mk.week && this._eventMatches(item.event, mk)) {
+                out.push({ store: 'cohort', eventRef: item.event });
+            }
+        }, this);
+        return out;
+    },
+
+    /* ISO 'YYYY-MM-DD' from 0-indexed weekIndex + di via the §2 pin:
+       semester.startDate + 7*weekIndex + di days — the SAME math
+       generateWeekData uses (index 0 is the Week-1 Monday), NOT the
+       'DD Mon YYYY' display string that replacement-home's
+       daysLeft()/getWeekNumber() parsers reject. Shared so the cancel
+       modal's Arrange-Now URL reuses the one date pin. */
+    isoDate(weekIndex, di) {
+        const parts = String(MockData.semester.startDate).split('-');
+        const d = new Date(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, parseInt(parts[2], 10));
+        d.setDate(d.getDate() + weekIndex * 7 + di);
+        return d.getFullYear() + '-' +
+               String(d.getMonth() + 1).padStart(2, '0') + '-' +
+               String(d.getDate()).padStart(2, '0');
+    },
+
+    _nextRowId() {
+        let maxId = 0;
+        (MockData.conflictedClasses || []).forEach(function(r) {
+            if (r && r.id > maxId) maxId = r.id;
+        });
+        return maxId + 1;
+    },
+
+    /**
+     * §2 row build — a conflictedClasses-shaped row (so replacement-home's
+     * existing table/card renderers consume it verbatim):
+     * - date: ISO 'YYYY-MM-DD' from the semester start-date math (§2 pin);
+     *   day: full name derived from that ISO date (DateHelper.isoDayName);
+     * - timeStart/timeEnd: 24h 'HH:MM' from the half-hour indices, using
+     *   the same grid vocabulary (hours[i+1] || add30min(hours[end]));
+     * - duration: half-hour span → hours ((end - start + 1) / 2);
+     * - totalStudents: the twin myTimetable match(es) studentCounts sum
+     *   when resolvable, else 0 (§3 — cohort-only blocks stay valid);
+     * - cohorts: formatted labels from the event's cohorts; the
+     *   row-reason IS the chosen cancellation reason (S13 chip etc.);
+     * - id: next free integer (max existing row id + 1).
+     */
+    rowFromEvent(event, days, weekIndex, reason) {
+        let total = 0;
+        this.resolveMatches(this.matchKeyOf(event, weekIndex)).forEach(function(m) {
+            if (m.store !== 'my') return;
+            const ev = m.eventRef;
+            if (Array.isArray(ev.studentCounts)) {
+                ev.studentCounts.forEach(function(c) { total += (c || 0); });
+            } else if (typeof ev.studentCount === 'number') {
+                total += ev.studentCount;
+            }
+        });
+        const iso = this.isoDate(weekIndex, event.di);
+        return {
+            id: this._nextRowId(),
+            code: event.code,
+            name: event.name,
+            type: event.type,
+            lecturer: event.lecturer,   // cancelled classes are own by construction — keeps them visible under replacement-home's owner scoping
+            date: iso,
+            day: DateHelper.isoDayName(iso),
+            timeStart: this._to24h(hours[event.start]),
+            timeEnd: this._to24h(hours[event.end + 1] || DateHelper.add30min(hours[event.end])),
+            duration: (event.end - event.start + 1) / 2,
+            venue: event.venue,
+            totalStudents: total,
+            cohorts: this.cohortLabels(event),
+            conflictReason: reason,
+        };
+    },
+
+    /* RAW ledger helpers — every touch try/catch-guarded (§10). */
+
+    ledgerRead() {
+        try {
+            const raw = sessionStorage.getItem(this.LEDGER_KEY);
+            if (raw) {
+                const arr = JSON.parse(raw);
+                if (Array.isArray(arr)) return arr;
+            }
+        } catch (e) { /* storage unavailable / malformed — fall through */ }
+        return this._memLedger;
+    },
+
+    ledgerAppend(entry) {
+        this._memLedger.push(entry);
+        try {
+            const raw = sessionStorage.getItem(this.LEDGER_KEY);
+            const arr = raw ? JSON.parse(raw) : [];
+            if (!Array.isArray(arr)) arr = [];
+            arr.push(entry);
+            sessionStorage.setItem(this.LEDGER_KEY, JSON.stringify(arr));
+        } catch (e) { /* §10 degrade — the mirror already holds the entry */ }
+    },
+
+    ledgerRemove(entry) {
+        const id = entry && entry.id;
+        this._memLedger = this._memLedger.filter(function(e) { return e.id !== id; });
+        try {
+            const raw = sessionStorage.getItem(this.LEDGER_KEY);
+            const arr = raw ? JSON.parse(raw) : [];
+            if (Array.isArray(arr)) {
+                const next = arr.filter(function(e) { return e.id !== id; });
+                if (next.length !== arr.length) {
+                    sessionStorage.setItem(this.LEDGER_KEY, JSON.stringify(next));
+                }
+            }
+        } catch (e) { /* §10 degrade */ }
+    },
+
+    /* Replace-by-id with a shallow copy — the caller's object wins, so a
+       later consumed:'arranged' (S13b) or chip-flag clear persists
+       through replay. */
+    ledgerUpdate(entry) {
+        const id = entry && entry.id;
+        if (!id) return;
+        const i = this._memLedger.findIndex(function(e) { return e.id === id; });
+        if (i >= 0) this._memLedger[i] = Object.assign({}, entry);
+        try {
+            const raw = sessionStorage.getItem(this.LEDGER_KEY);
+            const arr = raw ? JSON.parse(raw) : [];
+            if (Array.isArray(arr)) {
+                for (let k = 0; k < arr.length; k++) {
+                    if (arr[k].id === id) { arr[k] = Object.assign({}, entry); break; }
+                }
+                sessionStorage.setItem(this.LEDGER_KEY, JSON.stringify(arr));
+            }
+        } catch (e) { /* §10 degrade — mirror already updated */ }
+    },
+
+    /**
+     * S9 — re-check guards at CONFIRM time (S6) + reason validation
+     * (S7/S8), cancel EVERY resolved twin in place (status 'cancelled' +
+     * cancelledReason/cancelledDetail — merged-cohort multi-match gets all
+     * of them, S16), insert the row when its id is not already present,
+     * write the ledger entry, return {ok:true, entry} or {ok:false, hint}.
+     */
+    cancel(event, days, weekIndex, reason, detail) {
+        if (!this.isCancellable(event, days, weekIndex)) {
+            const end = this.endDateTime(event, days, weekIndex);
+            return { ok: false,
+                     hint: (end && end.getTime() <= Date.now())
+                           ? 'This class has already ended.'
+                           : 'This class can no longer be cancelled.' };
+        }
+        const check = this.validate(reason, detail);
+        if (!check.ok) return check;
+
+        const mk = this.matchKeyOf(event, weekIndex);
+        const matches = this.resolveMatches(mk);
+        if (!matches.length) {
+            return { ok: false, hint: 'This class is no longer in the timetable.' };
+        }
+        matches.forEach(function(m) {
+            m.eventRef.status = 'cancelled';
+            m.eventRef.cancelledReason = reason;
+            m.eventRef.cancelledDetail = detail ? String(detail).trim() : '';
+        });
+
+        const row = this.rowFromEvent(event, days, weekIndex, reason);
+        const rows = MockData.conflictedClasses;
+        if (!rows.some(function(r) { return r.id === row.id; })) rows.push(row);
+
+        const entry = {
+            id: 'cxl-' + Date.now() + '-' + (++this._seq),
+            matchKey: mk,
+            reason: reason,
+            detail: detail ? String(detail).trim() : '',
+            cancelledAt: new Date().toISOString(),
+            row: row,
+            chip: true,
+            /* Status to restore on undo — a cancelled 'replacement' block
+               must come back AS a replacement (Original-Date trail intact),
+               not as 'normal' (2026-10-08 SDD-waived extension). */
+            priorStatus: event.status === 'replacement' ? 'replacement' : 'normal',
+        };
+        this.ledgerAppend(entry);
+        return { ok: true, entry: entry };
+    },
+
+    /* S14 — restore EVERY resolved twin to its PRIOR status ('normal' or
+       'replacement' — see cancel()'s priorStatus), strip the cancellation
+       fields, remove the row by id, remove the entry. */
+    undo(entry) {
+        if (!entry) return;
+        const restore = entry.priorStatus || 'normal';
+        this.resolveMatches(entry.matchKey).forEach(function(m) {
+            m.eventRef.status = restore;
+            delete m.eventRef.cancelledReason;
+            delete m.eventRef.cancelledDetail;
+        });
+        const rows = MockData.conflictedClasses || [];
+        const idx = rows.findIndex(function(r) { return r.id === (entry.row && entry.row.id); });
+        if (idx >= 0) rows.splice(idx, 1);
+        this.ledgerRemove(entry);
+    },
+
+    /* S12/S13b — newest entry that is neither removed nor consumed, or
+       null. Consumed entries (consumed:'arranged') keep replaying the
+       cancelled state but stop the toast + chip (§6 lifecycle). */
+    activeEntry() {
+        const entries = this.ledgerRead();
+        for (let i = entries.length - 1; i >= 0; i--) {
+            const e = entries[i];
+            if (e && !e.removed && !e.consumed) return e;
+        }
+        return null;
+    },
+
+    /**
+     * S12/S13/S15 replay — once per page load: re-apply every entry's
+     * cancelled state idempotently (status already 'cancelled' → plain
+     * overwrite; row pushed only when its id is absent). Entries whose
+     * match keys resolve to NOTHING are stale → DROPPED from the ledger
+     * (S15) so the toast never nags on dead entries.
+     */
+    applyLedger() {
+        const self = this;
+        this.ledgerRead().slice().forEach(function(entry) {
+            const matches = self.resolveMatches(entry.matchKey);
+            if (!matches.length) { self.ledgerRemove(entry); return; }
+            matches.forEach(function(m) {
+                m.eventRef.status = 'cancelled';
+                m.eventRef.cancelledReason = entry.reason;
+                m.eventRef.cancelledDetail = entry.detail;
+            });
+            const rows = MockData.conflictedClasses || [];
+            if (entry.row && !rows.some(function(r) { return r.id === entry.row.id; })) {
+                /* Own-records backfill: ledgers persisted before replacement-home
+                   became owner-scoped store rows without `lecturer`. Cancellations
+                   are own-only by construction, so the twin event's lecturer is
+                   the owner — without this the replayed row would be filtered out
+                   of replacement-home (S12/S13b). */
+                if (!entry.row.lecturer) {
+                    entry.row.lecturer = (matches[0] && matches[0].eventRef.lecturer) ||
+                                         MockData.currentUser.name;
+                }
+                rows.push(entry.row);
+            }
+        });
+    },
+
+    /* Public read accessor for per-entry chip rendering (S13): a COPY of
+       the raw ledger (pages must not mutate the raw array). Newest last,
+       per-entry chips — NOT just activeEntry() (§6 stack semantics). */
+    allEntries() {
+        return this.ledgerRead().slice();
+    },
+
+    /* S13b — mark every entry whose matchKey.code equals `code` as
+       consumed:'arranged'. The entry is RETAINED (applyLedger keeps
+       replaying the cancelled state) but the chip + load toast stop and
+       undo is no longer offered (§6 lifecycle). Returns how many entries
+       changed; a submit for a different subject touches nothing. */
+    markConsumedByCode(code) {
+        let changed = 0;
+        this.allEntries().forEach(function(entry) {
+            if (entry && !entry.consumed && entry.matchKey &&
+                entry.matchKey.code === code) {
+                entry.consumed = 'arranged';
+                this.ledgerUpdate(entry);
+                changed++;
+            }
+        }, this);
+        return changed;
+    },
+
+    /* §6 — the ONE undo-toast helper: the load bootstrap AND the "I'll Do
+       It Later" path both call it; the confirm path must NOT double-toast
+       (the modal's success state carries the message instead). Snooze rule
+       (2026-10-08 decision): the toast shows for 5 s — surviving the full
+       display OR clicking ✕ both count as "seen" and snooze it for the
+       session; only a quick navigate-away (timer killed) re-toasts on the
+       next load. Undo stays reachable via the home chip's Undo affordance
+       (replacement-home page). */
+    showUndoToast() {
+        toast.show('Class cancelled — arrange replacement when ready', function() {
+            const entry = ClassCancellation.activeEntry();
+            if (!entry) return;
+            ClassCancellation.undo(entry);
+            /* On my-timetable the in-place grid rebuild IS the feedback
+               (U2, 2026-10-08). Anywhere else the undo deep-links to
+               my-timetable at the cancelled class's session week
+               (?week=<matchKey.week>) — the restored=1 param makes the
+               arrival page confirm with the same 'Class restored.' toast
+               (2026-10-08 user request: UNDO must land on the exact
+               class session week, not stay on the arrangement page). */
+            if (location.pathname === '/my-timetable-ui') {
+                if (typeof buildTimetable === 'function') buildTimetable();
+                toast.show('Class restored.', null);
+            } else {
+                const wk = (entry.matchKey && Number.isInteger(entry.matchKey.week))
+                    ? entry.matchKey.week : null;
+                window.location.href = '/my-timetable-ui' +
+                    (wk !== null ? '?week=' + wk + '&restored=1' : '?restored=1');
+            }
+        }, ClassCancellation.UNDO_TOAST_MS, '', '', '', function() {
+            ClassCancellation.snoozeToast();
+        }, function() {
+            ClassCancellation.snoozeToast();
+        });
+    },
+
+    /* Toast snooze — the user explicitly closed the cancellation toast, so
+       stop re-showing it on every page load (2026-10-08 feedback: the toast
+       kept returning after every refresh). The LEDGER ENTRY IS KEPT: the
+       cancelled state + chip still replay; only the toast is silenced. */
+    snoozeToast() {
+        const entry = this.activeEntry();
+        if (entry && !entry.toastSnoozed) {
+            entry.toastSnoozed = true;
+            this.ledgerUpdate(entry);
+        }
+    },
+
+    /* Does ANY live entry still deserve a load toast? A snoozed entry stays
+       silent; a NEW cancellation (fresh entry, unsnoozed) toasts again. */
+    needsLoadToast() {
+        return this.allEntries().some(function(e) {
+            return e && !e.removed && !e.consumed && !e.toastSnoozed;
+        });
+    },
+};
+
+/* S12 bootstrap — registered HERE, not in the layout (design §2): a
+   separate DOMContentLoaded listener owned by ui-common.js so it fires on
+   EVERY page while the layout's own init hook stays untouched. Replay AND
+   the load toast both wait for DOMContentLoaded: ui-common.js loads in the
+   body BEFORE the #toastBar markup, and ToastManager.show() silently
+   no-ops without it (design §2 🔴1). */
+document.addEventListener('DOMContentLoaded', function() {
+    try {
+        ClassCancellation.applyLedger();
+        if (ClassCancellation.needsLoadToast()) ClassCancellation.showUndoToast();
+        else if (new URLSearchParams(location.search).get('restored') === '1')
+            toast.show('Class restored.', null);  // arrival feedback after a cross-page undo
+    } catch (e) { /* degrade — page init must never break over the ledger */ }
+});
+
+/* bfcache guard — Arrange-Now (or any future leave-with-modal-open path)
+   can be revisited via the browser BACK button; the restored snapshot
+   replays with the cancel modal still shown. Close it here — open() fully
+   resets the confirm/success state on the next open (2026-10-08 user
+   report: modal still open after BACK from replacement-arrangement). */
+window.addEventListener('pageshow', function(e) {
+    if (e.persisted) {
+        try { CancelClassModal.close(); } catch (err) { /* degrade */ }
+    }
+});
+
+// ───── CancelClassModal + CancelClass.renderButton (cancel-class-enhancement — design §5) ─────
+
+/**
+ * Controller for the promoted partial `partials/ui-cancel-class-modal.blade.php`
+ * (included by my-timetable, cohort-timetable and venue-timetable). Owns the
+ * confirm state (impact preview, reason radios, S7/S8 Yes-gating, S6
+ * confirm-time re-check) and the success state (S10 Arrange-Now navigation,
+ * S11 Later → rebuild + undo toast). The cancel ITSELF stays in
+ * ClassCancellation.cancel — this object is pure UI orchestration.
+ */
+const CancelClassModal = {
+    /* { event, days, weekIndex, onCancelled, entry } for the current open */
+    _ctx: null,
+    _bound: false,
+
+    /* Bind the partial's dynamic widgets ONCE, lazily at first open —
+       ui-common.js loads before the partial markup in the body. */
+    _bind() {
+        if (this._bound) return;
+        const list = document.getElementById('cancelReasonList');
+        const detail = document.getElementById('cancelOtherDetail');
+        if (list) {
+            list.addEventListener('change', (function(e) {
+                if (e.target && e.target.name === 'cancelReason') this._refreshGate();
+            }).bind(this));
+        }
+        if (detail) detail.addEventListener('input', this._refreshGate.bind(this));
+        /* Esc closes WITHOUT cancelling (confirm state) — one shared
+           document listener, active only while the overlay is shown. */
+        document.addEventListener('keydown', (function(e) {
+            const overlay = document.getElementById('cancelClassOverlay');
+            if (e.key === 'Escape' && overlay && overlay.classList.contains('show')) this.dismiss();
+        }).bind(this));
+        this._bound = true;
+    },
+
+    /* S1–S5 guard + confirm-state render. `context.onCancelled` (optional)
+       is the page's grid-rebuild callback used by the Later path. */
+    open(event, days, weekIndex, context) {
+        if (!ClassCancellation.isCancellable(event, days, weekIndex)) return;  // S1–S5
+        this._ctx = {
+            event: event,
+            days: days,
+            weekIndex: weekIndex,
+            onCancelled: (context && typeof context.onCancelled === 'function') ? context.onCancelled : null,
+            entry: null,
+        };
+        this._bind();
+        this._renderReasons();
+        this._renderImpact();
+        const detail = document.getElementById('cancelOtherDetail');
+        if (detail) { detail.value = ''; detail.style.display = 'none'; }
+        this._swapState('confirm');
+        this._refreshGate();  // S7 initial hint + disabled Yes
+        const overlay = document.getElementById('cancelClassOverlay');
+        if (overlay) overlay.classList.add('show');
+    },
+
+    /* Raw close — no cancel performed, no rebuild (confirm state only). */
+    close() {
+        const overlay = document.getElementById('cancelClassOverlay');
+        if (overlay) overlay.classList.remove('show');
+    },
+
+    /* Esc / overlay-click / header × / Keep Class. Once a cancel has been
+       performed (success state), closing MUST still rebuild the grid +
+       toast — the cancel already happened — so it routes to the Later path. */
+    dismiss() {
+        if (this._ctx && this._ctx.entry) { this.later(); return; }
+        this.close();
+    },
+
+    /* Render the reason radios from the ClassCancellation enum (the markup
+       keeps only the #cancelReasonList container — design §5). */
+    _renderReasons() {
+        const list = document.getElementById('cancelReasonList');
+        if (!list) return;
+        list.innerHTML = '<div class="detail-group"><div class="detail-group-title">Cancellation Reason</div></div>';
+        const group = list.firstChild;
+        ClassCancellation.REASONS.forEach(function(reason) {
+            const label = document.createElement('label');
+            label.style.cssText = 'display:flex;align-items:center;gap:8px;padding:6px 0;cursor:pointer;font-size:13px;';
+            const input = document.createElement('input');
+            input.type = 'radio';
+            input.name = 'cancelReason';
+            input.value = reason;
+            input.style.accentColor = 'var(--color-primary)';
+            label.appendChild(input);
+            label.appendChild(document.createTextNode(reason));
+            group.appendChild(label);
+        });
+    },
+
+    /* Impact preview (design §5): subject, day+date, 12h time range, venue,
+       cohort(s) — students row only when a myTimetable twin resolves (§3). */
+    _renderImpact() {
+        const el = document.getElementById('cancelClassImpact');
+        const ctx = this._ctx;
+        if (!el || !ctx) return;
+        const ev = ctx.event;
+        const day = ctx.days && ctx.days[ev.di];
+        const startStr = to12h(hours[ev.start]);
+        const endStr = to12h(hours[ev.end + 1] || add30min(hours[ev.end]));
+        const students = this.studentsFor(ev, ctx.weekIndex);
+        el.innerHTML = DetailModal.section('This Class',
+            DetailModal.row('Subject', escHtml(ev.code) + ' (' + escHtml(ev.type || '') + ') · ' + escHtml(ev.name || ''), { strong: true }) +
+            DetailModal.row('Day & Date', escHtml((day && day.abbr) || '') + ' · ' + escHtml((day && day.date) || '')) +
+            DetailModal.row('Time', escHtml(startStr) + ' \u2013 ' + escHtml(endStr)) +
+            DetailModal.row('Venue', escHtml(ev.venue || '\u2014')) +
+            DetailModal.row('Cohort(s)', escHtml(ClassCancellation.cohortLabels(ev).join(', ') || '\u2014')) +
+            (students === null ? '' : DetailModal.row('Students', String(students)))
+        );
+    },
+
+    /* §3 students helper — myTimetable twin studentCounts sum when the
+       match resolves, else null (preview shows cohorts only; row keeps 0). */
+    studentsFor(event, weekIndex) {
+        let total = 0;
+        let found = false;
+        ClassCancellation.resolveMatches(ClassCancellation.matchKeyOf(event, weekIndex))
+            .forEach(function(m) {
+                if (m.store !== 'my') return;
+                const ev = m.eventRef;
+                if (Array.isArray(ev.studentCounts)) {
+                    found = true;
+                    ev.studentCounts.forEach(function(c) { total += (c || 0); });
+                } else if (typeof ev.studentCount === 'number') {
+                    found = true;
+                    total += ev.studentCount;
+                }
+            });
+        return found ? total : null;
+    },
+
+    _selectedReason() {
+        const picked = document.querySelector('#cancelReasonList input[name="cancelReason"]:checked');
+        return picked ? picked.value : '';
+    },
+
+    /* S7/S8 — reason + Other-detail gate the Yes button and the inline hint. */
+    _refreshGate() {
+        const reason = this._selectedReason();
+        const detail = document.getElementById('cancelOtherDetail');
+        const hint = document.getElementById('cancelReasonHint');
+        const yes = document.getElementById('confirmCancelClassBtn');
+        if (detail) detail.style.display = reason === 'Other' ? '' : 'none';
+        const check = ClassCancellation.validate(reason, detail ? detail.value : '');
+        if (hint) hint.textContent = check.hint;
+        if (yes) yes.disabled = !check.ok;
+    },
+
+    /* S6 + S9 — confirm-time re-check, then the actual cancel. On failure
+       stay open and surface the hint ('This class has already ended.'). */
+    confirm() {
+        const ctx = this._ctx;
+        if (!ctx || ctx.entry) return;
+        const detail = document.getElementById('cancelOtherDetail');
+        const res = ClassCancellation.cancel(ctx.event, ctx.days, ctx.weekIndex,
+            this._selectedReason(), detail ? detail.value : '');
+        if (!res.ok) {
+            const hint = document.getElementById('cancelReasonHint');
+            if (hint) hint.textContent = res.hint;
+            return;
+        }
+        ctx.entry = res.entry;
+        const summary = document.getElementById('cancelClassSummary');
+        if (summary) {
+            const ev = ctx.event;
+            const day = ctx.days && ctx.days[ev.di];
+            summary.textContent = ev.code + ' (' + (ev.type || '') + ') · ' +
+                ((day && day.abbr) || '') + ' · ' + ((day && day.date) || '') + ' · ' +
+                to12h(hours[ev.start]) + ' \u2013 ' + to12h(hours[ev.end + 1] || add30min(hours[ev.end]));
+        }
+        this._swapState('success');
+    },
+
+    /* S10 — navigate to the arrangement page carrying the cancelled class's
+       values (goToReplacementWith param scheme, design §2 ISO date pin). */
+    arrangeNow() {
+        const ctx = this._ctx;
+        if (!ctx || !ctx.entry) return;
+        /* Close BEFORE navigating: the browser's BACK button restores this
+           page from bfcache, and an open success modal would replay with it
+           (2026-10-08 user report). open() resets state on next open. */
+        this.close();
+        const row = ctx.entry.row;
+        window.location.href = '/replacement-arrangement?code=' + encodeURIComponent(row.code) +
+            '&date=' + encodeURIComponent(row.date) +
+            '&duration=' + row.duration;
+        /* navigation unloads the page — the bootstrap toast fires there (§6) */
+    },
+
+    /* S11 — close, let the page rebuild its grid via onCancelled, then the
+       shared undo toast (the confirm path never double-toasts, §6). */
+    later() {
+        const ctx = this._ctx;
+        this.close();
+        if (ctx && typeof ctx.onCancelled === 'function') ctx.onCancelled();
+        ClassCancellation.showUndoToast();
+    },
+
+    /* Swap confirm ↔ success state in-place, footer buttons included. */
+    _swapState(state) {
+        const confirmState = document.getElementById('cancelClassConfirmState');
+        const successState = document.getElementById('cancelClassSuccessState');
+        const keep = document.getElementById('cancelKeepClassBtn');
+        const yes = document.getElementById('confirmCancelClassBtn');
+        const arrange = document.getElementById('cancelArrangeNowBtn');
+        const laterBtn = document.getElementById('cancelLaterBtn');
+        const success = state === 'success';
+        if (confirmState) confirmState.style.display = success ? 'none' : '';
+        if (successState) successState.style.display = success ? '' : 'none';
+        if (keep) keep.style.display = success ? 'none' : '';
+        if (yes) yes.style.display = success ? 'none' : '';
+        if (arrange) arrange.style.display = success ? '' : 'none';
+        if (laterBtn) laterBtn.style.display = success ? '' : 'none';
+    },
+};
+
+/**
+ * Cancel Class? button for class-detail modal footers (design §5) — works
+ * for ALL THREE modal producers: my-timetable / cohort (the shared
+ * ui-class-detail-modal partial's .modal-footer) and venue (its own
+ * eventModal .modal-footer). Pages call it right after their modal render:
+ *
+ *   CancelClass.renderButton(overlayEl.querySelector('.modal-footer'),
+ *                            event, days, weekIndex, onCancelled);
+ *
+ * Self-hiding (S1–S5): appends ONLY when ClassCancellation.isCancellable —
+ * a previously appended button is always removed first, so re-renders never
+ * stack duplicates and a now-non-cancellable class loses its button. When
+ * the page defines .btn-cancel-class styling (my-timetable page-styles) it
+ * is reused; otherwise the theme's ghost .btn-danger token style applies.
+ */
+const CancelClass = {
+    _styleChecked: null,
+
+    _hasBtnCancelClassStyle() {
+        if (this._styleChecked !== null) return this._styleChecked;
+        let found = false;
+        try {
+            const sheets = document.styleSheets;
+            for (let i = 0; i < sheets.length && !found; i++) {
+                let rules = null;
+                try { rules = sheets[i].cssRules; } catch (e) { continue; }  // cross-origin
+                if (!rules) continue;
+                for (let r = 0; r < rules.length; r++) {
+                    if (rules[r].selectorText &&
+                        rules[r].selectorText.indexOf('.btn-cancel-class') >= 0) {
+                        found = true;
+                        break;
+                    }
+                }
+            }
+        } catch (e) { /* fall through — not found → ghost btn-danger */ }
+        this._styleChecked = found;
+        return found;
+    },
+
+    renderButton(container, event, days, weekIndex, onCancelled) {
+        if (!container) return;
+        // Remove any previously appended cancel button BEFORE the guard, so a
+        // class that turned non-cancellable loses its stale button too.
+        container.querySelectorAll('[data-cancel-class-btn]').forEach(function(b) { b.remove(); });
+        if (!ClassCancellation.isCancellable(event, days, weekIndex)) return;  // S1–S5
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = this._hasBtnCancelClassStyle() ? 'btn-cancel-class' : 'btn-danger';
+        btn.setAttribute('data-cancel-class-btn', '1');
+        btn.textContent = 'Cancel Class?';
+        btn.addEventListener('click', function() {
+            CancelClassModal.open(event, days, weekIndex, { onCancelled: onCancelled });
+        });
+        // Respect the footer's left/right grouping when the producer uses it
+        // (same convention as openClassModal's "View Full Request" append).
+        const rightGroup = container.querySelector('.modal-footer-right');
+        (rightGroup || container).appendChild(btn);
+    },
+};
+

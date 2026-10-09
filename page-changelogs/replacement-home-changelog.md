@@ -1,5 +1,12 @@
 # Changelog — Replacement Home Dashboard
 
+## [2026-10-08] conflictedClasses seeded with real subject codes & titles
+
+- `MockData.conflictedClasses` (`public/js/mock-data.js`): all 14 rows' `code`/`name`/`cohorts`/`totalStudents` now mirror §2.2 `courses[]` — fake `BMIT5555`-style codes replaced by 11 real, dropdown-eligible codes (`AMCS2093`, `AMCS1013`, `AMIS1003`, `BMCS1013`, `BMIT1173`, `BMIT2013`, `BMIT2073`, `BMIT2154`, `BMIT3084`, `BMMS1743`, `MPU-3133`).
+- Every row's code now passes `buildSubjectDropdown`'s two filters (code in `courses[]` + ≥1 conflict/cancelled slot in `cohortTimetable.events`), so the table row → quick-view → **Arrange Replacement** handoff pre-selects the subject on `/replacement-arrangement` (previously: blank subject + locked grid).
+- Cohort labels keep this array's spaced convention (`'DFT2 (S1)'`, `'RSD2 (S1) G2'` — cf. `formatCohortLabel`); `type`/`date`/`day`/`time`/`venue`/`duration`/`conflictReason` stay session-level instance facts (unchanged).
+- Verified live: data audit (14/14 rows consistent with `courses[]`, 0 problems), search by code & name, 3-row handoff (`AMCS2093`/`BMCS1013`/`MPU-3133`) pre-selects + `subjectInfo` coherent, quick-view Class tab shows code/name/type/cohorts/students, pagination "Showing 1-10 of 14" / page 2 intact, 0 console errors.
+
 ## [2026-10-02] Empty state above summary + summary auto-hides when empty
 
 - The `ui-empty-state` include moved **above** the "Summary Dashboard" strip in the DOM.
@@ -305,3 +312,32 @@ Replacement Details quick-view now splits its 15 flat rows into 3 tabs:
 (code, name, type, cohorts, students) / **Schedule** (week, day, date, times,
 duration, venue). Same tab component as my-request-history's Request Details.
 Blade: `replacement-home-UI-design-template.blade.php` `quickView()`.
+
+### Postscript — cancel-class-enhancement (2026-10-08, SDD change `cancel-class-enhancement`)
+
+Lecturers can now cancel their own classes — status normal with an end time
+in the future (real clock) — directly from any class modal via the shared
+CancelClassModal (`partials/ui-cancel-class-modal`) with a mandatory enum
+reason (6 values incl. Other + detail; OOP: `ClassCancellation` in
+`ui-common.js`). A cancelled class is auto-appended to the requires-replacement
+list and carries a "Just cancelled" chip (home page only); the sessionStorage
+ledger (`classCancellationLedger`) replays the state across pages, with an
+undo toast (12 s) on any landing page until undone/arranged.
+
+### Postscript — toast snooze + chip Undo (2026-10-08, SDD-waived micro-fix)
+
+User feedback: the cancellation undo toast re-appeared on every refresh after
+being ✕-closed. The ✕ now snoozes the toast for the browser session (per-entry
+`toastSnoozed` flag in the ledger; a NEW cancellation toasts again) — the
+cancelled state + chip still replay. Undo stays reachable: the "Just cancelled"
+row now carries an Undo icon button (`.just-cancelled-undo`, restores the class
+everywhere). Shared pieces: `ToastManager.close()` hook (`ui-common.js`),
+layout ✕ → `toast.close()`.
+
+### Postscript — cancelled replacement classes join the list (2026-10-08, SDD-waived extension)
+
+Following the my-timetable extension (replacement-status classes are now
+cancellable — FR 2.16), a cancelled confirmed-replacement class flows into
+the requires-replacement list with the usual "Just cancelled" chip + undo
+button; undo restores it as a replacement class (priorStatus preserved),
+not as a normal one.

@@ -948,3 +948,41 @@ hover via the shared `data-tip` tooltip system. Label-less holiday flags show
 no tooltip. One-line change in `HtmlBuilder.dayHeader` (ui-common.js:2155);
 applies to every timetable page via the shared builder.
 
+
+### Postscript — cancel-class-enhancement (2026-10-08, SDD change `cancel-class-enhancement`)
+
+Lecturers can now cancel their own classes — status normal with an end time
+in the future (real clock) — directly from any class modal via the shared
+CancelClassModal (`partials/ui-cancel-class-modal`) with a mandatory enum
+reason (6 values incl. Other + detail; OOP: `ClassCancellation` in
+`ui-common.js`). A cancelled block vanishes and its slot frees; the
+sessionStorage ledger (`classCancellationLedger`) replays the state across
+pages. On this page, submitting/replacing a class consumes its ledger entry,
+so the replacement chip/toast stop; an undo toast (12 s) on any landing page
+reverses the cancel until undone/arranged.
+
+### Postscript — toast snooze (2026-10-08, SDD-waived micro-fix)
+
+✕-closing the cancellation undo toast now snoozes it for the browser session
+(per-entry `toastSnoozed` in the ledger; `ToastManager.close()` in
+`ui-common.js`, layout ✕ → `toast.close()`). Submitting the arrangement still
+consumes the entry (`consumed:'arranged'`), which stops chip + toast for good.
+
+---
+
+## [2026-10-08] Selection summary strip went stale after deselect / Clear ALL
+
+The Conflict Schedule strip's "N of M slots" counter (`#infoTotal`) is rendered
+by `updateSelectionSummary()`, but that function **early-returns in its
+empty-state branch** (0 selections) without touching the counter — and
+`deselectBlock()` / `clearAll()` only called `updateCounter()`. Result: after
+deselecting a block or confirming Clear ALL, the strip kept reading e.g.
+"4 of 4 slots" while nothing was selected.
+
+Fix: the empty branch now writes `0 of ${MAX_SELECTION} slots` (and 0m
+duration) itself; `deselectBlock()` and `clearAll()` call
+`updateSelectionSummary()` alongside `updateCounter()`.
+
+Also removed `checkConflict()` — dead since the toolbar restructure (no call
+sites) and wrong regardless (it indexed the 1-based "Week N" label into the
+0-based `eventsByWeek`). Found during the Playwright de-staleness pass.

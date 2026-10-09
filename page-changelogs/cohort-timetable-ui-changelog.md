@@ -291,3 +291,96 @@ token and tip unchanged — the tip already read "Scheduling conflict or
 public holiday"). Aligns the label with what the error-container color
 actually encodes on this page: conflicted classes AND classes falling on
 public holidays (both render via the holiday/conflict styling).
+
+### Postscript — cancel-class-enhancement (2026-10-08, SDD change `cancel-class-enhancement`)
+
+Lecturers can now cancel their own classes — status normal with an end time
+in the future (real clock) — directly from the cohort grid's class modal via
+the shared CancelClassModal (`partials/ui-cancel-class-modal`) with a
+mandatory enum reason (6 values incl. Other + detail; OOP: `ClassCancellation`
+in `ui-common.js`). A cancelled block vanishes and its slot frees; the
+sessionStorage ledger (`classCancellationLedger`) replays the state across
+pages, with an undo toast (12 s) on any landing page until undone/arranged.
+
+### Postscript — toast snooze (2026-10-08, SDD-waived micro-fix)
+
+✕-closing the cancellation undo toast now snoozes it for the browser session
+(per-entry `toastSnoozed` in the ledger; `ToastManager.close()` in
+`ui-common.js`, layout ✕ → `toast.close()`). Cancelled state + chip replay
+unchanged; a new cancellation toasts again.
+
+---
+
+## [2026-10-08] Phantom multi-reds / double-pending fixed (reconstruction removed)
+
+`buildAllEvents()` rebuilt RSD3 G2 from `rsd3g2Base` + code-keyed
+`rsd3g2Flags`, flagging **every** block of a flagged code — week 0 showed 3 red
+BMIT3084 (L+T+P) where the student page shows 1, and week 8 double-pended
+BMIT2073. The reconstruction is deleted: the page now renders straight from
+`cohortTimetable.events`, whose flags are already slot-keyed snap-to-first
+(seeder §2.7, `check_mock` asserts views agree). Live parity: red count per
+week now equals the student page for all 14 weeks; `sumHours` also resets to 0
+in the faculty-selected branch of `onFacultyChange` (was left at 20).
+Other lecturers' pendings no longer offer "View Full Request" (ownership check
+in `openClassModal`, ui-common.js).
+
+### Postscript — snooze rule extended (2026-10-08, U3 decision)
+
+The undo toast now shows for **5 s** (was 12 s) and **auto-dismissing after the
+full display also snoozes** it — surviving the whole toast counts as "seen",
+same as clicking ✕. Only navigating away mid-display (timer killed) leaves the
+entry unsnoozed, so the toast legitimately re-shows on the next load.
+`ToastManager.show` gained an `onAutoDismiss` hook alongside `onManualDismiss`;
+`UNDO_TOAST_MS` 12000 → 5000. Live-verified all three paths, 0 console errors.
+
+### Postscript — undo feedback + grid rebuild (2026-10-08, U1/U2)
+
+Clicking the undo toast's **Undo** now works as it looks: `ToastManager`
+dismisses the undo bar **before** running the callback (U1 — the callback's
+"Class restored." toast was previously wiped ~0 ms after appearing), and the
+callback rebuilds whichever grid is on screen after `ClassCancellation.undo()`
+(U2 — every timetable page's `buildTimetable()` / replacement-home's
+`buildTable()`; the class reappears without a manual reload). Confirmation
+toast shows last, over the rebuilt grid. Live-verified on my-timetable,
+student page, and replacement-home; 0 console errors.
+
+### Postscript — My Teaching summary cards (2026-10-08)
+
+Cards 3–4 replaced: **Replacements → My Teaching Classes** and
+**Pending → My Teaching Hours** (values `sumMyClasses` / `sumMyHours`).
+My Teaching Classes counts each session separately — Subject A (T) and
+Subject A (L) are two classes; My Teaching Hours sums those classes'
+durations (slot = 30 min). Card colours unchanged (primary / neutral
+hours style); Total Classes, Teaching Hours and Conflicts untouched.
+Computation lives in the shared `myTeachingStats()` (grid-slotMap
+dedupe so merged-cohort twins count once); `computeSummary` writes are
+now null-guarded. Verified dft2s1 Week 1 → **3 classes / 4 hours**
+(AMCS2093 L 2h + T 1h + P 1h).
+
+### Postscript — conflict blocks made unmistakable (2026-10-08)
+
+`.event-conflict` (global, theme.css) upgraded from a plain red tint to
+a **2px solid `--color-error` border + diagonal caution stripes**
+(`repeating-linear-gradient` over the container tint, token-only via
+`color-mix` — adapts to dark theme). Same meaning, same red per §10.0;
+just impossible to mistake for an ordinary block at grid glance.
+Applies to every page rendering conflicted classes (cohort, venue,
+my timetable, student). No legend or test changes needed; verified live
+on cohort (dft2s1 W4 AMCS2093) and venue (B110 W4), suite 124 passed.
+
+### Postscript — loud conflict red is now owner-gated (2026-10-08)
+
+The loud red treatment (stripes + border, `event-conflict`) is reserved for
+**the logged-in lecturer's own** conflicted / public-holiday classes.
+Other lecturers' conflicted classes and PH-day classes fall back to a
+**quiet red tint** (`event-public-holiday`, no stripes/border) — the class
+still reads as "won't run / needs attention (someone else's)", just without
+hijacking your attention. Legend split into two entries: **Your
+Conflict / Holiday** (swatch reuses the real loud `event-conflict` class so
+the legend shows the exact styling) and **Others' Conflict / Holiday**
+(plain tint). Slot-status hint text updated to match. My Timetable keeps
+its existing behaviour (all events shown are the viewer's own, so
+semantics are unchanged); student page intentionally untouched (owner-blind
+red there). Verified live: cohort dft1s1 W1 Muada's `MPU-2302(T)` quiet,
+dft2s1 W4 own `AMCS2093(L)` loud; venue B110 W4 loud + B101 W1 quiet.
+TC34/35 → 7 legend items; new TC35b (owner-gating on venue); suite green.

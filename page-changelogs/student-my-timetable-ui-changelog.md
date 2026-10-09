@@ -245,3 +245,46 @@ no status class because the shared default classifier lacked a conflict
 branch — the block in your paste (`event-block span-4` with no `event-*`
 class) is exactly that. Fixed in `buildTimetableGrid` (ui-common.js): conflict
 events now get `.event-conflict` (red, §10.0 legend A).
+
+---
+
+## [2026-10-08] Copy + dead-code cleanup (audit follow-ups)
+
+- Conflicts card description said "Scheduling **overlaps**" — now
+  "Scheduling clashes and public holidays" (matches what the card counts).
+- Dropped the fabricated `'01 Sep 2026, 09:15 AM'` fallback for pending
+  `requestedAt` — every pending flag in `rsd3g2Flags` already carries its real
+  timestamp; the fallback was dead and invented a date if one ever didn't.
+- Removed unused `WEEK_KEY` / `loadSavedWeek()` / `saveWeek()` (week
+  persistence runs through `WeekNavigator` directly).
+
+### Postscript — snooze rule extended (2026-10-08, U3 decision)
+
+The undo toast now shows for **5 s** (was 12 s) and **auto-dismissing after the
+full display also snoozes** it — surviving the whole toast counts as "seen",
+same as clicking ✕. Only navigating away mid-display (timer killed) leaves the
+entry unsnoozed, so the toast legitimately re-shows on the next load.
+`ToastManager.show` gained an `onAutoDismiss` hook alongside `onManualDismiss`;
+`UNDO_TOAST_MS` 12000 → 5000. Live-verified all three paths, 0 console errors.
+
+### Postscript — undo feedback + grid rebuild (2026-10-08, U1/U2)
+
+Clicking the undo toast's **Undo** now works as it looks: `ToastManager`
+dismisses the undo bar **before** running the callback (U1 — the callback's
+"Class restored." toast was previously wiped ~0 ms after appearing), and the
+callback rebuilds whichever grid is on screen after `ClassCancellation.undo()`
+(U2 — every timetable page's `buildTimetable()` / replacement-home's
+`buildTable()`; the class reappears without a manual reload). Confirmation
+toast shows last, over the rebuilt grid. Live-verified on my-timetable,
+student page, and replacement-home; 0 console errors.
+
+### Postscript — conflict blocks made unmistakable (2026-10-08)
+
+`.event-conflict` (global, theme.css) upgraded from a plain red tint to
+a **2px solid `--color-error` border + diagonal caution stripes**
+(`repeating-linear-gradient` over the container tint, token-only via
+`color-mix` — adapts to dark theme). Same meaning, same red per §10.0;
+just impossible to mistake for an ordinary block at grid glance.
+Applies to every page rendering conflicted classes (cohort, venue,
+my timetable, student). No legend or test changes needed; verified live
+on cohort (dft2s1 W4 AMCS2093) and venue (B110 W4), suite 124 passed.

@@ -6,6 +6,7 @@
 
 | Timestamp | Location | Change | Detail |
 |-----------|----------|--------|--------|
+| 2026-10-08 | `CancelClassModal.arrangeNow()`, `showUndoToast()`, S12 bootstrap | Fixed + extended | (1) `arrangeNow()` now closes the modal **before** navigating — browser BACK from replacement-arrangement restored the page from bfcache with the success modal still shown (user report); a `pageshow` (`e.persisted`) guard closes any restored modal as belt-and-braces. (2) Undo toast clicked **off** my-timetable now deep-links to `/my-timetable-ui?week=<matchKey.week>&restored=1` — landing on the cancelled class's exact session week (user request: undo previously stayed on the arrangement page); on my-timetable itself the undo keeps the in-place grid rebuild + "Class restored." toast (U1/U2 behavior unchanged). (3) S12 bootstrap shows the same "Class restored." toast on arrival when the URL carries `?restored=1`. |
 | 2026-08-01 | — | Extended | Grew from 5 → 17 shared functions. Added `updateWeekArrows(prevDisabled, nextDisabled)`, `hours` const (08:00–18:30 half-hour slots), `add30min(t)`, `goToReplacement()` (→ `/replacement-arrangement`), `compareBy(sortState, va, vb)`, `makeSortableHeader(col, sortState, render)`, `paginate(cfg)`, `updateResultCount(cfg)`, `closeOnEsc(closeFn)`, `closeOnOverlayClick(e, closeFn)`, `togglePassword()`, `ripple(e, btn)` — extracted from inline copies across templates |
 
 ### `resources/views/ui-design-templates/MyTimetable-UI-design-template.blade.php`
@@ -197,3 +198,32 @@ to `theme.css` (red — §10.0 legend "Conflict / Public Holiday"); holiday
 statusDesc now says "Class falls on a public holiday — no class runs".
 Verified on student/my/cohort timetable pages at week 8 (Mon 9 Nov): red
 "Public Holiday" badge everywhere, 0 console errors.
+
+---
+
+## [2026-10-08] computeSummary counts explicit conflicts; View Full Request ownership-gated
+
+- `computeSummary` now counts `status === 'conflict'` events (previously only
+  holiday overlaps bumped the Conflicts card — my week 0 showed 2 red blocks /
+  card 0). Single guarded branch prevents double-counting a conflict class that
+  also sits on a holiday.
+- `openClassModal`'s "View Full Request" footer link now requires
+  `event.requestedBy === MockData.currentUser.name`. Other lecturers' pendings
+  (cohort page AMIS1012 → `?id=1`, cohort rsd3g2 wk8 → `?id=4`) lose the button;
+  the `requests[]` ids they collided with were simultaneously rewired to the
+  current user's own AMCS2093 records (mock-data.js §2.9 ids 3/8/11).
+- Class Type map in the modal gained `P → Practical (P)` (BMIT2013 P showed
+  "Tutorial (T)"); `flashEarliestBookableDay`'s day-row selector fixed from
+  `tr[data-dayIndex=…]` to `tr[data-day-index=…]` (builder sets
+  `tr.dataset.dayIndex`, so the attribute form never matched — flash no-oped).
+
+### Postscript — undo feedback + grid rebuild (2026-10-08, U1/U2)
+
+Clicking the undo toast's **Undo** now works as it looks: `ToastManager`
+dismisses the undo bar **before** running the callback (U1 — the callback's
+"Class restored." toast was previously wiped ~0 ms after appearing), and the
+callback rebuilds whichever grid is on screen after `ClassCancellation.undo()`
+(U2 — every timetable page's `buildTimetable()` / replacement-home's
+`buildTable()`; the class reappears without a manual reload). Confirmation
+toast shows last, over the rebuilt grid. Live-verified on my-timetable,
+student page, and replacement-home; 0 console errors.

@@ -478,3 +478,148 @@ applies to every timetable page via the shared builder.
 Venue class-detail modal now splits into 2 tabs: **Session** (code, name,
 lecturer, cohort, start/end) / **Venue & Status** (venue, status badge,
 description, remarks). Blade: `venue-timetable-UI-design-template.blade.php`.
+
+### Postscript — cancel-class-enhancement (2026-10-08, SDD change `cancel-class-enhancement`)
+
+Lecturers can now cancel their own classes — status normal with an end time
+in the future (real clock) — directly from the venue grid's class modal via
+the shared CancelClassModal (`partials/ui-cancel-class-modal`) with a
+mandatory enum reason (6 values incl. Other + detail; OOP: `ClassCancellation`
+in `ui-common.js`). A cancelled block vanishes and its slot frees; the
+sessionStorage ledger (`classCancellationLedger`) replays the state across
+pages, with an undo toast (12 s) on any landing page until undone/arranged.
+
+### Postscript — toast snooze (2026-10-08, SDD-waived micro-fix)
+
+✕-closing the cancellation undo toast now snoozes it for the browser session
+(per-entry `toastSnoozed` in the ledger; `ToastManager.close()` in
+`ui-common.js`, layout ✕ → `toast.close()`). Cancelled state + freed slot
+replay unchanged; a new cancellation toasts again.
+
+---
+
+## [2026-10-08] Conflict blocks render red + twin merge + 6-item legend (bug audit + venue-legend-parity)
+
+Four fixes, applied together because they interlock:
+
+- **Combined-lecture twins were last-win.** Grid `slotMap` overwrote per event,
+  so for a same-slot twin pair (e.g. B110 week 3 AMCS2093: DFT2 conflict first,
+  DSF2 normal second) the normal twin won and the slot rendered green.
+  `getVenueEvents()` now merges duplicates: one block, cohort joined
+  ("DFT2(S1) + DSF2(S1)"), status combined by severity
+  (conflict > pending > replacement > normal). This also stops the modal showing
+  the cohort slug (`dsf2s1`) — the display name is kept.
+- **Conflict branch in `cellRender`.** `status === 'conflict'` now gets
+  `.event-conflict` (red, owner-agnostic, §10.0 parity with cohort) instead of
+  falling into the mine/others greens. Live: B006 week 0 BMIT3084 red;
+  B110 week 3 AMCS2093 red.
+- **Legend grew 4 → 6 items** per the frozen `venue-legend-parity` design §1:
+  Available, Your Classes, Others' Classes, Others' Pending (grey
+  `--color-surface-variant`), Your Pending, Conflict / Public Holiday. Spec
+  TC34/TC35 updated to the 6-item exact-text assertions.
+- **Modal**: Status Description for conflicts now reads "Scheduling conflict —
+  needs attention" (was "Class booked for this venue"); a Total Students row was
+  added, resolved from the course registry per merged cohort (B110 AMCS2093 →
+  50, B006 BMIT3084 → 14) since `cohortTimetable.events` carry no per-event
+  count.
+
+Known collision intentionally left: Available and Others' Classes share the
+same green (user decision, 2026-10-07; frozen design keeps it).
+
+### Postscript — snooze rule extended (2026-10-08, U3 decision)
+
+The undo toast now shows for **5 s** (was 12 s) and **auto-dismissing after the
+full display also snoozes** it — surviving the whole toast counts as "seen",
+same as clicking ✕. Only navigating away mid-display (timer killed) leaves the
+entry unsnoozed, so the toast legitimately re-shows on the next load.
+`ToastManager.show` gained an `onAutoDismiss` hook alongside `onManualDismiss`;
+`UNDO_TOAST_MS` 12000 → 5000. Live-verified all three paths, 0 console errors.
+
+### Postscript — undo feedback + grid rebuild (2026-10-08, U1/U2)
+
+Clicking the undo toast's **Undo** now works as it looks: `ToastManager`
+dismisses the undo bar **before** running the callback (U1 — the callback's
+"Class restored." toast was previously wiped ~0 ms after appearing), and the
+callback rebuilds whichever grid is on screen after `ClassCancellation.undo()`
+(U2 — every timetable page's `buildTimetable()` / replacement-home's
+`buildTable()`; the class reappears without a manual reload). Confirmation
+toast shows last, over the rebuilt grid. Live-verified on my-timetable,
+student page, and replacement-home; 0 console errors.
+
+### Postscript — resize listener de-duped (2026-10-08, exempted from Batch-7 rejection)
+
+`buildTimetable()` re-registered an anonymous `resize` listener on every
+venue/week change, so N rebuilds stacked N copies (each resize ran N redraws
+of the mobile-card-list toggle). The handler is now stored on
+`window.__venueResizeHandler` and the previous one is removed before the new
+one is added — exactly one live listener regardless of rebuild count.
+Instrumented live check: 3 adds / 3 removes across rebuilds, mobile card list
+still toggles correctly at 375 px / 1440 px; 0 console errors. (The rest of
+Batch 7 — column/Sunday/span cosmetics — remains REJECTED.)
+
+### Postscript — venue-legend-parity shipped (2026-10-08)
+
+Legend bar rebuilt to the cohort page's exact five class-status items,
+preceded by the venue-only **Available** item (6 total, in order):
+Available · Your Classes · Others' Classes · Others' Pending · Your
+Pending · Conflict / Public Holiday. Item 6's tip carries the venue
+nuance (public-holiday slots show as empty 'PH' cells — not red).
+
+To keep the new legend truthful, the venue `cellRender` gained the
+missing conflict branch: `e.status === 'conflict'` now renders
+`event-conflict` (red, owner-agnostic — parity with the cohort builder)
+before the mine/others fallback. Previously a conflicted class (e.g.
+B110 Monday `AMCS2093`, "Lecturer on leave") silently rendered as an
+ordinary green block on this page while rendering red everywhere else.
+
+Branch order is unchanged (sunday/holiday cells still win — a booked
+class on an offday still shows the offday cell), booking affordances
+untouched, `.event-conflict` was already global in theme.css (no new
+CSS). Live-verified: 6-item legend desktop + mobile, B110 Week 4
+AMCS2093 red / AMIS1012 green, 130 available cells intact. This
+supersedes venue-event-blocks' 4-item legend expectations (TC34/TC35
+rewritten to 6 items during the spec de-stale). Implementation landed
+in `b47221e` (parallel session); artifacts in
+`.sdd/changes/venue-legend-parity/`.
+
+### Postscript — My Teaching summary cards, Pending removed (2026-10-08)
+
+**Pending** card removed (held slots still count toward Total Slots);
+added **My Teaching Classes** + **My Teaching Hours** — same semantics
+and labels as the cohort page, scoped to this venue. Final bar:
+Total Slots · Available · My Teaching Classes · My Teaching Hours ·
+Unavailable (red card last, mirroring cohort). Counting is
+grid-equivalent: offday events excluded (they render as PH cells),
+merged-cohort twins deduped. Verified B110 → **1 class / 2 hours**
+(AMCS2093(L)). Spec TC36 4→5 cards, TC37 ids, TC58 mobile count,
+new TC38b (B110 weekly pattern).
+
+### Postscript — conflict blocks made unmistakable (2026-10-08)
+
+`.event-conflict` (global, theme.css) upgraded from a plain red tint to
+a **2px solid `--color-error` border + diagonal caution stripes**
+(`repeating-linear-gradient` over the container tint, token-only via
+`color-mix` — adapts to dark theme). Same meaning, same red per §10.0;
+just impossible to mistake for an ordinary block at grid glance.
+Applies to every page rendering conflicted classes (cohort, venue,
+my timetable, student). No legend or test changes needed; verified live
+on cohort (dft2s1 W4 AMCS2093) and venue (B110 W4), suite 124 passed.
+
+### Postscript — loud conflict red is now owner-gated (2026-10-08)
+
+The loud red treatment (stripes + border, `event-conflict`) is reserved for
+**the logged-in lecturer's own** conflicted / public-holiday classes.
+Other lecturers' conflicted classes and PH-day classes fall back to a
+**quiet red tint** (`event-public-holiday`, no stripes/border) — the class
+still reads as "won't run / needs attention (someone else's)", just without
+hijacking your attention. Legend split into two entries: **Your
+Conflict / Holiday** (swatch reuses the real loud `event-conflict` class so
+the legend shows the exact styling) and **Others' Conflict / Holiday**
+(plain tint). Slot-status hint text updated to match. My Timetable keeps
+its existing behaviour (all events shown are the viewer's own, so
+semantics are unchanged); student page intentionally untouched (owner-blind
+red there). Verified live: cohort dft1s1 W1 Muada's `MPU-2302(T)` quiet,
+dft2s1 W4 own `AMCS2093(L)` loud; venue B110 W4 loud + B101 W1 quiet.
+TC34/35 → 7 legend items; new TC35b (owner-gating on venue); TC45–48
+tooltip tests now scroll-settle before clicking (auto-scroll race with the
+by-design scroll-hide, exposed by the taller 7-item legend); suite green.

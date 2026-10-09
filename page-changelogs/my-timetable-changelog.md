@@ -1,5 +1,10 @@
 # Changelog — Lecturer My Timetable
 
+## [2026-10-08] `?week=` deep link (undo lands on the cancelled class's week)
+
+- The page now honours a `?week=N` query param: applied in the `DOMContentLoaded` init **after** `weekNav.load()`, so a deep link **wins over the saved week position** (localStorage `myTimetableWeek`); an absent/invalid/out-of-range param keeps the saved/mock-now behavior unchanged.
+- Consumer: the shared cancel-undo toast — undo clicked **off** my-timetable navigates to `/my-timetable-ui?week=<matchKey.week>&restored=1` (ui-common.js, see oop-js-consolidation changelog 2026-10-08).
+- Verified: `?week=5` with saved week 6 → select shows 5; plain load with saved week 6 → select shows 6; undo clicked on replacement-arrangement lands on `/my-timetable-ui?week=2&restored=1` with the cancelled block restored (`status: normal`) and the "Class restored." toast; undo clicked **on** my-timetable stays in place (no navigation). Full playwright suite 121 passed / 3 skipped.
 ## [2026-08-31] Wired to real data via Livewire (SDD wire-backend-into-refactored-ui, Slice A)
 
 Page now served by `App\Livewire\MyTimetable` (full-page Livewire component) instead of the mock closure. Legacy template `MyTimetable-UI-design-template.blade.php` untouched on disk — served only when `APP_MOCK_FALLBACK=true` (config `app.mock_fallback`, design D10) or before the component existed (transitional rule).
@@ -408,3 +413,84 @@ Backend data change — no markup/CSS changes to this page (SDD
   placeholder rows (W1/W3/W5/W7).
 - Invariants re-pinned and green: 101/155/3963 (occupied incl. holiday rule),
   0 orphans, 0 venue double-bookings; full suite 115/115.
+### Postscript — cancel-class-enhancement (2026-10-08, SDD change `cancel-class-enhancement`)
+
+Lecturers can now cancel their own classes — status normal with an end time
+in the future (real clock) — directly from the my-timetable class modal via
+the shared CancelClassModal (`partials/ui-cancel-class-modal`) with a
+mandatory enum reason (6 values incl. Other + detail; OOP: `ClassCancellation`
+in `ui-common.js`). A cancelled block vanishes and its slot frees; the
+sessionStorage ledger (`classCancellationLedger`) replays the state across
+pages, with an undo toast (12 s) on any landing page until undone/arranged.
+
+### Postscript — stale View-Full-Request + toast snooze (2026-10-08, SDD-waived micro-fix)
+
+Two shared-modal fixes: (1) the "View Full Request" anchor appended for a
+pending class lingered in the static footer when a normal class was opened
+next — footer cleanup now runs on EVERY `openClassModal` open
+(`ui-common.js`). (2) The cancellation undo toast no longer nags after the
+user ✕-closes it: the ✕ snoozes that entry's toast for the session
+(`toastSnoozed`; undo remains available on the replacement-home chip).
+
+### Postscript — replacement-status classes now cancellable (2026-10-08, SDD-waived extension)
+
+FR 2.16 read literally: a confirmed replacement slot is still the lecturer's
+own scheduled class, so `isCancellable` now accepts status `'replacement'`
+alongside `'normal'` (own + future-end + non-holiday guards unchanged).
+Undo semantics hardened to match: the ledger entry records `priorStatus` at
+cancel time and `undo()` restores THAT — a cancelled replacement block comes
+back as a replacement (Original-Date trail intact) instead of being demoted
+to 'normal'. The approved request itself is untouched (audit trail). The
+cancelled class then joins the replacement-home requires-replacement list
+like any other cancellation. Covered by new spec test S17 (14 passing).
+
+---
+
+## [2026-10-08] Conflict count on summary card + Replace Now on holiday/conflict + guide fix
+
+Three fixes from the 2026-10-07/08 bug audit:
+
+- **Conflicts card was always 0.** `computeSummary` counted only
+  holiday-overlapping classes; explicit `status === 'conflict'` events were
+  never counted. Now one branch counts both (`conflict || holiday`, guarded
+  against double-counting). Week 0 live: card reads 2, matching the 2 red
+  blocks.
+- **Replace Now now shows for conflicts too.** The footer button gated on
+  `day.holiday` alone, so a conflicted class (the most common reason to
+  replace) hid it. Gate is now `day.holiday || event.status === 'conflict'`.
+  Verified live: conflict footer `disp:flex`, pending `disp:none`.
+- **How-to guide drift**: status list dropped Approved/Rejected (not grid
+  statuses); "click a normal/approved slot" → "click any slot".
+- Dead code removed: unused `loadSavedWeek()`/`saveWeek()` wrappers (week
+  persistence runs through `WeekNavigator` directly).
+
+### Postscript — snooze rule extended (2026-10-08, U3 decision)
+
+The undo toast now shows for **5 s** (was 12 s) and **auto-dismissing after the
+full display also snoozes** it — surviving the whole toast counts as "seen",
+same as clicking ✕. Only navigating away mid-display (timer killed) leaves the
+entry unsnoozed, so the toast legitimately re-shows on the next load.
+`ToastManager.show` gained an `onAutoDismiss` hook alongside `onManualDismiss`;
+`UNDO_TOAST_MS` 12000 → 5000. Live-verified all three paths, 0 console errors.
+
+### Postscript — undo feedback + grid rebuild (2026-10-08, U1/U2)
+
+Clicking the undo toast's **Undo** now works as it looks: `ToastManager`
+dismisses the undo bar **before** running the callback (U1 — the callback's
+"Class restored." toast was previously wiped ~0 ms after appearing), and the
+callback rebuilds whichever grid is on screen after `ClassCancellation.undo()`
+(U2 — every timetable page's `buildTimetable()` / replacement-home's
+`buildTable()`; the class reappears without a manual reload). Confirmation
+toast shows last, over the rebuilt grid. Live-verified on my-timetable,
+student page, and replacement-home; 0 console errors.
+
+### Postscript — conflict blocks made unmistakable (2026-10-08)
+
+`.event-conflict` (global, theme.css) upgraded from a plain red tint to
+a **2px solid `--color-error` border + diagonal caution stripes**
+(`repeating-linear-gradient` over the container tint, token-only via
+`color-mix` — adapts to dark theme). Same meaning, same red per §10.0;
+just impossible to mistake for an ordinary block at grid glance.
+Applies to every page rendering conflicted classes (cohort, venue,
+my timetable, student). No legend or test changes needed; verified live
+on cohort (dft2s1 W4 AMCS2093) and venue (B110 W4), suite 124 passed.

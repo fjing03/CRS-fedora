@@ -340,7 +340,7 @@
             'guideItems' => [
                 '<strong>Select venue</strong> — choose a building, then a venue to view its timetable',
                 '<strong>Week navigation</strong> — use arrows or Today button to browse weeks',
-                '<strong>Slot status</strong> — Normal (green), Conflicted (red), Pending (amber), Approved (blue), Rejected (grey)',
+                '<strong>Slot status</strong> — Normal (green), Conflicted (red), Pending (amber)',
                 '<strong>View details</strong> — click any slot to see class details and cohort info',
                 '<strong>Booking check</strong> — the banner shows if the venue is available for booking',
             ]
@@ -410,9 +410,12 @@
         @include('partials.ui-legend-bar', [
             'items' => [
                 ['color' => 'var(--color-success-container)', 'label' => 'Available', 'tip' => 'Free slot — click to book this venue (Sunday, holiday and lead-time slots can\'t be booked)'],
-                ['color' => 'var(--color-primary-container)', 'label' => 'Your Classes', 'tip' => 'Your sessions in this venue, incl. replacement sessions'],
-                ['color' => 'var(--color-success-container)', 'label' => 'Others\' Classes', 'tip' => 'Other lecturers\' sessions — these are filled blocks, empty green cells are bookable'],
-                ['color' => 'var(--color-tertiary-container)', 'label' => 'Pending', 'tip' => 'Replacement request awaiting PL approval — others\' pending requests show grey'],
+                ['color' => 'var(--color-primary-container)', 'label' => 'Your Classes', 'tip' => 'Normal or replacement sessions assigned to you'],
+                ['color' => 'var(--color-success-container)', 'label' => 'Others\' Classes', 'tip' => 'Normal or replacement sessions by other lecturers'],
+                ['color' => 'var(--color-surface-variant)', 'label' => 'Others\' Pending', 'tip' => 'Replacement request by other lecturers, awaiting PL approval'],
+                ['color' => 'var(--color-tertiary-container)', 'label' => 'Your Pending', 'tip' => 'Your replacement request, awaiting PL approval'],
+                ['class' => 'event-conflict', 'label' => 'Your Conflict', 'tip' => 'Your conflicted class — striped, needs your attention (on venue, public-holiday slots show as empty \'PH\' cells — not red)'],
+                ['color' => 'var(--color-error-container)', 'label' => 'Others\' Conflict', 'tip' => 'Other lecturers\' conflicted classes — plain red, no action needed from you'],
             ]
         ])
 
@@ -424,8 +427,10 @@
                     'description' => 'All time slots shown for <strong>this venue</strong> in the selected week.'],
                 ['class' => 'card-available', 'valueId' => 'sumAvailable', 'label' => 'Available',
                     'description' => '<strong>Free time slots</strong> that can be booked for this venue.'],
-                ['class' => 'card-pending', 'valueId' => 'sumPending', 'label' => 'Pending',
-                    'description' => 'Slots held by <strong>replacement requests</strong> awaiting approval.'],
+                ['class' => 'card-replacement', 'valueId' => 'sumMyClasses', 'label' => 'My Teaching Classes',
+                    'description' => 'Sessions <strong>you teach</strong> in this venue this week — <strong>each class counts separately</strong>.'],
+                ['class' => 'card-hours', 'valueId' => 'sumMyHours', 'label' => 'My Teaching Hours',
+                    'description' => 'Total hours of <strong>your classes</strong> in this venue this week (each slot = <strong>30 minutes</strong>).'],
                 ['class' => 'card-conflict', 'valueId' => 'sumUnavailable', 'label' => 'Unavailable',
                     'description' => '<strong>Cannot book</strong> — booked class, Sunday, or public holiday.'],
             ]
@@ -450,6 +455,9 @@
                 </div>
             </div>
         </div>
+
+        <!-- ─── Cancel Class Confirm Modal (shared partial — cancel-class-enhancement) ─── -->
+        @include('partials.ui-cancel-class-modal')
 
         <!-- ─── Available Slot Tooltip ─── -->
         <div class="available-tooltip" id="availableTooltip">
@@ -695,21 +703,56 @@
            ════════════════════════════════════════════ */
 
         function getVenueEvents(venueCode, weekIndex) {
-            const events = [];
-            if (!MockData.cohortTimetable || !MockData.cohortTimetable.events) return events;
+            /* Combined-lecture twins (same venue, same di+start, one row per
+               cohort) used to be LAST-WIN in the grid slotMap (ui-common.js),
+               so a normal twin could overwrite a conflict twin and the slot
+               rendered green. Merge them here: status by severity
+               (conflict > pending > replacement > normal), cohorts joined,
+               students summed. */
+            const SEVERITY = { conflict: 3, pending: 2, replacement: 1, normal: 0 };
+            const byKey = {};
+            const order = [];
+            if (!MockData.cohortTimetable || !MockData.cohortTimetable.events) return order;
 
             MockData.cohortTimetable.events.forEach(function(item) {
                 if (item.week !== weekIndex) return;
                 const e = item.event;
-                if (e.venue === venueCode) {
-                    events.push({
-                        ...e,
-                        cohort: item.cohortId,
-                    });
+                if (e.venue !== venueCode || e.status === 'cancelled') return;
+                const ev = Object.assign({}, e, {
+                    cohort: e.cohort || item.cohortId,
+                    cohorts: [e.cohort || item.cohortId],   // per-cohort list → Total Students lookup
+                });
+                const key = ev.di + ':' + ev.start;
+                const cur = byKey[key];
+                if (!cur) {
+                    byKey[key] = ev;
+                    order.push(key);
+                    return;
                 }
+                if ((SEVERITY[ev.status] || 0) > (SEVERITY[cur.status] || 0)) cur.status = ev.status;
+                if (cur.cohort.indexOf(ev.cohort) === -1) cur.cohort += ' + ' + ev.cohort;
+                if (cur.cohorts.indexOf(ev.cohorts[0]) === -1) cur.cohorts.push(ev.cohorts[0]);
+                if (!cur.requestedAt && ev.requestedAt) cur.requestedAt = ev.requestedAt;
+                if (!cur.requestedBy && ev.requestedBy) cur.requestedBy = ev.requestedBy;
+                if (!cur.remarks && ev.remarks) cur.remarks = ev.remarks;
             });
 
-            return events;
+            return order.map(function(k) { return byKey[k]; });
+        }
+
+        /* cohortTimetable.events carry no studentCount — resolve the total from
+           the course registry (sum of each merged cohort's count; course total
+           as fallback). */
+        function venueTotalStudents(e) {
+            if (e.studentCount) return e.studentCount;
+            const course = (MockData.courses || []).find(function(c) { return c.code === e.code; });
+            if (!course) return '—';
+            let sum = 0, matched = false;
+            (e.cohorts || []).forEach(function(cn) {
+                const i = course.cohorts.indexOf(cn);
+                if (i !== -1) { sum += course.cohortCounts[i] || 0; matched = true; }
+            });
+            return matched ? sum : (course.studentCount != null ? course.studentCount : '—');
         }
 
         /* ════════════════════════════════════════════
@@ -782,6 +825,9 @@
                         var isMine = e.lecturer === MockData.currentUser.name;
                         if (e.status === 'pending') {
                             div.classList.add(isMine ? 'event-mine-pending' : 'event-others-pending');
+                        } else if (e.status === 'conflict') {
+                            // Loud red = own conflicts; others' stay quiet red (owner-gated, parity with cohort)
+                            div.classList.add(isMine ? 'event-conflict' : 'event-public-holiday');
                         } else {
                             div.classList.add(isMine ? 'event-mine' : 'event-others');
                         }
@@ -845,11 +891,16 @@
                rebuild (the builder hides it first to clear stale cards) */
             const mcl = document.getElementById('mobileCardList');
             if (mcl) mcl.style.display = (mcl.children.length && window.matchMedia('(max-width: 768px)').matches) ? '' : 'none';
-            /* keep it honest across viewport resizes (no rebuild needed) */
-            window.addEventListener('resize', function() {
+            /* keep it honest across viewport resizes (no rebuild needed).
+               De-duped: buildTimetable runs on every venue/week change, and
+               re-adding an anonymous listener here used to stack one copy per
+               rebuild (resize ran N redraws after N venue visits). */
+            if (window.__venueResizeHandler) window.removeEventListener('resize', window.__venueResizeHandler);
+            window.__venueResizeHandler = function() {
                 const mcl = document.getElementById('mobileCardList');
                 if (mcl) mcl.style.display = (mcl.children.length && window.matchMedia('(max-width: 768px)').matches) ? '' : 'none';
-            });
+            };
+            window.addEventListener('resize', window.__venueResizeHandler);
 
             /* lead-time banner (contextual: shown while the viewed week is blocked) */
             renderLeadTimeNote('leadTimeNote', weekData, currentWeek);
@@ -910,8 +961,18 @@
             const unavailable = occupied + sunday + ph + tooSoon;
             document.getElementById('sumTotal').textContent = available + pending + unavailable;
             document.getElementById('sumAvailable').textContent   = available;
-            document.getElementById('sumPending').textContent     = pending;
             document.getElementById('sumUnavailable').textContent = unavailable;
+
+            /* My Teaching cards — offday events are skipped because this
+               grid renders them as PH cells, never as blocks (the same
+               grid-equivalence rule the slot counters above follow). */
+            const onGrid = (events || []).filter(function (e) {
+                const d = weekData[currentWeek].days[e.di];
+                return d && !d.sunday && !d.holiday;
+            });
+            const my = myTeachingStats(onGrid);
+            document.getElementById('sumMyClasses').textContent = my.classes;
+            document.getElementById('sumMyHours').textContent   = (my.hours % 1 === 0 ? my.hours : my.hours.toFixed(1));
         }
 
         /* ════════════════════════════════════════════
@@ -933,17 +994,31 @@
                         DetailModal.row('Subject Name', e.name || '—') +
                         DetailModal.row('Lecturer', e.lecturer || '—') +
                         DetailModal.row('Cohort', e.cohort || '—') +
+                        DetailModal.row('Total Students', venueTotalStudents(e)) +
                         DetailModal.row('Start Time', startTime, { strong: true }) +
                         DetailModal.row('End Time', endTime)
                     ) },
                     { key: 'venue-status', label: 'Venue & Status', html: DetailModal.section('Venue & Status',
                         DetailModal.row('Venue', venueStr) +
                         DetailModal.row('Status', '<span class="badge badge-' + e.status + '">' + StatusText.label(e.status) + '</span>') +
-                        DetailModal.row('Status Description', e.status === 'pending' ? 'Replacement request awaiting approval' : 'Class booked for this venue') +
+                        DetailModal.row('Status Description', e.status === 'conflict' ? 'Scheduling conflict — needs attention' : e.status === 'pending' ? 'Replacement request awaiting approval' : 'Class booked for this venue') +
                         DetailModal.row('Remarks', e.remarks || '—')
                     ) },
                 ]
             });
+
+            // Cancel Class? button (shared modal — cancel-class-enhancement §5):
+            // self-hides via ClassCancellation.isCancellable (S1–S5); the Later
+            // path closes the event modal and rebuilds the grid, so the
+            // cancelled block vanishes and the slot turns available again.
+            CancelClass.renderButton(
+                document.querySelector('#eventModal .modal-footer'),
+                e, weekData[currentWeek].days, currentWeek,
+                function() {
+                    closeModal();
+                    buildTimetable();
+                }
+            );
         }
 
         function closeModal() {
