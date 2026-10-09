@@ -228,6 +228,11 @@
                     tooltipExtra: function (e) { return e.lecturer || '—'; },
                     statusClassFn: function (div, e, isConflict) {
                         if (isConflict) { div.classList.add('event-public-holiday'); return; }
+                        if (e.status === 'conflict') {
+                            // B005 diploma-cohort conflict (b005-diploma-conflict): owner loud, others quiet red (upstream idiom)
+                            div.classList.add(e.lecturer === MockData.currentUser.name ? 'event-conflict' : 'event-public-holiday');
+                            return;
+                        }
                         const isMine = e.isMine === true;
                         if (e.status === 'pending') {
                             div.classList.add(isMine ? 'event-mine-pending' : 'event-others-pending');

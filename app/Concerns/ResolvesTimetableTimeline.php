@@ -245,6 +245,20 @@ trait ResolvesTimetableTimeline
     }
 
     /**
+     * Venue-restriction conflict (VENUE-RESTRICTIONS.md, SDD b005-diploma-conflict):
+     * a session conflicts when its venue is B005 AND any cohort belongs to a
+     * D* (Diploma) programme. Derived at render time — the DB state machine
+     * stays 3-state (FR 4.11); booking-time enforcement of the full rule set
+     * is Slice B scope.
+     */
+    private function venueRestrictionConflict(ClassSession $s): bool
+    {
+        return $s->venue !== null
+            && $s->venue->room_code === 'B005'
+            && $s->cohorts->contains(fn ($c) => str_starts_with((string) $c->programme->programme_code, 'D'));
+    }
+
+    /**
      * @return array<string, mixed>
      */
     private function baseEvent(ClassSession $s, ?string $cohortScopeCode): array
@@ -267,7 +281,7 @@ trait ResolvesTimetableTimeline
             'cohort' => $cohortLabel,
             'cohorts' => $cohorts->map(fn ($c) => $this->cohortCode($c))->all(),
             'studentCount' => (int) $cohorts->sum('student_count'),
-            'status' => 'normal',
+            'status' => $this->venueRestrictionConflict($s) ? 'conflict' : 'normal',
             'remarks' => '',
         ];
     }

@@ -1,5 +1,16 @@
 # Changelog — Venue Timetable UI
 
+## [2026-10-09] B005 diploma-cohort conflict — derived flag, owner-gated (SDD b005-diploma-conflict)
+
+First enforcement of `VENUE-RESTRICTIONS.md`: the audit's single violation (AMIT2034 P, Wed 11:00–13:00, B005, combined DFT+DSF diploma lecture) now renders as a **schedule conflict needing replacement**. Derived at render time — no DB mutation, the 3-state slot machine (FR 4.11) is untouched.
+
+- **Conflict derivation** (`venueRestrictionConflict()`): venue `B005` AND any cohort's programme starts with `D` → event `status: 'conflict'` on every page.
+- **Owner-gated rendering**: the owner's block is loud striped red (`event-conflict` — "needs YOUR action"); other viewers see quiet red (`event-public-holiday`), matching the legend's Your/Others Conflict split. The shared modal shows "Scheduling conflict — needs attention". No replace button — the write path is Slice B.
+- Venue eager-load gained `classSession.venue` (N+1 avoidance); conflict outranks slot-pending/normal per the twin-merge severity map.
+- Verified: phpunit 129/129 (845 assertions; +6 conflict tests) · phpstan 0 · lint clean · venue-db 4/4 (live Daniel-5652 owner view) · timetable-wiring 5/5 · nav-identity 3/3.
+
+---
+
 ## [2026-10-09] Post-merge design parity: 7-item legend + ownership cards (SDD merge-upstream-ui-2026-10)
 
 After merging `upstream/fjing` (`e7f8036`, 21 commits — the 2026-10-09 UI batch), the DB-backed Livewire page (`App\Livewire\VenueTimetable`) was adapted to the post-merge venue design. READ-only v1 unchanged: no Book button, no cancel modal (write path = Slice B).

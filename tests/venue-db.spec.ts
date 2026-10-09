@@ -5,7 +5,7 @@
  *
  * Anchors (real data): 23 venues in 4 type groups; B006 week 1 has 48
  * occupied slots incl. BMIT2154 (Mon 09:00). Logins are rate-limited
- * (5/min per ID) — 3 tests, one login each.
+ * (5/min per ID) — 4 tests, one login each.
  */
 import { test, expect, type Page } from '@playwright/test';
 
@@ -97,4 +97,20 @@ test('venue dropdown: 4 type groups, drill-down reaches rooms, switching navigat
   await expect(page.locator('.venue-dd-label')).toHaveText(new RegExp(code!), { timeout: 15_000 });
 
   expect(errors).toEqual([]);
+});
+
+test('B005 diploma-cohort conflict renders owner-gated (b005-diploma-conflict)', async ({ page }) => {
+  // Daniel Royd Michael (5652) owns the AMIT2034 P Wed-11:00 B005 session —
+  // the single venue-restriction violation, flagged as a derived conflict.
+  await loginAsStaff(page, '5652');
+  await page.goto('/venue-timetable-ui?venue=B005');
+
+  // Owner view: loud striped conflict block in week 1.
+  await expect(page.locator('.timetable .event-conflict').first()).toBeVisible({ timeout: 15_000 });
+
+  // It is the AMIT2034 block — modal opens with the "needs attention" copy.
+  await page.locator('.timetable .event-conflict').first().click();
+  await expect(page.locator('#classModal')).toBeVisible();
+  await expect(page.locator('#classModal')).toContainText('AMIT2034');
+  await page.click('.btn-close-modal');
 });

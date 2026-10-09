@@ -1,5 +1,11 @@
 # Changelog — Lecturer My Timetable
 
+## [2026-10-09] Venue-restriction conflicts render on the timeline (SDD b005-diploma-conflict)
+
+The shared timeline trait (`ResolvesTimetableTimeline`) now derives venue-restriction conflicts: a session in **B005 with any Diploma (`D*`) cohort** renders `status: 'conflict'` — loud striped red on the owner's My Timetable via the engine's default conflict path, quiet red for other viewers. The shared class modal shows "Scheduling conflict — needs attention" (no replace button — write path is Slice B). Derived at render time: no DB mutation, slot state machine (FR 4.11) untouched; covers My/Cohort/Student timetables. Precedence: pending request > conflict (a conflict block turns yellow while a replacement request on it is active). Verified: phpunit 129/129 (845 assertions), phpstan 0, lint clean.
+
+---
+
 ## [2026-10-08] `?week=` deep link (undo lands on the cancelled class's week)
 
 - The page now honours a `?week=N` query param: applied in the `DOMContentLoaded` init **after** `weekNav.load()`, so a deep link **wins over the saved week position** (localStorage `myTimetableWeek`); an absent/invalid/out-of-range param keeps the saved/mock-now behavior unchanged.

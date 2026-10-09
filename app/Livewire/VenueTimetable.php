@@ -69,7 +69,7 @@ class VenueTimetable extends Component
 
         // All-weeks events (no week filter) — grouped into the contiguous
         // eventsByWeek map the shared grid engine consumes (index w-1).
-        $slots = TimeSlot::with(['classSession.module', 'classSession.lecturer', 'classSession.cohorts.programme'])
+        $slots = TimeSlot::with(['classSession.module', 'classSession.lecturer', 'classSession.venue', 'classSession.cohorts.programme'])
             ->where('venue_id', $venue->id)
             ->whereIn('status', ['occupied', 'pending'])
             ->get();
@@ -105,7 +105,9 @@ class VenueTimetable extends Component
                 'cohort' => $this->cohortLabel($session->cohorts),
                 'cohorts' => $session->cohorts->map(fn ($c) => $this->cohortCode($c))->all(),
                 'studentCount' => (int) $session->cohorts->sum('student_count'),
-                'status' => $slot->status === 'pending' ? 'pending' : 'normal',
+                'status' => $this->venueRestrictionConflict($session)
+                    ? 'conflict'
+                    : ($slot->status === 'pending' ? 'pending' : 'normal'),
                 'remarks' => '',
                 'mine' => $isMine,
             ];

@@ -178,7 +178,7 @@
                     days: weekData[currentWeek].days,
                     onEventClick: function (e) { openModal(e); },
                     statusClassFn: function (div, e) {
-                        if (e.status === 'conflict') { div.classList.add('event-conflict'); return; } // contract parity — no conflict rows in v1
+                        if (e.status === 'conflict') { div.classList.add(e.mine ? 'event-conflict' : 'event-public-holiday'); return; } // owner-gated: mine loud, others quiet red (upstream parity)
                         if (e.status === 'pending') { div.classList.add('vt-cell-pending'); return; }
                         if (e.mine) { div.classList.add('vt-cell-yours'); return; }
                         div.classList.add('vt-cell-others');
