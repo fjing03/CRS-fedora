@@ -1,5 +1,9 @@
 # Changelog — Upcoming Replacements (Student)
 
+## [2026-10-09] Shared nav whitelist (SDD student-nav-label-parity)
+
+This page previously passed its own `navItems` override ("Student My Timetable" / "Replacement History" — mock-era labels), which made the nav differ from the rest of the student side. The override is deleted: the top nav now comes from the shared role whitelist — **My Timetable** + **Replacement History** — identical on both student pages. The page body remains mock-era static until Wave 3b wires the `ReplacementHistory` component.
+
 ## [2026-08-24] Stub page + route + mock data (TASK-006 Phase 1)
 
 Student role drops "Request History" and gets "Upcoming Replacements" instead

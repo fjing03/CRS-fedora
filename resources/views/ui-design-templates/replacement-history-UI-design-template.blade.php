@@ -2,10 +2,6 @@
         'homeUrl' => '/student-my-timetable-ui',
     'activeNav' => 'replacement-history',
     'pageKey' => 'replacementHistory',
-    'navItems' => [
-        ['key'=>'my-timetable','label'=>'Student My Timetable','href'=>'/student-my-timetable-ui'],
-        ['key'=>'replacement-history','label'=>'Replacement History','href'=>'/replacement-history-ui'],
-    ],
 ])
 
 @section('title', 'Replacement History')

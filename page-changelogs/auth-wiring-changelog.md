@@ -1,5 +1,14 @@
 # Changelog — Auth Wiring
 
+## [2026-10-09] Student nav label parity — "My Timetable" + "Replacement History" (SDD student-nav-label-parity)
+
+User report: nav labels differed per student page — `/student-my-timetable-ui` showed "My Timetable" + "Request History" (shared whitelist) while `/replacement-history-ui` showed "Student My Timetable" + "Replacement History" (mock-era `navItems` override in its legacy template, which is live-served via the route fallback until Wave 3b wires `ReplacementHistory`).
+
+- **Single source restored**: the `navItems` overrides deleted from `replacement-history-UI-design-template.blade.php` (live) and `student-my-timetable-UI-design-template.blade.php` (fallback-only) — both pages now inherit the shared role whitelist; only the layout pass-through + the partial reference `$navItems` remain.
+- **Label rename**: student whitelist item 2 `'Request History'` → `'Replacement History'` (key `replacement-history` + href unchanged → `activeNav` highlighting intact). Lecturer items untouched (`Request History` on `/my-request-history-ui` names a different page).
+- **Wave 3b guard**: when `ReplacementHistory` gets wired, the legacy template must keep inheriting the whitelist — do NOT re-introduce `navItems`.
+- Verified: phpunit 129/129 · nav-identity 3/3 with a new cross-page label-parity assertion (bar + drawer on both student pages).
+
 ## [2026-10-09] Student nav whitelist 3 → 2 (SDD student-nav-remove-cohort)
 
 `partials/ui-nav-bar.blade.php`: the student `roleItems` whitelist drops the **Cohort Timetables** entry — students see **My Timetable** (`/student-my-timetable-ui`) + **Request History** (`/replacement-history-ui`) only, on both the desktop bar and the mobile drawer (single `$items` source). Paired route change: `/cohort-timetable-ui` mw → `role:lecturer` (see `cohort-timetable-ui-changelog.md`). Tests updated: `RouteGateMatrixTest` (cohort → lecturer bucket), `NavIdentityTest` (cohort link absent), `nav-identity.spec.ts` (whitelist 2 + direct-visit 403). Lecturer/PL whitelists untouched.

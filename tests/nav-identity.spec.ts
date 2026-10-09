@@ -67,6 +67,21 @@ test('student panel + student-only nav links', async ({ page }) => {
     await expect(page.locator(`a[href="${href}"]`)).toHaveCount(0);
   }
 
+  // Nav label parity (student-nav-label-parity): both student pages show the
+  // same two labels from the shared whitelist.
+  const expectedLabels = ['My Timetable', 'Replacement History'];
+  for (const path of ['/student-my-timetable-ui', '/replacement-history-ui']) {
+    await page.goto(path);
+    await page.waitForSelector('.nav-items a');
+    const barLabels = await page.locator('.nav-items a').allTextContents();
+    expect(barLabels).toEqual(expectedLabels);
+  }
+  await page.goto('/student-my-timetable-ui');
+  await page.setViewportSize({ width: 375, height: 667 });
+  await page.click('#navHamburger');
+  const drawerLabels = await page.locator('#navDrawer .nav-drawer-item').allTextContents();
+  expect(drawerLabels).toEqual(expectedLabels);
+
   // Direct URL visit: the route is role:lecturer now — no cohort page renders.
   const resp = await page.goto('/cohort-timetable-ui');
   const status = resp ? resp.status() : 0;

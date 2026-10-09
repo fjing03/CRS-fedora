@@ -1,5 +1,9 @@
 # Changelog — Student My Timetable
 
+## [2026-10-09] Nav label correction (SDD student-nav-label-parity)
+
+Correction to the postscript below: the second nav item reads **"Replacement History"** (not "Request History" as originally written) — the shared whitelist label was renamed for cross-page parity; see `auth-wiring-changelog.md`.
+
 ## [2026-10-09] Nav postscript (SDD student-nav-remove-cohort)
 
 The top nav on this page now shows **2 items** (My Timetable, Request History) — Cohort Timetables was removed from the student side; see `auth-wiring-changelog.md` for the whitelist change and `cohort-timetable-ui-changelog.md` for the route gate. This page remains the students' FR 1.2 own-cohort view.
