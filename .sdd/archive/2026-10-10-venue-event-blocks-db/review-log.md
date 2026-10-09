@@ -58,3 +58,17 @@
 - (none)
 ### Verdict
 **PASS — tasks.md FROZEN.** Checklist verified line-by-line (T2 abort-escape hatch, T4 migration-absence check, T13 route:list guard all praised); T10 amendment confirmed to match the spec R1 condition; all Batch 3 conditions confirmed closed. 💡 noted: T10 is the split candidate (T10a/T10b) if it overruns. **Full chain frozen — proceed to /sdd-apply.**
+
+## verify — 2026-10-10
+### Applied
+- `6591900` merge (upstream/fjing f8b35a2) — single conflict exactly as forecast (replacement-arrangement-changelog.md; resolved both-sides chronological), 5 auto-merged changelogs spot-checked (no doubled headings), zero migrations
+- `fbe9eb7` feat(venue): event-blocks rewrite (T5–T11)
+### Gates (T12/T13)
+- lint:check passed · phpstan 0 (needed --memory-limit=1G; the composer script's 128M cap crashed the worker — infra, not code)
+- phpunit 130/130 (848 assertions) — incl. the new crafted-row PH test
+- Playwright: venue-db 5/5 · timetable-wiring + nav-identity 8/8 (mock specs excluded per frozen S4)
+- records-intact: identical before merge, after merge, and after rewrite (101/38640/155/266/23/42/14/3/14/252/1/0)
+- route:list: 0 api/v1 ✓ · blade grep: 0 vt-cell refs, ownershipHint present, booking-hint kept
+### Verify-vs-frozen notes
+- One test-side amendment during T10: the ::after computed-content assertion was dropped (Chromium does not resolve attr() in getComputedStyle content) — replaced by the attribute-based contract design §1.2/6.1 sanctioned (data-name + data-tip2). Rendering unchanged; spec R4 pinned via attributes as designed.
+- T8 infra finding (out of change scope, flagged to user): the AGENTS.md one-liner `pkill -f "[a]rtisan serve" || true && … && php artisan serve …` self-kills its wrapper when run as ONE bash -c string (the wrapper cmdline contains "php artisan serve"). Must be split into separate commands. AGENTS.md is not in this change's scope.
