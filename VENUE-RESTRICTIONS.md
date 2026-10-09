@@ -9,11 +9,11 @@ needs its own SDD proposal first.
 
 ## 1. B006 — Cisco Lab
 
-**Networking subjects only — all session types (L/T/P); IoT subjects — practical (P) only.**
+**Priority: Networking subjects (L/T/P) and IoT subjects (P only) rank FIRST. Non-networking subjects may use B006 only when no networking/IoT demand needs the room — lower priority, not a ban.**
 
 - B006 is the single `cisco_lab` venue (capacity 32, `allowed_session_types = 'P'` in `venues`).
-- Networking subjects currently in the DB (42 modules):
-  | Code | Name | Allowed types per this rule |
+- Networking subjects currently in the DB (42 modules) — **priority claimants**:
+  | Code | Name | Types |
   |---|---|---|
   | AMIT2033 | Networking Essentials | L, T, P |
   | AMIT2034 | Fundamentals of Computer Networks | L, T, P |
@@ -23,6 +23,10 @@ needs its own SDD proposal first.
 - ⚠️ Open question: the authoritative Networking/IoT subject list needs confirmation
   (name-based match above may miss edge cases, e.g. Internet Security). If the
   curriculum defines a module category, prefer that over name matching.
+- Audit 2026-10-09: 6 non-networking sessions currently use B006 (AMCS1013 ×2,
+  BMIS2003 ×2, BMIT3173, BMIT3273) — **acceptable under the priority rule**
+  (lower priority, not violations). They yield to networking/IoT demand when
+  conflicts arise.
 
 ## 2. B005 — Lab
 
@@ -33,6 +37,9 @@ needs its own SDD proposal first.
   Engineering) — their cohort codes (`cohortCode()`: programme + year + semester +
   group) all start with `D`.
 - Bachelor programmes (`RSD`, `RAF`, `RBU` — codes starting with `R`) are unaffected.
+- Audit 2026-10-09: **1 violation** — AMIT2034 P (Wed 11:00–13:00, En. Daniel Royd
+  Michael, combined DFT+DSF lecture) → being flagged as a schedule conflict needing
+  replacement (SDD change `b005-diploma-conflict`).
 
 ## 3. Practical classes must use Labs
 
