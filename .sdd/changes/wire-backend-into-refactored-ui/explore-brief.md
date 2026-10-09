@@ -27,3 +27,13 @@ User-reported: logging in as staff `5425` shows the panel as `5770` ("Lim Jia Zh
 2. **No re-seed on the demo DB:** after real records land, `php artisan migrate:fresh --seed` on `class_replacement` is FORBIDDEN (wipes user data). The testing DB (`class_replacement_testing`) is unaffected — Feature tests seed their own copy per test. Import must ship as a re-runnable script (source CSV/MD kept in-repo) so a reset can rebuild.
 
 *(Addendum vehicle follows the post-Wave-1 precedent above; to be absorbed when this change's artifacts are unfrozen for B/C — together with the `UpcomingReplacements` → `ReplacementHistory` rename unfreeze.)*
+
+## Addendum — 2026-10-08 (venue page pre-empted by standalone change)
+
+The `/venue-timetable-ui` page (Slice B's `VenueTimetable` component, design route
+table) is being implemented by the standalone SDD change `venue-timetable-db`
+(READ path: DB-backed grid/summary/details; booking write path stays with Slice B).
+When this package's Slice B tasks are unfrozen: mark the venue-timetable component
+task ABSORBED by that change; the booking affordances it deliberately disabled
+become Slice B's write-path scope. Records-intact guard + no-re-seed rules above
+remain standing.
