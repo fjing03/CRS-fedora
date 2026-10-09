@@ -368,7 +368,7 @@
                 <button class="fav-btn" id="favStar" data-tip="Add to Favourites">&#9734;</button>
             </div>
             @include('partials.ui-week-nav', ['prevOnclick' => 'prevWeek()', 'nextOnclick' => 'nextWeek()', 'selectId' => 'weekSelect', 'selectOnclick' => 'selectWeek(this.value)', 'disabled' => false])
-            <button class="print-btn" title="Coming soon" onclick="toast.show('Printing is coming soon')" style="margin-left:auto;">
+            <button class="print-btn" data-tip="Coming soon" onclick="toast.show('Printing is coming soon')" style="margin-left:auto;">
                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <polyline points="6 9 6 2 18 2 18 9"/>
                     <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/>
@@ -408,14 +408,12 @@
 
         <!-- ─── Legend Bar ─── -->
         @include('partials.ui-legend-bar', [
+            'ownershipHint' => true,
             'items' => [
                 ['color' => 'var(--color-success-container)', 'label' => 'Available', 'tip' => 'Free slot — click to book this venue (Sunday, holiday and lead-time slots can\'t be booked)'],
-                ['color' => 'var(--color-primary-container)', 'label' => 'Your Classes', 'tip' => 'Normal or replacement sessions assigned to you'],
-                ['color' => 'var(--color-success-container)', 'label' => 'Others\' Classes', 'tip' => 'Normal or replacement sessions by other lecturers'],
-                ['color' => 'var(--color-surface-variant)', 'label' => 'Others\' Pending', 'tip' => 'Replacement request by other lecturers, awaiting PL approval'],
-                ['color' => 'var(--color-tertiary-container)', 'label' => 'Your Pending', 'tip' => 'Your replacement request, awaiting PL approval'],
-                ['class' => 'event-conflict', 'label' => 'Your Conflict', 'tip' => 'Your conflicted class — striped, needs your attention (on venue, public-holiday slots show as empty \'PH\' cells — not red)'],
-                ['color' => 'var(--color-error-container)', 'label' => 'Others\' Conflict', 'tip' => 'Other lecturers\' conflicted classes — plain red, no action needed from you'],
+                ['class' => 'event-normal', 'label' => 'Normal', 'tip' => 'Scheduled class with no issues (replacement sessions fold in here on this page)'],
+                ['class' => 'event-pending', 'label' => 'Pending', 'tip' => 'Replacement request awaiting PL approval'],
+                ['class' => 'event-conflict', 'label' => 'Conflict / Public Holiday', 'tip' => 'This class will not run as scheduled — scheduling conflict or public holiday (remaining holiday slots show as empty \'PH\' cells)'],
             ]
         ])
 
@@ -424,15 +422,15 @@
         @include('partials.ui-summary-bar', [
             'cards' => [
                 ['class' => 'card-total', 'valueId' => 'sumTotal', 'label' => 'Total Slots',
-                    'description' => 'All time slots shown for <strong>this venue</strong> in the selected week.'],
+                    'description' => 'All time slots shown for <span class="info-keyword">this venue</span> in the selected week.'],
                 ['class' => 'card-available', 'valueId' => 'sumAvailable', 'label' => 'Available',
-                    'description' => '<strong>Free time slots</strong> that can be booked for this venue.'],
+                    'description' => '<span class="info-keyword">Free time slots</span> that can be booked for this venue.'],
                 ['class' => 'card-replacement', 'valueId' => 'sumMyClasses', 'label' => 'My Teaching Classes',
-                    'description' => 'Sessions <strong>you teach</strong> in this venue this week — <strong>each class counts separately</strong>.'],
+                    'description' => 'Sessions <span class="info-keyword">you teach</span> in this venue this week — <strong>each class counts separately</strong>.'],
                 ['class' => 'card-hours', 'valueId' => 'sumMyHours', 'label' => 'My Teaching Hours',
-                    'description' => 'Total hours of <strong>your classes</strong> in this venue this week (each slot = <strong>30 minutes</strong>).'],
+                    'description' => 'Total hours of <span class="info-keyword">your classes</span> in this venue this week (each slot = <strong>30 minutes</strong>).'],
                 ['class' => 'card-conflict', 'valueId' => 'sumUnavailable', 'label' => 'Unavailable',
-                    'description' => '<strong>Cannot book</strong> — booked class, Sunday, or public holiday.'],
+                    'description' => '<span class="warn-keyword">Cannot book</span> — booked class, Sunday, or public holiday.'],
             ]
         ])
 
@@ -447,7 +445,7 @@
             <div class="modal">
                 <div class="modal-header">
                     <span class="modal-title" id="modalTitle">Class Details</span>
-                    <button class="modal-close" onclick="closeModal()">&times;</button>
+                    <button class="modal-close" onclick="closeModal()" data-tip="Close">&times;</button>
                 </div>
                 <div class="modal-body" id="modalBody"></div>
                 <div class="modal-footer">
@@ -806,7 +804,13 @@
                 events: weekEvents,
                 days: days,
                 cellRender: function(td, di, hi, day, info) {
-                    if (day.sunday || day.holiday) {
+                    /* PH-day exception: the logged-in lecturer's OWN classes
+                       still render as loud red blocks on public-holiday days
+                       (parity with my-timetable — "your class won't run");
+                       everyone else's stay empty 'PH' cells. */
+                    const offMine = info && info.event && day.holiday &&
+                                    info.event.lecturer === MockData.currentUser.name;
+                    if ((day.sunday || day.holiday) && !offMine) {
                         /* Unavailable slot (holiday/Sunday) — always empty */
                         const div = document.createElement('div');
                         div.className = 'cell-content ' + (day.holiday ? 'cell-ph' : 'cell-sun');
@@ -821,12 +825,17 @@
                         div._evt = e; div._di = di; div.__eventData = e;   // parity with default builder
                         div.dataset.name  = e.name  || '';
                         div.dataset.venue = e.venue || '';
-                        div.dataset.tip2  = e.lecturer || '—';             // `.event-block::after` tooltip: "name · lecturer"
+                        /* `.event-block::after` tooltip: "name · lecturer · status"
+                           — parity with the shared builder's uniform format. */
+                        div.dataset.tip2 = (e.lecturer || '—') + ' · ' + eventStatusLabel(e, day.holiday);
                         var isMine = e.lecturer === MockData.currentUser.name;
-                        if (e.status === 'pending') {
+                        if (day.holiday) {
+                            /* own class on a public holiday — loud red, it won't run */
+                            div.classList.add('event-conflict');
+                        } else if (e.status === 'pending') {
                             div.classList.add(isMine ? 'event-mine-pending' : 'event-others-pending');
                         } else if (e.status === 'conflict') {
-                            // Loud red = own conflicts; others' stay quiet red (owner-gated, parity with cohort)
+                            // Own conflicts get the loud 3px red border; others' the same red with a hairline (owner-gated, parity with cohort)
                             div.classList.add(isMine ? 'event-conflict' : 'event-public-holiday');
                         } else {
                             div.classList.add(isMine ? 'event-mine' : 'event-others');

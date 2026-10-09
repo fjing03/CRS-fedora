@@ -1,5 +1,44 @@
 # Changelog — Replacement Arrangement (Selected Subject Page)
 
+## [2026-10-09f] Summary card shows the selection duration
+
+- Selection summary card time line now ends `· N slots (xH)` — hours derived from the 30-min slot count: 4 → `(2H)`, 3 → `(1.5H)`, 2 → `(1H)`, 1 → `(0.5H)`.
+
+## [2026-10-09e] Selection tip keyword styling (selection summary)
+
+- "Maximum selection reached" tip reworked: **MAX** white + caps + no bold; **SELECTED BLOCK** primary blue + bold + caps; **REMOVE** white + bold + caps; surrounding text plain (`--color-on-surface`) instead of muted variant. Same markup applied to the under-max "Click the selected block to remove it." tip for consistency. New page CSS: `.tip-plain/.tip-max/.tip-remove`, `.tip-action` gains `text-transform: uppercase`.
+
+## [2026-10-09d] Guard-modal dismiss button relabelled "Cancel" → "Close"
+
+- The shared `#confirmModal` footer dismiss button (subject / venue / time-slot / week-nav / back-button guards) now reads **Close**, matching the alert modal's Close — behaviour unchanged (still dismisses + restores).
+
+## [2026-10-09c] URL `&duration=` now actually governs the selection span
+
+- **Bug**: arriving from my-timetable with `&duration=1` (1 h conflict class) still demanded a 4-slot (2 h) block. `DOMContentLoaded` sized `BLOCK_SPAN` from the URL correctly, but `applyUrlParams`' slot match missed (the clicked holiday-conflict isn't a seeded picker slot), so `applyDefaultSlotSelection()` fell through to "first option" and auto-committed the w3 6–9 (2 h) slot — and `commitSlotSelection()` resized `BLOCK_SPAN` 2 → 4, overriding the URL (the F-8 comment claimed "URL branch keeps INITIAL authority" but nothing enforced it).
+- **Fix**: new `urlSpanLocked` flag set when the URL carries `&duration=`; auto default picks (`applyDefaultSlotSelection` favourite/recent/first-option + `applyUrlParams`' URL match, via `selectSlot(..., {auto:true})`) can no longer resize a URL-sized block. **Explicit** user picks in the slot panel still resize (choosing a 2 h conflict means a 2 h replacement).
+- Verified: the exact my-timetable handoff URL → `BLOCK_SPAN=2`, grid click selects 2 cells (was 4/4); manual 2 h panel pick → 4; plain arrival (no params) → auto-pick still sizes from the slot. 0 console errors.
+
+## [2026-10-09b] "Clear current selection" alert gains a Clear action button
+
+- Clicking a grid slot while another block is selected showed an alert with only an OK dismiss — the user had to dismiss, manually remove the block, then re-click. The alert now carries a **Close** (dismiss) and a **Clear Current Selection** button (bottom-right, primary) wired to `userDeselectSelectedBlock()` (the same explicit-discard primitive as the block's ×, so a booking pre-fill is spent correctly).
+- `showAlertModal()` gained an optional `action = {label, fn}` parameter: the action renders as the primary bottom-right button and **OK** demotes to outline; `hideConfirmModal()` resets the button and OK's weight so no stray action leaks into the confirm guards.
+
+## [2026-10-09] Confirm-modals now actually CLEAR the selection (booking pre-fill spent, not re-armed)
+
+### Problem
+
+Arriving from venue-timetable (`?venue=B011&date=…&time=…`), picking a subject pre-fills the booked slot. Changing the subject popped "Clear Current Selection? … will remove them. Continue?" — but on **Confirm** the old code **re-armed the booking intent** (`pendingBookingIntent = {...bookingIntentMemory}`, the N5 "keep the booking alive" rule), and `applySubjectChange()`'s trailing `consumeBookingIntent()` immediately **re-selected the slot**. The modal promised a clear; the user got the block back.
+
+### Fix (2026-10-09 user decision: confirming = explicit discard)
+
+- `confirmChangeWithSelection()` (subject + time-slot guards): when the cleared block **is** the booking pre-fill, call `markBookingCancelled()` instead of re-arming — the booking is spent, the reminder banner clears, and `bookingIntentCancelled` in sessionStorage stops a reload from resurrecting it (same contract as clicking the block's ×).
+- `onVenueChange()` confirm: same re-arm pattern removed — captured `isBooking` before `deselectBlock()`, spends the booking after the venue applies.
+- Manual (non-booking) selections were already cleared correctly and are unchanged; Cancel paths still restore everything.
+
+### Verified
+
+Booking URL → subject pick → pre-fill → subject change → Confirm: 0 selected cells, `selectedSlotsByVenue` empty, `bookingIntentCancelled = B011|12 Oct 2026|11:30`, banner empty; reload + subject pick → still nothing re-selected. Venue change → Confirm: same clear. 0 console errors.
+
 ## [2026-08-31] Sync upstream/fjing UI refactor (merge fd8c403)
 
 Merged `upstream/fjing` (267 commits `cfc1bb1..f44cc5c`) into `fedora-backend`. Policy: **theirs-first for UI**; backend-only files (`MatrixIntersectionEngine`, `OCCValidator`) kept local for the upcoming wiring phase. Verification: PHPStan 0, PHPUnit 94/94, smoke 12/12 routes 200 (`/replacement-arrangement` 200).
@@ -986,3 +1025,40 @@ duration) itself; `deselectBlock()` and `clearAll()` call
 Also removed `checkConflict()` — dead since the toolbar restructure (no call
 sites) and wrong regardless (it indexed the 1-based "Week N" label into the
 0-based `eventsByWeek`). Found during the Playwright de-staleness pass.
+
+### Postscript — legend: "Unavailable" chip (2026-10-09)
+
+- Legend chip "Classes on Public Holiday / Sunday" renamed to
+  **"Unavailable"** — hover tooltip now lists every reason a slot can't be
+  booked (occupied by a class, public holiday, Sunday).
+- "Reserved by Others" tooltip now points at the pending request:
+  "Cannot book — their replacement request is still pending approval".
+
+### Postscript — warning modal keywords + danger confirm buttons (2026-10-09, SDD: warning-modal-keywords)
+
+The confirm modal now speaks the app-wide warning design language: the leave/go-back guard
+shows **LOST** (red+bold+caps) with the question on its own line; Clear All shows **ALL** in
+red with the undo reassurance on its own line; both change-guards break before "Continue?"
+(no red — the selection is re-selectable, red is reserved for the irreversible). The confirm
+button is now **danger-red with an action-specific label** ("Yes, Leave Page" / "Yes, Go
+Back" / "Yes, Clear All" / "Yes, Change") on the 5 warning guards only — the submit confirm
+("Confirm Your Selection") and the informational "No Selection" modal keep the neutral
+primary "Confirm", because red means irreversible and neither is. Mechanism:
+`showConfirmModal(title, body, cb, opts)` gained `opts.danger` + `opts.confirmLabel`, re-
+derived on every open so no state leaks between modals.
+
+**Follow-up (2026-10-10, label-only, user request):** the submit confirmation
+("Confirm Your Selection") now shows **"Yes, Submit Request"** instead of the generic
+"Confirm" — still the neutral primary (blue) button; only the label changed. No danger
+styling: submitting is a go-ahead, not a warning.
+
+**Follow-up (2026-10-10, user request, SDD-waived):** selection summary cards — the ✕
+button's hover tooltip now reads "Remove this Selection — Action cannot be UNDONE" (true:
+single-card removal has no undo affordance), and the duration suffix reads "(2 Hours)" /
+"(1.5 Hours)" instead of "(2H)" / "(1.5H)".
+
+**Follow-up (2026-10-10, user request, SDD-waived):** the confirm modal's SAFE button is no
+longer the vague "Close" on warnings — `showConfirmModal` gained `opts.cancelLabel`, and the
+guards now read **"Stay"** (leave/back), **"No, Clear Nothing"** (Clear All), and **"No, Keep
+My Selection"** (subject/venue/week change guards). Informational modals ("No Selection") and
+the submit confirm keep "Close". Red/danger side unchanged.

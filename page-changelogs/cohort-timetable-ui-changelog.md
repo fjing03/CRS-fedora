@@ -390,3 +390,40 @@ semantics are unchanged); student page intentionally untouched (owner-blind
 red there). Verified live: cohort dft1s1 W1 Muada's `MPU-2302(T)` quiet,
 dft2s1 W4 own `AMCS2093(L)` loud; venue B110 W4 loud + B101 W1 quiet.
 TC34/35 → 7 legend items; new TC35b (owner-gating on venue); suite green.
+
+### Postscript — diagonal hatching removed; loud red = 3px border only (2026-10-09)
+
+The 45° caution stripes on `.event-conflict` proved too busy — reverted to
+a plain `--color-error-container` tint, with the border thickened
+2px → **3px** so own/personal conflicted + public-holiday classes still
+read unmistakably (owner-gating unchanged: loud border = yours, quiet
+plain tint = others' on cohort/venue; personal pages all loud). Legend
+swatches follow automatically. Verified live on all four pages.
+
+### Postscript — block tooltips show lecturer + status (2026-10-09)
+
+- Event-block hover tooltips now read `"Subject · Lecturer · Status"`
+  (e.g. `Operating Systems · En. Lim Jia Zheng · Conflict`). The
+  lecturer-only `tooltipExtra` hook was removed — the shared builder in
+  ui-common now appends lecturer + run-status (`eventStatusLabel()`)
+  uniformly on every timetable page.
+
+### Postscript — §10.0 two-axis block language + legend trim (2026-10-09)
+
+- **Colour = status, border = ownership.** Blocks now share one fill per
+  status (Normal = success green, Pending = tertiary, Conflict/Holiday =
+  error red); ownership moved entirely to border weight — **3px = your
+  classes, 0.5px hairline = others'**. The quiet-vs-loud red split is gone:
+  everyone's conflicts are the same error red, only the border differs.
+- Replacement keeps its blue **only on the personal pages**; on this page it
+  folds into Normal (tooltip still says "Replacement").
+- Legend trimmed to status chips only (swatches reuse the real block
+  classes), plus an ownership hint — *"thick border = your classes ·
+  hairline = others'"* — replacing the Your/Others swatch pairs.
+
+### Postscript — card flip-back keywords (2026-10-09, SDD: warning-modal-keywords)
+
+The five summary-card flip-backs use the new keyword language: one bold-uppercase keyword
+per description — **THIS COHORT**, **TEACHING HOURS**, **TAUGHT BY YOU**, **YOUR CLASSES** in
+the default color, and **SCHEDULING CLASHES** in red (attention card). Secondary emphasis
+("each slot = 30 minutes") stays plain bold.

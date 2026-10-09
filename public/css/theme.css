@@ -1277,6 +1277,11 @@ html.dark .filter-select {
 .legend-swatch { width: 14px; height: 14px; border-radius: var(--radius-sm); flex-shrink: 0; }
 .legend-hint { font-size: 11px; color: var(--color-on-surface-variant); opacity: 0.5; font-style: italic; }
 .legend-hint .hint-touch { display: none; }
+/* Ownership hint (cohort & venue): border weight = ownership (§10.0) */
+.legend-ownership-hint { display: inline-flex; align-items: center; gap: 6px; font-size: 11px; color: var(--color-on-surface-variant); }
+.legend-ownership-hint .osd-demo { width: 12px; height: 12px; border-radius: var(--radius-xs); background: var(--color-surface-variant); display: inline-block; box-sizing: border-box; flex-shrink: 0; }
+.legend-ownership-hint .osd-thick { border: 3px solid var(--color-on-surface-variant); }
+.legend-ownership-hint .osd-thin { border: 0.5px solid var(--color-on-surface-variant); }
 /* touch devices tap instead of hover (F-5, ui-legend-bar dual copy) */
 @media (hover: none) {
     .legend-hint .hint-hover { display: none; }
@@ -1894,8 +1899,11 @@ html.dark .semester-bar select:not(.week-select) {
 }
 
 .event-public-holiday {
+    /* Same error fill as .event-conflict — colour encodes STATUS only
+       (§10.0); the 0.5px hairline (vs 3px) says "not yours to act on". */
     background: var(--color-error-container);
     color: var(--color-on-error-container);
+    border: 0.5px solid var(--color-outline-strong);
 }
 
 .event-block {
@@ -1926,44 +1934,52 @@ html.dark .semester-bar select:not(.week-select) {
 .event-normal {
     background: var(--color-success-container);
     color: var(--color-on-success-container);
+    border: 3px solid var(--color-success);
 }
 .event-replacement {
+    /* Personal pages only (my-timetable / student) — replacement keeps its
+       own blue there; cohort & venue fold replacement into Normal. */
     background: var(--color-primary-container);
     color: var(--color-on-primary-container);
+    border: 3px solid var(--color-primary);
 }
 .event-pending {
     background: var(--color-tertiary-container);
     color: var(--color-on-tertiary-container);
+    border: 3px solid var(--color-tertiary);
 }
 .event-conflict {
-    /* §10.0 conflict = red, but a plain tint reads like any other block —
-       solid error border + diagonal caution stripes (token-only via
-       color-mix, adapts to dark theme) make "needs attention" unmistakable
-       on every page that renders conflicted classes. */
-    background:
-        repeating-linear-gradient(45deg,
-            color-mix(in srgb, var(--color-error) 16%, transparent) 0 6px,
-            transparent 6px 14px),
-        var(--color-error-container);
+    /* §10.0 two-axis language (2026-10-09): COLOUR encodes status only
+       (normal=success, pending=tertiary, conflict/error, replacement=primary
+       on personal pages); BORDER WEIGHT encodes ownership (3px = yours,
+       0.5px hairline = others'). A thick error border marks "needs
+       attention" on every page that renders conflicted classes.
+       (Diagonal hatching was tried and removed 2026-10-09 — too busy;
+       loud red = border + tint only.) */
+    background: var(--color-error-container);
     color: var(--color-on-error-container);
-    border: 2px solid var(--color-error);
+    border: 3px solid var(--color-error);
 }
-/* ── Cohort timetable: own vs others (scoped) ── */
+/* ── Cohort / venue: own vs others — colour = status, border = ownership ── */
 .timetable .event-mine {
-    background: var(--color-primary-container);
-    color: var(--color-on-primary-container);
+    background: var(--color-success-container);
+    color: var(--color-on-success-container);
+    border: 3px solid var(--color-success);
 }
 .timetable .event-others {
     background: var(--color-success-container);
     color: var(--color-on-success-container);
+    border: 0.5px solid var(--color-outline-strong);
 }
 .timetable .event-others-pending {
-    background: var(--color-surface-variant);
-    color: var(--color-on-surface-variant);
+    background: var(--color-tertiary-container);
+    color: var(--color-on-tertiary-container);
+    border: 0.5px solid var(--color-outline-strong);
 }
 .timetable .event-mine-pending {
     background: var(--color-tertiary-container);
     color: var(--color-on-tertiary-container);
+    border: 3px solid var(--color-tertiary);
 }
 .event-selection {
     background: var(--color-primary-container);
@@ -2474,6 +2490,21 @@ tr.bookable-flash > td { animation: bookable-pulse 1.15s ease-in-out 1; }
 }
 .event-block.event-selection:hover::after { opacity: 1; }
 .ev-code { cursor: pointer; }
+
+/* ── Warning keyword (modals & card backs) ──────────────────── */
+/* Born-shared (AGENTS.md §10.7): one red keyword for irreversible /
+   attention consequences, one bold-uppercase keyword in default color
+   for informational emphasis. Uppercase via text-transform so source
+   copy stays natural-case and text assertions stay valid. */
+.warn-keyword {
+    color: var(--color-error);
+    font-weight: 700;
+    text-transform: uppercase;
+}
+.info-keyword {
+    font-weight: 700;
+    text-transform: uppercase;
+}
 
 /* ── Copy toast ─────────────────────────────────────────────── */
 .copy-toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); background: var(--color-inverse-surface); color: var(--color-on-inverse-surface); padding: 8px 16px; border-radius: var(--radius-sm); font-size: 0.85rem; opacity: 0; transition: opacity 0.2s; pointer-events: none; z-index: 100; }

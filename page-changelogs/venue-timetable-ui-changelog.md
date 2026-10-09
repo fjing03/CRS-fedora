@@ -650,3 +650,75 @@ dft2s1 W4 own `AMCS2093(L)` loud; venue B110 W4 loud + B101 W1 quiet.
 TC34/35 → 7 legend items; new TC35b (owner-gating on venue); TC45–48
 tooltip tests now scroll-settle before clicking (auto-scroll race with the
 by-design scroll-hide, exposed by the taller 7-item legend); suite green.
+
+### Postscript — diagonal hatching removed; loud red = 3px border only (2026-10-09)
+
+The 45° caution stripes on `.event-conflict` proved too busy — reverted to
+a plain `--color-error-container` tint, with the border thickened
+2px → **3px** so own/personal conflicted + public-holiday classes still
+read unmistakably (owner-gating unchanged: loud border = yours, quiet
+plain tint = others' on cohort/venue; personal pages all loud). Legend
+swatches follow automatically. Verified live on all four pages.
+
+### Postscript — own public-holiday classes now render on the venue grid (2026-10-09)
+
+Holiday days used to flatten the whole day into empty 'PH' cells. Now the
+logged-in lecturer's OWN classes on a public-holiday day still render — as
+loud red `event-conflict` blocks (3px border, parity with my-timetable:
+"your class won't run"), with full modal interaction. Other lecturers'
+holiday classes and Sundays stay empty `cell-ph`/`cell-sun` cells.
+Summary cards unchanged (offday events still excluded from My Teaching /
+counts — visible-but-not-counted is intentional). Legend 'Your Conflict'
+tip updated. Verified: B011 W14 own `AMCS2093(P)` Fri loud (Thu Christmas
+Eve cells empty), B110 W8 own `AMCS2093(L)` Mon loud, B006 W8 all-others
+day fully suppressed (22 PH cells).
+
+### Postscript — venue dropdown: B006 under Lab + full-name tooltips (2026-10-09)
+
+- **CiscoLab (B006) now groups under the Lab category** in the cascading
+  VenueDropdown (Type → Block → Floor → Room) — Type column shows 3
+  categories; B006 sits with B005/B009/B010/B011 under Block B → Ground
+  Floor. Registry `type: 'CiscoLab'` untouched (dropdown-only
+  normalization, `_typeOf()`); the room tooltip still reveals its true
+  "Cisco Lab" identity.
+- **Every dropdown option now carries a hover tooltip** (shared data-tip
+  utility — fixed, shown above the item, viewport-clamped): room options
+  show the full name (`B006 · Cisco Lab · Ground Floor, Block B`); parent
+  options (Favourites/Recent/type/block/floor rows) show descriptive
+  counts (`Lab — 5 venues`, `Block B — 5 venues`, …).
+- TC23 → 3 categories; new TC23b (Lab cascade includes B006, tips present,
+  hover reveals true name above the item).
+
+### Postscript — hairline block borders + status tooltips (2026-10-09)
+
+- **Venue page only:** regular event blocks get a `0.5px` hairline border
+  (`--color-outline-strong`) for definition — scoped via the blade's
+  `page-styles` (`#timetable .event-block:not(.event-conflict)`); the
+  viewer's own conflict / public-holiday blocks are excluded and keep their
+  loud 3px border. (Renders as a 1px hairline at 1× DPR.)
+- **Block tooltips now end with the run-status:** the venue cellRender tip
+  is `"Subject · Lecturer · Status"` — the status label comes from the new
+  shared `eventStatusLabel()` helper in ui-common (Normal / Pending /
+  Replacement / Conflict / Cancelled, with a public-holiday day outranking
+  the event's own status as "Public Holiday").
+
+### Postscript — §10.0 two-axis block language + legend trim (2026-10-09)
+
+- **Colour = status, border = ownership.** Blocks now share one fill per
+  status (Normal = success green, Pending = tertiary, Conflict/Holiday =
+  error red); ownership moved entirely to border weight — **3px = your
+  classes, 0.5px hairline = others'**. The quiet-vs-loud red split is gone:
+  everyone's conflicts are the same error red, only the border differs.
+- Replacement keeps its blue **only on the personal pages**; on this page it
+  folds into Normal (tooltip still says "Replacement").
+- Legend trimmed to status chips only (swatches reuse the real block
+  classes), plus an ownership hint — *"thick border = your classes ·
+  hairline = others'"* — replacing the Your/Others swatch pairs.
+
+### Postscript — tooltip parity + card keywords (2026-10-09, SDD: warning-modal-keywords)
+
+The print button's native `title=` tooltip moved to the shared `data-tip` bubble system
+(same text), and the venue modal's close ✕ now shows a "Close" tooltip like every other
+modal. The five summary-card flip-backs carry the new keyword language — one bold-uppercase
+keyword per description (`FREE TIME SLOTS`, `YOU TEACH`, …), with the "Cannot book" card's
+keyword in red (`CANNOT BOOK`) since it's an attention card.

@@ -725,12 +725,20 @@
             color: var(--color-on-surface-variant);
             text-align: center;
         }
+        .sel-summary-tip .tip-plain { color: var(--color-on-surface); }
+        .sel-summary-tip .tip-max { font-weight: 400; } /* white + CAP via literal text, no bold */
         .sel-summary-tip .tip-action {
             color: var(--color-primary);
             font-weight: 700;
+            text-transform: uppercase;
         }
         html.dark .sel-summary-tip .tip-action {
             color: var(--color-on-primary-container); /* dark navy primary is too dim on the dark surface */
+        }
+        .sel-summary-tip .tip-remove {
+            color: var(--color-on-surface); /* white, not primary */
+            font-weight: 700;
+            text-transform: uppercase;
         }
         .sel-summary-tip .tip-success {
             color: var(--color-success);
@@ -1019,8 +1027,8 @@
                 ['color' => 'var(--color-success-container)', 'label' => 'Available', 'tip' => 'Free slot — click to select as replacement'],
                 ['color' => 'var(--color-primary-container)', 'label' => 'Your Current Selection', 'tip' => 'Slot you have selected for the replacement'],
                 ['color' => 'var(--color-tertiary-container)', 'label' => 'Pending (You)', 'tip' => 'Your replacement request awaiting approval'],
-                ['color' => 'var(--color-error-container)', 'label' => 'Classes on Public Holiday / Sunday', 'tip' => 'Cannot book — falls on a public holiday or Sunday'],
-                ['color' => 'var(--color-surface-variant)', 'label' => 'Reserved by Others', 'tip' => 'Cannot book — already reserved by another staff'],
+                ['color' => 'var(--color-error-container)', 'label' => 'Unavailable', 'tip' => 'Cannot book — occupied by a class, or falls on a public holiday / Sunday'],
+                ['color' => 'var(--color-surface-variant)', 'label' => 'Reserved by Others', 'tip' => 'Cannot book — their replacement request is still pending approval'],
             ]
         ])
 
@@ -1028,13 +1036,13 @@
         @include('partials.ui-summary-bar', [
             'cards' => [
                 ['class' => 'card-total', 'valueId' => 'sumTotal', 'label' => 'Total Slots',
-                    'description' => 'All time slots shown for <strong>this venue</strong> in the selected week.'],
+                    'description' => 'All time slots shown for <span class="info-keyword">this venue</span> in the selected week.'],
                 ['class' => 'card-available', 'valueId' => 'sumAvailable', 'label' => 'Available',
-                    'description' => '<strong>Free slots</strong> you can select as the replacement.'],
+                    'description' => '<span class="info-keyword">Free slots</span> you can select as the replacement.'],
                 ['class' => 'card-pending', 'valueId' => 'sumPending', 'label' => 'Pending',
-                    'description' => 'Your replacement requests <strong>awaiting approval</strong>.'],
+                    'description' => 'Your replacement requests <span class="warn-keyword">awaiting approval</span>.'],
                 ['class' => 'card-conflict', 'valueId' => 'sumUnavailable', 'label' => 'Unavailable',
-                    'description' => '<strong>Cannot select</strong> — booked by others, Sunday, or public holiday.'],
+                    'description' => '<span class="warn-keyword">Cannot select</span> — booked by others, Sunday, or public holiday.'],
             ]
         ])
         --}}
@@ -1113,12 +1121,13 @@
         <div class="modal">
             <div class="modal-header">
                 <span class="modal-title" id="modalTitle">Confirm</span>
-                <button class="modal-close" onclick="hideConfirmModal(event)">&times;</button>
+                <button class="modal-close" onclick="hideConfirmModal(event)" data-tip="Close">&times;</button>
             </div>
             <div class="modal-body" id="modalBody"></div>
             <div class="modal-footer">
-                <button class="btn btn-outline" onclick="hideConfirmModal(event)">Cancel</button>
+                <button class="btn btn-outline" onclick="hideConfirmModal(event)">Close</button>
                 <button class="btn btn-primary" id="modalConfirmBtn">Confirm</button>
+                <button class="btn btn-primary" id="modalActionBtn" style="display:none"></button>
             </div>
         </div>
     </div>
@@ -1149,6 +1158,11 @@
         /* the size of ONE block (slots) — derived from the original class
            duration via URL; the multi-week BUDGET stays MAX_SELECTION */
         let BLOCK_SPAN = 4;
+        /* true when the URL carried &duration= (my-timetable/venue handoffs):
+           the ORIGINAL class's size is known, so auto-default slot picks
+           (favourite/recent/first-option) must NOT resize the block away
+           from it — only an explicit user pick in the slot panel may. */
+        let urlSpanLocked = false;
 
         const weekData = generateWeekData();
         const venueSlotData = MockData.venueSlots;
@@ -1321,17 +1335,20 @@
                 const startStr = hours[b.startHour];
                 const endStr = add30min(hours[b.endHour - 1]);
                 const endDisplay = add30min(hours[b.endHour - 1]); // end of last slot
+                /* duration in hours (30-min slots): 4 → 2 Hours, 3 → 1.5 Hours, 2 → 1 Hours */
+                const durH = b.slotCount / 2;
+                const durLabel = (Number.isInteger(durH) ? durH : durH.toFixed(1)) + ' Hours';
 
                 const card = document.createElement('div');
                 card.className = 'sel-summary-card';
                 card.dataset.venue = b.venue;
                 card.dataset.week = b.weekIdx;
                 card.innerHTML = `
-                    <button class="card-remove" onclick="removeSavedBlock('${b.venue}', ${b.weekIdx})" data-tip="Remove this selection" aria-label="Remove">×</button>
+                    <button class="card-remove" onclick="removeSavedBlock('${b.venue}', ${b.weekIdx})" data-tip="Remove this Selection — Action cannot be UNDONE" aria-label="Remove">×</button>
                     <div class="card-venue">${b.venue}</div>
                     <div class="card-day">${b.weekLabel} · ${b.day.abbr}</div>
                     <div class="card-date">${b.day.date}</div>
-                    <div class="card-time">${to12h(startStr)} – ${to12h(endDisplay)} · ${b.slotCount} slots</div>
+                    <div class="card-time">${to12h(startStr)} – ${to12h(endDisplay)} · ${b.slotCount} slots (${durLabel})</div>
                 `;
                 grid.appendChild(card);
             });
@@ -1349,9 +1366,9 @@
 
             const tip = document.getElementById('summaryTip');
             if (getGlobalTotal() >= MAX_SELECTION) {
-                tip.innerHTML = 'Tip: Maximum selection reached. <span class="tip-action">Click the selected block to remove it.</span>';
+                tip.innerHTML = 'Tip: <span class="tip-plain"><span class="tip-max">MAX</span>imum selection reached. Click the <span class="tip-action">selected block</span> to <span class="tip-remove">remove</span> it.</span>';
             } else if (allBlocks.length > 0) {
-                tip.innerHTML = 'Tip: <span class="tip-action">Click the selected block to remove it.</span>';
+                tip.innerHTML = 'Tip: <span class="tip-plain">Click the <span class="tip-action">selected block</span> to <span class="tip-remove">remove</span> it.</span>';
             } else {
                 tip.innerHTML = 'Tip: Click an <span class="tip-success">available (green)</span> time slot to begin.';
             }
@@ -1487,7 +1504,10 @@
 
         function selectBlock(day, startHour) {
             if (selectedBlock) {
-                showAlertModal('Clear current selection', 'You already have a selected block. Clear it first before selecting a new one.');
+                showAlertModal('Clear current selection', 'You already have a selected block. Clear it first before selecting a new one.', {
+                    label: 'Clear Current Selection',
+                    fn: function() { userDeselectSelectedBlock(); }
+                });
                 return false;
             }
             const span = BLOCK_SPAN;
@@ -1674,20 +1694,25 @@
             if (selectedBlock && newVenue !== currentVenue) {
                 showConfirmModal(
                     'Change Venue?',
-                    'You have selected slots on the grid. Changing the <strong>venue</strong> will clear them. Continue?',
+                    'You have selected slots on the grid. Changing the <strong>venue</strong> will clear them.<br>Continue?',
                     function() {
                         hideConfirmModal();
-                        /* keep the booking armed for the next subject pick —
-                           capture BEFORE the discard clears the block */
-                        const rearm = bookingIntentMemory && intentMatchesBlock(
+                        /* 2026-10-09 user decision: confirming the clear is an
+                           explicit discard — the booking pre-fill is SPENT
+                           (markBookingCancelled), not re-armed, matching the
+                           subject/slot confirm modals. Capture BEFORE the
+                           discard clears the block. */
+                        const isBooking = bookingIntentMemory && intentMatchesBlock(
                             currentVenue.code || currentVenue, weekNav.currentWeek, selectedBlock);
                         deselectBlock();
                         applyVenueChange(newVenue);
-                        if (rearm) {
-                            pendingBookingIntent = { ...bookingIntentMemory };
+                        if (isBooking) {
+                            markBookingCancelled();
+                            pendingBookingIntent = null;
                             renderBookingIntent();
                         }
-                    }
+                    },
+                    { danger: true, confirmLabel: 'Yes, Change', cancelLabel: 'No, Keep My Selection' }
                 );
                 // Cancel path: snap the dropdown back to the current venue
                 const cancelBtn = document.querySelector('#confirmModal .btn-outline');
@@ -1722,14 +1747,26 @@
 
         let confirmCallback = null;
 
-        function showAlertModal(title, bodyHtml) {
+        function showAlertModal(title, bodyHtml, action) {
             document.getElementById('modalTitle').textContent = title;
             document.getElementById('modalBody').innerHTML = bodyHtml;
             const cancelBtn = document.querySelector('.modal-footer .btn-outline');
             const confirmBtn = document.getElementById('modalConfirmBtn');
+            const actionBtn = document.getElementById('modalActionBtn');
+            /* optional bottom-right action (2026-10-09): e.g. "Clear Current
+               Selection" — OK stays as the plain dismiss (demoted to outline
+               so the action reads as the primary choice) */
+            if (action) {
+                actionBtn.style.display = '';
+                actionBtn.textContent = action.label;
+                actionBtn.onclick = function() { hideConfirmModal(); action.fn(); };
+                confirmBtn.className = 'btn btn-outline';
+            } else {
+                actionBtn.style.display = 'none';
+            }
             cancelBtn.style.display = 'none';
-            confirmBtn.textContent = 'OK';
-            confirmBtn.className = 'btn btn-primary';
+            confirmBtn.textContent = 'Close';
+            confirmBtn.className = action ? 'btn btn-outline' : 'btn btn-primary';
             confirmBtn.onclick = function() {
                 cancelBtn.style.display = '';
                 confirmBtn.textContent = 'Confirm';
@@ -1739,11 +1776,22 @@
             document.getElementById('confirmModal').style.display = 'flex';
         }
 
-        function showConfirmModal(title, bodyHtml, callback) {
+        function showConfirmModal(title, bodyHtml, callback, opts) {
+            opts = opts || {};
             document.getElementById('modalTitle').textContent = title;
             document.getElementById('modalBody').innerHTML = bodyHtml;
             confirmCallback = callback;
             const confirmBtn = document.getElementById('modalConfirmBtn');
+            /* Danger is opt-in per call site (design §2): the 5 warning guards
+               pass danger:true; submit-confirm + informational modals keep
+               btn-primary. Re-derived on EVERY open — no stale class leaks. */
+            confirmBtn.classList.toggle('btn-danger', !!opts.danger);
+            confirmBtn.classList.toggle('btn-primary', !opts.danger);
+            confirmBtn.textContent = opts.confirmLabel || 'Confirm';
+            /* Safe-side label: warnings read "Stay"/"No, …" (a choice, not a
+                popup dismissal); informational modals keep "Close". */
+            const cancelBtn0 = document.querySelector('#confirmModal .btn-outline');
+            if (cancelBtn0) cancelBtn0.textContent = opts.cancelLabel || 'Close';
             confirmBtn.onclick = function() {
                 if (confirmCallback) confirmCallback();
                 else hideConfirmModal();
@@ -1758,27 +1806,36 @@
             // Reset Cancel button to its default behavior after any custom handler
             const cancelBtn = document.querySelector('#confirmModal .btn-outline');
             if (cancelBtn) cancelBtn.onclick = function(ev) { hideConfirmModal(ev); };
+            // Reset the optional action button + OK label/weight for the next open
+            const actionBtn = document.getElementById('modalActionBtn');
+            if (actionBtn) actionBtn.style.display = 'none';
+            const confirmBtn = document.getElementById('modalConfirmBtn');
+            confirmBtn.textContent = 'Confirm';
+            confirmBtn.className = 'btn btn-primary';
         }
 
         function confirmChangeWithSelection(actionLabel, proceedFn, cancelFn) {
             if (!selectedBlock) { proceedFn(); return; }
             showConfirmModal(
                 'Clear Current Selection?',
-                'You have selected slots on the grid. Changing the <strong>' + actionLabel + '</strong> will remove them. Continue?',
+                'You have selected slots on the grid. Changing the <strong>' + actionLabel + '</strong> will remove them.<br>Continue?',
                 function() {
                     hideConfirmModal();
-                    /* the change must not spend the booking: if the block being
-                       cleared IS the booking's pre-fill, re-arm the intent so the
-                       next subject application re-selects it */
+                    /* 2026-10-09 user decision: the modal promises "will remove
+                       them" — confirming IS an explicit discard, so a booking
+                       pre-fill is SPENT here (markBookingCancelled — same
+                       contract as clicking the block's ×; survives reload),
+                       NOT re-armed for the next subject pick. */
                     if (bookingIntentMemory && intentMatchesBlock(
                             currentVenue.code || currentVenue, weekNav.currentWeek, selectedBlock)) {
-                        pendingBookingIntent = { ...bookingIntentMemory };
-                        /* signal that the booking is armed again (N5) */
+                        markBookingCancelled();
+                        pendingBookingIntent = null;
                         renderBookingIntent();
                     }
                     discardSelection();
                     proceedFn();
-                }
+                },
+                { danger: true, confirmLabel: 'Yes, Change', cancelLabel: 'No, Keep My Selection' }
             );
             const cancelBtn = document.querySelector('#confirmModal .btn-outline');
             if (cancelBtn) {
@@ -1857,14 +1914,15 @@
                     selectionHistory.length = 0;
                     updateCounter();
                     toast.show(sub.message, null, 5000, 'View \u2192', '/my-request-history-ui', sub.details);
-                }
+                },
+                { confirmLabel: 'Yes, Submit Request' }
             );
         }
 
         function clearAll() {
             showConfirmModal(
                 'Clear All Selections',
-                'Are you sure you want to clear all selections across <strong>ALL</strong> weeks? You can undo this from the toast that appears.',
+                'Are you sure you want to clear all selections across <span class="warn-keyword">all</span> weeks?<br>You can undo this from the toast that appears.',
                 function() {
                     hideConfirmModal();
                     var savedBlock = selectedBlock ? { ...selectedBlock } : null;
@@ -1889,7 +1947,8 @@
                         }
                         updateCounter();
                     });
-                }
+                },
+                { danger: true, confirmLabel: 'Yes, Clear All', cancelLabel: 'No, Clear Nothing' }
             );
         }
 
@@ -1897,7 +1956,7 @@
             if (selectedBlock || getGlobalTotal() > 0) {
                 showConfirmModal(
                     'Unsaved Changes',
-                    'You have selections that will be lost if you leave this page. Are you sure you want to leave?',
+                    'You have selections that will be <span class="warn-keyword">lost</span> if you leave this page.<br>Are you sure you want to leave?',
                     function() {
                         /* Confirmed leave → navigate at once; selections are in-memory
                            and die with the page (no clearing ceremony / undo toast).
@@ -1905,7 +1964,8 @@
                         hideConfirmModal();
                         allowUnload = true;
                         window.location.href = url;
-                    }
+                    },
+                    { danger: true, confirmLabel: 'Yes, Leave Page', cancelLabel: 'Stay' }
                 );
             } else {
                 window.location.href = url;
@@ -1916,7 +1976,7 @@
             if (selectedBlock || getGlobalTotal() > 0) {
                 showConfirmModal(
                     'Unsaved Changes',
-                    'You have selections that will be lost if you leave this page. Are you sure you want to go back?',
+                    'You have selections that will be <span class="warn-keyword">lost</span> if you leave this page.<br>Are you sure you want to go back?',
                     function() {
                         /* Confirmed leave → navigate at once; selections are in-memory
                            and die with the page (no clearing ceremony / 5s undo wait).
@@ -1924,7 +1984,8 @@
                         hideConfirmModal();
                         allowUnload = true;
                         BackNavigator.navigate();
-                    }
+                    },
+                    { danger: true, confirmLabel: 'Yes, Go Back', cancelLabel: 'Stay' }
                 );
             } else {
                 BackNavigator.navigate();
@@ -2612,7 +2673,7 @@
                 item.className = 'slot-dd-item';
                 item.dataset.index = index;
                 item.innerHTML = `
-                    <span class="slot-dd-item-star" data-index="${index}" title="Toggle favourite">★</span>
+                    <span class="slot-dd-item-star" data-index="${index}" data-tip="Toggle favourite">★</span>
                     <span class="slot-dd-item-label">W${slot.week} · ${shortDate}, ${startStr} - ${endStr} @ ${slot.venue}</span>
                     <span class="slot-dd-item-badge" style="background:${statusBg};color:${statusColor};">${statusLabel}</span>
                 `;
@@ -2656,7 +2717,7 @@
             applyDefaultSlotSelection(slots);
         }
 
-        function selectSlot(slot, index) {
+        function selectSlot(slot, index, opts) {
             if (revertingChange) return;
 
             if (selectedBlock && index !== lastSlotIndex) {
@@ -2679,18 +2740,22 @@
                 return;
             }
             lastSlotIndex = index;
-            commitSlotSelection(slot, index);
+            commitSlotSelection(slot, index, opts);
         }
 
-        function commitSlotSelection(slot, index) {
+        function commitSlotSelection(slot, index, opts) {
             /* F-8 (round-2): the block size follows the picked conflict slot's
                duration — same clamp family as the URL branch (0.5–4 h → ≤8
                slots; slot indices are 30-min units) so a venue-arrival pick
                (subject + slot chosen on this page) sizes the block exactly
                like a home-path entry with &duration=. URL branch keeps
-               INITIAL authority; MAX_SELECTION floor stays ≥ BLOCK_SPAN. */
+               INITIAL authority; MAX_SELECTION floor stays ≥ BLOCK_SPAN.
+               (2026-10-09: "initial authority" is now actually enforced — an
+               AUTO default pick (favourite/recent/first-option, opts.auto)
+               cannot resize a URL-&duration= block; only an explicit user
+               pick in the panel may.) */
             const slotSpan = Math.min(Math.max(slot.end - slot.start + 1, 1), 8);
-            if (slotSpan !== BLOCK_SPAN) {
+            if (!(urlSpanLocked && opts && opts.auto) && slotSpan !== BLOCK_SPAN) {
                 BLOCK_SPAN = slotSpan;
                 MAX_SELECTION = Math.max(MAX_SELECTION, BLOCK_SPAN);
             }
@@ -2784,7 +2849,7 @@
                 const match = slots.find(s => s.code === fav.code && s.day === fav.day && s.start === fav.start && s.venue === fav.venue);
                 if (match) {
                     const idx = slots.indexOf(match);
-                    selectSlot(match, idx);
+                    selectSlot(match, idx, { auto: true });
                     return;
                 }
             }
@@ -2794,13 +2859,13 @@
                 const match = slots.find(s => s.code === recent.code && s.day === recent.day && s.start === recent.start && s.venue === recent.venue);
                 if (match) {
                     const idx = slots.indexOf(match);
-                    selectSlot(match, idx);
+                    selectSlot(match, idx, { auto: true });
                     return;
                 }
             }
             // 4. First option
             if (slots.length > 0) {
-                selectSlot(slots[0], 0);
+                selectSlot(slots[0], 0, { auto: true });
             }
         }
 
@@ -2855,7 +2920,7 @@
                 );
                 if (matchingSlot) {
                     const slotIndex = slots.indexOf(matchingSlot);
-                    selectSlot(matchingSlot, slotIndex);
+                    selectSlot(matchingSlot, slotIndex, { auto: true });
                 }
             }
             evaluateBookingFit();
@@ -2870,6 +2935,7 @@
                 const hrs = Math.min(Math.max(parseFloat(urlParams.duration), 0.5), 4);
                 BLOCK_SPAN = Math.round(hrs * 2);
                 MAX_SELECTION = Math.max(MAX_SELECTION, BLOCK_SPAN);
+                urlSpanLocked = true;
             }
             buildSubjectDropdown();
             renderTitleSummary();

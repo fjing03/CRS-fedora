@@ -748,15 +748,20 @@ function buildTimetableGrid(cfg) {
                 div.__eventData = e;
                 div.dataset.name = e.name || '';
                 div.dataset.venue = e.venue || '';
-                div.dataset.tip2 = (typeof cfg.tooltipExtra === 'function')
+                /* Hover tooltip = subject name (data-name) · page context ·
+                   lecturer · run-status — uniform on every timetable page. */
+                const tipCtx = (typeof cfg.tooltipExtra === 'function')
                     ? cfg.tooltipExtra(e)
-                    : (e.venue || '');
+                    : '';
+                div.dataset.tip2 = [tipCtx, e.lecturer || '—', eventStatusLabel(e, isConflict)]
+                    .filter(Boolean).join(' · ');
                 if (typeof cfg.statusClassFn === 'function') {
                     cfg.statusClassFn(div, e, isConflict);
-                } else if (isConflict) {
-                    div.classList.add('event-public-holiday');
-                } else if (e.status === 'conflict') {
-                    // §10.0 legend A: Conflict = red (conflicted original class)
+                } else if (isConflict || e.status === 'conflict') {
+                    // §10.0: conflict & PH are the same "this class won't run as
+                    // scheduled" story — one loud red on personal timetables
+                    // (everything here is the viewer's own; owner-gating with a
+                    // quiet tint only applies to the cohort/venue browse pages)
                     div.classList.add('event-conflict');
                 } else if (e.status === 'normal') {
                     div.classList.add('event-normal');
@@ -2229,6 +2234,20 @@ function formatDate(iso) { return DateHelper.formatDate(iso); }
 function formatDateTime(iso) { return DateHelper.formatDateTime(iso); }
 function fmt(d) { return DateHelper.fmt(d); }
 function add30min(t) { return DateHelper.add30min(t); }
+
+/* Human label for an event's run-status — the hover-tooltip suffix on every
+   timetable page ("· Normal / Pending / …"). A public-holiday day outranks
+   the event's own status (its class won't run for a different reason). */
+function eventStatusLabel(e, isConflict) {
+    if (isConflict) return 'Public Holiday';
+    switch (e.status) {
+        case 'conflict':    return 'Conflict';
+        case 'pending':     return 'Pending';
+        case 'replacement': return 'Replacement';
+        case 'cancelled':   return 'Cancelled';
+        default:            return 'Normal';
+    }
+}
 function dayAbbr(day) { return DateHelper.dayAbbr(day); }
 function isoDayName(iso) { return DateHelper.isoDayName(iso); }
 function getTodayMs() { return DateHelper.getTodayMs(); }
@@ -3122,6 +3141,10 @@ class VenueDropdown {
         return this.filter ? this.venues.filter(this.filter) : this.venues;
     }
 
+    /* Dropdown category: CiscoLab (B006) groups under Lab — the room tooltip
+       still reveals its true "Cisco Lab" identity. */
+    _typeOf(v) { return v.type === 'CiscoLab' ? 'Lab' : v.type; }
+
     _clearColumnsFrom(start) {
         for (let i = start; i < this.columns.length; i++) {
             const col = this.columns[i];
@@ -3145,7 +3168,8 @@ class VenueDropdown {
 
         // Favourites — expandable 2-level group: ★ Favourites › [rooms]
         if (this.getFavourites().some(code => venues.some(v => v.code === code))) {
-            const row = this._createParentItem('★ Favourites', { unit: 'favourites' });
+            const favCount = this.getFavourites().filter(code => venues.some(v => v.code === code)).length;
+            const row = this._createParentItem('★ Favourites', { unit: 'favourites', tip: 'Favourites — ' + favCount + ' venues' });
             row.addEventListener('mouseenter', () => this._buildUnitColumn('favourites'));
             row.addEventListener('click', (e) => {
                 e.stopPropagation();
@@ -3156,7 +3180,8 @@ class VenueDropdown {
 
         // Recent — expandable 2-level group: Recent › [rooms]
         if (this.getRecent().some(code => venues.some(v => v.code === code))) {
-            const row = this._createParentItem('Recent', { unit: 'recent' });
+            const recCount = this.getRecent().filter(code => venues.some(v => v.code === code)).length;
+            const row = this._createParentItem('Recent', { unit: 'recent', tip: 'Recent — ' + recCount + ' venues' });
             row.addEventListener('mouseenter', () => this._buildUnitColumn('recent'));
             row.addEventListener('click', (e) => {
                 e.stopPropagation();
@@ -3175,12 +3200,12 @@ class VenueDropdown {
             return;
         }
 
-        const typeOrder = ['Tutorial', 'LectureHall', 'Lab', 'CiscoLab'];
-        const typeLabels = { Tutorial: 'Tutorial', LectureHall: 'Lecture Hall', Lab: 'Lab', CiscoLab: 'CiscoLab' };
+        const typeOrder = ['Tutorial', 'LectureHall', 'Lab'];
+        const typeLabels = { Tutorial: 'Tutorial', LectureHall: 'Lecture Hall', Lab: 'Lab' };
         typeOrder.forEach(type => {
-            const catVenues = venues.filter(v => v.type === type);
+            const catVenues = venues.filter(v => this._typeOf(v) === type);
             if (catVenues.length === 0) return;
-            const row = this._createParentItem(typeLabels[type] || type, { type });
+            const row = this._createParentItem(typeLabels[type] || type, { type, tip: (typeLabels[type] || type) + ' — ' + catVenues.length + ' venues' });
             row.addEventListener('mouseenter', () => this._buildBlockColumn(type));
             row.addEventListener('click', (e) => {
                 e.stopPropagation();
@@ -3229,7 +3254,7 @@ class VenueDropdown {
         this._addSectionHeader(col, 'Blocks');
 
         const venues = this._getVenues();
-        const catVenues = venues.filter(v => v.type === type);
+        const catVenues = venues.filter(v => this._typeOf(v) === type);
         const blocks = [...new Set(catVenues.map(v => v.code.charAt(0)))].sort();
 
         if (blocks.length === 0) {
@@ -3241,7 +3266,8 @@ class VenueDropdown {
         }
 
         blocks.forEach(block => {
-            const row = this._createParentItem('Block ' + block, { block });
+            const inBlock = catVenues.filter(v => v.code.charAt(0) === block).length;
+            const row = this._createParentItem('Block ' + block, { block, tip: 'Block ' + block + ' — ' + inBlock + ' venues' });
             row.addEventListener('mouseenter', () => this._buildFloorColumn(type, block));
             row.addEventListener('click', (e) => {
                 e.stopPropagation();
@@ -3262,7 +3288,7 @@ class VenueDropdown {
         this._addSectionHeader(col, 'Floors');
 
         const venues = this._getVenues();
-        const blockVenues = venues.filter(v => v.type === type && v.code.charAt(0) === block);
+        const blockVenues = venues.filter(v => this._typeOf(v) === type && v.code.charAt(0) === block);
 
         // Floor from 2nd char: 0 = Ground, 1+ = Floor N
         const floorMap = {};
@@ -3287,7 +3313,11 @@ class VenueDropdown {
         }
 
         floorOrder.forEach(floor => {
-            const row = this._createParentItem(floor, { floor });
+            const inFloor = blockVenues.filter(v => {
+                const d = parseInt(v.code.charAt(1));
+                return (d === 0 ? 'Ground Floor' : 'Floor ' + d) === floor;
+            }).length;
+            const row = this._createParentItem(floor, { floor, tip: floor + ', Block ' + block + ' — ' + inFloor + ' venues' });
             row.addEventListener('mouseenter', () => this._buildRoomColumn(type, block, floor));
             row.addEventListener('click', (e) => {
                 e.stopPropagation();
@@ -3310,7 +3340,7 @@ class VenueDropdown {
 
         const venues = this._getVenues();
         const floorVenues = venues.filter(v => {
-            if (v.type !== type || v.code.charAt(0) !== block) return false;
+            if (this._typeOf(v) !== type || v.code.charAt(0) !== block) return false;
             const d = parseInt(v.code.charAt(1));
             const label = d === 0 ? 'Ground Floor' : 'Floor ' + d;
             return label === floor;
@@ -3351,6 +3381,15 @@ class VenueDropdown {
         row.className = 'venue-col-item venue-col-item-room';
         row.dataset.code = v.code;
         if (v.code === this.selectedCode) row.classList.add('selected');
+
+        /* Full-name tooltip (shared data-tip utility — fixed, shown ABOVE the
+           item): "B006 · Cisco Lab · Ground Floor, Block B". The dropdown
+           groups CiscoLab under Lab, so this is where its true name shows. */
+        const floorNum = parseInt(v.code.charAt(1));
+        const floorLabel = floorNum === 0 ? 'Ground Floor' : 'Floor ' + floorNum;
+        const typeName = v.type === 'CiscoLab' ? 'Cisco Lab'
+            : (v.type === 'LectureHall' ? 'Lecture Hall' : v.type);
+        row.dataset.tip = v.code + ' · ' + typeName + ' · ' + floorLabel + ', Block ' + v.code.charAt(0);
 
         const favs = this.getFavourites();
         const isFav = favs.includes(v.code);
