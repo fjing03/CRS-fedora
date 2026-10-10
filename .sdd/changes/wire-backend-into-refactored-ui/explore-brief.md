@@ -64,8 +64,9 @@ batch checklist.
 
 **(c) Diff verdict — nothing else duplicated.** Confirmed already recorded here,
 no copies added: OCC-loser `audit_logs` FK fix (D5, three mutually-consistent
-sites + review-log verification) · anchor-slot-only reservation (D11, design open
-item + `replacement-flow-wiring` spec) · D7 `official_event` release label ·
+sites + review-log verification) · anchor-slot-only reservation (design Open
+Questions + D5; see `replacement-flow-wiring` spec — there is no D11, the decisions
+table runs D1–D10) · D7 `official_event` release label ·
 real-records guard / no-re-seed (post-3a addendum) · venue-read-path ABSORBED
 note (2026-10-08 addendum) · Slice C = `RequestApproval` scope (design.md).
 Blockers unchanged: user's explicit Wave 3b go · real-records CSV+MD queue ·
