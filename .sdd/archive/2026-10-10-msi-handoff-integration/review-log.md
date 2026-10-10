@@ -37,3 +37,24 @@
 - (none)
 
 **Verdict: PASS → proposal.md + tasks.md frozen (self-reviewed; reviewer round owed — see process note).**
+
+## verify — 2026-10-10 (MSI session, manual equivalent of /sdd-verify)
+
+Evidence against proposal §4 success criteria:
+
+- [x] Port: 15 files found under `.sdd/archive/fedora-frontend-legacy/` + README;
+      byte-fidelity loop vs `origin/fedora-frontend` → "ALL 15 FILES BYTE-IDENTICAL";
+      no source-path leftovers (`git status` showed only expected adds).
+- [x] Workflow doc: `docs/two-machine-workflow.md` written; `docs/README.md` has the
+      Active row; every MSI-side statement matches 2026-10-10 command output
+      (`psql \l`, `.env` grep, `crontab -l`, uniqueness verdict table).
+- [x] Addendum: explore-brief.md +33 lines, dated section, post-Wave-1 vehicle
+      format; `git diff --name-only` = explore-brief.md ONLY (no frozen artifact).
+- [x] Gates: `composer run lint:check` → passed ·
+      `vendor/bin/phpstan analyse --memory-limit=1G` → 0 errors.
+- [x] Commits: `docs(sdd): propose…` `docs(sdd): preserve…` `docs: add two-machine
+      workflow guide` `docs(sdd): record handoff guards…` (+ archive commit) —
+      house split, **no push** (user's explicit word not given for pushing).
+
+**Owed:** retroactive `@sdd-reviewer` round on proposal (subagent spawn blocked
+this session — see Round 1 process note). Archived with that debt visible here.
