@@ -157,3 +157,15 @@ Registered debt: `sync-upstream-fjing-ui` design §10 — "3-batch unfreeze + re
 - design.md L132 (TimetableWiringTest approach, "student sees only own cohort") is satisfiable only via StudentMyTimetable — one clarifying line in the batch-3 tasks note, no design unfreeze.
 ### Verdict
 **PASS — batch 2 FROZEN** (round 1; reviewer confirmed the amended spec text now passes against `RouteGateMatrixTest`, matches frozen design.md verbatim, and no stale terms remain outside amendment self-references).
+
+## Amendment batch 3 — tasks.md — 2026-10-10 (unfreeze round 3, final)
+
+### 🔴 Outstanding
+- (none)
+### 🟡 Addressed (applied before freeze)
+- **Task 1.2 historical parenthetical** — the checked-off Phase-1 task still described cohort-timetable as `auth`-only (all-roles); annotated as superseded (lecturer+PL, see 4.5 + amendment log 5) so spec-vs-task cross-checks don't trip.
+- **Proposal supersession note** (amendment log entry 6) — frozen proposal.md L12/L17 carry the same stale bucket/rename; recorded as superseded by design amendments 1–2 without unfreezing the proposal, closing the residual-reference chain.
+### 💡 Noted (no action)
+- Residual inventory after all 3 batches: review-log/design amendment self-references only; design.md L189 §-number slip recorded round 2 (frozen); CodingMAIN.md:378 parenthetical tightening folded into task 4.4's adjacent edit during apply.
+### Verdict
+**PASS — batch 3 FROZEN. Package internally consistent (design ↔ specs ↔ tasks ↔ code); apply phase may start at Phase 2 (Slice B).**
