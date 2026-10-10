@@ -17,6 +17,7 @@ use App\Models\TimeSlot;
 use App\Models\User;
 use App\Models\Venue;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Livewire\Features\SupportTesting\Testable;
 use Livewire\Livewire;
 use Tests\TestCase;
 
@@ -118,7 +119,7 @@ final class ReplacementArrangementTest extends TestCase
         ]);
     }
 
-    private function mountForLecturerA(): \Livewire\Features\SupportTesting\Testable
+    private function mountForLecturerA(): Testable
     {
         return Livewire::withQueryParams(['code' => 'BMIT1001', 'day' => '1', 'start' => '4', 'originalVenue' => 'B100', 'week' => '6'])
             ->actingAs($this->lecturerA)
@@ -134,7 +135,7 @@ final class ReplacementArrangementTest extends TestCase
             ->assertSee('Original Venue');
     }
 
-    public function test_arrangement_grid_derives_table_B_states(): void
+    public function test_arrangement_grid_derives_table_b_states(): void
     {
         $this->createSlot('09:00:00', 'occupied');
         $pendingOther = $this->createSlot('09:30:00', 'pending');

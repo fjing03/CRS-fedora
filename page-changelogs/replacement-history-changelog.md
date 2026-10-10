@@ -200,3 +200,20 @@ New Slot / Status) now render as a **tab bar** via the shared
 The five summary-card flip-backs use the new keyword language — **YOUR COHORT**, **STILL
 AHEAD**, **ALREADY TAKEN PLACE**, **HOURS** in the default color; **WAITING FOR PL APPROVAL**
 in red (attention card).
+
+### DB wiring — cohort-scoped approved replacements, Slice B task 2.4 (2026-10-10, SDD: wire-backend-into-refactored-ui)
+
+Now serves real data via `App\Livewire\ReplacementHistory` (D10 registry swap;
+legacy mock template untouched for the fallback). Contract (FR 1.4): approved
+requests whose original class covers MY cohort, replacement slot week ≥
+current, view only (RBAC — students never act on requests).
+
+- **Columns** — Course, Original Class (day/time + replaced week), Replacement
+  Class (`badge-replacement` + day/time), Week, Venue, Approved By.
+- **Scoping** — `whereHas('classSession.cohorts', my cohort)` + slot week ≥
+  current timeline week; ordered by slot week/day/time (join on time_slots).
+- **Divergences from the mock (documented):** week-nav + show-past toggle and
+  sort controls are mock-era — the wired contract pins "week ≥ current" (FR
+  1.4) server-side; the upcoming-only list is the honest fixed scope.
+- Verified: ReplacementHistoriesTest (cohort scoping, upcoming-only, view-only
+  — no action affordances); full suite green (156/156).

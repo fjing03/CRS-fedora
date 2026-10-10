@@ -518,3 +518,25 @@ native `title=`.
 **Follow-up (2026-10-10, user request, SDD-waived):** the quick-cancel row action now reads
 **"Cancel Request"** instead of the ambiguous "Cancel" (which read like dismissing a dialog
 rather than cancelling the request).
+
+### DB wiring — real requests + cancel-pending, Slice B task 2.4 (2026-10-10, SDD: wire-backend-into-refactored-ui)
+
+Now serves real data via `App\Livewire\MyRequestHistory` (D10 registry swap;
+legacy mock template untouched for the fallback). Contract: own requests
+newest first (FR 2.15, `proposer_submitted` index) with cancel-own-pending
+(FR 2.10).
+
+- **Columns** — Course (code/name/remarks), Original Slot (day/time + request
+  week), Replacement Slot (day/time/venue + slot week), Requested, Status,
+  Action. Status badges reuse legend tokens: pending → `badge-pending`,
+  approved → `badge-replacement` (blue), rejected → `badge-conflict`,
+  cancelled → `badge-past`.
+- **Cancel (FR 2.10)** — confirm modal (§10.0 rule 9: "cannot be undone") →
+  `CancelPendingRequest` (D6 release: slot → available + version++, audit
+  `cancelled`); row re-renders Cancelled after the action.
+- **Status filter** — `wire:model.live` select (all/pending/approved/rejected/cancelled).
+- **Divergences from the mock (documented):** bulk-cancel checkbox flow and
+  pagination dropped (rows are few per lecturer per semester; single-row cancel
+  covers the FR).
+- Verified: ReplacementHistoriesTest (own-only scoping, cancel frees slot +
+  audits); full suite green (156/156).

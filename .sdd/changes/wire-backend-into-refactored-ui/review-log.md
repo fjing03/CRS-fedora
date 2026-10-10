@@ -214,3 +214,16 @@ Actions layer first (TDD): RED observed (9 errors: missing classes + one harness
 - phpstan findings fixed properly: dead catch → `\RuntimeException` (live via validator's `@throws ModelNotFoundException`; covers lock-timeout PDOException), `decided_at` assignment → fill() (house convention).
 - Records-intact: test-only DB (`class_replacement_testing`); demo DB untouched.
 - Remaining in Slice B: 2.2 ReplacementHome, 2.3 ReplacementArrangement, 2.4 histories (UI conversion), 2.6 changelogs.
+
+## apply Slice B pages — 2026-10-10 (tasks 2.2–2.4 + 2.6)
+
+### Implemented
+- **2.2 `ReplacementHome`** — own classes (conflicted included: B005×Diploma via the promoted protected `venueRestrictionConflict`/`baseEvent` concern helpers), cancelled-week + active-request badges, request counts by status (server-rendered summary values — `ui-summary-bar` gained an optional `value`), search (`wire:model.live`, URL-persisted), FR 2.14/2.15 access links, class-detail modal + direct Arrange buttons both emitting the shared `goToReplacement` URL contract (`from=replacement-home`). Divergences documented: sort/pagination/urgency column are mock-era.
+- **2.3 `ReplacementArrangement`** — first interactive Livewire page (design D2 flow): mount resolves the `goToReplacement` params (dead/tampered links → honest "No class selected", never another's session), venue defaults to the original (FR 2.5), whole-render grid re-derivation (FR 2.6/NFR 1.1), server-rendered 20×6 grid of the 30-min `time_slots` axis (addendum 2b) with D4-precedence cell states; green = only cells inside a duration-fitting engine run; free fragments render neutral with honest tooltip (never fake red). Contiguous block selection from the anchor (§3) with near-run-end rejection; confirm modal → D8 rules → `SubmitReplacementRequest` (OCC + D5); FR 4.10 conflict → error toast + re-derivation. New additive engine read `busyRanges()` (single source of truth for D4 rule 1). Empty grid → "No available slots" (FR 4.4/4.6).
+- **2.4 `MyRequestHistory` / `ReplacementHistory`** — own requests newest-first + cancel-pending behind a confirm modal (FR 2.10/2.15); student cohort-scoped approved replacements, slot week ≥ current, view-only (FR 1.4). Divergences documented (bulk-cancel, week-nav, sort = mock-era).
+- **2.6** — 5 changelogs updated; tasks checkboxes stamped; shared-partials promotions recorded: `ui-summary-bar` `value`, `ui-empty-state` `visible`, concern helpers private→protected.
+
+### Verification (slice gates)
+- `composer run lint:check` ✓ · phpstan **0 errors** ✓ (27 initial findings fixed at the cause: Carbon 3 signed `diffInMinutes`, explicit null branches instead of phpstan-invisible nulls — no ignores, no casts) · full `php artisan test` **156/156** (was 141; +15: Home 5, Arrangement 6, Histories 4) ✓
+- Sequences reset in new tests; demo DB untouched (testing DB only).
+- Remaining Slice B: none. Next: Slice C (Phase 3) — approval queue, decide actions, queued mailables.

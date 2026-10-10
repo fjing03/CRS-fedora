@@ -12,6 +12,8 @@ use App\Models\TimeSlot;
 use App\Models\Venue;
 use App\Services\MatrixIntersectionEngine;
 use Illuminate\Contracts\View\View;
+use Illuminate\Support\Carbon;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Validator;
 use Livewire\Attributes\Title;
 use Livewire\Component;
@@ -58,9 +60,10 @@ class ReplacementArrangement extends Component
         // Resolve the original session from the shared goToReplacement contract
         // (code + day + start slot index); fall back to the first own session —
         // the page must never crash on dead links (FR 4.4 spirit).
+        $semester = $this->timelineSemester();
         $query = ClassSession::query()
             ->where('lecturer_id', auth()->id())
-            ->where('semester_id', $this->timelineSemester()?->id ?? 1);
+            ->where('semester_id', $semester !== null ? $semester->id : 1);
 
         if ($params->filled('code')) {
             $query->whereHas('module', fn ($m) => $m->where('module_code', (string) $params->input('code')));
@@ -85,19 +88,28 @@ class ReplacementArrangement extends Component
         if ($session === null && ! $hasParams) {
             $session = ClassSession::query()
                 ->where('lecturer_id', auth()->id())
-                ->where('semester_id', $this->timelineSemester()?->id ?? 1)
+                ->where('semester_id', $semester !== null ? $semester->id : 1)
                 ->orderBy('day_of_week')
                 ->orderBy('start_time')
                 ->first();
         }
 
-        $this->sessionId = (int) ($session?->id ?? 0);
+        if ($session === null) {
+            // Honest dead-link state — the page renders "No class selected".
+            $this->sessionId = 0;
+            $this->venueId = 0;
+            $this->clampWeek();
+
+            return;
+        }
+
+        $this->sessionId = (int) $session->id;
 
         // FR 2.5 — venue dropdown defaults to the original class venue.
-        $this->venueId = (int) ($session?->venue_id ?? 0);
+        $this->venueId = (int) $session->venue_id;
         if ($params->filled('originalVenue')) {
             $original = Venue::query()->where('room_code', (string) $params->input('originalVenue'))->first();
-            if ($original !== null && $session !== null) {
+            if ($original !== null) {
                 $this->venueId = (int) $original->id;
             }
         }
@@ -260,9 +272,10 @@ class ReplacementArrangement extends Component
             return ['cells' => [], 'bookableIds' => [], 'runByAnchor' => [], 'selectedIds' => [], 'selection' => null, 'runs' => []];
         }
 
-        $semesterId = $this->timelineSemester()?->id ?? 1;
+        $semester = $this->timelineSemester();
+        $semesterId = $semester !== null ? $semester->id : 1;
         $cohortIds = $session->cohorts->pluck('id')->all();
-        $durationCells = (int) ((strtotime($session->end_time) - strtotime($session->start_time)) / 60 / 30);
+        $durationCells = (int) (Carbon::parse($session->start_time)->diffInMinutes(Carbon::parse($session->end_time)) / 30);
 
         $runs = $engine->findAvailableSlots(
             (int) auth()->id(),
@@ -337,8 +350,8 @@ class ReplacementArrangement extends Component
                     if ($anchor !== null) {
                         $selection = [
                             'day' => $anchor->day_of_week,
-                            'start' => date('g:i A', strtotime($anchor->start_time)),
-                            'end' => date('g:i A', strtotime($block[count($block) - 1] === $anchor->id ? $anchor->end_time : (string) $slots->firstWhere('id', $block[count($block) - 1])->end_time)),
+                            'start' => Carbon::parse($anchor->start_time)->format('g:i A'),
+                            'end' => Carbon::parse($block[count($block) - 1] === $anchor->id ? $anchor->end_time : (string) $slots->firstWhere('id', $block[count($block) - 1])->end_time)->format('g:i A'),
                             'venue' => $this->venueId,
                             'cells' => $durationCells,
                         ];
@@ -352,7 +365,7 @@ class ReplacementArrangement extends Component
             'days' => $days,
             'rows' => self::GRID_ROWS,
             'timeLabels' => collect(range(0, self::GRID_ROWS - 1))
-                ->map(fn (int $i): string => date('g:i A', strtotime(self::GRID_START) + $i * 1800))
+                ->map(fn (int $i): string => Carbon::parse(self::GRID_START)->addMinutes($i * 30)->format('g:i A'))
                 ->all(),
             'bookableIds' => $bookableIds,
             'runByAnchor' => $runBySlot,
@@ -368,7 +381,8 @@ class ReplacementArrangement extends Component
      *
      * @param  array<int, array{day: int, start: string, end: string}>  $busy
      * @param  array<int, int>  $bookableIds
-     * @param  \Illuminate\Support\Collection<int, int>  $pendingBySlot
+     * @param  Collection<int, int>  $pendingBySlot
+     * @return array{class: string, clickable: bool, slotId: int|null, hover: string, title: string}
      */
     private function deriveCell(
         ?TimeSlot $slot,

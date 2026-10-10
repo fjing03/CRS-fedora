@@ -7,6 +7,7 @@ use App\Models\ClassException;
 use App\Models\ClassSession;
 use App\Models\ReplacementRequest;
 use Illuminate\Contracts\View\View;
+use Illuminate\Support\Carbon;
 use Livewire\Attributes\Title;
 use Livewire\Attributes\Url;
 use Livewire\Component;
@@ -67,7 +68,7 @@ class ReplacementHome extends Component
                 ->count();
 
             $rows[] = $event + [
-                'timeLabel' => date('g:i A', strtotime((string) $session->start_time)).' – '.date('g:i A', strtotime((string) $session->end_time)),
+                'timeLabel' => Carbon::parse($session->start_time)->format('g:i A').' – '.Carbon::parse($session->end_time)->format('g:i A'),
                 'dayLabel' => self::DAY_LABELS[(int) $session->day_of_week] ?? (string) $session->day_of_week,
                 'conflicted' => $this->venueRestrictionConflict($session),
                 'cancelledWeeks' => $cancelledWeeks,

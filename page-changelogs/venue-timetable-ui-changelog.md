@@ -759,3 +759,10 @@ keyword in red (`CANNOT BOOK`) since it's an attention card.
 - Week subtitle stays under the merged bar (shared `ui-common.js` element;
   carries the week date range our select options don't show — unlike fjing,
   which has no subtitle).
+
+### Slice B postscript — read path unchanged, write path landed alongside (2026-10-10)
+
+Slice B shipped the booking write path (arrangement + submit through OCC).
+This page stays read-only by design (design row: "select venue/week"); no
+booking affordance was added here — start replacements from My Timetable or
+Replacement Arrangement home. No code change in this file for Slice B.
