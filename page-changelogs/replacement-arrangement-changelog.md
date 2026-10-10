@@ -1062,3 +1062,43 @@ longer the vague "Close" on warnings — `showConfirmModal` gained `opts.cancelL
 guards now read **"Stay"** (leave/back), **"No, Clear Nothing"** (Clear All), and **"No, Keep
 My Selection"** (subject/venue/week change guards). Informational modals ("No Selection") and
 the submit confirm keep "Close". Red/danger side unchanged.
+
+### DB wiring — real engine grid + OCC submit, Slice B task 2.3 (2026-10-10, SDD: wire-backend-into-refactored-ui)
+
+The page now serves real data via `App\Livewire\ReplacementArrangement` — the
+first fully interactive Livewire page (design D2 flow: `updatedVenueId`,
+`selectSlot`, `openSubmit`, `submit()`). Legacy mock template untouched for the
+D10 fallback.
+
+- **Prefill (FR 2.4→2.5)** — mount resolves the original session from the
+  shared `goToReplacement` contract (`?code=&day=&start=&originalVenue=&week=`);
+  the venue dropdown defaults to the original venue. A dead/tampered deep link
+  lands on the honest "No class selected" state — never an unrelated own
+  session, never another lecturer's (FR 2.11).
+- **Grid (addendum 2b axis)** — server-rendered 20×6 table of the underlying
+  30-minute `time_slots` rows for the selected week × venue (2h = 4 cells);
+  half-hour boundaries are real cells, never snapped. Cell states derive the
+  §10.0 table-B states with the design-D4 precedence: occupied (status or
+  engine busy vectors — via the new additive
+  `MatrixIntersectionEngine::busyRanges()` read), Reserved by Others / Pending
+  (You) from the grouped pending-request lookup, Your Current Selection (blue),
+  Available = only cells inside a duration-fitting engine run. Free fragments
+  too short for the class render neutral with an honest tooltip (never fake red).
+- **Selection (§3)** — clicking a green anchor selects the contiguous duration
+  block from the anchor; near-run-end clicks get a "pick an earlier start"
+  toast. Only the anchor half-hour slot is reserved at submit (the documented
+  prototype limitation).
+- **Submit (FR 2.9, §10.0 rule 9)** — confirm modal with optional remarks;
+  D8 `StoreReplacementRequest::rules()` at the component boundary, then
+  `SubmitReplacementRequest` (engine pre-check → OCC reserve → D5
+  compensation). Success → toast + the slot re-renders yellow "Pending (You)";
+  FR 4.10 conflict → error toast + grid re-derivation showing the winner's
+  pending as Reserved by Others.
+- **FR 4.4/4.6** — no bookable run ⇒ "No available slots" empty state, never a
+  crash. Week select starts at the current week.
+- **Divergences from the mock (documented):** mock-era lead-time (min 3 working
+  days) and availability-summary strip dropped — not in the wired spec; legend
+  uses cell swatches (same tokens as the grid).
+- Verified: ReplacementArrangementTest (6 wiring tests: prefill, table-B
+  states, contiguous selection, submit→request+slot+audit, ownership refusal,
+  honest empty); full suite green.

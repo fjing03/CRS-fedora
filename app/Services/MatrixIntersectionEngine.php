@@ -107,6 +107,22 @@ final class MatrixIntersectionEngine
     }
 
     /**
+     * Busy ranges (lecturer + cohorts) for one week — read-only view for UI
+     * cell-state derivation (D4 rule 1: "excluded by engine busy vectors" renders
+     * occupied). Same semantics as findAvailableSlots; no behaviour change.
+     *
+     * @param  array<int, int>  $cohortIds
+     * @return array<int, array{day: int, start: string, end: string}>
+     */
+    public function busyRanges(int $lecturerId, array $cohortIds, int $semesterId, int $weekNumber): array
+    {
+        return array_merge(
+            $this->lecturerBusyRanges($semesterId, $lecturerId, $weekNumber),
+            $this->cohortBusyRanges($semesterId, $cohortIds, $weekNumber),
+        );
+    }
+
+    /**
      * Append a maximal contiguous run of cells to $results if it satisfies $duration.
      *
      * @param  array<int, array{id: int, day: int, start: string, end: string, venue_id: int, venue_code: string}>  $cells
