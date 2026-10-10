@@ -249,9 +249,9 @@ trait ResolvesTimetableTimeline
      * a session conflicts when its venue is B005 AND any cohort belongs to a
      * D* (Diploma) programme. Derived at render time — the DB state machine
      * stays 3-state (FR 4.11); booking-time enforcement of the full rule set
-     * is Slice B scope.
+     * is Slice B scope. Protected: shared with ReplacementHome (2.2).
      */
-    private function venueRestrictionConflict(ClassSession $s): bool
+    protected function venueRestrictionConflict(ClassSession $s): bool
     {
         return $s->venue !== null
             && $s->venue->room_code === 'B005'
@@ -259,9 +259,9 @@ trait ResolvesTimetableTimeline
     }
 
     /**
-     * @return array<string, mixed>
+     * @return array<string, mixed> Protected: shared with ReplacementHome (2.2).
      */
-    private function baseEvent(ClassSession $s, ?string $cohortScopeCode): array
+    protected function baseEvent(ClassSession $s, ?string $cohortScopeCode = null): array
     {
         $cohorts = $s->cohorts;
         $cohortLabel = $cohortScopeCode ?? ($cohorts->count() > 1

@@ -28,7 +28,7 @@
             <div class="summary-card {{ $card['class'] }}">
                 <div class="summary-card-inner">
                     <div class="summary-card-front">
-                        <span class="summary-value" id="{{ $card['valueId'] }}">0</span>
+                        <span class="summary-value" id="{{ $card['valueId'] }}">{{ $card['value'] ?? 0 }}</span>
                         <span class="summary-label">{{ $card['label'] }}</span>
                     </div>
                     <div class="summary-card-back">

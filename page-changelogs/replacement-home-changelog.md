@@ -348,3 +348,36 @@ The three summary-card flip-backs joined the keyword language: "My Conflicted Cl
 in red (**NEED A REPLACEMENT ARRANGEMENT**), the hours/courses cards use bold-uppercase
 keywords in the default color. The keyboard-shortcuts and quick-view modal ✕s gained
 "Close" data-tip tooltips.
+
+### DB wiring — real data, Slice B task 2.2 (2026-10-10, SDD: wire-backend-into-refactored-ui)
+
+The page now serves real DB data via `App\Livewire\ReplacementHome` (D10 registry
+swap; legacy mock template untouched for the fallback). Contract per the
+replacement-flow-wiring spec: list own classes, conflicted included, with
+start-a-replacement from details (FR 2.4) + access to request history (FR 2.15)
+and venue timetables (FR 2.14); my request counts by status.
+
+- **Rows** = the lecturer's weekly class templates (server-ordered day/time),
+  each with Course, Day & Time, Duration, Venue, Students, Cohort(s) and a
+  Status cell: `badge-conflict` "Venue restriction" (live B005 × Diploma
+  derivation, shared with My Timetable via the promoted
+  `ResolvesTimetableTimeline::venueRestrictionConflict`/`baseEvent` helpers),
+  `badge-conflict` "N cancelled wks" (class_exceptions, FR 2.16 output),
+  `badge-pending` "N active requests" (own pending/approved), else
+  `badge-normal` "Normal".
+- **Search** — `wire:model.live.debounce.350ms`, module code/name, URL-persisted.
+- **Actions** — row click opens the shared class-detail modal (Replace Now in
+  footer, any class is replaceable); per-row "Arrange Replacement" button
+  navigates directly. Both use the shared `goToReplacement` URL contract
+  (`?code=&cohort=&day=&start=&end=&originalVenue=&duration=&from=replacement-home`)
+  that the arrangement page (2.3) consumes.
+- **Summary cards** (own scope): My Pending / Approved / Rejected Requests +
+  My Conflicted Classes — server-rendered values (ui-summary-bar now accepts
+  an optional `value`; mock JS filled `0` placeholders).
+- **Divergences from the mock (documented):** sort controls, pagination and the
+  days-left urgency column are mock-era (rows are 14-week templates, not dated
+  occurrences); keyboard-shortcuts + quick-view modals dropped (§10.0 rule 6).
+  Empty state renders server-side (ui-empty-state gained an optional
+  `visible` flag).
+- Verified: ReplacementHomeTest (5 wiring tests — scoping, conflict flag,
+  counts, cancelled weeks, search); full suite green.
