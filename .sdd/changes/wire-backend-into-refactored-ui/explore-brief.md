@@ -37,3 +37,36 @@ When this package's Slice B tasks are unfrozen: mark the venue-timetable compone
 task ABSORBED by that change; the booking affordances it deliberately disabled
 become Slice B's write-path scope. Records-intact guard + no-re-seed rules above
 remain standing.
+
+---
+
+## Handoff integration addendum — 2026-10-10 (MSI session, from HP-HANDOFF.md)
+
+Source: the HP's context export `HP-HANDOFF.md` (2026-10-10, outside the repo),
+diffed line-by-line against this change's frozen artifacts before writing.
+Change `.sdd/changes/msi-handoff-integration/`.
+
+**(a) Records-intact tool upgrade (updates the post-3a addendum above).**
+The "cheap `psql` count snapshot + diff" procedure now has a committed tool:
+**`php artisan crs:db-row-counts`** (`app/Console/Commands/DbRowCountsCommand.php`).
+Use it for the BEFORE/AFTER capture in the records-intact obligation; regenerate
+counts at check time — scratch baseline files in `/tmp` are volatile, do not
+depend on them.
+
+**(b) New standing guard — upstream legacy route fallback.**
+Upstream still ships `Route::get('/replacement-history-ui')` serving the legacy
+closure template. It is safe ONLY because
+`class_exists('App\Livewire\ReplacementHistory')` is currently false. When the
+`ReplacementHistory` component lands (rename-unfreeze debt, sync design §13), the
+legacy fallback route must be **removed deliberately in the same change** — not
+left to silently coexist with the real component. Add this to the rename-unfreeze
+batch checklist.
+
+**(c) Diff verdict — nothing else duplicated.** Confirmed already recorded here,
+no copies added: OCC-loser `audit_logs` FK fix (D5, three mutually-consistent
+sites + review-log verification) · anchor-slot-only reservation (D11, design open
+item + `replacement-flow-wiring` spec) · D7 `official_event` release label ·
+real-records guard / no-re-seed (post-3a addendum) · venue-read-path ABSORBED
+note (2026-10-08 addendum) · Slice C = `RequestApproval` scope (design.md).
+Blockers unchanged: user's explicit Wave 3b go · real-records CSV+MD queue ·
+3-batch rename unfreeze.
