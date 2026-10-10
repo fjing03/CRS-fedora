@@ -258,3 +258,28 @@ server-rendered grid / remarks modal from the first pass are gone.
   selection, frozen confirm modal. No demo-DB writes.
 - Sequence-reset lesson applied to all new test files (TimetableWiringTest's
   literal requestId:1 stays green).
+
+## apply RESTORATION — 2026-10-10 (tasks 2.4 pages rebuilt as faithful bridges)
+
+### Correction (same trigger as the 2.2/2.3 restoration)
+MyRequestHistory + ReplacementHistory were also rebuilt UIs; both are now the
+frozen mock templates byte-for-byte with data bridges only:
+- mrh: MockData.requests ← real own rows (mock shape incl. ISO datetimes,
+  occurrence dates from the real calendar, spaced cohorts + counts); the
+  frozen single/batch cancel modals now persist through CancelPendingRequest
+  (D6 + audit) — the mock's undo-toast dropped per the frozen "cannot be
+  undone" copy; rows the backend refuses stay visible.
+- rh: MockData.replacementHistory ← real my-cohort rows (approved + pending;
+  pending renders "Awaiting PL approval" with no new slot — the frozen
+  semantic); cohort chip + empty-state text carry the student's REAL cohort
+  (two documented DATA patches); the frozen week/show-past filter is
+  client-side (FR 1.4); view-only unchanged.
+
+### Verification
+- ReplacementHistoriesTest rewritten for the bridge payloads + real cancel
+  (persist/audit/version bump, decided-request refusal, batch returns only
+  cancelled ids, cohort scoping, view-only) — 7 tests.
+- Gates: suite **159/159**, pint ✓, phpstan **0**.
+- Live on the demo DB: mrh frozen toolbar/chips/empty CTA as lecturer 5770;
+  rh frozen week-nav/Show Past/summary as student 25DFT0001 with the real
+  cohort chip — zero console errors on both.

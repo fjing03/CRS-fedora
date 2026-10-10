@@ -4,87 +4,155 @@ namespace App\Livewire;
 
 use App\Actions\CancelPendingRequest;
 use App\Concerns\ResolvesTimetableTimeline;
+use App\Models\Cohort;
 use App\Models\ReplacementRequest;
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\Carbon;
-use Livewire\Attributes\Title;
 use Livewire\Component;
 
 /**
- * My Request History (FR 2.15) — the lecturer's own replacement requests,
- * newest first (idx proposer_submitted), with cancel-own-pending (FR 2.10,
- * confirm modal). Slice B (SDD: wire-backend-into-refactored-ui).
+ * My Request History — 100% the frozen UI design (sortable/filterable table,
+ * bulk-select cancel bar, request-age colours, detail modal with timeline,
+ * summary cards — all client-side as frozen). This component is the DATA
+ * BRIDGE: it emits the mock's `MockData.requests` row shape from real rows
+ * (own requests only, server-scoped — FR 2.15) and carries the REAL cancel
+ * (FR 2.10): the frozen confirm modals call cancelRequest/cancelRequests →
+ * CancelPendingRequest (D6 release + audit). The mock's undo-toast callbacks
+ * are dropped — the frozen modal copy itself says the action cannot be
+ * undone. Slice B (SDD: wire-backend-into-refactored-ui). Legacy mock
+ * template untouched for the D10 fallback.
  */
 class MyRequestHistory extends Component
 {
     use ResolvesTimetableTimeline;
 
-    /** Status filter: all|pending|approved|rejected|cancelled. */
-    public string $status = 'all';
+    private const DAY_NAMES = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
 
-    public ?int $confirmCancelId = null;
-
-    #[Title('My Request History')]
     public function render(): View
     {
+        $semester = $this->timelineSemester();
+        $start = Carbon::parse($semester !== null ? $semester->start_date : now()->toDateString());
+
         $requests = ReplacementRequest::query()
-            ->with(['classSession.module', 'classSession.venue', 'replacementTimeSlot.venue'])
+            ->with([
+                'classSession.module', 'classSession.venue', 'classSession.cohorts.programme',
+                'classSession.lecturer', 'replacementTimeSlot.venue', 'proposer', 'approver',
+            ])
             ->where('proposer_id', auth()->id())
-            ->when($this->status !== 'all', fn ($q) => $q->where('status', $this->status))
             ->orderByDesc('submitted_at')
-            ->get()
-            ->map(fn (ReplacementRequest $r): array => [
-                'id' => $r->id,
-                'code' => $r->classSession->module->module_code,
-                'name' => $r->classSession->module->module_name,
-                'originalSlot' => $r->classSession !== null
-                    ? (['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][$r->classSession->day_of_week] ?? '').' '.Carbon::parse($r->classSession->start_time)->format('g:i A')
-                    : '—',
-                'originalWeek' => (int) $r->week_number,
-                'replacement' => $r->replacementTimeSlot !== null ? [
-                    'week' => (int) $r->replacementTimeSlot->week_number,
-                    'day' => ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][$r->replacementTimeSlot->day_of_week] ?? '',
-                    'time' => Carbon::parse($r->replacementTimeSlot->start_time)->format('g:i A').' – '.Carbon::parse($r->replacementTimeSlot->end_time)->format('g:i A'),
-                    'venue' => $r->replacementTimeSlot->venue->room_code,
-                ] : null,
-                'requestedAt' => $r->submitted_at->format('d M Y, h:i A'),
-                'status' => (string) $r->status,
-                'remarks' => (string) ($r->remarks ?? ''),
-            ])->all();
+            ->get();
+
+        $rows = $requests
+            ->map(fn (ReplacementRequest $r): array => $this->requestRow($r, $start))
+            ->all();
 
         return view('livewire.my-request-history', [
-            'requests' => $requests,
+            'payload' => [
+                'semester' => $this->semesterJs(),
+                'holidays' => $this->holidaysForJs(),
+                'currentUser' => ['name' => (string) auth()->user()->name],
+                'requests' => $rows,
+            ],
         ])
-            ->extends('layouts.ui-template', ['activeNav' => 'replacement-history', 'pageKey' => 'myRequestHistory'])
+            ->extends('layouts.ui-template', ['homeUrl' => '/my-timetable-ui', 'activeNav' => 'replacement-history', 'pageKey' => 'myRequestHistory'])
             ->section('content');
     }
 
-    public function cancelConfirm(int $id): void
+    /**
+     * The mock's exact row shape (cf. MockData.requests §).
+     *
+     * @return array<string, mixed>
+     */
+    private function requestRow(ReplacementRequest $r, Carbon $semesterStart): array
     {
-        $this->confirmCancelId = $id;
-    }
+        $session = $r->classSession;
+        $slot = $r->replacementTimeSlot;
 
-    public function cancelDismiss(): void
-    {
-        $this->confirmCancelId = null;
+        $classDate = $semesterStart->copy()
+            ->addWeeks((int) $r->week_number - 1)
+            ->addDays((int) $session->day_of_week)
+            ->toDateString();
+
+        return [
+            'id' => (int) $r->id,
+            'requester' => $r->proposer !== null ? (string) $r->proposer->name : '',
+            'requestedAt' => $r->submitted_at->format('Y-m-d\TH:i:s'),
+            'reviewedAt' => $r->decided_at !== null ? $r->decided_at->format('Y-m-d\TH:i:s') : null,
+            'reviewedBy' => $r->approver !== null ? (string) $r->approver->name : null,
+            'status' => ucfirst((string) $r->status),
+            'rejectionReason' => $r->rejection_reason,
+            'courseCode' => (string) $session->module->module_code,
+            'courseName' => (string) $session->module->module_name,
+            'classType' => (string) $session->session_type,
+            'classDate' => $classDate,
+            'classDay' => self::DAY_NAMES[(int) $session->day_of_week] ?? '',
+            'timeStart' => Carbon::parse($session->start_time)->format('H:i'),
+            'timeEnd' => Carbon::parse($session->end_time)->format('H:i'),
+            'duration' => (int) (Carbon::parse($session->start_time)->diffInMinutes(Carbon::parse($session->end_time)) / 60),
+            'venue' => (string) $session->venue->room_code,
+            'totalStudents' => (int) $session->cohorts->sum('student_count'),
+            'cohorts' => $session->cohorts
+                ->map(fn ($c): string => $this->spacedCohortLabel($c))
+                ->values()
+                ->all(),
+            'cohortCounts' => $session->cohorts
+                ->map(fn ($c): int => (int) $c->student_count)
+                ->values()
+                ->all(),
+            'replacementDate' => $semesterStart->copy()
+                ->addWeeks((int) $slot->week_number - 1)
+                ->addDays((int) $slot->day_of_week)
+                ->toDateString(),
+            'replacementTime' => Carbon::parse($slot->start_time)->format('H:i').' – '.Carbon::parse($slot->end_time)->format('H:i'),
+            'replacementVenue' => (string) $slot->venue->room_code,
+            'remarks' => $r->remarks,
+        ];
     }
 
     /**
-     * FR 2.10 — cancel own pending request: slot back to available (D6),
-     * request cancelled, audited (CancelPendingRequest guards ownership +
-     * pending-ness; a non-pending row simply yields false here).
+     * FR 2.10 — cancel own pending request (D6 release + audit inside the
+     * action, which also guards ownership + pending-ness).
      */
-    public function cancel(CancelPendingRequest $action): void
+    public function cancelRequest(int $id): bool
     {
-        if ($this->confirmCancelId === null) {
-            return;
+        return app(CancelPendingRequest::class)(auth()->user(), $id);
+    }
+
+    /**
+     * Batch cancel (the frozen bulk bar) — returns the ids that actually
+     * cancelled, so the page only removes those rows.
+     *
+     * @return array<int, int>
+     */
+    public function cancelRequests(string $idsJson): array
+    {
+        $ids = json_decode($idsJson, true);
+        if (! is_array($ids)) {
+            return [];
         }
 
-        $ok = $action(auth()->user(), $this->confirmCancelId);
+        $action = app(CancelPendingRequest::class);
+        $ok = [];
+        foreach ($ids as $id) {
+            if ($action(auth()->user(), (int) $id)) {
+                $ok[] = (int) $id;
+            }
+        }
 
-        $this->confirmCancelId = null;
-        $this->dispatch('toast', message: $ok
-            ? 'Request cancelled — the slot is free again.'
-            : 'This request can no longer be cancelled.');
+        return $ok;
+    }
+
+    /**
+     * The mock's spaced cohort convention ('DFT2 (S1) G1').
+     */
+    private function spacedCohortLabel(?Cohort $cohort): string
+    {
+        if ($cohort === null || $cohort->programme === null) {
+            return '—';
+        }
+
+        return $cohort->programme->programme_code
+            .$cohort->current_year.' (S'.$cohort->semester.')'
+            .' G'.$cohort->tutorial_group;
     }
 }

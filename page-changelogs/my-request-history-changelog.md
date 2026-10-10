@@ -540,3 +540,31 @@ newest first (FR 2.15, `proposer_submitted` index) with cancel-own-pending
   covers the FR).
 - Verified: ReplacementHistoriesTest (own-only scoping, cancel frees slot +
   audits); full suite green (156/156).
+
+### Postscript — RESTORED to the frozen UI design, byte-for-byte (2026-10-10)
+
+The first wiring pass rebuilt the page as a simplified table — wrong call.
+**The page is now the frozen mock template, byte-for-byte**: sortable/filterable
+table (search, status dropdown, week filter, Exclude Completed toggle, Reset
+Filters, filter chips), request-age colours, bulk-select cancel bar with batch
+confirmation, mobile cards, detail modal with timeline + tabs, keyboard row
+navigation, and the 5 summary cards — all client-side as designed. The only
+changes:
+
+- **Data bridge** — `MockData.requests` ← real own rows (server-scoped,
+  FR 2.15/2.11) in the exact mock row shape: ISO datetimes for the age
+  colours, capitalized statuses, the original occurrence's date/day derived
+  from the real semester calendar, spaced cohort labels + per-cohort counts,
+  replacement slot date/time/venue.
+- **BRIDGE PATCH — cancel persists (FR 2.10)**: the frozen single + batch
+  confirm modals now call the backend (`cancelRequest` / `cancelRequests` →
+  `CancelPendingRequest`: D6 release + audit). The mock's undo-toast callback
+  is dropped — the frozen modal copy itself says the action cannot be undone.
+  Rows the backend refuses (already decided) stay visible.
+- Script runs on DOMContentLoaded with window exports (the my-timetable
+  pattern; mock-data.js parses after the content); `mockNow = null` → real
+  clock for the age colours.
+- Verified live on the demo DB (lecturer 5770): the frozen toolbar/chips/
+  empty state with the real CTA, honest "0 of 0" (no requests yet in the demo
+  data); the populated + cancel paths covered by ReplacementHistoriesTest on
+  the disposable DB.

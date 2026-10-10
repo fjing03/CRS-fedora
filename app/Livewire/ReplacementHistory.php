@@ -7,70 +7,102 @@ use App\Models\ReplacementRequest;
 use App\Models\Student;
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\Carbon;
-use Livewire\Attributes\Title;
 use Livewire\Component;
 
 /**
- * Replacement History (FR 1.4, student view-only) — approved replacements
- * whose original class covers MY cohort, upcoming weeks only (replacement
- * slot week ≥ current). Read-only: students never act on requests (RBAC).
- * Slice B (SDD: wire-backend-into-refactored-ui).
+ * Replacement History (student) — 100% the frozen UI design (week nav +
+ * show-past toggle, sortable table / mobile cards, the 5-card summary strip,
+ * class-detail modal — all client-side as frozen). This component is the
+ * DATA BRIDGE: it emits the mock's `MockData.replacementHistory` row shape
+ * from real rows — approved AND pending requests touching MY cohort (FR 1.4;
+ * the frozen design shows pending as "Awaiting PL approval" with no new
+ * slot). View only: students never act on requests (RBAC). Slice B (SDD:
+ * wire-backend-into-refactored-ui). Legacy mock template untouched for the
+ * D10 fallback.
  */
 class ReplacementHistory extends Component
 {
     use ResolvesTimetableTimeline;
 
-    #[Title('Replacement History')]
+    private const DAY_NAMES = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+
     public function render(): View
     {
-        $student = Student::query()->where('user_id', auth()->id())->first();
+        $semester = $this->timelineSemester();
+        $semesterId = $semester !== null ? $semester->id : 1;
 
-        $currentWeek = $this->currentTimelineWeekIndex() + 1;
+        $student = Student::query()->where('user_id', auth()->id())->first();
+        $cohort = $student?->cohort;
+        $cohortLabel = $cohort !== null ? $this->cohortCode($cohort) : null;
 
         $rows = [];
-        $cohortLabel = null;
-
-        if ($student !== null) {
-            $cohort = $student->cohort;
-            $cohortLabel = $cohort !== null ? (string) $this->cohortCode($cohort) : null;
-
+        if ($cohort !== null) {
             $rows = ReplacementRequest::query()
-                ->select('replacement_requests.*')
-                ->join('time_slots', 'time_slots.id', '=', 'replacement_requests.replacement_time_slot_id')
-                ->where('replacement_requests.status', 'approved')
+                ->with(['classSession.module', 'classSession.venue', 'classSession.cohorts', 'classSession.lecturer', 'replacementTimeSlot.venue'])
+                ->whereIn('status', ['pending', 'approved'])
                 ->whereHas('classSession.cohorts', fn ($q) => $q->whereKey($cohort->id))
-                ->where('time_slots.week_number', '>=', $currentWeek)
-                ->with(['classSession.module', 'classSession.venue', 'replacementTimeSlot.venue', 'approver'])
-                ->orderBy('time_slots.week_number')
-                ->orderBy('time_slots.day_of_week')
-                ->orderBy('time_slots.start_time')
+                ->orderByDesc('submitted_at')
                 ->get()
-                ->map(fn (ReplacementRequest $r): array => [
-                    'id' => $r->id,
-                    'code' => $r->classSession->module->module_code,
-                    'name' => $r->classSession->module->module_name,
-                    'originalSlot' => $r->classSession !== null
-                        ? (['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][$r->classSession->day_of_week] ?? '').' '
-                            .Carbon::parse($r->classSession->start_time)->format('g:i A')
-                            .' – '.Carbon::parse($r->classSession->end_time)->format('g:i A')
-                        : '—',
-                    'originalWeek' => (int) $r->week_number,
-                    'replacement' => $r->replacementTimeSlot !== null ? [
-                        'week' => (int) $r->replacementTimeSlot->week_number,
-                        'day' => ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][$r->replacementTimeSlot->day_of_week] ?? '',
-                        'time' => Carbon::parse($r->replacementTimeSlot->start_time)->format('g:i A').' – '.Carbon::parse($r->replacementTimeSlot->end_time)->format('g:i A'),
-                        'venue' => $r->replacementTimeSlot->venue->room_code,
-                    ] : null,
-                    'decidedBy' => $r->approver !== null ? $r->approver->name : '—',
-                ])->all();
+                ->map(fn (ReplacementRequest $r): array => $this->historyRow($r))
+                ->all();
         }
 
         return view('livewire.replacement-history', [
-            'rows' => $rows,
             'cohortLabel' => $cohortLabel,
-            'currentWeek' => $currentWeek,
+            'payload' => [
+                'semester' => $this->semesterJs(),
+                'holidays' => $this->holidaysForJs(),
+                'currentUser' => ['name' => (string) auth()->user()->name],
+                /* the mock-persona flag map is unused with real data — an empty
+                   map keeps the frozen modal's fallback path safe */
+                'cohortTimetable' => ['rsd3g2Flags' => []],
+                'replacementHistory' => $rows,
+            ],
         ])
-            ->extends('layouts.ui-template', ['activeNav' => 'replacement-history', 'pageKey' => 'replacementHistory'])
+            ->extends('layouts.ui-template', [
+                'homeUrl' => '/student-my-timetable-ui',
+                'activeNav' => 'replacement-history',
+                'pageKey' => 'replacementHistory',
+            ])
             ->section('content');
+    }
+
+    /**
+     * The mock's exact row shape (cf. MockData.replacementHistory §).
+     *
+     * @return array<string, mixed>
+     */
+    private function historyRow(ReplacementRequest $r): array
+    {
+        $session = $r->classSession;
+        $slot = $r->replacementTimeSlot;
+        $approved = (string) $r->status === 'approved';
+
+        return [
+            'id' => (int) $r->id,
+            'code' => (string) $session->module->module_code,
+            'name' => (string) $session->module->module_name,
+            'type' => (string) $session->session_type,
+            'week' => (int) $slot->week_number - 1, // the mock's 0-based week index
+            'di' => (int) $slot->day_of_week,
+            'start' => $this->slotIndex((string) $slot->start_time),
+            'end' => $this->slotIndex((string) $slot->end_time) - 1,
+            'originalTime' => Carbon::parse($session->start_time)->format('H:i').' – '.Carbon::parse($session->end_time)->format('H:i'),
+            'originalVenue' => (string) $session->venue->room_code,
+            'originalDay' => self::DAY_NAMES[(int) $session->day_of_week] ?? '',
+            /* frozen semantic: a PENDING request has no confirmed new slot —
+               the page renders "Awaiting PL approval" for it */
+            'newDay' => $approved ? self::DAY_NAMES[(int) $slot->day_of_week] : null,
+            'newDi' => $approved ? (int) $slot->day_of_week : null,
+            'newStart' => $approved ? $this->slotIndex((string) $slot->start_time) : null,
+            'newEnd' => $approved ? $this->slotIndex((string) $slot->end_time) - 1 : null,
+            'newTime' => $approved
+                ? Carbon::parse($slot->start_time)->format('H:i').' – '.Carbon::parse($slot->end_time)->format('H:i')
+                : null,
+            'newVenue' => $approved ? (string) $slot->venue->room_code : null,
+            'lecturer' => $session->lecturer !== null ? (string) $session->lecturer->name : '',
+            'status' => $approved ? 'replacement' : 'pending',
+            'requestedAt' => $r->submitted_at->format('d M Y, h:i A'),
+        ];
     }
 }

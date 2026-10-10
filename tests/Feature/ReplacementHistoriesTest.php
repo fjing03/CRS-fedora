@@ -24,9 +24,12 @@ use Livewire\Livewire;
 use Tests\TestCase;
 
 /**
- * replacement-flow-wiring spec (task 2.4): own request history with
- * cancel-pending (FR 2.10/2.15) and the student's cohort-scoped, upcoming-only
- * replacement history, view-only (FR 1.4).
+ * replacement-flow-wiring spec (task 2.4): both history pages are 100% the
+ * frozen UI design — the components are data bridges emitting the mock's
+ * exact row shapes (MockData.requests / MockData.replacementHistory) from
+ * real rows, plus the REAL cancel (FR 2.10) behind the frozen confirm modals.
+ * The student page is view-only with cohort scoping + the frozen
+ * past/upcoming filter client-side (FR 1.4).
  */
 final class ReplacementHistoriesTest extends TestCase
 {
@@ -48,13 +51,11 @@ final class ReplacementHistoriesTest extends TestCase
 
     private Venue $venue;
 
-    private Module $moduleA;
-
-    private Module $moduleB;
-
     private ClassSession $sessionA;
 
     private ClassSession $sessionB;
+
+    private int $slotSeq = 0;
 
     protected function setUp(): void
     {
@@ -80,11 +81,11 @@ final class ReplacementHistoriesTest extends TestCase
 
         $this->cohortA = Cohort::create([
             'programme_id' => $prog->id, 'current_year' => 3, 'semester' => 1,
-            'tutorial_group' => 1, 'academic_year' => '2025/26', 'intake' => 'June 2023',
+            'tutorial_group' => 1, 'academic_year' => '2025/26', 'intake' => 'June 2023', 'student_count' => 20,
         ]);
         $this->cohortB = Cohort::create([
             'programme_id' => $prog->id, 'current_year' => 3, 'semester' => 1,
-            'tutorial_group' => 2, 'academic_year' => '2025/26', 'intake' => 'June 2023',
+            'tutorial_group' => 2, 'academic_year' => '2025/26', 'intake' => 'June 2023', 'student_count' => 18,
         ]);
 
         $this->lecturerA = User::factory()->create(['role' => 'lecturer', 'name' => 'Lecturer A']);
@@ -101,11 +102,11 @@ final class ReplacementHistoriesTest extends TestCase
             'room_code' => 'B100', 'room_name' => 'Tutorial Room B100',
             'room_type' => 'tutorial', 'allowed_session_types' => 'L,T', 'capacity' => 35,
         ]);
-        $this->moduleA = Module::create(['module_code' => 'BMIT1001', 'module_name' => 'Software Engineering', 'allowed_session_types' => 'L,T']);
-        $this->moduleB = Module::create(['module_code' => 'BMIT2002', 'module_name' => 'Databases', 'allowed_session_types' => 'L,T']);
+        $moduleA = Module::create(['module_code' => 'BMIT1001', 'module_name' => 'Software Engineering', 'allowed_session_types' => 'L,T']);
+        $moduleB = Module::create(['module_code' => 'BMIT2002', 'module_name' => 'Databases', 'allowed_session_types' => 'L,T']);
 
-        $this->sessionA = $this->createSession($this->lecturerA, $this->moduleA, [$this->cohortA]);
-        $this->sessionB = $this->createSession($this->lecturerB, $this->moduleB, [$this->cohortB]);
+        $this->sessionA = $this->createSession($this->lecturerA, $moduleA, [$this->cohortA]);
+        $this->sessionB = $this->createSession($this->lecturerB, $moduleB, [$this->cohortB]);
     }
 
     private function createSession(User $lecturer, Module $module, array $cohorts): ClassSession
@@ -114,7 +115,7 @@ final class ReplacementHistoriesTest extends TestCase
             'semester_id' => $this->semester->id,
             'module_id' => $module->id,
             'lecturer_id' => $lecturer->id,
-            'day_of_week' => 1,
+            'day_of_week' => 1, // Tuesday in this schema (0 = Monday)
             'start_time' => '10:00:00',
             'end_time' => '12:00:00',
             'venue_id' => $this->venue->id,
@@ -124,8 +125,6 @@ final class ReplacementHistoriesTest extends TestCase
 
         return $session;
     }
-
-    private int $slotSeq = 0;
 
     private function createSlot(int $week, string $status = 'available'): TimeSlot
     {
@@ -141,7 +140,7 @@ final class ReplacementHistoriesTest extends TestCase
         ]);
     }
 
-    private function createRequest(User $proposer, ClassSession $session, int $week, string $status, ?string $remarks = null): ReplacementRequest
+    private function createRequest(User $proposer, ClassSession $session, int $week, string $status): ReplacementRequest
     {
         return ReplacementRequest::create([
             'semester_id' => $this->semester->id,
@@ -150,67 +149,166 @@ final class ReplacementHistoriesTest extends TestCase
             'week_number' => $week,
             'replacement_time_slot_id' => $this->createSlot($week, $status === 'pending' ? 'pending' : 'available')->id,
             'status' => $status,
-            'remarks' => $remarks,
             'submitted_at' => now(),
         ]);
     }
 
-    public function test_my_request_history_lists_own_requests_only(): void
+    private function mrhPayload(User $lecturer): array
     {
-        $this->createRequest($this->lecturerA, $this->sessionA, 7, 'pending', 'club event');
-        $this->createRequest($this->lecturerB, $this->sessionB, 7, 'pending', 'databases swap');
+        $payload = null;
 
-        Livewire::actingAs($this->lecturerA)
-            ->test(MyRequestHistory::class)
-            ->assertSee('BMIT1001')
-            ->assertSee('club event')
-            ->assertSee('badge-pending')
-            ->assertDontSee('databases swap')
-            ->assertDontSee('BMIT2002');
+        Livewire::actingAs($lecturer)->test(MyRequestHistory::class)
+            ->assertViewHas('payload', function (array $p) use (&$payload): bool {
+                $payload = $p;
+
+                return true;
+            });
+
+        return $payload;
     }
 
-    public function test_cancel_pending_frees_the_slot_and_audits(): void
+    private function rhPayload(User $student): array
+    {
+        $payload = null;
+
+        Livewire::actingAs($student)->test(ReplacementHistory::class)
+            ->assertViewHas('payload', function (array $p) use (&$payload): bool {
+                $payload = $p;
+
+                return true;
+            });
+
+        return $payload;
+    }
+
+    public function test_my_request_history_emits_own_rows_in_the_mock_shape(): void
+    {
+        $mine = $this->createRequest($this->lecturerA, $this->sessionA, 7, 'pending');
+        $theirs = $this->createRequest($this->lecturerB, $this->sessionB, 7, 'pending');
+
+        $payload = $this->mrhPayload($this->lecturerA);
+
+        $this->assertCount(1, $payload['requests'], 'FR 2.15/2.11: own requests only');
+        $row = $payload['requests'][0];
+
+        // The mock row contract (HtmlBuilder.classBlock / replacementBlock /
+        // formatDateTime / DetailModal all read these keys).
+        $this->assertSame($mine->id, $row['id']);
+        $this->assertSame('Lecturer A', $row['requester']);
+        $this->assertSame('Pending', $row['status']);
+        $this->assertSame('BMIT1001', $row['courseCode']);
+        $this->assertSame('Software Engineering', $row['courseName']);
+        $this->assertSame('L', $row['classType']);
+        $this->assertSame('2026-10-13', $row['classDate']); // week 7, day_of_week 1 (Tue)
+        $this->assertSame('Tuesday', $row['classDay']);
+        $this->assertSame('10:00', $row['timeStart']);
+        $this->assertSame('12:00', $row['timeEnd']);
+        $this->assertSame(2, $row['duration']);
+        $this->assertSame('B100', $row['venue']);
+        $this->assertSame(20, $row['totalStudents']);
+        $this->assertSame(['RSD3 (S1) G1'], $row['cohorts']);
+        $this->assertSame([20], $row['cohortCounts']);
+        $this->assertSame('2026-10-15', $row['replacementDate']); // slot week 7, day 3 (Thu)
+        $this->assertSame('14:00 – 14:30', $row['replacementTime']);
+        $this->assertSame('B100', $row['replacementVenue']);
+        $this->assertNull($row['reviewedBy']);
+        $this->assertNotNull($row['requestedAt']);
+
+        // The bridge must never carry the other lecturer's row.
+        $this->assertFalse(collect($payload['requests'])->contains(
+            fn (array $r): bool => $r['id'] === $theirs->id,
+        ));
+    }
+
+    public function test_cancel_request_persists_and_frees_the_slot(): void
     {
         $request = $this->createRequest($this->lecturerA, $this->sessionA, 7, 'pending');
         $slot = $request->replacementTimeSlot;
 
-        Livewire::actingAs($this->lecturerA)
-            ->test(MyRequestHistory::class)
-            ->call('cancelConfirm', (int) $request->id)
-            ->assertSee('Confirm Cancellation')
-            ->call('cancel');
+        $testable = Livewire::actingAs($this->lecturerA)->test(MyRequestHistory::class);
+        $testable->call('cancelRequest', (int) $request->id);
+        $ok = \Livewire\invade($testable)->lastState->getEffects()['returns'][0] ?? null;
+
+        $this->assertTrue($ok, 'FR 2.10: the frozen confirm modal really cancels');
 
         $request->refresh();
-        $this->assertSame('cancelled', $request->status, 'FR 2.10: the request is cancelled');
+        $this->assertSame('cancelled', $request->status);
         $this->assertNotNull($request->decided_at);
 
         $slot->refresh();
-        $this->assertSame('available', $slot->status, 'FR 2.10: the slot returns to available');
+        $this->assertSame('available', $slot->status, 'D6: the slot returns to available');
         $this->assertSame(2, (int) $slot->version, 'D6: release bumps version');
 
         $audit = AuditLog::query()->where('action', 'cancelled')->firstOrFail();
         $this->assertSame((int) $slot->id, (int) $audit->time_slot_id);
     }
 
-    public function test_replacement_history_scopes_to_own_cohort_and_upcoming_weeks(): void
+    public function test_cancel_request_refuses_a_decided_request(): void
     {
-        // Cohort A's class replaced in week 7 (upcoming) — visible to student A.
-        $upcoming = $this->createRequest($this->lecturerA, $this->sessionA, 7, 'approved');
-        $upcoming->fill(['approver_id' => $this->lecturerB->id])->save();
-        // Same class replaced into week 1 (already past) — hidden (FR 1.4).
-        $past = $this->createRequest($this->lecturerA, $this->sessionA, 1, 'approved');
-        $past->fill(['approver_id' => $this->lecturerB->id])->save();
-        // Cohort B's class replaced — hidden from student A.
-        $otherCohort = $this->createRequest($this->lecturerB, $this->sessionB, 7, 'approved');
-        $otherCohort->fill(['approver_id' => $this->lecturerA->id])->save();
+        $request = $this->createRequest($this->lecturerA, $this->sessionA, 7, 'approved');
 
-        Livewire::actingAs($this->studentA)
-            ->test(ReplacementHistory::class)
-            ->assertSee('BMIT1001')
-            ->assertSee('Week 7')
-            ->assertSee('badge-replacement')
-            ->assertDontSee('BMIT2002')
-            ->assertDontSee('Week 1 ·'); // the past-week row's slot cell
+        $testable = Livewire::actingAs($this->lecturerA)->test(MyRequestHistory::class);
+        $testable->call('cancelRequest', (int) $request->id);
+        $ok = \Livewire\invade($testable)->lastState->getEffects()['returns'][0] ?? null;
+
+        $this->assertFalse($ok, 'FR 2.10: only pending requests are cancellable');
+        $this->assertSame('approved', $request->refresh()->status);
+    }
+
+    public function test_batch_cancel_returns_only_the_cancelled_ids(): void
+    {
+        $first = $this->createRequest($this->lecturerA, $this->sessionA, 7, 'pending');
+        $second = $this->createRequest($this->lecturerA, $this->sessionA, 8, 'pending');
+        $decided = $this->createRequest($this->lecturerA, $this->sessionA, 9, 'approved');
+
+        $testable = Livewire::actingAs($this->lecturerA)->test(MyRequestHistory::class);
+        $testable->call('cancelRequests', json_encode([$first->id, $second->id, $decided->id]));
+        $okIds = \Livewire\invade($testable)->lastState->getEffects()['returns'][0] ?? [];
+
+        $this->assertSame([(int) $first->id, (int) $second->id], $okIds, 'only the pending ones cancel');
+        $this->assertSame('cancelled', $first->refresh()->status);
+        $this->assertSame('cancelled', $second->refresh()->status);
+        $this->assertSame('approved', $decided->refresh()->status);
+    }
+
+    public function test_replacement_history_emits_own_cohort_rows_in_the_mock_shape(): void
+    {
+        $pending = $this->createRequest($this->lecturerA, $this->sessionA, 7, 'pending');
+        $approved = $this->createRequest($this->lecturerA, $this->sessionA, 8, 'approved');
+        $this->createRequest($this->lecturerB, $this->sessionB, 7, 'approved'); // other cohort
+
+        $payload = $this->rhPayload($this->studentA);
+
+        $this->assertCount(2, $payload['replacementHistory'], 'FR 1.4: my cohort, pending + approved');
+        $this->assertSame([], $payload['cohortTimetable']['rsd3g2Flags']);
+
+        $byId = collect($payload['replacementHistory'])->keyBy('id');
+
+        // Pending: the frozen semantic — no confirmed new slot.
+        $p = $byId[$pending->id];
+        $this->assertSame('pending', $p['status']);
+        $this->assertNull($p['newDay']);
+        $this->assertSame(6, $p['week']); // week 7 → 0-based index 6
+        $this->assertSame('BMIT1001', $p['code']);
+        $this->assertSame('Lecturer A', $p['lecturer']);
+        $this->assertSame('10:00 – 12:00', $p['originalTime']);
+        $this->assertSame('B100', $p['originalVenue']);
+
+        // Approved: the confirmed new slot fills the frozen New Slot columns.
+        $a = $byId[$approved->id];
+        $this->assertSame('replacement', $a['status']);
+        $this->assertSame(7, $a['week']);
+        $this->assertSame('Friday', $a['newDay']); // slotSeq cycle: pending→day 3, approved→day 4
+        $this->assertSame('14:00 – 14:30', $a['newTime']);
+        $this->assertSame('B100', $a['newVenue']);
+    }
+
+    public function test_replacement_history_never_leaks_other_cohorts(): void
+    {
+        $this->createRequest($this->lecturerA, $this->sessionA, 7, 'approved');
+
+        Livewire::actingAs($this->studentB)->test(ReplacementHistory::class)
+            ->assertViewHas('payload', fn (array $payload): bool => $payload['replacementHistory'] === []);
     }
 
     public function test_replacement_history_is_view_only_for_students(): void

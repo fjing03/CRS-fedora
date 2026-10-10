@@ -217,3 +217,27 @@ current, view only (RBAC — students never act on requests).
   1.4) server-side; the upcoming-only list is the honest fixed scope.
 - Verified: ReplacementHistoriesTest (cohort scoping, upcoming-only, view-only
   — no action affordances); full suite green (156/156).
+
+### Postscript — RESTORED to the frozen UI design, byte-for-byte (2026-10-10)
+
+The first wiring pass rebuilt the page as a simplified static table — wrong
+call. **The page is now the frozen mock template, byte-for-byte**: week
+navigator + Today, Show Past toggle, sortable desktop table / mobile cards
+(original slot → new slot with the arrow anatomy), the 5-card summary strip
+(Total/Upcoming/Pending/Past/Hours), and the class-detail modal — all
+client-side as designed. The only changes:
+
+- **Data bridge** — `MockData.replacementHistory` ← real rows for MY cohort
+  (approved + pending — the frozen design shows pending as "Awaiting PL
+  approval" with no confirmed new slot; FR 1.4), in the exact mock row shape
+  (0-based week, 30-min slot indices, 'HH:MM – HH:MM' ranges, full day names).
+  The frozen week/upcoming filter runs client-side on the real rows.
+- **Two DATA patches (documented inline)**: the cohort chip and the
+  empty-state text render the student's REAL cohort label instead of the mock
+  persona's hardcoded 'RSD3(S1)G2'.
+- `MockData.cohortTimetable` ← an inert empty flags map (the mock-persona
+  flag lookup path stays safe); `mockNow = null` → real clock.
+- View only, unchanged: students never act on requests (RBAC).
+- Verified live on the demo DB (student 25DFT0001): frozen toolbar/chips/
+  empty state with the real cohort label, zero console errors; the populated
+  scoping covered by ReplacementHistoriesTest on the disposable DB.
