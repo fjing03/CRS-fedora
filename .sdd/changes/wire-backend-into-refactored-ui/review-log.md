@@ -192,3 +192,25 @@ User catch: spec.md:37 said "a 2-hour class needs 2 adjacent green cells" (mock-
 ## Discoverability follow-up — frozen proposal banner — 2026-10-10 (no reviewer round)
 
 External critique accepted: the "the summary is outdated" notes lived in design (2nd) and tasks (last) but not in `proposal.md` (1st) — the document readers start at. Freeze discipline kept the proposal CONTENT unmodified; the fix is a dated banner at the top of the proposal (the only addition), pointing to the authoritative amendments (design amendment log items 1–2, tasks amendment log entry 6, amended rbac spec, review-log rounds). Banner pointers verified to resolve in the committed artifacts. No contract content changed → no reviewer round (recorded here per house honesty; rounds 1–3 + 2b remain the binding reviews).
+
+## apply Slice B core — 2026-10-10 (tasks 2.1 + 2.5)
+
+Actions layer first (TDD): RED observed (9 errors: missing classes + one harness fix), then implementation, then green.
+
+### Implemented
+- `app/Actions/SubmitReplacementRequest` — FR 2.11 ownership → week 1–14 → anchor availability → engine `validateSlot()` pre-check → create pending row → `OCCValidator::validateAndReserve()`; loser paths (validator conflict OR lock-wait abort caught as RuntimeException — PDOException subclass) run the **D5 compensating delete in the stamped order**: pre-null `audit_logs.replacement_request_id` (conflict audit row survives, FR 4.12), then delete the request row, inside its own small transaction that does NOT wrap the validator.
+- `app/Actions/CancelPendingRequest` — FR 2.10 + FR 2.11 scoping; D6 release (lockForUpdate + raw version++ UPDATE), request → `cancelled` + `decided_at`, audit `cancelled`.
+- `app/Actions/CancelClass` — FR 2.16; reason ∈ the 5 CHECK values; unique (session, week) via QueryException → false; audit `class_cancelled` with details.
+- `app/Http/Requests/{StoreReplacementRequest,CancelClassRequest}` — static `rules()` per D8 (verified legal: base FormRequest declares no rules()). `CancelRequest` not created — zero-shape input (invokable id); guards live in the action. `DecideRequest` deferred to Slice C.
+- Tests: `ReplacementFlowTest` (10) + `OccConcurrencyTest` (1, design testing-table row) — the race uses a second connection holding the row lock + `SET lock_timeout` so the loser's validator aborts deterministically; asserts D5 compensation + exactly-one-winner + winner audit.
+
+### Test-infra notes (for future slices)
+- Sessions repeat weekly → lecturer "busy weeks" = all 14; anchor search must key on free (week, day) pairs then scan the session's own venue (20 candidates).
+- Seeded `time_slots.version` starts at **1**, not 0.
+- Sequences are non-transactional: request-creating tests reset `replacement_requests`/`class_exceptions`/`audit_logs` in setUp (house pattern per OCCValidatorTest's class_sessions setval) or TimetableWiringTest's literal `"requestId":1` breaks.
+
+### Verification (Slice B core gates)
+- `composer run lint:check` ✓ · `phpstan --memory-limit=1G` **0 errors** ✓ · full `php artisan test` **141/141** (was 130; +11 new) ✓
+- phpstan findings fixed properly: dead catch → `\RuntimeException` (live via validator's `@throws ModelNotFoundException`; covers lock-timeout PDOException), `decided_at` assignment → fill() (house convention).
+- Records-intact: test-only DB (`class_replacement_testing`); demo DB untouched.
+- Remaining in Slice B: 2.2 ReplacementHome, 2.3 ReplacementArrangement, 2.4 histories (UI conversion), 2.6 changelogs.
