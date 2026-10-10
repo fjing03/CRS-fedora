@@ -2,7 +2,7 @@
 
 ## Purpose
 
-Serve My Timetable, Cohort Timetable, Student My Timetable, and Upcoming Replacements from live records, not mock data: role scoping, class details, canonical legend, mock fallback.
+Serve My Timetable, Cohort Timetable, Student My Timetable, and Replacement History from live records, not mock data: role scoping, class details, canonical legend, mock fallback.
 
 ## Requirements
 
@@ -22,15 +22,15 @@ My Timetable MUST list only sessions the lecturer teaches (FR 2.2) from live rec
 - WHEN the lecturer clicks it
 - THEN details open with the same fields as any class
 
-### Requirement: Cohort Timetable scoping by role
+### Requirement: Cohort Timetable lecturer/PL access
 
-Cohort Timetable MUST be open to all roles. A student MUST see only their own cohort's sessions (FR 1.2); lecturers and PLs MAY view any cohort. Data MUST come from live class-session and cohort records.
+Cohort Timetable MUST be reachable by lecturers and Programme Leaders only; students MUST receive HTTP 403 (the student's FR 1.2 cohort view is the pinned Student My Timetable, not the staff consolidated view). Lecturers and PLs MAY view any cohort. Data MUST come from live class-session and cohort records.
 
-#### Scenario: Student sees own cohort
+#### Scenario: Student blocked
 
 - GIVEN a student in one cohort; sessions seeded for two
-- WHEN the student opens Cohort Timetable
-- THEN only their cohort's sessions render; others are unreachable
+- WHEN the student requests Cohort Timetable
+- THEN the response is HTTP 403; no cohort sessions render
 
 #### Scenario: Lecturer views other cohort
 
@@ -48,20 +48,20 @@ Student My Timetable MUST show the student's own cohort's sessions (FR 1.2) and 
 - WHEN the student opens Student My Timetable
 - THEN the occurrence shows the Pending label with canonical styling
 
-### Requirement: Upcoming Replacements details
+### Requirement: Replacement History details
 
-Upcoming Replacements (student-only) MUST list approved replacements for the student's own cohort in current or future weeks (week ≥ current) with new date, time, venue (FR 1.4); past weeks and other cohorts MUST NOT appear.
+Replacement History (student-only) MUST list approved replacements for the student's own cohort in current or future weeks (week ≥ current) with new date, time, venue (FR 1.4); past weeks and other cohorts MUST NOT appear.
 
 #### Scenario: Details visible
 
 - GIVEN an approved replacement for the student's cohort in a future week
-- WHEN the student opens Upcoming Replacements
+- WHEN the student opens Replacement History
 - THEN the new date, time, and venue are displayed
 
 #### Scenario: Past or other-cohort excluded
 
 - GIVEN replacements for another cohort and, in a past week, for the student's cohort
-- WHEN the student opens Upcoming Replacements
+- WHEN the student opens Replacement History
 - THEN neither appears
 
 ### Requirement: Rendering and edge cases
@@ -99,3 +99,10 @@ Config off → pages MUST serve live data; on → the untouched legacy template,
 - GIVEN fallback enabled and an authenticated student
 - WHEN the student opens Student My Timetable
 - THEN the legacy template renders with unchanged RBAC
+
+## Amendments (2026-10-10 unfreeze, batch 2 of 3)
+
+Per `sync-upstream-fjing-ui` design §10 registered debt + batch-1 re-verification. Paper-only alignment with shipped code; no behavior change.
+
+1. "Upcoming Replacements" → "Replacement History" (5 prose sites: purpose, requirement header, requirement body, two scenario WHEN lines). The original 5-site debt list only counted camelCase `UpcomingReplacements` in design/specs/tasks; these prose sites were found by the 2026-10-10 re-verification.
+2. "Cohort Timetable scoping by role" requirement corrected: lecturer/PL-only access (was "open to all roles"); "Student sees own cohort" scenario replaced by a student-blocked (403) scenario — FR 1.2 is served by the pinned Student My Timetable.

@@ -143,3 +143,17 @@ Registered debt: `sync-upstream-fjing-ui` design §10 — "3-batch unfreeze + re
 - `specs/replacement-flow-wiring/spec.md:37` cites "design D11" for the anchor-slot limitation, but the decisions table is D1–D10 (content lives in Open Questions + D5) — fix the citation while that spec is unfrozen.
 ### Verdict
 **PASS — batch 1 FROZEN** (round 1; reviewer verified all claims line-by-line against `routes/web.php`, `RouteGateMatrixTest`, `CodingMAIN.md:378`, AGENTS.md caveat, and D5's three reinforcement sites).
+
+## Amendment batch 2 — specs — 2026-10-10 (unfreeze round 2)
+
+### 🔴 Outstanding
+- (none)
+### 🟡 Addressed (applied before freeze)
+- **Citation slip fixed in working tree:** amendment evidence said "CodingMAIN.md §10 page table" — the Page Inventory & Routes table is §9 (§10 is Coding Conventions). Fixed in rbac spec's Amendments section; the same slip inside frozen design.md L189 is noted here, NOT unfrozen.
+- **Belt-and-braces citation added** to the "Student blocked from the staff cohort view" THEN line (§6 matrix footnote + §9 page table) so FR 1.2's resolution is self-contained.
+### 🟡 Carried to batch 3 (from round-2 review)
+- `app/Livewire/CohortTimetable.php` docblock still cites "all roles (rbac-route-gating spec)" and contains a now-unreachable student branch (`isStudent` L33/L60, own-cohort-only L92–94 — middleware 403s students first, test L112). Batch 3 adds tasks: docblock update + explicit keep-or-strip decision (keep = defense-in-depth).
+- `CodingMAIN.md:388` mock-fallback table still lists `/upcoming-replacements-ui` — docs fix task added to batch 3.
+- design.md L132 (TimetableWiringTest approach, "student sees only own cohort") is satisfiable only via StudentMyTimetable — one clarifying line in the batch-3 tasks note, no design unfreeze.
+### Verdict
+**PASS — batch 2 FROZEN** (round 1; reviewer confirmed the amended spec text now passes against `RouteGateMatrixTest`, matches frozen design.md verbatim, and no stale terms remain outside amendment self-references).

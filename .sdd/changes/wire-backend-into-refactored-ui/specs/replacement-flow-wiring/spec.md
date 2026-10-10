@@ -34,7 +34,7 @@ The venue dropdown MUST default to the original class venue (FR 2.5); changing i
 
 ### Requirement: Slot grid semantics
 
-The arrangement MUST show a weekly time × day grid, colour-coded (FR 2.7). Clicking a green cell MUST select it as the proposal (FR 2.8); a multi-slot class MUST select its contiguous duration block — a 2-hour class needs 2 adjacent green cells (§3). Cells MUST derive the §10.0 table-B states with exact labels/tokens (FR 4.11), display-only; Reserved by Others = a pending slot held by another's active request. Only the clicked anchor slot is reserved; a block's other cells stay available (design D11, prototype limitation).
+The arrangement MUST show a weekly time × day grid, colour-coded (FR 2.7). Clicking a green cell MUST select it as the proposal (FR 2.8); a multi-slot class MUST select its contiguous duration block — a 2-hour class needs 2 adjacent green cells (§3). Cells MUST derive the §10.0 table-B states with exact labels/tokens (FR 4.11), display-only; Reserved by Others = a pending slot held by another's active request. Only the clicked anchor slot is reserved; a block's other cells stay available (prototype limitation recorded in the design's Open Questions; transaction semantics per design D5).
 
 #### Scenario: Two-hour contiguous selection
 
@@ -89,3 +89,7 @@ A lecturer MUST cancel their own pending request before decision (FR 2.10): the 
 - GIVEN a class cancellation without a reason
 - WHEN processed
 - THEN validation fails; the class stays scheduled
+
+## Amendments (2026-10-10 unfreeze, batch 2 of 3)
+
+Stale citation fix: the anchor-slot limitation cited "design D11", but the design's Architecture Decisions table is D1–D10 — the limitation lives in the design's Open Questions (with transaction semantics in D5). No behavioral change.

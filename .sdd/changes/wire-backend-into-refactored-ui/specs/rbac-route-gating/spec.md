@@ -8,18 +8,18 @@ Define access control for the nine UI routes so every request is authenticated a
 
 ### Requirement: Authentication gate on all UI routes
 
-All nine UI routes (my-timetable, cohort-timetable, student-my-timetable, upcoming-replacements, replacement-home, replacement-arrangement, my-request-history, venue-timetable, request-approval) MUST require an authenticated session (FR 4.14, NFR 2.1). The authentication check MUST run before any role check (design D3), so an unauthenticated request to ANY protected route is redirected to the login page, never a 403.
+All nine UI routes (my-timetable, cohort-timetable, student-my-timetable, replacement-history, replacement-home, replacement-arrangement, my-request-history, venue-timetable, request-approval) MUST require an authenticated session (FR 4.14, NFR 2.1). The authentication check MUST run before any role check (design D3), so an unauthenticated request to ANY protected route is redirected to the login page, never a 403.
 
 #### Scenario: Guest redirected from each bucket
 
 - GIVEN no authenticated session
-- WHEN a guest requests one route per bucket (cohort-timetable; student-my-timetable; replacement-home; request-approval)
+- WHEN a guest requests one route per bucket (student-my-timetable; my-timetable; request-approval)
 - THEN each request redirects to the login page
 - AND no protected route returns 403 or page content to a guest
 
 ### Requirement: Role-bucket enforcement
 
-Route buckets MUST match the locked matrix (FR 4.13): cohort-timetable = all authenticated roles; student-my-timetable + upcoming-replacements = student only; my-timetable, replacement-home, replacement-arrangement, my-request-history, venue-timetable = lecturer and Programme Leader; request-approval = Programme Leader only. A Programme Leader MUST pass every lecturer-gated route (its account role is `lecturer` plus the PL flag). An authenticated user outside a route's bucket MUST receive an HTTP 403 error page (FR 4.13), not a redirect.
+Route buckets MUST match the locked matrix (FR 4.13): student-my-timetable + replacement-history = student only; my-timetable, cohort-timetable, replacement-home, replacement-arrangement, my-request-history, venue-timetable = lecturer and Programme Leader; request-approval = Programme Leader only. A Programme Leader MUST pass every lecturer-gated route (its account role is `lecturer` plus the PL flag). An authenticated user outside a route's bucket MUST receive an HTTP 403 error page (FR 4.13), not a redirect.
 
 #### Scenario: Student blocked from lecturer routes
 
@@ -39,11 +39,11 @@ Route buckets MUST match the locked matrix (FR 4.13): cohort-timetable = all aut
 - WHEN the PL requests my-timetable and venue-timetable
 - THEN each responds HTTP 200
 
-#### Scenario: All-roles route open to student
+#### Scenario: Student blocked from the staff cohort view
 
 - GIVEN a student is authenticated
 - WHEN the student requests cohort-timetable
-- THEN the response is HTTP 200
+- THEN the response is HTTP 403 — FR 1.2 cohort viewing is served by the student's pinned Student My Timetable, not the staff consolidated view (CodingMAIN.md §6 matrix footnote + §9 page table)
 
 ### Requirement: Student view-only surface
 
@@ -80,3 +80,11 @@ When the mock-fallback switch is on, every route MUST apply identical middleware
 - GIVEN mock fallback enabled and no session
 - WHEN a guest requests replacement-home
 - THEN the response redirects to login, identical to real-data mode
+
+## Amendments (2026-10-10 unfreeze, batch 2 of 3)
+
+Per `sync-upstream-fjing-ui` design §10 registered debt + batch-1 re-verification. Paper-only alignment with shipped code; no behavior change.
+
+1. `upcoming-replacements` → `replacement-history` in the nine-route list (routes registry + `RouteGateMatrixTest::STUDENT_ONLY` already ship the new name).
+2. Bucket matrix corrected: cohort-timetable moved to the lecturer+PL bucket (was "all authenticated roles") — evidence `routes/web.php` mw, `RouteGateMatrixTest::LECTURER_ONLY`, `CodingMAIN.md` §9 page table ("Lecturer/PL — students pinned to own cohort"; students see their cohort via the pinned Student My Timetable, per the §6 matrix footnote on FR 1.2). Guest-scenario route list updated to one-per-remaining-bucket.
+3. "All-roles route open to student" scenario replaced by "Student blocked from the staff cohort view" (403) — FR 1.2 is served by the pinned Student My Timetable.
