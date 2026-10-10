@@ -19,6 +19,7 @@ use App\Models\TimeSlot;
 use App\Models\User;
 use App\Models\Venue;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
 use Livewire\Livewire;
 use Tests\TestCase;
 
@@ -58,6 +59,12 @@ final class ReplacementHistoriesTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
+
+        // Sequences are NOT transactional — TimetableWiringTest asserts literal
+        // ids, so every test here starts from a pristine counter.
+        foreach (['replacement_requests', 'class_exceptions', 'audit_logs'] as $table) {
+            DB::statement("SELECT setval(pg_get_serial_sequence('{$table}', 'id'), 1, false)");
+        }
 
         $this->semester = Semester::create([
             'semester_code' => '202605',

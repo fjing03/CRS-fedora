@@ -33,3 +33,4 @@ playwright-report/
 
 # Playwright MCP browser-session scratch (snapshots only — the venue evidence png stays tracked)
 .playwright-mcp/*.yml
+.playwright-mcp/

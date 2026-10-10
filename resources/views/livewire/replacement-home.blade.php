@@ -1,29 +1,113 @@
-{{-- Livewire full-page view (SDD: wire-backend-into-refactored-ui, task 2.2).
-     Replacement Home — the lecturer's own classes, conflicted included, with
-     start-a-replacement from details (FR 2.4) + access to request history
-     (FR 2.15) and venue timetables (FR 2.14). Real data server-rendered; page
-     CSS/JS inline per D2; class-detail modal + goToReplacement contract shared
-     with my-timetable. Legacy mock template untouched for the D10 fallback.
-     Documented divergences from the mock: sort/pagination and the days-left
-     urgency column are mock-era (rows are 14-week class templates, not dated
-     occurrences) — server-ordered by day/time, search kept (FR-faithful). --}}
+{{-- The frozen UI design from ui-design-templates/, byte-for-byte, with only
+     the data source bridged to the backend (see the BRIDGE marks below). The
+     component's render() applies layouts.ui-template — no @extends here
+     (Livewire full-page: exactly one root element in the content section). --}}
 
-@section('title', 'Replacement Arrangement')
+@section('title', 'Replacement Arrangement — Class Replacement System')
 
-<div class="lw-page">
+@section('page-styles')
 
-    <style>
-        /* ───── Column widths (page-scoped, from the mock template) ───── */
-        .col-no { width: 40px; }
-        .col-original { width: 210px; white-space: normal; }
-        .col-venue { width: 80px; }
-        .col-students { width: 80px; }
-        .col-cohort { width: 140px; }
-        .col-reason { width: 220px; vertical-align: middle; }
-        .col-action { width: 190px; }
+        /* ───── Column Widths ───── */
+        .col-original { width: 200px; }
+        .col-original { white-space: normal; }
+        .col-urgency { width: 150px; } /* fits "Overdue (12 days ago)" without wrapping */
+        .col-venue { width: 70px; }
+        .col-cohort { width: 130px; }
+        .col-reason { width: 140px; vertical-align: middle; }
+        .col-action { width: 150px; }
+
         .grid-scroll .timetable { min-width: 1120px; }
 
-        /* ───── Responsive card view ───── */
+        /* ───── Urgency ───── */
+        .urgency-high { color: var(--color-error); font-weight: 700; }
+        .urgency-mid { color: var(--color-warning); font-weight: 600; }
+        .urgency-low { color: var(--color-on-surface-variant); font-weight: 500; }
+
+        /* ───── Reason Badges ───── */
+        .badge-holiday {
+            background: var(--color-error-container);
+            color: var(--color-on-error-container);
+        }
+        .badge-annual-leave {
+            background: var(--color-primary-container);
+            color: var(--color-on-primary-container);
+        }
+        .badge-medical-leave {
+            background: var(--color-tertiary-container);
+            color: var(--color-on-tertiary-container);
+        }
+        .badge-official-event {
+            background: var(--color-primary-container);
+            color: var(--color-on-primary-container);
+        }
+        .badge-emergency-leave {
+            background: var(--color-error);
+            color: var(--color-on-error);
+        }
+
+        /* ───── Just-cancelled Chip ───── */
+        .just-cancelled-chip {
+            display: inline-block;
+            background: var(--color-error-container);
+            color: var(--color-on-error-container);
+            padding: 2px 8px;
+            border-radius: var(--radius-sm);
+            font-size: 10px;
+            font-weight: 600;
+            margin-left: 6px;
+            vertical-align: middle;
+            white-space: nowrap;
+        }
+
+        /* Undo affordance beside the chip (toast-snooze companion) */
+        .just-cancelled-undo {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 18px;
+            height: 18px;
+            margin-left: 4px;
+            padding: 0;
+            border: 1px solid var(--color-outline);
+            border-radius: var(--radius-sm);
+            background: transparent;
+            color: var(--color-on-surface-variant);
+            cursor: pointer;
+            vertical-align: middle;
+            transition: background 0.15s ease, color 0.15s ease;
+        }
+        .just-cancelled-undo:hover {
+            background: var(--color-surface-variant);
+            color: var(--color-on-surface);
+        }
+
+        /* ───── Summary Card Colors ───── */
+        .summary-card.card-conflict .summary-value { color: var(--color-error); }
+        .summary-card.card-venues .summary-value { color: var(--color-primary); }
+        .summary-card.card-students .summary-value { color: var(--color-tertiary); }
+        .summary-card.card-duration .summary-value { color: var(--color-primary); }
+        .summary-card.card-courses .summary-value { color: var(--color-on-primary-container); }
+
+        .btn-replace-now {
+            padding: 8px 20px;
+            border-radius: var(--radius-sm);
+            border: none;
+            background: var(--color-primary);
+            color: var(--color-on-primary);
+            font-family: inherit;
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            transition: filter 0.15s;
+        }
+        .btn-replace-now:hover {
+            filter: brightness(1.08);
+        }
+
+        /* ───── Responsive Card View ───── */
         .replacement-card {
             background: var(--color-surface);
             border: 1px solid var(--color-outline);
@@ -37,250 +121,587 @@
             background: var(--color-surface-variant);
             box-shadow: var(--shadow-sm);
         }
-        .replacement-card:active { transform: scale(0.99); }
+        .replacement-card:active {
+            transform: scale(0.99);
+        }
         .rc-header {
-            display: flex; align-items: center; justify-content: space-between;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
             margin-bottom: 6px;
         }
-        .rc-code { font-size: 14px; font-weight: 700; color: var(--color-on-surface); }
+        .rc-code {
+            font-size: 14px;
+            font-weight: 700;
+            color: var(--color-on-surface);
+        }
         .rc-body {
-            font-size: 12px; color: var(--color-on-surface-variant); line-height: 1.6;
+            font-size: 12px;
+            color: var(--color-on-surface-variant);
+            line-height: 1.6;
         }
-        .rc-body strong { color: var(--color-on-surface); font-weight: 600; }
+        .rc-body strong {
+            color: var(--color-on-surface);
+            font-weight: 600;
+        }
         .rc-footer {
-            display: flex; align-items: center; justify-content: space-between;
-            margin-top: 8px; padding-top: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-top: 8px;
+            padding-top: 8px;
             border-top: 1px solid var(--color-outline);
-            font-size: 11px; color: var(--color-on-surface-variant);
+            font-size: 11px;
+            color: var(--color-on-surface-variant);
         }
-        .rc-footer .badge { font-size: 11px; padding: 3px 8px; }
+        .rc-footer .badge {
+            font-size: 11px;
+            padding: 3px 8px;
+        }
 
         @media (max-width: 768px) {
-            .grid-wrapper { display: none !important; }
+            .grid-wrapper, .pagination-bar, .sort-hint { display: none !important; }
             .card-view { display: block; }
+            #kbShortcutsBtn { display: none !important; }
         }
-    </style>
 
-    <!-- ─── Page Header ─── -->
-    @include('partials.ui-page-header', ['title' => 'Replacement Arrangement', 'description' => 'Your classes this semester — select a class to submit a replacement request. Conflicted and cancelled classes are flagged.'])
+@endsection
 
-    @include('partials.ui-guide-block', [
-        'guideTitle' => 'How to use this page',
-        'guideItems' => [
-            '<strong>Search</strong> — filter your classes by course code or name',
-            '<strong>Start replacement</strong> — click a row for details, then Replace Now',
-            '<strong>Flags</strong> — Venue restriction (B005) or cancelled weeks need a replacement arrangement',
-            '<strong>Track requests</strong> — My Request History shows every submission and outcome',
-        ]
-    ])
+{{-- Real-data bridge (SDD wire-backend-into-refactored-ui): the mock
+     template runs UNCHANGED below; only its data source is swapped.
+     PAGE_DATA.conflictedClasses carries the same row shape as
+     MockData.conflictedClasses, derived from the real DB. --}}
+<div class="lw-page">
+    <script>window.PAGE_DATA = @json($payload);</script>
 
-    <!-- ─── Toolbar: search + FR 2.14/2.15 access ─── -->
-    <div class="toolbar">
-        <div class="toolbar-left">
-            <div class="search-wrapper">
-                <svg class="search-icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-                <input class="search-input" type="search" wire:model.live.debounce.350ms="search" placeholder="Search by course code or name...">
+        <!-- ─── Page Header ─── -->
+        @include('partials.ui-page-header', ['title' => 'Replacement Arrangement', 'description' => 'The following classes require replacement arrangements. Select a class to submit a replacement request.'])
+
+        @include('partials.ui-guide-block', [
+            'guideTitle' => 'How to use this page',
+            'guideItems' => [
+                '<strong>Sort</strong> — click any column header to sort ascending/descending',
+                '<strong>Search</strong> — type in the search box to filter by course code or name',
+                '<strong>Hover headers</strong> — hover a column name to see what it means',
+                '<strong>Start arranging</strong> — click the Action button on a row to begin the replacement process',
+                '<strong>Week filter</strong> — use the week navigator to view conflicts for a specific week',
+            ]
+        ])
+
+        <!-- ─── Toolbar ─── -->
+        <div class="toolbar">
+            <div class="toolbar-left">
+                <div class="search-wrapper">
+                    <svg class="search-icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="11" cy="11" r="8"/>
+                        <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+                    </svg>
+                    <input class="search-input" id="searchInput" placeholder="Search by course code or name...">
+                </div>
+                @include('partials.ui-week-nav', ['prevOnclick' => 'prevWeekFilter()', 'nextOnclick' => 'nextWeekFilter()', 'selectId' => 'weekFilter', 'selectOnclick' => 'weekFilterChanged(this.value)', 'showTodayBtn' => false])
+            </div>
+            <div class="toolbar-right">
+                <span class="result-count" id="resultCount">Showing 4 of 4 classes</span>
+                {{--<button id="kbShortcutsBtn" class="btn-icon" onclick="showKeyboardShortcuts()" title="Keyboard Shortcuts" style="margin-left:auto; width:36px; height:36px; display:flex; align-items:center; justify-content:center; border:1px solid var(--color-outline); border-radius:8px; color:var(--color-on-surface-variant); background:var(--color-surface); cursor:pointer;">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2" ry="2"/><path d="M6 8h.001"/><path d="M10 8h.001"/><path d="M14 8h.001"/><path d="M18 8h.001"/><path d="M8 12h.001"/><path d="M12 12h.001"/><path d="M16 12h.001"/><path d="M7 16h10"/></svg>
+                </button>--}}
             </div>
         </div>
-        <div class="toolbar-right">
-            <a class="btn-action" href="/my-request-history-ui" wire:navigate>
-                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
-                My Request History
-            </a>
-            <a class="btn-action" href="/venue-timetable-ui" wire:navigate>
-                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
-                Venue Timetable
-            </a>
-        </div>
-    </div>
 
-    <!-- ─── Class Table (desktop) ─── -->
-    <div class="grid-wrapper">
-        <div class="grid-scroll">
-            <table class="timetable data-table">
-                <thead>
-                    <tr>
-                        <th class="col-no">#</th>
-                        <th>Course Code &amp; Name</th>
-                        <th class="col-original">Day &amp; Time</th>
-                        <th class="col-venue">Venue</th>
-                        <th class="col-students">Students</th>
-                        <th class="col-cohort">Cohort(s)</th>
-                        <th class="col-reason">Status</th>
-                        <th class="col-action">Action</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @foreach ($rows as $row)
-                        <tr wire:key="row-{{ $row['id'] }}" onclick="openRow({{ $row['id'] }})" style="cursor:pointer">
-                            <td class="col-no">{{ $loop->iteration }}</td>
-                            <td>
-                                <span class="cell-code">{{ $row['code'] }}</span>
-                                <span class="cell-name">{{ $row['name'] }} <span class="cell-type-label">({{ $row['type'] }})</span></span>
-                            </td>
-                            <td class="col-original">
-                                <div class="cell-class-block">
-                                    <span class="class-day-date">{{ $row['dayLabel'] }}</span><br>
-                                    <span class="class-time">{{ $row['timeLabel'] }}</span>
-                                    <span class="class-duration">({{ $row['duration'] }} hr{{ $row['duration'] > 1 ? 's' : '' }})</span>
-                                </div>
-                            </td>
-                            <td class="col-venue">{{ $row['venue'] }}</td>
-                            <td class="col-students">{{ $row['studentCount'] }}</td>
-                            <td class="col-cohort">{!! implode('<br>', $row['cohorts']) !!}</td>
-                            <td class="col-reason">
-                                @if ($row['conflicted'])
-                                    <span class="badge badge-conflict">Venue restriction</span>
-                                @endif
-                                @if ($row['cancelledWeeks'] > 0)
-                                    <span class="badge badge-conflict">{{ $row['cancelledWeeks'] }} cancelled wk{{ $row['cancelledWeeks'] > 1 ? 's' : '' }}</span>
-                                @endif
-                                @if ($row['activeRequests'] > 0)
-                                    <span class="badge badge-pending">{{ $row['activeRequests'] }} active request{{ $row['activeRequests'] > 1 ? 's' : '' }}</span>
-                                @endif
-                                @if (! $row['conflicted'] && $row['cancelledWeeks'] === 0 && $row['activeRequests'] === 0)
-                                    <span class="badge badge-normal">Normal</span>
-                                @endif
-                            </td>
-                            <td class="col-action">
-                                <button class="btn-action" type="button" onclick="event.stopPropagation(); replaceNow({{ $row['id'] }})">
-                                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
-                                    Arrange Replacement
-                                </button>
-                            </td>
-                        </tr>
-                    @endforeach
-                </tbody>
-            </table>
-        </div>
-    </div>
+        <div class="sort-hint">Click <strong>Course Code &amp; Name</strong> or <strong>Original Class</strong> to sort</div>
 
-    <!-- ─── Class Cards (mobile) ─── -->
-    <div class="card-view">
-        @foreach ($rows as $row)
-            <div class="replacement-card" wire:key="card-{{ $row['id'] }}" onclick="openRow({{ $row['id'] }})">
-                <div class="rc-header">
-                    <span class="rc-code">{{ $row['code'] }} <span class="cell-type-label">({{ $row['type'] === 'L' ? 'Lecture' : 'Tutorial' }})</span></span>
-                    @if ($row['conflicted'])
-                        <span class="badge badge-conflict">Venue restriction</span>
-                    @elseif ($row['cancelledWeeks'] > 0)
-                        <span class="badge badge-conflict">{{ $row['cancelledWeeks'] }} cancelled</span>
-                    @else
-                        <span class="badge badge-normal">Normal</span>
-                    @endif
+        <!-- ─── Grid Wrapper ─── -->
+        @include('partials.ui-grid-table', ['tableClass' => 'timetable data-table'])
+
+        <!-- ─── Card View (mobile) ─── -->
+        <div class="card-view" id="cardView"></div>
+
+        <!-- ─── Pagination ─── -->
+        <div class="pagination-bar" id="paginationBar">
+            @include('partials.ui-rpp', ['id' => 'rppSelect', 'default' => 10, 'options' => [10, 25, 50, 'all']])
+            <span class="pagination-info" id="paginationInfo">Showing 1-10 of 4</span>
+            <div class="pagination-controls" id="paginationControls"></div>
+        </div>
+
+        <!-- ─── Empty State (above the summary; summary auto-hides when the view is empty) ─── -->
+        @include('partials.ui-empty-state', ['title' => 'No classes currently require replacement arrangements.', 'text' => 'Try adjusting your search or filter criteria.'])
+
+        <!-- ─── Summary Dashboard (own-records scope — the table lists only
+              the logged-in lecturer's conflicted classes) ─── -->
+        @include('partials.ui-summary-bar', [
+            'cards' => [
+                ['class' => 'card-conflict', 'valueId' => 'summaryMyConflicted', 'label' => 'My Conflicted Classes',
+                    'description' => 'Your classes that <span class="warn-keyword">need a replacement arrangement</span>.'],
+                ['class' => 'card-duration', 'valueId' => 'summaryMyHours', 'label' => 'My Hours to Cover',
+                    'description' => 'Total <span class="info-keyword">hours of your class time</span> that need to be rescheduled.'],
+                ['class' => 'card-courses', 'valueId' => 'summaryMyCourses', 'label' => 'My Courses',
+                    'description' => 'Number of <span class="info-keyword">your different courses</span> affected by the conflicts.'],
+            ]
+        ])
+
+        <!-- Keyboard Shortcuts Modal -->
+        <div class="modal-overlay" id="keyboardModal">
+            <div class="modal" style="max-width:420px">
+                <div class="modal-header">
+                    <h3 class="modal-title">Keyboard Shortcuts</h3>
+                    <button class="modal-close" onclick="hideKeyboardShortcuts()" data-tip="Close">✕</button>
                 </div>
-                <div class="rc-body">
-                    <strong>{{ $row['name'] }}</strong><br>
-                    {{ $row['dayLabel'] }} · {{ $row['timeLabel'] }} · {{ $row['venue'] }}
+                <div class="modal-body">
+                    <div class="modal-field"><span class="modal-field-label">Focus search</span><span class="modal-field-value"><code style="padding:2px 6px;border:1px solid var(--color-outline);border-radius:var(--radius-xs);font-size:12px;background:var(--color-surface-variant)">/</code></span></div>
+                    <div class="modal-field"><span class="modal-field-label">Clear filters</span><span class="modal-field-value"><code style="padding:2px 6px;border:1px solid var(--color-outline);border-radius:var(--radius-xs);font-size:12px;background:var(--color-surface-variant)">Esc</code></span></div>
+                    <div class="modal-field"><span class="modal-field-label">Next page</span><span class="modal-field-value"><code style="padding:2px 6px;border:1px solid var(--color-outline);border-radius:var(--radius-xs);font-size:12px;background:var(--color-surface-variant)">→</code></span></div>
+                    <div class="modal-field"><span class="modal-field-label">Previous page</span><span class="modal-field-value"><code style="padding:2px 6px;border:1px solid var(--color-outline);border-radius:var(--radius-xs);font-size:12px;background:var(--color-surface-variant)">←</code></span></div>
+                    <div class="modal-field"><span class="modal-field-label">Open quick view</span><span class="modal-field-value"><code style="padding:2px 6px;border:1px solid var(--color-outline);border-radius:var(--radius-xs);font-size:12px;background:var(--color-surface-variant)">Enter</code></span></div>
+                    <div class="modal-field"><span class="modal-field-label">Show shortcuts</span><span class="modal-field-value"><code style="padding:2px 6px;border:1px solid var(--color-outline);border-radius:var(--radius-xs);font-size:12px;background:var(--color-surface-variant)">?</code></span></div>
+                    <p class="hint-text" style="margin-top:12px;text-align:center">Shortcuts only work when no input field is focused.</p>
                 </div>
-                <div class="rc-footer">
-                    <span>{{ implode(', ', $row['cohorts']) }}</span>
-                    <button class="btn-action" type="button" onclick="event.stopPropagation(); replaceNow({{ $row['id'] }})">Arrange</button>
+                <div class="modal-footer">
+                    <button class="btn-close-modal" onclick="hideKeyboardShortcuts()">Close</button>
                 </div>
             </div>
-        @endforeach
-    </div>
-
-    <!-- ─── Empty State ─── -->
-    @include('partials.ui-empty-state', [
-        'visible' => count($rows) === 0,
-        'title' => $search !== '' ? 'No classes match your search.' : 'No classes this semester.',
-        'text' => $search !== '' ? 'Try a different course code or name.' : 'Your timetable has no scheduled classes to arrange replacements for.',
-    ])
-
-    <!-- ─── My Request Summary (counts by status, own scope) ─── -->
-    @include('partials.ui-summary-bar', [
-        'cards' => [
-            ['class' => 'card-pending', 'valueId' => 'sumPending', 'value' => $requestCounts['pending'], 'label' => 'My Pending Requests',
-                'description' => 'Replacement requests of yours still <span class="warn-keyword">waiting for approval</span>.'],
-            ['class' => 'card-approved', 'valueId' => 'sumApproved', 'value' => $requestCounts['approved'], 'label' => 'My Approved Requests',
-                'description' => 'Requests that have been <span class="info-keyword">approved</span> and are ready to proceed.'],
-            ['class' => 'card-rejected', 'valueId' => 'sumRejected', 'value' => $requestCounts['rejected'], 'label' => 'My Rejected Requests',
-                'description' => 'Requests that were <span class="warn-keyword">declined</span> and need alternative arrangements.'],
-            ['class' => 'card-conflict', 'valueId' => 'sumConflict', 'value' => $conflictedCount, 'label' => 'My Conflicted Classes',
-                'description' => 'Your classes with a <span class="warn-keyword">venue restriction</span> that need a replacement arrangement.'],
-        ]
-    ])
-
-    <!-- ═══ Class Detail Modal (footer: Replace Now — FR 2.4) ═══ -->
-    @section('modal-footer')
-        <div class="modal-footer-left">
-            <button class="btn-close-modal" onclick="closeModal()">Close</button>
         </div>
-        <div class="modal-footer-right">
-            <button class="btn-replace-now" id="btnReplaceNow" onclick="replaceNow(window.currentModalEvent?.id)">
-                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
-                Replace Now
-            </button>
-        </div>
-    @endsection
-    @include('partials.ui-class-detail-modal')
 
-    <script>
-        /* Real-data bridge (my-timetable pattern). DOMContentLoaded: mock-data.js /
-           ui-common.js are parsed AFTER @yield('content') in the layout body. */
-        document.addEventListener('DOMContentLoaded', function () {
-            MockData.semester = @json($semesterJs);
-            MockData.holidays = @json($holidaysJs);
-            MockData.currentUser = @json(['name' => auth()->user()?->name ?? '', 'staffId' => (string) (auth()->user()?->lecturer?->staff_id ?? '')]);
+        <!-- Quick View Modal -->
+        <style>
+            #quickViewModal .modal-footer {
+                justify-content: space-between !important;
+                width: 100% !important;
+            }
+        </style>
+        <div class="modal-overlay" id="quickViewModal" onclick="if(event.target===this)hideQuickView()">
+            <div class="modal" style="max-width:500px">
+                <div class="modal-header">
+                    <span class="modal-title" id="qvTitle">Replacement Details</span>
+                    <button class="modal-close" onclick="hideQuickView()" data-tip="Close">✕</button>
+                </div>
+                <div class="modal-body" id="qvBody"></div>
+                <div class="modal-footer">
+                    <button class="btn-close-modal" onclick="hideQuickView()">Close</button>
+                    <button class="btn-action" id="qvArrangeBtn" onclick="qvArrange()">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+                        Arrange Replacement
+                    </button>
+                </div>
+            </div>
+        
+    </div></div>
 
-            window.weekData = generateWeekData();
-            const weekData = window.weekData;
-            window.currentWeek = {{ (int) $currentWeek }};
-            let currentWeek = window.currentWeek;
-            window.currentModalEvent = null;
+@section('page-scripts')
+        /* Own-records scope: this page is the logged-in lecturer's personal
+           conflict dashboard — only classes THEY teach are listed/counted.
+           A FUNCTION (not a load-time snapshot) so rows the ClassCancellation
+           ledger appends at runtime (always own, lecturer set by
+           rowFromEvent) are picked up on every rebuild. Seeded rows carry
+           `lecturer` (§2.10). */
+        function myConflictedRows() {
+            return MockData.conflictedClasses.filter(function (c) {
+                return c.lecturer === MockData.currentUser.name;
+            });
+        }
 
-            const modalEvents = @json($modalEvents);
+        function badgeClass(reason) {
+            const map = {
+                'Public Holiday': 'badge-holiday',
+                'Annual Leave': 'badge-annual-leave',
+                'Medical Leave': 'badge-medical-leave',
+                'Official Event': 'badge-official-event',
+                'Emergency Leave': 'badge-emergency-leave'
+            };
+            return map[reason] || '';
+        }
 
-            function openRow(id) {
-                const ev = modalEvents[id];
-                if (!ev) return;
-                window.currentModalEvent = ev;
+        function formatClassBlock(c) {
+            var d = dayAbbr(c.day);
+            var dateStr = formatDate(c.date);
+            var wn = getWeekNumber(c.date);
+            var weekTag = wn ? ' (Week ' + wn + ')' : '';
+            var timeStr = to12h(c.timeStart) + ' to ' + to12h(c.timeEnd);
+            var hrs = c.duration + ' hr' + (c.duration > 1 ? 's' : '');
+            return '<div class="cell-class-block"><span class="class-day-date">' + d + ', ' + dateStr + weekTag + '</span><br><span class="class-time">' + timeStr + '</span> <span class="class-duration">(' + hrs + ')</span></div>';
+        }
 
-                openClassModal({
-                    event: ev,
-                    dayIndex: ev.di,
-                    days: weekData[currentWeek].days,
-                    modalId: 'classModal',
-                    title: 'Class Details',
-                    extraFields: [
-                        { label: 'Cohort', value: ev.cohort },
-                        { label: 'Total Students', value: String(ev.studentCount || '—') }
-                    ]
+        function daysLeft(iso) {
+            /* one clock with the rest of the app: the shared demo anchor
+               (DateHelper.getTodayMs) — not the raw browser date (which
+               diverged from the lead-time pages during the mock phase). */
+            const now = new Date(getTodayMs());
+            now.setHours(0, 0, 0, 0);
+            const target = new Date(iso + 'T00:00:00');
+            return Math.ceil((target - now) / (1000 * 60 * 60 * 24));
+        }
+
+        function urgencyClass(days) {
+            if (days <= 7) return 'urgency-high';
+            if (days <= 30) return 'urgency-mid';
+            return 'urgency-low';
+        }
+
+        var state = { rpp: 10 };
+        const pageState = { currentPage: 1 };
+        let sortState = { field: 'date', dir: 'asc' };
+        let currentFiltered = [];
+
+        function buildTable() {
+            const query = document.getElementById('searchInput').value.toLowerCase().trim();
+            const reason = 'all';
+            const weekVal = document.getElementById('weekFilter').value;
+
+            let filtered = myConflictedRows().filter(function(c) {
+                const matchesSearch = query === '' ||
+                    c.code.toLowerCase().includes(query) ||
+                    c.name.toLowerCase().includes(query);
+                const matchesReason = reason === 'all' || c.conflictReason === reason;
+                const matchesWeek = weekVal === 'all' || String(getWeekNumber(c.date)) === weekVal;
+                return matchesSearch && matchesReason && matchesWeek;
+            });
+
+            if (sortState.field) {
+                filtered.sort(function(a, b) {
+                    var va, vb;
+                    if (sortState.field === 'date') {
+                        va = a.date;
+                        vb = b.date;
+                    } else if (sortState.field === 'code') {
+                        va = a.code;
+                        vb = b.code;
+                    } else if (sortState.field === 'daysLeft') {
+                        /* R-4b (round-3): computed urgency — numeric, so Overdue
+                           (negative) sorts before future classes ascending */
+                        va = daysLeft(a.date);
+                        vb = daysLeft(b.date);
+                    } else if (sortState.field === 'venue') {
+                        va = a.venue;
+                        vb = b.venue;
+                    }
+                    return compareBy(sortState, va, vb);
                 });
             }
 
-            /* Shared goToReplacement contract (ui-common.js): the arrangement page
-               reads code/cohort/day/start/end/originalVenue/duration/from. */
-            function replaceNow(id) {
-                const ev = modalEvents[id] || window.currentModalEvent;
-                if (!ev) return;
-                goToReplacement(ev.code, ev.cohort, {
-                    day: ev.di,
-                    start: ev.start,
-                    end: ev.end,
-                    venue: ev.venue,
-                    duration: (ev.end - ev.start + 1) / 2
-                }, 'replacement-home');
+            currentFiltered = filtered;
+
+            const offset = (pageState.currentPage - 1) * state.rpp;
+            const pageData = filtered.slice(offset, offset + state.rpp);
+
+            const head = document.getElementById('tableHead');
+            const body = document.getElementById('tableBody');
+            head.innerHTML = '';
+            body.innerHTML = '';
+
+            const tr = document.createElement('tr');
+            const columns = [
+                { label: '#', cls: 'col-no', sortable: false, tip: 'Row number' },
+                { label: 'Course Code & Name', cls: 'col-code', sortable: true, field: 'code', tip: 'Course affected by the conflict' },
+                { label: 'Original Class', cls: 'col-original', sortable: true, field: 'date', tip: 'Original class session with a conflict' },
+                { label: 'Days Left', cls: 'col-urgency', sortable: true, field: 'daysLeft', tip: 'Days remaining before the original class — ascending puts Overdue/most urgent first' },
+                { label: 'Venue', cls: 'col-venue', sortable: true, field: 'venue', tip: 'Assigned venue for the class' },
+                { label: 'Students', cls: 'col-students', sortable: false, tip: 'Number of enrolled students' },
+                { label: 'Cohort(s)', cls: 'col-cohort', sortable: false, tip: 'Affected student cohorts' },
+                { label: 'Conflict Reason', cls: 'col-reason', sortable: false, tip: 'Why the scheduling conflict exists' },
+                { label: 'Action', cls: 'col-action', sortable: false, tip: 'Start arranging a replacement' },
+            ];
+            columns.forEach(function(col) {
+                tr.appendChild(makeSortableHeader(col, sortState, function() {
+                    pageState.currentPage = 1;
+                    buildTable();
+                }));
+            });
+            head.appendChild(tr);
+
+            if (pageData.length === 0) {
+                document.getElementById('emptyState').style.display = 'flex';
+            } else {
+                document.getElementById('emptyState').style.display = 'none';
+                pageData.forEach(function(c, i) {
+                    const row = document.createElement('tr');
+                    var cells = HtmlBuilder.replacementHomeRow(c, {
+                        index: String(offset + i + 1),
+                        daysLeft: daysLeft,
+                        urgencyClass: urgencyClass,
+                        formatClassBlock: formatClassBlock,
+                        badgeClass: badgeClass
+                    });
+                    cells.forEach(function(cell) {
+                        const td = document.createElement('td');
+                        td.className = cell.cls;
+                        td.innerHTML = cell.html;
+                        row.appendChild(td);
+                    });
+                    /* S13 — "Just cancelled" chip iff THIS row has its own
+                       un-undone, un-consumed ledger entry (per-entry chips,
+                       §6 stack semantics). Page-local placement — cell index
+                       2 is the Original Class block (col-original); do NOT
+                       mutate shared HtmlBuilder.replacementHomeRow (§5).
+                       Undo clears it on the next buildTable (S14). */
+                    const cxlEntries = ClassCancellation.allEntries();
+                    if (cxlEntries.some(function(entry) {
+                            return entry.row && entry.row.id === c.id &&
+                                   !entry.consumed && entry.chip;
+                        })) {
+                        const chip = document.createElement('span');
+                        chip.className = 'just-cancelled-chip';
+                        chip.textContent = 'Just cancelled';
+                        row.children[2].appendChild(chip);
+                        /* Undo affordance — keeps undo reachable when the
+                           load toast was ✕-snoozed for the session
+                           (toast-snooze fix, 2026-10-08). Icon-first, stops
+                           row propagation so quickView doesn't fire. */
+                        const undoBtn = document.createElement('button');
+                        undoBtn.type = 'button';
+                        undoBtn.className = 'just-cancelled-undo';
+                        undoBtn.setAttribute('data-tip', 'Undo cancellation');
+                        undoBtn.setAttribute('aria-label', 'Undo cancellation');
+                        undoBtn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"></polyline><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"></path></svg>';
+                        undoBtn.onclick = function(ev) {
+                            ev.stopPropagation();
+                            undoCancelledByRowId(c.id);
+                        };
+                        row.children[2].appendChild(undoBtn);
+                    }
+                    (function(row, idx) {
+                        row.onclick = function() { quickView(idx); };
+                        row.style.cursor = 'pointer';
+                    })(row, i);
+                    body.appendChild(row);
+                });
             }
 
-            function closeModal() {
-                document.getElementById('classModal').style.display = 'none';
+            paginate({ data: currentFiltered, pageSize: state.rpp, state: pageState, infoId: 'paginationInfo', controlsId: 'paginationControls', render: buildTable });
+            updateResultCount({ elId: 'resultCount', data: currentFiltered, total: myConflictedRows().length, label: 'classes' });
+            updateSummary();
+            renderCards();
+        }
+
+        /* Undo a cancellation from the home list (toast-snooze companion):
+           restores the class everywhere via ClassCancellation.undo, rebuilds
+           the table (row + chip + undo button vanish), mirrors the S14 toast. */
+        function undoCancelledByRowId(rowId) {
+            const entry = ClassCancellation.allEntries().find(function(e) {
+                return e.row && e.row.id === rowId && !e.consumed;
+            });
+            if (!entry) return;
+            ClassCancellation.undo(entry);
+            buildTable();
+            toast.show('Class restored.', null);
+        }
+
+        function renderCards() {
+            var container = document.getElementById('cardView');
+            if (!container) return;
+            container.innerHTML = '';
+            currentFiltered.forEach(function(c) {
+                var card = document.createElement('div');
+                card.className = 'replacement-card';
+                card.setAttribute('role', 'button');
+                card.setAttribute('tabindex', '0');
+                card.addEventListener('click', function() { goToReplacementWith(c.code, c.date, c.duration); });
+                card.addEventListener('keydown', function(e) {
+                    if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); goToReplacementWith(c.code, c.date, c.duration); }
+                });
+                card.innerHTML = HtmlBuilder.replacementHomeCard(c, {
+                    daysLeft: daysLeft,
+                    urgencyClass: urgencyClass,
+                    badgeClass: badgeClass
+                });
+                container.appendChild(card);
+            });
+        }
+
+        function updateSummary() {
+            const total = myConflictedRows().length;
+            const filtered = currentFiltered;
+
+            const duration = filtered.reduce(function(sum, c) { return sum + c.duration; }, 0);
+            const courses = new Set(filtered.map(function(c) { return c.code; }));
+
+            document.getElementById('summaryMyConflicted').textContent = total;
+            document.getElementById('summaryMyHours').textContent = duration;
+            document.getElementById('summaryMyCourses').textContent = courses.size;
+
+            const show = filtered.length > 0;
+            syncSummarySection(show);
+        }
+
+        function populateWeekDropdown() {
+            populateWeekSelect('weekFilter', { includeAll: true });
+        }
+
+        function goToReplacementWith(code, date, duration) {
+            let url = '/replacement-arrangement?code=' + encodeURIComponent(code) + '&date=' + encodeURIComponent(date);
+            if (duration !== undefined && duration !== null && !isNaN(duration)) {
+                url += '&duration=' + duration;
             }
+            url += '&from=replacement-home';
+            window.location.href = url;
+        }
 
-            function closeModalOutside(e) {
-                closeOnOverlayClick(e, closeModal);
+
+        function showKeyboardShortcuts() {
+            var el = document.getElementById('keyboardModal');
+            if (el) { el.classList.add('show'); }
+        }
+
+        function hideKeyboardShortcuts() {
+            var el = document.getElementById('keyboardModal');
+            if (el) { el.classList.remove('show'); }
+        }
+
+        var qvCurrent = null;
+
+        function quickView(idx) {
+            var c = currentFiltered[idx];
+            if (!c) return;
+
+            qvCurrent = c;
+
+            var daysLeftVal = daysLeft(c.date);
+            var urgencyCls = urgencyClass(daysLeftVal); /* single vocabulary: table's urgency-high/mid/low */
+            var wn = getWeekNumber(c.date);
+            var weekTag = wn ? ' (Week ' + wn + ')' : '';
+            var typeLabel = c.type === 'L' ? 'Lecture' : 'Tutorial';
+
+            DetailModal.render({
+                modalId: 'quickViewModal',
+                title: 'Replacement Details',
+                subtitle: c.code + ' · ' + c.name + ' (' + typeLabel + ')',
+                tabs: [
+                    { key: 'status', label: 'Status', html: DetailModal.section('Status',
+                        DetailModal.row('Status', '<span class="urgency-badge ' + urgencyCls + '">' + daysLeftLabel(daysLeftVal) + '</span>') +
+                        DetailModal.row('Status Description', daysLeftVal < 0 ? 'Class date has passed — you can still arrange a replacement in any upcoming week' : daysLeftVal <= 3 ? 'Urgent — arrange a replacement soon' : daysLeftVal <= 7 ? 'Approaching — plan a replacement' : 'Within normal lead time') +
+                        DetailModal.row('Conflict Reason', '<span class="badge ' + badgeClass(c.conflictReason) + '">' + c.conflictReason + '</span>')
+                    ) },
+                    { key: 'class', label: 'Class', html: DetailModal.section('Class',
+                        DetailModal.row('Subject Code', c.code, { strong: true }) +
+                        DetailModal.row('Subject Name', c.name) +
+                        DetailModal.row('Class Type', typeLabel) +
+                        DetailModal.row('Cohort(s)', c.cohorts.join(', ')) +
+                        DetailModal.row('Students', String(c.totalStudents))
+                    ) },
+                    { key: 'schedule', label: 'Schedule', html: DetailModal.section('Schedule',
+                        DetailModal.row('Week', 'Week ' + (wn || '-')) +
+                        DetailModal.row('Day', c.day) +
+                        DetailModal.row('Date', formatDate(c.date) + weekTag) +
+                        DetailModal.row('Start Time', to12h(c.timeStart)) +
+                        DetailModal.row('End Time', to12h(c.timeEnd)) +
+                        DetailModal.row('Duration', c.duration + ' hr' + (c.duration > 1 ? 's' : '')) +
+                        DetailModal.row('Venue', c.venue)
+                    ) },
+                ]
+            });
+        }
+
+        function qvArrange() {
+            if (qvCurrent) {
+                var c = qvCurrent.code;
+                var d = qvCurrent.date;
+                var dur = qvCurrent.duration;
+                hideQuickView();
+                goToReplacementWith(c, d, dur);
             }
+        }
 
-            closeOnEsc(closeModal);
+        function hideQuickView() {
+            qvCurrent = null;
+            DetailModal.close();
+        }
 
-            document.getElementById('semesterChip').textContent = MockData.semester.chipText;
+        function clearAll() {
+            document.getElementById('searchInput').value = '';
+            document.getElementById('weekFilter').value = 'all';
+            sortState.field = 'date';
+            sortState.dir = 'asc';
+            pageState.currentPage = 1;
+            buildTable();
+            updateWeekArrowState();
+        }
 
-            /* onclick= handlers in partials resolve via window */
-            window.openRow = openRow;
-            window.replaceNow = replaceNow;
-            window.closeModal = closeModal;
-            window.closeModalOutside = closeModalOutside;
+        function goNextPage() {
+            var totalPages = Math.ceil(currentFiltered.length / state.rpp);
+            if (pageState.currentPage < totalPages) {
+                pageState.currentPage++;
+                buildTable();
+            }
+        }
+
+        function goPrevPage() {
+            if (pageState.currentPage > 1) {
+                pageState.currentPage--;
+                buildTable();
+            }
+        }
+
+        document.addEventListener('keydown', function(e) {
+            var tag = (e.target || {}).tagName || '';
+            var isInput = (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT');
+
+            if (e.key === '/' && !isInput) {
+                e.preventDefault();
+                var s = document.getElementById('searchInput');
+                if (s) s.focus();
+                return;
+            }
+            if (e.key === 'Escape') {
+                var qvEl = document.getElementById('quickViewModal');
+                if (qvEl && qvEl.classList.contains('show')) {
+                    hideQuickView();
+                    return;
+                }
+                var el = document.getElementById('keyboardModal');
+                if (el && el.classList.contains('show')) {
+                    hideKeyboardShortcuts();
+                    return;
+                }
+                clearAll();
+                return;
+            }
+            if (e.key === '?' && !isInput) {
+                e.preventDefault();
+                showKeyboardShortcuts();
+                return;
+            }
+            if (isInput) return;
+            if (e.key === 'ArrowRight') { goNextPage(); }
+            if (e.key === 'ArrowLeft') { goPrevPage(); }
+            if (e.key === 'Enter') {
+                var focused = document.querySelector('.table-body tr:focus, .table-body tr:focus-within');
+                if (focused) {
+                    var rows = Array.from(document.querySelectorAll('.table-body tr'));
+                    var idx = rows.indexOf(focused);
+                    if (idx >= 0) { quickView(idx); }
+                }
+            }
         });
-    </script>
-</div>
+
+        document.addEventListener('DOMContentLoaded', function() {
+            /* ── Real-data bridge — runs here because mock-data.js /
+               ui-common.js parse after @yield('content'). Everything below
+               is the frozen UI design, byte-for-byte. ── */
+            MockData.conflictedClasses = window.PAGE_DATA.conflictedClasses;
+            MockData.semester = window.PAGE_DATA.semester;
+            MockData.holidays = window.PAGE_DATA.holidays;
+            MockData.currentUser = window.PAGE_DATA.currentUser;
+            MockData.mockNow = null; /* real clock — the demo anchor is mock-era only */
+            initHeaderTooltips();
+            const conflictedClasses = myConflictedRows();   // initial snapshot for early readers
+            document.getElementById('semesterChip').textContent = MockData.semester.chipText;
+            populateWeekDropdown();
+            SkeletonLoader.showSummary();
+            SkeletonLoader.with(function() { buildTable(); SkeletonLoader.hideSummary(); }, document.getElementById('tableBody'), 10, 400);
+            updateWeekArrowState();
+            initWeekKeyboardShortcuts();
+            initRpp({
+                selectId: 'rppSelect',
+                storageKey: 'rpp-page-size',
+                defaultVal: 10,
+                onChange: function(size) {
+                    state.rpp = size;
+                    rebuildTable({ render: buildTable });
+                }
+            });
+            document.getElementById('searchInput').addEventListener('input', function() {
+                rebuildTable({ render: buildTable });
+            });
+            document.getElementById('weekFilter').addEventListener('change', function() {
+                rebuildTable({ render: buildTable, after: updateWeekArrowState });
+            });
+        });
+@endsection

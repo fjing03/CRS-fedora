@@ -227,3 +227,34 @@ Actions layer first (TDD): RED observed (9 errors: missing classes + one harness
 - `composer run lint:check` ✓ · phpstan **0 errors** ✓ (27 initial findings fixed at the cause: Carbon 3 signed `diffInMinutes`, explicit null branches instead of phpstan-invisible nulls — no ignores, no casts) · full `php artisan test` **156/156** (was 141; +15: Home 5, Arrangement 6, Histories 4) ✓
 - Sequences reset in new tests; demo DB untouched (testing DB only).
 - Remaining Slice B: none. Next: Slice C (Phase 3) — approval queue, decide actions, queued mailables.
+
+## apply RESTORATION — 2026-10-10 (tasks 2.2/2.3 pages rebuilt as faithful bridges)
+
+### Trigger
+User rejected the first 2.2/2.3 page conversions: the UI had been rebuilt
+instead of reused ("100% use my UI design"). The frozen design lives in
+ui-design-templates/ (== /class-replacement-system originals).
+
+### Correction
+Both pages are now the frozen mock templates byte-for-byte; the Livewire
+components are DATA BRIDGES emitting the mock's exact data shapes from the
+real DB (conflictedClasses rows, venueSlots triples [week-keyed],
+cohortTimetable conflict events, courses/venues/semester), plus real submit
+(submitBlocks → D8 → SubmitReplacementRequest). Documented deviations are
+one-liners: week-keyed venueSlots lookup, originalVenue dropdown default,
+Lab room types in the capacity filter, DOMContentLoaded wrap + window
+exports (the my-timetable pattern — mock-data.js parses after content),
+window.weekData export for populateWeekSelect. The invented summary cards /
+server-rendered grid / remarks modal from the first pass are gone.
+
+### Verification
+- ReplacementHomeTest (5) + ReplacementArrangementTest (6) assert the bridge
+  payload + the real submit (request/slot/audit, FR 4.10 conflict, FR 2.11
+  refusal); suite **156/156**; pint + phpstan 0.
+- Live on the demo DB with the user's exact URLs: home shows 4 real AMCS2093
+  PH occurrences with designed badges/urgency/summary; arrangement auto-picks
+  the subject + original slot (W7 · Nov 09 · B110), real strip totals
+  (28 + 22 = 50), real occupancy, lead-time boundary, contiguous block
+  selection, frozen confirm modal. No demo-DB writes.
+- Sequence-reset lesson applied to all new test files (TimetableWiringTest's
+  literal requestId:1 stays green).

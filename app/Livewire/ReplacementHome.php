@@ -5,99 +5,124 @@ namespace App\Livewire;
 use App\Concerns\ResolvesTimetableTimeline;
 use App\Models\ClassException;
 use App\Models\ClassSession;
-use App\Models\ReplacementRequest;
+use App\Models\Cohort;
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\Carbon;
-use Livewire\Attributes\Title;
-use Livewire\Attributes\Url;
 use Livewire\Component;
 
 /**
- * Replacement Home (FR 2.4/2.14/2.15) — the lecturer's own classes, conflicted
- * included, with start-a-replacement from the class details; my request counts
- * by status; access to own request history and venue timetables. The PL
- * inherits everything (FR 3.1). Slice B (SDD: wire-backend-into-refactored-ui).
- * Legacy mock template untouched for the D10 fallback.
+ * Replacement Home — 100% the frozen UI design (the mock template's sortable
+ * conflicted-classes table, week filter, pagination, card view, quick-view
+ * modal and 3-card summary all run untouched). This component is the DATA
+ * BRIDGE only: it emits the mock's `conflictedClasses` row shape from real
+ * DB rows — one row per conflicted/cancelled weekly occurrence (FR 2.16
+ * exceptions carry the lecturer's real reason; Public Holiday from the
+ * semester calendar; Venue Restriction = the live B005 × Diploma
+ * derivation). Slice B (SDD: wire-backend-into-refactored-ui). Legacy mock
+ * template untouched for the D10 fallback.
  */
 class ReplacementHome extends Component
 {
     use ResolvesTimetableTimeline;
 
-    /** Live search filter (module code or name). */
-    #[Url]
-    public string $search = '';
+    private const DAY_NAMES = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
 
-    #[Title('Replacement Arrangement')]
+    private function titleCase(string $enum): string
+    {
+        return ucwords(str_replace('_', ' ', $enum));
+    }
+
     public function render(): View
     {
         $semester = $this->timelineSemester();
+        $startDate = Carbon::parse($semester !== null ? $semester->start_date : now()->toDateString());
+        $weeks = $this->timelineWeeks();
 
         $sessions = ClassSession::query()
             ->with(['module', 'venue', 'cohorts.programme', 'lecturer'])
             ->where('lecturer_id', auth()->id())
             ->where('semester_id', $semester !== null ? $semester->id : 1)
-            ->when(trim($this->search) !== '', function ($query): void {
-                $term = '%'.str_replace('%', '\%', trim($this->search)).'%';
-                $query->whereHas('module', fn ($m) => $m->where(fn ($w) => $w
-                    ->where('module_code', 'ilike', $term)
-                    ->orWhere('module_name', 'ilike', $term)));
-            })
             ->orderBy('day_of_week')
             ->orderBy('start_time')
             ->get();
 
-        $myRequests = ReplacementRequest::query()
-            ->where('proposer_id', auth()->id())
-            ->get();
-
         $exceptions = ClassException::query()
-            ->whereIn('class_session_id', $sessions->modelKeys())
-            ->get();
+            ->whereIn('class_session_id', $sessions->pluck('id'))
+            ->get()
+            ->keyBy(fn (ClassException $e): string => $e->class_session_id.':'.$e->week_number);
+
+        $holidays = collect($this->holidaysForJs())
+            ->keyBy(fn (array $h): string => $h['week'].':'.$h['dayIndex']);
 
         $rows = [];
-        $modalEvents = [];
         foreach ($sessions as $session) {
-            $event = $this->baseEvent($session);
-            $event['duration'] = ($event['end'] - $event['start'] + 1) / 2; // hours
-            $modalEvents[(int) $session->id] = $event;
+            $venueRestricted = $this->venueRestrictionConflict($session);
 
-            $cancelledWeeks = $exceptions->where('class_session_id', $session->id)->count();
-            $activeRequests = $myRequests
-                ->where('class_session_id', $session->id)
-                ->whereIn('status', ['pending', 'approved'])
-                ->count();
+            for ($week = 1; $week <= $weeks; $week++) {
+                $exception = $exceptions->get($session->id.':'.$week);
+                $holiday = $holidays->get($week.':'.$session->day_of_week);
 
-            $rows[] = $event + [
-                'timeLabel' => Carbon::parse($session->start_time)->format('g:i A').' – '.Carbon::parse($session->end_time)->format('g:i A'),
-                'dayLabel' => self::DAY_LABELS[(int) $session->day_of_week] ?? (string) $session->day_of_week,
-                'conflicted' => $this->venueRestrictionConflict($session),
-                'cancelledWeeks' => $cancelledWeeks,
-                'activeRequests' => $activeRequests,
-            ];
+                if ($exception !== null) {
+                    // FR 2.16 reason (DB enum) → the mock's badgeClass labels
+                    // ('Annual Leave', 'Medical Leave', …) so the designed
+                    // reason badges render exactly as frozen.
+                    $reason = self::titleCase((string) $exception->reason);
+                } elseif ($holiday !== null) {
+                    $reason = 'Public Holiday';
+                } elseif ($venueRestricted) {
+                    $reason = 'Venue Restriction';
+                } else {
+                    continue; // normal occurrence — the home lists conflicted classes only
+                }
+
+                $date = $startDate->copy()->addWeeks($week - 1)->addDays((int) $session->day_of_week);
+
+                $rows[] = [
+                    'id' => $session->id * 100 + $week,
+                    'lecturer' => (string) $session->lecturer->name,
+                    'code' => (string) $session->module->module_code,
+                    'name' => (string) $session->module->module_name,
+                    'type' => (string) $session->session_type,
+                    'date' => $date->toDateString(),
+                    'day' => self::DAY_NAMES[(int) $session->day_of_week] ?? '',
+                    'timeStart' => Carbon::parse($session->start_time)->format('H:i'),
+                    'timeEnd' => Carbon::parse($session->end_time)->format('H:i'),
+                    'duration' => (int) (Carbon::parse($session->start_time)->diffInMinutes(Carbon::parse($session->end_time)) / 60),
+                    'venue' => $session->venue !== null ? (string) $session->venue->room_code : '',
+                    'totalStudents' => (int) $session->cohorts->sum('student_count'),
+                    'cohorts' => $session->cohorts
+                        ->map(fn ($c): string => $this->spacedCohortLabel($c))
+                        ->values()
+                        ->all(),
+                    'conflictReason' => $reason,
+                ];
+            }
         }
 
-        $requestCounts = [
-            'pending' => $myRequests->where('status', 'pending')->count(),
-            'approved' => $myRequests->where('status', 'approved')->count(),
-            'rejected' => $myRequests->where('status', 'rejected')->count(),
-            'cancelled' => $myRequests->where('status', 'cancelled')->count(),
-        ];
-
-        $conflictedCount = $sessions->filter(fn (ClassSession $s): bool => $this->venueRestrictionConflict($s))->count();
-
         return view('livewire.replacement-home', [
-            'rows' => $rows,
-            'modalEvents' => $modalEvents,
-            'requestCounts' => $requestCounts,
-            'conflictedCount' => $conflictedCount,
-            'weekData' => $this->weekData(),
-            'semesterJs' => $this->semesterJs(),
-            'holidaysJs' => $this->holidaysForJs(),
-            'currentWeek' => $this->currentTimelineWeekIndex(),
+            'payload' => [
+                'semester' => $this->semesterJs(),
+                'holidays' => $this->holidaysForJs(),
+                'currentUser' => ['name' => (string) auth()->user()->name],
+                'conflictedClasses' => $rows,
+            ],
         ])
-            ->extends('layouts.ui-template', ['activeNav' => 'replacement-arrangement', 'pageKey' => 'replacementHome'])
+            ->extends('layouts.ui-template', ['homeUrl' => '/my-timetable-ui', 'activeNav' => 'replacement-arrangement', 'pageKey' => 'replacementHome'])
             ->section('content');
     }
 
-    private const DAY_LABELS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+    /**
+     * The mock's spaced cohort convention ('DFT2 (S1) G1' — the exact output
+     * of the shared ui-common formatCohortLabel applied to the compact code).
+     */
+    private function spacedCohortLabel(?Cohort $cohort): string
+    {
+        if ($cohort === null || $cohort->programme === null) {
+            return '—';
+        }
+
+        return $cohort->programme->programme_code
+            .$cohort->current_year.' (S'.$cohort->semester.')'
+            .' G'.$cohort->tutorial_group;
+    }
 }

@@ -1102,3 +1102,40 @@ D10 fallback.
 - Verified: ReplacementArrangementTest (6 wiring tests: prefill, table-B
   states, contiguous selection, submit→request+slot+audit, ownership refusal,
   honest empty); full suite green.
+
+### Postscript — RESTORED to the frozen UI design, byte-for-byte (2026-10-10)
+
+The first wiring pass replaced the page with a plain server-rendered grid —
+wrong call. **The page is now the frozen mock template, byte-for-byte** (top
+bar + Back, Conflict Schedule strip, subject selector + conflict-slot picker
+with favourites, venue dropdown with capacity/type filter, week navigator with
+the lead-time rule + "Earliest bookable", the 30-min grid with block-hover
+preview, Selection Summary panel, confirm modal, keyboard shortcuts — all as
+frozen). Only the data source changed, via `window.PAGE_DATA`:
+
+- `MockData.venueSlots` ← real slot states in the mock's exact
+  `[day, hourIdx, status]` triples, **week-keyed** (real states are
+  week-specific): 1 occupied / 3 pending-mine / 4 reserved-by-others. The one
+  documented line change: cellRender reads
+  `(venueSlotData[weekNav.currentWeek] || {})[currentVenue]`.
+- `MockData.cohortTimetable.events` ← real conflict/cancelled occurrences
+  (PH / Venue Restriction / FR 2.16 exceptions), so the frozen
+  extractSlotsForSubject slot picker works unchanged.
+- `MockData.courses` / `venues` / `semester` / `holidays` ← real rows;
+  `mockNow = null` → the lead-time rule runs on the real clock.
+- Two-line semantic patches, both documented inline: the venue dropdown also
+  honours the home handoff's `originalVenue` (FR 2.5 default), and the
+  capacity/type filter admits real `Lab` rooms.
+- **Submit is now real** (`submitBlocks`): the frozen Confirm dialog posts
+  each saved block through the D8 rules + `SubmitReplacementRequest` (engine
+  pre-check → OCC reserve → D5). All-ok runs the frozen success toast
+  verbatim; an FR 4.10 conflict is reported in the frozen modal vocabulary and
+  the selection is kept for re-deciding.
+
+Verified live on the demo DB with the home handoff URL (code=AMCS2093 &
+originalVenue=B110 & duration=2): subject + original slot auto-picked (W7 ·
+Nov 09 · 11:00 AM–1:00 PM @ B110), real strip totals (28 + 22 = 50), real
+occupancy (Mon/Tue red, Sunday OFF), BOOKINGS OPEN boundary chip, contiguous
+2-hour block selection, confirm modal lists the real block. No submission was
+fired against the demo DB (write path covered by ReplacementArrangementTest on
+the disposable DB).

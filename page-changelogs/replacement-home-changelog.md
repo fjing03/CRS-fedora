@@ -381,3 +381,21 @@ and venue timetables (FR 2.14); my request counts by status.
   `visible` flag).
 - Verified: ReplacementHomeTest (5 wiring tests — scoping, conflict flag,
   counts, cancelled weeks, search); full suite green.
+
+### Postscript — RESTORED to the frozen UI design, byte-for-byte (2026-10-10)
+
+The first wiring pass rebuilt the page as a simplified server-rendered table —
+wrong call. **The page is now the frozen mock template, byte-for-byte** (the
+sortable conflicted-classes table, week filter, sort hint, pagination, mobile
+card view, quick-view modal with Status/Class/Schedule tabs, keyboard
+shortcuts, and the 3-card summary — My Conflicted Classes / My Hours to Cover /
+My Courses — all computed client-side as designed). The ONLY change is the
+data source: a bridge swaps `MockData.conflictedClasses` for real rows in the
+exact mock row shape (`window.PAGE_DATA.conflictedClasses` — one row per
+conflicted/cancelled weekly occurrence: FR 2.16 enum reasons title-cased to
+the designed badge labels ('Annual Leave'…), Public Holiday from the real
+semester calendar, Venue Restriction from the live B005 × Diploma derivation),
+plus real `semester`/`holidays`/`currentUser` and `mockNow = null` so
+Days Left runs on the real clock. Verified live on the demo DB
+(/replacement-home-ui): 4 real AMCS2093 occurrences with PH badges, Days
+Left urgency, summary cards correct.

@@ -5,450 +5,386 @@ namespace App\Livewire;
 use App\Actions\SubmitReplacementRequest;
 use App\Concerns\ResolvesTimetableTimeline;
 use App\Http\Requests\StoreReplacementRequest;
+use App\Models\ClassException;
 use App\Models\ClassSession;
-use App\Models\Holiday;
+use App\Models\Cohort;
 use App\Models\ReplacementRequest;
 use App\Models\TimeSlot;
 use App\Models\Venue;
-use App\Services\MatrixIntersectionEngine;
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Validator;
-use Livewire\Attributes\Title;
 use Livewire\Component;
 
 /**
- * Replacement Arrangement (FR 2.5–2.9, 4.3–4.11) — interactive Livewire:
- * session detail, venue dropdown (default = original venue, FR 2.5), and the
- * weekly grid on the underlying 30-minute time_slots axis (2h = 4 cells;
- * addendum 2b). Cell states derive the §10.0 table-B states with the design
- * D4 precedence; a click selects the contiguous duration block from the
- * anchor (display-only — only the anchor half-hour slot is reserved, the
- * documented prototype limitation). Submit runs SubmitReplacementRequest with
- * the D8 rules; the grid re-derives on every render (venue change ≤500 ms,
- * NFR 1.1). Slice B (SDD: wire-backend-into-refactored-ui).
+ * Replacement Arrangement — 100% the frozen UI design (the mock template's
+ * subject/slot pickers, venue dropdown, week navigator, grid, selection
+ * summary, confirm modal, keyboard help and lead-time rule all run
+ * untouched). This component is the DATA BRIDGE plus the real submit:
+ *
+ * - `MockData.venueSlots` ← real per-week venue slot states (1 occupied,
+ *   3 pending-mine, 4 reserved-by-others — the mock's exact triple shape,
+ *   week-keyed because real slot states are week-specific; the mock's
+ *   single-semester map becomes a [week][venue] map with a one-line
+ *   cellRender lookup change, documented in the view).
+ * - `MockData.cohortTimetable.events` ← real conflict/cancelled occurrences
+ *   (Public Holiday / Venue Restriction / FR 2.16 exceptions), so the mock's
+ *   extractSlotsForSubject slot picker works unchanged.
+ * - `MockData.courses` / `venues` / `semester` / `holidays` ← real rows.
+ * - submitBlocks() ← the mock's proceed() confirm callback now posts the
+ *   selected blocks through StoreReplacementRequest rules (D8) +
+ *   SubmitReplacementRequest (engine pre-check → OCC reserve → D5); results
+ *   return per block so the mock's own toast/modal vocabulary reports
+ *   success and FR 4.10 conflicts.
+ *
+ * Legacy mock template untouched for the D10 fallback.
  */
 class ReplacementArrangement extends Component
 {
     use ResolvesTimetableTimeline;
 
-    private const GRID_START = '08:00:00';
-
-    private const GRID_ROWS = 20; // 20 half-hour rows, 08:00–18:00 (TimeSlotsSeeder axis)
-
-    public int $sessionId = 0;
-
-    public int $week = 1;
-
-    public int $venueId = 0;
-
-    public ?int $selectedAnchor = null;
-
-    public string $remarks = '';
-
-    public bool $showSubmit = false;
-
-    #[Title('Replacement Arrangement')]
-    public function mount(): void
-    {
-        $params = request();
-        $this->week = $params->filled('week')
-            ? max(1, (int) $params->input('week'))
-            : $this->currentTimelineWeekIndex() + 1;
-
-        // Resolve the original session from the shared goToReplacement contract
-        // (code + day + start slot index); fall back to the first own session —
-        // the page must never crash on dead links (FR 4.4 spirit).
-        $semester = $this->timelineSemester();
-        $query = ClassSession::query()
-            ->where('lecturer_id', auth()->id())
-            ->where('semester_id', $semester !== null ? $semester->id : 1);
-
-        if ($params->filled('code')) {
-            $query->whereHas('module', fn ($m) => $m->where('module_code', (string) $params->input('code')));
-        }
-        if ($params->filled('day')) {
-            $query->where('day_of_week', (int) $params->input('day'));
-        }
-
-        $sessions = $query->orderBy('day_of_week')->orderBy('start_time')->get();
-        if ($params->filled('start')) {
-            $sessions = $sessions->filter(
-                fn (ClassSession $s): bool => $this->slotIndex($s->start_time) === (int) $params->input('start'),
-            );
-        }
-
-        $hasParams = $params->filled('code') || $params->filled('day') || $params->filled('start');
-        $session = $sessions->first();
-
-        // Fallback only for bare navigation (no params) — a dead/tampered deep
-        // link must land on the honest "No class selected" state, never on an
-        // unrelated own session (FR 2.11 spirit).
-        if ($session === null && ! $hasParams) {
-            $session = ClassSession::query()
-                ->where('lecturer_id', auth()->id())
-                ->where('semester_id', $semester !== null ? $semester->id : 1)
-                ->orderBy('day_of_week')
-                ->orderBy('start_time')
-                ->first();
-        }
-
-        if ($session === null) {
-            // Honest dead-link state — the page renders "No class selected".
-            $this->sessionId = 0;
-            $this->venueId = 0;
-            $this->clampWeek();
-
-            return;
-        }
-
-        $this->sessionId = (int) $session->id;
-
-        // FR 2.5 — venue dropdown defaults to the original class venue.
-        $this->venueId = (int) $session->venue_id;
-        if ($params->filled('originalVenue')) {
-            $original = Venue::query()->where('room_code', (string) $params->input('originalVenue'))->first();
-            if ($original !== null) {
-                $this->venueId = (int) $original->id;
-            }
-        }
-
-        $this->clampWeek();
-    }
-
-    public function updatedVenueId(): void
-    {
-        $this->selectedAnchor = null; // selection is venue-specific
-    }
-
-    public function updatedWeek(): void
-    {
-        $this->selectedAnchor = null; // selection is week-specific
-    }
-
-    /**
-     * Select the contiguous duration block from the clicked anchor (FR 2.8).
-     */
-    public function selectSlot(int $slotId): void
-    {
-        $grid = $this->gridData();
-
-        $run = $grid['runByAnchor'][$slotId] ?? null;
-        if ($run === null) {
-            $this->dispatch('toast', message: 'That slot cannot host this class.');
-
-            return;
-        }
-
-        $index = array_search($slotId, $run, true);
-        $block = array_slice($run, (int) $index, $grid['durationCells']);
-        if (count($block) < $grid['durationCells']) {
-            $this->dispatch('toast', message: "Not enough room after this time for a {$grid['durationCells']}-cell block — pick an earlier start.");
-
-            return;
-        }
-
-        $this->selectedAnchor = $slotId;
-        $this->showSubmit = false;
-    }
-
-    public function openSubmit(): void
-    {
-        if ($this->selectedAnchor === null) {
-            $this->dispatch('toast', message: 'Pick a green slot first.');
-
-            return;
-        }
-
-        $this->showSubmit = true;
-    }
-
-    public function cancelSubmit(): void
-    {
-        $this->showSubmit = false;
-    }
-
-    /**
-     * FR 2.9 submit — D8 rules at the component boundary, then the action
-     * (ownership, engine pre-check, OCC reserve, D5 compensation). Success and
-     * conflict both re-derive the grid on the following render.
-     */
-    public function submit(SubmitReplacementRequest $action): void
-    {
-        $session = $this->ownSession();
-        if ($session === null || $this->selectedAnchor === null) {
-            $this->dispatch('toast', message: 'Pick a green slot first.');
-
-            return;
-        }
-
-        $validator = Validator::make([
-            'class_session_id' => $session->id,
-            'week_number' => $this->week,
-            'replacement_time_slot_id' => $this->selectedAnchor,
-            'remarks' => $this->remarks,
-        ], StoreReplacementRequest::rules());
-
-        if ($validator->fails()) {
-            $this->dispatch('toast', message: $validator->errors()->first());
-
-            return;
-        }
-
-        $result = $action(auth()->user(), $session, $this->week, (int) $this->selectedAnchor, $this->remarks);
-
-        $this->showSubmit = false;
-
-        if ($result['ok']) {
-            $this->selectedAnchor = null;
-            $this->remarks = '';
-            $this->dispatch('toast', message: 'Replacement request submitted — waiting for PL approval.');
-
-            return;
-        }
-
-        // FR 4.10 — conflict alert to the loser; the grid re-derivation below
-        // shows the winner's pending as Reserved by Others.
-        $this->selectedAnchor = null;
-        $this->dispatch('toast', message: match ($result['conflict_reason']) {
-            'slot_not_available', 'slot_not_found' => 'That slot was just taken — pick another green cell.',
-            'engine_precheck_failed' => 'You or the cohort is no longer free at that time.',
-            default => 'Booking conflict — the grid has been refreshed.',
-        });
-    }
-
     public function render(): View
     {
-        $session = $this->ownSession();
-
-        if ($session === null) {
-            return view('livewire.replacement-arrangement', [
-                'session' => null,
-                'grid' => null,
-                'weekData' => $this->weekData(),
-                'semesterJs' => $this->semesterJs(),
-                'holidaysJs' => $this->holidaysForJs(),
-                'venues' => [],
-                'selectedIds' => [],
-                'selection' => null,
-                'currentWeek' => $this->currentTimelineWeekIndex(),
-            ])
-                ->extends('layouts.ui-template', ['activeNav' => 'replacement-arrangement', 'pageKey' => 'replacementArrangement'])
-                ->section('content');
-        }
-
-        $grid = $this->gridData();
-
         return view('livewire.replacement-arrangement', [
-            'session' => $session,
-            'grid' => $grid,
-            'weekData' => $this->weekData(),
-            'semesterJs' => $this->semesterJs(),
-            'holidaysJs' => $this->holidaysForJs(),
-            'venues' => Venue::query()->orderBy('room_code')->get(['id', 'room_code', 'room_name', 'capacity']),
-            'selectedIds' => $grid['selectedIds'],
-            'selection' => $grid['selection'],
-            'currentWeek' => $this->currentTimelineWeekIndex(),
+            'payload' => $this->pagePayload(),
         ])
-            ->extends('layouts.ui-template', ['activeNav' => 'replacement-arrangement', 'pageKey' => 'replacementArrangement'])
+            ->extends('layouts.ui-template', [
+                'homeUrl' => '/my-timetable-ui',
+                'activeNav' => 'replacement-arrangement',
+                'hideNav' => true,
+                'pageKey' => 'replacementArrangement',
+            ])
             ->section('content');
     }
 
     /**
-     * Grid payload for the selected week × venue: cells with the D4-derived
-     * state, bookable slot ids, run lookup for block selection, and the
-     * current selection block.
+     * The mock's data shapes, derived from the real DB.
      *
      * @return array<string, mixed>
      */
-    private function gridData(): array
+    private function pagePayload(): array
     {
-        $this->clampWeek();
-        $engine = app(MatrixIntersectionEngine::class);
-
-        $session = $this->ownSession();
-        if ($session === null) {
-            return ['cells' => [], 'bookableIds' => [], 'runByAnchor' => [], 'selectedIds' => [], 'selection' => null, 'runs' => []];
-        }
-
         $semester = $this->timelineSemester();
         $semesterId = $semester !== null ? $semester->id : 1;
-        $cohortIds = $session->cohorts->pluck('id')->all();
-        $durationCells = (int) (Carbon::parse($session->start_time)->diffInMinutes(Carbon::parse($session->end_time)) / 30);
+        $weeks = $this->timelineWeeks();
 
-        $runs = $engine->findAvailableSlots(
-            (int) auth()->id(),
-            $cohortIds,
-            $semesterId,
-            $this->week,
-            $session->session_type,
-            $durationCells * 30,
-            $this->venueId,
-        );
-
-        $bookableIds = [];
-        $runBySlot = [];
-        foreach ($runs as $run) {
-            $ids = $run['time_slot_ids'];
-            foreach ($ids as $id) {
-                $bookableIds[] = $id;
-                $runBySlot[$id] = $ids;
-            }
-        }
-
-        $busy = $engine->busyRanges((int) auth()->id(), $cohortIds, $semesterId, $this->week);
-
-        $slots = TimeSlot::query()
+        $sessions = ClassSession::query()
+            ->with(['module', 'venue', 'cohorts.programme', 'lecturer'])
+            ->where('lecturer_id', auth()->id())
             ->where('semester_id', $semesterId)
-            ->where('week_number', $this->week)
-            ->where('venue_id', $this->venueId)
-            ->get()
-            ->keyBy(fn (TimeSlot $s): string => $s->day_of_week.'|'.$s->start_time);
-
-        $pendingBySlot = ReplacementRequest::query()
-            ->where('status', 'pending')
-            ->whereIn('replacement_time_slot_id', $slots->pluck('id'))
-            ->pluck('proposer_id', 'replacement_time_slot_id');
-
-        $holidayDays = Holiday::query()
-            ->where('semester_id', $semesterId)
-            ->where('week_number', $this->week)
-            ->pluck('label', 'day_of_week');
-
-        $days = range(0, 5);
-        $cells = [];
-        foreach ($days as $day) {
-            for ($i = 0; $i < self::GRID_ROWS; $i++) {
-                $time = date('H:i:s', strtotime(self::GRID_START) + $i * 1800);
-                $slot = $slots[$day.'|'.$time] ?? null;
-
-                $cells[$day][$i] = $this->deriveCell(
-                    $slot,
-                    $busy,
-                    $bookableIds,
-                    $pendingBySlot,
-                    $holidayDays->has($day),
-                    $durationCells,
-                );
-            }
-        }
-
-        // Current selection block: the duration cells starting at the anchor,
-        // contiguous inside the anchor's run; invalidated honestly if the
-        // re-derivation broke it (grid is the single source of truth).
-        $selectedIds = [];
-        $selection = null;
-        if ($this->selectedAnchor !== null) {
-            $run = $runBySlot[$this->selectedAnchor] ?? null;
-            if ($run !== null) {
-                $index = array_search($this->selectedAnchor, $run, true);
-                $block = array_slice($run, (int) $index, $durationCells);
-                if (count($block) === $durationCells) {
-                    $selectedIds = $block;
-                    $anchor = $slots->firstWhere('id', $this->selectedAnchor);
-                    if ($anchor !== null) {
-                        $selection = [
-                            'day' => $anchor->day_of_week,
-                            'start' => Carbon::parse($anchor->start_time)->format('g:i A'),
-                            'end' => Carbon::parse($block[count($block) - 1] === $anchor->id ? $anchor->end_time : (string) $slots->firstWhere('id', $block[count($block) - 1])->end_time)->format('g:i A'),
-                            'venue' => $this->venueId,
-                            'cells' => $durationCells,
-                        ];
-                    }
-                }
-            }
-        }
+            ->orderBy('day_of_week')
+            ->orderBy('start_time')
+            ->get();
 
         return [
-            'cells' => $cells,
-            'days' => $days,
-            'rows' => self::GRID_ROWS,
-            'timeLabels' => collect(range(0, self::GRID_ROWS - 1))
-                ->map(fn (int $i): string => Carbon::parse(self::GRID_START)->addMinutes($i * 30)->format('g:i A'))
-                ->all(),
-            'bookableIds' => $bookableIds,
-            'runByAnchor' => $runBySlot,
-            'selectedIds' => $selectedIds,
-            'selection' => $selection,
-            'runs' => $runs,
-            'durationCells' => $durationCells,
+            'semester' => $this->semesterJs(),
+            'holidays' => $this->holidaysForJs(),
+            'currentUser' => ['name' => (string) auth()->user()->name],
+            'venues' => $this->venuesPayload(),
+            'courses' => $this->coursesPayload($sessions),
+            'conflictEvents' => $this->conflictEventsPayload($sessions),
+            'venueSlotsByWeek' => $this->venueSlotsByWeekPayload($semesterId, $weeks),
         ];
     }
 
     /**
-     * D4 cell-state derivation, precedence order 1–5.
+     * All venues in the mock's VenueDropdown shape. Room types map to the
+     * dropdown's vocabulary; 'Lab' covers lab/cisco_lab (the view's one-line
+     * venue-filter patch admits them).
      *
-     * @param  array<int, array{day: int, start: string, end: string}>  $busy
-     * @param  array<int, int>  $bookableIds
-     * @param  Collection<int, int>  $pendingBySlot
-     * @return array{class: string, clickable: bool, slotId: int|null, hover: string, title: string}
+     * @return array<int, array<string, mixed>>
      */
-    private function deriveCell(
-        ?TimeSlot $slot,
-        array $busy,
-        array $bookableIds,
-        $pendingBySlot,
-        bool $isHoliday,
-        int $durationCells,
-    ): array {
-        if ($slot === null) {
-            return ['class' => 'cell-empty', 'clickable' => false, 'slotId' => null, 'hover' => '', 'title' => ''];
+    private function venuesPayload(): array
+    {
+        return Venue::query()
+            ->orderBy('room_code')
+            ->get()
+            ->map(fn (Venue $v): array => [
+                'code' => (string) $v->room_code,
+                'name' => (string) $v->room_name,
+                'type' => match ((string) $v->room_type) {
+                    'lecture_hall' => 'LectureHall',
+                    'lab', 'cisco_lab' => 'Lab',
+                    default => 'Tutorial',
+                },
+                'capacity' => (int) $v->capacity,
+            ])
+            ->all();
+    }
+
+    /**
+     * The lecturer's subjects in the mock's course shape (the client's
+     * extractSlotsForSubject filter decides which appear in the dropdown).
+     *
+     * @param  Collection<int, ClassSession>  $sessions
+     * @return array<int, array<string, mixed>>
+     */
+    private function coursesPayload(Collection $sessions): array
+    {
+        return $sessions
+            ->groupBy('module_id')
+            ->map(function (Collection $group): array {
+                $first = $group->first();
+
+                return [
+                    'code' => (string) $first->module->module_code,
+                    'name' => (string) $first->module->module_name,
+                    'type' => (string) $first->session_type,
+                    'cohorts' => $group->flatMap(fn (ClassSession $s) => $s->cohorts)
+                        ->unique('id')
+                        ->values()
+                        ->map(fn ($c): string => $this->spacedCohortLabel($c))
+                        ->all(),
+                    'cohortCounts' => $group->flatMap(fn (ClassSession $s) => $s->cohorts)
+                        ->unique('id')
+                        ->values()
+                        ->map(fn ($c): int => (int) $c->student_count)
+                        ->all(),
+                    'studentCount' => (int) $group->flatMap(fn (ClassSession $s) => $s->cohorts)
+                        ->unique('id')
+                        ->sum('student_count'),
+                ];
+            })
+            ->values()
+            ->all();
+    }
+
+    /**
+     * Conflict/cancelled occurrences in the mock's cohortTimetable.events
+     * shape ({week, event}) — the slot picker's exact data source.
+     *
+     * @param  Collection<int, ClassSession>  $sessions
+     * @return array<int, array<string, mixed>>
+     */
+    private function conflictEventsPayload(Collection $sessions): array
+    {
+        $semester = $this->timelineSemester();
+        $startDate = Carbon::parse($semester !== null ? $semester->start_date : now()->toDateString());
+        $weeks = $this->timelineWeeks();
+
+        $exceptions = ClassException::query()
+            ->whereIn('class_session_id', $sessions->pluck('id'))
+            ->get()
+            ->keyBy(fn (ClassException $e): string => $e->class_session_id.':'.$e->week_number);
+
+        $holidays = collect($this->holidaysForJs())
+            ->keyBy(fn (array $h): string => $h['week'].':'.$h['dayIndex']);
+
+        $events = [];
+        foreach ($sessions as $session) {
+            $venueRestricted = $this->venueRestrictionConflict($session);
+
+            for ($week = 1; $week <= $weeks; $week++) {
+                $exception = $exceptions->get($session->id.':'.$week);
+                $holiday = $holidays->get($week.':'.$session->day_of_week);
+
+                if ($exception !== null) {
+                    $status = 'cancelled';
+                } elseif ($holiday !== null || $venueRestricted) {
+                    $status = 'conflict';
+                } else {
+                    continue;
+                }
+
+                $events[] = [
+                    'week' => $week - 1, // the mock's weekData index (0-based)
+                    'event' => [
+                        'di' => (int) $session->day_of_week,
+                        'start' => $this->slotIndex((string) $session->start_time),
+                        'end' => $this->slotIndex((string) $session->end_time) - 1, // inclusive last half-hour cell
+                        'venue' => $session->venue !== null ? (string) $session->venue->room_code : '',
+                        'status' => $status,
+                        'name' => (string) $session->module->module_name,
+                        'type' => (string) $session->session_type,
+                        'code' => (string) $session->module->module_code,
+                    ],
+                ];
+            }
         }
 
-        if ($isHoliday) {
-            // D4 rule 1 legend label — "Class on Public Holiday".
-            return ['class' => 'cell-ph', 'clickable' => false, 'slotId' => $slot->id, 'hover' => 'PH', 'title' => 'Public holiday'];
+        return $events;
+    }
+
+    /**
+     * Real venue slot states, week-keyed: [weekIdx][venueCode] = [[day, hourIdx,
+     * status], …] — 1 occupied, 3 pending (mine), 4 reserved (others').
+     *
+     * @return array<int|string, array<int|string, list<array{int, int, int}>>> The
+     *                                                                          mock's map gains the week dimension; the view's cellRender lookup is the
+     *                                                                          one documented line that reads it. Availability stays client-side (the
+     *                                                                          mock's model: green = venue-free); the server re-validates lecturer +
+     *                                                                          cohort freedom at submit (engine pre-check → FR 4.10 conflict alert).
+     */
+    private function venueSlotsByWeekPayload(int $semesterId, int $weeks): array
+    {
+        $slots = TimeSlot::query()
+            ->where('semester_id', $semesterId)
+            ->whereIn('week_number', range(1, $weeks))
+            ->whereIn('status', ['occupied', 'pending'])
+            ->get();
+
+        $proposers = ReplacementRequest::query()
+            ->where('status', 'pending')
+            ->whereIn('replacement_time_slot_id', $slots->modelKeys())
+            ->pluck('proposer_id', 'replacement_time_slot_id');
+
+        $myId = (int) auth()->id();
+
+        $out = [];
+        foreach ($slots as $slot) {
+            $status = $slot->status === 'occupied'
+                ? 1
+                : ((int) ($proposers->get($slot->id)) === $myId ? 3 : 4);
+
+            $out[(int) $slot->week_number - 1][(string) $slot->venue->room_code][] = [
+                (int) $slot->day_of_week,
+                $this->slotIndex((string) $slot->start_time),
+                $status,
+            ];
         }
 
-        $busyHit = collect($busy)->contains(
-            fn (array $range): bool => $range['day'] === (int) $slot->day_of_week
-                && $range['start'] < $slot->end_time
-                && $range['end'] > $slot->start_time,
-        );
+        return $out;
+    }
 
-        if ($slot->status === 'occupied' || $busyHit) {
-            return ['class' => 'cell-occupied', 'clickable' => false, 'slotId' => $slot->id, 'hover' => 'Occupied', 'title' => 'Occupied by a class'];
+    /**
+     * The mock's proceed() confirm now posts each selected block through the
+     * real pipeline. Blocks arrive as {venue, week (0-based JS), day,
+     * startHour, endHour}; each becomes one pending request for that week's
+     * occurrence (FR 2.9) with the D8 rules, engine pre-check, OCC reserve
+     * and D5 compensation inside SubmitReplacementRequest. Returns per-block
+     * results in input order so the page's own toast/modal vocabulary can
+     * report successes and FR 4.10 conflicts.
+     *
+     * @return array<int, array{ok: bool, reason: string|null}>
+     */
+    public function submitBlocks(string $blocksJson, string $code = '', string $origJson = '{}'): array
+    {
+        $session = $this->resolveSession($code, $origJson);
+        if ($session === null) {
+            return [['ok' => false, 'reason' => 'Class not found among your classes.']];
         }
 
-        if ($slot->status === 'pending') {
-            $proposer = $pendingBySlot->get($slot->id);
-            if ($proposer !== null && (int) $proposer === (int) auth()->id()) {
-                return ['class' => 'cell-pending', 'clickable' => false, 'slotId' => $slot->id, 'hover' => 'Pending (You)', 'title' => 'Your pending request'];
+        $blocks = json_decode($blocksJson, true);
+        if (! is_array($blocks) || $blocks === []) {
+            return [['ok' => false, 'reason' => 'No selection to submit.']];
+        }
+
+        $semester = $this->timelineSemester();
+        $semesterId = $semester !== null ? $semester->id : 1;
+
+        $action = app(SubmitReplacementRequest::class);
+        $results = [];
+
+        foreach ($blocks as $block) {
+            $week = (int) ($block['week'] ?? -1) + 1; // JS weekData index → DB week number
+            $day = (int) ($block['day'] ?? -1);
+            $startHour = (int) ($block['startHour'] ?? -1);
+            $venue = Venue::query()->where('room_code', (string) ($block['venue'] ?? ''))->first();
+
+            if ($week < 1 || $week > $this->timelineWeeks() || $day < 0 || $startHour < 0 || $venue === null) {
+                $results[] = ['ok' => false, 'reason' => 'Invalid selection payload.'];
+
+                continue;
             }
 
-            return ['class' => 'cell-reserved', 'clickable' => false, 'slotId' => $slot->id, 'hover' => 'Reserved by Others', 'title' => 'Another lecturer holds a pending request here'];
+            $startTime = Carbon::parse('08:00:00')->addMinutes($startHour * 30)->format('H:i:s');
+            $slot = TimeSlot::query()
+                ->where('semester_id', $semesterId)
+                ->where('week_number', $week)
+                ->where('venue_id', $venue->id)
+                ->where('day_of_week', $day)
+                ->where('start_time', $startTime)
+                ->first();
+
+            if ($slot === null) {
+                $results[] = ['ok' => false, 'reason' => 'That slot does not exist in the booking grid.'];
+
+                continue;
+            }
+
+            $validator = Validator::make([
+                'class_session_id' => $session->id,
+                'week_number' => $week,
+                'replacement_time_slot_id' => (int) $slot->id,
+                'remarks' => null,
+            ], StoreReplacementRequest::rules());
+
+            if ($validator->fails()) {
+                $results[] = ['ok' => false, 'reason' => (string) $validator->errors()->first()];
+
+                continue;
+            }
+
+            $result = $action(auth()->user(), $session, $week, (int) $slot->id, null);
+
+            $results[] = [
+                'ok' => (bool) $result['ok'],
+                'reason' => $result['ok'] ? null : $this->conflictText((string) $result['conflict_reason']),
+            ];
         }
 
-        if (in_array($slot->id, $bookableIds, true)) {
-            return ['class' => 'cell-available', 'clickable' => true, 'slotId' => $slot->id, 'hover' => 'Select', 'title' => "Free for a {$durationCells}-cell block"];
-        }
-
-        // Free but the duration block cannot fit here (engine runs are
-        // duration-filtered) — neutral, non-clickable, honest tooltip.
-        return ['class' => 'cell-empty', 'clickable' => false, 'slotId' => $slot->id, 'hover' => '', 'title' => "Too short for this {$durationCells}-cell class"];
+        return $results;
     }
 
-    private function ownSession(): ?ClassSession
+    /**
+     * Ownership-scoped session resolution (FR 2.11): module code + the
+     * original-slot pick (day/start/venue) identify the exact class; only the
+     * owner's sessions can ever match.
+     */
+    private function resolveSession(string $code, string $origJson): ?ClassSession
     {
-        if ($this->sessionId === 0) {
-            return null;
+        $semester = $this->timelineSemester();
+
+        $query = ClassSession::query()
+            ->where('lecturer_id', auth()->id())
+            ->where('semester_id', $semester !== null ? $semester->id : 1);
+
+        if (trim($code) !== '') {
+            $query->whereHas('module', fn ($m) => $m->where('module_code', trim($code)));
         }
 
-        $session = ClassSession::query()
-            ->with(['module', 'venue', 'cohorts.programme'])
-            ->find($this->sessionId);
+        $orig = json_decode($origJson, true);
+        if (is_array($orig)) {
+            if (isset($orig['day']) && $orig['day'] !== '') {
+                $query->where('day_of_week', (int) $orig['day']);
+            }
+            if (isset($orig['start']) && $orig['start'] !== '') {
+                $candidates = $query->orderBy('day_of_week')->orderBy('start_time')->get();
+                $startIdx = (int) $orig['start'];
 
-        // FR 2.11 — ownership scoping: only the owner arranges their class.
-        if ($session === null || (int) $session->lecturer_id !== (int) auth()->id()) {
-            return null;
+                return $candidates->first(
+                    fn (ClassSession $s): bool => $this->slotIndex((string) $s->start_time) === $startIdx
+                        && (! isset($orig['venue']) || $orig['venue'] === ''
+                            || ($s->venue !== null && $s->venue->room_code === (string) $orig['venue'])),
+                );
+            }
         }
 
-        return $session;
+        return $query->orderBy('day_of_week')->orderBy('start_time')->first();
     }
 
-    private function clampWeek(): void
+    private function conflictText(string $reason): string
     {
-        $this->week = max(1, min($this->timelineWeeks(), $this->week));
+        return match ($reason) {
+            'slot_not_available', 'slot_not_found' => 'That slot was just taken.',
+            'engine_precheck_failed' => 'You or the cohort is no longer free at that time.',
+            'reserve_interrupted' => 'The booking could not be completed — try again.',
+            default => 'Booking conflict — refresh and try again.',
+        };
+    }
+
+    /**
+     * The mock's spaced cohort convention ('DFT2 (S1) G1').
+     */
+    private function spacedCohortLabel(?Cohort $cohort): string
+    {
+        if ($cohort === null || $cohort->programme === null) {
+            return '—';
+        }
+
+        return $cohort->programme->programme_code
+            .$cohort->current_year.' (S'.$cohort->semester.')'
+            .' G'.$cohort->tutorial_group;
     }
 }
