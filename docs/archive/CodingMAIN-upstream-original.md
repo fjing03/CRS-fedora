@@ -1,10 +1,9 @@
+> ⚠ **ARCHIVED** — Archived 2026-10-10 — the original upstream/root CodingMAIN.md before the 2026-10-10 canonical rewrite; kept for upstream-merge diffing.
+
 # TARUMT Class Replacement System — Main Project File
 
 > **Purpose:** Single source of truth for this project. Read this first before any coding session.
-> This is the **fedora-repo canonical version** (§10.6 git policy: upstream pull-only). The original
-> upstream copy and the older fedora variant are archived in `docs/archive/` for reference.
 > Referenced by: FYP proposal (`../final/25SMR10186_Form 2_Proposal (v2025-11).docx.pdf`), Chapter 1 (`../final/Ch1.pdf`), Chapter 3 FR & NFR (`../final/FR&NFR.md`), Full Functional Specifications V2 (`../TARUMT Class Replacement System - Full Functional Specifications V2.pdf`), and the live codebase in this directory.
-> Last reviewed: 2026-10-10 (post all-pages-design-parity).
 
 ---
 
@@ -34,17 +33,15 @@ A web application that replaces the manual Google-Sheets-based class replacement
 
 | # | Objective | Core Idea | Status |
 |---|-----------|-----------|--------|
-| 1 | **Multi-Entity Matrix Intersection Engine** | 4-vector deterministic set intersection: lecturer availability × cohort free schedules (1+ cohorts) × room occupancy × capacity filter. | 🟢 Built + wired — timetable pages derive real conflicts (venue restrictions, B005) from DB |
-| 2 | **Optimistic Concurrency Control (OCC) layer** | Millisecond-precision transactional validation at submission time; abort + rollback + UI alert on conflict. ACID transactions. | 🟡 Service + schema exist (`OCCValidator`, `version` column); not yet wired to a live submission (Wave 3b) |
-| 3 | **FCFS Digital Approval Dashboard** | Chronological queue; one-click approve (→ Occupied) or reject with mandatory reason (→ Available); timestamped audit trail. | 🟡 UI frozen (mock-fallback template); write path pending (Wave 3b) |
-| 4 | **Role-Based Access Control (RBAC) + notifications** | 3 tiers: Student (view-only), Lecturer (create/submit/cancel own — FR 4.13), PL (hybrid = lecturer rights + approve/reject). Email notifications: PL on submission (FR 4.15), lecturer on outcome (FR 2.13), students on timetable updates (FR 1.9) — all via queue (FR 4.16). | 🟡 Auth + roles + session lifetimes done; email notifications pending |
-| 5 | **Prototype Deployment** | Laravel + PostgreSQL, localhost, real imported timetable dataset. | 🟢 Done — real data imported (not synthesized) |
-
-**Read-only honesty rule (current phase):** timetable pages render **real DB data** and are read-only until Wave 3b (booking/replacement write path). Cards show honest zeros (`sumPending`/`sumReplacement` = real state, never fabricated). Venue page keeps `sumOccupied`/"Occupied" (documented deviation from upstream's `sumUnavailable`).
+| 1 | **Multi-Entity Matrix Intersection Engine** | 4-vector deterministic set intersection: lecturer availability × cohort free schedules (1+ cohorts) × room occupancy × capacity filter. Returns color-coded weekly grid. | 🔲 Not built |
+| 2 | **Optimistic Concurrency Control (OCC) layer** | Millisecond-precision transactional validation at submission time; abort + rollback + UI alert on conflict. ACID transactions. | 🔲 Not built |
+| 3 | **FCFS Digital Approval Dashboard** | Chronological queue; one-click approve (→ Occupied) or reject with mandatory reason (→ Available); timestamped audit trail. | 🔲 Not built (UI template planned) |
+| 4 | **Role-Based Access Control (RBAC) + notifications** | 3 tiers: Student (view-only), Lecturer (create/submit/cancel own — FR 4.13), PL (hybrid = lecturer rights + approve/reject). Email notifications: PL on submission (FR 4.15), lecturer on outcome (FR 2.13), students on timetable updates (FR 1.9) — all via queue (FR 4.16). | 🟡 Partially built (auth + roles) |
+| 5 | **Prototype Deployment** | Laravel + PostgreSQL, seeded with 14 cohorts, 14 staff, 23 rooms. | 🟡 Partially built (seeders) |
 
 ### Slot State Machine (Objective 1–3 core)
 
-> **FR 4.11 note (2026-10-01):** the latest FR&NFR lists **three** statuses — *Available, Pending, Occupied*. `reserved` is kept as a **derived view**, not a 4th DB status: DB `status = pending` + `proposer_id ≠ current user` → rendered grey ("Reserved by Another Faculty"); `proposer_id = me` → yellow ("Pending (Self)"). Same row, two colours.
+> ⚠ **FR 4.11 sync note (2026-10-01):** the latest FR&NFR lists **three** statuses — *Available, Pending, Occupied*. `reserved` is kept as a **derived view**, not a 4th DB status: DB `status = pending` + `proposer_id ≠ current user` → rendered grey ("Reserved by Another Faculty"); `proposer_id = me` → yellow ("Pending (Self)"). Same row, two colours. Decide the exact encoding during Sprint 2 schema design.
 
 | State | Meaning |
 |-------|---------|
@@ -59,31 +56,27 @@ A web application that replaces the manual Google-Sheets-based class replacement
 - **Grey** — reserved by another lecturer
 - **Blue** — current selection
 
-### Two-axis block language (frozen UI, 2026-10)
-All timetable pages use the frozen design's two-axis language: **colour = status** (same fill for everyone), **border weight = ownership** (3px thick = your class, 0.5px hairline = others'). Block classes in `theme.css`: `event-mine` / `event-others` / `event-mine-pending` / `event-others-pending` / `event-conflict` (own conflict or public holiday — loud) / `event-public-holiday` (others', hairline red). Legend chips render these block classes directly.
-
 ### Venue types & rules
 - **Tutorial Rooms** (cap ≤ 35): B100–B109, B014–B018, B002 — L/T sessions
 - **Lecture Halls** (cap > 35): B110, B111 — large multi-cohort assemblies
 - **Computer Labs** (cap 28): B005, B009–B011 — Practical-only 'P' sessions
 - **Cisco Specialized Lab** (cap 32): B006 — priority for Networking/IoT workloads
 - **Excluded:** Block C venues (operational boundary for prototype)
-- **MPU-3133 venue rule (user decision 2026-08-01):** may use **tutorial rooms OR lecture halls — labs excluded only**. Generalized in revised FR&NFR as **FR 4.7**: modules with session-type restrictions filter venues by allowed session type.
-- **Enforced today:** see [`docs/venue-restrictions.md`](docs/venue-restrictions.md) — B005 no-Diploma (drives the live derived-conflict flag), B006 networking priority, P→labs (doc-only until Wave 3b booking validation).
+- **MPU-3133 venue rule (user decision 2026-08-01):** may use **tutorial rooms OR lecture halls — labs excluded only**. ⚠ Ch1.pdf/specs V2 say "Lecture-only → B110/B111 only"; the user confirmed the FR&NFR behavior is correct ("Tutorial-only" is a mislabel — treat as "no labs allowed"). Generalized in revised FR&NFR (rev. 2026-08-24) as **FR 4.7**: modules with session-type restrictions filter venues by allowed session type.
 
 ### Edge cases the engine must handle
 - No common slot found → return empty state, never crash
 - Single-cohort request → 3 vectors (lecturer × cohort × room)
 - All-day occupancy → correct empty result
 - Session-type venue restrictions (e.g. MPU-3133 → exclude labs; a module marked P must use a lab; L-only modules must not use labs)
-- **Duration-aware windows:** engine only returns windows ≥ the original class duration; clicking a green cell selects the whole contiguous block
+- **Duration-aware windows (user decision 2026-08-01):** engine only returns windows ≥ the original class duration; grid cells are 1h and clicking a green cell selects the whole contiguous block (a 2h class needs 2 adjacent green cells)
 
 ### Replacement flow decisions (user-confirmed 2026-08-01)
 1. **Student counts:** fixed per cohort (see §8) — capacity-filter demos are reproducible.
-2. **Timetable data:** real past-semester timetable PDFs from TAR UMT Sabah, imported into the DB (≈38k time slots, 14 cohorts / 14 staff / 23 rooms) — see §11.
+2. **Timetable data:** mainly past semester timetable PDFs from TAR UMT Sabah, with self-modifications for prototype needs (room capacities, MPU-3133 & MPU-3232 groupings) — a realistic 14-week dataset for 14 cohorts / 14 staff / 23 rooms; user reviews it.
 3. **Original block release:** after PL approval, the original class block is marked replaced/cancelled and its old time+room become **bookable by others**; the new slot becomes `occupied`.
 4. **PL Master Configuration Panel: DROPPED** — not in FR&NFR; specs V2 mention is superseded by FR&NFR as source of truth.
-5. **Notifications:** implement exactly FR 1.9 (students on timetable updates), 4.15 (PL on submission), 2.13 (lecturer on outcome); all sent via DB-backed queue (FR 4.16). No cross-lecturer alerts unless requested later.
+5. **Notifications:** implement exactly FR 1.9 (students on timetable updates), 4.15 (PL on submission), 2.13 (lecturer on outcome); all sent via DB-backed queue (FR 4.16). No cross-lecturer alerts unless requested later. *(Old numbering: 1.5 / 4.15 / 4.16 — renumbered in latest FR&NFR.)*
 6. **MPU-3133 venue rule:** tutorial rooms + lecture halls OK, labs excluded (see §3 venue rules).
 
 ---
@@ -95,77 +88,76 @@ All timetable pages use the frozen design's two-axis language: **colour = status
 | Framework | Laravel 13 (PHP ^8.3) — `laravel/livewire-starter-kit` |
 | Live components | Livewire 4 + Flux 2 + Blaze |
 | Frontend | Blade templates, TailwindCSS (theme.css for custom), vanilla JS (`ui-common.js`) |
-| Database | PostgreSQL (`class_replacement` DB, user `philler`) |
+| Database | PostgreSQL (`class_replacement` DB, user `philler`, no password) |
 | Auth | Laravel Fortify + passkeys (WebAuthn) |
-| Tooling | Pint (lint), PHPStan/Larastan (types), PHPUnit 12 (tests), Playwright (E2E) |
+| Tooling | Pint (lint), PHPStan/Larastan (types), PHPUnit 12 (tests), Laravel Pail (logs), Sail (Docker) |
 
 ### Commands
 ```bash
 composer run dev              # laravel dev server
 php artisan serve             # http://localhost:8000
-php artisan migrate --seed    # incremental (TESTING DB ONLY — see below)
+php artisan migrate:fresh --seed   # reset + seed
+php artisan migrate --seed
 composer run lint             # pint --parallel (fix)
 composer run lint:check       # pint --test
-composer run types:check      # phpstan analyse (crashes at 128M here — use the line below)
-vendor/bin/phpstan analyse --memory-limit=1G
+composer run types:check      # phpstan analyse
 composer run test             # lint:check + types:check + phpunit
-npx playwright test tests/venue-db.spec.ts tests/timetable-wiring.spec.ts tests/nav-identity.spec.ts   # gate specs
 npm run dev / npm run build   # vite (not heavily used; UI uses static /css /js)
 ```
 
 ### Fix stale Blade cache (after UI changes)
-Run **TWO separate commands, never one combined string** (a combined `pkill … && php artisan serve` string self-kills — the kill pattern matches its own wrapper). First:
+`php artisan view:clear` is broken (missing cache path). Use this instead:
 ```bash
-pkill -f "[a]rtisan serve" || true
+pkill -9 php && rm -f storage/framework/views/*.php && php artisan serve --port=8000 &
 ```
-Then:
-```bash
-rm -f storage/framework/views/*.php && php artisan serve --port=8000 &
-```
-**Never `pkill -9 php`** — it force-kills every PHP process on the machine. Always kill the old server first: old processes hold stale compiled views in memory.
+**Always kill old server first** — old processes hold stale compiled views in memory.
 
 ### Test login
 - Default password for ALL seeded users: `Tarumt@2026`
-- Lecturers: login by Staff ID (e.g. `5425`) via `/login/staff` — **optional `P` prefix supported ✓** (`P5425` normalised in `FortifyServiceProvider`, shared lockout counters)
+- Lecturers: login by Staff ID (e.g. `5425`) via `/login/staff` — revised FR 2.1 target format is four digits with optional `P` prefix (`P5425`); **prefix support pending** in auth validation (current regex digits-only)
 - Students: `{yy}{PROGCODE}{seq}@student.tarc.edu.my` (e.g. `25RSD0001@student.tarc.edu.my`) via `/login/student`
 - PLs: Pn. Surayaini Binti Basri (5425), En. Mohd Nur Rahmat Bin Mohd Taat (5516) — `is_pl = true`
-
-### Database safety (non-negotiable)
-- Demo DB `class_replacement` holds **real imported data** — **never re-seed, never `migrate:fresh`** on it.
-- Tests use the disposable `class_replacement_testing`, where `php artisan migrate:fresh --seed` is fine.
-- Pristine snapshot + restore recipe: `/home/jinglinux/tarumt/backups/README.md`.
 
 ---
 
 ## 5. Domain Model & Database Schema
 
-### Core tables (all migrated — `database/migrations/`)
+### Existing tables (migrations in `database/migrations/`)
 | Table | Key fields | Notes |
 |-------|-----------|-------|
-| `users` | id, name, email, password, **role** (`student`/`lecturer` — PL is `lecturer` + `is_pl=true`), honorific, two-factor, passkeys | |
-| `faculties` / `departments` / `programmes` | codes + names, FK chain | FOCS/FAFB → DCIT/DSSH/DACB → DFT/DSF/RSD/RAF/RBU |
-| `cohorts` | programme_id, current_year, semester, tutorial_group, academic_year, intake, **student_count** | natural-key unique (2026_10_06) |
-| `students` / `lecturers` | **user_id (PK)**, student_id / staff_id, cohort_id / dept_id, is_pl | |
-| `semesters` | timeline anchor for weeks | |
-| `venues` | room_code, room_name, capacity, room_type (`tutorial`/`lecture_hall`/`lab`/`cisco_lab`), allowed_session_types | 23 Block B rooms |
-| `modules` | module_code, module_name, session_types | |
-| `class_sessions` | module, lecturer, day, start/end, venue, session_type, week | |
-| `session_cohorts` | (class_session_id, cohort_id) pivot | |
-| `time_slots` | class_session_id, day, start/end, venue, status, **version (OCC)**, week_number | ≈38,640 rows (real import) |
-| `holidays` / `class_exceptions` | semester-scoped exceptions | holiday uniqueness (2026_10_06) |
-| `replacement_requests` | class_session_id, replacement_time_slot_id, proposer, status, timestamps | one active request per block occurrence (partial unique) |
-| `audit_logs` | user, action (7 values incl. `class_cancelled`), request/slot, old/new status, OCC result | |
-| `passkeys` | WebAuthn credentials | |
+| `users` | id, name, email, password, **role** (`student`/`lecturer` only — PL is `lecturer` + `is_pl=true`, no admin role), two-factor, passkeys | Laravel default + role column |
+| `faculties` | faculty_code (unique), faculty_name | FOCS, FAFB |
+| `departments` | dept_code (unique), dept_name, faculty_id | DCIT, DSSH, DACB |
+| `programmes` | programme_code (unique), programme_name, faculty_id | DFT, DSF, RSD, RAF, RBU |
+| `cohorts` | programme_id, current_year (1–3), semester (1–3), tutorial_group, academic_year, intake | CHECK constraints on year/semester |
+| `students` | **user_id (PK)**, student_id (unique), cohort_id | student_id format `{yy}{PROG}{seq}` e.g. 25RSD0001 |
+| `lecturers` | **user_id (PK)**, staff_id (unique), dept_id, is_pl (bool) | |
+| `passkeys` | user_id, credential_id, ... | WebAuthn |
 
-### Applied optimization deltas (`2026_08_24_000001`, SDD: db-optimization-pass1)
+### Models (`app/Models/`)
+- `User` — role-based helpers: `loginId()`, `isStudent()`, `isLecturer()`, `initials()`; `HasOne` student/lecturer
+- `Faculty` (HasMany departments, programmes) → `Department` (HasMany lecturers) → `Lecturer` (BelongsTo user, department)
+- `Programme` (HasMany cohorts) → `Cohort` (HasMany students) → `Student` (BelongsTo cohort, user)
+- `Lecturer`/`Student` use `user_id` as primary key, `incrementing = false`
+
+### Pending schema (needed for Objectives 1–3)
+Not yet migrated — design during Sprint 1 (canonical names per FR 4.8 / NFR 5.3):
+- `venues` (room code, capacity, room type Tutorial/Lecture Hall/Lab/Cisco Lab, allowed session types L/T/P)
+- `timetable_blocks` / `class_sessions` (lecturer, cohort(s), module, day, time, duration, venue, session type)
+- `modules` (code, name, session type constraints)
+- **`time_slots`** (FR 4.8 canon): slot record with **integer `version` column (OCC pattern)** + `status` column driving the state machine (`available` / `pending` / `reserved` / `occupied` — see §3 state-machine note re FR 4.11)
+- `replacement_requests` (time_slot_id, proposer, PL, timestamps, rejection reason)
+- `audit_logs` (PL identity, timestamp, action, slot ID, rejection reason, **OCC validation outcomes per FR 4.12**)
+
+### Applied optimization deltas (`2026_08_24_000001_optimize_replacement_requests_and_indexes.php`, SDD: db-optimization-pass1)
 - `replacement_requests.class_session_id` + `replacement_time_slot_id`: FK cascade → **RESTRICT** (`proposer_id`/`semester_id` remain CASCADE deliberately)
-- Partial unique `uq_replacement_requests_active_block (class_session_id, week_number) WHERE status IN ('pending','approved')`
-- Indexes: `idx_replacement_requests_time_slot`, `idx_replacement_requests_proposer_submitted`, `idx_audit_logs_time_slot`
-- `cohorts.student_count` (nullable smallint, CHECK > 0; seeder-authoritative from §8) — engine headcount reads it with live-COUNT fallback
+- Partial unique `uq_replacement_requests_active_block (class_session_id, week_number) WHERE status IN ('pending','approved')` — one active request per original block occurrence
+- Indexes: `idx_replacement_requests_time_slot`, `idx_replacement_requests_proposer_submitted (proposer_id, submitted_at)`, `idx_audit_logs_time_slot`
+- `cohorts.student_count` (nullable smallint, CHECK > 0; seeder-authoritative from §8 STUDENT_COUNTS) — engine headcount reads it with live-COUNT fallback
 - `audit_logs.action` CHECK widened to seven values incl. `'class_cancelled'` (FR 2.16 audit support)
 
-### Applied delta (`2026_08_24_000002`, SDD: venue-room-name)
-- `venues.room_name` VARCHAR(60) NULLABLE — D8/FR 4.2 "room name"; seeder backfills pattern labels. Terminology ruling: entity reported as **Subject** = table `modules` (FR 4.7 'modules', FR 3.3 'subject'); `session_cohorts` pivot stands in place of planned `module_cohort`.
+### Applied delta (`2026_08_24_000002_add_room_name_to_venues_table.php`, SDD: venue-room-name)
+- `venues.room_name` VARCHAR(60) NULLABLE — D8/FR 4.2 "room name"; seeder backfills pattern labels (`Tutorial Room B100`, `Lecture Hall B110`, `Computer Lab B009`, `Cisco Lab B006`) — replace with official FOCS names when available. Terminology ruling: entity reported as **Subject** = table `modules` (FR 4.7 'modules', FR 3.3 'subject'); `session_cohorts` pivot stands in place of planned `module_cohort`.
 
 ---
 
@@ -187,25 +179,25 @@ rm -f storage/framework/views/*.php && php artisan serve --port=8000 &
 | Master seed-data configuration | ❌ | ❌ | ❌ *(dropped 2026-08-01 — not in FR&NFR)* |
 
 - Middleware: `CheckRole`, `CheckPl` in `app/Http/Middleware/`
-- Route gating + authorization gates (Laravel native) on all dashboard routes
+- Route gating + authorization gates (Laravel native) required on all dashboard routes
 - **Students are strictly view-only**
 
 ---
 
 ## 7. Requirements (FR & NFR)
 
-Source: `../final/FR&NFR.md` — Chapter 3, §3.4 (verbatim; reader-facing glosses and citations trimmed). **Synced 2026-10-01: 48 FRs / 26 NFRs.** Each FR is traceable to one or more of the 5 objectives (§3). Login supports Student/Staff ID via Fortify `username = login_id` (FR 1.1, 2.1 — incl. optional "P" prefix ✓).
+Source: `../final/FR&NFR.md` — Chapter 3, §3.4 (verbatim; reader-facing glosses and citations trimmed). **Synced 2026-10-01: 48 FRs / 26 NFRs.** Each FR is traceable to one or more of the 5 objectives (§3). Login already supports Student/Staff ID via Fortify `username = login_id` (FR 1.1, 2.1 — incl. optional "P" prefix ✓).
 
 ### 7.1 Traceability map (FR → Objective)
 
 | FR # | Requirement summary | Objective |
 |------|--------------------|-----------|
-| 1.1–1.9 | Student login by ID; cohort timetable; request status for cohort; view upcoming replacement details; **cannot create / edit / delete / modify timetable data (4 separate FRs)**; email on timetable updates (FR 1.9) | 3, 4, 5 |
+| 1.1–1.9 | Student login by ID; cohort timetable; request status for cohort; view upcoming replacement details; **cannot create / edit / delete / modify timetable data (4 separate FRs)**; email on timetable updates (now FR 1.9) | 3, 4, 5 |
 | 2.1–2.16 | Staff ID login (4 digits, optional "P" prefix); own timetable; click class (incl. conflicted/cancelled) → details; start replacement from details; venue dropdown (default original); venue change recalculates ≤500 ms; colour-coded grid; click green slot; submit; **cancel own pending (edit dropped)**; cannot see/edit others'; cannot approve/reject; email on outcome; **view selected venue timetable; view own request history; cancel own scheduled class with reason** | 1, 2, 3, 4, 5 |
 | 3.1–3.7 | PL inherits lecturer rights **except FR 2.11 & 2.12** (may see others' requests, may approve/reject); FCFS queue sorted by submission time; queue shows proposer/subject/cohorts/time/venue; pre-computed slot validity; 1-click approve; mandatory reject reason; full audit trail | 1, 2, 3, 4 |
 | 4.1–4.2 | Seed 14 teaching staff / 14 cohorts / 23 Block B rooms; room metadata (name, capacity, type, allowed session L/T/P combo) | 5, 1 |
 | 4.3–4.7 | Four-part check = 3-set intersection (lecturer × cohorts × room) + capacity as 4th part; "No available slots" message; 3-vector for single cohort (capacity still applies); empty result when fully occupied; session-type venue filtering | 1 |
-| 4.8–4.12 | OCC via integer version column on `time_slots`; exactly one concurrent submission wins; conflict alert to loser; slot state machine (Available / Pending / Occupied — **3 states, see §3 note**); OCC outcomes logged | 2, 3 |
+| 4.8–4.12 | OCC via integer version column on `time_slots`; exactly one concurrent submission wins; conflict alert to loser; slot state machine (Available / Pending / Occupied — **3 states now, see §3 note**); OCC outcomes logged | 2, 3 |
 | 4.13–4.16 | RBAC 3 roles (Lecturer = create/submit/**cancel** own); unauthenticated → login redirect; email to PL on submission; **all emails via database-backed queue** | 4, 5 |
 
 ### 7.2 Functional Requirements (verbatim, FR&NFR.md §3.4.1)
@@ -306,22 +298,23 @@ Source: `../final/FR&NFR.md` — Chapter 3, §3.4 (verbatim; reader-facing gloss
 ### 7.4 NFR implementation notes (verified against codebase where marked ✓)
 - **NFR 2.2 ✓** — Bcrypt hashing is Laravel default; seeder uses `Hash::make`.
 - **NFR 2.6 ✓** — CSRF protection is Laravel default (VerifyCsrfToken middleware).
-- **NFR 1.2** — OCC validation must add <100 ms beyond the DB write (benchmark at Wave 3b).
+- **NFR 1.2** — OCC validation must add <100 ms beyond the DB write (benchmark in Sprint 2).
 - **NFR 2.4 ✓ / 2.5 ✓** — per-role session lifetimes via `EnsureSessionLifetime` middleware (auth-wiring): staff 30 min, student 43200 min (= 30 days); `config/session.php` ceiling set accordingly.
 - **NFR 3.4 ✓** — post-login redirect per role via custom `LoginResponse` (student → `/student-my-timetable-ui`, staff → `/my-timetable-ui`).
 - **NFR 3.5 / 3.6 ✓** — light/dark theme toggle + `localStorage('theme')` persistence (`ui-common.js`, `ui-template.blade.php` pre-CSS guard).
 - **NFR 5.1 ✓** — Pint configured (`pint.json`, `composer run lint:check`).
 - **NFR 5.2 ✓** — all schema changes live in `database/migrations/`.
-- **NFR 5.3 ✓** — `App\Services\MatrixIntersectionEngine`, `App\Services\OCCValidator` (+ `OCCResult`) exist with Feature tests; booking-write wiring pending (Wave 3b).
-- **FR 4.16 / NFR 6.2 / 1.4** — `QUEUE_CONNECTION` must be a database-backed queue; run `php artisan queue:work` as a separate worker (Wave 3b).
-- **FR 2.1 ✓** — Staff ID optional `P` prefix normalised in `FortifyServiceProvider` (both forms share lockout counters).
+- **NFR 5.3 ✓** — `App\Services\MatrixIntersectionEngine`, `App\Services\OCCValidator` (+ `OCCResult`) exist; full Sprint-2 wiring pending.
+- **NFR 7.1** — data allowlist: schedules, staff/student names + IDs, cohort codes, TAR UMT emails only.
+- **FR 4.16 / NFR 6.2 / 1.4** — `QUEUE_CONNECTION` must be a database-backed queue; run `php artisan queue:work` as a separate worker (Sprint 3).
+- **FR 2.1 ⚠ pending** — Staff ID with optional `P` prefix (`P5425`): current login validation accepts digits only (`^\d+$`); prefix normalization to add during auth hardening.
 - **NFR 7.2** — never deploy beyond localhost; no external data egress.
 
 ---
 
 ## 8. Dataset Reference (Seeding)
 
-### Cohorts (14 — imported)
+### Cohorts (14 — already seeded)
 - **FOCS (11):** DFT1(S1), DFT2(S1), DSF1(S1), DSF2(S1), RSD1(S1)G1, RSD2(S1)G1, RSD2(S1)G2, RSD2(S1)G3, RSD3(S1)G1, RSD3(S1)G2, RSD3(S1)G3
 - **FAFB (3):** RAF2(S3)G2, RAF2(S3)G4, RBU1(S1)G1
 - Code format: `{ProgCode}{Year}(S{Sem})G{Group}`; intake = June of enrolment year; academic year 2025/26
@@ -340,30 +333,30 @@ Source: `../final/FR&NFR.md` — Chapter 3, §3.4 (verbatim; reader-facing gloss
 | RSD2(S1)G2 | 16 | | |
 | RSD2(S1)G3 | 15 | | |
 
-**Capacity implications (by design):** MPU-3133 combined = 83 students → only B110/B111 (cap > 35) fit. MPU-3232 combined = 44 → also B110/B111. Tutorial rooms (≤35) remain valid for single-cohort and small modules. *(Adjustable — update seeder + this table together.)*
+**Capacity implications (by design):** MPU-3133 combined = 83 students → only B110/B111 (cap > 35) fit. MPU-3232 combined = 44 → also B110/B111. Tutorial rooms (≤35) remain valid for single-cohort and small modules. *(Adjustable — tell me and I'll update seeder + this table together.)*
 *Seeder key format note: seeder keys always include the group suffix (`DFT1(S1)G1`); display names in `dataset/cohorts.md` omit `G1` for DFT/DSF.*
 
-### Academic staff (14 — imported)
+### Academic staff (14 — already seeded)
 - **DCIT (11):** 9 Lecturers + 2 PLs (Surayaini 5425, Mohd Nur Rahmat 5516)
 - **DACB (2):** Tan Sharon (4363), Chang Foo Chung (5254)
 - **DSSH (1):** Muada Bin Ojih (3799)
 - Master dataset in `dataset/lecturers.md`
 
-### Venues (23 Block B rooms — seeded)
+### Venues (23 Block B rooms — NOT yet seeded, need `venues` migration)
 - Tutorial (16): B002, B014–B018, B100–B109 | Lecture Halls (2): B110, B111 | Labs (4): B005, B009–B011 | Cisco Lab (1): B006
 
-### Timetable dataset (real import — done)
-- Past-semester timetable PDFs from TAR UMT Sabah, imported to the demo DB (≈38,640 time slots across 14 weeks). The demo DB is **never re-seeded** (§4 Database safety). Test DB uses the disposable seeder dataset.
+### Timetable dataset (Sprint 1 — based on past PDFs with self-modifications)
+- Mainly past semester timetable PDFs from TAR UMT Sabah, with self-modifications for prototype needs (room capacities, MPU-3133 & MPU-3232 groupings). I will prepare a realistic 14-week dataset in `dataset/timetable.md` (modules with session types L/T/P, class blocks per cohort, room assignments). User reviews before seeding.
 
 ### High-risk use cases (engine validation targets)
-1. **Cross-faculty (MPU-3133 Falsafah dan Isu Semasa):** shared across RAF2, RBU1, RSD3 → must compute unified slot across faculties; venue filter = exclude labs.
+1. **Cross-faculty (MPU-3133 Falsafah dan Isu Semasa):** shared across RAF2, RBU1, RSD3 → must compute unified slot across faculties; venue filter = exclude labs (tutorial rooms + lecture halls allowed, per user decision; conflicts with older Ch1 wording).
 2. **Cross-year stacking (MPU-3232 Entrepreneurship):** L&T module shared between RSD2(S1)G2, RSD2(S1)G3, RSD3(S1)G3 → prevent horizontal clashes with concurrent core modules.
 
 ---
 
 ## 9. Page Inventory & Routes
 
-### Auth + settings (`routes/web.php`)
+### Real routes (`routes/web.php`)
 | Route | Purpose | Auth |
 |-------|---------|------|
 | `/` | Welcome / landing | public |
@@ -371,22 +364,15 @@ Source: `../final/FR&NFR.md` — Chapter 3, §3.4 (verbatim; reader-facing gloss
 | `/dashboard` | Authenticated dashboard | `auth` |
 | `/settings/profile`, `/settings/appearance`, `/settings/security` | Profile settings | auth (+verified) |
 
-### Real-data Livewire pages (read-only until Wave 3b)
-| Route | Component | Role |
-|-------|-----------|------|
-| `/my-timetable-ui` | `MyTimetable` | Lecturer/PL |
-| `/cohort-timetable-ui` | `CohortTimetable` | Lecturer/PL (students pinned to own cohort) |
-| `/student-my-timetable-ui` | `StudentMyTimetable` | Student |
-| `/venue-timetable-ui` | `VenueTimetable` | Lecturer/PL |
-
-### Mock-fallback pages (frozen UI templates served with `MockData`; real backends = Wave 3b)
-| Route | Template |
-|-------|----------|
-| `/replacement-home-ui` | replacement-home |
-| `/replacement-arrangement` | replacement-arrangement |
-| `/my-request-history-ui` | my-request-history |
-| `/upcoming-replacements-ui` | upcoming-replacements |
-| `/request-approval-ui` | request-approval (PL) |
+### UI design-template routes (frontend mock phase)
+| Route | Template | activeNav |
+|-------|----------|-----------|
+| `/my-timetable-ui` | `MyTimetable-UI-design-template` | my-timetable |
+| `/cohort-timetable-ui` | `CohortTimetable-UI-design-template` | cohort-timetables |
+| `/replacement-home-ui` | `replacement-home-UI-design-template` | replacement-arrangement |
+| `/replacement-arrangement` | `replacement-arrangement-UIdesign-template` | replacement-arrangement |
+| `/my-request-history-ui` | `my-request-history-UI-design-template` | replacement-history |
+| `/request-approval-ui` | `request-approval-UI-design-template` (planned per SDD) | request-approval |
 
 ### Nav bar (5 items, `partials/ui-nav-bar.blade.php`)
 Dashboard → My Timetable → Cohort Timetables → Replacement Arrangement → Replacement History
@@ -406,26 +392,25 @@ These ten rules are **non-negotiable** for every page and every future change:
 1. **Colors must be consistent across all pages.**
    - ALL colors come from the CSS custom-property token set in `public/css/theme.css` (`--color-bg`, `--color-surface`, `--color-primary`/`secondary`/`tertiary`/`error` + their `-container`/`-on-*` variants, defined once for dark + once for light).
    - **NEVER hardcode hex/rgb/rgba** in a page's `@section('page-styles')`. Use `var(--color-...)`. If a new color is needed, add the token to `theme.css` once.
-   - **Sole sanctioned exception (FOUC guard)** — the shared layout's pre-theme paint in `resources/views/layouts/ui-template.blade.php`: `html.dark { background: #0D1B2A; }` / `html.light { background: #F0F3F7; }`. These literals run before `theme.css` loads so a dark-mode reload never flashes white. If the theme's background token ever changes, update BOTH literals together (grep `html.dark`). No other hardcoded color is permitted.
+   - **Sole sanctioned exception (FOUC guard)** — the shared layout's pre-theme paint in `resources/views/layouts/ui-template.blade.php`: `html.dark { background: #0D1B2A; }` / `html.light { background: #F0F3F7; }`. These literals run before `theme.css` loads so a dark-mode reload never flashes white; `var(--color-...)` cannot be used here (the token file isn't parsed yet). If the theme's background token ever changes, update BOTH literals together (grep `html.dark`). No other hardcoded color is permitted — sanctions end here.
    - Slot-grid colors are fixed token-mapped: Green=`--color-secondary`, Red=`--color-error`, Yellow=`--color-tertiary`, Grey=`--color-outline-strong`, Blue=`--color-primary`. Status badges use the same mapping on every page.
 
 2. **Use the same name + same color for the same meaning everywhere.**
-   - A status/legend label and its color are a **canonical pair defined once below**; every page must use that exact pair. Never give the same concept a different label or a different color on another page.
+   - A status/legend label and its color are a **canonical pair defined once below**; every page must use that exact pair. Never give the same concept a different label or a different color on another page (e.g. if Cohort Timetable shows "Conflict" in red, My Timetable must also show "Conflict" in red — not "Occupied" in red).
    - Identical component = identical class name across pages (`.badge`, `.legend-item`, `.summary-card`, `.filter-select`, `.cell-code`, `.empty-state`, etc.), defined once in `theme.css`.
-   - **Timetable blocks use the frozen two-axis language** (§3): block classes `event-mine`/`event-others`/`event-mine-pending`/`event-others-pending`/`event-conflict`/`event-public-holiday`; legends render block-class chips + the ownership hint ("thick border (3px) = your classes · thin border (0.5px) = others'"). Tooltips render `name · lecturer · status` via `data-name` + `data-tip2` (`lecturer · status`).
 
    #### Canonical legend / status → color map (single source of truth)
    Two semantic contexts share one palette — green=free/ok, red=conflict/occupied, yellow=pending, blue=primary, grey=reserved/neutral.
 
-   **A. Read-only timetable legend** (block classes in `theme.css`):
-   | Block class | Fill token | Meaning |
-   |-------------|-----------|---------|
-   | `event-mine` / `event-others` | `--color-secondary` (green) | scheduled class (border weight = ownership) |
-   | `event-mine-pending` / `event-others-pending` | `--color-tertiary` (yellow) | awaiting PL approval |
-   | `event-conflict` | `--color-error` (red, 3px border) | YOUR conflict or public-holiday class |
-   | `event-public-holiday` | `--color-error` (red, hairline) | others' conflict / holiday |
+   **A. Read-only timetable legend** (My Timetable, Cohort Timetable, master views):
+   | Label | Token | Meaning |
+   |-------|-------|---------|
+   | Normal Class | `--color-secondary` (green) | scheduled class |
+   | Replacement | `--color-primary` (blue) | approved replacement session |
+   | Pending | `--color-tertiary` (yellow) | awaiting PL approval |
+   | Conflict | `--color-error` (red) | clashing block |
 
-   **B. Replacement-arrangement slot grid legend** (booking interface, slot states — Wave 3b):
+   **B. Replacement-arrangement slot grid legend** (booking interface, slot states):
    | Label | Token | Meaning |
    |-------|-------|---------|
    | Available | `--color-secondary` (green) | satisfies all constraints |
@@ -449,93 +434,110 @@ These ten rules are **non-negotiable** for every page and every future change:
 
 4. **Minimise plain text, maximise icon buttons.**
    - Prefer **icon buttons** over text labels where the action is self-evident (edit ✎, cancel ✕, approve ✓, view 👁, chevrons ‹ ›, sort ▲▼, theme-toggle, notifications). Use `title`/`aria-label` for accessibility instead of visible text.
-   - Keep visible text to essentials: page title, table headers, status badges, and the key data the user came for.
-   - Reusable inline SVG icon set lives in `resources/views/flux/icon/`; reuse those — don't paste ad-hoc SVGs per page.
+   - Keep visible text to essentials: page title, table headers, status badges, and the key data the user came for. Long action verbs ("Approve Request", "View Details", "Cancel Request") → icon button + tooltip.
+   - Reusable inline SVG icon set lives in `resources/views/flux/icon/` (`book-open-text`, `chevrons-up-down`, etc.); reuse those — don't paste ad-hoc SVGs per page.
 
 5. **Don't overwhelm the user — push detail/secondary info into modals.**
-   - The page surface shows only what's needed to scan & act: the grid/table, its filters, summary cards, and primary actions. Everything else opens in a **modal** on click, not inline.
-   - Rule of thumb: if a column/field is "nice to know" rather than "need to scan", it belongs behind an icon button that opens a modal.
-
-6. **Promote-on-3rd-duplication (DRY / OOP).** If a markup block / CSS class / JS helper is **the same across 3+ pages**, promote it to a shared file (Blade partial `resources/views/partials/`, `theme.css`, `ui-common.js`) and refactor the duplicates away. Record every promotion in the SDD `design.md` "Promoted to shared" section.
-
-7. **Minimise steps — fewest clicks possible.** Pre-select sensible defaults; avoid hopping between pages for a single task. If a flow needs more than ~3 clicks, rethink it.
-
-8. **Confirm critical actions.** Any destructive or irreversible action (delete, submit, cancel, approve, reject) MUST show a confirmation popup before executing.
-
-9. **Mobile responsive design.** Every page MUST include mobile layout (≤768px breakpoint): nav drawer, card layout for tables, 2-col summary cards, flex-wrap legend, bottom-sheet modals, ≥44×44px touch targets (WCAG 2.5.5), swipe week navigation, `clamp()` typography, safe-area insets, full-width inputs, viewport meta with `viewport-fit=cover`. Shared CSS in `theme.css`, JS helpers in `ui-common.js`.
-
-10. **Toast/undo bar for critical actions.** After any critical action, show a toast bar at **bottom-left** with a success message and an **Undo** button; auto-dismiss after **5 seconds**. CSS in `theme.css`, JS helper `showToast(message, undoCallback, duration)` in `ui-common.js`.
+   - The page surface shows only what's needed to scan & act: the grid/table, its filters, summary cards, and primary actions. Everything else (full request details, audit history, rejection-reason form, validation breakdown, room/cohort breakdowns, raw slot data) opens in a **modal** on click, not inline.
+   - Rule of thumb: if a column/field is "nice to know" rather than "need to scan", it belongs behind an icon button that opens a modal. Keep the default view scannable.
+6. **Promote-on-3rd-duplication (DRY / OOP).** When building any page, if a markup block / CSS class / JS helper / mock-data slice is **now the same across 3+ pages** (e.g. the `.legend-bar`, the `.summary-bar` + `.summary-card` pattern, the week picker, the detail modal shell), promote it to a shared file and refactor the duplicates away:
+   - shared markup → a new Blade partial in `resources/views/partials/` (then `@include` it on every page);
+   - shared CSS → a class in `public/css/theme.css`;
+   - shared JS → a helper in `public/js/ui-common.js`;
+   - shared mock data → a section in `public/js/mock-data.js`.
+   Replace the inline copies in the **new page AND the existing pages** with `@include` / `var(--color-...)` / `helper()` / `MockData.*`. Never leave 3 copies of the same thing — that breaks the OOP/DRY concept the FYP rubric scores. Record every promotion in the SDD `design.md` "Promoted to shared" section.
+7. **Minimise steps — fewest clicks possible.** Every common task must reach its outcome in the minimum number of clicks/screens. Prefer one inline action over multi-step forms, pre-select sensible defaults, and avoid hopping between pages for a single task. If a flow needs more than ~3 clicks to finish, rethink it.
+8. **Confirm critical actions.** Any destructive or irreversible action (delete, submit, cancel, approve, reject) MUST show a confirmation popup (`confirm()` or a styled overlay) before executing — e.g. "Are you sure?". This makes the system forgiving: users can explore unfamiliar features without fear, knowing a critical move can always be backed out.
+9. **Mobile responsive design.** Every page MUST include mobile layout (≤768px breakpoint). The following enhancements are MANDATORY for all UI pages:
+   - **Nav drawer:** Hamburger icon (☰) replaces desktop links; slide-in drawer from left with overlay, close on tap/ESC/swipe; body scroll locked when open.
+   - **Card layout:** Convert data tables to card layout on mobile (each row = a card with essential columns only). No horizontal scroll.
+   - **Summary cards:** 2-column grid on mobile (5 cards → 3+2 layout).
+   - **Legend bar:** Flex-wrap, items flow naturally into 2 rows.
+   - **Semester bar:** Reduce select width, stack elements if needed, full-width.
+   - **Page header:** Chips stack vertically, title reduces font size.
+   - **Bottom sheet modals:** Modals slide up from bottom (not centered), 80vh max, drag handle, full-screen backdrop.
+   - **Touch targets:** All buttons/links ≥ 44×44px (WCAG 2.5.5).
+   - **Swipe gestures:** Swipe left/right to navigate weeks on timetable.
+   - **Collapsible cards:** Day cards collapse/expand on tap (chevron indicator).
+   - **Responsive typography:** Use `clamp()` for fluid font scaling (title 24→20px, day 14→13px, event 12→11px).
+   - **Safe area insets:** Respect iPhone notch/home indicator via `env(safe-area-inset-*)`.
+   - **Full-width inputs:** Selects, text inputs, buttons span full width on mobile.
+   - **Skeleton loading:** Grey placeholder shapes with shimmer animation while data loads.
+   - **Scroll restoration:** Remember scroll position on browser back/forward via `sessionStorage`.
+   - **Toast position:** Toasts at bottom-center on mobile (thumb-reachable).
+   - **Viewport meta:** `<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">` in `<head>`.
+   Add CSS media queries in `theme.css` (shared). JS helpers in `ui-common.js`. Document mobile layout in `design.md` under "Mobile view" section.
+10. **Toast/undo bar for critical actions.** After any critical action (delete, submit, cancel, approve, reject), show a temporary toast bar at **bottom-left** (same position as `.bulk-action-bar`: `position: fixed; bottom: 24px; left: 24px; z-index: 200`) with a success message and an **Undo** button. The toast auto-dismisses after **5 seconds** unless manually closed. The undo callback restores the previous state (re-insert cancelled items, revert status, etc.). CSS in `theme.css`, JS helper `showToast(message, undoCallback, duration)` in `ui-common.js`. Document every toast usage in `design.md` under "Toast/undo bar" section.
 
 ### 1. Inheritance
-- **Blade layout inheritance:** every page `@extends('layouts.ui-template')` and fills `@section('content')`, `@section('page-styles')`, `@section('page-scripts')`, `@yield('title')`.
+- **Blade layout inheritance:** every page `@extends('layouts.ui-template')` and fills `@section('content')`, `@section('page-styles')`, `@section('page-scripts')`, `@yield('title')`. See `resources/views/layouts/ui-template.blade.php` (42 lines).
 - PHP: Eloquent models inherit `Model`; `User` extends `Authenticatable`; middleware extends base classes; migrations use anonymous `class extends Migration`.
 
 ### 2. Composition
-- **Blade partials** via `@include('partials.ui-nav-bar', ['activeNav' => ...])`, `@include('partials.ui-summary-bar', ['cards' => [...]])`, etc.
-- Timetable partials: `ui-page-header`, `ui-week-nav` (incl. `showPrint`), `ui-guide-block`, `ui-legend-bar` (block-class chips + `ownershipHint`), `ui-summary-bar`, `ui-empty-state`, `ui-grid-table`, `ui-class-detail-modal`, `ui-cancel-class-modal` (Wave 3b), `ui-today-btn`, `ui-venue-dropdown`, `ui-logout-modal`.
-- Shared JS: `public/js/ui-common.js` (`buildTimetableGrid` with two-axis default rendering + span coalescing, `WeekNavigator`, `computeSummary`, `buildReplacementNote`, `openClassModal`, `CancelClass`, `showToast`, theme helpers), `public/js/mock-data.js` (`window.MockData` — fallback registries + default persona; real-data pages override `MockData.currentUser` / semester / holidays from the server payload).
+- **Blade partials** via `@include('partials.ui-nav-bar', ['activeNav' => ...])`, `@include('partials.ui-summary-bar', ['cards' => [...]])`, `partials.head`, `partials.settings-heading`.
+- `ui-page-header` — page title + semester chip + description
+- `ui-week-nav` — week navigation arrows + select + optional today button
+- `ui-empty-state` — empty state with icon, title, text, optional CTA
+- `ui-grid-table` — grid-wrapper + scrollable timetable shell
+- `ui-class-detail-modal` — modal overlay for class details
+- PHP: Laravel service classes + middleware composition (e.g. `App\Concerns\PasswordValidationRules` trait mixed into Fortify actions).
 
 ### 3. Encapsulation & DRY — shared modules
-- **`public/css/theme.css`** — ALL shared CSS (nav, layout, tables, badges, summary cards, empty states, timetable block classes, responsive breakpoints, color tokens). Page-specific styles stay in `@section('page-styles')`.
-- **`public/js/ui-common.js`** — shared JS helpers (see §2). Page-specific logic stays in `@section('page-scripts')`.
-- **`public/js/mock-data.js`** — fallback data source for mock-fallback pages; real-data pages treat it as a shell they override. Legacy consumers are a known debt.
-- **NEVER copy-paste** nav bar, tables, helpers into a new page — reuse the layout/partials/shared modules.
-- Theme toggle: `localStorage('theme')` = `dark`/`light`, `<html class="dark">` default; login pages use `.login-theme-toggle`.
+- **`public/css/theme.css`** (655 lines) — ALL shared CSS (nav bar, app container, page header, toolbar, tables, badges, pagination, summary cards, empty states, responsive breakpoints, color tokens via CSS custom properties). Page-specific styles stay in `@section('page-styles')`.
+- **`public/js/ui-common.js`** (197 lines) — shared JS helpers: `updateIcon`, `toggleTheme`, `navigateHome`, `to12h`, `formatDate`, plus consolidated table/sort/pagination/urgency helpers. Page-specific logic stays in `@section('page-scripts')`.
+- **`public/js/mock-data.js`** — the **single source of truth for ALL mock data** across every UI page (`window.MockData`). Contains shared registries (`cohorts`, `lecturers`, `venues`, `semester`, `holidays`) and per-page datasets (`myTimetable`, `cohortTimetable`, `requests`, `conflictedClasses`, etc.). Throwaway-by-design: deleted when Sprint 3 wires real Livewire/DB data.
+  - **Rule:** every UI page MUST read mock data from `window.MockData.*` — NEVER re-declare cohorts/lecturers/venues/semester or duplicate page datasets inline in a `<script>` block.
+  - **Read-only:** pages MUST treat `MockData` as immutable. Derive a local copy (`slice()`/spread) before mutating per-week/per-session state — never mutate `MockData` directly (it contaminates other pages).
+  - **New page needs new data?** Add ONE new section to `public/js/mock-data.js` (e.g. `MockData.studentTimetable = {...}`), then reference it from the page. Do NOT inline it.
+  - The page still loads via `<script src="/js/mock-data.js"></script>` (already included by `layouts/ui-template`); the page's own `@section('page-scripts')` holds only render logic, no data.
+- **NEVER copy-paste** nav bar, tables, helpers, or mock data into a new page — reuse the layout/partials/shared modules.
+- Theme toggle: `localStorage('theme')` = `dark`/`light`, `<html class="dark">` default; login pages use `.login-theme-toggle` (avoid class collision with nav `.theme-toggle`).
 
 ### 4. General PHP/Laravel conventions
 - PSR-4 (`App\`), anonymous classes for migrations, `protected function casts()` for attribute casting
 - Route model binding, Eloquent relationships typed with return types + PHPDoc
 - Existing middleware pattern: `CheckRole`, `CheckPl` — follow for any new role gating
-- Run `composer run lint:check` + `vendor/bin/phpstan analyse --memory-limit=1G` before finishing any task
-- Fortify actions in `app/Actions/Fortify/`; concerns/traits in `app/Concerns/`; Livewire components in `app/Livewire/`
+- Run `composer run lint:check` + `composer run types:check` before finishing any task
+- Fortify actions in `app/Actions/Fortify/`; concerns/traits in `app/Concerns/`
 
 ### 5. Naming
 - Blade templates: `kebab-case-UI-design-template.blade.php` for UI mocks; `layouts/ui-template` for real layout
 - Tables: `snake_case` plural; models: `StudlyCase` singular
 - CSS classes: semantic kebab-case (`.col-code`, `.badge`, `.summary-card`, `.filter-select`)
-- **Core logic service classes (NFR 5.3):** `App\Services\MatrixIntersectionEngine`, `App\Services\OCCValidator` — no business logic in controllers/views
+- **Core logic service classes (NFR 5.3):** `App\Services\MatrixIntersectionEngine` (Sprint 1), `App\Services\OCCValidator` (Sprint 2) — no business logic in controllers/views
 
 ### 6. Git workflow
-
-#### Git policy (user-mandated — non-negotiable)
-- **This working repo:** `CRS-fedora` (`/home/jinglinux/tarumt/CRS-fedora`)
-- **`origin`** → `https://github.com/fjing03/CRS-fedora.git` — the **ONLY** push target. All pushes go here.
-- **`upstream`** → `https://github.com/FjingXR/class-replacement-system.git` (branch `fjing`) — **PULL ONLY**. Never push there unless the user explicitly says so.
-- Always verify remote + branch before any push (`git remote -v && git branch --show-current`).
-
-#### Branches
-- Primary working branch: **`fedora-backend`** (others: `fedora-frontend`, `main`; origin tracks `fedora`, `fedora-backend`, `fedora-frontend`, `fedora-jing`)
+- Branch `fjing` is the working branch (`master` + `origin/fjing` exist)
 - Conventional commits: `ui:`, `feat:`, `fix:`, `refactor:`, `oop:`, `style:`, `docs:`
-- **SDD workflow:** each change gets a folder under `.sdd/changes/<change-name>/` (`proposal.md`, `design.md`, `specs/`, `tasks.md`, `review-log.md` → verify → archive to `.sdd/archive/`). Recent archives: `venue-event-blocks-db`, `venue-block-span-coalescing`, `all-pages-design-parity`, `wire-backend-into-refactored-ui`.
+- **SDD workflow:** each change gets a folder under `.sdd/changes/<change-name>/` with `sdd.yaml`, `proposal.md`, `design.md`, `tasks.md`, `review-log.md` (proposal → design → apply → verify → archive). Existing: `replacement-home-dashboard`, `request-approval`, `cohort-timetable-ui`, `my-request-history`, `oop-blade-refactor`, `refactor-blade-oop`.
 
 ---
 
 ## 11. Current Status
 
 ### ✅ Done
-- Laravel 13 scaffold (Livewire starter kit + Fortify + passkeys + Flux), role-specific logins (incl. `P`-prefix staff IDs), per-role session lifetimes
-- Full schema migrated + **real timetable dataset imported** (≈38,640 time slots, 14 cohorts / 14 staff / 23 venues) — demo DB protected by the no-reseed rule + pristine snapshot
-- Engine services + Feature tests: `MatrixIntersectionEngine`, `OCCValidator` (PHPUnit 130/130 green)
-- Venue-restriction conflict derivation live (B005 no-Diploma; `docs/venue-restrictions.md`)
-- **All pages at frozen upstream UI design** (two-axis block language, span coalescing, honest cards): venue / cohort / my-timetable / student = real data; arrangement / approval / histories / home = frozen mock-fallback templates
-- SDD archives: `wire-backend-into-refactored-ui` (Slice A), `venue-event-blocks-db`, `venue-block-span-coalescing`, `all-pages-design-parity`, `b005-diploma-conflict`, etc.
-- Playwright gates: `venue-db`, `timetable-wiring`, `nav-identity` (+ `pages-parity`)
+- Laravel 13 project scaffold (Livewire starter kit + Fortify + passkeys + Flux)
+- Auth scaffold with role-specific login pages (`/login/student`, `/login/staff`) and role column
+- Seeders: 2 faculties, 3 departments, 5 programmes, **14 cohorts**, **14 lecturers** (2 PLs), ~10–15 students/cohort (random)
+- **OOP Blade refactor** (SDD: oop-blade-refactor) — shared `layouts/ui-template`, `partials/ui-nav-bar`, `theme.css`, `ui-common.js`
+- 5 UI design templates built (My Timetable, Cohort Timetable, Replacement Home, Replacement Arrangement, My Request History) + request-approval template in progress
+- Page changelogs in `page-changelogs/`
 
-### 🔲 Not built
-- **Wave 3b — booking/replacement write path** (the only major piece left): submit/approve/reject/cancel actions, OCC enforcement on live submissions, FCFS approval + arrangement real backends, replacement sessions replacing originals, email notifications (FR 1.9 / 2.13 / 4.15 via queued jobs)
-- Student request history page (FR 1.3 real data), notifications centre
-- UAT + viva demo prep
+### 🔲 Not built (FYP2 sprints)
+- **Sprint 1:** Matrix Intersection Engine + timetable/module/venue schema + seed timetable data + intersection API
+- **Sprint 2:** OCC layer (transactional validation, rollback, conflict alerts) + FCFS approval dashboard + audit trail
+- **Sprint 3:** UI integration of real data into templates, RBAC gating on all routes, email notifications, test cases, UAT
 
 ---
 
-## 12. Roadmap
+## 12. Roadmap (FYP2, 7 weeks)
 
-| Sprint | Deliverable | Status |
-|--------|-------------|--------|
-| Sprint 1 | Venue/module/timetable schema + real data import; `MatrixIntersectionEngine` | ✅ Done |
-| Sprint 2 | OCC layer + state machine + FCFS dashboard + audit trail | 🟡 Services + schema done; write-path wiring = Wave 3b |
-| Sprint 3 | Real data into UI templates; RBAC gates; emails; tests | 🟡 Timetables wired (read-only); emails + booking pending |
-| Final | Thesis Chapters 5–7, documentation, viva prep | 🔲 |
+| Sprint | Weeks | Deliverable |
+|--------|-------|-------------|
+| Sprint 1 | W1–2 | Venue/module/timetable migrations + seed (synthesized `dataset/timetable.md`); `MatrixIntersectionEngine` service (4-vector intersection, capacity filter, venue-type rules, duration-aware windows); API/testable service |
+| Sprint 2 | W3–4 | OCC transaction layer on submission (state re-validation at write, rollback + alert); replacement request state machine; FCFS PL dashboard; audit trail |
+| Sprint 3 | W5 | Wire real data into the 5 UI templates; RBAC gates on all routes; email notifications; PHPUnit tests for all objectives' success criteria |
+| Final | W6–7 | Thesis Chapters 5–7, documentation, viva prep |
 
 ### Success criteria to verify per objective (from Ch1)
 1. Engine returns correct common free slots for multi-cohort combos in <500ms; capacity filter excludes small rooms; all edge cases handled.
@@ -549,37 +551,38 @@ These ten rules are **non-negotiable** for every page and every future change:
 ## 13. Key Files Map
 
 ```
-AGENTS.md                            ← session rules (auto-loaded) — read first alongside this file
-CodingMAIN.md                        ← this file (canonical)
-docs/venue-restrictions.md           ← B005/B006/P→labs rules (B005 enforced, rest doc-only)
-docs/fcb-theme-colors.md             ← FCB-inspired palette reference (theme.css token source)
-docs/archive/                        ← superseded docs (FYP-BRIEFING, BACKEND-TASKS, LEFTOVER_TASKS, CodingMAINfedora, original CodingMAIN variants)
-routes/web.php                       ← auth + Livewire page routes
-app/Livewire/                        ← real-data timetable components (MyTimetable, CohortTimetable, StudentMyTimetable, VenueTimetable)
-app/Services/                        ← MatrixIntersectionEngine, OCCValidator (+ OCCResult)
-app/Http/Middleware/                 ← CheckRole, CheckPl, EnsureSessionLifetime
-database/migrations/                 ← full schema (§5)
-database/seeders/                    ← testing-DB seeders (demo DB is import-only)
+MAIN.md                              ← this file (read first)
+../final/FR&NFR.md                   ← Chapter 3 FR/NFR source (traceability in §7)
+routes/web.php                       ← public + UI-template routes
+routes/settings.php                  ← settings routes
+app/Models/                          ← User, Faculty, Department, Programme, Cohort, Lecturer, Student
+app/Http/Middleware/                 ← CheckRole, CheckPl
+database/migrations/                 ← users, faculties..lecturers, passkeys
+database/seeders/DatabaseSeeder.php  ← 14 cohorts, 14 staff, students
 dataset/cohorts.md, lecturers.md     ← master datasets
 resources/views/layouts/ui-template.blade.php   ← shared layout (inheritance)
-resources/views/partials/            ← shared partials (nav, legend, summary, week-nav, modals, …)
-resources/views/livewire/            ← real-data page blades
-resources/views/ui-design-templates/ ← frozen reference templates (upstream f8b35a2)
-public/css/theme.css                 ← ALL shared CSS + block classes
-public/js/ui-common.js               ← shared JS helpers (grid builder, WeekNavigator, computeSummary, …)
-public/js/mock-data.js               ← fallback data (window.MockData)
-tests/Feature/                       ← PHPUnit (MatrixIntersectionEngine, OCCValidator, VenueRestrictionConflict, …)
-tests/*.spec.ts                      ← Playwright (venue-db, timetable-wiring, nav-identity, pages-parity gates)
+resources/views/partials/ui-nav-bar.blade.php   ← shared nav (composition)
+resources/views/partials/ui-summary-bar.blade.php
+resources/views/partials/ui-page-header.blade.php        ← page header partial (title + chips + description)
+resources/views/partials/ui-week-nav.blade.php           ← week navigation partial (arrows + select + today btn)
+resources/views/partials/ui-empty-state.blade.php        ← empty state partial (icon + title + text + CTA)
+resources/views/partials/ui-grid-table.blade.php         ← grid table partial (wrapper + scroll + table shell)
+resources/views/partials/ui-class-detail-modal.blade.php ← class detail modal partial (overlay + header + body + footer)
+public/css/theme.css                 ← ALL shared CSS
+public/js/ui-common.js               ← ALL shared JS helpers
+public/js/mock-data.js               ← ALL mock data (window.MockData), single source — pages READ ONLY
+resources/views/ui-design-templates/ ← 5 mock templates
 page-changelogs/                     ← per-page change logs
-.sdd/changes/ + .sdd/archive/        ← SDD workflow
-prompts/                             ← SDD templates + run prompts
+.sdd/changes/                        ← SDD change proposals
+prompts/                             ← sdd-propose template + spec (auto-read via AGENTS.md)
 ```
 
 ---
 
 ## 14. Notes for Future Sessions (Forking Context)
 
-- **Before coding:** read `AGENTS.md` + this file, check `.sdd/changes/` for active proposals, run `git status`/`git log`.
-- **Always:** update the matching `page-changelogs/*.md` for UI changes; follow the SDD flow for non-trivial features; never push without explicit user authorization.
-- **Demo DB is fragile:** never `migrate:fresh` / re-seed `class_replacement` — tests use `class_replacement_testing`. Restore recipe: `/home/jinglinux/tarumt/backups/README.md`.
+- This chat is the **main coding session**; fork sessions from it for feature work.
+- **Before coding:** read MAIN.md, check `.sdd/changes/` for any active proposal related to your task, and run `git status`/`git log` for uncommitted work.
+- **Always:** update the matching `page-changelogs/*.md` for UI changes; follow the SDD proposal → design → tasks flow for non-trivial features.
+- Test DB is PostgreSQL; to reset demo data run `php artisan migrate:fresh --seed`.
 - If the database isn't reachable, check `php artisan migrate:status` and that PostgreSQL is running (`pg_isready`).

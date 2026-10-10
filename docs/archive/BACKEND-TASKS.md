@@ -1,3 +1,5 @@
+> ⚠ **ARCHIVED** — Archived 2026-10-10 — the Phase-1 schema it specifies is fully migrated (§5 of CodingMAIN.md); DB connection details in its header are outdated (demo DB uses user philler, no password). Kept as design rationale for the booking schema (useful for Wave 3b).
+
 # Backend Development — Full Task Breakdown
 
 > **Scope:** DB schema + seed + core backend services. No UI work.

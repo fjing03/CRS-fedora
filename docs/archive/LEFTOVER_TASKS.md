@@ -1,3 +1,5 @@
+> ⚠ **ARCHIVED** — Archived 2026-10-10 — every item is checked/done; kept as the historical record of the upstream merge + wire-backend packaging.
+
 # Leftover Tasks — Post-Merge `upstream/fjing` → `fedora-backend`
 
 > Generated: 2026-08-27 | Branch: `fedora-backend` @ `c149ee4` | Merge: `fd8c403` (upstream/fjing 267 commits) | Status: smoke 12/12 routes 200, PHPUnit 94/94, PHPStan 0 errors

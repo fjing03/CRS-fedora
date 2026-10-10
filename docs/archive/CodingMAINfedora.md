@@ -1,3 +1,5 @@
+> ⚠ **ARCHIVED** — Archived 2026-10-10 — superseded: its §10.6 git policy and all content were folded into the canonical CodingMAIN.md.
+
 # TARUMT Class Replacement System — Main Project File (Fedora fork)
 
 > **Purpose:** Single source of truth for this project. Read this first before any coding session.

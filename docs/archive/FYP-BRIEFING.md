@@ -1,3 +1,5 @@
+> ⚠ **ARCHIVED** — Archived 2026-10-10 — snapshot dated 2026-08-11, superseded by CodingMAIN.md (login method, RBAC matrix, phase and page statuses are all stale here).
+
 # FYP Briefing — TARUMT Class Replacement System
 
 > **Purpose:** Share this file with any AI/tool (e.g., commandcode) that needs to understand your FYP project context.
