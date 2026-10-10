@@ -38,7 +38,7 @@ Chain strategy: feature-branch-chain
 
 - [ ] 2.1 RED `tests/Feature/ReplacementFlowTest.php`: concurrent submit one winner, loser row removed + audit survives (D5); `hrtime()` ≤500 ms (NFR 1.1)
 - [ ] 2.2 `app/Livewire/ReplacementHome` + view: own classes, start replacement (FR 2.4)
-- [ ] 2.3 `app/Livewire/ReplacementArrangement` + view: venue default (FR 2.5), lazy recalc (FR 2.6), cellState + derived Reserved (FR 4.11, D11), contiguous block (§3)
+- [ ] 2.3 `app/Livewire/ReplacementArrangement` + view: venue default (FR 2.5), lazy recalc (FR 2.6), cellState + derived Reserved (FR 4.11; anchor-slot limitation per design Open Questions + D5 — the old "D11" citation is stale), contiguous block (§3) — grid axis = 30-min `time_slots` rows (2 h = 4 cells; see replacement-flow spec amendment 2b), NOT the mock-era hourly reading
 - [ ] 2.4 `app/Livewire/MyRequestHistory|ReplacementHistory|VenueTimetable` + views: FR 2.15 / 1.4 (week ≥ current) / 2.14 + venue+week selection (S6) — VenueTimetable read path already shipped early (SDDs `2026-10-09-venue-timetable-db` + `2026-10-10-venue-event-blocks-db` + `venue-toolbar-row-parity`); do NOT re-do it, only add Slice-B write-path hooks if design requires
 - [ ] 2.5 `app/Actions/SubmitReplacementRequest` + `StoreReplacementRequest`: FR 2.9, OCC FR 4.8–4.10, D5 order, audit both (FR 4.12); cancel actions FR 2.10/2.16
 - [ ] 2.6 2.1 green; update 5 page-changelogs

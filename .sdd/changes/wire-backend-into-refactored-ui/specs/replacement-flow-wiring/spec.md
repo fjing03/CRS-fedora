@@ -34,13 +34,19 @@ The venue dropdown MUST default to the original class venue (FR 2.5); changing i
 
 ### Requirement: Slot grid semantics
 
-The arrangement MUST show a weekly time × day grid, colour-coded (FR 2.7). Clicking a green cell MUST select it as the proposal (FR 2.8); a multi-slot class MUST select its contiguous duration block — a 2-hour class needs 2 adjacent green cells (§3). Cells MUST derive the §10.0 table-B states with exact labels/tokens (FR 4.11), display-only; Reserved by Others = a pending slot held by another's active request. Only the clicked anchor slot is reserved; a block's other cells stay available (prototype limitation recorded in the design's Open Questions; transaction semantics per design D5).
+The arrangement MUST show a weekly time × day grid, colour-coded (FR 2.7). Grid cells MUST be the underlying 30-minute `time_slots` rows — the same axis as the shipped venue grid (span-N coalescing is display-only), re-derived from live slots for the selected week, NOT the mock-era hourly reading: a 2-hour class needs 4 adjacent green cells, and a class starting or ending on the half-hour (19 of 101 imported sessions start at :30) is representable only at this granularity. Clicking a green cell MUST select it as the proposal (FR 2.8); a multi-slot class MUST select its contiguous duration block (§3). Cells MUST derive the §10.0 table-B states with exact labels/tokens (FR 4.11), display-only; Reserved by Others = a pending slot held by another's active request. Only the clicked anchor (half-hour) slot is reserved; a block's other cells stay available (prototype limitation recorded in the design's Open Questions; transaction semantics per design D5).
 
 #### Scenario: Two-hour contiguous selection
 
-- GIVEN a 2-hour class with adjacent green cells
+- GIVEN a 2-hour class with 4 adjacent green half-hour cells
 - WHEN the lecturer clicks the first
 - THEN the whole contiguous block renders as Your Current Selection
+
+#### Scenario: Half-hour-start class is selectable
+
+- GIVEN a class starting at 09:30 (on the half-hour)
+- WHEN the lecturer opens the arrangement grid for it
+- THEN the grid exposes half-hour cells and the 09:30 boundary is a selectable cell, never snapped to the hour
 
 #### Scenario: Reserved by Others cell
 
@@ -93,3 +99,13 @@ A lecturer MUST cancel their own pending request before decision (FR 2.10): the 
 ## Amendments (2026-10-10 unfreeze, batch 2 of 3)
 
 Stale citation fix: the anchor-slot limitation cited "design D11", but the design's Architecture Decisions table is D1–D10 — the limitation lives in the design's Open Questions (with transaction semantics in D5). No behavioral change.
+
+## Amendment 2b — grid granularity (2026-10-10, user-reported)
+
+3. **Arrangement grid axis corrected from the mock-era hourly reading to the DB's 30-minute granularity.** Evidence (all verified 2026-10-10 against the demo DB and shipped code):
+   - `time_slots` renders **20 half-hour rows/day** (08:00–18:00) per venue-week;
+   - **19 of 101** imported sessions **start** at :30 (19 also end at :30; 21 unique touch it) — unrepresentable on an hourly grid;
+   - the shipped venue grid already renders 30-min rows with display-only span-N coalescing (span-4 = 2 h, SDD `venue-block-span-coalescing`);
+   - the mock template's own selection math is half-hour-based ("duration in hours × 2 = 30-min slots, defaulting to 4 slots (2 hours)"; `add30min`/`hours[]` helpers) under hourly variable names — the spec prose was the outlier, not even the mock;
+   - design needed no change: `duration = original session (end−start), multiple of 30` and `runs[] = contiguous 30-min cells ≥ duration` were already correct (design.md:63/65).
+   The anchor-slot prototype limitation is unchanged — it now reads per half-hour slot.

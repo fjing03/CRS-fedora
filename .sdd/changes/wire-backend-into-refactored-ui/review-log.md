@@ -169,3 +169,22 @@ Registered debt: `sync-upstream-fjing-ui` design §10 — "3-batch unfreeze + re
 - Residual inventory after all 3 batches: review-log/design amendment self-references only; design.md L189 §-number slip recorded round 2 (frozen); CodingMAIN.md:378 parenthetical tightening folded into task 4.4's adjacent edit during apply.
 ### Verdict
 **PASS — batch 3 FROZEN. Package internally consistent (design ↔ specs ↔ tasks ↔ code); apply phase may start at Phase 2 (Slice B).**
+
+## Amendment addendum 2b — grid granularity — 2026-10-10 (user-reported, round 1)
+
+User catch: spec.md:37 said "a 2-hour class needs 2 adjacent green cells" (mock-era hourly reading) but the slot axis is 30-minute. A class starting 09:30 is unrepresentable hourly.
+
+### Verified evidence
+- `TimeSlotsSeeder.php:18-19`: hours 8–17 × minutes [0,30] → **20 half-hour rows/day** (08:00–18:00); ×6 days ×14 weeks = 120/venue (matches archived 23×14×120).
+- Demo DB (psql, this session): **19 of 101 sessions start at :30** (19 end at :30; 21 unique touch :30).
+- Shipped venue grid: 30-min rows, display-only span-N (`venue-timetable.blade.php:198` `span-` + end−start+1 half-hours → **span-4 = 2h**; SDD `venue-block-span-coalescing`).
+- Mock template's own math is half-hour ("duration in hours × 2 = 30-min slots, defaulting to 4 slots (2 hours)", template:1156; `add30min`/`hours[]`) — the spec prose was the outlier, not even the mock.
+- Design already correct (design.md:63/65 "multiple of 30" / "contiguous 30-min cells") → no design unfreeze.
+
+### Applied
+- spec.md Slot-grid-semantics: cells = 30-min `time_slots` rows, 2h = 4 cells, :30 classes representable; Two-hour scenario GIVEN updated; NEW scenario "Half-hour-start class is selectable" (09:30, never snapped); anchor-slot limitation now per half-hour slot.
+- tasks.md 2.3: stale "(FR 4.11, D11)" citation fixed (same family as batch 2's spec fix; `explore-brief.md:67` also carries D11 — frozen, fold in if ever touched) + 30-min axis pointer.
+- CodingMAIN FR 2.7/2.8 confirmed granularity-neutral by review — task 4.4 scope unchanged.
+
+### Verdict
+**PASS — addendum 2b FROZEN.** Implementer contract for task 2.3 is now unambiguous: 30-min cells, 2h = 4, never snapped to the hour.
