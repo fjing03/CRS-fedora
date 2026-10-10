@@ -129,3 +129,17 @@ Executor delegation unavailable (model admission failures) → tasks 0.1–1.5 e
 - `vendor/bin/phpstan analyse --memory-limit=1G` **0 errors** (full paths)
 - `vendor/bin/pint --test app/ routes/ tests/ resources/views/livewire` **passed**
 - Smoke: guests → 302 `login.student` (FR 4.14); authenticated Livewire render OK; D10 branch verified (6 B/C routes still serve legacy closures)
+
+## Amendment batch 1 — design.md — 2026-10-10 (unfreeze round 1)
+
+Registered debt: `sync-upstream-fjing-ui` design §10 — "3-batch unfreeze + re-review before any Wave 3 apply". Wave 3b green-lit after the 2026-10-10 re-verification (full suite 130/130 after a one-off `npm run build` on MSI; scope, queue infra, OCC FK trap, rename debt, demo-DB honesty all confirmed).
+
+### 🔴 Outstanding
+- (none)
+### 🟡 Addressed (applied before freeze)
+- **VenueTimetable slice-label drift** (component-table row still "B" though its read path shipped early via `2026-09-30-venue-timetable-db` era SDDs — actual: `2026-10-09-venue-timetable-db` + `2026-10-10-venue-event-blocks-db` + `venue-toolbar-row-parity`) — inline stamped on the row so the Slice-B executor doesn't re-do it.
+- **Historical line-number citation** (design.md:24 "closures at web.php:15–49") reworded as explicitly pre-change state.
+### 💡 Noted (carried to batch 2)
+- `specs/replacement-flow-wiring/spec.md:37` cites "design D11" for the anchor-slot limitation, but the decisions table is D1–D10 (content lives in Open Questions + D5) — fix the citation while that spec is unfrozen.
+### Verdict
+**PASS — batch 1 FROZEN** (round 1; reviewer verified all claims line-by-line against `routes/web.php`, `RouteGateMatrixTest`, `CodingMAIN.md:378`, AGENTS.md caveat, and D5's three reinforcement sites).

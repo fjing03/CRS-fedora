@@ -21,14 +21,14 @@ Convert the 9 mock pages to **Livewire 4 full-page components** on real Eloquent
 
 ## Route table transformation (per slice)
 
-Old: 9 public closures at `routes/web.php:15–49`. New (URIs unchanged, names added):
+Old (pre-change state as of 2026-08-31): 9 public closures at `routes/web.php` lines 15–49. New (URIs unchanged, names added):
 
 | Route (URI) | Old | New component (`app/Livewire/`) | Middleware (ORDER) | Slice |
 |---|---|---|---|---|
 | `/my-timetable-ui` | closure | `MyTimetable` | `['auth','role:lecturer']` | A |
-| `/cohort-timetable-ui` | closure | `CohortTimetable` | `['auth']` | A |
+| `/cohort-timetable-ui` | closure | `CohortTimetable` | `['auth','role:lecturer']` | A |
 | `/student-my-timetable-ui` | closure | `StudentMyTimetable` | `['auth','role:student']` | A |
-| `/upcoming-replacements-ui` | closure | `UpcomingReplacements` | `['auth','role:student']` | A* |
+| `/replacement-history-ui` | closure | `ReplacementHistory` | `['auth','role:student']` | A* |
 | `/replacement-home-ui` | closure | `ReplacementHome` | `['auth','role:lecturer']` | B |
 | `/replacement-arrangement` | closure | `ReplacementArrangement` | `['auth','role:lecturer']` | B |
 | `/my-request-history-ui` | closure | `MyRequestHistory` | `['auth','role:lecturer']` | B |
@@ -49,8 +49,8 @@ Views: `resources/views/livewire/<kebab>.blade.php` (new dir; converted from `re
 | `App\Livewire\ReplacementHome` | B | my requests count by status; my conflicted sessions | navigate cards | — |
 | `App\Livewire\ReplacementArrangement` | B | session detail; `Venue` list; engine grid (below) | `updatedVenueId`, `selectSlot`, `openSubmit`, `submit()` | `SubmitReplacementRequest` |
 | `App\Livewire\MyRequestHistory` | B | `ReplacementRequest` where proposer=me, `orderByDesc('submitted_at')` (idx `proposer_submitted`) | `cancel($id)` → confirm modal | `CancelPendingRequest` |
-| `App\Livewire\UpcomingReplacements` | B | approved requests whose original session's cohorts ∋ my cohort, week ≥ current | view only | — |
-| `App\Livewire\VenueTimetable` | B | `ClassSession` where venue; `TimeSlot` status + active requests | select venue/week | — |
+| `App\Livewire\ReplacementHistory` | B | approved requests whose original session's cohorts ∋ my cohort, week ≥ current | view only | — |
+| `App\Livewire\VenueTimetable` | B | `ClassSession` where venue; `TimeSlot` status + active requests | select venue/week | — | *(read path shipped early via SDDs `2026-10-09-venue-timetable-db` + `2026-10-10-venue-event-blocks-db` + toolbar fix `venue-toolbar-row-parity` — do not re-do; Slice-B write-path hooks land with Slice B)* |
 | `App\Livewire\RequestApproval` | C | `ReplacementRequest` pending `orderBy('submitted_at')` (idx `status,submitted_at` exists); per row `MatrixIntersectionEngine::validateSlot()` (FR 3.4 chip) | `approve($id)` (confirm); `reject($id)` → mandatory-reason modal | `ApproveRequest`, `RejectRequest` |
 
 ### Slice B arrangement data flow (NFR 1.1)
@@ -134,7 +134,7 @@ Config D10. When `APP_MOCK_FALLBACK=true`, each of the 9 routes serves the untou
 | `Feature\OccConcurrencyTest` | A/B | Exactly-one-winner via two connections: conn A `lockForUpdate` + hold, validator on conn B blocks then reports `slot_not_available`/`concurrent_reserve_conflict`; both outcomes in `audit_logs` | `OCCValidatorTest` **stays** (sequential) |
 | `Feature\ApprovalWorkflowTest` + `Feature\EmailQueueTest` | C | FCFS order assertion; approve/reject transitions (slot+request+audit+exception); mandatory reject reason (422 on empty); `Queue::fake` push assertions; `queue:work --once` drain with log/array mailer < 1 min | `DbIntegrityConstraintsTest` **stays** |
 
-`composer run lint:check` + `types:check` + `phpunit` green after each slice (proposal success criteria).
+`composer run lint:check` + `vendor/bin/phpstan analyse --memory-limit=1G` + `php artisan test` green after each slice (proposal success criteria). [Amended 2026-10-10: `composer run types:check` crashes at its default 128M memory limit — invoke phpstan directly with 1G, per AGENTS.md.]
 
 ## Promoted to shared
 
@@ -180,6 +180,16 @@ No new mobile rules — the upstream templates already implement the §10.0.9 ma
 | Commit state / push state | N/A — commits stay manual per slice (repo convention) |
 | PR commands | N/A |
 | **Web route table** (the design's own routing boundary) | Applicable — every route gains auth gates; RED tests = `RbacRouteGatingTest` matrix (guest/student/lecturer/PL × 9 routes) before Slice A merge |
+
+## Amendment log — 3-batch unfreeze (2026-10-10)
+
+Batch 1 of 3 (design.md), per the registered debt in `sync-upstream-fjing-ui` design §10 ("3-batch unfreeze + re-review before any Wave 3 apply"). Each batch is re-reviewed by `@sdd-reviewer` and logged in `review-log.md`. Purpose: align the frozen artifacts with the shipped code before Slice B/C apply — paper-only alignment, no code change.
+
+1. **`UpcomingReplacements` → `ReplacementHistory` rename** (route table + component table): the code already ships `/replacement-history-ui` → `App\Livewire\ReplacementHistory` (student-only). Evidence: `routes/web.php` `$uiPages` registry + `RouteGateMatrixTest::STUDENT_ONLY`. Note: the re-verification found 5 additional prose-form sites ("Upcoming Replacements") in `specs/timetable-data-wiring/spec.md` that the original 5-site debt list missed (it searched camelCase only) — disposed in batch 2.
+2. **Cohort-timetable bucket corrected** to `['auth','role:lecturer']` (route table): the frozen `['auth']` all-roles bucket was superseded by the locked matrix before Slice A shipped. Evidence: `routes/web.php` mw, `RouteGateMatrixTest` lecturer bucket, `CodingMAIN.md` §10 page table ("Lecturer/PL — students pinned to own cohort"). FR 1.2 student cohort viewing is satisfied by the pinned `StudentMyTimetable`, not the staff consolidated view.
+3. **Gates command corrected** (Testing strategy): phpstan invoked directly with `--memory-limit=1G`.
+4. **Verify-only stamps (already present, no text change):** D5 contains the full OCC-loser compensating-delete order (pre-null `audit_logs.replacement_request_id` → conflict audit row survives → delete request row; reinforced at the state-machine Submit-loser row and the Actions table); D10 / `mock_fallback` fully absorbed (config key + single-point routes branch + fallback section); the anchor-slot prototype limitation is documented in `replacement-flow-wiring` (spec line "Only the clicked anchor slot is reserved…").
+5. **Blocker dissolution (user decisions 2026-10-10):** real-records blocker dissolved — demo booking/approval records will be created **through the new Slice B UI**, not hand-seeded; Wave 3b formally green-lit after the re-verification report (full suite 130/130 after a one-off `npm run build` on MSI).
 
 ## Open Questions
 
