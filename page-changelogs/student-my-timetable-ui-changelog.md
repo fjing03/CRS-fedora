@@ -1,5 +1,14 @@
 # Changelog — Student My Timetable
 
+## [2026-10-10] Frozen-design parity: real identity, keyword-span cards (SDD all-pages-design-parity)
+
+- **Identity fix (bug)**: the page never set `MockData.currentUser`, so the shared modal's own-request comparison ran against the mock-data default persona — a student's own pending request could never match. Now set from the authenticated student.
+- **Card descriptions** adopt the frozen keyword spans; **tooltip bug fixed** (stale `tooltipExtra` dropped — was rendering the lecturer twice); print button on week-nav; summary filters cancelled.
+- Verified: phpunit 130/130 · pages-parity 3/3 (identity value pin — default persona overridden) · records-intact.
+
+---
+
+
 ## [2026-10-09] Nav label correction (SDD student-nav-label-parity)
 
 Correction to the postscript below: the second nav item reads **"Replacement History"** (not "Request History" as originally written) — the shared whitelist label was renamed for cross-page parity; see `auth-wiring-changelog.md`.

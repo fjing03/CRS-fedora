@@ -1,5 +1,15 @@
 # Changelog — Lecturer My Timetable
 
+## [2026-10-10] Frozen-design parity: keyword-span cards + conflict Replace Now (SDD all-pages-design-parity)
+
+- **Card descriptions** adopt the frozen `info-keyword`/`warn-keyword` spans (ids/labels unchanged).
+- **Conflict affordance fixed (bug)**: the modal's Replace Now button showed only on holidays — a B005-conflicted class (frozen condition `day.holiday || event.status === 'conflict'`) had no button. Aligned to frozen.
+- **Tooltip fallback** aligned to frozen (`e.cohort || ''` — no spurious third segment); print button on week-nav; guide text matches frozen ("Approved (blue), Rejected (grey)" dropped); summary filters cancelled.
+- Verified: phpunit 130/130 · pages-parity 3/3 (B005 owner sees Replace Now) · records-intact.
+
+---
+
+
 ## [2026-10-09] Venue-restriction conflicts render on the timeline (SDD b005-diploma-conflict)
 
 The shared timeline trait (`ResolvesTimetableTimeline`) now derives venue-restriction conflicts: a session in **B005 with any Diploma (`D*`) cohort** renders `status: 'conflict'` — loud striped red on the owner's My Timetable via the engine's default conflict path, quiet red for other viewers. The shared class modal shows "Scheduling conflict — needs attention" (no replace button — write path is Slice B). Derived at render time: no DB mutation, slot state machine (FR 4.11) untouched; covers My/Cohort/Student timetables. Precedence: pending request > conflict (a conflict block turns yellow while a replacement request on it is active). Verified: phpunit 129/129 (845 assertions), phpstan 0, lint clean.

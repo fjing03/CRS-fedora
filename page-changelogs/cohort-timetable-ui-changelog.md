@@ -1,5 +1,18 @@
 # Changelog — Cohort Timetable UI
 
+## [2026-10-10] Frozen-design parity: 3-item legend, My-Teaching cards, ownership fix (SDD all-pages-design-parity)
+
+- **Legend** 5-item colour swatches → frozen 3 block-class chips (Normal / Pending / Conflict / Public Holiday) + ownership hint.
+- **Cards** → frozen 5: Total Classes / Teaching Hours / **My Teaching Classes** / **My Teaching Hours** / Conflicts (Replacements + Pending cards retired; `sumMyClasses`/`sumMyHours` filled by the shared `computeSummary`).
+- **Ownership axis fixed (bug)**: the blade tested `e.isMine`, a field no payload ever set — every block rendered as "others'". Now uses the frozen idiom (`lecturer === MockData.currentUser.name`), incl. `replacementNoteFn` ownership checks.
+- **PH-day exception**: viewer's own holiday classes render loud `event-conflict` ("your class won't run"); others' stay hairline red.
+- **Tooltip bug fixed**: dropped the stale `tooltipExtra` (post-merge builder already appends the lecturer) — tooltips were rendering "Dr. X · Dr. X · Scheduled", now `lecturer · status`.
+- **Glue**: print button on week-nav; guide text matches frozen; summary filters cancelled; frozen week persistence key.
+- Verified: phpunit 130/130 · phpstan 0 · lint clean · pages-parity 3/3 (legend, `event-mine`, 2-segment tooltip) · records-intact.
+
+---
+
+
 ## [2026-10-09] Page becomes lecturer/PL-only (SDD student-nav-remove-cohort)
 
 `/cohort-timetable-ui` is no longer on the student side: the student nav whitelist drops **Cohort Timetables** (students keep My Timetable + Request History), and the route mw tightens `['auth']` → `['auth', 'role:lecturer']` — students hitting the URL directly get 403 instead of their pinned cohort view. FR 1.2 is unaffected: students still see their own cohort's weekly schedule via **Student My Timetable** (pinned cohort chip). Lecturer and PL nav keep the Cohort Timetables item; the route `nav` key is unchanged so their active-state highlighting still works. The component's student-pinning branch becomes unreachable (left in place, defensive).

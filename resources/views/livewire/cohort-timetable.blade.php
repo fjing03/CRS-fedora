@@ -39,7 +39,7 @@
         'guideItems' => [
             '<strong>Select cohort</strong> — choose a faculty, then a cohort to view its timetable',
             '<strong>Week navigation</strong> — use arrows or Today button to browse weeks',
-            '<strong>Slot status</strong> — Blue: Your classes, Green: Others\' classes, Grey: Others\' pending, Amber: Your pending, Red: Conflict',
+            '<strong>Slot status</strong> — Blue: Your classes, Green: Others\' classes, Grey: Others\' pending, Amber: Your pending, Striped red: Your conflict/holiday, Plain red: Others\' conflict/holiday',
             '<strong>View details</strong> — click any slot to see class details and venue info',
         ]
     ])
@@ -52,36 +52,35 @@
         <select id="cohortSelect" onchange="onCohortChange(this.value)" disabled>
             <option value="">Select Cohort</option>
         </select>
-        @include('partials.ui-week-nav', ['prevOnclick' => 'prevWeek()', 'nextOnclick' => 'nextWeek()', 'selectId' => 'weekSelect', 'selectOnclick' => 'selectWeek(this.value)', 'disabled' => $pinnedCohortId === null])
+        @include('partials.ui-week-nav', ['prevOnclick' => 'prevWeek()', 'nextOnclick' => 'nextWeek()', 'selectId' => 'weekSelect', 'selectOnclick' => 'selectWeek(this.value)', 'disabled' => $pinnedCohortId === null, 'showPrint' => true])
     </div>
 
     <!-- ─── Grid Wrapper ─── -->
     @include('partials.ui-grid-table')
 
-    <!-- ─── Legend Bar ─── -->
+    <!-- ─── Legend Bar ─── frozen 3-item block-class legend + ownership hint (all-pages-design-parity) -->
     @include('partials.ui-legend-bar', [
+        'ownershipHint' => true,
         'items' => [
-            ['color' => 'var(--color-primary-container)', 'label' => 'Your Classes', 'tip' => 'Normal or replacement sessions assigned to you'],
-            ['color' => 'var(--color-success-container)', 'label' => 'Others\' Classes', 'tip' => 'Normal or replacement sessions by other lecturers'],
-            ['color' => 'var(--color-surface-variant)', 'label' => 'Others\' Pending', 'tip' => 'Replacement request by other lecturers, awaiting PL approval'],
-            ['color' => 'var(--color-tertiary-container)', 'label' => 'Your Pending', 'tip' => 'Your replacement request, awaiting PL approval'],
-            ['color' => 'var(--color-error-container)', 'label' => 'Conflict', 'tip' => 'Scheduling conflict or public holiday'],
+            ['class' => 'event-normal', 'label' => 'Normal', 'tip' => 'Scheduled class with no issues (replacement sessions fold in here on this page)'],
+            ['class' => 'event-pending', 'label' => 'Pending', 'tip' => 'Replacement request awaiting PL approval'],
+            ['class' => 'event-conflict', 'label' => 'Conflict / Public Holiday', 'tip' => 'This class will not run as scheduled — scheduling conflict or public holiday'],
         ]
     ])
 
-    <!-- ─── Summary Bar ─── -->
+    <!-- ─── Summary Bar ─── frozen 5-card set (all-pages-design-parity C2) -->
     @include('partials.ui-summary-bar', [
         'cards' => [
             ['class' => 'card-total', 'valueId' => 'sumTotal', 'label' => 'Total Classes',
-                'description' => 'Total classes scheduled for <strong>this cohort</strong> in the selected week.'],
+                'description' => 'Total classes scheduled for <span class="info-keyword">this cohort</span> in the selected week.'],
             ['class' => 'card-hours', 'valueId' => 'sumHours', 'label' => 'Teaching Hours',
-                'description' => 'Total <strong>teaching hours</strong> for this cohort in the selected week (each slot = <strong>30 minutes</strong>).'],
-            ['class' => 'card-replacement', 'valueId' => 'sumReplacement', 'label' => 'Replacements',
-                'description' => 'Classes with a <strong>replacement lecturer</strong> assigned this week.'],
-            ['class' => 'card-pending', 'valueId' => 'sumPending', 'label' => 'Pending',
-                'description' => 'Replacement requests for this cohort still <strong>waiting for approval</strong> or a volunteer.'],
+                'description' => 'Total <span class="info-keyword">teaching hours</span> for this cohort in the selected week (each slot = <strong>30 minutes</strong>).'],
+            ['class' => 'card-replacement', 'valueId' => 'sumMyClasses', 'label' => 'My Teaching Classes',
+                'description' => 'Sessions <span class="info-keyword">taught by you</span> this week — <strong>each class counts separately</strong> (e.g. Subject A (T) and Subject A (L) are two classes).'],
+            ['class' => 'card-hours', 'valueId' => 'sumMyHours', 'label' => 'My Teaching Hours',
+                'description' => 'Total hours of <span class="info-keyword">your classes</span> this week (each slot = <strong>30 minutes</strong>).'],
             ['class' => 'card-conflict', 'valueId' => 'sumConflict', 'label' => 'Conflicts',
-                'description' => '<strong>Scheduling clashes</strong> or classes on <strong>public holidays</strong> for this cohort that need attention.'],
+                'description' => '<span class="warn-keyword">Scheduling clashes</span> or classes on <strong>public holidays</strong> for this cohort that need attention.'],
         ]
     ])
 
@@ -111,7 +110,7 @@
             let currentWeek = window.currentWeek;
             let selectedCohortId = pinnedCohortId;
 
-            const weekNav = new WeekNavigator(MockData.semester, weekData);
+            const weekNav = new WeekNavigator(MockData.semester, weekData, null, 'cohortTimetableWeek');
             weekNav._currentWeek = currentWeek;
 
             /* ════════ DROPDOWNS ════════ */
@@ -159,7 +158,7 @@
                 document.getElementById('emptyText').textContent = 'Choose a faculty, then pick a cohort to view its weekly timetable.';
                 document.getElementById('tableHead').innerHTML = '';
                 document.getElementById('tableBody').innerHTML = '';
-                ['sumTotal', 'sumHours', 'sumReplacement', 'sumPending', 'sumConflict'].forEach(id => {
+                ['sumTotal', 'sumHours', 'sumMyClasses', 'sumMyHours', 'sumConflict'].forEach(id => {
                     document.getElementById(id).textContent = '0';
                 });
                 updateWeekArrows(true, true);
@@ -212,7 +211,7 @@
                     document.getElementById('emptyState').style.display = 'flex';
                     document.getElementById('emptyTitle').textContent = 'No classes scheduled';
                     document.getElementById('emptyText').textContent = 'No classes scheduled for this cohort in the selected week.';
-                    ['sumTotal', 'sumHours', 'sumReplacement', 'sumPending', 'sumConflict'].forEach(id => {
+                    ['sumTotal', 'sumHours', 'sumMyClasses', 'sumMyHours', 'sumConflict'].forEach(id => {
                         document.getElementById(id).textContent = '0';
                     });
                     updateWeekArrows(currentWeek <= 0, currentWeek >= weekData.length - 1);
@@ -225,26 +224,31 @@
                     events: weekEvents,
                     days: weekData[currentWeek].days,
                     onEventClick: function (e, di) { openModal(e, di); },
-                    tooltipExtra: function (e) { return e.lecturer || '—'; },
                     statusClassFn: function (div, e, isConflict) {
-                        if (isConflict) { div.classList.add('event-public-holiday'); return; }
-                        if (e.status === 'conflict') {
-                            // B005 diploma-cohort conflict (b005-diploma-conflict): owner loud, others quiet red (upstream idiom)
-                            div.classList.add(e.lecturer === MockData.currentUser.name ? 'event-conflict' : 'event-public-holiday');
-                            return;
-                        }
-                        const isMine = e.isMine === true;
-                        if (e.status === 'pending') {
+                        var isMine = e.lecturer === MockData.currentUser.name;
+                        /* §10.0 two-axis language: colour = status (same fill for
+                           everyone), border weight = ownership — own conflict/PH
+                           gets the loud 3px error border; everyone else's is the
+                           same red with a 0.5px hairline. (all-pages-design-parity
+                           C4/C5: frozen idiom — the old e.isMine test read a field
+                           no payload ever set, so everything rendered as others'.) */
+                        if ((isConflict || e.status === 'conflict') && isMine) {
+                            div.classList.add('event-conflict');
+                        } else if (isConflict || e.status === 'conflict') {
+                            div.classList.add('event-public-holiday');   // same error red, hairline border (not yours)
+                        } else if (e.status === 'pending') {
                             div.classList.add(isMine ? 'event-mine-pending' : 'event-others-pending');
                         } else {
                             div.classList.add(isMine ? 'event-mine' : 'event-others');
                         }
                     },
                     replacementNoteFn: function (e) {
-                        return buildReplacementNote(e, { checkOwnership: function (ev) { return ev.isMine === true; } });
+                        return buildReplacementNote(e, {
+                            checkOwnership: function (ev) { return ev.lecturer === MockData.currentUser.name; }
+                        });
                     }
                 });
-                computeSummary(weekEvents, weekData[currentWeek].days);
+                computeSummary(weekEvents.filter(e => e.status !== 'cancelled'), weekData[currentWeek].days);
                 updateWeekArrows(currentWeek <= 0, currentWeek >= weekData.length - 1);
             }
 

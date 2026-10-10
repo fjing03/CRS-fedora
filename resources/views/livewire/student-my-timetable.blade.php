@@ -26,7 +26,7 @@
 
     <!-- ─── Semester Bar ─── -->
     <div class="semester-bar">
-        @include('partials.ui-week-nav', ['prevOnclick' => 'prevWeek()', 'nextOnclick' => 'nextWeek()', 'selectId' => 'weekSelect', 'selectOnclick' => 'selectWeek(this.value)'])
+        @include('partials.ui-week-nav', ['prevOnclick' => 'prevWeek()', 'nextOnclick' => 'nextWeek()', 'selectId' => 'weekSelect', 'selectOnclick' => 'selectWeek(this.value)', 'showPrint' => true])
     </div>
 
     <!-- ─── Week Subtitle ─── -->
@@ -43,15 +43,15 @@
     @include('partials.ui-summary-bar', [
         'cards' => [
             ['class' => 'card-total', 'valueId' => 'sumTotal', 'label' => 'Total Classes',
-                'description' => 'Total classes in <strong>your timetable</strong> this week.'],
+                'description' => 'Total classes in <span class="info-keyword">your timetable</span> this week.'],
             ['class' => 'card-hours', 'valueId' => 'sumHours', 'label' => 'Class Hours',
-                'description' => 'Total <strong>class hours</strong> you have this week (each slot = <strong>30 minutes</strong>).'],
+                'description' => 'Total <span class="info-keyword">class hours</span> you have this week (each slot = <strong>30 minutes</strong>).'],
             ['class' => 'card-replacement', 'valueId' => 'sumReplacement', 'label' => 'Replacements',
-                'description' => 'Classes where a <strong>different lecturer</strong> is covering this week.'],
+                'description' => 'Classes where a <span class="info-keyword">different lecturer</span> is covering this week.'],
             ['class' => 'card-pending', 'valueId' => 'sumPending', 'label' => 'Pending',
-                'description' => 'Replacement requests still <strong>being processed</strong> for your classes.'],
+                'description' => 'Replacement requests still <span class="warn-keyword">being processed</span> for your classes.'],
             ['class' => 'card-conflict', 'valueId' => 'sumConflict', 'label' => 'Conflicts',
-                'description' => '<strong>Scheduling overlaps</strong> in your timetable that need attention.'],
+                'description' => '<span class="warn-keyword">Scheduling clashes and public holidays</span> in your timetable that need attention.'],
         ]
     ])
 
@@ -68,6 +68,12 @@
         document.addEventListener('DOMContentLoaded', function () {
             MockData.semester = @json($semesterJs);
             MockData.holidays = @json($holidaysJs);
+            /* Real viewer identity (all-pages-design-parity S3): the shared
+               openClassModal compares event.requestedBy against this — without
+               it the student page's comparison runs against the mock-data
+               default persona and a student's own pending request never
+               matches. */
+            MockData.currentUser = @json(['name' => auth()->user()?->name ?? '']);
 
             window.weekData = generateWeekData();
             const weekData = window.weekData;
@@ -104,14 +110,13 @@
                     events: eventsData[currentWeek] || [],
                     days: weekData[currentWeek].days,
                     onEventClick: function (e) { openModal(e); },
-                    tooltipExtra: function (e) { return e.lecturer || '—'; },
                     replacementNoteFn: function (e) { return buildReplacementNote(e); }
                 });
                 updateSummary();
             }
 
             function updateSummary() {
-                computeSummary(eventsData[currentWeek] || [], weekData[currentWeek].days);
+                computeSummary((eventsData[currentWeek] || []).filter(e => e.status !== 'cancelled'), weekData[currentWeek].days);
                 updateWeekArrows(currentWeek <= 0, currentWeek >= weekData.length - 1);
             }
 

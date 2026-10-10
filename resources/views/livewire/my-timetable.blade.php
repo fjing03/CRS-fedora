@@ -47,9 +47,9 @@
         'guideTitle' => 'How to use this page',
         'guideItems' => [
             '<strong>Week navigation</strong> — use arrows or Today button to browse weeks',
-            '<strong>Slot status</strong> — Normal (green), Conflicted (red), Pending (amber), Approved (blue), Rejected (grey)',
+            '<strong>Slot status</strong> — Normal (green), Conflicted (red), Pending (amber)',
             '<strong>Request replacement</strong> — click any conflicted slot to open the request form',
-            '<strong>View details</strong> — click a normal/approved slot to see class details',
+            '<strong>View details</strong> — click any slot to see class details',
         ]
     ])
 
@@ -61,7 +61,7 @@
 
     <!-- ─── Semester Bar ─── -->
     <div class="semester-bar">
-        @include('partials.ui-week-nav', ['prevOnclick' => 'prevWeek()', 'nextOnclick' => 'nextWeek()', 'selectId' => 'weekSelect', 'selectOnclick' => 'selectWeek(this.value)'])
+        @include('partials.ui-week-nav', ['prevOnclick' => 'prevWeek()', 'nextOnclick' => 'nextWeek()', 'selectId' => 'weekSelect', 'selectOnclick' => 'selectWeek(this.value)', 'showPrint' => true])
     </div>
 
     <!-- ─── Week Subtitle ─── -->
@@ -78,15 +78,15 @@
     @include('partials.ui-summary-bar', [
         'cards' => [
             ['class' => 'card-total', 'valueId' => 'sumTotal', 'label' => 'Total Classes',
-                'description' => 'Total classes in <strong>your weekly timetable</strong> for the selected week.'],
+                'description' => 'Total classes in <span class="info-keyword">your weekly timetable</span> for the selected week.'],
             ['class' => 'card-hours', 'valueId' => 'sumHours', 'label' => 'Teaching Hours',
-                'description' => 'Total <strong>teaching hours</strong> in your timetable for the selected week (each slot = <strong>30 minutes</strong>).'],
+                'description' => 'Total <span class="info-keyword">teaching hours</span> in your timetable for the selected week (each slot = <strong>30 minutes</strong>).'],
             ['class' => 'card-replacement', 'valueId' => 'sumReplacement', 'label' => 'Replacements',
-                'description' => 'Classes where a <strong>replacement lecturer</strong> is covering you this week.'],
+                'description' => 'Classes where a <span class="info-keyword">replacement lecturer</span> is covering you this week.'],
             ['class' => 'card-pending', 'valueId' => 'sumPending', 'label' => 'Pending',
-                'description' => 'Replacement requests of yours still <strong>waiting for approval</strong> or a volunteer.'],
+                'description' => 'Replacement requests of yours still <span class="warn-keyword">waiting for approval</span> or a volunteer.'],
             ['class' => 'card-conflict', 'valueId' => 'sumConflict', 'label' => 'Conflicts',
-                'description' => '<strong>Scheduling clashes</strong> in your timetable or classes on <strong>public holidays</strong> that need attention.'],
+                'description' => '<span class="warn-keyword">Scheduling clashes</span> in your timetable or classes on <strong>public holidays</strong> that need attention.'],
         ]
     ])
 
@@ -130,7 +130,7 @@
                 window.currentModalEvent = event;
 
                 const days = weekData[currentWeek].days;
-                const isConflict = days[event.di] && days[event.di].holiday;
+                const isConflict = (days[event.di] && days[event.di].holiday) || event.status === 'conflict';
 
                 const replaceBtn = document.getElementById('btnReplaceNow');
                 replaceBtn.style.display = isConflict ? 'flex' : 'none';
@@ -173,7 +173,7 @@
                     tooltipExtra: function (e) {
                         // Viewer is the lecturer — tooltip shows the cohort(s).
                         if (e.cohorts && e.cohorts.length) return e.cohorts.join(' + ');
-                        return e.cohort || e.venue || '—';
+                        return e.cohort || '';
                     },
                     replacementNoteFn: function (e) {
                         return buildReplacementNote(e);
@@ -184,7 +184,7 @@
 
             function updateSummary() {
                 const events = eventsData[currentWeek] || [];
-                computeSummary(events, weekData[currentWeek].days);
+                computeSummary(events.filter(e => e.status !== 'cancelled'), weekData[currentWeek].days);
                 updateWeekArrows(currentWeek <= 0, currentWeek >= weekData.length - 1);
             }
 
