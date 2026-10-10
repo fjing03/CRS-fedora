@@ -1,5 +1,11 @@
 # Proposal: Wire Backend into Refactored UI
 
+> **⚠ FROZEN 2026-08-31 — superseded in part by the 2026-10-10 unfreeze. Read this as the historical "WHAT"; the amended contract lives downstream.**
+> Two claims below are outdated:
+> 1. **Cohort-timetable bucket** — the Slice A text says all-roles (`auth` only); shipped + frozen as **lecturer+PL** (`role:lecturer`). Authoritative: `design.md` → "Amendment log — 3-batch unfreeze (2026-10-10)" item 2, and the amended `specs/rbac-route-gating/spec.md`.
+> 2. **`UpcomingReplacements`** — renamed to **`ReplacementHistory`** (route `/replacement-history-ui`). Authoritative: `design.md` amendment log item 1, `tasks.md` amendment log entry 6, amended specs.
+> Full paper trail: `review-log.md` (unfreeze rounds 1–3 + addendum 2b). Per freeze discipline the proposal text below is unmodified — this banner is the only addition.
+
 ## Why
 
 Upstream UI refactor (merge fd8c403, ~29k lines) delivers 9 page templates rendering purely from `window.MockData`. The backend is complete and tested — `MatrixIntersectionEngine`, `OCCValidator` (+`OCCResult`), full timetable schema + seeders — but nothing is connected. All 9 UI routes in `routes/web.php` are public closures, violating FR 4.13/4.14. This change converts pages to Livewire components on real DB data and gates every route.

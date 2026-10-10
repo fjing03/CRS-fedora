@@ -188,3 +188,7 @@ User catch: spec.md:37 said "a 2-hour class needs 2 adjacent green cells" (mock-
 
 ### Verdict
 **PASS — addendum 2b FROZEN.** Implementer contract for task 2.3 is now unambiguous: 30-min cells, 2h = 4, never snapped to the hour.
+
+## Discoverability follow-up — frozen proposal banner — 2026-10-10 (no reviewer round)
+
+External critique accepted: the "the summary is outdated" notes lived in design (2nd) and tasks (last) but not in `proposal.md` (1st) — the document readers start at. Freeze discipline kept the proposal CONTENT unmodified; the fix is a dated banner at the top of the proposal (the only addition), pointing to the authoritative amendments (design amendment log items 1–2, tasks amendment log entry 6, amended rbac spec, review-log rounds). Banner pointers verified to resolve in the committed artifacts. No contract content changed → no reviewer round (recorded here per house honesty; rounds 1–3 + 2b remain the binding reviews).
