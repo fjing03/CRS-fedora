@@ -82,6 +82,8 @@ class VenueTimetable extends Component
         // (each class counts separately, upstream wording), myHours = slots × 0.5.
         $mySlotCount = array_fill(0, $weeks, 0);
         $mySessionIds = array_fill(0, $weeks, []);
+        // Coalescing groups (venue-block-span-coalescing): keyed w:day:session.
+        $groups = [];
 
         foreach ($slots as $slot) {
             $session = $slot->classSession;
@@ -90,13 +92,58 @@ class VenueTimetable extends Component
                 continue;
             }
 
+            // Ownership cards stay ROW-counted (each 30-min slot = 0.5 h).
             $isMine = $session->lecturer_id === $myUserId;
+            if ($isMine && $slot->status === 'occupied') {
+                $mySlotCount[$w - 1]++;
+                $mySessionIds[$w - 1][$session->id] = true;
+            }
 
+            $start = $this->slotIndex($slot->start_time);
+            $end = $this->slotIndex($slot->end_time) - 1;
+            $severity = $this->venueRestrictionConflict($session)
+                ? 3
+                : ($slot->status === 'pending' ? 2 : 0);
+
+            // Coalescing pre-pass (venue-block-span-coalescing S1): the import
+            // stores a full half-hour grid per venue/week — a class OCCUPIES its
+            // adjacent rows (a 2-hour lecture = 4 rows). Group rows by
+            // class_session_id within (week, day) and emit ONE event spanning
+            // min→max slot index. NEVER key on module code + adjacency: B006
+            // Monday runs BMIT2154 (L) 09:00–11:00 straight into BMIT2154 (T)
+            // 11:00–12:00 — two distinct sessions. Min/max semantics (the slot
+            // query has no orderBy); rows are contiguous by construction, so no
+            // gap-splitting. Rendering-only: the cards below stay row-counted.
+            $key = $w.':'.$slot->day_of_week.':'.$session->id;
+            if (! isset($groups[$key])) {
+                $groups[$key] = [
+                    'w' => $w,
+                    'di' => (int) $slot->day_of_week,
+                    'id' => $slot->id,
+                    'start' => $start,
+                    'end' => $end,
+                    'severity' => $severity,
+                    'session' => $session,
+                ];
+
+                continue;
+            }
+
+            $g = &$groups[$key];
+            $g['id'] = min($g['id'], $slot->id);
+            $g['start'] = min($g['start'], $start);
+            $g['end'] = max($g['end'], $end);
+            $g['severity'] = max($g['severity'], $severity);
+            unset($g);
+        }
+
+        foreach ($groups as $g) {
+            $session = $g['session'];
             $event = [
-                'id' => $slot->id,
-                'di' => (int) $slot->day_of_week,
-                'start' => $this->slotIndex($slot->start_time),
-                'end' => $this->slotIndex($slot->end_time) - 1,
+                'id' => $g['id'],
+                'di' => $g['di'],
+                'start' => $g['start'],
+                'end' => $g['end'],
                 'code' => $session->module->module_code,
                 'name' => $session->module->module_name,
                 'type' => $session->session_type,
@@ -105,24 +152,21 @@ class VenueTimetable extends Component
                 'cohort' => $this->cohortLabel($session->cohorts),
                 'cohorts' => $session->cohorts->map(fn ($c) => $this->cohortCode($c))->all(),
                 'studentCount' => (int) $session->cohorts->sum('student_count'),
-                'status' => $this->venueRestrictionConflict($session)
-                    ? 'conflict'
-                    : ($slot->status === 'pending' ? 'pending' : 'normal'),
+                'status' => match ($g['severity']) {
+                    3 => 'conflict',
+                    2 => 'pending',
+                    default => 'normal',
+                },
                 'remarks' => '',
-                'mine' => $isMine,
+                'mine' => $session->lecturer_id === $myUserId,
             ];
 
-            if ($isMine && $slot->status === 'occupied') {
-                $mySlotCount[$w - 1]++;
-                $mySessionIds[$w - 1][$session->id] = true;
-            }
-
             // Twin-merge pre-bucketing (combined lectures): same venue + day +
-            // start collapses in mergeTwinEvents() after the loop. The
+            // start collapses in mergeTwinEvents() after coalescing. The
             // occupied/pending partial unique index makes real twins
             // impossible until Slice B — the merge is defensive contract
             // parity, unit-tested directly (see VenueTimetableTest).
-            $eventsByWeek[$w - 1][$event['di'].':'.$event['start']][] = $event;
+            $eventsByWeek[$g['w'] - 1][$event['di'].':'.$event['start']][] = $event;
         }
 
         // Grid engine consumes a list — merge twins per week and strip keys.

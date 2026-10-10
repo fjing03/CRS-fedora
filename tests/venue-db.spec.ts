@@ -46,6 +46,7 @@ test('deep link preselects the venue; blocks paint the two-axis language; modal 
   // "name · lecturer · status" from these two attributes.
   const bmit = page.locator('.timetable .event-block', { hasText: 'BMIT2154' }).first();
   await expect(bmit).toBeVisible();
+  await expect(bmit).toHaveClass(/span-4/);   // coalesced 2-hour lecture (09:00–11:00 = 4 half-hours)
   await expect(bmit).toHaveAttribute('data-name', 'Switching and Routing Technologies');
   await expect(bmit).toHaveAttribute('data-tip2', /.+ · .+/);
 

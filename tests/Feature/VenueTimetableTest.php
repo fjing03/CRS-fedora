@@ -3,7 +3,9 @@
 namespace Tests\Feature;
 
 use App\Livewire\VenueTimetable;
+use App\Models\ClassSession;
 use App\Models\Lecturer;
+use App\Models\Module;
 use App\Models\Student;
 use App\Models\TimeSlot;
 use App\Models\User;
@@ -19,9 +21,10 @@ use Tests\TestCase;
  * (suite-proven explicit `$this->seed()` pattern inside RefreshDatabase's
  * per-test transaction).
  *
- * Frozen anchors (real data): B006 week 1 has 48 occupied slots; one of its
- * Monday-09:00 sessions is BMIT2154 "Switching and Routing Technologies"
- * (lecturer user_id 3); the component is render-only (no week/venue actions).
+ * Frozen anchors (real data): B006 week 1 has 48 occupied ROWS across 15
+ * sessions (coalesced into one event per session); one of its Monday-09:00
+ * sessions is BMIT2154 "Switching and Routing Technologies" (lecturer user_id
+ * 3); the component is render-only (no week/venue actions).
  * Holidays (canonical seed): W8 Monday, W14 Wed+Thu.
  */
 final class VenueTimetableTest extends TestCase
@@ -50,17 +53,28 @@ final class VenueTimetableTest extends TestCase
 
     public function test_totals_and_events_match_seed_for_b006_week_1(): void
     {
+        // Coalesced contract (venue-block-span-coalescing): one event per
+        // distinct SESSION, not per half-hour row. The frozen "48" lives on in
+        // the row-counted cards (sumOccupied), not in the event count.
+        $expectedSessions = TimeSlot::query()
+            ->where('week_number', 1)
+            ->where('status', 'occupied')
+            ->whereHas('classSession', fn ($q) => $q->whereHas('venue', fn ($v) => $v->where('room_code', 'B006')))
+            ->distinct()
+            ->count('class_session_id');
+
         $component = Livewire::withQueryParams(['venue' => 'B006'])
             ->actingAs($this->staffUser('5425'))
             ->test(VenueTimetable::class);
 
-        $component->assertViewHas('eventsByWeek', function ($eventsByWeek): bool {
+        $component->assertViewHas('eventsByWeek', function ($eventsByWeek) use ($expectedSessions): bool {
             // contiguous 0..13 map (client-side WeekNavigator depends on it)
             if (count($eventsByWeek) !== 14 || ! isset($eventsByWeek[13])) {
                 return false;
             }
-            // B006 week 1 = 48 occupied slots (frozen real-data anchor)
-            if (count($eventsByWeek[0]) !== 48) {
+            // B006 week 1 = 48 occupied ROWS across 15 distinct sessions
+            // (coalesced: one event per session)
+            if (count($eventsByWeek[0]) !== $expectedSessions) {
                 return false;
             }
 
@@ -71,18 +85,34 @@ final class VenueTimetableTest extends TestCase
         });
 
         $component->assertViewHas('eventsByWeek', function ($eventsByWeek): bool {
-            // the BMIT2154 Monday-09:00 session appears with real module fields
+            // The BMIT2154 L/T adjacent-session trap (proposal S1): Monday runs
+            // the Lecture 09:00–11:00 straight into the Tutorial 11:00–12:00 —
+            // two DISTINCT sessions that must NOT fuse.
+            $bmit = [];
             foreach ($eventsByWeek[0] as $ev) {
-                if ($ev['code'] === 'BMIT2154') {
-                    return $ev['name'] === 'Switching and Routing Technologies'
-                        && $ev['di'] === 0
-                        && $ev['start'] === 2  // 09:00 → index 2 from 08:00
-                        && $ev['venue'] === 'B006'
-                        && $ev['status'] === 'normal';
+                if ($ev['code'] === 'BMIT2154' && $ev['di'] === 0) {
+                    $bmit[] = $ev;
+                }
+            }
+            if (count($bmit) !== 2) {
+                return false;
+            }
+
+            foreach ($bmit as $ev) {
+                $isLecture = $ev['start'] === 2;
+                $isTutorial = $ev['start'] === 6;
+                if (! $isLecture && ! $isTutorial) {
+                    return false;
+                }
+                if ($isLecture && ($ev['end'] !== 5 || $ev['name'] !== 'Switching and Routing Technologies' || $ev['venue'] !== 'B006' || $ev['status'] !== 'normal')) {
+                    return false;   // coalesced span-4: 09:00 → index 2, 11:00 → end index 5
+                }
+                if ($isTutorial && $ev['end'] !== 7) {
+                    return false;   // coalesced span-2: 11:00 → index 6, 12:00 → end index 7
                 }
             }
 
-            return false;
+            return true;
         });
 
         $component->assertViewHas('totalsByWeek', function ($totals): bool {
@@ -237,9 +267,9 @@ final class VenueTimetableTest extends TestCase
             ->where('day_of_week', 0)
             ->where('status', 'available')
             ->firstOrFail();
-        $session = \App\Models\ClassSession::create([
+        $session = ClassSession::create([
             'semester_id' => $slot->semester_id,
-            'module_id' => \App\Models\Module::query()->firstOrFail()->id,
+            'module_id' => Module::query()->firstOrFail()->id,
             'lecturer_id' => $viewer->id,
             'day_of_week' => 0,
             'start_time' => $slot->start_time,
