@@ -51,21 +51,22 @@
         <div class="progress-track"><div class="progress-fill" id="progressFill"></div></div>
     </div>
 
-    <!-- ─── Semester Bar ─── -->
-    <div class="semester-bar">
-        @include('partials.ui-week-nav', ['prevOnclick' => 'prevWeek()', 'nextOnclick' => 'nextWeek()', 'selectId' => 'weekSelect', 'selectOnclick' => 'selectWeek(this.value)'])
-    </div>
-
-    <!-- ─── Week Subtitle ─── -->
-    <div class="week-subtitle" id="weekSubtitle"></div>
-
-    <!-- ─── Venue Selector ─── -->
+    <!-- ─── Semester Bar ─── venue + week selectors on ONE row (frozen fjing
+         layout, f8b35a2; matches the cohort-timetable pattern). The 2026-10-09
+         DB wiring (adc95bb) had split them into two bars — unauthorised drift,
+         fixed in venue-toolbar-row-parity. Print stub restored via showPrint;
+         fav-star ☆ stays dropped (documented divergence — mock localStorage),
+         the capacity span stands where fjing's fav-btn sits. -->
     <div class="semester-bar">
         <div class="venue-dropdown-wrap">
             @include('partials.ui-venue-dropdown', ['selectId' => 'venueSelect'])
             <span class="venue-capacity" id="venueCapacity"></span>
         </div>
+        @include('partials.ui-week-nav', ['prevOnclick' => 'prevWeek()', 'nextOnclick' => 'nextWeek()', 'selectId' => 'weekSelect', 'selectOnclick' => 'selectWeek(this.value)', 'showPrint' => true])
     </div>
+
+    <!-- ─── Week Subtitle ─── -->
+    <div class="week-subtitle" id="weekSubtitle"></div>
 
     <!-- ─── Grid Wrapper ─── -->
     @include('partials.ui-grid-table')

@@ -740,3 +740,22 @@ The print button's native `title=` tooltip moved to the shared `data-tip` bubble
 modal. The five summary-card flip-backs carry the new keyword language — one bold-uppercase
 keyword per description (`FREE TIME SLOTS`, `YOU TEACH`, …), with the "Cannot book" card's
 keyword in red (`CANNOT BOOK`) since it's an attention card.
+
+### Postscript — toolbar row parity (2026-10-10, SDD: venue-toolbar-row-parity)
+
+- **Venue + week selectors back on ONE toolbar row** (frozen fjing layout,
+  `f8b35a2` template): the two separate `.semester-bar` rows left by the
+  2026-10-09 DB wiring (`adc95bb`) are merged — venue dropdown (with capacity
+  span) first, then week nav (arrows · week select · Today · print stub),
+  matching the cohort-timetable pattern. No SDD had authorized the split; it
+  was collateral restructure from the first DB wiring that later parity passes
+  (colour/legend/cards only) never re-checked.
+- **Print button restored** via the shared `ui-week-nav` `showPrint` stub
+  ("Coming soon" tooltip + toast on click) — silently dropped in the same
+  DB-wiring commit.
+- **Fav-star ☆ stays dropped** (documented divergence): mock localStorage
+  feature with no DB-page justification; the capacity span stands where
+  fjing's fav-btn sits.
+- Week subtitle stays under the merged bar (shared `ui-common.js` element;
+  carries the week date range our select options don't show — unlike fjing,
+  which has no subtitle).
