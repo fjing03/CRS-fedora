@@ -6,6 +6,7 @@ Current, load-bearing docs. Superseded material is in [`archive/`](archive/) —
 |------|-----------|--------|
 | [`venue-restrictions.md`](venue-restrictions.md) | B005 no-Diploma / B006 networking priority / P→labs booking rules | **Active** — B005 enforced (drives live derived conflicts); the rest are the spec for Wave 3b booking validation |
 | [`fcb-theme-colors.md`](fcb-theme-colors.md) | FCB-inspired color system — the design source for `public/css/theme.css` tokens | **Reference** — implemented in theme.css; consult when touching colors |
+| [`two-machine-workflow.md`](two-machine-workflow.md) | MSI (primary) + HP (secondary) two-machine protocol: one-trunk branch policy, serialize rules, per-machine DB landscape, boot ritual | **Active** — read when working across machines, touching branches/remotes, or unsure which DB a name refers to |
 | [`archive/FYP-BRIEFING.md`](archive/FYP-BRIEFING.md) | Old AI-briefing snapshot (2026-08-11) | Superseded by `CodingMAIN.md` |
 | [`archive/BACKEND-TASKS.md`](archive/BACKEND-TASKS.md) | Phase-1 backend build plan | Done — schema fully migrated; kept as booking-schema rationale (Wave 3b) |
 | [`archive/LEFTOVER_TASKS.md`](archive/LEFTOVER_TASKS.md) | Post-merge chore tracker (2026-08-27) | Done — historical record |
