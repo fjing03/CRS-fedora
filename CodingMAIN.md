@@ -530,6 +530,10 @@ These ten rules are **non-negotiable** for every page and every future change:
 
 ## 12. Roadmap
 
+> **FYP2 deadline (user-stated 2026-10-10): the 5th week after 2 Nov 2026 →
+> week of 7 Dec 2026.** Treat that week as the planning anchor; no finer-grained
+> course dates are recorded anywhere in the repo.
+
 | Sprint | Deliverable | Status |
 |--------|-------------|--------|
 | Sprint 1 | Venue/module/timetable schema + real data import; `MatrixIntersectionEngine` | ✅ Done |

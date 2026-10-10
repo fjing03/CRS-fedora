@@ -23,11 +23,12 @@
   `fedora-backend`) stranded 9 commits and 90 files — the cleanup cost a whole
   analysis session. Splitting postpones conflicts instead of preventing them;
   with one human coordinating two laptops, serialization (§3) is enough.
-- **Graveyard branches** (deletion on explicit user hold, NOT deleted yet):
-  `fedora` (1 stray commit from 2026-08-03) · `fedora-jing` (0 unique commits) ·
-  `fedora-frontend` (its 15 unique files ported to
-  `.sdd/archive/fedora-frontend-legacy/` on 2026-10-10 — safe to delete **after**
-  that port is pushed, when the user says so).
+- **Stale branches:** `fedora` (1 stray commit from 2026-08-03) and `fedora-jing`
+  (0 unique commits) were **deleted from origin on 2026-10-10** (user-approved).
+  `fedora-frontend` is **deliberately kept** (user decision, 2026-10-10): its
+  15 unique files are preserved byte-identically in
+  `.sdd/archive/fedora-frontend-legacy/`, so a future deletion loses nothing —
+  but it stays until the user says otherwise.
 - Remotes: `origin` = `fjing03/CRS-fedora` (**only** push target, and only on the
   user's explicit word) · `upstream` = `FjingXR/class-replacement-system`
   (**pull-only, never push**) · the HP additionally has a stale `local` mirror
@@ -61,8 +62,9 @@ After a pull that touched Blade views: run the two-command stale-cache restart
   state is preserved only by dumps.
 - Records-intact gate before/after any merge or data-touching change:
   `php artisan crs:db-row-counts`.
-- **No cron on either machine** (checked 2026-10-10) — backups are manual; take
-  a dump of `class_replacement_fresh` before the first Wave 3b write lands.
+- **No cron on either machine** (checked 2026-10-10) — backups are manual; the
+  first pristine dump of `class_replacement_fresh` was taken 2026-10-10 (see §6),
+  take another after any milestone worth keeping.
 
 ## 5. Per-machine boot ritual
 
@@ -87,7 +89,8 @@ crashes at step 2 on the 128M memory limit).
   portfolio + `FR&NFR.md`, cited by `CodingMAIN.md`), `knowledge/` (FYP1 writing
   requirements), cross-machine task prompts (`HANDOFF-TASK.md`, `VERIFY-TASK.md`,
   `SETUP-TASK.md`), the archived old `class-replacement-system` clone
-  (read-only reference).
+  (read-only reference). · Backups: `/home/philler/Desktop/tarumt/backups/`
+  (first pristine dump of `class_replacement_fresh`, 2026-10-10, + restore README).
 - **HP** — `/home/jinglinux/tarumt/backups/` (pristine dump + restore README) ·
   `/home/jinglinux/CRS-fedora-local.git` (stale mirror) ·
   `/home/jinglinux/tarumt/CRS/class-replacement-system` (pull-only upstream
