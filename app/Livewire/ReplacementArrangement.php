@@ -8,6 +8,7 @@ use App\Http\Requests\StoreReplacementRequest;
 use App\Models\ClassException;
 use App\Models\ClassSession;
 use App\Models\Cohort;
+use App\Models\Holiday;
 use App\Models\ReplacementRequest;
 use App\Models\TimeSlot;
 use App\Models\Venue;
@@ -16,6 +17,7 @@ use Illuminate\Contracts\View\View;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Validator;
+use Livewire\Attributes\Renderless;
 use Livewire\Component;
 
 /**
@@ -443,8 +445,14 @@ class ReplacementArrangement extends Component
      *
      * @return array<int, array{ok: bool, reason: string|null}>
      */
+    #[Renderless]
     public function submitBlocks(string $blocksJson, string $code = '', string $origJson = '{}', string $contextJson = '{}'): array
     {
+        // Renderless: this page's grid, dropdowns and selection state are all
+        // client-built — a post-call re-render/morph wiped them (the failed
+        // submit emptied the grid, the "table renders EMPTY" bug); every
+        // result is reported through the page's own modal/toast vocabulary.
+
         // The context pins the occurrence (D1 pair) when the handoff carried
         // one; the id is ownership-scoped, so a fabricated id resolves to null.
         $context = json_decode($contextJson, true);
@@ -459,9 +467,13 @@ class ReplacementArrangement extends Component
         // The week the request REPLACES (the original occurrence's week — D1
         // indexes it, D7 releases it at approval) is independent of where the
         // new slot lives. Legacy entries without a pin keep the slot's week.
+        // (The client sends {sessionId, week}; 'occurrenceWeek' stays accepted
+        // for direct/explicit callers — a key mismatch here silently dropped
+        // the pin and every UI submit fell back to slot-week semantics.)
         $weeks = $this->timelineWeeks();
-        $occurrenceWeek = is_array($context) && isset($context['occurrenceWeek']) && (int) $context['occurrenceWeek'] >= 1 && (int) $context['occurrenceWeek'] <= $weeks
-            ? (int) $context['occurrenceWeek']
+        $rawOccurrenceWeek = is_array($context) ? ($context['occurrenceWeek'] ?? $context['week'] ?? null) : null;
+        $occurrenceWeek = $rawOccurrenceWeek !== null && (int) $rawOccurrenceWeek >= 1 && (int) $rawOccurrenceWeek <= $weeks
+            ? (int) $rawOccurrenceWeek
             : null;
 
         $blocks = json_decode($blocksJson, true);
@@ -497,6 +509,20 @@ class ReplacementArrangement extends Component
                 ->whereIn('status', ['pending', 'approved'])
                 ->exists()) {
                 $results[] = ['ok' => false, 'reason' => $this->conflictText('duplicate_active_request')];
+
+                continue;
+            }
+
+            // D2 (2026-10-11 user decision) — holidays are unbookable: the new
+            // slot may not land on a public-holiday day. (Replacing a PH-hit
+            // occurrence remains exactly what the flow is for.)
+            $isHoliday = Holiday::query()
+                ->where('semester_id', $semesterId)
+                ->where('week_number', $week)
+                ->where('day_of_week', $day)
+                ->exists();
+            if ($isHoliday) {
+                $results[] = ['ok' => false, 'reason' => $this->conflictText('holiday')];
 
                 continue;
             }
@@ -584,6 +610,7 @@ class ReplacementArrangement extends Component
             'engine_precheck_failed' => 'You or the cohort is no longer free at that time.',
             'reserve_interrupted' => 'The booking could not be completed — try again.',
             'duplicate_active_request' => 'This occurrence already has an active replacement request — see My Request History.',
+            'holiday' => 'That day is a public holiday — replacement classes cannot be booked on it.',
             default => 'Booking conflict — refresh and try again.',
         };
     }

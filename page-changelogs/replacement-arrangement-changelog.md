@@ -1213,3 +1213,37 @@ carries the real session id (all timetable pages feed it) — so a user can
 report "class #97 has the wrong venue". The request history modal already
 showed `Request No. #id` (frozen design); the PL queue shows the
 `.approval-id` chip (frozen design).
+
+### Fix — the pin never actually reached the server: context key mismatch (2026-10-11, evening)
+
+Live re-verification caught the deepest bug of the day: the client sends the
+pinned occurrence as `{sessionId, week}` but `submitBlocks` read
+`$context['occurrenceWeek']` — a silent key mismatch, so **every UI submit
+ran with no pin** and fell back to slot-week semantics (the exact wrong-week
+symptom the occurrence-identity fix was meant to kill). The server now
+accepts `week` (the client's shape) with `occurrenceWeek` still accepted for
+direct/explicit callers; the feature test now mirrors the client's exact
+shape so this class of regression is caught.
+
+Also fixed in this round (explore-brief bug-hunt absorbs):
+
+- **Week navigation never rebuilt the grid (P0)** — the shared WeekNavigator
+  rebuilds via `window.buildTimetable`, which every other timetable page
+  exports; this page never did, so week changes updated the label while the
+  CELLS stayed on the boot week (stale PH/pending columns; the "free cell →
+  conflict popup" trap on every other week). Now exported; the pinned
+  week-jump is ordered after `populateWeekSelect` (an early rebuild reads an
+  empty weekSelector and crashed the boot).
+- **Post-submit morph wiped the page** — any `submitBlocks` call re-rendered
+  the component and morphed the DOM, clobbering the JS-built dropdowns and
+  emptying the grid (the "failed submit → table renders EMPTY" bug).
+  `submitBlocks` is now `#[Renderless]`; results report through the page's
+  own modal/toast vocabulary.
+- **Success aftermath** — an all-ok submit now navigates to
+  `/my-request-history-ui` after a brief beat (the design's aftermath),
+  instead of only toasting.
+- **Honest block-fit message** — a green anchor whose 2-hour block doesn't
+  fit said "That slot is no longer available" (a lie); it now says the block
+  doesn't fit and to pick a cell with enough free room below.
+- **D2 (user decision)** — holidays are unbookable server-side: a slot on a
+  public-holiday day is refused with the mock's conflict vocabulary.

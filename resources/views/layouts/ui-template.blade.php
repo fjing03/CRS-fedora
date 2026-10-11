@@ -44,8 +44,8 @@
         @yield('content')
     </div>
 
-    <script src="/js/mock-data.js?v=3"></script>
-    <script src="/js/ui-common.js?v=7"></script>
+    <script src="/js/mock-data.js?v={{ filemtime(public_path('js/mock-data.js')) }}"></script>
+    <script src="/js/ui-common.js?v={{ filemtime(public_path('js/ui-common.js')) }}"></script>
     {{-- R-3 (round-3): role-aware logo target — each page declares its home;
          navigateHome() reads this, falling back to the welcome view --}}
     <script>window.PAGE_HOME = '{{ $homeUrl ?? '/' }}';</script>

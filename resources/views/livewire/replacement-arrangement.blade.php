@@ -1196,6 +1196,13 @@
 
         const weekData = generateWeekData();
         window.weekData = weekData; /* ui-common's populateWeekSelect reads the global */
+        /* BRIDGE PATCH (explore P0 A1): the shared WeekNavigator rebuilds the
+           grid through window.buildTimetable on every week change — every
+           other timetable page exports it; the arrangement page never did,
+           so week navigation updated the label while the CELLS stayed on the
+           boot week (stale PH/pending columns, the "free cell → conflict
+           popup" trap on every other week). */
+        window.buildTimetable = buildTimetable;
         const venueSlotData = MockData.venueSlots;
 
         let selectedSlotsByVenue = {};
@@ -1545,7 +1552,7 @@
             if (!canPlaceBlock(day, startHour)) {
                 toast.show(startHour + span > hours.length
                     ? 'Not enough time left in the day for a ' + (span * 30) + '-minute selection.'
-                    : 'That slot is no longer available.');
+                    : 'The ' + (span * 30) + '-minute block does not fit here \u2014 part of it is already taken. Pick a cell with enough free room below.');
                 return false;
             }
             /* multi-week budget: MAX_SELECTION slots in total across every week */
@@ -1996,6 +2003,10 @@
                                 selectionHistory.length = 0;
                                 updateCounter();
                                 toast.show(sub.message, null, 5000, 'View \u2192', '/my-request-history-ui', sub.details);
+                                /* the design's aftermath: the request now lives in
+                                   My Request History — go there (brief beat so the
+                                   success toast is actually seen) */
+                                setTimeout(function() { window.location.href = '/my-request-history-ui'; }, 1200);
                             } else {
                                 showConfirmModal(
                                     'Submission Conflict',
@@ -3086,8 +3097,12 @@
             /* restore the previously saved week (localStorage), else falls back to week 1 */
             weekNav.load();
             /* BRIDGE PATCH: the pinned occurrence's week wins over the saved
-               one — the lecturer started from THAT occurrence's card */
-            if (window.pinnedOccurrence) weekNav.selectWeek(window.pinnedOccurrence.week - 1);
+               one — the lecturer started from THAT occurrence's card. The
+               week VALUE is set here; the grid REBUILD happens right after
+               populateWeekSelect below (a selectWeek now would rebuild via
+               window.buildTimetable while the weekSelector is still empty —
+               getDays reads it → NaN crash that killed the whole boot). */
+            if (window.pinnedOccurrence) weekNav._currentWeek = window.pinnedOccurrence.week - 1;
             populateWeekSelect('weekSelector', {
                 ranges: false,
                 selected: weekNav.currentWeek,
@@ -3097,6 +3112,9 @@
                 /* labels = shared default: full "Week N · DD Mon YYYY ~ DD Mon YYYY"
                    on desktop (matches the venue page), compact on mobile */
             });
+            /* BRIDGE PATCH: now that the weekSelector is populated, rebuild the
+               grid onto the pinned week (same call a user week-change makes). */
+            if (window.pinnedOccurrence) weekNav.selectWeek(window.pinnedOccurrence.week - 1);
             /* dated tooltip on the "Earliest bookable" action (computed, not hardcoded);
                the boundary day's chip lives in the grid time-col (cfg.bookableBadge) */
             const earliest = firstBookableDay(weekData);

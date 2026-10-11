@@ -2543,7 +2543,11 @@ class ToastManager {
                 undoCallback();
             };
         } else {
+            /* A5 (2026-10-11 user decision): a toast without an undo callback
+               must not offer a dead Undo — hide it AND strip any stale
+               handler so the affordance is inert by construction. */
             undoBtn.style.display = 'none';
+            undoBtn.onclick = null;
         }
 
         if (linkText && linkUrl && linkEl) {

@@ -343,3 +343,48 @@ could never show. User decisions this round:
   replacement" the demo surfaced. Awaiting the user's decision on amending
   the frozen Open Question (full block reservation) vs deferring past
   Slice C.
+
+## apply FIX — 2026-10-11 (evening): the pin never reached the server + explore P0
+
+User re-verified the morning's fixes via Playwright and they FAILED live.
+Root causes, found by stepping the real journey:
+
+1. **Context key mismatch (critical)** — client `{sessionId, week}` vs server
+   `$context['occurrenceWeek']` → every UI submit silently unpinned
+   (slot-week semantics). Server accepts both keys now; test mirrors the
+   client shape. This is why the user's real requests landed as W9/W5.
+2. **Week navigation never rebuilt the grid (explore P0 A1)** — missing
+   `window.buildTimetable` export; every other week showed the boot week's
+   cells (22 stale PH columns etc.). Exported; pinned jump reordered after
+   populateWeekSelect (early rebuild crashed the boot on the empty selector).
+3. **Post-submit morph wipe** — submitBlocks re-rendered + morphed the DOM,
+   emptying the grid and clobbering the dropdowns ("failed submit → empty
+   grid"). Now `#[Renderless]`.
+4. **Success aftermath** — all-ok submit navigates to
+   /my-request-history-ui (user's designed flow) after a brief toast beat.
+5. **Honest messages** — block-fit refusal no longer claims the slot is gone;
+   D2 (user decision): holiday-day slots refused server-side.
+6. **A5 (user decision)** — toast Undo inert without a callback (hidden +
+   handler stripped).
+7. **Static-asset staleness** — ui-common.js changed without bumping its
+   `?v=` cache-buster, so browsers ran stale JS all day (masked every JS-side
+   fix). Both script tags now bust via `filemtime` (layout + login template).
+8. Ops note: `artisan serve` served stale PHP after an edit (logger entries
+   from removed code kept appearing) — a restart cleared it; after ANY PHP
+   edit, restart the server before trusting behavior.
+
+Verification (live, 5770, real UI only): pinned arrival ✓; week-nav rebuild ✓
+(0 stale PH columns; req#6's slot rendered `cell-pending`); submit →
+**request week = 8 with slot in week 9** ✓; auto-navigation to history ✓;
+failed submit leaves the grid intact ✓; D1 duplicate refused with the friendly
+message ✓; home hides the covered W8 row while pending and restores it on
+cancel ✓; zero console errors. Suite **166/166**, pint ✓, phpstan **0**.
+
+Test traces on class_replacement_fresh (both already cancelled via the app;
+slots released to available): requests 5 + 6, audit_logs 6–9. Cleanup:
+
+```sql
+DELETE FROM audit_logs WHERE replacement_request_id IN (5, 6);
+DELETE FROM replacement_requests WHERE id IN (5, 6);
+UPDATE time_slots SET status = 'available', version = 1 WHERE id IN (27878, 27852);
+```

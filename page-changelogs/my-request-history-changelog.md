@@ -576,3 +576,11 @@ called `Livewire.first().$wire.call(...)` (v4 already returns the `$wire`
 proxy → the server saw a call to method `$wire`). Now
 `Livewire.first().call('cancelRequest' | 'cancelRequests', ...)` — the frozen
 cancel flow reaches the real CancelPendingRequest action.
+
+### Fix — dead Undo made impossible (2026-11-10 → 2026-10-11)
+
+A5 (user decision): the shared toast's Undo affordance is now inert by
+construction — without a callback it is hidden AND its handler stripped
+(previously a stale/odd caller could surface a clickable Undo that did
+nothing, contradicting the modal's "cannot be undone" copy). The page's
+cancel toasts pass no callback, so no dead Undo can appear here.

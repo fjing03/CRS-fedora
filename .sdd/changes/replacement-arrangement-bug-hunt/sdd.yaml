@@ -1,0 +1,7 @@
+name: replacement-arrangement-bug-hunt
+created: 2026-10-11
+status: exploring
+description: >
+  READ-ONLY /sdd-explore bug inventory of the replacement-arrangement flow and
+  pending-data rendering on timetable pages (user symptom verification + new
+  bug hunt). Output: explore-brief.md. No code changes; user decides next.

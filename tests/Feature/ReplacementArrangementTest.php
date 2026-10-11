@@ -289,7 +289,10 @@ final class ReplacementArrangementTest extends TestCase
             json_encode([['venue' => 'B100', 'week' => 3, 'day' => 3, 'startHour' => 12, 'endHour' => 16]]),
             'BMIT1001',
             json_encode(['day' => 1, 'start' => 4, 'venue' => 'B100']),
-            json_encode(['sessionId' => (int) $session->id, 'occurrenceWeek' => 8]),
+            // EXACTLY the client's shape (replacement-arrangement blade sends
+            // {sessionId, week}) — a server-side key mismatch here silently
+            // dropped the pin and fell back to slot-week semantics.
+            json_encode(['sessionId' => (int) $session->id, 'week' => 8]),
         );
         $results = \Livewire\invade($testable)->lastState->getEffects()['returns'][0] ?? null;
 
@@ -343,6 +346,28 @@ final class ReplacementArrangementTest extends TestCase
 
         $this->assertFalse($results[0]['ok']);
         $this->assertSame('Class not found among your classes.', $results[0]['reason']);
+    }
+
+    public function test_submit_refuses_a_slot_on_a_public_holiday(): void
+    {
+        // D2 (2026-10-11 user decision) — holidays are unbookable: the new
+        // slot may not land on a holiday day, even though the grid cell logic
+        // and the FR 2.9 pipeline would otherwise accept it.
+        Holiday::create(['semester_id' => $this->semester->id, 'week_number' => 4, 'day_of_week' => 3, 'label' => 'PH']);
+        $this->createSlot(4, 3, '14:00:00');
+
+        $testable = Livewire::actingAs($this->lecturerA)->test(ReplacementArrangement::class);
+        $testable->call('submitBlocks',
+            json_encode([['venue' => 'B100', 'week' => 3, 'day' => 3, 'startHour' => 12, 'endHour' => 16]]),
+            'BMIT1001',
+            json_encode(['day' => 1, 'start' => 4, 'venue' => 'B100']),
+            json_encode([]),
+        );
+        $results = \Livewire\invade($testable)->lastState->getEffects()['returns'][0] ?? null;
+
+        $this->assertFalse($results[0]['ok']);
+        $this->assertStringContainsString('public holiday', (string) $results[0]['reason']);
+        $this->assertSame(0, ReplacementRequest::query()->count());
     }
 
     public function test_grid_busy_vectors_and_ineligible_venues_follow_d4_rule_1(): void

@@ -13,7 +13,7 @@
             // Default is 'dark' from HTML
         })();
     </script>
-    <script src="/js/ui-common.js"></script>
+    <script src="/js/ui-common.js?v={{ filemtime(public_path('js/ui-common.js')) }}"></script>
     <link rel="stylesheet" href="/css/theme.css">
     <style>
         :root {
