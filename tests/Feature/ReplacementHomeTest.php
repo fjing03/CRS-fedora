@@ -12,7 +12,9 @@ use App\Models\Holiday;
 use App\Models\Lecturer;
 use App\Models\Module;
 use App\Models\Programme;
+use App\Models\ReplacementRequest;
 use App\Models\Semester;
+use App\Models\TimeSlot;
 use App\Models\User;
 use App\Models\Venue;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -181,6 +183,72 @@ final class ReplacementHomeTest extends TestCase
                 );
                 $this->assertNotNull($cancelled, 'FR 2.16: the enum reason surfaces as the frozen badge label');
                 $this->assertSame('2026-09-15', $cancelled['date']); // week 3, day_of_week 1 (Tue)
+
+                return true;
+            });
+    }
+
+    private function createSlot(int $week, int $seq = 0): TimeSlot
+    {
+        // Distinct (venue, day, start) per call — the no-double-book unique index.
+        $starts = ['14:00:00', '15:00:00', '16:00:00', '09:00:00', '10:00:00'];
+
+        return TimeSlot::create([
+            'semester_id' => $this->semester->id, 'class_session_id' => null,
+            'week_number' => $week, 'day_of_week' => 3,
+            'start_time' => $starts[$seq % count($starts)],
+            'end_time' => date('H:i:s', strtotime($starts[$seq % count($starts)]) + 1800),
+            'venue_id' => $this->venue->id, 'status' => 'available',
+        ]);
+    }
+
+    public function test_home_hides_occurrences_with_an_active_request(): void
+    {
+        // D1 — one active request per block occurrence: a pending (or approved)
+        // request covers the occurrence, so it leaves the "needs arrangement"
+        // list; a rejected/cancelled one frees it again.
+        // Cover EVERY day-1 session of the lecturer — the PH row surfaces per
+        // session, and the pending request must suppress each of them.
+        $seq = 0;
+        foreach (ClassSession::query()->where('lecturer_id', $this->lecturerA->id)->get() as $session) {
+            ReplacementRequest::create([
+                'semester_id' => $this->semester->id, 'proposer_id' => $this->lecturerA->id,
+                'class_session_id' => $session->id, 'week_number' => 5,
+                'replacement_time_slot_id' => $this->createSlot(5, $seq++)->id,
+                'status' => 'pending', 'submitted_at' => now(),
+            ]);
+        }
+
+        $this->componentFor($this->lecturerA)
+            ->assertViewHas('payload', function (array $payload): bool {
+                $this->assertFalse(collect($payload['conflictedClasses'])->contains(
+                    fn (array $r): bool => $r['week'] === 5,
+                ), 'a pending request covers the week-5 occurrence');
+
+                return true;
+            });
+
+        ReplacementRequest::query()->update(['status' => 'rejected', 'decided_at' => now()]);
+        $this->componentFor($this->lecturerA)
+            ->assertViewHas('payload', function (array $payload): bool {
+                $this->assertTrue(collect($payload['conflictedClasses'])->contains(
+                    fn (array $r): bool => $r['week'] === 5,
+                ), 'a rejected request frees the occurrence back onto the list');
+
+                return true;
+            });
+    }
+
+    public function test_home_rows_carry_the_occurrence_identity_for_the_handoff(): void
+    {
+        $this->componentFor($this->lecturerA)
+            ->assertViewHas('payload', function (array $payload): bool {
+                $row = collect($payload['conflictedClasses'])->firstOrFail();
+                $session = ClassSession::query()->where('lecturer_id', $this->lecturerA->id)->firstOrFail();
+
+                // The D1 pair — what the handoff and the request row both key on.
+                $this->assertSame((int) $session->id, $row['sessionId']);
+                $this->assertSame(5, $row['week']); // the seeded PH week
 
                 return true;
             });

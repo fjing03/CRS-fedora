@@ -1962,7 +1962,7 @@
                     const orig = selectedOriginalSlot
                         ? { day: selectedOriginalSlot.day, start: selectedOriginalSlot.start, venue: selectedOriginalSlot.venue }
                         : { day: urlParams.day, start: urlParams.start, venue: urlParams.originalVenue };
-                    Livewire.first().call('submitBlocks', JSON.stringify(blocks), currentCourse ? currentCourse.code : '', JSON.stringify(orig))
+                    Livewire.first().call('submitBlocks', JSON.stringify(blocks), currentCourse ? currentCourse.code : '', JSON.stringify(orig), JSON.stringify(window.pinnedOccurrence || {}))
                         .then(function(results) {
                             const failed = [];
                             (results || []).forEach(function(r, i) {
@@ -2974,7 +2974,15 @@
                 start: params.get('start'),
                 end: params.get('end'),
                 originalVenue: params.get('originalVenue'),
-                duration: params.get('duration')
+                duration: params.get('duration'),
+                /* BRIDGE PATCH: the handoff pins the exact occurrence being
+                   replaced — the backend's own identity (class_session_id +
+                   week_number, the D1 pair). The server resolves +
+                   ownership-checks it (PAGE_DATA.pinnedSession) and its facts
+                   hydrate the legacy urlParams below, so the existing
+                   auto-pick + BLOCK_SPAN machinery runs unchanged. */
+                session: params.get('session'),
+                week: params.get('week')
             };
             return urlParams;
         }
@@ -3025,6 +3033,20 @@
             script already runs inside the one above) */
         {
             readUrlParams();
+            /* BRIDGE PATCH: hydrate the pinned occurrence (server-resolved,
+               ownership-checked). window.pinnedOccurrence rides along to
+               submitBlocks so the request targets THIS occurrence's week —
+               not whichever week the grid happens to show. */
+            window.pinnedOccurrence = null;
+            if (window.PAGE_DATA.pinnedSession) {
+                const pinned = window.PAGE_DATA.pinnedSession;
+                window.pinnedOccurrence = { sessionId: pinned.id, week: pinned.week };
+                urlParams.code = pinned.code;
+                urlParams.day = String(pinned.day);
+                urlParams.start = String(pinned.start);
+                urlParams.originalVenue = pinned.venue;
+                urlParams.duration = String(pinned.duration);
+            }
             // If the original class duration was passed in (hours), size the block
             // span from it — clamped to 0.5–4h; the multi-week BUDGET stays at
             // least the approved 4 slots so a shorter class can still book twice.
@@ -3063,6 +3085,9 @@
             document.getElementById('semesterChip').textContent = MockData.semester.chipText;
             /* restore the previously saved week (localStorage), else falls back to week 1 */
             weekNav.load();
+            /* BRIDGE PATCH: the pinned occurrence's week wins over the saved
+               one — the lecturer started from THAT occurrence's card */
+            if (window.pinnedOccurrence) weekNav.selectWeek(window.pinnedOccurrence.week - 1);
             populateWeekSelect('weekSelector', {
                 ranges: false,
                 selected: weekNav.currentWeek,

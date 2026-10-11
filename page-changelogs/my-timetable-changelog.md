@@ -560,3 +560,13 @@ swatches follow automatically. Verified live on all four pages.
 The five summary-card flip-backs use the new keyword language — **YOUR WEEKLY TIMETABLE**,
 **TEACHING HOURS**, **REPLACEMENT LECTURER** in the default color; **WAITING FOR APPROVAL**
 and **SCHEDULING CLASHES** in red (attention cards: pending + conflict).
+
+### Fix — Replace Now carries the occurrence identity (2026-10-11)
+
+The modal's "Replace Now" now hands over `?session={id}&week={n}` — the
+viewed week's occurrence (the D1 pair), via the shared `goToReplacementFor`
+builder — instead of code/day/start strings the arrangement page had to
+re-match. The cancel-flow's "Arrange Now" switches to the same builder (the
+ledger row now carries `sessionId` + `week`, with a legacy fallback).
+Timetable events already carried the real session id (`baseEvent.id`), so
+the Class Details modal's new "Class Ref" row works here too.

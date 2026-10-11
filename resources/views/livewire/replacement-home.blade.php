@@ -493,9 +493,9 @@
                 card.className = 'replacement-card';
                 card.setAttribute('role', 'button');
                 card.setAttribute('tabindex', '0');
-                card.addEventListener('click', function() { goToReplacementWith(c.code, c.date, c.duration); });
+                card.addEventListener('click', function() { goToReplacementWith(c.sessionId, c.week); });
                 card.addEventListener('keydown', function(e) {
-                    if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); goToReplacementWith(c.code, c.date, c.duration); }
+                    if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); goToReplacementWith(c.sessionId, c.week); }
                 });
                 card.innerHTML = HtmlBuilder.replacementHomeCard(c, {
                     daysLeft: daysLeft,
@@ -525,13 +525,13 @@
             populateWeekSelect('weekFilter', { includeAll: true });
         }
 
-        function goToReplacementWith(code, date, duration) {
-            let url = '/replacement-arrangement?code=' + encodeURIComponent(code) + '&date=' + encodeURIComponent(date);
-            if (duration !== undefined && duration !== null && !isNaN(duration)) {
-                url += '&duration=' + duration;
-            }
-            url += '&from=replacement-home';
-            window.location.href = url;
+        /* BRIDGE PATCH: the handoff carries the occurrence's real identity —
+           (class_session_id, week_number), the same D1 pair the request row
+           keys on — instead of code+date strings the page had to reverse-
+           engineer. The arrangement page resolves + ownership-checks it. */
+        function goToReplacementWith(sessionId, week) {
+            window.location.href = '/replacement-arrangement?session=' + encodeURIComponent(sessionId) +
+                '&week=' + encodeURIComponent(week) + '&from=replacement-home';
         }
 
 
@@ -591,11 +591,8 @@
 
         function qvArrange() {
             if (qvCurrent) {
-                var c = qvCurrent.code;
-                var d = qvCurrent.date;
-                var dur = qvCurrent.duration;
                 hideQuickView();
-                goToReplacementWith(c, d, dur);
+                goToReplacementWith(qvCurrent.sessionId, qvCurrent.week);
             }
         }
 

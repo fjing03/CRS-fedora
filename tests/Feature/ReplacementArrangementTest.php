@@ -275,6 +275,76 @@ final class ReplacementArrangementTest extends TestCase
         $this->assertSame(0, ReplacementRequest::query()->count());
     }
 
+    public function test_submit_targets_the_pinned_occurrence_week_not_the_slot_week(): void
+    {
+        // The handoff pins the occurrence (D1 pair): the request replaces the
+        // WEEK 8 occurrence while the new slot lives in week 4 — the request's
+        // week_number must be the occurrence's, never the slot's (D7 releases
+        // week 8 at approval).
+        $session = ClassSession::query()->where('lecturer_id', $this->lecturerA->id)->firstOrFail();
+        $slot = $this->createSlot(4, 3, '14:00:00');
+
+        $testable = Livewire::actingAs($this->lecturerA)->test(ReplacementArrangement::class);
+        $testable->call('submitBlocks',
+            json_encode([['venue' => 'B100', 'week' => 3, 'day' => 3, 'startHour' => 12, 'endHour' => 16]]),
+            'BMIT1001',
+            json_encode(['day' => 1, 'start' => 4, 'venue' => 'B100']),
+            json_encode(['sessionId' => (int) $session->id, 'occurrenceWeek' => 8]),
+        );
+        $results = \Livewire\invade($testable)->lastState->getEffects()['returns'][0] ?? null;
+
+        $this->assertTrue($results[0]['ok'], json_encode($results));
+        $request = ReplacementRequest::query()->sole();
+        $this->assertSame(8, (int) $request->week_number, 'the request replaces the WEEK 8 occurrence');
+        $this->assertSame(4, (int) $request->replacementTimeSlot->week_number, 'the slot lives in week 4');
+    }
+
+    public function test_submit_refuses_a_second_active_request_for_the_same_occurrence(): void
+    {
+        // D1 — one active request per block occurrence (the partial unique
+        // index enforces it atomically; the pre-check makes it friendly).
+        $session = ClassSession::query()->where('lecturer_id', $this->lecturerA->id)->firstOrFail();
+        $slot = $this->createSlot(4, 3, '14:00:00');
+        ReplacementRequest::create([
+            'semester_id' => $this->semester->id, 'proposer_id' => $this->lecturerA->id,
+            'class_session_id' => $session->id, 'week_number' => 8,
+            'replacement_time_slot_id' => $this->createSlot(4, 4, '15:00:00')->id,
+            'status' => 'pending', 'submitted_at' => now(),
+        ]);
+
+        $testable = Livewire::actingAs($this->lecturerA)->test(ReplacementArrangement::class);
+        $testable->call('submitBlocks',
+            json_encode([['venue' => 'B100', 'week' => 3, 'day' => 3, 'startHour' => 12, 'endHour' => 16]]),
+            'BMIT1001',
+            json_encode(['day' => 1, 'start' => 4, 'venue' => 'B100']),
+            json_encode(['sessionId' => (int) $session->id, 'occurrenceWeek' => 8]),
+        );
+        $results = \Livewire\invade($testable)->lastState->getEffects()['returns'][0] ?? null;
+
+        $this->assertFalse($results[0]['ok']);
+        $this->assertStringContainsString('already has an active replacement request', (string) $results[0]['reason']);
+    }
+
+    public function test_pinned_session_context_cannot_target_another_lecturers_class(): void
+    {
+        // FR 2.11 — a fabricated/foreign session id resolves to null: refused,
+        // never silently re-matched to someone else's class.
+        $foreign = ClassSession::query()->where('lecturer_id', $this->lecturerB->id)->firstOrFail();
+        $this->createSlot(4, 3, '14:00:00');
+
+        $testable = Livewire::actingAs($this->lecturerA)->test(ReplacementArrangement::class);
+        $testable->call('submitBlocks',
+            json_encode([['venue' => 'B100', 'week' => 3, 'day' => 3, 'startHour' => 12, 'endHour' => 16]]),
+            'BMIT1001',
+            json_encode(['day' => 1, 'start' => 4, 'venue' => 'B100']),
+            json_encode(['sessionId' => (int) $foreign->id, 'occurrenceWeek' => 8]),
+        );
+        $results = \Livewire\invade($testable)->lastState->getEffects()['returns'][0] ?? null;
+
+        $this->assertFalse($results[0]['ok']);
+        $this->assertSame('Class not found among your classes.', $results[0]['reason']);
+    }
+
     public function test_grid_busy_vectors_and_ineligible_venues_follow_d4_rule_1(): void
     {
         // Extra venues to exercise engine Vector 4 (type + headcount):

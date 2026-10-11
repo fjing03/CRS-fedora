@@ -6,6 +6,7 @@ use App\Concerns\ResolvesTimetableTimeline;
 use App\Models\ClassException;
 use App\Models\ClassSession;
 use App\Models\Cohort;
+use App\Models\ReplacementRequest;
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\Carbon;
 use Livewire\Component;
@@ -54,11 +55,24 @@ class ReplacementHome extends Component
         $holidays = collect($this->holidaysForJs())
             ->keyBy(fn (array $h): string => $h['week'].':'.$h['dayIndex']);
 
+        // D1 — one active request per block occurrence: an occurrence with a
+        // pending/approved request is already being handled (it returns here
+        // if the request is rejected or cancelled).
+        $activeRequests = ReplacementRequest::query()
+            ->whereIn('class_session_id', $sessions->pluck('id'))
+            ->whereIn('status', ['pending', 'approved'])
+            ->get(['class_session_id', 'week_number'])
+            ->keyBy(fn (ReplacementRequest $r): string => $r->class_session_id.':'.$r->week_number);
+
         $rows = [];
         foreach ($sessions as $session) {
             $venueRestricted = $this->venueRestrictionConflict($session);
 
             for ($week = 1; $week <= $weeks; $week++) {
+                if ($activeRequests->has($session->id.':'.$week)) {
+                    continue;
+                }
+
                 $exception = $exceptions->get($session->id.':'.$week);
                 $holiday = $holidays->get($week.':'.$session->day_of_week);
 
@@ -79,6 +93,8 @@ class ReplacementHome extends Component
 
                 $rows[] = [
                     'id' => $session->id * 100 + $week,
+                    'sessionId' => (int) $session->id,
+                    'week' => $week,
                     'lecturer' => (string) $session->lecturer->name,
                     'code' => (string) $session->module->module_code,
                     'name' => (string) $session->module->module_name,

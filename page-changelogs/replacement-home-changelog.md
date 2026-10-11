@@ -399,3 +399,25 @@ plus real `semester`/`holidays`/`currentUser` and `mockNow = null` so
 Days Left runs on the real clock. Verified live on the demo DB
 (/replacement-home-ui): 4 real AMCS2093 occurrences with PH badges, Days
 Left urgency, summary cards correct.
+
+### Fix — the list now respects active requests + occurrence-identity handoff (2026-10-11)
+
+Live demo testing caught two gaps:
+
+1. **Replaced occurrences stayed listed.** The bridge listed every conflicted
+   occurrence with no awareness of replacement requests. Per the frozen D1
+   ("one active request per block occurrence"), an occurrence with a
+   pending/approved request now leaves the list — and returns automatically
+   if the request is rejected or cancelled. Bridge-level filter; the frozen
+   table/cards/summary run unchanged on the filtered rows.
+2. **The handoff carried strings, not identity.** Cards passed
+   `?code=…&date=…` which the arrangement page had to reverse-engineer. The
+   handoff now carries the occurrence's real identity —
+   `?session={id}&week={n}&from=replacement-home` — the same D1 pair the
+   request row keys on (user decision 2026-10-11: "use ID"). Rows carry
+   `sessionId` + `week`; the quick-view Arrange button and card/keyboard
+   handlers all use them.
+
+Also: the go-to-arrangement builder is now shared (`goToReplacementFor` in
+ui-common.js) — promoted from the three per-page param schemes per the
+promote-on-3rd-duplication rule.

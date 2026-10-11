@@ -1180,3 +1180,36 @@ The engine's `lecturerBusyRanges` / `cohortBusyRanges` / `eligibleVenues` /
 `requiredHeadcount` became public (read-only reuse, no behaviour change).
 Verified live (lecturer 5425 / AMSE2003 W4): B110 renders 132 occupied /
 0 available; the lecturer's own Fri 9–10 shows red; zero console errors.
+
+### Fix — the request now targets the occurrence you started from (2026-10-11)
+
+Live demo testing caught the deepest of the three gaps: `submitBlocks` set
+`week_number` = the **slot's** week, so picking a Week-4 slot for the
+Week-8 PH occurrence quietly created "replace the Week-4 occurrence" — and
+D7 (approval releases the original block via `class_exceptions` on
+`week_number`) would have released the wrong week. Per the frozen D1/D7
+semantics, `week_number` must be the **original occurrence's week**, with
+the new slot free to live in any week (lead-time permitting):
+
+- **Occurrence pinning** — the handoff
+  (`?session={id}&week={n}&from=…`) is resolved + ownership-checked
+  server-side (`pinnedSession`: FR 2.11 — a foreign or fabricated id
+  resolves to null, never someone else's class) and its facts hydrate the
+  same urlParams the legacy handoffs used, so the existing auto-pick +
+  BLOCK_SPAN + venue-default machinery runs unchanged; the grid opens on
+  the pinned occurrence's week.
+- **submitBlocks context** — the client sends
+  `{sessionId, occurrenceWeek}`; the request's `week_number` = the pinned
+  occurrence's week. Legacy entries without a pin keep the slot's week.
+- **D1 duplicate** — a second active request for the same occurrence now
+  reports the mock's conflict vocabulary ("This occurrence already has an
+  active replacement request") instead of relying on the unique index.
+
+### Class Ref row in the shared Class Details modal (2026-10-11)
+
+User decision: quotable references where useful. The shared
+`ui-class-detail-modal` gains one "Class Ref #97" row whenever the event
+carries the real session id (all timetable pages feed it) — so a user can
+report "class #97 has the wrong venue". The request history modal already
+showed `Request No. #id` (frozen design); the PL queue shows the
+`.approval-id` chip (frozen design).

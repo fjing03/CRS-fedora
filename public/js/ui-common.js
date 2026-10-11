@@ -951,6 +951,10 @@ function openClassModal(cfg) {
         { label: 'Status Description', value: statusDesc },
         { label: 'Remarks', value: event.remarks || '\u2014' },
     ];
+    /* Reference row (2026-10-11 user decision): a quotable handle for
+       reporting a class ("class #97 venue is wrong") — shown wherever the
+       event carries the real session id. */
+    if (event.id) rows.push({ label: 'Class Ref', value: '#' + event.id });
 
     if (event.status === 'pending') {
         rows.splice(rows.length - 1, 0,
@@ -1255,6 +1259,18 @@ function initGridSwipeGestures(onPrev, onNext) {
 }
 
 // ───── Navigation ─────
+
+/* The replacement handoff — the occurrence's real identity:
+   (class_session_id, week_number), the same D1 pair the request row keys on.
+   The arrangement page resolves + ownership-checks it server-side; `from`
+   drives the Back button. Promoted from the per-page code/date param schemes
+   (replacement-home cards, my-timetable Replace Now, cancel-flow Arrange Now). */
+function goToReplacementFor(sessionId, week, from) {
+    if (!sessionId || !week) return;
+    window.location.href = '/replacement-arrangement?session=' + encodeURIComponent(sessionId) +
+        '&week=' + encodeURIComponent(week) +
+        (from ? '&from=' + encodeURIComponent(from) : '');
+}
 
 function goToReplacement(code, cohort, opts, from) {
     let url = '/replacement-arrangement';
@@ -3749,6 +3765,8 @@ const ClassCancellation = {
         const iso = this.isoDate(weekIndex, event.di);
         return {
             id: this._nextRowId(),
+            sessionId: event.id,
+            week: weekIndex + 1,
             code: event.code,
             name: event.name,
             type: event.type,
@@ -4230,9 +4248,13 @@ const CancelClassModal = {
            (2026-10-08 user report). open() resets state on next open. */
         this.close();
         const row = ctx.entry.row;
-        window.location.href = '/replacement-arrangement?code=' + encodeURIComponent(row.code) +
-            '&date=' + encodeURIComponent(row.date) +
-            '&duration=' + row.duration;
+        if (row.sessionId && row.week) {
+            goToReplacementFor(row.sessionId, row.week, 'my-timetable');
+        } else {
+            window.location.href = '/replacement-arrangement?code=' + encodeURIComponent(row.code) +
+                '&date=' + encodeURIComponent(row.date) +
+                '&duration=' + row.duration;
+        }
         /* navigation unloads the page — the bootstrap toast fires there (§6) */
     },
 

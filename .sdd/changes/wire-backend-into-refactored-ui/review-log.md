@@ -305,3 +305,41 @@ occupied; the engine even shipped busyRanges() for that UI purpose.
   phpstan 0.
 - Live (5425, AMSE2003): B110 fully red for the P class; Wed 12–1 PM red via
   the cohort's 11:00–13:00 class; zero console errors.
+
+## apply FIX — 2026-10-11 (occurrence identity: D1/D7 week semantics + handoff redesign)
+
+Live demo testing (first real submit) exposed three gaps the mock-era data
+could never show. User decisions this round:
+
+1. **Home filter (D1)** — occurrences with an active (pending/approved)
+   request leave the "needs arrangement" list; they return on reject/cancel.
+   Spec-conformant: D1's own partial unique is per (class_session_id,
+   week_number) — the home now honours it.
+2. **week_number = the occurrence being replaced (D1/D7), NOT the slot's
+   week.** submitBlocks accepts a context {sessionId, occurrenceWeek}; the
+   handoff pins it. The engine needed no change (validateSlot already
+   evaluates the slot in its own week — cross-week slots were always sound).
+   Legacy no-pin entries keep the old slot-week behaviour.
+3. **Handoff redesign (user decision: "use ID")** —
+   `?session={id}&week={n}&from=…` replaces the code/date string schemes on
+   replacement-home + my-timetable Replace Now + cancel-flow Arrange Now;
+   server resolves + ownership-checks (FR 2.11; fabricated ids → null →
+   graceful fallback). Venue-timetable "Book" keeps its venue+date+time
+   intent. Central builder `goToReplacementFor` promoted to ui-common.
+4. **ID policy (user decision)** — quotable refs where people reference
+   things: Class Ref row in the shared Class Details modal; Request No.
+   already in the history modal + approval-id in the PL queue (both frozen
+   design); internal ids never rendered in tables.
+
+- Tests: +3 (home D1 filter + identity rows; cross-week occurrence
+  targeting; D1 duplicate refusal; foreign-session refusal) — suite
+  **165/165**, pint ✓, phpstan **0**.
+- Live (5770): home hides the covered occurrence; handoff
+  `?session=97&week=8` → grid opens W8, AMCS2093 pre-selected, B110
+  defaulted; foreign session id → null; Class Ref #97 in the modal; zero
+  console errors.
+- Open (unchanged): the anchor-slot prototype limitation (spec-documented)
+  still reserves only the clicked half-hour cell — the "30-minute
+  replacement" the demo surfaced. Awaiting the user's decision on amending
+  the frozen Open Question (full block reservation) vs deferring past
+  Slice C.

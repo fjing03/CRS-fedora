@@ -107,6 +107,43 @@ class ReplacementArrangement extends Component
             'venueSlotsByWeek' => $this->venueSlotsByWeekPayload($semesterId, $weeks),
             'busyByWeek' => $this->busyByWeekPayload($sessions, $semesterId, $weeks),
             'blockedVenues' => $this->blockedVenuesPayload($sessions),
+            'pinnedSession' => $this->pinnedSessionPayload($weeks),
+        ];
+    }
+
+    /**
+     * The handoff pins the EXACT occurrence being replaced — the backend's own
+     * identity (class_session_id + week_number, the D1 pair). The server
+     * resolves + ownership-checks it (FR 2.11: a foreign or fabricated id
+     * resolves to null, never to someone else's class) and emits its facts so
+     * the client hydrates the same urlParams the legacy handoffs used.
+     *
+     * @return array{id: int, code: string, day: int, start: int, venue: string, duration: float, week: int}|null
+     */
+    private function pinnedSessionPayload(int $weeks): ?array
+    {
+        $sessionId = (int) request()->query('session', '');
+        $week = (int) request()->query('week', '');
+        if ($sessionId < 1 || $week < 1 || $week > $weeks) {
+            return null;
+        }
+
+        $session = ClassSession::query()
+            ->with(['module', 'venue'])
+            ->where('lecturer_id', auth()->id())
+            ->find($sessionId);
+        if ($session === null) {
+            return null;
+        }
+
+        return [
+            'id' => $session->id,
+            'code' => (string) $session->module->module_code,
+            'day' => (int) $session->day_of_week,
+            'start' => $this->slotIndex((string) $session->start_time),
+            'venue' => $session->venue !== null ? (string) $session->venue->room_code : '',
+            'duration' => round(Carbon::parse($session->start_time)->diffInMinutes(Carbon::parse($session->end_time)) / 60, 2),
+            'week' => $week,
         ];
     }
 
@@ -396,20 +433,36 @@ class ReplacementArrangement extends Component
     /**
      * The mock's proceed() confirm now posts each selected block through the
      * real pipeline. Blocks arrive as {venue, week (0-based JS), day,
-     * startHour, endHour}; each becomes one pending request for that week's
-     * occurrence (FR 2.9) with the D8 rules, engine pre-check, OCC reserve
-     * and D5 compensation inside SubmitReplacementRequest. Returns per-block
-     * results in input order so the page's own toast/modal vocabulary can
-     * report successes and FR 4.10 conflicts.
+     * startHour, endHour}; each becomes one pending request for the PINNED
+     * occurrence (contextJson: {sessionId, occurrenceWeek} — the D1 pair the
+     * handoff carries; legacy entries without a pin target the slot's own
+     * week) with the D8 rules, engine pre-check, OCC reserve and D5
+     * compensation inside SubmitReplacementRequest. Returns per-block results
+     * in input order so the page's own toast/modal vocabulary can report
+     * successes and FR 4.10 conflicts.
      *
      * @return array<int, array{ok: bool, reason: string|null}>
      */
-    public function submitBlocks(string $blocksJson, string $code = '', string $origJson = '{}'): array
+    public function submitBlocks(string $blocksJson, string $code = '', string $origJson = '{}', string $contextJson = '{}'): array
     {
-        $session = $this->resolveSession($code, $origJson);
+        // The context pins the occurrence (D1 pair) when the handoff carried
+        // one; the id is ownership-scoped, so a fabricated id resolves to null.
+        $context = json_decode($contextJson, true);
+        $sessionId = is_array($context) && isset($context['sessionId']) ? (int) $context['sessionId'] : 0;
+        $session = $sessionId > 0
+            ? ClassSession::query()->where('lecturer_id', auth()->id())->find($sessionId)
+            : $this->resolveSession($code, $origJson);
         if ($session === null) {
             return [['ok' => false, 'reason' => 'Class not found among your classes.']];
         }
+
+        // The week the request REPLACES (the original occurrence's week — D1
+        // indexes it, D7 releases it at approval) is independent of where the
+        // new slot lives. Legacy entries without a pin keep the slot's week.
+        $weeks = $this->timelineWeeks();
+        $occurrenceWeek = is_array($context) && isset($context['occurrenceWeek']) && (int) $context['occurrenceWeek'] >= 1 && (int) $context['occurrenceWeek'] <= $weeks
+            ? (int) $context['occurrenceWeek']
+            : null;
 
         $blocks = json_decode($blocksJson, true);
         if (! is_array($blocks) || $blocks === []) {
@@ -434,6 +487,20 @@ class ReplacementArrangement extends Component
                 continue;
             }
 
+            // D1 — one active request per block occurrence (the partial unique
+            // index enforces it atomically; this pre-check makes it a friendly
+            // conflict message instead of a 500 on the race).
+            $requestWeek = $occurrenceWeek ?? $week;
+            if (ReplacementRequest::query()
+                ->where('class_session_id', $session->id)
+                ->where('week_number', $requestWeek)
+                ->whereIn('status', ['pending', 'approved'])
+                ->exists()) {
+                $results[] = ['ok' => false, 'reason' => $this->conflictText('duplicate_active_request')];
+
+                continue;
+            }
+
             $startTime = Carbon::parse('08:00:00')->addMinutes($startHour * 30)->format('H:i:s');
             $slot = TimeSlot::query()
                 ->where('semester_id', $semesterId)
@@ -451,7 +518,7 @@ class ReplacementArrangement extends Component
 
             $validator = Validator::make([
                 'class_session_id' => $session->id,
-                'week_number' => $week,
+                'week_number' => $requestWeek,
                 'replacement_time_slot_id' => (int) $slot->id,
                 'remarks' => null,
             ], StoreReplacementRequest::rules());
@@ -462,7 +529,7 @@ class ReplacementArrangement extends Component
                 continue;
             }
 
-            $result = $action(auth()->user(), $session, $week, (int) $slot->id, null);
+            $result = $action(auth()->user(), $session, $requestWeek, (int) $slot->id, null);
 
             $results[] = [
                 'ok' => (bool) $result['ok'],
@@ -516,6 +583,7 @@ class ReplacementArrangement extends Component
             'slot_not_available', 'slot_not_found' => 'That slot was just taken.',
             'engine_precheck_failed' => 'You or the cohort is no longer free at that time.',
             'reserve_interrupted' => 'The booking could not be completed — try again.',
+            'duplicate_active_request' => 'This occurrence already has an active replacement request — see My Request History.',
             default => 'Booking conflict — refresh and try again.',
         };
     }

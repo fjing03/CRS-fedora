@@ -96,7 +96,7 @@
             <button class="btn-close-modal" onclick="closeModal()">Close</button>
         </div>
         <div class="modal-footer-right">
-            <button class="btn-replace-now" id="btnReplaceNow" style="display:none" onclick="goToReplacement(currentModalEvent?.code, currentModalEvent?.cohort, { day: currentModalEvent?.di, start: currentModalEvent?.start, end: currentModalEvent?.end, venue: currentModalEvent?.venue, duration: (currentModalEvent && currentModalEvent.start !== undefined && currentModalEvent.end !== undefined) ? ((currentModalEvent.end - currentModalEvent.start + 1) / 2) : undefined }, 'my-timetable')">Replace Now</button>
+            <button class="btn-replace-now" id="btnReplaceNow" style="display:none" onclick="goToReplacementFor(currentModalEvent?.id, window.currentWeek + 1, 'my-timetable')">Replace Now</button>
         </div>
     @endsection
     @include('partials.ui-class-detail-modal')
