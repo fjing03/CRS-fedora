@@ -2778,7 +2778,7 @@
                 item.dataset.index = index;
                 item.innerHTML = `
                     <span class="slot-dd-item-star" data-index="${index}" data-tip="Toggle favourite">★</span>
-                    <span class="slot-dd-item-label">W${slot.week} · ${shortDate}, ${startStr} - ${endStr} @ ${slot.venue}</span>
+                    <span class="slot-dd-item-label">W${slot.week + 1} · ${shortDate}, ${startStr} - ${endStr} @ ${slot.venue}</span>
                     <span class="slot-dd-item-badge" style="background:${statusBg};color:${statusColor};">${statusLabel}</span>
                 `;
 
@@ -2869,7 +2869,12 @@
             const endStr = to12h(hours[slot.end + 1] || add30min(hours[slot.end]));
             const dateParts = slot.date.split(' ');
             const shortDate = dateParts[1] + ' ' + dateParts[0];
-            triggerText.textContent = 'W' + slot.week + ' · ' + shortDate + ' · ' + startStr + '–' + endStr;
+            /* BRIDGE PATCH (2026-10-11 user report): slot.week is the 0-based weekData
+   index (the mock's expander counts w from 0) — printing it raw showed the
+   picker one week behind (Nov 9 = "W7", Dec 25 = "W13"). The label is
+   human-facing: show the semester's week NUMBER (+1); all internal uses of
+   slot.week stay 0-based indices. */
+triggerText.textContent = 'W' + (slot.week + 1) + ' · ' + shortDate + ' · ' + startStr + '–' + endStr;
 
             // Update selected state in panel
             document.querySelectorAll('.slot-dd-item').forEach(item => {

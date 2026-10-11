@@ -1247,3 +1247,13 @@ Also fixed in this round (explore-brief bug-hunt absorbs):
   doesn't fit and to pick a cell with enough free room below.
 - **D2 (user decision)** — holidays are unbookable server-side: a slot on a
   public-holiday day is refused with the mock's conflict vocabulary.
+
+### Fix — slot picker showed the week one behind (2026-10-11, night)
+
+User report: "25 Dec is W13, which shud be W14". The mock's event expander
+counts weeks from 0 (weekData index), and the picker printed `slot.week` raw
+— so every human-facing "W#" label was the 0-based index (Nov 9 → "W7",
+Dec 25 → "W13"). The picker item labels and the trigger text now show the
+semester's week NUMBER (+1); all internal uses of `slot.week` (weekData
+lookups, confirm-modal labels, submit blocks) stay 0-based indices and are
+unaffected.
