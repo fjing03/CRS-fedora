@@ -1149,3 +1149,34 @@ call for a method literally named `$wire` (MethodNotFoundException on every
 real submit). Corrected to the aliased API: `Livewire.first().call(...)`.
 Proven live on the demo DB with the same convention against `submitBlocks('[]')`
 (empty selection → resolves, returns "No selection to submit.", zero writes).
+
+### Fix — the grid now shows WHY a cell can't be booked (D4 rule 1, 2026-10-11)
+
+Live demo testing caught the "free cell → Submission Conflict" trap: three
+selections the grid showed as green were refused at submit with "You or the
+cohort is no longer free at that time" — because the grid coloured cells by
+venue-slot status only, while the engine's FR 4.3–4.7 pre-check also tests
+the lecturer's freedom, the cohorts' freedom, and venue eligibility
+(type/headcount). All three refusals were honest:
+
+- B103 Sat 3–5 PM / B110 Fri 9–11 AM — AMSE2003 is a **Practical**; both
+  venues don't allow P (tutorial / lecture-hall-only)
+- B011 Wed 12–1 PM — the cohort is in another module's class 11:00–13:00
+
+The frozen SDD's own cell-state table (D4 rule 1: "occupied = slot occupied
+**or** excluded by engine busy vectors") always mandated this — the mock
+never needed it because mock data had no real conflicts. Wired through the
+bridge:
+
+- `busyByWeek` — the engine's own busy vectors per subject (lecturer + cohort
+  classes, minus that week's `class_exceptions`, so a cancelled class frees
+  its cells); `''` key = the lecturer's course-independent freedom
+- `blockedVenues` — venues ineligible for the resolved session's type +
+  headcount (engine Vector 4, reused verbatim — no duplicated semantics)
+- the frozen `cellRender` branch chain gains one documented BRIDGE PATCH
+  branch rendering those cells with the design's own occupied styling
+
+The engine's `lecturerBusyRanges` / `cohortBusyRanges` / `eligibleVenues` /
+`requiredHeadcount` became public (read-only reuse, no behaviour change).
+Verified live (lecturer 5425 / AMSE2003 W4): B110 renders 132 occupied /
+0 available; the lecturer's own Fri 9–10 shows red; zero console errors.

@@ -1177,6 +1177,10 @@
            single-semester map becomes [weekIdx][venueCode] (cellRender
            lookup patched below) */
         MockData.venueSlots = window.PAGE_DATA.venueSlotsByWeek;
+        /* D4 rule 1 — the engine's busy vectors + ineligible venues, so the
+           grid never offers a cell the FR 4.3–4.7 pre-check would refuse */
+        MockData.busyByWeek = window.PAGE_DATA.busyByWeek;
+        MockData.blockedVenues = window.PAGE_DATA.blockedVenues;
         MockData.mockNow = null; /* real clock — the demo anchor is mock-era only */
         // Max selectable slots — derived from the original class duration passed via
         // URL (duration in hours × 2 = 30-min slots), defaulting to 4 slots (2 hours).
@@ -1636,8 +1640,24 @@
                     const venueData = (venueSlotData[weekNav.currentWeek] || {})[currentVenue] || [];
                     const cellData = venueData.find(d => d[0] === di && d[1] === hi);
 
+                    /* BRIDGE PATCH (the frozen SDD's D4 rule 1): cells the engine's
+                       busy vectors exclude — this class's lecturer/cohorts are
+                       already in class that half-hour (cancelled classes freed by
+                       class_exceptions) — and venues ineligible for the session's
+                       type/headcount (engine Vector 4) render occupied, exactly
+                       like the cell-state table mandates. The mock never needed
+                       it (its data had no real conflicts); without it the grid
+                       offers cells the server's FR 4.3–4.7 pre-check then
+                       refuses — the "free cell → conflict popup" trap. */
+                    const courseKey = currentCourse ? currentCourse.code : '';
+                    const busyRanges = ((MockData.busyByWeek || {})[courseKey] || {})[weekNav.currentWeek] || [];
+                    const engineBlocked = ((MockData.blockedVenues || {})[courseKey] || []).includes(currentVenue)
+                        || busyRanges.some(b => b[0] === di && hi >= b[1] && hi < b[2]);
+
                     if (isSunday || day.holiday) {
                         div.className += day.holiday ? ' cell-ph' : ' cell-sun';
+                    } else if (engineBlocked) {
+                        div.className += ' cell-occupied';
                     } else if (cellData) {
                         if (cellData[2] === 1) {
                             div.className += ' cell-occupied';

@@ -11,6 +11,7 @@ use App\Models\Cohort;
 use App\Models\ReplacementRequest;
 use App\Models\TimeSlot;
 use App\Models\Venue;
+use App\Services\MatrixIntersectionEngine;
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
@@ -32,6 +33,13 @@ use Livewire\Component;
  *   (Public Holiday / Venue Restriction / FR 2.16 exceptions), so the mock's
  *   extractSlotsForSubject slot picker works unchanged.
  * - `MockData.courses` / `venues` / `semester` / `holidays` ← real rows.
+ * - `busyByWeek` / `blockedVenues` ← the engine's busy vectors per subject
+ *   (lecturer + cohort classes, minus that week's class_exceptions) and the
+ *   venues ineligible for the session's type/headcount (engine Vector 4) —
+ *   the frozen SDD's D4 rule 1 ("excluded by engine busy vectors renders
+ *   occupied") made visible so the grid never offers a cell the FR 4.3–4.7
+ *   pre-check would refuse (the mock never needed it: its data had no real
+ *   conflicts).
  * - submitBlocks() ← the mock's proceed() confirm callback now posts the
  *   selected blocks through StoreReplacementRequest rules (D8) +
  *   SubmitReplacementRequest (engine pre-check → OCC reserve → D5); results
@@ -43,6 +51,18 @@ use Livewire\Component;
 class ReplacementArrangement extends Component
 {
     use ResolvesTimetableTimeline;
+
+    private ?MatrixIntersectionEngine $engineInstance = null;
+
+    /**
+     * The grid's D4-rule-1 rendering reuses the engine's exact busy vectors —
+     * no duplicated conflict semantics. (Lazy resolution: Livewire's factory
+     * news components directly, bypassing constructor injection.)
+     */
+    private function engine(): MatrixIntersectionEngine
+    {
+        return $this->engineInstance ??= app(MatrixIntersectionEngine::class);
+    }
 
     public function render(): View
     {
@@ -85,6 +105,8 @@ class ReplacementArrangement extends Component
             'courses' => $this->coursesPayload($sessions),
             'conflictEvents' => $this->conflictEventsPayload($sessions),
             'venueSlotsByWeek' => $this->venueSlotsByWeekPayload($semesterId, $weeks),
+            'busyByWeek' => $this->busyByWeekPayload($sessions, $semesterId, $weeks),
+            'blockedVenues' => $this->blockedVenuesPayload($sessions),
         ];
     }
 
@@ -242,6 +264,130 @@ class ReplacementArrangement extends Component
                 $this->slotIndex((string) $slot->start_time),
                 $status,
             ];
+        }
+
+        return $out;
+    }
+
+    /**
+     * One representative session per subject — the one whose engine vectors
+     * the grid must honour. The URL handoff (code/day/start/venue) identifies
+     * the exact session with the same resolution submitBlocks uses; other
+     * subjects fall back to their first session of the week.
+     *
+     * @param  Collection<int, ClassSession>  $sessions
+     * @return array<string, ClassSession>
+     */
+    private function sessionsByCode(Collection $sessions): array
+    {
+        $urlCode = trim((string) request()->query('code', ''));
+        $orig = json_encode([
+            'day' => request()->query('day'),
+            'start' => request()->query('start'),
+            'venue' => request()->query('originalVenue', request()->query('venue')),
+        ]) ?: '{}';
+
+        $out = [];
+        foreach ($sessions->groupBy(fn (ClassSession $s): string => (string) $s->module->module_code) as $code => $group) {
+            $code = (string) $code;
+
+            $out[$code] = $code === $urlCode && request()->query('day') !== null
+                ? ($this->resolveSession($code, $orig) ?? $group->first())
+                : $group->first();
+        }
+
+        return $out;
+    }
+
+    /**
+     * D4 rule 1 — the engine's busy vectors as half-hour ranges, per subject:
+     * [code][weekIdx] = [[day, startIdx, endIdxExclusive], …]. The '' key is
+     * the lecturer's own freedom (course-independent — any submission needs
+     * the lecturer free); each subject key adds its cohorts' classes.
+     * class_exceptions for the evaluated week are excluded by the engine, so
+     * a cancelled class frees its cells (the replacement may reuse them).
+     *
+     * @param  Collection<int, ClassSession>  $sessions
+     * @return array<string, array<int, list<array{int, int, int}>>>
+     */
+    private function busyByWeekPayload(Collection $sessions, int $semesterId, int $weeks): array
+    {
+        $lecturerId = (int) auth()->id();
+
+        $toRanges = function (array $busy): array {
+            $out = [];
+            foreach ($busy as $range) {
+                $out[] = [
+                    (int) $range['day'],
+                    $this->slotIndex((string) $range['start']),
+                    $this->slotIndex((string) $range['end']),
+                ];
+            }
+
+            return $out;
+        };
+
+        $lecturerBusy = [];
+        for ($w = 1; $w <= $weeks; $w++) {
+            $lecturerBusy[$w - 1] = $toRanges($this->engine()->lecturerBusyRanges($semesterId, $lecturerId, $w));
+        }
+
+        $cohortBusyCache = [];
+        $out = ['' => $lecturerBusy];
+
+        foreach ($this->sessionsByCode($sessions) as $code => $session) {
+            $cohortIds = $session->cohorts->map(fn (Cohort $c): int => (int) $c->id)->sort()->values()->all();
+            $hash = md5((string) json_encode($cohortIds));
+
+            if (! isset($cohortBusyCache[$hash])) {
+                $cohortBusyCache[$hash] = [];
+                for ($w = 1; $w <= $weeks; $w++) {
+                    $cohortBusyCache[$hash][$w - 1] = $toRanges($this->engine()->cohortBusyRanges($semesterId, $cohortIds, $w));
+                }
+            }
+
+            $merged = [];
+            for ($w = 1; $w <= $weeks; $w++) {
+                $merged[$w - 1] = array_values(array_unique(
+                    array_merge($lecturerBusy[$w - 1], $cohortBusyCache[$hash][$w - 1]),
+                    SORT_REGULAR,
+                ));
+            }
+
+            $out[$code] = $merged;
+        }
+
+        return $out;
+    }
+
+    /**
+     * D4 rule 1 (venue eligibility — engine Vector 4): venues that cannot host
+     * the subject's resolved session (session type not allowed, or capacity
+     * below the cohorts' headcount) — the grid renders their cells occupied.
+     * The '' key blocks nothing: before a subject is picked there is no type
+     * or headcount to test against.
+     *
+     * @param  Collection<int, ClassSession>  $sessions
+     * @return array<string, array<int, string>>
+     */
+    private function blockedVenuesPayload(Collection $sessions): array
+    {
+        $roomCodes = Venue::query()->orderBy('room_code')->pluck('room_code')
+            ->map(fn ($code): string => (string) $code);
+        $all = $roomCodes->all();
+
+        $out = ['' => []];
+        foreach ($this->sessionsByCode($sessions) as $code => $session) {
+            $cohortIds = $session->cohorts->map(fn (Cohort $c): int => (int) $c->id)->all();
+            $eligible = $this->engine()->eligibleVenues(
+                $this->engine()->requiredHeadcount($cohortIds),
+                (string) $session->session_type,
+            );
+
+            $out[$code] = $roomCodes
+                ->reject(fn (string $roomCode): bool => in_array($roomCode, array_values($eligible), true))
+                ->values()
+                ->all();
         }
 
         return $out;

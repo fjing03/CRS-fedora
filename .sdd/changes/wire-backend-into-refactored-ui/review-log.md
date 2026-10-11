@@ -283,3 +283,25 @@ frozen mock templates byte-for-byte with data bridges only:
 - Live on the demo DB: mrh frozen toolbar/chips/empty CTA as lecturer 5770;
   rh frozen week-nav/Show Past/summary as student 25DFT0001 with the real
   cohort chip — zero console errors on both.
+
+## apply FIX — 2026-10-11 (arrangement grid honesty: D4 rule 1 wired)
+
+Live demo testing exposed the gap the original bridge documented away ("green
+= venue-free; the server re-validates"): the grid offered cells the engine's
+FR 4.3–4.7 pre-check refuses → "free cell → Submission Conflict" UX. The
+frozen design's D4 rule 1 already mandates rendering engine-excluded cells
+occupied; the engine even shipped busyRanges() for that UI purpose.
+
+- Bridge now emits busyByWeek (engine lecturer+cohort vectors per subject,
+  exception-excluded per week; '' key = lecturer-only) + blockedVenues
+  (Vector 4 reused verbatim: type + headcount eligibility of the resolved
+  session — the URL handoff picks the exact session, same resolution as
+  submitBlocks).
+- View: one documented BRIDGE PATCH branch in the frozen cellRender chain
+  (renders the design's own cell-occupied styling). Engine busy/eligibility
+  methods made public (read-only reuse).
+- Tests: +1 (busy vectors incl. exception-freed week, blocked venues incl.
+  type + capacity refusals, '' key semantics) — suite 160/160, pint ✓,
+  phpstan 0.
+- Live (5425, AMSE2003): B110 fully red for the P class; Wed 12–1 PM red via
+  the cohort's 11:00–13:00 class; zero console errors.

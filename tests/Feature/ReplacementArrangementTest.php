@@ -168,7 +168,6 @@ final class ReplacementArrangementTest extends TestCase
         $this->createSlot(6, 3, '14:00:00', 'occupied');                      // → 1
         $pendingMine = $this->createSlot(6, 4, '09:00:00', 'pending');        // → 3
         $pendingOther = $this->createSlot(6, 5, '09:00:00', 'pending');       // → 4
-
         $sessionA = ClassSession::query()->where('lecturer_id', $this->lecturerA->id)->firstOrFail();
         $sessionB = ClassSession::query()->where('lecturer_id', $this->lecturerB->id)->firstOrFail();
         ReplacementRequest::create([
@@ -274,5 +273,63 @@ final class ReplacementArrangementTest extends TestCase
 
         $this->assertFalse($results[0]['ok']);
         $this->assertSame(0, ReplacementRequest::query()->count());
+    }
+
+    public function test_grid_busy_vectors_and_ineligible_venues_follow_d4_rule_1(): void
+    {
+        // Extra venues to exercise engine Vector 4 (type + headcount):
+        // lecture hall L-only, tiny room (capacity below headcount), P-lab.
+        $hall = Venue::create(['room_code' => 'C100', 'room_name' => 'Hall C100', 'room_type' => 'lecture_hall', 'allowed_session_types' => 'L', 'capacity' => 80]);
+        $tiny = Venue::create(['room_code' => 'C050', 'room_name' => 'Tiny C050', 'room_type' => 'tutorial', 'allowed_session_types' => 'L,T,P', 'capacity' => 5]);
+        $lab = Venue::create(['room_code' => 'C200', 'room_name' => 'Lab C200', 'room_type' => 'lab', 'allowed_session_types' => 'P', 'capacity' => 30]);
+
+        $cohortA = Cohort::query()->firstOrFail(); // student_count 20
+        $moduleA = Module::query()->where('module_code', 'BMIT1001')->firstOrFail();
+        $moduleC = Module::create(['module_code' => 'BMIT3003', 'module_name' => 'Other Module', 'allowed_session_types' => 'L,T,P']);
+
+        // The subject under test becomes a practical (P) — labs only.
+        $sessionA = ClassSession::query()->where('lecturer_id', $this->lecturerA->id)->firstOrFail();
+        $sessionA->update(['session_type' => 'P', 'venue_id' => $lab->id]);
+
+        // The cohort is already in class Wednesday 09:00–11:00 (another lecturer).
+        $cohortClass = ClassSession::create([
+            'semester_id' => $this->semester->id, 'module_id' => $moduleC->id,
+            'lecturer_id' => $this->lecturerB->id, 'day_of_week' => 2,
+            'start_time' => '09:00:00', 'end_time' => '11:00:00',
+            'venue_id' => $hall->id, 'session_type' => 'L',
+        ]);
+        $cohortClass->cohorts()->attach([$cohortA->id]);
+
+        // The lecturer's own second class Tuesday 14:00–16:00 (a different cohort).
+        $ownClass = ClassSession::create([
+            'semester_id' => $this->semester->id, 'module_id' => $moduleC->id,
+            'lecturer_id' => $this->lecturerA->id, 'day_of_week' => 1,
+            'start_time' => '14:00:00', 'end_time' => '16:00:00',
+            'venue_id' => $hall->id, 'session_type' => 'T',
+        ]);
+        $ownClass->cohorts()->attach([Cohort::skip(1)->firstOrFail()->id]);
+
+        $payload = $this->payloadOf($this->lecturerA);
+
+        // The lecturer's own freedom ('' key, course-independent).
+        $own = $payload['busyByWeek'][''];
+        $this->assertContains([1, 4, 8], $own[0], 'own Mon 10:00–12:00 class → [day 1, idx 4, idx 8)');
+        $this->assertContains([1, 12, 16], $own[0], 'own Tue 14:00–16:00 class');
+
+        // The subject's vectors add its cohort's Wednesday class.
+        $subject = $payload['busyByWeek']['BMIT1001'];
+        $this->assertContains([2, 2, 6], $subject[0], 'cohort Wed 09:00–11:00 class');
+        $this->assertContains([1, 12, 16], $subject[0], 'lecturer vector merges in');
+
+        // Engine Vector 4: a P class for 20 students cannot use the L-only
+        // hall or the 5-seat room; the P-lab stays bookable.
+        $this->assertSame(['B005', 'B100', 'C050', 'C100'], $payload['blockedVenues']['BMIT1001']);
+        $this->assertSame([], $payload['blockedVenues']['']);
+
+        // A class cancelled in the evaluated week frees its cells (engine
+        // exception exclusion) — the replacement may reuse that time.
+        ClassException::create(['class_session_id' => $cohortClass->id, 'week_number' => 7, 'reason' => 'public_holiday']);
+        $payload = $this->payloadOf($this->lecturerA);
+        $this->assertNotContains([2, 2, 6], $payload['busyByWeek']['BMIT1001'][6], 'week 7 (idx 6): cancelled cohort class frees its cells');
     }
 }

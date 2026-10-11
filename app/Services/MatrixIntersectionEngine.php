@@ -260,10 +260,11 @@ final class MatrixIntersectionEngine
 
     /**
      * Busy ranges for a lecturer in a given week, minus that week's class exceptions.
+     * Public: also feeds the arrangement grid's D4-rule-1 occupied rendering.
      *
      * @return array<int, array{day: int, start: string, end: string}>
      */
-    private function lecturerBusyRanges(int $semesterId, int $lecturerId, int $weekNumber): array
+    public function lecturerBusyRanges(int $semesterId, int $lecturerId, int $weekNumber): array
     {
         return ClassSession::query()
             ->where('semester_id', $semesterId)
@@ -280,11 +281,12 @@ final class MatrixIntersectionEngine
 
     /**
      * Union of busy ranges across target cohorts (overlapping ranges among cohorts count once).
+     * Public: also feeds the arrangement grid's D4-rule-1 occupied rendering.
      *
      * @param  array<int, int>  $cohortIds
      * @return array<int, array{day: int, start: string, end: string}>
      */
-    private function cohortBusyRanges(int $semesterId, array $cohortIds, int $weekNumber): array
+    public function cohortBusyRanges(int $semesterId, array $cohortIds, int $weekNumber): array
     {
         return ClassSession::query()
             ->join('session_cohorts as sc', 'sc.class_session_id', '=', 'class_sessions.id')
@@ -308,7 +310,7 @@ final class MatrixIntersectionEngine
      *
      * @param  array<int, int>  $cohortIds
      */
-    private function requiredHeadcount(array $cohortIds): int
+    public function requiredHeadcount(array $cohortIds): int
     {
         if ($cohortIds === []) {
             return 0;
@@ -332,7 +334,7 @@ final class MatrixIntersectionEngine
      *
      * @return array<int, string> venue id => room_code
      */
-    private function eligibleVenues(int $headcount, string $sessionType, ?int $venueId = null): array
+    public function eligibleVenues(int $headcount, string $sessionType, ?int $venueId = null): array
     {
         $query = Venue::query();
 
