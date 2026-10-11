@@ -643,7 +643,7 @@
             if (pendingCancelId !== null) {
                 const cancelId = pendingCancelId;
                 pendingCancelId = null;
-                Livewire.first().$wire.call('cancelRequest', cancelId).then(function(ok) {
+                Livewire.first().call('cancelRequest', cancelId).then(function(ok) {
                     const idx = mockRequests.findIndex(function(r) { return r.id === cancelId; });
                     if (ok && idx !== -1) {
                         const removed = mockRequests.splice(idx, 1)[0];
@@ -695,7 +695,7 @@
                elsewhere rows stay visible. */
             const ids = mockRequests.filter(function(r) { return bulk.has(r.id); }).map(function(r) { return r.id; });
             if (ids.length === 0) { closeBatchCancelConfirm(); return; }
-            Livewire.first().$wire.call('cancelRequests', JSON.stringify(ids)).then(function(okIds) {
+            Livewire.first().call('cancelRequests', JSON.stringify(ids)).then(function(okIds) {
                 const okSet = new Set(okIds || []);
                 const removed = mockRequests.filter(function(r) { return okSet.has(r.id); });
                 mockRequests = mockRequests.filter(function(r) { return !okSet.has(r.id); });

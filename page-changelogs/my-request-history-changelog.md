@@ -568,3 +568,11 @@ changes:
   empty state with the real CTA, honest "0 of 0" (no requests yet in the demo
   data); the populated + cancel paths covered by ReplacementHistoriesTest on
   the disposable DB.
+
+### Fix — Livewire v4 JS calling convention (2026-10-11)
+
+Same fix as replacement-arrangement: the single + batch cancel confirm modals
+called `Livewire.first().$wire.call(...)` (v4 already returns the `$wire`
+proxy → the server saw a call to method `$wire`). Now
+`Livewire.first().call('cancelRequest' | 'cancelRequests', ...)` — the frozen
+cancel flow reaches the real CancelPendingRequest action.

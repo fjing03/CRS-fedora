@@ -1139,3 +1139,13 @@ occupancy (Mon/Tue red, Sunday OFF), BOOKINGS OPEN boundary chip, contiguous
 2-hour block selection, confirm modal lists the real block. No submission was
 fired against the demo DB (write path covered by ReplacementArrangementTest on
 the disposable DB).
+
+### Fix — Livewire v4 JS calling convention (2026-10-11)
+
+The frozen confirm modal's backend call used `Livewire.first().$wire.call(...)`
+— on Livewire v4, `Livewire.first()` already returns the `$wire` proxy, so the
+extra `.$wire` fell through to the proxy fallback and the server received a
+call for a method literally named `$wire` (MethodNotFoundException on every
+real submit). Corrected to the aliased API: `Livewire.first().call(...)`.
+Proven live on the demo DB with the same convention against `submitBlocks('[]')`
+(empty selection → resolves, returns "No selection to submit.", zero writes).

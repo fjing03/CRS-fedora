@@ -1942,7 +1942,7 @@
                     const orig = selectedOriginalSlot
                         ? { day: selectedOriginalSlot.day, start: selectedOriginalSlot.start, venue: selectedOriginalSlot.venue }
                         : { day: urlParams.day, start: urlParams.start, venue: urlParams.originalVenue };
-                    Livewire.first().$wire.call('submitBlocks', JSON.stringify(blocks), currentCourse ? currentCourse.code : '', JSON.stringify(orig))
+                    Livewire.first().call('submitBlocks', JSON.stringify(blocks), currentCourse ? currentCourse.code : '', JSON.stringify(orig))
                         .then(function(results) {
                             const failed = [];
                             (results || []).forEach(function(r, i) {
