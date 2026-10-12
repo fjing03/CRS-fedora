@@ -421,3 +421,16 @@ Live demo testing caught two gaps:
 Also: the go-to-arrangement builder is now shared (`goToReplacementFor` in
 ui-common.js) — promoted from the three per-page param schemes per the
 promote-on-3rd-duplication rule.
+
+### Fix — the TABLE view's "Arrange Replacement" still passed code+date (2026-10-12)
+
+User report: clicking the table row's Arrange button demanded "select a
+subject first". The shared row builder (`UITable.replacementHomeRow` in
+ui-common.js) still emitted the OLD scheme — `goToReplacementWith(code,
+date)` — which the new `(sessionId, week)` function misread as a pin, so the
+server resolved no occurrence and the arrangement page arrived unpinned.
+(The card view + quick-view were fixed on 2026-10-11; this shared builder
+was the one caller left behind.) It now emits
+`goToReplacementFor(sessionId, week, 'replacement-home')` — live-verified:
+the button navigates `?session=97&week=8` and the page arrives fully pinned
+(subject, slot, venue, grid week).
