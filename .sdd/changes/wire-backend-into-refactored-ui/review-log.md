@@ -388,3 +388,25 @@ DELETE FROM audit_logs WHERE replacement_request_id IN (5, 6);
 DELETE FROM replacement_requests WHERE id IN (5, 6);
 UPDATE time_slots SET status = 'available', version = 1 WHERE id IN (27878, 27852);
 ```
+
+## apply FIX — 2026-10-12: occurrence-grain context (explore A2+A3+U5b-a, standalone)
+
+User decision C: standalone (not bundled into the other session's plan).
+The course context was module-grain (coursesPayload groupBy module_id, type
+from $first, headcount summed across L+T+P) while the design is
+occurrence-grain. Server: events carry sessionId; courses carry a per-session
+map; busyByWeek/blockedVenues keyed per session (docblock keys int|string).
+Client: commitSlotSelection re-derives context/pin/URL per pick (user
+decision A: the URL tracks the picked occurrence); ineligible venue falls
+back to the occurrence's own venue; picker items show (L)/(T)/(P) badges
+(user decision B: a label, not a step). extractSlotsForSubject initially
+dropped the new sessionId field — caught live (pick changed nothing), fixed.
+PHP-opcache/stale-serve note repeated: after ANY edit, restart artisan serve.
+
+Live proof: T-entry → (T)/28/B107; P-pick → (P)/B011/?session=49&week=14;
+L-pick → (L)/50/B110/?session=97&week=8; submit under L-pick filed session 97
+week 8 (req#7, cancelled + cleaned up after). Suite 167/167, phpstan 0.
+Test traces: req#7 (cancelled) + its slot — cleanup:
+DELETE FROM audit_logs WHERE replacement_request_id = 7;
+DELETE FROM replacement_requests WHERE id = 7;
+UPDATE time_slots SET status = 'available', version = 1 WHERE id = (SELECT replacement_time_slot_id FROM replacement_requests WHERE id = 7);  -- run BEFORE the delete

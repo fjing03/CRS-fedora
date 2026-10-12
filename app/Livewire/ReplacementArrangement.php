@@ -192,6 +192,24 @@ class ReplacementArrangement extends Component
                     'code' => (string) $first->module->module_code,
                     'name' => (string) $first->module->module_name,
                     'type' => (string) $first->session_type,
+                    // Occurrence-grain context (2026-10-12, explore A2/A3): one
+                    // module code can hold L+T+P sessions with different
+                    // cohorts, headcounts, venues and durations — the picked
+                    // slot's session decides those, never the module default.
+                    'sessions' => $group->mapWithKeys(function (ClassSession $s): array {
+                        return [(string) $s->id => [
+                            'type' => (string) $s->session_type,
+                            'venue' => $s->venue !== null ? (string) $s->venue->room_code : '',
+                            'duration' => round(Carbon::parse((string) $s->start_time)->diffInMinutes(Carbon::parse((string) $s->end_time)) / 60, 2),
+                            'studentCount' => (int) $s->cohorts->sum('student_count'),
+                            'cohorts' => $s->cohorts
+                                ->map(fn ($c): string => $this->spacedCohortLabel($c))
+                                ->all(),
+                            'cohortCounts' => $s->cohorts
+                                ->map(fn ($c): int => (int) $c->student_count)
+                                ->all(),
+                        ]];
+                    })->all(),
                     'cohorts' => $group->flatMap(fn (ClassSession $s) => $s->cohorts)
                         ->unique('id')
                         ->values()
@@ -251,6 +269,7 @@ class ReplacementArrangement extends Component
                 $events[] = [
                     'week' => $week - 1, // the mock's weekData index (0-based)
                     'event' => [
+                        'sessionId' => (int) $session->id, // the D1 pair's other half — the pin follows the picked slot
                         'di' => (int) $session->day_of_week,
                         'start' => $this->slotIndex((string) $session->start_time),
                         'end' => $this->slotIndex((string) $session->end_time) - 1, // inclusive last half-hour cell
@@ -309,36 +328,6 @@ class ReplacementArrangement extends Component
     }
 
     /**
-     * One representative session per subject — the one whose engine vectors
-     * the grid must honour. The URL handoff (code/day/start/venue) identifies
-     * the exact session with the same resolution submitBlocks uses; other
-     * subjects fall back to their first session of the week.
-     *
-     * @param  Collection<int, ClassSession>  $sessions
-     * @return array<string, ClassSession>
-     */
-    private function sessionsByCode(Collection $sessions): array
-    {
-        $urlCode = trim((string) request()->query('code', ''));
-        $orig = json_encode([
-            'day' => request()->query('day'),
-            'start' => request()->query('start'),
-            'venue' => request()->query('originalVenue', request()->query('venue')),
-        ]) ?: '{}';
-
-        $out = [];
-        foreach ($sessions->groupBy(fn (ClassSession $s): string => (string) $s->module->module_code) as $code => $group) {
-            $code = (string) $code;
-
-            $out[$code] = $code === $urlCode && request()->query('day') !== null
-                ? ($this->resolveSession($code, $orig) ?? $group->first())
-                : $group->first();
-        }
-
-        return $out;
-    }
-
-    /**
      * D4 rule 1 — the engine's busy vectors as half-hour ranges, per subject:
      * [code][weekIdx] = [[day, startIdx, endIdxExclusive], …]. The '' key is
      * the lecturer's own freedom (course-independent — any submission needs
@@ -347,7 +336,7 @@ class ReplacementArrangement extends Component
      * a cancelled class frees its cells (the replacement may reuse them).
      *
      * @param  Collection<int, ClassSession>  $sessions
-     * @return array<string, array<int, list<array{int, int, int}>>>
+     * @return array<int|string, array<int, list<array{int, int, int}>>>
      */
     private function busyByWeekPayload(Collection $sessions, int $semesterId, int $weeks): array
     {
@@ -374,7 +363,7 @@ class ReplacementArrangement extends Component
         $cohortBusyCache = [];
         $out = ['' => $lecturerBusy];
 
-        foreach ($this->sessionsByCode($sessions) as $code => $session) {
+        foreach ($sessions as $session) {
             $cohortIds = $session->cohorts->map(fn (Cohort $c): int => (int) $c->id)->sort()->values()->all();
             $hash = md5((string) json_encode($cohortIds));
 
@@ -393,7 +382,10 @@ class ReplacementArrangement extends Component
                 ));
             }
 
-            $out[$code] = $merged;
+            // keyed by the SESSION id — the client re-keys the grid vectors
+            // whenever the picked slot moves to another occurrence (L vs T vs P
+            // of the same module have different cohort sets)
+            $out[(string) $session->id] = $merged;
         }
 
         return $out;
@@ -407,7 +399,7 @@ class ReplacementArrangement extends Component
      * or headcount to test against.
      *
      * @param  Collection<int, ClassSession>  $sessions
-     * @return array<string, array<int, string>>
+     * @return array<int|string, array<int, string>>
      */
     private function blockedVenuesPayload(Collection $sessions): array
     {
@@ -416,14 +408,14 @@ class ReplacementArrangement extends Component
         $all = $roomCodes->all();
 
         $out = ['' => []];
-        foreach ($this->sessionsByCode($sessions) as $code => $session) {
+        foreach ($sessions as $session) {
             $cohortIds = $session->cohorts->map(fn (Cohort $c): int => (int) $c->id)->all();
             $eligible = $this->engine()->eligibleVenues(
                 $this->engine()->requiredHeadcount($cohortIds),
                 (string) $session->session_type,
             );
 
-            $out[$code] = $roomCodes
+            $out[(string) $session->id] = $roomCodes
                 ->reject(fn (string $roomCode): bool => in_array($roomCode, array_values($eligible), true))
                 ->values()
                 ->all();

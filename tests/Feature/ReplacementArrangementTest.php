@@ -189,6 +189,50 @@ final class ReplacementArrangementTest extends TestCase
         $this->assertContains([5, 2, 4], $week5, 'others\' pending → status 4 (Reserved by Others)');
     }
 
+    public function test_page_payload_is_occurrence_grain(): void
+    {
+        // One module, two sessions of different types (the AMCS2093 L+P shape):
+        // the course context a slot picker pick must re-derive lives per
+        // SESSION, not per module code.
+        $module = Module::query()->where('module_code', 'BMIT1001')->firstOrFail();
+        $module->update(['allowed_session_types' => 'L,T,P']);
+        $lecture = ClassSession::query()->where('lecturer_id', $this->lecturerA->id)->firstOrFail();
+        $lecture->update(['session_type' => 'L']);
+        $practical = ClassSession::create([
+            'semester_id' => $this->semester->id, 'module_id' => $module->id,
+            'lecturer_id' => $this->lecturerA->id, 'day_of_week' => 4,
+            'start_time' => '11:00:00', 'end_time' => '12:00:00',
+            'venue_id' => $lecture->venue_id, 'session_type' => 'P',
+        ]);
+        $practical->cohorts()->attach([Cohort::skip(1)->firstOrFail()->id]);
+        ClassException::create(['class_session_id' => $lecture->id, 'week_number' => 3, 'reason' => 'annual_leave']);
+        ClassException::create(['class_session_id' => $practical->id, 'week_number' => 4, 'reason' => 'annual_leave']);
+
+        $payload = $this->payloadOf($this->lecturerA);
+
+        // The course entry carries per-session context (type, headcount).
+        $course = collect($payload['courses'])->firstWhere('code', 'BMIT1001');
+        $this->assertSame('L', $course['sessions'][(string) $lecture->id]['type']);
+        $this->assertSame('P', $course['sessions'][(string) $practical->id]['type']);
+        $this->assertNotSame(
+            $course['sessions'][(string) $lecture->id]['studentCount'],
+            $course['sessions'][(string) $practical->id]['studentCount'],
+            'per-session headcounts differ (L cohort vs P cohort)',
+        );
+
+        // Each conflict event names its session (the pin follows the pick).
+        $events = collect($payload['conflictEvents']);
+        $this->assertSame($lecture->id, $events->first(fn (array $e): bool => $e['week'] === 2)['event']['sessionId']);
+        $this->assertSame($practical->id, $events->first(fn (array $e): bool => $e['week'] === 3)['event']['sessionId']);
+
+        // Engine vectors are keyed per session, not per module code.
+        $this->assertArrayHasKey((string) $lecture->id, $payload['busyByWeek']);
+        $this->assertArrayHasKey((string) $practical->id, $payload['busyByWeek']);
+        $this->assertArrayNotHasKey('BMIT1001', $payload['busyByWeek']);
+        $this->assertArrayHasKey((string) $practical->id, $payload['blockedVenues']);
+        $this->assertArrayNotHasKey('BMIT1001', $payload['blockedVenues']);
+    }
+
     public function test_arrangement_conflict_events_feed_the_slot_picker(): void
     {
         $sessionA = ClassSession::query()->where('lecturer_id', $this->lecturerA->id)->firstOrFail();
@@ -411,20 +455,21 @@ final class ReplacementArrangementTest extends TestCase
         $this->assertContains([1, 4, 8], $own[0], 'own Mon 10:00–12:00 class → [day 1, idx 4, idx 8)');
         $this->assertContains([1, 12, 16], $own[0], 'own Tue 14:00–16:00 class');
 
-        // The subject's vectors add its cohort's Wednesday class.
-        $subject = $payload['busyByWeek']['BMIT1001'];
+        // The subject's vectors add its cohort's Wednesday class — keyed by
+        // the SESSION id now (occurrence-grain: L/T/P of one module differ).
+        $subject = $payload['busyByWeek'][(string) $sessionA->id];
         $this->assertContains([2, 2, 6], $subject[0], 'cohort Wed 09:00–11:00 class');
         $this->assertContains([1, 12, 16], $subject[0], 'lecturer vector merges in');
 
         // Engine Vector 4: a P class for 20 students cannot use the L-only
         // hall or the 5-seat room; the P-lab stays bookable.
-        $this->assertSame(['B005', 'B100', 'C050', 'C100'], $payload['blockedVenues']['BMIT1001']);
+        $this->assertSame(['B005', 'B100', 'C050', 'C100'], $payload['blockedVenues'][(string) $sessionA->id]);
         $this->assertSame([], $payload['blockedVenues']['']);
 
         // A class cancelled in the evaluated week frees its cells (engine
         // exception exclusion) — the replacement may reuse that time.
         ClassException::create(['class_session_id' => $cohortClass->id, 'week_number' => 7, 'reason' => 'public_holiday']);
         $payload = $this->payloadOf($this->lecturerA);
-        $this->assertNotContains([2, 2, 6], $payload['busyByWeek']['BMIT1001'][6], 'week 7 (idx 6): cancelled cohort class frees its cells');
+        $this->assertNotContains([2, 2, 6], $payload['busyByWeek'][(string) $sessionA->id][6], 'week 7 (idx 6): cancelled cohort class frees its cells');
     }
 }

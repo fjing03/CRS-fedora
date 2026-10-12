@@ -1656,7 +1656,12 @@
                        it (its data had no real conflicts); without it the grid
                        offers cells the server's FR 4.3–4.7 pre-check then
                        refuses — the "free cell → conflict popup" trap. */
-                    const courseKey = currentCourse ? currentCourse.code : '';
+                    /* vectors are keyed per SESSION (occurrence-grain) — the
+                       L/T/P occurrences of one module have different cohort
+                       sets; fall back to the code key only for legacy data */
+                    const courseKey = currentSessionId !== null
+                        ? String(currentSessionId)
+                        : (currentCourse ? currentCourse.code : '');
                     const busyRanges = ((MockData.busyByWeek || {})[courseKey] || {})[weekNav.currentWeek] || [];
                     const engineBlocked = ((MockData.blockedVenues || {})[courseKey] || []).includes(currentVenue)
                         || busyRanges.some(b => b[0] === di && hi >= b[1] && hi < b[2]);
@@ -2327,12 +2332,24 @@
         // ───── Subject Dropdown + URL Param Reading ─────
 
         let currentCourse = null;
+        /* Occurrence-grain context (2026-10-12, explore A2/A3): one module code
+           can hold L+T+P sessions — the PICKED slot's session decides type,
+           cohorts, headcount and venue eligibility. null = module default. */
+        let currentSessionId = null;
+        function courseCtx() {
+            if (!currentCourse) return null;
+            const sess = currentSessionId !== null && currentCourse.sessions
+                ? currentCourse.sessions[String(currentSessionId)]
+                : null;
+            return sess ? Object.assign({}, currentCourse, sess) : currentCourse;
+        }
         let urlParams = {};
 
         function renderTitleSummary() {
             const el = document.getElementById('subjectInfo');
             const hasSubject = !!currentCourse;
             const hasSlot = !!selectedOriginalSlot;
+            const ctxCourse = courseCtx(); /* occurrence-grain: follows the picked slot */
 
             /* Grid lock affordance: free cells read as not-allowed until a subject is picked */
             const timetableEl = document.getElementById('timetable');
@@ -2340,7 +2357,7 @@
 
             // Line 1: Subject
             const subjectLine = hasSubject
-                ? currentCourse.code + ' — ' + currentCourse.name + ' (' + currentCourse.type + ')'
+                ? currentCourse.code + ' — ' + currentCourse.name + ' (' + ctxCourse.type + ')'
                 : null;
 
             // Line 2: Time Slot
@@ -2358,17 +2375,17 @@ slotLine = 'Week ' + (selectedOriginalSlot.week + 1) + ' · ' + selectedOriginal
             // Line 3: Cohorts
             let cohortsLine = null;
             if (hasSubject) {
-                cohortsLine = currentCourse.cohorts.join(' + ');
+                cohortsLine = (ctxCourse.cohorts || []).join(' + ');
             }
 
             // Line 4: Total Students
             let totalLine = null;
             if (hasSubject) {
-                const counts = currentCourse.cohortCounts || [];
+                const counts = ctxCourse.cohortCounts || [];
                 if (counts.length > 1) {
-                    totalLine = counts.join(' + ') + ' = ' + currentCourse.studentCount;
+                    totalLine = counts.join(' + ') + ' = ' + ctxCourse.studentCount;
                 } else {
-                    totalLine = '' + currentCourse.studentCount;
+                    totalLine = '' + ctxCourse.studentCount;
                 }
             }
 
@@ -2380,7 +2397,7 @@ slotLine = 'Week ' + (selectedOriginalSlot.week + 1) + ' · ' + selectedOriginal
                 <div class="cs-seg">
                     <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
                     ${subjectLine
-                        ? `<span class="cs-val"><strong>${currentCourse.code}</strong> — ${currentCourse.name} (${currentCourse.type})</span>`
+                        ? `<span class="cs-val"><strong>${currentCourse.code}</strong> — ${currentCourse.name} (${ctxCourse.type})</span>`
                         : `<span class="cs-val cs-none">Not selected${!hasSubject ? '<span class="cs-hint">— Select a Subject first</span>' : ''}</span>`}
                 </div>
                 <div class="cs-seg">
@@ -2664,6 +2681,7 @@ slotLine = 'Week ' + (selectedOriginalSlot.week + 1) + ' · ' + selectedOriginal
 
             if (!code) {
                 currentCourse = null;
+                currentSessionId = null;
                 selectedOriginalSlot = null;
                 noteEl.style.display = 'none';
                 renderSlotPicker([]);
@@ -2675,6 +2693,14 @@ slotLine = 'Week ' + (selectedOriginalSlot.week + 1) + ' · ' + selectedOriginal
             currentCourse = (MockData.courses || []).find(c => c.code === code);
             if (!currentCourse) return;
 
+            /* occurrence-grain default: the pinned entry's session, else the
+               module's first session (same representative the code-grain keys
+               used to pick); the picked slot overrides from here on */
+            const wanted = window.pinnedOccurrence ? String(window.pinnedOccurrence.sessionId) : null;
+            currentSessionId = wanted && currentCourse.sessions && currentCourse.sessions[wanted]
+                ? Number(wanted)
+                : (currentCourse.sessions ? Number(Object.keys(currentCourse.sessions)[0]) : null);
+
             selectedOriginalSlot = null;
             document.getElementById('slotTriggerText').textContent = 'Select a slot to replace';
 
@@ -2684,6 +2710,10 @@ slotLine = 'Week ' + (selectedOriginalSlot.week + 1) + ' · ' + selectedOriginal
             renderTitleSummary();
             buildVenueFilter();
             consumeBookingIntent();
+            /* vectors are session-keyed — a subject switch re-keys the grid
+               (guarded: during boot the week selector is not ready yet; the
+               boot's own buildTimetable renders the final state once) */
+            if (window.__bootDone) { saveCurrentWeek(); buildTimetable(); }
         }
 
         function buildVenueFilter() {
@@ -2691,14 +2721,15 @@ slotLine = 'Week ' + (selectedOriginalSlot.week + 1) + ' · ' + selectedOriginal
             if (!venueDropdown) return;
 
             if (currentCourse) {
+                var ctxCourse = courseCtx(); /* occurrence-grain: follows the picked slot */
                 venueDropdown.setFilter(function(v) {
                     /* BRIDGE PATCH: real room types include labs (B-lab rows) */
-                    var typeOk = v.type === 'Tutorial' || v.type === 'Lab' || (currentCourse.type === 'L' && v.type === 'LectureHall');
-                    var capOk = v.capacity >= currentCourse.studentCount;
+                    var typeOk = v.type === 'Tutorial' || v.type === 'Lab' || (ctxCourse.type === 'L' && v.type === 'LectureHall');
+                    var capOk = v.capacity >= ctxCourse.studentCount;
                     return typeOk && capOk;
                 });
                 var count = venueDropdown.getFiltered ? venueDropdown.getFiltered().length : 0;
-                noteEl.textContent = 'Showing venues that fit ' + currentCourse.studentCount + ' students';
+                noteEl.textContent = 'Showing venues that fit ' + ctxCourse.studentCount + ' students';
                 noteEl.style.display = '';
             } else {
                 venueDropdown.setFilter(null);
@@ -2732,6 +2763,7 @@ slotLine = 'Week ' + (selectedOriginalSlot.week + 1) + ' · ' + selectedOriginal
                         week: weekIdx,
                         day: dayIdx,
                         dayName: slotDayNames[dayIdx] || 'Unknown',
+                        sessionId: e.sessionId, /* occurrence identity — the pin/URL/context follow the pick */
                         start: e.start,
                         end: e.end,
                         venue: e.venue,
@@ -2773,14 +2805,14 @@ slotLine = 'Week ' + (selectedOriginalSlot.week + 1) + ' · ' + selectedOriginal
                 // Parse "18 Aug 2026" → "Aug 18"
                 const dateParts = slot.date.split(' ');
                 const shortDate = dateParts[1] + ' ' + dateParts[0];
-                const fullLabel = 'Week ' + (slot.week + 1) + ' · ' + slotDayNames[slot.day] + ', ' + slot.date + ', ' + startStr + ' - ' + endStr + ' @ ' + slot.venue;
+                const fullLabel = '(' + slot.type + ') Week ' + (slot.week + 1) + ' · ' + slotDayNames[slot.day] + ', ' + slot.date + ', ' + startStr + ' - ' + endStr + ' @ ' + slot.venue;
 
                 const item = document.createElement('div');
                 item.className = 'slot-dd-item';
                 item.dataset.index = index;
                 item.innerHTML = `
                     <span class="slot-dd-item-star" data-index="${index}" data-tip="Toggle favourite">★</span>
-                    <span class="slot-dd-item-label">W${slot.week + 1} · ${shortDate}, ${startStr} - ${endStr} @ ${slot.venue}</span>
+                    <span class="slot-dd-item-label"><span class="cell-type-label">(${slot.type})</span> W${slot.week + 1} · ${shortDate}, ${startStr} - ${endStr} @ ${slot.venue}</span>
                     <span class="slot-dd-item-badge" style="background:${statusBg};color:${statusColor};">${statusLabel}</span>
                 `;
 
@@ -2864,6 +2896,35 @@ slotLine = 'Week ' + (selectedOriginalSlot.week + 1) + ' · ' + selectedOriginal
             if (!(urlSpanLocked && opts && opts.auto) && slotSpan !== BLOCK_SPAN) {
                 BLOCK_SPAN = slotSpan;
                 MAX_SELECTION = Math.max(MAX_SELECTION, BLOCK_SPAN);
+            }
+            /* BRIDGE PATCH (2026-10-12 user report): the picked slot IS the
+               occurrence being replaced — re-derive the session context (type,
+               cohorts, venue eligibility, grid vectors), move the D1 pin, and
+               track it in the URL so refresh/back stay truthful. */
+            if (slot.sessionId && Number(slot.sessionId) !== currentSessionId) {
+                currentSessionId = Number(slot.sessionId);
+                buildVenueFilter();
+                window.pinnedOccurrence = { sessionId: slot.sessionId, week: slot.week + 1 };
+                const from = new URLSearchParams(window.location.search).get('from') || 'replacement-home';
+                history.replaceState({}, '', '/replacement-arrangement?session=' + slot.sessionId + '&week=' + (slot.week + 1) + '&from=' + from);
+                /* the selected venue may not be ELIGIBLE for the new occurrence's
+                   type/headcount (e.g. T's B107 for the 50-seat L) — a blocked
+                   venue renders every cell occupied. Fall back to the
+                   occurrence's OWN venue (always eligible for itself); the
+                   switch bypasses onVenueChange's confirm — the slot-change
+                   confirm already consented to the context switch. */
+                const blocked = (MockData.blockedVenues || {})[String(currentSessionId)] || [];
+                if (blocked.includes(currentVenue) && courseCtx() && courseCtx().venue) {
+                    const targetVenue = courseCtx().venue;
+                    if (selectedBlock) deselectBlock();
+                    revertingChange = true;
+                    venueDropdown.select(targetVenue);
+                    revertingChange = false;
+                    applyVenueChange(targetVenue);
+                } else if (window.__bootDone) {
+                    saveCurrentWeek();
+                    buildTimetable();
+                }
             }
             selectedOriginalSlot = slot;
             const triggerText = document.getElementById('slotTriggerText');
@@ -3133,6 +3194,10 @@ triggerText.textContent = 'W' + (slot.week + 1) + ' · ' + shortDate + ' · ' + 
             }
             /* applyUrlParams AFTER week selector is ready (triggers onVenueChange → buildTimetable) */
             applyUrlParams();
+            /* from here on, subject/slot changes may rebuild the grid + vectors
+               (during boot those rebuilds are deferred to the boot's own
+               buildTimetable — the week selector is not readable before this) */
+            window.__bootDone = true;
             /* Subject tooltip: guides the first pick, then mirrors the full subject info
                (the single-row select ellipsizes long names) */
             const subjectSel = document.getElementById('subjectSelector');

@@ -1267,3 +1267,43 @@ full-label tooltip printed `slot.week`/`selectedOriginalSlot.week` raw — the
 index uses unchanged. (Ops repeat: the running `artisan serve` served the
 pre-edit view until restarted — the standing restart ritual was needed here
 too.)
+
+### Fix — occurrence-grain context: subject type, cohorts, venues now follow the picked slot (2026-10-12)
+
+User report: "AMCS2093 — Operating Systems (L)" always showed (L) and the
+venue list never changed, no matter which conflict slot was picked. Root
+cause: the page's course context was MODULE-grain — `coursesPayload` grouped
+all of a module's sessions (AMCS2093 = L Mon 11–13 + T Thu 2:30 + P Thu 1:30
++ P Fri 11–12) into ONE entry whose type came from `$first` and whose
+headcount summed every session's cohorts. The picked slot changed only the
+block size.
+
+Now (explore-brief cluster A2+A3+U5b-a, standalone):
+
+- `conflictEventsPayload` events carry `sessionId` — the picker knows which
+  occurrence each item is; items show a `(P)/(T)/(L)` type badge (the home
+  table's cell-type vocabulary).
+- `coursesPayload` keeps one dropdown entry per module (frozen design) and
+  adds a per-session map: type, venue, duration, cohorts, headcount.
+- `busyByWeek` + `blockedVenues` are keyed per SESSION, not per code — the
+  grid's busy cells and eligible-venue list now use the picked occurrence's
+  own cohort set (the L's 50-seat cohort set blocks more cells than a T's;
+  that is correct, not a regression).
+- `commitSlotSelection` re-derives the whole context on a pick: strip type +
+  cohorts + headcount, venue filter, grid vectors, the D1 pin
+  (`window.pinnedOccurrence`), and — user decision A — the URL
+  (`history.replaceState` to `?session={pickedId}&week={occurrenceWeek}`), so
+  refresh/back/copy-link stay truthful.
+- If the selected venue is not eligible for the new occurrence (T's B107,
+  35 seats, for the 50-seat L → every cell rendered occupied), it falls back
+  to the occurrence's OWN venue (always eligible for itself); the switch
+  bypasses the venue-change confirm because the slot-change confirm already
+  consented to the context switch.
+- A subject switch also rebuilds the grid (vectors are session-keyed).
+
+Live-verified (entered via `?session=94&week=14`, the T): arrival shows (T) +
+28 students + venue B107; picking the Dec 25 P slot → (P) + B011 +
+`?session=49&week=14`; picking the Nov 9 L slot → (L) + 50 students + venue
+auto-switched to B110 + `?session=97&week=8`; submit filed the request
+against session 97 week 8 (the PINNED occurrence, not the entry's). Suite
+167/167, pint ✓, phpstan 0.
