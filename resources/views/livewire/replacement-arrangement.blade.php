@@ -2350,7 +2350,9 @@
                 const endStr = to12h(hours[selectedOriginalSlot.end + 1] || add30min(hours[selectedOriginalSlot.end]));
                 const dateParts = selectedOriginalSlot.date.split(' ');
                 const shortDate = dateParts[1] + ' ' + dateParts[0];
-                slotLine = 'Week ' + selectedOriginalSlot.week + ' · ' + selectedOriginalSlot.dayName + ', ' + shortDate + ' ' + dateParts[2] + ' · ' + startStr + '–' + endStr + ' @ ' + selectedOriginalSlot.venue;
+                /* human-facing label: week NUMBER (+1, see the picker's trigger note);
+   selectedOriginalSlot.week itself stays the 0-based weekData index */
+slotLine = 'Week ' + (selectedOriginalSlot.week + 1) + ' · ' + selectedOriginalSlot.dayName + ', ' + shortDate + ' ' + dateParts[2] + ' · ' + startStr + '–' + endStr + ' @ ' + selectedOriginalSlot.venue;
             }
 
             // Line 3: Cohorts
@@ -2771,7 +2773,7 @@
                 // Parse "18 Aug 2026" → "Aug 18"
                 const dateParts = slot.date.split(' ');
                 const shortDate = dateParts[1] + ' ' + dateParts[0];
-                const fullLabel = 'Week ' + slot.week + ' · ' + slotDayNames[slot.day] + ', ' + slot.date + ', ' + startStr + ' - ' + endStr + ' @ ' + slot.venue;
+                const fullLabel = 'Week ' + (slot.week + 1) + ' · ' + slotDayNames[slot.day] + ', ' + slot.date + ', ' + startStr + ' - ' + endStr + ' @ ' + slot.venue;
 
                 const item = document.createElement('div');
                 item.className = 'slot-dd-item';

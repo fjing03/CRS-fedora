@@ -1257,3 +1257,13 @@ Dec 25 → "W13"). The picker item labels and the trigger text now show the
 semester's week NUMBER (+1); all internal uses of `slot.week` (weekData
 lookups, confirm-modal labels, submit blocks) stay 0-based indices and are
 unaffected.
+
+### Fix — conflict-strip + picker tooltip also showed the week one behind (2026-10-12)
+
+Same class as the picker fix: the selection summary strip ("Week 13 ·
+Friday, Dec 25 2026 · 11:00 AM–12:00 PM @ B011") and the picker item's
+full-label tooltip printed `slot.week`/`selectedOriginalSlot.week` raw — the
+0-based weekData index. Both now show the human week number (+1); internal
+index uses unchanged. (Ops repeat: the running `artisan serve` served the
+pre-edit view until restarted — the standing restart ritual was needed here
+too.)
