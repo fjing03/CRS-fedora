@@ -1307,3 +1307,34 @@ Live-verified (entered via `?session=94&week=14`, the T): arrival shows (T) +
 auto-switched to B110 + `?session=97&week=8`; submit filed the request
 against session 97 week 8 (the PINNED occurrence, not the entry's). Suite
 167/167, pint ✓, phpstan 0.
+
+### Fix — venue-type matrix: P → Labs only, T → Tutorial only (2026-10-12)
+
+User decision (docs/venue-restrictions.md rule 3 + B005, UI side): the venue
+dropdown showed Tutorial rooms for P and Labs for T — the old filter was a
+loose approximation (`Tutorial || Lab || L&&LectureHall`). One shared
+`venueEligible(v, ctx)` helper now drives both the dropdown filter and the
+occurrence-switch fallback:
+
+- **P** → Labs only (computer + cisco; B006 stays visible for non-networking
+  and IoT subjects — priority, not a ban, per the doc's B006 rule).
+- **T** → Tutorial rooms only (Labs and Lecture Halls hidden).
+- **L** → Lecture Halls only (unchanged).
+- **B005** is hidden whenever the picked occurrence's cohorts include a
+  Diploma (D*) programme — the doc's enforced no-Diploma rule.
+- On an occurrence switch whose selected venue is ineligible, the fallback
+  now picks the FIRST matrix-eligible venue (the occurrence's own room can
+  itself violate the rule — e.g. a P seeded in a tutorial room), instead of
+  blindly restoring that room.
+
+Also fixed en route: **the handoff pin was being overridden by the mock's
+default-slot priority** — `applyDefaultSlotSelection` (favourite → recent →
+first) fired after `applyUrlParams`'s pinned-slot pick and fought it (a stale
+favourite re-picked the L occurrence on a T handoff, flipping the context AND
+the venue — part of the original "(L) always" symptom; traced via a temporary
+select() logger: B107 → B110 → B002). The URL-pinned slot now outranks
+favourite/recent/first, per the mock's own priority list ("1. URL params").
+
+Live-verified: T entry holds B107 (pinned, no stomp); P pick → first
+eligible lab B006 (B005 Diploma-skipped), dropdown Types column shows only
+"Lab"; L pick → B110. Suite green, phpstan 0.

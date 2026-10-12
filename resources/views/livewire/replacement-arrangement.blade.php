@@ -2716,6 +2716,26 @@ slotLine = 'Week ' + (selectedOriginalSlot.week + 1) + ' · ' + selectedOriginal
             if (window.__bootDone) { saveCurrentWeek(); buildTimetable(); }
         }
 
+        /* Venue-type matrix (2026-10-12 user decision, docs/venue-restrictions.md
+           rule 3 + B005): one room-type per session type — P → Labs only
+           (computer + cisco; B006 stays visible for non-networking/IoT subjects:
+           priority, not a ban), T → Tutorial rooms only, L → Lecture Halls.
+           B005 is hidden when the occurrence's cohorts include a Diploma (D*)
+           programme — the doc's enforced no-Diploma rule. The engine's
+           eligibleVenues (submit-side) still reads allowed_session_types; the
+           full server-side matrix is the doc's future enforcement SDD. */
+        function venueEligible(v, ctx) {
+            if (!v || !ctx) return true;
+            var typeOk;
+            if (ctx.type === 'P') typeOk = v.type === 'Lab';
+            else if (ctx.type === 'T') typeOk = v.type === 'Tutorial';
+            else if (ctx.type === 'L') typeOk = v.type === 'LectureHall';
+            else typeOk = true;
+            var capOk = v.capacity >= (ctx.studentCount || 0);
+            var dipOk = !(v.code === 'B005' && (ctx.cohorts || []).some(function(c) { return /^\s*D/.test(c); }));
+            return typeOk && capOk && dipOk;
+        }
+
         function buildVenueFilter() {
             const noteEl = document.getElementById('venueCountNote');
             if (!venueDropdown) return;
@@ -2723,10 +2743,7 @@ slotLine = 'Week ' + (selectedOriginalSlot.week + 1) + ' · ' + selectedOriginal
             if (currentCourse) {
                 var ctxCourse = courseCtx(); /* occurrence-grain: follows the picked slot */
                 venueDropdown.setFilter(function(v) {
-                    /* BRIDGE PATCH: real room types include labs (B-lab rows) */
-                    var typeOk = v.type === 'Tutorial' || v.type === 'Lab' || (ctxCourse.type === 'L' && v.type === 'LectureHall');
-                    var capOk = v.capacity >= ctxCourse.studentCount;
-                    return typeOk && capOk;
+                    return venueEligible(v, ctxCourse);
                 });
                 var count = venueDropdown.getFiltered ? venueDropdown.getFiltered().length : 0;
                 noteEl.textContent = 'Showing venues that fit ' + ctxCourse.studentCount + ' students';
@@ -2908,19 +2925,23 @@ slotLine = 'Week ' + (selectedOriginalSlot.week + 1) + ' · ' + selectedOriginal
                 const from = new URLSearchParams(window.location.search).get('from') || 'replacement-home';
                 history.replaceState({}, '', '/replacement-arrangement?session=' + slot.sessionId + '&week=' + (slot.week + 1) + '&from=' + from);
                 /* the selected venue may not be ELIGIBLE for the new occurrence's
-                   type/headcount (e.g. T's B107 for the 50-seat L) — a blocked
-                   venue renders every cell occupied. Fall back to the
-                   occurrence's OWN venue (always eligible for itself); the
-                   switch bypasses onVenueChange's confirm — the slot-change
-                   confirm already consented to the context switch. */
-                const blocked = (MockData.blockedVenues || {})[String(currentSessionId)] || [];
-                if (blocked.includes(currentVenue) && courseCtx() && courseCtx().venue) {
-                    const targetVenue = courseCtx().venue;
-                    if (selectedBlock) deselectBlock();
-                    revertingChange = true;
-                    venueDropdown.select(targetVenue);
-                    revertingChange = false;
-                    applyVenueChange(targetVenue);
+                   type/headcount/programme rules (e.g. T's B107 tutorial for the
+                   50-seat L) — an ineligible venue renders every cell occupied.
+                   Fall back to the first venue the matrix allows (the occurrence's
+                   own room can itself violate the rule — e.g. a P seeded in a
+                   tutorial room); the switch bypasses onVenueChange's confirm —
+                   the slot-change confirm already consented to the switch. */
+                const curVenue = currentVenue.code || currentVenue;
+                const curV = (MockData.venues || []).find(v => v.code === curVenue);
+                if (curV && !venueEligible(curV, courseCtx())) {
+                    const target = (venueDropdown.getFiltered ? venueDropdown.getFiltered() : [])[0];
+                    if (target && target.code) {
+                        if (selectedBlock) deselectBlock();
+                        revertingChange = true;
+                        venueDropdown.select(target.code);
+                        revertingChange = false;
+                        applyVenueChange(target.code);
+                    }
                 } else if (window.__bootDone) {
                     saveCurrentWeek();
                     buildTimetable();
@@ -3015,6 +3036,12 @@ triggerText.textContent = 'W' + (slot.week + 1) + ' · ' + shortDate + ' · ' + 
         // ── Default Selection Priority ──
         function applyDefaultSlotSelection(slots) {
             // 1. URL params from Venue Timetable (already handled in applyUrlParams)
+            /* the handoff's PINNED slot (home or venue-timetable) outranks
+               favourite/recent/first — the default picks fired here used to run
+               AFTER it and fight it (favourite re-picked the L occurrence on a
+               T handoff, flipping the context AND the venue). If the URL pinned
+               a slot, applyUrlParams's own branch below does the only pick. */
+            if (urlParams.code && urlParams.day !== null && urlParams.start !== null && urlParams.originalVenue) return;
             // 2. Favourite
             const fav = getFavouriteSlot();
             if (fav) {

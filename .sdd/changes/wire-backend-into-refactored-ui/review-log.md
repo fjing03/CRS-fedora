@@ -410,3 +410,20 @@ Test traces: req#7 (cancelled via the app; its slot already released) — cleanu
 DELETE FROM audit_logs WHERE replacement_request_id = 7;
 DELETE FROM replacement_requests WHERE id = 7;
 UPDATE time_slots SET status = 'available', version = 1 WHERE id = 28451;
+
+## apply FIX — 2026-10-12 (b): venue-type matrix + pin-vs-favourite fight
+
+User decisions: P → Labs only; T → Tutorial only (Labs + Halls hidden); B006
+stays visible for non-networking/IoT (priority, not a ban); B005 hidden for
+D* cohorts (the doc's enforced no-Diploma rule). Implemented UI-side via one
+`venueEligible` helper (filter + fallback). Engine eligibleVenues (submit
+side) still reads allowed_session_types — the full server-side matrix is
+docs/venue-restrictions.md's future enforcement SDD (Wave 3b).
+
+Second root cause found by tracing VenueDropdown.select: the mock's default
+slot priority (favourite/recent/first) fired after the handoff pin and fought
+it — a stale favourite flipped the context AND venue on every pinned entry.
+The URL pin now outranks the defaults. Debug trace removed after use.
+
+Suite 167/167, phpstan 0. Live: T→B107 holds; P→B006 (B005 D-skipped, Types
+column "Lab" only); L→B110 (Types column "Lecture Hall" only).
