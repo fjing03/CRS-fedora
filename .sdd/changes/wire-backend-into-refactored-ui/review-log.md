@@ -409,4 +409,4 @@ week 8 (req#7, cancelled + cleaned up after). Suite 167/167, phpstan 0.
 Test traces: req#7 (cancelled via the app; its slot already released) — cleanup:
 DELETE FROM audit_logs WHERE replacement_request_id = 7;
 DELETE FROM replacement_requests WHERE id = 7;
-UPDATE time_slots SET status = 'available', version = 1 WHERE id = 27852;
+UPDATE time_slots SET status = 'available', version = 1 WHERE id = 28451;
