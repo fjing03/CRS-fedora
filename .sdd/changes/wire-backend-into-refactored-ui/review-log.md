@@ -406,7 +406,7 @@ PHP-opcache/stale-serve note repeated: after ANY edit, restart artisan serve.
 Live proof: T-entry → (T)/28/B107; P-pick → (P)/B011/?session=49&week=14;
 L-pick → (L)/50/B110/?session=97&week=8; submit under L-pick filed session 97
 week 8 (req#7, cancelled + cleaned up after). Suite 167/167, phpstan 0.
-Test traces: req#7 (cancelled) + its slot — cleanup:
+Test traces: req#7 (cancelled via the app; its slot already released) — cleanup:
 DELETE FROM audit_logs WHERE replacement_request_id = 7;
 DELETE FROM replacement_requests WHERE id = 7;
-UPDATE time_slots SET status = 'available', version = 1 WHERE id = (SELECT replacement_time_slot_id FROM replacement_requests WHERE id = 7);  -- run BEFORE the delete
+UPDATE time_slots SET status = 'available', version = 1 WHERE id = 27852;
