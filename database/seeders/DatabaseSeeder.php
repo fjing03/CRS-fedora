@@ -19,21 +19,24 @@ class DatabaseSeeder extends Seeder
 
     private const DEFAULT_PASSWORD = 'Tarumt@2026';
 
+    /* 2026-10-13 — user-approved cohort sizes, matching the live demo DB
+       exactly (docs/demo-db-data-changes.md). Reseeding now reproduces the
+       presentation dataset: 0 over-capacity sessions. */
     private const STUDENT_COUNTS = [
-        'DFT1(S1)G1' => 30,
-        'DFT2(S1)G1' => 28,
-        'DSF1(S1)G1' => 24,
-        'DSF2(S1)G1' => 22,
-        'RSD1(S1)G1' => 18,
-        'RSD2(S1)G1' => 16,
-        'RSD2(S1)G2' => 16,
-        'RSD2(S1)G3' => 15,
-        'RSD3(S1)G1' => 14,
-        'RSD3(S1)G2' => 14,
-        'RSD3(S1)G3' => 13,
-        'RAF2(S3)G2' => 12,
-        'RAF2(S3)G4' => 10,
-        'RBU1(S1)G1' => 20,
+        'DFT1(S1)G1' => 23,
+        'DFT2(S1)G1' => 18,
+        'DSF1(S1)G1' => 25,
+        'DSF2(S1)G1' => 15,
+        'RSD1(S1)G1' => 8,
+        'RSD2(S1)G1' => 7,
+        'RSD2(S1)G2' => 5,
+        'RSD2(S1)G3' => 9,
+        'RSD3(S1)G1' => 10,
+        'RSD3(S1)G2' => 5,
+        'RSD3(S1)G3' => 9,
+        'RAF2(S3)G2' => 5,
+        'RAF2(S3)G4' => 6,
+        'RBU1(S1)G1' => 10,
     ];
 
     /**

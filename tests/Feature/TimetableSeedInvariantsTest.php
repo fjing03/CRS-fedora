@@ -19,10 +19,11 @@ use Tests\TestCase;
  * class that ran migrate:fresh earlier in the same process — without seeding — would
  * leave this class silently un-seeded.
  *
- * Frozen numbers under test: 101 class_sessions / 155 session_cohorts rows /
+ * Frozen numbers under test: 101 class_sessions / 152 session_cohorts rows /
  * 3963 occupied time_slots (4116 − 153 holiday-affected: W8 Mon 62 + W14 Thu 54
  * + W14 Fri 37) / all 14 cohorts covered / venue+lecturer overlap-free /
- * exactly ONE documented cohort-overlap pair (user decision (c)).
+ * ZERO cohort-overlap pairs (DFT2 unlinked from AMIT2034, 2026-10-13 —
+ * docs/demo-db-data-changes.md).
  */
 final class TimetableSeedInvariantsTest extends TestCase
 {
@@ -30,7 +31,7 @@ final class TimetableSeedInvariantsTest extends TestCase
 
     private const EXPECTED_SESSIONS = 101;
 
-    private const EXPECTED_SESSION_COHORTS = 155;
+    private const EXPECTED_SESSION_COHORTS = 152;
 
     private const EXPECTED_OCCUPIED_SLOTS = 3963;
 
@@ -358,15 +359,13 @@ final class TimetableSeedInvariantsTest extends TestCase
             "T-2: sessions sharing a lecturer on overlapping times are forbidden (back-to-back is legal):\n".implode("\n", $lecturerOverlaps),
         );
 
-        // User decision (c): the ONE source cohort double-booking is KEPT as
-        // printed — DFT2(S1)G1 Wednesday, AMIT2014 10:00–12:00 (B009) vs
-        // AMIT2034 11:00–13:00 (B005), overlap 11:00–12:00 (DATASET-NOTES §2).
-        // Exactly one cohort-overlap row is allowed and it must be THIS tuple;
-        // the matched-count guard prevents silent whitelist rot (an empty
-        // violation set with a dead whitelist must not pass).
-        $allowedOverlapSignatures = [
-            '2|AMIT2014+AMIT2034|10:00–12:00+11:00–13:00',
-        ];
+        // User decision (2026-10-13): the previously KEPT DFT2 Wednesday clash
+        // (AMIT2014 10:00–12:00 vs AMIT2034 11:00–13:00, DATASET-NOTES §2) is
+        // RESOLVED — DFT2(S1)G1 was unlinked from the 3 AMIT2034 sessions
+        // (docs/demo-db-data-changes.md). The whitelist is empty: ANY cohort
+        // overlap is now a regression. The matched-count guard stays (an
+        // unexpected violation with a dead whitelist must not pass).
+        $allowedOverlapSignatures = [];
 
         $unexpectedCohortOverlaps = [];
         $matchedWhitelist = 0;

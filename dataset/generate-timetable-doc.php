@@ -71,4 +71,4 @@ file_put_contents(
 
 // numeric self-check (explicit prints — not just the doc's own Counts block)
 echo 'SELF-CHECK session count='.$sessionCount." session_cohorts={$linkCount} occupied={$occupied}\n";
-echo "expected: 101 / 155 / 3963\n";
+echo "expected: 101 / 152 / 3963\n";

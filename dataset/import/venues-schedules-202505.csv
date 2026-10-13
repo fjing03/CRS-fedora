@@ -1,7 +1,7 @@
 venue,room_label,day,start,end,duration_hours,course,session_type,lecturer,cohorts,source
 B002,Tuorial Room,Monday,14:00,15:00,1,MPU-3232,Lecture,Sharon,RSD2(S1)G2/RSD2(S1)G3/RSD3(S1)G3,11.07.2025 202505-classroom.pdf p.11
 B005,Computer Laboratory 5,Tuesday,12:00,14:00,2,BMCS2063,Practical,Jefther,RSD2(S1)G1/RSD2(S1)G2/RSD2(S1)G3,11.07.2025 202505-classroom.pdf p.12
-B005,Computer Laboratory 5,Wednesday,11:00,13:00,2,AMIT2034,Practical,Daniel,DSF2(S1)G1/DFT2(S1)G1,11.07.2025 202505-classroom.pdf p.12
+B005,Computer Laboratory 5,Wednesday,11:00,13:00,2,AMIT2034,Practical,Daniel,DSF2(S1)G1,11.07.2025 202505-classroom.pdf p.12
 B005,Computer Laboratory 5,Thursday,09:00,10:00,1,BMCS1113,Practical,Rahmat,RSD1(S1)G1,11.07.2025 202505-classroom.pdf p.12
 B005,Computer Laboratory 5,Thursday,10:00,11:00,1,BMCS1013,Practical,Rahmat,RSD1(S1)G1,11.07.2025 202505-classroom.pdf p.12
 B005,Computer Laboratory 5,Thursday,13:00,14:00,1,BMIS2113,Practical,Daniel,RSD3(S1)G2/RSD3(S1)G3/RSD2(S1)G1,11.07.2025 202505-classroom.pdf p.12
@@ -31,8 +31,8 @@ B009,Computer Laboratory 1,Thursday,12:00,13:00,1,BMIT1173,Tutorial,Jefther,RSD1
 B009,Computer Laboratory 1,Thursday,13:00,14:00,1,BMIT1173,Practical,Jefther,RSD1(S1)G1/RSD2(S1)G3,11.07.2025 202505-classroom.pdf p.14
 B009,Computer Laboratory 1,Thursday,14:00,15:00,1,BMCS1053,Practical,Teng,RSD1(S1)G1,11.07.2025 202505-classroom.pdf p.14
 B009,Computer Laboratory 1,Friday,15:00,16:00,1,BMCS2053,Practical,Ts Shikin,RSD2(S1)G1/RSD2(S1)G2/RSD2(S1)G3,11.07.2025 202505-classroom.pdf p.14
-B010,Computer Laboratory 2,Tuesday,13:30,15:30,2,AMIT2034,Lecture,Daniel,DSF2(S1)G1/DFT2(S1)G1,11.07.2025 202505-classroom.pdf p.15
-B010,Computer Laboratory 2,Tuesday,15:30,16:30,1,AMIT2034,Tutorial,Daniel,DSF2(S1)G1/DFT2(S1)G1,11.07.2025 202505-classroom.pdf p.15
+B010,Computer Laboratory 2,Tuesday,13:30,15:30,2,AMIT2034,Lecture,Daniel,DSF2(S1)G1,11.07.2025 202505-classroom.pdf p.15
+B010,Computer Laboratory 2,Tuesday,15:30,16:30,1,AMIT2034,Tutorial,Daniel,DSF2(S1)G1,11.07.2025 202505-classroom.pdf p.15
 B010,Computer Laboratory 2,Wednesday,09:00,11:00,2,BMIT2013,Practical,Jia Zheng,RSD2(S1)G2/RSD2(S1)G3,11.07.2025 202505-classroom.pdf p.15
 B010,Computer Laboratory 2,Wednesday,11:00,12:00,1,AMSE1003,Practical,Su,DSF1(S1)G1,11.07.2025 202505-classroom.pdf p.15
 B010,Computer Laboratory 2,Wednesday,14:00,16:00,2,BMIT2073,Practical,Ts Shikin,RSD3(S1)G3/RSD3(S1)G2,11.07.2025 202505-classroom.pdf p.15

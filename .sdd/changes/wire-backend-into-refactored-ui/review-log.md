@@ -458,3 +458,13 @@ MPU-3133 session 57's oversized cohorts, seeded (`setseed(0.87)`):
 cohort 14 (RBU Y1 G1) → 10 (range 7–10); cohorts 12/13 (RAF Y2 G2/G4) → 5/6 (range 5–7).
 Session 57 total 56 → 35 = exactly B015's capacity (fits). **Full-timetable over-capacity
 audit now returns 0 sessions** — every session fits its own room.
+
+## 2026-10-13 — seeder/CSV sync with the demo DB (Phase 1 of presentation prep)
+
+STUDENT_COUNTS → all 14 live values; DFT2 unlinked from AMIT2034 in both CSVs
+(EXPECTED_PROGRAMME_ROWS + EXPECTED_COHORT_LINKS 155 → 152); timetable.md
+regenerated from the demo DB; DATASET-NOTES §1/§2 + T-2 whitelist (now empty —
+the DFT2 Wednesday clash is resolved) + T-5 constant updated. Durable record:
+docs/demo-db-data-changes.md (authoritative log for demo-DB edits from now on).
+Fresh-seed proof: scratch DB — 0 over-capacity, 101/152/3963, DSF-only.
+Gates: pint ✓, phpstan 0, 173/173. Scratch DB dropped; demo DB untouched.

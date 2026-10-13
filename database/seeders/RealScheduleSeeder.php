@@ -56,7 +56,9 @@ class RealScheduleSeeder extends Seeder
 
     private const EXPECTED_LECTURER_ROWS = 101;
 
-    private const EXPECTED_PROGRAMME_ROWS = 155;
+    /* 2026-10-13: DFT2(S1)G1 unlinked from the 3 AMIT2034 sessions
+       (user decision) — 155 - 3 rows; see docs/demo-db-data-changes.md. */
+    private const EXPECTED_PROGRAMME_ROWS = 152;
 
     private const EXPECTED_VENUE_HOURS = 147.0;
 
@@ -66,7 +68,9 @@ class RealScheduleSeeder extends Seeder
 
     private const EXPECTED_SESSIONS = 101;
 
-    private const EXPECTED_COHORT_LINKS = 155;
+    /* 2026-10-13: DFT2(S1)G1 unlinked from the 3 AMIT2034 sessions
+       (user decision) — 155 - 3 links; see docs/demo-db-data-changes.md. */
+    private const EXPECTED_COHORT_LINKS = 152;
 
     private const EXPECTED_OCCUPIED_SLOTS = 3963;
 

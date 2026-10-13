@@ -37,13 +37,13 @@ Baseline Timetable (generated from the real schedule import — source of truth:
 | 13:00–14:00 | B009 | BMSE3153 | 5425 | P | RSD3(S1)G2, RSD3(S1)G3 |
 | 13:30–15:00 | B105 | BMMS1743 | 4127 | T | RBU1(S1)G1 |
 | 13:30–14:30 | B006 | AMCS1013 | 5514 | T | DSF1(S1)G1 |
-| 13:30–15:30 | B010 | AMIT2034 | 5652 | L | DFT2(S1)G1, DSF2(S1)G1 |
+| 13:30–15:30 | B010 | AMIT2034 | 5652 | L | DSF2(S1)G1 |
 | 14:00–16:00 | B107 | BMIT3273 | 5599 | L | RSD3(S1)G1, RSD3(S1)G2, RSD3(S1)G3 |
 | 14:00–16:00 | B009 | BMIT2013 | 5770 | L | RSD2(S1)G2, RSD2(S1)G3 |
 | 14:00–16:00 | B014 | AMCS1043 | 3825 | L | DFT1(S1)G1 |
 | 14:30–15:30 | B006 | AMCS1013 | 5514 | P | DSF1(S1)G1 |
 | 15:00–16:00 | B016 | BMIT2043 | 5516 | T | RSD2(S1)G1 |
-| 15:30–16:30 | B010 | AMIT2034 | 5652 | T | DFT2(S1)G1, DSF2(S1)G1 |
+| 15:30–16:30 | B010 | AMIT2034 | 5652 | T | DSF2(S1)G1 |
 | 16:00–17:00 | B009 | BMIT2043 | 5516 | P | RSD2(S1)G1 |
 
 ## Wednesday (day_of_week = 2)
@@ -64,7 +64,7 @@ Baseline Timetable (generated from the real schedule import — source of truth:
 | 11:00–12:00 | B014 | BMIT2203 | 3221 | T | RSD2(S1)G2, RSD2(S1)G3 |
 | 11:00–12:00 | B105 | BMCS1013 | 5516 | T | RSD1(S1)G1 |
 | 11:00–13:00 | B015 | BMIT2073 | 5514 | L | RSD3(S1)G2, RSD3(S1)G3 |
-| 11:00–13:00 | B005 | AMIT2034 | 5652 | P | DFT2(S1)G1, DSF2(S1)G1 |
+| 11:00–13:00 | B005 | AMIT2034 | 5652 | P | DSF2(S1)G1 |
 | 13:00–15:00 | B015 | BMSE2163 | 5425 | L | RSD2(S1)G1, RSD2(S1)G2 |
 | 13:00–15:00 | B102 | BMCS1113 | 5516 | L | RSD1(S1)G1 |
 | 13:30–14:30 | B011 | BMIT1723 | 3825 | L | RBU1(S1)G1 |
@@ -123,5 +123,5 @@ Baseline Timetable (generated from the real schedule import — source of truth:
 ## Counts
 
 - Session count: 101
-- Session-cohort rows: 155
+- Session-cohort rows: 152
 - Occupied time slots: 3963

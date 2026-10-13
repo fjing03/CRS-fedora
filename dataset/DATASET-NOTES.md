@@ -8,20 +8,23 @@ Baselines: `KNOWLEDGE.md` (this folder, incl. §12 addendum),
 
 | Dataset | Rows | Hours | Out-of-scope rows |
 |---|---|---|---|
-| Programme | **155** | 229 cohort-h | 587 |
+| Programme | **152** | 224 cohort-h | 587 |
 | Venue | **101** | 147 room-h | 215 |
 | Lecturer | **101** | 147 h | 62 |
 
 The recheck-report's 184/121/101 describes the pre-14:14 regeneration — stale.
-Current files are internally consistent: 155/155 programme↔venue cross-check,
-155 cohort-instances from all three views, 42 distinct course codes.
+2026-10-13: DFT2(S1)G1 unlinked from the 3 AMIT2034 rows (155 → 152; user
+decision, docs/demo-db-data-changes.md). Current files are internally
+consistent: 152/152 programme↔venue cross-check, 152 cohort-instances from all
+three views, 42 distinct course codes.
 
 ## 2. Source double-bookings — exactly ONE survives
 
-- **KEPT (user decision, printed in the PDF):** DFT2(S1)G1 Wednesday,
-  AMIT2014 10:00–12:00 (B009) overlaps AMIT2034 11:00–13:00 (B005);
-  effective overlap 11:00–12:00. Venue-distinct → no `time_slots`
-  double-booking violation. The invariant test whitelists exactly this tuple.
+- **RESOLVED (2026-10-13, user decision):** the previously KEPT DFT2(S1)G1
+  Wednesday clash — AMIT2014 10:00–12:00 (B009) vs AMIT2034 11:00–13:00
+  (B005), effective overlap 11:00–12:00 — is gone: DFT2 was unlinked from the
+  3 AMIT2034 sessions (see docs/demo-db-data-changes.md). ZERO cohort
+  double-bookings survive; the invariant test's whitelist is empty.
 - The Thu MPU-2212/MPU-2202 clash of §8 is GONE: MPU-2202 rows are
   out-of-scope now (lecturer "Jamie" has no staff ID).
 
