@@ -81,7 +81,7 @@ class DatabaseSeeder extends Seeder
         $fafb = Faculty::create(['faculty_code' => 'FAFB', 'faculty_name' => 'Faculty of Accountancy, Finance and Business']);
 
         $dcit = Department::create(['dept_code' => 'DCIT', 'dept_name' => 'Department of Computing and Information Technology', 'faculty_id' => $focs->id]);
-        $dssh = Department::create(['dept_code' => 'DSSH', 'dept_name' => 'Department of Social Sciences and Humanities', 'faculty_id' => $focs->id]);
+        $dssh = Department::create(['dept_code' => 'DSSH', 'dept_name' => 'Department of Social Sciences and Humanities', 'faculty_id' => $fafb->id]);
         $dacb = Department::create(['dept_code' => 'DACB', 'dept_name' => 'Department of Accounting and Business', 'faculty_id' => $fafb->id]);
 
         $dft = Programme::create(['programme_code' => 'DFT', 'programme_name' => 'Diploma in Information Technology', 'faculty_id' => $focs->id]);
