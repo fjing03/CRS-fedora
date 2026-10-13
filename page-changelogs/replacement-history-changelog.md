@@ -241,3 +241,8 @@ client-side as designed. The only changes:
 - Verified live on the demo DB (student 25DFT0001): frozen toolbar/chips/
   empty state with the real cohort label, zero console errors; the populated
   scoping covered by ReplacementHistoriesTest on the disposable DB.
+
+## 2026-10-13 — Detail-modal "Class Type" canonical 3-way (SDD venue-pending-and-type-labels, B1)
+
+Modal row now uses `UiLabels.classType(r.type, 'canonical')` — keeps the "(L)"-suffix
+style, P renders "Practical (P)" instead of "Tutorial (T)".

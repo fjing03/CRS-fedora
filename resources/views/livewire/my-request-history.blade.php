@@ -764,7 +764,7 @@
                 (r.status === 'Rejected' && r.rejectionReason ? DetailModal.row('Rejection Reason', r.rejectionReason, { strong: true }) : '') +
                 DetailModal.row('Subject Code', r.courseCode, { strong: true }) +
                 DetailModal.row('Subject Name', r.courseName) +
-                DetailModal.row('Class Type', r.classType === 'L' ? 'Lecture' : 'Tutorial');
+                DetailModal.row('Class Type', UiLabels.classType(r.classType, 'long'));
             const genSection = DetailModal.section('General Info', genRows);
 
             // Tab 2: Original Class Detail — one value per row

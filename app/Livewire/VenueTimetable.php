@@ -4,6 +4,7 @@ namespace App\Livewire;
 
 use App\Concerns\ResolvesTimetableTimeline;
 use App\Models\Cohort;
+use App\Models\ReplacementRequest;
 use App\Models\TimeSlot;
 use App\Models\Venue;
 use Illuminate\Contracts\View\View;
@@ -167,6 +168,63 @@ class VenueTimetable extends Component
             // impossible until Slice B — the merge is defensive contract
             // parity, unit-tested directly (see VenueTimetableTest).
             $eventsByWeek[$g['w'] - 1][$event['di'].':'.$event['start']][] = $event;
+        }
+
+        // Reserved-slot second pass (venue-pending-and-type-labels D1): the
+        // $slots query already fetched this venue's pending rows, but the
+        // imported-class path above skips them (no class_session_id to
+        // coalesce). Each active request reserves exactly ONE anchor
+        // half-hour slot (spec Amendment 2b) — emit one event per slot, no
+        // coalescing; mergeTwinEvents below still runs over them for
+        // defensive parity with imported events. Class facts come from the
+        // request's ORIGINAL session (the class being replaced — that is
+        // what will occupy this room); no `proposer` eager load because
+        // `mine` reads the proposer_id column directly.
+        $reserved = $slots->where('class_session_id', null)->where('status', 'pending');
+        $slotIds = $reserved->pluck('id');
+        $requests = ReplacementRequest::with(['classSession.module', 'classSession.lecturer', 'classSession.cohorts.programme'])
+            ->where('status', 'pending')
+            ->whereIn('replacement_time_slot_id', $slotIds)
+            ->get()
+            ->keyBy('replacement_time_slot_id');
+
+        foreach ($reserved as $slot) {
+            $request = $requests->get($slot->id);
+            $session = $request?->classSession;
+            // Orphan defence (design D1): cancel/submit keep slot+request in
+            // lockstep, so a pending slot without an active request (or the
+            // class row it points at) should not exist — emit nothing, no
+            // error, no log noise.
+            if ($request === null || $session === null) {
+                continue;
+            }
+            // Week guard: same 1..$weeks window as the imported path.
+            $w = (int) $slot->week_number;
+            if ($w < 1 || $w > $weeks) {
+                continue;
+            }
+
+            $start = $this->slotIndex($slot->start_time);
+            $end = $this->slotIndex($slot->end_time) - 1;
+            $event = [
+                'id' => $slot->id,
+                'di' => (int) $slot->day_of_week,
+                'start' => $start,
+                'end' => $end,
+                'code' => $session->module->module_code,
+                'name' => $session->module->module_name,
+                'type' => $session->session_type,
+                'venue' => $venue->room_code,
+                'lecturer' => $session->lecturer->name,
+                'cohort' => $this->cohortLabel($session->cohorts),
+                'cohorts' => $session->cohorts->map(fn ($c) => $this->cohortCode($c))->all(),
+                'studentCount' => (int) $session->cohorts->sum('student_count'),
+                'status' => 'pending', // amber per the frozen legend — no conflict derivation in this change
+                'remarks' => 'Replacement request awaiting PL approval', // byte-matches the legend tip
+                'mine' => $request->proposer_id === $myUserId,
+            ];
+
+            $eventsByWeek[$w - 1][$event['di'].':'.$event['start']][] = $event;
         }
 
         // Grid engine consumes a list — merge twins per week and strip keys.

@@ -557,7 +557,7 @@
             var urgencyCls = urgencyClass(daysLeftVal); /* single vocabulary: table's urgency-high/mid/low */
             var wn = getWeekNumber(c.date);
             var weekTag = wn ? ' (Week ' + wn + ')' : '';
-            var typeLabel = c.type === 'L' ? 'Lecture' : 'Tutorial';
+            var typeLabel = UiLabels.classType(c.type, 'long');
 
             DetailModal.render({
                 modalId: 'quickViewModal',

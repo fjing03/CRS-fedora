@@ -766,3 +766,15 @@ Slice B shipped the booking write path (arrangement + submit through OCC).
 This page stays read-only by design (design row: "select venue/week"); no
 booking affordance was added here — start replacements from My Timetable or
 Replacement Arrangement home. No code change in this file for Slice B.
+
+## 2026-10-13 — Pending replacement blocks now render (SDD venue-pending-and-type-labels, U2b/U3)
+
+Reserved replacement slots (time_slots with `class_session_id NULL`, status `pending`)
+now emit events: class facts from the request's ORIGINAL session (the class being
+replaced occupies the new room), `status 'pending'`, `mine` = proposer. The blade
+renderer/legend were already pending-aware — this was a PHP data-source fix only;
+zero UI/CSS changes. Live-verified as 5770: req #1's slot (B110 · label-Week 4 · Thu
+12:00) renders an amber block, 3px border (mine), tooltip "Lim Jia Zheng · Pending".
+NOTE: the venue weekSelect is 0-based (option value 3 = label "Week 4") — probe by
+option LABEL, not value. Others' reservations render hairline amber (feature-tested;
+no live foreign fixture exists).

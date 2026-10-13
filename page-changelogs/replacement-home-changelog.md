@@ -434,3 +434,9 @@ was the one caller left behind.) It now emits
 `goToReplacementFor(sessionId, week, 'replacement-home')` — live-verified:
 the button navigates `?session=97&week=8` and the page arrives fully pinned
 (subject, slot, venue, grid week).
+
+## 2026-10-13 — P sessions labelled "(P)" not "(T)" (SDD venue-pending-and-type-labels, B1)
+
+Table rows, card view, and the quick-view modal now use the shared `UiLabels.classType`
+three-way map — Practical sessions print "(P)"/"Practical" (AMCS2093 #39/#49 canary);
+L/T output byte-identical. Automated: tests/type-labels.spec.ts.

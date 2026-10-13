@@ -370,7 +370,7 @@
                     { heading: 'Class', rows: [
                         { label: 'Subject Code', value: r.code },
                         { label: 'Subject Name', value: r.name },
-                        { label: 'Class Type', value: r.type === 'L' ? 'Lecture (L)' : 'Tutorial (T)' },
+                        { label: 'Class Type', value: UiLabels.classType(r.type, 'canonical') },
                         { label: 'Lecturer', value: r.lecturer },
                     ]},
                     { heading: 'Original Slot', rows: slotRows(r.week, r.di, r.start, r.end, r.originalTime, r.originalVenue, r.originalDay) },

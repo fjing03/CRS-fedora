@@ -6,6 +6,8 @@ use App\Livewire\VenueTimetable;
 use App\Models\ClassSession;
 use App\Models\Lecturer;
 use App\Models\Module;
+use App\Models\ReplacementRequest;
+use App\Models\Semester;
 use App\Models\Student;
 use App\Models\TimeSlot;
 use App\Models\User;
@@ -16,7 +18,8 @@ use Livewire\Livewire;
 use Tests\TestCase;
 
 /**
- * SDD changes `venue-timetable-db` + `venue-event-blocks-db` — the
+ * SDD changes `venue-timetable-db` + `venue-event-blocks-db` + the
+ * `venue-pending-and-type-labels` reserved-slot second pass — the
  * VenueTimetable Livewire component against the REAL seeded schedule
  * (suite-proven explicit `$this->seed()` pattern inside RefreshDatabase's
  * per-test transaction).
@@ -49,6 +52,60 @@ final class VenueTimetableTest extends TestCase
         $student = Student::where('student_id', '25RSD0001')->firstOrFail();
 
         return User::findOrFail($student->user_id);
+    }
+
+    /**
+     * Craft a pending reservation onto a free B006 slot (venue-pending-and-
+     * type-labels D1 fixture style): slot → class_session_id NULL + status
+     * 'pending', request → the ORIGINAL class being replaced (its module/
+     * lecturer/cohorts become the event's class facts).
+     *
+     * @return array{0: TimeSlot, 1: ClassSession, 2: ReplacementRequest}
+     */
+    private function craftPendingReservation(User $proposer): array
+    {
+        $venue = Venue::where('room_code', 'B006')->firstOrFail();
+
+        // A free interior-week slot the request can reserve (W1's counts are
+        // frozen anchors for other tests; W8/W14 keep their holiday shapes).
+        $slot = TimeSlot::query()
+            ->where('venue_id', $venue->id)
+            ->where('status', 'available')
+            ->whereBetween('week_number', [2, 13])
+            ->firstOrFail();
+        $slot->update(['status' => 'pending']);
+
+        // Any imported session with cohorts — the class being replaced.
+        $original = ClassSession::query()
+            ->whereHas('cohorts')
+            ->with(['module', 'lecturer', 'cohorts.programme'])
+            ->firstOrFail();
+
+        $request = ReplacementRequest::create([
+            'semester_id' => $slot->semester_id,
+            'proposer_id' => $proposer->id,
+            'class_session_id' => $original->id,
+            'week_number' => $slot->week_number,
+            'replacement_time_slot_id' => $slot->id,
+            'status' => 'pending',
+            'submitted_at' => now(),
+        ]);
+
+        return [$slot, $original, $request];
+    }
+
+    /**
+     * Expected cohort codes for a session — mirrors the component's
+     * cohortCode() contract (§10.0.2: same name + same meaning).
+     *
+     * @return array<int, string>
+     */
+    private function expectedCohortCodes(ClassSession $session): array
+    {
+        return $session->cohorts
+            ->map(fn ($c) => $c->programme->programme_code.$c->current_year.'(S'.$c->semester.')G'.$c->tutorial_group)
+            ->values()
+            ->all();
     }
 
     public function test_totals_and_events_match_seed_for_b006_week_1(): void
@@ -306,6 +363,174 @@ final class VenueTimetableTest extends TestCase
                 && $totals[7]['myClasses'] === 1
                 && $totals[7]['myHours'] === '0.5'
                 && $totals[7]['available'] === $expectedAvailable;
+        });
+    }
+
+    public function test_own_pending_reservation_renders_the_original_class_facts(): void
+    {
+        // Design D1 "mine" leg: the proposer's own reservation shows ONE
+        // amber Pending event at the reserved slot's week/day/start, with
+        // class facts from the ORIGINAL class (the class being replaced is
+        // what will occupy this room), remarks byte-matching the legend tip.
+        $viewer = $this->staffUser('5425');   // teaches zero B006 classes (frozen anchor)
+        [$slot, $original] = $this->craftPendingReservation($viewer);
+
+        // Same slotIndex() arithmetic as the component (30-min grid from 08:00).
+        $idx = fn (string $t): int => ((int) substr($t, 0, 2) - 8) * 2 + intdiv((int) substr($t, 3, 2), 30);
+
+        $component = Livewire::withQueryParams(['venue' => 'B006'])
+            ->actingAs($viewer)
+            ->test(VenueTimetable::class);
+
+        $component->assertViewHas('eventsByWeek', function ($events) use ($slot, $original, $idx): bool {
+            $matches = [];
+            foreach ($events[$slot->week_number - 1] as $ev) {
+                if ($ev['id'] === $slot->id && $ev['status'] === 'pending') {
+                    $matches[] = $ev;
+                }
+            }
+            if (count($matches) !== 1) {
+                return false;   // one request reserves one anchor slot — no coalescing
+            }
+
+            $ev = $matches[0];
+            $expectedCohorts = $this->expectedCohortCodes($original);
+
+            return $ev['di'] === $slot->day_of_week
+                && $ev['start'] === $idx($slot->start_time)
+                && $ev['end'] === $idx($slot->end_time) - 1
+                && $ev['code'] === $original->module->module_code
+                && $ev['name'] === $original->module->module_name
+                && $ev['type'] === $original->session_type
+                && $ev['lecturer'] === $original->lecturer->name
+                && $ev['venue'] === 'B006'
+                && $ev['cohort'] === (count($expectedCohorts) === 1
+                    ? $expectedCohorts[0]
+                    : implode(' + ', $expectedCohorts))
+                && $ev['cohorts'] === $expectedCohorts
+                && $ev['studentCount'] === (int) $original->cohorts->sum('student_count')
+                && $ev['mine'] === true
+                && $ev['remarks'] === 'Replacement request awaiting PL approval';
+        });
+    }
+
+    public function test_other_lecturers_pending_reservation_is_not_mine(): void
+    {
+        // Design D1 "others'" leg (feature-test only — the demo DB has no
+        // foreign-proposer pending request): renders amber WITHOUT the mine
+        // border (event-others-pending).
+        $viewer = $this->staffUser('5425');
+        $proposer = User::where('role', 'lecturer')->where('id', '!=', $viewer->id)->firstOrFail();
+        [$slot] = $this->craftPendingReservation($proposer);
+
+        $component = Livewire::withQueryParams(['venue' => 'B006'])
+            ->actingAs($viewer)
+            ->test(VenueTimetable::class);
+
+        $component->assertViewHas('eventsByWeek', function ($events) use ($slot): bool {
+            foreach ($events[$slot->week_number - 1] as $ev) {
+                if ($ev['id'] === $slot->id && $ev['status'] === 'pending') {
+                    return $ev['mine'] === false;
+                }
+            }
+
+            return false;
+        });
+    }
+
+    public function test_cancelled_reservation_emits_no_pending_event(): void
+    {
+        // Design D1 cancel legs: (A) the slot is still 'pending' but its
+        // request is cancelled — the orphan defence emits nothing; (B) the
+        // slot is released back to 'available' — it never re-enters the
+        // query. No leak in either case.
+        $viewer = $this->staffUser('5425');
+
+        // Case A first, so crafting Case B cannot hit the one-active-request
+        // partial unique index on the same (class_session, week).
+        [$slotA, , $requestA] = $this->craftPendingReservation($viewer);
+        $requestA->update(['status' => 'cancelled']);
+
+        [$slotB, , $requestB] = $this->craftPendingReservation($viewer);
+        $requestB->update(['status' => 'cancelled']);
+        $slotB->update(['status' => 'available']);
+
+        $component = Livewire::withQueryParams(['venue' => 'B006'])
+            ->actingAs($viewer)
+            ->test(VenueTimetable::class);
+
+        $component->assertViewHas('eventsByWeek', function ($events) use ($slotA, $slotB): bool {
+            foreach ($events as $weekEvents) {
+                foreach ($weekEvents as $ev) {
+                    if ($ev['id'] === $slotA->id || $ev['id'] === $slotB->id) {
+                        return false;   // no leak in either leg
+                    }
+                }
+            }
+
+            return true;
+        });
+    }
+
+    public function test_reserved_slot_beyond_semester_weeks_emits_nothing(): void
+    {
+        // Design D1 week guard: the same 1..$weeks window as the imported
+        // path. The 1..14 grid is schema-enforced (time_slots_week_number_
+        // check), so the out-of-bounds leg shrinks the active semester's
+        // week_count instead — the guard reads $weeks from it at render time.
+        $viewer = $this->staffUser('5425');
+        [$slot] = $this->craftPendingReservation($viewer);
+        $semester = Semester::active();
+        $this->assertNotNull($semester);
+        $this->assertGreaterThan(1, $slot->week_number);   // helper crafts interior weeks
+        $semester->update(['week_count' => 1]);
+
+        $component = Livewire::withQueryParams(['venue' => 'B006'])
+            ->actingAs($viewer)
+            ->test(VenueTimetable::class);
+
+        $component->assertViewHas('eventsByWeek', function ($events) use ($slot): bool {
+            foreach ($events as $weekEvents) {
+                foreach ($weekEvents as $ev) {
+                    if ($ev['id'] === $slot->id) {
+                        return false;
+                    }
+                }
+            }
+
+            return true;
+        });
+    }
+
+    public function test_orphan_pending_slot_emits_nothing(): void
+    {
+        // Design D1 orphan defence: a pending slot with no ReplacementRequest
+        // row (should not exist — cancel/submit keep slot+request in lockstep)
+        // emits nothing, silently. The render itself succeeding is the
+        // "no error" half of the assertion.
+        $viewer = $this->staffUser('5425');
+        $venue = Venue::where('room_code', 'B006')->firstOrFail();
+        $slot = TimeSlot::query()
+            ->where('venue_id', $venue->id)
+            ->where('status', 'available')
+            ->whereBetween('week_number', [2, 13])
+            ->firstOrFail();
+        $slot->update(['status' => 'pending']);   // no request row → orphan
+
+        $component = Livewire::withQueryParams(['venue' => 'B006'])
+            ->actingAs($viewer)
+            ->test(VenueTimetable::class);
+
+        $component->assertViewHas('eventsByWeek', function ($events) use ($slot): bool {
+            foreach ($events as $weekEvents) {
+                foreach ($weekEvents as $ev) {
+                    if ($ev['id'] === $slot->id) {
+                        return false;
+                    }
+                }
+            }
+
+            return true;
         });
     }
 

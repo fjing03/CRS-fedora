@@ -63,3 +63,38 @@ all tasks ≤2h, dependency-correct order, apply-phase compliance verified. Zero
 ## /sdd-propose COMPLETE — 2026-10-13
 proposal.md (R1–R2), design.md (R1), tasks.md (R1) all frozen. Commit a175337 + this.
 Next stage: /sdd-apply on user green-light.
+## /sdd-apply — 2026-10-13 (T1–T9 complete)
+
+Implemented via two parallel coding subagents (PHP+tests / labels+spec), verified by
+the orchestrator against the frozen design before gates.
+
+- **T1** `VenueTimetable.php` (+58): reserved-slot second pass per D1 — orphan+week
+  guards, one event per anchor slot, class facts from the original session, `mine` via
+  proposer_id column (no proposer eager load).
+- **T2** `VenueTimetableTest.php` (+227, 5 new tests): own/other/cancelled/week-guard/
+  orphan legs — **14/14 green**. Week-bounds fixture uses `semesters.week_count` shrink
+  (schema caps week_number at 14, so week 15 is uncraftable) — honest equivalent of the
+  design's out-of-range leg.
+- **T4+T5** `UiLabels.classType` const object (placed after `StatusText`, matching file
+  style) + 7 consumers (6 mislabel sites + the :943 anchor). L/T byte-identical at all
+  sites; `node --check` clean.
+- **T6** `tests/type-labels.spec.ts` — hardened during gates: (1) modal close scoped to
+  `#quickViewModal .btn-close-modal` (a second hidden `.btn-close-modal` — keyboard
+  shortcuts — exists earlier in the DOM); (2) collapsed to ONE test = ONE login — the
+  Fortify login limiter is **5/min per login_id|type|ip** (FortifyServiceProvider) and
+  per-test logins trip 429 on back-to-back runs (3 consecutive green runs after the
+  fix); (3) login waitForURL 30s (artisan serve is single-threaded, cold spikes).
+- **T7 Gates**: pint ✓ · phpstan 0 · **php artisan test 172/172** (1056 assertions;
+  baseline 167 + 5 new) · **full Playwright suite 117 passed / 3 skipped / 0 failed**
+  (118→117: the spec's 3 tests consolidated into 1).
+- **T3 Live** (5770, post-restart ritual): B110 · option label "Week 4" (value 3) →
+  amber block `AMCS2093(L) · B110 · 12:00 PM–12:30 PM`, tooltip "Lim Jia Zheng ·
+  Pending", **3px solid amber border** + amber fill, class `event-mine-pending` — the
+  frozen legend's vocabulary exactly. GOTCHA recorded: the venue page weekSelect is
+  **0-based** (option value 3 = label "Week 4"); earlier probes set value 4 = Week 5
+  and saw nothing — the block was rendering correctly all along.
+- **T8** postscripts: venue-timetable-ui, replacement-home, my-request-history,
+  replacement-history changelogs.
+
+NOT part of this change (left uncommitted, user's/other session's work):
+`docs/server-commands.md` (new) + `docs/README.md` index line.

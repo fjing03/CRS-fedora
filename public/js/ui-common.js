@@ -940,7 +940,7 @@ function openClassModal(cfg) {
     const rows = [
         { label: 'Subject Code', value: event.code },
         { label: 'Subject Name', value: event.name },
-        { label: 'Class Type', value: event.type === 'L' ? 'Lecture (L)' : event.type === 'P' ? 'Practical (P)' : 'Tutorial (T)' },
+        { label: 'Class Type', value: UiLabels.classType(event.type, 'canonical') },
         { label: 'Lecturer', value: event.lecturer },
         { label: 'Venue', value: event.venue || '\u2014' },
         { label: 'Day', value: dayNames[di] || days[di].abbr },
@@ -2243,6 +2243,17 @@ const StatusText = {
     }
 };
 
+/* Canonical session-type labels (§10.0.2 — same name + same meaning everywhere). */
+const UiLabels = {
+    /* form: 'code' → L|T|P · 'long' → Lecture|Tutorial|Practical · 'canonical' → 'Lecture (L)' … */
+    classType(type, form) {
+        const long = { L: 'Lecture', T: 'Tutorial', P: 'Practical' }[type] || type;
+        if (form === 'code') return type;
+        if (form === 'canonical') return long + ' (' + type + ')';
+        return long;
+    },
+};
+
 // ───── Backward-compatible global aliases (delegate to DateHelper) ─────
 
 function to12h(t) { return DateHelper.to12h(t); }
@@ -2348,7 +2359,7 @@ class HtmlBuilder {
     }
 
     static myRequestCard(r, opts) {
-        var typeLabel = r.classType === 'L' ? 'Lecture' : 'Tutorial';
+        var typeLabel = UiLabels.classType(r.classType, 'long');
         var dayStr = DateHelper.dayAbbr(r.classDay);
         var dateStr = DateHelper.formatDate(r.classDate);
         var timeStr = DateHelper.to12h(r.timeStart) + ' – ' + DateHelper.to12h(r.timeEnd);
@@ -2369,7 +2380,7 @@ class HtmlBuilder {
     }
 
     static replacementHomeRow(c, opts) {
-        var typeLabel = c.type === 'L' ? 'L' : 'T';
+        var typeLabel = UiLabels.classType(c.type, 'code');
         var days = opts.daysLeft(c.date);
         var urgencyCls = opts.urgencyClass(days);
         return [
@@ -2386,7 +2397,7 @@ class HtmlBuilder {
     }
 
     static replacementHomeCard(c, opts) {
-        var typeLabel = c.type === 'L' ? 'Lecture' : 'Tutorial';
+        var typeLabel = UiLabels.classType(c.type, 'long');
         var days = opts.daysLeft(c.date);
         var urgencyCls = opts.urgencyClass(days);
         return '<div class="rc-header">' +

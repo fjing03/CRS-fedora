@@ -584,3 +584,8 @@ construction — without a callback it is hidden AND its handler stripped
 (previously a stale/odd caller could surface a clickable Undo that did
 nothing, contradicting the modal's "cannot be undone" copy). The page's
 cancel toasts pass no callback, so no dead Undo can appear here.
+
+## 2026-10-13 — Detail-modal "Class Type" says "Practical" for P (SDD venue-pending-and-type-labels, B1)
+
+Modal row now uses shared `UiLabels.classType(r.classType, 'long')` — L/T byte-identical,
+P no longer mislabelled "Tutorial".
