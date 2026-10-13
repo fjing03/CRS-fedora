@@ -42,7 +42,7 @@ Preserves the user's numbering (no "4"). Every row retested on HEAD.
 | U5b-a | slotTrigger change vs context | As 5425: enter `?session=68&week=14` (AMSE2003 T @ B100), pick the **P** occurrence (Fri @ B010) in the slot picker | Cohort count, class type, available venues must reflect the picked occurrence | Strip still shows **(L)** type + module-level cohort/total; venue stays B100; "venues that fit 22 students"; **Labs offered in the venue dropdown for an L module**; grid busy vectors unchanged | `evidence-5b-slottrigger-stale-context.png` | Context is **module-grain, not occurrence-grain**: `coursesPayload` groups by module, type = first session, cohorts = union (ReplacementArrangement.php:182–210); `busyByWeek`/`blockedVenues` keyed by module with a representative session (`sessionsByCode` :318–337); strip renders `currentCourse` (view :2321–2390). Plus the filter/engine divergence (A3) | **P1** | A | STILL-BROKEN | N | **Y/5b** |
 | U5b-b | After successful submit | Select block → Submit → Yes | Navigate to `/my-request-history-ui` | Stays on the arrangement page; toast "✓ Submitted — Pending Approval … **View →**" link only | `evidence-5b-submit-no-nav.png` | `proceed()` success path (replacement-arrangement.blade.php:1980–1998) shows the mock-era toast; no navigation | **P1** | A | STILL-BROKEN | N | **Y/5b** |
 | U5b-c | After failed submit | (Not write-repro'd live — see note) Failed submit → grid re-derives; error clear + error colour | FR 4.10 alert; grid re-derivation; NFR 3.3 | On HEAD the failure modal **does** appear (ee5e956 restored the call) with a per-block reason list and the selection kept — but the title is the vague "**Submission Conflict**", rendered in a **generic confirm modal (btn-primary, no error colour)**, and the grid is **never re-derived** (no mechanism: payload is server-rendered once; no re-render after the Livewire result). The user's "cells render EMPTY" was the pre-`ee5e956` dead promise — not reproducible on HEAD | (code-level) | Failed branch (view :1999–2007) calls `showConfirmModal` only; no `buildTimetable()` / payload refresh. Data freshness would need a Livewire re-render or a `wire:poll`-style refresh | **P2** (re-derive) / **P3** (copy+colour) | A | PARTIALLY FIXED-BY ee5e956 (call works); re-derive + copy STILL-BROKEN | N | **Y/5b** |
-| U5b-d | Home entry auto-select | Click a conflicted card on replacement-home | The clicked occurrence is auto-selected in the slot picker | Subject/venue/week DO hydrate ✓, but the **auto-picked original slot is the FIRST matching occurrence, not the pinned week's** whenever a class has conflict occurrences in several weeks (applyDefaultSlotSelection first-option + applyUrlParams first-match ignore `window.pinnedOccurrence.week`). Not demonstrable on current demo data (no multi-week-conflict class exists) — code-level finding. Related: trigger/strip display 0-based week labels ("W7" / "Week 7") for Week 8 | `evidence-5a-arrival-home-pin.png` (label visible) | `applyDefaultSlotSelection` (view :2937–2963) + URL-match (:3016–3028) match on day/start/venue only; 0-based labels from `conflictEventsPayload` `'week' => $week - 1` (ReplacementArrangement.php:250) | **P2** | A | PARTIALLY STILL-BROKEN (wrong-week auto-pick latent; labels live) | N | **Y/5b** |
+| U5b-d | Home entry auto-select | Click a conflicted card on replacement-home | The clicked occurrence is auto-selected in the slot picker | Subject/venue/week DO hydrate ✓, but the **auto-picked original slot is the FIRST matching occurrence, not the pinned week's** whenever a class has conflict occurrences in several weeks (applyDefaultSlotSelection first-option + applyUrlParams first-match ignore `window.pinnedOccurrence.week`). Not demonstrable on current demo data (no multi-week-conflict class exists) — code-level finding. Related: trigger/strip display 0-based week labels ("W7" / "Week 7") for Week 8 | `evidence-5a-arrival-home-pin.png` (label visible) | `applyDefaultSlotSelection` (view :2937–2963) + URL-match (:3016–3028) match on day/start/venue only; 0-based labels from `conflictEventsPayload` `'week' => $week - 1` (ReplacementArrangement.php:250) | **P2** | A | **FIXED-BY e99abbf + e267ac7 (side effect, verified 2026-10-13 — see postscript)**; labels fixed-BY c99eaa1/0978ce2 (A6) | N | **Y/5b** |
 | U5b-e | Venue change vs grid | Change venue B110 ↔ B111 (and wk-5 check) | FR 2.6: recalc ≤500 ms, grid reflects | **Works on HEAD** — grid re-derives (`applyVenueChange` → `buildTimetable`); verified with an observable difference: wk-5 B110 shows the Pending(You) cell Mon 14:00, B111 shows it green | `evidence-5b-venue-change-pending-you.png` | — | — | A | **WORKS / NEEDS-RETEST → PASS** (user's earlier attempt was likely the stale-cache trap) | N | **Y/5b** |
 | U5b-f | "Home hides covered occurrences … returns if PL rejects or you cancel" | Submitted req #4 covering (97, wk 8) → home row vanished; cancelled it → row **returned**; my-timetable kept showing the occurrence (pending/holiday state) + modal **End Time 1:00 PM** ✓ | D1 + e99abbf claim; my-timetable should keep showing the occurrence with its state | Both directions verified live. The home↔my-timetable "contradiction" resolves as designed: **home = to-do list (hides handled occurrences); timetables = schedule truth (show the state)** — per the trait docblock + spec. The old "End Time = Start Time" modal bug is gone | `evidence-mt-pending-modal.png` | `ReplacementHome.php:61–74` (active-request filter); trait `buildEventsByWeek` pending overlay | — | B | **FIXED-BY e99abbf** (both directions) | N | **Y/5b** |
 
@@ -97,7 +97,7 @@ The design **does** define one semantic, and four of five surfaces already imple
 | **P1** | B1 | P sessions labelled "(T)"/"Tutorial" on home + quick view | B | — |
 | **P2** | U2a | Venue page Book Now removed (user-designed; restore + wiring spec) | C | Y/2a |
 | **P2** | U5a | Dual entry-param schemes remain (legacy fallback parser) + `duration=0` not rejected | A | Y/5a |
-| **P2** | U5b-d | Pinned-week occurrence not auto-selected for multi-conflict classes; 0-based week labels | A | Y/5b |
+| ~~**P2**~~ | U5b-d | ~~Pinned-week occurrence not auto-selected for multi-conflict classes; 0-based week labels~~ **FIXED 2026-10-13 (side effect — see postscript)** | A | Y/5b |
 | **P2** | U5b-c | Failed submit: no grid re-derivation (copy/colour → P3) | A | Y/5b |
 | **P2** | A4 | Week-nav confirmation guards lost in conversion | A | — |
 | **P3** | U5b-c′ | "Submission Conflict" copy + error colour (NFR 3.3) | A | Y/5b |
@@ -144,3 +144,46 @@ COMMIT;
 ```
 
 Browser-side side effects (harmless, per-tab/per-origin): `localStorage['arrangementWeek']`, `localStorage['replacement-favourite'|'replacement-recent']` untouched-or-set during navigation, `sessionStorage['bookingIntent*']` absent (no venue handoff exercised). No files outside `.sdd/changes/replacement-arrangement-bug-hunt/` were created or modified.
+
+---
+
+## Status re-verification postscript — 2026-10-13 (HEAD = `677a26c`)
+
+Every "STILL-BROKEN" row above was re-checked **against the current code** (not the
+audit-era line numbers) after the fix rounds `22cb1dc`/`358b241`/`c99eaa1`/`0978ce2`/
+`e267ac7` landed. Status deltas only — the tables above remain the audit-era record:
+
+### Newly FIXED (side effect — never deliberately targeted)
+
+- **U5b-d** — the pinned-week auto-pick latent bug is closed. `e99abbf` added the
+  server-resolved hydrate block (view, `window.PAGE_DATA.pinnedSession` → copies the
+  pinned occurrence's exact code/day/start/venue + week into `urlParams`, week nav
+  jumps first), and `e267ac7` made `applyDefaultSlotSelection` return early when the
+  URL pinned a slot — so no default pick (favourite/recent/first) can override the
+  week-exact pinned occurrence anymore. Strictly stronger than the week-matching the
+  bug asked for. Not live-verifiable (demo data has no multi-week-conflict class);
+  code-path closed. Strike it from the fix plan.
+
+### Partially defused
+
+- **U5a (`duration=0`)** — the silent `BLOCK_SPAN=1` shrink is now an **explicit
+  clamp** (`Math.min(Math.max(parseFloat(duration), 0.5), 4)` with a documenting
+  comment): 0 → 0.5 h → 1 slot, deliberately. Still *accepts* 0 instead of ignoring
+  it — downgradable from bug to petty validation nicety. The dual param-scheme
+  residue (identity pair + legacy parser) is untouched.
+
+### Re-verified STILL-BROKEN (current code, 2026-10-13)
+
+| ID | Evidence in current code |
+|---|---|
+| U2b/U3 | `VenueTimetable.php:91` — `if ($session === null …) continue;` still skips reserved slots (`class_session_id` NULL) |
+| B1 | `ui-common.js:2351/2372/2389` + `replacement-home.blade.php:560` — `c.type === 'L' ? 'L' : 'T'` collapse unchanged |
+| U2a | no `btn-book`/`bookVenue`/`showAvailableTooltip` anywhere in `livewire/venue-timetable.blade.php` |
+| U5b-c | failed-submit branch (view :2015–2023) only calls `showConfirmModal` — no `buildTimetable()` / payload refresh |
+| U5b-c′ | `'Submission Conflict'` still at view :2017, plain confirm modal, no error colour |
+| A4 | ui-week-nav include (view :1015) still passes bare `weekNav.prevWeek()/nextWeek()` — no guarded wrappers |
+| B2 | `replacement-home.blade.php:6` — `@section('title', 'Replacement Arrangement …')` unchanged |
+| B3 | pending-vs-holiday rendering precedence untouched by the fix rounds |
+
+Revised working set for the fix plan: **8 items** — P1 cluster `U2b+U3+B1`, then
+`U2a`, then `A4+U5b-c+U5b-c′` (one page), then `B2+B3` polish; U5a-duration optional.
