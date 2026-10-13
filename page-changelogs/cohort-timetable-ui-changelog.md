@@ -519,3 +519,17 @@ page as it works today:
   legend chips.
 - **New bullet**: "Full names — hover the faculty/cohort dropdowns to see
   them spelled out" (documents the new tooltips).
+
+### Postscript — per-option tooltips on both selects (2026-10-13)
+
+Every `<option>` in `facultySelect` and `cohortSelect` now carries a `title`
+attribute with its full name (faculty_name / the "code — programme name"
+cohort label) — populated in `populateFaculties` / `populateCohorts`, so the
+OPEN dropdown's individual options explain themselves on hover, complementing
+the closed-control `data-tip`. Mechanism note: OS-rendered native option
+lists don't fire DOM hover events, so the shared `data-tip` tooltip cannot
+work inside an open select — the native `title` attribute is the only
+per-option lever and keeps the frozen control untouched (native option
+titles render in Chrome/Edge/Firefox; the closed-control data-tip covers any
+environment that suppresses them). Verified: FAFB/FOCS + all cohort options
+titled (Muada's FAFB view: 3/3; 5770's FOCS view uses the same code path).

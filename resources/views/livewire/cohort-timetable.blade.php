@@ -121,7 +121,7 @@
             function populateFaculties() {
                 const sel = document.getElementById('facultySelect');
                 sel.innerHTML = '<option value="">Select Faculty</option>' +
-                    facultyData.map(f => `<option value="${f.id}">${f.name}</option>`).join('');
+                    facultyData.map(f => `<option value="${f.id}" title="${f.full}">${f.name}</option>`).join('');
             }
 
             /* Hover tooltips (user decision 2026-10-13): the selects carry
@@ -143,7 +143,7 @@
                 const sel = document.getElementById('cohortSelect');
                 const faculty = facultyData.find(f => String(f.id) === String(fid));
                 sel.innerHTML = '<option value="">Select Cohort</option>' +
-                    (faculty ? faculty.cohorts.map(c => `<option value="${c.id}">${c.name}</option>`).join('') : '');
+                    (faculty ? faculty.cohorts.map(c => `<option value="${c.id}" title="${c.full}">${c.name}</option>`).join('') : '');
                 sel.disabled = !faculty || isStudentViewer;
             }
 
