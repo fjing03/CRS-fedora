@@ -375,7 +375,7 @@ Source: `../final/FR&NFR.md` — Chapter 3, §3.4 (verbatim; reader-facing gloss
 | Route | Component | Role |
 |-------|-----------|------|
 | `/my-timetable-ui` | `MyTimetable` | Lecturer/PL |
-| `/cohort-timetable-ui` | `CohortTimetable` | Lecturer/PL (students pinned to own cohort) |
+| `/cohort-timetable` | `CohortTimetable` | Lecturer/PL (students pinned to own cohort) — renamed 2026-10-13 from `/cohort-timetable-ui` (old URL 302-redirects) |
 | `/student-my-timetable-ui` | `StudentMyTimetable` | Student |
 | `/venue-timetable-ui` | `VenueTimetable` | Lecturer/PL |
 

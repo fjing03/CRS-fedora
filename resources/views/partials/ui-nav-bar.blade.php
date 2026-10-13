@@ -13,7 +13,7 @@
             ['key'=>'replacement-history','label'=>'Replacement History','href'=>'/replacement-history-ui'],
         ] : array_values(array_filter([
             ['key'=>'my-timetable','label'=>'My Timetable','href'=>'/my-timetable-ui'],
-            ['key'=>'cohort-timetables','label'=>'Cohort Timetables','href'=>'/cohort-timetable-ui'],
+            ['key'=>'cohort-timetables','label'=>'Cohort Timetables','href'=>'/cohort-timetable'],
             ['key'=>'venue-timetable','label'=>'Venue Timetable','href'=>'/venue-timetable-ui'],
             ['key'=>'replacement-arrangement','label'=>'Replacement Arrangement','href'=>'/replacement-home-ui'],
             ['key'=>'replacement-history','label'=>'Request History','href'=>'/my-request-history-ui'],

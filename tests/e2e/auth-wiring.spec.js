@@ -289,7 +289,7 @@ test.describe('Auto-logout: Staff only', () => {
 test.describe('Smoke: All pages load without 401/403', () => {
   const pages = [
     { path: '/my-timetable-ui', title: 'My Timetable' },
-    { path: '/cohort-timetable-ui', title: 'Cohort Timetable' },
+    { path: '/cohort-timetable', title: 'Cohort Timetable' },
     { path: '/replacement-home-ui', title: 'Replacement' },
     { path: '/my-request-history-ui', title: 'My Request History' },
     { path: '/student-my-timetable-ui', title: 'My Timetable' },

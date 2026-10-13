@@ -50,7 +50,7 @@
 
 | Step | Action | Expected Result |
 |------|--------|-----------------|
-| 1 | Open `http://127.0.0.1:8000/cohort-timetable-ui` | Page loads, semester chip and week selector visible |
+| 1 | Open `http://127.0.0.1:8000/cohort-timetable` | Page loads, semester chip and week selector visible |
 | 2 | Check Faculty dropdown | Populated with faculties (e.g. "FOCS", "FIE") |
 | 3 | Select a faculty | Cohort dropdown populates with that faculty's cohorts |
 | 4 | Select a cohort | Timetable grid renders with that cohort's sessions |
@@ -159,7 +159,7 @@
 |------|--------|-----------------|
 | 1 | From any page, check nav bar links | All page links are visible |
 | 2 | Click "My Timetable" link | Navigates to `/my-timetable-ui` |
-| 3 | Click "Cohort Timetable" link | Navigates to `/cohort-timetable-ui` |
+| 3 | Click "Cohort Timetable" link | Navigates to `/cohort-timetable` |
 | 4 | Click "Student Timetable" link | Navigates to `/student-my-timetable-ui` |
 | 5 | Click "Request History" link | Navigates to `/my-request-history-ui` |
 | 6 | Click "Replacement Home" link | Navigates to `/replacement-home-ui` |

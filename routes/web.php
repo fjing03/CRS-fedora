@@ -34,7 +34,7 @@ $uiPages = [
         'nav' => 'my-timetable',
         'mw' => ['auth', 'role:lecturer'],
     ],
-    '/cohort-timetable-ui' => [
+    '/cohort-timetable' => [
         'component' => CohortTimetable::class,
         'legacy' => 'ui-design-templates.CohortTimetable-UI-design-template',
         'nav' => 'cohort-timetables',
@@ -93,6 +93,10 @@ foreach ($uiPages as $uri => $page) {
 
     Route::get($uri, $action)->middleware($page['mw']);
 }
+
+/* 2026-10-13 rename: keep old bookmarks/notes working — temporary safety
+   redirect, removable in a later cleanup once nothing references the -ui URL */
+Route::redirect('/cohort-timetable-ui', '/cohort-timetable');
 
 Route::middleware(['auth'])->group(function () {
     Route::view('dashboard', 'dashboard')->name('dashboard');

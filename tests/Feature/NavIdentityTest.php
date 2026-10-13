@@ -102,7 +102,7 @@ final class NavIdentityTest extends TestCase
         $response->assertSee('/replacement-history-ui', false);
 
         // Negative: cohort timetable page removed from the student side (nav + route).
-        $response->assertDontSee('href="/cohort-timetable-ui"', false);
+        $response->assertDontSee('href="/cohort-timetable"', false);
 
         // Negative: lecturer-only links absent from the student's HTML.
         $response->assertDontSee('href="/my-timetable-ui"', false);

@@ -7,7 +7,7 @@ test.describe('Timetable pages', () => {
   });
 
   test('Cohort Timetable', async ({ page }) => {
-    await checkPage(page, '/cohort-timetable-ui', ['#semesterChip', '#weekSelect'], 'Cohort Timetable');
+    await checkPage(page, '/cohort-timetable', ['#semesterChip', '#weekSelect'], 'Cohort Timetable');
   });
 
   test('Student My Timetable', async ({ page }) => {

@@ -28,7 +28,7 @@ async function loginStudent(page: Page): Promise<void> {
 
 test('cohort: frozen legend + ownership axis works + 2-segment tooltips', async ({ page }) => {
   await loginStaff(page, '4288'); // teaches RSD3(S1)G1/G2 blocks (dataset)
-  await page.goto(`${BASE}/cohort-timetable-ui`);
+  await page.goto(`${BASE}/cohort-timetable`);
 
   // walk faculty → cohort dropdowns until RSD3(S1)G1 is reachable (client-driven)
   await page.waitForFunction(

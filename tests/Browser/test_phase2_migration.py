@@ -18,7 +18,7 @@ PAGES = {
     "my-request-history": f"{BASE}/my-request-history-ui",
     "request-approval": f"{BASE}/request-approval-ui",
     "my-timetable": f"{BASE}/my-timetable-ui",
-    "cohort-timetable": f"{BASE}/cohort-timetable-ui",
+    "cohort-timetable": f"{BASE}/cohort-timetable",
     "student-my-timetable": f"{BASE}/student-my-timetable-ui",
     "venue-timetable": f"{BASE}/venue-timetable-ui",
 }

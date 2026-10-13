@@ -61,7 +61,7 @@ test('student panel + student-only nav links', async ({ page }) => {
     await expect(page.locator(`a[href="${href}"]`).first()).toBeAttached();
   }
   // Cohort timetable page removed from the student side (nav + route gate)
-  await expect(page.locator('a[href="/cohort-timetable-ui"]')).toHaveCount(0);
+  await expect(page.locator('a[href="/cohort-timetable"]')).toHaveCount(0);
   // Lecturer-only links absent
   for (const href of ['/my-timetable-ui', '/venue-timetable-ui', '/replacement-home-ui', '/request-approval-ui']) {
     await expect(page.locator(`a[href="${href}"]`)).toHaveCount(0);
@@ -83,11 +83,11 @@ test('student panel + student-only nav links', async ({ page }) => {
   expect(drawerLabels).toEqual(expectedLabels);
 
   // Direct URL visit: the route is role:lecturer now — no cohort page renders.
-  const resp = await page.goto('/cohort-timetable-ui');
+  const resp = await page.goto('/cohort-timetable');
   const status = resp ? resp.status() : 0;
   const hasCohortHeader = await page.locator('.page-header h1, h1').first().textContent().then((t) => (t ?? '').includes('Cohort Timetable')).catch(() => false);
   if (status === 200 && hasCohortHeader) {
-    throw new Error(`student reached /cohort-timetable-ui (HTTP ${status}, cohort h1 rendered)`);
+    throw new Error(`student reached /cohort-timetable (HTTP ${status}, cohort h1 rendered)`);
   }
 
   expect(consoleErrors, 'no JS page errors').toEqual([]);

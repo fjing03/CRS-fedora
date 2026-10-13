@@ -394,11 +394,11 @@ test.describe('Page: My Timetable (/my-timetable-ui)', () => {
   });
 });
 
-test.describe('Page: Cohort Timetable (/cohort-timetable-ui)', () => {
+test.describe('Page: Cohort Timetable (/cohort-timetable)', () => {
   test('loads with faculty dropdown', async ({ page }) => {
     const errors = [];
     page.on('pageerror', e => errors.push(e.message));
-    await page.goto('/cohort-timetable-ui', { waitUntil: 'networkidle' });
+    await page.goto('/cohort-timetable', { waitUntil: 'networkidle' });
     await expect(page.locator('#semesterChip')).toBeAttached();
     await expect(page.locator('#weekSelect')).toBeAttached();
     await expect(page.locator('#facultySelect')).toBeAttached();
@@ -406,13 +406,13 @@ test.describe('Page: Cohort Timetable (/cohort-timetable-ui)', () => {
   });
 
   test('faculty dropdown is populated', async ({ page }) => {
-    await page.goto('/cohort-timetable-ui', { waitUntil: 'networkidle' });
+    await page.goto('/cohort-timetable', { waitUntil: 'networkidle' });
     const optionCount = await page.locator('#facultySelect option').count();
     expect(optionCount).toBeGreaterThan(1); // includes "Select Faculty" placeholder
   });
 
   test('MockData has cohortTimetable', async ({ page }) => {
-    await page.goto('/cohort-timetable-ui', { waitUntil: 'networkidle' });
+    await page.goto('/cohort-timetable', { waitUntil: 'networkidle' });
     const hasData = await page.evaluate(() => {
       return window.MockData?.cohortTimetable?.faculties?.length > 0;
     });
@@ -551,7 +551,7 @@ test.describe('Fallback: pages render when API is down', () => {
     page.on('console', msg => {
       if (msg.text().includes('fallback to mock')) warnings.push(msg.text());
     });
-    await page.goto('/cohort-timetable-ui', { waitUntil: 'networkidle' });
+    await page.goto('/cohort-timetable', { waitUntil: 'networkidle' });
     await expect(page.locator('#semesterChip')).toBeAttached();
     expect(warnings.length).toBeGreaterThan(0);
   });
@@ -574,7 +574,7 @@ test.describe('Fallback: pages render when API is down', () => {
 
 test.describe('Interaction: Cohort Timetable faculty/cohort picker', () => {
   test('selecting a faculty populates cohort dropdown', async ({ page }) => {
-    await page.goto('/cohort-timetable-ui', { waitUntil: 'networkidle' });
+    await page.goto('/cohort-timetable', { waitUntil: 'networkidle' });
     const facultySelect = page.locator('#facultySelect');
     await facultySelect.waitFor({ state: 'visible' });
     const optionCount = await facultySelect.locator('option').count();
@@ -636,7 +636,7 @@ test.describe('Navigation: all public routes load', () => {
     { path: '/login/student', title: /Login/i },
     { path: '/login/staff', title: /Login/i },
     { path: '/my-timetable-ui', title: /My Timetable/ },
-    { path: '/cohort-timetable-ui', title: /Cohort Timetable/ },
+    { path: '/cohort-timetable', title: /Cohort Timetable/ },
     { path: '/student-my-timetable-ui', title: /My Timetable/ },
     { path: '/my-request-history-ui', title: /Request History/ },
     { path: '/replacement-home-ui', title: /Replacement/ },
@@ -670,7 +670,7 @@ test.describe('Data integrity: API → page data flow', () => {
   });
 
   test('Cohort Timetable: faculties have nested cohorts', async ({ page }) => {
-    await page.goto('/cohort-timetable-ui', { waitUntil: 'networkidle' });
+    await page.goto('/cohort-timetable', { waitUntil: 'networkidle' });
     const facultyCount = await page.evaluate(() => {
       return window.MockData?.cohortTimetable?.faculties?.length ?? 0;
     });
@@ -715,7 +715,7 @@ test.describe('Data integrity: API → page data flow', () => {
 test.describe('No bad HTTP responses on page load', () => {
   const pages = [
     '/my-timetable-ui',
-    '/cohort-timetable-ui',
+    '/cohort-timetable',
     '/student-my-timetable-ui',
     '/my-request-history-ui',
     '/replacement-home-ui',

@@ -20,7 +20,7 @@ import pytest
 PAGES = {
     "my-timetable": "http://127.0.0.1:8000/my-timetable-ui",
     "student-my-timetable": "http://127.0.0.1:8000/student-my-timetable-ui",
-    "cohort-timetable": "http://127.0.0.1:8000/cohort-timetable-ui",
+    "cohort-timetable": "http://127.0.0.1:8000/cohort-timetable",
     "venue-timetable": "http://127.0.0.1:8000/venue-timetable-ui",
 }
 

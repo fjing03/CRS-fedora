@@ -3,7 +3,7 @@ import { test, expect, Page } from '@playwright/test';
 const BASE = 'http://localhost:8000';
 const PAGES = [
   '/my-timetable-ui',
-  '/cohort-timetable-ui',
+  '/cohort-timetable',
   '/replacement-home-ui',
   '/replacement-arrangement',
   '/my-request-history-ui',
@@ -71,7 +71,7 @@ test.describe('UI Regression Test Cases', () => {
       // WeekNavigator localStorage keys (oop-js-refactor): one key per page,
       // not the old shared 'currentWeek'.
       { url: '/my-timetable-ui', storageKey: 'myTimetableWeek' },
-      { url: '/cohort-timetable-ui', storageKey: 'cohortTimetableState' },
+      { url: '/cohort-timetable', storageKey: 'cohortTimetableState' },
       { url: '/venue-timetable-ui', storageKey: 'venueTimetableWeek' },
       { url: '/student-my-timetable-ui', storageKey: 'studentTimetableWeek' },
     ];
@@ -81,7 +81,7 @@ test.describe('UI Regression Test Cases', () => {
         await page.goto(`${BASE}${url}`, { waitUntil: 'networkidle' });
         await clearLocalStorage(page);
         // Cohort timetable needs faculty/cohort selection before grid appears
-        if (url === '/cohort-timetable-ui') {
+        if (url === '/cohort-timetable') {
           const faculty = page.locator('#facultySelect, .faculty-select').first();
           if (await faculty.isVisible().catch(() => false)) await faculty.selectOption({ index: 1 });
           const cohort = page.locator('#cohortSelect, .cohort-select').first();
@@ -117,7 +117,7 @@ test.describe('UI Regression Test Cases', () => {
   test.describe('Section 3: Modal & Detail Views', () => {
     const modalPages: [string, string][] = [
       ['/my-timetable-ui', '#classModal'],
-      ['/cohort-timetable-ui', '#classModal'],
+      ['/cohort-timetable', '#classModal'],
       ['/venue-timetable-ui', '#eventModal'],
       ['/replacement-home-ui', '#quickViewModal'],
       ['/request-approval-ui', '#modalOverlay'],
@@ -261,7 +261,7 @@ test.describe('UI Regression Test Cases', () => {
   // Section 7: Summary Cards — My Teaching / Own Records
   test.describe('Section 7: Summary Cards — My Teaching / Own Records', () => {
     test('TC-7.1 Cohort summary: My Teaching cards count each class separately', async ({ page }) => {
-      await page.goto(`${BASE}/cohort-timetable-ui`, { waitUntil: 'networkidle' });
+      await page.goto(`${BASE}/cohort-timetable`, { waitUntil: 'networkidle' });
       await page.locator('#facultySelect').selectOption('focs');
       await page.locator('#cohortSelect').selectOption('dft2s1');
       await page.locator('#weekSelect').selectOption('0');

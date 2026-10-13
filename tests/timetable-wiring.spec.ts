@@ -87,7 +87,7 @@ test.describe('Slice A — real-data timetables', () => {
     const errors = await collectErrors(page);
     await loginStaff(page);
 
-    await page.goto(`${BASE}/cohort-timetable-ui`, { waitUntil: 'networkidle' });
+    await page.goto(`${BASE}/cohort-timetable`, { waitUntil: 'networkidle' });
     await expect(page.locator('#emptyState')).toBeVisible(); // guidance first
 
     // Pick the first faculty, then the first cohort in it.
@@ -139,7 +139,7 @@ test.describe('Slice A — real-data timetables', () => {
   test('Guests are redirected to the student login from every UI route', async ({ page }) => {
     for (const uri of [
       '/my-timetable-ui',
-      '/cohort-timetable-ui',
+      '/cohort-timetable',
       '/student-my-timetable-ui',
       '/request-approval-ui',
     ]) {

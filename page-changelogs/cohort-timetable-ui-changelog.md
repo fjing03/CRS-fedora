@@ -440,3 +440,28 @@ The five summary-card flip-backs use the new keyword language: one bold-uppercas
 per description — **THIS COHORT**, **TEACHING HOURS**, **TAUGHT BY YOU**, **YOUR CLASSES** in
 the default color, and **SCHEDULING CLASHES** in red (attention card). Secondary emphasis
 ("each slot = 30 minutes") stays plain bold.
+
+### Postscript — route rename: `/cohort-timetable-ui` → `/cohort-timetable` (2026-10-13)
+
+User decision: drop the `-ui` suffix from this page's URL. Changed in one commit:
+
+- **`routes/web.php`** — the `$uiPages` key renames to `/cohort-timetable`
+  (component, legacy template, `nav` key `cohort-timetables`, middleware all
+  unchanged). A **temporary safety redirect** `Route::redirect('/cohort-timetable-ui',
+  '/cohort-timetable')` keeps old bookmarks and the other session's test notes
+  working — removable in a later cleanup.
+- **`partials/ui-nav-bar.blade.php`** — the single `$items` source now links the
+  desktop bar + mobile drawer to the new URL (lecturer/PL side; the student
+  whitelist still omits the entry, so `NavIdentityTest` / `nav-identity.spec.ts`
+  assertions follow the new href).
+- **Tests** — URL strings updated everywhere they appear: `RouteGateMatrixTest`
+  (+ a new guard test: the legacy URL 302s to the new route), `NavIdentityTest`,
+  `nav-identity.spec.ts`, `timetable-wiring.spec.ts`, `pages-parity.spec.ts`,
+  `cancel-class.spec.ts`, `ui-regression.spec.ts`, `tests/e2e/*.js`, manual
+  `tests/Browser/*.py`, `MANUAL-TEST-CASES.md`.
+- **`CodingMAIN.md`** page-inventory row updated (source of truth).
+
+Deliberately NOT renamed: the `nav` active-state key `cohort-timetables`,
+`pageKey` `cohortTimetable`, the WeekNavigator storage key, and the view name
+`livewire.cohort-timetable` — internal identifiers, not URLs. The changelog
+filename itself keeps its name (history).

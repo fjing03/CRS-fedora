@@ -28,7 +28,7 @@ import { test, expect } from '@playwright/test';
 // ═══════════════════════════════════════════════════════════════════════
 
 const MY = '/my-timetable-ui';
-const COHORT = '/cohort-timetable-ui';
+const COHORT = '/cohort-timetable';
 const HOME = '/replacement-home-ui';
 const ARRANGE = '/replacement-arrangement';
 const LEDGER_KEY = 'classCancellationLedger';

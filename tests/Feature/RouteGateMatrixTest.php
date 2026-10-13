@@ -17,7 +17,7 @@ use Tests\TestCase;
  *
  * Buckets (design route table, auth FIRST per D3):
  *  - role:student:            /student-my-timetable-ui, /replacement-history-ui
- *  - role:lecturer (+PL):     /my-timetable-ui, /cohort-timetable-ui,
+ *  - role:lecturer (+PL):     /my-timetable-ui, /cohort-timetable,
  *                             /replacement-home-ui, /replacement-arrangement,
  *                             /my-request-history-ui, /venue-timetable-ui
  *  - pl:                      /request-approval-ui
@@ -28,7 +28,7 @@ class RouteGateMatrixTest extends TestCase
 
     private const ALL_ROUTES = [
         '/my-timetable-ui',
-        '/cohort-timetable-ui',
+        '/cohort-timetable',
         '/student-my-timetable-ui',
         '/replacement-history-ui',
         '/replacement-home-ui',
@@ -42,7 +42,7 @@ class RouteGateMatrixTest extends TestCase
 
     private const LECTURER_ONLY = [
         '/my-timetable-ui',
-        '/cohort-timetable-ui',
+        '/cohort-timetable',
         '/replacement-home-ui',
         '/replacement-arrangement',
         '/my-request-history-ui',
@@ -138,5 +138,12 @@ class RouteGateMatrixTest extends TestCase
                 $this->actingAs($this->pl)->get($uri)->assertOk();
             }
         }
+    }
+
+    /** 2026-10-13 rename: the old -ui URL must 302 to the new route for everyone
+     *  (temporary safety redirect — old bookmarks/notes land on the page or login). */
+    public function test_legacy_cohort_timetable_ui_url_redirects_to_the_new_route(): void
+    {
+        $this->get('/cohort-timetable-ui')->assertRedirect('/cohort-timetable');
     }
 }
