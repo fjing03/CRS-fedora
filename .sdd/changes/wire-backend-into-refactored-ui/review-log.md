@@ -444,3 +444,10 @@ Over-capacity sessions 7 → 4. Residual: AMIT2034 L/T/P (DFT+DSF combined 33 > 
 rooms) and MPU-3133 T (RAF+RBU+RSD 56 > 35-seat B015) — all combined-class sums, i.e.
 the open decisions #1 (derive capacity conflicts?) / #2 (per-group split semantics?)
 from the 2026-10-12 discussion. Live-verified: page shows "venues that fit 18 students".
+
+## demo DB data edit (2) — 2026-10-13 (user-requested)
+
+AMIT2034 sessions 3 (P/B005), 33 (L/B010), 34 (T/B010): unlinked the DFT Y2 cohort
+(`session_cohorts` DELETE, 3 rows) — DSF Y2 (15) only. No requests referenced them.
+Over-capacity 4 → 1 (only MPU-3133 T, 56 > 35-seat B015, remains — outside DFT/DSF).
+Session 3 stays conflict-flagged via the B005+Diploma rule (DSF = Diploma).
