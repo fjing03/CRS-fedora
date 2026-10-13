@@ -88,7 +88,15 @@ test.describe('Slice A — real-data timetables', () => {
     await loginStaff(page);
 
     await page.goto(`${BASE}/cohort-timetable`, { waitUntil: 'networkidle' });
-    await expect(page.locator('#emptyState')).toBeVisible(); // guidance first
+
+    // Staff auto-select (user decision 2026-10-13, a792553): a lecturer who
+    // teaches lands on their own faculty + first taught cohort with the grid
+    // already live — the old "guidance first" expectation only holds for
+    // staff who teach nothing in their department's faculty.
+    await expect(page.locator('#facultySelect')).not.toHaveValue('');
+    await expect(page.locator('#cohortSelect')).not.toHaveValue('');
+    await expect(page.locator('#emptyState')).toBeHidden();
+    await expect(page.locator('#tableHead th')).not.toHaveCount(0);
 
     // Pick the first faculty, then the first cohort in it.
     const facultyOptions = page.locator('#facultySelect option:not([value=""])');
