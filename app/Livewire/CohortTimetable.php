@@ -37,14 +37,42 @@ class CohortTimetable extends Component
             $cohorts = [];
             foreach ($f->programmes as $p) {
                 foreach ($p->cohorts as $c) {
+                    /* 'full' = tooltip label per user decision 2026-10-13:
+                       "RSD2 (S1) G1 — Bachelor in IT (Hons) Software Systems
+                       Development" (spaced code + programme name); option text
+                       stays the compact 'name'. */
+                    $code = $p->programme_code.$c->current_year.'(S'.$c->semester.')G'.$c->tutorial_group;
                     $cohorts[] = [
                         'id' => $c->id,
-                        'name' => $p->programme_code.$c->current_year.'(S'.$c->semester.')G'.$c->tutorial_group,
+                        'name' => $code,
+                        'full' => $p->programme_code.$c->current_year.' (S'.$c->semester.') G'.$c->tutorial_group.' — '.$p->programme_name,
                     ];
                 }
             }
             usort($cohorts, fn ($a, $b) => strcmp($a['name'], $b['name']));
-            $faculties[] = ['id' => $f->id, 'name' => $f->faculty_code, 'cohorts' => $cohorts];
+            $faculties[] = ['id' => $f->id, 'name' => $f->faculty_code, 'full' => $f->faculty_name, 'cohorts' => $cohorts];
+        }
+
+        /* Auto-select defaults (user decision 2026-10-13): staff arrive on their
+           own department's faculty, with the first cohort they actually teach
+           pre-picked client-side. Students stay pinned (FR 1.2) — no defaults. */
+        $defaultFacultyId = null;
+        $taughtCohortIds = [];
+        if (! $isStudent) {
+            $lecturer = auth()->user()?->lecturer;
+            if ($lecturer !== null) {
+                $defaultFacultyId = $lecturer->department?->faculty_id;
+                $taughtCohortIds = ClassSession::query()
+                    ->where('semester_id', $semester !== null ? $semester->id : 1)
+                    ->where('lecturer_id', (int) auth()->id())
+                    ->with('cohorts')
+                    ->get()
+                    ->flatMap(fn ($s) => $s->cohorts->pluck('id'))
+                    ->map(fn ($id) => (int) $id)
+                    ->unique()
+                    ->values()
+                    ->all();
+            }
         }
 
         $eventsByCohort = $this->eventsByCohort($isStudent);
@@ -58,6 +86,8 @@ class CohortTimetable extends Component
             'currentWeek' => $this->currentTimelineWeekIndex(),
             'isStudent' => $isStudent,
             'pinnedCohortId' => $isStudent ? (auth()->user()->student?->cohort_id) : null,
+            'defaultFacultyId' => $defaultFacultyId,
+            'taughtCohortIds' => $taughtCohortIds,
         ])
             ->extends('layouts.ui-template', ['activeNav' => 'cohort-timetables', 'pageKey' => 'cohortTimetable'])
             ->section('content');

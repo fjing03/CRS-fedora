@@ -105,6 +105,8 @@
             const facultyData = @json($faculties);
             const isStudentViewer = @json($isStudent);
             const pinnedCohortId = @json($pinnedCohortId);
+            const defaultFacultyId = @json($defaultFacultyId);
+            const taughtCohortIds = @json($taughtCohortIds);
 
             window.currentWeek = {{ (int) ($currentWeek ?? 0) }};
             let currentWeek = window.currentWeek;
@@ -121,6 +123,21 @@
                     facultyData.map(f => `<option value="${f.id}">${f.name}</option>`).join('');
             }
 
+            /* Hover tooltips (user decision 2026-10-13): the selects carry
+               data-tip, which the shared hover-delegation tooltip reads live —
+               so refreshing the attribute on every change is enough. Full
+               labels come from the payload's 'full' fields. */
+            function refreshTips() {
+                const fsel = document.getElementById('facultySelect');
+                const csel = document.getElementById('cohortSelect');
+                const f = facultyData.find(x => String(x.id) === String(fsel.value));
+                if (f) fsel.setAttribute('data-tip', f.full);
+                else fsel.removeAttribute('data-tip');
+                const c = f ? f.cohorts.find(x => String(x.id) === String(csel.value)) : null;
+                if (c) csel.setAttribute('data-tip', c.full);
+                else csel.removeAttribute('data-tip');
+            }
+
             function populateCohorts(fid) {
                 const sel = document.getElementById('cohortSelect');
                 const faculty = facultyData.find(f => String(f.id) === String(fid));
@@ -133,12 +150,14 @@
                 populateCohorts(fid);
                 document.getElementById('weekSelect').disabled = true;
                 selectedCohortId = null;
+                refreshTips();
                 showGuidance();
             }
 
             function onCohortChange(cid) {
                 selectedCohortId = cid ? parseInt(cid, 10) : null;
                 document.getElementById('weekSelect').disabled = !selectedCohortId;
+                refreshTips();
                 if (!selectedCohortId) {
                     showGuidance();
                     return;
@@ -161,6 +180,9 @@
                 ['sumTotal', 'sumHours', 'sumMyClasses', 'sumMyHours', 'sumConflict'].forEach(id => {
                     document.getElementById(id).textContent = '0';
                 });
+                /* summary cards hidden whenever no timetable is shown (user
+                   decision 2026-10-13 — cards full of zeros are just noise) */
+                document.getElementById('summarySection').style.display = 'none';
                 updateWeekArrows(true, true);
             }
 
@@ -214,11 +236,13 @@
                     ['sumTotal', 'sumHours', 'sumMyClasses', 'sumMyHours', 'sumConflict'].forEach(id => {
                         document.getElementById(id).textContent = '0';
                     });
+                    document.getElementById('summarySection').style.display = 'none';
                     updateWeekArrows(currentWeek <= 0, currentWeek >= weekData.length - 1);
                     return;
                 }
 
                 document.getElementById('emptyState').style.display = 'none';
+                document.getElementById('summarySection').style.display = '';
 
                 buildTimetableGrid({
                     events: weekEvents,
@@ -293,7 +317,31 @@
                     document.getElementById('cohortSelect').value = String(selectedCohortId);
                 }
                 document.getElementById('weekSelect').disabled = false;
+                refreshTips();
                 buildTimetable();
+            } else if (!isStudentViewer && defaultFacultyId) {
+                /* Staff auto-select (user decisions 2026-10-13): land on the
+                   lecturer's own department's faculty, with the FIRST cohort
+                   they actually teach (displayed sort order) pre-picked — the
+                   grid + week nav are live on arrival, zero clicks. When they
+                   teach nothing in that faculty, everything stays unselected
+                   and the guidance shows (predictable fallback). */
+                const fac = facultyData.find(f => String(f.id) === String(defaultFacultyId));
+                if (fac) {
+                    document.getElementById('facultySelect').value = String(fac.id);
+                    populateCohorts(fac.id);
+                    const mine = fac.cohorts.find(c => taughtCohortIds.includes(c.id));
+                    if (mine) {
+                        document.getElementById('cohortSelect').value = String(mine.id);
+                        onCohortChange(String(mine.id));
+                    } else {
+                        refreshTips();
+                        showGuidance();
+                    }
+                } else {
+                    refreshTips();
+                    showGuidance();
+                }
             } else {
                 showGuidance();
             }

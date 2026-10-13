@@ -465,3 +465,38 @@ Deliberately NOT renamed: the `nav` active-state key `cohort-timetables`,
 `pageKey` `cohortTimetable`, the WeekNavigator storage key, and the view name
 `livewire.cohort-timetable` — internal identifiers, not URLs. The changelog
 filename itself keeps its name (history).
+
+### Postscript — faculty/cohort auto-select + hover full-name tooltips + summary-card hiding (2026-10-13)
+
+User decisions (2026-10-13), implemented as one change (server payload + this
+page's script; shared partials and the frozen templates untouched):
+
+- **Hover tooltips (1a).** `facultySelect` / `cohortSelect` now carry
+  `data-tip`, refreshed on populate + every change — the shared hover
+  tooltip reads the attribute live. Faculty tip = the full `faculty_name`
+  ("Faculty of Computer Science and Information Technology"); cohort tip =
+  the approved format "RSD2 (S1) G1 — Bachelor in IT (Hons) Software Systems
+  Development" (spaced code + programme name) via the new `full` payload
+  fields. Native selects can only tooltip the closed control.
+- **Faculty auto-select (1b).** The component derives the logged-in
+  lecturer's faculty via `lecturers.dept_id → departments.faculty_id`
+  (DCIT→FOCS, DSSH→FAFB, DACB→FAFB — the DSSH pointer was re-linked to FAFB
+  the same day, see `docs/demo-db-data-changes.md`) and passes
+  `defaultFacultyId`; boot preselects + populates cohorts.
+- **Cohort auto-select (2).** The component also passes `taughtCohortIds`
+  (cohorts with sessions taught by me this semester); boot picks the FIRST
+  one in the displayed sorted order within the auto-selected faculty and
+  runs the normal `onCohortChange` — grid + week nav live on arrival, zero
+  clicks. Fallback (agreed): teaches nothing there → everything stays
+  unselected, guidance shows (verified with Sharon 4363's data shape).
+- **Summary cards hidden when no timetable (3).** `#summarySection` is
+  hidden in BOTH empty cases — no cohort picked (guidance) and cohort picked
+  but the week has zero classes ("No classes scheduled") — and restored
+  whenever the grid builds. Page-local JS; the shared
+  `partials/ui-summary-bar` is untouched.
+
+Students unaffected (already pinned + disabled selects; their zero-event
+weeks now hide the cards too, consistently). Live-verified as 5770 (DCIT →
+FOCS + DFT2 (S1) G1, tooltip hover renders) and 3799 Muada (DSSH → FAFB +
+RAF2 (S3) G2); faculty switch → guidance hides the cards. Suite 173/173,
+pint clean, phpstan 0.
