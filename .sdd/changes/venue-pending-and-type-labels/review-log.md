@@ -48,3 +48,18 @@ foreign-proposer fixture.
 ### 🔴 Outstanding
 - (none — reviewer pre-approved: "no re-review round needed beyond confirming the edit";
   all fixes are exactly the prescribed amendments) → **design.md FROZEN**
+## tasks.md Round 1 — 2026-10-13
+
+### ✅ Verdict: Batch 3 PASSES — tasks.md FROZEN
+Coverage audit clean: every frozen requirement maps to a task (T1–T9), no scope creep,
+all tasks ≤2h, dependency-correct order, apply-phase compliance verified. Zero 🔴.
+
+### 🟡 Addressed at freeze
+- T7 gate strengthened: full Playwright suite (`npx playwright test`), not just the new
+  spec — T1's new venue events could break `venue-timetable.spec.ts`/`pages-parity.spec.ts`.
+- 💡 noted for the implementer: T2(c) rejected-request leg is a crafted row (demo DB has
+  cancelled only); T1 reads proposer_id as a plain column (no eager load).
+
+## /sdd-propose COMPLETE — 2026-10-13
+proposal.md (R1–R2), design.md (R1), tasks.md (R1) all frozen. Commit a175337 + this.
+Next stage: /sdd-apply on user green-light.
