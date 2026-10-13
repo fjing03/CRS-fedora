@@ -451,3 +451,10 @@ AMIT2034 sessions 3 (P/B005), 33 (L/B010), 34 (T/B010): unlinked the DFT Y2 coho
 (`session_cohorts` DELETE, 3 rows) — DSF Y2 (15) only. No requests referenced them.
 Over-capacity 4 → 1 (only MPU-3133 T, 56 > 35-seat B015, remains — outside DFT/DSF).
 Session 3 stays conflict-flagged via the B005+Diploma rule (DSF = Diploma).
+
+## demo DB data edit (3) — 2026-10-13 (user-requested)
+
+MPU-3133 session 57's oversized cohorts, seeded (`setseed(0.87)`):
+cohort 14 (RBU Y1 G1) → 10 (range 7–10); cohorts 12/13 (RAF Y2 G2/G4) → 5/6 (range 5–7).
+Session 57 total 56 → 35 = exactly B015's capacity (fits). **Full-timetable over-capacity
+audit now returns 0 sessions** — every session fits its own room.
