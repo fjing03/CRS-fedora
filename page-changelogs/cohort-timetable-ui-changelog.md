@@ -533,3 +533,63 @@ per-option lever and keeps the frozen control untouched (native option
 titles render in Chrome/Edge/Firefox; the closed-control data-tip covers any
 environment that suppresses them). Verified: FAFB/FOCS + all cohort options
 titled (Muada's FAFB view: 3/3; 5770's FOCS view uses the same code path).
+
+### Postscript — SelectDd panel: shared-tooltip options + ✓ "my classes" marking (2026-10-13)
+
+User decisions (2026-10-13): make the per-option hover tooltips CONSISTENT
+with the rest of the site (the native `<option title>` box looked nothing
+like the shared `.data-tip-tooltip`), and mark the cohorts/faculties the
+logged-in lecturer teaches (bold + accent colour + leading ✓), with a
+user-facing explanation of the marking.
+
+- **SelectDd panel (Option A — panel OVER the native select).** The
+  semester-bar `<select>`s stay real, visible, and fully functional (inline
+  onchange wiring, keyboard arrows, the 5 Playwright specs' `selectOption`).
+  `mousedown` is preventDefaulted (kills the OS popup, keeps focus) and a
+  DOM panel — the venue-dd idiom — opens below instead. Rows are rebuilt
+  from the LIVE `<option>`s on every open (immune to `populate*()`
+  rewrites), each carrying `data-tip` = the option's full name → the
+  SHARED hover tooltip renders, pixel-identical to venue-dd room rows and
+  every other tip on the site. Row pick sets `select.value` + dispatches
+  `change` → the existing handlers fire unchanged. Closes on outside
+  click / Escape / page scroll / resize — but NEVER on its own
+  scrollbar (user bug 2026-10-13): the old capture-phase listener closed
+  the panel on the first wheel tick, so long lists were unscrollable and
+  momentum/re-anchor scrolls made reopen clicks look dead until a hard
+  refresh. Three guards now: the scroll listener ignores scrolls
+  originating inside `.select-dd-panel`; `overscroll-behavior: contain`
+  stops a wheel at the list ends from chain-scrolling the page behind
+  it; and a 300ms post-open grace absorbs queued scroll-into-view
+  events, so the panel can't be killed by its own opening. Trigger gets
+  a box-shadow ring while open (the selects are borderless — a border
+  would shift layout).
+  Note: theme.css already gives these selects `appearance:none` + the
+  themed chevron, so the closed look is 100% unchanged.
+- **✓ marking (ownership axis).** Taught cohorts/faculties render bold in
+  `var(--color-primary)` (#004D98 TARUMT blue) with a leading ✓ —
+  deliberately a different colour from the green/amber/red STATUS axis so
+  the two can never be confused. Data: the existing `taughtCohortIds`
+  payload (no PHP change); faculty marking is derived client-side
+  (faculties where the lecturer teaches ≥1 cohort). Native
+  `option[data-taught]` CSS covers the keyboard-only Alt+Down popup.
+  Students: empty taught list → no marks, selects disabled → no panel.
+  List order unchanged (reordering would break the "first taught in
+  displayed order" auto-pick).
+- **Explanation (user ask).** New 6th guide bullet — "✓ Your classes —
+  bold blue entries marked ✓ are the cohorts/faculties you teach this
+  semester" — plus a muted panel-footer hint shown only when something is
+  marked ("✓ bold = cohorts you teach" / "✓ bold = you teach here"),
+  pinned `position: sticky; bottom: 0` with a surface background so it
+  stays readable while a long list scrolls under it.
+- **Live-verified** as 5770 (FOCS panel: 4 taught cohorts ✓-marked
+  DFT2(S1)G1/DSF2(S1)G1/RSD2(S1)G2/RSD2(S1)G3 + hint; FAFB panel: 3 rows,
+  none marked, no hint — the fallback shape; hover on a row renders the
+  shared tooltip with the full faculty name; picking a taught row builds
+  the grid, refreshes the closed-control data-tip; Escape closes) and
+  3799 Muada (both faculties ✓-marked). Scroll-fix re-verified with real
+  click + wheel: wheeling to the list end and back keeps the panel open
+  with the page scroll contained, wheeling on the page closes it,
+  reopening always works, and the previously-unreachable bottom row
+  (RSD3(S1)G3) is pickable → grid builds. pint clean, phpstan 0.
+- Generic `.select-dd-*` class names, page-local for now — promote to a
+  shared partial when a 3rd custom dropdown appears (venue-dd = 1st).

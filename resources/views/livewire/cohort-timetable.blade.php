@@ -29,6 +29,71 @@
         .timetable td.hour-cell.offday-slot { background: transparent; }
         .timetable td.today-cell.offday-slot { background: transparent; }
         .timetable td.hour-cell.offday-slot .cell-empty { background: transparent; }
+
+        /* ───── SelectDd panel (venue-dd idiom on the semester-bar selects) ─────
+           The native <select> stays fully functional (onchange wiring, keyboard
+           arrows, Playwright specs); the mouse popup is replaced by a DOM panel
+           whose rows carry data-tip — so the SHARED hover tooltip (not the
+           browser's native title box) explains every option. Taught cohorts /
+           faculties are marked bold blue + ✓ (taughtCohortIds from the payload;
+           ownership axis, deliberately a different colour from the green/amber/
+           red status axis). Generic .select-dd-* names for later promotion to a
+           shared partial when a 3rd custom dropdown appears. */
+        .select-dd-panel {
+            position: fixed;
+            display: none;
+            background: var(--color-surface);
+            border: 1px solid var(--color-outline);
+            border-radius: var(--radius-md);
+            box-shadow: 0 4px 16px rgba(0,0,0,0.12), 0 1px 4px rgba(0,0,0,0.06);
+            z-index: 1000;
+            padding: 4px 0;
+            min-width: 180px;
+            max-width: calc(100vw - 16px);
+            max-height: 320px;
+            overflow-y: auto;
+            scrollbar-width: thin;
+            overscroll-behavior: contain; /* wheel at list end must NOT chain-scroll
+               the page behind — that page scroll used to close the panel */
+        }
+        .select-dd-item {
+            display: flex;
+            align-items: center;
+            padding: 7px 12px;
+            font-size: 13px;
+            font-weight: 500;
+            color: var(--color-on-surface);
+            cursor: pointer;
+            white-space: nowrap;
+            user-select: none;
+        }
+        .select-dd-item:hover { background: var(--color-surface-variant); }
+        .select-dd-item-taught,
+        .select-dd-item-taught::before {
+            color: var(--color-primary);
+            font-weight: 700;
+        }
+        .select-dd-item-taught::before { content: '✓ '; }
+        .select-dd-hint {
+            position: sticky; /* stays visible while a long list scrolls */
+            bottom: 0;
+            margin-top: 4px;
+            padding: 6px 12px 5px;
+            border-top: 1px solid var(--color-outline);
+            background: var(--color-surface);
+            font-size: 11px;
+            color: var(--color-on-surface-variant);
+        }
+        /* open-state ring on the trigger (box-shadow only — the selects are
+           borderless, so a border would shift layout by a pixel) */
+        .semester-bar select.select-dd-open {
+            box-shadow: 0 0 0 1.5px var(--color-primary);
+        }
+        /* native-option fallback for the keyboard-only Alt+Down popup */
+        .semester-bar select:not(.week-select) option[data-taught] {
+            font-weight: 700;
+            color: var(--color-primary);
+        }
     </style>
 
     <!-- ─── Page Header ─── -->
@@ -42,6 +107,7 @@
             '<strong>Slot status</strong> — Green: scheduled class, Amber: pending replacement, Red: conflict/public holiday; thick border (3px) = your classes, thin border = others\'',
             '<strong>View details</strong> — click any slot to see class details and venue info',
             '<strong>Full names</strong> — hover the faculty/cohort dropdowns to see them spelled out',
+            '<strong>✓ Your classes</strong> — bold blue entries marked ✓ are the cohorts/faculties you teach this semester',
         ]
     ])
 
@@ -118,10 +184,19 @@
 
             /* ════════ DROPDOWNS ════════ */
 
+            /* Faculties where the logged-in lecturer teaches >=1 cohort —
+               derived client-side from taughtCohortIds (no new payload). */
+            function taughtFacultyIds() {
+                return facultyData
+                    .filter(f => f.cohorts.some(c => taughtCohortIds.includes(c.id)))
+                    .map(f => f.id);
+            }
+
             function populateFaculties() {
                 const sel = document.getElementById('facultySelect');
+                const tFids = taughtFacultyIds();
                 sel.innerHTML = '<option value="">Select Faculty</option>' +
-                    facultyData.map(f => `<option value="${f.id}" title="${f.full}">${f.name}</option>`).join('');
+                    facultyData.map(f => `<option value="${f.id}" title="${f.full}"${tFids.includes(f.id) ? ' data-taught' : ''}>${f.name}</option>`).join('');
             }
 
             /* Hover tooltips (user decision 2026-10-13): the selects carry
@@ -143,7 +218,7 @@
                 const sel = document.getElementById('cohortSelect');
                 const faculty = facultyData.find(f => String(f.id) === String(fid));
                 sel.innerHTML = '<option value="">Select Cohort</option>' +
-                    (faculty ? faculty.cohorts.map(c => `<option value="${c.id}" title="${c.full}">${c.name}</option>`).join('') : '');
+                    (faculty ? faculty.cohorts.map(c => `<option value="${c.id}" title="${c.full}"${taughtCohortIds.includes(c.id) ? ' data-taught' : ''}>${c.name}</option>`).join('') : '');
                 sel.disabled = !faculty || isStudentViewer;
             }
 
@@ -171,6 +246,110 @@
 
             window.onFacultyChange = onFacultyChange;
             window.onCohortChange = onCohortChange;
+
+            /* ════════ SELECT DD PANEL ════════
+               Mouse popup replacement for the two selects: the native control
+               stays real & functional (inline onchange, keyboard arrows, the
+               Playwright specs' selectOption) but mousedown is preventDefaulted
+               and a DOM panel opens instead — its rows carry data-tip, so the
+               SHARED hover tooltip (ui-common initDataTipTooltips) explains each
+               option, consistent with the venue-dd room rows. Rows are rebuilt
+               from the LIVE <option>s on every open (immune to populate*()
+               rewrites); taught cohorts/faculties are bold blue + ✓. */
+            const selectDdPanels = [];
+            let lastSelectDdOpenAt = 0;
+
+            function closeSelectDd() {
+                selectDdPanels.forEach(p => {
+                    p.panel.style.display = 'none';
+                    p.sel.classList.remove('select-dd-open');
+                });
+                /* hide the shared tooltip too — rows vanish with the panel, so
+                   its mouseleave never fires and a stale tip would linger */
+                const tip = document.querySelector('.data-tip-tooltip');
+                if (tip) { tip.style.opacity = '0'; tip.style.visibility = 'hidden'; }
+            }
+
+            function buildSelectDd(sel, isCohortSel) {
+                if (!sel) return;
+                const panel = document.createElement('div');
+                panel.className = 'select-dd-panel';
+                document.body.appendChild(panel);
+                selectDdPanels.push({ panel: panel, sel: sel });
+
+                sel.addEventListener('mousedown', function (e) {
+                    if (sel.disabled) return;   // students / no faculty chosen yet
+                    e.preventDefault();          // kills the OS popup, keeps focus
+                    const wasOpen = panel.style.display === 'block';
+                    closeSelectDd();
+                    if (wasOpen) return;
+
+                    panel.innerHTML = '';
+                    const tFids = isCohortSel ? null : taughtFacultyIds();
+                    const opts = Array.prototype.slice.call(sel.options).filter(o => o.value);
+                    const marks = opts.map(o => isCohortSel
+                        ? taughtCohortIds.includes(parseInt(o.value, 10))
+                        : tFids.includes(parseInt(o.value, 10)));
+                    opts.forEach((o, i) => {
+                        const row = document.createElement('div');
+                        row.className = 'select-dd-item' + (marks[i] ? ' select-dd-item-taught' : '');
+                        row.setAttribute('data-tip', o.title || o.textContent);
+                        row.textContent = o.textContent;
+                        row.addEventListener('click', function () {
+                            sel.value = o.value;
+                            // fires the inline onchange exactly like a native pick
+                            sel.dispatchEvent(new Event('change', { bubbles: true }));
+                            closeSelectDd();
+                        });
+                        panel.appendChild(row);
+                    });
+                    if (marks.some(Boolean)) {
+                        const hint = document.createElement('div');
+                        hint.className = 'select-dd-hint';
+                        hint.textContent = isCohortSel ? '✓ bold = cohorts you teach' : '✓ bold = you teach here';
+                        panel.appendChild(hint);
+                    }
+
+                    // position under the trigger, clamped to the viewport (flip up if no room below)
+                    const r = sel.getBoundingClientRect();
+                    panel.style.display = 'block';
+                    const pw = Math.min(panel.offsetWidth, window.innerWidth - 8);
+                    const ph = panel.offsetHeight;
+                    let top = r.bottom + 4;
+                    if (top + ph > window.innerHeight - 4 && r.top - ph - 4 >= 4) top = r.top - ph - 4;
+                    panel.style.left = Math.max(4, Math.min(r.left, window.innerWidth - pw - 4)) + 'px';
+                    panel.style.top = top + 'px';
+                    sel.classList.add('select-dd-open');
+                    lastSelectDdOpenAt = Date.now();
+                });
+            }
+
+            buildSelectDd(document.getElementById('facultySelect'), false);
+            buildSelectDd(document.getElementById('cohortSelect'), true);
+
+            // close affordances: outside click, Escape, page scroll/resize
+            document.addEventListener('mousedown', function (e) {
+                const t = e.target;
+                const onPanel = t.closest && t.closest('.select-dd-panel');
+                const onTrigger = selectDdPanels.some(p => p.sel === t);
+                if (!onPanel && !onTrigger) closeSelectDd();
+            });
+            document.addEventListener('keydown', function (e) { if (e.key === 'Escape') closeSelectDd(); });
+            /* Scroll closes the panel — EXCEPT the panel's own scrollbar (user
+               bug 2026-10-13): the capture-phase listener killed the first
+               wheel tick inside the list, so long lists could never be scrolled,
+               and trackpad momentum kept firing afterwards, making the next
+               reopen clicks look dead until a hard refresh. Only ancestor/page
+               scrolls close it now, and queued scroll-into-view events in the
+               first 300ms after opening (a click that re-anchors the page) are
+               ignored so the panel can't be killed by its own open. */
+            document.addEventListener('scroll', function (e) {
+                const t = e.target;
+                if (t && t.closest && t.closest('.select-dd-panel')) return;
+                if (Date.now() - lastSelectDdOpenAt < 300) return;
+                closeSelectDd();
+            }, true);
+            window.addEventListener('resize', closeSelectDd);
 
             function showGuidance() {
                 document.getElementById('emptyState').style.display = 'flex';
