@@ -37,10 +37,11 @@
     @include('partials.ui-guide-block', [
         'guideTitle' => 'How to use this page',
         'guideItems' => [
-            '<strong>Select cohort</strong> — choose a faculty, then a cohort to view its timetable',
+            '<strong>Auto-selected</strong> — your faculty and the first cohort you teach load on arrival; switch the dropdowns to view any cohort\'s timetable',
             '<strong>Week navigation</strong> — use arrows or Today button to browse weeks',
-            '<strong>Slot status</strong> — Blue: Your classes, Green: Others\' classes, Grey: Others\' pending, Amber: Your pending, Striped red: Your conflict/holiday, Plain red: Others\' conflict/holiday',
+            '<strong>Slot status</strong> — Green: scheduled class, Amber: pending replacement, Red: conflict/public holiday; thick border (3px) = your classes, thin border = others\'',
             '<strong>View details</strong> — click any slot to see class details and venue info',
+            '<strong>Full names</strong> — hover the faculty/cohort dropdowns to see them spelled out',
         ]
     ])
 

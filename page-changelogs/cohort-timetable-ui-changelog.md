@@ -500,3 +500,22 @@ weeks now hide the cards too, consistently). Live-verified as 5770 (DCIT →
 FOCS + DFT2 (S1) G1, tooltip hover renders) and 3799 Muada (DSSH → FAFB +
 RAF2 (S3) G2); faculty switch → guidance hides the cards. Suite 173/173,
 pint clean, phpstan 0.
+
+### Postscript — guide block synced to the new behaviour (2026-10-13)
+
+"How to use this page" was stale on two fronts and is now aligned with the
+page as it works today:
+
+- **First bullet** replaced: "Select cohort — choose a faculty, then a
+  cohort…" described a manual first step the auto-select removed. Now:
+  "Auto-selected — your faculty and the first cohort you teach load on
+  arrival; switch the dropdowns to view any cohort's timetable".
+- **Slot-status bullet** rewritten in the §10.0 two-axis language — the old
+  "Blue: Your classes, Green: Others' classes, Grey: Others' pending…"
+  wording predated the 2026-10-09 parity postscript (`event-mine` and
+  `event-others` are both success-green; ownership is border weight only).
+  Now: Green = scheduled, Amber = pending, Red = conflict/holiday, thick
+  3px border = your classes, thin = others' — matching the page's own
+  legend chips.
+- **New bullet**: "Full names — hover the faculty/cohort dropdowns to see
+  them spelled out" (documents the new tooltips).
