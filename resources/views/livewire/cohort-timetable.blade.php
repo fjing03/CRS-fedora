@@ -107,7 +107,7 @@
             '<strong>Slot status</strong> — Green: scheduled class, Amber: pending replacement, Red: conflict/public holiday; thick border (3px) = your classes, thin border = others\'',
             '<strong>View details</strong> — click any slot to see class details and venue info',
             '<strong>Full names</strong> — hover the faculty/cohort dropdowns to see them spelled out',
-            '<strong>✓ Your classes</strong> — bold blue entries marked ✓ are the cohorts/faculties you teach this semester',
+            '<strong>✓ Your cohorts</strong> — bold blue entries marked ✓ are the cohorts/faculties you teach this semester',
         ]
     ])
 
@@ -227,7 +227,21 @@
                 document.getElementById('weekSelect').disabled = true;
                 selectedCohortId = null;
                 refreshTips();
-                showGuidance();
+                /* Auto-pick (user decision 2026-10-13): switching faculty
+                   behaves exactly like arrival — the FIRST cohort the lecturer
+                   teaches in that faculty (displayed order) is pre-picked and
+                   the grid goes live, zero extra clicks. Teaches nothing here
+                   → the same predictable fallback as on load: guidance stays
+                   and the cohort list waits. (Faculty select is disabled for
+                   students, so this only ever runs for staff.) */
+                const fac = facultyData.find(f => String(f.id) === String(fid));
+                const mine = fac ? fac.cohorts.find(c => taughtCohortIds.includes(c.id)) : null;
+                if (mine) {
+                    document.getElementById('cohortSelect').value = String(mine.id);
+                    onCohortChange(String(mine.id));
+                } else {
+                    showGuidance();
+                }
             }
 
             function onCohortChange(cid) {
@@ -501,23 +515,14 @@
                 buildTimetable();
             } else if (!isStudentViewer && defaultFacultyId) {
                 /* Staff auto-select (user decisions 2026-10-13): land on the
-                   lecturer's own department's faculty, with the FIRST cohort
-                   they actually teach (displayed sort order) pre-picked — the
-                   grid + week nav are live on arrival, zero clicks. When they
-                   teach nothing in that faculty, everything stays unselected
-                   and the guidance shows (predictable fallback). */
+                   lecturer's own department's faculty — onFacultyChange applies
+                   the SHARED rule (first taught cohort pre-picked with the grid
+                   live; guidance fallback when they teach nothing there), so
+                   arrival and a later faculty switch behave identically. */
                 const fac = facultyData.find(f => String(f.id) === String(defaultFacultyId));
                 if (fac) {
                     document.getElementById('facultySelect').value = String(fac.id);
-                    populateCohorts(fac.id);
-                    const mine = fac.cohorts.find(c => taughtCohortIds.includes(c.id));
-                    if (mine) {
-                        document.getElementById('cohortSelect').value = String(mine.id);
-                        onCohortChange(String(mine.id));
-                    } else {
-                        refreshTips();
-                        showGuidance();
-                    }
+                    onFacultyChange(String(fac.id));
                 } else {
                     refreshTips();
                     showGuidance();

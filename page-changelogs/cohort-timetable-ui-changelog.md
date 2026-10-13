@@ -489,6 +489,15 @@ page's script; shared partials and the frozen templates untouched):
   runs the normal `onCohortChange` — grid + week nav live on arrival, zero
   clicks. Fallback (agreed): teaches nothing there → everything stays
   unselected, guidance shows (verified with Sharon 4363's data shape).
+- **Faculty switch applies the same rule (follow-up, same day).**
+  `onFacultyChange` now auto-picks the FIRST cohort the lecturer teaches in
+  the newly selected faculty (displayed order) and runs the normal
+  `onCohortChange` — switching faculty behaves exactly like arrival, zero
+  clicks; teaches nothing in that faculty → the same guidance fallback.
+  Boot now routes through `onFacultyChange`, so the rule lives in one
+  place. Live-verified as 5770: FAFB (teaches nothing) → cohort empty +
+  guidance + week nav off; back to FOCS → DFT2 (S1) G1 pre-picked, grid
+  live; a manual pick of a non-taught cohort (DFT1 (S1) G1) still works.
 - **Summary cards hidden when no timetable (3).** `#summarySection` is
   hidden in BOTH empty cases — no cohort picked (guidance) and cohort picked
   but the week has zero classes ("No classes scheduled") — and restored
@@ -575,10 +584,13 @@ user-facing explanation of the marking.
   Students: empty taught list → no marks, selects disabled → no panel.
   List order unchanged (reordering would break the "first taught in
   displayed order" auto-pick).
-- **Explanation (user ask).** New 6th guide bullet — "✓ Your classes —
+- **Explanation (user ask).** New 6th guide bullet — "✓ Your cohorts —
   bold blue entries marked ✓ are the cohorts/faculties you teach this
-  semester" — plus a muted panel-footer hint shown only when something is
-  marked ("✓ bold = cohorts you teach" / "✓ bold = you teach here"),
+  semester" (label renamed from "✓ Your classes" the same day — "your
+  classes" is already the slot-status legend's term for thick-border
+  blocks, so the two axes get distinct names) — plus a muted panel-footer
+  hint shown only when something is marked ("✓ bold = cohorts you teach" /
+  "✓ bold = you teach here"),
   pinned `position: sticky; bottom: 0` with a surface background so it
   stays readable while a long list scrolls under it.
 - **Live-verified** as 5770 (FOCS panel: 4 taught cohorts ✓-marked
