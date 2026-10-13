@@ -427,3 +427,20 @@ The URL pin now outranks the defaults. Debug trace removed after use.
 
 Suite 167/167, phpstan 0. Live: T→B107 holds; P→B006 (B005 D-skipped, Types
 column "Lab" only); L→B110 (Types column "Lecture Hall" only).
+
+## demo DB data edit — 2026-10-13 (user-requested)
+
+User asked to cap DFT/DSF cohort sizes (random ≤25) — demo DB `class_replacement_fresh`,
+one seeded transaction (`setseed(0.42)`, range 15–25):
+
+| Cohort | Before | After |
+|---|---|---|
+| DFT Y1 G1 | 30 | 23 |
+| DFT Y2 G1 | 28 | 18 |
+| DSF Y1 G1 | 24 | 25 |
+| DSF Y2 G1 | 22 | 15 |
+
+Over-capacity sessions 7 → 4. Residual: AMIT2034 L/T/P (DFT+DSF combined 33 > 28-seat
+rooms) and MPU-3133 T (RAF+RBU+RSD 56 > 35-seat B015) — all combined-class sums, i.e.
+the open decisions #1 (derive capacity conflicts?) / #2 (per-group split semantics?)
+from the 2026-10-12 discussion. Live-verified: page shows "venues that fit 18 students".
