@@ -24,7 +24,7 @@
 
 | SDD | Date | What it does |
 |-----|------|-------------|
-| *(none)* | — | — |
+| `venue-page-book-affordance` | 2026-10-13 | Venue timetable booking affordance (U2a) — proposal FROZEN (4 reviewer rounds); design FROZEN (2026-10-15 independent pi-subprocess confirmation); tasks INTERIM pending confirmation round; ⛔TC70 guard active until its T8 retirement. Apply prompt: `prompts/sdd-apply-venue-page-book-affordance.md` |
 
 ## Queued (not yet proposed)
 
