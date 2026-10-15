@@ -2,6 +2,10 @@ import { test, expect } from '@playwright/test';
 
 const PAGE = '/venue-timetable-ui';
 
+// One login per run via the setup project's saved state (U2a T2).
+// Never per-test logins in this file — the Fortify limiter is 5/min.
+test.use({ storageState: '.auth/staff-5770.json' });
+
 /** Open the cascading venue dropdown and walk Type → Block → Floor → Room,
  *  picking the `index`-th room of the first reachable branch. Returns false
  *  when a column is empty. (The old #venueSelect <select> was replaced by the
@@ -50,13 +54,16 @@ test.describe('Venue Timetable UI', () => {
   });
 
   test('TC03 — page description is visible', async ({ page }) => {
-    await expect(page.locator('.page-desc')).toContainText('View weekly class schedule for any venue');
+    // U2a T10 re-point: live header copy (was stale mock-era text)
+    await expect(page.locator('.page-desc')).toContainText("Inspect any venue's weekly occupancy");
   });
 
   test('TC04 — semester chip displays semester info', async ({ page }) => {
     const chip = page.locator('#semesterChip');
     await expect(chip).toBeVisible();
-    await expect(chip).toContainText('202605 Semester');
+    // U2a T10 re-point: real-DB chip text is "202605 · 21-Sep-2026 ~ 27-Dec-2026"
+    // (stale mock-era assertion '202605 Semester' replaced with the stable code)
+    await expect(chip).toContainText('202605');
   });
 
   test('TC05 — print button exists and shows coming-soon toast', async ({ page }) => {
@@ -103,10 +110,12 @@ test.describe('Venue Timetable UI', () => {
   });
 
   test('TC10 — a venue is selected by default', async ({ page }) => {
-    const code = await page.evaluate(() => venueDropdown.getSelected());
-    expect(code).toBeTruthy();
-    // and the trigger shows it, not the placeholder
-    await expect(page.locator('.venue-dd-trigger')).not.toContainText('Select a venue');
+    // U2a T10 re-point: the VenueDropdown instance is closure-scoped on the
+    // live page (template-era global `venueDropdown` never existed here);
+    // selection is asserted via the trigger label instead.
+    const trigger = page.locator('.venue-dd-trigger');
+    await expect(trigger).not.toContainText('Select a venue');
+    await expect(trigger).toContainText(/B\d{3}/);
   });
 
   test('TC11 — changing venue rebuilds timetable', async ({ page }) => {
@@ -120,18 +129,10 @@ test.describe('Venue Timetable UI', () => {
   // 4. FAVOURITES (star icon)
   // ════════════════════════════════════════════
 
-  test('TC12 — favourite star is visible', async ({ page }) => {
-    await expect(page.locator('#favStar')).toBeVisible();
-  });
-
-  test('TC13 — clicking favourite star toggles its state', async ({ page }) => {
-    const star = page.locator('#favStar');
-    const textBefore = await star.textContent();
-    await star.click();
-    await page.waitForTimeout(200);
-    const textAfter = await star.textContent();
-    expect(textAfter).not.toBe(textBefore);
-  });
+  // TC12, TC13 — favourites star — RETIRED (U2a T10, baseline facts): the live
+  // blade documents the fav-star as stays dropped ("documented divergence",
+  // blade :56–62); `#favStar` exists nowhere. Never add the star to satisfy a
+  // test (99.9%-UI rule). Favourites remain a mock-era template feature.
 
   // ════════════════════════════════════════════
   // 5. WEEK PICKER
@@ -231,11 +232,11 @@ test.describe('Venue Timetable UI', () => {
   });
 
   test('TC25 — room selection closes the dropdown and updates the selection', async ({ page }) => {
+    // U2a T10 re-point: assert via trigger label (closure-scoped dropdown)
     const changed = await pickVenue(page, 0);
     test.skip(!changed, 'no room reachable in the cascading dropdown');
     await expect(page.locator('.venue-dd')).not.toHaveClass(/open/);
-    const after = await page.evaluate(() => venueDropdown.getSelected());
-    expect(after).toBeTruthy();
+    await expect(page.locator('.venue-dd-trigger')).toContainText(/B\d{3}/);
   });
 
   // ════════════════════════════════════════════
@@ -310,26 +311,11 @@ test.describe('Venue Timetable UI', () => {
     await expect(hint.locator('.osd-thin')).toHaveCount(1);
   });
 
-  test('TC35b — ownership is border-gated (own 3px red, others hairline red)', async ({ page }) => {
-    // B110 wk3: AMCS2093(L) is currentUser's conflict → loud (event-conflict, 3px)
-    await page.goto(`${PAGE}?venue=B110`, { waitUntil: 'networkidle' });
-    await page.locator('#weekSelect').selectOption('3');
-    await page.waitForTimeout(400);
-    const myLoud = page.locator('#tableBody .event-conflict');
-    await expect(myLoud).toHaveCount(1);
-    await expect(myLoud.locator('.ev-code')).toHaveText(/AMCS2093/);
-    await expect(page.locator('#tableBody .event-public-holiday')).toHaveCount(0);
-
-    // B101 Week 1 (index 0): MPU-2302(T) is En. Muada's conflict → same error
-    // fill but hairline border (event-public-holiday = "not yours to act on")
-    await page.goto(`${PAGE}?venue=B101`, { waitUntil: 'networkidle' });
-    await page.locator('#weekSelect').selectOption('0');
-    await page.waitForTimeout(400);
-    await expect(page.locator('#tableBody .event-conflict')).toHaveCount(0);
-    const quiet = page.locator('#tableBody .event-public-holiday');
-    await expect(quiet).toHaveCount(1);
-    await expect(quiet.locator('.ev-code')).toHaveText(/MPU-2302/);
-  });
+  // TC35b — ownership is border-gated — RETIRED (U2a T10, baseline facts):
+  // mock-era fixture (expected an own loud conflict at B110 wk3 that the real
+  // DB does not place there now). Live owner-gated + others'-view conflict
+  // rendering is covered by the green tests in venue-db.spec.ts (B005
+  // diploma-cohort conflict, owner view + others' view).
 
   // ════════════════════════════════════════════
   // 10. SUMMARY CARDS
@@ -345,7 +331,9 @@ test.describe('Venue Timetable UI', () => {
     await expect(page.locator('#sumAvailable')).toBeVisible();
     await expect(page.locator('#sumMyClasses')).toBeVisible();
     await expect(page.locator('#sumMyHours')).toBeVisible();
-    await expect(page.locator('#sumUnavailable')).toBeVisible();
+    // U2a T10 re-point: the 5th card is "Occupied" (#sumOccupied) — the
+    // documented deviation from upstream's #sumUnavailable (venue-event-blocks-db).
+    await expect(page.locator('#sumOccupied')).toBeVisible();
     await expect(page.locator('#sumPending')).toHaveCount(0);   // Pending card removed
   });
 
@@ -369,11 +357,12 @@ test.describe('Venue Timetable UI', () => {
   // ════════════════════════════════════════════
 
   test('TC39 — clicking a booked cell opens modal', async ({ page }) => {
+    // U2a T10 re-point: the live blade's modal is #classModal (template-era #eventModal is retired)
     const eventBlock = page.locator('#tableBody .event-block').first();
     const count = await eventBlock.count();
     if (count > 0) {
       await eventBlock.click();
-      await expect(page.locator('#eventModal')).toBeVisible();
+      await expect(page.locator('#classModal')).toBeVisible();
     }
   });
 
@@ -381,20 +370,19 @@ test.describe('Venue Timetable UI', () => {
     const eventBlock = page.locator('#tableBody .event-block').first();
     if (await eventBlock.count() > 0) {
       await eventBlock.click();
-      const codeRow = page.locator('#eventModal .detail-row:has-text("Subject Code")');
+      const codeRow = page.locator('#classModal .detail-row:has-text("Subject Code")');
       await expect(codeRow).toContainText(/[A-Z]{2,4}-\d{4}|[A-Z]{4}\d{4}/);
     }
   });
 
-  test('TC41 — modal shows venue field with format "CODE — Type (N seats)"', async ({ page }) => {
+  test('TC41 — modal shows the venue field', async ({ page }) => {
     const eventBlock = page.locator('#tableBody .event-block').first();
     if (await eventBlock.count() > 0) {
       await eventBlock.click();
-      // Venue-row locator: ":has-text(\"Venue\")" is ambiguous (the Status
-      // Description row's value contains the word "venue"); only the Venue
-      // row contains "(N seats)" — blade openModal L924.
-      const venueRow = page.locator('#eventModal .detail-row', { hasText: /\(\d+ seats\)/ });
-      await expect(venueRow).toContainText(/[A-Z]\d{3}/);
+      // U2a T10 re-point: the live modal's Venue row shows the venue room code
+      // (the mock-era "CODE — Type (N seats)" format does not exist here).
+      const venueRow = page.locator('#classModal .detail-row:has-text("Venue")');
+      await expect(venueRow).toContainText(/[A-Z]\d{3}|B006|B009|B010|B011/);
     }
   });
 
@@ -403,7 +391,7 @@ test.describe('Venue Timetable UI', () => {
     if (await eventBlock.count() > 0) {
       await eventBlock.click();
       await page.locator('.btn-close-modal').click();
-      await expect(page.locator('#eventModal')).not.toBeVisible();
+      await expect(page.locator('#classModal')).not.toBeVisible();
     }
   });
 
@@ -412,7 +400,7 @@ test.describe('Venue Timetable UI', () => {
     if (await eventBlock.count() > 0) {
       await eventBlock.click();
       await page.keyboard.press('Escape');
-      await expect(page.locator('#eventModal')).not.toBeVisible();
+      await expect(page.locator('#classModal')).not.toBeVisible();
     }
   });
 
@@ -420,8 +408,8 @@ test.describe('Venue Timetable UI', () => {
     const eventBlock = page.locator('#tableBody .event-block').first();
     if (await eventBlock.count() > 0) {
       await eventBlock.click();
-      await page.locator('#eventModal').click({ position: { x: 5, y: 5 } });
-      await expect(page.locator('#eventModal')).not.toBeVisible();
+      await page.locator('#classModal').click({ position: { x: 5, y: 5 } });
+      await expect(page.locator('#classModal')).not.toBeVisible();
     }
   });
 
@@ -455,7 +443,9 @@ test.describe('Venue Timetable UI', () => {
     if (await availableCell.count() > 0) {
       await openAvailableTooltip(page);
       const text = await page.locator('#tooltipText').textContent();
-      expect(text).toMatch(/Book .+ on .+, .+ at .+/);
+      // U2a T9 reword (user decision 2026-10-13): Arrange wording
+      expect(text).toMatch(/Arrange a replacement in .+ on .+, .+ at .+/);
+      await expect(page.locator('#tooltipBookBtn')).toHaveText('Arrange');
     }
   });
 
@@ -480,27 +470,11 @@ test.describe('Venue Timetable UI', () => {
   // 13. BOOKING BANNER (URL PARAMS)
   // ════════════════════════════════════════════
 
-  test('TC49 — booking banner shows when code+cohort in URL', async ({ page }) => {
-    await page.goto(`${PAGE}?code=BMIT5555&cohort=RSD3G2`);
-    await page.waitForTimeout(1000);
-    const banner = page.locator('#bookingBanner');
-    const text = await banner.textContent();
-    expect(text).toContain('BMIT5555');
-  });
-
-  test('TC50 — booking banner hidden when no params', async ({ page }) => {
-    const banner = page.locator('#bookingBanner');
-    const isVisible = await banner.isVisible();
-    expect(isVisible).toBe(false);
-  });
-
-  // ════════════════════════════════════════════
-  // 14. ERROR HANDLING
-  // ════════════════════════════════════════════
-
-  test('TC51 — error banner is hidden by default', async ({ page }) => {
-    await expect(page.locator('#errorBanner')).not.toHaveClass(/show/);
-  });
+  // TC49, TC50, TC51 — booking/error banners — RETIRED (U2a T9, baseline facts):
+  // authenticated T2 baseline confirms #bookingBanner/#errorBanner exist nowhere
+  // on the live blade (attribution settled — not auth-redirect). The book-buyer
+  // banner is bound to the mock-era venue-page subject picker; the real handoff
+  // banner lives on the arrangement page (#bookingIntent, covered by venue-book.spec.ts U2a-T3).
 
   // ════════════════════════════════════════════
   // 15. HINT TEXT (EMPTY STATE)
@@ -581,29 +555,19 @@ test.describe('Venue Timetable UI', () => {
   // 20. LOCALSTORAGE PERSISTENCE
   // ════════════════════════════════════════════
 
-  test('TC60 — state is saved to localStorage on venue change', async ({ page }) => {
-    await page.evaluate(() => venueDropdown.select('B006'));
+  test('TC60 — venue preselect survives venue change (URL is the state)', async ({ page }) => {
+    // U2a T10 re-point: venue switching is a ?venue= full render (Slice A) —
+    // URL carries the state; the mock-era localStorage 'venueTimetableState'
+    // path and its closure-scoped `venueDropdown` global never existed live.
+    await page.goto(`${PAGE}?venue=B006`);
     await page.waitForTimeout(500);
-    const state = await page.evaluate(() => localStorage.getItem('venueTimetableState'));
-    expect(state).toBeTruthy();
-    const parsed = JSON.parse(state!);
-    expect(parsed.venue).toBe('B006');
+    expect(page.url()).toContain('venue=B006');
+    await expect(page.locator('.venue-dd-trigger')).toContainText('B006');
   });
 
-  test('TC61 — favourites are saved to localStorage', async ({ page }) => {
-    await page.locator('#favStar').click();
-    await page.waitForTimeout(200);
-    const favs = await page.evaluate(() => localStorage.getItem('venueFavourites'));
-    expect(favs).toBeTruthy();
-  });
-
-  test('TC62 — recent venues are saved to localStorage', async ({ page }) => {
-    await page.evaluate(() => venueDropdown.select('B110'));
-    await page.waitForTimeout(300);
-    const recent = await page.evaluate(() => localStorage.getItem('venueRecent'));
-    expect(recent).toBeTruthy();
-    expect(JSON.parse(recent!)).toContain('B110');
-  });
+  // TC61, TC62 — localStorage favourites/recentvenues — RETIRED (U2a T10,
+  // baseline facts): same mock-era stores as TC12/TC13 (TC61 clicks the retired
+  // #favStar) and TC60's venue state; live venue state lives in the URL.
 
   // ════════════════════════════════════════════
   // 21. TOAST NOTIFICATION
@@ -666,66 +630,28 @@ test.describe('Venue Timetable UI', () => {
   // 26. SKELETON LOADING
   // ════════════════════════════════════════════
 
-  test('TC69 — grid rebuilds correctly after venue change', async ({ page }) => {
-    await page.evaluate(() => venueDropdown.select('B110'));
-    await page.waitForTimeout(600);
-    const rows = page.locator('#tableBody tr');
-    const count = await rows.count();
-    expect(count).toBe(7);
-  });
+  // TC69 — grid rebuilds after venue change — RETIRED (U2a T10): duplicate of
+  // TC11 (same pickVenue + 7-row assert, passing); the template-era
+  // `venueDropdown` global it also referenced never existed on the live page.
 
   // ════════════════════════════════════════════
   // 27. CANCEL CLASS FREES THE SLOT (cancel-class-enhancement §8)
   // ════════════════════════════════════════════
 
-  // Fixture, VERIFIED against public/js/mock-data.js §2.7: B110 — Week 11
-  // (idx 10) Monday AMCS2093(L, start=6 end=9), lecturer
-  // 'En. Lim Jia Zheng' = currentUser, status 'normal' → own + cancellable
-  // (week 10 Monday = 2026-11-30, beyond the real clock's Oct 5+ demo
-  // anchor, so the S5 end-time guard can never bite). B110 also carries
-  // AMIS1012(L) rows from OTHER cohorts (not currentUser) — untouched here.
-  // The venue dropdown is the custom VenueDropdown (4-column hierarchy);
-  // its instance is closure-scoped, so the room is picked via UI clicks:
-  // Lecture Hall → Block B → Floor 1 → B110.
-  test('TC70 — cancelling an own class frees the venue slot (B110 Week 11)', async ({ page }) => {
-    // Week 10 (0-indexed) — B110's own AMCS2093 lecture is future + normal
-    await page.locator('#weekSelect').selectOption('10');
+  // ════════════════════════════════════════════
+  // 27. CANCEL CLASS FREES THE SLOT — TC70 RETIRED (U2a T8)
+  // ════════════════════════════════════════════
 
-    // Navigate the custom venue dropdown: Type → Block → Floor → Room
-    await page.locator('.venue-dd-trigger').click();
-    await page.locator('.venue-col-item-parent[data-type="LectureHall"]').click();
-    await page.locator('.venue-col-item-parent[data-block="B"]').click();
-    await page.locator('.venue-col-item-parent[data-floor="Floor 1"]').click();
-    await page.locator('.venue-col-item-room[data-code="B110"]').click();
-    await expect(page.locator('.venue-dd-trigger .venue-dd-label')).toContainText('B110');
-
-    // Grid rebuilt for B110 — wait for the own lecture block before sampling
-    const block = page.locator('#tableBody .event-block:has-text("AMCS2093(L)")');
-    await expect(block).toBeVisible();
-    const availableBefore = Number(await page.locator('#sumAvailable').textContent());
-
-    // Cancel it through the shared modal
-    await block.click();
-    await expect(page.locator('#eventModal')).toBeVisible();
-    await expect(page.locator('#eventModal .modal-footer [data-cancel-class-btn]')).toBeVisible();
-    await page.locator('#eventModal .modal-footer [data-cancel-class-btn]').click();
-    await expect(page.locator('#cancelClassOverlay')).toBeVisible();
-    await page.locator('#cancelReasonList input[type="radio"][value="Medical Leave"]').click();
-    await expect(page.locator('#confirmCancelClassBtn')).toBeEnabled();
-    await page.locator('#confirmCancelClassBtn').click();
-    await expect(page.locator('#cancelClassSuccessState')).toBeVisible();
-    await page.locator('#cancelLaterBtn').click();
-
-    // The cancelled block vanishes from the venue grid…
-    await expect(page.locator('#tableBody .event-block:has-text("AMCS2093(L)")')).toHaveCount(0);
-    // …its four Monday slots (08:00–09:30) turn bookable again…
-    await expect(page.locator('#tableBody td[data-day="0"][data-hour="6"] .cell-available')).toBeVisible();
-    await expect(page.locator('#tableBody td[data-day="0"][data-hour="7"] .cell-available')).toBeVisible();
-    await expect(page.locator('#tableBody td[data-day="0"][data-hour="8"] .cell-available')).toBeVisible();
-    await expect(page.locator('#tableBody td[data-day="0"][data-hour="9"] .cell-available')).toBeVisible();
-    // …and the Available summary card counts them back in.
-    await expect.poll(
-      () => page.locator('#sumAvailable').textContent().then((t) => Number(t)),
-    ).toBe(availableBefore + 4);
-  });
+  // TC70 — cancelling an own class frees the venue slot — RETIRED (U2a T8,
+  // decision note per tasks.md + review-log): mock-era fixture
+  // ("VERIFIED against public/js/mock-data.js §2.7") asserting template-era
+  // selectors (#eventModal/#cancelClassOverlay/#confirmCancelClassBtn) that
+  // exist nowhere on the live blade. Beyond the cell-language mismatch, the
+  // decisive retirement grounds: had its selectors been "repaired", it would
+  // drive the REAL CancelClass action (app/Actions/CancelClass.php) — a
+  // destructive, non-idempotent write (unique (class_session_id, week_number))
+  // against the fragile DEMO DATABASE — and the confirm-click commits before
+  // its assertions fail. Cancel-class frees-slot behaviour is server-side and
+  // belongs in testing-DB feature tests, not here. TC70 NEVER EXECUTED in
+  // this change (guard: --grep-invert until retirement landed).
 });

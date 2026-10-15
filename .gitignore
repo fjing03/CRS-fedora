@@ -31,6 +31,9 @@ dataset/import/*.csv -text
 test-results/
 playwright-report/
 
+# Playwright storageState (auth.setup.ts output — gitignored per U2a T1)
+.auth/
+
 # Playwright MCP browser-session scratch (snapshots only — the venue evidence png stays tracked)
 .playwright-mcp/*.yml
 .playwright-mcp/

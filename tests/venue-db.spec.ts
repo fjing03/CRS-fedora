@@ -85,7 +85,10 @@ test('summary cards numeric and repaint on client-side week navigation', async (
   await page.selectOption('#weekSelect', '7');
   const mondayRow = page.locator('.timetable tbody tr').first();
   await expect(mondayRow.locator('.cell-ph').first()).toBeVisible();
+  // U2a T7: post-port the page never paints .cell-empty — bookable free cells
+  // render .cell-available. A holiday Monday must still have none of either.
   await expect(mondayRow.locator('.cell-empty')).toHaveCount(0);
+  await expect(mondayRow.locator('.cell-available')).toHaveCount(0);
   await expect(mondayRow.locator('.event-mine, .event-others')).toHaveCount(0);
 });
 

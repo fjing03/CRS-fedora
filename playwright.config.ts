@@ -14,6 +14,14 @@ export default defineConfig({
     ignoreHTTPSErrors: true,
   },
   projects: [
-    { name: 'chromium', use: { browserName: 'chromium' } },
+    // Setup project: one login per run -> .auth/staff-5770.json (U2a T1).
+    { name: 'setup', testMatch: /auth\.setup\.ts/ },
+    {
+      name: 'chromium',
+      use: { browserName: 'chromium' },
+      dependencies: ['setup'],
+      // the setup project owns auth.setup.ts — never re-run it as a test here
+      testIgnore: /auth\.setup\.ts/,
+    },
   ],
 });
