@@ -778,3 +778,65 @@ zero UI/CSS changes. Live-verified as 5770: req #1's slot (B110 · label-Week 4 
 NOTE: the venue weekSelect is 0-based (option value 3 = label "Week 4") — probe by
 option LABEL, not value. Others' reservations render hairline amber (feature-tested;
 no live foreign fixture exists).
+
+### U2a postscript — arrange affordance port (SDD venue-page-book-affordance, 2026-10-15)
+
+The frozen template's booking affordance was ported onto the live page: free cells are
+bookable, structure byte-faithful to `venue-timetable-UI-design-template.blade.php`
+(scope: `.sdd/changes/venue-page-book-affordance/proposal.md`, frozen ×4 rounds; design
+round-confirmed ×2 independent rounds; tasks round-confirmed). Zero PHP changes.
+
+#### User-decision copy changes (verbatim, decision date 2026-10-13 — wording deviations recorded as user decisions)
+| Where | Frozen template text | Shipped text (user-approved) |
+|---|---|---|
+| Legend tip (Available entry) | *Free slot — click to book this venue (Sunday, holiday and lead-time slots can't be booked)* | *Free slot — click to arrange a replacement in this venue (Sunday, holiday slots and slots less than 3 working days away can't be booked)* |
+| Free-cell hover label | `Book ?` | `Arrange ?` |
+| Tooltip sentence | *Book {code} on {day}, {date} at {time}?* | *Arrange a replacement in {code} on {day}, {date} at {time}?* |
+| Tooltip button | `Book` | `Arrange` |
+| No-fit hover label | `Not bookable` | `Too late to book` |
+| Hint line | *Slot booking arrives with the replacement workflow (Slice B).* | *Click any green empty slot to arrange a replacement in this venue.* |
+
+#### Declared behavior change (Reviewer round-1 🔴 fix, D1)
+- **The page now opens on the REAL current week.** `MockData.mockNow = null` joins the
+  four in-repo precedents — the too-soon branch (`isSlotTooSoon`, 3-working-day window)
+  and week-open/Today now run on the real clock, not the mock demo anchor (Oct 5).
+  Week arrows/dropdown unchanged.
+- **Frozen box-shadow literal exception** (`.available-tooltip`,
+  `0 4px 16px rgba(0,0,0,0.12), 0 1px 4px rgba(0,0,0,0.06)`): kept byte-faithful per the
+  99.9%-UI rule; arrangement-page precedent (`:64/:68`).
+- **Dead CSS removed**: the page-inline `.cell-empty` tint rules (:16–22) — no `.cell-empty`
+  is ever painted here again (free cells are `.cell-content.cell-available`; too-soon
+  cells `.cell-too-soon` with the shared "Min. 3 working days ahead" label from theme.css).
+
+#### Test reconciliation (design D5; facts recorded in the SDD review-log)
+- **Login scaffolding** (one login per run): `tests/auth.setup.ts` (setup project) →
+  `.auth/staff-5770.json`; `playwright.config.ts` gains the `setup` project +
+  chromium `dependencies`/`testIgnore`; per-file opt-in only — `venue-timetable.spec.ts`
+  never logs in per test (Fortify 5/min limiter). `.auth/` gitignored.
+- **Authenticated baseline** (pre-change blade, TC70 excluded): 65 tests → 47 passed /
+  18 failed; **TC49/TC51 attribution settled**: `#bookingBanner`/`#errorBanner` are genuinely
+  absent from the live blade (not auth-redirect).
+  (prose-precision note: baseline arithmetic counted the file at 66 tests.)
+- **Dispositions (all with decision notes in the spec):**
+  TC46 reworded to the Arrange sentence + button; **TC49–TC51 retired** (banners don't
+  exist; the real handoff banner lives on the arrangement page, covered by
+  `venue-book.spec.ts` U2a-T3); **TC70 retired WITHOUT EVER EXECUTING** — mock-era fixture
+  whose selector-repair would drive the real destructive `CancelClass` write against the
+  demo DB; **TC12/TC13/TC61 retired** (`#favStar` — documented divergence, never modify
+  the page to satisfy a test); **TC39–TC44 re-pointed** `#eventModal`→`#classModal`
+  (TC41's "CODE — Type (N seats)" → live plain venue-code row); **TC35b retired**
+  (mock fixture; live owner-gated conflict coverage stays in venue-db.spec.ts);
+  **TC60 re-pointed to URL-as-state** (venue switching is a `?venue=` full render);
+  **TC37 re-pointed** `#sumUnavailable`→`#sumOccupied` (documented deviation);
+  **TC10/TC25 re-pointed** to the trigger label (closure-scoped dropdown);
+  **TC69 retired** (duplicate of TC11); TC03/TC04 text re-points (live header/chip copy).
+- **Result**: venue-timetable.spec.ts 56/56 green; venue-book.spec.ts (new, 6 tests:
+  hover overlay, exact tooltip sentence, end-to-end handoff with `#bookingIntent`
+  banner, too-soon read-only, B/Escape/scroll keys, no-fit toast) 6/6; venue-db
+  incl. re-pointed holiday assertion green; true full-suite gate result recorded in the
+  SDD review-log (pending user decision on the never-gated dormant layer).
+
+#### Honest DB note (2026-10-15)
+`replacement_requests` in the demo DB (`class_replacement_fresh`) is currently empty —
+the handover-era pending fixtures (reqs #1–#3 incl. slot 27309 B110 W4 Thu 12:00) are
+not present; slot 27309 is `available` v1. Nothing was modified by this change.
