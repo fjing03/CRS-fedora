@@ -10,16 +10,51 @@
 <div class="lw-page">
 
     <style>
-        /* Page styles: available-cell tint (engine paints empty cells as
-           .cell-empty; the venue legend defines that as "Available") and the
-           honest booking hint. Tokens only per §10.0. */
-        .lw-page .timetable td.hour-cell .cell-empty,
-        .lw-page .timetable td.hour-cell:has(.cell-empty) {
-            background: var(--color-success-container);
+        /* Page styles: available-cell tooltip (U2a — frozen template :178–212,
+           box-shadow kept as the frozen literal, documented exception), the
+           frozen hover labels (template :315–317, reworded per user decision
+           2026-10-13), and the honest booking hint. Tokens only per §10.0. */
+        /* ───── Available Cell Tooltip ───── */
+        .available-tooltip {
+            position: fixed;
+            background: var(--color-surface);
+            border: 1px solid var(--color-outline);
+            border-radius: var(--radius-sm);
+            padding: 12px 16px;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.12), 0 1px 4px rgba(0,0,0,0.06);
+            z-index: 9999;
+            display: none;
+            min-width: 250px;
         }
-        .lw-page .timetable td.hour-cell .cell-empty:hover {
-            background: var(--color-success);
+        .available-tooltip.show {
+            display: block;
         }
+        .available-tooltip p {
+            margin: 0 0 8px 0;
+            font-size: 14px;
+            color: var(--color-on-surface);
+        }
+        .available-tooltip .btn-book {
+            background: var(--color-primary);
+            color: var(--color-on-primary);
+            border: none;
+            padding: 6px 16px;
+            border-radius: var(--radius-sm);
+            cursor: pointer;
+            font-size: 13px;
+        }
+        .available-tooltip .btn-book:hover {
+            opacity: 0.9;
+        }
+        .available-tooltip .btn-book:focus-visible {
+            outline: 2px solid var(--color-primary);
+            outline-offset: 2px;
+        }
+
+        /* ───── Available slot hover label ───── */
+        .cell-available { --hover-label: 'Arrange ?'; }
+        /* too late in the day for a full booking — hover says so instead */
+        .cell-available.cell-no-fit { --hover-label: 'Too late to book'; cursor: not-allowed; }
         .booking-hint-line {
             margin: 10px 0 0;
             font-size: 12px;
@@ -76,7 +111,7 @@
          frozen upstream design at f8b35a2). Available tip stays honest for the
          read-only page (booking = Slice B); swatches carry real block classes. -->
     @include('partials.ui-legend-bar', ['ownershipHint' => true, 'items' => [
-        ['color' => 'var(--color-success-container)', 'label' => 'Available', 'tip' => "Free slot — booking arrives with the replacement workflow (Sunday, holiday and lead-time slots can't be booked)"],
+        ['color' => 'var(--color-success-container)', 'label' => 'Available', 'tip' => "Free slot — click to arrange a replacement in this venue (Sunday, holiday slots and slots less than 3 working days away can't be booked)"],
         ['class' => 'event-normal', 'label' => 'Normal', 'tip' => 'Scheduled class with no issues (replacement sessions fold in here on this page)'],
         ['class' => 'event-pending', 'label' => 'Pending', 'tip' => 'Replacement request awaiting PL approval'],
         ['class' => 'event-conflict', 'label' => 'Conflict / Public Holiday', 'tip' => "This class will not run as scheduled — scheduling conflict or public holiday (remaining holiday slots show as empty 'PH' cells)"],
@@ -99,7 +134,13 @@
         ]
     ])
 
-    <p class="booking-hint-line">Slot booking arrives with the replacement workflow (Slice B).</p>
+    <p class="booking-hint-line">Click any green empty slot to arrange a replacement in this venue.</p>
+
+    <!-- ─── Available Slot Tooltip (U2a — frozen template :461–463) ─── -->
+    <div class="available-tooltip" id="availableTooltip">
+        <p id="tooltipText">Arrange a replacement in B110 on Thu, 22 Oct 2026 at 14:00?</p>
+        <button class="btn-book" id="tooltipBookBtn">Arrange</button>
+    </div>
 
     <!-- ═══ Class Detail Modal ═══ -->
     @include('partials.ui-class-detail-modal')
@@ -110,6 +151,11 @@
         document.addEventListener('DOMContentLoaded', function () {
             MockData.semester = @json($semesterJs);
             MockData.holidays = @json($holidaysJs);
+            /* Clock-anchor bridge (U2a D1, 4 in-repo precedents): the too-soon
+               branch and week-open must run on the REAL date, not the mock
+               demo anchor. Declared behavior change — page opens on the real
+               current week (changelog-documented). */
+            MockData.mockNow = null;
 
             window.weekData = generateWeekData();
             const weekData = window.weekData;
@@ -172,6 +218,81 @@
 
             closeOnEsc(closeModal);
 
+            /* ═══ Available tooltip + Arrange handoff (U2a — ported from the
+               frozen template :1044–1117; wording per user decision 2026-10-13;
+               no code/cohort appends — the venue page has no subject context
+               and the consumer already handles their absence). */
+            /* Slots one booking spans on the arrangement page (its default
+               MAX_SELECTION: 4 half-hour slots = 2h). A booking starting too
+               late in the day can't fit — don't offer Arrange on those cells. */
+            const BOOK_SPAN = 4;
+            let focusedCell = null;
+
+            function showAvailableTooltip(ev, di, hi) {
+                if (hi + BOOK_SPAN > hours.length) {
+                    toast.show('A booking needs ' + (BOOK_SPAN * 30) + ' minutes — not enough time left in the day.');
+                    return;
+                }
+                const tooltip = document.getElementById('availableTooltip');
+                const dayName = weekData[currentWeek].days[di]?.abbr || '';
+                const dateStr = weekData[currentWeek].days[di]?.date || '';
+                const time = hours[hi] || '';
+
+                document.getElementById('tooltipText').textContent =
+                    'Arrange a replacement in ' + venueInfo.code + ' on ' + dayName + ', ' + dateStr + ' at ' + time + '?';
+
+                document.getElementById('tooltipBookBtn').onclick = function() {
+                    bookVenue(venueInfo.code, dateStr, time);
+                };
+
+                if (ev && ev.target) {
+                    const rect = ev.target.getBoundingClientRect();
+                    tooltip.style.left = rect.left + 'px';
+                    tooltip.style.top = (rect.bottom + 4) + 'px';
+                } else {
+                    tooltip.style.left = '50%';
+                    tooltip.style.top = '50%';
+                    tooltip.style.transform = 'translate(-50%, -50%)';
+                }
+
+                tooltip.classList.add('show');
+            }
+
+            function hideAvailableTooltip() {
+                document.getElementById('availableTooltip').classList.remove('show');
+                document.getElementById('availableTooltip').style.transform = '';
+            }
+
+            /* close tooltip on scroll (cell position is no longer relevant) */
+            window.addEventListener('scroll', hideAvailableTooltip, { passive: true });
+            document.querySelector('.grid-scroll')?.addEventListener('scroll', hideAvailableTooltip, { passive: true });
+
+            function bookVenue(venueCode, date, time) {
+                hideAvailableTooltip();
+                /* a fresh Arrange click is a new intent: if THIS slot was
+                   previously cancelled (auto-select discarded) or its banner
+                   dismissed, start clean */
+                const bookingKey = venueCode + '|' + date + '|' + time;
+                try {
+                    if (sessionStorage.getItem('bookingIntentCancelled') === bookingKey) sessionStorage.removeItem('bookingIntentCancelled');
+                    if (sessionStorage.getItem('bookingIntentDismissed') === bookingKey) sessionStorage.removeItem('bookingIntentDismissed');
+                } catch (e) {}
+                window.location.href = '/replacement-arrangement?venue=' + encodeURIComponent(venueCode) + '&date=' + encodeURIComponent(date) + '&time=' + encodeURIComponent(time) + '&from=venue-timetable';
+            }
+
+            /* B shortcut opens on the Tab-focused cell; Escape hides the
+               tooltip (the modal's Escape path is the existing closeOnEsc;
+               both fire harmlessly — same pairing as the frozen template). */
+            document.addEventListener('keydown', function (e) {
+                if (e.key === 'Escape') {
+                    hideAvailableTooltip();
+                    return;
+                }
+                if ((e.key === 'b' || e.key === 'B') && focusedCell && focusedCell.classList.contains('cell-available')) {
+                    showAvailableTooltip(null, parseInt(focusedCell.dataset.day, 10), parseInt(focusedCell.dataset.hour, 10));
+                }
+            });
+
             function buildTimetable() {
                 currentWeek = weekNav.currentWeek;
                 buildTimetableGrid({
@@ -179,9 +300,9 @@
                     days: weekData[currentWeek].days,
                     /* Page paints every cell (venue-event-blocks-db design §1):
                        cellRender mode = the frozen two-axis block language.
-                       PH/Sunday empties get offday cells; free slots stay
-                       honest green (booking = Slice B); blocks carry
-                       colour=status + border=ownership. */
+                       PH/Sunday empties get offday cells; too-soon renders
+                       read-only; free slots are bookable (U2a Arrange
+                       affordance); blocks carry colour=status + border=ownership. */
                     cellRender: function (td, di, hi, day, info) {
                         /* PH-day exception (holiday ONLY — Sundays hide all
                            events): the viewer's OWN classes still render as
@@ -227,10 +348,30 @@
                             if (info.span > 1) td.colSpan = info.span;   // parity: builder sets it only when span > 1
                         } else if (info && info.occupied) {
                             td.style.display = 'none';                   // continuation consumed by head's colSpan
-                        } else {
-                            /* Free slot — honest green (booking arrives with Slice B) */
+                        } else if (isSlotTooSoon(weekData, currentWeek, di)) {
+                            /* lead-time rule (frozen template :861–866): inside
+                               the 3-working-day window — rendered read-only
+                               (no Arrange tooltip, no keyboard) */
                             const div = document.createElement('div');
-                            div.className = 'cell-empty';
+                            div.className = 'cell-content cell-too-soon';
+                            td.appendChild(div);
+                        } else {
+                            /* Available slot — frozen template :873–884 */
+                            const div = document.createElement('div');
+                            div.className = 'cell-content cell-available';
+                            /* a booking can't fit if it would run past the day end */
+                            if (hi + BOOK_SPAN > hours.length) div.classList.add('cell-no-fit');
+                            div.tabIndex = 0;
+                            div.dataset.day = di;
+                            div.dataset.hour = hi;
+                            div.setAttribute('role', 'button');
+                            div.setAttribute('aria-label', 'Available slot: ' + day.abbr + ' ' + hours[hi]);
+
+                            div.addEventListener('click', function(ev) {
+                                focusedCell = div;
+                                showAvailableTooltip(ev, di, hi);
+                            });
+                            div.addEventListener('focus', function() { focusedCell = div; });
                             td.appendChild(div);
                         }
                     }
