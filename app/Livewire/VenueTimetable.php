@@ -73,7 +73,9 @@ class VenueTimetable extends Component
             $fitting = [];
             foreach ($module['order'] as $sessionId) {
                 $entry = $module['sessions'][(string) $sessionId];
-                if ($entry['dayOfWeek'] === null) {
+                /* conflicted-only (user amendment 2026-10-15): offer only
+                   occurrences that NEED the replacement in the booked week */
+                if (empty($entry['conflicted'])) {
                     continue;
                 }
                 $allowedRooms = $rule[(string) $entry['type']] ?? null;

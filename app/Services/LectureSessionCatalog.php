@@ -2,8 +2,10 @@
 
 namespace App\Services;
 
+use App\Models\ClassException;
 use App\Models\ClassSession;
 use App\Models\Cohort;
+use App\Models\ReplacementRequest;
 use App\Models\Semester;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
@@ -92,9 +94,19 @@ final class LectureSessionCatalog
     {
         $weekContext = $week1 !== null ? $this->weekContext($week1) : null;
 
+        /* USER AMENDMENT (2026-10-15, apply round 3): conflicted-only policy —
+           the modal/fallback offer only occurrences that NEED the replacement
+           (ReplacementHome parity): class_exception cancelled, public-holiday
+           hit, or the B005 venue-restriction conflict — for the BOOKED week.
+           Active pending/approved requests exclude the occurrence (D1: already
+           being handled). Without week context (facts-only mode) no filtering. */
+        $conflicts = $weekContext !== null
+            ? $this->conflictFacts($sessions, $weekContext['week1'])
+            : null;
+
         return $sessions
             ->groupBy('module_id')
-            ->map(function (Collection $group) use ($weekContext): array {
+            ->map(function (Collection $group) use ($weekContext, $conflicts): array {
                 $first = $group->first();
 
                 // $group preserves the query order (day, start, id) — the id
@@ -103,8 +115,17 @@ final class LectureSessionCatalog
                 $orderedIds = [];
                 $sessionsMap = [];
                 foreach ($group as $s) {
+                    $entry = $this->sessionEntry($s, $weekContext);
+                    if ($conflicts !== null) {
+                        $reason = $conflicts[$s->id] ?? null;
+                        if ($reason === null) {
+                            continue; // healthy occurrence → not offered (conflicted-only)
+                        }
+                        $entry['conflicted'] = true;
+                        $entry['conflictReason'] = $reason;
+                    }
                     $orderedIds[] = (int) $s->id;
-                    $sessionsMap[(string) $s->id] = $this->sessionEntry($s, $weekContext);
+                    $sessionsMap[(string) $s->id] = $entry;
                 }
 
                 $uniqueCohorts = $group->flatMap(fn ($s) => $s->cohorts)
@@ -201,6 +222,69 @@ final class LectureSessionCatalog
         }
 
         return $entry;
+    }
+
+    /**
+     * Which of the lecturer's sessions are CONFLICTED at $week1 (ReplacementHome
+     * parity): exception-cancelled, public-holiday-hit, or B005-restricted.
+     * Active requests exclude ("already being handled", D1 rule).
+     *
+     * @param  Collection<int, ClassSession>  $sessions
+     * @return array<int, string> session id => human reason
+     */
+    private function conflictFacts(Collection $sessions, int $week1): array
+    {
+        $ids = $sessions->pluck('id')->all();
+        if (count($ids) === 0) {
+            return [];
+        }
+
+        $semester = Semester::active();
+        $weekContext = $this->weekContext($week1);
+        $handled = ReplacementRequest::query()
+            ->whereIn('class_session_id', $ids)
+            ->whereIn('status', ['pending', 'approved'])
+            ->where('week_number', $week1)
+            ->pluck('class_session_id')
+            ->flip();
+
+        $exceptions = ClassException::query()
+            ->whereIn('class_session_id', $ids)
+            ->where('week_number', $week1)
+            ->get()
+            ->keyBy(fn ($e) => (int) $e->class_session_id);
+
+        $holidays = [];
+        if ($semester !== null) {
+            foreach ($semester->holidays()->where('week_number', $week1)->get(['week_number', 'day_of_week', 'label']) as $h) {
+                $holidays[(int) $h->day_of_week] = (string) $h->label;
+            }
+        }
+
+        $out = [];
+        foreach ($sessions as $s) {
+            if ($handled->has($s->id)) {
+                continue;
+            }
+            if ($exceptions->has($s->id)) {
+                $reason = $exceptions->get($s->id)->reason;
+                $out[(int) $s->id] = 'Cancelled — '.str_replace('_', ' ', ucwords((string) $reason, '_'));
+
+                continue;
+            }
+            if (isset($holidays[(int) $s->day_of_week])) {
+                $out[(int) $s->id] = 'Public Holiday ('.$holidays[(int) $s->day_of_week].')';
+
+                continue;
+            }
+            if ($s->venue !== null
+                && $s->venue->room_code === 'B005'
+                && $s->cohorts->contains(fn ($c) => str_starts_with((string) $c->programme->programme_code, 'D'))) {
+                $out[(int) $s->id] = 'Venue Restriction (B005 no-Diploma)';
+            }
+        }
+
+        return $out;
     }
 
     /**

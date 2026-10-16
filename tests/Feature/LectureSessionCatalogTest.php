@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Models\ClassException;
 use App\Models\ClassSession;
 use App\Models\Cohort;
 use App\Models\Lecturer;
@@ -101,10 +102,18 @@ final class LectureSessionCatalogTest extends TestCase
         $session = $this->makeSession($venueHall->id, 'L', 0, '09:00:00', '10:00:00');
 
         $week1 = 1;
+        // conflicted-only policy: make the occurrence conflicted at week1
+        ClassException::create([
+            'class_session_id' => $session->id,
+            'week_number' => $week1,
+            'reason' => 'medical_leave',
+        ]);
         $payload = $this->catalog->payloadFor($this->lecturer->id, $week1);
 
         $module = collect($payload)->firstWhere('code', 'FIX101');
         $entry = $module['sessions'][(string) $session->id];
+        $this->assertTrue($entry['conflicted']);
+        $this->assertSame('Cancelled — Medical Leave', $entry['conflictReason']);
 
         $semesterModel = Semester::active();
         $this->assertNotNull($semesterModel, 'the seeded testing semester is active');

@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { pickSpanFreeCell, selectWeek } from './helpers/intent-modal-helper';
 
 /** SDD arrange-intent-session-choice T6 — the producer modal spec (6 tests):
  *  wire-call modal (the Livewire-runtime regression guard), compatible-only
@@ -6,24 +7,27 @@ import { test, expect } from '@playwright/test';
  *  8-param handoff + landing, fallback prefill for bypassed intents. */
 test.use({ storageState: '.auth/staff-5770.json' });
 
+
+
 test('A1: B110 modal opens after wire call (the RuntimeException regression)', async ({ page }) => {
   await page.goto('/venue-timetable-ui?venue=B110');
   await page.waitForTimeout(600);
-  // jump to the last week so free+future cells exist
-  const last = await page.evaluate(() => (window as any).weekData.length - 1);
-  await page.evaluate((idx) => (window as any).selectWeek(idx), last);
+  // W8 (Deepavali in-lieu): AMCS2093 L is conflicted there — the only offer
+  await selectWeek(page, 7);
   await page.waitForTimeout(300);
-  const cell = page.locator('#tableBody .cell-available:not(.cell-no-fit)').first();
-  await cell.click();
+  await pickSpanFreeCell(page);
   await expect(page.locator('#availableTooltip')).toHaveClass(/show/);
   await page.locator('#tooltipBookBtn').click();
   // the wire call resolves → modal renders (use toBeVisible to force the wait)
   await expect(page.locator('#intentSessionModal')).toBeVisible({ timeout: 10_000 });
   const subjects = await page.locator('#intentSubjectSelect option').allTextContents();
   const sessions = await page.locator('#intentSessionSelect option').allTextContents();
-    // lecture hall: only the subject's L occurrence is offered
+    // conflicted-only: subjects = AMCS2093 (its Deepavali-week L occurrence)
+  expect(subjects).toEqual(['AMCS2093 — Operating Systems']);
+  // lecture hall: only the subject's L occurrence is offered
   expect(sessions.some(t => /\(L\) ·/.test(t))).toBe(true);
   expect(sessions.some(t => /\(P\) ·/.test(t))).toBe(false);
+  expect(sessions.some(t => /\(L\) · W8,/.test(t))).toBe(true);
   // the Livewire morph must NOT wipe the JS-built grid (wire:ignore guard)
   await page.waitForTimeout(400);
   expect(await page.locator('#tableBody .cell-available').count()).toBeGreaterThan(0);
@@ -36,23 +40,29 @@ test('A2: B009 modal offers only P sessions with the byte-frozen label', async (
   await page.goto('/venue-timetable-ui?venue=B009');
   await page.waitForTimeout(600);
   const last = await page.evaluate(() => (window as any).weekData.length - 1);
-  await page.evaluate((idx) => (window as any).selectWeek(idx), last);
+  await selectWeek(page, last);
   await page.waitForTimeout(300);
-  await page.locator('#tableBody .cell-available:not(.cell-no-fit)').first().click();
+  await pickSpanFreeCell(page);
   await page.locator('#tooltipBookBtn').click();
   await expect(page.locator('#intentSessionModal')).toBeVisible({ timeout: 10_000 });
+  const subjects = await page.locator('#intentSubjectSelect option').allTextContents();
   const sessions = await page.locator('#intentSessionSelect option').allTextContents();
     expect(sessions.some(t => /\(P\) · W\d+, [A-Za-z]{3}, \d{2} [A-Za-z]{3} \d{4} · \d{2}:\d{2}–\d{2}:\d{2}/.test(t))).toBe(true);
   expect(sessions.some(t => /\(L\) ·/.test(t))).toBe(false);
+  // conflicted-only (demo holidays land W14 Thu + Fri): both AMCS2093 P
+  // occurrences ARE conflicted and offered; BMIT2013 (Tue/Wed) is healthy →
+  // never offered (subjects list holds AMCS2093 only)
+  expect(sessions.some(t => t.includes('Thu, 24 Dec 2026'))).toBe(true);
+  expect(sessions.some(t => t.includes('Fri, 25 Dec 2026'))).toBe(true);
+  expect(subjects).toEqual(['AMCS2093 — Operating Systems']);
 });
 
 test('A6: [Arrange] handoff lands with the 8-param URL + pinned week', async ({ page }) => {
   await page.goto('/venue-timetable-ui?venue=B110');
   await page.waitForTimeout(600);
-  const last = await page.evaluate(() => (window as any).weekData.length - 1);
-  await page.evaluate((idx) => (window as any).selectWeek(idx), last);
+  await selectWeek(page, 7); // W8: Deepavali conflict
   await page.waitForTimeout(300);
-  await page.locator('#tableBody .cell-available:not(.cell-no-fit)').first().click();
+  await pickSpanFreeCell(page);
   await page.locator('#tooltipBookBtn').click();
   await expect(page.locator('#intentSessionModal')).toBeVisible({ timeout: 10_000 });
   await page.locator('#intentArrangeBtn').click();
@@ -67,16 +77,20 @@ test('C2: fallback prefill for modal-bypass full-intent URLs (attributed auto-pi
   await page.goto('/venue-timetable-ui?venue=B110');
   await page.waitForTimeout(500);
   const last = await page.evaluate(() => (window as any).weekData.length - 1);
-  const dayEntry = await page.evaluate((w) => (window as any).weekData[w].days[0], last); // Mon of last week
-  const url = '/replacement-arrangement?venue=B110&date=' + encodeURIComponent(dayEntry.date) + '&time=' + encodeURIComponent('08:00') + '&from=venue-timetable';
+  const dayEntry = await page.evaluate((w) => (window as any).weekData[w].days[1], 7); // W8 Tuesday (a bookable day in the Deepavali week)
+  const url = '/replacement-arrangement?venue=B110&date=' + encodeURIComponent(dayEntry.date) + '&time=' + encodeURIComponent('11:00') + '&from=venue-timetable';
   await page.goto(url);
-  await page.waitForTimeout(1200); // fallback fires post-boot-render
-  // AMCS2093 (L) auto-picked — the subject select binds it
+  // AMCS2093 (L) auto-picked — the subject select binds it; the shared toast
+  // bar is a single slot (later boot toasts may overwrite), so poll for it.
   const subjectVal = await page.locator('#subjectSelector').inputValue();
+  console.log('C2 SUBJECT:', subjectVal);
+  console.log('C2 URL:', page.url());
     expect(subjectVal).toBe('AMCS2093');
-  const toastText = await page.locator('#toastBar').textContent().catch(() => '');
-    expect(toastText || '').toContain('auto-picked');
-  expect(toastText || '').toContain('fit B110');
+  const toastMsg = page.locator('#toastBar .toast-message');
+  await expect.poll(async () => (await toastMsg.textContent()) || '', { timeout: 5000 })
+    .toContain('auto-picked');
+  await expect.poll(async () => (await toastMsg.textContent()) || '', { timeout: 1000 })
+    .toContain('fit B110');
   // the pinned occurrence's amber block sits on the booked slot row (an event block exists on Mon)
   const hasAmber = await page.locator('#tableBody tr').first().locator('.event-block, .event-mine, .event-others').count();
   });
@@ -88,9 +102,9 @@ test('B1: zero-compatible modal message (4363 — L-only lecturer) on lab B009',
   await page.goto('/venue-timetable-ui?venue=B009');
   await page.waitForTimeout(600);
   const last = await page.evaluate(() => (window as any).weekData.length - 1);
-  await page.evaluate((idx) => (window as any).selectWeek(idx), last);
+  await selectWeek(page, last);
   await page.waitForTimeout(300);
-  await page.locator('#tableBody .cell-available:not(.cell-no-fit)').first().click();
+  await pickSpanFreeCell(page);
   await page.locator('#tooltipBookBtn').click();
   await expect(page.locator('#intentSessionModal')).toBeVisible({ timeout: 10_000 });
   const notice = await page.locator('#intentNotice').textContent();

@@ -375,12 +375,23 @@
                     subjectSel.appendChild(opt);
                 });
 
+                function spanOccupied(spanSlots) {
+                    /* venue occupancy for THIS day: any event whose 30-min span
+                       overlaps [hi, hi + spanSlots) disqualifies the block */
+                    const day = di;
+                    const spanTo = Math.min(hi + spanSlots, hours.length);
+                    const dayEvents = eventsData[currentWeek] || [];
+                    return dayEvents.some(function (ev) {
+                        return ev.di === day && (hi < ev.end + 1) && (spanTo - 1 >= ev.start);
+                    });
+                }
+
                 function refreshSessions() {
                     const allFit = [];
                     const mi = subjectSel.value;
                     (fitting[mi].order || []).forEach(function (sid) {
                         const e = fitting[mi].sessions[sid];
-                        if (hi + (e.durationSlots || 1) <= hours.length) allFit.push([sid, e]);
+                        if (hi + (e.durationSlots || 1) <= hours.length && !spanOccupied(e.durationSlots || 1)) allFit.push([sid, e]);
                     });
                     sessionSel.innerHTML = '';
                     allFit.forEach(function (pair) {
@@ -389,7 +400,8 @@
                         const end = (e.endTime || '').slice(0, 5);
                         const opt = document.createElement('option');
                         opt.value = String(sid);
-                        opt.textContent = fitting[mi].code + ' ' + fitting[mi].name + ' (' + e.type + ') · W' + (e.weekNumber || week1) + ', ' + (e.dayAbbr || '') + ', ' + (e.date || '') + ' · ' + start + '–' + end;
+                        /* label trim (user decision 2026-10-16): the subject dropdown already shows the name — the session dropdown carries code (type) only */
+                        opt.textContent = fitting[mi].code + ' (' + e.type + ') · W' + (e.weekNumber || week1) + ', ' + (e.dayAbbr || '') + ', ' + (e.date || '') + ' · ' + start + '–' + end;
                         opt.dataset.cohort = (e.cohortLabels && e.cohortLabels[0]) || (e.cohorts && e.cohorts[0]) || '';
                         sessionSel.appendChild(opt);
                     });

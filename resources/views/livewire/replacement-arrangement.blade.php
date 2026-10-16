@@ -2481,19 +2481,25 @@ slotLine = 'Week ' + (selectedOriginalSlot.week + 1) + ' · ' + selectedOriginal
         function armIntentFallbackPrefill() {
             if (fallbackArmed) return;
             fallbackArmed = true;
-            if (intentCancelled) return;                      // gate: discarded bookings never resurrect
-            if (!pendingBookingIntent) return;                // nothing to fulfil
-            if (urlParams.session) return;                    // modal path short-circuit
-            if (currentCourse) return;                        // a manual pick owns the flow
+            (window.__rDebug = window.__rDebug || []).push('r:cancelled?' + intentCancelled);
+            if (intentCancelled) {  return; }   // gate: discarded bookings never resurrect
+            if (!pendingBookingIntent) {  return; }                // nothing to fulfil
+            
+            if (urlParams.session) {  return; }                    // modal path short-circuit
+            if (currentCourse) {  return; }                        // a manual pick owns the flow
             const i = pendingBookingIntent;
             const venueEntry = (MockData.venues || []).find(v => v.code === i.venue);
             const venueRaw = venueEntry && venueEntry.rawRoomType ? venueEntry.rawRoomType : '';
-            if (!venueRaw) return;
+            if (!venueRaw) {  return; }
             const rule = window.__ruleMap || {};
             let matched = null;
+            
             (MockData.courses || []).some(function (m) {
                 return (m.order || Object.keys(m.sessions || {})).some(function (sid) {
                     const e = m.sessions[sid];
+                    /* conflicted-only (user amendment 2026-10-15): the candidate
+                       must be one the system flagged for THIS intent week */
+                    if (!window.PAGE_DATA.intentConflicts || !window.PAGE_DATA.intentConflicts[String(sid)]) return false;
                     const allowed = rule[e.type];
                     if (!allowed || allowed.indexOf(venueRaw) < 0) return false;
                     if (i.venue === rule.b005_venue_code) {
@@ -2508,11 +2514,13 @@ slotLine = 'Week ' + (selectedOriginalSlot.week + 1) + ' · ' + selectedOriginal
                 });
             });
             if (!matched) {
+                
                 /* no prefill — the cause banner (renderBookingIntent's no-match branch) */
                 intentFallbackNoMatch = true;
                 evaluateBookingFit();
                 return;
             }
+            
             /* 2a — the legacy urlParams family (the :3044 escape guard now skips
                any default slot pick; the "Initial authority" hydration parity) */
             urlParams.code = matched.module.code;
@@ -2527,14 +2535,40 @@ slotLine = 'Week ' + (selectedOriginalSlot.week + 1) + ' · ' + selectedOriginal
             urlSpanLocked = true;
             /* 2c — the pin bridge (the compatible occurrence, not the module's first) */
             window.pinnedOccurrence = { sessionId: Number(matched.sessionId), week: i.weekIndex + 1 };
-            /* 2d — reset stale flags, arm attribution, bind via the subject path
-               (onSubjectChange → applySubjectChange → consumeBookingIntent at :2712 —
-               the boot's ONLY pick), then the staleness tail. */
+            /* 2d — reset the stale flags from the boot's own evaluateBookingFit
+               (they were set with the DEFAULT span BEFORE the fallback sized
+               BLOCK_SPAN — the round-1 🔴1/Consumordering fix), arm attribution,
+               bind via the subject path (onSubjectChange → applySubjectChange →
+               consumeBookingIntent — the boot's ONLY pick), staleness tail after. */
+            intentNeedsManual = false;
+            intentTooSoon = false;
+            intentReason = '';
             const sel = document.getElementById('subjectSelector');
             fallbackAttribution = { module: matched.module.code, type: matched.entry.type, venue: i.venue };
+            /* shadow the intent: the FIRST consume runs on the pre-rebuild grid
+               (canPlaceBlock reads the DOM) and may short-circuit manually — the
+               2e tail rebuilds the grid, restores the intent, and re-consumes. */
+            const intentShadow = { ...pendingBookingIntent };
             sel.value = matched.module.code;
+            
             onSubjectChange();
-            if (fallbackAttribution) fallbackAttribution = null;  // 2e: pick-less exit clears the flag
+            /* 2e — rebuild + re-consume (the round's ordering fix): if the first
+               consume short-circuited on the pre-rebuild grid, restore the
+               shadowed intent, evaluate with the REAL grid, and let the consume
+               auto-select land (the attributed toast then renders). */
+            if (!selectedBlock) {
+                pendingBookingIntent = intentShadow;
+                intentNeedsManual = false;
+                intentTooSoon = false;
+                intentReason = '';
+                saveCurrentWeek();
+                buildTimetable();
+                evaluateBookingFit();
+                if (pendingBookingIntent) {
+                    consumeBookingIntent();
+                }
+            }
+            if (fallbackAttribution) fallbackAttribution = null;  // pick-less exit clears the flag
         }
 
         function inMinutes(hhmm) {
@@ -2783,6 +2817,8 @@ slotLine = 'Week ' + (selectedOriginalSlot.week + 1) + ' · ' + selectedOriginal
                 return;
             }
 
+            (window.__rDebug = window.__rDebug || []).push('r:identical?' + (selectedBlock && onBookedGrid && selectedBlock.day === i.dayIndex && selectedBlock.startHour === i.hourIndex) + ' ng:' + onBookedGrid + ' sb:' + (selectedBlock ? selectedBlock.day + '/' + selectedBlock.startHour : '-'));
+            
             /* an identical selection (restored from per-week memory) already fulfils it */
             if (selectedBlock && onBookedGrid && selectedBlock.day === i.dayIndex && selectedBlock.startHour === i.hourIndex) {
                 pendingBookingIntent = null;
@@ -2799,6 +2835,7 @@ slotLine = 'Week ' + (selectedOriginalSlot.week + 1) + ' · ' + selectedOriginal
                 if ((currentVenue.code || currentVenue) !== i.venue) venueDropdown.select(i.venue);
             }
 
+            
             if (selectedBlock) {
                 /* a different selection is in the way — guide manually instead of
                    dropping a jarring "clear first" modal mid-flow */
@@ -2809,6 +2846,8 @@ slotLine = 'Week ' + (selectedOriginalSlot.week + 1) + ' · ' + selectedOriginal
                 return;
             }
 
+            (window.__rDebug = window.__rDebug || []).push('r:manual?' + (intentNeedsManual || !canPlaceBlock(i.dayIndex, i.hourIndex)) + ' flags:' + intentNeedsManual + ' span:' + BLOCK_SPAN + ' reason:' + intentReason);
+            
             if (intentNeedsManual || !canPlaceBlock(i.dayIndex, i.hourIndex)) {
                 if (!intentReason) {
                     const span0 = BLOCK_SPAN;
@@ -2826,6 +2865,7 @@ slotLine = 'Week ' + (selectedOriginalSlot.week + 1) + ' · ' + selectedOriginal
 
             pendingBookingIntent = null;
             renderBookingIntent();
+            
             if (selectBlock(i.dayIndex, i.hourIndex)) {
                 if (fallbackAttribution) {
                     toast.show('Pre-selected ' + fallbackAttribution.module + ' (' + fallbackAttribution.type + ') — auto-picked because its sessions fit ' + fallbackAttribution.venue + '; change if needed.');

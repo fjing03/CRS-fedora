@@ -1,4 +1,5 @@
 import { test, expect, type Page } from '@playwright/test';
+import { pickSpanFreeCell, selectWeek } from './helpers/intent-modal-helper';
 
 /**
  * venue-book.spec.ts — U2a end-to-end coverage for the venue-page booking
@@ -56,10 +57,11 @@ test('U2a-T2: clicking a free cell opens the tooltip with the exact Arrange sent
 test('U2a-T3: clicking Arrange opens the session modal, then hands off — arrangement page opens pre-pinned', async ({ page }) => {
   // SDD arrange-intent-session-choice: the modal interposes (designed contract
   // change — session + cohort + week join the handoff); routed through it here.
+  // W8 (Deepavali week): AMCS2093 (L) is the conflicted occurrence the modal
+  // offers; W14 has no conflicted L → zero-compat would hide [Arrange] by design.
   await page.goto(PAGE);
-  await selectLastWeek(page);
-  const cell = await firstFreeCell(page);
-  await cell.click();
+  await selectWeek(page, 7);
+  await pickSpanFreeCell(page);
   await page.locator('#availableTooltip.show #tooltipBookBtn').click();
   await expect(page.locator('#intentSessionModal')).toBeVisible({ timeout: 10_000 });
   await page.locator('#intentArrangeBtn').click();

@@ -112,7 +112,87 @@ class ReplacementArrangement extends Component
             'busyByWeek' => $this->busyByWeekPayload($sessions, $semesterId, $weeks),
             'blockedVenues' => $this->blockedVenuesPayload($sessions),
             'pinnedSession' => $this->pinnedSessionPayload($weeks),
+            /* arrange-intent-session-choice (user amendment, conflicted-only):
+               for a hand-typed intent (no ?session=), the fallback must pick a
+               class the system flagged for that week — same definition as the
+               replacement-home list (exception / holiday / venue restriction),
+               minus occurrences already under an active request (D1). */
+            'intentConflicts' => $this->intentConflictsPayload(),
         ];
+    }
+
+    /**
+     * Conflicted occurrences of the logged-in lecturer for the intent's week
+     * (session id => reason), derived only when a date param exists. Kept in
+     * lockstep with ReplacementHome's rows loop.
+     *
+     * @return array<int, string>
+     */
+    private function intentConflictsPayload(): array
+    {
+        $dateQuery = request()->query('date');
+        if (! $dateQuery) {
+            return [];
+        }
+
+        try {
+            $target = Carbon::parse((string) $dateQuery);
+        } catch (\Throwable) {
+            return [];
+        }
+
+        $semester = $this->timelineSemester();
+        if ($semester === null) {
+            return [];
+        }
+        $start = Carbon::parse((string) $semester->start_date);
+        $week = intdiv((int) $start->startOfDay()->diffInDays($target->startOfDay()), 7) + 1;
+        if ($week < 1 || $week > $this->timelineWeeks()) {
+            return [];
+        }
+
+        $sessions = ClassSession::query()
+            ->with(['module', 'venue', 'cohorts.programme'])
+            ->where('lecturer_id', auth()->id())
+            ->where('semester_id', $semester->id)
+            ->orderBy('day_of_week')
+            ->orderBy('start_time')
+            ->get();
+
+        $handled = ReplacementRequest::query()
+            ->whereIn('class_session_id', $sessions->pluck('id'))
+            ->whereIn('status', ['pending', 'approved'])
+            ->where('week_number', $week)
+            ->pluck('class_session_id')
+            ->flip();
+
+        $exceptions = ClassException::query()
+            ->whereIn('class_session_id', $sessions->pluck('id'))
+            ->where('week_number', $week)
+            ->get()
+            ->keyBy(fn (ClassException $e): int => (int) $e->class_session_id);
+
+        $holidays = collect($this->holidaysForJs())
+            ->filter(fn (array $h): bool => (int) $h['week'] === $week)
+            ->keyBy(fn (array $h): int => (int) $h['dayIndex']);
+
+        $out = [];
+        foreach ($sessions as $session) {
+            if ($handled->has($session->id)) {
+                continue;
+            }
+            if ($exceptions->has($session->id)) {
+                $reason = (string) $exceptions->get($session->id)->reason;
+                $out[(int) $session->id] = 'Cancelled — '.str_replace('_', ' ', ucwords($reason, '_'));
+            } elseif ($holidays->has((int) $session->day_of_week)) {
+                $holiday = $holidays->get((int) $session->day_of_week);
+                $out[(int) $session->id] = 'Public Holiday ('.(string) ($holiday['label'] ?? '').')';
+            } elseif ($this->venueRestrictionConflict($session)) {
+                $out[(int) $session->id] = 'Venue Restriction (B005 no-Diploma)';
+            }
+        }
+
+        return $out;
     }
 
     /**
