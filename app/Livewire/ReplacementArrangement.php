@@ -122,9 +122,14 @@ class ReplacementArrangement extends Component
     }
 
     /**
-     * Conflicted occurrences of the logged-in lecturer for the intent's week
-     * (session id => reason), derived only when a date param exists. Kept in
-     * lockstep with ReplacementHome's rows loop.
+     * SEMESTER-WIDE conflicted candidates of the logged-in lecturer
+     * (session id => reason), derived only when a date param exists —
+     * user directive 2026-10-16 (apply round 4): a conflicted class may be
+     * arranged at ANY week past the lead time, so the fallback's candidates
+     * come from the whole semester (service-defined conflict parity —
+     * exception / holiday / venue restriction / active requests), NOT just
+     * the intent week. Kept in lockstep with the producer modal's
+     * week-agnostic pool via LectureSessionCatalog::conflictedFor().
      *
      * @return array<int, string>
      */
@@ -136,18 +141,13 @@ class ReplacementArrangement extends Component
         }
 
         try {
-            $target = Carbon::parse((string) $dateQuery);
+            Carbon::parse((string) $dateQuery);
         } catch (\Throwable) {
             return [];
         }
 
         $semester = $this->timelineSemester();
         if ($semester === null) {
-            return [];
-        }
-        $start = Carbon::parse((string) $semester->start_date);
-        $week = intdiv((int) $start->startOfDay()->diffInDays($target->startOfDay()), 7) + 1;
-        if ($week < 1 || $week > $this->timelineWeeks()) {
             return [];
         }
 
@@ -159,37 +159,9 @@ class ReplacementArrangement extends Component
             ->orderBy('start_time')
             ->get();
 
-        $handled = ReplacementRequest::query()
-            ->whereIn('class_session_id', $sessions->pluck('id'))
-            ->whereIn('status', ['pending', 'approved'])
-            ->where('week_number', $week)
-            ->pluck('class_session_id')
-            ->flip();
-
-        $exceptions = ClassException::query()
-            ->whereIn('class_session_id', $sessions->pluck('id'))
-            ->where('week_number', $week)
-            ->get()
-            ->keyBy(fn (ClassException $e): int => (int) $e->class_session_id);
-
-        $holidays = collect($this->holidaysForJs())
-            ->filter(fn (array $h): bool => (int) $h['week'] === $week)
-            ->keyBy(fn (array $h): int => (int) $h['dayIndex']);
-
         $out = [];
-        foreach ($sessions as $session) {
-            if ($handled->has($session->id)) {
-                continue;
-            }
-            if ($exceptions->has($session->id)) {
-                $reason = (string) $exceptions->get($session->id)->reason;
-                $out[(int) $session->id] = 'Cancelled — '.str_replace('_', ' ', ucwords($reason, '_'));
-            } elseif ($holidays->has((int) $session->day_of_week)) {
-                $holiday = $holidays->get((int) $session->day_of_week);
-                $out[(int) $session->id] = 'Public Holiday ('.(string) ($holiday['label'] ?? '').')';
-            } elseif ($this->venueRestrictionConflict($session)) {
-                $out[(int) $session->id] = 'Venue Restriction (B005 no-Diploma)';
-            }
+        foreach (app(LectureSessionCatalog::class)->conflictedFor($sessions) as $sessionId => $facts) {
+            $out[$sessionId] = $facts['reason'];
         }
 
         return $out;

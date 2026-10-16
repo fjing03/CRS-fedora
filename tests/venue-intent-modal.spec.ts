@@ -24,10 +24,9 @@ test('A1: B110 modal opens after wire call (the RuntimeException regression)', a
   const sessions = await page.locator('#intentSessionSelect option').allTextContents();
     // conflicted-only: subjects = AMCS2093 (its Deepavali-week L occurrence)
   expect(subjects).toEqual(['AMCS2093 — Operating Systems']);
-  // lecture hall: only the subject's L occurrence is offered
-  expect(sessions.some(t => /\(L\) ·/.test(t))).toBe(true);
-  expect(sessions.some(t => /\(P\) ·/.test(t))).toBe(false);
-  expect(sessions.some(t => /\(L\) · W8,/.test(t))).toBe(true);
+  // lecture hall: only the subject's L occurrence is offered (label = class's recurring slot)
+  expect(sessions.some(t => /\(L\) Mon · \d{2}:\d{2}–\d{2}:\d{2}/.test(t))).toBe(true);
+  expect(sessions.some(t => /\(P\)/.test(t))).toBe(false);
   // the Livewire morph must NOT wipe the JS-built grid (wire:ignore guard)
   await page.waitForTimeout(400);
   expect(await page.locator('#tableBody .cell-available').count()).toBeGreaterThan(0);
@@ -47,13 +46,14 @@ test('A2: B009 modal offers only P sessions with the byte-frozen label', async (
   await expect(page.locator('#intentSessionModal')).toBeVisible({ timeout: 10_000 });
   const subjects = await page.locator('#intentSubjectSelect option').allTextContents();
   const sessions = await page.locator('#intentSessionSelect option').allTextContents();
-    expect(sessions.some(t => /\(P\) · W\d+, [A-Za-z]{3}, \d{2} [A-Za-z]{3} \d{4} · \d{2}:\d{2}–\d{2}:\d{2}/.test(t))).toBe(true);
-  expect(sessions.some(t => /\(L\) ·/.test(t))).toBe(false);
+    /* user directive 2026-10-16 (week-agnostic pool): the label carries the
+       class's own recurring slot (day + time), never the occurrence date */
+    expect(sessions.some(t => /\(P\) Thu · \d{2}:\d{2}–\d{2}:\d{2}/.test(t))).toBe(true);
+  expect(sessions.some(t => /\(P\) Fri · \d{2}:\d{2}–\d{2}:\d{2}/.test(t))).toBe(true);
+  expect(sessions.some(t => /\(L\)/.test(t))).toBe(false);
   // conflicted-only (demo holidays land W14 Thu + Fri): both AMCS2093 P
   // occurrences ARE conflicted and offered; BMIT2013 (Tue/Wed) is healthy →
   // never offered (subjects list holds AMCS2093 only)
-  expect(sessions.some(t => t.includes('Thu, 24 Dec 2026'))).toBe(true);
-  expect(sessions.some(t => t.includes('Fri, 25 Dec 2026'))).toBe(true);
   expect(subjects).toEqual(['AMCS2093 — Operating Systems']);
 });
 

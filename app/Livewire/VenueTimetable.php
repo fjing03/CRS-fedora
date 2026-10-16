@@ -43,20 +43,22 @@ class VenueTimetable extends Component
     }
 
     /**
-     * "Select a Session" model (SDD arrange-intent-session-choice design D2/D3):
-     * the lecturer's sessions filtered to ones admissible for THIS venue, with
-     * this week's occurrence facts for the frozen session-label format.
-     * Wire-callable, owner-pinned (payloadFor(auth()->id(), …) — never another
-     * lecturer's sessions); the duration/day-end fit is client arithmetic
-     * against the shared hours constant, not part of this rule.
+     * "Select a Session" model (SDD arrange-intent-session-choice design D2/D3,
+     * user directive 2026-10-16 apply round 4): the pool is WEEK-AGNOSTIC —
+     * every lecturer session with ≥1 conflicted occurrence anywhere in the
+     * semester that THIS venue admits (venue-entry + B005 rules). A conflicted
+     * class may be arranged at any week past the lead time; $week1 is used
+     * only to exclude the booked week from the conflictWeeks jump hints.
+     * Wire-callable, owner-pinned (auth()->id() query — never another
+     * lecturer's sessions); duration/day-end + span fit is client arithmetic
+     * against the shared hours constant + the week's own grid, not part of
+     * this rule.
      *
      * @param  int  $week1  1-based booked week (the clicked cell's week + 0-based→1-based convention)
-     * @return array{modules: list<array<string, mixed>>, roomType: string, venue: string}
+     * @return array{modules: list<array<string, mixed>>, roomType: string, venue: string, conflictWeeks: list<int>}
      */
     public function intentSessionOptions(int $week1): array
     {
-        $catalog = new LectureSessionCatalog;
-        $rule = LectureSessionCatalog::ruleMap();
         /* D2 apply fix (wire-call reality): Livewire does not persist private
            render state into a subsequent wire-call request — so the venue facts
            are re-derived from the HYDRATED public $venueCode (tamper-proof:
@@ -67,44 +69,7 @@ class VenueTimetable extends Component
         }
         $rawRoomType = (string) $venueRow->room_type;
         $semesterId = $this->timelineSemester()?->id;
-        $payload = $catalog->payloadFor((int) auth()->id(), $week1, $semesterId);
-
-        $modules = [];
-        foreach ($payload as $module) {
-            $fitting = [];
-            foreach ($module['order'] as $sessionId) {
-                $entry = $module['sessions'][(string) $sessionId];
-                /* conflicted-only (user amendment 2026-10-15): offer only
-                   occurrences that NEED the replacement in the booked week */
-                if (empty($entry['conflicted'])) {
-                    continue;
-                }
-                $allowedRooms = $rule[(string) $entry['type']] ?? null;
-                $typeOk = is_array($allowedRooms) && in_array($rawRoomType, $allowedRooms, true);
-                $b005Blocked = false;
-                if ($venueRow->room_code === $rule['b005_venue_code']) {
-                    $pattern = '/'.((string) $rule['b005_no_diploma_pattern']).'/';
-                    foreach ((array) ($entry['cohortCodes'] ?? []) as $cohortCode) {
-                        if ((string) $cohortCode !== '' && preg_match($pattern, (string) $cohortCode) === 1) {
-                            $b005Blocked = true;
-                            break;
-                        }
-                    }
-                }
-
-                if ($typeOk && ! $b005Blocked) {
-                    $fitting[$sessionId] = $entry;
-                }
-            }
-            if (count($fitting) > 0) {
-                $modules[] = [
-                    'code' => $module['code'],
-                    'name' => $module['name'],
-                    'sessions' => $fitting,
-                    'order' => array_keys($fitting),
-                ];
-            }
-        }
+        $catalog = new LectureSessionCatalog;
 
         $lecturerSessions = ClassSession::query()
             ->with(['module', 'venue', 'cohorts.programme'])
@@ -115,31 +80,40 @@ class VenueTimetable extends Component
             ->orderBy('id')
             ->get();
 
-        /* Zero-fit notice helper: weeks holding conflicted occurrences whose
-           type THIS venue admits (jump-to-week hints for the notice). Types
-           come from the SESSIONS collection — at a healthy week the week-mapped
-           payload's sessions map is empty by design (conflicted-only skip). */
-        $requiredTypes = array_keys(array_filter($rule, fn ($v): bool => is_array($v) && in_array($rawRoomType, $v, true)));
-        $conflictWeeks = [];
-        foreach ($catalog->conflictMapFor($lecturerSessions) as $week1Key => $reasons) {
-            $typesHere = [];
-            foreach ($reasons as $sessionId => $reason) {
-                $sessionRow = $lecturerSessions->firstWhere('id', $sessionId);
-                if ($sessionRow !== null) {
-                    $typesHere[] = (string) $sessionRow->session_type;
-                }
-            }
-            $typeNameOk = (bool) array_intersect($typesHere, $requiredTypes);
-            $debugCW['L'.((string) $week1Key)] = ['typesHere' => $typesHere, 'ok' => $typeNameOk];
-            if ($typeNameOk && (int) $week1Key !== $week1) {
-                $conflictWeeks[] = (int) $week1Key;
+        /* USER DIRECTIVE (2026-10-16, apply round 4): a conflicted class can be
+           arranged at ANY week past the lead time — the "Jump to Week" buttons
+           are a HINT (where the need lives), never a restriction. The modal
+           pool is therefore WEEK-AGNOSTIC: every session with ≥1 conflicted
+           occurrence anywhere in the semester that this venue's type admits
+           (venue-entry + B005 cohort rule), regardless of the viewed week. */
+        $conflicted = $catalog->conflictedFor($lecturerSessions);
+        $eligible = $lecturerSessions
+            ->filter(fn (ClassSession $s): bool => isset($conflicted[$s->id])
+                && LectureSessionCatalog::sessionAllowedForVenue((string) $s->session_type, $rawRoomType, $s, (string) $venueRow->room_code))
+            ->values();
+
+        $built = array_values($catalog->build($eligible, null));
+        foreach ($built as $moduleIndex => $module) {
+            foreach ($module['order'] as $sessionId) {
+                $facts = $conflicted[$sessionId];
+                $built[$moduleIndex]['sessions'][(string) $sessionId]['conflictReason'] = $facts['reason'];
+                $built[$moduleIndex]['sessions'][(string) $sessionId]['conflictWeeks'] = $facts['weeks'];
             }
         }
+
+        /* Jump-to-week hint: weeks holding the ELIGIBLE conflicted occurrences
+           (the candidate pool's own conflict weeks), minus the booked week. */
+        $weekSet = [];
+        foreach ($eligible as $s) {
+            foreach ($conflicted[$s->id]['weeks'] as $week) {
+                $weekSet[$week] = true;
+            }
+        }
+        $conflictWeeks = array_values(array_filter(array_keys($weekSet), fn (int $w): bool => $w !== $week1));
         sort($conflictWeeks);
-        $payload = $catalog->build($lecturerSessions, $week1);
 
         return [
-            'modules' => $modules,
+            'modules' => $built,
             'roomType' => $rawRoomType,
             'venue' => $venueRow->room_code,
             'conflictWeeks' => $conflictWeeks,

@@ -214,10 +214,12 @@ final class LectureSessionCatalog
                 ->all(),
         ];
 
+        // dayAbbr is occurrence-independent (the session's own recurring day) —
+        // the week-agnostic pool label needs it even in facts-only mode.
+        $entry['dayAbbr'] = self::DAY_ABBRS[(int) $s->day_of_week];
         if ($weekContext !== null) {
             $occurrenceDate = $weekContext['monday']->copy()->addDays((int) $s->day_of_week);
             $entry['date'] = $occurrenceDate->format('d M Y'); // {DD Mon YYYY} — the frozen label grain
-            $entry['dayAbbr'] = self::DAY_ABBRS[(int) $s->day_of_week];
             $entry['weekNumber'] = (int) $weekContext['week1'];
         }
 
@@ -344,6 +346,36 @@ final class LectureSessionCatalog
                 }
             }
         }
+
+        return $out;
+    }
+
+    /**
+     * Semester-wide conflicted candidates (user directive 2026-10-16, apply
+     * round 4): the venue modal's pool is WEEK-AGNOSTIC — a W14-conflicted
+     * class may be arranged at any week past the lead time (e.g. W6), so the
+     * pool comes from the whole semester, never just the viewed week.
+     * Flattens the conflict map: session id => human reason + sorted weeks.
+     *
+     * @param  Collection<int, ClassSession>  $sessions
+     * @return array<int, array{reason: string, weeks: list<int>}>
+     */
+    public function conflictedFor(Collection $sessions): array
+    {
+        $out = [];
+        foreach ($this->conflictMapFor($sessions) as $week => $reasons) {
+            foreach ($reasons as $sessionId => $reason) {
+                if (! isset($out[$sessionId])) {
+                    $out[$sessionId] = ['reason' => $reason, 'weeks' => []];
+                }
+                $out[$sessionId]['weeks'][] = (int) $week;
+            }
+        }
+        foreach ($out as &$row) {
+            $row['weeks'] = array_values(array_unique($row['weeks']));
+            sort($row['weeks']);
+        }
+        unset($row);
 
         return $out;
     }

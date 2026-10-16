@@ -861,3 +861,24 @@ and both zero branches append *"Your conflicted classes are in Week X and Week Y
 and the modal offers that week's conflicted sessions). Root-cause fix included: the hint's type-derivation
 must use the lecturer's session collection (at a healthy week the week-mapped payload's session map is
 empty by design) — the initial `array_intersect`-over-keyed-map bug reported `ok:false` for the valid W8.
+
+#### Week-agnostic candidate pool (USER DIRECTIVE 2026-10-16, ~17:30)
+User corrected the conflicted-only semantics: "**a week 14 conflict class can be arranged at week 6**"
+— a conflicted class may be arranged at ANY week past the lead time; the conflict week is where the
+need LIVES, not the only week the arrangement may target. The old message "None of your classes can
+run in B011 … Your conflicted classes are in Week 14" at W6/B011 was a restriction bug, not a rule.
+
+- **Producer pool now week-agnostic** (`VenueTimetable::intentSessionOptions` via new
+  `LectureSessionCatalog::conflictedFor()`): candidates = every lecturer session with ≥1 conflicted
+  occurrence anywhere in the semester whose type this venue admits (venue-entry + B005 rules) —
+  regardless of the viewed week. W6/B011 now offers AMCS2093 (P); W5/B110 offers AMCS2093 (L).
+- **Session label** carries the class's own recurring slot — `CODE (Type) Day · HH:MM–HH:MM` — no
+  occurrence week/date (that belonged to the incidence-view; the arrangement week is the clicked cell).
+  `dayAbbr` is now emitted in facts-only mode (occurrence-independent).
+- **"Jump to Week N" buttons unchanged** — pure navigational hints to where conflicts live.
+- **Zero-fit message** now only fires when NO conflicted session type is eligible for the venue at
+  all (semester-wide) — e.g. the L-only lecturer on a lab.
+- **Consumer fallback parity**: `ReplacementArrangement::intentConflictsPayload()` is semester-wide
+  (service-defined), so a hand-typed W6 intent picks the W14-conflicted class the same way.
+- **SDD note**: this is a user-directed semantics amendment to the frozen 99.9%-UI contract, recorded
+  here with date; tests A1/A2 label regexes re-pointed to the recurring-slot format.
