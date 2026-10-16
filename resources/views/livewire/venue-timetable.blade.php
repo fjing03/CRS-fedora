@@ -68,7 +68,6 @@
         /* Session-choice modal: dropdowns fill their detail-row value column */
         #intentPickers .filter-select {
             width: 100%;
-            max-width: 260px;
         }
         #intentNotice {
             font-size: 14px;
@@ -318,8 +317,9 @@
 
             function closeIntentSessionModal() {
                 intentModalOpen = false;
-                document.getElementById('intentSessionModal').style.display = 'none';
-                document.getElementById('intentSessionModal').classList.remove('show');
+                const el = document.getElementById('intentSessionModal');
+                el.style.display = 'none';
+                el.classList.remove('show');
                 if (focusedCell) { try { focusedCell.focus(); } catch (e) {} }
             }
 
@@ -350,8 +350,9 @@
                     notice.style.display = 'block';
                     pickers.style.display = 'none';
                     arrangeBtn.style.display = 'none';
-                    el.style.display = 'block';
+                    /* show parity with the shared shells (ui-common DetailModal.open): flex centers it */
                     el.classList.add('show');
+                    el.style.display = 'flex';
                     return;
                 }
 
@@ -399,8 +400,9 @@
 
                 subjectSel.onchange = function () { refreshSessions(); };
                 refreshSessions();
-                el.style.display = 'block';
+                /* show parity with the shared shells (ui-common DetailModal.open :1185) */
                 el.classList.add('show');
+                el.style.display = 'flex';
             }
 
             /* display-vocabulary ONLY for the notice sentence — the RULE data is server-side */
