@@ -1,58 +1,69 @@
-# Explore Brief: full-block-reservation (Fix 3 + U5a)
+# Explore Brief: full-block-reservation
 
-**Status:** exploration complete 2026-10-13 (read-only; no code touched). Ready for `/sdd-propose full-block-reservation` whenever the sdd-reviewer agent is back.
-**Origin:** bug-hunt Fix 3 (user-reported) + U5a canonical-span decision (absorbed here by user's earlier sequencing decision).
-**Absorbs:** U5a (canonical span). **Defers to a separate future change:** consumer-side honest copy for matrix-ineligible booked venues ("is conflicted" wording, found 2026-10-13 during U2a verification) — touches the same consumer flow but is copy-only; decide at propose time whether to fold in.
+**Status:** re-verified + grilling complete 2026-10-16 (supersedes the 2026-10-13 round; read-only — no code touched). Ready for `/sdd-propose full-block-reservation`.
+**Origin:** bug-hunt Fix 3 (user-reported span hole) + U5a canonical-span decision. **Prev blockers resolved:** U2a (venue-page book affordance) and `arrange-intent-session-choice` both landed + archived (2026-10-16) — no merge friction remains; the deferred "is conflicted consumer copy" item was RETIRED inside the archived change (T8 five-branch copy set) and is OUT of this change's scope (grill Q1).
 
-## The hole (all confirmed live at HEAD, with evidence)
+## The hole — re-verified live at HEAD 2026-10-16
 
-A 2h (4×30-min) replacement reserves and renders as ONE 30-min slot — the other 3 slots stay legally bookable by others. Live instance: req #1, B110 W4 Thu 12:00 (slot 27309 held; 12:30–14:00 free to anyone).
+A 2h (4×30-min) replacement reserves and renders as ONE 30-min slot — the other 3 stay legally bookable.
 
-| Layer | Evidence | Behavior today |
+| Layer | Current evidence (2026-10-16 line refs) | Behavior today |
 |---|---|---|
-| Submit | `app/Actions/SubmitReplacementRequest.php:33,:76` | reserves ONLY `anchorSlotId` via one `validateAndReserve()` |
-| OCC validator | `app/Services/OCCValidator.php:21–67` | single-slot txn: lock 1 row → status check → version-checked flip `available→pending` → 1 audit row |
-| Cancel | `app/Actions/CancelPendingRequest.php:33–47` | releases ONLY `replacement_time_slot_id` |
-| Engine pre-check | `app/Services/MatrixIntersectionEngine.php:172–212` | `validateSlot()` validates ONLY the anchor cell (lecturer/cohort/venue vectors over 1 slot) |
-| Client payload | `app/Livewire/ReplacementArrangement.php:482–550` | `submitBlocks` receives `{week, day, startHour, venue}` — **no span field; server never learns the block size** |
-| Client knowledge | `replacement-arrangement.blade.php:1187–1195, :2912–2915, :3161` | `BLOCK_SPAN` derived from `&duration=` URL param (hrs×2), default 4; **user may explicitly resize the block up to 8 slots** in the slot panel (frozen UX) |
-| Schema | `2026_08_03_000009_create_replacement_requests_table.php:21` | single `replacement_time_slot_id` FK; **no span/duration column** |
-| Venue read-model | `app/Livewire/VenueTimetable.php:183–228` | one amber event per pending slot row, keyed to its request via `replacement_time_slot_id` |
-| Slot protection | `2026_08_03_000006:37–41` | partial unique index per slot `(venue, day, start, week) WHERE status IN ('pending','occupied')` — protects individual slots, no span awareness |
+| Submit action | `app/Actions/SubmitReplacementRequest.php:33` (`__invoke(..., int $anchorSlotId, ...)` → `:60` engine single-slot check → `:76` `occ->validateAndReserve($anchorSlotId, …)`) | reserves ONLY the anchor slot |
+| OCC validator | `app/Services/OCCValidator.php:21–67` (`validateAndReserve` single-slot txn; `auditConflict` `:69`) | lock 1 row → status check → version-checked flip → 1 audit row |
+| Cancel | `app/Actions/CancelPendingRequest.php:33` (`whereKey($request->replacement_time_slot_id)`) | releases ONLY the single linked slot |
+| Engine | `app/Services/MatrixIntersectionEngine.php:172` (`validateSlot(...)` — no span param) | anchor cell only |
+| Client payload | `submitBlocks` `app/Livewire/ReplacementArrangement.php:461–590`; **client already sends `endHour` per block** (blade `proceed()` `blocks.push({ venue, week, day, startHour, endHour })`) | **server ignores `endHour`**: resolves ONE slot at `startHour` (`Carbon 08:00 + startHour×30`) and submits single |
+| Client selection model | blade `selectedBlock {day, startHour, endHour}` + per-week memory (`selectedSlotsByVenue`) | the span facts live client-side already |
+| Schema | `2026_08_03_000009_...:21` single `replacement_time_slot_id` FK | no span model |
+| Unique protection | `2026_08_03_000006_*` partial unique per slot `(venue, day, start, week) WHERE status IN ('pending','occupied')` | per-slot only |
+| Venue read-model | `app/Livewire/VenueTimetable.php:255–285` — pending slots joined via `replacement_time_slot_id`; **orphan defence `:274–279`** (pending slot with no active request → emit NOTHING) | single amber 30-min event per pending request |
 
-### 🔴 The trap a naive fix walks into
-`VenueTimetable.php:194–200` — **orphan defence**: a `pending` slot with no request row → *emit nothing*. If full-span reservation flips slots 2..N to `pending` without a link back to the request, the venue page would render those slots as neither amber nor occupied → they fall through to the free-cell branch → **post-U2a they render as BOOKABLE `cell-available`**. The fix MUST give every reserved slot a request linkage, or it moves the double-book hole from the DB into the UI.
+**🔴 The trap (unchanged, drives the design):** if span reservation flips slots 2..N to `pending` without a request linkage, the orphan defence emits nothing → post-U2a those cells render as BOOKABLE `cell-available` — the double-book hole would move from the DB into the UI. Every reserved slot MUST link back to its request.
 
-## Recommended fix shape (proposal-ready)
+## Grilling decisions (2026-10-16, one at a time with the user — ALL RESOLVED)
 
-1. **Junction table `replacement_request_slots`** (additive migration): `(replacement_request_id FK cascade, time_slot_id FK, unique(time_slot_id), timestamps)`. Every reserved slot FKs its request; the legacy anchor column stays (backward compat + existing rows). Makes cancel exact, approval-ready (future D7), and the venue read-model trivial.
-2. **Client sends the span**: add `span` (slots, 1–8) to the block payload in `submitBlocks`; server validates `1 ≤ span ≤ 8`, integer.
-3. **`SubmitReplacementRequest` gains a span parameter**: resolve the N contiguous slots (anchor + next start-times same venue/day/week), reserve all-or-nothing in ONE transaction with `SELECT … WHERE id IN (…) ORDER BY id ASC FOR UPDATE` (ordered locking → no deadlock), per-slot status check + version-checked flip, junction rows created, audit rows per flip (schema's `time_slot_id` stays populated per row; span carried in `details`). Loser path: txn atomic → nothing to compensate beyond the existing D5 request delete.
-4. **Engine validates the whole span**: extend `validateSlot()` with an optional `int $span = 1` (backwards-compatible) — anchor..anchor+span−1 all `available`, lecturer/cohort busy vectors checked across the full span, venue vector unchanged (one venue), plus a day-end fit check (`anchor.end + (span−1)×30min ≤ day end`).
-5. **`CancelPendingRequest` releases the span** via the junction (ordered by slot id, per-slot version++), audited. Orphan defence keeps its safety net.
-6. **Venue page second pass** (`VenueTimetable.php:183–228`): key the request join through the junction; emit one event per reserved slot (existing per-slot shape) → `mergeTwinEvents` coalesces them into one amber span block (the "defensive parity" merge already in place). Update the stale "exactly ONE anchor half-hour slot (spec Amendment 2b)" comment.
-7. **Arrangement grid pending blocks**: per-slot client data (`venueSlotData`) — contiguous reserved slots render contiguous amber automatically; verify only.
-8. **Existing demo-DB rows: untouched.** No junction rows ⇒ legacy requests read as anchor-only (their amber block stays 30-min until cancelled). Req #1–#3 are the user's real pending requests — **never touch** (standing rule; no backfill, no migration of live rows).
-9. **Tests**: extend `tests/Feature/OccConcurrencyTest.php` (multi-slot race: A reserves span while B targets a mid-span slot → B loses with `slot_not_available`; ordered-lock path), span-validation feature tests (bounds, non-contiguous/nonexistent slot), cancel-releases-N, engine span-vector tests (busy at tail slot → whole submit rejected), venue read-model span rendering.
+| # | Question | Decision |
+|---|---|---|
+| Q1 | Scope confirm | Brief ①–⑦ minus the moot copy deferral; span read from the **already-sent `endHour`** (no new client field — zero client payload change) |
+| Q2 | Span bookkeeping | **A: junction table** `replacement_request_slots` (additive migration: `replacement_request_id` FK cascade, `time_slot_id` FK unique, timestamps). Legacy anchor column stays (backward compat). |
+| Q3 | Engine checker | **A: extend `validateSlot()` with optional `int $span = 1`** — one rule set, callers unchanged |
+| Q4 | Audit granularity | **A: one audit row per slot flip** (each carries its own `time_slot_id`; the log table is currently UI-invisible but display-friendly via the junction) |
+| Q5 | Max span | **FOCS scope: 4 slots = 2 hours max, server-enforced + day-end fit check;** the arrangement slot-picker **also caps at 4** (no dead-end picks). Non-FOCS 3h classes out of scope. |
+| Q6 | Legacy demo-DB rows | **Moot — verified live: the demo DB holds 0 requests, 0 audit rows, 0 reserved slots** (the old req #1–3 are gone; user asked to delete them, nothing existed). No backfill; clean slate. |
+| Q7 | Tests | Approved — disposable `class_replacement_testing` DB only (multi-slot race, span bounds, non-contiguous, cancel-releases-N, engine span vectors, venue span rendering) |
+| Q8 | Race-lose copy | **B: specific message naming the blocked time** — e.g. *"Your 2-hour block runs into an existing booking at 12:30–13:00 — pick another slot."* OCC result must carry the failing slot's time; a `conflictText` branch (`span_overlap`) renders it in the existing Submission-Conflict modal list |
+| Q9 | Approval flow | **Out of scope** — future D7 reuses the release logic; no approve UI now |
 
-## U5a decision absorbed (canonical span)
+## Fix shape (proposal-ready, updated)
 
-**Span = the lecturer's explicit selection, validated and persisted server-side; the original session's duration is only the UI default.**
-- NOT server-re-derived from `class_sessions` duration — the frozen slot panel lets the lecturer resize the block explicitly (`:2912–2915`, up to 8 slots); silently overriding that selection would break the frozen UX (99.9% rule).
-- The client already defaults `BLOCK_SPAN` from `&duration=` (original class length) and locks auto-picks against resizing (`urlSpanLocked :1195`) — the desired default behavior exists; the server's job is to validate bounds + vector-check + persist the actual span.
-- Persisted span = the junction rows (source of truth); no span column needed on `replacement_requests`.
+1. **Junction table `replacement_request_slots`** (additive migration): `replacement_request_id` FK cascade, `time_slot_id` FK **unique**, timestamps. Every reserved slot FKs its request; legacy anchor column stays.
+2. **Span source = the already-sent `endHour`.** Server: `span = clamp(endHour − startHour, 1, 4)`; integer + bounds + contiguity validated server-side (never trust the client beyond validation).
+3. **`SubmitReplacementRequest(..., int $span = 1)`**: resolve the N contiguous slots (anchor + next start-times, same venue/day/week), reserve all-or-nothing in ONE transaction (`SELECT … WHERE id IN (…) FOR UPDATE` ordered by id → no deadlock ordering trap), per-slot status check + version-checked flip, junction rows, **audit row per flip**. Record the FIRST failing slot's time for the `span_overlap` message on partial failure (txn atomic → nothing to compensate beyond the existing D5 request delete).
+4. **Engine `validateSlot(..., int $span = 1)`**: anchor..anchor+span−1 all `available`; lecturer/cohort busy vectors across the full span; venue vector unchanged; day-end fit server check.
+5. **`CancelPendingRequest` releases the span via the junction** (ordered slot release, per-slot version++, audited). Orphan defence stays as the safety net.
+6. **Venue read-model** keys the pending join through the junction; one event per reserved slot (existing per-slot shape) → `mergeTwinEvents` coalesces into one amber span block. Update the stale "exactly ONE anchor half-hour slot (spec Amendment 2b)" comment (`VenueTimetable.php:255–259`).
+7. **Arrangement grid ownership read — WITHDRAWN "verify only" (round-4 🔴1):** `venueSlotsByWeekPayload`'s pending ownership map is ANCHOR-keyed; a span's tail slots render as "someone ELSE's" even on the owner's grid — the junction-derived ownership read is IN scope (item 8 of the proposal).
+8. **Conflict message**: new `span_overlap` branch in `conflictText` + OCC result carries the failing slot's start/end (Q8).
+9. **Slot picker cap = 4** (client, so the budget UI matches the server bound; Q5).
+10. **Tests** (Q7, testing DB only): extend `tests/Feature/OccConcurrencyTest.php` (A reserves span while B targets a mid-span slot → B loses with the named time; ordered-lock path), span bounds (0, 5, non-int, non-contiguous/nonexistent slots → reject), cancel-releases-N, engine span-vectors (busy tail slot → whole submit rejected), venue read-model span rendering (junction rows → one coalesced amber span).
 
-## Open design questions for /sdd-propose
+## U5a (canonical span) — holds
 
-1. Junction table vs derived span (recommended above: junction; the alternative — deriving release-set by contiguous-scan heuristics — works but is implicit and breaks the venue orphan defence anyway).
-2. `validateSlot($span)` extension vs new `validateSpan()` method (recommend extension with default 1 — callers unchanged, OCC test untouched).
-3. Audit granularity: one row per slot flip (keeps `time_slot_id` populated; N rows for N slots) vs one span row with `details.span` (recommend per-row for audit-trail fidelity with the existing schema; conflict rows carry span in `details`).
-4. Max span bound: client caps at 8 slots (4h) — mirror exactly? Also day-end fit server-side (client already rejects near-run-end via `canPlaceBlock :1534`).
-5. Whether to fold in the matrix-ineligible booked-venue honest copy ("is conflicted" → room-type reason) — same consumer flow, copy-only; separate change keeps this one single-purpose.
-6. Conventional commit prefix: `feat:` (backend write-path) + `ui:` (venue read-model comment/render) — likely split commits.
+Span = the lecturer's explicit selection, validated + persisted server-side (the junction IS the persisted span). The original session's duration is only the UI default; a manual pick may resize within the 4-slot cap. The client defaults `BLOCK_SPAN` from `&duration=` and locks auto-picks (`urlSpanLocked`) — existing frozen UX.
 
-## Sequencing notes
+## Rejected approaches (WHY)
 
-- No hard dependency on `venue-page-book-affordance` (U2a) — different files mostly (`VenueTimetable.php` vs the blade script); both touch the venue page's *rendering* vocabulary, so landing U2a first avoids merge friction in the blade.
-- Server on :8000; demo DB never re-seeded (req #1–#3 must survive every test run — the new tests must create their own fixtures in the testing DB only, the `OccConcurrencyTest` pattern).
-- `/sdd-propose full-block-reservation` blocked until the sdd-reviewer agent recovers (same gate as U2a's pending confirmation rounds).
+- Derived-span heuristics (contiguous scan, no junction): implicit, fragile, breaks the orphan-defence flow (Q2 B).
+- Separate `validateSpan()` method: two rule sets to keep in sync — drift risk (Q3 B).
+- One audit row per submit with `details.span`: loses per-slot `time_slot_id` keys the log format always carried (Q4 B).
+- 8-slot/4h max (client) or no max: FOCS classes run ≤2h; a hacked request could lock arbitrary runs (Q5 B).
+- Legacy backfill: moot (nothing to backfill) + standing no-touch rule (Q6).
+- Generic "slot not available" for span races: user explicitly wants the blocked time named (Q8 B).
+
+## Key cross-module data flows
+
+- `proceed()` → `submitBlocks(blocks[{venue,week,day,startHour,endHour}], code, orig, context{sessionId,week})` → component derives `span` per block → duplicate/holiday pre-checks (unchanged) → `SubmitReplacementRequest(user, session, requestWeek, anchorSlotId, span)` → `MatrixIntersectionEngine::validateSlot(anchor,…, span)` → `OCCValidator::validateAndReserve(span)` (txn, ordered locks, junction rows, audit rows) → results[] (`ok`,`conflict_reason`,+ failing slot time for `span_overlap`) → client Submission-Conflict modal rows (existing).
+- Cancel: `/my-request-history-ui` → `CancelPendingRequest` → junction release loop → slots `available`, versions++ → venue page + arrangement grids re-render as free.
+- Venue read-model: pending slots ⟕ `replacement_request_slots` ⟕ requests → per-slot events → `mergeTwinEvents` → one amber span.
+- Open for propose: exact line anchors re-derived (brief line refs already refreshed 2026-10-16); `span_max` constant placement (service const vs config) — decide at propose; commit split `feat:` (backend) + `ui:` (venue read-model) + `test:` (`docs:` changelogs).
