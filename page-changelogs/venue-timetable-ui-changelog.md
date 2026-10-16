@@ -851,3 +851,13 @@ The tooltip's **Arrange** button now opens the **"Select a Session"** modal (new
 - **Timing:** the day-end fit is checked per-session client-side (`hour + durationSlots ≤ hours.length`) — durations >2h can now be offered; sessions that don't fit before the day end are simply not offered. If NOTHING fits: the modal shows (a) *"None of your classes can run in {venue} — {room type} hosts {type} sessions only."* and, when durations are the only miss, (b) *"…and none of them fit before the day end ({last slot})."* — user-frozen copies (2026-10-15).
 
 Supporting: `VenueTimetable` gains the wire-callable `intentSessionOptions(week1)` (owner-pinned) + the shared `App\Services\LectureSessionCatalog` (rule map + enriched courses payload — the OOP promotion; `coursesPayload` delegates, shape preserved + additive `order` array). Consumer-side honest-copy + fallback documented in the arrangement page's changelog.
+
+#### Zero-fit "Jump to Week" hint (user-reported gap, fixed 2026-10-16)
+The conflicted-only policy means most weeks show *"None of your classes can run in…"* — with
+no pointer to where the conflicts ARE. The modal's wire model now carries `conflictWeeks`
+(all weeks whose conflicted occurrences' types this venue admits — `LectureSessionCatalog::conflictMapFor`),
+and both zero branches append *"Your conflicted classes are in Week X and Week Y."* with one-click
+**Jump to Week X** buttons (closes the modal, jumps the week; the user then clicks any free-span cell
+and the modal offers that week's conflicted sessions). Root-cause fix included: the hint's type-derivation
+must use the lecturer's session collection (at a healthy week the week-mapped payload's session map is
+empty by design) — the initial `array_intersect`-over-keyed-map bug reported `ok:false` for the valid W8.

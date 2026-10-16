@@ -354,7 +354,9 @@
                 const fitting = (model.modules || []);
                 if (fitting.length === 0) {
                     noteText.textContent = 'None of your classes can run in ' + model.venue +
-                        ' — ' + roomTypeHuman(model.roomType) + ' hosts ' + sessionTypesHuman(model.roomType) + ' sessions only.';
+                        ' — ' + roomTypeHuman(model.roomType) + ' hosts ' + sessionTypesHuman(model.roomType) + ' sessions only.' +
+                        conflictWeekHint(model);
+                    renderConflictWeekButtons(model);
                     notice.style.display = 'block';
                     pickers.style.display = 'none';
                     arrangeBtn.style.display = 'none';
@@ -406,7 +408,9 @@
                         sessionSel.appendChild(opt);
                     });
                     if (allFit.length === 0) {
-                        noteText.textContent = 'None of your classes can run in ' + model.venue + ' — they do not fit before the day end (' + dayEnd + ').';
+                        noteText.textContent = 'None of your classes can run in ' + model.venue + ' — they do not fit before the day end (' + dayEnd + ').' +
+                            conflictWeekHint(model);
+                        renderConflictWeekButtons(model);
                         notice.style.display = 'block';
                         pickers.style.display = 'none';
                         arrangeBtn.style.display = 'none';
@@ -423,6 +427,32 @@
                 /* show parity with the shared shells (ui-common DetailModal.open :1185) */
                 el.classList.add('show');
                 el.style.display = 'flex';
+            }
+
+            function conflictWeekHint(model) {
+                const weeks = model.conflictWeeks || [];
+                if (weeks.length === 0) return '';
+                return ' Your conflicted classes are in Week ' + weeks.join(' and Week ') + '.';
+            }
+
+            function renderConflictWeekButtons(model) {
+                const weeks = model.conflictWeeks || [];
+                const host = document.getElementById('intentNoticeJump');
+                if (!host) return;
+                host.innerHTML = '';
+                weeks.forEach(function (w) {
+                    const btn = document.createElement('button');
+                    btn.type = 'button';
+                    btn.className = 'btn-outline';
+                    btn.style.margin = '6px 6px 0 0';
+                    btn.textContent = 'Jump to Week ' + w;
+                    btn.onclick = function () {
+                        closeIntentSessionModal();
+                        window.selectWeek(w - 1);
+                    };
+                    host.appendChild(btn);
+                });
+                host.style.display = weeks.length ? 'block' : 'none';
             }
 
             /* display-vocabulary ONLY for the notice sentence — the RULE data is server-side */

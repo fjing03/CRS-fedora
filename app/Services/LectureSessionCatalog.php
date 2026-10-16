@@ -288,6 +288,67 @@ final class LectureSessionCatalog
     }
 
     /**
+     * All weeks where the lecturer has at least one CONFLICTED occurrence
+     * (ReplacementHome parity), grouped per week: week1 => [sessionId => reason].
+     * Consumed by the producer modal's zero-fit notice (jump-to-week hints).
+     *
+     * @param  Collection<int, ClassSession>  $sessions
+     * @return array<int, array<int, string>>
+     */
+    public function conflictMapFor(Collection $sessions): array
+    {
+        $ids = $sessions->pluck('id')->all();
+        if (count($ids) === 0) {
+            return [];
+        }
+
+        $semester = Semester::active();
+        $weeks = $semester !== null ? $semester->week_count : 14;
+
+        $handled = ReplacementRequest::query()
+            ->whereIn('class_session_id', $ids)
+            ->whereIn('status', ['pending', 'approved'])
+            ->get()
+            ->map(fn (ReplacementRequest $r): string => $r->class_session_id.':'.$r->week_number)
+            ->flip();
+
+        $exceptions = ClassException::query()
+            ->whereIn('class_session_id', $ids)
+            ->get()
+            ->groupBy('week_number');
+
+        $holidays = [];
+        if ($semester !== null) {
+            foreach ($semester->holidays()->get(['week_number', 'day_of_week', 'label']) as $h) {
+                $holidays[(int) $h->week_number][(int) $h->day_of_week] = (string) $h->label;
+            }
+        }
+
+        $out = [];
+        foreach ($sessions as $s) {
+            $venueRestricted = $s->venue !== null
+                && $s->venue->room_code === 'B005'
+                && $s->cohorts->contains(fn ($c) => str_starts_with((string) $c->programme->programme_code, 'D'));
+
+            for ($week = 1; $week <= $weeks; $week++) {
+                if ($handled->has($s->id.':'.$week)) {
+                    continue;
+                }
+                if ($exceptions->has($week) && $exceptions->get($week)->firstWhere('class_session_id', $s->id) !== null) {
+                    $reason = (string) $exceptions->get($week)->firstWhere('class_session_id', $s->id)->reason;
+                    $out[$week][(int) $s->id] = 'Cancelled — '.str_replace('_', ' ', ucwords($reason, '_'));
+                } elseif (isset($holidays[$week][(int) $s->day_of_week])) {
+                    $out[$week][(int) $s->id] = 'Public Holiday ('.$holidays[$week][(int) $s->day_of_week].')';
+                } elseif ($venueRestricted) {
+                    $out[$week][(int) $s->id] = 'Venue Restriction (B005 no-Diploma)';
+                }
+            }
+        }
+
+        return $out;
+    }
+
+    /**
      * Week scaffold for occurrence facts — mirrors the timeline concern's
      * Monday math (semester start + (week-1) weeks), so the modal labels and
      * the grid agree on the booked week's dates by construction.

@@ -3,6 +3,7 @@
 namespace App\Livewire;
 
 use App\Concerns\ResolvesTimetableTimeline;
+use App\Models\ClassSession;
 use App\Models\Cohort;
 use App\Models\ReplacementRequest;
 use App\Models\TimeSlot;
@@ -62,7 +63,7 @@ class VenueTimetable extends Component
            an unknown code resolves to no venue → empty options, never an error). */
         $venueRow = Venue::where('room_code', $this->venueCode)->first();
         if ($venueRow === null) {
-            return ['modules' => [], 'roomType' => '', 'venue' => $this->venueCode];
+            return ['modules' => [], 'roomType' => '', 'venue' => $this->venueCode, 'conflictWeeks' => []];
         }
         $rawRoomType = (string) $venueRow->room_type;
         $semesterId = $this->timelineSemester()?->id;
@@ -105,10 +106,43 @@ class VenueTimetable extends Component
             }
         }
 
+        $lecturerSessions = ClassSession::query()
+            ->with(['module', 'venue', 'cohorts.programme'])
+            ->where('lecturer_id', (int) auth()->id())
+            ->where('semester_id', $semesterId)
+            ->orderBy('day_of_week')
+            ->orderBy('start_time')
+            ->orderBy('id')
+            ->get();
+
+        /* Zero-fit notice helper: weeks holding conflicted occurrences whose
+           type THIS venue admits (jump-to-week hints for the notice). Types
+           come from the SESSIONS collection — at a healthy week the week-mapped
+           payload's sessions map is empty by design (conflicted-only skip). */
+        $requiredTypes = array_keys(array_filter($rule, fn ($v): bool => is_array($v) && in_array($rawRoomType, $v, true)));
+        $conflictWeeks = [];
+        foreach ($catalog->conflictMapFor($lecturerSessions) as $week1Key => $reasons) {
+            $typesHere = [];
+            foreach ($reasons as $sessionId => $reason) {
+                $sessionRow = $lecturerSessions->firstWhere('id', $sessionId);
+                if ($sessionRow !== null) {
+                    $typesHere[] = (string) $sessionRow->session_type;
+                }
+            }
+            $typeNameOk = (bool) array_intersect($typesHere, $requiredTypes);
+            $debugCW['L'.((string) $week1Key)] = ['typesHere' => $typesHere, 'ok' => $typeNameOk];
+            if ($typeNameOk && (int) $week1Key !== $week1) {
+                $conflictWeeks[] = (int) $week1Key;
+            }
+        }
+        sort($conflictWeeks);
+        $payload = $catalog->build($lecturerSessions, $week1);
+
         return [
             'modules' => $modules,
             'roomType' => $rawRoomType,
             'venue' => $venueRow->room_code,
+            'conflictWeeks' => $conflictWeeks,
         ];
     }
 
