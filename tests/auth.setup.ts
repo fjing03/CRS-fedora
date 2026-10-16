@@ -13,16 +13,26 @@ import path from 'node:path';
  * `test.use({ storageState: '.auth/staff-5770.json' })` — nothing global,
  * so specs with their own login flows are untouched.
  */
-const STATE = path.join('.auth', 'staff-5770.json');
 const PW = 'Tarumt@2026';
 
-setup('authenticate as staff 5770', async ({ page }) => {
-  mkdirSync(path.dirname(STATE), { recursive: true });
+/** One storageState per staff identity (Fortify limiter: 1 login/run). */
+async function loginAndSave(page, id, file) {
+  mkdirSync(path.dirname(file), { recursive: true });
   await page.goto('/login/staff');
-  await page.fill('#login_id', '5770');
+  await page.fill('#login_id', id);
   await page.fill('#password', PW);
   await page.click('button[type="submit"]');
   // artisan serve is single-threaded — first boot / DB-cold logins can spike
   await page.waitForURL(/(my-timetable|dashboard)/, { timeout: 30_000 });
-  await page.context().storageState({ path: STATE });
+  await page.context().storageState({ path: file });
+}
+
+setup('authenticate as staff 5770', async ({ page }) => {
+  await loginAndSave(page, '5770', path.join('.auth', 'staff-5770.json'));
+});
+
+/* arrange-intent-session-choice manual-support state: 4363 (L-only lecturer)
+   — the zero-compatible modal demo identity. */
+setup('authenticate as staff 4363', async ({ page }) => {
+  await loginAndSave(page, '4363', path.join('.auth', 'staff-4363.json'));
 });

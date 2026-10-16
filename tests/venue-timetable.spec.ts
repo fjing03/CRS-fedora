@@ -390,7 +390,8 @@ test.describe('Venue Timetable UI', () => {
     const eventBlock = page.locator('#tableBody .event-block').first();
     if (await eventBlock.count() > 0) {
       await eventBlock.click();
-      await page.locator('.btn-close-modal').click();
+      // scoped: the session-choice modal shares the .btn-close-modal class
+      await page.locator('#classModal .btn-close-modal').click();
       await expect(page.locator('#classModal')).not.toBeVisible();
     }
   });

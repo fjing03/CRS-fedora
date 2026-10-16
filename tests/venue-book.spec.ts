@@ -53,16 +53,21 @@ test('U2a-T2: clicking a free cell opens the tooltip with the exact Arrange sent
   await expect(page.locator('#tooltipBookBtn')).toHaveText('Arrange');
 });
 
-test('U2a-T3: clicking Arrange hands off — arrangement page opens pre-pinned with intent banner', async ({ page }) => {
+test('U2a-T3: clicking Arrange opens the session modal, then hands off — arrangement page opens pre-pinned', async ({ page }) => {
+  // SDD arrange-intent-session-choice: the modal interposes (designed contract
+  // change — session + cohort + week join the handoff); routed through it here.
   await page.goto(PAGE);
   await selectLastWeek(page);
   const cell = await firstFreeCell(page);
   await cell.click();
   await page.locator('#availableTooltip.show #tooltipBookBtn').click();
-  await page.waitForURL(/\/replacement-arrangement\/?(\?.*)?$/, { timeout: 10_000 });
-  expect(page.url()).toMatch(/venue=B110&date=.+&time=\d{2}%3A\d{2}&from=venue-timetable/);
-  // consumer renders the booking-intent banner (auto-select or honest fallback)
-  await expect(page.locator('#bookingIntent')).toHaveText(/./);
+  await expect(page.locator('#intentSessionModal')).toBeVisible({ timeout: 10_000 });
+  await page.locator('#intentArrangeBtn').click();
+  await page.waitForURL(/\/replacement-arrangement\/?\?.*session=/, { timeout: 10_000 });
+  expect(page.url()).toMatch(/venue=B110&date=.+&time=.+&from=venue-timetable&code=.+&session=\d+&cohort=.+&week=\d+/);
+  // consumer: the pinned session bound (subject auto-picked) + banner-free
+  // booked state (pre-selected toast path)
+  await expect(page.locator('#subjectSelector')).toHaveValue(/AMCS|BMIT|CS/);
 });
 
 test('U2a-T4: real current week — lead-time cells render cell-too-soon, read-only', async ({ page }) => {

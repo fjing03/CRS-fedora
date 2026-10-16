@@ -13,7 +13,6 @@ use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Livewire\Attributes\Title;
 use Livewire\Component;
-use RuntimeException;
 
 /**
  * Venue Timetable — real slot-level data (SDD: venue-timetable-db).
@@ -57,7 +56,15 @@ class VenueTimetable extends Component
     {
         $catalog = new LectureSessionCatalog;
         $rule = LectureSessionCatalog::ruleMap();
-        $rawRoomType = $this->bookedVenue()['rawRoomType'];
+        /* D2 apply fix (wire-call reality): Livewire does not persist private
+           render state into a subsequent wire-call request — so the venue facts
+           are re-derived from the HYDRATED public $venueCode (tamper-proof:
+           an unknown code resolves to no venue → empty options, never an error). */
+        $venueRow = Venue::where('room_code', $this->venueCode)->first();
+        if ($venueRow === null) {
+            return ['modules' => [], 'roomType' => '', 'venue' => $this->venueCode];
+        }
+        $rawRoomType = (string) $venueRow->room_type;
         $semesterId = $this->timelineSemester()?->id;
         $payload = $catalog->payloadFor((int) auth()->id(), $week1, $semesterId);
 
@@ -72,7 +79,7 @@ class VenueTimetable extends Component
                 $allowedRooms = $rule[(string) $entry['type']] ?? null;
                 $typeOk = is_array($allowedRooms) && in_array($rawRoomType, $allowedRooms, true);
                 $b005Blocked = false;
-                if ($this->bookedVenue()['code'] === $rule['b005_venue_code']) {
+                if ($venueRow->room_code === $rule['b005_venue_code']) {
                     $pattern = '/'.((string) $rule['b005_no_diploma_pattern']).'/';
                     foreach ((array) ($entry['cohortCodes'] ?? []) as $cohortCode) {
                         if ((string) $cohortCode !== '' && preg_match($pattern, (string) $cohortCode) === 1) {
@@ -99,27 +106,8 @@ class VenueTimetable extends Component
         return [
             'modules' => $modules,
             'roomType' => $rawRoomType,
-            'venue' => $this->bookedVenue()['code'],
+            'venue' => $venueRow->room_code,
         ];
-    }
-
-    /** @var array{code: string, name: string, capacity: int, rawRoomType: string}|null Last rendered venue (intentSessionOptions reads it — Livewire keeps the component state). */
-    private ?array $currentVenueFacts = null;
-
-    /**
-     * The venue currently shown (renderPayload caches it — the modal always
-     * opens on the grid the user is looking at; ?venue= navigation re-renders,
-     * so the facts are fresh by construction).
-     *
-     * @return array{code: string, name: string, capacity: int, rawRoomType: string}
-     */
-    private function bookedVenue(): array
-    {
-        if ($this->currentVenueFacts === null) {
-            throw new RuntimeException('intentSessionOptions ran before any render — the venue facts are only available on a rendered component.');
-        }
-
-        return $this->currentVenueFacts;
     }
 
     public function render(): View
@@ -378,8 +366,6 @@ class VenueTimetable extends Component
         array $eventsByWeek,
         array $totalsByWeek,
     ): View {
-        $this->currentVenueFacts = $venue;
-
         return view('livewire.venue-timetable', [
             'venuesJs' => $venuesJs,
             'venue' => $venue,

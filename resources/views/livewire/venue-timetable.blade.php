@@ -610,6 +610,9 @@
             initGridSwipeGestures(prevWeek, nextWeek);
 
             /* onclick= handlers in partials resolve via window */
+            window.closeIntentSessionModal = closeIntentSessionModal;
+            window.intentOverlayClose = intentOverlayClose;
+            window.confirmIntentSession = confirmIntentSession;
             window.prevWeek = prevWeek;
             window.nextWeek = nextWeek;
             window.selectWeek = selectWeek;
