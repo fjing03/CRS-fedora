@@ -910,3 +910,16 @@ day end (18:30)") even though the actual blocker was the occupied 14:00–15:00 
   length runs into an existing event below. Pick a cell with enough free room beneath it."*
 - truly past-the-day-end → the original day-end sentence.
 The conflict-week hint sentence stays on both branches.
+
+#### Conflict-week hint + jump buttons REMOVED (USER REQUEST 2026-10-16, ~19:30)
+User review: "why do we need this tho?" — the *"Your conflicted classes are in Week 8 and Week 14."*
+sentence and the **Jump to Week N** buttons are gone. Rationale (user): the pool is week-agnostic —
+the hints implied a restriction that does not exist. The notice sentences are now closed:
+- venue-incompatible → *"None of your classes can run in {venue} — {room type} hosts {types} sessions only."*
+- span-blocked → *"None of your classes can run in {venue} at this cell — {HH:MM} plus the class
+  length runs into an existing event below. Please book with at least a {n}-hour gap between this
+  block and the next event — pick a cell with enough free room beneath it."* ({n} = the smallest
+  candidate class length, in hours)
+- past-the-day-end → the original day-end sentence.
+Server-side: `VenueTimetable::intentSessionOptions` no longer emits `conflictWeeks` (consumer removed);
+`conflictedFor()` still drives the week-agnostic candidate pool.

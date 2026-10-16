@@ -47,15 +47,17 @@ class VenueTimetable extends Component
      * user directive 2026-10-16 apply round 4): the pool is WEEK-AGNOSTIC —
      * every lecturer session with ≥1 conflicted occurrence anywhere in the
      * semester that THIS venue admits (venue-entry + B005 rules). A conflicted
-     * class may be arranged at any week past the lead time; $week1 is used
-     * only to exclude the booked week from the conflictWeeks jump hints.
-     * Wire-callable, owner-pinned (auth()->id() query — never another
-     * lecturer's sessions); duration/day-end + span fit is client arithmetic
-     * against the shared hours constant + the week's own grid, not part of
-     * this rule.
+     * class may be arranged at any week past the lead time — the conflict week
+     * is where the need LIVES, not where the arrangement may happen (the
+     * jump-to-week hints were removed by user request 2026-10-16: the pool is
+     * week-agnostic, week hints implied a restriction the data does not have).
+     * $week1 stays the wire contract's booked-week anchor (no longer shapes the
+     * response). Wire-callable, owner-pinned (auth()->id() query — never
+     * another lecturer's sessions); duration/day-end + span fit is client
+     * arithmetic against the shared hours constant + the week's own grid.
      *
      * @param  int  $week1  1-based booked week (the clicked cell's week + 0-based→1-based convention)
-     * @return array{modules: list<array<string, mixed>>, roomType: string, venue: string, conflictWeeks: list<int>}
+     * @return array{modules: list<array<string, mixed>>, roomType: string, venue: string}
      */
     public function intentSessionOptions(int $week1): array
     {
@@ -65,7 +67,7 @@ class VenueTimetable extends Component
            an unknown code resolves to no venue → empty options, never an error). */
         $venueRow = Venue::where('room_code', $this->venueCode)->first();
         if ($venueRow === null) {
-            return ['modules' => [], 'roomType' => '', 'venue' => $this->venueCode, 'conflictWeeks' => []];
+            return ['modules' => [], 'roomType' => '', 'venue' => $this->venueCode];
         }
         $rawRoomType = (string) $venueRow->room_type;
         $semesterId = $this->timelineSemester()?->id;
@@ -105,22 +107,10 @@ class VenueTimetable extends Component
             }
         }
 
-        /* Jump-to-week hint: weeks holding the ELIGIBLE conflicted occurrences
-           (the candidate pool's own conflict weeks), minus the booked week. */
-        $weekSet = [];
-        foreach ($eligible as $s) {
-            foreach ($conflicted[$s->id]['weeks'] as $week) {
-                $weekSet[$week] = true;
-            }
-        }
-        $conflictWeeks = array_values(array_filter(array_keys($weekSet), fn (int $w): bool => $w !== $week1));
-        sort($conflictWeeks);
-
         return [
             'modules' => $built,
             'roomType' => $rawRoomType,
             'venue' => $venueRow->room_code,
-            'conflictWeeks' => $conflictWeeks,
         ];
     }
 

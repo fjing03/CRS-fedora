@@ -372,9 +372,7 @@
                 const fitting = (model.modules || []);
                 if (fitting.length === 0) {
                     noteText.textContent = 'None of your classes can run in ' + model.venue +
-                        ' — ' + roomTypeHuman(model.roomType) + ' hosts ' + sessionTypesHuman(model.roomType) + ' sessions only.' +
-                        conflictWeekHint(model);
-                    renderConflictWeekButtons(model);
+                        ' — ' + roomTypeHuman(model.roomType) + ' hosts ' + sessionTypesHuman(model.roomType) + ' sessions only.';
                     notice.style.display = 'block';
                     pickers.style.display = 'none';
                     arrangeBtn.style.display = 'none';
@@ -420,8 +418,10 @@
                     let dayEndFails = 0;  /* the class itself runs past the day end */
                     let spanFails = 0;    /* the span runs into an existing event BELOW */
                     const mi = subjectSel.value;
+                    let minSpan = Infinity;
                     (fitting[mi].order || []).forEach(function (sid) {
                         const e = fitting[mi].sessions[sid];
+                        minSpan = Math.min(minSpan, (e.durationSlots || 1));
                         /* class-level fitness first (duration/day-end + this week's
                            occupancy); the session then EXPANDS into one row per
                            flagged occurrence (user request 2026-10-16) */
@@ -464,12 +464,13 @@
                            sentence was shown even when the real blocker was the
                            span running into an existing event below the cell */
                         if (spanFails > 0) {
-                            noteText.textContent = 'None of your classes can run in ' + model.venue + ' at this cell — ' + hours[hi] + ' plus the class length runs into an existing event below. Pick a cell with enough free room beneath it.';
+                            /* gap guidance (user request 2026-10-16): name the smallest
+                               candidate length as the needed continuous gap (30-min slots) */
+                            const gapHours = Math.round((minSpan * 30) / 60 * 10) / 10;
+                            noteText.textContent = 'None of your classes can run in ' + model.venue + ' at this cell — ' + hours[hi] + ' plus the class length runs into an existing event below. Please book with at least a ' + (gapHours === 1 ? '1-hour' : gapHours + '-hour') + ' gap between this block and the next event — pick a cell with enough free room beneath it.';
                         } else {
                             noteText.textContent = 'None of your classes can run in ' + model.venue + ' — they do not fit before the day end (' + dayEnd + ').';
                         }
-                        noteText.textContent += conflictWeekHint(model);
-                        renderConflictWeekButtons(model);
                         notice.style.display = 'block';
                         pickers.style.display = 'none';
                         arrangeBtn.style.display = 'none';
@@ -487,32 +488,6 @@
                 /* show parity with the shared shells (ui-common DetailModal.open :1185) */
                 el.classList.add('show');
                 el.style.display = 'flex';
-            }
-
-            function conflictWeekHint(model) {
-                const weeks = model.conflictWeeks || [];
-                if (weeks.length === 0) return '';
-                return ' Your conflicted classes are in Week ' + weeks.join(' and Week ') + '.';
-            }
-
-            function renderConflictWeekButtons(model) {
-                const weeks = model.conflictWeeks || [];
-                const host = document.getElementById('intentNoticeJump');
-                if (!host) return;
-                host.innerHTML = '';
-                weeks.forEach(function (w) {
-                    const btn = document.createElement('button');
-                    btn.type = 'button';
-                    btn.className = 'btn-outline';
-                    btn.style.margin = '6px 6px 0 0';
-                    btn.textContent = 'Jump to Week ' + w;
-                    btn.onclick = function () {
-                        closeIntentSessionModal();
-                        window.selectWeek(w - 1);
-                    };
-                    host.appendChild(btn);
-                });
-                host.style.display = weeks.length ? 'block' : 'none';
             }
 
             /* display-vocabulary ONLY for the notice sentence — the RULE data is server-side */
