@@ -321,6 +321,9 @@
             function renderIntentSessionModal(model, time, di, hi) {
                 const el = document.getElementById('intentSessionModal');
                 const notice = document.getElementById('intentNotice');
+                const noteText = document.getElementById('intentNoticeText');
+                const subtitle = document.getElementById('intentSubtitle');
+                subtitle.textContent = 'Booking ' + model.venue + ' · ' + weekData[currentWeek].days[di].abbr + ', ' + weekData[currentWeek].days[di].date + ' · ' + hours[hi];
                 const pickers = document.getElementById('intentPickers');
                 const subjectSel = document.getElementById('intentSubjectSelect');
                 const sessionSel = document.getElementById('intentSessionSelect');
@@ -333,8 +336,9 @@
                 /* Zero-fit / zero-compatible: no dropdowns, byte-frozen notice */
                 const fitting = (model.modules || []);
                 if (fitting.length === 0) {
-                    notice.innerHTML = 'None of your classes can run in ' + model.venue +
+                    noteText.textContent = 'None of your classes can run in ' + model.venue +
                         ' — ' + roomTypeHuman(model.roomType) + ' hosts ' + sessionTypesHuman(model.roomType) + ' sessions only.';
+                    notice.style.display = 'block';
                     pickers.style.display = 'none';
                     arrangeBtn.style.display = 'none';
                     el.style.display = 'block';
@@ -352,34 +356,6 @@
                     opt.textContent = m.code + ' — ' + m.name;
                     subjectSel.appendChild(opt);
                 });
-
-                function renderSessionsFor(mi) {
-                    sessionSel.innerHTML = '';
-                    (fitting[mi].order || []).forEach(function (sid) {
-                        const e = fitting[mi].sessions[sid];
-                        /* duration fit against THIS cell's hour — arithmetic only */
-                        if (hi + (e.durationSlots || 1) > hours.length) return;
-                        const start = (e.startTime || '').slice(0, 5);
-                        const end = (e.endTime || '').slice(0, 5);
-                        const opt = document.createElement('option');
-                        opt.value = String(sid);
-                        /* frozen label format: {module} {name} ({type}) · W{n}, {day abbr}, {DD Mon YYYY} · {HH:MM}–{HH:MM} */
-                        opt.textContent = e.type !== undefined ? fitting[mi].code + ' ' + fitting[mi].name + ' (' + e.type + ') · W' + (e.weekNumber || week1) + ', ' + (e.dayAbbr || '') + ', ' + (e.date || '') + ' · ' + start + '–' + end : fitting[mi].code;
-                        opt.dataset.cohort = (e.cohortLabels && e.cohortLabels[0]) || (e.cohorts && e.cohorts[0]) || '';
-                        sessionSel.appendChild(opt);
-                    });
-                    arrangeBtn.disabled = sessionSel.options.length === 0;
-                    if (!arrangeBtn.disabled) arrangeBtn.textContent = 'Arrange';
-                    else {
-                        arrangeBtn.textContent = 'Arrange';
-                        /* all type-passing sessions fail the day end → the duration cause */
-                        notice.innerHTML = 'None of your classes can run in ' + model.venue +
-                            ' — ' + roomTypeHuman(model.roomType) + ' hosts ' + sessionTypesHuman(model.roomType) + ' sessions only.'+
-                            ' And none of them fit before the day end (' + dayEnd + ').';
-                        pickers.style.display = 'none';
-                        arrangeBtn.style.display = 'none';
-                    }
-                }
 
                 function refreshSessions() {
                     const allFit = [];
@@ -400,7 +376,8 @@
                         sessionSel.appendChild(opt);
                     });
                     if (allFit.length === 0) {
-                        notice.innerHTML = 'None of your classes can run in ' + model.venue + ' — they do not fit before the day end (' + dayEnd + ').';
+                        noteText.textContent = 'None of your classes can run in ' + model.venue + ' — they do not fit before the day end (' + dayEnd + ').';
+                        notice.style.display = 'block';
                         pickers.style.display = 'none';
                         arrangeBtn.style.display = 'none';
                     } else {
@@ -412,7 +389,7 @@
                 }
 
                 subjectSel.onchange = function () { refreshSessions(); };
-                renderSessionsFor(0);
+                refreshSessions();
                 el.style.display = 'block';
                 el.classList.add('show');
             }
