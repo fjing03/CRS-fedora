@@ -1347,3 +1347,19 @@ Two behavior upgrades to the booking-intent consumer, both user-decided 2026-10-
 2. **Fallback prefill for modal-bypass arrivals.** A full-intent URL without `?session=` (hand-typed etc.) now auto-picks the first class of yours the venue legally admits (occurrence grain; type + B005 + duration-fit against the booked hour), hydrates the pinned-occurrence family (`code/day/start/originalVenue/duration`), sizes `BLOCK_SPAN` from the session (span-locked), pins it, binds via the subject path — the `:2712` consume stays the boot's only pick, the toast says *"Pre-selected {module} ({type}) — auto-picked because its sessions fit {venue} — change if needed."* (one-shot). Manual picks are NEVER overridden (the type-ineligibility naming copy appears instead). Bare `?venue=` deep links — no prefill, unchanged. `intentCancelled` bookmarks stay dead on reload.
 
 Supporting: rule data hydrates once (`window.__ruleMap ← PAGE_DATA.ruleMap` — single source, `LectureSessionCatalog`); venues payload carries raw `room_type`; the boot-final `buildTimetable` precedes the fallback (placement amendment — the DOM must exist for the occupancy predicate). No submit/OCC/engine changes.
+
+#### No more spurious "Clear Current Selection?" on session-handoff landing (user report, 2026-10-16)
+Venue-timetable session landings (`?session=&week=…`) popped the "Clear Current Selection?" confirm
+on arrival: the boot chained the booking-intent auto-select (block placed at the BOOKED cell) and
+then the legacy *original-occurrence* slot pick (`?day=&start=&originalVenue=` shape, replayed from
+the pinned bridge) — a second `selectSlot` on a live selection, hence the modal.
+
+- The legacy occurrence pick now skips when `urlParams.session` is set (the session handoff's
+  intent auto-select is the authoritative placement; `pinnedSession` still binds the pinned
+  occurrence for `submitBlocks`).
+- Session-path 2e parity: with no block placed and the intent alive, the boot re-consumes on the
+  real grid (the same deterministic extra hop the fallback's 2e tail established).
+- Anchor without selection: the pinned occurrence's own facts (day/start/venue of the session row,
+  span from its duration) render in the picker trigger + the Conflicted chip summary
+  (`W{week} · {Mon D} · HH:MM–HH:MM @ {venue}`) — cosmetic only, no `selectSlot`, no confirm; a
+  real panel pick replaces it. Submit falls back to `urlParams` for the original + the pinned week.

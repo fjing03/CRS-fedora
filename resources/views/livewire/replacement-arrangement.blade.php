@@ -2352,10 +2352,40 @@
         }
         let urlParams = {};
 
+        /* arrange-intent-session-choice (user report 2026-10-16 follow-up): the
+           ?session= handoff no longer runs the legacy occurrence pick (it fought
+           the booking-intent auto-select with the confirm modal), so it anchors
+           WITHOUT selection: the pinned occurrence's own facts act as the
+           anchor for the summary + trigger, while submitBlocks falls back to
+           urlParams for the original and pinnedOccurrence carries the request
+           week. A real user pick replaces this virtual anchor. */
+        function anchorSlotFromPinned() {
+            if (urlParams.day === null || urlParams.start === null || !urlParams.originalVenue) return null;
+            const pinned = window.PAGE_DATA && window.PAGE_DATA.pinnedSession;
+            if (!pinned) return null;
+            const wk = (pinned.week || 1) - 1;
+            const dayData = (window.weekData && window.weekData[wk] && window.weekData[wk].days[Number(urlParams.day)]) || null;
+            /* the anchor must carry the slot-body fields the real picks have
+               (start/end are 30-minute slot indices; the span follows the
+               pinned session's duration) — renderTitleSummary's to12h/add30min
+               path reads anchorSlot.end, and a missing field would crash the
+               boot mid-render (Add 30 undefined — user land-57 verify) */
+            const spanSlots = Math.min(Math.max(Math.round((pinned.duration || 0.5) * 2), 1), 8);
+            return {
+                week: wk,
+                weekdayName: (window.weekData && dayData && dayData.abbr) || '',
+                date: dayData && dayData.date ? dayData.date : '',
+                start: Number(urlParams.start),
+                end: Number(urlParams.start) + spanSlots - 1,
+                venue: String(urlParams.originalVenue),
+            };
+        }
+
         function renderTitleSummary() {
             const el = document.getElementById('subjectInfo');
             const hasSubject = !!currentCourse;
-            const hasSlot = !!selectedOriginalSlot;
+            const anchorSlot = selectedOriginalSlot || anchorSlotFromPinned();
+            const hasSlot = !!anchorSlot;
             const ctxCourse = courseCtx(); /* occurrence-grain: follows the picked slot */
 
             /* Grid lock affordance: free cells read as not-allowed until a subject is picked */
@@ -2370,13 +2400,13 @@
             // Line 2: Time Slot
             let slotLine = null;
             if (hasSlot) {
-                const startStr = to12h(hours[selectedOriginalSlot.start]);
-                const endStr = to12h(hours[selectedOriginalSlot.end + 1] || add30min(hours[selectedOriginalSlot.end]));
-                const dateParts = selectedOriginalSlot.date.split(' ');
+                const startStr = to12h(hours[anchorSlot.start]);
+                const endStr = to12h(hours[anchorSlot.end + 1] || add30min(hours[anchorSlot.end]));
+                const dateParts = anchorSlot.date.split(' ');
                 const shortDate = dateParts[1] + ' ' + dateParts[0];
                 /* human-facing label: week NUMBER (+1, see the picker's trigger note);
-   selectedOriginalSlot.week itself stays the 0-based weekData index */
-slotLine = 'Week ' + (selectedOriginalSlot.week + 1) + ' · ' + selectedOriginalSlot.dayName + ', ' + shortDate + ' ' + dateParts[2] + ' · ' + startStr + '–' + endStr + ' @ ' + selectedOriginalSlot.venue;
+   slot.week stays the 0-based weekData index */
+slotLine = 'Week ' + (anchorSlot.week + 1) + ' · ' + anchorSlot.weekdayName + ', ' + shortDate + ' ' + dateParts[2] + ' · ' + startStr + '–' + endStr + ' @ ' + anchorSlot.venue;
             }
 
             // Line 3: Cohorts
@@ -3320,8 +3350,16 @@ triggerText.textContent = 'W' + (slot.week + 1) + ' · ' + shortDate + ' · ' + 
                 onSubjectChange();
             }
             
-            // Auto-select original slot if day/start/end/originalVenue params provided
-            if (urlParams.code && urlParams.day !== null && urlParams.start !== null && urlParams.originalVenue) {
+            /* Auto-select the ORIGINAL occurrence slot — legacy handoff shape
+               (?code&day&start&originalVenue, replacement home/history). The
+               venue-timetable SESSION handoff (?session=&week=) is NOT that
+               shape: its booking intent already auto-selected the block at the
+               BOOKED cell, and this legacy pick would re-select the session's
+               own slot — a second selectSlot with the block live → the spurious
+               "Clear Current Selection?" confirm (user report 2026-10-16).
+               The pinned occurrence still binds via PAGE_DATA.pinnedSession,
+               so submitBlocks targets the right week regardless. */
+            if (urlParams.code && urlParams.day !== null && urlParams.start !== null && urlParams.originalVenue && !urlParams.session) {
                 const slots = extractSlotsForSubject(urlParams.code);
                 const matchingSlot = slots.find(s => 
                     s.day === parseInt(urlParams.day) && 
@@ -3439,6 +3477,27 @@ triggerText.textContent = 'W' + (slot.week + 1) + ' · ' + shortDate + ' · ' + 
             lastSubject = document.getElementById('subjectSelector').value;
             /* ensure grid always renders on load (applyUrlParams only triggers via venue param) */
             buildTimetable();
+            /* session-path anchor: mirror the pinned occurrence's slot in the
+               picker trigger (cosmetic — no selectSlot, no confirm modal); a
+               real panel pick replaces it like any manual pick */
+            if (!selectedOriginalSlot) {
+                const a = anchorSlotFromPinned();
+                if (a) {
+                    const triggerText = document.getElementById('slotTriggerText');
+                    if (triggerText) { const dp = a.date.split(' '); triggerText.textContent = 'W' + (a.week + 1) + ' · ' + (dp[1] + ' ' + dp[0]) + ' · ' + to12h(hours[a.start]) + '–' + to12h(hours[a.end + 1] || add30min(hours[a.end])); }
+                }
+            }
+            /* arrange-intent-session-choice, session-path 2e parity (user report
+               2026-10-16, follow-up): the booking-intent consume fired during
+               the boot on a PRE-rebuild grid (isCellAvailable needs the DOM)
+               and could land nothing, leaving just the pulse/manual banner.
+               With no block placed and the intent still alive, re-consume on
+               the REAL grid — the same deterministic extra hop the fallback's
+               2e tail established for the no-session path. */
+            if (!selectedBlock && pendingBookingIntent && !intentCancelled) {
+                evaluateBookingFit();
+                consumeBookingIntent();
+            }
             /* SDD arrange-intent-session-choice (D3, soft-freeze placement amendment):
                the fallback needs the RENDERED grid (isCellAvailable reads the DOM,
                :1528) — so it runs after the boot's own buildTimetable. The fallback's
