@@ -417,13 +417,17 @@
 
                 function refreshSessions() {
                     const allFit = [];
+                    let dayEndFails = 0;  /* the class itself runs past the day end */
+                    let spanFails = 0;    /* the span runs into an existing event BELOW */
                     const mi = subjectSel.value;
                     (fitting[mi].order || []).forEach(function (sid) {
                         const e = fitting[mi].sessions[sid];
                         /* class-level fitness first (duration/day-end + this week's
                            occupancy); the session then EXPANDS into one row per
                            flagged occurrence (user request 2026-10-16) */
-                        if (hi + (e.durationSlots || 1) <= hours.length && !spanOccupied(e.durationSlots || 1)) allFit.push([sid, e]);
+                        if (hi + (e.durationSlots || 1) > hours.length) { dayEndFails++; return; }
+                        if (spanOccupied(e.durationSlots || 1)) { spanFails++; return; }
+                        allFit.push([sid, e]);
                     });
                     sessionPanel.innerHTML = '';
                     sessionPick = null;
@@ -456,8 +460,15 @@
                     const first = sessionPanel.querySelector('.session-dd-item');
                     if (first) chooseSession(first);
                     if (allFit.length === 0) {
-                        noteText.textContent = 'None of your classes can run in ' + model.venue + ' — they do not fit before the day end (' + dayEnd + ').' +
-                            conflictWeekHint(model);
+                        /* honest reason split (user report 2026-10-16): the day-end
+                           sentence was shown even when the real blocker was the
+                           span running into an existing event below the cell */
+                        if (spanFails > 0) {
+                            noteText.textContent = 'None of your classes can run in ' + model.venue + ' at this cell — ' + hours[hi] + ' plus the class length runs into an existing event below. Pick a cell with enough free room beneath it.';
+                        } else {
+                            noteText.textContent = 'None of your classes can run in ' + model.venue + ' — they do not fit before the day end (' + dayEnd + ').';
+                        }
+                        noteText.textContent += conflictWeekHint(model);
                         renderConflictWeekButtons(model);
                         notice.style.display = 'block';
                         pickers.style.display = 'none';

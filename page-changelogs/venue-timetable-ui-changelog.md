@@ -900,3 +900,13 @@ student count + cohort · the class's usual venue/day/time · the conflict reaso
   date, `M j` label, reason) via the cached weekContext Mondays; the component decorates entries
   with `conflictOccurrences`; the week stays selectable (see the same-day week-agnostic amendment).
 - Tests: A1/A2 re-pointed to the label format + a data-tip presence/content assertion.
+
+#### Honest zero-reason split — span vs day end (user report 2026-10-16)
+Landing on a free cell whose span runs into an existing event below (e.g. B002 Monday 13:30 with
+the recurring 14:00–15:00 class beneath it) used to blame the day end ("they do not fit before the
+day end (18:30)") even though the actual blocker was the occupied 14:00–15:00 cells. The
+`refreshSessions` filter now counts the two failure kinds separately:
+- span-blocked → *"None of your classes can run in {venue} at this cell — {HH:MM} plus the class
+  length runs into an existing event below. Pick a cell with enough free room beneath it."*
+- truly past-the-day-end → the original day-end sentence.
+The conflict-week hint sentence stays on both branches.
