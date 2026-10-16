@@ -1,0 +1,60 @@
+All verification complete. Here is the review report.
+
+---
+
+## 🔍 Review Report: arrange-intent-session-choice — design round 2
+
+*This round reviews design.md (revision); `proposal.md` is FROZEN (3 rounds); `explore-brief.md` + round-1 addendum used as baseline. Round-1 design findings from the orchestrator summary used as validation baseline (no design round-1 entry in review-log.md yet — see 💡-1).*
+
+### Verification of round-1 fixes (in current text, against source)
+
+**🔴1 (span + ordering): claim to fix — PARTIALLY DELIVERED.** The ordering half is genuinely fixed: the sticky-flag mechanics are correctly diagnosed (`evaluateBookingFit` def `:2561`, runs inside `applyUrlParams` :3135 flush; `consumeBookingIntent` short-circuits `:2669–2674` on `intentNeedsManual || !canPlaceBlock`), and "reset flags → re-run `evaluateBookingFit` → then consume" is the right net rule. **But the span-sizing half is illusory — see 🔴 A below.**
+
+**🔴2 (sessions shape): genuinely fixed.** Verified in source: `coursesPayload` really is an id-keyed map (`mapWithKeys((string) $s->id => …)`, `ReplacementArrangement.php:198–214`), the consumers really look up `currentCourse.sessions[String(currentSessionId)]` (`:2339–2343`) and `currentCourse.sessions[wanted]` (`:2698–2701`). The id-map + parallel `order` array preserves both lookups byte-for-byte; additive fields (`day_of_week`, `start/end`) correct the round-2 proposal gap. The `(day_of_week, start_time, id)` order claim also matches reality: the consumer's `$sessions` query is already `orderBy('day_of_week')->orderBy('start_time')` (`ReplacementArrangement.php:96–97`), so "first-occurrence timetable order" is today's dropdown order, not a behavior change.
+
+**🟡 (consumer banner string): fixed.** Verbatim-clone recorded as a user decision; the producer clause and consumer lead-in are aligned and consistent with the frozen label format `· W{n},`.
+
+**🟡 (raw-vs-display vocabulary): fixed and correct.** Verified against the DB enum: `venues_room_type_check` constraint is exactly `('tutorial','lecture_hall','lab','cisco_lab')` (`2026_08_03_000002_create_venues_table.php:24`), so `ruleMap` values are real DB values, not guessed display names; consuming raw keys on the client and withdrawing the `venueEligible` refactor is decision-correct (see 🔴 C for the leftover that undoes it). The drift split is real in source: consumer maps `cisco_lab → 'Lab'` (`ReplacementArrangement.php::venuesPayload`), producer maps `cisco_lab → 'CiscoLab'` (`VenueTimetable.php:104–112`).
+
+**🟡 (double-jump test unnamed): fixed.** Now named (D4).
+
+**D6 honest inventory: verified.** `venuesPayload()` is indeed the already-emitted consumer venue rows; adding `rawRoomType` there + rule-map ride is truly page-data-only, write-path untouched. ✅
+
+### 🔴 Critical Issues (implementation blockers)
+
+- **🔴 A — D3 step 2b sets a parameter nothing will ever read again; the span-sizing fix does not exist.** D3 2b says: "sets `urlParams.duration = <matched session's duration>` (exactly what pinned-occurrence hydration does at `:3154`), so the existing `BLOCK_SPAN = hrs*2` clamp path (`:3159–3164`) sizes the span session-accurately **before** any fit evaluation." **False in current source.** The clamp block (`:3159–3164`) is one-shot boot code: it executes once in the boot block, *before* `applyUrlParams()` (`:3223`) even calls `resolveBookingIntent` (`:3106`) — so `urlParams.duration` is null at clamp time. The fallback runs at the *end* of boot, after `applyUrlParams()`; grep confirms `urlParams.duration` is referenced **only** at `:3154/:3159/:3160` — nothing re-reads it later. Net effect as written: `BLOCK_SPAN` stays at its pre-existing value (default 4) when the fallback resets flags and re-runs `evaluateBookingFit()` → the 1h-session-near-day-end case still computes `!canPlaceBlock(dayIndex, hourIndex)` with the wrong span → sticky `intentNeedsManual` returns → `consumeBookingIntent` still short-circuits at `:2669–2674` → **the round-1 🔴1 false day-end/occupancy cause survives verbatim.** Fix direction: D3 must state that the fallback *itself performs the hydration consequences* — replicate the clamp (`BLOCK_SPAN = Math.round(hrs*2)` after the `0.5–4` clamp, `MAX_SELECTION = Math.max(MAX_SELECTION, BLOCK_SPAN)`) — and specify the `urlSpanLocked` decision (recommended: locked=true, mirroring the pinned-hydration "initial authority", so a later auto slot-pick cannot re-resize a session-accurate span). Setting `urlParams.duration` for record-keeping + refresh truthfulness is fine as an *addition*, not as the mechanism.
+
+- **🔴 B — NEW defect: the fallback's pin bridge is destroyed by the default slot pick (`favourite/recent/first`) during step 2c.** The design never mentions `applyDefaultSlotSelection`. Verified mechanics: on **every** subject change, `renderSlotPicker(slots)` ends with `applyDefaultSlotSelection(slots)` (`:2872`). That function's pinned handoff escape guard (`:3043`) fires only on `urlParams.code && urlParams.day !== null && urlParams.start !== null && urlParams.originalVenue` — **all null in the fallback scenario** (no `code` param; that's the point of the fallback). So during the fallback's 2c subject pick, the default pick runs `selectSlot(slots[0], 0, {auto:true})` (or favourite/recent) → `commitSlotSelection` (`:2877–2952`):
+  1. resizes `BLOCK_SPAN` to the picked conflict slot's span (defeats 🔴 A's fix unless locked),
+  2. **overwrites `currentSessionId` and `window.pinnedOccurrence` with the picked conflict slot's identity** (`:2926–2930`) — clobbering the fallback's just-set compatible-session pin (step 2a) — it even rewrites history (`:2931`),
+  3. re-runs `buildVenueFilter()` for the new (possibly incompatible) occurrence and can auto-switch the venue away from the booked one via the ineligible-venue branch (`:2939–2950`).
+
+  For a mixed-type module (AMCS2093 = L+P+T) the first conflict occurrence can be the **L** session → the final context is L-in-a-lab: the exact dead-end this change exists to kill, recreated by the fallback's own automation. This is the same "favourite re-picked the L occurrence on a T handoff" hazard the current code fixed for ?session= handoffs (`:3039–3043` comment) — the fallback must get the same one-pick-per-handoff protection. Fix direction (neatest): the fallback hydrates the **full legacy urlParams family** from the matched session (`code/day/start/originalVenue(/duration)`) exactly like the pinnedSession hydration block (`:3147–3156`) before 2c — this satisfies the existing `:3043` guard untouched; alternatively extend the guard to skip when a fallback-driven `pendingBookingIntent + window.pinnedOccurrence` is armed.
+
+- **🔴 C — D5 still claims the venueEligible refactor that D0 explicitly withdrew; it contradicts a frozen non-goal.** D0: "that function and the venue-dropdown filter behavior are UNCHANGED… unifying `venueEligible` with the raw map is future work, not this change. The earlier 'refactor venueEligible to consume the map' sentence is WITHDRAWN." D5 ("Promoted to shared"): "…**the `venueEligible` refactor consumes the same rules** (its capacity check stays per-context)." An implementer reading D5 would refactor a function whose untouched status is protected by the frozen proposal's non-goal ("Consumer `venueEligible` matrix changes — reused, not redefined"). The round-1 withdrawal must propagate through the whole document: delete/reword the D5 sentence (e.g., "unchanged this change; unification is future work").
+
+### 🟡 Should Fix (non-blocking but recommended)
+
+- **🟡-1 — Occupancy↔day-end discrimination order contradicts the frozen proposal's branch semantics.** Proposal item 5: the day-end branch "fires only when span-fit fails **while the cells are otherwise free** — distinguishes from the occupancy branch." D3 item 4: `spanFits` is "called by `evaluateBookingFit` **before** the held-cell check" → a mixed case (span overruns *and* cells held) would be labeled day-end despite held cells. Align with the frozen wording: evaluate held-cells first (occupancy precedence for mixed), day-end only when free-and-overrunning; also state the precedence for too-soon vs others (current code: too-soon subsumes — keep).
+- **🟡-2 — Four-branch set has a fall-out hole at `:2657–2664`:** `consumeBookingIntent` sets `intentNeedsManual = true` when "a different selection is in the way" — that cause matches **none** of the four branches (span fits, cells free, not too-soon, no subject ineligibility), yet the proposal retires the generic "is conflicted" ternary that used to catch it. Define the neutral default branch (e.g., an innocuous "please clear/pick a slot manually" prompt), or verify the in-the-way state is unreachable in the fallback flow and say so.
+
+### ✅ What's Done Well
+
+- D1's id-map + parallel `order` decision is source-correct and protects both load-bearing lookups; module-order claim matches the existing query discipline.
+- The boot-ordering reconciliation narrative (sticky flag → re-run `evaluateBookingFit` → then consume) correctly describes how the intent survives the inner `consumeBookingIntent` triggered by 2c (`pendingBookingIntent` is *not* consumed on the short-circuit path).
+- `ruleMap` is grounded in the real DB enum (migration CHECK constraint), and the B005 pattern `/^\s*D/` matches the client matrix verbatim.
+- Producer wire call precedent (`Livewire.first().call(...)` returning values) is real: `replacement-arrangement.blade.php:1977–1979` (submitBlocks results) and `my-request-history:646/:698`; `VenueTimetable` already carries `ResolvesTimetableTimeline` (`timelineWeeks`/`slotIndex`) for occurrence-date math.
+- `bookVenue`'s 3-param signature + sessionStorage key family (`venue|date|time`) verified; "keep intent-key cleaning verbatim" is accurate.
+- Test targets exist and the named contract change (venue-book U2a-T3 `#tooltipBookBtn`, `:53–61`) is consistent with TC70's retirement notes.
+
+### 💡 Optional Suggestions
+
+- **💡-1 — Anchor drift in the design header:** `evaluateBookingFit` is def `:2561` / runs at `:3135` inside `applyUrlParams` (def `:3096`, invoked at boot `:3223`) — not ":3245 / :3060–3145". Direction is right; correct the numbers so /sdd-verify can trace claims line-for-line (D3's other anchors — `:3154`, `:3159–3164`, `:2669`, `:2700`, `:2922–2924` — all check out).
+- **💡-2 — D2 filter pseudocode garble:** `// filter: session.type ∈ ruleMap[session.type]` should read `venue.rawRoomType ∈ ruleMap[session.type]` (the prose around it is unambiguous; keep it from becoming a copy-paste typo).
+- **💡-3 —** The modal's occurrence facts are nominal: a session carrying a `ClassException`/holiday in the booked week will still be listed with that week's date. Low impact (submit-side engine stays honest), but worth one honest-labels note in D2 or a D6 ledger line.
+- **💡-4 —** D6's rule-map page-data ride also needs the one `MockData.* = window.PAGE_DATA.*` bridge line in the hydrate block (`:1170–1183`); trivial, but name it so the implementer doesn't discover it at runtime.
+- **💡-5 —** Append the *design round 1* entry to `review-log.md` (only proposal rounds 1–3 are there); the batched-review baseline for round 2 currently lives only in the orchestrator's message.
+
+### ⚖️ Review Verdict
+
+**BLOCKED.** Two blockers are mechanical (🔴 A: the span-sizing fix references one-shot code that cannot re-run, so the round-1 false day-end cause persists; 🔴 B: the un-guarded default slot pick destroys the fallback's pin mid-boot) and one is a one-sentence withdrawal leak (🔴 C) — but all three would produce a failed `/sdd-verify` or a reintroduced dead-end in production. الجزء Fix 반 rounds: (1) state the fallback's own clamp/re-hydration step + `urlSpanLocked` decision, (2) extend the one-pick-per-handoff guard (or hydrate legacy urlParams from the matched session, mirroring `:3147–3156`), (3) delete the D5 refactor sentence; then reconcile 🟡-1/🟡-2 branch semantics. Addressing is confined to the unfrozen design.md — proposal.md stays frozen.
