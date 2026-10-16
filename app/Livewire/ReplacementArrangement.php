@@ -12,6 +12,7 @@ use App\Models\Holiday;
 use App\Models\ReplacementRequest;
 use App\Models\TimeSlot;
 use App\Models\Venue;
+use App\Services\LectureSessionCatalog;
 use App\Services\MatrixIntersectionEngine;
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\Carbon;
@@ -104,6 +105,7 @@ class ReplacementArrangement extends Component
             'holidays' => $this->holidaysForJs(),
             'currentUser' => ['name' => (string) auth()->user()->name],
             'venues' => $this->venuesPayload(),
+            'ruleMap' => LectureSessionCatalog::ruleMap(),
             'courses' => $this->coursesPayload($sessions),
             'conflictEvents' => $this->conflictEventsPayload($sessions),
             'venueSlotsByWeek' => $this->venueSlotsByWeekPayload($semesterId, $weeks),
@@ -164,6 +166,9 @@ class ReplacementArrangement extends Component
             ->map(fn (Venue $v): array => [
                 'code' => (string) $v->room_code,
                 'name' => (string) $v->room_name,
+                // Raw DB encoding rides along (D6 honest inventory): the
+                // fallback eligibility checks ruleMap[] over raw values.
+                'rawRoomType' => (string) $v->room_type,
                 'type' => match ((string) $v->room_type) {
                     'lecture_hall' => 'LectureHall',
                     'lab', 'cisco_lab' => 'Lab',
@@ -178,55 +183,18 @@ class ReplacementArrangement extends Component
      * The lecturer's subjects in the mock's course shape (the client's
      * extractSlotsForSubject filter decides which appear in the dropdown).
      *
+     * SDD arrange-intent-session-choice (D1): this DELEGATES to the shared
+     * `LectureSessionCatalog` — the public shape stays identical (id-keyed
+     * `sessions` map preserved; the additive `order` array rides along),
+     * enriched with per-session facts (dayOfWeek/startTime/endTime/durationSlots/cohortCodes)
+     * the fallback prefill and the producer modal share.
+     *
      * @param  Collection<int, ClassSession>  $sessions
      * @return array<int, array<string, mixed>>
      */
     private function coursesPayload(Collection $sessions): array
     {
-        return $sessions
-            ->groupBy('module_id')
-            ->map(function (Collection $group): array {
-                $first = $group->first();
-
-                return [
-                    'code' => (string) $first->module->module_code,
-                    'name' => (string) $first->module->module_name,
-                    'type' => (string) $first->session_type,
-                    // Occurrence-grain context (2026-10-12, explore A2/A3): one
-                    // module code can hold L+T+P sessions with different
-                    // cohorts, headcounts, venues and durations — the picked
-                    // slot's session decides those, never the module default.
-                    'sessions' => $group->mapWithKeys(function (ClassSession $s): array {
-                        return [(string) $s->id => [
-                            'type' => (string) $s->session_type,
-                            'venue' => $s->venue !== null ? (string) $s->venue->room_code : '',
-                            'duration' => round(Carbon::parse((string) $s->start_time)->diffInMinutes(Carbon::parse((string) $s->end_time)) / 60, 2),
-                            'studentCount' => (int) $s->cohorts->sum('student_count'),
-                            'cohorts' => $s->cohorts
-                                ->map(fn ($c): string => $this->spacedCohortLabel($c))
-                                ->all(),
-                            'cohortCounts' => $s->cohorts
-                                ->map(fn ($c): int => (int) $c->student_count)
-                                ->all(),
-                        ]];
-                    })->all(),
-                    'cohorts' => $group->flatMap(fn (ClassSession $s) => $s->cohorts)
-                        ->unique('id')
-                        ->values()
-                        ->map(fn ($c): string => $this->spacedCohortLabel($c))
-                        ->all(),
-                    'cohortCounts' => $group->flatMap(fn (ClassSession $s) => $s->cohorts)
-                        ->unique('id')
-                        ->values()
-                        ->map(fn ($c): int => (int) $c->student_count)
-                        ->all(),
-                    'studentCount' => (int) $group->flatMap(fn (ClassSession $s) => $s->cohorts)
-                        ->unique('id')
-                        ->sum('student_count'),
-                ];
-            })
-            ->values()
-            ->all();
+        return app(LectureSessionCatalog::class)->build($sessions, null);
     }
 
     /**
@@ -605,19 +573,5 @@ class ReplacementArrangement extends Component
             'holiday' => 'That day is a public holiday — replacement classes cannot be booked on it.',
             default => 'Booking conflict — refresh and try again.',
         };
-    }
-
-    /**
-     * The mock's spaced cohort convention ('DFT2 (S1) G1').
-     */
-    private function spacedCohortLabel(?Cohort $cohort): string
-    {
-        if ($cohort === null || $cohort->programme === null) {
-            return '—';
-        }
-
-        return $cohort->programme->programme_code
-            .$cohort->current_year.' (S'.$cohort->semester.')'
-            .' G'.$cohort->tutorial_group;
     }
 }

@@ -7,11 +7,13 @@ use App\Models\Cohort;
 use App\Models\ReplacementRequest;
 use App\Models\TimeSlot;
 use App\Models\Venue;
+use App\Services\LectureSessionCatalog;
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Livewire\Attributes\Title;
 use Livewire\Component;
+use RuntimeException;
 
 /**
  * Venue Timetable — real slot-level data (SDD: venue-timetable-db).
@@ -40,6 +42,86 @@ class VenueTimetable extends Component
         $this->venueCode = $venue !== null ? $venue->room_code : '';
     }
 
+    /**
+     * "Select a Session" model (SDD arrange-intent-session-choice design D2/D3):
+     * the lecturer's sessions filtered to ones admissible for THIS venue, with
+     * this week's occurrence facts for the frozen session-label format.
+     * Wire-callable, owner-pinned (payloadFor(auth()->id(), …) — never another
+     * lecturer's sessions); the duration/day-end fit is client arithmetic
+     * against the shared hours constant, not part of this rule.
+     *
+     * @param  int  $week1  1-based booked week (the clicked cell's week + 0-based→1-based convention)
+     * @return array{modules: list<array<string, mixed>>, roomType: string, venue: string}
+     */
+    public function intentSessionOptions(int $week1): array
+    {
+        $catalog = new LectureSessionCatalog;
+        $rule = LectureSessionCatalog::ruleMap();
+        $rawRoomType = $this->bookedVenue()['rawRoomType'];
+        $semesterId = $this->timelineSemester()?->id;
+        $payload = $catalog->payloadFor((int) auth()->id(), $week1, $semesterId);
+
+        $modules = [];
+        foreach ($payload as $module) {
+            $fitting = [];
+            foreach ($module['order'] as $sessionId) {
+                $entry = $module['sessions'][(string) $sessionId];
+                if ($entry['dayOfWeek'] === null) {
+                    continue;
+                }
+                $allowedRooms = $rule[(string) $entry['type']] ?? null;
+                $typeOk = is_array($allowedRooms) && in_array($rawRoomType, $allowedRooms, true);
+                $b005Blocked = false;
+                if ($this->bookedVenue()['code'] === $rule['b005_venue_code']) {
+                    $pattern = '/'.((string) $rule['b005_no_diploma_pattern']).'/';
+                    foreach ((array) ($entry['cohortCodes'] ?? []) as $cohortCode) {
+                        if ((string) $cohortCode !== '' && preg_match($pattern, (string) $cohortCode) === 1) {
+                            $b005Blocked = true;
+                            break;
+                        }
+                    }
+                }
+
+                if ($typeOk && ! $b005Blocked) {
+                    $fitting[$sessionId] = $entry;
+                }
+            }
+            if (count($fitting) > 0) {
+                $modules[] = [
+                    'code' => $module['code'],
+                    'name' => $module['name'],
+                    'sessions' => $fitting,
+                    'order' => array_keys($fitting),
+                ];
+            }
+        }
+
+        return [
+            'modules' => $modules,
+            'roomType' => $rawRoomType,
+            'venue' => $this->bookedVenue()['code'],
+        ];
+    }
+
+    /** @var array{code: string, name: string, capacity: int, rawRoomType: string}|null Last rendered venue (intentSessionOptions reads it — Livewire keeps the component state). */
+    private ?array $currentVenueFacts = null;
+
+    /**
+     * The venue currently shown (renderPayload caches it — the modal always
+     * opens on the grid the user is looking at; ?venue= navigation re-renders,
+     * so the facts are fresh by construction).
+     *
+     * @return array{code: string, name: string, capacity: int, rawRoomType: string}
+     */
+    private function bookedVenue(): array
+    {
+        if ($this->currentVenueFacts === null) {
+            throw new RuntimeException('intentSessionOptions ran before any render — the venue facts are only available on a rendered component.');
+        }
+
+        return $this->currentVenueFacts;
+    }
+
     public function render(): View
     {
         $venue = Venue::where('room_code', $this->venueCode)->first();
@@ -48,7 +130,7 @@ class VenueTimetable extends Component
             // Empty venues table (fresh DB) — render with empty payloads.
             return $this->renderPayload(
                 collect(),
-                ['code' => '', 'name' => '', 'capacity' => 0],
+                ['code' => '', 'name' => '', 'capacity' => 0, 'rawRoomType' => ''],
                 array_fill(0, $this->timelineWeeks(), []),
                 array_fill(0, $this->timelineWeeks(), ['total' => 0, 'available' => 0, 'occupied' => 0, 'myClasses' => 0, 'myHours' => '0']),
             );
@@ -60,6 +142,10 @@ class VenueTimetable extends Component
                 'code' => $v->room_code,
                 'name' => $v->room_name ?? $v->room_code,
                 'capacity' => (int) $v->capacity,
+                // Raw DB encoding rides along (SDD arrange-intent-session-choice
+                // D0/D1): the modal + fallback consume ruleMap over raw values;
+                // the display mapping below stays for the dropdown filter.
+                'rawRoomType' => (string) $v->room_type,
                 'type' => match ($v->room_type) {
                     'lecture_hall' => 'LectureHall',
                     'cisco_lab' => 'CiscoLab',
@@ -276,12 +362,13 @@ class VenueTimetable extends Component
             'code' => $venue->room_code,
             'name' => $venue->room_name ?? $venue->room_code,
             'capacity' => (int) $venue->capacity,
+            'rawRoomType' => (string) $venue->room_type, // D2: the modal's server-side eligibility key
         ], $eventsByWeek, $totalsByWeek);
     }
 
     /**
-     * @param  Collection<int, array{code: string, name: string, capacity: int, type: 'CiscoLab'|'Lab'|'LectureHall'|'Tutorial'}>  $venuesJs
-     * @param  array{code: string, name: string, capacity: int}  $venue
+     * @param  Collection<int, array{code: string, name: string, capacity: int, rawRoomType: string, type: 'CiscoLab'|'Lab'|'LectureHall'|'Tutorial'}>  $venuesJs
+     * @param  array{code: string, name: string, capacity: int, rawRoomType: string}  $venue
      * @param  array<int, array<int, array<string, mixed>>>  $eventsByWeek
      * @param  array<int, array<string, int|string>>  $totalsByWeek
      */
@@ -291,6 +378,8 @@ class VenueTimetable extends Component
         array $eventsByWeek,
         array $totalsByWeek,
     ): View {
+        $this->currentVenueFacts = $venue;
+
         return view('livewire.venue-timetable', [
             'venuesJs' => $venuesJs,
             'venue' => $venue,

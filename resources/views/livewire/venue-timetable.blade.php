@@ -145,6 +145,9 @@
     <!-- ═══ Class Detail Modal ═══ -->
     @include('partials.ui-class-detail-modal')
 
+    <!-- ─── Select a Session modal (SDD arrange-intent-session-choice D2) ─── -->
+    @include('partials.ui-intent-session-modal')
+
     <script>
         /* Real-data bridge. DOMContentLoaded: mock-data.js / ui-common.js are
            parsed AFTER @yield('content') in the layout body (my-timetable pattern). */
@@ -242,7 +245,10 @@
                     'Arrange a replacement in ' + venueInfo.code + ' on ' + dayName + ', ' + dateStr + ' at ' + time + '?';
 
                 document.getElementById('tooltipBookBtn').onclick = function() {
-                    bookVenue(venueInfo.code, dateStr, time);
+                    /* U2a handoff → this change routes through the modal: the
+                       chosen subject/stream/format/queue accompanies the
+                       anchor session (arrange-intent-session-choice D2). */
+                    openIntentSessionModal(time, di, hi);
                 };
 
                 if (ev && ev.target) {
@@ -278,6 +284,172 @@
                     if (sessionStorage.getItem('bookingIntentDismissed') === bookingKey) sessionStorage.removeItem('bookingIntentDismissed');
                 } catch (e) {}
                 window.location.href = '/replacement-arrangement?venue=' + encodeURIComponent(venueCode) + '&date=' + encodeURIComponent(date) + '&time=' + encodeURIComponent(time) + '&from=venue-timetable';
+            }
+
+            /* ═══ Select a Session modal (arrange-intent-session-choice D2) ═══
+               The clicked slot's week/hour ride along so the client can do the
+               per-session arithmetic only (duration fit vs day end). All rule
+               data (type→room_type, B005) comes server-side in the wire
+               response — the client hosts no rule. */
+            let intentModalOpen = false;
+            let intentContext = null; // {dateStr, timeStr} of the BOOKED slot
+
+            function openIntentSessionModal(time, di, hi) {
+                intentModalOpen = true;
+                intentContext = {
+                    dateStr: weekData[currentWeek].days[di].date,
+                    timeStr: hours[hi],
+                };
+                const week1 = currentWeek + 1;
+                Livewire.first().call('intentSessionOptions', week1).then(function (model) {
+                    if (!intentModalOpen) return;
+                    renderIntentSessionModal(model, time, di, hi);
+                });
+            }
+
+            function closeIntentSessionModal() {
+                intentModalOpen = false;
+                document.getElementById('intentSessionModal').style.display = 'none';
+                document.getElementById('intentSessionModal').classList.remove('show');
+                if (focusedCell) { try { focusedCell.focus(); } catch (e) {} }
+            }
+
+            function intentOverlayClose(ev) {
+                if (ev.target === ev.currentTarget) closeIntentSessionModal();
+            }
+
+            function renderIntentSessionModal(model, time, di, hi) {
+                const el = document.getElementById('intentSessionModal');
+                const notice = document.getElementById('intentNotice');
+                const pickers = document.getElementById('intentPickers');
+                const subjectSel = document.getElementById('intentSubjectSelect');
+                const sessionSel = document.getElementById('intentSessionSelect');
+                const arrangeBtn = document.getElementById('intentArrangeBtn');
+                const dayEnd = hours[hours.length - 1];
+
+                subjectSel.innerHTML = '';
+                sessionSel.innerHTML = '';
+
+                /* Zero-fit / zero-compatible: no dropdowns, byte-frozen notice */
+                const fitting = (model.modules || []);
+                if (fitting.length === 0) {
+                    notice.innerHTML = 'None of your classes can run in ' + model.venue +
+                        ' — ' + roomTypeHuman(model.roomType) + ' hosts ' + sessionTypesHuman(model.roomType) + ' sessions only.';
+                    pickers.style.display = 'none';
+                    arrangeBtn.style.display = 'none';
+                    el.style.display = 'block';
+                    el.classList.add('show');
+                    return;
+                }
+
+                notice.style.display = 'none';
+                pickers.style.display = 'block';
+                arrangeBtn.style.display = '';
+
+                fitting.forEach(function (m, mi) {
+                    const opt = document.createElement('option');
+                    opt.value = String(mi);
+                    opt.textContent = m.code + ' — ' + m.name;
+                    subjectSel.appendChild(opt);
+                });
+
+                function renderSessionsFor(mi) {
+                    sessionSel.innerHTML = '';
+                    (fitting[mi].order || []).forEach(function (sid) {
+                        const e = fitting[mi].sessions[sid];
+                        /* duration fit against THIS cell's hour — arithmetic only */
+                        if (hi + (e.durationSlots || 1) > hours.length) return;
+                        const start = (e.startTime || '').slice(0, 5);
+                        const end = (e.endTime || '').slice(0, 5);
+                        const opt = document.createElement('option');
+                        opt.value = String(sid);
+                        /* frozen label format: {module} {name} ({type}) · W{n}, {day abbr}, {DD Mon YYYY} · {HH:MM}–{HH:MM} */
+                        opt.textContent = e.type !== undefined ? fitting[mi].code + ' ' + fitting[mi].name + ' (' + e.type + ') · W' + (e.weekNumber || week1) + ', ' + (e.dayAbbr || '') + ', ' + (e.date || '') + ' · ' + start + '–' + end : fitting[mi].code;
+                        opt.dataset.cohort = (e.cohortLabels && e.cohortLabels[0]) || (e.cohorts && e.cohorts[0]) || '';
+                        sessionSel.appendChild(opt);
+                    });
+                    arrangeBtn.disabled = sessionSel.options.length === 0;
+                    if (!arrangeBtn.disabled) arrangeBtn.textContent = 'Arrange';
+                    else {
+                        arrangeBtn.textContent = 'Arrange';
+                        /* all type-passing sessions fail the day end → the duration cause */
+                        notice.innerHTML = 'None of your classes can run in ' + model.venue +
+                            ' — ' + roomTypeHuman(model.roomType) + ' hosts ' + sessionTypesHuman(model.roomType) + ' sessions only.'+
+                            ' And none of them fit before the day end (' + dayEnd + ').';
+                        pickers.style.display = 'none';
+                        arrangeBtn.style.display = 'none';
+                    }
+                }
+
+                function refreshSessions() {
+                    const allFit = [];
+                    const mi = subjectSel.value;
+                    (fitting[mi].order || []).forEach(function (sid) {
+                        const e = fitting[mi].sessions[sid];
+                        if (hi + (e.durationSlots || 1) <= hours.length) allFit.push([sid, e]);
+                    });
+                    sessionSel.innerHTML = '';
+                    allFit.forEach(function (pair) {
+                        const sid = pair[0]; const e = pair[1];
+                        const start = (e.startTime || '').slice(0, 5);
+                        const end = (e.endTime || '').slice(0, 5);
+                        const opt = document.createElement('option');
+                        opt.value = String(sid);
+                        opt.textContent = fitting[mi].code + ' ' + fitting[mi].name + ' (' + e.type + ') · W' + (e.weekNumber || week1) + ', ' + (e.dayAbbr || '') + ', ' + (e.date || '') + ' · ' + start + '–' + end;
+                        opt.dataset.cohort = (e.cohortLabels && e.cohortLabels[0]) || (e.cohorts && e.cohorts[0]) || '';
+                        sessionSel.appendChild(opt);
+                    });
+                    if (allFit.length === 0) {
+                        notice.innerHTML = 'None of your classes can run in ' + model.venue + ' — they do not fit before the day end (' + dayEnd + ').';
+                        pickers.style.display = 'none';
+                        arrangeBtn.style.display = 'none';
+                    } else {
+                        notice.style.display = 'none';
+                        pickers.style.display = 'block';
+                        arrangeBtn.style.display = '';
+                        arrangeBtn.disabled = false;
+                    }
+                }
+
+                subjectSel.onchange = function () { refreshSessions(); };
+                renderSessionsFor(0);
+                el.style.display = 'block';
+                el.classList.add('show');
+            }
+
+            /* display-vocabulary ONLY for the notice sentence — the RULE data is server-side */
+            function roomTypeHuman(raw) {
+                return { lab: 'Lab', cisco_lab: 'Lab', tutorial: 'tutorial room', lecture_hall: 'lecture hall' }[raw] || raw;
+            }
+            function sessionTypesHuman(raw) {
+                return { lab: 'Practical (P)', cisco_lab: 'Practical (P)', tutorial: 'Tutorial (T)', lecture_hall: 'Lecture (L)' }[raw] || '';
+            }
+
+            function confirmIntentSession() {
+                const sel = document.getElementById('intentSubjectSelect');
+                const sessionSel = document.getElementById('intentSessionSelect');
+                const opt = sessionSel.options[sessionSel.selectedIndex];
+                if (!opt || !intentContext) return;
+                const moduleLabel = sel.options[sel.selectedIndex].textContent.split(' — ')[0];
+                bookVenueWithSession(venueInfo.code, intentContext.dateStr, intentContext.timeStr, moduleLabel, sessionSel.value, opt.dataset.cohort);
+            }
+
+            function bookVenueWithSession(venueCode, date, time, code, sessionId, cohortLabel) {
+                hideAvailableTooltip();
+                const bookingKey = venueCode + '|' + date + '|' + time;
+                try {
+                    if (sessionStorage.getItem('bookingIntentCancelled') === bookingKey) sessionStorage.removeItem('bookingIntentCancelled');
+                    if (sessionStorage.getItem('bookingIntentDismissed') === bookingKey) sessionStorage.removeItem('bookingIntentDismissed');
+                } catch (e) {}
+                closeIntentSessionModal();
+                window.location.href = '/replacement-arrangement?venue=' + encodeURIComponent(venueCode)
+                    + '&date=' + encodeURIComponent(date)
+                    + '&time=' + encodeURIComponent(time)
+                    + '&from=venue-timetable'
+                    + '&code=' + encodeURIComponent(code)
+                    + '&session=' + encodeURIComponent(sessionId)
+                    + '&cohort=' + encodeURIComponent(cohortLabel)
+                    + '&week=' + encodeURIComponent(currentWeek + 1);
             }
 
             /* B shortcut opens on the Tab-focused cell; Escape hides the
