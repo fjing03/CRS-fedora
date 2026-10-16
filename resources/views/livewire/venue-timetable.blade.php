@@ -88,6 +88,13 @@
         ]
     ])
 
+    <!-- ─── JS-owned surface (wire:ignore): the grid cells, week navigation,
+         summary values and progress bar are all built client-side by the page
+         script — a Livewire update would morph the server's empty shells over
+         them (SDD arrange-intent-session-choice: the modal's wire call is this
+         page's first update). Venue switching is ?venue= full render, so the
+         server never needs to update inside this block. ─── -->
+    <div wire:ignore>
     <!-- ─── Semester Progress ─── -->
     <div class="semester-progress" id="semesterProgress">
         <div class="progress-label" id="progressLabel"></div>
@@ -143,6 +150,7 @@
     ])
 
     <p class="booking-hint-line">Click any green empty slot to arrange a replacement in this venue.</p>
+    </div><!-- /wire:ignore: JS-owned surface -->
 
     <!-- ─── Available Slot Tooltip (U2a — frozen template :461–463) ─── -->
     <div class="available-tooltip" id="availableTooltip">

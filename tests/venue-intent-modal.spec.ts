@@ -24,6 +24,10 @@ test('A1: B110 modal opens after wire call (the RuntimeException regression)', a
     // lecture hall: only the subject's L occurrence is offered
   expect(sessions.some(t => /\(L\) ·/.test(t))).toBe(true);
   expect(sessions.some(t => /\(P\) ·/.test(t))).toBe(false);
+  // the Livewire morph must NOT wipe the JS-built grid (wire:ignore guard)
+  await page.waitForTimeout(400);
+  expect(await page.locator('#tableBody .cell-available').count()).toBeGreaterThan(0);
+  expect(await page.locator('#weekSelect option').count()).toBeGreaterThan(0);
   await page.locator('#intentCancelBtn').click();
   await expect(page.locator('#intentSessionModal')).not.toBeVisible();
 });
