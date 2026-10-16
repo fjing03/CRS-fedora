@@ -1,68 +1,83 @@
 # Venue Restrictions — booking & assignment rules
 
-Reference list of venue-specific restrictions. **Doc-only for now** — these rules are
-NOT yet enforced anywhere; they are the spec for a future enforcement change
-(booking validation / arrangement filtering, Slice B scope). Any enforcement work
-needs its own SDD proposal first.
+> **Reading this file (for humans AND AI agents).** Every rule below has exactly one of
+> three statuses. Never conflate them:
+>
+> | Status | Meaning |
+> |---|---|
+> | **ENFORCED** | Already live in code today (see where, per rule). |
+> | **DOC-ONLY** | The rule is agreed policy, but NOTHING checks it yet — no engine check, no client filter. Implementing it requires its own SDD change. |
+> | **PLANNED-NEW** | A user directive recorded here first (2026-10-15). It is a policy DELTA over today's behavior — not currently true anywhere. |
+>
+> Enforcement candidates defer to one future SDD change, **"venue-restrictions enforcement"** (§4). Before that change, the ONLY venue eligibility logic live in code is:
+> * client matrix `venueEligible()` in `resources/views/livewire/replacement-arrangement.blade.php` (display-vocabulary: P→Lab, T→Tutorial, L→LectureHall; capacity ≥ session headcount; B005 hides when any cohort is `D*`);
+> * server-side `allowed_session_types` / `room_type` use in `app/Livewire/ReplacementArrangement.php` (`venuesPayload`, `blockedVenuesPayload`) — **type + capacity only**;
+> * `App\Services\LectureSessionCatalog::ruleMap()` (SDD `arrange-intent-session-choice`) — the same type rules as data, consumed by the "Select a Session" modal and the arrangement fallback.
+> B005's no-Diploma derivation is client-side only today.
 
 ---
 
-## 1. B006 — Cisco Lab
+## 1. Rules
 
-**Priority: Networking subjects (L/T/P) and IoT subjects (P only) rank FIRST. Non-networking subjects may use B006 only when no networking/IoT demand needs the room — lower priority, not a ban.**
+### R1 — Session-type → venue-type map — **ENFORCED (listed locations above)**
 
-- B006 is the single `cisco_lab` venue (capacity 32, `allowed_session_types = 'P'` in `venues`).
-- Networking subjects currently in the DB (42 modules) — **priority claimants**:
-  | Code | Name | Types |
-  |---|---|---|
-  | AMIT2033 | Networking Essentials | L, T, P |
-  | AMIT2034 | Fundamentals of Computer Networks | L, T, P |
-  | BMIT2154 | Switching and Routing Technologies | L, T, P |
-  | BMIT3084 | Enterprise Networking | L, T, P |
-- IoT subjects: **none exist in the DB yet** — when added, P only.
-- ⚠️ Open question: the authoritative Networking/IoT subject list needs confirmation
-  (name-based match above may miss edge cases, e.g. Internet Security). If the
-  curriculum defines a module category, prefer that over name matching.
-- Audit 2026-10-09: 6 non-networking sessions currently use B006 (AMCS1013 ×2,
-  BMIS2003 ×2, BMIT3173, BMIT3273) — **acceptable under the priority rule**
-  (lower priority, not violations). They yield to networking/IoT demand when
-  conflicts arise.
-
-## 2. B005 — Lab
-
-**Diploma students disallowed (programmes `D**` — cohort codes starting with `D`).**
-
-- B005 is a `lab` venue (capacity 28, `allowed_session_types = 'P'`).
-- Diploma programmes in the DB: `DFT` (Diploma in IT), `DSF` (Diploma in Software
-  Engineering) — their cohort codes (`cohortCode()`: programme + year + semester +
-  group) all start with `D`.
-- Bachelor programmes (`RSD`, `RAF`, `RBU` — codes starting with `R`) are unaffected.
-- Audit 2026-10-09: **1 violation** — AMIT2034 P (Wed 11:00–13:00, En. Daniel Royd
-  Michael, combined DFT+DSF lecture) → being flagged as a schedule conflict needing
-  replacement (SDD change `b005-diploma-conflict`).
-
-## 3. Practical classes must use Labs
-
-**Any `P` (Practical) session may only be scheduled in a venue with
-`room_type IN ('lab', 'cisco_lab')`.**
-
-- Current lab-type venues: B005 (lab), B006 (cisco_lab) — of 23 venues total
-  (tutorial 16, lab 1, lecture_hall 2, cisco_lab 1).
-- This parallels the existing `venues.allowed_session_types` column (both labs
-  currently declare `'P'`); this rule additionally forbids lecture halls and
-  tutorial rooms from hosting practicals regardless of what that column says.
-
----
-
-## Enforcement notes (for the future change)
-
-| Rule | Natural check |
+| Session type | Allowed venue room_type |
 |---|---|
-| B006 networking/IoT | module list/registry lookup at booking time (venue → allowed module categories) |
-| B005 no-Diploma | cohort's `programme_code` starts with `D` → reject B005 |
-| Practical → Labs | `session_type === 'P'` requires `room_type IN ('lab', 'cisco_lab')` |
+| `P` (Practical) | `lab`, `cisco_lab` |
+| `T` (Tutorial) | `tutorial` |
+| `L` (Lecture) | `lecture_hall` |
 
-Related schema facts: `venues.room_type` (`lab`/`cisco_lab`/`lecture_hall`/`tutorial`),
-`venues.allowed_session_types`, `programmes.programme_code` (D*/R*), the
-`time_slots_no_double_book_idx` partial unique index, and the OCC `version` column
-from the booking write path (Slice B).
+No session may occupy a venue whose `room_type` is not in its row. Capacity and B005 checks (R2) apply **in addition**.
+
+### R2 — B005 no-Diploma — **DOC-ONLY** as a *server rule*; **client-only today**
+
+Diploma students may not use B005: reject when any cohort of the session's `programme_code` starts with `D` (`DFT`, `DSF` exist; Bachelor codes start with `R` — unaffected).
+
+- Today it is surfaced as a **derived conflict** in the timetable pages (SDD `b005-diploma-conflict`) and used *client-side* in `venueEligible`/the modal — the submit-side engine does NOT check it yet.
+- Audit 2026-10-09: 1 violation found (AMIT2034 P, Wed 11:00–13:00, combined DFT+DSF lecture) → flagged for replacement.
+
+### R3 — B006 Cisco Lab priority — **DOC-ONLY** (verified delta: partially NEW policy)
+
+**Priority claimants:** Networking subjects, all session types `L, T, P` (DB list: AMIT2033 Networking Essentials, AMIT2034 Fundamentals of Computer Networks, BMIT2154 Switching and Routing Technologies, BMIT3084 Enterprise Networking — each L, T, P).
+**Everyone else:** may use B006 at LOWER priority (never banned) — yield to networking/IoT demand.
+
+⚠️ **Two reality checks (2026-10-15):**
+1. `venues.allowed_session_types = 'P'` for B006 today → **only P sessions may occupy it**. Networking-claimant **L/T** sessions in B006 are **not legal today**: the enforcement change must widen the column + the engine check. That widening is **PLANNED-NEW**, not current policy.
+2. `cisco_lab` maps to display vocabulary `'CiscoLab'` (producer payload) and `'Lab'` (consumer payload) — the enforcement change must keep one canonical encoding (see `LectureSessionCatalog::ruleMap()`).
+
+- Open question assigned to the enforcement change: **how "Networking" identity is decided** — name-list match (misses edge cases, e.g. Internet Security) vs a curated module-category registry. Where the rule data lives is already solved (`ruleMap()` as data); which MODULES belong in it is not.
+
+### R4 — IoT exclusivity — **PLANNED-NEW (user directive 2026-10-15; nothing implemented)**
+
+**When an IoT module exists, its `P` sessions may use B006 ONLY** — excluded from every other lab (B005, B009, B010, B011). Stricter than today: overrides R1 for IoT-P (B005/B009/B010/B011 are `lab` and today legal for any P).
+
+- Precondition: an IoT module in the DB (none exist yet — when added, classify it per R3's open question).
+- Cross-ref: recorded as a deferred non-goal in SDD `arrange-intent-session-choice`.
+
+### R5 — Audit trail (context only, no action)
+
+Audit 2026-10-09: 6 non-networking sessions use B006 (AMCS1013 ×2, BMIS2003 ×2, BMIT3173, BMIT3273) — **legal under the priority rule** (lower priority, not violations).
+
+---
+
+## 2. DB facts the rules read (unchanged)
+
+| Table.column | Values | Used by |
+|---|---|---|
+| `venues.room_type` | `tutorial` / `lecture_hall` / `lab` / `cisco_lab` (CHECK constraint) | R1, R3, R4 |
+| `venues.allowed_session_types` | `P` for B005 & B006 today | historical guard; R1 supersedes when enforcement lands |
+| `programmes.programme_code` | `DFT`, `DSF` (Diploma, `D*`); `RSD`, `RAF`, `RBU` (Bachelor, `R*`) | R2 |
+| `time_slots_no_double_book_idx` partial unique index | `(venue, day, start, week) WHERE status IN ('pending','occupied')` | double-book protection (independent of these rules) |
+| OCC `version` column | optimistic-concurrency flip | booking write path |
+
+## 3. Layer map (where eligibility is decided TODAY)
+
+| Layer | File | Checks live there today |
+|---|---|---|
+| Submit-side engine | `app/Services/MatrixIntersectionEngine.php` (+ `ReplacementArrangement::eligibleVenues`) | R1 only (type + capacity) |
+| Arrangement client filter | `replacement-arrangement.blade.php` `venueEligible()` | R1 (display vocab) + capacity + B005 (client) |
+| Producer modal + fallback | `app/Livewire/VenueTimetable.php::intentSessionOptions` / arrangement fallback (SDD `arrange-intent-session-choice`) | R1 + R2 via `ruleMap()` — the same data the enforcement change will extend |
+
+## 4. "Venue restrictions enforcement" — the future SDD change
+
+Turns every DOC-ONLY / PLANNED-NEW rule above into code at all three layers, keeping ONE rule source (`LectureSessionCatalog::ruleMap()` — or its enforced successor) consumed as data by: (1) the submit-side engine (authoritative OCC-time validation); (2) the arrangement venue dropdown + `venueEligible`; (3) the "Select a Session" modal + fallback. It also MUST resolve: the Networking module registry (R3's open question), the B006 `allowed_session_types` widening (R3 ⚠️1), and the IoT exclusivity check (R4). Until it lands, treat R2/R3/R4 as documentation, and never "quick-fix" them ad hoc.
