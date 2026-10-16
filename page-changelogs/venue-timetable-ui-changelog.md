@@ -840,3 +840,14 @@ round-confirmed ×2 independent rounds; tasks round-confirmed). Zero PHP changes
 `replacement_requests` in the demo DB (`class_replacement_fresh`) is currently empty —
 the handover-era pending fixtures (reqs #1–#3 incl. slot 27309 B110 W4 Thu 12:00) are
 not present; slot 27309 is `available` v1. Nothing was modified by this change.
+
+### Session-choice modal postscript (SDD arrange-intent-session-choice, 2026-10-15)
+
+The tooltip's **Arrange** button now opens the **"Select a Session"** modal (new partial `partials/ui-intent-session-modal.blade.php` — purely shared shell: `.modal-overlay`/`.modal`/`.modal-footer` + bottom-sheet ≤768px from theme.css) instead of navigating directly:
+
+- **Subject + session dropdowns list ONLY vids/classes that may legally run in the venue** (raw rule data from `App\Services\LectureSessionCatalog::ruleMap()` — P→lab∪cisco_lab, T→tutorial, L→lecture_hall; B005 hides sessions whose cohorts are `D*`; capacity intentionally NOT re-filtered here — the engine still rejects honestly at submit). Preselected: first subject in dropdown order with the first fitting session (Occurrence grain — mixed-type modules bind their compatible occurrence, not the module's first).
+- **Session labels byte-frozen (user decision 2026-10-15):** `{module} {name} ({type}) · W{n}, {day abbr}, {DD Mon YYYY} · {HH:MM}–{HH:MM}` — the date/week facts come from the server (one source).
+- **`[Cancel]`/Escape = nothing happens** (focus restored to the cell). **`[Arrange]`** → the 8-param handoff `/replacement-arrangement?venue&date&time&from=venue-timetable&code&session&cohort&week` — the frozen template's original `code/cohort` contract finally genuinely filled; `session`+`week` ride the consumer's native pinned-occurrence contract (server-resolved, ownership-checked).
+- **Timing:** the day-end fit is checked per-session client-side (`hour + durationSlots ≤ hours.length`) — durations >2h can now be offered; sessions that don't fit before the day end are simply not offered. If NOTHING fits: the modal shows (a) *"None of your classes can run in {venue} — {room type} hosts {type} sessions only."* and, when durations are the only miss, (b) *"…and none of them fit before the day end ({last slot})."* — user-frozen copies (2026-10-15).
+
+Supporting: `VenueTimetable` gains the wire-callable `intentSessionOptions(week1)` (owner-pinned) + the shared `App\Services\LectureSessionCatalog` (rule map + enriched courses payload — the OOP promotion; `coursesPayload` delegates, shape preserved + additive `order` array). Consumer-side honest-copy + fallback documented in the arrangement page's changelog.

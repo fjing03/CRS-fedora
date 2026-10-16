@@ -63,3 +63,7 @@ Reviewer verified from the frozen artifacts + source: full coverage (design D0�
 - T7 hydration-family anchor note (`:3141–3156` vs D3's `:3147–3156`) — cosmetic.
 
 **TASKS FROZEN — 2026-10-15 (1 confirmation round; 0 outstanding). All four artifacts hold real freezes: proposal (×3), design (×7), tasks (×1). `/sdd-apply` is cleared per the user's standing gate rules — NOT started here.**
+
+## Apply completion note — 2026-10-15 (implementer)
+
+Implemented T1–T5 + T7a/7b/T8 + T10 gates + T11 docs. NOTE per user direction: **T6/T9 Playwright spec authorship + runs were SKIPPED at the user's explicit request — they will test manually.** Gate results: pint ✓, phpstan 0 ✓, phpunit 178/178 ✓ (service contract tests included), blade JS node-parse ✓, stale-cache ritual done (server live on :8000). Placement amendment (soft-freeze): the fallback runs after the boot's final buildTimetable (documented in design D3 — the "before __bootDone" premise would run on an unbuilt DOM). Files touched: app/Services/LectureSessionCatalog.php (new), app/Livewire/{ReplacementArrangement,VenueTimetable}.php, resources/views/livewire/{venue-timetable,replacement-arrangement}.blade.php, resources/views/partials/ui-intent-session-modal.blade.php (new), tests/Feature/LectureSessionCatalogTest.php (new, 5 tests), 2 changelogs, design.md (placement amendment). Committed as feat/ui/test/docs split below. The manual-test matrix (user-runnable) is in the session chat.

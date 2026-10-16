@@ -1338,3 +1338,12 @@ favourite/recent/first, per the mock's own priority list ("1. URL params").
 Live-verified: T entry holds B107 (pinned, no stomp); P pick → first
 eligible lab B006 (B005 Diploma-skipped), dropdown Types column shows only
 "Lab"; L pick → B110. Suite green, phpstan 0.
+
+### Intent-arrival upgrade postscript (SDD arrange-intent-session-choice, 2026-10-15)
+
+Two behavior upgrades to the booking-intent consumer, both user-decided 2026-10-15:
+
+1. **The "is conflicted" banner retires.** `renderBookingIntent` now renders five honest, cause-specific branches (first-true wins): *in-the-way* (your own selection covers the booked slot), *too-soon* (frozen wording), *held* (a block already holds the slot — bounded-scan occupancy), *span/day-end* (the class runs longer than the time left before the day end), and *type-ineligibility* (`{module}({type}) has no {required-type} sessions that can run in {venue}`). Zero-compatible-no-subject uses the producer's wording verbatim: *"Booking {venue} · … — none of your classes can run in {venue} — {room type} hosts {type} sessions only."*
+2. **Fallback prefill for modal-bypass arrivals.** A full-intent URL without `?session=` (hand-typed etc.) now auto-picks the first class of yours the venue legally admits (occurrence grain; type + B005 + duration-fit against the booked hour), hydrates the pinned-occurrence family (`code/day/start/originalVenue/duration`), sizes `BLOCK_SPAN` from the session (span-locked), pins it, binds via the subject path — the `:2712` consume stays the boot's only pick, the toast says *"Pre-selected {module} ({type}) — auto-picked because its sessions fit {venue} — change if needed."* (one-shot). Manual picks are NEVER overridden (the type-ineligibility naming copy appears instead). Bare `?venue=` deep links — no prefill, unchanged. `intentCancelled` bookmarks stay dead on reload.
+
+Supporting: rule data hydrates once (`window.__ruleMap ← PAGE_DATA.ruleMap` — single source, `LectureSessionCatalog`); venues payload carries raw `room_type`; the boot-final `buildTimetable` precedes the fallback (placement amendment — the DOM must exist for the occupancy predicate). No submit/OCC/engine changes.
