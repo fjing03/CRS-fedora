@@ -84,3 +84,14 @@ Implemented T1–T5 + T7a/7b/T8 + T10 gates + T11 docs. NOTE per user direction:
 - **Playwright-fix:** the venue modal's span-filter needed VENUE-occupancy verification — the day-end check alone let a chosen cell's 2h span cross `AMIS1012`'s B110 Mon block (W8) — added `spanOccupied()` client filter (soft-freeze note), spec helper `pickSpanFreeCell` now spans-aware (shared `tests/helpers/intent-modal-helper.ts` – DRY, used by both venue specs).
 - **Label trim (user decision 2026-10-16):** the session dropdown drops the subject NAME (the subject dropdown shows it) — label = `{module} ({type}) · W{n}, {day abbr}, {DD Mon YYYY} · {HH:MM}–{HH:MM}`.
 - Results: venue-intent-modal 7/7, venue-book 6/6, venue-db 6/6, venue-timetable 56/56, type-labels ✓; pint ✓ phpstan 0 ✓ phpunit 178/178 ✓. The stale "healthy-class offered" rumors (test asserts) were fixed to the real holiday-day mapping (Deepavali Mon; Xmas Eve Thu; Xmas Day Fri in W14).
+
+## Apply round 4 — 2026-10-16 (user-directed post-freeze amendments; verified live)
+
+Five user-reported UX rounds after the conflicted-only amendment, each landed + changelog-recorded (venue-timetable + replacement-arrangement page changelogs) as user decisions against the frozen 99.9%-UI contract:
+1. **Week-agnostic pool** (`1a8db7c`): a conflicted class is arrangeable at ANY week past the lead time — the pool no longer pins to the conflict week; `conflictedFor()` semester-wide; consumer fallback parity. The frozen "conflicted for the BOOKED week" grain is superseded by user directive.
+2. **Occurrence-grain rows + shared tooltip** (`3a532b6`): session picker rebuilt on the venue-dd trigger/panel pattern (`.session-dd` token block in theme.css) because native `<option>` cannot host tooltips; rows = `(Type) W{week}, {Day}, {Date} . {HH:MM} ~ {HH:MM}` + full-details data-tip (frozen label format superseded by user request).
+3. **Spurious confirm-modal fix** (`4b80c4c`): the legacy occurrence pick skips on `?session=` landings (it double-picked over the booking-intent auto-select); session-path 2e re-consume parity + cosmetic pinned-occurrence anchor.
+4. **Honest zero-reason split** (`8a32874`): span-blocked vs past-day-end counted separately (the B002 Mon 13:30 case blamed the day end).
+5. **Hint removal + gap guidance + rich typography** (`b95ed4c`, `33fd6a2`): the conflict-week sentence + Jump buttons removed (user: they implied a restriction); gap message "at least a {n}-hour gap"; approved CAPS/bold/red-amber treatment on all three notices (`theme.css .intent-notice .notice-*`).
+
+Verification sweep (2026-10-16): T1–T11 mapped to landed code; `conflictWeeks` wire field removed (consumer gone); gates re-run green (pint ✓, phpstan 0 ✓, phpunit 178/178 ✓, Playwright venue suites 18/18 + full venue fleet 74/74). T9 remains covered by venue-intent-modal C2 (no separate intent-fallback spec — recorded deviation, tasks.md annotated).
