@@ -371,8 +371,9 @@
                 /* Zero-fit / zero-compatible: no dropdowns, byte-frozen notice */
                 const fitting = (model.modules || []);
                 if (fitting.length === 0) {
-                    noteText.textContent = 'None of your classes can run in ' + model.venue +
-                        ' — ' + roomTypeHuman(model.roomType) + ' hosts ' + sessionTypesHuman(model.roomType) + ' sessions only.';
+                    noteText.innerHTML = noticeHtml(
+                        'None of your classes can run in ' + model.venue,
+                        roomTypeHuman(model.roomType) + ' hosts ' + sessionTypesHuman(model.roomType) + ' sessions only.');
                     notice.style.display = 'block';
                     pickers.style.display = 'none';
                     arrangeBtn.style.display = 'none';
@@ -467,9 +468,15 @@
                             /* gap guidance (user request 2026-10-16): name the smallest
                                candidate length as the needed continuous gap (30-min slots) */
                             const gapHours = Math.round((minSpan * 30) / 60 * 10) / 10;
-                            noteText.textContent = 'None of your classes can run in ' + model.venue + ' at this cell — ' + hours[hi] + ' plus the class length runs into an existing event below. Please book with at least a ' + (gapHours === 1 ? '1-hour' : gapHours + '-hour') + ' gap between this block and the next event — pick a cell with enough free room beneath it.';
+                            noteText.innerHTML = noticeHtml(
+                                'None of your classes can run in ' + model.venue + ' at this cell',
+                                hours[hi] + ' plus the class length runs into an existing event below.',
+                                'Please book with at least a ' + (gapHours === 1 ? '1-hour' : gapHours + '-hour') + ' gap',
+                                'Between this block and the next event — pick a cell with enough free room beneath it.');
                         } else {
-                            noteText.textContent = 'None of your classes can run in ' + model.venue + ' — they do not fit before the day end (' + dayEnd + ').';
+                            noteText.innerHTML = noticeHtml(
+                                'They do not fit before the day end (' + dayEnd + ')',
+                                'None of your classes can run in ' + model.venue + ' — pick an earlier cell.');
                         }
                         notice.style.display = 'block';
                         pickers.style.display = 'none';
@@ -488,6 +495,19 @@
                 /* show parity with the shared shells (ui-common DetailModal.open :1185) */
                 el.classList.add('show');
                 el.style.display = 'flex';
+            }
+
+            /* rich notice typography (user-approved 2026-10-16): CAPS+bold head
+               in error red, muted reason line, amber CAPS guidance — token-only
+               classes from theme.css (.notification-head/.notice-*) */
+            function noticeHtml(head, muted, guideCaps, guideTail) {
+                let html = '<strong class="notice-head">' + head + '</strong>' +
+                    '<span class="notice-muted">' + muted + '</span>';
+                if (guideCaps) {
+                    html += '<span class="notice-guide">' + guideCaps + '</span>' +
+                        '<span class="notice-muted">' + guideTail + '</span>';
+                }
+                return html;
             }
 
             /* display-vocabulary ONLY for the notice sentence — the RULE data is server-side */

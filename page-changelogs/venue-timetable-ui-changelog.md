@@ -923,3 +923,17 @@ the hints implied a restriction that does not exist. The notice sentences are no
 - past-the-day-end → the original day-end sentence.
 Server-side: `VenueTimetable::intentSessionOptions` no longer emits `conflictWeeks` (consumer removed);
 `conflictedFor()` still drives the week-agnostic candidate pool.
+
+#### Rich notice typography (user-approved 2026-10-16)
+Approved treatment applied to ALL THREE modal notices for consistency:
+- **Bold CAPS error-red head** (`var(--color-error)`, `text-transform: uppercase`)
+- **Muted reason line** (`var(--color-on-surface-variant)`, 13px)
+- **Bold CAPS amber guidance** (`var(--color-warning)`) + muted remedy (span-blocked case only)
+- Line-height 1.5 / 1.55, 4–8px gaps; token-only `.intent-notice .notice-*` block in theme.css.
+Sentences split:
+1. span-blocked: `NONE OF YOUR CLASSES CAN RUN IN {V} AT THIS CELL` / `{HH:MM} plus the class length
+   runs into an existing event below.` / `PLEASE BOOK WITH AT LEAST A {n}-HOUR GAP` / `Between this
+   block and the next event — pick a cell with enough free room beneath it.`
+2. day-end: `THEY DO NOT FIT BEFORE THE DAY END ({18:30})` / `None of your classes can run in {V} —
+   pick an earlier cell.`
+3. venue-incompatible: `NONE OF YOUR CLASSES CAN RUN IN {V}` / `{room type} hosts {types} sessions only.`

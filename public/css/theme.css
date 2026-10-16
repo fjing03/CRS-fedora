@@ -3638,6 +3638,33 @@ body {
     align-items: center;
 }
 
+/* ── Select-a-Session notice (rich typography, user-approved 2026-10-16) ──
+   Head: bold CAPS error red · reason: muted · guidance: bold CAPS warning,
+   followed by a muted remedy. Token-only; dark-mode adapts via tokens. */
+.intent-notice .notice-head,
+.intent-notice .notice-muted,
+.intent-notice .notice-guide { display: block; }
+.intent-notice .notice-head {
+    color: var(--color-error);
+    font-weight: 700;
+    text-transform: uppercase;
+    line-height: 1.5;
+}
+.intent-notice .notice-head + .notice-muted { margin-top: 4px; }
+.intent-notice .notice-muted {
+    color: var(--color-on-surface-variant);
+    font-size: 13px;
+    line-height: 1.55;
+}
+.intent-notice .notice-guide {
+    color: var(--color-warning);
+    font-weight: 700;
+    text-transform: uppercase;
+    line-height: 1.5;
+    margin-top: 8px;
+}
+.intent-notice .notice-guide + .notice-muted { margin-top: 2px; }
+
 /* ── Data-Tip Tooltip (shared CSS) ──────────────────────────── */
 .data-tip-tooltip {
     position: fixed;
