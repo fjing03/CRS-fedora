@@ -327,9 +327,17 @@
                 intentModalOpen = false;
                 const el = document.getElementById('intentSessionModal');
                 el.style.display = 'none';
+                const sessionDd = document.getElementById('intentSessionDd');
+                if (sessionDd) sessionDd.classList.remove('open');
                 el.classList.remove('show');
                 if (focusedCell) { try { focusedCell.focus(); } catch (e) {} }
             }
+
+            /* outside click closes the occurrence dropdown (venue-dropdown parity) */
+            document.addEventListener('mousedown', function (e) {
+                const dd = document.getElementById('intentSessionDd');
+                if (dd && dd.classList.contains('open') && !dd.contains(e.target)) dd.classList.remove('open');
+            });
 
             function intentOverlayClose(ev) {
                 if (ev.target === ev.currentTarget) closeIntentSessionModal();
@@ -343,12 +351,22 @@
                 subtitle.textContent = 'Booking ' + model.venue + ' · ' + weekData[currentWeek].days[di].abbr + ', ' + weekData[currentWeek].days[di].date + ' · ' + hours[hi];
                 const pickers = document.getElementById('intentPickers');
                 const subjectSel = document.getElementById('intentSubjectSelect');
-                const sessionSel = document.getElementById('intentSessionSelect');
+                const sessionDd = document.getElementById('intentSessionDd');
+                const sessionTrigger = document.getElementById('intentSessionTrigger');
+                const sessionTriggerLabel = document.getElementById('intentSessionTriggerLabel');
+                const sessionPanel = document.getElementById('intentSessionPanel');
                 const arrangeBtn = document.getElementById('intentArrangeBtn');
                 const dayEnd = hours[hours.length - 1];
+                /* occurrence-grain selection (user request 2026-10-16): the picked
+                   row = one flagged occurrence; Arrange books that SESSION at the
+                   clicked cell (handoff contract unchanged). */
+                let sessionPick = null;
 
                 subjectSel.innerHTML = '';
-                sessionSel.innerHTML = '';
+                sessionTriggerLabel.textContent = 'Select the conflicted class…';
+                sessionPanel.innerHTML = '';
+                sessionDd.classList.remove('open');
+                sessionDd.dataset.pick = '';
 
                 /* Zero-fit / zero-compatible: no dropdowns, byte-frozen notice */
                 const fitting = (model.modules || []);
@@ -388,25 +406,55 @@
                     });
                 }
 
+                function chooseSession(item) {
+                    sessionDd.querySelectorAll('.session-dd-item').forEach(function (n) { n.classList.remove('active'); });
+                    item.classList.add('active');
+                    sessionTriggerLabel.textContent = item.dataset.label;
+                    sessionDd.dataset.pick = item.dataset.label;
+                    sessionPick = { sessionId: item.dataset.sid, cohortLabel: item.dataset.cohort || '' };
+                    sessionDd.classList.remove('open');
+                }
+
                 function refreshSessions() {
                     const allFit = [];
                     const mi = subjectSel.value;
                     (fitting[mi].order || []).forEach(function (sid) {
                         const e = fitting[mi].sessions[sid];
+                        /* class-level fitness first (duration/day-end + this week's
+                           occupancy); the session then EXPANDS into one row per
+                           flagged occurrence (user request 2026-10-16) */
                         if (hi + (e.durationSlots || 1) <= hours.length && !spanOccupied(e.durationSlots || 1)) allFit.push([sid, e]);
                     });
-                    sessionSel.innerHTML = '';
+                    sessionPanel.innerHTML = '';
+                    sessionPick = null;
                     allFit.forEach(function (pair) {
                         const sid = pair[0]; const e = pair[1];
                         const start = (e.startTime || '').slice(0, 5);
                         const end = (e.endTime || '').slice(0, 5);
-                        const opt = document.createElement('option');
-                        opt.value = String(sid);
-                        /* label trim (user decision 2026-10-16): the subject dropdown already shows the name — the session dropdown carries code (type) only */
-                        opt.textContent = fitting[mi].code + ' (' + e.type + ') · W' + (e.weekNumber || week1) + ', ' + (e.dayAbbr || '') + ', ' + (e.date || '') + ' · ' + start + '–' + end;
-                        opt.dataset.cohort = (e.cohortLabels && e.cohortLabels[0]) || (e.cohorts && e.cohorts[0]) || '';
-                        sessionSel.appendChild(opt);
+                        const cohort = (e.cohortLabels && e.cohortLabels[0]) || (e.cohorts && e.cohorts[0]) || '';
+                        const occs = e.conflictOccurrences && e.conflictOccurrences.length ? e.conflictOccurrences : [{ week: '', dayAbbr: e.dayAbbr || '', label: (e.date || ''), reason: e.conflictReason || '' }];
+                        occs.forEach(function (occ) {
+                            const item = document.createElement('div');
+                            item.className = 'session-dd-item';
+                            item.setAttribute('role', 'option');
+                            item.dataset.sid = String(sid);
+                            item.dataset.cohort = cohort;
+                            /* row label — the user's requested format: type, week, day, date, time range */
+                            item.dataset.label = '(' + e.type + ')' + (occ.week ? ' W' + occ.week + ',' : '') + (occ.dayAbbr ? ' ' + occ.dayAbbr + ',' : '') + (occ.label ? ' ' + occ.label : '') + ' . ' + start + ' ~ ' + end;
+                            item.textContent = item.dataset.label;
+                            /* details tooltip — the shared data-tip system (ui-common) renders any [data-tip] row */
+                            item.setAttribute('data-tip', fitting[mi].code + ' ' + fitting[mi].name +
+                                ' · ' + (e.studentCount || 0) + ' students' + (cohort ? ' (' + cohort + ')' : '') +
+                                ' · usually ' + (e.venue || '—') + ' ' + (occ.dayAbbr || '') + ' ' + start + '–' + end +
+                                ' · conflict: ' + (occ.reason || e.conflictReason || '—'));
+                            item.dataset.week = String(occ.week || '');
+                            item.onclick = function () { chooseSession(item); };
+                            sessionPanel.appendChild(item);
+                        });
                     });
+                    /* pre-select the first row (the native select was auto-first too) */
+                    const first = sessionPanel.querySelector('.session-dd-item');
+                    if (first) chooseSession(first);
                     if (allFit.length === 0) {
                         noteText.textContent = 'None of your classes can run in ' + model.venue + ' — they do not fit before the day end (' + dayEnd + ').' +
                             conflictWeekHint(model);
@@ -423,6 +471,7 @@
                 }
 
                 subjectSel.onchange = function () { refreshSessions(); };
+                sessionTrigger.onclick = function () { sessionDd.classList.toggle('open'); };
                 refreshSessions();
                 /* show parity with the shared shells (ui-common DetailModal.open :1185) */
                 el.classList.add('show');
@@ -464,12 +513,15 @@
             }
 
             function confirmIntentSession() {
+                const dd = document.getElementById('intentSessionDd');
+                const pickLabel = dd ? dd.dataset.pick : '';
+                if (!pickLabel || !intentContext) return;
                 const sel = document.getElementById('intentSubjectSelect');
-                const sessionSel = document.getElementById('intentSessionSelect');
-                const opt = sessionSel.options[sessionSel.selectedIndex];
-                if (!opt || !intentContext) return;
-                const moduleLabel = sel.options[sel.selectedIndex].textContent.split(' — ')[0];
-                bookVenueWithSession(venueInfo.code, intentContext.dateStr, intentContext.timeStr, moduleLabel, sessionSel.value, opt.dataset.cohort);
+                const moduleLabel = sel.options[sel.selectedIndex] ? sel.options[sel.selectedIndex].textContent.split(' — ')[0] : '';
+                /* the picked SESSION id rides on the panel rows (data-sid) — the
+                   occurrence-grain visual choice collapses to the session handoff */
+                const pickedRow = dd.querySelector('.session-dd-item.active');
+                bookVenueWithSession(venueInfo.code, intentContext.dateStr, intentContext.timeStr, moduleLabel, pickedRow ? pickedRow.dataset.sid : '', pickedRow ? (pickedRow.dataset.cohort || '') : '');
             }
 
             function bookVenueWithSession(venueCode, date, time, code, sessionId, cohortLabel) {

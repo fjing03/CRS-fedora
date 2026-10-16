@@ -2360,6 +2360,87 @@ tr.bookable-flash > td { animation: bookable-pulse 1.15s ease-in-out 1; }
     display: flex;
     flex-direction: row;
 }
+/* ── Session Dropdown (Select-a-Session modal, occurrence grain) ─
+   Same geometry/typography family as .venue-dd (trigger + floating panel +
+   hover/active rows), single-column; rows carry the shared data-tip contract. */
+.session-dd {
+    position: relative;
+    display: inline-flex;
+    width: 100%;
+}
+.session-dd-trigger {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    width: 100%;
+    min-height: 37px;
+    padding: 7px 24px 7px 12px;
+    border: 1px solid var(--color-outline);
+    border-radius: var(--radius-md);
+    background: var(--color-surface-variant);
+    color: var(--color-on-surface-variant);
+    font-family: inherit;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: border-color 0.15s, box-shadow 0.15s;
+    text-align: left;
+}
+.session-dd-trigger:hover { filter: brightness(1.05); }
+.session-dd.open .session-dd-trigger {
+    border-color: var(--color-primary);
+    box-shadow: 0 0 0 1px var(--color-primary);
+}
+.session-dd-trigger .session-dd-label {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    min-width: 0;
+    flex: 1;
+}
+.session-dd-panel {
+    position: absolute;
+    top: calc(100% + 4px);
+    left: 0;
+    right: 0;
+    display: none;
+    flex-direction: column;
+    background: var(--color-surface);
+    border: 1px solid var(--color-outline);
+    border-radius: var(--radius-md);
+    box-shadow: 0 4px 16px rgba(0,0,0,0.12), 0 1px 4px rgba(0,0,0,0.06);
+    z-index: 1000;
+    max-height: 240px;
+    overflow-y: auto;
+    padding: 4px 0;
+    scrollbar-width: thin;
+}
+.session-dd.open .session-dd-panel { display: flex; }
+.session-dd-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 14px;
+    font-size: 13px;
+    color: var(--color-on-surface);
+    cursor: pointer;
+    user-select: none;
+    transition: background 0.1s;
+    white-space: nowrap;
+}
+.session-dd-item:hover { background: var(--color-surface-variant); }
+.session-dd-item.active {
+    background: var(--color-surface-variant);
+    color: var(--color-primary);
+    font-weight: 600;
+}
+.session-dd-empty {
+    padding: 8px 14px;
+    font-size: 13px;
+    color: var(--color-on-surface-variant);
+    font-style: italic;
+}
+
 /* Cascading 4-column hierarchy: Type | Block | Floor | Room */
 .venue-col {
     display: none;

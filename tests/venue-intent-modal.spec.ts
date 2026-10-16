@@ -21,12 +21,22 @@ test('A1: B110 modal opens after wire call (the RuntimeException regression)', a
   // the wire call resolves → modal renders (use toBeVisible to force the wait)
   await expect(page.locator('#intentSessionModal')).toBeVisible({ timeout: 10_000 });
   const subjects = await page.locator('#intentSubjectSelect option').allTextContents();
-  const sessions = await page.locator('#intentSessionSelect option').allTextContents();
+  /* the session picker is the occurrence-grain custom dropdown (user request
+     2026-10-16) — rows + data-tips, not a native <option> list */
+  const sessions = await page.locator('#intentSessionPanel .session-dd-item').allTextContents();
     // conflicted-only: subjects = AMCS2093 (its Deepavali-week L occurrence)
   expect(subjects).toEqual(['AMCS2093 — Operating Systems']);
-  // lecture hall: only the subject's L occurrence is offered (label = class's recurring slot)
-  expect(sessions.some(t => /\(L\) Mon · \d{2}:\d{2}–\d{2}:\d{2}/.test(t))).toBe(true);
+  // lecture hall: only the subject's L occurrence is offered — the row label
+  // carries the FLAGGED occurrence (user request 2026-10-16): type, week, day,
+  // date, time range "(L) W8, Mon, Nov 9 . 11:00 ~ 13:00"
+  expect(sessions.some(t => /\(L\) W8, Mon, Nov 9 \. 11:00 ~ 13:00/.test(t))).toBe(true);
   expect(sessions.some(t => /\(P\)/.test(t))).toBe(false);
+  // every row carries the shared data-tip with the full details (module, cohort
+  // size, original slot, conflict reason)
+  const tips = await page.locator('#intentSessionPanel .session-dd-item').evaluateAll(
+    els => els.map(e => e.getAttribute('data-tip') || ''));
+  expect(tips.length).toBeGreaterThan(0);
+  expect(tips.every(t => t.includes('AMCS2093') && t.includes('students') && t.includes('conflict:'))).toBe(true);
   // the Livewire morph must NOT wipe the JS-built grid (wire:ignore guard)
   await page.waitForTimeout(400);
   expect(await page.locator('#tableBody .cell-available').count()).toBeGreaterThan(0);
@@ -45,11 +55,15 @@ test('A2: B009 modal offers only P sessions with the byte-frozen label', async (
   await page.locator('#tooltipBookBtn').click();
   await expect(page.locator('#intentSessionModal')).toBeVisible({ timeout: 10_000 });
   const subjects = await page.locator('#intentSubjectSelect option').allTextContents();
-  const sessions = await page.locator('#intentSessionSelect option').allTextContents();
+  /* the session picker is the occurrence-grain custom dropdown (user request
+     2026-10-16) — rows + data-tips, not a native <option> list */
+  const sessions = await page.locator('#intentSessionPanel .session-dd-item').allTextContents();
     /* user directive 2026-10-16 (week-agnostic pool): the label carries the
        class's own recurring slot (day + time), never the occurrence date */
-    expect(sessions.some(t => /\(P\) Thu · \d{2}:\d{2}–\d{2}:\d{2}/.test(t))).toBe(true);
-  expect(sessions.some(t => /\(P\) Fri · \d{2}:\d{2}–\d{2}:\d{2}/.test(t))).toBe(true);
+    /* user request 2026-10-16: the row label = the flagged occurrence —
+       "(P) W14, Thu, Dec 24 . 13:30 ~ 15:00" */
+    expect(sessions.some(t => /\(P\) W14, Thu, Dec 24 \. 13:30 ~ 14:30/.test(t))).toBe(true);
+  expect(sessions.some(t => /\(P\) W14, Fri, Dec 25 \. 11:00 ~ 12:00/.test(t))).toBe(true);
   expect(sessions.some(t => /\(L\)/.test(t))).toBe(false);
   // conflicted-only (demo holidays land W14 Thu + Fri): both AMCS2093 P
   // occurrences ARE conflicted and offered; BMIT2013 (Tue/Wed) is healthy →

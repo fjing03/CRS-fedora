@@ -882,3 +882,21 @@ run in B011 … Your conflicted classes are in Week 14" at W6/B011 was a restric
   (service-defined), so a hand-typed W6 intent picks the W14-conflicted class the same way.
 - **SDD note**: this is a user-directed semantics amendment to the frozen 99.9%-UI contract, recorded
   here with date; tests A1/A2 label regexes re-pointed to the recurring-slot format.
+
+#### Occurrence-grain session rows + hover details tooltip (USER REQUEST 2026-10-16, ~18:30)
+The session picker becomes an **occurrence-grain custom dropdown**: each option is one FLAGGED
+occurrence and shows exactly `({type}) W{week}, {Day}, {Mon D} . {HH:MM} ~ {HH:MM}` (e.g.
+`(P) W14, Thu, Dec 24 . 13:30 ~ 14:30`). Native `<option>` elements cannot host hover tooltips,
+so the picker follows the shared venue-dd trigger/panel pattern: a trigger button + floating
+panel (`.session-dd` family added to theme.css — token-only geometry/typography mirroring
+.venue-dd), rows highlight on hover and on selection, outside-click closes, [Arrange] books the
+picked session at the clicked cell (the 8-param handoff contract is unchanged).
+
+Every row carries the **shared data-tip** (ui-common `initDataTipTooltips` — the same system as
+the legend/table headers/modal close button), showing the full details: module code + name ·
+student count + cohort · the class's usual venue/day/time · the conflict reason.
+
+- Service: `conflictedFor()` now returns per-session occurrence facts (week, dayAbbr, `d M Y`
+  date, `M j` label, reason) via the cached weekContext Mondays; the component decorates entries
+  with `conflictOccurrences`; the week stays selectable (see the same-day week-agnostic amendment).
+- Tests: A1/A2 re-pointed to the label format + a data-tip presence/content assertion.

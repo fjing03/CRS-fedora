@@ -98,6 +98,10 @@ class VenueTimetable extends Component
                 $facts = $conflicted[$sessionId];
                 $built[$moduleIndex]['sessions'][(string) $sessionId]['conflictReason'] = $facts['reason'];
                 $built[$moduleIndex]['sessions'][(string) $sessionId]['conflictWeeks'] = $facts['weeks'];
+                // occurrence facts for the option label + the details tooltip:
+                // (type) W{week}, {day}, {date} . {time} — the occurrence the
+                // system flagged, wherever it lives in the semester.
+                $built[$moduleIndex]['sessions'][(string) $sessionId]['conflictOccurrences'] = $facts['occurrences'];
             }
         }
 

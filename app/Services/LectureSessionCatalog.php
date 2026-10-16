@@ -358,24 +358,52 @@ final class LectureSessionCatalog
      * Flattens the conflict map: session id => human reason + sorted weeks.
      *
      * @param  Collection<int, ClassSession>  $sessions
-     * @return array<int, array{reason: string, weeks: list<int>}>
+     * @return array<int, array{reason: string, weeks: list<int>, occurrences: list<array{week: int, dayAbbr: string, date: string, label: string, reason: string}>}>
      */
     public function conflictedFor(Collection $sessions): array
     {
+        $map = $this->conflictMapFor($sessions);
         $out = [];
-        foreach ($this->conflictMapFor($sessions) as $week => $reasons) {
-            foreach ($reasons as $sessionId => $reason) {
-                if (! isset($out[$sessionId])) {
-                    $out[$sessionId] = ['reason' => $reason, 'weeks' => []];
-                }
-                $out[$sessionId]['weeks'][] = (int) $week;
+        if ($map === []) {
+            return $out;
+        }
+
+        // weekContext re-parses the semester per call — cache the Mondays once.
+        $mondays = [];
+        foreach (array_keys($map) as $week) {
+            $context = $this->weekContext((int) $week);
+            if ($context !== null) {
+                $mondays[(int) $week] = $context['monday'];
             }
         }
-        foreach ($out as &$row) {
-            $row['weeks'] = array_values(array_unique($row['weeks']));
-            sort($row['weeks']);
+
+        foreach ($sessions as $s) {
+            $rows = [];
+            foreach ($map as $week => $reasons) {
+                $reason = $reasons[$s->id] ?? null;
+                if ($reason === null) {
+                    continue;
+                }
+                $monday = $mondays[(int) $week] ?? null;
+                $occDate = $monday !== null ? $monday->copy()->addDays((int) $s->day_of_week) : null;
+                $rows[] = [
+                    'week' => (int) $week,
+                    'dayAbbr' => self::DAY_ABBRS[(int) $s->day_of_week],
+                    'date' => $occDate !== null ? $occDate->format('d M Y') : '',
+                    'label' => $occDate !== null ? $occDate->format('M j') : '',
+                    'reason' => $reason,
+                ];
+            }
+            if ($rows === []) {
+                continue;
+            }
+            usort($rows, fn (array $a, array $b): int => $a['week'] <=> $b['week']);
+            $out[(int) $s->id] = [
+                'reason' => $rows[0]['reason'],
+                'weeks' => array_map(fn (array $r): int => $r['week'], $rows),
+                'occurrences' => $rows,
+            ];
         }
-        unset($row);
 
         return $out;
     }

@@ -23,7 +23,23 @@
                 </div>
                 <div class="detail-row">
                     <span class="detail-label">Session</span>
-                    <span class="detail-value"><select id="intentSessionSelect" class="filter-select"></select></span>
+                    <span class="detail-value">
+                        {{-- Occurrence-grain custom dropdown (user request 2026-10-16):
+                             native <option> elements cannot host hover tooltips, so the
+                             session picker follows the shared venue-dd trigger/panel
+                             pattern; every panel row carries a data-tip (the shared
+                             data-tip-tooltip system renders it above the row) with the
+                             full class details. The row label carries the flagged
+                             occurrence — type, week, day, date, time range — exactly
+                             the user's requested format. --}}
+                        <div class="session-dd" id="intentSessionDd">
+                            <button type="button" class="session-dd-trigger" id="intentSessionTrigger" aria-haspopup="listbox">
+                                <span class="session-dd-label" id="intentSessionTriggerLabel">Select the conflicted class…</span>
+                                <svg class="dd-arrow" xmlns="http://www.w3.org/2000/svg" width="10" height="6" viewBox="0 0 10 6" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M1 1l4 4 4-4"/></svg>
+                            </button>
+                            <div class="session-dd-panel" id="intentSessionPanel" role="listbox"></div>
+                        </div>
+                    </span>
                 </div>
             </div>
         </div>
