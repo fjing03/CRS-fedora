@@ -1171,6 +1171,8 @@
         MockData.holidays = window.PAGE_DATA.holidays;
         MockData.currentUser = window.PAGE_DATA.currentUser;
         MockData.venues = window.PAGE_DATA.venues;
+        /* arrange-intent-session-choice D0/D1: the single-source rule data */
+        window.__ruleMap = window.PAGE_DATA.ruleMap;
         MockData.courses = window.PAGE_DATA.courses;
         MockData.cohortTimetable = { events: window.PAGE_DATA.conflictEvents };
         /* week-keyed: real slot states are week-specific — the mock's
@@ -1193,6 +1195,11 @@
            (favourite/recent/first-option) must NOT resize the block away
            from it — only an explicit user pick in the slot panel may. */
         let urlSpanLocked = false;
+        /* SDD arrange-intent-session-choice: the honest five-branch cause of the
+           booking banner (renderBookingIntent) + the fallback prefill state. */
+        let intentReason = '';           // '' | 'in-the-way' | 'too-soon' | 'held' | 'span' | 'type'
+        let fallbackAttribution = null;  // {module, type, venue} — consumed by the intent toast
+        let intentFallbackNoMatch = false; // fallback armed and found NOTHING compatible
 
         const weekData = generateWeekData();
         window.weekData = weekData; /* ui-common's populateWeekSelect reads the global */
@@ -2465,6 +2472,76 @@ slotLine = 'Week ' + (selectedOriginalSlot.week + 1) + ' · ' + selectedOriginal
 
         function intentKey(i) { return i.venue + '|' + i.dateStr + '|' + i.timeStr; }
 
+        /* SDD arrange-intent-session-choice (D3 item 7): fallback prefill.
+           Fires only on full-intent arrivals that BYPASSED the producer modal
+           (no ?session=) with no subject picked. Rules come from the PAGE_DATA
+           rule map + the enriched payload (no JS-hosted matrix). Never overrides
+           a manual pick; never armed for bare ?venue= deep links. */
+        let fallbackArmed = false;
+        function armIntentFallbackPrefill() {
+            if (fallbackArmed) return;
+            fallbackArmed = true;
+            if (intentCancelled) return;                      // gate: discarded bookings never resurrect
+            if (!pendingBookingIntent) return;                // nothing to fulfil
+            if (urlParams.session) return;                    // modal path short-circuit
+            if (currentCourse) return;                        // a manual pick owns the flow
+            const i = pendingBookingIntent;
+            const venueEntry = (MockData.venues || []).find(v => v.code === i.venue);
+            const venueRaw = venueEntry && venueEntry.rawRoomType ? venueEntry.rawRoomType : '';
+            if (!venueRaw) return;
+            const rule = window.__ruleMap || {};
+            let matched = null;
+            (MockData.courses || []).some(function (m) {
+                return (m.order || Object.keys(m.sessions || {})).some(function (sid) {
+                    const e = m.sessions[sid];
+                    const allowed = rule[e.type];
+                    if (!allowed || allowed.indexOf(venueRaw) < 0) return false;
+                    if (i.venue === rule.b005_venue_code) {
+                        const re = new RegExp((rule.b005_no_diploma_pattern || '^\\s*D'));
+                        for (let k = 0; k < (e.cohortCodes || []).length; k++) {
+                            if (re.test(e.cohortCodes[k])) return false;
+                        }
+                    }
+                    if (i.hourIndex + (e.durationSlots || 1) > hours.length) return false; // day-end arithmetic
+                    matched = { module: m, sessionId: sid, entry: e };
+                    return true;
+                });
+            });
+            if (!matched) {
+                /* no prefill — the cause banner (renderBookingIntent's no-match branch) */
+                intentFallbackNoMatch = true;
+                evaluateBookingFit();
+                return;
+            }
+            /* 2a — the legacy urlParams family (the :3044 escape guard now skips
+               any default slot pick; the "Initial authority" hydration parity) */
+            urlParams.code = matched.module.code;
+            urlParams.day = String(matched.entry.dayOfWeek);
+            urlParams.start = String(Math.round((inMinutes(matched.entry.startTime) - 8 * 60) / 30));
+            urlParams.originalVenue = i.venue;
+            urlParams.duration = String(matched.entry.duration);
+            /* 2b — the span consequences the one-shot boot clamp can't redo */
+            const hrs = Math.min(Math.max(parseFloat(urlParams.duration), 0.5), 4);
+            BLOCK_SPAN = Math.round(hrs * 2);
+            MAX_SELECTION = Math.max(MAX_SELECTION, BLOCK_SPAN);
+            urlSpanLocked = true;
+            /* 2c — the pin bridge (the compatible occurrence, not the module's first) */
+            window.pinnedOccurrence = { sessionId: Number(matched.sessionId), week: i.weekIndex + 1 };
+            /* 2d — reset stale flags, arm attribution, bind via the subject path
+               (onSubjectChange → applySubjectChange → consumeBookingIntent at :2712 —
+               the boot's ONLY pick), then the staleness tail. */
+            const sel = document.getElementById('subjectSelector');
+            fallbackAttribution = { module: matched.module.code, type: matched.entry.type, venue: i.venue };
+            sel.value = matched.module.code;
+            onSubjectChange();
+            if (fallbackAttribution) fallbackAttribution = null;  // 2e: pick-less exit clears the flag
+        }
+
+        function inMinutes(hhmm) {
+            const parts = (hhmm || '').split(':');
+            return (parseInt(parts[0], 10) || 0) * 60 + (parseInt(parts[1], 10) || 0);
+        }
+
         function bookingKeyFromParams() {
             return (urlParams.venue || '') + '|' + (urlParams.date || '') + '|' + (urlParams.time || '');
         }
@@ -2517,10 +2594,33 @@ slotLine = 'Week ' + (selectedOriginalSlot.week + 1) + ' · ' + selectedOriginal
             if (!pendingBookingIntent || intentBannerSuppressed || intentCancelled) { el.innerHTML = ''; return; }
             const i = pendingBookingIntent;
             /* conflict case: the slot can't be auto-selected — error-toned notice */
+            /* The fallback found NOTHING compatible (no subject picked yet) —
+               the producer zero-compatible wording, used verbatim (user decision). */
+            if (intentFallbackNoMatch && !currentCourse) {
+                const venueEntry = (MockData.venues || []).find(v => v.code === i.venue);
+                const raw = venueEntry ? (venueEntry.rawRoomType || '') : '';
+                const human = { lab: 'Lab', cisco_lab: 'Lab', tutorial: 'tutorial room', lecture_hall: 'lecture hall' }[raw] || raw;
+                const req = { lab: 'Practical (P)', cisco_lab: 'Practical (P)', tutorial: 'Tutorial (T)', lecture_hall: 'Lecture (L)' }[raw] || '';
+                el.innerHTML = `<div class="booking-intent booking-intent-manual">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                    <span><strong>Booking ${i.venue} · ${i.dayAbbr}, ${i.dateStr} · ${i.timeStr}</strong> — none of your classes can run in ${i.venue} — ${human} hosts ${req} sessions only.</span>
+                    <button class="bi-close" onclick="dismissBookingIntent()" data-tip="Dismiss booking reminder">&times;</button>
+                </div>`;
+                return;
+            }
             if (intentNeedsManual) {
-                const reason = intentTooSoon
-                    ? 'is within 3 working days — please pick a later slot manually.'
-                    : 'is conflicted — please select an available slot manually.';
+                let reason;
+                if (intentReason === 'too-soon') {
+                    reason = 'is within 3 working days — please pick a later slot manually.';
+                } else if (intentReason === 'span') {
+                    reason = 'runs longer than the time left before the day end (' + hours[hours.length - 1] + ') — pick an earlier slot or change the subject to a shorter session.';
+                } else if (intentReason === 'type' && currentCourse) {
+                    reason = currentCourse.code + '(' + currentCourse.type + ') has no ' + requiredTypeHuman(currentVenue.code || currentVenue) + ' sessions that can run in ' + i.venue + '. Pick a different subject slot or change the venue.';
+                } else if (intentReason === 'in-the-way') {
+                    reason = 'is already covered by another of your selections — clear it or pick another slot manually.';
+                } else {
+                    reason = 'is no longer available on the ' + (currentVenue.code || currentVenue) + ' grid (a block already holds it) — pick another available slot manually.';
+                }
                 el.innerHTML = `<div class="booking-intent booking-intent-manual">
                     <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
                     <span><strong>Your booked slot (${i.dayAbbr}, ${i.dateStr} · ${i.timeStr}) ${reason}</strong>
@@ -2563,10 +2663,57 @@ slotLine = 'Week ' + (selectedOriginalSlot.week + 1) + ' · ' + selectedOriginal
             const i = pendingBookingIntent;
             intentNeedsManual = !canPlaceBlock(i.dayIndex, i.hourIndex);
             intentTooSoon = intentNeedsManual && isSlotTooSoon(weekData, i.weekIndex, i.dayIndex);
+            /* five-branch honest cause (design D3 item 4) — FIRST-true-wins in
+               the pinned precedence; helpers are additive (no canPlaceBlock change). */
+            intentReason = '';
             if (intentNeedsManual) {
+                const span = BLOCK_SPAN;
+                const spanOverrun = i.hourIndex + span > hours.length;
+                let held = false;
+                for (let h = i.hourIndex; h < Math.min(i.hourIndex + span, hours.length); h++) {
+                    if (!isCellAvailable(i.dayIndex, h)) { held = true; break; }
+                }
+                if (currentCourse && subjectTypeIneligibleForVenue(currentCourse)) {
+                    intentReason = 'type';     // FIFTH: the picked subject can never run here
+                } else if (intentTooSoon) {
+                    intentReason = 'too-soon'; // SECOND (frozen wording)
+                } else if (held) {
+                    intentReason = 'held';     // THIRD (occupancy)
+                } else if (spanOverrun) {
+                    intentReason = 'span';     // FOURTH (duration × day end)
+                } else {
+                    intentReason = 'held';     // conservative default (defensive; shouldn't occur)
+                }
                 pulseTargetCell(i.dayIndex, i.hourIndex); /* the banner names the slot in words — no toast needed */
             }
             renderBookingIntent();
+        }
+
+        /* display phrase for the required session type of a venue (notice copy only) */
+        function requiredTypeHuman(venueCode) {
+            const venueEntry = (MockData.venues || []).find(v => v.code === venueCode);
+            const raw = venueEntry ? (venueEntry.rawRoomType || '') : '';
+            return { lab: 'Practical (P)', cisco_lab: 'Practical (P)', tutorial: 'Tutorial (T)', lecture_hall: 'Lecture (L)' }[raw] || raw;
+        }
+
+        /* the time a booked day's grid ends (day-end cause phrase) */
+        /* FIFTH-branch helper: does the picked module have ANY session whose
+           type the intent/current venue admits? Raw rule data (D0) — no JS matrix. */
+        function subjectTypeIneligibleForVenue(course) {
+            if (!course || !course.sessions) return false;
+            const venueKey = currentVenue.code || currentVenue;
+            const venueEntry = (MockData.venues || []).find(v => v.code === venueKey);
+            const raw = venueEntry ? (venueEntry.rawRoomType || '') : '';
+            if (!raw) return false;
+            const requiredTypes = Object.keys(window.__ruleMap || {}).filter(function (k) {
+                return Array.isArray(window.__ruleMap[k]) && window.__ruleMap[k].includes(raw);
+            });
+            if (requiredTypes.length === 0) return false;
+            const byType = {};
+            Object.keys(course.sessions).forEach(function (sid) {
+                byType[course.sessions[sid].type] = true;
+            });
+            return !requiredTypes.some(function (t) { return byType[t]; });
         }
 
         /* The user explicitly discarded a selection — remember it for THIS booking
@@ -2655,6 +2802,7 @@ slotLine = 'Week ' + (selectedOriginalSlot.week + 1) + ' · ' + selectedOriginal
             if (selectedBlock) {
                 /* a different selection is in the way — guide manually instead of
                    dropping a jarring "clear first" modal mid-flow */
+                intentReason = 'in-the-way';
                 intentNeedsManual = true;
                 pulseTargetCell(i.dayIndex, i.hourIndex);
                 renderBookingIntent();
@@ -2662,6 +2810,14 @@ slotLine = 'Week ' + (selectedOriginalSlot.week + 1) + ' · ' + selectedOriginal
             }
 
             if (intentNeedsManual || !canPlaceBlock(i.dayIndex, i.hourIndex)) {
+                if (!intentReason) {
+                    const span0 = BLOCK_SPAN;
+                    if (i.hourIndex + span0 > hours.length) {
+                        intentReason = 'span';
+                    } else {
+                        intentReason = 'held';
+                    }
+                }
                 intentNeedsManual = true;
                 pulseTargetCell(i.dayIndex, i.hourIndex);
                 renderBookingIntent();
@@ -2671,7 +2827,12 @@ slotLine = 'Week ' + (selectedOriginalSlot.week + 1) + ' · ' + selectedOriginal
             pendingBookingIntent = null;
             renderBookingIntent();
             if (selectBlock(i.dayIndex, i.hourIndex)) {
-                toast.show('Pre-selected from your venue booking — click the block to adjust.');
+                if (fallbackAttribution) {
+                    toast.show('Pre-selected ' + fallbackAttribution.module + ' (' + fallbackAttribution.type + ') — auto-picked because its sessions fit ' + fallbackAttribution.venue + '; change if needed.');
+                    fallbackAttribution = null; /* one-shot (design D3 item 5) */
+                } else {
+                    toast.show('Pre-selected from your venue booking — click the block to adjust.');
+                }
             }
         }
 
@@ -3238,6 +3399,12 @@ triggerText.textContent = 'W' + (slot.week + 1) + ' · ' + shortDate + ' · ' + 
             lastSubject = document.getElementById('subjectSelector').value;
             /* ensure grid always renders on load (applyUrlParams only triggers via venue param) */
             buildTimetable();
+            /* SDD arrange-intent-session-choice (D3, soft-freeze placement amendment):
+               the fallback needs the RENDERED grid (isCellAvailable reads the DOM,
+               :1528) — so it runs after the boot's own buildTimetable. The fallback's
+               onSubjectChange runs with __bootDone true (uniform post-boot behavior:
+               its rebuild + saveCurrentWeek are the accepted, deterministic extra hop). */
+            armIntentFallbackPrefill();
 
             document.addEventListener('keydown', handleKeyDown);
             initWeekKeyboardShortcuts();
