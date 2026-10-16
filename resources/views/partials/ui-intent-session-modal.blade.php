@@ -28,7 +28,7 @@
         </div>
         <div class="modal-footer">
             <button class="btn-close-modal" id="intentCancelBtn" onclick="closeIntentSessionModal()">Cancel</button>
-            <button class="btn-book" id="intentArrangeBtn" onclick="confirmIntentSession()">Arrange</button>
+            <button class="btn-confirm" id="intentArrangeBtn" onclick="confirmIntentSession()">Arrange</button>
         </div>
     </div>
 </div>

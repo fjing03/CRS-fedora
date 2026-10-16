@@ -65,6 +65,15 @@
             font-size: 12px;
             color: var(--color-on-surface-variant);
         }
+        /* Session-choice modal: dropdowns fill their detail-row value column */
+        #intentPickers .filter-select {
+            width: 100%;
+            max-width: 260px;
+        }
+        #intentNotice {
+            font-size: 14px;
+            color: var(--color-on-surface);
+        }
     </style>
 
     <!-- ─── Page Header ─── -->
