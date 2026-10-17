@@ -82,11 +82,11 @@ ONE transaction (round-4 🟡 — pinned: all-or-nothing like reservation):
   - `slot_not_available` + `failing_kind='occupied'` → named-time copy *"Your {span}-slot ({hours}h) block runs into an existing booking at {start}–{end} — pick another slot."* (row-backed — truthful).
   - `slot_not_available` + `failing_kind='missing'` → bounds-style *"Part of the block falls outside the booking grid — adjust the selection."* — **times dropped** even though the transport carries the derived expected times.
   - `slot_not_available` + no kind + no times → canned *"That slot was just taken."* (unchanged).
-  - `span_overlap` → conflictText GAINS this arm (NEW at this change — no prior code exists for it); the named-time copy, interpolating the transported failing times; the token is produced by the validator (D3 step 3, `span > 1`).
+  - `span_overlap` → conflictText GAINS this arm (NEW at this change — no prior code exists for it); the named-time copy interpolating the transported failing times (+ the holder-context suffix per the 2026-10-16 user amendment); the token is produced by the validator (D3 step 3, `span > 1`).
   - `invalid_span` → the bounds copy (D1).
   - `reserve_interrupted` → the intervention copy ("The booking could not be completed — try again." family — tasks Round-1 🟡6): the action's peri-flip catch maps the rolled-back txn to this USER-FACING reason; `concurrent_reserve_conflict` stays the POST-rollback forensic AUDIT token only (never user-facing) — the two tokens are surface-specific and never cross-asserted.
   - **Table closure (round-4 🔴): any unlisted combination (including `failing_kind = null` with times present) → the canned fallback** — and the D2 mandatory kind stamp renders the null-kind+times state UNREACHABLE.
-- **Transport token (round-3 🔴):** `submitBlocks` result rows carry the reason string + the failing-kind token (`:571–577` row shaping → `conflictText` ≈`:618` → Submission-Conflict modal rows) — without it the kind dies before the copy.
+- **Transport token (round-3 🔴; user amendment):** `submitBlocks` result rows carry the reason string + the failing-kind token + `holder_start`/`holder_end` (min/max of the holder's LIVE junction rows; null when unresolvable — the context suffix renders only when present) (`:571–577` row shaping → `conflictText` ≈`:618` → Submission-Conflict modal rows) — without it the kind dies before the copy.
 - (the duplicate round-2 block above was consolidated into the routing table — round-4 cleanup)
 
 ## D7 — Read-model family (round-4 scope)

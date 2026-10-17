@@ -53,6 +53,15 @@ final class OccConcurrencyTest extends TestCase
 
     protected function tearDown(): void
     {
+        // hold connection always releases (failure paths too — the stale
+        // idle-in-transaction locks would deadlock the next refresh).
+        try {
+            DB::connection('hold')->statement('ROLLBACK');
+            DB::connection('hold')->disconnect();
+        } catch (Throwable $e) {
+            // n/a when the test never opened it
+        }
+
         DB::purge(); // resets the session lock_timeout set for this test
 
         parent::tearDown();
@@ -77,19 +86,40 @@ final class OccConcurrencyTest extends TestCase
 
         DB::statement('SET lock_timeout = '.self::LOCK_TIMEOUT_MS);
 
-        $result = $action($loser, $loserSession, (int) $anchor->week_number, (int) $anchor->id, null);
+        try {
+            $result = $action($loser, $loserSession, (int) $anchor->week_number, (int) $anchor->id, null);
 
-        $this->assertFalse($result['ok'], 'FR 4.10: the blocked loser must get a conflict alert, not a 500');
-        $this->assertSame('reserve_interrupted', $result['conflict_reason']);
-        $this->assertSame(0, ReplacementRequest::query()->where('proposer_id', $loser->id)->count(), 'D5: loser row removed');
-        $this->assertSame(
-            0,
-            AuditLog::query()->where('occ_validation_result', 'conflict')->count(),
-            'The aborted validator wrote no audit row — nothing may leak from its rolled-back transaction'
-        );
+            $this->assertFalse($result['ok'], 'FR 4.10: the blocked loser must get a conflict alert, not a 500');
+            $this->assertSame('reserve_interrupted', $result['conflict_reason']);
+            $this->assertSame(0, ReplacementRequest::query()->where('proposer_id', $loser->id)->count(), 'D5: loser row removed');
 
-        DB::connection('hold')->statement('ROLLBACK');
-        DB::connection('hold')->disconnect();
+            /* DESIGNED CONTRACT CHANGE (full-block-reservation, design D3 —
+               round-1-verify 🔴2): the two-phase validator's peri-flip catch
+               writes the single conflict audit row AFTER the rollback (id
+               pre-nulled so postRollbackAudit survives and D5's UPDATE no-ops).
+               Here the lock-timeout abort fires INSIDE the txn at the lock step
+               — the exception propagates BEFORE any flip, so the post-rollback
+               row is exactly one, with the FR 4.12 survival + the forensic
+               token + the failing slot's facts. */
+            $lateAudit = AuditLog::query()
+                ->where('occ_validation_result', 'conflict')
+                ->where('details->conflict_reason', 'concurrent_reserve_conflict')
+                ->whereNull('replacement_request_id')
+                ->first();
+            $this->assertNotNull($lateAudit, 'the post-rollback audit row survives (FR 4.12)');
+            $this->assertSame($anchor->id, $lateAudit->time_slot_id);
+
+            DB::connection('hold')->statement('ROLLBACK');
+        } finally {
+            // guards the failure path: never leave the hold txn holding locks —
+            // the next test's migrate:fresh would deadlock (observed live).
+            try {
+                DB::connection('hold')->statement('ROLLBACK');
+            } catch (Throwable $e) {
+                // txn may already be closed (the happy path rolled back above)
+            }
+            DB::connection('hold')->disconnect();
+        }
 
         $anchor->refresh();
         $this->assertSame('available', $anchor->status, 'Rollback of the hold leaves the slot available');

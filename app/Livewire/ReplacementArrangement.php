@@ -10,6 +10,7 @@ use App\Models\ClassSession;
 use App\Models\Cohort;
 use App\Models\Holiday;
 use App\Models\ReplacementRequest;
+use App\Models\ReplacementRequestSlot;
 use App\Models\TimeSlot;
 use App\Models\Venue;
 use App\Services\LectureSessionCatalog;
@@ -511,6 +512,18 @@ class ReplacementArrangement extends Component
                 continue;
             }
 
+            // Full-block span derivation (SDD full-block-reservation, design
+            // D1); the block's exclusive-end index the client already sends:
+            // span = endHour − startHour, REJECTED out-of-bounds BEFORE any
+            // business pre-check (round-5 fold) — never clamped (a 3h ask is a
+            // rejection, not a shortened booking).
+            $rawSpan = (int) ($block['endHour'] ?? -1) - $startHour;
+            if ($rawSpan < SubmitReplacementRequest::SPAN_MIN || $rawSpan > SubmitReplacementRequest::SPAN_MAX) {
+                $results[] = ['ok' => false, 'reason' => $this->conflictText('invalid_span')];
+
+                continue;
+            }
+
             // D1 — one active request per block occurrence (the partial unique
             // index enforces it atomically; this pre-check makes it a friendly
             // conflict message instead of a 500 on the race).
@@ -567,11 +580,17 @@ class ReplacementArrangement extends Component
                 continue;
             }
 
-            $result = $action(auth()->user(), $session, $requestWeek, (int) $slot->id, null);
+            $result = $action(auth()->user(), $session, $requestWeek, (int) $slot->id, null, $rawSpan);
 
             $results[] = [
                 'ok' => (bool) $result['ok'],
-                'reason' => $result['ok'] ? null : $this->conflictText((string) $result['conflict_reason']),
+                'reason' => $result['ok'] ? null : $this->conflictText(
+                    (string) $result['conflict_reason'],
+                    $result['failing_start'] ?? null,
+                    $result['failing_end'] ?? null,
+                    $result['failing_kind'] ?? null,
+                    $this->holderRange((int) $slot->id, $result['failing_kind'] ?? null, $result['failing_start'] ?? null),
+                ),
             ];
         }
 
@@ -615,15 +634,98 @@ class ReplacementArrangement extends Component
         return $query->orderBy('day_of_week')->orderBy('start_time')->first();
     }
 
-    private function conflictText(string $reason): string
-    {
+    /**
+     * Full-block routing table (design D6 frozen; user amendment 2026-10-16
+     * context view "B"): named-time copies interpolate the failing slot's
+     * times; occupied losers append the holder's live range via
+     * `holder_start`/`holder_end` (resolved per failing slot from its live
+     * junction link; cell-only fallback when no live link resolves).
+     * @param  string|null  $failingStart
+     * @param  string|null  $failingEnd
+     * @param  string|null  $failingKind
+     * @param  array{start: string, end: string}|null  $holderRange
+     * @return string
+     */
+    private function conflictText(
+        string $reason,
+        ?string $failingStart = null,
+        ?string $failingEnd = null,
+        ?string $failingKind = null,
+        ?array $holderRange = null,
+    ): string {
+        // slot-availability losers get the named-time + copy, per-kind.
+        if ($reason === 'slot_not_available' || $reason === 'span_overlap') {
+            $spanWord = 'Block';
+            if ($failingKind === 'missing') {
+                return 'Part of the block falls outside the booking grid — adjust the selection.';
+            }
+            if (! $failingStart) {
+                return 'That slot was just taken.'; // no-kind + no-times → canned
+            }
+            $root = 'The block runs into an existing booking at '.substr((string) $failingStart, 0, 5).'–'.substr((string) $failingEnd, 0, 5);
+            if ($reason === 'span_overlap') {
+                $root = 'Your block runs into an existing booking at '.substr((string) $failingStart, 0, 5).'–'.substr((string) $failingEnd, 0, 5);
+            }
+            if ($failingKind === 'occupied' && $holderRange !== null) {
+                $root .= sprintf(
+                    ' (part of a held %.4g-hour block, %s–%s)',
+                    max(0.5, ((strtotime((string) $holderRange['end']) - strtotime((string) $holderRange['start'])) / 3600)),
+                    substr((string) $holderRange['start'], 0, 5),
+                    substr((string) $holderRange['end'], 0, 5),
+                );
+            }
+
+            return $root.' — pick another slot.';
+        }
+
         return match ($reason) {
-            'slot_not_available', 'slot_not_found' => 'That slot was just taken.',
+            'slot_not_found' => 'That slot does not exist in the booking grid.',
+            'invalid_span' => 'Blocks are 30 minutes to 2 hours — adjust the selection.',
             'engine_precheck_failed' => 'You or the cohort is no longer free at that time.',
             'reserve_interrupted' => 'The booking could not be completed — try again.',
             'duplicate_active_request' => 'This occurrence already has an active replacement request — see My Request History.',
             'holiday' => 'That day is a public holiday — replacement classes cannot be booked on it.',
             default => 'Booking conflict — refresh and try again.',
         };
+    }
+
+    /**
+     * The holder's LIVE range for the failed slot (user amendment): follow the
+     * junction's live link → its request → every junction slot's min/max.
+     * Frozen entity name: the LIVE-receipt — 'never re-retain released rows'
+     * (a released slot resolves to no holder → null).
+     *
+     * @param  string|null  $failingKind
+     * @param  string|null  $failingStart
+     * @return array{start: string, end: string}|null
+     */
+    private function holderRange(int $failingSlotId, ?string $failingKind, ?string $failingStart): ?array
+    {
+        if ($failingKind !== 'occupied' || ! $failingStart) {
+            return null;
+        }
+
+        $holderRequest = ReplacementRequestSlot::query()
+            ->where('time_slot_id', $failingSlotId)
+            ->first();
+
+        if (! $holderRequest) {
+            return null;
+        }
+
+        $holderRows = DB::table('replacement_request_slots')
+            ->join('time_slots', 'replacement_request_slots.time_slot_id', '=', 'time_slots.id')
+            ->where('replacement_request_slots.replacement_request_id', $holderRequest->replacement_request_id)
+            ->orderBy('time_slots.start_time')
+            ->get(['time_slots.start_time', 'time_slots.end_time']);
+
+        if ($holderRows->isEmpty()) {
+            return null;
+        }
+
+        return [
+            'start' => (string) $holderRows->first()->start_time,
+            'end' => (string) $holderRows->last()->end_time,
+        ];
     }
 }

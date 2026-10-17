@@ -167,6 +167,12 @@ final class MatrixIntersectionEngine
      * context; $weekNumber must match the slot's week. Throws
      * ModelNotFoundException when the slot does not exist.
      *
+     * Full-block extension (SDD full-block-reservation, design D4): $span
+     * evaluates the SAME vectors for EVERY slot in the plan
+     * (anchor..anchor+span−1, 30-min steps, same day — the resolve step
+     * guarantees the run fits the grid, so no separate day-end check here).
+     * The default (span = 1) keeps every existing caller byte-identical.
+     *
      * @param  array<int, int>  $cohortIds
      */
     public function validateSlot(
@@ -175,40 +181,61 @@ final class MatrixIntersectionEngine
         array $cohortIds,
         string $sessionType,
         int $weekNumber,
+        int $span = 1,
     ): bool {
         $this->validateSessionType($sessionType);
         $this->validateWeekNumber($weekNumber);
         $this->validateCohortIds($cohortIds);
 
-        $slot = TimeSlot::findOrFail($timeSlotId);
+        $anchor = TimeSlot::findOrFail($timeSlotId);
 
-        if ($slot->week_number !== $weekNumber) {
+        if ($anchor->week_number !== $weekNumber) {
             return false;
         }
 
-        if ($slot->status !== 'available') {
+        if ($anchor->status !== 'available') {
             return false;
         }
 
-        if (in_array($slot->day_of_week, $this->holidayDays($slot->semester_id, $slot->week_number), true)) {
+        if (in_array($anchor->day_of_week, $this->holidayDays($anchor->semester_id, $anchor->week_number), true)) {
             return false;
         }
 
-        foreach ($this->lecturerBusyRanges($slot->semester_id, $lecturerId, $slot->week_number) as $busy) {
-            if ($this->overlaps($busy, $slot)) {
-                return false;
-            }
-        }
-
-        foreach ($this->cohortBusyRanges($slot->semester_id, $cohortIds, $slot->week_number) as $busy) {
-            if ($this->overlaps($busy, $slot)) {
-                return false;
-            }
-        }
-
+        $lecturerBusy = $this->lecturerBusyRanges($anchor->semester_id, $lecturerId, $anchor->week_number);
+        $cohortBusy = $this->cohortBusyRanges($anchor->semester_id, $cohortIds, $anchor->week_number);
         $headcount = $this->requiredHeadcount($cohortIds);
+        $venueOk = $this->eligibleVenues($headcount, $sessionType, $anchor->venue_id) !== [];
 
-        return $this->eligibleVenues($headcount, $sessionType, $slot->venue_id) !== [];
+        for ($k = 0; $k < $span; $k++) {
+            // Anchor on k = 0 keeps the original semantics byte-identical; the
+            // k > 0 cells are virtual (same resolve shape the OCC locks: 30-min
+            // steps from the anchor's own grid row).
+            $slot = $k === 0
+                ? $anchor
+                : new TimeSlot([
+                    'semester_id' => $anchor->semester_id,
+                    'week_number' => $anchor->week_number,
+                    'day_of_week' => $anchor->day_of_week,
+                    'start_time' => $this->addMinutes((string) $anchor->start_time, $k * 30),
+                    'end_time' => $this->addMinutes((string) $anchor->end_time, $k * 30),
+                    'status' => 'available',
+                    'venue_id' => $anchor->venue_id,
+                ]);
+
+            foreach ($lecturerBusy as $busy) {
+                if ($this->overlaps($busy, $slot)) {
+                    return false;
+                }
+            }
+
+            foreach ($cohortBusy as $busy) {
+                if ($this->overlaps($busy, $slot)) {
+                    return false;
+                }
+            }
+        }
+
+        return $venueOk;
     }
 
     /**

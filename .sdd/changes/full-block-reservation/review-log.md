@@ -168,3 +168,9 @@ The D2 tiebreak fold landed with the round-5 line-edit pass; the step-5 forensic
  - (none — reviewer pre-approved freeze after these ≈3 declarative lines)
 
 **TASKS FROZEN — 2026-10-16 (3 rounds): proposal ×5, design ×5, specs ×1, tasks ×3. All four artifacts hold real freezes; `/sdd-apply` cleared.**
+
+## USER AMENDMENT (copy context view "B") — 2026-10-16
+User decision on the race/pre-check named-time copy: show not only the collision cell but the HOLDER'S full held range — *"…runs into an existing booking at 12:30–13:00 (part of a held 2-hour block, 12:30–14:30) — pick another slot."* (cell-only fallback when no live link is resolvable). Landed declaratively into design D6 (both named-time arms + transport keys `holder_start`/`holder_end`) + spec R4/R7 + tasks T4/T9/T15b-d folds (same commit set). No code yet — apply implements it atomically.
+
+## USER AMENDMENT — context view "B" — 2026-10-16 (user decision on the race/pre-check loser copy)
+The named-time copy now appends the HOLDER's live range — *"…runs into an existing booking at 12:30–13:00 (part of a held 2-hour block, 12:30–14:30) — pick another slot."* — via the return's new `holder_start`/`holder_end` keys (one junction lookup per failing occupied slot; cell-only fallback when no live link resolves; `span_overlap` arms identical). Landed declaratively: design D6 (occupied + span_overlap arms + transport bullet), spec R4/transport/R7.2(b), tasks T4/T9/T15b/T15c. Recorded in review-log; code lands atomically at `/sdd-apply` (no unfreeze needed — user-directed, pre-implementation).

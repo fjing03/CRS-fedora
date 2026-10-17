@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Carbon;
 
 /**
@@ -56,6 +57,13 @@ class ReplacementRequest extends Model
     public function replacementTimeSlot(): BelongsTo
     {
         return $this->belongsTo(TimeSlot::class, 'replacement_time_slot_id');
+    }
+
+    /** Full-block reservation (SDD full-block-reservation): the slot rows of this request's LIVE reservation. */
+    /** @return HasMany<ReplacementRequestSlot, $this> */
+    public function requestSlots(): HasMany
+    {
+        return $this->hasMany(ReplacementRequestSlot::class);
     }
 
     /** @return BelongsTo<ClassSession, $this> */

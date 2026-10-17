@@ -29,7 +29,7 @@
    - `slot_not_available` + `failing_kind='occupied'` → *"Your {span}-slot ({hours}h) block runs into an existing booking at {start}–{end} — pick another slot."*
    - `slot_not_available` + `failing_kind='missing'` → *"Part of the block falls outside the booking grid — adjust the selection."* (times dropped)
    - `slot_not_available` + no kind + no times → *"That slot was just taken."*
-   - `span_overlap` → the named-time copy (transported failing times; produced by the validator, `span > 1`).
+   - `span_overlap` → the named-time copy (transported failing times; produced by the validator, `span > 1`) + holder-context suffix. **USER AMENDMENT 2026-10-16 (option B):** occupied losers append the holder's live range — *"…at {start}–{end} (part of a held 2-hour block, {holderStart}–{holderEnd})…"* — via `holder_start`/`holder_end` transport keys; cell-only fallback when no live link resolves.
    - `invalid_span` → *"Blocks are 30 minutes to 2 hours — adjust the selection."*
    - Unlisted combos → the generic fallback (the D2 mandatory stamp makes `failing_kind=null` + times unreachable).
 2. Transport: `submitBlocks` rows carry reason + failing-kind token; the action's flat return gains `failing_start`/`failing_end`/`failing_kind` (request_id preserved); `OCCResult` gains the failing-slot fields (NO kind param — stamped action-side).

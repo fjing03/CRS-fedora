@@ -114,6 +114,24 @@ final class ReplacementArrangementTest extends TestCase
         return $session;
     }
 
+    /**
+     * Full-block fixture helper: the 4 contiguous 30-min slots of a 2h block
+     * (the designed contract change — a span submit needs its whole run in the
+     * grid; the legacy one-slot helper remains below).
+     */
+    private function createBlockSlots(int $week, int $day, string $start, int $count = 4): void
+    {
+        foreach (range(0, $count - 1) as $k) {
+            $st = date('H:i:s', strtotime($start) + $k * 1800);
+            TimeSlot::create([
+                'semester_id' => $this->semester->id, 'class_session_id' => null,
+                'week_number' => $week, 'day_of_week' => $day,
+                'start_time' => $st, 'end_time' => date('H:i:s', strtotime($st) + 1800),
+                'venue_id' => $this->venue->id, 'status' => 'available',
+            ]);
+        }
+    }
+
     private function createSlot(int $week, int $day, string $start, string $status = 'available'): TimeSlot
     {
         return TimeSlot::create([
@@ -259,7 +277,7 @@ final class ReplacementArrangementTest extends TestCase
 
     public function test_submit_blocks_creates_requests_and_audits(): void
     {
-        $this->createSlot(6, 3, '14:00:00'); // bookable anchor (Thursday 14:00 = hour 12)
+        $this->createBlockSlots(6, 3, '14:00:00'); // the block's full 2h run (Thursday 14:00 = hour 12)
 
         $testable = Livewire::actingAs($this->lecturerA)->test(ReplacementArrangement::class);
         $testable->call('submitBlocks',
@@ -326,7 +344,7 @@ final class ReplacementArrangementTest extends TestCase
         // week_number must be the occurrence's, never the slot's (D7 releases
         // week 8 at approval).
         $session = ClassSession::query()->where('lecturer_id', $this->lecturerA->id)->firstOrFail();
-        $slot = $this->createSlot(4, 3, '14:00:00');
+        $this->createBlockSlots(4, 3, '14:00:00'); // the block's full 2h run
 
         $testable = Livewire::actingAs($this->lecturerA)->test(ReplacementArrangement::class);
         $testable->call('submitBlocks',
