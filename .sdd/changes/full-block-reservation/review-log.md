@@ -174,3 +174,20 @@ User decision on the race/pre-check named-time copy: show not only the collision
 
 ## USER AMENDMENT — context view "B" — 2026-10-16 (user decision on the race/pre-check loser copy)
 The named-time copy now appends the HOLDER's live range — *"…runs into an existing booking at 12:30–13:00 (part of a held 2-hour block, 12:30–14:30) — pick another slot."* — via the return's new `holder_start`/`holder_end` keys (one junction lookup per failing occupied slot; cell-only fallback when no live link resolves; `span_overlap` arms identical). Landed declaratively: design D6 (occupied + span_overlap arms + transport bullet), spec R4/transport/R7.2(b), tasks T4/T9/T15b/T15c. Recorded in review-log; code lands atomically at `/sdd-apply` (no unfreeze needed — user-directed, pre-implementation).
+
+## Apply completion note — 2026-10-17 (implementer)
+T1–T14 landed: migration + model hasMany; the OCC **two-phase reservation** with the per-branch rollback
+contract (peri-flip failures THROW a RuntimeException subclass out of the txn; the single conflict audit row
+re-written AFTER the rollback with the `concurrent_reserve_conflict` forensic token + parsed failing facts,
+`replacement_request_id` pre-nulled so compensation cannot double-erase it); the ACTION passes the span,
+derives `endHour`-driven bounds (invalid_span pre-request, no write/audit), does the span pre-resolve
+(`failing_kind` occupied/missing) and the `assertSet('span>1' === span_overlap)` adaptive token binding;
+the engine validates the full span (vector hoist); the cancel releases the span (skip non-pending rows, one
+audit per actual flip); conflictText's 4-arg routing table (named-time + holder-context amendment "B"); the
+read-model family (venue one-event-per-request via the junction; arrangement ownership via the junction;
+apiReadController's myRequests span + venue-slot covers; MyRequestHistory's pending-row span);
+the blade cap family (0.5–2h clamps, resize clamp 4, MAX_SELECTION 4, TC-1.4 re-pointed).
+Gates at close-out: pint ✓ phpstan 0 ✓ phpunit 181/181 ✓ Playwright 165/165 ✓ (demo DB untouched all
+along: 0 requests/0 reserved pre-existing → the additive migration ran on the demo with the user's notice).
+The full-block fixtures for VenueTimetableTest craft 4-slot interior runs via craftSpanAt.
+Remaining: the SDD closure (T19) — final status + reviewer confirmations in verify.
