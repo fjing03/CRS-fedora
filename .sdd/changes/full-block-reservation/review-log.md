@@ -203,3 +203,34 @@ block shape; `pendingByOccurrence[session:occWeek]` for the hint), the `proposed
 `buildReplacementNote` "(Proposed ⏳)" branch in ui-common.js. Verified via Playwright: W5 Fri 12:00-13:00
 B002 shows the amber `AMCS2093(T) Pending since 17 Oct 2026` block; W14 Thu red `AMCS2093(T) B107
 2:30 PM – 3:30 PM (Proposed ⏳)`. Gates: pint ✓ phpstan 0 ✓ phpunit 181/181 ✓ Playwright 162/162 ✓.
+## Verify-stage closure — 2026-10-17 (spec-gap fix)
+
+`/sdd-verify` found the frozen T15a–e/T16b lettered contracts had NOT landed as
+test code (verified: zero `grep` hits for `invalid_span|span_overlap|occ_two_phase`
+under `tests/`). Fixed by porting the contracts into
+`tests/Feature/SpanReservationTest.php` — **12 tests, DatabaseMigrations + seed,
+max(id)+1 setval pattern** (the seeder inserts explicit ids; the deterministic-1
+house pattern is only safe where the test itself renumbers a table):
+
+| frozen scenario (tasks) | test |
+|---|---|
+| T15a bounds: derived 6 + 0 → `invalid_span` pre-write, no audit; span-3 legal | `test_bounds_*` (both arms, direct action call) |
+| T15b winner: 4 junction rows / 4 flips / 4 success audits | `test_winner_reserves_four_*` |
+| T15b race arm: span-1 loser `slot_not_available` byte-mirror + D5 no request | `test_span_one_race_loses_*` |
+| T15c occupied-mid: kind `occupied`, named truthful time, no write | `test_occupied_mid_span_*` |
+| T15c missing-mid: kind `missing`, derived EXPECTED time | `test_missing_mid_span_*` |
+| T15e engine tail: busy cohort vector at the tail rejects WHOLE submit pre-reserve | `test_busy_engine_tail_*` |
+| T15e cancel: whole-span release, version++ per slot, per-flip audits, junction gone | `test_cancel_releases_the_whole_span_*` |
+| T15e legacy anchor-only cancel byte-identical | `test_legacy_anchor_only_cancel_*` |
+| T15d peri-flip step-5 unique: rollback, ZERO flips survive, `reserve_interrupted` surfaced, forensic audit survives id-NULLed with `concurrent_reserve_conflict` | `test_peri_flip_junction_unique_*` |
+| T16b API `myRequests()`: junction TRUE range (14:00 – 16:00) | `test_api_my_requests_*` (controller invoked directly — route orphaned per debt-api-routes) |
+| T16b history: pending TRUE range + cancel reverts to the 30-min anchor read | `test_history_page_pending_row_*` |
+
+Not covered (accepted residuals, noted here for honesty): the span>1
+`span_overlap` race arm with the holder-context suffix assertion (the span-1 arm
+pinned the token mint; the suffix's copy routing is change-verified via
+ReplacementArrangementTest fixtures), and T16a's venue surface (already landed
+in `VenueTimetableTest` coalesced span-4 + `ReplacementArrangementTest` owner
+statuses during apply).
+
+Gates at close-out: pint ✓ · phpstan 0 ✓ · phpunit **193/193** (181 → 193).
