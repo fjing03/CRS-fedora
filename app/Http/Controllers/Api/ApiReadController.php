@@ -7,7 +7,6 @@ use App\Models\ClassSession;
 use App\Models\Cohort;
 use App\Models\Lecturer;
 use App\Models\ReplacementRequest;
-use App\Models\ReplacementRequestSlot;
 use App\Models\Student;
 use App\Models\User;
 use App\Services\MatrixIntersectionEngine;
@@ -172,8 +171,8 @@ class ApiReadController extends Controller
            request's live range comes from the junction (min/max of its slots),
            overriding the anchor-only join for pending rows; approved +
            cancelled keep the legacy anchor join (bucket split round-2 🟡1). */
-        $pendingSlotsByRequest = ReplacementRequestSlot::query()
-            ->whereIn('replacement_request_id', $requests->pluck('id'))
+        $pendingSlotsByRequest = DB::table('replacement_request_slots')
+            ->whereIn('replacement_request_slots.replacement_request_id', $requests->pluck('id'))
             ->join('time_slots', 'replacement_request_slots.time_slot_id', '=', 'time_slots.id')
             ->groupBy('replacement_request_slots.replacement_request_id')
             ->get([
@@ -230,8 +229,8 @@ class ApiReadController extends Controller
                 // anchor-only join covers approved/cancelled buckets)
                 $pendingSpan = $pendingSlotsByRequest->get($row->id);
                 if ($row->status === 'pending' && $pendingSpan) {
-                    $rtStartTime = (string) $pendingSpan->span_start;
-                    $rtEndTime = (string) $pendingSpan->span_end;
+                    $rtStartTime = (string) ($pendingSpan->span_start ?? '');
+                    $rtEndTime = (string) ($pendingSpan->span_end ?? '');
                 }
 
                 $rtStartParts = explode(':', $rtStartTime);

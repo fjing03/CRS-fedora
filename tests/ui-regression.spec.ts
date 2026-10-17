@@ -51,16 +51,19 @@ test.describe('UI Regression Test Cases', () => {
     });
 
     test('TC-1.4 Duration param caps selection', async ({ page }) => {
+      // SDD full-block-reservation DESIGNED change (user decision 2026-10-16,
+      // FOCS 2h cap): a duration=3 handoff auto-shrinks to the 4-slot / 2h cap —
+      // the counter reads "of 4", never "of 6" (recorded in the changelog).
       await page.goto(`${BASE}/replacement-arrangement?code=BMIT5555&date=2026-09-04&duration=3&from=replacement-home`, { waitUntil: 'networkidle' });
       const progress = page.locator('#progressText, .progress-text, [class*="progress"]').first();
-      await expect(progress).toContainText('Selected 0 of 6 slots', { timeout: 5000 }).catch(() => {});
+      await expect(progress).toContainText('Selected 0 of 4 slots', { timeout: 5000 }).catch(() => {});
       const available = page.locator('.timetable .cell-content.available, .slot-available, .cell.available').first();
       if (await available.isVisible().catch(() => false)) {
         for (let i = 0; i < 7; i++) {
           await available.click({ timeout: 3000 }).catch(() => {});
           await page.waitForTimeout(100);
         }
-        await expect(progress).toContainText('Selected 6 of 6 slots', { timeout: 5000 });
+        await expect(progress).toContainText('Selected 4 of 4 slots', { timeout: 5000 });
       }
     });
   });
