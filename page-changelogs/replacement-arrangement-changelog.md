@@ -1363,3 +1363,18 @@ the pinned bridge) — a second `selectSlot` on a live selection, hence the moda
   span from its duration) render in the picker trigger + the Conflicted chip summary
   (`W{week} · {Mon D} · HH:MM–HH:MM @ {venue}`) — cosmetic only, no `selectSlot`, no confirm; a
   real panel pick replaces it. Submit falls back to `urlParams` for the original + the pinned week.
+
+#### Full-block span reservation — the 2h block locks 4 slots (SDD full-block-reservation, 2026-10-16, apply close-out)
+The span hole closes: a 2h selection now locks and reflects the whole block, not just its first half-hour.
+
+- **Picker budgets**: `MAX_SELECTION` stays 4; `BLOCK_SPAN` clamped to 0.5–2h (the URL `duration=3` auto-shrinks
+  to 2h — **TC-1.4 DESIGNED change**: "Selected 0 of 4 slots" is now the counter, "of 6" impossible; the 4-slot
+  picker cap comes from `slotSpan`'s resize clamp 8 → 4).
+- **Conflict copy** (`conflictText` routing; user context-view amendment "B"): span losers name the collision
+  cell and, when a live holder exists, the holder's own held range:
+  *"Your block runs into an existing booking at 12:30–13:00 (part of a held 2-hour block, 12:30–14:30) — pick
+  another slot."* `invalid_span` copy: *"Blocks are 30 minutes to 2 hours — adjust the selection."*
+- **My-requests API**: pending rows carry the junction-derived true range (`12:00–14:00` instead of 12:00–12:30);
+  approved + cancelled exactly as before (legacy anchor join).
+- **Ownership grid statuses**: the arrangement page's mine/other pending statuses now derive from the junction
+  (a span's tails are no longer "someone ELSE's" on the owner's grid).

@@ -937,3 +937,9 @@ Sentences split:
 2. day-end: `THEY DO NOT FIT BEFORE THE DAY END ({18:30})` / `None of your classes can run in {V} —
    pick an earlier cell.`
 3. venue-incompatible: `NONE OF YOUR CLASSES CAN RUN IN {V}` / `{room type} hosts {types} sessions only.`
+
+#### Full-block span reservation (SDD apply close-out part 2, 2026-10-16)
+- Pending reservations render **one amber span block** (`span-N`) on the venue page — one event per REQUEST
+  keyed through `replacement_request_slots` (anchor id, `end = start + span − 1`, clamp 21); the previous
+  "one half-hour slot per request" shape is retired (the orphan-defence reads stay untouched).
+- Legacy rows unaffected: no backfill; existing anchor-only requests keep rendering as their anchor slot.
