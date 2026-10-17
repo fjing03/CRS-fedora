@@ -2370,6 +2370,9 @@
                pinned session's duration) — renderTitleSummary's to12h/add30min
                path reads anchorSlot.end, and a missing field would crash the
                boot mid-render (Add 30 undefined — user land-57 verify) */
+            // OUT of the cap family (user-frozen round-2 🟡3): the banner's
+            // anchor derives the ORIGINAL class's true length (display-only) —
+            // altering it would make the banner lie about non-FOCS originals.
             const spanSlots = Math.min(Math.max(Math.round((pinned.duration || 0.5) * 2), 1), 8);
             return {
                 week: wk,
@@ -2559,7 +2562,7 @@ slotLine = 'Week ' + (anchorSlot.week + 1) + ' · ' + anchorSlot.weekdayName + '
             urlParams.originalVenue = i.venue;
             urlParams.duration = String(matched.entry.duration);
             /* 2b — the span consequences the one-shot boot clamp can't redo */
-            const hrs = Math.min(Math.max(parseFloat(urlParams.duration), 0.5), 4);
+            const hrs = Math.min(Math.max(parseFloat(urlParams.duration), 0.5), 2);
             BLOCK_SPAN = Math.round(hrs * 2);
             MAX_SELECTION = Math.max(MAX_SELECTION, BLOCK_SPAN);
             urlSpanLocked = true;
@@ -3140,7 +3143,7 @@ slotLine = 'Week ' + (anchorSlot.week + 1) + ' · ' + anchorSlot.weekdayName + '
                AUTO default pick (favourite/recent/first-option, opts.auto)
                cannot resize a URL-&duration= block; only an explicit user
                pick in the panel may.) */
-            const slotSpan = Math.min(Math.max(slot.end - slot.start + 1, 1), 8);
+            const slotSpan = Math.min(Math.max(slot.end - slot.start + 1, 1), 4);
             if (!(urlSpanLocked && opts && opts.auto) && slotSpan !== BLOCK_SPAN) {
                 BLOCK_SPAN = slotSpan;
                 MAX_SELECTION = Math.max(MAX_SELECTION, BLOCK_SPAN);
@@ -3393,10 +3396,11 @@ triggerText.textContent = 'W' + (slot.week + 1) + ' · ' + shortDate + ' · ' + 
                 urlParams.duration = String(pinned.duration);
             }
             // If the original class duration was passed in (hours), size the block
-            // span from it — clamped to 0.5–4h; the multi-week BUDGET stays at
+            // span from it — clamped to 0.5–2h (FULL-BLOCK user cap: FOCS
+            // blocks run 0.5–2h, the 4-slot cap); the multi-week BUDGET stays at
             // least the approved 4 slots so a shorter class can still book twice.
             if (urlParams.duration && !isNaN(parseFloat(urlParams.duration))) {
-                const hrs = Math.min(Math.max(parseFloat(urlParams.duration), 0.5), 4);
+                const hrs = Math.min(Math.max(parseFloat(urlParams.duration), 0.5), 2);
                 BLOCK_SPAN = Math.round(hrs * 2);
                 MAX_SELECTION = Math.max(MAX_SELECTION, BLOCK_SPAN);
                 urlSpanLocked = true;
