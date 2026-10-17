@@ -80,13 +80,17 @@ class MyRequestHistory extends Component
                 ->join('time_slots', 'replacement_request_slots.time_slot_id', '=', 'time_slots.id')
                 ->where('replacement_request_slots.replacement_request_id', $r->id)
                 ->orderBy('time_slots.start_time')
-                ->get(['time_slots.week_number', 'time_slots.day_of_week', 'time_slots.start_time', 'time_slots.end_time']);
+                ->get(['time_slots.week_number', 'time_slots.day_of_week', 'time_slots.venue_id', 'time_slots.start_time', 'time_slots.end_time']);
 
             if ($spanSlots->isNotEmpty()) {
+                // the virtual anchor slot carries the span's venue id (the
+                // `venue` relation resolves for the row's replacementVenue):
+                // line 132's "room_code on null" — 2026-10-17 user report.
                 $slot = new TimeSlot([
                     'semester_id' => (int) $session->semester_id,
                     'week_number' => (int) $spanSlots->first()->week_number,
                     'day_of_week' => (int) $spanSlots->first()->day_of_week,
+                    'venue_id' => (int) $spanSlots->first()->venue_id,
                     'start_time' => (string) $spanSlots->first()->start_time,
                     'end_time' => (string) $spanSlots->last()->end_time,
                 ]);
