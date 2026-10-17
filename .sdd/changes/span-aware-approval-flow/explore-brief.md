@@ -117,3 +117,9 @@ returns the original occurrence to all 4 surfaces (D1 verified both directions i
   frozen template ("cannot be undone") — verify the same ruling is wanted on the approval surface.
 - Holiday-masked pending rows (bug-hunt B3, P3) resurface as unreadable queue badges IF a holiday
   covers a requested week — LOW, note-only.
+
+## Grilling decisions (2026-10-17, one at a time with the user)
+
+| # | Question | Decision |
+|---|---|---|
+| Q2 | D7 original-release semantics | **(c): stamp + free-room, with one guard** — approval writes `class_exceptions` with reason `official_event` for (original session, week) ONLY when no exception exists yet (the unique `(class_session_id, week_number)` guard, detection pre-check); AND flips the ORIGINAL occurrence's occupied `time_slots` rows to `available` (version-checked) so the old room+time becomes bookable by others (FR Objective-3 letter). Effect is invisible on holiday weeks (W14 case) — verification lives in the tasks. |
