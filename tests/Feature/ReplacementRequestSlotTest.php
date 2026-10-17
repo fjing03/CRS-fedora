@@ -21,7 +21,6 @@ final class ReplacementRequestSlotTest extends TestCase
 {
     use DatabaseMigrations;
 
-
     protected function setUp(): void
     {
         parent::setUp();

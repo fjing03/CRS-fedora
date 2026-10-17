@@ -18,6 +18,7 @@ use App\Services\MatrixIntersectionEngine;
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
 use Livewire\Attributes\Renderless;
 use Livewire\Component;
@@ -640,11 +641,8 @@ class ReplacementArrangement extends Component
      * times; occupied losers append the holder's live range via
      * `holder_start`/`holder_end` (resolved per failing slot from its live
      * junction link; cell-only fallback when no live link resolves).
-     * @param  string|null  $failingStart
-     * @param  string|null  $failingEnd
-     * @param  string|null  $failingKind
+     *
      * @param  array{start: string, end: string}|null  $holderRange
-     * @return string
      */
     private function conflictText(
         string $reason,
@@ -695,8 +693,6 @@ class ReplacementArrangement extends Component
      * Frozen entity name: the LIVE-receipt — 'never re-retain released rows'
      * (a released slot resolves to no holder → null).
      *
-     * @param  string|null  $failingKind
-     * @param  string|null  $failingStart
      * @return array{start: string, end: string}|null
      */
     private function holderRange(int $failingSlotId, ?string $failingKind, ?string $failingStart): ?array

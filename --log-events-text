@@ -1,0 +1,4 @@
+[00:00:00.167576770 / 00:00:00.167576770] [8919768 bytes] PHPUnit Started (PHPUnit 12.5.30 using PHP 8.5.10 (cli) on Linux)
+[00:00:00.169481027 / 00:00:00.001904257] [8919768 bytes] Test Runner Configured
+[00:00:00.169561297 / 00:00:00.000080270] [8919768 bytes] Bootstrap Finished (/home/philler/Desktop/tarumt/degree/y3s1/BMCS3404 PROJECT I (4)/CRS-fedora-backend/vendor/autoload.php)
+[00:00:00.169849011 / 00:00:00.000287714] [8919768 bytes] Event Facade Sealed
