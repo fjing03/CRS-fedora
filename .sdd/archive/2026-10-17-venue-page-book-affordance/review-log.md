@@ -160,3 +160,10 @@ First real sdd-reviewer round on tasks.md (pi subprocess; full transcript: `revi
 ## Apply completion note — 2026-10-15 (implementer)
 
 **U2a implemented and machine-verified live.** All 15 tasks executed (T12's full-suite gate clause pending the user's decision — see T12 entry). Files touched: `resources/views/livewire/venue-timetable.blade.php` (the port), `.gitignore` (`.auth/`), `playwright.config.ts` (setup project), `tests/auth.setup.ts` (new), `tests/venue-timetable.spec.ts` (storageState + reconciliation: TC03/04/10/25/37/39–44/46/60 re-points, TC12/13/35b/49–51/61/62/69/70 retired with decision notes), `tests/venue-db.spec.ts` (T7 re-point), `tests/venue-book.spec.ts` (new, 6 tests), `page-changelogs/venue-timetable-ui-changelog.md` (postscript). Stale-cache ritual performed; requests table verified empty (honest-state note in changelog). TC70: **retired in T8, never executed in any run** (guard honoured throughout). Awaiting: user decision on T12 scope; `/sdd-verify` + `/sdd-archive` after that.
+## Archive note — 2026-10-17 (T12 gate closure)
+T12's open clause ("full-suite gate pending user decision on the ~149 dormant
+mock-era failures") is CLOSED by events: the sweep-out happened across the
+2026-10-16/17 phases (fixture reconciliations, retirements per T8–T10) and the
+current full-suite Playwright run is 166 passed / 3 skipped / 0 failed. The
+historical caveat describes fixtures that no longer exist. Archived per the
+user-approved hygiene sweep of 2026-10-17.
