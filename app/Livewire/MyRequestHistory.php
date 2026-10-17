@@ -6,8 +6,10 @@ use App\Actions\CancelPendingRequest;
 use App\Concerns\ResolvesTimetableTimeline;
 use App\Models\Cohort;
 use App\Models\ReplacementRequest;
+use App\Models\TimeSlot;
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\DB;
 use Livewire\Component;
 
 /**
@@ -66,7 +68,30 @@ class MyRequestHistory extends Component
     private function requestRow(ReplacementRequest $r, Carbon $semesterStart): array
     {
         $session = $r->classSession;
+
+        // Full-block span read (design D7.5, round-1 🔴1): a PENDING row's
+        // range comes from the junction (min/max of its slots) — a 2h pending
+        // shows "14:00 – 16:00", not the anchor's 30 min. Approved + cancelled
+        // keep the legacy anchor read (bucket split round-2 🟡1). The slot
+        // fallback covers legacy requests without junction rows.
         $slot = $r->replacementTimeSlot;
+        if ($r->status === 'pending' && (int) $r->replacement_time_slot_id > 0) {
+            $spanSlots = DB::table('replacement_request_slots')
+                ->join('time_slots', 'replacement_request_slots.time_slot_id', '=', 'time_slots.id')
+                ->where('replacement_request_slots.replacement_request_id', $r->id)
+                ->orderBy('time_slots.start_time')
+                ->get(['time_slots.week_number', 'time_slots.day_of_week', 'time_slots.start_time', 'time_slots.end_time']);
+
+            if ($spanSlots->isNotEmpty()) {
+                $slot = new TimeSlot([
+                    'semester_id' => (int) $session->semester_id,
+                    'week_number' => (int) $spanSlots->first()->week_number,
+                    'day_of_week' => (int) $spanSlots->first()->day_of_week,
+                    'start_time' => (string) $spanSlots->first()->start_time,
+                    'end_time' => (string) $spanSlots->last()->end_time,
+                ]);
+            }
+        }
 
         $classDate = $semesterStart->copy()
             ->addWeeks((int) $r->week_number - 1)

@@ -14,6 +14,7 @@ use App\Models\Lecturer;
 use App\Models\Module;
 use App\Models\Programme;
 use App\Models\ReplacementRequest;
+use App\Models\ReplacementRequestSlot;
 use App\Models\Semester;
 use App\Models\TimeSlot;
 use App\Models\User;
@@ -197,6 +198,17 @@ final class ReplacementArrangementTest extends TestCase
             'semester_id' => $this->semester->id, 'proposer_id' => $this->lecturerB->id,
             'class_session_id' => $sessionB->id, 'week_number' => 6,
             'replacement_time_slot_id' => $pendingOther->id, 'status' => 'pending', 'submitted_at' => now(),
+        ]);
+
+        // Full-block contract change: the pending requests carry their LIVE
+        // receipts (junction rows) — the ownership read derives from them.
+        ReplacementRequestSlot::create([
+            'replacement_request_id' => ReplacementRequest::query()->where('proposer_id', $this->lecturerA->id)->value('id'),
+            'time_slot_id' => $pendingMine->id,
+        ]);
+        ReplacementRequestSlot::create([
+            'replacement_request_id' => ReplacementRequest::query()->where('proposer_id', $this->lecturerB->id)->value('id'),
+            'time_slot_id' => $pendingOther->id,
         ]);
 
         $payload = $this->payloadOf($this->lecturerA);

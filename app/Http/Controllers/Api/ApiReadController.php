@@ -7,6 +7,7 @@ use App\Models\ClassSession;
 use App\Models\Cohort;
 use App\Models\Lecturer;
 use App\Models\ReplacementRequest;
+use App\Models\ReplacementRequestSlot;
 use App\Models\Student;
 use App\Models\User;
 use App\Services\MatrixIntersectionEngine;
@@ -167,7 +168,23 @@ class ApiReadController extends Controller
             )
             ->get();
 
-        $mapped = $requests->map(function ($row) use ($semesterStart, $dayNames) {
+        /* Full-block span read (design D7.3, round-4 🔴2a): a PENDING
+           request's live range comes from the junction (min/max of its slots),
+           overriding the anchor-only join for pending rows; approved +
+           cancelled keep the legacy anchor join (bucket split round-2 🟡1). */
+        $pendingSlotsByRequest = ReplacementRequestSlot::query()
+            ->whereIn('replacement_request_id', $requests->pluck('id'))
+            ->join('time_slots', 'replacement_request_slots.time_slot_id', '=', 'time_slots.id')
+            ->groupBy('replacement_request_slots.replacement_request_id')
+            ->get([
+                'replacement_request_slots.replacement_request_id',
+                DB::raw('MIN(time_slots.start_time) as span_start'),
+                DB::raw('MAX(time_slots.end_time) as span_end'),
+                DB::raw('COUNT(*) as span_slots'),
+            ])
+            ->keyBy('replacement_request_id');
+
+        $mapped = $requests->map(function ($row) use ($semesterStart, $dayNames, $pendingSlotsByRequest) {
             $classDate = $semesterStart->copy()
                 ->addDays(($row->week_number - 1) * 7)
                 ->addDays($row->day_of_week)
@@ -206,8 +223,19 @@ class ApiReadController extends Controller
                     ->addDays($row->rt_day_of_week)
                     ->format('Y-m-d');
 
-                $rtStartParts = explode(':', $row->rt_start_time);
-                $rtEndParts = explode(':', $row->rt_end_time);
+                $rtStartTime = $row->rt_start_time;
+                $rtEndTime = $row->rt_end_time;
+
+                // the pending bucket's TRUE range (the junction's min/max; the
+                // anchor-only join covers approved/cancelled buckets)
+                $pendingSpan = $pendingSlotsByRequest->get($row->id);
+                if ($row->status === 'pending' && $pendingSpan) {
+                    $rtStartTime = (string) $pendingSpan->span_start;
+                    $rtEndTime = (string) $pendingSpan->span_end;
+                }
+
+                $rtStartParts = explode(':', $rtStartTime);
+                $rtEndParts = explode(':', $rtEndTime);
                 $replacementTime = $rtStartParts[0].':'.$rtStartParts[1].' – '.$rtEndParts[0].':'.$rtEndParts[1];
 
                 $replacementVenue = $row->rt_room_code;
@@ -684,11 +712,48 @@ class ApiReadController extends Controller
             }
         }
 
+        // Full-block span cover (design D7.4, round-4 🔴2b): pending rows mark
+        // anchor..anchor+span−1 via the junction (tails are NOT bookable via
+        // API); the approved bucket keeps the legacy anchor join (round-5 🟡 —
+        // dormant at HEAD, preserved for the approval change).
+        $pendingSpans = DB::table('replacement_requests')
+            ->join('replacement_request_slots', 'replacement_requests.id', '=', 'replacement_request_slots.replacement_request_id')
+            ->join('time_slots', 'replacement_request_slots.time_slot_id', '=', 'time_slots.id')
+            ->where('time_slots.week_number', $weekNumber)
+            ->where('replacement_requests.status', 'pending')
+            ->where('time_slots.venue_id', '!=', 0)
+            ->groupBy('replacement_requests.id', 'replacement_requests.status')
+            ->get([
+                'replacement_requests.id',
+                'replacement_requests.status',
+                DB::raw('MIN(time_slots.venue_id) as venue_id'),
+                DB::raw('MIN(time_slots.day_of_week) as day_of_week'),
+                DB::raw('MIN(time_slots.start_time) as span_start'),
+                DB::raw('MAX(time_slots.end_time) as span_end'),
+                DB::raw('COUNT(*) as span_count'),
+            ]);
+
+        foreach ($pendingSpans as $ps) {
+            $code = $eligibleVenues->firstWhere('id', $ps->venue_id)?->room_code;
+            if (! $code || ! isset($venueSlots[$code])) {
+                continue;
+            }
+            [$startH, $startM] = array_map('intval', explode(':', $ps->span_start));
+            [$endH, $endM] = array_map('intval', explode(':', $ps->span_end));
+            $startHi = (int) (($startH - 8) * 60 + $startM) / 30;
+            $endHi = (int) (($endH - 8) * 60 + $endM) / 30;
+            $state = 3;
+            for ($hi = $startHi; $hi < $endHi && $hi <= 21; $hi++) {
+                $idx = $ps->day_of_week * 22 + $hi;
+                $venueSlots[$code][$idx] = [$ps->day_of_week, $hi, $state];
+            }
+        }
+
         $replacementRequests = DB::table('replacement_requests')
             ->join('time_slots', 'replacement_requests.replacement_time_slot_id', '=', 'time_slots.id')
             ->where('time_slots.week_number', $weekNumber)
             ->where('time_slots.venue_id', '!=', 0)
-            ->whereIn('replacement_requests.status', ['pending', 'approved'])
+            ->where('replacement_requests.status', 'approved')
             ->select(
                 'replacement_requests.status',
                 'time_slots.venue_id',

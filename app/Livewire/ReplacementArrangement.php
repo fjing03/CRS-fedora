@@ -326,10 +326,15 @@ class ReplacementArrangement extends Component
             ->whereIn('status', ['occupied', 'pending'])
             ->get();
 
-        $proposers = ReplacementRequest::query()
-            ->where('status', 'pending')
-            ->whereIn('replacement_time_slot_id', $slots->modelKeys())
-            ->pluck('proposer_id', 'replacement_time_slot_id');
+        // Full-block ownership read (design D7 item 2, round-4 🔴1): the
+        // anchor-keyed pluck can't see a span's tail slots — derive the
+        // owner per slot from the JUNCTION (pending-geometric ONLY; approved
+        // and cancelled keep the legacy column semantics elsewhere).
+        $proposers = ReplacementRequestSlot::query()
+            ->join('replacement_requests', 'replacement_request_slots.replacement_request_id', '=', 'replacement_requests.id')
+            ->where('replacement_requests.status', 'pending')
+            ->whereIn('replacement_request_slots.time_slot_id', $slots->modelKeys())
+            ->pluck('replacement_requests.proposer_id', 'replacement_request_slots.time_slot_id');
 
         $myId = (int) auth()->id();
 
