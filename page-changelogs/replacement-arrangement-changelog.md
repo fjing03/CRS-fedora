@@ -1378,3 +1378,11 @@ The span hole closes: a 2h selection now locks and reflects the whole block, not
   approved + cancelled exactly as before (legacy anchor join).
 - **Ownership grid statuses**: the arrangement page's mine/other pending statuses now derive from the junction
   (a span's tails are no longer "someone ELSE's" on the owner's grid).
+
+#### Handled occurrences leave the pick-the-conflict-slot dropdown (user report 2026-10-17)
+The slot dropdown (`Select a slot to replace`) listed conflicted occurrences ALREADY under an active
+request (e.g. W14 Dec 24 2:30 PM – 3:30 PM @ B107 whose AMCS2093 carried the pending request #8) —
+re-proposing a handled slot would double-book it. Per the frozen D1 rule ("already being handled"),
+occurrences with an active pending/approved request are EXCLUDED from `conflictEventsPayload` — the
+dropdown, the fallback prefill's conflict pool and everything reading the payload share the filter
+(ReplacementHome parity). Verified via Playwright: slot panel shows 3 items (the D1-hidden one gone).

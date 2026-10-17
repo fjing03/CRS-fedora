@@ -269,6 +269,17 @@ class ReplacementArrangement extends Component
             ->get()
             ->keyBy(fn (ClassException $e): string => $e->class_session_id.':'.$e->week_number);
 
+        // FULL-BLOCK RESERVATION (design D1, user amendment 2026-10-17): an
+        // occurrence already under an ACTIVE request is "already being
+        // handled" (ReplacementHome parity) — it must NOT appear in the
+        // slot-picker dropdown (its make-up block is on the proposal's own
+        // schedule; re-proposing would create a double booking).
+        $activeRequests = ReplacementRequest::query()
+            ->whereIn('class_session_id', $sessions->pluck('id'))
+            ->whereIn('status', ['pending', 'approved'])
+            ->get()
+            ->keyBy(fn (ReplacementRequest $r): string => $r->class_session_id.':'.$r->week_number);
+
         $holidays = collect($this->holidaysForJs())
             ->keyBy(fn (array $h): string => $h['week'].':'.$h['dayIndex']);
 
@@ -279,6 +290,11 @@ class ReplacementArrangement extends Component
             for ($week = 1; $week <= $weeks; $week++) {
                 $exception = $exceptions->get($session->id.':'.$week);
                 $holiday = $holidays->get($week.':'.$session->day_of_week);
+
+                // D1 parity — the handled occurrence skips the conflicted list.
+                if ($activeRequests->has($session->id.':'.$week)) {
+                    continue;
+                }
 
                 if ($exception !== null) {
                     $status = 'cancelled';
