@@ -6,6 +6,7 @@ use App\Models\ClassException;
 use App\Models\ClassSession;
 use App\Models\Cohort;
 use App\Models\ReplacementRequest;
+use App\Models\ReplacementRequestSlot;
 use App\Models\Semester;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
@@ -172,11 +173,26 @@ trait ResolvesTimetableTimeline
             $exceptionKeys[$e->class_session_id.':'.$e->week_number] = true;
         }
 
-        $pendingBySessionWeek = [];
+        /* USER DIRECTIVE (2026-10-17 "own pending make-up block"): the pending
+           badge moves to the PROPOSED make-up slot, not the original conflict
+           occurrence. Two keyed maps carry the split:
+           - pendingByMakeupSlot[session:slotWeek]  — renders the AMBER block at
+             the reservation's own day/time/venue (status pending);
+           - pendingByOccurrence[session:occWeek]   — the natural red
+             conflict/holiday occurrence gains the "Proposed" hint suffix
+             (option A — text inside the block).
+           Cancelled/rejected requests never enter either map — the natural
+           state + NO hint is automatic. */
+        $pendingByMakeupSlot = [];
+        $pendingByOccurrence = [];
         $approvedByWeek = [];
         foreach ($requests as $r) {
             if ($r->status === 'pending') {
-                $pendingBySessionWeek[$r->class_session_id.':'.$r->week_number] = $r;
+                $pendingByOccurrence[$r->class_session_id.':'.$r->week_number] = $r;
+                $makeupSlot = $r->replacementTimeSlot;
+                if ($makeupSlot !== null) {
+                    $pendingByMakeupSlot[$r->class_session_id.':'.$makeupSlot->week_number] = $r;
+                }
             } elseif ($r->status === 'approved') {
                 $approvedByWeek[$r->week_number][] = $r;
             }
@@ -196,7 +212,8 @@ trait ResolvesTimetableTimeline
                     continue; // cancelled / released for this week (FR 2.16, D7)
                 }
 
-                $pending = $pendingBySessionWeek[$s->id.':'.$w] ?? null;
+                $pending = $pendingByMakeupSlot[$s->id.':'.$w] ?? null;
+                $pendingOccurrence = $pendingByOccurrence[$s->id.':'.$w] ?? null;
                 $approved = null;
                 foreach ($approvedByWeek[$w] ?? [] as $r) {
                     if ($r->class_session_id === $s->id) {
@@ -212,11 +229,35 @@ trait ResolvesTimetableTimeline
 
                 $ev = $baseBySession[$s->id];
                 if ($pending !== null) {
+                    // USER DIRECTIVE 2026-10-17: the amber block's shape, day and
+                    // venue come from the PROPOSED slots — the WHOLE run
+                    // (ANCHOR..anchor+span−1 via the junction row count), not
+                    // just the anchor's single 30-min pair.
+                    $slot = $pending->replacementTimeSlot;
+                    $spanSlots = ReplacementRequestSlot::query()
+                        ->where('replacement_request_id', $pending->id)
+                        ->count();
+                    if ($slot !== null) {
+                        $ev['di'] = (int) $slot->day_of_week;
+                        $ev['start'] = $this->slotIndex((string) $slot->start_time);
+                        $ev['end'] = $this->slotIndex((string) $slot->start_time) + max(1, $spanSlots) - 1;
+                        $ev['venue'] = (string) $slot->venue->room_code;
+                    }
                     $ev['status'] = 'pending';
                     $ev['requestId'] = $pending->id;
                     $ev['requestedAt'] = $pending->submitted_at->format('d M Y, h:i A');
                     $proposer = $pending->proposer;
                     $ev['requestedBy'] = $proposer !== null ? $proposer->name : '';
+                    $events[] = $ev;
+
+                    continue; // the session's own normal block is consumed by the amber block this week
+                }
+
+                // the natural red occurrence gains the.Proposed hint (option A):
+                // TEXT INSIDE the block — the blade's buildReplacementNote
+                // renders "(Proposed ⏳)" for events carrying proposed = true.
+                if ($pendingOccurrence !== null) {
+                    $ev['proposed'] = true;
                 }
                 $events[] = $ev;
             }

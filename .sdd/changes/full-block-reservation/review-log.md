@@ -191,3 +191,15 @@ Gates at close-out: pint ✓ phpstan 0 ✓ phpunit 181/181 ✓ Playwright 165/16
 along: 0 requests/0 reserved pre-existing → the additive migration ran on the demo with the user's notice).
 The full-block fixtures for VenueTimetableTest craft 4-slot interior runs via craftSpanAt.
 Remaining: the SDD closure (T19) — final status + reviewer confirmations in verify.
+
+
+## USER AMENDMENT (2026-10-17, decision logged) — "own pending make-up block" rendering flip
+Q1/Q4 votes: both staff My Timetable AND the cohort/student timetables render the pending block at the
+PROPOSED make-up slot (Q1 = A + cohort). Q2: the ORIGINAL conflict occurrence falls back to its natural
+red state with a TEXT-SUFFIX hint "Proposed ⏳" (option A, inside the block). Q3: cancelled/rejected → the
+amber make-up block is removed and the hint vanishes automatically (only pending requests enter the maps).
+Landed: `ResolvesTimetableTimeline` two-map split (`pendingByMakeupSlot[session:slotWeek]` for the changed
+block shape; `pendingByOccurrence[session:occWeek]` for the hint), the `proposed` payload field, and the
+`buildReplacementNote` "(Proposed ⏳)" branch in ui-common.js. Verified via Playwright: W5 Fri 12:00-13:00
+B002 shows the amber `AMCS2093(T) Pending since 17 Oct 2026` block; W14 Thu red `AMCS2093(T) B107
+2:30 PM – 3:30 PM (Proposed ⏳)`. Gates: pint ✓ phpstan 0 ✓ phpunit 181/181 ✓ Playwright 162/162 ✓.

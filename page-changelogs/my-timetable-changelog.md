@@ -570,3 +570,11 @@ re-match. The cancel-flow's "Arrange Now" switches to the same builder (the
 ledger row now carries `sessionId` + `week`, with a legacy fallback).
 Timetable events already carried the real session id (`baseEvent.id`), so
 the Class Details modal's new "Class Ref" row works here too.
+
+#### Pending block moves to the PROPOSED make-up slot (user directive 2026-10-17)
+The pending badge no longer marks the original conflict occurrence; it marks the class you booked:
+- **Make-up slot amber**: a pending request's replacement slot renders `AMCS2093(T) · B002 · Pending since <date>`
+  on the proposed slot's own day/time (with the follower's span when the request reserves 2+ slots).
+- **Original conflict occurrence keeps its natural red** (holiday/venue-restriction) **with a text-suffix hint
+  "(Proposed ⏳)"** — so a reader sees the pending is covered by the proposed arrangement.
+- Cancel/reject reverts automatically (only pending requests carry either signal).

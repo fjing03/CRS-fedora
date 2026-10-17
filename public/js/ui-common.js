@@ -623,6 +623,13 @@ function buildReplacementNote(e, opts) {
     if (e.status === 'replacement' && e.remarks) {
         return '<span class="ev-note">(Replaced for ' + e.remarks + ')</span>';
     }
+    // SDD full-block-reservation user directive 2026-10-17 (option A): the
+    // natural conflict/holiday occurrence with a covered proposal shows the
+    // TEXT-SUFFIX hint INSIDE the red block ("Proposed ⏳") — the amber block
+    // rides the make-up slot's own payload now.
+    if (e.proposed) {
+        return '<span class="ev-note">(Proposed ⏳)</span>';
+    }
     if (e.status === 'pending' && e.requestedAt) {
         var submitted = e.requestedAt.split(',')[0];
         return '<span class="ev-note">(Pending since ' + submitted + ')</span>';
