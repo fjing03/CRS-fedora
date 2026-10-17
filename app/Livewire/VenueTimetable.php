@@ -248,26 +248,45 @@ class VenueTimetable extends Component
             $eventsByWeek[$g['w'] - 1][$event['di'].':'.$event['start']][] = $event;
         }
 
-        // Reserved-slot second pass (venue-pending-and-type-labels D1): the
-        // $slots query already fetched this venue's pending rows, but the
-        // imported-class path above skips them (no class_session_id to
-        // coalesce). Each active request reserves exactly ONE anchor
-        // half-hour slot (spec Amendment 2b) — emit one event per slot, no
-        // coalescing; mergeTwinEvents below still runs over them for
-        // defensive parity with imported events. Class facts come from the
-        // request's ORIGINAL session (the class being replaced — that is
-        // what will occupy this room); no `proposer` eager load because
-        // `mine` reads the proposer_id column directly.
+        // Reserved-slot second pass (venue-pending-and-type-labels D1; SDD
+        // full-block-reservation round-1 review): the span-aware read-model —
+        // ONE event per REQUEST (the junction's span reachmentioned where the
+        // anchor-keyed join can't see tails). One row per reserved slot would
+        // never coalesce (mergeTwinEvents merges same-cell twins only), so the
+        // pending join keys through replacement_request_slots and each request
+        // emits ONE event with end = start + junctionCount − 1 — the blade's
+        // span-N colSpan renders it. Class facts still come from the request's
+        // ORIGINAL session; `mine` reads the proposer_id column directly.
         $reserved = $slots->where('class_session_id', null)->where('status', 'pending');
-        $slotIds = $reserved->pluck('id');
+
+        // Junction spans: slot id → its request id (pending-only).
+        $junctionLink = DB::table('replacement_request_slots')
+            ->whereIn('time_slot_id', $reserved->pluck('id'))
+            ->pluck('replacement_request_id', 'time_slot_id');
+
         $requests = ReplacementRequest::with(['classSession.module', 'classSession.lecturer', 'classSession.cohorts.programme'])
             ->where('status', 'pending')
-            ->whereIn('replacement_time_slot_id', $slotIds)
+            ->whereIn('id', $junctionLink->unique()->values())
             ->get()
-            ->keyBy('replacement_time_slot_id');
+            ->keyBy('id');
 
+        // The span cover per request (min/max of its junction rows' ordered cells).
+        $spans = DB::table('replacement_request_slots')
+            ->join('time_slots', 'replacement_request_slots.time_slot_id', '=', 'time_slots.id')
+            ->whereIn('replacement_request_slots.replacement_request_id', $junctionLink->unique()->values())
+            ->groupBy('replacement_request_slots.replacement_request_id',
+                'replacement_request_slots.created_at')
+            ->orderBy('replacement_request_slots.replacement_request_id')
+            ->get([
+                'replacement_request_slots.replacement_request_id',
+                DB::raw('MIN(time_slots.start_time) as first_start'),
+            ])
+            ->keyBy('replacement_request_id');
+
+        $emittedRequests = [];
         foreach ($reserved as $slot) {
-            $request = $requests->get($slot->id);
+            $requestId = (int) ($junctionLink[$slot->id] ?? 0);
+            $request = $requests->get($requestId);
             $session = $request?->classSession;
             // Orphan defence (design D1): cancel/submit keep slot+request in
             // lockstep, so a pending slot without an active request (or the
@@ -276,6 +295,12 @@ class VenueTimetable extends Component
             if ($request === null || $session === null) {
                 continue;
             }
+            // One event PER REQUEST (identifier = the anchor slot id — frozen
+            // round-3 💡): skip the other junction-ordered rows.
+            if (in_array($requestId, $emittedRequests, true)) {
+                continue;
+            }
+            $emittedRequests[] = $requestId;
             // Week guard: same 1..$weeks window as the imported path.
             $w = (int) $slot->week_number;
             if ($w < 1 || $w > $weeks) {
@@ -283,9 +308,13 @@ class VenueTimetable extends Component
             }
 
             $start = $this->slotIndex($slot->start_time);
-            $end = $this->slotIndex($slot->end_time) - 1;
+            // The junction cover: span = the request's LIVE junction row count
+            // (start = the anchor's own slot; end extends contiguously).
+            $junctionCount = $junctionLink->filter(fn ($rid) => $rid === $requestId)->count();
+            $spanSlots = max(1, $junctionCount);
+            $end = min($start + $spanSlots - 1, 21); // the venue page's grid constants: 8:00..18:30 = 21 slots (design D8's shared-hours discipline)
             $event = [
-                'id' => $slot->id,
+                'id' => (int) $request->replacement_time_slot_id,
                 'di' => (int) $slot->day_of_week,
                 'start' => $start,
                 'end' => $end,
