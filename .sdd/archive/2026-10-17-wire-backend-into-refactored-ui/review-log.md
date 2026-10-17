@@ -468,3 +468,20 @@ the DFT2 Wednesday clash is resolved) + T-5 constant updated. Durable record:
 docs/demo-db-data-changes.md (authoritative log for demo-DB edits from now on).
 Fresh-seed proof: scratch DB — 0 over-capacity, 101/152/3963, DSF-only.
 Gates: pint ✓, phpstan 0, 173/173. Scratch DB dropped; demo DB untouched.
+## Shelving note — 2026-10-17 (superseded by fresh SDD)
+
+Slices 0–2 shipped (routes/RBAC matrix, ReplacementHome, histories, actions)
+and task 2.3 has been rendered STALE by later SDDs — `ReplacementArrangement`
+exists far beyond the papered scope (see `full-block-reservation`,
+`arrange-intent-session-choice`, archived). **Slice 3 (approval workflow +
+emails) is NOT implemented** from this artifact: it predates the
+`replacement_request_slots` junction and the span/ospan two-phase OCC contract,
+so "approve → Occupied" and D7 release semantics are defined against a
+single-slot data model that no longer exists.
+
+Archived as HISTORICAL; the real remaining Wave-3b work (RequestApproval
+dashboard, ApproveRequest/RejectRequest actions span-aware, D7
+replacement-replaces-original, queued emails FR 4.15/2.13/1.9, NFR 1.2
+benchmark) opens as a FRESH `/sdd-explore` change on 2026-10-17 —
+`span-aware-approval-flow` — which will explore from current code and inherit
+the junction contract. SOP trace preserved here: this file is the pointer.
