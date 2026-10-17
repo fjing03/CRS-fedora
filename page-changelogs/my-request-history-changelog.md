@@ -589,3 +589,11 @@ cancel toasts pass no callback, so no dead Undo can appear here.
 
 Modal row now uses shared `UiLabels.classType(r.classType, 'long')` — L/T byte-identical,
 P no longer mislabelled "Tutorial".
+
+
+#### "Requested Venue" column now shows the BOOKED replacement venue (option B, 2026-10-17)
+User caught a label/value mismatch: the `Requested Venue` column's tip said "Venue requested for the
+replacement" but the value rendered the ORIGINAL class's home venue (B107). Chose option B — the column
+now shows `replacementVenue` (B002, the booked make-up room, matching the Request Details modal's
+"Replacement Venue" row); the original class's venue remains in the modal's "Original Venue" row + the
+"Original Class" column's block. Fallback renders `r.venue` when the legacy row has no slot.

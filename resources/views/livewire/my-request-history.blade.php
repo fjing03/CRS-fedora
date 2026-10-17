@@ -550,7 +550,8 @@
                         { html: '<span class="cell-code">' + r.courseCode + ' <span class="cell-type">(' + r.classType + ')</span></span><span class="cell-name">' + r.courseName + '</span>', cls: 'col-code' },
                         { html: HtmlBuilder.classBlock(r), cls: 'col-original' },
                         { html: HtmlBuilder.replacementBlock(r, { showVenue: false, colorStatus: false }), cls: 'col-replacement' },
-                        { html: r.venue, cls: 'col-venue' },
+                        /* full-block-relation option B (2026-10-17 user): the "Requested Venue" column shows the BOOKED replacement venue (matches the modal's Replacement Venue row) — the original class's venue stays in the modal's Original Venue row + the "Original Class" column's block (HtmlBuilder.classBlock already ends with the class venue). */
+                        { html: r.replacementVenue || r.venue, cls: 'col-venue' },
                         { html: String(r.totalStudents), cls: 'col-students' },
                         { html: r.cohorts.join('<br>'), cls: 'col-cohort' },
                         { html: badgeHtml, cls: 'col-status' },
