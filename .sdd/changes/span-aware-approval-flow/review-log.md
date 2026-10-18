@@ -183,3 +183,8 @@ fully frozen — the spec batch proceeds.
 spec-critical scenario to a named test task; ordering/dependency map (T1→T2 infrastructure →
 T4–T8 actions → T9–T11 page → T12–T16 reads → T17–T19 notify → T20–T21 gates/closure) is sound;
 no scope creep beyond the frozen artifacts. ⇒ **tasks.md FROZEN at 2026-10-17.**
+
+## Post-freeze user ack — 2026-10-17
+**NO-UNDO ruling confirmed by the user** ("keep no undo, confirm popup") — the RR1 🟡4 flag
+(verify the same ruling was wanted on the approval surface) is now explicitly closed with the
+user's words recorded here.
