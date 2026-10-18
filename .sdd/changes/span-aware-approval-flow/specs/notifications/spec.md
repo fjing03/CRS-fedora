@@ -15,9 +15,10 @@ COMMIT (design D1 rider — never inside the OCC window):
    its successful reserve, recipients = every `lecturers.is_pl` PL (Demo today: 1 — 5425).
    Sendable from the submit side hook (proposal item 6: server-only hand-off; the submit UI
    and OCC semantics untouched).
-2. `App\Mail\ReplacementDecided` — FR 2.13: recipient = the proposer; carries the DECISION
-   (approved or rejected), the decided slot/range (span-aware where displayable), the reject
-   reason when rejected (verbatim), and the deciding PL's name. Queued by BOTH D1/D2 actions'
+2. `App\Mail\ReplacementDecided` — FR 2.13: recipient = the proposer; **capture-at-QUEUE-TIME
+   (RR1 🟡3): the span min/max, venue, decision, reject reason and PL name are read from the
+   PRE-RELEASE row state at enqueue time — the mail body is a snapshot; a later worker render
+   never re-reads the (deleted) junction for a rejected row**; Queued by BOTH D1/D2 actions'
    after-commit hooks. Q13: the proposer still receives it when deciding their own request.
 3. `App\Mail\ReplacementApprovalNotice` (cohort leg; naming settled here) — FR 1.9: recipient
    set = the affected cohorts' STUDENT emails (`session_cohorts` → `cohorts` → `students`
@@ -36,8 +37,11 @@ identity triple (who decided / what slots / why). No design pass, no HTML market
 - multi-cohort session: every affected cohort's students appear; overlapping cohorts'
   students appear once;
 - Q13 case: decide-own-request still queues one copy to the proposer;
-- real worker drain (NFR 1.4): on the test connection, `queue:work --once` processes and
-  sends (Mail::sent includes) the queued mail within ONE drain cycle, elapsed < 1 minute.
+- The drain test (NFR 1.4) is a SEPARATE method WITHOUT `Queue::fake` (RR1 🟡4): the real
+  `jobs` row is inserted by the after-commit hook; a worker (`queue:work --once`) drains it
+  within one cycle, elapsed < 1 minute; `Mail::fake`/`array` mailer still applies. Under
+  `Queue::fake` nothing lands in `jobs` — the enumeration tests and the drain test can never
+  share a process.
 
 **R4 — Runbook (proposal item 7's doc).** Short `docs/` note: dev/demo = log mailer (emails
 land in `storage/logs/laravel.log`, nothing external); queue jobs persist in the `jobs` table

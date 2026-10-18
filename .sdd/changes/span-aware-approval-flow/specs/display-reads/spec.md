@@ -33,12 +33,19 @@ ReplacementRequest $r, Carbon $semesterStart, string $requestedBucket,
 all consumers. Pin:
 - `slotValidity`/`conflictReason` ride the passed `ValidityResult` when given (callers that
   already evaluated R4/decision-spec); otherwise the mapper evaluates itself (standalone use);
-- junction-miss rows (rejected — deleted at reject; cancelled — deleted at cancel) render
-  `replacementDate/Time/Venue` from the LEGACY anchor slot AND pin
-  `slotValidity='valid'`, `conflictReason=null` (RR2 💡 — a decided row is past contention);
+- **junction-miss rendering is DATA-DRIVEN, never bucket-keyed (RR1 🔴):** whenever the
+  junction yields NO range for the row — rejected/cancelled (deleted), or a LEGACY PENDING
+  anchor-only row with no junction rows at all — `replacementDate/Time/Venue` render from the
+  LEGACY anchor slot ('14:00 – 14:30'). This is the only rule that keeps BOTH pinned baselines
+  byte-identical: `ReplacementHistoriesTest`'s legacy pending row (anchor-only fixture →
+  '14:00 – 14:30') AND the span suite's junction row ('14:00 – 16:00'). No `requestedBucket`
+  branching in the fallback path;
 - junction-present rows render min/max spans ("14:00 – 16:00" format — byte-identical with the
   pinned API tests);
 - cohort labels + counts reuse the existing `STUDENT_COUNTS` lookup (no second source);
+- Decision-flow-spec R4's 2-case `conflictReason` map covers the PENDING body only (RR1 🟡1);
+  decided rows NEVER render a conflict badge — their badge is single-sourced HERE (R3's
+  junction-miss `valid` pin above);
 - promotion: the existing `ApiReadController::myRequests()` mapper and
   `MyRequestHistory::requestRow()` point AT the shared mapper — outputs BYTE-IDENTICAL
   (existing format tests keep passing); the promotion entry lands in this change's changelog

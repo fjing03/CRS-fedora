@@ -16,7 +16,9 @@ token names). Exactly ONE transaction:
 1. `lockForUpdate` the replacement-request row (held for the WHOLE txn); `status !== 'pending'`
    → `['ok' => false, 'conflict_reason' => <D6 case-(a) text>]`, no write, no audit.
 2. Ordered `SELECT * FROM time_slots WHERE id IN (junction members) ORDER BY id FOR UPDATE`;
-   `count !== junction count` → `['ok' => false, ` <D6 case-(b) text>`]`, no write.
+   `count !== junction count` (including the count>=1 positive guard — a hypothetically
+   junction-less pending row may never approve with zero flips) → `['ok' => false,
+   <D6 case-(b) text>]`, no write.
 3. Check ALL members `status === 'pending'` + capture versions; any other status → case-(b),
    no write.
 4. Flip ALL members `pending→occupied`, each `UPDATE … WHERE id = ? AND version = ?` advancing
@@ -42,7 +44,9 @@ validation is UX only, the action is the last line); stored VERBATIM (`Other` = 
 3. release validity = all members still `pending` (case-(b) if any drifted);
 4. flip ALL `pending→available` version-checked (`version = version + 1`); throw-out-of-txn on
    any 0-affected;
-5. DELETE the junction rows (verbatim `CancelPendingRequest` release family);
+5. DELETE the junction rows — the release family is VERBATIM `CancelPendingRequest`'s
+   FLIP+DELETE shape only (RR1 🟡2): the skip-non-pending semantics are NOT copied; the fault
+   mode here follows THIS action's throw-out-of-txn (R2 step 4), not cancel's bool-skip;
 6. `status='rejected'`, **`approver_id = decider->id`** (no rejector column — RR2 🔴),
    `decided_at`, `rejection_reason VERBATIM`;
 7. ONE summary audit `action='rejected'`, `occ_validation_result='success'`,
