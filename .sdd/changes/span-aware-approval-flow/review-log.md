@@ -193,3 +193,24 @@ user's words recorded here.
 **"A now, B later"**: the in-app notifications panel stays mock-fed in this change (emails =
 the FR duty); real-data wiring deferred to a planned follow-up mini-SDD. Declarative line added
 to the frozen proposal's out-of-scope list.
+
+## Implementer completion note — 2026-10-18 (T1–T21 all landed)
+
+- Slice A: the shared `ReplacementRequestMapper` + `ApprovalValidity`/`ValidityResult`
+  (phpunit byte-baselines held through the swap).
+- Slice B: `ApproveRequest`/`RejectRequest` (design D1/D2 10-step txns, savepoint-wrapped
+  D3 release, D13 note capture, legal audit tokens) + 3 queued Mailables + the submit hook
+  (T17 early).
+- Slice C: the REAL `RequestApproval` page (wire bridge per the my-request-history pattern:
+  root at top level + `layoutConfig` in the render chain, mock-data bridges INSIDE
+  DOMContentLoaded) — 5/5 Playwright smoke + auth scaffold staff-5425 (the demo PL).
+- Slice D: all six approved-bucket consumers switched (timeline, history, API, venue-slots,
+  queue decided bucket, student ReplacementHistory).
+- Slice E: `EmailQueueTest` (enqueue families + the NFR 1.4 REAL-worker drain without
+  Mail::fake/Queue::fake) + `docs/queue-and-emails.md`.
+- Gates at close-out: pint ✓ · phpstan 0 ✓ · phpunit **217** (193→217) ✓ · Playwright
+  in-scope suites **82/82** ✓ · demo DB untouched (class_replacement_fresh).
+
+Known language notes recorded: RR's early round flagged `class_replacement` per CodingMAIN §98 —
+the LIVE `.env` DB is `class_replacement_fresh` (the doc label is stale; recorded in the tasks
+header).
