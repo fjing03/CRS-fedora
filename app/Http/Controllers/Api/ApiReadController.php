@@ -10,6 +10,7 @@ use App\Models\ReplacementRequest;
 use App\Models\Student;
 use App\Models\User;
 use App\Services\MatrixIntersectionEngine;
+use App\Services\ReplacementRequestMapper;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -134,136 +135,45 @@ class ApiReadController extends Controller
 
         $dayNames = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
 
-        $requests = DB::table('replacement_requests')
+        /* SDD span-aware-approval-flow T1: the row computations are the
+           shared `ReplacementRequestMapper` (§10.0.6 promotion). Its span
+           read is DATA-DRIVEN — PENDING and APPROVED rows read the junction's
+           min/max (D4/Q3=A), legacy anchor-only rows fall back to the anchor
+           byte-identically (the prior pending-only junction map retires).
+           This consumer keeps its byte shape: no requester/badge keys, its
+           compact cohort labels + STUDENT_COUNTS map and float duration. */
+        $requests = ReplacementRequest::query()
+            ->with(['classSession.module', 'classSession.venue', 'classSession.cohorts.programme',
+                'replacementTimeSlot.venue', 'proposer', 'approver'])
             ->where('proposer_id', $user->id)
-            ->join('class_sessions', 'replacement_requests.class_session_id', '=', 'class_sessions.id')
-            ->join('modules', 'class_sessions.module_id', '=', 'modules.id')
-            ->join('venues', 'class_sessions.venue_id', '=', 'venues.id')
-            ->leftJoin('users', 'replacement_requests.approver_id', '=', 'users.id')
-            ->leftJoin('time_slots', 'replacement_requests.replacement_time_slot_id', '=', 'time_slots.id')
-            ->leftJoin('venues as rtv', 'time_slots.venue_id', '=', 'rtv.id')
-            ->select(
-                'replacement_requests.id',
-                'replacement_requests.class_session_id',
-                'replacement_requests.submitted_at',
-                'replacement_requests.week_number',
-                'replacement_requests.status',
-                'replacement_requests.rejection_reason',
-                'replacement_requests.remarks',
-                'replacement_requests.decided_at',
-                'modules.module_code',
-                'modules.module_name',
-                'class_sessions.session_type',
-                'class_sessions.day_of_week',
-                'class_sessions.start_time',
-                'class_sessions.end_time',
-                'venues.room_code',
-                'time_slots.week_number as rt_week_number',
-                'time_slots.day_of_week as rt_day_of_week',
-                'time_slots.start_time as rt_start_time',
-                'time_slots.end_time as rt_end_time',
-                'rtv.room_code as rt_room_code',
-                'users.name as reviewer_name'
-            )
             ->get();
 
-        /* Full-block span read (design D7.3, round-4 🔴2a): a PENDING
-           request's live range comes from the junction (min/max of its slots),
-           overriding the anchor-only join for pending rows; approved +
-           cancelled keep the legacy anchor join (bucket split round-2 🟡1). */
-        $pendingSlotsByRequest = DB::table('replacement_request_slots')
-            ->whereIn('replacement_request_slots.replacement_request_id', $requests->pluck('id'))
-            ->join('time_slots', 'replacement_request_slots.time_slot_id', '=', 'time_slots.id')
-            ->groupBy('replacement_request_slots.replacement_request_id')
-            ->get([
-                'replacement_request_slots.replacement_request_id',
-                DB::raw('MIN(time_slots.start_time) as span_start'),
-                DB::raw('MAX(time_slots.end_time) as span_end'),
-                DB::raw('COUNT(*) as span_slots'),
-            ])
-            ->keyBy('replacement_request_id');
+        $mapper = app(ReplacementRequestMapper::class);
 
-        $mapped = $requests->map(function ($row) use ($semesterStart, $dayNames, $pendingSlotsByRequest) {
-            $classDate = $semesterStart->copy()
-                ->addDays(($row->week_number - 1) * 7)
-                ->addDays($row->day_of_week)
-                ->format('Y-m-d');
+        $mapped = $requests->map(function (ReplacementRequest $r) use ($semesterStart, $dayNames, $mapper) {
+            $row = $mapper->toRow($r, $semesterStart, 'api');
 
-            $classDay = $dayNames[$row->day_of_week];
+            // byte-parity strips (this consumer's historical key set):
+            unset($row['requester'], $row['slotValidity'], $row['conflictReason'], $row['bucket']);
 
-            $startParts = explode(':', $row->start_time);
-            $endParts = explode(':', $row->end_time);
-            $timeStart = $startParts[0].':'.$startParts[1];
-            $timeEnd = $endParts[0].':'.$endParts[1];
-
-            $startCarbon = Carbon::parse($row->start_time);
-            $endCarbon = Carbon::parse($row->end_time);
-            $duration = abs($endCarbon->diffInHours($startCarbon));
-
-            $cohorts = DB::table('session_cohorts')
-                ->where('class_session_id', $row->class_session_id)
-                ->join('cohorts', 'session_cohorts.cohort_id', '=', 'cohorts.id')
-                ->join('programmes', 'cohorts.programme_id', '=', 'programmes.id')
-                ->select('cohorts.current_year', 'cohorts.semester', 'cohorts.tutorial_group', 'programmes.programme_code')
-                ->get()
-                ->map(fn ($c) => sprintf('%s%d(S%d)G%d', $c->programme_code, $c->current_year, $c->semester, $c->tutorial_group))
+            $session = $r->classSession;
+            $row['cohorts'] = $session->cohorts
+                ->map(fn ($c) => sprintf('%s%d(S%d)G%d', $c->programme->programme_code, $c->current_year, $c->semester, $c->tutorial_group))
                 ->values();
 
-            $cohortCounts = $cohorts->mapWithKeys(fn ($code) => [$code => self::STUDENT_COUNTS[$code] ?? 10]);
-            $totalStudents = $cohortCounts->sum();
+            $cohortCounts = $row['cohorts']->mapWithKeys(fn ($code) => [$code => self::STUDENT_COUNTS[$code] ?? 10]);
+            $row['cohortCounts'] = $row['cohorts']->count() >= 2 ? $cohortCounts->toArray() : null;
+            $row['totalStudents'] = $cohortCounts->sum();
 
-            $replacementDate = null;
-            $replacementTime = null;
-            $replacementVenue = null;
+            // the API's pinned duration rule (float hours):
+            $startCarbon = Carbon::parse((string) $session->start_time);
+            $endCarbon = Carbon::parse((string) $session->end_time);
+            $row['duration'] = abs($endCarbon->diffInHours($startCarbon));
 
-            if ($row->rt_week_number !== null) {
-                $replacementDate = $semesterStart->copy()
-                    ->addDays(($row->rt_week_number - 1) * 7)
-                    ->addDays($row->rt_day_of_week)
-                    ->format('Y-m-d');
+            // the API's classDay source array (same values as the mapper's):
+            $row['classDay'] = $dayNames[(int) $session->day_of_week];
 
-                $rtStartTime = $row->rt_start_time;
-                $rtEndTime = $row->rt_end_time;
-
-                // the pending bucket's TRUE range (the junction's min/max; the
-                // anchor-only join covers approved/cancelled buckets)
-                $pendingSpan = $pendingSlotsByRequest->get($row->id);
-                if ($row->status === 'pending' && $pendingSpan) {
-                    $rtStartTime = (string) ($pendingSpan->span_start ?? '');
-                    $rtEndTime = (string) ($pendingSpan->span_end ?? '');
-                }
-
-                $rtStartParts = explode(':', $rtStartTime);
-                $rtEndParts = explode(':', $rtEndTime);
-                $replacementTime = $rtStartParts[0].':'.$rtStartParts[1].' – '.$rtEndParts[0].':'.$rtEndParts[1];
-
-                $replacementVenue = $row->rt_room_code;
-            }
-
-            return [
-                'id' => $row->id,
-                'requestedAt' => Carbon::parse($row->submitted_at)->format('Y-m-d\TH:i:s'),
-                'courseCode' => $row->module_code,
-                'courseName' => $row->module_name,
-                'classType' => $row->session_type,
-                'classDate' => $classDate,
-                'classDay' => $classDay,
-                'timeStart' => $timeStart,
-                'timeEnd' => $timeEnd,
-                'duration' => $duration,
-                'venue' => $row->room_code,
-                'totalStudents' => $totalStudents,
-                'cohortCounts' => $cohorts->count() >= 2 ? $cohortCounts->toArray() : null,
-                'cohorts' => $cohorts->toArray(),
-                'status' => ucfirst($row->status),
-                'rejectionReason' => $row->rejection_reason,
-                'remarks' => $row->remarks,
-                'replacementDate' => $replacementDate,
-                'replacementTime' => $replacementTime,
-                'replacementVenue' => $replacementVenue,
-                'reviewedBy' => $row->reviewer_name,
-                'reviewedAt' => $row->decided_at ? Carbon::parse($row->decided_at)->format('Y-m-d\TH:i:s') : null,
-            ];
+            return $row;
         });
 
         return response()->json(['requests' => $mapped]);

@@ -6,10 +6,9 @@ use App\Actions\CancelPendingRequest;
 use App\Concerns\ResolvesTimetableTimeline;
 use App\Models\Cohort;
 use App\Models\ReplacementRequest;
-use App\Models\TimeSlot;
+use App\Services\ReplacementRequestMapper;
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\Carbon;
-use Illuminate\Support\Facades\DB;
 use Livewire\Component;
 
 /**
@@ -27,8 +26,6 @@ use Livewire\Component;
 class MyRequestHistory extends Component
 {
     use ResolvesTimetableTimeline;
-
-    private const DAY_NAMES = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
 
     public function render(): View
     {
@@ -67,40 +64,16 @@ class MyRequestHistory extends Component
      */
     private function requestRow(ReplacementRequest $r, Carbon $semesterStart): array
     {
+        // SDD span-aware-approval-flow T1: the row computations are the
+        // shared `ReplacementRequestMapper` (§10.0.6 promotion). The mapper's
+        // span read is DATA-DRIVEN (junction min/max — now approved rows read
+        // it too, Q3=A; legacy anchor-only rows fall back to the anchor byte-
+        // identically). History keeps its own byte keys (requester/spaced
+        // labels/int duration) and no badge keys.
+        $mapper = app(ReplacementRequestMapper::class);
         $session = $r->classSession;
-
-        // Full-block span read (design D7.5, round-1 🔴1): a PENDING row's
-        // range comes from the junction (min/max of its slots) — a 2h pending
-        // shows "14:00 – 16:00", not the anchor's 30 min. Approved + cancelled
-        // keep the legacy anchor read (bucket split round-2 🟡1). The slot
-        // fallback covers legacy requests without junction rows.
-        $slot = $r->replacementTimeSlot;
-        if ($r->status === 'pending' && (int) $r->replacement_time_slot_id > 0) {
-            $spanSlots = DB::table('replacement_request_slots')
-                ->join('time_slots', 'replacement_request_slots.time_slot_id', '=', 'time_slots.id')
-                ->where('replacement_request_slots.replacement_request_id', $r->id)
-                ->orderBy('time_slots.start_time')
-                ->get(['time_slots.week_number', 'time_slots.day_of_week', 'time_slots.venue_id', 'time_slots.start_time', 'time_slots.end_time']);
-
-            if ($spanSlots->isNotEmpty()) {
-                // the virtual anchor slot carries the span's venue id (the
-                // `venue` relation resolves for the row's replacementVenue):
-                // line 132's "room_code on null" — 2026-10-17 user report.
-                $slot = new TimeSlot([
-                    'semester_id' => (int) $session->semester_id,
-                    'week_number' => (int) $spanSlots->first()->week_number,
-                    'day_of_week' => (int) $spanSlots->first()->day_of_week,
-                    'venue_id' => (int) $spanSlots->first()->venue_id,
-                    'start_time' => (string) $spanSlots->first()->start_time,
-                    'end_time' => (string) $spanSlots->last()->end_time,
-                ]);
-            }
-        }
-
-        $classDate = $semesterStart->copy()
-            ->addWeeks((int) $r->week_number - 1)
-            ->addDays((int) $session->day_of_week)
-            ->toDateString();
+        $identity = $mapper->classRow($r, $semesterStart);
+        $span = $mapper->replacementStrings($r, $semesterStart);
 
         return [
             'id' => (int) $r->id,
@@ -110,15 +83,15 @@ class MyRequestHistory extends Component
             'reviewedBy' => $r->approver !== null ? (string) $r->approver->name : null,
             'status' => ucfirst((string) $r->status),
             'rejectionReason' => $r->rejection_reason,
-            'courseCode' => (string) $session->module->module_code,
-            'courseName' => (string) $session->module->module_name,
-            'classType' => (string) $session->session_type,
-            'classDate' => $classDate,
-            'classDay' => self::DAY_NAMES[(int) $session->day_of_week] ?? '',
-            'timeStart' => Carbon::parse($session->start_time)->format('H:i'),
-            'timeEnd' => Carbon::parse($session->end_time)->format('H:i'),
-            'duration' => (int) (Carbon::parse($session->start_time)->diffInMinutes(Carbon::parse($session->end_time)) / 60),
-            'venue' => (string) $session->venue->room_code,
+            'courseCode' => $identity['courseCode'],
+            'courseName' => $identity['courseName'],
+            'classType' => $identity['classType'],
+            'classDate' => $identity['classDate'],
+            'classDay' => $identity['classDay'],
+            'timeStart' => $identity['timeStart'],
+            'timeEnd' => $identity['timeEnd'],
+            'duration' => $identity['duration'],
+            'venue' => $identity['venue'],
             'totalStudents' => (int) $session->cohorts->sum('student_count'),
             'cohorts' => $session->cohorts
                 ->map(fn ($c): string => $this->spacedCohortLabel($c))
@@ -128,12 +101,9 @@ class MyRequestHistory extends Component
                 ->map(fn ($c): int => (int) $c->student_count)
                 ->values()
                 ->all(),
-            'replacementDate' => $semesterStart->copy()
-                ->addWeeks((int) $slot->week_number - 1)
-                ->addDays((int) $slot->day_of_week)
-                ->toDateString(),
-            'replacementTime' => Carbon::parse($slot->start_time)->format('H:i').' – '.Carbon::parse($slot->end_time)->format('H:i'),
-            'replacementVenue' => (string) $slot->venue->room_code,
+            'replacementDate' => $span['date'],
+            'replacementTime' => $span['time'],
+            'replacementVenue' => $span['venue'],
             'remarks' => $r->remarks,
         ];
     }
