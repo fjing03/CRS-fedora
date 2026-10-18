@@ -292,9 +292,6 @@
                 flex: 1 0 100%;
                 justify-content: flex-end;
             }
-            /* pack the group together on the wrapped line (the auto margin's
-               "rightmost slot" pattern only applies to the single-row layout) */
-            .toolbar-filters .print-btn { margin-left: 0; }
         }
         .toolbar-center {
             display: flex;
@@ -1009,10 +1006,14 @@
             </div>
             <div class="toolbar-center">
                 @include('partials.ui-venue-dropdown', ['selectId' => 'buildingSelector'])
-                <button class="fav-btn" id="favStar" data-tip="Add to Favourites">&#9734;</button>
+                {{-- Fav star commented out on this page only (2026-10-18) — the
+                     add/remove still lives in ui-common.js for other pages;
+                     boot guards the missing #favStar via ?., and updateFavStar/
+                     toggleFavourite are null-safe in ui-common.js --}}
+                {{-- <button class="fav-btn" id="favStar" data-tip="Add to Favourites">&#9734;</button> --}}
             </div>
             <div class="toolbar-filters">
-                @include('partials.ui-week-nav', ['prevOnclick' => 'weekNav.prevWeek()', 'nextOnclick' => 'weekNav.nextWeek()', 'selectId' => 'weekSelector', 'selectOnclick' => 'weekNav.selectWeek(parseInt(this.value, 10))', 'showTodayBtn' => true, 'showPrint' => true, 'todayLabel' => 'Earliest bookable', 'todayTip' => 'Jump to the earliest bookable slot', 'todayIcon' => 'earliest'])
+                @include('partials.ui-week-nav', ['prevOnclick' => 'weekNav.prevWeek()', 'nextOnclick' => 'weekNav.nextWeek()', 'selectId' => 'weekSelector', 'selectOnclick' => 'weekNav.selectWeek(parseInt(this.value, 10))', 'showTodayBtn' => true, 'showPrint' => false, 'todayLabel' => 'Earliest bookable', 'todayTip' => 'Jump to the earliest bookable slot', 'todayIcon' => 'earliest'])
             </div>
         </div>
 
@@ -3430,7 +3431,7 @@ triggerText.textContent = 'W' + (slot.week + 1) + ' · ' + shortDate + ' · ' + 
             new MutationObserver(syncVenueTip).observe(venueTrigger, { childList: true, characterData: true, subtree: true });
             syncVenueTip();
             updateFavStar();
-            document.getElementById('favStar').addEventListener('click', toggleFavourite);
+            document.getElementById('favStar')?.addEventListener('click', toggleFavourite);
             document.getElementById('semesterChip').textContent = MockData.semester.chipText;
             /* restore the previously saved week (localStorage), else falls back to week 1 */
             weekNav.load();

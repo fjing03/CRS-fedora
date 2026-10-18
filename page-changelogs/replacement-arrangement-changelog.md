@@ -1386,3 +1386,16 @@ re-proposing a handled slot would double-book it. Per the frozen D1 rule ("alrea
 occurrences with an active pending/approved request are EXCLUDED from `conflictEventsPayload` — the
 dropdown, the fallback prefill's conflict pool and everything reading the payload share the filter
 (ReplacementHome parity). Verified via Playwright: slot panel shows 3 items (the D1-hidden one gone).
+
+#### Toolbar: print button removed, fav star commented out — this page only (user request 2026-10-18)
+Two toolbar buttons dropped on `/replacement-arrangement` alone (other pages untouched):
+
+- **Print button**: the `partials.ui-week-nav` include now passes `'showPrint' => false` (the partial's
+  default — every other page keeps its own flag). The now-dead `.toolbar-filters .print-btn { margin-left: 0; }`
+  rule + its "wrapped line" comment went with it from the 769–1200px media query.
+- **Fav star**: `#favStar` wrapped in a Blade comment in `.toolbar-center` next to the venue dropdown —
+  UI removal only, shared `ui-common.js` fav logic untouched (venue-timetable etc. keep their star).
+  The boot listener became `getElementById('favStar')?.addEventListener(...)` (house `?.` guard, same
+  pattern as `earliestBtn` on this page); `updateFavStar`/`toggleFavourite` still run but pass `null`,
+  which `ui-common.js` already null-guards (`if (starEl)` / `if (!starEl || !code) return`).
+- pint ✓, phpstan 0 errors.
