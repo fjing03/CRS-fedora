@@ -160,3 +160,26 @@ fully frozen — the spec batch proceeds.
   `$requestedBucket`'s role stated (bucket-labeled fields only, never the fallback).
 ### 🔴 Outstanding
 - none — **spec batch FROZEN at 2026-10-17 Round 2.**
+
+## tasks Round 1 — 2026-10-17 (reviewer subprocess)
+### 🔴 Fixed
+- (none — no blockers)
+### 🟡 Addressed
+- Demo-DB name corrected to `class_replacement` (CodingMAIN §98/134 SSOT; the header's
+  operative discipline unchanged).
+- Bulk-reject shared reason: T10 wording pin + T8b assertion (same reason in EVERY decided
+  row's `rejection_reason`).
+- Queue-page data-sourcing + PL-gate bullets added to T9 (spec scenario bullets land).
+- 'Other' free-text verbatim assertion added (T8a reject bullet).
+- T8 split → T8a (fixture + core decision tests) / T8b (bulk + race + D7) — honest ≤2h sizing.
+### 💡 Addressed
+- T20 phpstan = standing long form; T1 cancelled-row byte assertion; T1 promotion-entry note
+  (changelog born at T11).
+### 🔴 Outstanding
+- none.
+
+## tasks Round 2 — 2026-10-17 (confirming reviewer subprocess)
+**Verdict: PASS — batch frozen.** All round-1 fixes verified in-file; tasks map every
+spec-critical scenario to a named test task; ordering/dependency map (T1→T2 infrastructure →
+T4–T8 actions → T9–T11 page → T12–T16 reads → T17–T19 notify → T20–T21 gates/closure) is sound;
+no scope creep beyond the frozen artifacts. ⇒ **tasks.md FROZEN at 2026-10-17.**
