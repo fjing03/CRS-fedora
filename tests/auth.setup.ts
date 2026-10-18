@@ -36,3 +36,9 @@ setup('authenticate as staff 5770', async ({ page }) => {
 setup('authenticate as staff 4363', async ({ page }) => {
   await loginAndSave(page, '4363', path.join('.auth', 'staff-4363.json'));
 });
+
+/* span-aware-approval-flow T9: the demo's PL (Surayaini — staff 5425, is_pl)
+   — the approval-queue smoke identity. */
+setup('authenticate as staff 5425', async ({ page }) => {
+  await loginAndSave(page, '5425', path.join('.auth', 'staff-5425.json'));
+});

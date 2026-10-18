@@ -3,7 +3,7 @@
 **Baseline:** frozen proposal + design (D1–D13) + specs (decision-flow/display-reads/
 notifications). Every task ≤2h. Gates standing per task batch: `php -l` after each file;
 `composer run lint:check` + `vendor/bin/phpstan analyse app --memory-limit=1G` at slice ends;
-demo DB `class_replacement` NEVER written (CodingMAIN §98/134) (all work on `class_replacement_testing` —
+demo DB `class_replacement_fresh` NEVER written (the LIVE `.env` DB_DATABASE; CodingMAIN's `class_replacement` label is stale — recorded 2026-10-18) (all work on `class_replacement_testing` —
  grill Q10=A; `php artisan migrate:fresh --seed` fine there; TRUNCATE venues CASCADE if unique
  thieves bite).
 

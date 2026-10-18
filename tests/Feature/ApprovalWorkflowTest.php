@@ -4,6 +4,8 @@ namespace Tests\Feature;
 
 use App\Actions\ApproveRequest;
 use App\Actions\RejectRequest;
+use App\Actions\SubmitReplacementRequest;
+use App\Mail\ReplacementApprovalNotice;
 use App\Mail\ReplacementDecided;
 use App\Mail\ReplacementSubmitted;
 use App\Models\AuditLog;
@@ -12,7 +14,6 @@ use App\Models\ClassSession;
 use App\Models\Cohort;
 use App\Models\Lecturer;
 use App\Models\Module;
-use App\Models\Programme;
 use App\Models\ReplacementRequest;
 use App\Models\ReplacementRequestSlot;
 use App\Models\TimeSlot;
@@ -21,10 +22,10 @@ use App\Models\Venue;
 use App\Services\ApprovalValidity;
 use App\Services\ReplacementRequestMapper;
 use App\Services\ValidityResult;
+use Carbon\Carbon;
 use Illuminate\Foundation\Testing\DatabaseMigrations;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Mail;
-use Livewire\Livewire;
 use Tests\TestCase;
 
 /**
@@ -486,7 +487,7 @@ final class ApprovalWorkflowTest extends TestCase
     {
         [$slotIds, $requester, $pl, $request] = $this->pendingFixture();
         $mapper = app(ReplacementRequestMapper::class);
-        $start = \Carbon\Carbon::parse(now()->toDateString());
+        $start = Carbon::parse(now()->toDateString());
 
         // junction-present pending row → the junction's TRUE range
         $row = $mapper->toRow($request, $start, 'queue');
@@ -525,7 +526,7 @@ final class ApprovalWorkflowTest extends TestCase
         // a fresh span at week 9 (the active-block unique: no request row yet)
         $freshIds = $this->craftSlotsOnly($session, 4, 9);
 
-        $action = app(\App\Actions\SubmitReplacementRequest::class);
+        $action = app(SubmitReplacementRequest::class);
         $action($requester, $session, 9, $freshIds[0], null, 4);
 
         // FR 4.15: EVERY is_pl PL gets one queued copy (the seeder plants
@@ -555,7 +556,7 @@ final class ApprovalWorkflowTest extends TestCase
         $this->assertTrue(app(RejectRequest::class)($pl, (int) $request->id, 'Slot conflict')['ok']);
 
         Mail::assertQueued(ReplacementDecided::class, 1);
-        Mail::assertNotQueued(\App\Mail\ReplacementApprovalNotice::class);
+        Mail::assertNotQueued(ReplacementApprovalNotice::class);
     }
 
     public function test_q13_decide_own_request_still_notifies(): void
