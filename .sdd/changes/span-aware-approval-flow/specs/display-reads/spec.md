@@ -30,7 +30,8 @@ accepts null.
 **R3 — Shared row mapper (design D5).** `ReplacementRequestMapper::toRow(
 ReplacementRequest $r, Carbon $semesterStart, string $requestedBucket,
 ?ValidityResult $validity = null): array` produces the frozen `requests` §2.9 shape ONE way for
-all consumers. Pin:
+all consumers. `$requestedBucket` governs ONLY bucket-labeled fields (`reviewedBy/At`,
+status text) — never the fallback path (data-driven, RR1). Pin:
 - `slotValidity`/`conflictReason` ride the passed `ValidityResult` when given (callers that
   already evaluated R4/decision-spec); otherwise the mapper evaluates itself (standalone use);
 - **junction-miss rendering is DATA-DRIVEN, never bucket-keyed (RR1 🔴):** whenever the

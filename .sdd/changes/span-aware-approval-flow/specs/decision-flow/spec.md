@@ -50,6 +50,7 @@ validation is UX only, the action is the last line); stored VERBATIM (`Other` = 
 6. `status='rejected'`, **`approver_id = decider->id`** (no rejector column — RR2 🔴),
    `decided_at`, `rejection_reason VERBATIM`;
 7. ONE summary audit `action='rejected'`, `occ_validation_result='success'`,
+   `time_slot_id = anchor` (symmetry with R1 step 7),
    `details` plan + reason; + per-flip audits `action='rejected'` own `time_slot_id`
    (`pending→available`);
 8. NO class_exceptions stamp, NO original-room freeing (reject releases only the span);
@@ -78,7 +79,9 @@ Although satisfied by R1's step 9, the release has its own acceptance criteria:
 `ApprovalValidity::evaluate(ReplacementRequest $r): ValidityResult` — `valid` or
 `conflict(reason)`. THE 2-CASE pinned map (no third case):
 - (a) request row moved (`status ≠ 'pending'`) → `'already decided'`;
-- (b) span drift (junction member missing / `status ≠ 'pending'` / version mismatch) → the
+- (b) span drift (junction member missing / `status ≠ 'pending'`; drift that only the
+  0-affected flip guard can see — `evaluate()` carries no version baseline, the version leg
+  SURFACES at R1 step 4, never at render) → the
   EXISTING `slot_not_available` named-time copy (the same string the submit path renders).
 Day-end/holiday facts cannot change mid-flight (static rows). The badge on the queue and the
 action gate call the same function — one source, zero drift (Q11).
@@ -88,7 +91,7 @@ their own submission. No ownership guard. `ReplacementDecided` still queues to t
 (single recipient row — no duplication).
 
 **R6 — Idempotence/race.** Two PLs approving the same request concurrently: exactly-one-winner
-(the loser hits R1 step 1 or 4 and surfaces the case-(b)/case-(a) loser — no 500, no partial
+(the loser hits R1 step 1 or 4 and surfaces the case-(a)/case-(b) loser respectively — no 500, no partial
 flips). Reject racing approve serializes on the held request-row lock
 (design D2: the stamp happens under the same lock).
 

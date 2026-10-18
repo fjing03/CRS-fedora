@@ -136,3 +136,27 @@
 ## design closing note — 2026-10-17
 **Q13 user ack landed: "allow".** D11 ratified (the standing gate cleared); design.md is now
 fully frozen — the spec batch proceeds.
+
+## specs Round 1 — 2026-10-17 (reviewer subprocess)
+### 🔴 Fixed
+- **Data-driven junction fallback** (was bucket-keyed to decided rows): R3 now renders the
+  LEGACY anchor whenever the junction has NO range — inclusive of a legacy PENDING anchor-only
+  row. Basis: `ReplacementHistoriesTest:205–212` pins '14:00 – 14:30' for an anchor-only
+  pending fixture; a bucket-keyed fallback would NOT break only that byte-baseline but fork
+  implementers into two `toRow` branches.
+### 🟡 Addressed
+- R4 2-case map scoped to the PENDING body (decided rows' badge single-sourced at R3).
+- Release family VERBATIM scoped to flip+DELETE only (cancel's skip semantics NOT copied).
+- `ReplacementDecided` capture-at-QUEUE-TIME (pre-release snapshot; mail never re-reads a
+  deleted junction).
+- NFR 1.4 drain = separate method WITHOUT Queue::fake (real jobs row; Mail::fake still holds).
+### 🔴 Outstanding
+- none.
+
+## specs Round 2 — 2026-10-17 (reviewer subprocess)
+### 💡 Addressed
+- R6 step-order swap (case-(a) at step 1); R2 step 7 gains `time_slot_id = anchor` symmetry;
+  R4 case-(b) notes the version leg surfaces via the 0-affected flip guard (not `evaluate`);
+  `$requestedBucket`'s role stated (bucket-labeled fields only, never the fallback).
+### 🔴 Outstanding
+- none — **spec batch FROZEN at 2026-10-17 Round 2.**
