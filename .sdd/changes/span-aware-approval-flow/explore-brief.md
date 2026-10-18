@@ -1,6 +1,6 @@
 # Explore Brief: span-aware-approval-flow
 
-**Status:** explore complete 2026-10-17 (read-only — no system code touched, no commits).
+**Status:** GRILLED — Q1–Q12 decided with the user 2026-10-17 (appended to the decisions table); brief is the frozen proposal baseline. Ready for `/sdd-propose span-aware-approval-flow` on the user's go. Explore done read-only — no system code touched.
 **Origin:** Wave 3b's last unchecked third — Slice 3 of the now-archived (2026-10-17)
 `wire-backend-into-refactored-ui` (27-round artifact shelved as HISTORICAL, pointer note in its
 review-log). That artifact's approval spec was written against the SINGLE-slot data model; the
@@ -133,3 +133,4 @@ returns the original occurrence to all 4 surfaces (D1 verified both directions i
 | Q9 | NFR 1.2 OCC benchmark test | **DECLINED (user, 2026-10-17):** no dedicated stopwatch test — NFR rides on reusing the existing two-phase pieces; recorded as an accepted residual. |
 | Q11 | One validity predicate | **Confirmed (user "yes", 2026-10-17):** the dashboard badge and the approve/reject actions share ONE validity predicate (computed once, no drift). |
 | Q12 | Shared row mapper | **Confirmed (user "yes", 2026-10-17):** ONE row-shape mapper extracted (existing API + history copies point at it) and the PL queue consumes it — promote-on-3rd-duplicate (§10.0.6); outputs byte-identical (existing format tests stay green). |
+| Q10 | Demo DB stance | **A (user, 2026-10-17): testing DB only** — all approve/reject/emails/slot-flip work happens on `class_replacement_testing`; demo request #8 stays PENDING as the live demo exhibit the PL decides in front of an audience. No demo writes this change. |
