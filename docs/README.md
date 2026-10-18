@@ -16,3 +16,4 @@ Current, load-bearing docs. Superseded material is in [`archive/`](archive/) —
 | [`archive/CodingMAIN-upstream-original.md`](archive/CodingMAIN-upstream-original.md) | The original root CodingMAIN.md before the 2026-10-10 rewrite | Kept for upstream-merge diffing |
 
 Canonical entry points: **`/AGENTS.md`** (session rules) → **`/CodingMAIN.md`** (project spec).
+- `docs/queue-and-emails.md` — SDD span-aware-approval-flow runbook: dev = log mailer (nothing sends), the database-backed queue job lifecycle, `queue:work --once` for demo decisions, the SMTP later-flip.
