@@ -658,27 +658,49 @@ class ApiReadController extends Controller
             }
         }
 
+        /* Full-block span read (SDD span-aware-approval-flow D4 item-4, grill
+           Q3=A): APPROVED rows read the junction min/max — an approved 2h span
+           marks the FULL run (state 4), not the anchor's 30 min. Legacy
+           anchor-only approved rows fall back through the span helper's
+           data-driven rule (junction empty → anchor). */
         $replacementRequests = DB::table('replacement_requests')
+            ->leftJoin('replacement_request_slots', 'replacement_requests.id', '=', 'replacement_request_slots.replacement_request_id')
             ->join('time_slots', 'replacement_requests.replacement_time_slot_id', '=', 'time_slots.id')
+            ->leftJoin('time_slots as jts', 'replacement_request_slots.time_slot_id', '=', 'jts.id')
             ->where('time_slots.week_number', $weekNumber)
             ->where('time_slots.venue_id', '!=', 0)
             ->where('replacement_requests.status', 'approved')
-            ->select(
+            ->groupBy(
+                'replacement_requests.id',
                 'replacement_requests.status',
                 'time_slots.venue_id',
                 'time_slots.day_of_week',
                 'time_slots.start_time',
                 'time_slots.end_time'
             )
+            ->select(
+                'replacement_requests.status',
+                'time_slots.venue_id',
+                'time_slots.day_of_week',
+                'time_slots.start_time',
+                'time_slots.end_time',
+                DB::raw('MIN(jts.start_time) as span_start'),
+                DB::raw('MAX(jts.end_time) as span_end'),
+                DB::raw('COUNT(DISTINCT jts.id) as span_count')
+            )
             ->get();
 
         foreach ($replacementRequests as $rr) {
+            // data-driven: the junction rows' min/max when they exist, else
+            // the anchor pair (the legacy byte shape)
+            $spanStart = ($rr->span_count ?? 0) > 0 ? (string) $rr->span_start : (string) $rr->start_time;
+            $spanEnd = ($rr->span_count ?? 0) > 0 ? (string) $rr->span_end : (string) $rr->end_time;
             $code = $eligibleVenues->firstWhere('id', $rr->venue_id)?->room_code;
             if (! $code || ! isset($venueSlots[$code])) {
                 continue;
             }
-            [$startH, $startM] = array_map('intval', explode(':', $rr->start_time));
-            [$endH, $endM] = array_map('intval', explode(':', $rr->end_time));
+            [$startH, $startM] = array_map('intval', explode(':', $spanStart));
+            [$endH, $endM] = array_map('intval', explode(':', $spanEnd));
             $startHi = (int) (($startH - 8) * 60 + $startM) / 30;
             $endHi = (int) (($endH - 8) * 60 + $endM) / 30;
             $state = $rr->status === 'pending' ? 3 : 4;

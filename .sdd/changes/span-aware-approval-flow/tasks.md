@@ -67,7 +67,7 @@ demo DB `class_replacement_fresh` NEVER written (the LIVE `.env` DB_DATABASE; Co
 
 ## Slice C — queue page
 
-- [ ] **T9 — `App\Livewire\RequestApproval` + view** (spec display-reads R1 + R2; design D7/D12):
+- [x] **T9 — `App\Livewire\RequestApproval` + view** (spec display-reads R1 + R2; design D7/D12):
       feature-tested data sourcing + gates (the spec's scenario bullets): 1 pending + 1 decided
       row from real fixtures, NO mock data in the payload; student/lecturer → 403 (pl gate);
       pending FCFS rows + decided bucket (approved/rejected; `completed` filter honestly empty)
@@ -76,29 +76,29 @@ demo DB `class_replacement_fresh` NEVER written (the LIVE `.env` DB_DATABASE; Co
       `classList.add('show')+display:flex`. `php artisan serve` + stale-cache ritual (two
       commands) before any manual verify; Playwright smoke on `/request-approval-ui`
       (placeholder-free render, badge classes present).
-- [ ] **T10 — wire actions into the page** (decision-flow R1/R2 payload shape): OK/conflict
+- [x] **T10 — wire actions into the page** (decision-flow R1/R2 payload shape): OK/conflict
       modal rows per the existing `ReplacementArrangement` convention; bulk = server-side FCFS
       loop calling T4/T6 (polite per-row failure); **ONE shared reject reason threaded to EVERY
       bulk-reject call (frozen proposal item 1 + D10)**; NO Livewire JS surface beyond the
       frozen interactions.
-- [ ] **T11 — page-changelog**: `page-changelogs/request-approval-changelog.md` (new page;
+- [x] **T11 — page-changelog**: `page-changelogs/request-approval-changelog.md` (new page;
       D12 divergence ledger — undo dropped, bulk sequenced, notes→audit, decided-bucket
       sources, honest `completed` empty; the §10.0.6 mapper promotion entry).
 
 ## Slice D — approved-display junction switch (6 consumers; design D4)
 
-- [ ] **T12 — Timeline move branch** (`ResolvesTimetableTimeline`): approved events read the
+- [x] **T12 — Timeline move branch** (`ResolvesTimetableTimeline`): approved events read the
       junction min/max (eager-load `requestSlots.timeSlot`; NO per-row query); span-1 rows
       byte-identical; pending branch untouched.
-- [ ] **T13 — Mapper switch** (`MyRequestHistory::requestRow()` + `ApiReadController::
+- [x] **T13 — Mapper switch** (`MyRequestHistory::requestRow()` + `ApiReadController::
       myRequests()`): approve the approved bucket ON to the mapper's junction read
       (pending bucket naming generalized to `spanSlotsByRequest`); `ReplacementHistoriesTest`
       stays byte-green (legacy anchor-only pending row → anchor render).
-- [ ] **T14 — venue-slots API approved block** (`ApiReadController`): approved anchor join →
+- [x] **T14 — venue-slots API approved block** (`ApiReadController`): approved anchor join →
       junction min/max, full-run state-4 marking; span-1 byte-green.
-- [ ] **T15 — `ReplacementHistory` (student cohort rows):** same junction map for approved
+- [x] **T15 — `ReplacementHistory` (student cohort rows):** same junction map for approved
       cohort-scope rows.
-- [ ] **T16 — Read-model feature tests** (spec scenarios; testing DB): approved span renders
+- [x] **T16 — Read-model feature tests** (spec scenarios; testing DB): approved span renders
       "14:00 – 16:00" across timeline/history/API/venue-slots/student rows; legacy pending
       anchor-only row byte-identical; cancel auto-revert untouched.
 

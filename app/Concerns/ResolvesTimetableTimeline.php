@@ -8,6 +8,7 @@ use App\Models\Cohort;
 use App\Models\ReplacementRequest;
 use App\Models\ReplacementRequestSlot;
 use App\Models\Semester;
+use App\Services\ReplacementRequestMapper;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 
@@ -274,6 +275,18 @@ trait ResolvesTimetableTimeline
                 $ev['start'] = $this->slotIndex($slot->start_time);
                 $ev['end'] = $this->slotIndex($slot->end_time) - 1;
                 $ev['venue'] = $slot->venue->room_code;
+
+                // Full-block span read (SDD span-aware-approval-flow D4 ①,
+                // grill Q3=A): an APPROVED request's replacement block covers
+                // the WHOLE junction run (anchor..anchor+span−1), not the
+                // anchor's 30 min. Data-driven: junction-less rows keep the
+                // legacy anchor shape byte-identically.
+                $span = app(ReplacementRequestMapper::class)->span($r);
+                if ($span !== null && $span['count'] > 1) {
+                    $ev['start'] = $this->slotIndex($span['start']);
+                    $ev['end'] = $this->slotIndex($span['end']) - 1;
+                }
+
                 $ev['status'] = 'replacement';
                 $ev['remarks'] = $startDate->copy()->addWeeks($w - 1)->addDays($slot->day_of_week)->format('d-M-Y');
                 $events[] = $ev;

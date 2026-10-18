@@ -5,6 +5,7 @@ namespace App\Livewire;
 use App\Concerns\ResolvesTimetableTimeline;
 use App\Models\ReplacementRequest;
 use App\Models\Student;
+use App\Services\ReplacementRequestMapper;
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\Carbon;
 use Livewire\Component;
@@ -77,6 +78,15 @@ class ReplacementHistory extends Component
         $session = $r->classSession;
         $slot = $r->replacementTimeSlot;
         $approved = (string) $r->status === 'approved';
+        $start = $this->slotIndex((string) $slot->start_time);
+        $end = $this->slotIndex((string) $slot->end_time) - 1;
+
+        // D4 item-6 (grill Q3=A): the junction's true run for approved rows.
+        $span = app(ReplacementRequestMapper::class)->span($r);
+        if ($approved && $span !== null && (int) $span['count'] > 1) {
+            $start = $this->slotIndex($span['start']);
+            $end = $this->slotIndex($span['end']) - 1;
+        }
 
         return [
             'id' => (int) $r->id,
@@ -85,8 +95,8 @@ class ReplacementHistory extends Component
             'type' => (string) $session->session_type,
             'week' => (int) $slot->week_number - 1, // the mock's 0-based week index
             'di' => (int) $slot->day_of_week,
-            'start' => $this->slotIndex((string) $slot->start_time),
-            'end' => $this->slotIndex((string) $slot->end_time) - 1,
+            'start' => $start,
+            'end' => $end,
             'originalTime' => Carbon::parse($session->start_time)->format('H:i').' – '.Carbon::parse($session->end_time)->format('H:i'),
             'originalVenue' => (string) $session->venue->room_code,
             'originalDay' => self::DAY_NAMES[(int) $session->day_of_week] ?? '',
@@ -94,8 +104,8 @@ class ReplacementHistory extends Component
                the page renders "Awaiting PL approval" for it */
             'newDay' => $approved ? self::DAY_NAMES[(int) $slot->day_of_week] : null,
             'newDi' => $approved ? (int) $slot->day_of_week : null,
-            'newStart' => $approved ? $this->slotIndex((string) $slot->start_time) : null,
-            'newEnd' => $approved ? $this->slotIndex((string) $slot->end_time) - 1 : null,
+            'newStart' => $approved ? $start : null,
+            'newEnd' => $approved ? $end : null,
             'newTime' => $approved
                 ? Carbon::parse($slot->start_time)->format('H:i').' – '.Carbon::parse($slot->end_time)->format('H:i')
                 : null,
