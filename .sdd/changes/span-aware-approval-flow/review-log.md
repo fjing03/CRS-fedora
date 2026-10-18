@@ -188,3 +188,8 @@ no scope creep beyond the frozen artifacts. ⇒ **tasks.md FROZEN at 2026-10-17.
 **NO-UNDO ruling confirmed by the user** ("keep no undo, confirm popup") — the RR1 🟡4 flag
 (verify the same ruling was wanted on the approval surface) is now explicitly closed with the
 user's words recorded here.
+
+## Post-freeze user ruling — 2026-10-17 (notifications scope)
+**"A now, B later"**: the in-app notifications panel stays mock-fed in this change (emails =
+the FR duty); real-data wiring deferred to a planned follow-up mini-SDD. Declarative line added
+to the frozen proposal's out-of-scope list.

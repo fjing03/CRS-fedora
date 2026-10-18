@@ -159,6 +159,7 @@ All 11 items below carry their grill-ruling inline (brief §decisions — the us
   an audience, Q10=A). No snapshot work this change.
 - **`completed` status leg** ("make-up delivered") — unused CHECK value, not Wave 3b.
 - **Bug-hunt B3** (pending readability when a holiday masks the occurrence) — P3 cosmetic, later.
+- **In-app notifications panel wiring** — the frozen bell/panel (`partials/ui-notifications-panel.blade.php`) STAYS MOCK-FED (user ruling 2026-10-17, option A: emails carry the notification duty per FR 4.15/2.13/1.9/4.16; real-panel wiring = a planned follow-up mini-SDD, option B).
 - **Submit-side UI changes** — FR 4.15 is a server-side queued-mail hand-off only; the frozen
   submission surfaces are untouched.
 - **NFR 1.2 stopwatch benchmark** — grill Q9=NO: no dedicated OCC-overhead test; the perf
