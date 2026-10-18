@@ -132,3 +132,7 @@
   NOTE (cap accounting): this one-line confirming round was justified by the reviewer's own
   round-5 verdict — no decision-level churn occurred. ⇒ **design.md FROZEN at R6 2026-10-17,
   EXCEPT the one standing gate: Q13 user ack (D11) before the spec batch.**
+
+## design closing note — 2026-10-17
+**Q13 user ack landed: "allow".** D11 ratified (the standing gate cleared); design.md is now
+fully frozen — the spec batch proceeds.
