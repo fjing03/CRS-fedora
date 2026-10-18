@@ -45,3 +45,90 @@
   rule for every junction-miss row.
 ### 🔴 Outstanding
 - none — **verdict: "Ready to proceed."** ⇒ **proposal.md FROZEN** at 2026-10-17 Round 3.
+
+## design Round 1 — 2026-10-17 (reviewer subprocess)
+### 🔴 Fixed
+- The frozen template's `approveNotesModal` was MISSING from the design (both single + bulk
+  approve route through it; dropping it = falsified "for the audit trail" copy or silent 99.9%
+  divergence) → new **D13**: the optional note is CAPTURED into the summary decision audit's
+  `details.approver_note` (nullable JSON; NO new column); a bulk batch's one note lands in
+  every batch member's summary audit; blank → no key (nothing fabricated). D1 step 7 + D7 +
+  D10 wired to it.
+### 🟡 Addressed
+- D3's week keying pinned to the REQUEST row's `week_number` (the ORIGINAL occurrence's week,
+  never the junction slots' — demo canary divergence W14/W5 documented).
+- D3's exception-race claim replaced with the honest contract: the unique constraint BACKSTOPS
+  the race; the catch treats it as 'already-stamped: goal achieved' and CONTINUES (no 500).
+- D3/D7 naming collision resolved: top alias note ("proposal's D7 ≡ design D3") + D1 wording
+  fixed ("original-release (D3)").
+- D3(ii) flips explicitly VERSION-CHECKED (`WHERE id = ? AND version = captured`).
+- 💡s: D5 signature takes `?ValidityResult` (or evaluates D6 itself) and OWNS the junction-miss
+  fallback; D8 cohort-leg wording de-mudded (own job after commit, no ordering contract unless
+  a test pins one); D10 thinking-out-loud fragment removed.
+### 🔴 Outstanding
+- none
+
+## design Round 2 — 2026-10-17 (reviewer subprocess)
+### 🔴 Fixed
+- `action='decided'` was ILLEGAL (audit_logs CHECK :52–55 has no 'decided' — the approve txn
+  would CHECK-FAIL at the audit write) → summary audits use the LEGAL tokens
+  `approved`/`rejected` (mirror precedent: CancelPendingRequest audits 'cancelled').
+- D3's catch-continue broke on PG (a UNIQUE violation aborts the txn — every later statement
+  fails with 25P02) → the class_exceptions write is wrapped in a nested
+  `DB::transaction` = SAVEPOINT; the catch rolls back ONLY to the savepoint, then the flips
+  continue. Same swallow-the-violation contract rests solely on the savepoint now.
+### 🟡 Addressed
+- D1 step 8 carries the alias note inline too ("proposal items 2/4 'D7 original-release' ≡
+  design D3") so task-generation walkers can't misread.
+- D2: the request-row `FOR UPDATE` lock is held across the WHOLE release (stamp under the
+  same lock — reject-vs-approve races serialize).
+- D6 conflictReason map pinned to 2 cases (row moved → "already decided"; slot drift → the
+  existing `slot_not_available` named-time copy; no third case).
+- D5 pins junction-miss rows `slotValidity='valid'` + `conflictReason=null` (decided rows carry
+  no conflict badge).
+- D11 (Q13) gate: acknowledged as a pending user ack — the ack is the round-3 gate BEFORE the
+  spec batch.
+### 🔴 Outstanding
+- none technical; Q13 ack is the last design-freeze gate.
+
+## design Round 3 — 2026-10-17 (reviewer subprocess)
+### 🔴 Fixed
+- Round-2's 🔴1 had NOT actually landed (exact-string miss): D1 step 7 still carried
+  `action='decided'` → now pinned `action='approved'` (LEGAL token) AND D2 step 5 pinned
+  `action='rejected'`; D3's audit rider now says the release rides D1's summary audit
+  (no separate row, same legal token).
+### 🟡 Addressed
+- `version = version + 1` increments named explicitly at D1(4), D2(3), D3(ii) (the 💡 three-site
+  clause — task-generation cannot misread).
+### 🔴 Outstanding
+- none technical; the standing design-freeze gate = Q13 user ack (D11).
+
+## design Round 4 — 2026-10-17 (reviewer subprocess)
+### 🔴 Fixed
+- The round-2/3 "legal action token" fix had repeatedly FAILED to land (exact-string misses in
+  the row text; review-log claims outran the file). This round every pin was applied against
+  grep-verified text and counted back: D1(7) `action`**`approved`** (LEGAL CHECK token;
+  `decided` would CHECK-FAIL), D2(5) `action`**`rejected`**, `version = version + 1` named at
+  D1(4) / D2(3) / D3(ii), D3's audit rider pinned INSIDE D1's summary audit (no separate row —
+  proposal item 11's count contract), D1(8) dangling "alias note at the header" pointer replaced
+  with the self-contained label statement.
+### 🟡 Addressed
+- (carried) D5 junction-miss `slotValidity='valid'` + `conflictReason=null`; D2 whole-release
+  lock; D6 2-case map (all verified in-file this round).
+### 🔴 Outstanding
+- none technical; standing freeze gate = **Q13 user ack** (D11).
+
+## design Round 5 — 2026-10-17 (reviewer subprocess)
+### 🔴 Fixed
+- The header alias-mapping line was NEVER landed (the round-1 atomic batch that would have
+  added it was rejected wholesale) → the declarative alias note now lives in the design header
+  (grep-verified) and D1(8) stays self-contained.
+### 🟡 Addressed
+- D5 signature type corrected `?ApprovalValidity` → **`?ValidityResult`** (the D6 evaluator's
+  returned object; class-vs-object distinction pinned inline).
+- D2(3) stray unbalanced paren cleaned.
+### 🔴 Outstanding
+- none (reviewer round 5 verdict: "design.md is ready" once these two land + grep-verified).
+  NOTE (cap accounting): this one-line confirming round was justified by the reviewer's own
+  round-5 verdict — no decision-level churn occurred. ⇒ **design.md FROZEN at R6 2026-10-17,
+  EXCEPT the one standing gate: Q13 user ack (D11) before the spec batch.**
