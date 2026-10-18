@@ -47,3 +47,16 @@ template with only the documented BRIDGE marks:
   venue rows (`available`, version-checked, identity-pinned — the old
   room+time becomes bookable by others per Objective-3's letter). Visible
   on week pages only post-holiday (the W14 case is a holiday week).
+
+## 2026-10-18 — T18/T19 postscript (the email infrastructure)
+
+- `tests/Feature/EmailQueueTest.php` — T18's two families: the enqueue
+  assertions (per-PL submitted copies, decided + herteroés cohort-notice with
+  the roster count, decided-only for reject, the Q13 decide-own case) + the
+  NFR 1.4 REAL-worker drain (NO Mail::fake / NO Queue::fake; the jobs-table
+  row is REAL, `queue:work --once` consumes it inside one cycle, elapsed
+  <1 min) — the drain fixture drops the cohort attach so exactly ONE job
+  runs.
+- `docs/queue-and-emails.md` — the runbook (dev = log mailer, jobs persist
+  until the worker claims them, failed_jobs stock behavior, the SMTP flip being
+  a `.env` change only).

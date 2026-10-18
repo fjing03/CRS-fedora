@@ -107,22 +107,22 @@ demo DB `class_replacement_fresh` NEVER written (the LIVE `.env` DB_DATABASE; Co
 - [x] **T17 — `SubmitReplacementRequest` + FR 4.15 hook** (notifications R1 #1): queue
       `ReplacementSubmitted` to every `is_pl` PL after a successful reserve (after-commit);
       NO change to OCC semantics or the flat return payload.
-- [ ] **T18 — `tests/Feature/EmailQueueTest.php`** (spec notifications R3 + design D9):
+- [x] **T18 — `tests/Feature/EmailQueueTest.php`** (spec notifications R3 + design D9):
       `Mail::fake`+`Queue::fake` enumeration tests (recipients per the Q7 table:
       submit→PL(s), approve→proposer+cohort students dedup, reject→proposer only; Q13
       decide-own case; multi-cohort dedup) + the SEPARATE no-`Queue::fake` real-worker drain
       test (NFR 1.4: `queue:work --once` consumes within one cycle, <1 min).
-- [ ] **T19 — Runbook doc** (notifications R4): `docs/queue-and-emails.md` (dev = log mailer;
+- [x] **T19 — Runbook doc** (notifications R4): `docs/queue-and-emails.md` (dev = log mailer;
       worker ops; jobs persist until drained; SMTP flip = `.env` MAIL_* only).
 
 ## Slice F — close-out
 
-- [ ] **T20 — Full gates.** `composer run lint:check`; `vendor/bin/phpstan analyse --memory-limit=1G` (the standing long form; the composer types
+- [x] **T20 — Full gates.** `composer run lint:check`; `vendor/bin/phpstan analyse --memory-limit=1G` (the standing long form; the composer types
       script still dead at 128M);
       `php artisan test` (baseline 193 + new suite; TC70 grep-invert guard respected);
       Playwright suits green (venue + new approval smoke); stale-cache ritual after blade
       edits. Demo DB untouched (status checks via tinker only).
-- [ ] **T21 — Docs + closure.** `CodingMAIN.md` wave-status row (Objective 3 FCFS dashboard →
+- [x] **T21 — Docs + closure.** `CodingMAIN.md` wave-status row (Objective 3 FCFS dashboard →
       ✅; Objective 4 notifications → ✅ log-mailer), `docs/README.md` index entry for the
       runbook, changelog cross-links; implementer completion note in `review-log.md`;
       `change-status.sh`; report to user → `/sdd-verify` → suggest `/sdd-archive`.
