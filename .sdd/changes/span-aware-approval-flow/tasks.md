@@ -9,7 +9,7 @@ demo DB `class_replacement` NEVER written (CodingMAIN §98/134) (all work on `cl
 
 ## Slice A — shared infrastructure (no behavior change)
 
-- [ ] **T1 — Extract `App\Services\ReplacementRequestMapper`** (spec display-reads R3; design D5):
+- [x] **T1 — Extract `App\Services\ReplacementRequestMapper`** (spec display-reads R3; design D5):
       move the request-row → §2.9-shape logic into `toRow(ReplacementRequest $r, Carbon
       $semesterStart, string $requestedBucket, ?ValidityResult $validity = null)`. Data-driven
       junction fallback (junction empty → LEGACY anchor render + `slotValidity='valid'` +
@@ -21,45 +21,45 @@ demo DB `class_replacement` NEVER written (CodingMAIN §98/134) (all work on `cl
       conflict — display-reads scenario 6 becomes an explicit assertion)
       — all green before slice end. §10.0.6 promotion entry recorded in the changelog (the file is born at T11 — entry
       written there per T11).
-- [ ] **T2 — `App\Services\ApprovalValidity::evaluate()`** (spec decision-flow R4; design D6):
+- [x] **T2 — `App\Services\ApprovalValidity::evaluate()`** (spec decision-flow R4; design D6):
       `ValidityResult{valid: bool, reason: ?string}` value object; 2-case map — (a) row moved →
       **'already decided'**; (b) span drift (member missing / status ≠ pending) → the existing
       `slot_not_available` named-time copy (same strings the submit path renders). The version
       leg surfaces ONLY via the flip guard (never at render). Unit tests (testing DB).
-- [ ] **T3 — Gates checkpoint.** lint + phpstan 0 + phpunit still 193+new green (the mapper
+- [x] **T3 — Gates checkpoint.** lint + phpstan 0 + phpunit still 193+new green (the mapper
       swap must move zero semantics).
 
 ## Slice B — decision actions (the core)
 
-- [ ] **T4 — `App\Actions\ApproveRequest`** (spec decision-flow R1; design D1/D11/D13): the
+- [x] **T4 — `App\Actions\ApproveRequest`** (spec decision-flow R1; design D1/D11/D13): the
       10-step txn verbatim (request-row lock → ordered junction lock + `count>=1` guard →
       check ALL → version-checked flips (throw-out-of-txn) → junction stays → approve stamp
       (`approver_id`,`decided_at`) → summary audit `action='approved'` w/ `details` plan
       (+`approver_note` key only when non-blank, D13) → per-slot flip audits → original-release
       (T5) inside the txn → mails after commit via T7). Q13: NO ownership guard.
-- [ ] **T5 — original-release inside T4** (spec decision-flow R3; design D3): nested
+- [x] **T5 — original-release inside T4** (spec decision-flow R3; design D3): nested
       `DB::transaction` (SAVEPOINT) around the `class_exceptions official_event` write
       (pre-check EXISTS for original session + REQUEST row's week; catch →
       'already-stamped: continue'); identity-pinned flips of the original's `occupied` venue
       rows → `available` (version-checked; never location matching). Audit rider inside D1's
       summary audit.
-- [ ] **T6 — `App\Actions\RejectRequest`** (spec decision-flow R2; design D2): same lock shape;
+- [x] **T6 — `App\Actions\RejectRequest`** (spec decision-flow R2; design D2): same lock shape;
       release family = VERBATIM flip+delete ONLY (cancel's skip semantics NOT copied);
       `status='rejected'` + `approver_id` + `decided_at` + reason VERBATIM (empty/whitespace
       reason → blocker); summary audit `action='rejected'` (details + reason,
       `time_slot_id = anchor`) + per-flip audits; junction DELETE; mails after commit.
-- [ ] **T7 — decide-side mails (hook-only; spec notifications R1 #2 #3):** after-commit
+- [x] **T7 — decide-side mails (hook-only; spec notifications R1 #2 #3):** after-commit
       `ReplacementDecided` queue (capture-at-QUEUE-TIME — pre-release snapshot of span min/max,
       venue, decision, reason, PL name) + (approve-only) `ReplacementApprovalNotice` to
       affected cohorts' students, own job, no ordering contract. Mailables + plain Blade views
       + `ShouldQueue` (database conn); NO real SMTP (log mailer; Q7=A).
-- [ ] **T8a — Fixture + core decision tests** (spec scenarios; testing DB only): fixture
+- [x] **T8a — Fixture + core decision tests** (spec scenarios; testing DB only): fixture
       helper (span + PL + proposer; setval max(id)+1 — mirrors `SpanReservationTest`); approve
       span-4 happy path (flips/version/junction/audit count contract); approve+note
       (`approver_note` present) vs no-note (key absent); reject (chip reason verbatim; empty
       reject blocked; junction gone; slots back incl. version++); reject 'Other' free-text
       stored VERBATIM (any typed text — no server preset list).
-- [ ] **T8b — Bulk, race, D7 tests** (spec scenarios): bulk×3 FCFS with an injected stale
+- [x] **T8b — Bulk, race, D7 tests** (spec scenarios): bulk×3 FCFS with an injected stale
       middle row (row 2 loser; rows 1/3 decided; NO undo) + **one shared reason landing in
       EVERY bulk-rejected row's `rejection_reason`**; race double-approve
       (exactly-one-winner); D7 stamp-guard (existing row NOT duplicated), original rows freed,
@@ -104,7 +104,7 @@ demo DB `class_replacement` NEVER written (CodingMAIN §98/134) (all work on `cl
 
 ## Slice E — submit-side hook + queue ops
 
-- [ ] **T17 — `SubmitReplacementRequest` + FR 4.15 hook** (notifications R1 #1): queue
+- [x] **T17 — `SubmitReplacementRequest` + FR 4.15 hook** (notifications R1 #1): queue
       `ReplacementSubmitted` to every `is_pl` PL after a successful reserve (after-commit);
       NO change to OCC semantics or the flat return payload.
 - [ ] **T18 — `tests/Feature/EmailQueueTest.php`** (spec notifications R3 + design D9):

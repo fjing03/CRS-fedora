@@ -2,14 +2,17 @@
 
 namespace App\Actions;
 
+use App\Mail\ReplacementSubmitted;
 use App\Models\ClassSession;
 use App\Models\ReplacementRequest;
 use App\Models\TimeSlot;
 use App\Models\User;
+use App\Models\Venue;
 use App\Services\MatrixIntersectionEngine;
 use App\Services\OCCValidator;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Mail;
 use RuntimeException;
 
 /**
@@ -151,8 +154,55 @@ final class SubmitReplacementRequest
             return $fail((string) $result->conflictReason, $result->failingStart, $result->failingEnd, 'occupied');
         }
 
-        return ['ok' => true, 'conflict_reason' => null, 'request_id' => (int) $request->id, 'failing_start' => null, 'failing_end' => null, 'failing_kind' => null];
+        return $this->succeed((int) $request->id, $slot, $span, $proposer, $session);
     }
+
+    /**
+     * FR 4.15 (T17): the PL alert queues AFTER commit — `Mail::…->queue` on
+     * the database connection (log mailer in dev; capture-at-queue-time
+     * facts so a worker render never re-reads the row).
+     *
+     * @return array{ok: bool, conflict_reason: string|null, request_id: int|null, failing_start: string|null, failing_end: string|null, failing_kind: string|null}
+     */
+    private function succeed(int $requestId, TimeSlot $slot, int $span, User $proposer, ClassSession $session): array
+    {
+        $moduleCode = (string) $session->module->module_code;
+        $proposerName = (string) $proposer->name;
+        $anchor = $slot;
+
+        DB::afterCommit(function () use ($requestId, $moduleCode, $proposerName, $anchor, $span): void {
+            $pls = User::query()
+                ->whereHas('lecturer', fn ($q) => $q->where('is_pl', true))
+                ->get();
+
+            if ($pls->isEmpty()) {
+                return;
+            }
+
+            $replacementTime = \Illuminate\Support\Carbon::parse((string) $anchor->start_time)->format('H:i')
+                .' – '.\Illuminate\Support\Carbon::parse((string) $anchor->start_time)->addMinutes($span * 30)->format('H:i');
+            $venueRow = Venue::find((int) $anchor->venue_id);
+            $venue = $venueRow !== null ? (string) $venueRow->room_code : '';
+
+            foreach ($pls as $pl) {
+                Mail::to((string) $pl->email)->queue(new ReplacementSubmitted(
+                    $requestId,
+                    $moduleCode,
+                    (string) $pl->name,
+                    $proposerName,
+                    $replacementTime,
+                    $venue,
+                    $span,
+                ));
+            }
+        });
+
+        return ['ok' => true, 'conflict_reason' => null, 'request_id' => $requestId, 'failing_start' => null, 'failing_end' => null, 'failing_kind' => null];
+    }
+
+    /**
+     * D5 loser compensation.
+     */
 
     /**
      * D5 compensating delete — order matters: pre-null the audit FK first (the
