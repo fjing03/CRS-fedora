@@ -109,6 +109,10 @@
            parsed AFTER @yield('content') in the layout body, so top-level
            access here would throw before they load. */
         document.addEventListener('DOMContentLoaded', function () {
+            /* REAL clock (user report 2026-10-19): without this the page's
+               TODAY anchored the mock-era demo date (mockNow Oct 5) — same
+               clearing line the cohort/venue/history pages carry. */
+            MockData.mockNow = null;
             MockData.semester = @json($semesterJs);
             MockData.holidays = @json($holidaysJs);
             MockData.currentUser = @json(['name' => auth()->user()?->name ?? '', 'staffId' => (string) (auth()->user()?->lecturer?->staff_id ?? '')]);

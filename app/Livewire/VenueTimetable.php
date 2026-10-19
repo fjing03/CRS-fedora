@@ -343,6 +343,15 @@ class VenueTimetable extends Component
             ];
 
             $eventsByWeek[$w - 1][$event['di'].':'.$event['start']][] = $event;
+
+            // USER 2026-10-19 summary accuracy (A&B): the viewer's OWN approved
+            // replacement is real teaching — count it in the My-Teaching cards
+            // (one class + its live-junction span × 0.5 h), matching the block
+            // the grid actually renders.
+            if ($isApproved && $request->proposer_id === $myUserId) {
+                $mySlotCount[$w - 1] += $spanSlots;
+                $mySessionIds[$w - 1][$session->id] = true;
+            }
         }
 
         // Grid engine consumes a list — merge twins per week and strip keys.

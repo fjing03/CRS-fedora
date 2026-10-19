@@ -185,6 +185,7 @@
             window.currentWeek = currentWeekIndex();
             let currentWeek = window.currentWeek;
             window.currentModalEvent = null;
+            let countedAvailable = 0;   /* the render's own bookable-cell count — the AVAILABLE card reads it (user accuracy 2026-10-19) */
 
             const weekNav = new WeekNavigator(MockData.semester, weekData, null, 'venueTimetableWeek');
             weekNav._currentWeek = currentWeek;
@@ -564,6 +565,7 @@
 
             function buildTimetable() {
                 currentWeek = weekNav.currentWeek;
+                countedAvailable = 0;
                 buildTimetableGrid({
                     events: eventsData[currentWeek] || [],
                     days: weekData[currentWeek].days,
@@ -625,7 +627,7 @@
                             if (info.span > 1) td.colSpan = info.span;   // parity: builder sets it only when span > 1
                         } else if (info && info.occupied) {
                             td.style.display = 'none';                   // continuation consumed by head's colSpan
-                        } else if (isSlotTooSoon(weekData, currentWeek, di)) {
+                                        } else if (isSlotTooSoon(weekData, currentWeek, di)) {
                             /* lead-time rule (frozen template :861–866): inside
                                the 3-working-day window — rendered read-only
                                (no Arrange tooltip, no keyboard) */
@@ -633,7 +635,13 @@
                             div.className = 'cell-content cell-too-soon';
                             td.appendChild(div);
                         } else {
-                            /* Available slot — frozen template :873–884 */
+                            /* Available slot — frozen template :873–884. The
+                               AVAILABLE card counts ONLY what the grid renders
+                               bookable (user 2026-10-19: too-soon rows were
+                               inflating it) — this branch is the single
+                               counting point, so the card can never disagree
+                               with the cells on screen. */
+                            countedAvailable++;
                             const div = document.createElement('div');
                             div.className = 'cell-content cell-available';
                             /* a booking can't fit if it would run past the day end */
@@ -663,7 +671,9 @@
                     if (el) el.textContent = String(v);
                 };
                 set('sumTotal', t.total);
-                set('sumAvailable', t.available);
+                /* the card shows ONLY bookable cells (the grid's too-soon rows
+                   excluded; user accuracy 2026-10-19) */
+                set('sumAvailable', countedAvailable);
                 set('sumMyClasses', t.myClasses);
                 set('sumMyHours', t.myHours);
                 set('sumOccupied', t.occupied);
