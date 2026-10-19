@@ -309,6 +309,14 @@ class VenueTimetable extends Component
 
             $isApproved = (string) $request->status === 'approved';
             $start = $this->slotIndex($slot->start_time);
+            // The ORIGINAL occurrence's date (my-timetable's remarks family —
+            // '22-Oct-2026'): semester start + (request week − 1) × 7 + the
+            // class's day — computed from the request's own week.
+            $originalDate = $this->timelineSemester()?->start_date
+                ?->copy()
+                ?->addWeeks((int) $request->week_number - 1)
+                ?->addDays((int) $session->day_of_week)
+                ?->format('d-M-Y');
             // The junction cover: span = the request's LIVE junction row count
             // (start = the anchor's own slot; end extends contiguously).
             $junctionCount = $junctionLink->filter(fn ($rid) => $rid === $requestId)->count();
@@ -327,9 +335,9 @@ class VenueTimetable extends Component
                 'cohort' => $this->cohortLabel($session->cohorts),
                 'cohorts' => $session->cohorts->map(fn ($c) => $this->cohortCode($c))->all(),
                 'studentCount' => (int) $session->cohorts->sum('student_count'),
-                'status' => $isApproved ? 'normal' : 'pending', // the frozen legend (normal = dark occupied, pending = amber)
+                'status' => $isApproved ? 'replacement' : 'pending', // the frozen legend (STATUSES now carry the direct blue my-timetable class; pending stays amber)
                 'remarks' => $isApproved
-                    ? 'Replacement approved by the PL'
+                    ? (string) $originalDate
                     : 'Replacement request awaiting PL approval', // byte-matches the legend tip
                 'mine' => $request->proposer_id === $myUserId,
             ];

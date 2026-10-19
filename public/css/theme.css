@@ -1981,6 +1981,20 @@ html.dark .semester-bar select:not(.week-select) {
     color: var(--color-on-tertiary-container);
     border: 3px solid var(--color-tertiary);
 }
+/* ── REPLACE-MENT BLUE on cohort + venue (user 2026-10-19): the approved
+   replacement's block carries the my-timetable page's own
+   .event-replacement hue — the same blue family on every timetable page;
+   the two-axis rule's ownership borders stand: mine = 3px, others = 0.5px. ── */
+.timetable .event-mine-replacement {
+    background: var(--color-primary-container);
+    color: var(--color-on-primary-container);
+    border: 3px solid var(--color-primary);
+}
+.timetable .event-others-replacement {
+    background: var(--color-primary-container);
+    color: var(--color-on-primary-container);
+    border: 0.5px solid var(--color-outline-strong);
+}
 .event-selection {
     background: var(--color-primary-container);
     color: var(--color-on-primary-container);

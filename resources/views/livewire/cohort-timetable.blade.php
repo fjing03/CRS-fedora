@@ -456,6 +456,12 @@
                             div.classList.add('event-conflict');
                         } else if (isConflict || e.status === 'conflict') {
                             div.classList.add('event-public-holiday');   // same error red, hairline border (not yours)
+                        } else if (e.status === 'replacement') {
+                            // USER 2026-10-19: the approved replacement carries the
+                            // REPLACEMENT blue on this page (my-timetable's own
+                            // event-replacement class) — ownership borders stay
+                            // (3px mine / 0.5px others') per §10.0's two-axis rule.
+                            div.classList.add(isMine ? 'event-mine-replacement' : 'event-others-replacement');
                         } else if (e.status === 'pending') {
                             div.classList.add(isMine ? 'event-mine-pending' : 'event-others-pending');
                         } else {

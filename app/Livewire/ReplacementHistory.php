@@ -112,7 +112,7 @@ class ReplacementHistory extends Component
             'newVenue' => $approved ? (string) $slot->venue->room_code : null,
             'lecturer' => $session->lecturer !== null ? (string) $session->lecturer->name : '',
             'status' => $approved ? 'replacement' : 'pending',
-            'requestedAt' => $r->submitted_at->format('d M Y, h:i A'),
+            'requestedAt' => app(ReplacementRequestMapper::class)->stampDisplay($r->submitted_at, 'd M Y, h:i A'),
         ];
     }
 }

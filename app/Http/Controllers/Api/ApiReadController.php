@@ -383,7 +383,7 @@ class ApiReadController extends Controller
 
                 if ($req->status === 'pending') {
                     $ev['status'] = 'pending';
-                    $ev['requestedAt'] = $req->submitted_at->format('d M Y, g:i A');
+                    $ev['requestedAt'] = app(ReplacementRequestMapper::class)->stampDisplay($req->submitted_at, 'd M Y, g:i A');
                     $ev['requestedBy'] = $user->name;
                 } else {
                     $ev['status'] = 'replacement';

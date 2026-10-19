@@ -42,6 +42,14 @@ final class ReplacementRequestMapper
     public const DISPLAY_TZ = 'Asia/Kuala_Lumpur';
 
     /** The MYT-form stamp — byte-shape identical with the previous UTC form. */
+    public function stampDisplay(?CarbonInterface $stamp, string $format): ?string
+    {
+        return $stamp === null
+            ? null
+            : $stamp->copy()->setTimezone(self::DISPLAY_TZ)->format($format);
+    }
+
+    /** The MYT-form stamp — byte-shape identical with the previous UTC form. */
     public function requestedAtDisplay(CarbonInterface $stamp): string
     {
         return $stamp->copy()->setTimezone(self::DISPLAY_TZ)->format('Y-m-d\TH:i:s');
@@ -90,7 +98,7 @@ final class ReplacementRequestMapper
             // §2.13's queued row names the PROPOSER `lecturer`:
             'lecturer' => $r->proposer !== null ? (string) $r->proposer->name : '',
             'requestedAt' => $this->requestedAtDisplay($r->submitted_at),
-            'reviewedAt' => $r->decided_at !== null ? $r->decided_at->format('Y-m-d\TH:i:s') : null,
+            'reviewedAt' => $this->stampDisplay($r->decided_at, 'Y-m-d\TH:i:s'),
             'reviewedBy' => $r->approver !== null ? (string) $r->approver->name : null,
             'status' => $prettyStatus,
             'rejectionReason' => $r->rejection_reason,

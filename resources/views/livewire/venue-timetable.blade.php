@@ -598,6 +598,11 @@
                             if (day.holiday) {
                                 /* own class on a public holiday — loud red, it won't run */
                                 div.classList.add('event-conflict');
+                            } else if (e.status === 'replacement') {
+                                // USER 2026-10-19: the approved replacement carries the
+                                // REPLACEMENT blue (my-timetable's own
+                                // event-replacement class) — ownership borders stay.
+                                div.classList.add(e.mine ? 'event-mine-replacement' : 'event-others-replacement');
                             } else if (e.status === 'pending') {
                                 div.classList.add(e.mine ? 'event-mine-pending' : 'event-others-pending');
                             } else if (e.status === 'conflict') {
@@ -611,7 +616,10 @@
                             div.innerHTML =
                                 '<span class="ev-code">' + e.code + '(' + e.type + ')</span>' +
                                 '<span class="ev-venue">' + e.venue + '</span>' +
-                                '<span class="ev-time">' + startTime + ' - ' + endTime + '</span>';
+                                '<span class="ev-time">' + startTime + ' - ' + endTime + '</span>' +
+                                (e.status === 'replacement' && e.remarks
+                                ? '<span class="ev-note">(Replaced for ' + e.remarks + ')</span>'
+                                : '');
                             div.addEventListener('click', function () { openModal(e); });
                             td.appendChild(div);
                             if (info.span > 1) td.colSpan = info.span;   // parity: builder sets it only when span > 1
