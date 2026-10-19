@@ -1,5 +1,14 @@
 # Changelog — Lecturer My Timetable
 
+## 2026-10-19 (user accuracy report) — the Original rows read the original session's own clock
+
+The same fix applies to both detail modals (my-timetable **Class Details**
+and the venue page's **Slot Details** — both render through the shared
+`openClassModal`): the Original Start/End Time rows previously echoed the
+BLOCK's landing-span times (12:00–1:00 PM); the timeline payload now carries
+`originalStartTime`/`originalEndTime` (the ORIGINAL session's own clock —
+#10's real 2:30 PM – 3:30 PM) and `openClassModal` prefers them, falling
+back to the landing span only for mock-era rows.
 ## 2026-10-19 (user request) — the modal's Original block splits into day/date + start/end + venue name
 
 The class-details modal's **Original Class** rows: `Original Day` +
