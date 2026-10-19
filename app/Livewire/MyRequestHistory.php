@@ -78,7 +78,7 @@ class MyRequestHistory extends Component
         return [
             'id' => (int) $r->id,
             'requester' => $r->proposer !== null ? (string) $r->proposer->name : '',
-            'requestedAt' => $r->submitted_at->format('Y-m-d\TH:i:s'),
+            'requestedAt' => (app(ReplacementRequestMapper::class))->requestedAtDisplay($r->submitted_at),
             'reviewedAt' => $r->decided_at !== null ? $r->decided_at->format('Y-m-d\TH:i:s') : null,
             'reviewedBy' => $r->approver !== null ? (string) $r->approver->name : null,
             'status' => ucfirst((string) $r->status),

@@ -780,10 +780,14 @@
                 DetailModal.row('Original Venue', r.venue)
             );
 
-            // Tab 3: Requested Replacement Class
+            // Tab 3: Requested Replacement Class — USER 2026-10-19: the time
+            // becomes Start Time / End Time (the approval modal's shape —
+            // the replacement's combined "H:i – H:i" range splits here).
+            const repTimeParts = (r.replacementTime || '').split(/\s*[–—-]\s*/);
             const repSection = DetailModal.section('Replacement Class',
                 DetailModal.row('Replacement Date', r.replacementDate ? formatDate(r.replacementDate) : null) +
-                DetailModal.row('Replacement Time', r.replacementTime ? DateHelper.format12hRange(r.replacementTime) : null, { strong: true }) +
+                DetailModal.row('Start Time', repTimeParts.length && r.replacementTime ? to12h(repTimeParts[0]) : null, { strong: true }) +
+                DetailModal.row('End Time', repTimeParts.length > 1 ? to12h(repTimeParts[1]) : null) +
                 DetailModal.row('Replacement Venue', r.replacementVenue || '—') +
                 DetailModal.row('Reviewed By', r.reviewedBy) +
                 DetailModal.row('Reviewed At', r.reviewedAt ? formatDateTime(r.reviewedAt) : null)

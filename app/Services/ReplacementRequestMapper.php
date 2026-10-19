@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\ReplacementRequest;
 use App\Models\TimeSlot;
 use Carbon\Carbon;
+use Carbon\CarbonInterface;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -32,6 +33,20 @@ use Illuminate\Support\Facades\DB;
  */
 final class ReplacementRequestMapper
 {
+    /**
+     * The DISPLAY timezone (user 2026-10-19): the app/db clock is UTC while
+     * the USER's clock is Asia/Kuala_Lumpur (+08) — Requested At renders the
+     * MYT form. Apply ONLY on the Requested At path (scoped per the user's
+     * go-ahead; the other timestamps stay reported-only).
+     */
+    public const DISPLAY_TZ = 'Asia/Kuala_Lumpur';
+
+    /** The MYT-form stamp — byte-shape identical with the previous UTC form. */
+    public function requestedAtDisplay(CarbonInterface $stamp): string
+    {
+        return $stamp->copy()->setTimezone(self::DISPLAY_TZ)->format('Y-m-d\TH:i:s');
+    }
+
     private const DAY_NAMES = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
 
     /**
@@ -74,7 +89,7 @@ final class ReplacementRequestMapper
             'id' => (int) $r->id,
             // §2.13's queued row names the PROPOSER `lecturer`:
             'lecturer' => $r->proposer !== null ? (string) $r->proposer->name : '',
-            'requestedAt' => $r->submitted_at->format('Y-m-d\TH:i:s'),
+            'requestedAt' => $this->requestedAtDisplay($r->submitted_at),
             'reviewedAt' => $r->decided_at !== null ? $r->decided_at->format('Y-m-d\TH:i:s') : null,
             'reviewedBy' => $r->approver !== null ? (string) $r->approver->name : null,
             'status' => $prettyStatus,
