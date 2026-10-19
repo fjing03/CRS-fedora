@@ -23,6 +23,7 @@ Two semantic contexts share one palette — green=free/ok, red=conflict/occupied
 |-------------|-----------|---------|
 | `event-mine` / `event-others` | `--color-secondary` (green) | scheduled class (border weight = ownership) |
 | `event-mine-pending` / `event-others-pending` | `--color-tertiary` (yellow) | awaiting PL approval |
+| `event-mine-replacement` / `event-others-replacement` | `--color-primary` (blue) | approved replacement (border weight = ownership; the my-timetable replacement hue extended to cohort + venue, user-mandated 2026-10-19) |
 | `event-conflict` | `--color-error` (red, 3px border) | YOUR conflict or public-holiday class |
 | `event-public-holiday` | `--color-error` (red, hairline) | others' conflict / holiday |
 
