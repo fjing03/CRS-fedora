@@ -1,5 +1,14 @@
 # Changelog — Lecturer My Timetable
 
+## 2026-10-19 (user request) — the modal's Original block splits into day/date + start/end + venue name
+
+The class-details modal's **Original Class** rows: `Original Day` +
+`Original Date` (own rows), `Original Start Time`/`Original End Time` (the
+approval modal's split shape), and a new **Original Venue Name** row beside
+the code row. The venue rows key on the ORIGINAL session's own room
+(`originalVenue`/`originalVenueName` on the timeline payload) — the block's
+`venue` still carries the LANDING room, which differs when a request moved
+venues (real B107 payload: `Tutorial Room B107`).
 ## 2026-10-19 (user report) — the (Replaced for …) date reads the ORIGINAL class date
 
 The approved-branch remark in `ResolvesTimetableTimeline` keyed the note's
