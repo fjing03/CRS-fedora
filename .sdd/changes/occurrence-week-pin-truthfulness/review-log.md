@@ -21,3 +21,13 @@
  - S6 (the approve chain → the D3 stamp of the ORIGINAL week + the no-free control), S7 (each fact-kind's button scenario), S8 (the seeder-premise assert in the first fact test) appended.
  - D-P2's design gained the positional row-push-before-continue note (the results[i]↔blocks[i] contract).
 ### Verdict: specs FROZEN (conditionally-ready items landed; zero 🔴).
+## tasks Round 1 — 2026-10-19
+### 🔴 Fixed
+ - T6's invented button-title clause removed (no new copy — the display stays token-frozen).
+ - T10 rewritten: the S5 BOTH-mode gate/handoff rows + S7's page-side kinds, the exception-kind-at-PHP-level note (T5's skip clause) so no Playwright round hunts an unrenderable button.
+### 🟡 Addressed
+ - T2's loser order pinned (ownership → invalid_week → invalid_span → fact loser; before the lookup + create).
+ - T8's S1 = a TWO-block positional-contract test.
+ - T11 names the EXISTING changelog files (venue-timetable-ui-changelog.md — no stray file).
+ - T5 instance-call style + the exception-skip note; T1's factsIndex dead-code-purge comment; T12's TC70 + slice names; the D-P7 no-over-edit standing row.
+### Verdict: tasks FROZEN (zero 🔴; ready for /sdd-apply).
