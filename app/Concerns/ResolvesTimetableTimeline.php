@@ -294,7 +294,13 @@ trait ResolvesTimetableTimeline
                 }
 
                 $ev['status'] = 'replacement';
-                $ev['remarks'] = $startDate->copy()->addWeeks($w - 1)->addDays($slot->day_of_week)->format('d-M-Y');
+                // USER 2026-10-19 (venue date parity): the note's date reads the
+                // ORIGINAL class's own occurrence (request week + the session's
+                // day — venue page's keying), not the replacement's landing week.
+                $ev['remarks'] = $startDate->copy()
+                    ->addWeeks((int) $r->week_number - 1)
+                    ->addDays((int) $session->day_of_week)
+                    ->format('d-M-Y');
                 $events[] = $ev;
             }
 
