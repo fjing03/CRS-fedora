@@ -996,11 +996,14 @@ function openClassModal(cfg) {
             const ovn = event.originalVenueName ||
                 (((typeof MockData !== 'undefined' && MockData.venues) || [])
                     .find(function (v) { return v.code === event.venue; }) || {}).type || '\u2014';
+            /* USER 2026-10-19 (accuracy): the ORIGINAL rows read the original
+               session's own times (backed by originalStartTime/-EndTime); the
+               landing block's clock is the fallback for mock-era rows only. */
             rows.splice(stIdx, 0,
                 { label: 'Original Day', value: dayName || '\u2014' },
                 { label: 'Original Date', value: rf, strong: true },
-                { label: 'Original Start Time', value: startStr, strong: true },
-                { label: 'Original End Time', value: endStr },
+                { label: 'Original Start Time', value: event.originalStartTime ? to12h(event.originalStartTime) : startStr, strong: true },
+                { label: 'Original End Time', value: event.originalEndTime ? to12h(event.originalEndTime) : endStr },
                 { label: 'Original Venue', value: event.originalVenue || event.venue || '\u2014' },
                 { label: 'Original Venue Name', value: ovn });
             if (event.replacedReason) {

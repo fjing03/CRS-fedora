@@ -306,6 +306,10 @@ trait ResolvesTimetableTimeline
                 // which differs when a request moved venues.
                 $ev['originalVenue'] = (string) $session->venue->room_code;
                 $ev['originalVenueName'] = (string) ($session->venue->room_name ?? '');
+                // The ORIGINAL's own clock (14:30 – 15:30 for B002's #10) — the
+                // block's start/end carry the LANDING junction's span.
+                $ev['originalStartTime'] = substr((string) $session->start_time, 0, 5);
+                $ev['originalEndTime'] = substr((string) $session->end_time, 0, 5);
                 $events[] = $ev;
             }
 
