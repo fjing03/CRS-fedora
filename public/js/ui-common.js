@@ -3228,29 +3228,33 @@ class VenueDropdown {
         col.classList.add('visible');
         const venues = this._getVenues();
 
+        /* USER 2026-10-19: Favourites & Recent are COMMENTED OUT first (both
+           pages — replacement-arrangement + venue-timetable share this
+           component). Restore by un-commenting; the storage helpers below
+           stay intact. */
         // Favourites — expandable 2-level group: ★ Favourites › [rooms]
-        if (this.getFavourites().some(code => venues.some(v => v.code === code))) {
-            const favCount = this.getFavourites().filter(code => venues.some(v => v.code === code)).length;
-            const row = this._createParentItem('★ Favourites', { unit: 'favourites', tip: 'Favourites — ' + favCount + ' venues' });
-            row.addEventListener('mouseenter', () => this._buildUnitColumn('favourites'));
-            row.addEventListener('click', (e) => {
-                e.stopPropagation();
-                this._buildUnitColumn('favourites');
-            });
-            col.appendChild(row);
-        }
+        // if (this.getFavourites().some(code => venues.some(v => v.code === code))) {
+        //     const favCount = this.getFavourites().filter(code => venues.some(v => v.code === code)).length;
+        //     const row = this._createParentItem('★ Favourites', { unit: 'favourites', tip: 'Favourites — ' + favCount + ' venues' });
+        //     row.addEventListener('mouseenter', () => this._buildUnitColumn('favourites'));
+        //     row.addEventListener('click', (e) => {
+        //         e.stopPropagation();
+        //         this._buildUnitColumn('favourites');
+        //     });
+        //     col.appendChild(row);
+        // }
 
         // Recent — expandable 2-level group: Recent › [rooms]
-        if (this.getRecent().some(code => venues.some(v => v.code === code))) {
-            const recCount = this.getRecent().filter(code => venues.some(v => v.code === code)).length;
-            const row = this._createParentItem('Recent', { unit: 'recent', tip: 'Recent — ' + recCount + ' venues' });
-            row.addEventListener('mouseenter', () => this._buildUnitColumn('recent'));
-            row.addEventListener('click', (e) => {
-                e.stopPropagation();
-                this._buildUnitColumn('recent');
-            });
-            col.appendChild(row);
-        }
+        // if (this.getRecent().some(code => venues.some(v => v.code === code))) {
+        //     const recCount = this.getRecent().filter(code => venues.some(v => v.code === code)).length;
+        //     const row = this._createParentItem('Recent', { unit: 'recent', tip: 'Recent — ' + recCount + ' venues' });
+        //     row.addEventListener('mouseenter', () => this._buildUnitColumn('recent'));
+        //     row.addEventListener('click', (e) => {
+        //         e.stopPropagation();
+        //         this._buildUnitColumn('recent');
+        //     });
+        //     col.appendChild(row);
+        // }
 
         this._addSectionHeader(col, 'Types');
 

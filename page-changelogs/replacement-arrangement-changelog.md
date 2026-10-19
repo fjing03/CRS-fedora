@@ -1,5 +1,10 @@
 # Changelog — Replacement Arrangement (Selected Subject Page)
 
+## 2026-10-19 (user directive) — the dd's Favourites & Recent groups commented out
+
+Same shared-`VenueDropdown` change as the venue page: the type column's
+`★ Favourites` / `Recent` parent rows are commented out first (storage
+helpers intact for restore).
 ## [2026-10-09f] Summary card shows the selection duration
 
 - Selection summary card time line now ends `· N slots (xH)` — hours derived from the 30-min slot count: 4 → `(2H)`, 3 → `(1.5H)`, 2 → `(1H)`, 1 → `(0.5H)`.

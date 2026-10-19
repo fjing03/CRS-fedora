@@ -1,5 +1,11 @@
 # Changelog — Venue Timetable UI
 
+## 2026-10-19 (user directive) — the dd's Favourites & Recent groups commented out
+
+The shared `VenueDropdown`'s type column skips the `★ Favourites` and
+`Recent` expandable rows (both dropdown consumers — this page and
+replacement-arrangement — render only Types). Commented, not deleted: the
+storage helpers + `_buildUnitColumn` stay for an easy restore.
 ## 2026-10-19 (user report) — summary cards read the grid's truth
 
 **Available** counted the DB-state free rows even when the week sits inside
