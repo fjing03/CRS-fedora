@@ -1,5 +1,13 @@
 # Changelog — Lecturer My Timetable
 
+## 2026-10-19 (user report) — the (Replaced for …) date reads the ORIGINAL class date
+
+The approved-branch remark in `ResolvesTimetableTimeline` keyed the note's
+`d-M-Y` on the REPLACEMENT's landing week (W5 → 22-Oct-2026); the real
+original occurrence = the request's own week (W14 Thu → **24-Dec-2026**).
+Keyed the venue-page way (semester start + request `week_number` + session
+day). The class-details modal's **Original Date** row rides the same remark
+(its comments reader consumes it through ui-common's replacement branch).
 ## [2026-10-10] Frozen-design parity: keyword-span cards + conflict Replace Now (SDD all-pages-design-parity)
 
 - **Card descriptions** adopt the frozen `info-keyword`/`warn-keyword` spans (ids/labels unchanged).

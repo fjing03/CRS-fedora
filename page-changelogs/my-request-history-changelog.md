@@ -1,5 +1,14 @@
 # Changelog — Lecturer My Request History
 
+## 2026-10-19 (user report) — timestamps read the MYT clock + the modal time split
+
+All user-facing stamps now render Asia/Kuala_Lumpur through the new mapper
+helpers (`requestedAtDisplay` / the generic `stampDisplay` — the store stays
+UTC): the Requested At columns, the approval page's own row values, the
+modal's Reviewed At row and the Review section's stamps. The detail modal's
+combine row split: `Replacement Time` → **Start Time / End Time** rows (the
+approval modal's shape). Item #4's page (student ReplacementHistory) + the
+orphaned-API line carry the same MYT rendering.
 ## [2026-10-02] Empty state above summary + summary auto-hides when empty
 
 - The `ui-empty-state` include moved **above** the summary strip in the DOM.

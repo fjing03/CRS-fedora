@@ -1,5 +1,14 @@
 # Cohort Timetable — changelog
 
+## 2026-10-19 (user request) — the approved block reads the REPLACEMENT BLUE + the date fix
+
+The block for an approved request now carries the my-timetable page's own
+replacement hue: new `.event-mine-replacement` (blue + 3px ownership border)
+/ `.event-others-replacement` (blue + 0.5px hairline) class pairs in
+`theme.css` — colour = status (same blue family on every timetable page),
+borders stay two-axis. The `(Replaced for …)` note's date re-keyed to the
+ORIGINAL class's own occurrence (W14 → 24-Dec-2026 instead of the landing
+week's 22-Oct — the venue page's formula).
 ## 2026-10-19 (user report) — legend REPLACEMENT + the today clock
 
 The cohort legend swaps the "replacement sessions fold in here" parenthesis for

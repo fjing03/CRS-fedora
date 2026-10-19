@@ -1,5 +1,13 @@
 # Changelog — Venue Timetable UI
 
+## 2026-10-19 (user request) — the blue replacement block + the (Replaced for …) note
+
+The venue page's own event builder: the approved request's block picks the
+new `.event-mine-replacement`/`.event-others-replacement` classes (blue,
+ownership borders 3px/0.5px) and renders `(Replaced for <original date>)`.
+Its payload remarks re-keyed to the ORIGINAL class's own date (the same
+semester-start + request week + session day formula the timeline trait
+consumes) — the note read 24-Dec-2026 instead of the landing-week date.
 ## [2026-10-10] Event-blocks rewrite: two-axis language, 4-item legend, PH own-class red (SDD venue-event-blocks-db)
 
 After merging `upstream/fjing` (`f8b35a2`, 12 commits — the frozen venue design), the DB-backed Livewire page (`App\Livewire\VenueTimetable` + `venue-timetable.blade.php`) was rewritten from status cells (`.vt-cell-*`) to the cohort-style **event blocks**. READ-only v1 unchanged: no Book button, no cancel modal (write path = Slice B).
