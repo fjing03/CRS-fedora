@@ -1,5 +1,11 @@
 # Changelog — Lecturer My Timetable
 
+## 2026-10-19 (user report) — TODAY anchors the real clock
+
+The my-timetable data bridge never cleared `MockData.mockNow`, so the
+page's TodayButton anchored the mock-era demo date. The clearing line lands
+with the cohort/venue/history pages (same one-liner), the TODAY accuracy
+now matches the real clock.
 ## 2026-10-19 (user accuracy report) — the Original rows read the original session's own clock
 
 The same fix applies to both detail modals (my-timetable **Class Details**

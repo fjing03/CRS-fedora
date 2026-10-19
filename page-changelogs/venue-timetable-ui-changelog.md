@@ -1,5 +1,19 @@
 # Changelog — Venue Timetable UI
 
+## 2026-10-19 (user report) — summary cards read the grid's truth
+
+**Available** counted the DB-state free rows even when the week sits inside
+the min-3-working-days window (B002 W5 rendered too-soon cells but the card
+said 118). The card now equals the rendered `cell-available` count — a
+single counting point at the cellRender's free branch, so the number can
+never disagree with the cells on screen (too-soon, offday and PH cells
+excluded; the今天 line ⛔ unchanged).
+
+**My Teaching Classes / Hours** skipped the viewer's own APPROVED
+replacement (its slots are reserved rows — the old occupied-only counter
+never saw them; real B002 W5 said 0/0 while a replacement block rendered).
+The server now keys the My-Teaching counting on the time_slots passing AND
+the viewer's own approved requests' live-junction span (class + span × 0.5 h).
 ## 2026-10-19 (user request) — the blue replacement block + the (Replaced for …) note
 
 The venue page's own event builder: the approved request's block picks the
