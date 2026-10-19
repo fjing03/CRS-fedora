@@ -939,24 +939,56 @@
             }
             const reqSection = DetailModal.section('Request Information', reqRows);
 
+            // ── USER 2026-10-18: CONSISTENT HUMAN DATES ('17 Oct 2026' style),
+            //    hour words, and the already-split Start/End rows (below) ──
+            function fullDate(iso) {
+                if (!iso) return '—';
+                const m = String(iso).match(/(\d{4})-(\d{2})-(\d{2})/);
+                if (!m) return iso;
+                const months =
+                    ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+                return parseInt(m[3]) + ' ' + months[parseInt(m[2]) - 1] + ' ' + m[1];
+            }
+            function fullTime(t) {
+                if (!t) return '—';
+                const s = String(t);
+                return DateHelper.to12h(/\d/.test(s) && s.length >= 4 ? s.slice(0, 5) : s);
+            }
+            function durationWords(d) {
+                const n = Number(d);
+                return (n === 1 ? '1 hour' : n + ' hours');
+            }
+
             // Tab 2: Original Class Detail — one value per row, no grouping
             const origSection = DetailModal.section('Original Class',
-                DetailModal.row('Date', r.classDate) +
+                DetailModal.row('Date', fullDate(r.classDate), { strong: true }) +
                 DetailModal.row('Day', r.classDay) +
-                DetailModal.row('Start Time', DateHelper.to12h(r.timeStart), { strong: true }) +
-                DetailModal.row('End Time', DateHelper.to12h(r.timeEnd)) +
-                DetailModal.row('Duration', r.duration + 'h') +
+                DetailModal.row('Start Time', fullTime(r.timeStart), { strong: true }) +
+                DetailModal.row('End Time', fullTime(r.timeEnd)) +
+                DetailModal.row('Duration', durationWords(r.duration)) +
                 DetailModal.row('Venue', r.venue) +
                 DetailModal.row('Total Students', String(r.totalStudents)) +
                 DetailModal.row('Cohort(s)', r.cohorts.join(', '))
             );
 
             // Tab 3: Requested Replacement Class — one value per row
+            // (the replacementTime carries "H:i – H:i" — split to two rows)
+            const repParts = (r.replacementTime || '').split(/\s*[–—-]\s*/);
+            const validityText = r.slotValidity === 'conflict'
+                ? '⚠ This make-up slot is NO LONGER FREE' + (r.conflictReason ? ' — ' + r.conflictReason : '')
+                : '✓ Slot available';
+            const validityBadgeHtml = '<span class="slot-badge ' +
+                (r.slotValidity === 'conflict' ? 'slot-conflict' : 'slot-valid') + '" data-tip="' +
+                (r.slotValidity === 'conflict'
+                    ? ((r.conflictReason || 'Slot conflict').replace(/"/g, '&quot;'))
+                    : 'Slot available') + '">' +
+                (r.slotValidity === 'conflict' ? '⚠' : '✓') + '</span> ' + validityText;
             const repSection = DetailModal.section('Replacement Class',
-                DetailModal.row('Date', r.replacementDate) +
-                DetailModal.row('Time', DateHelper.format12hRange(r.replacementTime), { strong: true }) +
+                DetailModal.row('Date', fullDate(r.replacementDate), { strong: true }) +
+                DetailModal.row('Start Time', repParts.length ? DateHelper.to12h(repParts[0]) : null) +
+                DetailModal.row('End Time', repParts.length > 1 ? DateHelper.to12h(repParts[1]) : null) +
                 DetailModal.row('Venue', r.replacementVenue) +
-                DetailModal.row('Slot Validity', slotValidityHtml(r))
+                DetailModal.row('Slot Validity', validityBadgeHtml)
             );
 
             const tabs = [{ key: 'info', label: 'Request Info', html: reqSection }];

@@ -66,3 +66,26 @@ test('U3-T9c: STUDENTS column is never undefined and row click opens the detail 
   await page.locator('#modalOverlay .modal-close').first().click();
   await expect(page.locator('#modalOverlay')).not.toHaveClass(/show/);
 });
+
+test('U3-T9d: the Request Details modal formats dates/hours/Start-End split + full validity text (user 2026-10-18)', async ({ page }) => {
+  await page.goto(PAGE);
+  await page.locator('#tableBody tr').first().click();
+  await expect(page.locator('#modalOverlay')).toHaveClass(/show/);
+
+  // TAB: Original Class — human date + hour words
+  await page.locator('.modal-body .modal-tab', { hasText: 'Original Class' }).click();
+  const origText = await page.locator('#modalBody').innerText();
+  expect(origText).not.toContain('2026-12-24'); // the raw ISO never shows
+  expect(origText).toMatch(/\d{1,2} (Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec) \d{4}/);
+  expect(origText).toMatch(/\d+ hours?/); // durations in word form
+  expect(origText).toMatch(/Start Time\s*\n?\s*\d{1,2}:\d{2} (AM|PM)/);
+  expect(origText).toMatch(/End Time\s*\n?\s*\d{1,2}:\d{2} (AM|PM)/);
+
+  // TAB: Replacement Class — split Start/End + the full validity text
+  await page.locator('.modal-body .modal-tab', { hasText: 'Replacement Class' }).click();
+  const repText = await page.locator('#modalBody').innerText();
+  expect(repText).not.toContain('2026-10-23');
+  expect(repText).toMatch(/Start Time\s*\n?\s*\d{1,2}:\d{2} (AM|PM)/);
+  expect(repText).toMatch(/End Time\s*\n?\s*\d{1,2}:\d{2} (AM|PM)/);
+  expect(repText).toMatch(/Slot available/);
+});

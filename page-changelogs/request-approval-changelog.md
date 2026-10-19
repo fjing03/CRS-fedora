@@ -72,3 +72,14 @@ the COHORT METADATA (`totalStudents` / `cohorts` / `cohortCounts`) —
 values-array counts + the summed total — `ReplacementHistoriesTest`-pinned
 byte shapes are untouched for the other buckets). Smoke: new
 `U3-T9c` pins STUDENTS numeric + row-click → modal opens/closes.
+
+## 2026-10-18 (user request) — Request Details modal copy pass
+
+The modal's Original/Replacement tabs now print:
+- CONSISTENT HUMAN DATES — '24 Dec 2026' (never the raw ISO; the
+  "17 Oct 2026, 9:02 AM" pattern family);
+- hours in WORDS — '1 hour' / '2 hours' (was '1h');
+- the time SPLIT — Start Time and End Time are separate rows on BOTH tabs
+  (the replacement range "12:00 PM to 1:00 PM" split, 12h form);
+- the Slot Validity ✓ with its FULL sentence ('✓ Slot available' / '⚠ …' +
+  the conflict reason when stale) — the tooltip-only description is gone.
