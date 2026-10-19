@@ -990,12 +990,21 @@ function openClassModal(cfg) {
                 ? dayNames[(new Date(+m[3], MONTHS[m[2].toLowerCase()], +m[1]).getDay() + 6) % 7] || ''
                 : '';
             const stIdx = rows.findIndex(f => f.label === 'Status');
+            /* USER 2026-10-19: the Original block splits day|date, start|end
+               time, and carries the venue NAME row (the code row stays) —
+               same shape the history modal splits its times. */
+            const ovn = event.originalVenueName ||
+                (((typeof MockData !== 'undefined' && MockData.venues) || [])
+                    .find(function (v) { return v.code === event.venue; }) || {}).type || '\u2014';
             rows.splice(stIdx, 0,
-                { label: 'Original Date', value: (dayName ? dayName + ', ' : '') + rf, strong: true },
-                { label: 'Original Time', value: startStr + ' \u2013 ' + endStr },
-                { label: 'Original Venue', value: event.venue || '\u2014' });
+                { label: 'Original Day', value: dayName || '\u2014' },
+                { label: 'Original Date', value: rf, strong: true },
+                { label: 'Original Start Time', value: startStr, strong: true },
+                { label: 'Original End Time', value: endStr },
+                { label: 'Original Venue', value: event.originalVenue || event.venue || '\u2014' },
+                { label: 'Original Venue Name', value: ovn });
             if (event.replacedReason) {
-                rows.splice(stIdx + 3, 0, { label: 'Original Conflict', value: event.replacedReason });
+                rows.splice(stIdx + 6, 0, { label: 'Original Conflict', value: event.replacedReason });
             }
             // the raw date no longer belongs under Remarks — it lives in Original Date
             for (let i = rows.length - 1; i >= 0; i--) {

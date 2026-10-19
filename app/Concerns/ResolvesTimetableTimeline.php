@@ -301,6 +301,11 @@ trait ResolvesTimetableTimeline
                     ->addWeeks((int) $r->week_number - 1)
                     ->addDays((int) $session->day_of_week)
                     ->format('d-M-Y');
+                // The modal's Original rows key on the ORIGINAL's own venue —
+                // the block above $ev['venue'] now carries the LANDING room,
+                // which differs when a request moved venues.
+                $ev['originalVenue'] = (string) $session->venue->room_code;
+                $ev['originalVenueName'] = (string) ($session->venue->room_name ?? '');
                 $events[] = $ev;
             }
 
