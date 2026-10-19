@@ -9,6 +9,7 @@ how to work in this repo and what to read before generating output.
   tech stack & commands (incl. DB safety + stale-cache restart), domain model, RBAC matrix,
   **FR & NFR (§7)**, dataset, page inventory, git policy (§10.6), and **Coding Conventions §10** (incl. UI Design Rules §10.0).
 - **`prompts/my-coding-rules.md`** — the user's coding rules in quick always-read form (distilled from CodingMAIN §10: the 10 UI rules + canonical color tables, OOP/PHP/naming, commit/SDD policy); read it before writing or changing any code.
+- Command Code memory import — the full rules are inlined into memory every turn via @path (other harnesses: read the file directly): @prompts/my-coding-rules.md
 - **`docs/venue-restrictions.md`** — B005 no-Diploma (enforced, drives live derived conflicts), B006 networking priority, P→labs (doc-only until Wave 3b). Read before any venue/booking work.
 - `docs/` holds project docs; **`docs/archive/`** holds superseded ones (FYP-BRIEFING, BACKEND-TASKS, LEFTOVER_TASKS, old CodingMAIN variants) — do not treat archived files as current policy. Index: `docs/README.md`.
 
