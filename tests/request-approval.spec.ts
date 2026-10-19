@@ -86,6 +86,7 @@ test('U3-T9d: the Request Details modal formats dates/hours/Start-End split + fu
   const repText = await page.locator('#modalBody').innerText();
   expect(repText).not.toContain('2026-10-23');
   expect(repText).toMatch(/Start Time\s*\n?\s*\d{1,2}:\d{2} (AM|PM)/);
+  expect(repText).toMatch(/Day\s*\n?\s*(Sunday|Monday|Tuesday|Wednesday|Thursday|Friday|Saturday)/);
   expect(repText).toMatch(/End Time\s*\n?\s*\d{1,2}:\d{2} (AM|PM)/);
   expect(repText).toMatch(/Slot available/);
 });

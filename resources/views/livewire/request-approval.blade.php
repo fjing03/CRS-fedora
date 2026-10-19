@@ -954,6 +954,12 @@
                 const s = String(t);
                 return DateHelper.to12h(/\d/.test(s) && s.length >= 4 ? s.slice(0, 5) : s);
             }
+            function fullDay(iso) {
+                if (!iso) return '—';
+                const m = String(iso).match(/(\d{4})-(\d{2})-(\d{2})/);
+                if (!m) return '—';
+                return ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'][new Date(parseInt(m[1]), parseInt(m[2]) - 1, parseInt(m[3])).getDay()];
+            }
             function durationWords(d) {
                 const n = Number(d);
                 return (n === 1 ? '1 hour' : n + ' hours');
@@ -985,6 +991,7 @@
                 (r.slotValidity === 'conflict' ? '⚠' : '✓') + '</span> ' + validityText;
             const repSection = DetailModal.section('Replacement Class',
                 DetailModal.row('Date', fullDate(r.replacementDate), { strong: true }) +
+                DetailModal.row('Day', fullDay(r.replacementDate)) +
                 DetailModal.row('Start Time', repParts.length ? DateHelper.to12h(repParts[0]) : null) +
                 DetailModal.row('End Time', repParts.length > 1 ? DateHelper.to12h(repParts[1]) : null) +
                 DetailModal.row('Venue', r.replacementVenue) +

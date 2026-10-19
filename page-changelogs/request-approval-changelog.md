@@ -83,3 +83,9 @@ The modal's Original/Replacement tabs now print:
   (the replacement range "12:00 PM to 1:00 PM" split, 12h form);
 - the Slot Validity ✓ with its FULL sentence ('✓ Slot available' / '⚠ …' +
   the conflict reason when stale) — the tooltip-only description is gone.
+
+## 2026-10-18 (user request 2) — DAY row in the Replacement Class tab
+
+The Replacement Class tab now carries a **Day** row (Date / Day / Start Time /
+End Time / Venue / Slot Validity — the same order as the Original Class tab),
+the weekday derived from the replacement's ISO date. `U3-T9d` pins it.
