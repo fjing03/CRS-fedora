@@ -195,7 +195,13 @@ trait ResolvesTimetableTimeline
                     $pendingByMakeupSlot[$r->class_session_id.':'.$makeupSlot->week_number] = $r;
                 }
             } elseif ($r->status === 'approved') {
-                $approvedByWeek[$r->week_number][] = $r;
+                // Full-block approval (SDD span-aware-approval-flow): the
+                // approved event LANDS AT THE REPLACEMENT WEEK (the slot's
+                // own week), NOT the request's original week — the original
+                // week's occurrence releases via the D7 exception stamp.
+                $approvedSlot = $r->replacementTimeSlot;
+                $approvedWeekKey = $approvedSlot !== null ? (int) $approvedSlot->week_number : (int) $r->week_number;
+                $approvedByWeek[$approvedWeekKey][] = $r;
             }
         }
 

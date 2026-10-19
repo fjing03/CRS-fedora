@@ -108,3 +108,24 @@ test('U3-T9e: the PL nav badge is ACCURATE + CONSISTENT (user report 2026-10-18)
   await expect(badge2).toHaveText(String(payloadPending));
   expect(await badge2.evaluate(el => getComputedStyle(el).display)).not.toBe('none');
 });
+
+test('U3-T9f: the Approve NOTES Confirm wires the server (the demo-safe wire-trip probe)', async ({ page }) => {
+  await page.goto(PAGE);
+  // the row's Approve → notes modal → confirm → the WIRE call returns a
+  // server decision for the FAKE id (no demo request consumed: the server
+  // answers 'already decided' for a nonexistent id — the wire path is what
+  // the smoke asserts; request #8 stays pending).
+  await page.locator('#tableBody tr').first().click();
+  await expect(page.locator('#modalOverlay')).toHaveClass(/show/);
+  await page.locator('#approveRequestBtn').click();
+  await expect(page.locator('#approveNotesModal')).toHaveClass(/show/);
+  await page.locator('#approveNotesInput').fill('wire-trip probe note');
+  await page.locator('#confirmApproveBtn').click();
+
+  // the toast carries the server decision text (a live wire round-trip)
+await expect(page.locator('.toast-content, #toastNotification', { hasText: 'already decided' }).first()).toBeVisible({ timeout: 8000 });
+  // the demo request is untouched: the queue still holds ONE pending
+  const pending = await page.evaluate(() =>
+    (window as any).PAGE_DATA.requests.filter((r: any) => r.status === 'Pending').length);
+  expect(pending).toBe(1);
+});

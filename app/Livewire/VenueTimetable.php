@@ -257,15 +257,15 @@ class VenueTimetable extends Component
         // emits ONE event with end = start + junctionCount − 1 — the blade's
         // span-N colSpan renders it. Class facts still come from the request's
         // ORIGINAL session; `mine` reads the proposer_id column directly.
-        $reserved = $slots->where('class_session_id', null)->where('status', 'pending');
+        $reserved = $slots->where('class_session_id', null); // pending AND approved-occupied rows ride the junction second pass (the D4 approved-bucket switch)
 
-        // Junction spans: slot id → its request id (pending-only).
+        // Junction spans: slot id → its request id (pending + approved).
         $junctionLink = DB::table('replacement_request_slots')
             ->whereIn('time_slot_id', $reserved->pluck('id'))
             ->pluck('replacement_request_id', 'time_slot_id');
 
         $requests = ReplacementRequest::with(['classSession.module', 'classSession.lecturer', 'classSession.cohorts.programme'])
-            ->where('status', 'pending')
+            ->whereIn('status', ['pending', 'approved'])
             ->whereIn('id', $junctionLink->unique()->values())
             ->get()
             ->keyBy('id');
@@ -307,6 +307,7 @@ class VenueTimetable extends Component
                 continue;
             }
 
+            $isApproved = (string) $request->status === 'approved';
             $start = $this->slotIndex($slot->start_time);
             // The junction cover: span = the request's LIVE junction row count
             // (start = the anchor's own slot; end extends contiguously).
@@ -326,8 +327,10 @@ class VenueTimetable extends Component
                 'cohort' => $this->cohortLabel($session->cohorts),
                 'cohorts' => $session->cohorts->map(fn ($c) => $this->cohortCode($c))->all(),
                 'studentCount' => (int) $session->cohorts->sum('student_count'),
-                'status' => 'pending', // amber per the frozen legend — no conflict derivation in this change
-                'remarks' => 'Replacement request awaiting PL approval', // byte-matches the legend tip
+                'status' => $isApproved ? 'normal' : 'pending', // the frozen legend (normal = dark occupied, pending = amber)
+                'remarks' => $isApproved
+                    ? 'Replacement approved by the PL'
+                    : 'Replacement request awaiting PL approval', // byte-matches the legend tip
                 'mine' => $request->proposer_id === $myUserId,
             ];
 

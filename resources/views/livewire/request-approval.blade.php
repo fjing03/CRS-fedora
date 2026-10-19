@@ -1059,7 +1059,6 @@
         function confirmApproveWithNotes() {
             const notes = document.getElementById('approveNotesInput').value.trim();
             const ids = currentApproveIds;
-            ids.forEach(id => { const r = MockData.approvalRequests.find(x => x.id === id); prevStatuses[id] = r.status; r.status = 'Approved'; });
             const label = ids.length === 1 ? 'Request #' + ids[0] : ids.length + ' requests';
             const notesLine = notes ? '\nNotes: ' + notes : '';
             closeApproveNotesModal();

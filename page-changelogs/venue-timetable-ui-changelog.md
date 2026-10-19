@@ -943,3 +943,10 @@ Sentences split:
   keyed through `replacement_request_slots` (anchor id, `end = start + span − 1`, clamp 21); the previous
   "one half-hour slot per request" shape is retired (the orphan-defence reads stay untouched).
 - Legacy rows unaffected: no backfill; existing anchor-only requests keep rendering as their anchor slot.
+
+## 2026-10-19 (user request) — legend REPLACEMENT + the approved block's dark render
+
+The venue legend gains the **Replacement** chip (blue, same swatch/scene as
+My Timetable's frozen legend; the "replacement sessions fold in here"
+parenthesis is retired) — the approved block's dark render draws the paired
+entry. The earlier postscript's failed artifact is gone (commit noted).

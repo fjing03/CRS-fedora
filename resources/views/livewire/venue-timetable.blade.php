@@ -127,7 +127,8 @@
          read-only page (booking = Slice B); swatches carry real block classes. -->
     @include('partials.ui-legend-bar', ['ownershipHint' => true, 'items' => [
         ['color' => 'var(--color-success-container)', 'label' => 'Available', 'tip' => "Free slot — click to arrange a replacement in this venue (Sunday, holiday slots and slots less than 3 working days away can't be booked)"],
-        ['class' => 'event-normal', 'label' => 'Normal', 'tip' => 'Scheduled class with no issues (replacement sessions fold in here on this page)'],
+        ['class' => 'event-normal', 'label' => 'Normal', 'tip' => 'Scheduled class with no issues'],
+        ['class' => 'event-replacement', 'label' => 'Replacement', 'tip' => 'Approved replacement session — the class ran at its NEW slot (an approved request renders here as the dark block)'],
         ['class' => 'event-pending', 'label' => 'Pending', 'tip' => 'Replacement request awaiting PL approval'],
         ['class' => 'event-conflict', 'label' => 'Conflict / Public Holiday', 'tip' => "This class will not run as scheduled — scheduling conflict or public holiday (remaining holiday slots show as empty 'PH' cells)"],
     ]])

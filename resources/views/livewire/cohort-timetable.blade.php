@@ -129,7 +129,8 @@
     @include('partials.ui-legend-bar', [
         'ownershipHint' => true,
         'items' => [
-            ['class' => 'event-normal', 'label' => 'Normal', 'tip' => 'Scheduled class with no issues (replacement sessions fold in here on this page)'],
+            ['class' => 'event-normal', 'label' => 'Normal', 'tip' => 'Scheduled class with no issues'],
+            ['class' => 'event-replacement', 'label' => 'Replacement', 'tip' => 'Approved replacement session — the class ran at its NEW slot (an approved request renders here as the dark block)'],
             ['class' => 'event-pending', 'label' => 'Pending', 'tip' => 'Replacement request awaiting PL approval'],
             ['class' => 'event-conflict', 'label' => 'Conflict / Public Holiday', 'tip' => 'This class will not run as scheduled — scheduling conflict or public holiday'],
         ]
@@ -163,6 +164,7 @@
            access here would throw before they load. ───── */
         document.addEventListener('DOMContentLoaded', function () {
             MockData.semester = @json($semesterJs);
+            MockData.mockNow = null; /* REAL clock — the demo anchor is mock-era only (2026-10-15 vine-line); the portfolio's today must be correct */
             MockData.holidays = @json($holidaysJs);
             MockData.currentUser = @json(['name' => auth()->user()?->name ?? '', 'staffId' => (string) (auth()->user()?->lecturer?->staff_id ?? '')]);
 
