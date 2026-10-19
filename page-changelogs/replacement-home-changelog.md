@@ -1,5 +1,13 @@
 # Changelog — Replacement Home Dashboard
 
+## 2026-10-19 (SDD qv-arrange-null-order-fix) — the Quick-View Arrange button works again
+
+The Replacement Details modal's **Arrange Replacement** button was a silent
+no-op: `qvArrange()` called `hideQuickView()` (which nulls `qvCurrent`)
+BEFORE reading the lead for the handoff URL — the dereference threw and
+killed the navigation. Restored the frozen template's capture-then-hide
+shape (:588–594 — capture `sessionId`/`week` first). Regression spec:
+`tests/replacement-home-qv.spec.ts`.
 ## [2026-10-08] conflictedClasses seeded with real subject codes & titles
 
 - `MockData.conflictedClasses` (`public/js/mock-data.js`): all 14 rows' `code`/`name`/`cohorts`/`totalStudents` now mirror §2.2 `courses[]` — fake `BMIT5555`-style codes replaced by 11 real, dropdown-eligible codes (`AMCS2093`, `AMCS1013`, `AMIS1003`, `BMCS1013`, `BMIT1173`, `BMIT2013`, `BMIT2073`, `BMIT2154`, `BMIT3084`, `BMMS1743`, `MPU-3133`).

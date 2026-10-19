@@ -591,8 +591,14 @@
 
         function qvArrange() {
             if (qvCurrent) {
+                /* capture-then-hide (SDD qv-arrange-null-order-fix D1: the
+                   frozen template :588–594 shape) — hideQuickView() nulls
+                   qvCurrent, so the lead is captured BEFORE the hide or the
+                   later read throws (the button's former silent no-op). */
+                var sid = qvCurrent.sessionId;
+                var wk = qvCurrent.week;
                 hideQuickView();
-                goToReplacementWith(qvCurrent.sessionId, qvCurrent.week);
+                goToReplacementWith(sid, wk);
             }
         }
 
