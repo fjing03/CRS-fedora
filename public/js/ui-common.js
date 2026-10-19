@@ -2891,13 +2891,25 @@ function populateWeekSelect(selectId, cfg) {
     return sel;
 }
 
-function updateNavBadge() {
-    var count = (window.MockData && MockData.approvalRequests)
-        ? MockData.approvalRequests.filter(function(r) { return r.status === 'Pending'; }).length
-        : 0;
+/* The PL nav badge count — REAL-state-first (SDD span-aware-approval-flow
+   user report 2026-10-18): the layout's nav partial renders the server count
+   into `window.PENDING_NAV_COUNT`; the approval page can pass a fresh count
+   after a decision (the wire response's own row set). The MockData fallback
+   remains ONLY for untouched-era streams (a mock page without the partial's
+   count never renders a fake number anymore). */
+function updateNavBadge(count) {
+    if (count === undefined || count === null) {
+        if (typeof window.PENDING_NAV_COUNT === 'number') {
+            count = window.PENDING_NAV_COUNT;
+        } else if (window.MockData && MockData.approvalRequests) {
+            count = MockData.approvalRequests.filter(function(r) { return r.status === 'Pending'; }).length;
+        } else {
+            count = 0;
+        }
+    }
     var badge = document.getElementById('navPendingBadge');
     if (badge) {
-        badge.textContent = count;
+        badge.textContent = String(count);
         badge.style.display = count > 0 ? 'inline-block' : 'none';
     }
 }

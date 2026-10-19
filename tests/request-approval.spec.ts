@@ -90,3 +90,21 @@ test('U3-T9d: the Request Details modal formats dates/hours/Start-End split + fu
   expect(repText).toMatch(/End Time\s*\n?\s*\d{1,2}:\d{2} (AM|PM)/);
   expect(repText).toMatch(/Slot available/);
 });
+
+test('U3-T9e: the PL nav badge is ACCURATE + CONSISTENT (user report 2026-10-18)', async ({ page }) => {
+  await page.goto(PAGE);
+  const badge = page.locator('#navPendingBadge');
+
+  // the badge equals the REAL pending count (server-rendered + JS-approved)
+  const payloadPending = await page.evaluate(() =>
+    (window as any).PAGE_DATA.requests.filter((r: any) => r.status === 'Pending').length);
+  await expect(badge).toHaveText(String(payloadPending));
+  expect(await badge.evaluate(el => getComputedStyle(el).display)).not.toBe('none');
+
+  // the OTHER pages' badges come from the same server count — consistent 1/1:
+  await page.goto('/my-timetable-ui');
+  const badge2 = page.locator('#navPendingBadge');
+  // the household page's nav counts from the same window.PENDING_NAV_COUNT
+  await expect(badge2).toHaveText(String(payloadPending));
+  expect(await badge2.evaluate(el => getComputedStyle(el).display)).not.toBe('none');
+});

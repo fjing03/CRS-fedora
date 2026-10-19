@@ -1121,10 +1121,11 @@
             if (res && Array.isArray(res.requests)) {
                 MockData.approvalRequests = res.requests;
                 window.PAGE_DATA.requests = res.requests;
+                window.PENDING_NAV_COUNT = res.requests.filter(function(r) { return r.status === 'Pending'; }).length;
             }
             bulk.clear();
             renderTable();
-            updateNavBadge();
+            updateNavBadge(window.PENDING_NAV_COUNT);
             const conflicts = (res && Array.isArray(res.results)) ? res.results.filter(r => !r.ok) : [];
             if (conflicts.length === 0) {
                 toast.show(label, null, 3000);

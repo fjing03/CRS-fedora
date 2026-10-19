@@ -89,3 +89,25 @@ The modal's Original/Replacement tabs now print:
 The Replacement Class tab now carries a **Day** row (Date / Day / Start Time /
 End Time / Venue / Slot Validity — the same order as the Original Class tab),
 the weekday derived from the replacement's ISO date. `U3-T9d` pins it.
+
+## 2026-10-18 (user report) — the PL nav badge was 1 HERE, 8 EVERYWHERE ELSE
+
+The badge (`window.navPendingBadge`) had TWO sources disagreeing: the D10-era
+`MockData.approvalRequests` mock seed carried **8 fake pending rows** (so
+every untouched page's `updateNavBadge()` printed 8), while the REAL page
+bridged the payload → **1** (the demo's true pending count is 1 — request
+#8). Fix (the shared nav partial is the single source now):
+
+- `partials/ui-nav-bar.blade.php` renders the badge count SERVER-side from
+  `ReplacementRequest::where('status','pending')->count()` (PL-only; hidden
+  when 0) AND emits `window.PENDING_NAV_COUNT = <n>;` (the `{!! !!}` form —
+  the first cut's `{{ }}` HTML-escaped it, the browser never executed it).
+- `ui-common.js::updateNavBadge(count)` reads the REAL global first (the
+  queue's fresh count after a decision), then the layout's server value, and
+  only falls back to the mock-era count for pages that never get the
+  partial's global — so the fake 8 can no longer reach a PL navbar.
+- The approval page re-derives the count from each wire response
+  (`applyDecisionResponse`), so the badge tracks the live queue after
+  approve/reject/bulk.
+`U3-T9e` pins the accuracy + cross-page consistency (approval page vs
+my-timetable page = the same real number).

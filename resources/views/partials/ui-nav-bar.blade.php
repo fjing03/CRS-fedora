@@ -19,6 +19,8 @@
             ['key'=>'replacement-history','label'=>'Request History','href'=>'/my-request-history-ui'],
             $isPl ? ['key'=>'request-approval','label'=>'Request Approval','href'=>'/request-approval-ui','badge'=>true] : null,
         ]));
+        $pendingNavCount = !$isStudent && $isPl
+            ? \App\Models\ReplacementRequest::query()->where('status', 'pending')->count() : null;
     }
     $items = $navItems ?? $roleItems ?? [];
     $identity = $user ? [
@@ -36,7 +38,7 @@
 
     <div class="nav-items">
         @foreach ($items as $it)
-        <a class="nav-item {{ $activeNav === $it['key'] ? 'active' : '' }}" href="{{ $it['href'] }}">{{ $it['label'] }}@if($it['badge'] ?? false)<span class="nav-badge" id="navPendingBadge"></span>@endif</a>
+        <a class="nav-item {{ $activeNav === $it['key'] ? 'active' : '' }}" href="{{ $it['href'] }}">{{ $it['label'] }}@if($it['badge'] ?? false)<span class="nav-badge" id="navPendingBadge" style="{{ $pendingNavCount ? 'display:inline-block' : 'display:none' }}">{{ $pendingNavCount ?? '' }}</span>@endif</a>{!! $it['badge'] ?? false ? (isset($pendingNavCount) ? '<script>window.PENDING_NAV_COUNT = ' . ($pendingNavCount !== null ? $pendingNavCount : "null") . ';</script>' : '') : '' !!}
         @endforeach
     </div>
 
