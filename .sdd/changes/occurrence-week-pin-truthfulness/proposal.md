@@ -24,9 +24,9 @@ every submit must pin the REAL conflicted occurrence.
 - **F4** the my-timetable Replace-Now gate + handoff: ONLY occurrences with
   a live conflict fact (holiday / class_exceptions / venue-restriction) get
   the button, and the handoff week = THAT occurrence's week (the fact's
-  week list). The handoff week comes from the event row's own fact (never
-  `window.currentWeek`); after this change `window.currentWeek` has ZERO
-  readers on my-timetable.
+  OWN week — never `window.currentWeek`; its server-render initializer
+  pair stays, and after this change it has zero stale-state readers on
+  my-timetable).
 - **F5** `VenueTimetable`'s replacement events gain `originalStartTime /
   originalEndTime / originalVenue / originalVenueName` (tokens only).
 - **F6** tests `tests/Feature/OccurrencePinTest.php`: no-pin → rejected;
