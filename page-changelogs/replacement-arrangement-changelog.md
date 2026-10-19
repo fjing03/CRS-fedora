@@ -1,5 +1,15 @@
 # Changelog — Replacement Arrangement (Selected Subject Page)
 
+## 2026-10-19 (SDD lt-venue-capacity-rule) — the venue dd admits L/T in tutorials & halls
+
+The user ruling froze the dual-admission law; the page's venue dropdown
+filter now reads the shared `window.__ruleMap` over the venue's raw
+`room_type` (fail-closed when the map is absent) instead of the strict
+type-vocabulary literals — an L class for 15 students now sees its tutorial
+rooms beside the lecture halls. The zero-fit notice / booking-intent
+banner / type-reason sentence + `requiredTypeHuman()` consume the shared
+`venueTypeWording()` helper (promoted to ui-common.js — the 4 duplicated
+literal maps retired); the 'only' suffix stays anchored to the P sentence.
 ## 2026-10-19 (user directive) — the dd's Favourites & Recent groups commented out
 
 Same shared-`VenueDropdown` change as the venue page: the type column's

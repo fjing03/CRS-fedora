@@ -2281,6 +2281,19 @@ function formatDateTime(iso) { return DateHelper.formatDateTime(iso); }
 function fmt(d) { return DateHelper.fmt(d); }
 function add30min(t) { return DateHelper.add30min(t); }
 
+/* The venue's per-type session vocabulary (SDD lt-venue-capacity-rule D5).
+   ONE canonical phrase per room law (§10.0 same-meaning-same-wording — no
+   word-order variants): Lecture Hall & Tutorial Rooms both admit L/T
+   (capacity-gated); labs keep P. Unknown rawType → '' so a payload typo
+   can never advertise a wrong law. */
+function venueTypeWording(rawType) {
+    if (rawType !== 'lab' && rawType !== 'cisco_lab'
+        && rawType !== 'tutorial' && rawType !== 'lecture_hall') return '';   // unknown → blank
+    return rawType === 'lab' || rawType === 'cisco_lab'
+        ? 'Practical (P)'
+        : 'Lecture & Tutorial (L/T)';   // lecture_hall + tutorial: the DUAL-admission phrase
+}
+
 /* Human label for an event's run-status — the hover-tooltip suffix on every
    timetable page ("· Normal / Pending / …"). A public-holiday day outranks
    the event's own status (its class won't run for a different reason). */

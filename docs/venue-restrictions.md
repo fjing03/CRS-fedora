@@ -14,6 +14,13 @@
 > * server-side `allowed_session_types` / `room_type` use in `app/Livewire/ReplacementArrangement.php` (`venuesPayload`, `blockedVenuesPayload`) — **type + capacity only**;
 > * `App\Services\LectureSessionCatalog::ruleMap()` (SDD `arrange-intent-session-choice`) — the same type rules as data, consumed by the "Select a Session" modal and the arrangement fallback.
 > B005's no-Diploma derivation is client-side only today.
+>
+> **2026-10-19 SDD `lt-venue-capacity-rule` update:** the law widened (R1's
+> row pair), and its consumers are now: the engine `eligibleVenues()`
+> (room_type map + capacity), the venue page's producer-modal pool
+> (`sessionAllowedForVenue` — same map), the client matrix (map over
+> `rawRoomType`), and the shared wording helper (`venueTypeWording` in
+> `ui-common.js`). The CSV column no longer gates any of them.
 
 ---
 
@@ -24,8 +31,18 @@
 | Session type | Allowed venue room_type |
 |---|---|
 | `P` (Practical) | `lab`, `cisco_lab` |
-| `T` (Tutorial) | `tutorial` |
-| `L` (Lecture) | `lecture_hall` |
+| `T` (Tutorial) | `tutorial`, `lecture_hall` |
+| `L` (Lecture) | `tutorial`, `lecture_hall` |
+
+> **User clarification 2026-10-19 (SDD `lt-venue-capacity-rule`), verbatim ruling:**
+> *"Lecture Hall & Tutorial Rooms are allow to have L/T."* — a venue admits an
+> L/T session when **capacity fits** (R2's B005 no-Diploma check still applies
+> additionally). The row pair was `T → tutorial` / `L → lecture_hall` until
+> this date; the booking-side code now keys on the room-type law, and the CSV
+> column `venues.allowed_session_types` is reference inventory only — where it
+> disagrees (tests' lab fixture CSV `'L,T'`), the room_type verdict WINS.
+> `ApiReadController`'s inventory still reads the CSV directly (its remaining
+> reader — a deliberate, listed above; no edit expected).
 
 No session may occupy a venue whose `room_type` is not in its row. Capacity and B005 checks (R2) apply **in addition**.
 

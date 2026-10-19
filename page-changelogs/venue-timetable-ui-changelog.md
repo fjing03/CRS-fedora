@@ -1,5 +1,12 @@
 # Changelog — Venue Timetable UI
 
+## 2026-10-19 (SDD lt-venue-capacity-rule) — the producer pool widens with the map
+
+The Select-a-Session pool widens automatically (its rule reads the L/T dual
+row): an L class in a tutorial room is now bookable INTO that venue (the
+AMSE2003 @ B100 case; receipt-tested in `LtVenueCapacityRuleTest`). The
+zero-fit notice's wording folds into the shared `venueTypeWording()` helper
+(promoted to ui-common.js) with the 'only' suffix kept for P rooms.
 ## 2026-10-19 (user directive) — the dd's Favourites & Recent groups commented out
 
 The shared `VenueDropdown`'s type column skips the `★ Favourites` and

@@ -355,9 +355,12 @@ final class MatrixIntersectionEngine
     }
 
     /**
-     * Venues that satisfy Vector 4: allowed_session_types contains $sessionType
-     * AND capacity >= headcount. A provided $venueId is FILTERED TO, not trusted —
-     * it must still pass both checks.
+     * Venues that satisfy Vector 4 (SDD lt-venue-capacity-rule D2): the
+     * CANONICAL room_type rule map admits the session type AND capacity
+     * >= headcount. The venues.allowed_session_types CSV column no longer
+     * gates booking — it stays reference inventory (ApiReadController's
+     * direct audit read is untouched). A provided $venueId is FILTERED TO,
+     * not trusted — it must still pass both checks.
      *
      * @return array<int, string> venue id => room_code
      */
@@ -369,10 +372,13 @@ final class MatrixIntersectionEngine
             $query->whereKey($venueId);
         }
 
+        $mapRow = app(LectureSessionCatalog::class)->ruleMap()[$sessionType] ?? [];
+        $allowedRoomTypes = is_array($mapRow) ? $mapRow : [];   // the b005_* keys are strings, not type rows
+
         return $query
-            ->get(['id', 'room_code', 'capacity', 'allowed_session_types'])
+            ->get(['id', 'room_code', 'capacity', 'room_type'])
             ->filter(fn (Venue $venue): bool => $venue->capacity >= $headcount
-                && in_array($sessionType, explode(',', $venue->allowed_session_types), true))
+                && in_array($venue->room_type, $allowedRoomTypes, true))
             ->mapWithKeys(fn (Venue $venue): array => [$venue->id => $venue->room_code])
             ->all();
     }

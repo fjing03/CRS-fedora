@@ -134,8 +134,9 @@ class VenueTimetable extends Component
                 'code' => $v->room_code,
                 'name' => $v->room_name ?? $v->room_code,
                 'capacity' => (int) $v->capacity,
-                // Raw DB encoding rides along (SDD arrange-intent-session-choice
-                // D0/D1): the modal + fallback consume ruleMap over raw values;
+                // Raw DB encoding rides along (arrange-intent-session-choice
+                // D0/D1 + lt-venue-capacity-rule): the modal + fallback + the
+                // page's session pool consume ruleMap over room_type values;
                 // the display mapping below stays for the dropdown filter.
                 'rawRoomType' => (string) $v->room_type,
                 'type' => match ($v->room_type) {

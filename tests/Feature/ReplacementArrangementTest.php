@@ -491,9 +491,13 @@ final class ReplacementArrangementTest extends TestCase
         $this->assertContains([2, 2, 6], $subject[0], 'cohort Wed 09:00–11:00 class');
         $this->assertContains([1, 12, 16], $subject[0], 'lecturer vector merges in');
 
-        // Engine Vector 4: a P class for 20 students cannot use the L-only
-        // hall or the 5-seat room; the P-lab stays bookable.
-        $this->assertSame(['B005', 'B100', 'C050', 'C100'], $payload['blockedVenues'][(string) $sessionA->id]);
+        // Engine Vector 4 (SDD lt-venue-capacity-rule: room_type law + the
+        // capacity gate). This fixture's B005 carries CSV 'L,T' with
+        // room_type 'lab' — that divergence is now GATE-irrelevant: P → lab
+        // admits B005 (cap 30 ≥ 20). Blocked = B100 (tutorial ≠ P law), the
+        // C050 tiny room (capacity), and the C100 hall (lecture_hall ≠ P);
+        // the assertion updates BY DESIGN, the fixture CSV stays visible.
+        $this->assertSame(['B100', 'C050', 'C100'], $payload['blockedVenues'][(string) $sessionA->id]);
         $this->assertSame([], $payload['blockedVenues']['']);
 
         // A class cancelled in the evaluated week frees its cells (engine

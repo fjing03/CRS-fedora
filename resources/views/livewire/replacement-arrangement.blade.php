@@ -2668,10 +2668,11 @@ slotLine = 'Week ' + (anchorSlot.week + 1) + ' · ' + anchorSlot.weekdayName + '
                 const venueEntry = (MockData.venues || []).find(v => v.code === i.venue);
                 const raw = venueEntry ? (venueEntry.rawRoomType || '') : '';
                 const human = { lab: 'Lab', cisco_lab: 'Lab', tutorial: 'tutorial room', lecture_hall: 'lecture hall' }[raw] || raw;
-                const req = { lab: 'Practical (P)', cisco_lab: 'Practical (P)', tutorial: 'Tutorial (T)', lecture_hall: 'Lecture (L)' }[raw] || '';
+                const req = venueTypeWording(raw);
+                const only = (raw === 'lab' || raw === 'cisco_lab') ? ' only' : '';   /* dual rooms admit L/T — the P branch keeps its 'only' */
                 el.innerHTML = `<div class="booking-intent booking-intent-manual">
                     <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
-                    <span><strong>Booking ${i.venue} · ${i.dayAbbr}, ${i.dateStr} · ${i.timeStr}</strong> — none of your classes can run in ${i.venue} — ${human} hosts ${req} sessions only.</span>
+                    <span><strong>Booking ${i.venue} · ${i.dayAbbr}, ${i.dateStr} · ${i.timeStr}</strong> — none of your classes can run in ${i.venue} — ${human} hosts ${req} sessions${only}.</span>
                     <button class="bi-close" onclick="dismissBookingIntent()" data-tip="Dismiss booking reminder">&times;</button>
                 </div>`;
                 return;
@@ -2757,11 +2758,11 @@ slotLine = 'Week ' + (anchorSlot.week + 1) + ' · ' + anchorSlot.weekdayName + '
             renderBookingIntent();
         }
 
-        /* display phrase for the required session type of a venue (notice copy only) */
+        /* display phrase for the admitted session types of a venue (notice
+           copy only) — the shared law helper with the venueCode adapter */
         function requiredTypeHuman(venueCode) {
             const venueEntry = (MockData.venues || []).find(v => v.code === venueCode);
-            const raw = venueEntry ? (venueEntry.rawRoomType || '') : '';
-            return { lab: 'Practical (P)', cisco_lab: 'Practical (P)', tutorial: 'Tutorial (T)', lecture_hall: 'Lecture (L)' }[raw] || raw;
+            return venueTypeWording(venueEntry ? (venueEntry.rawRoomType || '') : '');
         }
 
         /* the time a booked day's grid ends (day-end cause phrase) */
@@ -2951,24 +2952,23 @@ slotLine = 'Week ' + (anchorSlot.week + 1) + ' · ' + anchorSlot.weekdayName + '
             if (window.__bootDone) { saveCurrentWeek(); buildTimetable(); }
         }
 
-        /* Venue-type matrix (2026-10-12 user decision, docs/venue-restrictions.md
-           rule 3 + B005): one room-type per session type — P → Labs only
-           (computer + cisco; B006 stays visible for non-networking/IoT subjects:
-           priority, not a ban), T → Tutorial rooms only, L → Lecture Halls.
-           B005 is hidden when the occurrence's cohorts include a Diploma (D*)
-           programme — the doc's enforced no-Diploma rule. The engine's
-           eligibleVenues (submit-side) still reads allowed_session_types; the
-           full server-side matrix is the doc's future enforcement SDD. */
+        /* Venue law (SDD lt-venue-capacity-rule, user ruling 2026-10-19):
+           ONE rule map governs eligibility — Lecture Hall & Tutorial Rooms
+           admit L AND T (capacity-gated), labs stay P-only. This filter
+           reads `window.__ruleMap[ctx.type]` over the venue's RAW
+           `room_type` (the pay-what-you-are key; display `type` is only
+           shown). Fail-closed when the map is missing — a payload regression
+           must never re-open the law drift. B005 is hidden when the
+           occurrence's cohorts include a Diploma (D*) programme — the doc's
+           CLIENT-side no-Diploma rule (still doc-only server-side). */
         function venueEligible(v, ctx) {
             if (!v || !ctx) return true;
-            var typeOk;
-            if (ctx.type === 'P') typeOk = v.type === 'Lab';
-            else if (ctx.type === 'T') typeOk = v.type === 'Tutorial';
-            else if (ctx.type === 'L') typeOk = v.type === 'LectureHall';
-            else typeOk = true;
+            var types = window.__ruleMap ? (window.__ruleMap[ctx.type] || []) : null;
+            if (types === null) return false;   // map absent → deny (fail-closed)
+            if (types.indexOf((v.rawRoomType || '').toLowerCase()) === -1) return false;
             var capOk = v.capacity >= (ctx.studentCount || 0);
             var dipOk = !(v.code === 'B005' && (ctx.cohorts || []).some(function(c) { return /^\s*D/.test(c); }));
-            return typeOk && capOk && dipOk;
+            return capOk && dipOk;
         }
 
         function buildVenueFilter() {

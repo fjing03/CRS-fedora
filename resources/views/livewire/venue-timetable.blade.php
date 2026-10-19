@@ -375,7 +375,8 @@
                 if (fitting.length === 0) {
                     noteText.innerHTML = noticeHtml(
                         'None of your classes can run in ' + model.venue,
-                        roomTypeHuman(model.roomType) + ' hosts ' + sessionTypesHuman(model.roomType) + ' sessions only.');
+                        roomTypeHuman(model.roomType) + ' hosts ' + sessionTypesHuman(model.roomType)
+                            + ' sessions' + ((model.roomType === 'lab' || model.roomType === 'cisco_lab') ? ' only' : '') + '.');
                     notice.style.display = 'block';
                     pickers.style.display = 'none';
                     arrangeBtn.style.display = 'none';
@@ -512,12 +513,15 @@
                 return html;
             }
 
-            /* display-vocabulary ONLY for the notice sentence — the RULE data is server-side */
+            /* roomTypeHuman = the framing copy ONLY (page-local, user-frozen —
+               not the promote set). sessionTypesHuman folds into the SHARED law
+            helper (SDD lt-venue-capacity-rule D5 via ui-common.js); the
+            sentence's 'only' attaches ONLY to the P rooms keyed on raw. */
             function roomTypeHuman(raw) {
                 return { lab: 'Lab', cisco_lab: 'Lab', tutorial: 'tutorial room', lecture_hall: 'lecture hall' }[raw] || raw;
             }
             function sessionTypesHuman(raw) {
-                return { lab: 'Practical (P)', cisco_lab: 'Practical (P)', tutorial: 'Tutorial (T)', lecture_hall: 'Lecture (L)' }[raw] || '';
+                return venueTypeWording(raw);
             }
 
             function confirmIntentSession() {

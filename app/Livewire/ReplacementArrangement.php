@@ -221,7 +221,9 @@ class ReplacementArrangement extends Component
                 'code' => (string) $v->room_code,
                 'name' => (string) $v->room_name,
                 // Raw DB encoding rides along (D6 honest inventory): the
-                // fallback eligibility checks ruleMap[] over raw values.
+                // client dd filter + the fallback eligibility checks read
+                // ruleMap[] over room_type (SDD lt-venue-capacity-rule; the
+                // CSV column no longer gates).
                 'rawRoomType' => (string) $v->room_type,
                 'type' => match ((string) $v->room_type) {
                     'lecture_hall' => 'LectureHall',
