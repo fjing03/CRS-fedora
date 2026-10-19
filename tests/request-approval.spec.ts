@@ -43,3 +43,26 @@ test('U3-T9b: the Grid loads via payload MockData bridge and sorts by requested 
   // the table's FIRST body row renders (SkeletonLoader has N rows of page data)
   await expect(page.locator('#tableBody tr').first()).toBeVisible();
 });
+
+test('U3-T9c: STUDENTS column is never undefined and row click opens the detail modal (post-fix smoke)', async ({ page }) => {
+  await page.goto(PAGE);
+  // STUDENTS: every table cell in that column is a number (the mapper's
+  // cohort metadata fixed the undefined field)
+  const students = await page.evaluate(() => {
+    const rows = Array.from(document.querySelectorAll('#tableBody tr'));
+    return rows.map(row => row.children[7]?.textContent?.trim() ?? '');
+  });
+  expect(students.length).toBeGreaterThan(0);
+  for (const s of students) {
+    expect(/^\d+$/.test(s), `STUDENTS cell "${s}" should be numeric`).toBe(true);
+  }
+
+  // CLICK a row → the detail modal opens (openModalById → DetailModal.render)
+  await page.locator('#tableBody tr').first().click();
+  await expect(page.locator('#modalOverlay')).toHaveClass(/show/);
+  await expect(page.locator('#modalTitle')).toContainText('Request Details');
+  // the three content tabs exist with data
+  await expect(page.locator('#modalBody')).toContainText('Request Information');
+  await page.locator('#modalOverlay .modal-close').first().click();
+  await expect(page.locator('#modalOverlay')).not.toHaveClass(/show/);
+});

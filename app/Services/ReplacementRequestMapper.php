@@ -60,6 +60,16 @@ final class ReplacementRequestMapper
 
         $prettyStatus = ucfirst((string) $r->status);
 
+        // The cohort metadata (the queue bucket's byte shape: SPACED labels +
+        // a values-array of counts; api/history adapters pin their own forms).
+        $cohorts = $r->classSession->cohorts
+            ->map(fn ($c): array => [
+                'label' => ($c->programme !== null ? (string) $c->programme->programme_code : '—')
+                    .$c->current_year.' (S'.$c->semester.') G'.$c->tutorial_group,
+                'count' => (int) $c->student_count,
+            ]);
+        $totalStudents = (int) $cohorts->sum('count');
+
         return $identity + [
             'id' => (int) $r->id,
             // §2.13's queued row names the PROPOSER `lecturer`:
@@ -72,6 +82,9 @@ final class ReplacementRequestMapper
             'replacementDate' => $span['date'],
             'replacementTime' => $span['time'],
             'replacementVenue' => $span['venue'],
+            'cohorts' => $cohorts->pluck('label')->values()->all(),
+            'cohortCounts' => $cohorts->pluck('count')->values()->all(),
+            'totalStudents' => $totalStudents,
             'remarks' => $r->remarks,
             'slotValidity' => $slotValidity,
             'conflictReason' => $conflictReason,

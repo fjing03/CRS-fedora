@@ -60,3 +60,15 @@ template with only the documented BRIDGE marks:
 - `docs/queue-and-emails.md` — the runbook (dev = log mailer, jobs persist
   until the worker claims them, failed_jobs stock behavior, the SMTP flip being
   a `.env` change only).
+
+## 2026-10-18 (user report fix) — STUDENTS "undefined" + the dead detail modal
+
+The live page reported two issues, same root: the queue bucket's rows lacked
+the COHORT METADATA (`totalStudents` / `cohorts` / `cohortCounts`) —
+`renderRow` printed `undefined` in the STUDENTS column and
+`openModalById` threw on `cohorts.join()` inside the detail-modal builder
+(silently deadening the click → popup). **Fix:** the shared mapper's
+`toRow` now carries the queue bucket's cohort trio (SPACED labels +
+values-array counts + the summed total — `ReplacementHistoriesTest`-pinned
+byte shapes are untouched for the other buckets). Smoke: new
+`U3-T9c` pins STUDENTS numeric + row-click → modal opens/closes.
