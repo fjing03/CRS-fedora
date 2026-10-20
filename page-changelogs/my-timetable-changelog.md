@@ -1,5 +1,14 @@
 # Changelog — Lecturer My Timetable
 
+## 2026-10-19 (SDD occurrence-week-pin-truthfulness) — the Replace-Now popup is EXACT-PAIR truthful
+
+The popup's Replace Now used to fire off `window.currentWeek + 1` (a stale
+State desync made request #11 book week 5 while the fact lived at W14);
+the gate now reads the occurrence's OWN stamp (`event.occurrenceFact` —
+the week-loop's batched verdict) and the handoff reads its `.week` —
+`window.currentWeek` has zero stale readers on this page (the renderer's
+initializer pair stays). The stamps visible live: W8-Mon Deepavali and
+W14 Christmas pairs; the no-fact cells hide the button.
 ## 2026-10-19 (user report) — TODAY anchors the real clock
 
 The my-timetable data bridge never cleared `MockData.mockNow`, so the

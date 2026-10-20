@@ -1,5 +1,12 @@
 # Changelog — Venue Timetable UI
 
+## 2026-10-19 (SDD occurrence-week-pin-truthfulness, F5) — the venue page's Original rows carry the real payload keys
+
+The reserved-pass events gain `originalVenue` / `originalVenueName` /
+`originalStartTime` / `originalEndTime` (the classDetails modal's Original
+rows already key these names; this page's popup now serves them from the
+REAL payload instead of the landing-clock fallback). Both statuses by
+construction; the `classSession.venue` eager-load lands with them.
 ## 2026-10-19 (SDD lt-venue-capacity-rule) — the producer pool widens with the map
 
 The Select-a-Session pool widens automatically (its rule reads the L/T dual

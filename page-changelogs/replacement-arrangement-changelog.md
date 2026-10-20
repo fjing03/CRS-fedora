@@ -1,5 +1,14 @@
 # Changelog — Replacement Arrangement (Selected Subject Page)
 
+## 2026-10-19 (SDD occurrence-week-pin-truthfulness) — the pin is MANDATORY and truthful
+
+`submitBlocks` loses its silent `$occurrenceWeek ?? $week` fallback: a
+submit without a hydrated pin gets the per-block `no_occurrence_pin` loser
+(the positional results[i]↔blocks[i] contract preserved), and a pin whose
+`<session, week>` carries NO live conflict fact gets the flat
+`occurrence_not_conflicted` loser server-side (before create; no comp). The
+client mirrors the gate with a picker-first message. The two loser copies
+render through the existing `conflictText()` map.
 ## 2026-10-19 (SDD lt-venue-capacity-rule) — the venue dd admits L/T in tutorials & halls
 
 The user ruling froze the dual-admission law; the page's venue dropdown

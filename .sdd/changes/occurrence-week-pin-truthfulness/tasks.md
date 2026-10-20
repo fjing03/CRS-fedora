@@ -38,7 +38,7 @@
   gate + :99's handoff switch to the stamp (`event.occurrenceFact`; the
   handoff reads `.week`); the day-flag branch stays DISPLAY ONLY
   (holidaysForJs verbatim — no new button title/copy).
-- [ ] T7. `app/Livewire/VenueTimetable.php` — F5: the `with()` gains
+- [x] T7. `app/Livewire/VenueTimetable.php` — F5: the `with()` gains
   `classSession.venue`; the reserved-pass event gains the four original*
   keys with the venue-less guards (both statuses by construction).
 - [x] T8. `tests/Feature/OccurrencePinTest.php` (new) — D-P8's rows: S1
@@ -60,12 +60,12 @@
   one-line note in T5 so nobody hunts a button that cannot exist); the
   arrangement's no-pin client gate blocked-submit row; always
   `--grep-invert "TC70"` (T12 too).
-- [ ] T11. Changelogs — update the EXISTING files only:
+- [x] T11. Changelogs — update the EXISTING files only:
   `my-timetable-changelog.md` (the true handoff + the gate),
   `replacement-arrangement-changelog.md` (the pin-mandatory + the loser
   copies), `venue-timetable-ui-changelog.md` (F5); + the arrangement's
   stale-cache ritual before verifying the client gate.
-- [ ] T12. Gates per slice 12 (F1+F2 → F3 → F4 → F5 → F6): `composer run lint:check` +
+- [x] T12. Gates per slice 12 (F1+F2 → F3 → F4 → F5 → F6): `composer run lint:check` +
   `vendor/bin/phpstan analyse --memory-limit=1G` + phpunit (222 + new) +
   the Playwright in-scope rows; NO git push; the demo DB untouched
   (the Route-C script stays user-run, run-file §8).
