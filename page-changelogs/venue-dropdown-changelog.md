@@ -1,5 +1,10 @@
 # Venue Dropdown — Cascading 4-Column Hierarchy
 
+## 2026-10-20 (SDD last-visit-dd-memory) — the mechanical note
+
+The shared `VenueDropdown` gains NO hook — the venue page's own `onSelect`
+closure carries the LastVisit.remember contract, keyed on the page's
+payload-seeded staff id.
 ## Changes Made
 
 ### New files

@@ -4409,3 +4409,31 @@ const CancelClass = {
     },
 };
 
+
+
+/* ═════ LastVisit — the dd memory (SDD last-visit-dd-memory) ═════
+   Per-tab sessionStorage; the USER isolation lives in the id-suffixed key
+   (the helper NEVER reads MockData identity on real-DB pages — the id
+   arrives EXPLICITLY from each page's payload). try/catch-guarded: the
+   memory is a nicety, private-mode/quota silence is the contract. */
+const LastVisit = {
+    key(name, id) {
+        return 'lastvisit-' + name + '-' + (id || '');
+    },
+    remember(name, value, id) {
+        try { sessionStorage.setItem(this.key(name, id), JSON.stringify(value)); }
+        catch (e) {
+            /* private-mode / quota — silence */
+        }
+    },
+    recall(name, id) {
+        try {
+            const raw = sessionStorage.getItem(this.key(name, id));
+            return raw === null ? null : JSON.parse(raw);
+        } catch (e) { return null; }
+    },
+    forget(name, id) {
+        try { sessionStorage.removeItem(this.key(name, id)); } catch (e) { /* silence */ }
+    },
+};
+window.LastVisit = LastVisit;

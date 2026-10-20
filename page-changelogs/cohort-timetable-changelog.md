@@ -1,5 +1,13 @@
 # Cohort Timetable — changelog
 
+## 2026-10-20 (SDD last-visit-dd-memory) — the dd memory: the last faculty+cohort pair survives the session
+
+Staff arrivals restore the LAST-visited faculty+cohort pair (per-tab
+sessionStorage, the id-suffixed key; the 2026-10-13 default rule stays the
+verbatim fallback). The remember gate = USER PICKS only (the inline
+onchange gets `{ origin: 'user' }`; the programmatic paths + the restore
+never write). Non-taught but payload-valid picks restore (staff browse
+them). Students stay pinned (FR 1.2 untouched).
 ## 2026-10-20 (user round, CHOICE A) — same my-timetable rule
 
 The cohort page shares the timeline trait: the class's own natural block

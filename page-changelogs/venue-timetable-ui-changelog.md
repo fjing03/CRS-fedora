@@ -1,5 +1,12 @@
 # Changelog — Venue Timetable UI
 
+## 2026-10-20 (SDD last-visit-dd-memory) — the venue dd's last visit auto-lands
+
+Arrivals WITHOUT an explicit `?venue=` land the remembered venue (the
+dd's real `onSelect` artifacts; the URL stays the SSOT — an explicit
+`?venue=` always wins). The `servedVenues` const hoists beside the guard
+(one const, two consumers). NEVER keyed on the mock identity: the page
+seeds the REAL staff id (the mock `'5770'` leak closed).
 ## 2026-10-20 (user report #13 redo) — the pending popup's Requested At/By rows REAL
 
 The venue page's Slot Details modal showed `Requested At —` / `Requested By —`

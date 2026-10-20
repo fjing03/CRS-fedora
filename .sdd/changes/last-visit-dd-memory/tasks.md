@@ -23,7 +23,7 @@
   `location.replace`);
  (c) the remember call inside the page's OWN `onSelect` closure (never in
   the shared class).
-- [ ] T4. `tests/last-visit-dd.spec.ts` (new) — the D5 matrix, S1–S7:
+- [x] T4. `tests/last-visit-dd.spec.ts` (new) — the D5 matrix, S1–S7:
   - S1 **the reload-restore**: 5770 → pick (FOCS, RSD2(S1)G1) → reload →
     assert the faculty select = the FOCS faculty id, `cohortSelect.value` =
     the RSD2(S1)G1 id (string — the restore direct-sets), `weekSelect.disabled ===
@@ -57,7 +57,7 @@
     twice; inspect the keys).
   - Runner: `--project=chromium --grep-invert "TC70"` — the standing
     guard.
-- [ ] T5. Changelogs: `cohort-timetable-changelog.md` +
+- [x] T5. Changelogs: `cohort-timetable-changelog.md` +
   `venue-timetable-ui-changelog.md` (+ the one-line mechanical note in
   `venue-dropdown-changelog.md`); then the stale-cache ritual and the in-
   scope Playwright rerun (the new suite + the residence suites); NO git

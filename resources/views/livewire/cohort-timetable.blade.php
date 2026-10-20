@@ -113,10 +113,10 @@
 
     <!-- ─── Semester Bar ─── -->
     <div class="semester-bar">
-        <select id="facultySelect" onchange="onFacultyChange(this.value)" @if($isStudent) disabled @endif>
+        <select id="facultySelect" onchange="onFacultyChange(this.value, { origin: 'user' })" @if($isStudent) disabled @endif>
             <option value="">Select Faculty</option>
         </select>
-        <select id="cohortSelect" onchange="onCohortChange(this.value)" disabled>
+        <select id="cohortSelect" onchange="onCohortChange(this.value, { origin: 'user' })" disabled>
             <option value="">Select Cohort</option>
         </select>
         @include('partials.ui-week-nav', ['prevOnclick' => 'prevWeek()', 'nextOnclick' => 'nextWeek()', 'selectId' => 'weekSelect', 'selectOnclick' => 'selectWeek(this.value)', 'disabled' => $pinnedCohortId === null, 'showPrint' => true])
@@ -224,7 +224,12 @@
                 sel.disabled = !faculty || isStudentViewer;
             }
 
-            function onFacultyChange(fid) {
+            function facultySelectValue() {
+                const fs = document.getElementById('facultySelect');
+                return fs ? fs.value : '';
+            }
+
+            function onFacultyChange(fid, origin) {
                 populateCohorts(fid);
                 document.getElementById('weekSelect').disabled = true;
                 selectedCohortId = null;
@@ -240,16 +245,22 @@
                 const mine = fac ? fac.cohorts.find(c => taughtCohortIds.includes(c.id)) : null;
                 if (mine) {
                     document.getElementById('cohortSelect').value = String(mine.id);
-                    onCohortChange(String(mine.id));
+                    onCohortChange(String(mine.id), { origin: 'programmatic' });
                 } else {
                     showGuidance();
                 }
             }
 
-            function onCohortChange(cid) {
+            function onCohortChange(cid, origin) {
                 selectedCohortId = cid ? parseInt(cid, 10) : null;
                 document.getElementById('weekSelect').disabled = !selectedCohortId;
                 refreshTips();
+                /* last-visit-dd-memory (D3): the USER-origin pick remembers
+                   the pair; the programmatic paths (the arrival default, the
+                   faculty-switch auto-pick, the restore) NEVER write. */
+                if (cid && (origin || {}).origin === 'user' && !isStudentViewer) {
+                    LastVisit.remember('cohortPage', { f: facultySelectValue(), c: parseInt(cid, 10) }, MockData.currentUser.staffId);
+                }
                 if (!selectedCohortId) {
                     showGuidance();
                     return;
@@ -521,19 +532,34 @@
                 document.getElementById('weekSelect').disabled = false;
                 refreshTips();
                 buildTimetable();
-            } else if (!isStudentViewer && defaultFacultyId) {
-                /* Staff auto-select (user decisions 2026-10-13): land on the
-                   lecturer's own department's faculty — onFacultyChange applies
-                   the SHARED rule (first taught cohort pre-picked with the grid
-                   live; guidance fallback when they teach nothing there), so
-                   arrival and a later faculty switch behave identically. */
-                const fac = facultyData.find(f => String(f.id) === String(defaultFacultyId));
-                if (fac) {
-                    document.getElementById('facultySelect').value = String(fac.id);
-                    onFacultyChange(String(fac.id));
-                } else {
+            } else if (!isStudentViewer) {
+                /* last-visit-dd-memory (D3): Restore (direct-sets the selects,
+                   never routes through onCohortChange — the remember gate
+                   stays single-path). The 2026-10-13 default rule plays
+                   VERBATIM in the `else` arm (own faculty + the first taught
+                   cohort; guidance when they teach nothing there). */
+                const staffId = MockData.currentUser.staffId;
+                const saved = staffId ? LastVisit.recall('cohortPage', staffId) : null;
+                const facultySel = document.getElementById('facultySelect');
+                const savedFac = saved ? facultyData.find(f => String(f.id) === String(saved.f)) : null;
+                const savedCohort = savedFac ? savedFac.cohorts.find(c => String(c.id) === String(saved.c)) : null;
+                if (savedFac && savedCohort) {
+                    facultySel.value = String(savedFac.id);
+                    populateCohorts(String(savedFac.id));
+                    document.getElementById('cohortSelect').value = String(saved.c);
+                    selectedCohortId = parseInt(saved.c, 10);
+                    document.getElementById('weekSelect').disabled = false;
                     refreshTips();
-                    showGuidance();
+                    buildTimetable();
+                } else {
+                    const fac = facultyData.find(f => String(f.id) === String(defaultFacultyId));
+                    if (fac) {
+                        document.getElementById('facultySelect').value = String(fac.id);
+                        onFacultyChange(String(fac.id), { origin: 'programmatic' });
+                    } else {
+                        refreshTips();
+                        showGuidance();
+                    }
                 }
             } else {
                 showGuidance();

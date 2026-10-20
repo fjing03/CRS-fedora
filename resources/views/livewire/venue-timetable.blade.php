@@ -192,14 +192,40 @@
 
             const venueInfo = @json($venue);
 
+            // last-visit-dd-memory (D4): ONE hoisted const, TWO consumers —
+            // the dd's opts + the restore's known-code guard. The name
+            // names what the blade SERVED (never conflate with the saved
+            // sessionStorage payload or the known boolean).
+            const servedVenues = @json($venuesJs);
+            const ownerStaffId = @json((string) (auth()->user()?->lecturer?->staff_id ?? ''));
+
+            /* Restore (last-visit-dd-memory): the ?venue= ABSENCE guard —
+               the URL stays the SSOT (an explicit ?venue= wins byte-perfect);
+               the saved code must exist in the SERVED list (the
+               VenueDropdown.select's ignore-unknown behaviour lines up), and
+               the one-time location.replace reuses the existing full render
+               (no history spam). Sits inside the DOMContentLoaded handler —
+               the script already is. */
+            const urlVenue = new URLSearchParams(window.location.search).get('venue');
+            const savedVenue = urlVenue ? null : LastVisit.recall('venuePage', ownerStaffId);
+            const known = servedVenues.some(v => v.code === savedVenue);
+            if (!urlVenue && known && savedVenue !== venueInfo.code) {
+                window.location.replace('?venue=' + encodeURIComponent(savedVenue));
+                return;   // the rest of the init runs after the replacement render
+            }
+
             /* Venue switching = ?venue= full render (scripts re-run naturally);
                the shared factory is callback-based — no forking. */
             new VenueDropdown(
                 document.getElementById('venueSelectDropdown'),
                 {
-                    venues: @json($venuesJs),
+                    venues: servedVenues,
                     initialCode: venueInfo.code || undefined,
                     onSelect: function (code) {
+                        // last-visit-dd-memory (D4): the memory rides THIS page's
+                        // own closure (never inside the shared VenueDropdown
+                        // class — replacement-arrangement's dd must not remember).
+                        LastVisit.remember('venuePage', code, ownerStaffId);
                         if (code && code !== venueInfo.code) {
                             window.location.assign('?venue=' + encodeURIComponent(code));
                         }
