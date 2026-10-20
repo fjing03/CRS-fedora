@@ -8,6 +8,7 @@ use App\Models\Cohort;
 use App\Models\ReplacementRequest;
 use App\Models\ReplacementRequestSlot;
 use App\Models\Semester;
+use App\Services\LectureSessionCatalog;
 use App\Services\ReplacementRequestMapper;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
@@ -210,6 +211,13 @@ trait ResolvesTimetableTimeline
             $baseBySession[$s->id] = $this->baseEvent($s, $cohortScopeCode);
         }
 
+        // occurrence-week-pin-truthfulness D-P4: ONE batched fact context per
+        // render — every rendered occurrence stamps its OWN pair's verdict
+        // (null for a normal week; exception-week pairs yield NO event — the
+        // loop's FR 2.16 skip stays — their facts verify at the catalog level).
+        $catalog = app(LectureSessionCatalog::class);
+        $factContext = $catalog->factContext(Collection::wrap($sessions));
+
         $out = [];
         for ($w = 1; $w <= $weeks; $w++) {
             $events = [];
@@ -266,6 +274,15 @@ trait ResolvesTimetableTimeline
                 if ($pendingOccurrence !== null) {
                     $ev['proposed'] = true;
                 }
+
+                // occurrence-week-pin-truthfulness D-P4: the EXACT-PAIR stamp —
+                // the popup's Replace-Now gate reads THIS verdict (the pair's
+                // week RIDES the stamp so the handoff can never drift); null
+                // for a normal week = no button, no handoff.
+                $fact = $catalog->occurrenceFact($s, $w, $factContext);
+                $ev['occurrenceFact'] = $fact !== null
+                    ? ['week' => $w, 'kind' => $fact['kind'], 'reason' => $fact['reason']]
+                    : null;
                 $events[] = $ev;
             }
 

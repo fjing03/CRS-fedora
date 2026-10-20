@@ -26,7 +26,7 @@
   client gate: the submit path blocks when `window.pinnedOccurrence` is absent
   (picker-first polite message; the same copy as the server's
   no_occurrence_pin); the pick (:3159) + the URL hydration (:3392) stay.
-- [ ] T5. `app/Concerns/ResolvesTimetableTimeline.php` `buildEventsByWeek` —
+- [x] T5. `app/Concerns/ResolvesTimetableTimeline.php` `buildEventsByWeek` —
   the week-loop stamp: `$fact = app(LectureSessionCatalog::class)->occurrenceFact(...)`
   (INSTANCE-style — phpstan) inside the loop AFTER the exception-skip
   continue; `$ev['occurrenceFact']` = the pair stamp
@@ -34,7 +34,7 @@
   NOTE: the exception kind's pairs yield NO rendered event (the loop skips
   them) — their fact is verified at the catalog/PHP level (T8), never via a
   Playwright button hunt.
-- [ ] T6. `resources/views/livewire/my-timetable.blade.php` — `openModal`'s
+- [x] T6. `resources/views/livewire/my-timetable.blade.php` — `openModal`'s
   gate + :99's handoff switch to the stamp (`event.occurrenceFact`; the
   handoff reads `.week`); the day-flag branch stays DISPLAY ONLY
   (holidaysForJs verbatim — no new button title/copy).

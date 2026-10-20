@@ -96,7 +96,11 @@
             <button class="btn-close-modal" onclick="closeModal()">Close</button>
         </div>
         <div class="modal-footer-right">
-            <button class="btn-replace-now" id="btnReplaceNow" style="display:none" onclick="goToReplacementFor(currentModalEvent?.id, window.currentWeek + 1, 'my-timetable')">Replace Now</button>
+            <!-- occurrence-week-pin-truthfulness D-P4: the handoff reads the
+                 event's EXACT-PAIR stamp week (never window.currentWeek —
+                 its stale restore/Today-button/shortcut desync made #11 book
+                 week 5 while the fact lived at W14). -->
+            <button class="btn-replace-now" id="btnReplaceNow" style="display:none" onclick="goToReplacementFor(currentModalEvent?.id, currentModalEvent?.occurrenceFact?.week, 'my-timetable')">Replace Now</button>
         </div>
     @endsection
     @include('partials.ui-class-detail-modal')
@@ -137,7 +141,12 @@
                 const isConflict = (days[event.di] && days[event.di].holiday) || event.status === 'conflict';
 
                 const replaceBtn = document.getElementById('btnReplaceNow');
-                replaceBtn.style.display = isConflict ? 'flex' : 'none';
+                // occurrence-week-pin-truthfulness D-P4: the EXACT-PAIR gate —
+                // the button exists ONLY where the occurrence's own week
+                // carries a live conflict fact (holiday / exception /
+                // venue-restriction; the ResolvesTimetableTimeline week loop
+                // stamps it). The day-flag branch stays a DISPLAY aid.
+                replaceBtn.style.display = event.occurrenceFact ? 'flex' : 'none';
 
                 let cohortValue = event.cohort;
                 let studentValue = event.studentCount ? String(event.studentCount) : '—';
