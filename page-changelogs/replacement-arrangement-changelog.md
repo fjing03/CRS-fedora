@@ -1,5 +1,12 @@
 # Changelog — Replacement Arrangement (Selected Subject Page)
 
+## 2026-10-20 (SDD lh-l-only-revert) — the Lecture Hall narrows back to L-only
+
+`ruleMap()`'s T row narrows to `['tutorial']` (the L row stays dual).
+The car phạm wording splits per raw type: `Lecture (L)` (halls),
+`Tutorial (L/T)` (tutorials), `Practical (P)` (labs); the 'only' family
+rejoins halls (the wrapper keys on the raw type). The pinned T row in the
+catalog suite retunes as the designed contract change.
 ## 2026-10-19 (SDD occurrence-week-pin-truthfulness) — the pin is MANDATORY and truthful
 
 `submitBlocks` loses its silent `$occurrenceWeek ?? $week` fallback: a

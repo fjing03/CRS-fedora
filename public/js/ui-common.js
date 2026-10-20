@@ -2287,11 +2287,11 @@ function add30min(t) { return DateHelper.add30min(t); }
    (capacity-gated); labs keep P. Unknown rawType → '' so a payload typo
    can never advertise a wrong law. */
 function venueTypeWording(rawType) {
-    if (rawType !== 'lab' && rawType !== 'cisco_lab'
-        && rawType !== 'tutorial' && rawType !== 'lecture_hall') return '';   // unknown → blank
-    return rawType === 'lab' || rawType === 'cisco_lab'
-        ? 'Practical (P)'
-        : 'Lecture & Tutorial (L/T)';   // lecture_hall + tutorial: the DUAL-admission phrase
+    /* lh-l-only-revert (2026-10-20): Lecture Halls narrow back to L-only
+       (the phrase per RAW type; the tutorials keep the L/T dual shape). */
+    const phrases = { lab: 'Practical (P)', cisco_lab: 'Practical (P)',
+                      lecture_hall: 'Lecture (L)', tutorial: 'Tutorial (L/T)' };
+    return phrases[rawType] || '';   // unknown → blank
 }
 
 /* Human label for an event's run-status — the hover-tooltip suffix on every

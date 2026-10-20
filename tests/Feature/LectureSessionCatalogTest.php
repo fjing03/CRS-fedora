@@ -50,7 +50,8 @@ final class LectureSessionCatalogTest extends TestCase
         // SDD lt-venue-capacity-rule (user 2026-10-19): Lecture Hall &
         // Tutorial Rooms both admit L and T — capacity-gated at every
         // consumer. The strict one-room-per-type rows retired.
-        $this->assertSame(['tutorial', 'lecture_hall'], $rule['T'], 'R1 + lt-venue-capacity-rule: tutorial AND lecture hall admit T');
+        // lh-l-only-revert (2026-10-20): the T row narrows — the hall stops admitting T.
+        $this->assertSame(['tutorial'], $rule['T'], 'lh-l-only-revert: T → tutorial only (the hall is L-only)');
         $this->assertSame(['tutorial', 'lecture_hall'], $rule['L'], 'R1 + lt-venue-capacity-rule: tutorial AND lecture hall admit L');
         $this->assertSame('B005', $rule['b005_venue_code'], 'R2: the no-Diploma venue code');
         $this->assertSame('^\\s*D', $rule['b005_no_diploma_pattern'], 'R2: Diploma = D* programmes');

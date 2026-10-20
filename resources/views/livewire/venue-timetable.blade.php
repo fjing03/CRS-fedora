@@ -402,7 +402,7 @@
                     noteText.innerHTML = noticeHtml(
                         'None of your classes can run in ' + model.venue,
                         roomTypeHuman(model.roomType) + ' hosts ' + sessionTypesHuman(model.roomType)
-                            + ' sessions' + ((model.roomType === 'lab' || model.roomType === 'cisco_lab') ? ' only' : '') + '.');
+                            + ' sessions' + ((model.roomType === 'lab' || model.roomType === 'cisco_lab' || model.roomType === 'lecture_hall') ? ' only' : '') + '.');   // lh-l-only-revert: the halls rejoin the 'only' family
                     notice.style.display = 'block';
                     pickers.style.display = 'none';
                     arrangeBtn.style.display = 'none';

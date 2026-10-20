@@ -51,7 +51,7 @@ final class LtVenueCapacityRuleTest extends TestCase
             ->firstOrFail();
     }
 
-    public function test_engine_admits_l_and_t_in_tutorials_and_lecture_halls(): void
+    public function test_engine_admits_l_dual_but_t_tutorial_only(): void
     {
         $engine = app(MatrixIntersectionEngine::class);
 
@@ -62,10 +62,11 @@ final class LtVenueCapacityRuleTest extends TestCase
         $this->assertArrayHasKey(self::vid('B110'), $l);
         $this->assertArrayNotHasKey(self::vid('B005'), $l, 'R1 unchanged: labs stay P-only');
 
-        // T(20): the same dual admission.
+        // T(20): the T row NARROWED — tutorials only; the lecture hall stops
+        // admitting T (lh-l-only-revert).
         $t = $engine->eligibleVenues(20, 'T');
         $this->assertArrayHasKey(self::vid('B002'), $t);
-        $this->assertArrayHasKey(self::vid('B110'), $t);
+        $this->assertArrayNotHasKey(self::vid('B110'), $t, 'lh-l-only-revert: the hall admits L only');
 
         // P stays lab-only across the whole map (no B006 creep).
         $p = $engine->eligibleVenues(10, 'P');
@@ -115,11 +116,12 @@ final class LtVenueCapacityRuleTest extends TestCase
             'the component pool gains the L-in-tutorial class ('.($session->module?->module_code ?? '?').' at '.$session->venue->room_code.')');
     }
 
-    public function test_b110_t_absence_is_data_not_law(): void
+    public function test_b110_rejects_t_by_the_law(): void
     {
-        // The B110 pool may show no T-class in the DATASET (0 T-in-LH ever) —
-        // that absence must never be pinned as a law; the DIRECT rule says
-        // T-in-LH is allowed with any T session object.
+        // lh-l-only-revert (2026-10-20): the hall is L-ONLY — any T session
+        // on it is REJECTED outright (the two-way: the ENGINE row already
+        // rebuffs B110 for T; here the DIRECT producer rule armor: whatever
+        // T session object a fixture invents, the verdict stays false).
         $venueId = self::vid('B110');
         $session = ClassSession::create([
             'module_id' => ClassSession::firstOrFail()->module_id,
@@ -132,8 +134,8 @@ final class LtVenueCapacityRuleTest extends TestCase
             'semester_id' => ClassSession::firstOrFail()->semester_id,
         ]);
 
-        $this->assertTrue(LectureSessionCatalog::sessionAllowedForVenue(
+        $this->assertFalse(LectureSessionCatalog::sessionAllowedForVenue(
             'T', 'lecture_hall', $session->fresh(), 'B110',
-        ), 'T-in-lecture_hall is ALLOWED by the law (its dataset absence is data, not law)');
+        ), 'T-in-lecture_hall is REJECTED by the law (lh-l-only-revert)');
     }
 }

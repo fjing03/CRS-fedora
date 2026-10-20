@@ -31,9 +31,14 @@
 | Session type | Allowed venue room_type |
 |---|---|
 | `P` (Practical) | `lab`, `cisco_lab` |
-| `T` (Tutorial) | `tutorial`, `lecture_hall` |
+| `T` (Tutorial) | `tutorial` |
 | `L` (Lecture) | `tutorial`, `lecture_hall` |
 
+> **User clarification 2026-10-20 (SDD `lh-l-only-revert`), verbatim ruling:**
+> *"update : the Lecture Hall only allow for L only."* — the lecture hall
+> stops admitting T (the T row narrows back; tutorials keep the L/T dual
+> admission from the 2026-10-19 ruling).
+>
 > **User clarification 2026-10-19 (SDD `lt-venue-capacity-rule`), verbatim ruling:**
 > *"Lecture Hall & Tutorial Rooms are allow to have L/T."* — a venue admits an
 > L/T session when **capacity fits** (R2's B005 no-Diploma check still applies

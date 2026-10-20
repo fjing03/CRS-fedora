@@ -44,12 +44,15 @@ final class LectureSessionCatalog
      */
     public static function ruleMap(): array
     {
-        // SDD lt-venue-capacity-rule (user ruling 2026-10-19): "Lecture Hall
-        // & Tutorial Rooms are allow to have L/T" — capacity-gated at every
-        // consumer. Labs stay P-only (no B006 creep; R3/R4 stay PLANNED-NEW).
+        // SDD lt-venue-capacity-rule (2026-10-19) + lh-l-only-revert
+        // (2026-10-20): the 2026-10-19 dual admission NARROWED — Lecture
+        // Halls admit L ONLY; tutorials keep L/T ("the Lecture Hall only
+        // allow for L only", the user's ruling). Capacity-gated at every
+        // consumer. Labs stay P-only (no B006 creep; R3/R4 stay
+        // PLANNED-NEW).
         return [
             'P' => ['lab', 'cisco_lab'],
-            'T' => ['tutorial', 'lecture_hall'],
+            'T' => ['tutorial'],   // lh-l-only-revert (2026-10-20): the lecture hall narrows back to L-only
             'L' => ['tutorial', 'lecture_hall'],
             'b005_no_diploma_pattern' => '^\\s*D',
             'b005_venue_code' => 'B005',

@@ -1,5 +1,10 @@
 # Changelog — Venue Timetable UI
 
+## 2026-10-20 (SDD lh-l-only-revert) — the dd's hosts sentence splits
+
+The `hosts Lecture (L) sessions only.` phrase re-lands for the halls
+(the T row narrows back); the tutorials keep `hosts Tutorial (L/T)
+sessions.`; labs unchanged. `venueTypeWording` now answers per key.
 ## 2026-10-20 (SDD last-visit-dd-memory) — the venue dd's last visit auto-lands
 
 Arrivals WITHOUT an explicit `?venue=` land the remembered venue (the

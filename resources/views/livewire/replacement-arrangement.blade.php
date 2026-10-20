@@ -2678,7 +2678,7 @@ slotLine = 'Week ' + (anchorSlot.week + 1) + ' · ' + anchorSlot.weekdayName + '
                 const raw = venueEntry ? (venueEntry.rawRoomType || '') : '';
                 const human = { lab: 'Lab', cisco_lab: 'Lab', tutorial: 'tutorial room', lecture_hall: 'lecture hall' }[raw] || raw;
                 const req = venueTypeWording(raw);
-                const only = (raw === 'lab' || raw === 'cisco_lab') ? ' only' : '';   /* dual rooms admit L/T — the P branch keeps its 'only' */
+                const only = (raw === 'lab' || raw === 'cisco_lab' || raw === 'lecture_hall') ? ' only' : '';   /* lh-l-only-revert: halls rejoin the 'only' family; tutorials stay dual */
                 el.innerHTML = `<div class="booking-intent booking-intent-manual">
                     <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
                     <span><strong>Booking ${i.venue} · ${i.dayAbbr}, ${i.dateStr} · ${i.timeStr}</strong> — none of your classes can run in ${i.venue} — ${human} hosts ${req} sessions${only}.</span>

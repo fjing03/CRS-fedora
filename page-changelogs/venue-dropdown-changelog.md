@@ -1,5 +1,9 @@
 # Venue Dropdown — Cascading 4-Column Hierarchy
 
+## 2026-10-20 (SDD lh-l-only-revert) — the mechanical note
+
+`venueTypeWording`'s per-key split (labs P / halls L / tutorials L/T); the
+`only` suffix appends page-side keyed on the raw type.
 ## 2026-10-20 (SDD last-visit-dd-memory) — the mechanical note
 
 The shared `VenueDropdown` gains NO hook — the venue page's own `onSelect`
