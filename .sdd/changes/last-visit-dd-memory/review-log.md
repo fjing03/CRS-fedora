@@ -23,3 +23,11 @@
 ### 💡 Adopted
  - The remember bullet's explicit MockData.currentUser.staffId source; the TimelineWiringTest S17 note rode review round 1 of the AMENDMENT batch (this change's own specs).
 ### Verdict: design FROZEN (zero 🔴).
+## tasks Round 1 — 2026-10-20
+### 🔴 Fixed
+ - T4's bare "S2, S3" rows contradicted the D4 remember gate (remember = REAL-pick onSelect only; a `?venue=` arrival never fires it) — S2 now pins a REAL pick of B010 before the same-tab no-param auto-land; S3 rides S2's memory (B002 param-only, no new memory written); the full D5 assert set spelled per row.
+### 🟡 Addressed
+ - T5's suite list named (the venue tetrads + the cohort page's suites) + the gates line (JS/Blade-only → no phpstan/phpunit rerun); T2's identity-source note (MockData.currentUser.staffId explicit).
+### 💡 Adopted
+ - S2's grid presence check beyond the dropdown value; the pointer-typo fix (D3 not D7); the S5 stub contract carried from D7.
+### Verdict: tasks FROZEN (zero 🔴).
