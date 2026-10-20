@@ -216,15 +216,26 @@ final class VenueRestrictionConflictTest extends TestCase
             'status' => 'pending',
         ]);
 
+        // occurrence-week-pin-truthfulness D-P10 (CHOICE A): the natural
+        // conflict block KEEPS its own cell; the pending amber rides the
+        // landing cell. The fixture's makeup lands in week 1 — the amber's
+        // requestId separates it from the natural pair (the same-hour rule:
+        // the slotMap's last-write-wins shows the amber cell — the amber
+        // carries the requestId while the natural keeps the conflict id).
         $component = Livewire::actingAs($daniel)->test(MyTimetable::class);
         $component->assertViewHas('eventsByWeek', function ($weeks) use ($sessionId): bool {
+            $hasPending = false;
+            $naturalKept = false;
             foreach ($weeks[0] as $ev) {
-                if (($ev['id'] ?? null) === $sessionId) {
-                    return $ev['status'] === 'pending'; // pending > conflict
+                if (($ev['requestId'] ?? null) !== null && ($ev['status'] ?? null) === 'pending') {
+                    $hasPending = true;
+                }
+                if (($ev['id'] ?? null) === $sessionId && ($ev['status'] ?? null) === 'conflict') {
+                    $naturalKept = true;
                 }
             }
 
-            return false;
+            return $hasPending && $naturalKept; // both-blocks-stack (the amber covers the same-hour cell visually)
         });
 
         $request->delete();
@@ -233,7 +244,7 @@ final class VenueRestrictionConflictTest extends TestCase
         $after->assertViewHas('eventsByWeek', function ($weeks) use ($sessionId): bool {
             foreach ($weeks[0] as $ev) {
                 if (($ev['id'] ?? null) === $sessionId) {
-                    return $ev['status'] === 'conflict'; // conflict re-emerges
+                    return $ev['status'] === 'conflict'; // conflict re-emerges; no pending row anywhere
                 }
             }
 

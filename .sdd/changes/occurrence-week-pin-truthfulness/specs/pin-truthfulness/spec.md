@@ -60,3 +60,23 @@ sit unchanged.
 - S6 (approve chain): the accepted.submit approve (the presenter flip) → D3 stamps the ORIGINAL week (`class_exceptions <session, 14>`); releaseOriginal frees nothing (no W14 rows exist); the positive control test asserts the whole chain.
 - S7 (fact kinds): each of the three verdict kinds — exception (Cancelled — …), holiday (Public Holiday (…)), venue (Venue Restriction (B005 no-Diploma)) — produces a HANDOFF-carrying button THROUGH THE DEEPER-POLICY fixtures; a no-fact week has NO button.
 - S8 (seeder premise): the first fact test asserts the AMSE2003-class+holiday-seed premise (the pair carries the holiday fact) so seeder can't edit it silently flips the suite's meaning.
+
+## Landing-week coexistence (D-P10 — the CHOICE-A ruling, 2026-10-19/20)
+- R-L1: a class's natural block renders in EVERY week its timeslot exists —
+  the replaced week's suppression is the D7 stamp's ALONE.
+- R-L2 (approved): the natural block + the approved receipt block COEXIST on
+  a landing week (same-day different-hours ⇒ two blocks; the receipt at the
+  junction's cell per the frozen D7 keying).
+- R-L3 (pending): the natural block + the AMBER proposal block coexist; at
+  an exact same-hour overlap the AMBER wins (the grid's slotMap
+  last-write-wins — the push-order covenant: natural first, amber second).
+- R-L4: the Proposed ⏳ hint stays on the natural conflict occurrence's own
+  cell (pendingByOccurrence + buildReplacementNote; no client edit).
+- R-L5: the occurrenceFact stamp rides the natural event independently; no
+  proposed-cell payload ever gains a stamp.
+- S9: the #13 shape — W5 renders the natural AMSE2003(P) Fri 09:00–10:00
+  block AND the approved receipt at Fri 13:00–14:00; W14 renders nothing
+  (the (40,14) stamp).
+- S10: a pending #12-shape (the makeup at the SAME hour as the own class) →
+  the amber covers the cell (last-write-wins) — the visually identical
+  pending look the user knows.

@@ -9,6 +9,7 @@ use App\Models\ReplacementRequest;
 use App\Models\TimeSlot;
 use App\Models\Venue;
 use App\Services\LectureSessionCatalog;
+use App\Services\ReplacementRequestMapper;
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
@@ -349,7 +350,7 @@ class VenueTimetable extends Component
                 // occurrence-week-pin-truthfulness popup-accuracy rider: the
                 // pending popup's Requested At/By rows (MYT; the proposer's
                 // name) — the venue modal showed nulls before.
-                'requestedAt' => app(\App\Services\ReplacementRequestMapper::class)->stampDisplay($request->submitted_at, 'd M Y, h:i A'),
+                'requestedAt' => app(ReplacementRequestMapper::class)->stampDisplay($request->submitted_at, 'd M Y, h:i A'),
                 'requestedBy' => (string) ($request->proposer->name ?? ''),
                 'status' => $isApproved ? 'replacement' : 'pending', // the frozen legend (STATUSES now carry the direct blue my-timetable class; pending stays amber)
                 'remarks' => $isApproved

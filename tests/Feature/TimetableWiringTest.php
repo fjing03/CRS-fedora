@@ -165,7 +165,7 @@ class TimetableWiringTest extends TestCase
             ->assertDontSee('BMIT1001');
     }
 
-    public function test_pending_request_marks_the_original_occurrence(): void
+    public function test_pending_request_marks_the_landing_cell_and_keeps_the_natural_block(): void
     {
         $session = $this->createSession($this->lecturerA);
 
@@ -212,10 +212,23 @@ class TimetableWiringTest extends TestCase
             'decided_at' => now(),
         ]);
 
+        // occurrence-week-pin-truthfulness: an approve STAMPS the original
+        // pair (D3) — the real flow's exception row (the replaced week's
+        // natural block suppression rides the stamp ALONE, never the
+        // landing week — D-P10's CHOICE A).
+        ClassException::create([
+            'class_session_id' => $session->id,
+            'week_number' => 6,
+            'reason' => 'official_event',
+        ]);
+
         $component = Livewire::actingAs($this->lecturerA)
             ->test(MyTimetable::class);
 
-        // Week 6 (index 5): original day-1 occurrence gone, replacement on day 4.
+        // Week 6 (index 5): the natural day-1 occurrence votes gone via its
+        // OWN stamp (the replaced week — never the landing week); the
+        // replacement renders at day 4 (the landing cell). CHOICE A: had
+        // the stamp been absent, BOTH would render.
         $events = $component->viewData('eventsByWeek');
         $week6 = $events[5];
         $this->assertNotEmpty($week6);

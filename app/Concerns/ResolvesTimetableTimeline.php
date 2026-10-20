@@ -229,21 +229,26 @@ trait ResolvesTimetableTimeline
 
                 $pending = $pendingByMakeupSlot[$s->id.':'.$w] ?? null;
                 $pendingOccurrence = $pendingByOccurrence[$s->id.':'.$w] ?? null;
-                $approved = null;
-                foreach ($approvedByWeek[$w] ?? [] as $r) {
-                    if ($r->class_session_id === $s->id) {
-                        $approved = $r;
-                        break;
-                    }
-                }
 
-                if ($approved !== null) {
-                    // FR 4.11: occurrence moved — original slot excluded, new slot added below.
-                    continue;
-                }
+                // occurrence-week-pin-truthfulness D-P10 (CHOICE A): the
+                // landing week keeps the class's OWN natural block — the
+                // replaced week's suppression belongs to the D7 stamp ALONE
+                // (the exceptionKeys guard above). The approved receipt
+                // renders in its own junction cell below the loop; NO
+                // landing-week natural-block swallowing survives.
 
                 $ev = $baseBySession[$s->id];
                 if ($pending !== null) {
+                    // occurrence-week-pin-truthfulness D-P10 (CHOICE A): the
+                    // natural block KEEPS its own cell; the amber proposal
+                    // rides its own landing cell. The Proposed ⏳ hint stays
+                    // on the natural conflict occurrence's own cell (the
+                    // pendingByOccurrence map + buildReplacementNote — no
+                    // client edits). At an exact same-hour overlap the grid's
+                    // slotMap last-write-wins shows the AMBER (the push-order
+                    // covenant: natural FIRST, amber SECOND).
+                    $events[] = $ev;
+
                     // USER DIRECTIVE 2026-10-17: the amber block's shape, day and
                     // venue come from the PROPOSED slots — the WHOLE run
                     // (ANCHOR..anchor+span−1 via the junction row count), not
@@ -252,20 +257,21 @@ trait ResolvesTimetableTimeline
                     $spanSlots = ReplacementRequestSlot::query()
                         ->where('replacement_request_id', $pending->id)
                         ->count();
+                    $evA = $baseBySession[$s->id];
                     if ($slot !== null) {
-                        $ev['di'] = (int) $slot->day_of_week;
-                        $ev['start'] = $this->slotIndex((string) $slot->start_time);
-                        $ev['end'] = $this->slotIndex((string) $slot->start_time) + max(1, $spanSlots) - 1;
-                        $ev['venue'] = (string) $slot->venue->room_code;
+                        $evA['di'] = (int) $slot->day_of_week;
+                        $evA['start'] = $this->slotIndex((string) $slot->start_time);
+                        $evA['end'] = $this->slotIndex((string) $slot->start_time) + max(1, $spanSlots) - 1;
+                        $evA['venue'] = (string) $slot->venue->room_code;
                     }
-                    $ev['status'] = 'pending';
-                    $ev['requestId'] = $pending->id;
-                    $ev['requestedAt'] = app(ReplacementRequestMapper::class)->stampDisplay($pending->submitted_at, 'd M Y, h:i A');   // MYT (SDD occurrence-week-pin-truthfulness popup-accuracy rider)
+                    $evA['status'] = 'pending';
+                    $evA['requestId'] = $pending->id;
+                    $evA['requestedAt'] = app(ReplacementRequestMapper::class)->stampDisplay($pending->submitted_at, 'd M Y, h:i A');   // MYT (SDD occurrence-week-pin-truthfulness popup-accuracy rider)
                     $proposer = $pending->proposer;
-                    $ev['requestedBy'] = $proposer !== null ? $proposer->name : '';
-                    $events[] = $ev;
+                    $evA['requestedBy'] = $proposer !== null ? $proposer->name : '';
+                    $events[] = $evA;
 
-                    continue; // the session's own normal block is consumed by the amber block this week
+                    continue;
                 }
 
                 // the natural red occurrence gains the.Proposed hint (option A):

@@ -31,3 +31,11 @@
  - T11 names the EXISTING changelog files (venue-timetable-ui-changelog.md — no stray file).
  - T5 instance-call style + the exception-skip note; T1's factsIndex dead-code-purge comment; T12's TC70 + slice names; the D-P7 no-over-edit standing row.
 ### Verdict: tasks FROZEN (zero 🔴; ready for /sdd-apply).
+## post-apply amendment Round 1 — 2026-10-19/20 (the CHOICE-A landing-week coexistence)
+### 🔴 Fixed in this round
+ - The ruling recorded: D-P10 (both-blocks-stack; the D7-stamp precedence; the push-order covenant; the Proposed-hint carrier; the blade collision check; the two-test surface) — the reviewer's unfreeze conditions met.
+### Verdict: design amended (soft-freeze additive; one more reviewer round over the amendment batch runs with the T16 deltas before apply).
+## amendment Round 2 — 2026-10-20
+### 🟡 Addressed
+ - specs/pin-truthfulness gains R-L1..R-L5 + S9 (the #13 both-blocks shape) + S10 (the same-hour amber-wins shape); design D-P10 records the push-order covenant + the collision check.
+### Verdict: the amendment batch FROZEN (design + specs lists; tasks live in T15–T17).

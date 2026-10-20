@@ -208,3 +208,38 @@ file touches NO blade; only the action + Livewire + catalog.
 ## D-P9 — page-changelogs
 `my-timetable`, `replacement-arrangement`, `venue-timetable` (the F5 keys +
 the venue popup's Original rows now served accurate from the payload).
+
+
+## D-P10 — the CHOICE-A landing-week coexistence (user ruling 2026-10-19/20)
+The class's OWN natural block renders EVERY week it meets — never swallowed
+by a proposal's or a receipt's landing cell (the user's verbatim choice:
+"CHOICE A — two blocks stack").
+
+- **The approved path**: `buildEventsByWeek`'s in-loop `$approved`
+  lookup/`continue` is DELETED — the replaced week's suppression belongs to
+  the D7 stamp ALONE (the `exceptionKeys` guard at the loop head; the
+  approve stamps the ORIGINAL pair unconditionally-in-txn). The landing
+  week then renders BOTH: the natural block (its own cell) + the approved
+  receipt block (at the junction's cell — the frozen D7 landing keying).
+- **The pending path**: the branch renders BOTH as well — the natural block
+  keeps its own cell; the amber block rides the landing cell (the makeup's
+  own day/time/venue — the user directive 2026-10-17's split intact). Push
+  order covenant: the NATURAL block pushes first, the AMBER second — at an
+  exact same-hour overlap the grid's slotMap last-write-wins shows the
+  AMBER (the pending look the user knows from #12).
+- **The Proposed ⏳ hint** stays on the natural conflict occurrence's own
+  cell (the `pendingByOccurrence` map + buildReplacementNote — a client
+  contract; no client edits).
+- **Stamp precedence**: the D-P4 occurrenceFact stamp rides the natural
+  event per week INDEPENDENT of the coexistence render (a proposed-cell
+  payload never gains a stamp; a natural cell's stamp never blocks its
+  render).
+- **Blade session-id collision check** (apply-time): the popup branches
+  branch on `requestId`, so identical ids between a natural and an amber
+  payload pair can't misroute — verified once during apply.
+- **Test surface (the frozen-name greps)**: exactly two PHP tests bend —
+  `TimetableWiringTest::test_pending_request_marks_the_original_occurrence`
+  (assertSee-only; passes unchanged, renamed for honesty) and the
+  `my-timetable payload W5` row in the span tests? (re-baseline the
+  named rows at apply time; the seeder creates ZERO ReplacementRequests so
+  no other suite touches the shape).

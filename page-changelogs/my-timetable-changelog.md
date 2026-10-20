@@ -1,5 +1,15 @@
 # Changelog — Lecturer My Timetable
 
+## 2026-10-20 (user round, CHOICE A) — the landing week keeps the class's own block
+
+The approved-landing week used to swallow the class's own natural block
+(#13's landing at W5 hid Fri 09:00–10:00). The `ResolvesTimetableTimeline`
+loop's approved-suppression is deleted: the replaced week's disappearance
+keys on the D7 stamp ALONE (W14), and a landing week renders BOTH blocks
+(own 09:00–10:00 + the blue receipt at 13:00–14:00). The pending branch
+too: the amber proposal rides its own cell while the natural block stays
+(the same-hour overlap keeps the amber via the slotMap's last-write-wins;
+the Proposed ⏳ hint stays on the natural conflict cell).
 ## 2026-10-20 (user report #13 redo) — Requested At renders the MYT clock across the popups
 
 The pending blocks' `requestedAt` used the trait's raw UTC form; it now

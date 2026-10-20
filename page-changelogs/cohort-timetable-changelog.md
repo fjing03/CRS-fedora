@@ -1,5 +1,11 @@
 # Cohort Timetable — changelog
 
+## 2026-10-20 (user round, CHOICE A) — same my-timetable rule
+
+The cohort page shares the timeline trait: the class's own natural block
+survives the proposal's landing week; both the natural + the receipt/proposal
+cells render. The replaced week's suppression stays keyed on the D7 stamp
+(W14 is normal since it is replaced).
 ## 2026-10-19 (user request) — the approved block reads the REPLACEMENT BLUE + the date fix
 
 The block for an approved request now carries the my-timetable page's own
