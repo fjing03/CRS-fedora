@@ -1,5 +1,18 @@
 # Changelog — Venue Timetable UI
 
+## 2026-10-20 (SDD occurrence-week-pin-truthfulness T20–T22) — the PH days at every venue render the real conflict rows
+
+The venue page's PH-gobble branch hides every non-mine event at a holiday
+family (the cell-render's offday pass); the REAL truth: the holiday-adjacent
+imported rows (W14-Wed-B009 families) + the recurrence-derived rows for the
+skipped weeks (W8-Mon, W14-Thu). The payload's DERIVED pass builds conflict
+rows from the recurring sessions (venue-keyed + day-keyed; the stamps + the
+live requests own the handled pairs; the imported row wins the de-dupe),
+and the cell-render's PH branch renders them — OWN = the loud 3px red,
+OTHERS = the red hairline; Sundays stay frozen. The summary's basis stays
+slot-counted (the fair family). The demo-DB sanity: no writes; the rows
+were already imported by the seed (W14-WED B009's 6-row family) — the DERIVED
+rows only surface when the import skipped the week.
 ## 2026-10-20 (SDD lh-l-only-revert) — the dd's hosts sentence splits
 
 The `hosts Lecture (L) sessions only.` phrase re-lands for the halls

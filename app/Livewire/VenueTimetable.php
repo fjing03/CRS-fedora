@@ -371,6 +371,111 @@ class VenueTimetable extends Component
             }
         }
 
+        // ═══ occurrence-week-pin-truthfulness T20 — the DERIVED holiday family ═══
+        // The holiday import skipped whole week/day families (W8-Mon, W14-Thu).
+        // The venue page's row-keyed pass then renders NOTHING for classes whose
+        // venue contains them — while the timeline trait derives its blocks from
+        // the RECURRING session rows. This pass closes the gap: for every
+        // holiday (week, day) pair, the recurring sessions whose venue = the
+        // viewed venue + the day = the holiday's day build synthetic conflict
+        // rows — UNLESS a stamp (class_exception) or a live request
+        // (pending/approved) already HANDLES the pair (the same handled rule
+        // the timeline uses). The imported rows win the de-dupe (their payload
+        // is richer); the overlapping derived clones drop away.
+        // the derived pass's OWN semester read + the TOTals map hoist (the
+        // derived + the imported family share ONE map — the T20 pre-lift)
+        $totalsByWeek = array_fill(0, $weeks, ['total' => 0, 'available' => 0, 'occupied' => 0, 'myClasses' => 0, 'myHours' => '0']);
+        $t20Semester = $this->timelineSemester();
+        $holidayByWeekDay = [];
+        if ($t20Semester !== null) {
+            foreach ($t20Semester->holidays()->get(['week_number', 'day_of_week', 'label']) as $h) {
+                $holidayByWeekDay[(int) $h->week_number][(int) $h->day_of_week] = (string) $h->label;
+            }
+        }
+
+        // the handled set: (a) the STAMPS (the exact (session, week) pairs —
+        // NOT every week of that session), (b) the live request pairs.
+        $handledPairs = [];
+        foreach (DB::table('class_exceptions')->get() as $stamp) {
+            $handledPairs[$stamp->class_session_id.':'.$stamp->week_number] = true;
+        }
+        foreach (ReplacementRequest::whereIn('status', ['pending', 'approved'])
+            ->get(['class_session_id', 'week_number']) as $req) {
+            $handledPairs[$req->class_session_id.':'.$req->week_number] = true;
+        }
+
+        $recurring = ClassSession::query()
+            ->with(['module', 'venue', 'cohorts.programme'])
+            ->where('venue_id', $venue->id)
+            ->get();
+
+        foreach ($recurring as $session) {
+            $dayIdx = (int) $session->day_of_week;
+            foreach ($holidayByWeekDay as $w3 => $daySet) {
+                $weekNum = (int) $w3;
+                if ($weekNum < 1 || $weekNum > $weeks) {
+                    continue;   // the D1 week-guard (the 1..$weeks window — the semester may shrink)
+                }
+                if (! isset($daySet[$dayIdx])) {
+                    continue;
+                }
+                // the handled rule: the stamp / the live request owns the pair
+                if (isset($handledPairs[$session->id.':'.$weekNum])) {
+                    continue;
+                }
+
+                $startIdx = $this->slotIndex((string) $session->start_time);
+                $endIdx = $this->slotIndex((string) $session->end_time);
+
+                // the de-dupe: an imported ROW already covers the span (the
+                // eventsByWeek map keys on 'di:start'; the anchor rows use
+                // start < endIdx && end > startIdx pairwise)
+                $covered = false;
+                foreach ($eventsByWeek[$weekNum - 1] as $rows) {
+                    foreach ($rows as $existing) {
+                        if ((int) $existing['di'] === $dayIdx
+                            && (int) $existing['start'] < $endIdx
+                            && (int) $existing['end'] > $startIdx) {
+                            $covered = true;
+                            break 2;
+                        }
+                    }
+                }
+                if ($covered) {
+                    continue;
+                }
+
+                $label = $daySet[$dayIdx];
+                $event = [
+                    'id' => null,  // NO row — the Class Ref row drops from the popup (honest)
+                    'di' => $dayIdx,
+                    'start' => $startIdx,
+                    'end' => $endIdx,
+                    'code' => (string) $session->module->module_code,
+                    'name' => (string) $session->module->module_name,
+                    'type' => (string) $session->session_type,
+                    'venue' => (string) $venue->room_code,
+                    'lecturer' => (string) ($session->lecturer->name ?? ''),
+                    'cohort' => $this->cohortLabel($session->cohorts),
+                    'cohorts' => $session->cohorts->map(fn ($c) => $this->cohortCode($c))->all(),
+                    'studentCount' => (int) $session->cohorts->sum('student_count'),
+                    'status' => 'conflict',  // the DERIVED family's own status
+                    'remarks' => 'Public Holiday ('.$label.')', // byte-parity the timeline's conflict reasons
+                    'mine' => $session->lecturer_id === $myUserId,
+                ];
+                // the same ONE-anchor-cell push form the imported pass uses
+                // (the FE's slotMap renders the span over the colSpan rows)
+                $eventsByWeek[$weekNum - 1][$dayIdx.':'.$startIdx][] = $event;
+                // the derived blocks count as OCCUPIED (the A&B law: the summary
+                // reflects the blocks the grid actually shows)
+                if (isset($totalsByWeek[$weekNum - 1]['occupied'])) {
+                    $totalsByWeek[$weekNum - 1]['occupied'] += ($endIdx - $startIdx + 1);
+                }
+            }
+        }
+        // ═══ end T20 derived pass ═══
+
+
         // Grid engine consumes a list — merge twins per week and strip keys.
         $eventsByWeek = array_map(fn (array $weekMap): array => $this->mergeTwinEvents($weekMap), $eventsByWeek);
 

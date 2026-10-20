@@ -610,9 +610,20 @@
                            loud red blocks on public-holiday days ("your class
                            won't run"); everyone else's stay empty 'PH' cells. */
                         const offMine = info && info.event && day.holiday && info.event.mine;
-                        if ((day.sunday || day.holiday) && !offMine) {
+                        /* T21 (occurrence-week-pin-truthfulness rider): the PH
+                           branch splits — Sundays stay frozen (hide-all); PH
+                           days render their event blocks (derived + imported),
+                           the PH cell only when the cell carries NO event:
+                             OWN event → the loud 3px red (event-conflict)
+                             OTHERS' → the red hairline (event-public-holiday)
+                           (the D-P10 coexistence + the §10.0 two-axis rule). */
+                        if (day.sunday) {
                             const div = document.createElement('div');
-                            div.className = 'cell-content ' + (day.holiday ? 'cell-ph' : 'cell-sun');
+                            div.className = 'cell-sun';
+                            td.appendChild(div);
+                        } else if (day.holiday && !offMine && !(info && info.event)) {
+                            const div = document.createElement('div');
+                            div.className = 'cell-content cell-ph';
                             td.appendChild(div);
                         } else if (info && info.event) {
                             const e = info.event;
@@ -628,8 +639,9 @@
                                (data-name + this data-tip2 — uniform format). */
                             div.dataset.tip2 = (e.lecturer || '—') + ' · ' + eventStatusLabel(e, day.holiday);
                             if (day.holiday) {
-                                /* own class on a public holiday — loud red, it won't run */
-                                div.classList.add('event-conflict');
+                                /* T21: on a PH day — OWN = loud 3px red, OTHERS =
+                                   the red hairline (the D-P10 two-axis shape) */
+                                div.classList.add(e.mine ? 'event-conflict' : 'event-public-holiday');
                             } else if (e.status === 'replacement') {
                                 // USER 2026-10-19: the approved replacement carries the
                                 // REPLACEMENT blue (my-timetable's own

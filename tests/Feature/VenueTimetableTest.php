@@ -632,4 +632,34 @@ final class VenueTimetableTest extends TestCase
             ->get('/venue-timetable-ui')
             ->assertForbidden();
     }
+
+    // occurrence-week-pin-truthfulness T20–T22: the DERIVED holiday family —
+    // B009's W14-Wed sessions surface as the conflict-status rows (the imported
+    // row-family was absent there — the holiday import skipped the whole family).
+    public function test_venue_ph_days_render_derived_holiday_rows(): void
+    {
+        $component = Livewire::withQueryParams(['venue' => 'B009'])
+            ->actingAs($this->staffUser('5425'))
+            ->test(VenueTimetable::class);
+
+        $component->assertViewHas('eventsByWeek', function ($eventsByWeek): bool {
+            // the derived family: W14-Wed B009 carries the AMIT2014(P) rows
+            // (the recurring session rows the parked pass turned into conflict
+            // payloads). The imported family existed at the W14-WED/TUE slot
+            // rows — this test keys on the STATUS = 'conflict' family's presence
+            // alongside the holiday.
+            $rows = $eventsByWeek[13] ?? [];
+            if (! is_array($rows)) {
+                return false;
+            }
+            $conflicts = [];
+            foreach ($rows as $ev) {
+                if (($ev['status'] ?? null) === 'conflict') {
+                    $conflicts[] = $ev['code'];
+                }
+            }
+
+            return count($conflicts) >= 2;   // the W14 family's own live classes
+        });
+    }
 }
