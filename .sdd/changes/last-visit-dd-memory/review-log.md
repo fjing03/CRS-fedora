@@ -11,3 +11,15 @@
 ### 💡 Adopted
  - `forget()` rides the helper; the VenueDropdown.select's ignore-unknown-behaviour cited as the restore's validity check.
 ### Verdict: proposal FROZEN (all four 🔴 landed).
+## design Round 2 — 2026-10-20
+### 🔴 Fixed
+ - D4's dead `venueJsCodes` guard → the `servedVenues.some(...)` form hoisted beside the restore (one const, two consumers; the exact placement = inside the DOMContentLoaded handler, after :193's venueInfo, before :197's `new VenueDropdown(`; the constructor's opts line switches to `venues: servedVenues`); the direct identity read off the payload line (no venue-page MockData reads).
+### 🟡 Addressed
+ - 🟡1: D3's staff-arm restructured to the ReferenceError-safe guard chain (the default rule verbatim inside `else`); the `saved && !isStudentViewer` drop (staff already guarantees).
+ - 🟡2: the servedVenues naming row (three distinct names — served / saved / known).
+ - 🟡3: D5's S1 got the full assertion set (selects + weekSelect.disabled + the grid's presence).
+ - D5 gains the S5 stub contract (the id-suffixed key + JSON DTO), the S2/S4's same-tab goto rule, and the NEW S7 no-remember negative gate (the arrival auto-pick writes NOTHING).
+ - D6 names the changelogs concretely.
+### 💡 Adopted
+ - The remember bullet's explicit MockData.currentUser.staffId source; the TimelineWiringTest S17 note rode review round 1 of the AMENDMENT batch (this change's own specs).
+### Verdict: design FROZEN (zero 🔴).
