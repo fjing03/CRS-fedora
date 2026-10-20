@@ -1,9 +1,9 @@
 # Tasks — last-visit-dd-memory
 
-- [ ] T1. `public/js/ui-common.js` — the `LastVisit` helper (D1 verbatim:
+- [x] T1. `public/js/ui-common.js` — the `LastVisit` helper (D1 verbatim:
   `key/remember/recall/forget`, sessionStorage, the id-suffixed keys,
   try/catch-guarded, exported to `window`).
-- [ ] T2. `resources/views/livewire/cohort-timetable.blade.php` — the
+- [x] T2. `resources/views/livewire/cohort-timetable.blade.php` — the
   remember gate + the restructured guard chain per D3:
  (a) `onCohortChange`/`onFacultyChange` gain the optional `{ origin }`
   second arg; the inline onchange handlers pass `{ origin: 'user' }` (the
@@ -13,7 +13,7 @@
  (b) the INIT tail's staff `else if` restructures to the D3 pasteable
   guard chain (the D7-restored select direct-sets; the 2026-10-13 default
   rule verbatim in the `else` arm).
-- [ ] T3. `resources/views/livewire/venue-timetable.blade.php` — D4:
+- [x] T3. `resources/views/livewire/venue-timetable.blade.php` — D4:
  (a) hoist `servedVenues = @json($venuesJs)` + switch the dd constructor's
   opts to `venues: servedVenues`; the identity read =
   `@json((string)(auth()->user()?->lecturer?->staff_id ?? ''))`;
