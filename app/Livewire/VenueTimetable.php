@@ -265,7 +265,9 @@ class VenueTimetable extends Component
             ->whereIn('time_slot_id', $reserved->pluck('id'))
             ->pluck('replacement_request_id', 'time_slot_id');
 
-        $requests = ReplacementRequest::with(['classSession.module', 'classSession.lecturer', 'classSession.cohorts.programme'])
+        // occurrence-week-pin-truthfulness D-P5: the original* keys read
+        // classSession.venue — eager-load it (relation-unloaded today).
+        $requests = ReplacementRequest::with(['classSession.module', 'classSession.lecturer', 'classSession.venue', 'classSession.cohorts.programme'])
             ->whereIn('status', ['pending', 'approved'])
             ->whereIn('id', $junctionLink->unique()->values())
             ->get()
@@ -336,6 +338,14 @@ class VenueTimetable extends Component
                 'cohort' => $this->cohortLabel($session->cohorts),
                 'cohorts' => $session->cohorts->map(fn ($c) => $this->cohortCode($c))->all(),
                 'studentCount' => (int) $session->cohorts->sum('student_count'),
+                // occurrence-week-pin-truthfulness D-P5: the Original rows'
+                // payload keys (status-independent — one shape for both
+                // statuses; venue-less sessions send empty strings, never a
+                // read-on-null).
+                'originalVenue' => $session->venue !== null ? (string) $session->venue->room_code : '',
+                'originalVenueName' => $session->venue !== null ? (string) ($session->venue->room_name ?? '') : '',
+                'originalStartTime' => substr((string) $session->start_time, 0, 5),
+                'originalEndTime' => substr((string) $session->end_time, 0, 5),
                 'status' => $isApproved ? 'replacement' : 'pending', // the frozen legend (STATUSES now carry the direct blue my-timetable class; pending stays amber)
                 'remarks' => $isApproved
                     ? (string) $originalDate

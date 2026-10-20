@@ -41,7 +41,7 @@
 - [ ] T7. `app/Livewire/VenueTimetable.php` — F5: the `with()` gains
   `classSession.venue`; the reserved-pass event gains the four original*
   keys with the venue-less guards (both statuses by construction).
-- [ ] T8. `tests/Feature/OccurrencePinTest.php` (new) — D-P8's rows: S1
+- [x] T8. `tests/Feature/OccurrencePinTest.php` (new) — D-P8's rows: S1
   no-pin with TWO blocks (unpinned first, one pinned second) → the per-block
   loser lands at its OWN index (the results[i]↔blocks[i] positional
   contract); S2 normal-week pin on a WOULD-be-bookable slot; S3
@@ -49,7 +49,7 @@
   the qualities); S4 the same submit without a pin; S6 the approve chain →
   the D3 stamp of the original week + the no-free control; S8's
   seeder-premise assert.
-- [ ] T9. `tests/venue-timetable.spec.ts`/`LtVenueCapacityRuleTest`-style PHP
+- [x] T9. `tests/venue-timetable.spec.ts`/`LtVenueCapacityRuleTest`-style PHP
   row for the F5 keys (or a row in OccurrencePinTest) — both statuses' keys
   asserted (approved + pending); never assert "T not in LH" style data laws.
 - [ ] T10. Playwright: EXACT-PAIR gate + handoff coverage — S5's BOTH modes
