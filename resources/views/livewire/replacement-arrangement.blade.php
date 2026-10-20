@@ -2417,9 +2417,19 @@
                 const endStr = to12h(hours[anchorSlot.end + 1] || add30min(hours[anchorSlot.end]));
                 const dateParts = anchorSlot.date.split(' ');
                 const shortDate = dateParts[1] + ' ' + dateParts[0];
+                /* occurrence-week-pin-truthfulness (the 'undefined' bug):
+                   the REAL-pick slot objects carry NO weekdayName (only the
+                   virtual pinned anchor does) — re-derive the day name from
+                   the grid's own day row by slot-week + slot-day index. */
+                const fallbackDay = (window.weekData && window.weekData[anchorSlot.week]
+                    && window.weekData[anchorSlot.week].days
+                    && window.weekData[anchorSlot.week].days[anchorSlot.day]);
+                const weekdayName = anchorSlot.weekdayName
+                    || (fallbackDay && fallbackDay.abbr)
+                    || (fallbackDay && fallbackDay.abbr === undefined ? null : '');
                 /* human-facing label: week NUMBER (+1, see the picker's trigger note);
    slot.week stays the 0-based weekData index */
-slotLine = 'Week ' + (anchorSlot.week + 1) + ' · ' + anchorSlot.weekdayName + ', ' + shortDate + ' ' + dateParts[2] + ' · ' + startStr + '–' + endStr + ' @ ' + anchorSlot.venue;
+slotLine = 'Week ' + (anchorSlot.week + 1) + ' · ' + ((weekdayName && weekdayName !== 'undefined') ? weekdayName + ', ' : '') + shortDate + ' ' + dateParts[2] + ' · ' + startStr + '–' + endStr + ' @ ' + anchorSlot.venue;
             }
 
             // Line 3: Cohorts
@@ -2941,17 +2951,54 @@ slotLine = 'Week ' + (anchorSlot.week + 1) + ' · ' + anchorSlot.weekdayName + '
             /* occurrence-grain default: the pinned entry's session, else the
                module's first session (same representative the code-grain keys
                used to pick); the picked slot overrides from here on */
-            const wanted = window.pinnedOccurrence ? String(window.pinnedOccurrence.sessionId) : null;
-            currentSessionId = wanted && currentCourse.sessions && currentCourse.sessions[wanted]
-                ? Number(wanted)
-                : (currentCourse.sessions ? Number(Object.keys(currentCourse.sessions)[0]) : null);
+            const autoPinRide = window.pinnedOccurrence;
+            const rowSessionCandidates = extractSlotsForSubject(code);
+            rowSessionCandidates.sort((a, b) => (a.week - b.week) || (a.day - b.day) || (a.start - b.start));
+            const firstConflictRow = rowSessionCandidates[0] || null;
+
+            /* occurrence-week-pin-truthfulness (user request 2026-10-19/20, T18):
+               a subject switch AUTO-PINS the earliest conflicted occurrence —
+               the same facts the picker would surface — the picker-first ask
+               only when this subject carries NO conflicted slot (the user
+               still picks freely afterward; nothing about the submit path
+               changes: the pin IS the pinned pair the submit honours). */
+            if (firstConflictRow) {
+                window.pinnedOccurrence = { sessionId: firstConflictRow.sessionId, week: firstConflictRow.week + 1 };
+                urlParams = urlParams || {};
+                window.urlParams = Object.assign({}, window.urlParams, {
+                    day: firstConflictRow.day,
+                    start: firstConflictRow.start,
+                    originalVenue: firstConflictRow.venue,
+                });
+                currentSessionId = Number(firstConflictRow.sessionId);
+            } else {
+                /* no conflicted occurrence for this subject → keep the
+                   picker-first ask (the honest guard) */
+                const wanted = autoPinRide ? String(autoPinRide.sessionId) : null;
+                currentSessionId = wanted && currentCourse.sessions && currentCourse.sessions[wanted]
+                    ? Number(wanted)
+                    : (currentCourse.sessions ? Number(Object.keys(currentCourse.sessions)[0]) : null);
+            }
 
             selectedOriginalSlot = null;
-            document.getElementById('slotTriggerText').textContent = 'Select a slot to replace';
+            document.getElementById('slotTriggerText').textContent = firstConflictRow
+                ? 'Auto-pinned: the ' + 'W' + (firstConflictRow.week + 1) + ' occurrence (' + firstConflictRow.dayName + ') — the grid highlights it; submit when ready'
+                : 'Select a slot to replace';
 
             // Extract and render conflict/cancelled slots for this subject
-            const slots = extractSlotsForSubject(code);
+            const slots = rowSessionCandidates;
             renderSlotPicker(slots);
+
+            /* the AUTO-NAV (the user's “choose the first conflicted slot for
+               me”): jump the grid to the occurrence's week; the strip's
+               anchor already names it (the trigger note above). The grid's
+               own buildTimetable runs right after this function's tail. */
+            if (firstConflictRow && typeof weekNav !== 'undefined') {
+                weekNav.selectWeek(firstConflictRow.week);
+                currentWeek = weekNav.currentWeek;
+                window.currentWeek = currentWeek;
+                saveCurrentWeek();
+            }
             renderTitleSummary();
             buildVenueFilter();
             consumeBookingIntent();

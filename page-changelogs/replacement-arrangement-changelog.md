@@ -1,5 +1,15 @@
 # Changelog — Replacement Arrangement (Selected Subject Page)
 
+## 2026-10-20 (T18 T19 — the arrangement's dd UX two riders)
+
+**T18 (the user's 'defaultly choose the first conflicted slot')**: a
+SUBJECT switch auto-pins the EARLIEST conflicted occurrence (the same facts
+the picker would surface) — `window.pinnedOccurrence` + `urlParams`
+(day/start/venue) + the grid auto-navigates to its week; the picker-first
+ask remains for subjects with NO conflicted occurrence (the honest guard).
+**T19 (the 'undefined' strip bug)**: the slot line's weekday name re-reads
+from the grid's day row by slot-week/index when a REAL-pick slot object
+lacks `weekdayName` — 'Week 14 · undefined, Dec 24 …' dies.
 ## 2026-10-20 (SDD lh-l-only-revert) — the Lecture Hall narrows back to L-only
 
 `ruleMap()`'s T row narrows to `['tutorial']` (the L row stays dual).
