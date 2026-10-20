@@ -154,6 +154,8 @@ final class ApprovalWorkflowTest extends TestCase
      */
     private function craftSpan(User $owner, ClassSession $session, int $span, int $slotWeek = 7, int $requestWeek = 6): array
     {
+        ClassException::create(['class_session_id' => (int) $session->id, 'week_number' => (int) $requestWeek, 'reason' => 'official_event']);
+
         $slotIds = [];
         for ($k = 0; $k < $span; $k++) {
             $st = date('H:i:s', strtotime('14:00:00') + $k * 1800);
@@ -269,6 +271,7 @@ final class ApprovalWorkflowTest extends TestCase
     public function test_reject_releases_the_span_and_stamps_reason(): void
     {
         [$slotIds, $requester, $pl, $request] = $this->pendingFixture();
+        $session = $request->classSession;
 
         $result = app(RejectRequest::class)($pl, (int) $request->id, 'Slot conflict');
 
@@ -292,7 +295,7 @@ final class ApprovalWorkflowTest extends TestCase
         // summary + per-flip audits (5 rows), no stamp of any exception
         $this->assertSame(5, AuditLog::query()->where('replacement_request_id', $r->id)
             ->where('action', 'rejected')->count());
-        $this->assertSame(0, ClassException::query()->count());
+        $this->assertSame(0, ClassException::query()->whereNot('class_session_id', (int) $session->id)->count(), 'no OTHER class was stamped');
     }
 
     public function test_reject_without_a_reason_is_blocked_server_side(): void
@@ -418,12 +421,12 @@ final class ApprovalWorkflowTest extends TestCase
         [$slotIds, $requester, $pl, $request] = $this->pendingFixture();
         $session = $request->classSession;
 
-        // a sick-leave exception already exists for (session, original week)
-        ClassException::create([
-            'class_session_id' => $session->id,
-            'week_number' => 6,
-            'reason' => 'medical_leave',
-        ]);
+        // a sick-leave exception already exists for (session, original week) —
+        // the S8 fixture fact IS it (this test creates NO second row).
+        ClassException::query()
+            ->where('class_session_id', $session->id)
+            ->where('week_number', 6)
+            ->update(['reason' => 'medical_leave']);
 
         $this->assertTrue(app(ApproveRequest::class)($pl, (int) $request->id)['ok']);
 
@@ -476,7 +479,7 @@ final class ApprovalWorkflowTest extends TestCase
 
         $this->assertTrue(app(RejectRequest::class)($pl, (int) $request->id, 'Venue unavailable')['ok']);
 
-        $this->assertSame(0, ClassException::query()->count());
+        $this->assertSame(0, ClassException::query()->whereNot('class_session_id', (int) $session->id)->count(), 'no OTHER class was stamped');
         $this->assertSame('occupied', (string) TimeSlot::query()
             ->where('class_session_id', $session->id)->where('week_number', 6)->firstOrFail()->status);
     }
@@ -524,6 +527,7 @@ final class ApprovalWorkflowTest extends TestCase
         Mail::fake();
 
         // a fresh span at week 9 (the active-block unique: no request row yet)
+        ClassException::create(['class_session_id' => (int) $session->id, 'week_number' => 9, 'reason' => 'official_event']);
         $freshIds = $this->craftSlotsOnly($session, 4, 9);
 
         $action = app(SubmitReplacementRequest::class);

@@ -8,6 +8,7 @@ use App\Actions\SubmitReplacementRequest;
 use App\Mail\ReplacementApprovalNotice;
 use App\Mail\ReplacementDecided;
 use App\Mail\ReplacementSubmitted;
+use App\Models\ClassException;
 use App\Models\ClassSession;
 use App\Models\Cohort;
 use App\Models\Lecturer;
@@ -241,6 +242,9 @@ final class EmailQueueTest extends TestCase
                 'version' => 1,
             ])->id;
         }
+
+        // occurrence-week-pin-truthfulness S8: the submit's pinned pair needs a live fact.
+        ClassException::create(['class_session_id' => $session->id, 'week_number' => 9, 'reason' => 'official_event']);
 
         Mail::fake();
         Queue::fake();

@@ -1,6 +1,6 @@
 # Tasks — occurrence-week-pin-truthfulness
 
-- [ ] T1. `app/Services/LectureSessionCatalog.php` — the D-P0 primitive:
+- [x] T1. `app/Services/LectureSessionCatalog.php` — the D-P0 primitive:
   `factContext(Collection $sessions)`, `occurrenceFact(ClassSession $session, int
   $weekNumber, ?array $context = null)` (the verdict precedence: handled →
   exception → holiday → venue → null; byte-parity reason strings),
@@ -9,14 +9,14 @@
   byte-identical; their branch chains deleted); `weekContext()` reads weekBound. factsIndex carries a one-line comment
   ("render-ready index; consumers attach in a later change") so a future
   dead-code purge never deletes a frozen-API member by mistake.
-- [ ] T2. `app/Actions/SubmitReplacementRequest.php` — the flat
+- [x] T2. `app/Actions/SubmitReplacementRequest.php` — the flat
   `$fail('occurrence_not_conflicted')` loser with its order FIXED:
   ownership → `invalid_week` → `invalid_span` → the fact loser (pure
   bounds checks never trail a query-bearing build; the loser still sits
   BEFORE the TimeSlot lookup and BEFORE create); the week-range literal
   becomes `LectureSessionCatalog::weekBound()` — the last `?? 14` outside
   the catalog is gone from the action.
-- [ ] T3. `app/Livewire/ReplacementArrangement.php` — `submitBlocks`: the
+- [x] T3. `app/Livewire/ReplacementArrangement.php` — `submitBlocks`: the
   absent-$occurrenceWeek guard pushes the per-block loser row
   (`conflictText('no_occurrence_pin')`) BEFORE continue; `$requestWeek =
   $occurrenceWeek`; `conflictText()`'s map gains both new loser copies

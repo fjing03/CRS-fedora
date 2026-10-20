@@ -291,11 +291,18 @@ final class ReplacementArrangementTest extends TestCase
     {
         $this->createBlockSlots(6, 3, '14:00:00'); // the block's full 2h run (Thursday 14:00 = hour 12)
 
+        // occurrence-week-pin-truthfulness S8: the pinned occurrence carries a
+        // live fact (the pin = the slot-week pair 6/6 — the test's own week
+        // 6 semantics stand).
+        $session = ClassSession::query()->where('lecturer_id', $this->lecturerA->id)->firstOrFail();
+        ClassException::create(['class_session_id' => (int) $session->id, 'week_number' => 6, 'reason' => 'official_event']);
+
         $testable = Livewire::actingAs($this->lecturerA)->test(ReplacementArrangement::class);
         $testable->call('submitBlocks',
             json_encode([['venue' => 'B100', 'week' => 5, 'day' => 3, 'startHour' => 12, 'endHour' => 16]]),
             'BMIT1001',
             json_encode(['day' => 1, 'start' => 4, 'venue' => 'B100']),
+            json_encode(['sessionId' => (int) $session->id, 'week' => 6]),
         );
         $results = \Livewire\invade($testable)->lastState->getEffects()['returns'][0] ?? null;
 
@@ -356,6 +363,8 @@ final class ReplacementArrangementTest extends TestCase
         // week_number must be the occurrence's, never the slot's (D7 releases
         // week 8 at approval).
         $session = ClassSession::query()->where('lecturer_id', $this->lecturerA->id)->firstOrFail();
+        // occurrence-week-pin-truthfulness D-P1: the pinned pair needs a live fact.
+        ClassException::create(['class_session_id' => (int) $session->id, 'week_number' => 8, 'reason' => 'official_event']);
         $this->createBlockSlots(4, 3, '14:00:00'); // the block's full 2h run
 
         $testable = Livewire::actingAs($this->lecturerA)->test(ReplacementArrangement::class);
@@ -430,12 +439,17 @@ final class ReplacementArrangementTest extends TestCase
         Holiday::create(['semester_id' => $this->semester->id, 'week_number' => 4, 'day_of_week' => 3, 'label' => 'PH']);
         $this->createSlot(4, 3, '14:00:00');
 
+        // The pin rides the HOLIDAY week (the fact = the holiday itself per
+        // D-P0's verdict ③) — the submit reaches the D2 holiday loser BY the
+        // fact gate, not no_occurrence_pin.
+        $session = ClassSession::query()->where('lecturer_id', $this->lecturerA->id)->firstOrFail();
+
         $testable = Livewire::actingAs($this->lecturerA)->test(ReplacementArrangement::class);
         $testable->call('submitBlocks',
             json_encode([['venue' => 'B100', 'week' => 3, 'day' => 3, 'startHour' => 12, 'endHour' => 16]]),
             'BMIT1001',
             json_encode(['day' => 1, 'start' => 4, 'venue' => 'B100']),
-            json_encode([]),
+            json_encode(['sessionId' => (int) $session->id, 'week' => 4]),
         );
         $results = \Livewire\invade($testable)->lastState->getEffects()['returns'][0] ?? null;
 

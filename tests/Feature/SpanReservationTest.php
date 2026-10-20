@@ -7,6 +7,7 @@ use App\Actions\SubmitReplacementRequest;
 use App\Http\Controllers\Api\ApiReadController;
 use App\Livewire\MyRequestHistory;
 use App\Models\AuditLog;
+use App\Models\ClassException;
 use App\Models\ClassSession;
 use App\Models\Cohort;
 use App\Models\Module;
@@ -135,6 +136,14 @@ final class SpanReservationTest extends TestCase
                 'version' => 1,
             ])->id;
         }
+
+        // occurrence-week-pin-truthfulness S8 (the seeder-premise contract):
+        // the submits pin the anchor's OWN week — the pair must carry a live
+        // conflict fact or the new flat loser fires. official_event at
+        // <winnerSession, 5> + <loserSession, 5> mirrors the repaired demo's
+        // exact-truthful pair.
+        ClassException::create(['class_session_id' => $winnerSession->id, 'week_number' => 5, 'reason' => 'official_event']);
+        ClassException::create(['class_session_id' => $loserSession->id, 'week_number' => 5, 'reason' => 'official_event']);
 
         return [$slotIds, $winner, $winnerSession, $loser, $loserSession];
     }
@@ -398,6 +407,15 @@ final class SpanReservationTest extends TestCase
         // Delete irrelevant rows first for a deterministic vector.
         DB::table('class_sessions')->where('id', $winnerSession->id)->update(['day_of_week' => 5]);
         // A cohort lecture occupying the TAIL cell on the span's day:
+        // NOTE the fixture's S8 fact row for the loser session would exclude
+        // its class from the engine's busy vector (cohortBusyRanges skips
+        // week-exception sessions — the cancelled class doesn't meet); the
+        // tail test uses that class ONLY as a vector prop, so drop its
+        // exception row first (its submit never runs here).
+        ClassException::query()
+            ->where('class_session_id', $loserSession->id)
+            ->where('week_number', 5)
+            ->delete();
         DB::table('class_sessions')->where('id', $loserSession->id)->update([
             'day_of_week' => 3, 'start_time' => '15:30:00', 'end_time' => '16:00:00',
         ]);

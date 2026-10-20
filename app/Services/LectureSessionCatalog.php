@@ -239,53 +239,16 @@ final class LectureSessionCatalog
      */
     private function conflictFacts(Collection $sessions, int $week1): array
     {
-        $ids = $sessions->pluck('id')->all();
-        if (count($ids) === 0) {
-            return [];
-        }
-
-        $semester = Semester::active();
-        $weekContext = $this->weekContext($week1);
-        $handled = ReplacementRequest::query()
-            ->whereIn('class_session_id', $ids)
-            ->whereIn('status', ['pending', 'approved'])
-            ->where('week_number', $week1)
-            ->pluck('class_session_id')
-            ->flip();
-
-        $exceptions = ClassException::query()
-            ->whereIn('class_session_id', $ids)
-            ->where('week_number', $week1)
-            ->get()
-            ->keyBy(fn ($e) => (int) $e->class_session_id);
-
-        $holidays = [];
-        if ($semester !== null) {
-            foreach ($semester->holidays()->where('week_number', $week1)->get(['week_number', 'day_of_week', 'label']) as $h) {
-                $holidays[(int) $h->day_of_week] = (string) $h->label;
-            }
-        }
+        // SDD occurrence-week-pin-truthfulness D-P0: ONE implementation —
+        // the batched context + the pure occurrence verdict (byte-parity
+        // shapes and reason strings; the hand-rolled branch chain retired).
+        $factContext = $this->factContext($sessions);
 
         $out = [];
         foreach ($sessions as $s) {
-            if ($handled->has($s->id)) {
-                continue;
-            }
-            if ($exceptions->has($s->id)) {
-                $reason = $exceptions->get($s->id)->reason;
-                $out[(int) $s->id] = 'Cancelled — '.str_replace('_', ' ', ucwords((string) $reason, '_'));
-
-                continue;
-            }
-            if (isset($holidays[(int) $s->day_of_week])) {
-                $out[(int) $s->id] = 'Public Holiday ('.$holidays[(int) $s->day_of_week].')';
-
-                continue;
-            }
-            if ($s->venue !== null
-                && $s->venue->room_code === 'B005'
-                && $s->cohorts->contains(fn ($c) => str_starts_with((string) $c->programme->programme_code, 'D'))) {
-                $out[(int) $s->id] = 'Venue Restriction (B005 no-Diploma)';
+            $fact = self::occurrenceFact($s, $week1, $factContext);
+            if ($fact !== null) {
+                $out[(int) $s->id] = $fact['reason'];
             }
         }
 
@@ -307,51 +270,27 @@ final class LectureSessionCatalog
             return [];
         }
 
+        // SDD occurrence-week-pin-truthfulness D-P0: ONE impl over the
+        // batched primitive (3 batched queries per call in total, verdict
+        // = the pure occurrenceFact; the per-week branch chain retired).
         $semester = Semester::active();
-        $weeks = $semester !== null ? $semester->week_count : 14;
-
-        $handled = ReplacementRequest::query()
-            ->whereIn('class_session_id', $ids)
-            ->whereIn('status', ['pending', 'approved'])
-            ->get()
-            ->map(fn (ReplacementRequest $r): string => $r->class_session_id.':'.$r->week_number)
-            ->flip();
-
-        $exceptions = ClassException::query()
-            ->whereIn('class_session_id', $ids)
-            ->get()
-            ->groupBy('week_number');
-
-        $holidays = [];
-        if ($semester !== null) {
-            foreach ($semester->holidays()->get(['week_number', 'day_of_week', 'label']) as $h) {
-                $holidays[(int) $h->week_number][(int) $h->day_of_week] = (string) $h->label;
-            }
-        }
+        $factContext = $this->factContext($sessions);
 
         $out = [];
         foreach ($sessions as $s) {
-            $venueRestricted = $s->venue !== null
-                && $s->venue->room_code === 'B005'
-                && $s->cohorts->contains(fn ($c) => str_starts_with((string) $c->programme->programme_code, 'D'));
-
-            for ($week = 1; $week <= $weeks; $week++) {
-                if ($handled->has($s->id.':'.$week)) {
-                    continue;
-                }
-                if ($exceptions->has($week) && $exceptions->get($week)->firstWhere('class_session_id', $s->id) !== null) {
-                    $reason = (string) $exceptions->get($week)->firstWhere('class_session_id', $s->id)->reason;
-                    $out[$week][(int) $s->id] = 'Cancelled — '.str_replace('_', ' ', ucwords($reason, '_'));
-                } elseif (isset($holidays[$week][(int) $s->day_of_week])) {
-                    $out[$week][(int) $s->id] = 'Public Holiday ('.$holidays[$week][(int) $s->day_of_week].')';
-                } elseif ($venueRestricted) {
-                    $out[$week][(int) $s->id] = 'Venue Restriction (B005 no-Diploma)';
+            for ($week = 1; $week <= self::weekBound($semester); $week++) {
+                $fact = self::occurrenceFact($s, $week, $factContext);
+                if ($fact !== null) {
+                    $out[$week][(int) $s->id] = $fact['reason'];
                 }
             }
         }
 
         return $out;
     }
+
+    /**
+     * Semester-wide conflicted candidates
 
     /**
      * Semester-wide conflicted candidates (user directive 2026-10-16, apply
@@ -411,6 +350,134 @@ final class LectureSessionCatalog
         return $out;
     }
 
+    // ═══ occurrence-week-pin-truthfulness D-P0: the ONE fact-lookup primitive ═══
+
+    /**
+     * The week bound — week_count ?? 14, the catalog's single read (the
+     * action's FR 2.9 range check reads it too; the literal 14's last
+     * outside-the-catalog home is gone).
+     */
+    public static function weekBound(?Semester $semester = null): int
+    {
+        $semester ??= Semester::active();
+
+        return $semester->week_count ?? 14;
+    }
+
+    /**
+     * Batched fact context — EVERYTHING the verdict needs, loaded ONCE per
+     * consumer call: the active semester, its week bound, handled keys
+     * (pending/approved requests), class_exceptions and holidays are ALL
+     * batch-loaded; the verdict itself is pure in-memory.
+     *
+     * @param  Collection<int, ClassSession>  $sessions
+     * @return array{semester: ?Semester, weeks: int, handled: array<string, true>, exceptions: array<string, ClassException>, holidays: array<int, array<int, string>>}
+     */
+    public function factContext(Collection $sessions): array
+    {
+        $ids = $sessions->pluck('id')->all();
+        if (count($ids) === 0) {
+            return ['semester' => null, 'weeks' => self::weekBound(), 'handled' => [], 'exceptions' => [], 'holidays' => []];
+        }
+
+        $semester = Semester::active();
+
+        $handled = ReplacementRequest::query()
+            ->whereIn('class_session_id', $ids)
+            ->whereIn('status', ['pending', 'approved'])
+            ->get()
+            ->mapWithKeys(fn (ReplacementRequest $r): array => [$r->class_session_id.':'.$r->week_number => true])
+            ->all();
+
+        $exceptions = ClassException::query()
+            ->whereIn('class_session_id', $ids)
+            ->get()
+            ->keyBy(fn (ClassException $e): string => (string) $e->class_session_id.':'.$e->week_number)
+            ->all();
+
+        $holidays = [];
+        if ($semester !== null) {
+            foreach ($semester->holidays()->get(['week_number', 'day_of_week', 'label']) as $h) {
+                $holidays[(int) $h->week_number][(int) $h->day_of_week] = (string) $h->label;
+            }
+        }
+
+        return ['semester' => $semester, 'weeks' => self::weekBound($semester), 'handled' => $handled, 'exceptions' => $exceptions, 'holidays' => $holidays];
+    }
+
+    /**
+     * The verdict primitive: the live conflict FACT for one <session, week>
+     * pair, or null when the pair carries NO fact (a normal bookable
+     * occurrence) — the home list's derivation as ONE implementation.
+     * $context optional: omit it for a ONE-shot pair (a one-session context
+     * builds internally — F1's SubmitReplacementRequest call); week-loop
+     * consumers pass the shared factContext() instead.
+     *
+     * @param  array{semester?: ?Semester, weeks?: int, handled: array<string, true>, exceptions: array<string, ClassException>, holidays: array<int, array<int, string>>}|null  $context
+     * @return array{kind: 'exception'|'holiday'|'venue', reason: string}|null
+     */
+    public function occurrenceFact(ClassSession $session, int $weekNumber, ?array $context = null): ?array
+    {
+        $ctx = $context ?? $this->factContext(Collection::wrap($session));
+        $weeks = isset($ctx['weeks']) ? (int) $ctx['weeks'] : self::weekBound($ctx['semester'] ?? null);
+
+        if ($weekNumber < 1 || $weekNumber > $weeks) {
+            return null;
+        }
+
+        // ① handled: a live pending/approved request already carries this
+        // pair — a deliberate exclusion (NOT a "no conflict").
+        if (isset($ctx['handled'][$session->id.':'.$weekNumber])) {
+            return null;
+        }
+
+        // ② exception at the pair.
+        $exception = $ctx['exceptions'][$session->id.':'.$weekNumber] ?? null;
+        if ($exception !== null) {
+            $reason = str_replace('_', ' ', ucwords((string) $exception->reason, '_'));
+
+            return ['kind' => 'exception', 'reason' => 'Cancelled — '.$reason];
+        }
+
+        // ③ holiday on the session's own day this week.
+        if (isset($ctx['holidays'][$weekNumber][(int) $session->day_of_week])) {
+            return ['kind' => 'holiday', 'reason' => 'Public Holiday ('.$ctx['holidays'][$weekNumber][(int) $session->day_of_week].')'];
+        }
+
+        // ④ the venue restriction (B005 + any D* cohort) — week-independent.
+        if ($session->venue !== null
+            && $session->venue->room_code === 'B005'
+            && $session->cohorts->contains(fn ($c) => str_starts_with((string) $c->programme->programme_code, 'D'))) {
+            return ['kind' => 'venue', 'reason' => 'Venue Restriction (B005 no-Diploma)'];
+        }
+
+        return null;
+    }
+
+    /**
+     * Render-ready index; consumers attach in a later change — do NOT
+     * purge as dead code (frozen D-P0 API member).
+     *
+     * @param  Collection<int, ClassSession>  $sessions
+     * @return array<string, array{kind: string, reason: string}> "session:week" => fact
+     */
+    public function factsIndex(Collection $sessions): array
+    {
+        $ctx = $this->factContext($sessions);
+
+        $out = [];
+        foreach ($sessions as $s) {
+            for ($week = 1; $week <= $ctx['weeks']; $week++) {
+                $fact = self::occurrenceFact($s, $week, $ctx);
+                if ($fact !== null) {
+                    $out[$s->id.':'.$week] = ['kind' => $fact['kind'], 'reason' => $fact['reason']];
+                }
+            }
+        }
+
+        return $out;
+    }
+
     /**
      * Week scaffold for occurrence facts — mirrors the timeline concern's
      * Monday math (semester start + (week-1) weeks), so the modal labels and
@@ -425,7 +492,7 @@ final class LectureSessionCatalog
         }
 
         $semester = Semester::active();
-        $weeks = $semester !== null ? $semester->week_count : 14;
+        $weeks = self::weekBound($semester);
         if ($week1 > $weeks) {
             return null;
         }

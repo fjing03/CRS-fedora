@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Actions\SubmitReplacementRequest;
 use App\Models\AuditLog;
+use App\Models\ClassException;
 use App\Models\ClassSession;
 use App\Models\ReplacementRequest;
 use App\Models\TimeSlot;
@@ -73,6 +74,12 @@ final class OccConcurrencyTest extends TestCase
         $action = new SubmitReplacementRequest(new OCCValidator, $engine);
 
         [$winner, $winnerSession, $loser, $loserSession, $anchor] = $this->racePair($engine);
+        // occurrence-week-pin-truthfulness S8: both submits pin the anchor's
+        // own week — the pairs need live facts (the engine-derived helper
+        // picks shape-valid pairs, not fact ones; the conflict at the OCC
+        // lock is what this test exercises).
+        ClassException::create(['class_session_id' => $winnerSession->id, 'week_number' => (int) $anchor->week_number, 'reason' => 'official_event']);
+        ClassException::create(['class_session_id' => $loserSession->id, 'week_number' => (int) $anchor->week_number, 'reason' => 'official_event']);
         $versionBefore = (int) $anchor->version;
 
         // The "hold" connection grabs the anchor row lock and flips the slot,

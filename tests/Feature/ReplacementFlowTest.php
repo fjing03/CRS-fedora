@@ -159,6 +159,8 @@ final class ReplacementFlowTest extends TestCase
         $proposer = $this->lecturerUser();
 
         [$session, $slot] = $this->eligibleAnchorFor((int) $proposer->id);
+        // occurrence-week-pin-truthfulness S8: the pinned pair needs a live fact.
+        ClassException::create(['class_session_id' => (int) $session->id, 'week_number' => (int) $slot->week_number, 'reason' => 'official_event']);
         $versionBefore = (int) $slot->version;
 
         $action = new SubmitReplacementRequest(new OCCValidator, new MatrixIntersectionEngine);
@@ -208,6 +210,8 @@ final class ReplacementFlowTest extends TestCase
         $proposer = $this->lecturerUser();
 
         [$session, $slot] = $this->eligibleAnchorFor((int) $proposer->id);
+        // occurrence-week-pin-truthfulness S8: the pinned pair needs a live fact.
+        ClassException::create(['class_session_id' => (int) $session->id, 'week_number' => (int) $slot->week_number, 'reason' => 'official_event']);
 
         $action = new SubmitReplacementRequest(new OCCValidator, new MatrixIntersectionEngine);
         $result = $action($proposer, $session, 15, (int) $slot->id, null);
@@ -222,6 +226,8 @@ final class ReplacementFlowTest extends TestCase
         $proposer = $this->lecturerUser();
 
         [$session, $slot] = $this->eligibleAnchorFor((int) $proposer->id);
+        // occurrence-week-pin-truthfulness S8: the pinned pair needs a live fact.
+        ClassException::create(['class_session_id' => (int) $session->id, 'week_number' => (int) $slot->week_number, 'reason' => 'official_event']);
 
         // The seeder never creates pending slots — flip the eligible anchor to
         // simulate another lecturer having reserved it first.
@@ -240,6 +246,8 @@ final class ReplacementFlowTest extends TestCase
         $proposer = $this->lecturerUser();
 
         [$session, $slot] = $this->eligibleAnchorFor((int) $proposer->id);
+        // occurrence-week-pin-truthfulness S8: the pinned pair needs a live fact.
+        ClassException::create(['class_session_id' => (int) $session->id, 'week_number' => (int) $slot->week_number, 'reason' => 'official_event']);
 
         ReplacementRequest::create([
             'semester_id' => $slot->semester_id,
@@ -269,6 +277,8 @@ final class ReplacementFlowTest extends TestCase
         $proposer = $this->lecturerUser();
 
         [$session, $slot] = $this->eligibleAnchorFor((int) $proposer->id);
+        // occurrence-week-pin-truthfulness S8: the pinned pair needs a live fact.
+        ClassException::create(['class_session_id' => (int) $session->id, 'week_number' => (int) $slot->week_number, 'reason' => 'official_event']);
 
         $action = new SubmitReplacementRequest(new OCCValidator, new MatrixIntersectionEngine);
         $result = $action($proposer, $session, (int) $slot->week_number, (int) $slot->id, null);
@@ -302,6 +312,8 @@ final class ReplacementFlowTest extends TestCase
         $other = $this->lecturerUser(1);
 
         [$session, $slot] = $this->eligibleAnchorFor((int) $owner->id);
+        // occurrence-week-pin-truthfulness S8: the pinned pair needs a live fact.
+        ClassException::create(['class_session_id' => (int) $session->id, 'week_number' => (int) $slot->week_number, 'reason' => 'official_event']);
 
         (new SubmitReplacementRequest(new OCCValidator, new MatrixIntersectionEngine))($owner, $session, (int) $slot->week_number, (int) $slot->id, null);
         $request = ReplacementRequest::query()->where('proposer_id', $owner->id)->firstOrFail();
@@ -356,6 +368,8 @@ final class ReplacementFlowTest extends TestCase
         $proposer = $this->lecturerUser();
 
         [$session, $slot] = $this->eligibleAnchorFor((int) $proposer->id);
+        // occurrence-week-pin-truthfulness S8: the pinned pair needs a live fact.
+        ClassException::create(['class_session_id' => (int) $session->id, 'week_number' => (int) $slot->week_number, 'reason' => 'official_event']);
         $cohortIds = $session->cohorts->pluck('id')->all();
 
         $start = hrtime(true);

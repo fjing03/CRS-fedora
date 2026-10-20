@@ -503,10 +503,11 @@ class ReplacementArrangement extends Component
 
         // The week the request REPLACES (the original occurrence's week — D1
         // indexes it, D7 releases it at approval) is independent of where the
-        // new slot lives. Legacy entries without a pin keep the slot's week.
-        // (The client sends {sessionId, week}; 'occurrenceWeek' stays accepted
-        // for direct/explicit callers — a key mismatch here silently dropped
-        // the pin and every UI submit fell back to slot-week semantics.)
+        // new slot lives. occurrence-week-pin-truthfulness D-P2: the pin is
+        // MANDATORY — the UI path ALWAYS sends {sessionId, week} (the pin);
+        // 'occurrenceWeek' stays accepted for direct/legacy callers; NEITHER
+        // keys' absence passes (the per-block loser fires in the loop). No
+        // silent week takeover survives.
         $weeks = $this->timelineWeeks();
         $rawOccurrenceWeek = is_array($context) ? ($context['occurrenceWeek'] ?? $context['week'] ?? null) : null;
         $occurrenceWeek = $rawOccurrenceWeek !== null && (int) $rawOccurrenceWeek >= 1 && (int) $rawOccurrenceWeek <= $weeks
@@ -551,7 +552,17 @@ class ReplacementArrangement extends Component
             // D1 — one active request per block occurrence (the partial unique
             // index enforces it atomically; this pre-check makes it a friendly
             // conflict message instead of a 500 on the race).
-            $requestWeek = $occurrenceWeek ?? $week;
+            // occurrence-week-pin-truthfulness D-P2: the fallback's death
+            // sentence — a missing pin NEVER silently takes the slot's week.
+            if ($occurrenceWeek === null) {
+                // POSITIONAL CONTRACT: push BEFORE continue — the client
+                // pairs results[i] with blocks[i] (a skipped row shifts
+                // every later verdict onto the wrong block).
+                $results[] = ['ok' => false, 'reason' => $this->conflictText('no_occurrence_pin')];
+
+                continue;
+            }
+            $requestWeek = $occurrenceWeek;
             if (ReplacementRequest::query()
                 ->where('class_session_id', $session->id)
                 ->where('week_number', $requestWeek)
@@ -706,6 +717,8 @@ class ReplacementArrangement extends Component
             'reserve_interrupted' => 'The booking could not be completed — try again.',
             'duplicate_active_request' => 'This occurrence already has an active replacement request — see My Request History.',
             'holiday' => 'That day is a public holiday — replacement classes cannot be booked on it.',
+            'occurrence_not_conflicted' => 'That week has no conflict to replace — pick an occurrence that needs a make-up (holiday, cancellation, venue restriction).',
+            'no_occurrence_pin' => 'Pick the slot on the grid — the week being replaced must be the conflicted occurrence\'s own.',
             default => 'Booking conflict — refresh and try again.',
         };
     }

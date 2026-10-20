@@ -8,6 +8,7 @@ use App\Models\ReplacementRequest;
 use App\Models\TimeSlot;
 use App\Models\User;
 use App\Models\Venue;
+use App\Services\LectureSessionCatalog;
 use App\Services\MatrixIntersectionEngine;
 use App\Services\OCCValidator;
 use Carbon\Carbon;
@@ -56,8 +57,10 @@ final class SubmitReplacementRequest
             return $fail('not_session_owner');
         }
 
-        // FR 2.9 — replacement weeks are 1–14 (schema CHECK + request column).
-        if ($weekNumber < 1 || $weekNumber > 14) {
+        // FR 2.9 — replacement weeks are 1..weekBound (SDD
+        // occurrence-week-pin-truthfulness: the catalog's single read; the
+        // literal 14's last action-side home retired).
+        if ($weekNumber < 1 || $weekNumber > LectureSessionCatalog::weekBound()) {
             return $fail('invalid_week');
         }
 
@@ -65,6 +68,14 @@ final class SubmitReplacementRequest
         // business pre-check, no write, no audit row — the invalid_week shape).
         if ($span < self::SPAN_MIN || $span > self::SPAN_MAX) {
             return $fail('invalid_span');
+        }
+
+        // occurrence-week-pin-truthfulness D-P1: the pin must point at a REAL
+        // conflicted occurrence — a normal week is not bookable as a
+        // replacement. Flat pre-write loser (before the slot lookup, before
+        // create — no compensation path).
+        if (app(LectureSessionCatalog::class)->occurrenceFact($session, $weekNumber) === null) {
+            return $fail('occurrence_not_conflicted');
         }
 
         $slot = TimeSlot::query()->find($anchorSlotId);
