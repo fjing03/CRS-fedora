@@ -22,7 +22,7 @@
   $occurrenceWeek`; `conflictText()`'s map gains both new loser copies
   (occurrence_not_conflicted + no_occurrence_pin) with the design's exact
   sentences.
-- [ ] T4. `resources/views/livewire/replacement-arrangement.blade.php` — the
+- [x] T4. `resources/views/livewire/replacement-arrangement.blade.php` — the
   client gate: the submit path blocks when `window.pinnedOccurrence` is absent
   (picker-first polite message; the same copy as the server's
   no_occurrence_pin); the pick (:3159) + the URL hydration (:3392) stay.

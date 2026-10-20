@@ -1979,6 +1979,15 @@
                             if (block) blocks.push({ venue: venue, week: parseInt(week, 10), day: block.day, startHour: block.startHour, endHour: block.endHour });
                         }
                     }
+                    /* occurrence-week-pin-truthfulness F3: the client gate —
+                       the pinned occurrence is MANDATORY (the server's
+                       no_occurrence_pin loser mirrors it); the picker-first
+                       message keeps the selection, no submit (the pick + the
+                       Replace-Now URL hydration remain the two pin paths). */
+                    if (!window.pinnedOccurrence) {
+                        alert('Pick the slot on the grid first — the week being replaced must be the conflicted occurrence\'s own.\n\nClick a time cell to pin it, or use the Replace Now button on the class\'s conflicted day.');
+                        return;
+                    }
                     const orig = selectedOriginalSlot
                         ? { day: selectedOriginalSlot.day, start: selectedOriginalSlot.start, venue: selectedOriginalSlot.venue }
                         : { day: urlParams.day, start: urlParams.start, venue: urlParams.originalVenue };
