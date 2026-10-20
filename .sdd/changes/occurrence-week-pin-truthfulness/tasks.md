@@ -52,7 +52,7 @@
 - [x] T9. `tests/venue-timetable.spec.ts`/`LtVenueCapacityRuleTest`-style PHP
   row for the F5 keys (or a row in OccurrencePinTest) — both statuses' keys
   asserted (approved + pending); never assert "T not in LH" style data laws.
-- [ ] T10. Playwright: EXACT-PAIR gate + handoff coverage — S5's BOTH modes
+- [x] T10. Playwright: EXACT-PAIR gate + handoff coverage — S5's BOTH modes
   (the W14-fact-only event shows the button + hands off `?session=<id>&week=<fact
   week>`; the same class on a W5 view shows NONE), and S7's page-side fact
   kinds (holiday + venue kind buttons; the exception kind is asserted at the

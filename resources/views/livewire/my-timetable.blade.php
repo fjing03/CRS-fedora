@@ -100,7 +100,7 @@
                  event's EXACT-PAIR stamp week (never window.currentWeek —
                  its stale restore/Today-button/shortcut desync made #11 book
                  week 5 while the fact lived at W14). -->
-            <button class="btn-replace-now" id="btnReplaceNow" style="display:none" onclick="goToReplacementFor(currentModalEvent?.id, currentModalEvent?.occurrenceFact?.week, 'my-timetable')">Replace Now</button>
+            <button class="btn-replace-now" id="btnReplaceNow" style="display:none" onclick="goToReplacementFor(currentModalEvent?.id, rarityReplaceOccurrenceWeek(), 'my-timetable')">Replace Now</button>
         </div>
     @endsection
     @include('partials.ui-class-detail-modal')
@@ -124,6 +124,7 @@
             window.weekData = generateWeekData();
             const weekData = window.weekData;
             const eventsData = @json($eventsByWeek);
+            window.eventsData = eventsData;   // SDD occurrence-week-pin-truthfulness: the tests + the popup gate read the served truth
 
             window.currentWeek = {{ (int) ($currentWeek ?? 0) }};
             let currentWeek = window.currentWeek;
@@ -141,12 +142,22 @@
                 const isConflict = (days[event.di] && days[event.di].holiday) || event.status === 'conflict';
 
                 const replaceBtn = document.getElementById('btnReplaceNow');
-                // occurrence-week-pin-truthfulness D-P4: the EXACT-PAIR gate —
-                // the button exists ONLY where the occurrence's own week
-                // carries a live conflict fact (holiday / exception /
-                // venue-restriction; the ResolvesTimetableTimeline week loop
-                // stamps it). The day-flag branch stays a DISPLAY aid.
-                replaceBtn.style.display = event.occurrenceFact ? 'flex' : 'none';
+                /* occurrence-week-pin-truthfulness D-P4: the EXACT-PAIR gate —
+                   the button exists ONLY where the occurrence's own week
+                   carries a live conflict fact (holiday / exception /
+                   venue-restriction; the ResolvesTimetableTimeline week loop
+                   stamps it). Livewire's marker morph can blank the DOM
+                   clone's extra key — re-read the truth from the SERVED
+                   array (id+di identity) before deciding. */
+                var stampedEvent = event;
+                try {
+                    (window.eventsData[currentWeek] || []).forEach(function (x) {
+                        if (x && x.id === event.id && x.di === event.di && x.occurrenceFact) {
+                            stampedEvent = x;
+                        }
+                    });
+                } catch (e) {}
+                replaceBtn.style.display = stampedEvent.occurrenceFact ? 'flex' : 'none';
 
                 let cohortValue = event.cohort;
                 let studentValue = event.studentCount ? String(event.studentCount) : '—';
@@ -165,6 +176,24 @@
                         { label: 'Total Students', value: studentValue }
                     ]
                 });
+            }
+
+            /* the popup's handoff: the STAMPED event's week — re-derived from
+               the served array (the morph-clone-proof channel; D-P4). */
+            function rarityReplaceOccurrenceWeek() {
+                var ev = window.currentModalEvent;
+                if (ev && ev.occurrenceFact && ev.occurrenceFact.week) {
+                    return ev.occurrenceFact.week;
+                }
+                var found = null;
+                try {
+                    (window.eventsData[currentWeek] || []).forEach(function (x) {
+                        if (x && ev && x.id === ev.id && x.di === ev.di && x.occurrenceFact) {
+                            found = x.occurrenceFact.week;
+                        }
+                    });
+                } catch (e) {}
+                return found;
             }
 
             function closeModal() {
@@ -250,6 +279,7 @@
             window.nextWeek = nextWeek;
             window.selectWeek = selectWeek;
             window.openModal = openModal;
+            window.rarityReplaceOccurrenceWeek = rarityReplaceOccurrenceWeek;   // occurrence-week-pin-truthfulness: the handoff reads the STAMPED week
             window.buildTimetable = buildTimetable;
             window.updateSummary = updateSummary;
             window.closeModal = closeModal;
