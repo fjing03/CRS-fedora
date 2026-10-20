@@ -267,7 +267,7 @@ class VenueTimetable extends Component
 
         // occurrence-week-pin-truthfulness D-P5: the original* keys read
         // classSession.venue — eager-load it (relation-unloaded today).
-        $requests = ReplacementRequest::with(['classSession.module', 'classSession.lecturer', 'classSession.venue', 'classSession.cohorts.programme'])
+        $requests = ReplacementRequest::with(['classSession.module', 'classSession.lecturer', 'classSession.venue', 'classSession.cohorts.programme', 'proposer'])
             ->whereIn('status', ['pending', 'approved'])
             ->whereIn('id', $junctionLink->unique()->values())
             ->get()
@@ -346,6 +346,11 @@ class VenueTimetable extends Component
                 'originalVenueName' => $session->venue !== null ? (string) ($session->venue->room_name ?? '') : '',
                 'originalStartTime' => substr((string) $session->start_time, 0, 5),
                 'originalEndTime' => substr((string) $session->end_time, 0, 5),
+                // occurrence-week-pin-truthfulness popup-accuracy rider: the
+                // pending popup's Requested At/By rows (MYT; the proposer's
+                // name) — the venue modal showed nulls before.
+                'requestedAt' => app(\App\Services\ReplacementRequestMapper::class)->stampDisplay($request->submitted_at, 'd M Y, h:i A'),
+                'requestedBy' => (string) ($request->proposer->name ?? ''),
                 'status' => $isApproved ? 'replacement' : 'pending', // the frozen legend (STATUSES now carry the direct blue my-timetable class; pending stays amber)
                 'remarks' => $isApproved
                     ? (string) $originalDate

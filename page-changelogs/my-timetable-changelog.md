@@ -1,5 +1,11 @@
 # Changelog — Lecturer My Timetable
 
+## 2026-10-20 (user report #13 redo) — Requested At renders the MYT clock across the popups
+
+The pending blocks' `requestedAt` used the trait's raw UTC form; it now
+renders through the mapper's `stampDisplay` (the same `d M Y, h:i A` in
+Asia/Kuala_Lumpur) — the popup's Requested At rows match the Request
+History page's rows.
 ## 2026-10-19 (SDD occurrence-week-pin-truthfulness) — the Replace-Now popup is EXACT-PAIR truthful
 
 The popup's Replace Now used to fire off `window.currentWeek + 1` (a stale

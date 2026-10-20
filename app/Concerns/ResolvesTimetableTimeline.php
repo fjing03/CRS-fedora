@@ -260,7 +260,7 @@ trait ResolvesTimetableTimeline
                     }
                     $ev['status'] = 'pending';
                     $ev['requestId'] = $pending->id;
-                    $ev['requestedAt'] = $pending->submitted_at->format('d M Y, h:i A');
+                    $ev['requestedAt'] = app(ReplacementRequestMapper::class)->stampDisplay($pending->submitted_at, 'd M Y, h:i A');   // MYT (SDD occurrence-week-pin-truthfulness popup-accuracy rider)
                     $proposer = $pending->proposer;
                     $ev['requestedBy'] = $proposer !== null ? $proposer->name : '';
                     $events[] = $ev;

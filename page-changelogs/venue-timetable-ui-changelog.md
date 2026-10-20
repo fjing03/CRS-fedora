@@ -1,5 +1,14 @@
 # Changelog — Venue Timetable UI
 
+## 2026-10-20 (user report #13 redo) — the pending popup's Requested At/By rows REAL
+
+The venue page's Slot Details modal showed `Requested At —` / `Requested By —`
+for pending replacements: its reserved-pass events never carried the keys.
+The payload now carries `requestedAt` (MYT — the mapper's `stampDisplay`)
++ `requestedBy` (the proposer's name, eager-loaded). The my-timetable +
+cohort-timetable pending rows also switched the UTC raw stamp to the same
+MYT form (the timeline trait's `requestedAt` line) — the SAME `20 Oct 2026,
+12:48 PM` shape across pages/mapper rows.
 ## 2026-10-19 (SDD occurrence-week-pin-truthfulness, F5) — the venue page's Original rows carry the real payload keys
 
 The reserved-pass events gain `originalVenue` / `originalVenueName` /

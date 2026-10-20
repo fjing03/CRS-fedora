@@ -70,4 +70,6 @@
   the Playwright in-scope rows; NO git push; the demo DB untouched
   (the Route-C script stays user-run, run-file §8).
 
-- [ ] (STANDING, no code): D-P7's non-edit covenant holds — no consumer of a request's `week_number` gets edited: the trait's move branch, the queue's decided bucket, the venue full-run states, ReplacementHistory, the mapper's classDate.
+- [x] (STANDING, no code): D-P7's non-edit covenant holds — no consumer of a request's `week_number` gets edited: the trait's move branch, the queue's decided bucket, the venue full-run states, ReplacementHistory, the mapper's classDate.
+- [x] T13 (post-apply user round, 2026-10-19/20): the popup-accuracy riders — the timeline pending-branch's `requestedAt` renders MYT (the mapper's `stampDisplay`), and `VenueTimetable`'s reserved-pass events gain `requestedAt` (MYT) + `requestedBy` (the proposer eager-loaded). Verified live on the #13 redo: the venue popup shows `20 Oct 2026, 12:48 PM / Surayaini Binti Basri`; the cohort page's pending row shows the same MYT form.
+- [x] T14 (post-apply gates): withQueue-appropriate spot gates on the rider files (phpstan 0, php -l) — the FULL gates re-run with T12's F6 suite before /sdd-verify.
