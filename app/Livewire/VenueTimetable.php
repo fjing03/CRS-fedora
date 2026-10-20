@@ -424,8 +424,12 @@ class VenueTimetable extends Component
                     continue;
                 }
 
+                // the 0-BASED INCLUSIVE-cell convention (the timeline trait's
+                // own shipped shape: end = slotIndex(end_time) − 1 — the T20
+                // derive pass originally wrote the exclusive index, which read
+                // a half-hour long: the 1:30 PM bug)
                 $startIdx = $this->slotIndex((string) $session->start_time);
-                $endIdx = $this->slotIndex((string) $session->end_time);
+                $endIdx = $this->slotIndex((string) $session->end_time) - 1;
 
                 // the de-dupe: an imported ROW already covers the span (the
                 // eventsByWeek map keys on 'di:start'; the anchor rows use
@@ -474,7 +478,6 @@ class VenueTimetable extends Component
             }
         }
         // ═══ end T20 derived pass ═══
-
 
         // Grid engine consumes a list — merge twins per week and strip keys.
         $eventsByWeek = array_map(fn (array $weekMap): array => $this->mergeTwinEvents($weekMap), $eventsByWeek);
