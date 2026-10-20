@@ -7,8 +7,9 @@
   remember gate + the restructured guard chain per D3:
  (a) `onCohortChange`/`onFacultyChange` gain the optional `{ origin }`
   second arg; the inline onchange handlers pass `{ origin: 'user' }` (the
-  rememberings run ONLY there, on a real pick; the programmatic paths and
-  the restore never call remember);
+  remembering runs ONLY there, on a real pick whose identity reuses
+  `MockData.currentUser.staffId` — the explicit source per D2; the
+  programmatic paths and the restore never call remember);
  (b) the INIT tail's staff `else if` restructures to the D3 pasteable
   guard chain (the D7-restored select direct-sets; the 2026-10-13 default
   rule verbatim in the `else` arm).
