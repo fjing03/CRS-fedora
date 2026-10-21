@@ -499,7 +499,9 @@ class VenueTimetable extends Component
         // for contract completeness with the cellRender offday rules.
         $isOffday = fn (int $w, int $day): bool => $day === 6 || isset($offdayByWeek[$w][$day]);
 
-        $totalsByWeek = array_fill(0, $weeks, ['total' => 0, 'available' => 0, 'occupied' => 0, 'myClasses' => 0, 'myHours' => '0']);
+        // (the second array_fill REMOVED — the T20 pre-hoisted map at the top
+        // is the single family: the derived counts would otherwise be wiped
+        // right after they are written; the D8 sum family stays one)
         DB::table('time_slots')
             ->where('venue_id', $venue->id)
             ->selectRaw('week_number, day_of_week, status, count(*) as c')
