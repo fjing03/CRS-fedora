@@ -1,5 +1,14 @@
 # Changelog — Venue Timetable UI
 
+## 2026-10-20 (T23, user-diagnosed + user-approved) — the PH rows' grid overflow dead
+
+The cellRender's holiday branch swallowed the span−1 continuation cells
+(event null → the `!(info && info.occupied)` guard now lets them fall
+through to `display:none`) — holiday rows total `hours.length` again and
+the realigned blocks sit on their true time columns. The guard covers all
+three ownership cases in one conjunct (mine / others' / the derived family,
+which all leak identically). Verified live: every row paints 23 = the
+header at B110/W8 + B009/W14; the empties keep the PH cells.
 ## 2026-10-20 (SDD occurrence-week-pin-truthfulness T20–T22) — the PH days at every venue render the real conflict rows
 
 The venue page's PH-gobble branch hides every non-mine event at a holiday

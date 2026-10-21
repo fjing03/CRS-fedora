@@ -621,7 +621,14 @@
                             const div = document.createElement('div');
                             div.className = 'cell-sun';
                             td.appendChild(div);
-                        } else if (day.holiday && !offMine && !(info && info.event)) {
+                        /* T23 (the grid-overflow fix, user-approved 2026-10-20):
+                           continuation cells (span−1 family: event null +
+                           occupied true — ownership-independent) fall through
+                           to branch 4's display:none — holiday rows total
+                           hours.length again; the ph cells only render for
+                           genuinely-empty cells. Covers all three ownership
+                           cases (mine / others' / derived). */
+                        } else if (day.holiday && !offMine && !(info && info.event) && !(info && info.occupied)) {
                             const div = document.createElement('div');
                             div.className = 'cell-content cell-ph';
                             td.appendChild(div);
