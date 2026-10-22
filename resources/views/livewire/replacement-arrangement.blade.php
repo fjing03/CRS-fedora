@@ -2957,23 +2957,30 @@ slotLine = 'Week ' + (anchorSlot.week + 1) + ' · ' + ((weekdayName && weekdayNa
             const firstConflictRow = rowSessionCandidates[0] || null;
 
             /* occurrence-week-pin-truthfulness (user request 2026-10-19/20, T18):
-               a subject switch AUTO-PINS the earliest conflicted occurrence —
-               the same facts the picker would surface — the picker-first ask
-               only when this subject carries NO conflicted slot (the user
-               still picks freely afterward; nothing about the submit path
-               changes: the pin IS the pinned pair the submit honours). */
-            if (firstConflictRow) {
+               a POST-BOOT subject switch AUTO-PINS the earliest conflicted
+               occurrence — the same facts the picker would surface — the
+               picker-first ask only when this subject carries NO conflicted
+               slot (the user still picks freely afterward; nothing about the
+               submit path changes: the pin IS the pinned pair the submit
+               honours).
+               session-arrival-pin-guard (user report 2026-10-20): ?session=
+               arrivals switch the subject PROGRAMMATICALLY at the boot
+               (pre-__bootDone) — the auto-pin must not hijack the arrival
+               pin there; the else-ride keeps it and courseCtx() resolves
+               the strip from the pinned session's own facts. The former
+               window.urlParams shadow block is DELETED: no consumers exist
+               (verified: the only occurrence repo-wide was the write), and
+               routing these writes into the local urlParams would hijack
+               the POST-BOOT anchor/submit fallback (the bug class this
+               change kills). */
+            if (firstConflictRow && window.__bootDone) {
                 window.pinnedOccurrence = { sessionId: firstConflictRow.sessionId, week: firstConflictRow.week + 1 };
-                urlParams = urlParams || {};
-                window.urlParams = Object.assign({}, window.urlParams, {
-                    day: firstConflictRow.day,
-                    start: firstConflictRow.start,
-                    originalVenue: firstConflictRow.venue,
-                });
                 currentSessionId = Number(firstConflictRow.sessionId);
             } else {
                 /* no conflicted occurrence for this subject → keep the
-                   picker-first ask (the honest guard) */
+                   picker-first ask (the honest guard); on a boot-time
+                   arrival WITH a pin, the ride below is THIS branch: the
+                   arrival pin stays the user's */
                 const wanted = autoPinRide ? String(autoPinRide.sessionId) : null;
                 currentSessionId = wanted && currentCourse.sessions && currentCourse.sessions[wanted]
                     ? Number(wanted)

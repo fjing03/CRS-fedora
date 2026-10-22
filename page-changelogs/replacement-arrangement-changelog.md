@@ -1,5 +1,45 @@
 # Changelog — Replacement Arrangement (Selected Subject Page)
 
+## 2026-10-20 (SDD session-arrival-pin-guard — user report, 2 sightings, user-approved) — the ?session= arrival pin is no longer hijacked
+
+Every `?session=` handoff (my-timetable Replace Now, replacement-home
+Arrange Replacement, the venue intent handoff) hydrates an honest server
+pin — then the boot's OWN subject programming (pre-`__bootDone`) let the
+T18 earliest-conflict auto-pin HIJACK it: `window.pinnedOccurrence` was
+rewritten to `{97, 8}` (the joint (L) lecture's Deepavali Monday) while
+the user had clicked the practicals' Christmas sessions, the strip
+rendered the lecture's `(L)` + joint cohorts + `18 + 15 = 33` over the
+pinned practical, and submit would file the lecture's pair.
+
+The fix (2 edits, one file): (1) the auto-pin gate gains
+`window.__bootDone` — on arrivals the existing else-ride keeps the
+pinned session and `courseCtx()` resolves the strip from the pinned
+session's own facts; (2) the `window.urlParams` shadow write (a true
+repo-wide zero-reader fork) is DELETED — no local reroute (routing it
+would have re-created the hijack on the POST-BOOT path).
+
+Verified live (the user's two sightings, staff 5770):
+- `?session=49&week=14&from=my-timetable` → strip = `(P) | Week 14 ·
+  Fri, Dec 25 2026 · 11:00 AM–12:00 PM @ B011 | DFT2 (S1) G1 | 18`,
+  pin = `{49, 14}` (was `(L) … 18 + 15 = 33`, pin `{97, 8}`).
+- `?session=39&week=14&from=replacement-home` → strip = `(P) | Week 14 ·
+  Thu, Dec 24 2026 · 1:30 PM–2:30 PM @ B010 | DSF2 (S1) G1 | 15`,
+  pin = `{39, 14}`.
+
+Post-boot T18 semantics byte-identical (default-pin 3/3 green — genuine
+subject switches still auto-pin the earliest conflict). The grid
+auto-nav residual (the arrival grid may land the earliest conflict's
+week and persist it) is PRE-EXISTING and documented-only this change
+(the one-token gate for it is an open user decision, task T6).
+Sequencing: this change applied only together with/after
+`venue-cross-week-handoff` (0eec527 first — the ordering rule in its
+T7). Playwright: the new `tests/session-arrival-pin-guard.spec.ts` 3/3;
+the regression set (default-pin / replace-now / venue-intent-modal /
+venue-cross-week-handoff) 15 green + C2's toast-poll fail = the
+stash-proven pre-existing noise (fails identically without both
+changes). The amendment lineage of the still-open
+`occurrence-week-pin-truthfulness` T18 rider — this change amends
+exactly that rider's arrival firing.
 ## 2026-10-20 (SDD venue-cross-week-handoff — the arrival side of the threaded week)
 
 The `?session=…&week=N` handoff's `week` now carries THE PINNED
