@@ -2999,8 +2999,15 @@ slotLine = 'Week ' + (anchorSlot.week + 1) + ' · ' + ((weekdayName && weekdayNa
             /* the AUTO-NAV (the user's “choose the first conflicted slot for
                me”): jump the grid to the occurrence's week; the strip's
                anchor already names it (the trigger note above). The grid's
-               own buildTimetable runs right after this function's tail. */
-            if (firstConflictRow && typeof weekNav !== 'undefined') {
+               own buildTimetable runs right after this function's tail.
+               session-arrival-pin-guard T6 (user decision B, 2026-10-20):
+               the same __bootDone conjunct as the auto-pin — pre-boot
+               arrivals keep the grid standing on the PINNED week (the
+               pinned occurrence is already in front of the user; the
+               earliest-conflict jump could land/persist a different week
+               than the pin says); POST-boot subject switches still
+               auto-navigate byte-identically. */
+            if (firstConflictRow && window.__bootDone && typeof weekNav !== 'undefined') {
                 weekNav.selectWeek(firstConflictRow.week);
                 currentWeek = weekNav.currentWeek;
                 window.currentWeek = currentWeek;

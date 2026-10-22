@@ -36,6 +36,17 @@ test('S1 — the pinned arrival keeps the user\'s pair + the strip reads 49\'s o
   await expect(page.locator('#slotTriggerText')).not.toContainText('Auto-pinned');
   // the strip's slot line still = 49's own Fri Dec 25 facts (unchanged by the fix)
   expect(strip).toContain('Week 14');
+  // T6 (user decision B): PRE-boot the auto-NAV is gated too — the arrival
+  // GRID stands on the pinned week (W14 = index 13), not the earliest
+  // conflict's week (W8). window.currentWeek is unavailable pre-boot (the
+  // gated block writes it only post-boot), so the assert reads the live
+  // weekSelector's own value + the persisted memory:
+  const gridWeek = await page.evaluate(() => parseInt(document.getElementById('weekSelector').value, 10));
+  expect(gridWeek).toBe(13);
+  // nothing silent is persisted: the saved working-week holds the user's
+  // clicked week (13) — the old residual saved the earliest-conflict jump (7)
+  const saved = await page.evaluate(() => localStorage.getItem('arrangementWeek'));
+  expect(saved).toBe('13');
 });
 
 test('S2 — the replacement-home sighting (39) reads its own facts (P · DSF2 · {39,14})', async ({ page }) => {

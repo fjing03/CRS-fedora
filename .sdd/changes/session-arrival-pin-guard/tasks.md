@@ -30,12 +30,17 @@
   `venue-cross-week-handoff`, the documented auto-nav residual) + the
   fold-in note under the still-open `occurrence-week-pin-truthfulness`
   change's T18 amendment lineage (this fix amends its T18 rider).
-- [ ] T6. OPTIONAL — PENDING THE USER'S DECISION (explore-brief open
-  question; design D3 options a/b): the T18 auto-nav gate
-  (:3019–3027) — the same one-token `window.__bootDone` conjunct, making
-  the arrival grid stay on the pinned week (post-boot unchanged). Land
-  ONLY with the user's explicit word; otherwise the residual stays
-  documented-only.
+- [x] T6. EXECUTED (user decision **B**, given explicitly 2026-10-20 in
+  chat: "B"); the T18 auto-nav block (:3000–3010, the `selectWeek(firstConflictRow.week)`
+  family) gains the same `window.__bootDone` conjunct — pre-boot arrivals
+  keep the grid standing on the pinned week (W14 for the 49 receipt) and
+  no silent `weekNav.save()`/`saveCurrentWeek()` runs from the auto-nav
+  (the boot bridge's pinned-week jump at :3519 remains the last one, so
+  `localStorage['arrangementWeek']` = the user's clicked week, not the
+  earliest conflict's 7). POST-boot subject switches byte-identical
+  (default-pin T18-S1 green). S1's T6 asserts: `#weekSelector` = '13' +
+  `arrangementWeek` = '13' (the binary-window.currentWeek probe is
+  unusable pre-boot — the gated block only writes it post-boot).
 - [ ] T7. Apply sequencing guard: run only together with (or after)
   `venue-cross-week-handoff` — never this change alone before the venue
   threading (proposal's sequencing note).

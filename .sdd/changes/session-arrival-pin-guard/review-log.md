@@ -61,3 +61,20 @@ house-shaped locators): ✅ CONFIRMED.
 ### 🔴 Outstanding
 - None — **PASS** (the T6 auto-nav gate stays unapplied pending the
   user's explicit decision, as documented).
+
+## T6 decision record — 2026-10-20 (post-apply, user-decided)
+
+The user answered the parked explore-brief question (the auto-nav
+residual, design D3 options a/b) with an explicit **B** — gate the T18
+auto-nav with the same `__bootDone` conjunct. Execution receipts (this
+round = the user's decision, not a new review ask):
+
+- The auto-nav block edited in the same file (+ the design D3 wording
+  already covered both options — no unfreeze needed: task T6 WAS the
+  drawn option (b)).
+- New asserts in S1: `#weekSelector` = '13' + `localStorage['arrangementWeek']`
+  = '13' on the 49 arrival (the old residual persisted '7').
+- Runs: session-arrival-pin-guard 3/3 · default-pin 3/3 (post-boot
+  auto-NAV byte-identical) · venue-cross-week-handoff 2/2 ·
+  venue-intent-modal 7/8 (only the stash-proven C2 toast-poll noise
+  fails, same signature).

@@ -27,10 +27,17 @@ Verified live (the user's two sightings, staff 5770):
   pin = `{39, 14}`.
 
 Post-boot T18 semantics byte-identical (default-pin 3/3 green — genuine
-subject switches still auto-pin the earliest conflict). The grid
-auto-nav residual (the arrival grid may land the earliest conflict's
-week and persist it) is PRE-EXISTING and documented-only this change
-(the one-token gate for it is an open user decision, task T6).
+subject switches still auto-pin + auto-navigate the earliest conflict).
+The grid auto-nav residual (the arrival grid landing/persisting the
+earliest conflict's week) was RESOLVED THE SAME DAY per the user's
+explicit decision B: the auto-nav block gains the same `__bootDone`
+conjunct — arrivals keep the grid standing on the PINNED week, nothing
+is persisted by the jump (the saved working-week memory holds the
+user's clicked week, e.g. `arrangementWeek` = 13 on the 49 receipt,
+never the earliest-conflict 7), and post-boot auto-navigation is
+byte-identical. The venue-intent A6 family + the replace-now family
+stayed green; C2's toast-poll fail remains the stash-proven
+pre-existing noise.
 Sequencing: this change applied only together with/after
 `venue-cross-week-handoff` (0eec527 first — the ordering rule in its
 T7). Playwright: the new `tests/session-arrival-pin-guard.spec.ts` 3/3;
