@@ -1,0 +1,41 @@
+# Tasks — session-arrival-pin-guard
+
+- [ ] T1. `resources/views/livewire/replacement-arrangement.blade.php` —
+  the T18 auto-pin block (:2961–2975): add the `window.__bootDone`
+  conjunct to the `if (firstConflictRow …)` gate at :2965 (**no local
+  `urlParams` reroute**); DELETE the entire :2967–2973 shadow block
+  (`urlParams = urlParams || {}; window.urlParams = Object.assign({},
+  …)` — lines gone); keep the `pinnedOccurrence` + `currentSessionId`
+  writes exactly as shipped; refresh the comment (design D1's exact
+  shape) and refresh the ±1–3 drifted line citations (:2987 trigger,
+  :2374 anchor, :3408–3411 boot) in the touch.
+- [ ] T2. NEW `tests/session-arrival-pin-guard.spec.ts` — the three rows
+  (direct 49 arrival, direct 39 arrival, Replace-Now click-through with
+  the `tr[data-day-index="4"]`-scoped locator + `#btnReplaceNow` pre-
+  assert; design D6's exact asserts incl. the trigger NOT "Auto-pinned").
+- [ ] T3. Stale-cache ritual (kill serve → rm compiled views → serve,
+  two separate commands; re-auth via `tests/auth.setup.ts --project=setup`
+  if storage states expired).
+- [ ] T4. Run `tests/session-arrival-pin-guard.spec.ts` +
+  `tests/default-pin.spec.ts` (3 rows) + `tests/replace-now.spec.ts` +
+  `tests/venue-intent-modal.spec.ts` (and
+  `tests/venue-cross-week-handoff.spec.ts` if already landed) with
+  `--grep-invert "TC70"` — default-pin's 3 rows and the venue-intent
+  A6/C2 rows must stay green unchanged (the byte-parity contract);
+  re-run the /tmp pin-probe shape on both user URLs for the manual
+  receipts.
+- [ ] T5. `page-changelogs/replacement-arrangement-changelog.md` — dated
+  fix entry (the arrival-pin hijack root, the gate + pure-deletion
+  shape, the honest strip + pin receipts, the sequencing note with
+  `venue-cross-week-handoff`, the documented auto-nav residual) + the
+  fold-in note under the still-open `occurrence-week-pin-truthfulness`
+  change's T18 amendment lineage (this fix amends its T18 rider).
+- [ ] T6. OPTIONAL — PENDING THE USER'S DECISION (explore-brief open
+  question; design D3 options a/b): the T18 auto-nav gate
+  (:3019–3027) — the same one-token `window.__bootDone` conjunct, making
+  the arrival grid stay on the pinned week (post-boot unchanged). Land
+  ONLY with the user's explicit word; otherwise the residual stays
+  documented-only.
+- [ ] T7. Apply sequencing guard: run only together with (or after)
+  `venue-cross-week-handoff` — never this change alone before the venue
+  threading (proposal's sequencing note).
