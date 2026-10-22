@@ -1,5 +1,21 @@
 # Changelog — Replacement Arrangement (Selected Subject Page)
 
+## 2026-10-20 (SDD venue-cross-week-handoff — the arrival side of the threaded week)
+
+The `?session=…&week=N` handoff's `week` now carries THE PINNED
+OCCURRENCE'S week (the venue page's producer edit writes the picked dd
+row's own week). `pinnedSessionPayload` already read `week` verbatim —
+no server/consumer edit; the pinned pair the boot hydrates is the pair
+the user picked, so the strip's slot line and the submit payload target
+the real occurrence. Honest residual (design D5): a cross-week pick of a
+NON-earliest occurrence still diverges (strip shows the picked W14 line
+while the T18 auto-pin re-writes the pin to the module's earliest)
+until `session-arrival-pin-guard` lands — that change applies AFTER/
+with this one, never alone before it. Playwright: the new
+`tests/venue-cross-week-handoff.spec.ts` (S1 repro + S2 byte-parity
+control) 2/2; the A6/C2/venue-book/default-pin families ran with the
+TC70 guard — C2's toast-poll failure reproduced on the pre-change
+stash baseline = pre-existing noise, not from this change.
 ## 2026-10-20 (T18 T19 — the arrangement's dd UX two riders)
 
 **T18 (the user's 'defaultly choose the first conflicted slot')**: a

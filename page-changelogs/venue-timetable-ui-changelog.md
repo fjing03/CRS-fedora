@@ -1,5 +1,23 @@
 # Changelog — Venue Timetable UI
 
+## 2026-10-20 (SDD venue-cross-week-handoff — user report + user-approved) — the cross-week handoff threads the occurrence week
+
+The intent-session dd's picked row carries its OWN occurrence week
+(`data-week`, e.g. `8`) — `confirmIntentSession` now passes it and
+`bookVenueWithSession` writes the URL `&week=` from the ROW's week
+(fallback `currentWeek + 1` keeps `week:''` rows byte-for-byte; the
+pre-select path — `chooseSession(first)` marks `.active` — threads too).
+`&week=` now means what `pinnedSessionPayload` always assumed: the
+pinned occurrence's week; `&date`/`&time` stay the slot's landing facts.
+User repro (B111, W7 view, Tue 03 Nov 13:00, pick `(L) W8, Mon, Nov 9 .
+11:00 ~ 13:00`): the URL `&week=8` (was `7` — the phantom pair `{97,7}`)
+and the strip reads `Week 8 · Mon, Nov 09 2026 · 11:00 AM–1:00 PM @ B110`.
+Same-week picks compose today's exact URL (byte parity; A6's shape-regex
+and U2a-T3 stay green). Honest residual: a cross-week pick of a
+NON-earliest occurrence still gets its arrival pin re-written by the
+T18 auto-pin to the module's earliest conflict until
+`session-arrival-pin-guard` lands (the parallel change; the two stack).
+No server edit — `pinnedSessionPayload` already reads `week` verbatim.
 ## 2026-10-20 (T23, user-diagnosed + user-approved) — the PH rows' grid overflow dead
 
 The cellRender's holiday branch swallowed the span−1 continuation cells

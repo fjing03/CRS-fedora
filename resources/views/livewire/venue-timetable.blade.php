@@ -557,12 +557,23 @@
                 const sel = document.getElementById('intentSubjectSelect');
                 const moduleLabel = sel.options[sel.selectedIndex] ? sel.options[sel.selectedIndex].textContent.split(' — ')[0] : '';
                 /* the picked SESSION id rides on the panel rows (data-sid) — the
-                   occurrence-grain visual choice collapses to the session handoff */
+                   occurrence-grain visual choice collapses to the session handoff.
+                   venue-cross-week-handoff (T1): the row's OWN occurrence week
+                   (data-week) rides too — the URL's &week= becomes the pinned
+                   occurrence's week instead of the viewed slot's week. */
                 const pickedRow = dd.querySelector('.session-dd-item.active');
-                bookVenueWithSession(venueInfo.code, intentContext.dateStr, intentContext.timeStr, moduleLabel, pickedRow ? pickedRow.dataset.sid : '', pickedRow ? (pickedRow.dataset.cohort || '') : '');
+                bookVenueWithSession(venueInfo.code, intentContext.dateStr, intentContext.timeStr, moduleLabel, pickedRow ? pickedRow.dataset.sid : '', pickedRow ? (pickedRow.dataset.cohort || '') : '', pickedRow ? (pickedRow.dataset.week || '') : '');
             }
 
-            function bookVenueWithSession(venueCode, date, time, code, sessionId, cohortLabel) {
+            /* venue-cross-week-handoff (T2): occurrenceWeek = the picked row's
+               own occurrence week; the URL's &week= = THE PINNED occurrence's
+               week (pinnedSessionPayload's assumed meaning). The pre-select
+               (chooseSession(first) at the pool build) marks its row .active,
+               so the auto-picked first row's week threads too. Rows WITHOUT a
+               week (week:'' legacy rows) keep the viewed-week fallback
+               byte-for-byte. &date/&time stay the slot's own landing facts
+               (design D3). */
+            function bookVenueWithSession(venueCode, date, time, code, sessionId, cohortLabel, occurrenceWeek) {
                 hideAvailableTooltip();
                 const bookingKey = venueCode + '|' + date + '|' + time;
                 try {
@@ -577,7 +588,7 @@
                     + '&code=' + encodeURIComponent(code)
                     + '&session=' + encodeURIComponent(sessionId)
                     + '&cohort=' + encodeURIComponent(cohortLabel)
-                    + '&week=' + encodeURIComponent(currentWeek + 1);
+                    + '&week=' + encodeURIComponent(occurrenceWeek ? occurrenceWeek : currentWeek + 1);
             }
 
             /* B shortcut opens on the Tab-focused cell; Escape hides the
