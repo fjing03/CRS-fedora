@@ -1,5 +1,32 @@
 # Changelog — Replacement Arrangement (Selected Subject Page)
 
+## 2026-10-20 (SDD arrangement-earliest-week-default — the user's own idea, Q1–Q3 decided) — fresh landings stand on the Earliest Bookable week
+
+`#weekSelector` on `/replacement-arrangement` now follows the priority
+chain (frozen): **URL pin → saved week (`arrangementWeek`, else the
+legacy `currentWeek` migration) → Earliest Bookable → week 1**. A plain,
+no-URL, MEMORYLESS landing (first visit / cleared storage) stands on
+`firstBookableDay(weekData)` — the same truth the page's own "Earliest
+bookable" button uses (Sundays + holidays + lead-time skipped). A saved
+week keeps winning (the working-week promise, Q2 = A); the landing is
+SILENT (Q3 = A — this change adds no toast; the page's own pre-existing
+"Undo" bar family on plain landings is unrelated — stash-proven on the
+baseline). The probe for "did a saved week exist" runs BEFORE
+`weekNav.load()` on purpose: load()'s one-time legacy migration would
+promote the `currentWeek` key mid-run. Rows: the new
+`tests/arrangement-earliest-week-default.spec.ts` — D-row1 (memoryless =
+Earliest Bookable; the storageState-enforced clean context), D-row2 (a
+saved bookable week beats the default — no hardcoded value, derived at
+runtime), D-row3 (the pinned bridge wins even memoryless: the selector
+= 13 and `arrangementWeek` = '13' — consistent with
+`session-arrival-pin-guard`'s receipts). Regression set green:
+(default-pin 3/3, replace-now, venue-cross-week-handoff 2/2,
+session-arrival-pin-guard 3/3, venue-intent-modal 7/8) with the
+documented pre-existing family: C2's toast-poll noise + the two
+venue-timetable baseline rows (TC34/TC35). No phpunit delta (blade-JS
+only). The intent nuance (design D3): `?venue=&date=&time=` memoryless
+landings may still auto-jump via `resolveBookingIntent` — that path's
+own pre-existing contract, untouched.
 ## 2026-10-20 (SDD session-arrival-pin-guard — user report, 2 sightings, user-approved) — the ?session= arrival pin is no longer hijacked
 
 Every `?session=` handoff (my-timetable Replace Now, replacement-home

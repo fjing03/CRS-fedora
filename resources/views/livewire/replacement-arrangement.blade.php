@@ -3503,6 +3503,26 @@ triggerText.textContent = 'W' + (slot.week + 1) + ' · ' + shortDate + ' · ' + 
             updateFavStar();
             document.getElementById('favStar')?.addEventListener('click', toggleFavourite);
             document.getElementById('semesterChip').textContent = MockData.semester.chipText;
+            /* ARRANGEMENT-EARLIEST-WEEK-DEFAULT (user decisions Q2 A + Q3 A,
+               2026-10-20): the saved-week probe runs BEFORE load() — load()'s
+               one-time legacy migration (F-11) would promote the 'currentWeek'
+               key into 'arrangementWeek' during the run, and a post-load probe
+               could never tell memoryless from migrated.
+               A plain, no-URL, MEMORYLESS landing stands up on the Earliest
+               Bookable week — the same truth the page's own "Earliest
+               bookable" button uses (firstBookableDay skips Sundays +
+               holidays + the lead-time too-soon days). A saved week keeps
+               winning (the working-week promise; its entries = user-arrived
+               or pinned positions); the pinned bridge above stays first
+               (URL > saved > earliest > week 1). SILENT by decision (Q3 A):
+               no toast; the selector self-documents. No save call — the
+               memoryless state stays memoryless until the user navigates. */
+            var hadSavedWeek = false;
+            try {
+                hadSavedWeek = localStorage.getItem('arrangementWeek') !== null
+                    || localStorage.getItem('currentWeek') !== null;
+            } catch (e) { hadSavedWeek = false; }
+
             /* restore the previously saved week (localStorage), else falls back to week 1 */
             weekNav.load();
             /* BRIDGE PATCH: the pinned occurrence's week wins over the saved
@@ -3512,6 +3532,10 @@ triggerText.textContent = 'W' + (slot.week + 1) + ' · ' + shortDate + ' · ' + 
                window.buildTimetable while the weekSelector is still empty —
                getDays reads it → NaN crash that killed the whole boot). */
             if (window.pinnedOccurrence) weekNav._currentWeek = window.pinnedOccurrence.week - 1;
+            else if (!hadSavedWeek) {
+                const eb = firstBookableDay(weekData);
+                if (eb) weekNav._currentWeek = eb.week;
+            }
             populateWeekSelect('weekSelector', {
                 ranges: false,
                 selected: weekNav.currentWeek,
