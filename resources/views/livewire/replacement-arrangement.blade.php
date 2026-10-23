@@ -3504,19 +3504,29 @@ triggerText.textContent = 'W' + (slot.week + 1) + ' · ' + shortDate + ' · ' + 
             document.getElementById('favStar')?.addEventListener('click', toggleFavourite);
             document.getElementById('semesterChip').textContent = MockData.semester.chipText;
             /* ARRANGEMENT-EARLIEST-WEEK-DEFAULT (user decisions Q2 A + Q3 A,
-               2026-10-20): the saved-week probe runs BEFORE load() — load()'s
-               one-time legacy migration (F-11) would promote the 'currentWeek'
-               key into 'arrangementWeek' during the run, and a post-load probe
+               2026-10-20) — as amended by ARRIVAL-GRID-NO-PIN (user law
+               2026-10-20): ?session=…&week= now carries the occurrence PAIR
+               (the strip + the submit target) — NEVER the landing. The
+               saved-week probe runs BEFORE load() — load()'s one-time
+               legacy migration (F-11) would promote the 'currentWeek' key
+               into 'arrangementWeek' during the run, and a post-load probe
                could never tell memoryless from migrated.
-               A plain, no-URL, MEMORYLESS landing stands up on the Earliest
-               Bookable week — the same truth the page's own "Earliest
-               bookable" button uses (firstBookableDay skips Sundays +
-               holidays + the lead-time too-soon days). A saved week keeps
-               winning (the working-week promise; its entries = user-arrived
-               or pinned positions); the pinned bridge above stays first
-               (URL > saved > earliest > week 1). SILENT by decision (Q3 A):
-               no toast; the selector self-documents. No save call — the
-               memoryless state stays memoryless until the user navigates. */
+               The landing rule:
+               • plain, no-URL landings keep the Q2-A chain (a saved week
+                 wins; earliest fills the memoryless void — firstBookableDay
+                 skips Sundays + holidays + the lead-time too-soon days).
+               • pinned arrivals land on the Earliest Bookable week ALWAYS
+                 ("doesn't matter where they came from") — even over a
+                 saved week.
+               • COMBINED pinned+intent URLs (?session + &venue&date&time —
+                 the A6 family): the resolveBookingIntent jump WINS the
+                 landing (the booked-date week) — the destination is the
+                 fresher user-instruction (the A decision).
+               SILENT by decision (Q3 A): no toast; the selector
+               self-documents. No save call — the memoryless state stays
+               memoryless until the user navigates. The OLD localStorage
+               keys live readable-only in history; the bridge writes
+               nothing. */
             var hadSavedWeek = false;
             try {
                 hadSavedWeek = localStorage.getItem('arrangementWeek') !== null
@@ -3525,14 +3535,10 @@ triggerText.textContent = 'W' + (slot.week + 1) + ' · ' + shortDate + ' · ' + 
 
             /* restore the previously saved week (localStorage), else falls back to week 1 */
             weekNav.load();
-            /* BRIDGE PATCH: the pinned occurrence's week wins over the saved
-               one — the lecturer started from THAT occurrence's card. The
-               week VALUE is set here; the grid REBUILD happens right after
-               populateWeekSelect below (a selectWeek now would rebuild via
-               window.buildTimetable while the weekSelector is still empty —
-               getDays reads it → NaN crash that killed the whole boot). */
-            if (window.pinnedOccurrence) weekNav._currentWeek = window.pinnedOccurrence.week - 1;
-            else if (!hadSavedWeek) {
+            if (!window.pinnedOccurrence && hadSavedWeek) {
+                /* plain + saved: the working-week resume (load() already
+                   restored the position — nothing to write here) */
+            } else {
                 const eb = firstBookableDay(weekData);
                 if (eb) weekNav._currentWeek = eb.week;
             }
@@ -3545,9 +3551,11 @@ triggerText.textContent = 'W' + (slot.week + 1) + ' · ' + shortDate + ' · ' + 
                 /* labels = shared default: full "Week N · DD Mon YYYY ~ DD Mon YYYY"
                    on desktop (matches the venue page), compact on mobile */
             });
-            /* BRIDGE PATCH: now that the weekSelector is populated, rebuild the
-               grid onto the pinned week (same call a user week-change makes). */
-            if (window.pinnedOccurrence) weekNav.selectWeek(window.pinnedOccurrence.week - 1);
+            /* ARRIVAL-GRID-NO-PIN: the post-populate selectWeek(pinnedIdx)
+               call is DELETED — the bridge no longer positions (or persists
+               arrangementWeek from) the pinned arrival; the grid rebuilds at
+               the landing rule's week via the boot's own buildTimetable,
+               while the pinned pair keeps riding the strip + the submit. */
             /* dated tooltip on the "Earliest bookable" action (computed, not hardcoded);
                the boundary day's chip lives in the grid time-col (cfg.bookableBadge) */
             const earliest = firstBookableDay(weekData);

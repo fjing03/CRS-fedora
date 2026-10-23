@@ -1,5 +1,38 @@
 # Changelog — Replacement Arrangement (Selected Subject Page)
 
+## 2026-10-20 (SDD arrival-grid-no-pin — the user's arrival law, the A decision) — the ?session pin = data only; the grid never follows it
+
+**The reversal**: a pinned arrival (`?session=…&week=N`) does NOT
+position the calendar anymore. The bridge's two position writers are
+retired — the boot's `weekNav._currentWeek = pinned.week - 1` branch and
+the post-populate `selectWeek(pinnedIdx)` call (which also persisted
+`arrangementWeek = the pinned week` — that storage rent dies here; the
+saved weeks = the user's own navigation only). The landing:
+
+- plain + saved week → the saved week (the Q2-A working-week promise);
+- plain + memoryless → Earliest Bookable (3c60977's default);
+- **pinned (any `?session=…&week=N`) → Earliest Bookable ALWAYS**
+  ("doesn't matter where they came from"), saved included;
+- **combined pinned+intent URLs** (`?session+&venue&date&time` — the
+  venue-[Arrange] family, the A6 flow): the `resolveBookingIntent`
+  jump WINs the landing (the booked-date week + the auto-placed block)
+  — the destination = the choice made seconds ago (the user's A
+  decision), while the pinned pair keeps riding the strip + the submit.
+
+The pin retains ALL its data lives: `pinnedSessionPayload` untouched (no
+server change), the strip's occurrence facts + highlight unchanged, the
+submit pair unchanged. The now-stale receipts were retuned:
+`session-arrival-pin-guard` S1 (its selector assert = the earliest
+derived at runtime; the arrangementWeek-saved assert deleted; the
+S3 row's click leg hardened — the class-modal's SHOW transition made
+the button wobble under load), and
+`arrangement-earliest-week-default` D-row3 inverted + its header chain
+reworded. The new `tests/arrival-grid-no-pin.spec.ts` carries the law:
+the pinned-memoryless landing, the pinned-with-saved landing (the saved
+week untouchsafely left in localStorage against the bridge), the
+destination-jump receipt. Degenerate edge: no bookable week anywhere →
+the pinned arrivals stand on week 1 like the memoryless family (the
+`if (eb)` guard). No phpunit delta (blade-JS only).
 ## 2026-10-20 (SDD arrangement-earliest-week-default — the user's own idea, Q1–Q3 decided) — fresh landings stand on the Earliest Bookable week
 
 `#weekSelector` on `/replacement-arrangement` now follows the priority

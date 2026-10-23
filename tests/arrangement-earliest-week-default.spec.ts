@@ -4,10 +4,12 @@ import { test, expect } from '@playwright/test';
  * SDD arrangement-earliest-week-default (user decisions Q1–Q3, 2026-10-20):
  * the replacement-arrangement page's #weekSelector lands on the EARLIEST
  * BOOKABLE week when a plain (no-URL-week) landing has NO saved week.
- * Priority chain (frozen): URL pin > saved week (arrangementWeek, else the
- * legacy currentWeek migration) > Earliest
- Bookable (firstBookableDay:
- * skips Sundays + holidays + the lead-time too-soon days) > week 1.
+ * Landing chain (as amended by arrival-grid-no-pin): PLAIN = saved week
+ * (arrangementWeek, else the legacy currentWeek migration) > Earliest
+ * Bookable (firstBookableDay: skips Sundays + holidays + the lead-time
+ * too-soon days) > week 1; PINNED arrivals = Earliest Bookable ALWAYS
+ * (the ?session pin = data only, never the landing); COMBINED
+ * pinned+intent URLs hand the landing to the destination jump.
  * Silent by decision (Q3 A): no toast; the selector self-documents.
  * Outputs ahead: the memoryless rows are add-init-enforced (both keys
  * deleted at document start — the storageState could re-seed unrelated
@@ -61,7 +63,7 @@ test('D-row2 — a saved arrangementWeek wins over the default (no hardcoded val
   expect(parseInt(sel, 10)).toBe(idx);    // the saved week beats the default
 });
 
-test('D-row3 — the pinned arrival wins even memoryless (the bridge stays first)', async ({ page }) => {
+test('D-row3 — the pinned arrival lands EARLIEST too (the pin = data only)', async ({ page }) => {
   await page.addInitScript(() => {
     localStorage.removeItem('arrangementWeek');
     localStorage.removeItem('currentWeek');
@@ -69,10 +71,13 @@ test('D-row3 — the pinned arrival wins even memoryless (the bridge stays first
   await page.goto('/replacement-arrangement?session=49&week=14&from=my-timetable', { waitUntil: 'networkidle' });
   await page.waitForSelector('.conflict-strip', { timeout: 15_000 });
   await page.waitForTimeout(900);
-  // the pinned week = W14 (index 13) — the default must NOT fire over the bridge
+  // arrival-grid-no-pin (user law 2026-10-20): ?session=…&week= = data only
+  // — the grid lands on the Earliest Bookable week like any plain landing
+  const ebPin = await page.evaluate(() => (window as any).firstBookableDay((window as any).weekData));
+  expect(ebPin).not.toBeNull();
   const sel = await page.locator('#weekSelector').inputValue();
-  expect(parseInt(sel, 10)).toBe(13);
-  // the bridge's designed save: the working-week memory holds the pinned week
+  expect(parseInt(sel, 10)).toBe(ebPin.week);
+  // the bridge writes NOTHING: no pinned week saved into the working-week memory
   const saved = await page.evaluate(() => localStorage.getItem('arrangementWeek'));
-  expect(saved).toBe('13');
+  expect(saved).toBeNull();
 });
