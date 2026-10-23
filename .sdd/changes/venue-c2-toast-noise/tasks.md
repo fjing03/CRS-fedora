@@ -22,6 +22,8 @@
   known-failures ledger — the fresh ledger = the TC-2.x stale-key rows (design
   says leave) + TC34/35 baseline rows + the battery-load flake family (S1/S2/
   venue-book-T3 rotate red under load only, green ≈×3 solo).
+  **USER PARK (2026-10-23): the flake probe is skipped 1–2 months** by the
+  user's word — revisit later; the family = documented, never claimed green.
 
 ## Parked (the user's C = B is its own lane)
 
