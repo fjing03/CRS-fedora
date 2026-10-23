@@ -1,3 +1,25 @@
+## 2026-10-23 (SDD venue-intent-banner-kind, the user's option 2) — the manual-arrival banner is kind-complete
+
+The C2 follow-up (venue-c2-toast-noise 56d769b): the own-busy arrival (a
+booked slot the proposer himself teaches, or a placeholder cell) is NOT
+silent — it already speaks via the amber `#bookingIntent` banner + the
+cell pulse + the subject pre-select. A floating toast = a redundant third
+voice, rejected. **The one voice now says everything:**
+
+- The manual-branch banner (`renderBookingIntent()`, the `intentNeedsManual`
+  family) gains the fallback ATTRIBUTION clause when the fallback prefill
+  armed this arrival (the manual path never consumed it):
+  *Pre-selected AMCS2093 (L) — its sessions fit B110; pick another free
+  slot — the pre-selection stays.* (echoes the success-toast wording).
+- The no-match banner (the zero-compatible family) + the selectBlock
+  user-click toast = untouched. No new colors/CSS (a plain `<em>` inherits
+  the banner tokens).
+
+Receipts: venue-intent-modal spec **9/9** (the NEW C2b row 2.7s; C2b ×2 solo
+green 11.8s each); battery spot (cross-week + venue-book + pin-guard) **14/14**;
+pint ✓ · phpstan-1G 0 ✓ · phpunit **230/230** (the blade is a PHP file). The
+demo DB untouched; TC70 never ran.
+
 # Changelog — Replacement Arrangement (Selected Subject Page)
 
 ## 2026-10-20 (SDD arrival-grid-no-pin — the user's arrival law, the A decision) — the ?session pin = data only; the grid never follows it

@@ -115,6 +115,29 @@ test('C2: fallback prefill for modal-bypass full-intent URLs (attributed auto-pi
   expect(picked).toBe(4);
   });
 
+test('C2b: the manual arrival banner is KIND-COMPLETE (one voice, the attribution clause)', async ({ page }) => {
+  await page.goto('/venue-timetable-ui?venue=B110');
+  await page.waitForTimeout(500);
+  // venue-intent-banner-kind (2026-10-23, the user's option 2): the own-busy
+  // trap arrival (W8-Tue 11:00 — the proposer teaches 11:00–13:00, constant
+  // every week; receipted in venue-c2-toast-noise) goes manual. The banner is
+  // the ONE voice: it must carry WHICH class the fallback pre-selected and
+  // that the pre-selection survives. NO floating toast (rejected = redundancy).
+  const dayEntry = await page.evaluate(() => (window as any).weekData[7].days[1]); // W8 Tuesday
+  const url = '/replacement-arrangement?venue=B110&date=' + encodeURIComponent(dayEntry.date) + '&time=' + encodeURIComponent('11:00') + '&from=venue-timetable';
+  await page.goto(url);
+  const subjectVal = await page.locator('#subjectSelector').inputValue();
+  expect(subjectVal).toBe('AMCS2093');   // the fallback prefill still binds on the manual path
+  const banner = page.locator('#bookingIntent');
+  await expect(banner).toContainText('Your booked slot', { timeout: 5000 });
+  await expect(banner).toContainText('Pre-selected AMCS2093');
+  await expect(banner).toContainText('its sessions fit B110');
+  await expect(banner).toContainText('the pre-selection stays');
+  // the third-voice guard: no floating toast on the manual path
+  const toastText = (await page.locator('#toastBar .toast-message').textContent()) || '';
+  expect(toastText).not.toContain('auto-picked');
+  });
+
 test('B1: zero-compatible modal message (4363 — L-only lecturer) on lab B009', async ({ browser }) => {
   // dedicated context = the 4363 storageState (no in-test login swap)
   const ctx = await browser.newContext({ storageState: '.auth/staff-4363.json' });
