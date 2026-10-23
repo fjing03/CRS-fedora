@@ -1,3 +1,35 @@
+## 2026-10-23 (SDD venue-intent-ghost-success-spot, the user's live bug report) — the ghost success despawns honestly
+
+**The report:** the venue-page modal ("Arrange a replacement in B002 on
+Fri, 30 Oct 2026 at 12:00 → AMCS2093 (L) W8 Nov 9 11:00~13:00 → Arrange")
+landed with the success toast "Pre-selected from your venue booking…"
+**but zero cells pre-selected** (B002 Fri: 12:00–13:00 free, 13:00–14:00
+occupied — a 2-hour class cannot span there).
+
+**Root:** the boot's PRE-build consume judged the not-yet-painted grid
+(`r:manual?false`, span 4 pass), placed a ghost + fired the success toast;
+the boot's own `buildTimetable()` then painted the REAL occupancy and
+`loadCurrentWeek()`'s restore guard despawned the block silently
+(a span cell not `cell-available`), the intent already spent — no banner.
+
+**The fix (the boot tail, one strike):**
+- After the real grid paints, the SAVED selection is re-validated against
+  the real cells (the ghost is detectable only via `selectedSlotsByVenue`
+  — `selectedBlock` is already nulled by `loadCurrentWeek`).
+- A ghost: the saved entry drops, the lying success toast RETRACTS
+  (`toast.dismiss()`), the intent re-arms from the untouched `urlParams`
+  via `resolveBookingIntent()` (the session-cancel rule stays honored), and
+  `evaluateBookingFit()` speaks the honest manual banner — with the
+  venue-intent-banner-kind attribution clause, now armed for the SESSION
+  path too (from the = the = MockData module/session facts).
+- The success toast only ever valid when the block SURVIVES the real grid.
+
+Receipts: repro ✓ → fixed end-state (the banner + the clause + no ghost
+cells, `barVisible: false`). venue-intent-modal **10/10** (the NEW B002 row);
+the battery spot (cross-week + venue-book + pin-guard + earliest-week) **17/17**;
+pint ✓ · phpstan-1G 0 ✓ · phpunit **230/230** (the blade = a PHP file). The
+demo DB untouched; TC70 never ran.
+
 ## 2026-10-23 (SDD venue-intent-banner-kind, the user's option 2) — the manual-arrival banner is kind-complete
 
 The C2 follow-up (venue-c2-toast-noise 56d769b): the own-busy arrival (a

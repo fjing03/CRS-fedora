@@ -138,6 +138,36 @@ test('C2b: the manual arrival banner is KIND-COMPLETE (one voice, the attributio
   expect(toastText).not.toContain('auto-picked');
   });
 
+test('B002: the ghost success despawns honestly — the manual banner + the kind clause, no false "pre-selected" cells', async ({ page }) => {
+  await page.goto('/venue-timetable-ui?venue=B002');
+  await page.waitForTimeout(500);
+  // the USER'S live bug report (2026-10-23): B002 Fri 12:00 — the venue
+  // paints 12:00–13:00 free but 13:00–14:00 occupied (the = the = = = real
+  // other-class block): a span-4 AMCS2093 pre-select CANNOT hold. The
+  // pre-build consume judged a stale grid and toasted success; the boot's
+  // final buildTimetable/loadCurrentWeek despawned the block silently.
+  // venue-intent-ghost-success-spot: the boot tail re-validates the placed
+  // block against the REAL grid — the ghost retracts its toast and the
+  // honest manual banner (with the venue-intent-banner-kind clause) speaks.
+  const dayEntry = await page.evaluate(() => (window as any).weekData[5].days[4]); // W6 Friday
+  const url = '/replacement-arrangement?venue=B002&date=' + encodeURIComponent(dayEntry.date) + '&time=' + encodeURIComponent('12:00') + '&from=venue-timetable&code=' + encodeURIComponent('AMCS2093') + '&session=97&cohort=' + encodeURIComponent('DFT2, DSF2') + '&week=8';
+  await page.goto(url);
+  await page.waitForTimeout(1500);
+  // NO ghost cells: the block despawned against the real grid
+  const picked = await page.locator('#tableBody td[data-day="4"] .cell-selected').count();
+  expect(picked).toBe(0);
+  // the ghost toast retracted: the REAL occupancy makes the honest banner = ONE voice
+  const banner = page.locator('#bookingIntent');
+  await expect(banner).toContainText('Your booked slot', { timeout: 5000 });
+  await expect(banner).toContainText('Pre-selected AMCS2093');
+  await expect(banner).toContainText('the pre-selection stays');
+  // the ghost toast retracted: the bar HIDES (its stale text stays in the DOM,
+  // hidden — assert the bar's visibility, not the text)
+  await expect(page.locator('#toastBar')).not.toHaveClass(/visible/, { timeout: 5000 });
+  // the real blocker speaks: the banner names the availability cause
+  await expect(banner).toContainText('no longer available');
+  });
+
 test('B1: zero-compatible modal message (4363 — L-only lecturer) on lab B009', async ({ browser }) => {
   // dedicated context = the 4363 storageState (no in-test login swap)
   const ctx = await browser.newContext({ storageState: '.auth/staff-4363.json' });

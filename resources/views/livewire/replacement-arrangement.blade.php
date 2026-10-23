@@ -3606,6 +3606,54 @@ triggerText.textContent = 'W' + (slot.week + 1) + ' · ' + shortDate + ' · ' + 
                 evaluateBookingFit();
                 consumeBookingIntent();
             }
+            /* venue-intent-ghost-success-spot (the user's live bug report,
+               2026-10-23): the boot's PRE-build consume could place a block
+               against a not-yet-real venue grid (canPlaceBlock reads the DOM;
+               the venue's real occupancy paints with the boot's own
+               buildTimetable ABOVE) — the success toast fired; then
+               loadCurrentWeek() (inside that build) nulls selectedBlock and
+               its restore guard refuses the span (a real span cell = not
+               cell-available) → silent despawn, the intent already spent.
+               The ghost is detectable AFTER the build ONLY via the SAVED
+               entry (selectedSlotsByVenue), never via selectedBlock.
+               Re-validate the saved block against the REAL grid; on a
+               mismatch drop the entry AND re-arm the intent from the
+               untouched urlParams facts (the session-cancel rule stays
+               honored inside resolveBookingIntent) — evaluateBookingFit()
+               then speaks the honest manual banner (with the
+               venue-intent-banner-kind attribution clause) + the pulse, and
+               the lying success toast retracts (dismiss = no side effects).
+               The success toast only ever valid when the block SURVIVES the
+               real grid. */
+            if (!selectedBlock) {
+                const savedGhost = (selectedSlotsByVenue[currentVenue] || {})[weekNav.currentWeek] || null;
+                if (savedGhost) {
+                    const bodyB = document.getElementById('tableBody');
+                    let ghost = false;
+                    for (let h = savedGhost.startHour; h < savedGhost.endHour; h++) {
+                        const tdB = bodyB.querySelector(`td[data-day="${savedGhost.day}"][data-hour="${h}"] .cell-content`);
+                        if (!tdB || !tdB.classList.contains('cell-available')) { ghost = true; break; }
+                    }
+                    if (ghost) {
+                        selectedSlotsByVenue[currentVenue][weekNav.currentWeek] = null;
+                        try { toast.dismiss(); } catch (e) {}   /* the ghost toast retracts (dismiss = no onManualDismiss side effects) */
+                        /* arm the banner's kind clause for the SESSION path too
+                           (fallbackAttribution only ever arms on the no-session
+                           path): the pre-selected module = urlParams.code — the
+                           honest fit claim rests on the producer modal, which
+                           offered exactly this session for this venue. */
+                        if (!fallbackAttribution && urlParams.code) {
+                            const modG = (MockData.courses || []).find(c => c.code === urlParams.code) || null;
+                            if (modG) {
+                                const entG = modG.sessions ? (modG.sessions[String(urlParams.session)] || null) : null;
+                                fallbackAttribution = { module: modG.code, type: (entG && entG.type) || modG.type || '', venue: urlParams.venue || currentVenue };
+                            }
+                        }
+                        resolveBookingIntent();
+                        evaluateBookingFit();
+                    }
+                }
+            }
             /* SDD arrange-intent-session-choice (D3, soft-freeze placement amendment):
                the fallback needs the RENDERED grid (isCellAvailable reads the DOM,
                :1528) — so it runs after the boot's own buildTimetable. The fallback's
