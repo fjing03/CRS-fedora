@@ -1,5 +1,25 @@
 # Cohort Timetable — changelog
 
+## 2026-10-23 (SDD week-memory-until-logout, user law 2026-10-20) — the first-ever load() closes the read gap; the memory is session long
+
+The page's ONE honest gap closes: its first-ever `weekNav.load();` right
+after `_currentWeek = currentWeek` (BEFORE the first populateWeekSelect/
+buildTimetable) — the first paint now consumes the restored session
+version; the write side needed nothing (prev/next/select/goToday already
+funnel the class methods' `save()`). The ctor carries the 6-arg shape
+`(…, { sessionScoped: true, loginStamp: @json(session('login_week_stamp')) })`
+(key `cohortTimetableWeek` kept) so save()/load() live at
+`weekmem-cohortTimetableWeek@<login_week_stamp>` in **sessionStorage** —
+fresh visit = TODAY (the server's today family sets `_currentWeek` first,
+the load overrides to the page's own saved version when one exists), and
+a fresh login's stamp makes old keys inert. The faculty-switch
+"re-anchor to today" tail stays DEliberate (a switch re-lands today — the
+last-visit-dd D3 family; receipted as the page's own contract in the
+change's review-log, each apply-era receipt #1). Receipts: M4
+(cohort today family + the deliberate revisit receipt) ✓ —
+`week-memory-until-logout.spec.ts` 8/8; pint ✓ · phpstan-1G 0 ✓ ·
+phpunit 230/230 ✓.
+
 ## 2026-10-20 (SDD last-visit-dd-memory) — the dd memory: the last faculty+cohort pair survives the session
 
 Staff arrivals restore the LAST-visited faculty+cohort pair (per-tab

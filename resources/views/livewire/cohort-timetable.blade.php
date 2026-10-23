@@ -181,8 +181,18 @@
             let currentWeek = window.currentWeek;
             let selectedCohortId = pinnedCohortId;
 
-            const weekNav = new WeekNavigator(MockData.semester, weekData, null, 'cohortTimetableWeek');
-            weekNav._currentWeek = currentWeek;
+            /* week-memory-until-logout (T5): the session-scoped mode — the
+               per-login stamp binds this page's week memory to the login
+               session; the load() below is the page's FIRST read (it runs
+               before the first populateWeekSelect/buildTimetable so the
+               first paint consumes the restored position); the saves already
+               funnel the class methods. The faculty-switch re-anchor
+               quirk (re-lands today on a switch) stays deliberate. */
+            const weekNav = new WeekNavigator(MockData.semester, weekData, null, 'cohortTimetableWeek', null, { sessionScoped: true, loginStamp: @json(session('login_week_stamp')) });
+            weekNav._currentWeek = currentWeek;   /* the server's today family FIRST (the fresh-visit default) */
+            weekNav.load();                        /* the session override: the saved version wins when it exists */
+            currentWeek = weekNav.currentWeek;
+            window.currentWeek = currentWeek;
 
             /* ════════ DROPDOWNS ════════ */
 

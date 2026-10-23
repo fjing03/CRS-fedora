@@ -187,7 +187,11 @@
             window.currentModalEvent = null;
             let countedAvailable = 0;   /* the render's own bookable-cell count — the AVAILABLE card reads it (user accuracy 2026-10-19) */
 
-            const weekNav = new WeekNavigator(MockData.semester, weekData, null, 'venueTimetableWeek');
+            /* week-memory-until-logout (T4): the session-scoped mode — the
+               per-login stamp binds this page's week memory to the login
+               session (logout/expiry re-lands today); the :766 load() call
+               reads ONLY the stamp-scoped sessionStorage (no new wiring). */
+            const weekNav = new WeekNavigator(MockData.semester, weekData, null, 'venueTimetableWeek', null, { sessionScoped: true, loginStamp: @json(session('login_week_stamp')) });
             weekNav._currentWeek = currentWeek;
 
             const venueInfo = @json($venue);

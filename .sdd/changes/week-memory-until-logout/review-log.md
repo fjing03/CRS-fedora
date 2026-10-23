@@ -100,3 +100,65 @@ receipts (not a review round - the apply's own evidence).
    context's session cookie re-side-effects. The landing = still staff
    members' pages only after the dance - the next steps re-run
    auth.setup per the battery's standard (the re-auth receipt).
+
+# Review log additions (week-memory-until-logout) — OpenCode resumption
+
+## The M5 corner (Step 2) — 2026-10-23 17:45 — MYSTERY SOLVED (root cause =
+   the checklist's (e); the whole decode chain from the apply-era above is
+   superseded by today's receipts)
+
+The user STOP order paused the apply mid-gates; OpenCode resumed from
+`prompts/opencode-prompt-week-memory-until-logout.md` (read in full +
+all 5 frozen artifacts + the working tree diff). Then:
+
+### The decisive experiment pair
+1. **Standalone replica (probe):** the EXACT M5 dance as a cjs from a
+   plain chromium launch — **GREEN end-to-end in ~11 s** (4363 login →
+   nextWeek save → real logout → /login/staff within 1 s → 25RSD0001
+   login → her page sel=4/served=4 OK → prevWeek = 3 OK, weekmem +1).
+   Two checklist items closed by its receipts: **(a)** the
+   `cookie: NONE` request headers = a Playwright header-capture
+   ARTIFACT ONLY (logins/sessions demonstrably worked while the capture
+   said NONE — page-initiated navs omit cookie headers in
+   `request.headers()`); **(c)** `.logout-btn` count = **1** (the
+   drawer's logout carries `.nav-drawer-logout`; pi's two-clone note
+   was stale markup memory).
+2. **The runner repro:** running the actual spec → M5 ✘ repro'd, but
+   the failing wait had MOVED: now the FIRST login's
+   `waitForURL(/my-timetable/)` (:145) — and the error snapshot =
+   `/dashboard` rendering **"Welcome En. Lim Jia Zheng, Lecturer
+   (5770)"**.
+
+### The root cause (checklist (e) CONFIRMED by experiment)
+`test.use({ storageState: '.auth/staff-5770.json' })` at FILE level +
+`browser.newContext()` inside the M5 test ⇒ **the "bare" dance context
+INHERITS the test's storageState** (a debug spec printed the fresh
+context's cookies: `login_type,XSRF-TOKEN,laravel-session` at
+CREATION, and goto /my-timetable-ui rendered AS 5770 without login).
+So the dance was never bare: the 4363 credentials were submitted as a
+**double-login over a live 5770 session**; the app resolves that to
+LoginResponse's Auth::user()=null branch → `redirect()->intended` →
+'/dashboard' as the OLD (5770) identity — the exact hang snapshot
+(pi's logout-era 5770 receipt = the same bleed, era-mixed evidence).
+A context booted WITH the 5770 storageState by hand reproduced the
+runner failure verbatim (`RES 302 /login → RES 200 /dashboard →
+Welcome (5770)`).
+
+### The fix (one line + honest receipts)
+`const bare = await browser.newContext({ storageState: { cookies: [],
+origins: [] } });` — an explicit EMPTY storageState overrides the
+inherited file-level one (verified: cookies `(none)` at creation, and
+the guest redirect FR-4.14-bounces on /my-timetable-ui). The dance's
+flow/contract stayed frozen-shape otherwise; the stale two-clone
+comment corrected to the single-button reality. **Full-file rerun:
+8/8 passed (setup 3/3 + M1–M5 all ✓, M5 = 11.1 s).**
+
+### Which checklist candidates died of evidence
+- (b) CSRF staleness: dead — each goto renders a fresh form+token; and
+  the probe walk posts succeeded.
+- (d) Fortify limiter: dead — the dance's logins never hit 5/min/identity
+  (also verified live: the whole dance logged in/out freely).
+- (a) cookie-capture artifact: real but INERT (a red herring for the
+  failure itself).
+- (c) two-button ambiguity: dead (count = 1).
+- (e) storageState bleed: TRUE ROOT CAUSE.

@@ -301,7 +301,7 @@ function initTodayBtn() {
 }
 
 class WeekNavigator {
-    constructor(semesterData, weekData, selectId, storageKey, weekFilter) {
+    constructor(semesterData, weekData, selectId, storageKey, weekFilter, options) {
         this._semester = semesterData;
         this._weekData = weekData;
         this._currentWeek = 0;
@@ -316,6 +316,16 @@ class WeekNavigator {
            resolved away on load/select; null = every week is navigable
            (venue-timetable keeps its full list — it's a browsing/history page) */
         this._weekFilter = weekFilter || null;
+        /* week-memory-until-logout (user law 2026-10-20): the SESSION-SCOPED
+           storage mode — the per-login marker (login_week_stamp, minted at
+           the Fortify login hook) binds a page's week memory to the login:
+           fresh login / logout / expiry = every page stands on its own
+           today; in-session navs save per-page versions until logout.
+           save()/load() branch on _sessionScoped; localStorage is NEVER
+           read in that mode (the old cross-login memory dies). */
+        this._sessionScoped = !!(options && options.sessionScoped);
+        this._loginStamp = (options && options.loginStamp) || '';
+        this._weekMemKey = 'weekmem-' + this._storageKey + '@' + this._loginStamp;
     }
 
     get currentWeek() {
@@ -439,29 +449,50 @@ class WeekNavigator {
 
     save() {
         try {
+            if (this._sessionScoped) {
+                /* SYMMETRIC gate: no stamp = no memory writes (the register
+                   auto-login path never mints one — today-only session). */
+                if (this._loginStamp === '') return;
+                sessionStorage.setItem(this._weekMemKey, this._currentWeek);
+                return;   /* session mode: localStorage never touched */
+            }
             localStorage.setItem(this._storageKey, this._currentWeek);
         } catch (e) { /* ignore */ }
     }
 
     load() {
         try {
-            /* one-time legacy migration (F-11): pages that used to share the
-               generic 'currentWeek' key adopt it once, then it is retired —
-               first visited page inherits the old position, later pages fall
-               through to today. Harmless because demo week picks don't persist. */
-            var saved = localStorage.getItem(this._storageKey);
-            if (saved === null) {
-                var legacy = localStorage.getItem('currentWeek');
-                if (legacy !== null) {
-                    localStorage.setItem(this._storageKey, legacy);
-                    localStorage.removeItem('currentWeek');
-                    saved = legacy;
+            if (this._sessionScoped) {
+                /* session mode: a stamp-less or mismatched context =
+                   memoryless → today. The legacy migration and the
+                   localStorage family NEVER run here (the cross-login
+                   memory dies by construction). The stamp lives in the
+                   server session; logout/expiry invalidates it → every
+                   fresh login re-lands today ✓ law held through every
+                   server path. */
+                var sv = this._loginStamp ? sessionStorage.getItem(this._weekMemKey) : null;
+                if (sv !== null && !isNaN(parseInt(sv, 10))) {
+                    this._currentWeek = Math.max(0, Math.min(this._semester.weeks - 1, parseInt(sv, 10)));
                 }
-            }
-            if (saved !== null) {
-                var idx = parseInt(saved, 10);
-                if (!isNaN(idx)) {
-                    this._currentWeek = Math.max(0, Math.min(this._semester.weeks - 1, idx));
+            } else {
+                /* one-time legacy migration (F-11): pages that used to share the
+                   generic 'currentWeek' key adopt it once, then it is retired —
+                   first visited page inherits the old position, later pages fall
+                   through to today. Harmless because demo week picks don't persist. */
+                var saved = localStorage.getItem(this._storageKey);
+                if (saved === null) {
+                    var legacy = localStorage.getItem('currentWeek');
+                    if (legacy !== null) {
+                        localStorage.setItem(this._storageKey, legacy);
+                        localStorage.removeItem('currentWeek');
+                        saved = legacy;
+                    }
+                }
+                if (saved !== null) {
+                    var idx = parseInt(saved, 10);
+                    if (!isNaN(idx)) {
+                        this._currentWeek = Math.max(0, Math.min(this._semester.weeks - 1, idx));
+                    }
                 }
             }
         } catch (e) { /* ignore */ }

@@ -1,5 +1,24 @@
 # Changelog — Venue Timetable UI
 
+## 2026-10-23 (SDD week-memory-until-logout, user law 2026-10-20) — the venue's week memory becomes session-scoped (no new wiring)
+
+The venue's `weekNav.load()` (:766, wired since the 2026-10-09 venue SDD)
+becomes stamp-scoped by the shared mechanism alone — the ctor gains ONLY
+the options `(…, { sessionScoped: true, loginStamp: @json(session('login_week_stamp')) })`,
+its storage key `venueTimetableWeek` stays, and the memory lives at
+`weekmem-venueTimetableWeek@<login_week_stamp>` in **sessionStorage**
+(the old localStorage slot is retired from this page's reads). Contract:
+a fresh visit in-session stands on the client's `currentWeekIndex()`
+(the U2a today family — unchanged default), prev/next/select/today
+saves this page's own version, a revisit resumes it, and every fresh
+login's new stamp makes the previous session's key inert. ui-regression
+TC-2.x venue row updated per design D5: the assert now reads the session
+key family (`weekmem-venueTimetableWeek@…` in sessionStorage — the write
+must exist; unauthenticated arrivals keep the documented 2026-10-08
+guest-bounce class). Receipts: M4 (fresh visit = today; revisit resumes
+its own version, +1 after the nav) ✓ — `week-memory-until-logout.spec.ts`
+8/8; pint ✓ · phpstan-1G 0 ✓ · phpunit 230/230 ✓.
+
 ## 2026-10-20 (SDD venue-cross-week-handoff — user report + user-approved) — the cross-week handoff threads the occurrence week
 
 The intent-session dd's picked row carries its OWN occurrence week

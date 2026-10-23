@@ -82,7 +82,12 @@
             window.currentWeek = {{ (int) ($currentWeek ?? 0) }};
             let currentWeek = window.currentWeek;
 
-            const weekNav = new WeekNavigator(MockData.semester, weekData);
+            /* week-memory-until-logout (T3): the session-scoped mode — the
+               per-login stamp minted at the Fortify login hook binds this
+               page's week memory to the login session (logout/expiry re-lands
+               today); the load() below reads ONLY the stamp-scoped sessionStorage
+               — the old localStorage memory never survives a login anymore. */
+            const weekNav = new WeekNavigator(MockData.semester, weekData, null, null, null, { sessionScoped: true, loginStamp: @json(session('login_week_stamp')) });
             weekNav._currentWeek = currentWeek;
 
             function openModal(event) {

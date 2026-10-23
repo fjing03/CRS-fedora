@@ -1,5 +1,21 @@
 # Changelog — Student My Timetable
 
+## [2026-10-23] The week memory is session long, per page (SDD week-memory-until-logout, user law 2026-10-20)
+
+The page adopts the exact my-timetable wiring: the 6-arg ctor
+`(…, { sessionScoped: true, loginStamp: @json(session('login_week_stamp')) })`
+(derived key `weekNav-weekSelect` unchanged) and save()/load() at
+`weekmem-weekNav-weekSelect@<login_week_stamp>` in **sessionStorage** —
+the old cross-login localStorage memory never survives a login anymore.
+Contract: fresh visit in-session = TODAY (the server's
+`currentTimelineWeekIndex()`); navs save this page's own version; a
+revisit resumes it; a fresh login's new stamp makes the previous
+session's keys match nothing. Receipts (one live walk, M5 — the real
+logout from a staff session 4363 then login HERE as the seed student
+`25RSD0001`): her page lands on TODAY and her own first nav adds HER
+key (+1) while the staff leftover sits inert — `week-memory-until-logout.spec.ts`
+8/8 incl. setup; pint ✓ · phpstan-1G 0 ✓ · phpunit 230/230 ✓.
+
 ## [2026-10-10] Frozen-design parity: real identity, keyword-span cards (SDD all-pages-design-parity)
 
 - **Identity fix (bug)**: the page never set `MockData.currentUser`, so the shared modal's own-request comparison ran against the mock-data default persona — a student's own pending request could never match. Now set from the authenticated student.

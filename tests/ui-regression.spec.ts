@@ -71,15 +71,19 @@ test.describe('UI Regression Test Cases', () => {
   // Section 2: Week Navigation
   test.describe('Section 2: Week Navigation', () => {
     const todayPages = [
-      // WeekNavigator localStorage keys (oop-js-refactor): one key per page,
-      // not the old shared 'currentWeek'.
+      // WeekNavigator storage keys (oop-js-refactor): one key per page, not
+      // the old shared 'currentWeek'. week-memory-until-logout: the 4
+      // view pages are now SESSION-SCOPED (weekmem-<key>@<login stamp> in
+      // sessionStorage; localStorage never read) — the venue row below is
+      // updated to that reality per design D5; the other three rows keep
+      // their pre-2026-10-20 stale expectations (documented baseline).
       { url: '/my-timetable-ui', storageKey: 'myTimetableWeek' },
       { url: '/cohort-timetable', storageKey: 'cohortTimetableState' },
-      { url: '/venue-timetable-ui', storageKey: 'venueTimetableWeek' },
+      { url: '/venue-timetable-ui', storageKey: 'venueTimetableWeek', sessionScoped: true },
       { url: '/student-my-timetable-ui', storageKey: 'studentTimetableWeek' },
     ];
 
-    for (const { url, storageKey } of todayPages) {
+    for (const { url, storageKey, sessionScoped } of todayPages) {
       test(`TC-2.x Today button persists on ${url}`, async ({ page }) => {
         await page.goto(`${BASE}${url}`, { waitUntil: 'networkidle' });
         await clearLocalStorage(page);
@@ -96,12 +100,21 @@ test.describe('UI Regression Test Cases', () => {
           await todayBtn.click();
         }
         await page.reload({ waitUntil: 'networkidle' });
-        const stored = await page.evaluate((k) => {
-          const raw = localStorage.getItem(k);
-          if (!raw) return null;
-          try { return JSON.parse(raw); } catch { return raw; }
-        }, storageKey);
-        expect(stored).not.toBeNull();
+        const stored = sessionScoped
+          ? await page.evaluate(() =>
+              // the venue's session-scoped memory: weekmem-venueTimetableWeek@<stamp>
+              Object.keys(sessionStorage).some((k) => k.startsWith('weekmem-venueTimetableWeek@'))
+            )
+          : await page.evaluate((k) => {
+              const raw = localStorage.getItem(k);
+              if (!raw) return null;
+              try { return JSON.parse(raw); } catch { return raw; }
+            }, storageKey);
+        // the WRITE must exist: session mode = the weekmem key exists
+        // (a guest bounce leaves false — the documented baseline class);
+        // legacy rows keep their not.toBeNull() semantics.
+        if (sessionScoped) expect(stored).toBe(true);
+        else expect(stored).not.toBeNull();
       });
     }
 

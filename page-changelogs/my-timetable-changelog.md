@@ -1,5 +1,28 @@
 # Changelog — Lecturer My Timetable
 
+## 2026-10-23 (SDD week-memory-until-logout, user law 2026-10-20) — the week memory is SESSION long, per page
+
+The page's week memory moved from cross-login localStorage to the login
+session: `WeekNavigator` gained the 6-arg ctor shape
+`(…, { sessionScoped: true, loginStamp: @json(session('login_week_stamp')) })`
+(the derived key `weekNav-weekSelect` unchanged) and its save()/load()
+now read/write `weekmem-weekNav-weekSelect@<login_week_stamp>` in
+**sessionStorage** — the old localStorage memory (which survived logout)
+never survives a login anymore, by construction. Contract: a fresh visit
+in-session stands on TODAY (the server's `currentTimelineWeekIndex()`);
+prev/next/select/today-click save THIS page's own version; a revisit
+auto-navs to its own version; logout/expiry (FortifyServiceProvider
+mints a fresh `login_week_stamp` at every successful login) makes every
+previous session's keys match nothing. Receipts (`week-memory-until-logout.spec.ts`,
+8/8 incl. setup): M1 today+selector-save+today-click-save ✓; M2
+two-page trip (the venue starts on ITS today, this page resumes its own
+version) ✓; M3 a wrong-stamp key = today ✓; M5 the real logout → student
+login dance lands her page on TODAY (4363 → 25RSD0001; the runner-level
+storageState bleed on the dance context was found + fixed — an explicitly
+empty storageState, receipted in the change's review-log) ✓. Gates:
+pint ✓ · phpstan-1G 0 ✓ · phpunit 230/230 ✓ · battery + the documented
+ui-regression classes unchanged.
+
 ## 2026-10-20 (user round, CHOICE A) — the landing week keeps the class's own block
 
 The approved-landing week used to swallow the class's own natural block

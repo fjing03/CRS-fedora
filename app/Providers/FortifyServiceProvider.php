@@ -121,6 +121,13 @@ class FortifyServiceProvider extends ServiceProvider
                 $minutes = $user->isStudent() ? 43200 : 30; // Production: 30 | Testing: 1
                 session(['role_lifetime' => $minutes]);
                 session(['login_type' => $loginType]);
+                // week-memory-until-logout: the per-login scope marker —
+                // WeekNavigator (sessionScoped mode) binds page memory to
+                // THIS stamp; every logout (the Logout action) and expiry
+                // (EnsureSessionLifetime) invalidates the session, so "a
+                // fresh login stands every page on its own today" holds
+                // through every server path (no client logout hook needed).
+                session(['login_week_stamp' => uniqid('wk', true)]);
                 cookie()->queue('login_type', $loginType, 43200);
 
                 return $user;
