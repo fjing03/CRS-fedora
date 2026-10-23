@@ -219,3 +219,7 @@ Condensed single-round batch review (explore-brief baseline; the
 proposal/design/tasks together — the pattern of the last four frozen
 rounds). `specs/` skip (≤2h family change; the priority chain + the
 mechanism live here).
+
+## S-history addendum (apply-era, 2026-10-23)
+- **M5 mystery cornered (OpenCode follow-up)**: inside a `test.use({ storageState })` file, `browser.newContext()` INHERITS the file-level storageState — the dance's "bare" context booted with the live 5770 session, so the 4363 login was a double-login over an existing session and landed on the old identity's intended /dashboard (the "Welcome (5770)" hang). Fix: the dance context = `newContext({ storageState: { cookies: [], origins: [] } })` (explicitly empty jar). Spec 8/8 (the setup 3/3 + M1–M5); M5 = ~10–11 s. The `cookie: NONE` Playwright request capture = an instrumentation artifact, not app behavior. Fact for future specs: a genuinely bare context in this repo's tests ALWAYS declares the empty storageState explicitly.
+- **T5's cohort quirk retained by contract**: the faculty-switch re-anchor ("a cohort switch re-lands TODAY") is the cohort page's own deliberate D3-family rule (the `onCohortChange` tail); the week-memory law's "revisit = resume" applies per page, not after a switch there.

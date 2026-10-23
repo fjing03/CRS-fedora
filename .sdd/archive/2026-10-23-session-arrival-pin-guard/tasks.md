@@ -41,9 +41,11 @@
   (default-pin T18-S1 green). S1's T6 asserts: `#weekSelector` = '13' +
   `arrangementWeek` = '13' (the binary-window.currentWeek probe is
   unusable pre-boot — the gated block only writes it post-boot).
-- [ ] T7. Apply sequencing guard: run only together with (or after)
+- [x] T7. Apply sequencing guard: run only together with (or after)
   `venue-cross-week-handoff` — never this change alone before the venue
-  threading (proposal's sequencing note).
+  threading (proposal's sequencing note). SATISFIED: `0eec527` (the
+  cross-week threading) landed first; the APPLIED receipts row below
+  records the order — archived verified 2026-10-23.
 - [x] APPLIED receipts (2026-10-20): the gate + pure-deletion edit landed
   (`php -l` clean; `window.urlParams` now appears ONLY inside the
   comment — the write is gone). T2: the 3-row spec
@@ -55,5 +57,10 @@
   on both user URLs = the honest strips + pins recorded above. T7: the
   sequencing guard satisfied — `venue-cross-week-handoff` (0eec527)
   landed first.
-- [ ] T6 stays OPEN (the auto-nav residual's one-token gate) — pending
-  the user's explicit word per the proposal's NOT-in-scope contract.
+- [x] T6 CLOSED BY DECISION (the user's word came 2026-10-20: DECISION B) —
+  the auto-nav residual gained the same `window.__bootDone` conjunct
+  (`674c862`): pre-boot boot-time auto-pins keep the grid on the pinned
+  week; post-boot subject switches auto-navigate byte-identically
+  (default-pin T18-S1 green). The later `arrival-grid-no-pin` apply
+  (`94c6916`) retired the BRIDGE's position writes without touching the
+  T6-B switch-path gate, which stays as layered defense.
