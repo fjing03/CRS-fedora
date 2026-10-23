@@ -57,3 +57,17 @@ A landed: the C2 row retargeted to W9-Mon 15:00 + the vacuous final assert
 fixed → **the file 8/8** (the row 2.5s green, ×3 solo repeats green, the
 battery spot 14/14). B (the manual-branch attributed toast) = parked as its
 own lane per the user's word, preset in tasks.md.
+
+## B-preset addendum (2026-10-23, pre-proposal honesty check)
+
+Re-probed the own-busy arrival (W8-Tue 11:00) for the B lane's "silent"
+premise: **the manual branch is NOT silent.** `#bookingIntent` renders the
+amber dismissal banner at the grid top (top≈136px, in-viewport):
+> "Your booked slot (Tue, 10 Nov 2026 · 11:00) is no longer available on the
+> B110 grid (a block already holds it) — pick another available slot manually."
+
+Plus the pulsing cell + the subject pre-selected (AMCS2093). What the banner
+does NOT carry = the fallback ATTRIBUTION (which class was auto-picked and
+why the pre-selection survives). So a third loud toast = redundant noise;
+the kind-possible moves = (1) cancel B, (2) ONE-voice revise: append the
+attribution clause to the banner, (3) the toast anyway (not recommended).
