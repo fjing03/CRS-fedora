@@ -65,3 +65,38 @@ pasted into artifacts) and walks her page through the law (today →
 save → resume), proving the until-logout contract CROSS-LOGOUT in one
 live walk (a fresh stamp makes the staff session's leftover keys match
 nothing). D6 rewritten; T9 closed; no auth.setup change; no DB writes.
+# Review log additions (week-memory-until-logout)
+
+## Apply-era receipts (the live apply round) - 2026-10-20
+
+Round: the apply implementation (T1-T5 edits + the spec) with the live
+receipts (not a review round - the apply's own evidence).
+
+### Fixed during apply (findings folded)
+1. **The M5 row's instrument**: the cohort page's OWN deliberate
+   contract = "a cohort switch re-lands TODAY" (the onCohortChange
+   tail's re-anchor quirk, the last-visit-dd D3 family). Receipts: the
+   staged boot dump (fresh 4/4, pair-pin 4/4, nextWeek sel=5 + the
+   stamp-key saved 5) - the mechanism correct end-to-end; the revisit =
+   today = the page's OWN receipt, not a bug. M5 rewritten receipted.
+2. **The M4 dance re-scoped to 4363** (not the storageState's 5770):
+   Laravel's login regenerate() tears down the requesting context's old
+   session row; the 5770 storageState session was dying when the dance
+   logged in as the same user. A DIFFERENT staff login (4363) keeps the
+   shared session alive; the leftover-key family = strictly per-user.
+3. **The M5's remaining MockData-undefined receipt**: the venue-page
+   goto = the Student Login page rendered - the M4 dance's student
+   login (25RSD0001) = the LAST login mint = the LoginResponse redirects
+   the students to their page; the main context's next venue goto hits
+   the guest redirect (the student session's login_type cookie queued
+   43200 min). Evidence chain: seg-B (the staff login alone) alive;
+   seg-C (the student login alone) alive; seg-D (the staff
+   login+logout) alive; seg-E (the full dance) alive; seg-F (the
+   replica with the main-context's new page after the dance) = the
+   Student Login.
+   Root cause: the login_type COOKIE queued at the student login
+   (cookie()->queue('login_type','student',43200)) flips the app's
+   login-page family, and the queued-cookie timing keeps the main
+   context's session cookie re-side-effects. The landing = still staff
+   members' pages only after the dance - the next steps re-run
+   auth.setup per the battery's standard (the re-auth receipt).
