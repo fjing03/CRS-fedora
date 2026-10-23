@@ -55,3 +55,13 @@ core mechanism".
 ### Outstanding
 - None — the named surfaces are fixed as the verdict's own condition
   ("then this batch can pass"); frozen for apply.
+
+## User decision — 2026-10-20 (the T9 student row)
+
+The user chose the in-spec dance (not the class-only receipt): the spec
+logs out from the staff session via the REAL app path, logs in as the
+seed student (`25RSD0001`, the credential read from the seed test — not
+pasted into artifacts) and walks her page through the law (today →
+save → resume), proving the until-logout contract CROSS-LOGOUT in one
+live walk (a fresh stamp makes the staff session's leftover keys match
+nothing). D6 rewritten; T9 closed; no auth.setup change; no DB writes.

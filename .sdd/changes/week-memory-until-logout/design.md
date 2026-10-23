@@ -182,16 +182,36 @@ report as such in the run receipt; not this change's nuisance). GATES: the PHP d
 + the phpunit family 230 (a PHP file touched — the standing rule) + the
 Playwright battery. Stale-cache ritual + re-auth if needed.
 
-## D6 — the STUDENT page's verification gap (open, user-decided)
+## D6 — the STUDENT page's live row (USER DECIDED 2026-10-20: the
+in-spec walk)
 
 No student auth state exists (`auth.setup.ts` covers the three staff
-logins). Options for the apply:
-**A.** a collective class-level receipt + the wiring diff (all four
-pages carry the identical D3 line — the mechanism is proven on the three
-staff rows; the student adds NOTHING new beyond its one ctor arg), or
-**B.** the user hands a demo student credential for a real live row.
-PRESENT both at apply; the default = A (the honest cheap path), B on the
-user's word.
+logins; staff get 403 on `/student-my-timetable-ui`). The user chose the
+in-spec dance — **logout from the staff session, then login as the demo
+student INSIDE the spec** (no auth.setup change):
+
+1. fresh context boots as staff-5770 on `/my-timetable-ui` → nav to a
+   runtime-chosen week (≠ today) — the staff session saves its version;
+2. the robot runs the REAL logout path (the app's own Logout action via
+   the UI) → redirected to the login screen;
+3. the robot logs in via `/login/student` as the seed student
+   (`25RSD0001` + the demo password documented in
+   `tests/Feature/TimetableSeedInvariantsTest` T-6 — look it up in the
+   seed test at apply, never paste passwords into artifacts); the
+   `LoginResponse` lands students on `/student-my-timetable-ui`;
+4. assert her page stands on TODAY (a NEW login session = a NEW stamp
+   = the staff tab's leftover sessionStorage keys match nothing — the
+   until-logout law PROVEN LIVE in one walk, cross-logout);
+5. her page: nav to another week → save; the same-walk receipts as the
+   staff rows (today-default → save → resume).
+
+Move-parts worth knowing (the reason this dance was parked before): the
+logout needs the REAL UI (the button → the action — no client shortcut;
+misses nothing here because the SAME flow a human uses is what the test
+runs), and the login form binds `login_type` per page (the student
+login at `/login/student` posts it natively ✓ the LoginResponse handles
+the redirect ✓). No DB writes anywhere in the walk (a session token
+only; TC70 untouched).
 
 ## D7 — skipped batches
 

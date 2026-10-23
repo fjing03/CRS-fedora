@@ -52,6 +52,10 @@
   `page-changelogs/student-my-timetable-ui-changelog.md` (the file
   EXISTS on disk — committed unconditionally, was wrongly hedged before
   round 1), each with the law's summary + the until-logout contract.
-- [ ] T9. The STUDENT-page D6 decision presented at apply (A = the
-  class-level receipt + the wiring diff; B = the user hands a demo
-  student credential for a live row).
+- [x] T9. USER DECIDED (2026-10-20): the student page gets a REAL live
+  row — the in-spec dance per design D6: fresh-context staff login →
+  save a week → the REAL logout → `/login/student` as the seed student
+  (`25RSD0001`, the credential read from the seed test at apply) → her
+  page lands on TODAY (the cross-logout proof in one walk) → her
+  nav+save receipts. No auth.setup change; the logout = the app's own
+  UI path; no DB writes (TC70 untouched).
