@@ -50,3 +50,10 @@ honest; the test's URL + assertion are the dishonest parts. The "noise" label wa
 
 - TC70 never runs (`--grep-invert`). The demo DB untouched. The server ritual =
   two commands before any live receipt. Push = user's word only.
+
+## Verdict (applied 2026-10-23, the user's C)
+
+A landed: the C2 row retargeted to W9-Mon 15:00 + the vacuous final assert
+fixed → **the file 8/8** (the row 2.5s green, ×3 solo repeats green, the
+battery spot 14/14). B (the manual-branch attributed toast) = parked as its
+own lane per the user's word, preset in tasks.md.

@@ -90,23 +90,29 @@ test('A6: [Arrange] handoff lands with the 8-param URL + pinned week', async ({ 
 test('C2: fallback prefill for modal-bypass full-intent URLs (attributed auto-pick)', async ({ page }) => {
   await page.goto('/venue-timetable-ui?venue=B110');
   await page.waitForTimeout(500);
-  const last = await page.evaluate(() => (window as any).weekData.length - 1);
-  const dayEntry = await page.evaluate((w) => (window as any).weekData[w].days[1], 7); // W8 Tuesday (a bookable day in the Deepavali week)
-  const url = '/replacement-arrangement?venue=B110&date=' + encodeURIComponent(dayEntry.date) + '&time=' + encodeURIComponent('11:00') + '&from=venue-timetable';
+  // venue-c2-toast-noise (root-caused 2026-10-23, explore-brief §2–5): the
+  // ORIGINAL target (W8-Tue 11:00) sat INSIDE the proposer's own teaching
+  // rows ([1,6,8] 11:00–12:00 + [1,8,10] 12:00–13:00 — recurring, constant
+  // every week), and W8-Mon is the Deepavali `cell-ph` row — the contract
+  // can NEVER auto-place on either (cell-occupied / cell-ph ≠ cell-available;
+  // the consume honestly goes manual: `r:manual?true … reason:held`, no toast).
+  // The honest target = a legal OWN-free + room-free slot: W9-Mon 15:00
+  // (probed live: the attributed toast fires, the 4 cells = cell-selected).
+  const dayEntry = await page.evaluate(() => (window as any).weekData[8].days[0]); // W9 Monday
+  const url = '/replacement-arrangement?venue=B110&date=' + encodeURIComponent(dayEntry.date) + '&time=' + encodeURIComponent('15:00') + '&from=venue-timetable';
   await page.goto(url);
   // AMCS2093 (L) auto-picked — the subject select binds it; the shared toast
   // bar is a single slot (later boot toasts may overwrite), so poll for it.
   const subjectVal = await page.locator('#subjectSelector').inputValue();
-  console.log('C2 SUBJECT:', subjectVal);
-  console.log('C2 URL:', page.url());
-    expect(subjectVal).toBe('AMCS2093');
+  expect(subjectVal).toBe('AMCS2093');
   const toastMsg = page.locator('#toastBar .toast-message');
   await expect.poll(async () => (await toastMsg.textContent()) || '', { timeout: 5000 })
     .toContain('auto-picked');
   await expect.poll(async () => (await toastMsg.textContent()) || '', { timeout: 1000 })
     .toContain('fit B110');
-  // the pinned occurrence's amber block sits on the booked slot row (an event block exists on Mon)
-  const hasAmber = await page.locator('#tableBody tr').first().locator('.event-block, .event-mine, .event-others').count();
+  // the placement receipt: the span-4 (2h) block landed ON the intent slot
+  const picked = await page.locator('#tableBody td[data-day="0"] .cell-selected').count();
+  expect(picked).toBe(4);
   });
 
 test('B1: zero-compatible modal message (4363 — L-only lecturer) on lab B009', async ({ browser }) => {
