@@ -1,3 +1,32 @@
+## 2026-10-23 (SDD venue-description-doc-b006-rule, the sv's directive) — every room carries a plain DESCRIPTION (venue + arrangement pages)
+
+The sv (via the user): "add descriptions to every ROOM… ignore advanced
+functions/backend like priority." Choice A applied to the viva DB:
+- The reversible migration `2026_10_23_000001_add_description_to_venues_table`
+  added `venues.description` (nullable) + filled the first-draft texts; the
+  DOWN drops the column. A pre-migration snapshot exists at
+  `backups/venues-description-baseline-2026-10-23.dump` (pg_dump -Fc, 27 tables).
+- The venue page: a `.venue-description` line under the venue dropdown
+  (hidden until the payload fills it); the payload serves `$venuesJs[].description`
+  + the viewed room's `$venue.description`.
+- The arrangement page: the same line under the venue dropdown trigger;
+  the payload = `venuesPayload[]`.description (canonical from the DB).
+- `mock-data.js` venue entries mirror the DB texts (documented drift guard:
+  update both or the DB wins).
+- Live receipts: B006 shows "Cisco Lab. Networking equipment room. FOCS only:
+  DFT, DSF, RSD permitted; RAF, RBU not permitted." on BOTH pages; B002 shows
+  the tutorial line.
+- The docs: `docs/venue-restrictions.md` gains **R6** (B006 = FOCS-only gate:
+  DFT/DSF/RSD allowed; RAF/RBU never; scope = B006 only; the priority nuance
+  dropped per the user; the 2 live AMCS1013 DSF sessions = future conflicts
+  cross-ref) + **R7** (descriptions enforced) + the positive restatement of
+  R2 ("B005 is ONLY allowed degree students").
+
+Gates: pint ✓ · phpstan-1G **0** ✓ · phpunit **230/230** ✓ · the spot battery
+(venue-timetable + intent-modal + default-pin + pin-guard) **69 green with
+only the documented TC34/35 baseline reds**. No demo-DB reseed; TC70 never ran.
+
+
 # Changelog — Venue Timetable UI
 
 ## 2026-10-23 (SDD week-memory-until-logout, user law 2026-10-20) — the venue's week memory becomes session-scoped (no new wiring)

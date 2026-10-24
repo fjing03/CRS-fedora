@@ -225,6 +225,9 @@ class ReplacementArrangement extends Component
                 // ruleMap[] over room_type (SDD lt-venue-capacity-rule; the
                 // CSV column no longer gates).
                 'rawRoomType' => (string) $v->room_type,
+                // SDD venue-description-doc-b006-rule: the client payload
+                // gains the plain description (both display apps).
+                'description' => $v->description !== null ? (string) $v->description : '',
                 'type' => match ((string) $v->room_type) {
                     'lecture_hall' => 'LectureHall',
                     'lab', 'cisco_lab' => 'Lab',

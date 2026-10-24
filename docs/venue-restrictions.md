@@ -13,7 +13,7 @@
 > * client matrix `venueEligible()` in `resources/views/livewire/replacement-arrangement.blade.php` (display-vocabulary: P→Lab, T→Tutorial, L→LectureHall; capacity ≥ session headcount; B005 hides when any cohort is `D*`);
 > * server-side `allowed_session_types` / `room_type` use in `app/Livewire/ReplacementArrangement.php` (`venuesPayload`, `blockedVenuesPayload`) — **type + capacity only**;
 > * `App\Services\LectureSessionCatalog::ruleMap()` (SDD `arrange-intent-session-choice`) — the same type rules as data, consumed by the "Select a Session" modal and the arrangement fallback.
-> B005's no-Diploma derivation is client-side only today.
+> B005's no-Diploma derivation is client-side only today. R6 (B006 FOCS-only) is likewise DOC-ONLY — no code checks it. R7 (descriptions) is ENFORCED as display data since 2026-10-23.
 >
 > **2026-10-19 SDD `lt-venue-capacity-rule` update:** the law widened (R1's
 > row pair), and its consumers are now: the engine `eligibleVenues()`
@@ -79,6 +79,25 @@ Diploma students may not use B005: reject when any cohort of the session's `prog
 ### R5 — Audit trail (context only, no action)
 
 Audit 2026-10-09: 6 non-networking sessions use B006 (AMCS1013 ×2, BMIS2003 ×2, BMIT3173, BMIT3273) — **legal under the priority rule** (lower priority, not violations).
+
+### R6 — B006 (cisco_lab) = FOCS-only population gate — **DOC-ONLY (sv directive 2026-10-23, user-recorded)**
+
+**Who may occupy B006: FOCS programmes only.**
+- **ALLOW:** `DFT` (Diploma IT), `DSF` (Diploma Software Engineering), `RSD` (Bachelor IT) — all Faculty of Computing.
+- **DISALLOW — never:** `RAF` (Bachelor Accountancy), `RBU` (Bachelor Business Administration).
+
+**Decisions by the user (2026-10-23):**
+- Scope = **B006 only** (the sole `cisco_lab` in the DB — the CHECK-constrained room_type list; verified 2026-10-23). Any future cisco_lab room needs an explicit migration/decision before inheriting this rule.
+- **Priority dropped for the BINARY gate** (the sv's "especially RSD" nuance is NOT part of R6 — R3's networking priority stays its own separate DOC-ONLY clue; the two compose later in the enforcement change: R6 = admission, R3 = ordering among the admitted).
+- **Positive restatement of R2 (the user's extra, same rule):** "B005 is ONLY allowed degree students" — the enforced no-Diploma check unchanged.
+
+**Live-data cross-ref (verified 2026-10-23):** AMCS1013's 2 B006 sessions host `DSF·y1g1` — legal today (no gate enforced), a **future conflict** once R6 enforcement lands; flagged here for the enforcement SDD's migration checklist. The other five B006 modules (AMIT2033 DFT, BMIT2154/BMIT3084/BMIT3173/BMIT3273/BMIS2003 RSD) already comply.
+
+**Where this enforcement lands:** only in the future "venue-restrictions enforcement" SDD (§4), alongside R2/R3/R4 — never ad hoc.
+
+### R7 — Room descriptions — **ENFORCED (SDD venue-description-doc-b006-rule, 2026-10-23)**
+
+Every room carries a plain `venues.description` (nullable text; the sv's directive: "add descriptions to every room, ignore advanced functions/backend like priority"). Applied by a reversible migration (down = dropColumn) on choice A; drafted first-draft texts are live, the user corrects wording after. Shown on the venue page (a small line under the venue dropdown) and the replacement-arrangement page (a line under the venue dropdown). `mock-data.js` venue entries carry a DOCUMENTED MIRROR of the DB texts — the DB wins on any difference; update both or drift is on the editor.
 
 ---
 

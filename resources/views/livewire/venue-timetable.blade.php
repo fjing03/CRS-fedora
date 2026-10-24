@@ -65,6 +65,12 @@
             font-size: 12px;
             color: var(--color-on-surface-variant);
         }
+        /* venue-description-doc-b006-rule: the plain room description line */
+        .venue-description {
+            font-size: 12px;
+            color: var(--color-on-surface-variant);
+            margin-top: 2px;
+        }
         /* Session-choice modal: dropdowns fill their detail-row value column */
         #intentPickers .filter-select {
             width: 100%;
@@ -111,6 +117,9 @@
         <div class="venue-dropdown-wrap">
             @include('partials.ui-venue-dropdown', ['selectId' => 'venueSelect'])
             <span class="venue-capacity" id="venueCapacity"></span>
+            {{-- venue-description-doc-b006-rule: the plain room description
+                 (hidden until the payload fills it — no empty stub) --}}
+            <div class="venue-description" id="venueDescription" style="display:none;"></div>
         </div>
         @include('partials.ui-week-nav', ['prevOnclick' => 'prevWeek()', 'nextOnclick' => 'nextWeek()', 'selectId' => 'weekSelect', 'selectOnclick' => 'selectWeek(this.value)', 'showPrint' => true])
     </div>
@@ -240,6 +249,16 @@
             const capacityEl = document.getElementById('venueCapacity');
             if (capacityEl && venueInfo.capacity) {
                 capacityEl.textContent = 'Capacity: ' + venueInfo.capacity;
+            }
+
+            /* venue-description-doc-b006-rule (the sv's directive 2026-10-23): the
+               plain room description as a data-tip on the dropdown trigger —
+               one line, no priority wording. Served from the = the DB via the
+               venue payload (canonical always). */
+            const venueDescEl = document.getElementById('venueDescription');
+            if (venueDescEl && venueInfo.description) {
+                venueDescEl.textContent = venueInfo.description;
+                venueDescEl.style.display = '';
             }
 
             function openModal(event) {

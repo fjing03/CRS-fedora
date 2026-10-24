@@ -130,11 +130,14 @@ class VenueTimetable extends Component
         }
 
         // VenueDropdown contract (ui-common.js): code/name/capacity + display type.
-        $venuesJs = Venue::orderBy('room_code')->get(['id', 'room_code', 'room_name', 'room_type', 'capacity'])
+        $venuesJs = Venue::orderBy('room_code')->get(['id', 'room_code', 'room_name', 'room_type', 'capacity', 'description'])
             ->map(fn (Venue $v) => [
                 'code' => $v->room_code,
                 'name' => $v->room_name ?? $v->room_code,
                 'capacity' => (int) $v->capacity,
+                // SDD venue-description-doc-b006-rule: the plain room
+                // description rides along for the page's summary line.
+                'description' => $v->description !== null ? (string) $v->description : '',
                 // Raw DB encoding rides along (arrange-intent-session-choice
                 // D0/D1 + lt-venue-capacity-rule): the modal + fallback + the
                 // page's session pool consume ruleMap over room_type values;
@@ -530,12 +533,14 @@ class VenueTimetable extends Component
             'code' => $venue->room_code,
             'name' => $venue->room_name ?? $venue->room_code,
             'capacity' => (int) $venue->capacity,
+            // SDD venue-description-doc-b006-rule: the viewed room's plain description.
+            'description' => $venue->description !== null ? (string) $venue->description : '',
             'rawRoomType' => (string) $venue->room_type, // D2: the modal's server-side eligibility key
         ], $eventsByWeek, $totalsByWeek);
     }
 
     /**
-     * @param  Collection<int, array{code: string, name: string, capacity: int, rawRoomType: string, type: 'CiscoLab'|'Lab'|'LectureHall'|'Tutorial'}>  $venuesJs
+     * @param  Collection<int, array{code: string, name: string, capacity: int, description: string, rawRoomType: string, type: 'CiscoLab'|'Lab'|'LectureHall'|'Tutorial'}>  $venuesJs
      * @param  array{code: string, name: string, capacity: int, rawRoomType: string}  $venue
      * @param  array<int, array<int, array<string, mixed>>>  $eventsByWeek
      * @param  array<int, array<string, int|string>>  $totalsByWeek

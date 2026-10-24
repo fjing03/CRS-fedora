@@ -144,6 +144,12 @@
             flex: 1;
             min-width: 0;
         }
+        /* venue-description-doc-b006-rule: the plain room description line */
+        .toolbar-center .venue-description {
+            font-size: 12px;
+            color: var(--color-on-surface-variant);
+            margin-top: 2px;
+        }
         .toolbar-center .toolbar-subtitle {
             font-size: 14px;
             font-weight: 500;
@@ -1006,6 +1012,9 @@
             </div>
             <div class="toolbar-center">
                 @include('partials.ui-venue-dropdown', ['selectId' => 'buildingSelector'])
+                {{-- venue-description-doc-b006-rule: the plain room description
+                     (hidden until the payload fills it — no empty stub) --}}
+                <div class="venue-description" id="arrVenueDescription" style="display:none;"></div>
                 {{-- Fav star commented out on this page only (2026-10-18) — the
                      add/remove still lives in ui-common.js for other pages;
                      boot guards the missing #favStar via ?., and updateFavStar/
@@ -3501,6 +3510,18 @@ triggerText.textContent = 'W' + (slot.week + 1) + ' · ' + shortDate + ' · ' + 
             currentVenue = venueDropdown.getSelected() || currentVenue;
             new MutationObserver(syncVenueTip).observe(venueTrigger, { childList: true, characterData: true, subtree: true });
             syncVenueTip();
+            /* venue-description-doc-b006-rule: the plain room description line
+               under the venue dropdown trigger — reads MockData.venues (the
+               replaced real-data list = venuesPayload, canonical from the DB),
+               not the static mock entries. One line, no priority wording. */
+            const venueDescA = document.getElementById('arrVenueDescription');
+            if (venueDescA && MockData.venues && MockData.venues.length) {
+                const ddV = MockData.venues.find(v => v.code === (urlParams.venue || currentVenue)) || null;
+                if (ddV && ddV.description) {
+                    venueDescA.textContent = ddV.description;
+                    venueDescA.style.display = '';
+                }
+            }
             updateFavStar();
             document.getElementById('favStar')?.addEventListener('click', toggleFavourite);
             document.getElementById('semesterChip').textContent = MockData.semester.chipText;
