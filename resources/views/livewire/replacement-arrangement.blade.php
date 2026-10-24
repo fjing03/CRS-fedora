@@ -3278,7 +3278,7 @@ slotLine = 'Week ' + (anchorSlot.week + 1) + ' · ' + ((weekdayName && weekdayNa
                occurrence being replaced — re-derive the session context (type,
                cohorts, venue eligibility, grid vectors), move the D1 pin, and
                track it in the URL so refresh/back stay truthful. */
-            if (slot.sessionId && Number(slot.sessionId) !== currentSessionId) {
+                if (slot.sessionId && Number(slot.sessionId) !== currentSessionId) {
                 currentSessionId = Number(slot.sessionId);
                 buildVenueFilter();
                 window.pinnedOccurrence = { sessionId: slot.sessionId, week: slot.week + 1 };
@@ -3290,19 +3290,68 @@ slotLine = 'Week ' + (anchorSlot.week + 1) + ' · ' + ((weekdayName && weekdayNa
                    Fall back to the first venue the matrix allows (the occurrence's
                    own room can itself violate the rule — e.g. a P seeded in a
                    tutorial room); the switch bypasses onVenueChange's confirm —
-                   the slot-change confirm already consented to the switch. */
-                const curVenue = currentVenue.code || currentVenue;
-                const curV = (MockData.venues || []).find(v => v.code === curVenue);
-                if (curV && !venueEligible(curV, courseCtx())) {
-                    const target = (venueDropdown.getFiltered ? venueDropdown.getFiltered() : [])[0];
-                    if (target && target.code) {
-                        if (selectedBlock) deselectBlock();
-                        revertingChange = true;
-                        venueDropdown.select(target.code);
-                        revertingChange = false;
-                        applyVenueChange(target.code);
+                   the slot-change confirm already consented to the switch.
+                   ARR-SLOT-ORIGINAL-VENUE-SYNC (design D1): this fallback is the
+                   ARRIVAL/AUTO-PIN law — it now runs ONLY for opts.auto picks
+                   (the pre-boot URL default + the post-boot subject-switch pin);
+                   the manual path's venue law moved to the ORIGINAL-VENUE SYNC
+                   below (the user's 2026-10-24 law). */
+                if (opts && opts.auto) {
+                    const curVenue = currentVenue.code || currentVenue;
+                    const curV = (MockData.venues || []).find(v => v.code === curVenue);
+                    if (curV && !venueEligible(curV, courseCtx())) {
+                        const target = (venueDropdown.getFiltered ? venueDropdown.getFiltered() : [])[0];
+                        if (target && target.code) {
+                            if (selectedBlock) deselectBlock();
+                            revertingChange = true;
+                            venueDropdown.select(target.code);
+                            revertingChange = false;
+                            applyVenueChange(target.code);
+                        }
+                    } else if (window.__bootDone) {
+                        saveCurrentWeek();
+                        buildTimetable();
                     }
-                } else if (window.__bootDone) {
+                }
+            }
+            /* ORIGINAL-VENUE SYNC (user law 2026-10-24, arr-slot-original-venue-sync):
+               every NON-AUTO pick re-selects the picked conflict schedule's
+               ORIGINAL room — slot.venue (runtime, the same object the picker
+               rows + the strip anchor read): BOTH the dropdown's selected value
+               AND the .venue-dd-label. Options keep the buildVenueFilter law.
+               Orig NOT offered -> the STANDING fallback: the first filtered
+               venue ONLY when the current venue would render dead (else keep
+               current + the count note — no new chrome). The move
+               bypasses onVenueChange by the revertingChange pair (the
+               slot-change confirm already consented). GAP A closed: the family
+               runs on same-session picks too; GAP B closed: an eligible
+               inherited room yields to the schedule's own room. */
+            if (window.__bootDone && !(opts && opts.auto)) {
+                const origCode = slot.venue;
+                const filtered = venueDropdown.getFiltered ? venueDropdown.getFiltered() : [];
+                const curVenue = String(currentVenue.code || currentVenue || '');
+                let target = null;
+                if (origCode && filtered.some(v => v.code === origCode)) {
+                    target = String(origCode);   /* offered: the schedule's own room wins (also defeats the select() phantom-guard silently ignoring a code outside the deck) */
+                } else {
+                    const curV = (MockData.venues || []).find(v => v.code === curVenue);
+                    if (!curV || !venueEligible(curV, courseCtx())) {
+                        const first = filtered[0];
+                        if (first && first.code) target = String(first.code);
+                    }
+                    /* else: current venue stays eligible -> keep it (design D4); a slot without a venue rides the same keep/dead check. */
+                }
+                if (target && String(target) !== curVenue) {
+                    if (selectedBlock) deselectBlock();
+                    revertingChange = true;
+                    venueDropdown.select(target);   /* value + label parity (_updateTrigger) */
+                    revertingChange = false;
+                    applyVenueChange(target);   /* grid + __fillVenueChips + favstar */
+                } else if (target) {
+                    venueDropdown.select(target);   /* parity refire even when equal — onSelect fires under reverting (design D3); panel _close() is the already-closed state */
+                    saveCurrentWeek();
+                    buildTimetable();
+                } else {
                     saveCurrentWeek();
                     buildTimetable();
                 }
@@ -3658,6 +3707,11 @@ triggerText.textContent = slotTriggerLabel(slot);
                (during boot those rebuilds are deferred to the boot's own
                buildTimetable — the week selector is not readable before this) */
             window.__bootDone = true;
+            /* arr-slot-original-venue-sync Test-5: the value/label parity assert
+               reads the dropdown's underlying selection via this read-only
+               hook (venueDropdown + currentVenue are closure-scoped; this
+               mirrors the page's __fillVenueChips/__rDebug probe surfaces). */
+            window.__venueSelected = function () { return venueDropdown ? venueDropdown.getSelected() : null; };
             /* Subject tooltip: guides the first pick, then mirrors the full subject info
                (the single-row select ellipsizes long names) */
             const subjectSel = document.getElementById('subjectSelector');

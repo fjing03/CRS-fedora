@@ -1,3 +1,37 @@
+## 2026-10-24 (SDD arr-slot-original-venue-sync, Bug 2 of the 5425 investigation, user-approved) — the venue label follows the picked schedule's ORIGINAL room
+
+**The law (user, 2026-10-24):** every NON-AUTO `slotTrigger` pick re-selects
+the picked conflict schedule's ORIGINAL room — `slot.venue`, read at runtime
+(never hardcoded): BOTH the dropdown's underlying selected value AND the
+`.venue-dd-label` (parity). The OPTIONS keep the `buildVenueFilter` law
+untouched. Orig NOT offered → the standing fallback law: the first filtered
+venue ONLY when the current venue would render dead (else keep current — no
+new toast/chrome). This closes **Gap A** (a same-session pick ran the venue
+family zero times before) and **Gap B** (a session-change pick kept an
+eligible-but-inherited venue).
+
+**Where:** `commitSlotSelection()` in `replacement-arrangement.blade.php`.
+The session-change branch keeps the re-derive + the eligibility fallback
+VERBATIM but now explicitly on `opts.auto` — the pre-boot arrival laws
+(default pick, urlParams pick) stay byte-identical; the first boot shows the
+NEW parity hook `window.__venueSelected()` (read-only; the Test-5 surface,
+like `__fillVenueChips`/__rDebug). The new synchronisation runs under
+`window.__bootDone && !(opts && opts.auto)` on EVERY manual pick.
+
+**Reality check (probe receipts, staff-5425):** 99/8 = AMSE1003 L W8 @ B111;
+38/14 = BMSE2163 P W14 @ B010; 67/14 = AMSE2003 L W14 @ B100 (+T @ B100).
+No session carries multiple conflicted occurrences and every orig room
+self-fits its own ctx — the pure multi-week Gap-A variant and the
+orig-not-offered row stay BLOCKED (documented in the lane, never invented);
+the fallback half is covered by its verbatim clone (the arrival law) in the
+spot battery.
+
+**Gates:** `tests/arr-slot-original-venue-sync.spec.ts` 5/5 ×2 (plus setup
+3/3); spot battery (strip-anchor / session-arrival-pin-guard / default-pin /
+venue-cross-week-handoff / arrangement-earliest-week-default /
+venue-intent-modal / replace-now, `--grep-invert "TC70"`) 25/25;
+pint passed; phpstan-1G 0 errors; phpunit 230/230. NO PUSH.
+
 ## 2026-10-24 (the user's keyword-voice UI directive) — Won't Fit toasts + the booking-intent banner speaks in colors
 
 **The voice rule (applied to this family):** the keyword that carries the
