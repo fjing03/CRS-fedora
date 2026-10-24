@@ -3838,3 +3838,14 @@ body {
     height: 12px;
     flex: 0 0 auto;
 }
+/* The capacity chip = the cs-badge look (the user's reuse note 2026-10-23):
+   the primary-container BLUE pill, one row (icon + digit inline), no
+   wrap/overflow; the description chip stays neutral .badge-past. */
+.venue-side-chips .badge-capacity {
+    background: var(--color-primary-container);
+    color: var(--color-on-primary-container);
+    border-radius: 999px;
+    padding: 4px 10px;
+    max-width: 120px;
+    overflow: hidden;
+}

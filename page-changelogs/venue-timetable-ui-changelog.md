@@ -1,3 +1,20 @@
+## 2026-10-23 (the user's chip ask, round 2) — the capacity chip = the cs-badge look
+
+The user referred to the arrangement page's cs-badge (the blue pill at the
+Conflict Session strip): the capacity chip now reuses that design —
+- the new shared class `.venue-side-chips .badge-capacity` in theme.css =
+  the cs-badge shape (the primary-container BLUE background, the
+  on-primary-container text, the same 4×10 padding + 999px radius; a
+  120px overflow guard), replacing the neutral badge-past on BOTH pages'
+  #venueCapacity;
+- the content = one row guaranteed (the inline-flex row, height ~23px,
+  the = verified live: oneRow true, bg = the blue container token, flex);
+  the digit sits right of the 👥 icon with a 4px gap.
+- The description info-chip stays neutral (the user's ask covered only the
+  capacity badge).
+Spot battery: C2+pin rows green; cross-week green; pint ✓.
+
+
 ## 2026-10-23 (the user's chip ask, inside SDD venue-description-doc-b006-rule) — venue-side chips
 
 The user amended the description display into reused pill chips (theme.css's

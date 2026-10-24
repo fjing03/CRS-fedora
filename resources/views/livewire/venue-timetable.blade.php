@@ -120,7 +120,7 @@
                  badge = icon + number + hover tooltip, RIGHT of the venue dd.
                  The description chip on THIS page = TBD by the user (#1 not ok
                  here yet) — the plain description line below stays. --}}
-            <span class="badge badge-past" id="venueCapacity" style="display:none;"></span>
+            <span class="badge badge-capacity" id="venueCapacity" style="display:none;"></span>
             {{-- venue-description-doc-b006-rule: the plain room description
                  (hidden until the payload fills it — no empty stub) --}}
             <div class="venue-description" id="venueDescription" style="display:none;"></div>

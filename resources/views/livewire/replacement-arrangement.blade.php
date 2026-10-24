@@ -1017,7 +1017,7 @@
                      ("靠着它"). Both hidden until this page's venues payload fills
                      them — no empty stubs. --}}
                 <div class="venue-side-chips" id="venueChipGroup" style="display:none;">
-                    <span class="badge badge-past" id="venueCapacity"></span>
+                    <span class="badge badge-capacity" id="venueCapacity"></span>
                     <span class="badge badge-past" id="arrVenueDescription"></span>
                 </div>
                 {{-- Fav star commented out on this page only (2026-10-18) — the
