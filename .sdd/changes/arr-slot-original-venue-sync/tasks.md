@@ -14,3 +14,5 @@
 - [x] T4: changelog dated entry at the TOP of
   `page-changelogs/replacement-arrangement-changelog.md` + review-log
   receipts.
+- [x] T5: the ROUND-2 amendment (the 68/14 whole-red sighting): syncVenueFamily shared helper + the applySubjectChange post-boot tail call (the auto-pin's branch-1 early-return was found while probing); the commit-time ctx race absorbed by the helper's fresh buildVenueFilter.
+- [x] T6: round-2 gates rerun (spec 9/9 x2 incl. the NEW 68-sighting row; battery 25/25; pint/phpstan-1G 0/phpunit 230/230).

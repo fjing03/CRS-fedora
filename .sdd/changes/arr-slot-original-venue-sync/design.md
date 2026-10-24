@@ -117,3 +117,33 @@ dataset row.
 - Boot label arrival pre-change: 38/14 → "B010 — Lab (28 seats)",
   99/8 → "B111 — Lecture Hall (80 seats)", 67/14 → "B100 — Tutorial (35
   seats)" (the arrival laws pin correctly).
+
+## R2 — the 2026-10-24 68/14 sighting (DECISION-LEVEL amendment by the user's new word)
+
+**Sighting:** land `?session=68&week=14` (AMSE2003 T @ B100), switch the subject
+to BMSE2163 (P @ B010) — the strip immediately reads `@ B010` but the
+dropdown keeps `B100 — Tutorial (35 seats)` → the whole grid renders red
+(`cell-available` = 0) until the user MANUALLY picks the slot row.
+
+**Mechanism (ӎarker receipts + code):** the post-boot auto-pin's default
+pick NEVER reaches commitSlotSelection — `applyDefaultSlotSelection`'s
+branch-1 pinned-slot early-return
+(`urlParams.code && day && start && originalVenue`, hydrated from
+PAGE_DATA.pinnedSession at boot) skips it; applySubjectChange only writes
+pinnedOccurrence + the trigger/strip. So the round-1 sync (gated
+`__bootDone && !opts.auto`) had no hook on the auto-pin at all.
+
+**The amendment:** the sync is a SHARED helper `syncVenueFamily(slot, phase)`
+called from BOTH `commitSlotSelection` (manual picks, `__bootDone` — the
+auto/arrival conjunct dropped; pre-boot arrivals stay excluded by
+`__bootDone` alone) AND `applySubjectChange`'s post-boot tail
+(`firstConflictRow`, phase 'auto-pin'). The CTX-freshness problem of the
+commit-time call (which raced applySubjectChange's tail re-filter during
+debugging) disappears — the helper re-runs `buildVenueFilter()` itself. The
+equal/no-target saveCurrentWeek+buildTimetable is SKIPPED for 'auto-pin'
+(the tail's own buildTimetable already positioned the grid).
+
+**Net law now:** every POST-boot context arrival (user pick OR subject-switch
+auto-pin) agrees the dropdown with the schedule's ORIGINAL room; PRE-boot
+arrivals keep the bridge fallback verbatim. The auto-pin follows even when
+the inherited venue was eligible (orig wins — the manual law's symmetry).

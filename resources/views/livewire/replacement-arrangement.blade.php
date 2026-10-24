@@ -3064,6 +3064,17 @@ slotLine = 'Week ' + (anchorSlot.week + 1) + ' · ' + ((weekdayName && weekdayNa
                (guarded: during boot the week selector is not ready yet; the
                boot's own buildTimetable renders the final state once) */
             if (window.__bootDone) { saveCurrentWeek(); buildTimetable(); }
+            /* arr-slot-original-venue-sync ROUND 2 (the staff-5425 sighting
+               68/14 → BMSE2163, user word 2026-10-24): the POST-boot auto-pin
+               must agree the venue with the strip BEFORE a manual pick — the
+               strip already read "@ B010" while the dropdown stayed on the
+               inherited B100 (P-ineligible) = the whole-red grid. The auto-pin
+               pick NEVER reaches commitSlotSelection (applyDefaultSlotSelection's
+               branch-1 pinned-slot early-return skips it), so the sync runs HERE.
+               The equal/no-target rebuild is skipped (phase 'auto-pin'): the tail's
+               own buildTimetable already rendered. Pre-boot arrivals == untouched
+               (window.__bootDone guard; the bridge's opts.auto fallback stays). */
+            if (window.__bootDone && firstConflictRow) { syncVenueFamily(firstConflictRow, 'auto-pin'); }
         }
 
         /* Venue law (SDD lt-venue-capacity-rule, user ruling 2026-10-19):
@@ -3258,6 +3269,59 @@ slotLine = 'Week ' + (anchorSlot.week + 1) + ' · ' + ((weekdayName && weekdayNa
             return 'W' + (slot.week + 1) + ' · ' + shortDate + ' · ' + startStr + '–' + endStr;
         }
 
+        /* ORIGINAL-VENUE SYNC (user law 2026-10-24, arr-slot-original-venue-sync;
+           shared so BOTH the picked-slot path (commitSlotSelection) and the
+           POST-boot auto-pin path (applySubjectChange's tail) agree the
+           dropdown with the schedule's ORIGINAL room):
+           - the picked conflict schedule's own room is the selected venue +
+             label (slot.venue — runtime, never hardcoded), BOTH the value AND
+             the .venue-dd-label, in the revertingChange pair (no mid-switch
+             "Change Venue?" confirm — the slot-change consent already ran).
+           - the OPTIONS keep the existing buildVenueFilter law.
+           - NOT offered → the STANDING fallback: the first filtered venue ONLY
+             when the current venue would render dead (else keep current + the
+             count note — no new chrome).
+           - the CTX must be FRESH: the caller may have JUST switched subjects
+             (the post-boot auto-pin commits/render before the tail re-filter;
+             the ROUND-2 68/14 sighting) — so the helper re-runs
+             buildVenueFilter() (no-op-equal for an already-fresh ctx). */
+        function syncVenueFamily(slot, phase) {
+            buildVenueFilter(); /* decide on the FRESH ctx (see above) */
+            const origCode = slot && slot.venue;
+            const filtered = venueDropdown.getFiltered ? venueDropdown.getFiltered() : [];
+            const curVenue = String(currentVenue.code || currentVenue || '');
+            let target = null;
+            if (origCode && filtered.some(v => v.code === origCode)) {
+                target = String(origCode);   /* offered: the schedule's own room wins (also defeats the select() phantom-guard silently ignoring a code outside the deck) */
+            } else {
+                const curV = (MockData.venues || []).find(v => v.code === curVenue);
+                if (!curV || !venueEligible(curV, courseCtx())) {
+                    const first = filtered[0];
+                    if (first && first.code) target = String(first.code);
+                }
+                /* else: current venue stays eligible -> keep it (design D4); a slot without a venue rides the same keep/dead check. */
+            }
+            if (target && String(target) !== curVenue) {
+                if (selectedBlock) deselectBlock();
+                revertingChange = true;
+                venueDropdown.select(target);   /* value + label parity (_updateTrigger) */
+                revertingChange = false;
+                applyVenueChange(target);       /* grid + __fillVenueChips + favstar */
+            } else if (target) {
+                venueDropdown.select(target);   /* parity refire even when equal — onSelect fires under reverting (design D3); panel _close() is the already-closed state */
+                saveCurrentWeek();
+                buildTimetable();
+            } else if (phase !== 'auto-pin') {
+                /* the equal/no-target rebuild: the manual PICK already sits on
+                   the (re)rendered grid — rebuilding keeps the pending
+                   intent/banner state honest; the AUTO-PIN path skips this —
+                   applySubjectChange's tail buildTimetable already positioned
+                   the grid (a second null-effect rebuild would be noise). */
+                saveCurrentWeek();
+                buildTimetable();
+            }
+        }
+
         function commitSlotSelection(slot, index, opts) {
             /* F-8 (round-2): the block size follows the picked conflict slot's
                duration — same clamp family as the URL branch (0.5–4 h → ≤8
@@ -3315,7 +3379,7 @@ slotLine = 'Week ' + (anchorSlot.week + 1) + ' · ' + ((weekdayName && weekdayNa
                 }
             }
             /* ORIGINAL-VENUE SYNC (user law 2026-10-24, arr-slot-original-venue-sync):
-               every NON-AUTO pick re-selects the picked conflict schedule's
+               every pick re-selects the picked conflict schedule's
                ORIGINAL room — slot.venue (runtime, the same object the picker
                rows + the strip anchor read): BOTH the dropdown's selected value
                AND the .venue-dd-label. Options keep the buildVenueFilter law.
@@ -3325,36 +3389,19 @@ slotLine = 'Week ' + (anchorSlot.week + 1) + ' · ' + ((weekdayName && weekdayNa
                bypasses onVenueChange by the revertingChange pair (the
                slot-change confirm already consented). GAP A closed: the family
                runs on same-session picks too; GAP B closed: an eligible
-               inherited room yields to the schedule's own room. */
-            if (window.__bootDone && !(opts && opts.auto)) {
-                const origCode = slot.venue;
-                const filtered = venueDropdown.getFiltered ? venueDropdown.getFiltered() : [];
-                const curVenue = String(currentVenue.code || currentVenue || '');
-                let target = null;
-                if (origCode && filtered.some(v => v.code === origCode)) {
-                    target = String(origCode);   /* offered: the schedule's own room wins (also defeats the select() phantom-guard silently ignoring a code outside the deck) */
-                } else {
-                    const curV = (MockData.venues || []).find(v => v.code === curVenue);
-                    if (!curV || !venueEligible(curV, courseCtx())) {
-                        const first = filtered[0];
-                        if (first && first.code) target = String(first.code);
-                    }
-                    /* else: current venue stays eligible -> keep it (design D4); a slot without a venue rides the same keep/dead check. */
-                }
-                if (target && String(target) !== curVenue) {
-                    if (selectedBlock) deselectBlock();
-                    revertingChange = true;
-                    venueDropdown.select(target);   /* value + label parity (_updateTrigger) */
-                    revertingChange = false;
-                    applyVenueChange(target);   /* grid + __fillVenueChips + favstar */
-                } else if (target) {
-                    venueDropdown.select(target);   /* parity refire even when equal — onSelect fires under reverting (design D3); panel _close() is the already-closed state */
-                    saveCurrentWeek();
-                    buildTimetable();
-                } else {
-                    saveCurrentWeek();
-                    buildTimetable();
-                }
+               inherited room yields to the schedule's own room.
+               ROUND 2 (the staff-5425 sighting 68/14 → BMSE2163): POST-boot
+               auto pins (the subject-switch auto-pin, the fallback's own
+               auto default) ride {auto:true} and previously SKIPPED the
+               family — the strip already read "@ B010" while the dropdown
+               stayed on the inherited B100 (P-ineligible) = the whole-red
+               grid until a manual pick. The gate therefore reads
+               __bootDone ALONE: PRE-boot arrivals keep the URL/pinned venue
+               law (the bridge's opts.auto fallback above); the
+               auto-pin law follows the strip.
+            */
+            if (window.__bootDone) {
+                syncVenueFamily(slot, 'pick');
             }
             selectedOriginalSlot = slot;
             const triggerText = document.getElementById('slotTriggerText');

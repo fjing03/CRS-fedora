@@ -32,6 +32,20 @@ venue-cross-week-handoff / arrangement-earliest-week-default /
 venue-intent-modal / replace-now, `--grep-invert "TC70"`) 25/25;
 pint passed; phpstan-1G 0 errors; phpunit 230/230. NO PUSH.
 
+**Round 2 — the 68/14 whole-red sighting (the user's report, 2026-10-24):**
+the auto-pin's default pick NEVER reaches `commitSlotSelection`
+(`applyDefaultSlotSelection`'s branch-1 pinned-slot early-return — the
+facts hydrated from `PAGE_DATA.pinnedSession`), so a subject switch left the
+inherited venue (B100 for the 68/14 landing — P-ineligible) = the STRIP read
+`@ B010` while every cell red. The sync is now a SHARED
+`syncVenueFamily(slot, phase)`: the manual pick path (commitSlotSelection)
+and the POST-boot auto-pin path (applySubjectChange's tail; equal/no-target
+rebuild skipped) both call it — the venue agrees with the strip BEFORE a
+manual pick; pre-boot arrivals stay excluded by the `__bootDone` guard
+(byte-identical bridge fallback). **Gates:** spec 9/9 ×2 incl. the NEW
+68-sighting row (label B010 + bookable cells WITHOUT a manual pick); spot
+battery 25/25; pint; phpstan-1G 0; phpunit 230/230. NO PUSH.
+
 ## 2026-10-24 (the user's keyword-voice UI directive) — Won't Fit toasts + the booking-intent banner speaks in colors
 
 **The voice rule (applied to this family):** the keyword that carries the

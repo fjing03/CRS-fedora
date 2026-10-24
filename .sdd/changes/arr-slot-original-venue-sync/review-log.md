@@ -33,3 +33,26 @@
   invented.
 ### 🔴 Outstanding
 - none
+## round 2 — 2026-10-24 (the 68/14 whole-red sighting, user report -> decision-level amendment)
+### sourcing
+- The user's live report IS the round-2 word: after a subject switch the
+  venue must agree with the strip BEFORE a manual pick (the strip read
+  "@ B010", the dropdown stayed B100, every cell red until a manual pick).
+### mechanism receipts (probe/stepwise markers, /tmp scratch, purged after)
+- applyDefaultSlotSelection early-returns on the pinned-slot branch-1 facts
+  (hydrated from PAGE_DATA.pinnedSession) -> the auto-pin pick never
+  commits; no commit = no round-1 sync on the switch path (probe receipts:
+  markers BOOTCLOSURE/DEFAULTPICK fired; SELECT/COMMIT silently absent).
+- The staging also surfaced a commit-time ctx-freshness race while probing
+  (the commit ran BEFORE applySubjectChange's tail re-filter) -> the sync
+  moved INTO the shared syncVenueFamily(slot, phase) helper; the manual
+  pick path (commitSlotSelection) and the auto-pin path
+  (applySubjectChange's post-boot tail) both call it; the helper re-runs
+  buildVenueFilter() itself.
+### gates (rerun after the amendment)
+- spec 9 rows x2 incl. the NEW 68-sighting row (label B010 + grid
+  availability WITHOUT a manual pick); the alternation row rewritten to the
+  round-2 reality (the auto-pin now follows B111 immediately).
+- spot battery 25/25; pint; phpstan-1G 0; phpunit 230/230.
+### 🔴 Outstanding
+- none
