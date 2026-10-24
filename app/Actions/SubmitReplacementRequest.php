@@ -126,7 +126,14 @@ final class SubmitReplacementRequest
         // Engine pre-check (FR 4.3–4.7) across the FULL span: lecturer/cohort
         // busy vectors at ANY cell (incl. tails) reject pre-reserve.
         $cohortIds = $session->cohorts->pluck('id')->all();
-        if (! $this->engine->validateSlot($anchorSlotId, (int) $proposer->id, $cohortIds, $session->session_type, (int) $slot->week_number, $span)) {
+        /* venue-restrictions-enforcement: the OCC-time venue gate needs the
+           ONE matrix read (module-conditional labs / B006 widening / R6 /
+           R2) — the eager-load contract is the design's fail-closed
+           requirement (unloaded = base rows only, never widen); the success
+           mailer below already reads $session->module, so the load is
+           shared. */
+        $session->loadMissing(['module', 'cohorts.programme']);
+        if (! $this->engine->validateSlot($anchorSlotId, (int) $proposer->id, $cohortIds, $session->session_type, (int) $slot->week_number, $span, $session)) {
             return $fail('engine_precheck_failed');
         }
 

@@ -2593,14 +2593,12 @@ slotLine = 'Week ' + (anchorSlot.week + 1) + ' · ' + ((weekdayName && weekdayNa
                     /* conflicted-only (user amendment 2026-10-15): the candidate
                        must be one the system flagged for THIS intent week */
                     if (!window.PAGE_DATA.intentConflicts || !window.PAGE_DATA.intentConflicts[String(sid)]) return false;
-                    const allowed = rule[e.type];
-                    if (!allowed || allowed.indexOf(venueRaw) < 0) return false;
-                    if (i.venue === rule.b005_venue_code) {
-                        const re = new RegExp((rule.b005_no_diploma_pattern || '^\\s*D'));
-                        for (let k = 0; k < (e.cohortCodes || []).length; k++) {
-                            if (re.test(e.cohortCodes[k])) return false;
-                        }
-                    }
+                    /* venue-restrictions-enforcement (design D3/D4): the ONE
+                       client matrix read replaces the hand-rolled base-rows
+                       + B005-pattern predicate — the fallback must offer a
+                       lab intent for a networking L/T session exactly when
+                       the modal + dropdown would. */
+                    if (!venueMatrixAllows(e.type, venueRaw, i.venue, m.code, e.cohortCodes || [])) return false;
                     if (i.hourIndex + (e.durationSlots || 1) > hours.length) return false; // day-end arithmetic
                     matched = { module: m, sessionId: sid, entry: e };
                     return true;
@@ -3086,14 +3084,60 @@ slotLine = 'Week ' + (anchorSlot.week + 1) + ' · ' + ((weekdayName && weekdayNa
            must never re-open the law drift. B005 is hidden when the
            occurrence's cohorts include a Diploma (D*) programme — the doc's
            CLIENT-side no-Diploma rule (still doc-only server-side). */
+        /* venue-restrictions-enforcement (SDD design D4): the ONE client
+           matrix read mirroring the catalog's PHP gate (design D2) — ONE
+           formula, NO early-return chain that could bypass the venue deny
+           gates. Capacity is NOT part of this matrix (engine-side).
+           Programme identification: the ALPHA PREFIX of the stripped
+           compact cohort label ('DFT2 (S1) G1'-family — spacing stripped;
+           a distinct 'RAFS' extracts as RAFS: no prefix collisions). */
+        function venueMatrixAllows(type, rawRoomType, venueCode, moduleCode, cohortCodes) {
+            const rule = window.__ruleMap;
+            if (!rule) return false;                       // map absent → deny (fail-closed)
+            const tag = (rawRoomType || '').toLowerCase();
+            const rowKeys = rule[type];
+            if (!Array.isArray(rowKeys)) return false;     // unknown type — fail closed
+
+            const labs = ['lab', 'cisco_lab'];
+            const baseRow = rowKeys.indexOf(tag) !== -1;
+            const isLT = type === 'L' || type === 'T';
+            const labsAdditive = isLT && !!moduleCode
+                && (rule.lab_access_module_codes || []).indexOf(moduleCode) !== -1
+                && labs.indexOf(tag) !== -1;
+            const b006Code = rule.b006_venue_code || 'B006';
+            const b006Widen = isLT && venueCode === b006Code && !!moduleCode
+                && (rule.b006_allowed_module_codes || []).indexOf(moduleCode) !== -1;
+            if (! (baseRow || labsAdditive || b006Widen)) return false;
+
+            if (venueCode === b006Code) {
+                const focs = rule.b006_focs_programmes || [];
+                const banned = rule.b006_banned_programmes || [];
+                const cohorts = cohortCodes || [];
+                for (let k = 0; k < cohorts.length; k++) {
+                    const p = (String(cohorts[k]).replace(/\s+/g, '').match(/^[A-Z]+/) || [''])[0];
+                    if (!p) return false;               // unparsable label — fail closed
+                    if (banned.indexOf(p) !== -1) return false;
+                    if (focs.indexOf(p) === -1) return false;
+                }
+            }
+            if (venueCode === rule.b005_venue_code) {
+                const re = new RegExp(rule.b005_no_diploma_pattern || '^\\s*D');
+                const cohorts2 = cohortCodes || [];
+                for (let k = 0; k < cohorts2.length; k++) {
+                    if (re.test(cohorts2[k])) return false;
+                }
+            }
+            return true;
+        }
+
         function venueEligible(v, ctx) {
             if (!v || !ctx) return true;
-            var types = window.__ruleMap ? (window.__ruleMap[ctx.type] || []) : null;
-            if (types === null) return false;   // map absent → deny (fail-closed)
-            if (types.indexOf((v.rawRoomType || '').toLowerCase()) === -1) return false;
-            var capOk = v.capacity >= (ctx.studentCount || 0);
-            var dipOk = !(v.code === 'B005' && (ctx.cohorts || []).some(function(c) { return /^\s*D/.test(c); }));
-            return capOk && dipOk;
+            /* venueEligible's callers pass the spaced display labels — the
+               matrix needs the compact alpha prefixes; strip both shapes. */
+            const cohortCodes = (ctx.cohorts || []).map(function(c) { return String(c).replace(/\s+/g, ''); });
+            if (!venueMatrixAllows(ctx.type, v.rawRoomType, v.code, ctx.code, cohortCodes)) return false;
+            var capOk = v.capacity >= (ctx.studentCount || 0);   // the engine-side rule, mirrored client-side as always
+            return capOk;
         }
 
         function buildVenueFilter() {

@@ -37,10 +37,18 @@ final class LectureSessionCatalog
      * pages bake it into page-data and the client only READS it).
      *
      * B005: a session with any cohort whose programme_code matches the
-     * pattern below may not be offered for B005 (doc rule, client+modal
-     * filtering only until venue-restrictions enforcement lands).
+     * pattern below may not be offered for B005.
      *
-     * @return array{P: list<string>, T: list<string>, L: list<string>, b005_no_diploma_pattern: string, b005_venue_code: string}
+     * SDD venue-restrictions-enforcement (2026-10-24): the campus rule book is
+     * ENFORCED here as data — the module-conditioned ALLOW/DISALLOW matrix
+     * (networking subjects gain additive lab access for L/T; B006 admits
+     * those modules' L/T; its population is FOCS-only per R6, DFT/DSF/RSD
+     * allowed, RAF/RBU never) composites OVER these base rows for EVERY
+     * session type (design D2's one boolean formula — never an early-return
+     * chain). R4/IoT was DROPPED by the user (no IoT keys exist on purpose).
+     * Capacity is NOT part of this gate — the engine's separate check.
+     *
+     * @return array{P: list<string>, T: list<string>, L: list<string>, lab_access_module_codes: list<string>, b006_allowed_module_codes: list<string>, b006_focs_programmes: list<string>, b006_banned_programmes: list<string>, b006_venue_code: string, b005_no_diploma_pattern: string, b005_venue_code: string}
      */
     public static function ruleMap(): array
     {
@@ -48,12 +56,25 @@ final class LectureSessionCatalog
         // (2026-10-20): the 2026-10-19 dual admission NARROWED — Lecture
         // Halls admit L ONLY; tutorials keep L/T ("the Lecture Hall only
         // allow for L only", the user's ruling). Capacity-gated at every
-        // consumer. Labs stay P-only (no B006 creep; R3/R4 stay
-        // PLANNED-NEW).
+        // consumer (engine-side; NEVER this gate).
         return [
             'P' => ['lab', 'cisco_lab'],
             'T' => ['tutorial'],   // lh-l-only-revert (2026-10-20): the lecture hall narrows back to L-only
             'L' => ['tutorial', 'lecture_hall'],
+            /* venue-restrictions-enforcement (the user's 2026-10-24
+               ALLOW/DISALLOW law): networking subjects' L/T may use any lab
+               (additive — their R1 rooms stay); B006's L/T roster = the same
+               four codes (deliberately redundant with lab_access while the
+               rosters coincide — kept separate so a future divergence can't
+               regress silently); the population gate keys (R6). NOTE this
+               module-conditioned data is the ONLY rule authority now — the
+               allowed_session_types columns are untouched reference
+               inventory (Q6: no migration). */
+            'lab_access_module_codes' => ['AMIT2033', 'BMIT2154', 'BMIT3084', 'AMIT2034'],
+            'b006_allowed_module_codes' => ['AMIT2033', 'BMIT2154', 'BMIT3084', 'AMIT2034'],
+            'b006_focs_programmes' => ['DFT', 'DSF', 'RSD'],
+            'b006_banned_programmes' => ['RAF', 'RBU'],
+            'b006_venue_code' => 'B006',
             'b005_no_diploma_pattern' => '^\\s*D',
             'b005_venue_code' => 'B005',
         ];
@@ -161,21 +182,75 @@ final class LectureSessionCatalog
     }
 
     /**
-     * Is this session admissible for a venue of $rawRoomType? Pure rule read
-     * over data + the B005 cohort pattern (type ∈ map values + B005 rule).
-     * Duration/day-end fitness is arithmetic the CLIENT does against the
-     * shared hours constant — intentionally not here.
+     * Is this session admissible for a venue of $rawRoomType? THE one matrix
+     * read (SDD venue-restrictions-enforcement design D2): ONE boolean
+     * formula over the rule data — (base row OR labsAdditive OR b006Widen)
+     * AND NOT b006PopulationDeny AND NOT b005DiplomaDeny — NOT an
+     * early-return step chain (the deny gates must compose over the widened
+     * sets for EVERY session type). Fail-closed: an unloaded module
+     * relation is in NO list (base rows + gates only — never widen, never
+     * throw); an unloaded cohort relation DENIES a B006 population check
+     * (it cannot prove FOCS). Capacity is NOT part of this gate (the
+     * engine's separate check). Duration/day-end fitness is arithmetic the
+     * CLIENT does against the shared hours constant — intentionally not
+     * here.
      */
     public static function sessionAllowedForVenue(string $sessionType, string $rawRoomType, ClassSession $session, string $venueCode): bool
     {
         $rule = self::ruleMap();
 
         $allowedRooms = $rule[$sessionType] ?? null;
-        if (! is_array($allowedRooms) || ! in_array($rawRoomType, $allowedRooms, true)) {
+        if (! is_array($allowedRooms)) {
+            return false;   // unknown session type — fail closed
+        }
+
+        // fail-closed module identity (the round-1 🔴: the gate reads the
+        // relation INSIDE; no eager-loaded module = in NO widen list).
+        $moduleCode = $session->relationLoaded('module') && $session->module !== null
+            ? (string) $session->module->module_code
+            : null;
+
+        // the ALLOW half — one OR set (design D2):
+        $inWidenRows = (bool) $moduleCode;
+        $baseRow = in_array($rawRoomType, $allowedRooms, true);
+        $labsAdditive = in_array($sessionType, ['L', 'T'], true)
+            && $inWidenRows
+            && in_array($moduleCode, $rule['lab_access_module_codes'], true)
+            && in_array($rawRoomType, ['lab', 'cisco_lab'], true);
+        $b006Widen = $venueCode === $rule['b006_venue_code']
+            && in_array($sessionType, ['L', 'T'], true)
+            && $inWidenRows
+            && in_array($moduleCode, $rule['b006_allowed_module_codes'], true);
+        if (! ($baseRow || $labsAdditive || $b006Widen)) {
             return false;
         }
 
+        // R6 population deny (B006): EVERY cohort's programme must hit the
+        // FOCS list; ANY hit on the banned list denies. Fail-closed on an
+        // unloaded cohort relation (cannot prove FOCS). A cohort-less
+        // session passes vacuously (recorded: no such class exists in the
+        // DB today).
+        if ($venueCode === $rule['b006_venue_code']) {
+            if (! $session->relationLoaded('cohorts')) {
+                return false;
+            }
+            foreach ($session->cohorts as $cohort) {
+                $programme = $cohort->programme !== null ? (string) $cohort->programme->programme_code : '';
+                if (in_array($programme, $rule['b006_banned_programmes'], true)) {
+                    return false;
+                }
+                if (! in_array($programme, $rule['b006_focs_programmes'], true)) {
+                    return false;
+                }
+            }
+        }
+
+        // R2 deny (B005 — composed for EVERY type; the lab widening never
+        // reaches past it: an AMIT2033 L with D* cohorts keeps B005 hidden).
         if ($venueCode === $rule['b005_venue_code']) {
+            if (! $session->relationLoaded('cohorts')) {
+                return false;
+            }
             $pattern = $rule['b005_no_diploma_pattern'];
             foreach ($session->cohorts as $cohort) {
                 $programme = $cohort->programme !== null ? $cohort->programme->programme_code : '';

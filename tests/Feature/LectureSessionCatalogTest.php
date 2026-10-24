@@ -133,7 +133,17 @@ final class LectureSessionCatalogTest extends TestCase
 
         // R1 matrix through the service (raw DB encodings):
         $this->assertTrue(LectureSessionCatalog::sessionAllowedForVenue('P', 'lab', $session, 'B009'));
-        $this->assertTrue(LectureSessionCatalog::sessionAllowedForVenue('P', 'cisco_lab', $session, 'B006'), 'B006 hosts P today');
+        $this->assertTrue(LectureSessionCatalog::sessionAllowedForVenue('P', 'cisco_lab', $session, 'B006'), 'B006 hosts P (the base row) for a FOCS cohort');
+
+        // R6 through the service (SDD venue-restrictions-enforcement): a
+        // non-FOCS cohort keeps B006 hidden — the R*-like-but-banned fact.
+        $rafCohortId = Cohort::whereHas('programme', fn ($q) => $q->where('programme_code', 'RAF'))->value('id');
+        if ($rafCohortId !== null) {
+            $nonFocs = $this->makeSession(Venue::where('room_type', 'lab')->firstOrFail()->id, 'P', 0, '09:00:00', '11:00:00');
+            $nonFocs->cohorts()->sync([$rafCohortId]);
+            $nonFocs->refresh();
+            $this->assertFalse(LectureSessionCatalog::sessionAllowedForVenue('P', 'cisco_lab', $nonFocs, 'B006'), 'R6: a banned (RAF) cohort keeps B006 hidden');
+        }
         $this->assertFalse(LectureSessionCatalog::sessionAllowedForVenue('P', 'lecture_hall', $session, 'B110'));
         $this->assertFalse(LectureSessionCatalog::sessionAllowedForVenue('L', 'lab', $session, 'B009'));
 
@@ -160,7 +170,10 @@ final class LectureSessionCatalogTest extends TestCase
 
         $lecturerRecord = Lecturer::where('user_id', $this->lecturer->id)->firstOrFail();
 
-        $bachelorCohort = Cohort::whereHas('programme', fn ($q) => $q->where('programme_code', 'like', 'R%'))->where('current_year', 1)->where('semester', 1)->where('tutorial_group', 1)->firstOrFail();
+        /* venue-restrictions-enforcement: the B006 tests read the R6 population
+   gate — the fixture cohort must be an EXPLICIT FOCS bachelor (RSD),
+   never the first R* in the deck (RAF/RBU would deny correctly). */
+        $bachelorCohort = Cohort::whereHas('programme', fn ($q) => $q->where('programme_code', 'RSD'))->where('current_year', 1)->where('semester', 1)->firstOrFail();
         $semesterModel = Semester::active();
         if ($semesterModel === null) {
             $semesterModel = Semester::active()->create(['semester_code' => '202605', 'label' => '202605 Semester', 'start_date' => '2026-09-21', 'end_date' => '2026-12-27', 'week_count' => 14]);
@@ -177,6 +190,10 @@ final class LectureSessionCatalogTest extends TestCase
         ]);
         $session->cohorts()->attach([$bachelorCohort->id]);
         $session->refresh();
+        /* venue-restrictions-enforcement: the gate is FAIL-CLOSED on an
+           unloaded cohorts relation (design D2's eager-load contract) — the
+           fixture honors it instead of riding the old lazy-load. */
+        $session->loadMissing(['module', 'cohorts.programme']);
 
         return $session;
     }

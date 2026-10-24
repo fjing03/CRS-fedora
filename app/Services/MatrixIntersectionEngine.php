@@ -24,6 +24,11 @@ final class MatrixIntersectionEngine
     private const DURATION_STEP = 30;
 
     /**
+     * SDD venue-restrictions-enforcement: the headcount+type PREVIEW flavor —
+     * its API readers treat this as an audit surface; the AUTHORITATIVE
+     * session-scoped admission is `sessionVenueEligible()` (module-
+     * conditioned, via `validateSlot(..., $session)`).
+     *
      * @param  array<int, int>  $cohortIds
      * @return array<int, array{
      *   day: int,
@@ -182,6 +187,7 @@ final class MatrixIntersectionEngine
         string $sessionType,
         int $weekNumber,
         int $span = 1,
+        ?ClassSession $session = null,
     ): bool {
         $this->validateSessionType($sessionType);
         $this->validateWeekNumber($weekNumber);
@@ -204,7 +210,13 @@ final class MatrixIntersectionEngine
         $lecturerBusy = $this->lecturerBusyRanges($anchor->semester_id, $lecturerId, $anchor->week_number);
         $cohortBusy = $this->cohortBusyRanges($anchor->semester_id, $cohortIds, $anchor->week_number);
         $headcount = $this->requiredHeadcount($cohortIds);
-        $venueOk = $this->eligibleVenues($headcount, $sessionType, $anchor->venue_id) !== [];
+        /* SDD venue-restrictions-enforcement: with the submitting session in
+           hand, the venue admission is the ONE matrix read (module-conditional
+           labs / the B006 widening / R6 population / R2 — design D3); WITHOUT
+           it the historic headcount+type read stands byte-identical. */
+        $venueOk = $session !== null
+            ? $this->sessionVenueEligible($session, Venue::query()->findOrFail($anchor->venue_id))
+            : $this->eligibleVenues($headcount, $sessionType, $anchor->venue_id) !== [];
 
         for ($k = 0; $k < $span; $k++) {
             // Anchor on k = 0 keeps the original semantics byte-identical; the
@@ -352,6 +364,27 @@ final class MatrixIntersectionEngine
         }
 
         return (int) $counts->sum();
+    }
+
+    /**
+     * SDD venue-restrictions-enforcement (design D3): the SESSION-scoped
+     * venue admission — capacity vs the session's own headcount AND the ONE
+     * matrix read (`LectureSessionCatalog::sessionAllowedForVenue`). The
+     * authoritative OCC-time flavor (`validateSlot` + the blocked-venues
+     * payload consume it); `findAvailableSlots` keeps the headcount+type
+     * preview contract (its API readers treat it as an audit surface).
+     */
+    public function sessionVenueEligible(ClassSession $session, Venue $venue): bool
+    {
+        $cohortIds = $session->cohorts->map(fn (Cohort $c): int => (int) $c->id)->all();
+
+        return $venue->capacity >= $this->requiredHeadcount($cohortIds)
+            && app(LectureSessionCatalog::class)->sessionAllowedForVenue(
+                (string) $session->session_type,
+                (string) $venue->room_type,
+                $session,
+                (string) $venue->room_code,
+            );
     }
 
     /**

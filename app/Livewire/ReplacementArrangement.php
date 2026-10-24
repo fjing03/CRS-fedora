@@ -456,15 +456,24 @@ class ReplacementArrangement extends Component
         $all = $roomCodes->all();
 
         $out = ['' => []];
+        /* one venue load for ALL sessions (101+ rows would otherwise run a
+           query per session); the venue rows are immutable per payload tick */
+        $venues = Venue::query()->orderBy('room_code')->get(['id', 'room_code', 'capacity', 'room_type']);
         foreach ($sessions as $session) {
-            $cohortIds = $session->cohorts->map(fn (Cohort $c): int => (int) $c->id)->all();
-            $eligible = $this->engine()->eligibleVenues(
-                $this->engine()->requiredHeadcount($cohortIds),
-                (string) $session->session_type,
-            );
+            /* venue-restrictions-enforcement: the SESSION-scoped admission
+               (module-conditioned labs / the B006 widening / R6 / R2) — the
+               grid's "venue renders occupied" truth per session. A venue
+               not loading into the session-scoped gate reads as blocked
+               (fail-closed). */
+            $eligible = [];
+            foreach ($venues as $venue) {
+                if ($this->engine()->sessionVenueEligible($session, $venue)) {
+                    $eligible[] = (string) $venue->room_code;
+                }
+            }
 
             $out[(string) $session->id] = $roomCodes
-                ->reject(fn (string $roomCode): bool => in_array($roomCode, array_values($eligible), true))
+                ->reject(fn (string $roomCode): bool => in_array($roomCode, $eligible, true))
                 ->values()
                 ->all();
         }

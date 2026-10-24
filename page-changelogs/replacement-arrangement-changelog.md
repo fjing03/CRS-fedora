@@ -1,3 +1,30 @@
+## 2026-10-24 (SDD venue-restrictions-enforcement) — the venue dropdown + the booking-intent fallback ride the enforced module matrix
+
+**The matrix (data-only change):** `PAGE_DATA.ruleMap` now carries the
+module-conditioned keys (`lab_access_module_codes`, `b006_allowed_module_codes`,
+`b006_focs_programmes`, `b006_banned_programmes`, `b006_venue_code`). The
+client's one composition helper `venueMatrixAllows(type, rawRoomType,
+venueCode, moduleCode, cohortCodes)` mirrors the PHP gate (design D2) — ONE
+formula, no early-return chain; the programme = the ALPHA PREFIX of the
+stripped compact cohort labels. THREE consumers delegate:
+`venueEligible(v, ctx)` (the dropdown filter), the `blockedVenuesPayload`
+server change (per-session gate via `sessionVenueEligible` — the grid's
+occupancy truth is now module-conditioned), and `consumeBookingIntent`'s
+prefill predicate (the one-source drift the frozen design closed).
+
+**What you will SEE:** a networking subject's L/T ctx now offers the labs
+(B009/B010/B011/B005-per-R2-capacity/B006) in the dropdown + the grid,
+where today only halls/tutorials were offered; non-networking L/T ctx
+shows zero new rooms; B005 stays hidden for D* cohorts exactly as before;
+no copy, no flags, no legend changes (the silence law).
+
+**Gates:** pint/phpstan-1G(0); phpunit **258/258** (19 new receipts;
+`VenueRestrictionConflictTest` + seed invariants untouched + green); the
+spot battery 25/25 (`--grep-invert "TC70"`) + venue-db/timetable-wiring
+11/11 extra; Playwright `venue-restrictions-enforcement.spec.ts` 5/5
+(browser rows: the dropdown positive/negative; the modal browser row
+BLOCKED — no conflicted networking-L on the demo deck, the Feature
+harness covers the pool instead).
 ## 2026-10-24 (SDD arr-slot-original-venue-sync, Bug 2 of the 5425 investigation, user-approved) — the venue label follows the picked schedule's ORIGINAL room
 
 **The law (user, 2026-10-24):** every NON-AUTO `slotTrigger` pick re-selects

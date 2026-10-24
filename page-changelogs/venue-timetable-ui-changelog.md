@@ -1,3 +1,30 @@
+## 2026-10-24 (SDD venue-restrictions-enforcement) — the Select-a-Session pool rides the enforced module matrix
+
+**The law (user decisions 2026-10-24, encoded as data in
+`LectureSessionCatalog::ruleMap()`):** networking subjects
+(AMIT2033/BMIT2154/BMIT3084/AMIT2034) gain **additive lab access for L/T**
+(ordinary R1 rooms stay) + the B006 L/T widening; **R6's FOCS-only gate**
+(DFT/DSF/RSD allowed, RAF/RBU never) and **R2's no-Diploma rule compose on
+top for EVERY session type** — the widening never reaches past them. No
+migration (Q6 — both `allowed_session_types` columns byte-identical;
+the gate keys on the ROOM CODE; `ruleMap()` = the sole authority at all
+three layers).
+
+**The receipt:** `sessionAllowedForVenue()` upgraded in PLACE (no
+signature change) — `VenueTimetable::intentSessionOptions` serves the
+pool with the new matrix via the same call site. Receipts:
+EnforcementProducerPoolTest (the conflicted networking L enters a lab
+pool / non-networking L stays absent / the B005 pool stays empty for D*
+cohorts); EnforcementEngineValidateSlotTest (the OCC-time rows + the
+byte-compat null-session row + the fail-closed degrade fixture);
+SessionAllowedForVenueMatrixTest (the spec's 14-row truth table +
+capacity-ignored). Demo-deck note: the browser-level modal row is
+BLOCKED (no conflicted networking-L occurrence exists on the demo deck —
+never invented).
+
+The silence law: NO copy/flag/legend changes anywhere (the user's
+"silently allow"; the b005-diploma-conflict family stays byte-identical).
+
 ## 2026-10-24 (the user's keyword-voice UI directive) — the not-enough-room notice tail
 
 The `pick a cell with enough free room beneath it.` tail (the cell-gap
