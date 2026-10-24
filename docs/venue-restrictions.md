@@ -60,20 +60,46 @@ Diploma students may not use B005: reject when any cohort of the session's `prog
 
 ### R3 — B006 Cisco Lab priority — **DOC-ONLY** (verified delta: partially NEW policy)
 
-**Priority claimants:** Networking subjects, all session types `L, T, P` (DB list: AMIT2033 Networking Essentials, AMIT2034 Fundamentals of Computer Networks, BMIT2154 Switching and Routing Technologies, BMIT3084 Enterprise Networking — each L, T, P).
-**Everyone else:** may use B006 at LOWER priority (never banned) — yield to networking/IoT demand.
+**Priority claimants (AMENDED 2026-10-24 — AMIT2034 demoted):** Networking
+subjects, all session types `L, T, P` — DB list: AMIT2033 Networking
+Essentials, BMIT2154 Switching and Routing Technologies, BMIT3084 Enterprise
+Networking (each L, T, P). Note: non-networking IoT P sessions ride R4's own
+exclusivity (B006 ONLY), not this list.
+
+**Demotion note (user, 2026-10-24):** `AMIT2034` (Fundamentals of Computer
+Networks) LEFT the claimant list — per R3's own wording this is a priority
+DEMOTION only: AMIT2034 becomes an "everyone else" claimant (lower priority,
+NEVER banned). AMIT2034 itself stays in the dataset fully intact — sessions,
+CSV rows, B005 conflict, everything. Cheap by construction: the claimant
+list is DOC-ONLY (no code reads it), and the verified mirror shows AMIT2034
+owns ZERO B006 rows (all 22 B006 rows belong to other modules); its L/T sit
+in B010, its P in B005 (per cohort DFT + DSF) — so removing it changes NO
+behavior, NO counts, NO data.
+
+**Everyone else (including AMIT2034 since 2026-10-24):** may use B006 at
+LOWER priority (never banned) — yield to networking/IoT demand.
 
 ⚠️ **Two reality checks (2026-10-15):**
-1. `venues.allowed_session_types = 'P'` for B006 today → **only P sessions may occupy it**. Networking-claimant **L/T** sessions in B006 are **not legal today**: the enforcement change must widen the column + the engine check. That widening is **PLANNED-NEW**, not current policy.
+1. `venues.allowed_session_types = 'P'` for B006 today → **only P sessions may occupy it**. Claimant **L/T** sessions in B006 are **not legal today**: the enforcement change must widen the column + the engine check. That widening is **PLANNED-NEW**, not current policy — and per R4's 2026-10-24 amendment it must apply to the NETWORKING claimant list ONLY, NEVER to IoT L/T.
 2. `cisco_lab` maps to display vocabulary `'CiscoLab'` (producer payload) and `'Lab'` (consumer payload) — the enforcement change must keep one canonical encoding (see `LectureSessionCatalog::ruleMap()`).
 
 - Open question assigned to the enforcement change: **how "Networking" identity is decided** — name-list match (misses edge cases, e.g. Internet Security) vs a curated module-category registry. Where the rule data lives is already solved (`ruleMap()` as data); which MODULES belong in it is not.
 
-### R4 — IoT exclusivity — **PLANNED-NEW (user directive 2026-10-15; nothing implemented)**
+### R4 — IoT exclusivity — **PLANNED-NEW (user directive 2026-10-15; AMENDED 2026-10-24; nothing implemented)**
 
-**When an IoT module exists, its `P` sessions may use B006 ONLY** — excluded from every other lab (B005, B009, B010, B011). Stricter than today: overrides R1 for IoT-P (B005/B009/B010/B011 are `lab` and today legal for any P).
+**IoT module sessions, the user's two-part law (2026-10-24):**
+- **`P` sessions may use B006 ONLY** — excluded from every other lab (B005,
+  B009, B010, B011). Stricter than today: overrides R1 for IoT-P (those
+  rooms are `lab` and today legal for any P). [the original core,
+  re-affirmed]
+- **`L/T` sessions may NOT use any lab — same as every other class** (labs
+  stay P-only per R1's 2026-10-19 lt-venue-capacity law). Consequently IoT
+  L/T carry **NO B006 priority claim**: R3's planned B006 L/T widening
+  (⚠️1) must NEVER include IoT L/T. IoT sessions split cleanly:
+  **P → B006 exclusively; L/T → lecture halls/tutorials only (R1's
+  ordinary rows).**
 
-- Precondition: an IoT module in the DB (none exist yet — when added, classify it per R3's open question).
+- Precondition: an IoT module in the DB (none exist yet — when added, classify it per R3's open question; the IoT identity is a registry attribute, distinct from the networking claimant list).
 - Cross-ref: recorded as a deferred non-goal in SDD `arrange-intent-session-choice`.
 
 ### R5 — Audit trail (context only, no action)
@@ -121,4 +147,8 @@ Every room carries a plain `venues.description` (nullable text; the sv's directi
 
 ## 4. "Venue restrictions enforcement" — the future SDD change
 
-Turns every DOC-ONLY / PLANNED-NEW rule above into code at all three layers, keeping ONE rule source (`LectureSessionCatalog::ruleMap()` — or its enforced successor) consumed as data by: (1) the submit-side engine (authoritative OCC-time validation); (2) the arrangement venue dropdown + `venueEligible`; (3) the "Select a Session" modal + fallback. It also MUST resolve: the Networking module registry (R3's open question), the B006 `allowed_session_types` widening (R3 ⚠️1), and the IoT exclusivity check (R4). Until it lands, treat R2/R3/R4 as documentation, and never "quick-fix" them ad hoc.
+Turns every DOC-ONLY / PLANNED-NEW rule above into code at all three layers, keeping ONE rule source (`LectureSessionCatalog::ruleMap()` — or its enforced successor) consumed as data by: (1) the submit-side engine (authoritative OCC-time validation); (2) the arrangement venue dropdown + `venueEligible`; (3) the "Select a Session" modal + fallback. It also MUST resolve: the Networking module registry (R3's open question —
+now WITHOUT AMIT2034, which is an "everyone else" claimant since
+2026-10-24), the B006 `allowed_session_types` widening (R3 ⚠️1 — networking
+claimants' L/T ONLY, NEVER IoT L/T per R4's 2026-10-24 amendment), and the
+IoT exclusivity check (R4 — P→B006 ONLY, L/T→NO lab, NO B006 claim). Until it lands, treat R2/R3/R4 as documentation, and never "quick-fix" them ad hoc.
