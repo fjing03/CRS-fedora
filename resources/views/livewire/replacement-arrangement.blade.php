@@ -1012,9 +1012,14 @@
             </div>
             <div class="toolbar-center">
                 @include('partials.ui-venue-dropdown', ['selectId' => 'buildingSelector'])
-                {{-- venue-description-doc-b006-rule: the plain room description
-                     (hidden until the payload fills it — no empty stub) --}}
-                <div class="venue-description" id="arrVenueDescription" style="display:none;"></div>
+                {{-- venue-side-chips (the user's chip ask 2026-10-23): the
+                     capacity + description badges RIGHT of the venue dd
+                     ("靠着它"). Both hidden until this page's venues payload fills
+                     them — no empty stubs. --}}
+                <div class="venue-side-chips" id="venueChipGroup" style="display:none;">
+                    <span class="badge badge-past" id="venueCapacity"></span>
+                    <span class="badge badge-past" id="arrVenueDescription"></span>
+                </div>
                 {{-- Fav star commented out on this page only (2026-10-18) — the
                      add/remove still lives in ui-common.js for other pages;
                      boot guards the missing #favStar via ?., and updateFavStar/
@@ -3510,16 +3515,35 @@ triggerText.textContent = 'W' + (slot.week + 1) + ' · ' + shortDate + ' · ' + 
             currentVenue = venueDropdown.getSelected() || currentVenue;
             new MutationObserver(syncVenueTip).observe(venueTrigger, { childList: true, characterData: true, subtree: true });
             syncVenueTip();
-            /* venue-description-doc-b006-rule: the plain room description line
-               under the venue dropdown trigger — reads MockData.venues (the
-               replaced real-data list = venuesPayload, canonical from the DB),
-               not the static mock entries. One line, no priority wording. */
-            const venueDescA = document.getElementById('arrVenueDescription');
-            if (venueDescA && MockData.venues && MockData.venues.length) {
-                const ddV = MockData.venues.find(v => v.code === (urlParams.venue || currentVenue)) || null;
-                if (ddV && ddV.description) {
-                    venueDescA.textContent = ddV.description;
-                    venueDescA.style.display = '';
+            /* venue-description-doc-b006-rule + venue-side-chips (the user's
+               chip ask, amended 2026-10-23): right of the venue dd —
+               (1) the capacity badge = icon + number + hover tooltip;
+               (2) the description badge = info-icon + hover tooltip
+                   carrying the FULL description (the user's option: ok on
+                   this page). Reads MockData.venues (the replaced real-data
+                   list = venuesPayload, canonical from the DB). Chips only
+                   here — the plain line is retired (the tooltip carries it). */
+            const chipGroup = document.getElementById('venueChipGroup');
+            if (chipGroup) {
+                const ddV = (MockData.venues || []).find(v => v.code === (urlParams.venue || currentVenue)) || null;
+                if (ddV) {
+                    const capA = document.getElementById('venueCapacity');
+                    if (capA && ddV.capacity) {
+                        capA.textContent = '';
+                        capA.insertAdjacentHTML('beforeend',
+                            '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>');
+                        capA.insertAdjacentText('beforeend', String(ddV.capacity));
+                        capA.setAttribute('data-tip', 'Capacity \u2014 ' + ddV.capacity + ' seats');
+                    }
+                    const descA = document.getElementById('arrVenueDescription');
+                    if (descA && ddV.description) {
+                        descA.textContent = '';
+                        descA.insertAdjacentHTML('beforeend',
+                            '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>');
+                        descA.setAttribute('data-tip', ddV.description);
+                        descA.setAttribute('aria-label', 'Room description: ' + ddV.description);
+                    }
+                    chipGroup.style.display = '';
                 }
             }
             updateFavStar();

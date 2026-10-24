@@ -21,3 +21,12 @@
   **69 green** with only the documented TC34/35 baseline reds; live B006/B002
   receipts on both pages. No reseed; TC70 never ran.
 - [x] T7 (the docs): both changelogs dated entries.
+- [x] T8 (the user's chip ask, 2026-10-23): the venue-side chips — the
+  capacity badge (icon + number + "Capacity — N seats" tooltip) right of
+  the venue dd on BOTH pages (the venue page: replaces the plain span, same
+  id; the arrangement: new, filled from the payload); the description chip
+  (info-icon + full-text tooltip) on the ARRANGEMENT page only (the venue
+  page = TBD by the user — its plain line stays); the arrangement's plain
+  desc line retired (the tooltip carries the text). theme.css gains the
+  .venue-side-chips block (tokens only). Gates: the spot battery 71 green
+  (only TC34/35); pint ✓; phpstan 0 ✓. Both changelogs updated.

@@ -1,3 +1,25 @@
+## 2026-10-23 (the user's chip ask, inside SDD venue-description-doc-b006-rule) — venue-side chips
+
+The user amended the description display into reused pill chips (theme.css's
+.badge family + the shared data-tip hover system; neutral .badge-past only):
+- **Capacity chip** [👥-icon + number] right of the venue dropdown, tooltip
+  "Capacity — N seats": on the venue page it REPLACES the plain
+  "Capacity: N" span (same id #venueCapacity, same spot); on the
+  arrangement page it is NEW (the = the = it fills from
+  MockData.venues = the venues payload).
+- **Description chip** [info-icon, tooltip = the FULL text]: arrangement page
+  ONLY (the = the = the = = = the user's option: not ok on the venue page
+  yet = TBD); the plain description line on the arrangement is retired (the
+  tooltip carries it). The venue page keeps its plain description line.
+- Placement = the user's word: "right side of venue dd — 靠着它" (a
+  .venue-side-chips group appended after the dropdown). No new colors; token
+  CSS only (added in theme.css).
+- Live receipts: B006 — the venue page cap chip = 32 + "Capacity — 32 seats"
+  + the desc line still on; the arrangement page = 2 chips (the svg count = 2),
+  the desc tooltip = the full FOCS sentence. Spot battery **71 green** (only
+  the documented TC34/35 reds); pint ✓; phpstan-1G 0 ✓.
+
+
 ## 2026-10-23 (SDD venue-description-doc-b006-rule, the sv's directive) — every room carries a plain DESCRIPTION (venue + arrangement pages)
 
 The sv (via the user): "add descriptions to every ROOM… ignore advanced

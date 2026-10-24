@@ -116,7 +116,11 @@
     <div class="semester-bar">
         <div class="venue-dropdown-wrap">
             @include('partials.ui-venue-dropdown', ['selectId' => 'venueSelect'])
-            <span class="venue-capacity" id="venueCapacity"></span>
+            {{-- venue-side-chips (the user's chip ask 2026-10-23): the capacity
+                 badge = icon + number + hover tooltip, RIGHT of the venue dd.
+                 The description chip on THIS page = TBD by the user (#1 not ok
+                 here yet) — the plain description line below stays. --}}
+            <span class="badge badge-past" id="venueCapacity" style="display:none;"></span>
             {{-- venue-description-doc-b006-rule: the plain room description
                  (hidden until the payload fills it — no empty stub) --}}
             <div class="venue-description" id="venueDescription" style="display:none;"></div>
@@ -248,12 +252,20 @@
 
             const capacityEl = document.getElementById('venueCapacity');
             if (capacityEl && venueInfo.capacity) {
-                capacityEl.textContent = 'Capacity: ' + venueInfo.capacity;
+                /* venue-side-chips (the user's chip ask 2026-10-23): the
+                   capacity badge = icon + number + hover tooltip — the
+                   shared .badge pill family (badge-past neutral). */
+                capacityEl.textContent = '';
+                capacityEl.insertAdjacentHTML('beforeend',
+                    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>');
+                capacityEl.insertAdjacentText('beforeend', String(venueInfo.capacity));
+                capacityEl.setAttribute('data-tip', 'Capacity \u2014 ' + venueInfo.capacity + ' seats');
+                capacityEl.style.display = '';
             }
 
             /* venue-description-doc-b006-rule (the sv's directive 2026-10-23): the
                plain room description as a data-tip on the dropdown trigger —
-               one line, no priority wording. Served from the = the DB via the
+               one line, no priority wording. Served from the DB via the
                venue payload (canonical always). */
             const venueDescEl = document.getElementById('venueDescription');
             if (venueDescEl && venueInfo.description) {

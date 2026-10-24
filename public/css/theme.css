@@ -3812,3 +3812,29 @@ body {
 .vt-cell-yours { background: var(--color-primary) !important; color: var(--color-on-primary) !important; }
 .vt-cell-pending { background: var(--color-tertiary-container) !important; color: var(--color-on-tertiary-container) !important; }
 .vt-cell-others { background: var(--color-surface-variant) !important; color: var(--color-on-surface-variant) !important; }
+
+/* ───── Venue side chips (SDD venue-description-doc-b006-rule, 2026-10-23) ─
+   The capacity + description chips sit right of the venue dropdown (the
+   user's placement: "right side of the venue dd — 靠着它"). Both reuse the
+   .badge pill + the shared data-tip hover system; NEUTRAL surface only
+   (.badge-past family — never a status color). No new colors. */
+.venue-side-chips {
+    display: inline-flex;
+    gap: 4px;
+    align-items: center;
+    vertical-align: middle;
+}
+.venue-side-chips .badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 3px 8px;
+    font-weight: 700;
+    cursor: help;
+    white-space: nowrap;
+}
+.venue-side-chips .badge svg {
+    width: 12px;
+    height: 12px;
+    flex: 0 0 auto;
+}
