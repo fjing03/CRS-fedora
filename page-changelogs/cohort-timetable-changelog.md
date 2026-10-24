@@ -1,3 +1,19 @@
+## 2026-10-24 (SDD class-modal-affordances) — the Cancel Class? affordance RESTORED on the cohort's eventModal
+
+**The same restore** as my-timetable's (the legacy wiring lost in the
+cutover): the page gains (1) the cancel-modal partial include, (2) the
+footer section (left Close / right the runtime-appended Cancel button
+per the frozen design — the cohort carries NO Replace Now), (3) the
+twin-store bridge (MockData.myTimetable re-points to the SELECTED
+cohort's rows per rebuild), (4) the CancelClass.renderButton wiring at
+openModal (the onCancelled path = closeModal + buildTimetable +
+updateSummary). The guards untouched (isCancellable: own/normal+
+replacement/future/holiday). Persistence = restore-first (see the
+my-timetable entry).
+
+Receipts: the new browser rows — cohort own → the button appears;
+others' class (4288 viewing 5770's AMCS2093 cohort) → the button count 0.
+
 # Cohort Timetable — changelog
 
 ## 2026-10-23 (SDD week-memory-until-logout, user law 2026-10-20) — the first-ever load() closes the read gap; the memory is session long

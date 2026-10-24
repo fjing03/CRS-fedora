@@ -104,6 +104,7 @@
         </div>
     @endsection
     @include('partials.ui-class-detail-modal')
+    @include('partials.ui-cancel-class-modal')
 
     <!-- ═══ Copy Toast ═══ -->
     <div class="copy-toast" id="copyToast"></div>
@@ -125,6 +126,12 @@
             const weekData = window.weekData;
             const eventsData = @json($eventsByWeek);
             window.eventsData = eventsData;   // SDD occurrence-week-pin-truthfulness: the tests + the popup gate read the served truth
+
+            /* class-modal-affordances T1: the cancel machinery's twin store —
+               resolveMatches reads MockData.myTimetable.eventsByWeek (the
+               legacy bridging that the live cutover lost); the restored
+               wiring re-points it to the SAME rows the grid renders. */
+            MockData.myTimetable = { eventsByWeek: eventsData };
 
             window.currentWeek = {{ (int) ($currentWeek ?? 0) }};
             let currentWeek = window.currentWeek;
@@ -181,6 +188,20 @@
                         { label: 'Total Students', value: studentValue }
                     ]
                 });
+
+                /* class-modal-affordances T1: the Cancel Class? affordance
+                   restored (the legacy MyTimetable template's wiring ported
+                   — RESTORE-FIRST persistence per the user: visual + the
+                   ledger until reload; the CancelClass action stays
+                   unrouted). Self-hides via isCancellable (S1–S5). */
+                CancelClass.renderButton(
+                    document.querySelector('#classModal .modal-footer'),
+                    stampedEvent, days, currentWeek,
+                    function () {
+                        closeModal();
+                        buildTimetable();
+                    }
+                );
             }
 
             /* the popup's handoff: the STAMPED event's week — re-derived from

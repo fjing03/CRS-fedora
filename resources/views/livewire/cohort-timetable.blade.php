@@ -155,8 +155,19 @@
     <!-- ─── Empty State ─── -->
     @include('partials.ui-empty-state', ['title' => 'Select a faculty first', 'text' => 'Choose a faculty, then pick a cohort to view its weekly timetable.'])
 
-    <!-- ─── Event Modal ─── -->
+    <!-- ─── Event Modal (class-modal-affordances T2: the restored footer —
+         left Close / right the runtime-appended Cancel Class? button; no
+         Replace Now on cohort — the frozen design D1/D3) ─── -->
+    @section('modal-footer')
+        <div class="modal-footer-left">
+            <button class="btn-close-modal" onclick="closeModal()">Close</button>
+        </div>
+        <div class="modal-footer-right">
+            <!-- the runtime-appended Cancel Class? lives here (CancelClass.renderButton) -->
+        </div>
+    @endsection
     @include('partials.ui-class-detail-modal', ['modalId' => 'eventModal'])
+    @include('partials.ui-cancel-class-modal')
 
     <script>
         /* ───── Real-data bridge. DOMContentLoaded: mock-data.js / ui-common.js
@@ -438,6 +449,11 @@
             }
 
             function buildTimetable() {
+                /* class-modal-affordances T2: the cancel machinery's twin
+                   store follows the SELECTED cohort (resolveMatches reads
+                   MockData.myTimetable.eventsByWeek — the merge-twin facts
+                   need the rows of the cohort the modal serves). */
+                MockData.myTimetable = { eventsByWeek: eventsByCohort[selectedCohortId] || Array.from({ length: (window.weekData || []).length || 14 }, function () { return []; }) };
                 currentWeek = weekNav.currentWeek;
                 if (!selectedCohortId) {
                     showGuidance();
@@ -511,6 +527,20 @@
                         { label: 'Cohort', value: event.cohort || '—' }
                     ]
                 });
+
+                /* class-modal-affordances T2: the Cancel affordance restored
+                   (the legacy CohortTimetable template's wiring ported —
+                   restore-first persistence). The Later path re-runs the
+                   allEvents assembly then rebuilds the grid + summary. */
+                CancelClass.renderButton(
+                    document.querySelector('#eventModal .modal-footer'),
+                    event, weekData[currentWeek].days, currentWeek,
+                    function () {
+                        closeModal();
+                        buildTimetable();
+                        updateSummary();
+                    }
+                );
             }
 
             function closeModal() {

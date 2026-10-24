@@ -243,6 +243,10 @@ class VenueTimetable extends Component
                 },
                 'remarks' => '',
                 'mine' => $session->lecturer_id === $myUserId,
+                /* class-modal-affordances T3: the Replace Now handoff targets
+                   ?session= — the events' `id` is the SLOT id (the grid's
+                   row key), so the class_session id rides here (additive). */
+                'sessionId' => $session->id,
             ];
 
             // Twin-merge pre-bucketing (combined lectures): same venue + day +

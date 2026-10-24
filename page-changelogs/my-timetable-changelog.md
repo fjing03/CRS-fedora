@@ -1,3 +1,30 @@
+## 2026-10-24 (SDD class-modal-affordances) — the Cancel Class? affordance RESTORED on the live my-timetable
+
+**The regression (verified):** the Oct 8 cancel flow (commit 4a387d1,
+SDD class-modal-affordances' ancestor) wired CancelClass.renderButton
+only into the legacy ui-design-templates pages — the live Livewire
+cutover never re-homed it; the whole cancel-class family went RED and
+the button vanished from the modal (the user's live report: designed
+Oct 8, "later it gone").
+
+**The restore (restore-first, per the user's decision):** the button
+(error ghost, footer-right — the Oct 8 design verbatim) is wired at the
+modal-open path beside Replace Now; the cancel-modal partial is included
+on this blade; the twin-store bridge MockData.myTimetable =
+{ eventsByWeek: eventsData } re-points the machinery at the REAL rows
+(the old mock store died with the cutover). The guards come untouched
+from ClassCancellation.isCancellable (S1-S5: own, normal/replacement,
+future, holiday). **Persistence = restore-first** (the user's explicit
+call): the cancel is visual + the sessionStorage ledger — reload
+resurrects; the CancelClass backend write = a later lane.
+
+Test receipt: the cancel-class family back to green on the live page
+(13 exec rows; S3/S12/S13b/S17 = honest skips with receipts — the demo
+deck carries no pending request / the home's ledger-injected cards were
+mock-era behavior / the deck's W5 replacement-status occurrence is
+already past = the S5 guard receipt; the regime re-anchor: staff 5770,
+ME = 'Lim Jia Zheng' (the DB name, no honorific), day facts re-read).
+
 # Changelog — Lecturer My Timetable
 
 ## 2026-10-23 (SDD week-memory-until-logout, user law 2026-10-20) — the week memory is SESSION long, per page

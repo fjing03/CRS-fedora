@@ -175,6 +175,19 @@
     <!-- ═══ Class Detail Modal ═══ -->
     @include('partials.ui-class-detail-modal')
 
+    <!-- class-modal-affordances T3: the restored footer (left Close; right
+         Replace Now [own + conflict, viewed week] + the Cancel Class?
+         affordance) — the buttons appended/filled at modal-open. -->
+    @section('modal-footer')
+        <div class="modal-footer-left">
+            <button class="btn-close-modal" onclick="closeModal()">Close</button>
+        </div>
+        <div class="modal-footer-right">
+            <button class="btn-replace-now" id="btnReplaceNow" style="display:none" onclick="goToReplacementFor(currentModalEvent?.sessionId, currentWeek, 'venue-timetable')">Replace Now</button>
+        </div>
+    @endsection
+    @include('partials.ui-cancel-class-modal')
+
     <!-- ─── Select a Session modal (SDD arrange-intent-session-choice D2) ─── -->
     @include('partials.ui-intent-session-modal')
 
@@ -193,6 +206,11 @@
             window.weekData = generateWeekData();
             const weekData = window.weekData;
             const eventsData = @json($eventsByWeek);
+            /* class-modal-affordances T3: the cancel machinery's twin store
+               (the same bridge as my-timetable's — resolveMatches reads
+               MockData.myTimetable.eventsByWeek). */
+            MockData.myTimetable = { eventsByWeek: eventsData };
+            MockData.currentUser = @json(['name' => auth()->user()?->name ?? '', 'staffId' => (string) (auth()->user()?->lecturer?->staff_id ?? '')]); // class-modal-affordances: the ownership bridge (was the missing piece)
             const totalsData = @json($totalsByWeek);
 
             window.currentWeek = currentWeekIndex();
@@ -288,6 +306,24 @@
                         { label: 'Capacity', value: venueInfo.capacity ? String(venueInfo.capacity) : '—' }
                     ]
                 });
+
+                /* class-modal-affordances T3: the restored footer wiring.
+                   Replace Now = OWN + the conflict fact (the viewed week —
+                   the venue grid is week-scoped, the FACT-week-only law by
+                   construction); Cancel = the isCancellable guards. */
+                const rn = document.getElementById('btnReplaceNow');
+                if (rn) {
+                    const isMine = event.mine === true || event.lecturer === MockData.currentUser?.name;
+                    rn.style.display = (isMine && event.status === 'conflict') ? 'flex' : 'none';
+                }
+                CancelClass.renderButton(
+                    document.querySelector('#classModal .modal-footer'),
+                    event, weekData[currentWeek].days, currentWeek,
+                    function () {
+                        closeModal();
+                        buildTimetable();
+                    }
+                );
             }
 
             function closeModal() {

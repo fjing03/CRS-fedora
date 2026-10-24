@@ -1,3 +1,27 @@
+## 2026-10-24 (SDD class-modal-affordances) — the venue modal carries BOTH restored affordances
+
+**Two affordances land on the venue page's classModal:**
+1. **The Cancel Class? button** (the same restore as the other two
+   pages): the wiring at openModal + the twin-store bridge + the
+   cancel-modal partial include + the footer section.
+2. **The Replace Now button** (the user's option-2 add): for OWN
+   occurrences with the conflict fact in the VIEWED week (the venue grid
+   = week-scoped, the FACT-week-only law by construction), gate =
+   (e.mine OR the bridged name compare) AND e.status === 'conflict',
+   driving goToReplacementFor(event.sessionId, currentWeek,
+   'venue-timetable'). The payload's events carry a NEW additive
+   `sessionId` field (the grid's id = the SLOT id — the handoff needs
+   the class_session id). Hidden for others' classes + healthy weeks.
+
+**The currentUser bridge:** the venue blade lacked the
+MockData.currentUser hydration (the ownership guard reads it) — the
+ONE-LINE hydrate added.
+
+Receipts: the browser rows (own -> cancel present + Replace Now hidden
+on healthy own cells; others -> neither). The conflicted-ownership
+browser row = the honest skip receipt (the deck's own-conflict rows =
+the B005 family only — covered by the DB specs + the ghost machinery).
+
 ## 2026-10-24 (SDD venue-restrictions-enforcement) — the Select-a-Session pool rides the enforced module matrix
 
 **The law (user decisions 2026-10-24, encoded as data in
