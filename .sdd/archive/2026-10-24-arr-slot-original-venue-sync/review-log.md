@@ -56,3 +56,7 @@
 - spot battery 25/25; pint; phpstan-1G 0; phpunit 230/230.
 ### 🔴 Outstanding
 - none
+
+## archive-day verify — 2026-10-24
+- **PASS.** Fresh receipts on the CURRENT tree (post venue-restrictions-enforcement): spec 9/9 (1.3 m); the T8 gate runs (battery 25/25 --grep-invert TC70; pint; phpstan-1G 0; phpunit 258/258) executed AFTER the enforcement commit that touched the same blade — current-tree certified.
+### Verdict: PASS — archived to .sdd/archive/2026-10-24-*. 

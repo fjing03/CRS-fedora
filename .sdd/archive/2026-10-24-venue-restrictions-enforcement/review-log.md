@@ -151,3 +151,7 @@ ARTIFACTS FROZEN.
   suites 28/28.
 ### Verdict
 PASS — ready to archive with /sdd-archive venue-restrictions-enforcement.
+
+## archive-day close — 2026-10-24
+The verify recipe ran earlier today (PASS; the design-D3 doc-comment line added + re-gated); amend commit 7c1012a; ALL FOUR sibling lanes archived in the same day-transaction. 
+### Verdict: PASS — archived.

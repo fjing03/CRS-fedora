@@ -13,3 +13,7 @@
   "Auto-pinned: the W14 occurrence" after the switch; pre-boot (no subject
   change) = byte-identical (the FIRST strip assert = unchanged AMSE1003/W8).
 - Bug 2 (the venue label) = HELD by the user's word — untouched code.
+
+## archive-day verify — 2026-10-24
+- **PASS.** Fresh receipts on the current tree: spec (in today's spot battery) 25/25; the strip-anchor rows green across the enforcement apply-day runs; pint/phpstan/phpunit 258 clean the same tree.
+### Verdict: PASS — archived to .sdd/archive/2026-10-24-*.

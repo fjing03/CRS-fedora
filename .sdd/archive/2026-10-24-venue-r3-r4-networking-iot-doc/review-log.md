@@ -35,3 +35,7 @@
   "Priority is retired" statements themselves.
 ### 🔴 Outstanding
 - none
+
+## archive-day verify — 2026-10-24
+- **PASS (doc-only).** Current-tree grep checks: NO priority-claimant/claim ordering remains outside the "Priority is retired"/DROP statements; the stale labs-exclusive AMIT2034 wording (superseded by the round-2 additive law) was verified absent BEFORE the enforcement rider landed today; the enforcement lane's rider (R3's AMIT2034 paragraph/§4/§5/§2/§3 statuses) landed ON TOP of this doc without contradiction; the B006 description text byte-untouched ("kept as is").
+### Verdict: PASS — archived to .sdd/archive/2026-10-24-*.
