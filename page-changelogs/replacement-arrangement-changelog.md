@@ -1,3 +1,39 @@
+## 2026-10-24 (SDD replacement-strip-stale-anchor, Bug 1 of the 5425 investigation, user-approved) — the Conflict-Schedule strip follows the LIVE pin after a subject change
+
+**The user's Playwright-gated Bug 1:** on `?session=99&week=8&from=replacement-home`
+(AMSE1003 · W8 · B111), changing `subjectSelector` → BMSE2163 reset
+`slotTrigger` to "Select a slot to replace" while the Conflict Schedule strip
+kept painting the **boot-pinned occurrence** (Week 8 · Mon, Nov 09 2026 ·
+9:00–11:00 @ B111) under the NEW subject's name; the picker lived in W14.
+
+**Root (verified):** two "selected slot" sources — T18's POST-BOOT switch
+auto-pins the new subject's earliest conflict (`window.pinnedOccurrence =
+{38, 14}`, week-nav → W14) but `renderTitleSummary`'s slot line built its
+anchor from `anchorSlotFromPinned()` — a virtual anchor frozen at boot from
+`PAGE_DATA.pinnedSession` + the boot-hydrated `urlParams`. (Second half: the
+"Auto-pinned: the W14 occurrence …" trigger note was written BEFORE
+`renderSlotPicker`, which re-sets "Select a slot to replace" internally —
+the note never survived.)
+
+**The fix (one blade, two parts, pre-boot behavior untouched):**
+- `renderTitleSummary()`: after boot, when a live `window.pinnedOccurrence`
+  exists and its occurrence is in the CURRENT subject's conflict list, the
+  anchor = that real pick-shaped slot (reused `extractSlotsForSubject` — no
+  new data path); otherwise the boot anchor (byte-identical pre-boot).
+- `applySubjectChange()`: the trigger note is written AFTER
+  `renderSlotPicker(slots)` so "Auto-pinned: the W14 occurrence …" survives.
+
+**Live receipt:** 99/8 → BMSE2163 → the strip reads `Week 14 · Thu, Dec 24
+2026 · 12:00 PM–1:00 PM @ B010` (no Nov-09/B111 remnant) + the trigger =
+"Auto-pinned: the W14 occurrence (Thursday) — the grid highlights it; submit
+when ready". Bug 2 (the venue label re-validation) = HELD by the user.
+
+Gates: the NEW `tests/replacement-strip-anchor.spec.ts` **4/4**; the spot
+battery (pin-guard + default-pin + cross-week + earliest + intent-modal +
+replace-now) **24/24**; pint ✓ · phpstan-1G **0** · phpunit **230/230**
+(the blade = a PHP file). TC70 never ran; the demo DB untouched.
+
+
 ## 2026-10-23 (the user's wording corrections + the chip staleness fix)
 
 The user's live report + corrections:

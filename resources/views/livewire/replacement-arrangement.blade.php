@@ -2417,7 +2417,24 @@
         function renderTitleSummary() {
             const el = document.getElementById('subjectInfo');
             const hasSubject = !!currentCourse;
-            const anchorSlot = selectedOriginalSlot || anchorSlotFromPinned();
+            /* replacement-strip-stale-anchor (Bug 1, user-approved 2026-10-24):
+               after boot, the strip's anchor follows the LIVE pinned pair (the
+               subject-change auto-pin or the T18 ask boundary) when that
+               occurrence exists in the CURRENT subject's conflict list — the
+               boot-frozen virtual anchor (PAGE_DATA.pinnedSession + boot
+               urlParams) previously glued the OLD subject's slot facts under
+               the NEW subject's name (the 5425 B005/B006 report). The
+               pre-boot arrivals and subjects WITHOUT that occurrence keep the
+               boot anchor byte-identically. */
+            let anchorSlot = selectedOriginalSlot || null;
+            if (!anchorSlot && window.__bootDone && currentCourse && window.pinnedOccurrence) {
+                const livePinSlots = extractSlotsForSubject(currentCourse.code);
+                const livePinMatch = livePinSlots.find(s =>
+                    Number(s.sessionId) === Number(window.pinnedOccurrence.sessionId)
+                    && s.week === (Number(window.pinnedOccurrence.week || 1) - 1));
+                if (livePinMatch) anchorSlot = livePinMatch;
+            }
+            if (!anchorSlot) anchorSlot = anchorSlotFromPinned();
             const hasSlot = !!anchorSlot;
             const ctxCourse = courseCtx(); /* occurrence-grain: follows the picked slot */
 
@@ -3009,13 +3026,16 @@ slotLine = 'Week ' + (anchorSlot.week + 1) + ' · ' + ((weekdayName && weekdayNa
             }
 
             selectedOriginalSlot = null;
-            document.getElementById('slotTriggerText').textContent = firstConflictRow
-                ? 'Auto-pinned: the ' + 'W' + (firstConflictRow.week + 1) + ' occurrence (' + firstConflictRow.dayName + ') — the grid highlights it; submit when ready'
-                : 'Select a slot to replace';
-
+            /* replacement-strip-stale-anchor (Bug 1, second half): the
+               "Auto-pinned …" trigger note MUST survive renderSlotPicker
+               (which re-sets "Select a slot to replace" internally) — write
+               the trigger AFTER the picker re-render, not before it. */
             // Extract and render conflict/cancelled slots for this subject
             const slots = rowSessionCandidates;
             renderSlotPicker(slots);
+            document.getElementById('slotTriggerText').textContent = firstConflictRow
+                ? 'Auto-pinned: the ' + 'W' + (firstConflictRow.week + 1) + ' occurrence (' + firstConflictRow.dayName + ') — the grid highlights it; submit when ready'
+                : 'Select a slot to replace';
 
             /* the AUTO-NAV (the user's “choose the first conflicted slot for
                me”): jump the grid to the occurrence's week; the strip's
