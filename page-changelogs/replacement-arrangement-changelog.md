@@ -1,3 +1,25 @@
+## 2026-10-24 (follow-up to replacement-strip-stale-anchor, user-directed) — the trigger speaks the picked-slot format + the slot picker 60% wider
+
+**1) The trigger format (the user's "why 'Auto-pinned: the W14 occurrence …'?"):**
+the post-switch auto-pin note now uses the SAME short human format as a
+picked slot — `W14 · Dec 24 · 12:00 PM–1:00 PM`. Mechanism: promoted a shared
+`slotTriggerLabel(slot)` formatter (single source for BOTH writers: the
+user's pick in `commitSlotSelection` and the post-switch auto-pin in
+`applySubjectChange`; the 2026-10-11 BRIDGE PATCH's +1 week-number law lives
+inside the helper). No 'Select a slot to replace' regression (the no-row path
+stays).
+
+**2) The slot picker 60% wider (the user's width rule):** `.slot-dd` flex-basis
+180→288px, cap 240→384px; `.slot-dd-panel` min-width 320→512px (×1.6 on all
+three, commented in the blade's <style>).
+
+Gates: `replacement-strip-anchor` **4/4** (the trigger assert retargeted to
+the new format); the spot battery (intent-modal + pin-guard + default-pin +
+cross-week + earliest + replace-now) **24/24**; pint ✓ · phpstan-1G **0**.
+phpunit NOT re-run this micro-round (Blade-only string/CSS change; 230/230
+stands from `548c84d` 40 minutes ago). Demo DB untouched.
+
+
 ## 2026-10-24 (SDD replacement-strip-stale-anchor, Bug 1 of the 5425 investigation, user-approved) — the Conflict-Schedule strip follows the LIVE pin after a subject change
 
 **The user's Playwright-gated Bug 1:** on `?session=99&week=8&from=replacement-home`

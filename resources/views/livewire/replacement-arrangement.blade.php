@@ -310,11 +310,12 @@
             max-width: 216px; /* widest current label + arrow; longer names ellipsize (tip carries the full name) */
         }
 
-        /* ── Slot Dropdown (custom) ── */
+        /* ── Slot Dropdown (custom) ── width 60% wider (user, 2026-10-24):
+           trigger flex-basis 180→288 / cap 240→384, panel 320→512 (×1.6). */
         .slot-dd {
             position: relative;
-            flex: 1 1 180px;
-            max-width: 240px;
+            flex: 1 1 288px;
+            max-width: 384px;
         }
         .slot-dd-trigger {
             display: flex;
@@ -352,7 +353,7 @@
             position: absolute;
             top: calc(100% + 4px);
             left: 0;
-            min-width: 320px;
+            min-width: 512px; /* 320 → 512: the user's 60%-wider rule (2026-10-24) */
             max-height: 280px;
             overflow-y: auto;
             background: var(--color-surface);
@@ -3034,7 +3035,7 @@ slotLine = 'Week ' + (anchorSlot.week + 1) + ' · ' + ((weekdayName && weekdayNa
             const slots = rowSessionCandidates;
             renderSlotPicker(slots);
             document.getElementById('slotTriggerText').textContent = firstConflictRow
-                ? 'Auto-pinned: the ' + 'W' + (firstConflictRow.week + 1) + ' occurrence (' + firstConflictRow.dayName + ') — the grid highlights it; submit when ready'
+                ? slotTriggerLabel(firstConflictRow) /* the SAME short format as a picked slot (user, 2026-10-24): W14 · Dec 24 · 12:00 PM–1:00 PM */
                 : 'Select a slot to replace';
 
             /* the AUTO-NAV (the user's “choose the first conflicted slot for
@@ -3244,6 +3245,17 @@ slotLine = 'Week ' + (anchorSlot.week + 1) + ' · ' + ((weekdayName && weekdayNa
             commitSlotSelection(slot, index, opts);
         }
 
+        /* shared: the trigger's human slot label — ONE format for the two
+           writers (a user pick and the post-switch auto-pin). The BRIDGE PATCH
+           (+1 week number) stays: slot.week is the 0-based weekData index. */
+        function slotTriggerLabel(slot) {
+            const startStr = to12h(hours[slot.start]);
+            const endStr = to12h(hours[slot.end + 1] || add30min(hours[slot.end]));
+            const dateParts = slot.date.split(' ');
+            const shortDate = dateParts[1] + ' ' + dateParts[0];
+            return 'W' + (slot.week + 1) + ' · ' + shortDate + ' · ' + startStr + '–' + endStr;
+        }
+
         function commitSlotSelection(slot, index, opts) {
             /* F-8 (round-2): the block size follows the picked conflict slot's
                duration — same clamp family as the URL branch (0.5–4 h → ≤8
@@ -3295,16 +3307,13 @@ slotLine = 'Week ' + (anchorSlot.week + 1) + ' · ' + ((weekdayName && weekdayNa
             }
             selectedOriginalSlot = slot;
             const triggerText = document.getElementById('slotTriggerText');
-            const startStr = to12h(hours[slot.start]);
-            const endStr = to12h(hours[slot.end + 1] || add30min(hours[slot.end]));
-            const dateParts = slot.date.split(' ');
-            const shortDate = dateParts[1] + ' ' + dateParts[0];
             /* BRIDGE PATCH (2026-10-11 user report): slot.week is the 0-based weekData
    index (the mock's expander counts w from 0) — printing it raw showed the
    picker one week behind (Nov 9 = "W7", Dec 25 = "W13"). The label is
    human-facing: show the semester's week NUMBER (+1); all internal uses of
-   slot.week stay 0-based indices. */
-triggerText.textContent = 'W' + (slot.week + 1) + ' · ' + shortDate + ' · ' + startStr + '–' + endStr;
+   slot.week stay 0-based indices. The formatting itself lives in the shared
+   slotTriggerLabel() (the auto-pin writer uses it too). */
+triggerText.textContent = slotTriggerLabel(slot);
 
             // Update selected state in panel
             document.querySelectorAll('.slot-dd-item').forEach(item => {
