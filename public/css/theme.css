@@ -3828,7 +3828,10 @@ body {
     display: inline-flex;
     align-items: center;
     gap: 4px;
-    padding: 3px 8px;
+    /* NO padding override here — the .badge base (4px 10px) and
+       .badge-capacity (4px 10px) must win everywhere or the venue page's
+       chip and the arrangement's chip paint different sizes (the
+       specificity trap caught 2026-10-23). */
     font-weight: 700;
     cursor: help;
     white-space: nowrap;
@@ -3840,12 +3843,20 @@ body {
 }
 /* The capacity chip = the cs-badge look (the user's reuse note 2026-10-23):
    the primary-container BLUE pill, one row (icon + digit inline), no
-   wrap/overflow; the description chip stays neutral .badge-past. */
-.venue-side-chips .badge-capacity {
+   wrap/overflow; the description chip stays neutral .badge-past.
+   The class = STANDALONE (not scoped under .venue-side-chips) — the venue
+   page places its capacity chip beside the dd without a wrapper, so both
+   pages MUST paint the same blue pill from the one class. */
+.badge-capacity {
     background: var(--color-primary-container);
     color: var(--color-on-primary-container);
     border-radius: 999px;
     padding: 4px 10px;
     max-width: 120px;
     overflow: hidden;
+}
+.badge-capacity svg {
+    width: 12px;
+    height: 12px;
+    flex: 0 0 auto;
 }

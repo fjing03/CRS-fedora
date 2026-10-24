@@ -1,3 +1,17 @@
+## 2026-10-23 (chip parity fix) — the capacity badge paints IDENTICALLY on both pages
+
+The user spotted the venue page's capacity chip looking different from the
+arrangement's. Root = TWO CSS traps: (1) the `.badge-capacity` blue class
+was scoped under `.venue-side-chips` — a wrapper the venue page doesn't use
+(its chip sits beside the dd without the group), so the blue never reached
+there; (2) a `.venue-side-chips .badge` padding override (3×8) outranked
+the base/standalone 4×10 by specificity on the arrangement only.
+Fix: `.badge-capacity` = a STANDALONE class (blue bg + radius + padding +
+its own svg sizing) consumed both pages; the group rule lost the padding
+override (a receipt comment explains the trap). Live parity receipt:
+bg/color/radius/padding/height all EQUAL (23px) on both pages.
+
+
 ## 2026-10-23 (the user's chip ask, round 2) — the capacity chip = the cs-badge look
 
 The user referred to the arrangement page's cs-badge (the blue pill at the
