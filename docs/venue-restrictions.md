@@ -58,53 +58,52 @@ Diploma students may not use B005: reject when any cohort of the session's `prog
 - Today it is surfaced as a **derived conflict** in the timetable pages (SDD `b005-diploma-conflict`) and used *client-side* in `venueEligible`/the modal — the submit-side engine does NOT check it yet.
 - Audit 2026-10-09: 1 violation found (AMIT2034 P, Wed 11:00–13:00, combined DFT+DSF lecture) → flagged for replacement.
 
-### R3 — B006 Cisco Lab priority — **DOC-ONLY** (verified delta: partially NEW policy)
+### R3 — B006 Cisco Lab access — simplified **ALLOW / DISALLOW** (user decision 2026-10-24 — the complex PRIORITY model is DROPPED)
 
-**Priority claimants (AMENDED 2026-10-24 — AMIT2034 demoted):** Networking
-subjects, all session types `L, T, P` — DB list: AMIT2033 Networking
-Essentials, BMIT2154 Switching and Routing Technologies, BMIT3084 Enterprise
-Networking (each L, T, P). Note: non-networking IoT P sessions ride R4's own
-exclusivity (B006 ONLY), not this list.
+**Priority is retired.** The 2026-10-15/24 claimant/ranking machinery (priority
+order, "everyone else yields", claims L/T/P) is REPLACED by a plain
+ALLOW / DISALLOW model — nothing ranks; the future enforcement encodes plain
+admission checks only.
 
-**Demotion note (user, 2026-10-24):** `AMIT2034` (Fundamentals of Computer
-Networks) LEFT the claimant list — per R3's own wording this is a priority
-DEMOTION only: AMIT2034 becomes an "everyone else" claimant (lower priority,
-NEVER banned). AMIT2034 itself stays in the dataset fully intact — sessions,
-CSV rows, B005 conflict, everything. Cheap by construction: the claimant
-list is DOC-ONLY (no code reads it), and the verified mirror shows AMIT2034
-owns ZERO B006 rows (all 22 B006 rows belong to other modules); its L/T sit
-in B010, its P in B005 (per cohort DFT + DSF) — so removing it changes NO
-behavior, NO counts, NO data.
+- **Networking subjects (AMIT2033, BMIT2154, BMIT3084) — ALLOWED in B006** —
+  plain allow, NO priority ranking, NO yield semantics. Session-type legality
+  rides today's gate (`venues.allowed_session_types = 'P'` for B006 — see ⚠️1)
+  until the enforcement change lands.
+- **The population gate stays R6** (B006 = FOCS cohorts only; RAF/RBU never).
+- **AMIT2034 (Fundamentals of Computer Networks) — the module's own law:
+  its `L/T/P` sessions MUST execute in a lab, and it may use ANY lab**
+  (`lab` or `cisco_lab` — B005, B009, B010, B011, B006). It is NOT a B006
+  claimant — just any-lab access with no special standing in B006. Its
+  current rows already conform (L/T in B010, P in B005; zero B006 rows).
+  NOTE: AMIT2034's **L/T-in-a-lab is an R1 override FOR THIS MODULE ONLY** —
+  R1's standard rows send L→tutorial/lecture_hall and T→tutorial; the
+  enforcement change must encode this module-scoped exception.
+- The 2026-10-24 "demotion" wording (AMIT2034 = priority-claimant demotion)
+  is SUPERSEDED by this simplification: there are no priority claimants
+  anywhere; all rules are ALLOW or DISALLOW.
 
-**Everyone else (including AMIT2034 since 2026-10-24):** may use B006 at
-LOWER priority (never banned) — yield to networking/IoT demand.
-
-⚠️ **Two reality checks (2026-10-15):**
-1. `venues.allowed_session_types = 'P'` for B006 today → **only P sessions may occupy it**. Claimant **L/T** sessions in B006 are **not legal today**: the enforcement change must widen the column + the engine check. That widening is **PLANNED-NEW**, not current policy — and per R4's 2026-10-24 amendment it must apply to the NETWORKING claimant list ONLY, NEVER to IoT L/T.
+⚠️ **Reality checks (2026-10-15, re-scoped 2026-10-24):**
+1. `venues.allowed_session_types = 'P'` for B006 today → **only P sessions may occupy it**. The networking subjects' **L/T** in B006 and AMIT2034's L/T-in-B006 are **not legal today**: the enforcement change must widen the column + the engine check. That widening is **PLANNED-NEW**, not current policy.
 2. `cisco_lab` maps to display vocabulary `'CiscoLab'` (producer payload) and `'Lab'` (consumer payload) — the enforcement change must keep one canonical encoding (see `LectureSessionCatalog::ruleMap()`).
 
-- Open question assigned to the enforcement change: **how "Networking" identity is decided** — name-list match (misses edge cases, e.g. Internet Security) vs a curated module-category registry. Where the rule data lives is already solved (`ruleMap()` as data); which MODULES belong in it is not.
+### R4 — IoT — **DROPPED (user decision 2026-10-24: skip the IoT concern)**
 
-### R4 — IoT exclusivity — **PLANNED-NEW (user directive 2026-10-15; AMENDED 2026-10-24; nothing implemented)**
+The 2026-10-15 IoT-exclusivity directive (P → B006 ONLY / excluded from
+every other lab) and the same-day L/T lab addendum are **RETIRED — not
+scheduled for enforcement**: the user does NOT plan to include any IoT
+module in the dataset. There is no IoT rule to enforce.
 
-**IoT module sessions, the user's two-part law (2026-10-24):**
-- **`P` sessions may use B006 ONLY** — excluded from every other lab (B005,
-  B009, B010, B011). Stricter than today: overrides R1 for IoT-P (those
-  rooms are `lab` and today legal for any P). [the original core,
-  re-affirmed]
-- **`L/T` sessions may NOT use any lab — same as every other class** (labs
-  stay P-only per R1's 2026-10-19 lt-venue-capacity law). Consequently IoT
-  L/T carry **NO B006 priority claim**: R3's planned B006 L/T widening
-  (⚠️1) must NEVER include IoT L/T. IoT sessions split cleanly:
-  **P → B006 exclusively; L/T → lecture halls/tutorials only (R1's
-  ordinary rows).**
+- IoT's only live trace = the B006 venue DESCRIPTION text — **kept as is**:
+  `Cisco Lab. Networking & IoT equipment room. For FOCS cohorts only.`
+  (R7 data; a display string, NOT a rule).
+- If an IoT module ever enters the dataset, a fresh user decision is
+  required before any IoT rule exists.
 
-- Precondition: an IoT module in the DB (none exist yet — when added, classify it per R3's open question; the IoT identity is a registry attribute, distinct from the networking claimant list).
-- Cross-ref: recorded as a deferred non-goal in SDD `arrange-intent-session-choice`.
+- Cross-ref: the old "deferred non-goal" note in SDD `arrange-intent-session-choice` is OBSOLETE (the rule it deferred no longer exists).
 
 ### R5 — Audit trail (context only, no action)
 
-Audit 2026-10-09: 6 non-networking sessions use B006 (AMCS1013 ×2, BMIS2003 ×2, BMIT3173, BMIT3273) — **legal under the priority rule** (lower priority, not violations).
+Audit 2026-10-09: 6 non-networking sessions use B006 (AMCS1013 ×2, BMIS2003 ×2, BMIT3173, BMIT3273) — **legal (plain ALLOW model; not violations)**. Priorities are retired (2026-10-24); admission rides R6's FOCS-only gate.
 
 ### R6 — B006 (cisco_lab) = FOCS-only population gate — **DOC-ONLY (sv directive 2026-10-23, user-recorded)**
 
@@ -114,12 +113,12 @@ Audit 2026-10-09: 6 non-networking sessions use B006 (AMCS1013 ×2, BMIS2003 ×2
 
 **Decisions by the user (2026-10-23):**
 - Scope = **B006 only** (the sole `cisco_lab` in the DB — the CHECK-constrained room_type list; verified 2026-10-23). Any future cisco_lab room needs an explicit migration/decision before inheriting this rule.
-- **Priority dropped for the BINARY gate** (the sv's "especially RSD" nuance is NOT part of R6 — R3's networking priority stays its own separate DOC-ONLY clue; the two compose later in the enforcement change: R6 = admission, R3 = ordering among the admitted).
+- **Priority dropped for the BINARY gate** (the sv's "especially RSD" nuance is NOT part of R6 — and SUPERSEDED 2026-10-24: scheduling priority is retired entirely per R3 — there is no ordering left to compose with this gate; R6 = plain admission).
 - **Positive restatement of R2 (the user's extra, same rule):** "B005 is ONLY allowed degree students" — the enforced no-Diploma check unchanged.
 
 **Live-data cross-ref (verified 2026-10-23):** AMCS1013's 2 B006 sessions host `DSF·y1g1` — legal today (no gate enforced), a **future conflict** once R6 enforcement lands; flagged here for the enforcement SDD's migration checklist. The other five B006 modules (AMIT2033 DFT, BMIT2154/BMIT3084/BMIT3173/BMIT3273/BMIS2003 RSD) already comply.
 
-**Where this enforcement lands:** only in the future "venue-restrictions enforcement" SDD (§4), alongside R2/R3/R4 — never ad hoc.
+**Where this enforcement lands:** only in the future "venue-restrictions enforcement" SDD (§4), alongside R2/R3 — never ad hoc. (R4 dropped 2026-10-24.)
 
 ### R7 — Room descriptions — **ENFORCED (SDD venue-description-doc-b006-rule, 2026-10-23)**
 
@@ -131,7 +130,7 @@ Every room carries a plain `venues.description` (nullable text; the sv's directi
 
 | Table.column | Values | Used by |
 |---|---|---|
-| `venues.room_type` | `tutorial` / `lecture_hall` / `lab` / `cisco_lab` (CHECK constraint) | R1, R3, R4 |
+| `venues.room_type` | `tutorial` / `lecture_hall` / `lab` / `cisco_lab` (CHECK constraint) | R1, R3 |
 | `venues.allowed_session_types` | `P` for B005 & B006 today | historical guard; R1 supersedes when enforcement lands |
 | `programmes.programme_code` | `DFT`, `DSF` (Diploma, `D*`); `RSD`, `RAF`, `RBU` (Bachelor, `R*`) | R2 |
 | `time_slots_no_double_book_idx` partial unique index | `(venue, day, start, week) WHERE status IN ('pending','occupied')` | double-book protection (independent of these rules) |
@@ -147,8 +146,4 @@ Every room carries a plain `venues.description` (nullable text; the sv's directi
 
 ## 4. "Venue restrictions enforcement" — the future SDD change
 
-Turns every DOC-ONLY / PLANNED-NEW rule above into code at all three layers, keeping ONE rule source (`LectureSessionCatalog::ruleMap()` — or its enforced successor) consumed as data by: (1) the submit-side engine (authoritative OCC-time validation); (2) the arrangement venue dropdown + `venueEligible`; (3) the "Select a Session" modal + fallback. It also MUST resolve: the Networking module registry (R3's open question —
-now WITHOUT AMIT2034, which is an "everyone else" claimant since
-2026-10-24), the B006 `allowed_session_types` widening (R3 ⚠️1 — networking
-claimants' L/T ONLY, NEVER IoT L/T per R4's 2026-10-24 amendment), and the
-IoT exclusivity check (R4 — P→B006 ONLY, L/T→NO lab, NO B006 claim). Until it lands, treat R2/R3/R4 as documentation, and never "quick-fix" them ad hoc.
+Turns every DOC-ONLY / PLANNED-NEW rule above into code at all three layers, keeping ONE rule source (`LectureSessionCatalog::ruleMap()` — or its enforced successor) consumed as data by: (1) the submit-side engine (authoritative OCC-time validation); (2) the arrangement venue dropdown + `venueEligible`; (3) the "Select a Session" modal + fallback. It also MUST resolve, per the 2026-10-24 simplification: the plain ALLOW/DISALLOW lists (networking = ALLOWED in B006, no ranking), AMIT2034's module-scoped lab law (L/T/P MUST run in a lab; ANY lab — R1's L/T rows overridden FOR THIS MODULE ONLY), the B006 `allowed_session_types` widening (⚠️1 — covers the networking subjects' L/T + AMIT2034's L/T; IoT is IRRELEVANT — R4 dropped), and R6's composition (B006 = FOCS-only admission + these plain allows, no ordering). Until it lands, treat R2/R3 as documentation, and never "quick-fix" them ad hoc.

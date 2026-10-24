@@ -20,3 +20,18 @@
   2026-10-24) so the demotion reads as a PRIORITY move, never a ban.
 ### 🔴 Outstanding
 - none
+
+## round 2 — 2026-10-24 (the user's three simplifications)
+### receipts
+- Live B006 description verified byte-identical to the user's "KEEP AS IS"
+  string: "Cisco Lab. Networking & IoT equipment room. For FOCS cohorts
+  only." (mock mirror; R7's DB-wins mirror untouched).
+- The round-1 decision-1/2 wording (claimant demotion, priority) is
+  SUPERSEDED — the doc now carries round-2 only; round-1 text remains as
+  history in this lane, not in the doc.
+- Stale-reference sweep: R5's "priority rule", R6's "R3 = ordering",
+  §2 room_type table (R4 ref), §4 sentence, §4 tail (R2/R3/R4), docs/README
+  index — all updated; grep shows no priority-model remnants outside the
+  "Priority is retired" statements themselves.
+### 🔴 Outstanding
+- none
