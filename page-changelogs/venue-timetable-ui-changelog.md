@@ -1,3 +1,28 @@
+## 2026-10-23 (the user's wording corrections + the chip staleness fix)
+
+The user's live report + corrections:
+- **The staleness fix (root of his "B005/B006 = Computer Lab" sighting):**
+  the arrangement's chip fill ran ONCE at boot — a venue switch left the
+  chips stale (my probes re-freshed every load and saw correct values, so
+  the = the boot-only pass = the = = = held until the = named
+  `window.__fillVenueChips(code)` now re-fills on EVERY venue switch
+  (`applyVenueChange`). Live receipt: B006 boot ✓ → dd switch to B005 → the
+  info chip = "Lab. For PRACTICAL Class. DEGREE students only." + the cap
+  chip = "Capacity — 28 seats" ✓.
+- **The wording corrections (DB + migration drafts + mock-data mirror):**
+  - B005: "Lab. For PRACTICAL Class. DEGREE students only." (no Hardware
+    Lab; degree-only restated per the user).
+  - B006: "Cisco Lab. Networking & IoT equipment room. For FOCS cohorts
+    only." (no "not permitted" phrasing).
+  - Every Tutorial Room: "Tutorial Room. For PRACTICAL and TUTORIAL."
+    (no "Seats 35").
+  - B009–B011: "Computer Lab. For PRACTICAL." ; B110/111: "Lecture Hall.
+    For LECTURE." (the = the = the user's CAP/no-s convention applied).
+  - The subject types = CAPS as asked; BOLD inside the hover tooltips is
+    not possible (the shared tooltip renders text-only) — recorded.
+- Receipts: 16 spot green; pint ✓; phpstan 0 ✓.
+
+
 ## 2026-10-23 (chip parity fix) — the capacity badge paints IDENTICALLY on both pages
 
 The user spotted the venue page's capacity chip looking different from the

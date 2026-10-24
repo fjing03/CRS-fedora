@@ -30,3 +30,11 @@
   desc line retired (the tooltip carries the text). theme.css gains the
   .venue-side-chips block (tokens only). Gates: the spot battery 71 green
   (only TC34/35); pint ✓; phpstan 0 ✓. Both changelogs updated.
+- [x] T9 (the user's wording corrections + the staleness fix, 2026-10-23): the
+  texts per the user's corrected list (B005/B006/tutorial/no-"not
+  permitted"/CAP no-s; bold inside tooltips = not renderable — text-only
+  tooltips, recorded); DB + migration drafts + mock mirror updated; the
+  arrangement's chips = named `window.__fillVenueChips(code)` re-invoked
+  from `applyVenueChange` (the boot-only pass = the stale-chip root of the
+  user's B005/B006 sighting); live receipt (B006→B005 dd switch = both
+  chips correct). 16 spot green; pint/phpstan clean.

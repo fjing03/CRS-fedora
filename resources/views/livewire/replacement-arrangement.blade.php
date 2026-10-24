@@ -1816,6 +1816,12 @@
             saveCurrentWeek();
             currentVenue = newVenue;
             buildTimetable();
+            /* venue-side-chips staleness fix (the user's B005/B006 report):
+               the capacity + description chips re-fill per venue switch —
+               window.__fillVenueChips is defined in the boot tail (after
+               the page's data hydration; the guest-state guard skips the
+               boot before it exists). */
+            if (window.__fillVenueChips) window.__fillVenueChips(newVenue);
             updateFavStar();
         }
 
@@ -3522,30 +3528,34 @@ triggerText.textContent = 'W' + (slot.week + 1) + ' · ' + shortDate + ' · ' + 
                    carrying the FULL description (the user's option: ok on
                    this page). Reads MockData.venues (the replaced real-data
                    list = venuesPayload, canonical from the DB). Chips only
-                   here — the plain line is retired (the tooltip carries it). */
-            const chipGroup = document.getElementById('venueChipGroup');
-            if (chipGroup) {
-                const ddV = (MockData.venues || []).find(v => v.code === (urlParams.venue || currentVenue)) || null;
-                if (ddV) {
-                    const capA = document.getElementById('venueCapacity');
-                    if (capA && ddV.capacity) {
-                        capA.textContent = '';
-                        capA.insertAdjacentHTML('beforeend',
-                            '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>');
-                        capA.insertAdjacentText('beforeend', String(ddV.capacity));
-                        capA.setAttribute('data-tip', 'Capacity \u2014 ' + ddV.capacity + ' seats');
-                    }
-                    const descA = document.getElementById('arrVenueDescription');
-                    if (descA && ddV.description) {
-                        descA.textContent = '';
-                        descA.insertAdjacentHTML('beforeend',
-                            '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>');
-                        descA.setAttribute('data-tip', ddV.description);
-                        descA.setAttribute('aria-label', 'Room description: ' + ddV.description);
-                    }
-                    chipGroup.style.display = '';
+                   here — the plain line is retired (the tooltip carries it).
+               STALENESS FIX (the user's B005/B006 report): the fill is a
+               NAMED function re-invoked on EVERY venue change — the one
+               boot pass left the chips crumb after a dd switch. */
+            window.__fillVenueChips = function (code) {
+                const chipEl = document.getElementById('venueChipGroup');
+                if (!chipEl) return;
+                const ddV = (MockData.venues || []).find(v => v.code === code) || null;
+                if (!ddV) return;
+                const capA = document.getElementById('venueCapacity');
+                if (capA && ddV.capacity) {
+                    capA.textContent = '';
+                    capA.insertAdjacentHTML('beforeend',
+                        '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>');
+                    capA.insertAdjacentText('beforeend', String(ddV.capacity));
+                    capA.setAttribute('data-tip', 'Capacity \u2014 ' + ddV.capacity + ' seats');
                 }
-            }
+                const descA = document.getElementById('arrVenueDescription');
+                if (descA && ddV.description) {
+                    descA.textContent = '';
+                    descA.insertAdjacentHTML('beforeend',
+                        '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>');
+                    descA.setAttribute('data-tip', ddV.description);
+                    descA.setAttribute('aria-label', 'Room description: ' + ddV.description);
+                }
+                chipEl.style.display = '';
+            };
+            window.__fillVenueChips(urlParams.venue || currentVenue);
             updateFavStar();
             document.getElementById('favStar')?.addEventListener('click', toggleFavourite);
             document.getElementById('semesterChip').textContent = MockData.semester.chipText;
