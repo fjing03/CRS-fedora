@@ -1573,9 +1573,11 @@
             }
             const span = BLOCK_SPAN;
             if (!canPlaceBlock(day, startHour)) {
-                toast.show(startHour + span > hours.length
-                    ? 'Not enough time left in the day for a ' + (span * 30) + '-minute selection.'
-                    : 'The ' + (span * 30) + '-minute block does not fit here \u2014 part of it is already taken. Pick a cell with enough free room below.');
+                /* keyword voice (user UI directive 2026-10-24): CAP + bold + theme
+                   tokens via showRich — the em-dash kept as \u2014 (blade-safe ASCII) */
+                toast.showRich(startHour + span > hours.length
+                    ? '<strong style="color:var(--color-on-error-container)">Won\'t Fit Today</strong><span style="color:var(--color-on-primary-container)"> \u2014 pick an earlier </span><strong style="color:var(--color-on-success-container)">Cell</strong>.'
+                    : (span * 30) + '-min block <strong style="color:var(--color-on-error-container)">Won\'t Fit</strong><span style="color:var(--color-on-primary-container)"> \u2014 some part is taken. </span>Pick a <strong style="color:var(--color-on-success-container)">Free Cell</strong> below.');
                 return false;
             }
             /* multi-week budget: MAX_SELECTION slots in total across every week */
@@ -2745,12 +2747,12 @@ slotLine = 'Week ' + (anchorSlot.week + 1) + ' · ' + ((weekdayName && weekdayNa
                 } else if (intentReason === 'in-the-way') {
                     reason = 'is already covered by another of your selections — clear it or pick another slot manually.';
                 } else {
-                    reason = 'is no longer available on the ' + (currentVenue.code || currentVenue) + ' grid (a block already holds it) — pick another available slot manually.';
+                    reason = 'is <span style="color:var(--color-on-error-container)">no longer available</span> on the ' + (currentVenue.code || currentVenue) + ' grid <span style="color:var(--color-on-primary-container)">— an existing class already occupies it.</span> <span style="color:var(--color-on-success-container)">Pick another slot</span> manually.';
                 }
                 el.innerHTML = `<div class="booking-intent booking-intent-manual">
                     <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
                     <span><strong>Your booked slot (${i.dayAbbr}, ${i.dateStr} · ${i.timeStr}) ${reason}</strong>
-                    ${fallbackAttribution ? `<br><em>Pre-selected ${fallbackAttribution.module} (${fallbackAttribution.type}) — its sessions fit ${i.venue}; pick another free slot — the pre-selection stays.</em>` : ''}
+                    ${fallbackAttribution ? `<br><em><span style="color:var(--color-on-success-container)">Pre-selected ${fallbackAttribution.module} (${fallbackAttribution.type})</span> <span style="color:var(--color-on-primary-container)">— its sessions fit ${i.venue};</span> <span style="font-weight:700">pick another free slot</span> — <span style="color:var(--color-on-success-container)">the pre-selection stays</span>.</em>` : ''}
                     <button class="bi-close" onclick="dismissBookingIntent()" data-tip="Dismiss booking reminder">&times;</button>
                 </div>`;
                 return;

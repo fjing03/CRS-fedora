@@ -3371,7 +3371,9 @@ body {
     padding: 12px 18px;
     align-items: center;
     gap: 12px;
-    max-width: 480px;
+    /* 2026-10-24 user UI directive: 480 → 560 — the keyword-voice toasts
+       (CAP + bold + color) needed the extra room to fit without clipping */
+    max-width: 560px;
     animation: toastSlideUp 0.3s ease;
 }
 .toast-bar.visible { display: flex; }

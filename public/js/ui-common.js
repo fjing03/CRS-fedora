@@ -2586,18 +2586,38 @@ class ToastManager {
         this._current = null;
     }
 
+    /* Plain variant — unchanged contract (every existing positional caller
+       keeps working); delegates to the shared presenter with asHtml=false. */
     show(message, undoCallback, duration = 5000, linkText = '', linkUrl = '', details = '', onManualDismiss = null, onAutoDismiss = null) {
+        this._present(message, { undoCallback: undoCallback, duration: duration, linkText: linkText, linkUrl: linkUrl, details: details, onManualDismiss: onManualDismiss, onAutoDismiss: onAutoDismiss }, false);
+    }
+
+    /* Rich variant (user's UI directive 2026-10-24): renders the message as
+       HTML so keyword spans can carry the theme tokens (CAP + bold + color —
+       var(--color-on-error/primary/success-container) only, NEVER hex).
+       CALLERS MUST pass developer-authored CONSTANT strings — never user data. */
+    showRich(message, duration = 5000) {
+        this._present(message, { duration: duration }, true);
+    }
+
+    _present(message, opts, asHtml) {
         const bar = document.getElementById('toastBar');
         if (!bar) return;
 
-        this._current = { message: message, onManualDismiss: onManualDismiss, onAutoDismiss: onAutoDismiss };
+        this._current = { message: message, onManualDismiss: opts.onManualDismiss || null, onAutoDismiss: opts.onAutoDismiss || null };
+
+        const undoCallback = opts.undoCallback;
+        const duration = opts.duration || 5000;
+        const linkText = opts.linkText || '';
+        const linkUrl = opts.linkUrl || '';
+        const details = opts.details || '';
 
         const msgEl = bar.querySelector('.toast-message');
         const detailsEl = bar.querySelector('.toast-details');
         const undoBtn = bar.querySelector('.toast-undo');
         const linkEl = bar.querySelector('.toast-link');
 
-        msgEl.textContent = message;
+        if (asHtml) msgEl.innerHTML = message; else msgEl.textContent = message;
 
         if (details && detailsEl) {
             detailsEl.textContent = details;

@@ -1,10 +1,21 @@
+## 2026-10-24 (the user's keyword-voice UI directive) — the not-enough-room notice tail
+
+The `pick a cell with enough free room beneath it.` tail (the cell-gap
+notice's guide line) is shortened to **"Not enough room below — pick a Free
+Cell."** and joins the keyword-voice family: `Free Cell` = CAP + bold + token
+green (`--color-on-success-container`), inline span inside the existing
+`noticeHtml()` guideTail slot (already `innerHTML` — no mechanism change on
+this page). Same meaning = same look as the arrangement's twin toasts
+(same date). No test locks this string. Receipts below.
+
+
 ## 2026-10-23 (the user's wording corrections + the chip staleness fix)
 
 The user's live report + corrections:
 - **The staleness fix (root of his "B005/B006 = Computer Lab" sighting):**
   the arrangement's chip fill ran ONCE at boot — a venue switch left the
   chips stale (my probes re-freshed every load and saw correct values, so
-  the = the boot-only pass = the = = = held until the = named
+  they masked it — the boot-only pass held until a dd switch. A hook named
   `window.__fillVenueChips(code)` now re-fills on EVERY venue switch
   (`applyVenueChange`). Live receipt: B006 boot ✓ → dd switch to B005 → the
   info chip = "Lab. For PRACTICAL Class. DEGREE students only." + the cap
@@ -17,7 +28,7 @@ The user's live report + corrections:
   - Every Tutorial Room: "Tutorial Room. For PRACTICAL and TUTORIAL."
     (no "Seats 35").
   - B009–B011: "Computer Lab. For PRACTICAL." ; B110/111: "Lecture Hall.
-    For LECTURE." (the = the = the user's CAP/no-s convention applied).
+    For LECTURE." (the user's CAP / no-s convention applied).
   - The subject types = CAPS as asked; BOLD inside the hover tooltips is
     not possible (the shared tooltip renders text-only) — recorded.
 - Receipts: 16 spot green; pint ✓; phpstan 0 ✓.

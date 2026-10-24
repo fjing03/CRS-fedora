@@ -536,7 +536,7 @@
                                 'None of your classes can run in ' + model.venue + ' at this cell',
                                 hours[hi] + ' plus the class length runs into an existing event below.',
                                 'Please book with at least a ' + (gapHours === 1 ? '1-hour' : gapHours + '-hour') + ' gap',
-                                'Between this block and the next event — pick a cell with enough free room beneath it.');
+                                'Not enough room below — pick a <strong style="color:var(--color-on-success-container)">Free Cell</strong>.');
                         } else {
                             noteText.innerHTML = noticeHtml(
                                 'They do not fit before the day end (' + dayEnd + ')',

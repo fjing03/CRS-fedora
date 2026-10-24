@@ -1,3 +1,46 @@
+## 2026-10-24 (the user's keyword-voice UI directive) — Won't Fit toasts + the booking-intent banner speaks in colors
+
+**The voice rule (applied to this family):** the keyword that carries the
+message = CAP + bold + a theme token — 🔴 red = the problem (`Won't Fit`,
+`no longer available`), 🔵 blue = the reason/bridge (`— some part is taken.`,
+`— an existing class already occupies it.`), 🟢 green = the action (`Free
+Cell`, `Cell`, `Pick another slot`). Tokens only (`--color-on-error /
+on-primary / on-success-container`) — no hex; both themes carry all three.
+
+**1) The two `selectBlock` refusals (`fitBlock` guard)** — the old 108-char
+lines overflowed the 480px toast bar (the user's clipping report) and read
+wordy. Now `showRich` (see 4):
+- span-end: **"Won't Fit Today — pick an earlier Cell."**
+- part-taken: **"120-min block Won't Fit — some part is taken. Pick a free
+  cell below."** (the "The …-minute block does not fit here — part of it is
+  already taken…" prose is gone).
+
+**2) The manual-arrival banner reason (slot gone):** the ambiguous "(a block
+already holds it)" is rephrased — "is **no longer available** on the B002
+grid — an existing class already occupies it. **Pick another slot**
+manually."
+
+**3) The banner attribution clause:** now 🟢 **Pre-selected AMCS2093 (L)** ·
+🔵 its sessions fit B002; · bold `pick another free slot` · 🟢 **the
+pre-selection stays** (one voice, per venue-intent-banner-kind).
+
+**4) Mechanism — `ToastManager.showRich()` (opt-in, `ui-common.js`):**
+`show()` now delegates to a shared `_present(msg, opts, asHtml)`; the plain
+path is byte-for-byte the same contract (every positional caller untouched),
+`showRich(msg, duration)` renders `innerHTML` for the keyword spans.
+Developer-authored CONSTANT strings only — comment says so at the call site.
+
+**5) The toast bar widened 480→560px** (`theme.css`) — the user's call, so
+the new CAP+bold lines fit without clipping. Shared bar → global effect, all
+pages.
+
+**Test contract: ZERO edits needed** — every locked phrase survives verbatim:
+`no longer available` (venue-intent-modal B002 row), `Pre-selected
+AMCS2093`, `its sessions fit B110`, `the pre-selection stays` (C2b + B002).
+Receipts: `tests/venue-intent-modal.spec.ts --grep-invert TC70` green, all
+rows.
+
+
 ## 2026-10-24 (follow-up to replacement-strip-stale-anchor, user-directed) — the trigger speaks the picked-slot format + the slot picker 60% wider
 
 **1) The trigger format (the user's "why 'Auto-pinned: the W14 occurrence …'?"):**
