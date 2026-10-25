@@ -155,14 +155,19 @@
     <!-- ─── Empty State ─── -->
     @include('partials.ui-empty-state', ['title' => 'Select a faculty first', 'text' => 'Choose a faculty, then pick a cohort to view its weekly timetable.'])
 
-    <!-- ─── Event Modal (class-modal-affordances T2: the restored footer —
-         left Close / right the runtime-appended Cancel Class? button; no
-         Replace Now on cohort — the frozen design D1/D3) ─── -->
+    <!-- ─── Event Modal (SDD cohort-venue-replace-now: the user's law
+         2026-10-24 "Cohort page & Venue page shud've Replace Now button too.
+         for OWN Original Conflicted Class" — the footer gains the venue's
+         Replace Now button module (gated at openModal: OWN + conflict) and
+         KEEPS the runtime-appended Cancel Class? button. SUPERSEDES the
+         class-modal-affordances frozen D1/D3 "no Replace Now on cohort"
+         decision.) ─── -->
     @section('modal-footer')
         <div class="modal-footer-left">
             <button class="btn-close-modal" onclick="closeModal()">Close</button>
         </div>
         <div class="modal-footer-right">
+            <button class="btn-replace-now" id="btnReplaceNow" style="display:none" onclick="goToReplacementFor(currentModalEvent?.id, currentWeek + 1, 'cohort-timetable')">Replace Now</button>
             <!-- the runtime-appended Cancel Class? lives here (CancelClass.renderButton) -->
         </div>
     @endsection
@@ -178,6 +183,13 @@
             MockData.mockNow = null; /* REAL clock — the demo anchor is mock-era only (2026-10-15 vine-line); the portfolio's today must be correct */
             MockData.holidays = @json($holidaysJs);
             MockData.currentUser = @json(['name' => auth()->user()?->name ?? '', 'staffId' => (string) (auth()->user()?->lecturer?->staff_id ?? '')]);
+            /* the my-timetable/venue window channel (SDD cohort-venue-replace-now
+               T1, review R1 blocker): BEFORE this init the cohort page never
+               set window.currentModalEvent — the button's click
+               (goToReplacementFor(currentModalEvent?.id, …)) threw
+               ReferenceError: the optional chain guards the PROPERTY, not the
+               unbound identifier. my-timetable :138 / venue :218 = precedents. */
+            window.currentModalEvent = null;
 
             window.weekData = generateWeekData();
             const weekData = window.weekData;
@@ -419,24 +431,28 @@
             function prevWeek() {
                 weekNav.prevWeek();
                 currentWeek = weekNav.currentWeek;
+                window.currentWeek = currentWeek;   /* SDD cohort-venue-replace-now T1: the venue page's window-channel parity (venue :814-826) — the inline-btn's currentWeek reads the GLOBAL; without this the handoff carries a stale boot week */
                 buildTimetable();
             }
 
             function nextWeek() {
                 weekNav.nextWeek();
                 currentWeek = weekNav.currentWeek;
+                window.currentWeek = currentWeek;   /* SDD cohort-venue-replace-now T1: same channel parity */
                 buildTimetable();
             }
 
             function selectWeek(index) {
                 weekNav.selectWeek(parseInt(index, 10));
                 currentWeek = weekNav.currentWeek;
+                window.currentWeek = currentWeek;   /* SDD cohort-venue-replace-now T1: same channel parity */
                 buildTimetable();
             }
 
             function goToday() {
                 weekNav.jumpToToday();
                 currentWeek = weekNav.currentWeek;
+                window.currentWeek = currentWeek;   /* SDD cohort-venue-replace-now T1: same channel parity */
                 buildTimetable();
             }
 
@@ -518,6 +534,10 @@
             /* ════════ MODAL ════════ */
 
             function openModal(event, di) {
+                /* SDD cohort-venue-replace-now T1 (my-timetable :151 / venue
+                   :295 parity): write the window channel FIRST — the footer
+                   button's click reads it; the gate below then decides. */
+                window.currentModalEvent = event;
                 openClassModal({
                     event: event,
                     dayIndex: (di !== undefined ? di : event.di),
@@ -528,6 +548,22 @@
                     ]
                 });
 
+                /* SDD cohort-venue-replace-now T1: the venue gate family
+                   (venue-timetable :315–318, byte-parity) — OWN + conflict,
+                   fail-closed (display:none default). The cohort payload
+                   keys the ownership at event.lecturer (baseEvent) and the
+                   conflict at event.status — PLUS the page's own holiday-day
+                   conflict definition (the statusClassFn's isConflict:
+                   (days[event.di] && days[event.di].holiday) || status ===
+                   'conflict') — the AMSE2003 (T) Dec 24 class app is
+                   status-normal but sits ON the W14 holiday — the honest
+                   own-conflict gate reads BOTH. */
+                const replaceBtn = document.getElementById('btnReplaceNow');
+                if (replaceBtn) {
+                    const isMine = event.mine === true || event.lecturer === MockData.currentUser?.name;
+                    const isConflict = (weekData[currentWeek].days[event.di] && weekData[currentWeek].days[event.di].holiday) || event.status === 'conflict';
+                    replaceBtn.style.display = (isMine && isConflict) ? 'flex' : 'none';
+                }
                 /* class-modal-affordances T2: the Cancel affordance restored
                    (the legacy CohortTimetable template's wiring ported —
                    restore-first persistence). The Later path re-runs the

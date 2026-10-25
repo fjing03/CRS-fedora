@@ -173,19 +173,27 @@
     </div>
 
     <!-- ═══ Class Detail Modal ═══ -->
-    @include('partials.ui-class-detail-modal')
-
-    <!-- class-modal-affordances T3: the restored footer (left Close; right
-         Replace Now [own + conflict, viewed week] + the Cancel Class?
-         affordance) — the buttons appended/filled at modal-open. -->
     @section('modal-footer')
         <div class="modal-footer-left">
             <button class="btn-close-modal" onclick="closeModal()">Close</button>
         </div>
         <div class="modal-footer-right">
-            <button class="btn-replace-now" id="btnReplaceNow" style="display:none" onclick="goToReplacementFor(currentModalEvent?.sessionId, currentWeek, 'venue-timetable')">Replace Now</button>
+            <button class="btn-replace-now" id="btnReplaceNow" style="display:none" onclick="goToReplacementFor(currentModalEvent?.sessionId, currentWeek + 1, 'venue-timetable')">Replace Now</button> <!-- SDD cohort-venue-replace-now T2 (user law 2026-10-24): currentWeek was the 0-BASED index — the arrangement's pinnedSessionPayload validates the 1-BASED human week (1..weeks); the raw index also made W1 a silent no-op (the !week guard ate index 0). The page's own other flows (intentSessionOptions, the arrange-URL fallback) already pass +1. -->
         </div>
     @endsection
+    <!-- SDD cohort-venue-replace-now T2 (apply-phase receipt): the venue page
+         had this include BEFORE its modal-footer section — the shared
+         partial's section-check saw NO 'modal-footer' section yet and
+         rendered its fallback (Close only): the frozen class-modal-affordances
+         venue Replace Now button HAS NEVER RENDERED (its assert
+         `!r || display==='none'` accepts an ABSENT r).
+         Reordered AFTER the section (the my-timetable :94→:106 / cohort
+         :165→:174 order = the precedent) so the footer actually mounts.
+         NOTE: no @-directives may appear in this comment (Blade compiles
+         them even inside HTML comments — the 500 ParseError receipt
+         2026-10-25). -->
+    @include('partials.ui-class-detail-modal')
+
     @include('partials.ui-cancel-class-modal')
 
     <!-- ─── Select a Session modal (SDD arrange-intent-session-choice D2) ─── -->

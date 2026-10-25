@@ -3019,7 +3019,8 @@ class BackNavigator {
         'replacement-home': '/replacement-home-ui',
         'my-request-history': '/my-request-history-ui',
         'venue-timetable': '/venue-timetable-ui',
-        'my-timetable': '/my-timetable-ui'
+        'my-timetable': '/my-timetable-ui',
+        'cohort-timetable': '/cohort-timetable'   /* SDD cohort-venue-replace-now T3: the CANONICAL route (routes/web.php :37) — the -ui URL is the temporary :99 redirect, scheduled for removal; adding the canonical row keeps the back-nav immune to that cleanup */
     };
 
     static getDefault() {

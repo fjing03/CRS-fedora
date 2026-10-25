@@ -1,3 +1,38 @@
+## 2026-10-24 (SDD cohort-venue-replace-now, user law) — the venue Replace Now actually MOUNTS + hands off the human week
+
+**Three receipts in one pass (the user law: "Cohort page & Venue page
+shud've Replace Now button too. for OWN Original Conflicted Class"):**
+
+1. **THE BIG ONE — the button HAS NEVER RENDERED on this page.** The
+   frozen class-modal-affordances T3 put `@include('partials.ui-class-
+   detail-modal')` BEFORE the `@section('modal-footer')` — the shared
+   partial's section-check ran with no section registered yet and rendered
+   its fallback (Close only). Its own test never caught it: the assert
+   `!r || display==='none'` accepts an ABSENT button. The include moved
+   AFTER the section (the my-timetable/cohort order = the precedent).
+2. **The handoff week off-by-one fixed: `currentWeek` → `currentWeek + 1`.**
+   currentWeek = the 0-BASED index (currentWeekIndex()); the arrangement's
+   `pinnedSessionPayload` validates the 1-BASED human week — the raw index
+   meant a W2 row handed off `?week=1` (the WRONG pair) and a Week-1 row
+   was a SILENT NO-OP (the `!week` guard ate index 0). The page's other
+   flows already passed +1 — the button was the lone outlier.
+3. **The derived-conflict rows carry `sessionId` now** (the holiday-
+   conflict pass `VenueTimetable.php` ~:461 family): the event object had
+   no sessionId → `goToReplacementFor`'s `!sessionId` guard swallowed the
+   click on the very rows the user needs it for (verified: 5770's AMCS2093
+   (P) B010 W14 Christmas-Eve row). Additive payload row, same contract
+   as :249.
+
+**The gate block unchanged** (own + the conflict status — the venue
+payload bakes holidays INTO the status so no day-flag read is needed
+here).
+
+**Receipts:** `tests/cohort-venue-replace-now.spec.ts` venue row (B010 ·
+W14 · own AMCS2093 (P) → visible → handoff `?week=14&from=venue-
+timetable`) 6/6 ×2; class-modal-affordances 6/6 (its venue row still
+asserts the healthy own cell keeps the button hidden — now it checks a
+REAL button). Gates: pint · phpstan-1G 0 · phpunit 258/258.
+
 ## 2026-10-24 (SDD class-modal-affordances) — the venue modal carries BOTH restored affordances
 
 **Two affordances land on the venue page's classModal:**

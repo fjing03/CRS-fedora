@@ -459,6 +459,14 @@ class VenueTimetable extends Component
                 $label = $daySet[$dayIdx];
                 $event = [
                     'id' => null,  // NO row — the Class Ref row drops from the popup (honest)
+                    /* SDD cohort-venue-replace-now: the Replace Now handoff
+                       targets ?session= — the derived family's rows (this
+                       holiday-conflict pass) MUST carry the class_session id
+                       too (the base-event rows did since class-modal-afford-
+                       ances; this branch missed it → the button rendered but
+                       goToReplacementFor's !sessionId guard swallowed the
+                       click). Additive row, same contract as :249. */
+                    'sessionId' => $session->id,
                     'di' => $dayIdx,
                     'start' => $startIdx,
                     'end' => $endIdx,

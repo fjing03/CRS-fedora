@@ -1,3 +1,37 @@
+## 2026-10-24 (SDD cohort-venue-replace-now, user law) — Replace Now lands on the cohort eventModal (OWN + conflicted)
+
+**The law (user, verbatim):** "Cohort page & Venue page shud've Replace Now
+button too. for OWN Original Conflicted Class." — SUPERSEDES the frozen
+class-modal-affordances D1/D3 "no Replace Now on cohort" decision.
+
+**What landed:**
+1. the eventModal footer gains the venue's `btnReplaceNow` module
+   (`goToReplacementFor(currentModalEvent?.id, currentWeek + 1,
+   'cohort-timetable')` — the +1 = the arrangement's pinned pair is
+   1-based-validated; the page-family convention the BRIDGE PATCH spells);
+2. the gate at openModal = the venue family
+   (`isMine && (dayHoliday || status === 'conflict')` — the page's OWN
+   conflict definition; the AMSE2003 (T) Dec-24 class is status-normal ON
+   the W14 holiday, so the status key alone misses it); fail-closed.
+3. review-R1 blocker fixed in the same pass: the page now MAINTAINS
+   `window.currentModalEvent` (init at the bridge + assignment at
+   openModal — absent before, the click threw ReferenceError);
+4. the week navs (prev/next/selectWeek/goToday) now mirror
+   `window.currentWeek` (the venue-page :814—826 parity — the inline
+   button reads the GLOBAL; the stale boot week would have handed off the
+   wrong pair);
+5. BackNavigator gains `'cohort-timetable': '/cohort-timetable'` (the
+   CANONICAL route — the `-ui` URL is the temporary redirect; the way
+   back from an arrangement session opened here now returns HERE).
+
+**Fixtures/receipts:** 5425 owns AMSE2003 (L)/(T) on DSF2(S1)G1; W14 Thu
+24 Dec = the holiday. The new spec
+`tests/cohort-venue-replace-now.spec.ts` 6/6 ×2 (own-holiday VISIBLE +
+handoff `?session=68&week=14&from=cohort-timetable`; others' HIDDEN; own
+non-conflict HIDDEN; the venue +1 regression row; the back-nav row).
+Gates: pint · phpstan-1G 0 · phpunit 258/258 · class-modal-affordances
+6/6 (the tripwire).
+
 ## 2026-10-24 (SDD class-modal-affordances) — the Cancel Class? affordance RESTORED on the cohort's eventModal
 
 **The same restore** as my-timetable's (the legacy wiring lost in the
