@@ -487,16 +487,17 @@ test.describe('Cancel Class Flow', () => {
   // ── S17 — confirmed replacement classes are cancellable too (FR 2.16
   // extension, 2026-10-08 SDD-waived: a moved slot is still the lecturer's
   // own scheduled class); undo restores the PRIOR status ──
-  // T4 RE-ANCHOR: the deck's ONE 'replacement'-status occurrence owned by
+  // T4 RE-ANCHOR (+ SDD class-cancel-2-working-day-window receipt
+  // 2026-10-27): the deck's ONE 'replacement'-status occurrence owned by
   // 5770 = the W5 Wed B002 12:00 destination of the approved request 10 —
-  // and its END TIME (2026-10-21 13:00) is ALREADY PAST (today = 2026-10-24):
-  // the S5 end-time guard correctly refuses the button (the probe receipt:
-  // the modal opens; [data-cancel-class-btn] absent — the honest guard, not
-  // a wiring miss). No FUTURE replacement-status occurrence exists in the
+  // dated 21 Oct 2026, BEFORE the window cutoff (the real-clock walk-back
+  // on 2026-10-27 lands Oct 23) — the WINDOW guard now refuses the button
+  // (previously the S5 end-time guard did; the same honest guard, same
+  // receipt shape). No FUTURE replacement-status occurrence exists in the
   // demo DB, so the row cannot be instantiated without invented data. The
   // FR 2.16 allowance itself stays VERIFIED through the S5/S6 guard family
-  // (the same statuses read) during this lane's apply.
+  // (the same statuses read).
   test.skip('S17 — own replacement-status class: cancel allowed, undo restores replacement status', async ({ page }) => {
-    test.skip(true, "the deck's only replacement-status occurrence is already past (the S5 end-guard receipt, 2026-10-24)");
+    test.skip(true, "the deck's only replacement-status occurrence is outside the 2-working-day window (the SDD 2026-10-27 window receipt)");
   });
 

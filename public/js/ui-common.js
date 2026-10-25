@@ -3727,16 +3727,49 @@ const ClassCancellation = {
        at S6): own class + status 'normal' OR 'replacement' (a confirmed
        replacement slot is still the lecturer's own scheduled class — FR
        2.16; 2026-10-08 SDD-waived extension, priorStatus preserved for
-       undo) + non-holiday, non-Sunday day + END datetime strictly in the
-       future (real clock per design §1). */
+       undo) + non-holiday, non-Sunday day + the DATE-grain cancellation
+       window (S5 — SUPERSEDED by the user law 2026-10-27, lane
+       class-cancel-2-working-day-window: the restore-era "END datetime
+       strictly in the future" contract is retired; the whole TODAY stays
+       cancellable even after its end time — the user's "26th (Today)"
+       bullet). */
     isCancellable(event, days, weekIndex) {
         if (!event) return false;
         if (event.lecturer !== MockData.currentUser.name) return false;  // S2
         if (event.status !== 'normal' && event.status !== 'replacement') return false; // S3
         const day = days && days[event.di];
         if (!day || day.holiday || day.sunday || day.abbr === 'Sun') return false; // S4
-        const end = this.endDateTime(event, days, weekIndex);
-        return !!end && end.getTime() > Date.now();                      // S5
+        /* S5 — the window law (the date-grain swap): cancellable iff the
+           class's DATE sits on / after (today − 2 working days). The
+           midnight strip keeps the compare DATE-only (a class never spans
+           midnight in this grid). */
+        const clsEnd = this.endDateTime(event, days, weekIndex);
+        if (!clsEnd) return false;
+        const clsDateMs = new Date(clsEnd.getFullYear(), clsEnd.getMonth(), clsEnd.getDate()).getTime();
+        return clsDateMs >= this._cutoffDate().getTime();                // S5 (the window law)
+    },
+
+    /* S5's window origin (SDD class-cancel-2-working-day-window, user law
+       2026-10-27): midnight of (today − 2 WORKING days). Walk back from
+       today's midnight skipping Sat+Sun exactly twice — the user's Monday
+       example: the two previous working days are FRI (1 back) and THU
+       (2 back), so the cutoff lands Thursday and the weekend dates between
+       sit INSIDE the window as calendar dates. Holidays are NOT counted as
+       non-working (the documented assumption — the example names only
+       weekends; the S4 guard still blocks cancelling ON a holiday
+       independently). Anchored on getTodayMs() (the demo-clock law family
+       shared with leadTimeCutoff/isSlotTooSoon; the real-clock fallback is
+       exactly what the three cancel consumers run — MockData.mockNow = null
+       on all of them). */
+    _cutoffDate() {
+        const d = new Date(getTodayMs());
+        let counted = 0;
+        while (counted < 2) {
+            d.setDate(d.getDate() - 1);
+            const dw = d.getDay();
+            if (dw !== 0 && dw !== 6) counted++;   // Sun = 0, Sat = 6
+        }
+        return d;
     },
 
     /**
@@ -3973,10 +4006,18 @@ const ClassCancellation = {
      */
     cancel(event, days, weekIndex, reason, detail) {
         if (!this.isCancellable(event, days, weekIndex)) {
-            const end = this.endDateTime(event, days, weekIndex);
+            /* SDD class-cancel-2-working-day-window (D3, review round-1):
+               TWO-WAY hint re-keyed on the WINDOW law — the window wording
+               iff the class date is genuinely OUTSIDE the window; the
+               generic fallback for the S2/S3/S4 failures (e.g. a twin
+               already cancelled via ledger replay in another tab) — an
+               in-window class must never read a specific false claim. */
+            const clsEnd = this.endDateTime(event, days, weekIndex);
+            const outside = !clsEnd || (new Date(clsEnd.getFullYear(), clsEnd.getMonth(), clsEnd.getDate()).getTime()
+                < this._cutoffDate().getTime());
             return { ok: false,
-                     hint: (end && end.getTime() <= Date.now())
-                           ? 'This class has already ended.'
+                     hint: outside
+                           ? 'This class is outside the 2-working-day cancellation window.'
                            : 'This class can no longer be cancelled.' };
         }
         const check = this.validate(reason, detail);
@@ -4336,7 +4377,10 @@ const CancelClassModal = {
     },
 
     /* S6 + S9 — confirm-time re-check, then the actual cancel. On failure
-       stay open and surface the hint ('This class has already ended.'). */
+       stay open and surface the hint ('This class is outside the 2-working-
+       day cancellation window.' for a pre-cutoff date; the generic fallback
+       for the other guard failures — the SDD class-cancel-2-working-day-
+       window hint law). */
     confirm() {
         const ctx = this._ctx;
         if (!ctx || ctx.entry) return;
