@@ -1439,6 +1439,37 @@ html.dark .filter-select {
     transform: scale(0.97);
 }
 
+/* SDD cohort-venue-replace-now (user ask 2026-10-25: "why didn't it reuse
+   the UI design Replace Now button of page my timetable?"): the styles
+   PROMOTED here from my-timetable's page-local <style> block (the
+   verbatim rule set — the same tokens `--color-error-container`/
+   `--color-on-error-container`/`--radius-md`/`--transition`) so the THREE
+   Replace Now buttons (my-timetable / cohort / venue) all render the
+   SAME pill from ONE source. The pages' local duplicate was dropped (the
+   computed-styles parity receipt = the pitch: bg rgba(198,40,40,.35)
+   family, 10px 20px, radius 10px, 14px/500). */
+.btn-replace-now {
+    padding: 10px 20px;
+    border-radius: var(--radius-md);
+    border: none;
+    background: var(--color-error-container);
+    color: var(--color-on-error-container);
+    font-family: inherit;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background var(--transition), transform 0.15s;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+.btn-replace-now:hover { filter: brightness(1.1); }
+.btn-replace-now:active { transform: scale(0.97); }
+.btn-replace-now:focus-visible {
+    outline: 2px solid var(--color-primary);
+    outline-offset: 2px;
+}
+
 /* ── Detail Sheet modal (unified inspection UI for details modals) ────── */
 /* Applies to every *details* modal. Confirm/reject/notes modals keep the
    plain `.modal` shell above. Key: groups instead of boxes, definition rows

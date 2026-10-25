@@ -14,27 +14,12 @@
         }
         .modal-footer-left { display: flex; align-items: center; }
         .modal-footer-right { display: flex; align-items: center; gap: 10px; }
-        .btn-replace-now {
-            padding: 10px 20px;
-            border-radius: var(--radius-md);
-            border: none;
-            background: var(--color-error-container);
-            color: var(--color-on-error-container);
-            font-family: inherit;
-            font-size: 14px;
-            font-weight: 500;
-            cursor: pointer;
-            transition: background var(--transition), transform 0.15s;
-            display: flex;
-            align-items: center;
-            gap: 6px;
-        }
-        .btn-replace-now:hover { filter: brightness(1.1); }
-        .btn-replace-now:active { transform: scale(0.97); }
-        .btn-replace-now:focus-visible {
-            outline: 2px solid var(--color-primary);
-            outline-offset: 2px;
-        }
+        /* SDD cohort-venue-replace-now (the promote-to-shared receipt, user
+           ask 2026-10-25): the .btn-replace-now rules moved to theme.css —
+           the ONE source the three table pages share (my-timetable used to
+           hold the only definition while cohort/venue buttons were
+           unstyled). No local duplicate remains; the visuals = the same
+           token set (--color-error-container family). */
         .timetable td.hour-cell.offday-slot { background: transparent; }
         .timetable td.today-cell.offday-slot { background: transparent; }
         .timetable td.hour-cell.offday-slot .cell-empty { background: transparent; }

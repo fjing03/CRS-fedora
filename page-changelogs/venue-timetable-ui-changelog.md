@@ -1,3 +1,25 @@
+## 2026-10-24 (SDD cohort-venue-replace-now — follow-up, user ask 2026-10-25) — the Replace Now styles PROMOTED to theme.css (the user's reuse ask)
+
+**The ask (verbatim):** "why didnt it reuse the UI design Replace Now
+button of page my timetable? id=btnReplaceNow, class=btn-replace-now".
+
+**The honest receipt:** the lane DID reuse the class + id, but copied the
+MARKUP from the venue page — which never carried the CSS (its button had
+never rendered, so nobody needed styles there). The ONLY definition of
+`.btn-replace-now` lived in my-timetable's page-local <style> block, so
+the cohort + venue buttons rendered UNSTYLED (probe: padding 0 / radius 0
+/ gray Arial 13px vs my-timetable's red pill) — the lane's own visibility
+test couldn't see the difference.
+
+**The fix (the promote-on-3rd-duplication rule, CodingMAIN §10.7):** the
+verbatim my-timetable rule set moved to `public/css/theme.css` (the
+canonical token source); my-timetable's local duplicate dropped. ONE
+source, THREE buttons — the computed-styles parity receipt: bg
+rgba(198, 40, 40, 0.35) (the --color-error-container family), 10px 20px,
+radius 10px, 14px/500 on ALL THREE pages.
+
+**Gates:** the two modal specs 11/11 combined; phpunit 258/258.
+
 ## 2026-10-24 (SDD cohort-venue-replace-now, user law) — the venue Replace Now actually MOUNTS + hands off the human week
 
 **Three receipts in one pass (the user law: "Cohort page & Venue page

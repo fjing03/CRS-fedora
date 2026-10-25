@@ -69,3 +69,17 @@ any apply).
 - ONE conventional commit; NEVER push.
 
 ### Verdict: T1–T5 LANDED — ready for /sdd-verify.
+
+## Apply-phase refinement — 2026-10-25 (the user's reuse ask)
+
+- The user asked why the cohort/venue buttons didn't reuse my-timetable's
+  `.btn-replace-now` design. Receipt: the class/id WERE reused, but the
+  lane copied the venue page's markup — which never carried CSS (its
+  button had never rendered). my-timetable's page-local <style> block was
+  the only definition → cohort + venue buttons were UNSTYLED (probe:
+  padding 0, radius 0, gray Arial vs the red pill).
+- Fix: the verbatim my-timetable rules promoted to `public/css/theme.css`;
+  the pages share ONE source. Computed-styles parity verified on all
+  three (bg rgba(198,40,40,.35) / 10px 20px / radius 10px / 14px-500).
+- Gates: the two modal specs combined 11/11; phpunit 258/258. Committed
+  as the same-lane follow-up.
