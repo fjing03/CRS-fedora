@@ -228,6 +228,10 @@
                         if (e.cohorts && e.cohorts.length) return e.cohorts.join(' + ');
                         return e.cohort || '';
                     },
+                    /* the user's hover-voice directive 2026-10-25: the staff
+                       name is DROPPED here — every block on this page is the
+                       viewer's own, so "name · cohorts · STATUS" says it all. */
+                    tipLecturerFn: function () { return ''; },
                     replacementNoteFn: function (e) {
                         return buildReplacementNote(e);
                     }

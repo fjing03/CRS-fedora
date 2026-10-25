@@ -1,3 +1,25 @@
+## 2026-10-25 (the user's hover-voice directive, part A) — the staff name is DROPPED from the block tooltip
+
+The hover voice is now **`name · cohorts · STATUS`** — the lecturer segment
+is gone (the user: "remove staff's name"). Before: `Software Project
+Management · RSD3(S1)G2 + RSD3(S1)G3 · Surayaini Binti Basri · Normal`;
+after: `Software Project Management · RSD3(S1)G2 + RSD3(S1)G3 · NORMAL`.
+Mechanism: the shared `buildTimetableGrid` gained an opt-in
+`cfg.tipLecturerFn(e)` hook (default = the staff name, byte-unchanged for
+pages that don't pass it); this page passes `function () { return '' }` —
+the empty segment is `.filter(Boolean)`-dropped, so the cohorts segment
+stays exactly where it was. Part D: the status word renders CAPS via
+`.toUpperCase()` in the shared builder (`NORMAL` / `REPLACEMENT` /
+`PENDING` / `CANCELLED`); legend chips stay title-case (frozen 3-item
+legend, pinned by pages-parity). Mirror kept in sync:
+`MyTimetable-UI-design-template.blade.php` (same cfg + comment).
+Receipt: live probe as staff 5770 (8 blocks — `DFT2(S1)G1 + DSF2(S1)G1 ·
+NORMAL`, one `· REPLACEMENT`); the my-timetable + student rows of
+`pages-parity`, `timetable-wiring` and `class-modal-affordances` green;
+pint + phpstan clean. (5 other rows in the wide batch fail at BASELINE
+too — stashed-run proof, pre-existing legend/summary issues, not this
+change.)
+
 ## 2026-10-24 (SDD class-modal-affordances) — the Cancel Class? affordance RESTORED on the live my-timetable
 
 **The regression (verified):** the Oct 8 cancel flow (commit 4a387d1,

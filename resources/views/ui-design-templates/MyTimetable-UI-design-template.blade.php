@@ -232,10 +232,13 @@
                 onEventClick: function(e) { openModal(e); },
                 tooltipExtra: function(e) {
                     // Page context: cohort(s). The shared builder appends the
-                    // lecturer + run-status ("· En. Lim Jia Zheng · Normal").
+                    // run-status only — staff name DROPPED (mirror of live,
+                    // the user's hover-voice directive 2026-10-25): the
+                    // tooltip reads "· RSD3(S1)G2 + RSD3(S1)G3 · NORMAL".
                     if (e.cohorts && e.cohorts.length) return e.cohorts.join(' + ');
                     return e.cohort || '';
                 },
+                tipLecturerFn: function() { return ''; },
                 replacementNoteFn: function(e) {
                     return buildReplacementNote(e);
                 }

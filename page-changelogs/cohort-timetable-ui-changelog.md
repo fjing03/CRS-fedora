@@ -1,5 +1,31 @@
 # Changelog — Cohort Timetable UI
 
+## [2026-10-25] Hover voice: own classes read ME, status CAPS (the user's directive B + D)
+
+The block tooltip now reads `name · lecturer|ME · status` — the viewer's
+OWN blocks show **ME** instead of the staff name (before: `Software
+Engineering · Surayaini Binti Basri · Normal`; after: `Software
+Engineering · ME · NORMAL`); others' blocks keep the real name. Mechanism:
+the shared `buildTimetableGrid` gained an opt-in `cfg.tipLecturerFn(e)`
+hook; this page passes the SAME ownership rule its block border uses
+(`e.lecturer === MockData.currentUser.name` — `currentUser` injected from
+`auth()->user()->name` at :185), so voice and border can never disagree.
+Part D: the status word renders CAPS via `.toUpperCase()` in the builder
+(it applies to every page sharing the builder — student-my-timetable and
+replacement-arrangement tooltips included). The frozen 2-segment shape is
+preserved: `ME · NORMAL` still matches `^[^·]+ · [^·]+$` (pages-parity
+C3). Legend chips stay title-case (frozen legend contract). Mirror kept in
+sync: `CohortTimetable-UI-design-template.blade.php`.
+Receipt: live probe as staff 4288 on RSD3(S1)G1 — own Blockchain blocks
+render `ME · NORMAL`, others' keep their names; `timetable-wiring`'s
+cohort-render + `cohort-venue-replace-now` green (they flaked once under
+86-test/3-worker load, pass solo); pint + phpstan clean. BASELINE-PROVEN
+pre-existing red (stash-run, unrelated to this change): `pages-parity:29`
++ `venue-db:25/62` + `venue-timetable TC34/TC35` — the venue/cohort
+LEGEND specs (the blade now passes a 5th "Replacement" chip vs the
+specs' frozen set + multi-line legend text vs `toHaveText`) and
+`#sumAvailable` 0 vs 72 — flagged for the user.
+
 ## [2026-10-10] Frozen-design parity: 3-item legend, My-Teaching cards, ownership fix (SDD all-pages-design-parity)
 
 - **Legend** 5-item colour swatches → frozen 3 block-class chips (Normal / Pending / Conflict / Public Holiday) + ownership hint.

@@ -338,6 +338,12 @@
                 events: weekEvents,
                 days: weekData[currentWeek].days,
                 onEventClick: function(e, di) { openModal(e, di); },
+                // the user's hover-voice directive 2026-10-25 (mirror of
+                // live): own classes read ME in the tooltip — the same
+                // ownership rule statusClassFn applies to the border.
+                tipLecturerFn: function(e) {
+                    return (e.lecturer === MockData.currentUser.name) ? 'ME' : (e.lecturer || '—');
+                },
                 statusClassFn: function(div, e, isConflict) {
                     var isMine = e.lecturer === MockData.currentUser.name;
                     /* §10.0 two-axis language: colour = status (same fill for

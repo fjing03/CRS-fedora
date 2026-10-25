@@ -497,6 +497,14 @@
                     events: weekEvents,
                     days: weekData[currentWeek].days,
                     onEventClick: function (e, di) { openModal(e, di); },
+                    /* the user's hover-voice directive 2026-10-25: the
+                       viewer's own classes read ME instead of the staff
+                       name — SAME ownership rule the block border uses
+                       (statusClassFn's isMine), so voice and border can
+                       never disagree. */
+                    tipLecturerFn: function (e) {
+                        return (e.lecturer === MockData.currentUser.name) ? 'ME' : (e.lecturer || '—');
+                    },
                     statusClassFn: function (div, e, isConflict) {
                         var isMine = e.lecturer === MockData.currentUser.name;
                         /* §10.0 two-axis language: colour = status (same fill for

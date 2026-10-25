@@ -787,11 +787,18 @@ function buildTimetableGrid(cfg) {
                 div.dataset.name = e.name || '';
                 div.dataset.venue = e.venue || '';
                 /* Hover tooltip = subject name (data-name) · page context ·
-                   lecturer · run-status — uniform on every timetable page. */
+                   lecturer segment · STATUS — the 2026-10-25 hover voice
+                   (the user's call): the lecturer segment is page-supplied
+                   via tipLecturerFn (my-timetable drops it, cohort reads ME
+                   for own classes; default = the staff name) and the status
+                   word always renders CAPS (NORMAL / PENDING / REPLACEMENT). */
                 const tipCtx = (typeof cfg.tooltipExtra === 'function')
                     ? cfg.tooltipExtra(e)
                     : '';
-                div.dataset.tip2 = [tipCtx, e.lecturer || '—', eventStatusLabel(e, isConflict)]
+                const tipLect = (typeof cfg.tipLecturerFn === 'function')
+                    ? cfg.tipLecturerFn(e)
+                    : (e.lecturer || '—');
+                div.dataset.tip2 = [tipCtx, tipLect, eventStatusLabel(e, isConflict).toUpperCase()]
                     .filter(Boolean).join(' · ');
                 if (typeof cfg.statusClassFn === 'function') {
                     cfg.statusClassFn(div, e, isConflict);

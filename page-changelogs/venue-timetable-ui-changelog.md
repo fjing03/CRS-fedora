@@ -1,3 +1,21 @@
+## 2026-10-25 (the user's hover-voice directive, parts C + D) — ME + CAPS join the cohorts
+
+The event-block hover voice is now **`name · lecturer|ME · cohorts ·
+STATUS`** — the user's written example: `Software Engineering · ME ·
+DSF1(S1)G1 · NORMAL`. Own classes read **ME** (`e.mine`, server truth —
+the same flag the block border uses), others' keep the staff name, cohorts
+follow in the written order lecturer → cohorts, and the status word
+renders CAPS via `.toUpperCase()` (part D). The cohort segment still
+COLLAPSES for sessions without cohort data — never a '—' filler. This
+builds on the cohorts segment added earlier the same day. Mirror kept in
+sync: the venue design template's own cellRender writer (`isMine` hoisted
+above the tip2 line, `cohTxt` falling back to `e.cohort` for mock events).
+Receipt: live probe on B110 — own Operating Systems `ME · DFT2(S1)G1 +
+DSF2(S1)G1 · NORMAL`, others' `Ellis Chieng · DFT2(S1)G1 + DSF2(S1)G1 ·
+NORMAL`; `venue-intent-modal` 10/10 + `venue-db:156` (B005 hairline)
+green solo; pint + phpstan clean. (The venue legend/summary specs are red
+at BASELINE too — pre-existing, stash-run proof, see the cohort entry.)
+
 ## 2026-10-24 (SDD cohort-venue-replace-now — follow-up, user ask 2026-10-25) — the Replace Now styles PROMOTED to theme.css (the user's reuse ask)
 
 **The ask (verbatim):** "why didnt it reuse the UI design Replace Now

@@ -825,10 +825,12 @@
                         div._evt = e; div._di = di; div.__eventData = e;   // parity with default builder
                         div.dataset.name  = e.name  || '';
                         div.dataset.venue = e.venue || '';
-                        /* `.event-block::after` tooltip: "name · lecturer · status"
-                           — parity with the shared builder's uniform format. */
-                        div.dataset.tip2 = (e.lecturer || '—') + ' · ' + eventStatusLabel(e, day.holiday);
+                        /* `.event-block::after` tooltip: "name · lecturer|ME · cohorts · STATUS"
+                           — parity with live + the shared builder (the user's hover-voice
+                           directive 2026-10-25: own classes read ME, status CAPS). */
                         var isMine = e.lecturer === MockData.currentUser.name;
+                        const cohTxt = (e.cohorts && e.cohorts.length) ? e.cohorts.join(' + ') : (e.cohort || '');
+                        div.dataset.tip2 = [isMine ? 'ME' : (e.lecturer || '—'), cohTxt, eventStatusLabel(e, day.holiday).toUpperCase()].filter(Boolean).join(' · ');
                         if (day.holiday) {
                             /* own class on a public holiday — loud red, it won't run */
                             div.classList.add('event-conflict');
