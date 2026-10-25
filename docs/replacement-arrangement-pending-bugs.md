@@ -19,7 +19,7 @@ green-lights per bug before any SDD lane is opened.
 | BUG-03 | Medium | Blank-subject strip mixes identities (stale pinned anchor) | Pending user verify (possibly by-design) |
 | BUG-05 | Low | Re-clicking a selected cell = "Clear current selection" modal, no toggle-off | Pending user verify |
 | BUG-06 | Low | Counter stays "N of N slots" after over-return while grid shows no selection | Pending user verify (same family as BUG-01) |
-| BUG-07 | Low | URL `?week=` never updates during week navigation | Pending user verify |
+| BUG-07 | Low | URL `?week=` never updates during week navigation | **WONTFIX by design** (user decision 2026-10-25) — keep only |
 
 ---
 
@@ -102,6 +102,21 @@ green-lights per bug before any SDD lane is opened.
 - **Actual:** the URL keeps `week=14` the whole session; ONLY the slot pin's `history.replaceState` (`commitSlotSelection` ~:3407) rewrites URL params, and weekNav moves write nothing.
 - **Impact:** a copied URL mid-session lands on the pinned pair's week, not the one the copier saw; a reload mid-nav re-creates the pinned arrival (earliest-bookable landing) — consistent with the ARRIVAL-GRID-NO-PIN law, but not transparent.
 - **Proposed fix direction:** page-supplied `weekNav` onSelect hook doing `history.replaceState` with the current pair (a small SDD lane; optional — confirm the user actually wants the URL to move).
+- **CLOSED (user decision 2026-10-25: keep only — WONTFIX by design).** The evidence-backed reasoning:
+  - `?week=` is consumed by the SERVER (`pinnedSessionPayload`,
+    `ReplacementArrangement.php` :181–205) as the D1 pair's occurrence
+    week — the strip + the submit target + the budget flex all resolve
+    from it (ARRIVAL-GRID-NO-PIN, archived lane 2026-10-20);
+  - five senders hand it off as the ARRIVAL week only
+    (`goToReplacementFor` call sites + replacement-home's real flow);
+    19+ Playwright rows assert those handoff URLs;
+  - rewriting `?week=` on every `weekNav` move would overwrite the pair
+    with weeks that may hold no occurrence of the pinned class (a
+    data-honesty regression, not polish), churn the history stack into
+    BUG-02's family, and force a re-anchor sweep;
+  - if addressability is ever wanted: a SEPARATE advisory param (e.g.
+    `&at=<viewedIndex>`), server-ignored, client-preferred on reload —
+    zero pair collision. DEFERRED (no lane unless the user reopens it).
 
 ---
 
@@ -112,7 +127,7 @@ green-lights per bug before any SDD lane is opened.
 3. **BUG-04 — CLOSED (user decision, no fix).**
 4. **BUG-03** — the strip's gated anchor (or document by law).
 5. **BUG-05** — same-cell toggle-off / toast+clear.
-6. **BUG-07** — the URL week-sync (optional lane).
+6. **BUG-07 — CLOSED (WONTFIX by design, user decision 2026-10-25, keep only).** `?week=` is the PINNED PAIR (the arrival anchor `pinnedSessionPayload` validates + stamps), NOT the viewed week — the ARRIVAL-GRID-NO-PIN law (2026-10-20) makes the URL an arrival instruction, never live navigation state; rewriting it on nav would corrupt the pair / break the truthfulness contracts (the strip + the submit target + the budget flex) and churn 19+ handoff-URL test receipts. If mid-session addressability is EVER wanted, the only clean shape is a SEPARATE advisory param (e.g. `&at=<viewedIndex>`) the server ignores — deferred, no lane.
 
 ## Probe index (all in `/tmp/`, 2026-10-24)
 
