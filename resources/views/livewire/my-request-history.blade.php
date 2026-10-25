@@ -196,7 +196,7 @@
                     <option value="Cancelled">Cancelled</option>
                     <option value="Completed">Completed</option>
                 </select>
-                @include('partials.ui-week-nav', ['prevOnclick' => 'prevWeekFilter()', 'prevTip' => 'Previous week', 'nextOnclick' => 'nextWeekFilter()', 'nextTip' => 'Next week', 'selectId' => 'weekFilter', 'selectOnclick' => 'weekFilterChanged(this.value)', 'selectTip' => 'Pick the week to display', 'showTodayBtn' => false])
+                @include('partials.ui-week-nav', ['prevOnclick' => 'prevWeekFilter()', 'prevTip' => 'Previous week', 'nextOnclick' => 'nextWeekFilter()', 'nextTip' => 'Next week', 'selectId' => 'weekFilter', 'selectOnclick' => 'weekFilterChanged(this.value)', 'selectTip' => 'Pick the Original Class week to display', 'showTodayBtn' => false])
                 <label class="toggle-wrapper" id="completedToggle" data-tip="ON = completed requests are excluded from the list">
                     <input type="checkbox" id="hideCompleted" checked>
                     <span class="toggle-track"><span class="toggle-thumb"></span></span>

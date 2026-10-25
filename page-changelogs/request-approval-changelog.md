@@ -16,7 +16,7 @@ design, no new mechanism): search → "Search by course code, name, or
 lecturer" (this page's haystack = `courseCode + courseName + lecturer` ✓
 honest), status select → "Filter by request status", urgency chips →
 "Show requests of any urgency" / "Show only urgent requests" / "Show only
-normal requests", week-nav → "Previous week" / "Pick the week to display" /
+normal requests", week-nav → "Previous week" / "Pick the Original Class week to display" /
 "Next week" (via NEW optional `prevTip`/`selectTip`/`nextTip` params on the
 shared `partials.ui-week-nav` — **null by default, so every other page
 renders byte-identical**), toggle → "ON = completed requests are excluded

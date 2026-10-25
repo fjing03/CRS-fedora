@@ -7,7 +7,7 @@ Every toolbar element now carries the shared hover hint (`data-tip`, fixed
 `/request-approval-ui` element-for-element: search → "Search by course code
 or name" (this page's haystack = `courseCode + courseName` only, the honest
 parallel of approval's lecturer-inclusive text), status select → "Filter by
-request status", week-nav → "Previous week" / "Pick the week to display" /
+request status", week-nav → "Previous week" / "Pick the Original Class week to display" /
 "Next week" (new optional tip params on `partials.ui-week-nav`, null by
 default → every other page unchanged), the Exclude Completed toggle → "ON =
 completed requests are excluded from the list", result count → "Rows

@@ -262,7 +262,7 @@
             <button class="urgency-filter-chip" data-urgency="urgent" onclick="setUrgencyFilter('urgent')" data-tip="Show only urgent requests">Urgent</button>
             <button class="urgency-filter-chip" data-urgency="normal" onclick="setUrgencyFilter('normal')" data-tip="Show only normal requests">Normal</button>
         </div>
-        @include('partials.ui-week-nav', ['prevOnclick' => 'prevWeekFilter()', 'prevTip' => 'Previous week', 'nextOnclick' => 'nextWeekFilter()', 'nextTip' => 'Next week', 'selectId' => 'weekFilter', 'selectOnclick' => 'onWeekFilterChange(this.value)', 'selectTip' => 'Pick the week to display', 'showTodayBtn' => false])
+        @include('partials.ui-week-nav', ['prevOnclick' => 'prevWeekFilter()', 'prevTip' => 'Previous week', 'nextOnclick' => 'nextWeekFilter()', 'nextTip' => 'Next week', 'selectId' => 'weekFilter', 'selectOnclick' => 'onWeekFilterChange(this.value)', 'selectTip' => 'Pick the Original Class week to display', 'showTodayBtn' => false])
         <label class="toggle-wrapper" id="completedToggle" data-tip="ON = completed requests are excluded from the list">
             <input type="checkbox" id="hideCompletedToggle" checked onchange="toggleHideCompleted()">
             <span class="toggle-track"><span class="toggle-thumb"></span></span>
