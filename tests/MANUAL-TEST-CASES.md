@@ -117,7 +117,7 @@
 | 5 | Check cell colours | Green = available, Grey = occupied, Yellow = pending, Blue = approved |
 | 6 | Select a different venue | Grid updates to show that venue's slots |
 | 7 | Click a green cell | Cell highlights as selected |
-| 8 | Click another green cell | Selection count increases (e.g. "Selected 2 of 4 slots") |
+| 8 | Click another green cell | Selection count reflects the OCCURRENCE-GRAIN budget (SDD selection-budget-original-duration 2026-10-24: e.g. a 1-hour class reads "2 of 2 slots" and a second pick is REFUSED — clear the selection to re-pick) |
 | 9 | Click a selected cell again | Cell deselects |
 | 10 | Check progress bar | Updates with selection count |
 | 11 | Check "Selected" summary | Shows selected slots list at bottom |

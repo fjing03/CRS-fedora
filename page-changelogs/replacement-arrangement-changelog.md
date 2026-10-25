@@ -1,3 +1,34 @@
+## 2026-10-24 (SDD selection-budget-original-duration, user law) — the selection
+budget flexes to the Original Conflicted Class duration
+
+**The bug (the user's live report, screenshot-backed):** the pinned 1-hour
+AMSE2003 (T) W14 class allowed TWO 1-hour selections in two different weeks
+(Week 6 + Week 7 = 2 + 2 slots = the stale 4-slot budget). The budget
+booted at 4 and the commit clamp only RAISED it (`Math.max`) — it never
+clamped DOWN to the 1-hour occurrence's own span.
+
+**The law (user verdict, verbatim intent): "make it flexible to the
+Original Class Conflicted duration"** — the budget `MAX_SELECTION` =
+the occurrence's own span at EVERY occurrence-grain site (three:
+the boot URL branch, the pinned hydration, the commit clamp). A 1-hour
+class → "2 of 2 slots"; a 2-hour class → "4 of 4 slots"; the second pick
+in another week refused with the occurrence-grain toast wording.
+**SUPERSEReded:** the Oct-09 "4-slot floor so a shorter class can book
+twice" decision.
+
+**The F-8 narrowing:** the "URL keeps INITIAL authority" renames to the
+BLOCK-WIDTH authority only — `urlSpanLocked && opts.auto` commits keep
+their block width but the BUDGET still flexes to the committed span (the
+handoff path's row rides the same law).
+
+Receipts: the lane spec 5/5 (the T-row second-pick refusal + the L-row
+regression guard); confirm-guards 16/16 (the file's storage-state anchor
+added — the rows died on the login redirect EVEN BEFORE this change —
+the regime re-anchor); ui-regression TC-4.x dynamic-strings (the
+`of 4` literals re-pointed); MANUAL-TEST-CASES row re-pointed; pint;
+phpstan-1G; phpunit 258/258; the spot battery green (replace-now 6/6
+standalone after the first-run flake).
+
 ## 2026-10-24 (SDD venue-restrictions-enforcement) — the venue dropdown + the booking-intent fallback ride the enforced module matrix
 
 **The matrix (data-only change):** `PAGE_DATA.ruleMap` now carries the

@@ -1,5 +1,10 @@
 import { test, expect } from '@playwright/test';
 
+// selection-budget-original-duration T3 re-anchor: the live /replacement-arrangement
+// route requires auth (redirect without a state — the file's rows died on the
+// login redirect even pre-change). Use the standard 5425 owner state.
+test.use({ storageState: '.auth/staff-5425.json' });
+
 const BASE = 'http://localhost:8000/replacement-arrangement';
 
 async function openPage(page) {
@@ -181,13 +186,16 @@ test('no confirmation popup when changing dropdowns without selection', async ({
 test('week next arrow with selection saves silently and navigates (multi-week model)', async ({ page }) => {
   await openPage(page);
   await selectGridSlot(page);
+  // selection-budget-original-duration: the counter flexes to the committed
+  // occurrence's span — capture it BEFORE the nav; the assert = it SURVIVES
+  // the navigation (no reset to the boot 4).
+  const pickedCounter1 = (await page.locator('#infoTotal').textContent()) as string;
   // Week navigation no longer warns: selections persist per venue+week
   // (multi-week model), so the old confirm modal is gone by design.
   await page.locator('.week-arrow[aria-label="Next week"]').click();
   await page.waitForTimeout(800);   // skeleton-led rebuild
   await expect(page.locator('#confirmModal')).toBeHidden({ timeout: 3000 });
-  // the budget survived the navigation
-  await expect(page.locator('#infoTotal')).toContainText('4 of 4 slots');
+  await expect(page.locator('#infoTotal')).toContainText(pickedCounter1);
   const week = await page.evaluate(() => weekNav.currentWeek);
   expect(week).toBeGreaterThan(0);
 });
@@ -200,10 +208,11 @@ test('week prev arrow with selection saves silently and navigates (multi-week mo
   await page.waitForTimeout(800);
   const weekBefore = await page.evaluate(() => weekNav.currentWeek);
   await selectGridSlot(page);
+  const pickedCounter2 = (await page.locator('#infoTotal').textContent()) as string;
   await page.locator('.week-arrow[aria-label="Previous week"]').click();
   await page.waitForTimeout(800);
   await expect(page.locator('#confirmModal')).toBeHidden({ timeout: 3000 });
-  await expect(page.locator('#infoTotal')).toContainText('4 of 4 slots');
+  await expect(page.locator('#infoTotal')).toContainText(pickedCounter2);
   const week = await page.evaluate(() => weekNav.currentWeek);
   expect(week).toBeLessThan(weekBefore);
 });
@@ -221,11 +230,12 @@ test('week dropdown change with selection saves silently and applies', async ({ 
     if (val && val !== beforeVal) { targetVal = val; break; }
   }
   if (!targetVal) { test.skip(true, 'no alternate week'); return; }
+  const pickedCounter3 = (await page.locator('#infoTotal').textContent()) as string;
   await weekSel.selectOption(targetVal);
   await page.waitForTimeout(800);
   await expect(page.locator('#confirmModal')).toBeHidden({ timeout: 3000 });
   await expect(weekSel).toHaveValue(targetVal);
-  await expect(page.locator('#infoTotal')).toContainText('4 of 4 slots');
+  await expect(page.locator('#infoTotal')).toContainText(pickedCounter3);
 });
 
 test('back button with saved selection shows confirmation', async ({ page }) => {

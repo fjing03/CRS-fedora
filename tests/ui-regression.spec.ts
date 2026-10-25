@@ -63,6 +63,9 @@ test.describe('UI Regression Test Cases', () => {
           await available.click({ timeout: 3000 }).catch(() => {});
           await page.waitForTimeout(100);
         }
+        // selection-budget-original-duration: the budget = the URL span
+        // (&duration=3 auto-shrinks to the 2h/4-slot cap → the URL branch's
+        // MAX = BLOCK_SPAN — the same 4 at this fixture).
         await expect(progress).toContainText('Selected 4 of 4 slots', { timeout: 5000 });
       }
     });
@@ -177,36 +180,46 @@ test.describe('UI Regression Test Cases', () => {
       await available.click();
       // the click selects a whole merged block (subject-duration span)
       await expect(page.locator('.timetable .event-block.event-selection')).toBeVisible({ timeout: 5000 });
-      await expect(page.locator('#infoTotal')).toContainText(' of 4 slots');
-      await expect(page.locator('#infoTotal')).not.toHaveText('0 of 4 slots');
+      // selection-budget-original-duration: the budget flexes to the occurrence's span
+      // — the counter string captured dynamically (theokra: "N of N slots" — the
+      // span survives the toggle-off + "0 of N slots" at clear).
+      const counterAfter = (await page.locator('#infoTotal').textContent()) as string; // e.g. '2 of 2 slots' / '4 of 4 slots'
+      await expect(page.locator('#infoTotal')).toContainText(' of ' + counterAfter.split(' of ')[1]);
+      await expect(page.locator('#infoTotal')).not.toContainText('0 of ' + counterAfter.split(' of ')[1]);
       // clicking the merged block toggles it off again
       await page.locator('.timetable .event-block.event-selection').first().click();
-      await expect(page.locator('#infoTotal')).toContainText('0 of 4 slots', { timeout: 5000 });
+      await expect(page.locator('#infoTotal')).toContainText('0 of ' + counterAfter.split(' of ')[1], { timeout: 5000 });
     });
 
     test('TC-4.2 Maximum selection enforcement', async ({ page }) => {
       await openFlow(page);
-      // duration defaults to 4 slots; the first click selects a whole block
+      // selection-budget-original-duration: the FIRST click selects a whole
+      // block = the FULL dynamic budget (the picked occurrence's span). Read
+      // the counter dynamically; the further-selection refusal re-asserts.
       await page.locator('.timetable .cell-content.cell-available').first().click();
-      await expect(page.locator('#infoTotal')).toContainText('4 of 4 slots', { timeout: 5000 });
+      const full = (await page.locator('#infoTotal').textContent()) as string;
+      await expect(page.locator('#infoTotal')).toContainText(full, { timeout: 5000 });
+      await expect(full).toMatch(/\d+ of \d+ slots/);
+      await expect((full.split(' of ')[0].replace(/[^\d]/g, '')) === (full.split(' of ')[1].replace(/[^\d]/g, ''))).toBe(true, 'the whole block = the full budget (picked N of N)');
       // a further selection must be refused
       const others = page.locator('.timetable .cell-content.cell-available');
       if ((await others.count()) > 0) {
         await others.first().click();
         await page.waitForTimeout(300);
-        await expect(page.locator('#infoTotal')).toContainText('4 of 4 slots');
+        await expect(page.locator('#infoTotal')).toContainText(full);
       }
     });
 
     test('TC-4.3 Clear All resets selection', async ({ page }) => {
       await openFlow(page);
       await page.locator('.timetable .cell-content.cell-available').first().click();
-      await expect(page.locator('#infoTotal')).not.toContainText('0 of 4 slots');
+      const counter = (await page.locator('#infoTotal').textContent()) as string; // the picked N of N
+      await expect(page.locator('#infoTotal')).not.toContainText('0 of ' + counter.split(' of ')[1]);
       await page.locator('#clearAllBtn').click();
       // critical action — confirm popup first (AGENTS §9)
       await expect(page.locator('#confirmModal')).toBeVisible({ timeout: 5000 });
       await page.locator('#confirmModal #modalConfirmBtn').click();
-      await expect(page.locator('#infoTotal')).toContainText('0 of 4 slots', { timeout: 5000 });
+      await expect(page.locator('#infoTotal')).toContainText('0 of ' + counter.split(' of ')[1], { timeout: 5000 });
     });
 
     test('TC-4.4 Submit request confirmation modal', async ({ page }) => {

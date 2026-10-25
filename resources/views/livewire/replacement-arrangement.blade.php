@@ -1200,11 +1200,14 @@
         MockData.busyByWeek = window.PAGE_DATA.busyByWeek;
         MockData.blockedVenues = window.PAGE_DATA.blockedVenues;
         MockData.mockNow = null; /* real clock — the demo anchor is mock-era only */
-        // Max selectable slots — derived from the original class duration passed via
-        // URL (duration in hours × 2 = 30-min slots), defaulting to 4 slots (2 hours).
+        // Max selectable slots — the BUDGET flexes to the CURRENT occurrence's
+        // own span (SDD selection-budget-original-duration, the user law
+        // 2026-10-24: ONE occurrence-length slot total — the boot default 4 is
+        // the no-occurrence plain landing's placeholder only).
         let MAX_SELECTION = 4;
-        /* the size of ONE block (slots) — derived from the original class
-           duration via URL; the multi-week BUDGET stays MAX_SELECTION */
+        /* the size of ONE block (slots) — follows the committed occurrence's
+           duration; the BUDGET (MAX_SELECTION) flexes with it at every
+           commit site (A/B/C). */
         let BLOCK_SPAN = 4;
         /* true when the URL carried &duration= (my-timetable/venue handoffs):
            the ORIGINAL class's size is known, so auto-default slot picks
@@ -1582,7 +1585,7 @@
             }
             /* multi-week budget: MAX_SELECTION slots in total across every week */
             if (getGlobalTotal() + span > MAX_SELECTION) {
-                toast.show('You\u2019ve reached the ' + MAX_SELECTION + '-slot maximum \u2014 clear another week\u2019s selection first.');
+                toast.show('You\u2019ve reached the ' + MAX_SELECTION + '-slot limit \u2014 clear your selection to pick another.');
                 return false;
             }
             /* a real (manual) selection completes the booking — drop the intent banner */
@@ -2622,7 +2625,9 @@ slotLine = 'Week ' + (anchorSlot.week + 1) + ' · ' + ((weekdayName && weekdayNa
             /* 2b — the span consequences the one-shot boot clamp can't redo */
             const hrs = Math.min(Math.max(parseFloat(urlParams.duration), 0.5), 2);
             BLOCK_SPAN = Math.round(hrs * 2);
-            MAX_SELECTION = Math.max(MAX_SELECTION, BLOCK_SPAN);
+            /* selection-budget-original-duration site B: the budget flexes to the
+               occurrence's own span (the raise-only max left the stale 4). */
+            MAX_SELECTION = BLOCK_SPAN;
             urlSpanLocked = true;
             /* 2c — the pin bridge (the compatible occurrence, not the module's first) */
             window.pinnedOccurrence = { sessionId: Number(matched.sessionId), week: i.weekIndex + 1 };
@@ -3367,20 +3372,28 @@ slotLine = 'Week ' + (anchorSlot.week + 1) + ' · ' + ((weekdayName && weekdayNa
         }
 
         function commitSlotSelection(slot, index, opts) {
-            /* F-8 (round-2): the block size follows the picked conflict slot's
-               duration — same clamp family as the URL branch (0.5–4 h → ≤8
-               slots; slot indices are 30-min units) so a venue-arrival pick
-               (subject + slot chosen on this page) sizes the block exactly
-               like a home-path entry with &duration=. URL branch keeps
-               INITIAL authority; MAX_SELECTION floor stays ≥ BLOCK_SPAN.
-               (2026-10-09: "initial authority" is now actually enforced — an
-               AUTO default pick (favourite/recent/first-option, opts.auto)
-               cannot resize a URL-&duration= block; only an explicit user
-               pick in the panel may.) */
+            /* SDD selection-budget-original-duration (2026-10-24, the user's
+               law): the block width follows the picked conflict slot's
+               duration — same clamp family as the URL branch (0.5–2 h →
+               ≤4 slots; slot indices are 30-min units) — and the BUDGET
+               (MAX_SELECTION) FLEXES to the occurrence's own span: ONE
+               occurrence-length block total across every week (the old
+               raise-only `max()` left a 1-hour class a stale 4-slot budget —
+               two 1-hour picks slipped through; the user's live report).
+               The F-8 "URL keeps INITIAL authority" now governs ONLY the
+               WIDTH: an AUTO default pick (urlSpanLocked && opts.auto)
+               cannot resize a URL-&duration= block, but the budget STILL
+               flexes to the committed span (the occurrence's own facts
+               govern the budget at every site, bootstrap or manual).
+               SUPERSERED: the Oct-09 "4-slot floor so a shorter class can
+               book twice" boot decision (see also the URL branch's note). */
             const slotSpan = Math.min(Math.max(slot.end - slot.start + 1, 1), 4);
-            if (!(urlSpanLocked && opts && opts.auto) && slotSpan !== BLOCK_SPAN) {
+            if (slotSpan !== BLOCK_SPAN && !(urlSpanLocked && opts && opts.auto)) {
                 BLOCK_SPAN = slotSpan;
-                MAX_SELECTION = Math.max(MAX_SELECTION, BLOCK_SPAN);
+            }
+            if (MAX_SELECTION !== slotSpan) {
+                MAX_SELECTION = slotSpan;   /* selection-budget-original-duration site C: the budget = the occurrence's span */
+                updateCounter();
             }
             /* BRIDGE PATCH (2026-10-12 user report): the picked slot IS the
                occurrence being replaced — re-derive the session context (type,
@@ -3660,12 +3673,15 @@ triggerText.textContent = slotTriggerLabel(slot);
             }
             // If the original class duration was passed in (hours), size the block
             // span from it — clamped to 0.5–2h (FULL-BLOCK user cap: FOCS
-            // blocks run 0.5–2h, the 4-slot cap); the multi-week BUDGET stays at
-            // least the approved 4 slots so a shorter class can still book twice.
+            // blocks run 0.5–2h, the 4-slot cap). SDD
+            // selection-budget-original-duration site A: the BUDGET flexes to the
+            // span too — the Oct-09 "4-slot floor so a shorter class can book
+            // twice" decision is SUPERSEDED (the user law 2026-10-24: one
+            // occurrence-length slot total).
             if (urlParams.duration && !isNaN(parseFloat(urlParams.duration))) {
                 const hrs = Math.min(Math.max(parseFloat(urlParams.duration), 0.5), 2);
                 BLOCK_SPAN = Math.round(hrs * 2);
-                MAX_SELECTION = Math.max(MAX_SELECTION, BLOCK_SPAN);
+                MAX_SELECTION = BLOCK_SPAN;
                 urlSpanLocked = true;
             }
             buildSubjectDropdown();
@@ -3909,6 +3925,8 @@ triggerText.textContent = slotTriggerLabel(slot);
 
         /* onclick= / inline-handler globals resolve via window */
         window.goBack = goBack;
+        window.navigateTo = navigateTo;
+        window.confirmChangeWithSelection = confirmChangeWithSelection;   // selection-budget T3: the closure fns the guard rows read
         window.toggleTheme = toggleTheme;
         window.navigateHome = navigateHome;
         window.onSubjectChange = onSubjectChange;
