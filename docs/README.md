@@ -5,6 +5,7 @@ Current, load-bearing docs. Superseded material is in [`archive/`](archive/) —
 | File | What it is | Status |
 |------|-----------|--------|
 | [`venue-restrictions.md`](venue-restrictions.md) | B005 no-Diploma / B006 allow-disallow + AMIT2034 lab-only / booking rules | **Active** — B005 enforced (drives live derived conflicts); the rest are the spec for Wave 3b booking validation |
+| [`replacement-arrangement-pending-bugs.md`](replacement-arrangement-pending-bugs.md) | Arrangement page bug round (2026-10-24): BUG-01–03, 05–07 pending user verify; BUG-04 closed by user decision (no bell there, by design) | **Active** — findings only, no fixes yet |
 | [`fcb-theme-colors.md`](fcb-theme-colors.md) | FCB-inspired color system — the design source for `public/css/theme.css` tokens | **Reference** — implemented in theme.css; consult when touching colors |
 | [`two-machine-workflow.md`](two-machine-workflow.md) | MSI (primary) + HP (secondary) two-machine protocol: one-trunk branch policy, serialize rules, per-machine DB landscape, boot ritual | **Active** — read when working across machines, touching branches/remotes, or unsure which DB a name refers to |
 | [`server-commands.md`](server-commands.md) | Start / restart / stop `php artisan serve` — the stale-cache ritual, deep-clean sequence, fish-shell quirks, queue-worker restart | **Active** — use whenever the dev server must be started, restarted after a UI change, or stopped |
