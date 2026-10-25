@@ -259,7 +259,7 @@
         <label class="toggle-wrapper" id="completedToggle">
             <input type="checkbox" id="hideCompletedToggle" checked onchange="toggleHideCompleted()">
             <span class="toggle-track"><span class="toggle-thumb"></span></span>
-            <span class="toggle-label">Hide Completed</span>
+            <span class="toggle-label">Exclude Completed</span>
         </label>
         <button class="btn-clear" id="clearFilters">Reset Filters</button>
     </div>

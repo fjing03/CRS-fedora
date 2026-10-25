@@ -1,5 +1,19 @@
 # Request Approval — changelog
 
+## 2026-10-25 (the user's consistency fix) — the toggle says "Exclude Completed"
+
+The completed-exclusion toggle now speaks the SAME words as
+`/my-request-history-ui` (identical function → identical label): the visible
+label `Hide Completed` → **`Exclude Completed`** — in the live toolbar
+(`request-approval.blade.php`) AND its design-template mirror
+(`request-approval-UI-design-template.blade.php`, so template ↔ live stay in
+sync). Internal identifiers (`hideCompletedToggle`, `toggleHideCompleted()`,
+the `hideCompleted` state) are not user-visible and were left alone. No test
+locks either wording. Noted, NOT part of this fix: my-request-history also
+renders an `Exclude Completed` filter chip when the toggle is active —
+request-approval's chip row has no chip for this toggle (possible follow-up).
+
+
 ## 2026-10-18 — SDD `span-aware-approval-flow` slice C+D (the REAL page)
 
 The route `/request-approval-ui` stops serving the D10 mock the moment
