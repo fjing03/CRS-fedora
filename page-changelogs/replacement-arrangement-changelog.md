@@ -1,3 +1,49 @@
+## 2026-10-25 (SDD arrangement-clear-guards-cross-week, BUG-08 user report) — the clearing-change confirms fire cross-week
+
+**The bug (Playwright-replied to the user's report):** pick a slot at
+Week 6 (the earliest-bookable landing of `?session=67&week=14`) → hop
+`weekSelector` to Week 8 → a venue change, a subject change AND a
+conflicted-slot change ALL proceeded SILENTLY — no "Change Venue?" /
+"Clear Current Selection?" modal — while the internal store still held
+the selection (the counter stayed "4 of 4 slots" through every step).
+The same changes WITHOUT the hop popped the modals (the legacy receipts).
+
+**Root cause:** the three clearing-change guards keyed on the CURRENT-
+WEEK pointer (`selectedBlock`) alone; the multi-week store
+(`selectedSlotsByVenue[venue][week]`) — which the counter/Clear-All/
+leave-guards read via `getGlobalTotal()` — never entered their
+conditions, so any hop away from the selection week disarmed them
+(`loadCurrentWeek()` nulls the pointer on a selection-less week).
+
+**The fix (users' expected contract kept verbatim — the copy never
+moved):**
+1. the THREE guards widen to the leave-guard family
+   `(selectedBlock || getGlobalTotal() > 0)` at `onVenueChange`,
+   `onSubjectChange`, `selectSlot`;
+2. `confirmChangeWithSelection`'s early-out widens the same
+   (`!selectedBlock && getGlobalTotal() === 0`) — otherwise the widened
+   subject/slot guards reeled through it silently (review R1 blocker 1);
+3. NEW `discardAllSelections()` — the "Yes, Change" proceed wipes the
+   WHOLE store (no cross-week residue → the counter drops honestly to
+   "0 of N"; the BUG-06 disagreement class dies with it), pays its OWN
+   `updateCounter()` + `updateSelectionSummary()` (review R1 blocker 2 —
+   `deselectBlock()`'s rider is dead when the pointer is already null),
+   clears the undo stack (the proceed()/pageshow explicit-discard law),
+   and SPENDS the booking intent by a STORE-WIDE scan with the exact
+   `intentMatchesBlock` fields (review R1 blocker 3 — the pointer-only
+   capture missed the cross-week case and the pre-fill would have
+   RESURRECTED on the next reload against the user's explicit discard);
+4. the hop itself stays silent-by-design (the multi-week persistence law
+   — pinned in a test row).
+
+**Gates:** the new spec `tests/clear-guards-cross-week.spec.ts` 8/8 ×2
+(rows: the hop-silent receipt; venue-fired + No-restores + the counter
+stays; venue-Yes honest-clear incl. `#selCount`/Clear-All disabled;
+subject-fired + cancel-revert + Yes; slot-fired; the no-hop baseline);
+`tests/confirm-guards.spec.ts` 16/16 tripwire; pint; phpstan-1G 0;
+phpunit 258/258. One widget-walk flake observed in an intermediate run —
+all decisive reruns green.
+
 ## 2026-10-24 (SDD selection-budget-original-duration, user law) — the selection
 budget flexes to the Original Conflicted Class duration
 

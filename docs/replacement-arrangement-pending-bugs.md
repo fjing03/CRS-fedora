@@ -117,3 +117,19 @@ green-lights per bug before any SDD lane is opened.
 ## Probe index (all in `/tmp/`, 2026-10-24)
 
 `eb-recce.cjs` · `eb-shell.cjs` · `eb-range.cjs` / `eb-range-slim.cjs` · `eb-arrivals.cjs` · `eb-subject.cjs` · `eb-subject-blank.cjs` · `eb-go-back.cjs` / `eb-go-back2.cjs` · `eb-realflow.cjs` / `eb-realflow2.cjs` · `eb-slot.cjs` · `eb-cross.cjs` · `eb-ghost.cjs` / `eb-ghost2/3/4.cjs` · `eb-toast-ghost.cjs` · `eb-cell-reject.cjs` · `eb-cap.cjs` · `eb-toast-assert.cjs` · `eb-debug.cjs` / `eb-debug2.cjs` · `eb-modal.cjs` · `eb-combi.cjs` · `eb-multiwk.cjs` / `eb-multiwk-add.cjs` · `eb-bell*.cjs` · `eb-mail*.cjs` · `eb-logout.cjs` · `eb-homecta*.cjs` · `eb-dommytt.cjs`
+
+
+## BUG-08 · Medium — the clearing-change confirms don't fire cross-week (FIXED 2026-10-25)
+
+- **Feature:** week navigation × venue/subject/slot confirms
+- **Reported:** the user's live workflow (W6 pick → W8 hop → all three
+  changes silent); confirmed by Playwright + code (the three guards keyed
+  on the current-week `selectedBlock` pointer only).
+- **Fixed by:** `arrangement-clear-guards-cross-week` — the guards widened
+  to `selectedBlock || getGlobalTotal() > 0`; the proceed semantics = a
+  full-store discard + the booking-intent spent-scan; the early-out of
+  `confirmChangeWithSelection` widened too. BUG-06's counter-vs-grid
+  disagreement (its root family) is resolved BY the proceed's whole-store
+  wipe; its remaining receipts re-verify under this lane's spec.
+- **Status:** FIXED pending user verify (spec `tests/clear-guards-cross-
+  week.spec.ts` 8/8 ×2).

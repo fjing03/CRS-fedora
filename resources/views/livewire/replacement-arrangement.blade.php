@@ -1780,7 +1780,11 @@
         function onVenueChange() {
             if (revertingChange) return;
             const newVenue = venueDropdown ? venueDropdown.getSelected() : 'B103';
-            if (selectedBlock && newVenue !== currentVenue) {
+            /* SDD arrangement-clear-guards-cross-week (BUG-08): the guard widens
+               from the pointer to the leave-guard family — after a week hop the
+               pointer IS null while the store holds the selection; the pointer-
+               only test let the change through silently (the user's live report). */
+            if ((selectedBlock || getGlobalTotal() > 0) && newVenue !== currentVenue) {
                 showConfirmModal(
                     'Change Venue?',
                     'You have selected slots on the grid. Changing the <strong>venue</strong> will clear them.<br>Continue?',
@@ -1789,17 +1793,14 @@
                         /* 2026-10-09 user decision: confirming the clear is an
                            explicit discard — the booking pre-fill is SPENT
                            (markBookingCancelled), not re-armed, matching the
-                           subject/slot confirm modals. Capture BEFORE the
-                           discard clears the block. */
-                        const isBooking = bookingIntentMemory && intentMatchesBlock(
-                            currentVenue.code || currentVenue, weekNav.currentWeek, selectedBlock);
-                        deselectBlock();
+                           subject/slot confirm modals. The spend + the wipe
+                           moved INTO discardAllSelections() (review R1 blocker
+                           3: the pointer-only =isBooking capture at this site
+                           returned false after a hop; the store-wide scan
+                           supersedes it — the trailing if (=isBooking) pair went
+                           with it). */
+                        discardAllSelections();
                         applyVenueChange(newVenue);
-                        if (isBooking) {
-                            markBookingCancelled();
-                            pendingBookingIntent = null;
-                            renderBookingIntent();
-                        }
                     },
                     { danger: true, confirmLabel: 'Yes, Change', cancelLabel: 'No, Keep My Selection' }
                 );
@@ -1910,24 +1911,25 @@
         }
 
         function confirmChangeWithSelection(actionLabel, proceedFn, cancelFn) {
-            if (!selectedBlock) { proceedFn(); return; }
+            /* SDD arrangement-clear-guards-cross-week (review R1 blocker 1):
+               the early-out widens with the SAME formula the guards widened
+               with — post-hop selectedBlock IS null while the store holds the
+               selection; the pointer-only early-out reeled through silently
+               and the subject/slot modals NEVER opened. */
+            if (!selectedBlock && getGlobalTotal() === 0) { proceedFn(); return; }
             showConfirmModal(
                 'Clear Current Selection?',
                 'You have selected slots on the grid. Changing the <strong>' + actionLabel + '</strong> will remove them.<br>Continue?',
                 function() {
                     hideConfirmModal();
                     /* 2026-10-09 user decision: the modal promises "will remove
-                       them" — confirming IS an explicit discard, so a booking
-                       pre-fill is SPENT here (markBookingCancelled — same
-                       contract as clicking the block's ×; survives reload),
-                       NOT re-armed for the next subject pick. */
-                    if (bookingIntentMemory && intentMatchesBlock(
-                            currentVenue.code || currentVenue, weekNav.currentWeek, selectedBlock)) {
-                        markBookingCancelled();
-                        pendingBookingIntent = null;
-                        renderBookingIntent();
-                    }
-                    discardSelection();
+                       them" — confirming IS an explicit discard. The intent
+                       spend + the wipe moved INTO discardAllSelections()
+                       (review R1 blocker 3: the pointer-only capture at this
+                       site returned false after a hop — the pre-fill would
+                       resurrect on the next reload against the explicit
+                       discard; the store-wide scan supersedes it). */
+                    discardAllSelections();
                     proceedFn();
                 },
                 { danger: true, confirmLabel: 'Yes, Change', cancelLabel: 'No, Keep My Selection' }
@@ -2539,7 +2541,9 @@ slotLine = 'Week ' + (anchorSlot.week + 1) + ' · ' + ((weekdayName && weekdayNa
             if (revertingChange) return;
             const code = document.getElementById('subjectSelector').value;
 
-            if (selectedBlock && code !== lastSubject) {
+            /* SDD arrangement-clear-guards-cross-week (BUG-08): same family as
+               the venue guard — cross-week store-aware. */
+            if ((selectedBlock || getGlobalTotal() > 0) && code !== lastSubject) {
                 confirmChangeWithSelection('subject', function() {
                     lastSubject = code;
                     applySubjectChange(code);
@@ -2862,6 +2866,49 @@ slotLine = 'Week ' + (anchorSlot.week + 1) + ' · ' + ((weekdayName && weekdayNa
         function discardSelection() {
             toast.dismiss();
             deselectBlock();
+        }
+
+        /* SDD arrangement-clear-guards-cross-week (BUG-08, review R1 folded):
+           the clearing-change confirms fire on the CROSS-WEEK store
+           (selectedBlock || getGlobalTotal() > 0) — so their "Yes, Change"
+           proceed must discard the WHOLE store, not just the current-week
+           pointer (deselectBlock nulls selectedBlock AND writes the CURRENT
+           [venue:week] entry only; a foreign week's block survives = the
+           counter lies "4 of 4" over an empty grid, the BUG-06 disagreement
+           class). The clearAll() register (:2073) minus its confirm shell +
+           toast/undo — the confirm IS the explicit discard (2026-10-09 user
+           decision contract, already carried by the subject/slot proceeds). */
+        function discardAllSelections() {
+            /* review R1 blocker 3 — the booking-intent SPENT-contract across
+               the store map: the pointer-only capture misses the cross-week
+               case and the pre-fill would RESURRECT on the next reload
+               against the user's explicit discard. Scan BEFORE the wipe with
+               the SAME fields intentMatchesBlock compares (:2870: i.venue ===
+               venueKey && i.weekIndex === weekKey && i.dayIndex === block.day
+               && i.hourIndex === block.startHour); on ANY hit run the :2854
+               spent pair. */
+            if (bookingIntentMemory) {
+                const i = pendingBookingIntent || bookingIntentMemory;
+                for (const venueKey of Object.keys(selectedSlotsByVenue)) {
+                    const weekMap = selectedSlotsByVenue[venueKey] || {};
+                    for (const weekKey of Object.keys(weekMap)) {
+                        const blk = weekMap[weekKey];
+                        if (blk && i.venue === venueKey && i.weekIndex === parseInt(weekKey, 10)
+                            && i.dayIndex === blk.day && i.hourIndex === blk.startHour) {
+                            markBookingCancelled();   /* :2854 — bookingIntentMemory = null + the sessionStorage stamp */
+                            pendingBookingIntent = null;
+                            renderBookingIntent();
+                            break;   /* one hit is decisive — the intent names ONE block */
+                        }
+                    }
+                    if (!bookingIntentMemory) break;
+                }
+            }
+            Object.keys(selectedSlotsByVenue).forEach(k => { selectedSlotsByVenue[k] = {}; });
+            deselectBlock();
+            selectionHistory.length = 0;   /* review R1 advisory 4 — the explicit-discard undo law (proceed() :2051 + pageshow :2182: "stale Ctrl+Z can't resurrect"); without it the same-week deselect HISTORY would resurrect one block into a cleaned store while the cross-week payloads have no record */
+            updateCounter();               /* review R1 blocker 2 — deselectBlock()'s rider is DEAD when !selectedBlock (its early-return :1441); the helper pays its OWN tail, the exact clearAll() law ("covers the no-block case" :2084) */
+            updateSelectionSummary();      /* the :1349 strip mirrors the counter drop */
         }
 
         /* the intent is only spent when the user explicitly removes THE booked
@@ -3284,7 +3331,12 @@ slotLine = 'Week ' + (anchorSlot.week + 1) + ' · ' + ((weekdayName && weekdayNa
         function selectSlot(slot, index, opts) {
             if (revertingChange) return;
 
-            if (selectedBlock && index !== lastSlotIndex) {
+            /* SDD arrangement-clear-guards-cross-week (BUG-08): same family as
+               the venue guard — cross-week store-aware. PINNED (review R1
+               advisory 6): the auto default picks ride {auto:true} at panel
+               build only (boot / subject change — a fresh or JUST-WIPED
+               store) so the widened guard cannot nag an automatic action. */
+            if ((selectedBlock || getGlobalTotal() > 0) && index !== lastSlotIndex) {
                 confirmChangeWithSelection('time slot', function() {
                     lastSlotIndex = index;
                     commitSlotSelection(slot, index);
