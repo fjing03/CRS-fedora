@@ -1,5 +1,29 @@
 # Request Approval — changelog
 
+## 2026-10-25 (the user's part 2) — the Exclude Completed chip + hover hints on EVERY toolbar element
+
+**a) Chip parity with my-request-history:** `renderFilterChips()` now pushes
+the **Exclude Completed** chip while the toggle is on — same label, same
+position (last), same ✕-remove behaviour (the ✕ unchecks
+`hideCompletedToggle` and calls `toggleHideCompleted()`, which refreshes
+state + table + summary + saved filters). The chip-row label became
+conditional (`chips.length > 0` … like my-request-history) so no orphan
+"Filters:" renders when every filter is off.
+
+**b) Hints on every toolbar element** — the shared `data-tip` attribute
+(`initDataTipTooltips` renders it FIXED **ABOVE** the element; existing UI
+design, no new mechanism): search → "Search by course code, name, or
+lecturer" (this page's haystack = `courseCode + courseName + lecturer` ✓
+honest), status select → "Filter by request status", urgency chips →
+"Show requests of any urgency" / "Show only urgent requests" / "Show only
+normal requests", week-nav → "Previous week" / "Pick the week to display" /
+"Next week" (via NEW optional `prevTip`/`selectTip`/`nextTip` params on the
+shared `partials.ui-week-nav` — **null by default, so every other page
+renders byte-identical**), toggle → "ON = completed requests are excluded
+from the list", Reset Filters → "Reset all filters" (verbatim
+my-request-history's), result count → "Rows matching the current filters".
+
+
 ## 2026-10-25 (the user's consistency fix) — the toggle says "Exclude Completed"
 
 The completed-exclusion toggle now speaks the SAME words as

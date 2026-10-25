@@ -3,12 +3,17 @@
     $showTodayBtn = $showTodayBtn ?? true;
     $disabled = $disabled ?? false;
     $showPrint = $showPrint ?? false;
+    // Optional hover hints (shared data-tip tooltip, shown ABOVE the element).
+    // Null by default → pages that don't pass them render byte-identical.
+    $prevTip = $prevTip ?? null;
+    $nextTip = $nextTip ?? null;
+    $selectTip = $selectTip ?? null;
 @endphp
 
 <div class="week-nav">
-    <button class="week-arrow" onclick="{{ $prevOnclick }}" aria-label="Previous week" {{ $disabled ? 'disabled' : '' }}>&#8249;</button>
-    <select class="{{ $selectClass }}" id="{{ $selectId }}" onchange="{{ $selectOnclick }}" {{ $disabled ? 'disabled' : '' }}></select>
-    <button class="week-arrow" onclick="{{ $nextOnclick }}" aria-label="Next week" {{ $disabled ? 'disabled' : '' }}>&#8250;</button>
+    <button class="week-arrow" onclick="{{ $prevOnclick }}" aria-label="Previous week" @if($prevTip) data-tip="{{ $prevTip }}" @endif {{ $disabled ? 'disabled' : '' }}>&#8249;</button>
+    <select class="{{ $selectClass }}" id="{{ $selectId }}" onchange="{{ $selectOnclick }}" @if($selectTip) data-tip="{{ $selectTip }}" @endif {{ $disabled ? 'disabled' : '' }}></select>
+    <button class="week-arrow" onclick="{{ $nextOnclick }}" aria-label="Next week" @if($nextTip) data-tip="{{ $nextTip }}" @endif {{ $disabled ? 'disabled' : '' }}>&#8250;</button>
 </div>
 @if($showTodayBtn)
     @include('partials.ui-today-btn')

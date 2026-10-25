@@ -186,9 +186,9 @@
                         <circle cx="11" cy="11" r="8"/>
                         <line x1="21" y1="21" x2="16.65" y2="16.65"/>
                     </svg>
-                    <input class="search-input" id="searchInput" placeholder="Search course code or name...">
+                    <input class="search-input" id="searchInput" placeholder="Search course code or name..." data-tip="Search by course code or name">
                 </div>
-                <select class="filter-select" id="statusFilter">
+                <select class="filter-select" id="statusFilter" data-tip="Filter by request status">
                     <option value="all">All Statuses</option>
                     <option value="Pending">Pending</option>
                     <option value="Approved">Approved</option>
@@ -196,8 +196,8 @@
                     <option value="Cancelled">Cancelled</option>
                     <option value="Completed">Completed</option>
                 </select>
-                @include('partials.ui-week-nav', ['prevOnclick' => 'prevWeekFilter()', 'nextOnclick' => 'nextWeekFilter()', 'selectId' => 'weekFilter', 'selectOnclick' => 'weekFilterChanged(this.value)', 'showTodayBtn' => false])
-                <label class="toggle-wrapper" id="completedToggle">
+                @include('partials.ui-week-nav', ['prevOnclick' => 'prevWeekFilter()', 'prevTip' => 'Previous week', 'nextOnclick' => 'nextWeekFilter()', 'nextTip' => 'Next week', 'selectId' => 'weekFilter', 'selectOnclick' => 'weekFilterChanged(this.value)', 'selectTip' => 'Pick the week to display', 'showTodayBtn' => false])
+                <label class="toggle-wrapper" id="completedToggle" data-tip="ON = completed requests are excluded from the list">
                     <input type="checkbox" id="hideCompleted" checked>
                     <span class="toggle-track"><span class="toggle-thumb"></span></span>
                     <span class="toggle-label">Exclude Completed</span>
@@ -205,7 +205,7 @@
                 <button class="btn-clear" id="clearFilters" data-tip="Reset all filters">Reset Filters</button>
             </div>
             <div class="toolbar-right">
-                <span class="result-count" id="resultCount">Showing 20 of 20 results</span>
+                <span class="result-count" id="resultCount" data-tip="Rows matching the current filters">Showing 20 of 20 results</span>
             </div>
         </div>
 

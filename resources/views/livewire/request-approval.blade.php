@@ -248,8 +248,8 @@
 
 <div class="toolbar">
     <div class="toolbar-left">
-        <input class="search-input" id="searchInput" placeholder="Search course code, name, or lecturer...">
-        <select class="filter-select" id="statusFilter">
+        <input class="search-input" id="searchInput" placeholder="Search course code, name, or lecturer..." data-tip="Search by course code, name, or lecturer">
+        <select class="filter-select" id="statusFilter" data-tip="Filter by request status">
             <option value="all">All Status</option>
             <option value="Pending" selected>Pending</option>
             <option value="Approved">Approved</option>
@@ -258,20 +258,20 @@
             <option value="Completed">Completed</option>
         </select>
         <div class="urgency-filter" id="urgencyFilter">
-            <button class="urgency-filter-chip active" data-urgency="all" onclick="setUrgencyFilter('all')">All</button>
-            <button class="urgency-filter-chip" data-urgency="urgent" onclick="setUrgencyFilter('urgent')">Urgent</button>
-            <button class="urgency-filter-chip" data-urgency="normal" onclick="setUrgencyFilter('normal')">Normal</button>
+            <button class="urgency-filter-chip active" data-urgency="all" onclick="setUrgencyFilter('all')" data-tip="Show requests of any urgency">All</button>
+            <button class="urgency-filter-chip" data-urgency="urgent" onclick="setUrgencyFilter('urgent')" data-tip="Show only urgent requests">Urgent</button>
+            <button class="urgency-filter-chip" data-urgency="normal" onclick="setUrgencyFilter('normal')" data-tip="Show only normal requests">Normal</button>
         </div>
-        @include('partials.ui-week-nav', ['prevOnclick' => 'prevWeekFilter()', 'nextOnclick' => 'nextWeekFilter()', 'selectId' => 'weekFilter', 'selectOnclick' => 'onWeekFilterChange(this.value)', 'showTodayBtn' => false])
-        <label class="toggle-wrapper" id="completedToggle">
+        @include('partials.ui-week-nav', ['prevOnclick' => 'prevWeekFilter()', 'prevTip' => 'Previous week', 'nextOnclick' => 'nextWeekFilter()', 'nextTip' => 'Next week', 'selectId' => 'weekFilter', 'selectOnclick' => 'onWeekFilterChange(this.value)', 'selectTip' => 'Pick the week to display', 'showTodayBtn' => false])
+        <label class="toggle-wrapper" id="completedToggle" data-tip="ON = completed requests are excluded from the list">
             <input type="checkbox" id="hideCompletedToggle" checked onchange="toggleHideCompleted()">
             <span class="toggle-track"><span class="toggle-thumb"></span></span>
             <span class="toggle-label">Exclude Completed</span>
         </label>
-        <button class="btn-clear" id="clearFilters">Reset Filters</button>
+        <button class="btn-clear" id="clearFilters" data-tip="Reset all filters">Reset Filters</button>
     </div>
     <div class="toolbar-right">
-        <span class="result-count" id="resultCount"></span>
+        <span class="result-count" id="resultCount" data-tip="Rows matching the current filters"></span>
     </div>
 </div>
 
@@ -795,7 +795,10 @@
             if (search) {
                 chips.push('<span class="filter-chip">Search: "' + search + '"<button class="filter-chip-remove" onclick="document.getElementById(\'searchInput\').value=\'\';renderTable()" data-tip="Remove">&times;</button></span>');
             }
-            container.innerHTML = '<span class="filter-chips-label">Filters:</span>' + chips.join('');
+            if (hideCompleted) {
+                chips.push('<span class="filter-chip">Exclude Completed<button class="filter-chip-remove" onclick="document.getElementById(\'hideCompletedToggle\').checked=false;toggleHideCompleted()" data-tip="Remove">&times;</button></span>');
+            }
+            container.innerHTML = chips.length > 0 ? '<span class="filter-chips-label">Filters:</span>' + chips.join('') : '';
         }
 
         // ── Main render ──
