@@ -58,6 +58,18 @@
            \A is the CSS line-break escape; white-space: pre-line makes the
            ::after pill honour it (it inherits from this cell). */
         .cell-available.cell-no-fit { --hover-label: 'Too Late\A to Book'; white-space: pre-line; cursor: not-allowed; }
+        /* SDD prompt too-late-red-cells (user law 2026-10-25, the red-cell
+           directive): no-fit cells must READ as not-bookable — red at REST
+           and a RED hover pill. Today they inherit the green/blue bookable
+           look (only the hover words differ), so users mistook them for
+           bookable slots. Tokens only: error red on both surfaces (the
+           .cell-occupied precedent). The bookable hover filter/brightness
+           stays off these (cursor: not-allowed already set above). Legend
+           frozen at 5 chips — the label stays the two-line text untouched.
+           .cell-too-soon is a DIFFERENT state — untouched. */
+        .cell-available.cell-no-fit { background: var(--color-error-container); }
+        .cell-available.cell-no-fit::after { background: var(--color-error); color: var(--color-on-error); }
+        .cell-available.cell-no-fit:hover { filter: none; }
         .booking-hint-line {
             margin: 10px 0 0;
             font-size: 12px;

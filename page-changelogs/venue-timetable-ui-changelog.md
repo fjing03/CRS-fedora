@@ -1,3 +1,36 @@
+## 2026-10-25 (user directive too-late-red-cells) — no-fit cells now READ as not-bookable: red at REST + a RED hover pill
+
+**The law (user, 2026-10-25 via OpenCode's handoff):** venue cells marked
+`.cell-available.cell-no-fit` ("Too late to book" — no-fit beyond the
+booking lead time) were painted GREEN exactly like genuinely bookable
+cells (only the hover wording differed) — users mistook them for slots
+they could still book. Both surfaces now read error red:
+
+1. **resting background** = `var(--color-error-container)` (the
+   `.cell-occupied` red precedent);
+2. **hover label pill** = `var(--color-error)` / `var(--color-on-error)`
+   (the theme.css `.cell-available::after` pill shape mirrored with the
+   error token pair);
+3. the bookable `hover: brightness(1.2)` filter is NEUTERED on these
+   (`filter: none`) — a not-allowed affordance must not glow.
+
+**Where:** `venue-timetable.blade.php`'s page CSS block ONLY (the override
+lives under the existing `.cell-available.cell-no-fit` label rule; tokens
+only, no hardcoded hex). Untouched by law: the two-line label
+'`Too Late\A to Book`' + `white-space: pre-line` + `cursor: not-allowed`
+(already present), booking/click behaviour, the frozen 5-chip legend, and
+`.cell-too-soon` (a different state with its own meaning).
+
+**Receipts:** live probe (B006, W10): a no-fit cell renders
+`rgba(198, 40, 40, 0.35)` at rest (`--color-error-container`), pill
+`rgb(198, 40, 40)` / `rgb(255, 255, 255)`, content "Too Late\A to Book",
+cursor not-allowed; a genuinely free cell stays green
+`rgba(46, 125, 90, 0.35)` with the blue `--color-primary` pill; the
+no-fit/pill dye only lives in the venue blade. specs (venue-book +
+venue-db + venue-timetable + pages-parity, `--grep-invert "TC70"`)
+72/72 green after one first-run summary-card flake (rerun green — not
+this change: the T6 label-TEXT law is untouched); pint; phpstan-1G 0.
+
 ## 2026-10-25 (the user's two-line label directive) — "Too Late / to Book" breaks over two lines
 
 The no-fit hover pill on the venue page went from the single line `Too
