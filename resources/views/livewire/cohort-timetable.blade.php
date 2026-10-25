@@ -125,7 +125,7 @@
     <!-- ─── Grid Wrapper ─── -->
     @include('partials.ui-grid-table')
 
-    <!-- ─── Legend Bar ─── frozen 3-item block-class legend + ownership hint (all-pages-design-parity) -->
+    <!-- ─── Legend Bar ─── frozen 4-item block-class legend (the user's Replacement chip, 2026-10-25) + ownership hint (all-pages-design-parity) -->
     @include('partials.ui-legend-bar', [
         'ownershipHint' => true,
         'items' => [

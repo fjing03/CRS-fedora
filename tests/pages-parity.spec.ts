@@ -53,8 +53,8 @@ test('cohort: frozen legend + ownership axis works + 2-segment tooltips', async 
   }
   expect(picked).toBe(true);
 
-  // C1: frozen 3-item legend + ownership hint
-  await expect(page.locator('.legend-bar .legend-item')).toHaveText(['Normal', 'Pending', 'Conflict / Public Holiday']);
+  // C1: frozen 4-item legend (the user's Replacement chip, 2026-10-25) + ownership hint
+  await expect(page.locator('.legend-bar .legend-item')).toHaveText(['Normal', 'Replacement', 'Pending', 'Conflict / Public Holiday']);
   await expect(page.locator('.legend-ownership-hint')).toContainText('thick border (3px)');
 
   // C5: the ownership axis actually works — 4288's own blocks render event-mine

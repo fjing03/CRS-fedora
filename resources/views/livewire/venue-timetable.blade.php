@@ -53,8 +53,11 @@
 
         /* ───── Available slot hover label ───── */
         .cell-available { --hover-label: 'Arrange ?'; }
-        /* too late in the day for a full booking — hover says so instead */
-        .cell-available.cell-no-fit { --hover-label: 'Too late to book'; cursor: not-allowed; }
+        /* too late in the day for a full booking — hover says so instead.
+           Two-line label law (user, 2026-10-25): "Too Late" / "to Book" —
+           \A is the CSS line-break escape; white-space: pre-line makes the
+           ::after pill honour it (it inherits from this cell). */
+        .cell-available.cell-no-fit { --hover-label: 'Too Late\A to Book'; white-space: pre-line; cursor: not-allowed; }
         .booking-hint-line {
             margin: 10px 0 0;
             font-size: 12px;
@@ -135,7 +138,7 @@
     @include('partials.ui-grid-table')
         @include('partials.ui-empty-state', ['title' => 'No classes this week', 'text' => 'This venue is free all week.'])
 
-    <!-- ─── Legend Bar ─── 4 items + ownership hint (venue-event-blocks-db design §2,
+    <!-- ─── Legend Bar ─── 5 items + ownership hint (venue-event-blocks-db design §2,
          frozen upstream design at f8b35a2). Available tip stays honest for the
          read-only page (booking = Slice B); swatches carry real block classes. -->
     @include('partials.ui-legend-bar', ['ownershipHint' => true, 'items' => [

@@ -291,9 +291,9 @@ test.describe('Venue Timetable UI', () => {
   // 9. LEGEND BAR
   // ════════════════════════════════════════════
 
-  test('TC34 — legend bar has 4 items (Available + 3 status chips)', async ({ page }) => {
+  test('TC34 — legend bar has 5 items (Available + 4 status chips)', async ({ page }) => {
     const items = page.locator('.legend-bar .legend-item');
-    await expect(items).toHaveCount(4);
+    await expect(items).toHaveCount(5); // the user's 5-chip law 2026-10-25 (+ Replacement)
   });
 
   test('TC35 — legend shows Available + status chips in order, with ownership hint', async ({ page }) => {
@@ -301,6 +301,7 @@ test.describe('Venue Timetable UI', () => {
     await expect(items).toHaveText([
       'Available',
       'Normal',
+      'Replacement',
       'Pending',
       'Conflict / Public Holiday',
     ]);

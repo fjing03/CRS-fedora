@@ -98,13 +98,23 @@ test('U2a-T5: B opens the tooltip on a focused free cell; Escape and .grid-scrol
   await expect(page.locator('#availableTooltip')).not.toHaveClass(/show/);
 });
 
-test('U2a-T6: no-fit cell shows "Too late to book"; click gives the shared toast, no navigation', async ({ page }) => {
+test('U2a-T6: no-fit cell shows the two-line "Too Late / to Book" label; click gives the shared toast, no navigation', async ({ page }) => {
   await page.goto(PAGE);
   await selectLastWeek(page);
   const noFit = page.locator('.cell-available.cell-no-fit').first();
   await expect(noFit).toHaveCount(1); // last rows always exist → exactly these cells
   const label = await noFit.evaluate((el) => getComputedStyle(el, '::after').content);
-  expect(label).toContain('Too late to book');
+  // Two-line label law (user, 2026-10-25): "Too Late" / "to Book". The
+  // computed content CSS-serialises the embedded newline — Chromium hands it
+  // back as "\a" (lowercase), other engines as "\A" or a literal newline —
+  // normalise all forms, strip the CSS string quotes, assert the lines.
+  const lines = label
+    .replace(/^["']|["']$/g, '')
+    .replace(/\\a\s?/gi, '\n')
+    .split('\n')
+    .map((s) => s.trim())
+    .filter(Boolean);
+  expect(lines).toEqual(['Too Late', 'to Book']);
   await noFit.click();
   await expect(page.locator('#toastBar .toast-message')).toHaveText(/120 minutes/);
   await expect(page.locator('#availableTooltip')).not.toHaveClass(/show/);

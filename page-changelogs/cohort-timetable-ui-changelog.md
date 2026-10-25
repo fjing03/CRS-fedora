@@ -11,8 +11,11 @@ hook; this page passes the SAME ownership rule its block border uses
 (`e.lecturer === MockData.currentUser.name` — `currentUser` injected from
 `auth()->user()->name` at :185), so voice and border can never disagree.
 Part D: the status word renders CAPS via `.toUpperCase()` in the builder
-(it applies to every page sharing the builder — student-my-timetable and
-replacement-arrangement tooltips included). The frozen 2-segment shape is
+— it applies to every page sharing the builder, i.e. student-my-timetable
+(keeps the staff name, just CAPS status). Amended 2026-10-25 after a live
+probe: replacement-arrangement builds the same builder but feeds it
+`events: []` (its slot-picker grid), so it renders NO status tooltips at
+all — earlier wording here wrongly implied otherwise. The frozen 2-segment shape is
 preserved: `ME · NORMAL` still matches `^[^·]+ · [^·]+$` (pages-parity
 C3). Legend chips stay title-case (frozen legend contract). Mirror kept in
 sync: `CohortTimetable-UI-design-template.blade.php`.

@@ -1,3 +1,25 @@
+## 2026-10-25 (the user's two-line label directive) — "Too Late / to Book" breaks over two lines
+
+The no-fit hover pill on the venue page went from the single line `Too
+late to book` to the user's verbatim two-liner **`Too Late` / `to Book`**.
+Mechanism (page blade only, no shared file): `--hover-label: 'Too Late\A
+to Book'` plus `white-space: pre-line` on `.cell-available.cell-no-fit`
+in the venue blade's page CSS — the shared `.cell-available::after` pill
+inherits the white-space and honours the `\A` newline. Everything else
+untouched: `cursor: not-allowed`, the 5-chip legend, the `Arrange ?`
+label on free cells, booking/toast behaviour.
+
+Receipt: temp visual probe (B110, last week) — the pill renders exactly
+two centred lines inside the cell (screenshot eyeballed, then removed
+with the probe); `venue-book` **9/9** green after T6 was re-pinned to the
+new law — T6 normalises Chromium's CSS-serialised computed newline
+(lowercase `\a`; `\A` and a literal newline are handled too) and asserts
+`['Too Late', 'to Book']`; `venue-db` **5/5** green the same day (its
+summary-cards walk was re-pinned to Available = 84, the probe-verified
+value on a fully-future NORMAL week — the old 72 was holiday week W8's
+number; ownership cards now assert 8/14 on normal weeks and 5/9 on W8);
+pint + phpstan clean.
+
 ## 2026-10-25 (the user's hover-voice directive, parts C + D) — ME + CAPS join the cohorts
 
 The event-block hover voice is now **`name · lecturer|ME · cohorts ·
