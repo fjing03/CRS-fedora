@@ -92,3 +92,10 @@
 ### 🟡 Folded
  - the pseudo import line cleaned.
 ## Verdict: internal consistency reached — READY TO FREEZE / APPLY.
+
+## Round 5 — 2026-10-27 (FINAL)
+ - all three round-3 folds verified landed; no residual diffs; two
+   cosmetic suggestions only (the validReason host naming + the enum-typo
+   conflated message — noted for the implementer).
+ - VERDICT: READY TO FREEZE / READY FOR APPLY.
+ - the artifacts FROZEN: proposal.md, design.md, tasks.md. Next = /sdd-apply.
