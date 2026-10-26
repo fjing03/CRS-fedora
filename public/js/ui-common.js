@@ -651,6 +651,14 @@ function buildReplacementNote(e, opts) {
     opts = opts || {};
     var checkOwnership = opts.checkOwnership;
     if (typeof checkOwnership === 'function' && !checkOwnership(e)) return '';
+    if (e.status === 'cancelled' && e.proposed) {
+        /* cancelled-blocks-stay-visible, USER DECISION 2026-10-27: a
+           cancelled block WITH a proposed (pending) replacement shows
+           "(Proposed ⏳)" — the SAME hint idiom the natural-conflict blocks
+           carry (the arm must precede the plain-Cancelled arm or it would
+           swallow the hint). */
+        return '<span class="ev-note">(Proposed ⏳)</span>';
+    }
     /* cancelled-blocks-stay-visible (user law 2026-10-27): the cancelled
        block's note is PLAIN — the third sibling of '(Replaced for …)' and
        '(Proposed ⏳)'. The TIP stays plain too (the user decision: no reason
