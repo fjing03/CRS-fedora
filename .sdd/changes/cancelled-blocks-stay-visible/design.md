@@ -139,13 +139,14 @@ CHECK widen / migration / backfill / label-for-`replaced` collapses with it.
 2. the class family (:805) — insert BEFORE the conflict arm:
    `else if (e.status === 'cancelled') { div.classList.add('event-conflict'); }`
    — event-conflict REUSED (no new CSS; the §10.0 same-name rule).
-3. `buildReplacementNote` (:650) — a third top note arm:
-   `if (e.status === 'cancelled') return '<span class="ev-note">(Cancelled — ' + labelFor(e.cancelledReason) + ')</span>';
-   `labelFor` = the ClassCancellation.labelOf-style passthrough (enum →
-   label; already-labelled strings ride; null → '').
-4. `eventStatusLabel` (:2343) — the EXISTING cancelled arm extends:
-   return 'Cancelled' + (a reason? ' — ' + reason : '') — keep the
-   arithmetic minimal: `'Cancelled' . (label ? ' — ' . label : '')`.
+3. `buildReplacementNote` (:650) — a third note arm; the USER DECISION
+   2026-10-27 (post-freeze): the note is plain —
+   `if (e.status === 'cancelled') return '<span class="ev-note">(Cancelled)</span>';`
+   (NO reason string — the label law stays at the home badge only).
+4. `eventStatusLabel` (:2343) — **NO EDIT** (the amendment receipt at apply:
+   the arm is factual — plain `'Cancelled'`, no reason; the :801
+   composition renders the locked tip `cohort · CANCELLED`; do NOT
+   re-derive or touch this arm).
 
 (the :801 `.toUpperCase()` is untouched grid behaviour — receipted.)
 
