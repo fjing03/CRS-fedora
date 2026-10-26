@@ -2,6 +2,7 @@
 
 namespace App\Livewire;
 
+use App\Concerns\CancelsClasses;
 use App\Concerns\ResolvesTimetableTimeline;
 use App\Models\ClassSession;
 use App\Models\Cohort;
@@ -29,6 +30,7 @@ use Livewire\Component;
  */
 class VenueTimetable extends Component
 {
+    use CancelsClasses;
     use ResolvesTimetableTimeline;
 
     public string $venueCode = '';

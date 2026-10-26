@@ -2,6 +2,7 @@
 
 namespace App\Livewire;
 
+use App\Concerns\CancelsClasses;
 use App\Concerns\ResolvesTimetableTimeline;
 use App\Models\ClassException;
 use App\Models\ClassSession;
@@ -24,13 +25,22 @@ use Livewire\Component;
  */
 class ReplacementHome extends Component
 {
+    use CancelsClasses;
     use ResolvesTimetableTimeline;
 
     private const DAY_NAMES = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
 
     private function titleCase(string $enum): string
     {
-        return ucwords(str_replace('_', ' ', $enum));
+        // class-cancel-db-persist: the modal radio labels are the law —
+        // medical_leave prints as 'Medical/Sick Leave' (the drift receipt:
+        // the home badge EQUALS the modal label now) and `other` prints
+        // as itself, not 'Other Leave'-style ucwords; the rest titleCase.
+        return match ($enum) {
+            'medical_leave' => 'Medical/Sick Leave',
+            'other' => 'Other',
+            default => ucwords(str_replace('_', ' ', $enum)),
+        };
     }
 
     public function render(): View

@@ -353,7 +353,7 @@ final class ReplacementFlowTest extends TestCase
 
         $this->assertFalse(
             (new CancelClass)($owner, $session, 7, 'because_i_said_so'),
-            'Reason must be one of the 5 CHECK values'
+            'Reason must be one of the 10 CHECK values'
         );
 
         $this->assertTrue((new CancelClass)($owner, $session, 7, 'official_event'));

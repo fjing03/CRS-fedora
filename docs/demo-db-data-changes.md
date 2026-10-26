@@ -79,3 +79,27 @@ planned as part of the presentation-DB setup.
 - **Rationale:** the DFT+DSF combined class (33 > 28-seat rooms) could not fit
   any legal room; DSF-only (15) fits. Session 3 stays conflict-flagged via the
   B005+Diploma rule (DSF = Diploma) — intended.
+
+## 2026-10-27 — the cancel-reason + audit-action CHECK widen (class-cancel-db-persist)
+
+- **Approved by:** the user (the frozen SDD lane `class-cancel-db-persist`,
+  5 review rounds, proposal vocabulary table verbatim).
+- **Live DB (paste BOTH pairs):**
+
+```sql
+ALTER TABLE class_exceptions DROP CONSTRAINT class_exceptions_reason_check;
+ALTER TABLE class_exceptions ADD CONSTRAINT class_exceptions_reason_check
+    CHECK (reason IN ('public_holiday','annual_leave','medical_leave','official_event','emergency_leave',
+                      'hospitalisation_leave','maternity_leave','compassionate_leave','paternity_leave','other'));
+ALTER TABLE audit_logs DROP CONSTRAINT audit_logs_action_check;
+ALTER TABLE audit_logs ADD CONSTRAINT audit_logs_action_check
+    CHECK (action IN ('submitted','approved','rejected','cancelled','completed','occ_conflict','class_cancelled','class_cancel_undone'));
+```
+
+- **Migration:** `database/migrations/2026_10_27_000001_widen_cancel_reason_and_audit_checks.php`
+  (same statements; fresh DBs via migrate:fresh).
+- **Protected (untouched):** the pending replacement requests #1–#3; the
+  `class_exceptions` row id 4 (`official_event`, session 40 / W14).
+- **Rationale:** the Cancel Class radio now offers the 4 new leave types +
+  Other, so the reason CHECK must accept the 10-value vocabulary; the undo
+  flow audits `class_cancel_undone` (8th action value).

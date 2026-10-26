@@ -189,12 +189,19 @@ class ApiReadController extends Controller
 
         $dayNames = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
 
+        // class-cancel-db-persist: the modal radio labels are the law
+        // (10-value CHECK); medical_leave prints as 'Medical/Sick Leave'.
         $reasonMap = [
             'public_holiday' => 'Public Holiday',
             'annual_leave' => 'Annual Leave',
-            'medical_leave' => 'Medical Leave',
+            'medical_leave' => 'Medical/Sick Leave',
             'official_event' => 'Official Event',
             'emergency_leave' => 'Emergency Leave',
+            'hospitalisation_leave' => 'Hospitalisation Leave',
+            'maternity_leave' => 'Maternity Leave',
+            'compassionate_leave' => 'Compassionate Leave',
+            'paternity_leave' => 'Paternity Leave',
+            'other' => 'Other',
         ];
 
         $sessions = ClassSession::where('lecturer_id', $user->id)

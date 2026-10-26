@@ -14,18 +14,34 @@ use Illuminate\Support\Facades\DB;
  * class_exceptions row frees the original block (the engine reads exceptions)
  * and the cancellation is audited with the true cause.
  *
- * The reason must be one of the 5 schema CHECK values; the unique
+ * The reason must be one of the 10 schema CHECK values; the unique
  * (class_session_id, week_number) index enforces one exception per occurrence.
  */
 final class CancelClass
 {
-    private const REASONS = ['public_holiday', 'annual_leave', 'medical_leave', 'official_event', 'emergency_leave'];
+    public const REASONS = [
+        'public_holiday',
+        'annual_leave',
+        'medical_leave',
+        'official_event',
+        'emergency_leave',
+        'hospitalisation_leave',
+        'maternity_leave',
+        'compassionate_leave',
+        'paternity_leave',
+        'other',
+    ];
+
+    public static function validReason(string $reason): bool
+    {
+        return in_array($reason, self::REASONS, true);
+    }
 
     /**
      * @return bool false on ownership violation (FR 2.11), invalid week/reason,
      *              or a duplicate exception for the same occurrence
      */
-    public function __invoke(User $user, ClassSession $session, int $weekNumber, string $reason): bool
+    public function __invoke(User $user, ClassSession $session, int $weekNumber, string $reason, ?string $otherDetail = null): bool
     {
         if ((int) $session->lecturer_id !== (int) $user->id) {
             return false;
@@ -36,21 +52,26 @@ final class CancelClass
         }
 
         try {
-            DB::transaction(function () use ($session, $user, $weekNumber, $reason): void {
+            DB::transaction(function () use ($session, $user, $weekNumber, $reason, $otherDetail): void {
                 ClassException::create([
                     'class_session_id' => $session->id,
                     'week_number' => $weekNumber,
                     'reason' => $reason,
                 ]);
 
+                $details = [
+                    'class_session_id' => (int) $session->id,
+                    'week_number' => $weekNumber,
+                    'reason' => $reason,
+                ];
+                if ($otherDetail !== null && $otherDetail !== '') {
+                    $details['other_detail'] = $otherDetail;
+                }
+
                 AuditLog::create([
                     'user_id' => $user->id,
                     'action' => 'class_cancelled',
-                    'details' => [
-                        'class_session_id' => (int) $session->id,
-                        'week_number' => $weekNumber,
-                        'reason' => $reason,
-                    ],
+                    'details' => $details,
                 ]);
             });
         } catch (QueryException) {

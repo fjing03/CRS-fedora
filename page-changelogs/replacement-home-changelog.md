@@ -448,3 +448,18 @@ the button navigates `?session=97&week=8` and the page arrives fully pinned
 Table rows, card view, and the quick-view modal now use the shared `UiLabels.classType`
 three-way map — Practical sessions print "(P)"/"Practical" (AMCS2093 #39/#49 canary);
 L/T output byte-identical. Automated: tests/type-labels.spec.ts.
+## 2026-10-27 (SDD class-cancel-db-persist) — the home chip Undo deletes the REAL row + the 5 new badge leaves
+**The badge law:** `badgeClass` + the page badge CSS gain the 5 new vocab
+leaves — Hospitalisation/Compassionate/Paternity = `--color-primary-container`
+family, Maternity = `--color-tertiary-container` (the medical sibling),
+Other = `--color-secondary-container` (the neutral grey). Tokens only
+(§10.0). `NB: legacy 'Medical Leave' seed rows keep their badge via an
+alias key; the modal label is the law — 'Medical/Sick Leave'.
+**The titleCase law (server):** ReplacementHome + ApiReadController map
+`medical_leave` → 'Medical/Sick Leave' and `other` → 'Other' verbatim (the
+drift receipt retired — the modal label EQUALS the home badge now).
+**The chip Undo:** `undoCancelledByRowId` awaits
+`ClassCancellation.undoViaServer` (the shared bridge) while
+pending-disabling the chip's Undo button — ok → the row/chip/button
+vanish + 'Class restored.'; fail → the honest hint, the button
+re-enables, the cancel (and the real DB row) stays.

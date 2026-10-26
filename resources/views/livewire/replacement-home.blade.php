@@ -44,6 +44,22 @@
             background: var(--color-error);
             color: var(--color-on-error);
         }
+        /* class-cancel-db-persist — the 5 new vocab leaves (tokens only,
+           the same-name/same-color §10.0 law; grouped where identical): */
+        .badge-hospitalisation-leave,
+        .badge-compassionate-leave,
+        .badge-paternity-leave {
+            background: var(--color-primary-container);
+            color: var(--color-on-primary-container);
+        }
+        .badge-maternity-leave {
+            background: var(--color-tertiary-container);
+            color: var(--color-on-tertiary-container);
+        }
+        .badge-other {
+            background: var(--color-secondary-container);
+            color: var(--color-on-secondary-container);
+        }
 
         /* ───── Just-cancelled Chip ───── */
         .just-cancelled-chip {
@@ -303,9 +319,15 @@
             const map = {
                 'Public Holiday': 'badge-holiday',
                 'Annual Leave': 'badge-annual-leave',
-                'Medical Leave': 'badge-medical-leave',
+                'Medical/Sick Leave': 'badge-medical-leave',
+                'Medical Leave': 'badge-medical-leave',   // legacy rows
                 'Official Event': 'badge-official-event',
-                'Emergency Leave': 'badge-emergency-leave'
+                'Emergency Leave': 'badge-emergency-leave',
+                'Hospitalisation Leave': 'badge-hospitalisation-leave',
+                'Maternity Leave': 'badge-maternity-leave',
+                'Compassionate Leave': 'badge-compassionate-leave',
+                'Paternity Leave': 'badge-paternity-leave',
+                'Other': 'badge-other'
             };
             return map[reason] || '';
         }
@@ -453,7 +475,7 @@
                         undoBtn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"></polyline><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"></path></svg>';
                         undoBtn.onclick = function(ev) {
                             ev.stopPropagation();
-                            undoCancelledByRowId(c.id);
+                            undoCancelledByRowId(c.id, undoBtn);
                         };
                         row.children[2].appendChild(undoBtn);
                     }
@@ -472,14 +494,23 @@
         }
 
         /* Undo a cancellation from the home list (toast-snooze companion):
-           restores the class everywhere via ClassCancellation.undo, rebuilds
-           the table (row + chip + undo button vanish), mirrors the S14 toast. */
-        function undoCancelledByRowId(rowId) {
+           posts the server undo first (class-cancel-db-persist — the Undo
+           affordance is the cross-page undo surface), THEN rebuilds the
+           table (row + chip + undo button vanish) and mirrors the S14
+           toast. A failed undo keeps the cancel standing: the honest hint,
+           the button re-enables, no client reversal. */
+        async function undoCancelledByRowId(rowId, undoBtn) {
             const entry = ClassCancellation.allEntries().find(function(e) {
                 return e.row && e.row.id === rowId && !e.consumed;
             });
             if (!entry) return;
-            ClassCancellation.undo(entry);
+            if (undoBtn) undoBtn.disabled = true;   // pending-disable — one await, one write
+            const res = await ClassCancellation.undoViaServer(entry);
+            if (!res.ok) {
+                toast.show(res.hint || 'Class restore failed — refresh to see the truth.', null);
+                if (undoBtn) undoBtn.disabled = false;
+                return;
+            }
             buildTable();
             toast.show('Class restored.', null);
         }

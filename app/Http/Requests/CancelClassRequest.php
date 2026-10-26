@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests;
 
+use App\Actions\CancelClass;
 use Illuminate\Foundation\Http\FormRequest;
 
 /**
@@ -11,7 +12,13 @@ use Illuminate\Foundation\Http\FormRequest;
  */
 final class CancelClassRequest extends FormRequest
 {
-    public const REASONS = ['public_holiday', 'annual_leave', 'medical_leave', 'official_event', 'emergency_leave'];
+    /** The whitelist mirrors the class_exceptions CHECK (owner: CancelClass::REASONS). */
+    public const REASONS = CancelClass::REASONS;
+
+    public static function validReason(string $reason): bool
+    {
+        return CancelClass::validReason($reason);
+    }
 
     /**
      * @return array<string, array<int, string>>

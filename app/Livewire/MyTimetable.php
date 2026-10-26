@@ -2,6 +2,7 @@
 
 namespace App\Livewire;
 
+use App\Concerns\CancelsClasses;
 use App\Concerns\ResolvesTimetableTimeline;
 use App\Models\ClassException;
 use App\Models\ClassSession;
@@ -16,6 +17,7 @@ use Livewire\Component;
  */
 class MyTimetable extends Component
 {
+    use CancelsClasses;
     use ResolvesTimetableTimeline;
 
     public int $week = 1;

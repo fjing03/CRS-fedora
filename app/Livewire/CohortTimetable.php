@@ -2,6 +2,7 @@
 
 namespace App\Livewire;
 
+use App\Concerns\CancelsClasses;
 use App\Concerns\ResolvesTimetableTimeline;
 use App\Models\ClassException;
 use App\Models\ClassSession;
@@ -19,6 +20,7 @@ use Livewire\Component;
  */
 class CohortTimetable extends Component
 {
+    use CancelsClasses;
     use ResolvesTimetableTimeline;
 
     #[Title('Cohort Timetable')]

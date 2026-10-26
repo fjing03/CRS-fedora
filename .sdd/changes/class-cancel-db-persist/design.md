@@ -200,3 +200,31 @@ NEW migration `*_widen_cancel_reason_and_audit_checks.php`:
   NOT RUN (the user's regime).
 - The four page changelogs.
 - ONE conventional commit (`feat:`); NEVER push.
+
+---
+## Implementer deltas (applied 2026-10-27 — recorded for the verify stage)
+1. **The trait's home: `app/Concerns/CancelsClasses.php`** (namespace
+   `App\Concerns`, name `CancelsClasses`) — the repo's existing convention
+   (the `ResolvesTimetableTimeline` precedent) beats the design draft's
+   `app/Livewire/Concerns/CancelClassBridge.php`. Same method names.
+2. **`conflictReason` carries the LABEL, not the raw enum** (the frozen
+   contract's INTENT kept: "the modal label EQUALS the home badge"):
+   - the server already emits titleCase'd labels (ReplacementHome + the
+     `/requests/conflicts` ApiReadController both had their own maps);
+   - `rowFromEvent` now calls `ClassCancellation.labelOf(reason)` —
+     `medical_leave` → 'Medical/Sick Leave' (Sick), etc.; unknown values
+     pass through;
+   - `ReplacementHome::titleCase` + ApiReadController `$reasonMap`
+     re-key medical_leave → 'Medical/Sick Leave', `other` → 'Other'
+     (the drift receipt retired at BOTH producers);
+   - the ledger's `reason` stays the ENUM (the server handle's
+     vocabulary) — validated by the re-keyed :243 spec assertion.
+3. **`undoViaServer` reads `entry.sessionId`** — the design snippet's
+   `entry.matchKey.sessionId` never existed; cancel() stamps
+   `sessionId` (from `event.sessionId ?? event.id`) + `exceptionId: null`
+   on the entry, the response stamps the id, ledgerUpdate persists.
+4. **The undo audit** records the FULL erased row (`$exception->toArray()`
+   — superset of the design's three keys).
+5. **`ApiReadController.php` added to the touched set** (its own secret
+   copy of the label map was re-keyed + widened to 10) — the e2e
+   valid-reason arrays re-keyed to the 10 labels accordingly.

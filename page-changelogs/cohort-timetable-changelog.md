@@ -153,3 +153,11 @@ The TODAY accuracy: the page's data bridge never cleared `MockData.mockNow`,
 so `TodayButton / getTodayMs()` anchored the mock-era demo clock — the legacy
 `MockData.mockNow = null;` line lands with the其他 real-clock pages (the same
 line the venue page already carried — user report 2026-10-19).
+## 2026-10-27 (SDD class-cancel-db-persist) — Cancel Class writes the REAL database
+Shared machinery — no page-local changes beyond the component gaining the
+`use CancelsClasses;` line. The confirm await posts `cancelClass` via the
+shared trait (server truth; the pre-existing modal copy untouched), the
+reason radios carry the DB enums with the 7-leaf + Other labels, and the
+undo toast awaits `cancelClassUndo` before any navigation. Demo-DB CHECK
+widen pasted by the user per `docs/demo-db-data-changes.md`.
+

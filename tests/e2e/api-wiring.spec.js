@@ -80,8 +80,10 @@ test.describe('API endpoints return real data', () => {
       const c = data.conflictedClasses[0];
       expect(c).toHaveProperty('conflictReason');
       expect([
-        'Public Holiday', 'Annual Leave', 'Medical Leave',
+        'Public Holiday', 'Annual Leave', 'Medical/Sick Leave',
         'Official Event', 'Emergency Leave',
+        'Hospitalisation Leave', 'Maternity Leave',
+        'Compassionate Leave', 'Paternity Leave', 'Other',
       ]).toContain(c.conflictReason);
     }
   });

@@ -3709,12 +3709,24 @@ class VenueDropdown {
  * trade-off — file:// / privacy modes).
  */
 const ClassCancellation = {
-    /* §1 reason vocabulary — deliberately reuses the conflictedClasses
-       conflictReason enum ('Medical Leave', 'Annual Leave', 'Official Event'
-       already exist there) + cancellation-specific entries + catch-all
-       'Other'. */
-    REASONS: ['Medical Leave', 'Annual Leave', 'Official Event',
-              'Family Emergency', 'Venue/Facility Issue', 'Other'],
+    /* §1 reason vocabulary — class-cancel-db-persist: the user's 7-leaf
+       list + catch-all `other`, each as {value, label} where value is the
+       DB enum (class_exceptions.reason CHECK, 10 values) and label is the
+       radio text (the frozen proposal vocabulary table). The enum is the
+       client store of truth: it rides the ledger's cancelledReason and the
+       home's conflictReason (the home's titleCase law renders it).
+       public_holiday/official_event stay in the DB CHECK but are never
+       offered here. */
+    REASONS: [
+        { value: 'medical_leave', label: 'Medical/Sick Leave' },
+        { value: 'annual_leave', label: 'Annual Leave' },
+        { value: 'emergency_leave', label: 'Emergency Leave' },
+        { value: 'hospitalisation_leave', label: 'Hospitalisation Leave' },
+        { value: 'maternity_leave', label: 'Maternity Leave' },
+        { value: 'compassionate_leave', label: 'Compassionate Leave' },
+        { value: 'paternity_leave', label: 'Paternity Leave' },
+        { value: 'other', label: 'Other' },
+    ],
     LEDGER_KEY: 'classCancellationLedger',  // sessionStorage — tab-scope demo reset
     UNDO_TOAST_MS: 5000,
     _seq: 0,               // entry-id suffix — no same-millisecond collision
@@ -3729,13 +3741,20 @@ const ClassCancellation = {
                  start: event.start, lecturer: event.lecturer };
     },
 
+    /* class-cancel-db-persist: enum → the modal label (the radio label is
+       the law — 'Medical/Sick Leave' etc.); unknown values pass through. */
+    labelOf(value) {
+        const r = this.REASONS.find(function(x) { return x.value === value; });
+        return r ? r.label : value;
+    },
+
     /* S7/S8 — Yes-button gating: reason required + in the vocabulary;
-       'Other' demands a non-empty trimmed detail. */
+       'other' demands a non-empty trimmed detail. */
     validate(reason, detail) {
-        if (!reason || this.REASONS.indexOf(reason) < 0) {
+        if (!reason || !this.REASONS.some(function(r) { return r.value === reason; })) {
             return { ok: false, hint: 'Please select a cancellation reason.' };
         }
-        if (reason === 'Other' && !String(detail || '').trim()) {
+        if (reason === 'other' && !String(detail || '').trim()) {
             return { ok: false, hint: 'Please describe the reason for "Other".' };
         }
         return { ok: true, hint: '' };
@@ -3952,7 +3971,7 @@ const ClassCancellation = {
             venue: event.venue,
             totalStudents: total,
             cohorts: this.cohortLabels(event),
-            conflictReason: reason,
+            conflictReason: this.labelOf(reason),   // the home badge EQUALS the modal label (the contract's intent — payload rows carry labels, the ledger keeps the enum)
         };
     },
 
@@ -4015,14 +4034,10 @@ const ClassCancellation = {
         } catch (e) { /* §10 degrade — mirror already updated */ }
     },
 
-    /**
-     * S9 — re-check guards at CONFIRM time (S6) + reason validation
-     * (S7/S8), cancel EVERY resolved twin in place (status 'cancelled' +
-     * cancelledReason/cancelledDetail — merged-cohort multi-match gets all
-     * of them, S16), insert the row when its id is not already present,
-     * write the ledger entry, return {ok:true, entry} or {ok:false, hint}.
-     */
-    cancel(event, days, weekIndex, reason, detail) {
+    /* S1–S5 + S7/S8 pre-flight — shared by cancel() and the confirm await
+       (class-cancel-db-persist): the S6 re-check and the window hint stay
+       single-homed; the server bridge only runs after this passes. */
+    preflight(event, days, weekIndex, reason, detail) {
         if (!this.isCancellable(event, days, weekIndex)) {
             /* SDD class-cancel-2-working-day-window (D3, review round-1):
                TWO-WAY hint re-keyed on the WINDOW law — the window wording
@@ -4042,10 +4057,24 @@ const ClassCancellation = {
         if (!check.ok) return check;
 
         const mk = this.matchKeyOf(event, weekIndex);
-        const matches = this.resolveMatches(mk);
-        if (!matches.length) {
+        if (!this.resolveMatches(mk).length) {
             return { ok: false, hint: 'This class is no longer in the timetable.' };
         }
+        return { ok: true, hint: '', matchKey: mk };
+    },
+
+    /**
+     * S9 — re-check guards at CONFIRM time (S6) + reason validation
+     * (S7/S8), cancel EVERY resolved twin in place (status 'cancelled' +
+     * cancelledReason/cancelledDetail — merged-cohort multi-match gets all
+     * of them, S16), insert the row when its id is not already present,
+     * write the ledger entry, return {ok:true, entry} or {ok:false, hint}.
+     */
+    cancel(event, days, weekIndex, reason, detail) {
+        const pre = this.preflight(event, days, weekIndex, reason, detail);
+        if (!pre.ok) return pre;
+        const mk = pre.matchKey;
+        const matches = this.resolveMatches(mk);
         matches.forEach(function(m) {
             m.eventRef.status = 'cancelled';
             m.eventRef.cancelledReason = reason;
@@ -4059,6 +4088,8 @@ const ClassCancellation = {
         const entry = {
             id: 'cxl-' + Date.now() + '-' + (++this._seq),
             matchKey: mk,
+            sessionId: (event.sessionId != null) ? event.sessionId : event.id,  // the server bridge's handle (cancelClassUndo)
+            exceptionId: null,   // stamped from the server response in the confirm await
             reason: reason,
             detail: detail ? String(detail).trim() : '',
             cancelledAt: new Date().toISOString(),
@@ -4160,6 +4191,30 @@ const ClassCancellation = {
         return changed;
     },
 
+    /* §6 — the server bridge half (class-cancel-db-persist): the ONE undo
+       server call, single-homed for BOTH surfaces (the 5s toast callback
+       and the home chip's Undo affordance). Awaits cancelClassUndo with
+       the entry's server handle (sessionId + 1-based week); ok → the
+       existing client reversal applies; fail → the cancel stands, the
+       honest hint, NO reversal. */
+    async undoViaServer(entry) {
+        if (!entry || !entry.sessionId) {
+            return { ok: false, hint: 'Class restore failed — refresh to see the truth.' };
+        }
+        const weekNo = (entry.matchKey && Number.isInteger(entry.matchKey.week))
+            ? entry.matchKey.week + 1 : null;
+        let res = null;
+        try {
+            res = await window.Livewire.first().call('cancelClassUndo',
+                String(entry.sessionId), weekNo);
+        } catch (e) { res = { ok: false }; }
+        if (res && res.ok === true) {
+            this.undo(entry);
+            return { ok: true };
+        }
+        return { ok: false, hint: (res && res.hint) || 'Class restore failed — refresh to see the truth.' };
+    },
+
     /* §6 — the ONE undo-toast helper: the load bootstrap AND the "I'll Do
        It Later" path both call it; the confirm path must NOT double-toast
        (the modal's success state carries the message instead). Snooze rule
@@ -4167,28 +4222,41 @@ const ClassCancellation = {
        display OR clicking ✕ both count as "seen" and snooze it for the
        session; only a quick navigate-away (timer killed) re-toasts on the
        next load. Undo stays reachable via the home chip's Undo affordance
-       (replacement-home page). */
+       (replacement-home page).
+
+       class-cancel-db-persist: the callback now AWAITS undoViaServer
+       BEFORE the cross-page deep-link — the browser navigating mid-await
+       would kill the undo (design D4.3 review 🟡-5 receipt). Caveat: the
+       USER navigating away themselves mid-await loses the toast —
+       acceptable (the undo is reachable again on next load, home chip). */
     showUndoToast() {
         toast.show('Class cancelled — arrange replacement when ready', function() {
             const entry = ClassCancellation.activeEntry();
             if (!entry) return;
-            ClassCancellation.undo(entry);
-            /* On my-timetable the in-place grid rebuild IS the feedback
-               (U2, 2026-10-08). Anywhere else the undo deep-links to
-               my-timetable at the cancelled class's session week
-               (?week=<matchKey.week>) — the restored=1 param makes the
-               arrival page confirm with the same 'Class restored.' toast
-               (2026-10-08 user request: UNDO must land on the exact
-               class session week, not stay on the arrangement page). */
-            if (location.pathname === '/my-timetable-ui') {
-                if (typeof buildTimetable === 'function') buildTimetable();
-                toast.show('Class restored.', null);
-            } else {
-                const wk = (entry.matchKey && Number.isInteger(entry.matchKey.week))
-                    ? entry.matchKey.week : null;
-                window.location.href = '/my-timetable-ui' +
-                    (wk !== null ? '?week=' + wk + '&restored=1' : '?restored=1');
-            }
+            void (async function() {
+                const res = await ClassCancellation.undoViaServer(entry);
+                if (!res.ok) {
+                    toast.show(res.hint || 'Class restore failed — refresh to see the truth.', null);
+                    ClassCancellation.snoozeToast();
+                    return;
+                }
+                /* On my-timetable the in-place grid rebuild IS the feedback
+                   (U2, 2026-10-08). Anywhere else the undo deep-links to
+                   my-timetable at the cancelled class's session week
+                   (?week=<matchKey.week>) — the restored=1 param makes the
+                   arrival page confirm with the same 'Class restored.' toast
+                   (2026-10-08 user request: UNDO must land on the exact
+                   class session week, not stay on the arrangement page). */
+                if (location.pathname === '/my-timetable-ui') {
+                    if (typeof buildTimetable === 'function') buildTimetable();
+                    toast.show('Class restored.', null);
+                } else {
+                    const wk = (entry.matchKey && Number.isInteger(entry.matchKey.week))
+                        ? entry.matchKey.week : null;
+                    window.location.href = '/my-timetable-ui' +
+                        (wk !== null ? '?week=' + wk + '&restored=1' : '?restored=1');
+                }
+            })();
         }, ClassCancellation.UNDO_TOAST_MS, '', '', '', function() {
             ClassCancellation.snoozeToast();
         }, function() {
@@ -4328,7 +4396,7 @@ const CancelClassModal = {
             const input = document.createElement('input');
             input.type = 'radio';
             input.name = 'cancelReason';
-            input.value = reason;
+            input.value = reason.value;   // the DB enum travels (class-cancel-db-persist)
             input.style.accentColor = 'var(--color-primary)';
             label.appendChild(input);
             label.appendChild(document.createTextNode(reason));
@@ -4388,36 +4456,65 @@ const CancelClassModal = {
         const detail = document.getElementById('cancelOtherDetail');
         const hint = document.getElementById('cancelReasonHint');
         const yes = document.getElementById('confirmCancelClassBtn');
-        if (detail) detail.style.display = reason === 'Other' ? '' : 'none';
+        if (detail) detail.style.display = reason === 'other' ? '' : 'none';
         const check = ClassCancellation.validate(reason, detail ? detail.value : '');
         if (hint) hint.textContent = check.hint;
         if (yes) yes.disabled = !check.ok;
     },
 
-    /* S6 + S9 — confirm-time re-check, then the actual cancel. On failure
-       stay open and surface the hint ('This class is outside the 2-working-
-       day cancellation window.' for a pre-cutoff date; the generic fallback
-       for the other guard failures — the SDD class-cancel-2-working-day-
-       window hint law). */
-    confirm() {
+    /* S6 + S9 — confirm-time re-check, then the server-bridged cancel
+       (class-cancel-db-persist): the Yes pending-disables FIRST (the
+       double-fire guard), the pre-flight passes only then, the Livewire
+       trait call runs, and the SERVER response is the truth — ok → the
+       existing client mutation + the ledger (exceptionId stamped for the
+       undo); fail → the honest hint, NO flip, NO ledger (the midnight-roll
+       receipt: the client's own re-check never overrides the server). */
+    async confirm() {
         const ctx = this._ctx;
         if (!ctx || ctx.entry) return;
         const detail = document.getElementById('cancelOtherDetail');
-        const res = ClassCancellation.cancel(ctx.event, ctx.days, ctx.weekIndex,
-            this._selectedReason(), detail ? detail.value : '');
-        if (!res.ok) {
-            const hint = document.getElementById('cancelReasonHint');
-            if (hint) hint.textContent = res.hint;
+        const yes = document.getElementById('confirmCancelClassBtn');
+        yes.disabled = true;   // pending-disable FIRST — one await, one write
+        const reason = this._selectedReason();
+        const trimmedDetail = detail ? String(detail.value).trim() : '';
+        const pre = ClassCancellation.preflight(ctx.event, ctx.days, ctx.weekIndex, reason, trimmedDetail);
+        const hint = document.getElementById('cancelReasonHint');
+        if (!pre.ok) {
+            if (hint) hint.textContent = pre.hint;
+            this._refreshGate();   // re-gate for a retry after the user fixes the input
             return;
         }
-        ctx.entry = res.entry;
+        let res = null;
+        try {
+            res = await window.Livewire.first().call('cancelClass',
+                String((ctx.event.sessionId != null) ? ctx.event.sessionId : ctx.event.id),
+                ctx.weekIndex + 1, reason, trimmedDetail);
+        } catch (e) { res = { ok: false, hint: 'Server error — the class is unchanged.' }; }
+        if (!res || res.ok !== true) {
+            if (hint) hint.textContent = (res && res.hint) || 'Server error — the class is unchanged.';
+            this._refreshGate();
+            return;
+        }
+        const out = ClassCancellation.cancel(ctx.event, ctx.days, ctx.weekIndex, reason, trimmedDetail);
+        if (!out.ok) {
+            /* The server row is WRITTEN but the client guards now disagree
+               (midnight-roll edge, seconds apart). The client still must not
+               flip against its own guards — the hint reads honestly; a
+               reload resolves to the server truth (applyLedger self-evict). */
+            if (hint) hint.textContent = out.hint ||
+                'The class is cancelled on the server but the timetable disagrees — reload to see the truth.';
+            return;
+        }
+        out.entry.exceptionId = res.exceptionId || null;
+        ClassCancellation.ledgerUpdate(out.entry);
+        ctx.entry = out.entry;
         const summary = document.getElementById('cancelClassSummary');
         if (summary) {
             const ev = ctx.event;
             const day = ctx.days && ctx.days[ev.di];
             summary.textContent = ev.code + ' (' + (ev.type || '') + ') · ' +
                 ((day && day.abbr) || '') + ' · ' + ((day && day.date) || '') + ' · ' +
-                to12h(hours[ev.start]) + ' \u2013 ' + to12h(hours[ev.end + 1] || add30min(hours[ev.end]));
+                to12h(hours[ev.start]) + ' – ' + to12h(hours[ev.end + 1] || add30min(hours[ev.end]));
         }
         this._swapState('success');
     },

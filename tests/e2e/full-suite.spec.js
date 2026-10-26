@@ -215,8 +215,10 @@ test.describe('API: GET /api/v1/requests/conflicts', () => {
     const res = await request.get(`${API}/requests/conflicts`);
     const data = await res.json();
     const validReasons = [
-      'Public Holiday', 'Annual Leave', 'Medical Leave',
+      'Public Holiday', 'Annual Leave', 'Medical/Sick Leave',
       'Official Event', 'Emergency Leave',
+      'Hospitalisation Leave', 'Maternity Leave',
+      'Compassionate Leave', 'Paternity Leave', 'Other',
     ];
     data.conflictedClasses.forEach(c => {
       expect(validReasons).toContain(c.conflictReason);

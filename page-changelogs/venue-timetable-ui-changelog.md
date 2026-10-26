@@ -1398,3 +1398,9 @@ The venue legend gains the **Replacement** chip (blue, same swatch/scene as
 My Timetable's frozen legend; the "replacement sessions fold in here"
 parenthesis is retired) — the approved block's dark render draws the paired
 entry. The earlier postscript's failed artifact is gone (commit noted).
+## 2026-10-27 (SDD class-cancel-db-persist) — Cancel Class writes the REAL database
+Shared machinery — no page-local changes beyond the component gaining the
+`use CancelsClasses;` line. Same law as my-timetable (server-truth cancel,
+enum-typed radios, await-first undo). Demo-DB CHECK widen pasted by the
+user per `docs/demo-db-data-changes.md`.
+

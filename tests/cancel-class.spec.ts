@@ -50,7 +50,7 @@ function seedEntry() {
   return {
     id: 'cxl-seed-1',
     matchKey: { week: 0, code: 'AMCS2093', di: 3, start: 13, lecturer: ME },
-    reason: 'Medical Leave',
+    reason: 'medical_leave',
     detail: '',
     cancelledAt: '2026-10-05T09:00:00.000Z',
     row: {
@@ -66,7 +66,7 @@ function seedEntry() {
       venue: 'B107',
       totalStudents: 28,
       cohorts: ['DFT2 (S1)'],
-      conflictReason: 'Medical Leave',
+      conflictReason: 'Medical/Sick Leave',
     },
     chip: true,
   };
@@ -191,12 +191,12 @@ test.describe('Cancel Class Flow', () => {
     await expect(hint).toHaveText('Please select a cancellation reason.');
 
     // Pick a real reason → enabled
-    await page.locator('#cancelReasonList input[type="radio"][value="Medical Leave"]').click();
+    await page.locator('#cancelReasonList input[type="radio"][value="medical_leave"]').click();
     await expect(yes).toBeEnabled();
     await expect(hint).toHaveText('');
 
     // S8 — switch to "Other": textarea appears; empty detail re-disables
-    await page.locator('#cancelReasonList input[type="radio"][value="Other"]').click();
+    await page.locator('#cancelReasonList input[type="radio"][value="other"]').click();
     const detail = page.locator('#cancelOtherDetail');
     await expect(detail).toBeVisible();
     await expect(yes).toBeDisabled();
@@ -214,7 +214,7 @@ test.describe('Cancel Class Flow', () => {
     await page.locator('#classModal .modal-footer [data-cancel-class-btn]').click();
     await expect(page.locator('#cancelClassOverlay')).toBeVisible();
 
-    await page.locator('#cancelReasonList input[type="radio"][value="Medical Leave"]').click();
+    await page.locator('#cancelReasonList input[type="radio"][value="medical_leave"]').click();
     await page.locator('#confirmCancelClassBtn').click();
 
     // Success state carries the message (the confirm path never double-toasts)
@@ -240,7 +240,7 @@ test.describe('Cancel Class Flow', () => {
     expect(ledger[0].matchKey).toEqual({
       week: 10, code: 'BMIT2013', di: 1, start: 12, lecturer: ME,
     });
-    expect(ledger[0].reason).toBe('Medical Leave');
+    expect(ledger[0].reason).toBe('medical_leave');  // the DB enum travels (class-cancel-db-persist)
     expect(ledger[0].row.id).toBeGreaterThan(14);  // conflictedClasses max seed id
   });
 
@@ -252,7 +252,7 @@ test.describe('Cancel Class Flow', () => {
     await expect(block).toBeVisible();
     await block.click();
     await page.locator('#classModal .modal-footer [data-cancel-class-btn]').click();
-    await page.locator('#cancelReasonList input[type="radio"][value="Medical Leave"]').click();
+    await page.locator('#cancelReasonList input[type="radio"][value="medical_leave"]').click();
     await page.locator('#confirmCancelClassBtn').click();
     await expect(page.locator('#cancelClassSuccessState')).toBeVisible();
 
@@ -372,7 +372,7 @@ test.describe('Cancel Class Flow', () => {
     await expect(block).toBeVisible();
     await block.click();
     await page.locator('#classModal .modal-footer [data-cancel-class-btn]').click();
-    await page.locator('#cancelReasonList input[type="radio"][value="Medical Leave"]').click();
+    await page.locator('#cancelReasonList input[type="radio"][value="medical_leave"]').click();
     await page.locator('#confirmCancelClassBtn').click();
     await expect(page.locator('#cancelClassSuccessState')).toBeVisible();
 
@@ -458,7 +458,7 @@ test.describe('Cancel Class Flow', () => {
     await page.locator('#classModal .modal-footer [data-cancel-class-btn]').click();
     await expect(page.locator('#cancelClassOverlay')).toBeVisible();
 
-    await page.locator('#cancelReasonList input[type="radio"][value="Medical Leave"]').click();
+    await page.locator('#cancelReasonList input[type="radio"][value="medical_leave"]').click();
 
     // Clock mechanism (named per design §8): page.clock.setFixedTime ALONE
     // — no clock.install(). Date is faked from this point but timers stay
