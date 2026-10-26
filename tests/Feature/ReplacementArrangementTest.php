@@ -494,16 +494,31 @@ final class ReplacementArrangementTest extends TestCase
 
         $payload = $this->payloadOf($this->lecturerA);
 
+        // TEMP-HOLDER-LABEL: the busy vectors carry the 4th holder-text key —
+        // trim back to the engine's 3-key contract for these assertions.
+        $trim = static fn (array $vectors): array => array_map(
+            static fn (array $week): array => array_map(
+                static fn (array $r): array => array_slice($r, 0, 3),
+                $week,
+            ),
+            $vectors,
+        );
+
         // The lecturer's own freedom ('' key, course-independent).
-        $own = $payload['busyByWeek'][''];
+        $own = $trim($payload['busyByWeek']['']);
         $this->assertContains([1, 4, 8], $own[0], 'own Mon 10:00–12:00 class → [day 1, idx 4, idx 8)');
         $this->assertContains([1, 12, 16], $own[0], 'own Tue 14:00–16:00 class');
 
         // The subject's vectors add its cohort's Wednesday class — keyed by
         // the SESSION id now (occurrence-grain: L/T/P of one module differ).
-        $subject = $payload['busyByWeek'][(string) $sessionA->id];
+        $subject = $trim($payload['busyByWeek'][(string) $sessionA->id]);
         $this->assertContains([2, 2, 6], $subject[0], 'cohort Wed 09:00–11:00 class');
         $this->assertContains([1, 12, 16], $subject[0], 'lecturer vector merges in');
+
+        // TEMP-HOLDER-LABEL receipt: the holder text rides the 4th key.
+        $holderChars = collect($payload['busyByWeek'][''][0])
+            ->pluck(3)->filter()->implode(' ');
+        $this->assertStringContainsString('BMIT1001', $holderChars, 'the holder label names the module');
 
         // Engine Vector 4 (SDD lt-venue-capacity-rule: room_type law + the
         // capacity gate). This fixture's B005 carries CSV 'L,T' with
