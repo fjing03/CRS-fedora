@@ -4399,7 +4399,7 @@ const CancelClassModal = {
             input.value = reason.value;   // the DB enum travels (class-cancel-db-persist)
             input.style.accentColor = 'var(--color-primary)';
             label.appendChild(input);
-            label.appendChild(document.createTextNode(reason));
+            label.appendChild(document.createTextNode(reason.label));   // the plain modal label — NOT the {value,label} object
             group.appendChild(label);
         });
     },
