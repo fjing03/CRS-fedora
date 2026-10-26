@@ -142,11 +142,11 @@ ALTER TABLE class_exceptions ADD CONSTRAINT class_exceptions_reason_check
 ## Acceptance
 
 A lecturer cancels an in-window class: the block STAYS on every owned
-timetable surface, red (`event-conflict`), tip `{cohort · Cancelled —
-Reason}`, popup offers Replace-Now. They propose: the block STAYS (+
-`(Proposed ⏳)`), the amber make-up block appears at its own slot. PL
-approves: the ORIGINAL block vanishes (the `replaced` release re-keys the
-skip), the approved landing block renders in the slot's own week (the
+timetable surface, red (`event-conflict`), tip `{cohort · CANCELLED}`
+(in-block note `(Cancelled)`), popup offers Replace-Now. They propose: the
+block STAYS (+ `(Proposed ⏳)`), the amber make-up block appears at its own
+slot. PL approves: the ORIGINAL block vanishes (the read-time approved-pair
+derivation), the approved landing block renders in the slot's own week (the
 existing D-P10 receipt). PL rejects: the block returns to plain cancelled
 red. Reloads agree with the server at every step. Undo (within 5 s or the
 home chip) restores the prior state (class-cancel-db-persist's machinery).
