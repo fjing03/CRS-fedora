@@ -153,7 +153,7 @@ test('BUG-08 subject: the guard fires after the hop; cancel restores; Yes clears
   await page.locator('#subjectSelector').selectOption({ index: 1 }); // AMSE1003
   await page.waitForTimeout(900);
   await expect(page.locator('#confirmModal')).toBeVisible();
-  await expect(page.locator('#modalTitle')).toHaveText('Clear Current Selection?');
+  await expect(page.locator('#modalTitle')).toHaveText('Change Subject?'); // 2026-10-24: title names the trigger
   await page.locator('#confirmModal .btn-outline').click(); // No, Keep My Selection
   await page.waitForTimeout(800);
   await expect(page.locator('#infoTotal')).toContainText('4 of 4 slots');
@@ -176,7 +176,7 @@ test('BUG-08 slot: the guard fires after the hop; the pinned pair swaps + the co
   await page.waitForTimeout(700);
   await page.locator('#slotPanel .slot-dd-item').first().locator('.slot-dd-item-label').click();
   await page.waitForTimeout(900);
-  await expect(page.locator('#confirmModal')).toBeVisible(); // "Clear Current Selection?" family
+  await expect(page.locator('#confirmModal')).toBeVisible(); // "Change …?" family (slot/subject trigger-named)
   await page.locator('#confirmModal .btn-outline').click(); // No
   await page.waitForTimeout(800);
   await expect(page.locator('#infoTotal')).toContainText('4 of 4 slots');

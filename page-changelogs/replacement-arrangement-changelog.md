@@ -1977,3 +1977,25 @@ Two toolbar buttons dropped on `/replacement-arrangement` alone (other pages unt
   pattern as `earliestBtn` on this page); `updateFavStar`/`toggleFavourite` still run but pass `null`,
   which `ui-common.js` already null-guards (`if (starEl)` / `if (!starEl || !code) return`).
 - pint ✓, phpstan 0 errors.
+
+#### Guard modals: trigger-named titles + warn-keyword styling (user directive 2026-10-26)
+Three of the four clear-guard modals shared the identical title "Clear Current Selection?" (two
+cascings) so users couldn't tell WHICH change they were confirming; the user's rule = title NAMES
+the trigger (the "Change Venue?" family) and keywords render CAP + bold + color.
+
+- **`selectBlock`'s occupied alert** (a new block clicked while one is selected): title
+  "Clear current selection" → **"Change BLOCK?"**; body keyword "block" wrapped in `warn-keyword`.
+- **`confirmChangeWithSelection`** (shared by the subject + time-slot guards): the fixed title
+  'Clear Current Selection?' → **dynamic `'Change ' + titleCase(actionLabel) + '?'`** — renders
+  "Change SUBJECT?" / "Change TIME SLOT?" from the same literals the body already uses; body's
+  `<strong>` keyword upgraded to `warn-keyword` (red + CAP, theme tokens only).
+- **Venue guard** (`Change Venue?` — the user's good example): title + body keyword wrapped in
+  `warn-keyword` for family consistency (shape/labels untouched).
+- **`showAlertModal` + `showConfirmModal`**: title set via `innerHTML` instead of `textContent`
+  (safe — every other caller passes plain text) so keyword spans render in titles.
+- Spec receipts (`tests/clear-guards-cross-week.spec.ts`): the subject assertion re-keyed to
+  'Change Subject?' + the slot-family comment updated. Live-verified all four modals as staff 5770
+  on `?session=67&week=14`: BLOCK / SUBJECT / TIME SLOT / VENUE all render red-CAP keywords
+  (title + body). pint ✓ phpstan 0 errors. NOTE: that spec file's 5 BUG-08 flow tests fail at
+  BASELINE too (stashed-run proof) — the pin-truthfulness rework changed the flows; pre-existing,
+  not this change.

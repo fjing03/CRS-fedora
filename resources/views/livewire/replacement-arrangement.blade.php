@@ -1568,7 +1568,7 @@
 
         function selectBlock(day, startHour) {
             if (selectedBlock) {
-                showAlertModal('Clear current selection', 'You already have a selected block. Clear it first before selecting a new one.', {
+                showAlertModal('Change <span class="warn-keyword">Block</span>?', 'You already have a selected <span class="warn-keyword">block</span>. Clear it first before selecting a new one.', {
                     label: 'Clear Current Selection',
                     fn: function() { userDeselectSelectedBlock(); }
                 });
@@ -1786,8 +1786,8 @@
                only test let the change through silently (the user's live report). */
             if ((selectedBlock || getGlobalTotal() > 0) && newVenue !== currentVenue) {
                 showConfirmModal(
-                    'Change Venue?',
-                    'You have selected slots on the grid. Changing the <strong>venue</strong> will clear them.<br>Continue?',
+                    'Change <span class="warn-keyword">Venue</span>?',
+                    'You have selected slots on the grid. Changing the <span class="warn-keyword">venue</span> will clear them.<br>Continue?',
                     function() {
                         hideConfirmModal();
                         /* 2026-10-09 user decision: confirming the clear is an
@@ -1844,7 +1844,9 @@
         let confirmCallback = null;
 
         function showAlertModal(title, bodyHtml, action) {
-            document.getElementById('modalTitle').textContent = title;
+            /* 2026-10-24 user UI directive: titles carry the warn-keyword spans
+               (CAP + bold + color) — innerHTML so the markup renders */
+            document.getElementById('modalTitle').innerHTML = title;
             document.getElementById('modalBody').innerHTML = bodyHtml;
             const cancelBtn = document.querySelector('.modal-footer .btn-outline');
             const confirmBtn = document.getElementById('modalConfirmBtn');
@@ -1874,7 +1876,7 @@
 
         function showConfirmModal(title, bodyHtml, callback, opts) {
             opts = opts || {};
-            document.getElementById('modalTitle').textContent = title;
+            document.getElementById('modalTitle').innerHTML = title;
             document.getElementById('modalBody').innerHTML = bodyHtml;
             confirmCallback = callback;
             const confirmBtn = document.getElementById('modalConfirmBtn');
@@ -1917,9 +1919,13 @@
                selection; the pointer-only early-out reeled through silently
                and the subject/slot modals NEVER opened. */
             if (!selectedBlock && getGlobalTotal() === 0) { proceedFn(); return; }
+            /* 2026-10-24 user decision: the title NAMES the trigger (the "Change
+               Venue?" family), not the shared "Clear Current Selection?" —
+               keywords CAP + bold + colored via warn-keyword */
+            const titleCaseLabel = actionLabel.replace(/\b\w/g, function (c) { return c.toUpperCase(); });
             showConfirmModal(
-                'Clear Current Selection?',
-                'You have selected slots on the grid. Changing the <strong>' + actionLabel + '</strong> will remove them.<br>Continue?',
+                'Change <span class="warn-keyword">' + titleCaseLabel + '</span>?',
+                'You have selected slots on the grid. Changing the <span class="warn-keyword">' + actionLabel + '</span> will remove them.<br>Continue?',
                 function() {
                     hideConfirmModal();
                     /* 2026-10-09 user decision: the modal promises "will remove
