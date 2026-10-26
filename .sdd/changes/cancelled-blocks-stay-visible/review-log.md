@@ -91,3 +91,11 @@
    badge label law) STAYS riding; the popup's fact family untouched.
  - D2 tip/note receipt rows re-keyed; D7's test receipt notes the TIP law.
  - Review-log + artifacts frozen apportioned. The apply walk (T1–T6) inherits.
+
+## Round 6 — 2026-10-27 (final micro-check)
+ - all blockers resolved (D5 ③④ plain/NO-EDIT + T3 clean).
+ - the acceptance stray line GOT the replace (grep confirms no stale
+   'Cancelled — Reason' text anywhere) — the soft-freeze condition
+   discharged; `ReasonLabel` stall: the OVERRIDES `replaced` stays marked
+   dead-but-harmless.
+ VERDICT: READY-FOR-APPLY (the freeze state).
