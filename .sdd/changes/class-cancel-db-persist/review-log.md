@@ -82,3 +82,13 @@
  - CancelClass returning the exception id directly vs the trait's
    two-step query — the two-step stays (the smallest-diff principle);
 ### Verdict in-progress: re-review on the fold above pending.
+
+## Round 4 — 2026-10-27 (the round-3 fold lands)
+### 🔴 Fixed
+ - the two Scope rows added (the home blade's 4 receipts + the demo-db
+   sheet paste-target).
+ - the D5 down() contradiction struck — the frozen proposal's stance wins.
+ - the D1 snippet folds the DB::transaction wrap + the real use imports.
+### 🟡 Folded
+ - the pseudo import line cleaned.
+## Verdict: internal consistency reached — READY TO FREEZE / APPLY.

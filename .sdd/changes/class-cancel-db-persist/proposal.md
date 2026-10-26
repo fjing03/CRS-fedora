@@ -41,6 +41,8 @@ the scope:
 | NEW `database/migrations/*_widen_cancel_reason_and_audit_checks.php` | the two CHECK widenings; **down() = the narrowing HAZARD** (the `2026_08_24_000001`:63 precedent comment mirrored — after any real usage the narrow restore fails; the down() body keeps the widen, `@SuppressWarnings` free) — **NOT auto-run on the demo DB** |
 | `tests/cancel-class.spec.ts` | the declarative re-keys: the radio locators `[value="Medical Leave"]` ×4 (+ the ledger/label assertions :243 and the S7/S8 gating live receipt) carry the enum values; NO battery run |
 | `e2e/full-suite.spec.js:218` / `e2e/api-wiring.spec.js:83` | the OLD 5-value reason vocabulary strings re-key (the declarative receipt) |
+| `resources/views/livewire/replacement-home.blade.php` | FOUR declarative home edits: the `badgeClass` + the badge CSS block (the 5 token pairs), the titleCase law extension, the filter-internal receipts, the chip Undo's pending-disable + the await undoViaServer plug-in (the :477 anchor) |
+| `docs/demo-db-data-changes.md` | the demo-DB sheet paste (the convention's row: the two CHECK widenings as the dated entry) |
 | the four page changelogs (my-timetable, cohort, venue, home) | dated entries |
 
 OUT of scope: the exception-row read side (already wired), the

@@ -10,7 +10,8 @@ implementer re-greps.
 namespace App\Livewire\Concerns;
 
 use App\Actions\CancelClass;
-use App\Actions\CancelClassRequest-shaped validation;
+use App\Http\Requests\CancelClassRequest;
+use App\Models\AuditLog;
 use App\Models\ClassException;
 use App\Models\ClassSession;
 use Illuminate\Support\Facades\DB;
@@ -63,14 +64,16 @@ trait CancelClassBridge
             ->first();
         if ($exception === null) return ['ok' => false];
         $erasedReason = (string) $exception->reason;
-        $exception->delete();
-        AuditLog::create([
-            'user_id' => auth()->id(),
-            'action' => 'class_cancel_undone',
-            'details' => ['class_session_id' => $session->id,
-                          'week_number' => $weekNumber,
-                          'reason' => $erasedReason],
-        ]);
+        DB::transaction(function () use ($exception, $session, $weekNumber, $erasedReason): void {
+            $exception->delete();
+            AuditLog::create([                 // no deserted audit row
+                'user_id' => auth()->id(),
+                'action' => 'class_cancel_undone',
+                'details' => ['class_session_id' => $session->id,
+                              'week_number' => $weekNumber,
+                              'reason' => $erasedReason],
+            ]);
+        });
         return ['ok' => true];
     }
 }
@@ -179,12 +182,10 @@ NEW migration `*_widen_cancel_reason_and_audit_checks.php`:
   DROP/ADD (8) — the same statement pairs as the proposal's sheet;
 - `down()`: the narrowing HAZARD comment (the `2026_08_24_000001`:63
   precedent) mirrored verbatim; the down() body KEEPS the wide CHECKs
-  and only logs (the review's stance: a real-usage DB cannot narrow
-  without data loss; fresh DBs get the wide list from the create
-  migrations? NO — the create migration's CHECK stays 5-valued and this
-  gate keeps it honest: the down() restores the ORIGINAL 5-list but
-  with the hazard comment; fresh DBs apply both migrations in sequence
-  so the end state = the 10-list).
+  and only logs — the frozen proposal's stance (a real-usage DB cannot
+  narrow without data loss; fresh DBs reach the 10-valued state via the
+  migration sequence). The blade-shaped "restores the ORIGINAL 5-list"
+  clause from the earlier draft is STRUCK (the review's contradiction).
 
 ## D6 — the gates
 
