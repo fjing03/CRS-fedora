@@ -3756,16 +3756,12 @@ triggerText.textContent = slotTriggerLabel(slot);
                     onSelect: function(code) { onVenueChange(); }
                 }
             );
-            /* Full venue label as a data-tip (renders above) — the trigger ellipsizes at the
-               single-row width cap; kept current for every trigger text change */
-            const venueTrigger = document.querySelector('#buildingSelectorDropdown .venue-dd-trigger');
-            const syncVenueTip = function() {
-                venueTrigger.setAttribute('data-tip', venueTrigger.textContent.replace(/\s*▾\s*$/, '').trim());
-            };
+            /* venue-trigger-label law (user 2026-10-27): the seats-free label +
+               the seats-bearing data-tip are OWNED by the shared VenueDropdown
+               (_updateTrigger) now — the old textContent-copy observer here
+               would overwrite that tip with the plain label, so it's gone. */
             /* BRIDGE PATCH: keep currentVenue in step with the initial venue */
             currentVenue = venueDropdown.getSelected() || currentVenue;
-            new MutationObserver(syncVenueTip).observe(venueTrigger, { childList: true, characterData: true, subtree: true });
-            syncVenueTip();
             /* venue-description-doc-b006-rule + venue-side-chips (the user's
                chip ask, amended 2026-10-23): right of the venue dd —
                (1) the capacity badge = icon + number + hover tooltip;

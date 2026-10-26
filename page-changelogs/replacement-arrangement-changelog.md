@@ -1999,3 +1999,20 @@ the trigger (the "Change Venue?" family) and keywords render CAP + bold + color.
   (title + body). pint ✓ phpstan 0 errors. NOTE: that spec file's 5 BUG-08 flow tests fail at
   BASELINE too (stashed-run proof) — the pin-truthfulness rework changed the flows; pre-existing,
   not this change.
+
+#### Venue trigger label: seat count left the label, kept in the hover tip (user directive 2026-10-27)
+The dropdown trigger read "B111 — Lecture Hall (80 seats)" — the user's law: the visible label
+drops the seat count ("B111 — Lecture Hall"); the FULL name + capacity stay on the trigger's
+`data-tip` hover.
+
+- **Shared `VenueDropdown._updateTrigger()` (ui-common.js)** now owns BOTH surfaces: the
+  seats-free label text + `data-tip = "code — Type (N seats)"` set in the same pass (the
+  "Select a venue" empty state clears the tip). Ownership moved into the class because the
+  arrangement blade's `syncVenueTip` MutationObserver copied the label's textContent into the
+  tip on every change — leaving it would have erased the seats from the tip the moment the
+  label dropped them. The observer + its initial call are removed (the class keeps the tip
+  current by construction); every consumer of the shared dropdown (venue page included)
+  gets the same label/tip pair — no page can drift.
+- Spec receipts (`tests/arr-slot-original-venue-sync.spec.ts`): the 11 label assertions
+  re-keyed seats-free + one NEW data-tip receipt (B111 tip still carries "(80 seats)") —
+  9/9 green. pint ✓ phpstan 0 errors ✓ node --check ✓.

@@ -3648,14 +3648,20 @@ class VenueDropdown {
         if (!this.selectedCode) {
             if (label) label.textContent = 'Select a venue';
             else this.trigger.textContent = 'Select a venue';
+            this.trigger.removeAttribute('data-tip'); /* nothing to enlarge on */
             return;
         }
         const v = this.venues.find(x => x.code === this.selectedCode);
         if (v) {
             const typeLabel = v.type === 'LectureHall' ? 'Lecture Hall' : v.type;
-            const text = v.code + ' \u2014 ' + typeLabel + ' (' + v.capacity + ' seats)';
+            /* venue-trigger-label law (user 2026-10-27): the trigger label reads
+               "B111 \u2014 Lecture Hall" (seat count dropped — the trigger ellipsizes
+               at the width cap anyway); the FULL name + capacity rides the shared
+               data-tip hover — the class owns both so pages can't drift apart. */
+            const text = v.code + ' \u2014 ' + typeLabel;
             if (label) label.textContent = text;
             else this.trigger.textContent = text; /* legacy markup fallback */
+            this.trigger.setAttribute('data-tip', text + ' (' + v.capacity + ' seats)');
         }
     }
 
