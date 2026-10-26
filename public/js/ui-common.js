@@ -3525,8 +3525,7 @@ class VenueDropdown {
            groups CiscoLab under Lab, so this is where its true name shows. */
         const floorNum = parseInt(v.code.charAt(1));
         const floorLabel = floorNum === 0 ? 'Ground Floor' : 'Floor ' + floorNum;
-        const typeName = v.type === 'CiscoLab' ? 'Cisco Lab'
-            : (v.type === 'LectureHall' ? 'Lecture Hall' : v.type);
+        const typeName = VenueDropdown.humanizeType(v.type); /* one vocabulary — the trigger label + this tip agree (user 2026-10-27) */
         row.dataset.tip = v.code + ' · ' + typeName + ' · ' + floorLabel + ', Block ' + v.code.charAt(0);
 
         const favs = this.getFavourites();
@@ -3641,6 +3640,14 @@ class VenueDropdown {
 
     /* ── Helpers ────────────────────────────────────────────── */
 
+    /* One vocabulary for a venue type's written name (user 2026-10-27):
+       Tutorial → "Tutorial Room", CiscoLab → "Cisco Lab" (a space — the raw
+       enum is unreadable), LectureHall → "Lecture Hall", Lab unchanged.
+       Static so every surface (trigger label, tips, badges) shares one law. */
+    static humanizeType(type) {
+        return { Tutorial: 'Tutorial Room', CiscoLab: 'Cisco Lab', LectureHall: 'Lecture Hall' }[type] || type;
+    }
+
     _updateTrigger() {
         /* the chevron is a separate svg (same shared arrow as the week-select);
            only the label span receives text */
@@ -3653,12 +3660,17 @@ class VenueDropdown {
         }
         const v = this.venues.find(x => x.code === this.selectedCode);
         if (v) {
-            const typeLabel = v.type === 'LectureHall' ? 'Lecture Hall' : v.type;
-            /* venue-trigger-label law (user 2026-10-27): the trigger label reads
-               "B111 \u2014 Lecture Hall" (seat count dropped — the trigger ellipsizes
-               at the width cap anyway); the FULL name + capacity rides the shared
-               data-tip hover — the class owns both so pages can't drift apart. */
-            const text = v.code + ' \u2014 ' + typeLabel;
+            /* venue-trigger-label law (user 2026-10-26 + 2026-10-27): the trigger
+               names the room — "B010 — Computer Lab 2" (the REAL short name,
+               mock-data §2.5b), "B101 — Tutorial Room" (room_name minus its
+               baked code suffix), "B111 — Lecture Hall" — seat count dropped;
+               the label + capacity ride the shared data-tip hover — the class
+               owns both so pages can't drift apart. */
+            const realName = ((window.MockData || {}).venueRealNames || {})[v.code];
+            let base = realName
+                || (v.name ? v.name.replace(new RegExp('\\s*' + v.code + '\\s*$'), '').trim() : '')
+                || VenueDropdown.humanizeType(v.type);
+            const text = v.code + ' \u2014 ' + base;
             if (label) label.textContent = text;
             else this.trigger.textContent = text; /* legacy markup fallback */
             this.trigger.setAttribute('data-tip', text + ' (' + v.capacity + ' seats)');

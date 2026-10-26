@@ -2016,3 +2016,22 @@ drops the seat count ("B111 — Lecture Hall"); the FULL name + capacity stay on
 - Spec receipts (`tests/arr-slot-original-venue-sync.spec.ts`): the 11 label assertions
   re-keyed seats-free + one NEW data-tip receipt (B111 tip still carries "(80 seats)") —
   9/9 green. pint ✓ phpstan 0 errors ✓ node --check ✓.
+
+#### Venue trigger label amended: the rooms' REAL short names (user table 2026-10-27)
+Follow-up to the seats-free label above. The user supplied the authoritative room list
+(B005 Computer Lab 5 · B006 Computer Lab 4 - CISCO Lab · B009 Computer Lab 1 ·
+B010 Computer Lab 2 · B011 Computer Lab 3 — full names "Computer Laboratory n" family),
+so labs no longer read the generic type word:
+
+- **`MockData.venueRealNames` (mock-data.js §2.5b)** — new single-source map of the five
+  real short names. The `VenueDropdown._updateTrigger()` label law is now three-step:
+  real name → `room_name` minus its baked trailing code ("Tutorial Room B101" →
+  "Tutorial Room", "Lecture Hall B110" → "Lecture Hall") → humanized type fallback.
+  Demo DB stays untouched (read-only stance) — the map carries the truth until a seed
+  ever runs.
+- **`VenuesSeeder`** — a per-room `$names` override: future seeds write the real lab
+  names ("Computer Lab 1…5", "Computer Lab 4 - CISCO Lab") instead of "Computer Lab B005".
+- Spec receipts (`arr-slot-original-venue-sync.spec.ts`): the 6 `B010 — Lab` label
+  assertions re-keyed to `B010 — Computer Lab 2` (B111/B100 assertions unchanged — the
+  suffix-strip path yields the same text; the data-tip receipt unchanged). pint ✓
+  phpstan 0 errors ✓ node --check both assets ✓ (no spec run — the user verifies manually).

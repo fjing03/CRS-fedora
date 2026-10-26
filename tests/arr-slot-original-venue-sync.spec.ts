@@ -26,14 +26,14 @@ test('the label follows the picked schedule ORIGINAL room (session-change pick)'
   await page.waitForTimeout(300);
   await page.click('.slot-dd-item .slot-dd-item-label');
   await page.waitForTimeout(2200);
-  await expect(page.locator('.venue-dd-label')).toHaveText('B010 — Lab');
+  await expect(page.locator('.venue-dd-label')).toHaveText('B010 — Computer Lab 2');
   await expect(page.locator('#slotTriggerText')).toContainText('W14 · Dec 24 · 12:00 PM–1:00 PM');
 });
 
 test('alternation across rows with different original venues (auto-pin follows, picks keep parity)', async ({ page }) => {
   await page.goto('/replacement-arrangement?session=38&week=14&from=replacement-home');
   await page.waitForTimeout(3000);
-  await expect(page.locator('.venue-dd-label')).toHaveText('B010 — Lab');
+  await expect(page.locator('.venue-dd-label')).toHaveText('B010 — Computer Lab 2');
   await expect(page.locator('#venueCapacity')).toHaveText(/28/s);
   // → AMSE1003: the ROUND-2 law — the auto-pin follows the row's ORIGINAL room immediately (no manual pick)
   await page.selectOption('#subjectSelector', 'AMSE1003');
@@ -53,18 +53,18 @@ test('alternation across rows with different original venues (auto-pin follows, 
   await page.waitForTimeout(300);
   await page.click('.slot-dd-item .slot-dd-item-label');
   await page.waitForTimeout(2200);
-  await expect(page.locator('.venue-dd-label')).toHaveText('B100 — Tutorial');
+  await expect(page.locator('.venue-dd-label')).toHaveText('B100 — Tutorial Room');
 });
 
 test('same-session pick (Gap A) still runs the venue family + parity refire', async ({ page }) => {
   await page.goto('/replacement-arrangement?session=38&week=14&from=replacement-home');
   await page.waitForTimeout(3000);
-  await expect(page.locator('.venue-dd-label')).toHaveText('B010 — Lab');
+  await expect(page.locator('.venue-dd-label')).toHaveText('B010 — Computer Lab 2');
   await page.click('#slotTrigger');
   await page.waitForTimeout(300);
   await page.click('.slot-dd-item .slot-dd-item-label'); // the same row the arrival auto-pinned (sessionId 38 = current) → the family was SKIPPED pre-fix
   await page.waitForTimeout(2200);
-  await expect(page.locator('.venue-dd-label')).toHaveText('B010 — Lab');
+  await expect(page.locator('.venue-dd-label')).toHaveText('B010 — Computer Lab 2');
   expect(await page.evaluate(() => window.__venueSelected())).toBe('B010'); // the equal-target parity refire (design D3)
   await expect(page.locator('#slotTriggerText')).toContainText('W14 · Dec 24 · 12:00 PM–1:00 PM');
 });
@@ -72,10 +72,10 @@ test('same-session pick (Gap A) still runs the venue family + parity refire', as
 test('the 68/14 → BMSE2163 sighting: the auto-pin follows @ B010 BEFORE any manual pick (round-2 law, the whole-red grid)', async ({ page }) => {
   await page.goto('/replacement-arrangement?session=68&week=14&from=replacement-home');
   await page.waitForTimeout(3000);
-  await expect(page.locator('.venue-dd-label')).toHaveText('B100 — Tutorial'); // the arrival law pins the booked venue
+  await expect(page.locator('.venue-dd-label')).toHaveText('B100 — Tutorial Room'); // the arrival law pins the booked venue
   await page.selectOption('#subjectSelector', 'BMSE2163');
   await page.waitForTimeout(2500);
-  await expect(page.locator('.venue-dd-label')).toHaveText('B010 — Lab'); // follows the strip WITHOUT a manual pick
+  await expect(page.locator('.venue-dd-label')).toHaveText('B010 — Computer Lab 2'); // follows the strip WITHOUT a manual pick
   // the grid is NOT all-red: bookable cells exist under the new ctx
   const avail = await page.evaluate(() => document.querySelectorAll('#tableBody .cell-available').length);
   expect(avail).toBeGreaterThan(0);
@@ -95,7 +95,7 @@ test('subject-change interplay: orig wins over the inherited room + options keep
   await page.waitForTimeout(300);
   await page.click('.slot-dd-item .slot-dd-item-label'); // W14 9–11 @ B100 — orig offered → it wins (Gap B)
   await page.waitForTimeout(2200);
-  await expect(page.locator('.venue-dd-label')).toHaveText('B100 — Tutorial');
+  await expect(page.locator('.venue-dd-label')).toHaveText('B100 — Tutorial Room');
   // options law untouched: the filtered family for (L, 15) shows the eligible TYPES only
   expect(await page.evaluate(() => document.getElementById('venueCountNote').textContent))
     .toContain('Showing venues that fit 15 students');

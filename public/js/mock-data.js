@@ -163,6 +163,22 @@ window.MockData = {
         { code: 'B006', type: 'CiscoLab',    capacity: 32, allowedSessions: ['P'], description: 'Cisco Lab. Networking & IoT equipment room. For FOCS cohorts only.' },
     ],
 
+    /* §2.5b  venue-real-names (user 2026-10-27) — the rooms' TRUE short names.
+       The seeded room_name bakes the code on ("Computer Lab B010") — that is
+       NOT how TARUMT names them. The VenueDropdown trigger label reads the
+       real name first, then the room_name minus its trailing code, then the
+       humanized type. Full names (source list the user provided):
+       B005 Computer Laboratory 5 · B006 Computer Laboratory 4: CISCO Lab ·
+       B009 Computer Laboratory 1 · B010 Computer Laboratory 2 ·
+       B011 Computer Laboratory 3. */
+    venueRealNames: {
+        'B005': 'Computer Lab 5',
+        'B006': 'Computer Lab 4 - CISCO Lab',
+        'B009': 'Computer Lab 1',
+        'B010': 'Computer Lab 2',
+        'B011': 'Computer Lab 3',
+    },
+
     // ─────────────────────────────────────────────────────────────────────
 // §2.5a  courses — all 42 modules printed for the 14 in-scope cohorts
     // (semester-202505 Programme PDF). `name` comes from
