@@ -99,3 +99,23 @@
    discharged; `ReasonLabel` stall: the OVERRIDES `replaced` stays marked
    dead-but-harmless.
  VERDICT: READY-FOR-APPLY (the freeze state).
+
+## APPLY — 2026-10-27 (T1–T6)
+ - T1 the loop head re-cut (the $approvedByPair map + the $exceptionRow
+   keyBy + the cancelled render + the same-week amber hoist into
+   buildAmberEvent — shared with the pending path, DRY).
+ - T2 ReasonLabel (app/Support) + the two delegations.
+ - T3 the four ui-common touch points + the cohort statusClassFn arm.
+ - T4 the tally + myTeachingStats gating + the 3 blade filters removed.
+ - T5 the 4-new + 1-upsert receipts; two pre-existing assertions
+   root-caused (the baked ':1' id + the static empty-state assertDontSee)
+   and fixed with receipts.
+ - T6 changelogs ×4; gates: pint/phpstan/node --check/phpunit **262/262**
+   (the predicted 257+1+4 shape exactly); NO Playwright (the user's
+   regime); ONE feat: commit `e74b496`; NOT pushed.
+ - The implementer deltas vs the design: buildAmberEvent hoisted as a
+   helper (the D1 implementer-choice receipt); the amber emission also
+   de-duplicated the pending path. The old test insights folded with
+   receipts (the baked ':1' + the assertDontSee objectivity). NO other
+   deviation. status → applied; verify.walkConclusion@gmail:
+NEXT = /sdd-verify on the user's demand; the user tests manually.
