@@ -102,7 +102,7 @@ settled live with the user:
 - The real pending requests #1–#3 never touched.
 - The existing `class_exceptions` row (id 4, official_event, session 40,
   W14) untouched.
-- The ALTER sheet = the reasons CHECK (5→9) + the audit action CHECK
+- The ALTER sheet = the reasons CHECK (5→10) + the audit action CHECK
   (7→8), both one DROP/ADD pair. The `demo-db-data-changes.md`
   convention: the user pastes; the migration file covers fresh DBs only.
 
