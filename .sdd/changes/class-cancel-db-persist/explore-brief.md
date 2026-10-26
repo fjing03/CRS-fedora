@@ -106,6 +106,29 @@ settled live with the user:
   (7→8), both one DROP/ADD pair. The `demo-db-data-changes.md`
   convention: the user pastes; the migration file covers fresh DBs only.
 
+## The home-table inclusion (user ask 2026-10-27 — ALREADY SERVED, pinned as an acceptance clause)
+
+"A successful Cancelled Class shud be included in the table of
+replacement-home-ui" — TWO mechanics already exist; the DB lane pins them
+as acceptance rows, it does NOT build them:
+
+1. **immediately, same tab** — `ClassCancellation.cancel()` (:4032–:4034)
+   appends a `conflictedClasses`-shaped row (built by `rowFromEvent`,
+   owner-lecturer backfilled) into `MockData.conflictedClasses` — the exact
+   array replacement-home's table + cards render; the 'Just cancelled' chip
+   rides it (S13).
+2. **permanently, every viewer, every tab** — the `class_exceptions` row
+   the DB lane writes feeds `ReplacementHome.php`'s server payload (the
+   `$exception !== null` :79 branch emits the row; the badge =
+   `titleCase(reason)`; the DB enum + the Home's добавить titleCase law is
+   the same one the rest of the lane documents).
+3. the cross-page glue — the `applyLedger` bootstrap (:4210, registered on
+   EVERY page's DOMContentLoaded) replays the ledger toward the home
+   in-session and self-evicts once the server row appears.
+
+If either mechanism breaks, the home table stops showing the cancelled
+class — the two rows above are the acceptance clauses in design.md.
+
 ## Tests (the user's standing manual-verify directive)
 
 - NO new Playwright spec; the standing battery untouched BUT two spec
