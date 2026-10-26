@@ -96,7 +96,7 @@ the cancelled event ONLY when the row exists.
 
 | state | the cancelled original block | the amber make-up block | the approved landing block |
 |---|---|---|---|
-| cancelled-only | ✅ red `event-conflict`, tip `cohort · CANCELLED — <LABEL>`, note `(Cancelled — <LABEL>)`, Replace-Now available | — | — |
+| cancelled-only | ✅ red `event-conflict`, tip `cohort · CANCELLED` (the user-locked form), note `(Cancelled)`, Replace-Now available | — | — |
 | cancelled + proposed (pending) | ✅ red + `(Proposed ⏳)` note | ✅ amber at its own slot (existing) | — |
 | cancelled + APPROVED | ❌ (the approved-pair read-time derivation → skip) | — | ✅ at the slot's own week (existing D-P10) |
 | cancelled + request REJECTED | ✅ red plain (the `pendingBy*` key off `pending` only — teardown is automatic; the pinned receipt) | ❌ | — |
@@ -206,6 +206,13 @@ NEW `tests/Feature/CancelledBlockStaysVisibleTest.php` (4 receipts):
    landing week renders via the approvedByWeek pass;
 4. the legacy receipt: an `official_event` stamp + NO approved request →
    red-cancelled (the demo row id-4-class data renders honestly).
+
+   The TIP receipt (user decision 2026-10-27): the cancelled block's
+   `data-tip2` renders `cohort · CANCELLED` — the reason string rides the
+   payload (`cancelledReason`) but NOT the tip/note displays; the fact's
+   COMPOUND reason still lives in the popup family UNTOUCHED (the D-P4
+   contract) and at the cancelled+pending state the note reads
+   `(Proposed ⏳)` per the existing note law.
 
 **The ×9 fixture re-key list STRUCK** (round-2 audit): the 7
 `ReplacementFlowTest` stamps are occurrence-PIN fixtures, `OccurrencePinTest:119`

@@ -15,8 +15,10 @@
   harmless.
 - [ ] **T3 — the client** (design D5): the FOUR ui-common touch
   points (the :731/:788 day-event filters — cancel the cancelled discard;
-  :805 the class arm; :650 the note; :2338 the status label) + the FIFTH:
+  :805 the class arm; :650 the plain `(Cancelled)` note) + the FIFTH:
   the cohort blade's statusClassFn arm (`:508` re-grep).
+  `eventStatusLabel` :2338 = NO EDIT (the existing plain 'Cancelled' arm
+  is the locked tip source).
 - [ ] **T4 — the summary re-machine** (design D6): the :890 tally term +
   `myTeachingStats` gating + the THREE blade filters removed.
 - [ ] **T5 — the tests** (design D7): NEW

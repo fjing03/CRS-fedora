@@ -83,3 +83,11 @@
    shape clarified in D1 (hoist-or-inline left to the implementer).
  - FREEZE reached: the proposal + design + tasks frozen; status → frozen;
    the lane awaits the user's `proceed` for /sdd-apply.
+
+## Round 5.5 — 2026-10-27 (post-freeze user decision — no unfreeze, decision-level polish)
+ - USER: 'remove Reason' — the tip = `cohort · CANCELLED`, the note = `(Cancelled)`.
+ - D5 touch point ④ = NO EDIT now (the existing :2338 arm already returns plain
+   'Cancelled'); ③ = the plain note; the payload `cancelledReason` (the home
+   badge label law) STAYS riding; the popup's fact family untouched.
+ - D2 tip/note receipt rows re-keyed; D7's test receipt notes the TIP law.
+ - Review-log + artifacts frozen apportioned. The apply walk (T1–T6) inherits.

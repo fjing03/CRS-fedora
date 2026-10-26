@@ -8,9 +8,10 @@ REMOVES the cancelled block (the `ResolvesTimetableTimeline` week loop's
 
 1. **Cancelled** → the block STAYS in its original slot, rendered with the
    existing `event-block span-n event-conflict` family (NO new CSS); the
-   tip reads `{Cohort · Cancelled — Reason}` (e.g.
-   `DSF2(S1)G1 · CANCELLED — ANNUAL LEAVE` — one uppercase string via the
-   grid's existing `:801` :topper).
+   tip reads `{Cohort · CANCELLED}` (USER DECISION 2026-10-27 post-freeze:
+   the reason string is DROPPED from the tip and the in-block note — the
+   payload's `cancelledReason` stays riding for the home badge; the
+   popup's fact family stays untouched).
 2. **While waiting for replacement** → the block stays visible until the
    staff member proposes a replacement AND the PL approves it.
 3. **After proposing** → the block stays while the request is PENDING PL
@@ -42,7 +43,7 @@ rendering or replacement flows.
   — `status === 'cancelled'` falls through (no class). The TIP assembly
   (`div.dataset.tip2 = [tipCtx, tipLect, eventStatusLabel(e, isConflict)]`).
 - Review R1 🟡 receipts already verified in code: `eventStatusLabel`
-  HAS a cancelled branch (:2343 — a modification target, not a new one);
+  HAS a cancelled branch (:2343 — NO EDIT; the arm already returns plain 'Cancelled');
   `pendingByMakeupSlot` keyed on the MAKE-UP SLOT's own week means the
   amber block ALREADY renders today for cancelled+proposed receipts — only
   the `(Proposed ⏳)` hint was unreachable; the rejection teardown needs
@@ -82,7 +83,7 @@ cancelled block — the exact opposite of law ④.
 |---|---|
 | `app/Concerns/ResolvesTimetableTimeline.php` | the loop head: `if ($exception && ($exception->reason === 'replaced' || a pending covers the occurrence still renders the cancelled block? see design D1))` — the cancelled week renders `status='cancelled'` + `cancelledReason` (the titleCased LABEL string — the payload contract) + the birth-time `occurrenceFact` (kind exception) so the popup's Replace-Now handoff stays available for the cancelled-only state; the PENDING-on-cancelled case renders BOTH the cancelled block (+`(Proposed ⏳)` note via `proposed`) and the amber make-up block (the existing maps, now reachable); the `replaced` release keeps the pre-lane skip |
 | `app/Support/ReasonLabel.php` (NEW) | the ONE label law: `from(string $enum): string` — medical_leave → 'Medical/Sick Leave', other → 'Other', the rest titleCase; `ReplacementHome::titleCase` + `ApiReadController::$reasonMap` delegate to it (the promote-on-3rd receipt) |
-| `public/js/ui-common.js` | FOUR touch points, named: (①) the two upstream day-event filters `ui-common.js:726` and `:754` — `e.status !== 'cancelled'` → cancelled events REJOIN the grid (today they are discarded before the renderer on both paths — otherwise the server's cancelled events stay invisible on every page); (②) the renderer class family :805 — `status==='cancelled'` → `event-conflict` (reuse — no new CSS); (③) `buildReplacementNote` :650 — the `(Cancelled — label)` in-block note; (④) `eventStatusLabel`'s EXISTING cancelled branch (:2343, returns 'Cancelled') gains the REASON: `'Cancelled — ' + labelFor(e.cancelledReason)` (no new branch; :801's `.toUpperCase()` is existing grid behaviour and stays); `labelFor` passthrough (enum → label; already-labelled values ride) |
+| `public/js/ui-common.js` | FOUR touch points, named: (①) the two upstream day-event filters `ui-common.js:726` and `:754` — `e.status !== 'cancelled'` → cancelled events REJOIN the grid (today they are discarded before the renderer on both paths — otherwise the server's cancelled events stay invisible on every page); (②) the renderer class family :805 — `status==='cancelled'` → `event-conflict` (reuse — no new CSS); (③) `buildReplacementNote` :650 — the plain `(Cancelled)` in-block note (the user decision — NO reason string); (④) `eventStatusLabel` :2343 — **NO EDIT** (the arm already returns plain `'Cancelled'`; the tip `cohort · CANCELLED` lands via the existing :801 composition) |
 | `resources/views/livewire/{my,cohort,student-my}-timetable.blade.php` | the `computeSummary(…filter(e => e.status !== 'cancelled'))` filters RE-OPTIONALISED — the DECISION (see Open decisions) |
 | `tests/Feature/*` fixtures | the release-stamp fixtures `official_event` → `replaced` (the ×9 receipt) |
 | NEW small `tests/Feature/CancelledBlockStaysVisibleTest.php` | 4 receipts: cancelled-only renders; cancelled+pending renders BOTH; the approved pair skips the original (the derivation); the legacy official_event row renders honestly |
@@ -122,8 +123,10 @@ for the audit trail.
      `computeSummary` (ui-common.js :890) serving all pages.
    The user's lock: the My Conflicts card DOES reflect the red cancelled
    blocks; My Classes/My Hours do not inflate with cancelled hours.
-3. **Block inner text**: `(Cancelled — Annual Leave)` note inside the red
-   block? Recommended: YES (parallel to `(Proposed ⏳)`), or the tip only.
+3. **Block inner text + TIP** (LOCKED 2026-10-27 post-freeze): the note is
+   plain `(Cancelled)` and the TIP is `cohort · CANCELLED` — the reason
+   string DROPPED from both (the payload's `cancelledReason` still rides
+   for the home badge; the popup's fact family untouched).
 
 ## The demo-DB safety sheet (the USER pastes)
 
