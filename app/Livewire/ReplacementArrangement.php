@@ -390,13 +390,28 @@ class ReplacementArrangement extends Component
     {
         $lecturerId = (int) auth()->id();
 
-        $toRanges = function (array $busy): array {
+        /* TEMP-HOLDER-LABEL (user, 2026-10-27): the occupied cells carried NO
+           holder identity (aria-label="" — the void a misdiagnosis was built
+           on: AMIT2034, not the approved-away class, owned the cell). Each
+           busy range now rides its holder text as the 4th tuple key; the
+           blade attaches it to the cell's data-tip/aria. The 4th key JOINS
+           on day:slotStart:slotEnd, so array_unique's dedup survives
+           (identical tuples stay identical). REMOVABLE AFTER THE FINAL
+           VIVA — delete this block + the blade's tip attach; the first 3
+           keys alone are the pre-existing engine contract. */
+        $holderLabels = $this->busyCellHolderLabels($semesterId, $weeks);
+
+        $toRanges = function (array $busy, int $weekIdx) use ($holderLabels): array {
             $out = [];
             foreach ($busy as $range) {
+                $day = (int) $range['day'];
+                $startIdx = $this->slotIndex((string) $range['start']);
+                $endIdx = $this->slotIndex((string) $range['end']);
                 $out[] = [
-                    (int) $range['day'],
-                    $this->slotIndex((string) $range['start']),
-                    $this->slotIndex((string) $range['end']),
+                    $day,
+                    $startIdx,
+                    $endIdx,
+                    implode(' | ', array_unique($holderLabels[$weekIdx][$day.':'.$startIdx.':'.$endIdx] ?? [])),
                 ];
             }
 
@@ -405,7 +420,7 @@ class ReplacementArrangement extends Component
 
         $lecturerBusy = [];
         for ($w = 1; $w <= $weeks; $w++) {
-            $lecturerBusy[$w - 1] = $toRanges($this->engine()->lecturerBusyRanges($semesterId, $lecturerId, $w));
+            $lecturerBusy[$w - 1] = $toRanges($this->engine()->lecturerBusyRanges($semesterId, $lecturerId, $w), $w - 1);
         }
 
         $cohortBusyCache = [];
@@ -418,7 +433,10 @@ class ReplacementArrangement extends Component
             if (! isset($cohortBusyCache[$hash])) {
                 $cohortBusyCache[$hash] = [];
                 for ($w = 1; $w <= $weeks; $w++) {
-                    $cohortBusyCache[$hash][$w - 1] = $toRanges($this->engine()->cohortBusyRanges($semesterId, $cohortIds, $w));
+                    $cohortBusyCache[$hash][$w - 1] = $toRanges(
+                        $this->engine()->cohortBusyRanges($semesterId, $cohortIds, $w),
+                        $w - 1,
+                    );
                 }
             }
 
@@ -434,6 +452,81 @@ class ReplacementArrangement extends Component
             // whenever the picked slot moves to another occurrence (L vs T vs P
             // of the same module have different cohort sets)
             $out[(string) $session->id] = $merged;
+        }
+
+        return $out;
+    }
+
+    /**
+     * TEMP-HOLDER-LABEL — the busy ranges' holder texts, keyed
+     * [weekIdx][day:slotStart:slotEnd] = list of texts. Same semantics as
+     * the engine's busy queries (semester-scoped, the week's exception'd
+     * pairs excluded). The viewer's own classes prefix 'You — '.
+     *
+     * @return array<int, array<string, list<string>>>
+     */
+    private function busyCellHolderLabels(int $semesterId, int $weeks): array
+    {
+        $out = [];
+
+        $ex = ClassException::query()
+            ->whereBetween('week_number', [1, $weeks])
+            ->get(['class_session_id', 'week_number'])
+            ->mapWithKeys(function (ClassException $e): array {
+                return [$e->class_session_id.':'.$e->week_number => true];
+            });
+
+        $rows = ClassSession::query()
+            ->join('modules as m', 'm.id', '=', 'class_sessions.module_id')
+            ->join('venues as v', 'v.id', '=', 'class_sessions.venue_id')
+            ->join('users as u', 'u.id', '=', 'class_sessions.lecturer_id')
+            ->join('lecturers as le', 'le.user_id', '=', 'class_sessions.lecturer_id')
+            ->where('class_sessions.semester_id', $semesterId)
+            ->get([
+                'class_sessions.id',
+                'class_sessions.day_of_week',
+                'class_sessions.start_time',
+                'class_sessions.end_time',
+                'class_sessions.session_type',
+                'class_sessions.lecturer_id',
+                'm.module_code',
+                'v.room_code',
+                'u.name as lecturer_name',
+                'le.staff_id',
+            ]);
+
+        $cohortTexts = [];
+        foreach ($rows as $row) {
+            $session = ClassSession::with('cohorts.programme')->find($row->id);
+            if ($session === null) {
+                continue;
+            }
+            $cohortTexts[$row->id] = $session->cohorts
+                ->map(fn (Cohort $c): string => $this->cohortCode($c))
+                ->implode(', ');
+        }
+
+        $myId = (int) auth()->id();
+        $labelFor = function ($row) use ($cohortTexts, $myId): string {
+            $mine = (int) $row->lecturer_id === $myId;
+            $prefix = $mine ? 'You — ' : '';
+
+            return $prefix
+                .$row->module_code.'('.(string) $row->session_type.')'
+                .' · '.(string) $row->room_code
+                .' · '.substr((string) $row->start_time, 0, 5).'-'.substr((string) $row->end_time, 0, 5)
+                .' · '.(string) $row->lecturer_name.' ('.$row->staff_id.')'
+                .' · cohorts: '.($cohortTexts[$row->id] ?? '-');
+        };
+
+        for ($w = 1; $w <= $weeks; $w++) {
+            foreach ($rows as $row) {
+                if (isset($ex[$row->id.':'.$w])) {
+                    continue;   // the week's exception'd pairs are not busy (the engine's own semantics)
+                }
+                $key = (int) $row->day_of_week.':'.$this->slotIndex((string) $row->start_time).':'.$this->slotIndex((string) $row->end_time);
+                $out[$w - 1][$key][] = $labelFor($row);
+            }
         }
 
         return $out;

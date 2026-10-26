@@ -1694,13 +1694,41 @@
                     const engineBlocked = ((MockData.blockedVenues || {})[courseKey] || []).includes(currentVenue)
                         || busyRanges.some(b => b[0] === di && hi >= b[1] && hi < b[2]);
 
+                    /* TEMP-HOLDER-LABEL (user, 2026-10-27): the occupied cell's
+                       holder identity — module(venue · time · lecturer · cohorts
+                       — currently amputated at the label arms. REMOVE AFTER THE
+                       FINAL VIVA (delete both tip attaches here; the payload's
+                       4th keys stay harmless). */
+                    const attachHolder = function () {
+                        const holder = busyRanges
+                            .filter(b => b[0] === di && hi >= b[1] && hi < b[2])
+                            .map(b => b[3])
+                            .filter(Boolean)
+                            .join(' | ');
+                        if (holder) {
+                            div.setAttribute('data-tip', holder);
+                            div.setAttribute('data-tip-pos', 'left');
+                            div.setAttribute('aria-label', 'Occupied by ' + holder);
+                            div.setAttribute('tabindex', '0');
+                            div.style.cursor = 'help';
+                        }
+                    };
+
                     if (isSunday || day.holiday) {
                         div.className += day.holiday ? ' cell-ph' : ' cell-sun';
                     } else if (engineBlocked) {
                         div.className += ' cell-occupied';
+                        attachHolder();
                     } else if (cellData) {
                         if (cellData[2] === 1) {
                             div.className += ' cell-occupied';
+                            if (cellData[3]) {
+                                div.setAttribute('data-tip', cellData[3]);
+                                div.setAttribute('data-tip-pos', 'left');
+                                div.setAttribute('aria-label', 'Occupied by ' + cellData[3]);
+                                div.setAttribute('tabindex', '0');
+                                div.style.cursor = 'help';
+                            }
                         } else if (cellData[2] === 3) {
                             div.className += ' cell-pending';
                         } else if (cellData[2] === 4) {
