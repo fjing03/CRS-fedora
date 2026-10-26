@@ -4133,18 +4133,47 @@ const ClassCancellation = {
         return null;
     },
 
+    /* class-cancel-db-persist: the ledger↔row matcher for SERVER-shaped
+       rows (replacement-home payload rows carry sessionId + week, ids
+       like session*100+week — never equal to the client row ids). Used by
+       the chip render + the home chip undo + applyLedger's retention. */
+    entryCoversRow(entry, row) {
+        if (!entry || !row) return false;
+        if (entry.row && entry.row.id === row.id) return true;   // client-appended, in-tab
+        if (entry.sessionId != null && row.sessionId != null &&
+            Number(entry.sessionId) === Number(row.sessionId) &&
+            entry.matchKey && Number.isInteger(entry.matchKey.week) &&
+            entry.matchKey.week + 1 === row.week) return true;   // server payload row
+        return false;
+    },
+
     /**
      * S12/S13/S15 replay — once per page load: re-apply every entry's
      * cancelled state idempotently (status already 'cancelled' → plain
      * overwrite; row pushed only when its id is absent). Entries whose
      * match keys resolve to NOTHING are stale → DROPPED from the ledger
      * (S15) so the toast never nags on dead entries.
+     *
+     * class-cancel-db-persist: a server-bridged entry (sessionId +
+     * exceptionId — an exception ROW THE SERVER VERIFIED) is NEVER dead:
+     * its week left the grid (the exception removed it from the events)
+     * but the handles persist, the remove is a REAL undo, and the toast /
+     * home chip's undoViaServer stay present at any time (the pinned
+     * cross-page mechanic). A remotely-done undo reconciles honestly
+     * inside undoViaServer ({ok:false} → the hint, the entry ✕-snooze-
+     * capable). NON-bridged entries keep the S15 self-evict.
      */
     applyLedger() {
         const self = this;
         this.ledgerRead().slice().forEach(function(entry) {
             const matches = self.resolveMatches(entry.matchKey);
-            if (!matches.length) { self.ledgerRemove(entry); return; }
+            if (!matches.length) {
+                if (entry.sessionId != null && entry.exceptionId != null) {
+                    return;   // server-bridged: retain while the handles persist
+                }
+                self.ledgerRemove(entry);
+                return;
+            }
             matches.forEach(function(m) {
                 m.eventRef.status = 'cancelled';
                 m.eventRef.cancelledReason = entry.reason;

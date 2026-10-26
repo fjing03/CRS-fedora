@@ -450,14 +450,20 @@
                     });
                     /* S13 — "Just cancelled" chip iff THIS row has its own
                        un-undone, un-consumed ledger entry (per-entry chips,
-                       §6 stack semantics). Page-local placement — cell index
-                       2 is the Original Class block (col-original); do NOT
-                       mutate shared HtmlBuilder.replacementHomeRow (§5).
-                       Undo clears it on the next buildTable (S14). */
+                       §6 stack semantics). class-cancel-db-persist: the
+                       match widened through ClassCancellation.entryCoversRow
+                       — a client-appended row (id match) OR a server
+                       payload row (sessionId+week match, the ids
+                       session*100+week never equal the client ids) — so
+                       the chip + Undo survive a reload. Page-local
+                       placement — cell index 2 is the Original Class
+                       block (col-original); do NOT mutate shared
+                       HtmlBuilder.replacementHomeRow (§5). Undo clears it
+                       on the next buildTable (S14). */
                     const cxlEntries = ClassCancellation.allEntries();
                     if (cxlEntries.some(function(entry) {
-                            return entry.row && entry.row.id === c.id &&
-                                   !entry.consumed && entry.chip;
+                            return !entry.consumed && entry.chip &&
+                                   ClassCancellation.entryCoversRow(entry, c);
                         })) {
                         const chip = document.createElement('span');
                         chip.className = 'just-cancelled-chip';
@@ -475,7 +481,7 @@
                         undoBtn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"></polyline><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"></path></svg>';
                         undoBtn.onclick = function(ev) {
                             ev.stopPropagation();
-                            undoCancelledByRowId(c.id, undoBtn);
+                            undoCancelledByRowId(c.id, undoBtn, c);
                         };
                         row.children[2].appendChild(undoBtn);
                     }
@@ -498,10 +504,17 @@
            affordance is the cross-page undo surface), THEN rebuilds the
            table (row + chip + undo button vanish) and mirrors the S14
            toast. A failed undo keeps the cancel standing: the honest hint,
-           the button re-enables, no client reversal. */
-        async function undoCancelledByRowId(rowId, undoBtn) {
+           the button re-enables, no client reversal.
+
+           The row lookup widened for the REAL payload (class-cancel-db-persist):
+           a client-appended row matches by id; a server payload row (id
+           session*100+week) matches by sessionId+week — and on a successful
+           undo the SCREENSHOT server row is filtered OUT of the page's own
+           copy (non-destructive filter reassignment; the MockData store law)
+           so the rebuild shows it gone immediately. */
+        async function undoCancelledByRowId(rowId, undoBtn, row) {
             const entry = ClassCancellation.allEntries().find(function(e) {
-                return e.row && e.row.id === rowId && !e.consumed;
+                return !e.consumed && ClassCancellation.entryCoversRow(e, row || { id: rowId });
             });
             if (!entry) return;
             if (undoBtn) undoBtn.disabled = true;   // pending-disable — one await, one write
@@ -510,6 +523,14 @@
                 toast.show(res.hint || 'Class restore failed — refresh to see the truth.', null);
                 if (undoBtn) undoBtn.disabled = false;
                 return;
+            }
+            if (row && row.sessionId != null && entry.matchKey &&
+                Number.isInteger(entry.matchKey.week)) {
+                MockData.conflictedClasses = (MockData.conflictedClasses || []).filter(function(r) {
+                    return !(r.sessionId != null &&
+                             Number(r.sessionId) === Number(row.sessionId) &&
+                             r.week === entry.matchKey.week + 1);
+                });
             }
             buildTable();
             toast.show('Class restored.', null);
@@ -714,6 +735,13 @@
             MockData.holidays = window.PAGE_DATA.holidays;
             MockData.currentUser = window.PAGE_DATA.currentUser;
             MockData.mockNow = null; /* real clock — the demo anchor is mock-era only */
+            /* class-cancel-db-persist: ui-common's own DOMContentLoaded ran
+               applyLedger BEFORE this bridge filled MockData.conflictedClasses
+               with the real payload rows — a server-bridged ledger entry's
+               retention check consulted an empty set and silently dropped it
+               (the chip never carried). Re-run here, after the swap, while
+               definitions are idempotent. */
+            ClassCancellation.applyLedger();
             initHeaderTooltips();
             const conflictedClasses = myConflictedRows();   // initial snapshot for early readers
             document.getElementById('semesterChip').textContent = MockData.semester.chipText;
