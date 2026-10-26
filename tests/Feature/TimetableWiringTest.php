@@ -175,7 +175,7 @@ class TimetableWiringTest extends TestCase
             'venue_id' => $this->venue->id, 'status' => 'pending', 'version' => 1,
         ]);
 
-        ReplacementRequest::create([
+        $request = ReplacementRequest::create([
             'semester_id' => $this->semester->id,
             'proposer_id' => $this->lecturerA->id,
             'class_session_id' => $session->id,
@@ -185,10 +185,15 @@ class TimetableWiringTest extends TestCase
             'submitted_at' => now(),
         ]);
 
+        // cancelled-blocks-stay-visible re-key: the id is ASSERTED FROM THE
+        // ROW (the auto-increment sequence does not reset per test in this
+        // suite's RefreshDatabase mode — a literal ':1' baked an order-
+        // dependent expectation that broke when another class' tests ran
+        // first in the same process).
         Livewire::actingAs($this->lecturerA)
             ->test(MyTimetable::class)
             ->assertSee('"status":"pending"', false)
-            ->assertSee('"requestId":1', false);
+            ->assertSee('"requestId":'.$request->id, false);
     }
 
     public function test_approved_request_moves_the_occurrence_to_the_new_slot(): void
@@ -239,8 +244,13 @@ class TimetableWiringTest extends TestCase
         }
     }
 
-    public function test_cancelled_week_renders_the_empty_state(): void
+    public function test_cancelled_week_renders_the_red_block(): void
     {
+        // cancelled-blocks-stay-visible (2026-10-27, upserted from the
+        // empty-state receipt c30): the class is NOT removed; the
+        // cancelled-only week renders the red block (the natural law-①
+        // receipt — the old 'All classes … have been cancelled.' empty
+        // state is gone when a red block still exists).
         $session = $this->createSession($this->lecturerA);
         ClassException::create([
             'class_session_id' => $session->id,
@@ -248,10 +258,22 @@ class TimetableWiringTest extends TestCase
             'reason' => 'public_holiday',
         ]);
 
-        // All of lecturer A's sessions are excluded in week 3 → empty state.
         $this->actingAs($this->lecturerA)
             ->get('/my-timetable-ui')
             ->assertOk()
-            ->assertSee('All classes for this week have been cancelled.');
+            ->assertSee('"status":"cancelled"', false);
+        // NOTE: no assertDontSee('All classes … cancelled.') here — that copy
+        // lives in the STATIC empty-state markup (hidden), so it always
+        // exists in the HTML; the dynamic non-empty grid is proven by the
+        // asserted status payload + the viewData assertions below (the
+        // cancelled-blocks-stay-visible law).
+
+        // the payload carries the label law (the bare label, the home badge)
+        $component = Livewire::actingAs($this->lecturerA)->test(MyTimetable::class);
+        $events = $component->viewData('eventsByWeek');
+        $week3 = $events[2];
+        $this->assertCount(1, $week3);
+        $this->assertSame('cancelled', $week3[0]['status']);
+        $this->assertSame('Public Holiday', $week3[0]['cancelledReason']);
     }
 }

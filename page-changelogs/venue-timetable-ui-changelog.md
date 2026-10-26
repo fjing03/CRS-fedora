@@ -1404,3 +1404,10 @@ Shared machinery — no page-local changes beyond the component gaining the
 enum-typed radios, await-first undo). Demo-DB CHECK widen pasted by the
 user per `docs/demo-db-data-changes.md`.
 
+## 2026-10-27 (SDD cancelled-blocks-stay-visible) — receipt only: NO code change
+The venue page is the SLOT world (its blocks come from `time_slots`, not
+the exception'd week) — a cancelled class keeps occupying its venue slot
+there, which MATCHES the new law's ③/④ tail (the slot holds until the
+approved replacement releases it — the existing approve-path release).
+The shared cellRender filter edit is INERT on this page (its payloads
+never carry cancelled events).

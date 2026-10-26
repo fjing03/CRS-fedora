@@ -651,6 +651,13 @@ function buildReplacementNote(e, opts) {
     opts = opts || {};
     var checkOwnership = opts.checkOwnership;
     if (typeof checkOwnership === 'function' && !checkOwnership(e)) return '';
+    /* cancelled-blocks-stay-visible (user law 2026-10-27): the cancelled
+       block's note is PLAIN — the third sibling of '(Replaced for …)' and
+       '(Proposed ⏳)'. The TIP stays plain too (the user decision: no reason
+       string in the tip/note; the home badge keeps it via the payload). */
+    if (e.status === 'cancelled') {
+        return '<span class="ev-note">(Cancelled)</span>';
+    }
     if (e.status === 'replacement' && e.remarks) {
         return '<span class="ev-note">(Replaced for ' + e.remarks + ')</span>';
     }
@@ -723,7 +730,14 @@ function buildTimetableGrid(cfg) {
         tr.appendChild(dayTd);
 
         if (cfg.cellRender) {
-            const dayEvents = cfg.events.filter(e => e.di === di && e.status !== 'cancelled');
+            /* cancelled-blocks-stay-visible (user law 2026-10-27): cancelled
+               events REJOIN the grid — the red-cancelled state rides the
+               status (the class family maps it to event-conflict). The two
+               filters below previously DISCARDED cancelled events, which
+               made them invisible on every surface. The arr/venue share the
+               cellRender path with payloads that never carry cancelled
+               events — inert there. */
+            const dayEvents = cfg.events.filter(e => e.di === di);
             const slotMap = {};
             hours.forEach((_, hi) => { slotMap[hi] = null; });
             dayEvents.forEach(e => {
@@ -751,7 +765,8 @@ function buildTimetableGrid(cfg) {
             return;
         }
 
-        const dayEvents = cfg.events.filter(e => e.di === di && e.status !== 'cancelled');
+        /* cancelled-blocks-stay-visible: same re-admission for the grid path. */
+        const dayEvents = cfg.events.filter(e => e.di === di);
 
         const slotMap = {};
         hours.forEach((_, hi) => { slotMap[hi] = null; });
@@ -802,6 +817,13 @@ function buildTimetableGrid(cfg) {
                     .filter(Boolean).join(' · ');
                 if (typeof cfg.statusClassFn === 'function') {
                     cfg.statusClassFn(div, e, isConflict);
+                } else if (e.status === 'cancelled') {
+                    // cancelled-blocks-stay-visible (law ①): the cancelled
+                    // block renders the EXISTING conflict family — one loud
+                    // red on personal timetables, no new CSS class. The arm
+                    // sits FIRST so a cancelled-on-holiday-day block stays
+                    // red even when isConflict is true.
+                    div.classList.add('event-conflict');
                 } else if (isConflict || e.status === 'conflict') {
                     // §10.0: conflict & PH are the same "this class won't run as
                     // scheduled" story — one loud red on personal timetables
@@ -873,6 +895,11 @@ function myTeachingStats(events) {
     const heads = {};
     (events || []).forEach(function (e) {
         if (!e || e.lecturer !== MockData.currentUser.name) return;
+        /* cancelled-blocks-stay-visible (the locked summary law): a cancelled
+           class is not taught — it leaves the My Classes/My Hours count (the
+           honest-numbers law, and the frozen #sumTotal=6 receipt keeps its
+           meaning) but APPEARS in the conflicts tally via computeSummary. */
+        if (e.status === 'cancelled') return;
         heads[e.di + ':' + e.start] = e;               // last-write-wins = grid slotMap semantics
     });
     const mine = Object.keys(heads).map(function (k) { return heads[k]; });
@@ -881,14 +908,20 @@ function myTeachingStats(events) {
 }
 
 function computeSummary(events, days) {
-    let total = events.length;
+    /* cancelled-blocks-stay-visible (the locked summary law): My Classes /
+       My Hours exclude cancelled blocks (myTeachingStats gates them) while
+       the conflicts tally INCLUDES them — the red block is a conflict
+       requiring replacement. The three timetable blades' `filter(e =>
+       e.status !== 'cancelled')` wrappers were REMOVED in this lane (they
+       starved the tally); the full arrays now reach here. */
+    let total = events.length - events.filter(e => e.status === 'cancelled').length;
     let replacement = 0, pending = 0, conflict = 0, hrs = 0;
 
     events.forEach(e => {
         if (e.status === 'replacement') replacement++;
         if (e.status === 'pending') pending++;
-        if (e.status === 'conflict' || (days[e.di] && days[e.di].holiday)) conflict++;
-        hrs += (e.end - e.start + 1) * 0.5;
+        if (e.status === 'conflict' || e.status === 'cancelled' || (days[e.di] && days[e.di].holiday)) conflict++;
+        if (e.status !== 'cancelled') hrs += (e.end - e.start + 1) * 0.5;
     });
 
     /* Null-guarded: pages whose summary bar drops a card (e.g. cohort's

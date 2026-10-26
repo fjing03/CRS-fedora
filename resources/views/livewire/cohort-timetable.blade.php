@@ -513,7 +513,14 @@
                            same red with a 0.5px hairline. (all-pages-design-parity
                            C4/C5: frozen idiom — the old e.isMine test read a field
                            no payload ever set, so everything rendered as others'.) */
-                        if ((isConflict || e.status === 'conflict') && isMine) {
+                        if (e.status === 'cancelled') {
+                            /* cancelled-blocks-stay-visible (law ①): the cancelled
+                               block rides the EXISTING conflict family — same red
+                               for everyone, ownership borders kept (3px mine /
+                               0.5px others'). FIRST so a cancelled-on-holiday-day
+                               stays red (isConflict loses the precedence race). */
+                            div.classList.add(isMine ? 'event-conflict' : 'event-public-holiday');
+                        } else if ((isConflict || e.status === 'conflict') && isMine) {
                             div.classList.add('event-conflict');
                         } else if (isConflict || e.status === 'conflict') {
                             div.classList.add('event-public-holiday');   // same error red, hairline border (not yours)
@@ -535,7 +542,11 @@
                         });
                     }
                 });
-                computeSummary(weekEvents.filter(e => e.status !== 'cancelled'), weekData[currentWeek].days);
+                /* cancelled-blocks-stay-visible: the filter is REMOVED (the
+                   full array reaches computeSummary; consistent with the
+                   unfiltered :463 site — the last-writer render inconsistency
+                   dies with the tallies being cancelled-aware). */
+                computeSummary(weekEvents, weekData[currentWeek].days);
                 updateWeekArrows(currentWeek <= 0, currentWeek >= weekData.length - 1);
             }
 

@@ -48,3 +48,35 @@ user (`docs/demo-db-data-changes.md`, 2026-10-27 entry). No new spec — the
 user tests manually; `tests/cancel-class.spec.ts` locators re-keyed to the
 enum values declaratively.
 
+## 2026-10-27 (user law, SDD cancelled-blocks-stay-visible) — the cancelled block STAYS red until the PL approves
+**The law (user, verbatim):** "A cancelled class must remain visible on the
+timetable as a conflict requiring replacement until the PL approves the
+proposed replacement. Cancellation alone must not cause the original
+timetable block to disappear."
+
+**Server (`ResolvesTimetableTimeline::buildEventsByWeek`):** the exception'd
+pair now renders a `status:'cancelled'` event in its OWN slot (cancelled/
+`cancelledReason` label via the ONE `App\Support\ReasonLabel` law, the
+`(Proposed ⏳)` hint when a pending proposal covers it, the D-P4 fact ride so
+the popup's Replace-Now handoff stays available). The read-time
+discriminator: the original slot vanishes ONLY when an APPROVED replacement
+request covers the pair (the approved landing block renders at the slot's
+own week per the existing D-P10 workflow — 0 extra queries, no check-value
+regime, no migration). A REJECTED request auto-reverts the plain
+cancelled red.
+
+**Client (ui-common.js):** the two day-event filters stopped discarding
+cancelled events; the class family's FIRST arm maps `status:'cancelled'`
+to the EXISTING `event-conflict` (no new CSS — the §10.0 law); the
+`(Cancelled)` note is the third sibling in `buildReplacementNote` (the
+TIP = `{cohort · CANCELLED}` via the existing composition — the user's
+post-freeze decision: NO reason string in the tip/note; the label lives
+on the home badge). `computeSummary`'s conflicts tally now INCLUDES
+cancelled blocks; `myTeachingStats` keeps them OUT of Total Classes /
+Teaching Hours (the honest-numbers law — a class that doesn't run isn't
+taught) — the blade filters are gone (the full arrays reach the summary).
+
+**Gates:** phpunit 262 green (4 new `CancelledBlockStaysVisibleTest`
+receipts + the upserted `TimetableWiringTest` red-block test — the
+cancelled-only week now renders the block, NOT the empty state); pint ✅;
+phpstan ✅; NO new Playwright spec (the user tests manually).

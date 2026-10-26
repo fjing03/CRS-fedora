@@ -161,3 +161,12 @@ reason radios carry the DB enums with the 7-leaf + Other labels, and the
 undo toast awaits `cancelClassUndo` before any navigation. Demo-DB CHECK
 widen pasted by the user per `docs/demo-db-data-changes.md`.
 
+## 2026-10-27 (user law, SDD cancelled-blocks-stay-visible) — the cancelled block STAYS red
+The shared trait renders the cancelled block (cancelled + label + the
+Proposed hint + the fact) on the cohort surface too. The page's own
+two-axis `statusClassFn` gained the cancelled arm FIRST (§10.0: same
+`event-conflict` red for everyone, ownership borders kept — 3px mine /
+0.5px others'), otherwise the cancelled block would have rendered NEUTRAL
+(the custom statusClassFn short-circuits the shared family). The summary
+cards follow the locked law (conflicts INCLUDE cancelled; classes/hours
+exclude). Same read-time discriminator as my-timetable.

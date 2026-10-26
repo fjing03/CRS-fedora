@@ -370,3 +370,8 @@ swatches follow automatically. Verified live on all four pages.
 The five summary-card flip-backs use the new keyword language — **YOUR TIMETABLE**, **CLASS
 HOURS**, **DIFFERENT LECTURER** in the default color; **BEING PROCESSED** and **SCHEDULING
 CLASHES AND PUBLIC HOLIDAYS** in red (attention cards).
+## 2026-10-27 (SDD cancelled-blocks-stay-visible) — the cancelled block renders red for students
+One shared trait change — the student timetable inherits the cancelled
+block (red, `(Cancelled)` note) with the same lifecycle (stays through
+pending; vanishes at the PL approval). The summary filter re-cut the
+same way.

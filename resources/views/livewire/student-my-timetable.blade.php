@@ -121,7 +121,9 @@
             }
 
             function updateSummary() {
-                computeSummary((eventsData[currentWeek] || []).filter(e => e.status !== 'cancelled'), weekData[currentWeek].days);
+                /* cancelled-blocks-stay-visible: the filter is REMOVED — the
+                   full array reaches computeSummary. */
+                computeSummary(eventsData[currentWeek] || [], weekData[currentWeek].days);
                 updateWeekArrows(currentWeek <= 0, currentWeek >= weekData.length - 1);
             }
 

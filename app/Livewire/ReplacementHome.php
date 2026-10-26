@@ -8,6 +8,7 @@ use App\Models\ClassException;
 use App\Models\ClassSession;
 use App\Models\Cohort;
 use App\Models\ReplacementRequest;
+use App\Support\ReasonLabel;
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\Carbon;
 use Livewire\Component;
@@ -32,15 +33,11 @@ class ReplacementHome extends Component
 
     private function titleCase(string $enum): string
     {
-        // class-cancel-db-persist: the modal radio labels are the law —
-        // medical_leave prints as 'Medical/Sick Leave' (the drift receipt:
-        // the home badge EQUALS the modal label now) and `other` prints
-        // as itself, not 'Other Leave'-style ucwords; the rest titleCase.
-        return match ($enum) {
-            'medical_leave' => 'Medical/Sick Leave',
-            'other' => 'Other',
-            default => ucwords(str_replace('_', ' ', $enum)),
-        };
+        // cancelled-blocks-stay-visible: the label law delegates to the ONE
+        // helper (app/Support/ReasonLabel) — the promote-on-3rd receipt (the
+        // home badge, the timetable payload's cancelledReason and the
+        // /requests/conflicts map all follow the same modal-label law).
+        return ReasonLabel::from($enum);
     }
 
     public function render(): View

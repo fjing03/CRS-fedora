@@ -241,7 +241,11 @@
 
             function updateSummary() {
                 const events = eventsData[currentWeek] || [];
-                computeSummary(events.filter(e => e.status !== 'cancelled'), weekData[currentWeek].days);
+                /* cancelled-blocks-stay-visible: the filter is REMOVED — the
+                   full array reaches computeSummary (its tally counts the
+                   cancelled conflict; myTeachingStats gates the teaching
+                   numbers). */
+                computeSummary(events, weekData[currentWeek].days);
                 updateWeekArrows(currentWeek <= 0, currentWeek >= weekData.length - 1);
             }
 

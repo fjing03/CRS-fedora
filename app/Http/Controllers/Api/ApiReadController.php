@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Actions\CancelClass;
 use App\Http\Controllers\Controller;
 use App\Models\ClassSession;
 use App\Models\Cohort;
@@ -11,6 +12,7 @@ use App\Models\Student;
 use App\Models\User;
 use App\Services\MatrixIntersectionEngine;
 use App\Services\ReplacementRequestMapper;
+use App\Support\ReasonLabel;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -189,20 +191,12 @@ class ApiReadController extends Controller
 
         $dayNames = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
 
-        // class-cancel-db-persist: the modal radio labels are the law
-        // (10-value CHECK); medical_leave prints as 'Medical/Sick Leave'.
-        $reasonMap = [
-            'public_holiday' => 'Public Holiday',
-            'annual_leave' => 'Annual Leave',
-            'medical_leave' => 'Medical/Sick Leave',
-            'official_event' => 'Official Event',
-            'emergency_leave' => 'Emergency Leave',
-            'hospitalisation_leave' => 'Hospitalisation Leave',
-            'maternity_leave' => 'Maternity Leave',
-            'compassionate_leave' => 'Compassionate Leave',
-            'paternity_leave' => 'Paternity Leave',
-            'other' => 'Other',
-        ];
+        // cancelled-blocks-stay-visible: the ONE label law (app/Support/
+        // ReasonLabel) — the 10-value CHECK vocabulary, modal-label shaped.
+        $reasonMap = array_combine(
+            CancelClass::REASONS,
+            array_map(fn (string $r): string => ReasonLabel::from($r), CancelClass::REASONS),
+        );
 
         $sessions = ClassSession::where('lecturer_id', $user->id)
             ->with(['module', 'venue', 'cohorts.programme'])

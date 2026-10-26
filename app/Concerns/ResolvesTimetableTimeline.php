@@ -10,6 +10,7 @@ use App\Models\ReplacementRequestSlot;
 use App\Models\Semester;
 use App\Services\LectureSessionCatalog;
 use App\Services\ReplacementRequestMapper;
+use App\Support\ReasonLabel;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 
@@ -170,9 +171,21 @@ trait ResolvesTimetableTimeline
         $semester = $this->timelineSemester();
         $startDate = $semester !== null ? $semester->start_date : Carbon::parse(now()->toDateString());
 
-        $exceptionKeys = [];
+        /* cancelled-blocks-stay-visible (user law 2026-10-27): the keyed
+           ROW map replaces the boolean — presence AND the reason both read
+           from it. The discriminator stays READ-TIME: a pair is skipped iff
+           an APPROVED replacement request covers it (a release stamp, D7,
+           always coexists with its approved pair; a user cancel never
+           does) — no check-value regime, no data migration. */
+        $exceptionRow = [];
         foreach ($exceptions as $e) {
-            $exceptionKeys[$e->class_session_id.':'.$e->week_number] = true;
+            $exceptionRow[$e->class_session_id.':'.$e->week_number] = $e;
+        }
+        $approvedByPair = [];
+        foreach ($requests as $r) {
+            if ($r->status === 'approved') {
+                $approvedByPair[$r->class_session_id.':'.$r->week_number] = true;
+            }
         }
 
         /* USER DIRECTIVE (2026-10-17 "own pending make-up block"): the pending
@@ -223,8 +236,49 @@ trait ResolvesTimetableTimeline
             $events = [];
 
             foreach ($sessions as $s) {
-                if (isset($exceptionKeys[$s->id.':'.$w])) {
-                    continue; // cancelled / released for this week (FR 2.16, D7)
+                // cancelled-blocks-stay-visible (user law 2026-10-27): the
+                // exception'd pair KEEPS its block — original slot, red,
+                // `(Cancelled)` — until the PL approves the proposed
+                // replacement (then the D7 discipline applies: the original
+                // vanishes, the landing block renders in its own week).
+                if (isset($exceptionRow[$s->id.':'.$w])) {
+                    if (isset($approvedByPair[$s->id.':'.$w])) {
+                        continue; // law ④ — an approved release + the D-P10
+                        // landing block; nothing renders here
+                    }
+
+                    /* laws ①/③: the cancelled block STAYS — original slot,
+                       `event-conflict` (the client maps the status), the
+                       label rides for the home badge, the Proposed hint for
+                       a pending proposal, the D-P4 fact so the popup's
+                       Replace-Now handoff stays available (a pending or
+                       approved pair yields a NULL fact — the handled map).
+                       ALWAYS continue: the tail push can never double-fire,
+                       and the same-week amber makeup rides FROM HERE. */
+                    $ev = $baseBySession[$s->id];
+                    $ev['status'] = 'cancelled';
+                    $ev['cancelledReason'] = ReasonLabel::from(
+                        (string) $exceptionRow[$s->id.':'.$w]->reason);
+                    if (isset($pendingByOccurrence[$s->id.':'.$w])) {
+                        $ev['proposed'] = true;   // "(Proposed ⏳)" note law
+                    }
+                    $fact = $catalog->occurrenceFact($s, $w, $factContext);
+                    $ev['occurrenceFact'] = $fact !== null
+                        ? ['week' => $w, 'kind' => $fact['kind'], 'reason' => $fact['reason']]
+                        : null;
+                    $events[] = $ev;
+
+                    $requestedMakeup = $pendingByMakeupSlot[$s->id.':'.$w] ?? null;
+                    if ($requestedMakeup !== null) {
+                        // the existing amber emission (D-P10), same-week:
+                        // re-shape the natural block onto the slot's own
+                        // day/time/venue. (A different-week makeup already
+                        // rides its own week's loop pass.)
+                        $events[] = $this->buildAmberEvent(
+                            $baseBySession[$s->id], $requestedMakeup);
+                    }
+
+                    continue;
                 }
 
                 $pending = $pendingByMakeupSlot[$s->id.':'.$w] ?? null;
@@ -252,24 +306,11 @@ trait ResolvesTimetableTimeline
                     // USER DIRECTIVE 2026-10-17: the amber block's shape, day and
                     // venue come from the PROPOSED slots — the WHOLE run
                     // (ANCHOR..anchor+span−1 via the junction row count), not
-                    // just the anchor's single 30-min pair.
-                    $slot = $pending->replacementTimeSlot;
-                    $spanSlots = ReplacementRequestSlot::query()
-                        ->where('replacement_request_id', $pending->id)
-                        ->count();
-                    $evA = $baseBySession[$s->id];
-                    if ($slot !== null) {
-                        $evA['di'] = (int) $slot->day_of_week;
-                        $evA['start'] = $this->slotIndex((string) $slot->start_time);
-                        $evA['end'] = $this->slotIndex((string) $slot->start_time) + max(1, $spanSlots) - 1;
-                        $evA['venue'] = (string) $slot->venue->room_code;
-                    }
-                    $evA['status'] = 'pending';
-                    $evA['requestId'] = $pending->id;
-                    $evA['requestedAt'] = app(ReplacementRequestMapper::class)->stampDisplay($pending->submitted_at, 'd M Y, h:i A');   // MYT (SDD occurrence-week-pin-truthfulness popup-accuracy rider)
-                    $proposer = $pending->proposer;
-                    $evA['requestedBy'] = $proposer !== null ? $proposer->name : '';
-                    $events[] = $evA;
+                    // just the anchor's single 30-min pair. Hoisted into
+                    // buildAmberEvent (cancelled-blocks-stay-visible): the
+                    // exception'd branch emits the same shape for a same-week
+                    // makeup.
+                    $events[] = $this->buildAmberEvent($baseBySession[$s->id], $pending);
 
                     continue;
                 }
@@ -358,6 +399,43 @@ trait ResolvesTimetableTimeline
 
     /**
      * @return array<string, mixed> Protected: shared with ReplacementHome (2.2).
+     */
+    /**
+     * The amber make-up block (USER DIRECTIVE 2026-10-17 / D-P10), hoisted
+     * from the pending path (cancelled-blocks-stay-visible): the shape, day
+     * and venue come from the PROPOSED slot — the whole junction run. The
+     * cancelled-block branch reuses it for a same-week makeup.
+     *
+     * @param  array<string, mixed>  $base
+     * @param  ReplacementRequest  $pending
+     * @return array<string, mixed>
+     */
+    protected function buildAmberEvent(array $base, $pending): array
+    {
+        $slot = $pending->replacementTimeSlot;
+        $spanSlots = ReplacementRequestSlot::query()
+            ->where('replacement_request_id', $pending->id)
+            ->count();
+        $evA = $base;
+        if ($slot !== null) {
+            $evA['di'] = (int) $slot->day_of_week;
+            $evA['start'] = $this->slotIndex((string) $slot->start_time);
+            $evA['end'] = $this->slotIndex((string) $slot->start_time) + max(1, $spanSlots) - 1;
+            $evA['venue'] = (string) $slot->venue->room_code;
+        }
+        $evA['status'] = 'pending';
+        $evA['requestId'] = $pending->id;
+        $evA['requestedAt'] = app(ReplacementRequestMapper::class)->stampDisplay($pending->submitted_at, 'd M Y, h:i A');   // MYT (SDD occurrence-week-pin-truthfulness popup-accuracy rider)
+        $proposer = $pending->proposer;
+        $evA['requestedBy'] = $proposer !== null ? $proposer->name : '';
+
+        return $evA;
+    }
+
+    /**
+     * The natural event shape for one session ( timetable-data-wiring).
+     *
+     * @return array<string, mixed>
      */
     protected function baseEvent(ClassSession $s, ?string $cohortScopeCode = null): array
     {
