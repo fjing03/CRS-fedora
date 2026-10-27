@@ -298,11 +298,19 @@ final class MatrixIntersectionEngineTest extends TestCase
         return $session;
     }
 
+    /* SDD tidy-arrangement-cell-tooltips round 5: the ranges carry the
+       `room` rider (the holder labels' collision-proof key) — the receipts
+       trim to the honest 3 keys. */
+    private function trim3(array $ranges): array
+    {
+        return array_map(static fn (array $r): array => array_slice($r, 0, 3), array_values($ranges));
+    }
+
     public function test_s2_lecturer_busy_includes_scheduled_session(): void
     {
         $this->createSession(day: 1, start: '09:00:00', end: '11:00:00');
 
-        $ranges = $this->busyRanges('lecturerBusyRanges', [$this->semesterId, $this->lecturerId, 1]);
+        $ranges = $this->trim3($this->busyRanges('lecturerBusyRanges', [$this->semesterId, $this->lecturerId, 1]));
 
         $this->assertContains(['day' => 1, 'start' => '09:00:00', 'end' => '11:00:00'], $ranges);
     }
@@ -332,7 +340,7 @@ final class MatrixIntersectionEngineTest extends TestCase
     {
         $this->createSession(day: 3, start: '10:00:00', end: '12:00:00', cohortIds: [$this->cohortOneId]);
 
-        $ranges = $this->busyRanges('cohortBusyRanges', [$this->semesterId, [$this->cohortOneId], 1]);
+        $ranges = $this->trim3($this->busyRanges('cohortBusyRanges', [$this->semesterId, [$this->cohortOneId], 1]));
 
         $this->assertContains(['day' => 3, 'start' => '10:00:00', 'end' => '12:00:00'], $ranges);
     }
@@ -359,8 +367,8 @@ final class MatrixIntersectionEngineTest extends TestCase
         $cancelled = $this->busyRanges('lecturerBusyRanges', [$this->semesterId, $this->lecturerId, 1]);
         $running = $this->busyRanges('lecturerBusyRanges', [$this->semesterId, $this->lecturerId, 2]);
 
-        $this->assertSame([], $cancelled);
-        $this->assertContains(['day' => 1, 'start' => '09:00:00', 'end' => '11:00:00'], $running);
+        $this->assertSame([], $this->trim3($cancelled));
+        $this->assertContains(['day' => 1, 'start' => '09:00:00', 'end' => '11:00:00'], $this->trim3($running));
     }
 
     public function test_s16_invalid_session_type_throws(): void

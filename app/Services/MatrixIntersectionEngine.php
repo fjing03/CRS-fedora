@@ -323,17 +323,23 @@ final class MatrixIntersectionEngine
      *
      * @return array<int, array{day: int, start: string, end: string}>
      */
+    /* SDD tidy-arrangement-cell-tooltips round 5: the ranges gain `room` —
+       the payload's holder labels key by (week, day, start, end, room) so
+       two DIFFERENT classes that share an exact (day, start, end) pair at
+       different rooms can never collide into one label lookup. */
     private function classSessionRangesForLecturer(int $semesterId, int $lecturerId, int $weekNumber): array
     {
-        return ClassSession::query()
-            ->where('semester_id', $semesterId)
-            ->where('lecturer_id', $lecturerId)
-            ->whereNotIn('id', $this->exceptionIdsInWeek($weekNumber))
-            ->get(['day_of_week', 'start_time', 'end_time'])
-            ->map(fn (ClassSession $session): array => [
-                'day' => $session->day_of_week,
-                'start' => $session->start_time,
-                'end' => $session->end_time,
+        return DB::table('class_sessions')
+            ->join('venues as rv', 'rv.id', '=', 'class_sessions.venue_id')
+            ->where('class_sessions.semester_id', $semesterId)
+            ->where('class_sessions.lecturer_id', $lecturerId)
+            ->whereNotIn('class_sessions.id', $this->exceptionIdsInWeek($weekNumber))
+            ->get(['class_sessions.day_of_week', 'class_sessions.start_time', 'class_sessions.end_time', 'rv.room_code'])
+            ->map(fn ($row): array => [
+                'day' => (int) $row->day_of_week,
+                'start' => (string) $row->start_time,
+                'end' => (string) $row->end_time,
+                'room' => (string) $row->room_code,
             ])
             ->all();
     }
@@ -350,7 +356,7 @@ final class MatrixIntersectionEngine
      */
     private function makeUpRangesForLecturer(int $semesterId, int $lecturerId, int $weekNumber): array
     {
-        return TimeSlot::query()
+        return DB::table('time_slots')
             ->whereIn('time_slots.status', ['pending', 'occupied'])
             ->where('time_slots.semester_id', $semesterId)
             ->where('time_slots.week_number', $weekNumber)
@@ -362,17 +368,20 @@ final class MatrixIntersectionEngine
             ->whereIn('replacement_requests.status', ['pending', 'approved'])
             ->join('class_sessions',
                 'class_sessions.id', '=', 'replacement_requests.class_session_id')
+            ->join('venues as rv', 'rv.id', '=', 'time_slots.venue_id')
             ->where('class_sessions.lecturer_id', $lecturerId)
             ->get([
                 'time_slots.day_of_week',
                 'time_slots.start_time',
                 'time_slots.end_time',
+                'rv.room_code',
                 'replacement_requests.status',
             ])
             ->map(fn ($row): array => [
                 'day' => (int) $row->day_of_week,
                 'start' => (string) $row->start_time,
                 'end' => (string) $row->end_time,
+                'room' => (string) $row->room_code,
                 'status' => (string) $row->status,
             ])
             ->all();
@@ -407,17 +416,19 @@ final class MatrixIntersectionEngine
      */
     private function classSessionRangesForCohorts(int $semesterId, array $cohortIds, int $weekNumber): array
     {
-        return ClassSession::query()
+        return DB::table('class_sessions')
             ->join('session_cohorts as sc', 'sc.class_session_id', '=', 'class_sessions.id')
+            ->join('venues as rv', 'rv.id', '=', 'class_sessions.venue_id')
             ->where('class_sessions.semester_id', $semesterId)
             ->whereIn('sc.cohort_id', $cohortIds)
             ->whereNotIn('class_sessions.id', $this->exceptionIdsInWeek($weekNumber))
-            ->groupBy('class_sessions.id')
-            ->get(['class_sessions.id', 'class_sessions.day_of_week', 'class_sessions.start_time', 'class_sessions.end_time'])
-            ->map(fn (ClassSession $session): array => [
-                'day' => $session->day_of_week,
-                'start' => $session->start_time,
-                'end' => $session->end_time,
+            ->groupBy('class_sessions.id', 'rv.room_code')
+            ->get(['class_sessions.id', 'class_sessions.day_of_week', 'class_sessions.start_time', 'class_sessions.end_time', 'rv.room_code'])
+            ->map(fn ($row): array => [
+                'day' => (int) $row->day_of_week,
+                'start' => (string) $row->start_time,
+                'end' => (string) $row->end_time,
+                'room' => (string) $row->room_code,
             ])
             ->all();
     }
@@ -437,7 +448,7 @@ final class MatrixIntersectionEngine
             return [];
         }
 
-        return TimeSlot::query()
+        return DB::table('time_slots')
             ->whereIn('time_slots.status', ['pending', 'occupied'])
             ->where('time_slots.semester_id', $semesterId)
             ->where('time_slots.week_number', $weekNumber)
@@ -451,16 +462,19 @@ final class MatrixIntersectionEngine
                 'session_cohorts.class_session_id', '=',
                 'replacement_requests.class_session_id')
             ->whereIn('session_cohorts.cohort_id', $cohortIds)
+            ->join('venues as rv', 'rv.id', '=', 'time_slots.venue_id')
             ->get([
                 'time_slots.day_of_week',
                 'time_slots.start_time',
                 'time_slots.end_time',
+                'rv.room_code',
                 'replacement_requests.status',
             ])
             ->map(fn ($row): array => [
                 'day' => (int) $row->day_of_week,
                 'start' => (string) $row->start_time,
                 'end' => (string) $row->end_time,
+                'room' => (string) $row->room_code,
                 'status' => (string) $row->status,
             ])
             ->all();

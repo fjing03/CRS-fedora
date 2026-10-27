@@ -2118,3 +2118,22 @@ the arranged session's cohort set) — multiple can co-exist (the safe
 rank untouched: any non-pending matcher still wins the red class). The
 parse is client-side (the block's own lines — no payload change); the
 aria flat line carries the tags inline (the same one-line law).
+
+## 2026-10-27 (round 5) — the phantom block receipt: classes sharing an exact (day,start,end) pair in DIFFERENT rooms no longer collide into one holder label
+The user's live query (the Wed 13:30–16:00 B010 cells, 5425) showed
+`B102 · BMCS1113 (T) · 15:00–16:00 · Rahmat (5516) · RSD1(S1)G1` with NO
+why-tag — an honest nothing: BMCS1113 is NOT the arranger's class, its
+cohorts (RSD1G1) don't touch the arranged session's DSF2G1, and its room
+(B102) isn't the viewed venue. The real root: **the payload's holder
+labels keyed only by `[week][day:start:end]`** — BMCS1113 (session 73,
+B102) shares BMSE2163's exact (Wed, 13:00–15:00) range pair, so its
+label rode the SAME range tuple's lookup block list. Fixed by binding
+the labels with the ROOM: the engine's four range readers gain the
+`room` rider (the class-side joins venues; the make-up readers join the
+venues via the slots), `busyCellHolderLabels` + `busyByWeekPayload`'s
+`$toRanges` key by `[day:start:end:room]`. The client needed no change
+(the tags parse the block's own lines — the B102 phantom never
+materialises now). Receipts: the Wed 15:00 cell carries EXACTLY
+2 tagged blocks (the 👤 Own BMSE2163-L + the 👥 Cohorts AMCS2093-T);
+the 265/265 suite holds (the 3 shape receipts trimmed to the honest
+3 keys, never weakened).

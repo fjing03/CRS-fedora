@@ -417,7 +417,8 @@ class ReplacementArrangement extends Component
                 $day = (int) $range['day'];
                 $startIdx = $this->slotIndex((string) $range['start']);
                 $endIdx = $this->slotIndex((string) $range['end']);
-                $key = $day.':'.$startIdx.':'.$endIdx;
+                $room = (string) ($range['room'] ?? '');
+                $key = $day.':'.$startIdx.':'.$endIdx.':'.$room;
                 /* SDD makeup-busy-vector round 2: the make-up rows ride
                    their status kind ('pending'|'approved'), null for the
                    class-side rows — the client's pending arm keys on it. */
@@ -494,7 +495,7 @@ class ReplacementArrangement extends Component
                 return [$e->class_session_id.':'.$e->week_number => true];
             });
 
-        $rows = ClassSession::query()
+        $rows = DB::table('class_sessions')
             ->join('modules as m', 'm.id', '=', 'class_sessions.module_id')
             ->join('venues as v', 'v.id', '=', 'class_sessions.venue_id')
             ->join('users as u', 'u.id', '=', 'class_sessions.lecturer_id')
@@ -515,7 +516,7 @@ class ReplacementArrangement extends Component
 
         $cohortTexts = [];
         foreach ($rows as $row) {
-            $session = ClassSession::with('cohorts.programme')->find($row->id);
+            $session = ClassSession::with('cohorts.programme')->firstWhere('id', $row->id);
             if ($session === null) {
                 continue;
             }
@@ -561,7 +562,11 @@ class ReplacementArrangement extends Component
                 if (isset($ex[$row->id.':'.$w])) {
                     continue;   // the week's exception'd pairs are not busy (the engine's own semantics)
                 }
-                $key = (int) $row->day_of_week.':'.$this->slotIndex((string) $row->start_time).':'.$this->slotIndex((string) $row->end_time);
+                /* the key includes the ROOM CODE (round 5): classes at the
+                   exact same (day, start, end) in DIFFERENT rooms must not
+                   collide into one lookup — the phantom block from the
+                   bug9 follow-up receipt. */
+                $key = (int) $row->day_of_week.':'.$this->slotIndex((string) $row->start_time).':'.$this->slotIndex((string) $row->end_time).':'.$row->room_code;
                 $out[$w - 1][$key][] = $labelFor($row);
             }
         }
@@ -634,7 +639,7 @@ class ReplacementArrangement extends Component
                 (string) $row->staff_id,
                 (string) ($mkCohorts[$row->session_id] ?? ''),
             );
-            $key = (int) $row->day_of_week.':'.$this->slotIndex((string) $row->start_time).':'.$this->slotIndex((string) $row->end_time);
+            $key = (int) $row->day_of_week.':'.$this->slotIndex((string) $row->start_time).':'.$this->slotIndex((string) $row->end_time).':'.(string) $row->room_code;
             $out[$w - 1][$key][] = $label;
         }
 
