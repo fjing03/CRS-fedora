@@ -124,3 +124,26 @@ ALTER TABLE audit_logs ADD CONSTRAINT audit_logs_action_check
   law unchanged; the D4 rendering receipt `AMIT2034(P) · B005 · Red`).
 - **Insurance dump:** `/tmp/insurance-pre-dftdrop-2026-10-27.dump` (the
   pre-drop state, 335 KB).
+
+## 2026-10-27 — the venues info-changes (names + descriptions)
+
+- **Approved by:** the user (the info-changes slide).
+- **Live DB (executed):**
+  - names — `B005 → Computer Laboratory 5`, `B006 → Computer
+    Laboratory 4: CISCO Lab`, `B009 → Computer Laboratory 1`,
+    `B010 → Computer Laboratory 2`, `B011 → Computer Laboratory 3`;
+  - descriptions — labs: B005 `Computer Lab. For PRACTICAL Class.
+    DEGREE students only.` (the R2 display data, now worded
+    `Computer Lab.`), B009/B010/B011 `Computer Lab. For PRACTICAL.`;
+    tutorials (16 rows) `Tutorial Room For LECTURE and TUTORIAL.`
+    (the L+T admission wording per the slide);
+  - halls untouched (out of the slide's scope — they keep
+    `Lecture Hall. For LECTURE.`; a stray first-pass edit reverted).
+- **Seeder mirror:** `VenuesSeeder.php` — the names keyed to the real
+  lab numbering + the descriptions threaded through `insertGroup` (a
+  re-seed matches the live state). `allowed_session_types`/capacities
+  untouched (the reference inventory law).
+- **B006's description unchanged** (`Cisco Lab. Networking & IoT
+  equipment room. For FOCS cohorts only.` — the R4-dropped display
+  string, kept verbatim per the receipt).
+- Suite 262/262 green.
