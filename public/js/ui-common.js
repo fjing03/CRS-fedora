@@ -3732,20 +3732,31 @@ class VenueDropdown {
         }
         const v = this.venues.find(x => x.code === this.selectedCode);
         if (v) {
-            /* venue-trigger-label law (user 2026-10-26 + 2026-10-27): the trigger
-               names the room — "B010 — Computer Lab 2" (the REAL short name,
-               mock-data §2.5b), "B101 — Tutorial Room" (room_name minus its
-               baked code suffix), "B111 — Lecture Hall" — seat count dropped;
-               the label + capacity ride the shared data-tip hover — the class
-               owns both so pages can't drift apart. */
-            const realName = ((window.MockData || {}).venueRealNames || {})[v.code];
-            let base = realName
+            /* venue-trigger-label law (user 2026-10-26 + 2026-10-27), the
+               2026-10-27-amended split: the LABEL names the short form
+               ("B010 — Computer Lab 2"; "B101 — Tutorial Room"; "B111 —
+               Lecture Hall" — seat count dropped) while the HOVER tooltip
+               shows the FULL venue name ("B005 — Computer Laboratory 5
+               (28 seats)" — user: 'the hover tooltip shud shows the full
+               name'). The class owns both so pages can't drift apart. */
+            const real = ((window.MockData || {}).venueRealNames || {})[v.code] || {};
+            const shortName = real.short;
+            const fullName = real.full;
+            let base = shortName
                 || (v.name ? v.name.replace(new RegExp('\\s*' + v.code + '\\s*$'), '').trim() : '')
                 || VenueDropdown.humanizeType(v.type);
-            const text = v.code + ' \u2014 ' + base;
+            let hoverBase = fullName
+                || (v.name ? v.name.replace(new RegExp('\\s*' + v.code + '\\s*$'), '').trim() : '')
+                || VenueDropdown.humanizeType(v.type);
+            const text = shortName
+                ? v.code + ' \u2014 ' + shortName
+                : v.code + ' \u2014 ' + base;   // no-map rooms keep the fallback label + tooltip
             if (label) label.textContent = text;
             else this.trigger.textContent = text; /* legacy markup fallback */
-            this.trigger.setAttribute('data-tip', text + ' (' + v.capacity + ' seats)');
+            const tipText = (v.name && !fullName)
+                ? text
+                : v.code + ' \u2014 ' + hoverBase;
+            this.trigger.setAttribute('data-tip', tipText + ' (' + v.capacity + ' seats)');
         }
     }
 

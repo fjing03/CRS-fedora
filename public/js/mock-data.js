@@ -172,11 +172,11 @@ window.MockData = {
        B009 Computer Laboratory 1 · B010 Computer Laboratory 2 ·
        B011 Computer Laboratory 3. */
     venueRealNames: {
-        'B005': 'Computer Lab 5',
-        'B006': 'Computer Lab 4 - CISCO Lab',
-        'B009': 'Computer Lab 1',
-        'B010': 'Computer Lab 2',
-        'B011': 'Computer Lab 3',
+        'B005': { short: 'Computer Lab 5', full: 'Computer Laboratory 5' },
+        'B006': { short: 'Computer Lab 4 - CISCO Lab', full: 'Computer Laboratory 4: CISCO Lab' },
+        'B009': { short: 'Computer Lab 1', full: 'Computer Laboratory 1' },
+        'B010': { short: 'Computer Lab 2', full: 'Computer Laboratory 2' },
+        'B011': { short: 'Computer Lab 3', full: 'Computer Laboratory 3' },
     },
 
     // ─────────────────────────────────────────────────────────────────────
