@@ -463,3 +463,10 @@ drift receipt retired — the modal label EQUALS the home badge now).
 pending-disabling the chip's Undo button — ok → the row/chip/button
 vanish + 'Class restored.'; fail → the honest hint, the button
 re-enables, the cancel (and the real DB row) stays.
+
+## 2026-10-27 · Quick view "Students" = A+B=total (BMSE3153-class-info)
+The quick-view modal's Class tab "Students" row now renders the shared
+`cohortBreakdown(c)` (ui-common.js). **Payload** (`ReplacementHome.php`): the
+conflict-quick-view rows gain `cohortCounts` — positional with `cohorts`, real
+`cohorts.student_count`. Third copy of the helper ⇒ promoted to ui-common.js
+(my-request-history + request-approval refactored onto it).

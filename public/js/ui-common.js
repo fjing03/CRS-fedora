@@ -1179,6 +1179,37 @@ function openClassModal(cfg) {
 //     ]
 //   });
 
+/* BMSE3153-class-info (user law 2026-10-27): a multi-cohort class's
+   "Total Students" row renders the per-cohort breakdown — `A + B = total`
+   from the payload's POSITIONAL `studentCounts` (cohorts.student_count,
+   real data — never hardcoded). Single-cohort keeps the plain count;
+   no data reads '—' (honest zeros stay '0'). Promoted from the third
+   copy (my-timetable :164 / cohort-timetable :571 / venue-timetable
+   slot modal) — every page's class-detail modal calls this one law. */
+window.totalStudentsLabel = function (event) {
+    const total = event.studentCount;
+    const counts = event.studentCounts;
+    if (event.cohorts && event.cohorts.length > 1 && Array.isArray(counts)
+        && counts.length === event.cohorts.length) {
+        return counts.join(' + ') + ' = '
+            + (total !== undefined && total !== null
+                ? String(total)
+                : String(counts.reduce((a, b) => a + b, 0)));
+    }
+    return total !== undefined && total !== null ? String(total) : '\u2014';
+};
+
+/* BMSE3153-class-info (user law 2026-10-27): the request-row variant —
+   multi-cohort rows render `A + B = total` from the payload's POSITIONAL
+   `cohortCounts`; single-cohort keeps the plain count (no "20 = 20").
+   Promoted from the 3rd copy (my-request-history / request-approval
+   detail modal / replacement-home quick view) — one shared law. */
+window.cohortBreakdown = function (r) {
+    if (!r.cohortCounts || !r.cohorts || r.cohorts.length < 2
+        || r.cohortCounts.length !== r.cohorts.length) return String(r.totalStudents);
+    return r.cohortCounts.join(' + ') + ' = ' + r.totalStudents;
+};
+
 const DetailModal = {
     _overlay: null,
     _body: null,

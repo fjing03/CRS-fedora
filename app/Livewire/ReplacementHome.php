@@ -117,6 +117,13 @@ class ReplacementHome extends Component
                         ->map(fn ($c): string => $this->spacedCohortLabel($c))
                         ->values()
                         ->all(),
+                    // the per-cohort breakdown (BMSE3153-class-info user law
+                    // 2026-10-27): the quick view renders `A + B = total` —
+                    // POSITIONAL with cohorts, real student_count.
+                    'cohortCounts' => $session->cohorts
+                        ->map(fn ($c): int => (int) $c->student_count)
+                        ->values()
+                        ->all(),
                     'conflictReason' => $reason,
                 ];
             }

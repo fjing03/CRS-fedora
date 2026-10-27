@@ -91,3 +91,10 @@ convention, counts from `cohorts.student_count`).
 **Receipts (Playwright):** BMSE3153(P) #23 → Cohort `RSD3(S1)G2 + RSD3(S1)G3`
 + `14 + 13 = 27`; single-cohort BMIT2154(L) #7 → `RSD2(S1)G1` / `16`
 (unchanged). No hardcoded values.
+
+## 2026-10-27 · breakdown logic promoted to the shared totalStudentsLabel
+Follows 910b97c: the inline `A + B = total` construction in the Class Details modal
+now calls `window.totalStudentsLabel(event)` (ui-common.js) — the venue page's slot
+modal became the 3rd copy, so per promote-on-3rd the helper moved to ui-common.js
+and this page's copy was retired. Behavior unchanged (multi-cohort `A + B = total`,
+single-cohort plain count, `—` absent).

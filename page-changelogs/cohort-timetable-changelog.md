@@ -182,3 +182,10 @@ the G2 and the G3 view; single-cohort keeps the scope label), and a NEW
 positional `studentCounts` (the mock-data convention).
 **cohortSelect semantics unchanged** — it still filters the displayed
 timetable; it no longer masquerades as the data.
+
+## 2026-10-27 · breakdown logic promoted to the shared totalStudentsLabel
+Follows 910b97c: the inline `A + B = total` construction in the Class Details modal
+now calls `window.totalStudentsLabel(event)` (ui-common.js) — the venue page's slot
+modal became the 3rd copy, so per promote-on-3rd the helper moved to ui-common.js
+and this page's copy was retired. Cohort row behavior unchanged (full membership
+joined for both single- and multi-cohort views).

@@ -567,19 +567,10 @@
                    cohort classes keep the scope label + the plain count. */
                 const isMulti = event.cohorts && event.cohorts.length > 1;
                 const modalCohortValue = isMulti ? event.cohorts.join(' + ') : (event.cohort || '—');
-                const counts = event.studentCounts;
-                let studentValue;
-                if (isMulti && Array.isArray(counts) && counts.length === event.cohorts.length) {
-                    studentValue = counts.join(' + ')
-                        + ' = '
-                        + (event.studentCount !== undefined
-                            ? String(event.studentCount)
-                            : String(counts.reduce((a, b) => a + b, 0)));
-                } else if (event.studentCount !== undefined) {
-                    studentValue = String(event.studentCount);
-                } else {
-                    studentValue = '—';
-                }
+                /* BMSE3153-class-info (user law 2026-10-27): the shared
+                   totalStudentsLabel (ui-common.js) renders the per-cohort
+                   `A + B = total` breakdown for multi-cohort classes. */
+                const studentValue = window.totalStudentsLabel(event);
                 openClassModal({
                     event: event,
                     dayIndex: (di !== undefined ? di : event.di),

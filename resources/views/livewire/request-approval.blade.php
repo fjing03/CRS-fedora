@@ -967,6 +967,9 @@
                 const n = Number(d);
                 return (n === 1 ? '1 hour' : n + ' hours');
             }
+            /* BMSE3153-class-info (user law 2026-10-27): the shared
+               cohortBreakdown (ui-common.js) renders the per-cohort
+               `A + B = total` breakdown for multi-cohort rows. */
 
             // Tab 2: Original Class Detail — one value per row, no grouping
             const origSection = DetailModal.section('Original Class',
@@ -976,7 +979,7 @@
                 DetailModal.row('End Time', fullTime(r.timeEnd)) +
                 DetailModal.row('Duration', durationWords(r.duration)) +
                 DetailModal.row('Venue', r.venue) +
-                DetailModal.row('Total Students', String(r.totalStudents)) +
+                DetailModal.row('Total Students', window.cohortBreakdown(r)) +
                 DetailModal.row('Cohort(s)', r.cohorts.join(', '))
             );
 

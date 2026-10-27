@@ -723,14 +723,9 @@
             document.getElementById('summaryRejected').textContent = rejected;
         }
 
-        function cohortBreakdown(r) {
-            if (!r.cohortCounts) return String(r.totalStudents);
-            var parts = [];
-            for (var ci = 0; ci < r.cohorts.length; ci++) {
-                parts.push(r.cohortCounts[ci]);
-            }
-            return parts.join(' + ') + ' = ' + r.totalStudents;
-        }
+        /* BMSE3153-class-info (user law 2026-10-27): the shared cohortBreakdown
+           (ui-common.js) renders the per-cohort `A + B = total` breakdown —
+           promoted here from this file; no local copy anymore. */
 
         function statusDesc(s) {
             var map = { 'Pending': 'Awaiting approval', 'Approved': 'Replacement scheduled', 'Rejected': 'Request declined', 'Cancelled': 'Request withdrawn', 'Completed': 'Replacement conducted' };
@@ -771,7 +766,7 @@
             // Tab 2: Original Class Detail — one value per row
             const origSection = DetailModal.section('Original Class',
                 DetailModal.row('Cohort(s)', r.cohorts.join(', ')) +
-                DetailModal.row('Total Students', cohortBreakdown(r)) +
+                DetailModal.row('Total Students', window.cohortBreakdown(r)) +
                 DetailModal.row('Original Date', formatDate(r.classDate)) +
                 DetailModal.row('Original Day', r.classDay) +
                 DetailModal.row('Start Time', to12h(r.timeStart), { strong: true }) +

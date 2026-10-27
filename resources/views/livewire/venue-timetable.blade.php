@@ -324,7 +324,11 @@
                     title: 'Slot Details',
                     extraFields: [
                         { label: 'Cohort', value: event.cohort || '—' },
-                        { label: 'Total Students', value: event.studentCount ? String(event.studentCount) : '—' },
+                        /* BMSE3153-class-info (user law 2026-10-27): the shared
+                           totalStudentsLabel (ui-common.js) renders the per-
+                           cohort `A + B = total` breakdown for multi-cohort
+                           classes (slot payload carries studentCounts). */
+                        { label: 'Total Students', value: window.totalStudentsLabel(event) },
                         { label: 'Room Name', value: venueInfo.name || '—' },
                         { label: 'Capacity', value: venueInfo.capacity ? String(venueInfo.capacity) : '—' }
                     ]

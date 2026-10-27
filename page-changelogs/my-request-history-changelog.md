@@ -621,3 +621,11 @@ replacement" but the value rendered the ORIGINAL class's home venue (B107). Chos
 now shows `replacementVenue` (B002, the booked make-up room, matching the Request Details modal's
 "Replacement Venue" row); the original class's venue remains in the modal's "Original Venue" row + the
 "Original Class" column's block. Fallback renders `r.venue` when the legacy row has no slot.
+
+## 2026-10-27 · cohortBreakdown promoted to ui-common.js (BMSE3153-class-info)
+- The local `cohortBreakdown` helper moves to `window.cohortBreakdown` (ui-common.js)
+  — the 3rd copy fired the promote-on-3rd rule (replacement-home's quick view joined).
+- **Single-cohort fix:** the old helper emitted "20 = 20" for single-cohort rows
+  (it joined whenever `cohortCounts` existed). Now single-cohort keeps the plain
+  count; multi-cohort keeps `A + B = total` (the same law the class modals follow).
+  Call site now `window.cohortBreakdown(r)`.

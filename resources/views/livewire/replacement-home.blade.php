@@ -626,7 +626,10 @@
                         DetailModal.row('Subject Name', c.name) +
                         DetailModal.row('Class Type', typeLabel) +
                         DetailModal.row('Cohort(s)', c.cohorts.join(', ')) +
-                        DetailModal.row('Students', String(c.totalStudents))
+                        /* BMSE3153-class-info (user law 2026-10-27): the shared
+                           cohortBreakdown (ui-common.js) renders the per-cohort
+                           `A + B = total` breakdown for multi-cohort rows. */
+                        DetailModal.row('Students', window.cohortBreakdown(c))
                     ) },
                     { key: 'schedule', label: 'Schedule', html: DetailModal.section('Schedule',
                         DetailModal.row('Week', 'Week ' + (wn || '-')) +

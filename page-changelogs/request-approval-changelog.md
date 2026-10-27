@@ -149,3 +149,11 @@ bridged the payload → **1** (the demo's true pending count is 1 — request
   approve/reject/bulk.
 `U3-T9e` pins the accuracy + cross-page consistency (approval page vs
 my-timetable page = the same real number).
+
+## 2026-10-27 · Detail modal Total Students = A+B=total (BMSE3153-class-info)
+The Original Class tab's "Total Students" row now renders the shared
+`cohortBreakdown(r)` (ui-common.js) — multi-cohort rows show `A + B = total` from
+the payload's positional `cohortCounts` (ReplacementRequestMapper already emitted
+that field; mock `requests` carried it too — no payload work needed). Single-cohort
+rows keep the plain count. List-table "Students" column stays the plain number
+(compact column, not a modal row).

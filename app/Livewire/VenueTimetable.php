@@ -237,6 +237,14 @@ class VenueTimetable extends Component
                 'lecturer' => $session->lecturer->name,
                 'cohort' => $this->cohortLabel($session->cohorts),
                 'cohorts' => $session->cohorts->map(fn ($c) => $this->cohortCode($c))->all(),
+                // the per-cohort student-count breakdown (BMSE3153-class-info
+                // user law 2026-10-27): the Slot Details modal renders
+                // `A + B = total` for multi-cohort classes — POSITIONAL with
+                // the cohorts array (mock-data convention), real student_count.
+                'studentCounts' => $session->cohorts
+                    ->map(fn ($c) => (int) ($c->student_count ?? 0))
+                    ->values()
+                    ->all(),
                 'studentCount' => (int) $session->cohorts->sum('student_count'),
                 'status' => match ($g['severity']) {
                     3 => 'conflict',
@@ -347,6 +355,14 @@ class VenueTimetable extends Component
                 'lecturer' => $session->lecturer->name,
                 'cohort' => $this->cohortLabel($session->cohorts),
                 'cohorts' => $session->cohorts->map(fn ($c) => $this->cohortCode($c))->all(),
+                // the per-cohort student-count breakdown (BMSE3153-class-info
+                // user law 2026-10-27): the Slot Details modal renders
+                // `A + B = total` for multi-cohort classes — POSITIONAL with
+                // the cohorts array (mock-data convention), real student_count.
+                'studentCounts' => $session->cohorts
+                    ->map(fn ($c) => (int) ($c->student_count ?? 0))
+                    ->values()
+                    ->all(),
                 'studentCount' => (int) $session->cohorts->sum('student_count'),
                 // occurrence-week-pin-truthfulness D-P5: the Original rows'
                 // payload keys (status-independent — one shape for both
@@ -479,6 +495,10 @@ class VenueTimetable extends Component
                     'lecturer' => (string) ($session->lecturer->name ?? ''),
                     'cohort' => $this->cohortLabel($session->cohorts),
                     'cohorts' => $session->cohorts->map(fn ($c) => $this->cohortCode($c))->all(),
+                    'studentCounts' => $session->cohorts
+                        ->map(fn ($c) => (int) ($c->student_count ?? 0))
+                        ->values()
+                        ->all(),
                     'studentCount' => (int) $session->cohorts->sum('student_count'),
                     'status' => 'conflict',  // the DERIVED family's own status
                     'remarks' => 'Public Holiday ('.$label.')', // byte-parity the timeline's conflict reasons
@@ -607,9 +627,19 @@ class VenueTimetable extends Component
             if (str_contains((string) $merged['cohort'], (string) $twin['cohort']) === false) {
                 $merged['cohort'] = trim((string) $merged['cohort'].' + '.$twin['cohort'], ' +');
             }
-            foreach ($twin['cohorts'] as $cohortCode) {
+            foreach ($twin['cohorts'] as $ci => $cohortCode) {
                 if (! in_array($cohortCode, $merged['cohorts'], true)) {
                     $merged['cohorts'][] = $cohortCode;
+                    // keep studentCounts POSITIONAL with the unioned cohorts
+                    // (BMSE3153-class-info: the modal's A + B = total reads
+                    // the pair by index) — a newly added cohort brings its
+                    // own count along.
+                    if (isset($twin['studentCounts'][$ci])) {
+                        $merged['studentCounts'] = array_merge(
+                            $merged['studentCounts'] ?? [],
+                            [(int) $twin['studentCounts'][$ci]],
+                        );
+                    }
                 }
             }
             $merged['studentCount'] += $twin['studentCount'];

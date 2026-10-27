@@ -157,20 +157,10 @@
                 replaceBtn.style.display = stampedEvent.occurrenceFact ? 'flex' : 'none';
 
                 let cohortValue = event.cohort;
-                /* BMSE3153-class-info (user law 2026-10-27): a multi-cohort
-                   class shows the per-cohort student counts — `A + B = total`
-                   from the payload's studentCounts (real cohorts.student_count
-                   data; NEVER hardcoded). Single-cohort keeps the plain count. */
-                let studentValue = event.studentCount ? String(event.studentCount) : '—';
-                const counts = event.studentCounts;
-                if (event.cohorts && event.cohorts.length > 1 && Array.isArray(counts)
-                    && counts.length === event.cohorts.length) {
-                    studentValue = counts.join(' + ')
-                        + ' = '
-                        + (event.studentCount !== undefined
-                            ? String(event.studentCount)
-                            : String(counts.reduce((a, b) => a + b, 0)));
-                }
+                /* BMSE3153-class-info (user law 2026-10-27): the shared
+                   totalStudentsLabel (ui-common.js) renders the per-cohort
+                   `A + B = total` breakdown for multi-cohort classes. */
+                const studentValue = window.totalStudentsLabel(event);
 
                 openClassModal({
                     event: event,

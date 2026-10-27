@@ -1411,3 +1411,18 @@ there, which MATCHES the new law's ③/④ tail (the slot holds until the
 approved replacement releases it — the existing approve-path release).
 The shared cellRender filter edit is INERT on this page (its payloads
 never carry cancelled events).
+
+## 2026-10-27 · Slot Details "Total Students" joins the A+B=total law (BMSE3153-class-info)
+The venue page's Slot Details modal was the last class modal still showing a bare
+multi-cohort count ("Total Students 27"). Now:
+- **Payload** (`VenueTimetable.php`): all three slot builds (base slots, pending
+  request rows, the conflict-family events) carry `studentCounts` — POSITIONAL with
+  `cohorts`, real `cohorts.student_count` (mirrors the timeline trait's shape from
+  `910b97c`). The twin-merge (`reduceTwins`) keeps counts positional as cohorts union
+  — a newly added cohort brings its own count along.
+- **Modal** (`openModal`): the Total Students row renders the shared
+  `totalStudentsLabel(event)` (ui-common.js) — `A + B = total` for multi-cohort,
+  plain count for single-cohort, `—` when absent. Single-cohort rooms (e.g. BMSE3153's
+  own cohort view) keep the plain count.
+- Same shared helper as my-timetable/cohort-timetable modals — one law, promoted to
+  ui-common.js (the venue modal was the 3rd copy).
