@@ -38,19 +38,7 @@ const tipText = text;   // the code-suffixed rooms' label law VERBATIM — the
                         // code never duplicates; for the labs the tooltip
                         // = the full room_name (the D1 payload also carries
                         // name):'B005 — Computer Laboratory 5 (28 seats)'.
-// per 🔴2: keep the two-branch tooltip rule verbatim —
-//   const tipText = (v.name && !fullNamePath) ? text : code+hoverBase;
-// with fullNamePath DELETED (always the !fullName branch = the label text)
-// EXCEPT the labs must show the full name... the reconciliation: the
-// tooltip branch = text (label) for the code-suffixed rooms and the FULL
-// name for the labs — implemented as: the labs' server short_name !==
-// room_name (the D1 swap happens server-side) → the client keeps ONE law:
-//   tip = v.code + ' — ' + (v.name && v.name !== shortName ? v.name : base)
-//   (the labs: name ≠ short_name → the FULL name rides; the tutorials: name
-//   (code-suffixed) == base+code — after the trim the tooltip rides the
-//   LABEL text — the byte-stable law preserved).
-this.trigger.setAttribute('data-tip', tipText + ' (' + v.capacity + ' seats)');
-```
+// the exploratory middle STRUCK (the authoritative form below = THE law).
 - the label = `short_name` (the fallback = the name minus the code suffix /
   the humanized type — the PRE-EXISTING fallback rules verbatim);
 - `MockData.venueRealNames` reads REMOVED; the map deleted;
