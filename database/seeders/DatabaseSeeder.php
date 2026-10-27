@@ -22,14 +22,16 @@ class DatabaseSeeder extends Seeder
     /* 2026-10-13 — user-approved cohort sizes, matching the live demo DB
        exactly (docs/demo-db-data-changes.md). Reseeding now reproduces the
        presentation dataset: 0 over-capacity sessions. */
-    /* BMSE3153-class-info rail-2 (user 2026-10-27): every cohort at 7–10
-       students (the small-cohort viva scaling); the demo live DB matches
-       (docs/demo-db-data-changes.md, the 2026-10-27 cohort-shrink row). */
+    /* BMSE3153-class-info rail-2 (user 2026-10-27, amended): the Bachelor
+       cohorts at 7–10; the Diploma cohorts at 20–25 (the user's split rail).
+       The demo live DB matches (docs/demo-db-data-changes.md). */
     private const STUDENT_COUNTS = [
-        'DFT1(S1)G1' => 10,
-        'DFT2(S1)G1' => 9,
-        'DSF1(S1)G1' => 8,
-        'DSF2(S1)G1' => 7,
+        // the Diploma (D*) cohorts ride 20–25 (user 2026-10-27 amendment —
+        // the 7–10 rail applies to the Bachelor cohorts only):
+        'DFT1(S1)G1' => 24,
+        'DFT2(S1)G1' => 20,
+        'DSF1(S1)G1' => 25,
+        'DSF2(S1)G1' => 21,
         'RSD1(S1)G1' => 9,
         'RSD2(S1)G1' => 8,
         'RSD2(S1)G2' => 7,

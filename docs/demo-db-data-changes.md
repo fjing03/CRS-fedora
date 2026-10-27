@@ -177,3 +177,17 @@ ALTER TABLE audit_logs ADD CONSTRAINT audit_logs_action_check
 - Insurance dumps: `/tmp/insurance-pre-dftdrop-2026-10-27.dump`,
   `/tmp/insurance-pre-scoreshrink-2026-10-27.dump` both taken BEFORE the
   runs (the pre-change states).
+
+## 2026-10-27 (amendment) — the Diploma (D*) cohorts ride 20–25 (the split rail)
+
+- **Approved by:** the user — my earlier cohort-shrink applied 7–10 to ALL
+  14 cohorts including the Diploma ones; the user's correction: the D*
+  cohorts (DFT/DSF) belong in the 20–25 band. The Bachelor cohorts keep
+  their 7–10 values.
+- **Live DB (executed, 4 rows):** DFT1=24, DFT2=20, DSF1=25, DSF2=21.
+- **Seeder mirror:** `DatabaseSeeder::STUDENT_COUNTS` updated (the same 4
+  values, the rail split noted in the docblock).
+- **Side effects:** the AMIT2034 DSF-only rows (3/33/34) total 21 (well
+  inside B005's 28 and B006's 32 ✓); the BMSE3153 breakdown stays
+  `8 + 7 = 15` (RSD3 pairs untouched); the venue-restrictions R2 audit
+  note's standing count rides the dataset (21, not the historical 22/15).
