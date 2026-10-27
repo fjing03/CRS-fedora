@@ -456,6 +456,15 @@ trait ResolvesTimetableTimeline
             'lecturer' => $s->lecturer !== null ? $s->lecturer->name : '—',
             'cohort' => $cohortLabel,
             'cohorts' => $cohorts->map(fn ($c) => $this->cohortCode($c))->all(),
+            // the per-cohort student-count breakdown (BMSE3153-class-info user
+            // law 2026-10-27): the modal renders `A + B = total` for multi-
+            // cohort classes. POSITIONAL — the mock-data convention
+            // (mock-data.js:252 `studentCounts: [28, 22]` pairs with the
+            // `cohorts` array by index); counts come from cohorts.student_count.
+            'studentCounts' => $s->cohorts
+                ->map(fn ($c) => (int) ($c->student_count ?? 0))
+                ->values()
+                ->all(),
             'studentCount' => (int) $cohorts->sum('student_count'),
             'status' => $this->venueRestrictionConflict($s) ? 'conflict' : 'normal',
             'remarks' => '',

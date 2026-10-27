@@ -170,3 +170,15 @@ two-axis `statusClassFn` gained the cancelled arm FIRST (§10.0: same
 (the custom statusClassFn short-circuits the shared family). The summary
 cards follow the locked law (conflicts INCLUDE cancelled; classes/hours
 exclude). Same read-time discriminator as my-timetable.
+## 2026-10-27 (user law, BMSE3153-class-info) — the modal shows the FULL membership on both cohort views
+**The root cause:** the cohort page's session scope code (the `cohortSelect`
+filter) was stamped as the modal's `Cohort` row — the filtered view label
+masquerading as the class's cohort list. The membership lives in the event's
+`cohorts` list already.
+**The fix:** the modal's `Cohort` row = the session's OWN membership
+(`cohorts.join(' + ')` for multi-cohort — `RSD3(S1)G2 + RSD3(S1)G3` in BOTH
+the G2 and the G3 view; single-cohort keeps the scope label), and a NEW
+`Total Students` row with the `A + B = total` breakdown from the payload's
+positional `studentCounts` (the mock-data convention).
+**cohortSelect semantics unchanged** — it still filters the displayed
+timetable; it no longer masquerades as the data.

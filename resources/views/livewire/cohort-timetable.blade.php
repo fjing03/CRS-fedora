@@ -557,13 +557,37 @@
                    :295 parity): write the window channel FIRST — the footer
                    button's click reads it; the gate below then decides. */
                 window.currentModalEvent = event;
+                /* BMSE3153-class-info (user law 2026-10-27): the class
+                   reference's OWN membership — the cohortSelect filters the
+                   ON-SCREEN timetable, NOT the class's cohort list. A multi-
+                   cohort class shows `RSD3(S1)G2 + RSD3(S1)G3` in BOTH G2 and
+                   G3 views (the payload's cohorts list = the session's real
+                   assignment), and the Total Students row carries the A + B
+                   = total breakdown (studentCounts, real data). Single-
+                   cohort classes keep the scope label + the plain count. */
+                const isMulti = event.cohorts && event.cohorts.length > 1;
+                const modalCohortValue = isMulti ? event.cohorts.join(' + ') : (event.cohort || '—');
+                const counts = event.studentCounts;
+                let studentValue;
+                if (isMulti && Array.isArray(counts) && counts.length === event.cohorts.length) {
+                    studentValue = counts.join(' + ')
+                        + ' = '
+                        + (event.studentCount !== undefined
+                            ? String(event.studentCount)
+                            : String(counts.reduce((a, b) => a + b, 0)));
+                } else if (event.studentCount !== undefined) {
+                    studentValue = String(event.studentCount);
+                } else {
+                    studentValue = '—';
+                }
                 openClassModal({
                     event: event,
                     dayIndex: (di !== undefined ? di : event.di),
                     days: weekData[currentWeek].days,
                     modalId: 'eventModal',
                     extraFields: [
-                        { label: 'Cohort', value: event.cohort || '—' }
+                        { label: 'Cohort', value: modalCohortValue },
+                        { label: 'Total Students', value: studentValue }
                     ]
                 });
 

@@ -80,3 +80,14 @@ taught) — the blade filters are gone (the full arrays reach the summary).
 receipts + the upserted `TimetableWiringTest` red-block test — the
 cancelled-only week now renders the block, NOT the empty state); pint ✅;
 phpstan ✅; NO new Playwright spec (the user tests manually).
+## 2026-10-27 (user law, BMSE3153-class-info) — the multi-cohort breakdown in the Class Details
+**The law:** no bare `27` for a multi-cohort class — the Class Details show
+the per-cohort counts (`14 + 13 = 27`), calculated from the real data.
+**Payload:** `ResolvesTimetableTimeline::baseEvent` adds the positional
+`studentCounts` array (parallel to the `cohorts` list — the mock-data
+convention, counts from `cohorts.student_count`).
+**Modal (openClassModal extraFields):** a multi-cohort class renders
+`Total Students = 14 + 13 = 27`; single-cohort keeps the plain count.
+**Receipts (Playwright):** BMSE3153(P) #23 → Cohort `RSD3(S1)G2 + RSD3(S1)G3`
++ `14 + 13 = 27`; single-cohort BMIT2154(L) #7 → `RSD2(S1)G1` / `16`
+(unchanged). No hardcoded values.
