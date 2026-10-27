@@ -301,9 +301,29 @@ final class MatrixIntersectionEngine
      * Busy ranges for a lecturer in a given week, minus that week's class exceptions.
      * Public: also feeds the arrangement grid's D4-rule-1 occupied rendering.
      *
+     * SDD makeup-busy-vector (2026-10-27, redesign D2): the vector gains the
+     * OWNER-scoped make-up layer — the lecturer's own replacement make-up
+     * slots (any status pending|approved, the rr's class_session is theirs).
+     * Venue/cohort axes stay out of THIS function (they're separate checks
+     * — the user's laws: independently checked, mutually different).
+     *
      * @return array<int, array{day: int, start: string, end: string}>
      */
     public function lecturerBusyRanges(int $semesterId, int $lecturerId, int $weekNumber): array
+    {
+        return array_merge(
+            $this->classSessionRangesForLecturer($semesterId, $lecturerId, $weekNumber),
+            $this->makeUpRangesForLecturer($semesterId, $lecturerId, $weekNumber),
+        );
+    }
+
+    /**
+     * The class-side ranges (the pre-lane shape — the only source before the
+     * SDD makeup-busy-vector extends it into its own reader).
+     *
+     * @return array<int, array{day: int, start: string, end: string}>
+     */
+    private function classSessionRangesForLecturer(int $semesterId, int $lecturerId, int $weekNumber): array
     {
         return ClassSession::query()
             ->where('semester_id', $semesterId)
@@ -319,13 +339,67 @@ final class MatrixIntersectionEngine
     }
 
     /**
+     * The OWNER-scoped make-up layer (SDD makeup-busy-vector D2): the
+     * lecturer's own replacement_request make-ups — the pending AND the
+     * approved alike, joined through the rr chain; the double filter
+     * (time_slots.status AND replacement_requests.status) holds against the
+     * drift both ways: a cancelled rr with slots still pending loses, a
+     * released slot loses.
+     *
+     * @return array<int, array{day: int, start: string, end: string}>
+     */
+    private function makeUpRangesForLecturer(int $semesterId, int $lecturerId, int $weekNumber): array
+    {
+        return TimeSlot::query()
+            ->whereIn('time_slots.status', ['pending', 'occupied'])
+            ->where('time_slots.semester_id', $semesterId)
+            ->where('time_slots.week_number', $weekNumber)
+            ->join('replacement_request_slots',
+                'replacement_request_slots.time_slot_id', '=', 'time_slots.id')
+            ->join('replacement_requests',
+                'replacement_requests.id', '=',
+                'replacement_request_slots.replacement_request_id')
+            ->whereIn('replacement_requests.status', ['pending', 'approved'])
+            ->join('class_sessions',
+                'class_sessions.id', '=', 'replacement_requests.class_session_id')
+            ->where('class_sessions.lecturer_id', $lecturerId)
+            ->get(['time_slots.day_of_week', 'time_slots.start_time', 'time_slots.end_time'])
+            ->map(fn ($row): array => [
+                'day' => (int) $row->day_of_week,
+                'start' => (string) $row->start_time,
+                'end' => (string) $row->end_time,
+            ])
+            ->all();
+    }
+
+    /**
      * Union of busy ranges across target cohorts (overlapping ranges among cohorts count once).
      * Public: also feeds the arrangement grid's D4-rule-1 occupied rendering.
+     *
+     * SDD makeup-busy-vector (2026-10-27, design D2): the vector gains the
+     * COHORT-side make-up layer — ANY lecturer's make-up whose rr's
+     * class_session belongs to one of the target cohorts enters
+     * (ownerless join — the cohorts are shared user-groups; the class-side
+     * row shape already rides cooldowns from every lecturer).
      *
      * @param  array<int, int>  $cohortIds
      * @return array<int, array{day: int, start: string, end: string}>
      */
     public function cohortBusyRanges(int $semesterId, array $cohortIds, int $weekNumber): array
+    {
+        return array_merge(
+            $this->classSessionRangesForCohorts($semesterId, $cohortIds, $weekNumber),
+            $this->makeUpRangesForCohorts($semesterId, $cohortIds, $weekNumber),
+        );
+    }
+
+    /**
+     * The class-side ranges (the pre-lane shape).
+     *
+     * @param  array<int, int>  $cohortIds
+     * @return array<int, array{day: int, start: string, end: string}>
+     */
+    private function classSessionRangesForCohorts(int $semesterId, array $cohortIds, int $weekNumber): array
     {
         return ClassSession::query()
             ->join('session_cohorts as sc', 'sc.class_session_id', '=', 'class_sessions.id')
@@ -338,6 +412,44 @@ final class MatrixIntersectionEngine
                 'day' => $session->day_of_week,
                 'start' => $session->start_time,
                 'end' => $session->end_time,
+            ])
+            ->all();
+    }
+
+    /**
+     * The COHORT-side make-up layer (SDD makeup-busy-vector D2): the
+     * make-ups whose rr's class_session carries one of the target cohorts —
+     * OWNERLESS (any lecturer's make-up for a shared cohort blocks the
+     * cohort's other bookings, the user's (b) law).
+     *
+     * @param  array<int, int>  $cohortIds
+     * @return array<int, array{day: int, start: string, end: string}>
+     */
+    private function makeUpRangesForCohorts(int $semesterId, array $cohortIds, int $weekNumber): array
+    {
+        if ($cohortIds === []) {
+            return [];
+        }
+
+        return TimeSlot::query()
+            ->whereIn('time_slots.status', ['pending', 'occupied'])
+            ->where('time_slots.semester_id', $semesterId)
+            ->where('time_slots.week_number', $weekNumber)
+            ->join('replacement_request_slots',
+                'replacement_request_slots.time_slot_id', '=', 'time_slots.id')
+            ->join('replacement_requests',
+                'replacement_requests.id', '=',
+                'replacement_request_slots.replacement_request_id')
+            ->whereIn('replacement_requests.status', ['pending', 'approved'])
+            ->join('session_cohorts',
+                'session_cohorts.class_session_id', '=',
+                'replacement_requests.class_session_id')
+            ->whereIn('session_cohorts.cohort_id', $cohortIds)
+            ->get(['time_slots.day_of_week', 'time_slots.start_time', 'time_slots.end_time'])
+            ->map(fn ($row): array => [
+                'day' => (int) $row->day_of_week,
+                'start' => (string) $row->start_time,
+                'end' => (string) $row->end_time,
             ])
             ->all();
     }

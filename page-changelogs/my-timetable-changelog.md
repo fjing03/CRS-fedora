@@ -109,3 +109,8 @@ The b005-derived `conflict` status arm in the timeline payload dies:
 every session renders normal unless a real exception/holiday hits it.
 The standing AMIT2034(P) B005 block (a red fixture of this page for the
 whole of the 10-27 session) renders clean.
+## 2026-10-27 (SDD makeup-busy-vector) — receipt note
+The arrangement availability now honours the approved/pending make-up
+slots in the lecturer/cohort busy vectors (the bug9 double-book fix);
+this page's own rendering was already correct (the `event-replacement`
+block receipts rr #1) and is untouched.

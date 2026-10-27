@@ -2056,3 +2056,18 @@ scripts cut on escape boundaries and re-joins via JSON.parse; the
 `window.PAGE_DATA` contract is unchanged. Livewire mode `PAGE_DATA` keys
 = same as before (the receipt: the said 12 keys incl. the ones carried
 from the repeal work).
+
+## 2026-10-27 (SDD makeup-busy-vector) — the make-up slots enter the busy vectors
+The bug9 investigation proved the timetable marked B010 Fri 13:30–14:30
+`available` while the SAME lecturer had an approved BMSE3153 make-up at
+B009 that hour (`validateSlot` accepted — a real double-book, not a
+render artifact). The engine's three vectors now read the make-up layer:
+the LECTURER vector is OWNER-scoped (the rr's class_session lecturer —
+the user's ruling: the lecturer check applies to the class's own
+lecturer; venue/cohort checks stay independent across lecturers), the
+COHORT vector is ownerless (any make-up of a shared cohort blocks it),
+both with the double status filter (time_slots pending|occupied × rr
+pending|approved — cancelled/released rows never enter; the
+[13:30,14:30) half-open span leaves the 13:00/14:30 entries free). The
+busy-cell aria carries the honest holder text (`You —
+BMSE3153(P) · B009 · 13:30-14:00 · … · Replacement (approved)`).

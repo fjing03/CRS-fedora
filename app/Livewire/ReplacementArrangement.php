@@ -532,6 +532,75 @@ class ReplacementArrangement extends Component
             }
         }
 
+        /* SDD makeup-busy-vector (2026-10-27, design D4 + the reviewer's
+           per-row key law): the make-up slots' holder text rides the SAME
+           [weekIdx][day:slotStart:slotEnd] key — ONE tuple per time_slot
+           row (13:30-14:00 / 14:00-14:30 = two), never the rr's span.
+           The other chunks ("· Replacement") keep the aria honest. */
+        $makeUpRows = DB::table('time_slots')
+            ->whereIn('time_slots.status', ['pending', 'occupied'])
+            ->where('time_slots.semester_id', $semesterId)
+            ->where('time_slots.week_number', '<=', $weeks)
+            ->join('replacement_request_slots',
+                'replacement_request_slots.time_slot_id', '=', 'time_slots.id')
+            ->join('replacement_requests',
+                'replacement_requests.id', '=',
+                'replacement_request_slots.replacement_request_id')
+            ->whereIn('replacement_requests.status', ['pending', 'approved'])
+            ->join('class_sessions as cs', 'cs.id', '=', 'replacement_requests.class_session_id')
+            ->join('modules as m', 'm.id', '=', 'cs.module_id')
+            ->join('venues as v', 'v.id', '=', 'time_slots.venue_id')
+            ->join('users as u', 'u.id', '=', 'cs.lecturer_id')
+            ->join('lecturers as le', 'le.user_id', '=', 'cs.lecturer_id')
+            ->get([
+                'time_slots.id as slot_id',
+                'time_slots.week_number as wk',
+                'time_slots.day_of_week',
+                'time_slots.start_time',
+                'time_slots.end_time',
+                'cs.id as session_id',
+                'cs.session_type',
+                'cs.lecturer_id',
+                'm.module_code',
+                'v.room_code',
+                'u.name as lecturer_name',
+                'le.staff_id',
+                'replacement_requests.status',
+            ]);
+        /* stdClass rows (DB::table) — the TimeSlot::get model getter on the
+           aliased joins was phpstan-hostile; the query Builder row keeps
+           the same columns. */
+
+        $mkCohorts = [];
+        foreach ($makeUpRows as $row) {
+            if (! isset($mkCohorts[$row->session_id])) {
+                $mkCohorts[$row->session_id] = ClassSession::query()
+                    ->where('id', $row->session_id)
+                    ->with('cohorts.programme')
+                    ->first()
+                    ?->cohorts
+                    ->map(fn (Cohort $c): string => $this->cohortCode($c))
+                    ->implode(', ');
+            }
+        }
+
+        foreach ($makeUpRows as $row) {
+            $w = (int) $row->wk;
+            if ($w < 1 || $w > $weeks) {
+                continue;
+            }
+            $mine = (int) $row->lecturer_id === (int) auth()->id();
+            $label = ($mine ? 'You — ' : '')
+                .$row->module_code.'('.(string) $row->session_type.')'
+                .' · '.(string) $row->room_code
+                .' · '.substr((string) $row->start_time, 0, 5).'-'.substr((string) $row->end_time, 0, 5)
+                .' · '.(string) $row->lecturer_name.' ('.$row->staff_id.')'
+                .' · cohorts: '.($mkCohorts[$row->session_id] ?? '-')
+                .' · Replacement ('.(string) $row->status.')';
+            $key = (int) $row->day_of_week.':'.$this->slotIndex((string) $row->start_time).':'.$this->slotIndex((string) $row->end_time);
+            $out[$w - 1][$key][] = $label;
+        }
+
         return $out;
     }
 
