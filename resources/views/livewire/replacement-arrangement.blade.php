@@ -1716,6 +1716,16 @@
                        'Pending — '/'Occupied by ' prefix and the ' / '
                        block join. The TEMP-HOLDER-LABEL feature stays (the
                        viva directive — the format is what changes). */
+                    /* SDD tidy-arrangement-cell-tooltips round 3 (the
+                       user's add): EACH block carries a why-subtitle —
+                       ['👤 Own conflict', '🏛 Venue conflict',
+                         '👥 Cohorts conflict'] — the three independent
+                       checks named (the makeup-busy-vector ruling: the
+                       creator's own calendar / the viewed venue / the
+                       shared cohorts). Client-side parse: the room line,
+                       the 'You — ' ownership marker, the cohort-line
+                       intersection with courseCtx()'s cohorts. */
+                    const normCohort = (x) => (x || '').replace(/\s+/g, '');
                     const renderHolderTip = function (matches) {
                         const blocks = matches.map(b => b[3]).filter(Boolean);
                         if (!blocks.length) return null;
@@ -1729,9 +1739,26 @@
                             ? '\u23F3 Pending make-up \u2014 awaiting approval'
                             : '\u26A0 Occupied \u2014 ' + blocks.length
                                 + ' class' + (blocks.length > 1 ? 'es' : '') + ' in the way';
-                        const readable = header + '\n\n' + blocks.join('\n\n');
+                        const ctx = (typeof courseCtx === 'function') ? courseCtx() : null;
+                        const ctxCohorts = (ctx && Array.isArray(ctx.cohorts)
+                            ? ctx.cohorts : []).map(normCohort);
+                        const tagsFor = function (block) {
+                            const lines = block.split('\n');
+                            const room = (lines[0].split(' · ')[0] || '').trim();
+                            const own = (lines[1] || '').indexOf('You — ') === 0;
+                            const blockCohorts = (lines[2] || '').split(',').map(normCohort).filter(Boolean);
+                            const tags = [];
+                            if (own) tags.push('\u{1F464} Own conflict');
+                            if (room && String(room) === String(currentVenue)) tags.push('\u{1F3DB}\u{FE0F} Venue conflict');
+                            if (ctxCohorts.length && blockCohorts.some(function (c) { return ctxCohorts.indexOf(c) !== -1; })) {
+                                tags.push('\u{1F465} Cohorts conflict');
+                            }
+                            return tags.join(' · ');
+                        };
+                        const tagged = blocks.map(function (block) { return tagsFor(block) ? tagsFor(block) + '\n' + block : block; });
+                        const readable = header + '\n\n' + tagged.join('\n\n');
                         const flat = (allPending ? 'Pending — ' : 'Occupied by ')
-                            + blocks.map(b => b.replace(/\n/g, ' · ').replace(/\s{2,}/g, ' ')).join(' / ');
+                            + tagged.map(b => b.replace(/\n/g, ' · ').replace(/\s{2,}/g, ' ')).join(' / ');
                         return { readable: readable, flat: flat };
                     };
                     const attachHolder = function () {

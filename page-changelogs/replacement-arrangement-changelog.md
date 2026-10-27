@@ -2108,3 +2108,13 @@ became honest. The tuple shape is still 5 slots; the existing tests'
 
 The venue-timetable page's tips: grep receipt — NO identical holder-join
 pattern (its tooltips are distinct single-line shapes) — no change there.
+
+## 2026-10-27 (round 4) — each tooltip block names its WHY (the three independent checks)
+Each block in the occupied/pending tooltip now leads with a why-subtitle —
+`👤 Own conflict` (the block's lecturer = the arranger — the
+`You — ` marker), `🏛️ Venue conflict` (the block's room = the
+currently viewed venue), `👥 Cohorts conflict` (the block's cohorts ∩
+the arranged session's cohort set) — multiple can co-exist (the safe
+rank untouched: any non-pending matcher still wins the red class). The
+parse is client-side (the block's own lines — no payload change); the
+aria flat line carries the tags inline (the same one-line law).
