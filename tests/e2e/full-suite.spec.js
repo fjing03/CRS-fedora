@@ -504,12 +504,14 @@ test.describe('Page: Replacement Arrangement (/replacement-arrangement)', () => 
     expect(errors).toHaveLength(0);
   });
 
-  test('MockData has venueSlots and arrangementWeeks', async ({ page }) => {
+  test('MockData has venueSlots', async ({ page }) => {
     await page.goto('/replacement-arrangement', { waitUntil: 'networkidle' });
+    // mock-statics-die: the arrangementWeeks static is DELETED (the real
+    // semester walk = generateWeekData; the API's own arrangementWeeks
+    // fixtures live at :251+/the api-wiring surface — untouched).
     const hasData = await page.evaluate(() => {
       const vs = window.MockData?.venueSlots;
-      const aw = window.MockData?.arrangementWeeks;
-      return vs && Object.keys(vs).length > 0 && aw && aw.length === 3;
+      return !!(vs && Object.keys(vs).length > 0);
     });
     expect(hasData).toBeTruthy();
   });

@@ -189,3 +189,8 @@ now calls `window.totalStudentsLabel(event)` (ui-common.js) — the venue page's
 modal became the 3rd copy, so per promote-on-3rd the helper moved to ui-common.js
 and this page's copy was retired. Cohort row behavior unchanged (full membership
 joined for both single- and multi-cohort views).
+## 2026-10-27 (SDD mock-statics-die) — receipt note
+No code changes here: the cohort page never consumed `MockData.cohorts` /
+`arrangementWeeks` (the payload's per-event cohort fields + the real
+semester walk cover it). The deleted statics are receipted in the
+my-timetable/venue changelogs.

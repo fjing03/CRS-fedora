@@ -98,3 +98,9 @@ now calls `window.totalStudentsLabel(event)` (ui-common.js) — the venue page's
 modal became the 3rd copy, so per promote-on-3rd the helper moved to ui-common.js
 and this page's copy was retired. Behavior unchanged (multi-cohort `A + B = total`,
 single-cohort plain count, `—` absent).
+## 2026-10-27 (SDD mock-statics-die) — receipt note
+The `MockData.cohorts` registry + the `arrangementWeeks` scaffold (0
+live consumers, the payload-driven walk supersedes) are deleted from
+mock-data.js. This page's data was already fully DB-wired. The cohort
+shrink (cohorts at 7–10 students) rides the payload — the Total Students
+rows reflow automatically (`8 + 7 = 15` on BMSE3153(P)).

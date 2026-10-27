@@ -125,7 +125,7 @@ class VenueTimetable extends Component
             // Empty venues table (fresh DB) — render with empty payloads.
             return $this->renderPayload(
                 collect(),
-                ['code' => '', 'name' => '', 'capacity' => 0, 'rawRoomType' => ''],
+                ['code' => '', 'name' => '', 'short_name' => '', 'capacity' => 0, 'rawRoomType' => ''],
                 array_fill(0, $this->timelineWeeks(), []),
                 array_fill(0, $this->timelineWeeks(), ['total' => 0, 'available' => 0, 'occupied' => 0, 'myClasses' => 0, 'myHours' => '0']),
             );
@@ -136,6 +136,7 @@ class VenueTimetable extends Component
             ->map(fn (Venue $v) => [
                 'code' => $v->room_code,
                 'name' => $v->room_name ?? $v->room_code,
+                'short_name' => $this->shortVenueName($v->room_name ?? $v->room_code, (string) $v->room_code),
                 'capacity' => (int) $v->capacity,
                 // SDD venue-description-doc-b006-rule: the plain room
                 // description rides along for the page's summary line.
@@ -566,6 +567,7 @@ class VenueTimetable extends Component
         return $this->renderPayload($venuesJs, [
             'code' => $venue->room_code,
             'name' => $venue->room_name ?? $venue->room_code,
+            'short_name' => $this->shortVenueName($venue->room_name ?? $venue->room_code, (string) $venue->room_code),
             'capacity' => (int) $venue->capacity,
             // SDD venue-description-doc-b006-rule: the viewed room's plain description.
             'description' => $venue->description !== null ? (string) $venue->description : '',
@@ -574,8 +576,8 @@ class VenueTimetable extends Component
     }
 
     /**
-     * @param  Collection<int, array{code: string, name: string, capacity: int, description: string, rawRoomType: string, type: 'CiscoLab'|'Lab'|'LectureHall'|'Tutorial'}>  $venuesJs
-     * @param  array{code: string, name: string, capacity: int, rawRoomType: string}  $venue
+     * @param  Collection<int, array{code: string, name: string, short_name: string, capacity: int, description: string, rawRoomType: string, type: 'CiscoLab'|'Lab'|'LectureHall'|'Tutorial'}>  $venuesJs
+     * @param  array{code: string, name: string, short_name: string, capacity: int, rawRoomType: string}  $venue
      * @param  array<int, array<int, array<string, mixed>>>  $eventsByWeek
      * @param  array<int, array<string, int|string>>  $totalsByWeek
      */

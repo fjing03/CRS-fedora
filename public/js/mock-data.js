@@ -63,8 +63,8 @@ window.MockData = {
 
     // §2.2  holidays — declarative; CONSUMED BY CohortTimetable + Student My Timetable.
     // MyTimetable has no holiday render path today (explicit non-goal).
-    // Replacement-arrangement's holiday stays embedded inside `arrangementWeeks`
-    // (page-specific) — NOT duplicated here, to avoid double-sourcing.
+    // (the mock-era arrangementWeeks scaffold is DELETED — the real
+    // holidays flow via the payload; mock-statics-die 2026-10-27.)
     // ─────────────────────────────────────────────────────────────────────
     // Week = 1-based label (`Week 1` = 2026-09-21..09-27), dayIndex 0 = Mon .. 6 = Sun.
     holidays: [
@@ -78,30 +78,6 @@ window.MockData = {
     // §2.2b  currentUser — logged-in staff (mock phase).
     // ─────────────────────────────────────────────────────────────────────
     currentUser: { name: 'En. Lim Jia Zheng', staffId: '5770' },
-
-    // ─────────────────────────────────────────────────────────────────────
-    // §2.3  cohorts — registry mirroring dataset/cohorts.md + CodingMAIN §8
-    // fixed student counts (mirrors DatabaseSeeder::STUDENT_COUNTS).
-    // Codes use the dataset's own display format (DFT/DSF omit G1, RSD/RAF/RBU
-    // include it). Registry only — page event `cohort` fields are not joined.
-    // ─────────────────────────────────────────────────────────────────────
-    cohorts: [
-        { code: 'DFT1(S1)',   programme: 'Diploma in Information Technology',                       year: 1, semester: 1, group: 1, academicYear: '2025/26', intake: 'June 2025', faculty: 'FOCS', studentCount: 30 },
-        { code: 'DFT2(S1)',   programme: 'Diploma in Information Technology',                       year: 2, semester: 1, group: 1, academicYear: '2025/26', intake: 'June 2024', faculty: 'FOCS', studentCount: 28 },
-        { code: 'DSF1(S1)',   programme: 'Diploma in Software Engineering',                        year: 1, semester: 1, group: 1, academicYear: '2025/26', intake: 'June 2025', faculty: 'FOCS', studentCount: 24 },
-        { code: 'DSF2(S1)',   programme: 'Diploma in Software Engineering',                        year: 2, semester: 1, group: 1, academicYear: '2025/26', intake: 'June 2024', faculty: 'FOCS', studentCount: 22 },
-        { code: 'RSD1(S1)G1', programme: 'Bachelor in IT (Hons) Software Systems Development',   year: 1, semester: 1, group: 1, academicYear: '2025/26', intake: 'June 2025', faculty: 'FOCS', studentCount: 18 },
-        { code: 'RSD2(S1)G1', programme: 'Bachelor in IT (Hons) Software Systems Development',   year: 2, semester: 1, group: 1, academicYear: '2025/26', intake: 'June 2024', faculty: 'FOCS', studentCount: 16 },
-        { code: 'RSD2(S1)G2', programme: 'Bachelor in IT (Hons) Software Systems Development',   year: 2, semester: 1, group: 2, academicYear: '2025/26', intake: 'June 2024', faculty: 'FOCS', studentCount: 16 },
-        { code: 'RSD2(S1)G3', programme: 'Bachelor in IT (Hons) Software Systems Development',   year: 2, semester: 1, group: 3, academicYear: '2025/26', intake: 'June 2024', faculty: 'FOCS', studentCount: 15 },
-        { code: 'RSD3(S1)G1', programme: 'Bachelor in IT (Hons) Software Systems Development',   year: 3, semester: 1, group: 1, academicYear: '2025/26', intake: 'June 2023', faculty: 'FOCS', studentCount: 14 },
-        { code: 'RSD3(S1)G2', programme: 'Bachelor in IT (Hons) Software Systems Development',   year: 3, semester: 1, group: 2, academicYear: '2025/26', intake: 'June 2023', faculty: 'FOCS', studentCount: 14 },
-        { code: 'RSD3(S1)G3', programme: 'Bachelor in IT (Hons) Software Systems Development',   year: 3, semester: 1, group: 3, academicYear: '2025/26', intake: 'June 2023', faculty: 'FOCS', studentCount: 13 },
-        { code: 'RAF2(S3)G2', programme: 'Bachelor in Accountancy',                                year: 2, semester: 3, group: 2, academicYear: '2025/26', intake: 'June 2024', faculty: 'FAFB', studentCount: 12 },
-        { code: 'RAF2(S3)G4', programme: 'Bachelor in Accountancy',                                year: 2, semester: 3, group: 4, academicYear: '2025/26', intake: 'June 2024', faculty: 'FAFB', studentCount: 10 },
-        { code: 'RBU1(S1)G1', programme: 'Bachelor in Business Administration',                    year: 1, semester: 1, group: 1, academicYear: '2025/26', intake: 'June 2025', faculty: 'FAFB', studentCount: 20 },
-    ],
-
     // ─────────────────────────────────────────────────────────────────────
     // §2.4  lecturers — registry mirroring dataset/lecturers.md (14 staff).
     // `isPl` = role === 'Programme Leader' → rows 5425 and 5516.
@@ -171,22 +147,14 @@ window.MockData = {
        B005 Computer Laboratory 5 · B006 Computer Laboratory 4: CISCO Lab ·
        B009 Computer Laboratory 1 · B010 Computer Laboratory 2 ·
        B011 Computer Laboratory 3. */
-    venueRealNames: {
-        'B005': { short: 'Computer Lab 5', full: 'Computer Laboratory 5' },
-        'B006': { short: 'Computer Lab 4 - CISCO Lab', full: 'Computer Laboratory 4: CISCO Lab' },
-        'B009': { short: 'Computer Lab 1', full: 'Computer Laboratory 1' },
-        'B010': { short: 'Computer Lab 2', full: 'Computer Laboratory 2' },
-        'B011': { short: 'Computer Lab 3', full: 'Computer Laboratory 3' },
-    },
-
     // ─────────────────────────────────────────────────────────────────────
 // §2.5a  courses — all 42 modules printed for the 14 in-scope cohorts
     // (semester-202505 Programme PDF). `name` comes from
     // reference/past sem pdf/Schedule ds/py script/course_titles.py; an unknown
     // title prints as 'Subj <code>'. `type` = the most permissive session the
     // module runs (L > T > P) and drives replacement-arrangement's venue
-    // filter; `cohorts` uses the registry's display codes and both counts come
-    // from the MockData.cohorts registry.
+    // filter; `cohorts` uses the registry's display codes and both counts are real data (the DB cohorts)
+    // from the the payload's cohorts fields registry.
     // ─────────────────────────────────────────────────────────────────────
     courses: [
         { code: 'AMCS1013', name: 'Problem Solving and Programming', type: 'L', cohorts: ['DFT1(S1)', 'DSF1(S1)'], cohortCounts: [30, 24], studentCount: 54 },
@@ -712,54 +680,6 @@ window.MockData = {
         { id: 13, lecturer: 'En. Lim Jia Zheng', code: 'BMIT2013', name: 'Web-Based Integrated Systems',   type: 'L', date: '2026-09-25', day: 'Friday',   timeStart: '08:00', timeEnd: '10:00', duration: 2, venue: 'B106', totalStudents: 31, cohorts: ['RSD2 (S1) G2', 'RSD2 (S1) G3'],       conflictReason: 'Medical Leave' },
         { id: 14, lecturer: 'En. Muada Bin Ojih', code: 'MPU-3133', name: 'Falsafah dan Isu Semasa',        type: 'T', date: '2026-09-28', day: 'Monday',    timeStart: '14:00', timeEnd: '16:00', duration: 2, venue: 'B202', totalStudents: 73, cohorts: ['RSD2 (S1) G2', 'RSD2 (S1) G3', 'RAF2 (S3) G2', 'RAF2 (S3) G4', 'RBU1 (S1) G1'], conflictReason: 'Emergency Leave' },
     ],
-
-    // ─────────────────────────────────────────────────────────────────────
-    // §2.10 arrangementWeeks — was replacement-arrangement inline `weekData`
-    // (3 weeks, Week 11/10/9 DESCENDING). PAGE-SPECIFIC — NOT standardised
-    // to `MockData.semester.startDate` (this page shows a fixed demo window).
-    // Day-label quirks (e.g. '01 Sep' labelled 'Mon' which is actually a
-    // Tuesday) are PRESERVED verbatim per the fidelity rule — fixing them is
-    // out of scope. The 04-Sep holiday flag stays here (NOT in `holidays`).
-    // ─────────────────────────────────────────────────────────────────────
-    arrangementWeeks: [
-        {
-            label: 'Week 11',
-            days: [
-                { abbr: 'Mon', date: '01 Sep 2026' },
-                { abbr: 'Tue', date: '02 Sep 2026' },
-                { abbr: 'Wed', date: '03 Sep 2026' },
-                { abbr: 'Thu', date: '04 Sep 2026', holiday: true },
-                { abbr: 'Fri', date: '05 Sep 2026' },
-                { abbr: 'Sat', date: '06 Sep 2026' },
-                { abbr: 'Sun', date: '07 Sep 2026' },
-            ],
-        },
-        {
-            label: 'Week 10',
-            days: [
-                { abbr: 'Mon', date: '25 Aug 2026' },
-                { abbr: 'Tue', date: '26 Aug 2026' },
-                { abbr: 'Wed', date: '27 Aug 2026' },
-                { abbr: 'Thu', date: '28 Aug 2026' },
-                { abbr: 'Fri', date: '29 Aug 2026' },
-                { abbr: 'Sat', date: '30 Aug 2026' },
-                { abbr: 'Sun', date: '31 Aug 2026' },
-            ],
-        },
-        {
-            label: 'Week 9',
-            days: [
-                { abbr: 'Mon', date: '18 Aug 2026' },
-                { abbr: 'Tue', date: '19 Aug 2026' },
-                { abbr: 'Wed', date: '20 Aug 2026' },
-                { abbr: 'Thu', date: '21 Aug 2026' },
-                { abbr: 'Fri', date: '22 Aug 2026' },
-                { abbr: 'Sat', date: '23 Aug 2026' },
-                { abbr: 'Sun', date: '24 Aug 2026' },
-            ],
-        },
-    ],
-
     // ─────────────────────────────────────────────────────────────────────
 // §2.11 venueSlots — the 23 Block-B rooms, seeded from the classroom PDF:
     // [dayIndex, hourIndex, status] with 1 = occupied; a slot that is absent is

@@ -3733,29 +3733,28 @@ class VenueDropdown {
         const v = this.venues.find(x => x.code === this.selectedCode);
         if (v) {
             /* venue-trigger-label law (user 2026-10-26 + 2026-10-27), the
-               2026-10-27-amended split: the LABEL names the short form
-               ("B010 — Computer Lab 2"; "B101 — Tutorial Room"; "B111 —
-               Lecture Hall" — seat count dropped) while the HOVER tooltip
-               shows the FULL venue name ("B005 — Computer Laboratory 5
-               (28 seats)" — user: 'the hover tooltip shud shows the full
-               name'). The class owns both so pages can't drift apart. */
-            const real = ((window.MockData || {}).venueRealNames || {})[v.code] || {};
-            const shortName = real.short;
-            const fullName = real.full;
-            let base = shortName
-                || (v.name ? v.name.replace(new RegExp('\\s*' + v.code + '\\s*$'), '').trim() : '')
+               mock-statics-die re-cut: the LABEL names the SHORT form
+               (the server-stamped `short_name` — G1(b), the display law
+               lives server-side; the venueRealNames JS mirror is DELETED);
+               the HOVER tooltip shows the FULL name when it differs from
+               the short (`B005 — Computer Laboratory 5 (28 seats)`), and
+               the label text verbatim for the code-suffixed rooms (the
+               code is never duplicated: 'Tutorial Room B002'). The class
+               owns both so pages can't drift apart. */
+            const suffixRe = new RegExp('\\s*' + v.code + '\\s*$');
+            let base = v.short_name
+                || (v.name ? v.name.replace(suffixRe, '').trim() : '')
                 || VenueDropdown.humanizeType(v.type);
-            let hoverBase = fullName
-                || (v.name ? v.name.replace(new RegExp('\\s*' + v.code + '\\s*$'), '').trim() : '')
-                || VenueDropdown.humanizeType(v.type);
-            const text = shortName
-                ? v.code + ' \u2014 ' + shortName
-                : v.code + ' \u2014 ' + base;   // no-map rooms keep the fallback label + tooltip
+            const text = v.code + ' \u2014 ' + base;
             if (label) label.textContent = text;
             else this.trigger.textContent = text; /* legacy markup fallback */
-            const tipText = (v.name && !fullName)
-                ? text
-                : v.code + ' \u2014 ' + hoverBase;
+            // the tooltip: the FULL name when room_name (trimmed) differs
+            // from the short base (the labs: name = 'Computer Laboratory 5'
+            //   base = 'Computer Lab 5' → the full rides); the code-
+            // suffixed rooms: name−suffix === base → the tip = the label.
+            const longBase = v.name ? v.name.replace(suffixRe, '').trim() : '';
+            const tipBase = (longBase && longBase !== base) ? longBase : base;
+            const tipText = v.code + ' \u2014 ' + tipBase;
             this.trigger.setAttribute('data-tip', tipText + ' (' + v.capacity + ' seats)');
         }
     }

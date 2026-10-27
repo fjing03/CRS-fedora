@@ -147,3 +147,33 @@ ALTER TABLE audit_logs ADD CONSTRAINT audit_logs_action_check
   equipment room. For FOCS cohorts only.` — the R4-dropped display
   string, kept verbatim per the receipt).
 - Suite 262/262 green.
+
+## 2026-10-27 — the cohort-shrink (every cohort at 7–10 students)
+
+- **Approved by:** the user ("UPDATE each of this Cohorts to between 7 to
+  10 students (random digit)") — the small-cohort viva scaling.
+- **Live DB (executed, 14 rows):** DFT1=10, DFT2=9, DSF1=8, DSF2=7,
+  RSD1=9, RSD2G1=8, RSD2G2=7, RSD2G3=10, RSD3G1=9, RSD3G2=8, RSD3G3=7,
+  RAF2G2=10, RAF2G4=8, RBU1=9.
+- **Seeder mirror:** `DatabaseSeeder::STUDENT_COUNTS` updated to the same
+  14 values (the re-seed matches).
+- **Side effects:** every class's total ≤ 11 (the multi-cohort merges
+  shrink); all B005/B006 capacity fits trivially; the over-capacity audit
+  stays 🟢. The BMSE3153 class-info now reads `14 → 8` and `13 → 7`
+  (`8 + 7 = 15`).
+- **Insurance dump:** `/tmp/insurance-pre-scoreshrink-2026-10-27.dump`.
+
+## 2026-10-27 — the Deepavali Sunday row NOT added (the DB's own CHECK law wins)
+
+- **Explore G5 planned** an insert of the mock's 4th holiday pair (Deepavali
+  Sunday 08 Nov = W7/day 6). The attempt hit
+  `holidays_day_of_week_check  CHECK (day_of_week BETWEEN 0 AND 5)` — the
+  schema itself declares Monday–Friday only: a Sunday holiday is
+  STRUCTURALLY unreachable (and no UI surface renders Sundays).
+- **Resolution:** NO insert; the mock's 4-pair array was never
+  DB-representable (its Sunday pair dies with the mock-statics-die
+  deletions). The DB keeps its 3 rows. The mock-era law the check
+  encodes (Mon..Fri) is its own honest contract.
+- Insurance dumps: `/tmp/insurance-pre-dftdrop-2026-10-27.dump`,
+  `/tmp/insurance-pre-scoreshrink-2026-10-27.dump` both taken BEFORE the
+  runs (the pre-change states).

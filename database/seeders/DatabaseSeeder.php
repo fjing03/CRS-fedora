@@ -22,21 +22,24 @@ class DatabaseSeeder extends Seeder
     /* 2026-10-13 — user-approved cohort sizes, matching the live demo DB
        exactly (docs/demo-db-data-changes.md). Reseeding now reproduces the
        presentation dataset: 0 over-capacity sessions. */
+    /* BMSE3153-class-info rail-2 (user 2026-10-27): every cohort at 7–10
+       students (the small-cohort viva scaling); the demo live DB matches
+       (docs/demo-db-data-changes.md, the 2026-10-27 cohort-shrink row). */
     private const STUDENT_COUNTS = [
-        'DFT1(S1)G1' => 23,
-        'DFT2(S1)G1' => 18,
-        'DSF1(S1)G1' => 25,
-        'DSF2(S1)G1' => 15,
-        'RSD1(S1)G1' => 8,
-        'RSD2(S1)G1' => 7,
-        'RSD2(S1)G2' => 5,
-        'RSD2(S1)G3' => 9,
-        'RSD3(S1)G1' => 10,
-        'RSD3(S1)G2' => 5,
-        'RSD3(S1)G3' => 9,
-        'RAF2(S3)G2' => 5,
-        'RAF2(S3)G4' => 6,
-        'RBU1(S1)G1' => 10,
+        'DFT1(S1)G1' => 10,
+        'DFT2(S1)G1' => 9,
+        'DSF1(S1)G1' => 8,
+        'DSF2(S1)G1' => 7,
+        'RSD1(S1)G1' => 9,
+        'RSD2(S1)G1' => 8,
+        'RSD2(S1)G2' => 7,
+        'RSD2(S1)G3' => 10,
+        'RSD3(S1)G1' => 9,
+        'RSD3(S1)G2' => 8,
+        'RSD3(S1)G3' => 7,
+        'RAF2(S3)G2' => 10,
+        'RAF2(S3)G4' => 8,
+        'RBU1(S1)G1' => 9,
     ];
 
     /**

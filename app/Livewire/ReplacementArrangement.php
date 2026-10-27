@@ -220,6 +220,10 @@ class ReplacementArrangement extends Component
             ->map(fn (Venue $v): array => [
                 'code' => (string) $v->room_code,
                 'name' => (string) $v->room_name,
+                // mock-statics-die (G1(b)): the server-stamped SHORT picker
+                // label (the label/tooltip law splits — the client no longer
+                // consults the dead venueRealNames mirror).
+                'short_name' => self::shortVenueName($v->room_name, (string) $v->room_code),
                 // Raw DB encoding rides along (D6 honest inventory): the
                 // client dd filter + the fallback eligibility checks read
                 // ruleMap[] over room_type (SDD lt-venue-capacity-rule; the

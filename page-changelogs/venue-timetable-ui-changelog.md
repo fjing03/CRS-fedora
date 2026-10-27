@@ -1426,3 +1426,14 @@ multi-cohort count ("Total Students 27"). Now:
   own cohort view) keep the plain count.
 - Same shared helper as my-timetable/cohort-timetable modals — one law, promoted to
   ui-common.js (the venue modal was the 3rd copy).
+## 2026-10-27 (SDD mock-statics-die) — the picker labels read the DATABASE, not a JS mirror
+**G1(b):** the venue payloads (the `venuesJs` map + the `venue` local) carry
+the server-stamped `short_name` (`shortVenueName` on the shared trait — the
+code-suffix trim + the `Computer Laboratory → Computer Lab` law). The
+`MockData.venueRealNames` JS mirror is DELETED — renaming a venue in the DB
+now flows to the picker after a reload, no JS map to update.
+**The byte-stable label/tooltip law:** the label = the short (`B005 —
+Computer Lab 5`); the tooltip = the full name when it differs (`B005 —
+Computer Laboratory 5 (28 seats)`), the label verbatim for the code-
+suffixed rooms (`B002 — Tutorial Room (35 seats)` — never duplicated).
+B006's short gains the colon (the DB-derived truth).

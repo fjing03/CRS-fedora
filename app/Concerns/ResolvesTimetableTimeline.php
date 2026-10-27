@@ -437,6 +437,22 @@ trait ResolvesTimetableTimeline
      *
      * @return array<string, mixed>
      */
+    /**
+     * The SHORT venue label law (mock-statics-die G1(b), 2026-10-27 — the
+     * ReasonLabel/titleCase display-law precedent, server-stamped):
+     * trims the trailing room-code suffix, then swaps the lab family's
+     * full word — `Computer Laboratory 5` → `Computer Lab 5`;
+     * `Tutorial Room B002` → `Tutorial Room`.
+     */
+    protected static function shortVenueName(?string $roomName, string $roomCode): string
+    {
+        $base = (string) preg_replace('/\s*'.preg_quote($roomCode, '/').'\s*$/i', '', (string) $roomName);
+
+        return str_replace('Computer Laboratory', 'Computer Lab', $base) !== ''
+            ? str_replace('Computer Laboratory', 'Computer Lab', $base)
+            : (string) $roomName;
+    }
+
     protected function baseEvent(ClassSession $s, ?string $cohortScopeCode = null): array
     {
         $cohorts = $s->cohorts;
