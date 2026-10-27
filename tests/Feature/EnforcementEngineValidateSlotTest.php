@@ -112,7 +112,10 @@ final class EnforcementEngineValidateSlotTest extends TestCase
         return [
             'sp2_networking_L_into_B010_lab' => ['AMIT2033', ['DFT'], 'L', 'B010', true],
             'sp3_networking_L_into_B006_widen' => ['AMIT2033', ['DFT'], 'L', 'B006', true],
-            'sp4_networking_L_into_B005_r2_denial' => ['AMIT2033', ['DFT'], 'L', 'B005', false],
+            'sp4_networking_L_into_B005_accepted' => ['AMIT2033', ['DFT'], 'L', 'B005', true],
+            // SDD b005-diploma-allowed: the R2 arm was repealed — B005 accepts
+            // a D*-cohort networking L when the type row allows (the additive
+            // lab widening composes to the same accept).
             'sp6_nonetworking_L_into_B006_denied' => ['AMCS1013', ['DSF'], 'L', 'B006', false],
             'sp9_noneworkingen_other_lab_denied' => ['AMCS1013', ['DSF'], 'L', 'B010', false],
         ];

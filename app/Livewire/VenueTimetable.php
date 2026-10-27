@@ -49,7 +49,8 @@ class VenueTimetable extends Component
      * "Select a Session" model (SDD arrange-intent-session-choice design D2/D3,
      * user directive 2026-10-16 apply round 4): the pool is WEEK-AGNOSTIC —
      * every lecturer session with ≥1 conflicted occurrence anywhere in the
-     * semester that THIS venue admits (venue-entry + B005 rules). A conflicted
+     * semester that THIS venue admits (venue-entry rules; the B005 arm was
+     * REPEALED 2026-10-27). A conflicted
      * class may be arranged at any week past the lead time — the conflict week
      * is where the need LIVES, not where the arrangement may happen (the
      * jump-to-week hints were removed by user request 2026-10-16: the pool is
@@ -90,7 +91,8 @@ class VenueTimetable extends Component
            are a HINT (where the need lives), never a restriction. The modal
            pool is therefore WEEK-AGNOSTIC: every session with ≥1 conflicted
            occurrence anywhere in the semester that this venue's type admits
-           (venue-entry + B005 cohort rule), regardless of the viewed week. */
+           (venue-entry rules; the B005 cohort rule REPEALED 2026-10-27),
+           regardless of the viewed week. */
         $conflicted = $catalog->conflictedFor($lecturerSessions);
         $eligible = $lecturerSessions
             ->filter(fn (ClassSession $s): bool => isset($conflicted[$s->id])
@@ -188,9 +190,9 @@ class VenueTimetable extends Component
 
             $start = $this->slotIndex($slot->start_time);
             $end = $this->slotIndex($slot->end_time) - 1;
-            $severity = $this->venueRestrictionConflict($session)
-                ? 3
-                : ($slot->status === 'pending' ? 2 : 0);
+            // The b005 venue-conflict severity-3 arm was REPEALED 2026-10-27
+            // (SDD b005-diploma-allowed) — severity rides pending-2 / 0 only.
+            $severity = $slot->status === 'pending' ? 2 : 0;
 
             // Coalescing pre-pass (venue-block-span-coalescing S1): the import
             // stores a full half-hour grid per venue/week — a class OCCUPIES its
@@ -247,8 +249,9 @@ class VenueTimetable extends Component
                     ->values()
                     ->all(),
                 'studentCount' => (int) $session->cohorts->sum('student_count'),
+                // (the severity-3 'conflict' arm was REPEALED 2026-10-27,
+                // SDD b005-diploma-allowed — severity ∈ {2, 0} now.)
                 'status' => match ($g['severity']) {
-                    3 => 'conflict',
                     2 => 'pending',
                     default => 'normal',
                 },

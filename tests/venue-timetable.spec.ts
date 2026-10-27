@@ -314,9 +314,8 @@ test.describe('Venue Timetable UI', () => {
 
   // TC35b — ownership is border-gated — RETIRED (U2a T10, baseline facts):
   // mock-era fixture (expected an own loud conflict at B110 wk3 that the real
-  // DB does not place there now). Live owner-gated + others'-view conflict
-  // rendering is covered by the green tests in venue-db.spec.ts (B005
-  // diploma-cohort conflict, owner view + others' view).
+  // DB does not place there now). B005 renders clean post-repeal
+  // (b005-diploma-allowed) — the clean receipt rides venue-db.spec.ts.
 
   // ════════════════════════════════════════════
   // 10. SUMMARY CARDS

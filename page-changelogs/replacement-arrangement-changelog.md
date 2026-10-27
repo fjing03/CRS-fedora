@@ -2035,3 +2035,24 @@ so labs no longer read the generic type word:
   assertions re-keyed to `B010 — Computer Lab 2` (B111/B100 assertions unchanged — the
   suffix-strip path yields the same text; the data-tip receipt unchanged). pint ✓
   phpstan 0 errors ✓ node --check both assets ✓ (no spec run — the user verifies manually).
+## 2026-10-27 (SDD b005-diploma-allowed) — the B005 no-Diploma law REPEALED
+The user's ruling allows Diploma cohorts at B005 — the rule keys, the
+engine's deny block, the derived conflict, the venue grid's severity-3
+arm and the client's hidden-B005 arm all DIED in one change. The picker
+offers B005 for every session whose type row admits it (capacity rides
+the engine); the standing AMIT2034(P)_row @ B005 renders clean (the
+perpetual-conflict era ends).
+
+## 2026-10-27 (adddendum) — the shared page-data shard (debug-mode 500 fix)
+The arrangement page (and 4 sibling replacement pages) emitted the payload
+in ONE `<script>window.PAGE_DATA = @json($payload);</script>` — in debug
+mode Livewire's root-element detector strips each script element with a
+lazy `.*?</script>` regex; the ~1MB arrangement payload exceeded
+`pcre.backtrack_limit` → `loadHTML(null)` ValueError → HTTP 500 on every
+debug-mode load (the bug PRE-DATES the B005 repeal; the drawer flow's
+receipts surfaced it). The NEW shared partial
+`partials/page-data-script.blade.php` shards the payload into ≤16KB
+scripts cut on escape boundaries and re-joins via JSON.parse; the
+`window.PAGE_DATA` contract is unchanged. Livewire mode `PAGE_DATA` keys
+= same as before (the receipt: the said 12 keys incl. the ones carried
+from the repeal work).

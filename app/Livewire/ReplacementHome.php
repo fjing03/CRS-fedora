@@ -20,8 +20,8 @@ use Livewire\Component;
  * BRIDGE only: it emits the mock's `conflictedClasses` row shape from real
  * DB rows — one row per conflicted/cancelled weekly occurrence (FR 2.16
  * exceptions carry the lecturer's real reason; Public Holiday from the
- * semester calendar; Venue Restriction = the live B005 × Diploma
- * derivation). Slice B (SDD: wire-backend-into-refactored-ui). Legacy mock
+ * semester calendar; the Venue Restriction arm was REPEALED 2026-10-27
+ * (SDD b005-diploma-allowed)). Slice B (SDD: wire-backend-into-refactored-ui). Legacy mock
  * template untouched for the D10 fallback.
  */
 class ReplacementHome extends Component
@@ -73,8 +73,6 @@ class ReplacementHome extends Component
 
         $rows = [];
         foreach ($sessions as $session) {
-            $venueRestricted = $this->venueRestrictionConflict($session);
-
             for ($week = 1; $week <= $weeks; $week++) {
                 if ($activeRequests->has($session->id.':'.$week)) {
                     continue;
@@ -90,8 +88,6 @@ class ReplacementHome extends Component
                     $reason = self::titleCase((string) $exception->reason);
                 } elseif ($holiday !== null) {
                     $reason = 'Public Holiday';
-                } elseif ($venueRestricted) {
-                    $reason = 'Venue Restriction';
                 } else {
                     continue; // normal occurrence — the home lists conflicted classes only
                 }

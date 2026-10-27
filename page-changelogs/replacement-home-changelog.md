@@ -470,3 +470,8 @@ The quick-view modal's Class tab "Students" row now renders the shared
 conflict-quick-view rows gain `cohortCounts` — positional with `cohorts`, real
 `cohorts.student_count`. Third copy of the helper ⇒ promoted to ui-common.js
 (my-request-history + request-approval refactored onto it).
+## 2026-10-27 — page-data shard + receipt (the debug-mode 500 fix)
+Includes the shared `partials/page-data-script.blade.php` — a
+>60KB payload now shards into ≤16KB scripts, re-joined via JSON.parse;
+the page's PAGE_DATA contract is unchanged. (The bug's full writeup
+lives in the arrangement changelog.)

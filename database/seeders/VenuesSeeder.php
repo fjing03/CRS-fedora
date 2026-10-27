@@ -68,7 +68,9 @@ class VenuesSeeder extends Seeder
         // B005's own admission sentence overrides the shared lab text
         // (R2's no-Diploma display data — the DEGREE-only wording).
         DB::table('venues')->where('room_code', 'B005')->update([
-            'description' => 'Computer Lab. For PRACTICAL Class. DEGREE students only.',
+            // b005-diploma-allowed (2026-10-27): the DEGREE-only claim is a
+            // lie post-repeal — ONE convergent string across seeder/DB/mock.
+            'description' => 'Computer Lab. For PRACTICAL Class.',
         ]);
 
         // Cisco Lab (capacity 32, allowed P only) — full title carries the lab number

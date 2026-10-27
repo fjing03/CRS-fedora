@@ -384,19 +384,13 @@ trait ResolvesTimetableTimeline
     }
 
     /**
-     * Venue-restriction conflict (VENUE-RESTRICTIONS.md, SDD b005-diploma-conflict):
-     * a session conflicts when its venue is B005 AND any cohort belongs to a
-     * D* (Diploma) programme. Derived at render time — the DB state machine
-     * stays 3-state (FR 4.11); booking-time enforcement of the full rule set
-     * is Slice B scope. Protected: shared with ReplacementHome (2.2).
+     * Venue-restriction conflict (VENUE-RESTRICTIONS.md, SDD
+     * b005-diploma-conflict): REPEALED 2026-10-27 (SDD
+     * b005-diploma-allowed, the user's ruling — Diploma cohorts allowed).
+     * The method is GONE; the retired payload branch rode it at :485 (the
+     * timeline renders 'normal' unconditionally now), and the venue grid's
+     * severity-3 arm at VenueTimetable dies with it.
      */
-    protected function venueRestrictionConflict(ClassSession $s): bool
-    {
-        return $s->venue !== null
-            && $s->venue->room_code === 'B005'
-            && $s->cohorts->contains(fn ($c) => str_starts_with((string) $c->programme->programme_code, 'D'));
-    }
-
     /**
      * @return array<string, mixed> Protected: shared with ReplacementHome (2.2).
      */
@@ -453,6 +447,9 @@ trait ResolvesTimetableTimeline
             : (string) $roomName;
     }
 
+    /**
+     * @return array<string, mixed>
+     */
     protected function baseEvent(ClassSession $s, ?string $cohortScopeCode = null): array
     {
         $cohorts = $s->cohorts;
@@ -482,7 +479,7 @@ trait ResolvesTimetableTimeline
                 ->values()
                 ->all(),
             'studentCount' => (int) $cohorts->sum('student_count'),
-            'status' => $this->venueRestrictionConflict($s) ? 'conflict' : 'normal',
+            'status' => 'normal',
             'remarks' => '',
         ];
     }

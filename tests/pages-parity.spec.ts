@@ -71,9 +71,14 @@ test('cohort: frozen legend + ownership axis works + 2-segment tooltips', async 
   }
 });
 
-test('my-timetable: B005 conflicted class shows Replace Now (M3)', async ({ page }) => {
-  await loginStaff(page, '5652'); // Daniel Royd Michael — owns the AMIT2034 B005 derived conflict
+test('my-timetable: Monday-PH conflicted class shows Replace Now (M3)', async ({ page }) => {
+  // SDD b005-diploma-allowed: the old fixture trigger (Daniel's B005-derived
+  // conflict) was REPEALED — the verified re-point is his DEEPAVALI MONDAY PH
+  // (W8, week index 7): same Replace-Now affordance, a surviving trigger
+  // (verified in-flow before this edit — the review-log's never-manufacture note).
+  await loginStaff(page, '5652'); // Daniel Royd Michael — owns a Monday-PH-D conflict
   await page.goto(`${BASE}/my-timetable-ui`);
+  await page.selectOption('#weekSelect', '7'); // W8 = the Deepavali Monday PH
 
   const conflict = page.locator('.timetable .event-conflict').first();
   await expect(conflict).toBeVisible({ timeout: 15_000 });

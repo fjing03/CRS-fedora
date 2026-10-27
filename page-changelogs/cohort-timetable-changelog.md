@@ -194,3 +194,7 @@ No code changes here: the cohort page never consumed `MockData.cohorts` /
 `arrangementWeeks` (the payload's per-event cohort fields + the real
 semester walk cover it). The deleted statics are receipted in the
 my-timetable/venue changelogs.
+## 2026-10-27 (SDD b005-diploma-allowed) — receipt note
+The derived B005 conflict arm is dead — the timeline concern's
+`status` renders normal unconditionally for this page's payload (the
+`cancelled-blocks-stay-visible`/cancelled branches untouched).

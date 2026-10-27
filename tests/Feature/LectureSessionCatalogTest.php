@@ -53,8 +53,10 @@ final class LectureSessionCatalogTest extends TestCase
         // lh-l-only-revert (2026-10-20): the T row narrows — the hall stops admitting T.
         $this->assertSame(['tutorial'], $rule['T'], 'lh-l-only-revert: T → tutorial only (the hall is L-only)');
         $this->assertSame(['tutorial', 'lecture_hall'], $rule['L'], 'R1 + lt-venue-capacity-rule: tutorial AND lecture hall admit L');
-        $this->assertSame('B005', $rule['b005_venue_code'], 'R2: the no-Diploma venue code');
-        $this->assertSame('^\\s*D', $rule['b005_no_diploma_pattern'], 'R2: Diploma = D* programmes');
+        // SDD b005-diploma-allowed (2026-10-27): the R2 keys are GONE from
+        // the shape — a law removal is a data removal, never a stub.
+        $this->assertArrayNotHasKey('b005_venue_code', $rule, 'the repeal receipt: no b005 venue code key');
+        $this->assertArrayNotHasKey('b005_no_diploma_pattern', $rule, 'the repeal receipt: no pattern key');
     }
 
     public function test_ordered_ids_are_day_start_id_and_the_map_is_id_keyed(): void
@@ -127,7 +129,7 @@ final class LectureSessionCatalogTest extends TestCase
         $this->assertSame($week1, $entry['weekNumber']);
     }
 
-    public function test_session_allowed_for_vehicle_venue_matrix_and_b005_diploma_rule(): void
+    public function test_session_allowed_for_vehicle_venue_matrix_and_the_repealed_b005(): void
     {
         $session = $this->makeSession(Venue::where('room_type', 'lab')->firstOrFail()->id, 'P', 0, '09:00:00', '11:00:00');
 
@@ -147,14 +149,15 @@ final class LectureSessionCatalogTest extends TestCase
         $this->assertFalse(LectureSessionCatalog::sessionAllowedForVenue('P', 'lecture_hall', $session, 'B110'));
         $this->assertFalse(LectureSessionCatalog::sessionAllowedForVenue('L', 'lab', $session, 'B009'));
 
-        // R2 through the service: the B005 Diploma cohort blocks (Bachelor passes).
+        // SDD b005-diploma-allowed: the R2 denial is GONE — B005 admits the
+        // same D*-cohort P when the type row allows (positive receipt).
         $module = Module::where('module_code', 'FIX101')->firstOrFail();
         $diplomaCohort = Cohort::whereHas('programme', fn ($q) => $q->where('programme_code', 'like', 'D%'))->with('programme')->firstOrFail();
         $session->cohorts()->syncWithoutDetaching([$diplomaCohort->id]);
         $session->load('cohorts.programme');
 
-        $this->assertFalse(LectureSessionCatalog::sessionAllowedForVenue('P', 'lab', $session, 'B005'), 'R2: D* cohort in B005 → blocked');
-        $this->assertTrue(LectureSessionCatalog::sessionAllowedForVenue('P', 'lab', $session, 'B009'), 'R2 applies to B005 only');
+        $this->assertTrue(LectureSessionCatalog::sessionAllowedForVenue('P', 'lab', $session, 'B005'), 'the repeal receipt: D* cohort in B005 → admitted');
+        $this->assertTrue(LectureSessionCatalog::sessionAllowedForVenue('P', 'lab', $session, 'B009'), 'the other labs admit it identically');
     }
 
     /**

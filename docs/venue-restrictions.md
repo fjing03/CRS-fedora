@@ -10,10 +10,11 @@
 > | **PLANNED-NEW** | A user directive recorded here first (2026-10-15). It is a policy DELTA over today's behavior — not currently true anywhere. |
 >
 > Enforcement candidates were served by SDD **"venue-restrictions enforcement"** — **LANDED 2026-10-24** (see the §4 receipt). The eligibility logic now lives at:
-> * client matrix `venueMatrixAllows()` (under `venueEligible()`) in `resources/views/livewire/replacement-arrangement.blade.php` (the ONE client reflection of `ruleMap()` — module-conditioned; capacity ≥ headcount mirrored client-side; B005 hides when any cohort is `D*`);
+> * client matrix `venueMatrixAllows()` (under `venueEligible()`) in `resources/views/livewire/replacement-arrangement.blade.php` (the ONE client reflection of `ruleMap()` — module-conditioned; capacity ≥ headcount mirrored client-side; the B005 no-Diploma arm was REPEALED 2026-10-27 — B005 rides its type row
+like any lab);
 > * server-side `SessionAllowedForVenue` / `sessionVenueEligible()` (`app/Services/LectureSessionCatalog.php` + `app/Services/MatrixIntersectionEngine.php`) — the authoritative OCC-time read (R1 + R3 + R6 + R2, per the §4 receipt);
 > * `App\Services\LectureSessionCatalog::ruleMap()` (SDD `arrange-intent-session-choice`) — the same type rules as data, consumed by the "Select a Session" modal and the arrangement fallback.
-> B005's no-Diploma + the R3/R6 ALLOW/DISALLOW matrix + R6's FOCS gate are ENFORCED at engine/client/modal layers since 2026-10-24 (SDD `venue-restrictions-enforcement`). R7 (descriptions) is ENFORCED as display data since 2026-10-23. R4/IoT = the DROPPED receipt (2026-10-24).
+> The R3/R6 ALLOW/DISALLOW matrix + R6's FOCS gate are ENFORCED at engine/client/modal layers since 2026-10-24 (SDD `venue-restrictions-enforcement`). **B005's no-Diploma = REPEALED 2026-10-27** (SDD `b005-diploma-allowed`, the user's ruling — the keys, the deny block, the derived conflict and the client arm all died; see R2). R7 (descriptions) is ENFORCED as display data since 2026-10-23. R4/IoT = the DROPPED receipt (2026-10-24).
 >
 > **2026-10-19 SDD `lt-venue-capacity-rule` update:** the law widened (R1's
 > row pair), and its consumers are now: the engine `eligibleVenues()`
@@ -29,9 +30,9 @@
 > population keys; R2 composed for EVERY type), and the engine is
 > authoritative: `SubmitReplacementRequest` passes its session through
 > `validateSlot(..., $session)` — a failing gate is the existing
-> `engine_precheck_failed` loser, silently (no new UI flags; the
-> b005-diploma-conflict family byte-identical; the imported violating rows
-> stay untouched).
+> `engine_precheck_failed` loser, silently (no new UI flags; the imported
+> violating rows stay untouched). The B005-diploma-conflict family is
+> GONE post-repeal (2026-10-27).
 
 ---
 
@@ -52,33 +53,36 @@
 >
 > **User clarification 2026-10-19 (SDD `lt-venue-capacity-rule`), verbatim ruling:**
 > *"Lecture Hall & Tutorial Rooms are allow to have L/T."* — a venue admits an
-> L/T session when **capacity fits** (R2's B005 no-Diploma check still applies
-> additionally). The row pair was `T → tutorial` / `L → lecture_hall` until
+> L/T session when **capacity fits** (the B005 no-Diploma check was
+> REPEALED 2026-10-27). The row pair was `T → tutorial` / `L → lecture_hall` until
 > this date; the booking-side code now keys on the room-type law, and the CSV
 > column `venues.allowed_session_types` is reference inventory only — where it
 > disagrees (tests' lab fixture CSV `'L,T'`), the room_type verdict WINS.
 > `ApiReadController`'s inventory still reads the CSV directly (its remaining
 > reader — a deliberate, listed above; no edit expected).
 
-No session may occupy a venue whose `room_type` is not in its row. Capacity and B005 checks (R2) apply **in addition**.
+No session may occupy a venue whose `room_type` is not in its row. Capacity applies in addition (the B005 check was REPEALED 2026-10-27).
 
-### R2 — B005 no-Diploma — **ENFORCED (both sides, 2026-10-24, SDD venue-restrictions-enforcement)**
+### R2 — B005 no-Diploma — **REPEALED 2026-10-27 (SDD `b005-diploma-allowed`)**
 
-Diploma students may not use B005: reject when any cohort of the session's `programme_code` starts with `D` (`DFT`, `DSF` exist; Bachelor codes start with `R` — unaffected).
+The user's ruling, verbatim: *"i think let's remove the B005
+restrictions, by allowing Diploma cohorts to use it too."* — the law
+(shipped 2026-10-24 in SDD `venue-restrictions-enforcement`) is REMOVED:
+the rule keys left `ruleMap()`, the engine's deny block, the derived
+conflict at :485 + the venue grid's severity-3 arm, the producer pool's
+deny receipt, and the client matrix's hidden-B005 arm. B005 rides its
+type row (`lab`) like every other lab.
 
-- **ENFORCED both sides since 2026-10-24** (SDD `venue-restrictions-enforcement`): the submit-side engine's `validateSlot(..., $session)` carries the `D*` cohort check into the OCC-time read (composed for EVERY session type — the lab widening never reaches past it); the client matrix +
-  the producer modal keep their pre-existing client-side checks.
-- Audit 2026-10-09: 1 violation found (AMIT2034 P, Wed 11:00–13:00,
-  ~~combined DFT+DSF lecture~~ — the cohort fact was since REPAIRED to the
-  DSF-only truth: DFT2 unlinked 2026-10-13, 15 students, mock mirror
-  aligned) → flagged for replacement; the standing row remains a violation
-  under R2 and stays silently tolerated until the user repairs the dataset
-  (the SDD's silence law).
-- **2026-10-27 re-run (the class-cancel-DB-persist repair's restore had
-  rewound the unlink):** DFT2 re-dropped (3 session links, the DSF-only
-  truth — see `docs/demo-db-data-changes.md`). The B005 conflict
-  flag REMAINS by design (DSF = Diploma). Same-day amendment: the diploma
-  cohort counts ride the user's 20–25 band (DSF2 = 21).
+- Standing-data consequence: the standing AMIT2034 P Wed 11:00–13:00
+  B005 row (DSF-only, 21 students) renders CLEAN everywhere — the
+  perpetually-red block the user has queried all session is explained by
+  a law that no longer exists.
+- The audit trail (kept for the record): ~~ENFORCED both sides since
+  2026-10-24~~ → **REPEALED** in the same day the cohort bands were
+  amended (the 20–25 diploma scaling). The 2026-10-09 audit + the
+  2026-10-13/27 DFT2 unlinks stay as history.
+- No `venues` migration: `allowed_session_types = 'P'` stays reference
+  inventory (Q6 precedent); `ruleMap()` remains the sole authority.
 
 ### R3 — B006 Cisco Lab access — **ENFORCED** (plain ALLOW / DISALLOW — the priority model retired; SDD venue-restrictions-enforcement 2026-10-24)
 
@@ -99,17 +103,16 @@ admission checks only.
 - **Networking subjects (AMIT2033, BMIT2154, BMIT3084, AMIT2034) — ALLOWED
   in B006**, plain allow, NO priority ranking, NO yield semantics. The
   composition order: type rows → the module additives → then the venue
-  gates (R6 population + R2) for EVERY session type — the widening never
-  reaches past them (the `AMIT2033 L @ B005` with DFT cohorts stays
-  hidden).
+  gates (R6 population; B005's arm REPEALED 2026-10-27) for EVERY session type — the widening composes freely (the
+  REPEALED 2026-10-27 — nothing to hide behind anymore).
 - **The population gate stays R6** (B006 = FOCS cohorts only; RAF/RBU
   never).
 - ~~AMIT2034's `L/T/P` sessions MUST execute in a lab~~ — the 2026-10-24
   final ruling SUPERSEDES that labs-exclusive reading: the networking
   set's **L/T keep their R1 rows** AND gain labs additively; P = R1's
-  normal labs-only row for every module (R2 composes on top — AMIT2034's
-  DSF cohort keeps B005 hidden at booking time). Current rows conform
-  (L/T in B010, P in B005; zero B006 rows).
+  normal labs-only row for every module (B005 was R2's compose-on —
+  REPEALED 2026-10-27; AMIT2034's DSF has no booking-time ban at B005).
+  Current rows conform (L/T in B010, P in B005; zero B006 rows).
 
 ⚠️ **Reality checks (2026-10-15 → 2026-10-24 receipts):**
 1. ~~The enforcement change must widen the `allowed_session_types` column~~ — superseded (the matrix is module-conditioned; a flat column cannot carry it): **NO migration happened**; the column stays `'P'` for B006 as reference inventory, and `ruleMap()` is the sole authority at all three layers.
@@ -143,7 +146,7 @@ Audit 2026-10-09: 6 non-networking sessions use B006 (AMCS1013 ×2, BMIS2003 ×2
 **Decisions by the user (2026-10-23):**
 - Scope = **B006 only** (the sole `cisco_lab` in the DB — the CHECK-constrained room_type list; verified 2026-10-23). Any future cisco_lab room needs an explicit migration/decision before inheriting this rule.
 - **Priority dropped for the BINARY gate** (the sv's "especially RSD" nuance is NOT part of R6 — and SUPERSEDED 2026-10-24: scheduling priority is retired entirely per R3 — there is no ordering left to compose with this gate; R6 = plain admission).
-- **Positive restatement of R2 (the user's extra, same rule):** "B005 is ONLY allowed degree students" — the enforced no-Diploma check unchanged.
+- ~~Positive restatement of R2~~ — REPEALED 2026-10-27 with R2 itself.
 
 **Live-data cross-ref (verified 2026-10-23; receipt 2026-10-24):** AMCS1013's 2 B006 sessions host `DSF·y1g1` — the R6 POPULATION gate is SATISFIED (DSF = FOCS); its violation is the TYPE mismatch (the T row in a lab — see the R5 note), NOT the population gate. The other B006 modules (AMIT2033 DFT, BMIT2154/BMIT3084/BMIT3173/BMIT3273/BMIS2003 RSD) already comply.
 
@@ -161,7 +164,7 @@ Every room carries a plain `venues.description` (nullable text; the sv's directi
 |---|---|---|
 | `venues.room_type` | `tutorial` / `lecture_hall` / `lab` / `cisco_lab` (CHECK constraint) | R1, R3 |
 | `venues.allowed_session_types` | `P` for B005 & B006 today | reference inventory ONLY (Q6: no widening migration — 2026-10-24); the engine + client + modal read `ruleMap()` as the sole authority; `ApiReadController`'s audit read is its remaining consumer |
-| `programmes.programme_code` | `DFT`, `DSF` (Diploma, `D*`); `RSD`, `RAF`, `RBU` (Bachelor, `R*`) | R2 |
+| `programmes.programme_code` | `DFT`, `DSF` (Diploma, `D*`); `RSD`, `RAF`, `RBU` (Bachelor, `R*`) | (was R2 — repealed) R6 uses FOCS only |
 | `time_slots_no_double_book_idx` partial unique index | `(venue, day, start, week) WHERE status IN ('pending','occupied')` | double-book protection (independent of these rules) |
 | OCC `version` column | optimistic-concurrency flip | booking write path |
 
@@ -186,7 +189,7 @@ fallback predicate); (3) the "Select a Session" modal (`sessionAllowedForVenue`,
 upgraded in place, signature unchanged).
 
 The composition ruling: type rows → the module additives → then the venue
-gates (R6 FOCS/banned population + R2 no-Diploma) for EVERY session type —
+gates (R6 FOCS/banned population; R2 no-Diploma REPEALED) for EVERY session type —
 resolving the 2026-10-24 simplification's items (the plain ALLOW/DISALLOW
 rosters; AMIT2034's additive lab law — the earlier labs-exclusive reading
 repealed; the B006 widening by the ROOM CODE (no column migration — Q6;

@@ -226,7 +226,7 @@
      carries the mock's exact row shape derived from the real DB (PL scope).
      NO content section — the root rides top-level (my-request-history). --}}
 <div class="lw-page">
-    <script>window.PAGE_DATA = @json($payload);</script>
+    @include('partials.page-data-script', ['payload' => $payload])
 
 <div class="page-header">
     <h1>Request Approval</h1>

@@ -104,3 +104,8 @@ live consumers, the payload-driven walk supersedes) are deleted from
 mock-data.js. This page's data was already fully DB-wired. The cohort
 shrink (cohorts at 7–10 students) rides the payload — the Total Students
 rows reflow automatically (`8 + 7 = 15` on BMSE3153(P)).
+## 2026-10-27 (SDD b005-diploma-allowed) — receipt note
+The b005-derived `conflict` status arm in the timeline payload dies:
+every session renders normal unless a real exception/holiday hits it.
+The standing AMIT2034(P) B005 block (a red fixture of this page for the
+whole of the 10-27 session) renders clean.

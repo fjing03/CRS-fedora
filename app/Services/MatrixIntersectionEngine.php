@@ -406,7 +406,7 @@ final class MatrixIntersectionEngine
         }
 
         $mapRow = app(LectureSessionCatalog::class)->ruleMap()[$sessionType] ?? [];
-        $allowedRoomTypes = is_array($mapRow) ? $mapRow : [];   // the b005_* keys are strings, not type rows
+        $allowedRoomTypes = is_array($mapRow) ? $mapRow : [];   // the rule-map values are type rows (the repealed b005_* string keys are gone)
 
         return $query
             ->get(['id', 'room_code', 'capacity', 'room_type'])

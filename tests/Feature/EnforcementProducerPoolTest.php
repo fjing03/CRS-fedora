@@ -101,17 +101,18 @@ final class EnforcementProducerPoolTest extends TestCase
         );
     }
 
-    /** The B005 hidden for D* cohorts rides the SAME pool (R2 over widening). */
-    public function test_networking_l_pool_at_b005_stays_empty_of_the_session(): void
+    /** SDD b005-diploma-allowed: the R2 arm was repealed — B005's pool admits
+     *  the same D*-cohort networking L session (the additivity composes). */
+    public function test_networking_l_pool_at_b005_carries_the_session(): void
     {
         $session = self::networkingLSession();
 
-        $ids = $this->poolIdsFor('B005', $session); // B005 = lab, R2 denies DFT
+        $ids = $this->poolIdsFor('B005', $session); // B005 = lab, the type row admits
 
-        $this->assertNotContains(
+        $this->assertContains(
             (string) $session->id,
             $ids,
-            'the networking L with DFT (D*) cohorts must NOT enter the B005 pool',
+            'the networking L with DFT (D*) cohorts must ENTER the B005 pool (the repeal receipt)',
         );
     }
 }

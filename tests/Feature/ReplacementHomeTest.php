@@ -28,7 +28,8 @@ use Tests\TestCase;
  * design — the component is a data bridge emitting the mock's
  * `conflictedClasses` row shape from real rows: FR 2.16 exceptions carry the
  * lecturer's real reason, Public Holiday from the semester calendar, Venue
- * Restriction from the live B005 × Diploma derivation. Own-records scoping
+ * (the Venue Restriction arm was REPEALED 2026-10-27, SDD
+ * b005-diploma-allowed — the anti-bird receipts stay). Own-records scoping
  * is server-side (RBAC never weakened).
  */
 final class ReplacementHomeTest extends TestCase
@@ -98,7 +99,9 @@ final class ReplacementHomeTest extends TestCase
 
         // A's class: Monday 10:00–12:00 at B100 — conflicts only via PH/exception weeks.
         $this->createSession($this->lecturerA, $moduleA, [$cohortRsd], $this->venue);
-        // A's restricted class: B005 × Diploma cohort — Venue Restriction every week.
+        // A's B005 × Diploma class: the R2 venue-restriction driver was
+        // REPEALED 2026-10-27 — the class now conflicts ONLY when a PH/exception
+        // hits its Monday 10-12 pair (the anti-bird receipts assert it).
         $this->createSession($this->lecturerA, $moduleA, [$cohortDiploma], $restricted);
         // B's class with its own PH — must never leak into A's payload.
         $this->createSession($this->lecturerB, $moduleB, [$cohortRsdB], $this->venue);
@@ -254,15 +257,24 @@ final class ReplacementHomeTest extends TestCase
             });
     }
 
-    public function test_home_venue_restriction_rows_every_week(): void
+    public function test_home_venue_restriction_reason_cannot_bird(): void
     {
+        // SDD b005-diploma-allowed anti-bird receipt: the 'Venue Restriction'
+        // reason string is GONE from the payload shape (the derive arm died
+        // with the repeal) — a Diploma-cohort class at B005 renders normal.
         $this->componentFor($this->lecturerA)
             ->assertViewHas('payload', function (array $payload): bool {
                 $restricted = collect($payload['conflictedClasses'])->filter(
                     fn (array $r): bool => $r['conflictReason'] === 'Venue Restriction',
                 );
-                $this->assertSame(13, $restricted->count(), 'B005 × Diploma conflicts every week (week 5 shows PH instead)');
-                $this->assertSame('B005', $restricted->first()['venue']);
+                $this->assertSame(0, $restricted->count(), 'no Venue Restriction rows survive the repeal');
+
+                // the ONLY conflicted rows A carries come from the PH week 5 pair.
+                $ph = collect($payload['conflictedClasses'])->filter(
+                    fn (array $r): bool => $r['conflictReason'] === 'Public Holiday',
+                );
+                $this->assertGreaterThanOrEqual(1, $ph->count(), 'the PH week-5 pair still derives');
+                $this->assertTrue($ph->contains(fn (array $r): bool => $r['venue'] === 'B005'), 'the B005 class rides the SAME PH derivation (no own-conflict)');
 
                 return true;
             });

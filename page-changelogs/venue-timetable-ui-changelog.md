@@ -1437,3 +1437,8 @@ Computer Lab 5`); the tooltip = the full name when it differs (`B005 —
 Computer Laboratory 5 (28 seats)`), the label verbatim for the code-
 suffixed rooms (`B002 — Tutorial Room (35 seats)` — never duplicated).
 B006's short gains the colon (the DB-derived truth).
+## 2026-10-27 (SDD b005-diploma-allowed) — B005 clean + the description amended
+The venue page's severity-3 arm (the b005 conflict) died with the
+repeal — the B005 grid rides severity 2/0 only. The B005 description
+loses the `DEGREE students only.` claim (one convergent string across
+DB/seeder/mock).

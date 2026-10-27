@@ -83,15 +83,15 @@ final class SessionAllowedForVenueMatrixTest extends TestCase
             'sp1_amit2033L_B111_hall' => [1, 'AMIT2033', 'L', ['DFT'], 'B111', 'lecture_hall', true, true],
             'sp2_amit2033L_B010_lab_additive' => [2, 'AMIT2033', 'L', ['DFT'], 'B010', 'lab', true, true],
             'sp3_amit2033L_B006_widen' => [3, 'AMIT2033', 'L', ['DFT'], 'B006', 'cisco_lab', true, true],
-            'sp4_amit2033L_B005_dstar_denied' => [4, 'AMIT2033', 'L', ['DFT'], 'B005', 'lab', true, false],
+            'sp4_amit2033L_B005_accepted_repeal' => [4, 'AMIT2033', 'L', ['DFT'], 'B005', 'lab', true, true], // SDD b005-diploma-allowed: R2 repealed
             'sp5_bmis2003L_B010_denied' => [5, 'BMIS2003', 'L', ['RSD'], 'B010', 'lab', true, false],
             'sp6_bmis2003L_B006_denied' => [6, 'BMIS2003', 'L', ['RSD'], 'B006', 'cisco_lab', true, false],
             'sp7_amcs1013P_B006_base_focs' => [7, 'AMCS1013', 'P', ['DSF'], 'B006', 'cisco_lab', true, true],
             'sp8_amcs1013T_B006_denied' => [8, 'AMCS1013', 'T', ['DSF'], 'B006', 'cisco_lab', true, false],
             'sp9_rafcashcohort_B006_banned' => [9, 'AMIT2033', 'P', ['RAF'], 'B006', 'cisco_lab', true, false],
             'sp10_amit2034P_labany' => [10, 'AMIT2034', 'P', ['DSF'], 'B009', 'lab', true, true],
-            'sp11_amit2034P_B005_r2_denial' => [11, 'AMIT2034', 'P', ['DSF'], 'B005', 'lab', true, false],
-            'sp12_amit2034T_B005_r2_denial' => [12, 'AMIT2034', 'T', ['DSF'], 'B005', 'lab', true, false],
+            'sp11_amit2034P_B005_accepted_repeal' => [11, 'AMIT2034', 'P', ['DSF'], 'B005', 'lab', true, true], // the repeal receipts
+            'sp12_amit2034T_B005_accepted_repeal' => [12, 'AMIT2034', 'T', ['DSF'], 'B005', 'lab', true, true],
             'sp13_amit2034L_B111_hall' => [13, 'AMIT2034', 'L', ['DSF'], 'B111', 'lecture_hall', true, true],
             'sp14_gate_ignores_capacity' => [14, 'AMIT2033', 'L', ['DSF'], 'SML-01', 'tutorial', true, true],
         ];

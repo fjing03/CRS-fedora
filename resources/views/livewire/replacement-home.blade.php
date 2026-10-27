@@ -188,7 +188,7 @@
      PAGE_DATA.conflictedClasses carries the same row shape as
      MockData.conflictedClasses, derived from the real DB. --}}
 <div class="lw-page">
-    <script>window.PAGE_DATA = @json($payload);</script>
+    @include('partials.page-data-script', ['payload' => $payload])
 
         <!-- ─── Page Header ─── -->
         @include('partials.ui-page-header', ['title' => 'Replacement Arrangement', 'description' => 'The following classes require replacement arrangements. Select a class to submit a replacement request.'])

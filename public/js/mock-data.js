@@ -131,7 +131,7 @@ window.MockData = {
         { code: 'B110', type: 'LectureHall', capacity: 80, allowedSessions: ['L'], description: 'Lecture Hall. Large multi-cohort assemblies; lectures only.' },
         { code: 'B111', type: 'LectureHall', capacity: 80, allowedSessions: ['L'], description: 'Lecture Hall. Large multi-cohort assemblies; lectures only.' },
         // Computer Labs (capacity 28, Practical-only 'P')
-        { code: 'B005', type: 'Lab',         capacity: 28, allowedSessions: ['P'], description: 'Lab. For PRACTICAL Class. DEGREE students only.' },
+        { code: 'B005', type: 'Lab',         capacity: 28, allowedSessions: ['P'], description: 'Lab. For PRACTICAL Class.' },
         { code: 'B009', type: 'Lab',         capacity: 28, allowedSessions: ['P'], description: 'Computer Lab. For PRACTICAL.' },
         { code: 'B010', type: 'Lab',         capacity: 28, allowedSessions: ['P'], description: 'Computer Lab. For PRACTICAL.' },
         { code: 'B011', type: 'Lab',         capacity: 28, allowedSessions: ['P'], description: 'Computer Lab. For PRACTICAL.' },

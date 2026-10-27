@@ -954,7 +954,7 @@
      patches marked 'BRIDGE PATCH'. PAGE_DATA carries the mock's exact
      data shapes, derived from the real DB. --}}
 <div class="lw-page">
-    <script>window.PAGE_DATA = @json($payload);</script>
+    @include('partials.page-data-script', ['payload' => $payload])
     <div class="top-bar">
         <button class="back-btn" onclick="goBack()" aria-label="Back">
             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
@@ -2636,7 +2636,7 @@ slotLine = 'Week ' + (anchorSlot.week + 1) + ' · ' + ((weekdayName && weekdayNa
                     if (!window.PAGE_DATA.intentConflicts || !window.PAGE_DATA.intentConflicts[String(sid)]) return false;
                     /* venue-restrictions-enforcement (design D3/D4): the ONE
                        client matrix read replaces the hand-rolled base-rows
-                       + B005-pattern predicate — the fallback must offer a
+                       + the repealed-B005 note — the fallback must offer a
                        lab intent for a networking L/T session exactly when
                        the modal + dropdown would. */
                     if (!venueMatrixAllows(e.type, venueRaw, i.venue, m.code, e.cohortCodes || [])) return false;
@@ -3161,15 +3161,15 @@ slotLine = 'Week ' + (anchorSlot.week + 1) + ' · ' + ((weekdayName && weekdayNa
             if (window.__bootDone && firstConflictRow) { syncVenueFamily(firstConflictRow, 'auto-pin'); }
         }
 
-        /* Venue law (SDD lt-venue-capacity-rule, user ruling 2026-10-19):
+        /* venue law (SDD lt-venue-capacity-rule, user ruling 2026-10-19):
            ONE rule map governs eligibility — Lecture Hall & Tutorial Rooms
            admit L AND T (capacity-gated), labs stay P-only. This filter
            reads `window.__ruleMap[ctx.type]` over the venue's RAW
            `room_type` (the pay-what-you-are key; display `type` is only
            shown). Fail-closed when the map is missing — a payload regression
-           must never re-open the law drift. B005 is hidden when the
-           occurrence's cohorts include a Diploma (D*) programme — the doc's
-           CLIENT-side no-Diploma rule (still doc-only server-side). */
+           must never re-open the law drift. (The B005 no-Diploma arm was
+           REPEALED 2026-10-27, SDD b005-diploma-allowed — deleting it only
+           widens the accept set; the fail-closed map guard stands.) */
         /* venue-restrictions-enforcement (SDD design D4): the ONE client
            matrix read mirroring the catalog's PHP gate (design D2) — ONE
            formula, NO early-return chain that could bypass the venue deny
@@ -3206,13 +3206,8 @@ slotLine = 'Week ' + (anchorSlot.week + 1) + ' · ' + ((weekdayName && weekdayNa
                     if (focs.indexOf(p) === -1) return false;
                 }
             }
-            if (venueCode === rule.b005_venue_code) {
-                const re = new RegExp(rule.b005_no_diploma_pattern || '^\\s*D');
-                const cohorts2 = cohortCodes || [];
-                for (let k = 0; k < cohorts2.length; k++) {
-                    if (re.test(cohorts2[k])) return false;
-                }
-            }
+            // (was) the B005 no-Diploma deny arm — REPEALED 2026-10-27
+            // (SDD b005-diploma-allowed). Rule-map consumers compose on.
             return true;
         }
 

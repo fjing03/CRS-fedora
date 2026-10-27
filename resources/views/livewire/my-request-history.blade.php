@@ -160,7 +160,7 @@
      marks. PAGE_DATA.requests carries the mock's exact row shape, derived
      from the real DB (own requests only — server-scoped). --}}
 <div class="lw-page">
-    <script>window.PAGE_DATA = @json($payload);</script>
+    @include('partials.page-data-script', ['payload' => $payload])
 
         <!-- ─── Page Header ─── -->
         @include('partials.ui-page-header', ['title' => 'My Request History', 'description' => 'View and monitor all replacement requests submitted during the current semester.'])

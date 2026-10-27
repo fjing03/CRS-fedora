@@ -105,7 +105,7 @@
      marks. PAGE_DATA.replacementHistory carries the mock's exact row shape,
      derived from the real DB (my cohort, approved + pending — FR 1.4). --}}
 <div class="lw-page">
-    <script>window.PAGE_DATA = @json($payload);</script>
+    @include('partials.page-data-script', ['payload' => $payload])
 
         <!-- ─── Page Header ─── -->
         @include('partials.ui-page-header', ['title' => 'Replacement History', 'description' => 'Replacement classes confirmed or pending for your cohort.', 'chips' => $cohortLabel !== null ? [['label' => $cohortLabel]] : []]) {{-- BRIDGE PATCH: cohort chip is per-user data --}}

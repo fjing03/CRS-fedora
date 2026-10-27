@@ -121,7 +121,8 @@ ALTER TABLE audit_logs ADD CONSTRAINT audit_logs_action_check
 - **Post state:** sessions 3/33/34 = **DSF2(S1)G1, 22 students** (22 ≤
   B005's 28 — the over-capacity violation is repaired ✓). The B005
   **conflict flag REMAINS by design** (DSF = Diploma — R2's no-Diploma
-  law unchanged; the D4 rendering receipt `AMIT2034(P) · B005 · Red`).
+  law unchanged [SUPERSEDED later this day — the R2 law REPEALED, the
+  B005 rule death]; the D4 rendering receipt `AMIT2034(P) · B005 · Red`).
 - **Insurance dump:** `/tmp/insurance-pre-dftdrop-2026-10-27.dump` (the
   pre-drop state, 335 KB).
 
@@ -191,3 +192,20 @@ ALTER TABLE audit_logs ADD CONSTRAINT audit_logs_action_check
   inside B005's 28 and B006's 32 ✓); the BMSE3153 breakdown stays
   `8 + 7 = 15` (RSD3 pairs untouched); the venue-restrictions R2 audit
   note's standing count rides the dataset (21, not the historical 22/15).
+
+## 2026-10-27 (late) — the venue rule + the B005 description (SDD b005-diploma-allowed)
+
+- **RULE REPEALED:** the user's ruling allows Diploma cohorts at B005 —
+  the R2 no-Diploma law is CODE-DROPPED (ruleMap keys, engine deny,
+  derived conflict, client arm). NO DB schema/data change for the rule.
+- **The standing AMIT2034(P)_row @ B005 (DSF-only, 21 students) renders
+  CLEAN** — the perpetual red block that drove this session's queries is
+  explained-and-gone.
+- **DESCRIPTION AMEND (1 row, pasted by the agent with the user's standing
+  data-change mandate):** B005 `description` — `Computer Lab. For
+  PRACTICAL Class.` (the `DEGREE students only.` claim deleted — it would
+  be false post-repeal). VenuesSeeder + the mock-data.js §2.5a mirror
+  converge on the SAME string.
+- The dated 2026-10-27 rows above that recorded the "conflict flag
+  REMAINS by design" state are SUPERSEDED by this repeal — the flags
+  they recorded came from the now-dead law.

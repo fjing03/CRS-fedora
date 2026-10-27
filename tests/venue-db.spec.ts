@@ -6,7 +6,7 @@
  *
  * Anchors (real data): 23 venues in 3 dropdown categories (CiscoLab folds
  * under Lab); B006 week 1 has 48 occupied slots incl. BMIT2154 (Mon 09:00);
- * B005 has the single derived conflict (AMIT2034, owner 5652); holidays W8
+ * B005 renders clean post-repeal (b005-diploma-allowed); holidays W8
  * Mon + W14 Wed/Thu. Logins are rate-limited (5/min per ID) — 5 tests,
  * each ID logs in at most 3× within the run.
  */
@@ -158,34 +158,23 @@ test('venue dropdown: 3 categories (B006 under Lab), full-name tips, switching n
   expect(errors).toEqual([]);
 });
 
-test('B005 diploma-cohort conflict renders owner-gated (b005-diploma-conflict)', async ({ page }) => {
-  // Daniel Royd Michael (5652) owns the AMIT2034 P Wed-11:00 B005 session —
-  // the single venue-restriction violation, flagged as a derived conflict.
-  // SURVIVES the re-pin (venue-event-blocks-db spec R1): conflict is reachable
-  // in v1 data — owner sees the loud 3px event-conflict block.
+test('B005 renders CLEAN post-repeal (b005-diploma-allowed)', async ({ page }) => {
+  // The repeal receipt (2026-10-27, the user's ruling): AMIT2034 P Wed-11:00
+  // B005 (DSF-only cohorts) renders NO conflict — the owner-gated
+  // event-conflict / hairline-red arms retired with the law.
   await loginAsStaff(page, '5652');
   await page.goto('/venue-timetable-ui?venue=B005');
 
-  // Owner view: loud conflict block in week 1.
-  await expect(page.locator('.timetable .event-conflict').first()).toBeVisible({ timeout: 15_000 });
+  await expect(page.locator('.timetable .event-conflict')).toHaveCount(0, { timeout: 15_000 });
 
-  // It is the AMIT2034 block — modal opens with the "needs attention" copy.
-  await page.locator('.timetable .event-conflict').first().click();
+  // The AMIT2034 block still opens its modal — clean now.
+  await page.locator('.timetable .event-block', { hasText: 'AMIT2034' }).first().click();
   await expect(page.locator('#classModal')).toBeVisible();
   await expect(page.locator('#classModal')).toContainText('AMIT2034');
   await page.click('.btn-close-modal');
-});
 
-test("B005 conflict from others' view renders the quiet hairline red (event-public-holiday)", async ({ page }) => {
-  // Others' side of the same derived conflict (spec R1 owner-gating):
-  // 5425 does not own the AMIT2034 session → event-public-holiday (error
-  // fill, 0.5px hairline), never the loud event-conflict block.
+  // Others' view: same clean state (the owner-gate is moot with no conflict).
   await loginAsStaff(page);
   await page.goto('/venue-timetable-ui?venue=B005');
-
-  const quiet = page.locator('.timetable .event-public-holiday').first();
-  await expect(quiet).toBeVisible({ timeout: 15_000 });
-  await expect(quiet).toHaveAttribute('data-name', /.+/);
-  await expect(quiet).toHaveAttribute('data-tip2', /.+ · .+/);
-  await expect(page.locator('.timetable .event-conflict')).toHaveCount(0);
+  await expect(page.locator('.timetable .event-conflict')).toHaveCount(0, { timeout: 15_000 });
 });

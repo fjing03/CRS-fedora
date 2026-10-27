@@ -96,12 +96,10 @@ test('cohort: OTHERS’ class shows no Cancel button', async ({ page }) => {
 
 test('venue: OWN class shows BOTH buttons (Cancel + Replace Now on own conflict)', async ({ page }) => {
   await loginStaff(page, '5770');
-  // The own-conflict receipt via the B005 population violation? NO — 5770
-  // owns no B005. The honest OWN-conflicted occurrence search: the row's
-  // AMCS2093 family on its own venue (B107/B110 etc.) — choose AMCS2093's
-  // AMIT/B005 slot: skip-first — land the venue page of a VENUE 5770
-  // occupies (B107 — the AMCS2093 T Wed 14:30 row's venue) and use the
-  // AMCS2093(T) cell occurrence.
+  // The honest OWN-conflicted occurrence search: the AMCS2093 family on
+  // its own venue (B107) — the AMCS2093(T) Wed 14:30 cell occurrence
+  // (the B005 route is moot: the conflict B005 carried is repealed,
+  // SDD b005-diploma-allowed — this receipt never rode it anyway).
   await page.goto(`${BASE}/venue-timetable-ui?venue=B107`, { waitUntil: 'networkidle' });
   await page.waitForTimeout(2500);
   await page.locator('#weekSelect').waitFor({ state: 'visible', timeout: 10_000 });

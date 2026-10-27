@@ -49,7 +49,8 @@ test('the venue dropdown gies the networking L ctx its labs (additive)', async (
   expect(joined).toContain('Lab');
   expect(joined).toContain('Lecture');
   expect(joined).toContain('Tutorial');
-  // B005 stays hidden for the D* cohort (R2 composed over the widening):
+  // (the b005 no-Diploma drill note was repealed 2026-10-27 — B005 now
+  // rides the Lab column like any lab; the Types grain stays the receipt):
   await page.waitForTimeout(200);
   const labRows = await page.evaluate(() => {
     const dd = document.querySelector('.venue-dd-panel');

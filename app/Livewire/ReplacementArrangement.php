@@ -35,7 +35,8 @@ use Livewire\Component;
  *   single-semester map becomes a [week][venue] map with a one-line
  *   cellRender lookup change, documented in the view).
  * - `MockData.cohortTimetable.events` ← real conflict/cancelled occurrences
- *   (Public Holiday / Venue Restriction / FR 2.16 exceptions), so the mock's
+ *   (Public Holiday / FR 2.16 exceptions; the Venue Restriction arm was
+ *   REPEALED 2026-10-27), so the mock's
  *   extractSlotsForSubject slot picker works unchanged.
  * - `MockData.courses` / `venues` / `semester` / `holidays` ← real rows.
  * - `busyByWeek` / `blockedVenues` ← the engine's busy vectors per subject
@@ -294,8 +295,6 @@ class ReplacementArrangement extends Component
 
         $events = [];
         foreach ($sessions as $session) {
-            $venueRestricted = $this->venueRestrictionConflict($session);
-
             for ($week = 1; $week <= $weeks; $week++) {
                 $exception = $exceptions->get($session->id.':'.$week);
                 $holiday = $holidays->get($week.':'.$session->day_of_week);
@@ -307,7 +306,7 @@ class ReplacementArrangement extends Component
 
                 if ($exception !== null) {
                     $status = 'cancelled';
-                } elseif ($holiday !== null || $venueRestricted) {
+                } elseif ($holiday !== null) {
                     $status = 'conflict';
                 } else {
                     continue;

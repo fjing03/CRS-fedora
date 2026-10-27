@@ -22,8 +22,9 @@ use Illuminate\Support\Collection;
  * Encodings (contract, mirrored in the design):
  * - ruleMap keys/values are the raw DB values: `class_sessions.session_type`
  *   (L/T/P) against `venues.room_type` (tutorial/lecture_hall/lab/cisco_lab —
- *   the CHECK constraint's own vocabulary), plus the B005 no-Diploma pattern
- *   and venue code.
+ *   the CHECK constraint's own vocabulary).
+ *   (The B005 no-Diploma pattern + venue code were REPEALED 2026-10-27 —
+ *   SDD b005-diploma-allowed: the keys are GONE, the law is data-free.)
  * - day_of_week is the DB import encoding 0–5 = Mon–Sat (Sundays carry no
  *   teaching data; index 6 exists in the abbr table only for the label path).
  */
@@ -36,9 +37,6 @@ final class LectureSessionCatalog
      * The single-source eligibility rule (raw DB encodings; JSON-able — the
      * pages bake it into page-data and the client only READS it).
      *
-     * B005: a session with any cohort whose programme_code matches the
-     * pattern below may not be offered for B005.
-     *
      * SDD venue-restrictions-enforcement (2026-10-24): the campus rule book is
      * ENFORCED here as data — the module-conditioned ALLOW/DISALLOW matrix
      * (networking subjects gain additive lab access for L/T; B006 admits
@@ -48,7 +46,7 @@ final class LectureSessionCatalog
      * chain). R4/IoT was DROPPED by the user (no IoT keys exist on purpose).
      * Capacity is NOT part of this gate — the engine's separate check.
      *
-     * @return array{P: list<string>, T: list<string>, L: list<string>, lab_access_module_codes: list<string>, b006_allowed_module_codes: list<string>, b006_focs_programmes: list<string>, b006_banned_programmes: list<string>, b006_venue_code: string, b005_no_diploma_pattern: string, b005_venue_code: string}
+     * @return array{P: list<string>, T: list<string>, L: list<string>, lab_access_module_codes: list<string>, b006_allowed_module_codes: list<string>, b006_focs_programmes: list<string>, b006_banned_programmes: list<string>, b006_venue_code: string}
      */
     public static function ruleMap(): array
     {
@@ -75,8 +73,9 @@ final class LectureSessionCatalog
             'b006_focs_programmes' => ['DFT', 'DSF', 'RSD'],
             'b006_banned_programmes' => ['RAF', 'RBU'],
             'b006_venue_code' => 'B006',
-            'b005_no_diploma_pattern' => '^\\s*D',
-            'b005_venue_code' => 'B005',
+            // B005's R2 no-Diploma keys were REPEALED 2026-10-27
+            // (SDD b005-diploma-allowed) — the keys are GONE by design; a
+            // comeback would be a NEW user ruling, not a stub.
         ];
     }
 
@@ -124,7 +123,8 @@ final class LectureSessionCatalog
         /* USER AMENDMENT (2026-10-15, apply round 3): conflicted-only policy —
            the modal/fallback offer only occurrences that NEED the replacement
            (ReplacementHome parity): class_exception cancelled, public-holiday
-           hit, or the B005 venue-restriction conflict — for the BOOKED week.
+           hit (the B005 venue-restriction arm was REPEALED 2026-10-27,
+           SDD b005-diploma-allowed) — for the BOOKED week.
            Active pending/approved requests exclude the occurrence (D1: already
            being handled). Without week context (facts-only mode) no filtering. */
         $conflicts = $weekContext !== null
@@ -185,7 +185,8 @@ final class LectureSessionCatalog
      * Is this session admissible for a venue of $rawRoomType? THE one matrix
      * read (SDD venue-restrictions-enforcement design D2): ONE boolean
      * formula over the rule data — (base row OR labsAdditive OR b006Widen)
-     * AND NOT b006PopulationDeny AND NOT b005DiplomaDeny — NOT an
+     * AND NOT b006PopulationDeny (the b005DiplomaDeny arm was REPEALED
+     * 2026-10-27) — NOT an
      * early-return step chain (the deny gates must compose over the widened
      * sets for EVERY session type). Fail-closed: an unloaded module
      * relation is in NO list (base rows + gates only — never widen, never
@@ -245,20 +246,11 @@ final class LectureSessionCatalog
             }
         }
 
-        // R2 deny (B005 — composed for EVERY type; the lab widening never
-        // reaches past it: an AMIT2033 L with D* cohorts keeps B005 hidden).
-        if ($venueCode === $rule['b005_venue_code']) {
-            if (! $session->relationLoaded('cohorts')) {
-                return false;
-            }
-            $pattern = $rule['b005_no_diploma_pattern'];
-            foreach ($session->cohorts as $cohort) {
-                $programme = $cohort->programme !== null ? $cohort->programme->programme_code : '';
-                if (preg_match('/'.$pattern.'/', $programme) === 1) {
-                    return false;
-                }
-            }
-        }
+        // R2 no-Diploma (B005) was REPEALED 2026-10-27 (SDD
+        // b005-diploma-allowed): the deny block is GONE by design — a
+        // comeback would be a NEW user ruling, not a stub. The remaining
+        // gates: the type rows, the B006 composite, and the engine's
+        // capacity check.
 
         return true;
     }
@@ -283,7 +275,8 @@ final class LectureSessionCatalog
             'endTime' => $end,
             'studentCount' => (int) $s->cohorts->sum('student_count'),
             // display labels first (shape parity with the legacy payload);
-            // compact codes added for the B005-style pattern checks.
+            // compact codes (the B005 pattern inputs were REPEALED
+            // 2026-10-27 — kept: the client's cohort coding stays).
             'cohorts' => $s->cohorts
                 ->map(fn ($c): string => $this->spacedCohortLabel($c))
                 ->all(),
@@ -309,7 +302,8 @@ final class LectureSessionCatalog
 
     /**
      * Which of the lecturer's sessions are CONFLICTED at $week1 (ReplacementHome
-     * parity): exception-cancelled, public-holiday-hit, or B005-restricted.
+     * parity): exception-cancelled or public-holiday-hit (the B005
+     * venue-restriction arm REPEALED 2026-10-27).
      * Active requests exclude ("already being handled", D1 rule).
      *
      * @param  Collection<int, ClassSession>  $sessions
@@ -522,12 +516,9 @@ final class LectureSessionCatalog
             return ['kind' => 'holiday', 'reason' => 'Public Holiday ('.$ctx['holidays'][$weekNumber][(int) $session->day_of_week].')'];
         }
 
-        // ④ the venue restriction (B005 + any D* cohort) — week-independent.
-        if ($session->venue !== null
-            && $session->venue->room_code === 'B005'
-            && $session->cohorts->contains(fn ($c) => str_starts_with((string) $c->programme->programme_code, 'D'))) {
-            return ['kind' => 'venue', 'reason' => 'Venue Restriction (B005 no-Diploma)'];
-        }
+        // ④ (was) the venue restriction — REPEALED 2026-10-27 (SDD
+        // b005-diploma-allowed): no conflict kind remains after the
+        // exception (②) and holiday (③) arms.
 
         return null;
     }
@@ -583,7 +574,8 @@ final class LectureSessionCatalog
 
     /**
      * Spaced-class cohort convention identical to the legacy payloads
-     * (module 'cohorts' arrays and the client's B005 pattern input).
+     * (module 'cohorts' arrays; the client's B005 pattern input was
+     * repealed 2026-10-27).
      */
     private function spacedCohortLabel(?Cohort $cohort): string
     {

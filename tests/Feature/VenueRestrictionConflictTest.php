@@ -16,10 +16,13 @@ use Livewire\Livewire;
 use Tests\TestCase;
 
 /**
- * SDD change `b005-diploma-conflict` — the B005 venue-restriction violation
- * (session 38: AMIT2034 P, Wed 11:00–13:00, combined DFT+DSF diploma lecture)
- * renders as a DERIVED `conflict` on every timetable page. No DB mutation:
- * the 3-state slot machine (FR 4.11) is untouched; display-only derivation.
+ * SDD change `b005-diploma-allowed` (2026-10-27) — the R2 no-Diploma rule
+ * (SDD b005-diploma-conflict's law) was REPEALED by the user's ruling:
+ * Diploma cohorts may use B005. The receipts invert to the POSITIVE: the
+ * formerly-flagged standing session (AMIT2034 P in B005, D*-cohort-only)
+ * now renders `normal` on every timetable page and no payload carries a
+ * venue-restriction conflict. No DB mutation: the 3-state slot machine
+ * (FR 4.11) is untouched; display-only derivation.
  */
 final class VenueRestrictionConflictTest extends TestCase
 {
@@ -52,18 +55,18 @@ final class VenueRestrictionConflictTest extends TestCase
         return User::where('role', 'lecturer')->where('name', '!=', 'Daniel Royd Michael')->firstOrFail();
     }
 
-    public function test_session_38_conflicts_on_all_four_pages(): void
+    public function test_d_cohort_b005_session_renders_normal_on_all_four_pages(): void
     {
         $sessionId = $this->conflictedSessionId();
         $this->assertGreaterThan(0, $sessionId);
 
-        // MyTimetable — Daniel sees his own class loud-conflicted.
+        // MyTimetable — Daniel sees his own class CLEAN (the repeal receipt).
         $my = Livewire::actingAs($this->danielUser())->test(MyTimetable::class);
         $my->assertViewHas('eventsByWeek', function ($weeks) use ($sessionId): bool {
             foreach ($weeks as $weekEvents) {
                 foreach ($weekEvents as $ev) {
                     if (($ev['id'] ?? null) === $sessionId) {
-                        return $ev['status'] === 'conflict';
+                        return $ev['status'] === 'normal';
                     }
                 }
             }
@@ -71,8 +74,8 @@ final class VenueRestrictionConflictTest extends TestCase
             return false;
         });
 
-        // CohortTimetable — student-scoped (own cohort only, FR 1.2): a student
-        // of one of session 38's actual cohorts sees the conflict.
+        // CohortTimetable — student-scoped (own cohort only, FR 1.2): a
+        // student of one of the session's actual cohorts sees it clean.
         $session38 = ClassSession::findOrFail($sessionId);
         $attendeeCohortId = (int) $session38->cohorts->first()->id;
         $dftStudent = User::whereHas('student', fn ($q) => $q->where('cohort_id', $attendeeCohortId))->firstOrFail();
@@ -82,7 +85,7 @@ final class VenueRestrictionConflictTest extends TestCase
                 foreach ($weeks as $weekEvents) {
                     foreach ($weekEvents as $ev) {
                         if (($ev['id'] ?? null) === $sessionId) {
-                            return $ev['status'] === 'conflict';
+                            return $ev['status'] === 'normal';
                         }
                     }
                 }
@@ -97,7 +100,7 @@ final class VenueRestrictionConflictTest extends TestCase
             foreach ($weeks as $weekEvents) {
                 foreach ($weekEvents as $ev) {
                     if (($ev['id'] ?? null) === $sessionId) {
-                        return $ev['status'] === 'conflict';
+                        return $ev['status'] === 'normal';
                     }
                 }
             }
@@ -116,7 +119,7 @@ final class VenueRestrictionConflictTest extends TestCase
             foreach ($weeks as $weekEvents) {
                 foreach ($weekEvents as $ev) {
                     if ($matchAmit($ev)) {
-                        return $ev['status'] === 'conflict' && $ev['mine'] === true;
+                        return $ev['status'] === 'normal' && $ev['mine'] === true;
                     }
                 }
             }
@@ -131,7 +134,7 @@ final class VenueRestrictionConflictTest extends TestCase
             foreach ($weeks as $weekEvents) {
                 foreach ($weekEvents as $ev) {
                     if ($matchAmit($ev)) {
-                        return $ev['status'] === 'conflict' && $ev['mine'] === false;
+                        return $ev['status'] === 'normal' && $ev['mine'] === false;
                     }
                 }
             }
@@ -155,8 +158,8 @@ final class VenueRestrictionConflictTest extends TestCase
             $weeks = array_slice($weeks, 0, 7, true);
             foreach ($weeks as $weekEvents) {
                 foreach ($weekEvents as $ev) {
-                    // BMIS2113 = the RSD-only B005 practicals — must stay normal.
-                    // (AMIT2034 is the legitimately-flagged conflict session.)
+                    // BMIS2113 = the RSD-only B005 practicals — stay normal.
+                    // (AMIT2034: the repeal receipt — normal above.)
                     if ($ev['code'] === 'BMIS2113' && $ev['status'] === 'conflict') {
                         return false;
                     }
@@ -213,7 +216,7 @@ final class VenueRestrictionConflictTest extends TestCase
         $this->assertTrue($merged['mine']); // mine = OR
     }
 
-    public function test_pending_request_supersedes_conflict_display(): void
+    public function test_pending_request_rides_a_clean_b005_session(): void
     {
         $sessionId = $this->conflictedSessionId();
         $daniel = $this->danielUser();
@@ -226,26 +229,23 @@ final class VenueRestrictionConflictTest extends TestCase
             'status' => 'pending',
         ]);
 
-        // occurrence-week-pin-truthfulness D-P10 (CHOICE A): the natural
-        // conflict block KEEPS its own cell; the pending amber rides the
-        // landing cell. The fixture's makeup lands in week 1 — the amber's
-        // requestId separates it from the natural pair (the same-hour rule:
-        // the slotMap's last-write-wins shows the amber cell — the amber
-        // carries the requestId while the natural keeps the conflict id).
+        // SDD b005-diploma-allowed re-cut: the formerly "natural conflict"
+        // pair rides CLEAN (the repeal) — only the pending amber renders
+        // (requestId carries it; the slotMap's last-write-wins shows the
+        // amber cell at the same hour; no conflict block can stack).
         $component = Livewire::actingAs($daniel)->test(MyTimetable::class);
         $component->assertViewHas('eventsByWeek', function ($weeks) use ($sessionId): bool {
             $hasPending = false;
-            $naturalKept = false;
             foreach ($weeks[0] as $ev) {
                 if (($ev['requestId'] ?? null) !== null && ($ev['status'] ?? null) === 'pending') {
                     $hasPending = true;
                 }
                 if (($ev['id'] ?? null) === $sessionId && ($ev['status'] ?? null) === 'conflict') {
-                    $naturalKept = true;
+                    return false; // the repeal receipt: no conflict block rides the B005 session
                 }
             }
 
-            return $hasPending && $naturalKept; // both-blocks-stack (the amber covers the same-hour cell visually)
+            return $hasPending;
         });
 
         $request->delete();
@@ -254,7 +254,7 @@ final class VenueRestrictionConflictTest extends TestCase
         $after->assertViewHas('eventsByWeek', function ($weeks) use ($sessionId): bool {
             foreach ($weeks[0] as $ev) {
                 if (($ev['id'] ?? null) === $sessionId) {
-                    return $ev['status'] === 'conflict'; // conflict re-emerges; no pending row anywhere
+                    return $ev['status'] === 'normal'; // clean re-emerges (the repeal receipt)
                 }
             }
 
@@ -262,7 +262,7 @@ final class VenueRestrictionConflictTest extends TestCase
         });
     }
 
-    public function test_d_prefix_matches_only_diploma_programmes(): void
+    public function test_d_prefix_matches_only_diploma_programmes(): void  // the dataset identity (the repeal's receipts compose on)
     {
         $diplomaCodes = Programme::where('programme_code', 'like', 'D%')->pluck('programme_code')->all();
         foreach ($diplomaCodes as $code) {
