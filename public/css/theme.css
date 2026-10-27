@@ -2182,9 +2182,12 @@ html.dark .semester-bar select:not(.week-select) {
     background: var(--color-error);
     color: var(--color-on-error);
 }
+/* makeup-busy-vector round 2 (the user's 2026-10-27 law): the PENDING
+   family's color = the tertiary-container await pair — the SAME NAME
+   SAME COLOR canon (the awaiting surfaces ride this pair everywhere). */
 .cell-pending::after {
-    background: var(--color-warning);
-    color: var(--color-on-warning);
+    background: var(--color-tertiary-container);
+    color: var(--color-on-tertiary-container);
 }
 .cell-reserved::after {
     background: var(--color-surface-variant);

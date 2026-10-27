@@ -415,6 +415,10 @@ class ReplacementArrangement extends Component
                     $startIdx,
                     $endIdx,
                     implode(' | ', array_unique($holderLabels[$weekIdx][$day.':'.$startIdx.':'.$endIdx] ?? [])),
+                    /* SDD makeup-busy-vector round 2: the make-up rows ride
+                       their status kind ('pending'|'approved'), null for the
+                       class-side rows — the client's pending arm keys on it. */
+                    $range['status'] ?? null,
                 ];
             }
 

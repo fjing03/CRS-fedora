@@ -363,11 +363,17 @@ final class MatrixIntersectionEngine
             ->join('class_sessions',
                 'class_sessions.id', '=', 'replacement_requests.class_session_id')
             ->where('class_sessions.lecturer_id', $lecturerId)
-            ->get(['time_slots.day_of_week', 'time_slots.start_time', 'time_slots.end_time'])
+            ->get([
+                'time_slots.day_of_week',
+                'time_slots.start_time',
+                'time_slots.end_time',
+                'replacement_requests.status',
+            ])
             ->map(fn ($row): array => [
                 'day' => (int) $row->day_of_week,
                 'start' => (string) $row->start_time,
                 'end' => (string) $row->end_time,
+                'status' => (string) $row->status,
             ])
             ->all();
     }
@@ -445,11 +451,17 @@ final class MatrixIntersectionEngine
                 'session_cohorts.class_session_id', '=',
                 'replacement_requests.class_session_id')
             ->whereIn('session_cohorts.cohort_id', $cohortIds)
-            ->get(['time_slots.day_of_week', 'time_slots.start_time', 'time_slots.end_time'])
+            ->get([
+                'time_slots.day_of_week',
+                'time_slots.start_time',
+                'time_slots.end_time',
+                'replacement_requests.status',
+            ])
             ->map(fn ($row): array => [
                 'day' => (int) $row->day_of_week,
                 'start' => (string) $row->start_time,
                 'end' => (string) $row->end_time,
+                'status' => (string) $row->status,
             ])
             ->all();
     }

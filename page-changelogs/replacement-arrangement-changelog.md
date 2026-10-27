@@ -2071,3 +2071,10 @@ pending|approved — cancelled/released rows never enter; the
 [13:30,14:30) half-open span leaves the 13:00/14:30 entries free). The
 busy-cell aria carries the honest holder text (`You —
 BMSE3153(P) · B009 · 13:30-14:00 · … · Replacement (approved)`).
+
+## 2026-10-27 (round 2) — the PENDING make-ups paint amber, not red
+The busy-vector cells distinguish the make-up rows' status: all-pending
+matchers render `cell-pending` (the aria `Pending — …`; the fill = the
+tertiary-container await pair per the user's law — the same-name-same-
+color canon); any approved/class-side matcher keeps `cell-occupied`
+(the red). The approved make-ups' aria stays `Occupied by …`.

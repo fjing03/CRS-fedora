@@ -1699,16 +1699,22 @@
                        — currently amputated at the label arms. REMOVE AFTER THE
                        FINAL VIVA (delete both tip attaches here; the payload's
                        4th keys stay harmless). */
+                    /* SDD makeup-busy-vector round 2: the busy-vector cells
+                       distinguish the PENDING make-up rows (the 5th tuple =
+                       the status kind, null for the class-side rows). The
+                       SAFE rank: any non-pending matcher wins `occupied`
+                       (a pending + an approved overlap in the same half-hour
+                       still renders amber→red correctly the other way);
+                       all-pending = `cell-pending` (the tertiary-container
+                       await family — the same-name-same-color canon). */
+                    const engineMatches = busyRanges.filter(b => b[0] === di && hi >= b[1] && hi < b[2]);
                     const attachHolder = function () {
-                        const holder = busyRanges
-                            .filter(b => b[0] === di && hi >= b[1] && hi < b[2])
-                            .map(b => b[3])
-                            .filter(Boolean)
-                            .join(' | ');
+                        const holder = engineMatches.map(b => b[3]).filter(Boolean).join(' | ');
                         if (holder) {
                             div.setAttribute('data-tip', holder);
                             div.setAttribute('data-tip-pos', 'left');
-                            div.setAttribute('aria-label', 'Occupied by ' + holder);
+                            div.setAttribute('aria-label',
+                                (engineMatches.some(b => b[4] === 'pending') ? 'Pending — ' : 'Occupied by ') + holder);
                             div.setAttribute('tabindex', '0');
                             div.style.cursor = 'help';
                         }
@@ -1717,7 +1723,9 @@
                     if (isSunday || day.holiday) {
                         div.className += day.holiday ? ' cell-ph' : ' cell-sun';
                     } else if (engineBlocked) {
-                        div.className += ' cell-occupied';
+                        div.className += engineMatches.length
+                            && engineMatches.every(b => b[4] === 'pending')
+                            ? ' cell-pending' : ' cell-occupied';
                         attachHolder();
                     } else if (cellData) {
                         if (cellData[2] === 1) {
