@@ -3154,7 +3154,17 @@ function initDataTipTooltips() {
         var el = findTip(e.target);
         if (!el) return;
         var r = el.getBoundingClientRect();
-        tip.textContent = el.getAttribute('data-tip');
+        var tipText = el.getAttribute('data-tip') || '';
+        tip.textContent = tipText;
+        /* SDD tidy-arrangement-cell-tooltips (2026-10-27): the multi-line
+           tips (the arrangement's conflict-state header + one block per
+           class) render pre-line; every existing single-line tooltip stays
+           nowrap byte-for-byte (the global rule is untouched). */
+        if (tipText.indexOf('\n') !== -1) {
+            tip.classList.add('data-tip-tooltip--multi');
+        } else {
+            tip.classList.remove('data-tip-tooltip--multi');
+        }
         // Force layout so offsetWidth/offsetHeight are accurate (text just set)
         tip.style.visibility = 'hidden';
         tip.style.opacity = '1';

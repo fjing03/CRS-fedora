@@ -2078,3 +2078,33 @@ matchers render `cell-pending` (the aria `Pending — …`; the fill = the
 tertiary-container await pair per the user's law — the same-name-same-
 color canon); any approved/class-side matcher keeps `cell-occupied`
 (the red). The approved make-ups' aria stays `Occupied by …`.
+
+## 2026-10-27 (SDD tidy-arrangement-cell-tooltips) — the occupied/pending wall-of-text tooltips become a conflict header + one readable block per class
+`prompts/pi-tidy-arrangement-cell-tooltips.md` (the user-approved exact
+format): the busy-vector cells' tooltip =
+```
+⚠ Occupied — N classes in the way
+⏳ Pending make-up — awaiting approval     (all-pending via the SAFE rank)
+<ROOM> · <CODE> (<TYPE>) · <START>–<END>
+You — <lecturer> (<staff>)                (the ownership prefix law)
+<cohorts>                                  (no label — one line)
+```
+blocks sorted by room code, joined with a blank line (`\n\n`); the
+aria-label stays ONE flat line (`Pending — `/`Occupied by ` + the blocks
+joined with ` / `). The shared renderer (`ui-common.js` tip render)
+toggles `.data-tip-tooltip--multi { white-space: pre-line }` when the tip
+carries `\n` — the compound selector outweighs the base nowrap; every
+existing single-line tooltip stays byte-for-byte identical (the receipt:
+the venue-dd trigger's tip kept `nowrap` + no `--multi`).
+
+**THE PAYLOAD RE-GRAIN (the root the probe caught):** the old
+`implode(' | ', …)` in `busyByWeekPayload`'s `$toRanges` glued every
+class sharing one range key into a single wall — 3 parallel lectures
+(09:00–11:00 in B006/B016/B102) collapsed into one `b[3]`. The tuples are
+now ONE PER BLOCKING ROW (`[$day,$startIdx,$endIdx,$block,$statusKind]`,
+one per label) — the header count + the block count + the sort all
+became honest. The tuple shape is still 5 slots; the existing tests'
+`array_slice(0,3)` trim + assertions stay green (265/265).
+
+The venue-timetable page's tips: grep receipt — NO identical holder-join
+pattern (its tooltips are distinct single-line shapes) — no change there.

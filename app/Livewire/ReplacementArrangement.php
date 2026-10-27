@@ -404,22 +404,33 @@ class ReplacementArrangement extends Component
            keys alone are the pre-existing engine contract. */
         $holderLabels = $this->busyCellHolderLabels($semesterId, $weeks);
 
+        /* SDD tidy-arrangement-cell-tooltips (2026-10-27): one TUPLE per
+           blocking ROW — the old `implode(' | ')` glued all the classes
+           sharing one range key into a single wall-of-text; the client now
+           sorts blocks per room + counts them for the conflict header, so
+           each label rides its own tuple. Duplicate ranges stay harmless:
+           `engineBlocked` is a some() over the tuples and the payload's
+           array_unique dedup (the client-side) is per-block. */
         $toRanges = function (array $busy, int $weekIdx) use ($holderLabels): array {
             $out = [];
             foreach ($busy as $range) {
                 $day = (int) $range['day'];
                 $startIdx = $this->slotIndex((string) $range['start']);
                 $endIdx = $this->slotIndex((string) $range['end']);
-                $out[] = [
-                    $day,
-                    $startIdx,
-                    $endIdx,
-                    implode(' | ', array_unique($holderLabels[$weekIdx][$day.':'.$startIdx.':'.$endIdx] ?? [])),
-                    /* SDD makeup-busy-vector round 2: the make-up rows ride
-                       their status kind ('pending'|'approved'), null for the
-                       class-side rows — the client's pending arm keys on it. */
-                    $range['status'] ?? null,
-                ];
+                $key = $day.':'.$startIdx.':'.$endIdx;
+                /* SDD makeup-busy-vector round 2: the make-up rows ride
+                   their status kind ('pending'|'approved'), null for the
+                   class-side rows — the client's pending arm keys on it. */
+                $statusKind = $range['status'] ?? null;
+                $labels = array_values(array_unique($holderLabels[$weekIdx][$key] ?? []));
+                if ($labels === []) {
+                    $out[] = [$day, $startIdx, $endIdx, null, $statusKind];
+
+                    continue;
+                }
+                foreach ($labels as $label) {
+                    $out[] = [$day, $startIdx, $endIdx, $label, $statusKind];
+                }
             }
 
             return $out;
@@ -514,16 +525,35 @@ class ReplacementArrangement extends Component
         }
 
         $myId = (int) auth()->id();
-        $labelFor = function ($row) use ($cohortTexts, $myId): string {
-            $mine = (int) $row->lecturer_id === $myId;
-            $prefix = $mine ? 'You — ' : '';
+        /* SDD tidy-arrangement-cell-tooltips (2026-10-27, the user-approved
+           format): ONE 3-line block per blocking class — `ROOM · CODE (TYPE)
+           · START–END` (room FIRST, en-dash) / the lecturer line (the
+           ownership prefix) / the cohorts. The join + the header happen
+           client-side (the blade's attachHolder); this builder only shapes
+           one block. The half-hour rows from an EXCEPTION'd week's class are
+           excluded upstream; the room-code sort happens client-side. */
+        $blockFor = function (string $roomCode, string $code, string $type, string $startTime, string $endTime, string $lecturerId, string $lecturerName, string $staffId, string $cohorts) use ($myId): string {
+            $mine = (int) $lecturerId === $myId;
 
-            return $prefix
-                .$row->module_code.'('.(string) $row->session_type.')'
-                .' · '.(string) $row->room_code
-                .' · '.substr((string) $row->start_time, 0, 5).'-'.substr((string) $row->end_time, 0, 5)
-                .' · '.(string) $row->lecturer_name.' ('.$row->staff_id.')'
-                .' · cohorts: '.($cohortTexts[$row->id] ?? '-');
+            return (string) $roomCode
+                .' · '.$code.' ('.$type.')'
+                .' · '.substr($startTime, 0, 5).'–'.substr($endTime, 0, 5)
+                ."\n".($mine ? 'You — ' : '')
+                .(string) $lecturerName.' ('.$staffId.')'
+                ."\n".($cohorts !== '' ? $cohorts : '—');
+        };
+        $labelFor = function ($row) use ($blockFor, $cohortTexts): string {
+            return $blockFor(
+                (string) $row->room_code,
+                (string) $row->module_code,
+                (string) $row->session_type,
+                (string) $row->start_time,
+                (string) $row->end_time,
+                (string) $row->lecturer_id,
+                (string) $row->lecturer_name,
+                (string) $row->staff_id,
+                (string) ($cohortTexts[$row->id] ?? ''),
+            );
         };
 
         for ($w = 1; $w <= $weeks; $w++) {
@@ -593,14 +623,17 @@ class ReplacementArrangement extends Component
             if ($w < 1 || $w > $weeks) {
                 continue;
             }
-            $mine = (int) $row->lecturer_id === (int) auth()->id();
-            $label = ($mine ? 'You — ' : '')
-                .$row->module_code.'('.(string) $row->session_type.')'
-                .' · '.(string) $row->room_code
-                .' · '.substr((string) $row->start_time, 0, 5).'-'.substr((string) $row->end_time, 0, 5)
-                .' · '.(string) $row->lecturer_name.' ('.$row->staff_id.')'
-                .' · cohorts: '.($mkCohorts[$row->session_id] ?? '-')
-                .' · Replacement ('.(string) $row->status.')';
+            $label = $blockFor(
+                (string) $row->room_code,
+                (string) $row->module_code,
+                (string) $row->session_type,
+                (string) $row->start_time,
+                (string) $row->end_time,
+                (string) $row->lecturer_id,
+                (string) $row->lecturer_name,
+                (string) $row->staff_id,
+                (string) ($mkCohorts[$row->session_id] ?? ''),
+            );
             $key = (int) $row->day_of_week.':'.$this->slotIndex((string) $row->start_time).':'.$this->slotIndex((string) $row->end_time);
             $out[$w - 1][$key][] = $label;
         }

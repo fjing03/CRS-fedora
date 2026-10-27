@@ -1708,13 +1708,38 @@
                        all-pending = `cell-pending` (the tertiary-container
                        await family — the same-name-same-color canon). */
                     const engineMatches = busyRanges.filter(b => b[0] === di && hi >= b[1] && hi < b[2]);
+                    /* SDD tidy-arrangement-cell-tooltips (2026-10-27, the
+                       user-approved format): the wall-of-text tooltip becomes
+                       a conflict-state header + ONE readable block per
+                       blocking class, sorted by room code. The aria stays
+                       ONE flat line (screen readers) with the existing
+                       'Pending — '/'Occupied by ' prefix and the ' / '
+                       block join. The TEMP-HOLDER-LABEL feature stays (the
+                       viva directive — the format is what changes). */
+                    const renderHolderTip = function (matches) {
+                        const blocks = matches.map(b => b[3]).filter(Boolean);
+                        if (!blocks.length) return null;
+                        blocks.sort((a, b) => {
+                            const roomOf = (x) => (x.split('\n')[0].split(' · ')[0] || '').trim();
+                            return roomOf(a).localeCompare(roomOf(b), undefined, { numeric: true });
+                        });
+                        const allPending = matches.length > 0
+                            && matches.every(b => b[4] === 'pending');
+                        const header = allPending
+                            ? '\u23F3 Pending make-up \u2014 awaiting approval'
+                            : '\u26A0 Occupied \u2014 ' + blocks.length
+                                + ' class' + (blocks.length > 1 ? 'es' : '') + ' in the way';
+                        const readable = header + '\n\n' + blocks.join('\n\n');
+                        const flat = (allPending ? 'Pending — ' : 'Occupied by ')
+                            + blocks.map(b => b.replace(/\n/g, ' · ').replace(/\s{2,}/g, ' ')).join(' / ');
+                        return { readable: readable, flat: flat };
+                    };
                     const attachHolder = function () {
-                        const holder = engineMatches.map(b => b[3]).filter(Boolean).join(' | ');
-                        if (holder) {
-                            div.setAttribute('data-tip', holder);
+                        const rendered = renderHolderTip(engineMatches);
+                        if (rendered) {
+                            div.setAttribute('data-tip', rendered.readable);
                             div.setAttribute('data-tip-pos', 'left');
-                            div.setAttribute('aria-label',
-                                (engineMatches.some(b => b[4] === 'pending') ? 'Pending — ' : 'Occupied by ') + holder);
+                            div.setAttribute('aria-label', rendered.flat);
                             div.setAttribute('tabindex', '0');
                             div.style.cursor = 'help';
                         }
@@ -1731,9 +1756,12 @@
                         if (cellData[2] === 1) {
                             div.className += ' cell-occupied';
                             if (cellData[3]) {
+                                /* the same renderer treatment (the venueSlot
+                                   rows' 4th holder key — same meaning, same
+                                   look; the flat aria form only) */
                                 div.setAttribute('data-tip', cellData[3]);
                                 div.setAttribute('data-tip-pos', 'left');
-                                div.setAttribute('aria-label', 'Occupied by ' + cellData[3]);
+                                div.setAttribute('aria-label', 'Occupied by ' + cellData[3].replace(/\n/g, ' · '));
                                 div.setAttribute('tabindex', '0');
                                 div.style.cursor = 'help';
                             }

@@ -3716,6 +3716,14 @@ body {
 .intent-notice .notice-guide + .notice-muted { margin-top: 2px; }
 
 /* ── Data-Tip Tooltip (shared CSS) ──────────────────────────── */
+/* SDD tidy-arrangement-cell-tooltips (2026-10-27): the multi-line tips
+   (the arrangement's conflict header + one block per class) break on the
+   builder's own \n; the global nowrap is untouched — every existing
+   single-line tooltip stays byte-for-byte identical. The compound
+   selector out-weighs the base .data-tip-tooltip's nowrap. */
+.data-tip-tooltip.data-tip-tooltip--multi {
+    white-space: pre-line;
+}
 .data-tip-tooltip {
     position: fixed;
     padding: 5px 10px;
