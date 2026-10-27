@@ -103,3 +103,24 @@ ALTER TABLE audit_logs ADD CONSTRAINT audit_logs_action_check
 - **Rationale:** the Cancel Class radio now offers the 4 new leave types +
   Other, so the reason CHECK must accept the 10-value vocabulary; the undo
   flow audits `class_cancel_undone` (8th action value).
+
+## 2026-10-27 — DFT2 re-unlinked from AMIT2034 (restore-rewind repair; R2 capacity)
+
+- **Approved by:** the user ("a. drop DFT2"), the 2026-10-13 receipt re-run.
+- **Context:** the pristine-2026-10-10 restore (the class-cancel-DB-persist
+  investigation's damage repair) rewound the earlier unlink — AMIT2034
+  carried DFT2(S1)G1 (28) + DSF2(S1)G1 (22) = **50 students in the
+  28-seat B005** again, and the class-info modal showed the merged
+  cohorts.
+- **Live DB (executed):** `DELETE FROM session_cohorts WHERE
+  class_session_id IN (3,33,34) AND cohort_id=2;` (3 rows; no test /
+  replacement rows touched).
+- **Row counts:** session_cohorts **152** (the seeder's EXPECTED_COHORT_LINKS
+  ✓, already correct in the repo); the dataset/import CSVs were already
+  DSF-only (untouched by the rewind — code vs data divergence).
+- **Post state:** sessions 3/33/34 = **DSF2(S1)G1, 22 students** (22 ≤
+  B005's 28 — the over-capacity violation is repaired ✓). The B005
+  **conflict flag REMAINS by design** (DSF = Diploma — R2's no-Diploma
+  law unchanged; the D4 rendering receipt `AMIT2034(P) · B005 · Red`).
+- **Insurance dump:** `/tmp/insurance-pre-dftdrop-2026-10-27.dump` (the
+  pre-drop state, 335 KB).

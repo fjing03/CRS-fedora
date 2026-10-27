@@ -74,6 +74,10 @@ Diploma students may not use B005: reject when any cohort of the session's `prog
   aligned) → flagged for replacement; the standing row remains a violation
   under R2 and stays silently tolerated until the user repairs the dataset
   (the SDD's silence law).
+- **2026-10-27 re-run (the class-cancel-DB-persist repair's restore had
+  rewound the unlink):** DFT2 re-dropped (3 session links, the 22-student
+  DSF-only truth — see `docs/demo-db-data-changes.md`). The B005 conflict
+  flag REMAINS by design (DSF = Diploma).
 
 ### R3 — B006 Cisco Lab access — **ENFORCED** (plain ALLOW / DISALLOW — the priority model retired; SDD venue-restrictions-enforcement 2026-10-24)
 
