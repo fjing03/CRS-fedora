@@ -1071,7 +1071,7 @@
             /* D12 (SDD): NO undo — decisions are final server-side; bulk =
                sequential FCFS via the real ApproveRequest action; stale rows
                fail politely and their toast carries the conflict text. */
-            Livewire.first().call('approve', JSON.stringify(ids), notes).then(function(res) {
+            pageLivewire().call('approve', JSON.stringify(ids), notes).then(function(res) {
                 applyDecisionResponse(res, label + ' approved.' + notesLine);
             });
         }
@@ -1109,7 +1109,7 @@
             const label = isBulk ? ids.length + ' request(s)' : 'Request #' + currentRejectId;
             closeRejectModal();
             /* D12 (SDD): NO undo; ONE shared reason covers the whole batch. */
-            Livewire.first().call('reject', JSON.stringify(ids), reason).then(function(res) {
+            pageLivewire().call('reject', JSON.stringify(ids), reason).then(function(res) {
                 applyDecisionResponse(res, label + ' rejected.');
             });
         }

@@ -1878,6 +1878,21 @@ function initMobileNav() {
    BEFORE the native navigation, keepalive so in-flight navigation can't kill
    the write). The localStorage/mock store is retired (round-2 🟡s). */
 
+/** The PAGE component resolver (SDD notifications-real-bridge hotfix):
+ *  the bell island renders BEFORE the page content, so Livewire.first() now
+ *  resolves to nav-notifications and page actions (approve/reject/cancel/
+ *  intentSessionOptions/submitBlocks/cancelClass) would miss their methods.
+ *  The house's page actions must ALWAYS hop onto the page component. */
+window.pageLivewire = function () {
+    if (!window.Livewire) return null;
+    const all = window.Livewire.all ? window.Livewire.all() : [];
+    const page = all.find(function (c) {
+        const name = (c.name || (c.snapshot && c.snapshot.memo && c.snapshot.memo.name) || '');
+        return name !== 'nav-notifications';
+    });
+    return page || (all[0] || null);
+};
+
 /** Durable mark-read: idempotent, auth-scoped, keepalive. */
 function durableMarkNotifRead(id) {
     const csrf = document.head.querySelector('meta[name="csrf-token"]');
@@ -4090,7 +4105,7 @@ const ClassCancellation = {
             ? entry.matchKey.week + 1 : null;
         let res = null;
         try {
-            res = await window.Livewire.first().call('cancelClassUndo',
+            res = await window.pageLivewire().call('cancelClassUndo',
                 String(entry.sessionId), weekNo);
         } catch (e) { res = { ok: false }; }
         if (res && res.ok === true) {
@@ -4371,7 +4386,7 @@ const CancelClassModal = {
         }
         let res = null;
         try {
-            res = await window.Livewire.first().call('cancelClass',
+            res = await window.pageLivewire().call('cancelClass',
                 String((ctx.event.sessionId != null) ? ctx.event.sessionId : ctx.event.id),
                 ctx.weekIndex + 1, reason, trimmedDetail);
         } catch (e) { res = { ok: false, hint: 'Server error — the class is unchanged.' }; }

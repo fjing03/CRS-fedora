@@ -156,3 +156,20 @@ open-panel-poll-survival receipt (AD-15): the panel stayed open with the
 list intact across a poll morph (/tmp/poll-survival.png). The two
 receipt rows stay in the demo DB (title `Demo receipt — poll cycle*`,
 safe to delete — logged per the data-changes convention).
+
+## 2026-10-28 (the bridge hotfix) — pageLivewire() restores the page-component targeting + the category-aware caught-up text
+The user's live 500s (cancelRequest / reject / approve /
+intentSessionOptions "public method not found"): the bell islands render
+BEFORE the page content, so the house's `Livewire.first().call(...)`
+pattern (8 sites) resolved to the island, not the page component. The
+hotfix adds `pageLivewire()` (the first component that is NOT
+nav-notifications) and repoints all 8 call sites (submitBlocks,
+cancelRequest(s), intentSessionOptions, approve, reject, cancelClassUndo,
+cancelClass). Verified live: `Livewire.all()` = [NavNotifications,
+NavNotifications, request-approval] and pageLivewire() = request-approval.
+Also: the caught-up swap text is now category-aware
+("No unread in this category — N unread in other tabs" when the bell's
+total > 0 while the viewed tab is clear) — the frozen F-2 law kept (the
+pill stays the whole-mailbox total). The submit-receipt note: the rows
+WERE created (ids 3/4 — both PLs) on the user's real submit; the
+arrangement page has no bell by the frozen BUG-04 design.

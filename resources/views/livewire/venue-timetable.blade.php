@@ -443,7 +443,7 @@
                     timeStr: hours[hi],
                 };
                 const week1 = currentWeek + 1;
-                Livewire.first().call('intentSessionOptions', week1).then(function (model) {
+                pageLivewire().call('intentSessionOptions', week1).then(function (model) {
                     if (!intentModalOpen) return;
                     renderIntentSessionModal(model, time, di, hi);
                 });
