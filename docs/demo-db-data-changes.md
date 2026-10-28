@@ -209,3 +209,5 @@ ALTER TABLE audit_logs ADD CONSTRAINT audit_logs_action_check
 - The dated 2026-10-27 rows above that recorded the "conflict flag
   REMAINS by design" state are SUPERSEDED by this repeal — the flags
   they recorded came from the now-dead law.
+
+| 2026-10-28 | notifications (the NEW table from the notifications-real-bridge lane) | 2 receipt rows INSERTed (user_id=1/5425's bell; title `Demo receipt — poll cycle*`) — the poll-cycle receipts | Rollback: `DELETE FROM notifications WHERE title LIKE 'Demo receipt — poll cycle%';` | agent-run, user-approved ("go --> Playwright poll-cycle receipt") |

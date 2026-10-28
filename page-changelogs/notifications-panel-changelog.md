@@ -145,3 +145,14 @@ read state; the `type` = the FROZEN tile keys; `role_view` = the AD-2 key).
 - PENDING_NAV_COUNT (the approval nav badge) untouched — a different truth.
 - Tests: 7 new bridge tests (273/273). The demo's visible rows = the
   user-run seed INSERTs (the data-changes convention).
+
+### The poll-cycle receipt (2026-10-28, live demo DB)
+With the page OPEN and zero reloads: a second DB-side event row fired
+mid-session → the badge grew **1 → 2 within one poll cycle (≤10 s)**
+(screenshots /tmp/poll-before.png → /tmp/poll-after.png). The click
+receipt: row click → the durable POST landed → the row reads read and
+the badge shrank to 1 after the back-navigation (the D4 law live). The
+open-panel-poll-survival receipt (AD-15): the panel stayed open with the
+list intact across a poll morph (/tmp/poll-survival.png). The two
+receipt rows stay in the demo DB (title `Demo receipt — poll cycle*`,
+safe to delete — logged per the data-changes convention).

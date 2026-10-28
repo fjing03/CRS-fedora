@@ -35,3 +35,15 @@
 - The tab parenthetical restated as the per-page map (the tab follows
   the PAGE, never the row's type).
 - The :8001 clause clarified (killing a stale sibling; the serve = :8000).
+
+## Applied receipt — the poll-cycle proof (2026-10-28, live demo DB)
+- T0: the page open, the badge = 1 (one receipt row). A SECOND DB-side
+  event fired mid-session via a second process; **+11 s, no reload**:
+  the badge = 2 (PASS — the wire:poll island updated itself).
+- The click receipt: row click → navigated to the row's link AND the
+  durable POST landed (the badge 2 → 1 after the back-navigation).
+- The poll-survival receipt (AD-15): an OPEN panel survived a poll
+  morph (the open state + the list intact).
+- The two receipt rows stay in the demo DB (labelled 'Demo receipt —
+  poll cycle*'; the removal SQL is in docs/demo-db-data-changes.md's
+  convention — the user deletes at will).
