@@ -2181,3 +2181,21 @@ violations. Week-nav hint lifecycle untouched (the reviewer verified it
 pre-existing-correct). Payload record: the grid arm's library ids ride
 ONLY statuses 1/3/4 — a future status must never pair holder text with
 `cell-available` (the invariant the changelog now names).
+
+## 2026-10-28 (slot-cancel-restores-session-anchor lane) — "No, Keep My Selection" no longer blanks the session-handoff trigger
+Root cause: on `?session=` landings the pinned occurrence is never
+committed through selectSlot (the legacy pick branch is gated off by
+`!urlParams.session`; the boot writes the trigger cosmetically from
+`anchorSlotFromPinned()`). The cancel arm's else branch read
+`lastSlotIndex === null` as "nothing selected" and blanked
+`#slotTriggerText` while the strip + `window.pinnedOccurrence` kept the
+pinned anchor — the trigger/strip divergence. Fixed by ONE helper
+`writeSlotTriggerFromAnchor()` (the shared `slotTriggerLabel` format)
+with two call sites: the boot tail (replacing the inline format builder
+— byte-identical output) and the cancel arm (conditional: helper-false →
+the placeholder, preserving the original anchor-less semantics).
+Receipts (the user's exact flow, 68/14): after cancel the trigger =
+`W14 · Dec 24 · 11:00 AM–12:00 PM` = the landing label; the strip +
+pinnedOccurrence unchanged; no `.slot-dd-item.selected`. The static
+false-arm chain (non-handoff pinnedSession null → the placeholder, byte-
+identical) per the review round's audit.

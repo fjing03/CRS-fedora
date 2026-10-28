@@ -2547,6 +2547,18 @@
             };
         }
 
+        /* SDD slot-cancel-restores-session-anchor: the session-path anchor's
+           trigger writer — ONE place, slotTriggerLabel-format (the trigger's
+           shared format law). Returns false when no anchor stands (the
+           caller keeps its fallback). */
+        function writeSlotTriggerFromAnchor() {
+            const a = anchorSlotFromPinned();
+            if (!a) return false;
+            const el = document.getElementById('slotTriggerText');
+            if (el) el.textContent = slotTriggerLabel({ week: a.week, start: a.start, end: a.end, date: a.date });
+            return true;
+        }
+
         function renderTitleSummary() {
             const el = document.getElementById('subjectInfo');
             const hasSubject = !!currentCourse;
@@ -3505,8 +3517,15 @@ slotLine = 'Week ' + (anchorSlot.week + 1) + ' · ' + ((weekdayName && weekdayNa
                         commitSlotSelection(slotPickerSlots[lastSlotIndex], lastSlotIndex);
                     } else {
                         selectedOriginalSlot = null;
-                        document.getElementById('slotTriggerText').textContent = 'Select a slot to replace';
                         document.querySelectorAll('.slot-dd-item').forEach(item => item.classList.remove('selected'));
+                        /* SDD slot-cancel-restores-session-anchor: on a handoff
+                           state lastSlotIndex-bound null means the PINNED
+                           anchor stands uncommitted — restore the trigger to
+                           that anchor, NOT the placeholder; the placeholder
+                           stays only for genuinely anchor-less states. */
+                        if (!writeSlotTriggerFromAnchor()) {
+                            document.getElementById('slotTriggerText').textContent = 'Select a slot to replace';
+                        }
                         renderTitleSummary();
                     }
                     revertingChange = false;
@@ -4041,13 +4060,7 @@ triggerText.textContent = slotTriggerLabel(slot);
             /* session-path anchor: mirror the pinned occurrence's slot in the
                picker trigger (cosmetic — no selectSlot, no confirm modal); a
                real panel pick replaces it like any manual pick */
-            if (!selectedOriginalSlot) {
-                const a = anchorSlotFromPinned();
-                if (a) {
-                    const triggerText = document.getElementById('slotTriggerText');
-                    if (triggerText) { const dp = a.date.split(' '); triggerText.textContent = 'W' + (a.week + 1) + ' · ' + (dp[1] + ' ' + dp[0]) + ' · ' + to12h(hours[a.start]) + '–' + to12h(hours[a.end + 1] || add30min(hours[a.end])); }
-                }
-            }
+            if (!selectedOriginalSlot) writeSlotTriggerFromAnchor();
             /* arrange-intent-session-choice, session-path 2e parity (user report
                2026-10-16, follow-up): the booking-intent consume fired during
                the boot on a PRE-rebuild grid (isCellAvailable needs the DOM)
