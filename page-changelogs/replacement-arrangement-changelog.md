@@ -2239,3 +2239,8 @@ the away-hop (select W6 → navigate W9 → click → land W6 with the block
 restored); the × remove without navigation. Note: the one-block budget
 law means only ONE card exists at a time — the cross-venue hop rides
 the review audit (the same pair the auto-pin uses).
+
+#### Selected-slot summary card tip reworded (user 2026-10-28)
+The card's hover tip reads "Click to Go to This Selected Slot on the Timetable."
+— the verb 'View' became 'Go to' (the card NAVIGATES the timetable to that slot;
+'View' undersold it). Tip text only; card behavior unchanged.

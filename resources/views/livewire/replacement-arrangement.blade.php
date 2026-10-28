@@ -1422,7 +1422,7 @@
                 /* SDD summary-card-click-navigate: the card is a hop button
                    (the × keeps its own onclick + its own tip; the card's
                    click early-returns on the ×). */
-                card.setAttribute('data-tip', 'Click to View This Selected Slot on the Timetable.');
+                card.setAttribute('data-tip', 'Click to Go to This Selected Slot on the Timetable.');
                 card.setAttribute('tabindex', '0');
                 card.setAttribute('role', 'button');
                 card.addEventListener('keydown', function (e) {
