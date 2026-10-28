@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\NotificationReadController;
 use App\Livewire\CohortTimetable;
 use App\Livewire\MyTimetable;
 use App\Livewire\StudentMyTimetable;
@@ -100,4 +101,11 @@ Route::redirect('/cohort-timetable-ui', '/cohort-timetable');
 
 Route::middleware(['auth'])->group(function () {
     Route::view('dashboard', 'dashboard')->name('dashboard');
+
+    /* SDD notifications-real-bridge (D3): the durable mark-read endpoints —
+       the capture-phase click fires a keepalive fetch BEFORE the native
+       navigation (the D4 law with the DB read_at state). Idempotent,
+       auth-scoped. */
+    Route::post('notifications/read', [NotificationReadController::class, 'read'])->name('notifications.read');
+    Route::post('notifications/read-all', [NotificationReadController::class, 'readAll'])->name('notifications.readAll');
 });

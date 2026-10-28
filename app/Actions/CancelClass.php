@@ -6,6 +6,7 @@ use App\Models\AuditLog;
 use App\Models\ClassException;
 use App\Models\ClassSession;
 use App\Models\User;
+use App\Support\Notifications\NotificationEmitter;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\DB;
 
@@ -73,6 +74,15 @@ final class CancelClass
                     'action' => 'class_cancelled',
                     'details' => $details,
                 ]);
+
+                /* SDD notifications-real-bridge: the THREE cancelled fan-outs
+                   (the class's lecturer + the cohort students + the
+                   department's PLs) — the emitter adds its own afterCommit
+                   closure here (this Action queues no mail of its own). */
+                DB::afterCommit(function () use ($user, $session, $weekNumber): void {
+                    app(NotificationEmitter::class)
+                        ->classCancelled($user, $session, $weekNumber);
+                });
             });
         } catch (QueryException) {
             // Unique (class_session_id, week_number) or CHECK violation.

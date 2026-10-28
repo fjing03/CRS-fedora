@@ -1871,220 +1871,40 @@ function initMobileNav() {
 // panel views by page context (AD-2); the badge/pill always count the whole
 // mailbox. All element lookups are guarded: the panel partial (T6) may be absent.
 
-const NOTIF_ROLE_BY_PAGE = { // AD-2 — body[data-page] → panel role
-    studentMyTimetable: 'student',
-    replacementHistory: 'student',
-    requestApproval: 'pl',
-};
+/* ───── Notifications (SDD notifications-real-bridge) ─────
+   The bell/panel markup is SERVER-rendered by the NavNotifications islands
+   (wire:poll.10s) — the badge, pill, list and caught-up swap all live in the
+   component. The read path is the DURABLE POST below (the D4 law: mark read
+   BEFORE the native navigation, keepalive so in-flight navigation can't kill
+   the write). The localStorage/mock store is retired (round-2 🟡s). */
 
-const NOTIF_GLYPHS = { // 16px lucide-style stroke glyphs (design §5)
-    submitted: '<path d="M22 12h-6l-2 3h-4l-2-3H2"/><path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/>',
-    awaiting:  '<circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>',
-    approved:  '<circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/>',
-    rejected:  '<circle cx="12" cy="12" r="10"/><path d="m15 9-6 6"/><path d="m9 9 6 6"/>',
-    update:    '<rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>',
-};
-
-function notifUserId() { // F-2 pre-wire — mailbox owner (backend: auth user id)
-    return (window.MockData && MockData.currentUser && MockData.currentUser.staffId) || 'demo';
-}
-
-function notifReadKey() { // per-USER mailbox (was per-role: 'notifications-read-<role>')
-    return 'notifications-read-user-' + notifUserId();
-}
-
-/** The user's mailbox: rows addressed to the current user. Mock phase: every
- *  row carries recipientId = the persona (derived in mock-data.js §2.13); the
- *  backend day the API returns only the user's own rows, so this becomes a
- *  no-op guard. */
-function notifMailboxRows() {
-    var uid = notifUserId();
-    return window.MockData.notifications.filter(function(n) {
-        return !n.recipientId || n.recipientId === uid;
-    });
-}
-
-function currentNotifRole() { // AD-2 — fallback 'lecturer' for anything else/missing
-    const pageKey = document.body ? document.body.dataset.page : null;
-    return (pageKey && NOTIF_ROLE_BY_PAGE[pageKey]) || 'lecturer';
-}
-
-/** AD-16 — <1 "just now", <60 "Xm", <1440 "Xh", <2880 "Yesterday", else "Xd". */
-function relTime(minutesAgo) {
-    var m = Number(minutesAgo) || 0;
-    if (m < 1) return 'just now';
-    if (m < 60) return m + 'm ago';
-    if (m < 1440) return Math.floor(m / 60) + 'h ago';
-    if (m < 2880) return 'Yesterday';
-    return Math.floor(m / 1440) + 'd ago';
-}
-
-/** Absolute time for the row tooltip, e.g. "2 Oct, 9:41 AM". */
-function notifAbsTime(minutesAgo) {
-    var d = new Date(Date.now() - minutesAgo * 60000);
-    var months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-    var hh = d.getHours();
-    const ampm = hh >= 12 ? 'PM' : 'AM';
-    hh = hh === 0 ? 12 : hh > 12 ? hh - 12 : hh;
-    return d.getDate() + ' ' + months[d.getMonth()] + ', ' + hh + ':' + String(d.getMinutes()).padStart(2, '0') + ' ' + ampm;
-}
-
-function notifGlyph(type) {
-    return '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'
-        + (NOTIF_GLYPHS[type] || NOTIF_GLYPHS.update) + '</svg>';
-}
-
-/** Read id set for the user's mailbox. Missing key / invalid JSON → empty set (key never reseeded once present). */
-function getNotifReads() {
+/** Durable mark-read: idempotent, auth-scoped, keepalive. */
+function durableMarkNotifRead(id) {
+    const csrf = document.head.querySelector('meta[name="csrf-token"]');
     try {
-        var raw = localStorage.getItem(notifReadKey());
-        if (raw === null) return new Set();
-        var arr = JSON.parse(raw);
-        return Array.isArray(arr) ? new Set(arr) : new Set();
-    } catch (e) {
-        return new Set();
-    }
-}
-
-function persistNotifReads(reads) {
-    try {
-        localStorage.setItem(notifReadKey(), JSON.stringify(Array.from(reads)));
-    } catch (e) { /* storage unavailable — badge just stays volatile */ }
-}
-
-/**
- * Bell badge refresh (AD-7). Safe on ANY page — on pages without the bell
- * (e.g. replacement-arrangement) every element lookup is guarded.
- * Seeds the localStorage key at FIRST PAINT ONLY (AD-8): if the key is absent
- * it is written once with every pre-seen (`read: true`) row of the WHOLE
- * mailbox plus anything already marked read under the retired per-role store
- * (F-2 legacy migration — old keys are consumed and removed); present keys
- * (even `[]`) are never reseeded. Badge/pill count = mailbox unread TOTAL,
- * regardless of which category the page views.
- */
-function refreshNotifBadge() {
-    if (!window.MockData || !window.MockData.notifications) return;
-    const key = notifReadKey();
-
-    if (localStorage.getItem(key) === null) {
-        const seed = new Set(window.MockData.notifications
-            .filter(function (n) { return n.read === true; })
-            .map(function (n) { return n.id; }));
-        try {
-            ['student', 'pl', 'lecturer'].forEach(function (r) {
-                var raw = localStorage.getItem('notifications-read-' + r);
-                if (raw) JSON.parse(raw).forEach(function (id) { seed.add(id); });
-                localStorage.removeItem('notifications-read-' + r);
-            });
-        } catch (e) { /* ignore malformed legacy stores */ }
-        persistNotifReads(seed);
-    }
-
-    const reads = getNotifReads();
-    updateNotifHeaderState(notifMailboxRows()
-        .filter(function (n) { return !reads.has(n.id); }).length);
-}
-
-/** Header state shared by refreshNotifBadge + panel opens (AD-5):
- *  ONE count — the user's mailbox unread TOTAL (badge + pill + mark-all all
- *  follow it; the panel's per-category list no longer drives the header). */
-function updateNotifHeaderState(count) {
-    var badge = document.getElementById('notifBadge');
-    if (badge) {
-        badge.textContent = count;
-        badge.style.display = count > 0 ? 'flex' : 'none';
-    }
-    var pill = document.getElementById('notifUnreadPill');
-    if (pill) {
-        pill.textContent = count;
-        pill.style.display = count > 0 ? 'inline-flex' : 'none';
-    }
-    var markAll = document.getElementById('notifMarkAll');
-    if (markAll) markAll.style.display = count > 0 ? 'inline-flex' : 'none';
-}
-
-/** AD-5 — render unread rows (anchor links, D4) + caught-up/empty swap.
- *  T17 — "Unread only" filter (AD-19/AD-20): missing #notifUnreadOnly or
- *  checked → exactly the old unread-only behavior (unsorted, frozen order).
- *  Unchecked → all of the role's rows, newest first (minutesAgo ascending,
- *  sorted on a copy — MockData is read-only). Read rows get .notif-row--read
- *  (muted); badge/pill/mark-all always follow the unread count. */
-function renderNotifList() {
-    const list = document.getElementById('notifList');
-    if (!list) return;
-    if (!window.MockData || !window.MockData.notifications) return;
-
-    const role = currentNotifRole();             /* AD-2 — view category only */
-    const reads = getNotifReads();               /* per-user mailbox store */
-    const unread = notifMailboxRows().filter(function (n) {
-        return n.role === role && !reads.has(n.id);
-    });
-
-    const filterEl = document.getElementById('notifUnreadOnly');
-    const unreadOnly = !filterEl || filterEl.checked;
-    const all = !!filterEl && !filterEl.checked;
-    let rows = unread;
-    if (all) {
-        rows = notifMailboxRows()
-            .filter(function (n) { return n.role === role; })
-            .slice() // MockData read-only (AGENTS.md §4)
-            .sort(function (a, b) { return a.minutesAgo - b.minutesAgo; });
-    }
-
-    list.innerHTML = rows.map(function (n) {
-        return '<a class="notif-row' + (reads.has(n.id) ? ' notif-row--read' : '') + '" data-id="' + escHtml(n.id) + '" href="' + escHtml(n.link) + '"'
-            + ' data-tip="' + escHtml(n.title + ' — ' + n.desc) + '" aria-label="' + escHtml(n.title + ' — ' + n.desc) + '">'
-            + '<span class="notif-row-icon notif-tile-' + escHtml(n.type) + '">' + notifGlyph(n.type) + '</span>'
-            + '<span class="notif-row-body">'
-            + '<span class="notif-row-title">' + escHtml(n.title) + '</span>'
-            + '<span class="notif-row-desc">' + escHtml(n.desc) + '</span>'
-            + '</span>'
-            + '<span class="notif-row-time" data-tip="' + escHtml(notifAbsTime(n.minutesAgo)) + '" data-tip-pos="left">' + escHtml(relTime(n.minutesAgo)) + '</span>'
-            + '</a>';
-    }).join('');
-
-    // Caught-up swap (AD-5): only in unread-only mode at 0 unread. "All" mode
-    // never shows caught-up — it always has rows unless the category has none.
-    // NOTE: the header (badge/pill/mark-all) is NOT resynced here — it counts
-    // the whole mailbox (F-2); the list is only the viewed category.
-    const empty = document.getElementById('notifEmpty');
-    const showEmpty = (unreadOnly && unread.length === 0) || rows.length === 0;
-    if (empty) empty.style.display = showEmpty ? 'flex' : 'none';
-    list.style.display = showEmpty ? 'none' : '';
-}
-
-/** Add one id to the user's mailbox read set, persist, refresh the badge. */
-function markNotifRead(id) {
-    if (!window.MockData || !window.MockData.notifications) return;
-    const reads = getNotifReads();
-    reads.add(id);
-    persistNotifReads(reads);
-    refreshNotifBadge();
-}
-
-/** Mark the WHOLE mailbox read (backend semantics: every unread row of this
- *  user, all categories) + refresh badge and list. */
-function markAllNotifsRead() {
-    if (!window.MockData || !window.MockData.notifications) return;
-    const reads = getNotifReads();
-    window.MockData.notifications.forEach(function (n) {
-        reads.add(n.id);
-    });
-    persistNotifReads(reads);
-    refreshNotifBadge();
-    renderNotifList();
+        fetch('/notifications/read', {
+            method: 'POST',
+            keepalive: true,
+            headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json',
+                'X-CSRF-Token': csrf ? csrf.content : '',
+                'X-Requested-With': 'XMLHttpRequest',
+            },
+            body: JSON.stringify({ id: Number(id) }),
+        }).catch(function () { /* volatile-fail is acceptable; the row re-offers */ });
+    } catch (e) { /* ignore */ }
 }
 
 function openNotifPanel() { // AD-12 direction 1 — drawer never stacks with panel
-    closeNavDrawer();    const panel = document.getElementById('notifPanel');
+    closeNavDrawer();
+    const panel = document.getElementById('notifPanel');
     const overlay = document.getElementById('notifOverlay');
     const bell = document.querySelector('.notif-btn');
     if (panel) panel.classList.add('open');
     if (overlay) overlay.classList.add('open');
     if (bell) bell.setAttribute('aria-expanded', 'true');
     document.body.style.overflow = 'hidden'; // AD-11 — inline lock, both breakpoints
-    refreshNotifBadge(); // header state follows the mailbox (F-2 pre-wire)
-    renderNotifList();
 }
 
 function closeNotifPanel() {
@@ -2109,39 +1929,6 @@ function toggleNotifPanel() {
     else openNotifPanel();
 }
 
-// ───── TEMP — UI testing only, DELETE BEFORE SUBMISSION ─────
-
-/** Console helper: clears the user read key (incl. legacy per-role stores) + reloads. */
-function resetNotifDemo() {
-    try {
-        localStorage.removeItem(notifReadKey());
-        ['student', 'pl', 'lecturer'].forEach(function (r) {
-            localStorage.removeItem('notifications-read-' + r);
-        });
-    } catch (e) { /* ignore */ }
-    window.location.reload();
-}
-
-/** One-shot for demo shots: re-mark (or un-mark) a single row, no reload. */
-function notifDevToggle(id) {
-    const reads = getNotifReads();
-    if (reads.has(id)) reads.delete(id); else reads.add(id);
-    persistNotifReads(reads);
-    refreshNotifBadge();
-    if (document.getElementById('notifPanel').classList.contains('open')) renderNotifList();
-}
-
-/** Quick reference of all 12 ids — paste in console: notifIds() */
-function notifIds() {
-    return MockData.notifications.map(function (n) { return n.id + ' (' + n.role + (n.read ? ', seed-read' : '') + ')'; });
-}
-
-
-/**
- * Wire the panel (idempotent). Self-contained DOMContentLoaded hook (AD-7) —
- * the layout's boot chain lives in ui-template.blade.php and may also call
- * refreshNotifBadge(); both paths are cheap + guarded for missing markup.
- */
 function initNotifPanel() {
     if (window.__notifPanelInitialized) return;
     window.__notifPanelInitialized = true;
@@ -2149,47 +1936,26 @@ function initNotifPanel() {
     const panel = document.getElementById('notifPanel');
     const overlay = document.getElementById('notifOverlay');
 
-    // Bell / ✕ / Mark-all: only wire elements the partial does NOT own via
-    // inline onclick (T6) so handlers never double-fire.
     const bell = document.querySelector('.notif-btn');
     if (bell && !bell.hasAttribute('onclick')) {
         bell.addEventListener('click', toggleNotifPanel);
     }
     if (overlay) overlay.addEventListener('click', closeNotifPanel); // outside click (AD-13)
 
-    const closeBtn = panel ? panel.querySelector('.notif-close') : null;
-    if (closeBtn && !closeBtn.hasAttribute('onclick')) {
-        closeBtn.addEventListener('click', closeNotifPanel);
-    }
-    const markAll = document.getElementById('notifMarkAll');
-    if (markAll && !markAll.hasAttribute('onclick')) {
-        markAll.addEventListener('click', markAllNotifsRead);
-    }
-
-    // Row click = mark read + re-render + restore scroll, BEFORE the anchor's
-    // native navigation (D4). Capture phase so it runs ahead of default nav;
-    // preventDefault is deliberately omitted (AD-15).
+    // Row click = durable mark read + restore scroll, BEFORE the anchor's
+    // native navigation (D4/AD-15). Capture phase so it runs ahead; the
+    // disabled (inactive) rows carry no data-id and are never marked.
     const list = document.getElementById('notifList');
     if (list) {
         list.addEventListener('click', function (e) {
-            const row = e.target.closest ? e.target.closest('.notif-row') : null;
+            const row = e.target.closest ? e.target.closest('.notif-row[data-id]') : null;
             if (!row || !row.getAttribute('data-id')) return;
             const scrollTop = list.scrollTop;
-            markNotifRead(row.getAttribute('data-id'));
-            renderNotifList();
-            list.scrollTop = scrollTop;
+            durableMarkNotifRead(row.getAttribute('data-id'));
+            // the island's next poll re-render keeps the read state; restore
+            // the scroll after the morph settles (AD-15).
+            setTimeout(function () { list.scrollTop = scrollTop; }, 50);
         }, true);
-    }
-
-    // T17 — "Unread only" toggle: re-render with scroll preserved (AD-15) and
-    // header state untouched (badge always follows the unread count).
-    const unreadOnlyToggle = document.getElementById('notifUnreadOnly');
-    if (unreadOnlyToggle) {
-        unreadOnlyToggle.addEventListener('change', function () {
-            const scrollTop = list ? list.scrollTop : 0;
-            renderNotifList();
-            if (list) list.scrollTop = scrollTop;
-        });
     }
 
     // Esc closes only while the panel is open (AD-13).
@@ -2198,8 +1964,6 @@ function initNotifPanel() {
         const p = document.getElementById('notifPanel');
         if (p && p.classList.contains('open')) closeNotifPanel();
     });
-
-    refreshNotifBadge();
 }
 
 document.addEventListener('DOMContentLoaded', function () {

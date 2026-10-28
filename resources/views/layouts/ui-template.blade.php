@@ -3,6 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    {{-- SDD notifications-real-bridge: the durable mark-read fetch reads this token (data-shape patch only). --}}
+    <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>@yield('title', 'Class Replacement System')</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">

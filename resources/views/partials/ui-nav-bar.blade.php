@@ -49,13 +49,10 @@
             </svg>
         </button>
 
-        <button class="notif-btn" onclick="toggleNotifPanel()" aria-label="Notifications" aria-haspopup="true" data-tip="Notifications" data-tip-pos="left">
-            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
-                <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
-            </svg>
-            <span class="notif-badge" id="notifBadge" hidden></span>
-        </button>
+        {{-- SDD notifications-real-bridge: the bell + the unread-TOTAL badge
+             are the bell VARIANT of the island (wire:poll.10s — the badge
+             updates itself, no page refresh). --}}
+        @livewire(NavNotifications::class, ['variant' => 'bell'], key('notif-bell'))
 
         <div class="user-panel" id="userPanel">
             <div class="user-profile">
@@ -126,7 +123,7 @@
 </div>
 
 {{-- Notifications panel — self-contained (overlay + dialog only) --}}
-@include('partials.ui-notifications-panel')
+@include('partials.ui-notifications-panel', ['pageKey' => $activeNav ?? ''])
 
 {{-- ─── Session warning: color the user-panel pill based on session age ───
     MOCK: authStart simulates a login timestamp 25 seconds ago so you see

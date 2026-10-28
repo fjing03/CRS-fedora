@@ -11,6 +11,7 @@ use App\Models\Venue;
 use App\Services\LectureSessionCatalog;
 use App\Services\MatrixIntersectionEngine;
 use App\Services\OCCValidator;
+use App\Support\Notifications\NotificationEmitter;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Mail;
@@ -188,7 +189,9 @@ final class SubmitReplacementRequest
         $proposerName = (string) $proposer->name;
         $anchor = $slot;
 
-        DB::afterCommit(function () use ($requestId, $moduleCode, $proposerName, $anchor, $span): void {
+        $sessionType = (string) $session->session_type;   /* capture-at-queue-time (the mails' law) */
+
+        DB::afterCommit(function () use ($requestId, $moduleCode, $sessionType, $proposerName, $anchor, $span): void {
             $pls = User::query()
                 ->whereHas('lecturer', fn ($q) => $q->where('is_pl', true))
                 ->get();
@@ -213,6 +216,17 @@ final class SubmitReplacementRequest
                     $span,
                 ));
             }
+
+            /* SDD notifications-real-bridge: the PL fan-out rows ride the SAME
+               after-commit closure (the mail law; the emitter writes them). */
+            app(NotificationEmitter::class)->requestSubmitted(
+                $pls,
+                $moduleCode,
+                $sessionType,
+                $proposerName,
+                $requestId,
+                (int) $anchor->week_number,
+            );
         });
 
         return ['ok' => true, 'conflict_reason' => null, 'request_id' => $requestId, 'failing_start' => null, 'failing_end' => null, 'failing_kind' => null];

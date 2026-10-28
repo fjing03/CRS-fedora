@@ -10,6 +10,7 @@ use App\Models\TimeSlot;
 use App\Models\User;
 use App\Models\Venue;
 use App\Services\ApprovalValidity;
+use App\Support\Notifications\NotificationEmitter;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Mail;
@@ -220,6 +221,20 @@ final class RejectRequest
             $reason,
             $deciderName,
         ));
+
+        /* SDD notifications-real-bridge: the proposer's rejected row rides the
+           SAME after-commit closure (the mail law). */
+        $sessionRow = $locked->classSession;
+        app(NotificationEmitter::class)->requestDecided(
+            $proposer,
+            'rejected',
+            (string) ($sessionRow?->module->module_code ?? ''),
+            (string) ($sessionRow->session_type ?? ''),
+            (int) $locked->id,
+            (int) $locked->week_number,
+            $deciderName,
+            $reason,
+        );
     }
 }
 

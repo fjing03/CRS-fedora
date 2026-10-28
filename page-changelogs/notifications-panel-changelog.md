@@ -121,3 +121,27 @@ date/time. Rows also gained `aria-label` = full message.
    sanctions the layout's pre-theme paint literals (`html.dark/html.light` background in
    `ui-template.blade.php`) as the sole FOUC-guard exception, with an update-both note.
    Zero code change.
+
+## 2026-10-28 (notifications-real-bridge lane) — the bell is REAL: five events, DB read-state, wire:poll self-updates
+The frozen panel's feed swapped from the mock §2.13 seed to the real
+`notifications` table (fan-out rows per recipient; `read_at` = the DB-backed
+read state; the `type` = the FROZEN tile keys; `role_view` = the AD-2 key).
+- The emitter (NotificationEmitter, after-commit — the mails' law) writes
+  on: submit→PLs; approve→the proposer + the cohorts' students; reject→
+  the proposer; class-cancelled→the class's lecturer + the cohorts'
+  students + the department's PLs (the 5770/ABCD6767 ruling);
+  reminders→PLs (24 h, deduped until read, re-armed daily,
+  `notifications:remind-pending`).
+- The islands (ONE component, two mounts): the bell button + badge and
+  the whole panel body render server-side under `wire:poll.10s` — the
+  badge updates itself without a page refresh (the user's ruling).
+- The Dulrante read path: native anchors + the capture-phase durable
+  POST (`/notifications/read`, keepalive) — the D4 law with the DB
+  state. The localStorage store + the mock read seeds RETIRED from JS
+  (mock-data.js the FILE stays, §2.13 dormant as the spec anchor).
+- The lifecycle: rows never delete; a cancelled/missing request target
+  renders the row disabled (no href) with the user's tooltip
+  "This notification is inactive because the request was cancelled."
+- PENDING_NAV_COUNT (the approval nav badge) untouched — a different truth.
+- Tests: 7 new bridge tests (273/273). The demo's visible rows = the
+  user-run seed INSERTs (the data-changes convention).

@@ -12,6 +12,7 @@ use App\Models\TimeSlot;
 use App\Models\User;
 use App\Services\ApprovalValidity;
 use App\Services\ReplacementRequestMapper;
+use App\Support\Notifications\NotificationEmitter;
 use Carbon\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
@@ -192,6 +193,35 @@ final class ApproveRequest
                 DB::afterCommit(function () use ($locked, $decider, $details, $released): void {
                     $this->queueDecidedMail($locked, $decider->name, $details);
                     $this->queueCohortMail($locked, $released);
+                });
+                /* SDD notifications-real-bridge: the island rows ride the SAME
+                   after-commit seam — the proposer's approved row + every
+                   cohort student's notice (the per-role link law). */
+                DB::afterCommit(function () use ($locked, $decider): void {
+                    $session = $locked->classSession;
+                    if ($session === null) {
+                        return;
+                    }
+                    $proposer = $locked->proposer;
+                    if ($proposer !== null) {
+                        app(NotificationEmitter::class)->requestDecided(
+                            $proposer,
+                            'approved',
+                            (string) ($session->module->module_code ?? ''),
+                            (string) $session->session_type,
+                            (int) $locked->id,
+                            (int) $locked->week_number,
+                            (string) $decider->name,
+                        );
+                    }
+                    foreach ($session->cohorts as $cohort) {
+                        app(NotificationEmitter::class)->approvalNotice(
+                            $session,
+                            $cohort->students()->with('user')->get(),
+                            (int) $locked->id,
+                            (int) $locked->week_number,
+                        );
+                    }
                 });
             });
         } catch (StaleDecisionException $e) {
