@@ -35,12 +35,12 @@ A web application that replaces the manual Google-Sheets-based class replacement
 | # | Objective | Core Idea | Status |
 |---|-----------|-----------|--------|
 | 1 | **Multi-Entity Matrix Intersection Engine** | 4-vector deterministic set intersection: lecturer availability × cohort free schedules (1+ cohorts) × room occupancy × capacity filter. | 🟢 Built + wired — timetable pages derive real conflicts (venue restrictions, B005) from DB |
-| 2 | **Optimistic Concurrency Control (OCC) layer** | Millisecond-precision transactional validation at submission time; abort + rollback + UI alert on conflict. ACID transactions. | 🟡 Service + schema exist (`OCCValidator`, `version` column); not yet wired to a live submission (Wave 3b) |
+| 2 | **Optimistic Concurrency Control (OCC) layer** | Millisecond-precision transactional validation at submission time; abort + rollback + UI alert on conflict. ACID transactions. | 🟢 Built + wired — `SubmitReplacementRequest` injects `OCCValidator` and calls `validateAndReserve()` on the live submit path (docs sync 2026-10-28; the 🟡 table entry was stale) |
 | 3 | **FCFS Digital Approval Dashboard** | Chronological queue; one-click approve (→ Occupied) or reject with mandatory reason (→ Available); timestamped audit trail. | ✅ REAL page (SDD `span-aware-approval-flow`, 2026-10-18 — mock swapped by `class_exists`; write path = `ApproveRequest`/`RejectRequest`, span-aware, D7 release, bulk, no-undo) |
-| 4 | **Role-Based Access Control (RBAC) + notifications** | 3 tiers: Student (view-only), Lecturer (create/submit/cancel own — FR 4.13), PL (hybrid = lecturer rights + approve/reject). Email notifications: PL on submission (FR 4.15), lecturer on outcome (FR 2.13), students on timetable updates (FR 1.9) — all via queue (FR 4.16). | ✅ Emails live (log mailer in dev — nothing sends; SMTP = a `.env` flip; `docs/queue-and-emails.md`); RBAC/auth done |
+| 4 | **Role-Based Access Control (RBAC) + notifications** | 3 tiers: Student (view-only), Lecturer (create/submit/cancel own — FR 4.13), PL (hybrid = lecturer rights + approve/reject). Email notifications: PL on submission (FR 4.15), lecturer on outcome (FR 2.13), students on timetable updates (FR 1.9) — all via queue (FR 4.16). | ✅ Emails live — the three Mailables queue from the real Actions AFTER the transaction commits (log mailer in dev; SMTP = a `.env` flip + `php artisan queue:work`; `docs/queue-and-emails.md`). RBAC/auth done. **NEXT LANE:** the notifications bell/panel's data bridge (real table + per-action emitter — the panel UI is frozen but still fed by the mock seed `mock-data.js` §2.13) |
 | 5 | **Prototype Deployment** | Laravel + PostgreSQL, localhost, real imported timetable dataset. | 🟢 Done — real data imported (not synthesized) |
 
-**Read-only honesty rule (current phase):** timetable pages render **real DB data** and are read-only until Wave 3b (booking/replacement write path). Cards show honest zeros (`sumPending`/`sumReplacement` = real state, never fabricated). Venue page keeps `sumOccupied`/"Occupied" (documented deviation from upstream's `sumUnavailable`).
+**Wave 3b write path (live):** timetable pages render **real DB data**, and the booking/replacement write path is shipped — submit (OCC-enforced), approve/reject span-aware, class cancellations, pending-request cancels. Demo-DB data edits follow [`docs/demo-db-data-changes.md`](docs/demo-db-data-changes.md); the viva runbook lives at [`docs/viva-demo-runbook.md`](docs/viva-demo-runbook.md). Cards keep showing honest zeros (`sumPending`/`sumReplacement` = real state, never fabricated). Venue page keeps `sumOccupied`/"Occupied" (documented deviation from upstream's `sumUnavailable`).
 
 ### Slot State Machine (Objective 1–3 core)
 
@@ -306,14 +306,14 @@ Source: `../final/FR&NFR.md` — Chapter 3, §3.4 (verbatim; reader-facing gloss
 ### 7.4 NFR implementation notes (verified against codebase where marked ✓)
 - **NFR 2.2 ✓** — Bcrypt hashing is Laravel default; seeder uses `Hash::make`.
 - **NFR 2.6 ✓** — CSRF protection is Laravel default (VerifyCsrfToken middleware).
-- **NFR 1.2** — OCC validation must add <100 ms beyond the DB write (benchmark at Wave 3b).
+- **NFR 1.2** — OCC validation must add <100 ms beyond the DB write (⏳ benchmark receipt pending — planned for the demo-pack week; no number is written until measured).
 - **NFR 2.4 ✓ / 2.5 ✓** — per-role session lifetimes via `EnsureSessionLifetime` middleware (auth-wiring): staff 30 min, student 43200 min (= 30 days); `config/session.php` ceiling set accordingly.
 - **NFR 3.4 ✓** — post-login redirect per role via custom `LoginResponse` (student → `/student-my-timetable-ui`, staff → `/my-timetable-ui`).
 - **NFR 3.5 / 3.6 ✓** — light/dark theme toggle + `localStorage('theme')` persistence (`ui-common.js`, `ui-template.blade.php` pre-CSS guard).
 - **NFR 5.1 ✓** — Pint configured (`pint.json`, `composer run lint:check`).
 - **NFR 5.2 ✓** — all schema changes live in `database/migrations/`.
-- **NFR 5.3 ✓** — `App\Services\MatrixIntersectionEngine`, `App\Services\OCCValidator` (+ `OCCResult`) exist with Feature tests; booking-write wiring pending (Wave 3b).
-- **FR 4.16 / NFR 6.2 / 1.4** — `QUEUE_CONNECTION` must be a database-backed queue; run `php artisan queue:work` as a separate worker (Wave 3b).
+- **NFR 5.3 ✓** — `App\Services\MatrixIntersectionEngine`, `App\Services\OCCValidator` (+ `OCCResult`) exist with Feature tests; the booking write path is live (OCC enforced in `SubmitReplacementRequest`).
+- **FR 4.16 / NFR 6.2 / 1.4 ✓** — `QUEUE_CONNECTION=database` (`.env`); the worker runbook = `php artisan queue:work` as a separate worker (`docs/queue-and-emails.md`).
 - **FR 2.1 ✓** — Staff ID optional `P` prefix normalised in `FortifyServiceProvider` (both forms share lockout counters).
 - **NFR 7.2** — never deploy beyond localhost; no external data egress.
 
@@ -522,9 +522,9 @@ These ten rules are **non-negotiable** for every page and every future change:
 - Playwright gates: `venue-db`, `timetable-wiring`, `nav-identity` (+ `pages-parity`)
 
 ### 🔲 Not built
-- **Wave 3b — booking/replacement write path** (the only major piece left): submit/approve/reject/cancel actions, OCC enforcement on live submissions, FCFS approval + arrangement real backends, replacement sessions replacing originals, email notifications (FR 1.9 / 2.13 / 4.15 via queued jobs)
-- Student request history page (FR 1.3 real data), notifications centre
-- UAT + viva demo prep
+- **Notifications data bridge** (the next lane): the bell/panel UI is frozen but fed by the mock seed (`mock-data.js` §2.13) — real table + per-action emitter inside the Actions (submit/approve/reject decisions; cancel events = user's call in the lane).
+- **UAT + viva demo prep** — the runbook draft = [`docs/viva-demo-runbook.md`](docs/viva-demo-runbook.md); the NFR benchmark receipts + the SMTP flip are demo-pack-week items.
+- Thesis Chapters 5–7, final documentation.
 
 ---
 
@@ -537,8 +537,8 @@ These ten rules are **non-negotiable** for every page and every future change:
 | Sprint | Deliverable | Status |
 |--------|-------------|--------|
 | Sprint 1 | Venue/module/timetable schema + real data import; `MatrixIntersectionEngine` | ✅ Done |
-| Sprint 2 | OCC layer + state machine + FCFS dashboard + audit trail | 🟡 Services + schema done; write-path wiring = Wave 3b |
-| Sprint 3 | Real data into UI templates; RBAC gates; emails; tests | 🟡 Timetables wired (read-only); emails + booking pending |
+| Sprint 2 | OCC layer + state machine + FCFS dashboard + audit trail | ✅ Shipped — OCC wired to the live submit path; span-aware approval shipped |
+| Sprint 3 | Real data into UI templates; RBAC gates; emails; tests | ✅ Shipped — timetables + booking + approvals + cancellations live; mails queued from the real Actions; suite 266/266 |
 | Final | Thesis Chapters 5–7, documentation, viva prep | 🔲 |
 
 ### Success criteria to verify per objective (from Ch1)
