@@ -2165,3 +2165,19 @@ virtual anchors without `.day` derive the index from the weekData
 abbr (the same derivation the line's weekday name uses). Non-holiday
 anchors carry NO tip. The server's validateSlot holiday rejection is
 unchanged (the backstop).
+
+## 2026-10-28 (selection-wipe-spares-holder-tips lane) — the selection's tip-wipe now strips ONLY its own hints
+User-reported: after selecting a free cell in the SAME week, that week's
+holder tooltips lost their `data-tip` (the DOM kept `data-tip-pos` +
+aria). Root cause: `clearMergedBlock()`'s cleaner selector
+`.cell-content[data-tip]` was domain-blind — its own setter only ever
+put the "Clear your selection first" hints on `.cell-available` cells.
+Fixed to `.cell-content.cell-available[data-tip]` (the cleaner's domain
+= the setter's domain); all three wipe callers (deselect, clearVisual,
+renderMergedBlock) covered by the one line. Receipts: week 9 after a
+selection = 0 orphans (was 58), 58 occupied cells still tipped, the
+selection hints still work; the domain invariant on the fresh grid = 0
+violations. Week-nav hint lifecycle untouched (the reviewer verified it
+pre-existing-correct). Payload record: the grid arm's library ids ride
+ONLY statuses 1/3/4 — a future status must never pair holder text with
+`cell-available` (the invariant the changelog now names).

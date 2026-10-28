@@ -1543,7 +1543,10 @@
             if (!body) body = document.getElementById('tableBody');
             // Remove existing event-block
             body.querySelectorAll('.event-selection').forEach(el => el.remove());
-            body.querySelectorAll('.cell-content[data-tip]').forEach(c => c.removeAttribute('data-tip'));
+            /* matching predicate: strips ONLY the has-selection hints the
+               setter above put on .cell-available — holder tips survive
+               selections (SDD selection-wipe-spares-holder-tips). */
+            body.querySelectorAll('.cell-content.cell-available[data-tip]').forEach(c => c.removeAttribute('data-tip'));
             // Reset colSpan and display on all cells
             if (selectedBlock) {
                 for (let h = selectedBlock.startHour; h < selectedBlock.endHour; h++) {
