@@ -2217,3 +2217,25 @@ content = the anchor occurrence's ACTUAL status:
 The match quad = week(0-based) + sessionId + dayIndex + start — the
 status-checked cancelled arm precedes the holiday arm (the payload's own
 order). Attribute-only; the visible textContent byte-identical.
+
+## 2026-10-28 (summary-card-click-navigate lane) — the selection summary cards are hop buttons
+The user's three-part ruling:
+1. **Click to navigate** — clicking `.sel-summary-card` hops onto the
+   exact selected slot: `navigateToSavedBlock()` (the auto-pin law's
+   `revertingChange` pair) runs `weekNav.selectWeek` + the venue
+   `select`/`applyVenueChange` pair when the venue differs — the
+   venue-discard modal NEVER fires on navigation; the per-week memory
+   restores the block from the store on the rebuild, and
+   `pulseTargetCell` marks the anchor cell.
+2. **Hover tooltip** — the shared layer: `Click to View This Selected
+   Slot on the Timetable.` on the card; the × keeps its own Remove tip
+   (the closest-resolve precedence).
+3. **The × intact** — the inline `removeSavedBlock` handler untouched;
+   the card's click early-returns on `.card-remove` (no navigation).
+The card is also keyboard-operable (tabindex/role=button + Enter/Space
+with the same guard) and gains `cursor: pointer` + the focus-visible
+ring. Receipts: the tip text exact; the ×'s Remove tip wins on hover;
+the away-hop (select W6 → navigate W9 → click → land W6 with the block
+restored); the × remove without navigation. Note: the one-block budget
+law means only ONE card exists at a time — the cross-venue hop rides
+the review audit (the same pair the auto-pin uses).

@@ -646,6 +646,13 @@
             border-color: var(--color-primary);
         }
 
+        /* SDD summary-card-click-navigate: the clickable-card affordance */
+        .sel-summary-card { cursor: pointer; }
+        .sel-summary-card:focus-visible {
+            outline: 2px solid var(--color-primary);
+            outline-offset: 2px;
+        }
+
         @keyframes cardSlideIn {
             from { opacity: 0; transform: translateY(10px); }
             to { opacity: 1; transform: translateY(0); }
@@ -1412,6 +1419,22 @@
                 card.className = 'sel-summary-card';
                 card.dataset.venue = b.venue;
                 card.dataset.week = b.weekIdx;
+                /* SDD summary-card-click-navigate: the card is a hop button
+                   (the × keeps its own onclick + its own tip; the card's
+                   click early-returns on the ×). */
+                card.setAttribute('data-tip', 'Click to View This Selected Slot on the Timetable.');
+                card.setAttribute('tabindex', '0');
+                card.setAttribute('role', 'button');
+                card.addEventListener('keydown', function (e) {
+                    if (e.key !== 'Enter' && e.key !== ' ') return;
+                    if (e.target.closest && e.target.closest('.card-remove')) return;
+                    e.preventDefault();
+                    navigateToSavedBlock(b.venue, b.weekIdx, b);
+                });
+                card.addEventListener('click', function (e) {
+                    if (e.target.closest && e.target.closest('.card-remove')) return;
+                    navigateToSavedBlock(b.venue, b.weekIdx, b);
+                });
                 card.innerHTML = `
                     <button class="card-remove" onclick="removeSavedBlock('${b.venue}', ${b.weekIdx})" data-tip="Remove this Selection — Action cannot be UNDONE" aria-label="Remove">×</button>
                     <div class="card-venue">${b.venue}</div>
@@ -3120,6 +3143,24 @@ slotLine = 'Week ' + (anchorSlot.week + 1) + ' · ' + ((weekdayName && weekdayNa
         }
 
         /* summary-card × — remove one saved block (any week/venue) */
+        /* SDD summary-card-click-navigate: the card hop onto the EXACT
+           slot — the auto-pin law's revertingChange pair bypasses the
+           venue-discard modal; the per-week memory restores the block
+           via the store on each rebuild. */
+        function navigateToSavedBlock(venueKey, weekIdx, block) {
+            revertingChange = true;
+            if (weekNav.currentWeek !== weekIdx) weekNav.selectWeek(weekIdx);
+            if ((currentVenue.code || currentVenue) !== venueKey) {
+                venueDropdown.select(venueKey);
+                applyVenueChange(venueKey);
+                revertingChange = false;
+                if (block) pulseTargetCell(block.day, block.startHour);
+                return;
+            }
+            revertingChange = false;
+            if (block) pulseTargetCell(block.day, block.startHour);
+        }
+
         function removeSavedBlock(venueKey, weekKey) {
             const data = selectedSlotsByVenue[venueKey];
             if (!data || !data[weekKey]) return;
