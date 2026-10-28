@@ -15,6 +15,7 @@ use App\Models\TimeSlot;
 use App\Models\Venue;
 use App\Services\LectureSessionCatalog;
 use App\Services\MatrixIntersectionEngine;
+use App\Support\ReasonLabel;
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
@@ -335,6 +336,12 @@ class ReplacementArrangement extends Component
                         'end' => $this->slotIndex((string) $session->end_time) - 1, // inclusive last half-hour cell
                         'venue' => $session->venue !== null ? (string) $session->venue->room_code : '',
                         'status' => $status,
+                        /* SDD conflict-schedule-header-status-tip: the
+                           cancelled event rides the ONE label law (ReasonLabel)
+                           additively — the strip header's hover truth reads it. */
+                        'cancelledReason' => $exception !== null
+                            ? ReasonLabel::from((string) $exception->reason)
+                            : null,
                         'name' => (string) $session->module->module_name,
                         'type' => (string) $session->session_type,
                         'code' => (string) $session->module->module_code,

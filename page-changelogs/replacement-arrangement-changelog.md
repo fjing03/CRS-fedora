@@ -2199,3 +2199,21 @@ Receipts (the user's exact flow, 68/14): after cancel the trigger =
 pinnedOccurrence unchanged; no `.slot-dd-item.selected`. The static
 false-arm chain (non-handoff pinnedSession null → the placeholder, byte-
 identical) per the review round's audit.
+
+## 2026-10-28 (conflict-schedule-header-status-tip lane) — the strip's status tooltip rides the HEAD, cancelled classes speak
+The user-directed supersession of holiday-occurrence-badge's placement:
+the status hover tooltip moved from the occurrence line (.cs-val — now
+attribute-less) to the Conflict Schedule HEAD (.cs-head). The tooltip
+content = the anchor occurrence's ACTUAL status:
+- cancelled (class exception) → `⚠️ Class Cancelled — {ReasonLabel}`
+  (the ONE label law, additive `cancelledReason` key on the conflict
+  events payload) — e.g. `⚠️ Class Cancelled — Annual Leave` (40/W7),
+  `— Medical/Sick Leave` (40/W5);
+- holiday day → the frozen literal `· {label}[ holiday] — no class`
+  (40/W14 `· Christmas Day holiday — no class`);
+- neither → NO tip (the content always matches the actual status); a
+  handled occurrence (under an active request) also carries no tip — the
+  honest-zero law (23/W8 receipt).
+The match quad = week(0-based) + sessionId + dayIndex + start — the
+status-checked cancelled arm precedes the holiday arm (the payload's own
+order). Attribute-only; the visible textContent byte-identical.

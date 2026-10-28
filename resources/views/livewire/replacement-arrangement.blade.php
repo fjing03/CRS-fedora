@@ -2614,21 +2614,16 @@
 slotLine = 'Week ' + (anchorSlot.week + 1) + ' · ' + ((weekdayName && weekdayName !== 'undefined') ? weekdayName + ', ' : '') + shortDate + ' ' + dateParts[2] + ' · ' + startStr + '–' + endStr + ' @ ' + anchorSlot.venue;
             }
 
-            /* SDD holiday-occurrence-badge (the tooltip-ONLY contract): the
-               strip's occurrence line stays byte-identical visually — the
-               ONLY addition is a data-tip when the occurrence's week/day is
-               a holiday (the server's validateSlot holidayDays check is the
-               backstop). The literal law: · {label}[ holiday] — no class,
-               the ' holiday' suffix only when the label lacks it,
-               first (week, dayIndex) match wins; the label is never
-               hardcoded. */
-            const holidayTip = (function () {
+            /* SDD conflict-schedule-header-status-tip (the user's ruling,
+               superseding holiday-occurrence-badge's placement): the STATUS
+               hover tooltip rides the Conflict Schedule HEAD (.cs-head) —
+               cancelled first (the payload's own precedence: exception beats
+               holiday; the arm checks event.status === 'cancelled'), then the
+               FROZEN holiday literal ('\u00B7 {label}[ holiday] \u2014 no class'),
+               else NO tip (the content always matches the actual status).
+               Attribute-only; the visible textContent is byte-identical. */
+            const statusTip = (function () {
                 if (!hasSlot || !anchorSlot) return null;
-                /* the day index: real picks carry .day; the boot's virtual
-                   pinned anchor does NOT (anchorSlotFromPinned has no day
-                   key) — derive it the occurrence line's own way (the
-                   weekData abbr of the anchor's weekdayName), so BOTH
-                   anchor shapes get the holiday truth. */
                 let dayIdx = (anchorSlot.day !== undefined && anchorSlot.day !== null)
                     ? Number(anchorSlot.day) : -1;
                 if (dayIdx < 0) {
@@ -2642,14 +2637,32 @@ slotLine = 'Week ' + (anchorSlot.week + 1) + ' · ' + ((weekdayName && weekdayNa
                     }
                 }
                 if (dayIdx < 0) return null;
+                const sid = Number((window.pinnedOccurrence && window.pinnedOccurrence.sessionId)
+                    || currentSessionId || 0);
+                if (sid) {
+                    const evs = (window.MockData && MockData.cohortTimetable
+                        && MockData.cohortTimetable.events) || [];
+                    const hit = evs.find(function (e) {
+                        return Number(e.week) === anchorSlot.week
+                            && Number(e.event.sessionId) === sid
+                            && Number(e.event.di) === dayIdx
+                            && Number(e.event.start) === Number(anchorSlot.start);
+                    });
+                    if (hit && hit.event.status === 'cancelled') {
+                        return '\u26A0\uFE0F Class Cancel' + 'led \u2014 '
+                            + (hit.event.cancelledReason || 'Cancel' + 'led');
+                    }
+                }
                 const hs = (window.MockData && MockData.holidays) || [];
-                const hit = hs.find(function (h) {
+                const hitHol = hs.find(function (h) {
                     return Number(h.week) === anchorSlot.week + 1 && Number(h.dayIndex) === dayIdx;
                 });
-                if (!hit) return null;
-                const label = String(hit.label || '');
-                const stem = /holiday/i.test(label) ? label : label + ' holiday';
-                return '· ' + stem + ' — no class';
+                if (hitHol) {
+                    const label = String(hitHol.label || '');
+                    const stem = /holiday/i.test(label) ? label : label + ' holiday';
+                    return '\u00B7 ' + stem + ' \u2014 no class';
+                }
+                return null;
             })();
 
             // Line 3: Cohorts
@@ -2670,7 +2683,7 @@ slotLine = 'Week ' + (anchorSlot.week + 1) + ' · ' + ((weekdayName && weekdayNa
             }
 
             el.innerHTML = `<div class="conflict-strip">
-                <div class="cs-head">
+                <div class="cs-head"${statusTip ? ` data-tip="${escHtml(statusTip)}"` : ''}>
                     <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
                     Conflict Schedule
                 </div>
@@ -2683,7 +2696,7 @@ slotLine = 'Week ' + (anchorSlot.week + 1) + ' · ' + ((weekdayName && weekdayNa
                 <div class="cs-seg">
                     <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
                                         ${slotLine
-                        ? `<span class="cs-val"${holidayTip ? ` data-tip="${escHtml(holidayTip)}"` : ''}>${slotLine}</span>`
+                        ? `<span class="cs-val">${slotLine}</span>`
                         : `<span class="cs-val cs-none">Not selected${!hasSlot ? '<span class="cs-hint">— Then pick a Conflict Slot</span>' : ''}</span>`}
                 </div>
                 <div class="cs-seg">
