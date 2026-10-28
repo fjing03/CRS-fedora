@@ -1194,6 +1194,11 @@
         /* week-keyed: real slot states are week-specific — the mock's
            single-semester map becomes [weekIdx][venueCode] (cellRender
            lookup patched below) */
+        /* SDD occupied-cell-explanations (the payload gate's dictionary
+           fallback): the grid rows' 4th key carries INDICES into the
+           deduped block-text library — one copy of every holder block,
+           no per-row duplication. */
+        MockData.holderTexts = window.PAGE_DATA.holderTexts || [];
         MockData.venueSlots = window.PAGE_DATA.venueSlotsByWeek;
         /* D4 rule 1 — the engine's busy vectors + ineligible venues, so the
            grid never offers a cell the FR 4.3–4.7 pre-check would refuse */
@@ -1780,18 +1785,38 @@
                             ? ' cell-pending' : ' cell-occupied';
                         attachHolder();
                     } else if (cellData) {
-                        if (cellData[2] === 1) {
-                            div.className += ' cell-occupied';
-                            if (cellData[3]) {
-                                /* the same renderer treatment (the venueSlot
-                                   rows' 4th holder key — same meaning, same
-                                   look; the flat aria form only) */
-                                div.setAttribute('data-tip', cellData[3]);
+                        /* SDD occupied-cell-explanations round (the grid arm
+                           rides the SAME renderer as the engine arm): the
+                           payload's 4th key is an ARRAY of INDICES into the
+                           deduped holder-text library (the payload gate's
+                           dictionary fallback) — resolve each to its block
+                           string, then build one pseudo-match per element in
+                           the engine arm's exact tuple shape and call the
+                           unchanged renderHolderTip (header count, why-tags,
+                           flat aria all parse per BLOCK). statusKind governs
+                           the TIP ONLY: grid 1 (occupied) → null; grid 3/4
+                           (pending families) → 'pending'. The cell's CLASS
+                           comes from the grid status via the untouched
+                           branches below (pre-existing asymmetry:
+                           engine-arm all-pending cells show cell-pending;
+                           grid-4 stays cell-reserved). */
+                        const holderTexts = (typeof MockData !== 'undefined' && MockData.holderTexts) || window.PAGE_DATA.holderTexts || [];
+                        const gridHolderMatches = Array.isArray(cellData[3]) && cellData[3].length
+                            ? cellData[3].map(id => [di, hi, hi + 1, holderTexts[id] || '', cellData[2] === 1 ? null : 'pending'])
+                                .filter(m => m[3])
+                            : null;
+                        if (gridHolderMatches) {
+                            const gridTip = renderHolderTip(gridHolderMatches);
+                            if (gridTip) {
+                                div.setAttribute('data-tip', gridTip.readable);
                                 div.setAttribute('data-tip-pos', 'left');
-                                div.setAttribute('aria-label', 'Occupied by ' + cellData[3].replace(/\n/g, ' · '));
+                                div.setAttribute('aria-label', gridTip.flat);
                                 div.setAttribute('tabindex', '0');
                                 div.style.cursor = 'help';
                             }
+                        }
+                        if (cellData[2] === 1) {
+                            div.className += ' cell-occupied';
                         } else if (cellData[2] === 3) {
                             div.className += ' cell-pending';
                         } else if (cellData[2] === 4) {

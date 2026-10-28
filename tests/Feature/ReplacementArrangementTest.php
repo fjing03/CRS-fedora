@@ -214,9 +214,67 @@ final class ReplacementArrangementTest extends TestCase
         $payload = $this->payloadOf($this->lecturerA);
         $week5 = $payload['venueSlotsByWeek'][5]['B100'] ?? []; // week 6 → JS index 5
 
-        $this->assertContains([3, 12, 1], $week5, 'occupied → the mock\'s status 1 (14:00 = hour 12)');
-        $this->assertContains([4, 2, 3], $week5, 'my pending → status 3');
-        $this->assertContains([5, 2, 4], $week5, 'others\' pending → status 4 (Reserved by Others)');
+        /* SDD occupied-cell-explanations: the 4th holder key rides — the
+           seeded (Mon-only) fixture has NO class covering these half-hours,
+           so the occupied cell's holder = null (the negative arm); the
+           pending cells carry the make-up blocks (the map's per-slot-row
+           keys). Never a bare triple again. */
+        $this->assertContains([3, 12, 1, null], $week5, "occupied → the mock's status 1 with the no-holder null arm (14:00 = hour 12)");
+        $library = $payload['holderTexts'];
+        $resolve = fn (array $ids): array => array_map(fn (int $id): string => $library[$id], $ids);
+        $mineRow = collect($week5)->first(fn (array $t) => $t[0] === 4 && $t[1] === 2 && $t[2] === 3);
+        $this->assertNotNull($mineRow, 'my pending → status 3');
+        $this->assertIsArray($mineRow[3], 'the my-pending cell carries its make-up holder LIBRARY ids');
+        $this->assertTrue(collect($resolve($mineRow[3]))->contains(fn (string $b) => str_contains($b, 'You — ')), "the my-pending holder block names the owner ('You — ')");
+        $otherRow = collect($week5)->first(fn (array $t) => $t[0] === 5 && $t[1] === 2 && $t[2] === 4);
+        $this->assertNotNull($otherRow, "others' pending → status 4 (Reserved by Others)");
+        $this->assertIsArray($otherRow[3], 'the reserved cell carries its make-up holder LIBRARY ids');
+        $this->assertTrue(collect($resolve($otherRow[3]))->every(fn (string $b) => ! str_contains($b, 'You — ')), "the other's make-up block carries NO 'You — ' ownership prefix");
+    }
+
+    public function test_arrangement_venue_slots_carry_the_holder_tips(): void
+    {
+        /* The width-N span receipt: a 12:00–14:30 class at B100 covers the
+           14:00–14:30 occupied half-cell — the holder LIBRARY id rides
+           every covered cell (the payload gate's dictionary fallback: the
+           text lives once in holderTexts); the tail 15:00 half-cell does
+           NOT get it (the half-open containment law). */
+        $covered = ClassSession::create([
+            'semester_id' => $this->semester->id,
+            'module_id' => Module::query()->where('module_code', 'BMIT1001')->value('id'),
+            'lecturer_id' => $this->lecturerA->id,
+            'day_of_week' => 3,
+            'start_time' => '12:00:00', 'end_time' => '14:30:00',
+            'venue_id' => $this->venue->id,
+            'session_type' => 'L',
+        ]);
+        $covered->cohorts()->attach([Cohort::query()->firstOrFail()->id]);
+        $this->createSlot(6, 3, '14:00:00', 'occupied');
+        $this->createSlot(6, 3, '09:00:00', 'occupied');   // uncovered half-hour → the null arm
+        $this->createSlot(6, 3, '15:00:00', 'occupied');   // beyond the end → NOT covered (half-open law)
+
+        $payload = $this->payloadOf($this->lecturerA);
+        $week5 = $payload['venueSlotsByWeek'][5]['B100'] ?? [];
+
+        $library = $payload['holderTexts'];
+        $coveredRow = collect($week5)->first(fn (array $t) => $t[0] === 3 && $t[1] === 12);
+        $this->assertNotNull($coveredRow, 'the covered occupied cell exists');
+        $this->assertSame(1, $coveredRow[2], 'still the mock status 1');
+        $this->assertIsArray($coveredRow[3]);
+        $this->assertCount(1, $coveredRow[3], 'one library id per holder row (the per-row law)');
+        $this->assertIsInt($coveredRow[3][0], 'the 4th key rides LIBRARY ids (the measured dictionary fallback)');
+        $block = $library[$coveredRow[3][0]];
+        $this->assertStringContainsString('B100 · BMIT1001 (L) · 12:00–14:30', $block, 'room-first · code (type) · en-dash span');
+        $this->assertStringContainsString('You — Lecturer A (6001)', $block, 'the ownership marker');
+        $this->assertStringContainsString('RSD3(S1)G1', $block, 'the cohort line');
+
+        $tailRow = collect($week5)->first(fn (array $t) => $t[0] === 3 && $t[1] === 14);
+        $this->assertNotNull($tailRow, 'the 15:00 cell exists');
+        $this->assertNull($tailRow[3], 'the half-open law: the class ends at 14:30 — the 15:00 half-cell carries NO label');
+
+        $uncoveredRow = collect($week5)->first(fn (array $t) => $t[0] === 3 && $t[1] === 2);
+        $this->assertNotNull($uncoveredRow, 'the 09:00 cell exists');
+        $this->assertNull($uncoveredRow[3], 'the no-label occupied cell = the null arm (tip-less, class unchanged)');
     }
 
     public function test_page_payload_is_occurrence_grain(): void

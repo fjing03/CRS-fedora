@@ -2137,3 +2137,31 @@ materialises now). Receipts: the Wed 15:00 cell carries EXACTLY
 2 tagged blocks (the 👤 Own BMSE2163-L + the 👥 Cohorts AMCS2093-T);
 the 265/265 suite holds (the 3 shape receipts trimmed to the honest
 3 keys, never weakened).
+
+## 2026-10-27 (occupied-cell-explanations lane) — the venue-grid occupied cells now carry the holder tips
+The once-silent slots (another lecturer's class in the viewed venue —
+e.g. B010 Thu 13:30–14:30 = AMCS2093 (P) Lim Jia Zheng; Fri 15:30–16:30 =
+AMIS1003 (T) Mohd Nur Rahmat) now build the IDENTICAL tooltip the engine
+arm renders: `⚠ Occupied — N class(es) in the way` + the round-3
+why-blocks (the 🏛 Venue-conflict tag is tautological for grid holders by
+construction — the holder IS in the viewed venue) + the flat aria. `cellData[3]`
+now rides LIBRARY INDICES into the deduped `holderTexts` arm — the
+payload gate measured 397KB of inline label dilation vs 161KB map
+(both > the 90KB threshold), so the frozen dictionary fallback enacted:
+PAGE_DATA 740KB → 432KB (103 unique block texts), NO repeat text on the
+rows. Pending/reserved statuses ride rank-kind 'pending' for the tip
+only; the cell classes stay byte-identical (`statusKind`-for-tip-only).
+server rules untouched; landing untouched.
+
+## 2026-10-27 (holiday-occurrence-badge lane) — the strip's holiday occurrence speaks, on hover ONLY
+The conflict-schedule occurrence line gained a data-tip when its
+week/day is a `holidays` row: `· Christmas Eve holiday — no class`
+(W14 Thu), `· Christmas Day holiday — no class` (W14 Fri, cs 40 anchor),
+`· Deepavali Holiday (In Lieu) — no class` (W8 Mon, cs 99 anchor) — the
+suffix law appends ` holiday` only when the label lacks it; first
+(week, dayIndex) match wins. The line's visible textContent is
+byte-identical (no icon/copy/styling — the tooltip-only contract);
+virtual anchors without `.day` derive the index from the weekData
+abbr (the same derivation the line's weekday name uses). Non-holiday
+anchors carry NO tip. The server's validateSlot holiday rejection is
+unchanged (the backstop).

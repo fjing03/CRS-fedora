@@ -95,6 +95,19 @@ class ReplacementArrangement extends Component
         $semesterId = $semester !== null ? $semester->id : 1;
         $weeks = $this->timelineWeeks();
 
+        /* SDD occupied-cell-explanations D1 (the share law): the holder
+           label map is computed ONCE per payload run and threaded into
+           both the busy-vector arm and the venue-slot grid arm — the
+           internal call inside busyByWeekPayload() is GONE. The payload
+           gate's DECISION (measured: 397KB inline dilation vs 161KB map
+           — both > the 90KB threshold) enacted the DICTIONARY fallback:
+           the grid arm carries INDICES into this deduped text library
+           (one copy per unique block, never per row); the busy-vector
+           arm keeps its pre-existing inline strings (the frozen
+           TEMP-HOLDER-LABEL shape). */
+        $holderLabels = $this->busyCellHolderLabels($semesterId, $weeks);
+        [$holderTexts, $holderIds] = $this->holderTextLibrary($holderLabels);
+
         $sessions = ClassSession::query()
             ->with(['module', 'venue', 'cohorts.programme', 'lecturer'])
             ->where('lecturer_id', auth()->id())
@@ -111,8 +124,8 @@ class ReplacementArrangement extends Component
             'ruleMap' => LectureSessionCatalog::ruleMap(),
             'courses' => $this->coursesPayload($sessions),
             'conflictEvents' => $this->conflictEventsPayload($sessions),
-            'venueSlotsByWeek' => $this->venueSlotsByWeekPayload($semesterId, $weeks),
-            'busyByWeek' => $this->busyByWeekPayload($sessions, $semesterId, $weeks),
+            'venueSlotsByWeek' => $this->venueSlotsByWeekPayload($semesterId, $weeks, $holderIds),
+            'busyByWeek' => $this->busyByWeekPayload($sessions, $semesterId, $weeks, $holderLabels),
             'blockedVenues' => $this->blockedVenuesPayload($sessions),
             'pinnedSession' => $this->pinnedSessionPayload($weeks),
             /* arrange-intent-session-choice (user amendment, conflicted-only):
@@ -120,6 +133,7 @@ class ReplacementArrangement extends Component
                class the system flagged for that week — same definition as the
                replacement-home list (exception / holiday / venue restriction),
                minus occurrences already under an active request (D1). */
+            'holderTexts' => $holderTexts,
             'intentConflicts' => $this->intentConflictsPayload(),
         ];
     }
@@ -333,16 +347,69 @@ class ReplacementArrangement extends Component
     }
 
     /**
-     * Real venue slot states, week-keyed: [weekIdx][venueCode] = [[day, hourIdx,
-     * status], …] — 1 occupied, 3 pending (mine), 4 reserved (others').
+     * The deduped block-text library (the payload gate's dictionary
+     * fallback): one entry per UNIQUE block string, first-appearance
+     * order. Returns [texts, ids keyed [weekIdx][day:slotStart:slotEnd:
+     * room] = the text indices] — the venue-slot grid rows reference the
+     * library instead of duplicating the text per covered half-hour.
      *
-     * @return array<int|string, array<int|string, list<array{int, int, int}>>> The
-     *                                                                          mock's map gains the week dimension; the view's cellRender lookup is the
-     *                                                                          one documented line that reads it. Availability stays client-side (the
-     *                                                                          mock's model: green = venue-free); the server re-validates lecturer +
-     *                                                                          cohort freedom at submit (engine pre-check → FR 4.10 conflict alert).
+     * @param  array<int, array<string, list<string>>>  $holderLabels
+     * @return array{0: list<string>, 1: array<int, array<string, list<int>>>}
      */
-    private function venueSlotsByWeekPayload(int $semesterId, int $weeks): array
+
+    /**
+     * The deduped block-text library (the payload gate's dictionary
+     * fallback): one entry per UNIQUE block string, first-appearance
+     * order. Returns [texts, ids keyed [weekIdx][day:slotStart:slotEnd:
+     * room] = the text indices] — the venue-slot grid rows reference the
+     * library instead of duplicating the text per covered half-hour.
+     *
+     * @param  array<int, array<string, list<string>>>  $holderLabels  the
+     *                                                                 shared holder map (thealia text per key)
+     * @return array{0: list<string>, 1: array<int, array<string, list<int>>>}
+     */
+    private function holderTextLibrary(array $holderLabels): array
+    {
+        $texts = [];
+        $index = [];
+        $ids = [];
+        foreach ($holderLabels as $weekIdx => $weekMap) {
+            foreach ($weekMap as $key => $labels) {
+                $rowIds = [];
+                foreach ($labels as $label) {
+                    if (! isset($index[$label])) {
+                        $index[$label] = count($texts);
+                        $texts[] = $label;
+                    }
+                    $rowIds[] = $index[$label];
+                }
+                $ids[$weekIdx][(string) $key] = $rowIds;
+            }
+        }
+
+        return [$texts, $ids];
+    }
+
+    /**
+     * Real venue slot states, week-keyed: [weekIdx][venueCode] = [[day, hourIdx,
+     * status, holderIds], …] — 1 occupied, 3 pending (mine), 4 reserved
+     * (others'). The 4th key (SDD occupied-cell-explanations) rides the
+     * holder IDENTITY for the cell: an ARRAY of INDICES into the deduped
+     * holderTexts library (the payload gate's dictionary fallback — one
+     * copy per unique block, never per row), or null when no label applies
+     * (the negative arm — tip-less, byte-identical styling). The Blade
+     * resolves the ids and feeds the UNCHANGED renderHolderTip — identical
+     * look to the engine arm.
+     *
+     * @param  array<int, array<string, list<int>>>  $holderIds  the library
+     *                                                           ids keyed [weekIdx][day:slotStart:slotEnd:room]
+     * @return array<int|string, array<int|string, list<array{int, int, int, list<int>|null}>>> The
+     *                                                                                          mock's map gains the week dimension; the view's cellRender lookup is the
+     *                                                                                          one documented line that reads it. Availability stays client-side (the
+     *                                                                                          mock's model: green = venue-free); the server re-validates lecturer +
+     *                                                                                          cohort freedom at submit (engine pre-check → FR 4.10 conflict alert).
+     */
+    private function venueSlotsByWeekPayload(int $semesterId, int $weeks, array $holderIds): array
     {
         $slots = TimeSlot::query()
             ->where('semester_id', $semesterId)
@@ -362,16 +429,49 @@ class ReplacementArrangement extends Component
 
         $myId = (int) auth()->id();
 
+        /* SDD occupied-cell-explanations D2: the label map is keyed by the
+           FULL class range (day:startIdx:endIdx:room); the slot grid rows
+           are 30-minute half-cells. Per week, build a day+room-indexed
+           view of [startIdx, endIdx, labels[]], then per slot row run the
+           client's containment predicate (startIdx <= hi && hi < endIdx).
+           The LIMIT-3 explode keeps the room as the remainder (room codes
+           carry no colons) — the round-5 phantom guard. */
+        $view = [];
+        foreach ($holderIds as $weekIdx => $weekMap) {
+            foreach ($weekMap as $key => $labelIds) {
+                /* LIMIT-3 + a second LIMIT-2 explode: `day:startIdx:endIdx:room`
+                   — the room stays the remainder, untangled (the round-5
+                   guard: room codes carry no colons). */
+                [$day, $startIdx, $rest] = explode(':', (string) $key, 3);
+                [$endIdx, $room] = explode(':', (string) $rest, 2);
+                $view[$weekIdx][(int) $day.':'.(string) $room][] = [(int) $startIdx, (int) $endIdx, (array) $labelIds];
+            }
+        }
+
         $out = [];
         foreach ($slots as $slot) {
             $status = $slot->status === 'occupied'
                 ? 1
                 : ((int) ($proposers->get($slot->id)) === $myId ? 3 : 4);
 
-            $out[(int) $slot->week_number - 1][(string) $slot->venue->room_code][] = [
-                (int) $slot->day_of_week,
-                $this->slotIndex((string) $slot->start_time),
+            $weekIdx = (int) $slot->week_number - 1;
+            $day = (int) $slot->day_of_week;
+            $startIdx = $this->slotIndex((string) $slot->start_time);
+            $endIdx = $this->slotIndex((string) $slot->end_time);
+            $room = (string) $slot->venue->room_code;
+
+            $picked = [];
+            foreach ($view[$weekIdx][$day.':'.$room] ?? [] as [$s, $e, $labels]) {
+                if ($s <= $startIdx && $endIdx <= $e) {
+                    $picked = array_merge($picked, $labels);
+                }
+            }
+
+            $out[$weekIdx][$room][] = [
+                $day,
+                $startIdx,
                 $status,
+                $picked !== [] ? array_values(array_unique($picked)) : null,
             ];
         }
 
@@ -387,9 +487,11 @@ class ReplacementArrangement extends Component
      * a cancelled class frees its cells (the replacement may reuse them).
      *
      * @param  Collection<int, ClassSession>  $sessions
+     * @param  array<int, array<string, list<string>>>  $holderLabels  the
+     *                                                                 threaded shared holder-text map (busyCellHolderLabels' shape)
      * @return array<int|string, array<int, list<array{int, int, int}>>>
      */
-    private function busyByWeekPayload(Collection $sessions, int $semesterId, int $weeks): array
+    private function busyByWeekPayload(Collection $sessions, int $semesterId, int $weeks, array $holderLabels): array
     {
         $lecturerId = (int) auth()->id();
 
@@ -402,7 +504,9 @@ class ReplacementArrangement extends Component
            (identical tuples stay identical). REMOVABLE AFTER THE FINAL
            VIVA — delete this block + the blade's tip attach; the first 3
            keys alone are the pre-existing engine contract. */
-        $holderLabels = $this->busyCellHolderLabels($semesterId, $weeks);
+        /* SDD occupied-cell-explanations D1: the map is threaded IN from
+           pagePayload — the internal busyCellHolderLabels() call (the
+           was-here double computation) is deleted; see mount. */
 
         /* SDD tidy-arrangement-cell-tooltips (2026-10-27): one TUPLE per
            blocking ROW — the old `implode(' | ')` glued all the classes
