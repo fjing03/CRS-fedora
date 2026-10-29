@@ -1862,14 +1862,21 @@ function initMobileNav() {
     });
 }
 
-// ───── Notifications Panel (shared, read-state via localStorage) ─────
-// Consumes window.MockData.notifications (mock-data.js §2.13, read-only) —
-// never mutated at runtime. UNREAD STATE IS PER USER (F-2 pre-wire): one
-// mailbox per logged-in user under 'notifications-read-user-<staffId>' — the
-// backend day this store moves to the server (user_id natural key) and rows
-// arrive already recipient-scoped. The row's `role` is only the CATEGORY the
-// panel views by page context (AD-2); the badge/pill always count the whole
-// mailbox. All element lookups are guarded: the panel partial (T6) may be absent.
+// ───── Notifications Panel (the NavNotifications islands' JS shell) ─────
+// SDD notifications-real-bridge: the badge/pill/rows are SERVER-rendered by
+// the wire:poll.10s.visible islands; the unread state lives in the DB
+// (notifications.read_at) — the localStorage/mock store ('notifications-read-
+// user-<staffId>' + window.MockData.notifications) is RETIRED. This section
+// keeps ONLY the shell + the mark-read wiring: open/close/Esc/overlay, the
+// pageLivewire() resolver, and the D4 durable POST (durableMarkNotifRead).
+// Still-true design notes: the panel's viewed category derives from the page
+// (AD-2) and the badge/pill always count the whole mailbox (F-2). All element
+// lookups are guarded — the panel partial may be absent (the login pages).
+// ═══ NOTE (the PI re-verify round, 2026-10-29): resolveRoleView() currently
+// only matches camelCase page keys ('requestApproval') while the mounts pass
+// the kebab nav keys ('request-approval') — the AD-2 map never engages and
+// the panel defaults to the lecturer tab. UNDER USER VERDICT (listed in the
+// re-verify report; not fixed inside the 10-item scope fence).
 
 /* ───── Notifications (SDD notifications-real-bridge) ─────
    The bell/panel markup is SERVER-rendered by the NavNotifications islands
