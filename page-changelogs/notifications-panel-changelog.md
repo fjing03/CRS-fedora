@@ -173,3 +173,52 @@ total > 0 while the viewed tab is clear) — the frozen F-2 law kept (the
 pill stays the whole-mailbox total). The submit-receipt note: the rows
 WERE created (ids 3/4 — both PLs) on the user's real submit; the
 arrangement page has no bell by the frozen BUG-04 design.
+
+## 2026-10-29 (the SDD-verify re-verify round) — the agreed fixes, one commit per concern
+
+Re-verified the verify pass's 10 items independently (per the main session's
+prompt): 7 AGREED and fixed, 2 DISAGREE, 1 CONFIRMED baseline. Evidence +
+per-item verdicts live in the PI chat report. Commits (on `fedora-backend`, not
+pushed):
+
+- `968a867` Item 1 --- the islands' poll is now `wire:poll.10s.visible` (the
+  artifacts' `->whenVisible()` law via the REAL Livewire 4.3.3 API: the
+  `.visible` modifier, `pauseWhile` off-viewport). The bell never pauses (the
+  `.top-bar` bell is on-viewport at every breakpoint); the panel island polls
+  only while OPEN --- while closed it idles (halving the per-tab poll load);
+  the first open shows page-load data, fresh within ≤10 s.
+- `2e5a071` Item 3 --- the three missing feature receipts: the REJECTED
+  emitter, the mark-read endpoint (auth scope + idempotency via a frozen
+  clock + the guest bounce), and the ONE-`whereIn` per render (a DB::listen
+  capture). The render query also dropped the dead `->with('request')`
+  eager load (it was a SECOND whereIn + unused data) — the D4 N+1 law now
+  literally holds.
+- `34f2570` Item 6 --- `partials/notif-row.blade.php` created (the named
+  T2/D6 partial): ONE builder for the active/inactive branch pair; the live
+  :8000 before/after DOM diff is element-identical (residuals: the planned
+  `.visible` attr, per-request snapshot ids, a minute-rollover in a time tip).
+- `5c8a40d` Item 4 --- `POST /notifications/read-all` + `readAll()` DELETED
+  (the user's Option A ruling, 2026-10-29; the island `wire:click="markAll"`
+  won over the D2/D3 contradiction). No reference anywhere.
+- `fb16ad2` Item 2 --- the durable Playwright receipts: `:8000` read-only
+  (F-2 badge/pill total, the caught-up swap, the AD-15 open-panel-poll
+  survival) + the testing-DB writable ones (the poll-cycle badge growth with
+  a no-reload sentinel, the durable-POST badge shrink, the mark-all zero,
+  the D4 disabled-row tooltip — HARD-GUARDED to the disposable DB).
+- `75d920a` Item 9 --- the stale localStorage header in `ui-common.js`
+  rewritten (comment-only).
+- `3959b34` Item 5 --- the T6 demo seed INSERTs DRAFTED in
+  `docs/demo-db-data-changes.md` (USER-RUN, never agent-run; NOT executed).
+
+DISAGREE (no change, per protocol): Item 8 (the emitter's event-named API
+vs the design sketch's `send()/notifyPls()` — the sketch was illustrative;
+renaming working, tested, call-site-wired methods is churn with zero
+behavioral gain). Item 10: the full suite CONFIRMED 276/276 (the 266
+baseline + the 7 bridge tests + the 3 new ones).
+
+⚠ NEW finding out of the 10-item fence (listed, NOT fixed): the island's
+`resolveRoleView()` matches camelCase keys (`requestApproval`) while the
+mounts pass the nav's kebab keys (`request-approval`) — the AD-2 per-page
+tab map NEVER engages and every panel defaults to the lecturer tab. Refer to
+the PI report for the evidence; the fix (3 lines in `NavNotifications.php`)
+awaits the user's verdict.
