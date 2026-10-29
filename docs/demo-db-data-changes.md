@@ -211,3 +211,45 @@ ALTER TABLE audit_logs ADD CONSTRAINT audit_logs_action_check
   they recorded came from the now-dead law.
 
 | 2026-10-28 | notifications (the NEW table from the notifications-real-bridge lane) | 2 receipt rows INSERTed (user_id=1/5425's bell; title `Demo receipt — poll cycle*`) — the poll-cycle receipts | Rollback: `DELETE FROM notifications WHERE title LIKE 'Demo receipt — poll cycle%';` | agent-run, user-approved ("go --> Playwright poll-cycle receipt") |
+
+## 2026-10-29 — the T6 demo seed rows drafted (notifications-real-bridge)
+
+- **Approved by:** user — pending (the main verify-fix prompt, Item 5: the SQL
+  is DRAFTED here, the user runs it; **USER-RUN — never agent-run**).
+- **Live DB:** NOTHING yet — the three fences below are drafts until the user
+  executes them.
+- **Seeder:** none needed — a demo-only visibility aid (the bell reads the real
+  `notifications` table; the testing DB fixtures live in the phpunit suite).
+- **State check (read-only, 2026-10-29):** the table already holds the user's
+  real bridge rows — id 3 (5425, pl tab, `submitted`, request #6, unread) and
+  id 4 (5516, same). So T6's "a submitted row for a PL" is ALREADY COVERED — the
+  two drafts below add only what the demo still lacks: an APPROVED row (the
+  lecturer tab of 5425) and an AWAITING reminder row, so all three tile kinds
+  render alive in the demo bell.
+- **Copy + schema follow the emitter exactly** (`NotificationEmitter`, the
+  frozen tile keys + the per-role link law from D1); every `request_id`/`id` was
+  confirmed real by read-only queries (rr#1 approved W8 cs23 BMSE3153 P from
+  5425; rr#6 pending, AMSE2003 (P), also 5425's).
+
+Draft SQL (idempotent — re-runs are no-ops; run as the user, never from an agent):
+
+```sql
+-- T6-a: an APPROVED row for 5425's lecturer tab (real target: request #1)
+INSERT INTO notifications (user_id, role_view, type, title, body, link, request_id, class_session_id, week, read_at)
+SELECT 1, 'lecturer', 'approved', 'Replacement approved',
+       'BMSE3153 (P) · W8 · approved by Mohd Nur Rahmat Bin Mohd Taat',
+       '/my-request-history-ui', 1, NULL, 8, NULL
+WHERE NOT EXISTS (SELECT 1 FROM notifications WHERE type = 'approved' AND request_id = 1 AND user_id = 1);
+
+-- T6-b: an AWAITING reminder row for 5425's PL tab (real target: request #6)
+INSERT INTO notifications (user_id, role_view, type, title, body, link, request_id, class_session_id, week, read_at)
+SELECT 1, 'pl', 'awaiting', 'Approval still pending',
+       'AMSE2003 (P) · W9 · submitted by Surayaini Binti Basri · awaiting your decision',
+       '/request-approval-ui', 6, NULL, 9, NULL
+WHERE NOT EXISTS (SELECT 1 FROM notifications WHERE type = 'awaiting' AND request_id = 6 AND user_id = 1);
+```
+
+- **Rollback:** `DELETE FROM notifications WHERE (type = 'approved' AND request_id = 1 AND user_id = 1) OR (type = 'awaiting' AND request_id = 6 AND user_id = 1);`
+- **Variant (optional):** the same awaiting row also for the OTHER DCIT PL —
+  change `user_id` 1 → 2 (Mohd Nur Rahmat) in T6-b; per the fan-out law the
+  reminder lands on every PL.
