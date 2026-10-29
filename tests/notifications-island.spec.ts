@@ -45,14 +45,31 @@ test('bell + pill carry the whole-mailbox unread total (F-2), no mock rows', asy
   expect(consoleErrors, 'no JS page errors').toEqual([]);
 });
 
-test('caught-up swap is category-aware (counted from the mailbox total)', async ({ page }) => {
-  // pageKey repair note: the island's resolveRoleView only matches camelCase
-  // keys, the mounts pass the kebab nav keys — the AD-2 map never engages and
-  // the viewed tab stays 'lecturer' (UNDER USER VERDICT). This receipt asserts
-  // what is true TODAY and stays meaningful either way: with the unread-only
-  // toggle ON, when the viewed tab shows no rows while the mailbox total is
-  // non-zero, the caught-up copy names the total.
+test('AD-2: the panel views the PAGE tab — pl rows render on request-approval', async ({ page }) => {
+  // pinned (SDD notif-ad2-pagekey-tab): the pageKey repair note above is
+  // HISTORY — the mount now passes the layout's camel $pageKey. Regression
+  // pin: while the mailbox total > 0 the panel LIST renders on the
+  // request-approval page and carries the pl row's /request-approval-ui
+  // anchor (the per-role link law). Tolerance: when the live DB is fully
+  // read (total = 0) the caught-up swap takes over instead; a future drift
+  // of unread LECTURER-only rows is out of the shape this pins.
   await page.goto('/request-approval-ui?_=island-2');
+  const badge = await badgeNumber(page);
+  await page.click('button.notif-btn');
+
+  if (badge === 0) {
+    await expect(page.locator('#notifEmpty')).toContainText("You're all caught up");
+    return;
+  }
+
+  await expect(page.locator('#notifList')).toBeVisible();
+  await expect(page.locator('#notifList a[href="/request-approval-ui"]').first()).toBeVisible();
+});
+
+test('caught-up swap is category-aware on the lecturer tab (names the total)', async ({ page }) => {
+  // on /my-timetable-ui the viewed tab is lecturer; if the only unread rows
+  // live on other tabs (e.g. the pl row), the swap names the whole total.
+  await page.goto('/my-timetable-ui?_=island-2b');
   const badge = await badgeNumber(page);
   await page.click('button.notif-btn');
 
@@ -64,12 +81,11 @@ test('caught-up swap is category-aware (counted from the mailbox total)', async 
     await expect(empty).toContainText("You're all caught up");
   } else if (!listShown) {
     const swap = (await empty.textContent()) ?? '';
-    if (swap.includes('unread in other tabs')) {
-      const named = Number((swap.match(/— (\d+) unread/) ?? [])[1]);
-      expect(named).toBe(badge);
-    }
+    expect(swap).toContain('unread in this category');
+    const named = Number((swap.match(/— (\d+) unread/) ?? [])[1]);
+    expect(named).toBe(badge);
   } else {
-    // rows in view: the swap is hidden
+    // unread rows in THIS view: the swap is hidden
     await expect(empty).toBeHidden();
   }
 });

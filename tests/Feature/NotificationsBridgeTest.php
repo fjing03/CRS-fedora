@@ -261,4 +261,42 @@ final class NotificationsBridgeTest extends TestCase
         $this->assertCount(1, $replacementQueries, 'exactly ONE replacement_requests query per render (the batch whereIn), got: '.implode(' | ', $replacementQueries));
         $this->assertStringContainsString(' in (', $replacementQueries[0], 'the ONE query is the batch whereIn');
     }
+
+    /** The AD-2 mapping receipt (SDD notif-ad2-pagekey-tab): the island's
+     *  camel pageKey match maps the row filter per PAGE, exactly the
+     *  retired NOTIF_ROLE_BY_PAGE law. One user, one row per role_view. */
+    public function test_the_page_keys_map_the_right_tab_rows(): void
+    {
+        Notification::create([
+            'user_id' => 1, 'role_view' => 'pl', 'type' => 'submitted',
+            'title' => 'PL tab row', 'body' => 'pl', 'link' => '/request-approval-ui', 'week' => 8,
+        ]);
+        Notification::create([
+            'user_id' => 1, 'role_view' => 'lecturer', 'type' => 'approved',
+            'title' => 'lecturer tab row', 'body' => 'lecturer', 'link' => '/my-request-history-ui', 'week' => 8,
+        ]);
+        Notification::create([
+            'user_id' => 1, 'role_view' => 'student', 'type' => 'update',
+            'title' => 'student tab row', 'body' => 'student', 'link' => '/student-my-timetable-ui', 'week' => 8,
+        ]);
+        $this->actingAs(User::query()->findOrFail(1));
+
+        // the three mapped keys
+        Livewire::test(NavNotifications::class, ['variant' => 'panel', 'pageKey' => 'requestApproval'])
+            ->assertSee('PL tab row', false)
+            ->assertDontSee('lecturer tab row', false)
+            ->assertDontSee('student tab row', false);
+        foreach (['studentMyTimetable', 'replacementHistory'] as $studentKey) {
+            Livewire::test(NavNotifications::class, ['variant' => 'panel', 'pageKey' => $studentKey])
+                ->assertSee('student tab row', false)
+                ->assertDontSee('PL tab row', false);
+        }
+
+        // every unmapped camel key + the empty default → the lecturer tab
+        foreach (['myTimetable', 'cohortTimetable', 'venueTimetable', 'myRequestHistory', 'replacementHome', 'replacementArrangement', ''] as $lecturerKey) {
+            Livewire::test(NavNotifications::class, ['variant' => 'panel', 'pageKey' => $lecturerKey])
+                ->assertSee('lecturer tab row', false)
+                ->assertDontSee('PL tab row', false);
+        }
+    }
 }

@@ -124,7 +124,15 @@
 </div>
 
 {{-- Notifications panel — self-contained (overlay + dialog only) --}}
-@include('partials.ui-notifications-panel', ['pageKey' => $activeNav ?? ''])
+{{-- AD-2 tab law: the panel's viewed category is the LAYOUT'S camel $pageKey
+     (studentMyTimetable / replacementHistory / requestApproval / … — the same
+     contract the retired NOTIF_ROLE_BY_PAGE read from body[data-page]; every
+     Livewire page + legacy template publishes it). Kebab $activeNav is the
+     NAV-HIGHLIGHT key: it collides across roles (my-timetable +
+     replacement-history each serve a student AND a staff page) and must never
+     feed the panel. The $activeNav fallback = today's lecturer default for a
+     kebab-only surface (SDD notif-ad2-pagekey-tab). --}}
+@include('partials.ui-notifications-panel', ['pageKey' => $pageKey ?? $activeNav ?? ''])
 
 {{-- ─── Session warning: color the user-panel pill based on session age ───
     MOCK: authStart simulates a login timestamp 25 seconds ago so you see

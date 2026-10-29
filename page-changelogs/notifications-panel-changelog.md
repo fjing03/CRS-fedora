@@ -222,3 +222,27 @@ mounts pass the nav's kebab keys (`request-approval`) — the AD-2 per-page
 tab map NEVER engages and every panel defaults to the lecturer tab. Refer to
 the PI report for the evidence; the fix (3 lines in `NavNotifications.php`)
 awaits the user's verdict.
+
+## 2026-10-29 (lane `notif-ad2-pagekey-tab`) — the AD-2 tab map is LIVE
+
+The re-verify round's out-of-scope finding, now the user-approved fix: the
+panel always mounted the LEcas vacuum lecturer tab because
+`ui-nav-bar.blade.php:127` fed the island the nav's KEBAB `activeNav`
+(`request-approval`) while `resolveRoleView()` (correctly, per the retired
+`NOTIF_ROLE_BY_PAGE`) matches the layout's CAMEL `$pageKey`
+(`requestApproval`). Kebab keys structurally can't drive AD-2 — `my-timetable`
+and `replacement-history` each serve a student AND a staff page.
+
+- THE FIX (one line): the include now passes `$pageKey ?? $activeNav ?? ''` —
+  the layout's camel per-page key (all 9 components + all legacy templates
+  already publish it; `<body data-page>` is the same contract). The
+  component, the frozen classes/copy and the F-2 badge law untouched.
+- VISIBLE CHANGE (intended): `/request-approval-ui` → the pl tab (5425's real
+  unread row 3 renders in the list — live innerHTML receipt: roleView "pl" +
+  the `a[href="/request-approval-ui"]` anchor); the two student pages → the
+  student tab; everything else unchanged (lecturer default).
+- Receipts: the camel-key mapping test (suite 277/277; lint/phpstan green);
+  `notifications-island.spec.ts` 7/7 on :8000 with the AD-2 leg TIGHTENED to
+  pin the fixed behavior; `notifications-island-testing-db.spec.ts` 5/5 on
+  the reseeded testing DB (regression).
+- Both in-code "UNDER USER VERDICT" stale notes closed (comment-only).
