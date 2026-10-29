@@ -68,26 +68,7 @@
     @php $showEmpty = ($unreadOnly && $unreadInView === 0) || $rows->isEmpty(); @endphp
     <div class="notif-list" id="notifList" style="display: {{ $showEmpty ? 'none' : '' }}">
         @foreach($rows as $n)
-            @php $m = $minutesAgo($n->created_at); $glyph = $glyphs[$n->type] ?? $glyphs['update']; @endphp
-            @if($n->inactive_row)
-                <span class="notif-row notif-row--inactive" data-tip="This notification is inactive because the request was cancelled." aria-label="{{ $n->title }} — {{ $n->body }} (inactive)">
-                    <span class="notif-row-icon notif-tile-{{ $n->type }}"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">{!! $glyph !!}</svg></span>
-                    <span class="notif-row-body">
-                        <span class="notif-row-title">{{ $n->title }}</span>
-                        <span class="notif-row-desc">{{ $n->body }}</span>
-                    </span>
-                    <span class="notif-row-time" data-tip="{{ $absTime($m) }}" data-tip-pos="left">{{ $relTime($m) }}</span>
-                </span>
-            @else
-                <a class="notif-row{{ $n->read_at !== null ? ' notif-row--read' : '' }}" data-id="{{ $n->id }}" href="{{ $n->link }}" data-tip="{{ $n->title }} — {{ $n->body }}" aria-label="{{ $n->title }} — {{ $n->body }}">
-                    <span class="notif-row-icon notif-tile-{{ $n->type }}"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">{!! $glyph !!}</svg></span>
-                    <span class="notif-row-body">
-                        <span class="notif-row-title">{{ $n->title }}</span>
-                        <span class="notif-row-desc">{{ $n->body }}</span>
-                    </span>
-                    <span class="notif-row-time" data-tip="{{ $absTime($m) }}" data-tip-pos="left">{{ $relTime($m) }}</span>
-                </a>
-            @endif
+            @include('partials.notif-row', ['n' => $n, 'glyph' => $glyphs[$n->type] ?? $glyphs['update']])
         @endforeach
     </div>
 
