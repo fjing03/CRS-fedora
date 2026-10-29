@@ -1869,11 +1869,11 @@ function initMobileNav() {
 // user-<staffId>' + window.MockData.notifications) is RETIRED. This section
 // keeps ONLY the shell + the mark-read wiring: open/close/Esc/overlay, the
 // pageLivewire() resolver, and the D4 durable POST (durableMarkNotifRead).
-// Still-true design notes: the panel's viewed category derives from the
-// page (AD-2 — the layout's camel $pageKey, SDD notif-ad2-pagekey-tab:
-// the kebab nav key NEVER feeds the panel; it collides across roles) and
-// the badge/pill always count the whole mailbox (F-2). All element
-// lookups are guarded — the panel partial may be absent (the login pages).
+// Still-true design notes: ONE FEED (notif-unified-feed, 2026-10-29) — the
+// panel views the recipient's whole mailbox on every page; the badge/pill
+// count the same number (F-2) and the recipient sees only their own rows.
+// All element lookups are guarded — the panel partial may be absent (the
+// login pages).
 
 /* ───── Notifications (SDD notifications-real-bridge) ─────
    The bell/panel markup is SERVER-rendered by the NavNotifications islands

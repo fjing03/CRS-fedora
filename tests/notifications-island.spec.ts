@@ -3,8 +3,9 @@ import { test, expect, Page } from '@playwright/test';
 /**
  * SDD notifications-real-bridge — the notifications island receipts on the
  * LIVE DEMO DB (:8000). READ-ONLY by construction: no mark-read / mark-all /
- * row clicks happen here — only the bell/panel rendering, the caught-up
- * category-aware copy, and the poll-morph laws. The writable receipts (badge
+ * row clicks happen here — only the bell/panel rendering, the ONE-FEED
+ * cross-page consistency (notif-unified-feed, 2026-10-29 — the per-page
+ * category tabs are superseded), and the poll-morph laws. The writable receipts (badge
  * growth, durable POST badge shrink, disabled/tooltip row, mark-all zero)
  * live in notifications-island-testing-db.spec.ts against the disposable
  * testing DB (the lane's receipts strategy B) — never on this DB.
@@ -45,48 +46,43 @@ test('bell + pill carry the whole-mailbox unread total (F-2), no mock rows', asy
   expect(consoleErrors, 'no JS page errors').toEqual([]);
 });
 
-test('AD-2: the panel views the PAGE tab — pl rows render on request-approval', async ({ page }) => {
-  // pinned (SDD notif-ad2-pagekey-tab): the pageKey repair note above is
-  // HISTORY — the mount now passes the layout's camel $pageKey. Regression
-  // pin: while the mailbox total > 0 the panel LIST renders on the
-  // request-approval page and carries the pl row's /request-approval-ui
-  // anchor (the per-role link law). Tolerance: when the live DB is fully
-  // read (total = 0) the caught-up swap takes over instead; a future drift
-  // of unread LECTURER-only rows is out of the shape this pins.
-  await page.goto('/request-approval-ui?_=island-2');
-  const badge = await badgeNumber(page);
-  await page.click('button.notif-btn');
-
-  if (badge === 0) {
-    await expect(page.locator('#notifEmpty')).toContainText("You're all caught up");
-    return;
-  }
-
-  await expect(page.locator('#notifList')).toBeVisible();
-  await expect(page.locator('#notifList a[href="/request-approval-ui"]').first()).toBeVisible();
+test('ONE-FEED: the same notification list renders on every page', async ({ page }) => {
+  // SDD notif-unified-feed (2026-10-29 — supersedes the AD-2 page-category
+  // tabs): the panel shows the recipient's whole mailbox identically on
+  // every page. Relative receipt: the row set (href/identity + title) must
+  // be EQUAL across the approval / my-timetable / request-history pages.
+  const feedOf = async (path) => {
+    await page.goto(path + `?_=island-2-${Date.now()}`);
+    await page.click('button.notif-btn');
+    await page.waitForTimeout(400);
+    // read with the unread-only toggle OFF so READ rows join the visible set
+    const checked = await page.locator('#notifUnreadOnly').isChecked();
+    if (checked) { await page.click('.notif-filters .toggle-wrapper'); await page.waitForTimeout(700); }
+    const rows = await page.evaluate(() =>
+      Array.from(document.querySelectorAll('#notifList .notif-row')).map((r) =>
+        (r.getAttribute('href') || 'inactive') + '|' + (r.querySelector('.notif-row-title') || {}).textContent)
+    );
+    return rows;
+  };
+  const feedA = await feedOf('/request-approval-ui');
+  const feedB = await feedOf('/my-timetable-ui');
+  const feedC = await feedOf('/my-request-history-ui');
+  expect(feedA.length, 'a non-empty mailbox renders rows on the approval page').toBeGreaterThan(0);
+  expect(feedA, 'the SAME feed on every page (rows+order)').toEqual(feedB);
+  expect(feedB, 'the SAME feed on every page (rows+order)').toEqual(feedC);
 });
 
-test('caught-up swap is category-aware on the lecturer tab (names the total)', async ({ page }) => {
-  // on /my-timetable-ui the viewed tab is lecturer; if the only unread rows
-  // live on other tabs (e.g. the pl row), the swap names the whole total.
-  await page.goto('/my-timetable-ui?_=island-2b');
-  const badge = await badgeNumber(page);
+test('caught-up swap shows the single frozen line when the view is empty', async ({ page }) => {
+  // notif-unified-feed: the per-category "unread in other tabs" wording is
+  // retired; an empty view is always the classic caught-up line. Relative:
+  // the list renders whenever rows exist (unread-only toggle's own state).
+  await page.goto('/my-request-history-ui?_=island-2b');
   await page.click('button.notif-btn');
-
-  const empty = page.locator('#notifEmpty');
-  const list = page.locator('#notifList');
-  const listShown = !(await list.isHidden());
-
-  if (badge === 0) {
-    await expect(empty).toContainText("You're all caught up");
-  } else if (!listShown) {
-    const swap = (await empty.textContent()) ?? '';
-    expect(swap).toContain('unread in this category');
-    const named = Number((swap.match(/— (\d+) unread/) ?? [])[1]);
-    expect(named).toBe(badge);
+  const listShown = !(await page.locator('#notifList').isHidden());
+  if (listShown) {
+    await expect(page.locator('#notifEmpty')).toBeHidden();
   } else {
-    // unread rows in THIS view: the swap is hidden
-    await expect(empty).toBeHidden();
+    await expect(page.locator('#notifEmpty')).toContainText("You're all caught up");
   }
 });
 

@@ -18,18 +18,20 @@ use Livewire\Component;
  *                     caught-up swap), from the SAME unread total.
  * Both `wire:poll.10s` (updates without a page refresh — the user's ruling);
  * the read path stays the durable POST (D3) — the rows are NATIVE anchors.
- * The AD-2 viewed category derives from the page (the per-page map, never the
- * row's type). The lifecycle law: rows never delete; an inactive link target
- * renders the row disabled + the user's tooltip.
+ * ONE FEED (notif-unified-feed — the user's 2026-10-29 ruling, superseding
+ * D2's AD-2 page-category tabs): the panel shows the RECIPIENT-WIDE feed on
+ * every page — same rows, order and badge everywhere. The lifecycle law:
+ * rows never delete; an inactive link target renders the row disabled + the
+ * user's tooltip.
  */
 class NavNotifications extends Component
 {
     public string $variant = 'bell';
 
+    /** Kept ACCEPTED for mount compatibility (the panel mounts pass the page
+     *  key); it no longer selects anything — one feed per recipient, not per
+     *  page. */
     public string $pageKey = '';
-
-    /** The AD-2 viewed category — server equivalent of NOTIF_ROLE_BY_PAGE. */
-    public string $roleView = 'lecturer';
 
     /** The unread-only toggle (server-owned so the poll re-render preserves it). */
     public bool $unreadOnly = true;
@@ -38,7 +40,6 @@ class NavNotifications extends Component
     {
         $this->variant = $variant;
         $this->pageKey = $pageKey;
-        $this->roleView = $this->resolveRoleView($pageKey);
     }
 
     public function render(): View
@@ -53,13 +54,13 @@ class NavNotifications extends Component
 
             $unreadTotal = (clone $base)->whereNull('read_at')->count();
 
-            $batch = $this->resolveRequests(
+            /* ONE FEED: the viewed slice IS the recipient's whole mailbox —
+               the badge law (F-2) and the panel count are the same number. */
+            $unreadInView = $unreadTotal;
+
+            $rows = $this->resolveRequests(
                 (clone $base)->orderByDesc('created_at')->get()
             );
-
-            $rows = $batch->filter(fn (Notification $n) => $n->role_view === $this->roleView);
-
-            $unreadInView = $rows->filter(fn (Notification $n) => $n->read_at === null)->count();
 
             $rows = $this->unreadOnly
                 ? $rows->filter(fn (Notification $n) => $n->read_at === null)
@@ -80,18 +81,6 @@ class NavNotifications extends Component
             ->where('user_id', (int) Auth::id())
             ->whereNull('read_at')
             ->update(['read_at' => now()]);
-    }
-
-    /**
-     * The AD-2 map: the tab follows the PAGE, never the row's type.
-     */
-    private function resolveRoleView(string $pageKey): string
-    {
-        return match ($pageKey) {
-            'studentMyTimetable', 'replacementHistory' => 'student',
-            'requestApproval' => 'pl',
-            default => 'lecturer',
-        };
     }
 
     /**

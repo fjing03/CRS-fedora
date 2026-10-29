@@ -1,5 +1,7 @@
 {{-- SDD notifications-real-bridge: the notifications island (TWO mounts of
      ONE component; the top-level wrapper div is the Livewire root).
+     notif-unified-feed (the user's 2026-10-29 ruling): the panel shows the
+     RECIPIENT-WIDE feed on every page — no per-page category tabs.
      variant='bell'  → the bell BUTTON + the unread-TOTAL badge (the frozen
                        button markup; toggleNotifPanel() stays global).
      variant='panel' → the WHOLE #notifPanel inner content server-side (the
@@ -77,9 +79,10 @@
             <circle cx="12" cy="12" r="10"/>
             <path d="m9 12 2 2 4-4"/>
         </svg>
-        <span>{{ $userTotal
-            ? 'No unread in this category — '.$unreadTotal.' unread in other tabs'
-            : "You're all caught up" }}</span>
+        {{-- ONE FEED (notif-unified-feed): the panel views the WHOLE mailbox on
+             every page, so an empty view is simply a caught-up mailbox — the
+             per-category "unread in other tabs" wording retired with the tabs. --}}
+        <span>You're all caught up</span>
     </div>
 @endif
 </div>

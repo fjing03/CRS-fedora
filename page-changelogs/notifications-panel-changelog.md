@@ -274,3 +274,31 @@ wire POST, no 500, nothing in laravel.log.
 - The "excluded component name" record: the live first component registers
   as 'NavNotifications' (Studly) — the normalization excludes it either way
   (fold 1 of the review round settled empirically).
+
+## 2026-10-29 (lane `notif-unified-feed`) — ONE notification feed on every page
+
+The user's new ruling (supersedes D2's AD-2 page-category tabs AND absorbs
+`notif-ad2-pagekey-tab`'s mapping fix as history): all staff pages show the
+SAME recipient-wide feed — the same notifications, unread count and read
+state on every page they can open.
+
+- CHANGE (behaviour): `NavNotifications::render()` no longer filters by
+  `role_view` — the panel renders the recipient's whole mailbox
+  (`orderByDesc created_at`, the SAME order everywhere); `$unreadInView` =
+  the full-mailbox unread (the badge/pill/list states stay one number, F-2).
+  `$roleView`/`resolveRoleView()` removed; `$pageKey` still accepted at
+  mount (compat) but no longer selects anything.
+- COPY: the caught-up view is now always the single frozen line
+  "You're all caught up" — the per-category "No unread in this category — N
+  unread in other tabs" wording retired WITH the tabs (its branch is
+  unreachable under one feed). The frozen classes/ids untouched.
+- Receipts: the bridge test's mapping receipt replaced by the unified-feed
+  receipt (same rows on every pageKey + recipient isolation); :8030 matrix —
+  the 6 PL pages feed-equal (badge 4, ids+order identical, the inactive row
+  everywhere), mark-read sync via the durable POST (4→3 visible read across
+  pages), poll-driven appearance (3→4 within a cycle, no-reload sentinel),
+  the 5 non-PL pages feed-equal for 5770 with isolation (only their rows),
+  the approval page 403 for non-PL; suite 277/277; lint/phpstan green;
+  islands 7/7 on :8000.
+- The demo receipt `notifications` id 2 removal stays a separate user-run
+  DB step (docs/demo-db-data-changes.md carries its rollback).

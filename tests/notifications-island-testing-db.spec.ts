@@ -50,12 +50,12 @@ function sweepFixtures(): void {
 
 function insertLecturerRow(userId: number): void {
   sql(`INSERT INTO notifications (user_id, role_view, type, title, body, link, request_id, class_session_id, week, read_at, created_at, updated_at)
-       VALUES (${userId}, 'lecturer', 'update', '${FIXTURE_TITLE} — visible on the lecturer tab', 'BMSE3153 (P) · W14 · fixture row', '/my-request-history-ui', NULL, NULL, 14, NULL, now(), now());`);
+       VALUES (${userId}, 'lecturer', 'update', '${FIXTURE_TITLE} — a visible fixture row', 'BMSE3153 (P) · W14 · fixture row', '/my-request-history-ui', NULL, NULL, 14, NULL, now(), now());`);
 }
 
 function insertCancelledLinkRow(userId: number): void {
   // a REAL cancelled request + a notification pointing at it — the D4
-  // lifecycle's disabled render (lecturer tab: seen on the default pages)
+  // lifecycle's disabled render (any page: the one-feed panel shows it everywhere)
   sql(`INSERT INTO replacement_requests (semester_id, proposer_id, class_session_id, week_number, replacement_time_slot_id, status, submitted_at, created_at, updated_at)
        VALUES (1, ${userId}, 23, 8, 32612, 'cancelled', now(), now(), now());`);
   const reqId = execSync(PSQL + JSON.stringify(`SELECT id FROM replacement_requests WHERE status = 'cancelled' ORDER BY id DESC LIMIT 1`)).toString().trim();
