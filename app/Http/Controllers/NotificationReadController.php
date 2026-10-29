@@ -27,14 +27,4 @@ final class NotificationReadController extends Controller
 
         return response()->json(['ok' => true]);
     }
-
-    public function readAll(): JsonResponse
-    {
-        Notification::query()
-            ->where('user_id', (int) Auth::id())
-            ->whereNull('read_at')
-            ->update(['read_at' => now()]);
-
-        return response()->json(['ok' => true]);
-    }
 }

@@ -107,5 +107,8 @@ Route::middleware(['auth'])->group(function () {
        navigation (the D4 law with the DB read_at state). Idempotent,
        auth-scoped. */
     Route::post('notifications/read', [NotificationReadController::class, 'read'])->name('notifications.read');
-    Route::post('notifications/read-all', [NotificationReadController::class, 'readAll'])->name('notifications.readAll');
+    /* 2026-10-29: POST /notifications/read-all DELETED — the user's Option A
+       ruling. The mark-all is the island's wire:click="markAll" (instant
+       badge/list zeroing); nothing ever called the endpoint. The row-click
+       durable POST above stays EXACTLY as is (the D4 law). */
 });
