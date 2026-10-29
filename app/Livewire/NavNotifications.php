@@ -54,7 +54,7 @@ class NavNotifications extends Component
             $unreadTotal = (clone $base)->whereNull('read_at')->count();
 
             $batch = $this->resolveRequests(
-                (clone $base)->with('request')->orderByDesc('created_at')->get()
+                (clone $base)->orderByDesc('created_at')->get()
             );
 
             $rows = $batch->filter(fn (Notification $n) => $n->role_view === $this->roleView);
@@ -119,8 +119,13 @@ class NavNotifications extends Component
             ->pluck('status', 'id');
 
         foreach ($rows as $row) {
+            // D4's written law: the request missing OR status = 'cancelled'
+            // renders the row disabled. (The missing status is reachable only
+            // by data drift — the FK is nullOnDelete — the branch is the law
+            // made defensive.)
+            $status = $statuses->get((int) $row->request_id);
             $row->setAttribute('inactive_row', $row->request_id !== null
-                && $statuses->get((int) $row->request_id, 'missing') === 'cancelled');
+                && ($status === null || $status === 'cancelled'));
         }
 
         return $rows;

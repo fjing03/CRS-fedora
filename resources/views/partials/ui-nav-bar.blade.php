@@ -50,8 +50,9 @@
         </button>
 
         {{-- SDD notifications-real-bridge: the bell + the unread-TOTAL badge
-             are the bell VARIANT of the island (wire:poll.10s — the badge
-             updates itself, no page refresh). --}}
+             are the bell VARIANT of the island (wire:poll.10s.visible — the
+             badge updates itself, no page refresh; the poll pauses only when
+             this island is off the viewport, which keeps the bell alive). --}}
         @livewire(NavNotifications::class, ['variant' => 'bell'], key('notif-bell'))
 
         <div class="user-panel" id="userPanel">
