@@ -1886,15 +1886,20 @@ function initMobileNav() {
  *  the bell island renders BEFORE the page content, so Livewire.first() now
  *  resolves to nav-notifications and page actions (approve/reject/cancel/
  *  intentSessionOptions/submitBlocks/cancelClass) would miss their methods.
- *  The house's page actions must ALWAYS hop onto the page component. */
+ *  The house's page actions must ALWAYS hop onto the page component.
+ *  Livewire-4 shape note (pagelivewire-wire-call-shape, 2026-10-29): all()
+ *  returns RAW Component objects (no .call); the call API lives on $wire
+ *  (aliases call->$call) — the resolver returns comp.$wire; the island
+ *  exclusion is spelling-agnostic (the registered name form varied). */
 window.pageLivewire = function () {
     if (!window.Livewire) return null;
     const all = window.Livewire.all ? window.Livewire.all() : [];
     const page = all.find(function (c) {
-        const name = (c.name || (c.snapshot && c.snapshot.memo && c.snapshot.memo.name) || '');
-        return name !== 'nav-notifications';
+        const name = String((c.name || (c.snapshot && c.snapshot.memo && c.snapshot.memo.name) || '')).toLowerCase();
+        return name !== 'navnotifications' && name !== 'nav-notifications';
     });
-    return page || (all[0] || null);
+    if (!page) return null;
+    return page.$wire ? page.$wire : page;   // Livewire 4: the call API lives on $wire
 };
 
 /** Durable mark-read: idempotent, auth-scoped, keepalive. */

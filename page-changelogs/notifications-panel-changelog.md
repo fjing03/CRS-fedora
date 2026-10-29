@@ -246,3 +246,31 @@ and `replacement-history` each serve a student AND a staff page.
   pin the fixed behavior; `notifications-island-testing-db.spec.ts` 5/5 on
   the reseeded testing DB (regression).
 - Both in-code "UNDER USER VERDICT" stale notes closed (comment-only).
+
+## 2026-10-29 (lane `pagelivewire-wire-call-shape`) — pageLivewire() actually works now
+
+The investigation_root_cause from the post-apply bug round (Bugs 1–4/7/8 "no
+visible response", zero server logs): the committed pageLivewire() (6be2235)
+returned the RAW Component object — in Livewire 4.3.3 `all()` yields raw
+components WITHOUT .call (the call API lives on `.$wire`; only the legacy
+`first()`/`find()` helpers returned `$wire`) and the kebab name-compare
+missed the live-registered form (`NavNotifications`). Every page action died
+client-side as `TypeError: pageLivewire(...).call is not a function` — no
+wire POST, no 500, nothing in laravel.log.
+
+- FIX (one function, lives with the 8 call sites untouched):
+  `ui-common.js` — spelling-agnostic island exclusion (normalized
+  `navnotifications` / `nav-notifications`) + `return page.$wire ? page.$wire
+  : page` (the SAME object shape the pre-hotfix house law returned). A page
+  with no page component returns null (honest, and the stub pages' failure
+  class is unchanged).
+- Receipts: the resolver's .call is a function on every page (:8000 probe);
+  the venue read-only intentSessionOptions through the REAL resolver → wire
+  200 + the real payload; :8030 UI chains — cancelRequest completed
+  (cancelled 0→1, audit +1), approve/reject confirm clicks emitted 200s and
+  surfaced the actions' own OCC verdicts; cancelClass fan-out earlier proven
+  (+18 notification rows, audit, exception via the fixed shape). Islands
+  7/7; the full suite 277/277; node --check pass.
+- The "excluded component name" record: the live first component registers
+  as 'NavNotifications' (Studly) — the normalization excludes it either way
+  (fold 1 of the review round settled empirically).
