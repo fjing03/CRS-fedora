@@ -188,4 +188,77 @@ final class NotificationsBridgeTest extends TestCase
         Livewire::test(NavNotifications::class, ['variant' => 'panel', 'pageKey' => 'requestApproval'])
             ->assertSeeHtml('href="/request-approval-ui"', false);
     }
+
+    public function test_rejected_rows_reach_the_proposer_with_the_frozen_tile_and_link(): void
+    {
+        // the rejected event was never receipted in the apply pass — D3/D7 law
+        $request = $this->seedRequest();
+        $owner = $this->coordinator();
+        app(NotificationEmitter::class)->requestDecided(
+            $owner, 'rejected', 'BMSE3153', 'P', (int) $request->id, 8, 'Mohd Nur Rahmat Bin Mohd Taat', 'Venue unavailable'
+        );
+
+        $row = Notification::query()->where('type', 'rejected')->firstOrFail();
+        $this->assertSame($owner->id, $row->user_id);
+        $this->assertSame('lecturer', $row->role_view);
+        $this->assertSame('/my-request-history-ui', $row->link);
+        $this->assertNull($row->read_at);
+        $this->assertStringContainsString('rejected by Mohd Nur Rahmat Bin Mohd Taat', $row->body);
+        $this->assertStringContainsString('· Venue unavailable', $row->body, 'the mandatory reject reason lands in the body');
+    }
+
+    public function test_mark_read_endpoint_is_idempotent_and_auth_scoped(): void
+    {
+        $request = $this->seedRequest();
+        $this->submitEvent($request->id); // one unread row per DCIT PL (users 1 + 2)
+
+        $mine = Notification::query()->where('user_id', 1)->where('type', 'submitted')->firstOrFail();
+        $other = Notification::query()->where('user_id', 2)->where('type', 'submitted')->firstOrFail();
+
+        // scope: another user's own row never gets touched by MY request
+        $this->actingAs(User::query()->findOrFail(2));
+        $this->postJson('/notifications/read', ['id' => $mine->id])->assertOk();
+        $this->assertNull($mine->fresh()->read_at, 'the endpoint must never mark ANOTHER user’s row');
+
+        $this->postJson('/notifications/read', ['id' => $other->id])->assertOk();
+        $firstReadAt = $other->fresh()->read_at;
+        $this->assertNotNull($firstReadAt);
+
+        // idempotency: a second POST is a NO-OP (whereNull(read_at) guard) —
+        // read_at must NOT advance
+        Date::setTestNow(Date::now()->addMinutes(5));
+        $this->postJson('/notifications/read', ['id' => $other->id])->assertOk();
+        $this->assertTrue($other->fresh()->read_at->equalTo($firstReadAt), 'the second mark-read must not bump read_at');
+
+        // scope: an unknown id stays a harmless ok (the update matches nothing)
+        $this->postJson('/notifications/read', ['id' => 999999])->assertOk();
+
+        // a guest gets no bypass — the auth middleware bounces them to login
+        $this->app['auth']->guard('web')->forgetUser();
+        $this->from('/my-timetable-ui')->post('/notifications/read', ['id' => $other->id])
+            ->assertRedirect();
+    }
+
+    public function test_the_island_renders_with_exactly_one_replacement_requests_query(): void
+    {
+        // D4's batch-resolve N+1 law (round-2 🟡): ONE whereIn on
+        // replacement_requests per island render — never a per-row find() (+
+        // the PI re-verify receipt: the old ->with('request') eager load was a
+        // SECOND whereIn and dead work; dropped).
+        $request = $this->seedRequest();
+        $this->submitEvent($request->id);
+
+        $replacementQueries = [];
+        \DB::listen(function ($q) use (&$replacementQueries): void {
+            if (str_contains($q->sql, 'replacement_requests')) {
+                $replacementQueries[] = $q->sql;
+            }
+        });
+
+        $this->actingAs($this->pl());
+        Livewire::test(NavNotifications::class, ['variant' => 'panel', 'pageKey' => 'requestApproval']);
+
+        $this->assertCount(1, $replacementQueries, 'exactly ONE replacement_requests query per render (the batch whereIn), got: '.implode(' | ', $replacementQueries));
+        $this->assertStringContainsString(' in (', $replacementQueries[0], 'the ONE query is the batch whereIn');
+    }
 }
