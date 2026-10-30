@@ -407,6 +407,12 @@ class WeekNavigator {
         this._updateProgress();
         this._scrollToGrid();
         this.save();
+        /* notif-jump-flash-family: the today column FLASHES after the jump
+           — the same bookable family pulse the earliestBtn jump uses
+           (jump-then-pulse shape). */
+        setTimeout(() => {
+            document.querySelectorAll('td.today-cell').forEach((td) => flashRowPulse(td));
+        }, 250);
     }
 
     prevWeek() {
@@ -2349,13 +2355,15 @@ class HtmlBuilder {
         var urgencyText = '';
         if (opts.urgencyLevel && opts.urgencyClass && opts.urgencyLabel) {
             var level = opts.urgencyLevel(r.classDate);
-            urgencyHtml = '<span class="urgency-badge ' + opts.urgencyClass(level) + '">' + opts.urgencyLabel(level) + '</span>';
+            var urgencyTipAttr = (opts.urgencyTip && opts.urgencyTip(r)) ? ' data-tip="' + opts.urgencyTip(r) + '"' : '';
+            urgencyHtml = '<span class="urgency-badge ' + opts.urgencyClass(level) + '"' + urgencyTipAttr + '>' + opts.urgencyLabel(level) + '</span>';
             urgencyText = opts.urgencyLabel(level);
         }
         var ageHtml = opts.requestAgeHtml ? opts.requestAgeHtml(r.requestedAt, urgencyText) : '';
+        var statusTip = (opts.statusTip && opts.statusTip(r.status)) ? ' data-tip="' + opts.statusTip(r.status) + '"' : '';
         return '<div class="card-header">' +
             '<span class="card-code">#' + r.id + '</span>' +
-            '<span class="badge ' + statusClass(r.status) + '">' + r.status + '</span>' +
+            '<span class="badge ' + statusClass(r.status) + '"' + statusTip + '>' + r.status + '</span>' +
             '</div>' +
             '<div class="card-body">' +
             '<div><strong>Course:</strong> ' + r.courseCode + ' - ' + r.courseName + '</div>' +
@@ -2372,9 +2380,10 @@ class HtmlBuilder {
         var dateStr = DateHelper.formatDate(r.classDate);
         var timeStr = DateHelper.to12h(r.timeStart) + ' – ' + DateHelper.to12h(r.timeEnd);
         var ageHtml = opts.requestAgeHtml ? opts.requestAgeHtml(r.requestedAt) : '';
+        var statusTip = (opts.statusTip && opts.statusTip(r.status)) ? ' data-tip="' + opts.statusTip(r.status) + '"' : '';
         return '<div class="card-header">' +
             '<span class="card-code">' + r.courseCode + ' (' + typeLabel + ')</span>' +
-            '<span class="badge ' + statusClass(r.status) + '">' + r.status + '</span>' +
+            '<span class="badge ' + statusClass(r.status) + '"' + statusTip + '>' + r.status + '</span>' +
             '</div>' +
             '<div class="card-body">' +
             '<strong>' + r.courseName + '</strong><br>' +

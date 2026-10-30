@@ -1,5 +1,35 @@
 # Changelog — Lecturer My Request History
 
+## 2026-10-30 (SDD `status-tooltips-filter-chips`) — status badges explain themselves + a real Clear-all
+
+**a) Status tooltips** (the user's frozen wording, shared `data-tip` — the
+existing tooltip design, fixed **ABOVE** the element, works on dynamic
+HTML): a page-local `statusTooltip(status)` map + `statusTipAttr()` now
+tag EVERY status-badge build site — the desktop table row (keeps its
+`onclick`), the quickCancel dialog badge, the batchCancelSelected dialog
+badge, the detail-modal Status row, and the **mobile card** (threaded via
+the new `opts.statusTip` into the shared `HtmlBuilder.myRequestCard` —
+absent opt keeps every other call site byte-identical). Tips: Pending →
+"Your request has been Submitted and is AWAITING the Programme Leader's
+decision (Approve or Reject)." / Approved → "The Programme Leader has
+APPROVED your request." / Rejected → "The Programme Leader has REJECTED
+your request." / Cancelled → "You MANUALLY CANCELLED this request." /
+Completed → "The replacement class has been CONDUCTED — this request is
+complete." Badge colours, clicks, layout untouched.
+
+**b) Filter bar** — the reset button `#clearFilters` → **`#resetFilters`**
+(behaviour unchanged) and its tip upgraded to "Reset all filters to
+DEFAULT"; the inline reset body was extracted into a named
+`resetAllFilters()` (same defaults: search cleared, status/week → all,
+Exclude Completed → checked, `mrh-filters` storage dropped, page → 1) used
+by BOTH the reset button and the new **Clear all** chip
+(`filter-chip filter-chip-clear-all`, neutral dashed pill in theme.css,
+tip "Remove every active filter") that rides the `#filterChips` innerHTML
+rebuild while any chip exists — it really resets every control (never a
+visual hide; the default `Exclude Completed` chip legitimately remains).
+Individual ✕ chip removes untouched. Verified: pint + phpstan(1G) +
+`tests/status-tooltips-filter-chips.spec.ts` (see the change-level log).
+
 ## 2026-10-25 (the user's consistency follow-up) — the toolbar speaks the SAME hints as request-approval
 
 Every toolbar element now carries the shared hover hint (`data-tip`, fixed
@@ -629,3 +659,24 @@ now shows `replacementVenue` (B002, the booked make-up room, matching the Reques
   (it joined whenever `cohortCounts` existed). Now single-cohort keeps the plain
   count; multi-cohort keeps `A + B = total` (the same law the class modals follow).
   Call site now `window.cohortBreakdown(r)`.
+
+## 2026-10-30 (lane `notif-jump-flash-family`) — the today column + the summary-card jump flash like the earliestBtn
+
+The user's refinement: the two remaining jump flows must flash EXACTLY like
+the #earliestBtn jump (the bookable-pulse family):
+
+1. The TODAY button (every timetable/venue page): the WeekNavigator class
+   method jumpToToday now flashes the today column after the build + scroll
+   (the td.bookable-flash theme arm; 22 cells on the my-timetable/cohort
+   grids, self-cleaning ~1.15 s) — receipted on :8000.
+2. The sel-summary-card jump (replacement-arrangement): navigateToSavedBlock
+   now calls the NEW flashTargetCell (the success-family pulse via the
+   shared flashRowPulse); the four blocked-cell callers keep the blue
+   attention ring (the same-color-same-meaning canon — receipted).
+- 🔴 APPLY-ROUND FIND: the old call passed block.day (the day OBJECT) — the
+  pulse was a silent no-op even in the f4005cc receipted chain; the fix
+  passes block.dayIdx (receipted live: .cell-content.bookable-flash on the
+  clicked summary card's cell).
+- theme.css gains the two CELL arms (the same bookable-pulse keyframes —
+  no new colors). The summary-card's flash runs after the ~500 ms settle
+  (the earliest flow's jump-then-pulse shape).

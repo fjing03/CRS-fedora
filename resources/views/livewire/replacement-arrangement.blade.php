@@ -3001,6 +3001,17 @@ slotLine = 'Week ' + (anchorSlot.week + 1) + ' · ' + ((weekdayName && weekdayNa
             setTimeout(function() { cell.classList.remove('attention-pulse'); }, 1300);
         }
 
+        /* notif-jump-flash-family: the summary-card jump gets the SAME
+           bookable-family flash as the #earliestBtn (the jumping-target
+           pulse via the shared flashRowPulse); the blocked-cell callers
+           keep pulseTargetCell's attention ring (the same-color law). */
+        function flashTargetCell(dayIndex, hourIndex) {
+            const cell = document.querySelector(`#tableBody td[data-day="${dayIndex}"][data-hour="${hourIndex}"] .cell-content`);
+            if (!cell) return;
+            cell.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+            flashRowPulse(cell);
+        }
+
         /* Whether the booked slot can be auto-selected is known once the grid sits
            on the booked venue — evaluated at the end of applyUrlParams, i.e. on
            arrival and before any user interaction. If it can't fit, the user is
@@ -3154,11 +3165,11 @@ slotLine = 'Week ' + (anchorSlot.week + 1) + ' · ' + ((weekdayName && weekdayNa
                 venueDropdown.select(venueKey);
                 applyVenueChange(venueKey);
                 revertingChange = false;
-                if (block) pulseTargetCell(block.day, block.startHour);
+                if (block) flashTargetCell(block.dayIdx, block.startHour);
                 return;
             }
             revertingChange = false;
-            if (block) pulseTargetCell(block.day, block.startHour);
+            if (block) flashTargetCell(block.dayIdx, block.startHour);
         }
 
         function removeSavedBlock(venueKey, weekKey) {

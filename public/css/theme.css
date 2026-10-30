@@ -2311,6 +2311,11 @@ tr.bookable-flash > td { animation: bookable-pulse 1.15s ease-in-out 1; }
 /* notif-click-highlight (lane-owned arm): the my-timetable s-target flash —
    the default grid's event cells animate directly (the same pulse) */
 .event-block.bookable-flash { animation: bookable-pulse 1.15s ease-in-out 1; }
+/* notif-jump-flash-family (lane-owned arms): the CELL dimension — the
+   today column and the arrangement's selected-cell target share the same
+   bookable-pulse (the exact earliestBtn look) */
+td.bookable-flash { animation: bookable-pulse 1.15s ease-in-out 1; }
+.cell-content.bookable-flash { animation: bookable-pulse 1.15s ease-in-out 1; }
 
 /* ── Bookable badge ("Bookings open" on the earliest bookable day) ──
    Same geometry as the Today/OFF/Holiday badge family; success green =
@@ -3590,6 +3595,18 @@ body {
     transition: background 0.15s;
 }
 .filter-chip-remove:hover { background: var(--color-primary); color: var(--color-on-primary); }
+/* "Clear all" action — neutral pill (SDD status-tooltips-filter-chips).
+   The double class beats .filter-chip's filled background without !important. */
+.filter-chip.filter-chip-clear-all {
+    background: transparent;
+    border: 1px dashed var(--color-outline-strong);
+    color: var(--color-on-surface-variant);
+    cursor: pointer;
+}
+.filter-chip.filter-chip-clear-all:hover {
+    border-color: var(--color-error);
+    color: var(--color-error);
+}
 
 /* ── Title Subtitle ────────────────────────────────────────────── */
 .title-subtitle {
