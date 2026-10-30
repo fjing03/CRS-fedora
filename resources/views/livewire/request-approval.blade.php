@@ -70,6 +70,7 @@
         .urgency-badge { display: inline-block; padding: 2px 8px; border-radius: var(--radius-md); font-size: 11px; font-weight: 600; }
         .urgency-urgent { background: var(--color-error-container); color: var(--color-on-error-container); }
         .urgency-normal { background: var(--color-success-container); color: var(--color-on-success-container); }
+        .urgency-overdue { background: var(--color-error); color: var(--color-on-error); }
 
         /* ───── Action Buttons ───── */
         .btn-approve { padding: 4px 10px; border-radius: var(--radius-sm); border: 1px solid var(--color-success); background: transparent; color: var(--color-success); font-size: 12px; font-weight: 500; cursor: pointer; transition: background 0.15s, color 0.15s; }
@@ -268,7 +269,7 @@
             <span class="toggle-track"><span class="toggle-thumb"></span></span>
             <span class="toggle-label">Exclude Completed</span>
         </label>
-        <button class="btn-clear" id="clearFilters" data-tip="Reset all filters">Reset Filters</button>
+        <button class="btn-clear" id="resetFilters" data-tip="Reset all filters to DEFAULT">Reset Filters</button>
     </div>
     <div class="toolbar-right">
         <span class="result-count" id="resultCount" data-tip="Rows matching the current filters"></span>
@@ -405,22 +406,53 @@
 
         // ── Page-local urgency helpers ──
         function urgencyLevel(classDate) {
-            const target = new Date(classDate + 'T00:00:00');
-            const diffDays = Math.ceil((target - MockData.urgencyReferenceDate) / (1000 * 60 * 60 * 24));
-            return diffDays <= 3 ? 'urgent' : 'normal';
+            var d = urgencyDays(classDate);
+            return d < 0 ? 'overdue' : (d <= 3 ? 'urgent' : 'normal');
         }
 
         function urgencyClass(level) {
-            return level === 'urgent' ? 'urgency-urgent' : 'urgency-normal';
+            return level === 'overdue' ? 'urgency-overdue' : level === 'urgent' ? 'urgency-urgent' : 'urgency-normal';
         }
 
         function urgencyLabel(level) {
-            return level === 'urgent' ? 'Urgent' : 'Normal';
+            return level === 'overdue' ? 'Overdue' : level === 'urgent' ? 'Urgent' : 'Normal';
         }
 
         function urgencyDays(classDate) {
             const target = new Date(classDate + 'T00:00:00');
             return Math.ceil((target - MockData.urgencyReferenceDate) / (1000 * 60 * 60 * 24));
+        }
+
+        function urgencyMatches(level, filter) {
+            if (filter === 'urgent') return level === 'urgent' || level === 'overdue';
+            return level === filter;
+        }
+
+        function urgencyTip(r) {
+            var n = urgencyDays(r.classDate);
+            var level = urgencyLevel(r.classDate);
+            if (level === 'overdue') {
+                return 'Overdue — ' + Math.abs(n) + (Math.abs(n) === 1 ? ' day' : ' days') + ' past the Proposed Class.';
+            }
+            if (n === 0) {
+                return 'Urgent — the Proposed Class is TODAY.';
+            }
+            return (level === 'urgent' ? 'Urgent — ' : 'Normal — ') + n + (n === 1 ? ' day' : ' days') + ' left before the Proposed Class.';
+        }
+
+        // Status tooltips
+        function statusTooltip(status) {
+            var map = {
+                Pending: "This request is AWAITING your review and decision (Approve or Reject).",
+                Approved: "You have APPROVED this request.",
+                Rejected: "You have REJECTED this request."
+            };
+            return map[status] || '';
+        }
+
+        function statusTipAttr(status) {
+            var t = statusTooltip(status);
+            return t ? ' data-tip="' + t + '"' : '';
         }
 
         // ── Lecturer lookup + copy email ──
@@ -499,7 +531,7 @@
                 +     '<span class="approval-id">#' + r.id + '</span>'
                 +     '<span class="cell-code">' + escHtml(r.courseCode) + '</span>'
                 +     slotBadge
-                +     '<span class="urgency-badge ' + urgencyClass(level) + '">' + urgencyLabel(level) + '</span>'
+                +     '<span class="urgency-badge ' + urgencyClass(level) + '" data-tip="' + urgencyTip(r) + '">' + urgencyLabel(level) + '</span>'
                 +   '</div>'
                 +   '<div class="approval-course">' + escHtml(r.courseName) + ' <span class="approval-classtype">[' + escHtml(r.classType) + ']</span></div>'
                 +   '<div class="approval-lecturer"><span class="lecturer-avatar">' + escHtml(initials) + '</span><span>' + lecturerHtml + '</span></div>'
@@ -559,7 +591,7 @@
             { label: 'Original Class', sortable: true, field: 'classDate', tip: 'Original class the request refers to — its state varies (still upcoming, replaced, cancelled, holiday, etc.)' },
             { label: 'Proposed Replacement', sortable: true, field: 'replacementDate', tip: 'Proposed new date, time, and venue' },
             { label: 'Students', sortable: true, field: 'totalStudents', tip: 'Number of students enrolled' },
-            { label: 'Urgency', sortable: true, field: 'urgencyDays', tip: 'Days until the original class: ≤3 days = Urgent (red), 4+ days = Normal' },
+            { label: 'Urgency', sortable: true, field: 'urgencyDays', tip: 'Days until the original class: past = Overdue (solid red), ≤3 days = Urgent (red), 4+ days = Normal' },
             { label: 'Status', sortable: true, field: 'status', tip: 'Current approval status' },
             { label: 'Actions', sortable: false, tip: 'Approve or reject this request' }
         ];
@@ -629,7 +661,7 @@
             });
 
             if (urgencyFilter !== 'all') {
-                result = result.filter(r => urgencyLevel(r.classDate) === urgencyFilter);
+                result = result.filter(r => urgencyMatches(urgencyLevel(r.classDate), urgencyFilter));
             }
 
             return result;
@@ -643,7 +675,7 @@
             let rowClass = '';
             if (isViewed) rowClass += ' row-viewed';
             if (isSelected) rowClass += ' row-selected';
-            if (level === 'urgent') rowClass += ' row-urgent';
+            if (level === 'urgent' || level === 'overdue') rowClass += ' row-urgent';
             else if (urgencyDays(r.classDate) <= 7) rowClass += ' row-soon';
 
             var lecName = (typeof lookupLecturer === 'function' && lookupLecturer(r.lecturer)) ? lookupLecturer(r.lecturer).name : r.lecturer;
@@ -675,8 +707,8 @@
             html += '<td class="col-replacement">' + HtmlBuilder.replacementBlock(r, { colorStatus: false, slotBadge: slotBadge }) + '</td>';
 
             html += '<td>' + r.totalStudents + '</td>';
-            html += '<td><span class="urgency-badge ' + urgencyClass(level) + '">' + urgencyLabel(level) + '</span></td>';
-            html += '<td><span class="badge ' + statusClass(r.status) + '" onclick="openModalById(' + r.id + ')" style="cursor:pointer">' + r.status + '</span></td>';
+            html += '<td><span class="urgency-badge ' + urgencyClass(level) + '" data-tip="' + urgencyTip(r) + '">' + urgencyLabel(level) + '</span></td>';
+            html += '<td><span class="badge ' + statusClass(r.status) + '"' + statusTipAttr(r.status) + ' onclick="openModalById(' + r.id + ')" style="cursor:pointer">' + r.status + '</span></td>';
 
             const actions = r.status === 'Pending'
                 ? '<div class="action-row"><button class="btn-approve" onclick="event.stopPropagation();approveRequest(' + r.id + ')">✓ Approve</button><button class="btn-reject" onclick="event.stopPropagation();openRejectModal(' + r.id + ')">✕ Reject</button></div>'
@@ -768,10 +800,10 @@
             updatePagination();
         }
 
-        // ── Update result count ──
-        function updateResultCount() {
-            document.getElementById('resultCount').textContent = currentFiltered.length + ' result' + (currentFiltered.length !== 1 ? 's' : '');
-        }
+        /* ── Update result count — the page-local shadow DELETED (SDD
+           ra-result-count-showing-of): renderTable() now calls the SHARED
+           ui-common.js updateResultCount with the same cfg my-request-history
+           uses — the identical 'Showing X of Y results' format. ── */
 
         // ── Active filter chips ──
         function renderFilterChips() {
@@ -798,7 +830,10 @@
             if (hideCompleted) {
                 chips.push('<span class="filter-chip">Exclude Completed<button class="filter-chip-remove" onclick="document.getElementById(\'hideCompletedToggle\').checked=false;toggleHideCompleted()" data-tip="Remove">&times;</button></span>');
             }
-            container.innerHTML = chips.length > 0 ? '<span class="filter-chips-label">Filters:</span>' + chips.join('') : '';
+            if (chips.length > 0) {
+                chips.push('<button type="button" class="filter-chip filter-chip-clear-all" data-tip="Remove every active filter" onclick="resetFilters()">Clear all</button>');
+            }
+            container.innerHTML = chips.length > 0 ? '<span class="filter-chips-label">Active Filters:</span>' + chips.join('') : '';
         }
 
         // ── Main render ──
@@ -808,7 +843,7 @@
             renderBody();
             updateSummary();
             updatePagination();
-            updateResultCount();
+            updateResultCount({ elId: 'resultCount', data: currentFiltered, total: MockData.approvalRequests.length, label: 'results' });
             renderCards();
             renderFilterChips();
         }
@@ -827,7 +862,9 @@
                     urgencyLevel: urgencyLevel,
                     urgencyClass: urgencyClass,
                     urgencyLabel: urgencyLabel,
-                    requestAgeHtml: requestAgeHtml
+                    urgencyTip: urgencyTip,
+                    requestAgeHtml: requestAgeHtml,
+                    statusTip: statusTooltip
                 });
                 card.addEventListener('click', function() { openModalById(r.id); });
                 container.appendChild(card);
@@ -935,7 +972,7 @@
             reqRows += DetailModal.row('Subject Code', r.courseCode, { strong: true });
             reqRows += DetailModal.row('Subject Name', r.courseName);
             reqRows += DetailModal.row('Requested', formatDateTime(r.requestedAt));
-            reqRows += DetailModal.row('Status', '<span class="badge ' + statusClass(r.status) + '">' + r.status + '</span>');
+            reqRows += DetailModal.row('Status', '<span class="badge ' + statusClass(r.status) + '"' + statusTipAttr(r.status) + '>' + r.status + '</span>');
             reqRows += DetailModal.row('Status Description', statusDescMap[r.status] || '');
             if (r.rejectionReason) {
                 reqRows += DetailModal.row('Rejection Reason', r.rejectionReason, { strong: true });
@@ -1255,7 +1292,7 @@
                 rebuildTable({ render: renderTable });
                 saveFilters();
             });
-            document.getElementById('clearFilters').addEventListener('click', resetFilters);
+            document.getElementById('resetFilters').addEventListener('click', resetFilters);
 
             document.getElementById('modalOverlay').addEventListener('click', function(e) {
                 if (e.target === this) closeModal();

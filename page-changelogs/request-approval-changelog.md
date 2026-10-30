@@ -1,5 +1,46 @@
 # Request Approval — changelog
 
+## 2026-10-30 (SDD `status-tooltips-filter-chips`) — status/urgency tooltips, the real Overdue badge, filter-bar upgrade
+
+**a) Status tooltips** (the user's frozen wording; shared `data-tip`,
+**ABOVE** the element): page-local `statusTooltip()` map + `statusTipAttr()`
+tag the queue-table badge (keeps its `onclick`), the detail-modal Status
+row, and the **mobile card** (new `opts.statusTip` into the shared
+`HtmlBuilder.requestCard` — absent opt byte-identical). Tips (the 3
+statuses this queue renders): Pending → "This request is AWAITING your
+review and decision (Approve or Reject)." / Approved → "You have APPROVED
+this request." / Rejected → "You have REJECTED this request."
+
+**b) The Overdue urgency level (the user's sanctioned badge-logic change —
+presentation only; status logic/DB/queue untouched).** `urgencyLevel()`
+now consumes `urgencyDays()` (`d < 0 → 'overdue'`); `urgencyClass` →
+`urgency-overdue`, `urgencyLabel` → **Overdue**; new solid-red pill
+`.urgency-overdue { background: var(--color-error); color:
+var(--color-on-error) }` (tokens only — same red family, one severity
+step up from Urgent's translucent container); overdue rows keep the
+`row-urgent` highlight; **the Urgent filter still matches overdue rows**
+(new `urgencyMatches()` — the silent-drop law; the all/urgent/normal
+button set NOT extended; Normal filtering unchanged). Dynamic urgency
+tooltips via `urgencyTip(r)` (N computed at render, singular "day", N=0 →
+"Urgent — the Proposed Class is TODAY.") on the confirm-modal badge, the
+table cell, and the mobile card (`opts.urgencyTip`); the Urgency
+column-header tip synced to the three-level copy ("past = Overdue (solid
+red), ≤3 days = Urgent (red), 4+ days = Normal") so it stays truthful.
+Age chips flow the new label ("… · Urgency: Overdue" — reads correctly).
+
+**c) Filter bar** — `#clearFilters` → **`#resetFilters`** (behaviour
+unchanged) with the tip "Reset all filters to DEFAULT"; the bar label
+`Filters:` → **`Active Filters:`** (now identical to my-request-history);
+a **Clear all** chip (`filter-chip filter-chip-clear-all`, neutral dashed
+pill in theme.css, tip "Remove every active filter") rides the chips
+innerHTML rebuild while any chip exists and triggers the EXISTING
+`resetFilters()` verbatim (one function, two triggers — real reset, never
+a visual hide; the default `Status: Pending` + `Exclude Completed` chips
+legitimately remain). Individual ✕ chip removes untouched. Verified:
+pint + phpstan(1G) + `tests/status-tooltips-filter-chips.spec.ts` (see the
+change-level log).
+
+
 ## 2026-10-25 (the user's part 2) — the Exclude Completed chip + hover hints on EVERY toolbar element
 
 **a) Chip parity with my-request-history:** `renderFilterChips()` now pushes
@@ -157,3 +198,26 @@ the payload's positional `cohortCounts` (ReplacementRequestMapper already emitte
 that field; mock `requests` carried it too — no payload work needed). Single-cohort
 rows keep the plain count. List-table "Students" column stays the plain number
 (compact column, not a modal row).
+
+## 2026-10-30 (lane `ra-result-count-showing-of`) — the result counter matches the house format
+
+The result counter rendered a bare runtime count (`X result(s)`) via a
+page-local `updateResultCount()` shadow — every other list page uses the
+shared `updateResultCount(cfg)` helper's `Showing X of Y results` format.
+The user ruled: match my-request-history.
+
+- FIX: the page-local function DELETED; the single renderTable() call site
+  calls the SHARED helper with the frozen cfg
+  (`elId: 'resultCount', data: currentFiltered, total:
+  MockData.approvalRequests.length, label: 'results'`) — the identical
+  wording/spacing. The static `#resultCount` span stays EMPTY (server-driven
+  data; no baked default — renderTable() fills it on first paint).
+- The Y truth: the span-aware payload's pending + decided rows
+  (unscoped, the frozen span-aware behavior); Cancelled/Completed filter
+  selections honestly show 'Showing 0 of Y results'; approve/reject flips a
+  row INTO the decided bucket and renders a fresh payload — Y recomputed at
+  call time.
+- Receipt: the structural (the Playwright receipt waived by the user this
+  session — recorded in the lane's review-log): the local def gone, ONE
+  shared call with the frozen cfg, ui-common.js untouched; suite 277/277;
+  pint/phpstan green.
