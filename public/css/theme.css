@@ -2308,6 +2308,9 @@ html.dark .semester-bar select:not(.week-select) {
     45% { box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-success) 45%, transparent); }
 }
 tr.bookable-flash > td { animation: bookable-pulse 1.15s ease-in-out 1; }
+/* notif-click-highlight (lane-owned arm): the my-timetable s-target flash —
+   the default grid's event cells animate directly (the same pulse) */
+.event-block.bookable-flash { animation: bookable-pulse 1.15s ease-in-out 1; }
 
 /* ── Bookable badge ("Bookings open" on the earliest bookable day) ──
    Same geometry as the Today/OFF/Holiday badge family; success green =

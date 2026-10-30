@@ -209,13 +209,18 @@ function flashEarliestBookableDay(weekData, weekIdx) {
     if (!body || dayIdx < 0) return;
     const rows = body.querySelectorAll('tr[data-day-index="' + dayIdx + '"]');
     rows.forEach(function(r) {
-        r.classList.remove('bookable-flash');
-        void r.offsetWidth; /* restart the animation on repeat clicks */
-        r.classList.add('bookable-flash');
+        flashRowPulse(r);
     });
-    setTimeout(function() {
-        rows.forEach(function(r) { r.classList.remove('bookable-flash'); });
-    }, 1300);
+}
+
+/* The ONE pulse mechanic (notif-click-highlight): the shared flash the
+   notification anchor + the earliestBtn jump both use — the SAME class
+   (.bookable-flash, the 1.15 s pulse) with a reflow restart on repeats. */
+function flashRowPulse(el) {
+    el.classList.remove('bookable-flash');
+    void el.offsetWidth; /* restart the animation on repeat visits */
+    el.classList.add('bookable-flash');
+    setTimeout(function() { el.classList.remove('bookable-flash'); }, 1300);
 }
 
 /**
@@ -281,6 +286,60 @@ function updateWeekArrowState() {
 // ───── Today button (shared by all timetable pages) ─────
 // Each page must define: buildTimetable()
 // Optionally define: updateSummary(), saveWeek()
+
+document.addEventListener('DOMContentLoaded', function () {
+    initNotifPanel();
+    setTimeout(applyNotifHighlight, 150);   /* after the pages' own first render pass */
+});
+
+/* ─── The notification hands-off highlight (notif-click-highlight) ───
+   A notif-hl URL param anchors the target record on arrival:
+     r<request_id>  → the approval queue / request-history table row
+     s<session_id>  → the cancelled class cell on /my-timetable-ui (with
+                      notif-w = the occurrence week — the narrow exception
+                      to ARRIVAL-GRID-NO-PIN, user 2026-10-30, notif links
+                      ONLY). Everything else keeps the pin law.
+   The flash = the SAME bookable-flash pulse the #earliestBtn jump uses.
+   The URL params strip FIRST (unconditional — even on a miss, so a refresh
+   never re-flashes). */
+function applyNotifHighlight() {
+    const params = new URLSearchParams(location.search);
+    const raw = params.get('notif-hl');
+    if (!raw) return;
+    params.delete('notif-hl');
+    params.delete('notif-w');
+    const qs = params.toString();
+    history.replaceState(null, '', location.pathname + (qs ? '?' + qs : ''));
+
+    if (raw.charAt(0) === 'r') {
+        const sel = 'tr[data-id="' + raw.slice(1) + '"]';
+        tryFind(sel, 14);   /* the queue rows render past the loader — 14 × 250 ms ≈ 3.5 s budget (async; load unblocked) */
+    } else if (raw.charAt(0) === 's') {
+        // STAGE 2 — the my-timetable arrival: the week switch MUST ride the
+        // page's own wrapper (it re-syncs currentWeek + saveWeek). Only
+        // /my-timetable-ui exposes it; other surfaces degrade silently.
+        if (location.pathname !== '/my-timetable-ui' || typeof window.selectWeek !== 'function') return;
+        const wk = parseInt(params.get('notif-w') || '', 10);
+        if (!isNaN(wk) && wk >= 1 && wk <= 14) window.selectWeek(String(wk - 1));   // 1-based, the pinned rule
+        const sid = raw.slice(1);
+        tryFind('#tableBody .event-block[data-sid="' + sid + '"]', 14);   /* the week rebuild margin */
+    }
+}
+
+/* the retried finder (the payload-built rows may render past the page's
+   loader — the retries are ASYNC timers, load-blocking); found: scroll
+   into view THEN the flash (the earliest flow's jump-then-pulse shape);
+   not found: graceful silent skip. */
+function tryFind(sel, left) {
+    const el = document.querySelector(sel);
+    if (el) {
+        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        setTimeout(function () { flashRowPulse(el); }, 500);
+        return;
+    }
+    if (left > 0) setTimeout(function () { tryFind(sel, left - 1); }, 250);
+    /* else: the graceful skip (e.g. a filtered-out / paginated-away row) */
+}
 
 function jumpToToday() {
     currentWeek = currentWeekIndex();
@@ -809,6 +868,10 @@ function buildTimetableGrid(cfg) {
                 div.__eventData = e;
                 div.dataset.name = e.name || '';
                 div.dataset.venue = e.venue || '';
+                /* notif-click-highlight (the documented bridge patch): the
+                   cell carries its class session id so the notification
+                   deep-link highlight can find the cancelled class cell. */
+                div.dataset.sid = String(e.sessionId ?? e.id);
                 /* Hover tooltip = subject name (data-name) · page context ·
                    lecturer segment · STATUS — the 2026-10-25 hover voice
                    (the user's call): the lecturer segment is page-supplied
@@ -1969,6 +2032,11 @@ function initNotifPanel() {
     // Row click = durable mark read + restore scroll, BEFORE the anchor's
     // native navigation (D4/AD-15). Capture phase so it runs ahead; the
     // disabled (inactive) rows carry no data-id and are never marked.
+    // notif-click-highlight: the ANCHOR rides along — data-notif-target
+    // (r=request / s=session; the lane's gate emits it ONLY for the mapped
+    // surfaces) plus data-notif-week on the s-rows — appended to the href so
+    // the landing page can flash the target (the inactive guard stays FIRST,
+    // keep-as-it). A row without the attribute → plain navigation.
     const list = document.getElementById('notifList');
     if (list) {
         list.addEventListener('click', function (e) {
@@ -1976,6 +2044,16 @@ function initNotifPanel() {
             if (!row || !row.getAttribute('data-id')) return;
             const scrollTop = list.scrollTop;
             durableMarkNotifRead(row.getAttribute('data-id'));
+            const target = row.getAttribute('data-notif-target');
+            const link = row.getAttribute('href');
+            if (target && link) {
+                const norm = link.startsWith('/') ? link : '/' + link;
+                row.setAttribute('href', norm + (norm.includes('?') ? '&' : '?')
+                    + 'notif-hl=' + encodeURIComponent(target)
+                    + (target.charAt(0) === 's' && row.getAttribute('data-notif-week')
+                        ? '&notif-w=' + encodeURIComponent(row.getAttribute('data-notif-week'))
+                        : ''));
+            }
             // the island's next poll re-render keeps the read state; restore
             // the scroll after the morph settles (AD-15).
             setTimeout(function () { list.scrollTop = scrollTop; }, 50);

@@ -115,7 +115,10 @@ final class NotificationEmitter
             $sessionId = (int) $session->id;
 
             // 1. the class's own lecturer (the actor's record row)
-            $this->write($actor, 'lecturer', 'update', $title, $body, '/cohort-timetable', null, $sessionId, $weekNumber);
+            /* notif-click-highlight stage 2 (the user's link-law ruling, 2026-10-30):
+            the actor's row lands on THEIR OWN timetable page so the
+            notification deep link can switch the week + flash the cell. */
+            $this->write($actor, 'lecturer', 'update', $title, $body, '/my-timetable-ui', null, $sessionId, $weekNumber);
 
             // 2. every cohort student
             foreach ($session->cohorts as $cohort) {
@@ -142,7 +145,7 @@ final class NotificationEmitter
                     if ((int) $pl->id === (int) $actor->id) {
                         continue;
                     }
-                    $this->write($pl, 'pl', 'update', $title, $body, '/venue-timetable-ui', null, $sessionId, $weekNumber);
+                    $this->write($pl, 'pl', 'update', $title, $body, '/my-timetable-ui', null, $sessionId, $weekNumber);
                 }
             }
         });

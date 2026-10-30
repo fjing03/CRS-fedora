@@ -116,7 +116,7 @@ final class NotificationsBridgeTest extends TestCase
         // a PL of DCIT — her cancel row doubles as the PL fan-out; the count is
         // owner(1)+students+PLs(with overlaps deduped only by fan-out law))
         $this->assertGreaterThanOrEqual(3, $cancelRows->count());
-        $this->assertTrue($cancelRows->contains(fn (Notification $r) => $r->user_id === 1 && $r->role_view === 'lecturer' && $r->link === '/cohort-timetable'), "the owner's record row links the cohort page");
+        $this->assertTrue($cancelRows->contains(fn (Notification $r) => $r->user_id === 1 && $r->role_view === 'lecturer' && $r->link === '/my-timetable-ui'), "the owner's record row links their own timetable page (notif-click-highlight stage-2 link law)");
         $studentRows = $cancelRows->where('role_view', 'student');
         $this->assertTrue($studentRows->count() > 0, 'the cohort students get rows');
         $studentRows->each(fn (Notification $r) => $this->assertSame('/student-my-timetable-ui', $r->link, 'a student row NEVER links the lecturer-gated cohort page'));

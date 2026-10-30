@@ -354,3 +354,32 @@ the unified one-feed panel surfaced them side by side. The user approved F1
 - DEMO-DB cleanup (user-approved agent-run): id 31 deleted (belt-braced
   one-row clause; logged in docs/demo-db-data-changes.md) — 5425's mailbox
   now holds ONE 'Scheduled class cancelled' row for the W6 event (id 8).
+
+## 2026-10-30 (lane `notif-click-highlight`) — clicking a notification anchors + flashes its record
+
+The user's design (2026-10-30): an ACTIVE notification row click lands on the
+linked page and FLASHES the related row/cell, located by the notification's
+own record id — read or unread, both; inactive rows keep-as-it (no anchor, no
+trigger).
+
+- HANDOFF: the row partial stamps `data-notif-target` (r = request rows on
+  approval/history; s = the cancel rows on /my-timetable-ui — the link law
+  changed per the ruling: the owner-actor AND the dept-PL copies now link
+  the OWNER'S OWN TIMETABLE PAGE; the students' rows untouched) +
+  `data-notif-week` (kind-s only). The capture listener appends
+  `?notif-hl=<target>[&notif-w=<week>]` beside the durable POST.
+- ARRIVAL: `applyNotifHighlight()` (ui-common, wired after initNotifPanel) —
+  the URL params strip FIRST (unconditional), the finder (14 × 250 ms, load
+  unblocked), `flashRowPulse` after the scroll settles; the builder stamps
+  `data-sid` (event.sessionId ?? event.id); the new theme arm
+  `.event-block.bookable-flash` (the same bookable-pulse keyframes — the
+  exact earliestBtn flash); the `?week=` pin law GAINED the narrow
+  notif-hl-only exception (the user's ruling A).
+- The persisted legacy rows (the old link strings) simply keep plain
+  navigation (no anchor attributes — the lifecycle law, no migration).
+- Receipts: the mutation-observer FLASH TR data-id=5 on the approval queue;
+  the s-arm end-to-end (the click → the week switch → the cell flash); the
+  legacy/inactive keep-as-it receipts; suite 277/277; islands 7/7;
+  pint/phpstan green.
+- The summary-card + #todayBtn flashes live in SEPARATE lane
+  `notif-jump-flash-family` (pending the user's apply word).
