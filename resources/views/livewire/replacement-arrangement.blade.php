@@ -2025,9 +2025,16 @@
             document.getElementById('modalBody').innerHTML = bodyHtml;
             confirmCallback = callback;
             const confirmBtn = document.getElementById('modalConfirmBtn');
+            /* submission-conflict-modal-refresh (the user's spec item 5): the
+               error face is opt-in per call site — the conflict modal passes
+               errorStyle:true; every other call site stays untouched. Same
+               re-derive + reset pattern as the danger class. */
+            document.querySelector('#confirmModal .modal').classList.toggle('error-modal', !!opts.errorStyle);
+            const dangerPattern = !!opts.danger;
             /* Danger is opt-in per call site (design §2): the 5 warning guards
                pass danger:true; submit-confirm + informational modals keep
                btn-primary. Re-derived on EVERY open — no stale class leaks. */
+            document.querySelector('#confirmModal .modal').classList.toggle('error-modal', !!opts.errorStyle);
             confirmBtn.classList.toggle('btn-danger', !!opts.danger);
             confirmBtn.classList.toggle('btn-primary', !opts.danger);
             confirmBtn.textContent = opts.confirmLabel || 'Confirm';
@@ -2052,6 +2059,10 @@
             // Reset the optional action button + OK label/weight for the next open
             const actionBtn = document.getElementById('modalActionBtn');
             if (actionBtn) actionBtn.style.display = 'none';
+            // submission-conflict-modal-refresh T2: the error face resets with
+            // the same breath as the btn-danger class — no stale red face
+            // leaks to the next open.
+            document.querySelector('#confirmModal .modal').classList.remove('error-modal');
             const confirmBtn = document.getElementById('modalConfirmBtn');
             confirmBtn.textContent = 'Confirm';
             confirmBtn.className = 'btn btn-primary';
@@ -2182,7 +2193,32 @@
                                         label = b.venue + ' · ' + (dayData ? dayData.abbr + ', ' + dayData.date : '')
                                             + ' · ' + to12h(hours[b.startHour]) + '–' + to12h(add30min(hours[b.endHour - 1]));
                                     }
-                                    failed.push('<div style="padding:3px 0;font-size:13px;">' + label + ' — ' + (r.reason || 'booking conflict') + '</div>');
+                                    const reason = r.reason || 'booking conflict';
+                                    /* submission-conflict-modal-refresh T3 (the user's
+                                       spec items 2/4/6): the row layout splits by
+                                       TYPE — Type B = the reason carries the literal
+                                       'runs into an existing booking' (both the
+                                       slot_not_available occupied variant and the
+                                       span_overlap 'Your block' variant + the holder
+                                       paren); the FIRST at HH:MM–HH:MM match = the
+                                       failing/overlap range (the holder paren is NOT
+                                       surfaced — the review pin); no-range fallback =
+                                       the RAW reason as a single line. Every other
+                                       reason row stays BYTE-verbatim. */
+                                    const typeB = reason.indexOf('runs into an existing booking') >= 0;
+                                    const m = typeB ? reason.match(/at (\d{2}:\d{2})\u2013(\d{2}:\d{2})/) : null;
+                                    if (typeB && m) {
+                                        failed.push('<div style="padding:3px 0;font-size:13px;">'
+                                            + '<div style="font-weight:600;color:var(--color-on-surface);">' + label + '</div>'
+                                            + '<div>' + 'The block overlaps with an '
+                                            + '<span class="warn-keyword">EXISTING OCCUPIED BOOKING</span>'
+                                            + ' at ' + to12h(m[1]) + '\u2013' + to12h(m[2]) + '</div>'
+                                            + '</div>');
+                                    } else {
+                                        /* the raw reason verbatim (Type A, holiday,
+                                           duplicate_active_request, …) — no rewording */
+                                        failed.push('<div style="padding:3px 0;font-size:13px;">' + label + ' \u2014 ' + reason + '</div>');
+                                    }
                                 }
                             });
                             if (failed.length === 0) {
@@ -2209,12 +2245,28 @@
                                    success toast is actually seen) */
                                 setTimeout(function() { window.location.href = '/my-request-history-ui'; }, 1200);
                             } else {
+                                /* submission-conflict-modal-refresh (the user's
+                                   spec items 1/3/4/5/6): the conflict modal = the
+                                   error-look shell (errorStyle → the red title +
+                                   hairline + rows tint), the CONFLICT keyword, the
+                                   NOTE on BOTH types, the green REFRESH/PICK footer,
+                                   and the 'Refresh Page' button = location.reload()
+                                   ONLY — the URL (session/week/from/code/cohort/
+                                   venue/date/time + the notif params) rides along;
+                                   NO auto-resubmit. */
                                 showConfirmModal(
-                                    'Submission Conflict',
-                                    'Some selections could not be booked:<br><div style="border:1px solid var(--color-outline);border-radius:var(--radius-sm);padding:10px 14px;max-height:200px;overflow-y:auto;margin-top:8px;">'
+                                    'Submission <span class="warn-keyword">CONFLICT</span>',
+                                    'Some selections could not be <span class="warn-keyword">BOOKED</span>:<br>'
+                                        + '<div class="conflict-rows" style="border:1px solid var(--color-outline);border-radius:var(--radius-sm);padding:10px 14px;max-height:200px;overflow-y:auto;margin-top:8px;background:var(--color-error-container);">'
                                         + failed.join('')
-                                        + '</div>',
-                                    null
+                                        + '</div>'
+                                        + '<div style="margin-top:10px;font-size:13px;"><span class="ge-keyword">NOTE</span>: Another staff member may have booked this slot before your submission.</div>'
+                                        + '<div style="margin-top:4px;font-size:13px;">Please <span class="go-keyword">REFRESH</span> this page and <span class="go-keyword">PICK</span> another available slot.</div>',
+                                    function() {
+                                        hideConfirmModal();
+                                        location.reload();   /* the params ride along — never resubmit */
+                                    },
+                                    { danger: true, confirmLabel: 'Refresh Page', cancelLabel: 'Close', errorStyle: true }
                                 );
                             }
                         });

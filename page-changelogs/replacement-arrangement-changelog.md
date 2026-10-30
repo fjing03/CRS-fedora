@@ -2278,3 +2278,42 @@ it), pint + phpstan 0 + the suite 277/277. The `in-the-way` keep-frozen arm
 remains unreached (the receipt is data-blocked — every subject
 slot's first half-hour collides with an existing B-Block class; stated as a
 known limitation, gated by the single-setter equivalence + the no-claim rows).
+
+## 2026-10-30 (lane `submission-conflict-modal-refresh`) — the Submission Conflict modal speaks the honest concurrent-booking story
+
+The user's UI/UX spec: two staff members' submissions race the same slot —
+the first wins, the second reports the conflict. Expected behaviour, but the
+modal was vague/misstyled — the user's spec rebuilt it (display-only; the
+server's conflictText() + every validation byte-identical):
+
+1. The confirm button is now **Refresh Page** — the action = `location.reload()`
+   ONLY (the URL — session/week/from/code/cohort/venue/date/time + any notif
+   params — rides along; no auto-resubmit; the Close button stays secondary).
+2. Type B (the reason carries `runs into an existing booking` — both the
+   occupied and the span_overlap variants) renders the MULTILINE layout: the
+   label line (venue · abbr+date · time range) → "The block overlaps with an
+   **EXISTING OCCUPIED BOOKING** at {the FIRST at-range in the reason,
+   humanised to 12h}" — the holder-range paren NOT surfaced (the review
+   pin); the no-range fallback renders the raw reason as one line.
+3. Both types carry the **NOTE** (Another staff member may have booked this
+   slot before your submission) + the green **REFRESH / PICK** footer.
+4. The keyword palette (theme tokens only): red `.warn-keyword`
+   (CONFLICT/BOOKED/EXISTING OCCUPIED BOOKING), green `.go-keyword`
+   (REFRESH/PICK — new, `--color-success`), blue `.ge-keyword` (NOTE — new,
+   `--color-primary`). `.info-keyword` untouched (15+ filter-description
+   consumers must not change color).
+5. The error face: the additive `#confirmModal .modal.error-modal` scope —
+   red title, red header hairline, red-tinted rows container, and the
+   **filled-red Refresh Page** CTA (the shared ghost-danger style was too
+   weak for the ONE claimed action). The class re-derives per call site +
+   resets on close (the btn-danger pattern).
+
+**Receipts:** the :8000 live render (the exact production markup + opts via
+the shell DOM — no submission, no DB): the error face on, the title red, the
+keyword colors (green rgb(46,125,90) / blue rgb(0,77,152) / red
+rgb(198,40,40)), the filled Refresh Page, and the class reset on close.
+The first probe's blue button was the probe's own class-fault (btn-danger
+added without removing btn-primary — the real shell toggles both); the
+faithful re-probe + the screenshot receipt the final look. Family rows 13/13
+(include the shell's confirm-guards + the modal rows), the full suite
+277/277, pint + phpstan 0. TC70 never runs; NO push; no DB writes.

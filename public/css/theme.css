@@ -2663,6 +2663,43 @@ td.bookable-flash { animation: bookable-pulse 1.15s ease-in-out 1; }
     font-weight: 700;
     text-transform: uppercase;
 }
+/* submission-conflict-modal-refresh (the user's 2026-10-30 spec, item 4):
+   the modal keyword palette — green = the user-action keywords (REFRESH,
+   PICK); blue = the important-information keywords (NOTE, SELECTED SLOT,
+   BOOKING). Paired with the existing .warn-keyword (red). Token colors
+   only — no new hex. The existing .info-keyword stays UNTOUCHED (it has
+   15+ filter-description consumers whose color must not change). */
+.go-keyword {
+    color: var(--color-success);
+    font-weight: 700;
+    text-transform: uppercase;
+}
+.ge-keyword {
+    color: var(--color-primary);
+    font-weight: 700;
+    text-transform: uppercase;
+}
+/* the conflict modal's error face (item 5): red-based, additive + scoped
+   to the #confirmModal shell — the modal keeps its layout/spacing; the
+   class toggles per call site (the btn-danger pattern) and resets on
+   close. */
+#confirmModal .modal.error-modal .modal-title {
+    color: var(--color-error);
+}
+#confirmModal .modal.error-modal .modal-header {
+    border-bottom: 1px solid var(--color-error-container);
+}
+#confirmModal .modal.error-modal .conflict-rows {
+    border-color: var(--color-error-container);
+}
+/* the Refresh Page fill: the shared danger style is a ghost (transparent +
+   red border) — fine for the cancel-family buttons, too weak for the ONE
+   claimed action on the error face; the fill keeps it the clear CTA (the
+   user's spec item 5: 'remains visually clear and easy to identify'). */
+#confirmModal .modal.error-modal .modal-footer .btn-danger {
+    background: var(--color-error);
+    color: #ffffff;
+}
 
 /* ── Copy toast ─────────────────────────────────────────────── */
 .copy-toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); background: var(--color-inverse-surface); color: var(--color-on-inverse-surface); padding: 8px 16px; border-radius: var(--radius-sm); font-size: 0.85rem; opacity: 0; transition: opacity 0.2s; pointer-events: none; z-index: 100; }
