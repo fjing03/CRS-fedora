@@ -432,6 +432,27 @@ body {
     color: var(--color-on-surface-variant);
 }
 
+/* notifications-real-bridge D4 — the lifecycle row (the request was
+   cancelled; the row never deletes, its link target is gone). The AMBER
+   warning family marks it at a glance — deactivated, NOT an error (the
+   rejected tile already owns red): a warning-container wash + the inset
+   warning edge, in the theme's own tokens (dark wash 0.50 / light 0.25 —
+   both over the surface, both keeps the ink readable). Frozen layout,
+   tile and tooltip untouched; the read/unread demotion never applies
+   (the row partial emits ONE state — inactive wins). Not a link: no
+   hover shift, the not-allowed cursor. */
+.notif-row--inactive {
+    background: var(--color-warning-container);
+    box-shadow: inset 3px 0 0 0 var(--color-warning);
+    cursor: not-allowed;
+}
+.notif-row--inactive:hover { background: var(--color-warning-container); }
+.notif-row--inactive .notif-row-title {
+    font-style: italic;
+    font-weight: 400;
+    color: var(--color-on-surface);
+}
+
 .notif-row-icon {
     width: 36px;
     height: 36px;

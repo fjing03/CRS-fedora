@@ -302,3 +302,19 @@ state on every page they can open.
   islands 7/7 on :8000.
 - The demo receipt `notifications` id 2 removal stays a separate user-run
   DB step (docs/demo-db-data-changes.md carries its rollback).
+
+## 2026-10-30 · The inactive (lifecycle) row gets its own look (user styling directive)
+`.notif-row--inactive` had NO styling at all — a cancelled-request row was
+indistinguishable from a live one (same ink, same pointer cursor, same hover).
+Now the AMBER warning family marks it (deactivated ≠ error — the rejected tile
+already owns red):
+- `background: var(--color-warning-container)` + `box-shadow: inset 3px 0 0
+  var(--color-warning)` — the theme tokens carry both themes (dark wash 0.50 /
+  light 0.25), the ink stays readable on the wash.
+- `cursor: not-allowed` + a no-shift `:hover` — the row is a span, not a link;
+  the frozen tooltip still explains WHY it's inactive.
+- The title goes italic + weight-400 (the --read demotion's weight, + the
+  italic "OFF" marker), colour stays full `--color-on-surface`.
+Layout, tile colours, tooltip, aria-label and ALL notification logic untouched —
+pure CSS (theme.css), no restart needed. Live receipt: request #7 is cancelled
+in the demo DB → its two `submitted` rows (ids 5 & 6) render inactive.
