@@ -73,3 +73,17 @@
   submission" (the honest-zeros state the ghost's card used to falsify; the
   proceed()-click probe itselfproved the button unclickable — converted to
   the state read per D5's reconciliation). NO push; NO DB writes.
+
+## User ruling — 2026-10-30 (post-apply amendment, NO SDD per the user's word)
+The user ruled the no-claim context line ("AMSE2003 (L) — its sessions fit
+B002; pick another free slot for it.") is unneeded — removed directly
+(explicit waiver of the sdd-workflow lane for this one-line copy removal).
+The manual branch's ternary collapsed to the in-the-way-only form:
+the frozen venue-intent-banner-kind clause now renders ONLY for the
+'in-the-way' arrival; every other arm renders NO clause (the reason text
+carries the manual-pick instruction alone — the duplicate instruction and
+the unverified 'sessions fit <venue>' half both go). The two spec rows
+updated for consistency (the positive no-claim asserts removed, the
+not.toContainText guards kept + the clause-absence asserts added). NO
+tests run (the user's instruction); frozen design.md/tasks.md now carry a
+declarative drift (the rendered copy) — noted here as the honest trail.
