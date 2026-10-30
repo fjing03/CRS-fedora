@@ -25,5 +25,5 @@
         <span class="notif-row-title">{{ $n->title }}</span>
         <span class="notif-row-desc">{{ $n->body }}</span>
     </span>
-    <span class="notif-row-time" data-tip="{{ $absTime($m) }}" data-tip-pos="left">{{ $relTime($m) }}</span>
+    <span class="notif-row-time" data-tip="{{ $absTime($n->created_at) }}" data-tip-pos="left">{{ $relTime($m) }}</span>
 </{{ $tag }}>

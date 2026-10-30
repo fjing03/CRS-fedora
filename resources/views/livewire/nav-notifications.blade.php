@@ -30,9 +30,11 @@
         if ($m < 2880) return 'Yesterday';
         return floor($m / 1440).'d ago';
     };
-    $absTime = function (int $m): string {
-        $d = now()->subMinutes($m);
-        return $d->format('j M, g:i A');
+    /* notif-abstime-precision (F2, user-approved 2026-10-30): format the
+       STORED timestamp directly — no now()−minutes reconstruction, no
+       second-truncation drift across poll cycles. */
+    $absTime = function ($at): string {
+        return $at ? $at->format('j M, g:i A') : '';
     };
     $userTotal = $unreadTotal > 0;
 @endphp

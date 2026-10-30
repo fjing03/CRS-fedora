@@ -318,3 +318,22 @@ already owns red):
 Layout, tile colours, tooltip, aria-label and ALL notification logic untouched —
 pure CSS (theme.css), no restart needed. Live receipt: request #7 is cancelled
 in the demo DB → its two `submitted` rows (ids 5 & 6) render inactive.
+
+## 2026-10-30 (lane `notif-abstime-precision`) — the abs-time tooltip no longer drifts
+
+The user's live observation: the same notification showed "3:50 AM" one poll
+cycle and "3:51 AM" the next (both dual-role class-cancel copies were written
+at the identical DB second — 03:50:19 — but the island's abs-tip helper
+RECONSTRUCTED the time as now() − truncated minutes, so the render second
+determined the displayed minute).
+
+- FIX (F2, user-approved): the island's `$absTime` formats the STORED
+  `$n->created_at` Carbon directly (`j M, g:i A` — the same string, a stable
+  source); the notif-row partial's `data-tip` reads it from the row's own
+  timestamp. `$relTime` stays clock-driven (it SHOULD advance); the drift
+  artifact is gone.
+- Receipt: the same rows' tips captured ≥10 s apart are byte-equal; the twin
+  rows show the identical "3:50 AM"; the suite 277/277; islands 7/7.
+- Also recorded this day: the user DELETED the second-and-last demo receipt
+  (notifications id 1, per docs/demo-db-data-changes.md) and REJECTED the
+  venue #tooltipBookBtn affordance lane (out of the backlog).
