@@ -135,6 +135,13 @@ final class NotificationEmitter
                     ->whereHas('lecturer', fn ($q) => $q->where('is_pl', true)->where('dept_id', $deptId))
                     ->get();
                 foreach ($pls as $pl) {
+                    /* notif-actor-pl-dedupe (the user's F1, 2026-10-30): the
+                       OWNER already received their actor record row in step
+                       1 — the dept-PL copy would be the same event twice in
+                       the unified one-feed panel. */
+                    if ((int) $pl->id === (int) $actor->id) {
+                        continue;
+                    }
                     $this->write($pl, 'pl', 'update', $title, $body, '/venue-timetable-ui', null, $sessionId, $weekNumber);
                 }
             }

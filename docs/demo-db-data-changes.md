@@ -253,3 +253,7 @@ WHERE NOT EXISTS (SELECT 1 FROM notifications WHERE type = 'awaiting' AND reques
 - **Variant (optional):** the same awaiting row also for the OTHER DCIT PL —
   change `user_id` 1 → 2 (Mohd Nur Rahmat) in T6-b; per the fan-out law the
   reminder lands on every PL.
+
+| 2026-10-29 | notifications | the user RAN (logged convention): `DELETE FROM notifications WHERE id = 2 AND user_id = 1 AND title = 'Demo receipt — poll cycle 2';` — DELETE 1 (the second poll-cycle receipt row; the first, id 1, stays per the user's instruction) | — | user-run (this file's same-day entry; nothing else touched) |
+| 2026-10-29 (late) | notifications | the user RAN: `DELETE FROM notifications WHERE id = 1 AND user_id = 1 AND title = 'Demo receipt — poll cycle';` — DELETE 1 (the FIRST poll-cycle receipt row; id 2 was deleted earlier the same day — both July-28 receipt rows now gone; no other row touched) | — | user-run (this same-day entry) |
+| 2026-10-30 | notifications | agent-run under the user's explicit F1 approval (SDD notif-actor-pl-dedupe): `DELETE FROM notifications WHERE id = 31 AND user_id = 1 AND title = 'Scheduled class cancelled' AND role_view = 'pl';` — DELETE 1 — the dept-PL TWIN the old fan-out wrote for 5425's own cancel (their actor row, id 8, remains; the cancel itself was undone 4 s later — audit class_cancel_undone). User 1's mailbox 5 → 4 rows. Belt-braced DELETE (id + user + title + role clause; verified count-1 first) | — | agent-run, explicitly user-approved |

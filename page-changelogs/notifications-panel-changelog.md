@@ -337,3 +337,20 @@ determined the displayed minute).
 - Also recorded this day: the user DELETED the second-and-last demo receipt
   (notifications id 1, per docs/demo-db-data-changes.md) and REJECTED the
   venue #tooltipBookBtn affordance lane (out of the backlog).
+
+## 2026-10-30 (lane `notif-actor-pl-dedupe`) — F1: the actor-PL twin deduped
+
+The class-cancel fan-out wrote owner-PL staff TWO rows for their own cancel
+(the actor record + the dept-PL copy — 5425's ids 8+31, same second);
+the unified one-feed panel surfaced them side by side. The user approved F1
+(and the one-row demo cleanup as an explicit agent-run DB step).
+
+- FIX: `NotificationEmitter::classCancelled` step 3 skips the actor
+  (`(int) $pl->id === (int) $actor->id → continue`) — the owner keeps their
+  actor record row (/cohort-timetable); the OTHER dept PL's row unchanged.
+- Receipt: the bridge test's dedupe assertion (no pl-role row for the owner
+  on the event; the other PL keeps theirs); suite 277/277; pint/phpstan
+  green; islands 7/7 (--grep-invert TC70).
+- DEMO-DB cleanup (user-approved agent-run): id 31 deleted (belt-braced
+  one-row clause; logged in docs/demo-db-data-changes.md) — 5425's mailbox
+  now holds ONE 'Scheduled class cancelled' row for the W6 event (id 8).

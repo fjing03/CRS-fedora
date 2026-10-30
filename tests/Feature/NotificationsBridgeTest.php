@@ -120,6 +120,17 @@ final class NotificationsBridgeTest extends TestCase
         $studentRows = $cancelRows->where('role_view', 'student');
         $this->assertTrue($studentRows->count() > 0, 'the cohort students get rows');
         $studentRows->each(fn (Notification $r) => $this->assertSame('/student-my-timetable-ui', $r->link, 'a student row NEVER links the lecturer-gated cohort page'));
+
+        // notif-actor-pl-dedupe (the user's F1, 2026-10-30): the owner 1 IS a
+        // DCIT PL — the dept-PL fan-out must SKIP them (the actor record row
+        // in step 1 is their copy; the unified one-feed panel would otherwise
+        // show the same event twice). The OTHER dept PL (user 2) keeps theirs.
+        $ownerPlRows = $cancelRows->filter(fn (Notification $r) => $r->user_id === 1
+            && $r->role_view === 'pl'
+            && $r->class_session_id === (int) $session->id
+            && $r->title === 'Scheduled class cancelled');
+        $this->assertCount(0, $ownerPlRows, 'the OWNER receives NO dept-PL copy for their own cancel — one-anchor dedupe');
+        $this->assertTrue($cancelRows->contains(fn (Notification $r) => $r->user_id === 2 && $r->role_view === 'pl' && $r->class_session_id === (int) $session->id), 'the OTHER dept PL still receives their copy');
     }
 
     public function test_lifecycle_renders_disabled_with_the_user_tooltip(): void
