@@ -137,11 +137,12 @@ test('C2b: the manual arrival banner is KIND-COMPLETE (one voice, the attributio
   expect(subjectVal).toBe('AMCS2093');   // the fallback prefill still binds on the manual path
   const banner = page.locator('#bookingIntent');
   await expect(banner).toContainText('Your booked slot', { timeout: 5000 });
-  await expect(banner).toContainText('AMCS2093 (L)');
-  await expect(banner).toContainText('its sessions fit B110');
-  await expect(banner).toContainText('pick another free slot for it');
+  // notif-ghost-retract-strip amendment (2026-10-30, the user's ruling): the
+  // no-claim context line is GONE — the reason text carries the manual-pick
+  // instruction alone; only the in-the-way arrival still renders a clause.
   await expect(banner).not.toContainText('Pre-selected');
   await expect(banner).not.toContainText('the pre-selection stays');
+  await expect(banner).not.toContainText('its sessions fit B110');   // the clause is gone in this arm
   await expect(page.locator('.sel-summary-card')).toHaveCount(0);   // the strip mirrors the empty store
   // the third-voice guard: no floating toast on the manual path
   const toastText = (await page.locator('#toastBar .toast-message').textContent()) || '';
@@ -174,10 +175,12 @@ test('B002: the ghost success despawns honestly — the manual banner + the kind
   // frozen clause renders for 'in-the-way' only).
   const banner = page.locator('#bookingIntent');
   await expect(banner).toContainText('Your booked slot', { timeout: 5000 });
-  await expect(banner).toContainText('AMCS2093 (L)');
-  await expect(banner).toContainText('pick another free slot for it');
+  // notif-ghost-retract-strip amendment (2026-10-30, the user's ruling): the
+  // no-claim context line is GONE in the held arm — the reason text alone
+  // speaks; only the in-the-way arrival still renders a clause.
   await expect(banner).not.toContainText('Pre-selected');
   await expect(banner).not.toContainText('the pre-selection stays');
+  await expect(banner).not.toContainText('its sessions fit B002');   // the clause is gone in this arm
   await expect(page.locator('.sel-summary-card')).toHaveCount(0);   // the strip mirrors the retract (the Bug-2 gate)
   // the ghost toast retracted: the bar HIDES (its stale text stays in the DOM,
   // hidden — assert the bar's visibility, not the text)

@@ -2978,17 +2978,19 @@ slotLine = 'Week ' + (anchorSlot.week + 1) + ' · ' + ((weekdayName && weekdayNa
                    EVERY OTHER reason = the booked slot is the problem and NOTHING
                    is selected (any placement dies with the banner :1617-1619) —
                    the frozen clause would LIE ('Pre-selected … stays' with no
-                   selection) — render the no-claim context line instead: the
-                   subject/session context + the manual-pick instruction, no
-                   'Pre-selected', no 'stays'. Same <em> structure + the same
-                   success/primary-container token meanings — no new colors. */
+                   selection), so NO clause renders there: the reason text
+                   already carries the manual-pick instruction, the subject sits
+                   pre-bound in the dropdown (the type-cause arm names the
+                   module itself), and the 'sessions fit <venue>' half was
+                   never re-verified at render — the user's 2026-10-30 ruling
+                   (agree/apply, the no-claim line removed per their word:
+                   'we no need this message'). No colors touched. */
                 el.innerHTML = `<div class="booking-intent booking-intent-manual">
                     <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
                     <span><strong>Your booked slot (${i.dayAbbr}, ${i.dateStr} · ${i.timeStr}) ${reason}</strong>
-${fallbackAttribution ? (intentReason === 'in-the-way'
+${(fallbackAttribution && intentReason === 'in-the-way')
                         ? `<br><em><span style="color:var(--color-on-success-container)">Pre-selected ${fallbackAttribution.module} (${fallbackAttribution.type})</span> <span style="color:var(--color-on-primary-container)">— its sessions fit ${i.venue};</span> <span style="font-weight:700">pick another free slot</span> — <span style="color:var(--color-on-success-container)">the pre-selection stays</span>.</em>`
-                        : `<br><em><span style="color:var(--color-on-success-container)">${fallbackAttribution.module} (${fallbackAttribution.type})</span> <span style="color:var(--color-on-primary-container)">— its sessions fit ${i.venue};</span> <span style="font-weight:700">pick another free slot for it</span>.</em>`)
-                    : ''}
+                        : ''}
                     <button class="bi-close" onclick="dismissBookingIntent()" data-tip="Dismiss booking reminder">&times;</button>
                 </div>`;
                 return;
