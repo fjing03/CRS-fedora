@@ -121,8 +121,15 @@ test('C2b: the manual arrival banner is KIND-COMPLETE (one voice, the attributio
   // venue-intent-banner-kind (2026-10-23, the user's option 2): the own-busy
   // trap arrival (W8-Tue 11:00 — the proposer teaches 11:00–13:00, constant
   // every week; receipted in venue-c2-toast-noise) goes manual. The banner is
-  // the ONE voice: it must carry WHICH class the fallback pre-selected and
-  // that the pre-selection survives. NO floating toast (rejected = redundancy).
+  // the ONE voice: it must carry WHICH class the fallback binds and that it
+  // can host the slot. NO floating toast (rejected = redundancy).
+  // notif-ghost-retract-strip (2026-10-30, the user's bug report): the
+  // attribution clause splits BY STATE — this arrival = 'held' with NOTHING
+  // selected, so the NO-CLAIM context line must render (no 'Pre-selected',
+  // no 'the pre-selection stays'); the frozen wording survives for the
+  // 'in-the-way' arrival only (the branch's live-selection precondition).
+  // The strip stays EMPTY (the fallback short-circuit places nothing — the
+  // validated natural zero: nothing was ever saved to the store).
   const dayEntry = await page.evaluate(() => (window as any).weekData[7].days[1]); // W8 Tuesday
   const url = '/replacement-arrangement?venue=B110&date=' + encodeURIComponent(dayEntry.date) + '&time=' + encodeURIComponent('11:00') + '&from=venue-timetable';
   await page.goto(url);
@@ -130,9 +137,12 @@ test('C2b: the manual arrival banner is KIND-COMPLETE (one voice, the attributio
   expect(subjectVal).toBe('AMCS2093');   // the fallback prefill still binds on the manual path
   const banner = page.locator('#bookingIntent');
   await expect(banner).toContainText('Your booked slot', { timeout: 5000 });
-  await expect(banner).toContainText('Pre-selected AMCS2093');
+  await expect(banner).toContainText('AMCS2093 (L)');
   await expect(banner).toContainText('its sessions fit B110');
-  await expect(banner).toContainText('the pre-selection stays');
+  await expect(banner).toContainText('pick another free slot for it');
+  await expect(banner).not.toContainText('Pre-selected');
+  await expect(banner).not.toContainText('the pre-selection stays');
+  await expect(page.locator('.sel-summary-card')).toHaveCount(0);   // the strip mirrors the empty store
   // the third-voice guard: no floating toast on the manual path
   const toastText = (await page.locator('#toastBar .toast-message').textContent()) || '';
   expect(toastText).not.toContain('auto-picked');
@@ -147,9 +157,10 @@ test('B002: the ghost success despawns honestly — the manual banner + the kind
   // pre-build consume judged a stale grid and toasted success; the boot's
   // final buildTimetable/loadCurrentWeek despawned the block silently.
   // venue-intent-ghost-success-spot: the boot tail re-validates the placed
-  // block against the REAL grid — the ghost retracts its toast and the
-  // honest manual banner (with the venue-intent-banner-kind clause) speaks.
-  const dayEntry = await page.evaluate(() => (window as any).weekData[5].days[4]); // W6 Friday
+  // block against the REAL grid — the ghost retracts its toast and the honest
+  // manual banner speaks (the no-claim context clause per
+  // notif-ghost-retract-strip's state-split).
+  const dayEntry = await page.evaluate(() => (window as any).weekData[9].days[4]); // W10 Friday — index bumped from W6 on 2026-10-30: the demo calendar drifted the old slot INTO the 3-working-day window (its banner read 'within 3 working days'), hiding the held receipt; B002 Fri 12:00's occupancy is recurring every week, so the held receipt moves with the recurrence
   const url = '/replacement-arrangement?venue=B002&date=' + encodeURIComponent(dayEntry.date) + '&time=' + encodeURIComponent('12:00') + '&from=venue-timetable&code=' + encodeURIComponent('AMCS2093') + '&session=97&cohort=' + encodeURIComponent('DFT2, DSF2') + '&week=8';
   await page.goto(url);
   await page.waitForTimeout(1500);
@@ -157,10 +168,17 @@ test('B002: the ghost success despawns honestly — the manual banner + the kind
   const picked = await page.locator('#tableBody td[data-day="4"] .cell-selected').count();
   expect(picked).toBe(0);
   // the ghost toast retracted: the REAL occupancy makes the honest banner = ONE voice
+  // notif-ghost-retract-strip (2026-10-30): the retract's tail now re-renders
+  // the strip (updateCounter chains it) — the ghost's summary card DIES with
+  // the store entry, and the banner carries the NO-CLAIM context line (the
+  // frozen clause renders for 'in-the-way' only).
   const banner = page.locator('#bookingIntent');
   await expect(banner).toContainText('Your booked slot', { timeout: 5000 });
-  await expect(banner).toContainText('Pre-selected AMCS2093');
-  await expect(banner).toContainText('the pre-selection stays');
+  await expect(banner).toContainText('AMCS2093 (L)');
+  await expect(banner).toContainText('pick another free slot for it');
+  await expect(banner).not.toContainText('Pre-selected');
+  await expect(banner).not.toContainText('the pre-selection stays');
+  await expect(page.locator('.sel-summary-card')).toHaveCount(0);   // the strip mirrors the retract (the Bug-2 gate)
   // the ghost toast retracted: the bar HIDES (its stale text stays in the DOM,
   // hidden — assert the bar's visibility, not the text)
   await expect(page.locator('#toastBar')).not.toHaveClass(/visible/, { timeout: 5000 });

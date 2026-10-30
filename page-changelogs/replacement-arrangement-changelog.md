@@ -2244,3 +2244,37 @@ the review audit (the same pair the auto-pin uses).
 The card's hover tip reads "Click to Go to This Selected Slot on the Timetable."
 — the verb 'View' became 'Go to' (the card NAVIGATES the timetable to that slot;
 'View' undersold it). Tip text only; card behavior unchanged.
+
+## 2026-10-30 (lane `notif-ghost-retract-strip`) — the conflicted booking intent stops lying: the ghost card dies, the clause splits by state
+
+The user's bug report (staff 5425, the B002/AMSE2003 arrange handoff): the
+conflict banner was honest, but it also claimed "Pre-selected AMSE2003 (L) —
+its sessions fit B002; pick another free slot — the pre-selection stays."
+with NOTHING selected, and the summary card showed the conflicted slot as a
+selection while no `event-block event-selection` existed.
+
+**Root:** the `venue-intent-ghost-success-spot` law retracts the ghost's
+store entry but never re-rendered the selection strip, and its
+attribution arm reused `venue-intent-banner-kind`'s frozen clause — worded
+for a SURVIVING pre-selection — in a state where nothing survived.
+
+**The fixes (state/logic, no CSS hiding):**
+1. The retract tail now rides `updateCounter()` (it chains
+   updateSelectionSummary/Progress/Stats) — the ghost card, the "N of M"
+   counter and the submit/clear button states drop with the store entry.
+2. The manual banner's attribution clause splits BY STATE: the `in-the-way`
+   arrival (a REAL selection exists) keeps the frozen wording byte-identical;
+   every other arm ('held' / 'too-soon' / 'span' / 'type' — nothing selected)
+   renders the no-claim context line
+   `AMSE2003 (L) — its sessions fit B002; pick another free slot for it.`
+   — the subject/session context preserved, no false "pre-selected" claim.
+
+**Receipts:** the demo repro URL (banner no-claim + ZERO cards + "0 of 4
+slots" + the submit disabled), the family 10/10 (C2b + B002-ghost rows
+flipped to the no-claim split + the strip gate; the B002 row's week index
+bumped W6→W10 after the demo calendar drifted its slot into the
+3-working-day window — occupancy is recurring, the held receipt moves with
+it), pint + phpstan 0 + the suite 277/277. The `in-the-way` keep-frozen arm
+remains unreached (the receipt is data-blocked — every subject
+slot's first half-hour collides with an existing B-Block class; stated as a
+known limitation, gated by the single-setter equivalence + the no-claim rows).

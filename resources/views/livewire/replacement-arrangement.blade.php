@@ -1490,10 +1490,13 @@
             const table = body.closest('.timetable');
             if (table) table.classList.remove('has-selection');
             updateCounter();
-            /* the Conflict Schedule strip (infoTotal) is rendered by
-               updateSelectionSummary, not updateCounter — without this call a
-               deselect left the strip reading e.g. '4 of 4 slots' while
-               nothing was selected */
+            /* notif-ghost-retract-strip: updateCounter chains
+               updateSelectionSummary/Progress/Stats at :1333-1335, so the
+               explicit call below is the belt-braces duplicate — kept
+               (harmless) since the deselect's early-return paths used to rely
+               on it before :1334 chained the strip; the comment's old claim
+               ('rendered by updateSelectionSummary, not updateCounter') is
+               FALSE since the chain. */
             updateSelectionSummary();
         }
 
@@ -2967,10 +2970,25 @@ slotLine = 'Week ' + (anchorSlot.week + 1) + ' · ' + ((weekdayName && weekdayNa
                 } else {
                     reason = 'is <span style="color:var(--color-on-error-container)">no longer available</span> on the ' + (currentVenue.code || currentVenue) + ' grid <span style="color:var(--color-on-primary-container)">— an existing class already occupies it.</span> <span style="color:var(--color-on-success-container)">Pick another slot</span> manually.';
                 }
+                /* notif-ghost-retract-strip R2 (the user's 2026-10-30 bug report):
+                   the attribution clause splits BY STATE. 'in-the-way' = a REAL
+                   selection exists (the branch's own precondition, the consume
+                   :3218-3227) — the frozen venue-intent-banner-kind wording stays
+                   BYTE-IDENTICAL there ('the pre-selection stays' is honest).
+                   EVERY OTHER reason = the booked slot is the problem and NOTHING
+                   is selected (any placement dies with the banner :1617-1619) —
+                   the frozen clause would LIE ('Pre-selected … stays' with no
+                   selection) — render the no-claim context line instead: the
+                   subject/session context + the manual-pick instruction, no
+                   'Pre-selected', no 'stays'. Same <em> structure + the same
+                   success/primary-container token meanings — no new colors. */
                 el.innerHTML = `<div class="booking-intent booking-intent-manual">
                     <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
                     <span><strong>Your booked slot (${i.dayAbbr}, ${i.dateStr} · ${i.timeStr}) ${reason}</strong>
-                    ${fallbackAttribution ? `<br><em><span style="color:var(--color-on-success-container)">Pre-selected ${fallbackAttribution.module} (${fallbackAttribution.type})</span> <span style="color:var(--color-on-primary-container)">— its sessions fit ${i.venue};</span> <span style="font-weight:700">pick another free slot</span> — <span style="color:var(--color-on-success-container)">the pre-selection stays</span>.</em>` : ''}
+${fallbackAttribution ? (intentReason === 'in-the-way'
+                        ? `<br><em><span style="color:var(--color-on-success-container)">Pre-selected ${fallbackAttribution.module} (${fallbackAttribution.type})</span> <span style="color:var(--color-on-primary-container)">— its sessions fit ${i.venue};</span> <span style="font-weight:700">pick another free slot</span> — <span style="color:var(--color-on-success-container)">the pre-selection stays</span>.</em>`
+                        : `<br><em><span style="color:var(--color-on-success-container)">${fallbackAttribution.module} (${fallbackAttribution.type})</span> <span style="color:var(--color-on-primary-container)">— its sessions fit ${i.venue};</span> <span style="font-weight:700">pick another free slot for it</span>.</em>`)
+                    : ''}
                     <button class="bi-close" onclick="dismissBookingIntent()" data-tip="Dismiss booking reminder">&times;</button>
                 </div>`;
                 return;
@@ -4182,6 +4200,17 @@ triggerText.textContent = slotTriggerLabel(slot);
                         }
                         resolveBookingIntent();
                         evaluateBookingFit();
+                        /* notif-ghost-retract-strip R1: the strip MUST mirror
+                           the retract the same breath — updateCounter chains
+                           updateSelectionSummary/Progress/Stats (:1333-1335),
+                           so the ghost's summary card, the 'N of M' counter
+                           and the submit/clear button states all drop with
+                           the store entry (the strip ran only on this
+                           retract's ABSENCE for two receipted lanes — the
+                           user's 2026-10-30 bug report). Order matters: the
+                           rider reads the store SETTLED (after the re-arm's
+                           possible selectWeek rebuild). */
+                        updateCounter();
                     }
                 }
             }
