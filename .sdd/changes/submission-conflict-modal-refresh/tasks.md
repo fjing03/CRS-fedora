@@ -1,6 +1,6 @@
 # tasks — `submission-conflict-modal-refresh`
 
-- [ ] **T1 (the keyword classes + the error face, theme.css):**
+ - [x] **T1 (the keyword classes + the error face, theme.css):**
   - `.go-keyword` = `color: var(--color-success); font-weight: 700;
     text-transform: uppercase;` (next to `.warn-keyword` :2657).
   - `.ge-keyword` = `color: var(--color-primary); font-weight: 700;
@@ -13,12 +13,12 @@
     `#confirmModal .modal.error-modal .conflict-rows { border-color:
     var(--color-error-container); }`.
     NO existing rule retouched.
-- [ ] **T2 (the error-style toggle, the shared shell):**
+ - [x] **T2 (the error-style toggle, the shared shell):**
   `showConfirmModal` gains `opts.errorStyle` →
   `document.querySelector('#confirmModal .modal').classList.toggle('error-modal',
   !!opts.errorStyle)`; `hideConfirmModal` removes the class (the
   btn-danger reset pattern). No other call site changes.
-- [ ] **T3 (the Submission Conflict modal rebuild, the :2211 block):**
+ - [x] **T3 (the Submission Conflict modal rebuild, the :2211 block):**
   - the failed-row builder stays (the `label` line — venue · abbr+date ·
     time range; the 'A selection' fallback label intact).
   - **the intro line** (proposal pin 2's first element) renders ONCE at the
@@ -49,14 +49,14 @@
   - the CONFLICT keyword: the title becomes `Submission
     <span class="warn-keyword">CONFLICT</span>` (red per the user's key
     palette; the shell renders the title via innerHTML ✓).
-- [ ] **T4 (the gates):** pint ✓; phpstan-1G 0; the full `php artisan test`;
+ - [x] **T4 (the gates):** pint ✓; phpstan-1G 0; the full `php artisan test`;
   the Playwright arrangement-family rows + `tests/venue-intent-modal.spec.ts`
   (--grep-invert "TC70"); a live receipt probe on the :8000 demo IF a
   conflict row is reachable read-only (the receipt = the modal shell's
   keyword classes + the error face render — the CONFLICT state itself is
   hard to force organically; the structural receipt = the paragraph + the
   opts read). NO push; no DB writes.
-- [ ] **T5 (the docs):** `page-changelogs/replacement-arrangement-changelog.md`
+ - [x] **T5 (the docs):** `page-changelogs/replacement-arrangement-changelog.md`
   — the dated entry: the modal rebuild (both types), the Refresh Page
   behaviour (URL preserved, no resubmit), the keyword palette (warn=red /
   go=green / ge=blue — .info-keyword untouched), the error-face scope.

@@ -36,3 +36,22 @@
   render nowhere in the reachable states; only NOTE wires .ge-keyword today).
 - 🟡2 — the intro line defined explicitly (the warn-keyword BOOKED emphasis,
   rendered once at the top of the body).
+
+## Applied receipts — 2026-10-30
+- T1: the .go-keyword/.ge-keyword classes + the three error-face arms + the
+  filled-Refresh-Page arm (the ghost-danger CTA was too weak for the ONE
+  claimed action — the user's spec item 5).
+- T2: the showConfirmModal errorStyle toggle + the hideConfirmModal reset.
+- T3: the Type-B detection (the literal pin), the FIRST-at-range parse humanised
+  by to12h (the holder paren NOT surfaced), the raw-reason fallback, the
+  verbatim third-reason rows, the modal-level NOTE/footer, the CONFLICT/
+  BOOKED keywords in the title/intro, the {danger, Refresh Page,
+  errorStyle} opts + the reload-only callback.
+- T4 gates: pint PASSED; phpstan-1G 0; the suite 277/277; the family 13/13
+  (venue-intent + earliest-week, --grep-invert "TC70"); the :8000 live
+  render receipt (the shell DOM drive, NO submission/DB): the error face,
+  the keyword colors (green 46,125,90 / blue 0,77,152 / red 198,40,40),
+  the filled CTA, the reset on close. The first probe's blue button was
+  the probe's own fault (btn-danger added without the btn-primary removal
+  — the real shell toggles both); the faithful re-probe + the screenshot
+  close it. NO push; no DB writes.
