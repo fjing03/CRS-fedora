@@ -680,3 +680,18 @@ the #earliestBtn jump (the bookable-pulse family):
 - theme.css gains the two CELL arms (the same bookable-pulse keyframes —
   no new colors). The summary-card's flash runs after the ~500 ms settle
   (the earliest flow's jump-then-pulse shape).
+
+## 2026-10-30 (lane `filter-clear-all-off`) — Clear all empties the filter bar FOR REAL
+
+The user's bug report: the chips bar's Clear all left the default exclusions
+(Exclude Completed, and Request Approval's default Status: Pending) alive
+after the click — the applied `status-tooltips-filter-chips` lane froze
+"clear-all = reset-to-DEFAULT", which still RENDERS default-exclusion chips.
+The new law (the user's ruling): Clear all = every filter OFF — the hideCompleted
+exclusion turns OFF (MRH's `clearAllFilters()` = the `resetAllFilters()` body
+with the checkbox to false), the bar renders EMPTY (no chips, no
+'Active Filters:', no Clear-all pill). The Reset Filters button keeps its own
+DEFAULT law verbatim (reset-all-filters-to-DEFAULT, the default checkbox ON).
+The chips disappear because the filters ARE off — no visual hide. Receipts:
+the status-tooltips spec 9/9 (T5.MRH-2 + T5.RA-3 flipped), pint + phpstan 0,
+the suite 277/277.

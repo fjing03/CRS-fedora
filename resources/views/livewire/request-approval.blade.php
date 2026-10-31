@@ -831,7 +831,7 @@
                 chips.push('<span class="filter-chip">Exclude Completed<button class="filter-chip-remove" onclick="document.getElementById(\'hideCompletedToggle\').checked=false;toggleHideCompleted()" data-tip="Remove">&times;</button></span>');
             }
             if (chips.length > 0) {
-                chips.push('<button type="button" class="filter-chip filter-chip-clear-all" data-tip="Remove every active filter" onclick="resetFilters()">Clear all</button>');
+                chips.push('<button type="button" class="filter-chip filter-chip-clear-all" data-tip="Remove every active filter" onclick="clearAllFilters()">Clear all</button>');
             }
             container.innerHTML = chips.length > 0 ? '<span class="filter-chips-label">Active Filters:</span>' + chips.join('') : '';
         }
@@ -1210,7 +1210,9 @@
             });
         }
 
-        // ── Reset filters ──
+        /* ── Reset filters ── the #resetFilters button's own law (tip:
+           'Reset all filters to DEFAULT') — the PAGE DEFAULTS keep the
+           default exclusions (status Pending, hideCompleted on) by design. */
         function resetFilters() {
             document.getElementById('searchInput').value = '';
             document.getElementById('statusFilter').value = 'Pending';
@@ -1230,6 +1232,38 @@
             localStorage.removeItem('request-approval-filters');
             renderTable();
         }
+
+        /* SDD filter-clear-all-off (the user's 2026-10-30 ruling): the chips
+           bar "Clear all" = EVERY filter OFF — unlike resetFilters, the
+           status goes to 'all' (not the default 'Pending') and the
+           hideCompleted exclusion turns OFF (BOTH statements — the variable
+           the chip branch reads + the checkbox the ✕ sets) — so the bar
+           renders EMPTY (no chips, no 'Active Filters:' label). Chips
+           disappear because the filters ARE off, never a visual hide. */
+        function clearAllFilters() {
+            document.getElementById('searchInput').value = '';
+            document.getElementById('statusFilter').value = 'all';
+            document.getElementById('weekFilter').value = 'all';
+            urgencyFilter = 'all';
+            rpp = 10;
+            document.getElementById('rowsPerPage').value = '10';
+            hideCompleted = false;
+            document.getElementById('hideCompletedToggle').checked = false;
+            bulk.clear();
+            viewedIds.clear();
+            currentPage = 1;
+            sortState = { field: 'requestedAt', dir: 'asc' };
+            document.querySelectorAll('.urgency-filter-chip').forEach(btn => {
+                btn.classList.toggle('active', btn.dataset.urgency === 'all');
+            });
+            localStorage.removeItem('request-approval-filters');
+            renderTable();
+        }
+
+        /* the inline onclick resolves via the top-level scope chain anyway —
+           exported explicitly so the dependency is visible (mirrors MRH). */
+        window.clearAllFilters = clearAllFilters;
+        window.resetFilters = resetFilters;
 
         // ── Deep link support ──
         function checkDeepLink() {

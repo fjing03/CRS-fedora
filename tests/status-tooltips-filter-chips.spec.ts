@@ -108,7 +108,7 @@ test('T5.MRH-2: resetFilters rename + tip; Clear-all law + individual ✕', asyn
   await expect(chips).toHaveCount(1);
   await expect(chips.first()).toContainText('Exclude Completed');
 
-  // two non-default filters → chips grow → Clear all RESETS them (no visual hide)
+  // two non-default filters → chips grow
   await page.fill('#searchInput', 'AMSE');
   await page.waitForTimeout(600);
   await page.selectOption('#statusFilter', 'Approved');
@@ -116,31 +116,36 @@ test('T5.MRH-2: resetFilters rename + tip; Clear-all law + individual ✕', asyn
   chips = page.locator('#filterChips .filter-chip:not(.filter-chip-clear-all)');
   expect(await chips.count()).toBeGreaterThanOrEqual(3); // Exclude Completed + Status + Search
 
-  // click the page's OWN clear-all button (not the exported function)
+  // SDD filter-clear-all-off (2026-10-30, the user's ruling): Clear all = EVERY
+  // filter OFF — the exclusion chips go too, and the bar renders EMPTY (no
+  // chips, no 'Active Filters:', no Clear-all pill). The Reset button keeps
+  // the DEFAULT law (untouched).
   await page.locator('#filterChips .filter-chip-clear-all').click();
   await page.waitForTimeout(700);
 
-  // every control back to ITS default (search/status cleared; hideCompleted restored)
+  // every control OFF (not to ITS default — hideCompleted goes FALSE here;
+  // the Reset button is the one that restores the default checkbox state)
   await expect(page.locator('#searchInput')).toHaveValue('');
   await expect(page.locator('#statusFilter')).toHaveValue('all');
-  await expect(page.locator('#hideCompleted')).toBeChecked();
-  // chips bar shows EXACTLY the default-state chips; Clear all PERSISTS beside it
+  await expect(page.locator('#hideCompleted')).not.toBeChecked();
+  // the bar renders NOTHING: no chips, no label, no Clear-all pill
+  chips = page.locator('#filterChips .filter-chip');
+  await expect(chips).toHaveCount(0);
+  await expect(page.locator('#filterChips')).toHaveText('');
+  await expect(page.locator('#filterChips .filter-chip-clear-all')).toHaveCount(0);
+  await expect(page.locator('#filterChips .filter-chips-label')).toHaveCount(0);
+
+  // individual ✕ law still stands: re-arm ONE chip via the visible toggle,
+  // then the ✕ empties the bar
+  await page.locator('#completedToggle').click(); // the hidden switch's visible label
+  await page.waitForTimeout(400);
   chips = page.locator('#filterChips .filter-chip:not(.filter-chip-clear-all)');
   await expect(chips).toHaveCount(1);
   await expect(chips.first()).toContainText('Exclude Completed');
-  await expect(page.locator('#filterChips .filter-chip-clear-all')).toHaveCount(1);
-  // the label is untouched: 'Active Filters:'
-  await expect(page.locator('#filterChips .filter-chips-label')).toHaveText('Active Filters:');
-
-  // individual ✕: removing the ONLY chip empties the bar — then restore
   await page.locator('#filterChips .filter-chip .filter-chip-remove').first().click();
   await page.waitForTimeout(600);
-  await expect(page.locator('#hideCompleted')).not.toBeChecked(); // ✕ really cleared it
-  await expect(page.locator('#filterChips .filter-chip-clear-all')).toHaveCount(0); // bar empty → Clear all gone
-  // the checkbox is a visually-hidden switch — restore by clicking its VISIBLE label
-  await page.locator('#completedToggle').click();
-  await page.waitForTimeout(400);
-  await expect(page.locator('#filterChips .filter-chip-clear-all')).toHaveCount(1);
+  await expect(page.locator('#hideCompleted')).not.toBeChecked();
+  await expect(page.locator('#filterChips')).toHaveText(''); // the bar empty again
 });
 
 test('T5.MRH-3: detail-modal Status row + mobile-card threading', async ({ page }) => {
@@ -292,25 +297,29 @@ test('T5.RA-3: resetFilters + label + Clear-all law + ✕ + mobile cards (status
   chips = page.locator('#filterChips .filter-chip:not(.filter-chip-clear-all)');
   expect(await chips.count()).toBeGreaterThanOrEqual(3); // Status(Approved) + Exclude Completed + Search
 
-  // Clear all runs the existing resetFilters() verbatim: every control to ITS default
-  await page.locator('#filterChips .filter-chip-clear-all').click();
-  await page.waitForTimeout(700);
-  await expect(page.locator('#searchInput')).toHaveValue('');
-  await expect(page.locator('#statusFilter')).toHaveValue('Pending');
-  await expect(page.locator('#hideCompletedToggle')).toBeChecked();
-  chips = page.locator('#filterChips .filter-chip:not(.filter-chip-clear-all)');
-  await expect(chips).toHaveCount(2); // default chips legitimately remain
-  await expect(chips.first()).toContainText('Status: Pending');
-  await expect(page.locator('#filterChips .filter-chip-clear-all')).toHaveCount(1); // persists beside defaults
-
-  // individual ✕: remove the 'Status: Pending' chip → others persist
+  // individual ✕ first (the pre-law state still suits it): remove the
+  // 'Status: Approved' chip → the others persist
   await page.locator('#filterChips .filter-chip .filter-chip-remove').first().click();
   await page.waitForTimeout(600);
   await expect(page.locator('#statusFilter')).toHaveValue('all');
   chips = page.locator('#filterChips .filter-chip:not(.filter-chip-clear-all)');
-  await expect(chips).toHaveCount(1); // Exclude Completed remains
-  await expect(chips.first()).toContainText('Exclude Completed');
+  expect(await chips.count()).toBeGreaterThanOrEqual(2); // Exclude Completed + Search remain
   await expect(page.locator('#filterChips .filter-chip-clear-all')).toHaveCount(1);
+
+  // SDD filter-clear-all-off (2026-10-30, the user's ruling): Clear all = EVERY
+  // filter OFF — status goes to 'all' (not the default 'Pending'), the
+  // hideCompleted exclusion turns OFF, and the bar renders EMPTY (no chips,
+  // no 'Active Filters:', no Clear-all pill). The Reset button keeps the
+  // DEFAULT law (untouched).
+  await page.locator('#filterChips .filter-chip-clear-all').click();
+  await page.waitForTimeout(700);
+  await expect(page.locator('#searchInput')).toHaveValue('');
+  await expect(page.locator('#statusFilter')).toHaveValue('all');
+  await expect(page.locator('#hideCompletedToggle')).not.toBeChecked();
+  chips = page.locator('#filterChips .filter-chip');
+  await expect(chips).toHaveCount(0); // default chips go too — EVERYTHING off
+  await expect(page.locator('#filterChips')).toHaveText(''); // no label text either
+  await expect(page.locator('#filterChips .filter-chip-clear-all')).toHaveCount(0);
 
   // mobile cards: status tip + urgency tip through the shared HtmlBuilder
   await page.setViewportSize({ width: 375, height: 800 });

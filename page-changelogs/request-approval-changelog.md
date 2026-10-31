@@ -221,3 +221,15 @@ The user ruled: match my-request-history.
   session — recorded in the lane's review-log): the local def gone, ONE
   shared call with the frozen cfg, ui-common.js untouched; suite 277/277;
   pint/phpstan green.
+
+## 2026-10-30 (lane `filter-clear-all-off`) — Clear all takes Status: Pending OFF too
+
+Request Approval's Clear all previously ran `resetFilters()` verbatim — the
+page default = Status: Pending + hideCompleted on, so the two default
+exclusion chips SURVIVED the click (Active Filters: stayed). The new
+`clearAllFilters()` = the resetFilters body with `statusFilter = 'all'` +
+BOTH hideCompleted statements flipped (the variable the chip branch reads +
+the checkbox the ✕ sets) — the bar renders EMPTY, the controls at OFF. The
+Reset Filters button keeps the DEFAULT law (Status: Pending + hideCompleted
+on — the tip 'Reset all filters to DEFAULT') byte-identical. Same receipts
+as the sibling page (the status-tooltips spec 9/9, pint + phpstan 0, 277/277).

@@ -384,7 +384,7 @@
                 chips.push('<span class="filter-chip">Exclude Completed<button class="filter-chip-remove" onclick="document.getElementById(\'hideCompleted\').checked=false;pageState.currentPage=1;saveFilters();renderTable()" data-tip="Remove">&times;</button></span>');
             }
             if (chips.length > 0) {
-                chips.push('<button type="button" class="filter-chip filter-chip-clear-all" data-tip="Remove every active filter" onclick="resetAllFilters()">Clear all</button>');
+                chips.push('<button type="button" class="filter-chip filter-chip-clear-all" data-tip="Remove every active filter" onclick="clearAllFilters()">Clear all</button>');
             }
             container.innerHTML = chips.length > 0 ? '<span class="filter-chips-label">Active Filters:</span>' + chips.join('') : '';
         }
@@ -870,15 +870,30 @@
         }
 
         /* Reset every filter control back to the page default (SDD
-           status-tooltips-filter-chips): shared by the #resetFilters button
-           and the chips bar "Clear all" button — both are inline/global
-           callers, so this stays at script top level and is exported to
-           window at the bottom. */
+           status-tooltips-filter-chips): the #resetFilters button's own law
+           (tip: 'Reset all filters to DEFAULT') — the PAGE DEFAULT keeps
+           the default exclusions (hideCompleted on) by design. */
         function resetAllFilters() {
             document.getElementById('searchInput').value = '';
             document.getElementById('statusFilter').value = 'all';
             document.getElementById('weekFilter').value = 'all';
             document.getElementById('hideCompleted').checked = true;
+            localStorage.removeItem('mrh-filters');
+            pageState.currentPage = 1;
+            rebuildTable({ render: renderTable, after: updateWeekArrowState });
+        }
+
+        /* SDD filter-clear-all-off (the user's 2026-10-30 ruling): the chips
+           bar "Clear all" = EVERY filter OFF — unlike resetAllFilters, the
+           hideCompleted exclusion turns OFF (the default's true is the Reset
+           button's own law) — so the bar renders EMPTY (no chips, no
+           'Active Filters:' label). Chips disappear because the filters ARE
+           off, never a visual hide. */
+        function clearAllFilters() {
+            document.getElementById('searchInput').value = '';
+            document.getElementById('statusFilter').value = 'all';
+            document.getElementById('weekFilter').value = 'all';
+            document.getElementById('hideCompleted').checked = false;
             localStorage.removeItem('mrh-filters');
             pageState.currentPage = 1;
             rebuildTable({ render: renderTable, after: updateWeekArrowState });
@@ -996,6 +1011,7 @@
         window.saveFilters = saveFilters;
         window.pageState = pageState;
         window.resetAllFilters = resetAllFilters;
+        window.clearAllFilters = clearAllFilters;
         /* status-tooltips-filter-chips T5: export the page's own status map
            so the Playwright receipt can evaluate it (the same affordance as
            the other window exports above — no behaviour change) */
