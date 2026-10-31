@@ -1035,7 +1035,7 @@
                 {{-- <button class="fav-btn" id="favStar" data-tip="Add to Favourites">&#9734;</button> --}}
             </div>
             <div class="toolbar-filters">
-                @include('partials.ui-week-nav', ['prevOnclick' => 'weekNav.prevWeek()', 'nextOnclick' => 'weekNav.nextWeek()', 'selectId' => 'weekSelector', 'selectOnclick' => 'weekNav.selectWeek(parseInt(this.value, 10))', 'showTodayBtn' => true, 'showPrint' => false, 'todayLabel' => 'Earliest bookable', 'todayTip' => 'Jump to the earliest bookable slot', 'todayIcon' => 'earliest'])
+                @include('partials.ui-week-nav', ['prevOnclick' => 'weekNav.prevWeek()', 'nextOnclick' => 'weekNav.nextWeek()', 'selectId' => 'weekSelector', 'selectOnclick' => 'weekNav.selectWeek(parseInt(this.value, 10))', 'showTodayBtn' => true, 'showPrint' => false, 'selectTip' => 'Select the WEEK that you want to arrange the replacement in', 'todayLabel' => 'Earliest bookable', 'todayTip' => 'Jump to the earliest bookable slot', 'todayIcon' => 'earliest'])
             </div>
         </div>
 
@@ -2630,6 +2630,13 @@
             const spanSlots = Math.min(Math.max(Math.round((pinned.duration || 0.5) * 2), 1), 8);
             return {
                 week: wk,
+                // SDD rearrangement-toolbar-tooltips: the anchor now carries
+                // the real type letter (pinnedSession payload) + numeric day
+                // (slotDayNames index space, same as weekData days) so the
+                // trigger tip renders the FULL honest slot — fail-open stays
+                // only for a genuinely empty session_type.
+                type: String(pinned.type || ''),
+                day: Number(urlParams.day),
                 weekdayName: (window.weekData && dayData && dayData.abbr) || '',
                 date: dayData && dayData.date ? dayData.date : '',
                 start: Number(urlParams.start),
@@ -2647,6 +2654,11 @@
             if (!a) return false;
             const el = document.getElementById('slotTriggerText');
             if (el) el.textContent = slotTriggerLabel({ week: a.week, start: a.start, end: a.end, date: a.date });
+            /* the anchor carries the REAL type letter + numeric day from the
+               pinned session (SDD rearrangement-toolbar-tooltips) — the tip
+               renders fully; applySlotTip still fail-opens (tip removed) if
+               session_type came back empty (never fabricate a letter) */
+            applySlotTip(a);
             return true;
         }
 
@@ -2814,9 +2826,24 @@ slotLine = 'Week ' + (anchorSlot.week + 1) + ' · ' + ((weekdayName && weekdayNa
                 opt.textContent = c.code + ' — ' + c.name;
                 sel.appendChild(opt);
             });
+            applySubjectTip(sel); /* rebuild resets the selection to "" -> tip cleared (fail-open) */
+        }
+
+        /* SDD rearrangement-toolbar-tooltips: the subject dropdown's hover tip —
+           mirrors the CURRENT selection (option text holds "CODE — Name"; the
+           tip re-assembles with a plain hyphen per the spec's exact format).
+           Fail-open: empty/unknown selection -> the tip is REMOVED. */
+        function applySubjectTip(sel) {
+            if (!sel) return;
+            const opt = sel.selectedOptions && sel.selectedOptions[0];
+            if (!sel.value || !opt || !opt.text) { sel.removeAttribute('data-tip'); return; }
+            const sep = opt.text.indexOf(' — ');
+            const name = sep >= 0 ? opt.text.slice(sep + 3) : opt.text;
+            sel.setAttribute('data-tip', 'Conflicted SUBJECT Selector : ' + sel.value + ' - ' + name);
         }
 
         function onSubjectChange() {
+            applySubjectTip(document.getElementById('subjectSelector')); /* tip follows the CURRENT selection on every entry */
             if (revertingChange) return;
             const code = document.getElementById('subjectSelector').value;
 
@@ -2829,6 +2856,7 @@ slotLine = 'Week ' + (anchorSlot.week + 1) + ' · ' + ((weekdayName && weekdayNa
                 }, function() {
                     revertingChange = true;
                     document.getElementById('subjectSelector').value = lastSubject;
+                    applySubjectTip(document.getElementById('subjectSelector')); /* programmatic revert fires no change event */
                     revertingChange = false;
                 });
                 return;
@@ -3414,6 +3442,7 @@ ${(fallbackAttribution && intentReason === 'in-the-way')
             document.getElementById('slotTriggerText').textContent = firstConflictRow
                 ? slotTriggerLabel(firstConflictRow) /* the SAME short format as a picked slot (user, 2026-10-24): W14 · Dec 24 · 12:00 PM–1:00 PM */
                 : 'Select a slot to replace';
+            applySlotTip(firstConflictRow || null); /* same conditional: real slot -> full tip, else cleared */
 
             /* the AUTO-NAV (the user's “choose the first conflicted slot for
                me”): jump the grid to the occurrence's week; the strip's
@@ -3588,6 +3617,7 @@ ${(fallbackAttribution && intentReason === 'in-the-way')
             panel.innerHTML = '';
             selectedOriginalSlot = null;
             triggerText.textContent = 'Select a slot to replace';
+            applySlotTip(null); /* reset: no slot picked -> no tip */
 
             slots.forEach((slot, index) => {
                 const startStr = to12h(hours[slot.start]);
@@ -3675,6 +3705,7 @@ ${(fallbackAttribution && intentReason === 'in-the-way')
                            stays only for genuinely anchor-less states. */
                         if (!writeSlotTriggerFromAnchor()) {
                             document.getElementById('slotTriggerText').textContent = 'Select a slot to replace';
+                            applySlotTip(null); /* placeholder -> no tip (the anchor path sets its own) */
                         }
                         renderTitleSummary();
                     }
@@ -3695,6 +3726,20 @@ ${(fallbackAttribution && intentReason === 'in-the-way')
             const dateParts = slot.date.split(' ');
             const shortDate = dateParts[1] + ' ' + dateParts[0];
             return 'W' + (slot.week + 1) + ' · ' + shortDate + ' · ' + startStr + '–' + endStr;
+        }
+
+        /* SDD rearrangement-toolbar-tooltips: the slot picker trigger's hover
+           tip — assembled from the SAME slot object the visible writer uses
+           (REAL type letter, 0-based week + 1, slotDayNames, slot.date, to12h
+           range, venue code). Fail-open: no slot or missing type/week/venue
+           facts (e.g. the virtual pinned anchor) -> the tip is REMOVED. */
+        function applySlotTip(slot) {
+            const el = document.getElementById('slotTriggerText');
+            if (!el) return;
+            if (!slot || slot.week == null || !slot.type || !slot.venue) { el.removeAttribute('data-tip'); return; }
+            const startStr = to12h(hours[slot.start]);
+            const endStr = to12h(hours[slot.end + 1] || add30min(hours[slot.end]));
+            el.setAttribute('data-tip', 'Conflicted SLOT Picker : (' + slot.type + ') Week ' + (slot.week + 1) + ', ' + slotDayNames[slot.day] + ', ' + slot.date + ', ' + startStr + ' - ' + endStr + ' @ ' + slot.venue);
         }
 
         /* ORIGINAL-VENUE SYNC (user law 2026-10-24, arr-slot-original-venue-sync;
@@ -3848,6 +3893,7 @@ ${(fallbackAttribution && intentReason === 'in-the-way')
    slot.week stay 0-based indices. The formatting itself lives in the shared
    slotTriggerLabel() (the auto-pin writer uses it too). */
 triggerText.textContent = slotTriggerLabel(slot);
+            applySlotTip(slot); /* SDD rearrangement-toolbar-tooltips: full slot details on the same pick */
 
             // Update selected state in panel
             document.querySelectorAll('.slot-dd-item').forEach(item => {
@@ -4194,16 +4240,12 @@ triggerText.textContent = slotTriggerLabel(slot);
                hook (venueDropdown + currentVenue are closure-scoped; this
                mirrors the page's __fillVenueChips/__rDebug probe surfaces). */
             window.__venueSelected = function () { return venueDropdown ? venueDropdown.getSelected() : null; };
-            /* Subject tooltip: guides the first pick, then mirrors the full subject info
-               (the single-row select ellipsizes long names) */
+            /* Subject tooltip (SDD rearrangement-toolbar-tooltips): mirrors the
+               current selection's code + full name; fail-open — no selection,
+               no tip (replaces the old syncSubjectTip guide-text empty state) */
             const subjectSel = document.getElementById('subjectSelector');
-            const syncSubjectTip = function() {
-                subjectSel.setAttribute('data-tip', subjectSel.value
-                    ? subjectSel.options[subjectSel.selectedIndex].text
-                    : 'Select a subject first to trigger the timeslots selector');
-            };
-            subjectSel.addEventListener('change', syncSubjectTip);
-            syncSubjectTip();
+            subjectSel.addEventListener('change', function() { applySubjectTip(subjectSel); });
+            applySubjectTip(subjectSel);
             lastSubject = document.getElementById('subjectSelector').value;
             /* ensure grid always renders on load (applyUrlParams only triggers via venue param) */
             buildTimetable();

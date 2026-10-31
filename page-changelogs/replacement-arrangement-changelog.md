@@ -1,3 +1,48 @@
+## 2026-10-31 (SDD `rearrangement-toolbar-tooltips` — the user's lean-path apply) — the toolbar's three hover tooltips
+
+All three are `data-tip` attributes on the EXISTING elements of
+`.toolbar.toolbar-restructure` — **visible texts byte-identical**, shared
+tooltip mechanism unchanged (renders **ABOVE**), zero new CSS/JS, no
+PHP/DB/route changes (process: user-waived LEAN path — proposal only, no
+reviewer rounds; source `prompts/pi-prompt-UIUX Update Replacement
+Arrangement Toolbar.md`).
+
+**a) The conflicted-slot picker** (`#slotTriggerText`) now tips
+`Conflicted SLOT Picker : (L) Week 14, Thursday, 24 Dec 2026, 9:00 AM -
+11:00 AM @ B100` — assembled from the slot's REAL fields (type letter,
+0-based `week + 1`, `slotDayNames`, `slot.date`, `to12h` times, venue
+code) by one page-local `applySlotTip(slot)` called at EVERY trigger
+writer (arrival anchor :2661, auto-pin :3445, picker reset :3620,
+revert-fallback :3708, pick :3896). **Fail-open:** the tip is removed
+whenever the trigger reads `Select a slot to replace` or the data is
+genuinely absent (an empty `session_type` — never a fabricated letter).
+**Same-day user report (the apply's ONE PHP change):** the URL-arrival
+boot-tail anchor restore was CLOBBERING the auto-pin's tip — the virtual
+anchor carried no type, so fail-open wiped it (label visible, no
+tooltip). Fixed at the honest source: `pinnedSessionPayload` now ships
+the REAL `session_type` (+ the numeric day) → the arrival trigger tips
+the full slot (`(T) Week 14, Thursday, 24 Dec 2026, 2:30 PM - 3:30 PM @
+B107`), and the revert-restore anchor path (:3708) tips fully too.
+
+**b) The week select** (`#weekSelector`) gains
+`Select the WEEK that you want to arrange the replacement in` through the
+`ui-week-nav` partial's EXISTING `selectTip` param (null-by-default →
+every other page byte-identical; the prev/next arrow tips untouched).
+
+**c) The subject select** (`#subjectSelector`) tips
+`Conflicted SUBJECT Selector : AMSE1003 - Software Engineering` — one
+`applySubjectTip(sel)` re-assembles `code + ' - ' + name` (the options
+read `CODE — NAME` with an em dash; the TIP's hyphen is per the frozen
+format) and is bound at boot `change` + every programmatic set path
+(`onSubjectChange` :2846, confirm-cancel revert :2859, build :2829).
+**Fail-open:** cleared whenever nothing is selected — this REPLACES the
+old `syncSubjectTip` writer, whose empty-state hint ("Select a subject
+first to trigger the timeslots selector") is gone by the fail-open law.
+
+Gates: pint ✓ · phpstan(1G) 0 ✓ · page-script `node --check` ✓ · receipt
+`tests/rearrangement-toolbar-tooltips.spec.ts` (run green at apply).
+
+
 ## 2026-10-25 (SDD arrangement-clear-guards-cross-week, BUG-08 user report) — the clearing-change confirms fire cross-week
 
 **The bug (Playwright-replied to the user's report):** pick a slot at

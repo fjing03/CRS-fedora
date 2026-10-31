@@ -213,6 +213,10 @@ class ReplacementArrangement extends Component
         return [
             'id' => $session->id,
             'code' => (string) $session->module->module_code,
+            // SDD rearrangement-toolbar-tooltips: the REAL session-type
+            // letter (display-only) so the arrival anchor's picker tip
+            // names the slot honestly instead of fail-opening away.
+            'type' => (string) $session->session_type,
             'day' => (int) $session->day_of_week,
             'start' => $this->slotIndex((string) $session->start_time),
             'venue' => $session->venue !== null ? (string) $session->venue->room_code : '',
