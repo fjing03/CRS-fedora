@@ -202,7 +202,7 @@
                     <span class="toggle-track"><span class="toggle-thumb"></span></span>
                     <span class="toggle-label">Exclude Completed</span>
                 </label>
-                <button class="btn-clear" id="clearFilters" data-tip="Reset all filters">Reset Filters</button>
+                <button class="btn-clear" id="resetFilters" data-tip="Reset all filters to DEFAULT">Reset Filters</button>
             </div>
             <div class="toolbar-right">
                 <span class="result-count" id="resultCount" data-tip="Rows matching the current filters">Showing 20 of 20 results</span>
@@ -383,6 +383,9 @@
             if (excludeCompleted) {
                 chips.push('<span class="filter-chip">Exclude Completed<button class="filter-chip-remove" onclick="document.getElementById(\'hideCompleted\').checked=false;pageState.currentPage=1;saveFilters();renderTable()" data-tip="Remove">&times;</button></span>');
             }
+            if (chips.length > 0) {
+                chips.push('<button type="button" class="filter-chip filter-chip-clear-all" data-tip="Remove every active filter" onclick="resetAllFilters()">Clear all</button>');
+            }
             container.innerHTML = chips.length > 0 ? '<span class="filter-chips-label">Active Filters:</span>' + chips.join('') : '';
         }
 
@@ -523,7 +526,7 @@
 
                     const globalIndex = offset + i;
                     const isPending = r.status === 'Pending';
-                    const badgeHtml = '<span class="badge ' + statusClass(r.status) + '" onclick="openModalById(' + r.id + ')">' + r.status + '</span>';
+                    const badgeHtml = '<span class="badge ' + statusClass(r.status) + '"' + statusTipAttr(r.status) + ' onclick="openModalById(' + r.id + ')">' + r.status + '</span>';
 
                     const checkTd = document.createElement('td');
                     checkTd.className = 'col-checkbox';
@@ -599,7 +602,8 @@
                     if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openModalById(r.id); }
                 });
                 card.innerHTML = HtmlBuilder.myRequestCard(r, {
-                    requestAgeHtml: requestAgeHtml
+                    requestAgeHtml: requestAgeHtml,
+                    statusTip: statusTooltip
                 });
                 container.appendChild(card);
             });
@@ -629,7 +633,7 @@
                 '<div style="background:var(--color-surface-variant);border-radius:var(--radius-sm);padding:12px;font-size:13px;line-height:1.6">' +
                 '<strong>' + r.courseCode + '</strong> — ' + r.courseName + '<br>' +
                 'Class: ' + r.classDay + ', ' + formatDate(r.classDate) + '<br>' +
-                'Status: <span class="badge ' + statusClass(r.status) + '">' + r.status + '</span>' +
+                'Status: <span class="badge ' + statusClass(r.status) + '"' + statusTipAttr(r.status) + '>' + r.status + '</span>' +
                 '</div>';
             document.getElementById('cancelConfirmOverlay').style.display = 'flex';
         }
@@ -675,7 +679,7 @@
                 return '<div style="padding:8px 0;border-bottom:1px solid var(--color-outline);font-size:13px;line-height:1.5">' +
                     '<div class="kicker">' +
                     '<strong>' + r.courseCode + '</strong> — ' + r.courseName +
-                    ' <span class="badge ' + statusClass(r.status) + ' badge-sm">' + r.status + '</span></div>' +
+                    ' <span class="badge ' + statusClass(r.status) + ' badge-sm"' + statusTipAttr(r.status) + '>' + r.status + '</span></div>' +
                     '<div style="color:var(--color-on-surface-variant);font-size:12px;margin-top:2px">' +
                     r.classDay + ', ' + formatDate(r.classDate) + ' &middot; ' + r.timeStart + ' – ' + r.timeEnd + ' &middot; ' + r.venue +
                     '</div></div>';
@@ -732,6 +736,23 @@
             return map[s] || '';
         }
 
+        // Status tooltips
+        function statusTooltip(status) {
+            var map = {
+                Pending: "Your request has been Submitted and is AWAITING the Programme Leader's decision (Approve or Reject).",
+                Approved: "The Programme Leader has APPROVED your request.",
+                Rejected: "The Programme Leader has REJECTED your request.",
+                Cancelled: "You MANUALLY CANCELLED this request.",
+                Completed: "The replacement class has been CONDUCTED — this request is complete."
+            };
+            return map[status] || '';
+        }
+
+        function statusTipAttr(status) {
+            var t = statusTooltip(status);
+            return t ? ' data-tip="' + t + '"' : '';
+        }
+
         function openModalById(id) {
             const r = mockRequests.find(x => x.id === id);
             if (!r) return;
@@ -755,7 +776,7 @@
             const genRows =
                 DetailModal.row('Request No.', '#' + r.id, { strong: true }) +
                 DetailModal.row('Requested At', formatDateTime(r.requestedAt)) +
-                DetailModal.row('Status', '<span class="badge ' + statusClass(r.status) + '">' + r.status + '</span>') +
+                DetailModal.row('Status', '<span class="badge ' + statusClass(r.status) + '"' + statusTipAttr(r.status) + '>' + r.status + '</span>') +
                 DetailModal.row('Status Description', statusDesc(r.status)) +
                 (r.status === 'Rejected' && r.rejectionReason ? DetailModal.row('Rejection Reason', r.rejectionReason, { strong: true }) : '') +
                 DetailModal.row('Subject Code', r.courseCode, { strong: true }) +
@@ -848,6 +869,21 @@
             rows.forEach(function(r) { r.classList.remove('row-focused'); });
         }
 
+        /* Reset every filter control back to the page default (SDD
+           status-tooltips-filter-chips): shared by the #resetFilters button
+           and the chips bar "Clear all" button — both are inline/global
+           callers, so this stays at script top level and is exported to
+           window at the bottom. */
+        function resetAllFilters() {
+            document.getElementById('searchInput').value = '';
+            document.getElementById('statusFilter').value = 'all';
+            document.getElementById('weekFilter').value = 'all';
+            document.getElementById('hideCompleted').checked = true;
+            localStorage.removeItem('mrh-filters');
+            pageState.currentPage = 1;
+            rebuildTable({ render: renderTable, after: updateWeekArrowState });
+        }
+
         // Week filter change — uses shared weekFilterChanged() from ui-common.js.
         // It reads the select value, resets page, calls renderTable(), updates arrows.
 
@@ -877,14 +913,7 @@
                 saveFilters();
                 rebuildTable({ render: renderTable });
             });
-            document.getElementById('clearFilters').addEventListener('click', function() {
-                document.getElementById('searchInput').value = '';
-                document.getElementById('statusFilter').value = 'all';
-                document.getElementById('weekFilter').value = 'all';
-                document.getElementById('hideCompleted').checked = true;
-                localStorage.removeItem('mrh-filters');
-                rebuildTable({ render: renderTable, after: updateWeekArrowState });
-            });
+            document.getElementById('resetFilters').addEventListener('click', resetAllFilters);
 
             restoreFilters();
 
@@ -966,5 +995,10 @@
         window.renderTable = renderTable;
         window.saveFilters = saveFilters;
         window.pageState = pageState;
+        window.resetAllFilters = resetAllFilters;
+        /* status-tooltips-filter-chips T5: export the page's own status map
+           so the Playwright receipt can evaluate it (the same affordance as
+           the other window exports above — no behaviour change) */
+        window.statusTooltip = statusTooltip;
         });
 @endsection
