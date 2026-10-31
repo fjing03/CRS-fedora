@@ -55,3 +55,21 @@
   the probe's own fault (btn-danger added without the btn-primary removal
   — the real shell toggles both); the faithful re-probe + the screenshot
   close it. NO push; no DB writes.
+
+## Amendment receipt — 2026-10-30 (the user's beforeunload ask, applied + user-confirmed)
+The user's ask: clicking Refresh Page must NOT pop the browser's
+leave-confirmation ("information you've entered may not be saved") — ONLY in
+the Submission Conflict modal; every other leave path keeps the guard.
+- The change: the Refresh Page callback gains `allowUnload = true;` — the
+  exact bypass navigateTo/goBack already use (:2321/:2342); the guard
+  re-arms on the fresh page (a page-lifetime flag resets with the reload),
+  so nothing else is touched.
+- The receipts (the :8030 testing-DB destructive run + the manual probe):
+  the ctxB's submission reserves the slot (a sanctioned write); the ctxA
+  submits from its stale grid → the Submission Conflict modal; the Refresh
+  Page click → ZERO dialog events + the page genuinely reloaded
+  (__scrMarker died with the page) + the URL/pin context preserved. The
+  CONTROL: a fresh selection + a manual reload → the 'beforeunload' dialog
+  FIRES (the guard alive). The user's own manual test confirmed it works.
+- Playwright spec: tests/submission-conflict-refresh.spec.ts (the :8030-gated
+  destructive receipt — a bare run SKIPS). The gates: pint ✓ phpstan-1G 0.

@@ -2264,6 +2264,19 @@
                                         + '<div style="margin-top:4px;font-size:13px;">Please <span class="go-keyword">REFRESH</span> this page and <span class="go-keyword">PICK</span> another available slot.</div>',
                                     function() {
                                         hideConfirmModal();
+                                        /* submission-conflict-refresh (the user's
+                                           2026-10-30 ask): the conflict state KEEPS
+                                           the selection ("kept for re-deciding"),
+                                           so the beforeunload guard would pop the
+                                           browser's leave-confirmation on this
+                                           reload. The allowUnload bypass — the
+                                           exact pattern navigateTo/goBack already
+                                           use (:2321/:2342) — scoped to THIS
+                                           callback only; the guard re-arms on the
+                                           fresh page (a page-lifetime flag resets
+                                           with the reload), so every other leave
+                                           path keeps its protection. */
+                                        allowUnload = true;
                                         location.reload();   /* the params ride along — never resubmit */
                                     },
                                     { danger: true, confirmLabel: 'Refresh Page', cancelLabel: 'Close', errorStyle: true }

@@ -2317,3 +2317,17 @@ added without removing btn-primary — the real shell toggles both); the
 faithful re-probe + the screenshot receipt the final look. Family rows 13/13
 (include the shell's confirm-guards + the modal rows), the full suite
 277/277, pint + phpstan 0. TC70 never runs; NO push; no DB writes.
+
+## 2026-10-30 (amendment, `submission-conflict-refresh`) — the Refresh Page reload no longer pops the browser leave-confirmation
+
+After the concurrent-booking conflict, the failed submission keeps the
+selection — the unsaved-changes guard then popped the browser's native
+"confirm that you want to leave" dialog on the Refresh Page reload. The
+Refresh Page callback now sets the SAME `allowUnload` bypass the
+Unsaved-Changes confirm paths already use — scoped to THIS callback only;
+the guard re-arms on the fresh page, so every other leave path (browser
+back/forward, a manual reload with a selection, close) keeps its
+protection, verbatim. Verified on the :8030 testing-DB receipt (the
+stale-grid second submission → the conflict modal → the Refresh Page click →
+zero dialog events + the context preserved; the control's manual reload
+still fires the dialog) and the user's own manual test.
