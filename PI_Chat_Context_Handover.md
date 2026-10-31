@@ -24,6 +24,62 @@
 
 ---
 
+## 0.5 SESSION ADDENDUM — 2026-10-31 (the next session's work, read after §0)
+
+> This section records the 2026-10-30/31 agent session so the file stays
+> current. Everything below is committed+pushed (the user commanded the
+> push this once — the NEVER-push rule otherwise stands).
+
+**Lanes closed this session:**
+1. `rearrangement-toolbar-tooltips` — APPLIED + committed. The toolbar's
+   three hover tooltips (a/b/c) via `applySlotTip`/`applySubjectTip` +
+   the week `selectTip`; **same-day user bug fixed**: the boot-tail
+   anchor restore was clobbering the auto-pin's tip (the virtual anchor
+   carried no type) — fixed by shipping the REAL `session_type`
+   (display-only `pinnedSessionPayload` field) + the anchor carrying
+   type/day. One superseded behaviour: the arrangement page's old
+   subject-empty hint ("Select a subject first to trigger the timeslots
+   selector") went by the fail-open law.
+   Receipt `tests/rearrangement-toolbar-tooltips.spec.ts` 3/3 green.
+2. `status-tooltips-filter-chips` — FULLY APPLIED (T5/T6/T8 closed after
+   the user's TODAY ruling: **keep `Urgent — the Proposed Class is
+   TODAY.`**). Receipt `tests/status-tooltips-filter-chips.spec.ts`
+   6/6 green; gates green; the 3 failing regression tests
+   (request-approval-verify REQ-1/REQ-2 + U3-T9f) confirmed PRE-EXISTING
+   and unrelated (staff-5770 data mismatch + the approve-wire toast
+   probe drift — none touch the lane's surfaces). Commit topology note:
+   the RA/ui-common/theme.css parts had piggybacked into other lanes'
+   commits (`4a77a1f`, `bb46a19`) while parked; the closure series
+   commits only the remaining files.
+3. `notif-new-request-ux` — **PROPOSE CHAIN FROZEN, apply pending**:
+   explore (611-line file:line notes) → proposal → design → tasks, all
+   through glm reviewer rounds (5 log entries; the D15 copy-family gap
+   and the semester-fallback contradiction caught and fixed). Key
+   rulings: render-time composition (no emitter/schema change, no
+   backfill — legacy rows get the new look for free), inactive =
+   read/approved/rejected/cancelled with a REASON-FIRST copy family
+   (D15; precedence cancelled > approved > rejected > read), badge =
+   actionable-unread (batch-derived; the :55 COUNT query deletes),
+   ONE replacement_requests query per render preserved. The ask file:
+   `prompts/pi-prompt-UIUX Update New Replacement Request.md`.
+
+**Handover tunnel:** the frozen notif artifacts live in
+`.sdd/changes/notif-new-request-ux/` (explore-notes.md is the 611-line
+fact base with anchors — read it BEFORE coding). The apply prompt lives
+in the chat handoff below.
+
+**Other 2026-10-31 session facts:**
+- `ra-result-count-showing-of` — applied + receipted (its code rode
+  commit `bb46a19` under the PI session).
+- `f73b02c` (submission-conflict-refresh) landed mid-session by PI.
+- Tooling: BOTH toolbar-receipt subagents died to a usage-limit error;
+  the LR (lead-recipe) lesson = have subagents WRITE ARTIFACTS TO DISK
+  as they work (the notif explorer did — its notes survived).
+- New window export for receipts: `window.statusTooltip` on the MRH page
+  (one line, beside the other exports).
+
+---
+
 ## Table of Contents
 
 1. [A. Project Overview](#a-project-overview)
