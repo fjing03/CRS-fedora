@@ -14,3 +14,18 @@
 ### 🔴 Outstanding
 - (none) — verdict: proposal FROZEN by lean path. APPLY BLOCKED until the
   user explicitly commands it (standing "stop — no apply" ruling).
+
+## Batch 2 (the user's second requirement round) — 2026-10-30, LEAN PATH amended
+### The conflict record (the user asked: report conflicts with the frozen SDD)
+- The frozen Batch-1 (a) wording `Conflicted SLOT Picker : …` = SUPERSEDED by
+  the user's own second prompt (`Picker` → `Selector`). Decision: the user's
+  newer instruction wins (their explicit ask), recorded here.
+- The frozen Batch-1 ruling "visible texts unchanged" = SUPERSEDED for the
+  trigger text + the item labels ONLY (the user's 3b/3c ARE display-format
+  changes). Tooltips stay tooltips.
+- The favourite machinery removal touches applyDefaultSlotSelection branch 2
+  (its only interaction was the removed star) — recorded as in-scope per the
+  user's 3a; the VENUE favourites elsewhere untouched.
+### 🔴 Outstanding
+- (none) — the lean waiver stands (the user directed the SAME lane, no new
+  spec duplication).

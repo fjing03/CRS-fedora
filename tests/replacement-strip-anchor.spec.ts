@@ -24,5 +24,5 @@ test('strip follows the live pin after a subject switch (Bug 1)', async ({ page 
   expect(strip).toContain('B010');
   expect(strip).not.toContain('Nov 09 2026 · 9:00 AM–11:00 AM @ B111');
   const trig = await page.evaluate(() => document.getElementById('slotTriggerText').textContent);
-  expect(trig).toContain('W14 · Dec 24 · 12:00 PM–1:00 PM'); /* the SAME format as a picked slot (user, 2026-10-24) */
+  expect(trig).toContain('Week 14 · Dec 24, 2026 · 12:00 PM–1:00 PM'); /* the same format as a picked slot (migrated to the Batch-2 Week/year shape) */
 });

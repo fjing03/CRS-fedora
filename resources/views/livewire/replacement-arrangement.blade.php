@@ -393,19 +393,18 @@
             padding: 2px 8px;
             border-radius: var(--radius-lg);
         }
-        .slot-dd-item-star {
-            cursor: pointer;
-            font-size: 14px;
-            opacity: 0.3;
-            transition: opacity 0.15s, color 0.15s;
+        /* SDD rearrangement-toolbar-tooltips Batch 2 (req 3b): the cohort
+           tag inside the slot label — the users icon + the short names,
+           theme tokens only */
+        .slot-dd-item-cohort {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            color: var(--color-on-surface-variant);
+            white-space: nowrap;
+        }
+        .slot-dd-item-cohort svg {
             flex-shrink: 0;
-        }
-        .slot-dd-item-star.active {
-            opacity: 1;
-            color: var(--color-tertiary);
-        }
-        .slot-dd-item-star:hover {
-            opacity: 0.8;
         }
 
         .slot-dd-item-date {
@@ -3440,7 +3439,7 @@ ${(fallbackAttribution && intentReason === 'in-the-way')
             const slots = rowSessionCandidates;
             renderSlotPicker(slots);
             document.getElementById('slotTriggerText').textContent = firstConflictRow
-                ? slotTriggerLabel(firstConflictRow) /* the SAME short format as a picked slot (user, 2026-10-24): W14 · Dec 24 · 12:00 PM–1:00 PM */
+                ? slotTriggerLabel(firstConflictRow) /* the same format as a picked slot (Batch-2 shape): Week 14 · Dec 24, 2026 · 12:00 PM–1:00 PM */
                 : 'Select a slot to replace';
             applySlotTip(firstConflictRow || null); /* same conditional: real slot -> full tip, else cleared */
 
@@ -3625,17 +3624,39 @@ ${(fallbackAttribution && intentReason === 'in-the-way')
                 const statusLabel = slot.status === 'conflict' ? 'Conflict' : 'Cancelled';
                 const statusBg = slot.status === 'conflict' ? 'var(--color-error-container)' : 'var(--color-surface-variant)';
                 const statusColor = slot.status === 'conflict' ? 'var(--color-on-error-container)' : 'var(--color-on-surface-variant)';
-                // Parse "18 Aug 2026" → "Aug 18"
+                // Parse "18 Aug 2026" → "Aug 18" + the year
                 const dateParts = slot.date.split(' ');
                 const shortDate = dateParts[1] + ' ' + dateParts[0];
+                const year = dateParts[2] || '';
+                /* SDD rearrangement-toolbar-tooltips Batch 2 (req 3b): the
+                   pinned session's cohorts ride the label — shortened to
+                   their first token ('DSF2 (S1) G1' → 'DSF2'), deduped,
+                   joined ' + ', ALL dynamic (never hardcoded). */
+                const course = (MockData.courses || []).find(function(c) { return c.code === slot.code; });
+                const sess = course && course.sessions ? course.sessions[String(slot.sessionId)] : null;
+                const cohortNames = (function() {
+                    const seen = {};
+                    const out = [];
+                    ((sess && sess.cohorts) || []).forEach(function(cn) {
+                        const short = (cn || '').split(' ')[0];
+                        if (short && !seen[short]) { seen[short] = true; out.push(short); }
+                    });
+                    return out;
+                })();
+                const cohortHtml = cohortNames.length
+                    ? '<span class="slot-dd-item-cohort"><svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg> ' + cohortNames.join(' + ') + '</span>'
+                    : '';
                 const fullLabel = '(' + slot.type + ') Week ' + (slot.week + 1) + ' · ' + slotDayNames[slot.day] + ', ' + slot.date + ', ' + startStr + ' - ' + endStr + ' @ ' + slot.venue;
 
                 const item = document.createElement('div');
                 item.className = 'slot-dd-item';
                 item.dataset.index = index;
+                /* Batch 2: the label = (TYPE) Week N · Mon D, YEAR · range @ venue
+                   · the cohorts icon+names; the favourite star is GONE (req 3a) —
+                   its machinery (FAV_KEY/getFavouriteSlot/toggleSlotFavourite +
+                   the default-priority branch) removed with it. */
                 item.innerHTML = `
-                    <span class="slot-dd-item-star" data-index="${index}" data-tip="Toggle favourite">★</span>
-                    <span class="slot-dd-item-label"><span class="cell-type-label">(${slot.type})</span> W${slot.week + 1} · ${shortDate}, ${startStr} - ${endStr} @ ${slot.venue}</span>
+                    <span class="slot-dd-item-label"><span class="cell-type-label">(${slot.type})</span> Week ${slot.week + 1} · ${shortDate}${year ? ', ' + year : ''} · ${startStr} - ${endStr} @ ${slot.venue}${cohortHtml ? ' · ' : ''}${cohortHtml}</span>
                     <span class="slot-dd-item-badge" style="background:${statusBg};color:${statusColor};">${statusLabel}</span>
                 `;
 
@@ -3654,21 +3675,9 @@ ${(fallbackAttribution && intentReason === 'in-the-way')
                 });
 
                 // Click to select
-                item.addEventListener('click', (e) => {
-                    if (e.target.classList.contains('slot-dd-item-star')) return;
+                item.addEventListener('click', () => {
                     selectSlot(slot, index);
                     closeSlotPanel();
-                });
-
-                // Favourite star
-                const star = item.querySelector('.slot-dd-item-star');
-                const fav = getFavouriteSlot();
-                if (fav && fav.code === slot.code && fav.day === slot.day && fav.start === slot.start && fav.venue === slot.venue) {
-                    star.classList.add('active');
-                }
-                star.addEventListener('click', (e) => {
-                    e.stopPropagation();
-                    toggleSlotFavourite(slot, star);
                 });
 
                 panel.appendChild(item);
@@ -3720,12 +3729,16 @@ ${(fallbackAttribution && intentReason === 'in-the-way')
         /* shared: the trigger's human slot label — ONE format for the two
            writers (a user pick and the post-switch auto-pin). The BRIDGE PATCH
            (+1 week number) stays: slot.week is the 0-based weekData index. */
+        /* SDD rearrangement-toolbar-tooltips Batch 2 (req 3c): the trigger
+           text sizes to 'Week {N} · {Mon} {D}, {YEAR} · {range}' — the year
+           rides the weekData date dynamically. */
         function slotTriggerLabel(slot) {
             const startStr = to12h(hours[slot.start]);
             const endStr = to12h(hours[slot.end + 1] || add30min(hours[slot.end]));
-            const dateParts = slot.date.split(' ');
+            const dateParts = (slot.date || '').split(' ');
             const shortDate = dateParts[1] + ' ' + dateParts[0];
-            return 'W' + (slot.week + 1) + ' · ' + shortDate + ' · ' + startStr + '–' + endStr;
+            const year = dateParts[2] || '';
+            return 'Week ' + (slot.week + 1) + ' · ' + (year ? shortDate + ', ' + year : shortDate) + ' · ' + startStr + '–' + endStr;
         }
 
         /* SDD rearrangement-toolbar-tooltips: the slot picker trigger's hover
@@ -3739,7 +3752,7 @@ ${(fallbackAttribution && intentReason === 'in-the-way')
             if (!slot || slot.week == null || !slot.type || !slot.venue) { el.removeAttribute('data-tip'); return; }
             const startStr = to12h(hours[slot.start]);
             const endStr = to12h(hours[slot.end + 1] || add30min(hours[slot.end]));
-            el.setAttribute('data-tip', 'Conflicted SLOT Picker : (' + slot.type + ') Week ' + (slot.week + 1) + ', ' + slotDayNames[slot.day] + ', ' + slot.date + ', ' + startStr + ' - ' + endStr + ' @ ' + slot.venue);
+            el.setAttribute('data-tip', 'Conflicted SLOT Selector: (' + slot.type + ') Week ' + (slot.week + 1) + ', ' + slotDayNames[slot.day] + ', ' + slot.date + ', ' + startStr + ' - ' + endStr + ' @ ' + slot.venue);
         }
 
         /* ORIGINAL-VENUE SYNC (user law 2026-10-24, arr-slot-original-venue-sync;
@@ -3932,28 +3945,12 @@ triggerText.textContent = slotTriggerLabel(slot);
             }
         }
 
-        // ── Favourite Slot (global, localStorage) ──
-        const FAV_KEY = 'replacement-favourite';
-
-        function getFavouriteSlot() {
-            try {
-                return JSON.parse(localStorage.getItem(FAV_KEY) || 'null');
-            } catch (e) { return null; }
-        }
-
-        function toggleSlotFavourite(slot, starEl) {
-            const current = getFavouriteSlot();
-            const isCurrentFav = current && current.code === slot.code && current.day === slot.day && current.start === slot.start && current.venue === slot.venue;
-            if (isCurrentFav) {
-                localStorage.removeItem(FAV_KEY);
-                starEl.classList.remove('active');
-            } else {
-                localStorage.setItem(FAV_KEY, JSON.stringify({ code: slot.code, day: slot.day, start: slot.start, end: slot.end, venue: slot.venue, week: slot.week }));
-                // Update all stars
-                document.querySelectorAll('.slot-dd-item-star').forEach(s => s.classList.remove('active'));
-                starEl.classList.add('active');
-            }
-        }
+        /* SDD rearrangement-toolbar-tooltips Batch 2 (req 3a): the slot
+           favourite machinery (FAV_KEY/getFavouriteSlot/toggleSlotFavourite)
+           is GONE — its only consumer was the removed dropdown star; the
+           default-priority branch that re-picked it dropped with it (Recent
+           → First now). The VENUE favourites (the shared VenueDropdown's
+           stars) are elsewhere and UNTOUCHED. */
 
         // ── Recent Slot (last submitted, localStorage) ──
         const RECENT_KEY = 'replacement-recent';
@@ -3977,16 +3974,8 @@ triggerText.textContent = slotTriggerLabel(slot);
                T handoff, flipping the context AND the venue). If the URL pinned
                a slot, applyUrlParams's own branch below does the only pick. */
             if (urlParams.code && urlParams.day !== null && urlParams.start !== null && urlParams.originalVenue) return;
-            // 2. Favourite
-            const fav = getFavouriteSlot();
-            if (fav) {
-                const match = slots.find(s => s.code === fav.code && s.day === fav.day && s.start === fav.start && s.venue === fav.venue);
-                if (match) {
-                    const idx = slots.indexOf(match);
-                    selectSlot(match, idx, { auto: true });
-                    return;
-                }
-            }
+            // 2. Favourite — REMOVED (Batch 2 req 3a: the dropdown star is
+            //    gone; the localStorage favourite can never be set again)
             // 3. Recent
             const recent = getRecentSlot();
             if (recent) {
@@ -4120,6 +4109,9 @@ triggerText.textContent = slotTriggerLabel(slot);
                     /* BRIDGE PATCH: the replacement-home handoff names the
                        class's original venue (FR 2.5 default) */
                     initialCode: urlParams.originalVenue || urlParams.venue || currentVenue,
+                    /* SDD rearrangement-toolbar-tooltips Batch 2 (req 1): the
+                       selector-voice trigger tip — code + full name + capacity */
+                    triggerTipPrefix: 'Replacement VENUE Selector: ',
                     onSelect: function(code) { onVenueChange(); }
                 }
             );

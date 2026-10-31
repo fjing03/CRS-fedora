@@ -108,3 +108,63 @@ FROZEN by lean path — awaiting the user's explicit apply command.
 - Receipt: `tests/rearrangement-toolbar-tooltips.spec.ts` 3/3 GREEN
   (+ clear-guards-cross-week regression green — one rerun after a 429
   rate-limit chatter, not a code issue).
+
+---
+
+## BATCH 2 — the user's 2026-10-30 second requirement round (the same lean path)
+
+The user's ask (verbatim source: the chat message "Additional UI/UX
+Requirements — rearrangement-toolbar-tooltips") = FOUR new requirements,
+folded into THIS lane (explicitly the same SDD, not a duplicate):
+
+1. **The venue selector's trigger tip** gains the full identity:
+   `Replacement VENUE Selector: {CODE} — {Venue Name} (Capacity: N seats)`
+   (VENUE uppercase; all three values dynamic). Owner = the SHARED
+   VenueDropdown `_updateTrigger` (the 2026-10-27 venue-trigger-label law
+   owns this tip) — a NEW per-instance opt `triggerTipPrefix` decides the
+   format: WITH the prefix → the new '… (Capacity: N seats)' shape; WITHOUT
+   (venue-timetable + the templates) → the OLD tip byte-identical. The
+   arrangement passes `triggerTipPrefix: 'Replacement VENUE Selector: '`.
+2. **Picker → Selector** in the slot trigger's tip: `Conflicted SLOT
+   Selector: ({TYPE}) Week {N}, {Day}, {Date}, {Time} @ {Venue}` (the user
+   ruling supersedes the frozen Batch-1 (a) wording — recorded in the
+   review-log).
+3. **The slot dropdown (slotPanel) display + content**:
+   - **3a THE FAVOURITE STAR REMOVED** — the star span, its tip, its click
+     branch, the hover/wait CSS, AND the whole slot-favourite machinery
+     (FAV_KEY/getFavouriteSlot/toggleSlotFavourite + the
+     applyDefaultSlotSelection branch 2 that re-picked it) — machinery
+     consumed ONLY by this dropdown; the VENUE favourites (the shared
+     VenueDropdown's stars) are elsewhere and UNTOUCHED.
+   - **3b THE ITEM LABEL**: `(P) W5 · Oct 23, 9:00 AM - 10:00 AM @ B010` →
+     `(P) Week 5 · Oct 23, 2026 · 9:00 AM - 10:00 AM @ B010 · [cohort icon]
+     {ShortCohorts joined ' + '}` — Week spelling, the year, and the cohort
+     names all dynamic (the slot's pinned session cohorts shortened to their
+     first token: 'DSF2 (S1) G1' → 'DSF2'; the cohort icon = the inline
+     users SVG, one line). The panel's hover tooltip (fullLabel) gains the
+     same Week+year shape.
+   - **3c THE TRIGGER TEXT**: `W14 · Dec 25 · 9:00 AM–10:00 AM` → `Week 14 ·
+     Dec 25, 2026 · 9:00 AM–10:00 AM` (slotTriggerLabel = the ONE writer
+     helper; the arrival anchor rides it untouched).
+4. **The cross-test receipts that codified the OLD format flush with the
+   display change** (in-scope, declared): `arr-slot-original-venue-sync.spec.ts`
+   (:30/:69) + `replacement-strip-anchor.spec.ts` (:27) — the `W14 · Dec 24 ·
+   …` asserts → the `Week 14 · Dec 24, 2026 · …` shape. Conflicts with the
+   frozen Batch-1 wording = recorded here as the conflict, resolved by the
+   user's own second prompt.
+
+## Out of scope (Batch 2)
+
+- The venue favourites elsewhere (the shared VenueDropdown's stars) — kept.
+- The clear-guards/other pages' tooltips — kept.
+- Any booking/validation state — display only.
+
+## Success criteria (Batch 2)
+
+- The venue trigger tip carries the preselector + code + name + capacity on
+  the arrangement (venue-timetable byte-identical); the trigger tip reads
+  'Conflicted SLOT Selector: …'; the item labels show Week N + the year +
+  the cohorts with the icon, NO star; the trigger text shows 'Week N · …,
+  YEAR · …'.
+- The lane's + the two cross-test specs green; node --check; pint/phpstan;
+  the changelog; ONE commit; NOT pushed.

@@ -370,6 +370,7 @@ class WeekNavigator {
            can't overwrite each other's saved position anymore (the old
            shared-collision note below). Explicit keys win when passed. */
         this._storageKey = storageKey || ('weekNav-' + (this._selectId || 'weekSelect'));
+
         /* optional visibility filter (page-supplied): when present, weeks
            failing it (e.g. no bookable slot) are skipped in navigation and
            resolved away on load/select; null = every week is navigable
@@ -3107,6 +3108,10 @@ class VenueDropdown {
         this.recentStorageKey = opts.recentStorageKey || 'venueRecent';
         this.maxFavourites = opts.maxFavourites || 5;
         this.maxRecent = opts.maxRecent || 5;
+        /* SDD rearrangement-toolbar-tooltips Batch 2: the arrangement's
+           selector-voice trigger tip ('Replacement VENUE Selector: …');
+           unset = the historical tip (other consumers byte-identical) */
+        this.triggerTipPrefix = opts.triggerTipPrefix || null;
         this.filter = opts.filter || null;
         this.selectedCode = opts.initialCode || null;
 
@@ -3640,7 +3645,13 @@ class VenueDropdown {
             const longBase = v.name ? v.name.replace(suffixRe, '').trim() : '';
             const tipBase = (longBase && longBase !== base) ? longBase : base;
             const tipText = v.code + ' \u2014 ' + tipBase;
-            this.trigger.setAttribute('data-tip', tipText + ' (' + v.capacity + ' seats)');
+            /* SDD rearrangement-toolbar-tooltips Batch 2: the arrangement passes
+               triggerTipPrefix ('Replacement VENUE Selector: ') → the new
+               '… (Capacity: N seats)' identity shape; unset = the historical
+               'N seats' shape (venue-timetable byte-identical). */
+            this.trigger.setAttribute('data-tip', this.triggerTipPrefix
+                ? this.triggerTipPrefix + tipText + ' (Capacity: ' + v.capacity + ' seats)'
+                : tipText + ' (' + v.capacity + ' seats)');
         }
     }
 
