@@ -491,5 +491,12 @@ The :8000 record = the user-sanctioned October reconstruction (agent-rebuilt
 on the :8001 twin, swapped 21:19 per option A; the pre-swap composer row
 state lives in backups/class_replacement_fresh-pre-swap-2026-11-01.dump).
 The receipts here are relative/structural so the LIVE mailbox may keep
-getting decided without breaking them.
+getting decided without breaking them. SAME-EVENING AMENDMENT (follow-up
+`test:` commit): the user ordered the FULL STORY CLEANOUT at 22:12–22:25 —
+both demo DBs went pristine-blank (0 requests / 0 notifications / 0
+exceptions; next rr id 24). The island spec's two row-dependent receipts
+(ONE-FEED, composer structural) are now EMPTY-CASE-ADAPTIVE: on a blank
+canvas they assert the caught-up arm + the controls; with rows back they
+assert the equality/composition laws as before. Verified 9/9 ON THE BLANK
+STATE.
 
