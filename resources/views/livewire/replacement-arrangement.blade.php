@@ -3502,7 +3502,45 @@ ${(fallbackAttribution && intentReason === 'in-the-way')
                The equal/no-target rebuild is skipped (phase 'auto-pin'): the tail's
                own buildTimetable already rendered. Pre-boot arrivals == untouched
                (window.__bootDone guard; the bridge's opts.auto fallback stays). */
-            if (window.__bootDone && firstConflictRow) { syncVenueFamily(firstConflictRow, 'auto-pin'); }
+            /* arr-slot-original-venue-sync ROUND 3 (the user's bug report
+               2026-11-01, SDD-waived — waiver in the changelog): the POST-boot
+               subject switch must AUTO-COMMIT the matching conflict slot, not
+               only mirror it on the strip. ROOT CAUSE of the old
+               nothing-selected state: renderSlotPicker's tail
+               applyDefaultSlotSelection hits its BRANCH-1
+               (urlParams.code && day && start && originalVenue — the handoff
+               params PERSIST in the URL) designed for the BOOT, where
+               applyUrlParams's own branch performs the one pick — a POST-boot
+               subject switch has no later pick, so the picker rendered
+               UNSELECTED while the trigger/strip named the pinned conflict row
+               (the comment above already recorded "the auto-pin pick NEVER
+               reaches commitSlotSelection"). THE FIX: after the auto-pin
+               writes the pin, find the picker row that MATCHES the pin
+               (solver-identity: sessionId + week + day + start + venue, all
+               runtime — never hardcoded) and commit it through the EXISTING
+               machinery (selectSlot opts.auto — the same shape as every
+               default pick): the selected class, selectedOriginalSlot,
+               lastSlotIndex, the trigger/tip, the original-venue sync and the
+               URL truth ALL stay ONE writer. No-rows/missing-row falls back to
+               the old syncVenueFamily behaviour. The confirm guard cannot
+               fire: a user subject switch either early-outs (empty store) or
+               discards first (confirmChangeWithSelection → discardAllSelections
+               THEN applySubjectChange), so the store is already empty; an
+               identical re-pick rides the SDD-WAIVED same-slot identity guard
+               (no modal, byte-equal state). */
+            if (window.__bootDone && firstConflictRow) {
+                const pinIdx = slots.findIndex(s =>
+                    Number(s.sessionId) === Number(firstConflictRow.sessionId)
+                    && s.week === firstConflictRow.week
+                    && s.day === firstConflictRow.day
+                    && s.start === firstConflictRow.start
+                    && s.venue === firstConflictRow.venue);
+                if (pinIdx !== -1) {
+                    selectSlot(slots[pinIdx], pinIdx, { auto: true });
+                } else {
+                    syncVenueFamily(firstConflictRow, 'auto-pin');
+                }
+            }
         }
 
         /* venue law (SDD lt-venue-capacity-rule, user ruling 2026-10-19):
