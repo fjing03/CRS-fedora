@@ -1,4 +1,36 @@
-## 2026-10-31 (SDD `rearrangement-toolbar-tooltips` — the user's lean-path apply) — the toolbar's three hover tooltips
+## 2026-11-01 (SDD-waived bug fix — the user's explicit "is it possible to skip sdd?") — the arrival conflict slot is visually auto-selected
+
+**Bug (staff 5770):** on `/replacement-arrangement?session=97&week=8&from=my-timetable`
+the strip named the conflict schedule (`AMCS2093 — Operating Systems (L) · Week 8 ·
+Mon, Nov 09 2026 · 11:00 AM–1:00 PM @ B110 · DFT2 + DSF2`) but NO dropdown item
+carried `.selected` until a manual click.
+
+**Root cause:** `.slot-dd-item.selected` was written in exactly ONE place —
+inside `selectSlot()`. Session-path arrivals deliberately skip
+`applyDefaultSlotSelection` (the pinned-pair law never commits a pick —
+`selectedOriginalSlot` stays null; the pair rides `pinnedOccurrence`), and the
+boot-tail mirror `writeSlotTriggerFromAnchor()` Cosmetically wrote ONLY the
+trigger label + tooltip — the visual class was never applied. Slot MATCHING
+was fully correct (verified: trigger text + `Conflicted SLOT Selector:` tip
+agreed the pinned identity byte-for-byte); purely a visual-parity gap.
+
+**Fix (ONE block inside `writeSlotTriggerFromAnchor()`, +25 lines):** after the
+anchor mirror toggles the matching item by FULL identity — `sessionId + 0-based
+week + day + start + venue`, never "index 0" — `document.querySelectorAll('.slot-dd-item')
+`. NO match → no toggle (fail-open). No state writes: no `selectSlot`/
+`selectedOriginalSlot`/`lastSlotIndex` — the confirm-change guards, the
+pinned-pair submit law and intent matching are byte-identical.
+
+**Receipt (read-only, :8000, staff 5770):** arrival → item 0 (the conflict
+slot) `selected: true`, items 1/2 false; `#confirmModal` NOT open on boot;
+strip headline byte-identical ("Conflict Schedule / AMCS2093 — Operating
+Systems (L) / Week 8 · Mon, Nov 09 2026 · 11:00 AM–1:00 PM @ B110"); manual
+pick still works (item 1 → selected, item 0 drops); zero page errors.
+Diagnostics: `/tmp/inv-arrival-selected.json` (pre-fix repro),
+`/tmp/arrival-verify.json` (post-fix). Gates: `php -l` ✓, pint ✓, phpstan
+errors:0 ✓, full suite 279/279 ✓.
+
+
 
 All three are `data-tip` attributes on the EXISTING elements of
 `.toolbar.toolbar-restructure` — **visible texts byte-identical**, shared

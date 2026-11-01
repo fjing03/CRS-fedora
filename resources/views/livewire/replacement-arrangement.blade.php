@@ -2658,6 +2658,31 @@
                renders fully; applySlotTip still fail-opens (tip removed) if
                session_type came back empty (never fabricate a letter) */
             applySlotTip(a);
+            /* SDD-WAIVED visual parity (user rule 2026-11-01, "is it possible
+               to skip sdd?" — waiver logged in doc + changelog): the session
+               arrival mirrors the anchor trigger + tooltip, but the
+               .slot-dd-item.selected class lives ONLY inside selectSlot()
+               — the boot mirror left all items unselected while the strip
+               already named the schedule (user bug report 2026-11-01, staff
+               5770 ?session=97&week=8). Toggle the matching item by FULL
+               identity (sessionId + 0-based week + day + start + venue —
+               never "index 0"); pure class toggle, NO state writes (no
+               selectSlot/selectedOriginalSlot/lastSlotIndex) so the pinned
+               pair + confirm-guard laws stay byte-identical. No match =
+               no toggle (fail-open, "Select a slot" state stands). */
+            if (currentCourse && urlParams.session) {
+                const liveSlots = extractSlotsForSubject(currentCourse.code);
+                const match = liveSlots.findIndex(s =>
+                    Number(s.sessionId) === Number(urlParams.session)
+                    && s.week === a.week
+                    && s.day === a.day
+                    && s.start === a.start
+                    && s.venue === a.venue);
+                if (match >= 0) {
+                    document.querySelectorAll('.slot-dd-item').forEach(item =>
+                        item.classList.toggle('selected', parseInt(item.dataset.index) === match));
+                }
+            }
             return true;
         }
 
