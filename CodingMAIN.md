@@ -131,9 +131,12 @@ rm -f storage/framework/views/*.php && php artisan serve --port=8000 &
 - PLs: Pn. Surayaini Binti Basri (5425), En. Mohd Nur Rahmat Bin Mohd Taat (5516) — `is_pl = true`
 
 ### Database safety (non-negotiable)
-- Demo DB `class_replacement` holds **real imported data** — **never re-seed, never `migrate:fresh`** on it.
-- Tests use the disposable `class_replacement_testing`, where `php artisan migrate:fresh --seed` is fine.
-- Pristine snapshot + restore recipe: `/home/jinglinux/tarumt/backups/README.md`.
+- Demo DBs hold **real imported data** — `class_replacement_fresh` (:8000) + `class_replacement_demo` (:8001 twin) on the CachyOS machine, `class_replacement` on the HP — **never re-seed, never `migrate:fresh`, never `wipedata`** on them. Every demo-DB write (user clicks included) is user-gated and logged in `docs/demo-db-data-changes.md`.
+- Tests use the disposable `class_replacement_testing`, where `php artisan migrate:fresh --seed` is fine — selected ONLY via `DB_DATABASE=class_replacement_testing php artisan …`.
+- **⛔ The `--env=testing` trap (real accident 2026-10-26):** this machine has **no `.env.testing`**, so `--env=testing` on any command **silently boots `.env`** — i.e. the DEMO DB — and a fresh/seed then destroys real records. Never append `--env=testing` to any destructive command; the env-var form above is the only sanctioned testing-DB switch.
+- **Snapshot law (the 2026-10-31 loss lesson):** before **any** demo-DB write take a verified `pg_dump -Fc` (pattern `<db>-<state>-<date>.dump`; `pg_restore --list` must pass) into the backups dir — `/home/philler/Desktop/tarumt/backups/` (HP mirror: `/home/jinglinux/tarumt/backups/`) — and take another dump after any demo-worthy milestone (user's own demo prep clicks count). Restores follow the backups README recipe (stop the server precisely → drop → restore → restart; two separate commands).
+- **Canonical viva state (2026-11-01):** `class_replacement_demo-post-recovery-2026-11-01.dump` = the recovered October record and the current live content of BOTH :8000 and :8001 (see `docs/demo-db-oct31-recovered.md`).
+- Pristine snapshot + restore recipe: `/home/jinglinux/tarumt/backups/README.md` (HP) + its CachyOS mirror `Desktop/tarumt/backups/README.md`.
 
 ---
 
@@ -585,5 +588,5 @@ prompts/                             ← SDD templates + run prompts
 
 - **Before coding:** read `AGENTS.md` + this file, check `.sdd/changes/` for active proposals, run `git status`/`git log`.
 - **Always:** update the matching `page-changelogs/*.md` for UI changes; follow the SDD flow for non-trivial features; never push without explicit user authorization.
-- **Demo DB is fragile:** never `migrate:fresh` / re-seed `class_replacement` — tests use `class_replacement_testing`. Restore recipe: `/home/jinglinux/tarumt/backups/README.md`.
+- **Demo DB is fragile:** never `migrate:fresh` / re-seed the demo DBs (`class_replacement_fresh` / `class_replacement_demo`; HP: `class_replacement`) — tests use `class_replacement_testing` via `DB_DATABASE=…`. Remember the ⛔ `--env=testing` trap (no `.env.testing` on the machine — it silently boots `.env` = the demo DB) and the snapshot law: verified `pg_dump` before any demo-DB write and after any milestone (§4 Database safety). Restore recipe + the canonical viva-state dump: `/home/philler/Desktop/tarumt/backups/README.md` (HP: `/home/jinglinux/tarumt/…`).
 - If the database isn't reachable, check `php artisan migrate:status` and that PostgreSQL is running (`pg_isready`).
