@@ -1,3 +1,34 @@
+## 2026-11-01 (SDD-waived bug fix #2 — the user's "skip sdd if possible") — reselecting the SAME slot no longer pops "Change Time Slot?"
+
+**Bug:** with grid selections live, re-picking the EXACT SAME slot in the picker
+popped `Change Time Slot? — You have selected slots on the grid. Changing the
+time slot will remove them.` even though nothing changes.
+
+**Root cause:** the selectSlot guard compared INDEXES only —
+`(selectedBlock || getGlobalTotal() > 0) && index !== lastSlotIndex`. A session
+arrival's anchor mirror is deliberately UNCOMMITTED (`lastSlotIndex` null), so
+re-picking the online-mirrored slot — the very slot the trigger already names —
+hit the guard (`0 !== null`) and popped the modal. (When the slot HAD been
+committed first, `index === lastSlotIndex` skipped silently — which is why the
+bug only bites the arrival flow.)
+
+**Fix (guard comparison only, +1 closing brace included):** identity, not
+index — `sameSlot` when the clicked slot matches the COMMITTED pick
+(`slotPickerSlots[lastSlotIndex]` by sessionId + week + day + start + venue)
+or, when nothing is bound, the same identity as the PINNED anchor
+(`window.pinnedOccurrence` + `anchorSlotFromPinned()`); `!sameSlot` keeps the
+existing confirm pair byte-identical. Same-session commit re-keys nothing
+(`commitSlotSelection` only reacts to an identity CHANGE) → the grid
+selections survive the unchanged re-pick untouched.
+
+**Receipt (read-only, :8000, staff 5770, session=97&week=8):** arrival →
+place a 4-slot block (day 5, hour 0) → re-pick item 0 → **NO modal**, 4
+cells stay selected; re-pick item 1 (DIFFERENT slot) → the confirm DOES pop
+(genuine-change law preserved). Zero page errors; every served inline script
+`node --check` clean. Pre-fix repro: `confirmAfterSameReselect: true`.
+Diagnostics `/tmp/same-slot4`...
+Gates: pint ✓ phpstan errors:0 ✓ suite 279/279 ✓.
+
 ## 2026-11-01 (SDD-waived bug fix — the user's explicit "is it possible to skip sdd?") — the arrival conflict slot is visually auto-selected
 
 **Bug (staff 5770):** on `/replacement-arrangement?session=97&week=8&from=my-timetable`

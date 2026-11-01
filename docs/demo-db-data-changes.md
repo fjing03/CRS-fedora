@@ -1,5 +1,44 @@
 # Demo-DB Data Changes — Running Log
 
+## 2026-11-01 — DATA-LOSS INCIDENT: the demo was wiped at ~03:22, restored from pristine
+
+- **What the user lost:** their UI-submitted replacement requests (made via the
+  system UI on 2026-10-31: approvals/cancellations + pending submits) and the
+  accompanying notifications fan-out and class_exceptions rows.
+- **What happened:** agent-run destructive receipt work (the notif-new-request-ux
+  T7 fixture family — pending request cs23/W8 slot 32612 + 2-PL 'New replacement
+  request' fan-out) wrote DIRECTLY onto `class_replacement_fresh` at 03:22
+  (evidence left in place before restore: replacement_requests had exactly one
+  row — the fixture — identical timestamp on notifications ids 1/2;
+  class_exceptions 0, replacement_request_slots 0). This repeated the
+  2026-10-26 `--env=testing` accident recorded in `backups/README.md`.
+- **Not recoverable:** the user's Oct-31 requests were in NO dump (only copies:
+  pristine-2026-10-10 + pre-student-limit-2026-10-12, both 0-requests);
+  archive_mode = off, no base backup. Accept as permanent loss.
+- **Restore executed (by the agent, user-approved "restore it"):** the README
+  recipe — stop both serves → DROP/CREATE `class_replacement_fresh` →
+  `pg_restore class_replacement_fresh-pristine-2026-10-10.dump` → verified via
+  `crs:db-row-counts` (101 sessions / 155 session_cohorts / 266 users / 252
+  students / 14 lecturers / 23 venues / 38640 time_slots / **0 requests** /
+  **0 exceptions** / 3 holidays) → fresh dated dump taken (see below) →
+  `:8000` restarted via the stale-serve ritual, `login/student` HTTP 200.
+- **New restore point:**
+  `backups/class_replacement_fresh-2026-11-01.post-restore.dump` (401K,
+  custom format, `pg_restore --list` verified).
+- **POST-step discovered live:** the pristine dump's `migrations` ledger predates
+  2026-10-16 — every page 500'd (`relation "notifications" does not exist`).
+  Fix run (user-visible breakage, schema-only): `php artisan migrate --force`
+  applied the 4 pending migrations (replacement_request_slots table, venues
+  description, cancel_reason widen + audit checks, **notifications table**) and
+  only those — the ledger now matches the repo (31). Lesson recorded:
+  **a pristine-restore is NOT complete without a follow-up `php artisan
+  migrate --force`.** The 2026-11-01 post-restore dump was RE-TAKEN after the
+  migrations now include the notifications table (28 TABLE DATA objects).
+- **Standing guard (must ship with the next code commit):** every destructive
+  spec/fixture MUST abort unless `CRS_BASE = http://127.0.0.1:8030` AND
+  `CRS_MODE = testing`. No receipt work touches `:8000`/`class_replacement_fresh`
+  again — read-only only, ever, from agents.
+
 Intentional, user-approved edits to the demo PostgreSQL database
 (`class_replacement_fresh`) that diverge from what the seeders would produce.
 **Every entry lists both the live-DB change and the seeder update** so the

@@ -3721,10 +3721,43 @@ ${(fallbackAttribution && intentReason === 'in-the-way')
                build only (boot / subject change — a fresh or JUST-WIPED
                store) so the widened guard cannot nag an automatic action. */
             if ((selectedBlock || getGlobalTotal() > 0) && index !== lastSlotIndex) {
-                confirmChangeWithSelection('time slot', function() {
-                    lastSlotIndex = index;
-                    commitSlotSelection(slot, index);
-                }, function() {
+                /* SAME-SLOT NO-CONFIRM (user bug 2026-11-01, SDD-waived — waiver
+                   in page-changelogs/replacement-arrangement-changelog.md): the
+                   guard compares INDEXES only, so on a session arrival (the
+                   anchor mirror is DELIBERATELY uncommitted, lastSlotIndex
+                   null) re-picking the ONLINE-mirrored slot popped "Change
+                   Time Slot?" even though the (grid) selections carry the
+                   same slot. Identity, not index, governs: same as the
+                   committed pick (slotPickerSlots[lastSlotIndex]) OR, when
+                   nothing is bound, the same identity as the PINNED anchor
+                   behind the current store. Same-session commit re-keys
+                   nothing (commitSlotSelection only reacts to an identity
+                   CHANGE) — the grid selections survive byte-identical. */
+                const committed = (lastSlotIndex !== null && lastSlotIndex !== undefined && slotPickerSlots[lastSlotIndex]) || null;
+                let sameSlot = false;
+                if (slot) {
+                    if (committed) {
+                        sameSlot = Number(slot.sessionId) === Number(committed.sessionId)
+                            && slot.week === committed.week
+                            && slot.day === committed.day
+                            && slot.start === committed.start
+                            && slot.venue === committed.venue;
+                    } else if (window.pinnedOccurrence && window.pinnedOccurrence.sessionId) {
+                        const anchorA = anchorSlotFromPinned();
+                        const wk0 = Number(window.pinnedOccurrence.week || 1) - 1;
+                        sameSlot = !!anchorA
+                            && Number(slot.sessionId) === Number(window.pinnedOccurrence.sessionId)
+                            && slot.week === wk0
+                            && slot.day === anchorA.day
+                            && slot.start === anchorA.start
+                            && slot.venue === anchorA.venue;
+                    }
+                }
+                if (!sameSlot) {
+                    confirmChangeWithSelection('time slot', function() {
+                        lastSlotIndex = index;
+                        commitSlotSelection(slot, index);
+                    }, function() {
                     // Snap the picker back to the previously committed slot
                     revertingChange = true;
                     if (lastSlotIndex !== null && lastSlotIndex !== undefined && slotPickerSlots[lastSlotIndex]) {
@@ -3746,6 +3779,7 @@ ${(fallbackAttribution && intentReason === 'in-the-way')
                     revertingChange = false;
                 });
                 return;
+                }
             }
             lastSlotIndex = index;
             commitSlotSelection(slot, index, opts);
