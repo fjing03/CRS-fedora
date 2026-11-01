@@ -4,6 +4,9 @@
 > session conversation. Purpose: a working reference for a NEW PI chat
 > session. Nothing in this file is invented; each claim traces to a
 > receipt, a code anchor, or an explicit user ruling recorded below.
+> Updated 2026-11-01 (main session): the notif-new-request-ux apply CLOSED
+> (§0.6); the ui-footer-global frozen record landed (§0.6 tail); Phase-H
+> handover housekeeping committed.
 
 ---
 
@@ -77,6 +80,124 @@ in the chat handoff below.
   as they work (the notif explorer did — its notes survived).
 - New window export for receipts: `window.statusTooltip` on the MRH page
   (one line, beside the other exports).
+
+---
+
+## 0.6 SESSION ADDENDUM — 2026-11-01 (notif-new-request-ux apply — CLOSED, T1–T9 receipted)
+
+> The apply phase started (driving frozen prompt: `prompts/pi-prompt-UIUX Update New
+> Replacement Request.md`) and was interrupted mid-run; the resume prompt
+> **`prompts/pi-prompt-continue-notif-new-request-ux-apply.md`** (exact stuck point, work
+> items 1–7, commit ladder) has since been EXECUTED to completion. **Closure:** T7
+> idempotency ×2 green (id-keyed fixture sweeps), T8 8/8, gates green, the commit ladder
+> landed — `591449e` (T2–T4), `0b7674f` (T5), `acefe72` (T6), `bcdaeb9` (T7/T8),
+> `338e22e` (T9), `8b9f6b7` (sdd applied). Everything else below = the historical
+> record of the mid-run state; the prompt file stays as the historical reference.
+
+**Done, UNCOMMITTED in the working tree (code frozen, do not rewrite):**
+- T1 `app/Services/ReplacementRequestMapper.php` — `stringsFromSpan()` /
+  `spansForRequests()` (ONE batched query) / `dayName()` + `DAY_NAMES`.
+- T2 `app/Livewire/NavNotifications.php` — render-time composition
+  (`composeSubmitted()`), batch-derived actionable-unread badge (NO
+  COUNT subquery; the :55 COUNT is DELETED), `inactive_reason`
+  classifier (cancelled > approved > rejected > read).
+- T3+T4 the blades — `resources/views/partials/notif-row.blade.php` (D1
+  + D15 copy family, multiline tip with the Requested-at line
+  injected after the Staff line, data-notif-target nulled when
+  inactive) + `resources/views/livewire/nav-notifications.blade.php`
+  (`$tipAbs`/`$relLong` closures; rel = just now / N minutes ago /
+  1 hour ago / N hours ago / Yesterday / N days ago).
+- T5 `public/css/theme.css` — `.notif-row-subtitle`.
+- T6 `tests/Feature/NotificationsBridgeTest.php` — 13/13 GREEN,
+  including the new `test_submitted_row_renders_the_ux_composition`
+  (slot 32612 = W6 Fri 13:30–14:00 B010, subtitle 'Surayaini Binti
+  Basri (5425)', 'Subject: BMSE3153 (P)') and
+  `test_submitted_row_fail_open_matrix` (the D2 awaiting side-effect
+  asserted as DELIBERATE + the D15 read arm on class_session_id 67
+  week 3 to dodge `uq_replacement_requests_active_block`).
+- T8 `tests/notifications-island.spec.ts` (:8000, read-only) — 8/8 GREEN,
+  incl. the real legacy row id 1 receipt + the F-2 badge test rename.
+- Gates were green before the stop: pint, PHPStan errors:0 at the 1G
+  memory flag, full phpunit 277 passed, ONE-query law intact.
+  Re-run them at resume; the CODE ITSELF is settled.
+
+**WHERE IT STUCK (the resume point):**
+T7 `tests/notifications-island-testing-db.spec.ts` (:8030, testing DB)
+re-ends `1 failed` + `2 did not run` on the badge-lifecycle test.
+Cause: destructive probe runs (receipt rows + a pending request
+`class_session_id=23, week=8, slot=32612`) survived in the testing DB,
+so the fixture is NOT re-run-idempotent — uniques collide and badge
+counts drift. FIXTURE HYGIENE ONLY; never touch the settled app code
+for it. The fix = per-test DELETE sweeps of the exact rows the test
+inserted, then `migrate:fresh --seed` on the testing DB before each
+run, then the run twice (the second run IS the idempotency proof).
+
+**Also NOT done yet (work items 3–7 in the resume prompt):**
+T8 re-verify 8/8, the four fresh gates, the commit ladder (conventional
+commits — T3+T4 ride ONE commit; T4 = the partial + the island blade;
+T9 = the closing `docs:` commit), T9 the
+`page-changelogs/notifications-panel-changelog.md` entry (F-2 badge
+semantics + the D2 side-effect + the mapper promotion lines), the
+final report.
+
+**Pre-commit hygiene:** DELETE the untracked leftovers
+`tests/ProbeRace.php` and `tests/tmp-explore.spec.ts` — they must not
+enter any commit.
+
+**Push state (re-count at resume):** only 3 commits ahead of
+`origin/fedora-backend` (`5b2acfc`, `31cc7a6`, `e045ea5`); the user has
+pushed the older stack themselves. NEVER push — user pushes.
+
+**Other 2026-11-01 session facts (all committed earlier, BEFORE the
+apply phase):** `notif-jump-flash-family` (`4a77a1f` — today-column
+flash 22 cells via `jumpToToday`; `flashTargetCell` success-family vs
+`pulseTargetCell` attention-ring split; the apply round caught the old
+`block.day` OBJECT bug → `td[data-day="[object Object]"]` silent
+no-op, fixed to `block.dayIdx`), `notif-ghost-retract-strip`
+(`6e29d56` — the ghost card dies with the retract + one
+`updateCounter()` rider after the resolve/evaluate chain; the demo
+B002 wall-to-wall saturation made the in-the-way receipts
+data-blocked, declared limitation), the user-ruled no-claim clause
+removal (`cb696ee` — SDD-waived, logged),
+`submission-conflict-modal-refresh` (`5b0fa8e` + `54d539c` — the
+Refresh Page red CTA, keyword palette `.warn-keyword` red / `.go-
+keyword` green / `.ge-keyword` blue, the filled-red error-modal face),
+`submission-conflict-refresh` (`f73b02c` — `allowUnload = true` page-
+lifetime flag in the Refresh callback; the user manually confirmed it
+works), `filter-clear-all-off` (`5b2acfc` + `31cc7a6` — Clear all =
+filters OFF not reset-to-DEFAULT; the RA two-statement `hideCompleted`
+flip; Reset Filters keeps the DEFAULT law),
+`rearrangement-toolbar-tooltips` Batch 2 (`e045ea5` — venue identity
+tip via `VenueDropdown.triggerTipPrefix`, Picker→Selector wording,
+the favourite star + machinery REMOVED, `slotTriggerLabel` = Week ·
+Mon D, YEAR · range single-writer with the cohort line).
+
+**Closure + post-closure records (2026-11-01, main session):** the lane
+CLOSED — T7 ×2 green, T8 8/8, gates green, the ladder above. Handover
+housekeeping landed the same day: the applied-flip record
+(notifications-real-bridge), the 8 earlier lanes' artifact dirs tracked,
+this addendum updated to CLOSED + 2 handoff prompt files tracked.
+
+**Ready prompts index (state at 2026-11-01, main session):**
+
+- `prompts/pi-summary-cards-confirmed-pending.md` — carries the SDD-lane
+  block; TWO assumptions still awaiting the user: ① venue page Total
+  Slots plain or split; ② always `X+Y`, or plain `X` when Y=0.
+- `prompts/pi-bug-arrangement-reentry-after-pending.md` — the 2-layer
+  entry-guard bug (server pin-guard + bfcache revalidation), verified
+  anchors; run as a normal fix lane unless SDD is wanted.
+- `ui-footer-global` — SDD artifacts FROZEN (2 glm reviewer rounds,
+  round-2 PASS: no outstanding); the user orders the APPLY separately
+  (stated: days later); code NOT applied in this handover's state.
+- Modal-colour lane (yellow/warning confirm-modals, arrangement page —
+  5 call sites incl. the navigateTo family) — PLANNED in the main
+  session, PARKED; prompt file intentionally not written.
+- ⚠ 2026-11-01 DATA-LOSS INCIDENT (NOT this lane): the demo DB was
+  wiped at ~03:22 by the T7 receipt family writing directly onto
+  `class_replacement_fresh`, then restored from pristine + `migrate
+  --force` — full entry at the top of `docs/demo-db-data-changes.md`;
+  its standing guard (abort unless `CRS_BASE = :8030` AND
+  `CRS_MODE = testing`) must ship with the next code commit.
 
 ---
 
