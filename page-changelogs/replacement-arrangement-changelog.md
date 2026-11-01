@@ -2439,3 +2439,69 @@ protection, verbatim. Verified on the :8030 testing-DB receipt (the
 stale-grid second submission → the conflict modal → the Refresh Page click →
 zero dialog events + the context preserved; the control's manual reload
 still fires the dialog) and the user's own manual test.
+
+## 2026-11-01 (lane `conflict-subject-switch-autoselect`, SDD-waived by the user) — changing the Conflicted Subjects auto-selects the matching conflict slot again
+
+The user's bug report: opening a conflict schedule pre-selects the matching
+`.slot-dd-item.selected` row, but after changing the **Conflicted Subjects**
+selection the corresponding conflict slot lost the selection (trigger renamed
+the row's facts, the picker rendered nothing selected, the store stayed
+unbound).
+
+### Root cause (confirmed)
+`renderSlotPicker()`'s tail calls `applyDefaultSlotSelection(slots)` whose
+BRANCH-1 early-returns while the arrival handoff params
+(`urlParams.code && day && start && originalVenue`) sit in the URL — that
+guard was written for the BOOT, where `applyUrlParams`'s own branch performs
+the one pick afterwards. A POST-boot subject switch re-runs the picker but has
+NO later pick, so nothing selected — while `applySubjectChange`'s auto-pin
+(occurrence-week-pin-truthfulness, T18) only wrote the strip trigger + the
+pin. The pre-existing comment even recorded it: "the auto-pin pick NEVER
+reaches commitSlotSelection (applyDefaultSlotSelection's branch-1
+pinned-slot early-return skips it)".
+
+### The fix (one writer, existing machinery)
+`applySubjectChange`'s POST-boot tail (where the auto-pin already lived) now
+finds the picker row that MATCHES the pin by solver identity
+(sessionId + week + day + start + venue — all runtime, never hardcoded) and
+commits it through `selectSlot(..., { auto: true })`: the `selected` class,
+`selectedOriginalSlot`, `lastSlotIndex`, the trigger + tooltip, the
+original-venue sync and the D1 pin all stay ONE code path. No picker row →
+the old `syncVenueFamily` fallback. The confirm guard cannot fire: a user
+subject switch either early-outs (empty store) or discards first
+(confirmChangeWithSelection → discardAllSelections THEN apply); the
+same-slot identity guard (SDD-waived 2026-11-01) keeps identical re-picks
+modal-free.
+
+### Receipt (read-only over the demo; the fixture lives on :8030)
+`tests/arrangement-conflict-autoselect.spec.ts` (:8030, `CRS_MODE=testing`
++ `CRS_ALLOW_SQL=1`; the demo DB :8000 is NEVER touched — it holds ZERO
+conflicts since the user's cleanout). Fixture = TWO `class_exceptions` rows
+(cs 67 W6 medical, cs 23 W9 annual), inserted + swept id-keyed by the spec
+itself (run-idempotent: between-runs DB state 0 rows; run 2 without reseed
+= 4/4 again). The OTHER conflicts are SEED-ORGANIC (W8 Mon Deepavali,
+W14 Thu/Fri Christmas) — the prompt's AMSE1003 W8 Mon 9–11 B111 scenario is
+one of them, exercised dynamically.
+4/4 green: (1) the arrival still pre-selects AMSE1003's W8 Mon B111 row;
+(2) switching to AMSE2003 auto-selects its W6 Thu 9–11 B100 row (`.selected`
+×1, trigger "Week 6 · …", `pinnedOccurrence` = {67,6}, the venue family
+synced to B100, NO 'Change Time Slot?' modal — the only modal in the flow is
+the pre-existing 'Change Subject?' clear-guard, receipted and accepted);
+(3) switching to BMSE3153 picks its own W9 row (no unrelated slot); (4)
+switching back re-picks AMSE1003's W8 row (pin {99,8}).
+
+### Gates
+pint passed; PHPStan errors 0 (1G flag); full PHPUnit suite pass reported in
+the same-evening run (≈280 incl. the notifications filter lane's test).
+`node --check` untouched (no JS file changed — the logic lives in the
+arrangement blade).
+
+### Deviation notes (honest)
+- The hidden picker panel keeps the previous subject's rows when the new
+  subject has zero conflicts (`renderSlotPicker([])` returns before
+  clearing) — PRE-EXISTING quirk, unrevisited here (the panel is display:none
+  so nothing surfaces); the receipt counts visible rows only.
+- The POST-boot auto-commit does not rewrite the URL (commitSlotSelection's
+  identity-change branch holds — `currentSessionId` was already re-keyed by
+  the auto-pin) — same doctrine as the pinned-session arrival; refresh/back
+  truth rides `pinnedOccurrence` as before.
