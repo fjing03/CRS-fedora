@@ -383,3 +383,62 @@ trigger).
   pint/phpstan green.
 - The summary-card + #todayBtn flashes live in SEPARATE lane
   `notif-jump-flash-family` (pending the user's apply word).
+## [2026-11-01] Submitted rows compose at render time + the actionable-unread badge — SDD change `notif-new-request-ux` (T1–T9)
+
+The bell's `submitted` rows (a PL's inbox of new requests) stop being one-line
+stored copies: they compose SERVER-SIDE on every render — title with the request
+ID, a `Name (staff_id)` subtitle line, a schedule desc, a 5-line multiline hover
+tip, and the badge redefined to the ACTIONABLE-unread total. Legacy demo rows
+get the new look for free (no backfill, no schema change). Frozen rulings D1–D15;
+artifacts in `.sdd/changes/notif-new-request-ux/`.
+
+### The ruling lines (user-dated)
+- **D6/D7 — render-time composition, no backfill**: NO emitter/API/schema
+  change; the composer runs per render in `NavNotifications` — legacy stored
+  rows compose the same as fresh ones (legacy submitted row id 1 on :8000
+  receipts it live).
+- **D5 — the badge = the actionable-unread total** (F-2 law REFRESHED): blue
+  bell badge = panel pill = `$userTotal` = the derived number
+  `read_at === null && inactive_reason === null` over the WHOLE mailbox — batch-
+  derived in PHP, ONE render; the standalone COUNT subquery is DELETED.
+  Described-request reads stay neutral (the badge never drops for reading the
+  REQUEST while the ROW keeps its anchor).
+- **D15 — the inactive reason-first copy family**: decided request → the linked
+  `submitted`/`awaiting` rows render inactive with the exact copy
+  cancelled > approved > rejected > read —
+  `This notification is inactive because the request was approved.` (etc.).
+  No reason = active row (href/data-id/data-notif-target preserved).
+- **D3/D4 amendments**: the legacy D4 "links stay alive" law is OVERTURNED for
+  the submitted/awaiting family (a decided row is disabled-look, no anchor);
+  non-submitted request-linked rows keep the notif-click-highlight
+  both-clickable law.
+- **D1** — the cancelled string is exactly
+  "This notification is inactive because the request was cancelled by the
+  requester." (the real-bridge D4 copy updated).
+- **D2 side-effect (DELIBERATE)**: unread `awaiting` reminders of a LATER-decided
+  request also inherit the decided-state copy via D15 — asserted in the bridge
+  suite's fail-open matrix, recorded here so nobody "fixes" it back.
+
+### Files Modified
+
+| File | Change |
+|---|---|
+| `app/Services/ReplacementRequestMapper.php` | PROMOTED: `stringsFromSpan()` (span→date/time/week/day/venue strings), `spansForRequests()` (ONE batched join, requestId→span), `dayName()` + `DAY_NAMES` — 3rd request-display consumer rides ONE format source; `replacementStrings()` is now a thin wrapper (existing callers unchanged) |
+| `app/Livewire/NavNotifications.php` | render-time composer `composeSubmitted()` (title-with-ID / subtitle / desc / aria / 5-line tip; fail-open: identity lines per-line omitted, schedule all-or-nothing, missing semester nulls the tip, raw 24h times + unspaced en dash, venue name null → code alone); the D15 inactive-reason classifier; the count subquery deleted, badge = batch-derived actionable unread |
+| `resources/views/partials/notif-row.blade.php` + `resources/views/livewire/nav-notifications.blade.php` | `_display` rendering + the new `.notif-row-subtitle` span; `$rowTip` = the 5-line multiline tip (the Requested-at line injected after the Staff line via the `$tipAbs`/`$relLong` closures: just now / N minutes ago / 1 hour ago / N hours ago / Yesterday / N days ago); inactive rows lose href/data-id/data-notif-target and carry the D-family data-tip; badge/pill read the DERIVED total |
+| `public/css/theme.css` | ONE new `.notif-row-subtitle` (12px, `--color-on-surface-variant`) — no new tokens |
+| `tests/Feature/NotificationsBridgeTest.php` | 13/13: composition receipt (slot 32612 = W6 Fri 13:30–14:00 B010), the D15 fail-open matrix (missing proposer/module → line omitted; missing semester → whole-tip fallback; legacy status-null edge), the D15 read arm, the D2 awaiting side-effect, ONE-query law intact |
+| `tests/notifications-island-testing-db.spec.ts` (:8030) | 6/6 ×2: the badge lifecycle, the disabled-with-D1 cancelled row, and the D15 decided-row receipt (approve →inactive span WITHOUT read_at; badge drops) — with id-keyed per-test fixture sweeps + a beforeAll residue sweep so the run is re-idempotent (run 2 = no reseed, pure swept state) |
+| `tests/notifications-island.spec.ts` (:8000) | 8/8: composer receipts on the REAL legacy submitted row (id 1), ONE-FEED equality, open-panel-survives-poll, caught-up swap; the F-2 test name reworded to the actionable-unread wording (D5) |
+
+### Gates + receipts
+- pint passed; PHPStan errors: 0 (1G flag); full phpunit **279 passed** (the
+  frozen prompt predicted 277 — 2 tests came from lanes committed after the
+  freeze); `node --check ui-common.js` OK.
+- T7 (:8030) 6/6 run 1 after `migrate:fresh --seed`, then run 2 with NO reseed
+  → 6/6 (idempotency proof; between-run DB state = 0 probe rows).
+- T8 (:8000) 8/8, read-only.
+- Commit ladder: `6886db2` (oop T1) → `591449e` (feat T2–T4) → `0b7674f`
+  (style T5) → `acefe72` (test T6) → `bcdaeb9` (test T7/T8) → this `docs:` commit
+  (T9).
+
