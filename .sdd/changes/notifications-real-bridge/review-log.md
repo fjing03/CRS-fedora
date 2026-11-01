@@ -47,3 +47,19 @@
 - The two receipt rows stay in the demo DB (labelled 'Demo receipt —
   poll cycle*'; the removal SQL is in docs/demo-db-data-changes.md's
   convention — the user deletes at will).
+
+## The PI re-verify round — 2026-10-29 (bookkeeping only; .sdd never committed by the PI session)
+
+The main session's verify findings were re-checked independently by the PI
+session per the 10-item prompt. Verdicts: Items 1+2+3+4+5+6+7+9 AGREED and
+fixed (commits 968a867, 2e5a071, 34f2570, 5c8a40d, fb16ad2, 75d920a,
+3959b34); Item 8 DISAGREE (the design sketch's send()/notifyPls() naming was
+illustrative; the emitter's substance matches); Item 10 CONFIRMED (php
+artisan test 276/276 green). NEW finding OUT of the fence: the island's
+resolveRoleView() matches camelCase page keys but the mounts pass the kebab
+nav keys — the AD-2 tab map never engages (the panel always defaults to the
+lecturer tab). Proof: the live :8000 snapshot shows pageKey
+"request-approval" → roleView "lecturer" on /request-approval-ui. Awaiting
+the user's verdict; not fixed inside the fence. (Found while receipting
+Item 2; the Playwright receipts keep the current truth and stay honest
+about it in their comments.)
