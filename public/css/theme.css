@@ -484,6 +484,14 @@ body {
     text-overflow: ellipsis;
     white-space: nowrap;
 }
+.notif-row-subtitle {
+    font-size: 12px; /* 0.75rem — one step under the title (T5's smallest-step law) */
+    font-weight: 500;
+    color: var(--color-on-surface-variant);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
 .notif-row-desc {
     font-size: 12px; /* 0.75rem */
     color: var(--color-on-surface-variant);
