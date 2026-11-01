@@ -402,4 +402,61 @@ final class NotificationsBridgeTest extends TestCase
             ->assertSee('PL tab row', false)
             ->assertDontSee('other user row', false);
     }
+
+    /** The 2026-11-01 UI request (SDD-waived): the Active-only toggle + the
+     *  type dropdown — server state, composable with unread-only, and the
+     *  badge NEVER moves (the D5/F-2 law). */
+    public function test_panel_view_filters_active_only_and_type(): void
+    {
+        // the island renders the AUTHENTICATED user's mailbox (render() reads
+        // Auth::id()) — one-feed scoping applies to the filters too
+        $this->actingAs($this->coordinator());
+        $request = $this->seedRequest();
+        $this->submitEvent($request->id);
+
+        // the actor's 'update' record row — the same 5770 shape the cancel
+        // test uses (cs 23's lecturer is NOT necessarily user 1's own class)
+        $session = ClassSession::query()
+            ->where('lecturer_id', 1)
+            ->where('day_of_week', 3)
+            ->firstOrFail();
+        app(NotificationEmitter::class)->classCancelled(
+            $this->coordinator(), $session, 8
+        );
+
+        $view = fn (array $extra = []) => Livewire::test(NavNotifications::class, array_merge(
+            ['variant' => 'panel', 'pageKey' => 'requestApproval', 'unreadOnly' => false],
+            $extra,
+        ));
+
+        // type dropdown: only the stored type survives the row filter
+        $view(['typeFilter' => 'update'])
+            ->assertSee('Scheduled class cancelled', false)
+            ->assertDontSee('New replacement request');
+        $view(['typeFilter' => 'submitted'])
+            ->assertSee('New replacement request (ID #'.$request->id.')')
+            ->assertDontSee('Scheduled class cancelled', false);
+        $view(['typeFilter' => 'rejected'])
+            ->assertDontSeeHtml('notif-row');
+
+        // ACTIVE ONLY: decide the request server-side → the submitted row
+        // rides the D15-rejected arm and disappears from the active view,
+        // while the update row stays (never classified, never disabled)
+        // — and the badge law holds through every filter state.
+        ReplacementRequest::query()->whereKey($request->id)->update(['status' => 'rejected']);
+
+        $view(['activeOnly' => true, 'typeFilter' => 'submitted'])
+            ->assertDontSeeHtml('notif-row');
+        $view(['activeOnly' => true])
+            ->assertSee('Scheduled class cancelled', false)
+            ->assertDontSee('New replacement request');
+
+        // the derived actionable-unread total is filter-INDEPENDENT (D5)
+        $component = Livewire::test(NavNotifications::class, [
+            'variant' => 'panel', 'pageKey' => 'requestApproval',
+            'unreadOnly' => false, 'activeOnly' => true, 'typeFilter' => 'approved',
+        ]);
+        $this->assertSame(1, $component->viewData('unreadTotal'),
+            'the badge stays the actionable unread (the update row) — not the filtered view');
+    }
 }

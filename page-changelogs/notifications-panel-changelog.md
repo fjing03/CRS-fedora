@@ -442,3 +442,54 @@ artifacts in `.sdd/changes/notif-new-request-ux/`.
   (style T5) → `acefe72` (test T6) → `bcdaeb9` (test T7/T8) → this `docs:` commit
   (T9).
 
+## 2026-11-01 (lane `notif-filter-bar-active-type`, SDD-waived by the user) — the filter bar grows the Active-only toggle + the type dropdown
+
+The user asked for two controls in the notch panel's filter bar: an
+"Active only" toggle reusing the "Unread only" switch design, and a
+notification-type dropdown. SDD skipped ON THE USER'S EXPLICIT WAIVER
+("skip sdd if possible") — logged here per the cb696ee precedent.
+
+### What changed
+- `app/Livewire/NavNotifications.php` — two new server-owned props
+  (`activeOnly` bool default OFF, `typeFilter` string default '') + the
+  composable view-filter chain (unread-only ⊕ active-only ⊕ type) + the
+  private `isInactiveRow()` — the SAME activation law the row partial renders
+  by (D15 reason, else the legacy D4 missing/cancelled edge). THE BADGE IS
+  UNTOUCHED: the derived actionable-unread total (D5) is computed before and
+  independently of the view filters — the badge/pill/mark-all/read-endpoint
+  stay the frozen law.
+- `resources/views/livewire/nav-notifications.blade.php` — the bar now holds
+  TWO `.toggle-wrapper` switches ("Unread only", "Active only") + ONE
+  `.filter-select` dropdown (All types / New requests / Awaiting decision /
+  Approved / Rejected / Updates) — no new component classes, the globally
+  promoted switch + the canonical select, `wire:model.live` on both so poll
+  morphs preserve them.
+- `public/css/theme.css` — the bar gains `flex-wrap` + `gap` (no new tokens),
+  and ONE panel-context block `.notif-filters .filter-select` (12px family
+  step, 44px touch target, `margin-left: auto`).
+- `tests/Feature/NotificationsBridgeTest.php` — NEW receipt
+  `test_panel_view_filters_active_only_and_type`: the type filter isolates the
+  stored type; active-only drops the D15-decided submitted row while the
+  update row stays; a filter combo never moves `viewData('unreadTotal')`
+  (the badge law). Suite 14/14.
+- `tests/notifications-island.spec.ts` — NEW read-only receipt (filter bar:
+  Active-only toggle + the type dropdown, badge unmoved) + the composer
+  receipt RE-ANCHORED: the earlier "REAL legacy row id 1" anchor retired by
+  the user's demo-DB recovery swap (commits 67606dd + d32ebd7) — the receipt
+  is now STRUCTURAL (whatever unread pending-submitted row the live mailbox
+  holds, the title-with-ID / subtitle / desc / 5-line tip invariants are
+  asserted against its own values). Island spec 9/9 green on :8000.
+
+### Gates
+- pint passed; PHPStan errors 0 (1G); `node --check ui-common.js` OK;
+  bridge 14/14; island 9/9 (:8000, read-only); full phpunit report in the
+  commit message (the suite takes ~6–7 min: every Feature class reseeds the
+  disposable testing DB — by design, the demo DBs are never touched).
+
+### Demo-DB note (the same-day handover ruling)
+The :8000 record = the user-sanctioned October reconstruction (agent-rebuilt
+on the :8001 twin, swapped 21:19 per option A; the pre-swap composer row
+state lives in backups/class_replacement_fresh-pre-swap-2026-11-01.dump).
+The receipts here are relative/structural so the LIVE mailbox may keep
+getting decided without breaking them.
+

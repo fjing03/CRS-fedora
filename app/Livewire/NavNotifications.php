@@ -52,6 +52,14 @@ class NavNotifications extends Component
     /** The unread-only toggle (server-owned so the poll re-render preserves it). */
     public bool $unreadOnly = true;
 
+    /** The active-only toggle (SDD-waived UI request, 2026-11-01): hides the
+     *  decided/inactive rows — the SAME activation law the row partial renders
+     *  by (D15 reason or the legacy D4 disabled edge), never the badge. */
+    public bool $activeOnly = false;
+
+    /** The type filter ('' = all types). Server-owned; wire:model.live. */
+    public string $typeFilter = '';
+
     public function mount(string $variant = 'bell', string $pageKey = ''): void
     {
         $this->variant = $variant;
@@ -86,10 +94,22 @@ class NavNotifications extends Component
                     && $n->getAttribute('inactive_reason') === null)
                 ->count();
 
-            $rows = $this->unreadOnly
-                ? $rows->filter(fn (Notification $n) => $n->read_at === null
-                    && $n->getAttribute('inactive_reason') === null)
-                : $rows->values();
+            /* The VIEW filters (never touch the badge — the D5/F-2 law):
+               unread-only → literal unread predicate; active-only → the SAME
+               activation law the partial renders by; type filter → the row's
+               stored type. Composable, all server-owned. */
+            $rows = $rows
+                ->when($this->unreadOnly, fn (Collection $c) => $c->filter(
+                    fn (Notification $n) => $n->read_at === null
+                        && $n->getAttribute('inactive_reason') === null
+                ))
+                ->when($this->activeOnly, fn (Collection $c) => $c->filter(
+                    fn (Notification $n) => ! $this->isInactiveRow($n)
+                ))
+                ->when($this->typeFilter !== '', fn (Collection $c) => $c->filter(
+                    fn (Notification $n) => $n->type === $this->typeFilter
+                ))
+                ->values();
         }
 
         return view('livewire.nav-notifications', [
@@ -97,6 +117,29 @@ class NavNotifications extends Component
             'unreadTotal' => $unreadTotal,
             'unreadInView' => $unreadInView,
         ]);
+    }
+
+    /**
+     * The active-only predicate — MIRRORS the row partial's activation law
+     * exactly (partials/notif-row.blade.php `$activation`): the classified
+     * family rides the D15 reason; the legacy non-submitted family's D4 law
+     * rides the missing/cancelled edge. One truth, two copies of intent
+     * (display + filter) — both documented here and in the partial.
+     */
+    private function isInactiveRow(Notification $n): bool
+    {
+        $reason = $n->getAttribute('inactive_reason');
+        if ($reason !== null) {
+            return true;
+        }
+
+        if (! in_array($n->type, ['submitted', 'awaiting'], true)
+            && $n->getAttribute('inactive_row') === true
+            && $n->getAttribute('_display') === null) {
+            return true;
+        }
+
+        return false;
     }
 
     /** Mark-all the user's mailbox read (the ZERO-badge path; the frozen law). */

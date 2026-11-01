@@ -83,6 +83,20 @@
             <span class="toggle-track"><span class="toggle-thumb"></span></span>
             <span class="toggle-label">Unread only</span>
         </label>
+        <label class="toggle-wrapper" data-tip="Hide decided/inactive rows — show live items only">
+            <input type="checkbox" id="notifActiveOnly" wire:model.live="activeOnly" {{ $activeOnly ? 'checked' : '' }}>
+            <span class="toggle-track"><span class="toggle-thumb"></span></span>
+            <span class="toggle-label">Active only</span>
+        </label>
+        <select class="filter-select notif-type-select" id="notifTypeFilter" aria-label="Filter by notification type"
+                title="Filter by notification type" wire:model.live="typeFilter">
+            <option value="">All types</option>
+            <option value="submitted">New requests</option>
+            <option value="awaiting">Awaiting decision</option>
+            <option value="approved">Approved</option>
+            <option value="rejected">Rejected</option>
+            <option value="update">Updates</option>
+        </select>
     </div>
 
     @php $showEmpty = ($unreadOnly && $unreadInView === 0) || $rows->isEmpty(); @endphp

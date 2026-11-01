@@ -380,6 +380,15 @@ body {
     padding: 6px 16px;
     border-bottom: 1px solid var(--color-outline);
     flex-shrink: 0;
+    flex-wrap: wrap; /* two toggles + the type dropdown wrap on narrow panels */
+    gap: 6px 14px;
+}
+/* the panel-context dropdown = the ONE .filter-select, sized to the family */
+.notif-filters .filter-select {
+    font-size: 12px; /* 0.75rem — the notif family convention (fits 360px) */
+    padding: 6px 10px;
+    min-height: 44px; /* WCAG touch target */
+    margin-left: auto; /* push to the row end beside the toggles */
 }
 .notif-filters .toggle-label {
     font-size: 12px; /* 0.75rem — family convention, fits 360px panel */
