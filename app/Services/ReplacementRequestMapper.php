@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\ReplacementRequest;
 use App\Models\TimeSlot;
+use App\Models\Venue;
 use Carbon\Carbon;
 use Carbon\CarbonInterface;
 use Illuminate\Support\Facades\DB;
@@ -56,6 +57,14 @@ final class ReplacementRequestMapper
     }
 
     private const DAY_NAMES = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+
+    /** SDD notif-new-request-ux (the composer's desc/tip fact lines): the public
+     *  read of the private DAY_NAMES — the promote-on-3rd law (the day-name map
+     *  is now the mapper's; no consumer hardcodes its own). */
+    public static function dayName(int|string $day): string
+    {
+        return self::DAY_NAMES[(int) $day] ?? '';
+    }
 
     /**
      * The canonical PL-queue row (frozen template's `requests` §2.13 shape).
@@ -222,13 +231,92 @@ final class ReplacementRequestMapper
             return ['date' => null, 'time' => null, 'venue' => null];
         }
 
+        $span = [
+            'week' => (int) $slot->week_number,
+            'day' => (int) $slot->day_of_week,
+            'venue_id' => (int) $slot->venue_id,
+            'start' => (string) $slot->start_time,
+            'end' => (string) $slot->end_time,
+        ];
+
+        $strings = $this->stringsFromSpan($span, $semesterStart, $slot->venue);
+
+        // the legacy key set only — the existing consumers (MyRequestHistory
+        // :65-76, ApiReadController) read date/time/venue and are pinned.
+        return ['date' => $strings['date'], 'time' => $strings['time'], 'venue' => $strings['venue']];
+    }
+
+    /**
+     * SDD notif-new-request-ux (design §7's promotion): the span→strings body
+     * — the 3rd request-display consumer (history, the API adapter, now the
+     * notif composer) rides ONE format source. Keys: date/time (the legacy
+     * SPACED en-dash form for the history consumers), week, day, venue
+     * (room_code), venueName (room_name or null).
+     *
+     * @param  array{week: int, day: int, venue_id: int, start: string, end: string}|null  $span
+     * @return array{date: ?string, time: ?string, week: ?int, day: ?string, venue: ?string, venueName: ?string}
+     */
+    public function stringsFromSpan(?array $span, Carbon $semesterStart, ?Venue $venue): array
+    {
+        if ($span === null || $venue === null) {
+            return ['date' => null, 'time' => null, 'week' => null, 'day' => null, 'venue' => null, 'venueName' => null];
+        }
+
         return [
             'date' => $semesterStart->copy()
-                ->addWeeks((int) $slot->week_number - 1)
-                ->addDays((int) $slot->day_of_week)
+                ->addWeeks((int) $span['week'] - 1)
+                ->addDays((int) $span['day'])
                 ->toDateString(),
-            'time' => Carbon::parse((string) $slot->start_time)->format('H:i').' – '.Carbon::parse((string) $slot->end_time)->format('H:i'),
-            'venue' => (string) $slot->venue->room_code,
+            'time' => Carbon::parse((string) $span['start'])->format('H:i').' – '.Carbon::parse((string) $span['end'])->format('H:i'),
+            'week' => (int) $span['week'],
+            'day' => self::DAY_NAMES[(int) $span['day']] ?? '',
+            'venue' => (string) $venue->room_code,
+            'venueName' => $venue->room_name !== null ? (string) $venue->room_name : null,
         ];
+    }
+
+    /**
+     * SDD notif-new-request-ux (design §3): the BATCH span read — ONE join
+     * query for a whole request-id set, grouped into span()'s first/last
+     * shape. Never called per-row on a 10 s poll. NOTE: the joined tables are
+     * `replacement_request_slots`/`time_slots` — neither contains the
+     * substring `replacement_requests` (the ONE-QUERY law test counts the
+     * requests-mentioning SQL; verified in the design §3 [query budget]).
+     *
+     * @param  array<int, int>  $requestIds
+     * @return array<int, array{week: int, day: int, venue_id: int, start: string, end: string, count: int}>
+     */
+    public function spansForRequests(array $requestIds): array
+    {
+        if ($requestIds === []) {
+            return [];
+        }
+
+        $rows = DB::table('replacement_request_slots')
+            ->join('time_slots', 'replacement_request_slots.time_slot_id', '=', 'time_slots.id')
+            ->whereIn('replacement_request_slots.replacement_request_id', array_map('intval', $requestIds))
+            ->orderBy('time_slots.start_time')
+            ->get([
+                'replacement_request_slots.replacement_request_id',
+                'time_slots.week_number',
+                'time_slots.day_of_week',
+                'time_slots.venue_id',
+                'time_slots.start_time',
+                'time_slots.end_time',
+            ]);
+
+        return $rows
+            ->groupBy('replacement_request_id')
+            ->map(function ($group): array {
+                return [
+                    'week' => (int) $group->first()->week_number,
+                    'day' => (int) $group->first()->day_of_week,
+                    'venue_id' => (int) $group->first()->venue_id,
+                    'start' => (string) $group->first()->start_time,
+                    'end' => (string) $group->last()->end_time,
+                    'count' => $group->count(),
+                ];
+            })
+            ->all();
     }
 }
