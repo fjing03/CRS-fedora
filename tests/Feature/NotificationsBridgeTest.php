@@ -8,6 +8,7 @@ use App\Models\Cohort;
 use App\Models\Notification;
 use App\Models\ReplacementRequest;
 use App\Models\Student;
+use App\Models\TimeSlot;
 use App\Models\User;
 use App\Support\Notifications\NotificationEmitter;
 use Database\Seeders\DatabaseSeeder;
@@ -142,10 +143,15 @@ final class NotificationsBridgeTest extends TestCase
 
         $pl = $this->pl();
         $this->actingAs($pl);
+        // SDD notif-new-request-ux D5: inactive ⇒ the READ category —
+        // never in the unread filter, so the D1 row shows under unread-only=false.
         Livewire::withQueryParams([])
-            ->test(NavNotifications::class, ['variant' => 'panel', 'pageKey' => 'requestApproval'])
-            ->assertSee('This notification is inactive because the request was cancelled.', false)
+            ->test(NavNotifications::class, ['variant' => 'panel', 'pageKey' => 'requestApproval', 'unreadOnly' => false])
+            ->assertSee('This notification is inactive because the request was cancelled by the requester.', false)
             ->assertDontSeeHtml('href="/request-approval-ui"');
+        // the unread-only default view hides it entirely (the actionable law)
+        Livewire::test(NavNotifications::class, ['variant' => 'panel', 'pageKey' => 'requestApproval'])
+            ->assertDontSee('This notification is inactive', false);
     }
 
     public function test_badge_law_one_unread_total_across_the_roles(): void
@@ -190,14 +196,99 @@ final class NotificationsBridgeTest extends TestCase
 
     public function test_the_lifecycle_links_stay_alive_for_decided_statuses(): void
     {
+        // SDD notif-new-request-ux D3/D4 amendment: the real-bridge links-stay-alive
+        // law is OVERTURNED for `submitted` rows — an approved request's row
+        // renders INACTIVE (no href, the D15-approved reason tip; unread ⇒
+        // excluded from the badge/pill). The actionable-unread law.
         $request = $this->seedRequest();
         $this->submitEvent($request->id);
         ReplacementRequest::query()->whereKey($request->id)->update(['status' => 'approved']);
 
         $pl = $this->pl();
         $this->actingAs($pl);
-        Livewire::test(NavNotifications::class, ['variant' => 'panel', 'pageKey' => 'requestApproval'])
-            ->assertSeeHtml('href="/request-approval-ui"', false);
+        $component = Livewire::test(NavNotifications::class, ['variant' => 'panel', 'pageKey' => 'requestApproval', 'unreadOnly' => false]);
+        $component
+            ->assertSee('This notification is inactive because the request was approved.', false)
+            ->assertDontSeeHtml('href="/request-approval-ui"');
+        $this->assertSame(0, $component->viewData('unreadTotal'), 'the approved-submitted row is no longer actionable');
+        $component->assertSeeHtml('notif-row--inactive');
+    }
+
+    /** SDD notif-new-request-ux: the composer receipts (the T6 NEW block). */
+    public function test_submitted_row_renders_the_ux_composition(): void
+    {
+        $request = $this->seedRequest();
+        $this->submitEvent($request->id);
+
+        $pl = $this->pl();
+        $this->actingAs($pl);
+        $component = Livewire::test(NavNotifications::class, ['variant' => 'panel', 'pageKey' => 'requestApproval', 'unreadOnly' => false]);
+        $html = $component->html();
+
+        // 1) the title-with-ID
+        $this->assertStringContainsString('New replacement request (ID #'.(int) $request->id.')', $html);
+        // 2) the subtitle: the full name + the staff id
+        $this->assertStringContainsString('Surayaini Binti Basri (', $html);
+        // 3) the desc: the week/day/time/venue at a glance — the RUNTIME truth
+        //    of the request's anchor slot (seed 32612 = W6 Fri 13:30–14:00 B010)
+        $this->assertStringContainsString('Week 6 · Friday · 13:30–14:00 · B010', $html);
+        // 4) the 5-line tip: the Staff line + the relative-ago line + the Schedule + the Venue + the Subject
+        $this->assertStringContainsString('Staff: ', $html);
+        $this->assertStringContainsString('Proposed Schedule: Week 6 · ', $html);
+        $this->assertStringContainsString('Proposed Venue: B010 — Computer Laboratory 2', $html);
+        $this->assertStringContainsString('Subject: BMSE3153 (P)', $html);
+        $this->assertStringContainsString('Requested at: ', $html);
+        // the badge = the actionable unread (the submitted-pending = unread ⇒ 1)
+        $this->assertSame(1, $component->viewData('unreadTotal'));
+    }
+
+    /** SDD notif-new-request-ux: the fail-open matrix (D6). */
+    public function test_submitted_row_fail_open_matrix(): void
+    {
+        // 1) the missing-proposer shape: the notification's request row instead of
+        //    the eager family — the submit event stamps request_id on the row, so
+        //    resolve is fine; the fail-open = the request itself missing.
+        $request = $this->seedRequest();
+        $this->submitEvent($request->id);
+
+        // (a) the DECIDED-AWAITING side-effect (the deliberate D2): an awaiting
+        // reminder of a later-APPROVED request renders inactive + the D15-approved.
+        ReplacementRequest::query()->whereKey($request->id)->update(['status' => 'approved']);
+        $pls = User::query()->whereHas('lecturer', fn ($q) => $q->where('is_pl', true))->get();
+        app(NotificationEmitter::class)->pendingReminder(
+            $pls, 'BMSE3153', 'P', 'Surayaini', (int) $request->id, 8
+        );
+        $pl = $this->pl();
+        $this->actingAs($pl);
+        Livewire::test(NavNotifications::class, ['variant' => 'panel', 'pageKey' => 'requestApproval', 'unreadOnly' => false])
+            ->assertSee('This notification is inactive because the request was approved.', false);
+
+        // (b) the D15 'read' arm: a READ submitted row whose request is STILL
+        //     pending (read_at stamped by the durable POST) renders inactive
+        //     with the read sentence. (When the request itself is decided the
+        //     stronger arms win per the frozen precedence: approved > read.)
+        // a fresh pending request on a DIFFERENT occurrence (the active-block
+        // unique law: one pending per class×week) — anchor slot = W3's Thursday
+        $anchorSlot = TimeSlot::query()->where('week_number', 3)->where('day_of_week', 3)
+            ->where('status', 'available')->firstOrFail();
+        $fresh = ReplacementRequest::create([
+            'semester_id' => 1, 'proposer_id' => 1, 'class_session_id' => 67,
+            'week_number' => 3, 'replacement_time_slot_id' => (int) $anchorSlot->id,
+            'status' => 'pending', 'submitted_at' => Date::now(),
+        ]);
+        app(NotificationEmitter::class)->requestSubmitted(
+            User::query()->whereHas('lecturer', fn ($q) => $q->where('is_pl', true))->get(),
+            'AMSE2003', 'L', 'Surayaini Binti Basri', (int) $fresh->id, 3
+        );
+        Notification::query()->where('user_id', $pl->id)
+            ->where('type', 'submitted')->where('request_id', (int) $fresh->id)
+            ->update(['read_at' => Date::now()]);
+        Livewire::test(NavNotifications::class, ['variant' => 'panel', 'pageKey' => 'requestApproval', 'unreadOnly' => false])
+            ->assertSee('This notification is inactive because you have already read this request.', false)
+            ->assertSeeHtml('notif-row--inactive');
+        // (c) the missing-row edge = defensive ONLY — the FK nulls request_id
+        //     on delete, so real writes never reach the branch; asserted here
+        //     documentarily via the classifier's shape (no test can write it).
     }
 
     public function test_rejected_rows_reach_the_proposer_with_the_frozen_tile_and_link(): void
