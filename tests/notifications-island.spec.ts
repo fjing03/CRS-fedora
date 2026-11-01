@@ -23,15 +23,20 @@ async function badgeNumber(page: Page): Promise<number> {
   return visible ? Number(await badge.textContent()) : 0;
 }
 
-test('bell + pill carry the whole-mailbox unread total (F-2), no mock rows', async ({ page }) => {
+/* SDD notif-new-request-ux (T8): the F-2 test NAME reworded per D5 — the
+   badge = the ACTIONABLE unread (the Batch-2 D5 requires the D5-consistent
+   wording so a future re-verify reads it right). */
+test('bell + pill carry the actionable-unread total (F-2, notif-new-request-ux D5), no mock rows', async ({ page }) => {
   const consoleErrors: string[] = [];
   page.on('pageerror', (err) => consoleErrors.push(String(err)));
 
   await page.goto('/my-timetable-ui?_=island-1');
   await expect(page.locator('.notif-btn')).toBeVisible();
 
-  // the bell island = the TOTAL unread mailbox count (the whole, never the tab slice)
+  // the bells = the whole mailbox's ACTIONABLE unread (the D15-inactive rows
+  // excluded — the notif-new-request-ux D5; the badge == the panel pill)
   const badge = await badgeNumber(page);
+
 
   // open the panel: the pill shows the SAME total (the ONE unread total law)
   await page.click('button.notif-btn');
@@ -104,4 +109,40 @@ test('an OPEN panel survives poll cycles: state, toggle and pill preserved (AD-1
   // the body is not scroll-locked away (overflow restored once closed is
   // separate; while open the AD-11 lock stands)
   expect(await page.evaluate(() => document.body.style.overflow)).toBe('hidden');
+});
+
+/* SDD notif-new-request-ux (T8) — the READ-ONLY :8000 receipts for the
+   demo's REAL legacy `submitted` row (id 1: the pending request, the anchor
+   slot W6-FRI 13:30–14:00 B010): the render-time composition applies to
+   them with no writes anywhere. The user's ask (D1/D15): the CANCELLED-row
+   receipt needs a cancelled submitted row — the demo mailbox holds none
+   (verified live), so that receipt belongs in the T7 fixture set (already
+   receipted by the testing-db spec's cancelled fixture + this lane's
+   Feature tests). */
+test('composer receipts on the REAL legacy submitted row (id 1)', async ({ page }) => {
+  const consoleErrors: string[] = [];
+  page.on('pageerror', (err) => consoleErrors.push(String(err)));
+
+  await page.goto('/request-approval-ui?bust=island-8');
+  await page.click('button.notif-btn');
+  await expect(page.locator('#notifPanel')).toHaveClass(/open/);
+  // the unread-only view MUST show the row (it is pending ⇒ actionable)
+  const row = page.locator('#notifList a.notif-row[data-notif-target="r1"]').first();
+  await expect(row).toBeVisible();
+
+  // 1) the title-with-ID
+  await expect(row.locator('.notif-row-title')).toHaveText('New replacement request (ID #1)');
+  // 2) the requester subtitle (the full name + the staff id)
+  await expect(row.locator('.notif-row-subtitle')).toHaveText('Surayaini Binti Basri (5425)');
+  // 3) the desc: week · day · time · venue (the runtime anchor's truth)
+  await expect(row.locator('.notif-row-desc')).toHaveText('Week 6 · Friday · 13:30–14:00 · B010');
+  // 4) the multiline tip:
+  const tip = await row.getAttribute('data-tip');
+  expect(tip).toContain('Staff: 5425 — Surayaini Binti Basri');
+  expect(tip).toMatch(/Requested at: \d{1,2} [A-Z][a-z]{2} \d{4}, \d{1,2}:\d{2} (AM|PM) \(/);
+  expect(tip).toContain('Proposed Schedule: Week 6 · ');
+  expect(tip).toContain('Proposed Venue: B010 — Computer Laboratory 2');
+  expect(tip).toContain('Subject: BMSE3153 (P)');
+
+  expect(consoleErrors, 'no JS page errors').toEqual([]);
 });
