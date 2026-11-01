@@ -36,6 +36,22 @@
     $absTime = function ($at): string {
         return $at ? $at->format('j M, g:i A') : '';
     };
+    /* SDD notif-new-request-ux T4: the multiline tip's dynamic Requested-at
+       line — D8's abs with YEAR (`j M Y, g:i A`) + D9's lowercase verbose
+       relative, both recomputed per render (the abstime-precision pattern). */
+    $tipAbs = function ($at): string {
+        return $at ? $at->format('j M Y, g:i A') : '';
+    };
+    $relLong = function ($at): string {
+        if ($at === null) return '';
+        $minutes = (int) abs(now()->diffInMinutes($at, false));
+        if ($minutes < 1) return 'just now';
+        if ($minutes < 60) return $minutes.' minute'.($minutes === 1 ? '' : 's').' ago';
+        $hours = (int) floor($minutes / 60);
+        if ($minutes < 1440) return $hours === 1 ? '1 hour ago' : $hours.' hours ago';
+        if ($minutes < 2880) return 'Yesterday';
+        return floor($minutes / 1440).' days ago';
+    };
     $userTotal = $unreadTotal > 0;
 @endphp
 @if($variant === 'bell')
