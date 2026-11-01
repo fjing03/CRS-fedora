@@ -372,3 +372,17 @@ amendments immediately after this review, before apply.)
   (another lane's dirty file) must NOT be swept into the `docs:` commit.
 - T8: confirm the demo mailbox for staff 5425 actually contains a cancelled submitted
   row before writing that receipt; if not, that receipt belongs in the T7 :8030 set.
+
+---
+
+## Apply closure (2026-11-01, pi session — the resume run)
+
+Apply completed per the frozen chain: T1–T5 landed (commits `6886db2`, `591449e`,
+`0b7674f`), T6–T8 receipts green (`acefe72`, `bcdaeb9`), T9 changelog + gates
+closed with this flip. Gates: pint passed; PHPStan errors 0 (1G); phpunit 279
+passed; `node --check ui-common.js` OK. T7 (:8030) 6/6 ×2 — the second run NO
+reseed = the idempotency receipt (fix: id-keyed per-test fixture sweeps +
+beforeAll residue sweep; the D15 receipt needs `unreadOnly=false` per the
+Feature contract, since the classifier's predicate excludes inactive rows from
+the unread-only list). T8 (:8000) 8/8 read-only. sdd.yaml flipped frozen →
+applied; archives on the user's word only.
