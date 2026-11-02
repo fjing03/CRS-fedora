@@ -28,6 +28,18 @@ use Livewire\Component;
  * rows never delete; an inactive link target renders the row disabled + the
  * user's tooltip.
  *
+ * notif-manage-hide (2026-11-02, the user's approved design): the complaint
+ * "the panel accumulates everything forever" now has a TIDY-UP path that keeps
+ * the never-delete law intact — HIDING is a soft, reversible flag
+ * (`notifications.hidden_at`, stamped on hide / cleared on unhide; NO row is
+ * ever deleted, no destructive copy anywhere). The gate is the EXACT
+ * COMPLEMENT of the badge predicate — hideable ⇔ `read_at !== null ||
+ * inactive_reason !== null` — so a hidden row can never be badge-counted by
+ * construction, and `render()`'s badge block stays untouched. The gate is
+ * PHP-derived (`inactive_reason` is not a column), therefore every posted id
+ * is RE-VALIDATED server-side in hideSelected(): the client's ticks are a
+ * proposal, never an authority.
+ *
  * SDD notif-new-request-ux (design §1/§2/§4): `submitted` rows (and,
  * deliberately, `awaiting` reminders — the D2 side-effect) compose
  * SERVER-SIDE per render; the inactive classifier classifies the REASON
@@ -60,6 +72,28 @@ class NavNotifications extends Component
     /** The type filter ('' = all types). Server-owned; wire:model.live. */
     public string $typeFilter = '';
 
+    /** Manage mode (notif-manage-hide): the filter row is replaced by the
+     *  selection bar and the list renders ONLY the hideable rows, pre-ticked. */
+    public bool $manageMode = false;
+
+    /** The ticks posted by manage mode — an INTENT list; hideSelected()
+     *  re-validates every id against the server-side gate before writing.
+     *
+     * @var array<int, int>
+     */
+    public array $selectedIds = [];
+
+    /** The hidden shelf (footer `Hidden (N)` → Back returns to the inbox). */
+    public bool $hiddenView = false;
+
+    /** The last hide batch — the Undo toast's payload. Kept in COMPONENT state
+     *  (not the DOM) so the 10 s `wire:poll` re-render can never wipe a live
+     *  undo affordance; `dismissUndo()` (its timer) or `undoHide()` clears it.
+     *
+     * @var array<int, int>
+     */
+    public array $undoIds = [];
+
     public function mount(string $variant = 'bell', string $pageKey = ''): void
     {
         $this->variant = $variant;
@@ -72,6 +106,8 @@ class NavNotifications extends Component
         $rows = collect();
         $unreadTotal = 0;
         $unreadInView = 0;
+        $hidden = collect();
+        $hideable = collect();
 
         if ($userId > 0) {
             $base = Notification::query()->where('user_id', $userId);
@@ -94,6 +130,17 @@ class NavNotifications extends Component
                     && $n->getAttribute('inactive_reason') === null)
                 ->count();
 
+            /* notif-manage-hide: the mailbox splits into the INBOX (hidden_at
+               NULL) and the HIDDEN shelf (hidden_at stamped). The shelf rides
+               the same resolved rows, so its rows compose identically. */
+            $hidden = $rows->filter(fn (Notification $n) => $n->hidden_at !== null)->values();
+            $rows = $rows->filter(fn (Notification $n) => $n->hidden_at === null)->values();
+
+            /* The hideable set = the badge predicate's EXACT COMPLEMENT
+               (read_or_inactive), computed over the INBOX only — the same
+               server-side gate hideSelected() re-applies to posted ids. */
+            $hideable = $rows->filter(fn (Notification $n) => $this->isHideableRow($n))->values();
+
             /* The VIEW filters (never touch the badge — the D5/F-2 law):
                unread-only → literal unread predicate; active-only → the SAME
                activation law the partial renders by; type filter → the row's
@@ -113,7 +160,13 @@ class NavNotifications extends Component
         }
 
         return view('livewire.nav-notifications', [
-            'rows' => $rows,
+            /* manage mode REPLACES the filter row by the selection bar, so the
+               list it edits is the whole hideable inbox (never a filtered
+               slice — "Select all" must mean all of them). */
+            'rows' => $this->manageMode ? $hideable : $rows,
+            'hiddenRows' => $hidden,
+            'hideableCount' => $hideable->count(),
+            'hiddenCount' => $hidden->count(),
             'unreadTotal' => $unreadTotal,
             'unreadInView' => $unreadInView,
         ]);
@@ -140,6 +193,180 @@ class NavNotifications extends Component
         }
 
         return false;
+    }
+
+    /**
+     * The HIDE gate — the badge predicate's exact complement. `inactive_reason`
+     * is PHP-derived (resolveRequests), never a column, so this can only ever
+     * be evaluated here (server-side) and never trusted from the client.
+     */
+    private function isHideableRow(Notification $n): bool
+    {
+        return $n->read_at !== null || $n->getAttribute('inactive_reason') !== null;
+    }
+
+    /**
+     * The user's own INBOX rows for the posted ids, RESOLVED (so the derived
+     * `inactive_reason` exists) — the authorization + gate surface shared by
+     * every hide path. Never trusts the client: foreign ids, already-hidden
+     * ids and non-hideable ids simply fall out.
+     *
+     * @param  array<int, mixed>  $ids
+     * @return Collection<int, Notification>
+     */
+    private function gateableInboxRows(array $ids): Collection
+    {
+        $userId = (int) Auth::id();
+        $wanted = collect($ids)->map(fn ($id) => (int) $id)->filter()->unique()->values();
+        if ($userId < 1 || $wanted->isEmpty()) {
+            return collect();
+        }
+
+        $rows = Notification::query()
+            ->where('user_id', $userId)
+            ->whereNull('hidden_at')
+            ->whereIn('id', $wanted->all())
+            ->orderByDesc('created_at')
+            ->get();
+
+        return $this->resolveRequests($rows)
+            ->filter(fn (Notification $n) => $this->isHideableRow($n))
+            ->values();
+    }
+
+    /**
+     * The inbox ids that MAY be hidden (manage mode's pre-tick + Select all).
+     *
+     * @return array<int, int>
+     */
+    private function hideableInboxIds(): array
+    {
+        return $this->gateableInboxRows(
+            Notification::query()
+                ->where('user_id', (int) Auth::id())
+                ->whereNull('hidden_at')
+                ->pluck('id')
+                ->all()
+        )->pluck('id')->map(fn ($id) => (int) $id)->all();
+    }
+
+    /** Enter manage mode: every hideable inbox row arrives PRE-TICKED. */
+    public function enterManage(): void
+    {
+        $this->hiddenView = false;
+        $this->manageMode = true;
+        $this->undoIds = [];
+        $this->selectedIds = $this->hideableInboxIds();
+    }
+
+    /** Leave manage mode — nothing is written, the ticks are dropped. */
+    public function exitManage(): void
+    {
+        $this->manageMode = false;
+        $this->selectedIds = [];
+    }
+
+    /** Tick/untick one row (the id is re-gated at write time). */
+    public function toggleSelect(int $id): void
+    {
+        $id = (int) $id;
+        $selected = array_map('intval', $this->selectedIds);
+
+        $this->selectedIds = in_array($id, $selected, true)
+            ? array_values(array_filter($selected, fn (int $other) => $other !== $id))
+            : array_values(array_unique([...$selected, $id]));
+    }
+
+    public function selectAllVisible(): void
+    {
+        $this->selectedIds = $this->hideableInboxIds();
+    }
+
+    public function clearSelection(): void
+    {
+        $this->selectedIds = [];
+    }
+
+    /**
+     * Hide the ticked rows: RE-VALIDATED through the gate (a tampered or stale
+     * id is dropped, never written), stamped `hidden_at = now()` — rows are
+     * NEVER deleted — and kept as the Undo payload. Exits manage mode.
+     */
+    public function hideSelected(): void
+    {
+        $allowed = $this->gateableInboxRows($this->selectedIds)
+            ->pluck('id')->map(fn ($id) => (int) $id)->all();
+
+        $this->manageMode = false;
+        $this->selectedIds = [];
+
+        if ($allowed === []) {
+            $this->undoIds = [];
+
+            return;
+        }
+
+        Notification::query()
+            ->where('user_id', (int) Auth::id())
+            ->whereIn('id', $allowed)
+            ->update(['hidden_at' => now()]);
+
+        $this->undoIds = $allowed;
+    }
+
+    /** Undo the last hide batch — the same rows return to the inbox. */
+    public function undoHide(): void
+    {
+        $ids = array_map('intval', $this->undoIds);
+        $this->undoIds = [];
+
+        if ($ids === []) {
+            return;
+        }
+
+        Notification::query()
+            ->where('user_id', (int) Auth::id())
+            ->whereIn('id', $ids)
+            ->update(['hidden_at' => null]);
+    }
+
+    /** The Undo toast's timer/close — drops the affordance, writes nothing. */
+    public function dismissUndo(): void
+    {
+        $this->undoIds = [];
+    }
+
+    /** Footer `Hidden (N)` → the shelf. */
+    public function showHidden(): void
+    {
+        $this->manageMode = false;
+        $this->selectedIds = [];
+        $this->hiddenView = true;
+    }
+
+    /** The shelf's Back → the inbox (filters and scroll state survive). */
+    public function showInbox(): void
+    {
+        $this->hiddenView = false;
+    }
+
+    /** Restore ONE hidden row to the inbox. */
+    public function unhide(int $id): void
+    {
+        Notification::query()
+            ->where('user_id', (int) Auth::id())
+            ->whereKey((int) $id)
+            ->whereNotNull('hidden_at')
+            ->update(['hidden_at' => null]);
+    }
+
+    /** Restore EVERY hidden row (the shelf's `Unhide all`). */
+    public function unhideAll(): void
+    {
+        Notification::query()
+            ->where('user_id', (int) Auth::id())
+            ->whereNotNull('hidden_at')
+            ->update(['hidden_at' => null]);
     }
 
     /** Mark-all the user's mailbox read (the ZERO-badge path; the frozen law). */

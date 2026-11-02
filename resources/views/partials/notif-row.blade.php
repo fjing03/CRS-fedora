@@ -12,7 +12,18 @@
      Requested-at line inserted from the island's T4 closures; else the
      legacy `title — body`. aria mirrors (the surviving parts joined out;
      ` (inactive)` suffix). Expects: $n, $glyph, the time closures + the
-     Batch-2 $relLong/$tipAbs from the island scope (@include's flow). --}}
+     Batch-2 $relLong/$tipAbs from the island scope (@include's flow).
+
+     notif-manage-hide (2026-11-02) — an OPTIONAL `$variant` parameter:
+       null/absent → TODAY'S OUTPUT BYTE-FOR-BYTE (the frozen partial contract;
+                     every pre-existing caller is untouched)
+       'pick'      → the manage-mode row: a <label> carrying .bulk-checkbox,
+                     the SAME icon/body/time (no anchor — a checkbox inside an
+                     <a> is invalid HTML, and the row IS the tick target)
+       'hidden'    → the shelf row: non-anchor, dimmed, the time stacked over a
+                     small `Unhide` action (.nr-right)
+     The activation law, tips and composed strings are shared by all three —
+     one copy of the meaning, three carriers. --}}
 @php
     $reason = $n->getAttribute('inactive_reason');
     $m = $minutesAgo($n->created_at);
@@ -22,10 +33,25 @@
        $inactive_row (missing/cancelled only — never the decided). */
     $activation = $reason !== null
         || ($n->inactive_row && ! in_array($n->type, ['submitted', 'awaiting'], true) && $display === null);
+    $variant = $variant ?? null;
     $tag = $activation ? 'span' : 'a';
+    if ($variant === 'pick') {
+        $tag = 'label';
+    } elseif ($variant === 'hidden') {
+        $tag = 'div';
+    }
     $rowClass = 'notif-row'.($activation
         ? ' notif-row--inactive'
         : ($n->read_at !== null ? ' notif-row--read' : ''));
+    if ($variant === 'pick') {
+        $rowClass .= ' notif-row--pick';
+    } elseif ($variant === 'hidden') {
+        $rowClass .= ' notif-row--hidden';
+    }
+    $picked = $variant === 'pick' && in_array((int) $n->id, array_map('intval', $selectedIds ?? []), true);
+    if ($picked) {
+        $rowClass .= ' row-selected';   /* the promoted pair (My Request History) */
+    }
     $composedTitle = $display !== null ? $display['title'] : $n->title;
     $composedBody = $display !== null ? $display['desc'] : $n->body;
     $subtitle = $display !== null ? ($display['subtitle'] ?? null) : null;
@@ -74,12 +100,22 @@
         }
     }
 @endphp
-<{{ $tag }} class="{{ $rowClass }}" @if(! $activation) data-id="{{ $n->id }}" @endif @if($notifTarget) data-notif-target="{{ $notifTarget }}" @endif @if($notifWeek !== null) data-notif-week="{{ $notifWeek }}" @endif @if($activation) data-tip="{{ $rowTip }}" aria-label="{{ $rowLabel }}" @else href="{{ $n->link }}" data-tip="{{ $rowTip }}" aria-label="{{ $rowLabel }}" @endif>
+<{{ $tag }} class="{{ $rowClass }}" @if($variant === null && ! $activation) data-id="{{ $n->id }}" @endif @if($variant === null && $notifTarget) data-notif-target="{{ $notifTarget }}" @endif @if($variant === null && $notifWeek !== null) data-notif-week="{{ $notifWeek }}" @endif @if($variant === 'hidden') data-tip="{{ $rowTip }}" @elseif($activation) data-tip="{{ $rowTip }}" aria-label="{{ $rowLabel }}" @else href="{{ $n->link }}" data-tip="{{ $rowTip }}" aria-label="{{ $rowLabel }}" @endif>
+    @if($variant === 'pick')
+        <input type="checkbox" class="bulk-checkbox" wire:click="toggleSelect({{ (int) $n->id }})" @checked($picked) aria-label="{{ $rowLabel }}">
+    @endif
     <span class="notif-row-icon notif-tile-{{ $n->type }}"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">{!! $glyph !!}</svg></span>
     <span class="notif-row-body">
         <span class="notif-row-title">{{ $composedTitle }}</span>
         @if($subtitle) <span class="notif-row-subtitle">{{ $subtitle }}</span> @endif
         <span class="notif-row-desc">{{ $composedBody }}</span>
     </span>
-    <span class="notif-row-time" data-tip="{{ $absTime($n->created_at) }}" data-tip-pos="left">{{ $relTime($m) }}</span>
+    @if($variant === 'hidden')
+        <span class="nr-right">
+            <span class="notif-row-time">{{ $relTime($m) }}</span>
+            <button type="button" class="notif-unhide" wire:click="unhide({{ (int) $n->id }})">Unhide</button>
+        </span>
+    @else
+        <span class="notif-row-time" data-tip="{{ $absTime($n->created_at) }}" data-tip-pos="left">{{ $relTime($m) }}</span>
+    @endif
 </{{ $tag }}>

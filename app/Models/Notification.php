@@ -18,20 +18,24 @@ use Illuminate\Support\Carbon;
  * @property int|null $class_session_id
  * @property int|null $week
  * @property Carbon|null $read_at
+ * @property Carbon|null $hidden_at
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
  */
 class Notification extends Model
 {
+    /* notif-manage-hide (2026-11-02): `hidden_at` is the SOFT-put-away stamp —
+       set on hide, cleared on unhide, never a delete. Rows stay forever. */
     protected $fillable = [
         'user_id', 'role_view', 'type', 'title', 'body', 'link',
-        'request_id', 'class_session_id', 'week', 'read_at',
+        'request_id', 'class_session_id', 'week', 'read_at', 'hidden_at',
     ];
 
     protected function casts(): array
     {
         return [
             'read_at' => 'datetime',
+            'hidden_at' => 'datetime',
             'week' => 'integer',
             'request_id' => 'integer',
             'class_session_id' => 'integer',
