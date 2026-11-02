@@ -383,13 +383,60 @@ body {
     flex-wrap: wrap; /* two toggles + the type dropdown wrap on narrow panels */
     gap: 6px 14px;
 }
-/* the panel-context dropdown = the ONE .filter-select, sized to the family */
-.notif-filters .filter-select {
-    font-size: 12px; /* 0.75rem — the notif family convention (fits 360px) */
-    padding: 6px 10px;
-    min-height: 44px; /* WCAG touch target */
-    margin-left: auto; /* push to the row end beside the toggles */
+/* notif-type-select (2026-11-02, user-ordered re-skin, SDD-waived w/ user
+   approval): a brand-new compact skin for the panel's type dropdown copied
+   from .week-select's visual DNA (theme.css ~1714). The old
+   .notif-filters .filter-select context rule (12px, min-height: 44px) is
+   DELETED as dead — the element no longer carries .filter-select; nothing
+   else inside .notif-filters used it (confirmed by grep). The height drops
+   44px -> 36px: the user's explicit compactness instruction for THIS ONE
+   control only (a dated waiver of the 44px touch-target convention; floor
+   32px, never above 36). The only verbatim hex copies are the two
+   already-sanctioned .week-select exceptions: the SVG chevron strokes and
+   the focus glow — no new hex introduced. */
+.notif-type-select {
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 600;
+    height: 36px;
+    border-radius: var(--radius-md);
+    border: 1px solid var(--color-outline);
+    background: var(--color-surface);
+    color: var(--color-on-surface);
+    cursor: pointer;
+    appearance: none;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    /* chevron copied verbatim from .week-select (sanctioned hex there) */
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%239EAAB8' stroke-width='1.5' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 10px center;
+    padding: 0 32px 0 12px;
+    min-width: 170px;
+    margin-left: auto; /* stays parked row-end beside the toggles */
+    transition: border-color 0.15s, box-shadow 0.15s;
 }
+.notif-type-select:hover {
+    border-color: var(--color-primary);
+}
+.notif-type-select:focus {
+    outline: none;
+    border-color: var(--color-primary);
+    /* focus glow copied verbatim from .week-select (sanctioned hex there) */
+    box-shadow: 0 0 0 3px rgba(0, 77, 152, 0.15);
+}
+.notif-type-select option {
+    background: var(--color-surface);
+    color: var(--color-on-surface);
+}
+.light .notif-type-select {
+    color-scheme: light;
+    /* light theme chevron copied verbatim from .light .week-select —
+       stroke mirrors --color-on-surface-variant (light); SVG data-URIs
+       cannot use var() */
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%235A6978' stroke-width='1.5' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+}
+
 .notif-filters .toggle-label {
     font-size: 12px; /* 0.75rem — family convention, fits 360px panel */
 }

@@ -88,7 +88,7 @@
             <span class="toggle-track"><span class="toggle-thumb"></span></span>
             <span class="toggle-label">Active only</span>
         </label>
-        <select class="filter-select notif-type-select" id="notifTypeFilter" aria-label="Filter by notification type"
+        <select class="notif-type-select" id="notifTypeFilter" aria-label="Filter by notification type"
                 title="Filter by notification type" wire:model.live="typeFilter">
             <option value="">All types</option>
             <option value="submitted">New requests</option>
