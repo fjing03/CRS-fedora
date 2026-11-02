@@ -1,42 +1,27 @@
-# AGENTS.md — TARUMT Class Replacement System
+# AGENTS.md — bootstrap pointer (TARUMT Class Replacement System)
 
-This file is auto-loaded every session. It tells any agent (including forked sessions)
-how to work in this repo and what to read before generating output.
+> Agent harnesses auto-load **`AGENTS.md` at the repository root**, so this file stays
+> here as a pointer only. The real, maintained AI context lives in
+> **`prompts/for AI to read/`** (moved there 2026-11-02). Nothing else is kept here.
 
-## Read first (every session)
-- **`CodingMAIN.md`** — the single source of truth. Read it in full before any coding/design work.
-  It contains: project overview, problem domain, architecture (5 objectives + slot state machine),
-  tech stack & commands (incl. DB safety + stale-cache restart), domain model, RBAC matrix,
-  **FR & NFR (§7)**, dataset, page inventory, git policy (§10.6), and **Coding Conventions §10** (incl. UI Design Rules §10.0).
-- **`prompts/my-coding-rules.md`** — the user's coding rules in quick always-read form (distilled from CodingMAIN §10: the 10 UI rules + canonical color tables, OOP/PHP/naming, commit/SDD policy); read it before writing or changing any code.
-- Command Code memory import — the full rules are inlined into memory every turn via @path (other harnesses: read the file directly): @prompts/my-coding-rules.md
-- **`docs/venue-restrictions.md`** — B005 no-Diploma REPEALED 2026-10-27 (Diploma cohorts allowed; SDD `b005-diploma-allowed`), B006 networking priority, P→labs. Read before any venue/booking work.
-- `docs/` holds project docs; **`docs/archive/`** holds superseded ones (FYP-BRIEFING, BACKEND-TASKS, LEFTOVER_TASKS, old CodingMAIN variants) — do not treat archived files as current policy. Index: `docs/README.md`.
+## Read these before doing anything, in this order
 
-## Running /sdd-propose (or /sdd-apply) for a NEW UI frontend-only page
-**MANDATORY:** before generating the proposal/design/tasks, the agent MUST read and follow:
-[`prompts/sdd-propose-ui-page.md`](prompts/sdd-propose-ui-page.md)
+1. **`prompts/for AI to read/AGENTS.md`** — how to work in this repo: read-first list, SDD/UI rules, standing rules, git policy.
+2. **`prompts/for AI to read/CodingMAIN.md`** — the single source of truth; read it **in full** (§4 DB safety, §7 FR & NFR, §10 conventions + UI rules, §10.6 git policy).
+3. **`prompts/for AI to read/my-coding-rules.md`** — the user's own rulebook in quick form (10 UI rules, canonical colour map, OOP/PHP/naming, commit/SDD policy).
+4. **`prompts/for AI to read/PI_Chat_Context_Handover.md`** — §0 Quick Status + the **latest** §0.x addendum: what the last session did, what is next, what is parked.
 
-That spec enforces, for every new UI page:
-1. Color consistency — only `public/css/theme.css` CSS custom-property tokens; never hardcode hex/rgb.
-2. Same name + same color for the same meaning — follow the canonical legend/status→color map in §10.0.
-3. OOP concepts — `@extends('layouts.ui-template')`, `@include` partials, shared `theme.css` + `ui-common.js` + `mock-data.js`; no copy-paste.
-4. **Mock data: read from `window.MockData` in `public/js/mock-data.js` (single source).** Never re-declare cohorts/lecturers/venues/semester or duplicate page datasets inline. New data → add ONE section to `mock-data.js`. Treat `MockData` as read-only; `slice()`/spread before mutating.
-5. Minimise plain text, maximise icon buttons (reuse `resources/views/flux/icon/`).
-6. Don't overwhelm — detail/secondary info goes in modals, not the page surface.
-7. **Promote-on-3rd-duplication (DRY/OOP)** — if a markup block / CSS class / JS helper / mock-data slice ends up the SAME across 3+ pages, promote it to a shared file (Blade partial `resources/views/partials/`, `theme.css`, `ui-common.js`, or `mock-data.js`) and refactor the new page AND existing pages to use it. Record every promotion in the SDD `design.md` under "Promoted to shared".
-8. Minimise steps — fewest clicks possible; pre-select defaults, don't hop pages for one task; if a flow exceeds ~3 clicks, rethink it.
-9. Confirm critical actions (delete/submit/cancel/approve/reject) with a popup ("Are you sure?") so users dare to explore unfamiliar features and can always back out.
+The memory import below is that same rulebook, inlined by harnesses that support `@path`:
 
-The agent must also read the closest existing template under `resources/views/ui-design-templates/`
-and the matching `page-changelogs/*.md` to learn house style before designing.
+@prompts/for AI to read/my-coding-rules.md
 
-## Standing rules (all tasks)
-- **Current phase — read-only honesty:** timetable pages render real DB data; no booking/replacement writes until Wave 3b is explicitly green-lit. Cards show honest zeros — never fabricate pending/replacement counts.
-- Reuse Flux/Livewire/Tailwind + `theme.css` + `ui-common.js`; no new dependencies.
-- Conventional commits: `ui:`, `feat:`, `fix:`, `refactor:`, `oop:`, `style:`, `docs:`.
-- Working branch: `fedora-backend` (push target `origin` = `fjing03/CRS-fedora.git` only; `upstream` is PULL-ONLY — see CodingMAIN.md §10.6). Never commit secrets. Never push unless the user explicitly says so.
-- Before finishing a task that touches PHP: run `composer run lint:check` + `vendor/bin/phpstan analyse --memory-limit=1G` (`composer run types:check` crashes at the default 128M memory limit).
-- After any UI page change: update the matching `page-changelogs/*.md`.
-- **After any UI Blade change:** clear stale cache before verifying — run TWO separate commands, never one combined string: first `pkill -f "[a]rtisan serve" || true`, then `rm -f storage/framework/views/*.php && php artisan serve --port=8000 &`. Always kill old server first — old processes hold stale compiled views in memory. (Never `pkill -9 php` — it force-kills every PHP process on the machine. And never combine the kill and the `php artisan serve` start into one shell string — the kill pattern then matches the combined command's own wrapper and kills it.)
-- DB is PostgreSQL (user `philler`). Demo DBs = `class_replacement_fresh` (:8000) + `class_replacement_demo` (:8001 twin) on CachyOS, `class_replacement` on the HP — **never re-seeded, never `migrate:fresh`**; real imported data, user-gated per write, logged in `docs/demo-db-data-changes.md`. **⛔ `--env=testing` trap:** no `.env.testing` exists — `--env=testing` on a destructive command silently boots `.env` = the demo DB. Select the testing DB ONLY via `DB_DATABASE=class_replacement_testing`. **Snapshot law:** verified `pg_dump -Fc` (`pg_restore --list` must pass) before any demo-DB write and after any demo-worthy milestone, into `/home/philler/Desktop/tarumt/backups/` (HP: `/home/jinglinux/tarumt/backups/`). Tests use the disposable `class_replacement_testing`, where `php artisan migrate:fresh --seed` is fine. **Schema migrations are additive-only on the demo DBs** (add a nullable column / index; never `change`/`drop`/data statements): verified dump → rehearse on `class_replacement_testing` → print the target → plain `migrate` on `class_replacement_fresh`, then `DB_DATABASE=class_replacement_demo …` → row-count receipt + log in `docs/demo-db-data-changes.md`. Restore + the canonical viva-state dump (`class_replacement_demo-post-recovery-2026-11-01.dump` = live on BOTH :8000/:8001 since 2026-11-01): `/home/philler/Desktop/tarumt/backups/README.md` (HP: `/home/jinglinux/tarumt/backups/README.md`).
+## Path convention for the moved files
+
+Paths written **inside** those files are relative to the **repository root** unless they start with `../` (then they are relative to the file itself). So a mention of `CodingMAIN.md`, `AGENTS.md`, `PI_Chat_Context_Handover.md` or `my-coding-rules.md` "at the root" means the copy in `prompts/for AI to read/`. Dated entries in `page-changelogs/` and `.sdd/archive/` still use the old root paths — those were deliberately not rewritten.
+
+## Non-negotiables (unchanged, repeated here only because they are safety rules)
+
+- **Never push** unless the user explicitly says so. Commit only the files the current task touches; never stage another session's work log (`docs/demo-db-data-changes.md`) unless that log *is* the task.
+- **Never** `migrate:fresh` / `migrate:refresh` / `db:wipe` / reseed the demo DBs. **Never** `--env=testing` (no `.env.testing` exists — it silently boots the demo DB); select the testing DB only with `DB_DATABASE=class_replacement_testing`.
+- Schema changes on the demo DBs are **additive only** (nullable column / index; never `change`/`drop`/data statements) — verified `pg_dump -Fc` snapshot first, rehearse on `class_replacement_testing`, print the target, then plain `migrate`, row-count receipt + log in `docs/demo-db-data-changes.md`.
+- Conventional commits (`feat:`/`fix:`/`ui:`/`oop:`/`refactor:`/`style:`/`docs:`/`test:`). Reuse Flux/Livewire/Tailwind + `theme.css` + `ui-common.js`; no new dependencies; colours from `theme.css` custom-property tokens only.

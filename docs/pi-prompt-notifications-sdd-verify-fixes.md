@@ -212,7 +212,7 @@ unrelated to this change, say so explicitly with evidence rather than "fixing" i
 
 ## Hard constraints (violating any of these voids the run)
 
-1. **READ FIRST:** `CodingMAIN.md` + `prompts/my-coding-rules.md`, then the change's four
+1. **READ FIRST:** `prompts/for AI to read/CodingMAIN.md` + `prompts/for AI to read/my-coding-rules.md`, then the change's four
    artifacts. You may edit `tasks.md` checkboxes and APPEND to `review-log.md` as
    bookkeeping — but **NEVER `git add` or commit anything under `.sdd/`** (main-session
    files).

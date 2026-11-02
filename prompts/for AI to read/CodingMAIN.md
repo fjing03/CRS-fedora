@@ -1,9 +1,12 @@
 # TARUMT Class Replacement System — Main Project File
 
 > **Purpose:** Single source of truth for this project. Read this first before any coding session.
+> **Location note (2026-11-02):** this file lives in `prompts/for AI to read/`; the root
+> `AGENTS.md` points here. Paths below are relative to the **repository root**, except the
+> `../final/…` and `../TARUMT …` links, which are written relative to this directory.
 > This is the **fedora-repo canonical version** (§10.6 git policy: upstream pull-only). The original
 > upstream copy and the older fedora variant are archived in `docs/archive/` for reference.
-> Referenced by: FYP proposal (`../final/25SMR10186_Form 2_Proposal (v2025-11).docx.pdf`), Chapter 1 (`../final/Ch1.pdf`), Chapter 3 FR & NFR (`../final/FR&NFR.md`), Full Functional Specifications V2 (`../TARUMT Class Replacement System - Full Functional Specifications V2.pdf`), and the live codebase in this directory.
+> Referenced by: FYP proposal (`../../../final/25SMR10186_Form 2_Proposal (v2025-11).docx.pdf`), Chapter 1 (`../../../final/Ch1.pdf`), Chapter 3 FR & NFR (`../../../final/FR&NFR.md`), Full Functional Specifications V2 (`../../../TARUMT Class Replacement System - Full Functional Specifications V2.pdf`), and the live codebase at the repository root.
 > Last reviewed: 2026-10-10 (post all-pages-design-parity).
 
 ---
@@ -198,7 +201,7 @@ rm -f storage/framework/views/*.php && php artisan serve --port=8000 &
 
 ## 7. Requirements (FR & NFR)
 
-Source: `../final/FR&NFR.md` — Chapter 3, §3.4 (verbatim; reader-facing glosses and citations trimmed). **Synced 2026-11-02: 49 FRs / 26 NFRs.** Each FR is traceable to one or more of the 5 objectives (§3). Login supports Student/Staff ID via Fortify `username = login_id` (FR 1.1, 2.1 — incl. optional "P" prefix ✓).
+Source: `../../../final/FR&NFR.md` — Chapter 3, §3.4 (verbatim; reader-facing glosses and citations trimmed). **Synced 2026-11-02: 49 FRs / 26 NFRs.** Each FR is traceable to one or more of the 5 objectives (§3). Login supports Student/Staff ID via Fortify `username = login_id` (FR 1.1, 2.1 — incl. optional "P" prefix ✓).
 
 ### 7.1 Traceability map (FR → Objective)
 

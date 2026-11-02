@@ -1,5 +1,11 @@
 # PI Chat Context Handover — TAR UMT Class Replacement System
 
+> **Location note (2026-11-02):** this file lives in `prompts/for AI to read/`;
+> the root `AGENTS.md` points here. Paths below are relative to the **repository
+> root** unless they start with `../`. Dated entries that mention
+> `CodingMAIN.md` / `AGENTS.md` / `my-coding-rules.md` "at the root" mean the
+> copies in this folder.
+>
 > Generated 2026-10-28 (evening, after commit `6be2235`). Source: the full
 > session conversation. Purpose: a working reference for a NEW PI chat
 > session. Nothing in this file is invented; each claim traces to a
