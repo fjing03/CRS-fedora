@@ -5,7 +5,7 @@ import { test, expect, Page } from '@playwright/test';
  * real-data timetables render through the Livewire components.
  * Credentials: seeded staff (staff_id, no P prefix) + seeded student.
  */
-const BASE = 'http://localhost:8000';
+const BASE = (process.env.CRS_BASE ?? 'http://localhost:8000');
 const STAFF_ID = '4288';
 const STAFF_PASSWORD = 'Tarumt@2026';
 const STUDENT_ID = '25DFT0001';

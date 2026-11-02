@@ -17,7 +17,7 @@ import { test, expect, type Page } from '@playwright/test';
    derives day/start/venue/type from PAGE_DATA.pinnedSession, so the SAME
    clear-guards URL exercises the anchor writer. */
 
-const BASE = 'http://localhost:8000';
+const BASE = (process.env.CRS_BASE ?? 'http://localhost:8000');
 const PW = 'Tarumt@2026';
 
 const SLOT_TIP_RE =

@@ -9,7 +9,7 @@ import { test, expect, type Page } from '@playwright/test';
 
 test.use({ storageState: '.auth/staff-5770.json' });
 
-const BASE = 'http://localhost:8000';
+const BASE = (process.env.CRS_BASE ?? 'http://localhost:8000');
 const PW = 'Tarumt@2026';
 
 async function loginStaff(page: Page, id: string): Promise<void> {

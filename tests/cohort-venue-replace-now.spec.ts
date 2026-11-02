@@ -14,7 +14,7 @@ import { test, expect, type Page } from '@playwright/test';
      others'-conflict hidden rows (the AMCS2093 (T) is holiday-only too;
      (L)/(P) rows at non-holiday weeks stay clean). */
 
-const BASE = 'http://localhost:8000';
+const BASE = (process.env.CRS_BASE ?? 'http://localhost:8000');
 const PW = 'Tarumt@2026';
 
 async function loginStaff(page: Page, id: string): Promise<void> {

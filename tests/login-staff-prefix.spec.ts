@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test';
 
-const BASE = 'http://localhost:8000';
+const BASE = (process.env.CRS_BASE ?? 'http://localhost:8000');
 
 test.describe('Staff ID Optional P Prefix — Slim UI Fix', () => {
   test.beforeEach(async ({ page }) => {

@@ -5,7 +5,7 @@ import { test, expect } from '@playwright/test';
 // login redirect even pre-change). Use the standard 5425 owner state.
 test.use({ storageState: '.auth/staff-5425.json' });
 
-const BASE = 'http://localhost:8000/replacement-arrangement';
+const BASE = (process.env.CRS_BASE ?? 'http://localhost:8000') + '/replacement-arrangement';
 
 async function openPage(page) {
   await page.goto(BASE, { waitUntil: 'networkidle' });

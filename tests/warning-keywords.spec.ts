@@ -4,7 +4,7 @@ import { test, expect } from '@playwright/test';
 // "Cancel Request" button was a silent no-op (overlay opened without
 // binding pendingCancelId). This test fails by timeout on pre-fix code.
 
-const RH = 'http://localhost:8000/my-request-history-ui';
+const RH = (process.env.CRS_BASE ?? 'http://localhost:8000') + '/my-request-history-ui';
 
 test('detail-modal Cancel Request actually cancels the viewed request', async ({ page }) => {
   await page.goto(RH, { waitUntil: 'networkidle' });

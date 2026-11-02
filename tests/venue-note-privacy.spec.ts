@@ -16,7 +16,7 @@ import { test, expect } from '@playwright/test';
  * Nothing here writes: two logged-in contexts + GETs + DOM reads.
  */
 
-const VENUE = 'http://localhost:8000/venue-timetable-ui';
+const VENUE = (process.env.CRS_BASE ?? 'http://localhost:8000') + '/venue-timetable-ui';
 const W7 = 6;    // 0-based week index for human week 7
 const W14 = 13;
 
@@ -39,7 +39,7 @@ async function openAs(browser: import('@playwright/test').Browser, staffId: stri
   page.on('pageerror', (e) => errors.push(String(e).slice(0, 120)));
   // the storageState is host-scoped to localhost:8000 — prove we are really the
   // authenticated identity before trusting any assertion below
-  await page.goto('http://localhost:8000/my-timetable-ui', { waitUntil: 'domcontentloaded' });
+  await page.goto((process.env.CRS_BASE ?? 'http://localhost:8000') + '/my-timetable-ui', { waitUntil: 'domcontentloaded' });
   expect(new URL(page.url()).pathname).toBe('/my-timetable-ui');
   return { context, page, errors };
 }

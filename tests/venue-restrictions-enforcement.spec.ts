@@ -16,7 +16,7 @@ import { test, expect, type Page } from '@playwright/test';
    (EnforcementProducerPoolTest covers the pool receipts on the disposable
    deck instead. Never invent data. */
 
-const BASE = 'http://localhost:8000';
+const BASE = (process.env.CRS_BASE ?? 'http://localhost:8000');
 const PW = 'Tarumt@2026';
 
 async function loginStaff(page: Page, id: string): Promise<void> {

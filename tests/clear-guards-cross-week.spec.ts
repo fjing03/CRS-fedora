@@ -11,7 +11,7 @@ import { test, expect, type Page } from '@playwright/test';
    td[data-day="2"][data-hour="16"], week values 0-based (W6='5', W8='7');
    the venue widget walks type → block → floor → room. */
 
-const BASE = 'http://localhost:8000';
+const BASE = (process.env.CRS_BASE ?? 'http://localhost:8000');
 const PW = 'Tarumt@2026';
 
 async function loginStaff(page: Page, id: string): Promise<void> {

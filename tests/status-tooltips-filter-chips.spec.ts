@@ -10,7 +10,7 @@ import { test, expect, type Page } from '@playwright/test';
 
 test.use({ storageState: '.auth/staff-5425.json' });
 
-const BASE = 'http://localhost:8000';
+const BASE = (process.env.CRS_BASE ?? 'http://localhost:8000');
 const MRH = '/my-request-history-ui';
 const RA = '/request-approval-ui';
 

@@ -7,7 +7,7 @@ export default defineConfig({
   fullyParallel: false,
   retries: 0,
   use: {
-    baseURL: 'http://localhost:8000',
+    baseURL: (process.env.CRS_BASE ?? 'http://localhost:8000'),
     headless: true,
     viewport: { width: 1280, height: 720 },
     actionTimeout: 5000,
