@@ -29,7 +29,6 @@ a reason to archive.
 | `sdd-propose-ui-page.md` | Auto-referenced by `AGENTS.md` — every new UI page must read it |
 | `sdd.md` | Living SDD tracker (index of applied / in-progress / queued) |
 | `context-transfer-prompt.md` | Tooling: moves context between sessions |
-| `pi-summary-cards-confirmed-pending.md` | **Awaiting the user**: two assumptions still unanswered (plain vs split Total Slots; always `X+Y` or plain `X` when Y=0) |
 | `pi-tidy-arrangement-cell-tooltips.md` | Lane `.sdd/changes/rearrangement-toolbar-tooltips` is `status: active` |
 | `pi-prompt-UIUX Update Replacement Arrangement Toolbar.md` | Same active lane as above |
 | `Claude_Gmail_SMTP_Setup_Prompt.md` | Not provably done: `config('mail.default')` is still `log`, so Gmail SMTP was never enabled in this app |
@@ -58,6 +57,7 @@ a reason to archive.
 | `pi-bug-arrangement-reentry-after-pending.md` | Entry-guard fix shipped: `62cbbb0` (fix) + `b0685ae` (tests) + `99329be` (changelog) |
 | `pi-prompt-notif-type-filter-redesign.md` | `210a232` (notifTypeFilter re-skin) + `f0b7215` (changelog) |
 | `pi-prompt-notif-manage-hide.md` | Batch hide + hidden shelf shipped: `467357b` (feat) + `f5cc56d` (ui) + `fc81dd3` (test) + `405b4a3` (changelog); receipts 291/291 PHPUnit + 5/5 and 10/10 Playwright |
+| `pi-summary-cards-confirmed-pending.md` | Summary-cards lane shipped: `e1429b1` (feat) + `054c7b9` (test) + `689aa86` (changelogs) + `da0cd82` (handover). Ran in the NORMAL fix lane (SDD waived by the user), so the design record is the three changelog entries. The two open decisions were never answered — both prompt-stated DEFAULTS were applied (Total Slots plain; `X+Y` always, `+0` included) |
 | `Investigate Livewire JavaScript.md` | Investigation delivered: `docs/Livewire-JS-Investigation-Report.md` + `docs/livewire-js-investigation.md` (`7107abb`) |
 | `pi-prompt-session-handoff-2026-10-24.md` | Superseded by `prompts/for-ai-to-read/PI_Chat_Context_Handover.md` |
 | `pi-prompt-too-late-red-cells.md` | Landed in `page-changelogs/venue-timetable-ui-changelog.md` ("too late" read-only cells) |
