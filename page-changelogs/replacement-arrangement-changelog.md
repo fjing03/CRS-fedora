@@ -2736,3 +2736,51 @@ crafted outside the UI could therefore propose a slot inside the window. FR
 2.17 is deliberately worded as a *lecturer / UI* rule for that reason; closing
 it in the backend would earn a system-level FR (4.17) and needs its own change
 plus tests.
+
+### 2026-11-02 — the lead-time banner now states the rule and names the blocked days
+
+The old copy said *why nothing was clickable* nowhere:
+
+> Some slots this week are too soon — bookable from Thursday, 05 Nov 2026 onward.
+
+New copy states the requirement and names the blocked span. The `blocked.length
+>= 5` test is now a **qualifier switch**, not a different message:
+
+| State | Copy |
+|---|---|
+| < 5 blocked | Some slots this week are too soon — **Monday to Wednesday**. A minimum of **3 working days’** advance notice is required. Bookable from **Thursday, 05 Nov 2026** onward. |
+| ≥ 5 blocked (not all) | Most of this week is too soon — **Monday to Saturday**. … same body … |
+| all 7 blocked | The whole week is too soon. … same body … |
+| fully-past week | unchanged: `This week has already passed — bookable from … onward.` |
+
+Two `<strong>` per banner (the rule + the date), both green through the
+existing `.lead-time-note strong` declaration — **no CSS change**. The span is
+the first→last blocked day of the Mon→Sun week (`days[(idx + 1) % 7]`; the
+array is `getDay()`-indexed, hence the shift). A mid-week holiday inside the
+span is swallowed by it, which is honest — that day is not bookable either.
+`leadTimeCutoff()` / `isSlotTooSoon()` / every booking rule untouched: copy only.
+
+Measured (Playwright, :8000, staff 5770, real DB dates, Week 7 = 02–08 Nov 2026,
+page's own `buildTimetable` render — not a hand-called function):
+desktop 1280 → 1 line, banner 1232×34; mobile 360 → 4 lines, 336×82;
+`<strong>` count = 2, bold = `["3 working days’", "Thursday, 05 Nov 2026"]`;
+`scrollWidth == innerWidth` at both widths; 0 console errors. The page lands on
+Week 8 (no blocked days → banner correctly hidden); Week 7 shows the copy.
+Screenshots: `/tmp/opencode/leadtime-1280.png`, `/tmp/opencode/leadtime-360.png`.
+
+Node harness (no browser) covered the branches the current date cannot reach:
+today = Wed 04 Nov → `The whole week is too soon … Bookable from Monday, 09 Nov
+2026`; today = Sat 07 Nov → `… Bookable from Wednesday, 11 Nov 2026`; a past
+week → the unchanged sentence.
+
+Two honest notes:
+
+1. **"Most of this week" cannot fire on today's data shape.** With a Mon→Sun
+   week and a cutoff that is always a working day, the blocked count is only
+   0–4 (cutoff Mon–Fri) or 7 (cutoff next Monday) — never 5 or 6. The branch is
+   kept as a defensive label, but the midweek banner you actually see is
+   "The whole week is too soon".
+2. **"This week has already passed" is unreachable live** (unchanged by this
+   work): the arrangement page's `WeekNavigator` filter (`weekHasBookableSlot`)
+   skips past weeks in both the arrows and the dropdown, so that sentence now
+   survives only for the legacy design templates.

@@ -251,13 +251,28 @@ function renderLeadTimeNote(elId, weekData, weekIdx) {
     const days = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
     const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
     const dateStr = days[cutoff.getDay()] + ', ' + String(cutoff.getDate()).padStart(2, '0') + ' ' + months[cutoff.getMonth()] + ' ' + cutoff.getFullYear();
-    /* copy: a fully-past week reads differently from the current one */
-    const lead = fullyPast
-        ? 'This week has already passed'
-        : 'This week is within 3 working days of today';
-    const copy = fullyPast || blocked.length >= 5
-        ? lead + ' \u2014 bookable from <strong>' + dateStr + '</strong> onward.'
-        : 'Some slots this week are too soon \u2014 bookable from <strong>' + dateStr + '</strong> onward.';
+    /* copy: a fully-past week reads differently from the current one.
+       The live variants state the rule itself ("a minimum of 3 working days'
+       advance notice") and name the blocked span in words, because "some
+       slots are too soon" never told the user WHY. The span is the first→last
+       blocked day of the Mon→Sun week (days[] is getDay()-indexed, so the
+       day index shifts by one); a mid-week holiday inside the span is
+       swallowed by it, which is honest — that day is not bookable either. */
+    let copy;
+    if (fullyPast) {
+        copy = 'This week has already passed \u2014 bookable from <strong>' + dateStr + '</strong> onward.';
+    } else {
+        const first = blocked[0];
+        const last = blocked[blocked.length - 1];
+        const wholeWeek = blocked.length === week.days.length;
+        const span = wholeWeek
+            ? ''
+            : ' \u2014 ' + days[(first + 1) % 7] + (first === last ? '' : ' to ' + days[(last + 1) % 7]);
+        const lead = wholeWeek
+            ? 'The whole week is too soon'
+            : (blocked.length >= 5 ? 'Most of this week is too soon' : 'Some slots this week are too soon');
+        copy = lead + span + '. A minimum of <strong>3 working days\u2019</strong> advance notice is required. Bookable from <strong>' + dateStr + '</strong> onward.';
+    }
     el.className = 'lead-time-note';
     el.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>'
         + '<span>' + copy + '</span>';
