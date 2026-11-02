@@ -29,6 +29,16 @@
 > the **notification batch-hide + hidden-shelf lane SHIPPED**
 > (`467357b`/`f5cc56d`/`fc81dd3`/`405b4a3`) and its prompt was archived
 > (`e7946be`).
+> Updated 2026-11-02 (later still, PI session): the **summary-cards lane
+> SHIPPED** — `e1429b1` (feature) / `054c7b9` (tests) / `689aa86` (changelogs):
+> "My Courses" → **My Subjects**, and the cohort + venue summary cards split
+> **Confirmed + Pending** as `X+Y`. Run in the NORMAL fix lane: the user
+> explicitly waived SDD for it ("use SDD if ONLY necessary, else SKIP it"), so
+> there is no `.sdd/changes/summary-cards-confirmed-pending/` — the design
+> record lives in the three changelog entries instead. The prompt's two open
+> decisions were NOT answered by the user; both prompt-stated DEFAULTS were
+> applied (Total Slots stays **plain**; the split renders **always**, `+0`
+> included) — each is a one-line flip if the user wants the other arm.
 
 ---
 
@@ -42,7 +52,7 @@
 | AI-context layout (2026-11-02) | Root **`AGENTS.md` = bootstrap pointer** (harnesses only auto-load root) → **`prompts/for-ai-to-read/`** holds `AGENTS.md`, `CodingMAIN.md`, `my-coding-rules.md`, `PI_Chat_Context_Handover.md` and **`FR&NFR copy.md`** (49 FRs / 26 NFRs, `v2026-11-02`, change log; **read-only without the user's explicit approval**). Finished prompts → **`prompts/completed prompt (Archieve)/`** (its README = the evidence rule; **ask before archiving**, template §10). Paths inside those files are repo-root-relative unless they start with `../`. |
 | Demo DB | `class_replacement_fresh` (:8000) + `class_replacement_demo` (:8001) — both were left **BLANK** by the 2026-11-02 user-ordered cleanout, but **`:8000` holds real data again**: 2 `replacement_requests` + 5 `notifications` created 2026-11-02 (`:8001` still 0). Treat both as live. **Never re-seed the demo DBs**; any demo write = user-gated per write + logged in `docs/demo-db-data-changes.md` + snapshot law first (`backups/README.md`; canonical viva dump = `class_replacement_demo-post-recovery-2026-11-01.dump`). |
 | Test DB | `class_replacement_testing` — disposable; fresh+seed fine; used by the suite |
-| Suite | Last full PHPUnit run: **287/287** (2026-11-02 entry-guard lane). NOT re-run after the evening UI tweaks (blade/CSS-only changes); Playwright used only as read-only receipts. |
+| Suite | Last full PHPUnit run: **292/292** (2026-11-02 summary-cards lane: +4 manage-hide, +1 venue split). Playwright receipts for that lane ran on the disposable :8030 lane only (the demo DBs were never written): venue-db summary cards, venue-timetable TC38/TC38b, plus a JS-level split receipt. **Known unrelated red:** `venue-db.spec.ts` "B005 renders CLEAN" times out inside its SECOND `loginAsStaff()` (guest redirect to `/dashboard`), i.e. before any summary assertion — untouched by this lane. |
 | Gates | `composer run lint:check` (pint), `vendor/bin/phpstan analyse --memory-limit=1G --no-progress` (NOT `types:check` — crashes at 128M), full phpunit, `node` syntax check for JS |
 | SDD lanes applied, NOT archived | **24** (`grep -l "status: applied" .sdd/changes/*/sdd.yaml`; 35 lane dirs total, 5 active; recount before quoting) |
 | The user's language rule | **Reply in B1-level English ONLY — no other languages** |
