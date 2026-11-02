@@ -1,206 +1,259 @@
-# BUG investigation — the notification "Requested at" is 8 hours behind (UTC shown as if it were local)
+# Paste-ready prompt — fix the notification "Requested at" 8-hour skew (A + B + C)
 
-> **Status: investigation only — no code was changed. Awaiting the user's approval.**
-> Reported 2026-11-02 against `replacement-arrangement` → notifications panel →
-> Request #26. Prepared for a PI session to act on after approval.
+> **Approved by the user on 2026-11-02: "I agree, with Recommendation A+B+C."**
+> This file is the **implement brief** for that approval. Investigation is closed;
+> the evidence below is the record, not an invitation to re-debate.
+> **Status: READY TO IMPLEMENT** — no code has been changed yet.
 
 ---
 
-## 1. Symptom (verbatim)
+## 0. Task card
 
-| Surface | Shown | Should be |
-|---|---|---|
-| Notification tooltip (`Requested at:`) | `2 Nov 2026, 11:00 AM (1 minute ago)` | `2 Nov 2026, 7:00 PM` |
-| `/my-request-history-ui` → General Info → Request #26 | `2 Nov 2026, 7:00 PM` | (correct) |
-
-The difference is exactly **+08:00** — the `Asia/Kuala_Lumpur` offset. The relative
-part (`1 minute ago`) is correct; only the absolute clock is wrong.
-
-## 2. Evidence (read-only checks, 2026-11-02)
-
-**The database holds UTC, and the DB session is not the problem.**
-
-```
-replacement_requests.id = 26
-  submitted_at            = 2026-11-02 11:00:12          (stored, naive)
-  submitted_at AT TIME ZONE 'UTC'                        = 2026-11-02 19:00:12+08
-  (… AT TIME ZONE 'UTC') AT TIME ZONE 'Asia/Kuala_Lumpur' = 2026-11-02 19:00:12
-
-notifications.id = 99 / 100 → created_at = 2026-11-02 11:00:12   (same instant)
-```
-
-**The app clock is UTC.**
-
-```
-config/app.php:81            'timezone' => 'UTC'
-php -r date_default_timezone_get()   → UTC
-php artisan tinker now()             → 2026-11-02 13:11:53 (UTC)
-psql "show timezone"                 → Asia/Kuching   ← the psql client only, irrelevant
-```
-
-So `2026-11-02 11:00:12Z` **is** 19:00:12 in Malaysia. Storing UTC is correct;
-the defect is purely in one display path.
-
-## 3. Root cause
-
-**The history page converts; the notifications do not.**
-
-| Path | Code | Result |
-|---|---|---|
-| History page | `app/Livewire/MyRequestHistory.php:81` → `ReplacementRequestMapper::requestedAtDisplay()` (`app/Services/ReplacementRequestMapper.php:54–57`) → `->setTimezone('Asia/Kuala_Lumpur')` | `19:00` ✅ |
-| Notification tooltip | `resources/views/livewire/nav-notifications.blade.php:41–44` `$tipAbs = fn($at) => $at->format('j M Y, g:i A')` — **no conversion** | `11:00` ❌ |
-| Notification row hover | same file `:34–37` `$absTime` — **no conversion** | `11:00` ❌ |
-
-Both closures are consumed by `resources/views/partials/notif-row.blade.php`:
-
-- `:73` and `:76` — the multiline tooltip's `Requested at: … (… ago)` line;
-- `:119` — the row's `data-tip` absolute time (the `relTime()` text next to it is fine).
-
-**Why it slipped in:** the `notif-abstime-precision` lane (2026-10-30) deliberately
-switched these closures to *"format the STORED timestamp directly — no
-now()−minutes reconstruction"* to stop second-truncation drift. That fixed the
-drift but cemented the UTC rendering, because nothing in the notification path
-ever applied the project's display timezone.
-
-**Two related defects found while tracing (same family):**
-
-1. `app/Livewire/MyRequestHistory.php:82` formats `decided_at` **raw**
-   (`$r->decided_at->format('Y-m-d\TH:i:s')`) while `requestedAt` on the same
-   page is converted. The detail modal therefore shows **Requested At 7:00 PM
-   but Reviewed At 11:00 AM** for the same request — inconsistent by 8 hours.
-   (`RequestApproval`/`ReplacementRequestMapper::toRow` convert `reviewedAt`
-   correctly; only this page's own row builder does not.)
-2. The tooltip's label says **"Requested at"** but the value is
-   `$n->created_at` (the notification's creation stamp), not
-   `$n->request->submitted_at`. They are identical for #26 (both 11:00:12), so
-   this is **not** the cause, but they can diverge (a re-notification later) and
-   the label would then lie.
-
-## 4. Does a reusable, system-wide time function already exist?
-
-**Yes — but only half a one, and it is not used by the notifications.**
-
-`app/Services/ReplacementRequestMapper.php` already owns the project decision
-(user, 2026-10-19):
-
-```php
-public const DISPLAY_TZ = 'Asia/Kuala_Lumpur';          // :43
-public function stampDisplay(?CarbonInterface $stamp, string $format): ?string  // :46
-public function requestedAtDisplay(CarbonInterface $stamp): string             // :54
-```
-
-Current consumers (all convert correctly):
-
-| Consumer | Line |
+| Field | Value |
 |---|---|
-| `MyRequestHistory` (requestedAt) | `app/Livewire/MyRequestHistory.php:81` |
-| `ReplacementHistory` (requestedAt) | `app/Livewire/ReplacementHistory.php:115` |
-| `VenueTimetable` popup (requestedAt) | `app/Livewire/VenueTimetable.php:455` |
-| PL queue / API (`toRow`, requested + reviewed) | `app/Services/ReplacementRequestMapper.php:109–110` |
-| Timetable timeline popup | `app/Concerns/ResolvesTimetableTimeline.php:422` |
+| **Mode** | `IMPLEMENT` |
+| **Task** | Render every user-facing absolute timestamp in the notifications panel in **Asia/Kuala_Lumpur**, via ONE shared helper; fix the history page's `reviewedAt` to use the same helper; source the tooltip's "Requested at" from the request's `submitted_at`. |
+| **Why** | Request #26's notification tooltip says `2 Nov 2026, 11:00 AM`; the history page says `7:00 PM`. The app clock and DB are UTC; the notifications format raw UTC. |
+| **In scope** | `app/Support/LocalTime.php` (new), `app/Services/ReplacementRequestMapper.php`, `app/Livewire/NavNotifications.php`, `app/Livewire/MyRequestHistory.php`, `resources/views/livewire/nav-notifications.blade.php`, `resources/views/partials/notif-row.blade.php`, one new test, two changelogs. |
+| **Out of scope** | Any other page, any DB write, `config/app.php` timezone, JS (`ui-common.js`), layout/CSS, unrelated bugs. |
+| **SDD** | **waived** — display-only formatting fix, ≤6 code files, no schema/API/behaviour change, fix approved by the user in conversation. Record `SDD-waived w/ user approval` in the commit message and the changelog (template §3b "single-file fix / mechanical follow-up" clause). |
+| **DB impact** | **none** — never rewrite stored timestamps. |
+| **Done when** | Request #26's tooltip reads `2 Nov 2026, 7:00 PM`; the row hover reads `2 Nov, 7:00 PM`; the history modal shows Requested At **and** Reviewed At in MYT; all existing tests green; one new test pins the conversion. |
 
-**Limits of the existing function:**
+## 1. Read first
 
-- It lives on a *request-row* service, not a general helper, so a Blade closure
-  cannot call it without `app(...)`.
-- Its own docblock records a deliberate scope: *"Apply ONLY on the Requested At
-  path (scoped per the user's go-ahead; the other timestamps stay
-  reported-only)."* Extending it to every stamp is therefore a **user decision**,
-  not a free refactor.
-- There is **no JS-side converter**: `DateHelper.formatDateTime`
-  (`public/js/ui-common.js:2213–2227`) is a pure string reformatter — it splits
-  `Y-m-d\TH:i:s` and never applies a timezone. Whatever the PHP side sends is
-  what the user sees. That is why the history page must (and does) send MYT
-  strings.
+- `app/Services/ReplacementRequestMapper.php:36–57` — the existing decision and
+  the two converters you are about to generalise.
+- `app/Support/ReasonLabel.php` — the house style for a tiny `final` helper
+  (namespace `App\Support`, static method, docblock).
+- `app/Livewire/NavNotifications.php:390–520` — `resolveRequests()` and the
+  `_display` composer (where the requests are already loaded and keyed by id).
+- `resources/views/livewire/nav-notifications.blade.php:26–45` — the time closures.
+- `resources/views/partials/notif-row.blade.php:25–35, 60–80, 119` — the row, the
+  tip lines, the hover time.
+- `prompts/for-ai-to-read/AGENTS.md` (standing rules) + `my-coding-rules.md` +
+  `CodingMAIN.md` §10 (conventions).
+- `prompts/PI-PROMPT-TEMPLATE.md` §5 (changelog), §7 (gates), §10 (archive ask).
 
-## 5. Blast radius (checked, not assumed)
+## 2. The evidence you are fixing (short form)
 
-| Site | What it shows | Verdict |
-|---|---|---|
-| Notification tooltip (`notif-row:73/76`) | `Requested at: 2 Nov 2026, 11:00 AM` | ❌ 8 h behind |
-| Notification row hover (`notif-row:119`) | `2 Nov, 11:00 AM` | ❌ 8 h behind |
-| Notification relative labels (`1 minute ago`, `4h ago`) | relative | ✅ correct (UTC vs UTC) |
-| Notification pill/badge counts | counts | ✅ unaffected |
-| History **Requested At** (table + modal) | `7:00 PM` | ✅ converted |
-| History **Reviewed At** (modal) | `decided_at` raw | ❌ 8 h behind when a decision exists |
-| PL queue / approval page timestamps | via `toRow()` | ✅ converted |
-| Venue timetable pending popup | via `stampDisplay` | ✅ converted |
-| Dashboard / my-timetable / cohort / student pages | no absolute DB stamps | ✅ unaffected |
-| Settings → passkeys | `diffForHumans()` only | ✅ relative, unaffected |
-| Audit log surface | not rendered as absolute times | ✅ unaffected |
-
-Every notification **type** (`submitted`, `approved`, `rejected`, `cancelled`,
-`update`) shares the same two closures, so all of them are 8 h behind wherever
-they render an absolute time.
-
-## 6. Recommended solution (for approval — not implemented)
-
-**Fix the display, never the data.** The stored UTC values are correct; rewriting
-them would break sorting, age colours and every converted surface.
-
-**A. Smallest correct fix (the reported bug)**
-In `nav-notifications.blade.php`, make the two closures convert before
-formatting — reuse the existing constant, do not re-derive it:
-
-```php
-$absTime = fn ($at) => $at
-    ? $at->copy()->setTimezone(\App\Services\ReplacementRequestMapper::DISPLAY_TZ)->format('j M, g:i A')
-    : '';
-// $tipAbs: same, with 'j M Y, g:i A'
+```
+config/app.php:81  'timezone' => 'UTC'
+DB (request 26)    submitted_at = 2026-11-02 11:00:12            ← UTC instant
+                   = 2026-11-02 19:00:12 Asia/Kuala_Lumpur       ← what the user saw
+notifications 99/100 created_at = 2026-11-02 11:00:12           ← same instant
 ```
 
-This fixes both the tooltip line and the row hover, for every notification type,
-with no layout/copy/logic change.
+- History page converts (`MyRequestHistory.php:81` → `requestedAtDisplay()`) → `7:00 PM` ✅
+- Notifications do not (`nav-notifications.blade.php:34–44` → `->format(...)`) → `11:00 AM` ❌
+- The relative label (`1 minute ago`) is correct — UTC vs UTC. Do not touch it.
 
-**B. Stop the class of bug (recommended together with A)**
-Promote the conversion into one tiny shared place — e.g. a static
-`LocalTime::stamp(?CarbonInterface, string $format): ?string` (or a public static
-method on the mapper) that owns `DISPLAY_TZ`; have
-`ReplacementRequestMapper::stampDisplay()` delegate to it and have the
-notification closures call it. Then fix
-`MyRequestHistory.php:82` (`reviewedAt`) to use the same helper.
+## 3. Approved design (A + B + C)
 
-Result: one owner for "the user's clock", the history modal becomes internally
-consistent, and a future page that formats a timestamp has an obvious function to
-reach for.
+**A — convert in the notification closures.**
+**B — one shared helper owns the timezone; the mapper delegates to it; the
+history page's `reviewedAt` joins it.**
+**C — "Requested at" reads `request->submitted_at` (fallback `created_at`).**
 
-**C. Optional semantic fix**
-Build the tooltip line from `$n->request?->submitted_at ?? $n->created_at`, so
-"Requested at" is the request's stamp even if a notification is regenerated later.
+### 3.1 New file — `app/Support/LocalTime.php`
 
-**What we should NOT do**
+```php
+<?php
 
-- Do **not** rewrite the DB rows, and do **not** change `APP_TIMEZONE`/`app.timezone`
-  (that would shift `now()`, every stored row and every test at once).
-- Do **not** hardcode `19:00` or `->addHours(8)` — DST-free today, a trap forever;
-  `setTimezone` is the correct tool.
-- Do **not** touch the relative-time logic — it is already correct.
-- Do **not** change the history page's `requestedAt` — it is already right.
-- Do **not** hardcode Request #26's value anywhere.
+namespace App\Support;
 
-## 7. Proposed acceptance tests (after approval)
+use Carbon\CarbonInterface;
 
-- [ ] Request #26 tooltip in the notifications panel reads `2 Nov 2026, 7:00 PM`;
-      the `(… ago)` tail still says the same relative value as before.
-- [ ] Hovering the row's time chip shows `2 Nov, 7:00 PM`.
-- [ ] A notification created now shows the current **MYT** wall clock, not UTC.
-- [ ] All types (new request / approved / rejected / cancelled / update) agree.
-- [ ] History modal shows Requested At **and** Reviewed At in MYT (part B).
-- [ ] Sorting, age colours, badge counts and the 10 s poll are unchanged.
-- [ ] Dark + light, 390 px, no console errors.
-- [ ] Existing tests stay green; a new assertion pins one known instant converted
-      (e.g. `2026-11-02 11:00:12Z → 2 Nov 2026, 7:00 PM`), not the request id.
+/**
+ * THE user-facing clock (user decision 2026-10-19, generalised 2026-11-02):
+ * the app/db clock is UTC while the user's clock is Asia/Kuala_Lumpur (+08).
+ * Every user-facing ABSOLUTE stamp converts here; relative labels stay as-is.
+ */
+final class LocalTime
+{
+    public const TZ = 'Asia/Kuala_Lumpur';
 
-## 8. Questions for the user (needed before implementing)
+    /** The MYT-form stamp — byte-shape identical with the previous UTC form. */
+    public static function stamp(?CarbonInterface $stamp, string $format): ?string
+    {
+        return $stamp === null
+            ? null
+            : $stamp->copy()->setTimezone(self::TZ)->format($format);
+    }
+}
+```
 
-1. Fix **only** the notification tooltip (A), or also the row hover (same fix) and
-   the `reviewedAt` inconsistency in the history modal (B)?
-2. Promote the shared helper (B, recommended) or call the mapper constant directly
-   from the Blade closures (A only)?
-3. Should "Requested at" read the request's `submitted_at` rather than the
-   notification's `created_at` (C)?
-4. The mapper's docblock says the conversion was scoped to "Requested At" only,
-   with other stamps "reported-only" (your 2026-10-19 decision). Do you want to
-   widen that decision now, or keep the scope and fix only the stamps above?
+### 3.2 `app/Services/ReplacementRequestMapper.php`
 
-**No code has been modified. Waiting for approval before any implementation.**
+- Keep `public const DISPLAY_TZ = LocalTime::TZ;` (constant expression; any
+  external reader keeps working, and the mapper stops owning a second truth).
+- `stampDisplay()` → `return LocalTime::stamp($stamp, $format);`
+- `requestedAtDisplay()` → `return (string) LocalTime::stamp($stamp, 'Y-m-d\TH:i:s');`
+  (the parameter is non-nullable, so the cast cannot hide a null; keep the
+  docblock's "byte-shape identical" note).
+- Add `use App\Support\LocalTime;`.
+
+### 3.3 `resources/views/livewire/nav-notifications.blade.php` (A)
+
+Replace only the bodies of the two closures (lines **34–44**); their comments
+must be updated to say "stored instant → the user's clock".
+
+```php
+$absTime = function ($at): string {
+    return (string) \App\Support\LocalTime::stamp($at, 'j M, g:i A');
+};
+// ...
+$tipAbs = function ($at): string {
+    return (string) \App\Support\LocalTime::stamp($at, 'j M Y, g:i A');
+};
+```
+
+Do **not** touch `$relTime`, `$relLong`, `$minutesAgo` — they are relative and
+already correct.
+
+### 3.4 `resources/views/partials/notif-row.blade.php` (C)
+
+At the top of the partial (next to `$m = $minutesAgo($n->created_at);`, line ~29):
+
+```php
+/* C: "Requested at" names the REQUEST's stamp, not the notification's.
+   Equal for a first notification; they diverge on a re-notification. */
+$requestedStamp = $n->request?->submitted_at ?? $n->created_at;
+```
+
+Then use `$requestedStamp` **only** in the two "Requested at:" tip lines
+(lines **73** and **76**), for both the absolute and the relative part:
+
+```php
+'Requested at: '.$tipAbs($requestedStamp).' ('.$relLong($requestedStamp).')'
+```
+
+**Keep `$m = $minutesAgo($n->created_at)` and the hover at line 119 on
+`$n->created_at`.** Rationale: the row's age and the hover chip answer "when did
+this notification arrive"; an approval issued today for a request from yesterday
+must still read "just now". Only the labelled **Requested at** line switches.
+
+### 3.5 `app/Livewire/NavNotifications.php` (C, no N+1)
+
+`resolveRequests()` already loads the requests keyed by id (`$requests`) but does
+not attach the relation. Attach it before the `foreach ($rows as $row)` loop
+(line **445**), so `$n->request` never lazy-loads on the 10 s poll:
+
+```php
+$rows->each(static function (Notification $n) use ($requests): void {
+    if ($n->request_id !== null) {
+        $n->setRelation('request', $requests->get((int) $n->request_id));
+    }
+});
+```
+
+This is additive and changes no payload key; `_display` stays untouched.
+
+### 3.6 `app/Livewire/MyRequestHistory.php` (B)
+
+Line **82** currently formats `decided_at` raw — that is the "Reviewed At 11:00 AM
+vs Requested At 7:00 PM" inconsistency on the same modal:
+
+```php
+'reviewedAt' => \App\Support\LocalTime::stamp($r->decided_at, 'Y-m-d\TH:i:s'),
+```
+
+(returns `null` for a pending row, exactly like the ternary it replaces).
+
+## 4. What NOT to do
+
+- **Do not** rewrite DB rows, and **do not** change `config/app.php`'s
+  `'timezone' => 'UTC'` or add `APP_TIMEZONE`. That would shift `now()`, every
+  stored row, the semester maths and the whole test suite at once.
+- **Do not** hardcode `19:00` / Request #26, and **do not** use `->addHours(8)`
+  or any arithmetic: `setTimezone()` is the only correct tool.
+- **Do not** change the relative labels, the sort order, the 10 s poll, the
+  badge/pill counts, or the `_display` payload shape.
+- **Do not** convert "Schedule"/"Venue" fact lines — they are timetable data,
+  not instants.
+- **Do not** touch `ui-common.js` (`DateHelper.formatDateTime` is a pure string
+  reformatter; the PHP side must hand it MYT strings).
+
+## 5. Anchors (verified 2026-11-02, source HEAD `de7d00c` + local WIP)
+
+Re-grep before editing; this page is under active parallel work.
+
+| Anchor | Line |
+|---|---|
+| `$absTime` / `$tipAbs` closures | `nav-notifications.blade.php:34–44` |
+| `$m = $minutesAgo(...)` | `notif-row.blade.php:29` |
+| tip line 2 (submitted branch) | `notif-row.blade.php:73`, `:76` |
+| hover absolute time | `notif-row.blade.php:119` |
+| `resolveRequests()` loop | `NavNotifications.php:445` |
+| `reviewedAt` | `MyRequestHistory.php:82` |
+| mapper converters | `ReplacementRequestMapper.php:43–57` |
+| app timezone | `config/app.php:81` |
+
+## 6. Tests
+
+- **New** `tests/Feature/LocalTimeTest.php` (Pest or PHPUnit to match the suite):
+  - `LocalTime::stamp(Carbon::parse('2026-11-02 11:00:12', 'UTC'), 'j M Y, g:i A')`
+    === `'2 Nov 2026, 7:00 PM'`;
+  - `null → null`;
+  - the format string is respected (a second assert with `'j M, g:i A'`).
+  - Optional: assert `ReplacementRequestMapper::DISPLAY_TZ === LocalTime::TZ`.
+- **Existing assertions are format-only** and must stay green:
+  `tests/Feature/NotificationsBridgeTest.php:240` asserts the `Requested at: `
+  prefix; `tests/notifications-island.spec.ts:163` matches the shape
+  `\d{1,2} [A-Z][a-z]{2} \d{4}, \d{1,2}:\d{2} (AM|PM)`. Neither pins `11:00`.
+  If either fails, **stop and report** — it means someone else changed the shape.
+- Do not weaken any existing assertion.
+
+## 7. Gates + live receipts
+
+1. `composer run lint:check`
+2. `vendor/bin/phpstan analyse --memory-limit=1G` → 0 errors
+3. `php artisan test` → quote the real count; expect the current green suite
+   (the last known full run was 292 tests; re-measure, don't quote from memory).
+4. Stale-cache ritual — **two separate commands, never one string**:
+   `pkill -f "[a]rtisan serve" || true`
+   then `rm -f storage/framework/views/*.php && php artisan serve --port=8000 &`
+5. Live check on `:8000` (lecturer **5770** or **5425**):
+   - notifications panel → Request #26 tooltip: `2 Nov 2026, 7:00 PM` (not 11:00 AM),
+     relative tail unchanged;
+   - hover the row's time chip → `2 Nov, 7:00 PM`;
+   - history page → detail modal: Requested At and Reviewed At both MYT;
+   - a freshly created notification shows the current MYT wall clock;
+   - approved/rejected/cancelled reminders agree;
+   - dark + light, 390 px, no console errors; screenshots into `/tmp/opencode/`.
+
+## 8. Changelog (create-or-update rule)
+
+- `page-changelogs/notifications-panel-changelog.md` — the main entry: the root
+  cause (UTC stored, raw format), the shared `LocalTime` helper, the closure fix,
+  the `request->submitted_at` source, and the receipts.
+- `page-changelogs/my-request-history-changelog.md` — one short entry for
+  `reviewedAt` now sharing the helper (cross-reference the notifications entry).
+- Both note `SDD-waived w/ user approval`.
+
+## 9. Commit
+
+```
+fix: the notification "Requested at" follows the user's clock — one LocalTime helper (Asia/Kuala_Lumpur) owns the conversion, the mapper delegates to it, the notification tooltip + hover stop printing UTC, MyRequestHistory's reviewedAt stops disagreeing with its requestedAt, and the Requested-at line reads the request's submitted_at (A+B+C, SDD-waived)
+```
+
+Stage **only**: the 6 code files + the new test + the two changelogs.
+**NEVER push.** After the fix, the Viva copy (`CRS-demo`, `:8001`) can
+fast-forward — no migration, no DB work.
+
+## 10. Close-out
+
+- Report with the §9 template: files+lines, receipts (test counts, the exact
+  before/after strings), commits, "nothing pushed", SDD-waived reason.
+- Then ask: *"Task done. Do you want me to archive this prompt into
+  `prompts/completed prompt (Archieve)/`?"* — move it only on a "yes"
+  (`PI-PROMPT-TEMPLATE.md` §10).
+
+## 11. Stop and ask
+
+- If a test pins the UTC value (not just the shape), stop — the test encodes the
+  bug and needs a decision, not a silent edit.
+- If `$n->request` cannot be attached without touching `_display`, stop and
+  report: C is optional relative to A+B and must not change the payload shape.
+- If any mapped timezone or locale assumption fails (e.g. a `+08` offset is not
+  constant), stop — `Asia/Kuala_Lumpur` is the user's recorded decision.
