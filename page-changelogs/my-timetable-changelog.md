@@ -1,3 +1,20 @@
+## 2026-11-02 (SDD `venue-status-parity` — bugs #5 + #10, shared modal) — the popup quotes the CLASS, and a cancelled class stops sounding healthy
+
+Two one-line fixes in the shared `openClassModal()`; this page's behaviour is
+otherwise **untouched** (it is the reference, not the target — its summary cards
+stay plain and the new Playwright receipt asserts exactly that).
+
+1. **`Class Ref` prefers the class identity (#5).** The row was
+   `'#' + event.id`, and on the venue page `id` is the grid's ROW key (a
+   `time_slot` id) — so the same class quoted `#40` here and `#34413` there. The
+   row now reads `event.sessionId` when the payload carries one. On this page
+   nothing changes (`id` already IS the class id — the receipt re-asserts
+   `#23` for BMSE3153).
+2. **`Status Description` gained the cancelled arm (#10).** A cancelled class
+   used to read "Scheduled class with no issues" on every page (the ternary had
+   no `cancelled` branch). It now reads "Class cancelled — a replacement is
+   needed", matching the badge and the block note.
+
 ## 2026-10-27 (user law, SDD class-cancel-2-working-day-window) — the Cancel window: 2 working days before today + ALL future
 **Where this page is concerned:** my-timetable — the Cancel Class birthplace (the modal + button the law widens).
 

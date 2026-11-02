@@ -1,3 +1,53 @@
+## 2026-11-02 (SDD `venue-status-parity` — the user's bug report) — the venue page finally reads the shared conflict-fact contract
+
+**The report** (`prompts/BUG Investigation — Venue Timetable & Cohort Timetable.md`):
+on the same week the venue page disagreed with `/my-timetable-ui` and
+`/cohort-timetable` about a cancelled class, hid the date a request was
+submitted, **deleted** a class that carried a proposal, and quoted a wrong
+`Class Ref`. Root cause, in one sentence: the venue page hand-rolls its own
+payload and its own block HTML, so it never read the shared
+`LectureSessionCatalog` contract the other two pages read.
+
+**The law (design §2): share the LAWS, not the builder.** The venue grid is a
+slot grid, so it keeps its own builder — but every status/verdict now comes from
+`factContext()` + `occurrenceFact()` (the same datum the timeline pages use), and
+every block note comes from the shared `buildReplacementNote()`.
+
+| Fixed | Before | After |
+|---|---|---|
+| **#1** pending note | `AMSE2003(P) B010 2:00 PM - 3:00 PM` | `… (Pending since 02 Nov 2026)` — byte-identical to the other two pages |
+| **#2** cancelled class | `event-mine` (blue, "NORMAL", popup `Status: Normal`) | `event-conflict` (red) + `(Cancelled)`, tip `CANCELLED`, popup `Status: Cancelled` |
+| **#3** the proposal's class | **absent** in its conflict week (W14 Thu) | `event-conflict` + `(Proposed ⏳)`, and it counts in `Occupied` again |
+| **#5** `Class Ref` | `#34413` (a slot id) / absent on derived blocks | `#40` — the class id, same as my-timetable |
+| **#6** request link | none | the shared `View Full Request` action |
+| **#7** Cancel on a cancelled class | offered | hidden (the action is spent) |
+| **#8** cancelled-on-a-holiday | vanished | renders `(Cancelled)` |
+| **#9** `Total Slots` | `118` (silently dropped the held slots) | `118+2` — the user's `+` ruling, tail always shown (`+0` included) |
+| **#11** cancelled hours | counted | **still counted** (the user's **A**) — only the look changed |
+| **#12** `Replace Now` | `status === 'conflict'` heuristic (missed the holiday half) | the served `occurrenceFact` (the same rule as my-timetable) |
+
+**The #3 root cause, precisely.** The W14-Thu holiday import zeroed that day's
+rows, so the only way to materialise the occurrence is the derived-holiday pass —
+and that pass `continue`d whenever `$handledPairs` contained the pair, where
+`$handledPairs` = stamps ∪ (pending ∪ approved). A **pending** proposal therefore
+deleted the block. The suppression law is now the timeline's law ④: only an
+**exception + approved** pair (genuinely released) stays dark; a pending pair
+renders `conflict` + `proposed`, a stamped pair renders `cancelled`.
+
+**`Available` deliberately stays plain (`56`)** — it is already the POST-hold
+bookable count (a held slot is never a green cell), so a `-` tail would subtract
+the same slots twice (the user's ruling).
+
+**Additive payload keys** (nothing renamed): `sessionId` (now on reserved blocks
+too), `requestId`, `proposed`, `occurrenceFact`, `cancelledReason`.
+
+**Receipts.** PHPUnit `VenueTimetableTest` **19/19** — three new locks: cancelled
+renders + the hour still counts, the pending-proposal-holiday block survives with
+`proposed`/`occurrenceFact = null`, and the reserved block carries the class
+identity + request id. Full suite **295/295**. New read-only Playwright
+`tests/venue-status-parity.spec.ts` **8/8 × 2** on the demo DB (never written — its
+39 notifications are the user's own manual testing). Gates: pint · PHPStan 0.
+
 ## 2026-11-02 (user ask 2026-10-31) — the venue cards split Confirmed + Pending (`X+Y`)
 
 **What changed (display only).** The **pending component here is "slots held by

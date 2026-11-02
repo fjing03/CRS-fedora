@@ -1,3 +1,27 @@
+## 2026-11-02 (SDD `venue-status-parity` — bug #4) — `Replace Now` now follows the served conflict fact
+
+**The bug.** A conflicted class that already had a **proposed replacement** still
+offered `Replace Now` — a dead end that invites a duplicate request. And the
+inverse was wrong too: a **cancelled** class — the one that most needs a
+replacement — had no button.
+
+**Why.** The gate was a hand-rolled heuristic on the cloned event:
+`isMine && (holiday || event.status === 'conflict')`. It could not see a live
+proposal (the block is still `conflict`), and `cancelled` is not `conflict`.
+
+**Now.** Byte-parity with `/my-timetable-ui`: the button keys on the SERVED
+`occurrenceFact` — `null` means the pair is handled by a live pending/approved
+request (or is normal) → no button; a real conflict fact (exception / holiday) →
+button. The served array is re-read by `id`+`di` first, because Livewire's marker
+morph can blank the DOM clone's extra key.
+
+**Verified live.** cohort W14 `AMSE2003(P)` (proposal exists) = hidden (was
+shown); cohort W7 `BMSE3153(P)` (cancelled) = shown (was hidden); cohort W8
+`AMSE1003(L)` (holiday, no proposal) = shown (sanity). All three match
+my-timetable.
+
+Receipt: `tests/venue-status-parity.spec.ts` (third test group) — 8/8 × 2.
+
 ## 2026-11-02 (user ask 2026-10-31) — the summary cards split Confirmed + Pending (`X+Y`)
 
 **What changed (display only).** Four of the five cards now read `X+Y`:
