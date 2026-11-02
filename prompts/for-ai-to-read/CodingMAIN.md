@@ -201,7 +201,7 @@ rm -f storage/framework/views/*.php && php artisan serve --port=8000 &
 
 ## 7. Requirements (FR & NFR)
 
-Source: `FR&NFR copy.md` (this folder — a verbatim copy of `../../../final/FR&NFR.md`, Chapter 3 §3.4; the copy carries the version note and change log). **Synced 2026-11-02: 49 FRs / 26 NFRs.** Each FR is traceable to one or more of the 5 objectives (§3). Login supports Student/Staff ID via Fortify `username = login_id` (FR 1.1, 2.1 — incl. optional "P" prefix ✓).
+Source: `FR&NFR copy.md` (this folder — a verbatim copy of `../../../final/FR&NFR.md`, Chapter 3 §3.4; the copy carries the version note and change log, and **may only be edited with the user's explicit approval**). **Synced 2026-11-02: 49 FRs / 26 NFRs.** Each FR is traceable to one or more of the 5 objectives (§3). Login supports Student/Staff ID via Fortify `username = login_id` (FR 1.1, 2.1 — incl. optional "P" prefix ✓).
 
 ### 7.1 Traceability map (FR → Objective)
 

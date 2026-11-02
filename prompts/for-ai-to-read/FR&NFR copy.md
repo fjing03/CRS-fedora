@@ -6,22 +6,30 @@
 > copy**, kept beside `CodingMAIN.md` so every agent reads the requirements from
 > one place; `CodingMAIN.md` §7 quotes §3.4.1 and §3.4.2 from here.
 >
-> **Flexible to change — but only when very necessary.** A requirement may be
-> amended when the implementation teaches something the paper missed (the way
-> FR 2.17 arrived from the shipped 3-working-day rule). Before editing:
+> **Editable ONLY with the user's explicit approval.** Requirements are the one
+> artefact nobody changes unilaterally: when the code and this file disagree,
+> report the mismatch and ask — never "fix" a requirement on your own
+> initiative, not even as a side effect of an implementation task.
 >
-> 1. the change must be **forced** by a shipped behaviour, an explicit user
+> **Flexible to change — but only when very necessary, and only once approved.**
+> A requirement may be amended when the implementation teaches something the
+> paper missed (the way FR 2.17 arrived from the shipped 3-working-day rule).
+> Before editing:
+>
+> 1. **get the user's explicit "yes" for that specific change** — an approval to
+>    build a feature is *not* an approval to rewrite its requirement;
+> 2. the change must be **forced** by a shipped behaviour, an explicit user
 >    ruling, or a corrected misunderstanding — not a preference or a wording
 >    nicety;
-> 2. **keep the numbering stable** — append (2.17, 4.17 …), never insert or
+> 3. **keep the numbering stable** — append (2.17, 4.17 …), never insert or
 >    renumber: FR 3.1 cites "FR 2.11 and FR 2.12", and tests, changelogs and
 >    SDD lanes cite FR numbers;
-> 3. **mirror it in three places** — this file, `CodingMAIN.md` §7 (sync line +
+> 4. **mirror it in three places** — this file, `CodingMAIN.md` §7 (sync line +
 >    §7.1 traceability + §7.2/§7.3 verbatim tables), and the FYP1 report
 >    (Table 3.5/3.6). A requirement that exists in only one of them is a defect;
-> 4. **never delete or renumber** an existing FR/NFR — mark it superseded and
+> 5. **never delete or renumber** an existing FR/NFR — mark it superseded and
 >    say why;
-> 5. add a row to the change log at the bottom of this file.
+> 6. add a row to the change log at the bottom of this file.
 >
 > **Version:** `v2026-11-02` — **49 FRs / 26 NFRs**. Latest update:
 > **2026-11-02** (added **FR 2.17**: a lecturer may only propose a slot at least

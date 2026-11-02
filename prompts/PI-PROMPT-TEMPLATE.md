@@ -83,6 +83,12 @@ message **and** the changelog.
   hex/rgb; reuse existing keyword / toggle / modal / tooltip families; confirm or
   undo on critical actions; never duplicate markup, CSS or mock data — promote on
   the 3rd repetition.
+- **Requirements are read-only unless the user approves.** `prompts/for-ai-to-read/FR&NFR copy.md`
+  (and the `CodingMAIN.md` §7 tables that mirror it) may only be edited with the
+  user's explicit "yes" **for that specific change** — an approval to build a
+  feature is not an approval to rewrite its requirement. If the code disagrees
+  with the requirement, report the mismatch and ask; never "fix" the requirement
+  as a side effect of an implementation task.
 - **No new dependencies.** Reuse Flux/Livewire/Tailwind + `theme.css` +
   `ui-common.js`.
 - **Honesty:** show real data or honest zeros — never fabricate counts, states or
