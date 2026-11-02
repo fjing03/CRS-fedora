@@ -448,43 +448,52 @@
                         td.innerHTML = cell.html;
                         row.appendChild(td);
                     });
-                    /* S13 — "Just cancelled" chip iff THIS row has its own
-                       un-undone, un-consumed ledger entry (per-entry chips,
-                       §6 stack semantics). class-cancel-db-persist: the
-                       match widened through ClassCancellation.entryCoversRow
-                       — a client-appended row (id match) OR a server
-                       payload row (sessionId+week match, the ids
-                       session*100+week never equal the client ids) — so
-                       the chip + Undo survive a reload. Page-local
-                       placement — cell index 2 is the Original Class
-                       block (col-original); do NOT mutate shared
-                       HtmlBuilder.replacementHomeRow (§5). Undo clears it
-                       on the next buildTable (S14). */
-                    const cxlEntries = ClassCancellation.allEntries();
-                    if (cxlEntries.some(function(entry) {
-                            return !entry.consumed && entry.chip &&
-                                   ClassCancellation.entryCoversRow(entry, c);
-                        })) {
-                        const chip = document.createElement('span');
-                        chip.className = 'just-cancelled-chip';
-                        chip.textContent = 'Just cancelled';
-                        row.children[2].appendChild(chip);
-                        /* Undo affordance — keeps undo reachable when the
-                           load toast was ✕-snoozed for the session
-                           (toast-snooze fix, 2026-10-08). Icon-first, stops
-                           row propagation so quickView doesn't fire. */
-                        const undoBtn = document.createElement('button');
-                        undoBtn.type = 'button';
-                        undoBtn.className = 'just-cancelled-undo';
-                        undoBtn.setAttribute('data-tip', 'Undo cancellation');
-                        undoBtn.setAttribute('aria-label', 'Undo cancellation');
-                        undoBtn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"></polyline><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"></path></svg>';
-                        undoBtn.onclick = function(ev) {
-                            ev.stopPropagation();
-                            undoCancelledByRowId(c.id, undoBtn, c);
-                        };
-                        row.children[2].appendChild(undoBtn);
-                    }
+                    /* ═══ TEMPORARILY DISABLED 2026-11-02 ═══
+                       The "Just cancelled" chip + its Undo are switched OFF until
+                       the recency rule lands: the chip never expires today (the
+                       ledger has no TTL, `sessionStorage` only dies with the tab),
+                       so the word "Just" can be hours stale.
+                       Task prompt: prompts/pi-prompt-just-cancelled-chip-ttl.md
+                       RESTORE = delete the `// ` prefixes below (git knows the
+                       original block verbatim). The .just-cancelled-chip CSS and
+                       the ClassCancellation ledger machinery stay untouched. */
+                    // /* S13 — "Just cancelled" chip iff THIS row has its own
+                    //    un-undone, un-consumed ledger entry (per-entry chips,
+                    //    §6 stack semantics). class-cancel-db-persist: the
+                    //    match widened through ClassCancellation.entryCoversRow
+                    //    — a client-appended row (id match) OR a server
+                    //    payload row (sessionId+week match, the ids
+                    //    session*100+week never equal the client ids) — so
+                    //    the chip + Undo survive a reload. Page-local
+                    //    placement — cell index 2 is the Original Class
+                    //    block (col-original); do NOT mutate shared
+                    //    HtmlBuilder.replacementHomeRow (§5). Undo clears it
+                    //    on the next buildTable (S14). */
+                    // const cxlEntries = ClassCancellation.allEntries();
+                    // if (cxlEntries.some(function(entry) {
+                    //         return !entry.consumed && entry.chip &&
+                    //                ClassCancellation.entryCoversRow(entry, c);
+                    //     })) {
+                    //     const chip = document.createElement('span');
+                    //     chip.className = 'just-cancelled-chip';
+                    //     chip.textContent = 'Just cancelled';
+                    //     row.children[2].appendChild(chip);
+                    //     /* Undo affordance — keeps undo reachable when the
+                    //        load toast was ✕-snoozed for the session
+                    //        (toast-snooze fix, 2026-10-08). Icon-first, stops
+                    //        row propagation so quickView doesn't fire. */
+                    //     const undoBtn = document.createElement('button');
+                    //     undoBtn.type = 'button';
+                    //     undoBtn.className = 'just-cancelled-undo';
+                    //     undoBtn.setAttribute('data-tip', 'Undo cancellation');
+                    //     undoBtn.setAttribute('aria-label', 'Undo cancellation');
+                    //     undoBtn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"></polyline><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"></path></svg>';
+                    //     undoBtn.onclick = function(ev) {
+                    //         ev.stopPropagation();
+                    //         undoCancelledByRowId(c.id, undoBtn, c);
+                    //     };
+                    //     row.children[2].appendChild(undoBtn);
+                    // }
                     (function(row, idx) {
                         row.onclick = function() { quickView(idx); };
                         row.style.cursor = 'pointer';

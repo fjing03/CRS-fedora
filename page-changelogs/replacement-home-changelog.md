@@ -1,3 +1,34 @@
+## 2026-11-02 (user-ordered, temporary) — the "Just cancelled" chip is switched OFF pending a recency rule
+
+**Why.** The chip says **"Just"** but has no time limit: its `sessionStorage`
+ledger entry (`classCancellationLedger`) has no TTL, so the badge and its Undo
+can sit on a row for hours (the only limits are Undo, submitting a replacement
+for that subject, the row leaving the list, or the tab closing). A "just"
+that can be three hours old is a false claim, so the chip is **off** until the
+recency window lands.
+
+**What changed.** The render block in `resources/views/livewire/replacement-home.blade.php`
+(the S13 `cxlEntries.some(...)` branch that appends
+`<span class="just-cancelled-chip">` + `.just-cancelled-undo` to the Original
+Class cell) is **commented out** under a `TEMPORARILY DISABLED 2026-11-02`
+marker that names the follow-up prompt
+(`prompts/pi-prompt-just-cancelled-chip-ttl.md`).
+
+**What stayed.** Everything else is untouched — the `.just-cancelled-chip` /
+`.just-cancelled-undo` CSS, the `ClassCancellation` ledger (append/replay/
+consume), the 5-second undo toast, `undoCancelledByRowId()`, and the row's
+cancelled/holiday state with its reason badge. The page lists the same rows
+with the same data; the row simply no longer wears the chip.
+
+**Receipt (read-only, demo DB never written).** With a matching ledger entry
+seeded into the browser (`sessionId 99` + `matchKey.week 7` → the W8
+AMSE1003(L) row): **before** = 1 `.just-cancelled-chip` + 1 `.just-cancelled-undo`;
+**after** = 0 and 0, with the same 4 rows and zero page errors.
+
+**Restore.** Delete the `// ` prefixes (git holds the original block verbatim),
+add the 30-minute recency predicate, and re-run the four receipt cases listed in
+the prompt.
+
 ## 2026-11-02 (user ask 2026-10-31) — "My Courses" renamed to **My Subjects**
 
 **What changed.** The third summary card's label and back-face description:
