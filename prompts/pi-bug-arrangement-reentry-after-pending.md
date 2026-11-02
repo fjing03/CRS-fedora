@@ -87,6 +87,44 @@ Two acceptable approaches — pick the one that fits house patterns best:
    load. Only choose this if (1) turns out messy; it costs the restored-selection comfort
    for ALL states.
 
+#### 2026-11-01 addendum — the URL-vs-pin doctrine (input from lane `conflict-subject-switch-autoselect`)
+
+Committed evidence (commits `d944d8f` / `6c8d2ee` / `ab912af`; receipts 4/4 ×2):
+**the URL CAN lag the live pin — never assume the URL is post-boot truth.**
+The POST-boot auto-pin doctrine (occurrence-week-pin-truthfulness T18, strengthened by
+that lane's fix: the subject switch now COMMITS the pin-matching conflict row) moves
+`window.pinnedOccurrence` to the newly arranged occurrence, while the URL keeps the
+ARRIVAL's `?session=&week=` pair (`commitSlotSelection`'s URL rewrite only fires on a
+currentSessionId identity change, which the auto-pin pre-keys away — same as before
+that lane). Therefore:
+
+- **Layer B's `revalidateEntry` must read the LIVE PIN, not just the URL:** validate
+  `sessionId + week` from `window.pinnedOccurrence` (it is already exposed on `window`,
+  hydrated from the server's `pinnedSession` payload — the pin the submit honours);
+  fall back to the URL params ONLY when no pin exists (anchor-less states). Send BOTH
+  from the client (pin first, URL second) so the server check can guard the occurrence
+  the user is ACTUALLY arranging. A URL-only key would miss a pending request on the
+  PINNED occurrence after a subject switch → the bfcache layer of this bug re-opens.
+- **Layer A stays URL-keyed as written** — it only serves FRESH entries, where the URL
+  is always the truthful handoff.
+- If you would rather keep Layer B URL-keyed, that is allowed ONLY with a decision
+  made IN THIS LANE to rewrite the URL on every pin commit (bigger semantics change —
+  history entries churn per auto-pin, and a redirect-facing change) — that is a user
+  decision: record it in the changelog and stop for the user's call before implementing.
+- **D1 interplay note (for the changelog when this lane lands):** with the D1 full-block
+  reservation, a subject whose conflicted occurrences are ALL pending/approved renders an
+  EMPTY slot picker (`conflictEventsPayload` skips handled pairs) — while the pinned
+  panel still bypasses the filter. That is exactly the hole Layer A closes; the
+  conflict-subject-switch-autoselect lane inherits it untouched and its auto-commit only
+  commits rows that exist in the picker.
+- The week-span open question in A) stays as written (“confirm whether the request’s own
+  `week_number` always equals the pinned week”); tonight's receipts neither confirm nor
+  break it (they pinned only (sessionId, week) D1-key pairs).
+
+> Entirely orthogonal note: the OTHER lane's leftover quirk — `renderSlotPicker([])`
+> keeps the previous subject's rows in the hidden panel — is NOT part of this lane;
+> do not fix it here.
+
 ### C) The withdrawal loop must work (acceptance, no code expected)
 
 After the guard lands, withdrawing/rejecting the pending request in My Request History
