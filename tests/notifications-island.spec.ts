@@ -217,3 +217,78 @@ test('filter bar: Active-only toggle + the type dropdown, badge unmoved', async 
   }
   expect(consoleErrors, 'no JS page errors').toEqual([]);
 });
+
+/* notif-manage-hide (2026-11-02, the user's approved design) — the READ-ONLY
+   layout half of the lane. The WRITE flow (hide/undo/shelf) lives in
+   tests/notifications-hide-manage.spec.ts on the disposable testing DB: the
+   demo mailbox is read-only for agents, so nothing here clicks Hide. */
+test('manage-hide layout: icon-only Mark all, gated Manage, full-row type select', async ({ page }) => {
+  const consoleErrors: string[] = [];
+  page.on('pageerror', (err) => consoleErrors.push(String(err)));
+
+  await page.goto('/request-approval-ui?bust=island-10');
+  await page.click('button.notif-btn');
+  await expect(page.locator('#notifPanel')).toHaveClass(/open/);
+
+  // 1) the type select spans the whole filter row (its own line under the toggles)
+  const geom = await page.evaluate(() => {
+    const sel = document.querySelector('#notifTypeFilter') as HTMLElement;
+    const row = document.querySelector('.notif-filters') as HTMLElement;
+    const cs = getComputedStyle(row);
+    const content = row.getBoundingClientRect().width
+      - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight);
+    return {
+      selW: Math.round(sel.getBoundingClientRect().width),
+      contentW: Math.round(content),
+      selH: Math.round(sel.getBoundingClientRect().height),
+      title: sel.getAttribute('title'),
+      tip: sel.getAttribute('data-tip'),
+    };
+  });
+  expect(Math.abs(geom.selW - geom.contentW)).toBeLessThanOrEqual(1);
+  expect(geom.selH).toBe(36);                     // the shipped compact skin
+  expect(geom.title).toBeNull();                  // one tooltip system only
+  expect(geom.tip).toContain('Filter the list by notification type');
+
+  // 2) the head never overflows, at the panel's natural width
+  const head = await page.evaluate(() => {
+    const h = document.querySelector('.notif-head') as HTMLElement;
+    return { overflow: h.scrollWidth > h.clientWidth + 1 };
+  });
+  expect(head.overflow).toBe(false);
+
+  // 3) Mark all is an ICON-ONLY 30px square when shown (the old text-button
+  //    sizing squeezed the glyph to ~10px — the rewrite's whole point)
+  const markAll = page.locator('#notifMarkAll');
+  if (await markAll.isVisible()) {
+    const box = await markAll.evaluate((el) => {
+      const svg = el.querySelector('svg')!.getBoundingClientRect();
+      const me = el.getBoundingClientRect();
+      return { w: Math.round(me.width), h: Math.round(me.height), svgW: Math.round(svg.width) };
+    });
+    expect(box).toEqual({ w: 30, h: 30, svgW: 16 });
+  }
+
+  // 4) the Manage affordance appears exactly when something is hideable.
+  //    The VIEW filters can hide hideable rows (unread-only drops the read
+  //    ones), so the count is taken with the filter OFF:
+  //    hideable ⇔ read_at !== null || inactive_reason !== null ⇔ the rendered
+  //    --read / --inactive classes. Both counts must then agree.
+  await page.locator('.notif-filters .toggle-wrapper').first().click();
+  await page.waitForTimeout(800);
+  const hideableCount = await page.evaluate(() =>
+    document.querySelectorAll('#notifList .notif-row--read, #notifList .notif-row--inactive').length);
+  expect(await page.locator('#notifManage').count()).toBe(hideableCount > 0 ? 1 : 0);
+
+  // 5) the tooltips ride the SHARED system, multiline where the copy is
+  if (await page.locator('#notifManage').count()) {
+    await page.locator('#notifManage').hover();
+    await page.waitForTimeout(400);
+    const tip = page.locator('.data-tip-tooltip');
+    await expect(tip).toContainText('Put away notifications you have already read.');
+    await expect(tip).toContainText('Nothing is deleted — you can bring them back.');
+    await page.mouse.move(2, 2);
+  }
+
+  expect(consoleErrors, 'no JS page errors').toEqual([]);
+});

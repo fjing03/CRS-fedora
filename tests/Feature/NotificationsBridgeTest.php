@@ -459,4 +459,134 @@ final class NotificationsBridgeTest extends TestCase
         $this->assertSame(1, $component->viewData('unreadTotal'),
             'the badge stays the actionable unread (the update row) — not the filtered view');
     }
+
+    /* ── notif-manage-hide (2026-11-02, the user's approved design) ─────────
+       The hide is a SOFT flag: `hidden_at` stamped on hide, cleared on unhide,
+       NEVER a delete. The gate is the badge predicate's exact complement
+       (read_or_inactive), re-validated SERVER-SIDE on every posted id. */
+
+    /** A hideable row (read) for the given user. */
+    private function readRow(User $user, string $title): Notification
+    {
+        return Notification::create([
+            'user_id' => $user->id, 'role_view' => 'lecturer', 'type' => 'update',
+            'title' => $title, 'body' => 'fixture body', 'link' => '/my-request-history-ui',
+            'read_at' => Date::now(),
+        ]);
+    }
+
+    /** A NOT-hideable row (unread + never classified) for the given user. */
+    private function liveRow(User $user, string $title): Notification
+    {
+        return Notification::create([
+            'user_id' => $user->id, 'role_view' => 'lecturer', 'type' => 'update',
+            'title' => $title, 'body' => 'fixture body', 'link' => '/my-request-history-ui',
+            'read_at' => null,
+        ]);
+    }
+
+    public function test_manage_mode_pre_ticks_only_the_hideable_rows(): void
+    {
+        $user = $this->coordinator();
+        $this->actingAs($user);
+        $readable = $this->readRow($user, 'Hideable read row');
+        $live = $this->liveRow($user, 'Still needs you row');
+
+        $component = Livewire::test(NavNotifications::class, [
+            'variant' => 'panel', 'unreadOnly' => false,
+        ])->call('enterManage');
+
+        $selected = array_map('intval', $component->get('selectedIds'));
+        $this->assertContains((int) $readable->id, $selected, 'a read row is hideable');
+        $this->assertNotContains((int) $live->id, $selected, 'an unread, still-actionable row is NOT hideable');
+
+        // the manage list renders ONLY the hideable rows — and the caption says why
+        $component->assertSee('Hideable read row')
+            ->assertDontSee('Still needs you row')
+            ->assertSee("Notifications that still need you can't be hidden.", false);
+    }
+
+    public function test_hide_is_reversible_and_never_deletes(): void
+    {
+        $user = $this->coordinator();
+        $this->actingAs($user);
+        $row = $this->readRow($user, 'Row to put away');
+
+        $component = Livewire::test(NavNotifications::class, [
+            'variant' => 'panel', 'unreadOnly' => false,
+        ])->call('enterManage');
+
+        // TAMPER: post an ineligible id alongside the eligible one — the gate
+        // is server-side, so the ineligible one is silently dropped
+        $live = $this->liveRow($user, 'Not allowed row');
+        $component->set('selectedIds', [(int) $row->id, (int) $live->id])->call('hideSelected');
+
+        $this->assertNotNull($row->fresh()->hidden_at, 'the read row is hidden');
+        $this->assertNull($live->fresh()->hidden_at, 'the still-actionable row was rejected by the gate');
+        $this->assertSame([(int) $row->id], array_map('intval', $component->get('undoIds')));
+        $this->assertFalse($component->get('manageMode'), 'hiding leaves manage mode');
+
+        // the toast copy + the find-back link
+        $component->assertSee('1 notification hidden · Undo restores them', false)
+            ->assertSee('Hidden (1)', false)
+            ->assertDontSee('Row to put away');
+
+        // rows are NEVER deleted — the row still exists, only flagged
+        $this->assertDatabaseHas('notifications', ['id' => $row->id]);
+
+        // UNDO restores it to the inbox
+        $component->call('undoHide');
+        $this->assertNull($row->fresh()->hidden_at);
+        $component->assertDontSee('Hidden (1)', false);
+    }
+
+    public function test_hiding_never_moves_the_badge_and_hidden_rows_leave_the_inbox(): void
+    {
+        $user = $this->coordinator();
+        $this->actingAs($user);
+        $live = $this->liveRow($user, 'The badge row');
+        $hideable = $this->readRow($user, 'A read row');
+
+        $before = Livewire::test(NavNotifications::class, [
+            'variant' => 'panel', 'unreadOnly' => false,
+        ]);
+        $badgeBefore = $before->viewData('unreadTotal');
+        $this->assertGreaterThan(0, $badgeBefore, 'the unread live row counts');
+
+        // D1: hideable ∩ badge-counted = ∅ — so hiding cannot move the badge
+        $before->call('enterManage')->call('hideSelected');
+        $this->assertNotNull($hideable->fresh()->hidden_at);
+        $this->assertNull($live->fresh()->hidden_at);
+
+        $after = Livewire::test(NavNotifications::class, [
+            'variant' => 'panel', 'unreadOnly' => false,
+        ]);
+        $this->assertSame($badgeBefore, $after->viewData('unreadTotal'), 'the badge law is untouched by hiding');
+        $after->assertDontSee('A read row')->assertSee('The badge row');
+        $this->assertSame(1, $after->viewData('hiddenCount'));
+
+        // the shelf shows it and Unhide all brings it back
+        $after->call('showHidden')->assertSee('A read row')->assertSee('1 hidden', false);
+        $after->call('unhideAll')->assertSee('0 hidden', false)->assertSee('Nothing hidden', false);
+        $this->assertNull($hideable->fresh()->hidden_at);
+        $this->assertSame(0, Livewire::test(NavNotifications::class, [
+            'variant' => 'panel', 'unreadOnly' => false,
+        ])->viewData('hiddenCount'));
+    }
+
+    public function test_hide_paths_are_authorisation_scoped(): void
+    {
+        // another user's row is untouchable through the gate
+        $other = User::query()->findOrFail(2);
+        $foreignRow = $this->readRow($other, 'Someone else\'s row');
+
+        $this->actingAs($this->coordinator());
+        Livewire::test(NavNotifications::class, ['variant' => 'panel', 'unreadOnly' => false])
+            ->set('selectedIds', [(int) $foreignRow->id])
+            ->call('hideSelected')
+            ->call('unhide', (int) $foreignRow->id)
+            ->call('unhideAll');
+
+        $this->assertNull($foreignRow->fresh()->hidden_at, 'a foreign id is never written');
+    }
 }
