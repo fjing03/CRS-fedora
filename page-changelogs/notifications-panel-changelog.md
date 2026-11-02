@@ -500,3 +500,63 @@ canvas they assert the caught-up arm + the controls; with rows back they
 assert the equality/composition laws as before. Verified 9/9 ON THE BLANK
 STATE.
 
+
+## 2026-11-02 (lane `notifTypeFilter` re-skin, SDD-waived with the user's approval) — the type filter's brand-new compact skin (week-select DNA)
+
+The user's verdict on the filter bar lane's dropdown: **too tall** — the 44px
+WCAG touch-target `min-height` crowded the compact row. Brand-new design
+ordered (do NOT reuse the current skin), visual reference =
+`<select class="week-select">`. Visual re-skin ONLY — same id
+(`#notifTypeFilter`), same 6 options/values (the wire:model filter keys), same
+`wire:model.live="typeFilter"`, zero behavior change.
+
+### What changed
+- **`resources/views/livewire/nav-notifications.blade.php`** (one attribute):
+  the element drops `filter-select` and stands alone on the previously dead
+  hook `notif-type-select` — which becomes the NEW design's class.
+- **`public/css/theme.css`**:
+  - NEW `.notif-type-select` (next to `.notif-filters`, ~:386): a verbatim
+    copy of `.week-select`'s visual DNA — surface bg, outline border,
+    13px/600, `--radius-md`, custom SVG chevron, blue hover border + focus
+    glow, `0 32px 0 12px` chevron-room padding, `min-width: 170px`,
+    `margin-left: auto` (stays parked row-end), 150ms transitions — at a
+    **fixed `height: 36px`** (the user's explicit compactness instruction for
+    this one control: a dated waiver of the 44px touch-target convention,
+    floor 32px, never above 36), plus `option` styling and the
+    `.light .notif-type-select` light-theme chevron swap
+    (color-scheme + the `%235A6978` stroke, mirroring `.light .week-select`).
+    The ONLY hex copies are the two already-sanctioned `.week-select`
+    exceptions (the SVG chevron strokes + the focus glow), each commented
+    verbatim-source; no new hex introduced (tokens everywhere else).
+  - DELETED the dead `.notif-filters .filter-select` context rule
+    (12px/min-height: 44px) — nothing else in `.notif-filters` ever used
+    `.filter-select` (grep-verified); keeping it would have been a live rule
+    for a class no element carries.
+
+### Hard constraints honoured
+`.filter-select` base family, `.week-select`, the `.semester-bar select:not(.week-select)`
+special-case, the toggle styles and every other page are untouched; no JS/PHP
+change; the bell island is shared but the change is visually confined to
+`.notif-filters`.
+
+### Receipts
+- **Read-only visual check (:8000, demo DB untouched — blank state is the
+  honest canvas)**: staff 5770, the bell panel opened on `/my-timetable-ui`;
+  computed height = **36px** exactly (dark + light), 13px/600, appearance:none
+  with the SVG chevron, right-parked (`margin-left: auto`), the row's
+  `overflow` false (no cropping) at the 360px panel, the select wrapping to
+  its own row-right line beside the two toggles (the row's designed
+  `flex-wrap` law). Screenshots: `/tmp/opencode/notif-filter-dark.png`,
+  `-light.png` (the `-open.png` twins show the control in use — the native
+  options list is an OS menu, not capturable in headless Chromium).
+- **`tests/notifications-island.spec.ts` — 6/6 × 2 runs, UNMODIFIED**, against
+  the DISPOSABLE testing lane (:8030) via a temp Playwright config
+  (`playwright.testing-lane.tmp.config.ts`, repo-root, untracked, never
+  committed): same test file, absolute-relative URLs resolved to :8030, one
+  lane login (staff 5425) — the spec's `test.use` storageState file is a
+  MEDIUM swapped for the run and restored byte-identical after. The coupled
+  receipts (the dropdown's visibility + `selectOption` driving through the
+  :175 filter-bar test, the toggles) all green on the new skin.
+- Gates: `composer run lint:check` passed · PHPStan 0 errors (1G).
+- Never touched: `class_replacement_fresh` / `class_replacement_demo` (no
+  snapshot needed — zero writes), no `--env=testing` anywhere.
