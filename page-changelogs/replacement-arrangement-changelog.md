@@ -2577,3 +2577,86 @@ preview 4 cells; the switch to BMSE2163 now paints **2** and its row reads
 the DOM-painted preview's width math (span state is closure-private —
 BLOCK_SPAN/previewRange deliberately not exported; no app debug hooks added).
 Gates: pint passed, PHPStan 0 errors (1G), full PHPUnit suite 280/280.
+
+## 2026-11-02 (lane `arrangement-entry-guard`, normal fix lane — no SDD needed) — the page refuses entry for an occurrence that already has an active request
+
+The user's rule, verbatim: the system must PREVENT entry — the occurrence's slot
+is checked against the Proposed Classes. **ONLY unproposed + self/own classes.**
+"Self/own" was already enforced (a foreign/fabricated `?session=` resolves to
+null); the **"unproposed" half was the hole**. Reported flow: arrange 5770's
+own occurrence → submit (Pending) → browser **Back** → the arrangement page came
+back with the Conflict Schedule panel as if no request existed (also F5 /
+re-paste). Display+guard only: no DB schema change, no engine change, no change
+to which classes appear in the conflicted list.
+
+### Root cause
+`pinnedSessionPayload()` checked ONLY ownership (`lecturer_id = auth()->id()`).
+The D1 full-block reservation already defines "already being handled" (a
+`ReplacementRequest` with `status IN ('pending','approved')`, keyed by
+`class_session_id.':'.week_number`) and filters those occurrences out of the
+conflicted GRID — but the **pinned panel bypassed it**. Second layer: a bfcache
+restore replays the frozen DOM, so even a server-side guard alone would not
+cover the Back button.
+
+### The guard (two layers, ONE status definition)
+- **Layer A — server, `mount()`**: the page redirects out before rendering for
+  any fresh entry (typed URL / link / deep-link / F5), landing on the `from`
+  source (`FROM_LANDING_ROUTES`, a mirror of the client's `BackNavigator`
+  routes) or the replacement home, carrying `?blocked=request-pending|approved`.
+- **Layer B — bfcache, `pageshow` (`e.persisted`)**: the client calls the new
+  `#[Renderless] revalidateEntry(...)` with the **live pin first, the URL pair
+  second** (the URL-vs-pin doctrine of lane `conflict-subject-switch-autoselect`:
+  a post-boot subject switch moves `window.pinnedOccurrence` while the URL keeps
+  the arrival pair — a URL-only key would re-open this bug). The action RETURNS
+  the landing URL and the CLIENT navigates with `window.location.href`: a
+  bfcache restore is exactly the state where Livewire's JS may still be
+  resuming, and a plain location assignment cannot be swallowed by a suspended
+  effect queue. Readiness is retried briefly (bfcache resumes Livewire
+  asynchronously); a non-blocked restore is a silent no-op, so the bfcache
+  comfort survives for normal back/forward.
+- **The ONE "active" definition** is now the class constant
+  `ACTIVE_REQUEST_STATUSES = ['pending', 'approved']`, shared by the D1 grid
+  filter and the guard so the two can never drift. Rejected/withdrawn/cancelled
+  requests do NOT block — the **withdrawal loop** works (a cancelled request
+  makes the occurrence unproposed again and the same URL loads normally).
+- **Arrival toast** (house cross-page mechanic, the `restored=1` family):
+  `ui-common.js` reads `?blocked=` and shows the reason with a **My Request
+  History** link — no dead end. Wording: pending → "This class already has a
+  pending replacement request — track or withdraw it in My Request History.";
+  approved → "…already has an approved replacement — view it in My Request
+  History."
+
+### Answered open question (week-span)
+`replacement_requests.week_number` is ALWAYS the REPLACED occurrence's week —
+`SubmitReplacementRequest` writes the pinned `$weekNumber`, never the make-up
+slot's week (the pre-existing receipt
+`test_submit_targets_the_pinned_occurrence_week_not_the_slot_week` asserts
+request week 8 against a week-4 slot). The make-up slots' weeks live only in
+`time_slots` / `replacement_request_slots`. **No slot-week matching is
+needed** — the D1 key is exact.
+
+### Defence in depth noted (not changed)
+my-timetable may still offer an "Arrange" link for a handled occurrence; the
+guard catches it at entry. No card/button change was made (non-goal).
+
+### Receipts
+- PHPUnit `tests/Feature/ReplacementArrangementTest.php` +7 (20/20 in-file):
+  pending blocks (with `from` landing), approved blocks (default landing),
+  rejected does NOT block (pin still boots), a foreign occurrence is still
+  nulled (ownership no-regression), layer B pin-first, layer B URL fallback,
+  layer B silent no-op. Full suite **287/287**.
+- Playwright `tests/arrangement-entry-guard.spec.ts` (NEW, :8030, 9/9 × 4 runs,
+  fixture-idempotent — 0 requests / 0 pending slots after each run): layer A
+  pending + toast + link, layer A approved, layer B synthetic `pageshow
+  persisted=true` revalidation, layer B pin-first (URL pair free), withdrawal
+  loop (rejected → page loads), and the user's **end-to-end repro** (arrange →
+  submit through the confirm modal → Back → redirected with the reason).
+  Honest environment note: headless Chromium serves that Back as a FRESH load
+  here (measured `pageshow.persisted === false`), so the e2e test proves the
+  user-visible end state via layer A; layer B is proven by the synthetic
+  persisted-pageshow tests, which exercise the real client → server → navigate
+  path.
+- Read-only demo smoke (:8000, no request exists): the page still renders
+  normally — no false-positive blocking.
+- Gates: pint passed · PHPStan 0 errors (1G) · `node --check` on ui-common.js ·
+  full PHPUnit 287/287.
