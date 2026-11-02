@@ -31,6 +31,7 @@
 | # | SDD name | What it does | Depends on | Prompt file |
 |---|----------|-------------|------------|-------------|
 | 1 | `auth-wiring` | Logout + **role-based session lifetime (student 30 days, staff 30 min)** + role-based redirect + user panel wiring + **A1 remember me + A3 session countdown + B1 session indicator + staff login lockout (3 fails → 10 min lock) + C4 auto-logout (staff only)** + **remember me help text + lockout countdown timer + session expiry modal at 60s + session indicator tooltip** | student-my-timetable-ui (for student redirect target) | `prompts/run-auth-wiring.md` |
+| 2 | `notif-recipient-rulings` | Notification recipient rulings + staff subtitle: non-PL proposer confirmation row, no self-email on submit, one merged "Replacement class updated" owner row, class-cancelled dept-PL fan-out removed (reverses 2026-10-30), and the "other party" `Name (staff_id)` subtitle on every type and state — **decided 2026-11-03, not applied** | — | `prompts/pi-notification-recipient-rulings.md` (SDD lane required before code) |
 
 ## Deferred / Future
 

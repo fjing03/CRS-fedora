@@ -39,6 +39,16 @@
 > decisions were NOT answered by the user; both prompt-stated DEFAULTS were
 > applied (Total Slots stays **plain**; the split renders **always**, `+0`
 > included) — each is a one-line flip if the user wants the other arm.
+> Updated 2026-11-03 (main session, before the SV demo): the **student
+> replacement-history rail was removed** (its "Submitted" time was a hardcoded
+> `01 Sep 2026, 09:15 AM`, read from the empty `rsd3g2Flags` map) and **all four
+> rails are parked** in `prompts/extra tasks/task-02-replacement-history-timeline.md`;
+> a visible reminder now prints above every rail (`b58c884`); the **Chapter 5
+> `:8030` evidence lane** opened (`prompts/ch5-playwright-evidence-8030.md` +
+> the report template in the FYP folder) and its CRS_BASE patch landed
+> (`2f3b0be`); the **notification recipient rulings R1–R5 were decided but NOT
+> applied** (`prompts/pi-notification-recipient-rulings.md`, SDD lane required);
+> and `CRS-demo` was fast-forwarded to `6ab9d03` with the viva DB untouched.
 
 ---
 
@@ -50,7 +60,7 @@
 | Push policy | **NEVER `git push`** — the user pushes manually (they said so explicitly). One exception, commanded 2026-11-02: `67606dd`+`d32ebd7` were pushed by the agent; afterwards the rule resumed. |
 | Unpushed commits | **40** (`origin/fedora-backend` = `ab912af`; re-count before trusting). The 2026-11-02 tail: `b0fd936` (toast 728), `a37e452` (toast 800), `58edc29` (modal advisory), the entry-guard chain `62cbbb0`/`b0685ae`/`99329be`, `083f7bd` (student 12h idle), `e8f9671`/`b58b319`/`f1e7f9a` (span-follow), `5056c77`/`f1b27b2`/`88c3b3a` (slot-picker clear), the PI lane `7107abb`/`210a232`/`f0b7215`, `5af11a6` (notifications.hidden_at), `dc41c79` (schema-migration law), `0e99119` (PI prompt template), the notif manage-hide SHIP `467357b`/`f5cc56d`/`fc81dd3`/`405b4a3` + its archive `e7946be`, and the docs chain `b9fdb69` (FR 2.17), `3a407e4` (lead-time banner), `e861736`/`1e54b4f` (AI-context move), `793a4dc` (prompt archive), `89c7508` (FR&NFR copy), `9276e6e` (template §10), `1d54284` (migration log), `5182dbc` (FR approval rule). |
 | AI-context layout (2026-11-02) | Root **`AGENTS.md` = bootstrap pointer** (harnesses only auto-load root) → **`prompts/for-ai-to-read/`** holds `AGENTS.md`, `CodingMAIN.md`, `my-coding-rules.md`, `PI_Chat_Context_Handover.md` and **`FR&NFR copy.md`** (49 FRs / 26 NFRs, `v2026-11-02`, change log; **read-only without the user's explicit approval**). Finished prompts → **`prompts/completed prompt (Archieve)/`** (its README = the evidence rule; **ask before archiving**, template §10). Paths inside those files are repo-root-relative unless they start with `../`. |
-| Demo DB | `class_replacement_fresh` (:8000) + `class_replacement_demo` (:8001) — both were left **BLANK** by the 2026-11-02 user-ordered cleanout, but **`:8000` holds real data again**: 2 `replacement_requests` + 5 `notifications` created 2026-11-02 (`:8001` still 0). Treat both as live. **Never re-seed the demo DBs**; any demo write = user-gated per write + logged in `docs/demo-db-data-changes.md` + snapshot law first (`backups/README.md`; canonical viva dump = `class_replacement_demo-post-recovery-2026-11-01.dump`). |
+| Demo DB | `class_replacement_fresh` (:8000, dev) and the twin **`CRS-demo` on :8001 with its own DB `class_replacement_viva`** (restored 2026-11-02; `.env` = `APP_ENV=local`, `APP_DEBUG=false`). `class_replacement_demo` is the OLDER twin DB and is empty (0 requests / 0 notifications) — do not confuse it with the viva DB. The user's own manual testing has added rows to `class_replacement_viva`, so **treat both as live**. **Never re-seed the demo DBs**; any demo write = user-gated per write + logged in `docs/demo-db-data-changes.md` + snapshot law first (`backups/README.md`; canonical viva dump = `class_replacement_demo-post-recovery-2026-11-01.dump`). |
 | Ops trap (2026-11-02, MEASURED) | This box runs `opcache.enable_cli=On` with **`opcache.revalidate_freq=180`**, so the long-running `php artisan serve` keeps serving a **.php** file's PREVIOUS bytecode for up to ~3 minutes after an edit (it only re-stats the file every 180 s). Symptoms: "my fix didn't take effect", a 500 naming a class you DID import, a payload key you DID add being absent. Blade/CSS/JS are effectively live (compiled views are re-created; clearing `storage/framework/views/*.php` covers the rest). **Fix: `scripts/dev-serve.sh [port]`** — it kills that port's server, clears the view cache, and starts the built-in server with `-d opcache.revalidate_freq=0` (an edit is then live on the next request; `php artisan serve` cannot forward `-d`, so the script invokes the same built-in server + Laravel router directly). Verified by a controlled probe: with the default ini, three consecutive edits were all served as the first one; with the script, each edit appeared immediately. Never combine `pkill` + the start in ONE shell string (the pattern matches the wrapper) — the script exists so you never have to. |
 | Test DB | `class_replacement_testing` — disposable; fresh+seed fine; used by the suite |
 | Venue/cohort parity lane | SDD `venue-status-parity` = **applied** (2026-11-02): the venue page now reads the shared `LectureSessionCatalog` fact contract (cancelled blocks, `(Proposed ⏳)`, `(Pending since …)`, real `Class Ref`, `View Full Request`), `Total Slots` = `X+Y`, cohort `Replace Now` = the served `occurrenceFact`. Demo DB was READ-ONLY (its 39 notifications are the user's own manual testing). |
@@ -458,6 +468,82 @@ shipped — §0.8 F as originally written is superseded.**
   changelog work. §0.7 D's test lane stays parked; do not mix.
 
 ---
+
+## 0.9 SESSION ADDENDUM — 2026-11-03 (pre-SV-demo: four rails parked, Ch5 evidence lane opened, notification rulings decided)
+
+> No product code changed for the notification rulings — they are decided and
+> documented, **not applied**. The only UI change this session is the rail note
+> plus the student-rail removal.
+
+**A. Timeline rails**
+
+- The student Replacement History modal rail was removed (`6f34531`): its
+  "Submitted" time printed the literal `01 Sep 2026, 09:15 AM` because it read
+  `MockData.cohortTimetable.rsd3g2Flags`, a map the backend deliberately ships
+  empty (`ReplacementHistory.php:59`). Status group / Requested At / Remarks
+  untouched.
+- All **four** rails are recorded in
+  `prompts/extra tasks/task-02-replacement-history-timeline.md` (⏸ parked):
+  1. student rail (removed, above);
+  2. class-detail rail (`ui-common.js:1268–1274`): real submitted time,
+     hardcoded "In progress"/"Next", vanishes once decided;
+  3. lecturer rail (`my-request-history.blade.php:769–773`): dynamic, but
+     `reviewedAt` is serialized WITHOUT the MYT conversion while `requestedAt`
+     has it (`MyRequestHistory.php:81–82`) → steps 2–3 are 8 h early; and
+     `CancelPendingRequest` sets `decided_at`, so a cancelled-before-decision
+     request renders a green completed "Under Review" (request #25 evidence);
+  4. PL rail (`request-approval.blade.php:956–960`): the "Viewed" step reads
+     `$n->viewedAt`, which no mapper emits and no column stores → permanently
+     "—"; the terminal step is always "Reviewed", never the outcome.
+- A visible demo reminder now prints above every rail (`b58c884`): "the timeline
+  function got error -- ask SV does this useful/helpful for Them", styled by
+  `.modal-timeline-note`. Delete both with the rebuild.
+
+**B. Chapter 5 browser evidence (`:8030`)**
+
+- Brief: `prompts/ch5-playwright-evidence-8030.md`; report template (still
+  `AWAITING RUN`) at `../FYP/draft/KO stage/Ch5/ch5-browser-evidence-run.md`
+  (the `y3s1` repo, not this one).
+- Phase 1 landed (`2f3b0be`): `playwright.config.ts` + every spec now honour
+  `CRS_BASE ?? http://localhost:8000`. This also closed a live hazard:
+  `ui-regression` TC-4.5 is guard-protected but hardcoded `:8000`, so the guard
+  could pass (env check only) while the test wrote a real request to the demo DB.
+- The evidence run and the draft re-status are NOT done. Guard rule unchanged:
+  `CRS_BASE` must be exactly `http://127.0.0.1:8030`, plus `CRS_MODE=testing`
+  (+ `CRS_ALLOW_SQL=1` for SQL fixtures).
+
+**C. Notification recipient rulings — decided, not applied**
+
+Five rulings in `prompts/pi-notification-recipient-rulings.md` (SDD lane
+`notif-recipient-rulings` required before code):
+
+- **R1** the non-PL proposer gets a submit confirmation (history link); a PL
+  proposer keeps their single queue row;
+- **R2** the proposer is never emailed their own "new request";
+- **R3** approval merges into ONE "Replacement class updated" owner row
+  (timetable link); the separate "Replacement approved" owner row goes; cohort
+  students unchanged;
+- **R4** the class-cancelled department-PL fan-out is deleted → owner +
+  students only (reverses the 2026-10-30 ruling);
+- **R5** every notification type, in every state, carries the "other party"
+  staff line `Name (staff_id)` — a separate `staff_line` attribute, because
+  `_display` dies on read.
+
+Current behaviour is unchanged. The approval queue's self-approval gap is
+explicitly out of scope.
+
+**D. Demo copy**
+
+- `CRS-demo`: `49f9a58` → `6ab9d03`, views cleared, `:8001` up, `.env` untouched
+  (`class_replacement_viva`, debug false). No migrations in the range, so the
+  fast-forward wrote no DB rows (the user's manual tests since then did).
+- `:8000` was never restarted; `:8030` is the only disposable lane.
+
+**E. Next**
+
+1. Run the Ch5 evidence lane, fill the report and re-status the draft.
+2. Apply the notification rulings lane — after the SV meeting if time is short.
+3. Parked: rail rebuild, footer lane, BUG verdicts, SMTP.
 
 ## Table of Contents
 
