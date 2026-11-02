@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Livewire\VenueTimetable;
+use App\Models\ClassException;
 use App\Models\ClassSession;
 use App\Models\Lecturer;
 use App\Models\Module;
@@ -649,6 +650,167 @@ final class VenueTimetableTest extends TestCase
 
             return true;
         });
+    }
+
+    /**
+     * venue-status-parity T2 (bug #2): a class_exception stamp turns the venue
+     * block into a CANCELLED block (status + reason + the shared conflict fact)
+     * instead of a live "normal" one — and the user's #11 = A still counts the
+     * hour as Occupied (the rows never move).
+     */
+    public function test_cancelled_class_renders_as_a_cancelled_block(): void
+    {
+        $session = ClassSession::query()
+            ->whereHas('venue', fn ($q) => $q->where('room_code', 'B006'))
+            ->where('day_of_week', 0)
+            ->whereHas('module', fn ($q) => $q->where('module_code', 'BMIT2154'))
+            ->with('venue')
+            ->orderBy('start_time')
+            ->firstOrFail();
+        $owner = User::findOrFail($session->lecturer_id);
+
+        ClassException::create([
+            'class_session_id' => $session->id,
+            'week_number' => 2,
+            'reason' => 'medical_leave',
+        ]);
+
+        $occupiedRows = TimeSlot::query()
+            ->where('venue_id', $session->venue_id)
+            ->where('week_number', 2)
+            ->where('status', 'occupied')
+            ->count();
+
+        $component = Livewire::withQueryParams(['venue' => 'B006'])
+            ->actingAs($owner)
+            ->test(VenueTimetable::class);
+
+        $component->assertViewHas('eventsByWeek', function ($events) use ($session): bool {
+            foreach ($events[1] ?? [] as $ev) {
+                if (($ev['sessionId'] ?? null) === $session->id) {
+                    return $ev['status'] === 'cancelled'
+                        && ($ev['cancelledReason'] ?? '') !== ''
+                        && ($ev['occurrenceFact']['kind'] ?? null) === 'exception';
+                }
+            }
+
+            return false;
+        });
+
+        // #11 = A: the hour still counts as Occupied (no totals edit).
+        $component->assertViewHas('totalsByWeek', fn ($totals): bool => $totals[1]['occupied'] === $occupiedRows);
+    }
+
+    /**
+     * venue-status-parity T3 (bug #3) — the regression lock: a PENDING proposal
+     * must NOT delete the holiday conflict block. The pair renders `conflict`
+     * with `proposed = true` (the "(Proposed ⏳)" note) and NO live fact (null =
+     * handled → no dead-end Replace Now). Before the fix the block vanished.
+     */
+    public function test_pending_proposal_does_not_delete_the_holiday_conflict_block(): void
+    {
+        $session = ClassSession::query()
+            ->whereHas('venue', fn ($q) => $q->where('room_code', 'B006'))
+            ->where('day_of_week', 0)
+            ->whereHas('module', fn ($q) => $q->where('module_code', 'BMIT2154'))
+            ->with('venue')
+            ->orderBy('start_time')
+            ->firstOrFail();
+        $owner = User::findOrFail($session->lecturer_id);
+
+        // a pending proposal for the (session, W8-Monday-holiday) pair
+        $this->craftPendingRequestFor($session, 8, $owner);
+
+        $component = Livewire::withQueryParams(['venue' => 'B006'])
+            ->actingAs($owner)
+            ->test(VenueTimetable::class);
+
+        $component->assertViewHas('eventsByWeek', function ($events) use ($session): bool {
+            foreach ($events[7] ?? [] as $ev) {          // week 8 (0-based 7)
+                if (($ev['sessionId'] ?? null) !== $session->id) {
+                    continue;
+                }
+
+                return $ev['status'] === 'conflict'
+                    && $ev['proposed'] === true
+                    && $ev['occurrenceFact'] === null      // handled → no Replace Now
+                    && str_contains((string) $ev['remarks'], 'Public Holiday');
+            }
+
+            return false;
+        });
+    }
+
+    /**
+     * venue-status-parity T5/T6 (bugs #5 + #6): the reserved (amber) block
+     * carries the CLASS identity and the REQUEST id — so the popup quotes the
+     * class ref like my-timetable does, and the shared `View Full Request`
+     * action has something to link to.
+     */
+    public function test_reserved_block_carries_the_class_identity_and_request_id(): void
+    {
+        $proposer = $this->staffUser('5425');
+        $original = ClassSession::query()
+            ->whereHas('venue', fn ($q) => $q->where('room_code', 'B006'))
+            ->whereHas('cohorts')
+            ->with('venue')
+            ->firstOrFail();
+        [$slot, $request] = $this->craftPendingRequestFor($original, 3, $proposer);
+
+        $component = Livewire::withQueryParams(['venue' => 'B006'])
+            ->actingAs($proposer)
+            ->test(VenueTimetable::class);
+
+        $component->assertViewHas('eventsByWeek', function ($events) use ($slot, $original, $request): bool {
+            foreach ($events[(int) $slot->week_number - 1] ?? [] as $ev) {
+                if (($ev['status'] ?? null) === 'pending' && ($ev['requestId'] ?? null) === $request->id) {
+                    return $ev['sessionId'] === $original->id
+                        && $ev['occurrenceFact'] === null      // a make-up block is no Replace-Now target
+                        && $ev['proposed'] === false;
+                }
+            }
+
+            return false;
+        });
+    }
+
+    /**
+     * venue-status-parity fixture: a ONE-row pending reservation for an EXACT
+     * (session, occurrence-week) pair, anchored on an existing free interior
+     * slot — deterministic and independent of `craftSpanAt`'s sequence (that
+     * helper advances a shared counter, so a later test can push it past the
+     * semester's week bound).
+     *
+     * @return array{0: TimeSlot, 1: ReplacementRequest}
+     */
+    private function craftPendingRequestFor(ClassSession $session, int $occurrenceWeek, User $proposer): array
+    {
+        $slot = TimeSlot::query()
+            ->where('venue_id', $session->venue_id)
+            ->whereBetween('week_number', [2, 6])
+            ->where('status', 'available')
+            ->whereNull('class_session_id')
+            ->orderBy('id')
+            ->firstOrFail();
+
+        $slot->update(['status' => 'pending']);
+
+        $request = ReplacementRequest::create([
+            'semester_id' => $slot->semester_id,
+            'proposer_id' => $proposer->id,
+            'class_session_id' => $session->id,
+            'week_number' => $occurrenceWeek,
+            'replacement_time_slot_id' => (int) $slot->id,
+            'status' => 'pending',
+            'submitted_at' => now(),
+        ]);
+
+        ReplacementRequestSlot::create([
+            'replacement_request_id' => $request->id,
+            'time_slot_id' => (int) $slot->id,
+        ]);
+
+        return [$slot, $request];
     }
 
     public function test_unknown_venue_code_falls_back_to_first_venue(): void
