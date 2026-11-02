@@ -288,6 +288,50 @@ final class VenueTimetableTest extends TestCase
         });
     }
 
+    /**
+     * summary-cards-confirmed-pending (2026-11-02): the venue payload carries
+     * the split's TWO tails — `pending` (the venue's pending-held rows → the
+     * Occupied card's `+Y`) and `myPendingClasses` / `myPendingHours` (the
+     * viewer's own pending make-ups landing here → the My cards' `+Y`).
+     * The X keys keep their meaning AND Total Slots keeps its pre-lane value
+     * (a pending hold is not confirmed teaching, so it is not in `total`).
+     */
+    public function test_totals_carry_the_confirmed_pending_split_keys(): void
+    {
+        $proposer = $this->staffUser('5425');
+        [$slot] = $this->craftPendingReservation($proposer);
+
+        $venue = Venue::where('room_code', 'B006')->firstOrFail();
+        $week = (int) $slot->week_number;
+
+        $expectedPending = TimeSlot::query()
+            ->where('venue_id', $venue->id)
+            ->where('week_number', $week)
+            ->where('status', 'pending')
+            ->count();
+        // Total = the rows that are NOT pending-held (the pre-lane behaviour,
+        // frozen: this lens only ADDS keys).
+        $expectedTotal = TimeSlot::query()
+            ->where('venue_id', $venue->id)
+            ->where('week_number', $week)
+            ->whereIn('status', ['available', 'occupied'])
+            ->count();
+
+        $component = Livewire::withQueryParams(['venue' => 'B006'])
+            ->actingAs($proposer)
+            ->test(VenueTimetable::class);
+
+        $component->assertViewHas('totalsByWeek', function ($totals) use ($week, $expectedPending, $expectedTotal): bool {
+            $row = $totals[$week - 1];
+
+            return $row['pending'] === $expectedPending
+                && $row['pending'] > 0                                  // the crafted 4-row span
+                && $row['myPendingClasses'] === 1                       // one request = one class
+                && $row['myPendingHours'] === (string) ($expectedPending * 0.5)
+                && $row['total'] === $expectedTotal;                    // Total stays plain + unfed by pending
+        });
+    }
+
     public function test_twin_merge_collapses_combined_lectures_by_severity(): void
     {
         // Real twins cannot exist (occupied/pending partial unique index), so

@@ -294,11 +294,17 @@ test.describe('UI Regression Test Cases', () => {
       await page.locator('#facultySelect').selectOption('focs');
       await page.locator('#cohortSelect').selectOption('dft2s1');
       await page.locator('#weekSelect').selectOption('0');
-      await expect(page.locator('#sumMyClasses')).toHaveText('3');   // AMCS2093 (L)+(T)+(P) — three classes, not one subject
-      await expect(page.locator('#sumMyHours')).toHaveText('4');     // 2h + 1h + 1h
-      // untouched cards keep their ids and stay numeric
-      expect(Number(await page.locator('#sumTotal').textContent())).not.toBeNaN();
-      expect(Number(await page.locator('#sumHours').textContent())).not.toBeNaN();
+      // summary-cards-confirmed-pending (2026-11-02): the cohort page renders
+      // the four split cards as `X+Y` (Y = the pending share; `+0` with none),
+      // so the assertions pin the CONFIRMED part and tolerate the tail.
+      await expect(page.locator('#sumMyClasses')).toHaveText(/^3(\+[\d.]+)?$/);   // AMCS2093 (L)+(T)+(P) — three classes, not one subject
+      await expect(page.locator('#sumMyHours')).toHaveText(/^4(\+[\d.]+)?$/);     // 2h + 1h + 1h
+      // the split cards keep their ids and stay numeric (X, optionally +Y)
+      for (const id of ['sumTotal', 'sumHours', 'sumMyClasses', 'sumMyHours']) {
+        expect(await page.locator('#' + id).textContent())
+          .toMatch(/^\d+(?:\.\d)?(?:\+[\d.]+)?$/);
+      }
+      // the Conflicts card is NOT split — a plain number
       expect(Number(await page.locator('#sumConflict').textContent())).not.toBeNaN();
     });
 

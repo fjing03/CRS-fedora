@@ -348,8 +348,10 @@ test.describe('Venue Timetable UI', () => {
        visible block) in every week, so any week works. B110 is NOT the
        default venue (venues[0] = B002), so preselect it via URL. */
     await page.goto(`${PAGE}?venue=B110`, { waitUntil: 'networkidle' });
-    await expect(page.locator('#sumMyClasses')).toHaveText('1');
-    await expect(page.locator('#sumMyHours')).toHaveText('2');
+    // summary-cards-confirmed-pending (2026-11-02): `X+Y` — no pending
+    // make-up targets B110 in this fixture, so the tail reads `+0`.
+    await expect(page.locator('#sumMyClasses')).toHaveText(/^1(\+[\d.]+)?$/);
+    await expect(page.locator('#sumMyHours')).toHaveText(/^2(\+[\d.]+)?$/);
   });
 
   // ════════════════════════════════════════════

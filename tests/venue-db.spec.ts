@@ -73,7 +73,11 @@ test('summary cards numeric and repaint on client-side week navigation', async (
   const total = page.locator('#sumTotal');
   const available = page.locator('#sumAvailable');
   await expect(total).toHaveText('120', { timeout: 15_000 }); // 6 days × 20 DB rows
-  await expect(page.locator('#sumOccupied')).toHaveText('48');
+  // summary-cards-confirmed-pending (2026-11-02): Occupied + the two My cards
+  // now render `X+Y` (Y = the pending-held share). No pending holds exist in
+  // this fixture, so the tail is `+0` — the regex pins the CONFIRMED part and
+  // tolerates any pending tail. Total Slots / Available stay plain.
+  await expect(page.locator('#sumOccupied')).toHaveText(/^48(\+[\d.]+)?$/);
 
   // The page opens on the REAL current week — by design every slot there is
   // past or inside the 3-working-day lead window, so Available honestly = 0
@@ -89,14 +93,14 @@ test('summary cards numeric and repaint on client-side week navigation', async (
     await page.click('.week-arrow[aria-label="Next week"]');
   }
   await expect(available).toHaveText('84');
-  await expect(page.locator('#sumMyClasses')).toHaveText('8');
-  await expect(page.locator('#sumMyHours')).toHaveText('14');
+  await expect(page.locator('#sumMyClasses')).toHaveText(/^8(\+[\d.]+)?$/);
+  await expect(page.locator('#sumMyHours')).toHaveText(/^14(\+[\d.]+)?$/);
 
   // client-side week navigation repaints grid + summary
   await page.click('.week-arrow[aria-label="Next week"]');
   await expect(total).toHaveText('120');
   await page.click('.week-arrow[aria-label="Previous week"]');
-  await expect(page.locator('#sumOccupied')).toHaveText('48');
+  await expect(page.locator('#sumOccupied')).toHaveText(/^48(\+[\d.]+)?$/);
   await expect(available).toHaveText('84');   // back on the bookable week
 
   // holiday week W8 (index 7): Monday renders offday cells — no green
@@ -104,8 +108,8 @@ test('summary cards numeric and repaint on client-side week navigation', async (
   // Holiday cards stay honest too (probe-verified): 4288 drops to
   // 5 classes / 9 hours because Monday's classes don't run.
   await page.selectOption('#weekSelect', '7');
-  await expect(page.locator('#sumMyClasses')).toHaveText('5');
-  await expect(page.locator('#sumMyHours')).toHaveText('9');
+  await expect(page.locator('#sumMyClasses')).toHaveText(/^5(\+[\d.]+)?$/);
+  await expect(page.locator('#sumMyHours')).toHaveText(/^9(\+[\d.]+)?$/);
   const mondayRow = page.locator('.timetable tbody tr').first();
   await expect(mondayRow.locator('.cell-ph').first()).toBeVisible();
   // U2a T7: post-port the page never paints .cell-empty — bookable free cells
