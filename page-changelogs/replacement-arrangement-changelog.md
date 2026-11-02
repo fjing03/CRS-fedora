@@ -2505,3 +2505,36 @@ arrangement blade).
   identity-change branch holds — `currentSessionId` was already re-keyed by
   the auto-pin) — same doctrine as the pinned-session arrival; refresh/back
   truth rides `pinnedOccurrence` as before.
+
+## 2026-11-01 (Item 1, SDD-waived by the user) — the slot picker's hidden panel dies with the picker
+
+Follow-up on the conflict-subject-switch-autoselect lane. The user picked the
+follow-up: the hidden-stale-panel quirk (kept SEPARATE from the reentry prompt
+lane). While the quirk was real, the investigation also showed its narrower
+live shape: `buildSubjectDropdown()` only OFFERS conflict-bearing subjects
+(free ones are not selectable), so the zero-slot branch of `renderSlotPicker`
+is reachable mid-session via re-selecting **"Select a subject"** (the `''`
+option) after having had rows.
+
+### Root cause
+`renderSlotPicker([])`'s early-return hid `#slotPicker` but SKIPPED
+`#slotPanel`'s clear — the previous subject's rows, INCLUDING their
+`.selected` class, survived as dead hidden DOM after the exact sequence
+(rows present → re-select "Select a subject").
+
+### The fix (smallest)
+The empty branch now also runs `panel.innerHTML = ''` before returning —
+both JS-state keys stay caller-owned as before (`selectedOriginalSlot` is
+already null at both call sites); trigger semantics untouched (the strip's
+anchor law keeps writing the trigger — a staleness of the *label* on an
+empty subject is pre-existing behaviour, NOT Item 1's scope).
+
+### Receipt
+`tests/arrangement-conflict-autoselect.spec.ts` gains the quirk test (5/5,
+with the main receipt — two runs, between-run fixture state 0; read-only over
+the demo DB, fixtures on :8030): boot arrival → one selected row → re-select
+"Select a subject" → (the clear-guard pops because the arrival block is
+armed → accepted; pre-existing law) → picker hidden AND `.slot-dd-item` /
+`.selected` counts **0 document-wide** (hidden rows included). Gates: pint
+passed, PHPStan 0 errors (1G), full PHPUnit suite green-suite run recorded in
+the same evening.
