@@ -21,7 +21,7 @@
 |---|---|
 | Working branch | `fedora-backend` (remote: `origin` = `fjing03/CRS-fedora.git`, PULL-ONLY `upstream` = `FjingXR/class-replacement-system`) |
 | Push policy | **NEVER `git push`** — the user pushes manually (they said so explicitly). One exception, commanded 2026-11-02: `67606dd`+`d32ebd7` were pushed by the agent; afterwards the rule resumed. |
-| Unpushed commits | **13** (`origin/fedora-backend` = `ab912af`; re-count before trusting). The 2026-11-02 tail: `b0fd936` (toast 728), `a37e452` (toast 800), `58edc29` (modal advisory), the entry-guard chain `62cbbb0`/`b0685ae`/`99329be`, `083f7bd` (student 12h idle), `e8f9671`/`b58b319`/`f1e7f9a` (span-follow), `5056c77`/`f1b27b2`/`88c3b3a` (slot-picker clear). |
+| Unpushed commits | **19** (`origin/fedora-backend` = `ab912af`; re-count before trusting). The 2026-11-02 tail: `b0fd936` (toast 728), `a37e452` (toast 800), `58edc29` (modal advisory), the entry-guard chain `62cbbb0`/`b0685ae`/`99329be`, `083f7bd` (student 12h idle), `e8f9671`/`b58b319`/`f1e7f9a` (span-follow), `5056c77`/`f1b27b2`/`88c3b3a` (slot-picker clear), then the PI lane: `7107abb` (Livewire.js investigation doc), `210a232` (notifTypeFilter re-skin), `f0b7215` (its changelog). |
 | Demo DB | `class_replacement_fresh` (:8000) + `class_replacement_demo` (:8001) — **BLANK pristine on both since the 2026-11-02 user-ordered cleanout** (0 requests/spans/notifs/exceptions/audit/held cells; next `replacement_requests` id = 24). **Never re-seed the demo DBs**; any demo write = user-gated per write + logged in `docs/demo-db-data-changes.md` + snapshot law first (`backups/README.md`; canonical viva dump = `class_replacement_demo-post-recovery-2026-11-01.dump`). |
 | Test DB | `class_replacement_testing` — disposable; fresh+seed fine; used by the suite |
 | Suite | Last full PHPUnit run: **287/287** (2026-11-02 entry-guard lane). NOT re-run after the evening UI tweaks (blade/CSS-only changes); Playwright used only as read-only receipts. |
@@ -308,6 +308,94 @@ NOT re-run; the `notifTypeFilter` redesign is NOT applied (prompt only);
 `:8001`'s clone lags the main repo's post-`ed0fb01` commits until its next
 git sync; the composer lane re-runs itself on `:8000` — if `:8000`/`:8001`
 diverge again, that is why.
+## 0.8 SESSION ADDENDUM — 2026-11-02 (evening) (notif batch-hide design LOCKED + clickable preview approved; next PI prompt written)
+
+> Design-only session: **no app code, migration, or DB row was touched.** The
+> work product is (a) a clickable static preview, (b) the locked design, and
+> (c) `prompts/pi-prompt-notif-manage-hide.md`. Everything below is verified.
+
+**A. The feature (user-ordered, design locked after a 9-question grill)**
+
+Batch **hide** in the bell panel with a find-back path. Never deletes rows.
+
+1. **Soft-hide:** new nullable `notifications.hidden_at`; hide = stamp it,
+   unhide = null it. Rows are never deleted.
+2. **Hideable gate = `read_at !== null || inactive_reason !== null`** — the
+   exact complement of the badge's actionable-unread predicate
+   (`read_at === null && inactive_reason === null`), so hiding can NEVER
+   corrupt the badge (the two sets are disjoint by construction). The
+   original "inactive only" idea was REJECTED: the classifier only tags
+   `submitted`/`awaiting` rows, so decided `approved`/`rejected` and `update`
+   rows stay "active" forever — exactly the clutter users want to clear.
+   Server MUST re-validate the posted ids against the PHP classifier
+   (`isInactiveRow()`) — never trust the client.
+3. **Entry:** a list-with-tick icon button in the head, rendered ONLY when
+   ≥1 hideable row exists. Mobile: the *Mark all as read* text link becomes
+   icon-only too (user decision C), so the head holds pill + 3 × 30px icons
+   and never overflows (verified 320/360/390/1280).
+4. **Manage mode:** the filter row is replaced by a selection bar
+   (`N of M selected · Select all / Clear`), the list shows ONLY hideable
+   rows, and every row arrives **pre-ticked**. Muted caption:
+   "Notifications that still need you can't be hidden."
+5. **Safety = Undo toast only** (no confirm modal — hiding is reversible).
+   Copy: "N notifications hidden · Undo restores them".
+6. **Footer:** neutral ghost "Hide selected" (no red/blue — it is reversible).
+7. **Find-back:** footer line **"Hidden (N)"** in the inbox (only when N > 0,
+   and it must render in the caught-up/empty state too) → hidden shelf with
+   per-row **Unhide** + **Unhide all** + "Hidden notifications stay in your
+   mailbox — restore them anytime." Hidden rows render non-anchor.
+8. **Vocabulary:** "Hide", never "Delete"; no "cannot be undone" copy.
+9. **Type filter spans the whole filter row** (new ask): the select becomes
+   full-width on its own line under the two toggles.
+
+**B. Tooltips (all via the EXISTING system-wide `data-tip` /
+`.data-tip-tooltip` system — no new mechanism)**
+
+| Target | Copy |
+|---|---|
+| unread pill | `N unread messages` (dynamic) |
+| Mark all | `Mark every notification as read.` |
+| Manage | `Put away notifications you have already read.` + `Nothing is deleted — you can bring them back.` |
+| Hidden (N) | `See the notifications you put away.` + `Every one of them can be restored.` |
+| Back (hidden shelf) | `Go back to the notification list.` |
+| type select | **new** — needs a `data-tip` (it currently has a native `title`, which must be REMOVED to avoid two tooltips) |
+| Unread only / Active only | **keep verbatim** the existing `data-tip`s (blade :81, :86) |
+
+Mark all + Back become **icon-only** (envelope-with-tick / arrow-left), same
+30px square as the Manage and Close buttons.
+
+**C. Traps found while prototyping (bake these into the implementation)**
+
+1. ⛔ `theme.css:444` `#notifMarkAll` is the old **44px text-button** rule
+   (`padding: 0 10px`). An icon-only button inside it gets its 16px svg
+   **squeezed to ~10px** (looks faded/greyed). The rule must be **REWRITTEN**
+   (size/padding removed), not merely restyled — the preview had to override
+   it to look right.
+2. `resources/views/livewire/nav-notifications.blade.php:91` still carries
+   `title="Filter by notification type"` — remove it when adding `data-tip`.
+3. `#notifMarkAll` is driven **by id** in
+   `tests/notifications-island-testing-db.spec.ts:179–186` — the icon
+   conversion must keep the id (and `wire:click="markAll"`).
+4. The PI lane's type-filter re-skin **landed during this session**
+   (`210a232` + changelog `f0b7215`, unpushed): `.notif-type-select` is now a
+   real 36px class and the dead `.notif-filters .filter-select` rule is gone.
+   `prompts/pi-prompt-notif-type-filter-redesign.md` is therefore **historical
+   / done**.
+5. Badge safety is structural, not vigilance: hideable ∩ badge-counted = ∅.
+
+**D. Clickable preview (the approved visual)**
+
+`/tmp/opencode/notif-manage-preview.html` — static, links the REAL
+`theme.css` from `:8000`, three states (`#inbox` / `#manage` / `#hidden`),
+fully wired (hide → Undo → shelf → unhide, live counts). Receipts:
+`/tmp/opencode/v2-*.png` (desktop + 360px + hover tips). `/tmp` is volatile —
+regenerate if needed; the spec above is the source of truth, not the file.
+
+**E. Next prompt:** `prompts/pi-prompt-notif-manage-hide.md` (gitignored,
+`.gitignore:38`) — the implementation brief for the PI session.
+
+**F. NOT started:** no migration, no component/view/edit, no test, no demo-DB
+write. The parked test lane (§0.7 D) is still parked — do not mix.
 
 ---
 
