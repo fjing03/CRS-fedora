@@ -1,7 +1,40 @@
 # Paste-ready prompt for the PI session — Summary Cards: "Confirmed + Pending" split
 
-> Generated 2026-10-31 (main session). Everything below is self-contained — paste the
-> whole block into the PI session as-is.
+> Generated 2026-10-31 (main session). **Refreshed 2026-11-02** — anchors
+> re-verified against the current tree, the AI-context paths repointed to
+> `prompts/for-ai-to-read/`, the two unanswered decisions moved to the top as a
+> blocking ask, and the archive-ask added at the end. The task content itself is
+> unchanged. Everything below is self-contained — paste the whole block into the
+> PI session as-is.
+
+---
+
+## 0. Read first (paths moved 2026-11-02)
+
+- `prompts/for-ai-to-read/AGENTS.md` — read-first list, SDD/UI rules, standing rules.
+- `prompts/for-ai-to-read/CodingMAIN.md` §10.0 (the 10 UI rules + the canonical
+  colour map) and §10 (conventions).
+- `prompts/for-ai-to-read/my-coding-rules.md` — the user's rulebook; obey it in full.
+- `prompts/for-ai-to-read/PI_Chat_Context_Handover.md` §0 (current state).
+- **`prompts/for-ai-to-read/FR&NFR copy.md` is READ-ONLY** unless the user approves
+  a specific edit. This change touches no requirement — do not edit it, and do not
+  "sync" it afterwards.
+
+---
+
+## ⚠ ASK BEFORE YOU CODE — two decisions are still unanswered
+
+These were raised on 2026-10-31 and the user has **not** answered yet. Ask both in
+**one** message, in plain words, and **wait** — do not start the design half-guessing:
+
+1. **Venue page → Total Slots card:** keep it a **plain total**, or also show the
+   `X+Y` split? (The pending story would already be told inside the Occupied card.)
+2. **Split format everywhere:** always render `X+Y` even when Y = 0, or show a plain
+   `X` when there is nothing pending?
+
+Record the answers in `design.md` under "Assumptions resolved" (with the date) before
+writing code. If the user says "you decide", the defaults are: **Total Slots plain**
+and **always `X+Y`**.
 
 ---
 
@@ -59,10 +92,11 @@ when there is no pending, it is a one-line change in the same helper).
 
 ### ⚠ TRAP — `computeSummary` is a SHARED helper
 
-`computeSummary(events, days)` lives in `public/js/ui-common.js` ~:987 and is called by
-**cohort-timetable (~:463/:549), my-timetable (~:248) AND student-my-timetable (~:125)**.
-`myTeachingStats` (~:978) is shared the same way. You MUST NOT change the default
-behavior — my-timetable and the student page keep their plain numbers byte-for-byte.
+`computeSummary(events, days)` lives in `public/js/ui-common.js` **:1003** and is called by
+**cohort-timetable (:463/:549), my-timetable (:248) AND student-my-timetable (:126)**.
+`myTeachingStats(events)` (**same file, :987**) is shared the same way. You MUST NOT
+change the default behavior — my-timetable and the student page keep their plain
+numbers byte-for-byte.
 
 Do it via an options flag:
 ```js
@@ -97,7 +131,7 @@ Explain the split, house tone, e.g.:
 
 ## 3) `/venue-timetable-ui?venue=B110` — same concept for its 5 cards
 
-Cards (blade ~:166–179): Total Slots (`sumTotal`), Available (`sumAvailable`),
+Cards (blade **:168–176**): Total Slots (`sumTotal`), Available (`sumAvailable`),
 My Teaching Classes (`sumMyClasses`), My Teaching Hours (`sumMyHours`),
 Occupied (`sumOccupied`). All values come from the server payload
 `totalsData = @json($totalsByWeek)` (blade ~:237), written by `updateSummary()` (~:831),
@@ -159,3 +193,9 @@ Update the Occupied and My cards to mention the split, e.g.:
      Total Slots plain.
 5. Commit: `feat(ui): summary cards — My Subjects rename + confirmed+pending split (cohort & venue pages)`
    Stage ONLY your files. Push ONLY on the user's explicit word.
+6. **Close out — ask, don't assume:**
+   - update `prompts/for-ai-to-read/PI_Chat_Context_Handover.md` §0 (status + commits);
+   - then ask: *"Task done. Do you want me to archive this prompt into
+     `prompts/completed prompt (Archieve)/`?"* — move it only on a "yes"
+     (`prompts/PI-PROMPT-TEMPLATE.md` §10), and when you do, add the evidence row
+     to that folder's README.

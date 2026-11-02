@@ -18,6 +18,17 @@
 > two SDD-waived UI tweaks committed local (58edc29, a37e452 — unpushed);
 > the next PI prompt written (`prompts/pi-prompt-notif-type-filter-redesign.md`,
 > gitignored by design).
+> Updated 2026-11-02 (later, main session): the **AI-read context moved** to
+> `prompts/for-ai-to-read/` (root `AGENTS.md` is now a bootstrap pointer) and
+> finished prompts now live in `prompts/completed prompt (Archieve)/` (README =
+> the evidence rule; **never archive without asking the user** — template §10);
+> `FR&NFR copy.md` joined that folder and is **read-only without the user's
+> explicit approval** (FR 2.17 took it to 49 FRs); the general PI template gained
+> the SDD rule (§3b) plus the archive-ask, and the summary-cards prompt was
+> refreshed with its two open decisions promoted to a blocking ask. Separately,
+> the **notification batch-hide + hidden-shelf lane SHIPPED**
+> (`467357b`/`f5cc56d`/`fc81dd3`/`405b4a3`) and its prompt was archived
+> (`e7946be`).
 
 ---
 
@@ -27,12 +38,13 @@
 |---|---|
 | Working branch | `fedora-backend` (remote: `origin` = `fjing03/CRS-fedora.git`, PULL-ONLY `upstream` = `FjingXR/class-replacement-system`) |
 | Push policy | **NEVER `git push`** — the user pushes manually (they said so explicitly). One exception, commanded 2026-11-02: `67606dd`+`d32ebd7` were pushed by the agent; afterwards the rule resumed. |
-| Unpushed commits | **23** (`origin/fedora-backend` = `ab912af`; re-count before trusting). The 2026-11-02 tail: `b0fd936` (toast 728), `a37e452` (toast 800), `58edc29` (modal advisory), the entry-guard chain `62cbbb0`/`b0685ae`/`99329be`, `083f7bd` (student 12h idle), `e8f9671`/`b58b319`/`f1e7f9a` (span-follow), `5056c77`/`f1b27b2`/`88c3b3a` (slot-picker clear), the PI lane `7107abb`/`210a232`/`f0b7215`, then `5af11a6` (notifications.hidden_at), `dc41c79` (schema-migration law), `0e99119` (PI prompt template). |
+| Unpushed commits | **40** (`origin/fedora-backend` = `ab912af`; re-count before trusting). The 2026-11-02 tail: `b0fd936` (toast 728), `a37e452` (toast 800), `58edc29` (modal advisory), the entry-guard chain `62cbbb0`/`b0685ae`/`99329be`, `083f7bd` (student 12h idle), `e8f9671`/`b58b319`/`f1e7f9a` (span-follow), `5056c77`/`f1b27b2`/`88c3b3a` (slot-picker clear), the PI lane `7107abb`/`210a232`/`f0b7215`, `5af11a6` (notifications.hidden_at), `dc41c79` (schema-migration law), `0e99119` (PI prompt template), the notif manage-hide SHIP `467357b`/`f5cc56d`/`fc81dd3`/`405b4a3` + its archive `e7946be`, and the docs chain `b9fdb69` (FR 2.17), `3a407e4` (lead-time banner), `e861736`/`1e54b4f` (AI-context move), `793a4dc` (prompt archive), `89c7508` (FR&NFR copy), `9276e6e` (template §10), `1d54284` (migration log), `5182dbc` (FR approval rule). |
+| AI-context layout (2026-11-02) | Root **`AGENTS.md` = bootstrap pointer** (harnesses only auto-load root) → **`prompts/for-ai-to-read/`** holds `AGENTS.md`, `CodingMAIN.md`, `my-coding-rules.md`, `PI_Chat_Context_Handover.md` and **`FR&NFR copy.md`** (49 FRs / 26 NFRs, `v2026-11-02`, change log; **read-only without the user's explicit approval**). Finished prompts → **`prompts/completed prompt (Archieve)/`** (its README = the evidence rule; **ask before archiving**, template §10). Paths inside those files are repo-root-relative unless they start with `../`. |
 | Demo DB | `class_replacement_fresh` (:8000) + `class_replacement_demo` (:8001) — both were left **BLANK** by the 2026-11-02 user-ordered cleanout, but **`:8000` holds real data again**: 2 `replacement_requests` + 5 `notifications` created 2026-11-02 (`:8001` still 0). Treat both as live. **Never re-seed the demo DBs**; any demo write = user-gated per write + logged in `docs/demo-db-data-changes.md` + snapshot law first (`backups/README.md`; canonical viva dump = `class_replacement_demo-post-recovery-2026-11-01.dump`). |
 | Test DB | `class_replacement_testing` — disposable; fresh+seed fine; used by the suite |
 | Suite | Last full PHPUnit run: **287/287** (2026-11-02 entry-guard lane). NOT re-run after the evening UI tweaks (blade/CSS-only changes); Playwright used only as read-only receipts. |
 | Gates | `composer run lint:check` (pint), `vendor/bin/phpstan analyse --memory-limit=1G --no-progress` (NOT `types:check` — crashes at 128M), full phpunit, `node` syntax check for JS |
-| SDD lanes applied, NOT archived | **12** (see §F — `notifications-real-bridge`'s sdd.yaml was correctly flipped to applied during this audit) |
+| SDD lanes applied, NOT archived | **24** (`grep -l "status: applied" .sdd/changes/*/sdd.yaml`; 35 lane dirs total, 5 active; recount before quoting) |
 | The user's language rule | **Reply in B1-level English ONLY — no other languages** |
 | Approval rule | investigate first; **no code edits without the user's explicit per-task approval** |
 
@@ -192,8 +204,12 @@ this addendum updated to CLOSED + 2 handoff prompt files tracked.
 **Ready prompts index (state at 2026-11-01, main session):**
 
 - `prompts/pi-summary-cards-confirmed-pending.md` — carries the SDD-lane
-  block; TWO assumptions still awaiting the user: ① venue page Total
-  Slots plain or split; ② always `X+Y`, or plain `X` when Y=0.
+  block; **refreshed 2026-11-02** (anchors re-verified, AI-context paths now
+  `prompts/for-ai-to-read/…`, the two decisions promoted to a blocking
+  "ASK BEFORE YOU CODE" section, archive-ask added). STILL awaiting the same TWO
+  answers: ① venue page Total Slots plain or split; ② always `X+Y`, or plain
+  `X` when Y=0. Defaults if the user says "you decide": Total Slots plain,
+  always `X+Y`.
 - `prompts/pi-bug-arrangement-reentry-after-pending.md` — the 2-layer
   entry-guard bug (server pin-guard + bfcache revalidation), verified
   anchors; run as a normal fix lane unless SDD is wanted.
