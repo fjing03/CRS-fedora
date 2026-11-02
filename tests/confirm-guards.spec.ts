@@ -265,14 +265,17 @@ test('leave-guard shows the red LOST keyword + danger "Yes, Leave Page" button',
   await expect(page.locator('#confirmModal')).toBeHidden({ timeout: 5000 });
 });
 
-test('change-guard has NO red keyword (recoverable) but uses the danger "Yes, Change" button', async ({ page }) => {
+test('change-guard carries the CAP/bold warn keywords (recoverable) and uses the danger "Yes, Change" button', async ({ page }) => {
   await openPage(page);
   await selectGridSlot(page);
   // Same entry point confirmChangeWithSelection uses internally
   await page.evaluate(() => confirmChangeWithSelection('venue', () => {}, () => {}));
   await expect(page.locator('#confirmModal')).toBeVisible({ timeout: 5000 });
   const body = page.locator('#confirmModal #modalBody');
-  await expect(body.locator('.warn-keyword')).toHaveCount(0);
+  // venue-note lane (2026-11-02): the change copy CAPs and bolds the action
+  // noun ('Change Venue?'), so one warn-keyword span is expected on the
+  // recoverable guard (the second sentence only appears with a live selection).
+  await expect(body.locator('.warn-keyword')).toHaveCount(1);
   await expect(page.locator('#modalConfirmBtn')).toHaveClass(/btn-danger/);
   await expect(page.locator('#modalConfirmBtn')).toHaveText('Yes, Change');
   await page.locator('#confirmModal .btn-outline').click();

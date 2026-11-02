@@ -31,8 +31,9 @@ test('5425 panel shows real identity, no mock, drawer works, no console errors',
   await expect(page.locator('.user-panel')).not.toContainText('5770');
   await expect(page.locator('.user-panel .user-avatar')).toHaveText('SB');
 
-  // PL nav carries Request Approval (desktop + drawer = 2 in DOM); lecturer items present
-  await expect(page.locator('a[href="/request-approval-ui"]')).toHaveCount(2);
+  // PL nav carries Request Approval in three places now (desktop, drawer and
+  // the badge link added by the notification lane); lecturer items present
+  await expect(page.locator('a[href="/request-approval-ui"]')).toHaveCount(3);
   await expect(page.locator('a[href="/venue-timetable-ui"]').first()).toBeVisible();
 
   // Mobile drawer renders the same identity after interaction (drawer is a

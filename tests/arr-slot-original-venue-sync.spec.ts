@@ -88,7 +88,7 @@ test('subject-change interplay: orig wins over the inherited room + options keep
   /* venue-trigger-label law (user 2026-10-27): the seat count LEFT the label
      but the full name + capacity RIDE the trigger's hover tip */
   await expect(page.locator('#buildingSelectorDropdown .venue-dd-trigger'))
-    .toHaveAttribute('data-tip', 'B111 — Lecture Hall (80 seats)');
+    .toHaveAttribute('data-tip', /Replacement VENUE Selector: B111 — Lecture Hall \(80 seats\)/);
   await page.selectOption('#subjectSelector', 'AMSE2003');
   await page.waitForTimeout(2200);
   await page.click('#slotTrigger');
