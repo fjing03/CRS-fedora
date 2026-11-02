@@ -14,6 +14,7 @@ it. Paths below are relative to the repository root unless they start with `../`
 - **`FR&NFR copy.md`** (this folder) — the requirements as the codebase sees them (Chapter 3 §3.4; **49 FRs / 26 NFRs**, version `v2026-11-02`, change log at the bottom). **Editable only with the user's explicit approval** — never amend, renumber or "fix" a requirement on your own initiative; report the mismatch and ask, then mirror any approved edit into `CodingMAIN.md` §7 + the report.
 - **`docs/venue-restrictions.md`** — B005 no-Diploma REPEALED 2026-10-27 (Diploma cohorts allowed; SDD `b005-diploma-allowed`), B006 networking priority, P→labs. Read before any venue/booking work.
 - `docs/` holds project docs; **`docs/archive/`** holds superseded ones (FYP-BRIEFING, BACKEND-TASKS, LEFTOVER_TASKS, old CodingMAIN variants) — do not treat archived files as current policy. Index: `docs/README.md`.
+- **`prompts/extra tasks/`** — parked, low-priority tasks for spare time. A file sitting there is **not** an instruction: never start one unless the user names it. Parked ≠ done, so never archive them silently; when one ships, move it to `prompts/completed prompt (Archieve)/` with an evidence row and ask first.
 
 ## Running /sdd-propose (or /sdd-apply) for a NEW UI frontend-only page
 **MANDATORY:** before generating the proposal/design/tasks, the agent MUST read and follow:
