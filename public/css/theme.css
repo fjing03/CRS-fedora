@@ -3796,7 +3796,8 @@ body {
     line-height: 1.5;
 }
 .intent-notice .notice-head + .notice-muted { margin-top: 4px; }
-.intent-notice .notice-muted {
+.intent-notice .notice-muted,
+.intent-advisory .advisory-line {
     color: var(--color-on-surface-variant);
     font-size: 13px;
     line-height: 1.55;
@@ -3809,6 +3810,27 @@ body {
     margin-top: 8px;
 }
 .intent-notice .notice-guide + .notice-muted { margin-top: 2px; }
+
+/* ── Venue intent advisory (user minor-update, 2026-11-02) ────
+   The ALWAYS-visible caveat in the shared Select-a-Session modal: the
+   venue page checks the SELECTED VENUE only — the user's own and the
+   cohort timetables are NOT consulted, so a green cell can still clash.
+   Yellow caution head (the notice-guide's --color-warning token) + red
+   risk body + the shared keyword classes (.go-keyword green = the
+   grid's available-green, .ge-keyword blue). Token-only; dark adapts. */
+.intent-advisory {
+    border-left: 3px solid var(--color-warning);
+    margin-top: 10px;
+    padding: 2px 0 2px 10px;
+}
+.intent-advisory .advisory-head {
+    color: var(--color-warning);
+    font-weight: 700;
+    text-transform: uppercase;
+    line-height: 1.5;
+}
+.intent-advisory .advisory-line { display: block; }
+.intent-advisory .advisory-line + .advisory-line { margin-top: 4px; }
 
 /* ── Data-Tip Tooltip (shared CSS) ──────────────────────────── */
 /* SDD tidy-arrangement-cell-tooltips (2026-10-27): the multi-line tips

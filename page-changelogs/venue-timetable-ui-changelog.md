@@ -1,3 +1,41 @@
+## 2026-11-02 (user minor-update, SDD-waived w/ user approval) — the always-visible venue-availability advisory in the Select-a-Session modal
+
+**The ask (user, with the suggested copy):** the modal that follows the Book
+button on `/venue-timetable-ui` (its subtitle = "Booking B010 · Tue, 10 Nov
+2026 · 08:00" shape) must carry a clearly visible warning: the page checks
+the **SELECTED VENUE only** — it does NOT check the user's own timetable or
+the COHORT TIMETABLE, so a green (available) cell may still clash; verify
+your timetable first.
+
+**Mechanics:** `partials/ui-intent-session-modal.blade.php` gains a static
+`.intent-advisory` group BETWEEN the conditional `#intentNotice` and the
+Class-information pickers (no JS touched, zero logic change — the advisory
+is plain markup). Theme.css: ONE new container class (`.intent-advisory`:
+yellow border-left bar + warn-triangle icon, `--color-warning` yellow bold
+CAPS head, `--color-error` bold risk line) and the shared `.notice-muted`
+typography extended to the block's lines (`.advisory-line` selector added
+to the existing rule — no duplicated declarations).
+
+**Token/color map (rule 1 + rule 2 honoured):** yellow head + border =
+`--color-warning` (the notice-guide's own token); red risk line =
+`--color-error`; blue key terms SELECTED VENUE / COHORT TIMETABLE /
+VERIFY YOUR TIMETABLE = the shared `.ge-keyword` (caps bold, primary);
+AVAILABLE = the shared `.go-keyword` green caps (matches the grid's
+available-green legend). No hex anywhere.
+
+**Receptive colour pairs:** svg = the existing inline alert-triangle
+(colour-flipped to warning). Uppercase comes from the keyword classes'
+text-transform — the written copy stays sentence-case in source.
+
+**Receipts (read-only playwright + screenshot, tmp spec deleted after):**
+4/4 green — the advisory visible with all four required phrases; computed
+head colour = rgb(212, 136, 15) (the warning token); the modal's Cancel
+closes cleanly, nothing submitted, the demo DB stays blank (0 requests).
+`composer run lint:check` ✓ `vendor/bin/phpstan analyse --memory-limit=1G`
+✓ (0 errors). Screenshot: /tmp/opencode/intent-advisory.png.
+
+---
+
 ## 2026-10-27 (user law, SDD class-cancel-2-working-day-window) — the Cancel window: 2 working days before today + ALL future
 **Where this page is concerned:** venue-timetable — the classModal Cancel family (same wiring).
 
