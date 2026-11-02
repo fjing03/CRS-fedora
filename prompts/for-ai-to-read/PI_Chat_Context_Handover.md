@@ -637,6 +637,12 @@ dashboard; students see the updated timetable.
     restart the :8001 sibling:
     `cd ../CRS-demo && nohup php artisan serve --port=8001 > /tmp/opencode/demo-server.log 2>&1 &`
 
+11. **How to talk**: simple everyday English, no unnecessary jargon or long
+    explanations; a decision explained in plain terms as options + their main
+    risks and benefits + a recommendation; **one clear question at a time**,
+    phrased "So the question in plain terms: …"; never start an
+    approval-gated action before the user's yes.
+
 ## C. Important Decisions and Requirements
 
 ### The user's standing rulings (do not change without approval)

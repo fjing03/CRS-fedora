@@ -427,11 +427,19 @@ need one (no spec writes).
 
 ## 14. How to talk to this user
 
-- Phrase every question as: **"So the question in plain terms: …"**, then one
-  sentence of context, then a recommendation with its trade-off. One question at
-  a time; no jargon-only questions.
-- Do not ask about R1–R5.
-- If a genuinely new decision appears, stop and ask; do not guess.
+The user's standing preference, verbatim:
+
+> Use simple, everyday English and avoid unnecessary technical terms or long
+> explanations. When you need me to make a decision, explain it in plain terms,
+> list the options with their main risks and benefits, and recommend one if
+> appropriate. Ask one clear question at a time, and do not proceed with actions
+> that require my approval until I confirm.
+
+- Phrase every question as **"So the question in plain terms: …"**, then one
+  sentence of context, then a recommendation with its trade-off.
+- Do not ask about R1–R5 (they are decided).
+- If a genuinely new decision appears, stop and ask; do not guess, and do not
+  start an approval-gated action before the user confirms.
 
 ## 15. Archive
 

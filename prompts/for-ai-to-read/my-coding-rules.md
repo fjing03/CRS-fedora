@@ -96,3 +96,9 @@ Adding a new status/legend item = **ONE row** in the relevant table above + **ON
 ## 6. Hard session-ops absolutes live elsewhere — obey both, don't duplicate
 
 The demo-DB sanctity rules (never re-seed `class_replacement_fresh`/`class_replacement_demo`; tests → `class_replacement_testing` only via `DB_DATABASE=…`; **⛔ never `--env=testing` any destructive command — no `.env.testing` exists, it silently boots `.env` = the demo DB**; **snapshot law: verified `pg_dump -Fc` before any demo-DB write and after any demo-worthy milestone**; every demo-DB edit user-gated + logged in `docs/demo-db-data-changes.md`; **schema migrations are additive-only on the demo DBs — snapshot → rehearse on `class_replacement_testing` → print the target → plain `migrate` (fresh, then demo) → row-count receipt**), the ⛔TC70 `--grep-invert` guard, the stale-cache restart ritual (two separate commands; never `pkill -9 php`), the port map (`:8000` dev · `:8001` demo twin · **`:8030` = disposable AI/E2E lane on `class_replacement_testing`, kill it after**) + re-login 5770, honest zeros, and the after-UI-change changelog requirement are owned by **`AGENTS.md`** + the pi skill **`crs-workspace`** + **`CodingMAIN.md` §4 Database safety** — read those too before acting.
+
+## 7. How to talk to me (every session)
+
+- Use simple, everyday English; avoid unnecessary technical terms and long explanations.
+- When I must decide: explain it in plain terms, list the options with their main risks and benefits, and recommend one if appropriate — phrase the question as **"So the question in plain terms: …"**.
+- Ask one clear question at a time, and do not proceed with an action that needs my approval until I confirm.
