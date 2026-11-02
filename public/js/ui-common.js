@@ -4304,8 +4304,27 @@ document.addEventListener('DOMContentLoaded', function() {
         if (ClassCancellation.needsLoadToast()) ClassCancellation.showUndoToast();
         else if (new URLSearchParams(location.search).get('restored') === '1')
             toast.show('Class restored.', null);  // arrival feedback after a cross-page undo
+        else showEntryGuardToast();               // arrival feedback after a BLOCKED arrangement entry
     } catch (e) { /* degrade — page init must never break over the ledger */ }
 });
+
+/* ENTRY GUARD arrival toast (2026-11-02, lane arrangement-entry-guard).
+   The arrangement page refuses entry for an occurrence that already carries an
+   active (pending/approved) replacement request and redirects here with
+   ?blocked=request-pending|request-approved. The message names the reason and
+   links STRAIGHT to the page that manages the request — no dead end.
+   Same arrival-param family as the `restored=1` toast above (the house
+   cross-page message mechanic: cheap, bookmark-safe, no flash ceremony). */
+function showEntryGuardToast() {
+    const blocked = new URLSearchParams(location.search).get('blocked');
+    if (blocked !== 'request-pending' && blocked !== 'request-approved') return;
+    if (blocked === 'request-approved')
+        toast.show('This class already has an approved replacement \u2014 view it in My Request History.',
+            null, 8000, 'My Request History', '/my-request-history-ui');
+    else
+        toast.show('This class already has a pending replacement request \u2014 track or withdraw it in My Request History.',
+            null, 8000, 'My Request History', '/my-request-history-ui');
+}
 
 /* bfcache guard — Arrange-Now (or any future leave-with-modal-open path)
    can be revisited via the browser BACK button; the restored snapshot

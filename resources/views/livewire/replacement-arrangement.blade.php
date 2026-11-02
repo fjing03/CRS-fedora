@@ -2386,6 +2386,50 @@
             if (sel && sel.value && !currentCourse) onSubjectChange();
         }
 
+        /* ENTRY GUARD, layer B — the bfcache revalidation (the server's
+           revalidateEntry re-runs the unproposed+own check).
+           URL-VS-PIN DOCTRINE (2026-11-01, lane
+           conflict-subject-switch-autoselect): the URL CAN LAG the live pin —
+           a POST-boot subject switch moves window.pinnedOccurrence (the pair
+           the submit honours) while the URL keeps the ARRIVAL pair. So BOTH
+           ride: the PIN first (the occurrence the user is ACTUALLY arranging),
+           the URL pair second (anchor-less states). A URL-only key would miss a
+           pending request on the pinned occurrence and re-open this bug. */
+        function revalidateEntryGuard() {
+            /* A bfcache restore resumes Livewire ASYNCHRONOUSLY — the component
+               may not be callable on the pageshow tick. Retry briefly instead of
+               degrading silently (the guard must not miss the very case it
+               exists for). */
+            const attempt = function(tries) {
+                try {
+                    const call = window.pageLivewire ? window.pageLivewire() : null;
+                    if (!call || typeof call.call !== 'function') {
+                        if (tries > 0) setTimeout(function() { attempt(tries - 1); }, 250);
+                        return;
+                    }
+                    const params = new URLSearchParams(window.location.search);
+                    const pin = window.pinnedOccurrence || null;
+                    const pinSession = pin && pin.sessionId ? Number(pin.sessionId) : null;
+                    const pinWeek = pin && pin.week ? Number(pin.week) : null;
+                    const urlSession = params.get('session') ? Number(params.get('session')) : null;
+                    const urlWeek = params.get('week') ? Number(params.get('week')) : null;
+                    call.call('revalidateEntry', pinSession, pinWeek, urlSession, urlWeek, params.get('from') || null)
+                        .then(function(landing) {
+                            /* the server returns the landing URL when the occurrence
+                               is already handled — navigate HERE (plain location
+                               change) so a partially-resumed Livewire can't
+                               swallow it */
+                            if (landing) window.location.href = landing;
+                            else if (tries > 0) setTimeout(function() { attempt(tries - 1); }, 750);
+                        })
+                        .catch(function() {
+                            if (tries > 0) setTimeout(function() { attempt(tries - 1); }, 500);
+                        });
+                } catch (err) { /* degrade — never break the restored page over the guard */ }
+            };
+            attempt(4);
+        }
+
         window.addEventListener('pageshow', function(e) {
             reconcileSubjectState();
             if (!e.persisted) {
@@ -2393,6 +2437,13 @@
                 setTimeout(reconcileSubjectState, 120);
                 return; /* normal load — nothing else to do */
             }
+            /* ENTRY GUARD, layer B (bfcache) — an already-open request may have
+               been submitted FROM this very page before the user pressed Back;
+               the restored snapshot would still show the Conflict Schedule
+               panel as if nothing happened. Re-validate server-side (the
+               blocked case redirects out with ?blocked=; the honest case is a
+               silent no-op so the bfcache comfort survives). */
+            revalidateEntryGuard();
             allowUnload = false;
             Object.keys(selectedSlotsByVenue).forEach(k => { selectedSlotsByVenue[k] = {}; });
             deselectBlock();        /* removes merged block + restores green cells */

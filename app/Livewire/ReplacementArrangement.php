@@ -59,6 +59,168 @@ class ReplacementArrangement extends Component
 {
     use ResolvesTimetableTimeline;
 
+    /**
+     * The ONE definition of "already being handled" (D1): a request in either
+     * state reserves the occurrence's whole block. Shared by the conflict-grid
+     * filter (conflictEventsPayload) and the ENTRY GUARD below so the two can
+     * never drift — rejected/withdrawn/cancelled requests do NOT block.
+     */
+    private const ACTIVE_REQUEST_STATUSES = ['pending', 'approved'];
+
+    /**
+     * `?from=` → landing route, mirroring the client's BackNavigator.#routes
+     * (public/js/ui-common.js) exactly: the blocked entry sends the viewer to
+     * the same place the page's own Back button would have.
+     *
+     * @var array<string, string>
+     */
+    private const FROM_LANDING_ROUTES = [
+        'replacement-home' => '/replacement-home-ui',
+        'my-request-history' => '/my-request-history-ui',
+        'venue-timetable' => '/venue-timetable-ui',
+        'my-timetable' => '/my-timetable-ui',
+        'cohort-timetable' => '/cohort-timetable',
+    ];
+
+    /**
+     * ENTRY GUARD, layer A (server) — the unproposed+own rule: the arrangement
+     * page must not render for an occurrence that is ALREADY under an active
+     * (pending/approved) replacement request. Ownership was always enforced
+     * (a foreign/fabricated ?session= resolves to null); this closes the other
+     * half, and it covers EVERY entry path (typed URL, my-timetable link,
+     * notification deep-link, F5) because it runs on the initial mount.
+     *
+     * Ran from mount() BEFORE any payload work; the page redirects out with
+     * the reason in `?blocked=` and the landing page's arrival toast explains
+     * it (ui-common.js reads the param).
+     */
+    public function mount(): void
+    {
+        [$sessionId, $week] = $this->entryPinFromUrl();
+        $landing = $this->entryBlockedLanding($sessionId, $week);
+        if ($landing !== null) {
+            $this->redirect($landing, navigate: false);
+        }
+    }
+
+    /**
+     * ENTRY GUARD, layer B (bfcache) — the browser may restore a frozen copy of
+     * this page (back button after submitting), replaying the stale DOM as if
+     * no request existed. Layer A can't help there: no server round-trip runs.
+     * The client calls this on `pageshow` with `persisted === true` and the
+     * server re-runs the same check.
+     *
+     * URL-VS-PIN DOCTRINE (2026-11-01, lane conflict-subject-switch-autoselect):
+     * the URL CAN lag the live pin — a POST-boot subject switch moves
+     * window.pinnedOccurrence (the pair the submit honours) while the URL keeps
+     * the ARRIVAL pair. The client therefore sends the LIVE PIN FIRST and the
+     * URL pair as the fallback, and BOTH are checked: a pending request on
+     * either occurrence blocks the restore. A URL-only key would re-open this
+     * bug for a pinned occurrence reached by an auto-pin.
+     *
+     * `$from` rides from the client because a Livewire update request is a POST
+     * to the Livewire endpoint — `request()->query('from')` is EMPTY there, so
+     * the landing choice cannot be re-read server-side on this path.
+     *
+     * RETURNS the landing URL (null = honest, stay) and lets the CLIENT navigate:
+     * a bfcache restore is exactly the state where Livewire's own JS may be
+     * mid-resume, and a plain `window.location.href` assignment cannot be
+     * swallowed by a suspended effect queue. (Layer A keeps the server-side
+     * redirect — there is no client to ask on a fresh page load.)
+     */
+    #[Renderless]
+    public function revalidateEntry(?int $pinSessionId = null, ?int $pinWeek = null, ?int $urlSessionId = null, ?int $urlWeek = null, ?string $from = null): ?string
+    {
+        $weeks = $this->timelineWeeks();
+
+        $candidates = [
+            [$pinSessionId, $pinWeek],
+            [$urlSessionId, $urlWeek],
+        ];
+
+        foreach ($candidates as [$sessionId, $week]) {
+            if ($sessionId === null || $week === null) {
+                continue;
+            }
+
+            $weeksBound = $week >= 1 && $week <= $weeks;
+            if (! $weeksBound) {
+                continue;
+            }
+
+            $landing = $this->entryBlockedLanding($sessionId, $week, $from);
+            if ($landing !== null) {
+                return $landing;
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * The guard itself: resolve the pair to the VIEWER'S OWN session, then
+     * decide. Returns the landing URL when the occurrence is already handled,
+     * null when the entry is honest.
+     */
+    private function entryBlockedLanding(?int $sessionId, ?int $week, ?string $from = null): ?string
+    {
+        if ($sessionId === null || $week === null || $sessionId < 1 || $week < 1) {
+            return null;
+        }
+
+        // Ownership first (FR 2.11): a foreign/fabricated pair is simply not
+        // ours — it never blocks, it just resolves to nothing (today's law).
+        $owned = ClassSession::query()
+            ->where('lecturer_id', auth()->id())
+            ->whereKey($sessionId)
+            ->exists();
+        if (! $owned) {
+            return null;
+        }
+
+        $active = ReplacementRequest::query()
+            ->where('class_session_id', $sessionId)
+            ->where('week_number', $week)
+            ->whereIn('status', self::ACTIVE_REQUEST_STATUSES)
+            ->orderByRaw("case when status = 'pending' then 0 else 1 end")
+            ->first();
+        if ($active === null) {
+            return null;
+        }
+
+        return $this->blockedLandingUrl((string) $active->status, $from);
+    }
+
+    /**
+     * The blocked landing URL: the `from` source when known (else the
+     * replacement home), carrying the toast reason for the landing page.
+     */
+    private function blockedLandingUrl(string $status, ?string $from = null): string
+    {
+        $from = $from ?? (string) request()->query('from', '');
+        $base = self::FROM_LANDING_ROUTES[$from] ?? '/replacement-home-ui';
+
+        return $base.'?blocked='.($status === 'approved' ? 'request-approved' : 'request-pending');
+    }
+
+    /**
+     * The `?session=&week=` pair as the entry pin (the same reads
+     * pinnedSessionPayload validates — kept side by side so the guard can
+     * never disagree with what the page would have pinned).
+     *
+     * @return array{0: int|null, 1: int|null}
+     */
+    private function entryPinFromUrl(): array
+    {
+        $sessionId = (int) request()->query('session', '');
+        $week = (int) request()->query('week', '');
+
+        return [
+            $sessionId >= 1 ? $sessionId : null,
+            $week >= 1 ? $week : null,
+        ];
+    }
+
     private ?MatrixIntersectionEngine $engineInstance = null;
 
     /**
@@ -305,7 +467,7 @@ class ReplacementArrangement extends Component
         // schedule; re-proposing would create a double booking).
         $activeRequests = ReplacementRequest::query()
             ->whereIn('class_session_id', $sessions->pluck('id'))
-            ->whereIn('status', ['pending', 'approved'])
+            ->whereIn('status', self::ACTIVE_REQUEST_STATUSES)
             ->get()
             ->keyBy(fn (ReplacementRequest $r): string => $r->class_session_id.':'.$r->week_number);
 
