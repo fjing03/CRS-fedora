@@ -2700,3 +2700,39 @@ false`, zero overlaps (message↔link, message↔close), link "My Request Histor
 visible, no horizontal overflow; mobile 375 → bar 343px (16px gutters, the
 message wraps as before) — responsive behaviour preserved byte-for-byte.
 Screenshots: /tmp/opencode/toast-desktop.png + toast-mobile.png.
+
+### 2026-11-02 — FR 2.17 added: the 3-working-day rule is now a documented requirement
+
+The lead-time rule shipped on 2026-10-05 (commit `1881f67`) and has been on the
+page ever since, but it appeared in **no** requirement document:
+`../final/FR&NFR.md` listed 48 FRs with no advance-booking rule (0 hits for
+"working day", "advance notice", "lead time"), and the FYP1 report `.docx`
+(169,559 chars scanned) had 0 hits for "working day(s)", "lead time",
+"booking window" or "too soon".
+
+Closed by adding **FR 2.17** — appended after 2.16, deliberately *not* inserted
+as 2.9, so that FR 3.1's "except FR 2.11 and FR 2.12" and every existing FR
+number (cited by tests, CodingMAIN and changelogs) stay valid:
+
+> Lecturers shall only be able to propose a replacement slot on a date at least
+> three working days (Monday–Friday, excluding public holidays) after the
+> current date; the third working day itself shall remain selectable.
+
+The wording matches the code exactly: `leadTimeCutoff()` returns the 3rd
+working day and `isSlotTooSoon()` blocks `slot < cutoff`, so the boundary day
+itself stays selectable.
+
+**Synced:** `FR&NFR.md` (Table 3.5 lead-in 48 → 49 + the new row) and
+`CodingMAIN.md` §7 (sync line, §7.1 traceability row `2.1–2.17`, §7.2 verbatim
+row). The FYP1 report `.docx` Table 3.5 is **not** updated yet (user decision —
+FYP1 is already submitted; edit only on request).
+
+**Known gap recorded here so it is not forgotten:** the rule is
+**client-side only**. `StoreReplacementRequest::rules()` validates
+`class_session_id`, `week_number`, `replacement_time_slot_id` and `remarks` —
+no date rule — and `SubmitReplacementRequest` never compares the proposed slot
+date to today (its only date use is `submitted_at => now()`). A payload
+crafted outside the UI could therefore propose a slot inside the window. FR
+2.17 is deliberately worded as a *lecturer / UI* rule for that reason; closing
+it in the backend would earn a system-level FR (4.17) and needs its own change
+plus tests.

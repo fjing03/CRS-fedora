@@ -198,14 +198,14 @@ rm -f storage/framework/views/*.php && php artisan serve --port=8000 &
 
 ## 7. Requirements (FR & NFR)
 
-Source: `../final/FR&NFR.md` — Chapter 3, §3.4 (verbatim; reader-facing glosses and citations trimmed). **Synced 2026-10-01: 48 FRs / 26 NFRs.** Each FR is traceable to one or more of the 5 objectives (§3). Login supports Student/Staff ID via Fortify `username = login_id` (FR 1.1, 2.1 — incl. optional "P" prefix ✓).
+Source: `../final/FR&NFR.md` — Chapter 3, §3.4 (verbatim; reader-facing glosses and citations trimmed). **Synced 2026-11-02: 49 FRs / 26 NFRs.** Each FR is traceable to one or more of the 5 objectives (§3). Login supports Student/Staff ID via Fortify `username = login_id` (FR 1.1, 2.1 — incl. optional "P" prefix ✓).
 
 ### 7.1 Traceability map (FR → Objective)
 
 | FR # | Requirement summary | Objective |
 |------|--------------------|-----------|
 | 1.1–1.9 | Student login by ID; cohort timetable; request status for cohort; view upcoming replacement details; **cannot create / edit / delete / modify timetable data (4 separate FRs)**; email on timetable updates (FR 1.9) | 3, 4, 5 |
-| 2.1–2.16 | Staff ID login (4 digits, optional "P" prefix); own timetable; click class (incl. conflicted/cancelled) → details; start replacement from details; venue dropdown (default original); venue change recalculates ≤500 ms; colour-coded grid; click green slot; submit; **cancel own pending (edit dropped)**; cannot see/edit others'; cannot approve/reject; email on outcome; **view selected venue timetable; view own request history; cancel own scheduled class with reason** | 1, 2, 3, 4, 5 |
+| 2.1–2.17 | Staff ID login (4 digits, optional "P" prefix); own timetable; click class (incl. conflicted/cancelled) → details; start replacement from details; venue dropdown (default original); venue change recalculates ≤500 ms; colour-coded grid; click green slot; submit; **cancel own pending (edit dropped)**; cannot see/edit others'; cannot approve/reject; email on outcome; **view selected venue timetable; view own request history; cancel own scheduled class with reason**; **only propose a slot ≥3 working days ahead (3rd working day itself selectable — FR 2.17, UI-enforced)** | 1, 2, 3, 4, 5 |
 | 3.1–3.7 | PL inherits lecturer rights **except FR 2.11 & 2.12** (may see others' requests, may approve/reject); FCFS queue sorted by submission time; queue shows proposer/subject/cohorts/time/venue; pre-computed slot validity; 1-click approve; mandatory reject reason; full audit trail | 1, 2, 3, 4 |
 | 4.1–4.2 | Seed 14 teaching staff / 14 cohorts / 23 Block B rooms; room metadata (name, capacity, type, allowed session L/T/P combo) | 5, 1 |
 | 4.3–4.7 | Four-part check = 3-set intersection (lecturer × cohorts × room) + capacity as 4th part; "No available slots" message; 3-vector for single cohort (capacity still applies); empty result when fully occupied; session-type venue filtering | 1 |
@@ -243,6 +243,7 @@ Source: `../final/FR&NFR.md` — Chapter 3, §3.4 (verbatim; reader-facing gloss
 | 2.14 | Lecturers shall be able to view the timetable of a selected venue. |
 | 2.15 | Lecturers shall be able to view the history of their own replacement requests. |
 | 2.16 | Lecturers shall be able to cancel their own scheduled class by providing a valid reason. |
+| 2.17 | Lecturers shall only be able to propose a replacement slot on a date at least three working days (Monday–Friday, excluding public holidays) after the current date; the third working day itself shall remain selectable. |
 | 3.0 | **Programme Leader** |
 | 3.1 | Programme Leaders shall inherit all lecturer privileges except FR 2.11 and FR 2.12 (FR 2.1–2.10, 2.13–2.16). |
 | 3.2 | Programme Leaders shall be able to view a FCFS queue of all pending replacement requests, sorted by submission time (earliest first). |
