@@ -1,6 +1,6 @@
 # AGENTS.md — TARUMT Class Replacement System
 
-This file lives in `prompts/for AI to read/` since 2026-11-02; the root
+This file lives in `prompts/for-ai-to-read/` since 2026-11-02; the root
 `AGENTS.md` is a pointer that tells every session (including forked ones) to read
 it. Paths below are relative to the repository root unless they start with `../`.
 
@@ -10,7 +10,7 @@ it. Paths below are relative to the repository root unless they start with `../`
   tech stack & commands (incl. DB safety + stale-cache restart), domain model, RBAC matrix,
   **FR & NFR (§7)**, dataset, page inventory, git policy (§10.6), and **Coding Conventions §10** (incl. UI Design Rules §10.0).
 - **`my-coding-rules.md`** (this folder) — the user's coding rules in quick always-read form (distilled from CodingMAIN §10: the 10 UI rules + canonical color tables, OOP/PHP/naming, commit/SDD policy); read it before writing or changing any code.
-- Command Code memory import — the full rules are inlined into memory every turn via @path (other harnesses: read the file directly): `@prompts/for AI to read/my-coding-rules.md`
+- Command Code memory import — the full rules are inlined into memory every turn via @path (other harnesses: read the file directly): `@prompts/for-ai-to-read/my-coding-rules.md`
 - **`docs/venue-restrictions.md`** — B005 no-Diploma REPEALED 2026-10-27 (Diploma cohorts allowed; SDD `b005-diploma-allowed`), B006 networking priority, P→labs. Read before any venue/booking work.
 - `docs/` holds project docs; **`docs/archive/`** holds superseded ones (FYP-BRIEFING, BACKEND-TASKS, LEFTOVER_TASKS, old CodingMAIN variants) — do not treat archived files as current policy. Index: `docs/README.md`.
 

@@ -1,7 +1,7 @@
 # TARUMT Class Replacement System — Main Project File
 
 > **Purpose:** Single source of truth for this project. Read this first before any coding session.
-> **Location note (2026-11-02):** this file lives in `prompts/for AI to read/`; the root
+> **Location note (2026-11-02):** this file lives in `prompts/for-ai-to-read/`; the root
 > `AGENTS.md` points here. Paths below are relative to the **repository root**, except the
 > `../final/…` and `../TARUMT …` links, which are written relative to this directory.
 > This is the **fedora-repo canonical version** (§10.6 git policy: upstream pull-only). The original

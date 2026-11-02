@@ -11,11 +11,11 @@ Current, load-bearing docs. Superseded material is in [`archive/`](archive/) —
 | [`server-commands.md`](server-commands.md) | Start / restart / stop `php artisan serve` — the stale-cache ritual, deep-clean sequence, fish-shell quirks, queue-worker restart | **Active** — use whenever the dev server must be started, restarted after a UI change, or stopped |
 | [`viva-demo-runbook.md`](viva-demo-runbook.md) | The viva demo story + demo-pack-week checklist (anchor: week of 7 Dec 2026, unconfirmed) | **Active** — draft 2026-10-28 |
 | [`demo-db-data-changes.md`](demo-db-data-changes.md) | Running log of intentional demo-DB edits (live SQL + matching seeder line per entry) + snapshot convention | **Active** — read before touching the demo DB or `DatabaseSeeder.php`; append entries, never "repair" logged drift |
-| [`archive/FYP-BRIEFING.md`](archive/FYP-BRIEFING.md) | Old AI-briefing snapshot (2026-08-11) | Superseded by `prompts/for AI to read/CodingMAIN.md` |
+| [`archive/FYP-BRIEFING.md`](archive/FYP-BRIEFING.md) | Old AI-briefing snapshot (2026-08-11) | Superseded by `prompts/for-ai-to-read/CodingMAIN.md` |
 | [`archive/BACKEND-TASKS.md`](archive/BACKEND-TASKS.md) | Phase-1 backend build plan | Done — schema fully migrated; kept as booking-schema rationale (Wave 3b) |
 | [`archive/LEFTOVER_TASKS.md`](archive/LEFTOVER_TASKS.md) | Post-merge chore tracker (2026-08-27) | Done — historical record |
-| [`archive/CodingMAINfedora.md`](archive/CodingMAINfedora.md) | Old fedora CodingMAIN variant | Folded into canonical `prompts/for AI to read/CodingMAIN.md` |
+| [`archive/CodingMAINfedora.md`](archive/CodingMAINfedora.md) | Old fedora CodingMAIN variant | Folded into canonical `prompts/for-ai-to-read/CodingMAIN.md` |
 | [`archive/CodingMAIN-upstream-original.md`](archive/CodingMAIN-upstream-original.md) | The original root `CodingMAIN.md` before the 2026-10-10 rewrite | Kept for upstream-merge diffing |
 
-Canonical entry points: **`AGENTS.md`** (root bootstrap pointer, auto-loaded) → **`prompts/for AI to read/CodingMAIN.md`** (project spec) → **`prompts/for AI to read/PI_Chat_Context_Handover.md`** (session state).
+Canonical entry points: **`AGENTS.md`** (root bootstrap pointer, auto-loaded) → **`prompts/for-ai-to-read/CodingMAIN.md`** (project spec) → **`prompts/for-ai-to-read/PI_Chat_Context_Handover.md`** (session state).
 - `docs/queue-and-emails.md` — SDD span-aware-approval-flow runbook: dev = log mailer (nothing sends), the database-backed queue job lifecycle, `queue:work --once` for demo decisions, the SMTP later-flip.

@@ -3,7 +3,7 @@
 > Added 2026-10-10 (change `.sdd/changes/msi-handoff-integration/`).
 > **Scope:** how the two dev machines share one branch safely, and where each
 > machine's data lives. Git policy (push targets, upstream rule) stays in
-> `prompts/for AI to read/CodingMAIN.md` §10.6 — this doc adds the machine layer on top.
+> `prompts/for-ai-to-read/CodingMAIN.md` §10.6 — this doc adds the machine layer on top.
 > All MSI-side facts below were verified by command on 2026-10-10; HP-side facts
 > come from the HP's own verified export (`HP-HANDOFF.md`, 2026-10-10).
 
@@ -78,7 +78,7 @@ rm -f storage/framework/views/*.php && php artisan serve --port=8000 &
 
 Playwright gates need the server on `:8000` (`playwright.config.ts` baseURL);
 gate specs: `venue-db`, `timetable-wiring`, `nav-identity`, `pages-parity`
-(login IDs/roles inside the specs; `prompts/for AI to read/CodingMAIN.md` has the run commands).
+(login IDs/roles inside the specs; `prompts/for-ai-to-read/CodingMAIN.md` has the run commands).
 PHP checks: `composer run lint:check` · `vendor/bin/phpstan analyse --memory-limit=1G`
 · `php artisan test` (run the three separately — the bundled `composer run test`
 crashes at step 2 on the 128M memory limit).
@@ -86,7 +86,7 @@ crashes at step 2 on the 128M memory limit).
 ## 6. What lives outside the repo
 
 - **MSI** — project parent folder `BMCS3404 PROJECT I (4)/`: `final/` (FYP
-  portfolio + `FR&NFR.md`, cited by `prompts/for AI to read/CodingMAIN.md`), `knowledge/` (FYP1 writing
+  portfolio + `FR&NFR.md`, cited by `prompts/for-ai-to-read/CodingMAIN.md`), `knowledge/` (FYP1 writing
   requirements), cross-machine task prompts (`HANDOFF-TASK.md`, `VERIFY-TASK.md`,
   `SETUP-TASK.md`), the archived old `class-replacement-system` clone
   (read-only reference). · Backups: `/home/philler/Desktop/tarumt/backups/`

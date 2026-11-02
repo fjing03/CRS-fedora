@@ -1,6 +1,6 @@
 # PI Chat Context Handover — TAR UMT Class Replacement System
 
-> **Location note (2026-11-02):** this file lives in `prompts/for AI to read/`;
+> **Location note (2026-11-02):** this file lives in `prompts/for-ai-to-read/`;
 > the root `AGENTS.md` points here. Paths below are relative to the **repository
 > root** unless they start with `../`. Dated entries that mention
 > `CodingMAIN.md` / `AGENTS.md` / `my-coding-rules.md` "at the root" mean the

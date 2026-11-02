@@ -55,7 +55,7 @@ a reason to archive.
 | `pi-bug-arrangement-reentry-after-pending.md` | Entry-guard fix shipped: `62cbbb0` (fix) + `b0685ae` (tests) + `99329be` (changelog) |
 | `pi-prompt-notif-type-filter-redesign.md` | `210a232` (notifTypeFilter re-skin) + `f0b7215` (changelog) |
 | `Investigate Livewire JavaScript.md` | Investigation delivered: `docs/Livewire-JS-Investigation-Report.md` + `docs/livewire-js-investigation.md` (`7107abb`) |
-| `pi-prompt-session-handoff-2026-10-24.md` | Superseded by `prompts/for AI to read/PI_Chat_Context_Handover.md` |
+| `pi-prompt-session-handoff-2026-10-24.md` | Superseded by `prompts/for-ai-to-read/PI_Chat_Context_Handover.md` |
 | `pi-prompt-too-late-red-cells.md` | Landed in `page-changelogs/venue-timetable-ui-changelog.md` ("too late" read-only cells) |
 | `pi-prompt-venue-holiday-grid-overflow.md` | Landed in `page-changelogs/venue-timetable-ui-changelog.md` (holiday row) |
 | `Bug Fix: Conflicted Subject Does Not Auto-Select After Changing Subjects.md` | Landed: `tests/arrangement-conflict-autoselect.spec.ts` + the arrangement changelog "auto-select" entries |
