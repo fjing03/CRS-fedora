@@ -1,5 +1,34 @@
 # Demo-DB Data Changes — Running Log
 
+## 2026-11-02 — schema prep: `notifications.hidden_at` (ADDITIVE, both demo DBs, user-ordered)
+
+- **What:** migration `2026_11_02_000001_add_hidden_at_to_notifications_table.php`
+  — one **nullable** `timestamp` column `hidden_at` + one index
+  `(user_id, hidden_at)`. Nothing else. `down()` only removes what `up()` added.
+  It is preparation for the notification batch-hide feature; **no app code reads
+  the column yet**, so nothing visible changed.
+- **Snapshots first (snapshot law, verified):**
+  `backups/class_replacement_fresh-pre-hidden_at-2026-11-02.dump` and
+  `backups/class_replacement_demo-pre-hidden_at-2026-11-02.dump` — both
+  325K/323K, `pg_restore --list` opened each (56 tables listed).
+- **Rehearsal:** `DB_DATABASE=class_replacement_testing php artisan migrate` —
+  2 notification rows before → 2 after, `hidden_at` NULL on all, index present.
+- **`:8000` `class_replacement_fresh`:** target printed first
+  (`DB::connection()->getDatabaseName()` = `class_replacement_fresh`), then a
+  plain `php artisan migrate` (14.77ms). Counts before → after unchanged:
+  notifications 5→5, replacement_requests 2→2, time_slots 38640→38640,
+  users 169→169; `hidden_at` set on 0 rows.
+- **`:8001` `class_replacement_demo`** (the `CRS-demo` clone):
+  `DB_DATABASE=class_replacement_demo php artisan migrate` (13.34ms). Counts
+  unchanged (notifications 0, time_slots 38640, users 169); `hidden_at` set on
+  0 rows.
+- **Not run (deliberately):** `migrate:fresh`, `migrate:refresh`, `db:wipe`,
+  any `--env=testing` command (no `.env.testing` exists — it would silently hit
+  the demo DB), any `.env` edit.
+- **Recovery:** the two `-pre-hidden_at-` dumps above restore either DB to the
+  exact pre-migration state (`migrate:rollback --step=1` also works, but only
+  paired with reverting the code that reads the column).
+
 ## 2026-11-01 — DATA-LOSS INCIDENT: the demo was wiped at ~03:22, restored from pristine
 
 - **What the user lost:** their UI-submitted replacement requests (made via the
@@ -296,3 +325,6 @@ WHERE NOT EXISTS (SELECT 1 FROM notifications WHERE type = 'awaiting' AND reques
 | 2026-10-29 | notifications | the user RAN (logged convention): `DELETE FROM notifications WHERE id = 2 AND user_id = 1 AND title = 'Demo receipt — poll cycle 2';` — DELETE 1 (the second poll-cycle receipt row; the first, id 1, stays per the user's instruction) | — | user-run (this file's same-day entry; nothing else touched) |
 | 2026-10-29 (late) | notifications | the user RAN: `DELETE FROM notifications WHERE id = 1 AND user_id = 1 AND title = 'Demo receipt — poll cycle';` — DELETE 1 (the FIRST poll-cycle receipt row; id 2 was deleted earlier the same day — both July-28 receipt rows now gone; no other row touched) | — | user-run (this same-day entry) |
 | 2026-10-30 | notifications | agent-run under the user's explicit F1 approval (SDD notif-actor-pl-dedupe): `DELETE FROM notifications WHERE id = 31 AND user_id = 1 AND title = 'Scheduled class cancelled' AND role_view = 'pl';` — DELETE 1 — the dept-PL TWIN the old fan-out wrote for 5425's own cancel (their actor row, id 8, remains; the cancel itself was undone 4 s later — audit class_cancel_undone). User 1's mailbox 5 → 4 rows. Belt-braced DELETE (id + user + title + role clause; verified count-1 first) | — | agent-run, explicitly user-approved |
+| 2026-11-01 (evening) | WHOLE DB `class_replacement_fresh` (:8000's DB) | FULL SWAP (user option A): after the Oct-31 recovery rebuild on the :8001 twin (see `demo-db-oct31-recovered.md` § REBUILD EXECUTED), `class_replacement_fresh` was dropped + recreated + restored from `class_replacement_demo-post-recovery-2026-11-01.dump` — :8000 now = an exact copy of the recovered record (11 requests / 3 exceptions / 90 notifs / badge 3 per PL). Pre-swap safety copy = `class_replacement_fresh-pre-swap-2026-11-01.dump` (holds the composer lane's 1 pending + 2 unread of that morning). Verified on-screen on :8000 (badge 3 + trio tiles + approval inbox). :8001 unaffected. | pre-swap dump above | agent-run, user-approved (the "A" answer) |
+| 2026-11-01 22:05 | `class_replacement_fresh` + `class_replacement_demo` | Pre-delete snapshots `*-pre-rm30min-2026-11-01.dump` (both verified). WHY: every rebuilt request displayed exactly "30 min" on the approval page — the rebuild set only 30-min anchor cells (span lengths were never in the receipts); the composer lane had ALSO re-run its work on :8000 post-swap (rr ids 12–23 incl. its own approved wedge — audit_logs FK exposed it) so :8000 briefly held 12 requests / 93 notifs. | pre-rm30min dumps above | agent-run, user-ordered |
+| 2026-11-01 22:12–22:25 | both demo DBs = FULL STORY CLEANOUT (user order: delete the 30-min rows, then "all pending requests, Cancelled classes, & Notifications") | :8000: DELETE audit_logs(4) → replacement_requests(12, +2 span rows cascaded... scoped SET-NULL semantics on notifications) → 13 slot cells released (my 11 + composer 34413/34414) → notifications(93) → class_exceptions(3). :8001: notifications(90 incl. 40 auto-orphaned via SET NULL) → class_exceptions(3) → same slot releases. POST-STATE BOTH: 0 requests / 0 spans / 0 notifs / 0 exceptions / 0 audit = the pristine-import plateau; next rr id continues at 24. Note: `notifications.request_id` FK = ON DELETE SET NULL (discovered today); `replacement_request_slots` = ON DELETE CASCADE. Rollback = the pre-rm30min dumps. | pre-rm30min dumps above | agent-run, user-ordered (twice) |
