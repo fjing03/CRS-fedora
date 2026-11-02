@@ -21,8 +21,8 @@
 |---|---|
 | Working branch | `fedora-backend` (remote: `origin` = `fjing03/CRS-fedora.git`, PULL-ONLY `upstream` = `FjingXR/class-replacement-system`) |
 | Push policy | **NEVER `git push`** — the user pushes manually (they said so explicitly). One exception, commanded 2026-11-02: `67606dd`+`d32ebd7` were pushed by the agent; afterwards the rule resumed. |
-| Unpushed commits | **19** (`origin/fedora-backend` = `ab912af`; re-count before trusting). The 2026-11-02 tail: `b0fd936` (toast 728), `a37e452` (toast 800), `58edc29` (modal advisory), the entry-guard chain `62cbbb0`/`b0685ae`/`99329be`, `083f7bd` (student 12h idle), `e8f9671`/`b58b319`/`f1e7f9a` (span-follow), `5056c77`/`f1b27b2`/`88c3b3a` (slot-picker clear), then the PI lane: `7107abb` (Livewire.js investigation doc), `210a232` (notifTypeFilter re-skin), `f0b7215` (its changelog). |
-| Demo DB | `class_replacement_fresh` (:8000) + `class_replacement_demo` (:8001) — **BLANK pristine on both since the 2026-11-02 user-ordered cleanout** (0 requests/spans/notifs/exceptions/audit/held cells; next `replacement_requests` id = 24). **Never re-seed the demo DBs**; any demo write = user-gated per write + logged in `docs/demo-db-data-changes.md` + snapshot law first (`backups/README.md`; canonical viva dump = `class_replacement_demo-post-recovery-2026-11-01.dump`). |
+| Unpushed commits | **23** (`origin/fedora-backend` = `ab912af`; re-count before trusting). The 2026-11-02 tail: `b0fd936` (toast 728), `a37e452` (toast 800), `58edc29` (modal advisory), the entry-guard chain `62cbbb0`/`b0685ae`/`99329be`, `083f7bd` (student 12h idle), `e8f9671`/`b58b319`/`f1e7f9a` (span-follow), `5056c77`/`f1b27b2`/`88c3b3a` (slot-picker clear), the PI lane `7107abb`/`210a232`/`f0b7215`, then `5af11a6` (notifications.hidden_at), `dc41c79` (schema-migration law), `0e99119` (PI prompt template). |
+| Demo DB | `class_replacement_fresh` (:8000) + `class_replacement_demo` (:8001) — both were left **BLANK** by the 2026-11-02 user-ordered cleanout, but **`:8000` holds real data again**: 2 `replacement_requests` + 5 `notifications` created 2026-11-02 (`:8001` still 0). Treat both as live. **Never re-seed the demo DBs**; any demo write = user-gated per write + logged in `docs/demo-db-data-changes.md` + snapshot law first (`backups/README.md`; canonical viva dump = `class_replacement_demo-post-recovery-2026-11-01.dump`). |
 | Test DB | `class_replacement_testing` — disposable; fresh+seed fine; used by the suite |
 | Suite | Last full PHPUnit run: **287/287** (2026-11-02 entry-guard lane). NOT re-run after the evening UI tweaks (blade/CSS-only changes); Playwright used only as read-only receipts. |
 | Gates | `composer run lint:check` (pint), `vendor/bin/phpstan analyse --memory-limit=1G --no-progress` (NOT `types:check` — crashes at 128M), full phpunit, `node` syntax check for JS |
@@ -394,8 +394,34 @@ regenerate if needed; the spec above is the source of truth, not the file.
 **E. Next prompt:** `prompts/pi-prompt-notif-manage-hide.md` (gitignored,
 `.gitignore:38`) — the implementation brief for the PI session.
 
-**F. NOT started:** no migration, no component/view/edit, no test, no demo-DB
-write. The parked test lane (§0.7 D) is still parked — do not mix.
+**F. Amendment (same evening, written AFTER §0.8): the schema prep is DONE and
+shipped — §0.8 F as originally written is superseded.**
+
+- **Migration shipped:** `database/migrations/2026_11_02_000001_add_hidden_at_to_notifications_table.php`
+  — `hidden_at` nullable timestamp + `(user_id, hidden_at)` index, strictly
+  additive. Commit `5af11a6`.
+- **Snapshots first (verified):** `backups/class_replacement_fresh-pre-hidden_at-2026-11-02.dump`
+  + `backups/class_replacement_demo-pre-hidden_at-2026-11-02.dump`
+  (`pg_restore --list` opened each, 56 tables).
+- **Applied, in order:** rehearsal on `class_replacement_testing` (2 rows → 2
+  rows) → plain `php artisan migrate` on `class_replacement_fresh` (14.77ms) →
+  `DB_DATABASE=class_replacement_demo php artisan migrate` (13.34ms). The target
+  was printed from the live connection before each run.
+- **Counts unchanged:** fresh 5 notifications / 2 requests / 38,640 slots /
+  169 users; demo 0 / 38,640 / 169. Every existing row reads `hidden_at = NULL`.
+  `Notification::count()` = 5 (Eloquent sane).
+- **Law + log:** the schema-migration law landed in `CodingMAIN.md` §4,
+  `AGENTS.md`, `prompts/my-coding-rules.md` (commit `dc41c79`); the write is
+  logged at the top of `docs/demo-db-data-changes.md` (that file stays
+  **UNSTAGED** per the standing rule).
+- **Prompt updated:** `prompts/pi-prompt-notif-manage-hide.md` now says
+  "already applied — do not recreate" in the header, §2.1, a new trap 6, §4, §5
+  and the checklist.
+- **New reusable asset:** `prompts/PI-PROMPT-TEMPLATE.md` (commit `0e99119`) —
+  the system-wide PI prompt template. It is **committable** (it does not match
+  the local-only `.gitignore` pattern `prompts/pi-prompt-*.md`).
+- **Still NOT started:** the hide feature itself — no component/view/CSS/test/
+  changelog work. §0.7 D's test lane stays parked; do not mix.
 
 ---
 
