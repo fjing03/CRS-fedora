@@ -17,6 +17,7 @@
 | **In scope** | `<<files / dirs this task may touch>>` |
 | **Out of scope** | `<<what must NOT be touched — other pages, other lanes, other sessions' files>>` |
 | **Deliverable** | `<<findings report` or `code + tests + changelog + receipts>>` |
+| **SDD** | `<<lane name` or `skip — one-line reason>>` (see §3b) |
 | **DB impact** | `<<none` or `testing DB only` or `demo DB — user-gated per write>>` |
 | **Done when** | `<<3–5 measurable bullets>>` |
 
@@ -50,6 +51,31 @@ first message.
 SDD lanes, the parked test lane, unrelated formatting/renames, other sessions'
 uncommitted files. If you believe an out-of-scope file truly must change,
 **stop and ask** — do not "while I'm here" it.
+
+## 3b. SDD — use it when it earns its keep, skip it when it does not
+
+**Open a lane** (`/sdd-propose` → `/sdd-apply` → `/sdd-verify` → archive, or the
+`sdd-workflow` skill; artefacts in `.sdd/changes/<kebab-name>/`: `proposal.md`,
+`design.md`, `specs/`, `tasks.md`, `review-log.md`, `sdd.yaml`) when the task is
+**any** of:
+
+- **multi-file or cross-layer** — data model + Livewire/Blade + CSS + tests;
+- a **new feature or page**, or a change to a state machine, permission,
+  lifecycle or a shared contract other pages consume;
+- requirements that still need settling, or more than one viable design;
+- likely to **span sessions**, or to need review before implementation;
+- anything touching the **demo DB schema** or a migration.
+
+**Skip SDD** — and say so in one line in your report — when the task is:
+
+- a single-file fix, CSS/copy tweak, colour-token swap, or a mechanical
+  follow-up of an already-approved lane;
+- a **read-only investigation** with no code change;
+- small enough that the paperwork would outgrow the diff.
+
+**If in doubt, ask the user** — never silently skip on a medium task. If the
+user explicitly waives SDD, record `SDD-waived w/ user approval` in the commit
+message **and** the changelog.
 
 ## 4. Constraints (repo laws — apply as-is)
 
@@ -102,7 +128,8 @@ uncommitted files. If you believe an out-of-scope file truly must change,
 ## 6. Expected outputs
 
 - **Implement:** the diff, the changelog entry, the receipts, the commit
-  hash(es) — and nothing else.
+  hash(es) — plus the SDD lane artefacts when §3b said to open one — and
+  nothing else.
 - **Investigate:** findings with evidence, root cause, options, recommendation,
   and the exact files that *would* change.
 
@@ -130,4 +157,5 @@ uncommitted files. If you believe an out-of-scope file truly must change,
 2. **Receipts** — command → result (numbers, not adjectives).
 3. **Notes / risks** — anything the user must know, including what you did *not*
    verify.
-4. **Commits** — hash(es) + "nothing pushed".
+4. **Commits** — hash(es) + "nothing pushed", and the **SDD state** (`lane
+   <name> — applied / archived` or `skipped — why`).
