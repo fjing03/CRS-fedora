@@ -25,7 +25,11 @@
 ## 1. Read first (every task, non-negotiable)
 
 - `PI_Chat_Context_Handover.md` — §0 Quick Status + the **latest** §0.x addendum.
-- `AGENTS.md` and `prompts/my-coding-rules.md`.
+- **`prompts/my-coding-rules.md` — the user's own rulebook: read it in full and
+  obey it before writing any code** (the 10 UI rules, the canonical colour map,
+  OOP/PHP/naming, the commit/SDD policy). `AGENTS.md` + `CodingMAIN.md` §10 are
+  the long form; where they differ, the stricter reading wins.
+- `AGENTS.md`.
 - `CodingMAIN.md` §10 (conventions + the 10 UI rules); **§4 Database safety** if
   any DB or migration work is involved.
 - The closest existing implementation of the same pattern — `<<path>>` — and,
