@@ -560,3 +560,106 @@ change; the bell island is shared but the change is visually confined to
 - Gates: `composer run lint:check` passed · PHPStan 0 errors (1G).
 - Never touched: `class_replacement_fresh` / `class_replacement_demo` (no
   snapshot needed — zero writes), no `--env=testing` anywhere.
+
+## 2026-11-02 (lane `notif-manage-hide`, the user's approved design) — batch hide + the find-back shelf
+
+The panel accumulated every notification forever (rows are never deleted by
+design), so "clear the clutter" had no answer. Now the user can put away the
+rows they are DONE with — and always get them back.
+
+### Data (no new migration in this lane)
+`notifications.hidden_at` (nullable timestamp + `(user_id, hidden_at)` index)
+already existed and showed **Ran on all three DBs** (verified by direct
+`information_schema`/`pg_indexes` reads before touching anything; commit
+`5af11a6`) — **not recreated**. Hide = stamp `hidden_at = now()`, unhide =
+`NULL`. **No row is ever deleted, and no "cannot be undone" copy exists
+anywhere.**
+
+### The gate (server-side, the badge's exact complement)
+Hideable ⇔ `read_at !== null || inactive_reason !== null` — literally the
+negation of the badge predicate (`read_at === null && inactive_reason ===
+null`), so **hideable ∩ badge-counted = ∅** and the `render()` badge block is
+untouched by construction. `inactive_reason` is PHP-derived, never a column,
+so every posted id is RE-VALIDATED in `hideSelected()` (a tampered, stale or
+foreign id is dropped silently, never written) — proven by a tamper receipt.
+
+### The states
+- **Inbox**: `Notifications` + unread pill + **icon-only Mark all**
+  (`#notifMarkAll` kept; id + `wire:click` load-bearing) + **Manage** (rendered
+  only when ≥1 hideable row exists) + Close.
+- **Manage mode**: the filter row is REPLACED by `N of M selected` ·
+  `Select all` · `Clear`, under it the honest caption
+  `Notifications that still need you can't be hidden.`; the list is ONLY the
+  hideable rows, **pre-ticked on entry**, each row a `<label>` + `.bulk-checkbox`
+  (the promoted pair reused, not cloned — and no `<button>` inside an `<a>`);
+  footer `N selected` + neutral ghost `Hide selected` (`.btn-outline`: no red,
+  no blue — hiding is reversible). Leaving manage mode writes nothing.
+- **Hidden shelf** (footer quiet link `Hidden (N)`): title
+  `Hidden notifications` + icon-only Back (`aria-label="Back to inbox"`),
+  bar `N hidden` · `Unhide all`, dimmed non-anchor rows with a small `Unhide`,
+  footer note `Hidden notifications stay in your mailbox — restore them
+  anytime.`, empty shelf `Nothing hidden — everything is back in your inbox.`
+- **Undo toast** (no confirm modal): `N notifications hidden · Undo restores
+  them` (singular `1 notification hidden · Undo restores them`). It lives in
+  **component state (`$undoIds`)** and is rendered BY the component, so the
+  10 s `wire:poll` morph cannot wipe it; its 12 s timer calls `dismissUndo()`
+  (12 s chosen deliberately so a poll cycle happens WHILE it is up — the
+  poll-safety is observable, not just claimed).
+
+### The find-back guarantee
+`Hidden (N)` sits OUTSIDE the list/empty branches, so it also renders in the
+**empty/caught-up state** — measured live: catching-up view + `Hidden (1)`
+together. It disappears at N = 0.
+
+### CSS (`theme.css`)
+- `#notifMarkAll` **REWRITTEN**, not layered: the old 44px text-button sizing
+  squeezed the 16px svg to ~10px and looked faded. It is now the 30px square
+  icon button of the Close/Manage family (measured 30×30, svg 16px).
+- New dated block: `.notif-iconbtn`, `.notif-manage-bar`, `.notif-bar-count`,
+  `.notif-bar-btn`, `.notif-caption`, `.notif-row--pick` (4-track grid),
+  `.notif-row--hidden` + `.nr-right` + `.notif-unhide`, `.notif-foot`
+  (+`--manage`), `.notif-foot-link`, `.notif-foot-count`, `.notif-foot-note`,
+  `.notif-undo` + `.notif-undo-btn`. Tokens only; `.bulk-checkbox` /
+  `.row-selected` reused, never re-declared.
+- `#notifTypeFilter` spans the whole filter row (`flex: 1 1 100%; width: 100%`)
+  on its own line under the two toggles; its native `title` is REMOVED (one
+  tooltip system only) and it gains `data-tip="Filter the list by notification
+  type."`. Both toggle tips are unchanged verbatim.
+
+### Tooltips
+All six ride the SHARED `data-tip` + `.data-tip-tooltip` system (no new
+mechanism); the two-line tips use `&#10;`. Verified live (dark + light):
+pill, Mark all, Manage, Hidden (N), type select, close, and the unchanged
+unread toggle copy.
+
+### Receipts
+- **PHPUnit** `NotificationsBridgeTest` **18/18** (14 pre-existing + 4 new:
+  manage pre-ticks only hideable rows, hide is reversible and never deletes,
+  hiding never moves the badge / hidden rows leave the inbox / shelf round
+  trip, and the authorisation scope that refuses foreign ids). Full suite
+  **291/291**.
+- **Playwright write lane** `tests/notifications-hide-manage.spec.ts` (NEW,
+  :8030 only — the receipt-target guard aborts a bare/demo run; id-keyed
+  fixture sweeps per test): **5/5 × 2 runs**, 0 hidden + 0 residue after each.
+  Covers the full loop (pre-tick count → untick → Hide → undo toast → poll
+  survival at 10.5 s → Undo restore → re-hide → shelf → Unhide → Unhide all →
+  empty shelf → Back with the link gone) and "leaving manage mode changes
+  nothing".
+- **Playwright read-only** `tests/notifications-island.spec.ts` **10/10 × 2
+  (demo DB untouched: 5 rows, 0 hidden)**: the new layout receipt — type select
+  width == the filters row's content width (326 = 326 at the 360px panel), 36px
+  height, no native `title`, the head has no overflow, Mark all is 30×30 with a
+  16px glyph, and Manage appears exactly when a hideable row exists (the count
+  taken with the view filter OFF — the filter legitimately hides read rows).
+- Read-only geometry sweep at **320 / 360 / 390 / 1280** and in **dark +
+  light**: head overflow FALSE at every width; select width == row content
+  width at every width; screenshots in `/tmp/opencode/`
+  (`hide-inbox|manage|undo|shelf|shelf-empty|back-inbox-*`, `hide-empty-with-link.png`).
+- Gates: pint passed · PHPStan 0 errors (1G) · `node --check` on the shared JS
+  (untouched here) · no new dependencies · no other page affected.
+
+### Lane note (deviation, recorded honestly)
+The prompt's §6 suggested extending `tests/notifications-island.spec.ts` with
+the write loop; that spec runs on the DEMO mailbox, which this lane treats as
+read-only. The write loop therefore lives in its own guarded spec on the
+disposable testing DB, and the island spec got the READ-ONLY layout half.
