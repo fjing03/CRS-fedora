@@ -2538,3 +2538,42 @@ armed → accepted; pre-existing law) → picker hidden AND `.slot-dd-item` /
 `.selected` counts **0 document-wide** (hidden rows included). Gates: pint
 passed, PHPStan 0 errors (1G), full PHPUnit suite green-suite run recorded in
 the same evening.
+
+## 2026-11-02 (lane `arr-span-follow-subject-switch`, SDD-waived by the user) — the block width follows the picked occurrence after a subject switch
+
+BUG (the user's report): on `/replacement-arrangement?session=99&week=8` the
+2 h lecture arrival is correct, but switching the subject to **BMSE2163
+(1 h practical, Week 14 Thu 12:00–1:00)** left the hover preview of
+"Select these slots" painting **four cells (2 hours)** — and the payload
+would have booked 2 h for a 1 h class.
+
+### Root cause (why the prior fix returned)
+The Oct-24 fix (commitSlotSelection: the block width follows the picked
+slot's duration; `MAX_SELECTION` flexes to the committed span) is intact, but
+its F-8 width guard excludes BLOCK-SPAN resizes for `urlSpanLocked && opts.auto`.
+The guard was written when `opts.auto` meant ONLY the boot URL-default pick.
+The conflict-subject-switch-autoselect fix (2026-11-01) then began routing the
+POST-boot subject-switch pick through `selectSlot(..., { auto: true })` too —
+under a `?session=` arrival `urlSpanLocked` is TRUE, so every post-boot
+switch to a shorter occurrence kept the arrival's span (4) instead of the
+picked occurrence's own (2). The trigger label and the picker row were honest
+("12:00 PM - 1:00 PM"); the GRID block was stale.
+
+### The fix (root-cause, minimal)
+`applySubjectChange`'s post-boot tail now commits its auto pick with
+`opts.subjectSwitch: true`, and `commitSlotSelection`'s F-8 width lock skips
+NOTHING for that class:
+`!(urlSpanLocked && opts.auto && !opts.subjectSwitch)`.
+The boot classes (URL default pick, recent/first-option fallbacks) keep
+`{ auto: true }` and the original F-8 authority untouched; the manual path is
+untouched.
+
+### Receipt
+`tests/arrangement-conflict-autoselect.spec.ts` gains the span test (6/6 with
+the main receipt + the Item-1 quirk, TWO runs, between-run fixture state 0,
+read-only over the demo DB; fixtures on :8030): the arrival paints the hover
+preview 4 cells; the switch to BMSE2163 now paints **2** and its row reads
+"12:00 PM"; the switch back to AMSE1003 paints **4** again. The witness is
+the DOM-painted preview's width math (span state is closure-private —
+BLOCK_SPAN/previewRange deliberately not exported; no app debug hooks added).
+Gates: pint passed, PHPStan 0 errors (1G), full PHPUnit suite 280/280.
