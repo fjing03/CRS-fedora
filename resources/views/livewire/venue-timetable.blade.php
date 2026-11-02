@@ -822,10 +822,21 @@
                                    dropped the rest, so a pending block lost "(Pending
                                    since …)" and a cancelled block lost "(Cancelled)".
                                    `buildReplacementNote` is the SHARED renderer the
-                                   other two pages already use — no ownership filter,
-                                   because the venue page annotates everyone's blocks
-                                   (the Replaced-for arm already did). */
-                                buildReplacementNote(e);
+                                   other two pages already use — WITH the ownership
+                                   gate (2026-11-02 fix, user report): the notes
+                                   carry REQUEST facts ("Pending since 02 Nov 2026",
+                                   "Proposed ⏳"), and another lecturer must not read
+                                   them off the room screen. The predicate mirrors
+                                   this page's own ownership law (`mine` = server
+                                   truth: the class's lecturer, or the request's
+                                   proposer on an amber block) with the cohort page's
+                                   name fallback. */
+                                buildReplacementNote(e, {
+                                    checkOwnership: function (ev) {
+                                        return ev.mine === true
+                                            || ev.lecturer === MockData.currentUser?.name;
+                                    }
+                                });
                             div.addEventListener('click', function () { openModal(e); });
                             td.appendChild(div);
                             if (info.span > 1) td.colSpan = info.span;   // parity: builder sets it only when span > 1

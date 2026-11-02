@@ -1,3 +1,36 @@
+## 2026-11-02 (user bug report) — the request notes are owner-only
+
+**The leak.** Signed in as **staff 5770** (not the class owner), the venue page
+still printed the request facts on someone else's block:
+`(Pending since 02 Nov 2026)` on the amber make-up block and `(Proposed ⏳)` on
+the conflict occurrence of **AMSE2003(P)** (class #40, lecturer Surayaini).
+
+**Cause.** The 2026-11-02 `venue-status-parity` fix routed this page's block
+notes through the shared `buildReplacementNote()` **without** the
+`checkOwnership` option — chosen then to keep `(Replaced for …)` visible to
+everyone, as the old hand-rolled arm did. That also un-hid the *request* notes,
+which is new information another lecturer must not read off the room screen.
+
+**Fix (one call site).** `buildReplacementNote(e, { checkOwnership })` with the
+page's own ownership law:
+
+```js
+checkOwnership: ev => ev.mine === true || ev.lecturer === MockData.currentUser?.name
+```
+
+`mine` is the server truth this page already uses for borders and `Replace Now`
+(the class's lecturer, and — on an amber block — the request's proposer), with
+the cohort page's name fallback. Consequence, for consistency with
+`/cohort-timetable` and `/my-timetable-ui`: **every** `.ev-note` on another
+lecturer's block is now hidden, including `(Replaced for …)` and `(Cancelled)` —
+the note is a fact about the class's own record, not room signage. The block
+colour, the popup and the summary cards are unchanged for everyone.
+
+**Receipt** (`tests/venue-note-privacy.spec.ts`, new, read-only, demo DB never
+written — two logged-in contexts): as **5425** the amber block carries
+`(Pending since 02 Nov 2026)` and the W14 block `(Proposed ⏳)`; as **5770** both
+blocks render identically with `.ev-note` count **0** on each, zero page errors.
+
 ## 2026-11-02 (SDD `venue-status-parity` — the user's bug report) — the venue page finally reads the shared conflict-fact contract
 
 **The report** (`prompts/BUG Investigation — Venue Timetable & Cohort Timetable.md`):
