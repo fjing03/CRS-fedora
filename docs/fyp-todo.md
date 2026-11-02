@@ -62,32 +62,38 @@ follow-up — survey data has the longest lead time of anything on this list.
 - [ ] Click through the demo beats once (venue → class modal → arrange → submit → approve → student view)
 - [ ] Pack: charger, screenshots in `/tmp/opencode/shots/`, a fallback plan if `:8001` dies (restart command is in `docs/viva-demo-runbook.md`)
 
-### Tue 3 Nov — **SV progress demo**
-- [ ] 08:00 sanity: `:8001` up, login works, demo DB counts look sane (169 users / 3 requests / 7 notifications)
-- [ ] Run the demo (story = `docs/viva-demo-runbook.md` beats 1–8, adapted)
-- [ ] **Confirm the portfolio/viva date**, then write SV feedback + decisions into §7 of this file (10 min)
+### Tue 3 Nov — **your plan: demo → timestamp fix → SMTP**
 
-### Wed 4 Nov — approved fix day
-- [ ] 🔴 Implement the notification timestamp fix **A+B+C** from
-      `prompts/pi-bug-notification-requested-at-timezone.md` (helper + closures + `reviewedAt` + test)
-- [ ] Verify live: Request #26 tooltip `2 Nov 2026, 7:00 PM`; history modal Requested **and** Reviewed in MYT
-- [ ] Commit the fix (no push); cross the task off §4 H2
+- [ ] **Task 0 — sanity check + SV demo (morning).**
+      08:00: `:8001` up, login as **5425**, demo DB sane (169 users / 3 requests / 7 notifications).
+      Run the story (`docs/viva-demo-runbook.md` beats 1–8), then **confirm the portfolio/viva date**
+      and write the SV feedback into §7 (10 min).
+- [ ] **Task 1 — the timestamp fix A+B+C** (`prompts/pi-bug-notification-requested-at-timezone.md`).
+      Implement → verify live (Request #26 tooltip `2 Nov 2026, 7:00 PM`; history modal Requested
+      **and** Reviewed in MYT) → commit. Cross off §4 H2.
+      *If this slips past ~16:00, move it to Wednesday morning — never rush it between meetings.*
+- [ ] **Task 2 — Gmail SMTP flip** (recipe + the corrected 10-row table:
+      `docs/queue-and-emails.md` § "Real sending — the Gmail SMTP flip").
+      Order: fill `.env` → `config:clear` → send one `Mail::raw` **to yourself** →
+      only then test the queued path. **Decide the recipient-safety posture before flipping**
+      (real `tarc.edu.my` addresses vs revert to `log` for the demo). App Password never pasted anywhere.
+      Cross off §4 M2 once a real message lands in your inbox.
 
-### Thu 5 Nov — frozen lane day
+### Wed 4 Nov — frozen lane day (or the timestamp fix, if it moved)
 - [ ] 🔴 Apply `ui-footer-global` from `prompts/pi-ui-footer-global.md` (5 tasks, ~2 h)
 - [ ] Verify: bottom-pinned, 390 px no clipping, light + dark, print hidden, login strip legible
 - [ ] Changelog + commit; cross off §4 H4
 
-### Fri 6 Nov — decisions + long-lead work
+### Thu 5 Nov — decisions + long-lead work
 - [ ] 🟡 Read `docs/replacement-arrangement-pending-bugs.md` and give a verdict per bug (fix / accept / WONTFIX) — 30–45 min
 - [ ] 🔴 Survey status: if responses are still not collected, distribute both forms this week (longest lead time)
 - [ ] Weekly review: re-plan next week (15 min)
 
-### Sat 7 Nov — writing (1–2 h)
+### Fri 6 Nov — writing (1–2 h)
 - [ ] 🟡 Report §3.3.6 domain-model write-up + §3.3.1 overview paragraph (see `knowledge/Draft Review …md` §3)
 
-### Sun 8 Nov — rest / buffer
-- [ ] Only if behind: survey follow-up or finish the Friday bug verdicts
+### Sat 7 – Sun 8 Nov — rest / buffer
+- [ ] Only if behind: survey follow-up, finish the bug verdicts, or catch up the timestamp fix
 
 ---
 
@@ -147,9 +153,10 @@ follow-up — survey data has the longest lead time of anything on this list.
 - [ ] Paste the table into `docs/viva-demo-runbook.md`; no number before it is measured
 
 **M2 · Email/SMTP pack (demo week)**
-- [ ] Decide the SMTP route with SV/IT (runbook says Gmail was approved) and flip `.env`
-- [ ] `queue:work --once` receipts in `storage/logs/laravel.log`
-- **Depends on:** credentials (you), not code.
+- [ ] Flip `.env` per the corrected 10-row table in `docs/queue-and-emails.md` (`MAIL_SCHEME` stays `null` — there is no `MAIL_ENCRYPTION` in Laravel 12)
+- [ ] One direct `Mail::raw` to yourself lands in the inbox, then one queued message after `queue:work --once`
+- [ ] Decide the recipient-safety posture for the demo (real `tarc.edu.my` addresses vs revert to `log`)
+- **Depends on:** the App Password (you), not code.
 
 **M3 · Ch4 System Design**
 - [ ] Confirm what exists vs the Chapter-4 requirements (`knowledge/FYP1 Ch4 System Design Requirements.md`)
