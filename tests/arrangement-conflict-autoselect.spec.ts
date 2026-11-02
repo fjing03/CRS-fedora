@@ -180,3 +180,34 @@ test('subject switch auto-selects the matching conflict slot (the bug fix)', asy
   // criteria 8, second half: after the flow, no modal lingers OPEN
   expect(await page.locator('#confirmModal').evaluate((el) => getComputedStyle(el).display)).not.toBe('block');
 });
+
+test('the hidden-stale-panel quirk: clearing the subject clears the hidden panel', async ({ page }) => {
+  test.skip(!ALLOWED, 'testing-DB-only receipt (:8030)');
+  await login(page);
+
+  // the reachable zero-slot path (buildSubjectDropdown only OFFERS
+  // conflict-bearing subjects — a conflict-free subject cannot be picked;
+  // the mid-session '' re-select is the way applySubjectChange('') runs)
+  await page.goto(`${BASE}/replacement-arrangement?session=99&week=8&from=replacement-home`);
+  await page.waitForTimeout(2500);
+  expect(await page.locator('.slot-dd-item').count()).toBe(1);
+  expect(await page.locator('.slot-dd-item.selected').count()).toBe(1);
+
+  // the arrival's block is armed → the house clear-guard pops on the subject
+  // reset; the user answers 'Yes, Change' (the same-path discard)
+  await page.selectOption('#subjectSelector', '');
+  await page.waitForTimeout(1500);
+  await acceptChangeModalIfOpen(page);
+  await page.waitForTimeout(1500);
+
+  // THE QUIRK'S LAW: the picker is hidden AND the panel EMPTY — document-wide
+  // .slot-dd-item counts (the old bug left the previous subject's rows + their
+  // .selected hidden in the DOM after this exact sequence)
+  expect(await page.locator('#slotPicker').evaluate((el) => getComputedStyle(el).display)).toBe('none');
+  expect(await page.locator('.slot-dd-item').count()).toBe(0);
+  expect(await page.locator('.slot-dd-item.selected').count()).toBe(0);
+  expect(await page.locator('.slot-dd-item.selected').count()).toBe(0);
+  // NOTE (pre-existing, out of scope): the '' branch leaves the strip's trigger
+  // label as the arrival anchor wrote it — the session-arrival doctrine owns
+  // the trigger; Item 1 only guarantees the PANEL history is dead.
+});
