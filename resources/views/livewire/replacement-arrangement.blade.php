@@ -3672,6 +3672,14 @@ ${(fallbackAttribution && intentReason === 'in-the-way')
 
             if (!slots || slots.length === 0) {
                 picker.style.display = 'none';
+                /* the hidden-stale-panel quirk (the user's Item 1, SDD-waived
+                   2026-11-01): the return used to skip the panel clear, so the
+                   PREVIOUS subject's rows — INCLUDING their `.selected` class —
+                   survived hidden in the DOM. Clear the panel alongside hiding;
+                   the TRIGGER state stays untouched (the caller owns it:
+                   selectedOriginalSlot is already null at both call sites and
+                   writeSlotTriggerFromAnchor/placeholder run after). */
+                panel.innerHTML = '';
                 return;
             }
             
