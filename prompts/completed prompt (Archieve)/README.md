@@ -29,7 +29,6 @@ a reason to archive.
 | `sdd-propose-ui-page.md` | Auto-referenced by `AGENTS.md` — every new UI page must read it |
 | `sdd.md` | Living SDD tracker (index of applied / in-progress / queued) |
 | `context-transfer-prompt.md` | Tooling: moves context between sessions |
-| `pi-prompt-notif-manage-hide.md` | **Active**: the batch-hide feature is not built yet |
 | `pi-summary-cards-confirmed-pending.md` | **Awaiting the user**: two assumptions still unanswered (plain vs split Total Slots; always `X+Y` or plain `X` when Y=0) |
 | `pi-tidy-arrangement-cell-tooltips.md` | Lane `.sdd/changes/rearrangement-toolbar-tooltips` is `status: active` |
 | `pi-prompt-UIUX Update Replacement Arrangement Toolbar.md` | Same active lane as above |
@@ -58,6 +57,7 @@ a reason to archive.
 | `pi-prompt-Bug Conflict Schedule and Slot D.md` | Lane `conflict-schedule-header-status-tip` = `status: applied` |
 | `pi-bug-arrangement-reentry-after-pending.md` | Entry-guard fix shipped: `62cbbb0` (fix) + `b0685ae` (tests) + `99329be` (changelog) |
 | `pi-prompt-notif-type-filter-redesign.md` | `210a232` (notifTypeFilter re-skin) + `f0b7215` (changelog) |
+| `pi-prompt-notif-manage-hide.md` | Batch hide + hidden shelf shipped: `467357b` (feat) + `f5cc56d` (ui) + `fc81dd3` (test) + `405b4a3` (changelog); receipts 291/291 PHPUnit + 5/5 and 10/10 Playwright |
 | `Investigate Livewire JavaScript.md` | Investigation delivered: `docs/Livewire-JS-Investigation-Report.md` + `docs/livewire-js-investigation.md` (`7107abb`) |
 | `pi-prompt-session-handoff-2026-10-24.md` | Superseded by `prompts/for-ai-to-read/PI_Chat_Context_Handover.md` |
 | `pi-prompt-too-late-red-cells.md` | Landed in `page-changelogs/venue-timetable-ui-changelog.md` ("too late" read-only cells) |
