@@ -593,4 +593,145 @@ final class ReplacementArrangementTest extends TestCase
         $payload = $this->payloadOf($this->lecturerA);
         $this->assertNotContains([2, 2, 6], $payload['busyByWeek'][(string) $sessionA->id][6], 'week 7 (idx 6): cancelled cohort class frees its cells');
     }
+
+    /* ── ENTRY GUARD (lane arrangement-entry-guard, 2026-11-02) ──────────
+       The user's rule: PREVENT entry for an occurrence that is already under
+       an ACTIVE (pending/approved) replacement request — "only unproposed +
+       self/own classes". Ownership was already enforced; this is the
+       "unproposed" half, in TWO layers:
+         A) mount()      — every FRESH entry (typed URL, link, deep-link, F5)
+         B) revalidateEntry() — the bfcache restore (Back after submitting)
+    */
+
+    private function activeRequestFor(ClassSession $session, int $week, string $status = 'pending'): ReplacementRequest
+    {
+        return ReplacementRequest::create([
+            'semester_id' => $this->semester->id,
+            'proposer_id' => $this->lecturerA->id,
+            'class_session_id' => $session->id,
+            'week_number' => $week,
+            'replacement_time_slot_id' => $this->createSlot(4, 3, '14:00:00')->id,
+            'status' => $status,
+            'submitted_at' => now(),
+        ]);
+    }
+
+    public function test_entry_guard_blocks_a_pending_occurrence_on_a_fresh_entry(): void
+    {
+        // Layer A — the initial mount is the guard's home: F5, a typed URL, a
+        // my-timetable link and a notification deep-link all pass through it.
+        $session = ClassSession::query()->where('lecturer_id', $this->lecturerA->id)->firstOrFail();
+        $this->activeRequestFor($session, 5);
+
+        Livewire::actingAs($this->lecturerA)
+            ->withQueryParams(['session' => (int) $session->id, 'week' => 5, 'from' => 'my-timetable'])
+            ->test(ReplacementArrangement::class)
+            ->assertRedirect('/my-timetable-ui?blocked=request-pending');
+    }
+
+    public function test_entry_guard_blocks_an_approved_occurrence_and_defaults_the_landing(): void
+    {
+        // Same rule for an approved request (the occurrence is handled either
+        // way; management lives in My Request History) and the DEFAULT landing
+        // when `from` is absent/unknown — the replacement home.
+        $session = ClassSession::query()->where('lecturer_id', $this->lecturerA->id)->firstOrFail();
+        $this->activeRequestFor($session, 6, 'approved');
+
+        Livewire::actingAs($this->lecturerA)
+            ->withQueryParams(['session' => (int) $session->id, 'week' => 6])
+            ->test(ReplacementArrangement::class)
+            ->assertRedirect('/replacement-home-ui?blocked=request-approved');
+    }
+
+    public function test_entry_guard_lets_a_rejected_or_cancelled_occurrence_through(): void
+    {
+        // D1 PARITY — only pending/approved block. A rejected (or cancelled /
+        // completed) request leaves the occurrence UNPROPOSED again, so the
+        // page must load normally (the withdrawal loop's acceptance).
+        $session = ClassSession::query()->where('lecturer_id', $this->lecturerA->id)->firstOrFail();
+        $this->activeRequestFor($session, 7, 'rejected');
+
+        $component = Livewire::actingAs($this->lecturerA)
+            ->withQueryParams(['session' => (int) $session->id, 'week' => 7])
+            ->test(ReplacementArrangement::class);
+        $component->assertNoRedirect();
+
+        $payload = null;
+        $component->assertViewHas('payload', function (array $p) use (&$payload): bool {
+            $payload = $p;
+
+            return true;
+        });
+        $this->assertSame((int) $session->id, $payload['pinnedSession']['id'], 'the pin still boots for an unproposed occurrence');
+    }
+
+    public function test_entry_guard_never_blocks_another_lecturers_occurrence(): void
+    {
+        // Ownership no-regression (FR 2.11): a foreign pair never blocks — it
+        // simply resolves to no pin (the page loads exactly as today).
+        $foreign = ClassSession::query()->where('lecturer_id', $this->lecturerB->id)->firstOrFail();
+        ReplacementRequest::create([
+            'semester_id' => $this->semester->id,
+            'proposer_id' => $this->lecturerB->id,
+            'class_session_id' => $foreign->id,
+            'week_number' => 5,
+            'replacement_time_slot_id' => $this->createSlot(4, 3, '14:00:00')->id,
+            'status' => 'pending',
+            'submitted_at' => now(),
+        ]);
+
+        $component = Livewire::actingAs($this->lecturerA)
+            ->withQueryParams(['session' => (int) $foreign->id, 'week' => 5])
+            ->test(ReplacementArrangement::class);
+        $component->assertNoRedirect();
+
+        $payload = null;
+        $component->assertViewHas('payload', function (array $p) use (&$payload): bool {
+            $payload = $p;
+
+            return true;
+        });
+        $this->assertNull($payload['pinnedSession'], 'a foreign pin is still nulled, not guarded');
+    }
+
+    public function test_revalidate_entry_blocks_the_live_pin_on_bfcache_restore(): void
+    {
+        // Layer B — the Back-after-submit path. The client sends the LIVE PIN
+        // first (URL-vs-pin doctrine: the URL lags a post-boot subject switch).
+        $session = ClassSession::query()->where('lecturer_id', $this->lecturerA->id)->firstOrFail();
+        $this->activeRequestFor($session, 8);
+
+        // mount WITHOUT the blocked pair (layer A would already redirect);
+        // this test is about the bfcache ACTION, which is what the client
+        // fires on pageshow — and it carries `from` explicitly (a Livewire
+        // update POST has no query string of its own).
+        Livewire::actingAs($this->lecturerA)
+            ->test(ReplacementArrangement::class)
+            ->call('revalidateEntry', (int) $session->id, 8, (int) $session->id, 3, 'my-timetable')
+            ->assertReturned('/my-timetable-ui?blocked=request-pending');
+    }
+
+    public function test_revalidate_entry_falls_back_to_the_url_pair_without_a_pin(): void
+    {
+        // Anchor-less states carry no pin — the URL pair is then the truth.
+        $session = ClassSession::query()->where('lecturer_id', $this->lecturerA->id)->firstOrFail();
+        $this->activeRequestFor($session, 9);
+
+        Livewire::actingAs($this->lecturerA)
+            ->test(ReplacementArrangement::class)
+            ->call('revalidateEntry', null, null, (int) $session->id, 9)
+            ->assertReturned('/replacement-home-ui?blocked=request-pending');
+    }
+
+    public function test_revalidate_entry_is_a_silent_no_op_for_an_unproposed_occurrence(): void
+    {
+        // The bfcache comfort stays: a NON-submitted occurrence restores as-is.
+        $session = ClassSession::query()->where('lecturer_id', $this->lecturerA->id)->firstOrFail();
+
+        Livewire::actingAs($this->lecturerA)
+            ->withQueryParams(['session' => (int) $session->id, 'week' => 4])
+            ->test(ReplacementArrangement::class)
+            ->call('revalidateEntry', (int) $session->id, 4, (int) $session->id, 4, 'my-timetable')
+            ->assertReturned(null);
+    }
 }
