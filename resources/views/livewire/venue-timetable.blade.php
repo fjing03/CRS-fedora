@@ -338,19 +338,47 @@
                    Replace Now = OWN + the conflict fact (the viewed week —
                    the venue grid is week-scoped, the FACT-week-only law by
                    construction); Cancel = the isCancellable guards. */
+                /* venue-status-parity T4 (bugs #4/#12): the gate is the SERVED
+                   exact-pair conflict fact — the same datum my-timetable reads.
+                   `occurrenceFact` is null when a live proposal/approval already
+                   HANDLES the pair (no button — a dead end) and null on a normal
+                   week, while a cancelled / holiday pair carries one (button).
+                   The hand-rolled `status === 'conflict'` heuristic missed the
+                   holiday half and could not see a proposal. Livewire's marker
+                   morph can blank the DOM clone's extra key, so the truth is
+                   re-read from the SERVED array by id+di. */
                 const rn = document.getElementById('btnReplaceNow');
                 if (rn) {
                     const isMine = event.mine === true || event.lecturer === MockData.currentUser?.name;
-                    rn.style.display = (isMine && event.status === 'conflict') ? 'flex' : 'none';
+                    let stamped = event;
+                    try {
+                        /* identity = sessionId + day + start (NOT `id`: the derived
+                           holiday family carries id = null, so an id match would
+                           pair one block's fact with another's and show a
+                           dead-end button). */
+                        (eventsData[currentWeek] || []).forEach(function (x) {
+                            if (x && x.sessionId === event.sessionId
+                                && x.di === event.di && x.start === event.start
+                                && x.occurrenceFact) {
+                                stamped = x;
+                            }
+                        });
+                    } catch (e) { /* pre-boot: the clone is the truth */ }
+                    rn.style.display = (isMine && stamped.occurrenceFact) ? 'flex' : 'none';
                 }
-                CancelClass.renderButton(
-                    document.querySelector('#classModal .modal-footer'),
-                    event, weekData[currentWeek].days, currentWeek,
-                    function () {
-                        closeModal();
-                        buildTimetable();
-                    }
-                );
+                /* venue-status-parity T4 (bug #7): an already-cancelled class must
+                   not offer "Cancel Class?" — the action is spent (the other pages
+                   hide it on the cancelled block). */
+                if (event.status !== 'cancelled') {
+                    CancelClass.renderButton(
+                        document.querySelector('#classModal .modal-footer'),
+                        event, weekData[currentWeek].days, currentWeek,
+                        function () {
+                            closeModal();
+                            buildTimetable();
+                        }
+                    );
+                }
             }
 
             function closeModal() {
@@ -771,8 +799,14 @@
                                 div.classList.add(e.mine ? 'event-mine-replacement' : 'event-others-replacement');
                             } else if (e.status === 'pending') {
                                 div.classList.add(e.mine ? 'event-mine-pending' : 'event-others-pending');
-                            } else if (e.status === 'conflict') {
-                                // owner-gated: mine loud 3px red; others' hairline red (§10.0 two-axis)
+                            } else if (e.status === 'conflict' || e.status === 'cancelled') {
+                                /* owner-gated: mine loud 3px red; others' hairline red
+                                   (§10.0 two-axis). venue-status-parity T4 (bug #2):
+                                   a CANCELLED class is red too — the class will not
+                                   run, which is the same thing the conflict colour
+                                   means. `event-public-holiday` is the shared
+                                   hairline-red class for the OTHER lecturer's red
+                                   blocks (colour = status, border = ownership). */
                                 div.classList.add(e.mine ? 'event-conflict' : 'event-public-holiday');
                             } else {
                                 div.classList.add(e.mine ? 'event-mine' : 'event-others');
@@ -783,9 +817,15 @@
                                 '<span class="ev-code">' + e.code + '(' + e.type + ')</span>' +
                                 '<span class="ev-venue">' + e.venue + '</span>' +
                                 '<span class="ev-time">' + startTime + ' - ' + endTime + '</span>' +
-                                (e.status === 'replacement' && e.remarks
-                                ? '<span class="ev-note">(Replaced for ' + e.remarks + ')</span>'
-                                : '');
+                                /* venue-status-parity T4 (bugs #1/#2/#3/#8): the
+                                   venue page hand-rolled ONE note arm and silently
+                                   dropped the rest, so a pending block lost "(Pending
+                                   since …)" and a cancelled block lost "(Cancelled)".
+                                   `buildReplacementNote` is the SHARED renderer the
+                                   other two pages already use — no ownership filter,
+                                   because the venue page annotates everyone's blocks
+                                   (the Replaced-for arm already did). */
+                                buildReplacementNote(e);
                             div.addEventListener('click', function () { openModal(e); });
                             td.appendChild(div);
                             if (info.span > 1) td.colSpan = info.span;   // parity: builder sets it only when span > 1
@@ -847,9 +887,16 @@
                     el.innerHTML = String(confirmed)
                         + '<span class="sum-pending">+' + String(pending) + '</span>';
                 };
-                set('sumTotal', t.total);
+                /* venue-status-parity T8 (bug #9, the user's `+` ruling): Total
+                   Slots is the only composition card that was still plain — it
+                   silently dropped the pending-held rows (118 of 120 on B010 w7).
+                   `X+Y` keeps both facts and matches the other cards' law (the
+                   tail ALWAYS renders, `+0` included). */
+                split('sumTotal', t.total, t.pending || 0);
                 /* the card shows ONLY bookable cells (the grid's too-soon rows
-                   excluded; user accuracy 2026-10-19) */
+                   excluded; user accuracy 2026-10-19) — and it is already the
+                   POST-hold count, so it stays plain (the user's ruling: a `-`
+                   would subtract the same slots twice). */
                 set('sumAvailable', countedAvailable);
                 split('sumMyClasses', t.myClasses, t.myPendingClasses || 0);
                 split('sumMyHours', t.myHours, t.myPendingHours || '0');

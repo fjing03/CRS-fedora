@@ -11,6 +11,7 @@ use App\Models\TimeSlot;
 use App\Models\Venue;
 use App\Services\LectureSessionCatalog;
 use App\Services\ReplacementRequestMapper;
+use App\Support\ReasonLabel;
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
@@ -180,6 +181,44 @@ class VenueTimetable extends Component
         // Coalescing groups (venue-block-span-coalescing): keyed w:day:session.
         $groups = [];
 
+        /* ═══ venue-status-parity T1 — the SHARED conflict-fact context ═══
+           The venue page owns its own slot-grid builder, but it must not own a
+           second definition of "is this <session, week> pair in conflict". The
+           contract is LectureSessionCatalog's (the same one the three timeline
+           pages read): `handled` = a live pending/approved request carries the
+           pair, `exceptions` = class_exceptions stamps, `holidays` = the week
+           map. ONE batched read per render (3 queries).
+           The pending/approved SPLIT is a second cheap read because the venue
+           page must tell "a proposal is waiting" (render the block + the
+           Proposed hint) from "already approved" (the pair is released). */
+        $catalog = app(LectureSessionCatalog::class);
+        $recurringSessions = ClassSession::query()
+            ->with(['module', 'venue', 'cohorts.programme'])
+            ->where('venue_id', $venue->id)
+            ->get();
+        $factContext = $catalog->factContext($recurringSessions);
+
+        $pendingPairs = [];
+        $approvedPairs = [];
+        foreach (ReplacementRequest::query()
+            ->whereIn('class_session_id', $recurringSessions->pluck('id'))
+            ->whereIn('status', ['pending', 'approved'])
+            ->get(['class_session_id', 'week_number', 'status']) as $liveRequest) {
+            $pairKey = $liveRequest->class_session_id.':'.(int) $liveRequest->week_number;
+            if ((string) $liveRequest->status === 'pending') {
+                $pendingPairs[$pairKey] = true;
+            } else {
+                $approvedPairs[$pairKey] = true;
+            }
+        }
+        /* the release law (ResolvesTimetableTimeline law ④, byte-parity): an
+           exception'd pair that ALSO carries an approved request is released —
+           the original occurrence does not run and the approved landing block
+           (its own week/venue) carries it. Everything else renders. */
+        $isReleasedPair = fn (int $sessionId, int $week): bool => isset($factContext['exceptions'][$sessionId.':'.$week])
+            && isset($approvedPairs[$sessionId.':'.$week]);
+        $exceptionPair = fn (int $sessionId, int $week) => $factContext['exceptions'][$sessionId.':'.$week] ?? null;
+
         foreach ($slots as $slot) {
             $session = $slot->classSession;
             $w = (int) $slot->week_number;
@@ -234,6 +273,19 @@ class VenueTimetable extends Component
 
         foreach ($groups as $g) {
             $session = $g['session'];
+
+            /* venue-status-parity T2 (bug #2 + #8 + the user's #11 = A):
+               the ROW pass carries the conflict-fact verdict, so a cancelled
+               class renders as a cancelled block instead of a live one — and a
+               released pair (exception + approved) emits nothing, exactly like
+               ResolvesTimetableTimeline law ④. The slot ROWS stay untouched,
+               so `occupied` still counts the hour (#11 A). */
+            if ($isReleasedPair((int) $session->id, (int) $g['w'])) {
+                continue;
+            }
+            $pairException = $exceptionPair((int) $session->id, (int) $g['w']);
+            $isCancelledPair = $pairException !== null;
+
             $event = [
                 'id' => $g['id'],
                 'di' => $g['di'],
@@ -257,10 +309,20 @@ class VenueTimetable extends Component
                 'studentCount' => (int) $session->cohorts->sum('student_count'),
                 // (the severity-3 'conflict' arm was REPEALED 2026-10-27,
                 // SDD b005-diploma-allowed — severity ∈ {2, 0} now.)
-                'status' => match ($g['severity']) {
-                    2 => 'pending',
-                    default => 'normal',
-                },
+                'status' => $isCancelledPair
+                    ? 'cancelled'
+                    : match ($g['severity']) {
+                        2 => 'pending',
+                        default => 'normal',
+                    },
+                /* the two shared-contract keys: the pending-proposal hint the
+                   note renderer reads, and the exact-pair conflict verdict the
+                   Replace-Now gate reads (null = handled/normal → no button). */
+                'proposed' => isset($pendingPairs[$session->id.':'.(int) $g['w']]),
+                'occurrenceFact' => $catalog->occurrenceFact($session, (int) $g['w'], $factContext),
+                'cancelledReason' => $isCancelledPair
+                    ? ReasonLabel::from((string) $pairException->reason)
+                    : null,
                 'remarks' => '',
                 'mine' => $session->lecturer_id === $myUserId,
                 /* class-modal-affordances T3: the Replace Now handoff targets
@@ -354,7 +416,12 @@ class VenueTimetable extends Component
             $spanSlots = max(1, $junctionCount);
             $end = min($start + $spanSlots - 1, 21); // the venue page's grid constants: 8:00..18:30 = 21 slots (design D8's shared-hours discipline)
             $event = [
+                /* `id` is the grid's ROW key for this pass (the anchor slot) —
+                   the CLASS identity rides `sessionId` (venue-status-parity T6:
+                   the popup's Class Ref reads sessionId first, so an amber block
+                   quotes #40 like my-timetable does, not #34413). */
                 'id' => (int) $request->replacement_time_slot_id,
+                'sessionId' => (int) $session->id,
                 'di' => (int) $slot->day_of_week,
                 'start' => $start,
                 'end' => $end,
@@ -388,6 +455,12 @@ class VenueTimetable extends Component
                 'requestedAt' => app(ReplacementRequestMapper::class)->stampDisplay($request->submitted_at, 'd M Y, h:i A'),
                 'requestedBy' => (string) ($request->proposer->name ?? ''),
                 'status' => $isApproved ? 'replacement' : 'pending', // the frozen legend (STATUSES now carry the direct blue my-timetable class; pending stays amber)
+                /* venue-status-parity T5 (bug #6): the shared modal's `View
+                   Full Request` footer action keys on BOTH `requestId` and
+                   `requestedBy`, and the venue payload never sent the id. */
+                'requestId' => (int) $request->id,
+                'proposed' => false,
+                'occurrenceFact' => null,   // a make-up block is never a Replace-Now target
                 'remarks' => $isApproved
                     ? (string) $originalDate
                     : 'Replacement request awaiting PL approval', // byte-matches the legend tip
@@ -434,21 +507,15 @@ class VenueTimetable extends Component
             }
         }
 
-        // the handled set: (a) the STAMPS (the exact (session, week) pairs —
-        // NOT every week of that session), (b) the live request pairs.
-        $handledPairs = [];
-        foreach (DB::table('class_exceptions')->get() as $stamp) {
-            $handledPairs[$stamp->class_session_id.':'.$stamp->week_number] = true;
-        }
-        foreach (ReplacementRequest::whereIn('status', ['pending', 'approved'])
-            ->get(['class_session_id', 'week_number']) as $req) {
-            $handledPairs[$req->class_session_id.':'.$req->week_number] = true;
-        }
-
-        $recurring = ClassSession::query()
-            ->with(['module', 'venue', 'cohorts.programme'])
-            ->where('venue_id', $venue->id)
-            ->get();
+        /* venue-status-parity T3 (bug #3) — the suppression law, corrected.
+           BEFORE: `handledPairs` = stamps ∪ (pending ∪ approved) → a PROPOSAL
+           deleted the conflict block, so the class that carries a pending
+           replacement vanished from its conflict week (the user's report #3).
+           NOW: only a RELEASED pair (exception + approved) suppresses — the
+           same `$isReleasedPair` law the row pass uses. A pending pair still
+           RENDERS (red + the Proposed hint), which is what the other two pages
+           have always done. */
+        $recurring = $recurringSessions;
 
         foreach ($recurring as $session) {
             $dayIdx = (int) $session->day_of_week;
@@ -460,8 +527,10 @@ class VenueTimetable extends Component
                 if (! isset($daySet[$dayIdx])) {
                     continue;
                 }
-                // the handled rule: the stamp / the live request owns the pair
-                if (isset($handledPairs[$session->id.':'.$weekNum])) {
+                // the release rule (T3): ONLY an exception+approved pair stays
+                // dark; a stamp alone renders (cancelled), a pending request
+                // renders with the Proposed hint.
+                if ($isReleasedPair((int) $session->id, $weekNum)) {
                     continue;
                 }
 
@@ -516,7 +585,18 @@ class VenueTimetable extends Component
                         ->values()
                         ->all(),
                     'studentCount' => (int) $session->cohorts->sum('student_count'),
-                    'status' => 'conflict',  // the DERIVED family's own status
+                    /* T3: cancelled wins over conflict (a class that is both
+                       stamped and on a holiday is a cancelled class), and the
+                       Proposed hint rides when a pending proposal holds the
+                       pair — the honest reason it is still in the payload. */
+                    'status' => $exceptionPair((int) $session->id, $weekNum) !== null
+                        ? 'cancelled'
+                        : 'conflict',
+                    'proposed' => isset($pendingPairs[$session->id.':'.$weekNum]),
+                    'occurrenceFact' => $catalog->occurrenceFact($session, $weekNum, $factContext),
+                    'cancelledReason' => $exceptionPair((int) $session->id, $weekNum) !== null
+                        ? ReasonLabel::from((string) $exceptionPair((int) $session->id, $weekNum)->reason)
+                        : null,
                     'remarks' => 'Public Holiday ('.$label.')', // byte-parity the timeline's conflict reasons
                     'mine' => $session->lecturer_id === $myUserId,
                 ];
