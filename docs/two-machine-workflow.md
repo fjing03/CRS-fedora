@@ -86,7 +86,9 @@ crashes at step 2 on the 128M memory limit).
 ## 6. What lives outside the repo
 
 - **MSI** — project parent folder `BMCS3404 PROJECT I (4)/`: `final/` (FYP
-  portfolio + `FR&NFR.md`, cited by `prompts/for-ai-to-read/CodingMAIN.md`), `knowledge/` (FYP1 writing
+  portfolio + the source `FR&NFR.md`, whose AI-read copy is
+  `prompts/for-ai-to-read/FR&NFR copy.md`, cited by
+  `prompts/for-ai-to-read/CodingMAIN.md`), `knowledge/` (FYP1 writing
   requirements), cross-machine task prompts (`HANDOFF-TASK.md`, `VERIFY-TASK.md`,
   `SETUP-TASK.md`), the archived old `class-replacement-system` clone
   (read-only reference). · Backups: `/home/philler/Desktop/tarumt/backups/`
