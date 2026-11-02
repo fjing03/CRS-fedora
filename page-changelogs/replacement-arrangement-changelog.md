@@ -2660,3 +2660,26 @@ guard catches it at entry. No card/button change was made (non-goal).
   normally — no false-positive blocking.
 - Gates: pint passed · PHPStan 0 errors (1G) · `node --check` on ui-common.js ·
   full PHPUnit 287/287.
+
+### 2026-11-02 addendum — the blocked-entry toast layout (user follow-up, CSS-only)
+
+The entry-guard toast itself worked, but at the old 560px cap the long message
+painted UNDER the actions — `.toast-message` and `.toast-link` overlapped.
+Three theme.css changes, no content/JS/logic change:
+
+1. `.toast-bar` max-width **560 → 728px (+30%, the user's requested amount)**.
+2. `.toast-message` gains `overflow: hidden; text-overflow: ellipsis` — with the
+   column's `min-width: 0` the nowrap message can never again spill under the
+   link/close at ANY width (the overlap class-killer, not a one-off patch).
+3. `@media (max-width: 640px)`: the bar spans the viewport with 16px gutters
+   (`left/right: 16px; max-width: none`) and the message WRAPS — full reason
+   readable, no horizontal overflow on small screens.
+
+Measured (Playwright, localhost:8030, one login, viewport-switched):
+desktop 1280 / laptop 1024 / mobile 375 — zero bounding-box overlaps
+(message↔link, message↔close, link↔close), 24px message→link gap, 8px
+link→close gap, link visible + clickable, `scrollWidth <= innerWidth` (no
+horizontal overflow) everywhere; bar = 728px on desktop, 343px on mobile.
+At desktop the sentence's tail ellipsizes gracefully (the pending/approved
+reason + the link are always fully visible); on mobile the full text wraps.
+Both variants (pending + approved) checked.

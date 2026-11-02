@@ -3489,8 +3489,12 @@ body {
     align-items: center;
     gap: 12px;
     /* 2026-10-24 user UI directive: 480 → 560 — the keyword-voice toasts
-       (CAP + bold + color) needed the extra room to fit without clipping */
-    max-width: 560px;
+       (CAP + bold + color) needed the extra room to fit without clipping.
+       2026-11-02 entry-guard report: 560 → 728 (+30%) — the blocked-entry
+       toast (a full sentence PLUS the My Request History link) overlapped
+       message and link at 560; the message also ellipsizes instead of
+       spilling under the actions (see .toast-message). */
+    max-width: 728px;
     animation: toastSlideUp 0.3s ease;
 }
 .toast-bar.visible { display: flex; }
@@ -3508,6 +3512,12 @@ body {
     font-weight: 600;
     color: var(--color-on-surface);
     white-space: nowrap;
+    /* 2026-11-02 entry-guard report: the nowrap message OVERFLOWED the flex
+       column and painted UNDER the actions — the overlap the user saw.
+       min-width:0 (the column) + this clip = the message can never overlap
+       the link/close, whatever the text length. */
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .toast-bar .toast-details {
@@ -3566,6 +3576,21 @@ body {
 
 .toast-link:hover {
     color: var(--color-primary-dark);
+}
+
+/* 2026-11-02 entry-guard report: small screens — the fixed left offset +
+   content width could overflow the viewport edge; the message wraps instead
+   of ellipsizing so the full reason stays readable, and the link keeps its
+   own row via the actions' natural wrap. */
+@media (max-width: 640px) {
+    .toast-bar {
+        left: 16px;
+        right: 16px;
+        max-width: none;
+    }
+    .toast-bar .toast-message {
+        white-space: normal;
+    }
 }
 
 @keyframes toastSlideUp {
