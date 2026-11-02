@@ -250,8 +250,8 @@
                     'description' => 'Your classes that <span class="warn-keyword">need a replacement arrangement</span>.'],
                 ['class' => 'card-duration', 'valueId' => 'summaryMyHours', 'label' => 'My Hours to Cover',
                     'description' => 'Total <span class="info-keyword">hours of your class time</span> that need to be rescheduled.'],
-                ['class' => 'card-courses', 'valueId' => 'summaryMyCourses', 'label' => 'My Courses',
-                    'description' => 'Number of <span class="info-keyword">your different courses</span> affected by the conflicts.'],
+                ['class' => 'card-courses', 'valueId' => 'summaryMyCourses', 'label' => 'My Subjects',
+                    'description' => 'Number of <span class="info-keyword">your different subjects</span> affected by the conflicts.'],
             ]
         ])
 

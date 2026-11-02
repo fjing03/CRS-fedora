@@ -140,13 +140,13 @@
     @include('partials.ui-summary-bar', [
         'cards' => [
             ['class' => 'card-total', 'valueId' => 'sumTotal', 'label' => 'Total Classes',
-                'description' => 'Total classes scheduled for <span class="info-keyword">this cohort</span> in the selected week.'],
+                'description' => 'Confirmed (replacement &amp; normal) + <span class="info-keyword">pending</span> classes for <span class="info-keyword">this cohort</span> in the selected week.'],
             ['class' => 'card-hours', 'valueId' => 'sumHours', 'label' => 'Teaching Hours',
-                'description' => 'Total <span class="info-keyword">teaching hours</span> for this cohort in the selected week (each slot = <strong>30 minutes</strong>).'],
+                'description' => 'Confirmed + <span class="info-keyword">pending teaching hours</span> for this cohort in the selected week (each slot = <strong>30 minutes</strong>).'],
             ['class' => 'card-replacement', 'valueId' => 'sumMyClasses', 'label' => 'My Teaching Classes',
-                'description' => 'Sessions <span class="info-keyword">taught by you</span> this week — <strong>each class counts separately</strong> (e.g. Subject A (T) and Subject A (L) are two classes).'],
+                'description' => 'Sessions <span class="info-keyword">taught by you</span> this week — confirmed + <strong>pending</strong>; each class counts separately (e.g. Subject A (T) and Subject A (L) are two classes).'],
             ['class' => 'card-hours', 'valueId' => 'sumMyHours', 'label' => 'My Teaching Hours',
-                'description' => 'Total hours of <span class="info-keyword">your classes</span> this week (each slot = <strong>30 minutes</strong>).'],
+                'description' => 'Confirmed + pending hours of <span class="info-keyword">your classes</span> this week (each slot = <strong>30 minutes</strong>).'],
             ['class' => 'card-conflict', 'valueId' => 'sumConflict', 'label' => 'Conflicts',
                 'description' => '<span class="warn-keyword">Scheduling clashes</span> or classes on <strong>public holidays</strong> for this cohort that need attention.'],
         ]
@@ -460,7 +460,10 @@
 
             function updateSummary() {
                 const weekEvents = (eventsByCohort[selectedCohortId] || [])[currentWeek] || [];
-                computeSummary(weekEvents, weekData[currentWeek].days);
+                /* summary-cards-confirmed-pending (2026-11-02): this page is the
+                   one that opts into the `X+Y` split — the shared helper's
+                   default stays frozen for my-timetable + student-my-timetable. */
+                computeSummary(weekEvents, weekData[currentWeek].days, { splitPending: true });
                 updateWeekArrows(currentWeek <= 0, currentWeek >= weekData.length - 1);
             }
 
@@ -546,7 +549,7 @@
                    full array reaches computeSummary; consistent with the
                    unfiltered :463 site — the last-writer render inconsistency
                    dies with the tallies being cancelled-aware). */
-                computeSummary(weekEvents, weekData[currentWeek].days);
+                computeSummary(weekEvents, weekData[currentWeek].days, { splitPending: true });
                 updateWeekArrows(currentWeek <= 0, currentWeek >= weekData.length - 1);
             }
 

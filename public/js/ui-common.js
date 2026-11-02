@@ -997,10 +997,28 @@ function myTeachingStats(events) {
     });
     const mine = Object.keys(heads).map(function (k) { return heads[k]; });
     const hours = mine.reduce(function (s, e) { return s + (e.end - e.start + 1) * 0.5; }, 0);
-    return { classes: mine.length, hours: hours };
+    /* confirmed+pending split (summary-cards-confirmed-pending, 2026-11-02):
+       a head whose FINAL status is `pending` is a class still awaiting
+       approval. It stays inside classes/hours (those keys keep their exact
+       values — the plain callers are byte-identical), and is additionally
+       reportable as the pending part. Additive keys only. */
+    const pendingMine = mine.filter(function (e) { return e.status === 'pending'; });
+    const pendingHours = pendingMine.reduce(function (s, e) { return s + (e.end - e.start + 1) * 0.5; }, 0);
+    return {
+        classes: mine.length,
+        hours: hours,
+        pendingClasses: pendingMine.length,
+        pendingHours: pendingHours,
+    };
 }
 
-function computeSummary(events, days) {
+function computeSummary(events, days, opts) {
+    /* confirmed+pending split (summary-cards-confirmed-pending, 2026-11-02):
+       the `{ splitPending: true }` OPT-IN renders sumTotal / sumHours /
+       sumMyClasses / sumMyHours as `X` + a tertiary `+Y` tail (Y = the pending
+       share). DEFAULT FROZEN: a caller that passes no opts keeps the exact
+       previous plain numbers — my-timetable + student-my-timetable never opt in. */
+    const splitPending = !!(opts && opts.splitPending);
     /* cancelled-blocks-stay-visible (the locked summary law): My Classes /
        My Hours exclude cancelled blocks (myTeachingStats gates them) while
        the conflicts tally INCLUDES them — the red block is a conflict
@@ -1008,13 +1026,18 @@ function computeSummary(events, days) {
        e.status !== 'cancelled')` wrappers were REMOVED in this lane (they
        starved the tally); the full arrays now reach here. */
     let total = events.length - events.filter(e => e.status === 'cancelled').length;
-    let replacement = 0, pending = 0, conflict = 0, hrs = 0;
+    let replacement = 0, pending = 0, conflict = 0, hrs = 0, pendingHrs = 0;
 
     events.forEach(e => {
         if (e.status === 'replacement') replacement++;
         if (e.status === 'pending') pending++;
         if (e.status === 'conflict' || e.status === 'cancelled' || (days[e.di] && days[e.di].holiday)) conflict++;
-        if (e.status !== 'cancelled') hrs += (e.end - e.start + 1) * 0.5;
+        if (e.status !== 'cancelled') {
+            const span = (e.end - e.start + 1) * 0.5;
+            hrs += span;
+            /* the pending share of the SAME tally (never a re-derivation) */
+            if (e.status === 'pending') pendingHrs += span;
+        }
     });
 
     /* Null-guarded: pages whose summary bar drops a card (e.g. cohort's
@@ -1024,15 +1047,30 @@ function computeSummary(events, days) {
         const el = document.getElementById(id);
         if (el) el.textContent = v;
     };
-    set('sumTotal', total);
-    set('sumHours', (hrs % 1 === 0 ? hrs : hrs.toFixed(1)));
+    /* `X+Y` writer: the SAME value, split into its confirmed part and its
+       pending part. The plain branch reproduces the old textContent byte for
+       byte (the opt-out callers prove it). */
+    const fmt = function (v) { return v % 1 === 0 ? String(v) : v.toFixed(1); };
+    const setSplit = function (id, full, pendingPart) {
+        const el = document.getElementById(id);
+        if (!el) return;
+        if (!splitPending) {
+            el.textContent = fmt(full);
+            return;
+        }
+        el.innerHTML = fmt(full - pendingPart)
+            + '<span class="sum-pending">+' + fmt(pendingPart) + '</span>';
+    };
+
+    setSplit('sumTotal', total, pending);
+    setSplit('sumHours', hrs, pendingHrs);
     set('sumReplacement', replacement);
     set('sumPending', pending);
     set('sumConflict', conflict);
 
     const my = myTeachingStats(events);
-    set('sumMyClasses', my.classes);
-    set('sumMyHours', (my.hours % 1 === 0 ? my.hours : my.hours.toFixed(1)));
+    setSplit('sumMyClasses', my.classes, my.pendingClasses);
+    setSplit('sumMyHours', my.hours, my.pendingHours);
 }
 
 // ───── Shared modal open helper ─────

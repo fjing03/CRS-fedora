@@ -170,11 +170,11 @@
             ['class' => 'card-available', 'valueId' => 'sumAvailable', 'label' => 'Available',
                 'description' => '<span class="info-keyword">Free time slots</span> that can be booked for this venue — Sundays and public holidays excluded.'],
             ['class' => 'card-replacement', 'valueId' => 'sumMyClasses', 'label' => 'My Teaching Classes',
-                'description' => 'Sessions <span class="info-keyword">you teach</span> in this venue this week — <strong>each class counts separately</strong>.'],
+                'description' => 'Sessions <span class="info-keyword">you teach</span> in this venue this week — confirmed + <strong>pending</strong>; each class counts separately.'],
             ['class' => 'card-hours', 'valueId' => 'sumMyHours', 'label' => 'My Teaching Hours',
-                'description' => 'Total hours of <span class="info-keyword">your classes</span> in this venue this week (each slot = <strong>30 minutes</strong>).'],
+                'description' => 'Confirmed + pending hours of <span class="info-keyword">your classes</span> in this venue this week (each slot = <strong>30 minutes</strong>).'],
             ['class' => 'card-conflict', 'valueId' => 'sumOccupied', 'label' => 'Occupied',
-                'description' => 'Slots occupied by <span class="info-keyword">scheduled classes</span> in the selected week.'],
+                'description' => 'Slots occupied by <span class="info-keyword">scheduled classes</span> — confirmed + <strong>pending</strong> make-up holds.'],
         ]
     ])
 
@@ -829,18 +829,31 @@
             }
 
             function updateSummary() {
-                const t = totalsData[currentWeek] || { total: 0, available: 0, occupied: 0, myClasses: 0, myHours: '0' };
+                const t = totalsData[currentWeek]
+                    || { total: 0, available: 0, occupied: 0, myClasses: 0, myHours: '0',
+                         pending: 0, myPendingClasses: 0, myPendingHours: '0' };
                 const set = function (id, v) {
                     const el = document.getElementById(id);
                     if (el) el.textContent = String(v);
+                };
+                /* confirmed+pending split (summary-cards-confirmed-pending,
+                   2026-11-02): the `+Y` tail is the PENDING-held part — slots
+                   held by live make-up requests (Occupied) and YOUR pending
+                   make-ups landing in this venue (the My cards). Total Slots
+                   stays PLAIN: the split inside Occupied already tells it. */
+                const split = function (id, confirmed, pending) {
+                    const el = document.getElementById(id);
+                    if (!el) return;
+                    el.innerHTML = String(confirmed)
+                        + '<span class="sum-pending">+' + String(pending) + '</span>';
                 };
                 set('sumTotal', t.total);
                 /* the card shows ONLY bookable cells (the grid's too-soon rows
                    excluded; user accuracy 2026-10-19) */
                 set('sumAvailable', countedAvailable);
-                set('sumMyClasses', t.myClasses);
-                set('sumMyHours', t.myHours);
-                set('sumOccupied', t.occupied);
+                split('sumMyClasses', t.myClasses, t.myPendingClasses || 0);
+                split('sumMyHours', t.myHours, t.myPendingHours || '0');
+                split('sumOccupied', t.occupied, t.pending || 0);
                 updateWeekArrows(currentWeek <= 0, currentWeek >= weekData.length - 1);
             }
 

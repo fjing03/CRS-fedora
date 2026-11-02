@@ -129,7 +129,8 @@ class VenueTimetable extends Component
                 collect(),
                 ['code' => '', 'name' => '', 'short_name' => '', 'capacity' => 0, 'rawRoomType' => ''],
                 array_fill(0, $this->timelineWeeks(), []),
-                array_fill(0, $this->timelineWeeks(), ['total' => 0, 'available' => 0, 'occupied' => 0, 'myClasses' => 0, 'myHours' => '0']),
+                array_fill(0, $this->timelineWeeks(), ['total' => 0, 'available' => 0, 'occupied' => 0, 'myClasses' => 0, 'myHours' => '0',
+                    'pending' => 0, 'myPendingClasses' => 0, 'myPendingHours' => '0']),
             );
         }
 
@@ -171,6 +172,11 @@ class VenueTimetable extends Component
         // (each class counts separately, upstream wording), myHours = slots × 0.5.
         $mySlotCount = array_fill(0, $weeks, 0);
         $mySessionIds = array_fill(0, $weeks, []);
+        // summary-cards-confirmed-pending: MY pending make-ups landing in this
+        // venue (the My cards' `+Y` tail — a pending booking is not teaching,
+        // so it never enters $mySlotCount/$mySessionIds above).
+        $myPendingCount = array_fill(0, $weeks, 0);
+        $myPendingSlots = array_fill(0, $weeks, 0);
         // Coalescing groups (venue-block-span-coalescing): keyed w:day:session.
         $groups = [];
 
@@ -397,6 +403,11 @@ class VenueTimetable extends Component
             if ($isApproved && $request->proposer_id === $myUserId) {
                 $mySlotCount[$w - 1] += $spanSlots;
                 $mySessionIds[$w - 1][$session->id] = true;
+            } elseif (! $isApproved && $request->proposer_id === $myUserId) {
+                // summary-cards-confirmed-pending: the same request family, the
+                // PENDING bucket — one class per request + its live span × 0.5 h.
+                $myPendingCount[$w - 1]++;
+                $myPendingSlots[$w - 1] += $spanSlots;
             }
         }
 
@@ -413,7 +424,8 @@ class VenueTimetable extends Component
         // is richer); the overlapping derived clones drop away.
         // the derived pass's OWN semester read + the TOTals map hoist (the
         // derived + the imported family share ONE map — the T20 pre-lift)
-        $totalsByWeek = array_fill(0, $weeks, ['total' => 0, 'available' => 0, 'occupied' => 0, 'myClasses' => 0, 'myHours' => '0']);
+        $totalsByWeek = array_fill(0, $weeks, ['total' => 0, 'available' => 0, 'occupied' => 0, 'myClasses' => 0, 'myHours' => '0',
+            'pending' => 0, 'myPendingClasses' => 0, 'myPendingHours' => '0']);
         $t20Semester = $this->timelineSemester();
         $holidayByWeekDay = [];
         if ($t20Semester !== null) {
@@ -555,6 +567,14 @@ class VenueTimetable extends Component
                 }
                 $c = (int) $row->c;
                 $totalsByWeek[$w - 1][$row->status] += $c;
+                /* summary-cards-confirmed-pending (2026-11-02): a PENDING-held
+                   row (a live make-up request's reservation) is not confirmed
+                   teaching and not bookable — it feeds the Occupied card's
+                   `+Y` tail only. Total / Available deliberately keep their
+                   pre-lane values (the split inside Occupied tells the story). */
+                if ($row->status === 'pending') {
+                    return;
+                }
                 $totalsByWeek[$w - 1]['total'] += $c;
                 if ($row->status === 'available' && $isOffday($w, (int) $row->day_of_week)) {
                     $totalsByWeek[$w - 1]['available'] -= $c;
@@ -565,6 +585,9 @@ class VenueTimetable extends Component
             $totalsByWeek[$i]['myClasses'] = count($mySessionIds[$i]);
             // 28 slots → '14', 27 slots → '13.5' (strip trailing .0).
             $totalsByWeek[$i]['myHours'] = rtrim(rtrim(sprintf('%.1f', $count * 0.5), '0'), '.');
+            // the `+Y` tails (additive keys; the X keys above are untouched).
+            $totalsByWeek[$i]['myPendingClasses'] = $myPendingCount[$i];
+            $totalsByWeek[$i]['myPendingHours'] = rtrim(rtrim(sprintf('%.1f', $myPendingSlots[$i] * 0.5), '0'), '.');
         }
 
         return $this->renderPayload($venuesJs, [

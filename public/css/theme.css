@@ -1508,6 +1508,16 @@ html.dark .filter-select {
     line-height: 1.2;
     letter-spacing: -0.3px;
 }
+/* summary-cards-confirmed-pending (2026-11-02) — the `+Y` tail of a card that
+   splits confirmed from pending. Additive, class-level, token colour only:
+   tertiary IS the pending family per CodingMAIN §10.0 (the same amber as the
+   grid's `event-pending` block and the notification "awaiting" tile), so
+   "pending" never means two different colours. The X part keeps the card's
+   own colour. */
+.summary-value .sum-pending {
+    color: var(--color-tertiary);
+    font-weight: 600;
+}
 .summary-label {
     font-size: 11px;
     font-weight: 600;
