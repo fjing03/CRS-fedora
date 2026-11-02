@@ -7,6 +7,11 @@
 > Updated 2026-11-01 (main session): the notif-new-request-ux apply CLOSED
 > (§0.6); the ui-footer-global frozen record landed (§0.6 tail); Phase-H
 > handover housekeeping committed.
+> Updated 2026-11-02 (main session): the Oct-31 demo-DB loss recovered,
+> both demo DBs then cleaned to the blank plateau by the user's order (§0.7);
+> two SDD-waived UI tweaks committed local (58edc29, a37e452 — unpushed);
+> the next PI prompt written (`prompts/pi-prompt-notif-type-filter-redesign.md`,
+> gitignored by design).
 
 ---
 
@@ -15,11 +20,11 @@
 | Item | State |
 |---|---|
 | Working branch | `fedora-backend` (remote: `origin` = `fjing03/CRS-fedora.git`, PULL-ONLY `upstream` = `FjingXR/class-replacement-system`) |
-| Push policy | **NEVER `git push`** — the user pushes manually (they said so explicitly) |
-| Unpushed commits | **4** (as of writing: `300bec8`, `f3b15d7`, `647dd34`, `6be2235` — the user pushed the older stack to origin themselves; the count is volatile, re-check) |
-| Demo DB | `class_replacement_fresh` (PostgreSQL, user `philler`) — **never re-seed, never `migrate:fresh`; agent does NOT write its data (the hand-run SQL convention)** |
+| Push policy | **NEVER `git push`** — the user pushes manually (they said so explicitly). One exception, commanded 2026-11-02: `67606dd`+`d32ebd7` were pushed by the agent; afterwards the rule resumed. |
+| Unpushed commits | **13** (`origin/fedora-backend` = `ab912af`; re-count before trusting). The 2026-11-02 tail: `b0fd936` (toast 728), `a37e452` (toast 800), `58edc29` (modal advisory), the entry-guard chain `62cbbb0`/`b0685ae`/`99329be`, `083f7bd` (student 12h idle), `e8f9671`/`b58b319`/`f1e7f9a` (span-follow), `5056c77`/`f1b27b2`/`88c3b3a` (slot-picker clear). |
+| Demo DB | `class_replacement_fresh` (:8000) + `class_replacement_demo` (:8001) — **BLANK pristine on both since the 2026-11-02 user-ordered cleanout** (0 requests/spans/notifs/exceptions/audit/held cells; next `replacement_requests` id = 24). **Never re-seed the demo DBs**; any demo write = user-gated per write + logged in `docs/demo-db-data-changes.md` + snapshot law first (`backups/README.md`; canonical viva dump = `class_replacement_demo-post-recovery-2026-11-01.dump`). |
 | Test DB | `class_replacement_testing` — disposable; fresh+seed fine; used by the suite |
-| Suite | **273/273** (266 + the 7 NotificationsBridgeTest tests) |
+| Suite | Last full PHPUnit run: **287/287** (2026-11-02 entry-guard lane). NOT re-run after the evening UI tweaks (blade/CSS-only changes); Playwright used only as read-only receipts. |
 | Gates | `composer run lint:check` (pint), `vendor/bin/phpstan analyse --memory-limit=1G --no-progress` (NOT `types:check` — crashes at 128M), full phpunit, `node` syntax check for JS |
 | SDD lanes applied, NOT archived | **12** (see §F — `notifications-real-bridge`'s sdd.yaml was correctly flipped to applied during this audit) |
 | The user's language rule | **Reply in B1-level English ONLY — no other languages** |
@@ -192,12 +197,117 @@ this addendum updated to CLOSED + 2 handoff prompt files tracked.
 - Modal-colour lane (yellow/warning confirm-modals, arrangement page —
   5 call sites incl. the navigateTo family) — PLANNED in the main
   session, PARKED; prompt file intentionally not written.
+- `prompts/pi-prompt-notif-type-filter-redesign.md` (2026-11-02,
+  **GITIGNORED** `.gitignore:38` — local-only by design) — item 2 of the
+  user's UI list: brand-new compact `notifTypeFilter` (44→36px,
+  `.week-select` colour DNA, zero behaviour change).
 - ⚠ 2026-11-01 DATA-LOSS INCIDENT (NOT this lane): the demo DB was
   wiped at ~03:22 by the T7 receipt family writing directly onto
   `class_replacement_fresh`, then restored from pristine + `migrate
   --force` — full entry at the top of `docs/demo-db-data-changes.md`;
   its standing guard (abort unless `CRS_BASE = :8030` AND
   `CRS_MODE = testing`) must ship with the next code commit.
+
+---
+
+## 0.7 SESSION ADDENDUM — 2026-11-02 (demo-DB recovery → cleanout; two SDD-waived UI tweaks; next PI prompt written)
+
+> Everything below was verified in the 2026-11-02 main session. Every
+> demo-DB write was explicitly gated by the user, per write, and is logged
+> in `docs/demo-db-data-changes.md` — whose 2026-11-02 entries are still
+> **UNCOMMITTED** (that file is the other session's log: **do not stage it**).
+> The one push this session (`67606dd`, `d32ebd7`) was explicitly commanded;
+> the NEVER-push rule otherwise stands (the later commits stay LOCAL).
+
+**A. Demo-DB recovery → twin upgrade → full cleanout (CLOSED)**
+
+1. The October demo record lost in the 2026-11-01 incident was **REBUILT**
+   in one transaction — 11 requests (1 approved / 2 rejected / 5 cancelled /
+   the 3-pending trio on 39/W14, 49/W14, 97/W8 — all Lim Jia Zheng 5770,
+   AMCS2093), 3 exact `class_exceptions`, 90 notifications (badge = 3 unread
+   per PL; older rows read at 17:40), look-alike class picks user-approved —
+   and verified on-screen (badge, trio tiles, approval inbox, proposer
+   history). Receipt: `docs/demo-db-oct31-recovered.md` (commit `67606dd`).
+   The executed SQL = `/tmp/opencode/twin-write.sql` (a reference only;
+   /tmp is volatile).
+2. `:8001` twin (`../CRS-demo`) upgraded to the main repo's HEAD `ed0fb01`
+   + the 4 pending migrations (additive, no data loss; the dirty
+   `package-lock.json` stashed as "package-lock drift before twin upgrade
+   2026-11-01").
+3. `:8000` (`class_replacement_fresh`) then FULLY SWAPPED (user choice: full
+   swap) from `class_replacement_demo-post-recovery-2026-11-01.dump` (21:19)
+   so both servers served the identical state.
+4. THEN the user ordered a **FULL STORY CLEANOUT on BOTH DBs**: 4
+   audit_logs, 12+0 requests (+2 span rows), 13 slot cells (incl. foreign
+   34413/34414), 93+90 notifications, 3+3 exceptions deleted. **Post-state =
+   0 everything on both DBs; next `replacement_requests` id = 24.** The
+   BLANK state is the intended demo canvas — submits through the real UI get
+   proper native spans. Do NOT re-seed the old story; any new demo data is
+   user-gated, logged, and snapshot-first.
+5. Prevention laws landed in `CodingMAIN.md` §4/§14, `AGENTS.md`,
+   `prompts/my-coding-rules.md` (commit `d32ebd7`, pushed): the ⛔
+   `--env=testing` trap (no `.env.testing` exists — it would silently boot
+   the demo DB; select the testing DB ONLY via
+   `DB_DATABASE=class_replacement_testing`), the snapshot law (verified
+   `pg_dump -Fc`; `pg_restore --list` must pass; before any demo-DB write
+   and after milestones; dumps in `backups/`), user-gate + logging, and the
+   canonical viva-state dump pointer. Restore recipe + ledger:
+   `backups/README.md`.
+
+**B. UI/UX completed this session** (both SDD-waived w/ user approval;
+committed LOCAL, NOT pushed):
+
+1. `58edc29` `ui:` — the always-visible venue-availability advisory in the
+   Select-a-Session modal (`resources/views/partials/ui-intent-session-modal.blade.php`
+   + `theme.css` `.intent-advisory`): yellow `--color-warning` head + border
+   bar, red `--color-error` risk line, the shared `.ge-keyword` (blue) /
+   `.go-keyword` (green = the grid's available-green) keyword classes; the
+   `.notice-muted` typography was EXTENDED (no duplicated declarations).
+   Receipts: 4/4 read-only Playwright + screenshot; pint + phpstan
+   (`--memory-limit=1G`) green.
+2. `a37e452` `ui:` — the blocked-entry toast `.toast-bar` max-width
+   728 → 800px (+10%, a user follow-up on the entry-guard overlap fix).
+   Measured: desktop 1280 → bar 749px, the approved sentence now renders
+   UNCLIPPED (it tail-ellipsized at 728); mobile 375 → 343px, unchanged
+   (the ≤640px media block untouched); zero overlaps, no horizontal
+   overflow. Receipts: `/tmp/opencode/toast-desktop.png` + `toast-mobile.png`.
+
+**C. Next PI prompt written:** `prompts/pi-prompt-notif-type-filter-redesign.md`
+— item 2) of the user's current UI list: a BRAND-NEW compact design for
+`notifTypeFilter` (the bell panel's type dropdown), 44px → 36px, housing
+the colour DNA of `.week-select`, zero behaviour change. NOTE: it is
+**gitignored** (`.gitignore:38 prompts/pi-prompt-*.md`) — local-only by
+design; there is nothing to commit. Verified anchors baked in:
+`resources/views/livewire/nav-notifications.blade.php:91`; `theme.css`
+`.filter-select` :859 + `.notif-filters .filter-select` :387 (the 44px
+`min-height`, the height problem) + `.week-select` :1720–1758 (the colour
+reference); the tests couple ONLY on the id / `selectOption`
+(`tests/notifications-island.spec.ts` :145/:189/:192–207) — keep it a real
+`<select>` with the same id/options/`wire:model.live="typeFilter"`.
+
+**D. In progress — the test lane (awaiting the user's word):**
+
+- Root cause CONFIRMED for the hanging conflict spec:
+  `tests/submission-conflict-refresh.spec.ts:122` — `dialog.dismiss()`
+  cancels the `beforeunload` navigation, so `page.reload()` never resolves.
+  Designed one-line fix: `await pageA.reload({ timeout: 15_000 }).catch(() => {});`
+  (keep the `expect(dialogsA).toContain('beforeunload')` assertion).
+- Then: reseed `class_replacement_testing`
+  (`DB_DATABASE=class_replacement_testing php artisan migrate:fresh --seed`
+  — a re-run left 1 reserve request on W9-FRI ids 27929–32), rerun the
+  conflict spec solo at :8030, patch the `receipt-target-guard` review-log's
+  "see below" line + flip `sdd.yaml` → `applied`, `rounds: 1`, kill `:8030`
+  precisely, then commit `test:` (helper + the 4 guard specs +
+  request-approval) and `sdd:` (the SDD record) — **ask before pushing**.
+  Files: `tests/helpers/receipt-target-guard.ts` and
+  `.sdd/changes/receipt-target-guard/` (both untracked).
+
+**E. NOT done / do not assume:** no PHPUnit run in the 2026-11-02 session
+(last full = 287/287 earlier that day); the notification-island specs were
+NOT re-run; the `notifTypeFilter` redesign is NOT applied (prompt only);
+`:8001`'s clone lags the main repo's post-`ed0fb01` commits until its next
+git sync; the composer lane re-runs itself on `:8000` — if `:8000`/`:8001`
+diverge again, that is why.
 
 ---
 
@@ -238,8 +348,10 @@ dashboard; students see the updated timetable.
   `/my-request-history-ui`, `/replacement-history-ui`,
   `/request-approval-ui` (PL), `/dashboard`.
 - **Login** (demo, read receipts): staff IDs **5425** (Surayaini Binti
-  Basri — also a DCIT PL), 5652/5653/5770 (staff); password
-  `Tarumt@2026`. Students: role-gated `role:student`.
+  Basri — also a DCIT PL; user 1) and **5516** (Mohd Nur Rahmat — the
+  second PL; user 2), 5652/5653/5770 (staff; 5770 = Lim Jia Zheng, the
+  demo proposer); password `Tarumt@2026`. Students: role-gated
+  `role:student`.
 - **Core architecture** (CodingMAIN.md is the single source of truth):
   ① Matrix Intersection Engine (4 busy vectors), ② OCC layer (wired —
   `SubmitReplacementRequest` → `validateAndReserve()`), ③ FCFS approval
@@ -327,6 +439,11 @@ dashboard; students see the updated timetable.
 | pageLivewire() hotfix (the 8 call sites; the category-aware caught-up text) | `6be2235` |
 | CodingMAIN.md synced to the Wave 3b reality; `docs/viva-demo-runbook.md` drafted; `docs/README.md` indexed | `05a6737` |
 | The tidy tooltip family, makeup-busy-vector, pending-cell amber, B005 repeal etc. — earlier receipted (see §F) | committed |
+| The Oct-31 demo-record REBUILD + both-server recovery (11 requests / 3 exceptions / 90 notifications; on-screen verified) | `docs/demo-db-oct31-recovered.md`; commit `67606dd` (pushed) |
+| Demo-DB safety hardening — the ⛔ `--env=testing` trap, snapshot law, user-gate/logging, canonical-dump pointer | commit `d32ebd7` (pushed) |
+| The user-ordered FULL cleanout — both demo DBs now blank pristine (0 everything; next rr id 24) | 2026-11-02 session receipts; entries in `docs/demo-db-data-changes.md` (UNCOMMITTED, other session's file) |
+| venue intent-session modal advisory (yellow/red/blue token warning block) | `58edc29` + 4/4 read-only Playwright + screenshot; pint + phpstan green |
+| toast-bar 728 → 800px (+10%): the blocked-entry sentence is unclipped at desktop; mobile untouched | `a37e452` + measured receipts (desktop 749px / mobile 343px) |
 
 ### Partially completed
 
@@ -336,13 +453,23 @@ dashboard; students see the updated timetable.
   benchmark receipts, UAT script = pending.
 - The demo seed rows (T6) drafted in the apply message — the USER still
   needs to run them (or skip; the two "Demo receipt" rows already give a
-  visible bell).
+  visible bell). **2026-11-02 note: moot for now — the demo DBs were cleaned
+  to BLANK by the user's order; a populated story would need a fresh
+  user-gated seeding run.**
+- The 2026-11-02 test lane: the conflict-spec hang is root-caused and the
+  one-line fix is designed; the guard-lane specs + the `receipt-target-guard`
+  SDD record await the reseed + solo rerun + commits (NOT applied yet — see
+  §0.7 D).
 
 ### Planned (agreed, not started)
 
 - Notification "handled/inactive" nuance for OTHER statuses (only
   `cancelled` requests currently disable rows) — parked.
 - Reverb (true push) upgrade — additive future lane.
+- `notifTypeFilter` compact redesign — prompt written
+  (`prompts/pi-prompt-notif-type-filter-redesign.md`, gitignored; item 2 of
+  the user's current UI list): 44 → 36px height, `.week-select` colour DNA,
+  behaviour frozen. NOT started.
 - NFR 1.2 benchmark (<100 ms OCC) + the engine <500 ms receipt — for the
   demo-pack week (no number written until measured).
 
@@ -367,6 +494,8 @@ dashboard; students see the updated timetable.
 | 8 | Pill=1 next to "all caught up" | The F-2 whole-mailbox total vs the per-category tab | IMPROVED (the category-aware caught-up text) |
 | 9 | W14 Thu/Fri "occupied without tooltips" investigation | ALSO found: the phantom W14 occurrence on the strip; the W7-vs-W14 landing mismatch | Resolved via the two header/status lanes + the documented design law |
 | 10 | BUG-01/02/03/05/06 (the 2026-10-24 pending bugs) | See docs/replacement-arrangement-pending-bugs.md | **PENDING the user's verdicts** — do not open fix lanes until they review |
+| 11 | `tests/submission-conflict-refresh.spec.ts` hangs on the Refresh callback | CONFIRMED 2026-11-02: `dialog.dismiss()` cancels the `beforeunload` navigation, so `page.reload()` (:122) never resolves | FIX DESIGNED (`reload` with timeout + `catch`) — NOT applied; awaits the user's word |
+| 12 | The October demo record went missing | See `docs/demo-db-oct31-recovered.md` — the record was rebuilt in one transaction; prevention laws landed in `d32ebd7` | RECOVERED + REBUILT; both DBs since cleaned to the blank plateau by the user's order |
 
 ## F. SDD and Development Workflow
 
@@ -390,6 +519,13 @@ dashboard; students see the updated timetable.
 WITHOUT its own `.sdd/changes/` dir (it rode the
 `prompts/pi-tidy-arrangement-cell-tooltips.md` prompt + commit chain) —
 there is nothing to archive; the changelog is the record.
+
+**2026-11-02 note**: the entry-guard (`62cbbb0`), slot-picker-clear
+(`88c3b3a`), span-follow-subject-switch (`b58b319`) and student-12h-idle
+(`083f7bd`) lanes shipped the same way (prompt / commit-chain lanes, no
+`.sdd/changes/` dir). `receipt-target-guard` IS an SDD lane; its record
+(`review-log` + `sdd.yaml`) is still UNTRACKED pending the test-lane close
+(§0.7 D).
 
 **Also in `.sdd/changes/` — WIP, NOT applied (the new agent must know):**
 - 3 dirs with PARTIAL artifacts and **no sdd.yaml** (do not treat as
@@ -420,8 +556,10 @@ teardown AFTER the final viva).
 
 1. **[USER]** Verify by hand: approve / reject / cancel-request /
    venue-book flows after the pageLivewire hotfix (request #6 pending is
-   the ready test case).
+   the ready test case). **2026-11-02 note: #6 was removed by the cleanout —
+   the demo DB is blank; use a fresh gated submit as the test case, or skip.**
 2. **[USER]** Run (or skip) the T6 demo seed INSERTs for a populated demo bell.
+   **(Moot while the demo DBs are blank — see §0.7 A4.)**
 3. **[AGENT, on the user's word]** `/sdd-archive` ×8 lanes.
 4. **[USER]** The BUG round verdicts (BUG-01/02/03/05/06).
 5. **[USER/OPS]** Gmail SMTP flip (`MAIL_MAILER=smtp`, host
@@ -429,9 +567,19 @@ teardown AFTER the final viva).
    fallback — the runbook has the setup.
 6. **[AGENT, demo-pack week]** the NFR benchmark receipts; the UAT script.
 7. **[USER]** Confirm the viva date (anchored: week of 7 Dec 2026).
-8. **[USER]** Push the commit stack.
+8. **[USER]** Push the commit stack — now **13** local commits
+   (`origin/fedora-backend` = `ab912af`; re-count before trusting).
 9. **[LOW]** `?week=14`-style deep links still land on the remembered week
    (accepted); the notification "handled" nuance beyond `cancelled`.
+10. **[AGENT, on the user's word]** The 2026-11-02 test lane (see §0.7 D):
+    apply the `:122` reload fix, reseed the testing DB, rerun the conflict
+    spec solo at :8030, patch the `receipt-target-guard` record, commit
+    `test:` + `sdd:` — **ask before pushing**.
+11. **[PI, on the user's word]** Execute
+    `prompts/pi-prompt-notif-type-filter-redesign.md` (item 2 of the UI
+    list; prompt is gitignored/local-only by design).
+12. **[USER]** The viva demo data: both DBs are **BLANK** — decide whether a
+    populated story is wanted (user-gated SQL + logged + snapshot-first).
 
 **Hard absolutes the new agent MUST know (previously missing):**
 
@@ -447,10 +595,20 @@ teardown AFTER the final viva).
   data-dependent Playwright specs (request-approval, warning-keywords)
   are NOT re-receiably true post-bridge — the pending request #6 can
   change their shape; re-run before trusting them.
-- **Two UNTRACKED files** exist at the root: this handover file and
-  `docs/pi-prompt-notifications-sdd-verify-fixes.md`. CAUTION: the root
-  `.gitignore` only covers `prompts/pi-prompt-*.md` — a `docs/pi-prompt-*`
-  file can be committed by accident; decide its home.
+- **UNTRACKED / unstaged inventory (2026-11-02 — re-check with `git status`)**:
+  - untracked: `.sdd/changes/receipt-target-guard/`,
+    `tests/helpers/receipt-target-guard.ts`, `tests/request-cancel-pending.spec.ts`,
+    `docs/livewire-js-investigation.md`, `docs/Livewire-JS-Investigation-Report.md`,
+    `issues/ugly toast message.png`, two user prompts under `prompts/`
+    (`Bug Fix: Conflicted Subject Does Not Auto-Select…`,
+    `Investigate Livewire JavaScript.md`).
+  - modified-but-unstaged: the five guard-lane spec files +
+    the user-modified `prompts/pi-bug-arrangement-reentry-after-pending.md`;
+    and `docs/demo-db-data-changes.md` — **NEVER stage that one** (the other
+    session's write log).
+  - `prompts/pi-prompt-notif-type-filter-redesign.md` is **gitignored**
+    (`.gitignore:38 prompts/pi-prompt-*.md`) — local-only by design; nothing
+    to commit.
 - **CodingMAIN.md stale spots** (during the next docs pass): :40 (Obj 4's
   "NEXT LANE" note — the bridge shipped), :374 (the "read-only until
   Wave 3b" heading), :382–389 (the mock-fallback page table incl. the
@@ -495,23 +653,30 @@ teardown AFTER the final viva).
 
 ## I. Latest Session State
 
-1. **Most recently**: the user said HI; before that, the
-   notifications-real-bridge apply + the pageLivewire hotfix + the
-   poll-cycle receipts, then the Gmail/SV interlude and the
-   Claude_Gmail_SMTP_Setup_Prompt.md review/correction (DONE — the file
-   was rewritten with the approval).
-2. **Investigated & closed**: the four 500s (the Livewire.first()
-   regression), the notification rows existing after submit, the
-   caught-up text, the Gmail SMTP prompt audit.
-3. **Unfinished**: the archive sweep ×8; the BUG verdicts; the SMTP ops
-   flip; the benchmarks; the manual retest of the page actions.
-4. **The new AI should do first**: read this file top to bottom, then
-   `git status` + the tail of `page-changelogs/notifications-panel-changelog.md`
-   to confirm sync; await the user's direction (they gate everything).
-5. **MUST NOT do without approval**: push; demo-DB writes (outside the
-   logged convention); opening/reopening SDD lanes; touching the user's
-   real requests; changing the frozen UI classes/copy; skipping the
-   reviewer rounds.
+1. **Most recently (2026-11-02)**: the Oct-31 demo-DB loss recovery —
+   record rebuilt + verified, `:8001` twin upgraded to `ed0fb01`, `:8000`
+   full-swapped, then the user ordered a FULL cleanout: **both demo DBs are
+   now blank pristine** (0 everything, next rr id 24). Two SDD-waived UI
+   tweaks committed local (`58edc29` modal advisory, `a37e452` toast 800px —
+   plus the earlier entry-guard/spans/slot-clear/student-idle lanes: 13
+   commits unpushed). The next PI prompt written (gitignored):
+   `prompts/pi-prompt-notif-type-filter-redesign.md`.
+2. **Investigated & closed**: the demo-DB recovery chain (receipts +
+   prevention laws, `67606dd`/`d32ebd7`), the two UI tweaks (receipted), and
+   the conflict-spec hang root cause (`dialog.dismiss()` vs `beforeunload` —
+   fix designed, not applied).
+3. **Unfinished**: the 2026-11-02 test lane (fix + reseed + rerun + the
+   `test:`/`sdd:` commits); the `notifTypeFilter` redesign (prompt only);
+   the older open items (archives, BUG verdicts, SMTP ops, benchmarks) and
+   the new viva-demo-data decision (the canvas is blank).
+4. **The new AI should do first**: read this file top to bottom (esp. §0.7),
+   then `git status` + re-count `origin..HEAD`; the demo DBs are BLANK —
+   do not seed them without the user's per-write gate; await direction.
+5. **MUST NOT do without approval**: push; demo-DB writes or reseeds
+   (outside the gate; ⛔ never `--env=testing`); staging
+   `docs/demo-db-data-changes.md`; opening/reopening SDD lanes; touching the
+   user's real requests; changing the frozen UI classes/copy; skipping the
+   reviewer rounds; running the notif-filter prompt without the run order.
 
 ---
 
