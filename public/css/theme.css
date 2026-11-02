@@ -441,23 +441,33 @@ body {
     font-size: 12px; /* 0.75rem — family convention, fits 360px panel */
 }
 
+/* notif-manage-hide (2026-11-02, user decision): Mark all is ICON-ONLY at every
+   width — it JOINS the Close/Manage 30px square family instead of being a text
+   button. REWRITTEN, not layered: the old 44px text-button sizing (padding
+   0 10px + min-height 44px) squeezed a 16px svg down to ~10px and looked faded.
+   `#notifMarkAll` stays the id (specs + the wire:click depend on it). */
 #notifMarkAll {
-    min-height: 44px;
-    padding: 0 10px;
-    border: none;
+    width: 30px;
+    height: 30px;
+    min-height: 0;
+    padding: 0;
+    border: 1px solid var(--color-outline);
     border-radius: var(--radius-sm);
     background: transparent;
-    color: var(--color-primary);
-    font-size: 13px;
-    font-weight: 600;
+    color: var(--color-on-surface-variant);
     cursor: pointer;
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    transition: background var(--transition);
+    transition: background var(--transition), color var(--transition), border-color var(--transition);
     flex-shrink: 0;
 }
-#notifMarkAll:hover { background: var(--color-surface-variant); }
+#notifMarkAll:hover {
+    background: var(--color-surface-variant);
+    color: var(--color-on-surface);
+    border-color: var(--color-outline-strong);
+}
+#notifMarkAll svg { display: block; flex-shrink: 0; }
 
 .notif-list {
     flex: 1;
@@ -571,6 +581,195 @@ body {
     color: var(--color-on-surface-variant);
     font-size: 13px;
     text-align: center;
+}
+
+/* ── notif-manage-hide (2026-11-02, user-approved design) ──────────────
+   The panel's tidy-up states: the manage selection bar, the muted caption,
+   the pick/hidden row variants and the footer. Shares the promoted
+   .bulk-checkbox / .row-selected pair with My Request History — nothing here
+   re-declares them. Colours are theme tokens only. */
+.notif-iconbtn {
+    width: 30px;
+    height: 30px;
+    padding: 0;
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--color-outline);
+    background: transparent;
+    color: var(--color-on-surface-variant);
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    transition: background var(--transition), color var(--transition), border-color var(--transition);
+    flex-shrink: 0;
+}
+.notif-iconbtn:hover {
+    background: var(--color-surface-variant);
+    color: var(--color-on-surface);
+    border-color: var(--color-outline-strong);
+}
+.notif-iconbtn svg { display: block; flex-shrink: 0; }
+
+/* the manage bar replaces the filter row (same strip metrics) */
+.notif-manage-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 6px 16px;
+    border-bottom: 1px solid var(--color-outline);
+    flex-shrink: 0;
+}
+.notif-bar-count {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--color-on-surface-variant);
+    white-space: nowrap;
+}
+.notif-bar-actions {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    flex-shrink: 0;
+}
+.notif-bar-btn {
+    padding: 2px 8px;
+    border: none;
+    border-radius: var(--radius-sm);
+    background: transparent;
+    color: var(--color-primary);
+    font-family: inherit;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    min-height: 24px;
+    transition: background var(--transition);
+}
+.notif-bar-btn:hover { background: var(--color-surface-variant); }
+.notif-bar-btn:disabled {
+    color: var(--color-on-surface-variant);
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* the honest caption: why some rows are absent from this list */
+.notif-caption {
+    padding: 6px 16px 8px;
+    font-size: 11px;
+    line-height: 1.35;
+    color: var(--color-on-surface-variant);
+    flex-shrink: 0;
+}
+
+/* the pick row: checkbox + icon + body + time (the 4th track is the tick) */
+.notif-row--pick {
+    grid-template-columns: auto auto 1fr auto;
+    cursor: pointer;
+}
+.notif-row--pick:hover { background: var(--color-surface-variant); }
+
+/* the shelf row: dimmed, non-anchor, the time stacked over its Unhide action */
+.notif-row--hidden {
+    grid-template-columns: auto 1fr auto;
+    cursor: default;
+    opacity: 0.85;
+}
+.notif-row--hidden:hover { background: transparent; }
+.nr-right {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 2px;
+}
+.notif-unhide {
+    padding: 1px 6px;
+    border: none;
+    border-radius: var(--radius-sm);
+    background: transparent;
+    color: var(--color-primary);
+    font-family: inherit;
+    font-size: 11px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background var(--transition);
+}
+.notif-unhide:hover { background: var(--color-surface-variant); }
+
+/* the panel footer: the find-back link, the manage actions, the shelf note */
+.notif-foot {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 8px;
+    padding: 6px 16px;
+    border-top: 1px solid var(--color-outline);
+    flex-shrink: 0;
+}
+.notif-foot--manage { justify-content: space-between; }
+.notif-foot-link {
+    padding: 2px 6px;
+    border: none;
+    border-radius: var(--radius-sm);
+    background: transparent;
+    color: var(--color-primary);
+    font-family: inherit;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background var(--transition);
+}
+.notif-foot-link:hover { background: var(--color-surface-variant); }
+.notif-foot-count {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--color-on-surface-variant);
+    white-space: nowrap;
+}
+.notif-foot-note {
+    font-size: 11px;
+    line-height: 1.35;
+    color: var(--color-on-surface-variant);
+    text-align: left;
+}
+
+/* the undo toast (component-rendered so the 10 s poll cannot wipe it) */
+.notif-undo {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 8px 16px;
+    border-top: 1px solid var(--color-outline);
+    background: var(--color-surface-variant);
+    flex-shrink: 0;
+}
+.notif-undo-msg {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--color-on-surface);
+}
+.notif-undo-btn {
+    padding: 2px 10px;
+    border: 1px solid var(--color-primary);
+    border-radius: var(--radius-pill);
+    background: transparent;
+    color: var(--color-primary);
+    font-family: inherit;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    flex-shrink: 0;
+    transition: background var(--transition), color var(--transition);
+}
+.notif-undo-btn:hover {
+    background: var(--color-primary);
+    color: var(--color-on-primary);
+}
+
+/* the type select owns the whole filter row (its own line under the toggles) */
+.notif-filters .notif-type-select {
+    flex: 1 1 100%;
+    width: 100%;
 }
 
 /* ── Mobile Notification Panel Overrides ── */
