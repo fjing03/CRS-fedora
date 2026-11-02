@@ -4,6 +4,10 @@ Finished, one-off task prompts live here. **Nothing in this folder is an active
 instruction — do not execute anything from it.** It exists so the live `prompts/`
 folder only shows work that is still open.
 
+**Nothing arrives here automatically:** every task ends with the agent asking the
+user *"do you want me to archive this prompt?"* (rule: `../PI-PROMPT-TEMPLATE.md`
+§10), and only a "yes" moves a file in.
+
 ## What belongs here
 
 A prompt moves here once its task is **provably finished**:

@@ -159,3 +159,36 @@ message **and** the changelog.
    verify.
 4. **Commits** — hash(es) + "nothing pushed", and the **SDD state** (`lane
    <name> — applied / archived` or `skipped — why`).
+5. **The archive question** — the explicit yes/no ask from §10 (or
+   "not archivable yet — <reason>").
+
+## 10. Prompt housekeeping — ALWAYS ask before archiving, never do it silently
+
+Open task prompts live in `prompts/`. A **finished** prompt moves to
+**`prompts/completed prompt (Archieve)/`** — note the user's spelling, and that
+this folder's `README.md` states the evidence rule ("move only on proof") and
+lists every prompt already archived.
+
+**Every task, without exception, ends with this question — ask it, do not
+assume the answer:**
+
+> "Task done. Do you want me to archive this prompt into
+> `prompts/completed prompt (Archieve)/`?"
+
+Then act on the answer:
+
+- **Yes** → move it (`git mv` when git tracks it, plain `mv` when it matches
+  `.gitignore`, e.g. `pi-prompt-*.md`), add **one row** to that folder's README
+  table (prompt → the evidence: archived SDD lane / `sdd.yaml status: applied` /
+  commit hash / changelog entry), and commit as `docs:`.
+- **No, or no answer** → leave it in `prompts/`, say so in the report, and move
+  on. Never archive pre-emptively, never "while I'm here", never as a side
+  effect of another task.
+- **Not provably finished** → do not ask a misleading question. Say
+  "not archivable yet — <reason>" (no archived lane, no commit, no changelog
+  entry) and leave it.
+
+Never archive the toolkit, only tasks: `PI-PROMPT-TEMPLATE.md`,
+`sdd-propose-template.md`, `sdd-propose-backend-template.md`,
+`sdd-propose-ui-page.md` (auto-referenced by `AGENTS.md`), `sdd.md` (living
+tracker) and `context-transfer-prompt.md`.
