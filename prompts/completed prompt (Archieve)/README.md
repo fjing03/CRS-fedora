@@ -57,6 +57,7 @@ a reason to archive.
 | `pi-bug-arrangement-reentry-after-pending.md` | Entry-guard fix shipped: `62cbbb0` (fix) + `b0685ae` (tests) + `99329be` (changelog) |
 | `pi-prompt-notif-type-filter-redesign.md` | `210a232` (notifTypeFilter re-skin) + `f0b7215` (changelog) |
 | `pi-prompt-notif-manage-hide.md` | Batch hide + hidden shelf shipped: `467357b` (feat) + `f5cc56d` (ui) + `fc81dd3` (test) + `405b4a3` (changelog); receipts 291/291 PHPUnit + 5/5 and 10/10 Playwright |
+| `BUG Investigation — Venue Timetable & Cohort Timetable.md` | The 4 reported bugs + 8 audit bugs fixed and archived: SDD `venue-status-parity` → `.sdd/archive/2026-11-02-venue-status-parity`; commits `f09891a` (venue) / `f12874e` (cohort) / `4a98556` (shared modal) / `9eb2ded` (tests) / `eb05c01` (docs). Receipts: PHPUnit 295/295, NEW read-only `tests/venue-status-parity.spec.ts` 8/8 × 2 |
 | `pi-summary-cards-confirmed-pending.md` | Summary-cards lane shipped: `e1429b1` (feat) + `054c7b9` (test) + `689aa86` (changelogs) + `da0cd82` (handover). Ran in the NORMAL fix lane (SDD waived by the user), so the design record is the three changelog entries. The two open decisions were never answered — both prompt-stated DEFAULTS were applied (Total Slots plain; `X+Y` always, `+0` included) |
 | `Investigate Livewire JavaScript.md` | Investigation delivered: `docs/Livewire-JS-Investigation-Report.md` + `docs/livewire-js-investigation.md` (`7107abb`) |
 | `pi-prompt-session-handoff-2026-10-24.md` | Superseded by `prompts/for-ai-to-read/PI_Chat_Context_Handover.md` |

@@ -1,6 +1,6 @@
 name: venue-status-parity
 created: 2026-11-02
-status: applied
+status: archived-2026-11-02
 user-order: "2026-11-02 — the user's bug report prompts/BUG Investigation — Venue Timetable & Cohort Timetable.md; approval given bug-by-bug (#5-#8, #10 approved; #9 = the `+Y` tail; #11 = A keep-counting; #12 = A one shared rule; Available stays plain), then 'go'"
 source-report: prompts/BUG Investigation — Venue Timetable & Cohort Timetable.md
 investigation: read-only, 2026-11-02 (report delivered to the user before any edit)
