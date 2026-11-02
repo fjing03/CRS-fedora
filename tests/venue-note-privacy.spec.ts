@@ -77,3 +77,64 @@ test('unrelated staff see the same blocks with NO notes', async ({ browser }) =>
   expect(errors).toEqual([]);
   await context.close();
 });
+
+/** Open the amber (pending) block and read what the POPUP exposes.
+ *  Requested At/By + Status live in the STATUS tab (the row buckets), so the
+ *  helper reads that pane; the timeline + footer are modal-global. */
+async function pendingPopup(page: import('@playwright/test').Page) {
+  await page.goto(`${VENUE}?venue=B010&_=${Date.now()}`, { waitUntil: 'networkidle' });
+  await page.locator('#weekSelect').selectOption({ index: W7 });
+  await page.waitForTimeout(900);
+  await page.locator('.event-block', { hasText: 'AMSE2003(P)' }).filter({ hasText: '2:00 PM' }).first().click();
+  await page.waitForTimeout(700);
+
+  const readPane = () => page.evaluate(() => {
+    const modal = document.querySelector('#classModal') as HTMLElement | null;
+    const row = (label: string) => {
+      const rows = Array.from(modal?.querySelectorAll('.detail-row') || []);
+      const hit = rows.find((r) => (r.querySelector('.detail-label')?.textContent || '').trim() === label);
+      return hit ? (hit.querySelector('.detail-value')?.textContent || '').trim() : null;
+    };
+    return {
+      text: (modal?.innerText || ''),
+      requestedAt: row('Requested At'),
+      requestedBy: row('Requested By'),
+      status: row('Status'),
+      lecturer: row('Lecturer'),
+      footer: Array.from(modal?.querySelectorAll('.modal-footer button, .modal-footer a') || [])
+        .map((x) => (x.textContent || '').trim()),
+    };
+  });
+
+  const classInfo = await readPane();          // Class Information (default tab)
+  const tabs = page.locator('#classModal .modal-tab, #classModal [data-tab]');
+  for (let i = 0; i < await tabs.count(); i++) {
+    if (/status/i.test((await tabs.nth(i).innerText()).trim())) { await tabs.nth(i).click(); break; }
+  }
+  await page.waitForTimeout(400);
+  const status = await readPane();
+  const timelineSubmitted = /Submitted/.test(classInfo.text) || /Submitted/.test(status.text);
+
+  await page.locator('#classModal .btn-close-modal').click().catch(() => {});
+  return { classInfo, status, timelineSubmitted };
+}
+
+test('the popup hides the request facts from unrelated staff (A+A ruling)', async ({ browser }) => {
+  const outsider = await openAs(browser, '5770');
+  const seen = await pendingPopup(outsider.page);
+  expect(seen.status.requestedAt).toBeNull();          // no "Requested At" row anywhere
+  expect(seen.status.requestedBy).toBeNull();          // no "Requested By" row anywhere
+  expect(seen.timelineSubmitted).toBe(false);          // no "Submitted 02 Nov 2026, 07:00 PM" step
+  expect(seen.classInfo.lecturer).toBe('Surayaini Binti Basri');  // the CLASS facts stay public
+  expect(seen.status.status).toBe('Pending');          // the STATUS stays (already public via the amber block)
+  expect(outsider.errors).toEqual([]);
+  await outsider.context.close();
+
+  const owner = await openAs(browser, '5425');
+  const own = await pendingPopup(owner.page);
+  expect(own.status.requestedAt).toBe('02 Nov 2026, 07:00 PM');  // the owner still sees the stamp…
+  expect(own.status.requestedBy).toBe('Surayaini Binti Basri');  // …and who asked
+  expect(own.timelineSubmitted).toBe(true);                      // …and the Submitted timeline step
+  expect(owner.errors).toEqual([]);
+  await owner.context.close();
+});

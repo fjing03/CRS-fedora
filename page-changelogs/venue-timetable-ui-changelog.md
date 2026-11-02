@@ -1,3 +1,44 @@
+## 2026-11-02 (user ruling A+A) — the popup's request facts are owner-only too
+
+The `.ev-note` labels were fixed first; the same leak lived one click deeper.
+Opening someone else's **amber (pending) block** still showed, in the shared
+`openClassModal()`:
+
+```
+Requested At   02 Nov 2026, 07:00 PM
+Requested By   Surayaini Binti Basri
+```
+
+…plus a vertical timeline whose first step (`Submitted 02 Nov 2026, 07:00 PM`)
+repeated the same stamp. The **"View Full Request"** footer link had always been
+requester-only — the two rows and the timeline were not.
+
+**Ruling (user, A+A):** hide **both** rows from anyone but the record's owner, and
+the owner keeps them. Implemented with one predicate in `public/js/ui-common.js`
+`openClassModal()`:
+
+```js
+isRecordOwner = event.mine === true
+    || event.lecturer === MockData.currentUser.name      // the class's own lecturer
+    || event.requestedBy === MockData.currentUser.name   // the requester (parity with the footer link)
+```
+
+- owner → `Requested At` / `Requested By` rows **and** the Submitted timeline step;
+- anyone else → no rows and **no timeline** (not a half-timeline with a blanked first step);
+- **unchanged for everyone**: the class facts (subject, lecturer, cohort, students, room,
+  capacity), the `Status: Pending` badge and the amber block itself — the status was
+  already public through the colour.
+
+Shared modal ⇒ the rule lands on **every** page that opens a pending block
+(venue, cohort, student); my-timetable only ever shows own classes, so nothing
+visibly changes there.
+
+**Receipts** (`tests/venue-note-privacy.spec.ts`, read-only, demo DB never written):
+as **5770** the amber popup has no `Requested At`/`Requested By` row and no
+`Submitted` step, while the Lecturer row and `Status: Pending` remain; as **5425**
+both rows read `02 Nov 2026, 07:00 PM` / `Surayaini Binti Basri` and the timeline
+is present. Spec file 6/6 green, `venue-status-parity` 7 passed + 3 fixture skips.
+
 ## 2026-11-02 (user bug report) — the request notes are owner-only
 
 **The leak.** Signed in as **staff 5770** (not the class owner), the venue page

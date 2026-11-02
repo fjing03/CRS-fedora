@@ -1174,7 +1174,18 @@ function openClassModal(cfg) {
     var classRef = event.sessionId != null ? event.sessionId : event.id;
     if (classRef) rows.push({ label: 'Class Ref', value: '#' + classRef });
 
-    if (event.status === 'pending') {
+    /* venue-note-privacy (2026-11-02, user ruling A+A): the REQUEST facts —
+       when it was submitted and by whom — belong to the person who owns the
+       record: the block's own lecturer (`mine` / the lecturer name) or the
+       requester. Anyone else opening the amber block on a room screen sees the
+       class facts and the Pending status (already public via the block colour)
+       but not these two rows. Same gate the "View Full Request" footer link
+       has always used; the requester comparison keeps parity with it. */
+    const isRecordOwner = event.mine === true
+        || event.lecturer === (typeof MockData !== 'undefined' && MockData.currentUser ? MockData.currentUser.name : undefined)
+        || (event.requestedBy && typeof MockData !== 'undefined' && MockData.currentUser && event.requestedBy === MockData.currentUser.name);
+
+    if (event.status === 'pending' && isRecordOwner) {
         rows.splice(rows.length - 1, 0,
             { label: 'Requested At', value: event.requestedAt || '\u2014' },
             { label: 'Requested By', value: event.requestedBy || '\u2014' }
@@ -1251,7 +1262,10 @@ function openClassModal(cfg) {
         modalId: cfg.modalId || 'classModal',
         title: cfg.title || 'Class Details',
         subtitle: (event.code || '') + (event.name ? ' \u2014 ' + event.name : ''),
-        timeline: event.status === 'pending'
+        /* the timeline's own first step repeats `requestedAt` — the same gate
+           (A+A): an unrelated lecturer gets no timeline at all rather than a
+           half-timeline whose first step is blanked. */
+        timeline: event.status === 'pending' && isRecordOwner
             ? [
                 { label: 'Submitted', time: event.requestedAt || 'Done', state: 'completed' },
                 { label: 'Under Review', time: 'In progress', state: 'active', dot: 'dot-warning' },
