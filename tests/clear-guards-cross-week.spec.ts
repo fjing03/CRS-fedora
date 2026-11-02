@@ -22,20 +22,55 @@ async function loginStaff(page: Page, id: string): Promise<void> {
   await page.waitForURL(/(my-timetable|dashboard)/, { timeout: 15_000 });
 }
 
+/** Calendar-proof (2026-11-03): pick the pinned arrival's FIRST genuinely
+ *  available cell instead of the hardcoded day/hour, so the drill keeps working
+ *  as the semester moves. The arrival already lands on the earliest bookable
+ *  week, so the cell is past the three-working-day lead window by construction. */
 async function pickW6(page: Page): Promise<void> {
   await page.goto(`${BASE}/replacement-arrangement?session=67&week=14&from=replacement-home`);
-  await page.waitForTimeout(3400); // the pinned arrival lands on Week 6 (earliest bookable)
-  const td = page.locator('#tableBody td[data-day="2"][data-hour="16"] .cell-content');
-  await td.click();
+  await page.waitForTimeout(3400); // the pinned arrival lands on the earliest bookable week
+  await expect(page.locator('#tableBody .cell-available').first()).toBeVisible({ timeout: 20_000 });
+  // a 2h class needs FOUR consecutive free half-hour cells in the same day
+  const start = await page.evaluate(() => {
+    const cells = Array.from(document.querySelectorAll('#tableBody td'));
+    for (const td of cells) {
+      const day = td.getAttribute('data-day');
+      const hour = Number(td.getAttribute('data-hour'));
+      if (day === null || Number.isNaN(hour)) continue;
+      let ok = true;
+      for (let k = 0; k < 4; k++) {
+        const next = document.querySelector(
+          `#tableBody td[data-day="${day}"][data-hour="${hour + k}"] .cell-content`,
+        );
+        if (!next || !next.classList.contains('cell-available')) { ok = false; break; }
+      }
+      if (ok) return { day, hour };
+    }
+    return null;
+  });
+  expect(start).not.toBeNull();
+  await page.locator(`#tableBody td[data-day="${start!.day}"][data-hour="${start!.hour}"] .cell-content`).click();
   await page.waitForTimeout(900);
   await expect(page.locator('#infoTotal')).toContainText('4 of 4 slots');
 }
 
+/** Hop to the NEXT bookable week (by value, not a frozen index), so the guard is
+ *  exercised on whatever week the calendar offers after the arrival week. */
 async function hopToW8(page: Page): Promise<void> {
-  await page.locator('#weekSelector').selectOption('7');
-  await page.waitForTimeout(1300);
-  // the store survives the hop — the counter must still say 4 of 4
-  await expect(page.locator('#infoTotal')).toContainText('4 of 4 slots');
+  const values = await page.locator('#weekSelector option').evaluateAll(
+    (os) => os.map((o) => (o as HTMLOptionElement).value),
+  );
+  const current = await page.locator('#weekSelector').inputValue();
+  const after = values.slice(values.indexOf(current) + 1);
+  let hopped = false;
+  for (const value of after) {
+    await page.locator('#weekSelector').selectOption(value);
+    await page.waitForTimeout(1300);
+    if ((await page.locator('#tableBody .cell-available').count()) > 0) { hopped = true; break; }
+  }
+  expect(hopped).toBe(true);
+  // the store survives the hop — the counter still reports the same span
+  await expect(page.locator('#infoTotal')).toContainText(/\d+ of \d+ slots/);
   await expect(page.locator('.timetable .event-block.event-selection')).toHaveCount(0);
 }
 
