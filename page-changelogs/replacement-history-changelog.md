@@ -1,5 +1,19 @@
 # Changelog — Upcoming Replacements (Student)
 
+## [2026-11-02] Timeline rail temporarily removed (extra task 02)
+
+The modal's "Submitted / Under Review / Awaiting Replacement" rail printed a
+**fake date** — `01 Sep 2026, 09:15 AM` — because its time came from the mock
+`MockData.cohortTimetable.rsd3g2Flags` map (`:329`), which the backend ships
+empty (`ReplacementHistory.php:59`), so the fallback literal always won. The
+modal's own *Requested At* row (`:383`) was correct all along, which is what made
+the rail look plausible. The rail is **commented out** (no fake data beats a
+missing decoration) and the proper fix — one dynamic rail driven by
+`submitted_at` / `decided_at`, shared with the lecturer and class-detail modals —
+is parked as `prompts/extra tasks/task-02-replacement-history-timeline.md`.
+No other page, payload or data behaviour changed; the modal keeps its Status
+group, Requested At row and Remarks.
+
 ## [2026-10-09] Shared nav whitelist (SDD student-nav-label-parity)
 
 This page previously passed its own `navItems` override ("Student My Timetable" / "Replacement History" — mock-era labels), which made the nav differ from the rest of the student side. The override is deleted: the top nav now comes from the shared role whitelist — **My Timetable** + **Replacement History** — identical on both student pages. The page body remains mock-era static until Wave 3b wires the `ReplacementHistory` component.

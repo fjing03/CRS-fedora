@@ -384,11 +384,19 @@
                         ...(r.requestedAt ? [{ label: 'Remarks', value: 'Requested ' + r.requestedAt }] : []),
                     ]},
                 ],
-                timeline: pending ? [
-                    { label: 'Submitted', time: requestedAt || 'Done', state: 'completed' },
-                    { label: 'Under Review', time: 'In progress', state: 'active', dot: 'dot-warning' },
-                    { label: 'Awaiting Replacement', time: 'Next', state: 'pending' },
-                ] : null,
+                // TIMELINE TEMPORARILY REMOVED (2026-11-02, user's word) —
+                // the rail's "Submitted" time was the hardcoded fallback
+                // '01 Sep 2026, 09:15 AM': the backend deliberately ships an
+                // empty rsd3g2Flags map (ReplacementHistory.php:59), so the
+                // mock lookup at :329 never resolves. Showing a fake date is
+                // worse than showing no rail. The real fix (one dynamic
+                // timeline, driven by submitted_at/decided_at) is parked as
+                // prompts/extra tasks/task-02-replacement-history-timeline.md.
+                // timeline: pending ? [
+                //     { label: 'Submitted', time: requestedAt || 'Done', state: 'completed' },
+                //     { label: 'Under Review', time: 'In progress', state: 'active', dot: 'dot-warning' },
+                //     { label: 'Awaiting Replacement', time: 'Next', state: 'pending' },
+                // ] : null,
                 // NOTE: no requestId — AD-12 (no View Full Request on list modals)
             });
         }

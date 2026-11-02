@@ -179,6 +179,7 @@ follow-up — survey data has the longest lead time of anything on this list.
 ### 🟢 Low — only if a day is light
 
 - [ ] 🟢 Extra task 01: warn-modal colour (`prompts/extra tasks/task-01-warn-confirm-modal-colour.md`)
+- [ ] 🟢 Extra task 02: one honest timeline rail (`prompts/extra tasks/task-02-replacement-history-timeline.md`) — the student rail is temporarily removed
 - [ ] 🟢 Settings-surface footer (deliberately excluded from `ui-footer-global`)
 - [ ] 🟢 Remove the two accidentally tracked junk files (`"` and `--log-events-text`)
 - [ ] 🟢 Mark `page-changelogs/todo list/todo-list.md` as historical (its TASK-001/002/003/005 are stale)

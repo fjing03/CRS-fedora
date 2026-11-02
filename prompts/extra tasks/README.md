@@ -26,3 +26,4 @@ folder is on the demo/critical path.
 | File | Task | Status | Added |
 |---|---|---|---|
 | `task-01-warn-confirm-modal-colour.md` | Replacement Arrangement: the "you will lose your selection" confirm modals get the warning (yellow) face instead of the neutral one — **colour only** | ⏸ parked | 2026-11-02 |
+| `task-02-replacement-history-timeline.md` | One honest timeline rail for the replacement modals — the student rail is temporarily removed because its "Submitted" time was the hardcoded `01 Sep 2026, 09:15 AM` | ⏸ parked | 2026-11-02 |
