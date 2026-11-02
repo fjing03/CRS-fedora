@@ -2683,3 +2683,20 @@ horizontal overflow) everywhere; bar = 728px on desktop, 343px on mobile.
 At desktop the sentence's tail ellipsizes gracefully (the pending/approved
 reason + the link are always fully visible); on mobile the full text wraps.
 Both variants (pending + approved) checked.
+
+### 2026-11-02 + i — the blocked-entry toast width, another +10% (user follow-up, CSS-only)
+
+The layout fix de-overlapped the toast, but the user judged it still cramped:
+`.toast-bar` max-width **728 → 800px (+10%; 728 × 1.10 = 800.8, rounded clean)**.
+One declaration — text, link, spacing, close button, the ellipsis class-killer
+and the ≤640px mobile block all untouched; no JS/logic change
+(this check ran against the real `?blocked=request-approved` arrival, not 8030).
+
+Measured (read-only node/playwright, :8000, staff 5770 re-login once — the
+saved `.auth` cookie had expired): desktop 1280 → bar 749px (the bar is
+shrink-to-fit, so the new headroom means the approved sentence now renders
+UNCLIPPED — zero ellipsis — instead of tail-ellipsized at 728), `msgClipped
+false`, zero overlaps (message↔link, message↔close), link "My Request History"
+visible, no horizontal overflow; mobile 375 → bar 343px (16px gutters, the
+message wraps as before) — responsive behaviour preserved byte-for-byte.
+Screenshots: /tmp/opencode/toast-desktop.png + toast-mobile.png.

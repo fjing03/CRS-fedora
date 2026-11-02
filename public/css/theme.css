@@ -3493,8 +3493,10 @@ body {
        2026-11-02 entry-guard report: 560 → 728 (+30%) — the blocked-entry
        toast (a full sentence PLUS the My Request History link) overlapped
        message and link at 560; the message also ellipsizes instead of
-       spilling under the actions (see .toast-message). */
-    max-width: 728px;
+       spilling under the actions (see .toast-message).
+       2026-11-02 user follow-up: 728 → 800 (+10%; 800.8 rounded clean) —
+       the toast still felt cramped; mobile (≤640px) is untouched. */
+    max-width: 800px;
     animation: toastSlideUp 0.3s ease;
 }
 .toast-bar.visible { display: flex; }
