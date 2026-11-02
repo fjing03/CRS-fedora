@@ -181,6 +181,56 @@ test('subject switch auto-selects the matching conflict slot (the bug fix)', asy
   expect(await page.locator('#confirmModal').evaluate((el) => getComputedStyle(el).display)).not.toBe('block');
 });
 
+test('span-follow-subject-switch: the block width follows the picked occurrence (the 2 h→1 h duration bug)', async ({ page }) => {
+  test.skip(!ALLOWED, 'testing-DB-only receipt (:8030)');
+  await login(page);
+
+  // The painted hover preview is the user's exact witness (the span state is
+  // closure-private: BLOCK_SPAN is not on window). Preview width = span cells:
+  // span = round((W + spacing) / (cell + spacing)).
+  const hoverSpan = async () => {
+    await page.locator('#tableBody .cell-content.cell-available').first().hover();
+    await page.waitForTimeout(500);
+    return await page.evaluate(() => {
+      const div = document.querySelector('.event-selection-preview');
+      if (!div) return null;
+      const td = document.querySelector('#tableBody td[data-hour]');
+      const cell = td ? td.offsetWidth : 0;
+      const bs = parseInt(getComputedStyle(document.getElementById('timetable')).borderSpacing) || 0;
+      return Math.round((parseFloat(div.style.width) + bs) / (cell + bs));
+    });
+  };
+
+  // ARRIVAL the user reported: ?session=99 (AMSE1003, a 2 h lecture) — the
+  // URL duration authority paints the preview 4 cells wide (2 h) pre-switch
+  await page.goto(`${BASE}/replacement-arrangement?session=99&week=8&from=replacement-home`);
+  await page.waitForTimeout(2500);
+  expect(await hoverSpan()).toBe(4);
+
+  // switch to BMSE2163 — the auto-committed pick is its 1 h practical
+  await page.selectOption('#subjectSelector', 'BMSE2163');
+  await page.waitForTimeout(1500);
+  await acceptChangeModalIfOpen(page);
+  await page.waitForTimeout(1500);
+
+  // the dropdown state agrees with the picked occurrence (Week 14 · 12:00–1:00)
+  expect(await page.locator('.slot-dd-item.selected').count()).toBe(1);
+  expect((await page.locator('.slot-dd-item.selected').textContent()) || '').toContain('12:00 PM');
+
+  // THE REGRESSION UNDER TEST: the hover preview must now paint 2 cells (1 h)
+  // instead of the arrival's stale 4 (the user's "hover four slots (2 hours)
+  // although the practical is 1 hour")
+  expect(await hoverSpan()).toBe(2);
+
+  // and BACK to the 2 h lecture: the span follows AGAIN (4) — the switch's
+  // clear-preview ran, then the auto commit re-spanned the block
+  await page.selectOption('#subjectSelector', 'AMSE1003');
+  await page.waitForTimeout(1500);
+  await acceptChangeModalIfOpen(page);
+  await page.waitForTimeout(1500);
+  expect(await page.locator('.slot-dd-item.selected').count()).toBe(1);
+  expect(await hoverSpan()).toBe(4);
+});
 test('the hidden-stale-panel quirk: clearing the subject clears the hidden panel', async ({ page }) => {
   test.skip(!ALLOWED, 'testing-DB-only receipt (:8030)');
   await login(page);
