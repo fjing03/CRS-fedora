@@ -1,3 +1,51 @@
+## 2026-11-02 (user ask 2026-10-31) — the venue cards split Confirmed + Pending (`X+Y`)
+
+**What changed (display only).** The **pending component here is "slots held by
+PENDING make-up requests"** — the amber `cell-pending` family the grid already
+renders:
+- **Occupied** → `X+Y`: `X` = confirmed occupied rows (scheduled classes +
+  approved replacements + the derived holiday-conflict blocks), `Y` = the
+  week's pending-held rows.
+- **My Teaching Classes / My Teaching Hours** → `X+Y`: `X` = your confirmed
+  classes in this venue, `Y` = **your** pending make-ups landing here (one class
+  per request + its live junction span × 0.5 h).
+- **Total Slots** and **Available** stay **plain** — the split inside Occupied
+  already tells the pending story.
+
+**Server side (`app/Livewire/VenueTimetable.php`).** `$totalsByWeek` rows gain
+**additive** keys: `pending`, `myPendingClasses`, `myPendingHours`. The existing
+keys keep their exact values:
+- the groupBy pass now ACCEPTS the `pending` bucket (it used to hit the
+  not-initialised-key guard and silently drop those rows) but **returns before
+  touching `total`/`available`** — Total Slots therefore keeps its pre-lane
+  value (documented law: a pending hold is neither confirmed teaching nor
+  bookable, so the only place it shows is Occupied's `+Y`).
+- `myPending*` accrue in the reserved-slot second pass, in the `elseif` arm of
+  the existing approved-mine branch (`! $isApproved && proposer = me`). A pending
+  booking is **not** teaching, so it never enters `myClasses`/`myHours`.
+- Nothing is re-derived from scratch: the occupied count still comes from the
+  same single tally.
+
+**Format law.** `X+Y` always, even when `Y = 0` (`48+0`). Same CSS class as the
+cohort page (`.summary-value .sum-pending`, tertiary = the pending family per
+§10.0) — one rule, both pages, no copy.
+
+**Back-face descriptions** re-worded for Occupied + the two My cards; Total
+Slots / Available unchanged verbatim.
+
+**Receipts.** PHPUnit `VenueTimetableTest` **16/16** — the new
+`test_totals_carry_the_confirmed_pending_split_keys` crafts a 4-row pending
+reservation and asserts `pending` = the pending rows, `myPendingClasses` = 1,
+`myPendingHours` = 2, and `total` = the non-pending rows (the frozen law).
+Live: B006 reads Occupied `48+0`, My cards `0+0`, Total `120` / Available `46`
+plain, tails at `rgb(219, 168, 0)`. Specs pinning the old exact strings were
+relaxed to `X(+Y)?` patterns (`tests/venue-db.spec.ts`,
+`tests/venue-timetable.spec.ts` TC38b).
+
+**Not changed.** Which events are counted, the A&B "summary reflects the blocks
+the grid shows" law, the approved-mine teaching accrual, and every existing
+`totalsByWeek` key.
+
 ## 2026-11-02 (user minor-update, SDD-waived w/ user approval) — the always-visible venue-availability advisory in the Select-a-Session modal
 
 **The ask (user, with the suggested copy):** the modal that follows the Book

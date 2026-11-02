@@ -1,3 +1,25 @@
+## 2026-11-02 (user ask 2026-10-31) — "My Courses" renamed to **My Subjects**
+
+**What changed.** The third summary card's label and back-face description:
+`My Courses` → `My Subjects`; "Number of your different **courses** affected by
+the conflicts." → "Number of your different **subjects** affected by the
+conflicts." Display text only.
+
+**Not changed (deliberate).** The card's internal hooks — `valueId =>
+'summaryMyCourses'` and `class => 'card-courses'` — stay exactly as they were.
+`public/js/ui-common.js` writes that value by id, so renaming the id would be a
+silent breakage for zero user value. The value itself, the page's JS, the
+`card-courses` default description fallback in
+`partials/ui-summary-bar.blade.php`, and the other two cards are untouched.
+
+**Why "subject" wins.** The system's own vocabulary is subject-first (the
+arrangement page's "Change Subject?" guard, the subject dropdown, the
+`MockData.subjects` family); "course" was the odd one out on one page.
+
+**Receipt.** Live: `.summary-card.card-courses .summary-label` reads
+`My Subjects`, `#summaryMyCourses` still resolves (value 2), and the back-face
+description reads "…your different subjects…".
+
 # Changelog — Replacement Home Dashboard
 
 ## 2026-10-19 (SDD qv-arrange-null-order-fix) — the Quick-View Arrange button works again

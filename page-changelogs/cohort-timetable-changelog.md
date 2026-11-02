@@ -1,3 +1,51 @@
+## 2026-11-02 (user ask 2026-10-31) — the summary cards split Confirmed + Pending (`X+Y`)
+
+**What changed (display only).** Four of the five cards now read `X+Y`:
+Total Classes, Teaching Hours, My Teaching Classes, My Teaching Hours.
+`X` = the confirmed part (normal + replacement), `Y` = the **pending** part.
+The **Conflicts card stays a plain number** — untouched, and still the only
+card whose colour is red.
+
+**Why.** A single number hid a real difference: "12 classes" told the user
+nothing about how many of them were still waiting for approval. `12` → `11+1`
+tells them at a glance, and the amber tail is the same amber as the grid's
+`event-pending` block (§10.0 same-name-same-colour).
+
+**The shared helper is FROZEN by default.** `computeSummary(events, days)` in
+`public/js/ui-common.js` also serves `/my-timetable` and
+`/student-my-timetable`; changing its default output would have moved numbers
+on two pages nobody asked about. So the split is an **opt-in flag**:
+`computeSummary(events, days, { splitPending: true })`, passed ONLY by this
+page (both call sites, :463 and :549). Callers that pass nothing get
+byte-identical output — proven by a live receipt that runs the same event
+array through both modes (`4/5.5/4/5.5` plain vs `3+1` / `4+1.5` split).
+`myTeachingStats()` gained **additive** keys (`pendingClasses`,
+`pendingHours`); `classes`/`hours` keep their exact values, and its head-slot
+dedupe is unchanged — a pending head counts as pending, not as a second class.
+
+**Format law.** `X+Y` renders ALWAYS, even when `Y = 0` (the story stays
+visible; an all-confirmed week reads `12+0`). Pending hours are the pending
+events' `(end − start + 1) × 0.5` — the same span arithmetic as the confirmed
+side, never a re-derivation.
+
+**Styling.** One additive rule in `theme.css`:
+`.summary-value .sum-pending { color: var(--color-tertiary); font-weight: 600; }`.
+The `X` keeps the card's own colour (success green / primary blue / on-surface).
+No inline styles, no per-page CSS.
+
+**Back-face descriptions** (item 2c) re-worded on the 4 cards to explain the
+split in house tone; the Conflicts description is unchanged verbatim.
+
+**Receipts.** Live on the testing lane: all four cards carry a
+`.summary-value .sum-pending` tail at `rgb(219, 168, 0)`, Conflicts reads a
+plain `0`; dark + light + 390px all render the tail. `tests/pages-parity.spec.ts`
+(summary ids) unaffected. Specs pinning the old exact strings were relaxed to
+`X(+Y)?` patterns (`tests/ui-regression.spec.ts` TC-7.1).
+
+**Not changed.** Which events are counted (statuses, dedupe, holiday rules),
+the cancelled-blocks law, and every id (`sumTotal`… stay the same — this page's
+JS writes them by id).
+
 ## 2026-10-27 (user law, SDD class-cancel-2-working-day-window) — the Cancel window: 2 working days before today + ALL future
 **Where this page is concerned:** cohort-timetable — the eventModal Cancel family (same wiring).
 
