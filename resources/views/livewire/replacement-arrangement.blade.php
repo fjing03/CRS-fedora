@@ -3536,7 +3536,11 @@ ${(fallbackAttribution && intentReason === 'in-the-way')
                     && s.start === firstConflictRow.start
                     && s.venue === firstConflictRow.venue);
                 if (pinIdx !== -1) {
-                    selectSlot(slots[pinIdx], pinIdx, { auto: true });
+                    /* span-follow-subject-switch: opts.subjectSwitch opts this
+                       POST-boot pick OUT of the F-8 URL width lock — the new
+                       occurrence's own duration must size the block (see
+                       commitSlotSelection's SPAN-FOLLOW-SUBJECT-SWITCH law). */
+                    selectSlot(slots[pinIdx], pinIdx, { auto: true, subjectSwitch: true });
                 } else {
                     syncVenueFamily(firstConflictRow, 'auto-pin');
                 }
@@ -3928,9 +3932,22 @@ ${(fallbackAttribution && intentReason === 'in-the-way')
                flexes to the committed span (the occurrence's own facts
                govern the budget at every site, bootstrap or manual).
                SUPERSERED: the Oct-09 "4-slot floor so a shorter class can
-               book twice" boot decision (see also the URL branch's note). */
+               book twice" boot decision (see also the URL branch's note).
+               SPAN-FOLLOW-SUBJECT-SWITCH (2026-11-01, the user's bug report
+               "selected slot appears selected but the duration is wrong",
+               SDD-waived): the conflict-subject-switch-autoselect fix routes
+               the POST-boot subject-switch pick through opts.auto TOO — under
+               a ?session= arrival urlSpanLocked is TRUE and the F-8 guard
+               then skipped the resize, so a 2 h lecture arrival kept the
+               block 4 slots wide AFTER switching to a 1 h practical (the
+               hover preview AND the payload). A post-boot switch is NOT the
+               URL's boot pick: the switch's auto commit opts out of the
+               F-8 width lock via opts.subjectSwitch, and the picked
+               occurrence's own span (slotSpan) sizes the block — the same
+               law the manual pick path always had. */
             const slotSpan = Math.min(Math.max(slot.end - slot.start + 1, 1), 4);
-            if (slotSpan !== BLOCK_SPAN && !(urlSpanLocked && opts && opts.auto)) {
+            if (slotSpan !== BLOCK_SPAN
+                && !(urlSpanLocked && opts && opts.auto && !(opts && opts.subjectSwitch))) {
                 BLOCK_SPAN = slotSpan;
             }
             if (MAX_SELECTION !== slotSpan) {
