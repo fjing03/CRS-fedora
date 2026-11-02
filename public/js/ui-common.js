@@ -1144,7 +1144,10 @@ function openClassModal(cfg) {
     const startStr = to12h(hours[event.start]);
     const endStr = to12h(hours[event.end + 1] || add30min(hours[event.end]));
 
-    const statusDesc = isConflict ? 'Class falls on a public holiday — no class runs' : event.status === 'pending' ? 'Replacement request awaiting approval' : event.status === 'conflict' ? 'Scheduling conflict — needs attention' : 'Scheduled class with no issues';
+    /* venue-status-parity T7 (bug #10): the cancelled arm was missing, so a
+       cancelled class's popup read "Scheduled class with no issues" on every
+       page. Same vocabulary as the badge / the block note. */
+    const statusDesc = isConflict ? 'Class falls on a public holiday — no class runs' : event.status === 'pending' ? 'Replacement request awaiting approval' : event.status === 'conflict' ? 'Scheduling conflict — needs attention' : event.status === 'cancelled' ? 'Class cancelled — a replacement is needed' : event.status === 'replacement' ? 'Approved replacement session — this class runs at this slot' : 'Scheduled class with no issues';
 
     const rows = [
         { label: 'Subject Code', value: event.code },
@@ -1163,7 +1166,13 @@ function openClassModal(cfg) {
     /* Reference row (2026-10-11 user decision): a quotable handle for
        reporting a class ("class #97 venue is wrong") — shown wherever the
        event carries the real session id. */
-    if (event.id) rows.push({ label: 'Class Ref', value: '#' + event.id });
+    /* venue-status-parity T6 (bug #5): `id` is the grid's ROW key — on the venue
+       page that is a time_slot id, so the popup quoted "#34413" for a class whose
+       quotable reference is #40. `sessionId` is the class_session id wherever the
+       payload carries one (venue page: every block; the timeline pages: their `id`
+       already IS the class id, so nothing moves there). */
+    var classRef = event.sessionId != null ? event.sessionId : event.id;
+    if (classRef) rows.push({ label: 'Class Ref', value: '#' + classRef });
 
     if (event.status === 'pending') {
         rows.splice(rows.length - 1, 0,
