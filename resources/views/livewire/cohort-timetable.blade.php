@@ -595,11 +595,27 @@
                    'conflict') — the AMSE2003 (T) Dec 24 class app is
                    status-normal but sits ON the W14 holiday — the honest
                    own-conflict gate reads BOTH. */
+                /* venue-status-parity T9 (bug #4): the gate is the SERVED
+                   exact-pair conflict fact, byte-parity with my-timetable — the
+                   hand-rolled `holiday || status === 'conflict'` heuristic could
+                   not see a live proposal (it offered a dead-end button on a
+                   class that already HAS one) and missed the cancelled class
+                   (which needs a replacement most). `occurrenceFact` is null
+                   when the pair is handled or normal. The served array is
+                   re-read by id+di because Livewire's marker morph can blank
+                   the DOM clone's extra key. */
                 const replaceBtn = document.getElementById('btnReplaceNow');
                 if (replaceBtn) {
                     const isMine = event.mine === true || event.lecturer === MockData.currentUser?.name;
-                    const isConflict = (weekData[currentWeek].days[event.di] && weekData[currentWeek].days[event.di].holiday) || event.status === 'conflict';
-                    replaceBtn.style.display = (isMine && isConflict) ? 'flex' : 'none';
+                    let stamped = event;
+                    try {
+                        ((eventsByCohort[selectedCohortId] || [])[currentWeek] || []).forEach(function (x) {
+                            if (x && x.id === event.id && x.di === event.di && x.occurrenceFact) {
+                                stamped = x;
+                            }
+                        });
+                    } catch (e) { /* pre-boot: the clone is the truth */ }
+                    replaceBtn.style.display = (isMine && stamped.occurrenceFact) ? 'flex' : 'none';
                 }
                 /* class-modal-affordances T2: the Cancel affordance restored
                    (the legacy CohortTimetable template's wiring ported —
