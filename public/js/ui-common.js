@@ -1420,7 +1420,12 @@ const DetailModal = {
     // Each step may supply `dot` ('dot-success'|'dot-error'|'dot-warning'|'dot-primary')
     // so the dot colour reflects that step's status.
     timeline(steps) {
-        let html = '<div class="modal-timeline">';
+        /* DEMO REMINDER (2026-11-02, user's word): plain text above every rail.
+           The rail is known-broken (see prompts/extra tasks/
+           task-02-replacement-history-timeline.md) and the user wants to ask
+           the SV whether it is useful at all. Delete this line with the rebuild. */
+        let html = '<div class="modal-timeline-note">the timeline function got error -- ask SV does this useful/helpful for Them</div>';
+        html += '<div class="modal-timeline">';
         steps.forEach((s, i) => {
             const st = s.state || 'pending';
             const dotCls = s.dot || '';

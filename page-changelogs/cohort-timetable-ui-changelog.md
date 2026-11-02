@@ -1,5 +1,14 @@
 # Changelog — Cohort Timetable UI
 
+## [2026-11-02] Visible demo reminder above the class-detail timeline rail
+
+The shared `DetailModal.timeline()` now prints one line of plain text directly
+above the rail: **"the timeline function got error -- ask SV does this
+useful/helpful for Them"** — a demo aid, not product copy. The rail is the
+partially hardcoded one, parked in
+`prompts/extra tasks/task-02-replacement-history-timeline.md`. Styled by
+`.modal-timeline-note` (muted token, italic); delete with the rail rebuild.
+
 ## [2026-10-25] Hover voice: own classes read ME, status CAPS (the user's directive B + D)
 
 The block tooltip now reads `name · lecturer|ME · status` — the viewer's

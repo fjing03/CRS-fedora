@@ -1,3 +1,12 @@
+## 2026-11-02 (shared timeline) — visible demo reminder above the class-detail rail
+
+The shared `DetailModal.timeline()` now prints one line of plain text directly
+above the rail: **"the timeline function got error -- ask SV does this
+useful/helpful for Them"** — a demo aid, not product copy. The rail itself is
+partially hardcoded and parked in
+`prompts/extra tasks/task-02-replacement-history-timeline.md`. Styled by
+`.modal-timeline-note` (muted token, italic); delete with the rail rebuild.
+
 ## 2026-11-02 (user ruling A+A) — the popup's request facts are owner-only too
 
 The `.ev-note` labels were fixed first; the same leak lived one click deeper.

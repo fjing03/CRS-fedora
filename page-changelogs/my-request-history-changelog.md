@@ -1,5 +1,17 @@
 # Changelog — Lecturer My Request History
 
+## 2026-11-02 — visible demo reminder above the timeline rail
+
+The shared `DetailModal.timeline()` now prints one line of plain text directly
+above every rail: **"the timeline function got error -- ask SV does this
+useful/helpful for Them"**. It is a deliberate demo aid (the user wants to ask
+the supervisor whether the rail is worth keeping), not product copy. The rail
+itself is known-broken and parked in
+`prompts/extra tasks/task-02-replacement-history-timeline.md` (8-hour
+`reviewedAt` skew, cancelled requests looking reviewed). Styled by the new
+`.modal-timeline-note` rule (muted token, italic). Delete the line in
+`ui-common.js` and the CSS rule when the rail is rebuilt.
+
 ## 2026-10-30 (SDD `status-tooltips-filter-chips`) — status badges explain themselves + a real Clear-all
 
 **a) Status tooltips** (the user's frozen wording, shared `data-tip` — the

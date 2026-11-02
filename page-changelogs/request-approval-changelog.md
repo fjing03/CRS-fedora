@@ -1,5 +1,15 @@
 # Request Approval — changelog
 
+## 2026-11-02 — visible demo reminder above the timeline rail
+
+The shared `DetailModal.timeline()` now prints one line of plain text directly
+above every rail: **"the timeline function got error -- ask SV does this
+useful/helpful for Them"**. On this page that rail is the one with the
+permanently empty **Viewed** step (no `viewedAt` source exists) — see
+`prompts/extra tasks/task-02-replacement-history-timeline.md`. The note is a
+demo aid, not product copy; styled by `.modal-timeline-note` (muted token,
+italic). Delete it with the rail rebuild.
+
 ## 2026-10-30 (SDD `status-tooltips-filter-chips`) — status/urgency tooltips, the real Overdue badge, filter-bar upgrade
 
 **a) Status tooltips** (the user's frozen wording; shared `data-tip`,

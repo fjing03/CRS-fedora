@@ -1836,6 +1836,16 @@ html.dark .filter-select {
 .detail-caption { font-size: 12px; color: var(--color-on-surface-variant); margin-top: 2px; }
 
 /* ── Shared horizontal timeline rail (global info, pinned above tabs) ── */
+/* Visible plain-text reminder printed above every rail (2026-11-02, user's
+   word) — the rail is known-broken and is on the SV-demo talking points. It is
+   rendered by DetailModal.timeline() in ui-common.js; delete the rule with the
+   rail rebuild (prompts/extra tasks/task-02-replacement-history-timeline.md). */
+.modal-timeline-note {
+    font-size: 12px;
+    font-style: italic;
+    color: var(--color-on-surface-variant);
+    margin: 0 0 2px;
+}
 .modal-timeline {
     display: flex;
     align-items: flex-start;

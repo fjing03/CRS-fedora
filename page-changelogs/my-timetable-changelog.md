@@ -1,3 +1,13 @@
+## 2026-11-02 (shared modal) — visible demo reminder above the timeline rail
+
+The class-detail popup's rail (the shared `DetailModal.timeline()`) now prints
+one line of plain text directly above it: **"the timeline function got error --
+ask SV does this useful/helpful for Them"**. A demo aid, not product copy. The
+rail itself is the partially hardcoded one ("In progress" / "Next" are literals,
+and it disappears once the request is decided) — parked in
+`prompts/extra tasks/task-02-replacement-history-timeline.md`. Styled by
+`.modal-timeline-note` (muted token, italic). Delete with the rail rebuild.
+
 ## 2026-11-02 (SDD `venue-status-parity` — bugs #5 + #10, shared modal) — the popup quotes the CLASS, and a cancelled class stops sounding healthy
 
 Two one-line fixes in the shared `openClassModal()`; this page's behaviour is
