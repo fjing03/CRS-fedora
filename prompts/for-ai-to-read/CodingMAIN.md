@@ -400,7 +400,7 @@ Source: `FR&NFR copy.md` (this folder — a verbatim copy of `../../../final/FR&
 Dashboard → My Timetable → Cohort Timetables → Replacement Arrangement → Replacement History
 
 ### Page changelogs
-Each page's development history is logged in `page-changelogs/*.md` — **update the relevant changelog when you change a page.**
+Each page's development history is logged in `page-changelogs/*.md` — **create or update the relevant changelog when you change a page** (`<page>-changelog.md`; append a dated entry, newest first, and create the file when the page has none).
 
 ---
 

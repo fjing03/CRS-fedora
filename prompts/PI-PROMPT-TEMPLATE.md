@@ -16,7 +16,7 @@
 | **Why** | `<<the user-facing problem or the user's own words>>` |
 | **In scope** | `<<files / dirs this task may touch>>` |
 | **Out of scope** | `<<what must NOT be touched — other pages, other lanes, other sessions' files>>` |
-| **Deliverable** | `<<findings report` or `code + tests + changelog + receipts>>` |
+| **Deliverable** | `<<findings report` or `code + tests + changelog (created or updated) + receipts>>` |
 | **SDD** | `<<lane name` or `skip — one-line reason>>` (see §3b) |
 | **DB impact** | `<<none` or `testing DB only` or `demo DB — user-gated per write>>` |
 | **Done when** | `<<3–5 measurable bullets>>` |
@@ -116,7 +116,13 @@ message **and** the changelog.
 2. Write the smallest change that satisfies §0 "Done when"; keep existing ids,
    bindings, contracts and byte-identical output where the task does not ask for
    a change.
-3. Update the matching `page-changelogs/*.md` for any UI change.
+3. **Changelog — create it or update it, never skip it.** For any UI change,
+   append a dated entry (newest first, `## YYYY-MM-DD (context) — title`) to
+   `page-changelogs/<page>-changelog.md`; **if the file does not exist, create
+   it** with that name. For a non-UI change that is user-visible or operational
+   (service, migration, workflow, test lane), append to the closest existing
+   changelog rather than inventing a parallel one. Saying "no changelog" is only
+   acceptable when the diff is docs-only.
 4. Add/adjust tests **only** for the behaviour you changed; never weaken an
    existing assertion to make it pass.
 5. Run the gates (see §7) and fix what they report.
@@ -133,7 +139,8 @@ message **and** the changelog.
 
 ## 6. Expected outputs
 
-- **Implement:** the diff, the changelog entry, the receipts, the commit
+- **Implement:** the diff, the changelog entry (created or updated), the
+  receipts, the commit
   hash(es) — plus the SDD lane artefacts when §3b said to open one — and
   nothing else.
 - **Investigate:** findings with evidence, root cause, options, recommendation,
@@ -159,7 +166,8 @@ message **and** the changelog.
 
 ## 9. Report format (keep the reply short)
 
-1. **What changed** — `file:line` list.
+1. **What changed** — `file:line` list, and the changelog file (created or
+   updated) with its entry title.
 2. **Receipts** — command → result (numbers, not adjectives).
 3. **Notes / risks** — anything the user must know, including what you did *not*
    verify.
