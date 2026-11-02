@@ -118,7 +118,7 @@ class FortifyServiceProvider extends ServiceProvider
                     Cache::forget("login_fail:{$loginId}");
                     Cache::forget("login_lockout:{$loginId}");
                 }
-                $minutes = $user->isStudent() ? 43200 : 30; // Production: 30 | Testing: 1
+                $minutes = $user->isStudent() ? 720 : 30; // Student: 12 h idle | Staff: 30 min idle | Testing: 1
                 session(['role_lifetime' => $minutes]);
                 session(['login_type' => $loginType]);
                 // week-memory-until-logout: the per-login scope marker —
