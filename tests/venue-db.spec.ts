@@ -72,11 +72,14 @@ test('summary cards numeric and repaint on client-side week navigation', async (
 
   const total = page.locator('#sumTotal');
   const available = page.locator('#sumAvailable');
-  await expect(total).toHaveText('120', { timeout: 15_000 }); // 6 days × 20 DB rows
+  // venue-status-parity T8 (2026-11-02, the user's `+` ruling): Total Slots now
+  // renders `X+Y` as well, because the plain value silently dropped the
+  // pending-held rows. The tail always renders, `+0` included, so the regex
+  // pins the confirmed part and tolerates the tail. Available stays plain by
+  // design (it is already the post-hold count).
+  await expect(total).toHaveText(/^120(\+[\d.]+)?$/, { timeout: 15_000 }); // 6 days × 20 DB rows
   // summary-cards-confirmed-pending (2026-11-02): Occupied + the two My cards
-  // now render `X+Y` (Y = the pending-held share). No pending holds exist in
-  // this fixture, so the tail is `+0` — the regex pins the CONFIRMED part and
-  // tolerates any pending tail. Total Slots / Available stay plain.
+  // render `X+Y` as well (`X` = Confirmed, `Y` = Pending) with the same shape.
   await expect(page.locator('#sumOccupied')).toHaveText(/^48(\+[\d.]+)?$/);
 
   // The page opens on the REAL current week — by design every slot there is
@@ -98,7 +101,7 @@ test('summary cards numeric and repaint on client-side week navigation', async (
 
   // client-side week navigation repaints grid + summary
   await page.click('.week-arrow[aria-label="Next week"]');
-  await expect(total).toHaveText('120');
+  await expect(total).toHaveText(/^120(\+[\d.]+)?$/);
   await page.click('.week-arrow[aria-label="Previous week"]');
   await expect(page.locator('#sumOccupied')).toHaveText(/^48(\+[\d.]+)?$/);
   await expect(available).toHaveText('84');   // back on the bookable week

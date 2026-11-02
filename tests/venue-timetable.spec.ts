@@ -338,8 +338,10 @@ test.describe('Venue Timetable UI', () => {
   });
 
   test('TC38 — summary values are numeric', async ({ page }) => {
+    // venue-status-parity T8 (2026-11-02): Total Slots reads `X+Y`, so the
+    // numeric check parses the confirmed part before the `+` tail.
     const total = await page.locator('#sumTotal').textContent();
-    expect(Number(total)).not.toBeNaN();
+    expect(Number(String(total ?? '').split('+')[0])).not.toBeNaN();
   });
 
   test('TC38b — My Teaching cards match the grid (B110, weekly pattern)', async ({ page }) => {
@@ -605,8 +607,8 @@ test.describe('Venue Timetable UI', () => {
       await select.selectOption({ index: 1 });
       await page.waitForTimeout(500);
       const totalAfter = await page.locator('#sumTotal').textContent();
-      expect(Number(totalBefore)).not.toBeNaN();
-      expect(Number(totalAfter)).not.toBeNaN();
+      expect(Number(String(totalBefore ?? '').split('+')[0])).not.toBeNaN();
+      expect(Number(String(totalAfter ?? '').split('+')[0])).not.toBeNaN();
     }
   });
 
