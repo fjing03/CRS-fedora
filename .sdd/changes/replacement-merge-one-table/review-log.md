@@ -354,3 +354,60 @@ Append-only. One entry per review round per batch.
 folded above (law 3's fallback step, the `&view=request` marker, one venue rule, the commit set,
 the six-state description map + the no-request tab, the nulls parenthetical, the Cancel gate).
 
+## proposal Round 8 — 2026-11-04
+
+<!-- Confirmation pass (user-granted). Scope: the seven round-7 findings only. Every fold re-checked
+     against the code, not against round 7's own text. §1–§5, M1–M17 and §7's other rows were
+     cleared earlier and are not re-litigated here. -->
+
+### 🔴 Fixed
+- **R7-1 — folded, and law 3 is a faithful restatement of `span()`, verified step by step.** `span()`
+  (`ReplacementRequestMapper.php:206-238`) = junction ⋈ `time_slots` ordered by `start_time`; first
+  row's week/day/venue/start, last row's end, `count` = row count; step 2 = `$r->replacementTimeSlot`
+  with `count: 1`. `spansForRequests()` (`:327-359`) returns exactly that shape grouped by request id,
+  so "id absent from the map → build it from the anchor" reproduces `span()` field for field, and both
+  paths format through the one helper `stringsFromSpan()` (`:297-313`). The anchor is genuinely
+  preloaded (`ReplacementHome.php:74`, `replacement_time_slot_id` in the narrow select `:80`), and
+  `ApproveRequest:54` only *reads* the junction — so approved rows always keep their span and the
+  batch path cannot suppress the `completed` state. Cancelled and rejected rows now print their slot
+  instead of an em dash, and keep their Proposed Replacement Schedule tab.
+- **No new cross-law contradiction.** Law 5 survives an *optional* span argument (`ApiReadController`
+  reaches `effectiveStatus` only via `toRow():131`); law 2 survives because the span is injected, not
+  re-derived; `effectiveStatus()`'s `lt(today())` is unaffected by where the span came from.
+
+### 🟡 Addressed
+- **R7-2** item 10 names both producers and carries `&view=request`; `applyNotifHighlight` strips only
+  `notif-hl`/`notif-w` (`:324-327`), so the marker survives. **R7-3** one modal venue rule, matching
+  `NavNotifications.php:678-679`. **R7-4** "six live files" reconciles exactly (3+6+2+1+2+2 = 16 URL
+  occurrences); the copy edits (`:1214`, `:4419`, `:4422`) are correctly excluded.
+- **R7-5** the description keys on the **status** and covers all six plus the no-request sentence.
+  **R7-6** the pg parenthetical is now correct (`NULLS LAST` on ASC, `NULLS FIRST` on DESC).
+  **R7-7** 3b keeps the pending-only gate.
+
+### 🟡 Residuals — folded after PASS (wording only, implementation unchanged)
+- **10b** now names the mechanism (`tryFind($sel, $fallbackSel)` → `querySelector($sel) || querySelector($fallbackSel)`),
+  never a comma-joined list — that form resolves by document order and restores the wrong-row match.
+- **10** now defines "present" as **present in `payload.conflictedClasses`**, not in the DOM: a saved
+  `mrh-filters` filter or the week navigator could otherwise hide a row that exists and silently
+  restore the downgrade.
+- **10c** now keeps **`closeModal()`** (overlay *and* `#quickViewModal`, `:703-705`), because a
+  still-open detail modal would show a stale Cancel button against item 3b's gate.
+- **3b** now records that the node is **static** with a `style.display` gate (`:268`, `:876`), and that
+  opening the modal must bind the viewed request id (`:689`, `:809-810`).
+- **§6b row 11** now points at `stringsFromSpan()` directly and says the merged page never calls the
+  per-row `replacementStrings()`; and it states the anchor limitation instead of hiding it (a cancelled
+  2-hour arrangement prints `09:00 – 09:30`, inherited from `replacementStrings()` — a later lane).
+- **§6b nulls row**: the guard, if the column ever became nullable, is **`nulls first`**, not
+  `nulls last` — with `keyBy` keeping the last row on an ASC order, NULLs-last is what would make an
+  undated row newest.
+
+### 🔴 Outstanding
+- None.
+
+**Verdict: PASS** — the round-7 blocker is closed; law 3 yields `replacementStrings()`-identical output
+with no per-row query (three base reads + one batch span query + the venue preload + the eager anchor);
+§6b is internally consistent, one source per value, all six row states plus the no-request state
+resolving on both schedule tabs and the Request Status tab.
+
+**Batch 1 (proposal) is FROZEN at this entry** — 8 rounds, 2026-11-03 → 2026-11-04.
+
