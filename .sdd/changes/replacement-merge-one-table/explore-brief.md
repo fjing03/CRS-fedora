@@ -222,10 +222,11 @@ ambiguous.
 
 `ui-prototype/replacement-merged-preview.html` (repo parent, beside
 `notif-manage-preview.html`) — a standalone static mock that links the live
-`theme.css`, with 12 fabricated rows covering every status (enough for a real
-second page), a rejected → pending trail, the tabbed `DetailModal` shell
-(Status · Class · Schedule · Requests), the six-column layout (including the reused
-Conflict Reason badges and the icon-only actions), the Active Filters chip bar, the
-full pagination bar, and live search/status/completed filtering. There is **no
-checkbox column and no bulk bar** (your 2026-11-03 call). It is a discussion
-instrument, **not** app code and not a receipt.
+`theme.css`, with 15 fabricated rows (4 of them Completed, with class and
+replacement both in the past so the state is honest), a rejected → pending trail,
+the tabbed `DetailModal` shell (Status · Class · Schedule · Requests), the
+six-column layout (including the reused Conflict Reason badges and the icon-only
+actions), the Active Filters chip bar, the full pagination bar, and live
+search/status/completed filtering. There is **no checkbox column and no bulk bar**
+(your 2026-11-03 call). It is a discussion instrument, **not** app code and not a
+receipt.
