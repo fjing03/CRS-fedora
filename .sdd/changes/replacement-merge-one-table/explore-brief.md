@@ -158,7 +158,7 @@ Inside one request's panel:
 
 | Row | Example |
 |---|---|
-| Request ID | `#R114.1` |
+| Request ID | `#R114.1` — only when there is no child tab bar to carry it |
 | Status | `Approved by PL` |
 | Proposed Replacement | `Thu, 06 Nov 2025 · 09:00 to 10:00 @ B010` — the venue joins with `@` |
 | Your Submitted Timestamp | `30 Oct 2025, 2:45 PM` |
@@ -173,10 +173,10 @@ A request the lecturer cancelled instead reads `Decision Timestamp` +
 `Waiting for a decision` and no decider row. The detail label column widened to
 160 px so `Decision by PL Timestamp` stays on one line.
 
-**Request ID is a row, not only a tab.** The child tab labels carry the id, but a
-single-request panel has no tab bar at all, which silently lost the id. Every panel
-therefore starts with a `Request ID` row (`#R114.1`), so the id is present whether
-the history is shown as tabs or as one block.
+**Request ID appears exactly once.** With two or more requests the **child tab label**
+carries it (`Request #R102.3`); with a single request there is no tab bar, so the
+panel starts with a `Request ID` row (`#R114.1`). Printing it in both places would
+be duplication, and printing it in neither is how it went missing once already.
 
 Two subtitles carry the panel — `CURRENT` and `HISTORY` — and both are **14 px
 (+2 over the 12 px detail labels), 700, uppercase, `on-surface` near-white**, so
