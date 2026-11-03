@@ -67,7 +67,7 @@ builds one. That is written in the proposal §1 so it is not discovered as a sur
 | # | Decision |
 |---|---|
 | **M1** | One table, one row per class occurrence, keyed `(class_session_id, week_number)`. Row status = newest request (greatest `submitted_at`, tie-break `id`). No request → the row still appears as `Need to Arrange`. |
-| **M2** | Canonical `/replacement-home-ui`; `/my-request-history-ui` = **a second route entry for the same component, not a redirect**, so the query string survives. Consumers: `NotificationEmitter.php:64,88`, `FROM_LANDING_ROUTES:79`, `partials/notif-row.blade.php:96` (strict `===` on the stored link), the post-submit redirect, `requestHref()`. |
+| **M2** | Canonical **`/my-replacements`**. Both old URLs (`/replacement-home-ui`, `/my-request-history-ui`) stay as **extra route entries for the same component — never redirects** — so query strings survive. Eleven live call sites move to the canonical in one commit; stored notification links and their `mock-data.js` fixtures do not. |
 | **M3** | Title and nav label **My Replacements**; two lecturer nav items become one (key `replacement-arrangement`). Leave `'nav' => 'replacement-history'` on the alias entry alone. |
 | **M4** | **Seven columns:** Course Code & Name · **Cohort** · Original Class · Conflict Reason · Requested Replacement · Request Status · Action. Cohort = one per line (`<br>`), not sortable. |
 | **M5** | Labels: `Need to Arrange` (outlined) · `Pending — Waiting for Approval` · `Approved` · `Rejected` · `Cancelled by YOU` · `Completed — <n> days ago`. |
@@ -118,7 +118,10 @@ path is not a cut-and-paste**: the history version splices `mockRequests` and ca
 | `public/js/ui-common.js` | `HtmlBuilder.replacementHomeRow` (`:2481-2506`) reshaped to 7 columns; `applyNotifHighlight` (`:320-342`) gains a **second selector, with `data-request-id` tried first** |
 | `app/Services/ReplacementRequestMapper.php` | replacement slot, `remarks`, `rejection_reason`, venue **name**; `effectiveStatus()` reused |
 | `resources/views/livewire/replacement-home.blade.php` | 7-column table, modal, action cell, cards, toolbar, the moved confirm overlay |
-| `routes/web.php` | alias = second entry for `ReplacementHome` (same middleware, query string preserved) |
+| `routes/web.php` | `/my-replacements` + both old URLs as aliases (same middleware, query string preserved) |
+| `ui-common.js` (links) | `BackNavigator.#routes` + default (`:3071,3072,3079`), entry-guard toast links + labels (`:4420,4423`), "View Full Request" (`:1292`, gains `?notif-hl=r<id>`) |
+| `ReplacementArrangement.php` | `FROM_LANDING_ROUTES` + fallback (`:78,79,201`) → canonical; the duplicate-request message (`:1214`) |
+| `replacement-arrangement.blade.php:2241,2245` | post-submit toast link + redirect → canonical |
 | `MyRequestHistory.php` + its blade | retired (or a forwarder that keeps `payload['requests']` + both cancel methods) |
 | `partials/ui-nav-bar.blade.php` | two lecturer items → one |
 | `partials/ui-page-header.blade.php` | `descriptionHtml` via `{!! !!}` so the H1 keeps `CLASS` / `REQUEST` / `ONE LIST` |

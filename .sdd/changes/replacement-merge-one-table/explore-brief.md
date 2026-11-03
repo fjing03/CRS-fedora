@@ -412,11 +412,66 @@ applyNotifHighlight (ui-common.js:307, 150 ms) ── ?notif-hl=r<id>
 flashRowPulse (:219–224, 1.3 s) ── the arrival pulse
 ```
 
-**URL contract** (hard): `/my-request-history-ui` must keep resolving — it is used
-by `NotificationEmitter.php:64,88`, `replacement-arrangement.blade.php:2241,2245`,
-the badges lane (D2/D6) and the completed lane. After the merge it is an **alias**
-of the merged page, and `?notif-hl=r<id>` narrows to that occurrence and pulses it.
-`/replacement-home-ui` becomes the canonical URL.
+**URL contract** (hard, revised 2026-11-03): the page name is *My Replacements*, so
+the URL says so — **canonical `/my-replacements`**. Both old addresses keep
+resolving, as **aliases (the same component at a second URI, never a redirect**, so a
+query string survives):
+
+| URL | Role | Why it must exist |
+|---|---|---|
+| **`/my-replacements`** | **canonical** — what the nav, the post-submit return and the address bar show | the new name |
+| `/replacement-home-ui` | alias | `FROM_LANDING_ROUTES:78`, the `?blocked=` returns, and 28 test files that `goto` it |
+| `/my-request-history-ui` | alias | `NotificationEmitter.php:64,88` (stored in bell rows), `replacement-arrangement.blade.php:2241,2245` (the post-submit redirect), `notif-row.blade.php:96` (strict `===` on the stored string), `?notif-hl=r<id>` |
+
+Aliases are route-table entries for the same component — **not** redirects. A redirect
+drops `?notif-hl=` and `?blocked=`, the notification lands on an unhighlighted row, and
+nothing looks broken enough to notice. `?notif-hl=r<id>` narrows to that occurrence and
+pulses it.
+
+**New navigations go to the canonical**, so the address bar reads `/my-replacements`
+during the demo. A sweep of the live code (2026-11-03) found **eleven** places that name
+one of the old URLs; they split into three kinds, and only the first moves:
+
+**(a) Live navigation — updated to `/my-replacements`**
+
+| File:line | What it is |
+|---|---|
+| `routes/web.php:56,68` | the two entries; `/my-replacements` is **added**, both old ones stay as aliases |
+| `ui-nav-bar.blade.php:18,19` | the two lecturer nav items → **one** |
+| `ReplacementArrangement.php:78,79,201` | `FROM_LANDING_ROUTES` (both keys) + the `?? '/replacement-home-ui'` fallback — where you land after arranging |
+| `replacement-arrangement.blade.php:2241,2245` | the post-submit toast link **and** `window.location.href` |
+| `public/js/ui-common.js:3071,3072,3079` | `BackNavigator.#routes` + `getDefault()` — the dynamic back button |
+| `public/js/ui-common.js:4420,4423` | the entry-guard toasts' links **and their labels** (both say "My Request History") |
+| `public/js/ui-common.js:1292` | the quick view's **"View Full Request"** button |
+| `replacement-home.blade.php:376` | `requestHref()` — deleted with the badge anchor by M6; if kept, it becomes `/my-replacements?notif-hl=…` |
+
+**(b) Stored values and comparisons — deliberately NOT touched**
+
+`NotificationEmitter.php:64,88` (the link stored in each bell row),
+`notif-row.blade.php:96` (a strict `===` on that stored string, deciding whether to attach
+the highlight anchor), and the seven fixtures in `public/js/mock-data.js:1003,1009,1015,1021,1071,1095,1101`
+that mirror the emitter. Rewriting these would orphan every notification already in a
+bell; the alias does the job instead. This is exactly why the alias must be a **route
+entry**, not a redirect.
+
+**(c) Copy that names the old page — updated with the lane**
+
+`ReplacementArrangement.php:1214` ("… see My Request History."),
+`ui-common.js:4419,4422` ("view it in My Request History." / "track or withdraw it in My
+Request History.") and the two toast labels. The page has a new name; the messages that
+send people to it must say the new name.
+
+**Two defects the sweep exposed** (both fixed by this lane, not left as surprises):
+
+- `ui-common.js:1292` builds `…?id=<requestId>`, but **nothing reads `?id=`** — the button
+  has always landed on the bare page. It becomes `?notif-hl=r<id>`, which the merged page
+  does honour.
+- `ui-common.js:3079` returns `/replacement-home-ui` as the *default* back target, so every
+  page with no history walks onto the old URL. It becomes the canonical.
+
+**The edits are atomic.** `/my-replacements` must exist before any href names it, or those
+clicks 404 — so the route entry and all eleven call sites land in the same apply commit,
+never as a partial edit.
 
 **No schema change.** `uq_replacement_requests_active_block` (partial unique on
 `(class_session_id, week_number) WHERE status IN ('pending','approved')`) already

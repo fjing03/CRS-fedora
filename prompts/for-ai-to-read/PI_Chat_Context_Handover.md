@@ -36,10 +36,10 @@
 ## 1. Latest session — 2026-11-03 (this one)
 
 **Later in the same day — the merged replacement page (docs only, nothing pushed):**
-- The user finalised the **one-table** design: `/replacement-home-ui` becomes
-  **My Replacements** (one row per class occurrence, seven columns, status in the tab
-  label and as a badge, no HISTORY block, icon-only actions, five cards). Alias
-  `/my-request-history-ui` stays. Full record: `.sdd/changes/replacement-merge-one-table/explore-brief.md`.
+- The user finalised the **one-table** design: the page is **My Replacements** at the new
+  canonical URL **`/my-replacements`** (one row per class occurrence, seven columns, status
+  in the tab label and as a badge, no HISTORY block, icon-only actions, five cards). Both
+  `/replacement-home-ui` and `/my-request-history-ui` stay as aliases. Full record: `.sdd/changes/replacement-merge-one-table/explore-brief.md`.
 - **Static prototype** (discussion instrument, never staged, outside the repo):
   `../ui-prototype/replacement-merged-preview.html` — loads the live `theme.css` from
   `:8000`, so the dev server must be running to see real colours.
