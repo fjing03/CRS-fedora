@@ -135,6 +135,7 @@ are not repeated.
 |---|---|
 | **Original Class Schedule** | **Class ID** · week · day · date · time · duration · venue |
 | **Proposed Replacement Schedule** | **Request ID** · week · day · date · time · duration · venue. The tab is **hidden** when nothing is proposed (no request, or a request with no resolvable slot) — an empty tab that says "nothing yet" is a dead end |
+| **Request Status** | **CURRENT** subtitle · status badge · a **Description** row holding one plain sentence about that status · a divider · **HISTORY** subtitle · **one child tab per request** (`Request #R102.2`, `Request #R102.1`), newest first and newest selected |
 
 Both schedules print the same way (user decision, 2026-11-03):
 
@@ -145,7 +146,6 @@ Both schedules print the same way (user decision, 2026-11-03):
 | Time | one row, 12-hour, `~` between | `10:00 AM ~ 12:00 PM` |
 | Duration | words, not `hr` | `1 hour` / `2 hours` |
 | Venue | code + short room name | `B010 — Computer Lab` |
-| **Request Status** | **CURRENT** subtitle · status badge · a **Description** row holding one plain sentence about that status · a divider · **HISTORY** subtitle · **one child tab per request** (`Request #R102.2`, `Request #R102.1`), newest first and newest selected, each panel holding Status, **Proposed Replacement**, **Submitted Timestamp**, **Decision Timestamp** and Note |
 
 **Nested tabs, and when they are *not* used.** The history child tabs exist only
 when there are **two or more** requests — a tab bar with a single tab is noise, so
@@ -153,6 +153,24 @@ one request renders its facts directly under `HISTORY`. This mirrors the app's o
 DetailModal law (a tab bar only appears for 2+ categories). The trade-off is real:
 it is a second tab bar inside a modal, so it is reserved for the one case where the
 alternative — several stacked request blocks — makes the panel long enough to scroll.
+
+Inside one request's panel:
+
+| Row | Example |
+|---|---|
+| Status | `Rejected by PL` |
+| Proposed Replacement | `Sat, 15 Nov 2025 · 10:00 to 11:00 @ B010` — the venue joins with `@` |
+| Submitted Timestamp | `09 Nov 2025, 5:02 PM` |
+| Decision by PL Timestamp | `10 Nov 2025, 10:15 AM` — the timestamp only |
+| PL who Decided | `Pn. Surayaini (5425) surayaini@tarc.edu.my` + a copy button |
+| Note | `Students already have a replacement class that morning.` |
+
+The decider left the timestamp row, so the timestamp is just a time and the person
+is its own row (name, staff id, email, copy-to-clipboard — real demo identities).
+A request the lecturer cancelled instead reads `Decision Timestamp` +
+`Cancelled By: You`, because no PL decided it; a pending request shows
+`Waiting for a decision` and no decider row. The detail label column widened to
+160 px so `Decision by PL Timestamp` stays on one line.
 
 Two subtitles carry the panel — `CURRENT` and `HISTORY` — and both are **14 px
 (+2 over the 12 px detail labels), 700, uppercase, `on-surface` near-white**, so
