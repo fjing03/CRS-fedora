@@ -71,11 +71,15 @@ while lane 2 is pending, so the code cannot break on first sight of one.
 | 2 | Original class | both pages | **one cell**: date · day (Week N) **with Days Left beside it on the same line** (wraps directly under the date when the column is tight) / start–end (duration) / **pin icon + room** / **users icon + cohorts** |
 | 3 | Conflict Reason | home | **the home page's reason badges, unchanged** (`.badge-annual-leave`, `.badge-medical-leave`, `.badge-holiday`, `.badge-official-event`), placed immediately right of Original Class |
 | 4 | Requested replacement | history | **mirrors the Original Class design, minus the cohorts line** (they are the class's own cohorts): date · day (Week N) / start–end (duration) / **pin icon + room**; `—` when there is no request |
-| 5 | Request Status | new | badge; **see Q3** on whether it is also a shortcut |
+| 5 | Request Status | new | badge **with the actor**: `Approved by PL` · `Rejected by PL` · `Cancelled by YOU` · `Pending` (no decider yet) · `Completed` (the calendar decided) · `Needs arrangement`; **see Q3** on whether it is also a shortcut |
 | 6 | Action | both | **icon-only**: rotate = arrange, eye = view request. Full wording in the tooltip (`data-tip`) plus an `aria-label`. Never repeats the status; Cancel stays in the modal |
 
 The column is called **Request Status**, not "Status": on this page "status" alone
-is ambiguous (class status vs request status), so the label names the thing.
+is ambiguous (class status vs request status), so the label names the thing. The
+badge also names **who decided** — the PL for approved/rejected, `YOU` for a
+cancellation (the lecturer cancels their own request). That is not decoration: it
+tells the lecturer who to chase. `Pending` has no decider yet, and `Completed` is
+the calendar's verdict, so neither carries an actor.
 
 The reason badges are **page-local CSS today** (`replacement-home.blade.php:27–42`),
 not tokens in `theme.css`. The merge must share them (promote to `theme.css` or a
