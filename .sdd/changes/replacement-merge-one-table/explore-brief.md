@@ -220,6 +220,12 @@ and only when it is filled (nullable column).
 `Status Description` is generated from the status, so it never says the same thing as
 either note: *"The proposed replacement is waiting for the PL to approve or reject
 it."* / *"You cancelled this request, so the class is free to be arranged again."*
+
+**Completed carries the count in its sentence** (user decision, 2026-11-03):
+*"The replacement took place 1 day ago."* / *"… 3 days ago."* / *"… today."* — from
+the replacement date, through the same `relativeDays()` the badge uses, so the two
+can never disagree. It repeats the badge deliberately: the badge is a pill you skim,
+the sentence is what you read, and the count is the whole point of the state.
 It keeps its name — the home page's quick view uses the same label for *urgency*
 prose, which is a separate page's problem: **rename that one later** (e.g. `Urgency`)
 rather than inventing a second word here.
