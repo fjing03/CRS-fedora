@@ -94,7 +94,7 @@ while lane 2 is pending, so the code cannot break on first sight of one.
 | # | Column | Source | Notes |
 |---|---|---|---|
 | 1 | Course code & name | both pages | `.cell-code` + `.cell-name` + type label |
-| 2 | **Cohort** | both pages | **its own column** (user decision, 2026-11-03): plain text, ` + ` between cohorts — `RSD2 (S1) G2 + RSD2 (S1) G3`. No icon, no comma, one line. **Not sortable**, which is the live My Requests law (`my-request-history.blade.php:527`: "multi-cohort rows have no single value"). Sits **between** the course and the original class: you read *what* it is, *who* it is for, then *when* it is |
+| 2 | **Cohort** | both pages | **its own column** (user decision, 2026-11-03): plain text, **one cohort per line** (`<br>` between them) — `RSD2 (S1) G2` / `RSD2 (S1) G3`. No icon, no separator glyph; identical to what the live home row already prints (`ui-common.js:2503`: `c.cohorts.join('<br>')`). **Not sortable**, which is the live My Requests law (`my-request-history.blade.php:527`: "multi-cohort rows have no single value"). Sits **between** the course and the original class: you read *what* it is, *who* it is for, then *when* it is |
 | 3 | Original class | both pages | **one cell**: date · day (Week N) **with Days Left beside it on the same line** (wraps directly under the date when the column is tight) / start–end (duration) / **pin icon + room**. The cohorts line is **gone** from here — it moved to its own column |
 | 4 | Conflict Reason | home (extended) | one badge, two shapes: **`Class Cancelled — <reason>`** in neutral grey for every non-holiday reason; **`Public Holiday — <holiday name>`** in error red. The holiday name is the calendar label from the `holidays` rows ("Deepavali Holiday (In Lieu)", "Christmas Day", …) |
 | 5 | Requested replacement | history | **mirrors the Original Class design**: date · day (Week N) / start–end (duration) / **pin icon + room**; `—` when there is no request |
@@ -366,7 +366,7 @@ the existing contract; the prototype got them wrong and is being corrected.
 | Copy an email address | the `request-approval` contract: `📋` glyph after the address, **the address itself is clickable**, `data-tip="Click to copy email"`, feedback through the shared `toast.show('Email copied: …', null, 2000)` | a bordered icon button, an SVG glyph, or a tooltip that flips to "Copied" |
 | Any hover hint | `data-tip` only — one shared `initDataTipTooltips()` singleton, viewport-clamped, supports `data-tip-pos="left"` and multi-line text | a per-element `::after` tooltip (clips inside `overflow:auto` grids and duplicates the singleton) |
 | Column headers, ✕ close, ✕ chips | the live wording, and `data-tip="Close"` on the modal ✕ | silent headers / unlabelled ✕ |
-| Toolbar count | the live `.result-count` line, "Showing 4 of 4 classes" | a second, differently-worded counter |
+| Toolbar count | the live `.result-count` line, "Showing 4 of 4 classes" — **hidden below 1500 px**, where the longer toggle label needs the room and the pagination bar already says `Showing 1-10 of 15` | a second, differently-worded counter |
 | Sort hint | the live wording: *Click Course Code & Name or Original Class to sort* | inventing new hint text |
 | "Nothing here" dash | a class backed by `--color-on-surface-variant` | a hand-written `style="color:…;opacity:.6"` |
 | Confirmation of a destructive action | the existing **"Confirm Cancellation"** modal (`#cancelConfirmOverlay`, "… This action cannot be undone.") | a one-click cancel, or a browser `confirm()` |
