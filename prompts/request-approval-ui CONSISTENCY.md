@@ -21,20 +21,20 @@
 | 1c | Lecturer → Staff (Proposer) | ✅ done | — |
 | 1d | `#` → Request ID (real `#<id>`) | ✅ done | — |
 | 1e | Urgency badge = level + remaining days | ✅ done | — |
-| 1f | Status wording = My Replacements (Pending/Completed) | ⛔ pending | **its commit 1** (T1–T6, the mapper vocabulary) — no view file of theirs needed |
+| 1f | Status wording = My Replacements (Pending/Completed) | ⛔ pending | **the merge lane's commit 1** (T1–T6, the mapper vocabulary) — no view file of theirs needed |
 | 1g | Proposed Replacement → Requested Replacement | ✅ done | — |
-| 1h | Original Class / Requested Replacement cells = My Replacements style | ⛔ pending | **its commit 2** (T9, the merged cell design) |
+| 1h | Original Class / Requested Replacement cells = My Replacements style | ⛔ pending | **the merge lane's commit 2** (T9, the merged cell design) |
 | 2 | Summary cards → Approved Requests / Rejected Requests | ✅ done | — |
-| 3A | Timeline out, facts strip in | ⛔ pending | **its commit 2** (T9, the one `DetailModal.render` line — additive) |
-| 3B | Modal status badge wording | ⛔ pending | **its commit 1** (same as 1f) |
+| 3A | Timeline out, facts strip in | ⛔ pending | **the merge lane's commit 2** (T9, the one `DetailModal.render` line — additive) |
+| 3B | Modal status badge wording | ⛔ pending | **the merge lane's commit 1** (same as 1f) |
 | 3C | Schedule = one row (Date · Time · Venue `B103 — Tutorial Room`) | ⛔ pending | **this lane only** — see the correction below, it is *not* blocked by the merge |
-| 3D | Three tabs, renamed, status tab far right | ⛔ pending | after 3A (its commit 2) |
+| 3D | Three tabs, renamed, status tab far right | ⛔ pending | after 3A (the same commit 2) |
 | 3E-1 | Week row on both schedule tabs | ✅ done | — |
 | 3E-2 | Duration in full words | ✅ done | — |
-| 3E-3 | Schedule layout matches the merged page | ⛔ pending | **its commit 2** (the merged schedule cell design) |
+| 3E-3 | Schedule layout matches the merged page | ⛔ pending | **the merge lane's commit 2** (the merged schedule cell design) |
 | — | Cohort(s) in the modal: compact codes joined with ` + ` (user ruling) | ✅ done | — |
 | 3F | No Close button, Reject bottom-left | ✅ done | — |
-| 4 | Treat My Replacements as the design reference | ⛔ pending | its commit 2 renders the page on the **old URLs**; its **commit 3** makes `/my-replacements` canonical |
+| 4 | Treat My Replacements as the design reference | ⛔ pending | the merge lane's commit 2 renders the page on the **old URLs**; its **commit 3** makes `/my-replacements` canonical |
 
 ### Correction to an earlier note in this file (2026-11-04)
 
@@ -44,17 +44,49 @@ deliberately does **not** touch `ReplacementRequestMapper::toRow()` (a frozen la
 agreement depends on `toRow()` staying the single source). Its `venueName` is a key in
 `ReplacementHome`'s payload only.
 
-So **3C is this lane's own work**, and it is **two edits, not one**:
+So **3C is this lane's own work**. `toRow()` has exactly **two consumers** —
+`RequestApproval::rowsPayload()` (`:76`/`:79`) and `ApiReadController::myRequests()` (`:156`) — so
+adding the key touches **three surfaces**:
+
+| Surface | Effect of adding it in `toRow()` |
+|---|---|
+| `toRow()` itself | the key exists (`replacementVenueName` — pairs with `replacementVenue`; **not** the merged payload's plain `venueName`, a different payload) |
+| `RequestApproval` payload (`:76`/`:79`) | gains the key — harmless, and it is exactly what 3C needs on this page |
+| `/api/v1/requests/my` (`:156` → strips four keys at `:159`) | would gain it too **unless stripped** |
+
+→ **3C is "add in `toRow()`, strip only in `myRequests()`".** Stripping in the mapper or in the
+approval payload would remove the very thing 3C is for.
+
+**Two edits, not one:**
 
 1. `ReplacementRequestMapper::toRow()` — carry the name through. `stringsFromSpan()` already returns
    `venueName` (`:312`); `toRow()` calls `replacementStrings()`, which deliberately returns only
-   `date/time/venue` (`:152-154`), so the name never reaches a row.
-2. **`ApiReadController::myRequests()` — `unset()` the new key** next to the existing
-   `unset($row['requester'], $row['slotValidity'], $row['conflictReason'], $row['bucket'])`
-   (`:159`). Skip this and the new key appears in `/api/requests`, breaking the pinned API shape.
+   `date/time/venue` (`:152-154`), so the name never reaches a row today.
+2. `ApiReadController::myRequests()` — add the new key to the `unset(...)` at `:159`.
 
 (The alternative — looking the room name up in the browser — is rejected: this page's payload has no
 venue directory, so it would hardcode or duplicate data.)
+
+### The strip must be guarded by a test, not by memory
+
+**Nothing pins the API's key set today.** There is no `tests/Feature/*Api*` file; `SpanReservationTest`
+asserts `replacementTime`'s **value** (`:451`, `:465`, `:475`), and `tests/e2e/api-wiring.spec.js` is
+testing-DB gated and reads values. So a stray `replacementVenueName` would pass **every existing test**.
+
+Worse, it would not even fail loudly: `routes/api.php`'s whole `/api/v1` group is **commented out**
+("ORPHANED API ROUTES", 2026-10), so the endpoint is unreachable today and the leak is **latent** until
+Wave 3b re-enables those routes.
+
+So the 3C change carries its own guard, and it needs **no HTTP route**:
+
+```php
+// PHPUnit — ApiReadController::myRequests() is callable directly (resolveUser()
+// falls back to staff 5425 when nobody is authenticated), so the strip is
+// pinned even while the routes are commented out.
+$json = app(ApiReadController::class)->myRequests()->getData(true);
+$this->assertArrayNotHasKey('replacementVenueName', $json['requests'][0]);   // API shape preserved
+$this->assertArrayHasKey('replacementVenueName', $mapper->toRow($r, $start, 'queue')); // 3C's source
+```
 
 **Why the split:** the merge lane `replacement-merge-one-table` — **`sdd.yaml status: tasks`**
 (proposal/design/specs frozen, `tasks.md` in review, 2026-11-04) — is building the **My Replacements**
@@ -66,7 +98,10 @@ them before it exists would create a second copy of the same rules that then has
 Each pending item below names the exact thing to consume, and *which of the merge lane's commits*
 delivers it:
 
-| Their commit | Contains | Frees |
+The merge lane's own words: **it does not apply** — PI applies its tasks. So the commits below are
+PI's commits run from that frozen lane, not that session's.
+
+| Their commit (applied by PI) | Contains | Frees |
 |---|---|---|
 | commit 1 | T1–T6, the mapper vocabulary | 1f, 3B |
 | commit 2 | T9, the one `DetailModal.render` line + the merged view (old URLs) | 3A, then 3D · 1h · 3E-3 · the §4 pass |
@@ -269,7 +304,8 @@ delivers it:
 
 ## 6. Part 2 backlog (in a sensible order, tied to the merge lane's commits)
 
-1. **1f + 3B** — as soon as the merge lane's **commit 1** (T1–T6, the mapper vocabulary) lands: adopt
+1. **1f + 3B** — as soon as the merge lane's **commit 1** (T1–T6, the mapper vocabulary; applied by
+   PI, not by the design session) lands: adopt
    the four status helpers on this page and delete the local `statusTooltip()` 3-key map and the
    local `statusDescMap`. That also fixes Completed/Cancelled rendering **no tooltip** today.
    *No dependency on their view file at all.*
