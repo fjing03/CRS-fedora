@@ -282,7 +282,36 @@ modal footer, and a pending row has exactly one request to cancel, so what is be
 cancelled is never ambiguous. This also removes the
 ambiguity of "what does ticking mean when a class has three requests".
 
-**Page name and nav label:** open (Q1). One nav item replaces two.
+**Page name and nav label:** **My Replacements** (user decision, 2026-11-03),
+replacing the two lecturer nav items `Replacement Arrangement` (`/replacement-home-ui`)
+and `Request History` (`/my-request-history-ui`) with one. The name matches
+"My Timetable" in the same bar and says whose list it is; "Replacement Arrangement"
+is left to mean the arranging flow at `/replacement-arrangement`, which this page
+only links to. The nav bar loses an item rather than gaining one.
+
+| | Value |
+|---|---|
+| Page title (H1) | **My Replacements** |
+| Nav label | **My Replacements** |
+| Canonical URL | `/replacement-home-ui` |
+| Alias URL | `/my-request-history-ui` (must keep resolving) |
+| `<title>` | `My Replacements — Class Replacement System` |
+
+Description under the H1 (user's own wording, emphasis added):
+
+> Every **CLASS** that needs a replacement, and every **REQUEST** you have made for
+> it — in **ONE LIST**.
+
+The emphasis uses the existing `.info-keyword` class — bold **and** uppercase from
+`text-transform`, so the source copy stays natural-case and existing text assertions
+still pass. No new CSS, no new colour.
+
+**Implementation note (blocker, found while writing this down):** `ui-page-header`
+renders the description with `{{ }}`, so HTML in it is **escaped** and would print as
+literal `<span …>`. The page's own header therefore needs either an
+`descriptionHtml` variable rendered with `{!! !!}` for this page only, or a switch of
+the shared partial — `ui-summary-bar` already renders its descriptions raw, so the
+pattern exists in the codebase.
 
 ### Reuse rules — do not build a second version of anything (review, 2026-11-03)
 
@@ -341,7 +370,7 @@ ambiguous.
 
 ## 6. Open questions for the proposal
 
-1. **Page name / nav label** — "Replacement"? "My Replacements"?
+1. ~~**Page name / nav label**~~ — **decided: My Replacements** (2026-11-03).
 2. **Which four summary cards** — the proposed set, or fewer?
 3. **Is the status also a shortcut** to the modal, or is Status purely informational
    and only Action is clickable?
