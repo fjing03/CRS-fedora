@@ -1,3 +1,34 @@
+## 2026-11-03 — notif-recipient-rulings: who gets a row, and the staff line
+
+Five user rulings (R1–R5), applied exactly as decided in
+`prompts/pi-notification-recipient-rulings.md` (SDD lane
+`.sdd/changes/notif-recipient-rulings/`).
+
+| # | Ruling | What changed |
+|---|---|---|
+| **R1** | a non-PL proposer gets a confirmation row | `NotificationEmitter::requestSubmitted()` now takes the proposer first and appends one `update` row — `Replacement request submitted` · `<CODE> (<TYPE>) · W<w> · awaiting PL approval` · `/my-request-history-ui`. **The PL fan-out is untouched**: a PL proposer keeps their single queue row and gets nothing extra |
+| **R2** | the proposer is never emailed their own request | the submit action's mail loop skips the proposer **by id**; every other PL still gets the mail |
+| **R3** | the owner's approval rows MERGE into one | new `replacementConfirmed()` writes ONE `approved` row — `Replacement class updated` · `<classFact> · approved by <decider> · your timetable is updated` · `/my-timetable-ui`, carrying `request_id` **and** `class_session_id`. The old separate `Replacement approved` row is gone; the cohort students' notice is unchanged. Written once, **before** the cohort loop |
+| **R4** | a cancelled class notifies the owner + students only | `classCancelled()` loses the whole department-PL fan-out (step 3) — **this REVERSES the 2026-10-30 "THREE fan-outs" ruling**. The owner is the actor and keeps their record row; a PL who owns the class still gets theirs as the owner |
+| **R5** | every row shows `Name (staff_id)` in every state | `NavNotifications` computes a per-row `staff_line` from two batched loads (the request batch extended with `approver.lecturer`, plus ONE `ClassSession` batch for class rows) — request rows name the proposer, self rows name the PL who acted (approve **or** reject: `approver_id` is stamped by both), class rows name the lecturer, and a self-only event omits the line. The shared `notif-row` partial renders it **when its text differs** from the composed subtitle, so the inbox, the `pick` mode and the hidden shelf all follow, and a null line renders nothing |
+
+**Two implementation refinements the user added at review** (2026-11-03):
+
+1. The partial compares **text** (`$staffLine !== $subtitle`), not "is a subtitle set" —
+   today both behave identically, but a future change to the composed line then *adds* a
+   line instead of silently dropping the staff line.
+2. A test counts the subtitle spans on one row in **four states** — unread, read, decided,
+   hidden — proving the line never doubles (counted on spans, because the row tooltip
+   legitimately repeats the name).
+
+**Receipts.** `NotificationsBridgeTest` + `EmailQueueTest` **29/29**; full suite
+**301/301**; pint clean; PHPStan 0. Live on the disposable `:8030`: 5770's two self rows
+each show `Surayaini Binti Basri (5425)`; 5425's (decided) queue row shows
+`Lim Jia Zheng (5770)`; a cohort student's notice and cancellation rows both show
+`Lim Jia Zheng (5770)`; and a real UI cancellation by 5770 wrote 42 rows (owner + 41
+students, **zero PL rows**) with **no** staff line on the owner's own row. No migration;
+the demo DBs were never written.
+
 # Changelog — Notifications Panel (shared nav bell)
 
 ## [2026-10-02] Notifications panel behind the nav bell (frontend mock) — SDD change `notifications-panel`

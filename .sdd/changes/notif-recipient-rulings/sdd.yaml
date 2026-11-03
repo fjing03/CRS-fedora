@@ -1,0 +1,5 @@
+name: notif-recipient-rulings
+created: 2026-11-03
+status: applied
+source-prompt: prompts/pi-notification-recipient-rulings.md
+user-order: "2026-11-03 — the user's five rulings R1–R5 (2026-11-03), delivered as prompts/pi-notification-recipient-rulings.md and executed with 'read … and execute it'"
