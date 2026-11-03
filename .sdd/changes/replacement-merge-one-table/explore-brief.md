@@ -52,9 +52,13 @@ uses for its one-active-request guard.
 | none | **Needs arrangement** | needs action |
 | `pending` | **Pending** | handled |
 | `approved` | **Approved** | handled |
-| `rejected` | **Rejected** + Arrange button | needs action |
-| `cancelled` | **Cancelled** + Arrange button | needs action |
+| `rejected` | **Rejected** | needs action |
+| `cancelled` | **Cancelled** | needs action |
 | `completed` (lane 2) | **Completed** | handled |
+
+The **Action cell never repeats the status** (user decision, 2026-11-03): a
+rejected or cancelled row shows only **Arrange Replacement**. Its state is the
+Status badge, in the Status column — one fact, one place.
 
 `completed` must be handled by the generic "not rejected/cancelled" rule even
 while lane 2 is pending, so the code cannot break on first sight of one.
@@ -71,7 +75,7 @@ while lane 2 is pending, so the code cannot break on first sight of one.
 | 6 | Students | both | sum of cohort student_count |
 | 7 | Cohorts | both | spaced labels `DFT2 (S1) G1` |
 | 8 | Status | new | badge; **see Q3** on whether it is also a shortcut |
-| 9 | Action | both | Arrange / View request (Cancel stays in the modal) |
+| 9 | Action | both | Arrange / View request — never repeats the status; Cancel stays in the modal |
 
 **Sort:** needs-action group first, then handled; the chosen column sorts **within**
 each group (badges lane D8). Default sort: original class date ascending.
