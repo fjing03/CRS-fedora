@@ -63,17 +63,16 @@ Status badge, in the Status column — one fact, one place.
 `completed` must be handled by the generic "not rejected/cancelled" rule even
 while lane 2 is pending, so the code cannot break on first sight of one.
 
-**Columns** (7, proposed — no checkbox, no separate venue/students/cohorts columns):
+**Columns** (6, proposed — no checkbox, no separate venue/students/cohorts/days columns):
 
 | # | Column | Source | Notes |
 |---|---|---|---|
 | 1 | Course code & name | both pages | `.cell-code` + `.cell-name` + type label |
-| 2 | Original class | both pages | **one cell, four lines**: date · day (Week N) / start–end (duration) / **pin icon + room** / **users icon + cohorts** |
+| 2 | Original class | both pages | **one cell**: date · day (Week N) **with Days Left beside it on the same line** (wraps directly under the date when the column is tight) / start–end (duration) / **pin icon + room** / **users icon + cohorts** |
 | 3 | Conflict Reason | home | **the home page's reason badges, unchanged** (`.badge-annual-leave`, `.badge-medical-leave`, `.badge-holiday`, `.badge-official-event`), placed immediately right of Original Class |
-| 4 | Days left | home | `—` on handled rows (badges lane D7); sort uses the real date |
-| 5 | Requested replacement | history | **mirrors the Original Class design, minus the cohorts line** (they are the class's own cohorts): date · day (Week N) / start–end (duration) / **pin icon + room**; `—` when there is no request |
-| 6 | Request Status | new | badge; **see Q3** on whether it is also a shortcut |
-| 7 | Action | both | **icon-only**: rotate = arrange, eye = view request. Full wording in the tooltip (`data-tip`) plus an `aria-label`. Never repeats the status; Cancel stays in the modal |
+| 4 | Requested replacement | history | **mirrors the Original Class design, minus the cohorts line** (they are the class's own cohorts): date · day (Week N) / start–end (duration) / **pin icon + room**; `—` when there is no request |
+| 5 | Request Status | new | badge; **see Q3** on whether it is also a shortcut |
+| 6 | Action | both | **icon-only**: rotate = arrange, eye = view request. Full wording in the tooltip (`data-tip`) plus an `aria-label`. Never repeats the status; Cancel stays in the modal |
 
 The column is called **Request Status**, not "Status": on this page "status" alone
 is ambiguous (class status vs request status), so the label names the thing.
@@ -82,14 +81,18 @@ The reason badges are **page-local CSS today** (`replacement-home.blade.php:27�
 not tokens in `theme.css`. The merge must share them (promote to `theme.css` or a
 partial) rather than paste a second copy.
 
-Three columns left the table on purpose (user decisions, 2026-11-03): **Class Venue**
+Four things left the table on purpose (user decisions, 2026-11-03): **Class Venue**
 and **Cohort(s)** fold into the Original Class cell — each on its own icon-led line,
 a pin for the room and the users glyph for the cohorts (the users glyph is the one
 already used by the arrangement page's slot dropdown; no venue icon existed before,
-so the pin is new) — and **Students** is dropped entirely. The student count is not
-lost: it still lives in the modal's **Class** tab. Folding the two venues into
-different cells also makes the class's own room and the requested replacement's room
-impossible to mix up.
+so the pin is new) — **Days Left** also folds in, rendered exactly as the home page
+renders it today: plain coloured text via `urgency-high` / `urgency-mid` /
+`urgency-low` with `daysLeftLabel()`, **never a badge**, and positioned **on the
+date line, to the right of the date** (it wraps directly below the date when the
+column is narrow, so it never crowds the date); and **Students** is dropped
+entirely. The student count is not lost: it still lives in the modal's **Class** tab.
+Folding the two venues into different cells also makes the class's own room and the
+requested replacement's room impossible to mix up.
 
 **Sort:** needs-action group first, then handled; the chosen column sorts **within**
 each group (badges lane D8). Default sort: original class date ascending.
