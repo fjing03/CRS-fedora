@@ -219,7 +219,11 @@ test('T5.RA-2: urgency badge↔tip word-per-row; UNCONDITIONAL Overdue shift; TO
     const label = ((await b.textContent()) || '').trim();
     const tip = (await b.getAttribute('data-tip')) || '';
     expect(tip).toMatch(URGENCY_RE);
-    expect(tip.startsWith(label + ' — '), `badge '${label}' ↔ tip leading word`).toBe(true);
+    /* request-approval-ui CONSISTENCY 1e (2026-11-03): the badge now prints the
+       level AND the remaining days (`Normal — 67 days left`); the tip keeps its
+       fuller sentence, so the shared part is the leading LEVEL word. */
+    expect(label).toMatch(/^(Normal|Urgent|Overdue) — /);
+    expect(tip.startsWith(label.split(' — ')[0] + ' — '), `badge '${label}' ↔ tip leading word`).toBe(true);
   }
 
   const shift = await page.evaluate(() => {
@@ -246,7 +250,7 @@ test('T5.RA-2: urgency badge↔tip word-per-row; UNCONDITIONAL Overdue shift; TO
 
   expect(shift.over.length).toBeGreaterThan(0);
   for (const o of shift.over) {
-    expect(o.label).toBe('Overdue');                              // solid-red badge
+    expect(o.label).toMatch(/^Overdue — \d+ days? past$/);          // solid-red badge + days past
     expect(o.tip).toMatch(/^Overdue — \d+ days? past the Proposed Class\.$/); // days past
   }
   expect(shift.urgentRows).toBeGreaterThan(0);                    // row-urgent kept
@@ -265,9 +269,9 @@ test('T5.RA-2: urgency badge↔tip word-per-row; UNCONDITIONAL Overdue shift; TO
       .map((b) => (b.textContent || '').trim());
   });
   expect(overdueUnderUrgentFilter.length).toBeGreaterThan(0);
-  for (const label of overdueUnderUrgentFilter) expect(label).toBe('Overdue'); // ALL overdue under the Urgent filter
+  for (const label of overdueUnderUrgentFilter) expect(label).toMatch(/^Overdue — /); // ALL overdue under the Urgent filter
 
-  expect(shift.today.some((t) => t.label === 'Urgent' && t.tip === 'Urgent — the Proposed Class is TODAY.'), 'the N=0 TODAY receipt (user-kept wording 2026-11-01)').toBe(true);
+  expect(shift.today.some((t) => t.label === 'Urgent — today' && t.tip === 'Urgent — the Proposed Class is TODAY.'), 'the N=0 TODAY receipt (user-kept tip wording 2026-11-01)').toBe(true);
 
   // the column-header tip equals the pinned three-level copy
   const headerTip = await page.locator('#tableHead th[data-tip]', { hasText: 'Urgency' }).getAttribute('data-tip');

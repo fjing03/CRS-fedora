@@ -44,17 +44,41 @@ test('U3-T9b: the Grid loads via payload MockData bridge and sorts by requested 
   await expect(page.locator('#tableBody tr').first()).toBeVisible();
 });
 
-test('U3-T9c: STUDENTS column is never undefined and row click opens the detail modal (post-fix smoke)', async ({ page }) => {
+test('U3-T9c: the COHORT column replaced STUDENTS (consistency update) and row click opens the detail modal', async ({ page }) => {
   await page.goto(PAGE);
-  // STUDENTS: every table cell in that column is a number (the mapper's
-  // cohort metadata fixed the undefined field)
-  const students = await page.evaluate(() => {
+
+  // request-approval-ui CONSISTENCY (2026-11-03): Students removed, Cohort added
+  // BEFORE Original Class, `#` → Request ID (printing the real id).
+  // Column order: 0 checkbox · 1 Request ID · 2 Requested Timestamp ·
+  // 3 Staff (Proposer) · 4 Course · 5 COHORT · 6 Original Class · …
+  const headers = await page.evaluate(() =>
+    Array.from(document.querySelectorAll('#tableHead th')).map((th) => (th.textContent || '').trim()));
+  expect(headers).toContain('Request ID');
+  expect(headers).toContain('Staff (Proposer)');
+  expect(headers).toContain('Cohort');
+  expect(headers).toContain('Requested Replacement');
+  expect(headers).not.toContain('Students');
+  expect(headers).not.toContain('Lecturer');
+  expect(headers).not.toContain('Proposed Replacement');
+  expect(headers.indexOf('Cohort')).toBe(headers.indexOf('Original Class') - 1);
+
+  const cells = await page.evaluate(() => {
     const rows = Array.from(document.querySelectorAll('#tableBody tr'));
-    return rows.map(row => row.children[7]?.textContent?.trim() ?? '');
+    return rows.map((row) => ({
+      id: row.children[1]?.textContent?.trim() ?? '',
+      // innerText (not textContent) so the <br> between cohort codes shows as a newline
+      cohort: (row.children[5] as HTMLElement | undefined)?.innerText?.trim() ?? '',
+    }));
   });
-  expect(students.length).toBeGreaterThan(0);
-  for (const s of students) {
-    expect(/^\d+$/.test(s), `STUDENTS cell "${s}" should be numeric`).toBe(true);
+  expect(cells.length).toBeGreaterThan(0);
+  for (const cell of cells) {
+    // the Request ID cell is the REAL request id, never the row counter
+    expect(cell.id, 'the Request ID cell prints #<id>').toMatch(/^#\d+$/);
+    expect(cell.cohort.length, 'every row names at least one cohort').toBeGreaterThan(0);
+    // one compact code per line — no spaces inside a code
+    for (const line of cell.cohort.split('\n')) {
+      expect(line.trim(), 'a compact cohort code').toMatch(/^[A-Z]+\d+\(S\d+\)G\d+$/);
+    }
   }
 
   // CLICK a row → the detail modal opens (openModalById → DetailModal.render)
@@ -109,23 +133,26 @@ test('U3-T9e: the PL nav badge is ACCURATE + CONSISTENT (user report 2026-10-18)
   expect(await badge2.evaluate(el => getComputedStyle(el).display)).not.toBe('none');
 });
 
-test('U3-T9f: the Approve NOTES Confirm wires the server (the demo-safe wire-trip probe)', async ({ page }) => {
+test('U3-T9f: the Approve wire round-trips the server — zero-write on a nonexistent id (the demo-safe wire-trip probe)', async ({ page }) => {
   await page.goto(PAGE);
-  // the row's Approve → notes modal → confirm → the WIRE call returns a
-  // server decision for the FAKE id (no demo request consumed: the server
-  // answers 'already decided' for a nonexistent id — the wire path is what
-  // the smoke asserts; request #8 stays pending).
-  await page.locator('#tableBody tr').first().click();
-  await expect(page.locator('#modalOverlay')).toHaveClass(/show/);
-  await page.locator('#approveRequestBtn').click();
-  await expect(page.locator('#approveNotesModal')).toHaveClass(/show/);
-  await page.locator('#approveNotesInput').fill('wire-trip probe note');
-  await page.locator('#confirmApproveBtn').click();
-
-  // the toast carries the server decision text (a live wire round-trip)
-await expect(page.locator('.toast-content, #toastNotification', { hasText: 'already decided' }).first()).toBeVisible({ timeout: 8000 });
-  // the demo request is untouched: the queue still holds ONE pending
-  const pending = await page.evaluate(() =>
+  // receipt-target-guard (the 2026-11-01 incident): the old probe clicked
+  // the first UI row through to the confirm — its "FAKE id" story was false:
+  // the wire fired with currentApproveIds = THE ROW'S REAL id (openApproveNotesModal →
+  // confirmApproveWithNotes, request-approval.blade.php), so a live pending
+  // queue made this a GENUINE approval write. Rebuilt state-proof: the wire
+  // is tripped DIRECTLY with a nonexistent id — ApproveRequest answers the
+  // 'already decided' loser (`$request === null` → no write, ever) and
+  // nothing is consumed, whatever the queue holds.
+  const pendingBefore = await page.evaluate(() =>
     (window as any).PAGE_DATA.requests.filter((r: any) => r.status === 'Pending').length);
-  expect(pending).toBe(1);
+  const res = await page.evaluate((id: number) => (window as any)
+    .pageLivewire().call('approve', JSON.stringify([id]), 'wire-trip probe note'), 999999);
+
+  // the round-trip is the receipt: the validity family loser string survives
+  expect(res).toBeTruthy();
+  expect(JSON.stringify(res)).toContain('already decided');
+  // and the queue is untouched (shape-agnostic now — not the old ===1)
+  const pendingAfter = await page.evaluate(() =>
+    (window as any).PAGE_DATA.requests.filter((r: any) => r.status === 'Pending').length);
+  expect(pendingAfter).toBe(pendingBefore);
 });

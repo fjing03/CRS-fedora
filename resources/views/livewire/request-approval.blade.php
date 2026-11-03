@@ -276,7 +276,7 @@
     </div>
 </div>
 
-<div class="sort-hint">Click column headers to sort (Requested Timestamp, Original Class, Proposed Replacement, Urgency, Status)</div>
+<div class="sort-hint">Click column headers to sort (Requested Timestamp, Original Class, Requested Replacement, Urgency, Status)</div>
 
 <div class="filter-chips" id="filterChips"></div>
 
@@ -320,9 +320,9 @@
         'description' => 'Replacement requests <span class="info-keyword">matching your current filters</span> in the selected period.'],
     ['class' => 'card-pending', 'valueId' => 'summaryPending', 'label' => 'Pending Requests',
         'description' => 'Requests still <span class="warn-keyword">waiting for your approval</span> — no decision made yet.'],
-    ['class' => 'card-approved', 'valueId' => 'summaryApproved', 'label' => 'Approved',
+    ['class' => 'card-approved', 'valueId' => 'summaryApproved', 'label' => 'Approved Requests',
         'description' => 'Requests you have <span class="info-keyword">approved</span> and are ready to proceed.'],
-    ['class' => 'card-rejected', 'valueId' => 'summaryRejected', 'label' => 'Rejected',
+    ['class' => 'card-rejected', 'valueId' => 'summaryRejected', 'label' => 'Rejected Requests',
         'description' => 'Requests you <span class="warn-keyword">declined</span> — the lecturer will need an alternative arrangement.'],
     ['class' => 'card-total', 'valueId' => 'summaryReviewed', 'label' => 'Total Reviewed',
         'description' => 'Requests already <span class="info-keyword">decided</span> (approved, rejected, or completed).']
@@ -336,11 +336,12 @@
         </div>
         <div class="modal-body" id="modalBody"></div>
         <div class="modal-footer">
+            {{-- CONSISTENCY 3F (2026-11-03): no Close button (the header ✕ and the
+                 overlay/Esc still close); Reject sits bottom-LEFT. --}}
             <div class="modal-footer-left">
-                <button class="btn-outline" id="closeModalBtn" onclick="closeModal()">Close</button>
+                <button class="btn-danger" id="rejectRequestBtn" onclick="openRejectModal(currentModalId)" style="display:none">✕ Reject</button>
             </div>
             <div class="modal-footer-right" style="gap: 8px">
-                <button class="btn-danger" id="rejectRequestBtn" onclick="openRejectModal(currentModalId)" style="display:none">✕ Reject</button>
                 <button class="btn-approve" id="approveRequestBtn" onclick="approveRequest(currentModalId)" style="display:none">✓ Approve</button>
             </div>
         </div>
@@ -405,6 +406,11 @@
         // ── Shared data from mock-data.js ──
 
         // ── Page-local urgency helpers ──
+        /* the app's compact cohort code (`RSD3 (S1) G1` → `RSD3(S1)G1`) */
+        function compactCohort(label) {
+            return String(label == null ? '' : label).replace(/\s+/g, '');
+        }
+
         function urgencyLevel(classDate) {
             var d = urgencyDays(classDate);
             return d < 0 ? 'overdue' : (d <= 3 ? 'urgent' : 'normal');
@@ -414,8 +420,24 @@
             return level === 'overdue' ? 'urgency-overdue' : level === 'urgent' ? 'urgency-urgent' : 'urgency-normal';
         }
 
-        function urgencyLabel(level) {
+        /* request-approval-ui CONSISTENCY 1e (2026-11-03): the badge prints the
+           LEVEL and the remaining days (`Normal — 67 days left`); the category
+           and the badge styling are unchanged. `urgencyShort()` stays the bare
+           word for places that need it (the Requested-age tooltip). */
+        function urgencyShort(level) {
             return level === 'overdue' ? 'Overdue' : level === 'urgent' ? 'Urgent' : 'Normal';
+        }
+
+        function urgencyLabel(level, classDate) {
+            var base = urgencyShort(level);
+            if (!classDate) return base;                  // defensive: no date, no claim
+            var n = urgencyDays(classDate);
+            if (isNaN(n)) return base;
+            if (level === 'overdue') {
+                return base + ' — ' + Math.abs(n) + (Math.abs(n) === 1 ? ' day' : ' days') + ' past';
+            }
+            if (n === 0) return base + ' — today';
+            return base + ' — ' + n + (n === 1 ? ' day' : ' days') + ' left';
         }
 
         function urgencyDays(classDate) {
@@ -531,7 +553,7 @@
                 +     '<span class="approval-id">#' + r.id + '</span>'
                 +     '<span class="cell-code">' + escHtml(r.courseCode) + '</span>'
                 +     slotBadge
-                +     '<span class="urgency-badge ' + urgencyClass(level) + '" data-tip="' + urgencyTip(r) + '">' + urgencyLabel(level) + '</span>'
+                +     '<span class="urgency-badge ' + urgencyClass(level) + '" data-tip="' + urgencyTip(r) + '">' + urgencyLabel(level, r.classDate) + '</span>'
                 +   '</div>'
                 +   '<div class="approval-course">' + escHtml(r.courseName) + ' <span class="approval-classtype">[' + escHtml(r.classType) + ']</span></div>'
                 +   '<div class="approval-lecturer"><span class="lecturer-avatar">' + escHtml(initials) + '</span><span>' + lecturerHtml + '</span></div>'
@@ -583,14 +605,18 @@
         }
 
         // ── Table columns ──
+        /* request-approval-ui CONSISTENCY (2026-11-03): Students removed, Cohort
+           added before Original Class, `#` renamed to Request ID (it prints the
+           REAL id), Lecturer renamed to Staff (Proposer), Proposed Replacement
+           renamed to Requested Replacement. */
         const columns = [
-            { label: '#', sortable: false, tip: 'Row number' },
+            { label: 'Request ID', sortable: false, tip: 'The request identifier the lecturer sees (#) — not sortable' },
             { label: 'Requested Timestamp', sortable: true, field: 'requestedAt', tip: 'When the replacement was requested. Age colour: green ≤1 day, amber 2–3 days, red 4+ days' },
-            { label: 'Lecturer', sortable: true, field: 'lecturer', tip: 'Lecturer who submitted the request — sorted by name' },
+            { label: 'Staff (Proposer)', sortable: true, field: 'lecturer', tip: 'The staff member who submitted the request — sorted by name' },
             { label: 'Course Code & Name', sortable: true, field: 'courseCode', tip: 'Course affected by the conflict' },
+            { label: 'Cohort', sortable: false, tip: 'Cohort(s) affected by this class — one per line; not sortable because a multi-cohort row has no single value' },
             { label: 'Original Class', sortable: true, field: 'classDate', tip: 'Original class the request refers to — its state varies (still upcoming, replaced, cancelled, holiday, etc.)' },
-            { label: 'Proposed Replacement', sortable: true, field: 'replacementDate', tip: 'Proposed new date, time, and venue' },
-            { label: 'Students', sortable: true, field: 'totalStudents', tip: 'Number of students enrolled' },
+            { label: 'Requested Replacement', sortable: true, field: 'replacementDate', tip: 'Requested new date, time, and venue' },
             { label: 'Urgency', sortable: true, field: 'urgencyDays', tip: 'Days until the original class: past = Overdue (solid red), ≤3 days = Urgent (red), 4+ days = Normal' },
             { label: 'Status', sortable: true, field: 'status', tip: 'Current approval status' },
             { label: 'Actions', sortable: false, tip: 'Approve or reject this request' }
@@ -690,8 +716,9 @@
                 html += '<td class="col-checkbox"></td>';
             }
 
-            html += '<td>' + (offset + i + 1) + '</td>';
-            html += '<td>' + formatDateTime(r.requestedAt) + requestAgeHtml(r.requestedAt, urgencyLabel(level)) + '</td>';
+            /* 1d: the table prints the REAL request id — the header says Request ID */
+            html += '<td class="col-request-id">#' + r.id + '</td>';
+            html += '<td>' + formatDateTime(r.requestedAt) + requestAgeHtml(r.requestedAt, urgencyShort(level)) + '</td>';
             var lec = lookupLecturer(r.lecturer);
             if (lec) {
                 html += '<td><div class="lecturer-cell-name">' + lec.name + ' <span class="lecturer-cell-id">(' + lec.staffId + ')</span></div>';
@@ -700,14 +727,17 @@
                 html += '<td>' + r.lecturer + '</td>';
             }
             html += '<td><div class="cell-code">' + r.courseCode + '</div><div class="cell-name">' + r.courseName + '</div></td>';
+            /* 1b: one compact cohort code per line (`RSD3(S1)G2`), never a joined blob —
+               the modal prints the same codes joined with ' + '. */
+            var cohortCodes = (r.cohorts || []).map(compactCohort);
+            html += '<td class="col-cohort">' + (cohortCodes.length ? cohortCodes.join('<br>') : '—') + '</td>';
             html += '<td>' + HtmlBuilder.classBlock(r) + '</td>';
 
             // Proposed Replacement — slot validity as a status-colored badge beside the venue
             const slotBadge = '<span class="slot-badge ' + (r.slotValidity === 'conflict' ? 'slot-conflict' : 'slot-valid') + '" data-tip="' + (r.slotValidity === 'conflict' ? (r.conflictReason || 'Slot conflict') : 'Slot available') + '">' + (r.slotValidity === 'conflict' ? '⚠' : '✓') + '</span>';
             html += '<td class="col-replacement">' + HtmlBuilder.replacementBlock(r, { colorStatus: false, slotBadge: slotBadge }) + '</td>';
 
-            html += '<td>' + r.totalStudents + '</td>';
-            html += '<td><span class="urgency-badge ' + urgencyClass(level) + '" data-tip="' + urgencyTip(r) + '">' + urgencyLabel(level) + '</span></td>';
+            html += '<td class="col-urgency"><span class="urgency-badge ' + urgencyClass(level) + '" data-tip="' + urgencyTip(r) + '">' + urgencyLabel(level, r.classDate) + '</span></td>';
             html += '<td><span class="badge ' + statusClass(r.status) + '"' + statusTipAttr(r.status) + ' onclick="openModalById(' + r.id + ')" style="cursor:pointer">' + r.status + '</span></td>';
 
             const actions = r.status === 'Pending'
@@ -861,7 +891,7 @@
                     lookupLecturer: lookupLecturer,
                     urgencyLevel: urgencyLevel,
                     urgencyClass: urgencyClass,
-                    urgencyLabel: urgencyLabel,
+                    urgencyLabel: function(level) { return urgencyLabel(level, r.classDate); },
                     urgencyTip: urgencyTip,
                     requestAgeHtml: requestAgeHtml,
                     statusTip: statusTooltip
@@ -1004,20 +1034,45 @@
                 const n = Number(d);
                 return (n === 1 ? '1 hour' : n + ' hours');
             }
+            /* the Week row: semester start + 7×n — the payload carries no week key */
+            function weekOfIso(iso) {
+                if (!iso) return null;
+                const start = (window.MockData && MockData.semester && MockData.semester.startDate) || null;
+                if (!start) return null;
+                const a = new Date(start + 'T00:00:00');
+                const b = new Date(String(iso).slice(0, 10) + 'T00:00:00');
+                if (isNaN(a.getTime()) || isNaN(b.getTime())) return null;
+                const n = Math.floor(Math.round((b - a) / 86400000) / 7) + 1;
+                const weeks = (MockData.semester && MockData.semester.weeks) || 14;
+                return (n >= 1 && n <= weeks) ? 'Week ' + n : null;
+            }
+            /* 'H:i – H:i' → '2 hours' / '1 hour' / '1.5 hours' */
+            function rangeHours(t) {
+                const m = String(t || '').match(/(\d{1,2}):(\d{2})\s*[–—-]\s*(\d{1,2}):(\d{2})/);
+                if (!m) return null;
+                const mins = (parseInt(m[3]) * 60 + parseInt(m[4])) - (parseInt(m[1]) * 60 + parseInt(m[2]));
+                if (mins <= 0) return null;
+                const h = Math.round((mins / 60) * 10) / 10;
+                return h === 1 ? '1 hour' : h + ' hours';
+            }
             /* BMSE3153-class-info (user law 2026-10-27): the shared
                cohortBreakdown (ui-common.js) renders the per-cohort
                `A + B = total` breakdown for multi-cohort rows. */
 
             // Tab 2: Original Class Detail — one value per row, no grouping
+            // CONSISTENCY 3E (2026-11-03): the Week row is derived from the date
+            // (semester start + 7×n), so the payload needs no new key.
             const origSection = DetailModal.section('Original Class',
                 DetailModal.row('Date', fullDate(r.classDate), { strong: true }) +
                 DetailModal.row('Day', r.classDay) +
+                DetailModal.row('Week', weekOfIso(r.classDate)) +
                 DetailModal.row('Start Time', fullTime(r.timeStart), { strong: true }) +
                 DetailModal.row('End Time', fullTime(r.timeEnd)) +
                 DetailModal.row('Duration', durationWords(r.duration)) +
                 DetailModal.row('Venue', r.venue) +
                 DetailModal.row('Total Students', window.cohortBreakdown(r)) +
-                DetailModal.row('Cohort(s)', r.cohorts.join(', '))
+                /* the MODAL joins compact codes with ' + ' (the table stacks them) */
+                DetailModal.row('Cohort(s)', (r.cohorts || []).map(compactCohort).join(' + ') || null)
             );
 
             // Tab 3: Requested Replacement Class — one value per row
@@ -1035,8 +1090,10 @@
             const repSection = DetailModal.section('Replacement Class',
                 DetailModal.row('Date', fullDate(r.replacementDate), { strong: true }) +
                 DetailModal.row('Day', fullDay(r.replacementDate)) +
+                DetailModal.row('Week', weekOfIso(r.replacementDate)) +
                 DetailModal.row('Start Time', repParts.length ? DateHelper.to12h(repParts[0]) : null) +
                 DetailModal.row('End Time', repParts.length > 1 ? DateHelper.to12h(repParts[1]) : null) +
+                DetailModal.row('Duration', rangeHours(r.replacementTime)) +
                 DetailModal.row('Venue', r.replacementVenue) +
                 DetailModal.row('Slot Validity', validityBadgeHtml)
             );
@@ -1061,10 +1118,9 @@
                 tabs: tabs
             });
 
-            // Toggle footer buttons — bottom-left Close is always visible
+            // Toggle footer buttons — Reject sits bottom-LEFT, Approve bottom-RIGHT
             document.getElementById('rejectRequestBtn').style.display = r.status === 'Pending' ? '' : 'none';
             document.getElementById('approveRequestBtn').style.display = r.status === 'Pending' ? '' : 'none';
-            document.getElementById('closeModalBtn').style.display = '';
 
             renderTable();
         }

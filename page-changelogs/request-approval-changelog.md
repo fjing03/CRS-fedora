@@ -1,3 +1,55 @@
+## 2026-11-03 — consistency pass, part 1 (table, cards, schedule rows) — display only
+
+Source: `prompts/request-approval-ui CONSISTENCY.md`. **SDD waived** by the user (display-only,
+one page, no schema, no business logic, no payload change). Part 2 — everything that has to match
+the merged **My Replacements** page — waits for the `replacement-merge-one-table` lane; the split
+and the reasons are listed at the end.
+
+**Table**
+
+| # | Change |
+|---|---|
+| 1a | **Students column removed** from the table (the student count stays in the pop-up's *Original Class* tab and in the Approve/Reject context card) |
+| 1b | **Cohort column added** immediately before *Original Class* — one **compact code per line** (`RSD3(S1)G2`, `RSD2(S1)G2 / RSD2(S1)G1`), not sortable (a multi-cohort row has no single value) |
+| 1c | `Lecturer` → **Staff (Proposer)** |
+| 1d | `#` → **Request ID**, and the cell now prints the **real request id** (`#26`) instead of the row counter — the header would otherwise be a lie |
+| 1e | The urgency badge now carries the level **and** the remaining days: `Normal — 52 days left`, `Urgent — 2 days left`, `Urgent — today`, `Overdue — 5 days past`. Same category, same badge styling; the tooltip keeps its fuller sentence, and the Requested-age tooltip keeps the bare word |
+| 1g | `Proposed Replacement` → **Requested Replacement** (header + the sort hint line) |
+
+**Summary cards** — `Approved` → **Approved Requests**, `Rejected` → **Rejected Requests** (ids
+unchanged, so every count and filter still works).
+
+**Request detail modal**
+
+- **Week row** added to *Original Class* and *Replacement Class* (`Week 14` / `Week 7`), derived
+  from the date + semester start — no new payload key.
+- **Duration** now also on the *Replacement Class* tab, in words (`1 hour`, `2 hours`) from the
+  requested time range. The *Original Class* tab already printed words.
+- **Cohort(s)** in the modal is the **same compact codes joined with ` + `**
+  (`RSD3(S1)G2 + RSD3(S1)G3`) — the table stacks them, the modal joins them (the user's own
+  format ruling 2026-11-03).
+- **Footer**: the **Close** button is gone (the header ✕, the overlay click and Esc still close),
+  and **✕ Reject** now sits **bottom-left** with Approve bottom-right.
+
+**Not applied yet — they depend on `replacement-merge-one-table` (do not lose this list):**
+1f status-badge wording (Pending/Completed) · 1h the two schedule cells matching *My Replacements* ·
+3A replacing the timeline with the facts strip · 3B modal status wording · 3C the one-row schedule
+block (Date · Time · Venue `B103 — Tutorial Room`) · 3D the three-tab order · 3E's remaining half.
+All seven need the merged page's vocabulary (`ReplacementRequestMapper` status helpers, M5) or its
+modal shell (M7), which that lane is building right now. Doing them early would create a second
+copy that has to be deleted.
+
+**Measured side effect (honest):** the table is ~150 px wider (Cohort column + the longer urgency
+text). At 1400 px it already scrolled before this change; at **1600 px it used to fit exactly and
+now needs ~40 px of horizontal scroll**. `.grid-scroll` does scroll, so every column stays
+reachable (verified by scrolling to the Actions buttons).
+
+**Tests** — `tests/request-approval.spec.ts` U3-T9c now asserts the header set (no *Students*, no
+*Lecturer*, no *Proposed Replacement*; Cohort directly before Original Class) and that the Request-ID
+cell prints `#<id>` and every cohort cell holds compact codes (9/9 green);
+`tests/status-tooltips-filter-chips.spec.ts` RA-2 follows the new badge text (9/9 green);
+`tests/ui-regression.spec.ts` + `tests/nav-identity.spec.ts` 16/16 green. No PHP file changed.
+
 ## 2026-11-03 — the approved row can read **Completed** (no code change on this page)
 
 SDD lane `.sdd/changes/request-completed-status/` (C1/C2/C3). Nothing in
