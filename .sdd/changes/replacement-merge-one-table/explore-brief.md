@@ -138,6 +138,10 @@ reused from My Requests verbatim, not redesigned:
   with an × each, plus **Clear all**. Two different "reset" laws are preserved:
   **Reset Filters** restores the page defaults (Exclude Completed back ON), while
   **Clear all** shows everything (toggle turned OFF).
+- **The status select wears the week navigator's skin** — `.week-select` (36 px
+  high, 13px/600, surface background, custom chevron), not `.filter-select`
+  (40 px, 14px/500, surface-variant, native arrow). Both controls then read as one
+  toolbar row instead of two different widgets.
 - **Pagination** — `Rows:` 10 / 25 / 50 / All, `Showing X-Y of N`, and numbered
   page buttons with ‹ ›. The same markup and classes (`rpp-wrapper`,
   `rpp-select`, `pagination-bar`, `page-btn`).
