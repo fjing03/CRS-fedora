@@ -112,22 +112,36 @@ requested replacement's room impossible to mix up.
 **Sort:** needs-action group first, then handled; the chosen column sorts **within**
 each group (badges lane D8). Default sort: original class date ascending.
 
-**Detail modal** — reuses the app's existing `DetailModal` shell (title + subtitle,
-`.modal-tabs` bar, one panel per category), exactly like the home quick view and the
-history detail modal today:
+**Detail modal** — reuses the app's `DetailModal` shell, with a **fixed facts strip**
+between the subtitle and the tab bar, then three tabs:
+
+```
+Replacement Details
+BMIT2013 · Web-Based Integrated Systems (Lecture)      ← subtitle: code · name (type)
+COHORTS RSD2 (S1) G2, RSD2 (S1) G3 · STUDENTS 34 · CONFLICT [Class Cancelled — Medical Leave]
+─────────────────────────────────────────────────────────────────────────────
+[ Original Class Schedule ] [ Proposed Replacement Schedule ] [ Request Status ]
+```
+
+The facts strip is **outside the tabs on purpose**: cohorts, students and the
+conflict reason never change when you switch tabs, so repeating them in each panel
+was noise. Subject code, name and class type already live in the subtitle, so they
+are not repeated.
 
 | Tab | Contents |
 |---|---|
-| **Request Status** | status badge · what to do next · conflict reason · the requested replacement (or "none yet") |
-| **Subject & Cohorts** | subject code/name · class type · cohorts · students |
-| **When & Where** | week · day · date · start/end/duration · venue |
-| **Requests (N)** | the trail, newest first: one group per request with status, replacement slot, submitted, decided-by/at, note |
+| **Original Class Schedule** | **Class ID** · week · day · date · start/end · duration · venue |
+| **Proposed Replacement Schedule** | **Request ID** · week · day · date · start/end · duration · venue; a caption when nothing is proposed yet |
+| **Request Status** | status badge (with its actor) · what to do · **History** — the full trail, newest first, one group per request (`Request #R102.2 · Pending`) with status, replacement slot, submitted, decided-by/at and note |
 
-The tab names are deliberately **not** the home quick view's `Status · Class ·
-Schedule`: on a merged page "Class" is ambiguous (the row? the subject? the
-occurrence?) and "Schedule" collides with the timetable pages. Each label now names
-its content. The panels carry **no inner heading** — the tab is the heading; a
-duplicated section title was pure noise.
+The separate **Requests (N)** tab is gone: its trail *is* the request's history, so
+it sits inside Request Status where the status it explains is shown. Tabs are named
+after their content — `Original Class Schedule` / `Proposed Replacement Schedule`
+beat "Class"/"Schedule", which were ambiguous on a merged page. Panels carry no
+inner heading; the tab is the heading.
+
+IDs are fabricated in the prototype (`#102` class, `#R102` request) but the shape is
+the real one: a class session id and a request id, never the display row number.
 
 The timeline rail is intentionally **not** included —
 it is parked as broken (`task-02-replacement-history-timeline.md`).
