@@ -60,6 +60,16 @@ The **Action cell never repeats the status** (user decision, 2026-11-03): a
 rejected or cancelled row shows only **Arrange Replacement**. Its state is the
 Status badge, in the Status column — one fact, one place.
 
+**The status badge is not clickable** (user decision, 2026-11-03). Any click on the
+row opens the pop-up, so a badge link was a second door to the same room — the live
+page's `badge-link` anchor (a real `href` to the request's record, kept for keyboard
+and middle-click) is dropped here. The badge is a plain `<span class="badge …">`;
+the row's `tr` carries the click.
+
+The **eye stays** for approved and completed rows anyway (same decision): an empty
+Action cell would be honest but reads as broken to a nervous user, and the eye is the
+only visible hint that a row has details behind it.
+
 **A pending row's action is Cancel** (user decision, 2026-11-03). Before that it
 was the ghost eye — but a pending request has nothing to arrange, and the row click
 already opens the same modal, so the eye was a duplicate of the row. Cancel is the
@@ -85,7 +95,7 @@ while lane 2 is pending, so the code cannot break on first sight of one.
 | 3 | Conflict Reason | home (extended) | one badge, two shapes: **`Class Cancelled — <reason>`** in neutral grey for every non-holiday reason; **`Public Holiday — <holiday name>`** in error red. The holiday name is the calendar label from the `holidays` rows ("Deepavali Holiday (In Lieu)", "Christmas Day", …) |
 | 4 | Requested replacement | history | **mirrors the Original Class design, minus the cohorts line** (they are the class's own cohorts): date · day (Week N) / start–end (duration) / **pin icon + room**; `—` when there is no request |
 | 5 | Request Status | new | badge labels (user decision, 2026-11-03): **`Approved`** · **`Rejected`** · **`Pending — Waiting for Approval`** — the actor was dropped because on this page the reader *is* the lecturer, so "by PL" said the same thing on every row. Unchanged: **`Cancelled by YOU`** (that actor is not obvious — the lecturer can also be cancelled *by* a PL in other flows), **`Completed — <n> days ago`**, and **`Need to Arrange`** (**outlined**, not filled — see below). **See Q3** on whether the badge is also a shortcut |
-| 6 | Action | both | **icon-only, three states**: **rotate = arrange** (need to arrange, rejected, cancelled) · **ban = cancel this pending request** (pending only, ghost box tinted `--color-error`) · **eye = view** (approved, completed). Full wording in the tooltip (`data-tip`) plus an `aria-label`. Never repeats the status |
+| 6 | Action | both | **icon-only, three states**: **rotate = arrange** (need to arrange, rejected, cancelled) · **ban = cancel this pending request** (pending only, ghost box tinted `--color-error`) · **eye = open the details pop-up** (approved, completed). Full wording in the tooltip (`data-tip`) plus an `aria-label`. Never repeats the status |
 
 The column is called **Request Status**, not "Status": on this page "status" alone
 is ambiguous (class status vs request status), so the label names the thing.
@@ -139,30 +149,33 @@ Replacement Details
 BMIT2013 · Web-Based Integrated Systems (Lecture)      ← subtitle: code · name (type)
 COHORTS RSD2 (S1) G2, RSD2 (S1) G3 · STUDENTS 34
 CONFLICT       [Class Cancelled — Medical Leave]
-CURRENT STATUS [Pending — Waiting for Approval]
 ─────────────────────────────────────────────────────────────────────────────
-[ Original Class Schedule ] [ Proposed Replacement Schedule ] [ Request Status ]
+[ Original Class Schedule ] [ Proposed Replacement Schedule ] [ Request Status (Pending) ]
 ```
 
-The facts strip is **outside the tabs on purpose**: cohorts, students, the conflict
-reason and the current status never change when you switch tabs, so repeating them
-in each panel was noise. Subject code, name and class type already live in the
-subtitle, so they are not repeated. **Current Status** joined them last: it is the one thing a reader
-wants before choosing a tab, because it says whether there is anything to do — and
-it lets the `Original Class Schedule` tab carry no status of its own. The two badge
-rows share a 102 px label column so their badges start on the same x rather than
-stepping in and out.
+The facts strip is **outside the tabs on purpose**: cohorts, students and the
+conflict reason never change when you switch tabs, so repeating them in each panel
+was noise. Subject code, name and class type already live in the subtitle, so they
+are not repeated.
 
-This does cost one duplication: the badge appears in the strip **and** as the
-`Status` row of `Request Status`. With the history block gone there is no third copy,
-but two remain — dropping the `Status` row from the tab (leaving `Status Description`
-+ `Remark`, which the strip cannot say) is the clean fix if it reads as noise.
+**The status lives in the tab label** — `Request Status (Pending)`, `(Approved)`,
+`(Rejected)`, `(Cancelled)`, `(Completed)`, `(Need to Arrange)`. It was in the strip
+for two rounds (`CURRENT STATUS`), but that said it twice: once above the tabs and
+again as the `Status` row inside the tab. Moving it into the label puts it in
+exactly one place **and keeps it visible from all three tabs**, because the tab bar
+never scrolls away. The parenthesis uses the short word — the badge's long form
+(`Pending — Waiting for Approval`, `Completed — 3 days ago`) overflows the 594 px
+tab bar; the full text still lives in the table's badge, which is where it matters.
+
+Cost, accepted: a tab label is monochrome, so the red/amber/green signal the badge
+carried is gone from the modal. A 6 px coloured dot before the label would bring it
+back without a second badge.
 
 | Tab | Contents |
 |---|---|
 | **Original Class Schedule** | **Class ID** · week · day · date · time · duration · venue |
 | **Proposed Replacement Schedule** | **Request ID** · week · day · date · time · duration · venue. The tab is **hidden** when nothing is proposed (no request, or a request with no resolvable slot) — an empty tab that says "nothing yet" is a dead end |
-| **Request Status** | status badge · a **Status Description** row holding one plain sentence about that status · a nullable **Remark** row. **Nothing else** — no timeline, no history block, no per-request panels |
+| **Request Status (…)** | labelled with the status itself. Contains a **Status Description** row (one plain sentence about that status) · a **Rejection Reason** row, **only when the row is rejected** · a nullable **Remark** row. **Nothing else** — no timeline, no history block, no per-request panels, no status badge (the label is the status) |
 
 Both schedules print the same way (user decision, 2026-11-03):
 
@@ -195,11 +208,20 @@ it. If that proves to be the wrong trade, the cheap repair is to add `Your Submi
 Timestamp` and `Decision by PL Timestamp` back as rows of `Request Status` — not the
 whole trail.
 
-`Remark` is the occurrence's note — the newest request's, and the row disappears when
-it is empty (nullable column, `remarks`). `Status Description` is generated from the
-status, so the two never say the same thing twice:
-*"The proposed replacement is waiting for the PL to approve or reject it."* /
-*"You cancelled this request, so the class is free to be arranged again."*
+**`Remark` and `Rejection Reason` are two different rows** (user decision,
+2026-11-03). The database has both: `remarks` (a free note anyone can leave) and
+`rejection_reason` (the PL's words). A rejected row therefore shows *both* when both
+exist — `Rejection Reason` in strong weight because it is the reason the class still
+has to be arranged, `Remark` in normal weight because it is a note. This is also what
+the live My Requests modal already does. Every other status shows `Remark` alone,
+and only when it is filled (nullable column).
+
+`Status Description` is generated from the status, so it never says the same thing as
+either note: *"The proposed replacement is waiting for the PL to approve or reject
+it."* / *"You cancelled this request, so the class is free to be arranged again."*
+It keeps its name — the home page's quick view uses the same label for *urgency*
+prose, which is a separate page's problem: **rename that one later** (e.g. `Urgency`)
+rather than inventing a second word here.
 
 The old `What to do` row is gone: "Arrange a replacement for this class" repeated
 what the badge already said.
@@ -254,6 +276,28 @@ cancelled is never ambiguous. This also removes the
 ambiguity of "what does ticking mean when a class has three requests".
 
 **Page name and nav label:** open (Q1). One nav item replaces two.
+
+### Reuse rules — do not build a second version of anything (review, 2026-11-03)
+
+These were checked control by control against the live pages. Each one must reuse
+the existing contract; the prototype got them wrong and is being corrected.
+
+| Control | Reuse this | Never |
+|---|---|---|
+| Copy an email address | the `request-approval` contract: `📋` glyph after the address, **the address itself is clickable**, `data-tip="Click to copy email"`, feedback through the shared `toast.show('Email copied: …', null, 2000)` | a bordered icon button, an SVG glyph, or a tooltip that flips to "Copied" |
+| Any hover hint | `data-tip` only — one shared `initDataTipTooltips()` singleton, viewport-clamped, supports `data-tip-pos="left"` and multi-line text | a per-element `::after` tooltip (clips inside `overflow:auto` grids and duplicates the singleton) |
+| Column headers, ✕ close, ✕ chips | the live wording, and `data-tip="Close"` on the modal ✕ | silent headers / unlabelled ✕ |
+| Toolbar count | the live `.result-count` line, "Showing 4 of 4 classes" | a second, differently-worded counter |
+| Sort hint | the live wording: *Click Course Code & Name or Original Class to sort* | inventing new hint text |
+| "Nothing here" dash | a class backed by `--color-on-surface-variant` | a hand-written `style="color:…;opacity:.6"` |
+| Confirmation of a destructive action | the existing **"Confirm Cancellation"** modal (`#cancelConfirmOverlay`, "… This action cannot be undone.") | a one-click cancel, or a browser `confirm()` |
+| Mobile | the existing `.card-view` + `replacementHomeCard` shape, adapted to the merged fields (code+name · conflict badge · status badge · original class line · days left · cohorts) | a second card design |
+| Icon-only Action column | **new** — there is no icon-only button component in `theme.css` (`.btn-icon` exists only in the mobile 48 px rule), so this column needs one real definition, used by both the rotate/ban/eye buttons | four one-off button styles, or inline width/height per button |
+
+**Icon-only Action is the one deliberate new thing.** The live Action cell is a text
+button (`.btn-action` — "Arrange Replacement"). The merged page replaces it with
+three icon buttons because six columns do not leave room for a 150 px text button
+per row. That is the user's call (2026-11-03); everything else on this page reuses.
 
 ## 5. Cross-module data flows
 
