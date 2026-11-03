@@ -169,12 +169,25 @@ the identity edit ships with the view in commit 2 (§7's Commit column).
       (the "see My Replacements" copy); `replacement-arrangement.blade.php:2241,2243,2245` (the comment
       at `:2243` carries the same sentence);
       `ui-common.js:3071,3072,3079` (values + default, **keys untouched**), `:4419,4422` (the toast
-      **bodies**: "view it in My Request History." / "track or withdraw it in My Request History."),
-      `:4420,4423` (links **and** labels), `:1292` (`&view=request`); `ui-nav-bar.blade.php:18,19` →
-      one item.
+      **bodies**), `:4420,4423` (links **and** labels), `:1292` (`&view=request`);
+      `ui-nav-bar.blade.php:18,19` → one item.
+      **The toast's duplicated page name goes (user decision, 2026-11-04).** Today the body ends with
+      the page name **and** the link is labelled with it, so the message reads `… in My Request
+      History. My Request History` (`toast._present()` writes body and link to two separate nodes:
+      `msgEl` / `linkEl`). The body keeps its instruction and drops the name; the link carries it once:
+      ```js
+      // :4419 (approved)
+      toast.show('This class already has an approved replacement — view it.', null, 8000,
+          'My Replacements', '/my-replacements');
+      // :4422 (pending)
+      toast.show('This class already has a pending replacement request — track or withdraw it.', null, 8000,
+          'My Replacements', '/my-replacements');
+      ```
       *Receipt (URLs):* `grep -rn "/replacement-home-ui\|/my-request-history-ui" app resources public/js`
       returns **only** the 11 frozen occurrences (`mock-data.js` ×7, `notif-row:96`,
       `NotificationEmitter:64,88`, the mock template `:1916`) — quoted count.
+      *Receipt (the toast):* the rendered guard toast contains the page name **once** — the body has no
+      page name, the link label carries it.
       *Receipt (the spaced copy):* `grep -rn "My Request History" app resources public/js` returns
       **exactly four**, and none is user-facing live text: `notif-row.blade.php:53` (a comment),
       `replacement-arrangement.blade.php:2243` (the comment between this task's two edits — it is in
