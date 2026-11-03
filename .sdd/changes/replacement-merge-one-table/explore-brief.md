@@ -145,7 +145,14 @@ Both schedules print the same way (user decision, 2026-11-03):
 | Time | one row, 12-hour, `~` between | `10:00 AM ~ 12:00 PM` |
 | Duration | words, not `hr` | `1 hour` / `2 hours` |
 | Venue | code + short room name | `B010 — Computer Lab` |
-| **Request Status** | **CURRENT** subtitle · status badge · a divider · one plain sentence saying what that status means for this class · **HISTORY** subtitle · the full trail, newest first, one group per request (`Request #R102.2 · Pending`) with Status, **Proposed Replacement**, **Submitted Timestamp**, **Decision Timestamp** and Note |
+| **Request Status** | **CURRENT** subtitle · status badge · a divider · one plain sentence saying what that status means for this class · **HISTORY** subtitle · **one child tab per request** (`Request #R102.2`, `Request #R102.1`), newest first and newest selected, each panel holding Status, **Proposed Replacement**, **Submitted Timestamp**, **Decision Timestamp** and Note |
+
+**Nested tabs, and when they are *not* used.** The history child tabs exist only
+when there are **two or more** requests — a tab bar with a single tab is noise, so
+one request renders its facts directly under `HISTORY`. This mirrors the app's own
+DetailModal law (a tab bar only appears for 2+ categories). The trade-off is real:
+it is a second tab bar inside a modal, so it is reserved for the one case where the
+alternative — several stacked request blocks — makes the panel long enough to scroll.
 
 Two subtitles carry the panel — `CURRENT` and `HISTORY` — and both are **14 px
 (+2 over the 12 px detail labels), 700, uppercase, `on-surface` near-white**, so
