@@ -2,9 +2,11 @@
 
 namespace App\Livewire;
 
+use App\Models\ClassSession;
 use App\Models\Notification;
 use App\Models\ReplacementRequest;
 use App\Models\Semester;
+use App\Models\User;
 use App\Models\Venue;
 use App\Services\ReplacementRequestMapper;
 use Carbon\Carbon;
@@ -400,12 +402,15 @@ class NavNotifications extends Component
             ->unique()->values();
 
         if ($requestIds->isEmpty()) {
-            return $rows;
+            /* R5: the staff line is COLUMN-driven (request_id / class_session_id),
+               so a cancellation-only inbox still needs the class batch — the
+               classifier's attributes are not set yet at this exit. */
+            return $this->attachStaffLines($rows, collect());
         }
 
         $requests = ReplacementRequest::query()
             ->whereIn('id', $requestIds)
-            ->with(['classSession.module', 'replacementTimeSlot.venue', 'proposer.lecturer'])
+            ->with(['classSession.module', 'replacementTimeSlot.venue', 'proposer.lecturer', 'approver.lecturer'])
             ->get()
             ->keyBy('id');
 
@@ -496,7 +501,79 @@ class NavNotifications extends Component
             }
         }
 
+        return $this->attachStaffLines($rows, $requests);
+    }
+
+    /**
+     * R5 (notif-recipient-rulings, 2026-11-03): the "other party" staff line —
+     * `Name (staff_id)` — for EVERY type in EVERY state. It is a computed
+     * attribute on the row, never a column and never `_display` (which is only
+     * attached to live `submitted` rows and dies on read).
+     *
+     * Two batched sources inside the island's ONE-QUERY law: the requests map
+     * (proposer + approver, already eager-loaded) and ONE ClassSession batch for
+     * the class-level rows (a cancellation). No per-row find().
+     *
+     * @param  Collection<int, Notification>  $rows
+     * @param  Collection<int, ReplacementRequest>  $requests
+     * @return Collection<int, Notification>
+     */
+    private function attachStaffLines(Collection $rows, Collection $requests)
+    {
+        $classIds = $rows->filter(fn (Notification $n) => $n->request_id === null && $n->class_session_id !== null)
+            ->pluck('class_session_id')->unique()->values();
+
+        $sessions = $classIds->isEmpty()
+            ? collect()
+            : ClassSession::query()->with(['lecturer.lecturer'])
+                ->whereIn('id', $classIds->all())->get()->keyBy('id');
+
+        foreach ($rows as $row) {
+            $row->setAttribute('staff_line', $this->staffLine($row, $requests, $sessions));
+        }
+
         return $rows;
+    }
+
+    /**
+     * The staff-line rule (design §4.3):
+     *  - request row → its proposer; when the reader IS the proposer, the actor
+     *    (the PL who decided) — null while nobody has decided;
+     *  - class row → the class lecturer; null for a self-only event (the owner
+     *    cancelling their own class) and for an unusable session.
+     *
+     * @param  Collection<int, ReplacementRequest>  $requests
+     * @param  Collection<int, ClassSession>  $sessions
+     */
+    private function staffLine(Notification $row, Collection $requests, Collection $sessions): ?string
+    {
+        $request = $row->request_id !== null ? $requests->get((int) $row->request_id) : null;
+
+        if ($request !== null) {
+            $subject = $request->proposer;
+            if ($subject === null) {
+                return null;
+            }
+            if ((int) $subject->id === (int) $row->user_id) {
+                $actor = $request->approver;                 // the PL who decided
+
+                return $actor !== null ? $this->staffLabel($actor) : null;
+            }
+
+            return $this->staffLabel($subject);
+        }
+
+        $session = $row->class_session_id !== null ? $sessions->get((int) $row->class_session_id) : null;
+        $owner = $session?->lecturer;
+
+        return $owner === null || (int) $owner->id === (int) $row->user_id ? null : $this->staffLabel($owner);
+    }
+
+    private function staffLabel(User $user): string
+    {
+        $staffId = $user->lecturer !== null ? (string) $user->lecturer->staff_id : '';
+
+        return $staffId !== '' ? $user->name.' ('.$staffId.')' : (string) $user->name;
     }
 
     /**

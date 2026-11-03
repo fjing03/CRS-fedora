@@ -195,8 +195,12 @@ final class ApproveRequest
                     $this->queueCohortMail($locked, $released);
                 });
                 /* SDD notifications-real-bridge: the island rows ride the SAME
-                   after-commit seam — the proposer's approved row + every
-                   cohort student's notice (the per-role link law). */
+                   after-commit seam. R3 (notif-recipient-rulings, 2026-11-03)
+                   merges the owner's copy into ONE `Replacement class updated`
+                   row pointing at the timetable, then every cohort student's
+                   notice runs unchanged (the per-role link law). The owner row
+                   is written ONCE, BEFORE the loop — inside it, it would repeat
+                   once per cohort. */
                 DB::afterCommit(function () use ($locked, $decider): void {
                     $session = $locked->classSession;
                     if ($session === null) {
@@ -204,11 +208,9 @@ final class ApproveRequest
                     }
                     $proposer = $locked->proposer;
                     if ($proposer !== null) {
-                        app(NotificationEmitter::class)->requestDecided(
+                        app(NotificationEmitter::class)->replacementConfirmed(
                             $proposer,
-                            'approved',
-                            (string) ($session->module->module_code ?? ''),
-                            (string) $session->session_type,
+                            $session,
                             (int) $locked->id,
                             (int) $locked->week_number,
                             (string) $decider->name,

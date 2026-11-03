@@ -55,6 +55,7 @@
     $composedTitle = $display !== null ? $display['title'] : $n->title;
     $composedBody = $display !== null ? $display['desc'] : $n->body;
     $subtitle = $display !== null ? ($display['subtitle'] ?? null) : null;
+    $staffLine = $n->getAttribute('staff_line');   /* R5 — computed per render, survives read/hidden */
     if ($activation) {
         /* D1/D15 — the reason-family copies, first-match by $reason */
         $rowTip = match ($reason) {
@@ -107,7 +108,12 @@
     <span class="notif-row-icon notif-tile-{{ $n->type }}"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">{!! $glyph !!}</svg></span>
     <span class="notif-row-body">
         <span class="notif-row-title">{{ $composedTitle }}</span>
-        @if($subtitle) <span class="notif-row-subtitle">{{ $subtitle }}</span> @endif
+        {{-- R5 (notif-recipient-rulings, 2026-11-03): the `submitted` composer's own
+             subtitle wins (on a live row it IS the staff line); the computed
+             `staff_line` renders when its TEXT differs — so a future change to the
+             composed line adds a line instead of silently dropping this one. Both
+             null => nothing, byte-identical to before. --}}
+        @if($subtitle) <span class="notif-row-subtitle">{{ $subtitle }}</span> @endif@if($staffLine && $staffLine !== $subtitle) <span class="notif-row-subtitle">{{ $staffLine }}</span> @endif
         <span class="notif-row-desc">{{ $composedBody }}</span>
     </span>
     @if($variant === 'hidden')

@@ -191,7 +191,7 @@ final class SubmitReplacementRequest
 
         $sessionType = (string) $session->session_type;   /* capture-at-queue-time (the mails' law) */
 
-        DB::afterCommit(function () use ($requestId, $moduleCode, $sessionType, $proposerName, $anchor, $span): void {
+        DB::afterCommit(function () use ($requestId, $moduleCode, $sessionType, $proposerName, $proposer, $anchor, $span): void {
             $pls = User::query()
                 ->whereHas('lecturer', fn ($q) => $q->where('is_pl', true))
                 ->get();
@@ -206,6 +206,13 @@ final class SubmitReplacementRequest
             $venue = $venueRow !== null ? (string) $venueRow->room_code : '';
 
             foreach ($pls as $pl) {
+                /* R2 (notif-recipient-rulings, 2026-11-03): a lecturer is never
+                   emailed their OWN request — skip the proposer by id (not by
+                   address: fixtures may share one). Every other PL still gets
+                   the mail. */
+                if ((int) $pl->id === (int) $proposer->id) {
+                    continue;
+                }
                 Mail::to((string) $pl->email)->queue(new ReplacementSubmitted(
                     $requestId,
                     $moduleCode,
@@ -220,10 +227,10 @@ final class SubmitReplacementRequest
             /* SDD notifications-real-bridge: the PL fan-out rows ride the SAME
                after-commit closure (the mail law; the emitter writes them). */
             app(NotificationEmitter::class)->requestSubmitted(
+                $proposer,
                 $pls,
                 $moduleCode,
                 $sessionType,
-                $proposerName,
                 $requestId,
                 (int) $anchor->week_number,
             );

@@ -3,7 +3,6 @@
 namespace App\Support\Notifications;
 
 use App\Models\ClassSession;
-use App\Models\Lecturer;
 use App\Models\Notification;
 use App\Models\Student;
 use App\Models\User;
@@ -28,20 +27,41 @@ final class NotificationEmitter
     private const DAY_ABBRS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 
     /**
-     * Request submitted → every PL (the FR 4.15 recipient law: is_pl).
+     * Request submitted → every PL (the FR 4.15 recipient law: is_pl) AND, per
+     * the user's ruling R1 (notif-recipient-rulings, 2026-11-03), a confirmation
+     * row for a NON-PL proposer — a PL proposer already holds the queue row, so
+     * the PL fan-out is neither filtered nor doubled.
      */
     /** @param  Collection<int, User>  $pls */
-    public function requestSubmitted(Collection $pls, string $moduleCode, string $moduleType, string $proposerName, int $requestId, int $week): void
+    public function requestSubmitted(User $proposer, Collection $pls, string $moduleCode, string $moduleType, int $requestId, int $week): void
     {
-        $this->commit(function () use ($pls, $moduleCode, $moduleType, $proposerName, $requestId, $week): void {
+        $this->commit(function () use ($proposer, $pls, $moduleCode, $moduleType, $requestId, $week): void {
             foreach ($pls as $pl) {
                 $this->write(
                     $pl,
                     'pl',
                     'submitted',
                     'New replacement request',
-                    $moduleCode.' ('.$moduleType.') · W'.$week.' · submitted by '.$proposerName,
+                    $moduleCode.' ('.$moduleType.') · W'.$week.' · submitted by '.$proposer->name,
                     '/request-approval-ui',
+                    $requestId,
+                    null,
+                    $week,
+                );
+            }
+
+            /* R1: a non-PL proposer holds no copy today (the PL fan-out misses
+               them); a PL proposer already holds the queue row above, so this
+               must not fire for them. No `isPl()` accessor exists — the
+               lecturer relation is the check. */
+            if ($proposer->lecturer?->is_pl !== true) {
+                $this->write(
+                    $proposer,
+                    'lecturer',
+                    'update',
+                    'Replacement request submitted',
+                    $moduleCode.' ('.$moduleType.') · W'.$week.' · awaiting PL approval',
+                    '/my-request-history-ui',
                     $requestId,
                     null,
                     $week,
@@ -68,6 +88,30 @@ final class NotificationEmitter
                 '/my-request-history-ui',
                 $requestId,
                 null,
+                $week,
+            );
+        });
+    }
+
+    /**
+     * R3 (notif-recipient-rulings, 2026-11-03) — the MERGED approval row for the
+     * class owner: ONE row instead of the old `Replacement approved` + the
+     * cohort notice, pointing at the timetable that actually changed and
+     * carrying BOTH ids. Written once by the action, never inside the cohort
+     * loop (a per-cohort write would duplicate it).
+     */
+    public function replacementConfirmed(User $owner, ClassSession $session, int $requestId, int $week, string $deciderName): void
+    {
+        $this->commit(function () use ($owner, $session, $requestId, $week, $deciderName): void {
+            $this->write(
+                $owner,
+                'lecturer',
+                'approved',
+                'Replacement class updated',
+                $this->classFact($session, $week).' · approved by '.$deciderName.' · your timetable is updated',
+                '/my-timetable-ui',
+                $requestId,
+                (int) $session->id,
                 $week,
             );
         });
@@ -102,10 +146,12 @@ final class NotificationEmitter
     }
 
     /**
-     * Scheduled class cancelled → the THREE fan-outs (the user's clarified
-     * ruling, the 5770/ABCD6767 example): the class's own lecturer (the
-     * actor keeps a record row), every cohort student, and the PLs of the
-     * class owner's department (DEPT-ONLY — the owner's lecturers.dept_id).
+     * Scheduled class cancelled → TWO fan-outs (the user's ruling R4,
+     * notif-recipient-rulings 2026-11-03, which REVERSES the 2026-10-30
+     * three-fan-out ruling): the class's own lecturer (the actor keeps a
+     * record row) and every cohort student. The department-PL fan-out is
+     * gone — a PL outside the class cannot act on a cancellation, and the
+     * owner dedupe that fan-out required disappears with it.
      */
     public function classCancelled(User $actor, ClassSession $session, int $weekNumber): void
     {
@@ -128,24 +174,6 @@ final class NotificationEmitter
                         continue;
                     }
                     $this->write($user, 'student', 'update', $title, $body, '/student-my-timetable-ui', null, $sessionId, $weekNumber);
-                }
-            }
-
-            // 3. the PLs of the class owner's department (DEPT-ONLY)
-            $deptId = Lecturer::query()->where('user_id', (int) $session->lecturer_id)->value('dept_id');
-            if ($deptId !== null) {
-                $pls = User::query()
-                    ->whereHas('lecturer', fn ($q) => $q->where('is_pl', true)->where('dept_id', $deptId))
-                    ->get();
-                foreach ($pls as $pl) {
-                    /* notif-actor-pl-dedupe (the user's F1, 2026-10-30): the
-                       OWNER already received their actor record row in step
-                       1 — the dept-PL copy would be the same event twice in
-                       the unified one-feed panel. */
-                    if ((int) $pl->id === (int) $actor->id) {
-                        continue;
-                    }
-                    $this->write($pl, 'pl', 'update', $title, $body, '/my-timetable-ui', null, $sessionId, $weekNumber);
                 }
             }
         });
