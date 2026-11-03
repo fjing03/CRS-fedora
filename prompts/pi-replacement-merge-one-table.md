@@ -1,16 +1,24 @@
 # Prompt — one replacement table (SDD lane `replacement-merge-one-table`)
 
-> **You are the implementing session.** Every decision in §3 was made by the user on
+> **You are the implementing session (PI).** Every decision in §3 was made by the user on
 > **2026-11-03**, through ~25 prototype review rounds. Do not re-ask them, do not re-open
-> them. What is yours: the remaining SDD batches, the code, the tests, the receipts.
+> them. What is yours: the code, the tests, the receipts, the changelog — **not** the plan.
 >
-> **Status 2026-11-03: proposal frozen after four review rounds** (`ccaa7ba`; log in
-> `.sdd/changes/replacement-merge-one-table/review-log.md`). Both prerequisites landed —
+> **Status 2026-11-04: the whole SDD lane is frozen and ready to apply.** All four batches
+> passed review; `.sdd/changes/replacement-merge-one-table/sdd.yaml` says
+> `status: ready-for-apply`.
+>
+> | Batch | Rounds | Where |
+> |---|---|---|
+> | proposal | 8 | `proposal.md` — M1–M17 + §6b data contract |
+> | design | 2 | `design.md` — payload, span path, seven columns, modal, tests |
+> | specs | 2 | `specs/replacement-page-merge/spec.md` — R1–R17 |
+> | tasks | 5 | `tasks.md` — **start here**; five commits, 24 tasks, each with a receipt |
+>
+> **Do not write a batch again.** If something in the plan looks wrong while you code it,
+> stop and ask the user — do not silently re-decide it. Both prerequisites landed:
 > `replacement-home-status-badges` (`a16727c`, `2e58547`) and `request-completed-status`
 > (`e2b2f4c`, `7d2bb9a`).
->
-> **Next batch: `design.md`.** Then `specs/`, then `tasks.md`, each frozen after
-> `@sdd-reviewer`. Do not skip a batch and do not write app code before `tasks.md` exists.
 
 ---
 
@@ -25,8 +33,9 @@
 3. Look at the picture: `../ui-prototype/replacement-merged-preview.html`. It is a
    discussion instrument, **never staged, never shipped** — but it is what the user
    approved, down to the wording.
-4. Continue the SDD lane from `design.md`. Review each batch before freezing it.
-5. Then implement, test, receipt, changelog.
+4. Then `design.md`, `specs/…/spec.md` and `tasks.md` — **all frozen; read them, do not
+   rewrite them.** `tasks.md` is the working list: five commits, in its order.
+5. Then implement, test, receipt, changelog — one commit at a time, quoting real numbers.
 6. Ask before archiving anything.
 
 ---
@@ -52,8 +61,9 @@ Arranging a replacement means losing sight of it and switching pages.
 
 The merged page is **one table, one row per class**, where the row's status is the newest
 request made for that class. The page is called **My Replacements** and lives at
-`/replacement-home-ui`; `/my-request-history-ui` keeps working as a second route to it,
-because notifications, the post-submit redirect and `?notif-hl=` all point there.
+**`/my-replacements`**. `/replacement-home-ui` and `/my-request-history-ui` keep working
+**as extra route entries for the same page** (never redirects), because stored notification
+links, the post-submit redirect and `?notif-hl=` all still point at the old ones.
 
 What the merge deliberately gives up — and the user accepted — is the per-request trail
 inside the modal: no HISTORY block, no child tabs, no timeline. The request's record keeps
@@ -91,11 +101,18 @@ builds one. That is written in the proposal §1 so it is not discovered as a sur
 The lane is read-only **except** cancelling a request, and that must delegate:
 
 ```php
-public function cancelRequest(int $id): bool
+// task T5 — the array is design §1.7's [D]: the row comes back from the server
+public function cancelRequest(int $id): array
 {
-    return app(CancelPendingRequest::class)(auth()->user(), $id);
+    $ok = app(CancelPendingRequest::class)(auth()->user(), $id);
+
+    return ['ok' => $ok, 'row' => $ok ? $this->rowFor($id) : null];
 }
 ```
+
+`rowFor()` re-reads the occurrence through the same `buildRow()` the page uses. **Never patch
+the row from an assumption** (`status = 'cancelled'`): the action deletes the request's extra
+slots, so the row's time changes too — the server's answer is the only true one.
 
 `app/Actions/CancelPendingRequest.php` carries the ownership guard, the pending guard, the
 D6 slot release and the audit row. A local `update(['status' => 'cancelled'])` bypasses all
@@ -119,19 +136,47 @@ path is not a cut-and-paste**: the history version splices `mockRequests` and ca
 | `app/Services/ReplacementRequestMapper.php` | replacement slot, `remarks`, `rejection_reason`, venue **name**; `effectiveStatus()` reused |
 | `resources/views/livewire/replacement-home.blade.php` | 7-column table, modal, action cell, cards, toolbar, the moved confirm overlay |
 | `routes/web.php` | `/my-replacements` + both old URLs as aliases (same middleware, query string preserved) |
-| `ui-common.js` (links) | `BackNavigator.#routes` + default (`:3071,3072,3079`), entry-guard toast links + labels (`:4420,4423`), "View Full Request" (`:1292`, gains `?notif-hl=r<id>`) |
+| `ui-common.js` (links) | `BackNavigator.#routes` values + default (`:3071,3072,3079` — **keys untouched**), entry-guard toast **bodies** (`:4419,4422`) and **labels** (`:4420,4423`), "View Full Request" (`:1292`, gains `?notif-hl=r<id>&view=request`) |
 | `ReplacementArrangement.php` | `FROM_LANDING_ROUTES` + fallback (`:78,79,201`) → canonical; the duplicate-request message (`:1214`) |
 | `replacement-arrangement.blade.php:2241,2245` | post-submit toast link + redirect → canonical |
-| `MyRequestHistory.php` + its blade | retired (or a forwarder that keeps `payload['requests']` + both cancel methods) |
+| `MyRequestHistory.php` + its blade | **deleted** (design §2.2 — no forwarder, no caller) |
 | `partials/ui-nav-bar.blade.php` | two lecturer items → one |
 | `partials/ui-page-header.blade.php` | `descriptionHtml` via `{!! !!}` so the H1 keeps `CLASS` / `REQUEST` / `ONE LIST` |
-| `theme.css` | **three** definitions: icon-only button, neutral-grey conflict badge, outlined `Need to Arrange` |
+| `theme.css` | five token-only definitions: `.btn-icon` (+ 3 modifiers), `.badge-reason` + the moved `.badge-holiday`, `.badge-outline`, `.cell-sub`/`.cell-dash`, `.detail-facts`/`.df-*` |
 | tests | see §6 of the proposal — buckets A / A′ / B / C / D |
 
 **DOM contract** (group-A specs read these): `#tableHead`, `#tableBody`, `#searchInput`,
 `#resultCount`, `#cardView`, `#timetable`, `#toastBar`, `.col-code`, `.cell-code`,
 `.cell-name`, `.cell-type-label`, `#quickViewModal` (+ `.show`), `#qvBody`, `#qvArrangeBtn`,
 `#qvArrangeLabel`.
+
+---
+
+## 5b. Where to start (the five commits of `tasks.md`)
+
+| # | Commit | Tasks |
+|---|---|---|
+| 1 | `feat(my-replacements): … payload, batch span path, six-state vocabulary` | T1–T6 |
+| 2 | `ui(my-replacements): one table, seven columns, tabbed modal` | T7–T13 (+ the page identity, §2.1b/2.1c) |
+| 3 | `refactor(my-replacements): canonical URL, three routes, retired page` | T14–T17 — **one commit, nothing split** |
+| 4 | `test(my-replacements): the specs the merge reverses` | T18–T20 |
+| 5 | `docs(my-replacements): changelogs + handover` | T21–T22 |
+
+Guardrails that are easy to lose:
+
+- **Never push.** Stage only this lane's files; the tree carries other lanes' work.
+- **The four frozen URL consumers stay frozen**: the seven `mock-data.js` fixtures,
+  `notif-row.blade.php:96`'s strict compare, `NotificationEmitter.php:64,88`, and the
+  `ui-design-templates` copy. Changing one breaks stored notifications.
+- **`toRow()` is not touched** — the API and the PL page read it, and §6b law 5 depends on it.
+  Adding a key there is a different lane (3C of the approval brief), and it needs its own
+  `unset()` in `ApiReadController::myRequests()`.
+- **Two known red windows, both named in `tasks.md`**: `ReplacementArrangementTest` and
+  `arrangement-entry-guard` are red from commit 3 until commit 4. Never green them by
+  reverting a URL or a toast — that is the failure the lane exists to prevent.
+- **Line numbers are a snapshot at `bcab5f5`.** Another session has since refactored
+  `ReplacementRequestMapper`'s timezone handling; the structure is unchanged, but if a cited
+  line looks off by a few, trust the name, not the number.
 
 ---
 
@@ -169,7 +214,7 @@ path is not a cut-and-paste**: the history version splices `mockRequests` and ca
 
 ## 8. Definition of done
 
-- `design.md`, `specs/`, `tasks.md` written and each frozen after review.
+- `tasks.md`'s five commits landed **in its order**, each with the receipts it names.
 - Both URLs render the merged page; the notifications' links still highlight their row.
 - The 7 columns, the labels, the modal and the cards match this file — checked against the
   brief, not against memory.
@@ -179,4 +224,6 @@ path is not a cut-and-paste**: the history version splices `mockRequests` and ca
 - Browser receipts for: the merged table, the modal's three tabs, a cancel, the alias with
   `?notif-hl=`, and a phone-width card.
 - Changelogs under `page-changelogs/` for both pages and the nav.
+- The guard toast reads **once**: body is the fact alone, the link says `My Replacements`
+  (user decision 2026-11-04 — the state word is in caps: `APPROVED` / `PENDING`).
 - The commit names the lane, and **nothing is pushed**.
