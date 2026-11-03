@@ -80,11 +80,29 @@ defer completion to its own later lane rather than fake it.
 status that is neither `rejected` nor `cancelled`. A row **needs action** when it
 has no request, or its newest request is `rejected` / `cancelled`.
 
+### Where this lane sits (agreed 2026-11-03, after this brief was locked)
+
+The two pages are **not** being merged in this lane. The agreed order is:
+
+1. **this lane** — the row keeps its status; two pages, the badge links to My Requests;
+2. **the completed-status lane** (`prompts/pi-request-completed-status.md`) — the fifth state;
+3. **a later one-table merge** — one row per class occurrence, the request trail in
+   the detail modal.
+
+This note does not change D1–D9 and nothing here may pre-build the merge. One
+future-proofing detail is deliberate and must be kept: the destination lives in the
+single helper `requestHref(c)` (§7.2), so that later merge edits one line instead of
+chasing a scattered URL. `/my-request-history-ui` must keep working as a
+**destination** — notifications, the post-submit redirect and D6 all point at it.
+
 ---
 
 ## 4. Out of scope (say so in the proposal)
 
 - Any `completed` status, completion job, or date-derived "Completed" label.
+- **Any merge of this page with My Requests** — the two-page shape is deliberate for
+  now (see the sequencing note in §3). Do not move the table, delete a route, or
+  "simplify" the badge's destination.
 - Schema changes — **this change needs none**. No migration, no demo-DB write.
 - The Request Approval page's payload/filters (`RequestApproval.php:69–72`).
 - The notification bell, its partial, or `applyNotifHighlight`.
@@ -107,13 +125,15 @@ has no request, or its newest request is `rejected` / `cancelled`.
 
 ## 5. Traps — read before you start
 
-1. **Another lane is dirty in the same working tree.** `git status` will likely
-   show `app/Actions/ApproveRequest.php`, `SubmitReplacementRequest.php`,
-   `app/Livewire/NavNotifications.php`, `app/Models/Notification.php`,
-   `app/Support/Notifications/NotificationEmitter.php`,
-   `resources/views/partials/notif-row.blade.php`, plus an untracked
-   `.sdd/changes/notif-recipient-rulings/`. **Never stage them.** Commit only the
-   files this lane touches.
+1. **Another lane is dirty in the same working tree, and the set moves.** On
+   2026-11-03 it was `docs/demo-db-data-changes.md`, five Playwright specs
+   (`tests/cancel-class.spec.ts`, `tests/notifications-island-testing-db.spec.ts`,
+   `tests/request-approval.spec.ts`, `tests/submission-conflict-refresh.spec.ts`,
+   `tests/ui-regression.spec.ts`), plus the untracked
+   `.sdd/changes/receipt-target-guard/` and `tests/helpers/receipt-target-guard.ts`.
+   Treat that as a warning, not a list: run `git status` and stage **only** the
+   files this lane touches. Never stage another lane's files, and never add a
+   `docs/demo-db-data-changes.md` entry — this change writes no demo rows.
 2. **The one-active-request rule is DB-enforced**, not query-enforced:
    `uq_replacement_requests_active_block` is a partial unique index on
    `(class_session_id, week_number) WHERE status IN ('pending','approved')`
@@ -260,7 +280,6 @@ function actionCell(c) {
     var arrange = ARRANGE_BUTTON_HTML
         .replace('__SID__', c.sessionId)
         .replace('__WEEK__', c.week);
-    if (isHandled(c)) return statusBadge(c);
     var ended = (c.requestStatus === 'rejected' || c.requestStatus === 'cancelled')
         ? '<span class="badge status-' + c.requestStatus + '">' + statusLabel(c.requestStatus) + '</span>'
         : '';
