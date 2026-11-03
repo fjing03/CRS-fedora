@@ -63,16 +63,21 @@ Status badge, in the Status column — one fact, one place.
 `completed` must be handled by the generic "not rejected/cancelled" rule even
 while lane 2 is pending, so the code cannot break on first sight of one.
 
-**Columns** (6, proposed — no checkbox, no separate venue/students/cohorts columns):
+**Columns** (7, proposed — no checkbox, no separate venue/students/cohorts columns):
 
 | # | Column | Source | Notes |
 |---|---|---|---|
 | 1 | Course code & name | both pages | `.cell-code` + `.cell-name` + type label |
 | 2 | Original class | both pages | **one cell, three lines**: date · day (Week N) / start–end (duration) / **room · cohorts** |
-| 3 | Days left | home | `—` on handled rows (badges lane D7); sort uses the real date |
-| 4 | Requested replacement | history | date · time · replacement room, `—` when none |
-| 5 | Status | new | badge; **see Q3** on whether it is also a shortcut |
-| 6 | Action | both | **Arrange** (icon + word, full wording in the tooltip) / View request — never repeats the status; Cancel stays in the modal |
+| 3 | Conflict Reason | home | **the home page's reason badges, unchanged** (`.badge-annual-leave`, `.badge-medical-leave`, `.badge-holiday`, `.badge-official-event`), placed immediately right of Original Class |
+| 4 | Days left | home | `—` on handled rows (badges lane D7); sort uses the real date |
+| 5 | Requested replacement | history | date · time · replacement room, `—` when none |
+| 6 | Status | new | badge; **see Q3** on whether it is also a shortcut |
+| 7 | Action | both | **icon-only**: rotate = arrange, eye = view request. Full wording in the tooltip (`data-tip`) plus an `aria-label`. Never repeats the status; Cancel stays in the modal |
+
+The reason badges are **page-local CSS today** (`replacement-home.blade.php:27–42`),
+not tokens in `theme.css`. The merge must share them (promote to `theme.css` or a
+partial) rather than paste a second copy.
 
 Two things left the table on purpose (user decisions, 2026-11-03): **Class Venue**
 and **Cohort(s)** fold into the Original Class cell, and **Students** is gone as a
@@ -168,6 +173,7 @@ ambiguous.
 `notif-manage-preview.html`) — a standalone static mock that links the live
 `theme.css`, with 8 fabricated rows covering every status, a rejected → pending
 trail, the tabbed `DetailModal` shell (Status · Class · Schedule · Requests), the
-six-column layout, and live search/status/completed filtering. There is **no
+seven-column layout (including the reused Conflict Reason badges and the icon-only
+actions), and live search/status/completed filtering. There is **no
 checkbox column and no bulk bar** (your 2026-11-03 call). It is a discussion
 instrument, **not** app code and not a receipt.
