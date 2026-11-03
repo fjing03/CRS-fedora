@@ -167,7 +167,7 @@ the identity edit ships with the view in commit 2 (§7's Commit column).
 - [ ] **T15 — the six live files + the copy** (`design.md` §7's commit-3 rows)
       `ReplacementArrangement.php:78,79` (`FROM_LANDING_ROUTES`), `:201` (the `??` default), `:1214`
       (the "see My Replacements" copy); `replacement-arrangement.blade.php:2241,2243,2245` (the comment
-      at `:2243` carries the same sentence);
+      at `:2243` carries the page **name**);
       `ui-common.js:3071,3072,3079` (values + default, **keys untouched**), `:4419,4422` (the toast
       **bodies**), `:4420,4423` (links **and** labels), `:1292` (`&view=request`);
       `ui-nav-bar.blade.php:18,19` → one item.
@@ -193,7 +193,7 @@ the identity edit ships with the view in commit 2 (§7's Commit column).
       *Receipt (the toast):* the rendered guard toast contains the page name **once** — the body has no
       page name, the link label carries it.
       *Receipt (the spaced copy):* `grep -rn "My Request History" app resources public/js` is **12**
-      today. This task's own edits remove **six** (the two bodies `:4419,:4422`, the two labels
+      today — and still 12 at this task's step, because commits 1–2 touch no matching line. This task's own edits remove **six** (the two bodies `:4419,:4422`, the two labels
       `:4420,:4423`, `ReplacementArrangement.php:1214`, and the comment at `:2243`), so **at this step
       it returns 6** — `MyRequestHistory.php:15` and `my-request-history.blade.php:6,:166` are
       **T16's** to delete, later in the same commit. **Quote it again after T16: it returns exactly 3**
@@ -201,12 +201,14 @@ the identity edit ships with the view in commit 2 (§7's Commit column).
       `ui-design-templates/my-request-history-UI-design-template.blade.php:4,159`. `:2243` must **not**
       appear (this task rewrites it). Never green the 3 by editing `notif-row` or the frozen template:
       one is compared byte for byte and the other is the `mock_fallback` reference (spec R3).
-      *Receipt (the toast says the name once):* in the guard spec's layer-A pending fixture (session 99,
-      week 8), after the blocked redirect read the two nodes **separately** —
-      `#toastBar .toast-message` = `This class already has a PENDING replacement request.` and
-      `#toastBar .toast-link` = `My Replacements`. The existing guard specs assert only a substring
-      (`arrangement-entry-guard.spec.ts:133,145`), so a page name restored into the body would stay
-      green; this receipt is the only guard on the "once" rule.
+      *Receipt (the toast says the name once):* in the guard spec's layer-A fixture —
+      `arrangement-entry-guard.spec.ts:122-135`, session 99 / week 8, its docblock's run env (`:29-33`)
+      — read the two nodes **separately**: `#toastBar .toast-message` =
+      `This class already has a PENDING replacement request.` and `#toastBar .toast-link` =
+      `My Replacements`. **Record the two readings — do not touch that file's expected URLs here:**
+      `:134`, `:144`, `:231` are red until T18 (T15 → T18 is this file's red window, and `:82`/`:133`/
+      `:145`/`:240` follow the new casing there). The existing assertions are substring-only, so a page
+      name restored into the body would stay green; this receipt is the only guard on the "once" rule.
 
 - [ ] **T16 — retire the page** (`app/Livewire/MyRequestHistory.php`, its blade)
       Delete both, **and rewrite the two comments that still name it** —
@@ -230,9 +232,16 @@ the identity edit ships with the view in commit 2 (§7's Commit column).
 
 ## Commit 4 — `test(my-replacements): the specs the merge reverses`
 
-- [ ] **T18 — bucket A″ strings** (7 rows, `proposal.md` §6)
+- [ ] **T18 — bucket A″ strings** (proposal §6's 7 rows)
       `ReplacementArrangementTest:643,723` · `arrangement-entry-guard:134,144,231` ·
       `submission-conflict-refresh:84,111`.
+      **Plus this lane's own copy change in the same file:** T15 capitalises the state words, so
+      `arrangement-entry-guard.spec.ts:82` (`TOAST_TEXT`, used at `:133`, `:240`) and `:145` must follow
+      — `'already has a PENDING replacement request'` and `'already has an APPROVED replacement'`.
+      Playwright's matchers forward `ignoreCase` with no default-true, so those three assertions are red
+      from T15 until here. **That file's red window is T15 → T18** (also `:134`, `:144`, `:231`), and
+      greening any of them by reverting `ui-common.js:4419-4423` is the anti-pattern this lane exists to
+      prevent.
       **Known red window:** `ReplacementArrangementTest:643,723` runs on **every** PHPUnit pass (no
       testing-DB gate), so it is red from T15 until this task — the split design §10 makes. Do not
       green it by reverting `ReplacementArrangement.php:201` (ordering rule 4).

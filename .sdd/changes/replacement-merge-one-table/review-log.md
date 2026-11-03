@@ -745,3 +745,76 @@ explicitly, `:2243` joined T15's line list, the two test counts are quoted as PH
 docblock's `:16` is named, T16 rewrites rather than deletes, a scenario→task map closes TR2-8, and
 the three 💡 are taken.
 
+## tasks Round 3 — 2026-11-04
+
+<!-- Confirmation pass. Scope: tasks.md (7a9660b + 370147e's T15 toast clause) — TR2-1 and TR2-2…TR2-8.
+     Counts re-measured at that head: "My Request History" = 12 (app 2 · resources 6 · public/js 4);
+     the old URLs = 25. -->
+
+### 🔴 Fixed
+- **TR2-2 … TR2-8 all folded**, re-read at the code: the PHPUnit row-count wording (`design.md:807` =
+  six states, 10 cases → 15 rows); the restored `not`; the stub `opts` (the first thing the legacy body
+  touches is `opts.daysLeft`, `ui-common.js:2483`; `isHandled`/`actionCell` are guarded at `:2489,:2493`);
+  the `APP_MOCK_FALLBACK` precondition (`routes/web.php:89,91-93`); docblock `:16`; the rewrite-not-delete
+  of `ReplacementRequestMapper.php:282-284`; and the scenario→task map.
+- **The T15 toast clause is correct in every detail.** `show(message, undoCallback, duration, linkText,
+  linkUrl)` is `:2643`; `null` keeps A5's inert Undo; both bodies keep the substrings the guard spec pins
+  (`:82` used at `:133,:203,:240`; `:145`), so A″'s only guard edit is `:134`'s href.
+
+### 🔴 Outstanding
+- **TR3-1 — the spaced-copy receipt was not the residue at the step that quotes it.** It said "exactly
+  four" while the command returns **6** at T15's own step (the class docblock and the blade's `:6/:166`
+  are T16's, later in the same commit) and **3** after T16 — and it listed
+  `replacement-arrangement.blade.php:2243` as a survivor while the same task rewrites it. A PI who ran it
+  would see 6 with nothing to reconcile, and the cheapest green is editing `notif-row` or the frozen
+  template.
+
+**Verdict: FAIL** — one receipt, nothing else.
+
+
+## tasks Round 4 — 2026-11-04
+
+<!-- Final gate for Batch 4. Scope: the ONE sentence rounds 1–3 left open — T15's spaced-copy receipt
+     (tasks.md head 05f9e02). Every count re-measured with a case-sensitive grep over
+     `app resources public/js`, exactly the scope the receipt states. -->
+
+### 🔴 Fixed
+- **TR3-1 — closed, and every number is exact.** `My Request History` → **12** (app 2: the class
+  docblock, `ReplacementArrangement.php:1214`; resources 6: the frozen template `:4,:159`,
+  `notif-row:53`, `my-request-history.blade.php:6,:166`, `replacement-arrangement.blade.php:2243`;
+  `public/js` 4: `ui-common.js:4419,4420,4422,4423`). T15's six edits remove exactly those six and add
+  none → **6**. T16 deletes the class and the blade → **3**, exactly `notif-row:53` + the frozen
+  `:4,:159`. The three-state form (12 → 6 → 3) is the fix: no number is quoted at a step that cannot
+  produce it, and `:2243`'s "must not appear" is stated.
+- **`:2243` is T15's.** It is the middle line of a real three-line comment (`:2242-2244`) in the submit
+  success branch, beside `:2241` (the toast) and `:2245` (the `location.href`); `:2242`/`:2244` carry no
+  name.
+- **The toast guard is mechanically achievable.** `_present()` writes `msgEl.textContent` (`:2672`) and
+  `linkEl.textContent`/`href` (`:2700-2701`) into the single shared nodes of
+  `layouts/ui-template.blade.php:71-80`; `dismiss()` only strips `.visible`. The fixture exists exactly
+  as quoted (`arrangement-entry-guard.spec.ts:45-46` session 99 / week 8, `:124` pending,
+  `:130` landing), and `:133`/`:145` really are substring assertions.
+- **URL arithmetic untouched:** 25 − 14 = the 11 frozen, file for file; T15's own count is 13 because
+  `requestHref()` is commit 2's.
+
+### 🔴 Outstanding
+- **TR4-1 — the capitalised state words turn three assertions in the receipt's own spec red, and no task
+  owns them.** `tasks.md` now writes `APPROVED` / `PENDING`; `arrangement-entry-guard.spec.ts:82` pins
+  `TOAST_TEXT = 'already has a pending replacement request'` (`:133`, `:240`) and `:145` pins
+  `'already has an approved replacement'`. Playwright's string matchers forward `ignoreCase` with no
+  default-true, so all three go red the moment T15 lands. Proposal §6's A″ rows for that file are
+  `:134,:144,:231` only, and T18's red window named only `ReplacementArrangementTest` — so T23's gate
+  would be red with nothing in the plan to green it, and the cheapest green (restoring the old casing)
+  silently reverses the change.
+
+### 🟡 Outstanding
+- **TR4-2** the receipt did not say whether T15 *observes* the two texts or *adds* the assertions, in a
+  spec that is red at that step for three other reasons — the hazard is greening `:134` by reverting
+  `ui-common.js:4420`.
+- **TR4-3** no `tasks Round 3` entry existed in this log; it is supplied above.
+- 💡 `:2243` "carries the page **name**", not the same sentence; and "12 today" also holds at T15's
+  step, because commits 1–2 touch no matching line.
+
+**Verdict: FAIL** — the receipt is now numerically airtight and TR3-1 is closed; the one blocker is a
+three-word side effect of the caps, not the receipt's structure.
+
