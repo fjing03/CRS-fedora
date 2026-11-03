@@ -76,11 +76,21 @@ while lane 2 is pending, so the code cannot break on first sight of one.
 **Sort:** needs-action group first, then handled; the chosen column sorts **within**
 each group (badges lane D8). Default sort: original class date ascending.
 
-**Detail modal** carries what no longer earns a column:
-class facts · newest request (replacement date/time/venue, decided by/at,
-rejection reason, remarks) · **request trail, newest first**, each entry with
-submitted at, status, replacement slot and decision · actions (Cancel the current
-pending request; the timeline).
+**Detail modal** — reuses the app's existing `DetailModal` shell (title + subtitle,
+`.modal-tabs` bar, one panel per category), exactly like the home quick view and the
+history detail modal today:
+
+| Tab | Contents |
+|---|---|
+| **Status** | status badge · what to do next · conflict reason · the requested replacement (or "none yet") |
+| **Class** | subject code/name · class type · cohorts · students |
+| **Schedule** | week · day · date · start/end/duration · venue |
+| **Requests (N)** | the trail, newest first: one group per request with status, replacement slot, submitted, decided-by/at, note |
+
+That is the home quick view's **Status · Class · Schedule** plus the one tab the
+merge adds (**Requests**). The timeline rail is intentionally **not** included —
+it is parked as broken (`task-02-replacement-history-timeline.md`). Actions
+(Cancel the current pending request) stay in the modal footer.
 
 **Filters:** search (code/name) · week navigator (original-class week) · status
 select (All · Needs arrangement · Pending · Approved · Rejected · Cancelled ·
@@ -150,6 +160,7 @@ ambiguous.
 `ui-prototype/replacement-merged-preview.html` (repo parent, beside
 `notif-manage-preview.html`) — a standalone static mock that links the live
 `theme.css`, with 8 fabricated rows covering every status, a rejected → pending
-trail, a working modal, and live search/status/completed filtering. There is **no
+trail, the tabbed `DetailModal` shell (Status · Class · Schedule · Requests), and
+live search/status/completed filtering. There is **no
 checkbox column and no bulk bar** (your 2026-11-03 call). It is a discussion
 instrument, **not** app code and not a receipt.
