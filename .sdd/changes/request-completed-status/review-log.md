@@ -60,3 +60,78 @@ left (`a16727c`), **before** writing code. The frozen baseline is the prompt's �
 ### 🔴 Outstanding
 
 None. Batch frozen; implementation proceeds.
+
+---
+
+## Round 2 (post-code verify) — 2026-11-03 · PASS
+
+Commit `e2b2f4c`. Verified against the frozen `proposal.md` + `design.md` +
+`specs/request-status-display/spec.md`, requirement by requirement, on the tree (not on intent).
+
+### Verify — requirement by requirement
+
+| Req | Verified in the code | Receipt |
+|---|---|---|
+| **R1** derived, never stored | `ReplacementRequestMapper::effectiveStatus()` (:85) — non-`approved` short-circuit, `null` date short-circuit, `startOfDay()` comparison | `ReplacementHistoriesTest` (past → Completed, stored status still `approved`, **0 audit rows**); `ReplacementHomeTest` matrix (yesterday/today/tomorrow); `ApprovalWorkflowTest` guard test |
+| **R2** one helper, three producers | `grep 'completed'` in `app/` → exactly one definition (:100); three call sites: `toRow()` :131, `MyRequestHistory` :86, `ReplacementHome` :151 | the three filtered test runs |
+| **R3** toggle on by default + home gains it | `resources/views/livewire/replacement-home.blade.php` `#completedToggle` + `#hideCompleted checked`, `completedHidden()`, `visibleBaseRows()`, filter clause :448, `updateResultCount` total :588, `updateSummary` total :667 | browser receipt 1 (checked on load → row absent → untick → badge → re-tick → gone) |
+| **R4** the badge is a link | no new badge code — the badges lane's `statusBadge()` renders `completed` as `status-completed` (theme.css:3647) with `?notif-hl=r<id>` | browser receipt 1 (href asserted) + receipt 2 (click lands on the row) |
+| **R5** reveal exception, sole cause only | `jumpToRequestRow()`: `otherFiltersActive` (status/search/week) blocks the un-tick; else visible un-tick + `saveFilters()` + `renderTable()` + recomputed index | browser receipt 2 (revealed, toggle un-ticked, `excludeCompleted:false` persisted) + receipt 3 (Pending filter → toast, toggle untouched) |
+| **R6** final step timed by the class | `openModalById()` `completedTime` → `completedTime \|\| reviewTime \|\| '—'`, via `formatDate()` (string split) | code receipt + the modal-opening demo specs green |
+| **R7** nothing else changes | no migration, no CSS, no notification; `toRow()`'s `slotValidity`/`conflictReason` branch still keyed on the **stored** status | `git show --stat` (18 files, none of them migrations/theme.css) + demo/viva row counts unchanged |
+
+### 🔴 Fixed during apply
+
+- **The home's narrow select omitted `replacement_time_slot_id`.** `effectiveStatus()` resolves the
+  span through the anchor FK, so with the column unselected the helper saw "no slot" → `null` date
+  → always `approved` — the rule would have been silently dead on the page that links to it. Caught
+  by the new matrix test on its first run (expected `completed`, got `approved`); the select list
+  and a why-comment now include it. Recorded as F1 in round 1 — the test proved it.
+- **The reveal exception's first predicate was too weak.** It only required
+  `status === 'Completed'` + the toggle, so a user with a **status filter** also had the toggle
+  silently cleared. Browser receipt 3 failed on exactly that; the predicate now also requires
+  `statusFilter === 'all'`, an empty search and `weekFilter === 'all'` (F3 in round 1).
+- **Two Playwright mechanics** learned and fixed: the toggle input is visually hidden (click the
+  `.toggle-track`, assert with `toBeChecked()`), and a `has:` locator must not start with
+  `#tableBody` (it resolves *inside* the row).
+
+### 🟡 Addressed
+
+- The mapper instance is hoisted out of the row loop in `ReplacementHome` (`app()` per row was
+  needless).
+- `$latest->setRelation('classSession', $session)` reuses the session already loaded by the loop
+  instead of lazy-loading a second copy per handled row.
+- Auth for the `:8030` spec rides the setup project's `storageState` (regenerated against
+  `CRS_BASE`), so no per-test logins fight the Fortify limiter.
+
+### Receipts (measured)
+
+| Receipt | Result |
+|---|---|
+| `composer run lint:check` | passed |
+| `vendor/bin/phpstan analyse --memory-limit=1G --no-progress` | **0 errors** |
+| full suite (`DB_DATABASE=class_replacement_testing`) | **320 passed / 1723 assertions** (baseline 315 + 5) |
+| `npx playwright test tests/request-completed-status.spec.ts` (`:8030`) | **3/3** (fixture planted, then swept: 0 requests / 0 exceptions afterwards) |
+| demo read-only: `status-tooltips-filter-chips` + `request-approval` + `replacement-home-status-badges` (`:8000`) | **22/22** |
+| demo DB before/after | 4 requests (max id 27), 1 exception, 19 audit rows — **unchanged**; viva DB 7 requests / 2 exceptions — **unchanged** |
+
+**A note on the run itself:** one intermediate full-suite run was poisoned because a filtered test
+run was started while it was in flight (both hit `class_replacement_testing`); it reported 309/320
+with migration-collision errors that named the cause. The suite was re-run cleanly after a reseed —
+the number quoted above is the clean run.
+
+### 🔴 Outstanding
+
+None. Lane `applied`. **Nothing archived** (the user asked to stop before archiving); nothing pushed.
+
+### Honest gaps (carried into the changelogs)
+
+1. The viva twin's request 27 reads **Approved today (3 Nov 2026)** and **Completed from 4 Nov** —
+   C2 is a strict "before today". The live viva receipt today is the boundary half; the past-date
+   half is receipted on the disposable testing DB.
+2. The reveal exception's *other-cause* branches are code receipts + browser receipt 3 (status
+   filter) — the demo DB cannot produce a Completed row at all.
+3. The API's derived status is structural (`toRow()` is shared by the PL page and the API); no
+   HTTP-level API test exists and none was built (prompt §9).
+4. `effectiveStatus()` costs 2 extra queries per **approved** row (junction + venue). Measured and
+   accepted; the alternative signature would have forked the call sites by page.
