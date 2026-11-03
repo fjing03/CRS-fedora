@@ -472,3 +472,54 @@ resolving on both schedule tabs and the Request Status tab.
 **Verdict: FAIL** — three blocking omissions, twelve non-blocking, four optional. All folded in
 `design.md` after this entry; round 2 confirms them.
 
+## design Round 2 — 2026-11-04
+
+<!-- Confirmation pass. Scope: the three round-1 blockers and the twelve should-fix items only.
+     §1.1–1.4, §2.2–2.4, §5.1, §5.2, §6 and §7's URL rows were cleared in round 1. Every fold was
+     re-checked against the code at head 693f967, not against round 1's own text. -->
+
+### 🔴 Fixed
+- **D1** all three identity surfaces named at the right lines (`:6`, `:194`, `ui-page-header:21-23`),
+  with a §7 row and a commit. Residual → A1/A7.
+- **D2** `venueName` = `$session->venue?->room_name`, nullable, emitted for every row; tab 1 renders
+  `CODE — Name` with the code-only fallback. `venue` is already eager-loaded (`:51`).
+- **D3** the split counted exactly: nine request-only keys null, five status keys filled from the
+  `null` row, `venueName` request-independent = the 15 keys. §1.5 ↔ §1.6 ↔ §3.3 ↔ §4.3 ↔ §9 agree;
+  `requestStatus = null` keeps `isHandled()` false, so a no-request row never lands in the handled
+  group.
+
+### 🟡 Addressed
+- **S1** accessors named (one residual → A2). **S2** arithmetic 6+1+3+1+1 = 12 and "venues 3×" correct
+  (count still short → A4). **S3** five ids implementable (`ui-summary-bar:31` renders `valueId`).
+  **S4** receipts 2/5/6 have successors (3/4 mis-described → A5). **S5** `'Class ID'` is real
+  (per-entry needed → A6). **S6** the premise holds (inline creates uncovered → A3).
+- **S7** matches the live call (`:588` passes `visibleBaseRows().length`;
+  `ui-common.js:1698` prints `Showing <len> of <total>`). **S8** `:1214` verified verbatim. **S9**
+  `hideQuickView()` is the right closer (`:785-788`) and the shared `closeModal()` really is
+  `#classModal`; the guard is null-first and shape-independent. **S10/S11/S12** all verified.
+
+### 🟡 Residuals — all folded before the freeze
+- **A1** the partial's `@php` block needs `$descriptionHtml = $descriptionHtml ?? null;` — a bare
+  `@if` throws for `[]` callers (`replacement-arrangement.blade.php:984`) and white-screens that page;
+  the copy is written inline; `$chips` is a third key, not a second.
+- **A2** the tab title reads the **short** form → a third accessor `statusShortOf(c)`.
+- **A3** the three inline `ReplacementRequest::create()` calls (`:352, :381, :387`) need the exception
+  stamp too, not just `createRequest()`.
+- **A4** the absolute count is **15**, not 12 (`Semester::active()` + `holidaysForJs()` twice); the
+  constancy claim and case 8 are unaffected.
+- **A5** receipts 3/4 are the D7 em-dash and D8 ordering laws; the days extractor must keep a
+  days-specific selector inside `.col-original`, and receipt 1's `hasArrange` probe becomes
+  `.btn-icon` (the icon-only cell deletes `.btn-action`).
+- **A6** `:166` is shared by six `modalPages` entries → expected text/selector move into the tuple;
+  and §3.7 retires **three** ids, the one worth asserting absent is `#summaryMyCourses`.
+- **A7** §7 gained a Commit column: the identity and `requestHref()` rows ship in commit 2, the URL
+  rows in commit 3.
+- **A8** the tips block `:200, :202` repeats the deleted sentence → rewritten (§2.1c).
+- **A9** `requestHref()`'s three live readers named (`:383`, `:643`, `:649`).
+
+### 🔴 Outstanding
+- None.
+
+**Verdict: PASS** — D1/D2/D3 closed; S1–S12 closed with the nine one-line residuals above, all folded
+before the freeze. **Batch 2 (design) is FROZEN at this entry.**
+

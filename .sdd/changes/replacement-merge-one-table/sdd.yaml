@@ -1,9 +1,9 @@
 name: replacement-merge-one-table
 created: 2026-11-03
-status: design
+status: specs
 source-prompt: prompts/pi-replacement-merge-one-table.md
 user-order: "2026-11-03 — one table replaces /replacement-home-ui + /my-request-history-ui; M1–M17 were locked in the prototype review session, so nothing in §2 is re-asked"
 batches:
   proposal: "frozen 2026-11-04 — round 8 PASS (8 rounds)"
-  design: "written 2026-11-04 — in review"
+  design: "frozen 2026-11-04 — round 2 PASS (3 blockers, 12 should-fix, 9 residuals folded)"
 prerequisites: "replacement-home-status-badges (a16727c, 2e58547) + request-completed-status (e2b2f4c, 7d2bb9a) — both satisfied"
