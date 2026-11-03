@@ -121,7 +121,9 @@ between the subtitle and the tab bar, then three tabs:
 ```
 Replacement Details
 BMIT2013 · Web-Based Integrated Systems (Lecture)      ← subtitle: code · name (type)
-COHORTS RSD2 (S1) G2, RSD2 (S1) G3 · STUDENTS 34 · CONFLICT [Class Cancelled — Medical Leave]
+COHORTS RSD2 (S1) G2, RSD2 (S1) G3 · STUDENTS 34
+CONFLICT       [Class Cancelled — Medical Leave]
+CURRENT STATUS [Pending — Waiting PL for Approval]
 ─────────────────────────────────────────────────────────────────────────────
 [ Original Class Schedule ] [ Proposed Replacement Schedule ] [ Request Status ]
 ```
@@ -129,13 +131,22 @@ COHORTS RSD2 (S1) G2, RSD2 (S1) G3 · STUDENTS 34 · CONFLICT [Class Cancelled �
 The facts strip is **outside the tabs on purpose**: cohorts, students and the
 conflict reason never change when you switch tabs, so repeating them in each panel
 was noise. Subject code, name and class type already live in the subtitle, so they
-are not repeated.
+are not repeated. **Current Status** joined them last: it is the one thing a reader
+wants before choosing a tab, because it says whether there is anything to do — and
+it lets the `Original Class Schedule` tab carry no status of its own. The two badge
+rows share a 102 px label column so their badges start on the same x rather than
+stepping in and out.
+
+This does cost one duplication: the same badge now appears in the strip, again as
+`CURRENT · Status`, and again per request in HISTORY — three times on one screen.
+Dropping the `Status` row from CURRENT (leaving `Status Description` + `Remark`,
+which the strip cannot say) is the clean fix if that reads as noise.
 
 | Tab | Contents |
 |---|---|
 | **Original Class Schedule** | **Class ID** · week · day · date · time · duration · venue |
 | **Proposed Replacement Schedule** | **Request ID** · week · day · date · time · duration · venue. The tab is **hidden** when nothing is proposed (no request, or a request with no resolvable slot) — an empty tab that says "nothing yet" is a dead end |
-| **Request Status** | **CURRENT** subtitle · status badge · a **Description** row holding one plain sentence about that status · a divider · **HISTORY** subtitle · **one child tab per request** (`Request #R102.2`, `Request #R102.1`), newest first and newest selected |
+| **Request Status** | **CURRENT** subtitle · status badge · a **Status Description** row holding one plain sentence about that status · a nullable **Remark** row · a divider · **HISTORY** subtitle · **one child tab per request** (`Request #R102.2`, `Request #R102.1`), newest first and newest selected |
 
 Both schedules print the same way (user decision, 2026-11-03):
 
