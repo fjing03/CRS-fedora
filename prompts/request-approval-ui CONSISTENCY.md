@@ -1,6 +1,6 @@
 # request-approval-ui CONSISTENCY UPDATE
 **Page:** `/request-approval-ui` · **File status:** PART 1 SHIPPED, PART 2 BLOCKED
-**Last updated:** 2026-11-03 (after commit `24db2be`)
+**Last updated:** 2026-11-04 — blocker table re-checked against the merge lane (`replacement-merge-one-table` is now `status: tasks`: proposal/design/specs frozen, `tasks.md` in review)
 
 > **Checkbox key**
 > `[x]` = done, live, receipted · `[ ]` = not done (each one says **why** and **what unblocks it**).
@@ -14,34 +14,63 @@
 
 ## 0. Progress at a glance
 
-| Item | What | State | Blocked by |
+| Item | What | State | Unblocks at (merge lane `replacement-merge-one-table`) |
 |---|---|---|---|
 | 1a | Students column removed | ✅ done | — |
 | 1b | Cohort column added before Original Class | ✅ done | — |
 | 1c | Lecturer → Staff (Proposer) | ✅ done | — |
 | 1d | `#` → Request ID (real `#<id>`) | ✅ done | — |
 | 1e | Urgency badge = level + remaining days | ✅ done | — |
-| 1f | Status wording = My Replacements (Pending/Completed) | ⛔ pending | merge lane's M5 vocabulary |
+| 1f | Status wording = My Replacements (Pending/Completed) | ⛔ pending | **its commit 1** (T1–T6, the mapper vocabulary) — no view file of theirs needed |
 | 1g | Proposed Replacement → Requested Replacement | ✅ done | — |
-| 1h | Original Class / Requested Replacement cells = My Replacements style | ⛔ pending | merge lane's cell design |
+| 1h | Original Class / Requested Replacement cells = My Replacements style | ⛔ pending | **its commit 2** (T9, the merged cell design) |
 | 2 | Summary cards → Approved Requests / Rejected Requests | ✅ done | — |
-| 3A | Timeline out, facts strip in | ⛔ pending | merge lane's M7 modal + `DetailModal.factsHtml` |
-| 3B | Modal status badge wording | ⛔ pending | same as 1f |
-| 3C | Schedule = one row (Date · Time · Venue) | ⛔ pending | merge lane's schedule block |
-| 3D | Three tabs, renamed, status tab far right | ⛔ pending | needs 3A first |
+| 3A | Timeline out, facts strip in | ⛔ pending | **its commit 2** (T9, the one `DetailModal.render` line — additive) |
+| 3B | Modal status badge wording | ⛔ pending | **its commit 1** (same as 1f) |
+| 3C | Schedule = one row (Date · Time · Venue `B103 — Tutorial Room`) | ⛔ pending | **this lane only** — see the correction below, it is *not* blocked by the merge |
+| 3D | Three tabs, renamed, status tab far right | ⛔ pending | after 3A (its commit 2) |
 | 3E-1 | Week row on both schedule tabs | ✅ done | — |
 | 3E-2 | Duration in full words | ✅ done | — |
-| 3E-3 | Schedule layout matches the merged page | ⛔ pending | same as 3C |
+| 3E-3 | Schedule layout matches the merged page | ⛔ pending | **its commit 2** (the merged schedule cell design) |
 | — | Cohort(s) in the modal: compact codes joined with ` + ` (user ruling) | ✅ done | — |
 | 3F | No Close button, Reject bottom-left | ✅ done | — |
-| 4 | Treat My Replacements as the design reference | ⛔ pending | the reference page does not exist yet |
+| 4 | Treat My Replacements as the design reference | ⛔ pending | its commit 2 renders the page on the **old URLs**; its **commit 3** makes `/my-replacements` canonical |
 
-**Why the split:** the merge lane `replacement-merge-one-table` (SDD `status: design`) is building
-the **My Replacements** page right now — its status vocabulary (`ReplacementRequestMapper`
+### Correction to an earlier note in this file (2026-11-04)
+
+The first version of this table said 3C was blocked by "the payload's `venueName` — this page's
+`toRow()` has no such key", implying the merge lane would add it. **That was wrong.** The merge lane
+deliberately does **not** touch `ReplacementRequestMapper::toRow()` (a frozen law: the API's
+agreement depends on `toRow()` staying the single source). Its `venueName` is a key in
+`ReplacementHome`'s payload only.
+
+So **3C is this lane's own work**, and it is **two edits, not one**:
+
+1. `ReplacementRequestMapper::toRow()` — carry the name through. `stringsFromSpan()` already returns
+   `venueName` (`:312`); `toRow()` calls `replacementStrings()`, which deliberately returns only
+   `date/time/venue` (`:152-154`), so the name never reaches a row.
+2. **`ApiReadController::myRequests()` — `unset()` the new key** next to the existing
+   `unset($row['requester'], $row['slotValidity'], $row['conflictReason'], $row['bucket'])`
+   (`:159`). Skip this and the new key appears in `/api/requests`, breaking the pinned API shape.
+
+(The alternative — looking the room name up in the browser — is rejected: this page's payload has no
+venue directory, so it would hardcode or duplicate data.)
+
+**Why the split:** the merge lane `replacement-merge-one-table` — **`sdd.yaml status: tasks`**
+(proposal/design/specs frozen, `tasks.md` in review, 2026-11-04) — is building the **My Replacements**
+page right now: its status vocabulary (`ReplacementRequestMapper`
 `statusLabel/statusShort/statusSentence/statusTip`, decisions M5), its modal shell (`#quickViewModal`,
-M7) and its cell design (§3.2–3.3). The **eight** pending items are all "match that page". Doing them
-before it exists would create a second copy of the same rules that then has to be deleted. Every
-pending item below names the exact thing to consume once that lane lands.
+M7) and its cell design (§3.2–3.3). Seven of the eight pending items are "match that page"; doing
+them before it exists would create a second copy of the same rules that then has to be deleted.
+**The exception is 3C, which is ours and only needs the two edits in §0's correction.**
+Each pending item below names the exact thing to consume, and *which of the merge lane's commits*
+delivers it:
+
+| Their commit | Contains | Frees |
+|---|---|---|
+| commit 1 | T1–T6, the mapper vocabulary | 1f, 3B |
+| commit 2 | T9, the one `DetailModal.render` line + the merged view (old URLs) | 3A, then 3D · 1h · 3E-3 · the §4 pass |
+| commit 3 | the canonical `/my-replacements` URL | the final §4 eyeball
 
 ---
 
@@ -161,11 +190,15 @@ pending item below names the exact thing to consume once that lane lands.
 - [ ] **3C — Schedule information as one row per block.**
   *Requirement:* `Date: Thursday, 2nd November 2026` · `Time: 10:00 AM ~ 12:00 PM` ·
   `Venue: B103 — Tutorial Room`, applied to both Original Class and Requested Replacement.
-  **Why pending:** the target block is the merged modal's schedule rendering; the venue form
-  `code — room name` needs `venueName` in the payload (the merge adds it, §1.5 — this page's
-  `toRow()` has no `venueName` key today).
-  **Note:** `U3-T9d` pins today's row shape (*Date / Day / Start Time / End Time*); part 2 rewrites
-  that spec with the new shape.
+  **Blocker: none — this is our own work** (corrected 2026-11-04; the merge lane does not touch
+  `toRow()`). Two edits:
+  1. `ReplacementRequestMapper::toRow()` — carry `venueName` through (`stringsFromSpan()` already
+     returns it at `:312`; `replacementStrings()` returns only `date/time/venue` at `:152-154`).
+  2. `ApiReadController::myRequests()` — add the new key to the `unset(...)` at `:159`, or
+     `/api/requests` grows a field and the pinned API shape breaks.
+  **The layout/styling half** (one row, icon-led) is 3E-3 and does wait for the merged design.
+  **Note:** `U3-T9d` pins today's row shape (*Date / Day / Start Time / End Time*); the layout change
+  rewrites that spec.
 
 - [ ] **3D — Tabs: `Original Class Schedule` · `Proposed Replacement Schedule` ·
   `Request Status (<status>)` — status tab far right.**
@@ -234,18 +267,22 @@ pending item below names the exact thing to consume once that lane lands.
 
 ---
 
-## 6. Part 2 backlog (in a sensible order, once the merge lane lands)
+## 6. Part 2 backlog (in a sensible order, tied to the merge lane's commits)
 
-1. **1f + 3B** — adopt the M5 status labels/tooltips everywhere on this page (deletes the local
-   `statusTooltip()` 3-key map, the local `statusDescMap`, and fixes Completed/Cancelled showing no
-   tooltip today).
-2. **3A** — swap the timeline for the facts strip (drops `timeline:` from `DetailModal.render`,
-   absorbs the *Request Info* tab).
-3. **3D** — rename/reorder the tabs to the three-tab shape.
-4. **3C + 3E-3** — the one-row schedule block for both tabs (needs the payload's `venueName`).
-5. **1h** — align the two table cells with the merged page's cell design, keeping the PL-only
-   slot-validity badge.
-6. **4** — a final eyeball pass against `/my-replacements` (and update this file's checkboxes).
+1. **1f + 3B** — as soon as the merge lane's **commit 1** (T1–T6, the mapper vocabulary) lands: adopt
+   the four status helpers on this page and delete the local `statusTooltip()` 3-key map and the
+   local `statusDescMap`. That also fixes Completed/Cancelled rendering **no tooltip** today.
+   *No dependency on their view file at all.*
+2. **3A** — at their **commit 2** (T9, the single `DetailModal.render` line): pass `factsHtml`, drop
+   `timeline:`, absorb the *Request Info* tab. Their edit is additive, so a caller that omits
+   `factsHtml` (this page, until then) keeps working unchanged.
+3. **3D** — right after 3A: the three-tab shape.
+4. **3C** — **not blocked**: do it whenever convenient (the two edits in the correction above:
+   `toRow()` carries `venueName` + the API `unset()`).
+5. **1h + 3E-3** — at their **commit 2**: align the two table cells and the schedule block with the
+   merged design, keeping this page's PL-only slot-validity badge.
+6. **4** — the eyeball pass once their **commit 2** renders the merged page (it is live on the **old
+   URLs** first; **commit 3** makes `/my-replacements` canonical). Update this file's checkboxes.
 
 ---
 
@@ -287,9 +324,24 @@ Manual checklist (login `5425` / `Tarumt@2026` → `/request-approval-ui`):
   reference, not the live page).
 - **No hardcoded examples.** Every string shown must come from the payload (`MockData.approvalRequests`
   ← `RequestApproval::rowsPayload()` → `ReplacementRequestMapper::toRow()`).
-- **Watch the shared spec file.** `tests/status-tooltips-filter-chips.spec.ts` is also edited by
-  `replacement-merge-one-table` (its MRH blocks); this file edits its RA-2/RA-3 blocks. Whoever
-  lands second rebases.
+- **Collision surface 1 — `tests/status-tooltips-filter-chips.spec.ts`, split by BLOCK, never by
+  find-and-replace.**
+  This lane owns the **RA side**: `RA_MAP` (`:25-31`), `T5.RA-1` (`:178`), `T5.RA-2` (`:206`),
+  `T5.RA-3` (`:281`). The merge lane owns the **MRH side**: `MRH_MAP` (`:18-24`), `T5.MRH-1`
+  (`:62`), `T5.MRH-2` (`:96`), `T5.MRH-3` (`:151`).
+  This lane landed first (`24db2be`), so the merge lane rebases onto it and touches only the MRH
+  half. **Its design line "`#modalOverlay` → `#quickViewModal`" is MRH-scoped** — this PL page keeps
+  `#modalOverlay` by design, so a repo-wide sweep of that id would break `T5.RA-1`/`RA-2`/`RA-3` and
+  `request-approval.spec.ts` U3-T9c/T9d.
+- **Collision surface 2 — `DetailModal`** (`ui-common.js`). The merge lane's edit is the **single
+  `factsHtml` key** and it is **additive**: a caller that omits `factsHtml` (this page, today) is
+  unaffected, so this page's `#modalOverlay` / `#modalBody` / `#modalTitle` / `.modal-tab` contract
+  stays intact.
+- **Two page-local helpers are twins of the merge lane's need**: `rangeHours()` (duration in words)
+  and `weekOfIso()` (the Week row). Their merged modal needs exactly the same two (their design
+  §4.2). After both lanes land there will be two independent implementations — a **promote-on-3rd
+  candidate for a later pass**, explicitly **not** a blocker now, and not to be "fixed" by editing
+  this page while their lane is in flight.
 - **Keep the ids the specs and the merge lane rely on:** `#modalOverlay`, `#modalBody`, `#modalTitle`,
   `.modal-tab`, `#rejectRequestBtn`, `#approveRequestBtn`, `#tableHead`, `#tableBody`,
   `#summaryApproved`, `#summaryRejected`.
