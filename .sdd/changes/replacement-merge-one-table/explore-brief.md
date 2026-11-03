@@ -270,6 +270,14 @@ reused from My Requests verbatim, not redesigned:
   page buttons with ‹ ›. The same markup and classes (`rpp-wrapper`,
   `rpp-select`, `pagination-bar`, `page-btn`).
 
+**Sort hint** — under the toolbar, the live page's sentence **verbatim**: *Click
+**Course Code & Name** or **Original Class** to sort* (`.sort-hint`, italic 12 px,
+`on-surface-variant`, the two column names in `<strong>`). It is kept exactly as the
+live page has it, even though the merged table makes **five** columns sortable —
+naming two is a hint, not a contract, and the wording is already learned. The
+alternative, if a reviewer minds the understatement, is one line:
+*Click any column header to sort*.
+
 **Summary cards** (5 — the theme's `.summary-bar` is already a 5-column grid, so no
 CSS change): **Classes to Arrange** · **Class Hours to Replace** · **Pending
 Requests** · **Requests Approved by PL** · **Requests Rejected by PL**. Counts
