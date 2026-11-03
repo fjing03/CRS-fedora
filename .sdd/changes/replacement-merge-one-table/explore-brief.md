@@ -60,6 +60,19 @@ The **Action cell never repeats the status** (user decision, 2026-11-03): a
 rejected or cancelled row shows only **Arrange Replacement**. Its state is the
 Status badge, in the Status column — one fact, one place.
 
+**A pending row's action is Cancel** (user decision, 2026-11-03). Before that it
+was the ghost eye — but a pending request has nothing to arrange, and the row click
+already opens the same modal, so the eye was a duplicate of the row. Cancel is the
+only thing left to do, and it is the only destructive icon in the table, so it keeps
+the ghost box (the column stays quiet) and takes `--color-error` on the icon. Hover
+tooltip and `aria-label` both read "Cancel this request". Approved and completed
+rows keep the ghost eye unchanged.
+
+Risk, stated in the brief on purpose: one click in a dense table can withdraw a
+request the lecturer waited days for. The icon must go through the existing confirm
+modal, never fire on click. The footer's `Cancel this request` button carries the
+same ban mark so the icon and the word are learned together.
+
 `completed` must be handled by the generic "not rejected/cancelled" rule even
 while lane 2 is pending, so the code cannot break on first sight of one.
 
@@ -72,7 +85,7 @@ while lane 2 is pending, so the code cannot break on first sight of one.
 | 3 | Conflict Reason | home (extended) | one badge, two shapes: **`Class Cancelled — <reason>`** in neutral grey for every non-holiday reason; **`Public Holiday — <holiday name>`** in error red. The holiday name is the calendar label from the `holidays` rows ("Deepavali Holiday (In Lieu)", "Christmas Day", …) |
 | 4 | Requested replacement | history | **mirrors the Original Class design, minus the cohorts line** (they are the class's own cohorts): date · day (Week N) / start–end (duration) / **pin icon + room**; `—` when there is no request |
 | 5 | Request Status | new | badge **with the actor**: `Approved by PL` · `Rejected by PL` · `Cancelled by YOU` · `Pending — Waiting PL for Approval` · `Completed — <n> days ago` · `Need to Arrange` (**outlined**, not filled — see below); **see Q3** on whether it is also a shortcut |
-| 6 | Action | both | **icon-only**: rotate = arrange, eye = view request. Full wording in the tooltip (`data-tip`) plus an `aria-label`. Never repeats the status; Cancel stays in the modal |
+| 6 | Action | both | **icon-only, three states**: **rotate = arrange** (need to arrange, rejected, cancelled) · **ban = cancel this pending request** (pending only, ghost box tinted `--color-error`) · **eye = view** (approved, completed). Full wording in the tooltip (`data-tip`) plus an `aria-label`. Never repeats the status |
 
 The column is called **Request Status**, not "Status": on this page "status" alone
 is ambiguous (class status vs request status), so the label names the thing. The
