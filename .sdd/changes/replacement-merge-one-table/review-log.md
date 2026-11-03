@@ -684,3 +684,64 @@ residuals (all wording/coverage) are folded. **Batch 3 (specs) is FROZEN at this
 
 **Verdict: FAIL** — 5 blocking, 10 should-fix. All folded after this entry.
 
+## tasks Round 2 — 2026-11-04
+
+<!-- Confirmation pass. Scope: tasks.md (head e057880) — the five round-1 blockers and the ten
+     should-fix items. proposal.md / design.md / specs/ are frozen; no M/[D] decision and no spec
+     requirement is re-opened. Every fold re-read against the repo at this head. -->
+
+### 🔴 Fixed
+- **T-1** the two ids are emitted by T12, and the premise holds: the home view sets **no** data
+  attribute today (`:516-583`), the page it replaces does (`my-request-history.blade.php:570`), and
+  T8's precedence (`data-request-id` first) is consistent with `applyNotifHighlight:329-331`.
+- **T-2** `/my-replacements` joins `ALL_ROUTES` (`:29-39`) and `LECTURER_ONLY` (`:43-51`); the four
+  test methods (`:100-141`) make "lecturer + student gates" exactly what the insertion yields.
+- **T-3** the deferral is a **sequencing note, not a design change**: design §8.1 case 10 still runs
+  inside this lane, in the T14 step, because the third route cannot exist before commit 3.
+- **T-4** the toast **bodies** (`:4419`, `:4422`) are named alongside the label/href pair
+  (`:4420`, `:4423`), so proposal 7c is met for the most-read entry-guard message.
+- **T-5** the two mapper comments (`:17`, `:282`) are in T16's file list; a case-sensitive sweep
+  returns exactly those two plus the class, the route entry and two test files — and `resources/`
+  has zero hits, so T16's receipt can go green without touching another surface.
+
+### 🟡 Addressed (all ten)
+- The cancel flow (the `!ok` and `row === null` branches, the `disabled`-while-in-flight guard,
+  "new — it does not exist today", confirmed absent at `my-request-history.blade.php:690-714`); the
+  `ui-page-header` trap with the only live `[]` caller as its receipt; `pageKey`, `qvArrange()`'s
+  fourth reader (`:768`) and the card colours; the comparator's rank/`'9999'`/arrow detail; the
+  S5.2–S5.4 / S9.3 / S11 / S12 receipts; `route:list --json` = 3; `npm test`; T1's six keys; T3's
+  pointer to T6 case 3; T18's red window; A′'s fixture precondition; T7's env flag.
+
+### 🔴 Outstanding
+- **TR2-1 — T15's second receipt was red by construction, and its cheapest green would edit a frozen
+  file.** `grep -rn "My Request History"` returned 7 at the point of quotation (two files belong to
+  T16, a later task in the same commit) and 4 permanently: `notif-row.blade.php:53` (a comment),
+  `replacement-arrangement.blade.php:2243` (the comment between T15's own two edits),
+  `ui-design-templates/my-request-history-UI-design-template.blade.php:4,159` (frozen mock copy).
+  Greening it literally means editing the frozen template and a byte-compared partial — the SP1/T-5
+  failure mode this lane had already fixed once.
+
+### 🟡 Should fix
+- **TR2-2** `9/9`/`10/10` ignored case 3's six-row provider. **TR2-3** "written but
+  `markTestSkipped`-free" had a dropped "not". **TR2-4** the bare `{}` probe throws at
+  `opts.daysLeft` (`:2483`). **TR2-5** the `--json` count of 3 needs `APP_MOCK_FALLBACK` off.
+  **TR2-6** the docblock also has a stale "9 UI routes" line (`:16`). **TR2-7** the mapper's second
+  comment carries the pinned-shape rationale — rewrite, don't delete. **TR2-8** T12's scenario list
+  read exhaustive but omitted S6.1–S6.5, S9.1–S9.2, S16.x, S17.x.
+- 💡 T13 counted seven widths and listed six; T12 quoted only the failure toast; T2's receipt named a
+  Playwright spec without naming the run.
+
+### ✅ Confirmed
+- The five blocker folds are substantively right and each was re-read at the code; the 11-occurrence
+  arithmetic reconciles exactly (7 + 1 + 2 + 1); T11 owns the `?? null` **and** the receipt that
+  proves it; T18's red window is stated with the anti-revert warning; commit boundaries still match
+  design §7/§10 (including the two commit-2 rows) and the `class_exists` trap is still in ordering
+  rule 3; the DB rules and "never push" are intact.
+
+**Verdict: FAIL** — no round-1 blocker survives and every should-fix item is folded; the one
+remaining item is a receipt text (TR2-1). All folded after this entry: the residue is stated
+explicitly, `:2243` joined T15's line list, the two test counts are quoted as PHPUnit row counts, the
+`not` is restored, T7's probe carries a stub `opts`, the route count states its precondition, the
+docblock's `:16` is named, T16 rewrites rather than deletes, a scenario→task map closes TR2-8, and
+the three 💡 are taken.
+

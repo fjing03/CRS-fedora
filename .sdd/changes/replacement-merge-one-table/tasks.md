@@ -23,8 +23,9 @@ the identity edit ships with the view in commit 2 (§7's Commit column).
 - [ ] **T2 — `effectiveStatus()` takes the computed date** (same file)
       Third optional parameter `?string $replacementDate = null`; `$date = $replacementDate ??
       $this->replacementStrings($r, $semesterStart)['date'];`. Every existing caller untouched.
-      *Receipt:* `grep -rn "effectiveStatus(" app/` shows `toRow():131` still passing two arguments,
-      and the existing `request-completed-status` tests stay green.
+      *Receipt:* `grep -rn "effectiveStatus(" app/` shows `toRow():131` still passing two arguments;
+      the `request-completed-status` **Playwright** spec green **on the testing DB** (a skip is not a
+      receipt — T23's own rule), quoted with its pass count.
 
 - [ ] **T3 — the six-state vocabulary** (same file)
       `statusLabel(?string, ?string)`, `statusShort(?string)`, `statusSentence(?string, ?string)`,
@@ -54,10 +55,11 @@ the identity edit ships with the view in commit 2 (§7's Commit column).
       `design.md` §8.1 cases **1–9** in this commit, including case 5 (`14:00 – 16:00` → after cancel
       `14:00 – 14:30` + `cancelled`) and case 7 (unconflicted occurrence → no row).
       **Case 10 (three URLs, query string intact) cannot run here** — `/my-replacements` does not exist
-      and `/my-request-history-ui` still resolves the retired class until T14. It is written but
-      `markTestSkipped`-free: add it in the T14 step, when the third route exists.
-      *Receipt:* `--filter=MyReplacementsPayloadTest` → **9/9**, run twice (case 10 is not counted yet;
-      say so rather than quoting a red 9/10).
+      and `/my-request-history-ui` still resolves the retired class until T14. It is **not** written in
+      this commit and no skipped placeholder is added; it is written in the T14 step, when the third
+      route exists.
+      *Receipt:* `--filter=MyReplacementsPayloadTest` → **every case green**, run twice — quote the row
+      count PHPUnit prints (case 3 supplies six of them); do not quote a flat "9/9".
       **Note for T4/T5:** their receipts cite this file, which this task creates later in the same
       commit — a red count mid-commit is expected, not a broken payload.
 
@@ -66,10 +68,13 @@ the identity edit ships with the view in commit 2 (§7's Commit column).
 - [ ] **T7 — `replacementHomeRow` merged branch** (`public/js/ui-common.js`)
       `if (opts.merged) return [seven cells]` with `typeLabel` declared for both branches; the
       no-`merged` path byte-identical.
-      *Receipt:* `node --check`, plus a hermetic check — `HtmlBuilder.replacementHomeRow(c, {})` returns
-      **9 cells**, `{merged:true}` returns **7**. The legacy template is the env flag
-      `APP_MOCK_FALLBACK` (`config/app.php:29`, needs `.env` + `config:clear`), which flips **every**
-      route to legacy: verify it reverted, and never stage `.env`.
+      *Receipt:* `node --check`, plus a hermetic check — with a **stub opts**
+      (`{index:1, daysLeft:()=>0, urgencyClass:()=>'', badgeClass:()=>'', formatClassBlock:()=>''}`, which
+      today's body needs at `:2483`), `replacementHomeRow(c, stub)` returns **9 cells** and
+      `replacementHomeRow(c, {...stub, merged:true, reasonCell:()=>'', requestCell:()=>'',
+      statusCell:()=>'', actionCell:()=>''})` returns **7**. The bare `{}` throws — it is not a valid
+      probe. The legacy template is the env flag `APP_MOCK_FALLBACK` (`config/app.php:29`, needs `.env`
+      + `config:clear`), which flips **every** route to legacy: verify it reverted, never stage `.env`.
 
 - [ ] **T8 — `applyNotifHighlight` fallback** (same file)
       `tryFind($sel, 14, $fallbackSel)` = `querySelector($sel) || querySelector($fallbackSel)`;
@@ -120,7 +125,8 @@ the identity edit ships with the view in commit 2 (§7's Commit column).
       pagination + `initRpp` · cards · the pop-up builder (three tabs, tab 2 omitted when nothing is
       proposed, tab 3 exactly badge + sentence + [reason] + [remark]) · `openCancelConfirm(requestId,
       occurrenceId)` with the body fill (re-read from the row set at open time) · the cancel success
-      path (patch `result.row`, `closeCancelConfirm()` + `hideQuickView()`, repaint, toast) · **the
+      path (patch `result.row`, `closeCancelConfirm()` + `hideQuickView()`, repaint, toast
+      `Request #<id> cancelled.`) · **the
       `!ok` branch** (close both, `This request can no longer be cancelled.`) · **the `row === null`
       branch** (patch nothing, close both, toast, no throw) · **the guards**: `pendingCancelId = null`
       **before** the call, plus the button `disabled` while in flight (new — it does not exist today) ·
@@ -131,7 +137,8 @@ the identity edit ships with the view in commit 2 (§7's Commit column).
       row (the guard, which no spec fact covers).
 
 - [ ] **T13 — page-local CSS** (same file, `@section('page-styles')`)
-      Seven column widths (`.col-cohort 130 / .col-original 210 / .col-reason 150 /
+      Six fixed column widths plus a flexible code column (`.col-cohort 130 / .col-original 210 /
+      .col-reason 150 /
       .col-requested 200 / .col-status 190 / .col-action 70`), the raised `min-width`, the urgency
       span **inside** `.col-original`, the five card value colours
       (`.card-conflict/-duration/-pending/-approved/-rejected`, page-local, tokens only), and the
@@ -146,32 +153,45 @@ the identity edit ships with the view in commit 2 (§7's Commit column).
       `/my-request-history-ui` (nav `replacement-history`), all three `component =>
       App\Livewire\ReplacementHome`, `legacy` = the home template, same middleware, **no redirect**.
       `RouteGateMatrixTest.php` gains **`/my-replacements`** (lecturer + student gates, like its
-      siblings `:34,36,46,48`) and its docblock (`:21-22`) — proposal §3 item 11. **The deferred
-      payload case 10 lands here too** (three URLs, identical payload, query string intact): it is the
-      only place all three routes exist.
-      *Receipt:* `php artisan route:list --json` → **3** routes whose action is
-      `App\Livewire\ReplacementHome` (`--path=replacements` matches only the canonical, so it cannot
-      be the receipt); each of the three URLs returns 200 as a lecturer; `RouteGateMatrixTest` pass
-      count quoted; `MyReplacementsPayloadTest` now **10/10**.
+      siblings `:34,36,46,48`) and its docblock — **`:21-22` and `:16`** (line 16 says "over the 9 UI
+      routes × 4 actors"; it becomes 10) — proposal §3 item 11. **The deferred payload case 10 lands
+      here too** (three URLs, identical payload, query string intact): it is the only place all three
+      routes exist.
+      *Receipt:* with `APP_MOCK_FALLBACK` **off** (`routes/web.php:91-93` turns every action into a
+      `Closure` when it is on, and the count would be 0), `php artisan route:list --json` → **3** routes
+      whose action is `App\Livewire\ReplacementHome` (`--path=replacements` matches only the
+      canonical, so it cannot be the receipt); each of the three URLs returns 200 as a lecturer;
+      `RouteGateMatrixTest` pass count quoted; `MyReplacementsPayloadTest` fully green — **quote the
+      row count PHPUnit prints** (case 3 is a six-row data provider, so the suite is ~15 rows, not 10).
 
 - [ ] **T15 — the six live files + the copy** (`design.md` §7's commit-3 rows)
       `ReplacementArrangement.php:78,79` (`FROM_LANDING_ROUTES`), `:201` (the `??` default), `:1214`
-      (the "see My Replacements" copy); `replacement-arrangement.blade.php:2241,2245`;
+      (the "see My Replacements" copy); `replacement-arrangement.blade.php:2241,2243,2245` (the comment
+      at `:2243` carries the same sentence);
       `ui-common.js:3071,3072,3079` (values + default, **keys untouched**), `:4419,4422` (the toast
       **bodies**: "view it in My Request History." / "track or withdraw it in My Request History."),
       `:4420,4423` (links **and** labels), `:1292` (`&view=request`); `ui-nav-bar.blade.php:18,19` →
       one item.
-      *Receipt:* `grep -rn "/replacement-home-ui\|/my-request-history-ui" app resources public/js`
+      *Receipt (URLs):* `grep -rn "/replacement-home-ui\|/my-request-history-ui" app resources public/js`
       returns **only** the 11 frozen occurrences (`mock-data.js` ×7, `notif-row:96`,
-      `NotificationEmitter:64,88`, the mock template `:1916`) — quoted count; **and**
-      `grep -rn "My Request History" app resources public/js` returns nothing (the spaced form, which
-      T16's `MyRequestHistory` grep does **not** catch).
+      `NotificationEmitter:64,88`, the mock template `:1916`) — quoted count.
+      *Receipt (the spaced copy):* `grep -rn "My Request History" app resources public/js` returns
+      **exactly four**, and none is user-facing live text: `notif-row.blade.php:53` (a comment),
+      `replacement-arrangement.blade.php:2243` (the comment between this task's two edits — it is in
+      the line list above), and the frozen mock copy
+      `ui-design-templates/my-request-history-UI-design-template.blade.php:4,159`. Do **not** green it
+      by editing the last two: the frozen template is the `mock_fallback` reference and `notif-row` is
+      compared byte for byte (spec R3).
 
 - [ ] **T16 — retire the page** (`app/Livewire/MyRequestHistory.php`, its blade)
-      Delete both, **and** the two comments that still name it:
+      Delete both, **and rewrite the two comments that still name it** —
       `app/Services/ReplacementRequestMapper.php:17` (`+ MyRequestHistory::requestRow)`) and `:282`
-      (`// the legacy key set only — the existing consumers (MyRequestHistory`). Both are inside this
-      commit's file list; leave them and the receipt below is red by construction.
+      (`// the legacy key set only — the existing consumers (MyRequestHistory :65-76, ApiReadController)`
+      `are pinned.`). Strip the class name and the now-false "existing consumers" clause, **keep the
+      pinned-shape rationale** (three keys vs six) — it is the only statement of why the two helpers
+      differ. Both lines are inside this commit's file list; leave them and the receipt is red by
+      construction. (No conflict with §6b law 5: that governs the derivation in `toRow()`, which this
+      task does not touch.)
       *Receipt:* `grep -rn "MyRequestHistory" app routes resources` returns **nothing** (after the two
       comments), and `grep -rn "Livewire\\MyRequestHistory\|MyRequestHistory::class" app routes` is 0.
 
@@ -236,6 +256,32 @@ the identity edit ships with the view in commit 2 (§7's Commit column).
       record honestly in `review-log.md`, and leave `sdd.yaml` at `applied` or `verify-failed`.
 
 ---
+
+## Scenario → task map (the ones a task's own receipt does not name)
+
+| Spec scenarios | Proved by |
+|---|---|
+| S1.1–S1.4 | T6 cases 1, 2, 7 |
+| S2.1–S2.5 | T3 + T6 case 3 (the six-row provider), case 4 |
+| S3.1–S3.4 | T6 case 10 (T14 step) + T15's two greps |
+| S4.1–S4.4 | T11 (title, H1) + T15 (nav) + T14 (the arranging page highlights it) |
+| S5.1–S5.4 | T11 (`th` count 7, no checkbox) + T12 (cohort lines, non-sortable header) |
+| S6.1–S6.5 | T19 (`replacement-home-status-badges` rewrite) + T12 (action cell) |
+| S6.6 | T12 |
+| S7.1–S7.7 | T12 |
+| S8.1–S8.4 | T11 (ids) + T12 (card values) |
+| S9.1–S9.2 | T19 (card tap opens the modal) + T12 (one confirm overlay) |
+| S9.3 | T12's S9.3 receipt (grep: no second implementation) |
+| S10.1–S10.4 | T12 + T6 case 9 (D6 release, one audit row) |
+| S11.1–S11.2, S12.1–S12.3 | T12 |
+| S13.1–S13.2 | T13 (1440 / 1600) |
+| S14.1–S14.4 | T12 |
+| S15.1–S15.4 | T12 |
+| S16.1–S16.3 | T6 cases 5, 6, 8 |
+| S16.4 | T5 + T6 case 9 |
+| S16.5–S16.6 | T6 case 2 / case 10 + the API assertion in T6 |
+| S17.1–S17.3 | T16 + T20 (the alias spec, the retired nav) |
+| S17.4–S17.5 | T11 (the shell and copy greps) |
 
 ## Ordering rules (do not reorder)
 
