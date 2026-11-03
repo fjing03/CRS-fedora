@@ -43,7 +43,7 @@ Numbered **M1–M16** for reference from `design.md` and `tasks.md`; no other la
 | # | Decision |
 |---|---|
 | **M1** | **One table, one row per class occurrence**, keyed `(class_session_id, week_number)`. The row's status is its **newest** request (greatest `submitted_at`, tie-break `id`). No request → the row still appears, as `Need to Arrange`. |
-| **M2** | Canonical URL **`/my-replacements`** (the page's own name). **Both old URLs keep resolving** — `/replacement-home-ui` and `/my-request-history-ui` become **extra URIs for the same component in the route table, not redirects**, so query strings survive (`?notif-hl=r<id>`, `?blocked=request-pending`, `?id=`). Every live link moves to the canonical; **stored** notification links do not (`NotificationEmitter.php:64,88`, `partials/notif-row.blade.php:96` compares them byte for byte, and the seven `mock-data.js` fixtures mirror them). Full sweep in the brief's URL contract. |
+| **M2** | Canonical URL **`/my-replacements`** (the page's own name). **Both old URLs keep resolving** — `/replacement-home-ui` and `/my-request-history-ui` become **extra URIs for the same component in the route table, not redirects**, so query strings survive (`?notif-hl=r<id>`, `?blocked=request-pending`, `?id=`). Every live link moves to the canonical; **stored** notification links do not (`NotificationEmitter.php:64,88`, `partials/notif-row.blade.php:96` compares them byte for byte, and the seven `mock-data.js` fixtures mirror them). `?id=` is **not** carried over: My Requests reads it today (`my-request-history.blade.php:1043-1057`) and that reader retires with the page, so its only producer moves to `?notif-hl=` (7b). Full sweep in the brief's URL contract. |
 | **M3** | Page title and nav label are **My Replacements**; the two lecturer nav items become **one** (key `replacement-arrangement`). "Replacement Arrangement" is left to mean the arranging flow (`/replacement-arrangement`). `routes/web.php` may keep `'nav' => 'replacement-history'` on the alias entry — harmless, deliberately not "fixed" into a second highlight. |
 | **M4** | **Seven columns, in this order:** Course Code & Name · **Cohort** · Original Class (date · day (week) · days-left · time (duration) · venue) · Conflict Reason · Requested Replacement · Request Status · Action. No checkbox, no separate venue/students/days-left columns. Cohort is its own column, **one cohort per line** (`<br>`, exactly what `ui-common.js:2503` already prints), not sortable (the live law: a multi-cohort row has no single value). |
 | **M5** | **Status labels:** `Need to Arrange` (outlined, never filled) · `Pending — Waiting for Approval` · `Approved` · `Rejected` · `Cancelled by YOU` · `Completed — <n> days ago`. The actor survives only where it is not obvious (`Cancelled by YOU`). |
@@ -70,17 +70,17 @@ Numbered **M1–M16** for reference from `design.md` and `tasks.md`; no other la
 | 3 | `app/Services/ReplacementRequestMapper.php` | one row-shaping path for the merged payload (replacement slot, `remarks`, `rejection_reason`, venue **name**); `effectiveStatus()` reused, not re-derived |
 | 4 | `resources/views/livewire/replacement-home.blade.php` | rewritten table (7 columns), the modal (facts strip + 3 tabs), the Action cell, the cards, the toolbar; **`#cancelConfirmOverlay` moves here from `my-request-history.blade.php:275`** (markup, `openCancelConfirm()`/`closeCancelConfirm()` and the double-submit guard); keeps `Data-tip`, `DetailModal` shell, chips, pagination |
 | 4b | **DOM contract the rebuild must keep** | the table and its toolbar are **reshaped, not renamed**: `#tableHead` / `#tableBody`, `#searchInput`, `#resultCount`, `#cardView`, `#timetable`, `#toastBar`, `.col-code`, `.cell-code`, `.cell-name`, `.cell-type-label`; the modal's `#quickViewModal` (and its open state `.show`) / `#qvBody` / `#qvArrangeBtn` / `#qvArrangeLabel`. These are what the group-A specs read; keeping them is cheaper than re-learning them in a rewrite |
-| 5 | `routes/web.php` | **three entries for one component**: `/my-replacements` (canonical) **plus** `/replacement-home-ui` and `/my-request-history-ui` as aliases (same middleware, query string preserved) — **not redirects** |
+| 5 | `routes/web.php` | **three entries for one component**. Each carries `component => ReplacementHome::class`, an explicit `legacy` (the old home template — there is no merged legacy view) and a `nav` key: `replacement-arrangement` for the canonical, `replacement-history` for the alias. Same middleware, query string preserved, **not redirects**. **Trap:** `routes/web.php:88-93` falls back to `view($page['legacy'])` when `class_exists($page['component'])` is false — so if item 6 deletes `MyRequestHistory` while an entry still names it, the page **silently renders the frozen old view** (no 404), and the alias's specs would pass against it. All three entries are repointed in the same commit as item 6 |
 | 6 | `app/Livewire/MyRequestHistory.php` + `resources/views/livewire/my-request-history.blade.php` | retired with the page they draw. If anything still needs the component, it stays as a forwarder that keeps `payload['requests']` and both cancel methods; that decision is `design.md` §2, but **no caller is left without an owner** |
 | 7 | `resources/views/partials/ui-nav-bar.blade.php` | two lecturer items → one (`My Replacements`, href `/my-replacements`, key `replacement-arrangement`) |
-| 7b | every other live navigation to the old URLs | updated to the canonical, in the same commit: `ReplacementArrangement.php:78,79,201` (return-after-arrange + fallback), `replacement-arrangement.blade.php:2241,2245` (post-submit toast + redirect), `ui-common.js:3071,3072,3079` (`BackNavigator` + default), `ui-common.js:4420,4423` (entry-guard toast links **and labels**), `ui-common.js:1292` ("View Full Request" — which also gains `?notif-hl=r<id>`, because nothing reads its `?id=`), `requestHref()` (deleted by M6) |
+| 7b | every other live navigation to the old URLs — **8 files, 16 line occurrences** | updated to the canonical, in the same commit: `ReplacementArrangement.php:78,79,201` (return-after-arrange + fallback), `replacement-arrangement.blade.php:2241,2245` (post-submit toast + redirect), `ui-common.js:3071,3072,3079` (**the two URL values and the default only** — the `#routes` **keys** and every `from=` producer stay, because ~14 specs pass `from=replacement-home` and a renamed key would silently fall through to the default), `ui-common.js:4420,4423` (entry-guard toast links **and labels**), `ui-common.js:1292` ("View Full Request" — its `?id=` reader retires with My Requests, so the producer moves to `?notif-hl=r<id>`), `requestHref()` (deleted by M6). **Deliberately frozen:** `ui-design-templates/replacement-arrangement-UIdesign-template.blade.php:1916` keeps the old URL — it is the `mock_fallback` copy, off by default (`config/app.php:29`) |
 | 7c | copy that names the old page | `ReplacementArrangement.php:1214` and `ui-common.js:4419,4422` say "My Request History"; they say **My Replacements** after this lane |
 | 8 | `resources/views/partials/ui-page-header.blade.php` | gains `descriptionHtml` rendered with `{!! !!}` (or an equivalent escape-free path) so the locked H1 description keeps its `CLASS` / `REQUEST` / `ONE LIST` emphasis — today `:22` escapes it and the spans would print literally |
 | 9 | CSS (`public/css/theme.css`) | **three** definitions, not one: (a) the **icon-only button** (`.btn-icon` exists only inside the mobile 48 px rule, `:3322-3332`); (b) a **neutral-grey conflict badge** replacing the ten page-local classes (`replacement-home.blade.php:27-59`); (c) an **outlined** `Need to Arrange` pill — `theme.css:1161-1183` has only filled variants |
 | 10 | `?notif-hl=` targeting | the merged row is keyed by occurrence, the stored link carries `r<requestId>`: the row emits **both** ids (`data-id` occurrence, `data-request-id` request) and the highlight matcher accepts either — otherwise the pulse silently skips (`ui-common.js:330,356`). **Precedence matters**: `tryFind` uses one `querySelector` (`:349`) and a selector list resolves by document order, so the matcher must try `tr[data-request-id]` **first**, then `tr[data-id]` — an occurrence id (`session*100+week`, `ReplacementHome.php:118`) could otherwise collide with a small request id |
 | 10b | `public/js/ui-common.js` | **one additive change**: `applyNotifHighlight` (`:320-342`) gains the second selector. It is shared with `/request-approval-ui` and `/my-timetable-ui`, so the edit must leave both existing laws byte-for-byte — same match, same 14×250 ms retry, same silent skip |
 | 10c | the merged view's cancel success path | the moved handler cannot be a cut-and-paste: the history version splices `mockRequests` and calls `renderTable()` (`my-request-history.blade.php:690-714`), while the merged table is built client-side from `payload.conflictedClasses`. On success the merged page must **update that row's status in its own row set, repaint the table, close the overlay and toast** — otherwise the ban icon cancels in the database and looks dead on screen |
-| 11 | tests | see §6 — a measured inventory, three categories |
+| 11 | tests | see §6 — a measured inventory, five buckets. `RouteGateMatrixTest.php:29-51` gains `/my-replacements` (and its docblock `:16`), or the URL the nav now points at is gated by nothing |
 | 12 | changelogs | `page-changelogs/` entries for both pages + the nav |
 
 ## 4. Out of scope (and why)
@@ -129,19 +129,38 @@ fact, and never touch the elements M6/M7/M12 delete):
 `arrangement-conflict-autoselect.spec.ts` · `arrival-grid-no-pin.spec.ts` ·
 `arr-slot-original-venue-sync.spec.ts` · `cancel-class.spec.ts` · `clear-guards-cross-week.spec.ts` ·
 `default-pin.spec.ts` · `e2e/api-wiring.spec.js` · `e2e/home.spec.js` ·
-`e2e/smoke-replacement-home.spec.js` · `Feature/ReplacementArrangementTest.php` ·
-`Feature/ReplacementHomeTest.php` · `Feature/NavIdentityTest.php` ·
-`Feature/NotificationsBridgeTest.php` · `Feature/RouteGateMatrixTest.php` · `nav-identity.spec.ts` ·
+`e2e/smoke-replacement-home.spec.js` · `Feature/ReplacementHomeTest.php` · `Feature/RouteGateMatrixTest.php` (gains `/my-replacements`, §3 item 11) · `Feature/NavIdentityTest.php` ·
+`Feature/NotificationsBridgeTest.php` · `nav-identity.spec.ts` ·
 `notifications-hide-manage.spec.ts` · `notifications-island.spec.ts` ·
 `notifications-island-testing-db.spec.ts` · `rearrangement-toolbar-tooltips.spec.ts` ·
 `selection-budget-original-duration.spec.ts` · `session-arrival-pin-guard.spec.ts` ·
-`submission-conflict-refresh.spec.ts` · `type-labels.spec.ts` (green **provided** no requested
-replacement repeats the venue/time it pins — it selects rows by `hasText(venue)` + `hasText(time)`
-`:32-36`, and M4 puts a second venue/time on the same row) · `arrangement-entry-guard.spec.ts`
-(toast link href `:134`, the two blocked-target asserts `:144`, `:231`) ·
-`replacement-strip-anchor.spec.ts` (`from=replacement-home` `:12`, then arrangement-page ids only) ·
-`e2e/full-suite.spec.js:593-603` (it only waits for `#searchInput` and reads `#resultCount`
-`textContent()`, which still returns text while M15 merely hides the node — **green, on that caveat**)
+`type-labels.spec.ts` (green **provided** no requested replacement repeats the venue/time it pins —
+it selects rows by `hasText(venue)` + `hasText(time)` `:32-36`, and M4 puts a second venue/time on the
+same row) · `replacement-strip-anchor.spec.ts` (`from=replacement-home` `:12`, then arrangement-page
+ids only) · `e2e/full-suite.spec.js:593-603` (it only waits for `#searchInput` and reads
+`#resultCount` `textContent()`, which still returns text while M15 merely hides the node — **green, on
+that caveat**)
+
+**A″ — URL assertions the canonical rename reverses; the expected string is edited in this lane.**
+The alias keeps a *link-followed* navigation green; it does **not** keep green an assertion whose
+expected value is the URL that §3 item 7b moves:
+
+| File:line | Asserts today | Moved by | Becomes |
+|---|---|---|---|
+| `Feature/ReplacementArrangementTest.php:643` | `assertRedirect('/replacement-home-ui?blocked=request-approved')` | `ReplacementArrangement.php:201` fallback | `/my-replacements?blocked=request-approved` |
+| `Feature/ReplacementArrangementTest.php:723` | `assertReturned('/replacement-home-ui?blocked=request-pending')` | same | `/my-replacements?blocked=request-pending` |
+| `arrangement-entry-guard.spec.ts:134` | toast link `href === '/my-request-history-ui'` | `ui-common.js:4420` | `/my-replacements` |
+| `arrangement-entry-guard.spec.ts:144` | URL contains `/replacement-home-ui?blocked=request-approved` | `ReplacementArrangement.php:201` | `/my-replacements?blocked=request-approved` |
+| `arrangement-entry-guard.spec.ts:231` | `waitForURL(/my-request-history-ui/)` | `replacement-arrangement.blade.php:2245` | `/my-replacements/` |
+| `submission-conflict-refresh.spec.ts:84` | `waitForURL(/my-request-history-ui/)` | same | `/my-replacements/` |
+| `submission-conflict-refresh.spec.ts:111` | `toHaveURL(/replacement-home-ui\?blocked=request-pending/)` | `FROM_LANDING_ROUTES['replacement-home']` | `/my-replacements\?blocked=request-pending/` |
+
+`Feature/ReplacementArrangementTest.php` is the one that bites: it runs on **every** PHPUnit pass (no
+testing-DB gate), so the first apply run goes red unless these two strings are edited with the lane —
+and the cheapest way to make it green is to revert `:201`, which quietly defeats 7b. The two
+Playwright files are testing-DB gated, so on a bare run they *skip* — green that is really absence of
+proof. `request-cancel-pending.spec.ts:65` and `request-completed-status.spec.ts:130` assert the same
+moved URLs but already live in D and B; they are not double-counted here.
 
 **A′ — green only if the DOM contract in §3 item 4b holds:** `replacement-home-qv.spec.ts` plays the
 home page, clicks `#tableBody tr:not(.skeleton-row)` (`:20`, `:25`), requires `#quickViewModal.show`
@@ -186,7 +205,7 @@ line. Nothing is silently dropped, and no bucket is described as "nothing breaks
 | Risk | Mitigation |
 |---|---|
 | The alias silently breaks a notification or a redirect | M2 defines both as route entries (query string preserved); `NotificationEmitter.php:64,88` and `notif-row.blade.php:96` are verification targets; a feature test asserts **all three** URLs render the merged page **with the query string intact** |
-| A link is updated before its route exists, so it 404s | the route entry and all eleven call sites land in **one** apply commit (brief: "The edits are atomic") |
+| A link is updated before its route exists, so it 404s | the route entries and all eight files land in **one** apply commit. There is a **second** coupling edge in that same commit: the `?notif-hl=` **producer** (`ui-common.js:1292`) and the merged row's `data-request-id` **consumer** (item 10) must land together, or the arrival pulse silently skips — the exact failure M2 exists to prevent |
 | The destructive icon loses its guard when the component moves | §3 item 1: one delegate to `CancelPendingRequest`, no local write; the class-level cancel tests in group C keep covering it |
 | The payload grows a second source of truth (mapper vs component) | One shaping path (item 3); the component only selects and orders |
 | `completed` / `requestStatus` computed in two places | Reuse `effectiveStatus()`; no second rule |

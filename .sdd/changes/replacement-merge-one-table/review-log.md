@@ -200,3 +200,61 @@ Append-only. One entry per review round per batch.
   (28/19/11/36) is exact. → folded: corrected to 32/23 with the reconciliation note.
 
 **Verdict: PASS** — proposal frozen for `design.md`.
+
+## proposal Round 5 — 2026-11-03
+
+<!-- Unfrozen by the user's decision-level rename (canonical /my-replacements; both old URLs stay as
+     route entries for the same component). The round-4 PASS stands for everything outside
+     §2 M2, §3 items 5 / 7 / 7b / 7c, §6, §7, §8. Only the URL/name decision was re-opened. -->
+
+### 🔴 Fixed
+- (none from round 4 — R4-1…R4-5 stay folded; the rename does not disturb them)
+
+### 🟡 Addressed (re-verified against the repo)
+- **The rename is implementable.** `routes/web.php` is a `$uiPages` map rendered by one `foreach`
+  (`:31-96`), so a third key gets the same middleware, keeps the query string and needs no redirect.
+  `ReplacementHome.php:170` already passes `activeNav => 'replacement-arrangement'` — the key M3 gives
+  the single nav item — so the highlight needs no new code, and the mobile drawer reuses `$items`
+  (`ui-nav-bar.blade.php:101`).
+- **`NavIdentityTest` / `nav-identity.spec.ts` stay green** — both assert the *absence* of the old
+  hrefs on the **student** page (`:110-111`, `:67`), which a lecturer rename cannot touch.
+- **Defect 2 confirmed** — `ui-common.js:3079` is live: `getBackUrl()` resolves `#routes[from] ||
+  getDefault()` (`:3085`), and `ReplacementArrangement.php:201` is the server-side twin.
+- **The live/stored split is correctly drawn** — `NotificationEmitter.php:64,88` writes the bell row's
+  link, `notif-row.blade.php:104` renders it, `:96` is a strict `===` gating the highlight. Moving any
+  of them orphans every stored notification.
+- **Copy sweep (7c) is complete** for user-facing text; every other match is a comment, a test, or a
+  frozen template.
+- **No missed live navigation** — full sweep of `app/`, `resources/` (minus `ui-design-templates/`) and
+  `public/`; `navigateHome()` resolves `PAGE_HOME` (`/my-timetable-ui`), not an old URL.
+
+### 🔴 Outstanding
+- **R5-1 — §6 bucket A is now false for three files, and §3 item 7b is the cause.** A promises "green
+  through the alias", but the alias only keeps *link-followed* navigations green; it does not keep
+  green an assertion whose **expected value** is a URL that 7b moves:
+  `Feature/ReplacementArrangementTest.php:643` (`assertRedirect('/replacement-home-ui?blocked=request-approved')`),
+  `:723` (`assertReturned('/replacement-home-ui?blocked=request-pending')`) — **these run on every
+  PHPUnit pass**, so layer A goes red on the first apply run; `arrangement-entry-guard.spec.ts:134`
+  (toast href), `:144` (URL contains `/replacement-home-ui?blocked=…`), `:231` (waitForURL after
+  submit); `submission-conflict-refresh.spec.ts:84` (waitForURL), `:111` (`?blocked=request-pending`).
+  The two Playwright files are testing-DB gated, so on a bare run they skip — "green" that is really
+  absence of proof.
+
+### 🟡 Non-blocking (all folded)
+- **R5-2** the `?id=` premise was wrong: `my-request-history.blade.php:1043-1057` *does* read it
+  (fed by `:334`/`:341`, `MyRequestHistory.php:79`). The action is right for the opposite reason —
+  the merge deletes that reader, so the producer must move to `?notif-hl=`.
+- **R5-3** each `$uiPages` entry needs `component` / `legacy` / `nav`; `class_exists`
+  (`routes/web.php:89`) makes a stale `MyRequestHistory::class` fall back **silently** to the frozen
+  old template — a false green, not a 404.
+- **R5-4** `RouteGateMatrixTest` needs `/my-replacements` added (`:29-51`, docblock `:16`), or the URL
+  the nav now points at is gated by nothing.
+- **R5-5** the frozen `ui-design-templates/replacement-arrangement-UIdesign-template.blade.php:1916`
+  names the old URL and must be named as deliberately frozen.
+- **R5-6** 7b was ambiguous between `#routes` **keys** and **values**: only the values move; the keys
+  and the `from=` producers stay.
+- **R5-7** atomicity has a second edge: the `?notif-hl=` producer ↔ the merged row's `data-request-id`.
+- **R5-8** "eleven call sites" did not match the enumeration (8 live files / 16 line occurrences).
+
+**Verdict: FAIL** — one blocker (R5-1); nine total, the rest declarative.
+
