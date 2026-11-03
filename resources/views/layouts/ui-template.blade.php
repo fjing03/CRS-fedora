@@ -44,6 +44,7 @@
 
     <div class="app-container">
         @yield('content')
+        @include('partials.ui-footer')
     </div>
 
     <script src="/js/mock-data.js?v={{ filemtime(public_path('js/mock-data.js')) }}"></script>

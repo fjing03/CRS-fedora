@@ -416,6 +416,8 @@
         <div class="role-switch">{!! $roleSwitchHtml !!}</div>
     </div>
 
+    @include('partials.ui-footer', ['fixed' => true])
+
     <script>
         const idRegex = new RegExp(@json($idRegex));
 

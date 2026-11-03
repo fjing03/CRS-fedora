@@ -4314,3 +4314,118 @@ body {
     height: 12px;
     flex: 0 0 auto;
 }
+
+/* ─────────────────────────────────────────────────────────────────────────
+   SYSTEM-WIDE FOOTER (SDD ui-footer-global, frozen 2026-11-01)
+   ONE quiet centered strip: identity · version · owner · demo notice ·
+   contact · repo. Tokens only — no hex/rgb anywhere (§10.0). Wired from the
+   layouts (partials/ui-footer.blade.php), never per page.
+
+   FULL-BLEED IS COUPLED PER BREAKPOINT to `.app-container`'s x-padding:
+   desktop `padding: 16px 24px` (:866) → −24px each side; ≤768px
+   `padding: 10px 12px` (:1551) → −12px. Without the mirror the strip
+   overhangs 12px/side and is clipped by `body { overflow-x: hidden }` (:156).
+   ───────────────────────────────────────────────────────────────────────── */
+.ui-footer {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    align-items: center;
+    gap: 10px 16px;
+    margin-top: auto;              /* bottom-pins inside the flex-column .app-container */
+    margin-left: -24px;            /* desktop full bleed */
+    margin-right: -24px;
+    padding: 12px 24px;
+    border-top: 1px solid var(--color-outline);
+    background: var(--color-bg);
+    color: var(--color-on-surface-variant);
+    font-size: 12px;
+    line-height: 1.5;
+    text-align: center;
+}
+
+/* the ≤768px mirror — keeps the strip flush with the narrowed container */
+@media (max-width: 768px) {
+    .ui-footer {
+        margin-left: -12px;
+        margin-right: -12px;
+        padding: 10px 12px;
+        gap: 8px 12px;
+    }
+}
+
+.ui-footer-brand {
+    font-weight: 600;
+    letter-spacing: 0.2px;
+}
+
+.ui-footer-chip {
+    display: inline-flex;
+    align-items: center;
+    padding: 1px 8px;
+    border: 1px solid var(--color-outline);
+    border-radius: var(--radius-pill);   /* the .semester-chip precedent (:889) */
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.4px;
+    white-space: nowrap;
+}
+
+.ui-footer-owner,
+.ui-footer-note {
+    color: var(--color-on-surface-variant);
+}
+
+.ui-footer-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    color: var(--color-on-surface-variant);
+    text-decoration: none;
+    font-weight: 500;
+    border-radius: var(--radius-pill);
+    transition: color 0.15s ease;
+}
+
+.ui-footer-link:hover {
+    color: var(--color-on-surface);
+}
+
+/* keyboard reach, no new token: the ring follows the current text colour */
+.ui-footer-link:focus-visible {
+    outline: 2px solid currentColor;
+    outline-offset: 2px;
+}
+
+/* the shared Lucide icons render at 24px from the vendor `:where()` rule —
+   a plain class outranks it, so the strip keeps its 12px rhythm */
+.ui-footer-icon {
+    width: 14px;
+    height: 14px;
+    flex-shrink: 0;
+}
+
+/* AUTH pages (decision 7): pinned to the viewport bottom over the animated
+   background. Written AFTER the media mirror on purpose — equal specificity,
+   later wins, and `margin: 0` neutralises the bleed here (left/right: 0 make
+   the margins inert anyway). .bg-layer/.bg-overlay are pointer-events: none;
+   .login-card (z 10) and .theme-toggle (z 20) sit ABOVE this z 5 strip. */
+.ui-footer--fixed {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    margin: 0;
+    z-index: 5;
+    /* §4's sanctioned conditional: eyeballed over the login photo, the plain
+       transparent strip failed AA legibility in LIGHT mode (12px text on grass),
+       so the allowed TOOL is a token-only `color-mix` scrim — no new hex/rgb.
+       In dark mode the same mix darkens under the light text. */
+    background: color-mix(in srgb, var(--color-bg) 62%, transparent);
+}
+
+@media print {
+    .ui-footer {
+        display: none;
+    }
+}
