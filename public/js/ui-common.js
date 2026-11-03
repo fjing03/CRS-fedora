@@ -4415,11 +4415,17 @@ document.addEventListener('DOMContentLoaded', function() {
 function showEntryGuardToast() {
     const blocked = new URLSearchParams(location.search).get('blocked');
     if (blocked !== 'request-pending' && blocked !== 'request-approved') return;
+    /* 2026-11-04 (user decision): the body used to END with the page name and the
+       link was labelled with it, so toast._present() printed the name twice
+       ("... in My Request History. My Request History"). The body now carries the
+       fact only; the link carries the page name once. The state word stays in caps.
+       The LINK still points at the old URL and label — renaming the page is the
+       merge lane's commit 3, and moving the URL here would break its aliases. */
     if (blocked === 'request-approved')
-        toast.show('This class already has an approved replacement \u2014 view it in My Request History.',
+        toast.show('This class already has an APPROVED replacement.',
             null, 8000, 'My Request History', '/my-request-history-ui');
     else
-        toast.show('This class already has a pending replacement request \u2014 track or withdraw it in My Request History.',
+        toast.show('This class already has a PENDING replacement request.',
             null, 8000, 'My Request History', '/my-request-history-ui');
 }
 

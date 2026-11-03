@@ -79,7 +79,7 @@ function sweepRequest(): void {
   sql(`DELETE FROM replacement_requests WHERE class_session_id = ${SESSION_ID} AND week_number = ${WEEK};`);
 }
 
-const TOAST_TEXT = 'already has a pending replacement request';
+const TOAST_TEXT = 'already has a PENDING replacement request';
 
 /* ONE UI login per run, shared browser context: the Fortify limiter is
    5 logins/min per identity+IP and `artisan serve` is single-threaded, so a
@@ -142,7 +142,7 @@ test('layer A: an APPROVED occurrence blocks the same way (from the default land
   await page.waitForURL(/blocked=request-approved/, { timeout: 20_000 });
 
   expect(page.url()).toContain('/replacement-home-ui?blocked=request-approved');
-  await expect(page.locator('#toastBar .toast-message')).toContainText('already has an approved replacement', { timeout: 10_000 });
+  await expect(page.locator('#toastBar .toast-message')).toContainText('already has an APPROVED replacement', { timeout: 10_000 });
 });
 
 test('layer B: a restored (bfcache) DOM is revalidated and redirected once the occurrence is handled', async () => {
