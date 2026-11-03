@@ -68,7 +68,7 @@ while lane 2 is pending, so the code cannot break on first sight of one.
 | # | Column | Source | Notes |
 |---|---|---|---|
 | 1 | Course code & name | both pages | `.cell-code` + `.cell-name` + type label |
-| 2 | Original class | both pages | **one cell, three lines**: date · day (Week N) / start–end (duration) / **room · cohorts** |
+| 2 | Original class | both pages | **one cell, four lines**: date · day (Week N) / start–end (duration) / **pin icon + room** / **users icon + cohorts** |
 | 3 | Conflict Reason | home | **the home page's reason badges, unchanged** (`.badge-annual-leave`, `.badge-medical-leave`, `.badge-holiday`, `.badge-official-event`), placed immediately right of Original Class |
 | 4 | Days left | home | `—` on handled rows (badges lane D7); sort uses the real date |
 | 5 | Requested replacement | history | date · time · replacement room, `—` when none |
@@ -79,11 +79,14 @@ The reason badges are **page-local CSS today** (`replacement-home.blade.php:27�
 not tokens in `theme.css`. The merge must share them (promote to `theme.css` or a
 partial) rather than paste a second copy.
 
-Two things left the table on purpose (user decisions, 2026-11-03): **Class Venue**
-and **Cohort(s)** fold into the Original Class cell, and **Students** is gone as a
-column. The student count is not lost — it still lives in the modal's **Class** tab.
-Folding venue and cohorts into the original-class cell also makes the two venues
-(the class's own and the requested replacement's) impossible to mix up.
+Three columns left the table on purpose (user decisions, 2026-11-03): **Class Venue**
+and **Cohort(s)** fold into the Original Class cell — each on its own icon-led line,
+a pin for the room and the users glyph for the cohorts (the users glyph is the one
+already used by the arrangement page's slot dropdown; no venue icon existed before,
+so the pin is new) — and **Students** is dropped entirely. The student count is not
+lost: it still lives in the modal's **Class** tab. Folding the two venues into
+different cells also makes the class's own room and the requested replacement's room
+impossible to mix up.
 
 **Sort:** needs-action group first, then handled; the chosen column sorts **within**
 each group (badges lane D8). Default sort: original class date ascending.
