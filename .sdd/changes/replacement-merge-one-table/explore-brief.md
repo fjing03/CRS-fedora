@@ -89,16 +89,31 @@ same ban mark so the icon and the word are learned together.
 `completed` must be handled by the generic "not rejected/cancelled" rule even
 while lane 2 is pending, so the code cannot break on first sight of one.
 
-**Columns** (6, proposed — no checkbox, no separate venue/students/cohorts/days columns):
+**Columns** (7, proposed — no checkbox, no separate venue/students/days columns):
 
 | # | Column | Source | Notes |
 |---|---|---|---|
 | 1 | Course code & name | both pages | `.cell-code` + `.cell-name` + type label |
-| 2 | Original class | both pages | **one cell**: date · day (Week N) **with Days Left beside it on the same line** (wraps directly under the date when the column is tight) / start–end (duration) / **pin icon + room** / **users icon + cohorts** |
-| 3 | Conflict Reason | home (extended) | one badge, two shapes: **`Class Cancelled — <reason>`** in neutral grey for every non-holiday reason; **`Public Holiday — <holiday name>`** in error red. The holiday name is the calendar label from the `holidays` rows ("Deepavali Holiday (In Lieu)", "Christmas Day", …) |
-| 4 | Requested replacement | history | **mirrors the Original Class design, minus the cohorts line** (they are the class's own cohorts): date · day (Week N) / start–end (duration) / **pin icon + room**; `—` when there is no request |
-| 5 | Request Status | new | badge labels (user decision, 2026-11-03): **`Approved`** · **`Rejected`** · **`Pending — Waiting for Approval`** — the actor was dropped because on this page the reader *is* the lecturer, so "by PL" said the same thing on every row. Unchanged: **`Cancelled by YOU`** (that actor is not obvious — the lecturer can also be cancelled *by* a PL in other flows), **`Completed — <n> days ago`**, and **`Need to Arrange`** (**outlined**, not filled — see below). **See Q3** on whether the badge is also a shortcut |
-| 6 | Action | both | **icon-only, three states**: **rotate = arrange** (need to arrange, rejected, cancelled) · **ban = cancel this pending request** (pending only, ghost box tinted `--color-error`) · **eye = open the details pop-up** (approved, completed). Full wording in the tooltip (`data-tip`) plus an `aria-label`. Never repeats the status |
+| 2 | **Cohort** | both pages | **its own column** (user decision, 2026-11-03): plain text, ` + ` between cohorts — `RSD2 (S1) G2 + RSD2 (S1) G3`. No icon, no comma, one line. **Not sortable**, which is the live My Requests law (`my-request-history.blade.php:527`: "multi-cohort rows have no single value"). Sits **between** the course and the original class: you read *what* it is, *who* it is for, then *when* it is |
+| 3 | Original class | both pages | **one cell**: date · day (Week N) **with Days Left beside it on the same line** (wraps directly under the date when the column is tight) / start–end (duration) / **pin icon + room**. The cohorts line is **gone** from here — it moved to its own column |
+| 4 | Conflict Reason | home (extended) | one badge, two shapes: **`Class Cancelled — <reason>`** in neutral grey for every non-holiday reason; **`Public Holiday — <holiday name>`** in error red. The holiday name is the calendar label from the `holidays` rows ("Deepavali Holiday (In Lieu)", "Christmas Day", …) |
+| 5 | Requested replacement | history | **mirrors the Original Class design**: date · day (Week N) / start–end (duration) / **pin icon + room**; `—` when there is no request |
+| 6 | Request Status | new | badge labels (user decision, 2026-11-03): **`Approved`** · **`Rejected`** · **`Pending — Waiting for Approval`** — the actor was dropped because on this page the reader *is* the lecturer, so "by PL" said the same thing on every row. Unchanged: **`Cancelled by YOU`** (that actor is not obvious — the lecturer can also be cancelled *by* a PL in other flows), **`Completed — <n> days ago`**, and **`Need to Arrange`** (**outlined**, not filled — see below). **See Q3** on whether the badge is also a shortcut |
+| 7 | Action | both | **icon-only, three states**: **rotate = arrange** (need to arrange, rejected, cancelled) · **ban = cancel this pending request** (pending only, ghost box tinted `--color-error`) · **eye = open the details pop-up** (approved, completed). Full wording in the tooltip (`data-tip`) plus an `aria-label`. Never repeats the status |
+
+**Search covers cohorts too** (user decision, 2026-11-03): the one search box matches
+course code, course name **and any cohort code on the row**, so a lecturer can type a
+group and get its classes without a second filter. The comparison ignores the app's
+spaced cohort convention — `RSD3(S1)G2`, `rsd3 (s1) g2` and `RSD3` all find
+`RSD3 (S1) G2` — because the spaces are cosmetic, not data.
+
+**Sort arrows are reused, not invented** (user decision, 2026-11-03): the active
+column's header gets the app's own `<span class="sort-arrow">` — `▲` ascending, `▼`
+descending, `.sort-arrow` from `theme.css:1137`, emitted by the same `innerHTML =
+label + arrow` shape as `ui-common.js:1586-1592`. Only the active column shows one;
+a non-sortable column (Cohort, Action) never does. Direction never reorders across the
+needs-action group boundary — the group split is applied first, direction sorts inside
+each group (badges lane D8).
 
 The column is called **Request Status**, not "Status": on this page "status" alone
 is ambiguous (class status vs request status), so the label names the thing.
