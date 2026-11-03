@@ -3,7 +3,38 @@
 > **Approved by the user on 2026-11-02: "I agree, with Recommendation A+B+C."**
 > This file is the **implement brief** for that approval. Investigation is closed;
 > the evidence below is the record, not an invitation to re-debate.
-> **Status: READY TO IMPLEMENT** — no code has been changed yet.
+>
+> ## Status: **SHIPPED 2026-11-04** — commit `67413e3` (**A + B1 only**)
+>
+> | Piece | Outcome |
+> |---|---|
+> | **A** — the two panel closures | ✅ applied: `$absTime` (`:38–40`) + `$tipAbs` (`:44–46`) delegate to `LocalTime` |
+> | **B1** — `LocalTime` + mapper delegation | ✅ applied: `app/Support/LocalTime.php` (new); `DISPLAY_TZ = LocalTime::TZ`; both converters delegate → byte-identical |
+> | **B2** — `MyRequestHistory`'s `reviewedAt` | ❌ **rejected by the user 2026-11-04** — that file is retired by `replacement-merge-one-table` (design §2.2 "retires — no forwarder"; **T16** deletes the class **and** its blade, and the merged page has **no** *Reviewed At* row), so the one-line fix is churn on a file already scheduled for deletion. **§3.6 below is NOT applied.** |
+> | **C** — `request->submitted_at` for the tip line | ❌ **dropped 2026-11-04** — verified **zero `awaiting` reminder rows in both demo DBs**, and `notifications:remind-pending` is **not scheduled**, so it had no visible effect. **§3.4's `$requestedStamp` and §3.5's `setRelation` are NOT applied.** |
+>
+> **Receipts** (live `:8000`, demo DB, read-only):
+> ```
+> row "New replacement request (ID #26)"  data-tip
+>   before: Requested at: 2 Nov 2026, 11:00 AM (…)
+>   after : Requested at: 2 Nov 2026, 7:00 PM (Yesterday)
+>   chip  : "Yesterday"   chip data-tip: "2 Nov, 7:00 PM"
+> row (ID #27): Requested at: 3 Nov 2026, 11:10 AM (20 hours ago) · chip "3 Nov, 11:10 AM"
+> 390 px: chip "2 Nov, 7:00 PM", panel renders, 0 page errors
+> ```
+>
+> **Gates:** `composer run lint:check` passed · PHPStan 7 → **0** · full suite **325 passed /
+> 1729 assertions** (was 320/1723) · `tests/notifications-island.spec.ts` **10/10** on `:8000`.
+> New pins live in **`tests/Unit/LocalTimeTest.php`** (5), not `tests/Feature` as §6 proposed —
+> `tests/Unit` is the home of the pure-helper tests (`OCCValidatorTest`, `MatrixIntersectionEngineTest`).
+> Changelog: **`page-changelogs/notifications-panel-changelog.md`** only; the MRH changelog line in §8
+> is N/A with B2.
+>
+> **Known-wrong until T16 ships (deliberate, documented):** `/my-request-history-ui`'s modal still
+> prints the raw UTC `reviewedAt` — request 24 shows *Reviewed At 7:04 AM* while the true MYT
+> decision was **3:04 PM**, next to a correct *Requested At 2:49 PM*. `request-approval.blade.php`
+> reads `reviewedAt` from `toRow()` and is **already MYT**, so nothing that survives the merge
+> carries the bug.
 
 ---
 
@@ -14,11 +45,13 @@
 | **Mode** | `IMPLEMENT` |
 | **Task** | Render every user-facing absolute timestamp in the notifications panel in **Asia/Kuala_Lumpur**, via ONE shared helper; fix the history page's `reviewedAt` to use the same helper; source the tooltip's "Requested at" from the request's `submitted_at`. |
 | **Why** | Request #26's notification tooltip says `2 Nov 2026, 11:00 AM`; the history page says `7:00 PM`. The app clock and DB are UTC; the notifications format raw UTC. |
-| **In scope** | `app/Support/LocalTime.php` (new), `app/Services/ReplacementRequestMapper.php`, `app/Livewire/NavNotifications.php`, `app/Livewire/MyRequestHistory.php`, `resources/views/livewire/nav-notifications.blade.php`, `resources/views/partials/notif-row.blade.php`, one new test, two changelogs. |
+| **In scope** (as approved) | `app/Support/LocalTime.php` (new), `app/Services/ReplacementRequestMapper.php`, `app/Livewire/NavNotifications.php`, `app/Livewire/MyRequestHistory.php`, `resources/views/livewire/nav-notifications.blade.php`, `resources/views/partials/notif-row.blade.php`, one new test, two changelogs. |
+| **As shipped** (`67413e3`) | `app/Support/LocalTime.php` (new) · `app/Services/ReplacementRequestMapper.php` · `resources/views/livewire/nav-notifications.blade.php` · `tests/Unit/LocalTimeTest.php` (new) · `page-changelogs/notifications-panel-changelog.md`. **Not touched:** `NavNotifications.php`, `MyRequestHistory.php`, `notif-row.blade.php`. |
 | **Out of scope** | Any other page, any DB write, `config/app.php` timezone, JS (`ui-common.js`), layout/CSS, unrelated bugs. |
 | **SDD** | **waived** — display-only formatting fix, ≤6 code files, no schema/API/behaviour change, fix approved by the user in conversation. Record `SDD-waived w/ user approval` in the commit message and the changelog (template §3b "single-file fix / mechanical follow-up" clause). |
 | **DB impact** | **none** — never rewrite stored timestamps. |
-| **Done when** | Request #26's tooltip reads `2 Nov 2026, 7:00 PM`; the row hover reads `2 Nov, 7:00 PM`; the history modal shows Requested At **and** Reviewed At in MYT; all existing tests green; one new test pins the conversion. |
+| **Done when** (as approved) | Request #26's tooltip reads `2 Nov 2026, 7:00 PM`; the row hover reads `2 Nov, 7:00 PM`; the history modal shows Requested At **and** Reviewed At in MYT; all existing tests green; one new test pins the conversion. |
+| **Done when** (as shipped) | ✅ tooltip `7:00 PM` · ✅ hover `2 Nov, 7:00 PM` · ⛔ history modal **not** fixed (B2 rejected — dies with T16) · ✅ suite green · ✅ 5 pins. |
 
 ## 1. Read first
 
@@ -113,6 +146,10 @@ already correct.
 
 ### 3.4 `resources/views/partials/notif-row.blade.php` (C)
 
+**NOT APPLIED — C was dropped 2026-11-04** (no `awaiting` reminder rows exist in either demo DB and
+`notifications:remind-pending` is not scheduled, so it changed nothing visible). The recipe below is
+kept for the day that command is scheduled.
+
 At the top of the partial (next to `$m = $minutesAgo($n->created_at);`, line ~29):
 
 ```php
@@ -133,7 +170,7 @@ Then use `$requestedStamp` **only** in the two "Requested at:" tip lines
 this notification arrive"; an approval issued today for a request from yesterday
 must still read "just now". Only the labelled **Requested at** line switches.
 
-### 3.5 `app/Livewire/NavNotifications.php` (C, no N+1)
+### 3.5 `app/Livewire/NavNotifications.php` (C, no N+1) — **NOT APPLIED (C dropped 2026-11-04)**
 
 `resolveRequests()` already loads the requests keyed by id (`$requests`) but does
 not attach the relation. Attach it before the `foreach ($rows as $row)` loop
@@ -149,7 +186,7 @@ $rows->each(static function (Notification $n) use ($requests): void {
 
 This is additive and changes no payload key; `_display` stays untouched.
 
-### 3.6 `app/Livewire/MyRequestHistory.php` (B)
+### 3.6 `app/Livewire/MyRequestHistory.php` (B) — **NOT APPLIED (B2 rejected 2026-11-04; T16 retires the file)**
 
 Line **82** currently formats `decided_at` raw — that is the "Reviewed At 11:00 AM
 vs Requested At 7:00 PM" inconsistency on the same modal:
@@ -191,7 +228,10 @@ Re-grep before editing; this page is under active parallel work.
 
 ## 6. Tests
 
-- **New** `tests/Feature/LocalTimeTest.php` (Pest or PHPUnit to match the suite):
+- **New** `tests/Unit/LocalTimeTest.php` — **shipped there, not in `Feature`** (a pure helper with no
+  DB/app dependency; `tests/Unit` is where `OCCValidatorTest` / `MatrixIntersectionEngineTest` live).
+  Five pins were shipped: the conversion, the short panel shape, `null → null`, the caller's instant
+  is never mutated, and `ReplacementRequestMapper::DISPLAY_TZ === LocalTime::TZ`:
   - `LocalTime::stamp(Carbon::parse('2026-11-02 11:00:12', 'UTC'), 'j M Y, g:i A')`
     === `'2 Nov 2026, 7:00 PM'`;
   - `null → null`;
@@ -217,7 +257,8 @@ Re-grep before editing; this page is under active parallel work.
    - notifications panel → Request #26 tooltip: `2 Nov 2026, 7:00 PM` (not 11:00 AM),
      relative tail unchanged;
    - hover the row's time chip → `2 Nov, 7:00 PM`;
-   - history page → detail modal: Requested At and Reviewed At both MYT;
+   - ~~history page → detail modal: Requested At and Reviewed At both MYT~~ — **N/A (B2 rejected)**;
+     that modal keeps the raw UTC `reviewedAt` until T16 deletes the page;
    - a freshly created notification shows the current MYT wall clock;
    - approved/rejected/cancelled reminders agree;
    - dark + light, 390 px, no console errors; screenshots into `/tmp/opencode/`.
@@ -227,9 +268,8 @@ Re-grep before editing; this page is under active parallel work.
 - `page-changelogs/notifications-panel-changelog.md` — the main entry: the root
   cause (UTC stored, raw format), the shared `LocalTime` helper, the closure fix,
   the `request->submitted_at` source, and the receipts.
-- `page-changelogs/my-request-history-changelog.md` — one short entry for
-  `reviewedAt` now sharing the helper (cross-reference the notifications entry).
-- Both note `SDD-waived w/ user approval`.
+- ~~`page-changelogs/my-request-history-changelog.md`~~ — **N/A**, dropped with B2 (that page never changed).
+- The entry notes `SDD-waived w/ user approval`.
 
 ## 9. Commit
 
