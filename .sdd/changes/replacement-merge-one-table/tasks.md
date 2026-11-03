@@ -175,13 +175,14 @@ the identity edit ships with the view in commit 2 (§7's Commit column).
       Today the body ends with the page name **and** the link is labelled with it, so the message reads
       `… in My Request History. My Request History` (`toast._present()` writes body and link to two
       separate nodes: `msgEl` / `linkEl`). The body keeps the fact only — no page name, no instruction —
-      and the link carries the name once:
+      and the link carries the name once; the two state words are capitalised (the app's emphasis habit,
+      and `toast.show` writes `textContent`, so plain caps rather than a keyword span):
       ```js
       // :4419 (approved)
-      toast.show('This class already has an approved replacement.', null, 8000,
+      toast.show('This class already has an APPROVED replacement.', null, 8000,
           'My Replacements', '/my-replacements');
       // :4422 (pending)
-      toast.show('This class already has a pending replacement request.', null, 8000,
+      toast.show('This class already has a PENDING replacement request.', null, 8000,
           'My Replacements', '/my-replacements');
       ```
       *(The old body's "track or withdraw it" hint goes with the tail — the link's destination says the
