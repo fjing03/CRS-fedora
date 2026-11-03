@@ -71,3 +71,132 @@ Append-only. One entry per review round per batch.
   server must keep that computation in the payload.
 
 **Verdict: FAIL** — 2 blocking, 6 non-blocking. No design decision needs re-opening.
+
+## proposal Round 2 — 2026-11-03
+
+### 🔴 Fixed
+- **"Reads only" / cancel-path owner (round-1 blocker 1).** §4 now reads "read-only except one
+  existing write path" and names it; §3.1 adds `ReplacementHome::cancelRequest(int $id): bool`
+  delegating to `CancelPendingRequest`; §3.2 keeps the action unchanged; §3.4 relocates
+  `#cancelConfirmOverlay` with its markup, `openCancelConfirm()`/`closeCancelConfirm()`
+  (verified: `my-request-history.blade.php:892-901`) and the `pendingCancelId = null` double-submit
+  guard (`:695-697`). M12 removes `cancelRequests()` with the bulk bar. Verified: the delegation is
+  exactly today's shape (`:117-120`), and `pageLivewire()` resolves whatever component is on the page,
+  so the moved call still reaches the right owner.
+
+### 🟡 Addressed
+- **URL consumers + alias definition** — all consumers check out (`NotificationEmitter.php:64,88`;
+  `FROM_LANDING_ROUTES:79`; `notif-row.blade.php:96` strict `===`). "Second URI in the route table"
+  is implementable: `routes/web.php` is a `$uiPages` array rendered by one `foreach`, so a second key
+  keeps the query string and `role:lecturer`. Residual → R2-4.
+- **`?notif-hl=` targeting** — mechanism confirmed (`ui-common.js:330` selector, `:356` silent skip).
+  Residual → R2-4.
+- **Filters / reset law** — carried into M17. Residual → R2-3.
+- **CSS scope = three definitions** — all three real: `.btn-icon` only in the ≤768 px block
+  (`theme.css:3326`), `:1161-1180` filled only, conflict classes page-local
+  (`replacement-home.blade.php:27-59`, ten not nine).
+- **Page-header escaping** — `ui-page-header.blade.php:22` escapes, `ui-summary-bar.blade.php:35` is
+  the `{!! !!}` precedent; `descriptionHtml` is a two-line change.
+- **Modal shell** — M7 names `#quickViewModal`, retires `#modalOverlay`. Its test consequence moved to
+  R2-1/D.
+
+### 🔴 Outstanding
+- **R2-1 — §6 group A was still "nothing breaks", and four in-bucket files prove otherwise.**
+  `request-cancel-pending.spec.ts:68-89` (expects the row to vanish after a cancel; M1 keeps it as
+  `Cancelled by YOU`, and it cancels the *first* row), `warning-keywords.spec.ts:13-24`
+  (`#cancelRequestBtn` inside the modal), `ui-regression.spec.ts:151` (`#modalOverlay` → goes vacuous,
+  not red), `e2e/full-suite.spec.js:593-603` (`#resultCount` + search on the MRH URL).
+- **R2-2 — group B's line ranges cover a fraction of the files they name.**
+  `replacement-home-status-badges.spec.ts` classifies rows by `a.badge-link` in its shared extractor
+  (`:34-35`) and reads `.col-urgency` (`:32`), so receipts 3–7 break too, not only D2 `:41-64`.
+  `request-completed-status.spec.ts`: only `:104` was cited while receipts 1–3 (`:85-118`, `:120-141`,
+  `:143-159`) all break. "The new assertion is the badge's text" described a two-line edit that does
+  not exist.
+
+### 🟡 Non-blocking
+- **R2-3** the arrival-reveal law (completed lane R5) and the `mrh-filters` key were missing from the
+  filter block.
+- **R2-4** §3.10 required `public/js/ui-common.js` but no surface row listed it (shared with
+  `/request-approval-ui` and `/my-timetable-ui`, so the edit must be additive).
+- **R2-5** the moved cancel overlay is not a cut-and-paste: the history handler splices `mockRequests`
+  and calls `renderTable()`, while the merged table is built from `payload.conflictedClasses`.
+- **R2-6** §1/§4 implied a page still renders the trail, while §3.6 retires the only one that does.
+
+**Verdict: FAIL** — blocker 1 fixed; blocker 2 source-fixed but not classified.
+
+## proposal Round 3 — 2026-11-03
+
+### 🔴 Fixed
+- **R2-1** — all four in-bucket files are in the revised §6 D bucket with reasons that hold:
+  `request-cancel-pending.spec.ts:68-89` (`:68-70` cancels the *first* row, `:82` `toHaveCount(0)`),
+  `warning-keywords.spec.ts:13-24`, `ui-regression.spec.ts:151` ("vacuous, not red" is exactly right —
+  `:160-163` gates on a hidden selector, so the body never runs), `e2e/full-suite.spec.js:593-603`.
+- **R2-2** — every citation re-read and exact: `replacement-home-status-badges.spec.ts` extractor
+  `:29-38`, receipts 3–7 `:71-85`, `:87-93`, `:95-108`, `:110-124`, `:126-135`;
+  `request-completed-status.spec.ts` receipts `:85-118`, `:120-141`, `:143-159`.
+
+### 🟡 Addressed
+- **R2-3** — M16 carries the reveal law and the `mrh-filters` hazard, which is real:
+  `replacement-home.blade.php:219` has "NO localStorage", while the law lives in
+  `my-request-history.blade.php:359-363` and the key at `:423/:432`.
+- **R2-4** — item 10b lists `ui-common.js` as additive; sharing confirmed
+  (`applyNotifHighlight` `:307`, `:320-342`; `request-approval.blade.php:683`;
+  `my-request-history.blade.php:570`).
+- **R2-5** — item 10c cites `my-request-history.blade.php:690-714` exactly; the merged side is
+  `payload.conflictedClasses` → `HtmlBuilder.replacementHomeRow` (`replacement-home.blade.php:518`),
+  and `buildTable()` does run `updateSummary()` (`:589`), so the cards refresh too.
+- **R2-6** — §1 states the trail is DB-only for lecturers; `/replacement-history-ui` is
+  `role:student` (`routes/web.php:50-55`), so that is true.
+
+### 🔴 Outstanding
+- **R3-1 — three grep-matched files were in no bucket:** `replacement-home-qv.spec.ts` (plays the
+  quick view → arrange handoff, i.e. the DOM this lane rebuilds), `arrangement-entry-guard.spec.ts`
+  (in both grep sets), `replacement-strip-anchor.spec.ts`.
+
+### 🟡 Non-blocking
+- **R3-2** B row 3 named a nonexistent artifact: My Requests' badge is a `span` with `onclick`
+  (`my-request-history.blade.php:576`); the anchor is `replacement-home.blade.php:383`.
+- **R3-3** `full-suite.spec.js:593-603` was overstated as a break (`textContent()` needs attachment,
+  not visibility).
+- **R3-4** no DOM keep-list; `HtmlBuilder.replacementHomeRow` (`ui-common.js:2481-2506`) unscoped.
+- **R3-5** "accepts either id" has no precedence (`querySelector` `:349` resolves by document order).
+- **R3-6** §1 claimed the home row still vanishes (the badges lane removed that).
+- **R3-7** "verified in the lane's own run" claimed a run that cannot exist.
+
+**Verdict: FAIL** — one blocker (R3-1); R3-2…R3-7 declarative.
+
+## proposal Round 4 — 2026-11-03
+
+### 🔴 Fixed
+- **R3-1** — the union is now fully bucketed. Re-measured: 28 code files match
+  `replacement-home`, 19 match `my-request-history`, 11 in both, union **36**; every one appears in
+  A / A′ / B / C / D. The three former orphans carry verifiable trailers: `arrangement-entry-guard`
+  (`:134` toast href, `:144` blocked target, `:231` post-submit redirect), `replacement-strip-anchor`
+  (`:12` `from=replacement-home`, then arrangement-page ids only), `replacement-home-qv` → A′. A
+  spot-audit of A found no file touching an element M6/M7/M12 delete.
+
+### 🟡 Addressed (verified against the code)
+- **R3-2** the corrected cause is right (`my-request-history.blade.php:576` span vs
+  `replacement-home.blade.php:383` anchor).
+- **R3-3** `textContent()` needs attachment, not visibility, so the caveat is true.
+- **R3-4** item 2b is scoped (`ui-common.js:2481-2506` via `replacement-home.blade.php:518`; frozen
+  template `ui-design-templates/replacement-home-UI-design-template.blade.php:412`; `config/app.php:29`).
+- **R3-5** precedence stated and matching `:330` / `:349` / `:356`.
+- **R3-6** §1 is past-tense and true (`ReplacementHome.php:66-72`, `:77-79`).
+- **R3-7** no run claimed.
+
+### 🔴 Outstanding
+- (none)
+
+### 🟡 Non-blocking after PASS (all folded, declarative — no decision changed)
+- **R4-1** §3 item 4b is narrower than A's claim: A files also read `#searchInput`, `#resultCount`,
+  `#cardView`, `#timetable`, `#toastBar`. → folded: 4b extended, and A's justification restated.
+- **R4-2** A′ needs the payload's key, three row fields and array order, not just ids. → folded.
+- **R4-3** `type-labels.spec.ts` pins rows by venue/time text, and M4 adds a second venue/time to the
+  same row. → folded as a caveat.
+- **R4-4** `full-suite.spec.js:593` sat in two buckets; a stray "(moved to A)" had no row. → folded:
+  593 dropped from C, the stray line removed.
+- **R4-5** the "All files" column (34/25) does not match the measurement (32/23); the code column
+  (28/19/11/36) is exact. → folded: corrected to 32/23 with the reconciliation note.
+
+**Verdict: PASS** — proposal frozen for `design.md`.
