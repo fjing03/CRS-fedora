@@ -125,8 +125,15 @@ history detail modal today:
 
 That is the home quick view's **Status · Class · Schedule** plus the one tab the
 merge adds (**Requests**). The timeline rail is intentionally **not** included —
-it is parked as broken (`task-02-replacement-history-timeline.md`). Actions
-(Cancel the current pending request) stay in the modal footer.
+it is parked as broken (`task-02-replacement-history-timeline.md`).
+
+**Modal footer** (bottom-right) — one action per state, mirroring the row:
+
+| Row state | Footer right |
+|---|---|
+| no request, rejected, cancelled | **⟳ Arrange Replacement** (primary) |
+| pending | **Cancel this request** (danger) |
+| approved, completed | nothing — the Requests tab is the whole story |
 
 **Filters:** search (code/name) · week navigator (original-class week) · status
 select (All · Need to Arrange · Pending · Approved · Rejected · Cancelled ·
