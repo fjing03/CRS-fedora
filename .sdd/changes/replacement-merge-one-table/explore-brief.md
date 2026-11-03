@@ -145,7 +145,20 @@ Both schedules print the same way (user decision, 2026-11-03):
 | Time | one row, 12-hour, `~` between | `10:00 AM ~ 12:00 PM` |
 | Duration | words, not `hr` | `1 hour` / `2 hours` |
 | Venue | code + short room name | `B010 — Computer Lab` |
-| **Request Status** | status badge (with its actor) · what to do · **History** — the full trail, newest first, one group per request (`Request #R102.2 · Pending`) with status, replacement slot, submitted, decided-by/at and note |
+| **Request Status** | **CURRENT** subtitle · status badge · a divider · one plain sentence saying what that status means for this class · **HISTORY** subtitle · the full trail, newest first, one group per request (`Request #R102.2 · Pending`) with Status, **Proposed Replacement**, **Submitted Timestamp**, **Decision Timestamp** and Note |
+
+Two subtitles carry the panel — `CURRENT` and `HISTORY` — and both are **14 px
+(+2 over the 12 px detail labels), 700, uppercase, `on-surface` near-white**, so
+they read as structure rather than as another data row.
+
+The old `What to do` row is gone: "Arrange a replacement for this class" repeated
+what the badge already said. In its place is one sentence of **description** that
+depends on the status — e.g. *"You cancelled this request, so the class is free to
+be arranged again."* / *"The proposed replacement is waiting for the PL to approve
+or reject it."*
+
+`Decided` became **`Decision Timestamp`** because bare "Decided" could be read as a
+verdict ("is it decided?") rather than a time; it now mirrors `Submitted Timestamp`.
 
 The separate **Requests (N)** tab is gone: its trail *is* the request's history, so
 it sits inside Request Status where the status it explains is shown. Tabs are named
