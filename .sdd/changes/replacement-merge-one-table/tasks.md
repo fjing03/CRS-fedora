@@ -192,13 +192,21 @@ the identity edit ships with the view in commit 2 (§7's Commit column).
       `NotificationEmitter:64,88`, the mock template `:1916`) — quoted count.
       *Receipt (the toast):* the rendered guard toast contains the page name **once** — the body has no
       page name, the link label carries it.
-      *Receipt (the spaced copy):* `grep -rn "My Request History" app resources public/js` returns
-      **exactly four**, and none is user-facing live text: `notif-row.blade.php:53` (a comment),
-      `replacement-arrangement.blade.php:2243` (the comment between this task's two edits — it is in
-      the line list above), and the frozen mock copy
-      `ui-design-templates/my-request-history-UI-design-template.blade.php:4,159`. Do **not** green it
-      by editing the last two: the frozen template is the `mock_fallback` reference and `notif-row` is
-      compared byte for byte (spec R3).
+      *Receipt (the spaced copy):* `grep -rn "My Request History" app resources public/js` is **12**
+      today. This task's own edits remove **six** (the two bodies `:4419,:4422`, the two labels
+      `:4420,:4423`, `ReplacementArrangement.php:1214`, and the comment at `:2243`), so **at this step
+      it returns 6** — `MyRequestHistory.php:15` and `my-request-history.blade.php:6,:166` are
+      **T16's** to delete, later in the same commit. **Quote it again after T16: it returns exactly 3**
+      — `notif-row.blade.php:53` (a comment) and the frozen
+      `ui-design-templates/my-request-history-UI-design-template.blade.php:4,159`. `:2243` must **not**
+      appear (this task rewrites it). Never green the 3 by editing `notif-row` or the frozen template:
+      one is compared byte for byte and the other is the `mock_fallback` reference (spec R3).
+      *Receipt (the toast says the name once):* in the guard spec's layer-A pending fixture (session 99,
+      week 8), after the blocked redirect read the two nodes **separately** —
+      `#toastBar .toast-message` = `This class already has a PENDING replacement request.` and
+      `#toastBar .toast-link` = `My Replacements`. The existing guard specs assert only a substring
+      (`arrangement-entry-guard.spec.ts:133,145`), so a page name restored into the body would stay
+      green; this receipt is the only guard on the "once" rule.
 
 - [ ] **T16 — retire the page** (`app/Livewire/MyRequestHistory.php`, its blade)
       Delete both, **and rewrite the two comments that still name it** —
