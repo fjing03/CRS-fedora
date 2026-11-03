@@ -63,19 +63,22 @@ Status badge, in the Status column — one fact, one place.
 `completed` must be handled by the generic "not rejected/cancelled" rule even
 while lane 2 is pending, so the code cannot break on first sight of one.
 
-**Columns** (9, proposed — no checkbox column):
+**Columns** (6, proposed — no checkbox, no separate venue/students/cohorts columns):
 
 | # | Column | Source | Notes |
 |---|---|---|---|
 | 1 | Course code & name | both pages | `.cell-code` + `.cell-name` + type label |
-| 2 | Original class | both pages | date · day · start–end |
+| 2 | Original class | both pages | **one cell, three lines**: date · day (Week N) / start–end (duration) / **room · cohorts** |
 | 3 | Days left | home | `—` on handled rows (badges lane D7); sort uses the real date |
 | 4 | Requested replacement | history | date · time · replacement room, `—` when none |
-| 5 | Class venue | both | the **original** venue, labelled so it cannot be mistaken for the replacement's |
-| 6 | Students | both | sum of cohort student_count |
-| 7 | Cohorts | both | spaced labels `DFT2 (S1) G1` |
-| 8 | Status | new | badge; **see Q3** on whether it is also a shortcut |
-| 9 | Action | both | Arrange / View request — never repeats the status; Cancel stays in the modal |
+| 5 | Status | new | badge; **see Q3** on whether it is also a shortcut |
+| 6 | Action | both | **Arrange** (icon + word, full wording in the tooltip) / View request — never repeats the status; Cancel stays in the modal |
+
+Two things left the table on purpose (user decisions, 2026-11-03): **Class Venue**
+and **Cohort(s)** fold into the Original Class cell, and **Students** is gone as a
+column. The student count is not lost — it still lives in the modal's **Class** tab.
+Folding venue and cohorts into the original-class cell also makes the two venues
+(the class's own and the requested replacement's) impossible to mix up.
 
 **Sort:** needs-action group first, then handled; the chosen column sorts **within**
 each group (badges lane D8). Default sort: original class date ascending.
@@ -164,7 +167,7 @@ ambiguous.
 `ui-prototype/replacement-merged-preview.html` (repo parent, beside
 `notif-manage-preview.html`) — a standalone static mock that links the live
 `theme.css`, with 8 fabricated rows covering every status, a rejected → pending
-trail, the tabbed `DetailModal` shell (Status · Class · Schedule · Requests), and
-live search/status/completed filtering. There is **no
+trail, the tabbed `DetailModal` shell (Status · Class · Schedule · Requests), the
+six-column layout, and live search/status/completed filtering. There is **no
 checkbox column and no bulk bar** (your 2026-11-03 call). It is a discussion
 instrument, **not** app code and not a receipt.
