@@ -90,7 +90,7 @@ while lane 2 is pending, so the code cannot break on first sight of one.
 
 | # | Column | Source | Notes |
 |---|---|---|---|
-| 1 | Course code & name | both pages | `.cell-code` + `.cell-name` + type label |
+| 1 | Subject code & name | both pages | `.cell-code` + `.cell-name` + type label |
 | 2 | Original class | both pages | **one cell**: date · day (Week N) **with Days Left beside it on the same line** (wraps directly under the date when the column is tight) / start–end (duration) / **pin icon + room** / **users icon + cohorts** |
 | 3 | Conflict Reason | home (extended) | one badge, two shapes: **`Class Cancelled — <reason>`** in neutral grey for every non-holiday reason; **`Public Holiday — <holiday name>`** in error red. The holiday name is the calendar label from the `holidays` rows ("Deepavali Holiday (In Lieu)", "Christmas Day", …) |
 | 4 | Requested replacement | history | **mirrors the Original Class design, minus the cohorts line** (they are the class's own cohorts): date · day (Week N) / start–end (duration) / **pin icon + room**; `—` when there is no request |
@@ -270,9 +270,9 @@ reused from My Requests verbatim, not redesigned:
   page buttons with ‹ ›. The same markup and classes (`rpp-wrapper`,
   `rpp-select`, `pagination-bar`, `page-btn`).
 
-**Sort hint** — under the toolbar, the live page's sentence **verbatim**: *Click
-**Course Code & Name** or **Original Class** to sort* (`.sort-hint`, italic 12 px,
-`on-surface-variant`, the two column names in `<strong>`). It is kept exactly as the
+**Sort hint** — under the toolbar, the live page's sentence with one word changed:
+*Click **Subject Code & Name** or **Original Class** to sort* (`.sort-hint`, italic
+12 px, `on-surface-variant`, the two column names in `<strong>`). It is kept exactly as the
 live page has it, even though the merged table makes **five** columns sortable —
 naming two is a hint, not a contract, and the wording is already learned. The
 alternative, if a reviewer minds the understatement, is one line:
@@ -330,13 +330,37 @@ the existing contract; the prototype got them wrong and is being corrected.
 |---|---|---|
 | Copy an email address | the `request-approval` contract: `📋` glyph after the address, **the address itself is clickable**, `data-tip="Click to copy email"`, feedback through the shared `toast.show('Email copied: …', null, 2000)` | a bordered icon button, an SVG glyph, or a tooltip that flips to "Copied" |
 | Any hover hint | `data-tip` only — one shared `initDataTipTooltips()` singleton, viewport-clamped, supports `data-tip-pos="left"` and multi-line text | a per-element `::after` tooltip (clips inside `overflow:auto` grids and duplicates the singleton) |
-| Column headers, ✕ close, ✕ chips | the live wording, and `data-tip="Close"` on the modal ✕ | silent headers / unlabelled ✕ |
+| Column headers, ✕ close, ✕ chips | the live wording, and `data-tip="Close"` on the modal ✕ — **with `Subject` not `Course`** (see the rename below) | silent headers / unlabelled ✕ |
 | Toolbar count | the live `.result-count` line, "Showing 4 of 4 classes" | a second, differently-worded counter |
-| Sort hint | the live wording: *Click Course Code & Name or Original Class to sort* | inventing new hint text |
+| Sort hint | the live wording with `Subject` for `Course`: *Click Subject Code & Name or Original Class to sort* | inventing new hint text |
 | "Nothing here" dash | a class backed by `--color-on-surface-variant` | a hand-written `style="color:…;opacity:.6"` |
 | Confirmation of a destructive action | the existing **"Confirm Cancellation"** modal (`#cancelConfirmOverlay`, "… This action cannot be undone.") | a one-click cancel, or a browser `confirm()` |
 | Mobile | the existing `.card-view` + `replacementHomeCard` shape, adapted to the merged fields (code+name · conflict badge · status badge · original class line · days left · cohorts) | a second card design |
 | Icon-only Action column | **new** — there is no icon-only button component in `theme.css` (`.btn-icon` exists only in the mobile 48 px rule), so this column needs one real definition, used by both the rotate/ban/eye buttons | four one-off button styles, or inline width/height per button |
+
+### Queued: rename `Course` → `Subject` across the app (2026-11-03)
+
+The merged page says **Subject** everywhere. The rest of the app still says
+**Course** in eight user-facing places, and they must be brought in line later —
+one vocabulary, not two:
+
+| File | Line | Today |
+|---|---|---|
+| `replacement-home.blade.php` | 200 | guide: "filter by course code or name" |
+| `replacement-home.blade.php` | 215 | placeholder `Search by course code or name...` |
+| `replacement-home.blade.php` | 236 | sort hint `Course Code & Name` |
+| `replacement-home.blade.php` | 495 | column label + tip ("Course affected by the conflict") |
+| `my-request-history.blade.php` | 172, 189, 212, 522 | guide, placeholder + `data-tip`, sort hint, column label + tip |
+| `request-approval.blade.php` | 252, 590 | placeholder + `data-tip`, column label + tip |
+| `replacement-history.blade.php` (student) | — | column "Course code and name" |
+| `replacement-arrangement.blade.php` | 989 | "choose the course to arrange a replacement for" |
+| `ui-common.js` | 2451 | `<strong>Course:</strong>` in a body line |
+
+The modals already say **Subject Code** / **Subject Name** (`my-request-history`
+`:835`, `request-approval` `:968`), so this rename makes the tables agree with the
+detail views that already exist — it is not a new vocabulary, it is removing a
+second one. The `ui-design-templates/*` legacy copies are frozen and stay untouched.
+Not started; this brief only fixes the merged page.
 
 **Icon-only Action is the one deliberate new thing.** The live Action cell is a text
 button (`.btn-action` — "Arrange Replacement"). The merged page replaces it with
