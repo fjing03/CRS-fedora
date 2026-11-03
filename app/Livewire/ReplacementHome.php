@@ -8,6 +8,7 @@ use App\Models\ClassException;
 use App\Models\ClassSession;
 use App\Models\Cohort;
 use App\Models\ReplacementRequest;
+use App\Services\ReplacementRequestMapper;
 use App\Support\ReasonLabel;
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\Carbon;
@@ -70,10 +71,16 @@ class ReplacementHome extends Component
            rejected/cancelled row needs the label too); the ordered keyBy keeps
            the last row written, i.e. the newest. */
         $latestRequests = ReplacementRequest::query()
+            ->with(['replacementTimeSlot.venue'])   // the effectiveStatus span read
             ->whereIn('class_session_id', $sessions->pluck('id'))
             ->orderBy('submitted_at')->orderBy('id')
-            ->get(['id', 'class_session_id', 'week_number', 'status', 'submitted_at'])
+            // replacement_time_slot_id is REQUIRED: effectiveStatus() reads the span
+            // through the anchor when the junction is empty (a narrow select that
+            // omits the FK silently reads "no slot" → it would never say Completed).
+            ->get(['id', 'class_session_id', 'week_number', 'status', 'submitted_at', 'replacement_time_slot_id'])
             ->keyBy(fn (ReplacementRequest $r): string => $r->class_session_id.':'.$r->week_number);
+
+        $mapper = app(ReplacementRequestMapper::class);
 
         $rows = [];
         foreach ($sessions as $session) {
@@ -136,10 +143,18 @@ class ReplacementHome extends Component
                     'conflictReason' => $reason,
                     /* D1/D2 — the occurrence's newest request, for the Action
                        cell (badge vs label) and the quick view. NULL = the row
-                       still needs an arrangement. No `completed` state exists
-                       in this lane (D3). */
+                       still needs an arrangement. `requestStatus` is the
+                       EFFECTIVE status (request-completed-status C1/C3): an
+                       approved request whose replacement class has already
+                       happened reads 'completed' — the badges lane's D3 note
+                       ("no completed state exists") is superseded here. */
                     'requestId' => $latest !== null ? (int) $latest->id : null,
-                    'requestStatus' => $latest !== null ? (string) $latest->status : null,
+                    'requestStatus' => $latest !== null
+                        ? $mapper->effectiveStatus(
+                            $latest->setRelation('classSession', $session),
+                            $startDate,
+                        )
+                        : null,
                 ];
             }
         }

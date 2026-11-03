@@ -18,6 +18,7 @@ use App\Models\TimeSlot;
 use App\Models\User;
 use App\Models\Venue;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Livewire\Features\SupportTesting\Testable;
 use Livewire\Livewire;
@@ -205,6 +206,28 @@ final class ReplacementHomeTest extends TestCase
         ]);
     }
 
+    /** A slot on an explicit (week, day) cell — the replacement DATE this lane reads. */
+    private function createSlotAt(int $week, int $day, string $start = '14:00:00'): TimeSlot
+    {
+        return TimeSlot::create([
+            'semester_id' => $this->semester->id, 'class_session_id' => null,
+            'week_number' => $week, 'day_of_week' => $day,
+            'start_time' => $start,
+            'end_time' => date('H:i:s', strtotime($start) + 1800),
+            'venue_id' => $this->venue->id, 'status' => 'available',
+        ]);
+    }
+
+    /** The (week, day) cell whose DATE is $target (the semester's own grid). */
+    private function cellFor(Carbon $target): array
+    {
+        $offset = (int) Carbon::parse($this->semester->start_date)->diffInDays($target, false);
+        $this->assertGreaterThanOrEqual(0, $offset, 'target before the semester start');
+        $this->assertLessThan(14 * 7, $offset, 'target after the semester end');
+
+        return ['week' => intdiv($offset, 7) + 1, 'day' => $offset % 7];
+    }
+
     public function test_home_keeps_occurrences_with_an_active_request_and_attaches_its_status(): void
     {
         // D1 (replacement-home-status-badges, 2026-11-03 — the user's reversal of
@@ -248,6 +271,56 @@ final class ReplacementHomeTest extends TestCase
 
                 return true;
             });
+    }
+
+    public function test_home_reads_the_effective_status_per_the_date_matrix(): void
+    {
+        // request-completed-status R1/R2 (C1/C2/C3): the home payload carries
+        // the DERIVED status — approved + a replacement class strictly before
+        // today reads 'completed'; today and tomorrow stay 'approved'. The date
+        // grain is the day, not the second.
+        $session = ClassSession::query()
+            ->where('lecturer_id', $this->lecturerA->id)
+            ->where('venue_id', $this->venue->id)
+            ->firstOrFail();
+
+        // week 5 is already conflicted by the seeded holiday; 6 and 7 need one
+        ClassException::create(['class_session_id' => $session->id, 'week_number' => 6, 'reason' => 'official_event']);
+        ClassException::create(['class_session_id' => $session->id, 'week_number' => 7, 'reason' => 'official_event']);
+
+        $yesterday = $this->cellFor(Carbon::today()->subDay());
+        $today = $this->cellFor(Carbon::today());
+        $tomorrow = $this->cellFor(Carbon::today()->addDay());
+
+        $cases = [
+            5 => ['cell' => $yesterday, 'expect' => 'completed'],
+            6 => ['cell' => $today, 'expect' => 'approved'],
+            7 => ['cell' => $tomorrow, 'expect' => 'approved'],
+        ];
+        foreach ($cases as $week => $case) {
+            ReplacementRequest::create([
+                'semester_id' => $this->semester->id, 'proposer_id' => $this->lecturerA->id,
+                'class_session_id' => $session->id, 'week_number' => $week,
+                'replacement_time_slot_id' => $this->createSlotAt($case['cell']['week'], $case['cell']['day'])->id,
+                'status' => 'approved', 'submitted_at' => now(), 'decided_at' => now(),
+            ]);
+        }
+
+        $this->componentFor($this->lecturerA)
+            ->assertViewHas('payload', function (array $payload) use ($session, $cases): bool {
+                foreach ($cases as $week => $case) {
+                    $row = collect($payload['conflictedClasses'])->first(
+                        fn (array $r): bool => $r['sessionId'] === (int) $session->id && $r['week'] === $week,
+                    );
+                    $this->assertNotNull($row, "week {$week} keeps its row");
+                    $this->assertSame($case['expect'], $row['requestStatus'], "week {$week}: derived status (C2)");
+                }
+
+                return true;
+            });
+
+        // C1: nothing was written by reading the page.
+        $this->assertSame(3, ReplacementRequest::query()->where('status', 'approved')->count(), 'the stored status is untouched — derivation only');
     }
 
     public function test_home_reports_the_newest_request_for_the_occurrence(): void
@@ -313,7 +386,10 @@ final class ReplacementHomeTest extends TestCase
                 );
                 $this->assertNotNull($row, 'an approved occurrence keeps its row');
                 $this->assertSame('Public Holiday', $row['conflictReason'], 'the holiday is the cause; official_event is the consequence');
-                $this->assertSame('approved', $row['requestStatus']);
+                // request-completed-status: this week-5 slot is in September, so
+                // the approved request now reads its EFFECTIVE status (C2). The
+                // badges lane pinned the raw stored value; only that literal moves.
+                $this->assertSame('completed', $row['requestStatus']);
 
                 return true;
             });

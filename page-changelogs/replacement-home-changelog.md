@@ -1,3 +1,46 @@
+## 2026-11-03 — a finished replacement reads **Completed** (derived, never stored)
+
+SDD lane `.sdd/changes/request-completed-status/` — the user's nine locked decisions (C1–C9).
+
+**The rule (C1/C2).** An `approved` request whose **replacement class date is strictly before
+today** now reads **Completed**. It is worked out when the page reads the row — nothing is written,
+no column, no migration, no audit entry, no backfill. A class on Tuesday reads Completed on
+Wednesday; a class **today** still reads Approved all day (the comparison is by date, not by the
+clock). If the replacement date cannot be resolved the status stays **Approved** — the app never
+guesses.
+
+**One helper (C3).** `ReplacementRequestMapper::effectiveStatus()` is the only place the rule
+lives. It feeds all four surfaces: this page's payload, My Requests, the Request Approval page and
+the JSON API (`toRow()` is shared by the PL page and the API). This page also gains the two columns
+the helper needs (`replacement_time_slot_id` was missing from the narrow select — without it the
+rule would have been silently dead here).
+
+**New: the Exclude Completed toggle (C4).** Same label, same tooltip
+(`ON = completed requests are excluded from the list`), **checked on every load** — this page keeps
+no saved filters and has no Reset button, so nothing is stored in `localStorage`. While it is
+checked a Completed row is not listed, the result count drops, and the **Total** card counts only
+what is on screen (the two My cards already read the filtered set).
+
+**The badge (C5).** A completed row's Action cell is a **Completed** badge linking to
+`/my-request-history-ui?notif-hl=r<request_id>`, exactly like Pending/Approved. No new badge code:
+the badges lane's `statusBadge()` already renders any non-rejected/cancelled status, and
+`.status-completed` (`theme.css`) already exists. A completed row is a *handled* row — no Arrange
+button, `—` in Days Left, sorted with the handled group.
+
+**No notification (C7)**, no schema change, no demo-database write (C9).
+
+**Receipts.** `ReplacementHomeTest` 11/11 (a new date-matrix test: week 5 = yesterday →
+`completed`, week 6 = today → `approved`, week 7 = tomorrow → `approved`, plus the "stored status
+untouched" assertion); the browser receipt on the disposable testing DB (toggle checked on load →
+the Completed row absent → untick → the badge appears with its `?notif-hl=r<id>` href → re-tick →
+gone). The demo DB has **no approved request at all**, so nothing on `:8000` can read Completed
+today — the toggle renders and is checked there, and the row set is unchanged (read-only run).
+
+**Already true of the viva twin.** `class_replacement_viva` holds request 27, approved at week 7,
+whose replacement date is **2026-11-03 — today**. By C2 it reads **Approved today** and
+**Completed from 4 Nov**, so the viva date itself shows the Completed state without any data
+change.
+
 ## 2026-11-03 — the row keeps its request status (badges, not disappearance)
 
 SDD lane `.sdd/changes/replacement-home-status-badges/` — the user's nine locked decisions

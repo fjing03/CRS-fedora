@@ -397,13 +397,41 @@
             container.innerHTML = chips.length > 0 ? '<span class="filter-chips-label">Active Filters:</span>' + chips.join('') : '';
         }
 
-        /* D6: bring the referenced row onto the right PAGE — never touch the
-           user's filters. A filtered-out row gets the honest toast, not a
-           silently ignored click. Called once, after the first render. */
+        /* D6: bring the referenced row onto the right PAGE. A filtered-out row
+           gets either the reveal exception (C5 below) or the honest toast.
+           Called once, after the first render. */
         function jumpToRequestRow(id) {
             if (!id) return;
             var idx = currentFiltered.findIndex(function(r) { return String(r.id) === String(id); });
-            if (idx < 0) { toast.show('That request is hidden by your current filters.', null); return; }
+
+            if (idx < 0) {
+                /* C5 (request-completed-status) — THE REVEAL EXCEPTION. Untick
+                   Exclude Completed ONLY when that toggle is the SOLE reason the
+                   row is missing: the row exists, it is Completed, and the box
+                   is checked. Any other hiding cause (status filter, search,
+                   week filter) keeps the honest toast and changes nothing. */
+                var all = mockRequests.find(function(x) { return String(x.id) === String(id); });
+                /* "sole reason" means exactly that: no status filter, no search
+                   term and no week filter is also hiding the row. */
+                var otherFiltersActive = document.getElementById('statusFilter').value !== 'all'
+                    || document.getElementById('searchInput').value.trim() !== ''
+                    || document.getElementById('weekFilter').value !== 'all';
+                var onlyCompletedHidesIt = !!all && all.status === 'Completed'
+                    && document.getElementById('hideCompleted').checked
+                    && !otherFiltersActive;
+                if (!onlyCompletedHidesIt) {
+                    toast.show('That request is hidden by your current filters.', null);
+                    return;
+                }
+                /* the flip is VISIBLE, and the saved filter then matches what
+                   the user is looking at (the chip bar follows too) */
+                document.getElementById('hideCompleted').checked = false;
+                saveFilters();
+                renderTable();          /* rebuilds currentFiltered synchronously */
+                idx = currentFiltered.findIndex(function(r) { return String(r.id) === String(id); });
+                if (idx < 0) { toast.show('That request is hidden by your current filters.', null); return; }
+            }
+
             var page = Math.floor(idx / rowsPerPage) + 1;
             if (page !== pageState.currentPage) { pageState.currentPage = page; renderTable(); }
         }
@@ -785,10 +813,15 @@
 
             // Global timeline (always visible above the tabs); dot colour follows each step's status
             const reviewTime = r.reviewedAt ? formatDateTime(r.reviewedAt) : null;
+            /* C6 (request-completed-status): a COMPLETED request happened on its
+               class date, not on the approval day — the final step is timed by
+               the replacement date. formatDate() splits the Y-m-d string, so no
+               Date parsing and no UTC-midnight day shift. */
+            const completedTime = (r.status === 'Completed' && r.replacementDate) ? formatDate(r.replacementDate) : null;
             const timeline = [
                 { label: 'Request Submitted', time: formatDateTime(r.requestedAt), state: 'completed' },
                 { label: 'Under Review', time: reviewTime || '—', state: r.status === 'Pending' ? 'active' : 'completed', dot: r.status === 'Pending' ? 'dot-warning' : 'dot-success' },
-                { label: r.status, time: reviewTime || '—', state: r.status === 'Pending' ? 'pending' : 'completed', dot: statusDot }
+                { label: r.status, time: completedTime || reviewTime || '—', state: r.status === 'Pending' ? 'pending' : 'completed', dot: statusDot }
             ];
 
             // Tab 1: General Info

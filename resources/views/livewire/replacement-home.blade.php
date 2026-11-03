@@ -215,6 +215,15 @@
                     <input class="search-input" id="searchInput" placeholder="Search by course code or name...">
                 </div>
                 @include('partials.ui-week-nav', ['prevOnclick' => 'prevWeekFilter()', 'nextOnclick' => 'nextWeekFilter()', 'selectId' => 'weekFilter', 'selectOnclick' => 'weekFilterChanged(this.value)', 'showTodayBtn' => false])
+                {{-- request-completed-status C4: the same toggle the other two pages
+                     carry. Markup verbatim from My Requests. NO localStorage — this
+                     page has no saved filters and no Reset button, and the user chose
+                     "checked on every load". --}}
+                <label class="toggle-wrapper" id="completedToggle" data-tip="ON = completed requests are excluded from the list">
+                    <input type="checkbox" id="hideCompleted" checked>
+                    <span class="toggle-track"><span class="toggle-thumb"></span></span>
+                    <span class="toggle-label">Exclude Completed</span>
+                </label>
             </div>
             <div class="toolbar-right">
                 <span class="result-count" id="resultCount">Showing 4 of 4 classes</span>
@@ -349,6 +358,19 @@
             return !!c.requestStatus && c.requestStatus !== 'rejected' && c.requestStatus !== 'cancelled';
         }
         function statusLabel(s) { return s.charAt(0).toUpperCase() + s.slice(1); }
+
+        /* ─── request-completed-status C4 (2026-11-03) ─────────────────────
+           Exclude Completed, checked on every load. ONE exclusion test used by
+           the row filter and by both count paths, so a card can never promise a
+           row that is not on screen. */
+        function completedHidden(c) {
+            var box = document.getElementById('hideCompleted');
+            return !!box && box.checked && c.requestStatus === 'completed';
+        }
+        /* the base list BEFORE search/week — what the page counts as "mine" */
+        function visibleBaseRows() {
+            return myConflictedRows().filter(function(c) { return !completedHidden(c); });
+        }
         /* §7.2 — the ONE destination helper: the later one-table merge edits
            this line instead of chasing scattered URLs. */
         function requestHref(c) { return '/my-request-history-ui?notif-hl=r' + encodeURIComponent(c.requestId); }
@@ -423,6 +445,7 @@
                     c.name.toLowerCase().includes(query);
                 const matchesReason = reason === 'all' || c.conflictReason === reason;
                 const matchesWeek = weekVal === 'all' || String(getWeekNumber(c.date)) === weekVal;
+                if (completedHidden(c)) return false;
                 return matchesSearch && matchesReason && matchesWeek;
             });
 
@@ -562,7 +585,7 @@
             }
 
             paginate({ data: currentFiltered, pageSize: state.rpp, state: pageState, infoId: 'paginationInfo', controlsId: 'paginationControls', render: buildTable });
-            updateResultCount({ elId: 'resultCount', data: currentFiltered, total: myConflictedRows().length, label: 'classes' });
+            updateResultCount({ elId: 'resultCount', data: currentFiltered, total: visibleBaseRows().length, label: 'classes' });
             updateSummary();
             renderCards();
         }
@@ -639,7 +662,9 @@
         }
 
         function updateSummary() {
-            const total = myConflictedRows().length;
+            /* C4: the Total card counts what the exclusion leaves visible — the
+               counts are taken AFTER the completed filter, never before it. */
+            const total = visibleBaseRows().length;
             const filtered = currentFiltered;
 
             const duration = filtered.reduce(function(sum, c) { return sum + c.duration; }, 0);
@@ -867,6 +892,12 @@
             });
             document.getElementById('weekFilter').addEventListener('change', function() {
                 rebuildTable({ render: buildTable, after: updateWeekArrowState });
+            });
+            /* C4: the toggle re-filters the list AND both count paths (buildTable
+               calls updateResultCount + updateSummary + renderCards). */
+            document.getElementById('hideCompleted').addEventListener('change', function() {
+                pageState.currentPage = 1;
+                buildTable();
             });
         });
 @endsection

@@ -67,6 +67,41 @@ final class ReplacementRequestMapper
     }
 
     /**
+     * request-completed-status (2026-11-03) — C1/C2: the EFFECTIVE status.
+     *
+     * Derived, never stored: an `approved` request whose replacement class
+     * DATE is strictly before today reads `completed`. The date is the SAME one
+     * `replacementStrings()` gives the row to print, so the badge and the
+     * Replacement Date column can never contradict each other. Comparison is
+     * by DATE (`startOfDay`), never date-and-time: a class at 09:00 today is
+     * not "past" at 10:00 today.
+     *
+     * Falls back to the stored status when the replacement date cannot be
+     * resolved (no slot / no venue) — the app never GUESSES Completed.
+     *
+     * Lowercase in, lowercase out: every consumer applies `ucfirst()` where it
+     * needs the pretty form (the home payload wants the raw value).
+     */
+    public function effectiveStatus(ReplacementRequest $r, Carbon $semesterStart): string
+    {
+        $stored = (string) $r->status;
+
+        if ($stored !== 'approved') {
+            return $stored;
+        }
+
+        $date = $this->replacementStrings($r, $semesterStart)['date'];
+
+        if ($date === null) {
+            return $stored;             // unreadable date — never guess Completed
+        }
+
+        return Carbon::parse($date)->startOfDay()->lt(today()->startOfDay())
+            ? 'completed'
+            : 'approved';
+    }
+
+    /**
      * The canonical PL-queue row (frozen template's `requests` §2.13 shape).
      *
      * @return array<string, mixed>
@@ -90,7 +125,10 @@ final class ReplacementRequestMapper
             $conflictReason = null;
         }
 
-        $prettyStatus = ucfirst((string) $r->status);
+        // request-completed-status R2 (C3): the PL queue AND the JSON API read
+        // the one derived status — an approved request whose replacement class
+        // has already happened reads 'Completed' (C1/C2, nothing stored).
+        $prettyStatus = ucfirst($this->effectiveStatus($r, $semesterStart));
 
         // The cohort metadata (the queue bucket's byte shape: SPACED labels +
         // a values-array of counts; api/history adapters pin their own forms).

@@ -19,6 +19,7 @@ use App\Models\TimeSlot;
 use App\Models\User;
 use App\Models\Venue;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Livewire\Livewire;
 use Tests\TestCase;
@@ -150,6 +151,27 @@ final class ReplacementHistoriesTest extends TestCase
             'replacement_time_slot_id' => $this->createSlot($week, $status === 'pending' ? 'pending' : 'available')->id,
             'status' => $status,
             'submitted_at' => now(),
+        ]);
+    }
+
+    /** The (week, day) cell whose DATE is $target (the semester's own grid). */
+    private function cellFor(Carbon $target): array
+    {
+        $offset = (int) Carbon::parse($this->semester->start_date)->diffInDays($target, false);
+        $this->assertGreaterThanOrEqual(0, $offset, 'target before the semester start');
+        $this->assertLessThan(14 * 7, $offset, 'target after the semester end');
+
+        return ['week' => intdiv($offset, 7) + 1, 'day' => $offset % 7];
+    }
+
+    /** A slot on an explicit (week, day) cell — the replacement DATE is what matters. */
+    private function createSlotAt(int $week, int $day): TimeSlot
+    {
+        return TimeSlot::create([
+            'semester_id' => $this->semester->id, 'class_session_id' => null,
+            'week_number' => $week, 'day_of_week' => $day,
+            'start_time' => '16:00:00', 'end_time' => '16:30:00',
+            'venue_id' => $this->venue->id, 'status' => 'available',
         ]);
     }
 
@@ -319,5 +341,60 @@ final class ReplacementHistoriesTest extends TestCase
             ->test(ReplacementHistory::class)
             ->assertDontSee('wire:click')
             ->assertDontSee('Cancel Request');
+    }
+
+    public function test_my_request_history_reads_a_past_approved_request_as_completed(): void
+    {
+        // request-completed-status R1 (C1/C2): approved + a replacement class
+        // strictly before today reads 'Completed'. The stored status is NOT
+        // touched (C1) and no audit row is written by reading the page.
+        $cell = $this->cellFor(Carbon::today()->subDay());
+        $request = ReplacementRequest::create([
+            'semester_id' => $this->semester->id,
+            'proposer_id' => $this->lecturerA->id,
+            'class_session_id' => $this->sessionA->id,
+            'week_number' => 7,
+            'replacement_time_slot_id' => $this->createSlotAt($cell['week'], $cell['day'])->id,
+            'status' => 'approved',
+            'submitted_at' => now(),
+            'decided_at' => now(),
+        ]);
+
+        $payload = $this->mrhPayload($this->lecturerA);
+        $row = collect($payload['requests'])->firstWhere('id', $request->id);
+
+        $this->assertNotNull($row);
+        $this->assertSame('Completed', $row['status'], 'approved + yesterday → Completed (C2)');
+
+        // C1: derivation only — the row still stores 'approved', and no audit entry exists.
+        $this->assertSame('approved', (string) $request->refresh()->status);
+        $this->assertSame(0, AuditLog::query()->count(), 'reading a page writes nothing');
+    }
+
+    public function test_my_request_history_keeps_today_and_future_approved_requests_as_approved(): void
+    {
+        // The BOUNDARY: the comparison is by date, not by the clock — a class
+        // today reads Approved all day, and a class tomorrow obviously does.
+        $today = $this->cellFor(Carbon::today());
+        $tomorrow = $this->cellFor(Carbon::today()->addDay());
+
+        $due = ReplacementRequest::create([
+            'semester_id' => $this->semester->id, 'proposer_id' => $this->lecturerA->id,
+            'class_session_id' => $this->sessionA->id, 'week_number' => 7,
+            'replacement_time_slot_id' => $this->createSlotAt($today['week'], $today['day'])->id,
+            'status' => 'approved', 'submitted_at' => now(), 'decided_at' => now(),
+        ]);
+        $later = ReplacementRequest::create([
+            'semester_id' => $this->semester->id, 'proposer_id' => $this->lecturerA->id,
+            'class_session_id' => $this->sessionA->id, 'week_number' => 8,
+            'replacement_time_slot_id' => $this->createSlotAt($tomorrow['week'], $tomorrow['day'])->id,
+            'status' => 'approved', 'submitted_at' => now(), 'decided_at' => now(),
+        ]);
+
+        $payload = $this->mrhPayload($this->lecturerA);
+        $byId = collect($payload['requests'])->keyBy('id');
+
+        $this->assertSame('Approved', $byId[$due->id]['status'], 'a class that happens today is not past');
+        $this->assertSame('Approved', $byId[$later->id]['status']);
     }
 }

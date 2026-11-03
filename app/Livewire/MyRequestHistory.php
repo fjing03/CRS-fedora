@@ -81,7 +81,9 @@ class MyRequestHistory extends Component
             'requestedAt' => (app(ReplacementRequestMapper::class))->requestedAtDisplay($r->submitted_at),
             'reviewedAt' => $r->decided_at !== null ? $r->decided_at->format('Y-m-d\TH:i:s') : null,
             'reviewedBy' => $r->approver !== null ? (string) $r->approver->name : null,
-            'status' => ucfirst((string) $r->status),
+            // request-completed-status R2 (C3): one derived status, shared with
+            // the PL queue, the API and the home page (effectiveStatus()).
+            'status' => ucfirst($mapper->effectiveStatus($r, $semesterStart)),
             'rejectionReason' => $r->rejection_reason,
             'courseCode' => $identity['courseCode'],
             'courseName' => $identity['courseName'],

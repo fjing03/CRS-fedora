@@ -517,6 +517,52 @@ final class ApprovalWorkflowTest extends TestCase
         $this->assertSame('14:00 – 14:30', $row3['replacementTime'], 'data-driven fallback, any bucket');
     }
 
+    // ───── request-completed-status — the derived status (C1/C2/C3) ─────
+
+    public function test_mapper_reads_a_past_approved_request_as_completed(): void
+    {
+        // The PL queue AND the JSON API ride toRow(), so this one assertion
+        // covers both surfaces (C3). Only the DISPLAYED status moves: the row's
+        // bucket and its stored status are untouched (C1).
+        [$slotIds, $requester, $pl, $request] = $this->pendingFixture(2);
+        $request->forceFill(['status' => 'approved', 'approver_id' => $pl->id, 'decided_at' => now()])->save();
+
+        // an EARLY week: past relative to the semester start (the date base)
+        DB::table('time_slots')->whereIn('id', $slotIds)->update(['week_number' => 1]);
+
+        $semester = DB::table('semesters')->first();
+        $start = Carbon::parse((string) $semester->start_date);
+        $row = app(ReplacementRequestMapper::class)->toRow($request->refresh(), $start, 'queue');
+
+        $this->assertSame('Completed', $row['status'], 'approved + a past replacement date → Completed');
+        $this->assertSame('queue', $row['bucket'], 'the decided bucket is untouched — only the display moves');
+        $this->assertSame('approved', (string) $request->refresh()->status, 'C1: nothing is stored');
+    }
+
+    public function test_mapper_never_guesses_completed_without_a_readable_date(): void
+    {
+        // TRAP 4: when the replacement date cannot be resolved the status must
+        // fall back to the stored one. A cavalier "null means past" default
+        // would mark EVERY such row Completed.
+        [$slotIds, $requester, $pl, $request] = $this->pendingFixture(1);
+        $request->forceFill(['status' => 'approved', 'approver_id' => $pl->id, 'decided_at' => now()])->save();
+
+        // no junction receipt → the mapper falls back to the anchor, and this
+        // anchor's venue cannot be resolved (a dangling id, in memory only)
+        ReplacementRequestSlot::query()->where('replacement_request_id', $request->id)->delete();
+        $request->setRelation('replacementTimeSlot', new TimeSlot([
+            'semester_id' => $request->semester_id,
+            'week_number' => 1, 'day_of_week' => 3,
+            'start_time' => '14:00:00', 'end_time' => '15:00:00',
+            'venue_id' => 999999,
+        ]));
+
+        $semester = DB::table('semesters')->first();
+        $start = Carbon::parse((string) $semester->start_date);
+
+        $this->assertSame('approved', app(ReplacementRequestMapper::class)->effectiveStatus($request, $start));
+    }
+
     // ───── notifications R3 — the email queue contract ─────
 
     public function test_submit_queues_the_pl_mail(): void

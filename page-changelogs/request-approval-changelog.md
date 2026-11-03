@@ -1,3 +1,30 @@
+## 2026-11-03 — the approved row can read **Completed** (no code change on this page)
+
+SDD lane `.sdd/changes/request-completed-status/` (C1/C2/C3). Nothing in
+`request-approval.blade.php` was edited — this page reads `r.status` straight from
+`ReplacementRequestMapper::toRow()`, which now returns the **effective** status.
+
+What changes on screen, by itself:
+
+| Place | Before | After (a request approved for a class that has already happened) |
+|---|---|---|
+| Row badge | `Approved` | `Completed` (dot stays `dot-success`) |
+| Status tooltip | "You have APPROVED this request." | "Replacement conducted" (already mapped) |
+| **Approved** summary card | counted it | does **not** count it |
+| **Reviewed** summary card | counted it | still counts it (that card matches `Approved`, `Rejected` **and** `Completed`) |
+| Exclude Completed toggle | never hid anything | hides it when ticked (default state unchanged) |
+| Status filter | never matched a row | `Completed` now matches |
+
+The derived status is **not** stored: the row's `status` column stays `approved`, so the approval
+and rejection paths, the queue buckets and the one-active-request index are untouched.
+
+Verified (no edit): the `Completed` option in `#statusFilter` (:259), the toggle markup
+(:268–270) and its filter (:655), the `Approved`/`Reviewed` counts (:756–758), and the status dot
+(:953). `ApprovalWorkflowTest` gained `test_mapper_reads_a_past_approved_request_as_completed`
+(the row reads `Completed` while its bucket stays `queue`) and
+`test_mapper_never_guesses_completed_without_a_readable_date` (an unreadable replacement date keeps
+`approved`).
+
 # Request Approval — changelog
 
 ## 2026-11-02 — visible demo reminder above the timeline rail

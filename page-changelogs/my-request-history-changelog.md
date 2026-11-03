@@ -1,3 +1,32 @@
+## 2026-11-03 — Completed rows: the timeline tells the class date, and the page can reveal one for you
+
+SDD lane `.sdd/changes/request-completed-status/` (C5, C6).
+
+**C6 — the final timeline step is timed by the class.** An approved request whose replacement
+class has already happened now reads **Completed**, and its last timeline step shows the
+**replacement date** (e.g. `2 Nov 2026`) instead of the approval timestamp. The steps before it are
+unchanged: *Request Submitted* keeps the requested-at stamp, *Under Review* keeps the reviewed-at
+stamp (or `—`). The date is rendered from the `Y-m-d` string with the page's own `formatDate()`
+(string split + month lookup), so there is no `new Date(...)` and no UTC-midnight day shift.
+
+**C5 — the reveal exception.** Opening this page with `?notif-hl=r<id>` (the home page's
+Pending/Approved/**Completed** badge) still jumps to the row's page — and now, if the row is
+missing **only** because *Exclude Completed* is ticked, the page un-ticks that toggle for you,
+shows the row and saves the visible state so the filter bar cannot lie. The toggle is touched
+**only** when it is the sole cause: an active status filter, a search term or a week filter keeps
+the existing toast ("That request is hidden by your current filters.") and changes nothing.
+
+**Payload.** The row's `status` is now the **effective** status from the shared
+`ReplacementRequestMapper::effectiveStatus()` — completed rows therefore also appear under the
+existing **Completed** status filter and behave as a decided row everywhere (no cancel button, the
+Completed dot colour).
+
+**Receipts.** `ReplacementHistoriesTest` 9/9 (approved + yesterday → `Completed` **and** the stored
+status still `approved` **and** zero audit rows written; approved + today/tomorrow → `Approved`).
+Browser (disposable testing DB): the badge click lands here, the row is revealed with the toggle
+un-ticked, `Completed` in the row badge and `excludeCompleted: false` persisted; with a `Pending`
+status filter set instead, the toggle stays ticked and the toast appears.
+
 ## 2026-11-03 — arrival page-jump for `?notif-hl=r<id>` (replacement-home-status-badges D6)
 
 The Replacement Arrangement page now links a Pending/Approved badge to
