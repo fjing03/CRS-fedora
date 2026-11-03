@@ -1,3 +1,75 @@
+## 2026-11-03 — the row keeps its request status (badges, not disappearance)
+
+SDD lane `.sdd/changes/replacement-home-status-badges/` — the user's nine locked decisions
+(D1–D9), implemented as approved.
+
+**D1 — the reversal.** A conflicted occurrence used to vanish from this table the moment its
+request went **pending** or **approved** (an agent fix from 2026-10-11, never a user
+ruling). It now **stays**, and its Action cell carries the request's state. Rejected and
+cancelled rows were already returning; they are unchanged in that respect.
+
+**D2 — the Action cell matrix.**
+
+| Newest request | Action cell | Days Left | Sort group | Click |
+|---|---|---|---|---|
+| none | Arrange Replacement | real countdown | needs action | arrangement page |
+| `pending` | **Pending** badge (a real `<a>`) | `—` | handled | My Requests, `?notif-hl=r<id>` |
+| `approved` | **Approved** badge (a real `<a>`) | `—` | handled | My Requests, `?notif-hl=r<id>` |
+| `rejected` | muted **Rejected** label **stacked above** the Arrange button | real | needs action | the button → arrangement page |
+| `cancelled` | muted **Cancelled** label **stacked above** the Arrange button | real | needs action | the button → arrangement page |
+
+The label above the button is **not** clickable (one target in a 150 px cell). The destination
+lives in one helper (`requestHref(c)`) so the planned one-table merge edits a single line.
+
+**D3 — no Completed state.** Nothing in the app writes `completed`; this lane does not invent
+one. The handled predicate is deliberately "not rejected/cancelled", so a future fifth state
+degrades safely without being advertised.
+
+**D4 — three strings only.** The subtitle, the guide item ("**Track progress** — …") and the
+empty state ("No classes currently need attention."). The three summary cards are untouched
+and remain conflict totals.
+
+**D5 — quick view + cards.** A handled row's footer button becomes **View Request** (same
+destination, label in its own span so the icon survives), the modal gains a **Replacement
+Status** row, and the mobile card shows the same badge — its tap goes to My Requests.
+
+**D6 — the page-jump lives in My Requests only** (see that changelog). `applyNotifHighlight`
+and the bell are untouched.
+
+**D7/D8 — days + order.** A handled row shows `—` in Days Left, but the sort key still reads
+the real date, so a row does not jump when it becomes handled. Rows that need action come
+first; the chosen column sorts **within** each group (the group key is the first branch of
+the existing comparator — a pre-sort would be undone by the column comparator).
+
+**D9 — the holiday keeps its cause.** The approval flow stamps an `official_event` exception
+when the occurrence had none. On a calendar-holiday occurrence that stamp no longer rewrites
+the cause: the row keeps **Public Holiday**. Trade-off (accepted): a lecturer who deliberately
+chose "Official Event" for a holiday week also reads "Public Holiday" — the two cases share
+one enum value and cannot be told apart in the data.
+
+**Payload.** `ReplacementHome` now loads the **newest** request per occurrence in every
+status (`orderBy submitted_at, id` → keyed map, last wins) and adds `requestId` +
+`requestStatus` to every row; the row still exists only when the occurrence really is
+conflicted. No schema change, no migration, no demo-DB write.
+
+**Shared builders.** `HtmlBuilder.replacementHomeRow/Card` gained **optional** callbacks
+(`isHandled`, `actionCell`, `statusBadge`) whose defaults reproduce today's output — the
+legacy mock template renders unchanged.
+
+**Receipts.** `ReplacementHomeTest` **10/10** (the old hide test became
+`test_home_keeps_occurrences_with_an_active_request_and_attaches_its_status`, plus newest-request,
+holiday-precedence and null-status cases); the full suite and the read-only browser spec are
+quoted in the SDD review log. Browser, live on `:8000` as 5425: two handled rows
+(`?notif-hl=r26`, `?notif-hl=r27`) carry a **Pending** badge and `—`, three needs-action rows
+keep their Arrange button and sit **first**, the badge lands on My Requests and the matching
+`tr[data-id]` pulses (`bookable-flash` observed 662 ms after arrival), the 390 px card badges
+navigate, and the quick view reads **View Request** + a *Replacement Status* row.
+
+**Honest gap:** the page-jump's *page 2* case cannot be receipted on this dataset — it needs
+more than 10 requests for one lecturer and the demo user has 4. The navigation + highlight
+half is receipted automatically; the page-flip itself is verified by reading
+`jumpToRequestRow` and remains a named manual path until a lecturer has >10 rows.
+
 ## 2026-11-02 (user-ordered, temporary) — the "Just cancelled" chip is switched OFF pending a recency rule
 
 **Why.** The chip says **"Just"** but has no time limit: its `sessionStorage`

@@ -62,22 +62,22 @@ class ReplacementHome extends Component
         $holidays = collect($this->holidaysForJs())
             ->keyBy(fn (array $h): string => $h['week'].':'.$h['dayIndex']);
 
-        // D1 — one active request per block occurrence: an occurrence with a
-        // pending/approved request is already being handled (it returns here
-        // if the request is rejected or cancelled).
-        $activeRequests = ReplacementRequest::query()
+        /* replacement-home-status-badges D1 (2026-11-03, the user's reversal of
+           the 2026-10-11 hide): the occurrence stays in the table once it is
+           arranged — the row carries the request's status so the Action cell can
+           show a Pending/Approved badge or a Rejected/Cancelled label. The map
+           holds the NEWEST request per occurrence REGARDLESS of status (a
+           rejected/cancelled row needs the label too); the ordered keyBy keeps
+           the last row written, i.e. the newest. */
+        $latestRequests = ReplacementRequest::query()
             ->whereIn('class_session_id', $sessions->pluck('id'))
-            ->whereIn('status', ['pending', 'approved'])
-            ->get(['class_session_id', 'week_number'])
+            ->orderBy('submitted_at')->orderBy('id')
+            ->get(['id', 'class_session_id', 'week_number', 'status', 'submitted_at'])
             ->keyBy(fn (ReplacementRequest $r): string => $r->class_session_id.':'.$r->week_number);
 
         $rows = [];
         foreach ($sessions as $session) {
             for ($week = 1; $week <= $weeks; $week++) {
-                if ($activeRequests->has($session->id.':'.$week)) {
-                    continue;
-                }
-
                 $exception = $exceptions->get($session->id.':'.$week);
                 $holiday = $holidays->get($week.':'.$session->day_of_week);
 
@@ -86,11 +86,24 @@ class ReplacementHome extends Component
                     // ('Annual Leave', 'Medical Leave', …) so the designed
                     // reason badges render exactly as frozen.
                     $reason = self::titleCase((string) $exception->reason);
+
+                    /* D9: the approval flow stamps `official_event` when no
+                       exception existed (ApproveRequest::releaseOriginal). On a
+                       calendar-holiday occurrence that stamp must NOT rewrite the
+                       cause — the stamp is a consequence of the arrangement.
+                       Trade-off (documented): a lecturer who DELIBERATELY chose
+                       "Official Event" for a holiday week also reads "Public
+                       Holiday"; the two cases share one enum value. */
+                    if ($holiday !== null && (string) $exception->reason === 'official_event') {
+                        $reason = 'Public Holiday';
+                    }
                 } elseif ($holiday !== null) {
                     $reason = 'Public Holiday';
                 } else {
                     continue; // normal occurrence — the home lists conflicted classes only
                 }
+
+                $latest = $latestRequests->get($session->id.':'.$week);
 
                 $date = $startDate->copy()->addWeeks($week - 1)->addDays((int) $session->day_of_week);
 
@@ -121,6 +134,12 @@ class ReplacementHome extends Component
                         ->values()
                         ->all(),
                     'conflictReason' => $reason,
+                    /* D1/D2 — the occurrence's newest request, for the Action
+                       cell (badge vs label) and the quick view. NULL = the row
+                       still needs an arrangement. No `completed` state exists
+                       in this lane (D3). */
+                    'requestId' => $latest !== null ? (int) $latest->id : null,
+                    'requestStatus' => $latest !== null ? (string) $latest->status : null,
                 ];
             }
         }

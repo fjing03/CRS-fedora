@@ -205,28 +205,34 @@ final class ReplacementHomeTest extends TestCase
         ]);
     }
 
-    public function test_home_hides_occurrences_with_an_active_request(): void
+    public function test_home_keeps_occurrences_with_an_active_request_and_attaches_its_status(): void
     {
-        // D1 — one active request per block occurrence: a pending (or approved)
-        // request covers the occurrence, so it leaves the "needs arrangement"
-        // list; a rejected/cancelled one frees it again.
-        // Cover EVERY day-1 session of the lecturer — the PH row surfaces per
-        // session, and the pending request must suppress each of them.
+        // D1 (replacement-home-status-badges, 2026-11-03 — the user's reversal of
+        // the 2026-10-11 hide): an occurrence with a pending/approved request
+        // KEEPS its row; the row carries the request's id + status so the Action
+        // cell can render the badge. Rejected/cancelled rows stay too (the label
+        // above the restored Arrange button).
+        $requestIds = [];
         $seq = 0;
         foreach (ClassSession::query()->where('lecturer_id', $this->lecturerA->id)->get() as $session) {
-            ReplacementRequest::create([
+            $requestIds[$session->id] = ReplacementRequest::create([
                 'semester_id' => $this->semester->id, 'proposer_id' => $this->lecturerA->id,
                 'class_session_id' => $session->id, 'week_number' => 5,
                 'replacement_time_slot_id' => $this->createSlot(5, $seq++)->id,
                 'status' => 'pending', 'submitted_at' => now(),
-            ]);
+            ])->id;
         }
 
         $this->componentFor($this->lecturerA)
-            ->assertViewHas('payload', function (array $payload): bool {
-                $this->assertFalse(collect($payload['conflictedClasses'])->contains(
+            ->assertViewHas('payload', function (array $payload) use ($requestIds): bool {
+                $week5 = collect($payload['conflictedClasses'])->filter(
                     fn (array $r): bool => $r['week'] === 5,
-                ), 'a pending request covers the week-5 occurrence');
+                );
+                $this->assertNotEmpty($week5, 'a pending request KEEPS the week-5 occurrence on the list (D1)');
+                $week5->each(function (array $r) use ($requestIds): void {
+                    $this->assertSame('pending', $r['requestStatus']);
+                    $this->assertSame($requestIds[$r['sessionId']], $r['requestId'], 'the row carries its own request id');
+                });
 
                 return true;
             });
@@ -234,9 +240,93 @@ final class ReplacementHomeTest extends TestCase
         ReplacementRequest::query()->update(['status' => 'rejected', 'decided_at' => now()]);
         $this->componentFor($this->lecturerA)
             ->assertViewHas('payload', function (array $payload): bool {
-                $this->assertTrue(collect($payload['conflictedClasses'])->contains(
+                $week5 = collect($payload['conflictedClasses'])->filter(
                     fn (array $r): bool => $r['week'] === 5,
-                ), 'a rejected request frees the occurrence back onto the list');
+                );
+                $this->assertNotEmpty($week5, 'a rejected request also keeps the row — now arrangeable again (D2)');
+                $week5->each(fn (array $r) => $this->assertSame('rejected', $r['requestStatus']));
+
+                return true;
+            });
+    }
+
+    public function test_home_reports_the_newest_request_for_the_occurrence(): void
+    {
+        // The badge/label reads the NEWEST request (greatest submitted_at, tie-
+        // break id) — a rejected attempt followed by a fresh pending one must
+        // show "Pending", not "Rejected".
+        $session = ClassSession::query()
+            ->where('lecturer_id', $this->lecturerA->id)
+            ->where('venue_id', $this->venue->id)
+            ->firstOrFail();
+
+        ReplacementRequest::create([
+            'semester_id' => $this->semester->id, 'proposer_id' => $this->lecturerA->id,
+            'class_session_id' => $session->id, 'week_number' => 5,
+            'replacement_time_slot_id' => $this->createSlot(5, 0)->id,
+            'status' => 'rejected', 'submitted_at' => now()->subDay(), 'decided_at' => now()->subDay(),
+        ]);
+        $pending = ReplacementRequest::create([
+            'semester_id' => $this->semester->id, 'proposer_id' => $this->lecturerA->id,
+            'class_session_id' => $session->id, 'week_number' => 5,
+            'replacement_time_slot_id' => $this->createSlot(5, 1)->id,
+            'status' => 'pending', 'submitted_at' => now(),
+        ]);
+
+        $this->componentFor($this->lecturerA)
+            ->assertViewHas('payload', function (array $payload) use ($session, $pending): bool {
+                $row = collect($payload['conflictedClasses'])->first(
+                    fn (array $r): bool => $r['sessionId'] === (int) $session->id && $r['week'] === 5,
+                );
+                $this->assertNotNull($row);
+                $this->assertSame('pending', $row['requestStatus'], 'the newest request wins, not the first one written');
+                $this->assertSame((int) $pending->id, $row['requestId']);
+
+                return true;
+            });
+    }
+
+    public function test_home_prefers_the_public_holiday_reason_over_the_official_event_stamp(): void
+    {
+        // D9: the approval flow stamps `official_event` when the occurrence had
+        // no exception. On a calendar-holiday occurrence that stamp must not
+        // rewrite the cause — the stamp is a consequence of the arrangement.
+        $session = ClassSession::query()
+            ->where('lecturer_id', $this->lecturerA->id)
+            ->where('venue_id', $this->venue->id)
+            ->firstOrFail();
+
+        ClassException::create([
+            'class_session_id' => $session->id, 'week_number' => 5, 'reason' => 'official_event',
+        ]);
+        ReplacementRequest::create([
+            'semester_id' => $this->semester->id, 'proposer_id' => $this->lecturerA->id,
+            'class_session_id' => $session->id, 'week_number' => 5,
+            'replacement_time_slot_id' => $this->createSlot(5, 0)->id,
+            'status' => 'approved', 'submitted_at' => now(), 'decided_at' => now(),
+        ]);
+
+        $this->componentFor($this->lecturerA)
+            ->assertViewHas('payload', function (array $payload) use ($session): bool {
+                $row = collect($payload['conflictedClasses'])->first(
+                    fn (array $r): bool => $r['sessionId'] === (int) $session->id && $r['week'] === 5,
+                );
+                $this->assertNotNull($row, 'an approved occurrence keeps its row');
+                $this->assertSame('Public Holiday', $row['conflictReason'], 'the holiday is the cause; official_event is the consequence');
+                $this->assertSame('approved', $row['requestStatus']);
+
+                return true;
+            });
+    }
+
+    public function test_home_rows_without_a_request_carry_null_status(): void
+    {
+        $this->componentFor($this->lecturerA)
+            ->assertViewHas('payload', function (array $payload): bool {
+                $row = collect($payload['conflictedClasses'])->first();
+                $this->assertNotNull($row);
+                $this->assertNull($row['requestId'], 'a never-arranged occurrence has no request');
+                $this->assertNull($row['requestStatus']);
 
                 return true;
             });

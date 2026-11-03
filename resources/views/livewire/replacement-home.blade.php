@@ -191,7 +191,7 @@
     @include('partials.page-data-script', ['payload' => $payload])
 
         <!-- ─── Page Header ─── -->
-        @include('partials.ui-page-header', ['title' => 'Replacement Arrangement', 'description' => 'The following classes require replacement arrangements. Select a class to submit a replacement request.'])
+        @include('partials.ui-page-header', ['title' => 'Replacement Arrangement', 'description' => 'The following classes have conflicts. Arrange a replacement for the ones that still need one, or click a status badge to open its request.'])
 
         @include('partials.ui-guide-block', [
             'guideTitle' => 'How to use this page',
@@ -199,7 +199,7 @@
                 '<strong>Sort</strong> — click any column header to sort ascending/descending',
                 '<strong>Search</strong> — type in the search box to filter by course code or name',
                 '<strong>Hover headers</strong> — hover a column name to see what it means',
-                '<strong>Start arranging</strong> — click the Action button on a row to begin the replacement process',
+                '<strong>Track progress</strong> — a Pending or Approved badge opens that request in My Requests; a Rejected or Cancelled label means you can arrange again',
                 '<strong>Week filter</strong> — use the week navigator to view conflicts for a specific week',
             ]
         ])
@@ -240,7 +240,7 @@
         </div>
 
         <!-- ─── Empty State (above the summary; summary auto-hides when the view is empty) ─── -->
-        @include('partials.ui-empty-state', ['title' => 'No classes currently require replacement arrangements.', 'text' => 'Try adjusting your search or filter criteria.'])
+        @include('partials.ui-empty-state', ['title' => 'No classes currently need attention.', 'text' => 'Try adjusting your search or filter criteria.'])
 
         <!-- ─── Summary Dashboard (own-records scope — the table lists only
               the logged-in lecturer's conflicted classes) ─── -->
@@ -283,7 +283,14 @@
                 justify-content: space-between !important;
                 width: 100% !important;
             }
-        </style>
+        
+        /* replacement-home-status-badges (2026-11-03): the badge behaves like a
+           link (D2); the ended label stacks ABOVE the Arrange button. */
+        .badge-link { text-decoration: none; cursor: pointer; }
+        .badge-link:hover { filter: brightness(1.08); }
+        .badge-link:focus-visible { outline: 2px solid currentColor; outline-offset: 2px; }
+        .action-stack { display: inline-flex; flex-direction: column; align-items: flex-end; gap: 4px; }
+</style>
         <div class="modal-overlay" id="quickViewModal" onclick="if(event.target===this)hideQuickView()">
             <div class="modal" style="max-width:500px">
                 <div class="modal-header">
@@ -295,7 +302,7 @@
                     <button class="btn-close-modal" onclick="hideQuickView()">Close</button>
                     <button class="btn-action" id="qvArrangeBtn" onclick="qvArrange()">
                         <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
-                        Arrange Replacement
+                        <span id="qvArrangeLabel">Arrange Replacement</span>
                     </button>
                 </div>
             </div>
@@ -330,6 +337,48 @@
                 'Other': 'badge-other'
             };
             return map[reason] || '';
+        }
+
+        /* ─── replacement-home-status-badges (2026-11-03) ──────────────────
+           D1/D2: a row whose occurrence already has a request keeps its place;
+           the Action cell carries the request's status. D3: no `completed`
+           state exists in this lane — the handled predicate is deliberately
+           "not rejected/cancelled", so a future fifth state degrades safely
+           without being advertised. */
+        function isHandled(c) {
+            return !!c.requestStatus && c.requestStatus !== 'rejected' && c.requestStatus !== 'cancelled';
+        }
+        function statusLabel(s) { return s.charAt(0).toUpperCase() + s.slice(1); }
+        /* §7.2 — the ONE destination helper: the later one-table merge edits
+           this line instead of chasing scattered URLs. */
+        function requestHref(c) { return '/my-request-history-ui?notif-hl=r' + encodeURIComponent(c.requestId); }
+
+        function statusBadge(c) {
+            if (!isHandled(c)) return '';
+            /* an ANCHOR, not a button — navigation, keyboard, middle-click and
+               the URL come free; stopPropagation keeps the row's quick view
+               from opening on top of the jump. */
+            return '<a class="badge badge-link status-' + c.requestStatus + '" href="' + requestHref(c) +
+                   '" onclick="event.stopPropagation()" data-tip="Open this request in My Requests">' +
+                   statusLabel(c.requestStatus) + '</a>';
+        }
+
+        /* The Arrange button markup copied VERBATIM from
+           HtmlBuilder.replacementHomeRow (ui-common.js) — the SVG included — so
+           the row button and the shared default cannot drift. */
+        var ARRANGE_BUTTON_HTML = '<button class="btn-action" onclick="event.stopPropagation(); goToReplacementFor(\'__SID__\',\'__WEEK__\', \'replacement-home\')"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg> Arrange Replacement</button>';
+
+        function actionCell(c) {
+            if (isHandled(c)) return statusBadge(c);
+            var arrange = ARRANGE_BUTTON_HTML
+                .replace('__SID__', c.sessionId)
+                .replace('__WEEK__', c.week);
+            /* D2: rejected/cancelled — the muted label STACKS ABOVE the restored
+               Arrange button and is not clickable (the button is the target). */
+            var ended = (c.requestStatus === 'rejected' || c.requestStatus === 'cancelled')
+                ? '<span class="badge status-' + c.requestStatus + '">' + statusLabel(c.requestStatus) + '</span>'
+                : '';
+            return '<span class="action-stack">' + ended + arrange + '</span>';
         }
 
         function formatClassBlock(c) {
@@ -379,6 +428,14 @@
 
             if (sortState.field) {
                 filtered.sort(function(a, b) {
+                    /* D8 (replacement-home-status-badges): rows that still need
+                       action come first, handled rows after — the group key is
+                       the FIRST branch so the chosen column only sorts WITHIN a
+                       group. A pre-sort would be undone here: the column
+                       comparator reorders across groups. Deliberate: the group
+                       order ignores asc/desc. */
+                    var na = isHandled(a) ? 1 : 0, nb = isHandled(b) ? 1 : 0;
+                    if (na !== nb) return na - nb;
                     var va, vb;
                     if (sortState.field === 'date') {
                         va = a.date;
@@ -440,7 +497,9 @@
                         daysLeft: daysLeft,
                         urgencyClass: urgencyClass,
                         formatClassBlock: formatClassBlock,
-                        badgeClass: badgeClass
+                        badgeClass: badgeClass,
+                        isHandled: isHandled,
+                        actionCell: actionCell
                     });
                     cells.forEach(function(cell) {
                         const td = document.createElement('td');
@@ -554,14 +613,26 @@
                 card.className = 'replacement-card';
                 card.setAttribute('role', 'button');
                 card.setAttribute('tabindex', '0');
-                card.addEventListener('click', function() { goToReplacementWith(c.sessionId, c.week); });
+                /* D5: a handled card's tap goes to its request (the same
+                   destination as the badge); an unhandled one still starts the
+                   arrangement. */
+                card.addEventListener('click', function() {
+                    if (isHandled(c)) { window.location.href = requestHref(c); return; }
+                    goToReplacementWith(c.sessionId, c.week);
+                });
                 card.addEventListener('keydown', function(e) {
-                    if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); goToReplacementWith(c.sessionId, c.week); }
+                    if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        if (isHandled(c)) { window.location.href = requestHref(c); return; }
+                        goToReplacementWith(c.sessionId, c.week);
+                    }
                 });
                 card.innerHTML = HtmlBuilder.replacementHomeCard(c, {
                     daysLeft: daysLeft,
                     urgencyClass: urgencyClass,
-                    badgeClass: badgeClass
+                    badgeClass: badgeClass,
+                    isHandled: isHandled,
+                    statusBadge: statusBadge
                 });
                 container.appendChild(card);
             });
@@ -614,6 +685,11 @@
 
             qvCurrent = c;
 
+            /* D5: a handled row's footer button opens its request; the label
+               lives in its own span so the icon survives. */
+            var qvLabel = document.getElementById('qvArrangeLabel');
+            if (qvLabel) qvLabel.textContent = isHandled(c) ? 'View Request' : 'Arrange Replacement';
+
             var daysLeftVal = daysLeft(c.date);
             var urgencyCls = urgencyClass(daysLeftVal); /* single vocabulary: table's urgency-high/mid/low */
             var wn = getWeekNumber(c.date);
@@ -628,7 +704,13 @@
                     { key: 'status', label: 'Status', html: DetailModal.section('Status',
                         DetailModal.row('Status', '<span class="urgency-badge ' + urgencyCls + '">' + daysLeftLabel(daysLeftVal) + '</span>') +
                         DetailModal.row('Status Description', daysLeftVal < 0 ? 'Class date has passed — you can still arrange a replacement in any upcoming week' : daysLeftVal <= 3 ? 'Urgent — arrange a replacement soon' : daysLeftVal <= 7 ? 'Approaching — plan a replacement' : 'Within normal lead time') +
-                        DetailModal.row('Conflict Reason', '<span class="badge ' + badgeClass(c.conflictReason) + '">' + c.conflictReason + '</span>')
+                        DetailModal.row('Conflict Reason', '<span class="badge ' + badgeClass(c.conflictReason) + '">' + c.conflictReason + '</span>') +
+                        /* D5: the real request state, not a guess. Only when the
+                           occurrence has a request (a never-arranged row has
+                           nothing to report). */
+                        (c.requestStatus
+                            ? DetailModal.row('Replacement Status', '<span class="badge status-' + c.requestStatus + '">' + statusLabel(c.requestStatus) + '</span>')
+                            : '')
                     ) },
                     { key: 'class', label: 'Class', html: DetailModal.section('Class',
                         DetailModal.row('Subject Code', c.code, { strong: true }) +
@@ -654,6 +736,15 @@
         }
 
         function qvArrange() {
+            if (qvCurrent && isHandled(qvCurrent)) {
+                /* D5: same destination as the badge. Capture BEFORE the hide
+                   (hideQuickView nulls qvCurrent — the qv-arrange-null-order
+                   lesson). */
+                var href = requestHref(qvCurrent);
+                hideQuickView();
+                window.location.href = href;
+                return;
+            }
             if (qvCurrent) {
                 /* capture-then-hide (SDD qv-arrange-null-order-fix D1: the
                    frozen template :588–594 shape) — hideQuickView() nulls

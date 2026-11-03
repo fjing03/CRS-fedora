@@ -2482,16 +2482,27 @@ class HtmlBuilder {
         var typeLabel = UiLabels.classType(c.type, 'code');
         var days = opts.daysLeft(c.date);
         var urgencyCls = opts.urgencyClass(days);
+        /* replacement-home-status-badges D7 (2026-11-03): a HANDLED row shows an
+           em dash; the page's sort key still reads the real date, so the order
+           does not jump when a row becomes handled. `opts.isHandled` is optional
+           — the legacy mock template keeps today's output. */
+        var handled = opts.isHandled ? opts.isHandled(c) : false;
+        var daysText = handled ? '\u2014' : daysLeftLabel(days);
+        /* D1/D2: the page supplies the Action cell (badge / label+button); the
+           default stays today's Arrange button for the mock template. */
+        var actionHtml = opts.actionCell
+            ? opts.actionCell(c)
+            : '<button class="btn-action" onclick="event.stopPropagation(); goToReplacementFor(\'' + c.sessionId + '\',\'' + c.week + '\', \'replacement-home\')"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg> Arrange Replacement</button>';
         return [
             { html: opts.index, cls: 'col-no' },
             { html: '<span class="cell-code">' + c.code + '</span><span class="cell-name">' + c.name + ' <span class="cell-type-label">(' + typeLabel + ')</span></span>', cls: 'col-code' },
             { html: opts.formatClassBlock(c), cls: 'col-original' },
-            { html: '<span class="' + urgencyCls + '">' + daysLeftLabel(days) + '</span>', cls: 'col-urgency' },
+            { html: '<span class="' + urgencyCls + '">' + daysText + '</span>', cls: 'col-urgency' },
             { html: c.venue, cls: 'col-venue' },
             { html: String(c.totalStudents), cls: 'col-students' },
             { html: c.cohorts.join('<br>'), cls: 'col-cohort' },
             { html: '<span class="badge ' + opts.badgeClass(c.conflictReason) + '">' + c.conflictReason + '</span>', cls: 'col-reason' },
-            { html: '<button class="btn-action" onclick="event.stopPropagation(); goToReplacementFor(\'' + c.sessionId + '\',\'' + c.week + '\', \'replacement-home\')"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg> Arrange Replacement</button>', cls: 'col-action' }
+            { html: actionHtml, cls: 'col-action' }
         ];
     }
 
@@ -2499,8 +2510,13 @@ class HtmlBuilder {
         var typeLabel = UiLabels.classType(c.type, 'long');
         var days = opts.daysLeft(c.date);
         var urgencyCls = opts.urgencyClass(days);
+        /* D5/D7 (optional, so the mock template is untouched): the request
+           badge rides the header and a handled row's days pill shows an em dash. */
+        var statusBadge = opts.statusBadge ? opts.statusBadge(c) : '';
+        var daysText = (opts.isHandled && opts.isHandled(c)) ? '\u2014' : daysLeftLabel(days);
         return '<div class="rc-header">' +
             '<span class="rc-code">' + c.code + ' <span class="cell-type-label">(' + typeLabel + ')</span></span>' +
+            statusBadge +
             '<span class="badge ' + opts.badgeClass(c.conflictReason) + '">' + c.conflictReason + '</span>' +
             '</div>' +
             '<div class="rc-body">' +
@@ -2509,7 +2525,7 @@ class HtmlBuilder {
             DateHelper.to12h(c.timeStart) + ' – ' + DateHelper.to12h(c.timeEnd) + ' · ' + c.venue +
             '</div>' +
             '<div class="rc-footer">' +
-            '<span class="' + urgencyCls + '">' + daysLeftLabel(days) + '</span>' +
+            '<span class="' + urgencyCls + '">' + daysText + '</span>' +
             '<span>' + c.cohorts.join(', ') + '</span>' +
             '</div>';
     }

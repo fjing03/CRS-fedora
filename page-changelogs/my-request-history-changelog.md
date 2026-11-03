@@ -1,3 +1,23 @@
+## 2026-11-03 — arrival page-jump for `?notif-hl=r<id>` (replacement-home-status-badges D6)
+
+The Replacement Arrangement page now links a Pending/Approved badge to
+`/my-request-history-ui?notif-hl=r<request_id>`. This page could already flash a targeted row
+(the shared highlighter), but it could not bring that row **onto the visible page**.
+
+- The id is captured **synchronously** at the top of this page's own `DOMContentLoaded`
+  handler — the shared highlighter strips `notif-hl` from the URL at 150 ms, and this page's
+  first render sits behind a 400 ms skeleton, so reading it later would always be `null`.
+- After the **first** render, `jumpToRequestRow(id)` finds the row in `currentFiltered`,
+  flips `pageState.currentPage` and re-renders. If an active filter hides the row it shows the
+  existing toast ("That request is hidden by your current filters.") instead of doing nothing.
+- The user's filters are **never** changed — the page flip is the only state touched.
+- `applyNotifHighlight` and the notification bell are untouched (that lane is in flight).
+
+Receipt: a badge click on `/replacement-home-ui` lands here and the matching `tr[data-id="27"]`
+pulses (`bookable-flash`, observed 662 ms after arrival, URL param stripped). The *page-2*
+branch needs more than 10 requests for one lecturer — not available on the demo data, so it is
+a named manual path, not a claimed automated receipt.
+
 # Changelog — Lecturer My Request History
 
 ## 2026-11-02 — visible demo reminder above the timeline rail

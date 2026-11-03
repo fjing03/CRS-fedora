@@ -319,6 +319,14 @@
            exported to window at the bottom. Everything else is the frozen
            UI design, byte-for-byte except the BRIDGE PATCH marks. */
         document.addEventListener('DOMContentLoaded', function () {
+        /* D6 (replacement-home-status-badges, 2026-11-03): a home badge arrives
+           as ?notif-hl=r<request_id>. Capture it SYNCHRONOUSLY here — the shared
+           highlighter strips the param at 150 ms and this page's first render
+           sits behind a 400 ms skeleton, so reading it later would be null. */
+        var pendingHl = null;
+        var hlRaw = new URLSearchParams(location.search).get('notif-hl');
+        if (hlRaw && hlRaw.charAt(0) === 'r') pendingHl = hlRaw.slice(1);
+
         /* ── Real-data bridge — swap the mock's data source for the backend. ── */
         MockData.semester = window.PAGE_DATA.semester;
         MockData.holidays = window.PAGE_DATA.holidays;
@@ -387,6 +395,17 @@
                 chips.push('<button type="button" class="filter-chip filter-chip-clear-all" data-tip="Remove every active filter" onclick="clearAllFilters()">Clear all</button>');
             }
             container.innerHTML = chips.length > 0 ? '<span class="filter-chips-label">Active Filters:</span>' + chips.join('') : '';
+        }
+
+        /* D6: bring the referenced row onto the right PAGE — never touch the
+           user's filters. A filtered-out row gets the honest toast, not a
+           silently ignored click. Called once, after the first render. */
+        function jumpToRequestRow(id) {
+            if (!id) return;
+            var idx = currentFiltered.findIndex(function(r) { return String(r.id) === String(id); });
+            if (idx < 0) { toast.show('That request is hidden by your current filters.', null); return; }
+            var page = Math.floor(idx / rowsPerPage) + 1;
+            if (page !== pageState.currentPage) { pageState.currentPage = page; renderTable(); }
         }
 
         function renderTable() {
@@ -912,7 +931,13 @@
             document.getElementById('semesterChip').textContent = MockData.semester.chipText;
 
             SkeletonLoader.showSummary();
-            SkeletonLoader.with(function() { renderTable(); SkeletonLoader.hideSummary(); }, document.getElementById('tableBody'), 10, 400);
+            SkeletonLoader.with(function() {
+                renderTable();
+                SkeletonLoader.hideSummary();
+                /* D6: after the FIRST render — the row exists only once the table
+                   is painted (the highlight itself is the shared flash). */
+                if (pendingHl) { jumpToRequestRow(pendingHl); pendingHl = null; }
+            }, document.getElementById('tableBody'), 10, 400);
             updateWeekArrowState();
             initWeekKeyboardShortcuts();
 
