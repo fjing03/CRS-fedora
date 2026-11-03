@@ -23,6 +23,7 @@ yarn-error.log
 /.vscode
 /.zed
 issues/std timetable.png
+issues/ugly toast message.png
 backups/
 .commandcode/
 dataset/import/*.csv -text
