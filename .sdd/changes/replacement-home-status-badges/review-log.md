@@ -57,3 +57,71 @@ contracts) + the code anchors (`ReplacementHome.php:66–90`, `ui-common.js:2481
 ### 🔴 Outstanding
 
 None.
+
+---
+
+## Round 2 (post-code verify) — 2026-11-03 · PASS
+
+Commit `a16727c`. Verified against the frozen `proposal.md` + `design.md`, D1–D9 one by one,
+on the tree (not on intent).
+
+### Verify — decision by decision
+
+| # | Verified in the code | Receipt |
+|---|---|---|
+| D1 | `ReplacementHome.php`: the `continue` is gone, `$latestRequests` replaces `$activeRequests`, every row carries `requestId`/`requestStatus` | `ReplacementHomeTest` keeps-with-status test; live rows 4–5 stay on the table |
+| D2 | `actionCell()` → badge `<a>` (handled) or `action-stack` with the ended label above the button | spec receipts 1 + 7; live `?notif-hl=r26` / `r27` |
+| D3 | no `completed` anywhere in the diff; the predicate is "not rejected/cancelled" | grep of the diff |
+| D4 | exactly three strings; the summary partial untouched | diff shows 3 string lines only |
+| D5 | `#qvArrangeLabel`, the *Replacement Status* row, the card tap/keydown branch, card badge | spec receipts 5 + 6 |
+| D6 | synchronous capture + `jumpToRequestRow()` once after the first render + toast fallback; `applyNotifHighlight` untouched | probe: flash observed 662 ms after arrival; see the gap below |
+| D7 | `daysText = handled ? '—' : …` in both builders; the comparator still reads `daysLeft(a.date)` | spec receipt 3 |
+| D8 | the group key is the first branch of the existing comparator | spec receipt 4 |
+| D9 | the override fires only for `official_event` on a holiday occurrence | `ReplacementHomeTest` holiday-precedence test |
+
+### 🔴 Fixed during apply
+
+- **The feature-test splice duplicated a block.** The rewrite replaced from the *first* match
+  of the old test name rather than the old test itself, so three existing tests appeared twice
+  (`Cannot redeclare …`). Removed the duplicate region; the file now holds 10 tests, each
+  unique.
+- **The page-local CSS anchor was wrong** (`    @section('page-styles')` vs the file's
+  unindented tag). The script asserts, so nothing was half-written; re-applied against the
+  real anchor.
+- **`.auth/staff-5425.json` was stale** for the ad-hoc probes (redirected to login). The
+  Playwright run regenerates it through the setup project — the spec is unaffected; the probe
+  was switched to a real login.
+
+### 🟡 Addressed
+
+- The Arrange button markup in the page is a **verbatim copy** of the shared builder's button
+  (`__SID__`/`__WEEK__` placeholders, SVG included). It is wrapped in `.action-stack` even
+  when no ended label exists — a uniform cell shape, no visual change (the stack collapses to
+  one child).
+- The browser spec went from six to **seven** receipts: one extra asserts that an actionable
+  row still offers *Arrange Replacement* and shows **no** *Replacement Status* row (the
+  no-regression half of D2/D5).
+
+### Browser receipt (live `:8000`, read-only, staff 5425)
+
+| # | Observed |
+|---|---|
+| 1 | two handled rows carry `Pending` anchors (`?notif-hl=r26`, `?notif-hl=r27`) and **no** Arrange button |
+| 2 | clicking one lands on `/my-request-history-ui`, `tr[data-id="27"]` present, `bookable-flash` observed **662 ms** after arrival, the `notif-hl` param stripped |
+| 3 | both handled rows read `—`; the three needs-action rows keep real countdowns |
+| 4 | the handled rows are rows **4–5** of 5 — after every needs-action row |
+| 5 | at 390 px the card header carries the badge and the tap navigates to My Requests |
+| 6 | the quick view on a handled row: footer **View Request**, modal contains *Replacement Status* + `Pending` |
+| 7 | an actionable row's quick view: footer **Arrange Replacement**, no status row |
+
+**D6's page-2 branch is NOT automatically receipted** — it needs >10 requests for one lecturer
+and the demo user has 4. Recorded as a named manual path in both changelogs, not claimed.
+
+### Gates
+`composer run lint:check` → passed · `vendor/bin/phpstan analyse --memory-limit=1G` → 0
+errors · `node --check public/js/ui-common.js` → ok · full suite
+(`DB_DATABASE=class_replacement_testing`) → **315 passed**, 1685 assertions (312 before this
+lane; −1 old hide test, +4 new) · spec **7/7** read-only.
+
+### 🔴 Outstanding
+None. Lane `applied`. **Nothing archived** (waiting for the user's word); nothing pushed.
