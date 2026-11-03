@@ -8,7 +8,7 @@
 **Status key:** `- [ ]` not done · `- [x]` verifiably done · 🔴 high · 🟡 medium · 🟢 low
 **Sources of truth (do not duplicate tasks here):**
 `docs/replacement-arrangement-pending-bugs.md` · `.sdd/changes/<lane>/tasks.md` ·
-`docs/viva-demo-runbook.md` · `prompts/extra tasks/README.md` · `prompts/PI-PROMPT-TEMPLATE.md`.
+`docs/viva-demo-runbook.md` · `prompts/extra tasks/README.md` · `prompts/general&reusable prompt references/PI-PROMPT-TEMPLATE.md`.
 This file only decides **when** and **in what order**.
 
 ---

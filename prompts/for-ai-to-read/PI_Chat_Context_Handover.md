@@ -174,6 +174,7 @@ date, and its files are dirty in the tree — see §3.
 | The requirements as the code sees them | `FR&NFR copy.md` (49 FR / 26 NFR, `v2026-11-02`; read-only without approval) |
 | What changed on a page, with dates | `page-changelogs/<page>-changelog.md` |
 | Lane history, design decisions, review logs | `.sdd/changes/` and `.sdd/archive/` |
+| Reusable prompt **templates** (paste-ready; no project state) | `prompts/general&reusable prompt references/` — `PI-PROMPT-TEMPLATE.md`, the two propose templates, the UI-page spec, the context-transfer prompt |
 | Demo-DB writes, restores, snapshots | `docs/demo-db-data-changes.md`, `backups/README.md` |
 | Viva runbook, queue/mail, known pending bugs | `docs/viva-demo-runbook.md`, `docs/queue-and-emails.md`, `docs/replacement-arrangement-pending-bugs.md` |
 | The next lane | `prompts/pi-replacement-merge-one-table.md` (the merged page; proposal frozen, `design.md` next) |

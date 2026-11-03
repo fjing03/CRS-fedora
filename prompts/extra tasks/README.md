@@ -8,7 +8,7 @@ folder is on the demo/critical path.
 1. **Do not start anything here unless the user names it** ("do the extra task …").
    A task sitting in this folder is *not* an instruction to implement it.
 2. Each file is a **paste-ready prompt** in the same style as
-   `prompts/PI-PROMPT-TEMPLATE.md`: goal, verified anchors, scope, non-goals,
+   `prompts/general&reusable prompt references/PI-PROMPT-TEMPLATE.md`: goal, verified anchors, scope, non-goals,
    acceptance checklist, landing steps.
 3. Line numbers are verified on the date in the header and **will drift** —
    re-verify the anchors before editing (the 2026-11-02 summary-cards prompt had
@@ -18,7 +18,7 @@ folder is on the demo/critical path.
 5. When a task ships: move its file to
    `prompts/completed prompt (Archieve)/` and add one evidence row to that
    folder's README (commit hashes + changelog). Ask the user first
-   (`prompts/PI-PROMPT-TEMPLATE.md` §10).
+   (`prompts/general&reusable prompt references/PI-PROMPT-TEMPLATE.md` §10).
 6. Never archive a file here just because it is old — parked ≠ done.
 
 ## Index

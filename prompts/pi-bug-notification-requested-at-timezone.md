@@ -33,7 +33,7 @@
   tip lines, the hover time.
 - `prompts/for-ai-to-read/AGENTS.md` (standing rules) + `my-coding-rules.md` +
   `CodingMAIN.md` §10 (conventions).
-- `prompts/PI-PROMPT-TEMPLATE.md` §5 (changelog), §7 (gates), §10 (archive ask).
+- `prompts/general&reusable prompt references/PI-PROMPT-TEMPLATE.md` §5 (changelog), §7 (gates), §10 (archive ask).
 
 ## 2. The evidence you are fixing (short form)
 

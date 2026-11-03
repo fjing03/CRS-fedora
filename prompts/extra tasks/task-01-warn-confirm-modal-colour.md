@@ -105,7 +105,7 @@ Selection", `:2256` "Submission CONFLICT" (stays **red**), and every other page.
    Stage only the two touched files + the changelog. **No push.**
 6. After shipping, the Viva copy (`CRS-demo`, `:8001`) can fast-forward and shows
    the same change — no migration, no database work. Then ask the user whether to
-   archive this file (`prompts/PI-PROMPT-TEMPLATE.md` §10).
+   archive this file (`prompts/general&reusable prompt references/PI-PROMPT-TEMPLATE.md` §10).
 
 ## Risks / notes
 
