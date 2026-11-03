@@ -18,7 +18,7 @@
 |---|---|
 | Branch / remotes | `fedora-backend`; `origin` = `fjing03/CRS-fedora.git`; `upstream` = `FjingXR/class-replacement-system` (**pull-only**) |
 | Push policy | **NEVER `git push`** — the user pushes. One commanded exception, 2026-11-02; afterwards the rule resumed. |
-| Unpushed commits | **22** (`origin/fedora-backend` = `06865f0`, 2026-11-03). Re-count: `git rev-list --count origin/fedora-backend..HEAD`. |
+| Unpushed commits | **79** (2026-11-03, after this session). Re-count: `git rev-list --count origin/fedora-backend..HEAD`. |
 | AI context layout | Root **`AGENTS.md`** is a bootstrap pointer → this folder holds `AGENTS.md`, `CodingMAIN.md` (the spec), `my-coding-rules.md` (quick rules), `FR&NFR copy.md` (read-only without the user's approval), this file, and `history/`. |
 | Servers | `:8000` = `CRS-fedora-backend` / **`class_replacement_fresh`** (dev). `:8001` = `../CRS-demo` / **`class_replacement_viva`** (viva twin, `APP_DEBUG=false`). `:8030` = disposable AI/E2E lane on `class_replacement_testing` only. |
 | Database trap | `class_replacement_demo` is the **older, empty** twin (0 requests) — not the viva DB. |
@@ -27,7 +27,7 @@
 | Ops trap | `opcache.enable_cli=On` with `revalidate_freq=180` → a long-running `artisan serve` can serve a `.php` file's old bytecode for ~3 min. Use **`scripts/dev-serve.sh [port]`** (kills that port, clears views, starts with `revalidate_freq=0`). |
 | Gates | `composer run lint:check` · `vendor/bin/phpstan analyse --memory-limit=1G` · full phpunit · `node --check` for JS. **Never** `composer run types:check` (crashes at 128M). |
 | Suite | Last full run **295/295** (2026-11-02). Re-run before quoting; no PHPUnit run has been done since. |
-| SDD lanes | **25 applied-not-archived** of 36 lane dirs (2026-11-03). Archive only on the user's word. |
+| SDD lanes | **39** lane dirs, **93** archived, **38** with a proposal (2026-11-03, after the merge lane's proposal froze). Archive only on the user's word. |
 | Language | **B1-level English only** — no other language, ever. |
 | Approval rule | Investigate first. **No code edit without the user's explicit per-task approval.** |
 
@@ -35,7 +35,25 @@
 
 ## 1. Latest session — 2026-11-03 (this one)
 
-**Landed (docs only, nothing pushed):**
+**Later in the same day — the merged replacement page (docs only, nothing pushed):**
+- The user finalised the **one-table** design: `/replacement-home-ui` becomes
+  **My Replacements** (one row per class occurrence, seven columns, status in the tab
+  label and as a badge, no HISTORY block, icon-only actions, five cards). Alias
+  `/my-request-history-ui` stays. Full record: `.sdd/changes/replacement-merge-one-table/explore-brief.md`.
+- **Static prototype** (discussion instrument, never staged, outside the repo):
+  `../ui-prototype/replacement-merged-preview.html` — loads the live `theme.css` from
+  `:8000`, so the dev server must be running to see real colours.
+- **Proposal frozen after 4 review rounds** (`ccaa7ba`, log in
+  `.sdd/changes/replacement-merge-one-table/review-log.md`): round 1 failed on the
+  cancel-path owner and an unsourced test inventory; round 3 failed on three unbucketed
+  test files; round 4 passed. Next batch: `design.md`.
+- **New implementing brief:** `prompts/pi-replacement-merge-one-table.md` — the merge lane's
+  PI prompt, written from the frozen proposal.
+- Reversals recorded the same day, so they are not re-done: the page says **Course** (a
+  `Subject` rename lasted an hour), **`Exclude COMPLETED Status`**, cohorts stack **one per
+  line**, and the toolbar count hides **below 1500 px**.
+
+**Landed earlier today (docs only, nothing pushed):**
 - Ruling **14** added below: a public-holiday class can never be cancelled.
 - Two implementing briefs committed, in dependency order:
   1. `prompts/pi-replacement-home-status-badges.md` — `0b11d36`. Keep a pending/approved
@@ -158,16 +176,21 @@ date, and its files are dirty in the tree — see §3.
 | Lane history, design decisions, review logs | `.sdd/changes/` and `.sdd/archive/` |
 | Demo-DB writes, restores, snapshots | `docs/demo-db-data-changes.md`, `backups/README.md` |
 | Viva runbook, queue/mail, known pending bugs | `docs/viva-demo-runbook.md`, `docs/queue-and-emails.md`, `docs/replacement-arrangement-pending-bugs.md` |
-| The two next lanes | `prompts/pi-replacement-home-status-badges.md` (first), `prompts/pi-request-completed-status.md` (after it) |
+| The next lane | `prompts/pi-replacement-merge-one-table.md` (the merged page; proposal frozen, `design.md` next) |
+| Lanes already landed | `prompts/pi-replacement-home-status-badges.md`, `prompts/pi-request-completed-status.md` |
+| The approved picture of the merged page | `../ui-prototype/replacement-merged-preview.html` (outside the repo, never staged) |
 | Superseded session diaries | `history/2026-10-31-to-2026-11-03-addenda.md` |
 
 ---
 
 ## 5. Open tasks
 
-1. **[AGENT, on the user's word]** Execute `prompts/pi-replacement-home-status-badges.md`,
-   then `prompts/pi-request-completed-status.md`, in that order, as two SDD lanes and two
-   commit series.
+1. ~~**[AGENT, on the user's word]** Execute `prompts/pi-replacement-home-status-badges.md`,
+   then `prompts/pi-request-completed-status.md`~~ — **both landed** (`a16727c`/`2e58547`,
+   `e2b2f4c`/`7d2bb9a`).
+1b. **[AGENT, on the user's word]** The merge lane `replacement-merge-one-table` — proposal
+   frozen, `design.md` next, then `specs/`, `tasks.md`, apply. Brief:
+   `prompts/pi-replacement-merge-one-table.md`.
 2. **[OTHER SESSION]** `.sdd/changes/notif-recipient-rulings/` — frozen proposal + batch-2
    design; apply pending.
 3. **[USER]** Confirm the viva date (anchored: week of 7 Dec 2026).
