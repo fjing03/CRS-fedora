@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\ReplacementRequest;
 use App\Models\TimeSlot;
 use App\Models\Venue;
+use App\Support\LocalTime;
 use Carbon\Carbon;
 use Carbon\CarbonInterface;
 use Illuminate\Support\Facades\DB;
@@ -35,25 +36,22 @@ use Illuminate\Support\Facades\DB;
 final class ReplacementRequestMapper
 {
     /**
-     * The DISPLAY timezone (user 2026-10-19): the app/db clock is UTC while
-     * the USER's clock is Asia/Kuala_Lumpur (+08) — Requested At renders the
-     * MYT form. Apply ONLY on the Requested At path (scoped per the user's
-     * go-ahead; the other timestamps stay reported-only).
+     * The DISPLAY timezone (user 2026-10-19). The TRUTH now lives in
+     * `App\Support\LocalTime` (2026-11-04); this constant is kept as the
+     * compatibility mirror so existing readers keep working.
      */
-    public const DISPLAY_TZ = 'Asia/Kuala_Lumpur';
+    public const DISPLAY_TZ = LocalTime::TZ;
 
     /** The MYT-form stamp — byte-shape identical with the previous UTC form. */
     public function stampDisplay(?CarbonInterface $stamp, string $format): ?string
     {
-        return $stamp === null
-            ? null
-            : $stamp->copy()->setTimezone(self::DISPLAY_TZ)->format($format);
+        return LocalTime::stamp($stamp, $format);
     }
 
     /** The MYT-form stamp — byte-shape identical with the previous UTC form. */
     public function requestedAtDisplay(CarbonInterface $stamp): string
     {
-        return $stamp->copy()->setTimezone(self::DISPLAY_TZ)->format('Y-m-d\TH:i:s');
+        return (string) LocalTime::stamp($stamp, 'Y-m-d\TH:i:s');
     }
 
     private const DAY_NAMES = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];

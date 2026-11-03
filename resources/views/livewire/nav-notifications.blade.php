@@ -32,15 +32,17 @@
     };
     /* notif-abstime-precision (F2, user-approved 2026-10-30): format the
        STORED timestamp directly — no now()−minutes reconstruction, no
-       second-truncation drift across poll cycles. */
+       second-truncation drift across poll cycles.
+       A/B (2026-11-04): the stored instant is UTC, the user's clock is MYT —
+       the conversion is LocalTime's, never a per-view offset. */
     $absTime = function ($at): string {
-        return $at ? $at->format('j M, g:i A') : '';
+        return (string) \App\Support\LocalTime::stamp($at, 'j M, g:i A');
     };
     /* SDD notif-new-request-ux T4: the multiline tip's dynamic Requested-at
        line — D8's abs with YEAR (`j M Y, g:i A`) + D9's lowercase verbose
        relative, both recomputed per render (the abstime-precision pattern). */
     $tipAbs = function ($at): string {
-        return $at ? $at->format('j M Y, g:i A') : '';
+        return (string) \App\Support\LocalTime::stamp($at, 'j M Y, g:i A');
     };
     $relLong = function ($at): string {
         if ($at === null) return '';

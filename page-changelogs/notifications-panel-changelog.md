@@ -1,3 +1,55 @@
+## 2026-11-04 — the panel stops printing UTC: one `LocalTime` helper owns the user's clock
+
+**Root cause.** `config/app.php` stores and computes in **UTC** (correct — changing it would shift
+`now()`, every stored row, the semester maths and the whole suite), but the panel formatted the
+stored instant with a raw `->format(...)`. So Request #26's tooltip read `2 Nov 2026, 11:00 AM`
+(UTC) while `/my-request-history-ui` — which already converted — read `7:00 PM` for the same
+request. The app clock and the user's clock differ by the +08 KL offset.
+
+**What changed (A + B1).**
+
+| File | Change |
+|---|---|
+| `app/Support/LocalTime.php` | **new** — the one user-facing clock: `TZ = 'Asia/Kuala_Lumpur'`, `stamp(?CarbonInterface, string $format): ?string` (copies, never mutates). Same house style as `App\Support\ReasonLabel` |
+| `app/Services/ReplacementRequestMapper.php` | `DISPLAY_TZ = LocalTime::TZ` (kept as the compatibility mirror), `stampDisplay()` and `requestedAtDisplay()` delegate → output **byte-identical**, so the PL queue, the API and the history page cannot detect it |
+| `resources/views/livewire/nav-notifications.blade.php` | the `$absTime` (chip tooltip) and `$tipAbs` (`Requested at:` tip line) closures delegate to `LocalTime`; `$relTime` / `$relLong` / `$minutesAgo` untouched — relative labels compare UTC with UTC and were already right |
+| `tests/Unit/LocalTimeTest.php` | **new** — 5 pins: the conversion, the short panel shape, `null` stays `null`, no caller mutation, and `DISPLAY_TZ === LocalTime::TZ` |
+
+**Scope decisions (user, 2026-11-04).**
+
+- **B2 rejected — `MyRequestHistory::requestRow()`'s `reviewedAt` stays raw UTC.** That file is
+  retired by the `replacement-merge-one-table` lane (design §2.2 "retires — no forwarder"; **T16**
+  deletes `app/Livewire/MyRequestHistory.php` + its blade, and the merged page has no *Reviewed At*
+  row at all), so the one-line fix would be churn on a file already scheduled for deletion.
+  Consequence, stated honestly: until T16 lands, that page's modal still prints the UTC instant —
+  for request 24 it shows *Reviewed At 7:04 AM* while the true decision was **3:04 PM MYT**, next to
+  a correct *Requested At 2:49 PM*. `/request-approval-ui` reads `reviewedAt` from `toRow()` and is
+  **already MYT**, so nothing that survives the merge carries the bug.
+- **C dropped — the `Requested at:` line keeps reading `created_at`.** Verified: there are **zero
+  `awaiting` reminder rows in both demo DBs** and `notifications:remind-pending` is **not
+  scheduled**, so sourcing the line from `request->submitted_at` (plus the `setRelation` batch it
+  needs) would have changed nothing visible today. Re-open it as a one-line follow-up if that
+  command is ever scheduled.
+
+**Receipts** (live `:8000`, demo DB, **read-only** — no writes):
+
+```
+row "New replacement request (ID #26)"  data-tip
+  before: Requested at: 2 Nov 2026, 11:00 AM (…)
+  after : Requested at: 2 Nov 2026, 7:00 PM (Yesterday)
+  chip  : "Yesterday"   chip data-tip: "2 Nov, 7:00 PM"
+row (ID #27): Requested at: 3 Nov 2026, 11:10 AM (20 hours ago)   chip data-tip: "3 Nov, 11:10 AM"
+390 px: chip data-tip "2 Nov, 7:00 PM", panel renders, 0 page errors
+```
+
+Screenshots: `/tmp/opencode/localtime-panel.png`, `/tmp/opencode/localtime-panel-390.png`.
+
+**Gates:** `composer run lint:check` passed · PHPStan level 7 → **0 errors** · full suite
+**325 passed / 1729 assertions** (was 320 / 1723 — the 5 new pins).
+
+`SDD-waived w/ user approval` — display-only formatting, one helper + two closures, no schema, no
+API shape, no behaviour change, and the A+B+C decision was taken in conversation on 2026-11-02.
+
 ## 2026-11-03 — notif-recipient-rulings: who gets a row, and the staff line
 
 Five user rulings (R1–R5), applied exactly as decided in
