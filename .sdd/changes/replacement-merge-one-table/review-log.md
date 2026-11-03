@@ -573,3 +573,64 @@ SP-9 was resolved by **keeping** the keyboard-shortcuts pop-up (design §2.1 gai
 updated" line): neither frozen artifact decided to remove it, and deleting a live feature on a
 spec's authority alone is scope creep.
 
+## specs Round 2 — 2026-11-04
+
+<!-- Confirmation pass. Scope: the two round-1 blockers and the sixteen should-fix items only.
+     Every fold re-checked against the repo at head 9391dbb, not against round 1's own text. No
+     M-decision and no design [D] is re-opened. -->
+
+### 🔴 Fixed
+- **SP1 — closed; S3.4 is now checkable *and* complete on the frozen side.** The frozen set was
+  enumerated whole by grep: 11 occurrences — the seven `mock-data.js` link fixtures
+  (`:1003,1009,1015,1021,1071,1095,1101`), `notif-row.blade.php:96` (`$n->link ===
+  '/my-request-history-ui'`, exact string, no query), `NotificationEmitter.php:64,88` (both write
+  that bare path, so the `===` still matches) and the mock template `:1916`. Both halves of S3.4 are
+  greppable and neither can be greened by editing the other.
+- **SP2 — closed, and `14:00 – 14:30` is right for a rejected request.** `RejectRequest.php:132-134`
+  deletes the junction and fills only status/approver/decided/reason — the anchor FK survives, and
+  `SubmitReplacementRequest.php:50,99-101,146` pins that anchor to the FIRST 30-minute cell. No
+  change to `CancelPendingRequest`, `RejectRequest` or the schema is needed.
+
+### 🟡 Addressed (16/16, re-verified against the code)
+- **SP-1** S8.3/S8.4 are countable. **SP-2** S12.2 proves the comparator and its direction matches
+  `ui-common.js:1594-1599` + the `date/asc` default. **SP-3** S16.3 carries both halves on a
+  4-approved-junction fixture. **SP-4/5/6** S7.6 matches design §4.2's `factsHtml`; S7.7's state is
+  reachable (`room_name` is `nullable()`); S7.5 is positive containment, not green-before-work.
+- **SP-7** S2.5 covers all six labels. **SP-8** S17.4/S17.5 falsifiable against today's copy
+  (`:194` "click a status badge", `:202` "opens that request"). **SP-9** the invented retirement is
+  gone; the pop-up is kept by design §2.1.
+- **SP-10** S9.3 is greppable (no `📋`, no `copyEmail` in the merged view). **SP-11** S16.6's basis
+  verified (`ApiReadController:156` → `toRow():131` → `effectiveStatus()`, scoped to the lecturer's
+  own requests). **SP-12** S2.2 + R2's prose. **SP-13** S14.4. **SP-14** S15.4. **SP-15** S6.6.
+  **SP-16** all four sentences read cleanly.
+
+### ✅ Confirmed
+- R16 ↔ S16.1–S16.6 one-to-one; R2 ↔ S2.5 character for character; R7 ↔ S7.5/6/7; R9 ↔ S9.3;
+  retired ↔ S17.1–S17.5. The seven columns, five cards, seven select values, 1500 px, three tabs and
+  two reset laws still match the frozen artifacts.
+- **Citation correction (round 1's log, not the spec):** `📋` lives at
+  `request-approval.blade.php:548,725,998` (`copyEmail()` defined `:485`), not `:463-465`. Recorded so
+  nobody edits the wrong block later.
+
+### 🟡 Residuals — folded before the freeze
+- **R1** R3's producer list was **weaker than proposal §3 item 7b**: it omitted the server-side
+  landing/redirect targets (`ReplacementArrangement.php:78,79` `FROM_LANDING_ROUTES`, `:201`'s `??`
+  default) and the two toast **labels** (`ui-common.js:4420,4423`). A tasks list built from the spec
+  could have left `:201` untouched, turning two A″ PHPUnit assertions red — whose cheapest green is
+  reverting `:201`, exactly the failure proposal §6 warns about.
+- **R2** S8.4 said "already-arranged", which would exclude **rejected/cancelled** rows' hours if read
+  as `requestId !== null`; now "handled (pending, approved, completed)" — the words R6/design use.
+- **R3** S16.3's fixture now says "4 approved requests on 4 of the same occurrences", so the row count
+  is equal and only the request count differs — the per-row implementation this lane deletes can no
+  longer pass it.
+- **R4** S16.2 now says "the rejection reason and no Remark row", not "only the rejection reason".
+- **R5** S12.1 states the load-time default (Original Class active with ▲) and S12.2 splits the two
+  clicks into one fact each.
+
+### 🔴 Outstanding
+- None.
+
+**Verdict: PASS** — both blockers closed and correct, all sixteen should-fix items verified, the
+spec internally consistent, and no scenario unachievable without touching a frozen law. The five
+residuals (all wording/coverage) are folded. **Batch 3 (specs) is FROZEN at this entry.**
+

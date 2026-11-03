@@ -1,6 +1,7 @@
 # Spec — replacement page merge (`replacement-merge-one-table`)
 
-Capability: **replacement-page-merge**. Requirement deltas for this lane only; every other behaviour
+Capability: **replacement-page-merge**.  
+**Frozen:** 2026-11-04, round 2 PASS (2 blockers, 16 should-fix, 5 residuals folded). Requirement deltas for this lane only; every other behaviour
 of the two pages it replaces is either carried over unchanged or explicitly retired below.
 
 The user's decisions M1–M17 (`proposal.md` §2) are the authority; `design.md` says how. This file
@@ -62,8 +63,11 @@ The page's address is **`/my-replacements`**. `/replacement-home-ui` and `/my-re
 stay as **extra addresses for the same page** — not redirects, so a query string survives.
 
 - Every live **navigation producer** points at the canonical address: link `href`s, `location`
-  assignments, the shared `NotificationRoutes` values, the nav hrefs, the toast links. The home
-  page's old `requestHref()` is deleted outright.
+  assignments, the shared `NotificationRoutes` values, the nav hrefs, the toast links **and their
+  labels**, and the **server-side landing/redirect targets** — the arranging page's
+  `FROM_LANDING_ROUTES` values and its `?? '/replacement-home-ui'` fallback, which is where a
+  post-submit redirect and the blocked-request toast land. The home page's old `requestHref()` is
+  deleted outright.
 - **Deliberately frozen — do not "fix" these:** the seven `link:` fixtures in
   `public/js/mock-data.js`, the strict `===` on the stored link in
   `resources/views/partials/notif-row.blade.php:96`, `NotificationEmitter.php:64,88`, and the
@@ -164,7 +168,8 @@ optionally Remark — and nothing else (no per-request list, no timeline, no his
 **S8.3** a filter that leaves 2 needs-action rows and 1 handled row shows: `Classes to Arrange = 2`,
 `Class Hours = those 2 rows' durations`, `Pending/Approved/Rejected = their own counts`, and 3 rows
 in the table — one countable fact per card, from one filtered set
-**S8.4** `Class Hours to Replace` excludes the hours of already-arranged classes
+**S8.4** `Class Hours to Replace` excludes the hours of **handled** rows (pending, approved,
+completed) and **includes** rejected and cancelled ones — those still need arranging
 
 ## R9 — Reuse, never a second version (M10)
 
@@ -210,9 +215,10 @@ spaced convention, so `RSD3(S1)G2` finds `RSD3 (S1) G2`.
 Clicking a sortable header sorts that column and shows `▲`/`▼` on **that** header only. The order
 inside the needs-action group is sorted; the group itself stays first.
 
-**S12.1** after clicking `Original Class`, only that header carries an arrow
-**S12.2** clicking `Original Class` twice puts the **latest** needs-action date first, then the
-**earliest** — the comparator really runs
+**S12.1** at load, `Original Class` is the active sort (▲) and no other header carries an arrow; after
+clicking `Conflict Reason`, only that header carries one
+**S12.2** clicking `Original Class` puts the **latest** needs-action date first; clicking it again puts
+the **earliest** first — the comparator really runs
 **S12.3** descending order does not move an arranged row above an unarranged one
 
 ## R13 — The toolbar count yields below 1500 px (M15)
@@ -272,10 +278,11 @@ not real.
 - The JSON API and the badge agree, because both come from the same helper.
 
 **S16.1** a **rejected** 2-hour arrangement prints the anchor's range (`14:00 – 14:30`), never `—`
-**S16.2** a rejected request with a rejection reason and no remark shows only the rejection reason
-**S16.3** rendering the page with 1 request and with 4 **approved** requests that have junction spans
-(same occurrence set) issues the same number of queries, and the junction table is read **exactly
-once**
+**S16.2** a rejected request with a rejection reason and no remark shows the rejection reason and
+**no Remark row** (the Status Description is still there, as S16.5 requires)
+**S16.3** rendering the page with 1 request and with 4 **approved** requests that have junction spans,
+placed on 4 of the same occurrences (so the row count is equal and only the request count differs),
+issues the same number of queries, and the junction table is read **exactly once**
 **S16.4** after a cancel, the badge, the Requested Replacement and the available action all match
 the database's new state
 **S16.5** every row's pop-up has a non-empty Status Description, including a never-arranged row
