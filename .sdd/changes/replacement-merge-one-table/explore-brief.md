@@ -69,7 +69,7 @@ while lane 2 is pending, so the code cannot break on first sight of one.
 |---|---|---|---|
 | 1 | Course code & name | both pages | `.cell-code` + `.cell-name` + type label |
 | 2 | Original class | both pages | **one cell**: date · day (Week N) **with Days Left beside it on the same line** (wraps directly under the date when the column is tight) / start–end (duration) / **pin icon + room** / **users icon + cohorts** |
-| 3 | Conflict Reason | home | **the home page's reason badges, unchanged** (`.badge-annual-leave`, `.badge-medical-leave`, `.badge-holiday`, `.badge-official-event`), placed immediately right of Original Class |
+| 3 | Conflict Reason | home (extended) | one badge, two shapes: **`Class Cancelled — <reason>`** in neutral grey for every non-holiday reason; **`Public Holiday — <holiday name>`** in error red. The holiday name is the calendar label from the `holidays` rows ("Deepavali Holiday (In Lieu)", "Christmas Day", …) |
 | 4 | Requested replacement | history | **mirrors the Original Class design, minus the cohorts line** (they are the class's own cohorts): date · day (Week N) / start–end (duration) / **pin icon + room**; `—` when there is no request |
 | 5 | Request Status | new | badge **with the actor**: `Approved by PL` · `Rejected by PL` · `Cancelled by YOU` · `Pending` (no decider yet) · `Completed` (the calendar decided) · `Needs arrangement`; **see Q3** on whether it is also a shortcut |
 | 6 | Action | both | **icon-only**: rotate = arrange, eye = view request. Full wording in the tooltip (`data-tip`) plus an `aria-label`. Never repeats the status; Cancel stays in the modal |
@@ -81,9 +81,14 @@ cancellation (the lecturer cancels their own request). That is not decoration: i
 tells the lecturer who to chase. `Pending` has no decider yet, and `Completed` is
 the calendar's verdict, so neither carries an actor.
 
-The reason badges are **page-local CSS today** (`replacement-home.blade.php:27–42`),
-not tokens in `theme.css`. The merge must share them (promote to `theme.css` or a
-partial) rather than paste a second copy.
+The Conflict Reason badge changes vocabulary on purpose (user decision, 2026-11-03):
+the home page colours each reason separately (`.badge-annual-leave`,
+`.badge-medical-leave`, …); the merged page reduces that to **two meanings** — a
+cancelled class is neutral grey whatever the reason, and only a public holiday stays
+red. The badge also says *which kind* of conflict it is, and a holiday names the
+day itself, so the reason is readable without knowing the colour code. Those classes
+are page-local CSS today (`replacement-home.blade.php:27–42`), so the merge must
+define the new grey and share the holiday red rather than paste a second copy.
 
 Four things left the table on purpose (user decisions, 2026-11-03): **Class Venue**
 and **Cohort(s)** fold into the Original Class cell — each on its own icon-led line,
