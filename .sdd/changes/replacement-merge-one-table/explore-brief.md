@@ -134,7 +134,7 @@ are not repeated.
 | Tab | Contents |
 |---|---|
 | **Original Class Schedule** | **Class ID** · week · day · date · start/end · duration · venue |
-| **Proposed Replacement Schedule** | **Request ID** · week · day · date · start/end · duration · venue; a caption when nothing is proposed yet |
+| **Proposed Replacement Schedule** | **Request ID** · week · day · date · start/end · duration · venue. The tab is **hidden** when nothing is proposed (no request, or a request with no resolvable slot) — an empty tab that says "nothing yet" is a dead end |
 | **Request Status** | status badge (with its actor) · what to do · **History** — the full trail, newest first, one group per request (`Request #R102.2 · Pending`) with status, replacement slot, submitted, decided-by/at and note |
 
 The separate **Requests (N)** tab is gone: its trail *is* the request's history, so
