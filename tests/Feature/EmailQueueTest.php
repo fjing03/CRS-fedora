@@ -192,14 +192,14 @@ final class EmailQueueTest extends TestCase
         Mail::assertQueued(ReplacementDecided::class, 1);
     }
 
-    public function test_submit_queues_one_mail_per_pl(): void
+    /**
+     * The FR 4.15 submit fixture (week 9, a live official_event fact so the
+     * occurrence-week pin resolves). Returns the session + the four slots.
+     *
+     * @return array{0: ClassSession, 1: array<int, int>}
+     */
+    private function submitFixture(User $requester): array
     {
-        $requester = $this->lecturer('Submit Mail Requester');
-        $this->lecturer('Submit PL A', true);
-        $plB = $this->lecturer('Submit PL B', true);
-
-        $plCount = User::query()->whereHas('lecturer', fn ($q) => $q->where('is_pl', true))->count();
-
         $semester = DB::table('semesters')->first();
         $venue = Venue::create([
             'room_code' => 'SR'.random_int(100, 999),
@@ -246,6 +246,19 @@ final class EmailQueueTest extends TestCase
         // occurrence-week-pin-truthfulness S8: the submit's pinned pair needs a live fact.
         ClassException::create(['class_session_id' => $session->id, 'week_number' => 9, 'reason' => 'official_event']);
 
+        return [$session, $slotIds];
+    }
+
+    public function test_submit_queues_one_mail_per_pl(): void
+    {
+        $requester = $this->lecturer('Submit Mail Requester');
+        $this->lecturer('Submit PL A', true);
+        $this->lecturer('Submit PL B', true);
+
+        $plCount = User::query()->whereHas('lecturer', fn ($q) => $q->where('is_pl', true))->count();
+
+        [$session, $slotIds] = $this->submitFixture($requester);
+
         Mail::fake();
         Queue::fake();
 
@@ -254,6 +267,26 @@ final class EmailQueueTest extends TestCase
 
         // FR 4.15 — ONE queued copy per PL
         Mail::assertQueued(ReplacementSubmitted::class, $plCount);
+    }
+
+    public function test_a_pl_proposer_is_not_emailed_their_own_request(): void
+    {
+        // R2 (notif-recipient-rulings, 2026-11-03): the proposer is skipped by id,
+        // every other PL still gets the mail.
+        $proposer = $this->lecturer('Self Submit PL', true);
+        $this->lecturer('Submit PL A', true);
+
+        $plCount = User::query()->whereHas('lecturer', fn ($q) => $q->where('is_pl', true))->count();
+
+        [$session, $slotIds] = $this->submitFixture($proposer);
+
+        Mail::fake();
+        Queue::fake();
+
+        app(SubmitReplacementRequest::class)($proposer, $session, 9, $slotIds[0], null, 4);
+
+        Mail::assertNotQueued(ReplacementSubmitted::class, fn ($m) => $m->hasTo($proposer->email));
+        Mail::assertQueued(ReplacementSubmitted::class, $plCount - 1);
     }
 
     // ───── family 2 — the NFR 1.4 DRAIN (without Queue::fake) ─────

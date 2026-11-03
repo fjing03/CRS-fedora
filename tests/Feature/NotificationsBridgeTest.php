@@ -13,6 +13,7 @@ use App\Models\User;
 use App\Support\Notifications\NotificationEmitter;
 use Database\Seeders\DatabaseSeeder;
 use Illuminate\Foundation\Testing\DatabaseMigrations;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Date;
 use Livewire\Livewire;
 use Tests\TestCase;
@@ -47,22 +48,48 @@ final class NotificationsBridgeTest extends TestCase
             ->firstOrFail();
     }
 
-    private function seedRequest(): ReplacementRequest
+    private function seedRequest(int $proposerId = 1, int $sessionId = 23, int $week = 8): ReplacementRequest
     {
         return ReplacementRequest::create([
-            'semester_id' => 1, 'proposer_id' => 1, 'class_session_id' => 23,
-            'week_number' => 8, 'replacement_time_slot_id' => 32612,
+            'semester_id' => 1, 'proposer_id' => $proposerId, 'class_session_id' => $sessionId,
+            'week_number' => $week, 'replacement_time_slot_id' => 32612,
             'status' => 'pending', 'submitted_at' => Date::now(),
         ]);
+    }
+
+    /** Staff 5770 Lim Jia Zheng — the non-PL proposer in the R1/R5 receipts. */
+    private function nonPl(): User
+    {
+        return User::query()
+            ->whereHas('lecturer', fn ($q) => $q->where('staff_id', '5770'))
+            ->firstOrFail();
+    }
+
+    private function pls(): Collection
+    {
+        return User::query()->whereHas('lecturer', fn ($q) => $q->where('is_pl', true))->get();
+    }
+
+    /**
+     * Every R5 subtitle span in order — counted on the SPANS, never on the raw
+     * page text: a row's tooltip legitimately repeats the name (`Staff: 5770 — …`).
+     *
+     * @return array<int, string>
+     */
+    private function subtitleSpans(string $html): array
+    {
+        preg_match_all('/<span class="notif-row-subtitle">([^<]*)<\/span>/', $html, $m);
+
+        return $m[1];
     }
 
     private function submitEvent(int $requestId, int $week = 8): void
     {
         app(NotificationEmitter::class)->requestSubmitted(
-            User::query()->whereHas('lecturer', fn ($q) => $q->where('is_pl', true))->get(),
+            $this->coordinator(),   // user 1 IS a PL → R1 adds no second row
+            $this->pls(),
             'BMSE3153',
             'P',
-            'Surayaini Binti Basri',
             $requestId,
             $week,
         );
@@ -86,19 +113,29 @@ final class NotificationsBridgeTest extends TestCase
 
     public function test_approved_rows_follow_the_per_role_link_law(): void
     {
+        // R3 (notif-recipient-rulings): ONE merged row for the owner, pointing at
+        // the timetable that changed and carrying BOTH ids.
         $request = $this->seedRequest();
         $owner = $this->coordinator();
-        app(NotificationEmitter::class)->requestDecided(
-            $owner, 'approved', 'BMSE3153', 'P', (int) $request->id, 8, 'Mohd Nur Rahmat Bin Mohd Taat'
+        $session = ClassSession::query()->findOrFail(23);
+
+        app(NotificationEmitter::class)->replacementConfirmed(
+            $owner, $session, (int) $request->id, 8, 'Mohd Nur Rahmat Bin Mohd Taat'
         );
 
+        $this->assertSame(1, Notification::query()->where('type', 'approved')->count(), 'exactly ONE merged row — never one per cohort');
         $row = Notification::query()->where('type', 'approved')->firstOrFail();
         $this->assertSame($owner->id, $row->user_id);
         $this->assertSame('lecturer', $row->role_view);
-        $this->assertSame('/my-request-history-ui', $row->link);
+        $this->assertSame('/my-timetable-ui', $row->link);
+        $this->assertSame('Replacement class updated', $row->title);
+        $this->assertSame((int) $request->id, $row->request_id);
+        $this->assertSame((int) $session->id, $row->class_session_id);
+        $this->assertStringContainsString('approved by Mohd Nur Rahmat Bin Mohd Taat', $row->body);
+        $this->assertStringContainsString('your timetable is updated', $row->body);
     }
 
-    public function test_class_cancelled_fans_out_to_owner_students_and_dept_pls(): void
+    public function test_class_cancelled_fans_out_to_owner_and_students(): void
     {
         // the 5770/ABCD6767 shape: the owner's lecturer + the cohorts + the dept PLs
         $session = ClassSession::query()
@@ -122,16 +159,11 @@ final class NotificationsBridgeTest extends TestCase
         $this->assertTrue($studentRows->count() > 0, 'the cohort students get rows');
         $studentRows->each(fn (Notification $r) => $this->assertSame('/student-my-timetable-ui', $r->link, 'a student row NEVER links the lecturer-gated cohort page'));
 
-        // notif-actor-pl-dedupe (the user's F1, 2026-10-30): the owner 1 IS a
-        // DCIT PL — the dept-PL fan-out must SKIP them (the actor record row
-        // in step 1 is their copy; the unified one-feed panel would otherwise
-        // show the same event twice). The OTHER dept PL (user 2) keeps theirs.
-        $ownerPlRows = $cancelRows->filter(fn (Notification $r) => $r->user_id === 1
-            && $r->role_view === 'pl'
-            && $r->class_session_id === (int) $session->id
-            && $r->title === 'Scheduled class cancelled');
-        $this->assertCount(0, $ownerPlRows, 'the OWNER receives NO dept-PL copy for their own cancel — one-anchor dedupe');
-        $this->assertTrue($cancelRows->contains(fn (Notification $r) => $r->user_id === 2 && $r->role_view === 'pl' && $r->class_session_id === (int) $session->id), 'the OTHER dept PL still receives their copy');
+        // R4 (notif-recipient-rulings, 2026-11-03) REVERSES the 2026-10-30
+        // three-fan-out ruling: the department-PL copies are gone entirely, so
+        // the OTHER dept PL (user 2) must hold NO row for this cancellation.
+        $this->assertSame(0, $cancelRows->where('role_view', 'pl')->count(), 'NO PL gets a cancellation row any more — not even the owner department');
+        $this->assertFalse($cancelRows->contains(fn (Notification $r) => $r->user_id === 2), 'user 2 (the other DCIT PL) is absent');
     }
 
     public function test_lifecycle_renders_disabled_with_the_user_tooltip(): void
@@ -277,8 +309,9 @@ final class NotificationsBridgeTest extends TestCase
             'status' => 'pending', 'submitted_at' => Date::now(),
         ]);
         app(NotificationEmitter::class)->requestSubmitted(
-            User::query()->whereHas('lecturer', fn ($q) => $q->where('is_pl', true))->get(),
-            'AMSE2003', 'L', 'Surayaini Binti Basri', (int) $fresh->id, 3
+            $this->coordinator(),   // a PL proposer → no extra confirmation row
+            $this->pls(),
+            'AMSE2003', 'L', (int) $fresh->id, 3
         );
         Notification::query()->where('user_id', $pl->id)
             ->where('type', 'submitted')->where('request_id', (int) $fresh->id)
@@ -588,5 +621,149 @@ final class NotificationsBridgeTest extends TestCase
             ->call('unhideAll');
 
         $this->assertNull($foreignRow->fresh()->hidden_at, 'a foreign id is never written');
+    }
+
+    // ───── R1/R2/R5 receipts (notif-recipient-rulings, 2026-11-03) ─────
+
+    public function test_a_non_pl_proposer_gets_one_confirmation_row_and_the_pl_rows_are_untouched(): void
+    {
+        $nonPl = $this->nonPl();
+        $request = $this->seedRequest((int) $nonPl->id);
+
+        app(NotificationEmitter::class)->requestSubmitted(
+            $nonPl, $this->pls(), 'AMSE2003', 'P', (int) $request->id, 7
+        );
+
+        $mine = Notification::query()->where('user_id', $nonPl->id)->get();
+        $this->assertCount(1, $mine, 'R1: exactly ONE confirmation row — a PL fan-out copy must never double it');
+
+        $row = $mine->first();
+        $this->assertSame('update', $row->type, 'the frozen tile key');
+        $this->assertSame('lecturer', $row->role_view);
+        $this->assertSame('Replacement request submitted', $row->title);
+        $this->assertSame('AMSE2003 (P) · W7 · awaiting PL approval', $row->body);
+        $this->assertSame('/my-request-history-ui', $row->link, 'the proposer tracks the request, not the approval queue');
+        $this->assertSame((int) $request->id, $row->request_id);
+
+        // the PL fan-out is additive-only: two PL queue rows, untouched
+        $plRows = Notification::query()->where('type', 'submitted')->get();
+        $this->assertCount(2, $plRows);
+        $plRows->each(fn (Notification $r) => $this->assertSame('/request-approval-ui', $r->link));
+    }
+
+    public function test_a_pl_proposer_keeps_only_the_queue_row(): void
+    {
+        // R1's "do not add a second row" half — the proposer here IS a PL.
+        $pl = $this->coordinator();
+        $request = $this->seedRequest((int) $pl->id);
+
+        app(NotificationEmitter::class)->requestSubmitted(
+            $pl, $this->pls(), 'AMSE2003', 'P', (int) $request->id, 7
+        );
+
+        $mine = Notification::query()->where('user_id', $pl->id)->get();
+        $this->assertCount(1, $mine, 'the PL proposer holds their queue row and nothing else');
+        $this->assertSame('submitted', $mine->first()->type);
+        $this->assertSame(0, Notification::query()->where('type', 'update')->count());
+    }
+
+    public function test_the_staff_line_follows_the_row_contract(): void
+    {
+        $nonPl = $this->nonPl();
+        $session = ClassSession::query()->findOrFail(23);
+        $request = $this->seedRequest((int) $nonPl->id);
+
+        // (a) a PL reading the queue row → the proposer, with the staff id
+        app(NotificationEmitter::class)->requestSubmitted(
+            $nonPl, $this->pls(), 'AMSE2003', 'P', (int) $request->id, 7
+        );
+        $this->actingAs($this->coordinator());
+        $this->assertSame(['Lim Jia Zheng (5770)'], $this->subtitleSpans(
+            Livewire::test(NavNotifications::class, ['variant' => 'panel', 'pageKey' => 'requestApproval', 'unreadOnly' => false])->html()
+        ), 'a PL sees who proposed, with the staff id');
+
+        // (b) a student reading the approval notice → the proposer. The emitter
+        // takes an ELOQUENT collection (the action hands it one per cohort), and
+        // `Student`'s primary key IS `user_id`, so key on that.
+        $student = $session->cohorts->flatMap(fn ($c) => $c->students()->with('user')->get())->first();
+        $this->assertNotNull($student?->user);
+        app(NotificationEmitter::class)->approvalNotice(
+            $session, Student::query()->whereKey((int) $student->user_id)->with('user')->get(), (int) $request->id, 8
+        );
+        $this->actingAs($student->user);
+        $this->assertSame(['Lim Jia Zheng (5770)'], $this->subtitleSpans(
+            Livewire::test(NavNotifications::class, ['variant' => 'panel', 'pageKey' => 'studentTimetable', 'unreadOnly' => false])->html()
+        ));
+
+        // (c) the owner reading their OWN rows → the PL who acted. Both self rows
+        // take the actor branch: the R1 confirmation row upgrades once the
+        // decision stamps `approver_id`, and the merged R3 row joins it.
+        ReplacementRequest::query()->whereKey($request->id)->update(['approver_id' => (int) $this->coordinator()->id]);
+        app(NotificationEmitter::class)->replacementConfirmed(
+            $nonPl, $session->fresh(), (int) $request->id, 8, 'Surayaini Binti Basri'
+        );
+        $this->actingAs($nonPl);
+        $spans = $this->subtitleSpans(
+            Livewire::test(NavNotifications::class, ['variant' => 'panel', 'pageKey' => 'myTimetable', 'unreadOnly' => false])->html()
+        );
+        $this->assertNotEmpty($spans, 'the owner rows do carry a line');
+        $this->assertSame(['Surayaini Binti Basri (5425)'], array_values(array_unique($spans)), 'a self row names the PL who acted — never the reader');
+    }
+
+    public function test_the_staff_line_is_omitted_on_a_self_only_event(): void
+    {
+        // (d) the owner cancelling their OWN class → no line for them, the line
+        // still names the class owner for a student (the fresh DB keeps this row
+        // the only one in each mailbox).
+        $nonPl = $this->nonPl();
+        ClassSession::query()->whereKey(23)->update(['lecturer_id' => (int) $nonPl->id]);
+        $session = ClassSession::query()->findOrFail(23);
+        $student = $session->cohorts->flatMap(fn ($c) => $c->students()->with('user')->get())->first();
+        $this->assertNotNull($student?->user);
+
+        app(NotificationEmitter::class)->classCancelled($nonPl, $session, 8);
+
+        $this->actingAs($nonPl);
+        $own = Livewire::test(NavNotifications::class, ['variant' => 'panel', 'pageKey' => 'myTimetable', 'unreadOnly' => false])->html();
+        $this->assertStringContainsString('Scheduled class cancelled', $own);
+        $this->assertSame([], $this->subtitleSpans($own), 'a self-only event omits the line');
+
+        $this->actingAs($student->user);
+        $studentHtml = Livewire::test(NavNotifications::class, ['variant' => 'panel', 'pageKey' => 'studentTimetable', 'unreadOnly' => false])->html();
+        $this->assertSame(['Lim Jia Zheng (5770)'], $this->subtitleSpans($studentHtml), 'the student still sees whose class it was');
+    }
+
+    public function test_a_row_never_shows_two_staff_lines_in_any_state(): void
+    {
+        // user refinement 2 (2026-11-03): count the SPANS on one row in the four
+        // states, so a duplicate can never creep back silently.
+        $nonPl = $this->nonPl();
+        $request = $this->seedRequest((int) $nonPl->id);
+        app(NotificationEmitter::class)->requestSubmitted(
+            $nonPl, $this->pls(), 'AMSE2003', 'P', (int) $request->id, 7
+        );
+
+        $pl = $this->coordinator();
+        $this->actingAs($pl);
+        $row = Notification::query()->where('user_id', $pl->id)->where('type', 'submitted')->firstOrFail();
+
+        $panel = fn () => Livewire::test(NavNotifications::class, ['variant' => 'panel', 'pageKey' => 'requestApproval', 'unreadOnly' => false])->html();
+
+        // 1. unread — the composer's subtitle (same text as the staff line)
+        $this->assertSame(['Lim Jia Zheng (5770)'], $this->subtitleSpans($panel()), 'unread');
+
+        // 2. read — `_display` is gone; the computed line must take over, once
+        Notification::query()->whereKey($row->id)->update(['read_at' => Date::now()]);
+        $this->assertSame(['Lim Jia Zheng (5770)'], $this->subtitleSpans($panel()), 'read');
+
+        // 3. decided — the request is approved, the row goes inactive
+        ReplacementRequest::query()->whereKey($request->id)->update(['status' => 'approved']);
+        $this->assertSame(['Lim Jia Zheng (5770)'], $this->subtitleSpans($panel()), 'decided');
+
+        // 4. hidden — the same row on the shelf
+        Notification::query()->whereKey($row->id)->update(['hidden_at' => Date::now()]);
+        $shelf = Livewire::test(NavNotifications::class, ['variant' => 'panel', 'pageKey' => 'requestApproval', 'unreadOnly' => false])
+            ->call('showHidden')->html();
+        $this->assertSame(['Lim Jia Zheng (5770)'], $this->subtitleSpans($shelf), 'hidden');
     }
 }
