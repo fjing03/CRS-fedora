@@ -173,7 +173,8 @@ the identity edit ships with the view in commit 2 (§7's Commit column).
       `ui-common.js:3071,3072,3079` (values + default, **keys untouched**), `:4419,4422` (the toast
       **bodies**), `:4420,4423` (links **and** labels), `:1292` (`&view=request`);
       `ui-nav-bar.blade.php:18,19` → one item.
-      **The toast's duplicated page name goes, and the body gets shorter (user decision, 2026-11-04).**
+      **The toast's duplicated page name is ALREADY GONE — landed in `9939d08` (2026-11-04), before
+      this lane.** The bodies are final; this task only renames the **link label** and moves its href:
       Today the body ends with the page name **and** the link is labelled with it, so the message reads
       `… in My Request History. My Request History` (`toast._present()` writes body and link to two
       separate nodes: `msgEl` / `linkEl`). The body keeps the fact only — no page name, no instruction —
@@ -181,15 +182,16 @@ the identity edit ships with the view in commit 2 (§7's Commit column).
       and `toast.show` writes `textContent`, so plain caps rather than a keyword span — `showRich()`
       exists but takes no `linkUrl` (`ui-common.js:2651`), so it would drop the management link):
       ```js
-      // :4419 (approved)
+      // :4425 / :4428 — the BODIES are already these (9939d08); only the two arguments after
+      // `null, 8000` change in this task:
       toast.show('This class already has an APPROVED replacement.', null, 8000,
-          'My Replacements', '/my-replacements');
-      // :4422 (pending)
+          'My Replacements', '/my-replacements');          // was 'My Request History', old URL
       toast.show('This class already has a PENDING replacement request.', null, 8000,
           'My Replacements', '/my-replacements');
       ```
-      *(The old body's "track or withdraw it" hint goes with the tail — the link's destination says the
-      same thing, and the user asked for the shorter body.)*
+      *(The body change shipped early on purpose: the duplication was live, and the label/href had to
+      wait for this commit — until the canonical route exists, the link would point at a page still
+      titled My Request History.)*
       *Receipt (URLs):* `grep -rn "/replacement-home-ui\|/my-request-history-ui" app resources public/js`
       returns **only** the 11 frozen occurrences (`mock-data.js` ×7, `notif-row:96`,
       `NotificationEmitter:64,88`, the mock template `:1916`) — quoted count.
@@ -238,13 +240,10 @@ the identity edit ships with the view in commit 2 (§7's Commit column).
 - [ ] **T18 — bucket A″ strings** (proposal §6's 7 rows)
       `ReplacementArrangementTest:643,723` · `arrangement-entry-guard:134,144,231` ·
       `submission-conflict-refresh:84,111`.
-      **Plus this lane's own copy change in the same file:** T15 capitalises the state words, so
-      `arrangement-entry-guard.spec.ts:82` (`TOAST_TEXT`, used at `:133`, `:240`) and `:145` must follow
-      (`:203` is the vacuous one — an unblocked load leaves the shared node empty, so it passes with
-      either casing; leave it alone)
-      — `'already has a PENDING replacement request'` and `'already has an APPROVED replacement'`.
-      Playwright's matchers forward `ignoreCase` with no default-true, so those three assertions are red
-      from T15 until here.
+      **The toast casing assertions are ALREADY updated** (`9939d08` gave
+      `arrangement-entry-guard.spec.ts:82` (`TOAST_TEXT`, used at `:133`, `:240`) and `:145` the caps
+      versions; `:203` is the vacuous one — an unblocked load leaves the shared node empty, so it passes
+      with either casing). **What this task still owns is the URL side of that file.**
       **Every red line in that file, and the revert that would green it (all forbidden):**
       `:133`, `:145`, `:240` ← `ui-common.js:4419-4423` (this task's copy) · `:134` ← the same file's
       link href · `:144` ← `ReplacementArrangement.php:201` (ordering rule 4 already forbids it) ·
