@@ -145,7 +145,7 @@ Both schedules print the same way (user decision, 2026-11-03):
 | Time | one row, 12-hour, `~` between | `10:00 AM ~ 12:00 PM` |
 | Duration | words, not `hr` | `1 hour` / `2 hours` |
 | Venue | code + short room name | `B010 — Computer Lab` |
-| **Request Status** | **CURRENT** subtitle · status badge · a divider · one plain sentence saying what that status means for this class · **HISTORY** subtitle · **one child tab per request** (`Request #R102.2`, `Request #R102.1`), newest first and newest selected, each panel holding Status, **Proposed Replacement**, **Submitted Timestamp**, **Decision Timestamp** and Note |
+| **Request Status** | **CURRENT** subtitle · status badge · a **Description** row holding one plain sentence about that status · a divider · **HISTORY** subtitle · **one child tab per request** (`Request #R102.2`, `Request #R102.1`), newest first and newest selected, each panel holding Status, **Proposed Replacement**, **Submitted Timestamp**, **Decision Timestamp** and Note |
 
 **Nested tabs, and when they are *not* used.** The history child tabs exist only
 when there are **two or more** requests — a tab bar with a single tab is noise, so
@@ -159,10 +159,11 @@ Two subtitles carry the panel — `CURRENT` and `HISTORY` — and both are **14 
 they read as structure rather than as another data row.
 
 The old `What to do` row is gone: "Arrange a replacement for this class" repeated
-what the badge already said. In its place is one sentence of **description** that
-depends on the status — e.g. *"You cancelled this request, so the class is free to
-be arranged again."* / *"The proposed replacement is waiting for the PL to approve
-or reject it."*
+what the badge already said. In its place is a **Description** row — a labelled
+peer of Status, inside CURRENT — carrying one sentence that depends on the status:
+*"You cancelled this request, so the class is free to be arranged again."* /
+*"The proposed replacement is waiting for the PL to approve or reject it."* The
+divider then separates CURRENT from HISTORY.
 
 `Decided` became **`Decision Timestamp`** because bare "Decided" could be read as a
 verdict ("is it decided?") rather than a time; it now mirrors `Submitted Timestamp`.
