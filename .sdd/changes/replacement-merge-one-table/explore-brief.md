@@ -118,13 +118,18 @@ history detail modal today:
 
 | Tab | Contents |
 |---|---|
-| **Status** | status badge · what to do next · conflict reason · the requested replacement (or "none yet") |
-| **Class** | subject code/name · class type · cohorts · students |
-| **Schedule** | week · day · date · start/end/duration · venue |
+| **Request Status** | status badge · what to do next · conflict reason · the requested replacement (or "none yet") |
+| **Subject & Cohorts** | subject code/name · class type · cohorts · students |
+| **When & Where** | week · day · date · start/end/duration · venue |
 | **Requests (N)** | the trail, newest first: one group per request with status, replacement slot, submitted, decided-by/at, note |
 
-That is the home quick view's **Status · Class · Schedule** plus the one tab the
-merge adds (**Requests**). The timeline rail is intentionally **not** included —
+The tab names are deliberately **not** the home quick view's `Status · Class ·
+Schedule`: on a merged page "Class" is ambiguous (the row? the subject? the
+occurrence?) and "Schedule" collides with the timetable pages. Each label now names
+its content. The panels carry **no inner heading** — the tab is the heading; a
+duplicated section title was pure noise.
+
+The timeline rail is intentionally **not** included —
 it is parked as broken (`task-02-replacement-history-timeline.md`).
 
 **Modal footer** (bottom-right) — one action per state, mirroring the row:
