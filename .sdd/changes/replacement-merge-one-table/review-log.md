@@ -258,3 +258,52 @@ Append-only. One entry per review round per batch.
 
 **Verdict: FAIL** — one blocker (R5-1); nine total, the rest declarative.
 
+## proposal Round 6 — 2026-11-03
+
+<!-- The user's one extra round. Scope: the new §6b (data contract), the R5-1 fix, and the eight
+     round-5 items. §1–§5, §7, §8 and M1–M17 were cleared in round 5 and were not re-reviewed. -->
+
+### 🔴 Fixed
+- **R5-1 — closed, exactly.** The two `Feature/ReplacementArrangementTest.php` assertions are out of
+  A and in A″ with the "runs on every PHPUnit pass" warning; A″'s seven rows check cause-by-cause
+  (`FROM_LANDING_ROUTES` values `:78-79`, the `?? '/replacement-home-ui'` default `:201`, the toast
+  URL `:4420,4423`, the post-submit `location.href` `:2245`, `submission-conflict-refresh:111`).
+- **The buckets are whole again.** 36 code files match; all 36 bucketed (A 23 · A″ 3 · A′ 1 · B 3 ·
+  C 6 · D 3). `C`'s two class-level files sit outside the grep union, so the claim stays one-way and
+  true. `e2e/home.spec.js:10` / `auth-wiring.spec.js:293` assert the title through a `RegExp`
+  (`tests/e2e/helpers/page-check.js:37`), so "My Replacements" still matches.
+
+### 🟡 Addressed (round-5 items, re-verified)
+- **R5-2** `?id=` is read at `my-request-history.blade.php:1043-1057`, produced at
+  `ui-common.js:1292`; M2 + 7b now say so. Consequence → R6-7.
+- **R5-3** `$uiPages` `:31-96` with the `:88-93` silent `class_exists` fallback, exactly as described.
+- **R5-4** gate matrix pins the URL at `:34,36` and `:46,48`, docblock `:21-22`.
+- **R5-5** the frozen template is named. **R5-6** values-vs-keys matches `:3070-3076` / `:3085`.
+- **R5-7** the second coupling edge is stated. **R5-8** the 16 occurrences are exact.
+
+### 🔴 Outstanding
+- **R6-1 — §6b named the anchor as the source for "Requested Replacement"; the real source is the
+  span read, and the modal's new schedule tab had no source at all.** `replacementTimeSlot` is only
+  the **fallback** in `ReplacementRequestMapper::span()` (`:206-238`); every consumer renders
+  through `replacementStrings()` → `displaySlot()` → `span()`. `SubmitReplacementRequest` reserves a
+  1–4 cell **span** with the anchor = the first cell only (`:33-35`, `:98-110`, `:146`), so a 2-hour
+  arrangement would have printed `09:00 – 09:30`. `CancelPendingRequest` deletes the junction rows,
+  which is why the mapper has the two-step rule. Also: the "same date" clause sat on the occurrence
+  date while `effectiveStatus` judges the **replacement** date (`:93`, `:99-101`).
+
+### 🟡 Non-blocking
+- **R6-2** law 3's premise was wrong: three base queries today, plus **two per approved row**
+  (`span()`'s junction read + the `TimeSlot → venue` lazy load). An additive batch entry point is
+  required, not optional.
+- **R6-3** law 4 ("re-read") contradicted item 10c ("update the row locally").
+- **R6-4** `Status Description` had no §6b row although the two pages mean different things by it.
+- **R6-5** the `submitted_at` null clause was impossible (`NOT NULL`) and backwards (pgsql sorts
+  NULLs **last** on ASC).
+- **R6-6** "8 files" mixed scopes: 6 live files + 2 frozen consumers.
+- **R6-7** `?id=` → `?notif-hl=` silently downgraded "View Full Request" from *opens the modal* to
+  *scroll and pulse* (which M16 can even answer with "hidden by your current filters").
+- **R6-8** `#cancelRequestBtn` was missing from the 4b keep-list while two specs click it; and the
+  modal shows **two** venues (original + proposed) with one §6b row.
+
+**Verdict: FAIL** — one blocker (R6-1); all eight folded above.
+

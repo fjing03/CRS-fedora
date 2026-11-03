@@ -69,17 +69,17 @@ Numbered **M1–M16** for reference from `design.md` and `tasks.md`; no other la
 | 2b | `public/js/ui-common.js` — `HtmlBuilder.replacementHomeRow` (`:2481-2506`) | the 7-column reshape lands **here**, not in the blade: the blade delegates the whole row to this builder (`replacement-home.blade.php:518`). It keeps today's output as the fallback so the frozen `ui-design-templates` copies still render (`mock_fallback` is off by default, `config/app.php:29`) |
 | 3 | `app/Services/ReplacementRequestMapper.php` | one row-shaping path for the merged payload (replacement slot, `remarks`, `rejection_reason`, venue **name**); `effectiveStatus()` reused, not re-derived |
 | 4 | `resources/views/livewire/replacement-home.blade.php` | rewritten table (7 columns), the modal (facts strip + 3 tabs), the Action cell, the cards, the toolbar; **`#cancelConfirmOverlay` moves here from `my-request-history.blade.php:275`** (markup, `openCancelConfirm()`/`closeCancelConfirm()` and the double-submit guard); keeps `Data-tip`, `DetailModal` shell, chips, pagination |
-| 4b | **DOM contract the rebuild must keep** | the table and its toolbar are **reshaped, not renamed**: `#tableHead` / `#tableBody`, `#searchInput`, `#resultCount`, `#cardView`, `#timetable`, `#toastBar`, `.col-code`, `.cell-code`, `.cell-name`, `.cell-type-label`; the modal's `#quickViewModal` (and its open state `.show`) / `#qvBody` / `#qvArrangeBtn` / `#qvArrangeLabel`. These are what the group-A specs read; keeping them is cheaper than re-learning them in a rewrite |
+| 4b | **DOM contract the rebuild must keep** | the table and its toolbar are **reshaped, not renamed**: `#tableHead` / `#tableBody`, `#searchInput`, `#resultCount`, `#cardView`, `#timetable`, `#toastBar`, `.col-code`, `.cell-code`, `.cell-name`, `.cell-type-label`; the modal's `#quickViewModal` (and its open state `.show`) / `#qvBody` / `#qvArrangeBtn` / `#qvArrangeLabel` / **`#cancelRequestBtn`** (the footer's destructive button — two specs click it by id). These are what the group-A specs read; keeping them is cheaper than re-learning them in a rewrite |
 | 5 | `routes/web.php` | **three entries for one component**. Each carries `component => ReplacementHome::class`, an explicit `legacy` (the old home template — there is no merged legacy view) and a `nav` key: `replacement-arrangement` for the canonical, `replacement-history` for the alias. Same middleware, query string preserved, **not redirects**. **Trap:** `routes/web.php:88-93` falls back to `view($page['legacy'])` when `class_exists($page['component'])` is false — so if item 6 deletes `MyRequestHistory` while an entry still names it, the page **silently renders the frozen old view** (no 404), and the alias's specs would pass against it. All three entries are repointed in the same commit as item 6 |
 | 6 | `app/Livewire/MyRequestHistory.php` + `resources/views/livewire/my-request-history.blade.php` | retired with the page they draw. If anything still needs the component, it stays as a forwarder that keeps `payload['requests']` and both cancel methods; that decision is `design.md` §2, but **no caller is left without an owner** |
 | 7 | `resources/views/partials/ui-nav-bar.blade.php` | two lecturer items → one (`My Replacements`, href `/my-replacements`, key `replacement-arrangement`) |
-| 7b | every other live navigation to the old URLs — **8 files, 16 line occurrences** | updated to the canonical, in the same commit: `ReplacementArrangement.php:78,79,201` (return-after-arrange + fallback), `replacement-arrangement.blade.php:2241,2245` (post-submit toast + redirect), `ui-common.js:3071,3072,3079` (**the two URL values and the default only** — the `#routes` **keys** and every `from=` producer stay, because ~14 specs pass `from=replacement-home` and a renamed key would silently fall through to the default), `ui-common.js:4420,4423` (entry-guard toast links **and labels**), `ui-common.js:1292` ("View Full Request" — its `?id=` reader retires with My Requests, so the producer moves to `?notif-hl=r<id>`), `requestHref()` (deleted by M6). **Deliberately frozen:** `ui-design-templates/replacement-arrangement-UIdesign-template.blade.php:1916` keeps the old URL — it is the `mock_fallback` copy, off by default (`config/app.php:29`) |
+| 7b | every other live navigation to the old URLs — **6 live files, 16 line occurrences** (+2 frozen consumers, `notif-row.blade.php:96` and `NotificationEmitter.php:64,88`, which are **not** touched) | updated to the canonical, in the same commit: `ReplacementArrangement.php:78,79,201` (return-after-arrange + fallback), `replacement-arrangement.blade.php:2241,2245` (post-submit toast + redirect), `ui-common.js:3071,3072,3079` (**the two URL values and the default only** — the `#routes` **keys** and every `from=` producer stay, because ~14 specs pass `from=replacement-home` and a renamed key would silently fall through to the default), `ui-common.js:4420,4423` (entry-guard toast links **and labels**), `ui-common.js:1292` ("View Full Request" — its `?id=` reader retires with My Requests, so the producer moves to `?notif-hl=r<id>`), `requestHref()` (deleted by M6). **Deliberately frozen:** `ui-design-templates/replacement-arrangement-UIdesign-template.blade.php:1916` keeps the old URL — it is the `mock_fallback` copy, off by default (`config/app.php:29`) |
 | 7c | copy that names the old page | `ReplacementArrangement.php:1214` and `ui-common.js:4419,4422` say "My Request History"; they say **My Replacements** after this lane |
 | 8 | `resources/views/partials/ui-page-header.blade.php` | gains `descriptionHtml` rendered with `{!! !!}` (or an equivalent escape-free path) so the locked H1 description keeps its `CLASS` / `REQUEST` / `ONE LIST` emphasis — today `:22` escapes it and the spans would print literally |
 | 9 | CSS (`public/css/theme.css`) | **three** definitions, not one: (a) the **icon-only button** (`.btn-icon` exists only inside the mobile 48 px rule, `:3322-3332`); (b) a **neutral-grey conflict badge** replacing the ten page-local classes (`replacement-home.blade.php:27-59`); (c) an **outlined** `Need to Arrange` pill — `theme.css:1161-1183` has only filled variants |
-| 10 | `?notif-hl=` targeting | the merged row is keyed by occurrence, the stored link carries `r<requestId>`: the row emits **both** ids (`data-id` occurrence, `data-request-id` request) and the highlight matcher accepts either — otherwise the pulse silently skips (`ui-common.js:330,356`). **Precedence matters**: `tryFind` uses one `querySelector` (`:349`) and a selector list resolves by document order, so the matcher must try `tr[data-request-id]` **first**, then `tr[data-id]` — an occurrence id (`session*100+week`, `ReplacementHome.php:118`) could otherwise collide with a small request id |
+| 10 | `?notif-hl=` targeting | the merged row is keyed by occurrence, the stored link carries `r<requestId>`: the row emits **both** ids (`data-id` occurrence, `data-request-id` request) and the highlight matcher accepts either — otherwise the pulse silently skips (`ui-common.js:330,356`). **`?notif-hl=` must arrive with the row's modal open** when it comes from "View Full Request", which opens the request's modal today (`my-request-history.blade.php:1043-1057`); a scroll-and-pulse alone would be a downgrade, and M16 can even answer "hidden by your current filters". **Precedence matters**: `tryFind` uses one `querySelector` (`:349`) and a selector list resolves by document order, so the matcher must try `tr[data-request-id]` **first**, then `tr[data-id]` — an occurrence id (`session*100+week`, `ReplacementHome.php:118`) could otherwise collide with a small request id |
 | 10b | `public/js/ui-common.js` | **one additive change**: `applyNotifHighlight` (`:320-342`) gains the second selector. It is shared with `/request-approval-ui` and `/my-timetable-ui`, so the edit must leave both existing laws byte-for-byte — same match, same 14×250 ms retry, same silent skip |
-| 10c | the merged view's cancel success path | the moved handler cannot be a cut-and-paste: the history version splices `mockRequests` and calls `renderTable()` (`my-request-history.blade.php:690-714`), while the merged table is built client-side from `payload.conflictedClasses`. On success the merged page must **update that row's status in its own row set, repaint the table, close the overlay and toast** — otherwise the ban icon cancels in the database and looks dead on screen |
+| 10c | the merged view's cancel success path | the moved handler cannot be a cut-and-paste: the history version splices `mockRequests` and calls `renderTable()` (`my-request-history.blade.php:690-714`), while the merged table is built from `payload.conflictedClasses`. On success the page **re-reads the row's state from the server** (a Livewire re-render, or the row re-fetched), repaints the table, closes the overlay and toasts. It must **not** assume `cancelled` locally — the badge has to show what the database now says (§6b law 4) |
 | 11 | tests | see §6 — a measured inventory, five buckets. `RouteGateMatrixTest.php:29-51` gains `/my-replacements` (and its docblock `:16`), or the URL the nav now points at is gated by nothing |
 | 12 | changelogs | `page-changelogs/` entries for both pages + the nav |
 
@@ -199,6 +199,57 @@ implemented, so no run can be claimed yet); A′ is the one to watch. B and D ar
 because the behaviour they pin is exactly what M6/M12/M15 change. C is re-pointed to the merged
 component and the new H1, or deleted with a named replacement — `design.md` §2 names each one line by
 line. Nothing is silently dropped, and no bucket is described as "nothing breaks".
+
+## 6b. Data contract — every value on the page, and where it comes from
+
+The user's bar for this lane: **nothing on the page may be wrong, and nothing on the page may
+be invented.** So the payload is specified value by value, and every one has exactly one
+source.
+
+| Page value | Source (single) | Rule |
+|---|---|---|
+| course code · name · type | `class_sessions → modules` | already in the payload; unchanged |
+| date · day · week | the occurrence (`start_date + (week-1) weeks + day_of_week`) | never recomputed client-side. **Not** the date the status is judged against — see the next row |
+| time · duration | `class_sessions.start_time/end_time` | duration = minutes / 60, integer |
+| venue (row + modal) | `venues.room_code` for the column, `venues.room_name` for the modal label | `room_name` is **nullable** → fall back to the code, never to an empty string |
+| cohorts | `class_sessions → cohorts` (`spacedCohortLabel`) | one per line, order as loaded |
+| students | `sum(cohorts.student_count)` | the number the count must use, no separate query |
+| conflict reason | `class_exceptions.reason` through `ReasonLabel::from()`, holiday precedence D9 | the existing rule, untouched |
+| row status | `ReplacementRequestMapper::effectiveStatus()` | **the only place `completed` is decided**, and it judges the **replacement** date (not the occurrence date): approved + replacement day already past → completed. The browser never decides a status |
+| "Completed — n days ago" | display only, from the replacement date | relative-label rendering may use the browser clock; it must never change the status or a filter |
+| newest request | `ReplacementRequest` ordered `submitted_at, id`, last one wins per occurrence | tie-break documented. `submitted_at` is **NOT NULL**, so there is no null case to defend; if that ever changes, the query must say `nulls last` (pgsql sorts NULLs **last** on ASC, which would otherwise make an undated row win) |
+| requested replacement (date · time · venue) | **the newest request's span** through `ReplacementRequestMapper::replacementStrings()` → `stringsFromSpan()`: the junction `replacement_request_slots` read min→max, and the anchor `replacement_time_slot_id` **only as the fallback** when the junction is empty | `—` when there is no request. **Never read the anchor directly**: it holds the first 30-minute cell, so a 2-hour arrangement would print `09:00 – 09:30`. The anchor is correct only *after a cancel*, because `CancelPendingRequest` deletes the junction rows — which is exactly why the mapper has the two-step rule |
+| request id / request status | the same newest request: `id`, `effectiveStatus()` | one request object feeds the column, the modal tab and the Action cell |
+| remark | `replacement_requests.remarks` | nullable → the row is omitted, never printed as "null" |
+| rejection reason | `replacement_requests.rejection_reason` | shown **only** when the row's status is `rejected`; independent of `remarks` |
+| status description | generated from the row's status (`statusDesc()`, the My Requests wording) | the **request-state** sentence. The home quick view's *urgency* sentence is not carried over — same label, different meaning; renaming that one is a later lane |
+| venue, per schedule | Original Class Schedule = the occurrence's venue; Proposed Replacement Schedule = the span's venue | both print `room_code — room_name` (**`room_name` nullable → fall back to the code**); the table's column prints the occurrence **code** only |
+
+**Correctness laws**
+
+1. **One row set.** The table, the five cards, the chips' counts and the pagination all derive
+   from **one** filtered array in one render pass. No card may query the database on its own,
+   and no two of them may count differently.
+2. **One status rule.** `effectiveStatus()` stays the only implementation. The merged page
+   must not re-derive `completed` in PHP, in Blade or in JS — a second rule is how "Approved"
+   and "Completed" end up disagreeing on the same screen.
+3. **No N+1 — and it needs an additive entry point, because today there are already more than
+   two queries.** The payload runs **three** base queries (`sessions` with module/venue/cohorts,
+   `class_exceptions`, `latestRequests`), and `effectiveStatus()` adds **two per approved row**
+   (`span()`'s junction read + the `TimeSlot → venue` lazy load in `stringsFromSpan()`). New
+   columns cannot fix that — they are not columns of `replacement_requests`. So the merged
+   payload uses a **batch** path: `spansForRequests()` for every row's span in one query, with
+   venues preloaded, and that span object passed into the status/strings helpers. Widening the
+   narrow select stays additive; the FK is never dropped.
+4. **After a cancel, re-read.** The row's status is whatever the database now says — the view
+   must not assume `cancelled` locally. `CancelPendingRequest` is the write; the repaint uses
+   its result.
+5. **The API agrees.** `ReplacementRequestMapper::toRow()` / `ApiReadController` are untouched,
+   so the JSON `status` and the page's badge come from the same helper. If they ever disagree,
+   the helper is wrong, not the page.
+6. **Nulls are honest.** An empty venue name, an absent request, an empty remark: each renders
+   as the designed "nothing here" state (an em dash or an omitted row), never as an empty gap
+   or the string "null".
 
 ## 7. Risks
 
