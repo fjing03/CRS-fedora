@@ -161,7 +161,7 @@ Inside one request's panel:
 | Request ID | `#R114.1` — only when there is no child tab bar to carry it |
 | Status | `Approved by PL` |
 | Status Description | one sentence for **this request's** status |
-| Proposed Replacement | `Thu, 06 Nov 2025 · 09:00 to 10:00 @ B010` — the venue joins with `@` |
+| Proposed Replacement Schedule | `Thu, 06 Nov 2025 · 09:00 to 10:00 @ B010` — the venue joins with `@` |
 | Your Submitted Timestamp | `30 Oct 2025, 2:45 PM` |
 | Decision by PL Timestamp | `31 Oct 2025, 9:05 AM` — the timestamp only |
 | PL who Decided | `Pn. Surayaini (5425) surayaini@tarc.edu.my` + a copy button |
@@ -183,7 +183,10 @@ is its own row (name, staff id, email, copy-to-clipboard — real demo identitie
 A request the lecturer cancelled instead reads `Decision Timestamp` +
 `Cancelled By: You`, because no PL decided it; a pending request shows
 `Waiting for a decision` and no decider row. The detail label column widened to
-160 px so `Decision by PL Timestamp` stays on one line.
+200 px so the two longest labels — `Decision by PL Timestamp` and `Proposed
+Replacement Schedule` — each stay on one line. The row keeps the word *Schedule*
+because it names the same thing as the `Proposed Replacement Schedule` tab; a bare
+`Proposed Replacement` read like an object rather than a timetable.
 
 **Request ID appears exactly once.** With two or more requests the **child tab label**
 carries it (`Request #R102.3`); with a single request there is no tab bar, so the
@@ -195,7 +198,7 @@ Two subtitles carry the panel — `CURRENT` and `HISTORY` — and both are **14 
 they read as structure rather than as another data row.
 
 The old `What to do` row is gone: "Arrange a replacement for this class" repeated
-what the badge already said. In its place is a **Description** row — a labelled
+what the badge already said. In its place is a **`Status Description`** row — a labelled
 peer of Status, inside CURRENT — carrying one sentence that depends on the status:
 *"You cancelled this request, so the class is free to be arranged again."* /
 *"The proposed replacement is waiting for the PL to approve or reject it."* The
