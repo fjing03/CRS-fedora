@@ -9,6 +9,11 @@
 > committed first**. This lane builds on the `requestStatus` payload key and the
 > home page's status badge that lane introduces. If it is not done yet, say so
 > and stop — do not invent a parallel payload.
+>
+> **Status 2026-11-03: satisfied.** That lane landed as `a16727c` (feat) and
+> `2e58547` (apply/verify). The anchors below were re-grepped against that tree:
+> `statusClass` moved to `ui-common.js:2882` and the my-requests timeline step to
+> `:787–791`; everything else is still exact.
 
 ---
 
@@ -104,9 +109,11 @@ which is the stored status except for the single `approved` + past-date case.
 
 ## 5. Traps — read before you start
 
-1. **The other lanes are dirty in this tree.** Before the badges lane is merged,
-   the notification lane's files are modified and untracked. Check
-   `git status --short` first and **never stage another lane's files**.
+1. **Other lanes share this tree, and the set moves.** On 2026-11-03 (after the
+   badges lane was committed) `git status` showed `docs/demo-db-data-changes.md`,
+   five Playwright specs and the untracked `receipt-target-guard` work. Treat that
+   as a warning, not a list: run `git status --short` and **never stage another
+   lane's files**.
 2. **Date-grain, not time-grain.** Compare **dates**, not datetimes:
    `Carbon::parse($date)->startOfDay()->lt(today()->startOfDay())`. Never
    `->lt(now())` on a parsed `Y-m-d` (that is midnight, and it would flip at the
@@ -129,10 +136,11 @@ which is the stored status except for the single `approved` + past-date case.
    semester in every database (`202605`), so this is latent. Do **not** fix it
    here; leave a comment in the design's known-issues list.
 7. **The Completed badge styling already exists** — `.status-completed`
-   (`theme.css:3647`) and `statusClass('Completed')` (`ui-common.js:2872`). Do not
-   add colours.
-8. **Two status producers, not one.** `ReplacementRequestMapper::toRow()` (`:93`)
-   feeds the PL page **and** the API (`ApiReadController:156`);
+   (`theme.css:3647`) and `statusClass('Completed')` (`ui-common.js:2882`, the
+   mapping at `:2888`). Do not add colours.
+8. **Two status producers, not one.** `ReplacementRequestMapper::toRow()` (`:93`,
+   the `$prettyStatus` line inside `toRow()` which starts at `:74`) feeds the PL
+   page **and** the API (`app/Http/Controllers/Api/ApiReadController.php:156`);
    `MyRequestHistory::requestRow()` (`:84`) feeds the lecturer page. Both must call
    the one helper. The home payload is the third caller.
 9. **Don't touch `applyNotifHighlight`** or the bell partial.
@@ -179,7 +187,7 @@ Call sites (all three, nothing else):
 | `ReplacementRequestMapper::toRow()` `:93` | `$prettyStatus = ucfirst($this->effectiveStatus($r, $semesterStart));` |
 | `MyRequestHistory::requestRow()` `:84` | `'status' => ucfirst($mapper->effectiveStatus($r, $semesterStart))` |
 | `ReplacementHome` payload | `'requestStatus' => $effectiveStatus` (raw, lowercase — the badges lane's badge helper expects raw) |
-| `ApiReadController` `:156` | none — it rides `toRow()` |
+| `ApiReadController` (`app/Http/Controllers/Api/ApiReadController.php:156`) | none — it rides `toRow()` |
 
 Keep the returned values **lowercase**; every consumer already applies `ucfirst()`
 where it needs the pretty form.
@@ -190,7 +198,7 @@ where it needs the pretty form.
 
 ### 7.1 My Requests — `resources/views/livewire/my-request-history.blade.php`
 
-1. **Timeline (C6)** — `:769–773`. The last step's `time` becomes the replacement
+1. **Timeline (C6)** — `:787–791`. The last step's `time` becomes the replacement
    date when the row is Completed:
 
    ```js
