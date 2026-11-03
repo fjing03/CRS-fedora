@@ -71,7 +71,7 @@ while lane 2 is pending, so the code cannot break on first sight of one.
 | 2 | Original class | both pages | **one cell**: date · day (Week N) **with Days Left beside it on the same line** (wraps directly under the date when the column is tight) / start–end (duration) / **pin icon + room** / **users icon + cohorts** |
 | 3 | Conflict Reason | home (extended) | one badge, two shapes: **`Class Cancelled — <reason>`** in neutral grey for every non-holiday reason; **`Public Holiday — <holiday name>`** in error red. The holiday name is the calendar label from the `holidays` rows ("Deepavali Holiday (In Lieu)", "Christmas Day", …) |
 | 4 | Requested replacement | history | **mirrors the Original Class design, minus the cohorts line** (they are the class's own cohorts): date · day (Week N) / start–end (duration) / **pin icon + room**; `—` when there is no request |
-| 5 | Request Status | new | badge **with the actor**: `Approved by PL` · `Rejected by PL` · `Cancelled by YOU` · `Pending — Waiting PL for Approval` · `Completed` (the calendar decided) · `Need to Arrange` (**outlined**, not filled — see below); **see Q3** on whether it is also a shortcut |
+| 5 | Request Status | new | badge **with the actor**: `Approved by PL` · `Rejected by PL` · `Cancelled by YOU` · `Pending — Waiting PL for Approval` · `Completed — <n> days ago` · `Need to Arrange` (**outlined**, not filled — see below); **see Q3** on whether it is also a shortcut |
 | 6 | Action | both | **icon-only**: rotate = arrange, eye = view request. Full wording in the tooltip (`data-tip`) plus an `aria-label`. Never repeats the status; Cancel stays in the modal |
 
 The column is called **Request Status**, not "Status": on this page "status" alone
@@ -79,7 +79,10 @@ is ambiguous (class status vs request status), so the label names the thing. The
 badge also names **who decided** — the PL for approved/rejected, `YOU` for a
 cancellation (the lecturer cancels their own request). That is not decoration: it
 tells the lecturer who to chase. `Pending` has no decider yet, and `Completed` is
-the calendar's verdict, so neither carries an actor.
+the calendar's verdict, so neither carries an actor. `Completed` instead carries a
+**three-word time qualifier** — `Completed — 3 days ago`, `Completed — 1 day ago` —
+computed from the replacement date, so the badge answers "how long ago did this
+run?" without opening anything.
 
 `Need to Arrange` is an **outlined** pill (transparent background, light-primary
 text and border), not a filled one. It marks the *absence* of a request, so it must
