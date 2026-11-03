@@ -6,7 +6,11 @@ import { test, expect, type Page } from '@playwright/test';
    client type-check drop. Real deck identities:
    - 5652 (Daniel Royd Michael) owns AMIT2033 L (id 14 @ B006, DFT·2S1G1),
      AMIT2034 L/T/P (DSF·2S1G1)...
-   - 4288 (Christopher Lazarus) owns BMIS2003 L (id 10 @ B006, RSD·3S1G1) — the NON-networking negative ctx.
+   - the negative ctx was 4288 (Christopher Lazarus) / BMIS2003 L (id 10 @
+     B006) until 2026-11-03, when the user's ruling put BMIS2003 on the lab
+     roster (its seeded L already sits in B006). The control is now
+     5514 (Norshikin) / BMCS2053 L (id 78 @ B103 tutorial), a subject OUTSIDE
+     the timetable's lab-L/T population.
    Login on the fly (the 5/min/ID budget respected: one per identity).
 
    BLOCKED (the frozen spec's modal browser row): the demo deck carries NO
@@ -65,13 +69,14 @@ test('the venue dropdown gies the networking L ctx its labs (additive)', async (
   void labRows; // the drill-down per-type detail is not asserted hard (the Types grain is the receipt)
 });
 
-/* (b) the CLIENT-side NEGATIVE: a non-networking L ctx shows NO Lab type */
-test('the non-networking L ctx shows NO lab in the dropdown (client negative)', async ({ page }) => {
-  await loginStaff(page, '4288');
-  await page.goto(`${BASE}/replacement-arrangement?session=10&week=1`, { waitUntil: 'networkidle' });
+/* (b) the CLIENT-side NEGATIVE: an L ctx OUTSIDE the lab roster shows NO Lab type */
+test('the off-roster L ctx shows NO lab in the dropdown (client negative)', async ({ page }) => {
+  await loginStaff(page, '5514');
+  await page.goto(`${BASE}/replacement-arrangement?session=78&week=1`, { waitUntil: 'networkidle' });
   await page.waitForTimeout(3000);
-  // ?session=10 = BMIS2003 (L) non-networking — a non-networking L context:
-  await expect(page.locator('#subjectInfo')).toContainText('BMIS2003');
+  // ?session=78 = BMCS2053 (L) @ B103 tutorial — a subject OUTSIDE the roster's
+  // lab-L/T population (2026-11-03: BMIS2003, the old control, is now on it):
+  await expect(page.locator('#subjectInfo')).toContainText('BMCS2053');
   await page.click('.venue-dd-trigger');
   await page.waitForTimeout(400);
   const types = await venueTypes(page);

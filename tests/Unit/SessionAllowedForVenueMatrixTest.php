@@ -84,16 +84,28 @@ final class SessionAllowedForVenueMatrixTest extends TestCase
             'sp2_amit2033L_B010_lab_additive' => [2, 'AMIT2033', 'L', ['DFT'], 'B010', 'lab', true, true],
             'sp3_amit2033L_B006_widen' => [3, 'AMIT2033', 'L', ['DFT'], 'B006', 'cisco_lab', true, true],
             'sp4_amit2033L_B005_accepted_repeal' => [4, 'AMIT2033', 'L', ['DFT'], 'B005', 'lab', true, true], // SDD b005-diploma-allowed: R2 repealed
-            'sp5_bmis2003L_B010_denied' => [5, 'BMIS2003', 'L', ['RSD'], 'B010', 'lab', true, false],
-            'sp6_bmis2003L_B006_denied' => [6, 'BMIS2003', 'L', ['RSD'], 'B006', 'cisco_lab', true, false],
+            // 2026-11-03 user ruling: BMIS2003 / AMCS1013 / BMIT1173 sit in labs
+            // in the seeded timetable, so they are on the roster now (sp5/sp6/
+            // sp8/sp18 flipped). BMCS2053 (sp19/sp20) is the off-roster control.
+            'sp5_bmis2003L_B010_lab_additive' => [5, 'BMIS2003', 'L', ['RSD'], 'B010', 'lab', true, true],
+            'sp6_bmis2003L_B006_widen' => [6, 'BMIS2003', 'L', ['RSD'], 'B006', 'cisco_lab', true, true],
             'sp7_amcs1013P_B006_base_focs' => [7, 'AMCS1013', 'P', ['DSF'], 'B006', 'cisco_lab', true, true],
-            'sp8_amcs1013T_B006_denied' => [8, 'AMCS1013', 'T', ['DSF'], 'B006', 'cisco_lab', true, false],
+            'sp8_amcs1013T_B006_widen' => [8, 'AMCS1013', 'T', ['DSF'], 'B006', 'cisco_lab', true, true],
             'sp9_rafcashcohort_B006_banned' => [9, 'AMIT2033', 'P', ['RAF'], 'B006', 'cisco_lab', true, false],
             'sp10_amit2034P_labany' => [10, 'AMIT2034', 'P', ['DSF'], 'B009', 'lab', true, true],
             'sp11_amit2034P_B005_accepted_repeal' => [11, 'AMIT2034', 'P', ['DSF'], 'B005', 'lab', true, true], // the repeal receipts
             'sp12_amit2034T_B005_accepted_repeal' => [12, 'AMIT2034', 'T', ['DSF'], 'B005', 'lab', true, true],
             'sp13_amit2034L_B111_hall' => [13, 'AMIT2034', 'L', ['DSF'], 'B111', 'lecture_hall', true, true],
             'sp14_gate_ignores_capacity' => [14, 'AMIT2033', 'L', ['DSF'], 'SML-01', 'tutorial', true, true],
+            // 2026-11-03 user ruling (docs/venue-restrictions.md R3): BMIT2013
+            // joins the additive lab roster — its seeded L already runs in
+            // B009, so the booking rule must not contradict the timetable.
+            'sp15_bmit2013L_B009_lab_additive' => [15, 'BMIT2013', 'L', ['RSD'], 'B009', 'lab', true, true],
+            'sp16_bmit2013L_B006_widen' => [16, 'BMIT2013', 'L', ['RSD'], 'B006', 'cisco_lab', true, true],
+            'sp17_bmit2013T_B010_lab_additive' => [17, 'BMIT2013', 'T', ['RSD'], 'B010', 'lab', true, true], // the roster covers L/T
+            'sp18_bmit1173L_B009_lab_additive' => [18, 'BMIT1173', 'L', ['RSD'], 'B009', 'lab', true, true],
+            'sp19_bmcs2053L_B009_denied' => [19, 'BMCS2053', 'L', ['RSD'], 'B009', 'lab', true, false], // not in the timetable's lab-L/T population
+            'sp20_bmcs2053L_B006_denied' => [20, 'BMCS2053', 'L', ['RSD'], 'B006', 'cisco_lab', true, false],
         ];
     }
 
@@ -165,13 +177,17 @@ final class SessionAllowedForVenueMatrixTest extends TestCase
         );
     }
 
-    /** The non-networking keep-rules: BMIS2003's L sits nowhere in labs. */
-    public function test_non_networking_type_rows_untouched(): void
+    /**
+     * The type rows still bind for a subject OUTSIDE the roster's L/T
+     * population. (Renamed from BMIS2003 on 2026-11-03: that module is on the
+     * roster now — BMCS2053 is the control.)
+     */
+    public function test_off_roster_subjects_keep_their_type_rows(): void
     {
-        $session = $this->matrixSession('BMIS2003', 'P', ['RSD'], true);
+        $session = $this->matrixSession('BMCS2053', 'P', ['RSD'], true);
         $this->assertTrue(LectureSessionCatalog::sessionAllowedForVenue('P', 'lab', $session, 'B009'));
         $this->assertTrue(LectureSessionCatalog::sessionAllowedForVenue('P', 'cisco_lab', $session, 'B006'));
-        $sessionT = $this->matrixSession('BMIS2003', 'T', ['RSD'], true);
+        $sessionT = $this->matrixSession('BMCS2053', 'T', ['RSD'], true);
         $this->assertTrue(LectureSessionCatalog::sessionAllowedForVenue('T', 'tutorial', $sessionT, 'B002'));
         $this->assertFalse(LectureSessionCatalog::sessionAllowedForVenue('T', 'lab', $sessionT, 'B009'));
     }

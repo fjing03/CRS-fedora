@@ -1,3 +1,39 @@
+## 2026-11-03 (SDD-waived by the user; the decision is recorded in `docs/venue-restrictions.md` R3) — the lab roster now matches the timetable
+
+**Change:** `LectureSessionCatalog::ruleMap()` gained **nine** subjects in BOTH
+`lab_access_module_codes` and `b006_allowed_module_codes`: BMIT2013, AMCS1013,
+AMCS1043, AMIS1003, AMSE1003, BMCS3033, BMIS2003, BMIT1173, BMIT1723.
+
+**Why (user rulings, verbatim):** *"allow this class : BMIT2013 (L) to execute
+in lab."* and then *"are there any other subjects' L/T execute in lab but
+disallowed ?? add them to the array."*
+
+Every one of them already sits in a lab in the seeded real timetable — the
+"9 kept as printed" set (`dataset/DATASET-NOTES.md` §3); class **#24**
+(`BMIT2013 L`, Tue 14:00–16:00, **B009**, RSD2(S1)G2+G3, 14 students) is a
+pinned seed invariant (`TimetableSeedInvariantsTest:69`). R1's `L → tutorial,
+lecture_hall` therefore contradicted the timetable the app ships with. The
+roster is **per-subject**: their L/T may now book any lab, and B006 too (RSD/DSF
+cohorts pass R6); `P` keeps its base R1 row.
+
+**Blast radius:** the map is the single authority — the engine `validateSlot`,
+the Select-a-Session/producer pool and the client matrix
+(`replacement-arrangement.blade.php:3628`) all read it. **No migration, no
+demo-DB write**; `venues/modules.allowed_session_types` stay reference inventory
+(editing them would have changed nothing).
+
+**Behaviour now:** labs appear in the venue dropdown for those subjects' L/T, a
+lab replacement passes the engine, and subjects OUTSIDE the timetable's lab-L/T
+population (e.g. BMCS2053) stay denied.
+
+**Receipts:** `SessionAllowedForVenueMatrixTest` sp5/sp6/sp8/sp15–sp20;
+`EnforcementEngineValidateSlotTest` sp6/sp9/sp15/sp18–sp20;
+`TimetableSeedInvariantsTest::test_t8_every_seeded_lab_lt_session_is_on_the_lab_roster`
+(new — fails if a future import adds a lab-L/T subject that the roster lacks);
+`venue-restrictions-enforcement.spec.ts` **2/2 green** on `:8000` (the client
+negative re-pointed from BMIS2003/4288 to BMCS2053/5514, because BMIS2003 is now
+on the roster). 51 targeted PHPUnit tests green; pint + phpstan clean.
+
 ## 2026-11-01 (SDD-waived bug fix #2 — the user's "skip sdd if possible") — reselecting the SAME slot no longer pops "Change Time Slot?"
 
 **Bug:** with grid selections live, re-picking the EXACT SAME slot in the picker

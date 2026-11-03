@@ -116,8 +116,15 @@ final class EnforcementEngineValidateSlotTest extends TestCase
             // SDD b005-diploma-allowed: the R2 arm was repealed — B005 accepts
             // a D*-cohort networking L when the type row allows (the additive
             // lab widening composes to the same accept).
-            'sp6_nonetworking_L_into_B006_denied' => ['AMCS1013', ['DSF'], 'L', 'B006', false],
-            'sp9_noneworkingen_other_lab_denied' => ['AMCS1013', ['DSF'], 'L', 'B010', false],
+            // 2026-11-03 user ruling: every subject whose seeded L/T sits in a
+            // lab joined the roster (BMIT2013 + the eight kept-as-printed
+            // modules). BMCS2053 is the off-roster control that stays denied.
+            'sp6_amcs1013_L_into_B006_roster' => ['AMCS1013', ['DSF'], 'L', 'B006', true],
+            'sp9_amcs1013_L_into_B010_roster' => ['AMCS1013', ['DSF'], 'L', 'B010', true],
+            'sp15_bmit2013_L_into_B009_lab' => ['BMIT2013', ['RSD'], 'L', 'B009', true],
+            'sp18_bmit1173_L_into_B009_roster' => ['BMIT1173', ['RSD'], 'L', 'B009', true],
+            'sp19_bmcs2053_L_into_B009_denied' => ['BMCS2053', ['RSD'], 'L', 'B009', false],
+            'sp20_bmcs2053_L_into_B006_denied' => ['BMCS2053', ['RSD'], 'L', 'B006', false],
         ];
     }
 

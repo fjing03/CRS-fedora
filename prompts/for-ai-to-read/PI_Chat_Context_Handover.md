@@ -45,6 +45,12 @@
      approved request whose replacement day has passed; hide completed rows by
      default on all three pages. **Must not start before lane 1 is merged.**
 - This handover was restructured to six sections; the addenda moved to `history/`.
+- **The lab booking roster now matches the timetable** (user ruling, SDD waived
+  by the user, decision recorded in `docs/venue-restrictions.md` R3): BMIT2013
+  plus the other eight subjects whose seeded L/T already sit in a lab joined
+  both `lab_access_module_codes` and `b006_allowed_module_codes`. A new seed
+  invariant (`TimetableSeedInvariantsTest::test_t8_…`) fails if a future import
+  drifts from the roster.
 
 **In flight, other session:** `.sdd/changes/notif-recipient-rulings/` (proposal frozen
 and approved with two refinements; batch-2 design). Product code untouched as of this

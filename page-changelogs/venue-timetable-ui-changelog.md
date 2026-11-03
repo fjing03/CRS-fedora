@@ -1,3 +1,14 @@
+## 2026-11-03 (user ruling) — nine more subjects may book labs (the Select-a-Session pool)
+
+`LectureSessionCatalog::ruleMap()` gained BMIT2013, AMCS1013, AMCS1043,
+AMIS1003, AMSE1003, BMCS3033, BMIS2003, BMIT1173 and BMIT1723 in both roster
+arrays — every subject whose seeded L/T already sits in a lab. The venue page's
+Select-a-Session producer pool reads the same map (`sessionAllowedForVenue`), so
+those lectures/tutorials now see lab rooms; a subject outside the timetable's
+lab-L/T population still does not. Full rationale + receipt list:
+`page-changelogs/replacement-arrangement-changelog.md` (2026-11-03) and
+`docs/venue-restrictions.md` R3. No DB change.
+
 ## 2026-11-02 (shared timeline) — visible demo reminder above the class-detail rail
 
 The shared `DetailModal.timeline()` now prints one line of plain text directly

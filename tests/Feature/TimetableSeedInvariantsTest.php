@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Services\LectureSessionCatalog;
 use Database\Seeders\DatabaseSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
@@ -756,6 +757,46 @@ final class TimetableSeedInvariantsTest extends TestCase
 
         $student = DB::table('students')->where('student_id', '25RSD0001')->first();
         $this->assertNotNull($student, 'T-6: student account 25RSD0001 must exist.');
+    }
+
+    /**
+     * 2026-11-03 (user ruling): the booking roster must not contradict the
+     * timetable it ships with. Every L/T session sitting in a lab-type room
+     * must have its module on BOTH roster arrays — that is exactly the set the
+     * user ordered added ("are there any other subjects' L/T execute in lab but
+     * disallowed ?? add them to the array"). A future import that introduces a
+     * new lab-L/T subject fails here until the roster is updated on purpose.
+     */
+    public function test_t8_every_seeded_lab_lt_session_is_on_the_lab_roster(): void
+    {
+        $this->seedFreshDemoDatabase();
+
+        $codes = DB::table('class_sessions as cs')
+            ->join('modules as m', 'm.id', '=', 'cs.module_id')
+            ->join('venues as v', 'v.id', '=', 'cs.venue_id')
+            ->whereIn('cs.session_type', ['L', 'T'])
+            ->whereIn('v.room_type', ['lab', 'cisco_lab'])
+            ->distinct()
+            ->orderBy('m.module_code')
+            ->pluck('m.module_code')
+            ->all();
+
+        $this->assertNotEmpty($codes, 'the seeded deck must carry lab L/T sessions');
+
+        $rule = LectureSessionCatalog::ruleMap();
+
+        foreach ($codes as $code) {
+            $this->assertContains(
+                $code,
+                $rule['lab_access_module_codes'],
+                'lab_access_module_codes is missing '.$code.' — the booking rule contradicts the seeded timetable',
+            );
+            $this->assertContains(
+                $code,
+                $rule['b006_allowed_module_codes'],
+                'b006_allowed_module_codes is missing '.$code.' — the two rosters must stay identical',
+            );
+        }
     }
 
     public function test_t7_import_verify_command_passes_on_fresh_seed(): void

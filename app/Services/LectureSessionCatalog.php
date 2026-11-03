@@ -44,6 +44,10 @@ final class LectureSessionCatalog
      * allowed, RAF/RBU never) composites OVER these base rows for EVERY
      * session type (design D2's one boolean formula — never an early-return
      * chain). R4/IoT was DROPPED by the user (no IoT keys exist on purpose).
+     * 2026-11-03 (user ruling): BMIT2013 joins the additive lab roster — its
+     * lecture already runs in B009 in the seeded real timetable (a pinned seed
+     * invariant), so the booking rule now matches the timetable instead of
+     * contradicting it.
      * Capacity is NOT part of this gate — the engine's separate check.
      *
      * @return array{P: list<string>, T: list<string>, L: list<string>, lab_access_module_codes: list<string>, b006_allowed_module_codes: list<string>, b006_focs_programmes: list<string>, b006_banned_programmes: list<string>, b006_venue_code: string}
@@ -62,14 +66,23 @@ final class LectureSessionCatalog
             /* venue-restrictions-enforcement (the user's 2026-10-24
                ALLOW/DISALLOW law): networking subjects' L/T may use any lab
                (additive — their R1 rooms stay); B006's L/T roster = the same
-               four codes (deliberately redundant with lab_access while the
-               rosters coincide — kept separate so a future divergence can't
-               regress silently); the population gate keys (R6). NOTE this
+               codes (deliberately redundant with lab_access while the rosters
+               coincide — kept separate so a future divergence can't regress
+               silently); the population gate keys (R6). NOTE this
                module-conditioned data is the ONLY rule authority now — the
                allowed_session_types columns are untouched reference
-               inventory (Q6: no migration). */
-            'lab_access_module_codes' => ['AMIT2033', 'BMIT2154', 'BMIT3084', 'AMIT2034'],
-            'b006_allowed_module_codes' => ['AMIT2033', 'BMIT2154', 'BMIT3084', 'AMIT2034'],
+               inventory (Q6: no migration).
+               2026-11-03 (user ruling, docs/venue-restrictions.md R3): the
+               roster now ALSO carries every non-networking subject whose
+               seeded L/T already sits in a lab — BMIT2013 plus the other
+               eight "kept as printed" modules (DATASET-NOTES §3). The user's
+               words: "allow this class : BMIT2013 (L) to execute in lab" and
+               then "are there any other subjects' L/T execute in lab but
+               disallowed ?? add them to the array." The booking rule may not
+               contradict the timetable it ships with; the seed invariant test
+               now pins that alignment (TimetableSeedInvariantsTest). */
+            'lab_access_module_codes' => ['AMIT2033', 'BMIT2154', 'BMIT3084', 'AMIT2034', 'BMIT2013', 'AMCS1013', 'AMCS1043', 'AMIS1003', 'AMSE1003', 'BMCS3033', 'BMIS2003', 'BMIT1173', 'BMIT1723'],
+            'b006_allowed_module_codes' => ['AMIT2033', 'BMIT2154', 'BMIT3084', 'AMIT2034', 'BMIT2013', 'AMCS1013', 'AMCS1043', 'AMIS1003', 'AMSE1003', 'BMCS3033', 'BMIS2003', 'BMIT1173', 'BMIT1723'],
             'b006_focs_programmes' => ['DFT', 'DSF', 'RSD'],
             'b006_banned_programmes' => ['RAF', 'RBU'],
             'b006_venue_code' => 'B006',
