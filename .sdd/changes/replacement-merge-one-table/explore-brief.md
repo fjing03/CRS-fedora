@@ -142,9 +142,11 @@ reused from My Requests verbatim, not redesigned:
   page buttons with ‹ ›. The same markup and classes (`rpp-wrapper`,
   `rpp-select`, `pagination-bar`, `page-btn`).
 
-**Summary cards** (proposed 4, replacing home's 3 + history's 5):
-Need to Arrange · Hours to cover · Pending · Approved. Counts follow the
-filters, as both pages already do.
+**Summary cards** (5 — the theme's `.summary-bar` is already a 5-column grid, so no
+CSS change): **Classes to Arrange** · **Class Hours to Replace** · **Pending
+Requests** · **Requests Approved by PL** · **Requests Rejected by PL**. Counts
+follow the filters, not the page. The first two are the classes side (what is still
+owed), the last three are the requests side (what happened to them).
 
 **Bulk cancel is removed** (user decision, 2026-11-03): no checkbox column and no
 bulk bar. Cancelling happens **one request at a time from the detail modal**, where
