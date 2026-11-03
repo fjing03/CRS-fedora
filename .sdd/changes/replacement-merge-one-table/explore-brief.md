@@ -160,11 +160,23 @@ Inside one request's panel:
 |---|---|
 | Request ID | `#R114.1` — only when there is no child tab bar to carry it |
 | Status | `Approved by PL` |
+| Status Description | one sentence for **this request's** status |
 | Proposed Replacement | `Thu, 06 Nov 2025 · 09:00 to 10:00 @ B010` — the venue joins with `@` |
 | Your Submitted Timestamp | `30 Oct 2025, 2:45 PM` |
 | Decision by PL Timestamp | `31 Oct 2025, 9:05 AM` — the timestamp only |
 | PL who Decided | `Pn. Surayaini (5425) surayaini@tarc.edu.my` + a copy button |
-| Note | `Students already have a replacement class that morning.` |
+| Remark | `Students already have a replacement class that morning.` — **nullable**; the row disappears when empty |
+
+`CURRENT` carries the same two extra rows for the occurrence itself: **Status
+Description** (one sentence for the row's status) and **Remark** — which is the
+*newest* request's note, and is omitted when that note is empty. `Remark` is the
+free-text field; `Status Description` is generated, so the two never say the same
+thing twice.
+
+Known duplication: on a **single-request** row the CURRENT block and the HISTORY
+block mirror each other (same status, same description, same remark). That is the
+price of keeping CURRENT in every state; hiding it for single-request rows is the
+alternative if it bothers you on screen.
 
 The decider left the timestamp row, so the timestamp is just a time and the person
 is its own row (name, staff id, email, copy-to-clipboard — real demo identities).
