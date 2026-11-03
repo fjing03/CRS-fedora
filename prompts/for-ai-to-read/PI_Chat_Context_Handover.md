@@ -49,6 +49,17 @@
 > (`2f3b0be`); the **notification recipient rulings R1–R5 were decided but NOT
 > applied** (`prompts/pi-notification-recipient-rulings.md`, SDD lane required);
 > and `CRS-demo` was fast-forwarded to `6ab9d03` with the viva DB untouched.
+> Updated 2026-11-03 (M2 session): the **Gmail SMTP flip EXECUTED and receipted** —
+> 8 `.env` rows set (`MAIL_SCHEME` stays `null`), direct + queued test both delivered
+> (queued dummy via the isolated `m2-test` queue → `poongfj-sm23@student.tarc.edu.my`;
+> `failed_jobs` 0); **posture decided the same day, split by repo: dev
+> (`CRS-fedora-backend`) = `log`** (its 10 stale mails can no longer leave the
+> app) **and viva (`CRS-demo` / `class_replacement_viva`) = `smtp`** (flipped
+> 2026-11-03 — its 27 stale jobs must be purged before the first worker run);
+> the App Password was exposed in a chat/error paste and the user declined
+> rotation. No product
+> code changed, nothing committed; docs touched: `docs/fyp-todo.md`,
+> `docs/queue-and-emails.md`, this file (§0.10).
 
 ---
 
@@ -58,7 +69,7 @@
 |---|---|
 | Working branch | `fedora-backend` (remote: `origin` = `fjing03/CRS-fedora.git`, PULL-ONLY `upstream` = `FjingXR/class-replacement-system`) |
 | Push policy | **NEVER `git push`** — the user pushes manually (they said so explicitly). One exception, commanded 2026-11-02: `67606dd`+`d32ebd7` were pushed by the agent; afterwards the rule resumed. |
-| Unpushed commits | **40** (`origin/fedora-backend` = `ab912af`; re-count before trusting). The 2026-11-02 tail: `b0fd936` (toast 728), `a37e452` (toast 800), `58edc29` (modal advisory), the entry-guard chain `62cbbb0`/`b0685ae`/`99329be`, `083f7bd` (student 12h idle), `e8f9671`/`b58b319`/`f1e7f9a` (span-follow), `5056c77`/`f1b27b2`/`88c3b3a` (slot-picker clear), the PI lane `7107abb`/`210a232`/`f0b7215`, `5af11a6` (notifications.hidden_at), `dc41c79` (schema-migration law), `0e99119` (PI prompt template), the notif manage-hide SHIP `467357b`/`f5cc56d`/`fc81dd3`/`405b4a3` + its archive `e7946be`, and the docs chain `b9fdb69` (FR 2.17), `3a407e4` (lead-time banner), `e861736`/`1e54b4f` (AI-context move), `793a4dc` (prompt archive), `89c7508` (FR&NFR copy), `9276e6e` (template §10), `1d54284` (migration log), `5182dbc` (FR approval rule). |
+| Unpushed commits | **20** (`origin/fedora-backend` = `06865f0`, re-counted 2026-11-03; re-count before trusting). The 2026-11-02 tail: `b0fd936` (toast 728), `a37e452` (toast 800), `58edc29` (modal advisory), the entry-guard chain `62cbbb0`/`b0685ae`/`99329be`, `083f7bd` (student 12h idle), `e8f9671`/`b58b319`/`f1e7f9a` (span-follow), `5056c77`/`f1b27b2`/`88c3b3a` (slot-picker clear), the PI lane `7107abb`/`210a232`/`f0b7215`, `5af11a6` (notifications.hidden_at), `dc41c79` (schema-migration law), `0e99119` (PI prompt template), the notif manage-hide SHIP `467357b`/`f5cc56d`/`fc81dd3`/`405b4a3` + its archive `e7946be`, and the docs chain `b9fdb69` (FR 2.17), `3a407e4` (lead-time banner), `e861736`/`1e54b4f` (AI-context move), `793a4dc` (prompt archive), `89c7508` (FR&NFR copy), `9276e6e` (template §10), `1d54284` (migration log), `5182dbc` (FR approval rule). |
 | AI-context layout (2026-11-02) | Root **`AGENTS.md` = bootstrap pointer** (harnesses only auto-load root) → **`prompts/for-ai-to-read/`** holds `AGENTS.md`, `CodingMAIN.md`, `my-coding-rules.md`, `PI_Chat_Context_Handover.md` and **`FR&NFR copy.md`** (49 FRs / 26 NFRs, `v2026-11-02`, change log; **read-only without the user's explicit approval**). Finished prompts → **`prompts/completed prompt (Archieve)/`** (its README = the evidence rule; **ask before archiving**, template §10). Paths inside those files are repo-root-relative unless they start with `../`. |
 | Demo DB | `class_replacement_fresh` (:8000, dev) and the twin **`CRS-demo` on :8001 with its own DB `class_replacement_viva`** (restored 2026-11-02; `.env` = `APP_ENV=local`, `APP_DEBUG=false`). `class_replacement_demo` is the OLDER twin DB and is empty (0 requests / 0 notifications) — do not confuse it with the viva DB. The user's own manual testing has added rows to `class_replacement_viva`, so **treat both as live**. **Never re-seed the demo DBs**; any demo write = user-gated per write + logged in `docs/demo-db-data-changes.md` + snapshot law first (`backups/README.md`; canonical viva dump = `class_replacement_demo-post-recovery-2026-11-01.dump`). |
 | Ops trap (2026-11-02, MEASURED) | This box runs `opcache.enable_cli=On` with **`opcache.revalidate_freq=180`**, so the long-running `php artisan serve` keeps serving a **.php** file's PREVIOUS bytecode for up to ~3 minutes after an edit (it only re-stats the file every 180 s). Symptoms: "my fix didn't take effect", a 500 naming a class you DID import, a payload key you DID add being absent. Blade/CSS/JS are effectively live (compiled views are re-created; clearing `storage/framework/views/*.php` covers the rest). **Fix: `scripts/dev-serve.sh [port]`** — it kills that port's server, clears the view cache, and starts the built-in server with `-d opcache.revalidate_freq=0` (an edit is then live on the next request; `php artisan serve` cannot forward `-d`, so the script invokes the same built-in server + Laravel router directly). Verified by a controlled probe: with the default ini, three consecutive edits were all served as the first one; with the script, each edit appeared immediately. Never combine `pkill` + the start in ONE shell string (the pattern matches the wrapper) — the script exists so you never have to. |
@@ -544,6 +555,75 @@ explicitly out of scope.
 1. Run the Ch5 evidence lane, fill the report and re-status the draft.
 2. Apply the notification rulings lane — after the SV meeting if time is short.
 3. Parked: rail rebuild, footer lane, BUG verdicts, SMTP.
+
+---
+
+## 0.10 SESSION ADDENDUM — 2026-11-03 (M2 email/SMTP flip EXECUTED — dev = `log`, viva = `smtp`)
+
+> Docs-only session: no product code changed, nothing committed, no DB writes.
+> §0.9's "parked: … SMTP" line is now executed on the code/ops side — only the
+> posture decision remains.
+
+**A. The flip (receipt)**
+
+- `.env` flipped per the corrected 10-row table in `docs/queue-and-emails.md`:
+  `MAIL_MAILER=smtp`, `MAIL_HOST=smtp.gmail.com`, `MAIL_PORT=587`,
+  `MAIL_USERNAME=MAIL_FROM_ADDRESS=foojing03@gmail.com`,
+  `MAIL_FROM_NAME="TAR UMT Class Replacement System"`; `MAIL_SCHEME=null` and
+  `QUEUE_CONNECTION=database` unchanged; `APP_NAME` untouched (stays `Laravel`).
+  Re-verified via `config()` after `config:clear` (no config cache existed).
+- Direct: `Mail::raw` → `foojing03@gmail.com` inbox ✓.
+- Queued: dummy `ReplacementDecided` → `onQueue('m2-test')` →
+  `php artisan queue:work --queue=m2-test --once` (`RUNNING → 4s DONE`) →
+  `poongfj-sm23@student.tarc.edu.my` inbox ✓; `failed_jobs` 0; the `default`
+  backlog untouched.
+- Two gotchas (full detail in `docs/queue-and-emails.md`): the App Password
+  pasted **with spaces** breaks dotenv ("unexpected whitespace" — every artisan
+  command fails), and `MAIL_FROM_ADDRESS` must equal `MAIL_USERNAME` (the first
+  attempt still said `hello@example.com`).
+
+**B. The posture decision (M2 item 3) — DECIDED 2026-11-03, split by repo**
+
+- **Dev repo `CRS-fedora-backend` = `log`** (the user's ruling: no stale mail to
+  real staff). The SMTP block stays configured for a future one-line flip;
+  verified `config('mail.default')` = `log`.
+- Its `default` queue still holds the **10** stale jobs (8 `ReplacementSubmitted`
+  + 2 `ReplacementDecided`, queued 2026-11-01/02, addressed to `limjz@`,
+  `mohdnurrahmat@`, `surayaini@tarc.edu.my`) — left in place on purpose: under
+  the log mailer they can only render into `storage/logs/laravel.log`. No purge,
+  no demo-DB write.
+- **Viva repo `CRS-demo` (DB `class_replacement_viva`) = `smtp`** — flipped
+  2026-11-03 (creds copied from the dev `.env`; `MAIL_SCHEME=null`, port 587, no
+  worker running). ⚠ It holds **27 stale jobs** queued 2026-11-01/02
+  (14 `ReplacementApprovalNotice` → `23rsd0011–0024@student.tarc.edu.my`,
+  10 `ReplacementSubmitted` + 3 `ReplacementDecided` → `limjz@`,
+  `mohdnurrahmat@`, `surayaini@`) — **purge them before the first worker run**
+  (demo-DB gate: snapshot → DELETE → log in `docs/demo-db-data-changes.md`).
+- Consequence: dev shows rendered mail in the log; the viva can show real inbox
+  delivery once the backlog is purged and a worker is started.
+
+**C. Security**
+
+- The App Password appeared in a chat/error paste (2026-11-03). The user
+  **declined rotation** the same day — residual risk remains until it is
+  rotated (revoke at `myaccount.google.com/apppasswords` → new App Password →
+  `.env`, 16 chars no spaces → `config:clear` → one `Mail::raw` re-test).
+
+**D. Docs touched (uncommitted)**
+
+- `docs/fyp-todo.md` — Tue 3 Nov Task 2 ticked with receipt; §4 M2 items 1–2
+  ticked; item 3 decided the same day (**dev = `log`, viva = `smtp`**).
+- `docs/queue-and-emails.md` — the dated receipt section + gotchas; the table's
+  "Today" column is marked as the pre-flip snapshot.
+- This file — the front-matter "Updated" line, §0's unpushed count (40 → **20**,
+  `origin` = `06865f0`), and this §0.10.
+
+**E. Working tree state at this edit**
+
+- Unpushed: **20** commits (`origin/fedora-backend` = `06865f0`; HEAD = `94d14d8`).
+- Another session's WIP, untouched: 5 modified specs, `.sdd/changes/receipt-target-guard/`,
+  `tests/helpers/receipt-target-guard.ts`, `issues/ugly toast message.png`.
+- Last full PHPUnit: **295/295** (2026-11-02) — unaffected by this docs-only session.
 
 ## Table of Contents
 

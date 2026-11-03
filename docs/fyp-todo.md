@@ -72,12 +72,21 @@ follow-up — survey data has the longest lead time of anything on this list.
       Implement → verify live (Request #26 tooltip `2 Nov 2026, 7:00 PM`; history modal Requested
       **and** Reviewed in MYT) → commit. Cross off §4 H2.
       *If this slips past ~16:00, move it to Wednesday morning — never rush it between meetings.*
-- [ ] **Task 2 — Gmail SMTP flip** (recipe + the corrected 10-row table:
+- [x] **Task 2 — Gmail SMTP flip** (recipe + the corrected 10-row table:
       `docs/queue-and-emails.md` § "Real sending — the Gmail SMTP flip").
       Order: fill `.env` → `config:clear` → send one `Mail::raw` **to yourself** →
       only then test the queued path. **Decide the recipient-safety posture before flipping**
       (real `tarc.edu.my` addresses vs revert to `log` for the demo). App Password never pasted anywhere.
       Cross off §4 M2 once a real message lands in your inbox.
+      **Done 2026-11-03 (~02:05):** 8 rows flipped (`MAIL_SCHEME` stays `null`) → `config:clear`
+      → direct `Mail::raw` landed in `foojing03@gmail.com` → queued dummy `ReplacementDecided`
+      (`onQueue('m2-test')`) ran through `queue:work --queue=m2-test --once` (4 s, `failed_jobs` 0)
+      and landed in `poongfj-sm23@student.tarc.edu.my`; the isolated queue kept the 10-job
+      `default` backlog untouched. **M2 item 3 (posture) was decided the same day, split by repo: dev = `log`, viva = `smtp`**
+      (nothing can send from dev; `CRS-demo` was flipped for real demo mail); the App Password was
+      exposed in a chat paste and rotation was declined.
+      Receipt: `docs/queue-and-emails.md`. **Posture decided 2026-11-03: B — `MAIL_MAILER=log`**
+      (the SMTP block stays configured for a one-line flip later; the 10 queued mails can no longer send).
 
 ### Wed 4 Nov — frozen lane day (or the timestamp fix, if it moved)
 - [ ] 🔴 Apply `ui-footer-global` from `prompts/pi-ui-footer-global.md` (5 tasks, ~2 h)
@@ -153,10 +162,10 @@ follow-up — survey data has the longest lead time of anything on this list.
 - [ ] Paste the table into `docs/viva-demo-runbook.md`; no number before it is measured
 
 **M2 · Email/SMTP pack (demo week)**
-- [ ] Flip `.env` per the corrected 10-row table in `docs/queue-and-emails.md` (`MAIL_SCHEME` stays `null` — there is no `MAIL_ENCRYPTION` in Laravel 12)
-- [ ] One direct `Mail::raw` to yourself lands in the inbox, then one queued message after `queue:work --once`
-- [ ] Decide the recipient-safety posture for the demo (real `tarc.edu.my` addresses vs revert to `log`)
-- **Depends on:** the App Password (you), not code.
+- [x] Flip `.env` per the corrected 10-row table in `docs/queue-and-emails.md` (`MAIL_SCHEME` stays `null` — there is no `MAIL_ENCRYPTION` in Laravel 12) — **done 2026-11-03**: 8 rows set, re-verified via `config()` after `config:clear`; `QUEUE_CONNECTION` stayed `database`, `APP_NAME` untouched
+- [x] One direct `Mail::raw` to yourself lands in the inbox, then one queued message after `queue:work --once` — **done 2026-11-03**: direct → `foojing03@gmail.com`; queued dummy `ReplacementDecided` on the isolated `m2-test` queue → `queue:work --queue=m2-test --once` → `poongfj-sm23@student.tarc.edu.my`; `failed_jobs` 0; the `default` backlog untouched
+- [x] Decide the recipient-safety posture for the demo (real `tarc.edu.my` addresses vs revert to `log`) — **DECIDED 2026-11-03 (split by repo)**: `CRS-fedora-backend` (dev) = **`log`** — its **10** stale jobs stay in `jobs` and can never send (a worker only renders them into `storage/logs/laravel.log`; no DB write, no purge). `CRS-demo` (viva, DB `class_replacement_viva`) = **`smtp`** — flipped 2026-11-03 for real demo mail; its **27-job backlog** (14 `ReplacementApprovalNotice` → `23rsd0011–0024@student.tarc.edu.my`, 10 `ReplacementSubmitted` + 3 `ReplacementDecided` → `limjz@`/`mohdnurrahmat@`/`surayaini@`) **must be purged before the first worker run** (demo-DB gate: snapshot → DELETE → log).
+- **Depends on:** the App Password (you), not code. — done + proven 2026-11-03; it appeared in a chat/error paste, and the user **declined rotation** the same day (residual risk noted; if reversed: revoke → new → `.env` no spaces → `config:clear` → one `Mail::raw`).
 
 **M3 · Ch4 System Design**
 - [ ] Confirm what exists vs the Chapter-4 requirements (`knowledge/FYP1 Ch4 System Design Requirements.md`)
