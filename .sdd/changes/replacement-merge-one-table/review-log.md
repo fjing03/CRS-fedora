@@ -818,3 +818,52 @@ the three 💡 are taken.
 **Verdict: FAIL** — the receipt is now numerically airtight and TR3-1 is closed; the one blocker is a
 three-word side effect of the caps, not the receipt's structure.
 
+## tasks Round 5 — 2026-11-04
+
+<!-- Final gate for Batch 4. Scope: the TR4-1 fold and the two round-4 should-fix items in tasks.md
+     (head 3245961). proposal.md / design.md / specs/ are frozen; no M/[D] decision and no spec
+     requirement is re-opened. Every claim re-read at the repo. -->
+
+### 🔴 Fixed
+- **TR4-1 — the capped state words have an owner, and every citation checks out.** `:82` is
+  `const TOAST_TEXT = 'already has a pending replacement request';`, read at `:133`
+  (`toContainText`), `:203` (`not.toContain`) and `:240`; `:145` hardcodes
+  `'already has an approved replacement'`. The live bodies (`ui-common.js:4419,4422`) are lowercase
+  and Playwright's `toContainText` is case-sensitive, so the caps turn exactly `:133`, `:145`, `:240`
+  red. T18 names `:82`/`:133`/`:240` and `:145`, and both new strings are literal substrings of T15's
+  bodies.
+- **`:203` is the vacuous usage, correctly kept out of T18.** `:197` loads unblocked, so
+  `showEntryGuardToast` returns at `:4417` and the shared `.toast-message` node is empty; the
+  `not.toContain` passes with either casing.
+- **The extra lines are in the right commit and leave the frozen counts alone.** T18 sits in commit 4
+  (design §10's "§8.2 + the remaining bucket A″ strings"); proposal §6's A″ table still has exactly
+  7 rows, and the two casing lines are labelled "this lane's own copy change", not A″ rows.
+- **No contradiction with ordering rule 4 or with the one-commit rule.** Rule 4 forbids reverting
+  `ReplacementArrangement.php:201`; T18's sentence forbids a *different* revert for a *different* line
+  set — both point the same way. T18 edits expected values only, in commit 4; commit 3 stays atomic.
+
+### 🟡 Addressed
+- **TR4-2** the receipt is actionable: the fixture (`:122-135`, session 99 / week 8, run env in the
+  docblock `:29-33`), the two nodes read separately (`#toastBar .toast-message`,
+  `#toastBar .toast-link` — the only two nodes the toast writes, `layouts/ui-template.blade.php:73,77`,
+  `_present():2672,2700-2701`), and the instruction not to touch that file's URLs.
+- **TR4-3** the round-3 entry is in this log; the history is R1–R5, append-only.
+- **Unaffected, re-measured:** the URL residue at T15's step is exactly **11** (25 − 13 −
+  `requestHref()`); the copy trail still starts from 12 in those three directories; T15's five-argument
+  `toast.show` matches `:2643`.
+
+### 🟡 Residuals — all folded before the freeze
+- **TR5-1** T18's anti-revert sentence named one producer for three rows. It now lists every red line
+  and its delta: `:133/:145/:240` ← `ui-common.js:4419-4423` · `:134` ← the link href · `:144` ←
+  `ReplacementArrangement.php:201` (rule 4) · `:231` ← `replacement-arrangement.blade.php:2245`.
+- **TR5-2** `submission-conflict-refresh.spec.ts:84,111` is red in the same window; T18 now names it.
+- 💡 why plain caps: `showRich()` takes no `linkUrl` (`:2651`), so it would drop the management link.
+  And `:203` is marked vacuous, so nobody later "fixes" it.
+
+### 🔴 Outstanding
+- None.
+
+**Verdict: PASS** — TR4-1 closed with every line verified at the code and the caps preserved as the
+user's decision; both windows named, no frozen count moved, and no revert path left without either a
+prohibition or a green-keeping receipt. **Batch 4 (tasks) is FROZEN at this entry.**
+

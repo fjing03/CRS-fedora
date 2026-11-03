@@ -1,5 +1,7 @@
 # Tasks — replacement-merge-one-table
 
+**Frozen:** 2026-11-04, round 5 PASS (5 blockers + 17 should-fix folded across 5 rounds).
+
 Frozen order. Each task names its **receipt** — the thing that proves it, quoted with the real number
 when the run happens. Nothing in this file starts until the three review rounds in `review-log.md`
 have passed (they have: proposal R8, design R2, specs R2).
@@ -176,7 +178,8 @@ the identity edit ships with the view in commit 2 (§7's Commit column).
       `… in My Request History. My Request History` (`toast._present()` writes body and link to two
       separate nodes: `msgEl` / `linkEl`). The body keeps the fact only — no page name, no instruction —
       and the link carries the name once; the two state words are capitalised (the app's emphasis habit,
-      and `toast.show` writes `textContent`, so plain caps rather than a keyword span):
+      and `toast.show` writes `textContent`, so plain caps rather than a keyword span — `showRich()`
+      exists but takes no `linkUrl` (`ui-common.js:2651`), so it would drop the management link):
       ```js
       // :4419 (approved)
       toast.show('This class already has an APPROVED replacement.', null, 8000,
@@ -237,11 +240,17 @@ the identity edit ships with the view in commit 2 (§7's Commit column).
       `submission-conflict-refresh:84,111`.
       **Plus this lane's own copy change in the same file:** T15 capitalises the state words, so
       `arrangement-entry-guard.spec.ts:82` (`TOAST_TEXT`, used at `:133`, `:240`) and `:145` must follow
+      (`:203` is the vacuous one — an unblocked load leaves the shared node empty, so it passes with
+      either casing; leave it alone)
       — `'already has a PENDING replacement request'` and `'already has an APPROVED replacement'`.
       Playwright's matchers forward `ignoreCase` with no default-true, so those three assertions are red
-      from T15 until here. **That file's red window is T15 → T18** (also `:134`, `:144`, `:231`), and
-      greening any of them by reverting `ui-common.js:4419-4423` is the anti-pattern this lane exists to
-      prevent.
+      from T15 until here.
+      **Every red line in that file, and the revert that would green it (all forbidden):**
+      `:133`, `:145`, `:240` ← `ui-common.js:4419-4423` (this task's copy) · `:134` ← the same file's
+      link href · `:144` ← `ReplacementArrangement.php:201` (ordering rule 4 already forbids it) ·
+      `:231` ← `replacement-arrangement.blade.php:2245` (its only other guard is T15's 11-occurrence
+      URL grep). **That file's red window is T15 → T18**, and so is
+      `submission-conflict-refresh.spec.ts:84,111` (its `:112` is `/pending/i`, so it survives).
       **Known red window:** `ReplacementArrangementTest:643,723` runs on **every** PHPUnit pass (no
       testing-DB gate), so it is red from T15 until this task — the split design §10 makes. Do not
       green it by reverting `ReplacementArrangement.php:201` (ordering rule 4).
