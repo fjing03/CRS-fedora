@@ -279,10 +279,22 @@ alternative, if a reviewer minds the understatement, is one line:
 *Click any column header to sort*.
 
 **Summary cards** (5 — the theme's `.summary-bar` is already a 5-column grid, so no
-CSS change): **Classes to Arrange** · **Class Hours to Replace** · **Pending
-Requests** · **Requests Approved by PL** · **Requests Rejected by PL**. Counts
-follow the filters, not the page. The first two are the classes side (what is still
-owed), the last three are the requests side (what happened to them).
+CSS change). Labels render uppercase through `.summary-label`'s `text-transform`, so
+the source copy stays natural-case:
+
+| # | Label | Shown as |
+|---|---|---|
+| 1 | Classes to Arrange | `CLASSES TO ARRANGE` |
+| 2 | Class Hours to Replace | `CLASS HOURS TO REPLACE` |
+| 3 | Pending Requests | `PENDING REQUESTS` |
+| 4 | **Approved Requests** | `APPROVED REQUESTS` |
+| 5 | **Rejected Requests** | `REJECTED REQUESTS` |
+
+Cards 4 and 5 lost `by PL` (user decision, 2026-11-03) for the same reason the
+badges did: on a lecturer's own page the decider is always the PL, so the words
+earned nothing and cost a line of label width. Counts follow the filters, not the
+page. The first two are the classes side (what is still owed), the last three are
+the requests side (what happened to them).
 
 **Bulk cancel is removed** (user decision, 2026-11-03): no checkbox column and no
 bulk bar. Cancelling happens **one request at a time**, from the row's ban icon or the
