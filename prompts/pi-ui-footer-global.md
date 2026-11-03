@@ -6,6 +6,12 @@
 > This is **not** an extra task. The lane is frozen and its apply was held for the
 > user's explicit word — **this prompt is that word.** Paste the whole block into
 > the PI session as-is.
+>
+> **Re-validated 2026-11-03 (head `2a4ee78`):** the lane is still `status: frozen`,
+> none of F1–F5 exists yet, and every anchor in §6 was re-grepped today. Two
+> drift points were corrected in place: the stale-cache ritual (§7 T5) is now
+> `scripts/dev-serve.sh`, **not** `pkill` + `artisan serve`, and `theme.css` is
+> 4316 lines (was 4306).
 
 ---
 
@@ -57,7 +63,7 @@ No JS. No PHP logic. Tokens only — **no hex/rgb anywhere in the block.**
 | F2 | `resources/views/partials/ui-footer.blade.php` | **NEW** — segments ①–⑥, optional `$fixed` prop, version chip single-writer. |
 | F3 | `resources/views/layouts/ui-template.blade.php` | **EDIT** — one `@include('partials.ui-footer')` **inside `.app-container`**, immediately after `@yield('content')` (today: `.app-container` at `:45`, `@yield` at `:46`, closing `</div>` at `:47`). |
 | F4 | `resources/views/layouts/login-template.blade.php` | **EDIT** — one `@include('partials.ui-footer', ['fixed' => true])` **after the `.login-card` closing `</div>`** (today `:417`, before the inline `<script>` block). |
-| F5 | `public/css/theme.css` | **EDIT** — ONE additive `.ui-footer*` block appended at EOF (file is 4306 lines today). |
+| F5 | `public/css/theme.css` | **EDIT** — ONE additive `.ui-footer*` block appended at EOF (file is 4316 lines today; the count is only informational — append, never splice). |
 
 ## 4. The CSS block — must contain ALL of these
 
@@ -96,20 +102,24 @@ allowed tool is a **token-only `color-mix` scrim** — no new hex.
 - No vendor/Flux edits beyond adding the one `mail` icon; no `ui-common.js`
   changes; no per-page `@section('page-styles')`; no routes, DB or PHP logic.
 
-## 6. Verified anchors — 2026-11-02 (`49f9a58` head at the time of writing)
+## 6. Verified anchors — re-grepped 2026-11-03 (`2a4ee78` head)
 
 The November-1 numbers in `design.md` **have drifted**; re-grep before editing.
+Everything in this column was checked again today and is current.
 
-| Anchor | 2026-11-01 said | Today |
+| Anchor | 2026-11-01 said | Today (2026-11-03) |
 |---|---|---|
-| `.app-container` | `:608–615` | **`:863–871`** (`padding: 16px 24px; padding-top: 72px`) |
+| `.app-container` | `:608–615` | **`:863–871`** (`padding: 16px 24px; padding-top: 72px`; flex column + `min-height: 100vh`, so `margin-top: auto` still bottom-pins) |
 | mobile `.app-container` | `:1285–1286` | **`:1550–1551`** (`padding: 10px 12px; padding-top: 66px`) |
 | `body { overflow-x: hidden }` | `:156` | `:156` (unchanged) |
 | `--radius-pill` | `:78 / :142` | `:78 / :142` (unchanged) |
 | `.semester-chip` | `:645` | **`:889`** |
-| token lines | `:18/:22/:25/:57`, light `:85/:89/:92/:124` | same |
-| `.login-card` closing `</div>` | — | **`:417`** |
-| `.app-container` / `@yield` | — | `:45` / `:46` |
+| token lines | `:18/:22/:25/:57`, light `:85/:89/:92/:124` | same (verified line by line) |
+| `.login-card` closing `</div>` | — | **`:417`** (card opens `:348`; `<script>` at `:419`) |
+| `.app-container` / `@yield` | — | `:45` / `:46`, closing `</div>` `:47` |
+| login z-layer | — | `.login-card` z:10 (`:101`), `.theme-toggle` z:20 (`:81`), `.bg-layer`/`.bg-overlay` fixed (`:51`/`:67`) |
+| settings exclusion | — | still true: `pages/settings/*` renders `x-pages::settings.layout`, **not** `ui-template` |
+| `theme.css` length | `4306` | **`4316`** (informational only — append at EOF) |
 
 ## 7. Steps (frozen T1–T5)
 
@@ -120,11 +130,15 @@ The November-1 numbers in `design.md` **have drifted**; re-grep before editing.
 5. **T5** gates + receipts + record:
    - `composer run lint:check` ✓
    - `vendor/bin/phpstan analyse --memory-limit=1G` → **0 errors**
-   - `php artisan test` → expect the current green suite (quote the real count;
-     the lane predicted 277 — re-measure, don't repeat the number blindly)
-   - stale-cache ritual, **two separate commands**:
-     `pkill -f "[a]rtisan serve" || true`
-     then `rm -f storage/framework/views/*.php && php artisan serve --port=8000 &`
+   - `php artisan test` → the full suite, **312 green** when this prompt was
+     re-validated (`DB_DATABASE=class_replacement_testing`; never `--env=testing`).
+     Re-measure and quote the real number: a drop is a regression, a rise is
+     another lane's tests.
+   - stale-cache ritual: **`scripts/dev-serve.sh 8000`** (and `scripts/dev-serve.sh
+     8001` from `../CRS-demo` if the viva twin is needed). **Do not** use
+     `pkill -f "[a]rtisan serve"` + `php artisan serve &` — that was the retired
+     2026-11-01 habit; it leaves `revalidate_freq=180` in place, can kill the
+     twin, and is exactly the stale-bytecode trap the script exists to avoid.
    - live receipts as lecturer **5770**: login page (fixed, transparent, legible in
      light mode) · My Timetable + Cohort Timetable (bottom-pinned) ·
      **390px width** (wrap, no clipped edges — proves the −12px mirror) ·
