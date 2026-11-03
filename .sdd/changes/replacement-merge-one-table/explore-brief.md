@@ -49,7 +49,7 @@ uses for its one-active-request guard.
 
 | Newest request | Status shown | Row group |
 |---|---|---|
-| none | **Needs arrangement** | needs action |
+| none | **Need to Arrange** | needs action |
 | `pending` | **Pending** | handled |
 | `approved` | **Approved** | handled |
 | `rejected` | **Rejected** | needs action |
@@ -71,7 +71,7 @@ while lane 2 is pending, so the code cannot break on first sight of one.
 | 2 | Original class | both pages | **one cell**: date · day (Week N) **with Days Left beside it on the same line** (wraps directly under the date when the column is tight) / start–end (duration) / **pin icon + room** / **users icon + cohorts** |
 | 3 | Conflict Reason | home (extended) | one badge, two shapes: **`Class Cancelled — <reason>`** in neutral grey for every non-holiday reason; **`Public Holiday — <holiday name>`** in error red. The holiday name is the calendar label from the `holidays` rows ("Deepavali Holiday (In Lieu)", "Christmas Day", …) |
 | 4 | Requested replacement | history | **mirrors the Original Class design, minus the cohorts line** (they are the class's own cohorts): date · day (Week N) / start–end (duration) / **pin icon + room**; `—` when there is no request |
-| 5 | Request Status | new | badge **with the actor**: `Approved by PL` · `Rejected by PL` · `Cancelled by YOU` · `Pending` (no decider yet) · `Completed` (the calendar decided) · `Needs arrangement`; **see Q3** on whether it is also a shortcut |
+| 5 | Request Status | new | badge **with the actor**: `Approved by PL` · `Rejected by PL` · `Cancelled by YOU` · `Pending` (no decider yet) · `Completed` (the calendar decided) · `Need to Arrange` (**outlined**, not filled — see below); **see Q3** on whether it is also a shortcut |
 | 6 | Action | both | **icon-only**: rotate = arrange, eye = view request. Full wording in the tooltip (`data-tip`) plus an `aria-label`. Never repeats the status; Cancel stays in the modal |
 
 The column is called **Request Status**, not "Status": on this page "status" alone
@@ -80,6 +80,12 @@ badge also names **who decided** — the PL for approved/rejected, `YOU` for a
 cancellation (the lecturer cancels their own request). That is not decoration: it
 tells the lecturer who to chase. `Pending` has no decider yet, and `Completed` is
 the calendar's verdict, so neither carries an actor.
+
+`Need to Arrange` is an **outlined** pill (transparent background, light-primary
+text and border), not a filled one. It marks the *absence* of a request, so it must
+not read as another request status — and above all it must never be mistaken for
+`Rejected by PL`, which is the only other badge that used to be red. Filled =
+a request exists; outlined = none does yet.
 
 The Conflict Reason badge changes vocabulary on purpose (user decision, 2026-11-03):
 the home page colours each reason separately (`.badge-annual-leave`,
@@ -123,12 +129,12 @@ it is parked as broken (`task-02-replacement-history-timeline.md`). Actions
 (Cancel the current pending request) stay in the modal footer.
 
 **Filters:** search (code/name) · week navigator (original-class week) · status
-select (All · Needs arrangement · Pending · Approved · Rejected · Cancelled ·
+select (All · Need to Arrange · Pending · Approved · Rejected · Cancelled ·
 Completed) · **Exclude Completed** toggle, ON by default (completed lane C4) ·
 reset. Filter chips are optional (Q4).
 
 **Summary cards** (proposed 4, replacing home's 3 + history's 5):
-Needs arrangement · Hours to cover · Pending · Approved. Counts follow the
+Need to Arrange · Hours to cover · Pending · Approved. Counts follow the
 filters, as both pages already do.
 
 **Bulk cancel is removed** (user decision, 2026-11-03): no checkbox column and no
