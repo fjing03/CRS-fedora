@@ -523,3 +523,53 @@ resolving on both schedule tabs and the Request Status tab.
 **Verdict: PASS** — D1/D2/D3 closed; S1–S12 closed with the nine one-line residuals above, all folded
 before the freeze. **Batch 2 (design) is FROZEN at this entry.**
 
+## specs Round 1 — 2026-11-04
+
+<!-- Scope: specs/replacement-page-merge/spec.md (head 97e23c1) against the FROZEN proposal and
+     design. No M decision and no design [D] re-opened. Findings are coverage (a requirement with no
+     demonstrable fact), checkability (a fact that passes while the behaviour is wrong, or that can
+     only be greened by breaking a frozen law), and two contradictions with the frozen set. -->
+
+### 🔴 Must fix
+- **SP1 — S3.4 could only be greened by editing the files M2 freezes.** Its scope was "`app/`,
+  `resources/` or `public/js/`", which contains the seven `mock-data.js` link fixtures,
+  `notif-row.blade.php:96`'s strict `===` on the stored link, and the `ui-design-templates` copy —
+  only two of the four frozen consumers were excepted. An apply agent chasing green would edit
+  `notif-row:96` and every stored bell link would stop highlighting: the exact regression M2 exists to
+  prevent.
+- **SP2 — S16.1 demanded a 2-hour range that no longer exists.** After `CancelPendingRequest` the
+  junction is deleted, so the fallback prints the anchor's 30-minute cell; §6b, design §1.3 and
+  design §8.1 case 5 all say `14:00 – 14:30`. Greening it literally meant preserving the span across
+  a cancel — touching `CancelPendingRequest` (proposal §3 item 2: unchanged) or the schema (§4: out of
+  scope).
+
+### 🟡 Should fix
+- **SP-1** S8.4 restated a mechanism ("one filtered list feeds both") and `Classes to Arrange` had no
+  fact at all. **SP-2** S12 never proved the comparator runs. **SP-3** S16.3 dropped "the junction is
+  read exactly once" and its fixture (1 vs 4 *pending*) could pass with a per-row page.
+- **SP-4/5/6** M7's facts strip, the venue-name fallback and a non-vacuous tab-3 content were
+  unasserted; S7.5 ("no timeline") was green before the work started.
+- **SP-7** `Rejected` was the one M5 label with no badge-level fact. **SP-8** the retired list had
+  receipts for 3 of ~10 items. **SP-9** it also **invented** a retirement neither frozen artifact
+  decided (the keyboard-shortcuts pop-up, live via `?`, `:839-842`).
+- **SP-10** M10's copy-email clause had no surface on this page. **SP-11** §6b law 5 ("the API
+  agrees") had no requirement. **SP-12** M8's "the Completed sentence carries the count" and the
+  status-keyed map were missing. **SP-13** S14.4 did not distinguish the hidden-row case. **SP-14**
+  M16's `mrh-filters` hazard had no reload fact. **SP-15** the rotate→arrange verb was unproven.
+- **SP-16** four sentences a non-native reader parses twice (S6.1, S6.3, R13, R16).
+
+### ✅ Confirmed
+- Every M lands somewhere and none is re-opened: M1→R1/R2 · M2→R3 · M3→R4 · M4→R5 · M5→R2 · M6→R6 ·
+  M7→R7 · M8→R7/R16 · M9→R8 · M10→R9 · M11→R5/R11 · M12→R10+retired · M13→R11 · M14→R12 · M15→R13 ·
+  M16→R14 · M17→R15.
+- The six labels, the seven column names and order, the five card labels, the seven select values, the
+  1500 px number, the three tabs and the two reset laws match the frozen artifacts character for
+  character, em dashes included.
+- S1.1–S1.4, S5.3, S10.3, S13.1–S13.2 are observable facts; S2.1–S2.4 pin both halves of the
+  one-status rule; S3.1–S3.3 and S14.1–S14.3 are demonstrable from outside.
+
+**Verdict: FAIL** — 2 blocking, 16 should-fix, no decision conflict. All folded after this entry.
+SP-9 was resolved by **keeping** the keyboard-shortcuts pop-up (design §2.1 gained a "kept, copy
+updated" line): neither frozen artifact decided to remove it, and deleting a live feature on a
+spec's authority alone is scope creep.
+

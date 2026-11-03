@@ -273,6 +273,12 @@ toolbar (`#searchInput`, `#statusFilter`, `ui-week-nav`, `#hideCompleted`, `#res
 + `batchCancelSelected` + `BulkSelection` (M12), the `sort-hint` line, the timeline
 (`DetailModal.timeline` is not called anywhere by the merged page).
 
+**Kept, copy updated:** `#keyboardModal` and the `?` shortcut (`:267-284`, `:839-842`). The button is
+commented out today (`:230`) but the key still works, and its list describes the old page ("a Pending
+or Approved badge opens that request"). Neither the proposal nor this design decided to remove it, so
+it stays and its copy follows §2.1c. *(Clarification added after the specs review: keeping a live
+feature is the conservative reading — deleting it would need the user's word, not ours.)*
+
 `render()` keeps `->extends('layouts.ui-template', ['homeUrl' => '/my-timetable-ui', 'activeNav' =>
 'replacement-arrangement', 'pageKey' => 'myReplacements'])`. `pageKey` changes from
 `replacementHome` → `myReplacements` because it only drives scroll restoration (`ui-template:60-61`),
