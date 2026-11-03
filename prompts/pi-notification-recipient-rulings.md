@@ -274,6 +274,19 @@ change covers all three.
 
 ## 6. Resulting row contract (this is what the tests assert)
 
+### At a glance — who receives what (the role matrix)
+
+| Situation | PL gets a row? | Normal staff (non-PL) gets a row? | Student gets a row? | Who exactly / link |
+|---|---|---|---|---|
+| **New request submitted** | **Yes** — every PL, every department (a PL proposer keeps this copy) | **Yes, if they are the proposer** (the new confirmation row) | No | PLs → `/request-approval-ui`; non-PL proposer → `/my-request-history-ui` |
+| **Request approved** | **Only if they are the class owner/proposer** (the merged row) — never as the approver | **Only if they are the class owner/proposer** | **Yes** — every cohort student | owner → `/my-timetable-ui`; students → `/student-my-timetable-ui`; the approving PL gets nothing |
+| **Request rejected** | **Only if they proposed it** | **Only if they proposed it** | No | proposer → `/my-request-history-ui` |
+| **Pending > 24 h** (daily reminder) | **Yes** — every PL (deduped until read) | No | No | `/request-approval-ui` |
+| **Request cancelled by the proposer** | No | No | No | nobody — no emitter call |
+| **Scheduled class cancelled** | **Only if they own the class** (actor row; no dept-PL copies) | **Only if they own the class** | **Yes** — every cohort student | owner → `/my-timetable-ui`; students → `/student-my-timetable-ui` |
+
+### Row contract (per row)
+
 | Event | Recipient | `role_view` | `type` | Title | Link | ids |
 |---|---|---|---|---|---|---|
 | Submit | each PL | `pl` | `submitted` | New replacement request | `/request-approval-ui` | request, week |
