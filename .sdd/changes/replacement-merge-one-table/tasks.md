@@ -25,7 +25,7 @@ the identity edit ships with the view in commit 2 (§7's Commit column).
 - [ ] **T2 — `effectiveStatus()` takes the computed date** (same file)
       Third optional parameter `?string $replacementDate = null`; `$date = $replacementDate ??
       $this->replacementStrings($r, $semesterStart)['date'];`. Every existing caller untouched.
-      *Receipt:* `grep -rn "effectiveStatus(" app/` shows `toRow():131` still passing two arguments;
+      *Receipt:* `grep -rn "effectiveStatus(" app/` shows `toRow():129` still passing two arguments;
       the `request-completed-status` **Playwright** spec green **on the testing DB** (a skip is not a
       receipt — T23's own rule), quoted with its pass count.
 
@@ -217,7 +217,7 @@ the identity edit ships with the view in commit 2 (§7's Commit column).
 
 - [ ] **T16 — retire the page** (`app/Livewire/MyRequestHistory.php`, its blade)
       Delete both, **and rewrite the two comments that still name it** —
-      `app/Services/ReplacementRequestMapper.php:17` (`+ MyRequestHistory::requestRow)`) and `:282`
+      `app/Services/ReplacementRequestMapper.php:18` (`+ MyRequestHistory::requestRow)`) and `:280`
       (`// the legacy key set only — the existing consumers (MyRequestHistory :65-76, ApiReadController)`
       `are pinned.`). Strip the class name and the now-false "existing consumers" clause, **keep the
       pinned-shape rationale** (three keys vs six) — it is the only statement of why the two helpers

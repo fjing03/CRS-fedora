@@ -3,6 +3,10 @@
 Baseline: the frozen `proposal.md` (M1–M17, §6b data contract) + `explore-brief.md` + the approved
 prototype `../ui-prototype/replacement-merged-preview.html`.
 
+**Line references re-measured 2026-11-04** after another session's `LocalTime` refactor of the mapper
+(the class body moved **−2 lines** from `effectiveStatus()` onward; the class docblock **+1**). Numbers in
+this file are current; the `:NNN` values inside `review-log.md` are kept as the snapshot each round saw.
+
 **Frozen:** 2026-11-04, round 2 PASS (see `review-log.md` — the three round-1 blockers, the twelve
 should-fix items and the nine residuals A1–A9). No M-decision was re-opened. Every code claim below was re-read at
 head `bcab5f5` on 2026-11-04; line numbers are that head's.
@@ -73,7 +77,7 @@ $strings = $mapper->stringsFromSpan($span, $startDate, $venue);
 ```
 
 **Why the fallback is not optional:** `spansForRequests()` reads `replacement_request_slots` only
-(`ReplacementRequestMapper.php:333-345`) and the junction is DELETEd by `CancelPendingRequest.php:86-88`
+(`ReplacementRequestMapper.php:331-343`) and the junction is DELETEd by `CancelPendingRequest.php:86-88`
 and `RejectRequest.php:132-134`. Without step 2, every cancelled/rejected request that *did* have a
 slot prints `—` and hides its Proposed Replacement Schedule tab — inventing absence (§6b law 6).
 
@@ -93,7 +97,7 @@ public function spanFromAnchor(?TimeSlot $anchor): ?array
 }
 ```
 
-and `span()` (`:206-238`) ends with `return $this->spanFromAnchor($r->replacementTimeSlot);` instead
+and `span()` (`:204-237`) ends with `return $this->spanFromAnchor($r->replacementTimeSlot);` instead
 of its inline block. Same output, byte for byte — the existing `SpanReservationTest` receipts must stay
 green, which proves it.
 
@@ -110,7 +114,7 @@ public function effectiveStatus(ReplacementRequest $r, Carbon $semesterStart, ?s
 }
 ```
 
-The default keeps every existing caller identical (`toRow():131`, the API, the PL queue). The merged
+The default keeps every existing caller identical (`toRow():129`, the API, the PL queue). The merged
 payload passes `$strings['date']`, so **one** derivation still decides `completed`, and it costs no
 query. §6b law 2 holds; law 5 holds (`toRow()` is untouched).
 
