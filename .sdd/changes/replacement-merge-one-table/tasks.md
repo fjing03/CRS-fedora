@@ -15,8 +15,10 @@ the identity edit ships with the view in commit 2 (§7's Commit column).
       Pull `span()`'s step 2 into `spanFromAnchor(?TimeSlot $anchor): ?array` returning the same six
       keys with the same casts (`week`, `day`, `venue_id`, `start`, `end`, `count: 1`); `span()` ends
       with `return $this->spanFromAnchor($r->replacementTimeSlot);`.
-      *Receipt:* `SpanReservationTest` unchanged and green — it proves the extraction is byte-identical
-      (`14:00 – 16:00` junction; `14:00 – 14:30` anchor).
+      *Receipt:* `SpanReservationTest` unchanged and green proves the **time** half (`14:00 – 16:00`
+      junction; `14:00 – 14:30` anchor). It reads only those two strings, so add one assertion on the
+      other four keys (`week`, `day`, `venue_id`, `count`) — otherwise "byte-identical" is a claim about
+      two of six.
 
 - [ ] **T2 — `effectiveStatus()` takes the computed date** (same file)
       Third optional parameter `?string $replacementDate = null`; `$date = $replacementDate ??
@@ -28,15 +30,17 @@ the identity edit ships with the view in commit 2 (§7's Commit column).
       `statusLabel(?string, ?string)`, `statusShort(?string)`, `statusSentence(?string, ?string)`,
       `statusTip(?string)`. Pure, no queries; `<n>` from `today()`; the `null` row returns
       `Need to Arrange` / the no-request sentence.
-      *Receipt:* the T7 data-provider unit cases — six labels, six sentences, one `Completed — 1 day
-      ago`, one `today.` guard.
+      *Receipt:* T6 **case 3** (the six-state data provider), one `Completed — 1 day ago`, one `today.`
+      guard. T6 is written later in this same commit — the count is quoted once T6 exists.
 
 - [ ] **T4 — the payload** (`app/Livewire/ReplacementHome.php`)
       Widen the `latestRequests` select by `remarks` + `rejection_reason` (§1.2, two columns, FK kept);
       add the batch reads (`spansForRequests` + one `venues` whereIn, skipped when empty); resolve
       `$span = $spans[$id] ?? $spanFromAnchor(...)`, `$venue = $venues->get(...) ?? anchorVenue`;
       compute `$strings`; emit §1.5's fifteen keys with the 9-null / 5-filled split and `venueName`;
-      move the loop body into `buildRow()`; **emit the rows in display order** (group, date asc, id).
+      move the loop body into `buildRow()`; **emit the rows in display order** (group, date asc, id);
+      `pageKey` `replacementHome` → `myReplacements` in the `extends()` call (`:170`); one comment line
+      saying `remarks`/`rejection_reason` are display-only (§1.2).
       *Receipt:* `MyReplacementsPayloadTest` cases 1–8, and case 8's statement count is equal for the
       1-request and the 4-approved-junction fixture, with `replacement_request_slots` read once.
 
@@ -47,18 +51,25 @@ the identity edit ships with the view in commit 2 (§7's Commit column).
       `row['requestStatus'] === 'cancelled'`; an approved request returns `ok=false, row=null`.
 
 - [ ] **T6 — the payload test file** (`tests/Feature/MyReplacementsPayloadTest.php`, NEW)
-      The ten scenarios of `design.md` §8.1, including case 5 (`14:00 – 16:00` → after cancel
-      `14:00 – 14:30` + `cancelled`), case 7 (unconflicted occurrence → no row) and case 10 (three
-      URLs, query string intact).
-      *Receipt:* the measured pass count of `--filter=MyReplacementsPayloadTest`, run twice.
+      `design.md` §8.1 cases **1–9** in this commit, including case 5 (`14:00 – 16:00` → after cancel
+      `14:00 – 14:30` + `cancelled`) and case 7 (unconflicted occurrence → no row).
+      **Case 10 (three URLs, query string intact) cannot run here** — `/my-replacements` does not exist
+      and `/my-request-history-ui` still resolves the retired class until T14. It is written but
+      `markTestSkipped`-free: add it in the T14 step, when the third route exists.
+      *Receipt:* `--filter=MyReplacementsPayloadTest` → **9/9**, run twice (case 10 is not counted yet;
+      say so rather than quoting a red 9/10).
+      **Note for T4/T5:** their receipts cite this file, which this task creates later in the same
+      commit — a red count mid-commit is expected, not a broken payload.
 
 ## Commit 2 — `ui(my-replacements): one table, seven columns, and the tabbed modal`
 
 - [ ] **T7 — `replacementHomeRow` merged branch** (`public/js/ui-common.js`)
       `if (opts.merged) return [seven cells]` with `typeLabel` declared for both branches; the
       no-`merged` path byte-identical.
-      *Receipt:* `node --check` + the frozen `ui-design-templates` home copy still renders nine cells
-      (open it with `mock_fallback=true` locally, then revert).
+      *Receipt:* `node --check`, plus a hermetic check — `HtmlBuilder.replacementHomeRow(c, {})` returns
+      **9 cells**, `{merged:true}` returns **7**. The legacy template is the env flag
+      `APP_MOCK_FALLBACK` (`config/app.php:29`, needs `.env` + `config:clear`), which flips **every**
+      route to legacy: verify it reverted, and never stage `.env`.
 
 - [ ] **T8 — `applyNotifHighlight` fallback** (same file)
       `tryFind($sel, 14, $fallbackSel)` = `querySelector($sel) || querySelector($fallbackSel)`;
@@ -80,34 +91,51 @@ the identity edit ships with the view in commit 2 (§7's Commit column).
       touch target still measures 48 px.
 
 - [ ] **T11 — the view rewrite** (`resources/views/livewire/replacement-home.blade.php`)
-      §2.1b/2.1c identity (title, H1, `descriptionHtml`, guide copy) · the seven-column `<thead>` with
+      §2.1b/2.1c identity (`@section('title')`, the H1, the header include with `descriptionHtml`, the
+      guide copy) · **`partials/ui-page-header.blade.php:1-5` gains
+      `$descriptionHtml = $descriptionHtml ?? null;`**, and `:21-23` renders it `{!! !!}` · the
+      seven-column `<thead>` with
       `data-sort`/`data-label`/`data-tip` · `HtmlBuilder.replacementHomeRow(c, {merged:true, …})` · the
       four page-owned cells · `#tableHead/#tableBody/#searchInput/#statusFilter/#hideCompleted/
       #resetFilters/#resultCount/#filterChips/#cardView/#paginationBar/#timetable` · the five summary
       cards with §3.7's ids · `#quickViewModal` with the facts strip, three tabs, `#cancelRequestBtn`
       (pending-only, `style.display`), `#qvArrangeBtn`/`#qvArrangeLabel`, `#cancelConfirmOverlay`
       moved from the retired view · `#keyboardModal` kept with updated copy.
-      Delete: `requestHref()` **and its three readers** (`:383`, `:643`, `:649`), the ten badge
-      classes, `.badge-link`, `.action-stack`, `#modalOverlay`, the urgency/venue/students columns.
+      Delete: `requestHref()` **and its four readers** (`:383`, `:643`, `:649`, and `qvArrange()`'s
+      handled branch `:763-772` — its `:768` call would be a `ReferenceError` at tap time), the ten
+      badge classes, `.badge-link`, `.action-stack`, `#modalOverlay`, the urgency/venue/students
+      columns.
       *Receipt:* `#tableHead th` count is 7; `grep -c "badge-link\|requestHref\|action-stack"` is 0;
-      the page loads with no console error.
+      the page loads with no console error; **and `/replacement-arrangement` still renders** with its
+      header printing no description — the only receipt that catches a missing `?? null`, because that
+      page and the frozen template call the partial with `[]`.
 
 - [ ] **T12 — the page script** (same file)
       `myConflictedRows`/`visibleBaseRows` · `statusLabelOf/statusTipOf/statusShortOf` ·
-      `statusBadge`/`actionCell` (rotate · ban · eye) · the merged comparator
-      (group → column → `id`) · filters + chips + `mrh-filters` (with `week`) · Reset vs Clear all ·
+      `statusBadge`/`actionCell` (rotate · ban · eye) · **every `<tr>` carries both ids**
+      (`tr.dataset.id = c.id`, `tr.dataset.requestId = c.requestId || ''`) · the merged comparator with
+      design §3.4's **explicit status rank** (`null 0 · rejected 1 · cancelled 2 · pending 3 ·
+      approved 4 · completed 5`), `replacementDate` null → `'9999'`, tie-break `id`, and the
+      `data-label` arrow repaint · filters + chips + `mrh-filters` (with `week`) · Reset vs Clear all ·
       pagination + `initRpp` · cards · the pop-up builder (three tabs, tab 2 omitted when nothing is
       proposed, tab 3 exactly badge + sentence + [reason] + [remark]) · `openCancelConfirm(requestId,
-      occurrenceId)` with the body fill · the cancel success path (patch `result.row`,
-      `closeCancelConfirm()` + `hideQuickView()`, repaint, toast) · `jumpToRequestRow` (M16) +
-      `&view=request` opening the modal from `payload`, not the DOM.
-      *Receipt:* spec S6.6, S7.1–S7.7, S10.1–S10.3, S14.1–S14.4, S15.1–S15.4 demonstrated by hand on
-      the testing DB.
+      occurrenceId)` with the body fill (re-read from the row set at open time) · the cancel success
+      path (patch `result.row`, `closeCancelConfirm()` + `hideQuickView()`, repaint, toast) · **the
+      `!ok` branch** (close both, `This request can no longer be cancelled.`) · **the `row === null`
+      branch** (patch nothing, close both, toast, no throw) · **the guards**: `pendingCancelId = null`
+      **before** the call, plus the button `disabled` while in flight (new — it does not exist today) ·
+      `jumpToRequestRow` (M16) + `&view=request` opening the modal from `payload`, not the DOM.
+      *Receipt:* spec S5.2–S5.4, S6.6, S7.1–S7.7, S9.3, S10.1–S10.3, S11.1–S11.2, S12.1–S12.3,
+      S14.1–S14.4, S15.1–S15.4 demonstrated on the testing DB; plus a **double-click** on
+      `#confirmCancelAction` issuing exactly **one** `cancelRequest` call and exactly **one** audit
+      row (the guard, which no spec fact covers).
 
 - [ ] **T13 — page-local CSS** (same file, `@section('page-styles')`)
       Seven column widths (`.col-cohort 130 / .col-original 210 / .col-reason 150 /
       .col-requested 200 / .col-status 190 / .col-action 70`), the raised `min-width`, the urgency
-      span **inside** `.col-original`, and the `max-width: 1499px` rule hiding `#resultCount`.
+      span **inside** `.col-original`, the five card value colours
+      (`.card-conflict/-duration/-pending/-approved/-rejected`, page-local, tokens only), and the
+      `max-width: 1499px` rule hiding `#resultCount`.
       *Receipt:* 1440 px → count hidden, pagination visible; 1600 px → both visible; the D7 em-dash
       receipt still reads a days-only value.
 
@@ -117,20 +145,35 @@ the identity edit ships with the view in commit 2 (§7's Commit column).
       `/my-replacements` (nav `replacement-arrangement`), `/replacement-home-ui` (same),
       `/my-request-history-ui` (nav `replacement-history`), all three `component =>
       App\Livewire\ReplacementHome`, `legacy` = the home template, same middleware, **no redirect**.
-      *Receipt:* `php artisan route:list --path=replacements` and each URL returns 200 as a lecturer.
+      `RouteGateMatrixTest.php` gains **`/my-replacements`** (lecturer + student gates, like its
+      siblings `:34,36,46,48`) and its docblock (`:21-22`) — proposal §3 item 11. **The deferred
+      payload case 10 lands here too** (three URLs, identical payload, query string intact): it is the
+      only place all three routes exist.
+      *Receipt:* `php artisan route:list --json` → **3** routes whose action is
+      `App\Livewire\ReplacementHome` (`--path=replacements` matches only the canonical, so it cannot
+      be the receipt); each of the three URLs returns 200 as a lecturer; `RouteGateMatrixTest` pass
+      count quoted; `MyReplacementsPayloadTest` now **10/10**.
 
 - [ ] **T15 — the six live files + the copy** (`design.md` §7's commit-3 rows)
       `ReplacementArrangement.php:78,79` (`FROM_LANDING_ROUTES`), `:201` (the `??` default), `:1214`
       (the "see My Replacements" copy); `replacement-arrangement.blade.php:2241,2245`;
-      `ui-common.js:3071,3072,3079` (values + default, **keys untouched**), `:4420,4423` (links **and**
-      labels), `:1292` (`&view=request`); `ui-nav-bar.blade.php:18,19` → one item.
+      `ui-common.js:3071,3072,3079` (values + default, **keys untouched**), `:4419,4422` (the toast
+      **bodies**: "view it in My Request History." / "track or withdraw it in My Request History."),
+      `:4420,4423` (links **and** labels), `:1292` (`&view=request`); `ui-nav-bar.blade.php:18,19` →
+      one item.
       *Receipt:* `grep -rn "/replacement-home-ui\|/my-request-history-ui" app resources public/js`
       returns **only** the 11 frozen occurrences (`mock-data.js` ×7, `notif-row:96`,
-      `NotificationEmitter:64,88`, the mock template `:1916`) — quoted count.
+      `NotificationEmitter:64,88`, the mock template `:1916`) — quoted count; **and**
+      `grep -rn "My Request History" app resources public/js` returns nothing (the spaced form, which
+      T16's `MyRequestHistory` grep does **not** catch).
 
 - [ ] **T16 — retire the page** (`app/Livewire/MyRequestHistory.php`, its blade)
-      Delete both. Nothing in `app/`/`routes/`/`resources/` may still name the class.
-      *Receipt:* `grep -rn "MyRequestHistory" app routes resources` returns nothing.
+      Delete both, **and** the two comments that still name it:
+      `app/Services/ReplacementRequestMapper.php:17` (`+ MyRequestHistory::requestRow)`) and `:282`
+      (`// the legacy key set only — the existing consumers (MyRequestHistory`). Both are inside this
+      commit's file list; leave them and the receipt below is red by construction.
+      *Receipt:* `grep -rn "MyRequestHistory" app routes resources` returns **nothing** (after the two
+      comments), and `grep -rn "Livewire\\MyRequestHistory\|MyRequestHistory::class" app routes` is 0.
 
 - [ ] **T17 — re-point the tests that name it** (`ReplacementHistoriesTest.php`,
       `SpanReservationTest.php`)
@@ -145,15 +188,21 @@ the identity edit ships with the view in commit 2 (§7's Commit column).
 - [ ] **T18 — bucket A″ strings** (7 rows, `proposal.md` §6)
       `ReplacementArrangementTest:643,723` · `arrangement-entry-guard:134,144,231` ·
       `submission-conflict-refresh:84,111`.
-      *Receipt:* `arrangement-entry-guard` + `submission-conflict-refresh` run on the testing DB and
-      pass (not skip).
+      **Known red window:** `ReplacementArrangementTest:643,723` runs on **every** PHPUnit pass (no
+      testing-DB gate), so it is red from T15 until this task — the split design §10 makes. Do not
+      green it by reverting `ReplacementArrangement.php:201` (ordering rule 4).
+      *Receipt:* `ReplacementArrangementTest` pass count quoted; `arrangement-entry-guard` +
+      `submission-conflict-refresh` run on the testing DB and pass (not skip).
 
 - [ ] **T19 — buckets B and D** (`design.md` §8.2)
       `replacement-home-status-badges` (receipts 1–7 incl. `.btn-icon` for `hasArrange` and the
       days-only selector for the em dash) · `request-completed-status` · `status-tooltips-filter-chips`
       · `request-cancel-pending` · `warning-keywords` · `ui-regression:151,166,322-334` (per-entry
       tuple for `:166`; the five new ids for `:322-334`).
-      *Receipt:* each file's measured pass count on the testing DB.
+      **A′ is kept, not rewritten:** `replacement-home-qv.spec.ts` needs at least one **needs-action**
+      row first in payload order, or its `#qvArrangeBtn` click (`:38`) hits a hidden button and times
+      out — the fixture precondition design §3.4 records.
+      *Receipt:* each file's measured pass count on the testing DB, A′ included.
 
 - [ ] **T20 — bucket C leftovers** (`e2e/history.spec.js`, `e2e/smoke-my-request-history.spec.js`,
       `auth-wiring:294`, `full-suite:453-472,645,688-700,692`)
@@ -178,7 +227,9 @@ the identity edit ships with the view in commit 2 (§7's Commit column).
       `composer run lint:check` · `vendor/bin/phpstan analyse --memory-limit=1G` ·
       `node --check public/js/ui-common.js` · `php artisan test` (full suite on
       `DB_DATABASE=class_replacement_testing`, expect ≥ the current baseline — quote the real number,
-      never "all green") · `npm run test:e2e` on the testing DB for the merged page and the URL moves.
+      never "all green") · `npm test` (`npx playwright test` — there is **no** `test:e2e` script,
+      `package.json:5-10`) with the testing DB env, for the merged page and the URL moves; a "skipped"
+      run is not a receipt.
       **Never** `migrate:fresh`, never `--env=testing`, never write a demo DB.
 
 - [ ] **T24 — review round after code** — verify the implementation against the frozen artifacts,

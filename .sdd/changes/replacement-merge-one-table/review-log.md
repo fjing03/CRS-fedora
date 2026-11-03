@@ -634,3 +634,53 @@ spec's authority alone is scope creep.
 spec internally consistent, and no scenario unachievable without touching a frozen law. The five
 residuals (all wording/coverage) are folded. **Batch 3 (specs) is FROZEN at this entry.**
 
+## tasks Round 1 — 2026-11-04
+
+<!-- Scope: tasks.md (head 4f0466e) against the frozen proposal (M1–M17, §3, §6, §6b), design and
+     specs. No M decision and no design [D] re-opened. Findings are: elements no task lands,
+     sequencing that cannot execute, receipts that cannot be produced (or are wrong), and two places
+     where the list was NARROWER than a frozen requirement. Every count was measured at that head. -->
+
+### 🔴 Must fix
+- **T-1 — the `<tr>`'s two ids were emitted by no task, and four specs read them.** The home view sets
+  **no** data attribute today (`grep` → 0) while the page it replaces sets `row.dataset.id`
+  (`my-request-history.blade.php:570`); `applyNotifHighlight` selects `tr[data-id]` (`:329-331`). T8
+  added only the matcher. Without `data-id` + `data-request-id`, S3.3 and S14.1–S14.4 cannot pass,
+  and T19's `tr[data-request-id]` rewrites select zero rows.
+- **T-2 — the new canonical URL would have been gated by no test.** `RouteGateMatrixTest` pins only
+  the two old URLs (`:34,36,46,48`); `/my-replacements` was in no task, though proposal §3 item 11
+  requires it.
+- **T-3 — T6's only receipt could not run in commit 1.** Case 10 asserts all three URLs, but
+  `/my-replacements` does not exist until T14 (commit 3), so the count read 9/10 at the moment it was
+  to be quoted.
+- **T-4 — the list was narrower than proposal 7c: the toast BODIES keep naming the retired page.**
+  `ui-common.js:4419,4422` read "…view it in My Request History." — the most-read entry-guard message
+  still naming a page that no longer exists, which is the failure §7 argues against for
+  `ReplacementArrangement.php:1214`.
+- **T-5 — T16's grep receipt was red by construction.** `ReplacementRequestMapper.php:17,282` name the
+  class in comments, and no task (or file in that commit) owned them.
+
+### 🟡 Should fix
+- The cancel flow was half-owned: the `!ok` branch, the `row === null` branch, the
+  `disabled`-while-in-flight guard (which does not exist today) and the second toast label.
+- The `?? null` in `ui-page-header` was the trap and no receipt touched a `[]` caller.
+- Three small surfaces had no owner: `pageKey`, `qvArrange()`'s handled branch (a **fourth**
+  `requestHref()` reader, `:768`), and the five card value colours.
+- The comparator's explicit status rank / `'9999'` / arrow repaint were compressed into one line; and
+  S5.2–S5.4, S9.3, S11.1–S11.2, S12.1–S12.3 had no receipt anywhere.
+- `--path=replacements` matches 1 of 3 routes; `npm run test:e2e` does not exist (`package.json:5-10`);
+  T1's "byte-identical" was proven for two of six keys; T3's receipt pointed at the wrong task; T18's
+  red window was unstated; A′'s fixture precondition was in no task; T7's `mock_fallback` was an env
+  flag, not a query param.
+
+### ✅ Confirmed
+- **The 11-occurrence arithmetic is exact:** 25 today − 14 edits = 11, file for file.
+- Commit boundaries match design §7/§10, and the `class_exists` trap is stated in ordering rule 3.
+- T10's CSS scope is complete, token-only, and invents no definition twice.
+- T17's fixture work is right: `createRequest()` plus the three inline creates; and
+  `SpanReservationTest::spanFixture()` already stamps the exception, so its re-point needs none.
+- The gates state the DB rules (testing DB by `DB_DATABASE` only, never `--env=testing`, never
+  `migrate:fresh`, never a demo write), "never push", and the staging rule.
+
+**Verdict: FAIL** — 5 blocking, 10 should-fix. All folded after this entry.
+
