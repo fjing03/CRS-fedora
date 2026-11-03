@@ -257,7 +257,12 @@ it is parked as broken (`task-02-replacement-history-timeline.md`).
 
 **Filters:** search (code/name) · week navigator (original-class week) · status
 select (All · Need to Arrange · Pending · Approved · Rejected · Cancelled ·
-Completed) · **Exclude Completed** toggle, ON by default (completed lane C4) ·
+Completed) · **Exclude `COMPLETED` Status** toggle, ON by default (completed lane
+C4). The label is `Exclude <span class="info-keyword">Completed</span> Status`
+(user decision, 2026-11-03) — `COMPLETED` is bold **and** uppercase through the
+shared `.info-keyword` class, so it reads as the one word that matters in a toolbar
+of four controls. The live pages still say `Exclude Completed`; the merged page is
+the first to take the new label ·
 reset. Plus the **Active Filters chip bar** and the **pagination bar**, both
 reused from My Requests verbatim, not redesigned:
 
