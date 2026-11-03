@@ -158,24 +158,25 @@ conflict reason never change when you switch tabs, so repeating them in each pan
 was noise. Subject code, name and class type already live in the subtitle, so they
 are not repeated.
 
-**The status lives in the tab label** — `Request Status (Pending)`, `(Approved)`,
-`(Rejected)`, `(Cancelled)`, `(Completed)`, `(Need to Arrange)`. It was in the strip
-for two rounds (`CURRENT STATUS`), but that said it twice: once above the tabs and
-again as the `Status` row inside the tab. Moving it into the label puts it in
-exactly one place **and keeps it visible from all three tabs**, because the tab bar
-never scrolls away. The parenthesis uses the short word — the badge's long form
-(`Pending — Waiting for Approval`, `Completed — 3 days ago`) overflows the 594 px
-tab bar; the full text still lives in the table's badge, which is where it matters.
+**The status appears twice on purpose, in two jobs** (user decision, 2026-11-03):
 
-Cost, accepted: a tab label is monochrome, so the red/amber/green signal the badge
-carried is gone from the modal. A 6 px coloured dot before the label would bring it
-back without a second badge.
+- the **tab label** — `Request Status (Pending)`, `(Approved)`, `(Rejected)`,
+  `(Cancelled)`, `(Completed)`, `(Need to Arrange)` — keeps the state readable from
+  the other two tabs, because the tab bar never scrolls away;
+- the **`Status` row inside the tab**, as a coloured badge, is where the
+  red/amber/green actually lives — a label is monochrome, and the colour is what
+  answers "do I need to do something?" at a glance.
+
+The facts strip lost its `CURRENT STATUS` line, which was the third copy. The
+parenthesis uses the **short** word: the badge's long form
+(`Pending — Waiting for Approval`, `Completed — 3 days ago`) overflows the 594 px
+tab bar, and the long text is in the table's badge where it matters.
 
 | Tab | Contents |
 |---|---|
 | **Original Class Schedule** | **Class ID** · week · day · date · time · duration · venue |
 | **Proposed Replacement Schedule** | **Request ID** · week · day · date · time · duration · venue. The tab is **hidden** when nothing is proposed (no request, or a request with no resolvable slot) — an empty tab that says "nothing yet" is a dead end |
-| **Request Status (…)** | labelled with the status itself. Contains a **Status Description** row (one plain sentence about that status) · a **Rejection Reason** row, **only when the row is rejected** · a nullable **Remark** row. **Nothing else** — no timeline, no history block, no per-request panels, no status badge (the label is the status) |
+| **Request Status (…)** | labelled with the status itself. Contains the **Status** badge · a **Status Description** row (one plain sentence about that status) · a **Rejection Reason** row, **only when the row is rejected** · a nullable **Remark** row. **Nothing else** — no timeline, no history block, no per-request panels |
 
 Both schedules print the same way (user decision, 2026-11-03):
 
