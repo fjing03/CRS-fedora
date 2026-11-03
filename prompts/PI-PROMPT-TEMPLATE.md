@@ -25,7 +25,7 @@
 
 ## 1. Read first (every task, non-negotiable)
 
-- `prompts/for-ai-to-read/PI_Chat_Context_Handover.md` — §0 Quick Status + the **latest** §0.x addendum.
+- `prompts/for-ai-to-read/PI_Chat_Context_Handover.md` — §0 Quick Status, §1 the latest session, §2 the standing rulings.
 - **`prompts/for-ai-to-read/my-coding-rules.md` — the user's own rulebook: read it in full and
   obey it before writing any code** (the 10 UI rules, the canonical colour map,
   OOP/PHP/naming, the commit/SDD policy). `AGENTS.md` + `prompts/for-ai-to-read/CodingMAIN.md` §10 are

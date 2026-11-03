@@ -9,7 +9,7 @@
 1. **`prompts/for-ai-to-read/AGENTS.md`** — how to work in this repo: read-first list, SDD/UI rules, standing rules, git policy.
 2. **`prompts/for-ai-to-read/CodingMAIN.md`** — the single source of truth; read it **in full** (§4 DB safety, §7 FR & NFR, §10 conventions + UI rules, §10.6 git policy).
 3. **`prompts/for-ai-to-read/my-coding-rules.md`** — the user's own rulebook in quick form (10 UI rules, canonical colour map, OOP/PHP/naming, commit/SDD policy).
-4. **`prompts/for-ai-to-read/PI_Chat_Context_Handover.md`** — §0 Quick Status + the **latest** §0.x addendum: what the last session did, what is next, what is parked.
+4. **`prompts/for-ai-to-read/PI_Chat_Context_Handover.md`** — §0 Quick Status, §1 the latest session, §2 the standing rulings: what was just done, what is next, what is parked. Older session diaries live in `prompts/for-ai-to-read/history/`.
 
 The memory import below is that same rulebook, inlined by harnesses that support `@path`:
 
