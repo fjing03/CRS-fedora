@@ -41,7 +41,7 @@ $latestRequests = ReplacementRequest::query()
     ->keyBy(fn (ReplacementRequest $r): string => $r->class_session_id.':'.$r->week_number);
 ```
 
-Three columns join the select; nothing is removed. The comment at `:75-79` explains why the FK must
+Two columns join the select (`remarks` and `rejection_reason`); nothing is removed. The comment at `:75-79` explains why the FK must
 stay — keep it, and add one line saying `remarks`/`rejection_reason` are display-only.
 
 `submitted_at` is `NOT NULL` (`2026_08_03_000009_create_replacement_requests_table.php:26`), so the
@@ -128,12 +128,21 @@ Added to `$rows[]` (existing keys untouched — A′ reads `lecturer`, `sessionI
 | `replacementDay` | `$strings['day']` or `null` |
 | `replacementVenue` | `$strings['venue']` (code) or `null` |
 | `replacementVenueName` | `$strings['venueName']` (`room_name`, may be `null`) or `null` |
+| `venueName` | `$session->venue?->room_name` (nullable) — the modal's **Original Class** tab prints `venue — venueName`; the table's Original Class cell keeps the code alone (§4.2) |
 | `remarks` | `$latest?->remarks` |
 | `rejectionReason` | `$latest?->rejection_reason` |
 | `requestId` | `$latest?->id` (unchanged) |
 
-All 14 are `null` when `$latest === null` — never `''`, never `"—"` (the client prints the dash, §6b
-law 6). `duration` stays the **original** class duration (`class_sessions`), as today.
+**A row with no request (§4.3) still carries its vocabulary.** When `$latest === null` the nine
+request-only keys (`requestId`, `replacementDate`, `replacementTime`, `replacementWeek`,
+`replacementDay`, `replacementVenue`, `replacementVenueName`, `remarks`, `rejectionReason`) are `null`
+— never `''`, never `"—"` (the client prints the dash, §6b law 6) — but **the five status keys are
+filled from the `null` row of §1.6**: `requestStatus = null`, `requestStatusLabel = 'Need to Arrange'`,
+`requestStatusShort = 'Need to Arrange'`, `requestStatusDesc` = the no-request sentence,
+`requestStatusTip` = the outlined-pill tip. That is what lets the badge (§3.3), the card (§3.7) and
+tab 3 (§4.3) resolve with no JS fallback and no second status map (§6b law 2). `venueName` does not
+depend on the request and is emitted for every row. `duration` stays the **original** class duration
+(`class_sessions`), as today.
 
 **[D] The JSON does not carry a request formula.** No `completedAt`, no `daysAgo`: the label is
 server-built (§1.6) so the badge's "n days ago" can never disagree with the status that produced it.
@@ -190,6 +199,7 @@ private function buildRow(
 `render()` calls it per cell (§1.1–1.5). The cancel path calls it for one cell:
 
 ```php
+// [D] supersedes the proposal's `: bool` signature — the returned row is how law 4 is satisfied
 public function cancelRequest(int $id): array
 {
     $ok = app(CancelPendingRequest::class)(auth()->user(), $id);   // the ONLY write — unchanged
@@ -217,17 +227,22 @@ be missed.
 
 ### 1.8 Query budget (the no-N+1 receipt)
 
-| Read | Count |
-|---|---|
-| `sessions` + module/venue/cohorts/lecturer | 1 (existing) |
-| `class_exceptions` | 1 (existing) |
-| `latestRequests` (+ eager `replacementTimeSlot.venue`) | 1 + 2 (existing) |
-| `spansForRequests` | **1, any number of rows** |
-| `venues` for the spans | **1, any number of rows** |
+The render issues these statements, in this order — every count is independent of the row count:
 
-Constant with 1 request or 40. `effectiveStatus()` adds **zero** (the date is passed in). Today's page
-adds 2 per approved row through `span()` + the `TimeSlot → venue` lazy load — the merge removes that.
-§8.1 case 8 asserts the constant with `DB::listen`.
+| Read | Statements | New? |
+|---|---|---|
+| `class_sessions` + `module`, `venue`, `cohorts.programme` (+ `programmes`), `lecturer` | 6 | existing |
+| `class_exceptions` | 1 | existing |
+| `latestRequests` + `replacementTimeSlot` + its `venue` | 3 | existing |
+| `spansForRequests` (junction ⋈ `time_slots`) | **1, any row count** | new |
+| `venues` for the spans | **1, any row count** | new |
+
+**12 statements, constant with 1 request or 40.** `effectiveStatus()` adds **zero** (the date is passed
+in). The `venues` table is therefore read **3×** per render — the sessions' own venue, the anchors', the
+spans' — which is pre-existing, not an N+1. What the merge removes is the 2-per-approved-row cost
+(`span()`'s junction read + the `TimeSlot → venue` lazy load inside `replacementStrings()`).
+§8.1 case 8 asserts the **constant**, not an absolute number — asserting 1 venues read would fail
+against the two pre-existing ones.
 
 ---
 
@@ -258,6 +273,29 @@ toolbar (`#searchInput`, `#statusFilter`, `ui-week-nav`, `#hideCompleted`, `#res
 `replacementHome` → `myReplacements` because it only drives scroll restoration (`ui-template:60-61`),
 and this is a different page; **[D]** the key is new so a stale scroll offset from the old page is not
 restored.
+
+### 2.1b The page's identity — `<title>`, H1, description (M3 + proposal §3 item 8)
+
+The title is not decoration: every page check reads it through `helpers/page-check.js:37`
+(`toHaveTitle(/My Replacements/)`), so the rename lands in the same view rewrite.
+
+- `@section('title', 'My Replacements — Class Replacement System')` (today `Replacement Arrangement — …`,
+  `replacement-home.blade.php:6`).
+- The header include becomes
+  ```blade
+  @include('partials.ui-page-header', ['title' => 'My Replacements', 'descriptionHtml' => $desc])
+  ```
+  with the locked copy from the brief/prototype —
+  `Every <span class="info-keyword">class</span> that needs a replacement, and every
+  <span class="info-keyword">request</span> you have made for it — in
+  <span class="info-keyword">one list</span>.` The current description ("click a status badge to open
+  its request", `:194`) must not survive: M6 deletes that door.
+- `partials/ui-page-header.blade.php` gains **one optional variable**: when `$descriptionHtml` is
+  present it renders `<p class="page-desc">{!! $descriptionHtml !!}</p>`; otherwise the existing
+  `{{ $description }}` branch is untouched, so every other page is byte-identical. This is proposal
+  §3 item 8, following the `ui-summary-bar` precedent (its `description` is already raw HTML).
+- `title` and `description` are the only two keys the partial reads (`:21-23`), and the partial is
+  shared — so the change is additive, not a fork.
 
 ### 2.2 `MyRequestHistory` retires — no forwarder
 
@@ -302,10 +340,10 @@ student branch (`:12-15`) is untouched.
 | File:line | Today | This lane |
 |---|---|---|
 | `Feature/ReplacementHistoriesTest.php:178-190` (`mrhPayload`) | `Livewire::test(MyRequestHistory::class)`, `payload['requests']` | `Livewire::test(ReplacementHome::class)`, `payload['conflictedClasses']` |
-| `:206-229` (mock-shape test) | request-row keys (`requester`, `courseCode`, `replacementDate`, …) | rewritten to the **occurrence row**: `code`, `cohorts`, `conflictReason`, `requestId`, `requestStatus`, `replacementDate`, `replacementTime`, `replacementVenue`. The fixture must also stamp the `ClassException` (a request alone no longer produces a row — §1.1) |
-| `:250-290` (cancel persists / refuses decided) | `call('cancelRequest')` → bool | `call('cancelRequest')` → `['ok'=>…, 'row'=>…]`; assert `ok`, the DB status, the D6 release, the audit row — and (new) `row['requestStatus'] === 'cancelled'` + `row['replacementTime'] === '14:00 – 14:30'` (the anchor-only truth) |
+| `:206-229` (mock-shape test) | request-row keys (`requester`, `courseCode`, `replacementDate`, …) | rewritten to the **occurrence row**: `code`, `cohorts`, `conflictReason`, `requestId`, `requestStatus`, `replacementDate`, `replacementTime`, `replacementVenue`, `venueName` |
+| `:250-290` (cancel persists / refuses decided) | `call('cancelRequest')` → bool | `call('cancelRequest')` → `['ok'=>…, 'row'=>…]`; assert `ok`, the DB status, the D6 release, the audit row — and (new) `row['requestStatus'] === 'cancelled'`. **The `14:00 – 14:30` in this fixture is the slot's own range and proves nothing about the fallback** (it creates no junction rows): the anchor-only receipt is §8.1 case 5 |
 | `:250-290` `test_batch_cancel_returns_only_the_cancelled_ids` | `cancelRequests()` | **deleted** — M12 removes bulk cancel; named replacement: the per-request cancel test above plus `request-cancel-pending.spec.ts` (§8.2) |
-| `:346-380` (completed / boundary) | `payload['requests']`, `status === 'Completed'` | `payload['conflictedClasses']`, `requestStatus === 'completed'`, `requestStatusLabel` starts with `Completed — `; the boundary test keeps asserting `approved` for today/tomorrow |
+| `:346-380` + `:374-399` (completed / boundary) | `payload['requests']`, `status === 'Completed'` | `payload['conflictedClasses']`, `requestStatus === 'completed'`, `requestStatusLabel` starts with `Completed — `; the boundary test keeps asserting `approved` for today/tomorrow |
 | `Feature/SpanReservationTest.php:454-476` | `app(MyRequestHistory::class)->render()`, `payload['requests']`, `status === 'Pending'` | `app(ReplacementHome::class)->render()`, `payload['conflictedClasses']`, `requestStatus === 'pending'`; **the assertions stay**: `14:00 – 16:00` (junction) and `14:00 – 14:30` after cancel. This is the lane's data-accuracy receipt for §6b law 3 |
 | `e2e/history.spec.js:6` | `checkPage('/my-request-history-ui', …, 'My Request History')` | rewritten as the **alias contract**: same URL, `#timetable`, title `My Replacements` — proves M2 without a redirect |
 | `e2e/smoke-my-request-history.spec.js:6,10-16` | title + `window.MockData.requests.length >= 3` | title `My Replacements`; `window.MockData.conflictedClasses.length >= 1` (the merged table is occurrence-keyed), plus ≥1 `#tableBody tr` |
@@ -315,11 +353,18 @@ student branch (`:12-15`) is untouched.
 | `:692` | `{ path:'/my-request-history-ui', title:/Request History/ }` | two rows: `{ path:'/my-replacements', title:/My Replacements/ }` and `{ path:'/my-request-history-ui', title:/My Replacements/ }` |
 | `:688-700` title-case statuses | `MockData.requests` statuses | `conflictedClasses` → `requestStatusLabel`, asserting each is one of the six M5 strings (or `Need to Arrange`) |
 
-Bucket **B** and **D** are updated with this lane too (the behaviour they pin is what M6/M7/M12/M15
+**One fixture change covers four of those rows:** `ReplacementHistoriesTest::createRequest()`
+(`:144-155`) stamps no `ClassException`, and after §1.1 a request alone renders **no row** — so the
+payload is `[]` and `row`/`firstWhere` are `null` in the mock-shape, both cancel tests and both
+completed/boundary tests (which build requests inline at `:352, :381, :387`). The helper gains the
+exception stamp once (`ClassException::create([… 'reason' => 'annual_leave' …])` for that
+session+week), and every one of those tests keeps its original fact.
+
+Bucket **B** and **D** are updated with this lane too (the behaviour they pin is what M6/M7/M9/M12/M15
 change): `replacement-home-status-badges.spec.ts`, `request-completed-status.spec.ts`,
 `status-tooltips-filter-chips.spec.ts` (B); `request-cancel-pending.spec.ts:68-89`,
-`warning-keywords.spec.ts:13-24`, `ui-regression.spec.ts:151` (D). Their new assertions are listed in
-§8.2.
+`warning-keywords.spec.ts:13-24`, `ui-regression.spec.ts:151,322-334` (D). Their new assertions are
+listed in §8.2.
 
 ---
 
@@ -348,6 +393,7 @@ output byte for byte, `mock_fallback` off by default).
 
 ```js
 static replacementHomeRow(c, opts) {
+    var typeLabel = UiLabels.classType(c.type, 'code');      // declared for both branches
     if (!opts.merged) { /* …today's body, untouched… */ }
     return [
         { html: '<span class="cell-code">' + c.code + '</span>' +
@@ -377,9 +423,16 @@ mobile card and the table cannot drift.
 - **Requested Replacement** — `—` (`<span class="cell-dash">`) when `replacementDate == null`; else day,
   date, `(Week n)`, `replacementTime`, `(n hrs)` computed from the string, venue line
   (`replacementVenue` + `replacementVenueName` in the modal only — the column prints the code, §6b).
-- **Request Status** — `<span class="badge status-<key>" data-tip="<requestStatusTip>">` +
-  `requestStatusLabel`; `status-none` + `badge-outline` + `Need to Arrange` for `null`. **Not a link**
-  (M6): no `<a>`, no `onclick`.
+- **Request Status** — `<span class="badge status-<key>" data-tip="<tip>">` + `<label>`;
+  `status-none` + `badge-outline` + `Need to Arrange` for `null`. **Not a link** (M6): no `<a>`, no
+  `onclick`.
+  The cell does not read `c.requestStatusLabel` directly: it reads **`statusLabelOf(c)`** and
+  **`statusTipOf(c)`**, two one-line accessors that return the payload's server-built strings when
+  present and `'Need to Arrange'` / the outlined-pill tip when the row has no request block at all.
+  The only such row is one appended by `ClassCancellation.applyLedger()` — a class cancelled through
+  the timetable, which by definition has no request. Every call site uses the same two accessors
+  (§3.7's card, §4.2's tab label, §4.4's confirm summary), so one missing key cannot print
+  `undefined` in four places.
 - **Action** — icon-only `<button class="btn-icon btn-icon--…">`, `stopPropagation` on click:
   | status | icon | class | action |
   |---|---|---|---|
@@ -400,10 +453,17 @@ mobile card and the table cannot drift.
   pending 3 · approved 4 · completed 5`. `replacementDate` sorts `null` last (`'9999'`).
 - **Tie-break: `a.id - b.id`** — without it two rows with the same key can swap between renders, and
   pagination would show a row twice or not at all.
-- **[D] The payload is emitted in display order** (group, then `date` asc, then `id`). The A′ spec
-  (`replacement-home-qv.spec.ts`) correlates the first rendered row with `conflictedClasses[0]`; the
-  client's stable sort on an already-sorted array is a no-op, so that correlation survives the merge.
-  Emitting the payload in some other order and hoping the client's sort matches is how A′ goes red.
+- **[D] The payload is emitted in display order** (group, then `date` asc, then `id`), and the client's
+  comparator is the same (group, then the chosen column, then `id`), so the default render is a fixed
+  point of an already-sorted array.
+  **Why it matters (A′):** `replacement-home-qv.spec.ts:30-34` takes the first payload row whose
+  `lecturer` matches the viewer — on this page every row does, so it is `conflictedClasses[0]` — clicks
+  the first rendered `tr`, and then clicks `#qvArrangeBtn` (`:38`). Two preconditions must hold, and
+  both are by design: (a) the payload order equals the render order (above), and (b) **the first row is
+  a needs-action row**, because §4.1 hides `#qvArrangeBtn` for handled rows and the spec would time
+  out. A fixture where the earliest-dated occurrence is already approved would break it — so the A′
+  fixture keeps at least one unarranged occurrence, and that requirement is recorded here rather than
+  discovered on a red run.
 
 Arrows: `<span class="sort-arrow">▲/▼</span>` appended to the **active** header only, repainted from
 `data-label` on every render (M14; prototypes' `:773` markup, `.sort-arrow` from `theme.css:1137`).
@@ -426,11 +486,20 @@ Arrows: `<span class="sort-arrow">▲/▼</span>` appended to the **active** hea
 
 ### 3.6 Counts, pagination, the 1500 px rule
 
-`#resultCount` = `Showing N of M classes`, N = `currentFiltered.length`, M = owned rows before filters
-(`myConflictedRows().length`). `#paginationInfo` = `Showing a-b of N`. Both come from the same
-`currentFiltered` (§6b law 1); the five cards take it as an argument. `#resultCount` is hidden below
-1500 px by a page media query (M15) — it stays in the DOM, so a `textContent()` read still returns
-text (proposal bucket A's caveat).
+`#resultCount` = `Showing N of M classes`; `#paginationInfo` = `Showing a-b of N`.
+
+- **N = `currentFiltered.length`** — the rows the filters leave (search, week, status, exclusion).
+- **M = `visibleBaseRows().length`** — the viewer's rows **after** the completed exclusion, before the
+  other filters. Not `myConflictedRows()`: the completed lane's C4 law is that the counts are taken
+  **after** the exclusion (`replacement-home.blade.php:370-373,588`), and with the toggle ON by default
+  the toolbar must not advertise rows the page hides by default ("Showing 9 of 12 classes", never
+  "9 of 13").
+- Both still come from the one row set (§6b law 1): `visibleBaseRows()` is `myConflictedRows()` minus
+  the exclusion, and `currentFiltered` is that list minus the other filters — `N` and `M` are two
+  views of one array, never two queries. The five cards take `currentFiltered` as an argument.
+
+`#resultCount` is hidden below 1500 px by a page media query (M15) — it stays in the DOM, so a
+`textContent()` read still returns text (proposal bucket A's caveat).
 
 ### 3.7 Cards (phones) and the five summary cards
 
@@ -439,6 +508,23 @@ clickable (row click) and shows `statusBadge` in its header (M10). The five card
 `partials.ui-summary-bar` with M9's labels and the prototype's descriptions, values from
 `currentFiltered`: Classes to Arrange = `!isHandled` count · Class Hours to Replace = the **same**
 needs-action rows' `duration` sum · Pending Requests · Approved Requests · Rejected Requests.
+
+**[D] The five ids** — the old page's ids are `#summaryMyConflicted`, `#summaryMyHours`,
+`#summaryMyCourses`, `#summaryVenues`, `#summaryStudents`; the merged page retires the last three
+(M9 has no Courses/Venues/Students card) and uses:
+
+| Card | `valueId` |
+|---|---|
+| Classes to Arrange | `summaryNeeds` |
+| Class Hours to Replace | `summaryHours` |
+| Pending Requests | `summaryPending` |
+| Approved Requests | `summaryApproved` |
+| Rejected Requests | `summaryRejected` |
+
+Every existing summary assertion reads ids, not labels, so the id set is part of the contract — and
+`ui-regression.spec.ts:322-334` must be rewritten with them (§8.2), not left pointing at ids that no
+longer exist.
+
 `.card-conflict/.card-duration/.card-pending/.card-approved/.card-rejected` value colours come from
 tokens (`--color-error/-primary/-warning/-success`), as the prototype's page-local rule shows; they
 are page-local, not new theme definitions.
@@ -496,10 +582,18 @@ DetailModal.render({
 Tabs (in this order):
 
 1. **Original Class Schedule** — `Class ID #<sessionId>` · Week · Day (long) · Date (long) · Time
-   `HH:MM ~ HH:MM` · Duration · Venue `CODE — Name` (name nullable → code only).
+   `10:00 AM ~ 12:00 PM` · Duration `2 hours` · Venue `CODE — Name` (name nullable → code only, §1.5's
+   `venueName`).
 2. **Proposed Replacement Schedule** — **omitted entirely when `replacementDate == null`** (M7: "hidden
    when nothing is proposed"). When present: `Request ID #R<requestId>` · Week · Day · Date · Time ·
-   Duration (from the span's time strings) · Venue.
+   Duration · Venue — the same shape, from the same formatter.
+
+**One formatting path for both tabs** (the approved picture): 12-hour with `~` between
+(`to12h(start) ~ to12h(end)`) and durations in **words** (`2 hours`, `30 minutes`), never raw `hr`.
+Tab 1 reads `timeStart`/`timeEnd`; tab 2 splits the payload's `replacementTime` on `' – '` (the
+`stringsFromSpan()` separator) — the **table column** keeps that 24-hour `14:00 – 16:00` string
+untouched (§6b, and `SpanReservationTest` asserts it), so the column and the modal differ only in
+presentation, never in value.
 3. **Request Status (`requestStatusShort`)** — Status badge · Status Description · **Rejection Reason**
    (**only** when `requestStatus === 'rejected'`; `detail-value--strong`) · **Remark** (omitted when
    empty). No timeline, no history block (M7/M8).
@@ -514,17 +608,29 @@ it is always present.
 
 ### 4.4 Cancel flow
 
-1. Row ban icon **or** footer `#cancelRequestBtn` → `openCancelConfirm(requestId, occurrenceId)`:
-   `#cancelConfirmOverlay` becomes `display:flex` and `#cancelConfirmBody` is filled with the class
-   summary (course, original class date, current badge) — the history page's markup and copy move here
-   verbatim (`:275-294`, `:676-690`).
-2. `#confirmCancelAction` → `pageLivewire().call('cancelRequest', id)`.
-3. On `ok`: patch that occurrence's row from `result.row`, close **both** overlays
-   (`closeCancelConfirm()` + `closeModal()`, `my-request-history.blade.php:703-705`), repaint, toast
-   `Request #<id> cancelled.` (`toast.show`). On `!ok`: close both, toast
-   `This request can no longer be cancelled.`, leave the row as the server has it.
-4. A double-click guard: the button is disabled while the call is in flight (the history page's
-   guard, kept).
+1. Row ban icon **or** footer `#cancelRequestBtn` → `openCancelConfirm(requestId, occurrenceId)`.
+   **The signature grows from one argument to two**, and the body fill moves with it: today
+   `openCancelConfirm(requestId)` only flips `display` (`my-request-history.blade.php:892-897`) while the
+   summary is built by `quickCancel(id)` (`:674-690`). The merged page has one entry point, so it does
+   both. The overlay markup and copy move verbatim (`:275-294`); the summary is **re-read from the
+   current row set** at open time (never from a captured `qvCurrent`, which can be stale after a
+   previous cancel).
+2. `#confirmCancelAction` → **null `pendingCancelId` first**, then
+   `pageLivewire().call('cancelRequest', id)` — the null-before-call is the real double-submit guard
+   (`:695-697`); the button is also disabled while in flight.
+3. On `ok`: patch that occurrence's row from `result.row`, close **both** overlays —
+   `closeCancelConfirm()` and **`hideQuickView()`** — repaint, toast `Request #<id> cancelled.`
+   (`toast.show`). On `!ok`: close both, toast `This request can no longer be cancelled.`, leave the
+   row as the server has it.
+
+   **`closeModal()` is the wrong function here and copying it verbatim is a silent no-op:**
+   `my-request-history.blade.php:703-705` calls its own page-local `closeModal()` (which is
+   `DetailModal.close()` on `#modalOverlay`). The merged detail shell is `#quickViewModal`, closed by
+   **`hideQuickView()`**; `ui-common.js`'s shared `closeModal()` (`:~1795`) targets `#classModal` and
+   would leave the request modal open with a Cancel button against a now-`cancelled` row — the exact
+   staleness proposal 10c exists to prevent.
+4. `result.row === null` (unreachable by §1.1's invariant, but possible if the occurrence lost its
+   exception): the client patches nothing, closes both overlays, repaints and toasts — no throw.
 
 The badge therefore always shows what the database says (§6b law 4); after a cancel the row's
 `replacementTime` becomes the anchor-only range — the same truth `SpanReservationTest` pins.
@@ -621,6 +727,8 @@ The route table + these **six live files, 16 line occurrences** land together (p
 | `public/js/ui-common.js` | `:3071`, `:3072`, `:3079`, `:4420`, `:4423`, `:1292` | §5.3 |
 | `resources/views/partials/ui-nav-bar.blade.php` | `:18`, `:19` | one item, §2.4 |
 | `resources/views/livewire/replacement-home.blade.php` | `:376` (`requestHref()`) | **deleted** by M6, not moved |
+| `app/Livewire/ReplacementArrangement.php` | `:1214` | **copy (proposal 7c), not a URL**: `'duplicate_active_request' => '… — see My Request History.'` → `… see **My Replacements**.` The guarantee message is the most-read sentence in the flow; it must not name a page that no longer exists |
+| `resources/views/partials/ui-page-header.blade.php` | `:21-23` | the optional `$descriptionHtml` branch, §2.1b (proposal §3 item 8) — additive, every other caller unchanged |
 
 **Frozen — not touched:** `NotificationEmitter.php:64,88`, `partials/notif-row.blade.php:96` (compared
 byte for byte), the seven `mock-data.js` fixtures, and
@@ -640,8 +748,10 @@ test names a deleted component.
 
 1. One row per occurrence; the newest request wins (`submitted_at, id`), a second request on the same
    occurrence does not add a row.
-2. No request → `requestStatus === null`, label `Need to Arrange`, sentence non-empty, all replacement
-   fields `null`, `remarks`/`rejectionReason` `null`.
+2. No request → `requestStatus === null`, **but** `requestStatusLabel === 'Need to Arrange'`,
+   `requestStatusShort === 'Need to Arrange'`, `requestStatusDesc` = the no-request sentence, tip
+   non-empty (§1.5/D3); the nine request-only keys `null`; `venueName` still carries the room name
+   (`room_name`, or `null` for a venue without one).
 3. Each of the six states → label / short / sentence / tip from §1.6 (data-provider).
 4. `completed` label is `Completed — 1 day ago` for a replacement yesterday, and the status stays
    `approved` for today and tomorrow (the boundary, moved from `ReplacementHistoriesTest:346-380`).
@@ -651,8 +761,10 @@ test names a deleted component.
    approved row with a remark shows only the remark.
 7. A request on a **non-conflicted** occurrence produces **no** row (§1.1's invariant, asserted so it
    is a documented property, not a surprise).
-8. **No N+1:** with `DB::listen`, the number of `replacement_request_slots` / `venues` reads is **1 + 1**
-   and the total row-loop query count is identical for 1 request and for 4 requests.
+8. **No N+1:** register `DB::listen` immediately before the render, then assert (a)
+   `replacement_request_slots` is read **exactly once**, and (b) the **total statement count is
+   identical** for a fixture with 1 request and one with 4. Do **not** assert an absolute venues count:
+   the sessions' own venue, the anchors' and the spans' are three pre-existing reads (§1.8).
 9. `cancelRequest()` returns `['ok'=>true, 'row'=>…]` with the fresh status, closes over the D6 release
    and the audit row (moved from `ReplacementHistoriesTest:250-290`), and returns `ok=false, row=null`
    for an approved request.
@@ -664,12 +776,15 @@ test names a deleted component.
 
 | File | New assertion |
 |---|---|
-| `replacement-home-status-badges.spec.ts` | row extraction moves from `a.badge-link` / `.col-urgency` to `.col-status .badge` + `.col-original`; receipts assert the badge text (M5), the icon-only Action cell, and that the badge is **not** a link |
+| `replacement-home-status-badges.spec.ts` | row extraction moves from `a.badge-link` / `.col-urgency` to `.col-status .badge` + `.col-original`. Receipt by receipt: **1** (`:47`) the `^(Pending|Approved)$` regex becomes the M5 label set; **2** (`:53-69`) its navigation through the badge anchor is replaced by *the Action cell's eye opens `#quickViewModal`* (the anchor no longer exists); **3/4** (`:71-93`) the badge text + class per state; **5** (`:95-108`) the card's `a.badge-link` tap becomes *the card tap opens the modal* (M7), not an MRH navigation; **6** (`:110-124`) `#qvArrangeLabel === 'View Request'` becomes the `Request Status (…)` tab label (the button is hidden for handled rows, §4.1); **7** (`:126-135`) unchanged in intent. Plus the new law: the badge is **not** an `<a>` |
 | `request-completed-status.spec.ts` | badge anchor → `.col-status .badge`; `tr[data-id]` now means the occurrence, the request is `tr[data-request-id]`; the toggle/chips/toast receipt keeps `mrh-filters` |
 | `status-tooltips-filter-chips.spec.ts` | `MRH_MAP` replaced by the six server labels; `statusTooltip` read off `data-tip`; `#modalOverlay` → `#quickViewModal`; `.request-card` → `.replacement-card` |
+| `full-suite.spec.js:692-700` (status membership) | assert the array is **non-empty first** (`length > 0`) — a `forEach` over an empty array proves nothing — then each `requestStatusLabel` is one of the six M5 strings or `Need to Arrange` |
+| `smoke-my-request-history.spec.js:10-16` | keep a **fixture-grounded** minimum (the demo fixture's conflict count), not `>= 1`: one surviving row would pass a payload that lost most of its rows |
 | `request-cancel-pending.spec.ts:68-89` | the row **stays** after cancelling and reads `Cancelled by YOU`; the cancel is driven from the row's ban icon, then the confirm overlay |
 | `warning-keywords.spec.ts:13-24` | opens from `.col-status .badge:has-text("Pending")`, still requires `#cancelRequestBtn` inside `#quickViewModal` |
-| `ui-regression.spec.ts:151` | `#modalOverlay` → `#quickViewModal`, and the click target is `#tableBody tr` (not a desktop-hidden card) |
+| `ui-regression.spec.ts:151` | `#modalOverlay` → `#quickViewModal`, and the click target is `#tableBody tr` (not a desktop-hidden card). **The guarded body has never actually run** (the old target was desktop-hidden), so it goes live here: its assertion `'Subject Code'` must become `'Class ID'` / `'Original Class Schedule'` — the merged modal has no "Subject Code" row (code + name are in the subtitle) |
+| `ui-regression.spec.ts:322-334` (`TC-7.2`) | rewritten to the five M9 cards (§3.7's ids). Today it pins `#summaryMyConflicted=4`, `#summaryMyHours=8`, `#summaryMyCourses=2` and `#summaryVenues/#summaryStudents` = 0; M9 deletes the Courses card and re-scopes Hours to the needs-action rows, so the numbers are re-derived from the fixture, and the two deleted ids are asserted **absent** (their `count === 0` still holds — the nodes no longer exist) |
 
 ### 8.3 What cannot be proven without the testing DB
 
@@ -685,7 +800,7 @@ page's six states, and `arrangement-entry-guard` / `submission-conflict-refresh`
 
 | Risk | Counter |
 |---|---|
-| A ledger-appended row (`ClassCancellation.applyLedger`) has no request block → `undefined` labels | the client's `statusText(c)` returns `Need to Arrange` when `requestStatusLabel` is absent; no JS status map is created |
+| A ledger-appended row (`ClassCancellation.applyLedger`) has no request block → `undefined` labels | **`statusLabelOf(c)` / `statusTipOf(c)`** (§3.3) — the only readers of the two label keys — default to `Need to Arrange` and the outlined tip; no JS status map is created, and no fourth call site can forget |
 | The payload's order is assumed by A′ | §3.4 emits in display order and the client sort is stable |
 | `statusLabel()`'s "n days ago" disagrees with `effectiveStatus()` across a midnight boundary | both read `today()` in the same request; a completed row can only be ≥1 day old |
 | The confirm overlay's summary is built from a stale row object | it reads the **current** row from the row set at open time, and the success path replaces it with the server's row |
@@ -697,9 +812,11 @@ page's six states, and `arrangement-entry-guard` / `submission-conflict-refresh`
 1. `feat(my-replacements): the merged payload, the batch span path, and the six-state vocabulary`
    — §1 + `MyReplacementsPayloadTest` (8.1) + `SpanReservationTest` re-point.
 2. `ui(my-replacements): one table, seven columns, and the tabbed modal` — §3/§4 view rewrite +
-   `ui-common` §5.1/§5.2 + `theme.css` §6.
+   `ui-common` §5.1/§5.2 + `theme.css` §6 + **the page identity** (§2.1b: `<title>`, H1,
+   `descriptionHtml` in `ui-page-header`).
 3. `refactor(my-replacements): the canonical URL, three route entries, and the retired page` —
-   §2.2–§2.5 + §7, atomic, plus the test re-pointing that names the class.
+   §2.2–§2.5 + §7 (including `ReplacementArrangement.php:1214`'s copy), atomic, plus the test
+   re-pointing that names the class.
 4. `test(my-replacements): the specs the merge reverses` — §8.2 + the remaining bucket A″ strings.
 5. `docs(my-replacements): changelogs + handover` — `page-changelogs/` for the two old pages and the
    nav, `PI_Chat_Context_Handover.md` §0/§1/§4/§5.

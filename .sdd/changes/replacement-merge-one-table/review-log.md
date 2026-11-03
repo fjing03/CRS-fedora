@@ -411,3 +411,64 @@ resolving on both schedule tabs and the Request Status tab.
 
 **Batch 1 (proposal) is FROZEN at this entry** — 8 rounds, 2026-11-03 → 2026-11-04.
 
+## design Round 1 — 2026-11-04
+
+<!-- Scope: design.md (head 02cd2db) against the FROZEN proposal (M1–M17 + §6b), the explore brief
+     and the prototype. Every code claim was re-read at head bcab5f5. No M-decision is re-opened;
+     the blockers are omissions/contradictions inside design.md itself. -->
+
+### 🔴 Must fix
+- **D1 — the page's identity landed nowhere.** `@section('title')` (`replacement-home.blade.php:6`),
+  the H1 + description include (`:194`) and proposal §3 item 8's `descriptionHtml`
+  (`ui-page-header.blade.php:21-23`, escaped) were absent from every section, from §7's file table and
+  from §10's commits. Every `/My Replacements/` title assertion the design itself writes would be red,
+  and the surviving description told users to click the badge anchor M6 deletes.
+- **D2 — the modal's Original Class tab needed the occurrence's `room_name`, and §1.5's key list was
+  closed without it** (only `replacementVenueName` existed). §6b requires `room_code — room_name` on
+  both schedule tabs.
+- **D3 — "All 14 are `null` when `$latest === null`" contradicted §1.6/§3.3/§4.3/§9**, and the
+  no-request row is the majority row: one reading printed an empty badge and an empty Status
+  Description, the other created the JS status map §6b law 2 forbids.
+
+### 🟡 Should fix
+- **S1** a `ClassCancellation.applyLedger` row has no request block → `undefined` in four call sites.
+- **S2** §1.8's budget understated the existing reads (6 + 1 + 3, and `venues` 3×), so §8.1 case 8 was
+  impossible as written (`replacement_request_slots`/`venues` = 1 + 1).
+- **S3** bucket D had a second reversal: `ui-regression.spec.ts:322-334` pins `#summaryMy*` ids and a
+  "Courses" card M9 deletes; the five cards' `valueId`s were never named.
+- **S4** `replacement-home-status-badges.spec.ts` receipts 2/5/6 still asserted the badge-anchor
+  navigation and `#qvArrangeLabel === 'View Request'`, both deleted by M6/M7.
+- **S5** `ui-regression.spec.ts:166` would go live for the first time and assert `'Subject Code'`, which
+  the merged modal has no row for.
+- **S6** `ReplacementHistoriesTest::createRequest()` stamps no `ClassException`, so four re-pointed
+  tests would see `payload = []`; and the cancel fixture's `14:00 – 14:30` is its own slot range, not
+  proof of the anchor fallback.
+- **S7** `#resultCount`'s `M` was defined **before** the completed exclusion, contradicting the
+  completed lane's C4 law and the design's own "both come from the same array".
+- **S8** §7 dropped proposal 7c's copy edit (`ReplacementArrangement.php:1214` still says "My Request
+  History").
+- **S9** §4.4 copied `closeModal()` verbatim — on the merged page that is the shared `#classModal`
+  helper, so a stale `#quickViewModal` would keep a Cancel button against a cancelled row.
+- **S10** §3.4's A′ premise was imprecise: the spec matches by `lecturer`, and it needs a needs-action
+  first row or `#qvArrangeBtn` is hidden and it times out.
+- **S11** two rewritten assertions could pass vacuously (an empty `forEach`; `>= 1` after a 90% row
+  loss).
+- **S12** the two schedule tabs would print two different time formats, neither matching the brief's
+  12-hour `~` + duration-in-words.
+
+### ✅ Confirmed
+- `spanFromAnchor()` is `span()`'s step 2 field for field and is reachable after both junction deltas;
+  `spansForRequests()` really reads the junction only.
+- `effectiveStatus()`'s third parameter is inert for `toRow()`/the API (`toRow():131` is the only call
+  site in `app/`), so law 5 holds and `completed` stays in one place at zero query cost.
+- The two added select columns are the right two; `submitted_at` is `NOT NULL`.
+- `buildRow()`/`rowFor()` is one shaping path and the returned row carries what the two repainted
+  widgets need; no other `cancelRequest` caller exists.
+- The retirement is clean (no reference outside its own file, the mapper's comments and the deleted
+  view), and §7's ordering genuinely closes the `class_exists` silent-legacy window.
+- §3.4's payload-in-display-order does keep A′ green; §5.2's `||` fallback is the right mechanism;
+  M4–M17 all land on something concrete; §6's CSS map is complete and token-only.
+
+**Verdict: FAIL** — three blocking omissions, twelve non-blocking, four optional. All folded in
+`design.md` after this entry; round 2 confirms them.
+
