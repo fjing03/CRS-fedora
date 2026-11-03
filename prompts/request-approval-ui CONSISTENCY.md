@@ -1,0 +1,295 @@
+# request-approval-ui CONSISTENCY UPDATE
+**Page:** `/request-approval-ui` · **File status:** PART 1 SHIPPED, PART 2 BLOCKED
+**Last updated:** 2026-11-03 (after commit `24db2be`)
+
+> **Checkbox key**
+> `[x]` = done, live, receipted · `[ ]` = not done (each one says **why** and **what unblocks it**).
+>
+> **Where part 1 lives:** `resources/views/livewire/request-approval.blade.php` only — plus
+> `tests/request-approval.spec.ts`, `tests/status-tooltips-filter-chips.spec.ts` and
+> `page-changelogs/request-approval-changelog.md`. No PHP, no `ui-common.js`, no `theme.css`,
+> no payload change, no database change. **SDD waived** by the user (display-only, one page).
+
+---
+
+## 0. Progress at a glance
+
+| Item | What | State | Blocked by |
+|---|---|---|---|
+| 1a | Students column removed | ✅ done | — |
+| 1b | Cohort column added before Original Class | ✅ done | — |
+| 1c | Lecturer → Staff (Proposer) | ✅ done | — |
+| 1d | `#` → Request ID (real `#<id>`) | ✅ done | — |
+| 1e | Urgency badge = level + remaining days | ✅ done | — |
+| 1f | Status wording = My Replacements (Pending/Completed) | ⛔ pending | merge lane's M5 vocabulary |
+| 1g | Proposed Replacement → Requested Replacement | ✅ done | — |
+| 1h | Original Class / Requested Replacement cells = My Replacements style | ⛔ pending | merge lane's cell design |
+| 2 | Summary cards → Approved Requests / Rejected Requests | ✅ done | — |
+| 3A | Timeline out, facts strip in | ⛔ pending | merge lane's M7 modal + `DetailModal.factsHtml` |
+| 3B | Modal status badge wording | ⛔ pending | same as 1f |
+| 3C | Schedule = one row (Date · Time · Venue) | ⛔ pending | merge lane's schedule block |
+| 3D | Three tabs, renamed, status tab far right | ⛔ pending | needs 3A first |
+| 3E-1 | Week row on both schedule tabs | ✅ done | — |
+| 3E-2 | Duration in full words | ✅ done | — |
+| 3E-3 | Schedule layout matches the merged page | ⛔ pending | same as 3C |
+| — | Cohort(s) in the modal: compact codes joined with ` + ` (user ruling) | ✅ done | — |
+| 3F | No Close button, Reject bottom-left | ✅ done | — |
+| 4 | Treat My Replacements as the design reference | ⛔ pending | the reference page does not exist yet |
+
+**Why the split:** the merge lane `replacement-merge-one-table` (SDD `status: design`) is building
+the **My Replacements** page right now — its status vocabulary (`ReplacementRequestMapper`
+`statusLabel/statusShort/statusSentence/statusTip`, decisions M5), its modal shell (`#quickViewModal`,
+M7) and its cell design (§3.2–3.3). The **eight** pending items are all "match that page". Doing them
+before it exists would create a second copy of the same rules that then has to be deleted. Every
+pending item below names the exact thing to consume once that lane lands.
+
+---
+
+## 1. Table updates
+
+- [x] **1a — Remove the Students column.**
+  *Requirement:* "Remove the **Students** column."
+  **Done:** dropped from `columns[]` and the `<td>` in `renderRow()`.
+  The student count is still visible where it belongs: the pop-up's *Original Class* tab
+  (`Total Students` + the shared `cohortBreakdown()` `A + B = total`) and the Approve/Reject
+  context card's meta chips (`15 students`).
+  **Receipt:** `request-approval.spec.ts` U3-T9c asserts the header set no longer contains
+  *Students*.
+
+- [x] **1b — Add a Cohort column immediately before Original Class.**
+  *Requirement:* "Display multiple cohorts in this format: `RSD3(S1)G2 + RSD3(S1)G3`."
+  *Refined by the user 2026-11-03:* the **table stacks** them (`RSD3(S1)G2<br>RSD3(S1)G3`), the
+  **modal joins** them with ` + ` — see 3E/extra below.
+  **Done:** one compact code per line via the page-local `compactCohort()` (strips the spaced
+  convention `RSD3 (S1) G2` → `RSD3(S1)G2`), cell class `col-cohort`, empty cell renders `—`.
+  **Not sortable** (`sortable: false`): a multi-cohort row has no single value to sort by.
+  **Receipt:** U3-T9c asserts every cohort cell is non-empty and every line matches
+  `^[A-Z]+\d+\(S\d+\)G\d+$`; live: `DSF2(S1)G1`, and `RSD2(S1)G2` / `RSD2(S1)G1` stacked.
+
+- [x] **1c — Rename Lecturer to Staff (Proposer).**
+  **Done:** header label + its `data-tip` ("The staff member who submitted the request — sorted by
+  name"). The cell is unchanged: `Name (staffId)` + clickable email + 📋 copy icon.
+  **Receipt:** header assertion in U3-T9c (`Lecturer` absent, `Staff (Proposer)` present).
+
+- [x] **1d — Rename the `#` header to Request ID.**
+  *Decision taken while doing it (user approved 2026-11-03):* the cell now prints the **real
+  request id** (`#26`), not the row counter — a header saying "Request ID" over `1, 2, 3…` would be
+  a lie. The mobile card already printed `#<id>`, so the two views now agree.
+  **Done:** header `Request ID` (not sortable, tip "The request identifier the lecturer sees (#) —
+  not sortable"); cell `#<id>` with class `col-request-id`.
+  **Receipt:** U3-T9c asserts `^#\d+$` per row.
+
+- [x] **1e — Urgency badge shows the level followed by the remaining days.**
+  *Requirement example:* `Normal — 67 days left`. Keep the existing category and badge styling.
+  **Done:** `urgencyLabel(level, classDate)` composes the text; `urgencyShort(level)` keeps the bare
+  word for the places that need it. The four wordings:
+
+  | State | Badge text |
+  |---|---|
+  | normal | `Normal — 52 days left` |
+  | urgent (1 day) | `Urgent — 1 day left` |
+  | urgent (today) | `Urgent — today` |
+  | overdue | `Overdue — 5 days past` |
+
+  Styling untouched (`urgency-normal` / `urgency-urgent` / `urgency-overdue`); the tooltip keeps its
+  fuller sentence (`… left before the Proposed Class.`), and the *Requested age* chip keeps the bare
+  word in its tooltip. The same text now appears in the table, the Approve/Reject context card and
+  the **mobile card** — the card gets it through a per-row closure, so `HtmlBuilder.requestCard`
+  (shared) was **not** edited.
+  **Receipt:** `status-tooltips-filter-chips.spec.ts` RA-2 (badge↔tip leading word, Overdue shift,
+  the `Urgent — today` case, the Urgent filter keeping Overdue).
+
+- [ ] **1f — Status badge wording consistent with My Replacements (Pending, Completed).**
+  **Why pending:** the target vocabulary is the merge lane's **M5** table, delivered as
+  `ReplacementRequestMapper::statusLabel()/statusShort()/statusSentence()/statusTip()` (§1.6 of that
+  lane). A local copy here would be the second source of truth the merge exists to remove.
+  **Known gap today (must not be forgotten):** this page's `statusTooltip()` map still has only
+  **three** keys (Pending / Approved / Rejected), so a **Completed** or **Cancelled** badge renders
+  with **no tooltip** at all. 1f fixes that too.
+  **Unblocked by:** `replacement-merge-one-table` applied. **Then:** the row badge, the modal badge,
+  the mobile card and the `data-tip` all read the shared helpers; the local `statusTooltip()` map
+  and the local `statusDescMap` are deleted.
+  **Watch:** `statusClass()` stays as-is (it already maps all five states) — do not rename classes.
+
+- [x] **1g — Rename Proposed Replacement to Requested Replacement.**
+  **Done:** the column header, its tip ("Requested new date, time, and venue") **and** the sort-hint
+  line above the table (`… Original Class, Requested Replacement, Urgency, Status`). The filter
+  chips and the modal tab are separate items (chips say `Status:`/`Urgency:`; the tab is 3D).
+
+- [ ] **1h — Original Class and Requested Replacement cells follow My Replacements' format/style.**
+  **Why pending:** the reference is the merged page's cell design (its §3.2–3.3: an icon-led,
+  multi-line Original Class block plus a status element). Today both pages still share
+  `HtmlBuilder.classBlock()` / `replacementBlock()`, and this page additionally passes a
+  slot-validity badge (`✓`/`⚠`) that has no counterpart there. Aligning before the target exists
+  would be rework.
+  **Unblocked by:** the merge lane applied (its cell markup + the status label from 1f).
+  **Keep:** the slot-validity badge — it is PL-only information (is the requested slot still free?)
+  and the brief says to keep "the unique information and actions required for request approval".
+
+---
+
+## 2. Summary cards
+
+- [x] **2 — Rename the two decision cards.**
+  *Requirement:* "Rename/update the summary cards to: **Rejected Requests**, **Approved Requests**."
+  **Done:** labels `Approved` → **Approved Requests** and `Rejected` → **Rejected Requests** in the
+  `partials.ui-summary-bar` card array. **Ids unchanged** (`#summaryApproved`, `#summaryRejected`),
+  so the counts, the filters and every existing spec keep working. `Total Requests`,
+  `Pending Requests` and `Total Reviewed` are unchanged (the brief named only the two).
+  **Live (demo data, 2 pending requests):** `TOTAL REQUESTS 2` · `PENDING REQUESTS 2` ·
+  `APPROVED REQUESTS 0` · `REJECTED REQUESTS 0` · `TOTAL REVIEWED 0`.
+
+---
+
+## 3. Request detail modal
+
+- [ ] **3A — Replace `modal-timeline` with the `detailFacts` section.**
+  **Why pending:** the facts strip is defined by the merge lane's **M7** (cohorts, students,
+  conflict, staff `Name (ID)` with the email copy icon) and that lane edits the single
+  `DetailModal.factsHtml` line. Implementing it here first would mean writing the strip twice and
+  then deleting this copy.
+  **Unblocked by:** merge applied. **Then:** the `timeline:` argument is dropped from
+  `DetailModal.render()`, and the *Request Info* tab is absorbed into the strip (which is what makes
+  3D's three-tab order possible).
+  **Already correct today:** the email copy contract (`📋`, clickable address,
+  `data-tip="Click to copy email"`, shared toast) lives in the *Request Info* tab and matches the
+  reference — nothing to change there.
+
+- [ ] **3B — Modal status badge wording.**
+  **Why pending:** same dependency as 1f (M5 vocabulary). One change fixes both.
+
+- [ ] **3C — Schedule information as one row per block.**
+  *Requirement:* `Date: Thursday, 2nd November 2026` · `Time: 10:00 AM ~ 12:00 PM` ·
+  `Venue: B103 — Tutorial Room`, applied to both Original Class and Requested Replacement.
+  **Why pending:** the target block is the merged modal's schedule rendering; the venue form
+  `code — room name` needs `venueName` in the payload (the merge adds it, §1.5 — this page's
+  `toRow()` has no `venueName` key today).
+  **Note:** `U3-T9d` pins today's row shape (*Date / Day / Start Time / End Time*); part 2 rewrites
+  that spec with the new shape.
+
+- [ ] **3D — Tabs: `Original Class Schedule` · `Proposed Replacement Schedule` ·
+  `Request Status (<status>)` — status tab far right.**
+  **Why pending:** needs 3A (the *Request Info* tab must be gone first) and the merged page's tab
+  labels. Today's tabs are *Request Info · Original Class · Replacement Class · Review*.
+  **Unblocked by:** 3A + the merge lane's tab labels.
+
+- [x] **3E-1 — Add a Week row to both schedule tabs.**
+  **Done:** `Week 14` / `Week 7`, after *Day*, in both tabs. Derived by `weekOfIso()` from the date
+  and the semester start (semester start + 7×n, clamped to the semester's week count) — **no new
+  payload key**, so nothing to change on the server.
+
+- [x] **3E-2 — Display Duration in full words.**
+  **Done:** the *Original Class* tab already printed words (`durationWords()` → `1 hour`,
+  `2 hours`); the *Replacement Class* tab had **no** duration row at all, so `rangeHours()` now
+  derives it from the requested time range (`1 hour`, `2 hours`, `1.5 hours`). Both tabs now read the
+  same way.
+
+- [x] **Extra (user ruling 2026-11-03) — Cohort(s) in the modal.**
+  The modal prints the **compact codes joined with ` + `** (`RSD3(S1)G2 + RSD3(S1)G3`), while the
+  table stacks them one per line. Same codes, different layout, as the user specified.
+
+- [ ] **3E-3 — The schedule layout/styling matches the merged page.**
+  **Why pending:** same as 3C. The **content** is now right (Week + Duration); the **arrangement**
+  (icon-led single row, `B103 — Tutorial Room`) is part 2.
+
+- [x] **3F — Modal buttons.**
+  *Requirement:* remove **Close**; move **Reject** to the bottom-left; rename it to `× Reject`.
+  **Done:** the footer's Close button is gone. Verified live that all three remaining ways still
+  close it: the header `✕`, a click on the overlay, and **Esc** and **✕ Reject** now occupies the bottom-**left** slot with
+  **✓ Approve** bottom-right. The label was already `✕ Reject`. The JS line that toggled the Close
+  button's visibility was removed with it (no null dereference).
+  **Receipt:** live footer buttons = `✕ Reject`, `✓ Approve`; `#closeModalBtn` no longer exists on
+  this page.
+
+---
+
+## 4. Main UI reference
+
+- [ ] **4 — Treat My Replacements (table + modal) as the main design reference.**
+  **Why pending:** that page is being built by the merge lane (`/my-replacements`, M1–M16). Once it
+  exists, re-read this whole file against it and treat part 2's items as "diff my PL page against it".
+  **Borrowed already** where the pattern existed without the merge: compact cohort codes, the
+  schedule rows, the email copy contract, the `data-tip` singleton, the confirm modal for
+  destructive actions.
+
+---
+
+## 5. Decisions taken while shipping part 1 (do not re-litigate)
+
+1. **`Request ID` prints the real `#<id>`**, not the row counter. The mobile card already did.
+2. **Cohort formats:** table = stacked compact codes (one per line) · modal = the same codes joined
+   with ` + `. (The brief's example `RSD3(S1)G2 + RSD3(S1)G3` is the modal form; the user chose the
+   stack for the table so the column stays narrow.)
+3. **Urgency wording** is exactly `Level — N days left` / `Level — today` / `Overdue — N days past`.
+   The tooltip keeps the longer sentence, so the two are no longer identical strings.
+4. **The Students column is gone from the table only** — the count stays in the modal and in the
+   Approve/Reject context card.
+5. **Table width: keep.** The Cohort column + the longer urgency text made the table ~150 px wider.
+   Measured: at 1400 px it already scrolled before; at 1600 px it used to fit exactly and now needs
+   ~40 px of horizontal scroll. `.grid-scroll` scrolls, so every column (including Actions) stays
+   reachable. **User decision 2026-11-03: keep it as is** — do not squeeze the design.
+6. **No shared-file edits:** the mobile card's longer urgency label is passed as a per-row closure,
+   so `HtmlBuilder.requestCard` is untouched. `theme.css`, `ui-common.js`, the payload and the
+   database were not touched at all.
+
+---
+
+## 6. Part 2 backlog (in a sensible order, once the merge lane lands)
+
+1. **1f + 3B** — adopt the M5 status labels/tooltips everywhere on this page (deletes the local
+   `statusTooltip()` 3-key map, the local `statusDescMap`, and fixes Completed/Cancelled showing no
+   tooltip today).
+2. **3A** — swap the timeline for the facts strip (drops `timeline:` from `DetailModal.render`,
+   absorbs the *Request Info* tab).
+3. **3D** — rename/reorder the tabs to the three-tab shape.
+4. **3C + 3E-3** — the one-row schedule block for both tabs (needs the payload's `venueName`).
+5. **1h** — align the two table cells with the merged page's cell design, keeping the PL-only
+   slot-validity badge.
+6. **4** — a final eyeball pass against `/my-replacements` (and update this file's checkboxes).
+
+---
+
+## 7. How to verify part 1 (repeatable)
+
+```bash
+scripts/dev-serve.sh 8000                     # clear stale compiled views first
+npx playwright test tests/request-approval.spec.ts tests/status-tooltips-filter-chips.spec.ts
+npx playwright test tests/ui-regression.spec.ts tests/nav-identity.spec.ts
+```
+
+Expected: **9/9**, **9/9**, and **16/16**. Screenshots from the receipt run:
+`/tmp/opencode/pl-table-consistency.png`, `pl-modal-original.png`, `pl-modal-replacement.png`.
+
+Manual checklist (login `5425` / `Tarumt@2026` → `/request-approval-ui`):
+
+- [x] Headers read `Request ID · Requested Timestamp · Staff (Proposer) · Course Code & Name ·
+      Cohort · Original Class · Requested Replacement · Urgency · Status · Actions`
+- [x] A row shows `#26`, a stacked cohort cell, and `Normal — 52 days left`
+- [x] Cards read `Approved Requests` / `Rejected Requests` (`2 · 2 · 0 · 0 · 0`)
+- [x] Modal → *Original Class*: `Week 14` + `1 hour` + `Cohort(s) DSF2(S1)G1`;
+      *Replacement Class*: `Week 7` + `1 hour` + Slot Validity `✓ Slot available`
+- [x] Modal footer: `✕ Reject` bottom-left, `✓ Approve` bottom-right, **no** Close button;
+      header `✕` / overlay click / **Esc** all still close it (each verified)
+- [x] ~1400 px: the table scrolls sideways (1350 → 1590) and the Actions buttons are reachable
+      after scrolling (measured)
+
+---
+
+## 8. Guardrails for part 2
+
+- **Do not change business logic.** The approve/reject wire, `ApproveRequest` / `RejectRequest`,
+  permissions, the bulk-bar, the filters and the counts stay exactly as they are. This file is about
+  *how the page reads*, never *what it does*.
+- **Do not touch other pages.** `/my-replacements`, `/my-timetable-ui`, the venue page and the
+  student pages belong to other lanes.
+- **Do not edit the frozen mock** `resources/views/ui-design-templates/request-approval-UI-design-template.blade.php`.
+  It still shows the old footer and columns — that is intentional (it is the D10 fallback
+  reference, not the live page).
+- **No hardcoded examples.** Every string shown must come from the payload (`MockData.approvalRequests`
+  ← `RequestApproval::rowsPayload()` → `ReplacementRequestMapper::toRow()`).
+- **Watch the shared spec file.** `tests/status-tooltips-filter-chips.spec.ts` is also edited by
+  `replacement-merge-one-table` (its MRH blocks); this file edits its RA-2/RA-3 blocks. Whoever
+  lands second rebases.
+- **Keep the ids the specs and the merge lane rely on:** `#modalOverlay`, `#modalBody`, `#modalTitle`,
+  `.modal-tab`, `#rejectRequestBtn`, `#approveRequestBtn`, `#tableHead`, `#tableBody`,
+  `#summaryApproved`, `#summaryRejected`.
