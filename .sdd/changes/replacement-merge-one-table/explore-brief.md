@@ -38,7 +38,7 @@ fixes that without a merge. The merge is about going further: one table.
 ## 3. The decision (2026-11-03)
 
 **One table. One row per class occurrence. The row's status is its newest request.
-The full request trail lives in the detail modal.**
+The modal explains that status; the request's own trail stays on its own record.**
 
 ## 4. Mapping — every dimension
 
@@ -50,7 +50,7 @@ uses for its one-active-request guard.
 | Newest request | Status shown | Row group |
 |---|---|---|
 | none | **Need to Arrange** | needs action |
-| `pending` | **Pending — Waiting PL for Approval** | handled |
+| `pending` | **Pending — Waiting for Approval** | handled |
 | `approved` | **Approved** | handled |
 | `rejected` | **Rejected** | needs action |
 | `cancelled` | **Cancelled** | needs action |
@@ -84,23 +84,26 @@ while lane 2 is pending, so the code cannot break on first sight of one.
 | 2 | Original class | both pages | **one cell**: date · day (Week N) **with Days Left beside it on the same line** (wraps directly under the date when the column is tight) / start–end (duration) / **pin icon + room** / **users icon + cohorts** |
 | 3 | Conflict Reason | home (extended) | one badge, two shapes: **`Class Cancelled — <reason>`** in neutral grey for every non-holiday reason; **`Public Holiday — <holiday name>`** in error red. The holiday name is the calendar label from the `holidays` rows ("Deepavali Holiday (In Lieu)", "Christmas Day", …) |
 | 4 | Requested replacement | history | **mirrors the Original Class design, minus the cohorts line** (they are the class's own cohorts): date · day (Week N) / start–end (duration) / **pin icon + room**; `—` when there is no request |
-| 5 | Request Status | new | badge **with the actor**: `Approved by PL` · `Rejected by PL` · `Cancelled by YOU` · `Pending — Waiting PL for Approval` · `Completed — <n> days ago` · `Need to Arrange` (**outlined**, not filled — see below); **see Q3** on whether it is also a shortcut |
+| 5 | Request Status | new | badge labels (user decision, 2026-11-03): **`Approved`** · **`Rejected`** · **`Pending — Waiting for Approval`** — the actor was dropped because on this page the reader *is* the lecturer, so "by PL" said the same thing on every row. Unchanged: **`Cancelled by YOU`** (that actor is not obvious — the lecturer can also be cancelled *by* a PL in other flows), **`Completed — <n> days ago`**, and **`Need to Arrange`** (**outlined**, not filled — see below). **See Q3** on whether the badge is also a shortcut |
 | 6 | Action | both | **icon-only, three states**: **rotate = arrange** (need to arrange, rejected, cancelled) · **ban = cancel this pending request** (pending only, ghost box tinted `--color-error`) · **eye = view** (approved, completed). Full wording in the tooltip (`data-tip`) plus an `aria-label`. Never repeats the status |
 
 The column is called **Request Status**, not "Status": on this page "status" alone
-is ambiguous (class status vs request status), so the label names the thing. The
-badge also names **who decided** — the PL for approved/rejected, `YOU` for a
-cancellation (the lecturer cancels their own request). That is not decoration: it
-tells the lecturer who to chase. `Pending` has no decider yet, and `Completed` is
-the calendar's verdict, so neither carries an actor. `Completed` instead carries a
-**three-word time qualifier** — `Completed — 3 days ago`, `Completed — 1 day ago` —
-computed from the replacement date, so the badge answers "how long ago did this
-run?" without opening anything.
+is ambiguous (class status vs request status), so the label names the thing.
+
+The badge had to say **who decided** in earlier drafts (`Approved by PL`,
+`Rejected by PL`, `Cancelled by YOU`). That actor is now dropped from `Approved`
+and `Rejected` (user decision, 2026-11-03): the reader of this page *is* the
+lecturer, so "by PL" was the same two words on every row and earned nothing.
+`Cancelled by YOU` keeps its actor, because there the actor is not obvious — a
+cancellation can be the lecturer's own or forced by a PL elsewhere. `Completed`
+carries a **three-word time qualifier** instead — `Completed — 3 days ago`,
+`Completed — 1 day ago` — computed from the replacement date, so the badge answers
+"how long ago did this run?" without opening anything.
 
 `Need to Arrange` is an **outlined** pill (transparent background, light-primary
 text and border), not a filled one. It marks the *absence* of a request, so it must
 not read as another request status — and above all it must never be mistaken for
-`Rejected by PL`, which is the only other badge that used to be red. Filled =
+`Rejected`, which is the only other badge that used to be red. Filled =
 a request exists; outlined = none does yet.
 
 The Conflict Reason badge changes vocabulary on purpose (user decision, 2026-11-03):
@@ -136,30 +139,30 @@ Replacement Details
 BMIT2013 · Web-Based Integrated Systems (Lecture)      ← subtitle: code · name (type)
 COHORTS RSD2 (S1) G2, RSD2 (S1) G3 · STUDENTS 34
 CONFLICT       [Class Cancelled — Medical Leave]
-CURRENT STATUS [Pending — Waiting PL for Approval]
+CURRENT STATUS [Pending — Waiting for Approval]
 ─────────────────────────────────────────────────────────────────────────────
 [ Original Class Schedule ] [ Proposed Replacement Schedule ] [ Request Status ]
 ```
 
-The facts strip is **outside the tabs on purpose**: cohorts, students and the
-conflict reason never change when you switch tabs, so repeating them in each panel
-was noise. Subject code, name and class type already live in the subtitle, so they
-are not repeated. **Current Status** joined them last: it is the one thing a reader
+The facts strip is **outside the tabs on purpose**: cohorts, students, the conflict
+reason and the current status never change when you switch tabs, so repeating them
+in each panel was noise. Subject code, name and class type already live in the
+subtitle, so they are not repeated. **Current Status** joined them last: it is the one thing a reader
 wants before choosing a tab, because it says whether there is anything to do — and
 it lets the `Original Class Schedule` tab carry no status of its own. The two badge
 rows share a 102 px label column so their badges start on the same x rather than
 stepping in and out.
 
-This does cost one duplication: the same badge now appears in the strip, again as
-`CURRENT · Status`, and again per request in HISTORY — three times on one screen.
-Dropping the `Status` row from CURRENT (leaving `Status Description` + `Remark`,
-which the strip cannot say) is the clean fix if that reads as noise.
+This does cost one duplication: the badge appears in the strip **and** as the
+`Status` row of `Request Status`. With the history block gone there is no third copy,
+but two remain — dropping the `Status` row from the tab (leaving `Status Description`
++ `Remark`, which the strip cannot say) is the clean fix if it reads as noise.
 
 | Tab | Contents |
 |---|---|
 | **Original Class Schedule** | **Class ID** · week · day · date · time · duration · venue |
 | **Proposed Replacement Schedule** | **Request ID** · week · day · date · time · duration · venue. The tab is **hidden** when nothing is proposed (no request, or a request with no resolvable slot) — an empty tab that says "nothing yet" is a dead end |
-| **Request Status** | **CURRENT** subtitle · status badge · a **Status Description** row holding one plain sentence about that status · a nullable **Remark** row · a divider · **HISTORY** subtitle · **one child tab per request** (`Request #R102.2`, `Request #R102.1`), newest first and newest selected |
+| **Request Status** | status badge · a **Status Description** row holding one plain sentence about that status · a nullable **Remark** row. **Nothing else** — no timeline, no history block, no per-request panels |
 
 Both schedules print the same way (user decision, 2026-11-03):
 
@@ -171,71 +174,40 @@ Both schedules print the same way (user decision, 2026-11-03):
 | Duration | words, not `hr` | `1 hour` / `2 hours` |
 | Venue | code + short room name | `B010 — Computer Lab` |
 
-**Nested tabs, and when they are *not* used.** The history child tabs exist only
-when there are **two or more** requests — a tab bar with a single tab is noise, so
-one request renders its facts directly under `HISTORY`. This mirrors the app's own
-DetailModal law (a tab bar only appears for 2+ categories). The trade-off is real:
-it is a second tab bar inside a modal, so it is reserved for the one case where the
-alternative — several stacked request blocks — makes the panel long enough to scroll.
+**The history block was removed outright** (user decision, 2026-11-03). Earlier
+drafts carried a `HISTORY` section under `CURRENT`: one child tab per request
+(`Request #R102.3`, `#R102.2`, `#R102.1`), newest first, each holding that request's
+own rows (`Request ID`, `Status`, `Status Description`, `Proposed Replacement
+Schedule`, `Your Submitted Timestamp`, `Decision by PL Timestamp`, `PL who Decided`,
+`Remark`). All of it is gone — the child tabs, the per-request panel, the second tab
+bar, the `CURRENT`/`HISTORY` subtitles, the divider, and the copy-email button that
+sat beside the decider's address.
 
-Inside one request's panel:
+The reasoning: this page answers **"what is the state of this class"**, not "what
+happened to this request". A request's own record already holds the trail, the
+timestamps and who decided; repeating a growing list inside a table's modal made the
+panel scroll and re-told a page that exists. What remains is one answer per tab.
 
-| Row | Example |
-|---|---|
-| Request ID | `#R114.1` — only when there is no child tab bar to carry it |
-| Status | `Approved by PL` |
-| Status Description | one sentence for **this request's** status |
-| Proposed Replacement Schedule | `Thu, 06 Nov 2025 · 09:00 to 10:00 @ B010` — the venue joins with `@` |
-| Your Submitted Timestamp | `30 Oct 2025, 2:45 PM` |
-| Decision by PL Timestamp | `31 Oct 2025, 9:05 AM` — the timestamp only |
-| PL who Decided | `Pn. Surayaini (5425) surayaini@tarc.edu.my` + a copy button |
-| Remark | `Students already have a replacement class that morning.` — **nullable**; the row disappears when empty |
+The cost, stated plainly: **the modal no longer shows when a request was submitted,
+when it was decided, or which PL decided it.** For an approved or completed class the
+lecturer reads `Approved` / `Completed — 1 day ago` and nothing about who approved
+it. If that proves to be the wrong trade, the cheap repair is to add `Your Submitted
+Timestamp` and `Decision by PL Timestamp` back as rows of `Request Status` — not the
+whole trail.
 
-`CURRENT` carries the same two extra rows for the occurrence itself: **Status
-Description** (one sentence for the row's status) and **Remark** — which is the
-*newest* request's note, and is omitted when that note is empty. `Remark` is the
-free-text field; `Status Description` is generated, so the two never say the same
-thing twice.
-
-Known duplication: on a **single-request** row the CURRENT block and the HISTORY
-block mirror each other (same status, same description, same remark). That is the
-price of keeping CURRENT in every state; hiding it for single-request rows is the
-alternative if it bothers you on screen.
-
-The decider left the timestamp row, so the timestamp is just a time and the person
-is its own row (name, staff id, email, copy-to-clipboard — real demo identities).
-A request the lecturer cancelled instead reads `Decision Timestamp` +
-`Cancelled By: You`, because no PL decided it; a pending request shows
-`Waiting for a decision` and no decider row. The detail label column widened to
-200 px so the two longest labels — `Decision by PL Timestamp` and `Proposed
-Replacement Schedule` — each stay on one line. The row keeps the word *Schedule*
-because it names the same thing as the `Proposed Replacement Schedule` tab; a bare
-`Proposed Replacement` read like an object rather than a timetable.
-
-**Request ID appears exactly once.** With two or more requests the **child tab label**
-carries it (`Request #R102.3`); with a single request there is no tab bar, so the
-panel starts with a `Request ID` row (`#R114.1`). Printing it in both places would
-be duplication, and printing it in neither is how it went missing once already.
-
-Two subtitles carry the panel — `CURRENT` and `HISTORY` — and both are **14 px
-(+2 over the 12 px detail labels), 700, uppercase, `on-surface` near-white**, so
-they read as structure rather than as another data row.
+`Remark` is the occurrence's note — the newest request's, and the row disappears when
+it is empty (nullable column, `remarks`). `Status Description` is generated from the
+status, so the two never say the same thing twice:
+*"The proposed replacement is waiting for the PL to approve or reject it."* /
+*"You cancelled this request, so the class is free to be arranged again."*
 
 The old `What to do` row is gone: "Arrange a replacement for this class" repeated
-what the badge already said. In its place is a **`Status Description`** row — a labelled
-peer of Status, inside CURRENT — carrying one sentence that depends on the status:
-*"You cancelled this request, so the class is free to be arranged again."* /
-*"The proposed replacement is waiting for the PL to approve or reject it."* The
-divider then separates CURRENT from HISTORY.
+what the badge already said.
 
-`Decided` became **`Decision Timestamp`** because bare "Decided" could be read as a
-verdict ("is it decided?") rather than a time; it now mirrors `Submitted Timestamp`.
-
-The separate **Requests (N)** tab is gone: its trail *is* the request's history, so
-it sits inside Request Status where the status it explains is shown. Tabs are named
-after their content — `Original Class Schedule` / `Proposed Replacement Schedule`
-beat "Class"/"Schedule", which were ambiguous on a merged page. Panels carry no
-inner heading; the tab is the heading.
+The separate **Requests (N)** tab is gone. Tabs are named after their content —
+`Original Class Schedule` / `Proposed Replacement Schedule` beat "Class"/"Schedule",
+which were ambiguous on a merged page. Panels carry no inner heading; the tab is the
+heading.
 
 IDs are fabricated in the prototype (`#102` class, `#R102` request) but the shape is
 the real one: a class session id and a request id, never the display row number.
@@ -249,7 +221,7 @@ it is parked as broken (`task-02-replacement-history-timeline.md`).
 |---|---|
 | no request, rejected, cancelled | **⟳ Arrange Replacement** (primary) |
 | pending | **Cancel this request** (danger) |
-| approved, completed | nothing — the Requests tab is the whole story |
+| approved, completed | nothing — `Request Status` and `Proposed Replacement Schedule` are the whole story |
 
 **Filters:** search (code/name) · week navigator (original-class week) · status
 select (All · Need to Arrange · Pending · Approved · Rejected · Cancelled ·
@@ -276,8 +248,9 @@ follow the filters, not the page. The first two are the classes side (what is st
 owed), the last three are the requests side (what happened to them).
 
 **Bulk cancel is removed** (user decision, 2026-11-03): no checkbox column and no
-bulk bar. Cancelling happens **one request at a time from the detail modal**, where
-the trail shows exactly which request is being cancelled. This also removes the
+bulk bar. Cancelling happens **one request at a time**, from the row's ban icon or the
+modal footer, and a pending row has exactly one request to cancel, so what is being
+cancelled is never ambiguous. This also removes the
 ambiguity of "what does ticking mean when a class has three requests".
 
 **Page name and nav label:** open (Q1). One nav item replaces two.
@@ -319,23 +292,24 @@ ambiguous.
 
 1. **Page name / nav label** — "Replacement"? "My Replacements"?
 2. **Which four summary cards** — the proposed set, or fewer?
-3. **Is the status also a shortcut** to that request's trail (opens the modal at the
-   trail), or is Status purely informational and only Action is clickable?
+3. **Is the status also a shortcut** to the modal, or is Status purely informational
+   and only Action is clickable?
 4. **Filter style** — the existing status select, or status chips?
 5. **Post-submit redirect** — the merged page with the row highlighted (recommended)
    vs today's jump to My Requests.
 6. **The guide block** — both pages have a "How to use this page" panel; keeping one
    is fine, keeping two is noise. Which items survive?
 7. **Mobile card content** — which four facts fit the card, and does tapping a
-   handled card open the modal or jump to the trail?
+   handled card open the modal or the request's own record?
 
 ## 7. The prototype
 
 `ui-prototype/replacement-merged-preview.html` (repo parent, beside
 `notif-manage-preview.html`) — a standalone static mock that links the live
 `theme.css`, with 15 fabricated rows (4 of them Completed, with class and
-replacement both in the past so the state is honest), a rejected → pending trail,
-the tabbed `DetailModal` shell (Status · Class · Schedule · Requests), the
+replacement both in the past so the state is honest), a three-request trail in the
+data that the modal no longer renders, the tabbed `DetailModal` shell (Original
+Class Schedule · Proposed Replacement Schedule · Request Status), the
 six-column layout (including the reused Conflict Reason badges and the icon-only
 actions), the Active Filters chip bar, the full pagination bar, and live
 search/status/completed filtering. There is **no checkbox column and no bulk bar**
