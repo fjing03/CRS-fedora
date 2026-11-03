@@ -72,8 +72,11 @@ while lane 2 is pending, so the code cannot break on first sight of one.
 | 3 | Conflict Reason | home | **the home page's reason badges, unchanged** (`.badge-annual-leave`, `.badge-medical-leave`, `.badge-holiday`, `.badge-official-event`), placed immediately right of Original Class |
 | 4 | Days left | home | `—` on handled rows (badges lane D7); sort uses the real date |
 | 5 | Requested replacement | history | **mirrors the Original Class design, minus the cohorts line** (they are the class's own cohorts): date · day (Week N) / start–end (duration) / **pin icon + room**; `—` when there is no request |
-| 6 | Status | new | badge; **see Q3** on whether it is also a shortcut |
+| 6 | Request Status | new | badge; **see Q3** on whether it is also a shortcut |
 | 7 | Action | both | **icon-only**: rotate = arrange, eye = view request. Full wording in the tooltip (`data-tip`) plus an `aria-label`. Never repeats the status; Cancel stays in the modal |
+
+The column is called **Request Status**, not "Status": on this page "status" alone
+is ambiguous (class status vs request status), so the label names the thing.
 
 The reason badges are **page-local CSS today** (`replacement-home.blade.php:27–42`),
 not tokens in `theme.css`. The merge must share them (promote to `theme.css` or a
