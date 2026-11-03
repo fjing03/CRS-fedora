@@ -307,3 +307,50 @@ Append-only. One entry per review round per batch.
 
 **Verdict: FAIL** — one blocker (R6-1); all eight folded above.
 
+## proposal Round 7 — 2026-11-03
+
+<!-- Confirmation pass granted by the user. Scope: the eight round-6 findings only. Every fold was
+     re-checked against the code, not against round 6's own text. -->
+
+### 🔴 Fixed
+- **R6-1 — folded, and correctly.** §6b names `replacementStrings()` → `stringsFromSpan()` as the
+  one source, junction (min→max) first and the anchor "only as the fallback". Verified end to end:
+  `span()` reads the junction ⋈ `time_slots` (`:206-238`), `displaySlot()` models it (`:241-258`),
+  `replacementStrings()` delegates (`:265-285`), `stringsFromSpan()` formats (`:303-313`). The
+  junction is DELETEd by `CancelPendingRequest.php:85-88` **and** `RejectRequest.php:132-134`, so
+  "anchor only" would have printed `09:00 – 09:30` for a 2-hour arrangement. The occurrence-vs-
+  replacement date conflation is gone (§6b rows for the occurrence date and the row status).
+
+### 🟡 Addressed
+- **R6-2** the batch entry point exists (`spansForRequests()` `:327-359`); its gap became R7-1.
+- **R6-3** law 4 and item 10c now say the same thing. **R6-4** the `Status Description` row exists.
+- **R6-5** `NOT NULL` is right (`create_replacement_requests_table.php:26`). **R6-6** the 16
+  occurrences reconcile (3 + 6 + 2 + 1 + 2 + 2). **R6-7** the downgrade is named. **R6-8**
+  `#cancelRequestBtn` is in the keep-list and the second venue has its own row.
+
+### 🔴 Outstanding
+- **R7-1 — law 3's batch path silently drops the anchor fallback, so two of the six states render
+  `—` for a request that had a slot.** `spansForRequests()` reads `replacement_request_slots` only
+  (`:333-345`), so it cannot return a span for a **cancelled** request (junction deleted,
+  `CancelPendingRequest:85-88`), a **rejected** one (`RejectRequest:132-134`) or a legacy
+  anchor-only row. `stringsFromSpan(null, …)` returns all-nulls (`:299-301`) → "Requested
+  Replacement" prints `—`, and M7 hides the Proposed Replacement Schedule tab for them. That
+  contradicts §6b's own "anchor is the fallback" clause and invents absence — against the user's
+  bar. Calling `replacementStrings()` per row instead would reinstate the N+1 law 3 forbids.
+
+### 🟡 Non-blocking
+- **R7-2** `?notif-hl=` has two producers (bell `ui-common.js:2135-2143` = jump; View Full Request
+  = open the modal); one param cannot distinguish them.
+- **R7-3** §6b held two venue rules for the modal (code+name in one row, `room_name` label in
+  another). **R7-4** §7 still said "eight files", counting the two frozen consumers 7b freezes.
+- **R7-5** `statusDesc()` covers five keys and returns `''` otherwise (`:782`), so
+  `Need to Arrange` and a label-keyed `Completed — …` would print an empty row — and the no-request
+  state of the Request Status tab was unspecified.
+- **R7-6** the nulls parenthetical was backwards (pgsql: NULLs last on ASC, **first** on DESC).
+- **R7-7** 4b kept `#cancelRequestBtn`'s id but not the law that gates it to `pending` only
+  (`my-request-history.blade.php:876`).
+
+**Verdict: FAIL** — R6-1 closed; one new blocker (R7-1) introduced by the R6-2 fold; all eight
+folded above (law 3's fallback step, the `&view=request` marker, one venue rule, the commit set,
+the six-state description map + the no-request tab, the nulls parenthetical, the Cancel gate).
+
