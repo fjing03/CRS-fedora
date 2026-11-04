@@ -284,7 +284,7 @@
 
         <!-- Cancel Confirmation Modal (moved verbatim from My Requests — M10) -->
         <div class="modal-overlay" id="cancelConfirmOverlay" style="display:none">
-            <div class="modal" style="max-width:552px">
+            <div class="modal" style="max-width:635px">
                 <div class="modal-header">
                     <h3 class="modal-title">Confirm Cancellation</h3>
                     <button class="modal-close" onclick="closeCancelConfirm()" data-tip="Close">✕</button>
