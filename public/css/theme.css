@@ -2766,6 +2766,15 @@ html.dark .semester-bar select:not(.week-select) {
     0%, 100% { box-shadow: 0 0 0 0 transparent; }
     45% { box-shadow: 0 0 0 4px color-mix(in srgb, var(--color-success) 63%, transparent); }
 }
+/* ── the TODAY button's flash is BLUE (user, 2026-11-04) ──
+   Same timing and the same 4px / 63% ring as the green family — only the colour
+   changes, so the flash still means "look here"; it now matches the button it
+   came from. Scoped to the today column (jumpToToday flashes td.today-cell), so
+   the Notifications / Earliest-bookable / Go-to-My-Timetable jumps stay green. */
+@keyframes bookable-pulse-primary {
+    0%, 100% { box-shadow: 0 0 0 0 transparent; }
+    45% { box-shadow: 0 0 0 4px color-mix(in srgb, var(--color-primary) 63%, transparent); }
+}
 tr.bookable-flash > td { animation: bookable-pulse 0.5s ease-in-out 3; }
 /* notif-click-highlight (lane-owned arm): the my-timetable s-target flash —
    the default grid's event cells animate directly (the same pulse) */
@@ -2775,6 +2784,9 @@ tr.bookable-flash > td { animation: bookable-pulse 0.5s ease-in-out 3; }
    bookable-pulse (the exact earliestBtn look) */
 td.bookable-flash { animation: bookable-pulse 0.5s ease-in-out 3; }
 .cell-content.bookable-flash { animation: bookable-pulse 0.5s ease-in-out 3; }
+/* wins over `td.bookable-flash` by specificity — the today column only */
+td.today-cell.bookable-flash { animation: bookable-pulse-primary 0.5s ease-in-out 3; }
+.cell-content.today-cell.bookable-flash { animation: bookable-pulse-primary 0.5s ease-in-out 3; }
 
 /* ── Bookable badge ("Bookings open" on the earliest bookable day) ──
    Same geometry as the Today/OFF/Holiday badge family; success green =

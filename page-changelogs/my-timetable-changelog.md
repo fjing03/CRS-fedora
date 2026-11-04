@@ -1,3 +1,18 @@
+## 2026-11-04 — the TODAY button's flash is blue, like the button
+
+User: the Today jump's highlight should be the button's own blue. It painted the shared green
+(`--color-success`) like every other jump.
+
+A second keyframe, `bookable-pulse-primary`, uses `--color-primary` with **exactly** the same shape as the
+green one — 0.50 s × 3, a 4 px ring at 63 % — so only the colour changes, never the rhythm or the strength.
+It is scoped to the today column (`td.today-cell.bookable-flash`, which outranks `td.bookable-flash`), so
+Notifications, Earliest bookable and `Go to My Timetable` stay green.
+
+Measured after a real Today jump from another week: animation `bookable-pulse-primary 0.5s x3`, **3**
+pulses, peak ring alpha 0.629, 22 today cells flashing, ring resolved to `color(srgb 0 0.301961 0.596078 /
+0.63)` — i.e. `#004D98` at 63 %. The jump flash still reports `bookable-pulse` (green), so the two families
+stay distinct. No page errors.
+
 ## 2026-11-04 — the pulse: 3 flashes, faster, 40% brighter
 
 User: the highlight should flash **three** times (seven was the first ask, then "3 times is enough"),
