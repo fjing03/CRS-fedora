@@ -380,25 +380,29 @@ Source: `FR&NFR copy.md` (this folder — a verbatim copy of `../../../final/FR&
 | `/dashboard` | Authenticated dashboard | `auth` |
 | `/settings/profile`, `/settings/appearance`, `/settings/security` | Profile settings | auth (+verified) |
 
-### Real-data Livewire pages (read-only until Wave 3b)
+### Livewire pages (`routes/web.php` — one branch per route: `mock_fallback` off **and** the
+component class exists → the component, otherwise the untouched frozen `ui-design-templates/*` copy)
 | Route | Component | Role |
 |-------|-----------|------|
 | `/my-timetable-ui` | `MyTimetable` | Lecturer/PL |
 | `/cohort-timetable` | `CohortTimetable` | Lecturer/PL (students pinned to own cohort) — renamed 2026-10-13 from `/cohort-timetable-ui` (old URL 302-redirects) |
 | `/student-my-timetable-ui` | `StudentMyTimetable` | Student |
 | `/venue-timetable-ui` | `VenueTimetable` | Lecturer/PL |
+| `/my-replacements` | `ReplacementHome` | Lecturer/PL — **the canonical My Replacements page** (merge lane `replacement-merge-one-table`, 2026-11-04): one table, one row per class occurrence |
+| `/replacement-home-ui`, `/my-request-history-ui` | `ReplacementHome` — the **same** component | Lecturer/PL — extra addresses, **never redirects**, so `?notif-hl=` / `?blocked=` survive stored notification links and the post-submit landing |
+| `/replacement-arrangement` | `ReplacementArrangement` | Lecturer/PL — the booking grid (pick a slot, submit a request) |
+| `/request-approval-ui` | `RequestApproval` | PL |
+| `/replacement-history-ui` | `ReplacementHistory` | Student — upcoming replacements + past |
 
-### Mock-fallback pages (frozen UI templates served with `MockData`; real backends = Wave 3b)
-| Route | Template |
-|-------|----------|
-| `/replacement-home-ui` | replacement-home |
-| `/replacement-arrangement` | replacement-arrangement |
-| `/my-request-history-ui` | my-request-history |
-| `/upcoming-replacements-ui` | upcoming-replacements |
-| `/request-approval-ui` | request-approval (PL) |
+There is **no** `/upcoming-replacements-ui` route any more: the student's upcoming list lives inside
+`ReplacementHistory`. `/api/v1/*` stays **commented out** in `routes/api.php` (orphaned since 2026-10),
+so the API is not a live surface — every page is fed by its own Livewire payload.
+One post-merge quirk kept on purpose: `/my-request-history-ui` still carries the nav key
+`replacement-history`, which no lecturer nav item uses, so nothing is highlighted on that alias.
 
-### Nav bar (5 items, `partials/ui-nav-bar.blade.php`)
-Dashboard → My Timetable → Cohort Timetables → Replacement Arrangement → Replacement History
+### Nav bar (role-aware, `partials/ui-nav-bar.blade.php`)
+- **Lecturer / PL:** My Timetable · Cohort Timetables · Venue Timetable · **My Replacements** (`/my-replacements`) · Request Approval (PL only, pending-request badge)
+- **Student:** My Timetable · Replacement History
 
 ### Page changelogs
 Each page's development history is logged in `page-changelogs/*.md` — **create or update the relevant changelog when you change a page** (`<page>-changelog.md`; append a dated entry, newest first, and create the file when the page has none).

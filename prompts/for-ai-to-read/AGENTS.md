@@ -46,7 +46,10 @@ The agent must also read the closest existing template under `resources/views/ui
 and the matching `page-changelogs/*.md` to learn house style before designing.
 
 ## Standing rules (all tasks)
-- **Current phase — read-only honesty:** timetable pages render real DB data; no booking/replacement writes until Wave 3b is explicitly green-lit. Cards show honest zeros — never fabricate pending/replacement counts.
+- **Current phase — the write path is live:** timetable pages render real DB data, and submit
+  (OCC-enforced), approve/reject, class cancel and pending-request cancel are all shipped; only the
+  `/api/v1` surface is still parked (commented out in `routes/api.php`). Cards show the real counts
+  that come from the payload — never fabricate a pending/replacement number.
 - Reuse Flux/Livewire/Tailwind + `theme.css` + `ui-common.js`; no new dependencies.
 - Conventional commits: `ui:`, `feat:`, `fix:`, `refactor:`, `oop:`, `style:`, `docs:`.
 - Working branch: `fedora-backend` (push target `origin` = `fjing03/CRS-fedora.git` only; `upstream` is PULL-ONLY — see CodingMAIN.md §10.6). Never commit secrets. Never push unless the user explicitly says so.

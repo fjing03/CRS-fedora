@@ -56,8 +56,8 @@ time of writing):**
   files.
 - **A live bug was fixed early** (`9939d08`, user chose "now" over "with the merge"): the entry
   guard toast printed the page name twice ("… in My Request History. My Request History"). The body
-  is now one short sentence with the state word in caps; the **link still says My Request History
-  and still points at the old URL**, because renaming belongs to the merge's commit 3.
+  is now one short sentence with the state word in caps, and the merge's commit 3 (`ab65f9a`) then
+  renamed the link to **My Replacements** → `/my-replacements` (`ui-common.js:4457`, `:4460`).
 - Line references in `design.md` were **re-measured** (`335f454`) after another session moved the
   mapper's timezone handling into `App\Support\LocalTime`: everything from `effectiveStatus()`
   onward moved up **2** lines. `review-log.md` keeps its own numbers as the snapshot each round saw.
