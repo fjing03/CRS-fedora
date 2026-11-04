@@ -28,7 +28,7 @@
 | Gates | `composer run lint:check` · `vendor/bin/phpstan analyse --memory-limit=1G` · full phpunit · `node --check` for JS. **Never** `composer run types:check` (crashes at 128M). |
 | Suite | Last full run **295/295** (2026-11-02). Nothing has been re-run since, and the 2026-11-04 toast copy edit (`9939d08`) changes what one browser spec expects — **run it before quoting a number**. |
 | SDD lanes | **39** lane dirs, **93** archived, **38** with a proposal (2026-11-04; re-count with `ls`). Archive only on the user's word. |
-| **The merge lane** | `replacement-merge-one-table` — **all four batches frozen** (proposal round 8, design round 2, specs round 2, tasks round 5). `sdd.yaml` says `ready-for-apply`. **Apply is the next step and it is PI's**; nothing is implemented. |
+| **The merge lane** | `replacement-merge-one-table` — **APPLIED 2026-11-04** (PI session): commits `e70c1ea` (payload/mapper), `6856577` (view), `ab65f9a` (routes + retired page), `d3f6f5b` + `c4d0ad3` (specs), plus this docs commit. The merged page is **My Replacements** at `/my-replacements`, with `/replacement-home-ui` and `/my-request-history-ui` as alias route entries. `sdd.yaml` → `applied`. |
 | Language | **B1-level English only** — no other language, ever. |
 | Approval rule | Investigate first. **No code edit without the user's explicit per-task approval.** |
 

@@ -1,3 +1,47 @@
+## 2026-11-04 — **My Replacements**: one table, one row per class, three addresses
+
+SDD lane `.sdd/changes/replacement-merge-one-table/` (M1–M17), commit `6856577` + `ab65f9a`.
+
+**What the page is now.** The lecturer's two pages (`Replacement Home` and `My Request History`)
+became **one**: `/my-replacements` lists **classes**, not requests — one row per
+`(class_session_id, week_number)` — and the row's state is its **newest** request. A class with no
+request still appears, as `Need to Arrange`. The old URLs **`/replacement-home-ui` and
+`/my-request-history-ui` remain route entries for the same page** (never redirects), so stored
+notification links, `?blocked=`, `?notif-hl=` and the post-submit redirect all keep working;
+`my-request-history-ui` keeps `'nav' => 'replacement-history'` (harmless).
+
+**Seven columns:** Course Code & Name · Cohort (one per line, not sortable) · Original Class (date,
+week, days-left, time, duration, venue) · Conflict Reason · Requested Replacement · Request Status ·
+Action. The Action cell is **one icon**: rotate = arrange, ban = cancel a pending request, eye = open
+the details. **The badge is no longer a link** — the row is the door.
+
+**Six labels, one server map** (`ReplacementRequestMapper::statusLabel/statusShort/statusSentence/
+statusTip`): `Need to Arrange` (outlined) · `Pending — Waiting for Approval` · `Approved` ·
+`Rejected` · `Cancelled by YOU` · `Completed — <n> days ago`. `completed` is still derived, never
+stored; the count uses the server's `today()` so the badge and the status cannot disagree.
+
+**The pop-up** is `#quickViewModal`: a fixed facts strip (cohorts, students, conflict) above
+`Original Class Schedule` · `Proposed Replacement Schedule` (absent when nothing is proposed) ·
+`Request Status (<short>)` with one sentence, the Rejection Reason (rejected only) and the Remark
+(when present). No history block, no timeline.
+
+**Cancelling** is one request at a time from the row's ban icon or the pop-up footer, through the
+moved **Confirm Cancellation** overlay, always via `CancelPendingRequest`; the row is then **re-read
+from the server** — after the release it shows the anchor range (`14:00 – 14:30`), never an assumed
+value.
+
+**Five cards** follow the filters: Classes to Arrange · Class Hours to Replace · Pending Requests ·
+Approved Requests · Rejected Requests. `Showing N of M classes` hides below 1500 px (M15); the
+pagination bar still reports it. The nav's two lecturer items became one — **My Replacements**.
+
+**Retired:** `MyRequestHistory` (class + view), the bulk-cancel bar, the `Quick Cancel` /
+`Requested At` columns, `#modalOverlay`, `requestHref()` and its readers, the ten reason badge
+classes (now two: `.badge-holiday` / `.badge-reason`), the urgency/venue/students columns.
+
+**Verified:** payload 11/11 (106 assertions), span 13/13, histories/home/route-gate 47/47,
+`ReplacementArrangementTest` 20/20, badges receipts 7/7 on the disposable testing DB,
+request-completed-status 3/3, zero page errors at 1440 / 1600 / 390 px.
+
 ## 2026-11-03 — a finished replacement reads **Completed** (derived, never stored)
 
 SDD lane `.sdd/changes/request-completed-status/` — the user's nine locked decisions (C1–C9).

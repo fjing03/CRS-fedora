@@ -867,3 +867,37 @@ three-word side effect of the caps, not the receipt's structure.
 user's decision; both windows named, no frozen count moved, and no revert path left without either a
 prohibition or a green-keeping receipt. **Batch 4 (tasks) is FROZEN at this entry.**
 
+
+---
+
+## Apply round — 2026-11-04 (PI session)
+
+**Verdict: APPLIED with two named residuals.** Every task T1–T22 was implemented against the frozen
+artifacts; no batch was rewritten, and no M-decision was re-opened.
+
+| Commit | Tasks | The receipt that proves it |
+|---|---|---|
+| `e70c1ea` | T1–T6 | payload **10 tests / 97 assertions** (twice); `SpanReservationTest` 13/13 (76) incl. the six-key span assertion; `request-completed-status` 3/3 on `:8030` proving the `effectiveStatus()` third parameter is inert |
+| `6856577` | T7–T13 | 7 headers · 0 badge anchors · 5 icon cells · pending row 3 tabs · cancel → `Cancelled by YOU` + `14:00 to 14:30` · 1440 px count hidden / 1600 px shown · 390 px cards · arrangement page `0 .page-desc` · hermetic **9 → 7** cells |
+| `ab65f9a` | T14–T17 | spaced-copy receipt **exactly 3**; old URLs only the **11 frozen** occurrences; `MyRequestHistory` grep **0**; payload **11/11 (106)** incl. the three-URL case; **47/47** across five files |
+| `d3f6f5b` | T18 + part of T19/T20 | `ReplacementArrangementTest` **20/20** — the A″ red window closed by editing the expectation, not the redirect |
+| `c4d0ad3` | the rest of T19 | badges receipts **7/7** with a planted approved fixture (10 with setup), `request-completed-status` 3/3, MRH tooltip block re-pointed to the payload tips |
+| docs commit | T21–T22 | both changelogs name the canonical URL and the alias contract; handover §0 carries the lane state |
+
+**Gates (T23), measured:** `pint` passed · **PHPStan level 7 → 0 errors** · `node --check` ok ·
+full suite **336 passed / 1849 assertions** (baseline 325/1729 — the payload file's 11 tests).
+Browser gate: `request-completed-status` 3/3, `replacement-home-status-badges` 7/7,
+`notifications-island` untouched.
+
+**Residuals, stated so they are not mistaken for done:**
+
+1. `tests/ui-regression.spec.ts:151,166,322-334` still pins `#modalOverlay` and the three retired
+   card ids. The file carries another lane's uncommitted `receipt-target-guard` work, and the user's
+   standing rule forbids staging it — the user chose **option A**: the edits ride that lane's commit.
+   Same for the two URL assertions in `tests/submission-conflict-refresh.spec.ts` (correct in the
+   working tree, uncommitted).
+2. On a **bare freshly-seeded** testing DB, `replacement-home-status-badges` receipt 6 is annotated
+   and skipped (no handled row exists); it was proven green with the planted fixture. A skip is not
+   a receipt, so this is recorded rather than quoted as a pass.
+3. The one user-facing string this lane invented (design fixed the *method*, not the text): the
+   no-request tip `No request has been made for this class yet — it still needs arranging.`

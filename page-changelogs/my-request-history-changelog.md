@@ -1,3 +1,27 @@
+## 2026-11-04 — the page RETIRED: its behaviour lives on in **My Replacements**
+
+SDD lane `.sdd/changes/replacement-merge-one-table/` (M1, M2, M7, M12), commit `ab65f9a`.
+
+`/my-request-history-ui` no longer draws a request-history table. It is now an **alias entry** for
+the merged page at **`/my-replacements`** — the same component, the same rows, the same modal — so
+every stored notification link and bookmark keeps working (no redirect, so the query string
+survives).
+
+**Where its features went:**
+
+| My Request History had | Now |
+|---|---|
+| one row per request | one row per **class occurrence**; the newest request is the row's state |
+| the status badge as the door (`#modalOverlay`) | the **row** is the door; `#quickViewModal` with three tabs |
+| Requested At / Reviewed At columns and the timeline | removed with the page (the request's record keeps them in the database) |
+| bulk cancel + the selection bar | **removed** (M12) — one request at a time via the confirm overlay |
+| `?id=` deep link | `?notif-hl=r<id>` (+ `&view=request` to open the pop-up) |
+| the saved `mrh-filters` key | **reused** by the merged page (status + search + week + exclusion) |
+
+The class (`app/Livewire/MyRequestHistory.php`) and its view
+(`resources/views/livewire/my-request-history.blade.php`) are **deleted**; `grep -rn
+"MyRequestHistory" app routes resources` returns nothing.
+
 ## 2026-11-03 — Completed rows: the timeline tells the class date, and the page can reveal one for you
 
 SDD lane `.sdd/changes/request-completed-status/` (C5, C6).
