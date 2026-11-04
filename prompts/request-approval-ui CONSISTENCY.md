@@ -1,5 +1,5 @@
 # request-approval-ui CONSISTENCY UPDATE
-**Page:** `/request-approval-ui` · **File status:** PART 1 SHIPPED · PART 2 essentially DONE (1f, 3B, 3C, 3A, 3D, 1h, 3E-3 shipped; only the §4 eyeball pass remains)
+**Page:** `/request-approval-ui` · **File status:** PART 1 + PART 2 SHIPPED (1f, 3B, 3C, 3A, 3D, 1h, 3E-3, §4)
 **Last updated:** 2026-11-04 — the merge lane is **applied and archived** (`07274c1`), so every blocker in the table below is lifted; **batch A** shipped the status vocabulary + the room names (1f, 3B, 3C)
 
 > **Checkbox key**
@@ -34,7 +34,7 @@
 | 3E-3 | Schedule layout matches the merged page | ✅ **done 2026-11-04** | one `Time` row per tab, merged order |
 | — | Cohort(s) in the modal: compact codes joined with ` + ` (user ruling) | ✅ done | — |
 | 3F | No Close button, Reject bottom-left | ✅ done | — |
-| 4 | Treat My Replacements as the design reference | ⛔ pending | the merge lane's commit 2 renders the page on the **old URLs**; its **commit 3** makes `/my-replacements` canonical |
+| 4 | Treat My Replacements as the design reference | ✅ **done 2026-11-04** | side-by-side re-read; see the §4 note |
 
 ### Correction to an earlier note in this file (2026-11-04)
 
@@ -292,12 +292,18 @@ PI's commits run from that frozen lane, not that session's.
 
 ## 4. Main UI reference
 
-- [ ] **4 — Treat My Replacements (table + modal) as the main design reference.**
-  **Why pending:** that page is being built by the merge lane (`/my-replacements`, M1–M16). Once it
-  exists, re-read this whole file against it and treat part 2's items as "diff my PL page against it".
-  **Borrowed already** where the pattern existed without the merge: compact cohort codes, the
-  schedule rows, the email copy contract, the `data-tip` singleton, the confirm modal for
-  destructive actions.
+- [x] **4 — Treat My Replacements (table + modal) as the main design reference.**
+  **Done (2026-11-04):** re-read side by side against the merged page now that it is live, and the
+  part-2 items above were done as that diff. What matches today: the status vocabulary and its
+  tooltips, the compact cohort codes, the icon-led class/replacement cells with duration in words,
+  the pop-up shell (facts strip + `Original Class Schedule` · `Proposed Replacement Schedule` ·
+  `Request Status (<short>)`, 616 px), the one-`Time`-row schedule, the `code — name` venue line, the
+  email copy contract, the `data-tip` singleton and the confirm modal for destructive actions.
+  **Deliberately different (PL-only, and correct to keep):** ten columns instead of seven (Request
+  ID, Requested Timestamp, Urgency and Actions are the PL's job), the slot-validity badge in the
+  Requested Replacement cell, `Approved/Rejected Requests` summary cards, and the Approve/Reject
+  footer. Nothing on this page invents a status, a label or a sentence — they all come from the
+  shared mapper now.
 
 ---
 

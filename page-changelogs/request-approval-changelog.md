@@ -15,6 +15,13 @@ instead of a third copy on this page.
 `Time` row (`9:00 AM ~ 11:00 AM`), so each tab is Week · Day · Date · Time · Duration · Venue (plus
 Slot Validity on the replacement tab) — the merged pop-up's order.
 
+**§4 — the reference pass.** With the merged page live, this file was re-read side by side against
+it; batches A–C above *are* that diff. Matching today: status vocabulary + tooltips, compact cohort
+codes, the icon-led cells with duration in words, the pop-up shell (facts strip + three tabs, 616 px),
+the one-`Time`-row schedule, `code — name` venues, the email copy contract, the `data-tip` singleton
+and the destructive-action confirm. Kept different on purpose (PL-only): ten columns, the
+slot-validity badge, the `Approved/Rejected Requests` cards and the Approve/Reject footer.
+
 **Receipts:** live row — Original `Thu, 24 Dec 2026 (Week 14)` / `12:00 PM to 1:00 PM (1 hour)` /
 `B010 — Computer Lab B010`; Requested `Fri, 13 Nov 2026 (Week 8)` / `1:00 PM to 2:00 PM (1 hour)` /
 `✓ B010 — Computer Lab B010` · `request-approval.spec.ts` 6/6 (U3-T9d now asserts the single `Time`
