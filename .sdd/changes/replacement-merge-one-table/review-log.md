@@ -891,11 +891,23 @@ Browser gate: `request-completed-status` 3/3, `replacement-home-status-badges` 7
 
 **Residuals, stated so they are not mistaken for done:**
 
-1. `tests/ui-regression.spec.ts:151,166,322-334` still pins `#modalOverlay` and the three retired
-   card ids. The file carries another lane's uncommitted `receipt-target-guard` work, and the user's
-   standing rule forbids staging it — the user chose **option A**: the edits ride that lane's commit.
-   Same for the two URL assertions in `tests/submission-conflict-refresh.spec.ts` (correct in the
-   working tree, uncommitted).
+1. **CORRECTED 2026-11-04.** The sentence above originally claimed the `ui-regression.spec.ts` edits
+   were "in the working tree". They were not — the file's entire uncommitted diff was the other
+   lane's guard shell, so nothing of this lane's was staged *or* written. The user caught it. Fixed
+   in **`3d61cef`**: `#modalOverlay` → `#quickViewModal` for `/my-request-history-ui`, the expected
+   label is now per-page (`Class ID` on the merged page, `Subject Code` on the four untouched ones),
+   and TC-7.2's three retired card ids became a data-independent law (rows = payload minus hidden
+   Completed; cards numeric; the four status cards can't tally more rows than exist). Measured on
+   `:8030` with a planted fixture, swept afterwards: **TC-3.x 6/6 + TC-7.2 pass**. The two URL
+   assertions in `tests/submission-conflict-refresh.spec.ts` were committed by the user in
+   **`956b666`**, split cleanly out of the guard shell.
+
+   **Still open, found while verifying and NOT fixed** (its own lane): `playwright.config.ts` sets no
+   default `storageState`, so `ui-regression.spec.ts` has been browsing as a **guest** — its modal
+   and table cases annotated instead of asserting. Wiring
+   `test.use({ storageState: '.auth/staff-5425.json' })` exposes two more: `/cohort-timetable` and
+   `/venue-timetable-ui` do not open the selectors the table lists (`#classModal` for both, not
+   `#eventModal`). Also: the guard-shell hunks in that file are still uncommitted.
 2. On a **bare freshly-seeded** testing DB, `replacement-home-status-badges` receipt 6 is annotated
    and skipped (no handled row exists); it was proven green with the planted fixture. A skip is not
    a receipt, so this is recorded rather than quoted as a pass.
