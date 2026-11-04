@@ -256,7 +256,7 @@
             }
         </style>
         <div class="modal-overlay" id="quickViewModal" onclick="if(event.target===this)hideQuickView()">
-            <div class="modal" style="max-width:560px">
+            <div class="modal" style="max-width:616px">
                 <div class="modal-header">
                     <span class="modal-title" id="qvTitle">Replacement Details</span>
                     <button class="modal-close" onclick="hideQuickView()" data-tip="Close">✕</button>

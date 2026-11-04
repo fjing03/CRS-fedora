@@ -1,3 +1,11 @@
+## 2026-11-04 (follow-up) — the details pop-up is 10% wider
+
+`#quickViewModal`'s shell went from `max-width: 560px` to **`616px`** (user ruling: +10%), so the
+facts strip and the schedule rows stop reflowing on the longest content. Verified live: 616 px at
+1440, and the phone layout is untouched (342 px — full width minus the overlay's 20 px padding — at
+390 px). Nothing inside the pop-up changed, and the shared `.modal` base keeps 420 px, so the
+keyboard-shortcuts and cancel-confirmation pop-ups are exactly as they were.
+
 ## 2026-11-04 (follow-up) — the table grid: every column has a share, the code column stops hoarding
 
 `.col-code` was the only column without a definite width (`width: auto`), so the auto table layout
