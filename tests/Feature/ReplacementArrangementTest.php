@@ -640,7 +640,7 @@ final class ReplacementArrangementTest extends TestCase
         Livewire::actingAs($this->lecturerA)
             ->withQueryParams(['session' => (int) $session->id, 'week' => 6])
             ->test(ReplacementArrangement::class)
-            ->assertRedirect('/replacement-home-ui?blocked=request-approved');
+            ->assertRedirect('/my-replacements?blocked=request-approved');
     }
 
     public function test_entry_guard_lets_a_rejected_or_cancelled_occurrence_through(): void
@@ -720,7 +720,7 @@ final class ReplacementArrangementTest extends TestCase
         Livewire::actingAs($this->lecturerA)
             ->test(ReplacementArrangement::class)
             ->call('revalidateEntry', null, null, (int) $session->id, 9)
-            ->assertReturned('/replacement-home-ui?blocked=request-pending');
+            ->assertReturned('/my-replacements?blocked=request-pending');
     }
 
     public function test_revalidate_entry_is_a_silent_no_op_for_an_unproposed_occurrence(): void

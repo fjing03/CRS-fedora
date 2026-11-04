@@ -1,16 +1,17 @@
 import { test, expect } from '@playwright/test';
 import { checkPage } from './helpers/page-check.js';
 
-test.describe('My Request History smoke tests', () => {
-  test('loads and has request history', async ({ page }) => {
-    await checkPage(page, '/my-request-history-ui', ['#timetable'], 'My Request History');
+test.describe('My Replacements smoke tests', () => {
+  test('loads and has the merged table', async ({ page }) => {
+    await checkPage(page, '/my-request-history-ui', ['#timetable'], 'My Replacements');
   });
 
-  test('displays at least 3 request rows', async ({ page }) => {
+  test('displays the occurrence rows', async ({ page }) => {
     await page.goto('/my-request-history-ui', { waitUntil: 'networkidle' });
     const count = await page.evaluate(() => {
-      return window.MockData?.requests?.length ?? 0;
+      return window.MockData?.conflictedClasses?.length ?? 0;
     });
-    expect(count).toBeGreaterThanOrEqual(3);
+    expect(count).toBeGreaterThanOrEqual(1);
+    await expect(page.locator('#tableBody tr').first()).toBeVisible({ timeout: 20000 });
   });
 });

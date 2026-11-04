@@ -62,31 +62,31 @@ test('cancel own pending request leaves it Cancelled and releases the slot', asy
   await page.waitForTimeout(600);
   await expect(page.locator('#confirmModal')).toContainText('Confirm Your Selection', { timeout: 5000 });
   await page.locator('#modalConfirmBtn').click(); // 'Yes, Submit Request'
-  await page.waitForURL(/my-request-history-ui/, { timeout: 60_000 }); // the design aftermath
+  await page.waitForURL(/\/my-replacements/, { timeout: 60_000 }); // the design aftermath
 
-  // ── the pending request row is first (the page opens in table view) ──
-  const row = page.locator('#tableBody tr').first();
+  // ── the pending row (needs-action rows group FIRST, so it is not row 1) ──
+  const row = page.locator('#tableBody tr:has(.col-status .badge:has-text("Pending"))').first();
   await expect(row).toBeVisible({ timeout: 20_000 });
-  await expect(row).toContainText('Pending');
 
-  // ── cancel through the frozen in-app confirm (never a browser dialog) ──
-  await row.click();
-  await expect(page.locator('#cancelRequestBtn')).toBeVisible({ timeout: 5_000 });
-  await page.locator('#cancelRequestBtn').click();
+  // ── cancel from the ROW's ban icon (M6), through the frozen confirm ──
+  await row.locator('.col-action .btn-icon--danger').click();
   await expect(page.locator('#cancelConfirmOverlay')).toBeVisible({ timeout: 5_000 });
   await expect(page.locator('#cancelConfirmBody')).toContainText('cannot be undone');
 
   const dialogs: string[] = [];
   page.on('dialog', async (d) => { dialogs.push(d.type()); await d.dismiss().catch(() => {}); });
   await page.locator('#confirmCancelAction').click(); // 'Yes, Cancel Request'
-  await expect(page.locator('#tableBody tr')).toHaveCount(0, { timeout: 20_000 });
   expect(dialogs).toEqual([]); // the confirmation is in-app only
 
-  // ── the record persists as Cancelled (FR 2.10 honoured, not a UI-only remove) ──
-  await page.goto('/my-request-history-ui', { waitUntil: 'domcontentloaded' });
-  const cancelled = page.locator('#tableBody tr').first();
+  // ── M1: the CLASS stays on the list; only its status changes ──
+  const cancelled = page.locator('#tableBody tr:has(.col-status .badge:has-text("Cancelled by YOU"))').first();
   await expect(cancelled).toBeVisible({ timeout: 20_000 });
-  await expect(cancelled).toContainText('Cancelled');
+
+  // ── and the record persists as cancelled on a fresh load ──
+  await page.goto('/my-replacements', { waitUntil: 'domcontentloaded' });
+  await expect(
+    page.locator('#tableBody tr:has(.col-status .badge:has-text("Cancelled by YOU"))').first()
+  ).toBeVisible({ timeout: 20_000 });
 
   // ── the slot is free again (the release) ──
   await arriveHopPick(page);

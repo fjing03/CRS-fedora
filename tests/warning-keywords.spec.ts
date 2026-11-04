@@ -4,15 +4,15 @@ import { test, expect } from '@playwright/test';
 // "Cancel Request" button was a silent no-op (overlay opened without
 // binding pendingCancelId). This test fails by timeout on pre-fix code.
 
-const RH = (process.env.CRS_BASE ?? 'http://localhost:8000') + '/my-request-history-ui';
+const RH = (process.env.CRS_BASE ?? 'http://localhost:8000') + '/my-replacements';
 
 test('detail-modal Cancel Request actually cancels the viewed request', async ({ page }) => {
   await page.goto(RH, { waitUntil: 'networkidle' });
-  // Open a PENDING request's detail modal via its status badge (cancel button
-  // is only rendered for pending requests)
-  const badge = page.locator('.badge:has-text("Pending")').first();
+  // Open a PENDING row's pop-up through its status badge (a plain span — the
+  // ROW is the door). The cancel button only shows while the row is pending.
+  const badge = page.locator('#tableBody .col-status .badge:has-text("Pending")').first();
   await badge.click();
-  const cancelBtn = page.locator('#cancelRequestBtn');
+  const cancelBtn = page.locator('#quickViewModal #cancelRequestBtn');
   await expect(cancelBtn).toBeVisible({ timeout: 5000 });
   await cancelBtn.click();
   // Confirm overlay bound to the viewed request (pre-fix: Yes did nothing)

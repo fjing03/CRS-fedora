@@ -450,27 +450,27 @@ test.describe('Page: Student My Timetable (/student-my-timetable-ui)', () => {
   });
 });
 
-test.describe('Page: My Request History (/my-request-history-ui)', () => {
+test.describe('Page: My Replacements (/my-replacements)', () => {
   test('loads with search and table', async ({ page }) => {
     const errors = [];
     page.on('pageerror', e => errors.push(e.message));
-    await page.goto('/my-request-history-ui', { waitUntil: 'networkidle' });
+    await page.goto('/my-replacements', { waitUntil: 'networkidle' });
     await expect(page.locator('#searchInput')).toBeAttached();
     await expect(page.locator('#resultCount')).toBeAttached();
     expect(errors).toHaveLength(0);
   });
 
-  test('MockData has requests', async ({ page }) => {
-    await page.goto('/my-request-history-ui', { waitUntil: 'networkidle' });
+  test('MockData has occurrence rows', async ({ page }) => {
+    await page.goto('/my-replacements', { waitUntil: 'networkidle' });
     const hasData = await page.evaluate(() => {
-      return window.MockData?.requests?.length >= 1;
+      return window.MockData?.conflictedClasses?.length >= 1;
     });
     expect(hasData).toBeTruthy();
   });
 
-  test('request rows render in card view', async ({ page }) => {
-    await page.goto('/my-request-history-ui', { waitUntil: 'networkidle' });
-    const cardCount = await page.locator('#cardView .request-card, #cardView .card, #cardView > div > div').count();
+  test('occurrence cards render in the phone card view', async ({ page }) => {
+    await page.goto('/my-replacements', { waitUntil: 'networkidle' });
+    const cardCount = await page.locator('#cardView .replacement-card').count();
     expect(cardCount).toBeGreaterThanOrEqual(1);
   });
 });
@@ -590,9 +590,9 @@ test.describe('Interaction: Cohort Timetable faculty/cohort picker', () => {
   });
 });
 
-test.describe('Interaction: My Request History search', () => {
+test.describe('Interaction: My Replacements search', () => {
   test('typing in search filters results', async ({ page }) => {
-    await page.goto('/my-request-history-ui', { waitUntil: 'networkidle' });
+    await page.goto('/my-replacements', { waitUntil: 'networkidle' });
     const searchInput = page.locator('#searchInput');
     await searchInput.waitFor({ state: 'visible' });
     const initialCount = await page.locator('#resultCount').textContent();
@@ -642,7 +642,8 @@ test.describe('Navigation: all public routes load', () => {
     { path: '/my-timetable-ui', title: /My Timetable/ },
     { path: '/cohort-timetable', title: /Cohort Timetable/ },
     { path: '/student-my-timetable-ui', title: /My Timetable/ },
-    { path: '/my-request-history-ui', title: /Request History/ },
+    { path: '/my-replacements', title: /My Replacements/ },
+    { path: '/my-request-history-ui', title: /My Replacements/ },
     { path: '/replacement-home-ui', title: /Replacement/ },
     { path: '/replacement-arrangement', title: /Replacement/ },
   ];
@@ -689,13 +690,21 @@ test.describe('Data integrity: API → page data flow', () => {
     expect(cohort).toBeTruthy();
   });
 
-  test('Request History: requests have title-case statuses', async ({ page }) => {
-    await page.goto('/my-request-history-ui', { waitUntil: 'networkidle' });
-    const statuses = await page.evaluate(() => {
-      return (window.MockData?.requests || []).map(r => r.status);
+  test('My Replacements: every status label is one of the six M5 strings', async ({ page }) => {
+    await page.goto('/my-replacements', { waitUntil: 'networkidle' });
+    const labels = await page.evaluate(() => {
+      return (window.MockData?.conflictedClasses || []).map(r => r.requestStatusLabel);
     });
-    const valid = ['Pending', 'Approved', 'Rejected', 'Cancelled', 'Completed'];
-    statuses.forEach(s => expect(valid).toContain(s));
+    /* S: the array must be non-empty FIRST — a forEach over [] proves nothing */
+    expect(labels.length).toBeGreaterThan(0);
+    const valid = [
+      'Need to Arrange', 'Pending — Waiting for Approval', 'Approved',
+      'Rejected', 'Cancelled by YOU',
+    ];
+    labels.forEach(l => {
+      const ok = valid.includes(l) || /^Completed( — \d+ days? ago)?$/.test(l);
+      expect(ok, 'label: ' + l).toBeTruthy();
+    });
   });
 
   test('Arrangement: venues match venueSlots keys', async ({ page }) => {
@@ -721,6 +730,7 @@ test.describe('No bad HTTP responses on page load', () => {
     '/my-timetable-ui',
     '/cohort-timetable',
     '/student-my-timetable-ui',
+    '/my-replacements',
     '/my-request-history-ui',
     '/replacement-home-ui',
     '/replacement-arrangement',

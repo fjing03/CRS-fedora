@@ -131,7 +131,7 @@ test('layer A: a fresh entry for a pending occurrence redirects out with the rea
   // …and it says WHY, with the management link (house arrival toast)
   const toast = page.locator('#toastBar .toast-message');
   await expect(toast).toContainText(TOAST_TEXT, { timeout: 10_000 });
-  await expect(page.locator('#toastBar .toast-link')).toHaveAttribute('href', '/my-request-history-ui');
+  await expect(page.locator('#toastBar .toast-link')).toHaveAttribute('href', '/my-replacements');
 });
 
 test('layer A: an APPROVED occurrence blocks the same way (from the default landing)', async () => {
@@ -141,7 +141,7 @@ test('layer A: an APPROVED occurrence blocks the same way (from the default land
   await page.goto(`${BASE}/replacement-arrangement?session=${SESSION_ID}&week=${WEEK}&_=${Date.now()}`);
   await page.waitForURL(/blocked=request-approved/, { timeout: 20_000 });
 
-  expect(page.url()).toContain('/replacement-home-ui?blocked=request-approved');
+  expect(page.url()).toContain('/my-replacements?blocked=request-approved');
   await expect(page.locator('#toastBar .toast-message')).toContainText('already has an APPROVED replacement', { timeout: 10_000 });
 });
 
@@ -228,7 +228,7 @@ test('the user\u2019s repro, end to end: arrange \u2192 submit \u2192 Back is bl
   await expect(page.locator('#tableBody .event-selection')).toHaveCount(1);
   await page.click('button:has-text("Submit Request")');
   await page.locator('#confirmModal button', { hasText: 'Yes, Submit Request' }).first().click();
-  await page.waitForURL(/my-request-history-ui/, { timeout: 30_000 });
+  await page.waitForURL(/\/my-replacements/, { timeout: 30_000 });
 
   // 2. BACK — the occurrence is now handled, so the page must NOT come back
   //    with the Conflict Schedule panel. Whether the browser serves a bfcache

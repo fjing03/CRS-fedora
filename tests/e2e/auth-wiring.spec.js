@@ -291,7 +291,7 @@ test.describe('Smoke: All pages load without 401/403', () => {
     { path: '/my-timetable-ui', title: 'My Timetable' },
     { path: '/cohort-timetable', title: 'Cohort Timetable' },
     { path: '/replacement-home-ui', title: 'Replacement' },
-    { path: '/my-request-history-ui', title: 'My Request History' },
+    { path: '/my-request-history-ui', title: 'My Replacements' },
     { path: '/student-my-timetable-ui', title: 'My Timetable' },
     { path: '/login/student', title: 'Student Login' },
     { path: '/login/staff', title: 'Staff Login' },
