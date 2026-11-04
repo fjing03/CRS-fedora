@@ -765,6 +765,19 @@ the #earliestBtn jump (the bookable-pulse family):
 - theme.css gains the two CELL arms (the same bookable-pulse keyframes —
   no new colors). The summary-card's flash runs after the ~500 ms settle
   (the earliest flow's jump-then-pulse shape).
+- **Re-verified 2026-11-04 with Playwright** (a MutationObserver watching
+  `class` additions, so the 1.15 s self-clean can't hide it): the TODAY button
+  flashes **22 of 22** `td.today-cell` on `/my-timetable-ui`,
+  `/venue-timetable-ui` and `/cohort-timetable` (element:
+  `TD.hour-cell.today-cell.bookable-flash`), and the reference `#earliestBtn`
+  jump still flashes its row. **Honest gap:** the summary-card half was NOT
+  re-driven — the `.sel-summary-card` renders only when a block is saved, and
+  saving first needs the "Select a slot to replace" gate, which did not open in
+  the automated session (the grid never entered its bookable state, 0 bookable
+  cells even on week 11). That half therefore rests on its original live
+  receipt above plus the code path (`navigateToSavedBlock` → the `block.dayIdx`
+  fix → `flashTargetCell` → `td[data-day][data-hour] .cell-content`), not on a
+  fresh screenshot.
 
 ## 2026-10-30 (lane `filter-clear-all-off`) — Clear all empties the filter bar FOR REAL
 

@@ -551,8 +551,12 @@ trigger).
   the s-arm end-to-end (the click → the week switch → the cell flash); the
   legacy/inactive keep-as-it receipts; suite 277/277; islands 7/7;
   pint/phpstan green.
-- The summary-card + #todayBtn flashes live in SEPARATE lane
-  `notif-jump-flash-family` (pending the user's apply word).
+- The summary-card + #todayBtn flashes live in the SEPARATE lane
+  `notif-jump-flash-family` — **applied 2026-10-30** (`4a77a1f`); its receipts
+  and the record of what it changed are in
+  `page-changelogs/my-request-history-changelog.md` (§ the same date, lane
+  `notif-jump-flash-family`), not here. (This line said "pending the user's
+  apply word" until 2026-11-04, which was stale.)
 ## [2026-11-01] Submitted rows compose at render time + the actionable-unread badge — SDD change `notif-new-request-ux` (T1–T9)
 
 The bell's `submitted` rows (a PL's inbox of new requests) stop being one-line
