@@ -139,7 +139,8 @@ class NavNotifications extends Component
             $unreadInView = $unreadTotal;
 
             $rows = $this->resolveRequests(
-                (clone $base)->orderByDesc('created_at')->get()
+                (clone $base)->orderByDesc('created_at')->get(),
+                $userId
             );
 
             /* D5 (notif-new-request-ux): the badge = the BATCH-DERIVED
@@ -270,7 +271,7 @@ class NavNotifications extends Component
             ->orderByDesc('created_at')
             ->get();
 
-        return $this->resolveRequests($rows)
+        return $this->resolveRequests($rows, $userId)
             ->filter(fn (Notification $n) => $this->isHideableRow($n))
             ->values();
     }
@@ -460,7 +461,7 @@ class NavNotifications extends Component
      * @param  Collection<int, Notification>  $rows
      * @return Collection<int, Notification>
      */
-    private function resolveRequests(Collection $rows)
+    private function resolveRequests(Collection $rows, int $userId)
     {
         $requestIds = $rows->filter(fn (Notification $n) => $n->request_id !== null)
             ->map(fn (Notification $n) => (int) $n->request_id)
@@ -477,7 +478,12 @@ class NavNotifications extends Component
                 $n->setAttribute('notif_status', $this->classOnlyNotifStatus($n));
             });
 
-            return $this->attachStaffLines($rows, collect());
+            /* The visibility guard runs on BOTH exits: a mailbox holding only
+               class rows is exactly where a foreign cancellation could hide. */
+            $sessions = $this->classSessionsFor($rows);
+            $rows = $this->dropForeignCancellations($rows, $sessions, $userId);
+
+            return $this->attachStaffLines($rows, collect(), $sessions);
         }
 
         $requests = ReplacementRequest::query()
@@ -601,7 +607,10 @@ class NavNotifications extends Component
             );
         }
 
-        return $this->attachStaffLines($rows, $requests);
+        $sessions = $this->classSessionsFor($rows);
+        $rows = $this->dropForeignCancellations($rows, $sessions, $userId);
+
+        return $this->attachStaffLines($rows, $requests, $sessions);
     }
 
     /**
@@ -612,27 +621,79 @@ class NavNotifications extends Component
      *
      * Two batched sources inside the island's ONE-QUERY law: the requests map
      * (proposer + approver, already eager-loaded) and ONE ClassSession batch for
-     * the class-level rows (a cancellation). No per-row find().
+     * the class-level rows (a cancellation). No per-row find(). The session map
+     * is now built ONCE by the caller (`classSessionsFor`) and shared with the
+     * visibility guard, so the guard costs no extra query.
      *
      * @param  Collection<int, Notification>  $rows
      * @param  Collection<int, ReplacementRequest>  $requests
+     * @param  Collection<int, ClassSession>  $sessions
      * @return Collection<int, Notification>
      */
-    private function attachStaffLines(Collection $rows, Collection $requests)
+    private function attachStaffLines(Collection $rows, Collection $requests, Collection $sessions)
     {
-        $classIds = $rows->filter(fn (Notification $n) => $n->request_id === null && $n->class_session_id !== null)
-            ->pluck('class_session_id')->unique()->values();
-
-        $sessions = $classIds->isEmpty()
-            ? collect()
-            : ClassSession::query()->with(['lecturer.lecturer'])
-                ->whereIn('id', $classIds->all())->get()->keyBy('id');
-
         foreach ($rows as $row) {
             $row->setAttribute('staff_line', $this->staffLine($row, $requests, $sessions));
         }
 
         return $rows;
+    }
+
+    /**
+     * The ONE ClassSession batch (the one-query law): every class-level row's
+     * session, keyed by id. Shared by the R5 staff line AND the visibility
+     * guard, so the guard costs no extra query.
+     *
+     * @param  Collection<int, Notification>  $rows
+     * @return Collection<int, ClassSession>
+     */
+    private function classSessionsFor(Collection $rows): Collection
+    {
+        $classIds = $rows->filter(fn (Notification $n) => $n->request_id === null && $n->class_session_id !== null)
+            ->pluck('class_session_id')->unique()->values();
+
+        return $classIds->isEmpty()
+            ? collect()
+            : ClassSession::query()->with(['lecturer.lecturer'])
+                ->whereIn('id', $classIds->all())->get()->keyBy('id');
+    }
+
+    /**
+     * 2026-11-04 (the user's ruling): a cancellation row belongs to the class's
+     * OWNER and to its cohort students — nobody else. The department-PL copies
+     * written BEFORE R4 (`notif-recipient-rulings`, 2026-11-03, which reversed
+     * that fan-out) are still sitting in some mailboxes: rows are NEVER deleted,
+     * so they are dropped at read time instead.
+     *
+     * This is the RULE, not a tidy-up: any future writer that re-introduces a
+     * foreign copy is dropped by the same predicate, and so is the row of a
+     * viewer who does not own the class.
+     *
+     * The test reads the row's SHAPE, never its title (copy may be reworded):
+     * the only `update` row carrying a `class_session_id` and NO `request_id`
+     * is a cancellation — R1's proposer confirmation carries a `request_id`,
+     * and the approval rows are `approved` type. A `student` row is always the
+     * student's own. Fail-open on a missing session: that is data drift, not a
+     * reason to hide someone's row.
+     *
+     * @param  Collection<int, Notification>  $rows
+     * @param  Collection<int, ClassSession>  $sessions
+     * @return Collection<int, Notification>
+     */
+    private function dropForeignCancellations(Collection $rows, Collection $sessions, int $userId): Collection
+    {
+        return $rows->reject(function (Notification $n) use ($sessions, $userId): bool {
+            if ($n->role_view === 'student'
+                || $n->request_id !== null
+                || $n->class_session_id === null
+                || $n->type !== 'update') {
+                return false;
+            }
+
+            $session = $sessions->get((int) $n->class_session_id);
+
+            return $session !== null && (int) $session->lecturer_id !== $userId;
+        })->values();
     }
 
     /**

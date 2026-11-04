@@ -169,6 +169,73 @@ final class NotificationsBridgeTest extends TestCase
         $this->assertFalse($cancelRows->contains(fn (Notification $r) => $r->user_id === 2), 'user 2 (the other DCIT PL) is absent');
     }
 
+    /**
+     * 2026-11-04 (the user's live report): staff 5425 — a PL — held a
+     * "Scheduled class cancelled" row for staff 5770's class. The RULE is R4
+     * (owner + cohort students only, 2026-11-03); that row was pre-R4 legacy
+     * data, and rows are never deleted, so it has to be dropped at READ time.
+     *
+     * This pins the guard: a viewer who does not own the class never sees the
+     * row (inbox, unread view or badge), while the owner's own row and the
+     * cohort students' rows survive untouched.
+     */
+    public function test_a_pl_never_sees_another_lecturers_cancellation(): void
+    {
+        $viewer = $this->coordinator();                 // user 1 — the PL from the report
+        $foreignSession = ClassSession::query()
+            ->where('lecturer_id', '!=', (int) $viewer->id)
+            ->firstOrFail();                            // a class that is NOT theirs
+        $ownSession = ClassSession::query()
+            ->where('lecturer_id', (int) $viewer->id)
+            ->firstOrFail();
+
+        // the legacy shape exactly: a department-PL copy (role_view 'pl')
+        Notification::create([
+            'user_id' => (int) $viewer->id, 'role_view' => 'pl', 'type' => 'update',
+            'title' => 'Scheduled class cancelled',
+            'body' => 'LEGACYFOREIGN (L) · W7 · Tue · B009 · cancelled',
+            'link' => '/my-timetable-ui', 'request_id' => null,
+            'class_session_id' => (int) $foreignSession->id, 'week' => 7,
+        ]);
+        // the viewer's OWN cancellation — this one must stay
+        Notification::create([
+            'user_id' => (int) $viewer->id, 'role_view' => 'lecturer', 'type' => 'update',
+            'title' => 'Scheduled class cancelled',
+            'body' => 'OWNCLASS (L) · W7 · Tue · B010 · cancelled',
+            'link' => '/my-replacements', 'request_id' => null,
+            'class_session_id' => (int) $ownSession->id, 'week' => 7,
+        ]);
+
+        $this->actingAs($viewer);
+        $panel = Livewire::test(NavNotifications::class, ['island' => 'panel', 'pageKey' => 'myTimetable', 'unreadOnly' => false])
+            ->assertDontSee('LEGACYFOREIGN', false)
+            ->assertSee('OWNCLASS', false)
+            ->assertViewHas('unreadTotal', 1);   // the foreign UNREAD row never counts
+
+        // the unread view (the badge's own predicate) hides nothing extra
+        Livewire::test(NavNotifications::class, ['island' => 'panel', 'pageKey' => 'myTimetable'])
+            ->assertDontSee('LEGACYFOREIGN', false)
+            ->assertSee('OWNCLASS', false);
+
+        // and the student half is untouched: a cohort student's own row renders
+        $student = $foreignSession->cohorts
+            ->flatMap(fn ($c) => $c->students()->with('user')->get())
+            ->first()?->user;
+        $this->assertNotNull($student);
+
+        Notification::create([
+            'user_id' => (int) $student->id, 'role_view' => 'student', 'type' => 'update',
+            'title' => 'Scheduled class cancelled',
+            'body' => 'STUDENTCOPY (L) · W7 · Tue · B009 · cancelled',
+            'link' => '/student-my-timetable-ui', 'request_id' => null,
+            'class_session_id' => (int) $foreignSession->id, 'week' => 7,
+        ]);
+
+        $this->actingAs($student);
+        Livewire::test(NavNotifications::class, ['island' => 'panel', 'pageKey' => 'studentTimetable', 'unreadOnly' => false])
+            ->assertSee('STUDENTCOPY', false);
+    }
+
     public function test_lifecycle_renders_disabled_with_the_user_tooltip(): void
     {
         $request = $this->seedRequest();

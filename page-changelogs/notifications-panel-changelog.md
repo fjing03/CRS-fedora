@@ -46,6 +46,38 @@ is not on the page → no flash, no error, params stripped. Panel rows: approved
 `r26`; cancelled → `/my-replacements` + `o24`/`o23` + week 7; submitted → `/request-approval-ui`;
 rejected → `/my-request-history-ui`. No page errors.
 
+## 2026-11-04 — a PL never sees another lecturer's cancellation: the R4 read-time guard
+
+**Report (user, live):** staff 5425 — a Programme Leader — held a "Scheduled class cancelled" row
+for **staff 5770's** class.
+
+**Verdict: not the current rule.** R4 (`notif-recipient-rulings`, 2026-11-03) reversed the
+department-PL fan-out; a cancellation goes to the class's **owner** and its **cohort students** only,
+and the bridge test pins zero `pl`-role rows. The row was **pre-R4 legacy data** (written 2026-11-02,
+the day before the reversal), and rows are never deleted — so it survived the rule change. Exactly two
+such rows exist, both read, both in `class_replacement_fresh` only: **148** (5425, session 24, owned
+by 5770) and **116** (5516, session 23, owned by 5425).
+
+**The guard.** At read time a class-cancellation row is dropped unless the viewer owns its session or
+is a student recipient. Details that matter:
+
+- The predicate reads the row's **shape, never its title** (copy can be reworded): the only `update`
+  row carrying a `class_session_id` and **no** `request_id` is a cancellation — R1's proposer
+  confirmation carries a request, and the approval rows are `approved` type.
+- **No extra query:** the ONE `ClassSession` batch moved up out of `attachStaffLines` and is now
+  shared with the R5 staff line (`classSessionsFor()`), so the guard is free.
+- It runs on **both** `resolveRequests()` exits — a cancellation-only mailbox is exactly where a
+  foreign row would hide — and **before** the badge/hidden/hideable computations, so a foreign unread
+  row can never inflate the badge either.
+- Fail-open on a missing session (data drift is not a reason to hide someone's row).
+- Untouched: the owner's own row, every student row, and every other notification type.
+
+**Receipts.** `NotificationsBridgeTest` **25/25**, 187 assertions — the new pin creates a
+legacy-shaped `pl` row for another lecturer's session plus the viewer's own row, then asserts the
+foreign body is absent (and `unreadTotal` stays 1), the own body renders, and a cohort student's row
+still renders. pint passed · PHPStan 0. Live `:8000` **as 5425, "Unread only" off**: 7 rows, own
+cancellations `101`/`117` (`BMSE3153 (P)`) still listed, the foreign `BMIT2013 (L)` row gone.
+
 ## 2026-11-04 — reading is not a decision: a read row stays alive, and "Active only" means undecided
 
 Two rulings from the user's review of the notification rules, applied together because they are the
