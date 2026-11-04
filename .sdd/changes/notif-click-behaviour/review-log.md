@@ -58,3 +58,30 @@ synthetic id 0 without throwing, so it falls through to navigation rather than s
 
 **Not measured:** the completed → hide write (no completed record in the demo DB; hiding is a
 user-gated demo write) and the full test suite (the testing DB was in use elsewhere).
+
+## Completed receipt — 2026-11-04 (user option A: one gated demo write, restored)
+
+The demo holds no completed request, so the **status** the branch reads was stood in for; everything
+else is the real path.
+
+**Status resolution (read-only).** `ReplacementRequestMapper::effectiveStatus()` against the demo's
+approved request:
+
+| replacement date | verdict |
+|---|---|
+| its own date (2026-11-13) | `approved` |
+| a past date (2026-10-01) | **`completed`** |
+| a future date (2026-12-01) | `approved` |
+
+**The click (one write, through the feature).** Panel rows `7 → 6`; `notifications.id = 117` left the
+list; **the URL did not change** (the handler's `preventDefault` fired, so no navigation); no JS errors;
+`hidden_at = 2026-11-04 09:53:20` in the database.
+
+**The restore (the UI's own undo).** Hidden shelf showed the row; `Unhide` put it back — shelf `3 → 2`,
+`hidden_at = NULL`, hidden count back to its pre-test **2**.
+
+**Snapshot first:** `backups/class_replacement_fresh-pre-notif-hide-2026-11-04.dump`, `pg_restore --list`
+verified. The write pair is logged in `docs/demo-db-data-changes.md` (never staged). Net DB change: **zero**.
+
+**Still not run:** the full `php artisan test` suite (the testing DB was in use by another session). FR 7
+of the spec and the neighbouring notification suites remain unexecuted for this lane.

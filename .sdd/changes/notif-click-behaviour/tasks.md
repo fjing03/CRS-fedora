@@ -15,5 +15,7 @@ Status: **applied 2026-11-04** (receipts in `review-log.md`).
 - [x] **T11** Gates: pint passed · PHPStan level 7 → 0 errors · `node --check` ok.
 - [ ] **T12** Full `php artisan test` — **NOT RUN** in this session: `class_replacement_testing` is empty and
       another session was using it; the full-suite reseed would collide. Run when idle.
-- [ ] **T13** End-to-end **completed → hide** receipt — **NOT RUN**: no completed request exists in the demo
-      DB, and hiding is a demo write (user-gated). The branch is verified structurally only (see review-log).
+- [x] **T13** End-to-end **completed → hide** receipt — **DONE 2026-11-04** (option A, user-approved): the row was
+      hidden through the feature itself and restored through the Hidden shelf. See review-log "Completed receipt".
+- [x] **T14** Status-resolution receipt (read-only tinker): `effectiveStatus()` on the demo's approved request
+      → its own date `approved`, a past date **`completed`**, a future date `approved`.
