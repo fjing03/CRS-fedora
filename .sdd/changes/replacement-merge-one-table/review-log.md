@@ -920,3 +920,5 @@ Browser gate: `request-completed-status` 3/3, `replacement-home-status-badges` 7
    a receipt, so this is recorded rather than quoted as a pass.
 3. The one user-facing string this lane invented (design fixed the *method*, not the text): the
    no-request tip `No request has been made for this class yet — it still needs arranging.`
+   **APPROVED by the user, 2026-11-04 — kept as written; no code change.** All three residuals are
+   therefore closed.
