@@ -78,6 +78,11 @@ foreign body is absent (and `unreadTotal` stays 1), the own body renders, and a 
 still renders. pint passed · PHPStan 0. Live `:8000` **as 5425, "Unread only" off**: 7 rows, own
 cancellations `101`/`117` (`BMSE3153 (P)`) still listed, the foreign `BMIT2013 (L)` row gone.
 
+**The two legacy rows are soft-hidden** (user-gated, `UPDATE 2`): `148` (5425's foreign copy) and `116`
+(5516's) now carry `hidden_at`, nothing deleted — notifications **77 → 77**, hidden **2 → 4**. Rehearsed
+on the testing DB first. No visible change: the guard already drops them, so the stamp is bookkeeping.
+Dump + rollback live in `docs/demo-db-data-changes.md` (`class_replacement_fresh-pre-notif-hide-2026-11-04.dump`).
+
 ## 2026-11-04 — reading is not a decision: a read row stays alive, and "Active only" means undecided
 
 Two rulings from the user's review of the notification rules, applied together because they are the
