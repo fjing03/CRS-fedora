@@ -1,32 +1,30 @@
-## 2026-11-04 — the venue line shows the code only
+## 2026-11-04 — the venue line drops the room name, keeps the pin
 
-User: drop the room name and the pin icon from **Original Class** and **Requested Replacement**; show
-`B010`, nothing else.
+User: remove the room name from **Original Class** and **Requested Replacement** so the cells read
+`B010` instead of `B010 — Computer Lab B010`. **The pin icon stays** (user, same day, after the first
+pass removed it).
 
 Both cells are built by the shared `ui-common.js` builders, which paint venue through `uiVenueLine()`.
-That helper is now `uiVenueLine(code, name, opts)` and short-circuits to a bare `<span class="cell-sub">CODE</span>`
-when `opts.venueCodeOnly` is set. The page passes `venueCodeOnly: true` at its two call sites
-(`:739` classBlock, `:743` replacementBlock). No third argument anywhere else → every other caller is
+That helper is now `uiVenueLine(code, name, opts)` and prints the code alone when `opts.venueCodeOnly`
+is set — pin still leading. The page passes `venueCodeOnly: true` at its two call sites (`:739`
+classBlock, `:743` replacementBlock). No third argument anywhere else → every other caller is
 byte-identical.
 
-**`.cell-sub` is kept** — 12 px, muted. It is what makes the venue read as a sub-line, and keeping it
-means the row height does not move.
-
-**One spacing consequence.** The pin icon used to separate the slot-validity badge from the venue, so
-removing it gave `✓B010`. `.slot-badge` now carries the 4 px the icon provided → `✓ B010`. Measured gap
-4 px, row height still 122 px.
+`.cell-sub` is kept — 12 px, muted — so the venue still reads as a sub-line and the row height does not
+move.
 
 **Verified** against the demo DB in one browser session at 1600 px:
 
 | check | result |
 |---|---|
-| Original Class text | `Thu, 24 Dec 2026 (Week 14) · 12:00 PM to 1:00 PM (1 hour) · B010` |
-| Requested Replacement text | `Fri, 13 Nov 2026 (Week 8) · 1:00 PM to 2:00 PM (1 hour) · ✓ B010` |
-| `svg` inside either `.cell-sub` | none |
-| `.cell-sub` computed | 12 px, `rgb(158,170,184)` — unchanged |
+| Original Class | pin `B010` |
+| Requested Replacement | `✓` pin `B010` |
+| room name present in either cell | **no** — no `—` in the sub-line |
+| `svg` inside either `.cell-sub` | **yes, 1** (the pin) |
+| computed style | 12 px, muted token — unchanged |
 | row shape | 11 `<td>`, height 122 px (before/after render probe: 81 px / 81 px) |
 | **detail modal** | `Venue · B010 — Computer Lab B010` — **unchanged**, as required |
-| `/my-replacements` | still pin icon + code — **unchanged** |
+| `/my-replacements` | pin + code — **unchanged** |
 
 ## 2026-11-04 — the header is the shared one now
 

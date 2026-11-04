@@ -2407,13 +2407,12 @@ function uiHoursFromRange(range) {
 }
 
 /* pin icon + `CODE — Name` (name only when the payload carries one).
-   `opts.venueCodeOnly` drops BOTH the icon and the name (request-approval's table
-   columns, user 2026-11-04) while keeping the .cell-sub line — same 12px muted
-   sub-line, so the row keeps its height. Default path unchanged. */
+   `opts.venueCodeOnly` keeps the pin and drops ONLY the name — request-approval's
+   table columns read `pin B010`, never `pin B010 — Computer Lab B010` (user
+   2026-11-04: the icon stays). Default path unchanged. */
 function uiVenueLine(code, name, opts) {
     if (!code) return '';
-    if (opts && opts.venueCodeOnly) return '<span class="cell-sub">' + code + '</span>';
-    var label = name ? code + ' \u2014 ' + name : code;
+    var label = (opts && opts.venueCodeOnly) ? code : (name ? code + ' \u2014 ' + name : code);
     return '<span class="cell-sub"><svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18"/><path d="M5 21V7l7-4 7 4v14"/><path d="M9 21v-6h6v6"/></svg>' + label + '</span>';
 }
 

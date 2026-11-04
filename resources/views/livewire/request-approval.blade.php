@@ -26,9 +26,7 @@
             align-items: center;
             gap: 7px;
         }
-        /* Slot-validity badge — sits to the LEFT of the venue; bg varies by status.
-           2026-11-04: the venue line dropped its icon, so the badge needs the 4px
-           the icon used to provide or it reads as `✓B010`. */
+        /* Slot-validity badge — sits to the LEFT of the venue; bg varies by status */
         .slot-badge {
             display: inline-flex;
             align-items: center;
@@ -40,7 +38,6 @@
             font-weight: 700;
             line-height: 1;
             flex-shrink: 0;
-            margin-right: 4px;
         }
         .slot-badge.slot-valid {
             background: var(--color-success-container);
