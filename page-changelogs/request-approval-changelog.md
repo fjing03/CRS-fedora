@@ -1,3 +1,10 @@
+## 2026-11-04 — the status filter's label takes Title Case
+
+Minor UI update (user), matching My Replacements. The select's label (its `data-tip`, now also an
+`aria-label` so the control has an accessible name) reads **`Filter by Request Status`** instead of
+`Filter by request status`. Nothing else changed — same options, same default (`Pending`), same
+filter logic.
+
 ## 2026-11-04 — the toggle label now reads the same as My Replacements
 
 Minor UI update (user). The toolbar toggle said `Exclude Completed`; it now says

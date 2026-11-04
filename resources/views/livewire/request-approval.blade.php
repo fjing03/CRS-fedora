@@ -255,7 +255,7 @@
 <div class="toolbar">
     <div class="toolbar-left">
         <input class="search-input" id="searchInput" placeholder="Search course code, name, or lecturer..." data-tip="Search by course code, name, or lecturer">
-        <select class="filter-select" id="statusFilter" data-tip="Filter by request status">
+        <select class="filter-select" id="statusFilter" data-tip="Filter by Request Status" aria-label="Filter by Request Status">
             <option value="all">All Status</option>
             <option value="Pending" selected>Pending</option>
             <option value="Approved">Approved</option>
