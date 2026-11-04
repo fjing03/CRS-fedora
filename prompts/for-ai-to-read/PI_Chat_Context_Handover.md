@@ -117,7 +117,7 @@ date, and its files are dirty in the tree — see §3.
 
 | # | Ruling |
 |---|---|
-| 1 | **Notifications events — ALL FIVE**: submit→PL, approve→proposer+cohorts, reject→proposer, class-cancelled→owner+cohorts+**dept PLs** (`notifyDeptPls`, owner's `lecturers.dept_id`), pending reminder→PLs (24 h, deduped until read, re-armed daily). |
+| 1 | **Notifications events — ALL FIVE** (corrected 2026-11-04 to match R1–R4, `notif-recipient-rulings`): submit→PLs + one confirmation row for a **non-PL** proposer (a PL proposer gets only their queue row); approve→proposer (**one merged** `Replacement class updated` row, R3) + cohort students; reject→proposer; class-cancelled→**owner + cohort students only** — the department-PL fan-out was **REVERSED** by R4 (2026-11-03), so the old `notifyDeptPls` wording here is dead; pending reminder→PLs (24 h, deduped until read, re-armed daily) — **designed but DORMANT**: `notifications:remind-pending` is not scheduled (user decision 2026-11-04). |
 | 2 | **Real-time = Livewire `wire:poll` (option A)** — NOT Reverb/websockets. Poll 10 s. |
 | 3 | **Notification lifecycle**: rows never deleted; an inactive target renders the row **disabled** (no href) + tooltip `This notification is inactive because the request was cancelled.` |
 | 4 | **Email/S**: SV approved **Gmail SMTP** ("CAN") for demo/testing with the user's personal Gmail; NFR 7.2 may be revised by the USER (their own doc edit). The SMTP flip = an ops step outside code lanes. |
@@ -125,7 +125,7 @@ date, and its files are dirty in the tree — see §3.
 | 6 | **B005 no-Diploma REPEALED** (b005-diploma-allowed) — Diploma cohorts may use B005; AMIT2034 renders clean. |
 | 7 | **B006 networking priority** still enforced; P→labs rule. |
 | 8 | **Receipts strategy** = disposable test-DB suite + hand-run demo seed SQL (never agent-run booking flows on the demo DB). |
-| 9 | **The caught-up swap is category-aware** (the hotfix): "No unread in this category — N unread in other tabs" when the bell total > 0 but the viewed tab is clear. The pill/badge = the whole-mailbox unread TOTAL (the frozen F-2 law). |
+| 9 | **ONE feed on every page** (supersedes the category-aware caught-up hotfix — `notif-unified-feed` retired the per-page tabs 2026-10-29): all staff pages show the same recipient-wide feed, newest first, and the caught-up view is always the single line "You're all caught up". The pill/badge = the **actionable-unread** total (D5: `read_at` null AND not inactive), computed per render, never moved by the view filters. |
 | 10 | **No bell on the replacement-arrangement page** = ACCEPTED BY DESIGN (BUG-04). |
 | 11 | **`?week=` never moves the week selector** (ARRIVAL-GRID-NO-PIN) = WONTFIX (user decision). |
 | 12 | **Demo story** (viva ~week of 7 Dec 2026, UNCONFIRMED, on this MSI machine): timetables + booking + cancel class + approve + bells + emails; auth = verbal only; students demo the "replacement class got updated". |
