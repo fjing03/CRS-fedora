@@ -97,7 +97,7 @@
     </style>
 
     <!-- ─── Page Header ─── -->
-    @include('partials.ui-page-header', ['title' => 'Cohort Timetable', 'description' => 'View the weekly timetable for any cohort across all faculties.'])
+    @include('partials.ui-page-header', ['title' => 'Cohort Timetable', 'descriptionHtml' => 'View the <span class="info-keyword">weekly timetable</span> for <span class="info-keyword">any cohort</span> across all faculties.'])
 
     @include('partials.ui-guide-block', [
         'guideTitle' => 'How to use this page',

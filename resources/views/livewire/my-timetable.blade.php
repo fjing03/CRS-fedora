@@ -26,7 +26,7 @@
     </style>
 
     <!-- ─── Page Header ─── -->
-    @include('partials.ui-page-header', ['title' => 'My Timetable', 'description' => 'View your weekly class schedule and manage replacement requests across all cohorts.'])
+    @include('partials.ui-page-header', ['title' => 'My Timetable', 'descriptionHtml' => 'View your weekly <span class="info-keyword">class schedule</span> and manage <span class="info-keyword">replacement requests</span> across all cohorts.'])
 
     @include('partials.ui-guide-block', [
         'guideTitle' => 'How to use this page',

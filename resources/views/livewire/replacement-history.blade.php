@@ -108,7 +108,7 @@
     @include('partials.page-data-script', ['payload' => $payload])
 
         <!-- ─── Page Header ─── -->
-        @include('partials.ui-page-header', ['title' => 'Replacement History', 'description' => 'Replacement classes confirmed or pending for your cohort.', 'chips' => $cohortLabel !== null ? [['label' => $cohortLabel]] : []]) {{-- BRIDGE PATCH: cohort chip is per-user data --}}
+        @include('partials.ui-page-header', ['title' => 'Replacement History', 'descriptionHtml' => '<span class="info-keyword">Replacement classes</span> confirmed or pending for your cohort.', 'chips' => $cohortLabel !== null ? [['label' => $cohortLabel]] : []]) {{-- BRIDGE PATCH: cohort chip is per-user data --}}
 
         <!-- ─── Toolbar: week navigation + show-past toggle ─── -->
         <div class="toolbar">

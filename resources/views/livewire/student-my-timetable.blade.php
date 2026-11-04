@@ -14,7 +14,7 @@
     <!-- ─── Page Header ─── -->
     @include('partials.ui-page-header', [
         'title' => 'Student My Timetable',
-        'description' => 'View your weekly class schedule across all sessions.',
+        'descriptionHtml' => 'View your weekly <span class="info-keyword">class schedule</span> across all sessions.',
         'chips' => $cohortCode ? [['label' => $cohortCode]] : [],
     ])
 

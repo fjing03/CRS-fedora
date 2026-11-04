@@ -97,7 +97,7 @@
     </style>
 
     <!-- ─── Page Header ─── -->
-    @include('partials.ui-page-header', ['title' => 'Venue Timetable', 'description' => 'Inspect any venue\'s weekly occupancy — real slot states from the timetable database.'])
+    @include('partials.ui-page-header', ['title' => 'Venue Timetable', 'descriptionHtml' => 'Inspect any <span class="info-keyword">venue\'s weekly occupancy</span> — <span class="info-keyword">real slot states</span> from the timetable database.'])
 
     @include('partials.ui-guide-block', [
         'guideTitle' => 'How to use this page',

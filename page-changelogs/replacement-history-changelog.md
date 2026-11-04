@@ -1,3 +1,10 @@
+## 2026-11-04 — the page description speaks the same visual language as My Replacements
+
+Minor UI update (user, all pages): the `.page-desc` line now bolds and uppercases its key terms with
+the existing `.info-keyword` class — the convention the merged My Replacements page introduced. The
+words are unchanged; only the emphasis markup is new (`description` → `descriptionHtml`), so the
+rendered sentence reads identically.
+
 # Changelog — Upcoming Replacements (Student)
 
 ## [2026-11-02] Timeline rail temporarily removed (extra task 02)

@@ -1,3 +1,9 @@
+## 2026-11-04 — the page description speaks the same visual language as My Replacements
+
+Minor UI update (user, all pages): the `.page-desc` line now bolds and uppercases its key terms with
+the existing `.info-keyword` class. **This page already did it** (it is where the convention came
+from) — nothing to change here; the entry exists so the sweep is recorded on every page it touched.
+
 ## 2026-11-04 — the Request Status filter names itself
 
 Minor UI update (user). Two strings, nothing else:
