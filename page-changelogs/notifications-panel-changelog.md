@@ -1,3 +1,44 @@
+## 2026-11-04 — the New Replacement Request row: Title Case title + the six-line fact tip
+
+The user's spec, applied to `submitted` rows only (Approved / Rejected / Cancelled / Update rows are untouched,
+and still show their own reason tip).
+
+**Title** — `New Replacement Request (ID #28)`, Title Case, on every arm: the composed live row *and* the
+inactive / hidden / requestless legacy rows that never reach the composer (they used to fall back to the
+stored lowercase string).
+
+**Tooltip** — the exact order and format asked for, every label Title Case:
+
+```
+Staff (Proposer): Lim Jia Zheng (5770)
+Requested At: 4 Nov 2026, 12:25 PM (6 hours ago)
+Subject & Cohort: AMCS2093 (Operating Systems) · DFT2 & DSF2
+Conflict Reason: Class Cancelled — Medical/Sick Leave
+Original Class Schedule: Week 8 · 9 Nov 2026 · 11:00 AM ~ 1:00 PM @ B110
+Proposed Replacement Schedule: Week 9 · 16 Nov 2026 · 1:30 PM ~ 3:30 PM @ B111
+```
+
+What changed under the hood:
+
+- **The staff id moved into brackets after the name** (`name (5770)`), the label became `Staff (Proposer)`.
+- **Subject & Cohort is new**: module code + module name, then the cohorts' SHORT labels (`DFT2` =
+  programme code + year), joined with ` & ` — deduped, because two tutorial groups of the same
+  programme+year would otherwise print `RSD3 & RSD3`.
+- **Conflict Reason is new**, and reads ONLY a real `class_exceptions` row for that session + week, labelled
+  through the one `ReasonLabel` law. No exception row → **no line** (the tip never invents a cancellation).
+- **Original and Proposed schedules are built independently** — the original from the class session + the
+  request's own `week_number`, the proposed from the request's span. The old tip printed only the proposed
+  one, with 24-hour times and a venue *name*; both now use the 12-hour clock, `~` between the times and the
+  venue **code alone**.
+- One new batch (the exceptions, keyed `session|week`) and two eager loads (the class's venue, its cohorts'
+  programme) — no per-row query on the 10 s poll.
+- Every line is omitted when its facts are missing; the tip survives as long as two lines do.
+
+Measured on the demo DB (read-only, the #28 row as staff 5425): the exact five lines above minus the
+Conflict Reason line — request #28's session/week has no exception row, so that line is correctly absent.
+Feature suite 26/26 on the notifications bridge, including a new test that proves the line appears the
+moment an exception row exists.
+
 ## 2026-11-04 — the click flash follows the new pulse
 
 Same day, same change: the shared `bookable-pulse` now paints **3 flashes at 0.5 s** with a **4 px / 63 %**

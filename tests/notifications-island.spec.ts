@@ -134,7 +134,7 @@ test('composer receipts on an unread submitted row (structural)', async ({ page 
   await page.click('button.notif-btn');
   await expect(page.locator('#notifPanel')).toHaveClass(/open/);
   const row = page.locator('#notifList a.notif-row')
-    .filter({ hasText: 'New replacement request (ID #' }).first();
+    .filter({ hasText: 'New Replacement Request (ID #' }).first();
   // the 2026-11-01 USER CLEANOUT: the canvas may legally be BLANK — the
   // empty-case receipt asserts the caught-up arm + the composed controls,
   // and the composition invariants re-assert themselves once real submits
@@ -150,20 +150,24 @@ test('composer receipts on an unread submitted row (structural)', async ({ page 
 
   // 1) the title-with-ID (the ID = the request id per the composer law)
   const title = await row.locator('.notif-row-title').textContent();
-  expect(title).toMatch(/^New replacement request \(ID #\d+\)$/);
+  expect(title).toMatch(/^New Replacement Request \(ID #\d+\)$/);
   // 2) the requester subtitle (the full name + the staff id)
   const subtitle = await row.locator('.notif-row-subtitle').textContent();
   expect(subtitle).toMatch(/^.+ \(\d{4}\)$/);
   // 3) the desc: week · day · time (24 h, en dash) · venue
   expect(await row.locator('.notif-row-desc').textContent())
     .toMatch(/^Week \d+ · .+ · \d{2}:\d{2}–\d{2}:\d{2} · \S+$/);
-  // 4) the multiline tip: the 5 fact lines + the dynamic Requested-at line 2
+  // 4) the multiline tip — the user's 2026-11-04 order and format:
+  //    Staff (Proposer) / Requested At / Subject & Cohort / (Conflict Reason
+  //    only when an exception exists) / Original / Proposed schedule
   const tip = await row.getAttribute('data-tip');
-  expect(tip).toContain('Staff: ');
-  expect(tip).toMatch(/Requested at: \d{1,2} [A-Z][a-z]{2} \d{4}, \d{1,2}:\d{2} (AM|PM) \(/);
-  expect(tip).toMatch(/Proposed Schedule: Week \d+ · \d{1,2} [A-Z][a-z]{2} \d{4} · \d{2}:\d{2}–\d{2}:\d{2}/);
-  expect(tip).toMatch(/Proposed Venue: \S+/);
-  expect(tip).toMatch(/Subject: [A-Z]{3,5}\d{3,4} \((?:P|L|T)\) — /);
+  expect(tip).toContain('Staff (Proposer): ');
+  expect(tip).toMatch(/\(\d{4,}\)$/m);
+  expect(tip).toMatch(/Requested At: \d{1,2} [A-Z][a-z]{2} \d{4}, \d{1,2}:\d{2} (AM|PM) \(/);
+  expect(tip).toMatch(/Subject & Cohort: [A-Z]{3,5}\d{3,4} \(.+\)( · \S+)?$/m);
+  expect(tip).toMatch(/Original Class Schedule: Week \d+ · \d{1,2} [A-Z][a-z]{2} \d{4} · \d{1,2}:\d{2} (AM|PM) ~ \d{1,2}:\d{2} (AM|PM)( @ \S+)?$/m);
+  expect(tip).toMatch(/Proposed Replacement Schedule: Week \d+ · \d{1,2} [A-Z][a-z]{2} \d{4} · \d{1,2}:\d{2} (AM|PM) ~ \d{1,2}:\d{2} (AM|PM)( @ \S+)?$/m);
+  expect(tip).not.toContain('Proposed Venue: ');
 
   expect(consoleErrors, 'no JS page errors').toEqual([]);
 });
@@ -193,7 +197,7 @@ test('filter bar: Active-only toggle + the type dropdown, badge unmoved', async 
   await page.waitForTimeout(700);
   const submittedRows = await page.locator('#notifList .notif-row').count();
   if (submittedRows > 0) {
-    await expect(page.locator('#notifList .notif-row-title').first()).toContainText('New replacement request');
+    await expect(page.locator('#notifList .notif-row-title').first()).toContainText('New Replacement Request');
   }
 
   // a type with no rows → the caught-up arm

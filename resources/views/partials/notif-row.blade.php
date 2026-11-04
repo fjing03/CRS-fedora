@@ -53,6 +53,14 @@
         $rowClass .= ' row-selected';   /* the promoted pair (My Request History) */
     }
     $composedTitle = $display !== null ? $display['title'] : $n->title;
+    /* user spec 2026-11-04 §1: `submitted` rows read Title Case even on the arms
+       where the composer never ran (inactive / hidden / requestless legacy) — the
+       stored title is the old lowercase string, the row's meaning is unchanged. */
+    if ($display === null && $n->type === 'submitted') {
+        $composedTitle = (int) $n->request_id > 0
+            ? 'New Replacement Request (ID #'.(int) $n->request_id.')'
+            : 'New Replacement Request';
+    }
     $composedBody = $display !== null ? $display['desc'] : $n->body;
     $subtitle = $display !== null ? ($display['subtitle'] ?? null) : null;
     $staffLine = $n->getAttribute('staff_line');   /* R5 — computed per render, survives read/hidden */
@@ -72,11 +80,13 @@
         /* T3/T4: the multiline tip = the composer's FACT lines with the dynamic
            Requested-at line 2 inserted after the Staff line (the T4 closures). */
         $lines = explode("\n", $display['tip']);
-        if (($lines[0] ?? '') !== '' && str_starts_with($lines[0], 'Staff:')) {
-            $line2 = 'Requested at: '.$tipAbs($n->created_at).' ('.$relLong($n->created_at).')';
-            array_splice($lines, 1, 0, [$line2]);
+        /* 2026-11-04 (user spec): Title Case label; line 1 is now
+           `Staff (Proposer):` — the guard follows the label, not the old text. */
+        $requestedAt = 'Requested At: '.$tipAbs($n->created_at).' ('.$relLong($n->created_at).')';
+        if (($lines[0] ?? '') !== '' && str_starts_with($lines[0], 'Staff')) {
+            array_splice($lines, 1, 0, [$requestedAt]);
         } else {
-            array_splice($lines, 0, 0, ['Requested at: '.$tipAbs($n->created_at).' ('.$relLong($n->created_at).')']);
+            array_splice($lines, 0, 0, [$requestedAt]);
         }
         $rowTip = implode("\n", $lines);
         $rowLabel = $display['aria'];

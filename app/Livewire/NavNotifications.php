@@ -2,6 +2,7 @@
 
 namespace App\Livewire;
 
+use App\Models\ClassException;
 use App\Models\ClassSession;
 use App\Models\Notification;
 use App\Models\ReplacementRequest;
@@ -9,6 +10,7 @@ use App\Models\Semester;
 use App\Models\User;
 use App\Models\Venue;
 use App\Services\ReplacementRequestMapper;
+use App\Support\ReasonLabel;
 use Carbon\Carbon;
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\Collection;
@@ -488,7 +490,7 @@ class NavNotifications extends Component
 
         $requests = ReplacementRequest::query()
             ->whereIn('id', $requestIds)
-            ->with(['classSession.module', 'replacementTimeSlot.venue', 'proposer.lecturer', 'approver.lecturer'])
+            ->with(['classSession.module', 'classSession.venue', 'classSession.cohorts.programme', 'replacementTimeSlot.venue', 'proposer.lecturer', 'approver.lecturer'])
             ->get()
             ->keyBy('id');
 
@@ -505,6 +507,19 @@ class NavNotifications extends Component
         $venues = $venueIds->isEmpty()
             ? collect()
             : Venue::query()->whereIn('id', $venueIds)->get()->keyBy('id');
+
+        /* 2026-11-04 (user spec, New Replacement Request tip): the conflict
+           reason line. ONE batch keyed `session|week` over the loaded requests'
+           sessions — never a per-row query on the 10 s poll. A session+week
+           with NO exception row yields no line at all: the tip must never
+           invent a cancellation. */
+        $sessionIds = $requests->pluck('class_session_id')->filter()->unique()->values();
+        $exceptions = $sessionIds->isEmpty()
+            ? collect()
+            : ClassException::query()
+                ->whereIn('class_session_id', $sessionIds)
+                ->get(['class_session_id', 'week_number', 'reason'])
+                ->keyBy(fn (ClassException $e): string => (int) $e->class_session_id.'|'.(int) $e->week_number);
 
         $semesterIds = $requests->pluck('semester_id')->filter()->unique()->values();
         $semesters = $semesterIds->isEmpty()
@@ -603,7 +618,7 @@ class NavNotifications extends Component
                constant-true once the read branch went). */
             $row->setAttribute(
                 '_display',
-                $this->composeSubmitted($row, $request, $spans, $venues, $semesters, $anchorSpan)
+                $this->composeSubmitted($row, $request, $spans, $venues, $semesters, $anchorSpan, $exceptions)
             );
         }
 
@@ -755,6 +770,7 @@ class NavNotifications extends Component
      * @param  Collection<int, Venue>  $venues
      * @param  Collection<int, Semester>  $semesters
      * @param  \Closure(ReplacementRequest): (array{week: int, day: int, venue_id: int, start: string, end: string, count: int}|null)  $anchorSpan
+     * @param  Collection<string, ClassException>  $exceptions  keyed `session|week`
      * @return array{title: string, subtitle: ?string, desc: string, aria: string, tip: ?string}
      */
     private function composeSubmitted(
@@ -764,16 +780,18 @@ class NavNotifications extends Component
         Collection $venues,
         Collection $semesters,
         \Closure $anchorSpan,
+        Collection $exceptions,
     ): array {
         $span = $spans[(int) $row->request_id] ?? $anchorSpan($request);
         $venue = $span !== null
             ? ($venues->has((int) $span['venue_id']) ? $venues->get((int) $span['venue_id']) : null)
             : null;
 
-        /* 1) title: `New replacement request (ID #76)` — the ID is stored on
-              the legacy rows too, so they surface it for free (D7). */
+        /* 1) title: `New Replacement Request (ID #76)` — Title Case per the
+              user's 2026-11-04 spec. The ID is stored on the legacy rows too,
+              so they surface it for free (D7). */
         $title = $row->request_id > 0
-            ? 'New replacement request (ID #'.(int) $row->request_id.')'
+            ? 'New Replacement Request (ID #'.(int) $row->request_id.')'
             : (string) $row->title;
 
         /* 2) subtitle: `Name (staff_id)`; staff_id null → name alone; the
@@ -788,15 +806,11 @@ class NavNotifications extends Component
                 : (string) $request->proposer->name;
         }
 
-        /* The SCHEDULE facts (the mapper's ONE format source) — the semester
-           row is REQUIRED for the tip's date (NO now() fallback); a missing
-           semester nulls the strings and the WHOLE tip fail-opens while the
-           desc (which needs no date) still composes. */
+        /* The semester start — REQUIRED for both schedules' dates (NO now()
+           fallback); a missing semester drops the two schedule lines and keeps
+           the identity lines, so the tip never prints an invented date. */
         $semStart = $semesters->has((int) $request->semester_id)
             ? Carbon::parse((string) $semesters->get((int) $request->semester_id)->start_date)
-            : null;
-        $strings = ($span !== null && $semStart !== null)
-            ? app(ReplacementRequestMapper::class)->stringsFromSpan($span, $semStart, $venue)
             : null;
 
         /* 3) desc: `Week {w} · {day} · {start}–{end} · {venue.code}` from the
@@ -815,41 +829,79 @@ class NavNotifications extends Component
         $ariaParts = array_values(array_filter([$title, $subtitle, $desc], fn ($p) => $p !== null && $p !== ''));
         $aria = implode(' — ', $ariaParts);
 
-        /* 5) tip: the FACT lines joined with the multiline engine's `\n`;
-              line 1 (Staff) per-line omits on a missing proposer; line 5
-              (Subject): from the eager classSession+module (NEVER classRow()
-              on the poll); lines 3+4 ride $strings — all-or-nothing with the
-              whole tip. The dynamic Requested-at line = the partial's
-              closure-built insertion (the frozen T3/T4 split). */
-        $tip = null;
-        if ($strings !== null) {
-            $lines = [];
+        /* 5) tip — the user's 2026-11-04 spec, in its exact order:
+                Staff (Proposer) / Requested At (the partial's line 2) /
+                Subject & Cohort / Conflict Reason / Original Class Schedule /
+                Proposed Replacement Schedule.
+              Every line is built from loaded data and OMITTED when its facts
+              are missing (never a wrong value, never a guess); the tip survives
+              as long as two lines do. 12-hour clocks, `~` between the times,
+              `@` then the venue CODE alone. */
+        $lines = [];
 
-            if ($request->proposer !== null) {
-                $staffId = $request->proposer->lecturer !== null
-                    ? (string) $request->proposer->lecturer->staff_id
-                    : null;
-                $lines[] = 'Staff: '.($staffId !== null && $staffId !== '' ? $staffId.' — ' : '').$request->proposer->name;
-            }
+        if ($request->proposer !== null) {
+            $staffId = $request->proposer->lecturer !== null
+                ? (string) $request->proposer->lecturer->staff_id
+                : null;
+            $lines[] = 'Staff (Proposer): '.(string) $request->proposer->name
+                .($staffId !== null && $staffId !== '' ? ' ('.$staffId.')' : '');
+        }
 
-            $lines[] = 'Proposed Schedule: Week '.$span['week']
-                .' · '.Carbon::parse((string) $strings['date'])->format('j M Y')
-                .' · '.$shortTime($span['start']).'–'.$shortTime($span['end']);
+        $session = $request->classSession;
+        $module = $session !== null ? $session->module : null;
+        if ($session !== null && $module !== null) {
+            /* the cohorts' SHORT label (`DFT2` = programme code + year), joined
+               with ` & ` — the spec's example, never the long spaced form */
+            $cohorts = $session->cohorts
+                ->map(fn ($c): ?string => $c->programme !== null
+                    ? (string) $c->programme->programme_code.(int) $c->current_year
+                    : null)
+                ->filter()
+                ->unique()   /* two groups of the same programme+year read ONCE */
+                ->values();
 
-            $lines[] = 'Proposed Venue: '.$strings['venue']
-                .($strings['venueName'] !== null ? ' — '.$strings['venueName'] : '');
+            $lines[] = 'Subject & Cohort: '.(string) $module->module_code
+                .' ('.(string) $module->module_name.')'
+                .($cohorts->isNotEmpty() ? ' · '.$cohorts->implode(' & ') : '');
+        }
 
-            $session = $request->classSession;
-            $module = $session !== null ? $session->module : null;
-            if ($session !== null && $module !== null) {
-                $lines[] = 'Subject: '.(string) $module->module_code
-                    .' ('.(string) $session->session_type.') — '.(string) $module->module_name;
-            }
-
-            if (count($lines) >= 3) {
-                $tip = implode("\n", $lines); // the partial inserts the Requested-at line 2
+        if ($session !== null) {
+            $exception = $exceptions->get((int) $session->id.'|'.(int) $request->week_number);
+            if ($exception !== null) {
+                $lines[] = 'Conflict Reason: Class Cancelled — '.ReasonLabel::from((string) $exception->reason);
             }
         }
+
+        /* the two schedules: the SAME shape, built independently — the original
+           from the class session + the request's own week, the proposed from
+           the span. Neither reads the other. */
+        $twelveHour = static fn (string $t): string => Carbon::parse($t)->format('g:i A');
+
+        if ($session !== null && $semStart !== null) {
+            $originalDate = $semStart->copy()
+                ->addWeeks((int) $request->week_number - 1)
+                ->addDays((int) $session->day_of_week);
+            $originalVenue = $session->venue !== null ? (string) $session->venue->room_code : '';
+
+            $lines[] = 'Original Class Schedule: Week '.(int) $request->week_number
+                .' · '.$originalDate->format('j M Y')
+                .' · '.$twelveHour((string) $session->start_time).' ~ '.$twelveHour((string) $session->end_time)
+                .($originalVenue !== '' ? ' @ '.$originalVenue : '');
+        }
+
+        if ($span !== null && $semStart !== null) {
+            $proposedDate = $semStart->copy()
+                ->addWeeks((int) $span['week'] - 1)
+                ->addDays((int) $span['day']);
+            $proposedVenue = $venue !== null ? (string) $venue->room_code : '';
+
+            $lines[] = 'Proposed Replacement Schedule: Week '.(int) $span['week']
+                .' · '.$proposedDate->format('j M Y')
+                .' · '.$twelveHour((string) $span['start']).' ~ '.$twelveHour((string) $span['end'])
+                .($proposedVenue !== '' ? ' @ '.$proposedVenue : '');
+        }
+
+        $tip = count($lines) >= 2 ? implode("\n", $lines) : null;
 
         return [
             'title' => $title,

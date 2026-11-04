@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Livewire\NavNotifications;
+use App\Models\ClassException;
 use App\Models\ClassSession;
 use App\Models\Cohort;
 use App\Models\Notification;
@@ -72,7 +73,7 @@ final class NotificationsBridgeTest extends TestCase
 
     /**
      * Every R5 subtitle span in order — counted on the SPANS, never on the raw
-     * page text: a row's tooltip legitimately repeats the name (`Staff: 5770 — …`).
+     * page text: a row's tooltip legitimately repeats the name (`Staff (Proposer): … (5770)`).
      *
      * @return array<int, string>
      */
@@ -364,21 +365,59 @@ final class NotificationsBridgeTest extends TestCase
         $component = Livewire::test(NavNotifications::class, ['island' => 'panel', 'pageKey' => 'requestApproval', 'unreadOnly' => false]);
         $html = $component->html();
 
-        // 1) the title-with-ID
-        $this->assertStringContainsString('New replacement request (ID #'.(int) $request->id.')', $html);
+        // 1) the title-with-ID — Title Case (user spec 2026-11-04 §1)
+        $this->assertStringContainsString('New Replacement Request (ID #'.(int) $request->id.')', $html);
         // 2) the subtitle: the full name + the staff id
         $this->assertStringContainsString('Surayaini Binti Basri (', $html);
         // 3) the desc: the week/day/time/venue at a glance — the RUNTIME truth
         //    of the request's anchor slot (seed 32612 = W6 Fri 13:30–14:00 B010)
         $this->assertStringContainsString('Week 6 · Friday · 13:30–14:00 · B010', $html);
-        // 4) the 5-line tip: the Staff line + the relative-ago line + the Schedule + the Venue + the Subject
-        $this->assertStringContainsString('Staff: ', $html);
-        $this->assertStringContainsString('Proposed Schedule: Week 6 · ', $html);
-        $this->assertStringContainsString('Proposed Venue: B010 — Computer Laboratory 2', $html);
-        $this->assertStringContainsString('Subject: BMSE3153 (P)', $html);
-        $this->assertStringContainsString('Requested at: ', $html);
+        // 4) the tip's fact lines, in the spec's order and format (§2/§3):
+        //    Staff (Proposer) / Requested At / Subject & Cohort / Conflict
+        //    Reason (absent here — no exception row) / Original / Proposed
+        $this->assertStringContainsString('Staff (Proposer): Surayaini Binti Basri (5425)', $html);
+        $this->assertStringContainsString('Requested At: ', $html);
+        $this->assertStringContainsString('Subject &amp; Cohort: BMSE3153 (', $html);
+        $this->assertStringContainsString(' · RSD3', $html);   /* deduped: one label, not two */
+        // the ORIGINAL reads the class's own week (8 here), the PROPOSED the
+        // request's slot week (6) — two independent reads, never a copy
+        $this->assertStringContainsString('Original Class Schedule: Week 8 · ', $html);
+        $this->assertStringContainsString(' @ B010', $html);
+        $this->assertStringContainsString('Proposed Replacement Schedule: Week 6 · ', $html);
+        // the old formats are gone (one format, never two)
+        $this->assertStringNotContainsString('Proposed Venue: ', $html);
+        $this->assertStringNotContainsString('Requested at: ', $html);
         // the badge = the actionable unread (the submitted-pending = unread ⇒ 1)
         $this->assertSame(1, $component->viewData('unreadTotal'));
+    }
+
+    /** 2026-11-04 (user spec): the Conflict Reason line — rendered ONLY when a
+     *  class exception exists for that session+week, in the spec's exact shape
+     *  (`Class Cancelled — <reason label>`); absent data means no line, never an
+     *  invented cancellation. */
+    public function test_conflict_reason_line_follows_the_exception_row(): void
+    {
+        $request = $this->seedRequest();
+        $this->submitEvent($request->id);
+        $this->actingAs($this->pl());
+
+        $html = fn () => Livewire::test(NavNotifications::class, [
+            'island' => 'panel', 'pageKey' => 'requestApproval', 'unreadOnly' => false,
+        ])->html();
+
+        $this->assertStringNotContainsString('Conflict Reason:', $html(), 'no exception row → no line');
+
+        ClassException::create([
+            'class_session_id' => (int) $request->class_session_id,
+            'week_number' => 8,
+            'reason' => 'medical_leave',
+        ]);
+
+        $this->assertStringContainsString(
+            'Conflict Reason: Class Cancelled — Medical/Sick Leave',
+            $html(),
+            'the ONE label law (ReasonLabel) owns the reason text',
+        );
     }
 
     /** SDD notif-new-request-ux: the fail-open matrix (D6). */
@@ -435,7 +474,7 @@ final class NotificationsBridgeTest extends TestCase
             ->assertDontSee('This notification is inactive because you have already read this request.', false)
             ->assertSeeHtml('data-id="'.$readRow->id.'"', false)
             ->assertSeeHtml('data-notif-target="r'.$fresh->id.'"', false)
-            ->assertSee('New replacement request (ID #'.$fresh->id.')', false);
+            ->assertSee('New Replacement Request (ID #'.$fresh->id.')', false);
 
         // "Active only" = not yet decided: the read-but-pending row survives it
         // (the same row is shown), while a decided row is filtered out.
@@ -588,9 +627,9 @@ final class NotificationsBridgeTest extends TestCase
         // type dropdown: only the stored type survives the row filter
         $view(['typeFilter' => 'update'])
             ->assertSee('Scheduled class cancelled', false)
-            ->assertDontSee('New replacement request');
+            ->assertDontSee('New Replacement Request');
         $view(['typeFilter' => 'submitted'])
-            ->assertSee('New replacement request (ID #'.$request->id.')')
+            ->assertSee('New Replacement Request (ID #'.$request->id.')')
             ->assertDontSee('Scheduled class cancelled', false);
         $view(['typeFilter' => 'rejected'])
             ->assertDontSeeHtml('notif-row');
@@ -605,7 +644,7 @@ final class NotificationsBridgeTest extends TestCase
             ->assertDontSeeHtml('notif-row');
         $view(['activeOnly' => true])
             ->assertSee('Scheduled class cancelled', false)
-            ->assertDontSee('New replacement request');
+            ->assertDontSee('New Replacement Request');
 
         // the derived actionable-unread total is filter-INDEPENDENT (D5)
         $component = Livewire::test(NavNotifications::class, [
