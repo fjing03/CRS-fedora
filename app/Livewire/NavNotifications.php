@@ -45,10 +45,13 @@ use Livewire\Component;
  * SDD notif-new-request-ux (design §1/§2/§4): `submitted` rows (and,
  * deliberately, `awaiting` reminders — the D2 side-effect) compose
  * SERVER-SIDE per render; the inactive classifier classifies the REASON
- * (first-match cancelled > approved > rejected > read), not a boolean — a
+ * (first-match cancelled > approved > rejected), not a boolean — a
  * decided SUBMITTED row renders inactive (the real-bridge D4
  * links-stay-alive law OVERTURNED for `submitted` rows), while non-submitted
  * request-linked rows stay in notif-click-highlight's both-clickable law.
+ * READING is not a decision (the user's 2026-11-04 ruling): a read row of a
+ * still-pending request stays ACTIVE and composed, so `read` is no longer an
+ * inactive reason (the old D15 read arm is retired).
  * read_at is never stamped by the display path; the badge = the BATCH-DERIVED
  * actionable unread (the standalone COUNT query is gone — D5) and the
  * composer NEVER runs a per-row span()/Venue::find/Semester::find
@@ -80,9 +83,12 @@ class NavNotifications extends Component
     /** The unread-only toggle (server-owned so the poll re-render preserves it). */
     public bool $unreadOnly = true;
 
-    /** The active-only toggle (SDD-waived UI request, 2026-11-01): hides the
-     *  decided/inactive rows — the SAME activation law the row partial renders
-     *  by (D15 reason or the legacy D4 disabled edge), never the badge. */
+    /** The active-only toggle (SDD-waived UI request, 2026-11-01; meaning
+     *  clarified by the user 2026-11-04): "active" = **the request has not been
+     *  decided yet**. It hides exactly the rows the inactive classifier flags
+     *  (cancelled / approved / rejected, or the legacy D4 disabled edge) — NOT
+     *  the ones you have merely read, which stay visible because reading a
+     *  pending request leaves it pending. Never the badge. */
     public bool $activeOnly = false;
 
     /** The type filter ('' = all types). Server-owned; wire:model.live. */
@@ -473,8 +479,9 @@ class NavNotifications extends Component
             $row->setAttribute('inactive_row', $row->request_id !== null
                 && ($legacyStatus === null || $legacyStatus === 'cancelled'));
 
-            /* §4's classifier (D15): the REASON, first-match
-               cancelled > approved > rejected > read. The classified family =
+            /* §4's classifier (D15, amended 2026-11-04): the REASON, first-match
+               cancelled > approved > rejected — `read` is deliberately ABSENT
+               (reading is not a decision). The classified family =
                `submitted` (the user's parts 1–3 + 5/6) plus `awaiting`
                reminders — the decided-awaiting flip = the DELIBERATE D2
                side-effect (asserted in the receipts, logged in T9). */
@@ -486,6 +493,16 @@ class NavNotifications extends Component
             $request = $requests->get((int) $row->request_id);
             $status = $request?->status;
 
+            /* 2026-11-04 (the user's ruling): READING is not a decision. A read
+               `submitted`/`awaiting` row whose request is still pending stays
+               ACTIVE — clickable, and still composed (title with the ID, the
+               staff line, the schedule) — so the notification remains a way
+               back to the request. The badge still stops counting it (D5's
+               predicate is `read_at === null && inactive_reason === null`) and
+               the hide gate still allows it (`read_at !== null`), so only the
+               ROW's life changed, never the count. The old `read` reason —
+               "inactive because you have already read this request" — is gone
+               with it; `read` can no longer be an inactive reason at all. */
             $reason = null;
             if ($status === null) {
                 /* The missing row = data drift only (FK nullOnDelete); the
@@ -498,8 +515,6 @@ class NavNotifications extends Component
                 $reason = 'approved';
             } elseif ($status === 'rejected') {
                 $reason = 'rejected';
-            } elseif ($row->read_at !== null) {
-                $reason = 'read';
             }
 
             $row->setAttribute('inactive_reason', $reason);
@@ -507,12 +522,15 @@ class NavNotifications extends Component
                 continue;
             }
 
-            if ($request !== null) {
-                $row->setAttribute(
-                    '_display',
-                    $this->composeSubmitted($row, $request, $spans, $venues, $semesters, $anchorSpan)
-                );
-            }
+            /* No `$request !== null` guard: `$status = $request?->status`, so a
+               null request can only produce a null status, which the cancelled
+               branch above already consumed via the `continue`. Reaching here
+               therefore PROVES the request exists (PHPStan proved the old guard
+               constant-true once the read branch went). */
+            $row->setAttribute(
+                '_display',
+                $this->composeSubmitted($row, $request, $spans, $venues, $semesters, $anchorSpan)
+            );
         }
 
         return $this->attachStaffLines($rows, $requests);

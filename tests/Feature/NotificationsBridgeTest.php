@@ -332,10 +332,12 @@ final class NotificationsBridgeTest extends TestCase
         Livewire::test(NavNotifications::class, ['island' => 'panel', 'pageKey' => 'requestApproval', 'unreadOnly' => false])
             ->assertSee('This notification is inactive because the request was approved.', false);
 
-        // (b) the D15 'read' arm: a READ submitted row whose request is STILL
-        //     pending (read_at stamped by the durable POST) renders inactive
-        //     with the read sentence. (When the request itself is decided the
-        //     stronger arms win per the frozen precedence: approved > read.)
+        // (b) the 2026-11-04 ruling: a READ submitted row whose request is
+        //     STILL pending stays ACTIVE — clickable (data-id + the highlight
+        //     target), composed (the title keeps the ID), and never carrying
+        //     the retired read sentence. Only the row's LIFE changed: the badge
+        //     still stops counting it (D5's predicate reads read_at) and the
+        //     hide gate still allows it, so neither needed touching.
         // a fresh pending request on a DIFFERENT occurrence (the active-block
         // unique law: one pending per class×week) — anchor slot = W3's Thursday
         $anchorSlot = TimeSlot::query()->where('week_number', 3)->where('day_of_week', 3)
@@ -353,9 +355,23 @@ final class NotificationsBridgeTest extends TestCase
         Notification::query()->where('user_id', $pl->id)
             ->where('type', 'submitted')->where('request_id', (int) $fresh->id)
             ->update(['read_at' => Date::now()]);
+
+        $readRow = Notification::query()->where('user_id', $pl->id)
+            ->where('type', 'submitted')->where('request_id', (int) $fresh->id)
+            ->firstOrFail();
+        $this->assertNotNull($readRow->read_at, 'the receipt row really is read');
+
         Livewire::test(NavNotifications::class, ['island' => 'panel', 'pageKey' => 'requestApproval', 'unreadOnly' => false])
-            ->assertSee('This notification is inactive because you have already read this request.', false)
-            ->assertSeeHtml('notif-row--inactive');
+            ->assertDontSee('This notification is inactive because you have already read this request.', false)
+            ->assertSeeHtml('data-id="'.$readRow->id.'"', false)
+            ->assertSeeHtml('data-notif-target="r'.$fresh->id.'"', false)
+            ->assertSee('New replacement request (ID #'.$fresh->id.')', false);
+
+        // "Active only" = not yet decided: the read-but-pending row survives it
+        // (the same row is shown), while a decided row is filtered out.
+        Livewire::test(NavNotifications::class, ['island' => 'panel', 'pageKey' => 'requestApproval', 'unreadOnly' => false, 'activeOnly' => true])
+            ->assertSeeHtml('data-id="'.$readRow->id.'"', false)
+            ->assertDontSee('This notification is inactive because the request was approved.', false);
         // (c) the missing-row edge = defensive ONLY — the FK nulls request_id
         //     on delete, so real writes never reach the branch; asserted here
         //     documentarily via the classifier's shape (no test can write it).

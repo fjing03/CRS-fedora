@@ -62,7 +62,9 @@
             'cancelled' => 'This notification is inactive because the request was cancelled by the requester.',
             'approved' => 'This notification is inactive because the request was approved.',
             'rejected' => 'This notification is inactive because the request was rejected.',
-            'read' => 'This notification is inactive because you have already read this request.',
+            /* 2026-11-04 (user ruling): there is no `read` reason any more — a
+               read row of a still-pending request stays ACTIVE (see
+               NavNotifications::resolveRequests). Reading is not a decision. */
             default => 'This notification is inactive because the request was cancelled by the requester.',
         };
         $rowLabel = $composedTitle.' — '.$composedBody.' (inactive)';

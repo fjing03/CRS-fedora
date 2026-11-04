@@ -1,3 +1,38 @@
+## 2026-11-04 — reading is not a decision: a read row stays alive, and "Active only" means undecided
+
+Two rulings from the user's review of the notification rules, applied together because they are the
+same sentence read twice.
+
+**1. A read "new request" row stays usable.** Until today, reading a `submitted` (or `awaiting`
+reminder) row made it *inactive*: it lost its anchor, its composed title with the request ID and its
+schedule line, and its tooltip read *"…because you have already read this request."* The classifier
+now stops at the decisions — `cancelled > approved > rejected` — and **`read` is no longer an
+inactive reason at all**. A read row of a still-pending request is an ordinary active row: clickable,
+composed, and it still jumps + flashes its record.
+
+Nothing else moved, by construction:
+
+| Law | Predicate | Effect of this change |
+|---|---|---|
+| Badge (D5) | `read_at === null && inactive_reason === null` | unchanged — the badge still drops on read |
+| Hide gate | `read_at !== null \|\| inactive_reason !== null` | unchanged — read rows stay hideable |
+| "Unread only" (default) | literal `read_at === null` | unchanged — a read row leaves the *view*, which is the filter working, not the row dying |
+| "Active only" | `! isInactiveRow()` → `inactive_reason === null` | **now means "not yet decided"** — read-but-pending rows stay visible |
+
+**2. "Active only" = the request has not been decided yet.** This needed no second code path: the
+toggle already keys off the same classifier the row partial renders by, so retiring the `read` reason
+made the switch mean exactly what its name says. Only the docblock says so explicitly now.
+
+**Retired copy:** `This notification is inactive because you have already read this request.` — its
+key is gone from the row partial's reason map, so no state can render it.
+
+**Receipts.** `NotificationsBridgeTest` **24/24** (180 assertions): the old D15 read arm — which
+asserted the read sentence and `notif-row--inactive` — is replaced by an arm asserting the opposite
+(`data-id` + `data-notif-target` + the composed `New replacement request (ID #N)` and **no** read
+sentence), plus an "Active only" arm proving the read-but-pending row survives the switch while the
+decided row does not. Live `:8000`: 6/6 inbox rows carry `data-id`, and the retired sentence appears
+nowhere in the page.
+
 ## 2026-11-04 — the row click marks read again, and flashes again: the `$variant` inheritance trap
 
 **Report (user, live):** clicking a notification row navigates, but the row is never marked read —
