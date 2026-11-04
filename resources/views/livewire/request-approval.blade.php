@@ -26,7 +26,9 @@
             align-items: center;
             gap: 7px;
         }
-        /* Slot-validity badge — sits to the LEFT of the venue; bg varies by status */
+        /* Slot-validity badge — sits to the LEFT of the venue; bg varies by status.
+           2026-11-04: the venue line dropped its icon, so the badge needs the 4px
+           the icon used to provide or it reads as `✓B010`. */
         .slot-badge {
             display: inline-flex;
             align-items: center;
@@ -38,6 +40,7 @@
             font-weight: 700;
             line-height: 1;
             flex-shrink: 0;
+            margin-right: 4px;
         }
         .slot-badge.slot-valid {
             background: var(--color-success-container);
@@ -736,11 +739,11 @@
                the modal prints the same codes joined with ' + '. */
             var cohortCodes = (r.cohorts || []).map(compactCohort);
             html += '<td class="col-cohort">' + (cohortCodes.length ? cohortCodes.join('<br>') : '—') + '</td>';
-            html += '<td>' + HtmlBuilder.classBlock(r, { merged: true }) + '</td>';
+            html += '<td>' + HtmlBuilder.classBlock(r, { merged: true, venueCodeOnly: true }) + '</td>';
 
             // Proposed Replacement — slot validity as a status-colored badge beside the venue
             const slotBadge = '<span class="slot-badge ' + (r.slotValidity === 'conflict' ? 'slot-conflict' : 'slot-valid') + '" data-tip="' + (r.slotValidity === 'conflict' ? (r.conflictReason || 'Slot conflict') : 'Slot available') + '">' + (r.slotValidity === 'conflict' ? '⚠' : '✓') + '</span>';
-            html += '<td class="col-replacement">' + HtmlBuilder.replacementBlock(r, { colorStatus: false, merged: true, slotBadge: slotBadge }) + '</td>';
+            html += '<td class="col-replacement">' + HtmlBuilder.replacementBlock(r, { colorStatus: false, merged: true, venueCodeOnly: true, slotBadge: slotBadge }) + '</td>';
 
             html += '<td class="col-urgency"><span class="urgency-badge ' + urgencyClass(level) + '" data-tip="' + urgencyTip(r) + '">' + urgencyLabel(level, r.classDate) + '</span></td>';
             html += '<td><span class="badge ' + statusClass(r.status) + '"' + statusTipAttr(r) + ' onclick="openModalById(' + r.id + ')" style="cursor:pointer">' + r.requestStatusLabel + '</span></td>';

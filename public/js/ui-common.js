@@ -2406,9 +2406,13 @@ function uiHoursFromRange(range) {
     return Math.round((mins / 60) * 10) / 10;
 }
 
-/* pin icon + `CODE — Name` (name only when the payload carries one) */
-function uiVenueLine(code, name) {
+/* pin icon + `CODE — Name` (name only when the payload carries one).
+   `opts.venueCodeOnly` drops BOTH the icon and the name (request-approval's table
+   columns, user 2026-11-04) while keeping the .cell-sub line — same 12px muted
+   sub-line, so the row keeps its height. Default path unchanged. */
+function uiVenueLine(code, name, opts) {
     if (!code) return '';
+    if (opts && opts.venueCodeOnly) return '<span class="cell-sub">' + code + '</span>';
     var label = name ? code + ' \u2014 ' + name : code;
     return '<span class="cell-sub"><svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18"/><path d="M5 21V7l7-4 7 4v14"/><path d="M9 21v-6h6v6"/></svg>' + label + '</span>';
 }
@@ -2429,7 +2433,7 @@ class HtmlBuilder {
            and the icon-led venue line the lecturer page prints. Opt-in, so the
            frozen templates and the legacy grid stay byte-identical. */
         if (opts.merged) {
-            var venueHtml = uiVenueLine(r.venue, r.venueName);
+            var venueHtml = uiVenueLine(r.venue, r.venueName, opts);
             return '<div class="cell-class-block">' +
                 '<span class="class-day-date">' + d + ', ' + dateStr + weekTag + '</span>' +
                 '<br><span class="class-time">' + timeStr + '</span> <span class="class-duration">(' + uiHoursWords(r.duration) + ')</span>' +
@@ -2448,7 +2452,7 @@ class HtmlBuilder {
         var weekTag = wn ? ' (Week ' + wn + ')' : '';
         if (opts.merged) {
             var hours = uiHoursFromRange(r.replacementTime);
-            var repVenue = uiVenueLine(r.replacementVenue || r.venue, r.replacementVenueName);
+            var repVenue = uiVenueLine(r.replacementVenue || r.venue, r.replacementVenueName, opts);
             return '<div class="cell-class-block">' +
                 '<span class="class-day-date">' + d + ', ' + dateStr + weekTag + '</span>' +
                 '<br><span class="class-time">' + DateHelper.format12hRange(r.replacementTime) + '</span>' +
