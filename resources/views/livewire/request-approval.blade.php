@@ -236,7 +236,7 @@
 
 <div class="page-header">
     <h1>Request Approval</h1>
-    <p>Review and manage replacement requests from lecturers in your program.</p>
+    <p class="page-desc">Review and manage <span class="info-keyword">replacement requests</span> from <span class="info-keyword">lecturers in your program</span>.</p>
 </div>
 
 @include('partials.ui-guide-block', [

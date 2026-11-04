@@ -1,3 +1,12 @@
+## 2026-11-04 — the page description joins the sweep
+
+The all-pages `.page-desc` update skipped this page because its header is hand-rolled rather than the
+shared `ui-page-header` partial — it had a bare `<p>` and no `.page-desc` class at all. Both fixed
+here, without touching the header's structure: the paragraph keeps its place, gains the class, and
+emphasises its key terms with the same `.info-keyword` used on the other five pages.
+
+`Review and manage **REPLACEMENT REQUESTS** from **LECTURERS IN YOUR PROGRAM**.` — wording unchanged.
+
 ## 2026-11-04 — the status filter's label takes Title Case
 
 Minor UI update (user), matching My Replacements. The select's label (its `data-tip`, now also an
