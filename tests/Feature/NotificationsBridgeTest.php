@@ -178,11 +178,11 @@ final class NotificationsBridgeTest extends TestCase
         // SDD notif-new-request-ux D5: inactive ⇒ the READ category —
         // never in the unread filter, so the D1 row shows under unread-only=false.
         Livewire::withQueryParams([])
-            ->test(NavNotifications::class, ['variant' => 'panel', 'pageKey' => 'requestApproval', 'unreadOnly' => false])
+            ->test(NavNotifications::class, ['island' => 'panel', 'pageKey' => 'requestApproval', 'unreadOnly' => false])
             ->assertSee('This notification is inactive because the request was cancelled by the requester.', false)
             ->assertDontSeeHtml('href="/request-approval-ui"');
         // the unread-only default view hides it entirely (the actionable law)
-        Livewire::test(NavNotifications::class, ['variant' => 'panel', 'pageKey' => 'requestApproval'])
+        Livewire::test(NavNotifications::class, ['island' => 'panel', 'pageKey' => 'requestApproval'])
             ->assertDontSee('This notification is inactive', false);
     }
 
@@ -193,14 +193,51 @@ final class NotificationsBridgeTest extends TestCase
 
         $pl = $this->pl();
         $this->actingAs($pl);
-        $component = Livewire::test(NavNotifications::class, ['variant' => 'bell', 'pageKey' => 'requestApproval']);
+        $component = Livewire::test(NavNotifications::class, ['island' => 'bell', 'pageKey' => 'requestApproval']);
         $component->assertSee('>1</span>', false);
         $this->assertSame(1, Notification::query()->where('user_id', $pl->id)->whereNull('read_at')->count(), 'the bell = the mailbox unread TOTAL law (the PER-USER total, not the global)');
 
         Notification::query()->where('user_id', $pl->id)->update(['read_at' => now()]);
-        $component2 = Livewire::test(NavNotifications::class, ['variant' => 'bell', 'pageKey' => 'requestApproval']);
+        $component2 = Livewire::test(NavNotifications::class, ['island' => 'bell', 'pageKey' => 'requestApproval']);
         $component2->assertSeeHtml('<span class="notif-badge" id="notifBadge"', false);
         $this->assertSame(0, Notification::query()->where('user_id', $pl->id)->whereNull('read_at')->count(), 'the DB-backed read state survives');
+    }
+
+    /**
+     * 2026-11-04 regression — the row-click contract (D4 + D3) lives on the
+     * anchor's `data-id`, and the click-highlight handoff on `data-notif-target`.
+     * Both were silently suppressed 2026-11-02 → 2026-11-04: the island's
+     * public `$variant` property was INHERITED by `partials/notif-row` through
+     * `@include` (Blade shares the parent scope), so the partial's
+     * `$variant === null` guard never passed and every inbox row rendered
+     * without the hooks — clicking navigated but never marked read, and never
+     * flashed the record. Pinned here so the trap cannot return unnoticed.
+     */
+    public function test_active_inbox_rows_carry_the_mark_read_and_highlight_hooks(): void
+    {
+        $request = $this->seedRequest();
+        $pl = $this->pl();
+        $this->actingAs($pl);
+        $this->submitEvent($request->id);
+
+        $row = Notification::query()
+            ->where('user_id', $pl->id)
+            ->where('type', 'submitted')
+            ->firstOrFail();
+
+        Livewire::test(NavNotifications::class, ['island' => 'panel', 'pageKey' => 'requestApproval'])
+            ->assertSeeHtml('data-id="'.$row->id.'"', false)
+            ->assertSeeHtml('data-notif-target="r'.$request->id.'"', false)
+            ->assertSeeHtml('href="/request-approval-ui"', false);
+
+        /* The other direction of the same law: an inactive row must carry
+           NEITHER hook — the durable POST and the anchor are for clickable
+           rows only (the D15 disabled branch). */
+        $request->update(['status' => 'cancelled']);
+        $html = Livewire::test(NavNotifications::class, ['island' => 'panel', 'pageKey' => 'requestApproval', 'unreadOnly' => false])->html();
+
+        $this->assertStringNotContainsString('data-id="'.$row->id.'"', $html, 'an inactive row is never click-markable');
+        $this->assertStringNotContainsString('data-notif-target="r'.$request->id.'"', $html);
     }
 
     public function test_reminder_dedupe_until_read_then_rearm(): void
@@ -238,7 +275,7 @@ final class NotificationsBridgeTest extends TestCase
 
         $pl = $this->pl();
         $this->actingAs($pl);
-        $component = Livewire::test(NavNotifications::class, ['variant' => 'panel', 'pageKey' => 'requestApproval', 'unreadOnly' => false]);
+        $component = Livewire::test(NavNotifications::class, ['island' => 'panel', 'pageKey' => 'requestApproval', 'unreadOnly' => false]);
         $component
             ->assertSee('This notification is inactive because the request was approved.', false)
             ->assertDontSeeHtml('href="/request-approval-ui"');
@@ -254,7 +291,7 @@ final class NotificationsBridgeTest extends TestCase
 
         $pl = $this->pl();
         $this->actingAs($pl);
-        $component = Livewire::test(NavNotifications::class, ['variant' => 'panel', 'pageKey' => 'requestApproval', 'unreadOnly' => false]);
+        $component = Livewire::test(NavNotifications::class, ['island' => 'panel', 'pageKey' => 'requestApproval', 'unreadOnly' => false]);
         $html = $component->html();
 
         // 1) the title-with-ID
@@ -292,7 +329,7 @@ final class NotificationsBridgeTest extends TestCase
         );
         $pl = $this->pl();
         $this->actingAs($pl);
-        Livewire::test(NavNotifications::class, ['variant' => 'panel', 'pageKey' => 'requestApproval', 'unreadOnly' => false])
+        Livewire::test(NavNotifications::class, ['island' => 'panel', 'pageKey' => 'requestApproval', 'unreadOnly' => false])
             ->assertSee('This notification is inactive because the request was approved.', false);
 
         // (b) the D15 'read' arm: a READ submitted row whose request is STILL
@@ -316,7 +353,7 @@ final class NotificationsBridgeTest extends TestCase
         Notification::query()->where('user_id', $pl->id)
             ->where('type', 'submitted')->where('request_id', (int) $fresh->id)
             ->update(['read_at' => Date::now()]);
-        Livewire::test(NavNotifications::class, ['variant' => 'panel', 'pageKey' => 'requestApproval', 'unreadOnly' => false])
+        Livewire::test(NavNotifications::class, ['island' => 'panel', 'pageKey' => 'requestApproval', 'unreadOnly' => false])
             ->assertSee('This notification is inactive because you have already read this request.', false)
             ->assertSeeHtml('notif-row--inactive');
         // (c) the missing-row edge = defensive ONLY — the FK nulls request_id
@@ -391,7 +428,7 @@ final class NotificationsBridgeTest extends TestCase
         });
 
         $this->actingAs($this->pl());
-        Livewire::test(NavNotifications::class, ['variant' => 'panel', 'pageKey' => 'requestApproval']);
+        Livewire::test(NavNotifications::class, ['island' => 'panel', 'pageKey' => 'requestApproval']);
 
         $this->assertCount(1, $replacementQueries, 'exactly ONE replacement_requests query per render (the batch whereIn), got: '.implode(' | ', $replacementQueries));
         $this->assertStringContainsString(' in (', $replacementQueries[0], 'the ONE query is the batch whereIn');
@@ -420,7 +457,7 @@ final class NotificationsBridgeTest extends TestCase
         // the SAME full feed on every page shape — pl rows, lecturer rows and
         // student rows ALL render, whatever page key the mount receives
         foreach (['requestApproval', 'myTimetable', 'studentMyTimetable', 'replacementHistory', ''] as $pageKey) {
-            Livewire::test(NavNotifications::class, ['variant' => 'panel', 'pageKey' => $pageKey])
+            Livewire::test(NavNotifications::class, ['island' => 'panel', 'pageKey' => $pageKey])
                 ->assertSee('PL tab row', false)
                 ->assertSee('lecturer tab row', false)
                 ->assertSee('student tab row', false);
@@ -431,7 +468,7 @@ final class NotificationsBridgeTest extends TestCase
             'user_id' => 2, 'role_view' => 'pl', 'type' => 'submitted',
             'title' => 'other user row', 'body' => 'other', 'link' => '/request-approval-ui', 'week' => 8,
         ]);
-        Livewire::test(NavNotifications::class, ['variant' => 'panel', 'pageKey' => 'requestApproval'])
+        Livewire::test(NavNotifications::class, ['island' => 'panel', 'pageKey' => 'requestApproval'])
             ->assertSee('PL tab row', false)
             ->assertDontSee('other user row', false);
     }
@@ -458,7 +495,7 @@ final class NotificationsBridgeTest extends TestCase
         );
 
         $view = fn (array $extra = []) => Livewire::test(NavNotifications::class, array_merge(
-            ['variant' => 'panel', 'pageKey' => 'requestApproval', 'unreadOnly' => false],
+            ['island' => 'panel', 'pageKey' => 'requestApproval', 'unreadOnly' => false],
             $extra,
         ));
 
@@ -486,7 +523,7 @@ final class NotificationsBridgeTest extends TestCase
 
         // the derived actionable-unread total is filter-INDEPENDENT (D5)
         $component = Livewire::test(NavNotifications::class, [
-            'variant' => 'panel', 'pageKey' => 'requestApproval',
+            'island' => 'panel', 'pageKey' => 'requestApproval',
             'unreadOnly' => false, 'activeOnly' => true, 'typeFilter' => 'approved',
         ]);
         $this->assertSame(1, $component->viewData('unreadTotal'),
@@ -526,7 +563,7 @@ final class NotificationsBridgeTest extends TestCase
         $live = $this->liveRow($user, 'Still needs you row');
 
         $component = Livewire::test(NavNotifications::class, [
-            'variant' => 'panel', 'unreadOnly' => false,
+            'island' => 'panel', 'unreadOnly' => false,
         ])->call('enterManage');
 
         $selected = array_map('intval', $component->get('selectedIds'));
@@ -546,7 +583,7 @@ final class NotificationsBridgeTest extends TestCase
         $row = $this->readRow($user, 'Row to put away');
 
         $component = Livewire::test(NavNotifications::class, [
-            'variant' => 'panel', 'unreadOnly' => false,
+            'island' => 'panel', 'unreadOnly' => false,
         ])->call('enterManage');
 
         // TAMPER: post an ineligible id alongside the eligible one — the gate
@@ -581,7 +618,7 @@ final class NotificationsBridgeTest extends TestCase
         $hideable = $this->readRow($user, 'A read row');
 
         $before = Livewire::test(NavNotifications::class, [
-            'variant' => 'panel', 'unreadOnly' => false,
+            'island' => 'panel', 'unreadOnly' => false,
         ]);
         $badgeBefore = $before->viewData('unreadTotal');
         $this->assertGreaterThan(0, $badgeBefore, 'the unread live row counts');
@@ -592,7 +629,7 @@ final class NotificationsBridgeTest extends TestCase
         $this->assertNull($live->fresh()->hidden_at);
 
         $after = Livewire::test(NavNotifications::class, [
-            'variant' => 'panel', 'unreadOnly' => false,
+            'island' => 'panel', 'unreadOnly' => false,
         ]);
         $this->assertSame($badgeBefore, $after->viewData('unreadTotal'), 'the badge law is untouched by hiding');
         $after->assertDontSee('A read row')->assertSee('The badge row');
@@ -603,7 +640,7 @@ final class NotificationsBridgeTest extends TestCase
         $after->call('unhideAll')->assertSee('0 hidden', false)->assertSee('Nothing hidden', false);
         $this->assertNull($hideable->fresh()->hidden_at);
         $this->assertSame(0, Livewire::test(NavNotifications::class, [
-            'variant' => 'panel', 'unreadOnly' => false,
+            'island' => 'panel', 'unreadOnly' => false,
         ])->viewData('hiddenCount'));
     }
 
@@ -614,7 +651,7 @@ final class NotificationsBridgeTest extends TestCase
         $foreignRow = $this->readRow($other, 'Someone else\'s row');
 
         $this->actingAs($this->coordinator());
-        Livewire::test(NavNotifications::class, ['variant' => 'panel', 'unreadOnly' => false])
+        Livewire::test(NavNotifications::class, ['island' => 'panel', 'unreadOnly' => false])
             ->set('selectedIds', [(int) $foreignRow->id])
             ->call('hideSelected')
             ->call('unhide', (int) $foreignRow->id)
@@ -679,7 +716,7 @@ final class NotificationsBridgeTest extends TestCase
         );
         $this->actingAs($this->coordinator());
         $this->assertSame(['Lim Jia Zheng (5770)'], $this->subtitleSpans(
-            Livewire::test(NavNotifications::class, ['variant' => 'panel', 'pageKey' => 'requestApproval', 'unreadOnly' => false])->html()
+            Livewire::test(NavNotifications::class, ['island' => 'panel', 'pageKey' => 'requestApproval', 'unreadOnly' => false])->html()
         ), 'a PL sees who proposed, with the staff id');
 
         // (b) a student reading the approval notice → the proposer. The emitter
@@ -692,7 +729,7 @@ final class NotificationsBridgeTest extends TestCase
         );
         $this->actingAs($student->user);
         $this->assertSame(['Lim Jia Zheng (5770)'], $this->subtitleSpans(
-            Livewire::test(NavNotifications::class, ['variant' => 'panel', 'pageKey' => 'studentTimetable', 'unreadOnly' => false])->html()
+            Livewire::test(NavNotifications::class, ['island' => 'panel', 'pageKey' => 'studentTimetable', 'unreadOnly' => false])->html()
         ));
 
         // (c) the owner reading their OWN rows → the PL who acted. Both self rows
@@ -704,7 +741,7 @@ final class NotificationsBridgeTest extends TestCase
         );
         $this->actingAs($nonPl);
         $spans = $this->subtitleSpans(
-            Livewire::test(NavNotifications::class, ['variant' => 'panel', 'pageKey' => 'myTimetable', 'unreadOnly' => false])->html()
+            Livewire::test(NavNotifications::class, ['island' => 'panel', 'pageKey' => 'myTimetable', 'unreadOnly' => false])->html()
         );
         $this->assertNotEmpty($spans, 'the owner rows do carry a line');
         $this->assertSame(['Surayaini Binti Basri (5425)'], array_values(array_unique($spans)), 'a self row names the PL who acted — never the reader');
@@ -724,12 +761,12 @@ final class NotificationsBridgeTest extends TestCase
         app(NotificationEmitter::class)->classCancelled($nonPl, $session, 8);
 
         $this->actingAs($nonPl);
-        $own = Livewire::test(NavNotifications::class, ['variant' => 'panel', 'pageKey' => 'myTimetable', 'unreadOnly' => false])->html();
+        $own = Livewire::test(NavNotifications::class, ['island' => 'panel', 'pageKey' => 'myTimetable', 'unreadOnly' => false])->html();
         $this->assertStringContainsString('Scheduled class cancelled', $own);
         $this->assertSame([], $this->subtitleSpans($own), 'a self-only event omits the line');
 
         $this->actingAs($student->user);
-        $studentHtml = Livewire::test(NavNotifications::class, ['variant' => 'panel', 'pageKey' => 'studentTimetable', 'unreadOnly' => false])->html();
+        $studentHtml = Livewire::test(NavNotifications::class, ['island' => 'panel', 'pageKey' => 'studentTimetable', 'unreadOnly' => false])->html();
         $this->assertSame(['Lim Jia Zheng (5770)'], $this->subtitleSpans($studentHtml), 'the student still sees whose class it was');
     }
 
@@ -747,7 +784,7 @@ final class NotificationsBridgeTest extends TestCase
         $this->actingAs($pl);
         $row = Notification::query()->where('user_id', $pl->id)->where('type', 'submitted')->firstOrFail();
 
-        $panel = fn () => Livewire::test(NavNotifications::class, ['variant' => 'panel', 'pageKey' => 'requestApproval', 'unreadOnly' => false])->html();
+        $panel = fn () => Livewire::test(NavNotifications::class, ['island' => 'panel', 'pageKey' => 'requestApproval', 'unreadOnly' => false])->html();
 
         // 1. unread — the composer's subtitle (same text as the staff line)
         $this->assertSame(['Lim Jia Zheng (5770)'], $this->subtitleSpans($panel()), 'unread');
@@ -762,7 +799,7 @@ final class NotificationsBridgeTest extends TestCase
 
         // 4. hidden — the same row on the shelf
         Notification::query()->whereKey($row->id)->update(['hidden_at' => Date::now()]);
-        $shelf = Livewire::test(NavNotifications::class, ['variant' => 'panel', 'pageKey' => 'requestApproval', 'unreadOnly' => false])
+        $shelf = Livewire::test(NavNotifications::class, ['island' => 'panel', 'pageKey' => 'requestApproval', 'unreadOnly' => false])
             ->call('showHidden')->html();
         $this->assertSame(['Lim Jia Zheng (5770)'], $this->subtitleSpans($shelf), 'hidden');
     }

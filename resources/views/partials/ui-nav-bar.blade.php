@@ -52,7 +52,7 @@
              are the bell VARIANT of the island (wire:poll.10s.visible — the
              badge updates itself, no page refresh; the poll pauses only when
              this island is off the viewport, which keeps the bell alive). --}}
-        @livewire(NavNotifications::class, ['variant' => 'bell'], key('notif-bell'))
+        @livewire(NavNotifications::class, ['island' => 'bell'], key('notif-bell'))
 
         <div class="user-panel" id="userPanel">
             <div class="user-profile">

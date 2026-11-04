@@ -18,10 +18,10 @@ use Livewire\Component;
 /**
  * The notifications island (SDD notifications-real-bridge): ONE component,
  * TWO mounts (design D2) —
- *   variant 'bell'  → the unread TOTAL badge (the updateNotifHeaderState law)
- *   variant 'panel' → the WHOLE panel body server-side (the head pill + the
- *                     mark-all visibility + the filter + the list + the caught-up
- *                     swap), from the SAME unread total.
+ *   island 'bell'  → the unread TOTAL badge (the updateNotifHeaderState law)
+ *   island 'panel' → the WHOLE panel body server-side (the head pill + the
+ *                    mark-all visibility + the filter + the list + the caught-up
+ *                    swap), from the SAME unread total.
  * Both `wire:poll.10s` (updates without a page refresh — the user's ruling);
  * the read path stays the durable POST (D3) — the rows are NATIVE anchors.
  * ONE FEED (notif-unified-feed — the user's 2026-10-29 ruling, superseding
@@ -56,7 +56,21 @@ use Livewire\Component;
  */
 class NavNotifications extends Component
 {
-    public string $variant = 'bell';
+    /**
+     * WHICH mount this is: 'bell' or 'panel'.
+     *
+     * DELIBERATELY NOT called `$variant` (renamed 2026-11-04). Blade's
+     * `@include` shares the PARENT'S SCOPE, so a public property named
+     * `$variant` was inherited by `partials/notif-row`, whose own
+     * `$variant = $variant ?? null` could not override it (a real string is
+     * not "missing"). Every inbox row therefore failed the partial's
+     * `$variant === null` guard: `data-id`, `data-notif-target` and
+     * `data-notif-week` were never printed, which silently killed the
+     * mark-read POST and the click-to-flash handoff from 2026-11-02 until the
+     * rename. A mount-role name that the row partial does not use cannot
+     * collide this way again.
+     */
+    public string $island = 'bell';
 
     /** Kept ACCEPTED for mount compatibility (the panel mounts pass the page
      *  key); it no longer selects anything — one feed per recipient, not per
@@ -96,9 +110,9 @@ class NavNotifications extends Component
      */
     public array $undoIds = [];
 
-    public function mount(string $variant = 'bell', string $pageKey = ''): void
+    public function mount(string $island = 'bell', string $pageKey = ''): void
     {
-        $this->variant = $variant;
+        $this->island = $island;
         $this->pageKey = $pageKey;
     }
 

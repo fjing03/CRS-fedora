@@ -9,5 +9,5 @@
 <div class="notif-overlay" id="notifOverlay"></div>
 
 <div class="notif-panel" id="notifPanel" role="dialog" aria-label="Notifications">
-    @livewire(NavNotifications::class, ['variant' => 'panel', 'pageKey' => $pageKey ?? ''], key('notif-panel'))
+    @livewire(NavNotifications::class, ['island' => 'panel', 'pageKey' => $pageKey ?? ''], key('notif-panel'))
 </div>

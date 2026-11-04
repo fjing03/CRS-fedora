@@ -1,3 +1,52 @@
+## 2026-11-04 — the row click marks read again, and flashes again: the `$variant` inheritance trap
+
+**Report (user, live):** clicking a notification row navigates, but the row is never marked read —
+the unread state comes straight back; the badge never drops.
+
+**Root cause — one inherited variable.** The click contract has always been the anchor's
+`data-id`: `ui-common.js` listens for `.notif-row[data-id]`, fires the durable POST
+(`/notifications/read`, keepalive) and then appends `?notif-hl=` for the flash. The batch-hide lane
+(`467357b`, 2026-11-02) added an optional `$variant` to `partials/notif-row` and gated the three
+hooks on `$variant === null`. The panel is mounted `variant="panel"`, and Blade's `@include`
+**shares the parent's scope** — so inside every inbox row `$variant` was `"panel"`, never `null`,
+and the partial's own `$variant = $variant ?? null` could not help (a real string is not "missing").
+
+Live DOM before the fix — six anchors, `data-id` null on every one:
+
+```
+<a class="notif-row" href="/request-approval-ui">New replacement request (ID #28)</a>   ← no hooks
+```
+
+Two behaviours died on 2026-11-02 and stayed dead for two days: **mark-read on click**, and
+**click-to-highlight** (`data-notif-target` / `data-notif-week` ride the same guard, so nothing
+anchored or flashed either). Mark-all kept working (a `wire:click`), which is why the badge could
+still be cleared and the panel looked healthy.
+
+**Why the tests missed it.** The one spec that clicks a row selects the attribute that had vanished —
+`notifications-island-testing-db.spec.ts:170`, `#notifList a.notif-row[data-id]` — so it could not
+pass; it runs only on the disposable `:8030` lane, never in the routine PHPUnit suite, and the
+lane's own receipts exercised sizes, checkboxes and the shelf rather than a row click.
+
+**Fix (two parts).**
+1. The inbox `@include` now passes `'variant' => null` explicitly (`nav-notifications.blade.php:207`).
+2. The component's public prop is renamed `$variant` → **`$island`** (mounts, blade branch and the
+   ~30 test mounts follow). The row partial does not use that name, so a `@include` in this blade
+   can never inherit it again — the trap class is gone, not just this instance.
+
+**Receipts.** `NotificationsBridgeTest` **24/24** (new pin: an active inbox row carries
+`data-id="<id>"` + `data-notif-target="r<id>"` + its href, and an inactive row carries none of them).
+Live `:8000`, DOM after the fix — six anchors, e.g. `data-id="168"` + `data-notif-target="r28"`.
+A stubbed-fetch click on row 168 (no DB write) fired exactly:
+
+```
+POST /notifications/read   body {"id":168}
+href  /request-approval-ui  →  /request-approval-ui?notif-hl=r28
+```
+
+So the click now marks read **and** hands the landing page its anchor again. Still open by
+decision, not by bug: a read `submitted` row is rendered inactive (D15) — the user's 2026-11-04
+ruling reverses that, separately.
+
 ## 2026-11-04 — the panel stops printing UTC: one `LocalTime` helper owns the user's clock
 
 **Root cause.** `config/app.php` stores and computes in **UTC** (correct — changing it would shift

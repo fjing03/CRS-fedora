@@ -2,9 +2,9 @@
      ONE component; the top-level wrapper div is the Livewire root).
      notif-unified-feed (the user's 2026-10-29 ruling): the panel shows the
      RECIPIENT-WIDE feed on every page — no per-page category tabs.
-     variant='bell'  → the bell BUTTON + the unread-TOTAL badge (the frozen
+     island='bell'   → the bell BUTTON + the unread-TOTAL badge (the frozen
                        button markup; toggleNotifPanel() stays global).
-     variant='panel' → the WHOLE #notifPanel inner content server-side (the
+     island='panel'  → the WHOLE #notifPanel inner content server-side (the
                        head, the actions, the filter, the list, the caught-up
                        swap) — the ONE unread total drives badge + pill +
                        mark-all (updateNotifHeaderState's law). The .open
@@ -56,7 +56,7 @@
     };
     $userTotal = $unreadTotal > 0;
 @endphp
-@if($variant === 'bell')
+@if($island === 'bell')
     <button class="notif-btn" onclick="toggleNotifPanel()" aria-label="Notifications" aria-haspopup="true" data-tip="Notifications" data-tip-pos="left">
         <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
@@ -204,7 +204,7 @@
         @php $showEmpty = ($unreadOnly && $unreadInView === 0) || $rows->isEmpty(); @endphp
         <div class="notif-list" id="notifList" style="display: {{ $showEmpty ? 'none' : '' }}">
             @foreach($rows as $n)
-                @include('partials.notif-row', ['n' => $n, 'glyph' => $glyphs[$n->type] ?? $glyphs['update']])
+                @include('partials.notif-row', ['n' => $n, 'glyph' => $glyphs[$n->type] ?? $glyphs['update'], 'variant' => null])
             @endforeach
         </div>
 
