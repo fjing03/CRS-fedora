@@ -355,7 +355,16 @@ function tryFind(sel, left, fallbackSel) {
     const el = document.querySelector(sel) || (fallbackSel ? document.querySelector(fallbackSel) : null);
     if (el) {
         el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        setTimeout(function () { flashRowPulse(el); }, 500);
+        setTimeout(function () {
+            /* Re-query at flash time (2026-11-04): the landing page can rebuild
+               its table between the find and the 500 ms beat — the skeleton
+               teardown on /my-replacements does exactly that — so an element
+               captured now may be detached by then, and flashing it would paint
+               a pulse nobody can see. Flash whatever carries the selector at
+               the moment of the pulse, falling back to the element we found. */
+            const live = document.querySelector(sel) || (fallbackSel ? document.querySelector(fallbackSel) : null) || el;
+            flashRowPulse(live);
+        }, 500);
         return;
     }
     if (left > 0) setTimeout(function () { tryFind(sel, left - 1, fallbackSel); }, 250);
@@ -2082,6 +2091,38 @@ function durableMarkNotifRead(id) {
     } catch (e) { /* ignore */ }
 }
 
+/**
+ * Put ONE row away in place (notif-click-behaviour, 2026-11-04) — the panel's
+ * host Livewire component owns the write, so the row leaves the list on the
+ * next morph. Returns false when there is no component to ask (the caller then
+ * falls back to plain navigation rather than swallowing the click).
+ *
+ * The server re-validates the id (`NavNotifications::hideOne` → the manage-mode
+ * gate) and stamps `hidden_at`; nothing is deleted, and the Hidden shelf is the
+ * way back.
+ */
+function hideNotifRowInPlace(row) {
+    if (typeof window.Livewire === 'undefined' || !window.Livewire.all) return false;
+    const id = Number(row.getAttribute('data-id'));
+    if (!id) return false;
+    /* WHICH component: the island that OWNS this row — found by containment, not
+       by a `[wire\:id]` selector (the escaped selector is easy to get wrong and
+       threw in the first pass) and not by pageLivewire() (that deliberately
+       skips the notification islands). Livewire 4 note: all() returns raw
+       components; the call API lives on $wire (see pageLivewire()). */
+    try {
+        const owner = window.Livewire.all().find(function (c) {
+            return c && c.el && c.el.contains && c.el.contains(row);
+        });
+        const target = owner && (owner.$wire ? owner.$wire : owner);
+        if (!target || typeof target.call !== 'function') return false;
+        target.call('hideOne', id);
+        return true;
+    } catch (err) {
+        return false;
+    }
+}
+
 function openNotifPanel() { // AD-12 direction 1 — drawer never stacks with panel
     closeNavDrawer();
     const panel = document.getElementById('notifPanel');
@@ -2143,13 +2184,27 @@ function initNotifPanel() {
             if (!row || !row.getAttribute('data-id')) return;
             const scrollTop = list.scrollTop;
             durableMarkNotifRead(row.getAttribute('data-id'));
+
+            /* notif-click-behaviour (user, 2026-11-04): the click follows the
+               row's RELATED RECORD STATUS, not its stored link.
+                 completed          → put the row away in place, no navigation:
+                                      the class already happened, there is
+                                      nothing to jump to;
+                 approved, cancelled → land on the row the notification is
+                                      about and flash it (the anchor below);
+                 anything else      → the row's own stored link, as before. */
+            if (row.getAttribute('data-notif-status') === 'completed' && hideNotifRowInPlace(row)) {
+                e.preventDefault();
+                return;
+            }
+
             const target = row.getAttribute('data-notif-target');
             const link = row.getAttribute('href');
             if (target && link) {
                 const norm = link.startsWith('/') ? link : '/' + link;
                 row.setAttribute('href', norm + (norm.includes('?') ? '&' : '?')
                     + 'notif-hl=' + encodeURIComponent(target)
-                    + (target.charAt(0) === 's' && row.getAttribute('data-notif-week')
+                    + ((target.charAt(0) === 's' || target.charAt(0) === 'o') && row.getAttribute('data-notif-week')
                         ? '&notif-w=' + encodeURIComponent(row.getAttribute('data-notif-week'))
                         : ''));
             }

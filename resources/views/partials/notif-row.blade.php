@@ -92,18 +92,34 @@
        inactive arm stays anchor-less (keep-as-it). */
     $notifTarget = null;
     $notifWeek = null;
+    /* 2026-11-04 (user): class news for a LECTURER lands on the merged page, not
+       the timetable — My Replacements is where the class and its request state
+       live together, so the click can point at the row itself. The stored link
+       stays the gate (the lifecycle law); only the LECTURER timetable rows are
+       re-pointed, and the legacy persisted `/my-timetable-ui` rows are mapped
+       too, so old notifications behave like new ones. Student rows keep
+       `/student-my-timetable-ui` untouched. */
+    $href = $n->link;
     if (! $activation) {
         if ($n->link === '/request-approval-ui' && $n->request_id !== null) {
             $notifTarget = 'r'.$n->request_id;
         } elseif ($n->link === '/my-request-history-ui' && $n->request_id !== null) {
             $notifTarget = 'r'.$n->request_id;
         } elseif ($n->link === '/my-timetable-ui' && $n->class_session_id !== null) {
-            $notifTarget = 's'.$n->class_session_id;
-            $notifWeek = $n->week;
+            $href = '/my-replacements';
+            if ($n->request_id !== null) {
+                /* the replacement-confirmed row: the request IS the target */
+                $notifTarget = 'r'.$n->request_id;
+            } else {
+                /* a CANCELLED class has no request yet — the row is the class's
+                   own occurrence, matched on session + week (the `o` arm) */
+                $notifTarget = 'o'.$n->class_session_id;
+                $notifWeek = $n->week;
+            }
         }
     }
 @endphp
-<{{ $tag }} class="{{ $rowClass }}" @if($variant === null && ! $activation) data-id="{{ $n->id }}" @endif @if($variant === null && $notifTarget) data-notif-target="{{ $notifTarget }}" @endif @if($variant === null && $notifWeek !== null) data-notif-week="{{ $notifWeek }}" @endif @if($variant === 'hidden') data-tip="{{ $rowTip }}" @elseif($activation) data-tip="{{ $rowTip }}" aria-label="{{ $rowLabel }}" @else href="{{ $n->link }}" data-tip="{{ $rowTip }}" aria-label="{{ $rowLabel }}" @endif>
+<{{ $tag }} class="{{ $rowClass }}" @if($variant === null && ! $activation) data-id="{{ $n->id }}" @endif @if($variant === null && $notifTarget) data-notif-target="{{ $notifTarget }}" @endif @if($variant === null && $notifWeek !== null) data-notif-week="{{ $notifWeek }}" @endif @if($variant === null && ! $activation && $n->getAttribute('notif_status') !== null) data-notif-status="{{ $n->getAttribute('notif_status') }}" @endif @if($variant === 'hidden') data-tip="{{ $rowTip }}" @elseif($activation) data-tip="{{ $rowTip }}" aria-label="{{ $rowLabel }}" @else href="{{ $href }}" data-tip="{{ $rowTip }}" aria-label="{{ $rowLabel }}" @endif>
     @if($variant === 'pick')
         <input type="checkbox" class="bulk-checkbox" wire:click="toggleSelect({{ (int) $n->id }})" @checked($picked) aria-label="{{ $rowLabel }}">
     @endif

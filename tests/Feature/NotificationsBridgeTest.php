@@ -127,7 +127,10 @@ final class NotificationsBridgeTest extends TestCase
         $row = Notification::query()->where('type', 'approved')->firstOrFail();
         $this->assertSame($owner->id, $row->user_id);
         $this->assertSame('lecturer', $row->role_view);
-        $this->assertSame('/my-timetable-ui', $row->link);
+        /* notif-click-behaviour (user, 2026-11-04): class news for the LECTURER
+           now points at the merged page — the row it is about lives there, so the
+           click can flash that row instead of a timetable cell. */
+        $this->assertSame('/my-replacements', $row->link);
         $this->assertSame('Replacement class updated', $row->title);
         $this->assertSame((int) $request->id, $row->request_id);
         $this->assertSame((int) $session->id, $row->class_session_id);
@@ -154,7 +157,7 @@ final class NotificationsBridgeTest extends TestCase
         // a PL of DCIT — her cancel row doubles as the PL fan-out; the count is
         // owner(1)+students+PLs(with overlaps deduped only by fan-out law))
         $this->assertGreaterThanOrEqual(3, $cancelRows->count());
-        $this->assertTrue($cancelRows->contains(fn (Notification $r) => $r->user_id === 1 && $r->role_view === 'lecturer' && $r->link === '/my-timetable-ui'), "the owner's record row links their own timetable page (notif-click-highlight stage-2 link law)");
+        $this->assertTrue($cancelRows->contains(fn (Notification $r) => $r->user_id === 1 && $r->role_view === 'lecturer' && $r->link === '/my-replacements'), "the owner's record row links the merged page (notif-click-behaviour, 2026-11-04) — the cancelled class's own row, flashed on arrival");
         $studentRows = $cancelRows->where('role_view', 'student');
         $this->assertTrue($studentRows->count() > 0, 'the cohort students get rows');
         $studentRows->each(fn (Notification $r) => $this->assertSame('/student-my-timetable-ui', $r->link, 'a student row NEVER links the lecturer-gated cohort page'));

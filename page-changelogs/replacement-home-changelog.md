@@ -1,3 +1,15 @@
+## 2026-11-04 — the page accepts a class-level arrival
+
+A notification about a **cancelled class** carries no request id, so its arrival uses
+`?notif-hl=o<sessionId>&notif-w=<week>` (the request-based `r<id>` arm is unchanged). The page matches
+the row on **session + week** — never on the row-id formula — pages it into view and flashes it with the
+shared pulse. A class that is not on this lecturer's page is a silent miss, exactly like the request arm.
+
+The arrival is still captured synchronously at `DOMContentLoaded` (the shared highlighter strips the
+params 150 ms later), and the params are gone from the address bar afterwards, so a refresh repeats
+nothing. Measured: `o67&notif-w=14` flashed row 6714; a session/week with no row flashed nothing and
+raised no error.
+
 ## 2026-11-04 — the page description speaks the same visual language as My Replacements
 
 Minor UI update (user, all pages): the `.page-desc` line now bolds and uppercases its key terms with

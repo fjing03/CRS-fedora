@@ -1010,6 +1010,32 @@
             }
         }
 
+        /* ─── Arrival — ?notif-hl=o<sessionId>&notif-w=<week> ───
+           notif-click-behaviour (user, 2026-11-04): a CANCELLED class notice is
+           written the moment the class is cancelled — usually before anything is
+           submitted — so it carries no request id. Its row on this page is the
+           class's own occurrence, matched on sessionId + week (never on the row
+           id formula), paged into view and flashed with the shared pulse. */
+        function jumpToMyOccurrence(sessionId, week) {
+            if (!sessionId || !week) return;
+            var find = function (c) {
+                return String(c.sessionId) === String(sessionId) && Number(c.week) === Number(week);
+            };
+            var row = (MockData.conflictedClasses || []).find(find);
+            if (!row) return;   /* not this lecturer's class — silent, like the r arm */
+            var idx = currentFiltered.findIndex(find);
+            if (idx < 0) {
+                toast.show('That class is hidden by your current filters.', null);
+                return;
+            }
+            var page = Math.floor(idx / state.rpp) + 1;
+            if (page !== pageState.currentPage) {
+                pageState.currentPage = page;
+                buildTable();
+            }
+            tryFind('tr[data-id="' + row.id + '"]', 20);
+        }
+
         document.addEventListener('keydown', function (e) {
             var tag = (e.target || {}).tagName || '';
             var isInput = (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT');
@@ -1059,9 +1085,11 @@
             /* D6: a home badge arrives as ?notif-hl=r<request_id>. Capture it
                SYNCHRONOUSLY — the shared highlighter strips the param at 150 ms
                and the first render sits behind the skeleton. */
-            var hlRaw = new URLSearchParams(location.search).get('notif-hl');
-            var pendingHl = (hlRaw && hlRaw.charAt(0) === 'r') ? hlRaw.slice(1) : null;
-            var openOnArrival = new URLSearchParams(location.search).get('view') === 'request';
+            var hlSearch = new URLSearchParams(location.search);
+            var hlRaw = hlSearch.get('notif-hl');
+            var hlWeek = hlSearch.get('notif-w');
+            var pendingHl = (hlRaw && (hlRaw.charAt(0) === 'r' || hlRaw.charAt(0) === 'o')) ? hlRaw : null;
+            var openOnArrival = hlSearch.get('view') === 'request';
 
             MockData.conflictedClasses = window.PAGE_DATA.conflictedClasses;
             MockData.semester = window.PAGE_DATA.semester;
@@ -1083,7 +1111,14 @@
             SkeletonLoader.with(function () {
                 buildTable();
                 SkeletonLoader.hideSummary();
-                if (pendingHl) { jumpToMyRow(pendingHl, openOnArrival); pendingHl = null; }
+                if (pendingHl) {
+                    if (pendingHl.charAt(0) === 'o') {
+                        jumpToMyOccurrence(pendingHl.slice(1), hlWeek);
+                    } else {
+                        jumpToMyRow(pendingHl.slice(1), openOnArrival);
+                    }
+                    pendingHl = null;
+                }
             }, document.getElementById('tableBody'), 10, 400);
 
             updateWeekArrowState();

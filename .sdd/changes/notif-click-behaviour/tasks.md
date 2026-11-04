@@ -1,0 +1,19 @@
+# Tasks — `notif-click-behaviour`
+
+Status: **applied 2026-11-04** (receipts in `review-log.md`).
+
+- [x] **T1** `NavNotifications`: stamp the live `notif_status` per row (`effectiveStatus`, derived Completed).
+- [x] **T2** `NavNotifications::classOnlyNotifStatus()` + the request-less early exit (a cancellation-only inbox).
+- [x] **T3** `NavNotifications::hideOne(int $id)` through `gateableInboxRows()` (the manage-mode gate).
+- [x] **T4** `notif-row.blade.php`: `$href` re-point for lecturer class news + the `o<session>` anchor + `data-notif-status`.
+- [x] **T5** `NotificationEmitter`: the two lecturer links → `/my-replacements` (student rows untouched).
+- [x] **T6** `ui-common.js`: the click branches on `data-notif-status`; `notif-w` also rides `o` anchors.
+- [x] **T7** `ui-common.js`: `hideNotifRowInPlace()` via component containment (no escaped selector).
+- [x] **T8** `replacement-home.blade.php`: `jumpToMyOccurrence()` + the `o` arm in the synchronous arrival capture.
+- [x] **T9** `ui-common.js` `tryFind()`: re-query the selector at flash time (the skeleton rebuild detached the row).
+- [x] **T10** `tests/Feature/NotificationsBridgeTest.php`: the two link assertions re-pointed to `/my-replacements`.
+- [x] **T11** Gates: pint passed · PHPStan level 7 → 0 errors · `node --check` ok.
+- [ ] **T12** Full `php artisan test` — **NOT RUN** in this session: `class_replacement_testing` is empty and
+      another session was using it; the full-suite reseed would collide. Run when idle.
+- [ ] **T13** End-to-end **completed → hide** receipt — **NOT RUN**: no completed request exists in the demo
+      DB, and hiding is a demo write (user-gated). The branch is verified structurally only (see review-log).

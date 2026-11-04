@@ -228,6 +228,25 @@ class NavNotifications extends Component
     }
 
     /**
+     * The status a row is ABOUT when there is no request to read it from.
+     *
+     * A class-cancellation notice is written the moment a class is cancelled —
+     * usually before the lecturer has submitted anything — so `request_id` is
+     * null. Its subject is the cancelled occurrence, and that is what the click
+     * behaviour needs to know (notif-click-behaviour, 2026-11-04).
+     */
+    private function classOnlyNotifStatus(Notification $n): ?string
+    {
+        if ($n->request_id !== null) {
+            return null;    // request rows resolve through effectiveStatus()
+        }
+
+        return $n->class_session_id !== null && $n->link === '/my-timetable-ui'
+            ? 'cancelled'
+            : null;
+    }
+
+    /**
      * The user's own INBOX rows for the posted ids, RESOLVED (so the derived
      * `inactive_reason` exists) — the authorization + gate surface shared by
      * every hide path. Never trusts the client: foreign ids, already-hidden
@@ -336,6 +355,32 @@ class NavNotifications extends Component
         $this->undoIds = $allowed;
     }
 
+    /**
+     * Put ONE row away without leaving the panel (notif-click-behaviour,
+     * user 2026-11-04): clicking a notification whose related record is
+     * COMPLETED hides that row in place instead of navigating — the class has
+     * already happened, so there is nothing left to jump to.
+     *
+     * Same gate as manage mode (`gateableInboxRows`): the id is re-validated
+     * server-side, a foreign / already-hidden / non-hideable id simply falls
+     * out, and `hidden_at` is stamped — rows are NEVER deleted. No Undo here:
+     * the shelf (`showHidden()` → Unhide) is the way back.
+     */
+    public function hideOne(int $id): void
+    {
+        $allowed = $this->gateableInboxRows([$id])
+            ->pluck('id')->map(fn ($value) => (int) $value)->all();
+
+        if ($allowed === []) {
+            return;
+        }
+
+        Notification::query()
+            ->where('user_id', (int) Auth::id())
+            ->whereIn('id', $allowed)
+            ->update(['hidden_at' => now()]);
+    }
+
     /** Undo the last hide batch — the same rows return to the inbox. */
     public function undoHide(): void
     {
@@ -425,6 +470,13 @@ class NavNotifications extends Component
             /* R5: the staff line is COLUMN-driven (request_id / class_session_id),
                so a cancellation-only inbox still needs the class batch — the
                classifier's attributes are not set yet at this exit. */
+            /* notif-click-behaviour (2026-11-04): the click needs to know what
+               the row is ABOUT, and a cancellation inbox has no request to
+               read that from — the class-only arm answers it. */
+            $rows->each(function (Notification $n): void {
+                $n->setAttribute('notif_status', $this->classOnlyNotifStatus($n));
+            });
+
             return $this->attachStaffLines($rows, collect());
         }
 
@@ -478,6 +530,22 @@ class NavNotifications extends Component
                 : null;
             $row->setAttribute('inactive_row', $row->request_id !== null
                 && ($legacyStatus === null || $legacyStatus === 'cancelled'));
+
+            /* notif-click-behaviour (user, 2026-11-04): "update the navigation
+               behaviour based on the notification's related class status" —
+               so every row carries the RELATED RECORD's live status, resolved
+               the same way the pages resolve it (derived Completed included,
+               never a stored column). The click handler branches on it:
+               completed → put the row away in place; approved / cancelled →
+               land on My Replacements and flash the row; anything else keeps
+               the row's own stored link. */
+            $related = $requests->get((int) $row->request_id);
+            $row->setAttribute('notif_status', $related !== null
+                ? $mapper->effectiveStatus(
+                    $related,
+                    Carbon::parse((string) $semesters->get((int) $related->semester_id)->start_date)
+                )
+                : $this->classOnlyNotifStatus($row));
 
             /* §4's classifier (D15, amended 2026-11-04): the REASON, first-match
                cancelled > approved > rejected — `read` is deliberately ABSENT

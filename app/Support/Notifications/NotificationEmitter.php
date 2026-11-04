@@ -109,7 +109,10 @@ final class NotificationEmitter
                 'approved',
                 'Replacement class updated',
                 $this->classFact($session, $week).' · approved by '.$deciderName.' · your timetable is updated',
-                '/my-timetable-ui',
+                /* notif-click-behaviour (user, 2026-11-04): class news for the
+                   lecturer lands on the MERGED page, where the row it is about
+                   actually lives, so the click can flash that row. */
+                '/my-replacements',
                 $requestId,
                 (int) $session->id,
                 $week,
@@ -164,7 +167,7 @@ final class NotificationEmitter
             /* notif-click-highlight stage 2 (the user's link-law ruling, 2026-10-30):
             the actor's row lands on THEIR OWN timetable page so the
             notification deep link can switch the week + flash the cell. */
-            $this->write($actor, 'lecturer', 'update', $title, $body, '/my-timetable-ui', null, $sessionId, $weekNumber);
+            $this->write($actor, 'lecturer', 'update', $title, $body, '/my-replacements', null, $sessionId, $weekNumber);
 
             // 2. every cohort student
             foreach ($session->cohorts as $cohort) {

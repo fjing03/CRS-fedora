@@ -1,3 +1,31 @@
+## 2026-11-04 — the click follows the record's status, not the stored link
+
+User order (part 1): cancelled → My Replacements + flash the row; approved → My Replacements + flash
+the row; completed → put the row away in place, no navigation.
+
+**Where the row goes now.** Class news for the lecturer is written to `/my-replacements` (it was
+`/my-timetable-ui`), and the row partial maps the **legacy** rows already stored with the old link, so
+the existing notifications behave like new ones. Student rows, the approval queue and rejected rows are
+untouched.
+
+**How the row is identified.** An approved row carries `r<request_id>` — the replacement record itself,
+never a week or a name. A cancelled class has no request yet, so it carries `o<class_session_id>` plus
+`notif-w`, and the merged page matches it on session + week. Both end in the same pulse the notification
+jumps have always used (`.bookable-flash`, 1.15 s, once).
+
+**Completed puts the row away** through the existing hide path (`NavNotifications::hideOne` → the
+manage-mode gate → `hidden_at`): nothing is deleted, and the Hidden shelf brings it back. It branches on
+the record's **live** status, so a derived Completed counts.
+
+**One bug found and fixed on the way.** `tryFind()` flashed the element it had found 500 ms earlier; the
+merged page's skeleton teardown rebuilds the table inside that window, so the measured element was
+disconnected while carrying the class — an invisible pulse. It now re-queries at flash time.
+
+Measured (demo DB, read-only): `r26` → row 4014 flashed; `o67&notif-w=14` → row 6714 flashed; a row that
+is not on the page → no flash, no error, params stripped. Panel rows: approved → `/my-replacements` +
+`r26`; cancelled → `/my-replacements` + `o24`/`o23` + week 7; submitted → `/request-approval-ui`;
+rejected → `/my-request-history-ui`. No page errors.
+
 ## 2026-11-04 — reading is not a decision: a read row stays alive, and "Active only" means undecided
 
 Two rulings from the user's review of the notification rules, applied together because they are the
