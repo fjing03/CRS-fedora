@@ -1,6 +1,6 @@
 name: mytimetable-jump-highlight
 created: 2026-11-04
-status: proposed
+status: applied
 source: "user chat 2026-11-04 — UI/UX update: Replacement Details Modal & My Replacements Table"
 user-order: "1) an icon-only button in the My Replacements ACTION column; 2) a `Go to My Timetable` button in the Replacement Details modal for Approved/Completed, which navigates to My Timetable and FLASHES the matching replacement block once; 3) reuse the existing highlight animation; 4) identify the target by the replacement record id"
 assumption: "A1 ANSWERED 2026-11-04 — the ACTION-column icon IS the same jump: tooltip 'Go to My Timetable', Approved/Completed rows only."
@@ -9,3 +9,5 @@ batches:
   design: "drafted 2026-11-04 — self-review round 1"
   specs: "drafted 2026-11-04 — self-review round 1"
   tasks: "drafted 2026-11-04 — self-review round 1"
+applied: "2026-11-04 — both entry points measured on the demo DB; full suite 340/340"
+assumption-closed: "A1 answered by the user: the ACTION icon IS the same jump, tooltip 'Go to My Timetable'"

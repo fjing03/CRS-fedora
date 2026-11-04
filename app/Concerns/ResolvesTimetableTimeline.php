@@ -358,6 +358,11 @@ trait ResolvesTimetableTimeline
                 }
 
                 $ev['status'] = 'replacement';
+                /* mytimetable-jump-highlight (user, 2026-11-04): the replacement
+                   record's OWN id rides the event, so the client can find this
+                   exact block. `sessionId` cannot do it — the class's natural
+                   blocks share it — and name/date/week are not identities. */
+                $ev['requestId'] = (int) $r->id;
                 // USER 2026-10-19 (venue date parity): the note's date reads the
                 // ORIGINAL class's own occurrence (request week + the session's
                 // day — venue page's keying), not the replacement's landing week.

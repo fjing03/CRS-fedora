@@ -305,6 +305,7 @@ function updateWeekArrowState() {
 document.addEventListener('DOMContentLoaded', function () {
     initNotifPanel();
     setTimeout(applyNotifHighlight, 150);   /* after the pages' own first render pass */
+    setTimeout(applyReplacementHighlight, 150);
 });
 
 /* ─── The notification hands-off highlight (notif-click-highlight) ───
@@ -345,6 +346,34 @@ function applyNotifHighlight() {
         const sid = raw.slice(1);
         tryFind('#tableBody .event-block[data-sid="' + sid + '"]', 14);   /* the week rebuild margin */
     }
+}
+
+/**
+ * The arrival arm for `Go to My Timetable` (mytimetable-jump-highlight).
+ *
+ * Shape copied from applyNotifHighlight() with two deliberate differences:
+ *   1. the week is read BEFORE the params are deleted — applyNotifHighlight()
+ *      deletes `notif-w` and then reads it back, so its week switch never fires
+ *      (finding F1, out of scope there);
+ *   2. there is NO fallback selector: a miss ends silently. Flashing the wrong
+ *      class would be worse than not flashing at all.
+ */
+function applyReplacementHighlight() {
+    const params = new URLSearchParams(location.search);
+    const raw = params.get('repl-hl');
+    if (!raw) return;
+    const weekRaw = params.get('repl-w');
+    params.delete('repl-hl');
+    params.delete('repl-w');
+    const qs = params.toString();
+    history.replaceState(null, '', location.pathname + (qs ? '?' + qs : ''));
+
+    /* only the page that HAS the blocks; elsewhere the params are simply gone */
+    if (location.pathname !== '/my-timetable-ui' || typeof window.selectWeek !== 'function') return;
+
+    const wk = parseInt(weekRaw || '', 10);
+    if (!isNaN(wk) && wk >= 1 && wk <= 14) window.selectWeek(String(wk - 1));   // 1-based
+    tryFind('#tableBody .event-block[data-rid="' + raw + '"]', 20);            /* 5 s budget: the grid renders after the week restore */
 }
 
 /* the retried finder (the payload-built rows may render past the page's
@@ -909,6 +938,13 @@ function buildTimetableGrid(cfg) {
                    cell carries its class session id so the notification
                    deep-link highlight can find the cancelled class cell. */
                 div.dataset.sid = String(e.sessionId ?? e.id);
+                /* mytimetable-jump-highlight (2026-11-04): a replacement block
+                   also carries its request id, so `Go to My Timetable` can flash
+                   THIS block and never the class's natural one. Absent on every
+                   other block — the selector is unambiguous by construction. */
+                if (e.requestId !== undefined && e.requestId !== null && e.requestId !== '') {
+                    div.dataset.rid = String(e.requestId);
+                }
                 /* Hover tooltip = subject name (data-name) · page context ·
                    lecturer segment · STATUS — the 2026-10-25 hover voice
                    (the user's call): the lecturer segment is page-supplied
@@ -1565,6 +1601,21 @@ function initGridSwipeGestures(onPrev, onNext) {
    The arrangement page resolves + ownership-checks it server-side; `from`
    drives the Back button. Promoted from the per-page code/date param schemes
    (replacement-home cards, my-timetable Replace Now, cancel-flow Arrange Now). */
+/**
+ * The ONE jump from a replacement record to its block on My Timetable
+ * (mytimetable-jump-highlight, user 2026-11-04). Both entry points call this —
+ * the row's icon button and the details modal's `Go to My Timetable` — so the
+ * URL is built once.
+ *
+ * `repl-hl` carries the REPLACEMENT REQUEST id (not a class, date or week: those
+ * are not identities), `repl-w` the 1-based landing week the page should show.
+ */
+function goToReplacementInTimetable(requestId, week) {
+    if (!requestId) return;
+    window.location.href = '/my-timetable-ui?repl-hl=' + encodeURIComponent(requestId) +
+        (week ? '&repl-w=' + encodeURIComponent(week) : '');
+}
+
 function goToReplacementFor(sessionId, week, from) {
     if (!sessionId || !week) return;
     window.location.href = '/replacement-arrangement?session=' + encodeURIComponent(sessionId) +

@@ -1,3 +1,16 @@
+## 2026-11-04 — the page accepts `?repl-hl=` (a replacement's own arrival)
+
+Replacement blocks now carry `data-rid` — the replacement request's id, stamped server-side on the
+approved landing event. That is what the new arrival arm targets, because `data-sid` (the class) is shared
+with the class's natural blocks and could flash the wrong cell.
+
+`?repl-hl=<requestId>&repl-w=<week>` switches to the week through the page's own `selectWeek`, scrolls the
+block into view and flashes it once with the shared `.bookable-flash` pulse. The params are stripped before
+matching, so a refresh repeats nothing. **No fallback selector:** a miss flashes nothing.
+
+Measured: `repl-hl=26&repl-w=7` flashed 26 only; `repl-hl=27&repl-w=8` flashed 27 only;
+`repl-hl=26&repl-w=8` (wrong week) and `repl-hl=999` flashed nothing, with no console errors.
+
 ## 2026-11-04 — the page description speaks the same visual language as My Replacements
 
 Minor UI update (user, all pages): the `.page-desc` line now bolds and uppercases its key terms with

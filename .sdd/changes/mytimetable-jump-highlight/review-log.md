@@ -74,3 +74,40 @@ own adversarial pass — recorded honestly as self-review).
 ### 🔴 Outstanding
 - **F1** — the notification arm's dead week switch. **Awaiting the user's decision** (fix now in this
   lane, fix as its own tiny commit, or leave it). Apply is on hold until the user says go.
+
+## Apply — 2026-11-04 (measured on the demo DB, read-only GETs)
+
+**Entry points, both measured independently** (`/my-replacements` → click → `/my-timetable-ui`):
+
+| entry point | landed week | flashed | URL after |
+|---|---|---|---|
+| the row's icon button (request 26) | Week 7 · 02 Nov ~ 08 Nov | `data-rid="26"`, count **1** | `/my-timetable-ui` (params gone) |
+| the modal's `Go to My Timetable` (request 26) | Week 7 | `data-rid="26"`, count **1** | `/my-timetable-ui` |
+
+**The "never a neighbour" law, measured:**
+
+| URL | result |
+|---|---|
+| `?repl-hl=26&repl-w=7` | flashes **26** only |
+| `?repl-hl=27&repl-w=8` | flashes **27** only |
+| `?repl-hl=26&repl-w=8` (26 lands in week 7) | **no flash** — the wrong-week case flashes nothing rather than the neighbour |
+| `?repl-hl=999&repl-w=7` | **no flash**, no error |
+
+**The gates, measured on the payload's `requestStatus` (not the badge text):**
+
+| row | ACTION buttons | modal `Go to My Timetable` |
+|---|---|---|
+| need to arrange (×3) | 1 (arrange) | n/a |
+| pending (27) | 1 (cancel) | **hidden** (cancel visible, as before) |
+| approved (26) | **2** (view + jump) | **visible** (cancel + arrange hidden) |
+
+**Layout:** `.col-action` 6 % → 10 %, `#timetable .col-reason` 22 % → 18 %. Measured at 1920 / 1600 /
+1440 / 1366 / 1280 / 1100 / 900 / 820 px — **0 overflowing cells**, page overflow 0, the two-button cell
+never clipped, and below 1280 the table scrolls inside `#gridScroll` (50 px at 1280).
+
+**Not measured:** the buttons on a **Completed** row — the demo holds no completed request. The gate is
+`c.requestStatus === 'completed'`, the same expression `actionCell()` already uses for the eye button, and
+the status resolution itself was proven in the previous lane (a past replacement date yields `completed`).
+
+**Gates:** pint passed · PHPStan level 7 → 0 errors · `node --check` ok ·
+**full suite 340 passed / 1875 assertions** (490.2 s). Testing DB reseeded afterwards.

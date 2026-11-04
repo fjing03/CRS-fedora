@@ -1,3 +1,23 @@
+## 2026-11-04 — `Go to My Timetable`, from the row and from the details modal
+
+User order: for **Approved** and **Completed** replacements, a way to land on the replacement's own
+block on My Timetable and see it flash once. Two entry points, **one function** — the row's icon-only
+button and the modal's `Go to My Timetable` both call `goToReplacementInTimetable(requestId, week)`, so
+the navigation and the highlight cannot drift apart.
+
+- **ACTION column:** a calendar icon button (tooltip and accessible name `Go to My Timetable`) beside the
+  existing eye button, on Approved / Completed rows only. Pending, rejected and "need to arrange" rows keep
+  exactly the buttons they had. The gate is the payload's **`requestStatus`** — the status the server
+  resolved — not the badge's text.
+- **Details modal:** the same button with its text, bottom-right; `Cancel Request` and `Arrange
+  Replacement` are already hidden for these statuses, so it takes that corner. Hidden for every other status.
+- **Layout:** `.col-action` 6 % → 10 % and `#timetable .col-reason` 22 % → 18 % so two icon buttons stay
+  inside the column. Measured at eight widths: 0 overflowing cells, 0 page overflow, nothing clipped.
+
+Measured: row button → Week 7, block `data-rid="26"` flashed once; modal button → identical; a request
+whose week does not hold it → **nothing flashes** (never a neighbour); an unknown id → nothing flashes and
+no error. Full suite 340/340.
+
 ## 2026-11-04 — the page accepts a class-level arrival
 
 A notification about a **cancelled class** carries no request id, so its arrival uses

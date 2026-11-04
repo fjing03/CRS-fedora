@@ -27,10 +27,13 @@
            wraps INSIDE its column instead of overflowing into the next one.
            The id also has to reach the <th>: under `table-layout: fixed` the
            header row is what decides the column widths. */
-        #timetable .col-reason { width: 22%; vertical-align: middle; white-space: normal; }
+        #timetable .col-reason { width: 18%; vertical-align: middle; white-space: normal; }
         .col-requested { width: 16%; white-space: normal; }
         #timetable .col-status { width: 17%; white-space: normal; }
-        .col-action { width: 6%; text-align: center; }
+        /* 6% -> 10%: the column now holds TWO icon buttons on approved/completed
+           rows (eye + Go to My Timetable). The 4 points come from col-reason,
+           which wraps anyway. */
+        .col-action { width: 10%; text-align: center; }
 
         /* ───── 2026-11-04 (user): nothing may paint outside its column ─────
            `.timetable td` is `white-space: nowrap` (theme.css) and only the four
@@ -296,6 +299,13 @@
                         <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
                         <span id="qvArrangeLabel">Arrange Replacement</span>
                     </button>
+                    {{-- mytimetable-jump-highlight: the SAME jump as the row's icon
+                         button (one shared function). Last child = bottom-right; the
+                         two buttons above are already hidden for these statuses. --}}
+                    <button class="btn-action" id="qvTimetableBtn" style="display:none" onclick="qvGoToTimetable()">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
+                        <span>Go to My Timetable</span>
+                    </button>
                 </div>
             </div>
         </div>
@@ -455,6 +465,8 @@
 
         var ROTATE_SVG = '<svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>';
         var BAN_SVG = '<svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="m4.9 4.9 14.2 14.2"/></svg>';
+        /* mytimetable-jump-highlight: the calendar family voice (15px, stroke 2.5) */
+        var CAL_SVG = '<svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>';
         var EYE_SVG = '<svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>';
 
         function actionCell(c) {
@@ -462,7 +474,12 @@
                 return '<button type="button" class="btn-icon btn-icon--ghost btn-icon--danger" data-tip="Cancel this request" aria-label="Cancel this request" onclick="event.stopPropagation(); openCancelConfirm(' + c.requestId + ', ' + c.id + ')">' + BAN_SVG + '</button>';
             }
             if (c.requestStatus === 'approved' || c.requestStatus === 'completed') {
-                return '<button type="button" class="btn-icon btn-icon--ghost" data-tip="View this request" aria-label="View this request" onclick="event.stopPropagation(); quickViewByRowId(' + c.id + ')">' + EYE_SVG + '</button>';
+                /* TWO buttons: the existing eye (unchanged) + the jump. The gate is
+                   the REQUEST STATUS the server resolved (effectiveStatus), never
+                   the badge's text — a Completed row's badge says "Completed" but
+                   the decision is `c.requestStatus`. */
+                return '<button type="button" class="btn-icon btn-icon--ghost" data-tip="View this request" aria-label="View this request" onclick="event.stopPropagation(); quickViewByRowId(' + c.id + ')">' + EYE_SVG + '</button>'
+                    + '<button type="button" class="btn-icon btn-icon--ghost" style="margin-left:6px" data-tip="Go to My Timetable" aria-label="Go to My Timetable" onclick="event.stopPropagation(); goToReplacementInTimetable(' + c.requestId + ',' + c.replacementWeek + ')">' + CAL_SVG + '</button>';
             }
             return '<button type="button" class="btn-icon btn-icon--primary" data-tip="Arrange a replacement for this class" aria-label="Arrange a replacement" onclick="event.stopPropagation(); goToReplacementFor(' + JSON.stringify(c.sessionId) + ',' + JSON.stringify(c.week) + ', \'replacement-home\')">' + ROTATE_SVG + '</button>';
         }
@@ -841,6 +858,10 @@
             if (cancelBtn) cancelBtn.style.display = c.requestStatus === 'pending' ? 'inline-flex' : 'none';
             var arrangeBtn = document.getElementById('qvArrangeBtn');
             if (arrangeBtn) arrangeBtn.style.display = isHandled(c) ? 'none' : 'inline-flex';
+            /* the jump shows for a LANDED replacement only — the request's real
+               status, not the badge text */
+            var ttBtn = document.getElementById('qvTimetableBtn');
+            if (ttBtn) ttBtn.style.display = (c.requestStatus === 'approved' || c.requestStatus === 'completed') ? 'inline-flex' : 'none';
         }
 
         function quickViewByRowId(occurrenceId) {
@@ -855,6 +876,14 @@
             var week = c.week;
             hideQuickView();
             goToReplacementFor(sid, week, 'replacement-home');
+        }
+
+        /* the modal's Go to My Timetable — same shared function as the row button */
+        function qvGoToTimetable() {
+            var c = myConflictedRows().find(function (row) { return row.id === currentOccurrenceId; });
+            if (!c) { hideQuickView(); return; }
+            hideQuickView();
+            goToReplacementInTimetable(c.requestId, c.replacementWeek);
         }
 
         function hideQuickView() {

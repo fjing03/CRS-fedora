@@ -1,3 +1,17 @@
+## 2026-11-04 — wider panel, and a way back out of Manage
+
+Two items from the user's earlier notification order (delivered late, on request).
+
+**Width +40%.** `.notif-panel` goes from `min(360px, …)` to **`min(504px, …)`**. Measured 504 px at
+1920 / 1440 / 900 with a 12 px gap to the screen edge, no internal overflow
+(`scrollWidth === clientWidth` on the panel and its children); at 390 px the phone sheet is still
+full-width with no page overflow.
+
+**Back out of Manage.** The manage screen had no exit; the shelf's own Back arrow now appears there,
+wired to the existing `exitManage()` — state only, so the ticks are dropped and nothing is written.
+Measured: enter manage → 8 of 8 pre-ticked; click Back → 0 picks, the manage bar gone, the normal list
+back with its 7 rows.
+
 ## 2026-11-04 — the click follows the record's status, not the stored link
 
 User order (part 1): cancelled → My Replacements + flash the row; approved → My Replacements + flash

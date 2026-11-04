@@ -83,6 +83,18 @@
                 </svg>
             </button>
             <span class="notif-head-title">Hidden notifications</span>
+        @elseif($manageMode)
+            {{-- 2026-11-04 (user): the manage screen had no way back. Same 30px
+                 Back family as the shelf, wired to the EXISTING exitManage() —
+                 state-only: the ticks are dropped, nothing is written. --}}
+            <button class="notif-iconbtn" type="button" wire:click="exitManage"
+                    aria-label="Back to notifications" data-tip="Go back to the notification list." data-tip-pos="left">
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="m12 19-7-7 7-7"/>
+                    <path d="M19 12H5"/>
+                </svg>
+            </button>
+            <span class="notif-head-title">Notifications</span>
         @else
             <span class="notif-head-title">Notifications</span>
         @endif
