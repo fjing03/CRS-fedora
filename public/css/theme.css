@@ -1179,6 +1179,111 @@ html.dark .filter-select {
     color: var(--color-on-surface-variant);
 }
 
+/* ───── replacement-merge-one-table (2026-11-04) — five token-only definitions ─────
+   M10's promote-on-third law: the icon-only Action button, the conflict badge
+   pair, the outlined "Need to Arrange" pill, the muted schedule sub-line, and
+   the merged modal's fixed facts strip. Tokens only — no hex/rgb (§10.0 rule 1). */
+
+/* (a) the icon-only Action button. The base sets NO min-height, so the mobile
+   48 px touch-target rule below still wins at ≤768 px. */
+.btn-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 34px;
+    height: 34px;
+    padding: 0;
+    border: 1px solid transparent;
+    border-radius: var(--radius-md);
+    background: transparent;
+    color: var(--color-on-surface-variant);
+    cursor: pointer;
+    transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+}
+.btn-icon:hover {
+    background: var(--color-surface-variant);
+    color: var(--color-on-surface);
+}
+.btn-icon--primary {
+    border-color: var(--color-primary);
+    color: var(--color-primary);
+}
+.btn-icon--primary:hover {
+    background: var(--color-primary-container);
+    color: var(--color-on-primary-container);
+}
+.btn-icon--ghost {
+    border-color: var(--color-outline);
+    color: var(--color-on-surface-variant);
+}
+.btn-icon--ghost:hover {
+    background: var(--color-surface-variant);
+}
+.btn-icon--danger {
+    border-color: var(--color-error);
+    color: var(--color-error);
+}
+.btn-icon--danger:hover {
+    background: var(--color-error-container);
+    color: var(--color-on-error-container);
+}
+
+/* (b) the conflict badge — TWO classes only: the public-holiday exception keeps
+   its own name/colour, every other reason is neutral grey. */
+.badge-holiday {
+    background: var(--color-error-container);
+    color: var(--color-on-error-container);
+}
+.badge-reason {
+    background: var(--color-surface-variant);
+    color: var(--color-on-surface-variant);
+}
+
+/* (c) the outlined "Need to Arrange" pill — never filled. */
+.badge-outline {
+    background: transparent;
+    border: 1px solid var(--color-on-primary-container);
+    color: var(--color-on-primary-container);
+}
+
+/* (d) the muted sub-line inside a schedule cell (venue code + icon / em dash). */
+.cell-sub {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 12px;
+    color: var(--color-on-surface-variant);
+}
+.cell-dash {
+    color: var(--color-on-surface-variant);
+    opacity: 0.6;
+}
+
+/* (e) the merged modal's fixed facts strip (M7) — above the tabs, never a tab. */
+.detail-facts {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px 18px;
+    padding: 10px 12px;
+    margin-bottom: 14px;
+    border: 1px solid var(--color-outline);
+    border-radius: var(--radius-md);
+    background: var(--color-surface-variant);
+    font-size: 12px;
+}
+.df-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+.df-item--full {
+    flex-basis: 100%;
+}
+.df-label {
+    font-weight: 600;
+    color: var(--color-on-surface-variant);
+}
+
 /* ───── Cell Class Block (multi-line cell) ───── */
 .cell-class-block {
     line-height: 1.55;

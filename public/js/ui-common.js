@@ -327,8 +327,14 @@ function applyNotifHighlight() {
     history.replaceState(null, '', location.pathname + (qs ? '?' + qs : ''));
 
     if (raw.charAt(0) === 'r') {
-        const sel = 'tr[data-id="' + raw.slice(1) + '"]';
-        tryFind(sel, 14);   /* the queue rows render past the loader — 14 × 250 ms ≈ 3.5 s budget (async; load unblocked) */
+        /* replacement-merge-one-table (M2/10b, 2026-11-04): the merged row is
+           keyed by OCCURRENCE (data-id) but the stored link carries the REQUEST
+           id — so the matcher tries data-request-id FIRST and falls back to
+           data-id. Two separate lookups, never one comma-joined selector: a
+           selector list resolves by document order, and an occurrence id
+           (session*100+week) could otherwise win over the intended row. */
+        const id = raw.slice(1);
+        tryFind('tr[data-request-id="' + id + '"]', 14, 'tr[data-id="' + id + '"]');   /* the queue rows render past the loader — 14 × 250 ms ≈ 3.5 s budget (async; load unblocked) */
     } else if (raw.charAt(0) === 's') {
         // STAGE 2 — the my-timetable arrival: the week switch MUST ride the
         // page's own wrapper (it re-syncs currentWeek + saveWeek). Only
@@ -345,14 +351,14 @@ function applyNotifHighlight() {
    loader — the retries are ASYNC timers, load-blocking); found: scroll
    into view THEN the flash (the earliest flow's jump-then-pulse shape);
    not found: graceful silent skip. */
-function tryFind(sel, left) {
-    const el = document.querySelector(sel);
+function tryFind(sel, left, fallbackSel) {
+    const el = document.querySelector(sel) || (fallbackSel ? document.querySelector(fallbackSel) : null);
     if (el) {
         el.scrollIntoView({ behavior: 'smooth', block: 'center' });
         setTimeout(function () { flashRowPulse(el); }, 500);
         return;
     }
-    if (left > 0) setTimeout(function () { tryFind(sel, left - 1); }, 250);
+    if (left > 0) setTimeout(function () { tryFind(sel, left - 1, fallbackSel); }, 250);
     /* else: the graceful skip (e.g. a filtered-out / paginated-away row) */
 }
 
@@ -1383,6 +1389,11 @@ const DetailModal = {
 
         let html = '';
         if (cfg.timeline && cfg.timeline.length) html += DetailModal.timeline(cfg.timeline);
+
+        /* replacement-merge-one-table (M7/T9, 2026-11-04): ONE optional fixed
+           facts strip above the tabs. Additive — every existing caller omits
+           it and renders exactly what it rendered before. */
+        if (cfg.factsHtml) html += '<div class="detail-facts">' + cfg.factsHtml + '</div>';
 
         const tabs = cfg.tabs || [];
         if (tabs.length > 1) {
@@ -2480,6 +2491,27 @@ class HtmlBuilder {
 
     static replacementHomeRow(c, opts) {
         var typeLabel = UiLabels.classType(c.type, 'code');
+        /* replacement-merge-one-table (M4, 2026-11-04): the merged page's row is
+           SEVEN cells — course, cohort, original class, reason, requested
+           replacement, status, action. The four page-owned cells arrive as opts
+           callbacks, so the page keeps every piece of its own wording. Today's
+           nine-cell body below stays byte-identical for the frozen mock
+           template, which never passes `merged`. */
+        if (opts.merged) {
+            return [
+                {
+                    html: '<span class="cell-code">' + c.code + '</span>' +
+                        '<span class="cell-name">' + c.name + ' <span class="cell-type-label">(' + typeLabel + ')</span></span>',
+                    cls: 'col-code'
+                },
+                { html: opts.cohortsCell ? opts.cohortsCell(c) : c.cohorts.join('<br>'), cls: 'col-cohort' },
+                { html: opts.formatClassBlock(c), cls: 'col-original' },
+                { html: opts.reasonCell(c), cls: 'col-reason' },
+                { html: opts.requestCell(c), cls: 'col-requested' },
+                { html: opts.statusCell(c), cls: 'col-status' },
+                { html: opts.actionCell(c), cls: 'col-action' }
+            ];
+        }
         var days = opts.daysLeft(c.date);
         var urgencyCls = opts.urgencyClass(days);
         /* replacement-home-status-badges D7 (2026-11-03): a HANDLED row shows an
