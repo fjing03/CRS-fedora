@@ -134,31 +134,36 @@ test.describe('UI Regression Test Cases', () => {
 
   // Section 3: Modal & Detail Views
   test.describe('Section 3: Modal & Detail Views', () => {
-    const modalPages: [string, string][] = [
-      ['/my-timetable-ui', '#classModal'],
-      ['/cohort-timetable', '#classModal'],
-      ['/venue-timetable-ui', '#eventModal'],
-      ['/replacement-home-ui', '#quickViewModal'],
-      ['/request-approval-ui', '#modalOverlay'],
-      ['/my-request-history-ui', '#modalOverlay'],
+    /* replacement-merge-one-table (T19): /replacement-home-ui and
+       /my-request-history-ui are one page now — the merged My Replacements
+       table — so both open the SAME pop-up (`#quickViewModal`) and that pop-up
+       labels the class `Class ID`, not `Subject Code`. The row is the door
+       (M6): click the course-code cell, and fall back to the eye icon. */
+    const modalPages: [string, string, string, string][] = [
+      ['/my-timetable-ui', '#classModal', '.event-block', 'Subject Code'],
+      ['/cohort-timetable', '#classModal', '.event-block', 'Subject Code'],
+      ['/venue-timetable-ui', '#eventModal', '.event-block', 'Subject Code'],
+      ['/replacement-home-ui', '#quickViewModal', '#tableBody .col-code, #tableBody .btn-icon--ghost', 'Class ID'],
+      ['/request-approval-ui', '#modalOverlay', '.replacement-card, .request-row', 'Subject Code'],
+      ['/my-request-history-ui', '#quickViewModal', '#tableBody .col-code, #tableBody .btn-icon--ghost', 'Class ID'],
     ];
 
-    for (const [url, modalSelector] of modalPages) {
+    for (const [url, modalSelector, clickSelector, expectedText] of modalPages) {
       test(`TC-3.x Modal opens on ${url}`, async ({ page }) => {
         await page.goto(`${BASE}${url}`, { waitUntil: 'networkidle' });
         // NOTE: a bare 'tbody tr' matches BEFORE its child .event-block in
         // DOM order, and clicking the row opens nothing — always prefer the
         // block/card itself over its row container.
-        const block = page.locator('.event-block').first();
-        const card = page.locator('.replacement-card, .request-row').first();
-        const clickable = (await block.isVisible().catch(() => false)) ? block : card;
+        const clickable = page.locator(clickSelector).first();
         if (await clickable.isVisible().catch(() => false)) {
           await clickable.click();
           await expect(page.locator(modalSelector).first()).toBeVisible({ timeout: 5000 });
-          await expect(page.locator(`${modalSelector} .modal-body, ${modalSelector} .modal-content`)).toContainText('Subject Code');
+          await expect(page.locator(`${modalSelector} .modal-body, ${modalSelector} .modal-content`)).toContainText(expectedText);
+        } else {
+          test.info().annotations.push({ type: 'fixture', description: `no row on ${url} — the pop-up was not exercised` });
         }
-      });
-    }
+    
+
   });
 
   // Section 4: Replacement Flow
@@ -312,9 +317,29 @@ test.describe('UI Regression Test Cases', () => {
       await page.goto(`${BASE}/replacement-home-ui`, { waitUntil: 'networkidle' });
       // 4 of the 14 seeded conflicts belong to En. Lim Jia Zheng (§2.10 lecturer field)
       await expect(page.locator('#tableBody tr')).toHaveCount(4);
-      await expect(page.locator('#summaryMyConflicted')).toHaveText('4');
-      await expect(page.locator('#summaryMyHours')).toHaveText('8');
-      await expect(page.locator('#summaryMyCourses')).toHaveText('2');
+      /* replacement-merge-one-table (T19) — the own-records LAW, expressed so it
+         holds on any data. A row is now a CLASS OCCURRENCE (including ones with
+         no request at all), so the old 4 rows / 4 / 8 / 2 pins describe nothing.
+         What must be true: the table lists exactly the payload the server sent
+         minus the Completed ones (the default toggle hides those), every card is
+         numeric, and the four status cards cannot count more rows than exist. */
+      const payload = await page.evaluate(() =>
+        ((window as any).MockData?.conflictedClasses ?? []).map((c: any) => String(c.requestStatus ?? 'none')),
+      );
+      await expect(page.locator('#summaryNeeds')).toHaveText(/^\d+(\.\d)?$/);
+      for (const card of ['#summaryHours', '#summaryPending', '#summaryApproved', '#summaryRejected']) {
+        await expect(page.locator(card), card).toHaveText(/^\d+(\.\d)?$/);
+      }
+
+      const shown = payload.filter((s: string) => s !== 'completed').length;
+      await expect(page.locator('#tableBody tr'), 'the table lists the server payload minus the hidden Completed rows').toHaveCount(shown);
+
+      const tally = await page.evaluate(() =>
+        ['summaryNeeds', 'summaryPending', 'summaryApproved', 'summaryRejected']
+          .map((id) => Number(document.getElementById(id)?.textContent ?? 0))
+          .reduce((a, b) => a + b, 0),
+      );
+      expect(tally, 'the four status cards cannot count more rows than are listed').toBeLessThanOrEqual(shown);
       // others' conflicts are gone (id 3 — AMCS1013, Ts. Norshikin)
       await expect(page.locator('#tableBody tr:has-text("AMCS1013")')).toHaveCount(0);
       // replaced cards are gone entirely
