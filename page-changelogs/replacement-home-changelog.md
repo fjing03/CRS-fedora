@@ -1,3 +1,27 @@
+## 2026-11-04 — the table stops painting outside its columns
+
+User's responsive-layout bug report: at narrower widths the COURSE CODE & NAME cell spilled over
+its neighbour, and headers/cells were clipped or crossed into the next column.
+
+**Cause.** `theme.css` makes every `.timetable td` `white-space: nowrap`, and the merged page's
+`table-layout: fixed` gives each column a fixed percentage. Four columns had already opted out of
+nowrap (Original Class, Conflict Reason, Requested Replacement, Request Status) — **the two that did
+not were Course Code and Cohort, plus the whole header row**. Their content was simply wider than
+their box, so it painted over the column to its right. Measured on the merged page: **68 px of
+overflow** in Course Code at 1280 px wide, 56 px at 1440, 3 px at 1920, and **19 px for the header
+label** "COURSE CODE & NAME".
+
+**Fix.** Course Code, Cohort and the header row now wrap inside their own column, and long unbroken
+tokens break instead of pushing (`overflow-wrap: anywhere`). The countdown ("5 days left") is pinned
+to one line so the narrower Original Class column cannot break it mid-phrase. **No width, share,
+order, markup or behaviour changed** — the percentages still sum to 100 % and the desktop table is
+structurally identical.
+
+**Measured after (overflowing cells at 1920 / 1600 / 1440 / 1366 / 1280 / 1100 / 900 / 820): 0 at
+every width.** Below 1280 px the table keeps its `min-width` and scrolls horizontally inside
+`#gridScroll` (510 px of scroll at 820 px) while the page itself stays at 0 horizontal overflow;
+at 768 px and below the card view takes over, so the table is never squeezed or hidden.
+
 ## 2026-11-04 — Confirm Cancellation: a warning face, and the facts you are about to lose
 
 User's UI/UX request on the merged page (`/my-replacements`). Display only — the cancellation

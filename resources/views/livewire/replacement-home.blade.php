@@ -32,12 +32,30 @@
         #timetable .col-status { width: 17%; white-space: normal; }
         .col-action { width: 6%; text-align: center; }
 
+        /* ───── 2026-11-04 (user): nothing may paint outside its column ─────
+           `.timetable td` is `white-space: nowrap` (theme.css) and only the four
+           multi-line columns opt out. The two REMAINING text columns inherited
+           nowrap, so under `table-layout: fixed` their content was wider than the
+           box and painted straight over the next column — measured 68 px of
+           overflow in COURSE CODE & NAME at 1280 px wide, 56 px at 1440, and the
+           header label itself by 19 px. Both now wrap inside their own column
+           (and long unbroken tokens break rather than push), and the header row
+           wraps with them. Widths, order and the percentage shares are untouched. */
+        #timetable .col-code,
+        #timetable .col-cohort,
+        #timetable thead th {
+            white-space: normal;
+            overflow-wrap: anywhere;
+        }
+
         .grid-scroll .timetable { min-width: 1280px; }
 
         /* ───── Urgency (inline text inside the Original Class cell) ───── */
-        .urgency-high { color: var(--color-error); font-weight: 700; }
-        .urgency-mid { color: var(--color-warning); font-weight: 600; }
-        .urgency-low { color: var(--color-on-surface-variant); font-weight: 500; }
+        /* keep the countdown on ONE line — with the columns now wrapping, a
+           narrow Original Class column used to break it as "5 days / left" */
+        .urgency-high { color: var(--color-error); font-weight: 700; white-space: nowrap; }
+        .urgency-mid { color: var(--color-warning); font-weight: 600; white-space: nowrap; }
+        .urgency-low { color: var(--color-on-surface-variant); font-weight: 500; white-space: nowrap; }
 
         /* ───── Just-cancelled Chip (ledger feature — its render block is
            switched off below until the TTL prompt lands; the CSS stays) ───── */
