@@ -77,10 +77,15 @@ final class ReplacementRequestMapper
      * Falls back to the stored status when the replacement date cannot be
      * resolved (no slot / no venue) — the app never GUESSES Completed.
      *
+     * `$replacementDate` (replacement-merge-one-table T2, 2026-11-04) lets a
+     * caller that ALREADY resolved the date pass it in, so the derived status
+     * costs no second span read. Every existing caller still passes two
+     * arguments and behaves byte-identically.
+     *
      * Lowercase in, lowercase out: every consumer applies `ucfirst()` where it
      * needs the pretty form (the home payload wants the raw value).
      */
-    public function effectiveStatus(ReplacementRequest $r, Carbon $semesterStart): string
+    public function effectiveStatus(ReplacementRequest $r, Carbon $semesterStart, ?string $replacementDate = null): string
     {
         $stored = (string) $r->status;
 
@@ -88,7 +93,7 @@ final class ReplacementRequestMapper
             return $stored;
         }
 
-        $date = $this->replacementStrings($r, $semesterStart)['date'];
+        $date = $replacementDate ?? $this->replacementStrings($r, $semesterStart)['date'];
 
         if ($date === null) {
             return $stored;             // unreadable date — never guess Completed
@@ -97,6 +102,113 @@ final class ReplacementRequestMapper
         return Carbon::parse($date)->startOfDay()->lt(today()->startOfDay())
             ? 'completed'
             : 'approved';
+    }
+
+    /**
+     * replacement-merge-one-table (M5/T3, 2026-11-04) — THE six-state vocabulary.
+     * Pure, no queries: the page never decides a status, a label or a suffix, so
+     * the badge, the card, the tab title and the sentence cannot disagree.
+     *
+     * `<n>` uses the SERVER's today() — the same clock `effectiveStatus()`
+     * compares against — so "Completed — 1 day ago" can never contradict the
+     * status that produced it (a browser in another timezone would).
+     *
+     * @return array{label: string, short: string, sentence: string, tip: string}
+     */
+    public function statusVocabulary(?string $status, ?string $date): array
+    {
+        return [
+            'label' => $this->statusLabel($status, $date),
+            'short' => $this->statusShort($status),
+            'sentence' => $this->statusSentence($status, $date),
+            'tip' => $this->statusTip($status),
+        ];
+    }
+
+    /** The badge text (M5). A `completed` row carries how long ago, when known. */
+    public function statusLabel(?string $status, ?string $date): string
+    {
+        if ($status === null) {
+            return 'Need to Arrange';
+        }
+
+        if ($status === 'completed') {
+            $ago = $this->sinceLabel($date);
+
+            return $ago === null ? 'Completed' : 'Completed — '.$ago;
+        }
+
+        return match ($status) {
+            'pending' => 'Pending — Waiting for Approval',
+            'approved' => 'Approved',
+            'rejected' => 'Rejected',
+            'cancelled' => 'Cancelled by YOU',
+            default => ucfirst($status),
+        };
+    }
+
+    /** The short form — the pop-up's tab title and the badge's CSS key source. */
+    public function statusShort(?string $status): string
+    {
+        return match ($status) {
+            null => 'Need to Arrange',
+            'pending' => 'Pending',
+            'approved' => 'Approved',
+            'rejected' => 'Rejected',
+            'cancelled' => 'Cancelled',
+            'completed' => 'Completed',
+            default => ucfirst($status),
+        };
+    }
+
+    /** The one plain sentence under the status tab — keyed by the STATUS, never by the label. */
+    public function statusSentence(?string $status, ?string $date): string
+    {
+        return match ($status) {
+            null => 'No replacement has been proposed for this class yet.',
+            'pending' => 'The proposed replacement is waiting for the PL to approve or reject it.',
+            'approved' => 'The PL approved the proposed replacement, so this class will run at the new time.',
+            'rejected' => 'The PL declined the proposed replacement, so a different slot has to be arranged.',
+            'cancelled' => 'You cancelled this request, so the class is free to be arranged again.',
+            'completed' => $this->sinceLabel($date) === null || $this->sinceLabel($date) === 'today'
+                ? 'The replacement took place today.'
+                : 'The replacement took place '.$this->sinceLabel($date).'.',
+            default => '',
+        };
+    }
+
+    /**
+     * The badge's `data-tip`. The five decided states keep the shipped copy
+     * (the My Requests tooltips, unchanged by M5 — only the LABELS change); the
+     * no-request state gets the outlined-pill meaning. An unknown state returns
+     * '' so the badge simply carries no tip rather than an invented one.
+     */
+    public function statusTip(?string $status): string
+    {
+        return match ($status) {
+            null => 'No request has been made for this class yet — it still needs arranging.',
+            'pending' => "Your request has been Submitted and is AWAITING the Programme Leader's decision (Approve or Reject).",
+            'approved' => 'The Programme Leader has APPROVED your request.',
+            'rejected' => 'The Programme Leader has REJECTED your request.',
+            'cancelled' => 'You MANUALLY CANCELLED this request.',
+            'completed' => 'The replacement class has been CONDUCTED — this request is complete.',
+            default => '',
+        };
+    }
+
+    /**
+     * "today" / "1 day ago" / "n days ago" from a `Y-m-d` date, or null when the
+     * date cannot be read (the caller then omits the suffix rather than inventing one).
+     */
+    private function sinceLabel(?string $date): ?string
+    {
+        if ($date === null || $date === '') {
+            return null;
+        }
+
+        $days = (int) abs(Carbon::parse($date)->startOfDay()->diffInDays(today()->startOfDay()));
+
+        return $days <= 0 ? 'today' : ($days === 1 ? '1 day ago' : $days.' days ago');
     }
 
     /**
@@ -220,7 +332,20 @@ final class ReplacementRequestMapper
             ];
         }
 
-        $anchor = $r->replacementTimeSlot;
+        return $this->spanFromAnchor($r->replacementTimeSlot);
+    }
+
+    /**
+     * span()'s step 2, extracted (replacement-merge-one-table T1, 2026-11-04) so
+     * the batch caller reuses the body instead of copying it: the legacy anchor
+     * slot (`replacement_time_slot_id`) is the ONLY surviving evidence for a
+     * junction-less request — a cancelled or rejected arrangement, whose
+     * junction rows the actions delete. Same six keys, same casts as step 1.
+     *
+     * @return array{week: int, day: int, venue_id: int, start: string, end: string, count: int}|null
+     */
+    public function spanFromAnchor(?TimeSlot $anchor): ?array
+    {
         if ($anchor === null) {
             return null;
         }

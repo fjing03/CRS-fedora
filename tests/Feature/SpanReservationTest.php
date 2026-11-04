@@ -19,6 +19,7 @@ use App\Models\User;
 use App\Models\Venue;
 use App\Services\MatrixIntersectionEngine;
 use App\Services\OCCValidator;
+use App\Services\ReplacementRequestMapper;
 use Illuminate\Foundation\Testing\DatabaseMigrations;
 use Illuminate\Support\Facades\DB;
 use Tests\TestCase;
@@ -449,6 +450,31 @@ final class SpanReservationTest extends TestCase
         $row = collect($json['requests'])->first(fn ($r) => ($r['status'] ?? '') === 'Pending');
         $this->assertNotNull($row, 'the pending row is in the API list');
         $this->assertSame('14:00 – 16:00', $row['replacementTime'], 'D7.3: the junction TRUE range');
+    }
+
+    /** replacement-merge-one-table T1: `spanFromAnchor()` is `span()`'s step 2, and
+     *  the extraction must return all six keys — the two string assertions below
+     *  only cover `start`/`end`, so "byte-identical" would otherwise be a claim
+     *  about two of six. */
+    public function test_span_reports_all_six_keys_from_the_junction(): void
+    {
+        [$slotIds, $winner, $winnerSession, $loser, $loserSession] = $this->spanFixture();
+
+        $action = new SubmitReplacementRequest(new OCCValidator, new MatrixIntersectionEngine);
+        $this->assertTrue($action($winner, $winnerSession, 5, $slotIds[0], null, 4)['ok']);
+
+        $request = ReplacementRequest::query()->where('proposer_id', $winner->id)->firstOrFail();
+        $span = app(ReplacementRequestMapper::class)->span($request);
+
+        $this->assertNotNull($span);
+        $this->assertSame(5, $span['week'], 'the span keeps the junction week');
+        $this->assertSame(3, $span['day'], 'the span keeps the junction day');
+        $this->assertSame(
+            (int) TimeSlot::query()->whereKey($slotIds[0])->value('venue_id'),
+            $span['venue_id'],
+            'the span keeps the junction venue'
+        );
+        $this->assertSame(4, $span['count'], 'the span counts the four 30-min cells');
     }
 
     public function test_history_page_pending_row_shows_the_true_range_and_cancel_reverts_to_anchor(): void
