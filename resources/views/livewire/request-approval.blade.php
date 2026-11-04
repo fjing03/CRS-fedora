@@ -736,11 +736,11 @@
                the modal prints the same codes joined with ' + '. */
             var cohortCodes = (r.cohorts || []).map(compactCohort);
             html += '<td class="col-cohort">' + (cohortCodes.length ? cohortCodes.join('<br>') : '—') + '</td>';
-            html += '<td>' + HtmlBuilder.classBlock(r) + '</td>';
+            html += '<td>' + HtmlBuilder.classBlock(r, { merged: true }) + '</td>';
 
             // Proposed Replacement — slot validity as a status-colored badge beside the venue
             const slotBadge = '<span class="slot-badge ' + (r.slotValidity === 'conflict' ? 'slot-conflict' : 'slot-valid') + '" data-tip="' + (r.slotValidity === 'conflict' ? (r.conflictReason || 'Slot conflict') : 'Slot available') + '">' + (r.slotValidity === 'conflict' ? '⚠' : '✓') + '</span>';
-            html += '<td class="col-replacement">' + HtmlBuilder.replacementBlock(r, { colorStatus: false, slotBadge: slotBadge }) + '</td>';
+            html += '<td class="col-replacement">' + HtmlBuilder.replacementBlock(r, { colorStatus: false, merged: true, slotBadge: slotBadge }) + '</td>';
 
             html += '<td class="col-urgency"><span class="urgency-badge ' + urgencyClass(level) + '" data-tip="' + urgencyTip(r) + '">' + urgencyLabel(level, r.classDate) + '</span></td>';
             html += '<td><span class="badge ' + statusClass(r.status) + '"' + statusTipAttr(r) + ' onclick="openModalById(' + r.id + ')" style="cursor:pointer">' + r.requestStatusLabel + '</span></td>';
@@ -1067,13 +1067,14 @@
             // CONSISTENCY 3E (2026-11-03): the Week row is derived from the date
             // (semester start + 7×n), so the payload needs no new key.
             // 3A (2026-11-04): students + cohorts moved to the facts strip.
+            // 3E-3 (2026-11-04): start/end collapse into ONE `Time` row, the
+            // merged page's shape.
             const origSection = DetailModal.section('Original Class Schedule',
                 DetailModal.row('Request ID', '#' + r.id, { strong: true }) +
-                DetailModal.row('Date', fullDate(r.classDate), { strong: true }) +
-                DetailModal.row('Day', r.classDay) +
                 DetailModal.row('Week', weekOfIso(r.classDate)) +
-                DetailModal.row('Start Time', fullTime(r.timeStart), { strong: true }) +
-                DetailModal.row('End Time', fullTime(r.timeEnd)) +
+                DetailModal.row('Day', r.classDay) +
+                DetailModal.row('Date', fullDate(r.classDate), { strong: true }) +
+                DetailModal.row('Time', fullTime(r.timeStart) + ' ~ ' + fullTime(r.timeEnd), { strong: true }) +
                 DetailModal.row('Duration', durationWords(r.duration)) +
                 DetailModal.row('Venue', venueText(r.venue, r.venueName))
             );
@@ -1089,11 +1090,12 @@
 
             if (r.replacementDate) {
                 const repSection = DetailModal.section('Proposed Replacement Schedule',
-                    DetailModal.row('Date', fullDate(r.replacementDate), { strong: true }) +
-                    DetailModal.row('Day', fullDay(r.replacementDate)) +
                     DetailModal.row('Week', weekOfIso(r.replacementDate)) +
-                    DetailModal.row('Start Time', repParts.length ? DateHelper.to12h(repParts[0]) : null) +
-                    DetailModal.row('End Time', repParts.length > 1 ? DateHelper.to12h(repParts[1]) : null) +
+                    DetailModal.row('Day', fullDay(r.replacementDate)) +
+                    DetailModal.row('Date', fullDate(r.replacementDate), { strong: true }) +
+                    DetailModal.row('Time', repParts.length > 1
+                        ? DateHelper.to12h(repParts[0]) + ' ~ ' + DateHelper.to12h(repParts[1])
+                        : (repParts.length ? DateHelper.to12h(repParts[0]) : null), { strong: true }) +
                     DetailModal.row('Duration', rangeHours(r.replacementTime)) +
                     DetailModal.row('Venue', venueText(r.replacementVenue, r.replacementVenueName)) +
                     DetailModal.row('Slot Validity', slotBadgeInline + validityText)

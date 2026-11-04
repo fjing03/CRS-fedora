@@ -1,3 +1,27 @@
+## 2026-11-04 — consistency pass, part 2: the cells and the schedule rows (1h, 3E-3)
+
+**1h — the two table cells now read exactly like My Replacements.** `HtmlBuilder.classBlock()` and
+`replacementBlock()` gained an opt-in `{ merged: true }` mode: duration in **words** (`(1 hour)`)
+and the **pin-icon venue line** (`B010 — Computer Lab B010`), with the Original Class cell carrying a
+venue at all for the first time. The PL-only slot-validity badge stays, ahead of the venue in the
+Requested Replacement cell. Every frozen template and legacy caller omits the flag and renders
+byte-identically — that is why the mode is a flag rather than a rewrite.
+
+The three bits the merged page had page-locally (`hoursToWords`, the range→hours parse, the venue
+line) are now shared helpers in `ui-common.js` (`uiHoursWords`, `uiHoursFromRange`, `uiVenueLine`)
+instead of a third copy on this page.
+
+**3E-3 — the schedule tabs match the same shape.** `Start Time` + `End Time` collapse into ONE
+`Time` row (`9:00 AM ~ 11:00 AM`), so each tab is Week · Day · Date · Time · Duration · Venue (plus
+Slot Validity on the replacement tab) — the merged pop-up's order.
+
+**Receipts:** live row — Original `Thu, 24 Dec 2026 (Week 14)` / `12:00 PM to 1:00 PM (1 hour)` /
+`B010 — Computer Lab B010`; Requested `Fri, 13 Nov 2026 (Week 8)` / `1:00 PM to 2:00 PM (1 hour)` /
+`✓ B010 — Computer Lab B010` · `request-approval.spec.ts` 6/6 (U3-T9d now asserts the single `Time`
+row and the absence of `Start Time`/`End Time`) · `status-tooltips-filter-chips.spec.ts` 9/9 ·
+`pages-parity.spec.ts` 6/6 · `replacement-home-status-badges.spec.ts` 11/11 (the merged page is
+unaffected by the shared-helper change).
+
 ## 2026-11-04 — consistency pass, part 2: the pop-up shell (3A, 3D)
 
 The **timeline is gone** from this pop-up, the old *Request Info* tab is absorbed by a fixed **facts

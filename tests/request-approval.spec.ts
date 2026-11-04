@@ -118,16 +118,16 @@ test('U3-T9d: the Request Details modal formats dates/hours/Start-End split + fu
   expect(origText).not.toContain('2026-12-24'); // the raw ISO never shows
   expect(origText).toMatch(/\d{1,2} (Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec) \d{4}/);
   expect(origText).toMatch(/\d+ hours?/); // durations in word form
-  expect(origText).toMatch(/Start Time\s*\n?\s*\d{1,2}:\d{2} (AM|PM)/);
-  expect(origText).toMatch(/End Time\s*\n?\s*\d{1,2}:\d{2} (AM|PM)/);
+  // 3E-3 (2026-11-04): start/end collapse into ONE `Time` row (merged shape)
+  expect(origText).toMatch(/Time\s*\n?\s*\d{1,2}:\d{2} (AM|PM) ~ \d{1,2}:\d{2} (AM|PM)/);
+  expect(origText).not.toMatch(/Start Time|End Time/);
 
   // TAB: Proposed Replacement Schedule — split Start/End + the full validity text
   await page.locator('.modal-body .modal-tab', { hasText: 'Proposed Replacement Schedule' }).click();
   const repText = await page.locator('#modalBody').innerText();
   expect(repText).not.toContain('2026-10-23');
-  expect(repText).toMatch(/Start Time\s*\n?\s*\d{1,2}:\d{2} (AM|PM)/);
   expect(repText).toMatch(/Day\s*\n?\s*(Sunday|Monday|Tuesday|Wednesday|Thursday|Friday|Saturday)/);
-  expect(repText).toMatch(/End Time\s*\n?\s*\d{1,2}:\d{2} (AM|PM)/);
+  expect(repText).toMatch(/Time\s*\n?\s*\d{1,2}:\d{2} (AM|PM) ~ \d{1,2}:\d{2} (AM|PM)/);
   expect(repText).toMatch(/Slot available/);
 });
 

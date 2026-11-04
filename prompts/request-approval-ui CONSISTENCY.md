@@ -1,5 +1,5 @@
 # request-approval-ui CONSISTENCY UPDATE
-**Page:** `/request-approval-ui` · **File status:** PART 1 SHIPPED · PART 2 IN PROGRESS (batches A + B done: 1f, 3B, 3C, 3A, 3D)
+**Page:** `/request-approval-ui` · **File status:** PART 1 SHIPPED · PART 2 essentially DONE (1f, 3B, 3C, 3A, 3D, 1h, 3E-3 shipped; only the §4 eyeball pass remains)
 **Last updated:** 2026-11-04 — the merge lane is **applied and archived** (`07274c1`), so every blocker in the table below is lifted; **batch A** shipped the status vocabulary + the room names (1f, 3B, 3C)
 
 > **Checkbox key**
@@ -23,7 +23,7 @@
 | 1e | Urgency badge = level + remaining days | ✅ done | — |
 | 1f | Status wording = My Replacements (Pending/Completed) | ✅ **done 2026-11-04** | shipped — `requestStatusLabel/Short/Sentence/Tip` ride the row; the local 3-key map is deleted |
 | 1g | Proposed Replacement → Requested Replacement | ✅ done | — |
-| 1h | Original Class / Requested Replacement cells = My Replacements style | ⛔ pending | **the merge lane's commit 2** (T9, the merged cell design) |
+| 1h | Original Class / Requested Replacement cells = My Replacements style | ✅ **done 2026-11-04** | shared `{ merged: true }` mode; slot badge kept |
 | 2 | Summary cards → Approved Requests / Rejected Requests | ✅ done | — |
 | 3A | Timeline out, facts strip in | ✅ **done 2026-11-04** | strip = Staff (Proposer) + Cohorts + Students + slot Conflict |
 | 3B | Modal status badge wording | ✅ **done 2026-11-04** | same payload keys — the pop-up's Status row + sentence |
@@ -31,7 +31,7 @@
 | 3D | Three tabs, renamed, status tab far right | ✅ **done 2026-11-04** | `Original Class Schedule` · `Proposed Replacement Schedule` · `Request Status (<short>)` |
 | 3E-1 | Week row on both schedule tabs | ✅ done | — |
 | 3E-2 | Duration in full words | ✅ done | — |
-| 3E-3 | Schedule layout matches the merged page | ⛔ pending | **the merge lane's commit 2** (the merged schedule cell design) |
+| 3E-3 | Schedule layout matches the merged page | ✅ **done 2026-11-04** | one `Time` row per tab, merged order |
 | — | Cohort(s) in the modal: compact codes joined with ` + ` (user ruling) | ✅ done | — |
 | 3F | No Close button, Reject bottom-left | ✅ done | — |
 | 4 | Treat My Replacements as the design reference | ⛔ pending | the merge lane's commit 2 renders the page on the **old URLs**; its **commit 3** makes `/my-replacements` canonical |
@@ -188,15 +188,15 @@ PI's commits run from that frozen lane, not that session's.
   line above the table (`… Original Class, Requested Replacement, Urgency, Status`). The filter
   chips and the modal tab are separate items (chips say `Status:`/`Urgency:`; the tab is 3D).
 
-- [ ] **1h — Original Class and Requested Replacement cells follow My Replacements' format/style.**
-  **Why pending:** the reference is the merged page's cell design (its §3.2–3.3: an icon-led,
-  multi-line Original Class block plus a status element). Today both pages still share
-  `HtmlBuilder.classBlock()` / `replacementBlock()`, and this page additionally passes a
-  slot-validity badge (`✓`/`⚠`) that has no counterpart there. Aligning before the target exists
-  would be rework.
-  **Unblocked by:** the merge lane applied (its cell markup + the status label from 1f).
-  **Keep:** the slot-validity badge — it is PL-only information (is the requested slot still free?)
-  and the brief says to keep "the unique information and actions required for request approval".
+- [x] **1h — Original Class and Requested Replacement cells follow My Replacements' format/style.**
+  **Done (2026-11-04, batch C):** `HtmlBuilder.classBlock()` / `replacementBlock()` take an opt-in
+  `{ merged: true }` mode — duration in **words** and the **pin-icon venue line**
+  (`B010 — Computer Lab B010`); the Original Class cell now shows its venue too, which it never did.
+  The shared `{ merged: true }` flag (not a rewrite) is what keeps the frozen templates and every
+  legacy caller byte-identical. The three pieces the merged page had page-locally are now shared in
+  `ui-common.js` (`uiHoursWords`, `uiHoursFromRange`, `uiVenueLine`) rather than a third copy.
+  **Kept:** the slot-validity badge (`✓`/`⚠`) — PL-only information, ahead of the venue in the
+  Requested Replacement cell.
 
 ---
 
@@ -273,9 +273,11 @@ PI's commits run from that frozen lane, not that session's.
   The modal prints the **compact codes joined with ` + `** (`RSD3(S1)G2 + RSD3(S1)G3`), while the
   table stacks them one per line. Same codes, different layout, as the user specified.
 
-- [ ] **3E-3 — The schedule layout/styling matches the merged page.**
-  **Why pending:** same as 3C. The **content** is now right (Week + Duration); the **arrangement**
-  (icon-led single row, `B103 — Tutorial Room`) is part 2.
+- [x] **3E-3 — The schedule layout/styling matches the merged page.**
+  **Done (2026-11-04, batch C):** `Start Time` + `End Time` collapse into ONE `Time` row
+  (`9:00 AM ~ 11:00 AM`), so each tab reads Week · Day · Date · Time · Duration · Venue (+ Slot
+  Validity on the replacement tab) — the merged pop-up's order — with the venue printing
+  `code — name` (3C).
 
 - [x] **3F — Modal buttons.**
   *Requirement:* remove **Close**; move **Reject** to the bottom-left; rename it to `× Reject`.

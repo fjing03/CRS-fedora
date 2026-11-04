@@ -2386,16 +2386,56 @@ function dayAbbr(day) { return DateHelper.dayAbbr(day); }
 function isoDayName(iso) { return DateHelper.isoDayName(iso); }
 function getTodayMs() { return DateHelper.getTodayMs(); }
 
+/* ───── The merged My Replacements cell vocabulary (request-approval-ui 1h,
+   2026-11-04) ─────
+   The merged lecturer page grew these three pieces page-locally; a second page
+   needing the same cell would have been the third copy, so they live here and
+   `classBlock(..., { merged: true })` uses them. Frozen templates and every
+   legacy caller omit the flag and render byte-identically. */
+function uiHoursWords(hours) {
+    var n = Number(hours);
+    return n === 1 ? '1 hour' : n + ' hours';
+}
+
+/* 'H:i – H:i' → hours (null when the range cannot be read) */
+function uiHoursFromRange(range) {
+    var m = String(range || '').match(/(\d{1,2}):(\d{2})\s*[–—-]\s*(\d{1,2}):(\d{2})/);
+    if (!m) return null;
+    var mins = (parseInt(m[3], 10) * 60 + parseInt(m[4], 10)) - (parseInt(m[1], 10) * 60 + parseInt(m[2], 10));
+    if (mins <= 0) return null;
+    return Math.round((mins / 60) * 10) / 10;
+}
+
+/* pin icon + `CODE — Name` (name only when the payload carries one) */
+function uiVenueLine(code, name) {
+    if (!code) return '';
+    var label = name ? code + ' \u2014 ' + name : code;
+    return '<span class="cell-sub"><svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18"/><path d="M5 21V7l7-4 7 4v14"/><path d="M9 21v-6h6v6"/></svg>' + label + '</span>';
+}
+
+
 // ───── HtmlBuilder (static utility class) ─────
 
 class HtmlBuilder {
-    static classBlock(r) {
+    static classBlock(r, opts) {
+        opts = opts || {};
         var d = DateHelper.dayAbbr(r.classDay);
         var dateStr = DateHelper.formatDate(r.classDate);
         var wn = getWeekNumber(r.classDate);
         var weekTag = wn ? ' (Week ' + wn + ')' : '';
         var timeStr = DateHelper.to12h(r.timeStart) + ' to ' + DateHelper.to12h(r.timeEnd);
         var hrs = r.duration + ' hr' + (r.duration > 1 ? 's' : '');
+        /* 1h (2026-11-04): the merged My Replacements cell — duration in words
+           and the icon-led venue line the lecturer page prints. Opt-in, so the
+           frozen templates and the legacy grid stay byte-identical. */
+        if (opts.merged) {
+            var venueHtml = uiVenueLine(r.venue, r.venueName);
+            return '<div class="cell-class-block">' +
+                '<span class="class-day-date">' + d + ', ' + dateStr + weekTag + '</span>' +
+                '<br><span class="class-time">' + timeStr + '</span> <span class="class-duration">(' + uiHoursWords(r.duration) + ')</span>' +
+                (venueHtml ? '<br>' + venueHtml : '') +
+                '</div>';
+        }
         return '<div class="cell-class-block"><span class="class-day-date">' + d + ', ' + dateStr + weekTag + '</span><br><span class="class-time">' + timeStr + '</span> <span class="class-duration">(' + hrs + ')</span></div>';
     }
 
@@ -2406,6 +2446,16 @@ class HtmlBuilder {
         var dateStr = DateHelper.formatDate(r.replacementDate);
         var wn = getWeekNumber(r.replacementDate);
         var weekTag = wn ? ' (Week ' + wn + ')' : '';
+        if (opts.merged) {
+            var hours = uiHoursFromRange(r.replacementTime);
+            var repVenue = uiVenueLine(r.replacementVenue || r.venue, r.replacementVenueName);
+            return '<div class="cell-class-block">' +
+                '<span class="class-day-date">' + d + ', ' + dateStr + weekTag + '</span>' +
+                '<br><span class="class-time">' + DateHelper.format12hRange(r.replacementTime) + '</span>' +
+                (hours !== null ? ' <span class="class-duration">(' + uiHoursWords(hours) + ')</span>' : '') +
+                (opts.showVenue !== false && repVenue ? '<br>' + (opts.slotBadge ? opts.slotBadge : '') + repVenue : '') +
+                '</div>';
+        }
         var html = '<div class="cell-class-block">'
             + '<span class="class-day-date">' + d + ', ' + dateStr + weekTag + '</span><br>'
             + '<span class="class-time' + (opts.colorStatus === false ? '' : ' ' + statusClass(r.status)) + '">'
