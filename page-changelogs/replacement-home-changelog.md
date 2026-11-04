@@ -21,11 +21,11 @@ type code `(L)`/`(T)`/`(P)`, and **both** schedules read on one clock face — t
 arrives as 24-hour (`14:00 – 14:30`) and is converted, so the modal never mixes `1:00 PM` with
 `14:00`.
 
-**Dimensions.** The modal is wider (480 px, was 420 px) because the four labelled rows do not fit at
-420 without wrapping a venue code onto its own line. Above 520 px the label sits beside its value; on
-a phone the list becomes one column and the label sits above its value. Measured: 480 px at 1440 px
-wide, 350 px at 390 px, `scrollWidth === clientWidth` in both (no horizontal overflow). Buttons,
-ordering and the confirm handler are unchanged.
+**Dimensions.** The modal is wider — 552 px, up 15 % from the 480 px of the first pass (the original
+was 420 px, which wrapped a venue code onto its own line). Above 520 px the label sits beside its
+value; on a phone the list becomes one column and the label sits above its value. Measured: 552 px at
+1440 px wide, 350 px at 390 px, `scrollWidth === clientWidth` in both (no horizontal overflow).
+Buttons, ordering and the confirm handler are unchanged.
 
 ## 2026-11-04 (follow-up) — column shares: the code column gives back 40%, Conflict Reason takes 30% more
 
