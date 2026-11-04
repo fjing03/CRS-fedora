@@ -1,3 +1,12 @@
+## 2026-11-04 — the toggle label now reads the same as My Replacements
+
+Minor UI update (user). The toolbar toggle said `Exclude Completed`; it now says
+`Exclude <span class="info-keyword">COMPLETED</span> Status` — the exact wording and markup the merged
+My Replacements page uses, with the existing `.info-keyword` styling (no new class, no new colour).
+
+Only the label changed. The checkbox id, its checked-by-default state, `toggleHideCompleted()` and
+every other control on the page are untouched.
+
 ## 2026-11-04 — consistency pass, part 2: the cells and the schedule rows (1h, 3E-3)
 
 **1h — the two table cells now read exactly like My Replacements.** `HtmlBuilder.classBlock()` and

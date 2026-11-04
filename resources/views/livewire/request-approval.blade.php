@@ -272,7 +272,7 @@
         <label class="toggle-wrapper" id="completedToggle" data-tip="ON = completed requests are excluded from the list">
             <input type="checkbox" id="hideCompletedToggle" checked onchange="toggleHideCompleted()">
             <span class="toggle-track"><span class="toggle-thumb"></span></span>
-            <span class="toggle-label">Exclude Completed</span>
+            <span class="toggle-label">Exclude <span class="info-keyword">COMPLETED</span> Status</span>
         </label>
         <button class="btn-clear" id="resetFilters" data-tip="Reset all filters to DEFAULT">Reset Filters</button>
     </div>
