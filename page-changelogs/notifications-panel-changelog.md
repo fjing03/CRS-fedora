@@ -30,8 +30,11 @@ key is gone from the row partial's reason map, so no state can render it.
 asserted the read sentence and `notif-row--inactive` — is replaced by an arm asserting the opposite
 (`data-id` + `data-notif-target` + the composed `New replacement request (ID #N)` and **no** read
 sentence), plus an "Active only" arm proving the read-but-pending row survives the switch while the
-decided row does not. Live `:8000`: 6/6 inbox rows carry `data-id`, and the retired sentence appears
-nowhere in the page.
+decided row does not. Gates: pint passed · PHPStan 0 · **full suite 340 passed / 1875 assertions**.
+Live `:8000`: 6/6 inbox rows carry `data-id`, and the retired sentence appears nowhere in the page.
+Honest gap: the demo mailbox holds no read-and-still-pending row, so the "read row stays alive" case
+has no live screenshot — proving it there would mean writing to the demo DB; the test arm is the
+proof.
 
 ## 2026-11-04 — the row click marks read again, and flashes again: the `$variant` inheritance trap
 
