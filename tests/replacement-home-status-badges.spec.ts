@@ -100,8 +100,11 @@ test('receipt 2 — the ban icon opens the confirm overlay; the eye opens the po
 
   if (handled) {
     const row = page.locator('#tableBody tr:has(.col-status .badge:has-text("Approved")), #tableBody tr:has(.col-status .badge:has-text("Completed"))').first();
-    await expect(row.locator('.col-action .btn-icon--ghost'), 'an approved/completed row offers the eye').toHaveCount(1);
-    await row.locator('.col-action .btn-icon--ghost').click();
+    /* 2026-11-04 (user): the eye is gone — a landed row carries ONE button, the
+       jump. The details modal is still reachable by clicking the row itself. */
+    await expect(row.locator('.col-action button'), 'a landed row offers exactly one action — the jump').toHaveCount(1);
+    await expect(row.locator('.col-action button')).toHaveAttribute('aria-label', 'Go to My Timetable');
+    await row.locator('.col-dash, .col-original').first().click();   // the row body, not the button
     await expect(page.locator('#quickViewModal')).toBeVisible();
   } else {
     test.info().annotations.push({ type: 'fixture', description: 'no approved/completed row in this DB — the eye half is not exercised' });

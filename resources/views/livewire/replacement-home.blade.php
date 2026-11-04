@@ -27,13 +27,12 @@
            wraps INSIDE its column instead of overflowing into the next one.
            The id also has to reach the <th>: under `table-layout: fixed` the
            header row is what decides the column widths. */
-        #timetable .col-reason { width: 18%; vertical-align: middle; white-space: normal; }
+        #timetable .col-reason { width: 22%; vertical-align: middle; white-space: normal; }
         .col-requested { width: 16%; white-space: normal; }
         #timetable .col-status { width: 17%; white-space: normal; }
-        /* 6% -> 10%: the column now holds TWO icon buttons on approved/completed
-           rows (eye + Go to My Timetable). The 4 points come from col-reason,
-           which wraps anyway. */
-        .col-action { width: 10%; text-align: center; }
+        /* one icon button again (2026-11-04: the eye left, the jump stayed), so the
+           column returns to its original 6% and col-reason gets the 4 points back */
+        .col-action { width: 6%; text-align: center; }
 
         /* ───── 2026-11-04 (user): nothing may paint outside its column ─────
            `.timetable td` is `white-space: nowrap` (theme.css) and only the four
@@ -467,19 +466,17 @@
         var BAN_SVG = '<svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="m4.9 4.9 14.2 14.2"/></svg>';
         /* mytimetable-jump-highlight: the calendar family voice (15px, stroke 2.5) */
         var CAL_SVG = '<svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>';
-        var EYE_SVG = '<svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>';
 
         function actionCell(c) {
             if (c.requestStatus === 'pending') {
                 return '<button type="button" class="btn-icon btn-icon--ghost btn-icon--danger" data-tip="Cancel this request" aria-label="Cancel this request" onclick="event.stopPropagation(); openCancelConfirm(' + c.requestId + ', ' + c.id + ')">' + BAN_SVG + '</button>';
             }
             if (c.requestStatus === 'approved' || c.requestStatus === 'completed') {
-                /* TWO buttons: the existing eye (unchanged) + the jump. The gate is
-                   the REQUEST STATUS the server resolved (effectiveStatus), never
-                   the badge's text — a Completed row's badge says "Completed" but
-                   the decision is `c.requestStatus`. */
-                return '<button type="button" class="btn-icon btn-icon--ghost" data-tip="View this request" aria-label="View this request" onclick="event.stopPropagation(); quickViewByRowId(' + c.id + ')">' + EYE_SVG + '</button>'
-                    + '<button type="button" class="btn-icon btn-icon--ghost" style="margin-left:6px" data-tip="Go to My Timetable" aria-label="Go to My Timetable" onclick="event.stopPropagation(); goToReplacementInTimetable(' + c.requestId + ',' + c.replacementWeek + ')">' + CAL_SVG + '</button>';
+                /* ONE button on a landed replacement: the jump (user, 2026-11-04 —
+                   the eye is gone; clicking the row still opens the details modal,
+                   so nothing is lost). The gate is the REQUEST STATUS the server
+                   resolved, never the badge's text. */
+                return '<button type="button" class="btn-icon btn-icon--ghost" data-tip="Go to My Timetable" aria-label="Go to My Timetable" onclick="event.stopPropagation(); goToReplacementInTimetable(' + c.requestId + ',' + c.replacementWeek + ')">' + CAL_SVG + '</button>';
             }
             return '<button type="button" class="btn-icon btn-icon--primary" data-tip="Arrange a replacement for this class" aria-label="Arrange a replacement" onclick="event.stopPropagation(); goToReplacementFor(' + JSON.stringify(c.sessionId) + ',' + JSON.stringify(c.week) + ', \'replacement-home\')">' + ROTATE_SVG + '</button>';
         }

@@ -109,9 +109,10 @@ test('receipt 1 — the home toggle is checked on load and hides the Completed r
   /* M6: the badge is NOT a door — a plain span, no anchor anywhere in the row */
   await expect(page.locator(`#tableBody tr[data-request-id="${FIXTURE.requestId}"] .col-status a`)).toHaveCount(0);
 
-  // the row is a handled row: the eye, and no countdown in Original Class
+  // the row is a handled row: the jump button, and no countdown in Original Class
   const row = page.locator(`#tableBody tr[data-request-id="${FIXTURE.requestId}"]`);
-  await expect(row.locator('.col-action .btn-icon--ghost')).toHaveCount(1);
+  await expect(row.locator('.col-action button')).toHaveCount(1);
+  await expect(row.locator('.col-action button')).toHaveAttribute('aria-label', 'Go to My Timetable');
   await expect(row.locator('.col-original .urgency-high, .col-original .urgency-mid, .col-original .urgency-low')).toHaveCount(0);
 
   // re-ticking hides it again (the filter really runs both ways)

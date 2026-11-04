@@ -111,3 +111,23 @@ the status resolution itself was proven in the previous lane (a past replacement
 
 **Gates:** pint passed · PHPStan level 7 → 0 errors · `node --check` ok ·
 **full suite 340 passed / 1875 assertions** (490.2 s). Testing DB reseeded afterwards.
+
+## Follow-up Round 1 — 2026-11-04 (user: keep only the jump button)
+
+### 🔴 Fixed
+- **The eye is gone** from approved/completed rows (user's word). The row now carries exactly one button,
+  the jump. `EYE_SVG` was deleted rather than left unused.
+
+### 🟡 Addressed
+- `.col-action` 10 % → **6 %**, `#timetable .col-reason` 18 % → **22 %**: the widening existed only to hold
+  two buttons. Re-measured at the same eight widths — 0 overflowing cells, the button fits its cell.
+- `replacement-home-status-badges.spec.ts` and `request-completed-status.spec.ts` used the eye to open the
+  modal; both now click the ROW body (measured to still open `#quickViewModal`) and assert the remaining
+  button's `aria-label`.
+
+### 🔴 Outstanding
+- None.
+
+**Re-run gates:** pint passed · PHPStan 0 errors · `node --check` ok · full suite **340 passed /
+1875 assertions** (483.3 s). Testing DB reseeded; the demo DB untouched (5 requests / 77 notifications /
+2 hidden, unchanged).

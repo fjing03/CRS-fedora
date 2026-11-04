@@ -1,3 +1,21 @@
+## 2026-11-04 — one action on a landed row: the jump, not the eye
+
+Follow-up on the user's word: the eye (View) button is gone from the ACTION column. An **Approved** or
+**Completed** row now carries **one** button — the calendar jump, tooltip `Go to My Timetable`.
+
+**Nothing was lost.** Clicking anywhere on the row still opens the details modal (measured: a click on the
+row body opens `#quickViewModal`), so the eye was a second door to a page you were already standing on.
+`EYE_SVG` was removed with it — no dead icon left behind.
+
+**The column went back to 6 %** and Conflict Reason back to 22 %: the extra width existed only to fit two
+icon buttons. Measured at 1920 / 1600 / 1440 / 1366 / 1280 / 1100 / 900 / 820 px — 0 overflowing cells,
+0 page overflow, the single button inside its cell at every width.
+
+Two specs used the eye as the door to the modal; both now click the row body and assert the one button's
+`aria-label` is `Go to My Timetable`.
+
+Measured jump (unchanged): row button → Week 7, block 26 flashed once. Full suite 340/340.
+
 ## 2026-11-04 — `Go to My Timetable`, from the row and from the details modal
 
 User order: for **Approved** and **Completed** replacements, a way to land on the replacement's own
