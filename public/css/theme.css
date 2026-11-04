@@ -1808,6 +1808,69 @@ html.dark .filter-select {
     color: var(--color-on-surface);
     line-height: 1.4;
 }
+/* ── Modal icon (warning face) — the destructive confirmations ─────────────
+   my-replacements UI/UX update, 2026-11-04: the Cancel Confirmation carries a
+   YELLOW warning face so the destructive intent reads before the words do.
+   Colour comes from the warning token only; no literal colour anywhere. */
+.modal-icon {
+    display: flex;
+    justify-content: center;
+    margin: 2px 0 12px;
+    color: var(--color-warning);
+}
+.modal-icon svg { width: 44px; height: 44px; display: block; }
+
+/* Confirm-cancellation content: one warning line, one irreversible line, then
+   the request's facts as a definition list (label bold + uppercase, value
+   normal). `overflow-wrap` keeps a long module name or venue code from pushing
+   the modal wider than its max-width. */
+.confirm-warning {
+    font-size: 14px;
+    line-height: 1.6;
+    color: var(--color-on-surface);
+    margin: 0 0 6px;
+    text-align: center;
+}
+.confirm-warning .warn-action {
+    color: var(--color-warning);
+    font-weight: 700;
+}
+.confirm-irreversible {
+    color: var(--color-error);
+    font-weight: 700;
+    font-size: 12px;
+    letter-spacing: 0.03em;
+    margin: 0 0 14px;
+    text-align: center;
+}
+.cancel-details {
+    background: var(--color-surface-variant);
+    border-radius: var(--radius-sm);
+    padding: 12px 14px;
+    margin: 0;
+    font-size: 13px;
+    line-height: 1.6;
+    display: grid;
+    grid-template-columns: max-content minmax(0, 1fr);
+    gap: 6px 12px;
+    overflow-wrap: anywhere;
+}
+.cancel-details dt {
+    font-weight: 700;
+    text-transform: uppercase;
+    font-size: 11px;
+    letter-spacing: 0.04em;
+    color: var(--color-on-surface-variant);
+}
+.cancel-details dd { margin: 0; color: var(--color-on-surface); }
+
+/* one column on a phone: the label sits above its value */
+@media (max-width: 520px) {
+    .cancel-details { grid-template-columns: minmax(0, 1fr); gap: 2px; }
+    .cancel-details dt { margin-top: 8px; }
+    .cancel-details dt:first-of-type { margin-top: 0; }
+}
+
 .modal-footer {
     display: flex; justify-content: space-between; align-items: center;
     padding: 14px 22px 18px; gap: 8px;

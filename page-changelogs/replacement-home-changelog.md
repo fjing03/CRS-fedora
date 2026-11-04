@@ -1,3 +1,32 @@
+## 2026-11-04 — Confirm Cancellation: a warning face, and the facts you are about to lose
+
+User's UI/UX request on the merged page (`/my-replacements`). Display only — the cancellation
+workflow, the write path and the buttons are untouched.
+
+**The icon.** The Confirm Cancellation modal now opens with a **yellow warning face** (a frown face
+drawn at 44 px), coloured from `var(--color-warning)` only. `.modal-icon` is a reusable shell so any
+other destructive confirmation can adopt it without new markup.
+
+**The copy, in the order the user gave it:**
+
+* `Are you sure you want to **CANCEL** this Replacement Request?` — sentence case except the
+  capitalised title, with **CANCEL** in bold warning yellow.
+* `THIS ACTION CANNOT BE UNDONE.` — bold, uppercase, error red.
+* A four-row definition list, labels bold + uppercase and values normal:
+  **COURSE** · **COHORT** · **ORIGINAL CLASS SCHEDULE** · **PROPOSED CLASS SCHEDULE**
+  (`Week 7, Tue, 3 Nov 2026, 1:00 PM – 2:00 PM @ B009` → `Week 7, Wed, 4 Nov 2026, 2:00 PM – 2:30 PM @ B009`).
+
+Cohorts join with ` & ` here (the modal's own convention), course names carry the canonical short
+type code `(L)`/`(T)`/`(P)`, and **both** schedules read on one clock face — the replacement range
+arrives as 24-hour (`14:00 – 14:30`) and is converted, so the modal never mixes `1:00 PM` with
+`14:00`.
+
+**Dimensions.** The modal is wider (480 px, was 420 px) because the four labelled rows do not fit at
+420 without wrapping a venue code onto its own line. Above 520 px the label sits beside its value; on
+a phone the list becomes one column and the label sits above its value. Measured: 480 px at 1440 px
+wide, 350 px at 390 px, `scrollWidth === clientWidth` in both (no horizontal overflow). Buttons,
+ordering and the confirm handler are unchanged.
+
 ## 2026-11-04 (follow-up) — column shares: the code column gives back 40%, Conflict Reason takes 30% more
 
 User ruling (2026-11-04): **`COURSE CODE & NAME` −40%**, **`CONFLICT REASON` +30%**. The shares are

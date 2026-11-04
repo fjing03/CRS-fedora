@@ -284,13 +284,24 @@
 
         <!-- Cancel Confirmation Modal (moved verbatim from My Requests — M10) -->
         <div class="modal-overlay" id="cancelConfirmOverlay" style="display:none">
-            <div class="modal" style="max-width:420px">
+            <div class="modal" style="max-width:480px">
                 <div class="modal-header">
                     <h3 class="modal-title">Confirm Cancellation</h3>
                     <button class="modal-close" onclick="closeCancelConfirm()" data-tip="Close">✕</button>
                 </div>
                 <div class="modal-body" id="cancelConfirmBody">
-                    <p style="font-size:14px;color:var(--color-on-surface);line-height:1.5">Are you sure you want to cancel this replacement request? This action cannot be <span class="warn-keyword">undone</span>.</p>
+                    <div class="modal-icon modal-icon--warning" aria-hidden="true">
+                        {{-- warning face — the destructive intent reads before the words do --}}
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+                            <circle cx="12" cy="12" r="9" />
+                            <path d="M15.18 16.32A4.49 4.49 0 0 0 12.02 15a4.49 4.49 0 0 0-3.2 1.32" />
+                            <path d="M9.38 9.75h.01v.02h-.01z" fill="currentColor" />
+                            <path d="M14.63 9.75h.01v.02h-.01z" fill="currentColor" />
+                        </svg>
+                    </div>
+                    <p class="confirm-warning">Are you sure you want to <span class="warn-action">CANCEL</span> this Replacement Request?</p>
+                    <p class="confirm-irreversible">THIS ACTION CANNOT BE UNDONE.</p>
+                    <dl class="cancel-details" id="cancelConfirmDetails"></dl>
                 </div>
                 <div class="modal-footer">
                     <div class="modal-footer-left">
@@ -846,13 +857,33 @@
             var c = myConflictedRows().find(function (row) { return Number(row.requestId) === Number(requestId); });
             if (c) {
                 currentOccurrenceId = c.id;
-                document.getElementById('cancelConfirmBody').innerHTML =
-                    '<p class="page-desc" style="color:var(--color-on-surface);line-height:1.5;margin-bottom:12px">Are you sure you want to cancel this replacement request? This action cannot be <span class="warn-keyword">undone</span>.</p>' +
-                    '<div style="background:var(--color-surface-variant);border-radius:var(--radius-sm);padding:12px;font-size:13px;line-height:1.6">' +
-                    '<strong>' + c.code + '</strong> \u2014 ' + c.name + '<br>' +
-                    'Class: ' + c.day + ', ' + formatDate(c.date) + '<br>' +
-                    'Status: ' + statusCell(c) +
-                    '</div>';
+                /* the facts the user is about to give up, in reading order:
+                   what the class is, who is in it, when it was, when it moves to */
+                var origWeek = getWeekNumber(c.date);
+                var origWhen = (origWeek ? 'Week ' + origWeek + ', ' : '') + dayAbbr(c.day) + ', ' + formatDate(c.date) +
+                    ', ' + to12h(c.timeStart) + ' \u2013 ' + to12h(c.timeEnd) + (c.venue ? ' @ ' + c.venue : '');
+                /* the replacement time arrives as a 24-hour range ('10:00 \u2013 11:00');
+                   the original reads 12-hour, so convert — one clock face per modal */
+                var propRange = String(c.replacementTime || '').split(/\s*[\u2013-]\s*/);
+                var propTime = propRange.length === 2
+                    ? to12h(propRange[0]) + ' \u2013 ' + to12h(propRange[1])
+                    : (c.replacementTime || '');
+                var propWhen = c.replacementDate
+                    ? (c.replacementWeek ? 'Week ' + c.replacementWeek + ', ' : '') + dayAbbr(c.replacementDay) + ', ' +
+                      formatDate(c.replacementDate) + (propTime ? ', ' + propTime : '') +
+                      (c.replacementVenue ? ' @ ' + c.replacementVenue : '')
+                    : '\u2014';
+                /* §10.0.2 — the canonical short code, so the modal and the table agree */
+                var kindLabel = UiLabels.classType(c.type, 'code');
+                var facts = [
+                    ['Course', c.code + ' \u2014 ' + c.name + (kindLabel ? ' (' + kindLabel + ')' : '')],
+                    ['Cohort', (c.cohorts && c.cohorts.length) ? c.cohorts.join(' & ') : '\u2014'],
+                    ['Original Class Schedule', origWhen],
+                    ['Proposed Class Schedule', propWhen],
+                ];
+                document.getElementById('cancelConfirmDetails').innerHTML = facts.map(function (f) {
+                    return '<dt>' + f[0] + '</dt><dd>' + f[1] + '</dd>';
+                }).join('');
             }
             document.getElementById('cancelConfirmOverlay').style.display = 'flex';
         }
