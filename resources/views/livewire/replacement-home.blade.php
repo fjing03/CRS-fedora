@@ -193,8 +193,8 @@
                     </svg>
                     <input class="search-input" id="searchInput" placeholder="Search course code, name or cohort..." data-tip="Search by course code, course name or cohort code">
                 </div>
-                <select class="filter-select" id="statusFilter" data-tip="Filter by request status">
-                    <option value="all">All Statuses</option>
+                <select class="filter-select" id="statusFilter" data-tip="Request Status" aria-label="Request Status">
+                    <option value="all">All Request Status</option>
                     <option value="none">Need to Arrange</option>
                     <option value="pending">Pending</option>
                     <option value="approved">Approved</option>

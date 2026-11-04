@@ -1,3 +1,15 @@
+## 2026-11-04 — the Request Status filter names itself
+
+Minor UI update (user). Two strings, nothing else:
+
+* the select's label (its `data-tip`, now also an `aria-label` for screen readers) reads
+  **`Request Status`** instead of `Filter by request status`;
+* the default option reads **`All Request Status`** instead of `All Statuses`. `value="all"` is
+  unchanged, every other option is unchanged, and the filter behaves exactly as before.
+
+The filter chip takes its text from the selected option, so it still shows the chosen option's own
+label — only the default wording moved.
+
 ## 2026-11-04 — the table stops painting outside its columns
 
 User's responsive-layout bug report: at narrower widths the COURSE CODE & NAME cell spilled over
