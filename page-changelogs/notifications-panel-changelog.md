@@ -1,6 +1,6 @@
 ## 2026-11-04 — the click flash follows the new pulse
 
-Same day, same change: the shared `bookable-pulse` now paints **7 flashes at 0.5 s** with a **4 px / 63 %**
+Same day, same change: the shared `bookable-pulse` now paints **3 flashes at 0.5 s** with a **4 px / 63 %**
 ring instead of one 1.15 s pulse at 3 px / 45 %. A notification click's highlight looks exactly like the
 others because they all share the one animation.
 
