@@ -11,17 +11,22 @@ import { test, expect, type Page } from '@playwright/test';
 test.use({ storageState: '.auth/staff-5425.json' });
 
 const BASE = (process.env.CRS_BASE ?? 'http://localhost:8000');
-const MRH = '/my-request-history-ui';
+const MRH = '/my-replacements';
 const RA = '/request-approval-ui';
 
-/* the frozen maps (my-request-history.md:22-26 / request-approval.md:22-24) */
-const MRH_MAP: Record<string, string> = {
-  Pending: "Your request has been Submitted and is AWAITING the Programme Leader's decision (Approve or Reject).",
-  Approved: 'The Programme Leader has APPROVED your request.',
-  Rejected: 'The Programme Leader has REJECTED your request.',
-  Cancelled: 'You MANUALLY CANCELLED this request.',
-  Completed: 'The replacement class has been CONDUCTED — this request is complete.',
-};
+/* replacement-merge-one-table (T19): the merged page owns NO status map — the
+   labels and tips are SERVER-built and arrive in the payload. These are the six
+   strings `ReplacementRequestMapper::statusTip()` returns (design §1.6); the
+   receipts below compare the rendered `data-tip` with the payload's own value,
+   so a map that drifted on either side fails. */
+const MRH_TIPS = [
+  'No request has been made for this class yet — it still needs arranging.',
+  "Your request has been Submitted and is AWAITING the Programme Leader's decision (Approve or Reject).",
+  'The Programme Leader has APPROVED your request.',
+  'The Programme Leader has REJECTED your request.',
+  'You MANUALLY CANCELLED this request.',
+  'The replacement class has been CONDUCTED — this request is complete.',
+];
 const RA_MAP: Record<string, string> = {
   Pending: 'This request is AWAITING your review and decision (Approve or Reject).',
   Approved: 'You have APPROVED this request.',
@@ -64,33 +69,31 @@ test('T5.MRH-1: per-row status hover loop + the FULL 5-string map fallback + fai
   await page.waitForTimeout(1200);
   await setMRHAll(page);
 
-  // hover loop: every rendered badge's tip equals ITS OWN status's map entry
-  const badges = page.locator('#tableBody .badge[data-tip]');
+  // every rendered badge carries the SERVER tip for its own row
+  const badges = page.locator('#tableBody .col-status .badge[data-tip]');
   const count = await badges.count();
-  expect(count, 'the demo renders at least one status badge').toBeGreaterThan(0);
-  for (let i = 0; i < count; i++) {
-    const b = badges.nth(i);
-    const status = ((await b.textContent()) || '').trim();
-    const expected = MRH_MAP[status];
-    const tip = await b.getAttribute('data-tip');
-    expect(tip, `row badge '${status}'`).toBe(expected); // unknown => no attr at all
-    if (i === 0) {
-      const shared = await sharedTip(page, `#tableBody .badge[data-tip]`);
-      expect(shared).not.toBeNull();                                  // the SHARED engine
-      expect(shared!.text).toBe(expected);                            // same text
-      expect(shared!.above, 'the tooltip renders ABOVE the badge').toBe(true);
-    }
+  expect(count, 'the page renders at least one status badge').toBeGreaterThan(0);
+
+  const serverTips = await page.evaluate(() =>
+    Array.from(document.querySelectorAll('#tableBody tr')).map((tr) => {
+      const badge = tr.querySelector('.col-status .badge');
+      const id = tr.getAttribute('data-request-id');
+      const row = (window as any).MockData.conflictedClasses.find(
+        (c: any) => String(c.requestId ?? '') === String(id ?? ''),
+      );
+      return { tip: badge?.getAttribute('data-tip') ?? null, payloadTip: row?.requestStatusTip ?? null };
+    }),
+  );
+
+  for (const pair of serverTips) {
+    expect(pair.tip, 'the badge tip comes from the payload').toBe(pair.payloadTip);
+    expect(MRH_TIPS, 'and it is one of the six server strings').toContain(pair.tip);
   }
 
-  // map fallback: the page's OWN map matches the frozen 5 strings exactly
-  // (the demo DB covers approved/cancelled/rejected — Pending/Completed ride this)
-  const mapCheck = await page.evaluate((want) => {
-    const got: Record<string, string> = {};
-    for (const s of Object.keys(want)) got[s] = window.statusTooltip(s);
-    return { got, failOpen: window.statusTooltip('NotAStatus') }; // 'NotAStatus' is not in the map
-  }, MRH_MAP);
-  expect(mapCheck.got).toEqual(MRH_MAP);
-  expect(mapCheck.failOpen, 'unknown status fails open — NO data-tip attr').toBe('');
+  const shared = await sharedTip(page, '#tableBody .col-status .badge[data-tip]');
+  expect(shared, 'the SHARED data-tip engine renders it').not.toBeNull();
+  expect(shared!.text).toBe(serverTips[0].tip);
+  expect(shared!.above, 'the tooltip renders ABOVE the badge').toBe(true);
 });
 
 test('T5.MRH-2: resetFilters rename + tip; Clear-all law + individual ✕', async ({ page }) => {
@@ -106,12 +109,12 @@ test('T5.MRH-2: resetFilters rename + tip; Clear-all law + individual ✕', asyn
   await page.waitForTimeout(400);
   let chips = await page.locator('#filterChips .filter-chip:not(.filter-chip-clear-all)');
   await expect(chips).toHaveCount(1);
-  await expect(chips.first()).toContainText('Exclude Completed');
+  await expect(chips.first()).toContainText(/Exclude COMPLETED/);
 
   // two non-default filters → chips grow
   await page.fill('#searchInput', 'AMSE');
   await page.waitForTimeout(600);
-  await page.selectOption('#statusFilter', 'Approved');
+  await page.selectOption('#statusFilter', 'approved');
   await page.waitForTimeout(600);
   chips = page.locator('#filterChips .filter-chip:not(.filter-chip-clear-all)');
   expect(await chips.count()).toBeGreaterThanOrEqual(3); // Exclude Completed + Status + Search
@@ -141,7 +144,7 @@ test('T5.MRH-2: resetFilters rename + tip; Clear-all law + individual ✕', asyn
   await page.waitForTimeout(400);
   chips = page.locator('#filterChips .filter-chip:not(.filter-chip-clear-all)');
   await expect(chips).toHaveCount(1);
-  await expect(chips.first()).toContainText('Exclude Completed');
+  await expect(chips.first()).toContainText(/Exclude COMPLETED/);
   await page.locator('#filterChips .filter-chip .filter-chip-remove').first().click();
   await page.waitForTimeout(600);
   await expect(page.locator('#hideCompleted')).not.toBeChecked();
@@ -151,13 +154,14 @@ test('T5.MRH-2: resetFilters rename + tip; Clear-all law + individual ✕', asyn
 test('T5.MRH-3: detail-modal Status row + mobile-card threading', async ({ page }) => {
   await page.goto(`${BASE}${MRH}`);
   await page.waitForTimeout(1200);
-  const status = (((await page.locator('#tableBody .badge[data-tip]').first().textContent()) || '')).trim();
-  const expected = MRH_MAP[status];
+  const badgeEl = page.locator('#tableBody .col-status .badge[data-tip]').first();
+  const status = (((await badgeEl.textContent()) || '')).trim();
+  const expected = await badgeEl.getAttribute('data-tip');
 
-  // modal: the row badge's onclick opens the detail modal with the SAME tip
-  await page.locator('#tableBody .badge[data-tip]').first().click();
+  // the ROW is the door (M6): clicking the badge bubbles to the row's handler
+  await badgeEl.click();
   await page.waitForTimeout(700);
-  const modalBadge = page.locator('#modalOverlay .modal-body .badge[data-tip]').first();
+  const modalBadge = page.locator('#quickViewModal .modal-body .badge[data-tip]').first();
   await expect(modalBadge).toHaveText(status);
   await expect(modalBadge).toHaveAttribute('data-tip', expected);
   await page.keyboard.press('Escape');
@@ -165,10 +169,11 @@ test('T5.MRH-3: detail-modal Status row + mobile-card threading', async ({ page 
   // mobile card: the shared HtmlBuilder badge threads opts.statusTip
   await page.setViewportSize({ width: 375, height: 800 });
   await page.waitForTimeout(600);
-  const cardBadge = page.locator('#cardView .request-card .badge[data-tip]').first();
+  const cardBadge = page.locator('#cardView .replacement-card .badge[data-tip]').first();
   await expect(cardBadge).toBeVisible();
-  await expect(cardBadge).toHaveAttribute('data-tip', MRH_MAP[((await cardBadge.textContent()) || '').trim()]);
-  const shared = await sharedTip(page, '#cardView .request-card .badge[data-tip]');
+  const cardTip = await cardBadge.getAttribute('data-tip');
+  expect(MRH_TIPS, 'the card badge carries the same server tip').toContain(cardTip);
+  const shared = await sharedTip(page, '#cardView .replacement-card .badge[data-tip]');
   expect(shared).not.toBeNull();
   expect(shared!.above).toBe(true);
 });

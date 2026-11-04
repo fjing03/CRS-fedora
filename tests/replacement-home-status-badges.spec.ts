@@ -1,135 +1,175 @@
-import { test, expect } from '@playwright/test';
+import { test, expect, type Page } from '@playwright/test';
 
 /**
- * replacement-home-status-badges (2026-11-03) — the READ-ONLY receipt for D1/D2/
- * D5/D7/D8 on /replacement-home-ui. Nothing here writes: every step is a GET plus
- * a DOM read (no fixtures, no SQL, no demo-DB writes).
+ * replacement-merge-one-table (T19, 2026-11-04) — the bucket-B rewrite of the
+ * old badges receipts. The page is now ONE table of CLASS OCCURRENCES: the row's
+ * state is its newest request, the status badge is NOT a link (M6), and the
+ * Action cell is one icon (rotate / ban / eye).
  *
- * Fixtures pinned from the live demo DB (`class_replacement_fresh`), viewer =
- * staff 5425 (user 1, Surayaini) — the same identity the venue specs use:
- *   · request 27 — PENDING, class_session 38 = BMSE2163(P), occurrence W14
- *     (W14 Thu = Christmas Eve) → a HANDLED row
- *   · request 26 — PENDING, class_session 40 = AMSE2003(P), occurrence W14
- *     (W14 Fri = Christmas Day)  → a HANDLED row
- *   · the W8 Monday (Deepavali) and the remaining W14 rows carry no request
- *     → rows that still need action
- *
- * If the demo DB is replaced, re-derive these two ids from the home page itself
- * (the badge href contains `notif-hl=r<id>`) before trusting a red/green result.
+ * Read-only: every receipt is a GET plus a DOM read. The fixture is whatever the
+ * target DB has, so the shared extractor reports facts and each receipt asserts
+ * the LAW that must hold for that fact — a handled row's laws are only asserted
+ * when a handled row exists (annotated, never silently skipped as a pass).
  */
 
-const HOME = '/replacement-home-ui';
-const MRH = '/my-request-history-ui';
+const HOME = '/my-replacements';
+const STATUS_LABELS = [
+  'Need to Arrange',
+  'Pending — Waiting for Approval',
+  'Approved',
+  'Rejected',
+  'Cancelled by YOU',
+];
+
+type Row = {
+  code: string;
+  original: string;
+  days: string | null;
+  status: string;
+  statusKey: string;
+  badgeIsAnchor: boolean;
+  iconClass: string | null;
+  iconOnclick: string | null;
+  reason: string;
+};
+
+async function rows(page: Page): Promise<Row[]> {
+  await page.goto(`${HOME}?fresh=${Date.now()}`, { waitUntil: 'networkidle' });
+  await page.waitForSelector('#tableBody tr');
+  await page.waitForTimeout(400);
+
+  return page.evaluate(() => {
+    const statusKeyOf = (badge: Element | null): string => {
+      if (!badge) return 'none';
+      const cls = Array.from(badge.classList).find((c) => c.startsWith('status-'));
+      if (!cls || cls === 'status-none') return 'none';
+      return cls.replace('status-', '');
+    };
+
+    return Array.from(document.querySelectorAll('#tableBody tr')).map((tr) => {
+      const badge = tr.querySelector('.col-status .badge');
+      const urgency = tr.querySelector('.col-original .urgency-high, .col-original .urgency-mid, .col-original .urgency-low');
+      const icon = tr.querySelector('.col-action .btn-icon');
+
+      return {
+        code: (tr.querySelector('.col-code')?.textContent || '').trim(),
+        original: (tr.querySelector('.col-original')?.textContent || '').replace(/\s+/g, ' ').trim(),
+        days: urgency ? (urgency.textContent || '').trim() : null,
+        status: (badge?.textContent || '').trim(),
+        statusKey: statusKeyOf(badge),
+        badgeIsAnchor: badge?.tagName === 'A',
+        iconClass: icon ? Array.from(icon.classList).find((c) => c.startsWith('btn-icon--')) ?? null : null,
+        iconOnclick: icon ? icon.getAttribute('onclick') : null,
+        reason: (tr.querySelector('.col-reason')?.textContent || '').trim(),
+      };
+    });
+  });
+}
+
+const isHandled = (r: Row): boolean => ['pending', 'approved', 'completed'].includes(r.statusKey);
 
 test.use({ storageState: '.auth/staff-5425.json' });
 
-async function homeRows(page: import('@playwright/test').Page) {
-  await page.goto(`${HOME}?fresh=${Date.now()}`, { waitUntil: 'networkidle' });
-  await page.waitForTimeout(700);
-  return page.evaluate(() => Array.from(document.querySelectorAll('#tableBody tr')).map((tr) => ({
-    code: (tr.querySelector('.col-code')?.textContent || '').trim(),
-    original: (tr.querySelector('.col-original')?.textContent || '').replace(/\s+/g, ' ').trim(),
-    days: (tr.querySelector('.col-urgency')?.textContent || '').trim(),
-    reason: (tr.querySelector('.col-reason')?.textContent || '').trim(),
-    badgeHref: tr.querySelector('.col-action a.badge-link')?.getAttribute('href') ?? null,
-    badgeText: (tr.querySelector('.col-action a.badge-link')?.textContent || '').trim() || null,
-    hasArrange: !!tr.querySelector('.col-action .btn-action'),
-    endedLabel: (tr.querySelector('.col-action .action-stack > span.badge')?.textContent || '').trim() || null,
-  })));
-}
+test('receipt 1 — every row carries ONE M5 badge, never an anchor, and one icon', async ({ page }) => {
+  const all = await rows(page);
+  expect(all.length, 'the merged page lists the viewer\'s conflicted occurrences').toBeGreaterThan(0);
 
-test('receipt 1 — a handled row shows a clickable badge and no Arrange button', async ({ page }) => {
-  const rows = await homeRows(page);
-  const handled = rows.filter((r) => r.badgeHref !== null);
-
-  expect(handled.length, 'at least one handled occurrence stays on the list (D1)').toBeGreaterThan(0);
-  for (const row of handled) {
-    expect(row.badgeText, 'D2: the badge names the request state').toMatch(/^(Pending|Approved)$/);
-    expect(row.badgeHref, 'D2: the badge links to My Requests with the request id').toMatch(/^\/my-request-history-ui\?notif-hl=r\d+$/);
-    expect(row.hasArrange, 'D2: a handled row has NO Arrange button').toBe(false);
+  for (const row of all) {
+    const valid = STATUS_LABELS.includes(row.status) || /^Completed( — \d+ days? ago)?$/.test(row.status);
+    expect(valid, 'M5 label: ' + row.status).toBeTruthy();
+    expect(row.badgeIsAnchor, 'M6: the badge is not a door').toBe(false);
+    expect(row.iconClass, 'M6: the Action cell is one icon').not.toBeNull();
   }
 });
 
-test('receipt 2 — the badge lands on My Requests with that request targeted', async ({ page }) => {
-  const rows = await homeRows(page);
-  const handled = rows.find((r) => r.badgeHref !== null);
-  expect(handled, 'a handled row exists').toBeTruthy();
+test('receipt 2 — the ban icon opens the confirm overlay; the eye opens the pop-up', async ({ page }) => {
+  const all = await rows(page);
+  const pending = all.find((r) => r.statusKey === 'pending');
+  const handled = all.find((r) => r.statusKey === 'approved' || r.statusKey === 'completed');
 
-  const requestId = handled!.badgeHref!.split('=r')[1];
-  await page.locator(`#tableBody .col-action a.badge-link[href="${handled!.badgeHref}"]`).first().click();
-  await page.waitForURL(new RegExp(`${MRH.replace('/', '\\/')}`), { timeout: 15000 });
+  if (pending) {
+    const row = page.locator('#tableBody tr:has(.col-status .badge:has-text("Pending"))').first();
+    await expect(row.locator('.col-action .btn-icon--danger'), 'a pending row offers cancel').toHaveCount(1);
+    await row.locator('.col-action .btn-icon--danger').click();
+    await expect(page.locator('#cancelConfirmOverlay')).toBeVisible();
+    await page.locator('#cancelConfirmOverlay .btn-outline').first().click(); // No, Keep It
+    await expect(page.locator('#cancelConfirmOverlay')).toBeHidden();
+  } else {
+    test.info().annotations.push({ type: 'fixture', description: 'no pending row in this DB — the ban half is not exercised' });
+  }
 
-  const row = page.locator(`tr[data-id="${requestId}"]`);
-  await expect(row, 'the request row is on the page').toHaveCount(1, { timeout: 8000 });
-  expect(new URL(page.url()).pathname, 'the destination is My Requests').toBe(MRH);
-  /* the shared 1.3 s flash is opportunistic here (arrival renders after a
-     400 ms skeleton) — assert it only if it lands inside the window. */
-  const flashed = await row.evaluate((el) => el.classList.contains('bookable-flash')).catch(() => false);
-  test.info().annotations.push({ type: 'flash', description: flashed ? 'bookable-flash observed' : 'flash window missed (navigation receipt stands)' });
+  if (handled) {
+    const row = page.locator('#tableBody tr:has(.col-status .badge:has-text("Approved")), #tableBody tr:has(.col-status .badge:has-text("Completed"))').first();
+    await expect(row.locator('.col-action .btn-icon--ghost'), 'an approved/completed row offers the eye').toHaveCount(1);
+    await row.locator('.col-action .btn-icon--ghost').click();
+    await expect(page.locator('#quickViewModal')).toBeVisible();
+  } else {
+    test.info().annotations.push({ type: 'fixture', description: 'no approved/completed row in this DB — the eye half is not exercised' });
+  }
 });
 
-test('receipt 3 — Days Left is an em dash on a handled row', async ({ page }) => {
-  const rows = await homeRows(page);
-  const handled = rows.filter((r) => r.badgeHref !== null);
-  expect(handled.length).toBeGreaterThan(0);
-  for (const row of handled) {
-    expect(row.days, 'D7: a handled row reads —').toBe('—');
+test('receipt 3 — Days Left is an em dash on a handled row and a countdown otherwise', async ({ page }) => {
+  const all = await rows(page);
+
+  for (const row of all.filter(isHandled)) {
+    expect(row.days, 'D7: a handled row shows no countdown (em dash or no urgency span)').toBe(null);
   }
-  /* D7's second half: the em dash is a DISPLAY change only — a needs-action row
-     still shows its real countdown next to it */
-  const actionable = rows.filter((r) => r.badgeHref === null);
-  expect(actionable.length).toBeGreaterThan(0);
+
+  const actionable = all.filter((r) => !isHandled(r));
+  expect(actionable.length, 'at least one row still needs action').toBeGreaterThan(0);
   for (const row of actionable) {
-    expect(row.days).toMatch(/days? left|Overdue|today/i);
+    expect(row.days, 'D7: an unarranged row keeps its real countdown').toMatch(/days? left|Overdue|today/i);
   }
 });
 
 test('receipt 4 — handled rows sort AFTER the rows that need action', async ({ page }) => {
-  const rows = await homeRows(page);
-  const handledFlags = rows.map((r) => r.badgeHref !== null);
-  const firstHandled = handledFlags.indexOf(true);
-  expect(firstHandled, 'a handled row exists').toBeGreaterThan(-1);
-  expect(handledFlags.slice(firstHandled).every(Boolean), 'D8: once the handled group starts, it never returns to needs-action').toBe(true);
+  const flags = (await rows(page)).map(isHandled);
+  if (!flags.includes(true)) {
+    test.info().annotations.push({ type: 'fixture', description: 'no handled row — the grouping law is asserted on the needs-action prefix only' });
+    expect(flags.every((f) => f === false), 'without handled rows every row is needs-action').toBe(true);
+    return;
+  }
+
+  const firstHandled = flags.indexOf(true);
+  expect(flags.slice(firstHandled).every(Boolean), 'D8: once the handled group starts, it never returns to needs-action').toBe(true);
 });
 
-test('receipt 5 — the mobile card carries the badge and tapping it navigates', async ({ page }) => {
+test('receipt 5 — the phone card opens the same pop-up', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto(`${HOME}?fresh=${Date.now()}`, { waitUntil: 'networkidle' });
-  await page.waitForTimeout(800);
+  await page.waitForSelector('#cardView .replacement-card');
 
-  const badge = page.locator('.replacement-card .rc-header a.badge-link').first();
-  await expect(badge, 'D5: the card shows the same badge').toHaveCount(1);
-  const href = await badge.getAttribute('href');
-  expect(href).toMatch(/\?notif-hl=r\d+$/);
-
-  await page.locator('.replacement-card', { has: page.locator('a.badge-link') }).first().click();
-  await page.waitForURL(new RegExp(MRH.replace('/', '\\/')), { timeout: 15000 });
-  expect(new URL(page.url()).pathname).toBe(MRH);
-});
-
-test('receipt 6 — the quick view on a handled row offers View Request + a status row', async ({ page }) => {
-  await page.goto(`${HOME}?fresh=${Date.now()}`, { waitUntil: 'networkidle' });
-  await page.waitForTimeout(700);
-
-  const handledRow = page.locator('#tableBody tr', { has: page.locator('a.badge-link') }).first();
-  await expect(handledRow).toHaveCount(1);
-  // the row's own click opens the quick view (the badge stops propagation)
-  await handledRow.locator('.col-code').click();
+  const card = page.locator('#cardView .replacement-card').first();
+  await card.click();
   await expect(page.locator('#quickViewModal')).toBeVisible();
-
-  await expect(page.locator('#qvArrangeLabel')).toHaveText('View Request');
-  const body = page.locator('#qvBody');
-  await expect(body).toContainText('Replacement Status');
-  await expect(body).toContainText(/Pending|Approved/);
+  await expect(page.locator('#quickViewModal .modal-tab').first()).toHaveText(/Original Class Schedule/);
 });
 
-test('receipt 7 — an actionable row still starts the arrangement (no regression)', async ({ page }) => {
-  await page.goto(`${HOME}?fresh=${Date.now()}`, { waitUntil: 'networkidle' });
-  await page.waitForTimeout(700);
+test('receipt 6 — a handled row hides the arrange button and the tab names the request status', async ({ page }) => {
+  const handled = (await rows(page)).find(isHandled);
+  if (!handled) {
+    test.info().annotations.push({ type: 'fixture', description: 'no handled row in this DB — receipt 6 needs one' });
+    test.skip(true, 'no handled row in this DB: the hidden-arrange receipt cannot be exercised');
+    return;
+  }
 
-  const row = page.locator('#tableBody tr', { has: page.locator('.col-action .btn-action') }).first();
-  await expect(row, 'D2: a needs-action row keeps its Arrange button').toHaveCount(1);
+  const row = page.locator('#tableBody tr', { has: page.locator('.col-status .badge:has-text("Pending"), .col-status .badge:has-text("Approved"), .col-status .badge:has-text("Completed")') }).first();
   await row.locator('.col-code').click();
-  await expect(page.locator('#qvArrangeLabel')).toHaveText('Arrange Replacement');
-  await expect(page.locator('#qvBody')).not.toContainText('Replacement Status');
+
+  const tabs = page.locator('#quickViewModal .modal-tab');
+  await expect(tabs.first()).toHaveText(/Original Class Schedule/);
+  await expect(tabs).toContainText([/Request Status \(/]);
+  await expect(page.locator('#qvArrangeBtn'), 'M7: a handled row offers no arrange button').toBeHidden();
+});
+
+test('receipt 7 — the rotate icon arranges that class and week', async ({ page }) => {
+  const all = await rows(page);
+  const actionable = all.find((r) => !isHandled(r));
+  expect(actionable, 'a needs-action row exists').toBeTruthy();
+
+  const rotate = page.locator('#tableBody .col-action .btn-icon--primary').first();
+  await expect(rotate).toHaveCount(1);
+  const onclick = await rotate.getAttribute('onclick');
+  expect(onclick, 'S6.6: it hands off (sessionId, week) FROM this page').toMatch(/goToReplacementFor\(\d+,\s*\d+,\s*'replacement-home'\)/);
+  await expect(rotate).toHaveAttribute('data-tip', 'Arrange a replacement for this class');
 });

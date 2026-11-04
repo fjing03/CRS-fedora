@@ -18,6 +18,11 @@ import { execSync } from 'node:child_process';
  * (hardcoded below — this spec can never touch a demo database).
  *
  *   DB_DATABASE=class_replacement_testing php artisan migrate:fresh --seed
+ * replacement-merge-one-table (T19, 2026-11-04): the target page is now the
+ * merged ONE table — /my-replacements — where the completed row's badge is a
+ * plain span in .col-status and the row is addressed by its REQUEST id
+ * (data-request-id), while data-id now means the occurrence.
+ *
  *   scripts/dev-serve.sh 8030            # with DB_DATABASE=class_replacement_testing
  *   CRS_MODE=testing CRS_ALLOW_SQL=1 CRS_BASE=http://127.0.0.1:8030 \
  *     npx playwright test tests/request-completed-status.spec.ts
@@ -83,33 +88,31 @@ test.afterAll(() => {
 });
 
 test('receipt 1 — the home toggle is checked on load and hides the Completed row, and unticking reveals it (R3/R4)', async ({ page }) => {
-  await page.goto(`${BASE}/replacement-home-ui?bust=pw-rc1`, { waitUntil: 'networkidle' });
+  await page.goto(`${BASE}/my-replacements?bust=pw-rc1`, { waitUntil: 'networkidle' });
   await page.waitForTimeout(900);
 
-  // C4: the toggle exists, is labelled and CHECKED on every load
+  // C4/M17: the toggle exists, is labelled and CHECKED on every load
   const toggle = page.locator('#completedToggle');
   await expect(toggle).toHaveCount(1);
-  await expect(toggle).toContainText('Exclude Completed');
+  await expect(toggle).toContainText('COMPLETED');
   await expect(page.locator('#hideCompleted')).toBeChecked();
 
-  const badge = page.locator('#tableBody a.badge-link[href$="r' + FIXTURE.requestId + '"]');
-  await expect(badge, 'R3: while Exclude Completed is ON the completed row is not listed').toHaveCount(0);
+  const badge = page.locator(`#tableBody tr[data-request-id="${FIXTURE.requestId}"] .col-status .badge`);
+  await expect(badge, 'R3: while Exclude COMPLETED is ON the completed row is not listed').toHaveCount(0);
 
   // untick → the row appears with a Completed badge that carries this request's id
   // (the input itself is visually hidden behind the styled track — click that)
   await page.locator('#completedToggle .toggle-track').click();
   await page.waitForTimeout(700);
   await expect(badge).toHaveCount(1);
-  await expect(badge).toHaveText('Completed');
-  await expect(badge).toHaveAttribute('href', `/my-request-history-ui?notif-hl=r${FIXTURE.requestId}`);
+  await expect(badge).toHaveText(/^Completed — \d+ day/);
+  /* M6: the badge is NOT a door — a plain span, no anchor anywhere in the row */
+  await expect(page.locator(`#tableBody tr[data-request-id="${FIXTURE.requestId}"] .col-status a`)).toHaveCount(0);
 
-  // the row is a handled row: no Arrange button, and the em dash in Days Left
-  /* the `has` locator is resolved INSIDE each row — never nest `#tableBody` in it */
-  const row = page.locator('#tableBody tr', {
-    has: page.locator(`a.badge-link[href$="r${FIXTURE.requestId}"]`),
-  });
-  await expect(row.locator('.col-action .btn-action')).toHaveCount(0);
-  await expect(row.locator('.col-urgency')).toHaveText('—');
+  // the row is a handled row: the eye, and no countdown in Original Class
+  const row = page.locator(`#tableBody tr[data-request-id="${FIXTURE.requestId}"]`);
+  await expect(row.locator('.col-action .btn-icon--ghost')).toHaveCount(1);
+  await expect(row.locator('.col-original .urgency-high, .col-original .urgency-mid, .col-original .urgency-low')).toHaveCount(0);
 
   // re-ticking hides it again (the filter really runs both ways)
   await page.locator('#completedToggle .toggle-track').click();
@@ -118,42 +121,36 @@ test('receipt 1 — the home toggle is checked on load and hides the Completed r
 });
 
 test('receipt 2 — the Completed badge lands on its row and the reveal exception un-hides it (R4/R5)', async ({ page }) => {
-  await page.goto(`${BASE}/replacement-home-ui?bust=pw-rc2`, { waitUntil: 'networkidle' });
-  await page.waitForTimeout(800);
+  /* the bell's arrival: ?notif-hl=r<requestId> (M16 — the stored link family) */
+  await page.goto(`${BASE}/my-replacements?notif-hl=r${FIXTURE.requestId}&bust=pw-rc2`, { waitUntil: 'networkidle' });
+  await page.waitForTimeout(1400);
 
-  await page.locator('#completedToggle .toggle-track').click();
-  await page.waitForTimeout(600);
-  const badge = page.locator('#tableBody a.badge-link[href$="r' + FIXTURE.requestId + '"]');
-  await expect(badge).toHaveCount(1);
-  await badge.click();
-
-  await page.waitForURL(/my-request-history-ui/, { timeout: 15_000 });
-  const row = page.locator(`tr[data-id="${FIXTURE.requestId}"]`);
+  const row = page.locator(`#tableBody tr[data-request-id="${FIXTURE.requestId}"]`);
 
   // R5: the toggle is the ONLY reason this row was missing, so the page
   // un-ticks it for the user and shows the row…
   await expect(row, 'the completed request is revealed, not toasted').toHaveCount(1, { timeout: 10_000 });
   await expect(page.locator('#hideCompleted')).not.toBeChecked();
-  await expect(row.locator('.badge').first()).toHaveText('Completed');
+  await expect(row.locator('.col-status .badge')).toHaveText(/^Completed — /);
   // …and the saved filter now matches what the user is looking at
   const saved = await page.evaluate(() => localStorage.getItem('mrh-filters'));
   expect(saved === null || JSON.parse(saved).excludeCompleted === false).toBe(true);
 });
 
 test('receipt 3 — any OTHER hiding cause keeps the toast and leaves the toggle alone (R5)', async ({ page }) => {
-  await page.goto(`${BASE}/my-request-history-ui?bust=pw-rc3`, { waitUntil: 'networkidle' });
+  await page.goto(`${BASE}/my-replacements?bust=pw-rc3`, { waitUntil: 'networkidle' });
   await page.waitForTimeout(800);
 
   // a status filter that excludes Completed — a second hiding cause
-  await page.selectOption('#statusFilter', 'Pending');
+  await page.selectOption('#statusFilter', 'pending');
   await page.waitForTimeout(600);
 
-  await page.goto(`${BASE}/my-request-history-ui?notif-hl=r${FIXTURE.requestId}`, { waitUntil: 'networkidle' });
+  await page.goto(`${BASE}/my-replacements?notif-hl=r${FIXTURE.requestId}`, { waitUntil: 'networkidle' });
   await page.waitForTimeout(1200);
 
   const toast = page.locator('#toastBar');
   await expect(toast).toBeVisible();
   await expect(toast.locator('.toast-message')).toContainText('hidden by your current filters');
   await expect(page.locator('#hideCompleted'), 'the toggle is NOT touched when another filter hides the row').toBeChecked();
-  await expect(page.locator(`tr[data-id="${FIXTURE.requestId}"]`)).toHaveCount(0);
+  await expect(page.locator(`tr[data-request-id="${FIXTURE.requestId}"]`)).toHaveCount(0);
 });
