@@ -13,8 +13,8 @@ Status: **applied 2026-11-04** (receipts in `review-log.md`).
 - [x] **T9** `ui-common.js` `tryFind()`: re-query the selector at flash time (the skeleton rebuild detached the row).
 - [x] **T10** `tests/Feature/NotificationsBridgeTest.php`: the two link assertions re-pointed to `/my-replacements`.
 - [x] **T11** Gates: pint passed · PHPStan level 7 → 0 errors · `node --check` ok.
-- [ ] **T12** Full `php artisan test` — **NOT RUN** in this session: `class_replacement_testing` is empty and
-      another session was using it; the full-suite reseed would collide. Run when idle.
+- [x] **T12** Full `php artisan test` — **PASSED 2026-11-04**: 340 tests / 340 passed / 1875 assertions in
+      450.8 s (baseline before this lane: 336 / 1849). Testing DB reseeded afterwards.
 - [x] **T13** End-to-end **completed → hide** receipt — **DONE 2026-11-04** (option A, user-approved): the row was
       hidden through the feature itself and restored through the Hidden shelf. See review-log "Completed receipt".
 - [x] **T14** Status-resolution receipt (read-only tinker): `effectiveStatus()` on the demo's approved request

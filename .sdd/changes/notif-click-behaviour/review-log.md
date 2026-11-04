@@ -83,5 +83,15 @@ list; **the URL did not change** (the handler's `preventDefault` fired, so no na
 **Snapshot first:** `backups/class_replacement_fresh-pre-notif-hide-2026-11-04.dump`, `pg_restore --list`
 verified. The write pair is logged in `docs/demo-db-data-changes.md` (never staged). Net DB change: **zero**.
 
-**Still not run:** the full `php artisan test` suite (the testing DB was in use by another session). FR 7
-of the spec and the neighbouring notification suites remain unexecuted for this lane.
+## Full suite — 2026-11-04 (the user stopped the other session)
+
+`DB_DATABASE=class_replacement_testing php artisan test`, backgrounded and polled:
+
+```
+{"tool":"phpunit","result":"passed","tests":340,"passed":340,"assertions":1875,"duration_ms":450801}
+```
+
+**340 / 340 passed, 1875 assertions, 450.8 s.** Baseline before this lane was 336 passed / 1849
+assertions, so the four new tests and the re-pointed `NotificationsBridgeTest` assertions are green.
+`class_replacement_testing` was reseeded to the canonical state afterwards (101 sessions / 189 users /
+0 requests); the demo databases were not touched by the run.
