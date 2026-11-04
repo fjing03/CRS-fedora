@@ -16,9 +16,9 @@
 
 | Item | State |
 |---|---|
-| Branch / remotes | `fedora-backend`; `origin` = `fjing03/CRS-fedora.git`; `upstream` = `FjingXR/class-replacement-system` (**pull-only**) |
+| Branch / remotes | `fedora-backend` → `origin` = `fjing03/CRS-fedora.git` (**in sync**); `upstream` = `FjingXR/class-replacement-system` (**pull-only**) |
 | Push policy | **NEVER `git push`** — the user pushes. One commanded exception, 2026-11-02; afterwards the rule resumed. |
-| Unpushed commits | **115** (2026-11-04). Re-count: `git rev-list --count origin/fedora-backend..HEAD`. |
+| Push state | **Pushed** 2026-11-04 — `origin/fedora-backend` is level at `8afd026`; **0** unpushed. Re-check: `git rev-list --count origin/fedora-backend..HEAD`. |
 | AI context layout | Root **`AGENTS.md`** is a bootstrap pointer → this folder holds `AGENTS.md`, `CodingMAIN.md` (the spec), `my-coding-rules.md` (quick rules), `FR&NFR copy.md` (read-only without the user's approval), this file, and `history/`. |
 | Servers | `:8000` = `CRS-fedora-backend` / **`class_replacement_fresh`** (dev). `:8001` = `../CRS-demo` / **`class_replacement_viva`** (viva twin, `APP_DEBUG=false`). `:8030` = disposable AI/E2E lane on `class_replacement_testing` only. |
 | Database trap | `class_replacement_demo` is the **older, empty** twin (0 requests) — not the viva DB. |
@@ -225,6 +225,10 @@ date, and its files are dirty in the tree — see §3.
 7. **[USER]** BUG-01/02/03/05/06 verdicts (`docs/replacement-arrangement-pending-bugs.md`).
 8. **[AGENT, demo week]** Chapter 5 browser-evidence run and the report; NFR benchmarks;
    the UAT script.
-9. **[USER]** Push the commit stack (**115** local commits, re-count first).
+9. ~~**[USER]** Push the commit stack~~ — **pushed 2026-11-04** (`8afd026`, 943 objects). The working
+   tree's only remaining changes belong to other lanes (`docs/demo-db-data-changes.md`, four
+   `tests/*.spec.ts` edits, `.sdd/changes/receipt-target-guard/`, `tests/helpers/receipt-target-guard.ts`).
+   The `LocalTime` refactor is **in** that push, so the mapper line references re-measured in
+   `335f454` match what is now on the remote.
 10. **[LOW]** `?week=` deep links still land on the remembered week (accepted); the
     notification "handled" nuance beyond `cancelled`.
