@@ -902,12 +902,19 @@ Browser gate: `request-completed-status` 3/3, `replacement-home-status-badges` 7
    assertions in `tests/submission-conflict-refresh.spec.ts` were committed by the user in
    **`956b666`**, split cleanly out of the guard shell.
 
-   **Still open, found while verifying and NOT fixed** (its own lane): `playwright.config.ts` sets no
-   default `storageState`, so `ui-regression.spec.ts` has been browsing as a **guest** — its modal
-   and table cases annotated instead of asserting. Wiring
-   `test.use({ storageState: '.auth/staff-5425.json' })` exposes two more: `/cohort-timetable` and
-   `/venue-timetable-ui` do not open the selectors the table lists (`#classModal` for both, not
-   `#eventModal`). Also: the guard-shell hunks in that file are still uncommitted.
+   **FOLLOW-UP LANE DONE — `e2c2d7a`** (was: "still open"). `playwright.config.ts` sets no default
+   `storageState`, so `ui-regression.spec.ts` had been browsing as a **guest**, and its `if (visible)`
+   cases took the "nothing there" branch and passed while asserting almost nothing. Now
+   `test.use({ storageState: '.auth/staff-5425.json' })` (the student row logs in as 24DFT0001
+   itself), and the stale expectations were read off the code: Section 3 asserts that *some*
+   `.modal-overlay` opens and names the class (fixed-position overlays report `offsetParent === null`,
+   so the obvious visibility check is a trap); Section 2's week-memory rows use the real keys
+   (`weekNav-weekSelect` for my-timetable/student — `storageKey` is null there — and
+   `cohortTimetableWeek`, not `cohortTimetableState`); TC-2.5 picks an OFFERED week instead of writing a
+   key the bookable-week filter overrides; TC-7.1 picks the selects by index and asserts the split-card
+   contract. **Measured on `:8030`: 28 passed / 0 failed** (10 failed with the session wired in, 14
+   without it). The other lane's guard shell is still uncommitted and the staged diff contains none of
+   it.
 2. On a **bare freshly-seeded** testing DB, `replacement-home-status-badges` receipt 6 is annotated
    and skipped (no handled row exists); it was proven green with the planted fixture. A skip is not
    a receipt, so this is recorded rather than quoted as a pass.
