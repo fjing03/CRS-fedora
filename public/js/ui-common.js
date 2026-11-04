@@ -216,11 +216,18 @@ function flashEarliestBookableDay(weekData, weekIdx) {
 /* The ONE pulse mechanic (notif-click-highlight): the shared flash the
    notification anchor + the earliestBtn jump both use — the SAME class
    (.bookable-flash, the 1.15 s pulse) with a reflow restart on repeats. */
+var BOOKABLE_PULSE_MS = 500;   /* one cycle — keep in step with theme.css */
+var BOOKABLE_PULSE_COUNT = 7;  /* how many flashes a jump paints */
+
 function flashRowPulse(el) {
     el.classList.remove('bookable-flash');
     void el.offsetWidth; /* restart the animation on repeat visits */
     el.classList.add('bookable-flash');
-    setTimeout(function() { el.classList.remove('bookable-flash'); }, 1300);
+    /* the class must outlive the WHOLE run (7 × 0.5 s), or the last pulses never
+       play — the old 1300 ms cap was sized for a single 1.15 s pulse */
+    setTimeout(function() {
+        el.classList.remove('bookable-flash');
+    }, BOOKABLE_PULSE_MS * BOOKABLE_PULSE_COUNT + 150);
 }
 
 /**

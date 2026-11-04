@@ -2756,20 +2756,25 @@ html.dark .semester-bar select:not(.week-select) {
 .lead-time-note svg { flex-shrink: 0; }
 .lead-time-note strong { font-weight: 600; color: var(--color-success); }
 
-/* ── Earliest-bookable flash (the jump lands on the boundary day row) ── */
+/* ── Earliest-bookable flash (the jump lands on the boundary day row) ──
+   2026-11-04 (user): 7 pulses instead of 1, a faster cycle (0.50 s vs 1.15 s),
+   and 40% brighter (opacity 45% → 63%, ring 3 px → 4 px). ONE animation for all
+   four arms — Notifications, Today, Earliest bookable and Go to My Timetable
+   keep sharing one flash language. flashRowPulse() clears the class after the
+   whole run (7 × 0.50 s + slack). */
 @keyframes bookable-pulse {
     0%, 100% { box-shadow: 0 0 0 0 transparent; }
-    45% { box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-success) 45%, transparent); }
+    45% { box-shadow: 0 0 0 4px color-mix(in srgb, var(--color-success) 63%, transparent); }
 }
-tr.bookable-flash > td { animation: bookable-pulse 1.15s ease-in-out 1; }
+tr.bookable-flash > td { animation: bookable-pulse 0.5s ease-in-out 7; }
 /* notif-click-highlight (lane-owned arm): the my-timetable s-target flash —
    the default grid's event cells animate directly (the same pulse) */
-.event-block.bookable-flash { animation: bookable-pulse 1.15s ease-in-out 1; }
+.event-block.bookable-flash { animation: bookable-pulse 0.5s ease-in-out 7; }
 /* notif-jump-flash-family (lane-owned arms): the CELL dimension — the
    today column and the arrangement's selected-cell target share the same
    bookable-pulse (the exact earliestBtn look) */
-td.bookable-flash { animation: bookable-pulse 1.15s ease-in-out 1; }
-.cell-content.bookable-flash { animation: bookable-pulse 1.15s ease-in-out 1; }
+td.bookable-flash { animation: bookable-pulse 0.5s ease-in-out 7; }
+.cell-content.bookable-flash { animation: bookable-pulse 0.5s ease-in-out 7; }
 
 /* ── Bookable badge ("Bookings open" on the earliest bookable day) ──
    Same geometry as the Today/OFF/Holiday badge family; success green =

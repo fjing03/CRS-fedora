@@ -1,3 +1,9 @@
+## 2026-11-04 — the jump's flash is louder
+
+`Go to My Timetable` paints the shared pulse, so it inherits the same day's change: **7 flashes**, faster
+(0.50 s each), and **40% brighter** (ring 4 px at 63 %). Measured on a real jump: 7 pulses counted, peak
+opacity 0.629, peak ring 4.0 px.
+
 ## 2026-11-04 — one action on a landed row: the jump, not the eye
 
 Follow-up on the user's word: the eye (View) button is gone from the ACTION column. An **Approved** or

@@ -1,3 +1,19 @@
+## 2026-11-04 — the pulse: 7 flashes, faster, 40% brighter
+
+User: the highlight should flash seven times, brighter and quicker. `bookable-pulse` (the shared flash —
+Today, Earliest bookable, Notifications, and the new `Go to My Timetable` jump) changes from **one 1.15 s
+pulse to seven 0.50 s pulses**, and the ring goes from 3 px at 45 % opacity to **4 px at 63 %** — 40 %
+brighter, by the same measure.
+
+`flashRowPulse()` held the class for 1.3 s, which was sized for one pulse; it now keeps it for the whole
+run (7 × 500 ms + slack) or the last flashes would never play.
+
+**One animation for all four callers**, deliberately: the flash is a single language, so a jump feels the
+same wherever it starts.
+
+Measured by sampling the element every 16 ms after a real jump: peak ring opacity **0.629** (was 0.45),
+peak ring **4.0 px** (was 3.0), **7** pulses counted, animation string `bookable-pulse 0.5s x7`.
+
 ## 2026-11-04 — the page accepts `?repl-hl=` (a replacement's own arrival)
 
 Replacement blocks now carry `data-rid` — the replacement request's id, stamped server-side on the
