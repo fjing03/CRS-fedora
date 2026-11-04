@@ -70,7 +70,7 @@ One rail, one source of truth, honest in every state:
 
 ## Dependency (do that first)
 
-**The A+B+C timestamp fix** (`prompts/pi-bug-notification-requested-at-timezone.md`)
+**The A+B+C timestamp fix** (`prompts/completed prompt (Archieve)/pi-bug-notification-requested-at-timezone.md`)
 introduces `App\Support\LocalTime::stamp()` and fixes `MyRequestHistory`'s
 `reviewedAt` — which is defect 3(a) above. Build this task on that helper; do
 not invent a second timezone path.

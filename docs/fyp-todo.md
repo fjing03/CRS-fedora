@@ -68,7 +68,7 @@ follow-up — survey data has the longest lead time of anything on this list.
       08:00: `:8001` up, login as **5425**, demo DB sane (169 users / 3 requests / 7 notifications).
       Run the story (`docs/viva-demo-runbook.md` beats 1–8), then **confirm the portfolio/viva date**
       and write the SV feedback into §7 (10 min).
-- [ ] **Task 1 — the timestamp fix A+B+C** (`prompts/pi-bug-notification-requested-at-timezone.md`).
+- [ ] **Task 1 — the timestamp fix A+B+C** (`prompts/completed prompt (Archieve)/pi-bug-notification-requested-at-timezone.md`).
       Implement → verify live (Request #26 tooltip `2 Nov 2026, 7:00 PM`; history modal Requested
       **and** Reviewed in MYT) → commit. Cross off §4 H2.
       *If this slips past ~16:00, move it to Wednesday morning — never rush it between meetings.*
@@ -115,7 +115,7 @@ follow-up — survey data has the longest lead time of anything on this list.
 - [ ] Confirm the viva date and update this file + `docs/viva-demo-runbook.md`
 
 **H2 · Notification timestamp fix (approved A+B+C)**
-- [ ] Implement per `prompts/pi-bug-notification-requested-at-timezone.md`
+- [ ] Implement per `prompts/completed prompt (Archieve)/pi-bug-notification-requested-at-timezone.md`
 - [ ] Verify + commit; then refresh `CRS-demo` (fast-forward, no DB work)
 - **Depends on:** nothing. **Blocks:** nothing, but it is a visible correctness bug in the demo story.
 
