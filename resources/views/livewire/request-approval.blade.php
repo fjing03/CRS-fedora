@@ -863,7 +863,7 @@
                 chips.push('<span class="filter-chip">Search: "' + search + '"<button class="filter-chip-remove" onclick="document.getElementById(\'searchInput\').value=\'\';renderTable()" data-tip="Remove">&times;</button></span>');
             }
             if (hideCompleted) {
-                chips.push('<span class="filter-chip">Exclude Completed<button class="filter-chip-remove" onclick="document.getElementById(\'hideCompletedToggle\').checked=false;toggleHideCompleted()" data-tip="Remove">&times;</button></span>');
+                chips.push('<span class="filter-chip">Exclude COMPLETED Status<button class="filter-chip-remove" onclick="document.getElementById(\'hideCompletedToggle\').checked=false;toggleHideCompleted()" data-tip="Remove">&times;</button></span>');
             }
             if (chips.length > 0) {
                 chips.push('<button type="button" class="filter-chip filter-chip-clear-all" data-tip="Remove every active filter" onclick="clearAllFilters()">Clear all</button>');

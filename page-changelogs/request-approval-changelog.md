@@ -7,6 +7,12 @@ My Replacements page uses, with the existing `.info-keyword` styling (no new cla
 Only the label changed. The checkbox id, its checked-by-default state, `toggleHideCompleted()` and
 every other control on the page are untouched.
 
+**Follow-up (same day, user):** the chip that toggle produces in the Active Filters bar now says
+**`Exclude COMPLETED Status`** too, so the chip and the control that made it agree. It is plain text
+like the My Replacements chip (no `.info-keyword` inside a chip) — verified by reading both pages:
+`/request-approval-ui` renders `Status: Pending · Exclude COMPLETED Status · Clear all`, and the
+toggle's innerHTML is byte-identical to `/my-replacements`.
+
 ## 2026-11-04 — consistency pass, part 2: the cells and the schedule rows (1h, 3E-3)
 
 **1h — the two table cells now read exactly like My Replacements.** `HtmlBuilder.classBlock()` and

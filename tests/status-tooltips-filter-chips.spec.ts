@@ -112,7 +112,7 @@ test('T5.MRH-2: resetFilters rename + tip; Clear-all law + individual ✕', asyn
   await expect(page.locator('#clearFilters')).toHaveCount(0);
   await expect(page.locator('#filterChips .filter-chip-clear-all')).toHaveCount(1); // persists at default
 
-  // default-state chips law: exactly the Exclude Completed chip + Clear all
+  // default-state chips law: exactly the Exclude COMPLETED Status chip + Clear all
   await page.waitForTimeout(400);
   let chips = await page.locator('#filterChips .filter-chip:not(.filter-chip-clear-all)');
   await expect(chips).toHaveCount(1);
@@ -124,7 +124,7 @@ test('T5.MRH-2: resetFilters rename + tip; Clear-all law + individual ✕', asyn
   await page.selectOption('#statusFilter', 'approved');
   await page.waitForTimeout(600);
   chips = page.locator('#filterChips .filter-chip:not(.filter-chip-clear-all)');
-  expect(await chips.count()).toBeGreaterThanOrEqual(3); // Exclude Completed + Status + Search
+  expect(await chips.count()).toBeGreaterThanOrEqual(3); // Exclude COMPLETED Status + Status + Search
 
   // SDD filter-clear-all-off (2026-10-30, the user's ruling): Clear all = EVERY
   // filter OFF — the exclusion chips go too, and the bar renders EMPTY (no
@@ -314,12 +314,12 @@ test('T5.RA-3: resetFilters + label + Clear-all law + ✕ + mobile cards (status
   await expect(page.locator('#resetFilters')).toHaveAttribute('data-tip', 'Reset all filters to DEFAULT');
   await expect(page.locator('#clearFilters')).toHaveCount(0);
   await expect(page.locator('#filterChips .filter-chips-label')).toHaveText('Active Filters:'); // was 'Filters:'
-  // default chips: Status: Pending + Exclude Completed (+ Clear all persists at default)
+  // default chips: Status: Pending + Exclude COMPLETED Status (+ Clear all persists at default)
   await page.waitForTimeout(400);
   let chips = page.locator('#filterChips .filter-chip:not(.filter-chip-clear-all)');
   await expect(chips).toHaveCount(2);
   await expect(chips.first()).toContainText('Status: Pending');
-  await expect(chips.nth(1)).toContainText('Exclude Completed');
+  await expect(chips.nth(1)).toContainText('Exclude COMPLETED Status');
   await expect(page.locator('#filterChips .filter-chip-clear-all')).toHaveCount(1);
 
   // non-default filters → chips grow
@@ -328,7 +328,7 @@ test('T5.RA-3: resetFilters + label + Clear-all law + ✕ + mobile cards (status
   await page.selectOption('#statusFilter', 'Approved');
   await page.waitForTimeout(600);
   chips = page.locator('#filterChips .filter-chip:not(.filter-chip-clear-all)');
-  expect(await chips.count()).toBeGreaterThanOrEqual(3); // Status(Approved) + Exclude Completed + Search
+  expect(await chips.count()).toBeGreaterThanOrEqual(3); // Status(Approved) + Exclude COMPLETED Status + Search
 
   // individual ✕ first (the pre-law state still suits it): remove the
   // 'Status: Approved' chip → the others persist
@@ -336,7 +336,7 @@ test('T5.RA-3: resetFilters + label + Clear-all law + ✕ + mobile cards (status
   await page.waitForTimeout(600);
   await expect(page.locator('#statusFilter')).toHaveValue('all');
   chips = page.locator('#filterChips .filter-chip:not(.filter-chip-clear-all)');
-  expect(await chips.count()).toBeGreaterThanOrEqual(2); // Exclude Completed + Search remain
+  expect(await chips.count()).toBeGreaterThanOrEqual(2); // Exclude COMPLETED Status + Search remain
   await expect(page.locator('#filterChips .filter-chip-clear-all')).toHaveCount(1);
 
   // SDD filter-clear-all-off (2026-10-30, the user's ruling): Clear all = EVERY
