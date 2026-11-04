@@ -9,6 +9,7 @@ use App\Models\ClassSession;
 use App\Models\Cohort;
 use App\Models\Department;
 use App\Models\Faculty;
+use App\Models\Holiday;
 use App\Models\Lecturer;
 use App\Models\Module;
 use App\Models\Programme;
@@ -100,8 +101,9 @@ final class MyReplacementsPayloadTest extends TestCase
         return [(int) floor($days / 7) + 1, $days % 7];
     }
 
-    /** A conflicted occurrence: the session plus the week's exception (the row set's entry). */
-    private function occurrence(int $week, int $day, string $code = 'BMIT1001', string $reason = 'annual_leave'): ClassSession
+    /** A conflicted occurrence: the session plus the week's exception (the row set's entry).
+     *  `$reason = null` skips the exception — the row then comes from a calendar holiday. */
+    private function occurrence(int $week, int $day, string $code = 'BMIT1001', ?string $reason = 'annual_leave'): ClassSession
     {
         $module = Module::create([
             'module_code' => $code,
@@ -121,11 +123,13 @@ final class MyReplacementsPayloadTest extends TestCase
         ]);
         $session->cohorts()->attach([$this->cohort->id]);
 
-        ClassException::create([
-            'class_session_id' => $session->id,
-            'week_number' => $week,
-            'reason' => $reason,
-        ]);
+        if ($reason !== null) {
+            ClassException::create([
+                'class_session_id' => $session->id,
+                'week_number' => $week,
+                'reason' => $reason,
+            ]);
+        }
 
         return $session;
     }
@@ -530,5 +534,43 @@ final class MyReplacementsPayloadTest extends TestCase
         $this->assertFalse($refused['ok']);
         $this->assertNull($refused['row']);
         $this->assertSame('approved', (string) ReplacementRequest::query()->whereKey($approved->id)->value('status'));
+    }
+
+    // ── case 11 (explore-brief row 4) ───────────────────────────────────────
+
+    public function test_the_conflict_badge_names_the_holiday_and_falls_back_literally(): void
+    {
+        // 1. A calendar holiday with no exception row: the day itself is named.
+        $holiday = $this->occurrence(9, 1, 'BMIT4001', null);
+        Holiday::create([
+            'semester_id' => $this->semester->id,
+            'week_number' => 9,
+            'day_of_week' => 1,
+            'label' => 'Deepavali Holiday (In Lieu)',
+        ]);
+
+        // 2. An exception stamped `public_holiday` with no calendar row behind it:
+        //    the prototype's literal fallback, never an invented day name.
+        $stamped = $this->occurrence(10, 2, 'BMIT4002', 'public_holiday');
+
+        // 3. Every other reason is a cancellation, so it carries no holiday name.
+        $leave = $this->occurrence(11, 3, 'BMIT4003', 'medical_leave');
+
+        $rows = $this->rows();
+
+        $holidayRow = $this->rowFor($rows, $holiday, 9);
+        $this->assertNotNull($holidayRow);
+        $this->assertSame('Public Holiday', $holidayRow['conflictReason']);
+        $this->assertSame('Deepavali Holiday (In Lieu)', $holidayRow['holidayName'], 'the badge names the day itself');
+
+        $stampedRow = $this->rowFor($rows, $stamped, 10);
+        $this->assertNotNull($stampedRow);
+        $this->assertSame('Public Holiday', $stampedRow['conflictReason']);
+        $this->assertSame('Semester holiday', $stampedRow['holidayName'], 'the prototype literal fallback');
+
+        $leaveRow = $this->rowFor($rows, $leave, 11);
+        $this->assertNotNull($leaveRow);
+        $this->assertSame('Medical/Sick Leave', $leaveRow['conflictReason']);
+        $this->assertNull($leaveRow['holidayName'], 'only a public holiday carries a name');
     }
 }

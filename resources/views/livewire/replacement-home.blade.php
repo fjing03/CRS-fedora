@@ -335,13 +335,25 @@
             return reason === 'Public Holiday' ? 'badge-holiday' : 'badge-reason';
         }
 
+        /* The badge says WHICH kind of conflict, not just its colour (design
+           authority: explore-brief row 4). A holiday names the day from the
+           `holidays` row; every other reason reads "Class Cancelled". The
+           prototype's literal fallback stays for the `public_holiday`
+           exception that no calendar row backs. */
+        function reasonText(c) {
+            if (c.conflictReason === 'Public Holiday') {
+                return 'Public Holiday \u2014 ' + (c.holidayName || 'Semester holiday');
+            }
+            return 'Class Cancelled \u2014 ' + c.conflictReason;
+        }
+
         /* ─── Cells (design §3.3) ─── */
         function cohortsCell(c) {
             return c.cohorts && c.cohorts.length ? c.cohorts.join('<br>') : '<span class="cell-dash">\u2014</span>';
         }
 
         function reasonBadge(c) {
-            return '<span class="badge ' + badgeClass(c.conflictReason) + '">' + c.conflictReason + '</span>';
+            return '<span class="badge ' + badgeClass(c.conflictReason) + '">' + reasonText(c) + '</span>';
         }
 
         function venueLine(code, name) {
@@ -688,6 +700,7 @@
                     daysLeft: daysLeft,
                     urgencyClass: urgencyClass,
                     badgeClass: badgeClass,
+                    reasonText: reasonText,
                     isHandled: isHandled,
                     statusBadge: statusBadgeForCard
                 });

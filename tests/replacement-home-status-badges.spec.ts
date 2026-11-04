@@ -140,6 +140,14 @@ test('receipt 5 — the phone card opens the same pop-up', async ({ page }) => {
   await page.waitForSelector('#cardView .replacement-card');
 
   const card = page.locator('#cardView .replacement-card').first();
+  /* the card builds its own badge (HtmlBuilder.replacementHomeCard), so the
+     composed text needs the page's reasonText hook to reach it too. */
+  const headerBadges = (await card.locator('.rc-header .badge').allTextContents()).map((t) => t.trim());
+  expect(
+    headerBadges.some((t) => /^(Public Holiday|Class Cancelled) — /.test(t)),
+    'the card badge carries the composed text, never the raw reason: ' + headerBadges.join(' | '),
+  ).toBe(true);
+
   await card.click();
   await expect(page.locator('#quickViewModal')).toBeVisible();
   await expect(page.locator('#quickViewModal .modal-tab').first()).toHaveText(/Original Class Schedule/);
@@ -172,4 +180,36 @@ test('receipt 7 — the rotate icon arranges that class and week', async ({ page
   const onclick = await rotate.getAttribute('onclick');
   expect(onclick, 'S6.6: it hands off (sessionId, week) FROM this page').toMatch(/goToReplacementFor\(\d+,\s*\d+,\s*'replacement-home'\)/);
   await expect(rotate).toHaveAttribute('data-tip', 'Arrange a replacement for this class');
+});
+
+test('receipt 8 — the Conflict Reason badge says which kind of conflict, not just its colour', async ({ page }) => {
+  const all = await rows(page);
+  expect(all.length, 'the merged page lists conflicted occurrences').toBeGreaterThan(0);
+
+  for (const row of all) {
+    expect(row.reason, 'every row carries a reason badge').not.toBe('');
+    const named =
+      row.reason.startsWith('Public Holiday — ') || row.reason.startsWith('Class Cancelled — ');
+    expect(named, 'explore-brief row 4: the badge names the kind — ' + row.reason).toBeTruthy();
+  }
+
+  const holiday = all.find((r) => r.reason.startsWith('Public Holiday — '));
+  if (holiday) {
+    expect(holiday.reason, 'a holiday badge names the day (or the prototype literal fallback)')
+      .toMatch(/^Public Holiday — \S/);
+  } else {
+    test.info().annotations.push({ type: 'fixture', description: 'no public-holiday row in this DB — the day-name half is not exercised' });
+  }
+
+  const cancelled = all.find((r) => r.reason.startsWith('Class Cancelled — '));
+  if (!cancelled) {
+    test.info().annotations.push({ type: 'fixture', description: 'no cancelled-class row in this DB — the grey half is not exercised' });
+  }
+
+  // the pop-up's facts strip prints the SAME badge, never a second vocabulary
+  const row = page.locator('#tableBody tr').first();
+  const shown = ((await row.locator('.col-reason').textContent()) || '').trim();
+  await row.locator('.col-code').click();
+  await expect(page.locator('#quickViewModal')).toBeVisible();
+  await expect(page.locator('#quickViewModal .detail-facts')).toContainText(shown);
 });

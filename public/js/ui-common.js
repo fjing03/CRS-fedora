@@ -2546,10 +2546,13 @@ class HtmlBuilder {
            badge rides the header and a handled row's days pill shows an em dash. */
         var statusBadge = opts.statusBadge ? opts.statusBadge(c) : '';
         var daysText = (opts.isHandled && opts.isHandled(c)) ? '\u2014' : daysLeftLabel(days);
+        /* the merged page supplies the composed text ("Public Holiday — Christmas
+           Day" / "Class Cancelled — Annual Leave"); legacy and mock callers omit
+           the hook and keep the raw reason. */
         return '<div class="rc-header">' +
             '<span class="rc-code">' + c.code + ' <span class="cell-type-label">(' + typeLabel + ')</span></span>' +
             statusBadge +
-            '<span class="badge ' + opts.badgeClass(c.conflictReason) + '">' + c.conflictReason + '</span>' +
+            '<span class="badge ' + opts.badgeClass(c.conflictReason) + '">' + (opts.reasonText ? opts.reasonText(c) : c.conflictReason) + '</span>' +
             '</div>' +
             '<div class="rc-body">' +
             '<strong>' + c.name + '</strong><br>' +

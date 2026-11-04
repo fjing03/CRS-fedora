@@ -218,6 +218,17 @@ class ReplacementHome extends Component
             : null;
         $vocabulary = $mapper->statusVocabulary($status, $strings['date']);
 
+        /* explore-brief row 4 (the design authority) — the holiday badge names
+           the DAY itself, from the `holidays` row's label ("Christmas Day").
+           Only a public holiday carries one; an exception stamped
+           `public_holiday` with no calendar row behind it keeps the
+           prototype's literal "Semester holiday" fallback. */
+        $holidayName = null;
+        if ($reason === 'Public Holiday') {
+            $label = trim((string) ($holiday['label'] ?? ''));
+            $holidayName = $label !== '' ? $label : 'Semester holiday';
+        }
+
         return [
             'id' => $session->id * 100 + $week,
             'sessionId' => (int) $session->id,
@@ -245,6 +256,8 @@ class ReplacementHome extends Component
                 ->values()
                 ->all(),
             'conflictReason' => $reason,
+            // the calendar label the holiday badge prints after the em dash
+            'holidayName' => $holidayName,
             // the modal's Original Class tab prints `venue — venueName`; the
             // table's Original Class cell keeps the code alone (§4.2).
             'venueName' => $session->venue?->room_name,

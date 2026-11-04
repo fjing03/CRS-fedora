@@ -1,3 +1,30 @@
+## 2026-11-04 (follow-up) — the Conflict Reason badge says *which* conflict again
+
+The merge kept the badge's two **colours** but dropped its **words**. The design authority
+(`explore-brief.md` row 4) asks for two shapes:
+
+- `Public Holiday — <calendar label>` in error red (`.badge-holiday`) — e.g. `Public Holiday — Christmas Eve`
+- `Class Cancelled — <reason>` in neutral grey (`.badge-reason`) — e.g. `Class Cancelled — Medical/Sick Leave`
+
+**What was broken:** the badge printed the raw `conflictReason`, so a holiday read `Public Holiday`
+with no hint which day, and a cancellation read only `Medical/Sick Leave` with no verb saying what
+happened to the class.
+
+**Fix.** `ReplacementHome::buildRow()` now emits `holidayName` — the `holidays` row's `label`, `null`
+for every non-holiday reason. The page's new `reasonText(c)` composes the sentence once, and both
+surfaces that draw the badge (the table cell and the pop-up's facts strip) already went through the
+one `reasonBadge(c)`, so they cannot drift. The phone card is built by the shared
+`HtmlBuilder.replacementHomeCard`, which gained an optional `opts.reasonText` hook — mock and legacy
+callers omit it and render exactly as before.
+
+An exception stamped `public_holiday` with **no** calendar row behind it keeps the prototype's
+literal fallback `Public Holiday — Semester holiday` (user's ruling), so the badge never invents a
+day name.
+
+**Receipts:** `MyReplacementsPayloadTest` case 11 pins the payload (the calendar label, the literal
+fallback, and `null` for a cancellation); `replacement-home-status-badges.spec.ts` receipt 8 pins the
+composed text on the row and in the facts strip, and receipt 5 pins it on the phone card.
+
 ## 2026-11-04 — **My Replacements**: one table, one row per class, three addresses
 
 SDD lane `.sdd/archive/replacement-merge-one-table/` (M1–M17), commit `6856577` + `ab65f9a`.
