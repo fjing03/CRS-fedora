@@ -1,3 +1,24 @@
+## 2026-11-04 (follow-up) — column shares: the code column gives back 40%, Conflict Reason takes 30% more
+
+User ruling (2026-11-04): **`COURSE CODE & NAME` −40%**, **`CONFLICT REASON` +30%**. The shares are
+now code 11% · cohort 10% · original 18% · reason 22% · requested 16% · status 17% · action 6% —
+still 100%, and the two percent the trim freed went to **Original Class**, the column that does most
+of the wrapping (its `days left` line stopped breaking onto a second row everywhere above 1600 px).
+
+| Window | Before (code · cohort · original · reason · requested · status · action) | After |
+|---|---|---|
+| 1280 | 225 · 125 · 212 · 206 · 200 · 206 · 75 | **137** · 125 · 225 · **275** · 200 · 212 · 75 |
+| 1440 | 243 · 135 · 230 · 223 · 216 · 223 · 81 | **149** · 135 · 243 · **297** · 216 · 230 · 81 |
+| 1920 | 329 · 183 · 311 · 302 · 293 · 302 · 110 | **201** · 183 · 329 · **403** · 293 · 311 · 110 |
+
+The holiday badge (`Public Holiday — Deepavali Holiday (In Lieu)`) is on one line from ~1500 px up and
+wraps to two lines below that; the course column still prints its name on one line at 1440+.
+
+One trap worth remembering, hit while making this land: the reason/status opt-out has to be
+`#timetable .col-reason`, **not** `#timetable td.col-reason`. Under `table-layout: fixed` the `<th>`
+is what decides the column width, so a td-only selector leaves the header unstyled and the browser
+hands that column whatever it likes — which looked exactly like "the percentage was ignored".
+
 ## 2026-11-04 (follow-up) — the details pop-up is 10% wider
 
 `#quickViewModal`'s shell went from `max-width: 560px` to **`616px`** (user ruling: +10%), so the

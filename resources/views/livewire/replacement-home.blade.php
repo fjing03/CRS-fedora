@@ -16,15 +16,20 @@
            keep the grid honest at every viewport: content wraps inside its own
            column instead of taking width from its neighbours. */
         #timetable.data-table { table-layout: fixed; width: 100%; }
-        .col-code { width: 18%; }
+        /* 2026-11-04 (user): the code column gives up 40% of its share and the
+           reason column takes 30% more — the holiday badge then fits on one
+           line from ~1500 px up. Whole numbers, still summing to 100%. */
+        .col-code { width: 11%; }
         .col-cohort { width: 10%; }
-        .col-original { width: 17%; white-space: normal; }
+        .col-original { width: 18%; white-space: normal; }
         /* `.timetable td` is nowrap (theme.css) and outranks a bare class — the
            two badge columns opt out with an id + class, so a long holiday name
-           wraps INSIDE its column instead of overflowing into the next one. */
-        #timetable td.col-reason { width: 17%; vertical-align: middle; white-space: normal; }
+           wraps INSIDE its column instead of overflowing into the next one.
+           The id also has to reach the <th>: under `table-layout: fixed` the
+           header row is what decides the column widths. */
+        #timetable .col-reason { width: 22%; vertical-align: middle; white-space: normal; }
         .col-requested { width: 16%; white-space: normal; }
-        #timetable td.col-status { width: 16%; white-space: normal; }
+        #timetable .col-status { width: 17%; white-space: normal; }
         .col-action { width: 6%; text-align: center; }
 
         .grid-scroll .timetable { min-width: 1280px; }
