@@ -1,12 +1,14 @@
 # Prompt — one replacement table (SDD lane `replacement-merge-one-table`)
 
-> **You are the implementing session (PI).** Every decision in §3 was made by the user on
+> **This was the implementing brief for a lane that is now applied** (see the status below). Every
+> decision in §3 was made by the user on
 > **2026-11-03**, through ~25 prototype review rounds. Do not re-ask them, do not re-open
 > them. What is yours: the code, the tests, the receipts, the changelog — **not** the plan.
 >
-> **Status 2026-11-04: the whole SDD lane is frozen and ready to apply.** All four batches
-> passed review; `.sdd/changes/replacement-merge-one-table/sdd.yaml` says
-> `status: ready-for-apply`.
+> **Status 2026-11-04: APPLIED and ARCHIVED.** All four batches passed review, PI landed the
+> five commits plus the docs commit (`e70c1ea`, `6856577`, `ab65f9a`, `d3f6f5b`, `c4d0ad3`,
+> `008e941`), and the lane now lives at `.sdd/archive/replacement-merge-one-table/`
+> (`sdd.yaml`: `archived`). **This file is history — read it for the decisions, not for work.**
 >
 > | Batch | Rounds | Where |
 > |---|---|---|
@@ -28,7 +30,7 @@
    `prompts/for-ai-to-read/CodingMAIN.md`, `prompts/for-ai-to-read/my-coding-rules.md`,
    then §0 of `prompts/for-ai-to-read/PI_Chat_Context_Handover.md` (its standing rulings
    apply to you too).
-2. Read `.sdd/changes/replacement-merge-one-table/explore-brief.md` (the design authority)
+2. Read `.sdd/archive/replacement-merge-one-table/explore-brief.md` (the design authority)
    and `proposal.md` (the frozen scope) **in full**.
 3. Look at the picture: `../ui-prototype/replacement-merged-preview.html`. It is a
    discussion instrument, **never staged, never shipped** — but it is what the user

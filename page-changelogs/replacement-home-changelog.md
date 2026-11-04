@@ -1,6 +1,6 @@
 ## 2026-11-04 — **My Replacements**: one table, one row per class, three addresses
 
-SDD lane `.sdd/changes/replacement-merge-one-table/` (M1–M17), commit `6856577` + `ab65f9a`.
+SDD lane `.sdd/archive/replacement-merge-one-table/` (M1–M17), commit `6856577` + `ab65f9a`.
 
 **What the page is now.** The lecturer's two pages (`Replacement Home` and `My Request History`)
 became **one**: `/my-replacements` lists **classes**, not requests — one row per

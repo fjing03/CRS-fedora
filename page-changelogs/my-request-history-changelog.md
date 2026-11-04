@@ -1,6 +1,6 @@
 ## 2026-11-04 — the page RETIRED: its behaviour lives on in **My Replacements**
 
-SDD lane `.sdd/changes/replacement-merge-one-table/` (M1, M2, M7, M12), commit `ab65f9a`.
+SDD lane `.sdd/archive/replacement-merge-one-table/` (M1, M2, M7, M12), commit `ab65f9a`.
 
 `/my-request-history-ui` no longer draws a request-history table. It is now an **alias entry** for
 the merged page at **`/my-replacements`** — the same component, the same rows, the same modal — so

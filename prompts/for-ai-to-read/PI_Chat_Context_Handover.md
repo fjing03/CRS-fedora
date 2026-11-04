@@ -36,9 +36,17 @@
 
 ## 1. Latest sessions — 2026-11-03 → 2026-11-04
 
-**2026-11-04 — the merge lane's plan is finished (docs only; nothing implemented, nothing pushed):**
-- All four SDD batches are frozen after review: **proposal 8 rounds**, **design 2**, **specs 2**,
-  **tasks 5** — `.sdd/changes/replacement-merge-one-table/` (`sdd.yaml`: `ready-for-apply`).
+**2026-11-04 — the merge lane: planned, then applied and archived (seven commits, unpushed at the
+time of writing):**
+- All four SDD batches passed review (**proposal 8 rounds**, **design 2**, **specs 2**,
+  **tasks 5**), then PI applied them: `e70c1ea` (payload + vocabulary), `6856577` (the view),
+  `ab65f9a` (URLs, routes, retirement), `d3f6f5b` + `c4d0ad3` (the reversed specs), `008e941`
+  (changelogs + handover). Archived at `07274c1` — `.sdd/archive/replacement-merge-one-table/`
+  (`sdd.yaml`: `archived`). Gates quoted: PHPUnit 336/336 (1849 assertions, baseline 325/1729),
+  pint, PHPStan 0, `node --check`.
+- The three residuals were closed: `3d61cef` + `e2c2d7a` (the `ui-regression` selectors and a
+  real session for that file), the completed-status sibling fixture, and the user's approval of
+  the invented tooltip sentence (`26a5fa6`).
   The log is `review-log.md`; the working list is `tasks.md` (five commits, 24 tasks, every
   receipt a number).
 - The reviews earned their keep: they caught the replacement **time** being read from the first
@@ -60,12 +68,12 @@
 - The user finalised the **one-table** design: the page is **My Replacements** at the new
   canonical URL **`/my-replacements`** (one row per class occurrence, seven columns, status
   in the tab label and as a badge, no HISTORY block, icon-only actions, five cards). Both
-  `/replacement-home-ui` and `/my-request-history-ui` stay as aliases. Full record: `.sdd/changes/replacement-merge-one-table/explore-brief.md`.
+  `/replacement-home-ui` and `/my-request-history-ui` stay as aliases. Full record: `.sdd/archive/replacement-merge-one-table/explore-brief.md`.
 - **Static prototype** (discussion instrument, never staged, outside the repo):
   `../ui-prototype/replacement-merged-preview.html` — loads the live `theme.css` from
   `:8000`, so the dev server must be running to see real colours.
 - **Proposal frozen after 4 review rounds** (`ccaa7ba`, log in
-  `.sdd/changes/replacement-merge-one-table/review-log.md`): round 1 failed on the
+  `.sdd/archive/replacement-merge-one-table/review-log.md`): round 1 failed on the
   cancel-path owner and an unsourced test inventory; round 3 failed on three unbucketed
   test files; round 4 passed. Next batch: `design.md`.
 - **New implementing brief:** `prompts/pi-replacement-merge-one-table.md` — the merge lane's
@@ -198,7 +206,7 @@ date, and its files are dirty in the tree — see §3.
 | Reusable prompt **templates** (paste-ready; no project state) | `prompts/general&reusable prompt references/` — `PI-PROMPT-TEMPLATE.md`, the two propose templates, the UI-page spec, the context-transfer prompt |
 | Demo-DB writes, restores, snapshots | `docs/demo-db-data-changes.md`, `backups/README.md` |
 | Viva runbook, queue/mail, known pending bugs | `docs/viva-demo-runbook.md`, `docs/queue-and-emails.md`, `docs/replacement-arrangement-pending-bugs.md` |
-| **The lane ready to apply** | `.sdd/changes/replacement-merge-one-table/` — all four batches frozen; **start at `tasks.md`**. Brief: `prompts/pi-replacement-merge-one-table.md` |
+| **The lane just applied** | `.sdd/archive/replacement-merge-one-table/` — applied 2026-11-04 (`e70c1ea` … `008e941`), archived `07274c1`; `sdd.yaml`: `archived`. Brief: `prompts/pi-replacement-merge-one-table.md` (now historical) |
 | Lanes already landed | `prompts/pi-replacement-home-status-badges.md`, `prompts/pi-request-completed-status.md` |
 | The approved picture of the merged page | `../ui-prototype/replacement-merged-preview.html` (outside the repo, never staged) |
 | Superseded session diaries | `history/2026-10-31-to-2026-11-03-addenda.md` |
