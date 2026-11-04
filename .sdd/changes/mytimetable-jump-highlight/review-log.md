@@ -61,3 +61,16 @@ own adversarial pass — recorded honestly as self-review).
 
 ### 🔴 Outstanding
 - Apply not started — blocked on A1.
+
+## Proposal Round 2 — 2026-11-04 (A1 answered)
+
+### 🟡 Recorded
+- **A1 answered by the user:** the ACTION-column icon is the **same jump**, tooltip `Go to My
+  Timetable`, on Approved / Completed rows only. FR 5.1–5.6 and tasks T6–T10 are therefore final as
+  written; the alternative readings in `proposal.md` §6 are closed.
+- Frozen state unchanged: no decision-level edit was needed, only the removal of the open question
+  (the spec already specified the approved/completed behaviour).
+
+### 🔴 Outstanding
+- **F1** — the notification arm's dead week switch. **Awaiting the user's decision** (fix now in this
+  lane, fix as its own tiny commit, or leave it). Apply is on hold until the user says go.

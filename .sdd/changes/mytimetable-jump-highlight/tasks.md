@@ -1,7 +1,9 @@
 # Tasks — `mytimetable-jump-highlight`
 
-Each task ≤ 2 h. Receipts are recorded in `review-log.md` under **Apply**. **Apply does not start until
-**A1** (the ACTION icon's purpose) is answered.
+Each task ≤ 2 h. Receipts are recorded in `review-log.md` under **Apply**.
+
+**A1 is answered** (2026-11-04): the ACTION icon is the same jump — tooltip `Go to My Timetable`, on
+Approved / Completed rows only. Apply itself still waits on the user's go-ahead.
 
 ## Batch 1 — the identity (server + shared client)
 
