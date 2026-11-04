@@ -73,10 +73,10 @@ final class RequestApproval extends Component
 
         $rows = [];
         foreach ($pending as $r) {
-            $rows[] = $mapper->toRow($r, $start, 'queue', $validity->evaluate($r));
+            $rows[] = $mapper->toRow($r, $start, 'queue', $validity->evaluate($r), 'pl');
         }
         foreach ($decided as $r) {
-            $rows[] = $mapper->toRow($r, $start, 'queue');
+            $rows[] = $mapper->toRow($r, $start, 'queue', null, 'pl');
         }
 
         return $rows;

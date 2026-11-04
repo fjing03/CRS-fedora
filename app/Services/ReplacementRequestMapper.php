@@ -116,13 +116,13 @@ final class ReplacementRequestMapper
      *
      * @return array{label: string, short: string, sentence: string, tip: string}
      */
-    public function statusVocabulary(?string $status, ?string $date): array
+    public function statusVocabulary(?string $status, ?string $date, string $audience = 'lecturer'): array
     {
         return [
             'label' => $this->statusLabel($status, $date),
             'short' => $this->statusShort($status),
             'sentence' => $this->statusSentence($status, $date),
-            'tip' => $this->statusTip($status),
+            'tip' => $this->statusTip($status, $audience),
         ];
     }
 
@@ -183,9 +183,26 @@ final class ReplacementRequestMapper
      * (the My Requests tooltips, unchanged by M5 — only the LABELS change); the
      * no-request state gets the outlined-pill meaning. An unknown state returns
      * '' so the badge simply carries no tip rather than an invented one.
+     *
+     * `$audience` (request-approval-ui 1f/3B, 2026-11-04): M5's copy is written
+     * for the lecturer ("your request"); the PL queue reads the same states from
+     * the other side of the decision. One helper, two voices — the lecturer's
+     * strings are byte-identical to the approved M5 text.
      */
-    public function statusTip(?string $status): string
+    public function statusTip(?string $status, string $audience = 'lecturer'): string
     {
+        if ($audience === 'pl') {
+            return match ($status) {
+                null => 'No request has been made for this class yet — it still needs arranging.',
+                'pending' => 'This request is AWAITING your review and decision (Approve or Reject).',
+                'approved' => 'You have APPROVED this request.',
+                'rejected' => 'You have REJECTED this request.',
+                'cancelled' => 'The lecturer CANCELLED this request.',
+                'completed' => 'The replacement class has been CONDUCTED — this request is complete.',
+                default => '',
+            };
+        }
+
         return match ($status) {
             null => 'No request has been made for this class yet — it still needs arranging.',
             'pending' => "Your request has been Submitted and is AWAITING the Programme Leader's decision (Approve or Reject).",
@@ -217,7 +234,7 @@ final class ReplacementRequestMapper
      *
      * @return array<string, mixed>
      */
-    public function toRow(ReplacementRequest $r, Carbon $semesterStart, string $requestedBucket, ?ValidityResult $validity = null): array
+    public function toRow(ReplacementRequest $r, Carbon $semesterStart, string $requestedBucket, ?ValidityResult $validity = null, string $audience = 'lecturer'): array
     {
         $session = $r->classSession;
         $identity = $this->classRow($r, $semesterStart);
@@ -239,7 +256,14 @@ final class ReplacementRequestMapper
         // request-completed-status R2 (C3): the PL queue AND the JSON API read
         // the one derived status — an approved request whose replacement class
         // has already happened reads 'Completed' (C1/C2, nothing stored).
-        $prettyStatus = ucfirst($this->effectiveStatus($r, $semesterStart));
+        $statusKey = $this->effectiveStatus($r, $semesterStart);
+        $prettyStatus = ucfirst($statusKey);
+
+        /* request-approval-ui 1f/3B (2026-11-04): the M5 vocabulary rides the
+           row, so the PL page's badge, badge tip, pop-up row and status tab all
+           read ONE source instead of a page-local 3-key map. `$audience` picks
+           the voice for the tip only — the labels are the same on both sides. */
+        $vocabulary = $this->statusVocabulary($statusKey, $identity['classDate'] ?? null, $audience);
 
         // The cohort metadata (the queue bucket's byte shape: SPACED labels +
         // a values-array of counts; api/history adapters pin their own forms).
@@ -259,10 +283,21 @@ final class ReplacementRequestMapper
             'reviewedAt' => $this->stampDisplay($r->decided_at, 'Y-m-d\TH:i:s'),
             'reviewedBy' => $r->approver !== null ? (string) $r->approver->name : null,
             'status' => $prettyStatus,
+            // the shared M5 vocabulary (1f/3B) — the page never re-words a status
+            'requestStatusLabel' => $vocabulary['label'],
+            'requestStatusShort' => $vocabulary['short'],
+            'requestStatusSentence' => $vocabulary['sentence'],
+            'requestStatusTip' => $vocabulary['tip'],
             'rejectionReason' => $r->rejection_reason,
             'replacementDate' => $span['date'],
             'replacementTime' => $span['time'],
             'replacementVenue' => $span['venue'],
+            // request-approval-ui 3C (2026-11-04): the room NAME beside the code
+            // ("B103 — Tutorial Room"). The anchor slot is the span's first cell,
+            // and both consumers eager-load `replacementTimeSlot.venue`, so this
+            // costs no query. Stripped from /api/requests/my (see
+            // ApiReadController::myRequests) — the API's key set is pinned.
+            'replacementVenueName' => $r->replacementTimeSlot?->venue?->room_name,
             'cohorts' => $cohorts->pluck('label')->values()->all(),
             'cohortCounts' => $cohorts->pluck('count')->values()->all(),
             'totalStudents' => $totalStudents,
@@ -302,6 +337,10 @@ final class ReplacementRequestMapper
             'timeEnd' => $end->format('H:i'),
             'duration' => $duration,
             'venue' => (string) $session->venue->room_code,
+            // request-approval-ui 3C (2026-11-04): the room NAME beside the code
+            // in the pop-up's Original Class tab. View-only key — stripped from
+            // /api/requests/my (its key set is pinned by a test).
+            'venueName' => $session->venue?->room_name,
         ];
     }
 

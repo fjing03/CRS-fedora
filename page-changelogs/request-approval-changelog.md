@@ -1,3 +1,59 @@
+## 2026-11-04 — consistency pass, part 2: the pop-up shell (3A, 3D)
+
+The **timeline is gone** from this pop-up, the old *Request Info* tab is absorbed by a fixed **facts
+strip** (the merged page's M7 shell), and the tabs are now `Original Class Schedule` ·
+`Proposed Replacement Schedule` (absent when nothing is proposed) · `Request Status (<short>)`, with
+the status **last**.
+
+**Facts strip** — Staff (Proposer) `Name (staffId)` with the shared copy-email contract · Cohorts
+(compact, joined ` + `) · Students (`A + B = total` through the shared `cohortBreakdown`) · and,
+while the request is pending, the slot **Conflict** badge. Those are the four things a PL decides
+with; the old tab's subject code/name already live in the pop-up subtitle and the requested
+timestamp moved into the status tab, so nothing was lost.
+
+**Status tab** — the badge plus the shared one-sentence description, then `Requested At`,
+`Rejection Reason` (rejected only), `Remark`, and `Reviewed By` / `Reviewed At` when decided (the old
+*Review* tab folded in — metadata, not a history rail).
+
+**Width** — the shared `.modal` base is 420 px, which cannot fit three tabs; this one pop-up is now
+**616 px**, the same shell as My Replacements (phones are unaffected — `width:100%` still wins below
+the max-width).
+
+**Receipts:** `request-approval.spec.ts` 6/6 (U3-T9c now asserts the strip, the three tabs and the
+absence of `.modal-timeline`; U3-T9d follows the renamed tab) ·
+`status-tooltips-filter-chips.spec.ts` 9/9 · live on `:8000`: a pending row shows
+`Staff / Cohorts / Students / Conflict` and the three tabs above; a rejected row drops the Conflict
+fact and its status tab carries `Rejection Reason` + `Reviewed By/At`.
+
+## 2026-11-04 — consistency pass, part 2 begins: the status vocabulary and the room names (1f, 3B, 3C)
+
+Source: `prompts/request-approval-ui CONSISTENCY.md` (part 2, batch A). **SDD waived** —
+display-only, one page plus one additive payload key set, no schema and no behaviour change.
+
+| # | Change |
+|---|---|
+| **1f** | The queue badge, its tooltip, the pop-up row and the mobile card now read the **shared M5 vocabulary** (`ReplacementRequestMapper::statusLabel/Short/Sentence/Tip`, carried on the row as `requestStatusLabel/Short/Sentence/Tip`). The page-local `statusTooltip()` **3-key map** and the local `statusDescMap` are deleted. |
+| **3B** | The pop-up's *Status* row prints the same label (`Pending — Waiting for Approval`), and *Status Description* prints the shared sentence instead of the local map. |
+| **3C** | Both schedule tabs print **`code — room name`** (`B010 — Computer Lab B010`): `toRow()`/`classRow()` now carry `replacementVenueName` and `venueName`, and `ApiReadController::myRequests()` strips both so `/api/requests/my` keeps its pinned key set. |
+
+**The bug 1f closes:** the old 3-key map covered Pending / Approved / Rejected only, so a
+**Completed** (or Cancelled) badge rendered with **no tooltip at all**. All five decided states now
+carry their copy, and `statusTip()` gained an `$audience` parameter for this one reason — M5's strings
+are written for the lecturer ("your request"), while the PL reviews the same states from the other
+side of the decision. The lecturer's strings are byte-identical to the approved M5 text; the PL voice
+keeps the copy the page already shipped ("You have APPROVED this request.").
+
+**The API guard this needed:** nothing pinned `/api/requests/my`'s key set — `SpanReservationTest`
+asserts `replacementTime`'s *value* and the e2e spec reads values, so a leaked `replacementVenueName`
+would have passed every existing test. `tests/Feature/MyRequestsApiShapeTest.php` now pins the exact
+23-key row and proves the two view-only keys are stripped.
+
+**Receipts:** `MyRequestsApiShapeTest` 2/2 (new) · `MyReplacementsPayloadTest` 12/12 · live on `:8000`
+— badge `Pending — Waiting for Approval` + tip `This request is AWAITING your review and decision
+(Approve or Reject).`, pop-up `Status / Status Description` from the payload, both tabs
+`B010 — Computer Lab B010` · `status-tooltips-filter-chips.spec.ts` 9/9 (RA-1 rewritten: no
+`[data-tip]` filter, so a tip-less badge fails) · `request-approval.spec.ts` 6/6.
+
 ## 2026-11-03 — consistency pass, part 1 (table, cards, schedule rows) — display only
 
 Source: `prompts/request-approval-ui CONSISTENCY.md`. **SDD waived** by the user (display-only,

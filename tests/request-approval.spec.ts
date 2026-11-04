@@ -85,8 +85,24 @@ test('U3-T9c: the COHORT column replaced STUDENTS (consistency update) and row c
   await page.locator('#tableBody tr').first().click();
   await expect(page.locator('#modalOverlay')).toHaveClass(/show/);
   await expect(page.locator('#modalTitle')).toContainText('Request Details');
-  // the three content tabs exist with data
-  await expect(page.locator('#modalBody')).toContainText('Request Information');
+
+  // 3A (2026-11-04): the fixed facts strip carries what the old Request Info
+  // tab held — staff (with the copy email), cohorts, students and the conflict.
+  const body = page.locator('#modalBody');
+  const facts = body.locator('.detail-facts');
+  await expect(facts).toContainText('Staff (Proposer)');
+  await expect(facts).toContainText('Students');
+  await expect(facts).toContainText('Conflict');
+  await expect(facts.locator('[data-tip="Click to copy email"]')).toHaveCount(1);
+  await expect(body.locator('.modal-timeline'), '3A removed the timeline rail').toHaveCount(0);
+
+  // 3D: three tabs, the status one LAST
+  const tabs = body.locator('.modal-tab');
+  await expect(tabs).toHaveCount(3);
+  await expect(tabs.nth(0)).toHaveText('Original Class Schedule');
+  await expect(tabs.nth(1)).toHaveText('Proposed Replacement Schedule');
+  await expect(tabs.nth(2)).toHaveText(/^Request Status \(.+\)$/);
+
   await page.locator('#modalOverlay .modal-close').first().click();
   await expect(page.locator('#modalOverlay')).not.toHaveClass(/show/);
 });
@@ -105,8 +121,8 @@ test('U3-T9d: the Request Details modal formats dates/hours/Start-End split + fu
   expect(origText).toMatch(/Start Time\s*\n?\s*\d{1,2}:\d{2} (AM|PM)/);
   expect(origText).toMatch(/End Time\s*\n?\s*\d{1,2}:\d{2} (AM|PM)/);
 
-  // TAB: Replacement Class — split Start/End + the full validity text
-  await page.locator('.modal-body .modal-tab', { hasText: 'Replacement Class' }).click();
+  // TAB: Proposed Replacement Schedule — split Start/End + the full validity text
+  await page.locator('.modal-body .modal-tab', { hasText: 'Proposed Replacement Schedule' }).click();
   const repText = await page.locator('#modalBody').innerText();
   expect(repText).not.toContain('2026-10-23');
   expect(repText).toMatch(/Start Time\s*\n?\s*\d{1,2}:\d{2} (AM|PM)/);

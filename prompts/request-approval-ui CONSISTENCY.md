@@ -1,6 +1,6 @@
 # request-approval-ui CONSISTENCY UPDATE
-**Page:** `/request-approval-ui` · **File status:** PART 1 SHIPPED, PART 2 BLOCKED
-**Last updated:** 2026-11-04 — blocker table re-checked against the merge lane (`replacement-merge-one-table` is now `status: tasks`: proposal/design/specs frozen, `tasks.md` in review)
+**Page:** `/request-approval-ui` · **File status:** PART 1 SHIPPED · PART 2 IN PROGRESS (batches A + B done: 1f, 3B, 3C, 3A, 3D)
+**Last updated:** 2026-11-04 — the merge lane is **applied and archived** (`07274c1`), so every blocker in the table below is lifted; **batch A** shipped the status vocabulary + the room names (1f, 3B, 3C)
 
 > **Checkbox key**
 > `[x]` = done, live, receipted · `[ ]` = not done (each one says **why** and **what unblocks it**).
@@ -21,14 +21,14 @@
 | 1c | Lecturer → Staff (Proposer) | ✅ done | — |
 | 1d | `#` → Request ID (real `#<id>`) | ✅ done | — |
 | 1e | Urgency badge = level + remaining days | ✅ done | — |
-| 1f | Status wording = My Replacements (Pending/Completed) | ⛔ pending | **the merge lane's commit 1** (T1–T6, the mapper vocabulary) — no view file of theirs needed |
+| 1f | Status wording = My Replacements (Pending/Completed) | ✅ **done 2026-11-04** | shipped — `requestStatusLabel/Short/Sentence/Tip` ride the row; the local 3-key map is deleted |
 | 1g | Proposed Replacement → Requested Replacement | ✅ done | — |
 | 1h | Original Class / Requested Replacement cells = My Replacements style | ⛔ pending | **the merge lane's commit 2** (T9, the merged cell design) |
 | 2 | Summary cards → Approved Requests / Rejected Requests | ✅ done | — |
-| 3A | Timeline out, facts strip in | ⛔ pending | **the merge lane's commit 2** (T9, the one `DetailModal.render` line — additive) |
-| 3B | Modal status badge wording | ⛔ pending | **the merge lane's commit 1** (same as 1f) |
-| 3C | Schedule = one row (Date · Time · Venue `B103 — Tutorial Room`) | ⛔ pending | **this lane only** — see the correction below, it is *not* blocked by the merge |
-| 3D | Three tabs, renamed, status tab far right | ⛔ pending | after 3A (the same commit 2) |
+| 3A | Timeline out, facts strip in | ✅ **done 2026-11-04** | strip = Staff (Proposer) + Cohorts + Students + slot Conflict |
+| 3B | Modal status badge wording | ✅ **done 2026-11-04** | same payload keys — the pop-up's Status row + sentence |
+| 3C | Schedule = one row (Date · Time · Venue `B103 — Tutorial Room`) | ✅ **content done 2026-11-04** (the icon-led row layout is 3E-3) | `venueName` + `replacementVenueName` on the row, stripped from the API, pinned by a test |
+| 3D | Three tabs, renamed, status tab far right | ✅ **done 2026-11-04** | `Original Class Schedule` · `Proposed Replacement Schedule` · `Request Status (<short>)` |
 | 3E-1 | Week row on both schedule tabs | ✅ done | — |
 | 3E-2 | Duration in full words | ✅ done | — |
 | 3E-3 | Schedule layout matches the merged page | ⛔ pending | **the merge lane's commit 2** (the merged schedule cell design) |
@@ -163,8 +163,16 @@ PI's commits run from that frozen lane, not that session's.
   **Receipt:** `status-tooltips-filter-chips.spec.ts` RA-2 (badge↔tip leading word, Overdue shift,
   the `Urgent — today` case, the Urgent filter keeping Overdue).
 
-- [ ] **1f — Status badge wording consistent with My Replacements (Pending, Completed).**
-  **Why pending:** the target vocabulary is the merge lane's **M5** table, delivered as
+- [x] **1f — Status badge wording consistent with My Replacements (Pending, Completed).**
+  **Done (2026-11-04, batch A):** `toRow()` carries the shared M5 vocabulary as
+  `requestStatusLabel / requestStatusShort / requestStatusSentence / requestStatusTip`; the queue
+  badge, its `data-tip`, the pop-up's Status row and the mobile card all read it, and the local
+  `statusTooltip()` 3-key map + `statusDescMap` are **deleted**. The Completed/Cancelled
+  "no tooltip" gap is closed. One deliberate deviation from this file's wording: `statusTip()`
+  gained an `$audience` parameter, because M5's strings are written **for the lecturer** ("your
+  request") while this page is the PL side of the same decision — the PL voice keeps the copy the
+  page already shipped, and the lecturer's strings are byte-identical to the approved M5 text.
+  **Why it had been pending:** the target vocabulary is the merge lane's **M5** table, delivered as
   `ReplacementRequestMapper::statusLabel()/statusShort()/statusSentence()/statusTip()` (§1.6 of that
   lane). A local copy here would be the second source of truth the merge exists to remove.
   **Known gap today (must not be forgotten):** this page's `statusTooltip()` map still has only
@@ -207,22 +215,29 @@ PI's commits run from that frozen lane, not that session's.
 
 ## 3. Request detail modal
 
-- [ ] **3A — Replace `modal-timeline` with the `detailFacts` section.**
-  **Why pending:** the facts strip is defined by the merge lane's **M7** (cohorts, students,
-  conflict, staff `Name (ID)` with the email copy icon) and that lane edits the single
-  `DetailModal.factsHtml` line. Implementing it here first would mean writing the strip twice and
-  then deleting this copy.
-  **Unblocked by:** merge applied. **Then:** the `timeline:` argument is dropped from
-  `DetailModal.render()`, and the *Request Info* tab is absorbed into the strip (which is what makes
-  3D's three-tab order possible).
-  **Already correct today:** the email copy contract (`📋`, clickable address,
-  `data-tip="Click to copy email"`, shared toast) lives in the *Request Info* tab and matches the
-  reference — nothing to change there.
+- [x] **3A — Replace `modal-timeline` with the `detailFacts` section.**
+  **Done (2026-11-04, batch B):** `timeline:` is dropped from `DetailModal.render()` and the
+  *Request Info* tab is **absorbed by the strip** — Staff (Proposer) `Name (staffId)` + the email
+  copy contract, Cohorts (compact ` + `), Students (`A + B = total`), and the slot **Conflict** badge
+  while the request is pending. Subject code/name stay in the pop-up subtitle; `Requested At`,
+  `Rejection Reason`, `Remark` and `Reviewed By/At` moved into the status tab, so no information was
+  dropped with the tab. Removing the rail also removed the `"the timeline function got error …"`
+  demo note it printed at the top of this pop-up.
+  **Why it had been pending:** the strip is the merge lane's **M7** and that lane edits the single
+  `DetailModal.factsHtml` line — writing it here first would have meant two copies.
 
-- [ ] **3B — Modal status badge wording.**
-  **Why pending:** same dependency as 1f (M5 vocabulary). One change fixes both.
+- [x] **3B — Modal status badge wording.**
+  **Done (2026-11-04, batch A):** the pop-up prints `Pending — Waiting for Approval` and its
+  *Status Description* is the shared sentence (`requestStatusSentence`), not the deleted local map.
+  **Why it had been pending:** same dependency as 1f (M5 vocabulary). One change fixed both.
 
-- [ ] **3C — Schedule information as one row per block.**
+- [x] **3C — Schedule information as one row per block.** *(content done; the icon-led row layout
+  is 3E-3)*
+  **Done (2026-11-04, batch A):** both schedule tabs print **`code — room name`**
+  (`B010 — Computer Lab B010`) through the page's `venueText()`. `classRow()` gained `venueName`,
+  `toRow()` gained `replacementVenueName`, and `ApiReadController::myRequests()` strips both —
+  `tests/Feature/MyRequestsApiShapeTest.php` pins the API's exact 23-key row so the leak cannot
+  come back.
   *Requirement:* `Date: Thursday, 2nd November 2026` · `Time: 10:00 AM ~ 12:00 PM` ·
   `Venue: B103 — Tutorial Room`, applied to both Original Class and Requested Replacement.
   **Blocker: none — this is our own work** (corrected 2026-11-04; the merge lane does not touch
@@ -235,11 +250,13 @@ PI's commits run from that frozen lane, not that session's.
   **Note:** `U3-T9d` pins today's row shape (*Date / Day / Start Time / End Time*); the layout change
   rewrites that spec.
 
-- [ ] **3D — Tabs: `Original Class Schedule` · `Proposed Replacement Schedule` ·
+- [x] **3D — Tabs: `Original Class Schedule` · `Proposed Replacement Schedule` ·
   `Request Status (<status>)` — status tab far right.**
-  **Why pending:** needs 3A (the *Request Info* tab must be gone first) and the merged page's tab
-  labels. Today's tabs are *Request Info · Original Class · Replacement Class · Review*.
-  **Unblocked by:** 3A + the merge lane's tab labels.
+  **Done (2026-11-04, batch B):** exactly those three, in that order; the replacement tab is
+  **absent** when nothing is proposed (`r.replacementDate` null), and the old *Review* tab's
+  metadata now lives inside the status tab. The pop-up grew to **616 px** (the merged page's shell)
+  because the shared 420 px base cannot fit three tabs.
+  **Why it had been pending:** it needed 3A (the *Request Info* tab gone) and the merged tab labels.
 
 - [x] **3E-1 — Add a Week row to both schedule tabs.**
   **Done:** `Week 14` / `Week 7`, after *Day*, in both tabs. Derived by `weekOfIso()` from the date

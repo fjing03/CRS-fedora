@@ -156,7 +156,18 @@ class ApiReadController extends Controller
             $row = $mapper->toRow($r, $semesterStart, 'api');
 
             // byte-parity strips (this consumer's historical key set):
-            unset($row['requester'], $row['slotValidity'], $row['conflictReason'], $row['bucket']);
+            unset(
+                $row['requester'],
+                $row['slotValidity'],
+                $row['conflictReason'],
+                $row['bucket'],
+                $row['venueName'],
+                $row['replacementVenueName'],
+                $row['requestStatusLabel'],
+                $row['requestStatusShort'],
+                $row['requestStatusSentence'],
+                $row['requestStatusTip'],
+            );
 
             $session = $r->classSession;
             $row['cohorts'] = $session->cohorts

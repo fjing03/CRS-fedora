@@ -6,6 +6,11 @@
 
 @section('page-styles')
 
+        /* 3A/3D (2026-11-04): the details pop-up now carries a facts strip and
+           three schedule/status tabs — the shared 420px base cannot fit them,
+           so this one matches the merged page's 616px shell. */
+        #modalOverlay .modal { max-width: 616px; }
+
         /* ───── Column Widths ───── */
         .col-no { width: 40px; text-align: center; }
         .col-original, .col-replacement { white-space: normal; }
@@ -411,6 +416,13 @@
             return String(label == null ? '' : label).replace(/\s+/g, '');
         }
 
+        /* 3C — "B103 — Tutorial Room": the code, then the room name when the
+           payload has one. The merged page's `venueLine()` is the same rule. */
+        function venueText(code, name) {
+            if (!code) return null;
+            return name ? code + ' \u2014 ' + name : code;
+        }
+
         function urgencyLevel(classDate) {
             var d = urgencyDays(classDate);
             return d < 0 ? 'overdue' : (d <= 3 ? 'urgent' : 'normal');
@@ -462,19 +474,12 @@
             return (level === 'urgent' ? 'Urgent — ' : 'Normal — ') + n + (n === 1 ? ' day' : ' days') + ' left before the Proposed Class.';
         }
 
-        // Status tooltips
-        function statusTooltip(status) {
-            var map = {
-                Pending: "This request is AWAITING your review and decision (Approve or Reject).",
-                Approved: "You have APPROVED this request.",
-                Rejected: "You have REJECTED this request."
-            };
-            return map[status] || '';
-        }
+        // Status tooltips come from the payload (`requestStatusTip`, the shared
+        // M5 vocabulary in the PL voice) — 1f/3B deleted the page-local 3-key
+        // map here, which was why a Completed or Cancelled badge had no tip.
 
-        function statusTipAttr(status) {
-            var t = statusTooltip(status);
-            return t ? ' data-tip="' + t + '"' : '';
+        function statusTipAttr(r) {
+            return r.requestStatusTip ? ' data-tip="' + r.requestStatusTip + '"' : '';
         }
 
         // ── Lecturer lookup + copy email ──
@@ -738,7 +743,7 @@
             html += '<td class="col-replacement">' + HtmlBuilder.replacementBlock(r, { colorStatus: false, slotBadge: slotBadge }) + '</td>';
 
             html += '<td class="col-urgency"><span class="urgency-badge ' + urgencyClass(level) + '" data-tip="' + urgencyTip(r) + '">' + urgencyLabel(level, r.classDate) + '</span></td>';
-            html += '<td><span class="badge ' + statusClass(r.status) + '"' + statusTipAttr(r.status) + ' onclick="openModalById(' + r.id + ')" style="cursor:pointer">' + r.status + '</span></td>';
+            html += '<td><span class="badge ' + statusClass(r.status) + '"' + statusTipAttr(r) + ' onclick="openModalById(' + r.id + ')" style="cursor:pointer">' + r.requestStatusLabel + '</span></td>';
 
             const actions = r.status === 'Pending'
                 ? '<div class="action-row"><button class="btn-approve" onclick="event.stopPropagation();approveRequest(' + r.id + ')">✓ Approve</button><button class="btn-reject" onclick="event.stopPropagation();openRejectModal(' + r.id + ')">✕ Reject</button></div>'
@@ -894,7 +899,7 @@
                     urgencyLabel: function(level) { return urgencyLabel(level, r.classDate); },
                     urgencyTip: urgencyTip,
                     requestAgeHtml: requestAgeHtml,
-                    statusTip: statusTooltip
+                    statusTip: function() { return r.requestStatusTip; }
                 });
                 card.addEventListener('click', function() { openModalById(r.id); });
                 container.appendChild(card);
@@ -973,41 +978,40 @@
             currentModalId = r.id;
             viewedIds.add(r.id);
 
-            const statusDescMap = {
-                'Pending': 'Awaiting your approval',
-                'Approved': 'Replacement scheduled — ready to proceed',
-                'Rejected': 'Declined — lecturer needs an alternative',
-                'Completed': 'Replacement conducted',
-                'Cancelled': 'Request withdrawn'
-            };
-            const statusDot = r.status === 'Pending' ? 'dot-warning' : r.status === 'Approved' || r.status === 'Completed' ? 'dot-success' : r.status === 'Rejected' ? 'dot-error' : 'dot-primary';
+            /* ── 3A (2026-11-04): the timeline is GONE (3D needs the tab room, and
+               the rail is known-broken — see the demo note it used to print).
+               Its information is not lost: the old Request Info tab is absorbed
+               by the fixed facts strip below, which is the merged page's M7
+               shell. ── */
 
-            // Global timeline (always visible above the tabs); dot colour follows each step's status
-            const timeline = [
-                { label: 'Submitted', time: formatDateTime(r.requestedAt), state: 'completed' },
-                { label: 'Viewed', time: r.viewedAt ? formatDateTime(r.viewedAt) : '—', state: r.viewedAt ? 'completed' : 'pending', dot: r.viewedAt ? 'dot-success' : '' },
-                { label: 'Reviewed', time: r.reviewedAt ? formatDateTime(r.reviewedAt) : (r.status === 'Pending' ? 'Pending' : '—'), state: r.reviewedAt ? 'completed' : (r.status === 'Pending' ? 'active' : 'pending'), dot: statusDot }
-            ];
-
-            // Tab 1: Request Information
+            /* The facts strip — the four things a PL decides with. */
             var modalLec = lookupLecturer(r.lecturer);
-            var reqRows = '';
-            if (modalLec) {
-                reqRows += DetailModal.row('Lecturer', modalLec.name, { strong: true });
-                reqRows += DetailModal.row('Staff ID', modalLec.staffId ? '<span class="detail-value--muted">' + modalLec.staffId + '</span>' : null);
-                reqRows += DetailModal.row('Email', '<span class="lecturer-cell-email" onclick="copyEmail(\'' + modalLec.email + '\', event)" data-tip="Click to copy email">' + modalLec.email + ' <span class="copy-icon">📋</span></span>');
-            } else {
-                reqRows += DetailModal.row('Lecturer', r.lecturer, { strong: true });
-            }
-            reqRows += DetailModal.row('Subject Code', r.courseCode, { strong: true });
-            reqRows += DetailModal.row('Subject Name', r.courseName);
-            reqRows += DetailModal.row('Requested', formatDateTime(r.requestedAt));
-            reqRows += DetailModal.row('Status', '<span class="badge ' + statusClass(r.status) + '"' + statusTipAttr(r.status) + '>' + r.status + '</span>');
-            reqRows += DetailModal.row('Status Description', statusDescMap[r.status] || '');
-            if (r.rejectionReason) {
-                reqRows += DetailModal.row('Rejection Reason', r.rejectionReason, { strong: true });
-            }
-            const reqSection = DetailModal.section('Request Information', reqRows);
+            var staffFact = modalLec
+                ? '<span class="df-item df-item--full"><span class="df-label">Staff (Proposer)</span>' +
+                    modalLec.name + ' <span class="detail-value--muted">(' + modalLec.staffId + ')</span> ' +
+                    '<span class="lecturer-cell-email" onclick="copyEmail(\'' + modalLec.email + '\', event)" data-tip="Click to copy email">' +
+                    modalLec.email + ' <span class="copy-icon">📋</span></span></span>'
+                : '<span class="df-item df-item--full"><span class="df-label">Staff (Proposer)</span>' + (r.lecturer || '\u2014') + '</span>';
+
+            /* the slot-validity badge: the strip shows it while the slot still
+               matters (pending); the replacement tab always shows it. */
+            var slotBadgeInline = '<span class="slot-badge ' + (r.slotValidity === 'conflict' ? 'slot-conflict' : 'slot-valid') + '" data-tip="' +
+                ((r.slotValidity === 'conflict' ? (r.conflictReason || 'Slot conflict') : 'Slot available').replace(/"/g, '&quot;')) + '">' +
+                (r.slotValidity === 'conflict' ? '⚠' : '✓') + '</span> ';
+            var conflictFact = r.status === 'Pending'
+                ? '<span class="df-item df-item--full"><span class="df-label">Conflict</span>' +
+                    slotBadgeInline + (r.slotValidity === 'conflict' ? 'This make-up slot is NO LONGER FREE' : 'Slot available') + '</span>'
+                : '';
+
+            var factsHtml =
+                staffFact +
+                '<span class="df-item"><span class="df-label">Cohorts</span>' +
+                    ((r.cohorts || []).map(compactCohort).join(' + ') || '\u2014') + '</span>' +
+                '<span class="df-item"><span class="df-label">Students</span>' +
+                    (window.cohortBreakdown ? window.cohortBreakdown(r) : r.totalStudents) + '</span>' +
+                conflictFact;
+
+            // (the old "Request Information" tab is the facts strip above now)
 
             // ── USER 2026-10-18: CONSISTENT HUMAN DATES ('17 Oct 2026' style),
             //    hour words, and the already-split Start/End rows (below) ──
@@ -1059,62 +1063,67 @@
                cohortBreakdown (ui-common.js) renders the per-cohort
                `A + B = total` breakdown for multi-cohort rows. */
 
-            // Tab 2: Original Class Detail — one value per row, no grouping
+            // Tab 1: Original Class Schedule — one value per row, no grouping
             // CONSISTENCY 3E (2026-11-03): the Week row is derived from the date
             // (semester start + 7×n), so the payload needs no new key.
-            const origSection = DetailModal.section('Original Class',
+            // 3A (2026-11-04): students + cohorts moved to the facts strip.
+            const origSection = DetailModal.section('Original Class Schedule',
+                DetailModal.row('Request ID', '#' + r.id, { strong: true }) +
                 DetailModal.row('Date', fullDate(r.classDate), { strong: true }) +
                 DetailModal.row('Day', r.classDay) +
                 DetailModal.row('Week', weekOfIso(r.classDate)) +
                 DetailModal.row('Start Time', fullTime(r.timeStart), { strong: true }) +
                 DetailModal.row('End Time', fullTime(r.timeEnd)) +
                 DetailModal.row('Duration', durationWords(r.duration)) +
-                DetailModal.row('Venue', r.venue) +
-                DetailModal.row('Total Students', window.cohortBreakdown(r)) +
-                /* the MODAL joins compact codes with ' + ' (the table stacks them) */
-                DetailModal.row('Cohort(s)', (r.cohorts || []).map(compactCohort).join(' + ') || null)
+                DetailModal.row('Venue', venueText(r.venue, r.venueName))
             );
 
-            // Tab 3: Requested Replacement Class — one value per row
-            // (the replacementTime carries "H:i – H:i" — split to two rows)
+            // Tab 2: Proposed Replacement Schedule — only when a slot was
+            // proposed (3D). The replacementTime carries "H:i – H:i".
             const repParts = (r.replacementTime || '').split(/\s*[–—-]\s*/);
             const validityText = r.slotValidity === 'conflict'
                 ? '⚠ This make-up slot is NO LONGER FREE' + (r.conflictReason ? ' — ' + r.conflictReason : '')
                 : '✓ Slot available';
-            const validityBadgeHtml = '<span class="slot-badge ' +
-                (r.slotValidity === 'conflict' ? 'slot-conflict' : 'slot-valid') + '" data-tip="' +
-                (r.slotValidity === 'conflict'
-                    ? ((r.conflictReason || 'Slot conflict').replace(/"/g, '&quot;'))
-                    : 'Slot available') + '">' +
-                (r.slotValidity === 'conflict' ? '⚠' : '✓') + '</span> ' + validityText;
-            const repSection = DetailModal.section('Replacement Class',
-                DetailModal.row('Date', fullDate(r.replacementDate), { strong: true }) +
-                DetailModal.row('Day', fullDay(r.replacementDate)) +
-                DetailModal.row('Week', weekOfIso(r.replacementDate)) +
-                DetailModal.row('Start Time', repParts.length ? DateHelper.to12h(repParts[0]) : null) +
-                DetailModal.row('End Time', repParts.length > 1 ? DateHelper.to12h(repParts[1]) : null) +
-                DetailModal.row('Duration', rangeHours(r.replacementTime)) +
-                DetailModal.row('Venue', r.replacementVenue) +
-                DetailModal.row('Slot Validity', validityBadgeHtml)
-            );
 
-            const tabs = [{ key: 'info', label: 'Request Info', html: reqSection }];
-            tabs.push({ key: 'original', label: 'Original Class', html: origSection });
-            tabs.push({ key: 'replacement', label: 'Replacement Class', html: repSection });
-            if (r.reviewedBy) {
-                const reviewSection = DetailModal.section('Review',
-                    DetailModal.row('Reviewed By', r.reviewedBy) +
-                    DetailModal.row('Reviewed At', formatDateTime(r.reviewedAt)) +
-                    (r.remarks ? DetailModal.row('Remarks', r.remarks) : '')
+            const tabs = [{ key: 'original', label: 'Original Class Schedule', html: origSection }];
+
+            if (r.replacementDate) {
+                const repSection = DetailModal.section('Proposed Replacement Schedule',
+                    DetailModal.row('Date', fullDate(r.replacementDate), { strong: true }) +
+                    DetailModal.row('Day', fullDay(r.replacementDate)) +
+                    DetailModal.row('Week', weekOfIso(r.replacementDate)) +
+                    DetailModal.row('Start Time', repParts.length ? DateHelper.to12h(repParts[0]) : null) +
+                    DetailModal.row('End Time', repParts.length > 1 ? DateHelper.to12h(repParts[1]) : null) +
+                    DetailModal.row('Duration', rangeHours(r.replacementTime)) +
+                    DetailModal.row('Venue', venueText(r.replacementVenue, r.replacementVenueName)) +
+                    DetailModal.row('Slot Validity', slotBadgeInline + validityText)
                 );
-                tabs.push({ key: 'review', label: 'Review', html: reviewSection });
+                tabs.push({ key: 'replacement', label: 'Proposed Replacement Schedule', html: repSection });
             }
+
+            /* Tab 3 — the status, FAR RIGHT (3D): badge + ONE sentence, then the
+               PL-only facts the old Request Info / Review tabs used to hold. */
+            const statusHtml =
+                '<div class="detail-row"><span class="detail-label">Status</span><span class="detail-value">' +
+                    '<span class="badge ' + statusClass(r.status) + '"' + statusTipAttr(r) + '>' + r.requestStatusLabel + '</span>' +
+                '</span></div>' +
+                DetailModal.row('Status Description', r.requestStatusSentence || '') +
+                DetailModal.row('Requested At', formatDateTime(r.requestedAt)) +
+                (r.rejectionReason ? DetailModal.row('Rejection Reason', r.rejectionReason, { strong: true }) : '') +
+                (r.remarks ? DetailModal.row('Remark', r.remarks) : '') +
+                (r.reviewedBy ? DetailModal.row('Reviewed By', r.reviewedBy) : '') +
+                (r.reviewedAt ? DetailModal.row('Reviewed At', formatDateTime(r.reviewedAt)) : '');
+            tabs.push({
+                key: 'status',
+                label: 'Request Status (' + r.requestStatusShort + ')',
+                html: DetailModal.section('Status', statusHtml)
+            });
 
             DetailModal.render({
                 modalId: 'modalOverlay',
                 title: 'Request Details',
                 subtitle: '#' + r.id + ' · ' + r.courseCode + ' — ' + r.courseName,
-                timeline: timeline,
+                factsHtml: factsHtml,
                 tabs: tabs
             });
 

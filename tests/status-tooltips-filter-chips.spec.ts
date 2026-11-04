@@ -27,11 +27,18 @@ const MRH_TIPS = [
   'You MANUALLY CANCELLED this request.',
   'The replacement class has been CONDUCTED — this request is complete.',
 ];
+/* 1f/3B (2026-11-04): the queue badge now prints the shared M5 label and takes
+   its tip from the payload's own `requestStatusTip` (PL voice) — the page-local
+   3-key map is gone, which is why a Completed (or Cancelled) badge used to have
+   no tip at all. Keys are the label's STATUS part: a Completed badge appends
+   "— <n> days ago", so it is normalised before the lookup. */
 const RA_MAP: Record<string, string> = {
   Pending: 'This request is AWAITING your review and decision (Approve or Reject).',
   Approved: 'You have APPROVED this request.',
   Rejected: 'You have REJECTED this request.',
+  Completed: 'The replacement class has been CONDUCTED — this request is complete.',
 };
+const labelKey = (label: string): string => label.split(' — ')[0].trim();
 
 /* the frozen urgency receipt regex (design.md:217) */
 const URGENCY_RE =
@@ -180,32 +187,49 @@ test('T5.MRH-3: detail-modal Status row + mobile-card threading', async ({ page 
 
 /* ── RA ──────────────────────────────────────────────────────────────── */
 
-test('T5.RA-1: status hover loop on All + the 3-string map fallback + fail-open', async ({ page }) => {
+test('T5.RA-1: every status badge carries the payload tip (one source, no local map)', async ({ page }) => {
   await page.goto(`${BASE}${RA}`);
   await page.waitForTimeout(1400);
   const count = await setRAAll(page);
   expect(count, 'the queue renders at least one status badge on All').toBeGreaterThan(0);
 
-  const badges = page.locator('#tableBody span.badge[data-tip]');
+  /* NO [data-tip] filter: a badge without a tip must fail here — that was the
+     real defect (Completed/Cancelled rendered bare under the 3-key map). */
+  const badges = page.locator('#tableBody td span.badge');
   const n = await badges.count();
+  expect(n, 'status badges render').toBeGreaterThan(0);
   for (let i = 0; i < n; i++) {
     const b = badges.nth(i);
-    const status = ((await b.textContent()) || '').trim();
-    expect(RA_MAP[status], `queue badge '${status}' is in the 3-status map`).toBeTruthy();
-    await expect(b).toHaveAttribute('data-tip', RA_MAP[status]);
+    const label = ((await b.textContent()) || '').trim();
+    const key = labelKey(label);
+    expect(RA_MAP[key], `queue badge '${label}' is a known state (Completed included now)`).toBeTruthy();
+    await expect(b, `'${label}' carries its tip`).toHaveAttribute('data-tip', RA_MAP[key]);
   }
-  const first = badges.first();
-  const shared = await sharedTip(page, '#tableBody span.badge[data-tip]');
-  expect(shared!.text).toBe(RA_MAP[((await first.textContent()) || '').trim()]);
-  expect(shared!.above).toBe(true);
 
-  const mapCheck = await page.evaluate((want) => {
-    const got: Record<string, string> = {};
-    for (const s of Object.keys(want)) got[s] = statusTooltip(s);
-    return { got, failOpen: statusTipAttr('NotAStatus') };
-  }, RA_MAP);
-  expect(mapCheck.got).toEqual(RA_MAP);
-  expect(mapCheck.failOpen).toBe('');
+  /* the payload is the single source: each rendered badge's text AND tip are
+     the row's own `requestStatusLabel` / `requestStatusTip`, not a second copy */
+  const drift = await page.evaluate(() => {
+    const rows = ((window as any).MockData?.approvalRequests ?? []) as any[];
+    const byId = new Map<string, any>(rows.map((r) => [String(r.id), r]));
+    return Array.from(document.querySelectorAll('#tableBody tr[data-id]')).map((tr) => {
+      const id = (tr as HTMLElement).dataset.id || '';
+      const row = byId.get(id);
+      const badge = tr.querySelector('td span.badge');
+      return {
+        id,
+        same:
+          !!row &&
+          !!badge &&
+          (badge.textContent || '').trim() === row.requestStatusLabel &&
+          (badge.getAttribute('data-tip') || '') === row.requestStatusTip,
+      };
+    });
+  });
+  expect(drift.length).toBeGreaterThan(0);
+  expect(drift.filter((d) => !d.same).map((d) => d.id), 'rows whose badge differs from the payload').toEqual([]);
+
+  const shared = await sharedTip(page, '#tableBody td span.badge[data-tip]');
+  expect(shared!.above).toBe(true);
 });
 
 test('T5.RA-2: urgency badge↔tip word-per-row; UNCONDITIONAL Overdue shift; TODAY-string; Urgent filter keeps Overdue', async ({ page }) => {
@@ -335,7 +359,7 @@ test('T5.RA-3: resetFilters + label + Clear-all law + ✕ + mobile cards (status
   await page.waitForTimeout(600);
   const cardStatus = page.locator('#requestsCards .request-card .badge[data-tip]').first();
   await expect(cardStatus).toBeVisible();
-  await expect(cardStatus).toHaveAttribute('data-tip', RA_MAP[((await cardStatus.textContent()) || '').trim()]);
+  await expect(cardStatus).toHaveAttribute('data-tip', RA_MAP[labelKey(((await cardStatus.textContent()) || '').trim())]);
   const cardUrg = page.locator('#requestsCards .request-card .urgency-badge[data-tip]').first();
   await expect(cardUrg).toBeVisible();
   await expect(((await cardUrg.getAttribute('data-tip')) || '')).toMatch(URGENCY_RE);
