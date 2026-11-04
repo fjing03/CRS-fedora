@@ -77,7 +77,7 @@ test('the staged race reaches the Submission Conflict modal; Refresh Page reload
   await pageB.locator('#modalConfirmBtn').click(); // 'Yes, Submit Request'
   // the success path navigates to My Request History (the design aftermath)
   await pageB.waitForTimeout(4000); // the probe's exact shape
-  await pageB.waitForURL(/my-request-history-ui/, { timeout: 60_000 });
+  await pageB.waitForURL(/\/my-replacements/, { timeout: 60_000 });
   await ctxB.close();
 
   // ── ctxA submits the SAME slot from its STALE grid → the pre-reserve fails → the conflict modal ──
@@ -101,9 +101,11 @@ test('the staged race reaches the Submission Conflict modal; Refresh Page reload
   expect(dialogsA).toEqual([]); // the leave-confirmation must NOT appear
   const fresh = await pageA.evaluate(() => (window as any).__scrMarker === undefined);
   expect(fresh).toBe(true); // the page genuinely reloaded (the marker died with the page)
-  await expect(pageA).toHaveURL(/replacement-arrangement\?/);
-  expect(await pageA.evaluate(() => JSON.stringify((window as any).pinnedOccurrence || null)))
-    .toContain('67'); // the URL context (session/week/etc.) rode the reload
+  // arrangement-entry-guard (2026-11-02): a reload while the slot is held by the
+  // receipt's own pending request now lands on the home page with the blocked
+  // banner, instead of re-entering the arrangement grid.
+  await expect(pageA).toHaveURL(/my-replacements\?blocked=request-pending/);
+  await expect(pageA.locator('body')).toContainText(/pending/i);
 
   // THE CONTROL: the unsaved-changes guard STAYS alive on every other path —
   // a fresh selection + a manual reload pops the browser leave-confirmation.
