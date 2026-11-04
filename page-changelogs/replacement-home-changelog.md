@@ -1,3 +1,24 @@
+## 2026-11-04 (follow-up) — the table grid: every column has a share, the code column stops hoarding
+
+`.col-code` was the only column without a definite width (`width: auto`), so the auto table layout
+handed it every spare pixel — **704 px** in a 1920 px window — while the multi-line cells stayed
+pinned at their own hints, and at 1280 the long holiday badge squeezed everything else to make room
+for itself (294 px for one badge). The table now uses `table-layout: fixed` with a share for every
+column — code 18% · cohort 10% · original 17% · reason 17% · requested 16% · status 16% ·
+action 6% — so the grid is the same shape at every width and content wraps inside its own column.
+
+| Window | Before (code · cohort · original · reason · requested · status · action) | After |
+|---|---|---|
+| 1280 | 168 · 116 · 171 · **294** · 198 · 227 · 73 | 225 · 125 · 212 · **206** · 200 · 206 · 75 |
+| 1920 | **704** · 130 · 210 · 294 · 200 · 227 · 73 | **329** · 183 · 311 · 302 · 293 · 302 · 110 |
+
+Two side effects, both intended: the code column can no longer balloon, and the badge columns are
+the only cells that opt out of the table's `white-space: nowrap` (`.timetable td` outranks a bare
+class, so the opt-out is `#timetable td.col-reason` / `.col-status`). Below ~1500 px a long holiday
+badge therefore takes **two lines** (`Public Holiday — Deepavali Holiday (In Lieu)`), which grows the
+row from 81 px to 101 px at 1280; at 1920 every badge is back on one line. Nothing else on the page
+changed — the header, the sort, the cards and the pop-up are untouched.
+
 ## 2026-11-04 (follow-up) — the Conflict Reason badge says *which* conflict again
 
 The merge kept the badge's two **colours** but dropped its **words**. The design authority

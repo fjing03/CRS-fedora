@@ -9,13 +9,23 @@
 @section('page-styles')
 
         /* ───── Seven columns (M4, design §6) ───── */
-        .col-code { width: auto; }
-        .col-cohort { width: 130px; }
-        .col-original { width: 210px; white-space: normal; }
-        .col-reason { width: 150px; vertical-align: middle; }
-        .col-requested { width: 200px; white-space: normal; }
-        .col-status { width: 190px; }
-        .col-action { width: 70px; text-align: center; }
+        /* Fixed layout with a share for EVERY column. `.col-code` used to be
+           `width: auto`, which made it the only column without a definite
+           width — so it absorbed every spare pixel (704 px at 1920 px wide)
+           while the multi-line cells stayed pinned at their hints. Percentages
+           keep the grid honest at every viewport: content wraps inside its own
+           column instead of taking width from its neighbours. */
+        #timetable.data-table { table-layout: fixed; width: 100%; }
+        .col-code { width: 18%; }
+        .col-cohort { width: 10%; }
+        .col-original { width: 17%; white-space: normal; }
+        /* `.timetable td` is nowrap (theme.css) and outranks a bare class — the
+           two badge columns opt out with an id + class, so a long holiday name
+           wraps INSIDE its column instead of overflowing into the next one. */
+        #timetable td.col-reason { width: 17%; vertical-align: middle; white-space: normal; }
+        .col-requested { width: 16%; white-space: normal; }
+        #timetable td.col-status { width: 16%; white-space: normal; }
+        .col-action { width: 6%; text-align: center; }
 
         .grid-scroll .timetable { min-width: 1280px; }
 
