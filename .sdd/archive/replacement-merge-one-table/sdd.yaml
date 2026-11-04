@@ -1,6 +1,6 @@
 name: replacement-merge-one-table
 created: 2026-11-03
-status: applied
+status: archived
 source-prompt: prompts/pi-replacement-merge-one-table.md
 user-order: "2026-11-03 — one table replaces /replacement-home-ui + /my-request-history-ui; M1–M17 were locked in the prototype review session, so nothing in §2 is re-asked"
 batches:
@@ -8,5 +8,6 @@ batches:
   design: "frozen 2026-11-04 — round 2 PASS (3 blockers, 12 should-fix, 9 residuals folded)"
   specs: "frozen 2026-11-04 — round 2 PASS (2 blockers, 16 should-fix, 5 residuals folded)"
   tasks: "frozen 2026-11-04 — round 5 PASS (5 rounds; every receipt carries a number)"
+archived: "2026-11-04 — user said archive; folder moved from .sdd/changes/ to .sdd/archive/"
 applied: "2026-11-04 (PI session) — e70c1ea, 6856577, ab65f9a, d3f6f5b, c4d0ad3 + the docs commit; receipts in review-log.md, Apply round"
 prerequisites: "replacement-home-status-badges (a16727c, 2e58547) + request-completed-status (e2b2f4c, 7d2bb9a) — both satisfied"
