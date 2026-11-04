@@ -13,13 +13,14 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
 /**
- * Route-gate matrix over the 9 UI routes × 4 actors (rbac-route-gating spec).
+ * Route-gate matrix over the 10 UI routes × 4 actors (rbac-route-gating spec).
  *
  * Buckets (design route table, auth FIRST per D3):
  *  - role:student:            /student-my-timetable-ui, /replacement-history-ui
  *  - role:lecturer (+PL):     /my-timetable-ui, /cohort-timetable,
- *                             /replacement-home-ui, /replacement-arrangement,
- *                             /my-request-history-ui, /venue-timetable-ui
+ *                             /my-replacements (canonical), /replacement-home-ui,
+ *                             /replacement-arrangement, /my-request-history-ui,
+ *                             /venue-timetable-ui
  *  - pl:                      /request-approval-ui
  */
 class RouteGateMatrixTest extends TestCase
@@ -31,6 +32,7 @@ class RouteGateMatrixTest extends TestCase
         '/cohort-timetable',
         '/student-my-timetable-ui',
         '/replacement-history-ui',
+        '/my-replacements',
         '/replacement-home-ui',
         '/replacement-arrangement',
         '/my-request-history-ui',
@@ -43,6 +45,7 @@ class RouteGateMatrixTest extends TestCase
     private const LECTURER_ONLY = [
         '/my-timetable-ui',
         '/cohort-timetable',
+        '/my-replacements',
         '/replacement-home-ui',
         '/replacement-arrangement',
         '/my-request-history-ui',

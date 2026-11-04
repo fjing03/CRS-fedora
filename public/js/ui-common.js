@@ -1295,7 +1295,7 @@ function openClassModal(cfg) {
     // request history (reported 2026-10-08 — id-collision leak).
     if (event.status === 'pending' && event.requestId && event.requestedBy === MockData.currentUser.name && _mFooter) {
         var viewBtn = document.createElement('a');
-        viewBtn.href = '/my-request-history-ui?id=' + event.requestId;
+        viewBtn.href = '/my-replacements?notif-hl=r' + encodeURIComponent(event.requestId) + '&view=request';
         viewBtn.className = 'btn-action';
         viewBtn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg> View Full Request';
         viewBtn.style.textDecoration = 'none';
@@ -3100,15 +3100,15 @@ function rebuildTable(cfg) {
 
 class BackNavigator {
     static #routes = {
-        'replacement-home': '/replacement-home-ui',
-        'my-request-history': '/my-request-history-ui',
+        'replacement-home': '/my-replacements',
+        'my-request-history': '/my-replacements',
         'venue-timetable': '/venue-timetable-ui',
         'my-timetable': '/my-timetable-ui',
         'cohort-timetable': '/cohort-timetable'   /* SDD cohort-venue-replace-now T3: the CANONICAL route (routes/web.php :37) — the -ui URL is the temporary :99 redirect, scheduled for removal; adding the canonical row keeps the back-nav immune to that cleanup */
     };
 
     static getDefault() {
-        return '/replacement-home-ui';
+        return '/my-replacements';
     }
 
     static getBackUrl() {
@@ -4447,18 +4447,17 @@ document.addEventListener('DOMContentLoaded', function() {
 function showEntryGuardToast() {
     const blocked = new URLSearchParams(location.search).get('blocked');
     if (blocked !== 'request-pending' && blocked !== 'request-approved') return;
-    /* 2026-11-04 (user decision): the body used to END with the page name and the
-       link was labelled with it, so toast._present() printed the name twice
-       ("... in My Request History. My Request History"). The body now carries the
-       fact only; the link carries the page name once. The state word stays in caps.
-       The LINK still points at the old URL and label — renaming the page is the
-       merge lane's commit 3, and moving the URL here would break its aliases. */
+    /* 2026-11-04 (user decision): the body used to end with the page name while
+       the link was labelled with it too, so toast._present() printed the name
+       twice. The body now carries the fact only; the link carries the page name
+       once. The state word stays in caps. The link names the merged page and its
+       canonical URL (replacement-merge-one-table, commit 3). */
     if (blocked === 'request-approved')
         toast.show('This class already has an APPROVED replacement.',
-            null, 8000, 'My Request History', '/my-request-history-ui');
+            null, 8000, 'My Replacements', '/my-replacements');
     else
         toast.show('This class already has a PENDING replacement request.',
-            null, 8000, 'My Request History', '/my-request-history-ui');
+            null, 8000, 'My Replacements', '/my-replacements');
 }
 
 /* bfcache guard — Arrange-Now (or any future leave-with-modal-open path)

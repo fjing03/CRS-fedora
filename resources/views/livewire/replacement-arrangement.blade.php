@@ -2238,11 +2238,11 @@
                                 /* the request is sent — Ctrl+Z must not resurrect its slots */
                                 selectionHistory.length = 0;
                                 updateCounter();
-                                toast.show(sub.message, null, 5000, 'View \u2192', '/my-request-history-ui', sub.details);
+                                toast.show(sub.message, null, 5000, 'View \u2192', '/my-replacements', sub.details);
                                 /* the design's aftermath: the request now lives in
-                                   My Request History — go there (brief beat so the
+                                   My Replacements — go there (brief beat so the
                                    success toast is actually seen) */
-                                setTimeout(function() { window.location.href = '/my-request-history-ui'; }, 1200);
+                                setTimeout(function() { window.location.href = '/my-replacements'; }, 1200);
                             } else {
                                 /* submission-conflict-modal-refresh (the user's
                                    spec items 1/3/4/5/6): the conflict modal = the

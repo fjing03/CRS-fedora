@@ -14,8 +14,9 @@ use Illuminate\Support\Facades\DB;
  * THE shared request-row mapper (SDD span-aware-approval-flow — design D5 /
  * spec display-reads R3; the §10.0.6 promote-on-3rd-duplicate extraction).
  *
- * Owns the computations that used to live twice (ApiReadController::myRequests
- * + MyRequestHistory::requestRow) and once more is needed by the PL queue:
+ * Owns the computations that the row readers used to duplicate, now used by
+ * the PL queue, the JSON API, the notification composer and the merged
+ * My Replacements page:
  *
  *  - THE DATA-DRIVEN span read (junction min/max) — for ANY request status
  *    (approved reads the junction too, Q3=A); whenever the junction yields NO
@@ -402,8 +403,9 @@ final class ReplacementRequestMapper
 
         $strings = $this->stringsFromSpan($span, $semesterStart, $slot->venue);
 
-        // the legacy key set only — the existing consumers (MyRequestHistory
-        // :65-76, ApiReadController) read date/time/venue and are pinned.
+        // the three-key shape only: the readers pinned this key set (date /
+        // time / venue) and `stringsFromSpan()` is the six-key source beside
+        // it — that difference is why the two helpers exist.
         return ['date' => $strings['date'], 'time' => $strings['time'], 'venue' => $strings['venue']];
     }
 

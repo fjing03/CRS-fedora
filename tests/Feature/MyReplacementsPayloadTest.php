@@ -469,6 +469,29 @@ final class MyReplacementsPayloadTest extends TestCase
         );
     }
 
+    // ── case 10 (deferred to T14: only now do all three URLs exist) ─────────
+
+    public function test_all_three_urls_render_the_merged_page_and_keep_the_query_string(): void
+    {
+        $session = $this->occurrence(5, 0);
+        $request = $this->requestFor($session, 5, 'pending');
+
+        $query = '?notif-hl=r'.$request->id.'&view=request';
+
+        foreach (['/my-replacements', '/replacement-home-ui', '/my-request-history-ui'] as $url) {
+            $response = $this->actingAs($this->lecturer)->get($url.$query);
+
+            /* 200 (never a 302): the alias is a route entry, so the query string
+               survives an arrival instead of being dropped by a redirect. The
+               body carries the SAME merged payload — the legacy mock template
+               has no `conflictedClasses` script at all, so a leftover route
+               entry that fell back to it would fail here. */
+            $response->assertOk();
+            $response->assertSee('"conflictedClasses"', false);
+            $response->assertSee('"requestId":'.$request->id, false);
+        }
+    }
+
     // ── case 9 ─────────────────────────────────────────────────────────────
 
     public function test_cancel_returns_the_fresh_row_and_refuses_a_decided_request(): void

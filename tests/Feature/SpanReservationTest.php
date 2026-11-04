@@ -5,7 +5,7 @@ namespace Tests\Feature;
 use App\Actions\CancelPendingRequest;
 use App\Actions\SubmitReplacementRequest;
 use App\Http\Controllers\Api\ApiReadController;
-use App\Livewire\MyRequestHistory;
+use App\Livewire\ReplacementHome;
 use App\Models\AuditLog;
 use App\Models\ClassException;
 use App\Models\ClassSession;
@@ -477,7 +477,10 @@ final class SpanReservationTest extends TestCase
         $this->assertSame(4, $span['count'], 'the span counts the four 30-min cells');
     }
 
-    public function test_history_page_pending_row_shows_the_true_range_and_cancel_reverts_to_anchor(): void
+    /** replacement-merge-one-table T17: re-pointed from the retired My Requests
+     *  page to the merged occurrence row — the DATA-ACCURACY receipt for §6b
+     *  law 3 (junction first, anchor after the release) is unchanged. */
+    public function test_merged_page_pending_row_shows_the_true_range_and_cancel_reverts_to_anchor(): void
     {
         [$slotIds, $winner, $winnerSession, $loser, $loserSession] = $this->spanFixture();
 
@@ -485,8 +488,8 @@ final class SpanReservationTest extends TestCase
         $this->assertTrue($action($winner, $winnerSession, 5, $slotIds[0], null, 4)['ok']);
 
         $this->actingAs($winner);
-        $rows = app(MyRequestHistory::class)->render()->getData()['payload']['requests'];
-        $pending = collect($rows)->first(fn ($r) => $r['status'] === 'Pending');
+        $rows = app(ReplacementHome::class)->render()->getData()['payload']['conflictedClasses'];
+        $pending = collect($rows)->first(fn ($r) => $r['requestStatus'] === 'pending');
         $this->assertNotNull($pending, 'the pending row renders');
         $this->assertSame('14:00 – 16:00', $pending['replacementTime'], 'D7.5: the junction TRUE range (a 2h pending is a 2h range)');
 
@@ -495,8 +498,8 @@ final class SpanReservationTest extends TestCase
         $request = ReplacementRequest::query()->where('proposer_id', $winner->id)->firstOrFail();
         $this->assertTrue(app(CancelPendingRequest::class)($winner, (int) $request->id));
 
-        $rows2 = app(MyRequestHistory::class)->render()->getData()['payload']['requests'];
-        $cancelled = collect($rows2)->first(fn ($r) => $r['status'] === 'Cancelled');
+        $rows2 = app(ReplacementHome::class)->render()->getData()['payload']['conflictedClasses'];
+        $cancelled = collect($rows2)->first(fn ($r) => $r['requestStatus'] === 'cancelled');
         $this->assertNotNull($cancelled, 'the cancelled row renders');
         $this->assertSame('14:00 – 14:30', $cancelled['replacementTime'], 'the anchor-only read resumes after cancel');
     }

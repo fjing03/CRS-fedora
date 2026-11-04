@@ -2,9 +2,10 @@
 
 namespace Tests\Feature;
 
-use App\Livewire\MyRequestHistory;
 use App\Livewire\ReplacementHistory;
+use App\Livewire\ReplacementHome;
 use App\Models\AuditLog;
+use App\Models\ClassException;
 use App\Models\ClassSession;
 use App\Models\Cohort;
 use App\Models\Department;
@@ -143,6 +144,8 @@ final class ReplacementHistoriesTest extends TestCase
 
     private function createRequest(User $proposer, ClassSession $session, int $week, string $status): ReplacementRequest
     {
+        $this->stampException($session, $week);
+
         return ReplacementRequest::create([
             'semester_id' => $this->semester->id,
             'proposer_id' => $proposer->id,
@@ -175,18 +178,30 @@ final class ReplacementHistoriesTest extends TestCase
         ]);
     }
 
-    private function mrhPayload(User $lecturer): array
+    /** The merged page's payload (replacement-merge-one-table T17: the retired
+     *  My Requests component is gone; the rows are OCCURRENCES, not requests). */
+    private function mergedPayload(User $lecturer): array
     {
         $payload = null;
 
-        Livewire::actingAs($lecturer)->test(MyRequestHistory::class)
+        Livewire::actingAs($lecturer)->test(ReplacementHome::class)
             ->assertViewHas('payload', function (array $p) use (&$payload): bool {
                 $payload = $p;
 
                 return true;
             });
 
-        return $payload;
+        return $payload['conflictedClasses'];
+    }
+
+    /** A request alone renders no row (§1.1's invariant): the occurrence must be
+     *  conflicted, so every fixture stamps its exception once. */
+    private function stampException(ClassSession $session, int $week): void
+    {
+        ClassException::query()->firstOrCreate(
+            ['class_session_id' => $session->id, 'week_number' => $week],
+            ['reason' => 'annual_leave'],
+        );
     }
 
     private function rhPayload(User $student): array
@@ -203,55 +218,55 @@ final class ReplacementHistoriesTest extends TestCase
         return $payload;
     }
 
-    public function test_my_request_history_emits_own_rows_in_the_mock_shape(): void
+    public function test_merged_page_emits_own_occurrence_rows(): void
     {
         $mine = $this->createRequest($this->lecturerA, $this->sessionA, 7, 'pending');
         $theirs = $this->createRequest($this->lecturerB, $this->sessionB, 7, 'pending');
 
-        $payload = $this->mrhPayload($this->lecturerA);
+        $rows = $this->mergedPayload($this->lecturerA);
 
-        $this->assertCount(1, $payload['requests'], 'FR 2.15/2.11: own requests only');
-        $row = $payload['requests'][0];
+        $this->assertCount(1, $rows, 'FR 2.15/2.11: own occurrences only');
+        $row = $rows[0];
 
-        // The mock row contract (HtmlBuilder.classBlock / replacementBlock /
-        // formatDateTime / DetailModal all read these keys).
-        $this->assertSame($mine->id, $row['id']);
-        $this->assertSame('Lecturer A', $row['requester']);
-        $this->assertSame('Pending', $row['status']);
-        $this->assertSame('BMIT1001', $row['courseCode']);
-        $this->assertSame('Software Engineering', $row['courseName']);
-        $this->assertSame('L', $row['classType']);
-        $this->assertSame('2026-10-13', $row['classDate']); // week 7, day_of_week 1 (Tue)
-        $this->assertSame('Tuesday', $row['classDay']);
+        $this->assertSame((int) $this->sessionA->id, $row['sessionId']);
+        $this->assertSame(7, $row['week']);
+        $this->assertSame('Lecturer A', $row['lecturer']);
+        $this->assertSame('BMIT1001', $row['code']);
+        $this->assertSame('Software Engineering', $row['name']);
+        $this->assertSame('L', $row['type']);
+        $this->assertSame('2026-10-13', $row['date']); // week 7, day_of_week 1 (Tue)
+        $this->assertSame('Tuesday', $row['day']);
         $this->assertSame('10:00', $row['timeStart']);
         $this->assertSame('12:00', $row['timeEnd']);
         $this->assertSame(2, $row['duration']);
         $this->assertSame('B100', $row['venue']);
+        $this->assertSame('Tutorial Room B100', $row['venueName']);
         $this->assertSame(20, $row['totalStudents']);
         $this->assertSame(['RSD3 (S1) G1'], $row['cohorts']);
         $this->assertSame([20], $row['cohortCounts']);
+        $this->assertSame('Annual Leave', $row['conflictReason']);
+        $this->assertSame((int) $mine->id, $row['requestId']);
+        $this->assertSame('pending', $row['requestStatus']);
         $this->assertSame('2026-10-15', $row['replacementDate']); // slot week 7, day 3 (Thu)
         $this->assertSame('14:00 – 14:30', $row['replacementTime']);
         $this->assertSame('B100', $row['replacementVenue']);
-        $this->assertNull($row['reviewedBy']);
-        $this->assertNotNull($row['requestedAt']);
 
         // The bridge must never carry the other lecturer's row.
-        $this->assertFalse(collect($payload['requests'])->contains(
-            fn (array $r): bool => $r['id'] === $theirs->id,
-        ));
+        $this->assertFalse(collect($rows)->contains(fn (array $r): bool => $r['requestId'] === (int) $theirs->id));
     }
 
-    public function test_cancel_request_persists_and_frees_the_slot(): void
+    public function test_cancel_request_persists_and_returns_the_fresh_row(): void
     {
         $request = $this->createRequest($this->lecturerA, $this->sessionA, 7, 'pending');
         $slot = $request->replacementTimeSlot;
 
-        $testable = Livewire::actingAs($this->lecturerA)->test(MyRequestHistory::class);
-        $testable->call('cancelRequest', (int) $request->id);
-        $ok = \Livewire\invade($testable)->lastState->getEffects()['returns'][0] ?? null;
+        $testable = Livewire::actingAs($this->lecturerA)->test(ReplacementHome::class);
+        $result = \Livewire\invade($testable)->instance()->cancelRequest((int) $request->id);
 
-        $this->assertTrue($ok, 'FR 2.10: the frozen confirm modal really cancels');
+        $this->assertTrue($result['ok'], 'FR 2.10: the frozen confirm modal really cancels');
+        $this->assertIsArray($result['row'], 'the server answer carries the re-read row');
+        $this->assertSame('cancelled', $result['row']['requestStatus']);
+        $this->assertSame('Cancelled by YOU', $result['row']['requestStatusLabel']);
 
         $request->refresh();
         $this->assertSame('cancelled', $request->status);
@@ -269,29 +284,18 @@ final class ReplacementHistoriesTest extends TestCase
     {
         $request = $this->createRequest($this->lecturerA, $this->sessionA, 7, 'approved');
 
-        $testable = Livewire::actingAs($this->lecturerA)->test(MyRequestHistory::class);
-        $testable->call('cancelRequest', (int) $request->id);
-        $ok = \Livewire\invade($testable)->lastState->getEffects()['returns'][0] ?? null;
+        $testable = Livewire::actingAs($this->lecturerA)->test(ReplacementHome::class);
+        $result = \Livewire\invade($testable)->instance()->cancelRequest((int) $request->id);
 
-        $this->assertFalse($ok, 'FR 2.10: only pending requests are cancellable');
+        $this->assertFalse($result['ok'], 'FR 2.10: only pending requests are cancellable');
+        $this->assertNull($result['row']);
         $this->assertSame('approved', $request->refresh()->status);
     }
 
-    public function test_batch_cancel_returns_only_the_cancelled_ids(): void
-    {
-        $first = $this->createRequest($this->lecturerA, $this->sessionA, 7, 'pending');
-        $second = $this->createRequest($this->lecturerA, $this->sessionA, 8, 'pending');
-        $decided = $this->createRequest($this->lecturerA, $this->sessionA, 9, 'approved');
-
-        $testable = Livewire::actingAs($this->lecturerA)->test(MyRequestHistory::class);
-        $testable->call('cancelRequests', json_encode([$first->id, $second->id, $decided->id]));
-        $okIds = \Livewire\invade($testable)->lastState->getEffects()['returns'][0] ?? [];
-
-        $this->assertSame([(int) $first->id, (int) $second->id], $okIds, 'only the pending ones cancel');
-        $this->assertSame('cancelled', $first->refresh()->status);
-        $this->assertSame('cancelled', $second->refresh()->status);
-        $this->assertSame('approved', $decided->refresh()->status);
-    }
+    /* M12: bulk cancel is removed from the merged page — the deleted
+       test_batch_cancel_returns_only_the_cancelled_ids had no replacement
+       surface. Named replacement: the per-request cancel test above plus
+       request-cancel-pending.spec.ts (§8.2). */
 
     public function test_replacement_history_emits_own_cohort_rows_in_the_mock_shape(): void
     {
@@ -343,12 +347,13 @@ final class ReplacementHistoriesTest extends TestCase
             ->assertDontSee('Cancel Request');
     }
 
-    public function test_my_request_history_reads_a_past_approved_request_as_completed(): void
+    public function test_merged_page_reads_a_past_approved_request_as_completed(): void
     {
         // request-completed-status R1 (C1/C2): approved + a replacement class
         // strictly before today reads 'Completed'. The stored status is NOT
         // touched (C1) and no audit row is written by reading the page.
         $cell = $this->cellFor(Carbon::today()->subDay());
+        $this->stampException($this->sessionA, 7);
         $request = ReplacementRequest::create([
             'semester_id' => $this->semester->id,
             'proposer_id' => $this->lecturerA->id,
@@ -360,24 +365,27 @@ final class ReplacementHistoriesTest extends TestCase
             'decided_at' => now(),
         ]);
 
-        $payload = $this->mrhPayload($this->lecturerA);
-        $row = collect($payload['requests'])->firstWhere('id', $request->id);
+        $row = collect($this->mergedPayload($this->lecturerA))
+            ->first(fn (array $r): bool => $r['requestId'] === (int) $request->id);
 
         $this->assertNotNull($row);
-        $this->assertSame('Completed', $row['status'], 'approved + yesterday → Completed (C2)');
+        $this->assertSame('completed', $row['requestStatus'], 'approved + yesterday → Completed (C2)');
+        $this->assertStringStartsWith('Completed — ', $row['requestStatusLabel']);
 
         // C1: derivation only — the row still stores 'approved', and no audit entry exists.
         $this->assertSame('approved', (string) $request->refresh()->status);
         $this->assertSame(0, AuditLog::query()->count(), 'reading a page writes nothing');
     }
 
-    public function test_my_request_history_keeps_today_and_future_approved_requests_as_approved(): void
+    public function test_merged_page_keeps_today_and_future_approved_requests_as_approved(): void
     {
         // The BOUNDARY: the comparison is by date, not by the clock — a class
         // today reads Approved all day, and a class tomorrow obviously does.
         $today = $this->cellFor(Carbon::today());
         $tomorrow = $this->cellFor(Carbon::today()->addDay());
 
+        $this->stampException($this->sessionA, 7);
+        $this->stampException($this->sessionA, 8);
         $due = ReplacementRequest::create([
             'semester_id' => $this->semester->id, 'proposer_id' => $this->lecturerA->id,
             'class_session_id' => $this->sessionA->id, 'week_number' => 7,
@@ -391,10 +399,9 @@ final class ReplacementHistoriesTest extends TestCase
             'status' => 'approved', 'submitted_at' => now(), 'decided_at' => now(),
         ]);
 
-        $payload = $this->mrhPayload($this->lecturerA);
-        $byId = collect($payload['requests'])->keyBy('id');
+        $byRequestId = collect($this->mergedPayload($this->lecturerA))->keyBy('requestId');
 
-        $this->assertSame('Approved', $byId[$due->id]['status'], 'a class that happens today is not past');
-        $this->assertSame('Approved', $byId[$later->id]['status']);
+        $this->assertSame('approved', $byRequestId[$due->id]['requestStatus'], 'a class that happens today is not past');
+        $this->assertSame('approved', $byRequestId[$later->id]['requestStatus']);
     }
 }

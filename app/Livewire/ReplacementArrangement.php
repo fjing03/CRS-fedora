@@ -75,8 +75,8 @@ class ReplacementArrangement extends Component
      * @var array<string, string>
      */
     private const FROM_LANDING_ROUTES = [
-        'replacement-home' => '/replacement-home-ui',
-        'my-request-history' => '/my-request-history-ui',
+        'replacement-home' => '/my-replacements',
+        'my-request-history' => '/my-replacements',
         'venue-timetable' => '/venue-timetable-ui',
         'my-timetable' => '/my-timetable-ui',
         'cohort-timetable' => '/cohort-timetable',
@@ -198,7 +198,7 @@ class ReplacementArrangement extends Component
     private function blockedLandingUrl(string $status, ?string $from = null): string
     {
         $from = $from ?? (string) request()->query('from', '');
-        $base = self::FROM_LANDING_ROUTES[$from] ?? '/replacement-home-ui';
+        $base = self::FROM_LANDING_ROUTES[$from] ?? '/my-replacements';
 
         return $base.'?blocked='.($status === 'approved' ? 'request-approved' : 'request-pending');
     }
@@ -1211,7 +1211,7 @@ class ReplacementArrangement extends Component
             'invalid_span' => 'Blocks are 30 minutes to 2 hours — adjust the selection.',
             'engine_precheck_failed' => 'You or the cohort is no longer free at that time.',
             'reserve_interrupted' => 'The booking could not be completed — try again.',
-            'duplicate_active_request' => 'This occurrence already has an active replacement request — see My Request History.',
+            'duplicate_active_request' => 'This occurrence already has an active replacement request — see My Replacements.',
             'holiday' => 'That day is a public holiday — replacement classes cannot be booked on it.',
             'occurrence_not_conflicted' => 'That week has no conflict to replace — pick an occurrence that needs a make-up (holiday, cancellation, venue restriction).',
             'no_occurrence_pin' => 'Pick the slot on the grid — the week being replaced must be the conflicted occurrence\'s own.',

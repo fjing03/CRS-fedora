@@ -15,8 +15,7 @@
             ['key'=>'my-timetable','label'=>'My Timetable','href'=>'/my-timetable-ui'],
             ['key'=>'cohort-timetables','label'=>'Cohort Timetables','href'=>'/cohort-timetable'],
             ['key'=>'venue-timetable','label'=>'Venue Timetable','href'=>'/venue-timetable-ui'],
-            ['key'=>'replacement-arrangement','label'=>'Replacement Arrangement','href'=>'/replacement-home-ui'],
-            ['key'=>'replacement-history','label'=>'Request History','href'=>'/my-request-history-ui'],
+            ['key'=>'replacement-arrangement','label'=>'My Replacements','href'=>'/my-replacements'],
             $isPl ? ['key'=>'request-approval','label'=>'Request Approval','href'=>'/request-approval-ui','badge'=>true] : null,
         ]));
         $pendingNavCount = !$isStudent && $isPl

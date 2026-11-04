@@ -53,6 +53,17 @@ $uiPages = [
         'nav' => 'replacement-history',
         'mw' => ['auth', 'role:student'],
     ],
+    /* replacement-merge-one-table (M2, 2026-11-04): ONE component, THREE
+       addresses — never redirects, so `?notif-hl=`, `?blocked=` and any other
+       query string survives an arrival. The canonical is /my-replacements; the
+       two old URLs stay because stored notification links, the post-submit
+       redirect and the bell's jump still point at them. */
+    '/my-replacements' => [
+        'component' => 'App\Livewire\ReplacementHome',
+        'legacy' => 'ui-design-templates.replacement-home-UI-design-template',
+        'nav' => 'replacement-arrangement',
+        'mw' => ['auth', 'role:lecturer'],
+    ],
     '/replacement-home-ui' => [
         'component' => 'App\Livewire\ReplacementHome',
         'legacy' => 'ui-design-templates.replacement-home-UI-design-template',
@@ -65,9 +76,10 @@ $uiPages = [
         'nav' => 'replacement-arrangement',
         'mw' => ['auth', 'role:lecturer'],
     ],
+    /* the alias keeps its own nav key (M3: harmless, deliberately not "fixed") */
     '/my-request-history-ui' => [
-        'component' => 'App\Livewire\MyRequestHistory',
-        'legacy' => 'ui-design-templates.my-request-history-UI-design-template',
+        'component' => 'App\Livewire\ReplacementHome',
+        'legacy' => 'ui-design-templates.replacement-home-UI-design-template',
         'nav' => 'replacement-history',
         'mw' => ['auth', 'role:lecturer'],
     ],
