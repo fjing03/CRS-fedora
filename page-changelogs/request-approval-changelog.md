@@ -1,3 +1,28 @@
+## 2026-11-04 — the header is the shared one now
+
+User: this page's header did not look like the rest of the app. It was the last hand-rolled header —
+a bare `<h1>` and `<p class="page-desc">` with no `.page-title`, no semester chip, and none of the
+partial's spacing.
+
+**Replaced with `@include('partials.ui-page-header', …)`** — the same partial every other page uses.
+Title and description content unchanged; the description keeps the `.info-keyword` emphasis from the
+previous entry.
+
+**The chip needed one line of script.** The partial always emits `<span class="semester-chip"
+id="semesterChip">`, and every other page fills it from `MockData.semester.chipText` — this page never
+did, so an empty pill would have appeared. It now fills at init like the others, showing
+`202605 · 21-Sep-2026 ~ 27-Dec-2026`.
+
+**Verified against the other pages** by reading the three headers in one browser session at 1440 px:
+
+| | title | chip | description |
+|---|---|---|---|
+| Request Approval | `.page-title` 22 px / 700 | `202605 · 21-Sep-2026 ~ 27-Dec-2026`, 248 px | `.page-desc` 14 px |
+| My Replacements | same | same, 248 px | same |
+| My Timetable | same | same, 248 px | same |
+
+No JS errors after the change; no other page touched.
+
 ## 2026-11-04 — the page description joins the sweep
 
 The all-pages `.page-desc` update skipped this page because its header is hand-rolled rather than the

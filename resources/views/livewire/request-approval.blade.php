@@ -234,10 +234,10 @@
 <div class="lw-page">
     @include('partials.page-data-script', ['payload' => $payload])
 
-<div class="page-header">
-    <h1>Request Approval</h1>
-    <p class="page-desc">Review and manage <span class="info-keyword">replacement requests</span> from <span class="info-keyword">lecturers in your program</span>.</p>
-</div>
+@include('partials.ui-page-header', [
+    'title' => 'Request Approval',
+    'descriptionHtml' => 'Review and manage <span class="info-keyword">replacement requests</span> from <span class="info-keyword">lecturers in your program</span>.',
+])
 
 @include('partials.ui-guide-block', [
     'guideTitle' => 'How to use this page',
@@ -1361,6 +1361,10 @@
             populateWeekFilter();
             updateWeekArrowState();
             document.getElementById('statusFilter').value = 'Pending';
+            /* the shared page header carries the semester chip every other page
+               shows; this page's hand-rolled header never had one */
+            var semesterChip = document.getElementById('semesterChip');
+            if (semesterChip) semesterChip.textContent = MockData.semester.chipText;
 
             // Skeleton loading
             SkeletonLoader.showSummary();
