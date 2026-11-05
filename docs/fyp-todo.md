@@ -5,10 +5,12 @@
 > Never re-plan from scratch — adjust the week, keep the backlog.
 > **Last re-planned: 2026-11-05 (Thu, 22:50) — the plan below is set for Fri 6 Nov.**
 > Re-plan every Monday (15 minutes).
+> **Coding is not planned here (from 2026-11-05):** the code backlog, its receipts and tomorrow's
+> coding plan live in **`docs/coding-todo.md`**. This file keeps the **report, the survey, the
+> schedule and the decisions** only.
 
 **Status key:** `- [ ]` not done · `- [x]` verifiably done · 🔴 high · 🟡 medium · 🟢 low
 **Sources of truth (do not duplicate tasks here):**
-`docs/replacement-arrangement-pending-bugs.md` · `.sdd/changes/<lane>/tasks.md` ·
 `docs/viva-demo-runbook.md` · `prompts/extra tasks/README.md` · `prompts/general&reusable prompt references/PI-PROMPT-TEMPLATE.md`.
 This file only decides **when** and **in what order**.
 
@@ -24,7 +26,7 @@ This file only decides **when** and **in what order**.
 | Verification | Full PHPUnit **344 passed / 1899 assertions** (2026-11-05, 410 s); `venue-book` **19**, venue neighbours **61 passed / 2 skipped**, `cancel-class` **12 passed / 4 skipped** |
 | Demo data | `class_replacement_fresh`: 5 requests · 77 notifications (3 hidden) · 2 `class_exceptions` · 8 slot rows — unchanged since the two logged cleanups |
 | SDD | **34** lane dirs in `.sdd/changes/` (33 older finished + `venue-slot-validation` `applied`), **101** archived |
-| Open bugs / test debt | 5 arrangement bugs awaiting **your** verdicts; `submission-conflict-refresh.spec.ts` (`T3d`) still not green; `receipt-target-guard` applied but that one receipt unproven |
+| Test debt | `submission-conflict-refresh.spec.ts` (`T3d`) still not green — the only browser receipt unproven. Tracked as **C1** in `docs/coding-todo.md`. *The 2026-10-24 arrangement BUG round doc was removed by your decision on 2026-11-05.* |
 | Report | Ch1, Ch2, 3.1, 3.2, 3.4 content-complete (2026-08-28); **§3.3 ≈ 60%**, survey blocked on data; Ch4 unconfirmed |
 
 **Key dates**
@@ -79,16 +81,14 @@ follow-up — survey data has the longest lead time of anything on this list.
 - [ ] 🔴 **MAIN (90–120 min) — report §3.3.6 + §3.3.1.** Conceptual domain model (drawio → PNG
       300 dpi + the two-sentence explanation) and the §3.3.1 overview paragraph. Unblocked, needs
       no data, and it is the last self-contained piece of §3.3 — *source: §4 H8.*
-- [ ] 🟡 **SMALL (30 min) — NFR benchmark receipts** (§4 M1): time the OCC validator and the
-      intersection engine with a tinker script, paste the measured table into
-      `docs/viva-demo-runbook.md`. Numbers only from the measurement, never from memory.
+- [ ] 🟡 **SMALL (30 min) — the report's FR count (§4 H5):** FR 2.17 into Table 3.5 and "48 FR" →
+      **49** wherever the count is quoted; re-check the draft-review sentence too.
 - [ ] 🔴 **ALWAYS, 5 minutes — the survey (§4 H3).** If the two forms are not distributed yet, send
       them tomorrow; they have the longest lead time of anything on this list.
-- [ ] ⏱️ **Only if both are done** — ask the agent for §4 **H6** (`T3d`: diagnose
-      `submission-conflict-refresh.spec.ts` timeboxed, or quarantine it with the reason recorded).
+- [ ] ⏱️ **Only if both are done** — hand the rest of the day to code: **`docs/coding-todo.md` §3**.
 
 ### Sat 7 – Sun 8 Nov — buffer
-- [ ] Only if behind: survey follow-up (§4 H3), the bug verdicts (§4 H7), or the FR 2.17 report edit (§4 H5).
+- [ ] Only if behind: survey follow-up (§4 H3) or the FR 2.17 report edit (§4 H5).
 
 ## 4. Backlog by priority
 
@@ -117,20 +117,10 @@ follow-up — survey data has the longest lead time of anything on this list.
       (source: `prompts/for-ai-to-read/FR&NFR copy.md`, change log `v2026-11-02`)
 - [ ] Re-check the draft-review "48 FR / 26 NFR" sentence
 
-**H6 · Test lane — the guard is APPLIED; one receipt still open**
-- [x] `receipt-target-guard` applied (`b924552` + `7bbce9f`) and archived: writing specs now refuse
-      (exit 1 at collection) unless the blessed `:8030` env is exact
-- [ ] **`T3d` — `tests/submission-conflict-refresh.spec.ts` is still not green** (it fails inside its
-      own arrival flow). Decide tomorrow: diagnose timeboxed (~45 min), or quarantine as
-      `test.fixme()` with the reason recorded in the lane's `tasks.md`
-
-**H7 · Arrangement bug verdicts (blocks fixes)**
-- [ ] BUG-01 (stale slot-trigger label) — verdict
-- [ ] BUG-02 (Back bypasses history) — verdict
-- [ ] BUG-03 (blank-subject strip identity) — verdict
-- [ ] BUG-05 (re-click selected cell) — verdict
-- [ ] BUG-06 (counter after over-return) — verdict
-- **Note:** BUG-04 and BUG-07 are closed by your decision — do not reopen.
+**H6 · Code work now lives in `docs/coding-todo.md`**
+- [x] `receipt-target-guard` applied (`b924552` + `7bbce9f`) and archived
+- → the test lane (`T3d`), the lane archive sweep, the NFR measurements the report quotes and the
+  UAT results table are tracked there as **C1 / C3 / C7 / C8**.
 
 **H8 · §3.3 report write-up (what is not blocked)**
 - [ ] §3.3.1 overview paragraph
@@ -139,11 +129,6 @@ follow-up — survey data has the longest lead time of anything on this list.
 - [ ] §3.3 references (only cited works)
 
 ### 🟡 Medium — after the high items, one per day max
-
-**M1 · NFR benchmark receipts** (needed for the report + demo)
-- [ ] OCC overhead < 100 ms (NFR 1.2) — tinker timing script, record the numbers
-- [ ] Engine < 500 ms (NFR 1.1) — same
-- [ ] Paste the table into `docs/viva-demo-runbook.md`; no number before it is measured
 
 **M2 · Email/SMTP pack (demo week)**
 - [x] Flip `.env` per the corrected 10-row table in `docs/queue-and-emails.md` (`MAIL_SCHEME` stays `null` — there is no `MAIL_ENCRYPTION` in Laravel 12) — **done 2026-11-03**: 8 rows set, re-verified via `config()` after `config:clear`; `QUEUE_CONNECTION` stayed `database`, `APP_NAME` untouched
@@ -155,15 +140,6 @@ follow-up — survey data has the longest lead time of anything on this list.
 - [ ] Confirm what exists vs the Chapter-4 requirements (`knowledge/FYP1 Ch4 System Design Requirements.md`)
 - [ ] Draft the missing sections (ERD, class diagram, pseudocode, OCC snippet per the no-duplication split)
 
-**M4 · UAT / test-case evidence**
-- [ ] Turn `page-changelogs/todo list/test-cases.md` into a results table with real pass/fail
-- [ ] Include the 292-test suite count **measured now**, not quoted
-
-**M5 · SDD hygiene**
-- [ ] Archive the **33 older finished** lane dirs left in `.sdd/changes/` (needs your word) —
-      `git mv` + `sdd.yaml: archived` + a `docs:` commit, the same pass as 2026-11-05
-- [ ] Archive `venue-slot-validation` too once you have read its changelog entry
-
 **M6 · Push origin**
 - [x] You pushed 27 commits tonight — `origin` = `39b2bb7`
 - [ ] One more sits unpushed: `b57bf9d` (the prompt archive). Push when convenient; the agent never pushes
@@ -173,12 +149,8 @@ follow-up — survey data has the longest lead time of anything on this list.
 
 ### 🟢 Low — only if a day is light
 
-- [ ] 🟢 Extra task 01: warn-modal colour (`prompts/extra tasks/task-01-warn-confirm-modal-colour.md`)
-- [ ] 🟢 Extra task 02: one honest timeline rail (`prompts/extra tasks/task-02-replacement-history-timeline.md`) — student rail temporarily removed; all staff rails still live and their defects recorded there (8h `reviewedAt` skew, cancelled-looks-reviewed, permanently empty "Viewed" step, no outcome label)
-- [ ] 🟢 Settings-surface footer (deliberately excluded from `ui-footer-global`)
-- [ ] 🟢 Remove the two accidentally tracked junk files (`"` and `--log-events-text`)
-- [ ] 🟢 Mark `page-changelogs/todo list/todo-list.md` as historical (its TASK-001/002/003/005 are stale)
-- [ ] 🟢 Any copy/tooltip polish found during the demo
+- 🟢 All parked UI work (warn-modal colour, the timeline rail, the chip TTL, the Staff User Panel),
+  the junk-file cleanup and any polish: tracked in **`docs/coding-todo.md` §4**.
 
 ---
 
@@ -186,10 +158,10 @@ follow-up — survey data has the longest lead time of anything on this list.
 
 | Week | Dates | Main outcome (2–3 tasks only) |
 |---|---|---|
-| W7 | 2–8 Nov | **Delivered:** SV demo · timestamp fix · footer · merge lane · Cancel Class final · venue slot rules. **Still open from this week:** viva date, survey distribution, the 5 bug verdicts, §3.3.6 + §3.3.1 |
+| W7 | 2–8 Nov | **Delivered:** SV demo · timestamp fix · footer · merge lane · Cancel Class final · venue slot rules. **Still open from this week:** viva date, survey distribution, §3.3.6 + §3.3.1 |
 | W8 | 9–15 Nov | §3.3 write-up finished · FR 2.17 in the report · `T3d` decided (fix or quarantine) · the 33 finished lanes archived |
 | W9 | 16–22 Nov | Survey analysis (§3.3.7) if data is in · NFR benchmark table · Ch4 drafting |
-| W10 | 23–29 Nov | Ch4 complete · UAT table · remaining bug fixes · archive lanes |
+| W10 | 23–29 Nov | Ch4 complete · UAT table · the remaining code items in `docs/coding-todo.md` · archive lanes |
 | W11 | 30 Nov–6 Dec | Report integration + references + proofread · slide deck draft · SMTP receipts |
 | W12 | 7–13 Dec | Full rehearsal ×2 · demo DB snapshot/restore · **viva (if confirmed)** |
 | W13 | 14–20 Dec | Buffer: fix what the rehearsal exposed · final report polish |
@@ -204,7 +176,7 @@ follow-up — survey data has the longest lead time of anything on this list.
 
 1. **SV date confirmation (3 Nov)** → the whole runway in §5.
 2. **Survey distribution** → §3.3.7 analysis → Ch3 completeness (longest chain).
-3. **Bug verdicts (you)** → any BUG fix lane.
+3. **`docs/coding-todo.md`** → all code work (the report does not wait on it).
 4. **SMTP credentials (you/IT)** → the email beat of the demo.
 5. **Your "word" for archiving / parked test lane** → those checkboxes can never move without it.
 6. **Ch4 draft** → consolidated references → proofread → rehearsal.
@@ -247,7 +219,7 @@ follow-up — survey data has the longest lead time of anything on this list.
 ## 8. Maintenance rules for this file
 
 - **Only tick what you verified.** A commit hash, a test count, a screenshot path — or it stays unticked.
-- Never copy a bug's full detail here; link the source doc.
+- Never copy a code task's detail here; code lives in `docs/coding-todo.md`.
 - When a task moves to another week, move the line — do not duplicate it.
 - When a whole area finishes (e.g. §3.3), move its block to §7 with the receipt.
 - Keep it under ~10 new lines per week. If it grows, cut 🟢 items first.
