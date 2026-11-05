@@ -11,7 +11,7 @@ belong to the rejection modal alone.
 | Lecturer row | circle avatar + 📋 copy-email icon | name + staff ID only |
 | Preset chips | `Venue unavailable` … | `Venue Unavailable` … (Title Case, inserted text included) |
 | Instruction | `Please provide a reason for rejection (required):` | `Please Provide a Reason for Rejection (Required):` |
-| Original card | date · time · `(2 hrs)` | date + week · time · `Venue Code: B110` |
+| Original card | date · time · `(2 hrs)` | date + week · time · `B110` |
 
 - The full word comes from the existing `UiLabels.classType(type, 'long')` (`L/T/P` → `Lecture/Tutorial/Practical`),
   never a local map, and the payload's `classType` stays the raw code.
@@ -26,15 +26,16 @@ belong to the rejection modal alone.
   `Wed, 30 Sep 2026 (Week 14)`, needs 600 px; 570 wrapped both cards, and the Replacement card loses 3 px to its
   green edge). Tablet (≤1024 px → 560 px) and phone (bottom sheet) caps are untouched.
 - The Original card is an **opt-in** variant of `HtmlBuilder.classBlock(r, { originalCard: true })`: duration dropped,
-  venue printed as a labelled `Venue Code: …` line. Every other caller (grids, frozen templates, My Replacements)
-  stays byte-identical; the Replacement card is untouched.
-- Inside the 420 px modal each compare card is 137 px wide, so `Mon, 9 Nov 2026 (Week 8)` wraps after the year —
-  one line in the DOM, as the replacement card already did. The brief's three-part shape holds.
+  the venue code alone on its own line (user follow-up 2026-11-05: no `Venue Code:` label — just `B110`). Every other
+  caller (grids, frozen templates, My Replacements) stays byte-identical; the Replacement card is untouched.
+- With the 616 px shell each compare card is 226 px wide, so `Mon, 9 Nov 2026 (Week 8)` stays on one rendered
+  line — the brief's three-part shape holds for every week of the semester (checked up to `Wed, 30 Sep 2026
+  (Week 14)`).
 
 **Measured** live on the demo DB, request **#28** (Operating Systems, L, Mon 9 Nov 2026 11:00–13:00, B110):
 title `Rejection Reason (#28)`; subject `Operating Systems [Lecture]`; 0 avatar / 0 copy-icon nodes; chips
 `Venue Unavailable · Insufficient Notice · Slot Conflict · Lecturer Unavailable · Other`; instruction exact; the
-Original card reads `Mon, 9 Nov 2026 (Week 8)` / `11:00 AM to 1:00 PM` / `Venue Code: B110`; no console errors.
+Original card reads `Mon, 9 Nov 2026 (Week 8)` / `11:00 AM to 1:00 PM` / `B110`; no console errors.
 `tests/request-approval.spec.ts` **10/10** (the new U3-T9g opens both modals, asserts all six updates, and proves the
 pending queue is untouched).
 

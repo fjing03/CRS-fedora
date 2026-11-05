@@ -209,17 +209,19 @@ test('U3-T9g: the Approve/Reject modals — Request ID in the title, [Lecture], 
     .toHaveText('Please Provide a Reason for Rejection (Required):');
 
   // (5) the Original card: date + week together, time WITHOUT the duration,
-  //     and a labelled `Venue Code:` line
+  //     and the bare venue code on its own line
   const original = page.locator('#rejectSummary .cmp-original');
   await expect(original.locator('.cmp-label')).toHaveText('Original');
-  // 570 px shell (2026-11-05): date + week stay on ONE rendered line
+  // 616 px shell (2026-11-05): date + week stay on ONE rendered line
   const dateRects = await original.locator('.class-day-date').evaluate((el) => el.getClientRects().length);
-  expect(dateRects, 'date + week must not wrap at the 570 px width').toBe(1);
+  expect(dateRects, 'date + week must not wrap at the 616 px width').toBe(1);
   const originalText = (await original.innerText()).replace(/\s+/g, ' ');
   expect(originalText).toMatch(/\((Week \d+)\)/);
   expect(originalText).toMatch(/\d{1,2}:\d{2} (AM|PM) to \d{1,2}:\d{2} (AM|PM)/);
   expect(originalText).not.toMatch(/\((?:1|2|3) hours?\)/);
-  expect(originalText).toMatch(/Venue Code: [A-Z0-9-]+/);
+  // the venue line is the CODE alone — no `Venue Code:` label (user follow-up)
+  await expect(original.locator('.class-venue')).toHaveText(/^[A-Z]{1,2}\d{2,4}$/);
+  expect(originalText).not.toContain('Venue Code');
 
   await page.evaluate(() => (window as any).setRejectModalTitle(null));
   await page.evaluate(() => (window as any).bulkReject());
@@ -235,7 +237,8 @@ test('U3-T9g: the Approve/Reject modals — Request ID in the title, [Lecture], 
   await expect(page.locator('#approveNotesSummary .lecturer-avatar')).toHaveCount(0);
   await expect(page.locator('#approveNotesSummary .copy-icon')).toHaveCount(0);
   const approveOriginal = (await page.locator('#approveNotesSummary .cmp-original').innerText()).replace(/\s+/g, ' ');
-  expect(approveOriginal).toMatch(/Venue Code: [A-Z0-9-]+/);
+  await expect(page.locator('#approveNotesSummary .cmp-original .class-venue')).toHaveText(/^[A-Z]{1,2}\d{2,4}$/);
+  expect(approveOriginal).not.toContain('Venue Code');
   expect(approveOriginal).not.toMatch(/\((?:1|2|3) hours?\)/);
   await page.evaluate(() => (window as any).closeApproveNotesModal());
   await expect(page.locator('#approveNotesModal')).not.toHaveClass(/show/);
