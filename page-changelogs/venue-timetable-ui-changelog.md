@@ -1,3 +1,24 @@
+## 2026-11-05 (UI/UX, user brief) — the hover tooltip's own-class segment reads `YOU`, not `ME`
+
+**Change:** this page builds its own blocks, and its `data-tip2` composition now reads
+`e.mine ? 'YOU' : lecturer` instead of `'ME'`. The `e.mine` flag is the server's ownership
+truth — the same one the block border uses — so nothing about ownership changed; only the
+word did:
+
+```
+before:  Data Structures · ME · DSF1(S1)G1 · NORMAL
+after:   Data Structures · YOU · DSF1(S1)G1 · NORMAL
+```
+
+Cohorts still join in written order (`RSD2(S1)G2 + RSD2(S1)G1`), the status word stays CAPS,
+and a session with no cohort data still collapses the segment instead of printing `—`.
+No other event type, tooltip content or behaviour changed.
+
+**Measured** (demo data, lecturer 5425, venue **B010**, read-only probe): three own blocks
+reported `YOU · DSF1(S1)G1 · NORMAL`, `YOU · RSD2(S1)G2 + RSD2(S1)G1 · NORMAL` and
+`YOU · DSF2(S1)G1 · NORMAL`; others' blocks still printed `Daniel Royd Michael · …`; **zero**
+blocks carried a `ME · …` tip.
+
 ## 2026-11-05 — the Cancel Class? tooltip names the earliest eligible date (holiday-aware)
 
 Same shared `CancelClass.renderButton` as My Timetable: `You Can Cancel Classes Scheduled From Tue, 3 Nov 2026

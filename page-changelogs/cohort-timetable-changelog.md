@@ -1,3 +1,25 @@
+## 2026-11-05 (UI/UX, user brief) — the hover tooltip's own-class segment reads `YOU`, not `ME`
+
+**Change:** `tipLecturerFn` (the shared `buildTimetableGrid` hook this page supplies) now
+returns **`YOU`** for the viewer's own classes instead of `ME`. Everything else in the
+tooltip is untouched — the cohort segment, the CAPS status word, and the ` · ` separator:
+
+```
+before:  AMSE2003 Operating Systems · ME  · DSF2(S1)G1 · NORMAL
+after:   AMSE2003 Operating Systems · YOU · DSF2(S1)G1 · NORMAL
+```
+
+Others' classes keep printing the lecturer's name (`Daniel Royd Michael · …`), and the
+ownership test is still the same name comparison `statusClassFn` uses for the block border,
+so the voice and the border weight cannot disagree. No other event type, tooltip content or
+behaviour changed.
+
+**Measured** (demo data, lecturer 5425, cohort `DSF2(S1)G1`, read-only probe):
+three `.event-block.event-mine` blocks reported
+`YOU · NORMAL` / `YOU · NORMAL` / `YOU · NORMAL` (the cohort segment collapses when the
+session carries one cohort — as designed), others' blocks kept their lecturers' names, and
+**zero** blocks on the page carried a `ME · …` tip.
+
 ## 2026-11-05 — the Cancel Class? tooltip names the earliest eligible date (holiday-aware)
 
 Same shared `CancelClass.renderButton` as My Timetable: `You Can Cancel Classes Scheduled From Tue, 3 Nov 2026

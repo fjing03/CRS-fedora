@@ -955,8 +955,8 @@ function buildTimetableGrid(cfg) {
                 /* Hover tooltip = subject name (data-name) · page context ·
                    lecturer segment · STATUS — the 2026-10-25 hover voice
                    (the user's call): the lecturer segment is page-supplied
-                   via tipLecturerFn (my-timetable drops it, cohort reads ME
-                   for own classes; default = the staff name) and the status
+                   via tipLecturerFn (my-timetable drops it, cohort reads YOU
+                   for own classes since 2026-11-05; default = the staff name) and the status
                    word always renders CAPS (NORMAL / PENDING / REPLACEMENT). */
                 const tipCtx = (typeof cfg.tooltipExtra === 'function')
                     ? cfg.tooltipExtra(e)

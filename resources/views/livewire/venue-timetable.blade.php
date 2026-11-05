@@ -779,15 +779,16 @@
                             div._evt = e; div._di = di; div.__eventData = e;   // parity with default builder (keyboard handlers)
                             div.dataset.name = e.name || '';
                             div.dataset.venue = e.venue || '';
-                            /* `.event-block::after` renders "name · lecturer|ME · cohorts · STATUS"
+                            /* `.event-block::after` renders "name · lecturer|YOU · cohorts · STATUS"
                                (data-name + this data-tip2 — the user's hover-voice
-                               directive 2026-10-25): the viewer's OWN classes read ME
-                               (e.mine = server truth, same flag the block border uses),
-                               cohorts join in written order lecturer → cohorts, status
-                               CAPS. The cohort segment COLLAPSES when a session carries
-                               no cohort data — never a '—' filler. */
+                               directive 2026-10-25, relabelled ME → YOU 2026-11-05): the
+                               viewer's OWN classes read YOU (e.mine = server truth, same
+                               flag the block border uses), cohorts join in written order
+                               lecturer → cohorts, status CAPS. The cohort segment
+                               COLLAPSES when a session carries no cohort data — never
+                               a '—' filler. */
                             const cohTxt = (e.cohorts && e.cohorts.length) ? e.cohorts.join(' + ') : (e.cohort || '');
-                            div.dataset.tip2 = [e.mine ? 'ME' : (e.lecturer || '—'), cohTxt, eventStatusLabel(e, day.holiday).toUpperCase()].filter(Boolean).join(' · ');
+                            div.dataset.tip2 = [e.mine ? 'YOU' : (e.lecturer || '—'), cohTxt, eventStatusLabel(e, day.holiday).toUpperCase()].filter(Boolean).join(' · ');
                             if (day.holiday) {
                                 /* T21: on a PH day — OWN = loud 3px red, OTHERS =
                                    the red hairline (the D-P10 two-axis shape) */

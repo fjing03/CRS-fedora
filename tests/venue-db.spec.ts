@@ -44,8 +44,8 @@ test('deep link preselects the venue; blocks paint the two-axis language; modal 
   await expect(block).toBeVisible({ timeout: 15_000 });
 
   // tooltip contract: data-name = class name, data-tip2 =
-  // "lecturer|ME · cohorts · STATUS"; theme.css .event-block::after composes
-  // the rendered "name · lecturer|ME · cohorts · STATUS" from these two
+  // "lecturer|YOU · cohorts · STATUS"; theme.css .event-block::after composes
+  // the rendered "name · lecturer|YOU · cohorts · STATUS" from these two
   // attributes (the 2026-10-25 hover voice; the loose regex below stays).
   const bmit = page.locator('.timetable .event-block', { hasText: 'BMIT2154' }).first();
   await expect(bmit).toBeVisible();

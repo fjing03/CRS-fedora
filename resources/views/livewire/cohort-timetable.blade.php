@@ -501,12 +501,12 @@
                     days: weekData[currentWeek].days,
                     onEventClick: function (e, di) { openModal(e, di); },
                     /* the user's hover-voice directive 2026-10-25: the
-                       viewer's own classes read ME instead of the staff
-                       name — SAME ownership rule the block border uses
-                       (statusClassFn's isMine), so voice and border can
-                       never disagree. */
+                       viewer's own classes read YOU instead of the staff
+                       name (2026-11-05: was ME) — SAME ownership rule the
+                       block border uses (statusClassFn's isMine), so voice
+                       and border can never disagree. */
                     tipLecturerFn: function (e) {
-                        return (e.lecturer === MockData.currentUser.name) ? 'ME' : (e.lecturer || '—');
+                        return (e.lecturer === MockData.currentUser.name) ? 'YOU' : (e.lecturer || '—');
                     },
                     statusClassFn: function (div, e, isConflict) {
                         var isMine = e.lecturer === MockData.currentUser.name;
