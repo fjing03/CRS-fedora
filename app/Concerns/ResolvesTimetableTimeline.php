@@ -471,6 +471,10 @@ trait ResolvesTimetableTimeline
             'name' => $s->module->module_name,
             'type' => $s->session_type,
             'venue' => $s->venue->room_code,
+            /* 2026-11-05 (Cancel this Class? UI/UX update): the modal's facts
+               box prints `CODE — Name`, so the event carries the room name the
+               same nullable way ReplacementRequestMapper does (null, never ''). */
+            'venueName' => $s->venue?->room_name,
             'lecturer' => $s->lecturer !== null ? $s->lecturer->name : '—',
             'cohort' => $cohortLabel,
             'cohorts' => $cohorts->map(fn ($c) => $this->cohortCode($c))->all(),

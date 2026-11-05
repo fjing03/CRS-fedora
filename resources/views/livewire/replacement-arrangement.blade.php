@@ -2193,6 +2193,29 @@
                                             + ' · ' + to12h(hours[b.startHour]) + '–' + to12h(add30min(hours[b.endHour - 1]));
                                     }
                                     const reason = r.reason || 'booking conflict';
+                                    /* 2026-11-05 UI/UX update (user): the
+                                       duplicate-occurrence conflict reads as TWO
+                                       labelled lines — `Conflicted Slot:` with the
+                                       week/day/date/time/venue, then `This
+                                       Occurrence:` with the fact. The old
+                                       "— see My Replacements" tail is gone. Every
+                                       other conflict type keeps its row. */
+                                    if (reason.indexOf('already has an active replacement request') >= 0) {
+                                        const wk = b ? (weekData[b.week] || null) : null;
+                                        const dd = (wk && b) ? wk.days[b.day] : null;
+                                        const slotText = b
+                                            ? (wk ? wk.label : 'Week ' + (b.week + 1)) + ', '
+                                                + (dd ? dd.abbr + ', ' + dd.date : '') + ' \u00b7 '
+                                                + to12h(hours[b.startHour]) + ' ~ '
+                                                + to12h(add30min(hours[b.endHour - 1]))
+                                                + ' @' + b.venue
+                                            : '\u2014';
+                                        failed.push('<div style="padding:3px 0;font-size:13px;">'
+                                            + '<div><span style="font-weight:600;color:var(--color-on-surface);">Conflicted Slot</span>: ' + slotText + '</div>'
+                                            + '<div style="margin-top:2px;"><span style="font-weight:600;color:var(--color-on-surface);">This Occurrence</span>: Already Has An Active Replacement Request.</div>'
+                                            + '</div>');
+                                        return;
+                                    }
                                     /* submission-conflict-modal-refresh T3 (the user's
                                        spec items 2/4/6): the row layout splits by
                                        TYPE — Type B = the reason carries the literal
@@ -2259,7 +2282,7 @@
                                         + '<div class="conflict-rows" style="border:1px solid var(--color-outline);border-radius:var(--radius-sm);padding:10px 14px;max-height:200px;overflow-y:auto;margin-top:8px;background:var(--color-error-container);">'
                                         + failed.join('')
                                         + '</div>'
-                                        + '<div style="margin-top:10px;font-size:13px;"><span class="ge-keyword">NOTE</span>: Another staff member may have booked this slot before your submission.</div>'
+                                        + '<div style="margin-top:10px;font-size:13px;"><span class="ge-keyword">NOTE</span>: Another Staff Member May Have Booked This Slot Before Your Submission.</div>'
                                         + '<div style="margin-top:4px;font-size:13px;">Please <span class="go-keyword">REFRESH</span> this page and <span class="go-keyword">PICK</span> another available slot.</div>',
                                     function() {
                                         hideConfirmModal();

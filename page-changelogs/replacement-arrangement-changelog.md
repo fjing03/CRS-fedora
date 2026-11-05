@@ -1,3 +1,30 @@
+## 2026-11-05 (UI/UX pass, display only) — the duplicate-occurrence conflict reads as two labelled lines
+
+The user's submission-conflict note, applied to the modal this page raises when `submitBlocks()` refuses a pick:
+
+**Before** one mixed line — `B110 · Fri, 20 Nov 2026 · 12:00 PM–2:00 PM — This occurrence already has an active
+replacement request — see My Replacements.`
+
+**Now** two clearly labelled lines inside the same red conflict box:
+
+```
+Conflicted Slot: Week 6, Fri, 20 Nov 2026 · 12:00 PM ~ 2:00 PM @B110
+This Occurrence: Already Has An Active Replacement Request.
+```
+
+- The slot half is rebuilt from the block being submitted (`weekData[week].label` + the day's abbr/date + the
+  half-hour indices + the venue) — real values, never the example above.
+- The `— see My Replacements` tail is gone from the modal. The server's own `duplicate_active_request` sentence is
+  untouched (it is the signal the branch matches on, and `ReplacementArrangementTest` pins it).
+- The trailing NOTE line is Title Case now: `Another Staff Member May Have Booked This Slot Before Your Submission.`
+- Every other conflict type (occupied / span overlap / holiday / engine pre-check …) keeps its existing row verbatim.
+
+**Receipt:** `ReplacementArrangementTest` still pins the server sentence this branch matches
+(`already has an active replacement request`), and the page parses clean (the whole inline script boots: `weekData`
+and `hours` are live). The conflict modal itself was **not** re-driven live in this pass — the only spec that reaches
+it (`submission-conflict-refresh.spec.ts`) is the known-open `T3d` lane and is not green; that is unchanged by this
+display edit.
+
 ## 2026-11-05 (SDD-waived — display/behaviour only) — the blocked arrival speaks first, and the cancel reminder stops being permanent
 
 **Found by the user** during the manual `submission-conflict-refresh` walkthrough:

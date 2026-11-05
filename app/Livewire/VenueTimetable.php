@@ -295,6 +295,8 @@ class VenueTimetable extends Component
                 'name' => $session->module->module_name,
                 'type' => $session->session_type,
                 'venue' => $venue->room_code,
+                /* Cancel this Class? modal: the facts box prints `CODE — Name` */
+                'venueName' => $venue->room_name,
                 'lecturer' => $session->lecturer->name,
                 'cohort' => $this->cohortLabel($session->cohorts),
                 'cohorts' => $session->cohorts->map(fn ($c) => $this->cohortCode($c))->all(),
@@ -429,6 +431,8 @@ class VenueTimetable extends Component
                 'name' => $session->module->module_name,
                 'type' => $session->session_type,
                 'venue' => $venue->room_code,
+                /* Cancel this Class? modal: the facts box prints `CODE — Name` */
+                'venueName' => $venue->room_name,
                 'lecturer' => $session->lecturer->name,
                 'cohort' => $this->cohortLabel($session->cohorts),
                 'cohorts' => $session->cohorts->map(fn ($c) => $this->cohortCode($c))->all(),
@@ -577,6 +581,7 @@ class VenueTimetable extends Component
                     'name' => (string) $session->module->module_name,
                     'type' => (string) $session->session_type,
                     'venue' => (string) $venue->room_code,
+                    'venueName' => $venue->room_name,
                     'lecturer' => (string) ($session->lecturer->name ?? ''),
                     'cohort' => $this->cohortLabel($session->cohorts),
                     'cohorts' => $session->cohorts->map(fn ($c) => $this->cohortCode($c))->all(),

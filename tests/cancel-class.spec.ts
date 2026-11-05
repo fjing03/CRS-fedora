@@ -260,9 +260,12 @@ test.describe('Cancel Class Flow', () => {
     const yes = page.locator('#confirmCancelClassBtn');
     const hint = page.locator('#cancelReasonHint');
 
-    // S7 — no reason yet: Yes disabled + inline hint
+    // S7 — no reason yet: Yes disabled; the STATIC instruction above the radios
+    // now carries the message (2026-11-05 UI/UX update: "Please select a
+    // cancellation reason." was removed from the inline hint)
     await expect(yes).toBeDisabled();
-    await expect(hint).toHaveText('Please select a cancellation reason.');
+    await expect(page.locator('#cancelClassRequired')).toHaveText('You MUST Select a Cancellation Reason');
+    await expect(hint).toHaveText('');
 
     // Pick a real reason → enabled
     await page.locator('#cancelReasonList input[type="radio"][value="medical_leave"]').click();

@@ -1,3 +1,11 @@
+## 2026-11-05 — Cancel this Class? (shared modal restyle)
+
+The shared `partials/ui-cancel-class-modal` follows the user's UI/UX pass: `Cancel this Class?` title, 40%-wider
+shell (588 px), the grey Class Information box (Course / Week / full day + date / time + duration / venue
+`CODE — Name` / cohorts `+` / students `A + B = total`), a rule + the static `You MUST Select a Cancellation
+Reason` instruction, `No, Keep Class`, and the window tooltip on the button. Full detail + live receipt:
+`my-timetable-changelog.md` (same date). Nothing page-specific.
+
 ## 2026-11-05 — Cancel Class is FINAL (shared modal)
 
 The Cancel Class confirm dialog (this page includes `partials/ui-cancel-class-modal`) now states

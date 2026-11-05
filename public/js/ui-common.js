@@ -4027,7 +4027,12 @@ const ClassCancellation = {
        'other' demands a non-empty trimmed detail. */
     validate(reason, detail) {
         if (!reason || !this.REASONS.some(function(r) { return r.value === reason; })) {
-            return { ok: false, hint: 'Please select a cancellation reason.' };
+            /* 2026-11-05 UI/UX update (user): the "Please select a cancellation
+               reason." message is GONE from the UI — the modal shell carries the
+               static "You MUST Select a Cancellation Reason" instruction above
+               the radios, so the hint would only repeat it. The gate still
+               refuses; it just stays silent. */
+            return { ok: false, hint: '' };
         }
         if (reason === 'other' && !String(detail || '').trim()) {
             return { ok: false, hint: 'Please describe the reason for "Other".' };
@@ -4682,8 +4687,12 @@ const CancelClassModal = {
         });
     },
 
-    /* Impact preview (design §5): subject, day+date, 12h time range, venue,
-       cohort(s) — students row only when a myTimetable twin resolves (§3). */
+    /* The class facts (design §5, restyled by the 2026-11-05 UI/UX update):
+       the SAME grey box the Confirm Cancellation modal uses — `dl.cancel-details`
+       — carrying course, week, full day + date, clock + duration, venue
+       `CODE — Name`, cohorts joined `+`, and the per-cohort student breakdown.
+       Every value comes from the page payload (the day's own date string, the
+       server's positional `studentCounts`); nothing here is hardcoded. */
     _renderImpact() {
         const el = document.getElementById('cancelClassImpact');
         const ctx = this._ctx;
@@ -4692,36 +4701,40 @@ const CancelClassModal = {
         const day = ctx.days && ctx.days[ev.di];
         const startStr = to12h(hours[ev.start]);
         const endStr = to12h(hours[ev.end + 1] || add30min(hours[ev.end]));
-        const students = this.studentsFor(ev, ctx.weekIndex);
-        el.innerHTML = DetailModal.section('This Class',
-            DetailModal.row('Subject', escHtml(ev.code) + ' (' + escHtml(ev.type || '') + ') · ' + escHtml(ev.name || ''), { strong: true }) +
-            DetailModal.row('Day & Date', escHtml((day && day.abbr) || '') + ' · ' + escHtml((day && day.date) || '')) +
-            DetailModal.row('Time', escHtml(startStr) + ' \u2013 ' + escHtml(endStr)) +
-            DetailModal.row('Venue', escHtml(ev.venue || '\u2014')) +
-            DetailModal.row('Cohort(s)', escHtml(ClassCancellation.cohortLabels(ev).join(', ') || '\u2014')) +
-            (students === null ? '' : DetailModal.row('Students', String(students)))
+        /* duration = half-hour span / 2 — the same math the row build uses */
+        const duration = (ev.end - ev.start + 1) / 2;
+        const FULL_DAY = { Mon: 'Monday', Tue: 'Tuesday', Wed: 'Wednesday',
+            Thu: 'Thursday', Fri: 'Friday', Sat: 'Saturday', Sun: 'Sunday' };
+        const dayName = day ? (FULL_DAY[day.abbr] || day.abbr) : '';
+        /* the venue NAME rides the payload when the page ships it (venueName);
+           the MockData.venues mirror is the fallback every page already has */
+        const venueName = ev.venueName ||
+            (((typeof MockData !== 'undefined' && MockData.venues) || [])
+                .find(function (v) { return v.code === ev.venue; }) || {}).name || '';
+        const venueText = ev.venue
+            ? (venueName ? ev.venue + ' \u2014 ' + venueName : ev.venue)
+            : '\u2014';
+        const cohorts = ClassCancellation.cohortLabels(ev);
+        const facts = [
+            ['Course', escHtml(ev.code) + ' (' + escHtml(ev.type || '') + ') \u2014 ' + escHtml(ev.name || '')],
+            ['Week', 'Week ' + (ctx.weekIndex + 1)],
+            ['Day & Date', escHtml(dayName) + (day ? ' \u00b7 ' + escHtml(day.date) : '')],
+            ['Time', escHtml(startStr) + ' ~ ' + escHtml(endStr) + ' (' + uiHoursWords(duration) + ')'],
+            ['Venue', escHtml(venueText)],
+            ['Cohort(s)', escHtml(cohorts.join(' + ') || '\u2014')],
+            /* A + B = total for multi-cohort classes (the shared law) */
+            ['Students', escHtml(window.totalStudentsLabel(ev))],
+        ];
+        el.innerHTML = DetailModal.section('Class Information',
+            '<dl class="cancel-details">' + facts.map(function (f) {
+                return '<dt>' + f[0] + '</dt><dd>' + f[1] + '</dd>';
+            }).join('') + '</dl>'
         );
     },
 
-    /* §3 students helper — myTimetable twin studentCounts sum when the
-       match resolves, else null (preview shows cohorts only; row keeps 0). */
-    studentsFor(event, weekIndex) {
-        let total = 0;
-        let found = false;
-        ClassCancellation.resolveMatches(ClassCancellation.matchKeyOf(event, weekIndex))
-            .forEach(function(m) {
-                if (m.store !== 'my') return;
-                const ev = m.eventRef;
-                if (Array.isArray(ev.studentCounts)) {
-                    found = true;
-                    ev.studentCounts.forEach(function(c) { total += (c || 0); });
-                } else if (typeof ev.studentCount === 'number') {
-                    found = true;
-                    total += ev.studentCount;
-                }
-            });
-        return found ? total : null;
-    },
+    /* (the old §3 `studentsFor()` twin-sum helper died with the old preview:
+       the restyle reads the event's OWN positional studentCounts through the
+       shared totalStudentsLabel() law, so no twin lookup is needed.) */
 
     _selectedReason() {
         const picked = document.querySelector('#cancelReasonList input[name="cancelReason"]:checked');
@@ -4914,6 +4927,15 @@ const CancelClass = {
         btn.className = this._hasBtnCancelClassStyle() ? 'btn-cancel-class' : 'btn-danger';
         btn.setAttribute('data-cancel-class-btn', '1');
         btn.textContent = 'Cancel Class?';
+        /* 2026-11-05 UI/UX update (user): the hover tooltip states the real
+           eligibility window (2 WORKING days back, today included, no upper
+           bound — the S4/S5 guards own the truth). Line breaks ride the
+           shared data-tip renderer's multi-line mode so the sentence stays
+           readable instead of one nowrap strip. */
+        btn.setAttribute('data-tip',
+            'Cancel This Class?\n' +
+            'You Can Only Cancel Classes Scheduled From 2 Working Days Before Today\n' +
+            'Up To Today, Including Future Classes.');
         btn.addEventListener('click', function() {
             CancelClassModal.open(event, days, weekIndex, { onCancelled: onCancelled });
         });

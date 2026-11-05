@@ -1734,6 +1734,10 @@ html.dark .filter-select {
     overflow-y: auto;
     animation: modalIn 0.2s ease;
 }
+/* Cancel this Class? — the 2026-11-05 UI/UX update widened it by 40%
+   (420 → 588px). Declared BEFORE the responsive `.modal` media queries, so
+   the tablet/phone caps still win on small screens. */
+.modal--cancel { max-width: 588px; }
 @keyframes modalIn {
     0% { opacity:0; transform:scale(0.92) translateY(8px); }
     60% { opacity:1; transform:scale(1.02) translateY(-2px); }
@@ -1858,6 +1862,26 @@ html.dark .filter-select {
     color: var(--color-on-surface-variant);
 }
 .cancel-details dd { margin: 0; color: var(--color-on-surface); }
+
+/* the Cancel this Class? modal's section rule (2026-11-05 UI/UX update): a
+   full-width hairline between the class box and the reason block. Token only. */
+.modal-divider {
+    border: 0;
+    /* NOTE: `--color-outline-variant` does NOT exist in this theme (8 other
+       rules reach for it and silently render no line). The canonical outline
+       token is `--color-outline`. */
+    border-top: 1px solid var(--color-outline);
+    margin: 16px 0 12px;
+}
+/* "You MUST Select a Cancellation Reason" — the static instruction that
+   replaced the old inline "Please select a cancellation reason." hint. */
+.cancel-reason-required {
+    margin: 0 0 8px;
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--color-on-surface);
+    letter-spacing: 0.01em;
+}
 
 /* one column on a phone: the label sits above its value */
 @media (max-width: 520px) {

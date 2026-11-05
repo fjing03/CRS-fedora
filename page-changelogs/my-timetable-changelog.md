@@ -1,3 +1,36 @@
+## 2026-11-05 — "Cancel this Class?" earns its own facts box, a required-reason line and a stated window
+
+The user's 2026-11-05 UI/UX pass on the shared Cancel Class modal (this page includes
+`partials/ui-cancel-class-modal`; Cohort and Venue include the same partial, so they get it too):
+
+| Item | Now |
+|---|---|
+| Title | `Cancel this Class?` (was `Cancel Class`) |
+| Width | **+40%** — `.modal--cancel` = **588 px** (420 × 1.4). Declared before the responsive `.modal` media queries, so tablet/phone caps still win |
+| Facts | one grey box — the **same** `dl.cancel-details` element the Confirm Cancellation modal uses on `/my-replacements` |
+| Section title | `Class Information` (was `This Class`) |
+| Rows | Course, **Week**, Day & Date (full weekday), Time (**~** + duration), Venue (`CODE — Name`), Cohort(s) (`+`), Students (`A + B = total`) |
+| After the box | a full-width rule, then the static instruction `You MUST Select a Cancellation Reason` |
+| Removed | the dynamic `Please select a cancellation reason.` hint (the instruction replaces it; the hint now only carries genuine refusals, e.g. the blank-"Other" message) |
+| Bottom-left | `No, Keep Class` (was `Keep Class`) |
+| Button tooltip | states the real window — 2 **working** days back, today included, future classes included |
+
+Everything is read from the page payload — the day's own date string, the server's positional `studentCounts` for the
+breakdown, and a new `venueName` on the timetable event so the Venue row can print `B010 — Computer Lab B010`.
+`CancelClassModal.studentsFor()` (the old twin-sum helper) died with the old preview; the shared
+`totalStudentsLabel()` law supplies the breakdown now.
+
+**Receipt (live `:8000`, as 5425, 2026-11-05):** `BMIT2013 (P) — Web-Based Integrated Systems` · `Week 7` ·
+`Wednesday · 04 Nov 2026` · `9:00 AM ~ 11:00 AM (2 hours)` · `B010 — Computer Lab B010` ·
+`RSD2 (S1) G2 + RSD2 (S1) G3` · `5 + 9 = 14`; modal measured **588 px** at a 1440-wide viewport (560 on the tablet
+cap); tooltip renders in three readable lines above the button; the hint line is empty with no reason picked.
+
+**Two findings recorded, not fixed:** `--color-outline-variant` is used by 9 rules in `theme.css` but is **never
+defined**, so every hairline that reaches for it renders nothing — the new divider uses the canonical
+`--color-outline` instead. And the label reads **Course** (the documented house copy law, and what the merged
+My Replacements page prints) rather than the prompt table's "Subject"; it is a one-word change if the user prefers
+the old word.
+
 ## 2026-11-05 — a refused cancellation now explains itself
 
 Found while rewriting the S6 receipt: when the Cancel Class confirm was **refused**, the modal's message line came out
