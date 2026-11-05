@@ -56,6 +56,9 @@ row.dataset.id = c.id;                    // the occurrence (class) id
 row.dataset.requestId = c.requestId || '';// the request id — newest request wins
 ```
 
+The page opens with **"Exclude Completed" ticked** (line 209) and restores any saved filters
+(`restoreFilters()`); a freshly submitted request is `pending`, so the default filter shows it.
+
 **Two arrival mechanisms already exist**
 
 | Param | Handler | Flashes? |
@@ -127,11 +130,14 @@ from the existing `DOMContentLoaded` arrival block (line ~1114) — capture `new
 Behaviour per id, in order:
 
 1. Find the index in `currentFiltered` by `requestId` (the array is filled by `buildTable()`).
-2. **Not found** → clear the row filters that could hide it (`searchInput`, `statusFilter`,
-   `weekFilter`, `hideCompleted`), `buildTable()`, look again. **Do not call `saveFilters()`**
-   (user ruling 2026-11-05): the clearance is for this visit only, so the lecturer's saved
-   filters come back next time. `buildTable()` already reads the inputs from the DOM, so setting
-   them programmatically is enough — do not dispatch `change` events, which would persist.
+2. **Not found** → clear the filters that could be hiding it — `searchInput`, `statusFilter`,
+   `weekFilter` — then `buildTable()` and look again. **Leave `hideCompleted` ticked:** a new
+   request is `pending`, which that filter shows by default, so it can never be the culprit and
+   un-ticking it would only flood the list with completed rows (user, 2026-11-05).
+   **Do not call `saveFilters()`** (user ruling 2026-11-05): the clearance is for this visit only,
+   so the lecturer's saved filters come back next time. `buildTable()` already reads the inputs
+   from the DOM, so setting them programmatically is enough — do not dispatch `change` events,
+   which would persist.
 3. **Still not found** → silent skip. No toast (the old "hidden by your current filters"
    toast is exactly the kind of message this update removes).
 4. **Found** → page it into view (`pageState.currentPage = Math.floor(idx / state.rpp) + 1`,
@@ -174,7 +180,8 @@ Finally strip the param with `history.replaceState` (same pattern as
 | One block submitted | land on `/my-replacements?new-req=28`, row 28 pulses, URL cleaned |
 | Several ids passed to `new-req` | the loop flashes every id that matches a row — today unreachable, since only one block can be picked (`selectBlock`) |
 | Some blocks fail, some succeed | conflict modal as today, **no** redirect, no highlight |
-| A filter (search / status / week / hide completed) hides the new row | filters cleared **for this visit only**, row flashed; saved filters return next time |
+| A filter (search / status / week) hides the new row | those filters cleared **for this visit only**, row flashed; saved filters return next time |
+| "Exclude Completed" is ticked (the page default) | no effect — the new request is Pending, so it stays visible; the tick is left alone |
 | Row cannot be found at all | silent, no toast |
 | Lecturer refreshes or presses Back | param already stripped → no second pulse |
 | Slow skeleton / slow server render | `tryFind` retries for ~5 s |
@@ -219,4 +226,6 @@ Finally strip the param with `history.replaceState` (same pattern as
 3. **Several new rows:** not reachable — `selectBlock()` allows one block per submission, so there
    is one request and one row. The code still flashes every id it is handed, for safety.
 4. **Clearing filters:** for this visit only. Do not call `saveFilters()`; the lecturer's saved
-   filters come back the next time they open the page.
+   filters come back the next time they open the page. Only search, status and week are cleared —
+   **"Exclude Completed" stays ticked** (it is the page default and a pending request is never
+   hidden by it).
