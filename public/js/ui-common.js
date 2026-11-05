@@ -3979,10 +3979,10 @@ class VenueDropdown {
 /**
  * Owns the whole cancel-class lifecycle: isCancellable guards (S1–S5),
  * reason validation (S7/S8), twin mutation across myTimetable +
- * cohortTimetable (§3), the sessionStorage ledger (§2) and the undo toast
- * (§6). Storage touches are ALL guarded (§10): a throwing sessionStorage
- * degrades to the in-memory mirror (same-session undo only, documented
- * trade-off — file:// / privacy modes).
+ * cohortTimetable (§3), the sessionStorage ledger (§2) and the cancellation
+ * toast (§6). Storage touches are ALL guarded (§10): a throwing sessionStorage
+ * degrades to the in-memory mirror (this tab only, documented trade-off —
+ * file:// / privacy modes).
  */
 const ClassCancellation = {
     /* §1 reason vocabulary — class-cancel-db-persist: the user's 7-leaf
@@ -4004,7 +4004,6 @@ const ClassCancellation = {
         { value: 'other', label: 'Other' },
     ],
     LEDGER_KEY: 'classCancellationLedger',  // sessionStorage — tab-scope demo reset
-    UNDO_TOAST_MS: 5000,
     _seq: 0,               // entry-id suffix — no same-millisecond collision
     _MONTHS: ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'],
     _memLedger: [],        // §10 fallback mirror when storage throws
@@ -4039,8 +4038,7 @@ const ClassCancellation = {
     /* S1–S5 guards, recomputed per call (cheap; the confirm path re-checks
        at S6): own class + status 'normal' OR 'replacement' (a confirmed
        replacement slot is still the lecturer's own scheduled class — FR
-       2.16; 2026-10-08 SDD-waived extension, priorStatus preserved for
-       undo) + non-holiday, non-Sunday day + the DATE-grain cancellation
+       2.16) + non-holiday, non-Sunday day + the DATE-grain cancellation
        window (S5 — SUPERSEDED by the user law 2026-10-27, lane
        class-cancel-2-working-day-window: the restore-era "END datetime
        strictly in the future" contract is retired; the whole TODAY stays
@@ -4364,37 +4362,16 @@ const ClassCancellation = {
         const entry = {
             id: 'cxl-' + Date.now() + '-' + (++this._seq),
             matchKey: mk,
-            sessionId: (event.sessionId != null) ? event.sessionId : event.id,  // the server bridge's handle (cancelClassUndo)
+            sessionId: (event.sessionId != null) ? event.sessionId : event.id,  // the server bridge's handle
             exceptionId: null,   // stamped from the server response in the confirm await
             reason: reason,
             detail: detail ? String(detail).trim() : '',
             cancelledAt: new Date().toISOString(),
             row: row,
             chip: true,
-            /* Status to restore on undo — a cancelled 'replacement' block
-               must come back AS a replacement (Original-Date trail intact),
-               not as 'normal' (2026-10-08 SDD-waived extension). */
-            priorStatus: event.status === 'replacement' ? 'replacement' : 'normal',
         };
         this.ledgerAppend(entry);
         return { ok: true, entry: entry };
-    },
-
-    /* S14 — restore EVERY resolved twin to its PRIOR status ('normal' or
-       'replacement' — see cancel()'s priorStatus), strip the cancellation
-       fields, remove the row by id, remove the entry. */
-    undo(entry) {
-        if (!entry) return;
-        const restore = entry.priorStatus || 'normal';
-        this.resolveMatches(entry.matchKey).forEach(function(m) {
-            m.eventRef.status = restore;
-            delete m.eventRef.cancelledReason;
-            delete m.eventRef.cancelledDetail;
-        });
-        const rows = MockData.conflictedClasses || [];
-        const idx = rows.findIndex(function(r) { return r.id === (entry.row && entry.row.id); });
-        if (idx >= 0) rows.splice(idx, 1);
-        this.ledgerRemove(entry);
     },
 
     /* S12/S13b — newest entry that is neither removed nor consumed, or
@@ -4412,7 +4389,7 @@ const ClassCancellation = {
     /* class-cancel-db-persist: the ledger↔row matcher for SERVER-shaped
        rows (replacement-home payload rows carry sessionId + week, ids
        like session*100+week — never equal to the client row ids). Used by
-       the chip render + the home chip undo + applyLedger's retention. */
+       the chip render + applyLedger's retention. */
     entryCoversRow(entry, row) {
         if (!entry || !row) return false;
         if (entry.row && entry.row.id === row.id) return true;   // client-appended, in-tab
@@ -4433,11 +4410,8 @@ const ClassCancellation = {
      * class-cancel-db-persist: a server-bridged entry (sessionId +
      * exceptionId — an exception ROW THE SERVER VERIFIED) is NEVER dead:
      * its week left the grid (the exception removed it from the events)
-     * but the handles persist, the remove is a REAL undo, and the toast /
-     * home chip's undoViaServer stay present at any time (the pinned
-     * cross-page mechanic). A remotely-done undo reconciles honestly
-     * inside undoViaServer ({ok:false} → the hint, the entry ✕-snooze-
-     * capable). NON-bridged entries keep the S15 self-evict.
+     * but the handles persist. NON-bridged entries keep the S15 self-evict.
+     * (2026-11-05: the undo path was deleted with the affordance.)
      */
     applyLedger() {
         const self = this;
@@ -4496,47 +4470,18 @@ const ClassCancellation = {
         return changed;
     },
 
-    /* §6 — the server bridge half (class-cancel-db-persist) — RETIRED 2026-11-05
-       (user option B: Cancel Class is final; the Undo affordance is gone from the
-       UI, so nothing calls this any more). Kept as dead documentation for the
-       next cleanup pass — safe to delete with `undo()` and the `cancelClassUndo`
-       Livewire method in one commit. Awaits cancelClassUndo with
-       the entry's server handle (sessionId + 1-based week); ok → the
-       existing client reversal applies; fail → the cancel stands, the
-       honest hint, NO reversal. */
-    async undoViaServer(entry) {
-        if (!entry || !entry.sessionId) {
-            return { ok: false, hint: 'Class restore failed — refresh to see the truth.' };
-        }
-        const weekNo = (entry.matchKey && Number.isInteger(entry.matchKey.week))
-            ? entry.matchKey.week + 1 : null;
-        let res = null;
-        try {
-            res = await window.pageLivewire().call('cancelClassUndo',
-                String(entry.sessionId), weekNo);
-        } catch (e) { res = { ok: false }; }
-        if (res && res.ok === true) {
-            this.undo(entry);
-            return { ok: true };
-        }
-        return { ok: false, hint: (res && res.hint) || 'Class restore failed — refresh to see the truth.' };
-    },
-
-    /* §6 — the ONE undo-toast helper: the load bootstrap AND the "I'll Do
-       It Later" path both call it; the confirm path must NOT double-toast
-       (the modal's success state carries the message instead). Snooze rule
-       (2026-10-08 decision): the toast shows for 5 s — surviving the full
-       display OR clicking ✕ both count as "seen" and snooze it for the
-       session; only a quick navigate-away (timer killed) re-toasts on the
+    /* The ONE cancellation-confirmation toast: the load bootstrap AND the
+       "I'll Do It Later" path both call it; the confirm path must NOT
+       double-toast (the modal's success state carries the message instead).
+       Snooze rule (2026-10-08 decision): the toast shows for 5 s — surviving
+       the full display OR clicking ✕ both count as "seen" and snooze it for
+       the session; only a quick navigate-away (timer killed) re-toasts on the
        next load.
 
-       2026-11-05 (user option B): the UNDO IS GONE. Cancel Class is final, so this
-       toast is a plain confirmation — no callback, no server round-trip, and the
-       row it used to reverse (the undo path) is retired. The function keeps its
-       name so every existing caller stays byte-identical; the snooze rule
-       (display OR ✕ counts as seen, re-toasts only after a killed navigate-away)
-       is unchanged. */
-    showUndoToast() {
+       2026-11-05 (user ruling): Cancel Class is FINAL and undoing is gone from
+       the system, so this is a plain confirmation — no callback, no server
+       round-trip. Renamed from showUndoToast() once the undo path was deleted. */
+    showCancelToast() {
         toast.show('Class cancelled — arrange replacement when ready', null);
     },
 
@@ -4570,9 +4515,7 @@ const ClassCancellation = {
 document.addEventListener('DOMContentLoaded', function() {
     try {
         ClassCancellation.applyLedger();
-        if (ClassCancellation.needsLoadToast()) ClassCancellation.showUndoToast();
-        else if (new URLSearchParams(location.search).get('restored') === '1')
-            toast.show('Class restored.', null);  // arrival feedback after a cross-page undo
+        if (ClassCancellation.needsLoadToast()) ClassCancellation.showCancelToast();
         else showEntryGuardToast();               // arrival feedback after a BLOCKED arrangement entry
     } catch (e) { /* degrade — page init must never break over the ledger */ }
 });
@@ -4582,8 +4525,8 @@ document.addEventListener('DOMContentLoaded', function() {
    active (pending/approved) replacement request and redirects here with
    ?blocked=request-pending|request-approved. The message names the reason and
    links STRAIGHT to the page that manages the request — no dead end.
-   Same arrival-param family as the `restored=1` toast above (the house
-   cross-page message mechanic: cheap, bookmark-safe, no flash ceremony). */
+   Same arrival-param family as the other cross-page arrived-state toasts
+   (the house mechanic: cheap, bookmark-safe, no flash ceremony). */
 function showEntryGuardToast() {
     const blocked = new URLSearchParams(location.search).get('blocked');
     if (blocked !== 'request-pending' && blocked !== 'request-approved') return;
@@ -4845,7 +4788,7 @@ const CancelClassModal = {
         const ctx = this._ctx;
         this.close();
         if (ctx && typeof ctx.onCancelled === 'function') ctx.onCancelled();
-        ClassCancellation.showUndoToast();
+        ClassCancellation.showCancelToast();
     },
 
     /* Swap confirm ↔ success state in-place, footer buttons included. */

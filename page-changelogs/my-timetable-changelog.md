@@ -1,3 +1,22 @@
+## 2026-11-05 — the dead undo path is gone (cleanup)
+
+With the Undo affordance retired, everything that only existed to serve it was deleted rather than left lying
+around:
+
+- `ClassCancellation.undoViaServer()` (the server round-trip), `ClassCancellation.undo()` (the client reversal),
+  the `priorStatus` field it restored, `UNDO_TOAST_MS`, and the dead `?restored=1` arrival toast (its only producer
+  was that cross-page redirect).
+- `CancelsClasses::cancelClassUndo()` — the Livewire method — and its `class_cancel_undone` audit action. No caller
+  was left, and nothing else referenced them. The trait's now-unused `AuditLog` / `DB` imports went too.
+- `showUndoToast()` → **`showCancelToast()`**, so the name stops promising an undo it no longer offers. The snooze
+  rule (5 s, ✕ or full display counts as seen) is unchanged.
+- The generic toast `undoCallback` API stays: other features still use it (notification hide, clearing a selection).
+
+**Kept on purpose:** `exceptionId` on the ledger entry — the server-verified handle that stops a real cancellation
+from being dropped as "stale" on reload. That never belonged to the undo.
+
+Nothing user-visible changed; the toast text is identical. `node --check` and PHPStan stay clean.
+
 ## 2026-11-05 — Cancel Class is FINAL (the Undo is gone)
 
 User decision (option B): cancelling a class can no longer be reversed. The confirm dialog now says so, and the
