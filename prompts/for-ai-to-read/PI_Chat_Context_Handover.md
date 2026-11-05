@@ -329,10 +329,10 @@ date, and its files are dirty in the tree — see §3.
    **Still open:** whether `.sdd/archive/README.md` should exist at all, the ~33 older finished
    lane dirs left in `.sdd/changes/`, and `venue-slot-validation` itself (applied 2026-11-06,
    archive on the user's word).
-3. **[AGENT, ready on the word]** `prompts/request-approval-ui CONSISTENCY.md` **part 2** — 8 items
-   (1f, 1h, 3A, 3B, 3C, 3D, 3E-3, §4 eyeball). Every blocker is cleared; the file itself carries the
-   per-item plan and the recommended order: **1f + 3B** (mapper T1–T6) → **3A** (`factsHtml`) → 3D →
-   **3C** (2 edits + a guard test) → **1h + 3E-3** → §4.
+3. ~~**[AGENT, ready on the word]** `prompts/request-approval-ui CONSISTENCY.md` **part 2**~~
+   **SHIPPED 2026-11-04** (1f, 3B, 3C, 3A, 3D, 1h, 3E-3, §4 — `page-changelogs/request-approval-changelog.md`
+   + the `ui(request-approval)` commits through `fc217a5`). The brief is archived as of 2026-11-06
+   (`prompts/completed prompt (Archieve)/`). Nothing left here.
 4. **[AGENT]** `receipt-target-guard` `T3d` — `tests/submission-conflict-refresh.spec.ts` is **not
    green** and never has been recorded green: it fails inside its own staged-arrival flow (a login
    redirect timeout, then `#weekSelector` absent on the landed page). Decide: diagnose it timeboxed,

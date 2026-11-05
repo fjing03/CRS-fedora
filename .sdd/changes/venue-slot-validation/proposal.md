@@ -10,7 +10,8 @@ message as "this slot is broken". It is not: the shortest class they can move he
 one hour, but the subject the dropdown happened to be showing is a 2-hour lecture.
 
 The page cannot know the class length at hover time, so it must stop pretending to. The brief
-(`prompts/Venue Timetable Slot Validation.md`) splits the two questions into two stages:
+(`prompts/completed prompt (Archieve)/Venue Timetable Slot Validation.md`, archived 2026-11-06)
+splits the two questions into two stages:
 **hover = "is there at least one hour?"**, **after the class is picked = "does THIS class fit?"**.
 
 ## Scope

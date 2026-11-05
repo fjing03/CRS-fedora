@@ -1,6 +1,6 @@
 # Explore brief — venue-slot-validation
 
-Source brief: `prompts/Venue Timetable Slot Validation.md` (page `venue-timetable-ui`).
+Source brief: `prompts/completed prompt (Archieve)/Venue Timetable Slot Validation.md` (archived 2026-11-06; page `venue-timetable-ui`).
 Explored 2026-11-06 against demo data (`class_replacement_fresh`, lecturer 5425, venue B002).
 
 ## The reported case, measured
