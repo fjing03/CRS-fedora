@@ -3,6 +3,11 @@
     $showTodayBtn = $showTodayBtn ?? true;
     $disabled = $disabled ?? false;
     $showPrint = $showPrint ?? false;
+    /* Optional SECOND action (venue-timetable-bookable-cells, 2026-11-05): the
+       "Earliest bookable" button, rendered right after Today. Default false, so
+       every existing caller stays byte-identical (the arrangement page uses the
+       earliest variant AS its Today button instead). */
+    $showEarliestBtn = $showEarliestBtn ?? false;
     // Optional hover hints (shared data-tip tooltip, shown ABOVE the element).
     // Null by default → pages that don't pass them render byte-identical.
     $prevTip = $prevTip ?? null;
@@ -17,6 +22,13 @@
 </div>
 @if($showTodayBtn)
     @include('partials.ui-today-btn')
+@endif
+@if($showEarliestBtn)
+    @include('partials.ui-today-btn', [
+        'todayIcon' => 'earliest',
+        'todayLabel' => $earliestLabel ?? 'Earliest bookable',
+        'todayTip' => $earliestTip ?? 'Jump to the earliest bookable slot',
+    ])
 @endif
 @if($showPrint)
     {{-- Enabled stub — click shows the shared "coming soon" toast; printing ships post-mock --}}

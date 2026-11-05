@@ -813,6 +813,59 @@ final class VenueTimetableTest extends TestCase
         return [$slot, $request];
     }
 
+    /**
+     * venue-timetable-bookable-cells (2026-11-05): the grid judges its late
+     * cells and its "no room below" cells by the SHORTEST class this venue can
+     * host, not by a fixed 2-hour booking. The number rides the render payload
+     * and must equal the smallest `durationSlots` the arrange dropdown offers
+     * for the same venue — one definition, so the two cannot drift.
+     */
+    public function test_min_class_slots_is_the_shortest_class_the_venue_can_host(): void
+    {
+        $user = $this->staffUser('5425');
+
+        $component = Livewire::withQueryParams(['venue' => 'B103'])
+            ->actingAs($user)
+            ->test(VenueTimetable::class);
+
+        $served = null;
+        $component->assertViewHas('minClassSlots', function ($value) use (&$served): bool {
+            $served = $value;
+
+            return is_int($value) && $value >= 1;
+        });
+
+        // the same pool the wire-call serves → the same durations
+        $options = $component->instance()->intentSessionOptions(1);
+        $durations = [];
+        foreach ($options['modules'] as $module) {
+            foreach ($module['sessions'] as $session) {
+                if (isset($session['durationSlots'])) {
+                    $durations[] = (int) $session['durationSlots'];
+                }
+            }
+        }
+
+        $this->assertNotEmpty($durations, 'B103 must offer at least one session for this lecturer');
+        $this->assertSame(min($durations), $served);
+    }
+
+    /**
+     * Empty pool → the historical fixed span (4 half-hour slots). Nothing can be
+     * booked in this venue for this lecturer, so the grid must look exactly as it
+     * always did rather than inventing a new state.
+     */
+    public function test_min_class_slots_falls_back_to_four_when_the_pool_is_empty(): void
+    {
+        // a lecturer with no conflicted session this venue admits: a student
+        // account owns no sessions at all, so the pool is empty by construction
+        $component = Livewire::withQueryParams(['venue' => 'B103'])
+            ->actingAs($this->studentUser())
+            ->test(VenueTimetable::class);
+
+        $component->assertViewHas('minClassSlots', 4);
+    }
+
     public function test_unknown_venue_code_falls_back_to_first_venue(): void
     {
         $component = Livewire::withQueryParams(['venue' => 'ZZZZ'])

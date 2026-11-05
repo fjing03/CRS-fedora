@@ -68,6 +68,13 @@
            frozen at 5 chips — the label stays the two-line text untouched.
            .cell-too-soon is a DIFFERENT state — untouched. */
         .cell-available.cell-no-fit { background: var(--color-error-container); }
+        /* venue-timetable-bookable-cells (user ruling 2026-11-05): a free cell
+           with too little room before the NEXT class is not bookable — but it
+           keeps its normal background: only the cursor and the hover words
+           change. The day-end run stays .cell-no-fit's job (red), because a
+           following event always ends the run before the day does. */
+        .cell-available.cell-no-room { --hover-label: 'Not Enough Slot'; cursor: not-allowed; }
+        .cell-available.cell-no-room:hover { filter: none; }
         .cell-available.cell-no-fit::after { background: var(--color-error); color: var(--color-on-error); }
         .cell-available.cell-no-fit:hover { filter: none; }
         .booking-hint-line {
@@ -140,7 +147,7 @@
                  (hidden until the payload fills it — no empty stub) --}}
             <div class="venue-description" id="venueDescription" style="display:none;"></div>
         </div>
-        @include('partials.ui-week-nav', ['prevOnclick' => 'prevWeek()', 'nextOnclick' => 'nextWeek()', 'selectId' => 'weekSelect', 'selectOnclick' => 'selectWeek(this.value)', 'showPrint' => true])
+        @include('partials.ui-week-nav', ['prevOnclick' => 'prevWeek()', 'nextOnclick' => 'nextWeek()', 'selectId' => 'weekSelect', 'selectOnclick' => 'selectWeek(this.value)', 'showPrint' => true, 'showEarliestBtn' => true])
     </div>
 
     <!-- ─── Week Subtitle ─── -->
@@ -229,6 +236,11 @@
             window.weekData = generateWeekData();
             const weekData = window.weekData;
             const eventsData = @json($eventsByWeek);
+            /* venue-timetable-bookable-cells: the SHORTEST class this venue can
+               host (half-hour slots), served by minBookableSlots(). The grid used
+               to judge every cell by a fixed 2-hour booking; it now judges by what
+               can actually fit. Fallback keeps the old behaviour on an empty pool. */
+            window.minClassSlots = @json($minClassSlots ?? null);
             /* class-modal-affordances T3: the cancel machinery's twin store
                (the same bridge as my-timetable's — resolveMatches reads
                MockData.myTimetable.eventsByWeek). */
@@ -399,11 +411,34 @@
                MAX_SELECTION: 4 half-hour slots = 2h). A booking starting too
                late in the day can't fit — don't offer Arrange on those cells. */
             const BOOK_SPAN = 4;
+            /* the REAL unit the late-cell / no-room rules use (the shortest class
+               this venue can host). Falls back to the old fixed span, so an empty
+               pool behaves exactly as it used to. */
+            const MIN_SLOTS = Math.max(1, parseInt(window.minClassSlots, 10) || BOOK_SPAN);
             let focusedCell = null;
 
-            function showAvailableTooltip(ev, di, hi) {
-                if (hi + BOOK_SPAN > hours.length) {
-                    toast.show('A booking needs ' + (BOOK_SPAN * 30) + ' minutes — not enough time left in the day.');
+            /* Room between a free cell and the NEXT event that starts after it on
+               the same day, in half-hour slots (Infinity = nothing below). */
+            function roomBeforeNextEvent(di, hi) {
+                const dayEvents = eventsData[currentWeek] || [];
+                let next = Infinity;
+                dayEvents.forEach(function (ev) {
+                    if (ev.di !== di || ev.start <= hi) return;
+                    if (ev.start < next) next = ev.start;
+                });
+                return next === Infinity ? Infinity : next - hi;
+            }
+
+            function showAvailableTooltip(ev, di, hi, cell) {
+                /* venue-timetable-bookable-cells: a cell that cannot hold ANY of
+                   this venue's classes says so BEFORE the click — same bottom-left
+                   message the page already uses, no arrange pop-up. */
+                if (cell && cell.classList.contains('cell-no-room')) {
+                    toast.show('Not enough room below this class — pick a Free Cell.');
+                    return;
+                }
+                if (hi + MIN_SLOTS > hours.length) {
+                    toast.show('A booking needs ' + (MIN_SLOTS * 30) + ' minutes — not enough time left in the day.');
                     return;
                 }
                 const tooltip = document.getElementById('availableTooltip');
@@ -574,10 +609,8 @@
                     let dayEndFails = 0;  /* the class itself runs past the day end */
                     let spanFails = 0;    /* the span runs into an existing event BELOW */
                     const mi = subjectSel.value;
-                    let minSpan = Infinity;
                     (fitting[mi].order || []).forEach(function (sid) {
                         const e = fitting[mi].sessions[sid];
-                        minSpan = Math.min(minSpan, (e.durationSlots || 1));
                         /* class-level fitness first (duration/day-end + this week's
                            occupancy); the session then EXPANDS into one row per
                            flagged occurrence (user request 2026-10-16) */
@@ -620,14 +653,16 @@
                            sentence was shown even when the real blocker was the
                            span running into an existing event below the cell */
                         if (spanFails > 0) {
-                            /* gap guidance (user request 2026-10-16): name the smallest
-                               candidate length as the needed continuous gap (30-min slots) */
-                            const gapHours = Math.round((minSpan * 30) / 60 * 10) / 10;
+                            /* venue-timetable-bookable-cells (user ruling 2026-11-05):
+                               the old line printed the SHORTEST candidate length as if
+                               it were a spacing rule — there is no gap rule in the
+                               engine, only overlap, so the number was invented. Keep
+                               the warning, drop the number. */
                             noteText.innerHTML = noticeHtml(
                                 'None of your classes can run in ' + model.venue + ' at this cell',
                                 hours[hi] + ' plus the class length runs into an existing event below.',
-                                'Please book with at least a ' + (gapHours === 1 ? '1-hour' : gapHours + '-hour') + ' gap',
-                                'Not enough room below — pick a <strong style="color:var(--color-on-success-container)">Free Cell</strong>.');
+                                'NOT ENOUGH FREE TIME BELOW',
+                                '— pick a <strong style="color:var(--color-on-success-container)">Free Cell</strong>.');
                         } else {
                             noteText.innerHTML = noticeHtml(
                                 'They do not fit before the day end (' + dayEnd + ')',
@@ -726,7 +761,7 @@
                     return;
                 }
                 if ((e.key === 'b' || e.key === 'B') && focusedCell && focusedCell.classList.contains('cell-available')) {
-                    showAvailableTooltip(null, parseInt(focusedCell.dataset.day, 10), parseInt(focusedCell.dataset.hour, 10));
+                    showAvailableTooltip(null, parseInt(focusedCell.dataset.day, 10), parseInt(focusedCell.dataset.hour, 10), focusedCell);
                 }
             });
 
@@ -736,6 +771,10 @@
                 buildTimetableGrid({
                     events: eventsData[currentWeek] || [],
                     days: weekData[currentWeek].days,
+                    /* parity with the arrangement grid: the semester's earliest
+                       bookable day carries the "Bookings open" chip (data-driven
+                       via generateWeekData's firstBookable flag) */
+                    bookableBadge: true,
                     /* Page paints every cell (venue-event-blocks-db design §1):
                        cellRender mode = the frozen two-axis block language.
                        PH/Sunday empties get offday cells; too-soon renders
@@ -860,8 +899,12 @@
                             countedAvailable++;
                             const div = document.createElement('div');
                             div.className = 'cell-content cell-available';
-                            /* a booking can't fit if it would run past the day end */
-                            if (hi + BOOK_SPAN > hours.length) div.classList.add('cell-no-fit');
+                            /* a class can't fit if it would run past the day end —
+                               judged by the SHORTEST class this venue can host */
+                            if (hi + MIN_SLOTS > hours.length) div.classList.add('cell-no-fit');
+                            /* …and it can't fit if the next class below leaves too
+                               little room (cursor + hover words only, no colour) */
+                            else if (roomBeforeNextEvent(di, hi) < MIN_SLOTS) div.classList.add('cell-no-room');
                             div.tabIndex = 0;
                             div.dataset.day = di;
                             div.dataset.hour = hi;
@@ -870,7 +913,7 @@
 
                             div.addEventListener('click', function(ev) {
                                 focusedCell = div;
-                                showAvailableTooltip(ev, di, hi);
+                                showAvailableTooltip(ev, di, hi, div);
                             });
                             div.addEventListener('focus', function() { focusedCell = div; });
                             td.appendChild(div);
@@ -950,6 +993,34 @@
 
             weekNav.initTodayBtn();
             initWeekKeyboardShortcuts();
+
+            /* venue-timetable-bookable-cells §6.2 — the "Earliest bookable" action.
+               NOT weekNav.jumpToEarliestBookable(): that resolves its destination
+               with firstVisibleWeek(), and this page passes NO week filter (it is a
+               browsing page that keeps every week — ui-common.js), so the shared
+               method would jump to week 0. Compose the same two shared pieces the
+               arrangement page's button ends up using instead:
+                 firstBookableDay() → selectWeek() → flashEarliestBookableDay().
+               The tooltip is computed, never hardcoded (the shared sentence). */
+            (function initEarliestBookable() {
+                const btn = document.getElementById('earliestBtn');
+                if (!btn) return;
+                const paintTip = function () {
+                    const target = firstBookableDay(weekData);
+                    if (!target) return;
+                    const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+                    const dayFacts = weekData[target.week].days[target.day];
+                    btn.setAttribute('data-tip', 'Jump to the earliest bookable slot \u2014 '
+                        + dayNames[target.day] + ', ' + dayFacts.date + ' (Week ' + (target.week + 1) + ')');
+                };
+                paintTip();
+                btn.addEventListener('click', function () {
+                    const target = firstBookableDay(weekData);
+                    if (!target) return;                 /* nothing bookable — silent */
+                    selectWeek(target.week);
+                    flashEarliestBookableDay(weekData, target.week);
+                });
+            })();
 
             initTimetableKeyboardHandlers({
                 prevWeek: prevWeek,

@@ -34,6 +34,11 @@ class VenueTimetable extends Component
     use CancelsClasses;
     use ResolvesTimetableTimeline;
 
+    /** Half-hour slots a booking was assumed to span before the grid learned the
+     *  real class lengths (venue-timetable-bookable-cells, 2026-11-05). Still the
+     *  fallback when this venue can host nothing — behaviour then is unchanged. */
+    private const BOOK_SPAN_FALLBACK = 4;
+
     public string $venueCode = '';
 
     #[Title('Venue Timetable')]
@@ -44,6 +49,82 @@ class VenueTimetable extends Component
             ?? Venue::orderBy('room_code')->first();
 
         $this->venueCode = $venue !== null ? $venue->room_code : '';
+    }
+
+    /**
+     * The week-agnostic candidate pool for this venue: the viewer's own
+     * conflicted sessions whose type this venue admits (venue-entry rules).
+     * ONE definition — both the arrange dropdown (`intentSessionOptions`)
+     * and the grid's shortest-class arithmetic (`minBookableSlots`) read it,
+     * so the two can never disagree about what CAN be booked here.
+     *
+     * @return Collection<int, ClassSession>
+     */
+    private function bookableCandidates(?Venue $venueRow = null): Collection
+    {
+        $venueRow ??= Venue::where('room_code', $this->venueCode)->first();
+        if ($venueRow === null) {
+            return collect();
+        }
+
+        $rawRoomType = (string) $venueRow->room_type;
+        $semesterId = $this->timelineSemester()?->id;
+        $catalog = new LectureSessionCatalog;
+
+        $lecturerSessions = ClassSession::query()
+            ->with(['module', 'venue', 'cohorts.programme'])
+            ->where('lecturer_id', (int) auth()->id())
+            ->where('semester_id', $semesterId)
+            ->orderBy('day_of_week')
+            ->orderBy('start_time')
+            ->orderBy('id')
+            ->get();
+
+        /* USER DIRECTIVE (2026-10-16, apply round 4): a conflicted class can be
+           arranged at ANY week past the lead time — the "Jump to Week" buttons
+           are a HINT (where the need lives), never a restriction. The modal
+           pool is therefore WEEK-AGNOSTIC: every session with ≥1 conflicted
+           occurrence anywhere in the semester that this venue's type admits
+           (venue-entry rules; the B005 cohort rule REPEALED 2026-10-27),
+           regardless of the viewed week. */
+        $conflicted = $catalog->conflictedFor($lecturerSessions);
+
+        return $lecturerSessions
+            ->filter(fn (ClassSession $s): bool => isset($conflicted[$s->id])
+                && LectureSessionCatalog::sessionAllowedForVenue((string) $s->session_type, $rawRoomType, $s, (string) $venueRow->room_code))
+            ->values();
+    }
+
+    /**
+     * The SHORTEST class (in half-hour slots) this venue can host for this
+     * lecturer — the unit the grid's late-cell and no-room-cell rules are
+     * judged by. The page used to assume every booking spans a fixed 2 hours
+     * (the arrangement page's MAX_SELECTION); that marked cells red even when
+     * a 1-hour class would have fitted.
+     *
+     * Derived from the SAME build the arrange dropdown uses, so the number can
+     * never drift from the durations the dropdown offers. Empty pool (nothing
+     * bookable here) falls back to the fixed 4 slots — the old behaviour, so an
+     * empty venue behaves exactly as it always did.
+     */
+    private function minBookableSlots(): int
+    {
+        $candidates = $this->bookableCandidates();
+        if ($candidates->isEmpty()) {
+            return self::BOOK_SPAN_FALLBACK;
+        }
+
+        $min = null;
+        foreach ((new LectureSessionCatalog)->build($candidates, null) as $module) {
+            foreach ($module['order'] as $sessionId) {
+                $slots = (int) ($module['sessions'][(string) $sessionId]['durationSlots'] ?? 0);
+                if ($slots > 0 && ($min === null || $slots < $min)) {
+                    $min = $slots;
+                }
+            }
+        }
+
+        return $min ?? self::BOOK_SPAN_FALLBACK;
     }
 
     /**
@@ -75,30 +156,12 @@ class VenueTimetable extends Component
             return ['modules' => [], 'roomType' => '', 'venue' => $this->venueCode];
         }
         $rawRoomType = (string) $venueRow->room_type;
-        $semesterId = $this->timelineSemester()?->id;
         $catalog = new LectureSessionCatalog;
 
-        $lecturerSessions = ClassSession::query()
-            ->with(['module', 'venue', 'cohorts.programme'])
-            ->where('lecturer_id', (int) auth()->id())
-            ->where('semester_id', $semesterId)
-            ->orderBy('day_of_week')
-            ->orderBy('start_time')
-            ->orderBy('id')
-            ->get();
+        /* Week-agnostic pool — ONE definition, shared with minBookableSlots() */
+        $eligible = $this->bookableCandidates($venueRow);
 
-        /* USER DIRECTIVE (2026-10-16, apply round 4): a conflicted class can be
-           arranged at ANY week past the lead time — the "Jump to Week" buttons
-           are a HINT (where the need lives), never a restriction. The modal
-           pool is therefore WEEK-AGNOSTIC: every session with ≥1 conflicted
-           occurrence anywhere in the semester that this venue's type admits
-           (venue-entry rules; the B005 cohort rule REPEALED 2026-10-27),
-           regardless of the viewed week. */
-        $conflicted = $catalog->conflictedFor($lecturerSessions);
-        $eligible = $lecturerSessions
-            ->filter(fn (ClassSession $s): bool => isset($conflicted[$s->id])
-                && LectureSessionCatalog::sessionAllowedForVenue((string) $s->session_type, $rawRoomType, $s, (string) $venueRow->room_code))
-            ->values();
+        $conflicted = $catalog->conflictedFor($eligible);
 
         $built = array_values($catalog->build($eligible, null));
         foreach ($built as $moduleIndex => $module) {
@@ -704,6 +767,10 @@ class VenueTimetable extends Component
             'eventsByWeek' => $eventsByWeek,
             'totalsByWeek' => $totalsByWeek,
             'weekData' => $this->weekData(),
+            // venue-timetable-bookable-cells: the shortest class this venue can
+            // host, in half-hour slots — the grid judges its late cells and its
+            // "no room below" cells by THIS, not by the old fixed 2 hours.
+            'minClassSlots' => $this->minBookableSlots(),
             'semesterJs' => $this->semesterJs(),
             'holidaysJs' => $this->holidaysForJs(),
         ])

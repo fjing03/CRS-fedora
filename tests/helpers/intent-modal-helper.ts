@@ -19,7 +19,10 @@ export async function pickSpanFreeCell(page: Page): Promise<void> {
         (occ[di] = occ[di] || new Set()).add(start + k);
       }
     });
-    const cells = Array.from(document.querySelectorAll('#tableBody .cell-available:not(.cell-no-fit)'));
+    /* venue-timetable-bookable-cells (2026-11-05): `.cell-no-room` cells are
+       blocked too — a long class can need more slots than the pair of classes
+       either side leaves, so they must never be picked for the modal. */
+    const cells = Array.from(document.querySelectorAll('#tableBody .cell-available:not(.cell-no-fit):not(.cell-no-room)'));
     for (const c of cells as HTMLElement[]) {
       const di = parseInt(c.dataset.day || '', 10);
       const hi = parseInt(c.dataset.hour || '', 10);
@@ -32,7 +35,7 @@ export async function pickSpanFreeCell(page: Page): Promise<void> {
     return null;
   });
   if (!target) throw new Error('no span-free cell');
-  await page.locator(`#tableBody td[data-day="${target.di}"][data-hour="${target.hi}"] .cell-available:not(.cell-no-fit)`).click();
+  await page.locator(`#tableBody td[data-day="${target.di}"][data-hour="${target.hi}"] .cell-available:not(.cell-no-fit):not(.cell-no-room)`).click();
 }
 
 /** Jump the venue page to a week index (client-side nav). */

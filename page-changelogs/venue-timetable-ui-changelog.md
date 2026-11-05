@@ -1,3 +1,84 @@
+## 2026-11-05 (UI/UX, user brief `UIUX Update — Venue Timetable Bookable Cells.md`) — real class lengths, honest cells, and the Earliest-bookable action
+
+Four changes, all on this page. Nothing about the 08:00–18:30 grid, the `Too Late` / `to Book`
+badge, the lead-time `cell-too-soon` state, or any occupied/pending/reserved/PH cell changed.
+
+### 1. The "gap" sentence no longer invents a rule
+The notice under a booking attempt used to print **"Please book with at least a 2-hour gap"**.
+There is no gap rule anywhere in the engine (blocks are rejected only when they **overlap**) —
+the number was simply the length of the shortest class that did not fit. The number is gone; the
+warning stays:
+
+> **None of your classes can run in B103 at this cell**
+> 13:00 plus the class length runs into an existing event below.
+> **NOT ENOUGH FREE TIME BELOW** — pick a **Free Cell**.
+
+`minSpan` was removed with it (it existed only to feed that number).
+
+### 2. Late cells are judged by the classes the venue can actually host
+`VenueTimetable` now serves **`minClassSlots`** — the smallest `durationSlots` among the sessions
+its arrange dropdown would offer here (week-agnostic, the same `$eligible` pool, so the two can
+never disagree). New private helpers: `bookableCandidates()` (the one pool definition) and
+`minBookableSlots()`. The grid reads it and the old fixed `BOOK_SPAN = 4` becomes a **fallback**
+only (an empty pool behaves exactly as before).
+
+| Shortest class | 17:00 | 17:30 | 18:00 | 18:30 |
+| --- | --- | --- | --- | --- |
+| 1 hour (2 slots) | bookable | bookable | bookable | **red** |
+| 1.5 hours (3) | bookable | bookable | **red** | **red** |
+| 2 hours (4) | bookable | **red** | **red** | **red** (the old look) |
+
+So "every late cell is bookable" is **not** the promise: a cell is bookable only if something can
+actually fit. A 6:00 PM cell stays red unless a 30-minute class exists — that is the intended rule,
+not a bug.
+
+### 3. A free cell with no room before the next class says so — before the click
+New state **`.cell-no-room`**: when the next event on that day starts fewer than `minClassSlots`
+away, the cell gets `cursor: not-allowed` and the hover words **"Not Enough Slot"**. It keeps its
+**normal green background** (user ruling: the cursor and the words only — no red), and it is
+mutually exclusive with `.cell-no-fit` (the day-end run, which is always the shorter one).
+Clicking it shows the reason in the usual bottom-left message — *"Not enough room below this
+class — pick a Free Cell."* — and does **not** open the arrange pop-up. The keyboard `b` path
+respects it too; `tabIndex`, `role="button"` and the `aria-label` stay, so the cell remains
+reachable.
+
+### 4. "Earliest bookable" button + the "Bookings open" chip
+`ui-week-nav` gained an optional `$showEarliestBtn` (default **false**, so every other page is
+byte-identical and the arrangement page's single-button toolbar is unchanged — asserted). This
+page passes true, giving the order `‹ [week] ›` · **Today** · **Earliest bookable** · Print.
+
+Deliberately **not** `weekNav.jumpToEarliestBookable()`: that resolves its destination with
+`firstVisibleWeek()`, and this page passes **no** week filter (it browses every week), so it would
+have jumped to week 0. The click composes the same shared pieces instead —
+`firstBookableDay()` → `selectWeek()` → `flashEarliestBookableDay()` — with the **computed**,
+dated tooltip the arrangement page uses. `bookableBadge: true` turns on the same
+`Bookings open` chip the arrangement grid renders (the semester's earliest bookable day, only on
+that week).
+
+**Measured** (demo data, lecturer 5425, venue B103, read-only):
+- `minClassSlots = 2` (1-hour classes); the only late start is **hour 21** in every week that has
+  free cells — exactly `22 − minClassSlots`;
+- **78** free cells audited against the rule in both directions in one week: **0 mismatches**;
+- week 9's blocked cells: Mon 08:30, Thu 13:00, Fri 09:30, Fri 13:30 — each with **1** slot of
+  room before the next class (min 2), cursor `not-allowed`, label `Not Enough Slot`, background
+  unchanged (`rgba(46,125,90,0.35)` — the normal green, not the error red), click → the message
+  and no pop-up;
+- earliest button: from the last week it landed on **Week 8**, one day row pulsed, and the
+  `BOOKINGS OPEN` chip was present on that week only (tip: *"Jump to the earliest bookable slot —
+  Tuesday, 11 Nov 2026 (Week 8)"*);
+- the arrangement page still renders **one** action button (`#earliestBtn`, no `#todayBtn`).
+
+**Tests:** `tests/venue-book.spec.ts` — `firstFreeCell()` now skips `.cell-no-room`,
+U2a-T6 asserts the class-driven minutes instead of a fixed `120`, and four tests were added
+(T7 blocked cell, T8 the two states audited cell-by-cell, T9 the button + chip, T10 the
+arrangement toolbar regression). `tests/helpers/intent-modal-helper.ts::pickSpanFreeCell()` also
+skips blocked cells. PHPUnit: two new cases in `VenueTimetableTest` (the payload equals the
+dropdown's shortest class; an empty pool falls back to 4).
+
+**Known behaviours, said out loud:** the chip marks the semester's earliest **bookable day**, not
+"the first free cell in this venue" — on a venue whose that day is fully booked the chip still
+shows (the arrangement page's existing meaning). And `minBookableSlots()` runs once per render.
+
 ## 2026-11-05 (UI/UX, user brief) — the hover tooltip's own-class segment reads `YOU`, not `ME`
 
 **Change:** this page builds its own blocks, and its `data-tip2` composition now reads
