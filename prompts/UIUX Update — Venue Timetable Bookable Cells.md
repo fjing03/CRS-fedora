@@ -5,7 +5,7 @@
 
 ---
 
-## 1. The three asks
+## 1. The four asks
 
 1. **The "gap" sentence is misleading.** Today the notice under a booking attempt says
    *"Please book with at least a 2-hour gap"*. That number is not a rule — it is copied from the
@@ -18,6 +18,9 @@
    little room before the next existing class gets a **blocked cursor** and the hover words
    **"Not Enough Slot"** instead of "Arrange ?", and a click shows the reason in the usual
    bottom-left message. **No red background** — the normal green look stays.
+4. **Add an "Earliest bookable" button to the right of "Today"**, reusing the
+   Replacement Arrangement page's action, and show the
+   `<span class="bookable-badge">Bookings open</span>` chip on the earliest bookable day.
 
 ---
 
@@ -135,7 +138,7 @@ if (hi + minSlots > hours.length) {
 | 2 hours | red | red | red (today's look) |
 
 So "every late cell is bookable" is not literally true — a cell is bookable only if something
-can actually fit. That is the user's chosen rule (§10, item 2).
+can actually fit. That is the user's chosen rule (§11, item 2).
 
 ---
 
@@ -198,7 +201,102 @@ the rule, not the example, is the spec.
 
 ---
 
-## 6. Reuse map
+## 6. Change 4 — "Earliest bookable" button + "Bookings open" chip
+
+This is the Replacement Arrangement page's action, brought to the venue page. Everything it
+needs already exists; the work is wiring, not new logic.
+
+### 6.1 Two buttons, not one
+
+`resources/views/partials/ui-week-nav.blade.php` renders the arrows/select, then **one** action
+(`ui-today-btn`), then the print stub. `ui-today-btn.blade.php` already has the `earliest`
+variant (id `earliestBtn`, class `today-btn-earliest`, label "Earliest bookable").
+
+- Add an optional `$showEarliestBtn` flag to `ui-week-nav` (default **false**), rendering the
+  earliest variant right after the Today button:
+
+  ```blade
+  @if($showEarliestBtn)
+      @include('partials.ui-today-btn', [
+          'todayIcon'  => 'earliest',
+          'todayLabel' => $earliestLabel ?? 'Earliest bookable',
+          'todayTip'   => $earliestTip ?? 'Jump to the earliest bookable slot',
+      ])
+  @endif
+  ```
+
+- Default false keeps `replacement-arrangement.blade.php:1037` byte-identical (it uses the
+  earliest button **as** its Today button).
+- Venue page (`venue-timetable.blade.php:143`) passes `'showEarliestBtn' => true`. Resulting
+  order: `‹ [week] ›` · **Today** · **Earliest bookable** · Print.
+
+### 6.2 What the button does — and the trap
+
+**Do not call `weekNav.jumpToEarliestBookable()` on this page.** It resolves its destination with
+`firstVisibleWeek()`, i.e. the first week that passes the navigator's **week filter**. The
+arrangement page passes that filter (`weekHasBookableSlot`, `replacement-arrangement.blade.php:1249`);
+the venue page deliberately passes `null` because it is a browsing page that keeps every week
+(`ui-common.js:443`). Without a filter, `firstVisibleWeek()` is **week 0**, so the button would
+jump to the start of the semester.
+
+- **Do not** give the venue page a week filter to make the shared method work: that would also make
+  the arrows and the week dropdown skip weeks, which nobody asked for and which changes the page's
+  browsing behaviour.
+
+Instead, wire the click with the two shared pieces directly:
+
+```js
+const target = firstBookableDay(weekData);            // { week, day } | null
+if (target) {
+    weekNav.selectWeek(target.week);                  // rebuilds, updates subtitle/progress/arrows
+    flashEarliestBookableDay(weekData, target.week);   // the shared pulse on that day's row
+}
+```
+
+- `firstBookableDay(weekData)` — `ui-common.js:188` (semester-wide, lead time + holidays + Sundays
+  already applied).
+- `flashEarliestBookableDay(weekData, weekIdx)` — `ui-common.js:206`. Pulses every
+  `tr[data-day-index="<n>"]` row. The venue page's grid is the **same** `buildTimetableGrid(...)`,
+  so those rows exist — no new selector work.
+- `weekNav.selectWeek(index)` bypasses the filter when there is none, rebuilds the grid and saves
+  the week through the page's own session-scoped memory — no extra calls needed.
+- Dated tooltip (computed, never hardcoded) — `firstBookableDay(weekData)` +
+  `data-tip = 'Jump to the earliest bookable slot — Monday, 9 Nov 2026 (Week 8)'`, the sentence
+  the arrangement page builds at `:4396–4401`.
+
+### 6.3 The "Bookings open" chip
+
+`buildTimetableGrid` already renders it — `ui-common.js:865–869`:
+
+```js
+if (cfg.bookableBadge && day.firstBookable) {
+    dayTd.insertAdjacentHTML('beforeend', '<span class="bookable-badge">Bookings open</span>');
+}
+```
+
+The venue page simply does not opt in. In its `buildTimetableGrid({ … })` call
+(`venue-timetable.blade.php:736`) add:
+
+```js
+bookableBadge: true,
+```
+
+`day.firstBookable` comes from `generateWeekData()` — the semester's earliest bookable day — so
+the chip appears on that day only, on that week only, and tracks the lead time automatically.
+
+### 6.4 Guardrails
+
+- Do **not** clone the pulse into the page — it is shared.
+- Do **not** add a week filter to the venue page's `WeekNavigator` to reuse
+  `jumpToEarliestBookable()`; see §6.2. The arrows and the week list must keep showing every week.
+- Do **not** change `ui-today-btn`'s default variant, the Today behaviour, or the print stub.
+- The venue page's `weekNav` is session-scoped (`venueTimetableWeek`); `selectWeek()` already
+  saves through that memory — leave it alone.
+- The page is inside `wire:ignore`; the button is plain DOM, so no Livewire work is needed.
+
+---
+
+## 7. Reuse map
 
 | What | Where | Why |
 | --- | --- | --- |
@@ -208,20 +306,28 @@ the rule, not the example, is the spec.
 | `toast.show(...)` | `public/js/ui-common.js:2855` | the bottom-left message the page already uses |
 | `--hover-label` + `::after` pill | `public/css/theme.css:2616–2619` | the hover words mechanism |
 | `.cell-no-fit` precedent | `venue-timetable.blade.php:60–72` | copy its *shape*, not its colour |
+| `WeekNavigator.jumpToEarliestBookable()` | `public/js/ui-common.js:556` | **reference only** — it needs a week filter the venue page does not have (§6.2) |
+| `flashEarliestBookableDay()` + `flashRowPulse()` | `ui-common.js:206` / `:222` | the boundary-day pulse |
+| `firstBookableDay()` | `ui-common.js:188` | the dated tooltip |
+| `ui-today-btn` `earliest` variant | `resources/views/partials/ui-today-btn.blade.php` | the button face, label and icon |
+| `ui-week-nav` | `resources/views/partials/ui-week-nav.blade.php` | where the second button renders |
+| `buildTimetableGrid` `cfg.bookableBadge` | `ui-common.js:865–869` | the "Bookings open" chip |
 
 ---
 
-## 7. What must not change
+## 8. What must not change
 
 - The 08:00–18:30 grid, `BOOK_SPAN`'s other uses, and the `Too Late` / `to Book` badge wording.
 - `cell-too-soon` (the 3-working-day lead time) and every occupied / pending / reserved / PH cell.
 - Other pages' grids (My Timetable, Cohort, Replacement Arrangement) — this is the venue page only.
+- `replacement-arrangement.blade.php:1037`'s toolbar — it must render exactly as it does today
+  (`showEarliestBtn` defaults to false).
 - The frozen design template (`resources/views/ui-design-templates/venue-timetable-UI-design-template.blade.php`)
   is a reference, not a target.
 
 ---
 
-## 8. Tests to update / add
+## 9. Tests to update / add
 
 - `tests/venue-book.spec.ts:101` **U2a-T6** asserts the toast text `/120 minutes/` and that a
   `.cell-no-fit` exists — it must now expect the **class-driven** minutes and may need a week
@@ -237,24 +343,33 @@ the rule, not the example, is the spec.
   - the last cells of the day follow the real class length, not 120 minutes.
 - PHPUnit: `minBookableSlots()` returns the smallest `durationSlots`, and the render payload
   carries `minClassSlots` (empty list → `BOOK_SPAN`).
+- **Change 4** (`tests/venue-book.spec.ts`, no writes needed):
+  - `#todayBtn` and `#earliestBtn` both exist, and `#earliestBtn` sits after `#todayBtn` in the
+    DOM;
+  - `#earliestBtn`'s `data-tip` names a real date and week (never the static fallback);
+  - clicking it selects the earliest bookable week, and that week's boundary day row receives
+    `.bookable-flash`;
+  - the `.bookable-badge` reading `Bookings open` appears in that day's `td.time-col` and is
+    absent on other weeks;
+  - the arrangement page's toolbar is unchanged (regression).
 
 ---
 
-## 9. Constraints (house rules)
+## 10. Constraints (house rules)
 
 - No new dependencies; colours from `theme.css` tokens only; no new colour for the blocked state.
 - Demo DB read-only; test writes only against the seeded testing DB
   (`CRS_MODE=testing CRS_ALLOW_SQL=1 CRS_BASE=http://127.0.0.1:8030`); never loosen
   `tests/helpers/receipt-target-guard.ts`.
 - `php artisan view:cache` must compile; `node --check public/js/ui-common.js`; `pint`.
-- Changelog: `page-changelogs/venue-timetable-ui-changelog.md` (all three changes, with the
-  real-length table from §4.2).
+- Changelog: `page-changelogs/venue-timetable-ui-changelog.md` (all four changes, with the
+  real-length table from §4.2 and the new toolbar).
 - Conventional commit, e.g. `ui(venue-timetable): late and blocked cells follow real class lengths`.
 - Never push.
 
 ---
 
-## 10. Decisions (settled 2026-11-05)
+## 11. Decisions (settled 2026-11-05)
 
 1. **Gap sentence:** drop the number, keep the warning — never print a gap length that is not a
    rule.
@@ -265,10 +380,16 @@ the rule, not the example, is the spec.
 4. **Which cells:** every free cell with too little room before the next event — not only the
    single cell touching the class.
 5. **Click:** show the reason in the bottom-left message; do not open the arrange pop-up.
+6. **Earliest bookable:** one button to the right of Today, reusing the shared
+   `firstBookableDay()` + `flashEarliestBookableDay()` pieces (not
+   `jumpToEarliestBookable()`, which needs a week filter this page must not have); the
+   "Bookings open" chip is the same chip the arrangement grid already renders.
+7. **Placement of the chip:** parity with the arrangement page — the semester's earliest
+   bookable day, whatever week is on screen when that week is shown.
 
 ---
 
-## 11. Risks / things to say out loud
+## 12. Risks / things to say out loud
 
 - A 6:00 PM cell can only ever be bookable if a 30-minute class exists; with 1-hour classes it
   stays red. That follows from decision 2 — flag it in the changelog so nobody reports it as a bug.
@@ -276,3 +397,10 @@ the rule, not the example, is the spec.
   property), not per cell.
 - The hover pill for the new state inherits the cell's normal colour; check it is readable on the
   green/blue available background in both themes.
+- The "Bookings open" chip marks the semester's earliest **bookable day**, not "the first free
+  cell in this venue". On a venue whose earliest bookable day is fully booked, the chip still
+  shows. That is the arrangement page's existing meaning — say so in the changelog rather than
+  inventing per-venue logic.
+- The button and the chip depend on `day.firstBookable` from `generateWeekData()`; if that flag
+  ever stops being generated for the venue page's weeks, the chip silently disappears. The spec
+  above should fail loudly instead.
