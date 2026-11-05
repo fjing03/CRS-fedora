@@ -2105,29 +2105,6 @@
         }
 
 
-        function buildSubmissionToastMessage() {
-            const slots = [];
-            for (const venue in selectedSlotsByVenue) {
-                for (const week in selectedSlotsByVenue[venue]) {
-                    const block = selectedSlotsByVenue[venue][week];
-                    if (block) {
-                        const shortDayNames = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-                        const dayData = weekData[week].days[block.day];
-                        const dayName = shortDayNames[block.day];
-                        const dateStr = dayData.date.replace(/ \d{4}$/, '');
-                        const startStr = hours[block.startHour];
-                        const endStr = add30min(hours[block.endHour - 1]);
-                        const timeRange = to12h(startStr) + '–' + to12h(endStr);
-                        slots.push(venue + ' · ' + dayName + ', ' + dateStr + ' · ' + timeRange);
-                    }
-                }
-            }
-            return {
-                message: '\u2713 Submitted \u2014 Pending Approval',
-                details: slots.join('  |  ')
-            };
-        }
-
         function proceed() {
             if (getGlobalTotal() === 0) {
                 showConfirmModal('No Selection', 'Please select at least one timeslot before proceeding.', null);
@@ -2255,17 +2232,23 @@
                                 if (selectedOriginalSlot) {
                                     setRecentSlot(selectedOriginalSlot);
                                 }
-                                const sub = buildSubmissionToastMessage();
+                                /* 2026-11-05 UI/UX update (user): the success
+                                   toast is GONE — the new row on My Replacements
+                                   is the receipt, flashed with the shared
+                                   three-pulse highlight (the Today /
+                                   Earliest-bookable language). No 1.2 s beat:
+                                   the redirect is immediate. The selection
+                                   clean-up below is unchanged. */
                                 deselectBlock();
                                 Object.keys(selectedSlotsByVenue).forEach(k => { selectedSlotsByVenue[k] = {}; });
                                 /* the request is sent — Ctrl+Z must not resurrect its slots */
                                 selectionHistory.length = 0;
                                 updateCounter();
-                                toast.show(sub.message, null, 5000, 'View \u2192', '/my-replacements', sub.details);
-                                /* the design's aftermath: the request now lives in
-                                   My Replacements — go there (brief beat so the
-                                   success toast is actually seen) */
-                                setTimeout(function() { window.location.href = '/my-replacements'; }, 1200);
+                                const newIds = (results || [])
+                                    .filter(function(r) { return r && r.ok && r.request_id; })
+                                    .map(function(r) { return r.request_id; });
+                                window.location.href = '/my-replacements'
+                                    + (newIds.length ? '?new-req=' + newIds.join(',') : '');
                             } else {
                                 /* submission-conflict-modal-refresh (the user's
                                    spec items 1/3/4/5/6): the conflict modal = the

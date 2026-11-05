@@ -1,3 +1,35 @@
+## 2026-11-05 (UI/UX, user brief `UIUX Update — My Replacements After Submit.md`) — `?new-req=` arrival: the freshly submitted row pulses
+
+**Change:** the page now understands a third arrival param, `?new-req=<id>[,<id>…]`, and
+flashes the row(s) it names with the **same** three-pulse highlight as the Today /
+Earliest-bookable jump — `tryFind('tr[data-request-id="…"]', 20)` →
+`flashRowPulse()` → `@keyframes bookable-pulse` (0.5 s × 3, 4 px ring, 63 % of
+`--color-success`). **No new CSS, no new keyframe, no lasting tint** (user decision).
+
+New `jumpToNewRequest(ids)`, beside `jumpToMyRow()` / `jumpToMyOccurrence()`:
+
+1. look the id up in `currentFiltered` by `requestId`;
+2. not found → clear **search, status and week** and rebuild, then look again. The
+   clearance is **for this visit only** — `saveFilters()` is deliberately NOT called, so
+   the lecturer's saved filters come back next time. The inputs are set programmatically
+   (no `change` events, which would persist). **`Exclude COMPLETED Status` stays ticked**:
+   a new request is `pending`, which that filter shows, so it can never be the culprit
+   (and un-ticking would flood the list with completed rows);
+3. still not found → **silent** — no toast. The old "hidden by your current filters"
+   message is exactly what this update removes;
+4. found → page it into view, then flash it with **no fallback selector**: flashing the
+   wrong row would be worse than not flashing.
+
+The param is captured **synchronously** in the existing `DOMContentLoaded` arrival block
+(before `restoreFilters()` and behind the 400 ms skeleton, like `pendingHl`) and stripped
+immediately with `history.replaceState`, so a refresh or Back never replays the pulse.
+
+**Measured** (`tests/my-replacements-after-submit.spec.ts`, testing DB): arrival
+`?new-req=1` → row `data-request-id="1"` carried `.bookable-flash`, its cell reported
+`bookable-pulse 0.5s × 3`, exactly one row flashed, URL clean afterwards, reload silent;
+with `mrh-filters` saved as `status=rejected` the row still flashed, `#statusFilter` read
+`all`, and the stored filters were untouched.
+
 ## 2026-11-05 — the cancel-request warning joins the one-line standard
 
 `#cancelConfirmOverlay` used a red uppercase `THIS ACTION CANNOT BE UNDONE.`; it now includes the shared

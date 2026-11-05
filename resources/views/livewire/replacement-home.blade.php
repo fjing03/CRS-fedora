@@ -1040,6 +1040,50 @@
             }
         }
 
+        /* ─── Arrival — ?new-req=<requestId>[,<id>…] ───
+           my-replacements-after-submit (2026-11-05 user): a successful submit
+           lands here carrying the id(s) of the request(s) it just created, and
+           the new row flashes with the SAME three-pulse highlight as the Today /
+           Earliest-bookable jump (no new CSS, no new keyframe). The success toast
+           that used to appear is gone — the row itself is the receipt.
+
+           Decisions (user, 2026-11-05):
+           · a filter hiding the row is cleared FOR THIS VISIT ONLY — never
+             saveFilters(), so the lecturer's saved filters come back next time
+             (buildTable() reads the inputs, so setting them is enough; a change
+             event would persist them);
+           · "Exclude COMPLETED Status" stays ticked — a new request is pending,
+             which that filter shows, so it can never be the culprit, and
+             un-ticking would only flood the list with completed rows;
+           · nothing found = silent. No "hidden by your current filters" toast:
+             that message is exactly what this update removes;
+           · no fallback selector — flashing the wrong row is worse than none. */
+        function jumpToNewRequest(ids) {
+            if (!ids || !ids.length) return;
+            var findIdx = function (id) {
+                return currentFiltered.findIndex(function (c) { return Number(c.requestId) === Number(id); });
+            };
+            ids.forEach(function (id) {
+                var idx = findIdx(id);
+                if (idx < 0) {
+                    document.getElementById('searchInput').value = '';
+                    document.getElementById('statusFilter').value = 'all';
+                    document.getElementById('weekFilter').value = 'all';
+                    pageState.currentPage = 1;
+                    buildTable();               /* also re-renders the filter chips */
+                    updateWeekArrowState();
+                    idx = findIdx(id);
+                }
+                if (idx < 0) return;            /* silent skip — never flash a guess */
+                var page = Math.floor(idx / state.rpp) + 1;
+                if (page !== pageState.currentPage) {
+                    pageState.currentPage = page;
+                    buildTable();
+                }
+                tryFind('tr[data-request-id="' + id + '"]', 20);
+            });
+        }
+
         /* ─── Arrival — ?notif-hl=o<sessionId>&notif-w=<week> ───
            notif-click-behaviour (user, 2026-11-04): a CANCELLED class notice is
            written the moment the class is cancelled — usually before anything is
@@ -1121,6 +1165,20 @@
             var pendingHl = (hlRaw && (hlRaw.charAt(0) === 'r' || hlRaw.charAt(0) === 'o')) ? hlRaw : null;
             var openOnArrival = hlSearch.get('view') === 'request';
 
+            /* my-replacements-after-submit: capture the just-submitted request
+               id(s) SYNCHRONOUSLY, then strip the one-shot param immediately so a
+               refresh or Back never replays the pulse. */
+            var pendingNewReqs = (hlSearch.get('new-req') || '')
+                .split(',')
+                .map(function (s) { return parseInt(s, 10); })
+                .filter(function (n) { return n > 0; });
+            if (pendingNewReqs.length) {
+                var cleanParams = new URLSearchParams(location.search);
+                cleanParams.delete('new-req');
+                var cleanQs = cleanParams.toString();
+                history.replaceState(null, '', location.pathname + (cleanQs ? '?' + cleanQs : '') + location.hash);
+            }
+
             MockData.conflictedClasses = window.PAGE_DATA.conflictedClasses;
             MockData.semester = window.PAGE_DATA.semester;
             MockData.holidays = window.PAGE_DATA.holidays;
@@ -1148,6 +1206,10 @@
                         jumpToMyRow(pendingHl.slice(1), openOnArrival);
                     }
                     pendingHl = null;
+                }
+                if (pendingNewReqs.length) {
+                    jumpToNewRequest(pendingNewReqs);
+                    pendingNewReqs = [];
                 }
             }, document.getElementById('tableBody'), 10, 400);
 

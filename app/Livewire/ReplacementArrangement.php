@@ -1115,6 +1115,11 @@ class ReplacementArrangement extends Component
 
             $results[] = [
                 'ok' => (bool) $result['ok'],
+                // my-replacements-after-submit (2026-11-05 user): the created
+                // request's id rides along so the redirect can carry it and the
+                // new row flashes on arrival. Additive only — nothing else reads
+                // this array; failures keep it null.
+                'request_id' => $result['ok'] ? ($result['request_id'] ?? null) : null,
                 'reason' => $result['ok'] ? null : $this->conflictText(
                     (string) $result['conflict_reason'],
                     $result['failing_start'] ?? null,

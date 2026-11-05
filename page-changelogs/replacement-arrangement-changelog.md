@@ -1,3 +1,35 @@
+## 2026-11-05 (UI/UX, user brief `UIUX Update — My Replacements After Submit.md`) — the success toast is gone; the new row is the receipt
+
+**Change:** a successful submission no longer shows the `✓ Submitted — Pending Approval`
+toast (with its `View →` link and details line) and no longer sits on a **1.2 s**
+timer — the pause existed only so that toast could be read. The page now navigates
+to My Replacements **immediately**, carrying the id of the request it just created:
+
+```js
+const newIds = (results || []).filter(r => r && r.ok && r.request_id).map(r => r.request_id);
+window.location.href = '/my-replacements' + (newIds.length ? '?new-req=' + newIds.join(',') : '');
+```
+
+- `buildSubmissionToastMessage()` deleted (grepped first: the only other caller is the
+  reference mock-up under `resources/views/ui-design-templates/`, which is not a loaded page).
+- **Everything else in the success branch is untouched**: the ledger's
+  `markConsumedByCode()`, `setRecentSlot()`, `deselectBlock()`, the slot clearing, the
+  `selectionHistory` wipe and `updateCounter()` all still run before the redirect.
+- The **conflict** branch is byte-identical — a failed submission keeps its modal, no
+  redirect, no highlight.
+
+**Server (additive only):** `ReplacementArrangement::submitBlocks()` now returns
+`request_id` on each per-block result (null for a failure). `SubmitReplacementRequest`
+already returned it; the Livewire layer simply dropped it. Nothing else reads that array.
+
+**Measured** (disposable testing DB, fresh seed, `:8030`, guarded receipt
+`tests/my-replacements-after-submit.spec.ts`):
+submit → navigation **510 ms** (the old flow could never beat 1200); **zero** toasts
+(the observer watches both documents and never saw one); arrival URL
+`/my-replacements?new-req=1`; exactly one row flashed, and its cell animation was
+`bookable-pulse 0.5s × 3` (the shared pulse, no new CSS); the URL cleaned itself; a
+reload showed no pulse; the conflict path unchanged.
+
 ## 2026-11-05 (UI/UX pass, display only) — the duplicate-occurrence conflict reads as two labelled lines
 
 The user's submission-conflict note, applied to the modal this page raises when `submitBlocks()` refuses a pick:
