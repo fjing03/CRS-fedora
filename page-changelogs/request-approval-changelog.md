@@ -1,3 +1,30 @@
+## 2026-11-05 — one irreversible line on every final decision
+
+The user's ruling: every confirmation for a decision that cannot be taken back must say so, in the same words as
+Cancel Class. A shared partial (`partials/ui-irreversible-line.blade.php`, promoted by the 3rd-duplication rule)
+carries the single sentence:
+
+> This action cannot be **UNDONE**.
+
+`UNDONE` in capitals, bold, **warning** amber (`--color-warning` through the existing `.warn-action` keyword). It now
+appears directly above the buttons in **four** modals:
+
+| Modal | Before |
+|---|---|
+| Approve Request | no warning at all |
+| Reject Request | no warning at all |
+| Cancel Replacement Request | a red uppercase `THIS ACTION CANNOT BE UNDONE.` |
+| Cancel Class | the amber line (the model for this change) |
+
+Reversible actions deliberately get nothing — submitting a request (a pending request can be cancelled), hiding a
+notification (it can be unhidden), logging out.
+
+The old red `.confirm-irreversible` style is gone with its last user; the red must not compete with the word that
+now has one colour everywhere.
+
+**Measured** in a live browser on the demo data: all four modals render `"This action cannot be UNDONE."` with the
+keyword at `rgb(212, 136, 15)` / weight `700` / 14 px line, no page errors.
+
 ## 2026-11-04 — the venue line drops the room name, keeps the pin
 
 User: remove the room name from **Original Class** and **Requested Replacement** so the cells read

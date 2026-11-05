@@ -19,12 +19,10 @@
                           placeholder="Describe the reason for &quot;Other&quot;&hellip;"
                           style="display:none; margin-top:10px"></textarea>
                 <p id="cancelReasonHint" class="hint-text" style="margin:8px 0 0; min-height:14px"></p>
-                {{-- 2026-11-05 (user option B): the Undo affordance is GONE, so
-                     the decision is final — say so BEFORE the confirm button.
-                     `UNDONE` rides the existing warning-colour keyword token
-                     (.warn-action = --color-warning, bold); the caps are in the
-                     copy, so no new class and no new style. --}}
-                <p class="confirm-warning" id="cancelClassIrreversible" style="margin:12px 0 0">This action cannot be <span class="warn-action">UNDONE</span>.</p>
+                {{-- 2026-11-05 (user ruling): the Undo affordance is GONE, so the
+                     decision is FINAL — the shared irreversible line says so
+                     before the confirm button. --}}
+                <span id="cancelClassIrreversible">@include('partials.ui-irreversible-line')</span>
             </div>
             <!-- ─── Success state (swapped in-place, same overlay) ─── -->
             <div id="cancelClassSuccessState" style="display:none">

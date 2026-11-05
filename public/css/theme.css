@@ -1838,14 +1838,6 @@ html.dark .filter-select {
     color: var(--color-warning);
     font-weight: 700;
 }
-.confirm-irreversible {
-    color: var(--color-error);
-    font-weight: 700;
-    font-size: 12px;
-    letter-spacing: 0.03em;
-    margin: 0 0 14px;
-    text-align: center;
-}
 .cancel-details {
     background: var(--color-surface-variant);
     border-radius: var(--radius-sm);

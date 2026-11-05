@@ -370,6 +370,7 @@
             </div>
             <p class="section-heading-sub" style="margin-bottom:8px">Please provide a reason for rejection (<strong style="text-transform:uppercase">required</strong>):</p>
             <textarea id="rejectReasonInput" placeholder="Enter rejection reason..." rows="4" class="modal-textarea"></textarea>
+                @include('partials.ui-irreversible-line')
         </div>
         <div class="modal-footer">
             <div class="modal-footer-left">
@@ -392,6 +393,7 @@
             <div id="approveNotesSummary" class="approval-compare"></div>
             <p class="section-heading-sub" style="margin-bottom:8px">Notes (optional):</p>
             <textarea id="approveNotesInput" placeholder="Optional note for the audit trail..." rows="2" class="modal-textarea"></textarea>
+                @include('partials.ui-irreversible-line')
         </div>
         <div class="modal-footer">
             <div class="modal-footer-left">

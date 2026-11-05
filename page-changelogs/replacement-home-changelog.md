@@ -1,3 +1,9 @@
+## 2026-11-05 — the cancel-request warning joins the one-line standard
+
+`#cancelConfirmOverlay` used a red uppercase `THIS ACTION CANNOT BE UNDONE.`; it now includes the shared
+`partials.ui-irreversible-line` — *This action cannot be UNDONE.* with `UNDONE` in the warning amber — so Cancel
+Request, Cancel Class, Approve and Reject all read identically. The four fact rows below it are untouched.
+
 ## 2026-11-04 — the jump's flash is louder
 
 `Go to My Timetable` paints the shared pulse, so it inherits the same day's change: **3 flashes**, faster

@@ -327,7 +327,11 @@
                         </svg>
                     </div>
                     <p class="confirm-warning">Are you sure you want to <span class="warn-action">CANCEL</span> this Replacement Request?</p>
-                    <p class="confirm-irreversible">THIS ACTION CANNOT BE UNDONE.</p>
+                    {{-- 2026-11-05 (user ruling): ONE irreversible line for every
+                         final decision — the shared partial (amber keyword). It
+                         replaces the old red sentence so the four modals read
+                         identically. --}}
+                    @include('partials.ui-irreversible-line')
                     <dl class="cancel-details" id="cancelConfirmDetails"></dl>
                 </div>
                 <div class="modal-footer">

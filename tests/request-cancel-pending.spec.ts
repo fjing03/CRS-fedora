@@ -71,10 +71,12 @@ test('cancel own pending request leaves it Cancelled and releases the slot', asy
   // ── cancel from the ROW's ban icon (M6), through the frozen confirm ──
   await row.locator('.col-action .btn-icon--danger').click();
   await expect(page.locator('#cancelConfirmOverlay')).toBeVisible({ timeout: 5_000 });
-  // my-replacements UI/UX update (2026-11-04): the warning is now Title-Cased
-  // with CANCEL, and the irreversible line is bold UPPERCASE
+  // my-replacements UI/UX update (2026-11-04): the warning is Title-Cased
+  // with CANCEL. 2026-11-05 (user ruling): ONE irreversible line for every final
+  // decision — shared partial, `UNDONE` as the bold warning-coloured keyword.
   await expect(page.locator('#cancelConfirmBody')).toContainText('Are you sure you want to CANCEL this Replacement Request?');
-  await expect(page.locator('#cancelConfirmBody')).toContainText('THIS ACTION CANNOT BE UNDONE.');
+  await expect(page.locator('#cancelConfirmBody')).toContainText('This action cannot be UNDONE.');
+  await expect(page.locator('#cancelConfirmBody .warn-action')).toHaveText('UNDONE');
   await expect(page.locator('#cancelConfirmDetails dt')).toHaveCount(4);
 
   const dialogs: string[] = [];
