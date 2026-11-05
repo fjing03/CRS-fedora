@@ -3,7 +3,8 @@
 > **Open this first every day.** Pick **1–3 tasks** from *Today / this week*; tick a
 > box only when you have **verified** it (a green test, a live screen, a commit).
 > Never re-plan from scratch — adjust the week, keep the backlog.
-> **Last re-planned: 2026-11-02 (Mon).** Re-plan every Monday (15 minutes).
+> **Last re-planned: 2026-11-05 (Thu, 22:50) — the plan below is set for Fri 6 Nov.**
+> Re-plan every Monday (15 minutes).
 
 **Status key:** `- [ ]` not done · `- [x]` verifiably done · 🔴 high · 🟡 medium · 🟢 low
 **Sources of truth (do not duplicate tasks here):**
@@ -13,16 +14,18 @@ This file only decides **when** and **in what order**.
 
 ---
 
-## 1. Where the project stands (verified 2026-11-02)
+## 1. Where the project stands (verified 2026-11-05, 22:50)
 
 | Area | State |
 |---|---|
-| App | Working: auth, timetables (staff/cohort/student), venue grid, booking + approval, cancel, notifications (mark/hide/shelf), summary cards, lead-time banner |
-| Demo environment | ✅ `CRS-demo` on `:8001` with its own DB `class_replacement_viva` (snapshot of `class_replacement_fresh`); original untouched |
-| Repo | `fedora-backend`, **60 unpushed commits** (you push manually). A parallel session has uncommitted WIP — never stage its files |
-| Report | Ch1, Ch2, 3.1, 3.2, 3.4 content-complete (2026-08-28 review); **§3.3 ≈ 60%**, its survey results blocked on data; Ch4 status unconfirmed |
-| SDD | 24 lanes `applied` (unarchived), 5 `active`, 1 `frozen` (`ui-footer-global`), 1 `draft` (`receipt-target-guard`) |
-| Open bugs | 1 approved but unfixed (notification timestamp skew); 5 arrangement bugs awaiting **your** verdicts; 1 parked test (reload hang) |
+| App | Working end to end: auth, timetables (staff/cohort/student), venue grid + **slot validation**, booking + approval, **Cancel Class (FINAL — no undo)**, notifications (mark/hide/shelf, read-time staleness), summary cards, lead-time banner, **My Replacements as ONE table** with the after-submit row pulse |
+| Demo environment | ✅ `CRS-demo` on `:8001`, own DB `class_replacement_viva`; originals untouched. `CRS-demo` is **behind** the code (fast-forward, no DB work) |
+| Repo | `fedora-backend` — you pushed tonight: `origin` = **`39b2bb7`**, **1 commit unpushed** (`b57bf9d`, the prompt archive). A parallel session keeps `docs/demo-db-data-changes.md` dirty — never stage it |
+| Verification | Full PHPUnit **344 passed / 1899 assertions** (2026-11-05, 410 s); `venue-book` **19**, venue neighbours **61 passed / 2 skipped**, `cancel-class` **12 passed / 4 skipped** |
+| Demo data | `class_replacement_fresh`: 5 requests · 77 notifications (3 hidden) · 2 `class_exceptions` · 8 slot rows — unchanged since the two logged cleanups |
+| SDD | **34** lane dirs in `.sdd/changes/` (33 older finished + `venue-slot-validation` `applied`), **101** archived |
+| Open bugs / test debt | 5 arrangement bugs awaiting **your** verdicts; `submission-conflict-refresh.spec.ts` (`T3d`) still not green; `receipt-target-guard` applied but that one receipt unproven |
+| Report | Ch1, Ch2, 3.1, 3.2, 3.4 content-complete (2026-08-28); **§3.3 ≈ 60%**, survey blocked on data; Ch4 unconfirmed |
 
 **Key dates**
 
@@ -30,12 +33,12 @@ This file only decides **when** and **in what order**.
 |---|---|---|
 | **Tue 3 Nov 2026** | **Face-to-face progress demo to SV** | confirmed |
 | Week of 9 Nov | Resume full working weeks | — |
-| **Week of 7 Dec 2026** | Viva/demo week in the runbook | ⚠ **unconfirmed — confirm with SV on 3 Nov** |
+| **Week of 7 Dec 2026** | Viva/demo week in the runbook | ⚠ **still unconfirmed — ask SV this week** |
 | Week of 21 Dec 2026 | FYP1 portfolio + viva per the 14-week profile | ⚠ conflicts with the line above; resolve it |
 | Sun 27 Dec 2026 | Semester 202605 ends | fixed |
 
-> **First thing to confirm on 3 Nov:** the real portfolio/viva week. Everything in
-> §5 shifts by it. Until then the plan uses *week of 7 Dec* with a 2-week buffer.
+> **Still the #1 unknown:** the real portfolio/viva week. Everything in §5 shifts by it.
+> Until SV answers, the plan uses *week of 7 Dec* with a 2-week buffer.
 
 ---
 
@@ -54,70 +57,50 @@ follow-up — survey data has the longest lead time of anything on this list.
 
 ---
 
-## 3. Today and this week (2026-11-02 → 2026-11-08)
+## 3. This week (2026-11-02 → 2026-11-08)
 
-### Mon 2 Nov (tonight, 30–45 min) — demo prep only
-- [ ] Start the Viva server (`:8001`) and log in as **5425**; open the notifications panel once
-      — `cd "…/CRS-demo" && php artisan serve --host=127.0.0.1 --port=8001`
-- [ ] Click through the demo beats once (venue → class modal → arrange → submit → approve → student view)
-- [ ] Pack: charger, screenshots in `/tmp/opencode/shots/`, a fallback plan if `:8001` dies (restart command is in `docs/viva-demo-runbook.md`)
+### Done this week — verified (full receipts in §7)
 
-### Tue 3 Nov — **your plan: demo → timestamp fix → SMTP**
+- **Tue 3 Nov** — demo day: `:8001` story run + SV demo. *If you have the SV feedback or the
+  portfolio/viva answer, write it into §7 — the date is still open.*
+- **Tue 3 Nov** — notification timestamp fix **A + B1** shipped (`67413e3`): one user-facing clock
+  (`App\Support\LocalTime`), every timestamp in the panel through it.
+- **Wed 4 Nov** — `ui-footer-global` applied (`fea58ad`) and archived.
+- **Wed 4 Nov** — the merge lane `replacement-merge-one-table` applied + archived (`07274c1`):
+  My Replacements is now one table, one row per occurrence.
+- **Thu 5 Nov** — **Cancel Class is FINAL** (`7b7f0d9`, `23c627c`, `12c644a`, `2156172`), the E2E
+  write-guard (`b924552`), the after-submit row pulse (`a29f694`), the tooltip `ME` → `YOU`
+  (`476406a`, `43bda16`).
+- **Thu 5 Nov** — venue page: bookable cells (`daf11c6`) and the slot-validation split (`bee6176`);
+  seven finished briefs archived (`b57bf9d`).
 
-- [ ] **Task 0 — sanity check + SV demo (morning).**
-      08:00: `:8001` up, login as **5425**, demo DB sane (169 users / 3 requests / 7 notifications).
-      Run the story (`docs/viva-demo-runbook.md` beats 1–8), then **confirm the portfolio/viva date**
-      and write the SV feedback into §7 (10 min).
-- [ ] **Task 1 — the timestamp fix A+B+C** (`prompts/completed prompt (Archieve)/pi-bug-notification-requested-at-timezone.md`).
-      Implement → verify live (Request #26 tooltip `2 Nov 2026, 7:00 PM`; history modal Requested
-      **and** Reviewed in MYT) → commit. Cross off §4 H2.
-      *If this slips past ~16:00, move it to Wednesday morning — never rush it between meetings.*
-- [x] **Task 2 — Gmail SMTP flip** (recipe + the corrected 10-row table:
-      `docs/queue-and-emails.md` § "Real sending — the Gmail SMTP flip").
-      Order: fill `.env` → `config:clear` → send one `Mail::raw` **to yourself** →
-      only then test the queued path. **Decide the recipient-safety posture before flipping**
-      (real `tarc.edu.my` addresses vs revert to `log` for the demo). App Password never pasted anywhere.
-      Cross off §4 M2 once a real message lands in your inbox.
-      **Done 2026-11-03 (~02:05):** 8 rows flipped (`MAIL_SCHEME` stays `null`) → `config:clear`
-      → direct `Mail::raw` landed in `foojing03@gmail.com` → queued dummy `ReplacementDecided`
-      (`onQueue('m2-test')`) ran through `queue:work --queue=m2-test --once` (4 s, `failed_jobs` 0)
-      and landed in `poongfj-sm23@student.tarc.edu.my`; the isolated queue kept the 10-job
-      `default` backlog untouched. **M2 item 3 (posture) was decided the same day, split by repo: dev = `log`, viva = `smtp`**
-      (nothing can send from dev; `CRS-demo` was flipped for real demo mail); the App Password was
-      exposed in a chat paste and rotation was declined.
-      Receipt: `docs/queue-and-emails.md`. **Posture decided 2026-11-03: B — `MAIL_MAILER=log`**
-      (the SMTP block stays configured for a one-line flip later; the 10 queued mails can no longer send).
+### Fri 6 Nov — TOMORROW (one main + one small, stop at three)
 
-### Wed 4 Nov — frozen lane day (or the timestamp fix, if it moved)
-- [ ] 🔴 Apply `ui-footer-global` from `prompts/pi-ui-footer-global.md` (5 tasks, ~2 h)
-- [ ] Verify: bottom-pinned, 390 px no clipping, light + dark, print hidden, login strip legible
-- [ ] Changelog + commit; cross off §4 H4
+- [ ] 🔴 **MAIN (90–120 min) — report §3.3.6 + §3.3.1.** Conceptual domain model (drawio → PNG
+      300 dpi + the two-sentence explanation) and the §3.3.1 overview paragraph. Unblocked, needs
+      no data, and it is the last self-contained piece of §3.3 — *source: §4 H8.*
+- [ ] 🟡 **SMALL (30 min) — NFR benchmark receipts** (§4 M1): time the OCC validator and the
+      intersection engine with a tinker script, paste the measured table into
+      `docs/viva-demo-runbook.md`. Numbers only from the measurement, never from memory.
+- [ ] 🔴 **ALWAYS, 5 minutes — the survey (§4 H3).** If the two forms are not distributed yet, send
+      them tomorrow; they have the longest lead time of anything on this list.
+- [ ] ⏱️ **Only if both are done** — ask the agent for §4 **H6** (`T3d`: diagnose
+      `submission-conflict-refresh.spec.ts` timeboxed, or quarantine it with the reason recorded).
 
-### Thu 5 Nov — decisions + long-lead work
-- [ ] 🟡 Read `docs/replacement-arrangement-pending-bugs.md` and give a verdict per bug (fix / accept / WONTFIX) — 30–45 min
-- [ ] 🔴 Survey status: if responses are still not collected, distribute both forms this week (longest lead time)
-- [ ] Weekly review: re-plan next week (15 min)
-
-### Fri 6 Nov — writing (1–2 h)
-- [ ] 🟡 Report §3.3.6 domain-model write-up + §3.3.1 overview paragraph (see `knowledge/Draft Review …md` §3)
-
-### Sat 7 – Sun 8 Nov — rest / buffer
-- [ ] Only if behind: survey follow-up, finish the bug verdicts, or catch up the timestamp fix
-
----
+### Sat 7 – Sun 8 Nov — buffer
+- [ ] Only if behind: survey follow-up (§4 H3), the bug verdicts (§4 H7), or the FR 2.17 report edit (§4 H5).
 
 ## 4. Backlog by priority
 
 ### 🔴 High — do these first
 
-**H1 · SV demo (Tue 3 Nov)**
-- [ ] Prep, run, capture feedback (see §3)
-- [ ] Confirm the viva date and update this file + `docs/viva-demo-runbook.md`
+**H1 · SV demo (Tue 3 Nov) — RAN. One follow-up left**
+- [x] Prep + run (see §7)
+- [ ] **Still open:** confirm the portfolio/viva week with SV and update this file + `docs/viva-demo-runbook.md`
 
-**H2 · Notification timestamp fix (approved A+B+C)**
-- [ ] Implement per `prompts/completed prompt (Archieve)/pi-bug-notification-requested-at-timezone.md`
-- [ ] Verify + commit; then refresh `CRS-demo` (fast-forward, no DB work)
-- **Depends on:** nothing. **Blocks:** nothing, but it is a visible correctness bug in the demo story.
+**H2 · Notification timestamp fix — SHIPPED 2026-11-03 (`67413e3`, A + B1)**
+- [x] One user-facing clock (`App\Support\LocalTime`), panel + mapper convert through it
+- [x] B2 moot (the merge retired that page), C dropped with your agreement — see §7
 
 **H3 · Survey results (§3.3.7) — longest lead time**
 - [ ] Confirm no responses exist yet (last recorded state: blank forms, `[PENDING]` cells)
@@ -126,19 +109,20 @@ follow-up — survey data has the longest lead time of anything on this list.
 - [ ] Then: tables 3.12–3.27 + Figure 3.4 + the FR traceability sentence
 - **Blocks:** §3.3 completion → Ch3 completeness → portfolio quality.
 
-**H4 · `ui-footer-global` (frozen lane, apply ready)**
-- [ ] 5 tasks per `prompts/pi-ui-footer-global.md` + gates + changelog + commit
-- [ ] Refresh `CRS-demo` afterwards
+**H4 · `ui-footer-global` — SHIPPED + ARCHIVED 2026-11-04 (`fea58ad`)**
+- [x] Applied, verified (dark/light, 390 px, print) and moved to `.sdd/archive/` — see §7
 
 **H5 · Report sync (small but graded)**
 - [ ] Add **FR 2.17** to Table 3.5 and change "48 FR" → **49** wherever the count is quoted
       (source: `prompts/for-ai-to-read/FR&NFR copy.md`, change log `v2026-11-02`)
 - [ ] Re-check the draft-review "48 FR / 26 NFR" sentence
 
-**H6 · Test lane (parked, needs your word)**
-- [ ] `tests/submission-conflict-refresh.spec.ts:122` reload hang — apply the designed fix,
-      reseed `class_replacement_testing`, rerun solo on `:8030`
-- [ ] Decide `receipt-target-guard` (draft lane, 5 open tasks): apply or close
+**H6 · Test lane — the guard is APPLIED; one receipt still open**
+- [x] `receipt-target-guard` applied (`b924552` + `7bbce9f`) and archived: writing specs now refuse
+      (exit 1 at collection) unless the blessed `:8030` env is exact
+- [ ] **`T3d` — `tests/submission-conflict-refresh.spec.ts` is still not green** (it fails inside its
+      own arrival flow). Decide tomorrow: diagnose timeboxed (~45 min), or quarantine as
+      `test.fixme()` with the reason recorded in the lane's `tasks.md`
 
 **H7 · Arrangement bug verdicts (blocks fixes)**
 - [ ] BUG-01 (stale slot-trigger label) — verdict
@@ -176,11 +160,13 @@ follow-up — survey data has the longest lead time of anything on this list.
 - [ ] Include the 292-test suite count **measured now**, not quoted
 
 **M5 · SDD hygiene**
-- [ ] Archive the 24 applied lanes (needs your word) — `prompts/completed prompt (Archieve)/README.md` rule
-- [ ] Check the 5 `active` lanes with 0 open tasks: verify → flip `applied` → archive
+- [ ] Archive the **33 older finished** lane dirs left in `.sdd/changes/` (needs your word) —
+      `git mv` + `sdd.yaml: archived` + a `docs:` commit, the same pass as 2026-11-05
+- [ ] Archive `venue-slot-validation` too once you have read its changelog entry
 
 **M6 · Push origin**
-- [ ] You push `fedora-backend` manually (60 commits) — the agent must never push
+- [x] You pushed 27 commits tonight — `origin` = `39b2bb7`
+- [ ] One more sits unpushed: `b57bf9d` (the prompt archive). Push when convenient; the agent never pushes
 
 **M7 · Triage `issues/ugly toast message.png`**
 - [ ] Decide: real bug → small lane; or cosmetic → park in `prompts/extra tasks/`
@@ -200,9 +186,9 @@ follow-up — survey data has the longest lead time of anything on this list.
 
 | Week | Dates | Main outcome (2–3 tasks only) |
 |---|---|---|
-| W7 | 2–8 Nov | SV demo ✅ · timestamp fix · footer · bug verdicts · survey sent |
-| W8 | 9–15 Nov | Test lane green (reload hang + receipt guard) · §3.3 write-up · FR 2.17 in report |
-| W9 | 16–22 Nov | Survey analysis (§3.3.7) if data is in · Ch4 drafting · NFR benchmarks |
+| W7 | 2–8 Nov | **Delivered:** SV demo · timestamp fix · footer · merge lane · Cancel Class final · venue slot rules. **Still open from this week:** viva date, survey distribution, the 5 bug verdicts, §3.3.6 + §3.3.1 |
+| W8 | 9–15 Nov | §3.3 write-up finished · FR 2.17 in the report · `T3d` decided (fix or quarantine) · the 33 finished lanes archived |
+| W9 | 16–22 Nov | Survey analysis (§3.3.7) if data is in · NFR benchmark table · Ch4 drafting |
 | W10 | 23–29 Nov | Ch4 complete · UAT table · remaining bug fixes · archive lanes |
 | W11 | 30 Nov–6 Dec | Report integration + references + proofread · slide deck draft · SMTP receipts |
 | W12 | 7–13 Dec | Full rehearsal ×2 · demo DB snapshot/restore · **viva (if confirmed)** |
@@ -232,9 +218,29 @@ follow-up — survey data has the longest lead time of anything on this list.
 - [x] Summary cards (My Subjects + confirmed/pending split) shipped (`e1429b1` + receipts)
 - [x] Lead-time banner shipped (`3a407e4`)
 - [x] FR 2.17 added to `FR&NFR copy.md` (49 FRs) — **report update still open (H5)**
-- [x] Timestamp bug diagnosed and fix approved (A+B+C) — **implementation open (H2)**
-- [x] `ui-footer-global` lane frozen and the apply prompt written — **apply open (H4)**
 - [x] opcode/stale-serve trap documented + `scripts/dev-serve.sh`
+- [x] **Notification timestamp fix A + B1** (`67413e3`): `App\Support\LocalTime` is the one
+      user-facing clock; panel + mapper convert through it. B2 moot, C dropped by agreement — 2026-11-03
+- [x] **`ui-footer-global`** applied + archived: `fea58ad`, lane in `.sdd/archive/` — 2026-11-04
+- [x] **`replacement-merge-one-table`** applied + archived (`07274c1`): My Replacements is ONE table,
+      one row per occurrence, `/my-replacements` canonical with the two alias routes — 2026-11-04
+- [x] **`request-approval-ui CONSISTENCY` parts 1 + 2** shipped (1f, 3B, 3C, 3A, 3D, 1h, 3E-3, §4) —
+      brief archived 2026-11-05
+- [x] **Cancel Class is FINAL** (`7b7f0d9`, `23c627c`, `12c644a`, `2156172`): undo removed from UI,
+      JS and server; one shared irreversible line on four modals; stale notices marked inactive at
+      read time — 2026-11-05
+- [x] **E2E write-guard live** (`b924552`, lane applied `7bbce9f`): a writing spec refuses at
+      collection unless `CRS_MODE=testing` + `CRS_BASE=…:8030` (+ `CRS_ALLOW_SQL=1`) are exact — one
+      receipt (`T3d`) still open, see §4 H6
+- [x] **After-submit row pulse** (`a29f694`): no success toast, `?new-req=<id>`, the new row flashes —
+      2026-11-05
+- [x] **Tooltip `ME` → `YOU`** on cohort + venue (and the two mock-ups): `476406a`, `43bda16` — 2026-11-05
+- [x] **Venue page bookable cells** (`daf11c6`): honest `cell-no-room` state, class-driven late cells,
+      Earliest-bookable action + `Bookings open` chip, the invented "2-hour gap" number deleted — 2026-11-05
+- [x] **Venue slot validation** (`bee6176`, lane `venue-slot-validation`): hover asks one clear hour,
+      the picked class's real duration decides; warning modal instead of an early verdict — 2026-11-05
+- [x] **Archive passes**: 7 SDD lanes → `.sdd/archive/` (2026-11-05) and 7 finished briefs →
+      `prompts/completed prompt (Archieve)/` with evidence rows (`b57bf9d`)
 
 ---
 
