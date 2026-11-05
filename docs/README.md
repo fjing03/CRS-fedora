@@ -5,7 +5,6 @@ Current, load-bearing docs. Superseded material is in [`archive/`](archive/) —
 | File | What it is | Status |
 |------|-----------|--------|
 | [`venue-restrictions.md`](venue-restrictions.md) | B005 no-Diploma (REPEALED 2026-10-27) / B006 allow-disallow + AMIT2034 lab-only / booking rules | **Active** — B006/the remaining rules enforced; B005 repealed (the standing AMIT2034 row renders clean) |
-| [`fcb-theme-colors.md`](fcb-theme-colors.md) | FCB-inspired color system — the design source for `public/css/theme.css` tokens | **Reference** — implemented in theme.css; consult when touching colors |
 | [`two-machine-workflow.md`](two-machine-workflow.md) | MSI (primary) + HP (secondary) two-machine protocol: one-trunk branch policy, serialize rules, per-machine DB landscape, boot ritual | **Active** — read when working across machines, touching branches/remotes, or unsure which DB a name refers to |
 | [`server-commands.md`](server-commands.md) | Start / restart / stop `php artisan serve` — the stale-cache ritual, deep-clean sequence, fish-shell quirks, queue-worker restart | **Active** — use whenever the dev server must be started, restarted after a UI change, or stopped |
 | [`viva-demo-runbook.md`](viva-demo-runbook.md) | The viva demo story + demo-pack-week checklist (anchor: week of 7 Dec 2026, unconfirmed) | **Active** — draft 2026-10-28 |
@@ -18,6 +17,10 @@ Current, load-bearing docs. Superseded material is in [`archive/`](archive/) —
 | [`archive/LEFTOVER_TASKS.md`](archive/LEFTOVER_TASKS.md) | Post-merge chore tracker (2026-08-27) | Done — historical record |
 | [`archive/CodingMAINfedora.md`](archive/CodingMAINfedora.md) | Old fedora CodingMAIN variant | Folded into canonical `prompts/for-ai-to-read/CodingMAIN.md` |
 | [`archive/CodingMAIN-upstream-original.md`](archive/CodingMAIN-upstream-original.md) | The original root `CodingMAIN.md` before the 2026-10-10 rewrite | Kept for upstream-merge diffing |
+| [`archive/fcb-theme-colors.md`](archive/fcb-theme-colors.md) | FCB-inspired colour system — the palette rationale behind `public/css/theme.css` tokens | **Archived 2026-11-05** — the palette is implemented in `theme.css`; kept as design rationale only |
+| [`archive/demo-db-oct31-recovered.md`](archive/demo-db-oct31-recovered.md) | Forensic record of the 2026-11-01 data-loss recovery: what the evidence could and could not restore | **Archived 2026-11-05** — incident closed; the live trail is `demo-db-data-changes.md` |
+| [`archive/livewire-js-investigation.md`](archive/livewire-js-investigation.md) | Evidence record for Livewire's `Component not found: undefined` (call sites, probe output, the MO reconciliation) | **Archived 2026-11-05** — investigation closed as framework-internal, no app fix; its `probes/` scripts no longer exist |
+| [`archive/Livewire-JS-Investigation-Report.md`](archive/Livewire-JS-Investigation-Report.md) | The plain-English summary of the same investigation | **Archived 2026-11-05** — same closed task, prompts already archived |
 
 Canonical entry points: **`AGENTS.md`** (root bootstrap pointer, auto-loaded) → **`prompts/for-ai-to-read/CodingMAIN.md`** (project spec) → **`prompts/for-ai-to-read/PI_Chat_Context_Handover.md`** (session state).
 - `docs/queue-and-emails.md` — SDD span-aware-approval-flow runbook: dev = log mailer (nothing sends), the database-backed queue job lifecycle, `queue:work --once` for demo decisions, the SMTP later-flip.

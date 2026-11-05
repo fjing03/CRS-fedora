@@ -579,8 +579,7 @@ These ten rules are **non-negotiable** for every page and every future change:
 AGENTS.md                            ← session rules (auto-loaded) — read first alongside this file
 CodingMAIN.md                        ← this file (canonical)
 docs/venue-restrictions.md           ← B005/B006/P→labs rules (B005 enforced, rest doc-only)
-docs/fcb-theme-colors.md             ← FCB-inspired palette reference (theme.css token source)
-docs/archive/                        ← superseded docs (FYP-BRIEFING, BACKEND-TASKS, LEFTOVER_TASKS, CodingMAINfedora, original CodingMAIN variants)
+docs/archive/                        ← superseded docs (FYP-BRIEFING, BACKEND-TASKS, LEFTOVER_TASKS, CodingMAIN variants, the FCB palette rationale, the Livewire JS investigations, the Nov-1 recovery record)
 routes/web.php                       ← auth + Livewire page routes
 app/Livewire/                        ← real-data timetable components (MyTimetable, CohortTimetable, StudentMyTimetable, VenueTimetable)
 app/Services/                        ← MatrixIntersectionEngine, OCCValidator (+ OCCResult)

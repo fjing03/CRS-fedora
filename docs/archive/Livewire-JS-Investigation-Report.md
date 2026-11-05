@@ -3,7 +3,7 @@
 Investigation task: `prompts/Investigate Livewire JavaScript.md`.
 Continued from a PI chat session that stopped on connection errors — that session left no
 artifacts on disk, only the prompt, so the full checklist was re-run from scratch.
-Full evidence record: `docs/livewire-js-investigation.md` (call-site line numbers, probe scripts,
+Full evidence record: `docs/archive/livewire-js-investigation.md` (call-site line numbers, probe scripts,
 receipt outputs). No code was modified anywhere.
 
 ## A. Summary (both issues in simple English)
