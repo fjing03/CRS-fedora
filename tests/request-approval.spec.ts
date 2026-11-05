@@ -189,8 +189,10 @@ test('U3-T9g: the Approve/Reject modals — Request ID in the title, [Lecture], 
   await page.evaluate((id: number) => (window as any).openRejectModal(id), row.id);
   await expect(page.locator('#rejectReasonModal')).toHaveClass(/show/);
 
-  // (2) the Request ID lives in the title, read from the actual request
+  // (2) the Request ID lives in the title, read from the actual request — and
+  //     it is NOT repeated inside the card (the Approve modal keeps its chip)
   await expect(page.locator('#rejectReasonTitle')).toHaveText('Rejection Reason (#' + row.id + ')');
+  await expect(page.locator('#rejectSummary .approval-id')).toHaveCount(0);
 
   // (1) the subject prints the FULL class type inside the brackets
   await expect(page.locator('#rejectSummary .approval-classtype')).toHaveText('[' + longType + ']');
@@ -226,6 +228,7 @@ test('U3-T9g: the Approve/Reject modals — Request ID in the title, [Lecture], 
   await page.evaluate((id: number) => (window as any).openApproveNotesModal([id]), row.id);
   await expect(page.locator('#approveNotesModal')).toHaveClass(/show/);
   await expect(page.locator('#approveNotesSummary .approval-classtype')).toHaveText('[' + longType + ']');
+  await expect(page.locator('#approveNotesSummary .approval-id'), 'the Approve modal keeps the id (its title has none)').toHaveCount(1);
   await expect(page.locator('#approveNotesSummary .lecturer-avatar')).toHaveCount(0);
   await expect(page.locator('#approveNotesSummary .copy-icon')).toHaveCount(0);
   const approveOriginal = (await page.locator('#approveNotesSummary .cmp-original').innerText()).replace(/\s+/g, ' ');

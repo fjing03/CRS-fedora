@@ -533,7 +533,11 @@
         //    Original → Replacement comparison pair built from the SAME
         //    HtmlBuilder blocks the table uses, so the confirm step shows the
         //    decision cues without duplicating any formatting logic. ──
-        function approvalCard(r) {
+        /* opts.hideRequestId (2026-11-05, user): the Reject modal prints the id
+           in its own title, so the card stops repeating it there; the Approve
+           modal keeps it (its title carries no id). */
+        function approvalCard(r, opts) {
+            opts = opts || {};
             const level = urgencyLevel(r.classDate);
             const conflict = r.slotValidity === 'conflict';
             const slotBadge = '<span class="slot-badge ' + (conflict ? 'slot-conflict' : 'slot-valid')
@@ -546,7 +550,7 @@
             return ''
                 + '<div class="approval-card">'
                 +   '<div class="approval-card-head">'
-                +     '<span class="approval-id">#' + r.id + '</span>'
+                +     (opts.hideRequestId ? '' : '<span class="approval-id">#' + r.id + '</span>')
                 +     '<span class="cell-code">' + escHtml(r.courseCode) + '</span>'
                 +     slotBadge
                 +     '<span class="urgency-badge ' + urgencyClass(level) + '" data-tip="' + urgencyTip(r) + '">' + urgencyLabel(level, r.classDate) + '</span>'
@@ -1152,7 +1156,7 @@
             }).filter(Boolean);
             document.getElementById('approveNotesTitle').textContent =
                 ids.length === 1 ? 'Approve Request' : 'Approve ' + ids.length + ' Requests';
-            document.getElementById('approveNotesSummary').innerHTML = rows.map(approvalCard).join('');
+            document.getElementById('approveNotesSummary').innerHTML = rows.map(function(row) { return approvalCard(row); }).join('');
             document.getElementById('approveNotesInput').value = '';
             document.getElementById('approveNotesModal').classList.add('show');
             document.getElementById('approveNotesInput').focus();
@@ -1191,7 +1195,7 @@
             currentRejectId = id;
             setRejectModalTitle(id);
             const r = MockData.approvalRequests.find(function(x) { return x.id === id; });
-            document.getElementById('rejectSummary').innerHTML = r ? approvalCard(r) : '';
+            document.getElementById('rejectSummary').innerHTML = r ? approvalCard(r, { hideRequestId: true }) : '';
             document.getElementById('rejectReasonInput').value = '';
             document.getElementById('confirmRejectBtn').disabled = true;
             document.getElementById('rejectReasonModal').classList.add('show');

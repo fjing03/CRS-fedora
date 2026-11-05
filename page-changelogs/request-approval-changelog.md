@@ -16,7 +16,8 @@ belong to the rejection modal alone.
 - The full word comes from the existing `UiLabels.classType(type, 'long')` (`L/T/P` → `Lecture/Tutorial/Practical`),
   never a local map, and the payload's `classType` stays the raw code.
 - The request ID is read from the request that was opened; a **bulk** reject has no single ID, so its title stays
-  plain `Rejection Reason`.
+  plain `Rejection Reason`. The reject modal's card no longer repeats the id (the title carries it now); the Approve
+  modal keeps its `#28` chip because its title carries no id.
 - The avatar and the copy-email icon are gone from the modal card only — the table rows and the Request Details
   modal keep theirs, and the dead `.lecturer-avatar` / `.approval-lecturer .copy-icon` rules went with them.
 - The Original card is an **opt-in** variant of `HtmlBuilder.classBlock(r, { originalCard: true })`: duration dropped,
