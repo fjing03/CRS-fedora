@@ -1,4 +1,12 @@
-import { test, expect } from '@playwright/test';
+import { test, expect, type Locator, type Page } from '@playwright/test';
+import { throwUnlessTestingTarget } from './helpers/receipt-target-guard';
+
+// receipt-target-guard: the confirm-path tests (S9/S11, S10, S14, S6) refuse
+// to run unless CRS_BASE = http://127.0.0.1:8030 AND CRS_MODE = testing —
+// confirm() persists a class_exceptions row via the cancelClass wire
+// (public/js/ui-common.js CancelClassModal.confirm), and the demo DB (:8000)
+// is read-only for agents since the 2026-11-01 wipe (docs/demo-db-data-changes.md).
+// The read-only S-chapters (S1–S8 affordance states) keep their usual :8000 runs.
 
 // class-modal-affordances T4 (the regime re-anchor): the live blades are
 // AUTH-brushed (redirect to login without a state) and the actors are
@@ -72,7 +80,73 @@ function seedEntry() {
   };
 }
 
+/**
+ * 2026-11-05 (user request): the confirm-path tests no longer trust a hardcoded
+ * week. This walks the LIVE deck and returns the first own occurrence whose
+ * detail modal actually OFFERS the Cancel Class? affordance — the app's own
+ * guards (own class · status · holiday · 2-working-day window) decide, not the
+ * calendar of the day this file was written. It leaves that modal OPEN, with the
+ * affordance visible, and hands back the facts the assertions need.
+ */
+async function openFirstCancellable(page: Page): Promise<{
+  week: string;
+  sid: string;
+  code: string;
+  di: number;
+  start: number;
+  btn: Locator;
+}> {
+  await page.goto(MY);
+  await page.waitForTimeout(1500);   // the skeleton swap must settle before the week walk
+
+  const select = page.locator('#weekSelect');
+  const weeks = await select.evaluateAll((opts) => opts.map((o) => (o as HTMLOptionElement).value));
+  // start where the page already is (today's week — cancellable classes live
+  // near it), then walk the rest: a full deck walk from week 1 is far slower.
+  const current = await select.inputValue();
+  const startAt = weeks.indexOf(current);
+  const order = startAt > 0 ? [...weeks.slice(startAt), ...weeks.slice(0, startAt)] : weeks;
+
+  for (const week of order) {
+    await select.selectOption(week);
+    await page.waitForTimeout(180);
+    const blocks = page.locator('#tableBody .event-block');
+    const total = await blocks.count();
+
+    for (let i = 0; i < total; i++) {
+      await blocks.nth(i).click();
+      await page.waitForTimeout(90);
+      const btn = page.locator('#classModal .modal-footer [data-cancel-class-btn]');
+
+      if (await btn.count()) {
+        const facts = await blocks.nth(i).evaluate((el) => {
+          const node = el as HTMLElement & { __eventData?: Record<string, unknown> };
+          const e = node.__eventData || {};
+          return {
+            sid: node.dataset.sid || '',
+            code: String(e.code || ''),
+            di: Number(e.di),
+            start: Number(e.start),
+          };
+        });
+        return { week, btn, ...facts };
+      }
+
+      await page.locator('#classModal .modal-close').click({ force: true });
+      await page.waitForTimeout(40);
+    }
+  }
+
+  throw new Error(
+    'no cancellable class in the live deck — every occurrence is refused by the guards today',
+  );
+}
+
 test.describe('Cancel Class Flow', () => {
+  // the three confirm-path receipts walk the live deck for a cancellable class
+  // (2026-11-05) — bounded, but well past Playwright's 30 s default
+  test.setTimeout(120_000);
+
   test.beforeEach(async ({ page }) => {
     // Fresh storage for every test (serial file, one fresh context each) —
     // cancels mutate the in-memory MockData per page load anyway, but the
@@ -205,13 +279,14 @@ test.describe('Cancel Class Flow', () => {
   });
 
   // ── S9 (+S11) — happy path: block vanishes, ledger written, Later path ──
-  test('S9/S11 — confirm cancels the class: block gone, ledger written, Later keeps page + undo toast', async ({ page }) => {
-    await page.goto(MY);
-    await page.locator('#weekSelect').selectOption('10');
-    const block = page.locator('#tableBody .event-block:has-text("BMIT2013(L)")');
-    await expect(block).toBeVisible();
-    await block.click();
-    await page.locator('#classModal .modal-footer [data-cancel-class-btn]').click();
+  test('S9/S11 — confirm cancels the class: block gone, ledger written, Later keeps page + the confirmation toast', async ({ page }) => {
+    // the receipt-target-guard: S9's route persists the class_exceptions row
+    // via the cancelClass wire — testing-DB envs only
+    throwUnlessTestingTarget('cancel-class S9/S11 — the confirmed cancel persists a class_exceptions row (pageLivewire cancelClass)');
+    // 2026-11-05: the class is WHATEVER the deck offers as cancellable today
+    const pick = await openFirstCancellable(page);
+    const totalBefore = Number((await page.locator('#sumTotal').innerText()).trim());
+    await pick.btn.click();
     await expect(page.locator('#cancelClassOverlay')).toBeVisible();
 
     await page.locator('#cancelReasonList input[type="radio"][value="medical_leave"]').click();
@@ -220,17 +295,26 @@ test.describe('Cancel Class Flow', () => {
     // Success state carries the message (the confirm path never double-toasts)
     await expect(page.locator('#cancelClassSuccessState')).toBeVisible();
     await expect(page.locator('#cancelClassSuccessState')).toContainText('✓ Class cancelled');
-    await expect(page.locator('#cancelClassSummary')).toContainText('BMIT2013');
+    await expect(page.locator('#cancelClassSummary')).toContainText(pick.code);
 
-    // S11 — "I'll Do It Later": no navigation; grid rebuilds; undo toast
+    // S11 — "I'll Do It Later": no navigation; grid rebuilds; confirmation toast
     await page.locator('#cancelLaterBtn').click();
     await expect(page).toHaveURL(/\/my-timetable-ui/);  // stayed on the page
     await expect(page.locator('#cancelClassOverlay')).toBeHidden();
-    await expect(page.locator('#tableBody .event-block:has-text("BMIT2013(L)")')).toHaveCount(0);
-    // Summary cards treat the slot as free too (design §4)
-    await expect(page.locator('#sumTotal')).toHaveText('6');
-    // S11 undo toast with visible Undo button
-    await expect(page.locator('#toastBar .toast-undo')).toBeVisible();
+    // cancelled-blocks-stay-visible (law ①) — MEASURED 2026-11-05: the SAME
+    // block (by its own session id) stays on the grid, re-rendered as the
+    // conflict family with the (Cancelled) marker. It never disappears.
+    const cancelled = page.locator(`#tableBody .event-block[data-sid="${pick.sid}"]`);
+    await expect(cancelled).toHaveCount(1);
+    await expect(cancelled).toHaveClass(/event-conflict/);
+    await expect(cancelled).toContainText('Cancelled');
+    // Summary cards refresh too (design §4) — the exact total is deck-dependent,
+    // so the receipt is "it moved", not a magic number.
+    await expect(page.locator('#sumTotal')).not.toHaveText(String(totalBefore));
+    // 2026-11-05 (user ruling: Cancel Class is FINAL): the toast confirms the
+    // cancellation and offers NOTHING to click back — the undo path is deleted.
+    await expect(page.locator('#toastBar')).toContainText('Class cancelled — arrange replacement when ready');
+    await expect(page.locator('#toastBar .toast-undo')).toBeHidden();
 
     // S9 — the ledger entry is written to sessionStorage
     const ledger = await page.evaluate(
@@ -238,7 +322,7 @@ test.describe('Cancel Class Flow', () => {
     );
     expect(ledger).toHaveLength(1);
     expect(ledger[0].matchKey).toEqual({
-      week: 10, code: 'BMIT2013', di: 1, start: 12, lecturer: ME,
+      week: Number(pick.week), code: pick.code, di: pick.di, start: pick.start, lecturer: ME,
     });
     expect(ledger[0].reason).toBe('medical_leave');  // the DB enum travels (class-cancel-db-persist)
     expect(ledger[0].row.id).toBeGreaterThan(14);  // conflictedClasses max seed id
@@ -246,12 +330,11 @@ test.describe('Cancel Class Flow', () => {
 
   // ── S10 — success → "Arrange Replacement Now" ──
   test('S10 — Arrange Replacement Now navigates to the arrangement page with the cancelled class params', async ({ page }) => {
-    await page.goto(MY);
-    await page.locator('#weekSelect').selectOption('10');
-    const block = page.locator('#tableBody .event-block:has-text("BMIT2013(L)")');
-    await expect(block).toBeVisible();
-    await block.click();
-    await page.locator('#classModal .modal-footer [data-cancel-class-btn]').click();
+    // the receipt-target-guard: the same confirmed persist precedes the
+    // Arrange-Now handoff — testing-DB envs only
+    throwUnlessTestingTarget('cancel-class S10 — the same confirmed persist precedes the Arrange-Now handoff');
+    const pick = await openFirstCancellable(page);
+    await pick.btn.click();
     await page.locator('#cancelReasonList input[type="radio"][value="medical_leave"]').click();
     await page.locator('#confirmCancelClassBtn').click();
     await expect(page.locator('#cancelClassSuccessState')).toBeVisible();
@@ -259,9 +342,11 @@ test.describe('Cancel Class Flow', () => {
     await page.locator('#cancelArrangeNowBtn').click();
     // T4 RE-ANCHOR: on the live deck the rows carry the class_session id
     // (the eventsData facts) — the Arrange-Now handoff uses the
-    // pinned-occurrence SESSION shape (?session=24&week=11 from the W10
-    // block), NOT the legacy ?code&date&duration scheme.
-    await expect(page).toHaveURL(/\/replacement-arrangement\?session=\d+&week=\d+&from=my-timetable/);
+    // pinned-occurrence SESSION shape, NOT the legacy ?code&date&duration
+    // scheme. 2026-11-05: the ids must be the PICKED block's own (1-based week).
+    await expect(page).toHaveURL(
+      new RegExp(`/replacement-arrangement\\?session=${pick.sid}&week=${Number(pick.week) + 1}&from=my-timetable`),
+    );
   });
 
   // ── S12 — pre-seeded ledger replay: load toast + Just cancelled chip ──
@@ -277,7 +362,7 @@ test.describe('Cancel Class Flow', () => {
       ({ key, value }: { key: string; value: string }) => {
         // Seed on the FIRST document load only (the before-each clear runs
         // first); later navigations see the key present and never clobber a
-        // ledger that the test itself mutated (S13b consumed / S14 undo).
+        // ledger that the test itself mutated (S13b consumed).
         try {
           if (!sessionStorage.getItem(key)) {
             sessionStorage.setItem(key, value);
@@ -289,10 +374,10 @@ test.describe('Cancel Class Flow', () => {
 
     await page.goto(HOME);
 
-    // S12 load toast (12 s) with Undo
+    // S12 load toast (12 s) — a confirmation only (no undo since 2026-11-05)
     const bar = page.locator('#toastBar');
     await expect(bar).toBeVisible();    await expect(bar).toContainText('Class cancelled — arrange replacement when ready');
-    await expect(page.locator('#toastBar .toast-undo')).toBeVisible();
+    await expect(page.locator('#toastBar .toast-undo')).toBeHidden();
 
     // S13 — home row listed with the Just cancelled chip (seed date chosen
     // to sort onto pagination page 1). B107 is unique to the seeded row —
@@ -354,49 +439,13 @@ test.describe('Cancel Class Flow', () => {
     await expect(page.locator('#toastBar .toast-undo')).toBeHidden();
   });
 
-  // ── S14 — undo from the load toast restores everything ──
-  // T4 RE-ANCHOR: the SAME-PAGE undo is the honest live receipt. The old
-  // cross-page shape (the HOME trip seeding the ledger) assumed the home's
-  // ledger replay resolves twins — the live home serves the DB rows (no
-  // myTimetable store to resolve), so the mock-era cross-page shape can't
-  // be reproduced without inventing data. The undo's real contract (the
-  // ledger drop + the block restore + the 'Class restored.' toast) runs
-  // on the my-timetable page itself (ui-common's showUndoToast builds
-  // exactly this: `location.pathname === '/my-timetable-ui`' → the
-  // in-place rebuild + the toast).
-  test('S14 — undo removes the entry, restores the block on my-timetable', async ({ page }) => {
-    // 1. cancel a REAL own occurrence (the S9 route, W10 BMIT2013 Tue):
-    await page.goto(MY);
-    await page.locator('#weekSelect').selectOption('10');
-    const block = page.locator('#tableBody .event-block:has-text("BMIT2013(L)")');
-    await expect(block).toBeVisible();
-    await block.click();
-    await page.locator('#classModal .modal-footer [data-cancel-class-btn]').click();
-    await page.locator('#cancelReasonList input[type="radio"][value="medical_leave"]').click();
-    await page.locator('#confirmCancelClassBtn').click();
-    await expect(page.locator('#cancelClassSuccessState')).toBeVisible();
-
-    // 2. the block vanishes; the ledger carries the entry
-    await page.locator('#cancelLaterBtn').click();
-    await expect(page.locator('#tableBody .event-block:has-text("BMIT2013(L)")')).toHaveCount(0);
-    const entries = await page.evaluate(
-      (key) => JSON.parse(sessionStorage.getItem(key) || '[]'), LEDGER_KEY,
-    );
-    expect(entries.length).toBe(1);
-
-    // 3. the UNDO: the load toast IS the undo surface (needsLoadToast → the
-    //    12s toast; on my-timetable the click rebuilds the grid + confirms
-    //    with the 'Class restored.' toast in place).
-    await page.locator('#toastBar .toast-undo').click();
-    await expect(page.locator('#toastBar')).toContainText('Class restored.');
-
-    // 4. the ledger dropped + the block RESTORED on the page
-    const after = await page.evaluate(
-      (key) => JSON.parse(sessionStorage.getItem(key) || '[]'), LEDGER_KEY,
-    );
-    expect(after.length).toBe(0);
-    await expect(page.locator('#tableBody .event-block:has-text("BMIT2013(L)")')).toBeVisible();
-  });
+  // ── S14 — RETIRED 2026-11-05 (user ruling: "I give up all UNDONE function") ──
+  // The test proved the undo's contract (click the load toast's Undo → the
+  // ledger entry drops, the block returns, "Class restored."). The undo path is
+  // deleted from the app — ClassCancellation.undoViaServer/undo, the server's
+  // cancelClassUndo and the ?restored=1 arrival toast all went with it — so the
+  // contract is now the OPPOSITE and lives in S9/S11: the confirmation toast
+  // carries no Undo, and the cancelled class stays cancelled.
 
   // ── S15 — stale/unresolvable ledger entry is dropped silently ──
   test('S15 — unresolvable ledger entry: no toast, no crash, entry dropped', async ({ page }) => {
@@ -446,47 +495,69 @@ test.describe('Cancel Class Flow', () => {
     await expect(page.locator('#classModal .modal-footer [data-cancel-class-btn]')).toHaveCount(0);
   });
 
-  // ── S6 — confirm-time clock recheck: class ends while the modal is open ──
-  test('S6 — class ending between modal open and confirm aborts with the "already ended" hint', async ({ page }) => {
-    await page.goto(MY);
-    await page.locator('#weekSelect').selectOption('10');
-    // Same S9 fixture: eventsByWeek[10] di=1 (Tue 01 Dec 2026) BMIT2013 L
-    // B009, start idx 12 / end idx 15 → 2:00–4:00 PM (hours[16] = '16:00').
-    const block = page.locator('#tableBody .event-block:has-text("BMIT2013(L)")');
-    await expect(block).toBeVisible();
-    await block.click();
-    await page.locator('#classModal .modal-footer [data-cancel-class-btn]').click();
-    await expect(page.locator('#cancelClassOverlay')).toBeVisible();
+  // ── S6 — confirm-time recheck: the world changes while the modal is open ──
+  // 2026-11-05 (user request: no date-dependent receipts): the old shape froze
+  // the browser clock past the class's end. That froze Date for the WHOLE page,
+  // which the idle watchdog and the session countdown read — they navigated to
+  // login before the confirm click could happen (measured). This shape needs no
+  // clock at all: the SAME class is cancelled for real from a SECOND TAB while
+  // the first tab's modal sits open, so the confirm-time guard finds a class
+  // that is no longer cancellable — the exact race that re-check exists for.
+  test('S6 — a class cancelled in another tab while the modal is open aborts on confirm', async ({ page, context }) => {
+    // the receipt-target-guard: the OTHER tab performs a live cancel
+    throwUnlessTestingTarget('cancel-class S6 — the second tab performs a live cancel (pageLivewire cancelClass)');
 
+    // ── tab A: open the cancel modal for a cancellable class, pick the reason ──
+    const pick = await openFirstCancellable(page);
+    await pick.btn.click();
+    await expect(page.locator('#cancelClassOverlay')).toBeVisible();
     await page.locator('#cancelReasonList input[type="radio"][value="medical_leave"]').click();
 
-    // Clock mechanism (named per design §8): page.clock.setFixedTime ALONE
-    // — no clock.install(). Date is faked from this point but timers stay
-    // real, so the app's setTimeout/toast code is untouched. Freeze 30 s
-    // past the class end (16:00:30 local on 01 Dec 2026); the modal was
-    // opened under the real clock BEFORE the end, so only the confirm-time
-    // re-check (ClassCancellation.cancel → isCancellable) can catch it.
-    await page.clock.setFixedTime(new Date(2026, 11, 1, 16, 0, 30));
+    // ── tab B: cancel THAT SAME class for real ──
+    const other = await context.newPage();
+    const otherPick = await openFirstCancellable(other);
+    expect(otherPick.sid, 'both tabs walk the same deck — the same class must be picked').toBe(pick.sid);
+    await otherPick.btn.click();
+    await other.locator('#cancelReasonList input[type="radio"][value="medical_leave"]').click();
+    await other.locator('#confirmCancelClassBtn').click();
+    await expect(other.locator('#cancelClassSuccessState')).toBeVisible();
+    await other.close();
 
+    // ── back in tab A: confirm now must ABORT (the guard re-runs at confirm) ──
     await page.locator('#confirmCancelClassBtn').click();
 
-    // Abort: inline hint, overlay stays open, no success state
-    await expect(page.locator('#cancelReasonHint')).toHaveText('This class has already ended.');
-    await expect(page.locator('#cancelClassOverlay')).toBeVisible();
+    // Abort: no success state, the modal stays open, the Yes button re-arms for
+    // a retry (the "pending-disable → re-gate" contract).
     await expect(page.locator('#cancelClassSuccessState')).toBeHidden();
-    // Nothing was written: ledger untouched …
+    await expect(page.locator('#cancelClassOverlay')).toBeVisible();
+    await expect(page.locator('#confirmCancelClassBtn')).toBeEnabled();
+    // The refusal EXPLAINS itself (fixed 2026-11-05: the gate used to erase the
+    // copy it had just written). The sentence is the SERVER's own — the second
+    // tab already wrote the exception, so the trait answers "already cancelled".
+    await expect(page.locator('#cancelReasonHint')).toHaveText('This class is already cancelled.');
+    // Nothing was written in THIS tab: no ledger entry …
     const ledger = await page.evaluate(
       (key) => JSON.parse(sessionStorage.getItem(key) || '[]'), LEDGER_KEY,
     );
     expect(ledger).toHaveLength(0);
-    // … and the block is still on the grid.
-    await expect(page.locator('#tableBody .event-block:has-text("BMIT2013(L)")')).toHaveCount(1);
+    // … and the block is still on this tab's grid.
+    await expect(page.locator(`#tableBody .event-block[data-sid="${pick.sid}"]`)).toHaveCount(1);
+
+    // The reload shows the SERVER truth: ONE cancellation (tab B's), rendered as
+    // the conflict family. A second write from tab A would have failed anyway —
+    // this proves the abort left nothing extra behind.
+    await page.reload({ waitUntil: 'networkidle' });
+    await page.waitForTimeout(1500);
+    await page.locator('#weekSelect').selectOption(pick.week);
+    await page.waitForTimeout(700);
+    await expect(page.locator(`#tableBody .event-block[data-sid="${pick.sid}"]`)).toHaveClass(/event-conflict/);
   });
 });
 
   // ── S17 — confirmed replacement classes are cancellable too (FR 2.16
   // extension, 2026-10-08 SDD-waived: a moved slot is still the lecturer's
-  // own scheduled class); undo restores the PRIOR status ──
+  // own scheduled class). The old "undo restores the PRIOR status" wording is
+  // retired with the undo (2026-11-05). ──
   // T4 RE-ANCHOR (+ SDD class-cancel-2-working-day-window receipt
   // 2026-10-27): the deck's ONE 'replacement'-status occurrence owned by
   // 5770 = the W5 Wed B002 12:00 destination of the approved request 10 —
@@ -497,7 +568,7 @@ test.describe('Cancel Class Flow', () => {
   // demo DB, so the row cannot be instantiated without invented data. The
   // FR 2.16 allowance itself stays VERIFIED through the S5/S6 guard family
   // (the same statuses read).
-  test.skip('S17 — own replacement-status class: cancel allowed, undo restores replacement status', async ({ page }) => {
+  test.skip('S17 — own replacement-status class: cancel allowed (replacement status)', async ({ page }) => {
     test.skip(true, "the deck's only replacement-status occurrence is outside the 2-working-day window (the SDD 2026-10-27 window receipt)");
   });
 
