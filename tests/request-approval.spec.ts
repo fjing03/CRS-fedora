@@ -212,6 +212,9 @@ test('U3-T9g: the Approve/Reject modals — Request ID in the title, [Lecture], 
   //     and a labelled `Venue Code:` line
   const original = page.locator('#rejectSummary .cmp-original');
   await expect(original.locator('.cmp-label')).toHaveText('Original');
+  // 570 px shell (2026-11-05): date + week stay on ONE rendered line
+  const dateRects = await original.locator('.class-day-date').evaluate((el) => el.getClientRects().length);
+  expect(dateRects, 'date + week must not wrap at the 570 px width').toBe(1);
   const originalText = (await original.innerText()).replace(/\s+/g, ' ');
   expect(originalText).toMatch(/\((Week \d+)\)/);
   expect(originalText).toMatch(/\d{1,2}:\d{2} (AM|PM) to \d{1,2}:\d{2} (AM|PM)/);

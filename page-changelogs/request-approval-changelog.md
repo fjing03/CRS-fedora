@@ -20,6 +20,11 @@ belong to the rejection modal alone.
   modal keeps its `#28` chip because its title carries no id.
 - The avatar and the copy-email icon are gone from the modal card only — the table rows and the Request Details
   modal keep theirs, and the dead `.lecturer-avatar` / `.approval-lecturer .copy-icon` rules went with them.
+- **Shell width:** the two decision modals widen from 420 px to **616 px** — the same width the Request Details
+  modal already used (`#modalOverlay .modal`), so all three pop-ups on this page match. At 616 the cards keep
+  `date + week` on one rendered line for every week of the semester (the longest real string,
+  `Wed, 30 Sep 2026 (Week 14)`, needs 600 px; 570 wrapped both cards, and the Replacement card loses 3 px to its
+  green edge). Tablet (≤1024 px → 560 px) and phone (bottom sheet) caps are untouched.
 - The Original card is an **opt-in** variant of `HtmlBuilder.classBlock(r, { originalCard: true })`: duration dropped,
   venue printed as a labelled `Venue Code: …` line. Every other caller (grids, frozen templates, My Replacements)
   stays byte-identical; the Replacement card is untouched.

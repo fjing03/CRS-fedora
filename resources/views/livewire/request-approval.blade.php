@@ -184,6 +184,17 @@
         .lecturer-cell-email:hover { opacity: 0.8; }
         .lecturer-cell-email .copy-icon { font-size: 10px; opacity: 0.6; }
 
+        /* 2026-11-05 (user): the two decision modals widen to the Request
+           Details modal's own 616 px shell, so all three pop-ups on this page
+           match and the cards keep `date + week` on a single line for every
+           week of the semester. Measured: the longest real string
+           (`Wed, 30 Sep 2026 (Week 14)`) needs 600 px; 570 wrapped both cards
+           (and the Replacement card loses 3 px to its green edge). The
+           theme's own <=1024 px caps still win on tablet and phone. */
+        @media (min-width: 1025px) {
+            .modal { max-width: 616px; }
+        }
+
         /* ───── Approval context card (Approve/Reject modals) ───── */
         .approval-compare { display: flex; flex-direction: column; gap: 12px; margin-bottom: 12px; }
         .approval-card { border: 1px solid var(--color-outline); border-radius: var(--radius-md); padding: 10px 12px; background: var(--color-surface); }
