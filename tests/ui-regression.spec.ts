@@ -1,6 +1,14 @@
 import { test, expect, Page } from '@playwright/test';
+import { throwUnlessTestingTarget } from './helpers/receipt-target-guard';
 
-const BASE = 'http://localhost:8000';
+/**
+ * receipt-target-guard: TC-4.5 refuses to run unless the testing (:8030) envs —
+ * its confirm path records a real replacement_requests row; the demo DB (:8000)
+ * is read-only for agents since the 2026-11-01 wipe (docs/demo-db-data-changes.md).
+ */
+
+const BASE = (process.env.CRS_BASE ?? 'http://localhost:8000');
+
 const PAGES = [
   '/my-timetable-ui',
   '/cohort-timetable',
@@ -287,6 +295,9 @@ test.describe('UI Regression Test Cases', () => {
     });
 
     test('TC-4.5 Submit request confirm sends request', async ({ page }) => {
+      // the receipt-target-guard: the confirm path records a real
+      // replacement_requests row — testing-DB envs only
+      throwUnlessTestingTarget('ui-regression TC-4.5 — the submit-confirm writes a replacement_requests row');
       await openFlow(page);
       await page.locator('.timetable .cell-content.cell-available').first().click();
       await page.locator('button:has-text("Submit Request")').first().click();

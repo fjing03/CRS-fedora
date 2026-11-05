@@ -1,4 +1,5 @@
 import { test, expect, type Page } from '@playwright/test';
+import { abortUnlessTestingTarget } from './helpers/receipt-target-guard';
 
 /* SDD submission-conflict-refresh — the CONFLICT-mechanics receipts, run
    against the DISPOSABLE testing DB (the same receipts strategy B rules as
@@ -23,8 +24,12 @@ import { test, expect, type Page } from '@playwright/test';
    hop one week further (its own bookable-slot filter) — every pick asserts
    the landed span directly, never the week label. */
 
-const BASE = process.env.CRS_BASE ?? '';
-const ALLOWED = process.env.CRS_MODE === 'testing' && process.env.CRS_ALLOW_SQL === '1' && BASE.includes(':803');
+// The receipt-target-guard (the 2026-11-01 DATA-LOSS INCIDENT's standing
+// guard, docs/demo-db-data-changes.md): module-level abort BEFORE anything
+// loads — the demo DB (:8000) is read-only for agents, ever.
+abortUnlessTestingTarget('tests/submission-conflict-refresh.spec.ts', { requireAllowSql: true });
+
+const BASE = process.env.CRS_BASE as string;
 test.use({ baseURL: BASE });
 
 const PW = 'Tarumt@2026';
@@ -52,7 +57,6 @@ async function arriveHopPick(page: Page, bustSeed: string): Promise<void> {
   }
 
 test('the staged race reaches the Submission Conflict modal; Refresh Page reloads with NO browser dialog; the guard stays alive elsewhere', async ({ browser }) => {
-  test.skip(!ALLOWED, "The :8030-only receipts: run with CRS_MODE=testing CRS_ALLOW_SQL=1 CRS_BASE=http://127.0.0.1:8030 (the island lane's two pre-commands).");
 
   test.setTimeout(600_000);
 

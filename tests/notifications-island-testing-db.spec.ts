@@ -1,6 +1,7 @@
 import { test, expect } from '@playwright/test';
 import type { Page } from '@playwright/test';
 import { execSync } from 'node:child_process';
+import { abortUnlessTestingTarget } from './helpers/receipt-target-guard';
 
 /**
  * SDD notifications-real-bridge — the WRITABLE island receipts, run against
@@ -19,10 +20,13 @@ import { execSync } from 'node:child_process';
  * auth.setup.ts already spends a 5425 login per run.
  */
 
-const BASE = process.env.CRS_BASE ?? 'http://localhost:8000';
-const ALLOWED = process.env.CRS_MODE === 'testing'
-  && process.env.CRS_ALLOW_SQL === '1'
-  && BASE.includes(':803');
+// The receipt-target-guard (the 2026-11-01 DATA-LOSS INCIDENT's standing
+// guard, docs/demo-db-data-changes.md): module-level abort BEFORE anything
+// loads — the demo DB (:8000, class_replacement_fresh) is read-only for
+// agents, ever. Exact strings: no localhost, no :8000, no bare run.
+abortUnlessTestingTarget('tests/notifications-island-testing-db.spec.ts', { requireAllowSql: true });
+
+const BASE = process.env.CRS_BASE as string;
 
 const PSQL = 'psql -q -t -U philler -d class_replacement_testing -c ';
 
@@ -111,7 +115,6 @@ async function badgeNumber(page: Page): Promise<number> {
 test.describe.configure({ mode: 'serial' });
 
 test.beforeAll(() => {
-  if (!ALLOWED) return;
   sweepFixtures();
   sweepProbeResidue();
 });
@@ -123,7 +126,6 @@ test.beforeAll(() => {
  * afterEach (and afterAll) even when a test fails.
  */
 test.afterEach(() => {
-  if (!ALLOWED) return;
   // title-linked rows FIRST, then the exact-id sweeps catch the rows the
   // title family cannot see (the submitted probe row + its request).
   sweepFixtures();
@@ -139,13 +141,11 @@ test.afterEach(() => {
 });
 
 test.afterAll(() => {
-  if (!ALLOWED) return;
   sweepFixtures();
   sweepProbeResidue();
 });
 
 test('the badge lifecycle: growth within a poll cycle, durable POST shrink, mark-all zero', async ({ page }) => {
-  test.skip(!ALLOWED, 'run with CRS_MODE=testing CRS_ALLOW_SQL=1 CRS_BASE=http://127.0.0.1:8030 against the disposable testing DB');
   const userId = staffUserId();
   insertLecturerRow(userId); // badge = 1 before the page even loads
 
@@ -193,7 +193,6 @@ test('the badge lifecycle: growth within a poll cycle, durable POST shrink, mark
 });
 
 test('a cancelled request renders the row disabled with the user tooltip', async ({ page }) => {
-  test.skip(!ALLOWED, 'testing-DB-only receipt');
   const userId = staffUserId();
   insertLecturerRow(userId);    // 1 active unread row keeps the list rendered
   insertCancelledLinkRow(userId); // + the D4 disabled row
@@ -220,7 +219,6 @@ test('a cancelled request renders the row disabled with the user tooltip', async
 });
 
 test('SDD notif-new-request-ux: the decided submitted row goes inactive WITHOUT read_at; the badge drops; the D15 family renders', async ({ page }) => {
-  test.skip(!ALLOWED, 'testing-DB-only receipt');
   const userId = staffUserId();
   // the fixture: a real pending request + a submitted notification for 5425.
   // RETURNING id captures EXACTLY the row this probe owns (upsert or insert);
