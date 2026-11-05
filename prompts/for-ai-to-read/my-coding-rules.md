@@ -3,7 +3,7 @@
 > The always-read form of the user's coding rules for `CRS-fedora-backend`.
 > Distilled from `CodingMAIN.md §10` (Coding Conventions + UI Design Rules, user-mandated 2026-08-01)
 > and `AGENTS.md` standing rules. On any conflict, **CodingMAIN.md §10 wins** — and tell the user
-> this file has drifted so it can be re-synced. Last synced: 2026-11-05.
+> this file has drifted so it can be re-synced. Last synced: 2026-11-06.
 
 ## 1. UI Design Rules — non-negotiable, every page, every change
 
@@ -61,11 +61,16 @@ Adding a new status/legend item = **ONE row** in the relevant table above + **ON
 ## 2. OOP at every layer (FYP rubric evaluates this)
 
 - **Inheritance** — every page `@extends('layouts.ui-template')` filling `@section('content')`, `@section('page-styles')`, `@section('page-scripts')`, `@yield('title')`. Eloquent models extend `Model`; `User` extends `Authenticatable`; middleware extends base classes; migrations use anonymous `class extends Migration`.
-- **Composition** — Blade partials via `@include`: `ui-nav-bar` (with `activeNav`), `ui-summary-bar`, `ui-page-header`, `ui-week-nav` (incl. `showPrint`), `ui-guide-block`, `ui-legend-bar` (incl. `ownershipHint`), `ui-empty-state`, `ui-grid-table`, `ui-class-detail-modal`, `ui-cancel-class-modal`, `ui-today-btn`, `ui-venue-dropdown`, `ui-logout-modal`.
+- **Composition** — Blade partials via `@include`: `ui-nav-bar` (with `activeNav`), `ui-summary-bar`, `ui-page-header`, `ui-week-nav` (incl. `showPrint`, opt-in `showEarliestBtn`), `ui-guide-block`, `ui-legend-bar` (incl. `ownershipHint`), `ui-empty-state`, `ui-grid-table`, `ui-class-detail-modal`, `ui-cancel-class-modal`, `ui-today-btn`, `ui-venue-dropdown`, `ui-logout-modal`.
 - **Encapsulation & DRY — shared homes:**
   - `public/css/theme.css` — ALL shared CSS (page-specific styles stay in `@section('page-styles')`).
-  - `public/js/ui-common.js` — shared JS helpers (`buildTimetableGrid` two-axis default rendering + span coalescing, `WeekNavigator`, `computeSummary`, `buildReplacementNote`, `openClassModal`, `CancelClass`, `showToast`, theme helpers).
+  - `public/js/ui-common.js` — shared JS helpers (`buildTimetableGrid` two-axis default rendering + span coalescing, `WeekNavigator`, `computeSummary`, `buildReplacementNote`, `openClassModal`, `CancelClass`, `toast.show`, theme helpers).
   - `public/js/mock-data.js` — `window.MockData` single source of truth. Treat it as **read-only** (`slice()`/spread before mutating); new data = ONE new section in `mock-data.js`, never an inline page dataset. Real-data pages override `MockData.currentUser` / semester / holidays from the server payload.
+  - **A page function used by an inline `onclick=` in a shared partial must be exported on
+    `window`** (`window.closeSlotWarning = closeSlotWarning;` beside the existing exports near the
+    end of the page's `DOMContentLoaded` block). The page script runs inside that closure, so only
+    the explicitly exported names are reachable from the partial's markup — the symptom is a modal
+    that opens but refuses to close with *"… is not defined"*.
   - **NEVER** copy-paste nav bar, tables, or helpers into a new page.
   - Theme toggle: `localStorage('theme')` = `dark`/`light`, `<html class="dark">` default; login pages use `.login-theme-toggle`.
 - **No business logic in controllers/views** — core logic lives in service classes (NFR 5.3): `App\Services\MatrixIntersectionEngine`, `App\Services\OCCValidator`.

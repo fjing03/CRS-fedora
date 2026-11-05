@@ -490,8 +490,13 @@ These ten rules are **non-negotiable** for every page and every future change:
 
 ### 2. Composition
 - **Blade partials** via `@include('partials.ui-nav-bar', ['activeNav' => ...])`, `@include('partials.ui-summary-bar', ['cards' => [...]])`, etc.
-- Timetable partials: `ui-page-header`, `ui-week-nav` (incl. `showPrint`), `ui-guide-block`, `ui-legend-bar` (block-class chips + `ownershipHint`), `ui-summary-bar`, `ui-empty-state`, `ui-grid-table`, `ui-class-detail-modal`, `ui-cancel-class-modal` (Wave 3b), `ui-today-btn`, `ui-venue-dropdown`, `ui-logout-modal`.
-- Shared JS: `public/js/ui-common.js` (`buildTimetableGrid` with two-axis default rendering + span coalescing, `WeekNavigator`, `computeSummary`, `buildReplacementNote`, `openClassModal`, `CancelClass`, `showToast`, theme helpers), `public/js/mock-data.js` (`window.MockData` — fallback registries + default persona; real-data pages override `MockData.currentUser` / semester / holidays from the server payload).
+- Timetable partials: `ui-page-header`, `ui-week-nav` (incl. `showPrint`; opt-in `showEarliestBtn` adds the Earliest-bookable action to the toolbar, default off so other pages are unchanged), `ui-guide-block`, `ui-legend-bar` (block-class chips + `ownershipHint`), `ui-summary-bar`, `ui-empty-state`, `ui-grid-table`, `ui-class-detail-modal`, `ui-cancel-class-modal` (Wave 3b), `ui-today-btn`, `ui-venue-dropdown`, `ui-logout-modal`.
+- **Inline-handler export law.** A page script runs inside a `DOMContentLoaded` closure, so any
+  page function referenced by an inline `onclick=` in a shared partial must be exported
+  (`window.fnName = fnName;`) in that block — otherwise the markup cannot see it (a modal that
+  opens but throws *"… is not defined"* when closing). Shared: `partials/ui-intent-session-modal`
+  (the venue Select-a-Session modal + the slot warning) is the current example.
+- Shared JS: `public/js/ui-common.js` (`buildTimetableGrid` with two-axis default rendering + span coalescing, `WeekNavigator`, `computeSummary`, `buildReplacementNote`, `openClassModal`, `CancelClass`, `toast.show`, theme helpers), `public/js/mock-data.js` (`window.MockData` — fallback registries + default persona; real-data pages override `MockData.currentUser` / semester / holidays from the server payload).
 
 ### 3. Encapsulation & DRY — shared modules
 - **`public/css/theme.css`** — ALL shared CSS (nav, layout, tables, badges, summary cards, empty states, timetable block classes, responsive breakpoints, color tokens). Page-specific styles stay in `@section('page-styles')`.
