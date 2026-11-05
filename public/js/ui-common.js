@@ -2552,6 +2552,17 @@ class HtmlBuilder {
                 (venueHtml ? '<br>' + venueHtml : '') +
                 '</div>';
         }
+        /* 2026-11-05 UI/UX brief (Update 3): the Approve/Reject context card's
+           ORIGINAL block drops the duration and prints the venue as a labelled
+           `Venue Code: B011` line. Opt-in, so every other caller stays
+           byte-identical. */
+        if (opts.originalCard) {
+            return '<div class="cell-class-block">' +
+                '<span class="class-day-date">' + d + ', ' + dateStr + weekTag + '</span>' +
+                '<br><span class="class-time">' + timeStr + '</span>' +
+                (r.venue ? '<br><span class="class-venue">Venue Code: ' + escHtml(r.venue) + '</span>' : '') +
+                '</div>';
+        }
         return '<div class="cell-class-block"><span class="class-day-date">' + d + ', ' + dateStr + weekTag + '</span><br><span class="class-time">' + timeStr + '</span> <span class="class-duration">(' + hrs + ')</span></div>';
     }
 

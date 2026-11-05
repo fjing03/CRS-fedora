@@ -172,3 +172,70 @@ test('U3-T9f: the Approve wire round-trips the server — zero-write on a nonexi
     (window as any).PAGE_DATA.requests.filter((r: any) => r.status === 'Pending').length);
   expect(pendingAfter).toBe(pendingBefore);
 });
+
+test('U3-T9g: the Approve/Reject modals — Request ID in the title, [Lecture], the Original card (2026-11-05)', async ({ page }) => {
+  await page.goto(PAGE);
+
+  const pending = await page.evaluate(() => (window as any).PAGE_DATA.requests
+    .filter((r: any) => r.status === 'Pending')
+    .map((r: any) => ({ id: r.id, classType: r.classType })));
+  expect(pending.length).toBeGreaterThan(0);
+  const row = pending[0];
+  const longType = ({ L: 'Lecture', T: 'Tutorial', P: 'Practical' } as Record<string, string>)[row.classType] || row.classType;
+  const pendingBefore = pending.length;
+
+  // READ-ONLY: the modals are opened through their own entry points and closed
+  // again — no decision, no wire call, no write.
+  await page.evaluate((id: number) => (window as any).openRejectModal(id), row.id);
+  await expect(page.locator('#rejectReasonModal')).toHaveClass(/show/);
+
+  // (2) the Request ID lives in the title, read from the actual request
+  await expect(page.locator('#rejectReasonTitle')).toHaveText('Rejection Reason (#' + row.id + ')');
+
+  // (1) the subject prints the FULL class type inside the brackets
+  await expect(page.locator('#rejectSummary .approval-classtype')).toHaveText('[' + longType + ']');
+
+  // (3) no lecturer avatar, no copy-email icon inside the modal card
+  await expect(page.locator('#rejectSummary .lecturer-avatar')).toHaveCount(0);
+  await expect(page.locator('#rejectSummary .copy-icon')).toHaveCount(0);
+
+  // (4) Title Case presets + the new instruction line
+  await expect(page.locator('#rejectReasonModal .reject-preset-chip')).toHaveText([
+    'Venue Unavailable', 'Insufficient Notice', 'Slot Conflict', 'Lecturer Unavailable', 'Other',
+  ]);
+  await expect(page.locator('#rejectReasonModal .section-heading-sub').first())
+    .toHaveText('Please Provide a Reason for Rejection (Required):');
+
+  // (5) the Original card: date + week together, time WITHOUT the duration,
+  //     and a labelled `Venue Code:` line
+  const original = page.locator('#rejectSummary .cmp-original');
+  await expect(original.locator('.cmp-label')).toHaveText('Original');
+  const originalText = (await original.innerText()).replace(/\s+/g, ' ');
+  expect(originalText).toMatch(/\((Week \d+)\)/);
+  expect(originalText).toMatch(/\d{1,2}:\d{2} (AM|PM) to \d{1,2}:\d{2} (AM|PM)/);
+  expect(originalText).not.toMatch(/\((?:1|2|3) hours?\)/);
+  expect(originalText).toMatch(/Venue Code: [A-Z0-9-]+/);
+
+  await page.evaluate(() => (window as any).setRejectModalTitle(null));
+  await page.evaluate(() => (window as any).bulkReject());
+  await expect(page.locator('#rejectReasonTitle'), 'a bulk reject names no single id').toHaveText('Rejection Reason');
+  await page.evaluate(() => (window as any).closeRejectModal());
+  await expect(page.locator('#rejectReasonModal')).not.toHaveClass(/show/);
+
+  // The SAME card feeds the Approve modal — the shared four updates hold there too
+  await page.evaluate((id: number) => (window as any).openApproveNotesModal([id]), row.id);
+  await expect(page.locator('#approveNotesModal')).toHaveClass(/show/);
+  await expect(page.locator('#approveNotesSummary .approval-classtype')).toHaveText('[' + longType + ']');
+  await expect(page.locator('#approveNotesSummary .lecturer-avatar')).toHaveCount(0);
+  await expect(page.locator('#approveNotesSummary .copy-icon')).toHaveCount(0);
+  const approveOriginal = (await page.locator('#approveNotesSummary .cmp-original').innerText()).replace(/\s+/g, ' ');
+  expect(approveOriginal).toMatch(/Venue Code: [A-Z0-9-]+/);
+  expect(approveOriginal).not.toMatch(/\((?:1|2|3) hours?\)/);
+  await page.evaluate(() => (window as any).closeApproveNotesModal());
+  await expect(page.locator('#approveNotesModal')).not.toHaveClass(/show/);
+
+  // the queue is untouched
+  const pendingAfter = await page.evaluate(() =>
+    (window as any).PAGE_DATA.requests.filter((r: any) => r.status === 'Pending').length);
+  expect(pendingAfter).toBe(pendingBefore);
+});

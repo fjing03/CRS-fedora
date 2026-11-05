@@ -1,3 +1,37 @@
+## 2026-11-05 — the decision modals name the request, and say `Lecture` in full
+
+The 2026-11-05 UI/UX brief (Update 3) on the **Rejection Reason** and **Approve Request** modals. Both confirm
+steps are fed by one shared `approvalCard()`, so the card changes below land in both; the title and the presets
+belong to the rejection modal alone.
+
+| Item | Before | Now |
+|---|---|---|
+| Subject | `Operating Systems [L]` | `Operating Systems [Lecture]` |
+| Rejection title | `Rejection Reason` | `Rejection Reason (#28)` |
+| Lecturer row | circle avatar + 📋 copy-email icon | name + staff ID only |
+| Preset chips | `Venue unavailable` … | `Venue Unavailable` … (Title Case, inserted text included) |
+| Instruction | `Please provide a reason for rejection (required):` | `Please Provide a Reason for Rejection (Required):` |
+| Original card | date · time · `(2 hrs)` | date + week · time · `Venue Code: B110` |
+
+- The full word comes from the existing `UiLabels.classType(type, 'long')` (`L/T/P` → `Lecture/Tutorial/Practical`),
+  never a local map, and the payload's `classType` stays the raw code.
+- The request ID is read from the request that was opened; a **bulk** reject has no single ID, so its title stays
+  plain `Rejection Reason`.
+- The avatar and the copy-email icon are gone from the modal card only — the table rows and the Request Details
+  modal keep theirs, and the dead `.lecturer-avatar` / `.approval-lecturer .copy-icon` rules went with them.
+- The Original card is an **opt-in** variant of `HtmlBuilder.classBlock(r, { originalCard: true })`: duration dropped,
+  venue printed as a labelled `Venue Code: …` line. Every other caller (grids, frozen templates, My Replacements)
+  stays byte-identical; the Replacement card is untouched.
+- Inside the 420 px modal each compare card is 137 px wide, so `Mon, 9 Nov 2026 (Week 8)` wraps after the year —
+  one line in the DOM, as the replacement card already did. The brief's three-part shape holds.
+
+**Measured** live on the demo DB, request **#28** (Operating Systems, L, Mon 9 Nov 2026 11:00–13:00, B110):
+title `Rejection Reason (#28)`; subject `Operating Systems [Lecture]`; 0 avatar / 0 copy-icon nodes; chips
+`Venue Unavailable · Insufficient Notice · Slot Conflict · Lecturer Unavailable · Other`; instruction exact; the
+Original card reads `Mon, 9 Nov 2026 (Week 8)` / `11:00 AM to 1:00 PM` / `Venue Code: B110`; no console errors.
+`tests/request-approval.spec.ts` **10/10** (the new U3-T9g opens both modals, asserts all six updates, and proves the
+pending queue is untouched).
+
 ## 2026-11-05 — one irreversible line on every final decision
 
 The user's ruling: every confirmation for a decision that cannot be taken back must say so, in the same words as

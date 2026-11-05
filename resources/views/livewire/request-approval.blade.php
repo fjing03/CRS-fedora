@@ -193,14 +193,6 @@
         .approval-course { font-size: 13px; font-weight: 600; color: var(--color-on-surface); margin-bottom: 2px; }
         .approval-classtype { font-size: 11px; font-weight: 500; color: var(--color-on-surface-variant); }
         .approval-lecturer { display: flex; align-items: center; gap: 7px; font-size: 12px; color: var(--color-on-surface-variant); margin-bottom: 10px; }
-        .lecturer-avatar {
-            width: 24px; height: 24px; border-radius: 50%; flex-shrink: 0;
-            display: inline-flex; align-items: center; justify-content: center;
-            font-size: 10px; font-weight: 700;
-            background: var(--color-primary-container); color: var(--color-on-primary-container);
-        }
-        .approval-lecturer .copy-icon { cursor: pointer; font-size: 12px; opacity: 0.7; }
-        .approval-lecturer .copy-icon:hover { opacity: 1; }
         .approval-compare-row { display: flex; align-items: stretch; gap: 8px; }
         .cmp-card { flex: 1; min-width: 0; border-radius: var(--radius-md); padding: 8px 10px; }
         .cmp-label { display: block; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: var(--color-on-surface-variant); margin-bottom: 4px; }
@@ -356,19 +348,19 @@
 <div class="modal-overlay" id="rejectReasonModal">
     <div class="modal">
         <div class="modal-header">
-            <h2>Rejection Reason</h2>
+            <h2 id="rejectReasonTitle">Rejection Reason</h2>
             <button class="modal-close" onclick="closeRejectModal()" data-tip="Close">✕</button>
         </div>
         <div class="modal-body">
             <div id="rejectSummary" class="approval-compare"></div>
             <div class="reject-presets">
-                <button class="reject-preset-chip" onclick="applyRejectPreset('Venue unavailable')">Venue unavailable</button>
-                <button class="reject-preset-chip" onclick="applyRejectPreset('Insufficient notice')">Insufficient notice</button>
-                <button class="reject-preset-chip" onclick="applyRejectPreset('Slot conflict')">Slot conflict</button>
-                <button class="reject-preset-chip" onclick="applyRejectPreset('Lecturer unavailable')">Lecturer unavailable</button>
+                <button class="reject-preset-chip" onclick="applyRejectPreset('Venue Unavailable')">Venue Unavailable</button>
+                <button class="reject-preset-chip" onclick="applyRejectPreset('Insufficient Notice')">Insufficient Notice</button>
+                <button class="reject-preset-chip" onclick="applyRejectPreset('Slot Conflict')">Slot Conflict</button>
+                <button class="reject-preset-chip" onclick="applyRejectPreset('Lecturer Unavailable')">Lecturer Unavailable</button>
                 <button class="reject-preset-chip" onclick="applyRejectPreset('')">Other</button>
             </div>
-            <p class="section-heading-sub" style="margin-bottom:8px">Please provide a reason for rejection (<strong style="text-transform:uppercase">required</strong>):</p>
+            <p class="section-heading-sub" style="margin-bottom:8px">Please Provide a Reason for Rejection (Required):</p>
             <textarea id="rejectReasonInput" placeholder="Enter rejection reason..." rows="4" class="modal-textarea"></textarea>
                 @include('partials.ui-irreversible-line')
         </div>
@@ -548,11 +540,8 @@
                 + '" data-tip="' + escHtml(conflict ? (r.conflictReason || 'Slot conflict') : 'Slot available') + '">'
                 + (conflict ? '⚠' : '✓') + '</span>';
             const lec = lookupLecturer(r.lecturer);
-            const initials = r.lecturer.replace(/^(Dr|Prof|Mr|Ms|Mrs|En)\.\s*/i, '')
-                .split(' ').filter(Boolean).map(function(w) { return w[0]; }).slice(0, 2).join('').toUpperCase();
             const lecturerHtml = lec
                 ? escHtml(lec.name) + ' <span class="lecturer-cell-id">(' + escHtml(lec.staffId) + ')</span>'
-                    + ' <span class="copy-icon" role="button" onclick="copyEmail(\'' + escHtml(lec.email) + '\', event)" data-tip="Click to copy email">📋</span>'
                 : escHtml(r.lecturer);
             return ''
                 + '<div class="approval-card">'
@@ -562,10 +551,10 @@
                 +     slotBadge
                 +     '<span class="urgency-badge ' + urgencyClass(level) + '" data-tip="' + urgencyTip(r) + '">' + urgencyLabel(level, r.classDate) + '</span>'
                 +   '</div>'
-                +   '<div class="approval-course">' + escHtml(r.courseName) + ' <span class="approval-classtype">[' + escHtml(r.classType) + ']</span></div>'
-                +   '<div class="approval-lecturer"><span class="lecturer-avatar">' + escHtml(initials) + '</span><span>' + lecturerHtml + '</span></div>'
+                +   '<div class="approval-course">' + escHtml(r.courseName) + ' <span class="approval-classtype">[' + escHtml(UiLabels.classType(r.classType, 'long')) + ']</span></div>'
+                +   '<div class="approval-lecturer"><span>' + lecturerHtml + '</span></div>'
                 +   '<div class="approval-compare-row">'
-                +     '<div class="cmp-card cmp-original"><span class="cmp-label">Original</span>' + HtmlBuilder.classBlock(r) + '</div>'
+                +     '<div class="cmp-card cmp-original"><span class="cmp-label">Original</span>' + HtmlBuilder.classBlock(r, { originalCard: true }) + '</div>'
                 +     '<span class="cmp-arrow" aria-hidden="true">→</span>'
                 +     '<div class="cmp-card cmp-replacement"><span class="cmp-label">Replacement</span>' + HtmlBuilder.replacementBlock(r, { colorStatus: false }) + '</div>'
                 +   '</div>'
@@ -937,6 +926,7 @@
 
         function bulkReject() {
             currentRejectId = null;
+            setRejectModalTitle(null);
             document.getElementById('rejectReasonInput').value = '';
             document.getElementById('confirmRejectBtn').disabled = true;
             document.getElementById('rejectReasonModal').classList.add('show');
@@ -1188,9 +1178,18 @@
         }
 
         // ── Reject modal ──
+        /* UI/UX update 2026-11-05 (user): the Request ID now lives in the modal
+           title (`Rejection Reason (#28)`), taken from the request being acted
+           on. Bulk reject has no single ID, so its title stays plain. */
+        function setRejectModalTitle(id) {
+            const title = document.getElementById('rejectReasonTitle');
+            if (title) title.textContent = (id == null) ? 'Rejection Reason' : 'Rejection Reason (#' + id + ')';
+        }
+
         function openRejectModal(id) {
             closeModal();               // auto-close Request Details when acting from it
             currentRejectId = id;
+            setRejectModalTitle(id);
             const r = MockData.approvalRequests.find(function(x) { return x.id === id; });
             document.getElementById('rejectSummary').innerHTML = r ? approvalCard(r) : '';
             document.getElementById('rejectReasonInput').value = '';
