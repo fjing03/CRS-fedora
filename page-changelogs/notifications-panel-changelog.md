@@ -1,3 +1,40 @@
+## 2026-11-05 — the inbox stops offering dead clicks (undone cancellations, superseded requests)
+
+The user's bug report: the 4th and 5th notifications (a `Scheduled class cancelled` and a `Replacement rejected`)
+did not highlight a row. Investigation found **two stale families**, both now marked inactive **at read time** —
+no data edit, no delete, no re-link:
+
+| Family | Why it is stale | New reason |
+|---|---|---|
+| `Scheduled class cancelled` with no request | the cancellation was **UN-DONE** (`cancelClassUndo` deletes the exception and never retracted the notice), so the occurrence is not on the merged page — measured: session 23 / week 7 has zero `class_exceptions` rows since 2026-11-02, and 32 notices across users point at it | `undone` |
+| `approved` / `rejected` decision notice | its request was **SUPERSEDED** by a newer request on the same class + week (request #24 rejected → re-proposed as #26 approved), so the row now belongs to #26 and the old id can never match | `superseded` |
+
+Tooltips (the user accepted this wording verbatim):
+
+- `This notification is inactive because the cancellation was undone.`
+- `This notification is inactive because a newer request replaced this one.`
+
+Inactive means what it already means: **no link, no highlight, no dead click** — and the row stops counting in the
+badge (a stale notice is not work). The class-only inbox exit (a student's whole feed) runs the same check, so the
+28 student copies of the undone cancellation go quiet too.
+
+**Measured on the demo DB (read-only):** staff 5425's two cancelled notices now render as inactive `<span>` rows
+with the new tooltip, `unreadTotal` no longer counts them, and the rejected notice (hidden shelf) reads
+"…because a newer request replaced this one". A student holding both copies shows **0 active rows / badge 0**.
+
+**Two real bugs were found while wiring it:**
+
+1. **New cancel notices carried no jump target at all.** The target derivation only understood the legacy
+   `/my-timetable-ui` link, so a freshly written cancel notice (link `/my-replacements`) would have arrived with
+   nothing to flash. Both links now resolve the same `o<session>` + week target.
+2. **`Eloquent\Collection::merge()` re-keys and drops string keys** (measured: `a->merge(b)` → `[]`), which emptied
+   the exception map and silently marked LIVE cancellations as undone. The map is now a plain array
+   (`exceptionMap()`), and the two tests that fixture a live cancellation now create its `class_exceptions` row —
+   exactly what `CancelClass` does in production.
+
+Query law kept: still **ONE `replacement_requests` query per render** (the same-class candidates ride that statement
+as a nested select), and no per-row lookups on the 10 s poll.
+
 ## 2026-11-04 — the New Replacement Request row: Title Case title + the six-line fact tip
 
 The user's spec, applied to `submitted` rows only (Approved / Rejected / Cancelled / Update rows are untouched,

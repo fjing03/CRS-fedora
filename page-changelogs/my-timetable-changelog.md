@@ -1,3 +1,22 @@
+## 2026-11-05 — Cancel Class is FINAL (the Undo is gone)
+
+User decision (option B): cancelling a class can no longer be reversed. The confirm dialog now says so, and the
+toast no longer offers an Undo.
+
+- The confirm state carries one line above the buttons: **This action cannot be `UNDONE`.** — `UNDONE` in
+  capitals, bold, **warning** colour (`--color-warning` via the existing `.warn-action` token class; no new class,
+  no new colour). Measured in the real modal: keyword colour `rgb(212, 136, 15)`, weight `700`; line 14 px on the
+  normal surface colour.
+- `ClassCancellation.showUndoToast()` now shows the message with **no callback** — the toast is a confirmation you
+  dismiss. Measured: the toast bar's Undo affordance computes `display: none`; the message text is unchanged.
+- `ClassCancellation.undoViaServer()` and `Livewire::cancelClassUndo()` are marked **retired** (no caller left);
+  they are kept this pass so nothing else can break, and are safe to delete together later.
+- The "Just cancelled" chip's Undo on My Replacements was already switched off, so the surfaces now agree.
+
+**Why:** an undone cancellation left its "Scheduled class cancelled" notification behind with no class to point at
+(see the notifications-panel entry). Making the action final removes that whole class of stale notices going
+forward; the read-time check cleans up the ones already delivered.
+
 ## 2026-11-04 — the TODAY button's flash is blue, like the button
 
 User: the Today jump's highlight should be the button's own blue. It painted the shared green

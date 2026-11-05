@@ -469,6 +469,28 @@ class NavNotifications extends Component
             ->map(fn (Notification $n) => (int) $n->request_id)
             ->unique()->values();
 
+        /* 2026-11-05 (user option B): the cancellation batch rides BOTH exits —
+           a cancellation-only inbox (a student's whole feed) is exactly where
+           the stale "class cancelled" rows live. A PLAIN ARRAY keyed
+           `session|week`: `Eloquent\Collection::merge()` re-keys and silently
+           loses string keys (measured), so the map is the safe carrier.
+           @var array<string, ClassException> $exceptions */
+        $mailboxSessionIds = $rows->pluck('class_session_id')->filter()->unique()->values();
+        $exceptions = $this->exceptionMap($mailboxSessionIds);
+
+        /* the STALE cancel notice: the class was un-cancelled, so nothing on the
+           merged page (or the student timetable) can match it any more. */
+        $markUndoneCancellations = function (Collection $rows) use ($exceptions): void {
+            $rows->each(function (Notification $n) use ($exceptions): void {
+                if ($n->request_id === null
+                    && $n->class_session_id !== null
+                    && $n->type === 'update'
+                    && ! isset($exceptions[(int) $n->class_session_id.'|'.(int) $n->week])) {
+                    $n->setAttribute('inactive_reason', 'undone');
+                }
+            });
+        };
+
         if ($requestIds->isEmpty()) {
             /* R5: the staff line is COLUMN-driven (request_id / class_session_id),
                so a cancellation-only inbox still needs the class batch — the
@@ -480,6 +502,8 @@ class NavNotifications extends Component
                 $n->setAttribute('notif_status', $this->classOnlyNotifStatus($n));
             });
 
+            $markUndoneCancellations($rows);
+
             /* The visibility guard runs on BOTH exits: a mailbox holding only
                class rows is exactly where a foreign cancellation could hide. */
             $sessions = $this->classSessionsFor($rows);
@@ -488,8 +512,20 @@ class NavNotifications extends Component
             return $this->attachStaffLines($rows, collect(), $sessions);
         }
 
+        /* 2026-11-05 (user option B): the SAME-CLASS candidates ride the ONE
+           query (a second `replacement_requests` read would break the poll law
+           the query-count receipt pins) — a decision row must be able to see
+           whether a NEWER request took over its class+week. The nested select
+           is part of THIS statement, not a new round-trip. */
         $requests = ReplacementRequest::query()
-            ->whereIn('id', $requestIds)
+            ->where(function ($query) use ($requestIds): void {
+                $query->whereIn('id', $requestIds)
+                    ->orWhereIn('class_session_id', function ($sub) use ($requestIds): void {
+                        $sub->select('class_session_id')
+                            ->from('replacement_requests')
+                            ->whereIn('id', $requestIds);
+                    });
+            })
             ->with(['classSession.module', 'classSession.venue', 'classSession.cohorts.programme', 'replacementTimeSlot.venue', 'proposer.lecturer', 'approver.lecturer'])
             ->get()
             ->keyBy('id');
@@ -513,13 +549,19 @@ class NavNotifications extends Component
            sessions — never a per-row query on the 10 s poll. A session+week
            with NO exception row yields no line at all: the tip must never
            invent a cancellation. */
-        $sessionIds = $requests->pluck('class_session_id')->filter()->unique()->values();
-        $exceptions = $sessionIds->isEmpty()
-            ? collect()
-            : ClassException::query()
-                ->whereIn('class_session_id', $sessionIds)
-                ->get(['class_session_id', 'week_number', 'reason'])
-                ->keyBy(fn (ClassException $e): string => (int) $e->class_session_id.'|'.(int) $e->week_number);
+        $requestSessionIds = $requests->pluck('class_session_id')->filter()->unique()->diff($mailboxSessionIds);
+        $exceptions += $this->exceptionMap($requestSessionIds);
+
+        /* 2026-11-05 (user option B): the NEWEST request id per occurrence
+           (class + week), folded out of the batch above — a decision notice
+           whose request is older than the newest one is SUPERSEDED by a
+           re-proposal, and must stop pretending it has a row to jump to.
+           @var array<string, int> $newestByOccurrence */
+        $newestByOccurrence = [];
+        foreach ($requests as $occurrenceRequest) {
+            $key = (int) $occurrenceRequest->class_session_id.'|'.(int) $occurrenceRequest->week_number;
+            $newestByOccurrence[$key] = max($newestByOccurrence[$key] ?? 0, (int) $occurrenceRequest->id);
+        }
 
         $semesterIds = $requests->pluck('semester_id')->filter()->unique()->values();
         $semesters = $semesterIds->isEmpty()
@@ -567,6 +609,41 @@ class NavNotifications extends Component
                     Carbon::parse((string) $semesters->get((int) $related->semester_id)->start_date)
                 )
                 : $this->classOnlyNotifStatus($row));
+
+            /* ── 2026-11-05 (user option B): the inbox stays HONEST about two
+               STALE families, derived at read time — never a data edit, never
+               a silent dead click ────────────────────────────────────────────
+               1) a request-less class-cancel notice (`update`, the "Scheduled
+                  class cancelled" news) whose cancellation no longer exists:
+                  the class was UN-CANCELLED, so the occurrence is not on the
+                  merged page any more → 'undone';
+               2) a DECISION notice (`approved` / `rejected`) whose request has
+                  been SUPERSEDED by a newer request on the same class + week
+                  (a re-proposal): the row now belongs to the newer request, so
+                  the old id can never match → 'superseded'.
+               Both switch the row to the inactive arm: no link, no highlight,
+               and a tooltip that says why. The two sentences are the user's
+               accepted copy (2026-11-05). */
+            if ($row->request_id === null
+                && $row->class_session_id !== null
+                && $row->type === 'update'
+                && ! isset($exceptions[(int) $row->class_session_id.'|'.(int) $row->week])) {
+                $row->setAttribute('inactive_reason', 'undone');
+
+                continue;
+            }
+
+            if ($row->request_id !== null && in_array($row->type, ['approved', 'rejected'], true)) {
+                $decisionRequest = $requests->get((int) $row->request_id);
+                if ($decisionRequest !== null) {
+                    $key = (int) $decisionRequest->class_session_id.'|'.(int) $decisionRequest->week_number;
+                    if (($newestByOccurrence[$key] ?? 0) > (int) $decisionRequest->id) {
+                        $row->setAttribute('inactive_reason', 'superseded');
+
+                        continue;
+                    }
+                }
+            }
 
             /* §4's classifier (D15, amended 2026-11-04): the REASON, first-match
                cancelled > approved > rejected — `read` is deliberately ABSENT
@@ -754,6 +831,30 @@ class NavNotifications extends Component
 
     /**
     /**
+     * ONE bounded batch of class exceptions, keyed `session|week` (2026-11-05,
+     * user option B). A plain array by design: `Eloquent\Collection::merge()`
+     * re-keys and drops the string keys, which silently emptied the map.
+     *
+     * @param  Collection<int, mixed>  $sessionIds
+     * @return array<string, ClassException>
+     */
+    private function exceptionMap(Collection $sessionIds): array
+    {
+        if ($sessionIds->isEmpty()) {
+            return [];
+        }
+
+        $map = [];
+        foreach (ClassException::query()
+            ->whereIn('class_session_id', $sessionIds)
+            ->get(['class_session_id', 'week_number', 'reason']) as $exception) {
+            $map[(int) $exception->class_session_id.'|'.(int) $exception->week_number] = $exception;
+        }
+
+        return $map;
+    }
+
+    /**
      * The `submitted` composer (design §2) — the fail-open matrix per D6:
      * IDENTITY lines per-line omitted (a missing proposer drops line 1, a
      * missing classSession/module drops line 5); SCHEDULE lines all-or-
@@ -770,7 +871,7 @@ class NavNotifications extends Component
      * @param  Collection<int, Venue>  $venues
      * @param  Collection<int, Semester>  $semesters
      * @param  \Closure(ReplacementRequest): (array{week: int, day: int, venue_id: int, start: string, end: string, count: int}|null)  $anchorSpan
-     * @param  Collection<string, ClassException>  $exceptions  keyed `session|week`
+     * @param  array<string, ClassException>  $exceptions  keyed `session|week`
      * @return array{title: string, subtitle: ?string, desc: string, aria: string, tip: ?string}
      */
     private function composeSubmitted(
@@ -780,7 +881,7 @@ class NavNotifications extends Component
         Collection $venues,
         Collection $semesters,
         \Closure $anchorSpan,
-        Collection $exceptions,
+        array $exceptions,
     ): array {
         $span = $spans[(int) $row->request_id] ?? $anchorSpan($request);
         $venue = $span !== null
@@ -866,7 +967,7 @@ class NavNotifications extends Component
         }
 
         if ($session !== null) {
-            $exception = $exceptions->get((int) $session->id.'|'.(int) $request->week_number);
+            $exception = $exceptions[(int) $session->id.'|'.(int) $request->week_number] ?? null;
             if ($exception !== null) {
                 $lines[] = 'Conflict Reason: Class Cancelled — '.ReasonLabel::from((string) $exception->reason);
             }

@@ -4496,9 +4496,11 @@ const ClassCancellation = {
         return changed;
     },
 
-    /* §6 — the server bridge half (class-cancel-db-persist): the ONE undo
-       server call, single-homed for BOTH surfaces (the 5s toast callback
-       and the home chip's Undo affordance). Awaits cancelClassUndo with
+    /* §6 — the server bridge half (class-cancel-db-persist) — RETIRED 2026-11-05
+       (user option B: Cancel Class is final; the Undo affordance is gone from the
+       UI, so nothing calls this any more). Kept as dead documentation for the
+       next cleanup pass — safe to delete with `undo()` and the `cancelClassUndo`
+       Livewire method in one commit. Awaits cancelClassUndo with
        the entry's server handle (sessionId + 1-based week); ok → the
        existing client reversal applies; fail → the cancel stands, the
        honest hint, NO reversal. */
@@ -4526,47 +4528,16 @@ const ClassCancellation = {
        (2026-10-08 decision): the toast shows for 5 s — surviving the full
        display OR clicking ✕ both count as "seen" and snooze it for the
        session; only a quick navigate-away (timer killed) re-toasts on the
-       next load. Undo stays reachable via the home chip's Undo affordance
-       (replacement-home page).
+       next load.
 
-       class-cancel-db-persist: the callback now AWAITS undoViaServer
-       BEFORE the cross-page deep-link — the browser navigating mid-await
-       would kill the undo (design D4.3 review 🟡-5 receipt). Caveat: the
-       USER navigating away themselves mid-await loses the toast —
-       acceptable (the undo is reachable again on next load, home chip). */
+       2026-11-05 (user option B): the UNDO IS GONE. Cancel Class is final, so this
+       toast is a plain confirmation — no callback, no server round-trip, and the
+       row it used to reverse (the undo path) is retired. The function keeps its
+       name so every existing caller stays byte-identical; the snooze rule
+       (display OR ✕ counts as seen, re-toasts only after a killed navigate-away)
+       is unchanged. */
     showUndoToast() {
-        toast.show('Class cancelled — arrange replacement when ready', function() {
-            const entry = ClassCancellation.activeEntry();
-            if (!entry) return;
-            void (async function() {
-                const res = await ClassCancellation.undoViaServer(entry);
-                if (!res.ok) {
-                    toast.show(res.hint || 'Class restore failed — refresh to see the truth.', null);
-                    ClassCancellation.snoozeToast();
-                    return;
-                }
-                /* On my-timetable the in-place grid rebuild IS the feedback
-                   (U2, 2026-10-08). Anywhere else the undo deep-links to
-                   my-timetable at the cancelled class's session week
-                   (?week=<matchKey.week>) — the restored=1 param makes the
-                   arrival page confirm with the same 'Class restored.' toast
-                   (2026-10-08 user request: UNDO must land on the exact
-                   class session week, not stay on the arrangement page). */
-                if (location.pathname === '/my-timetable-ui') {
-                    if (typeof buildTimetable === 'function') buildTimetable();
-                    toast.show('Class restored.', null);
-                } else {
-                    const wk = (entry.matchKey && Number.isInteger(entry.matchKey.week))
-                        ? entry.matchKey.week : null;
-                    window.location.href = '/my-timetable-ui' +
-                        (wk !== null ? '?week=' + wk + '&restored=1' : '?restored=1');
-                }
-            })();
-        }, ClassCancellation.UNDO_TOAST_MS, '', '', '', function() {
-            ClassCancellation.snoozeToast();
-        }, function() {
-            ClassCancellation.snoozeToast();
-        });
+        toast.show('Class cancelled — arrange replacement when ready', null);
     },
 
     /* Toast snooze — the user explicitly closed the cancellation toast, so

@@ -1,3 +1,9 @@
+## 2026-11-05 — Cancel Class is FINAL (shared modal)
+
+The Cancel Class confirm dialog (this page includes `partials/ui-cancel-class-modal`) now states
+**This action cannot be `UNDONE`.** — `UNDONE` capitals, bold, warning colour — and the post-cancel toast no longer
+offers an Undo. Same change as My Timetable; nothing page-specific.
+
 ## 2026-11-04 — the page description speaks the same visual language as My Replacements
 
 Minor UI update (user, all pages): the `.page-desc` line now bolds and uppercases its key terms with

@@ -198,6 +198,15 @@ final class NotificationsBridgeTest extends TestCase
             'link' => '/my-timetable-ui', 'request_id' => null,
             'class_session_id' => (int) $foreignSession->id, 'week' => 7,
         ]);
+        // the cancellation that made these rows is LIVE (the CancelClass action
+        // always writes the exception first) — without it the row is an
+        // UNDONE-cancellation (2026-11-05) and correctly renders inactive
+        ClassException::create([
+            'class_session_id' => (int) $ownSession->id,
+            'week_number' => 7,
+            'reason' => 'medical_leave',
+        ]);
+
         // the viewer's OWN cancellation — this one must stay
         Notification::create([
             'user_id' => (int) $viewer->id, 'role_view' => 'lecturer', 'type' => 'update',
@@ -420,6 +429,99 @@ final class NotificationsBridgeTest extends TestCase
         );
     }
 
+    /**
+     * 2026-11-05 (the user's bug report, option B): a "Scheduled class cancelled"
+     * notice whose cancellation was UNDONE is a dead click — the class is not on
+     * the merged page any more. The row must derive INACTIVE at read time (no
+     * data edit), on BOTH resolveRequests exits: the request-bearing mailbox and
+     * the class-only inbox (a student's whole feed).
+     */
+    public function test_cancel_notice_goes_inactive_when_the_cancellation_is_undone(): void
+    {
+        $session = ClassSession::query()
+            ->where('lecturer_id', 1)
+            ->where('day_of_week', 3)
+            ->firstOrFail();
+        $owner = User::findOrFail(1);
+
+        $this->actingAs($owner);
+        $exception = ClassException::create([
+            'class_session_id' => (int) $session->id,
+            'week_number' => 8,
+            'reason' => 'medical_leave',
+        ]);
+        app(NotificationEmitter::class)->classCancelled($owner, $session, 8);
+
+        $ownerRow = fn () => Livewire::test(NavNotifications::class, [
+            'island' => 'panel', 'pageKey' => 'requestApproval', 'unreadOnly' => false,
+        ])->html();
+
+        // the class IS cancelled → the notice is a live anchor with its target
+        $html = $ownerRow();
+        $this->assertStringContainsString('data-notif-target="o'.(int) $session->id.'"', $html);
+        $this->assertStringNotContainsString('because the cancellation was undone', $html);
+
+        // the UNDO lands: the exception row is deleted, the notification is NOT
+        $exception->delete();
+
+        $html = $ownerRow();
+        $this->assertStringContainsString('This notification is inactive because the cancellation was undone.', $html);
+        $this->assertStringNotContainsString('data-notif-target="o'.(int) $session->id.'"', $html, 'an undone cancellation keeps NO target');
+
+        // the CLASS-ONLY exit: a student's whole feed is these rows, and their
+        // badges must stop counting a cancellation that no longer exists
+        $student = Student::query()
+            ->whereIn('cohort_id', $session->cohorts->pluck('id'))
+            ->whereNotNull('user_id')
+            ->firstOrFail()
+            ->user;
+        $this->assertNotNull($student);
+        $this->actingAs($student);
+        $studentComponent = Livewire::test(NavNotifications::class, [
+            'island' => 'panel', 'pageKey' => 'requestApproval', 'unreadOnly' => false,
+        ]);
+        $this->assertStringContainsString('because the cancellation was undone', $studentComponent->html());
+        $this->assertSame(0, $studentComponent->viewData('unreadTotal'), 'a stale cancellation must not sit in the badge');
+    }
+
+    /**
+     * 2026-11-05 (the user's bug report, option B): request #24 was rejected, then
+     * RE-PROPOSED as #26 on the same class+week. The row now belongs to #26, so the
+     * old notice's id can never match — it must derive INACTIVE (and a decision row
+     * on the NEWEST request must stay live).
+     */
+    public function test_decision_notice_goes_inactive_when_a_newer_request_replaced_it(): void
+    {
+        $owner = User::findOrFail(1);
+        $old = $this->seedRequest();
+        ReplacementRequest::query()->whereKey($old->id)->update(['status' => 'rejected']);
+
+        $this->actingAs($owner);
+        app(NotificationEmitter::class)->requestDecided(
+            $owner, 'rejected', 'BMSE3153', 'P', (int) $old->id, 8, 'Surayaini', 'Venue unavailable',
+        );
+
+        $render = fn () => Livewire::test(NavNotifications::class, [
+            'island' => 'panel', 'pageKey' => 'requestApproval', 'unreadOnly' => false, 'activeOnly' => false,
+        ])->html();
+
+        // no newer request yet → the decision row is a live record
+        $this->assertStringNotContainsString('because a newer request replaced this one', $render());
+
+        // the RE-PROPOSAL: a newer request on the same class + week
+        $newer = $this->seedRequest();
+        ReplacementRequest::query()->whereKey($newer->id)->update(['status' => 'approved']);
+        app(NotificationEmitter::class)->requestDecided(
+            $owner, 'approved', 'BMSE3153', 'P', (int) $newer->id, 8, 'Surayaini',
+        );
+
+        $html = $render();
+        $this->assertStringContainsString('This notification is inactive because a newer request replaced this one.', $html);
+        $this->assertStringNotContainsString('data-notif-target="r'.(int) $old->id.'"', $html, 'the superseded request keeps NO target');
+        // …and the NEWEST request's own decision row is untouched
+        $this->assertStringContainsString('data-notif-target="r'.(int) $newer->id.'"', $html);
+    }
+
     /** SDD notif-new-request-ux: the fail-open matrix (D6). */
     public function test_submitted_row_fail_open_matrix(): void
     {
@@ -615,6 +717,11 @@ final class NotificationsBridgeTest extends TestCase
             ->where('lecturer_id', 1)
             ->where('day_of_week', 3)
             ->firstOrFail();
+        ClassException::create([      // the live cancellation to match the notice
+            'class_session_id' => (int) $session->id,
+            'week_number' => 8,
+            'reason' => 'medical_leave',
+        ]);
         app(NotificationEmitter::class)->classCancelled(
             $this->coordinator(), $session, 8
         );

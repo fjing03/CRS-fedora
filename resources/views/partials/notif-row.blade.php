@@ -70,6 +70,11 @@
             'cancelled' => 'This notification is inactive because the request was cancelled by the requester.',
             'approved' => 'This notification is inactive because the request was approved.',
             'rejected' => 'This notification is inactive because the request was rejected.',
+            /* 2026-11-05 (user option B, copy accepted verbatim): the two STALE
+               families — a cancellation that was undone, and a decision whose
+               request was replaced by a newer one on the same occurrence. */
+            'undone' => 'This notification is inactive because the cancellation was undone.',
+            'superseded' => 'This notification is inactive because a newer request replaced this one.',
             /* 2026-11-04 (user ruling): there is no `read` reason any more — a
                read row of a still-pending request stays ACTIVE (see
                NavNotifications::resolveRequests). Reading is not a decision. */
@@ -115,7 +120,12 @@
             $notifTarget = 'r'.$n->request_id;
         } elseif ($n->link === '/my-request-history-ui' && $n->request_id !== null) {
             $notifTarget = 'r'.$n->request_id;
-        } elseif ($n->link === '/my-timetable-ui' && $n->class_session_id !== null) {
+        } elseif ($n->class_session_id !== null
+            && ($n->link === '/my-timetable-ui' || $n->link === '/my-replacements')) {
+            /* 2026-11-05: the NEW cancel rows are written with the merged-page
+               link (notif-click-behaviour), and the legacy stored rows keep
+               /my-timetable-ui — BOTH must resolve the same `o` target, or a
+               fresh cancellation would arrive with nothing to flash. */
             $href = '/my-replacements';
             if ($n->request_id !== null) {
                 /* the replacement-confirmed row: the request IS the target */
