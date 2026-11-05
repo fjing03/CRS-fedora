@@ -27,7 +27,7 @@
 | Ops trap | `opcache.enable_cli=On` with `revalidate_freq=180` → a long-running `artisan serve` can serve a `.php` file's old bytecode for ~3 min. Use **`scripts/dev-serve.sh [port]`** (kills that port, clears views, starts with `revalidate_freq=0`). |
 | Gates | `composer run lint:check` · `vendor/bin/phpstan analyse --memory-limit=1G` · full phpunit · `node --check` for JS. **Never** `composer run types:check` (crashes at 128M). |
 | Suite | Last full PHPUnit run **344 tests / 1899 assertions** (2026-11-05, 566.5 s, after `7b7f0d9`); `tests/cancel-class.spec.ts` on a fresh `:8030` DB = **12 passed / 4 skipped**. The browser suites are separate and are NOT part of that number — quote them by name. |
-| SDD lanes | **40** lane dirs under `.sdd/changes/`, **94** archived (2026-11-05; re-count with `ls`). Most of the 40 are long-finished lanes still waiting for the user's archive word — an open list is in §5. Archive only on the user's word. |
+| SDD lanes | **33** lane dirs under `.sdd/changes/`, **101** archived (2026-11-05, after an archive pass moved seven finished lanes). The remaining 33 are older finished lanes still waiting for the user's word. Archive only on the user's word. |
 | **The merge lane** | `replacement-merge-one-table` — **APPLIED 2026-11-04**, archived `07274c1`: `e70c1ea` (payload/mapper), `6856577` (view), `ab65f9a` (routes + retired page), `d3f6f5b` + `c4d0ad3` (specs). The merged page is **My Replacements** at `/my-replacements`, with `/replacement-home-ui` and `/my-request-history-ui` as alias route entries. |
 | **Cancel Class** | **FINAL since 2026-11-05** — undo gone from the UI, the JS and the server (`23c627c`); the inbox marks stale notices inactive at read time instead of offering dead clicks (`7b7f0d9`); four final-decision modals carry *"This action cannot be UNDONE."* (`12c644a`). |
 | **E2E write-guard** | Live and fail-closed: `tests/helpers/receipt-target-guard.ts` + the three guarded specs (`b924552`, lane `receipt-target-guard` applied `7bbce9f`). Its one unverified receipt is `T3d` — the submission-conflict suite is not green; see §5. |
@@ -73,6 +73,23 @@
   message. Now the blocked arrival speaks first (the note is deferred, not spent), and the reminder
   is **one-shot** (`markLoadToastShown()` writes `toastShown`), so a note the app can never clear
   cannot nag on every load.
+
+**2026-11-05 (later) — after-submit highlight, the YOU relabel, and the archive pass (4 more commits):**
+- **`a29f694`** — *My Replacements After Submit*: the submission success toast
+  (`✓ Submitted — Pending Approval` + `View →`) and its 1.2 s pause are gone; the redirect
+  carries `?new-req=<id>` and the new row pulses with the shared `bookable-pulse` (3 × 0.5 s).
+  Server: `submitBlocks()` returns `request_id` (additive). Client: `jumpToNewRequest()` +
+  a synchronous, self-stripping param. A hiding filter is cleared **for the visit only**
+  (`saveFilters()` deliberately not called); "Exclude COMPLETED" stays ticked; nothing found =
+  silent. Receipt: `tests/my-replacements-after-submit.spec.ts` (guarded) — 510 / 564 ms to
+  navigate, zero toasts, one row flashed, saved filters intact.
+- **`476406a` + `43bda16`** — the Event Hover Tooltip relabel: the own-class segment of
+  `data-tip2` reads **`YOU`** instead of `ME` on the cohort and venue timetables (two different
+  ownership mechanisms — name comparison vs the server's `mine` flag), and the two reference
+  mock-ups under `ui-design-templates/` were brought along. Zero `ME` tooltip labels remain.
+- **The archive pass**: seven finished lanes moved to `.sdd/archive/` (`git mv`, `status:
+  archived`, `archived: 2026-11-05`). `.sdd/changes/` is down to **33** dirs, all older finished
+  lanes; `.sdd/archive/` holds **101**.
 
 **2026-11-04 — the merge lane: planned, then applied and archived (seven commits, unpushed at the
 time of writing):**
@@ -269,11 +286,12 @@ date, and its files are dirty in the tree — see §3.
 
 1. **[USER] Push** — 8 commits sit on `fedora-backend` past `5a6e441` (`1156685` newest). Nothing is
    pushed by an agent, ever.
-2. **[USER, waiting on the archive word]** Seven finished lanes are still in `.sdd/changes/` with a
-   done `tasks.md`: `mytimetable-jump-highlight`, `notif-click-behaviour`, `receipt-target-guard`,
+2. ~~**[USER, waiting on the archive word]** Seven finished lanes~~ — **ARCHIVED 2026-11-05**:
+   `mytimetable-jump-highlight`, `notif-click-behaviour`, `receipt-target-guard`,
    `replacement-home-status-badges`, `request-completed-status`, `notif-recipient-rulings`,
-   `ui-footer-global`. Move with `git mv` → `.sdd/archive/<lane>/`, flip `sdd.yaml` to `archived`,
-   commit as `docs:`. Also open: whether `.sdd/archive/README.md` should exist at all.
+   `ui-footer-global` now live in `.sdd/archive/` with `status: archived` + `archived: 2026-11-05`.
+   **Still open:** whether `.sdd/archive/README.md` should exist at all, and the ~33 older finished
+   lane dirs left in `.sdd/changes/` (a later sweep, on the user's word).
 3. **[AGENT, ready on the word]** `prompts/request-approval-ui CONSISTENCY.md` **part 2** — 8 items
    (1f, 1h, 3A, 3B, 3C, 3D, 3E-3, §4 eyeball). Every blocker is cleared; the file itself carries the
    per-item plan and the recommended order: **1f + 3B** (mapper T1–T6) → **3A** (`factsHtml`) → 3D →

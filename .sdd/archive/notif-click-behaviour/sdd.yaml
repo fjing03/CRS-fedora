@@ -1,6 +1,6 @@
 name: notif-click-behaviour
 created: 2026-11-04
-status: applied
+status: archived
 source: "user chat 2026-11-04 — 'Notification Click Behaviour, part 1 only'"
 user-order: "Cancelled → /my-replacements + flash the row. Approved → /my-replacements + flash the row. Completed → hide the notification row in place, no navigation."
 supersedes: "the earlier notification-navigation order (items 2/3 of that order — manage Back button, panel width — are NOT in this lane and remain outstanding)"
@@ -10,3 +10,4 @@ batches:
   specs: "2026-11-04 — self-review round 1"
   tasks: "2026-11-04 — self-review round 1"
 applied: "2026-11-04 — see review-log.md 'Apply' (receipts measured, not asserted)"
+archived: 2026-11-05

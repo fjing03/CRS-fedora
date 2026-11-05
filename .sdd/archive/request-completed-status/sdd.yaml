@@ -1,6 +1,7 @@
 name: request-completed-status
 created: 2026-11-03
-status: applied
+status: archived
 source-prompt: prompts/pi-request-completed-status.md
 prerequisite: "replacement-home-status-badges — satisfied (a16727c feat, 2e58547 apply/verify)"
 user-order: "2026-11-03 — the nine decisions C1–C9 were locked in the user's grill session; the prompt is the approval, so nothing in §3 is re-asked"
+archived: 2026-11-05

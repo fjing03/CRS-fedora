@@ -1,5 +1,6 @@
 name: replacement-home-status-badges
 created: 2026-11-03
-status: applied
+status: archived
 source-prompt: prompts/pi-replacement-home-status-badges.md
 user-order: "2026-11-03 — nine decisions locked in the user's review session; the prompt is the approval ('approved as described here'), so nothing in §3 is re-asked"
+archived: 2026-11-05

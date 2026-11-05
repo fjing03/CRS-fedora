@@ -1,7 +1,8 @@
 change-id: receipt-target-guard
-status: applied
+status: archived
 user-order: "2026-11-01 — the user chose 'I do it' for the safety lock after the DATA-LOSS INCIDENT cleared their Oct-31 demo submissions"
 incident-source: docs/demo-db-data-changes.md (top entry, 2026-11-01)
 rounds: 1
 created: 2026-11-01
 applied: 2026-11-05
+archived: 2026-11-05
