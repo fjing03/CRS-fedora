@@ -18,7 +18,7 @@
 |---|---|
 | Branch / remotes | `fedora-backend` → `origin` = `fjing03/CRS-fedora.git` (**27 commits ahead**, see Push state); `upstream` = `FjingXR/class-replacement-system` (**pull-only**) |
 | Push policy | **NEVER `git push`** — the user pushes. One commanded exception, 2026-11-02; afterwards the rule resumed. |
-| Push state | `origin/fedora-backend` sits at **`5a6e441`**; **27** commits are unpushed (2026-11-06, newest `bee6176`). Re-check: `git rev-list --count origin/fedora-backend..HEAD`. The user pushes. |
+| Push state | `origin/fedora-backend` sits at **`5a6e441`**; **27** commits are unpushed (2026-11-05, newest `bee6176`). Re-check: `git rev-list --count origin/fedora-backend..HEAD`. The user pushes. |
 | AI context layout | Root **`AGENTS.md`** is a bootstrap pointer → this folder holds `AGENTS.md`, `CodingMAIN.md` (the spec), `my-coding-rules.md` (quick rules), `FR&NFR copy.md` (read-only without the user's approval), this file, and `history/`. |
 | Servers | `:8000` = `CRS-fedora-backend` / **`class_replacement_fresh`** (dev). `:8001` = `../CRS-demo` / **`class_replacement_viva`** (viva twin, `APP_DEBUG=false`). `:8030` = disposable AI/E2E lane on `class_replacement_testing` only. |
 | Database trap | `class_replacement_demo` is the **older, empty** twin (0 requests) — not the viva DB. |
@@ -26,9 +26,9 @@
 | Test DB | `class_replacement_testing` — disposable; `DB_DATABASE=class_replacement_testing php artisan migrate:fresh --seed` is fine **there only**. |
 | Ops trap | `opcache.enable_cli=On` with `revalidate_freq=180` → a long-running `artisan serve` can serve a `.php` file's old bytecode for ~3 min. Use **`scripts/dev-serve.sh [port]`** (kills that port, clears views, starts with `revalidate_freq=0`). |
 | Gates | `composer run lint:check` · `vendor/bin/phpstan analyse --memory-limit=1G` · full phpunit · `node --check` for JS. **Never** `composer run types:check` (crashes at 128M). |
-| Suite | Last full PHPUnit run **344 tests / 1899 assertions** (2026-11-06, 410 s, after `bee6176` — the count returned to 344 because `venue-slot-validation` added two `minClassSlots` cases and deleted the same two with the plumbing). Browser suites are separate and NOT part of that number — quote them by name: `venue-book` 19, venue neighbours 61 passed / 2 skipped, `cancel-class` 12 passed / 4 skipped. |
-| SDD lanes | **34** lane dirs under `.sdd/changes/` (**33** older finished ones + `venue-slot-validation`, `status: applied` 2026-11-06), **101** archived. Archive only on the user's word. |
-| **Venue page slot rules** | Since 2026-11-06: hover asks ONE question (**one clear hour**, `MIN_BOOK_SLOTS = 2`, never derived from a class), and a class's duration is judged only AFTER it is picked (Arrange gate → `#slotWarningOverlay`, no navigation). Lane `venue-slot-validation`; commits `daf11c6` + `bee6176`. |
+| Suite | Last full PHPUnit run **344 tests / 1899 assertions** (2026-11-05, 410 s, after `bee6176` — the count returned to 344 because `venue-slot-validation` added two `minClassSlots` cases and deleted the same two with the plumbing). Browser suites are separate and NOT part of that number — quote them by name: `venue-book` 19, venue neighbours 61 passed / 2 skipped, `cancel-class` 12 passed / 4 skipped. |
+| SDD lanes | **34** lane dirs under `.sdd/changes/` (**33** older finished ones + `venue-slot-validation`, `status: applied` 2026-11-05), **101** archived. Archive only on the user's word. |
+| **Venue page slot rules** | Since 2026-11-05: hover asks ONE question (**one clear hour**, `MIN_BOOK_SLOTS = 2`, never derived from a class), and a class's duration is judged only AFTER it is picked (Arrange gate → `#slotWarningOverlay`, no navigation). Lane `venue-slot-validation`; commits `daf11c6` + `bee6176`. |
 | **The merge lane** | `replacement-merge-one-table` — **APPLIED 2026-11-04**, archived `07274c1`: `e70c1ea` (payload/mapper), `6856577` (view), `ab65f9a` (routes + retired page), `d3f6f5b` + `c4d0ad3` (specs). The merged page is **My Replacements** at `/my-replacements`, with `/replacement-home-ui` and `/my-request-history-ui` as alias route entries. |
 | **Cancel Class** | **FINAL since 2026-11-05** — undo gone from the UI, the JS and the server (`23c627c`); the inbox marks stale notices inactive at read time instead of offering dead clicks (`7b7f0d9`); four final-decision modals carry *"This action cannot be UNDONE."* (`12c644a`). |
 | **E2E write-guard** | Live and fail-closed: `tests/helpers/receipt-target-guard.ts` + the three guarded specs (`b924552`, lane `receipt-target-guard` applied `7bbce9f`). Its one unverified receipt is `T3d` — the submission-conflict suite is not green; see §5. |
@@ -37,7 +37,7 @@
 
 ---
 
-## 1. Latest sessions — 2026-11-03 → 2026-11-06
+## 1. Latest sessions — 2026-11-03 → 2026-11-05
 
 **2026-11-05 — the cancel-final chain, the E2E write-guard, and the toast order (8 unpushed commits):**
 - **`7b7f0d9`** — the inbox stops offering dead clicks *and* Cancel Class becomes final (the user
@@ -169,7 +169,7 @@ date, and its files are dirty in the tree — see §3.
 
 ---
 
-### 2026-11-06 (venue slot validation + archive pass)
+### 2026-11-05 (venue slot validation + archive pass)
 
 - **`c5dd0c4`** — archived the seven finished lanes (`mytimetable-jump-highlight`,
   `notif-click-behaviour`, `receipt-target-guard`, `replacement-home-status-badges`,
@@ -214,7 +214,7 @@ date, and its files are dirty in the tree — see §3.
 | 15 | **Cancel Class is FINAL** (user 2026-11-05: *"i give up all UNDONE function"*). No undo button, no undo callback, no server undo route — removing them was the fix, not a regression. Every final-decision confirm modal (Approve, Reject, Cancel Request, Cancel Class) shows *"This action cannot be UNDONE."* Reversible actions get nothing. |
 | 16 | **Toast order**: a `?blocked=request-pending\|request-approved` arrival shows the ENTRY-GUARD message first, and any pending cancellation reminder is deferred (neither shown nor spent) to the next page load. The cancellation reminder is **one-shot** — one reminder per cancellation, never one per load. |
 | 17 | **Stale notifications are marked inactive AT READ TIME**, never edited: `undone` (a request-less cancel notice whose `class_exceptions` row is gone) and `superseded` (a decision notice older than the newest request for the same class+week). Badge = D5 (actionable unread), so an inactive row leaves the badge but stays on the list. |
-| 18 | **A slot is judged by the class the user picks, not by a guess** (user brief `Venue Timetable Slot Validation.md`, 2026-11-06). On `/venue-timetable-ui` the hover answers ONE question — *is there at least one clear hour?* (`MIN_BOOK_SLOTS = 2`; `cell-no-room` = "Not Enough Slot" when the next class starts inside that hour, `cell-no-fit` = past day end). It is **never** derived from the arrange pool (the old `minClassSlots` plumbing is deleted). The real duration is checked only AFTER a session is picked, in `confirmIntentSession()` → `#slotWarningOverlay` (span or day-end copy), which never navigates. The pop-up lists every session with `data-slots` / `data-fit` and pre-selects the first fitting row; no verdict is shown before the pick. |
+| 18 | **A slot is judged by the class the user picks, not by a guess** (user brief `Venue Timetable Slot Validation.md`, 2026-11-05). On `/venue-timetable-ui` the hover answers ONE question — *is there at least one clear hour?* (`MIN_BOOK_SLOTS = 2`; `cell-no-room` = "Not Enough Slot" when the next class starts inside that hour, `cell-no-fit` = past day end). It is **never** derived from the arrange pool (the old `minClassSlots` plumbing is deleted). The real duration is checked only AFTER a session is picked, in `confirmIntentSession()` → `#slotWarningOverlay` (span or day-end copy), which never navigates. The pop-up lists every session with `data-slots` / `data-fit` and pre-selects the first fitting row; no verdict is shown before the pick. |
 
 ---
 
@@ -249,7 +249,7 @@ date, and its files are dirty in the tree — see §3.
 - **Inline `onclick=` + a page script inside a `DOMContentLoaded` closure** = the markup cannot see
   the function unless it is exported (`window.closeSlotWarning = closeSlotWarning;`). The symptom is
   a modal that opens and then throws *"… is not defined"* when you close it — that is what the venue
-  slot warning did for one round (2026-11-06). Check the `window.` export block at the end of the
+  slot warning did for one round (2026-11-05). Check the `window.` export block at the end of the
   page's script before blaming the markup.
 - **Browser fixtures rot with the clock.** `venue-cross-week-handoff` S1 pinned *Tue 03 Nov 2026*;
   once that date passed, the whole week rendered read-only (`cell-too-soon`) and the spec could not
@@ -309,7 +309,7 @@ date, and its files are dirty in the tree — see §3.
 | Reusable prompt **templates** (paste-ready; no project state) | `prompts/general&reusable prompt references/` — `PI-PROMPT-TEMPLATE.md`, the two propose templates, the UI-page spec, the context-transfer prompt |
 | Demo-DB writes, restores, snapshots | `docs/demo-db-data-changes.md`, `backups/README.md` |
 | Viva runbook, queue/mail, known pending bugs | `docs/viva-demo-runbook.md`, `docs/queue-and-emails.md`, `docs/replacement-arrangement-pending-bugs.md` |
-| **The lanes just applied** | `venue-slot-validation` — `.sdd/changes/venue-slot-validation/` (status `applied` 2026-11-06; the venue hover/gate split, receipt in `review-log.md`). `receipt-target-guard` — same folder (status `applied`; one leg open: `T3d`). Merge lane: `.sdd/archive/replacement-merge-one-table/` (archived `07274c1`). |
+| **The lanes just applied** | `venue-slot-validation` — `.sdd/changes/venue-slot-validation/` (status `applied` 2026-11-05; the venue hover/gate split, receipt in `review-log.md`). `receipt-target-guard` — same folder (status `applied`; one leg open: `T3d`). Merge lane: `.sdd/archive/replacement-merge-one-table/` (archived `07274c1`). |
 | **The venue-page slot rules** | `resources/views/livewire/venue-timetable.blade.php` (`MIN_BOOK_SLOTS`, `spanBlocked()`, `nextEventStartAfter()`, `refreshSessions()`, `confirmIntentSession()`, `showSlotWarning()`), `resources/views/partials/ui-intent-session-modal.blade.php` (`#slotWarningOverlay`), `app/Livewire/VenueTimetable.php` (`bookableCandidates()`, `intentSessionOptions()`) |
 | Cancel Class + the inbox rules | `app/Livewire/NavNotifications.php` (`exceptionMap()`, the two read-time classifiers), `resources/views/partials/notif-row.blade.php` (`$rowTip`), `public/js/ui-common.js` (`showCancelToast`, `needsLoadToast`, `markLoadToastShown`, `CancelClassModal`) |
 | Lanes already landed | `prompts/pi-replacement-home-status-badges.md`, `prompts/pi-request-completed-status.md` |
@@ -318,20 +318,20 @@ date, and its files are dirty in the tree — see §3.
 
 ---
 
-## 5. Open tasks (state at 2026-11-06)
+## 5. Open tasks (state at 2026-11-05)
 
-1. **[USER] Push** — 27 commits sit on `fedora-backend` past `5a6e441` (`bee6176` newest, 2026-11-06).
+1. **[USER] Push** — 27 commits sit on `fedora-backend` past `5a6e441` (`bee6176` newest, 2026-11-05).
    Nothing is pushed by an agent, ever.
 2. ~~**[USER, waiting on the archive word]** Seven finished lanes~~ — **ARCHIVED 2026-11-05**:
    `mytimetable-jump-highlight`, `notif-click-behaviour`, `receipt-target-guard`,
    `replacement-home-status-badges`, `request-completed-status`, `notif-recipient-rulings`,
    `ui-footer-global` now live in `.sdd/archive/` with `status: archived` + `archived: 2026-11-05`.
    **Still open:** whether `.sdd/archive/README.md` should exist at all, the ~33 older finished
-   lane dirs left in `.sdd/changes/`, and `venue-slot-validation` itself (applied 2026-11-06,
+   lane dirs left in `.sdd/changes/`, and `venue-slot-validation` itself (applied 2026-11-05,
    archive on the user's word).
 3. ~~**[AGENT, ready on the word]** `prompts/request-approval-ui CONSISTENCY.md` **part 2**~~
    **SHIPPED 2026-11-04** (1f, 3B, 3C, 3A, 3D, 1h, 3E-3, §4 — `page-changelogs/request-approval-changelog.md`
-   + the `ui(request-approval)` commits through `fc217a5`). The brief is archived as of 2026-11-06
+   + the `ui(request-approval)` commits through `fc217a5`). The brief is archived as of 2026-11-05
    (`prompts/completed prompt (Archieve)/`). Nothing left here.
 4. **[AGENT]** `receipt-target-guard` `T3d` — `tests/submission-conflict-refresh.spec.ts` is **not
    green** and never has been recorded green: it fails inside its own staged-arrival flow (a login

@@ -1,6 +1,6 @@
 # Review log — venue-slot-validation
 
-## Batch 1 (proposal) → Batch 4 (tasks) — 2026-11-06
+## Batch 1 (proposal) → Batch 4 (tasks) — 2026-11-05
 
 No `@sdd-reviewer` subagent is available in this harness (pi), so the four batches were
 self-reviewed against `explore-brief.md` before freezing instead of by subagent round. Recorded
@@ -22,7 +22,7 @@ honestly rather than skipped.
 ### 🔴 Outstanding
 - (none)
 
-## Apply round — 2026-11-06
+## Apply round — 2026-11-05
 
 - `tests/venue-book.spec.ts` 19 passed · venue neighbours 61 passed / 2 skipped · full PHPUnit
   344 / 1899 · pint clean · PHPStan 0 · Blade cache compiles.

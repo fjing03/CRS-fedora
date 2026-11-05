@@ -1,4 +1,4 @@
-## 2026-11-06 (UI/UX, user brief `Venue Timetable Slot Validation.md`) — hover asks one question, the class answers the rest
+## 2026-11-05 (UI/UX, user brief `Venue Timetable Slot Validation.md`) — hover asks one question, the class answers the rest
 
 The pop-up used to decide a class it had not been given. Clicking a free 13:00 cell (next class at
 14:00) printed **"None of your classes can run in B002 at this cell — 13:00 plus the class length
