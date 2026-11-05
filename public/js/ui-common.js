@@ -4721,10 +4721,18 @@ const CancelClassModal = {
         const reason = this._selectedReason();
         const trimmedDetail = detail ? String(detail.value).trim() : '';
         const pre = ClassCancellation.preflight(ctx.event, ctx.days, ctx.weekIndex, reason, trimmedDetail);
-        const hint = document.getElementById('cancelReasonHint');
+
         if (!pre.ok) {
-            if (hint) hint.textContent = pre.hint;
+            /* ORDER MATTERS (2026-11-05, the blank-message bug): _refreshGate()
+               re-arms the Yes button AND rewrites the hint from validate() —
+               which is EMPTY whenever the reason itself is fine. Writing the
+               refusal copy BEFORE it therefore erased it, so a refused cancel
+               explained nothing. The copy goes AFTER the gate, on a freshly
+               queried element. */
             this._refreshGate();   // re-gate for a retry after the user fixes the input
+            const refusal = document.getElementById('cancelReasonHint');
+            if (refusal) refusal.textContent = pre.hint;
+
             return;
         }
         let res = null;
@@ -4734,8 +4742,14 @@ const CancelClassModal = {
                 ctx.weekIndex + 1, reason, trimmedDetail);
         } catch (e) { res = { ok: false, hint: 'Server error — the class is unchanged.' }; }
         if (!res || res.ok !== true) {
-            if (hint) hint.textContent = (res && res.hint) || 'Server error — the class is unchanged.';
+            /* same order law as above, plus a RE-QUERY: the Livewire round-trip
+               can re-render the modal, so the pre-await node may be detached. */
             this._refreshGate();
+            const serverRefusal = document.getElementById('cancelReasonHint');
+            if (serverRefusal) {
+                serverRefusal.textContent = (res && res.hint) || 'Server error — the class is unchanged.';
+            }
+
             return;
         }
         const out = ClassCancellation.cancel(ctx.event, ctx.days, ctx.weekIndex, reason, trimmedDetail);
@@ -4743,9 +4757,14 @@ const CancelClassModal = {
             /* The server row is WRITTEN but the client guards now disagree
                (midnight-roll edge, seconds apart). The client still must not
                flip against its own guards — the hint reads honestly; a
-               reload resolves to the server truth (applyLedger self-evict). */
-            if (hint) hint.textContent = out.hint ||
-                'The class is cancelled on the server but the timetable disagrees — reload to see the truth.';
+               reload resolves to the server truth (applyLedger self-evict).
+               2026-11-05: re-query, never the pre-await node. */
+            const clientRefusal = document.getElementById('cancelReasonHint');
+            if (clientRefusal) {
+                clientRefusal.textContent = out.hint ||
+                    'The class is cancelled on the server but the timetable disagrees — reload to see the truth.';
+            }
+
             return;
         }
         out.entry.exceptionId = res.exceptionId || null;

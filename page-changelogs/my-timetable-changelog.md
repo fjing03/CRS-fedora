@@ -1,3 +1,24 @@
+## 2026-11-05 — a refused cancellation now explains itself
+
+Found while rewriting the S6 receipt: when the Cancel Class confirm was **refused**, the modal's message line came out
+**blank** — the button re-armed, the dialog stayed open, and nothing said why.
+
+The cause was order, not wording. `_refreshGate()` re-arms the Yes button *and* rewrites the hint from
+`ClassCancellation.validate()` — which is an empty string whenever the chosen reason is perfectly valid. The refusal
+copy was written **before** that call, so the gate erased it a line later. The message never had a chance.
+
+Both refusal branches now gate first and write the message second, on a **freshly queried** element (the Livewire
+round-trip can re-render the modal, so the pre-await node may be detached):
+
+| Refusal | Message now shown |
+|---|---|
+| the class was cancelled elsewhere (another tab, another user) | `This class is already cancelled.` (the server's own copy) |
+| the class left the 2-working-day window, or stopped being cancellable | the guard's own sentence |
+
+Measured in the two-tab receipt (S6): the second tab cancels the class, the first tab's confirm is refused, and the
+line reads `This class is already cancelled.` — with no success state, no stored entry, and the block still on that
+tab's grid. The validation hints (S7/S8) are untouched: those come from the gate itself and still read correctly.
+
 ## 2026-11-05 — the dead undo path is gone (cleanup)
 
 With the Undo affordance retired, everything that only existed to serve it was deleted rather than left lying
