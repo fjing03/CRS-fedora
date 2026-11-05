@@ -3,7 +3,7 @@
 > The always-read form of the user's coding rules for `CRS-fedora-backend`.
 > Distilled from `CodingMAIN.md §10` (Coding Conventions + UI Design Rules, user-mandated 2026-08-01)
 > and `AGENTS.md` standing rules. On any conflict, **CodingMAIN.md §10 wins** — and tell the user
-> this file has drifted so it can be re-synced. Last synced: 2026-10-19.
+> this file has drifted so it can be re-synced. Last synced: 2026-11-05.
 
 ## 1. UI Design Rules — non-negotiable, every page, every change
 
@@ -54,9 +54,9 @@ Adding a new status/legend item = **ONE row** in the relevant table above + **ON
 5. **Don't overwhelm — detail goes in modals.** Page surface = grid/table + filters + summary cards + primary actions. Anything "nice to know" rather than "need to scan" opens in a modal behind an icon button, never inline.
 6. **Promote-on-3rd-duplication (DRY/OOP).** A markup block / CSS class / JS helper identical across 3+ pages → promote to `resources/views/partials/`, `theme.css`, or `ui-common.js` and refactor the duplicates away. Record every promotion in the SDD `design.md` "Promoted to shared" section.
 7. **Minimise steps — fewest clicks.** Pre-select sensible defaults; no page-hopping for a single task; >~3 clicks → rethink the flow.
-8. **Confirm critical actions.** Delete / submit / cancel / approve / reject → confirmation popup BEFORE executing.
+8. **Confirm critical actions, and say when it is final.** Delete / submit / cancel / approve / reject → confirmation popup BEFORE executing. A decision that cannot be taken back also carries the shared sentence **"This action cannot be UNDONE."** — one partial, `resources/views/partials/ui-irreversible-line.blade.php`, included by the Approve, Reject, Cancel Request and Cancel Class modals. Reversible actions do not get it.
 9. **Mobile responsive on every page** (≤768px breakpoint): nav drawer, card layout for tables, 2-col summary cards, flex-wrap legend, bottom-sheet modals, ≥44×44px touch targets (WCAG 2.5.5), swipe week navigation, `clamp()` typography, safe-area insets, full-width inputs, viewport meta with `viewport-fit=cover`. Shared CSS in `theme.css`, JS helpers in `ui-common.js`.
-10. **Toast/undo bar for critical actions.** Bottom-left toast with success message + **Undo**, auto-dismiss after **5 seconds** — `showToast(message, undoCallback, duration)` in `ui-common.js`, CSS in `theme.css`.
+10. **Toast bar for critical actions.** Bottom-left toast with the success message, auto-dismiss after **5 seconds** — `toast.show(message, undoCallback, duration)` in `ui-common.js`, CSS in `theme.css`. **Undo is offered only where the action is genuinely reversible** (hiding a notification, clearing a selection). **Cancel Class is FINAL** (user ruling 2026-11-05: *"i give up all UNDONE function"*) — no undo button, no undo callback, no server undo route; the confirmation itself is the receipt. The cancellation reminder is **one-shot**: it may return on ONE later page load, never on every load, and a `?blocked=` arrival speaks first (its own message wins; the reminder keeps its turn for the next load).
 
 ## 2. OOP at every layer (FYP rubric evaluates this)
 
@@ -95,7 +95,7 @@ Adding a new status/legend item = **ONE row** in the relevant table above + **ON
 
 ## 6. Hard session-ops absolutes live elsewhere — obey both, don't duplicate
 
-The demo-DB sanctity rules (never re-seed `class_replacement_fresh`/`class_replacement_demo`; tests → `class_replacement_testing` only via `DB_DATABASE=…`; **⛔ never `--env=testing` any destructive command — no `.env.testing` exists, it silently boots `.env` = the demo DB**; **snapshot law: verified `pg_dump -Fc` before any demo-DB write and after any demo-worthy milestone**; every demo-DB edit user-gated + logged in `docs/demo-db-data-changes.md`; **schema migrations are additive-only on the demo DBs — snapshot → rehearse on `class_replacement_testing` → print the target → plain `migrate` (fresh, then demo) → row-count receipt**), the ⛔TC70 `--grep-invert` guard, the stale-cache restart ritual (two separate commands; never `pkill -9 php`), the port map (`:8000` dev · `:8001` demo twin · **`:8030` = disposable AI/E2E lane on `class_replacement_testing`, kill it after**) + re-login 5770, honest zeros, and the after-UI-change changelog requirement are owned by **`AGENTS.md`** + the pi skill **`crs-workspace`** + **`CodingMAIN.md` §4 Database safety** — read those too before acting.
+The demo-DB sanctity rules (never re-seed `class_replacement_fresh`/`class_replacement_demo`; tests → `class_replacement_testing` only via `DB_DATABASE=…`; **⛔ never `--env=testing` any destructive command — no `.env.testing` exists, it silently boots `.env` = the demo DB**; **snapshot law: verified `pg_dump -Fc` before any demo-DB write and after any demo-worthy milestone**; every demo-DB edit user-gated + logged in `docs/demo-db-data-changes.md`; **schema migrations are additive-only on the demo DBs — snapshot → rehearse on `class_replacement_testing` → print the target → plain `migrate` (fresh, then demo) → row-count receipt**), the ⛔TC70 `--grep-invert` guard, **the fail-closed Playwright write-guard (`tests/helpers/receipt-target-guard.ts`: a writing spec refuses to run unless `CRS_MODE=testing`, `CRS_BASE=http://127.0.0.1:8030` and `CRS_ALLOW_SQL=1` are exactly right — never loosen it, never add a soft skip)**, the stale-cache restart (**`scripts/dev-serve.sh [port]`**; never `pkill -9 php`, never one combined kill-and-serve string), the port map (`:8000` dev · `:8001` demo twin · **`:8030` = disposable AI/E2E lane on `class_replacement_testing`, kill it after**) + re-login 5770, honest zeros, and the after-UI-change changelog requirement are owned by **`AGENTS.md`** + the pi skill **`crs-workspace`** + **`CodingMAIN.md` §4 Database safety** — read those too before acting.
 
 ## 7. How to talk to me (every session)
 

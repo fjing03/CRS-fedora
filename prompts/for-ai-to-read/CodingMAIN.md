@@ -105,7 +105,9 @@ All timetable pages use the frozen design's two-axis language: **colour = status
 ### Commands
 ```bash
 composer run dev              # laravel dev server
-php artisan serve             # http://localhost:8000
+scripts/dev-serve.sh [port]   # THE serve command: kills that port, clears compiled views,
+                              # starts with revalidate_freq=0 (cures the OPcache stale-bytecode trap)
+php artisan serve             # http://localhost:8000 (plain; fine for a first start)
 php artisan migrate --seed    # incremental (TESTING DB ONLY — see below)
 composer run lint             # pint --parallel (fix)
 composer run lint:check       # pint --test
@@ -117,7 +119,9 @@ npm run dev / npm run build   # vite (not heavily used; UI uses static /css /js)
 ```
 
 ### Fix stale Blade cache (after UI changes)
-Run **TWO separate commands, never one combined string** (a combined `pkill … && php artisan serve` string self-kills — the kill pattern matches its own wrapper). First:
+**Use the script:** `scripts/dev-serve.sh [port]` (default `8000`) — it kills that port's server, clears `storage/framework/views`, and starts with `revalidate_freq=0`. That last part matters: this machine runs `opcache.enable_cli=On` with `revalidate_freq=180`, so a long-running `php artisan serve` can hand out a `.php` file's OLD bytecode for up to ~3 minutes — the classic "my PHP fix isn't taking effect" trap.
+
+By hand, run **TWO separate commands, never one combined string** (a combined `pkill … && php artisan serve` string self-kills — the kill pattern matches its own wrapper). First:
 ```bash
 pkill -f "[a]rtisan serve" || true
 ```
@@ -136,7 +140,8 @@ rm -f storage/framework/views/*.php && php artisan serve --port=8000 &
 ### Database safety (non-negotiable)
 - Demo DBs hold **real imported data** — `class_replacement_fresh` (:8000) + `class_replacement_demo` (:8001 twin) on the CachyOS machine, `class_replacement` on the HP — **never re-seed, never `migrate:fresh`, never `wipedata`** on them. Every demo-DB write (user clicks included) is user-gated and logged in `docs/demo-db-data-changes.md`.
 - Tests use the disposable `class_replacement_testing`, where `php artisan migrate:fresh --seed` is fine — selected ONLY via `DB_DATABASE=class_replacement_testing php artisan …`.
-- **Port map:** `:8000` = dev on `class_replacement_fresh` · `:8001` = the demo twin (`CRS-demo`, its own viva DB) · **`:8030` = the disposable AI/E2E self-test lane** (`DB_DATABASE=class_replacement_testing php artisan serve --port=8030`) — Playwright/spec runs only, never a demo DB, killed after the run.
+- **Port map:** `:8000` = dev on `class_replacement_fresh` · `:8001` = the demo twin (`CRS-demo`, its own viva DB) · **`:8030` = the disposable AI/E2E self-test lane** (`DB_DATABASE=class_replacement_testing scripts/dev-serve.sh 8030`) — Playwright/spec runs only, never a demo DB, killed after the run.
+- **E2E write-guard law (2026-11-01 DATA-LOSS incident, lane `receipt-target-guard`, applied 2026-11-05):** every Playwright spec that WRITES to the database is fail-closed through `tests/helpers/receipt-target-guard.ts` — `abortUnlessTestingTarget(specPath, { requireAllowSql })` as the first statement after the imports (aborts at COLLECTION, before any login or SQL), or `throwUnlessTestingTarget(name)` on the first line of an individual dangerous test. Both demand the EXACT strings `CRS_MODE=testing` + `CRS_BASE=http://127.0.0.1:8030` (+ `CRS_ALLOW_SQL=1` where a fixture runs SQL). There are no defaults and no `test.skip(!ALLOWED)` escapes left: a missing flag is a loud exit-1 refusal that prints the blessed invocation. Run them as `CRS_MODE=testing CRS_ALLOW_SQL=1 CRS_BASE=http://127.0.0.1:8030 npx playwright test <spec>` after `DB_DATABASE=class_replacement_testing php artisan migrate:fresh --seed`. Never loosen the guard to make a run "work".
 - **⛔ The `--env=testing` trap (real accident 2026-10-26):** this machine has **no `.env.testing`**, so `--env=testing` on any command **silently boots `.env`** — i.e. the DEMO DB — and a fresh/seed then destroys real records. Never append `--env=testing` to any destructive command; the env-var form above is the only sanctioned testing-DB switch.
 - **Schema-migration law (2026-11-02):** migrations are **strictly additive** on any demo DB — add a nullable column / add an index, nothing else. Never `change`, `rename`, `drop*`, or data statements. Every run: verified `pg_dump -Fc` snapshot → rehearse on `class_replacement_testing` via `DB_DATABASE=…` → **print the target first** (`php artisan tinker --execute="echo DB::connection()->getDatabaseName();"`) → plain `php artisan migrate` on `class_replacement_fresh`, then `DB_DATABASE=class_replacement_demo …` → row-count receipt before/after (`crs:db-row-counts`) → log it in `docs/demo-db-data-changes.md`. A migration run **is** a demo-DB write (user-gated). Reference execution: `2026_11_02_000001_add_hidden_at_to_notifications_table.php` (5 + 0 rows preserved, every `hidden_at` NULL).
 - **Snapshot law (the 2026-10-31 loss lesson):** before **any** demo-DB write take a verified `pg_dump -Fc` (pattern `<db>-<state>-<date>.dump`; `pg_restore --list` must pass) into the backups dir — `/home/philler/Desktop/tarumt/backups/` (HP mirror: `/home/jinglinux/tarumt/backups/`) — and take another dump after any demo-worthy milestone (user's own demo prep clicks count). Restores follow the backups README recipe (stop the server precisely → drop → restore → restart; two separate commands).
@@ -477,7 +482,7 @@ These ten rules are **non-negotiable** for every page and every future change:
 
 9. **Mobile responsive design.** Every page MUST include mobile layout (≤768px breakpoint): nav drawer, card layout for tables, 2-col summary cards, flex-wrap legend, bottom-sheet modals, ≥44×44px touch targets (WCAG 2.5.5), swipe week navigation, `clamp()` typography, safe-area insets, full-width inputs, viewport meta with `viewport-fit=cover`. Shared CSS in `theme.css`, JS helpers in `ui-common.js`.
 
-10. **Toast/undo bar for critical actions.** After any critical action, show a toast bar at **bottom-left** with a success message and an **Undo** button; auto-dismiss after **5 seconds**. CSS in `theme.css`, JS helper `showToast(message, undoCallback, duration)` in `ui-common.js`.
+10. **Toast bar for critical actions.** After any critical action, show a toast bar at **bottom-left** with a success message; auto-dismiss after **5 seconds**. CSS in `theme.css`, JS helper `toast.show(message, undoCallback, duration)` in `ui-common.js` (the old `showToast()` name is gone). **The Undo button exists only for genuinely reversible actions** (hiding a notification, clearing a selection). **Cancel Class is FINAL** (user ruling 2026-11-05) — no undo affordance, no undo callback, and the server-side `cancelClassUndo()` was deleted; the toast is a plain confirmation. Every final decision's modal additionally carries the shared sentence *"This action cannot be UNDONE."* (`partials.ui-irreversible-line`, used by Approve, Reject, Cancel Request and Cancel Class). The cancellation reminder toast is **one-shot** (it cannot re-fire on every page load) and a `?blocked=request-pending|request-approved` arrival shows the entry-guard message FIRST, deferring any cancellation reminder to the next page load.
 
 ### 1. Inheritance
 - **Blade layout inheritance:** every page `@extends('layouts.ui-template')` and fills `@section('content')`, `@section('page-styles')`, `@section('page-scripts')`, `@yield('title')`.
