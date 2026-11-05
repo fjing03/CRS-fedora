@@ -128,7 +128,10 @@ Behaviour per id, in order:
 
 1. Find the index in `currentFiltered` by `requestId` (the array is filled by `buildTable()`).
 2. **Not found** → clear the row filters that could hide it (`searchInput`, `statusFilter`,
-   `weekFilter`, `hideCompleted`), `saveFilters()`, `buildTable()`, look again.
+   `weekFilter`, `hideCompleted`), `buildTable()`, look again. **Do not call `saveFilters()`**
+   (user ruling 2026-11-05): the clearance is for this visit only, so the lecturer's saved
+   filters come back next time. `buildTable()` already reads the inputs from the DOM, so setting
+   them programmatically is enough — do not dispatch `change` events, which would persist.
 3. **Still not found** → silent skip. No toast (the old "hidden by your current filters"
    toast is exactly the kind of message this update removes).
 4. **Found** → page it into view (`pageState.currentPage = Math.floor(idx / state.rpp) + 1`,
@@ -141,11 +144,13 @@ Finally strip the param with `history.replaceState` (same pattern as
 
 ### 4.3 Two nuances worth knowing
 
-- **Newest request wins.** A row shows only its newest request id, so when several blocks of the
-  same occurrence are submitted, the superseded ids simply match nothing — the row still flashes
-  through its newest id. Silent skip is correct there.
-- **The pulse is shared.** 3 pulses ≈ 1.5 s of ring, then the row returns to normal. Do not add a
-  new keyframe, a new colour or a long-lived class unless the answer to open question 1 says so.
+- **One submission = one request.** `selectBlock()` (`replacement-arrangement.blade.php:1602`)
+  refuses a second pick while a block is selected ("You already have a selected block. Clear it
+  first."), so the normal — and only — path creates a single request and a single new row
+  (user, 2026-11-05). The id list in `?new-req=` and the `for` loop on arrival stay generic
+  because the server action returns an array; with one id the loop runs once.
+- **The pulse is shared.** 3 pulses ≈ 1.5 s of ring, then the row returns to normal. No lasting
+  tint, no new keyframe, no new colour (user ruling 2026-11-05).
 
 ---
 
@@ -167,9 +172,9 @@ Finally strip the param with `history.replaceState` (same pattern as
 | Case | Expected |
 | --- | --- |
 | One block submitted | land on `/my-replacements?new-req=28`, row 28 pulses, URL cleaned |
-| Several blocks submitted (n ids) | every matching row pulses; URL `?new-req=28,29` |
+| Several ids passed to `new-req` | the loop flashes every id that matches a row — today unreachable, since only one block can be picked (`selectBlock`) |
 | Some blocks fail, some succeed | conflict modal as today, **no** redirect, no highlight |
-| A filter (search / status / week / hide completed) hides the new row | filters cleared, row flashed |
+| A filter (search / status / week / hide completed) hides the new row | filters cleared **for this visit only**, row flashed; saved filters return next time |
 | Row cannot be found at all | silent, no toast |
 | Lecturer refreshes or presses Back | param already stripped → no second pulse |
 | Slow skeleton / slow server render | `tryFind` retries for ~5 s |
@@ -199,18 +204,19 @@ Finally strip the param with `history.replaceState` (same pattern as
 3. The new row scrolls into view and pulses exactly like the Today / Earliest-bookable jump
    (3 × 0.5 s ring), with no new CSS.
 4. The URL no longer carries `new-req` once the page has settled; refresh shows no pulse.
-5. A two-block submission pulses both rows.
+5. The submission creates exactly one row — and that row is the one that flashes.
 6. A filter that would hide the row is cleared, and the row is still flashed.
 7. The conflict path is byte-identical (modal, reasons, no redirect).
 8. No console errors; other pages' toasts untouched.
 
 ---
 
-## 9. Open questions (answer before coding)
+## 9. Decisions (settled 2026-11-05)
 
-1. **Pulse only, or also a lasting tint?** Recommended: pulse only — it is the app's existing
-   "look here" language. A lasting tint would need a new class that clears on the next click.
-2. **Filters hide the new row:** clear the filters (recommended) or keep them and stay silent?
-3. **Several new rows:** flash all (recommended) or only the first and scroll to it?
-4. **Landing URL:** always a clean `/my-replacements` (recommended), or carry the page's saved
-   filters/deep-link params across?
+1. **Highlight style:** flash three times with the shared pulse, then the row looks normal.
+   No lasting tint, no new style.
+2. **Filters that hide the new row:** clear them so the row shows and flashes.
+3. **Several new rows:** not reachable — `selectBlock()` allows one block per submission, so there
+   is one request and one row. The code still flashes every id it is handed, for safety.
+4. **Clearing filters:** for this visit only. Do not call `saveFilters()`; the lecturer's saved
+   filters come back the next time they open the page.
