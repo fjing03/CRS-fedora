@@ -1,3 +1,29 @@
+## 2026-11-05 — the Cancel Class? tooltip now names the date, and holidays count as non-working
+
+The user's follow-up brief on the button's hover text (shared `CancelClass.renderButton` — My Timetable, Cohort and
+Venue all get it). Two lines, still the shared multi-line `data-tip` design:
+
+> You Can Cancel Classes Scheduled From **Tue, 3 Nov 2026** Onwards.
+> Rule: The Earliest Class You Can CANCEL Is 2 Working Days Ago.
+
+- The date is computed at render time by `CancelClass._earliestEligibleLabel()`, which reads the SAME
+  `ClassCancellation._cutoffDate()` the S5 guard compares against — one computation, two consumers, so the tooltip
+  can never advertise a window the button does not honour.
+- `_cutoffDate()` now walks back over **weekends AND the semester's public holidays**, exactly as the brief asks.
+  Holiday dates come from `MockData.holidays` (`week` + `dayIndex`) anchored on `MockData.semester.startDate`
+  (`_holidayDateKeys()`) — never a hardcoded calendar; a missing payload degrades to the weekend-only rule.
+- **Behaviour change, flagged:** eligibility itself follows the same rule. A public holiday inside the two-day
+  window pushes the cutoff earlier, so a class on the date that used to squeak in is now refused. The 2026-10-27 law
+  had holidays excluded from the count by documented assumption; this brief overrides that. Every other guard
+  (ownership, status, Sunday/holiday day, isCancellable's own checks) is unchanged.
+- The tooltip design, the button label and the click behaviour are untouched.
+
+**Measured** live on the demo data (today = Thu 5 Nov 2026): the tooltip renders
+`You Can Cancel Classes Scheduled From Tue, 3 Nov 2026 Onwards.` / `Rule: The Earliest Class You Can CANCEL Is
+2 Working Days Ago.` as two lines (379 × 38 px) above the button. Walk-back probes: today Tue 10 Nov → **Thu 5 Nov**
+(skips the Deepavali-in-lieu Monday; the weekend-only walk would say Fri 6 Nov), today Mon 28 Dec → **Tue 22 Dec**
+(skips Christmas Eve + Christmas Day), today Wed 4 Nov → Mon 2 Nov, today Thu 5 Nov → Tue 3 Nov.
+
 ## 2026-11-05 — "Cancel this Class?" earns its own facts box, a required-reason line and a stated window
 
 The user's 2026-11-05 UI/UX pass on the shared Cancel Class modal (this page includes

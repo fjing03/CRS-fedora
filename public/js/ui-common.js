@@ -4077,26 +4077,53 @@ const ClassCancellation = {
     },
 
     /* S5's window origin (SDD class-cancel-2-working-day-window, user law
-       2026-10-27): midnight of (today − 2 WORKING days). Walk back from
-       today's midnight skipping Sat+Sun exactly twice — the user's Monday
-       example: the two previous working days are FRI (1 back) and THU
-       (2 back), so the cutoff lands Thursday and the weekend dates between
-       sit INSIDE the window as calendar dates. Holidays are NOT counted as
-       non-working (the documented assumption — the example names only
-       weekends; the S4 guard still blocks cancelling ON a holiday
-       independently). Anchored on getTodayMs() (the demo-clock law family
-       shared with leadTimeCutoff/isSlotTooSoon; the real-clock fallback is
-       exactly what the three cancel consumers run — MockData.mockNow = null
-       on all of them). */
+       2026-10-27, holiday-aware 2026-11-05): midnight of (today − 2 WORKING
+       days). Walks back from today's midnight skipping Sat+Sun AND the
+       semester's public holidays — the 2026-11-05 UI/UX brief: "exclude
+       weekends and applicable public holidays when calculating working
+       days". The user's Monday example still holds when no holiday sits in
+       the window: the two previous working days are FRI (1 back) and THU
+       (2 back), so the cutoff lands Thursday. The S4 guard still blocks
+       cancelling ON a holiday independently. Anchored on getTodayMs() (the
+       demo-clock law family shared with leadTimeCutoff/isSlotTooSoon; the
+       real-clock fallback is exactly what the three cancel consumers run —
+       MockData.mockNow = null on all of them). */
     _cutoffDate() {
+        const holidays = this._holidayDateKeys();
         const d = new Date(getTodayMs());
         let counted = 0;
-        while (counted < 2) {
+        let guard = 0;                     // a broken payload can never hang the page
+        while (counted < 2 && guard++ < 60) {
             d.setDate(d.getDate() - 1);
             const dw = d.getDay();
-            if (dw !== 0 && dw !== 6) counted++;   // Sun = 0, Sat = 6
+            if (dw === 0 || dw === 6) continue;               // Sun = 0, Sat = 6
+            if (holidays.has(this._dateKey(d))) continue;     // public holiday
+            counted++;
         }
         return d;
+    },
+
+    /* The semester's public-holiday DATES as `y-m-d` keys. MockData.holidays
+       carries week + dayIndex only, so the dates come from the semester start
+       (the same arithmetic generateWeekData() runs) — never from a hardcoded
+       calendar. Missing payload pieces degrade to an empty set (the
+       weekend-only rule) instead of throwing. */
+    _holidayDateKeys() {
+        const out = new Set();
+        const s = MockData && MockData.semester ? MockData.semester.startDate : null;
+        if (!s) return out;
+        const p = String(s).split('-');
+        const start = new Date(parseInt(p[0], 10), parseInt(p[1], 10) - 1, parseInt(p[2], 10));
+        (MockData.holidays || []).forEach(function(h) {
+            const dt = new Date(start.getFullYear(), start.getMonth(), start.getDate() + ((h.week - 1) * 7) + h.dayIndex);
+            out.add(dt.getFullYear() + '-' + (dt.getMonth() + 1) + '-' + dt.getDate());
+        });
+        return out;
+    },
+
+    /* One local-date identity for the holiday set and the walk-back. */
+    _dateKey(d) {
+        return d.getFullYear() + '-' + (d.getMonth() + 1) + '-' + d.getDate();
     },
 
     /**
@@ -4927,6 +4954,16 @@ const CancelClass = {
         return found;
     },
 
+    /* The earliest eligible class DATE in the page's own date vocabulary
+       ("Tue, 3 Nov 2026"). Reads the SAME _cutoffDate() the S5 guard compares
+       against, so the tooltip can never advertise a window the button does
+       not honour — one computation, two consumers. */
+    _earliestEligibleLabel() {
+        const d = ClassCancellation._cutoffDate();
+        const iso = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+        return DateHelper.dayAbbr(DateHelper.isoDayName(iso)) + ', ' + DateHelper.formatDate(iso);
+    },
+
     renderButton(container, event, days, weekIndex, onCancelled) {
         if (!container) return;
         // Remove any previously appended cancel button BEFORE the guard, so a
@@ -4939,14 +4976,13 @@ const CancelClass = {
         btn.setAttribute('data-cancel-class-btn', '1');
         btn.textContent = 'Cancel Class?';
         /* 2026-11-05 UI/UX update (user): the hover tooltip states the real
-           eligibility window (2 WORKING days back, today included, no upper
-           bound — the S4/S5 guards own the truth). Line breaks ride the
-           shared data-tip renderer's multi-line mode so the sentence stays
-           readable instead of one nowrap strip. */
+           eligibility window — the earliest class date is 2 WORKING days back
+           (weekends AND public holidays excluded) and every class from that
+           date onward qualifies (the S4/S5 guards own the truth). Both lines
+           ride the shared data-tip renderer's multi-line mode. */
         btn.setAttribute('data-tip',
-            'Cancel This Class?\n' +
-            'You Can Only Cancel Classes Scheduled From 2 Working Days Before Today\n' +
-            'Up To Today, Including Future Classes.');
+            'You Can Cancel Classes Scheduled From ' + this._earliestEligibleLabel() + ' Onwards.' +
+            '\nRule: The Earliest Class You Can CANCEL Is 2 Working Days Ago.');
         btn.addEventListener('click', function() {
             CancelClassModal.open(event, days, weekIndex, { onCancelled: onCancelled });
         });

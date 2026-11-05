@@ -16,6 +16,12 @@ import { throwUnlessTestingTarget } from './helpers/receipt-target-guard';
 // resolve their shapes on it).
 test.use({ storageState: '.auth/staff-5770.json' });
 
+// S1's tooltip receipt reads the page's own S5 cutoff. `ClassCancellation` and
+// `DateHelper` are top-level `const`/`class` in ui-common.js — reachable by
+// name inside page.evaluate, but NOT properties of `window`.
+declare const ClassCancellation: any;
+declare const DateHelper: any;
+
 // ═══════════════════════════════════════════════════════════════════════
 // cancel-class-enhancement (design §8) — Cancel Class flow coverage.
 //
@@ -174,7 +180,52 @@ test.describe('Cancel Class Flow', () => {
     await expect(block).toBeVisible();
     await block.click();
     await expect(page.locator('#classModal')).toBeVisible();
-    await expect(page.locator('#classModal .modal-footer [data-cancel-class-btn]')).toBeVisible();
+    const cancelBtn = page.locator('#classModal .modal-footer [data-cancel-class-btn]');
+    await expect(cancelBtn).toBeVisible();
+
+    // 2026-11-05 UI/UX update (user): the tooltip names the real earliest
+    // eligible date — the SAME _cutoffDate() the S5 guard compares against,
+    // so the tip can never advertise a window the button does not honour.
+    const tip = await cancelBtn.getAttribute('data-tip');
+    expect(tip).toContain('You Can Cancel Classes Scheduled From ');
+    expect(tip).toContain('\nRule: The Earliest Class You Can CANCEL Is 2 Working Days Ago.');
+    const cutoffLabel = await page.evaluate(() => {
+      const d = ClassCancellation._cutoffDate();
+      const iso = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+      return DateHelper.dayAbbr(DateHelper.isoDayName(iso)) + ', ' + DateHelper.formatDate(iso);
+    });
+    expect(tip).toContain('From ' + cutoffLabel + ' Onwards.');
+    // a working day, never a weekend
+    expect(cutoffLabel).toMatch(/^(Mon|Tue|Wed|Thu|Fri), \d{1,2} (Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec) \d{4}$/);
+
+    // the holiday-aware walk-back: stand "today" on the first working day
+    // after a real (weekday) holiday in THIS dataset; the cutoff must land
+    // EARLIER than the weekend-only walk would give.
+    const holidayProbe = await page.evaluate(() => {
+      const M = (window as any).MockData;
+      const hs = M.holidays || [];
+      const p = String(M.semester.startDate).split('-').map(Number);
+      const holiday = hs
+        .map((h: any) => new Date(p[0], p[1] - 1, p[2] + (h.week - 1) * 7 + h.dayIndex))
+        .find((d: Date) => d.getDay() !== 0 && d.getDay() !== 6);
+      if (!holiday) return null;
+      const today = new Date(holiday.getFullYear(), holiday.getMonth(), holiday.getDate() + 1);
+      while (today.getDay() === 0 || today.getDay() === 6) today.setDate(today.getDate() + 1);
+      const saved = M.mockNow;
+      M.mockNow = today;
+      const cutoff = ClassCancellation._cutoffDate().getTime();
+      const naive = new Date(today.getTime());
+      let n = 0;
+      while (n < 2) {
+        naive.setDate(naive.getDate() - 1);
+        if (naive.getDay() !== 0 && naive.getDay() !== 6) n++;
+      }
+      M.mockNow = saved;
+      return { cutoff, naive: naive.getTime() };
+    });
+    if (holidayProbe) {
+      expect(holidayProbe.cutoff, 'a public holiday must push the window earlier').toBeLessThan(holidayProbe.naive);
+    }
   });
 
   // ── S2 — guard: others' class has no cancel button ──

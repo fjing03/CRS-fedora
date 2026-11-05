@@ -1,3 +1,10 @@
+## 2026-11-05 — the Cancel Class? tooltip names the earliest eligible date (holiday-aware)
+
+Same shared `CancelClass.renderButton` as My Timetable: `You Can Cancel Classes Scheduled From Tue, 3 Nov 2026
+Onwards.` / `Rule: The Earliest Class You Can CANCEL Is 2 Working Days Ago.`, with the date read from the S5 cutoff
+and weekends + public holidays excluded from the walk-back. Full detail + live receipt: `my-timetable-changelog.md`
+(same date).
+
 ## 2026-11-05 — Cancel this Class? (shared modal restyle)
 
 The shared `partials/ui-cancel-class-modal` follows the user's UI/UX pass: `Cancel this Class?` title, 40%-wider
