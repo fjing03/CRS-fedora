@@ -36,8 +36,6 @@ in one short slide of words — no login demo beyond the surface.
 - [ ] **Snapshot backup** of the demo DB (`backups/README.md`) before the
       rehearsal; restore before the FINAL demo so the book appears in an
       honest pre-set state.
-- [ ] **BUG round verdicts** (BUG-01/02/03/05/06) — fix / accept / WONTFIX
-      per bug; anything unfixed gets a "known limitation" one-liner here.
 - [ ] Push (user does it manually) — keep origin current.
 - [ ] Slide of words: auth in 3 sentences (Fortify staff-ID login, 3 RBAC
       tiers, per-role redirects).

@@ -308,7 +308,7 @@ date, and its files are dirty in the tree — see §3.
 | Lane history, design decisions, review logs | `.sdd/changes/` and `.sdd/archive/` |
 | Reusable prompt **templates** (paste-ready; no project state) | `prompts/general&reusable prompt references/` — `PI-PROMPT-TEMPLATE.md`, the two propose templates, the UI-page spec, the context-transfer prompt |
 | Demo-DB writes, restores, snapshots | `docs/demo-db-data-changes.md`, `backups/README.md` |
-| Viva runbook, queue/mail, known pending bugs | `docs/viva-demo-runbook.md`, `docs/queue-and-emails.md`, `docs/replacement-arrangement-pending-bugs.md` |
+| Viva runbook, queue/mail | `docs/viva-demo-runbook.md`, `docs/queue-and-emails.md` · **what to code next** → `docs/coding-todo.md` |
 | **The lanes just applied** | `venue-slot-validation` — `.sdd/changes/venue-slot-validation/` (status `applied` 2026-11-05; the venue hover/gate split, receipt in `review-log.md`). `receipt-target-guard` — same folder (status `applied`; one leg open: `T3d`). Merge lane: `.sdd/archive/replacement-merge-one-table/` (archived `07274c1`). |
 | **The venue-page slot rules** | `resources/views/livewire/venue-timetable.blade.php` (`MIN_BOOK_SLOTS`, `spanBlocked()`, `nextEventStartAfter()`, `refreshSessions()`, `confirmIntentSession()`, `showSlotWarning()`), `resources/views/partials/ui-intent-session-modal.blade.php` (`#slotWarningOverlay`), `app/Livewire/VenueTimetable.php` (`bookableCandidates()`, `intentSessionOptions()`) |
 | Cancel Class + the inbox rules | `app/Livewire/NavNotifications.php` (`exceptionMap()`, the two read-time classifiers), `resources/views/partials/notif-row.blade.php` (`$rowTip`), `public/js/ui-common.js` (`showCancelToast`, `needsLoadToast`, `markLoadToastShown`, `CancelClassModal`) |
@@ -343,9 +343,8 @@ date, and its files are dirty in the tree — see §3.
 6. **[USER]** Confirm the viva date (anchored: week of 7 Dec 2026) and decide the viva demo data —
    both DBs are thin; a populated story needs user-gated SQL, snapshot-first, logged.
 7. **[USER/OPS]** Purge the viva repo's 27 stale jobs before any worker run.
-8. **[USER]** BUG-01/02/03/05/06 verdicts (`docs/replacement-arrangement-pending-bugs.md`).
-9. **[AGENT, demo week]** Chapter 5 browser-evidence run and the report; NFR benchmarks; the UAT
-   script.
-10. **[LOW]** `?week=` deep links still land on the remembered week (accepted); three reference
+8. **[AGENT, demo week]** Chapter 5 browser-evidence run and the report; NFR benchmarks; the UAT
+   script (the coding side of these is tracked in `docs/coding-todo.md`).
+9. **[LOW]** `?week=` deep links still land on the remembered week (accepted); three reference
     templates under `resources/views/ui-design-templates/` still carry `Exclude Completed` and a
     `ClassCancellation.undo(entry)` call — they are design references, not loaded pages.

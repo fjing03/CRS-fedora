@@ -1,4 +1,208 @@
+## 2026-11-05 — request 29 (the user's manual submission-conflict test) removed
+
+- **Final state:** back to the standing baseline — 5 requests / **77** notifications / 3 hidden /
+  2 class_exceptions / **8** `replacement_request_slots` / **26** audit rows.
+- **What the manual walkthrough wrote (the user's own two windows on :8000):**
+  - `replacement_requests.id = 29` — session **67** (AMSE2003 L), week **14**, slot `27929`
+    (Friday 12:00–14:00, B110), proposer **1**, `pending`, submitted `2026-11-05 09:30:43` (UTC);
+  - **4** `replacement_request_slots` rows (27929–27932 — the four-hour span);
+  - **2** notifications: `id` 187 (user 1) + 188 (user 2), `pl` / `submitted` /
+    "New replacement request";
+  - **4** `audit_logs` rows (`id` 32–35, action `submitted`, one per slot, `replacement_request_id = 29`).
+- **ALSO removed in the same transaction:** `audit_logs.id = 31` (`class_cancelled`, session 40 week 7)
+  — the audit record of the earlier Test-2 cancellation whose `class_exceptions` row was deleted in
+  the entry above. It was the last orphan of that test; leaving it would have kept a reference to a
+  cancellation that no longer exists. Flagged here because it was **not** part of the request-29
+  instruction — the deletion is deliberate, not incidental.
+- **The cleanup (order matters — `audit_logs.replacement_request_id` is a FK, so the audit rows must
+  go BEFORE the request; the first attempt hit
+  `audit_logs_replacement_request_id_foreign` and rolled back whole):**
+  `DELETE FROM notifications WHERE id IN (187,188) …` → `DELETE 2`;
+  `DELETE FROM replacement_request_slots WHERE replacement_request_id = 29` → `DELETE 4`;
+  `DELETE FROM audit_logs WHERE id BETWEEN 31 AND 35` → `DELETE 5`;
+  `DELETE FROM replacement_requests WHERE id = 29 AND class_session_id = 67 AND week_number = 14
+   AND status = 'pending'` → `DELETE 1`. Counts re-read afterwards: as above.
+- **Snapshot first (snapshot law, verified):**
+  `backups/class_replacement_fresh-pre-req29-cleanup-2026-11-05.dump` (332K, `pg_restore --list`
+  opened). The earlier `…-pre-test2-cleanup-…` dump is kept too.
+- **Nothing else touched:** no other request, exception, notification or slot row written; the three
+  hidden notifications, request 24/25/26/27/28 and both remaining exceptions are untouched.
+
+## 2026-11-05 — the manual Test-2 cancellation removed (the user's own browser pass)
+
+- **Final state (what is true now):** **NET ZERO** vs. before the test — 5 requests / **77**
+  notifications / 3 hidden / **2** class_exceptions.
+- **What the user's manual test wrote (their browser, :8000, their own click):**
+  1. `class_exceptions.id = 11` — session **40** (AMSE2003 P, Thursday 09:00–10:00 B010),
+     week **7**, `annual_leave`, created `2026-11-05 09:19` (stored UTC);
+  2. **16** `Scheduled class cancelled` notifications (`id` 171–186) — the owner's record row plus
+     the cohort **student** fan-out, same timestamp.
+  The test PASSED (the new notice stayed live and clickable, and the arrival flashed the row) —
+  the data is simply the residue of proving it.
+- **The cleanup (one transaction, explicit predicates — never a bare table delete):**
+  `DELETE FROM notifications WHERE id BETWEEN 171 AND 186 AND class_session_id = 40 AND week = 7
+   AND title = 'Scheduled class cancelled';` → `DELETE 16`,
+  `DELETE FROM class_exceptions WHERE id = 11 AND class_session_id = 40 AND week_number = 7
+   AND reason = 'annual_leave';` → `DELETE 1`. Counts re-read afterwards: as above.
+- **Snapshot first (snapshot law, verified):**
+  `backups/class_replacement_fresh-pre-test2-cleanup-2026-11-05.dump` (328K,
+  `pg_restore --list` opened).
+- **Nothing else touched:** no request, slot, audit or user row written; the other two exceptions
+  (session 24 w7 medical_leave, session 40 w14 official_event) and all three hidden notifications
+  are untouched.
+- **Why clean rather than keep it:** a stray cancelled Thursday class plus 15 student notices would
+  misreport the demo in a viva, inflate the student badge counts, and make any later attempt to
+  cancel that same class refuse as "already cancelled". The fix's evidence is the commits + the
+  suite, not the leftover rows.
+
+## 2026-11-04 — two notifications hidden by a test run and restored the same minute
+
+- **Final state (what is true now):** **NET ZERO** — `notifications.id = 116` (user 2) and
+  `notifications.id = 148` (user 1, `Scheduled class cancelled`, `update`) are back to
+  `hidden_at = NULL`. Hidden rows are again **2** (`id` 94 and 97, hidden since 2026-11-02 10:30),
+  exactly the baseline recorded above.
+- **What happened:** a read-only-intended Playwright sweep against the agent's demo-DB server (:8010)
+  at 19:05 stamped `hidden_at = 2026-11-04 19:05` on those two rows. The writing click was not
+  identified from the access log (every Livewire call is a POST to `/livewire/update`); no guard-capable
+  spec (`notifications-hide-manage`, `ui-regression` TC-4.5) actually ran — both refused at the guard.
+  The lesson stands: **any** browser run against :8010 can reach a write path, so the hide counts are
+  re-checked after every sweep.
+- **The write (one statement):** `UPDATE notifications SET hidden_at = NULL WHERE id IN (116,148);`
+  → `UPDATE 2`. Measured after: 77 notifications, **2 hidden**.
+- **Snapshot first (snapshot law, verified):** `pg_dump -Fc` → `/tmp/fresh-pre-restore-1928.dump`
+  (336K, `pg_restore --list` opened).
+- **Nothing else touched:** no request, exception, slot, audit or user row written; the tip/hover
+  receipts for this task were read-only GETs (and the composer was proved from the DB with a
+  `Livewire::test` render, not by clicking).
+
 # Demo-DB Data Changes — Running Log
+
+## 2026-11-04 — one notification hidden and restored (the Completed-click receipt, `notif-click-behaviour` T13)
+
+- **Final state (what is true now):** **NET ZERO** — `notifications.id = 117`
+  (user 1, `Scheduled class cancelled`, `update`, `/my-timetable-ui`, week 7) is
+  back to `hidden_at = NULL`. Hidden rows are again **2**, exactly as before.
+- **The two writes (user-gated, option A of the session's question):**
+  1. `hidden_at = 2026-11-04 09:53:20` — written by the FEATURE ITSELF: the panel's
+     click handler called `NavNotifications::hideOne(117)` after the row was
+     marked `data-notif-status="completed"` in the browser (no completed request
+     exists in the demo, so the status was stood in for; the hide path did the
+     real work).
+  2. `hidden_at = NULL` — written by the UI's own **Hidden shelf → Unhide**, which
+     doubles as the rollback receipt.
+- **Why:** prove the "clicking a completed notification hides its row without
+  navigating" behaviour end to end. Measured before/after: panel rows 7 → 6, the
+  row gone from the list, the page URL unchanged (no navigation), no JS errors;
+  the shelf then showed it and restored it (3 → 2 hidden).
+- **Snapshot first (snapshot law, verified):**
+  `backups/class_replacement_fresh-pre-notif-hide-2026-11-04.dump`
+  (`pg_restore --list` passes).
+- **Nothing else touched:** no other notification, request, exception, slot or
+  audit row was written. The arrival-side receipts (`r26`, `o67`, a miss) were
+  read-only GETs.
+- **Agent-run, explicitly user-approved** ("A.").
+
+## 2026-11-03 — student demo account with the user's own inbox (`24RSD0008`, cohort 7 = RSD Y2 S1 G2)
+
+- **Final state (what is true now):** `users.id = 111` — student **`24RSD0008`**
+  in cohort **7 = RSD Year 2 / Sem 1 / Group 2** — has
+  **name `Wardell Stephen Curry`** and email
+  **`poongfj-sm23@student.tarc.edu.my`** (was `Student 24RSD0008` /
+  `24rsd0008@student.tarc.edu.my`). Password, `students.student_id`, cohort and
+  every other row untouched. Login ID = **`24RSD0008`**, password `Tarumt@2026`.
+- **Superseded first attempt (reverted):** the same email was first placed on
+  `users.id = 135` (`23RSD0011`, Victor Wembanyama, cohort 10); on the user's
+  correction it was moved to cohort 7 and `23RSD0011` got its original email
+  `23rsd0011@student.tarc.edu.my` back. Only those two rows were ever written.
+- **Why:** user-ordered, so a student in Lim Jia Zheng's (`5770`) own cohort
+  (RSD Y2 S1 G2 — he teaches `BMIT2013` there) delivers mail to the user's real
+  inbox. Auth is by **student ID**, so the email change does not affect login.
+- **Snapshots first (snapshot law, verified):**
+  `backups/class_replacement_viva-pre-poong-student-2026-11-03.dump` (before the
+  first write) and `backups/class_replacement_viva-pre-poong-cohort7-2026-11-03.dump`
+  (before the move) — both 324K, `pg_restore --list` opened each.
+- **Exact statements (one transaction, second snapshot):**
+  `UPDATE users SET email='23rsd0011@student.tarc.edu.my', updated_at=now() WHERE id=135 AND email='poongfj-sm23@student.tarc.edu.my';`
+  → `UPDATE 1`;
+  `UPDATE users SET name='Wardell Stephen Curry', email='poongfj-sm23@student.tarc.edu.my', updated_at=now() WHERE id=111 AND email='24rsd0008@student.tarc.edu.my';`
+  → `UPDATE 1`, `COMMIT`.
+- **Verification:** `24RSD0008` / cohort 7 / new name+email; `23RSD0011` back to
+  `23rsd0011@student.tarc.edu.my`; exactly **1** row holds
+  `poongfj-sm23@…`; cohort 7 still 5 students; 13 lecturer `.invalid` stubs
+  intact; all table counts unchanged.
+- **Revert (either):** restore
+  `class_replacement_viva-pre-poong-cohort7-2026-11-03.dump`, or run
+  `UPDATE users SET name='Student 24RSD0008', email='24rsd0008@student.tarc.edu.my', updated_at=now() WHERE id=111;`
+- **Not run:** no `queue:work`, no `.env` change, no other student row touched.
+
+## 2026-11-03 — temporary lecturer-email stub in `class_replacement_viva` (REVERSIBLE, user-ordered)
+
+- **What:** appended `.invalid` to the domain of **13 of the 14 lecturer emails** in
+  `users` (`surayaini@tarc.edu.my` → `surayaini@tarc.edu.my.invalid`, etc.).
+  `id = 11` (**Lim Jia Zheng / staff `5770` / `limjz@tarc.edu.my`**) was
+  deliberately excluded — both names in the order refer to this one account. The
+  **155 student emails were not touched**.
+- **Why:** `CRS-demo` runs `MAIL_MAILER=smtp` for the viva, so a demo action could
+  email real staff. `.invalid` is the RFC 2606 reserved TLD — it can never
+  resolve, so Gmail cannot deliver; the address stays syntactically valid, so the
+  app does not crash, and any attempt bounces back to
+  `MAIL_FROM_ADDRESS` (`foojing03@gmail.com`) instead of reaching staff.
+- **Snapshot first (snapshot law, verified):**
+  `backups/class_replacement_viva-pre-email-stub-2026-11-03.dump` — 324K,
+  `pg_restore --list` opened it successfully. Pre-state of the 13 original
+  addresses captured before the write.
+- **Exact statement (single transaction):**
+  `UPDATE users SET email = split_part(email,'@',1)||'@'||split_part(email,'@',2)||'.invalid', updated_at = now() WHERE role = 'lecturer' AND id <> 11 AND email NOT LIKE '%.invalid';`
+  → `UPDATE 13`, `COMMIT`.
+- **Verification:** `stubbed = 13`; `id 11` still `limjz@tarc.edu.my`;
+  `students_touched = 0` of 155; students' addresses unchanged; all **28 public
+  table row counts identical** to the post-purge receipt. No other column, row or
+  table written.
+- **Known side effects (temporary, by design):** none for login — auth is by
+  **staff ID** (`Fortify::username = 'login_id'`; `User::loginId()` returns
+  `lecturers.staff_id`), not email, so all 13 can still sign in. Mail attempts to
+  the stubbed addresses bounce to `foojing03@gmail.com` instead of reaching
+  staff.
+- **Not run:** no `php artisan queue:work`, no `.env` change, no `migrate*`.
+- **REVERT (run a few days before the real viva, user-gated):**
+  `UPDATE users SET email = regexp_replace(email, '\.invalid$', ''), updated_at = now() WHERE role = 'lecturer' AND email LIKE '%.invalid';`
+  → expect `UPDATE 13`; then re-check all 14 lecturers end in `@tarc.edu.my` and
+  `students_touched = 0`. The dump above also restores the exact pre-stub state.
+
+## 2026-11-03 — mail-job purge in `class_replacement_viva` (DELETE only, user-ordered, scoped)
+
+- **What:** removed the **27 stale queued mail jobs** from `jobs` in
+  `class_replacement_viva` (the `CRS-demo` viva DB) and **nothing else** — no
+  other table, row, column, schema, `.env` value or file on that DB was touched.
+- **Why:** `CRS-demo` was flipped to `MAIL_MAILER=smtp` on 2026-11-03 so the viva
+  can show real inbox delivery. The 27 jobs were queued 2026-11-01/02 (before
+  the flip) and every recipient is real — the first `queue:work` would have
+  emailed all of them late: 14 `App\Mail\ReplacementApprovalNotice` →
+  `23rsd0011`–`23rsd0024@student.tarc.edu.my`, 10
+  `App\Mail\ReplacementSubmitted` + 3 `App\Mail\ReplacementDecided` →
+  `limjz@`, `mohdnurrahmat@`, `surayaini@tarc.edu.my`. `failed_jobs` was 0 and
+  stays 0 (untouched).
+- **Snapshot first (snapshot law, verified):**
+  `backups/class_replacement_viva-pre-jobs-purge-2026-11-03.dump` — 328K,
+  `pg_restore --list` opened it successfully.
+- **Exact statement (single transaction):**
+  `DELETE FROM jobs WHERE queue = 'default' AND payload::jsonb->>'displayName' LIKE 'App\Mail\%';`
+  → `DELETE 27`, `COMMIT`. No `TRUNCATE`, no other predicate, no other DB
+  (`class_replacement_fresh` and its 10 `default` jobs were **not touched**).
+- **Proof that only those rows changed:** row counts for **all 28 public tables**
+  captured before and after; `diff` shows exactly one line differing —
+  `jobs=27` → `jobs=0`. Everything else identical, e.g. `failed_jobs 0→0`,
+  `notifications 40→40`, `replacement_requests 4→4`, `users 169→169`,
+  `class_exceptions`/`class_sessions`/`cohorts`/`holidays`/`venues` unchanged.
+  `select queue, count(*) from jobs` afterwards = **empty**; mail jobs left = 0.
+- **Not run (deliberately):** no `php artisan queue:work` (before or after), no
+  `migrate*` / `db:wipe` / reseed, no write to any non-`jobs` table, no
+  `--env=testing`.
+- **Recovery:** restore
+  `backups/class_replacement_viva-pre-jobs-purge-2026-11-03.dump`
+  (`pg_restore -d class_replacement_viva --clean --if-exists`) returns the 27
+  jobs exactly. Note they are transient queue payloads, so there is no way to
+  "re-queue" the deliveries themselves — only the dump brings the rows back.
 
 ## 2026-11-02 — schema prep: `notifications.hidden_at` (ADDITIVE, both demo DBs, user-ordered)
 
