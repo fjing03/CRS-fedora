@@ -59,3 +59,41 @@
         </div>
     </div>
 </div>
+
+{{-- venue-slot-validation (2026-11-06, user brief §3): the slot is judged only
+     AFTER a class is picked — the hover stage cannot know how long the class the
+     user intends to move is. This warning replaces the pre-selection notice that
+     used to appear in the Select-a-Session modal; the modal above still carries
+     that notice for the room-type case (a fact about the venue, not a duration).
+     Tokens only; one clear close that returns to the timetable. --}}
+<div class="modal-overlay" id="slotWarningOverlay" style="display:none" onclick="closeSlotWarning(event)">
+    <div class="modal" style="max-width:560px">
+        <div class="modal-header">
+            <h3 class="modal-title" id="slotWarningTitle">Slot Too Short</h3>
+            <button class="modal-close" onclick="closeSlotWarning()" data-tip="Close">✕</button>
+        </div>
+        <div class="modal-body">
+            <div class="modal-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z" />
+                    <line x1="12" y1="9" x2="12" y2="13" />
+                    <line x1="12" y1="17" x2="12.01" y2="17" />
+                </svg>
+            </div>
+            <p class="confirm-warning" id="slotWarningHead"></p>
+            <div class="intent-notice" id="slotWarningNotice">
+                <span class="notice-muted" id="slotWarningBody"></span>
+                <span class="notice-guide" id="slotWarningGuide"></span>
+                <span class="notice-muted" id="slotWarningTail"></span>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <div class="modal-footer-left">
+                <button class="btn-outline" onclick="closeSlotWarning()">Close</button>
+            </div>
+            <div class="modal-footer-right">
+                <button class="btn-confirm" id="slotWarningPickBtn" onclick="closeSlotWarning()">Pick another slot</button>
+            </div>
+        </div>
+    </div>
+</div>

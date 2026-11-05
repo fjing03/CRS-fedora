@@ -1,3 +1,57 @@
+## 2026-11-06 (UI/UX, user brief `Venue Timetable Slot Validation.md`) — hover asks one question, the class answers the rest
+
+The pop-up used to decide a class it had not been given. Clicking a free 13:00 cell (next class at
+14:00) printed **"None of your classes can run in B002 at this cell — 13:00 plus the class length
+runs into an existing event below"** *before* anything was picked, because the subject the
+dropdown happened to be showing is a 2-hour lecture. The shortest class that lecturer can move
+there is one hour and does fit. The message was true about the selected subject and false about
+the slot, and the page could not tell the two apart because it had not been told which class the
+user meant.
+
+### 1. Hover asks one question: "is there a clear hour?"
+`MIN_BOOK_SLOTS = 2` (60 minutes) replaces the pool-derived `minClassSlots`. A free cell is
+`cell-no-fit` when the class would run past day end and `cell-no-room` ("Not Enough Slot") when
+the next class starts inside that hour. No class is assumed at hover. The server-side
+`minClassSlots` plumbing (`minBookableSlots()`, `BOOK_SPAN_FALLBACK`, the payload key) is gone
+with it; `bookableCandidates()` stays as the one pool definition behind the dropdown.
+
+### 2. The pop-up lists, it does not judge
+Every session of the selected subject is listed (one row per flagged occurrence, unchanged
+labels and `data-tip`), each row now carrying `data-slots` (its real length in half-hours) and
+`data-fit`. The first **fitting** row is pre-selected when one exists, else the first row. No
+notice, no hidden pickers, no disabled Arrange.
+
+### 3. The Arrange button is the gate
+`confirmIntentSession()` checks the picked row's own duration: past day end → day-end warning;
+overlap with a class below → span warning; otherwise the existing handoff runs unchanged.
+
+### 4. The warning is an in-page modal, not a sentence inside the picker
+New `#slotWarningOverlay` (warning face, `Slot Too Short`): head, the reason with the real start
+time, the real duration and the class that blocks it, the amber `NOT ENOUGH FREE TIME BELOW`
+guide, and `— pick a Free Cell.` One clear close (**Pick another slot**) plus the header ×; both
+return to the grid. The day-end case keeps its own honest title (*This class does not fit before
+the day end (18:30)*) because "none of your classes can run" would be untrue there.
+
+**Measured** (fresh `class_replacement_testing` seed, lecturer 5770, venue B002, last week,
+Monday; 14:00–15:00 held by MPU-3232; pool = AMCS2093 (L) 2 h and (T) 1 h):
+
+| Case | Result |
+| --- | --- |
+| hover 13:30 | `cell-no-room`, "Not Enough Slot" (case 1) |
+| 2-hour class at 12:00 | books — `/replacement-arrangement?…&time=12%3A00&code=AMCS2093…` (case 2) |
+| 2-hour class at 12:30 | warning: *12:30 plus the selected class duration (2 hours) runs into an existing event below — the class starting at 14:00.* (case 3) |
+| 2-hour class at 13:00 | warning, then **Pick another slot** returns to the grid, URL untouched (case 4) |
+| 1-hour class at 13:00 | books (case 5) |
+| open / switch subject | no notice, no warning, Arrange enabled, both durations still listed (case 6) |
+
+`tests/venue-book.spec.ts` → **19 passed** on a fresh `:8030` seed (6 new). Venue neighbours
+(timetable 61, intent-modal, cross-week handoff, cohort Replace Now, db, status parity,
+note privacy) all green; full PHPUnit suite green.
+
+**Known behaviour, said out loud:** the hover used to be *stricter* when every class in the pool
+was long (a 2-hour-only pool blocked cells with 90 free minutes). It is now uniform: the hour is
+the floor, and the real length is decided where it is known.
+
 ## 2026-11-05 (UI/UX, user brief `UIUX Update — Venue Timetable Bookable Cells.md`) — real class lengths, honest cells, and the Earliest-bookable action
 
 Four changes, all on this page. Nothing about the 08:00–18:30 grid, the `Too Late` / `to Book`

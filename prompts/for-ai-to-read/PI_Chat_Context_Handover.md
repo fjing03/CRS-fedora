@@ -168,6 +168,29 @@ date, and its files are dirty in the tree — see §3.
 
 ---
 
+### 2026-11-06 (venue slot validation + archive pass)
+
+- **`c5dd0c4`** — archived the seven finished lanes (`mytimetable-jump-highlight`,
+  `notif-click-behaviour`, `receipt-target-guard`, `replacement-home-status-badges`,
+  `request-completed-status`, `notif-recipient-rulings`, `ui-footer-global`). `.sdd/changes/`
+  40 → 33, archive 94 → 101.
+- **`daf11c6`** — `venue-timetable` bookable cells: honest "no room" state, class-driven late
+  cells, Earliest-bookable button + chip, the invented "2-hour gap" number deleted.
+- **`venue-slot-validation`** (this lane) — the user's follow-up report: with a 14:00 class, a
+  free 13:00 cell still printed "no classes can run here" *before* a class was picked, because
+  the dropdown's default subject is a 2-hour lecture. The page now splits the two questions:
+  **hover = one clear hour** (`MIN_BOOK_SLOTS = 2`, no class assumption; the `minClassSlots`
+  plumbing is deleted), **after the class is picked = does THIS class fit?**
+  (`confirmIntentSession` gate → `#slotWarningOverlay`, no navigation). The pop-up lists every
+  session with `data-slots` / `data-fit` and pre-selects the first fitting row.
+- **`test:`** — `venue-cross-week-handoff` S1 pinned Tue 03 Nov 2026, which had turned read-only
+  (`cell-too-soon`) as the clock passed it; the fixture now uses the last semester week
+  (`pickSpanFreeCell`) with the same assertions.
+- New standing rulings: **the hover floor is one hour and is never derived from a class**; **a
+  duration verdict is only allowed after the class is picked**; **a page function used by an
+  inline `onclick=` in a shared partial must be exported on `window`** (the page script runs
+  inside a `DOMContentLoaded` closure).
+
 ## 2. The user's standing rulings (do not change without approval)
 
 | # | Ruling |

@@ -130,11 +130,10 @@ test('U2a-T6: no-fit cell shows the two-line "Too Late / to Book" label; click g
     .filter(Boolean);
   expect(lines).toEqual(['Too Late', 'to Book']);
   await noFit.click();
-  // the minutes are the class-driven ones, never the old fixed 120
-  const minSlots = await page.evaluate(() => (window as any).minClassSlots);
-  expect(minSlots).toBeGreaterThanOrEqual(1);
+  // venue-slot-validation (2026-11-06): the hover floor is a fixed 60 minutes —
+  // never a class-derived number, never the old 120.
   await expect(page.locator('#toastBar .toast-message'))
-    .toHaveText(new RegExp('^A booking needs ' + minSlots * 30 + ' minutes'));
+    .toHaveText(/^A booking needs 60 minutes/);
   await expect(page.locator('#availableTooltip')).not.toHaveClass(/show/);
   expect(page.url()).toContain('/venue-timetable-ui');
 });
@@ -169,7 +168,8 @@ test('U2a-T8: the late and no-room states follow the real shortest class, cell b
   await page.goto(PAGE);
   await selectLastWeek(page);
   const audit = await page.evaluate(() => {
-    const min = (window as any).minClassSlots;
+    /* MIN_BOOK_SLOTS — the fixed one-hour hover floor (venue-slot-validation) */
+    const min = 2;
     /* `hours` is a top-level const in ui-common.js — a lexical global, not a
        window property, so read it by its bare name (same as U2a-T2 does). */
     const hoursLen = hours.length;
@@ -232,4 +232,128 @@ test('U2a-T10: the arrangement page keeps its single action button (regression)'
   await page.goto('/replacement-arrangement');
   await expect(page.locator('#earliestBtn')).toHaveCount(1);
   await expect(page.locator('#todayBtn')).toHaveCount(0);
+});
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   venue-slot-validation (prompts/Venue Timetable Slot Validation.md)
+   Fixture: lecturer 5770 at B002, LAST semester week, Monday — 12:00/12:30/13:00
+   free, 14:00–15:00 occupied by MPU-3232 (a regular class, so the shape is the
+   same in every teaching week; the last week keeps the run date-independent).
+   Pool there (fresh seed): AMCS2093 (L) = 2 hours (4 slots), AMCS2093 (T) =
+   1 hour (2 slots) — the two durations the brief's table needs, picked by the
+   row's own `data-slots`, never by a hard-coded module name.
+   ═══════════════════════════════════════════════════════════════════════════ */
+const B002 = '/venue-timetable-ui?venue=B002';
+const MONDAY = 0;
+
+/** Free cell → Arrange tooltip → Select-a-Session modal, ready to be used. */
+async function openArrangeMonday(page: Page, hour: number): Promise<void> {
+  await page.goto(B002);
+  const last = await page.evaluate(() => (window as any).weekData.length - 1);
+  await page.evaluate((w) => (window as any).selectWeek(w), last);
+  await page.waitForTimeout(400);
+  await page.locator(`.cell-available[data-day="${MONDAY}"][data-hour="${hour}"]`).click();
+  await page.waitForTimeout(300);
+  await page.locator('#tooltipBookBtn').click();
+  await expect(page.locator('#intentSessionModal')).toBeVisible({ timeout: 20_000 });
+  await expect(page.locator('#intentSubjectSelect option').first()).toBeAttached({ timeout: 20_000 });
+  await page.waitForTimeout(300);
+}
+
+/** Pick the session whose real length is `slots` half-hours — the brief's cases
+ *  are about duration, not about a particular module. */
+async function pickSessionOfLength(page: Page, slots: number): Promise<void> {
+  /* the session picker is a custom dropdown (the rows live in a closed panel
+     until the trigger opens it — the native-select parity shell) */
+  await page.locator('#intentSessionTrigger').click();
+  await expect(page.locator('#intentSessionDd')).toHaveClass(/open/);
+  const row = page.locator(`#intentSessionPanel .session-dd-item[data-slots="${slots}"]`).first();
+  await expect(row).toBeVisible({ timeout: 10_000 });
+  await row.click();
+  await expect(row).toHaveClass(/active/);
+  await expect(page.locator('#intentSessionDd')).not.toHaveClass(/open/);
+}
+
+test('U2a-T11: a cell with only 30 minutes before the next class stays "Not Enough Slot" (brief case 1)', async ({ page }) => {
+  await page.goto(B002);
+  const last = await page.evaluate(() => (window as any).weekData.length - 1);
+  await page.evaluate((w) => (window as any).selectWeek(w), last);
+  await page.waitForTimeout(400);
+  const cell = page.locator(`.cell-available[data-day="${MONDAY}"][data-hour="11"]`);   // 13:30, class at 14:00
+  await expect(cell).toHaveClass(/cell-no-room/);
+  await expect(cell).not.toHaveClass(/cell-no-fit/);
+  const label = await cell.evaluate((el) => getComputedStyle(el, '::after').content);
+  expect(label.toLowerCase()).toContain('not enough slot');
+  await cell.click();
+  await expect(page.locator('#toastBar .toast-message'))
+    .toHaveText('Not enough room below this class — pick a Free Cell.');
+  await expect(page.locator('#availableTooltip')).not.toHaveClass(/show/);
+});
+
+test('U2a-T12: a 2-hour class at 12:00 fits before the 2 PM class and books (brief case 2)', async ({ page }) => {
+  await openArrangeMonday(page, 8);                       // 12:00
+  await pickSessionOfLength(page, 4);                     // 2-hour class
+  await page.locator('#intentArrangeBtn').click();
+  await page.waitForURL(/\/replacement-arrangement\?/, { timeout: 20_000 });
+  expect(page.url()).toContain('venue=B002');
+  expect(page.url()).toContain('time=12%3A00');
+  expect(page.url()).toContain('code=AMCS2093');
+  expect(page.url()).toContain('from=venue-timetable');
+});
+
+test('Ua2-T13: a 2-hour class at 12:30 warns instead of booking (brief case 3)', async ({ page }) => {
+  await openArrangeMonday(page, 9);                       // 12:30
+  await pickSessionOfLength(page, 4);                     // 2-hour class
+  await page.locator('#intentArrangeBtn').click();
+  await expect(page.locator('#slotWarningOverlay')).toBeVisible({ timeout: 10_000 });
+  await expect(page.locator('#slotWarningHead'))
+    .toHaveText('None of your classes can run in B002 at this cell');
+  await expect(page.locator('#slotWarningBody'))
+    .toHaveText(/^12:30 plus the selected class duration \(2 hours\) runs into an existing event below — the class starting at 14:00\.$/);
+  await expect(page.locator('#slotWarningGuide')).toHaveText('NOT ENOUGH FREE TIME BELOW');
+  await expect(page.locator('#slotWarningTail')).toContainText('pick a Free Cell');
+  await expect(page.locator('#intentSessionModal')).toBeHidden();
+  expect(page.url()).toContain('/venue-timetable-ui');    // no navigation
+});
+
+test('U2a-T14: a 2-hour class at 13:00 warns (brief case 4) and closing returns to the grid', async ({ page }) => {
+  await openArrangeMonday(page, 10);                      // 13:00
+  await pickSessionOfLength(page, 4);                     // 2-hour class
+  await page.locator('#intentArrangeBtn').click();
+  await expect(page.locator('#slotWarningOverlay')).toBeVisible({ timeout: 10_000 });
+  await expect(page.locator('#slotWarningBody')).toContainText('13:00 plus the selected class duration (2 hours)');
+  await page.locator('#slotWarningPickBtn').click();
+  await expect(page.locator('#slotWarningOverlay')).toBeHidden();
+  await expect(page.locator('#tableBody')).toBeVisible();
+  expect(page.url()).toContain('/venue-timetable-ui');
+});
+
+test('U2a-T15: a 1-hour class at 13:00 books (brief case 5)', async ({ page }) => {
+  await openArrangeMonday(page, 10);                      // 13:00
+  await pickSessionOfLength(page, 2);                     // 1-hour class
+  await page.locator('#intentArrangeBtn').click();
+  await page.waitForURL(/\/replacement-arrangement\?/, { timeout: 20_000 });
+  expect(page.url()).toContain('time=13%3A00');
+  expect(page.url()).toContain('code=AMCS2093');
+});
+
+test('U2a-T16: no duration verdict is shown before a class is chosen (brief case 6)', async ({ page }) => {
+  await openArrangeMonday(page, 10);                      // 13:00 — 2h cannot fit here
+  // nothing is warned on open / on subject change
+  await expect(page.locator('#intentNotice')).toBeHidden();
+  await expect(page.locator('#slotWarningOverlay')).toBeHidden();
+  await expect(page.locator('#intentPickers')).toBeVisible();
+  // every session of the subject is listed, each carrying its own length, and
+  // the too-long one is listed too — with no verdict attached to it
+  const rows = await page.locator('#intentSessionPanel .session-dd-item').evaluateAll((els) =>
+    els.map((e) => ({ slots: (e as HTMLElement).dataset.slots, fit: (e as HTMLElement).dataset.fit })));
+  expect(rows.length).toBeGreaterThan(0);
+  const twoHour = rows.find((r) => r.slots === '4');
+  expect(twoHour, 'the 2-hour class must still be listed').toBeTruthy();
+  expect(twoHour!.fit).toBe('0');
+  expect(rows.some((r) => r.fit === '1'), 'a fitting 1-hour row exists here').toBe(true);
+  await pickSessionOfLength(page, 4);
+  await expect(page.locator('#intentNotice')).toBeHidden();
+  await expect(page.locator('#slotWarningOverlay')).toBeHidden();
+  await expect(page.locator('#intentArrangeBtn')).toBeEnabled();
 });

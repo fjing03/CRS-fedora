@@ -34,11 +34,6 @@ class VenueTimetable extends Component
     use CancelsClasses;
     use ResolvesTimetableTimeline;
 
-    /** Half-hour slots a booking was assumed to span before the grid learned the
-     *  real class lengths (venue-timetable-bookable-cells, 2026-11-05). Still the
-     *  fallback when this venue can host nothing — behaviour then is unchanged. */
-    private const BOOK_SPAN_FALLBACK = 4;
-
     public string $venueCode = '';
 
     #[Title('Venue Timetable')]
@@ -54,9 +49,11 @@ class VenueTimetable extends Component
     /**
      * The week-agnostic candidate pool for this venue: the viewer's own
      * conflicted sessions whose type this venue admits (venue-entry rules).
-     * ONE definition — both the arrange dropdown (`intentSessionOptions`)
-     * and the grid's shortest-class arithmetic (`minBookableSlots`) read it,
-     * so the two can never disagree about what CAN be booked here.
+     * ONE definition — the arrange dropdown (`intentSessionOptions`) reads it,
+     * so the modal and the venue-entry rules can never disagree about what CAN
+     * be booked here. (venue-slot-validation, 2026-11-06: the grid no longer
+     * derives a hover floor from it — the hover floor is a fixed hour and the
+     * real class length is validated after the user picks a session.)
      *
      * @return Collection<int, ClassSession>
      */
@@ -96,38 +93,6 @@ class VenueTimetable extends Component
     }
 
     /**
-     * The SHORTEST class (in half-hour slots) this venue can host for this
-     * lecturer — the unit the grid's late-cell and no-room-cell rules are
-     * judged by. The page used to assume every booking spans a fixed 2 hours
-     * (the arrangement page's MAX_SELECTION); that marked cells red even when
-     * a 1-hour class would have fitted.
-     *
-     * Derived from the SAME build the arrange dropdown uses, so the number can
-     * never drift from the durations the dropdown offers. Empty pool (nothing
-     * bookable here) falls back to the fixed 4 slots — the old behaviour, so an
-     * empty venue behaves exactly as it always did.
-     */
-    private function minBookableSlots(): int
-    {
-        $candidates = $this->bookableCandidates();
-        if ($candidates->isEmpty()) {
-            return self::BOOK_SPAN_FALLBACK;
-        }
-
-        $min = null;
-        foreach ((new LectureSessionCatalog)->build($candidates, null) as $module) {
-            foreach ($module['order'] as $sessionId) {
-                $slots = (int) ($module['sessions'][(string) $sessionId]['durationSlots'] ?? 0);
-                if ($slots > 0 && ($min === null || $slots < $min)) {
-                    $min = $slots;
-                }
-            }
-        }
-
-        return $min ?? self::BOOK_SPAN_FALLBACK;
-    }
-
-    /**
      * "Select a Session" model (SDD arrange-intent-session-choice design D2/D3,
      * user directive 2026-10-16 apply round 4): the pool is WEEK-AGNOSTIC —
      * every lecturer session with ≥1 conflicted occurrence anywhere in the
@@ -158,7 +123,7 @@ class VenueTimetable extends Component
         $rawRoomType = (string) $venueRow->room_type;
         $catalog = new LectureSessionCatalog;
 
-        /* Week-agnostic pool — ONE definition, shared with minBookableSlots() */
+        /* Week-agnostic pool — ONE definition, shared with the dropdown */
         $eligible = $this->bookableCandidates($venueRow);
 
         $conflicted = $catalog->conflictedFor($eligible);
@@ -770,7 +735,6 @@ class VenueTimetable extends Component
             // venue-timetable-bookable-cells: the shortest class this venue can
             // host, in half-hour slots — the grid judges its late cells and its
             // "no room below" cells by THIS, not by the old fixed 2 hours.
-            'minClassSlots' => $this->minBookableSlots(),
             'semesterJs' => $this->semesterJs(),
             'holidaysJs' => $this->holidaysForJs(),
         ])

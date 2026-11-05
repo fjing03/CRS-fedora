@@ -236,11 +236,9 @@
             window.weekData = generateWeekData();
             const weekData = window.weekData;
             const eventsData = @json($eventsByWeek);
-            /* venue-timetable-bookable-cells: the SHORTEST class this venue can
-               host (half-hour slots), served by minBookableSlots(). The grid used
-               to judge every cell by a fixed 2-hour booking; it now judges by what
-               can actually fit. Fallback keeps the old behaviour on an empty pool. */
-            window.minClassSlots = @json($minClassSlots ?? null);
+            /* venue-slot-validation (2026-11-06): no class-length hint is served
+               any more — the hover floor is a fixed 60 minutes and the real
+               duration is read from the class the user picks in the pop-up. */
             /* class-modal-affordances T3: the cancel machinery's twin store
                (the same bridge as my-timetable's — resolveMatches reads
                MockData.myTimetable.eventsByWeek). */
@@ -407,25 +405,42 @@
                frozen template :1044–1117; wording per user decision 2026-10-13;
                no code/cohort appends — the venue page has no subject context
                and the consumer already handles their absence). */
-            /* Slots one booking spans on the arrangement page (its default
-               MAX_SELECTION: 4 half-hour slots = 2h). A booking starting too
-               late in the day can't fit — don't offer Arrange on those cells. */
-            const BOOK_SPAN = 4;
-            /* the REAL unit the late-cell / no-room rules use (the shortest class
-               this venue can host). Falls back to the old fixed span, so an empty
-               pool behaves exactly as it used to. */
-            const MIN_SLOTS = Math.max(1, parseInt(window.minClassSlots, 10) || BOOK_SPAN);
+            /* venue-slot-validation (2026-11-06, user brief §2/§5): the HOVER
+               floor is one continuous hour and nothing else. It is NOT a class
+               assumption — the class the user intends to move is unknown until
+               they pick one in the pop-up, and the real duration is validated
+               there (MIN_BOOK_SLOTS is only the smallest booking the page will
+               ever offer). */
+            const MIN_BOOK_SLOTS = 2;   /* 2 half-hour slots = 60 minutes */
             let focusedCell = null;
 
-            /* Room between a free cell and the NEXT event that starts after it on
-               the same day, in half-hour slots (Infinity = nothing below). */
-            function roomBeforeNextEvent(di, hi) {
+            /* Index of the NEXT event start below a cell on the same day
+               (Infinity = nothing below). One definition for the paint loop and
+               for the post-selection check. */
+            function nextEventStartAfter(di, hi) {
                 const dayEvents = eventsData[currentWeek] || [];
                 let next = Infinity;
                 dayEvents.forEach(function (ev) {
                     if (ev.di !== di || ev.start <= hi) return;
                     if (ev.start < next) next = ev.start;
                 });
+                return next;
+            }
+
+            /* Would an event already sit inside [hi, hi + spanSlots)? Lifted out
+               of the modal closure so stage 1 (hover) and stage 2 (after the
+               class is picked) can never disagree. */
+            function spanBlocked(di, hi, spanSlots) {
+                const spanTo = Math.min(hi + spanSlots, hours.length);
+                return (eventsData[currentWeek] || []).some(function (ev) {
+                    return ev.di === di && (hi < ev.end + 1) && (spanTo - 1 >= ev.start);
+                });
+            }
+
+            /* Room between a free cell and the NEXT event, in half-hour slots
+               (Infinity = nothing below). */
+            function roomBeforeNextEvent(di, hi) {
+                const next = nextEventStartAfter(di, hi);
                 return next === Infinity ? Infinity : next - hi;
             }
 
@@ -437,8 +452,8 @@
                     toast.show('Not enough room below this class — pick a Free Cell.');
                     return;
                 }
-                if (hi + MIN_SLOTS > hours.length) {
-                    toast.show('A booking needs ' + (MIN_SLOTS * 30) + ' minutes — not enough time left in the day.');
+                if (hi + MIN_BOOK_SLOTS > hours.length) {
+                    toast.show('A booking needs ' + (MIN_BOOK_SLOTS * 30) + ' minutes — not enough time left in the day.');
                     return;
                 }
                 const tooltip = document.getElementById('availableTooltip');
@@ -497,13 +512,19 @@
                data (type→room_type, B005) comes server-side in the wire
                response — the client hosts no rule. */
             let intentModalOpen = false;
-            let intentContext = null; // {dateStr, timeStr} of the BOOKED slot
+            let intentContext = null; // {dateStr, timeStr, di, hi, venue} of the BOOKED slot
 
             function openIntentSessionModal(time, di, hi) {
                 intentModalOpen = true;
                 intentContext = {
                     dateStr: weekData[currentWeek].days[di].date,
                     timeStr: hours[hi],
+                    /* venue-slot-validation D3: stage 2 needs the cell's own
+                       coordinates, and `confirmIntentSession` sits outside the
+                       render closure. */
+                    di: di,
+                    hi: hi,
+                    venue: venueInfo.code,
                 };
                 const week1 = currentWeek + 1;
                 pageLivewire().call('intentSessionOptions', week1).then(function (model) {
@@ -584,17 +605,13 @@
                     subjectSel.appendChild(opt);
                 });
 
-                function spanOccupied(spanSlots) {
-                    /* venue occupancy for THIS day: any event whose 30-min span
-                       overlaps [hi, hi + spanSlots) disqualifies the block */
-                    const day = di;
-                    const spanTo = Math.min(hi + spanSlots, hours.length);
-                    const dayEvents = eventsData[currentWeek] || [];
-                    return dayEvents.some(function (ev) {
-                        return ev.di === day && (hi < ev.end + 1) && (spanTo - 1 >= ev.start);
-                    });
-                }
-
+                /* venue-slot-validation (user brief §2 Stage 1): the modal no
+                   longer judges a class it has not been given. Every session of
+                   the selected subject is listed; the real duration is checked
+                   when the user presses Arrange (`confirmIntentSession`). The
+                   rows carry `data-slots` (the session's own length) and
+                   `data-fit` (would it fit from this cell?) so stage 2 and the
+                   pre-selection read one source of truth. */
                 function chooseSession(item) {
                     sessionDd.querySelectorAll('.session-dd-item').forEach(function (n) { n.classList.remove('active'); });
                     item.classList.add('active');
@@ -604,79 +621,60 @@
                     sessionDd.classList.remove('open');
                 }
 
+                function sessionFits(e) {
+                    const slots = e.durationSlots || 1;
+                    if (hi + slots > hours.length) return false;
+                    return !spanBlocked(di, hi, slots);
+                }
+
                 function refreshSessions() {
-                    const allFit = [];
-                    let dayEndFails = 0;  /* the class itself runs past the day end */
-                    let spanFails = 0;    /* the span runs into an existing event BELOW */
                     const mi = subjectSel.value;
-                    (fitting[mi].order || []).forEach(function (sid) {
-                        const e = fitting[mi].sessions[sid];
-                        /* class-level fitness first (duration/day-end + this week's
-                           occupancy); the session then EXPANDS into one row per
-                           flagged occurrence (user request 2026-10-16) */
-                        if (hi + (e.durationSlots || 1) > hours.length) { dayEndFails++; return; }
-                        if (spanOccupied(e.durationSlots || 1)) { spanFails++; return; }
-                        allFit.push([sid, e]);
-                    });
+                    const subject = fitting[mi];
                     sessionPanel.innerHTML = '';
                     sessionPick = null;
-                    allFit.forEach(function (pair) {
-                        const sid = pair[0]; const e = pair[1];
+                    let firstFit = null;
+                    let firstAny = null;
+                    (subject.order || []).forEach(function (sid) {
+                        const e = subject.sessions[sid];
+                        /* the session then EXPANDS into one row per flagged
+                           occurrence (user request 2026-10-16) */
                         const start = (e.startTime || '').slice(0, 5);
                         const end = (e.endTime || '').slice(0, 5);
                         const cohort = (e.cohortLabels && e.cohortLabels[0]) || (e.cohorts && e.cohorts[0]) || '';
                         const occs = e.conflictOccurrences && e.conflictOccurrences.length ? e.conflictOccurrences : [{ week: '', dayAbbr: e.dayAbbr || '', label: (e.date || ''), reason: e.conflictReason || '' }];
+                        const fits = sessionFits(e);
                         occs.forEach(function (occ) {
                             const item = document.createElement('div');
                             item.className = 'session-dd-item';
                             item.setAttribute('role', 'option');
                             item.dataset.sid = String(sid);
                             item.dataset.cohort = cohort;
+                            item.dataset.slots = String(e.durationSlots || 1);
+                            item.dataset.fit = fits ? '1' : '0';
                             /* row label — the user's requested format: type, week, day, date, time range */
                             item.dataset.label = '(' + e.type + ')' + (occ.week ? ' W' + occ.week + ',' : '') + (occ.dayAbbr ? ' ' + occ.dayAbbr + ',' : '') + (occ.label ? ' ' + occ.label : '') + ' . ' + start + ' ~ ' + end;
                             item.textContent = item.dataset.label;
                             /* details tooltip — the shared data-tip system (ui-common) renders any [data-tip] row */
-                            item.setAttribute('data-tip', fitting[mi].code + ' ' + fitting[mi].name +
+                            item.setAttribute('data-tip', subject.code + ' ' + subject.name +
                                 ' · ' + (e.studentCount || 0) + ' students' + (cohort ? ' (' + cohort + ')' : '') +
                                 ' · usually ' + (e.venue || '—') + ' ' + (occ.dayAbbr || '') + ' ' + start + '–' + end +
                                 ' · conflict: ' + (occ.reason || e.conflictReason || '—'));
                             item.dataset.week = String(occ.week || '');
                             item.onclick = function () { chooseSession(item); };
                             sessionPanel.appendChild(item);
+                            if (!firstAny) firstAny = item;
+                            if (fits && !firstFit) firstFit = item;
                         });
                     });
-                    /* pre-select the first row (the native select was auto-first too) */
-                    const first = sessionPanel.querySelector('.session-dd-item');
+                    /* pre-select the first row that FITS (the old convenience),
+                       else the first row — the user may still press Arrange and
+                       be told why it does not fit */
+                    const first = firstFit || firstAny;
                     if (first) chooseSession(first);
-                    if (allFit.length === 0) {
-                        /* honest reason split (user report 2026-10-16): the day-end
-                           sentence was shown even when the real blocker was the
-                           span running into an existing event below the cell */
-                        if (spanFails > 0) {
-                            /* venue-timetable-bookable-cells (user ruling 2026-11-05):
-                               the old line printed the SHORTEST candidate length as if
-                               it were a spacing rule — there is no gap rule in the
-                               engine, only overlap, so the number was invented. Keep
-                               the warning, drop the number. */
-                            noteText.innerHTML = noticeHtml(
-                                'None of your classes can run in ' + model.venue + ' at this cell',
-                                hours[hi] + ' plus the class length runs into an existing event below.',
-                                'NOT ENOUGH FREE TIME BELOW',
-                                '— pick a <strong style="color:var(--color-on-success-container)">Free Cell</strong>.');
-                        } else {
-                            noteText.innerHTML = noticeHtml(
-                                'They do not fit before the day end (' + dayEnd + ')',
-                                'None of your classes can run in ' + model.venue + ' — pick an earlier cell.');
-                        }
-                        notice.style.display = 'block';
-                        pickers.style.display = 'none';
-                        arrangeBtn.style.display = 'none';
-                    } else {
-                        notice.style.display = 'none';
-                        pickers.style.display = 'block';
-                        arrangeBtn.style.display = '';
-                        arrangeBtn.disabled = false;
-                    }
+                    arrangeBtn.disabled = !firstAny;
+                    notice.style.display = 'none';
+                    pickers.style.display = 'block';
+                    arrangeBtn.style.display = '';
                 }
 
                 subjectSel.onchange = function () { refreshSessions(); };
@@ -723,7 +721,80 @@
                    (data-week) rides too — the URL's &week= becomes the pinned
                    occurrence's week instead of the viewed slot's week. */
                 const pickedRow = dd.querySelector('.session-dd-item.active');
+
+                /* venue-slot-validation (user brief §2 Stage 2 / §3): the ONE place
+                   where a duration verdict is allowed. The class is picked, its
+                   real length is known, so the cell is checked against it — day
+                   end first, then the events below. Failure never navigates. */
+                if (pickedRow) {
+                    const slots = Math.max(1, parseInt(pickedRow.dataset.slots, 10) || 1);
+                    const start = intentContext.hi;
+                    const dayEnd = hours[hours.length - 1];
+                    if (start + slots > hours.length) {
+                        showSlotWarning('dayEnd', { slots: slots, start: start, dayEnd: dayEnd });
+                        return;
+                    }
+                    if (spanBlocked(intentContext.di, start, slots)) {
+                        showSlotWarning('span', {
+                            slots: slots,
+                            start: start,
+                            next: nextEventStartAfter(intentContext.di, start),
+                        });
+                        return;
+                    }
+                }
+
                 bookVenueWithSession(venueInfo.code, intentContext.dateStr, intentContext.timeStr, moduleLabel, pickedRow ? pickedRow.dataset.sid : '', pickedRow ? (pickedRow.dataset.cohort || '') : '', pickedRow ? (pickedRow.dataset.week || '') : '');
+            }
+
+            /* ── Slot-too-short warning (venue-slot-validation D4) ───────────
+               An in-page warning modal, never a browser alert, shown only after
+               a class was picked. `hours[]` labels are the grid's own language,
+               and the duration is the picked class's real `data-slots`. */
+            function slotsHuman(slots) {
+                const n = Math.max(1, slots || 1) / 2;
+                return (n % 1 === 0 ? String(n) : n.toFixed(1)) + (n === 1 ? ' hour' : ' hours');
+            }
+
+            function showSlotWarning(kind, facts) {
+                const overlay = document.getElementById('slotWarningOverlay');
+                if (!overlay) return;
+                const venue = (intentContext && intentContext.venue) || venueInfo.code;
+                const startLabel = hours[facts.start] || '';
+                const dur = slotsHuman(facts.slots);
+                const head = document.getElementById('slotWarningHead');
+                const body = document.getElementById('slotWarningBody');
+                const guide = document.getElementById('slotWarningGuide');
+                const tail = document.getElementById('slotWarningTail');
+                if (kind === 'dayEnd') {
+                    head.textContent = 'This class does not fit before the day end (' + facts.dayEnd + ')';
+                    body.textContent = startLabel + ' plus the selected class duration (' + dur + ') runs past ' + facts.dayEnd + '.';
+                    guide.textContent = 'PICK AN EARLIER CELL';
+                    tail.innerHTML = '— the grid ends at <strong style="color:var(--color-on-success-container)">' + facts.dayEnd + '</strong>.';
+                } else {
+                    head.textContent = 'None of your classes can run in ' + venue + ' at this cell';
+                    body.textContent = startLabel + ' plus the selected class duration (' + dur + ') runs into an existing event below'
+                        + (facts.next !== Infinity && hours[facts.next] ? ' — the class starting at ' + hours[facts.next] : '') + '.';
+                    guide.textContent = 'NOT ENOUGH FREE TIME BELOW';
+                    tail.innerHTML = '— pick a <strong style="color:var(--color-on-success-container)">Free Cell</strong>.';
+                }
+                /* the intent modal goes away first: the warning is the answer to
+                   the Arrange click, and closing it must land on the timetable */
+                closeIntentSessionModal();
+                overlay.classList.add('show');
+                overlay.style.display = 'flex';
+                const btn = document.getElementById('slotWarningPickBtn');
+                if (btn) { try { btn.focus(); } catch (e) {} }
+            }
+
+            function closeSlotWarning(ev) {
+                const overlay = document.getElementById('slotWarningOverlay');
+                if (!overlay) return;
+                /* the overlay's own click closes; a click inside the card does not */
+                if (ev && ev.type === 'click' && ev.target !== ev.currentTarget) return;
+                overlay.classList.remove('show');
+                overlay.style.display = 'none';
+                if (focusedCell) { try { focusedCell.focus(); } catch (e) {} }
             }
 
             /* venue-cross-week-handoff (T2): occurrenceWeek = the picked row's
@@ -901,10 +972,10 @@
                             div.className = 'cell-content cell-available';
                             /* a class can't fit if it would run past the day end —
                                judged by the SHORTEST class this venue can host */
-                            if (hi + MIN_SLOTS > hours.length) div.classList.add('cell-no-fit');
+                            if (hi + MIN_BOOK_SLOTS > hours.length) div.classList.add('cell-no-fit');
                             /* …and it can't fit if the next class below leaves too
                                little room (cursor + hover words only, no colour) */
-                            else if (roomBeforeNextEvent(di, hi) < MIN_SLOTS) div.classList.add('cell-no-room');
+                            else if (roomBeforeNextEvent(di, hi) < MIN_BOOK_SLOTS) div.classList.add('cell-no-room');
                             div.tabIndex = 0;
                             div.dataset.day = di;
                             div.dataset.hour = hi;
@@ -1035,6 +1106,9 @@
             window.closeIntentSessionModal = closeIntentSessionModal;
             window.intentOverlayClose = intentOverlayClose;
             window.confirmIntentSession = confirmIntentSession;
+            /* venue-slot-validation: the warning modal's own handlers (header ×,
+               overlay click, footer actions) live in the shared partial */
+            window.closeSlotWarning = closeSlotWarning;
             window.prevWeek = prevWeek;
             window.nextWeek = nextWeek;
             window.selectWeek = selectWeek;
