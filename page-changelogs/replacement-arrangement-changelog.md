@@ -1,3 +1,50 @@
+## 2026-11-05 (SDD-waived — display/behaviour only) — the blocked arrival speaks first, and the cancel reminder stops being permanent
+
+**Found by the user** during the manual `submission-conflict-refresh` walkthrough:
+after the submission-conflict modal's **Refresh Page**, the arrival at
+`/my-replacements?blocked=request-pending` showed *"Class cancelled — arrange
+replacement when ready"* — a reminder about a cancellation **that no longer
+existed** — and the entry-guard message ("This class already has a PENDING
+replacement request.") never appeared.
+
+Two separate faults, both in `public/js/ui-common.js`:
+
+1. **Priority.** The `DOMContentLoaded` bootstrap asked
+   `ClassCancellation.needsLoadToast()` FIRST and only fell through to
+   `showEntryGuardToast()` in the `else` branch, so any live ledger note swallowed
+   the arrival message. Now a `?blocked=request-pending|request-approved` arrival
+   calls `showEntryGuardToast()` and **returns** — the note is neither shown nor
+   spent, so it keeps its turn for the NEXT page load.
+2. **An immortal note.** `applyLedger()` deliberately NEVER drops a
+   *server-bridged* entry (`sessionId` + `exceptionId`) whose matches resolve to
+   nothing — a rule from the era when **undo** could make a cancellation vanish.
+   Undo is gone (2026-11-05), so that retention can now hold a note the app can
+   never clear; `needsLoadToast()` therefore nagged on every single page load.
+   The reminder is now **ONE-SHOT**: `markLoadToastShown()` writes
+   `toastShown: true` through `ledgerUpdate()` the moment the toast is actually
+   displayed (the bootstrap only), and `needsLoadToast()` ignores spent entries.
+   A NEW cancellation is a fresh entry and still reminds once.
+
+**Deliberately unchanged:** `showCancelToast()` (the immediate confirmation from
+"I'll Do It Later"), the ✕ snooze semantics, the ledger's replay of the cancelled
+block and its chip, and `applyLedger()`'s retention rule itself (it protects a
+LIVE cancellation whose week simply is not on the current page).
+
+**Measured** (read-only page loads against the demo data on `:8010`, a
+server-bridged entry whose cancellation does not exist):
+- first load of `/my-replacements` → the reminder appears **once**, and the stored
+  entry gains `"toastShown":true`;
+- an immediate reload → **no toast** (it previously appeared on every load);
+- `?blocked=request-pending` → *"This class already has a PENDING replacement
+  request."* with the **My Replacements** link, the cancel toast **absent**, and
+  the stored entry still **unspent**;
+- the next plain load → the cancellation reminder appears — deferred, not lost.
+
+**Gates:** `node --check public/js/ui-common.js` · `tests/cancel-class.spec.ts`
+on the disposable testing DB (fresh seed, `:8030`): **12 passed / 4 skipped**, so
+the immediate confirmation toast, the ledger replay and the two-tab refusal are
+unaffected.
+
 ## 2026-11-03 (SDD-waived by the user; the decision is recorded in `docs/venue-restrictions.md` R3) — the lab roster now matches the timetable
 
 **Change:** `LectureSessionCatalog::ruleMap()` gained **nine** subjects in BOTH

@@ -4498,10 +4498,31 @@ const ClassCancellation = {
     },
 
     /* Does ANY live entry still deserve a load toast? A snoozed entry stays
-       silent; a NEW cancellation (fresh entry, unsnoozed) toasts again. */
+       silent; a NEW cancellation (fresh entry, unsnoozed) toasts again.
+
+       2026-11-05 (manual-conflict-test report): a reminder is ONE-SHOT, not one
+       per page load. The bridged-entry retention rule above (kept from the
+       undo era) can hold a note for a cancellation that no longer exists on
+       the server — an entry the app can never clear on its own — so the old
+       predicate nagged on EVERY load forever. `toastShown` is written by
+       markLoadToastShown() the moment the reminder is actually displayed:
+       the reminder still arrives once, it just cannot become permanent. */
     needsLoadToast() {
         return this.allEntries().some(function(e) {
-            return e && !e.removed && !e.consumed && !e.toastSnoozed;
+            return e && !e.removed && !e.consumed && !e.toastSnoozed && !e.toastShown;
+        });
+    },
+
+    /* The load toast has been DISPLAYED — spend its one turn. Marking every
+       still-live entry (not just the first) keeps the rule uniform: whichever
+       entry the toast was about, no entry re-fires on the next page load. */
+    markLoadToastShown() {
+        const self = this;
+        this.allEntries().forEach(function(e) {
+            if (e && !e.removed && !e.consumed && !e.toastSnoozed && !e.toastShown) {
+                e.toastShown = true;
+                self.ledgerUpdate(e);
+            }
         });
     },
 };
@@ -4515,8 +4536,22 @@ const ClassCancellation = {
 document.addEventListener('DOMContentLoaded', function() {
     try {
         ClassCancellation.applyLedger();
-        if (ClassCancellation.needsLoadToast()) ClassCancellation.showCancelToast();
-        else showEntryGuardToast();               // arrival feedback after a BLOCKED arrangement entry
+        /* 2026-11-05 (user ruling, manual conflict test step 8): a BLOCKED arrival
+           explains ITSELF first. Landing on /my-replacements?blocked=request-pending
+           used to show the cancellation reminder instead of the entry-guard
+           message, so the reason you were sent here never appeared. The order is
+           now: the blocked arrival speaks, and the cancellation reminder keeps its
+           turn for the NEXT page load — it is neither shown nor spent here. */
+        if (/[?&]blocked=/.test(location.search)) {
+            showEntryGuardToast();
+            return;
+        }
+        if (ClassCancellation.needsLoadToast()) {
+            ClassCancellation.showCancelToast();
+            ClassCancellation.markLoadToastShown();   // ONE reminder per cancellation, not per load
+        } else {
+            showEntryGuardToast();                    // arrival feedback after a BLOCKED arrangement entry
+        }
     } catch (e) { /* degrade — page init must never break over the ledger */ }
 });
 
