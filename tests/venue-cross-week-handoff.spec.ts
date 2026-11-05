@@ -15,10 +15,15 @@ test.use({ storageState: '.auth/staff-5770.json' });
 test('S1 — cross-week pick threads the occurrence week (&week=8, honest strip)', async ({ page }) => {
   await page.goto('/venue-timetable-ui?venue=B111');
   await page.waitForTimeout(600);
-  await selectWeek(page, 6); // W7 view: the slot week — the picked occurrence lives in W8
+  /* The original fixture pinned W7 (Tue 03 Nov 2026) — the user's own repro
+     slot — but that week turns read-only (`cell-too-soon`) once the clock
+     passes it, so the test rotted. The claim under test is the data-week →
+     &week= threading, which is week-agnostic (the session pool is), so the
+     LAST semester week is used: date-independent, same assertions. */
+  const last = await page.evaluate(() => (window as any).weekData.length - 1);
+  await selectWeek(page, last);
   await page.waitForTimeout(300);
-  // the user's exact booked slot: Tue 03 Nov 13:00 (day 1, hour 10 in the 30-min 08:00 grid)
-  await page.locator('#tableBody td[data-day="1"][data-hour="10"] .cell-available').click();
+  await pickSpanFreeCell(page);
   await page.locator('#tooltipBookBtn').click();
   await expect(page.locator('#intentSessionModal')).toBeVisible({ timeout: 10_000 });
   // the user's step 3 — pick the W8 occurrence EXPLICITLY (not the pre-select)
