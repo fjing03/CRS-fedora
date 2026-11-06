@@ -25,18 +25,20 @@ use Illuminate\Support\Carbon;
 use Tests\TestCase;
 
 /**
- * FR 2.17 on the SERVER (2026-11-06).
+ * The SUBMIT action's own guards (2026-11-06) — the page is not the gate.
  *
- * The arrangement grid has always refused a too-soon cell
- * (`leadTimeCutoff()` in `ui-common.js`), but that is the browser's word. This
- * pins the action's own gate: a submit may only propose a slot whose DATE is at
- * least the 3rd working day after today — weekends and semester holidays skipped,
- * the 3rd working day itself selectable, today never.
+ * 1. FR 2.17's notice: the arrangement grid has always refused a too-soon cell
+ *    (`leadTimeCutoff()` in `ui-common.js`), but that is the browser's word. The
+ *    action must refuse it too: a slot's DATE needs to be at least the 3rd
+ *    working day after today — weekends and semester holidays skipped, the 3rd
+ *    working day itself selectable, today never.
+ * 2. D2's holiday rule: the makeup may not LAND on a public-holiday day (the page
+ *    enforced it; the action did not).
  *
  * Clock: Monday 19 Oct 2026, 09:00 (MYT). Working days after it are Tue 20 (1),
  * Wed 21 (2), Thu 22 (3) → **Thu 22 Oct is the first bookable date**.
  */
-final class LeadTimeGateTest extends TestCase
+final class SubmitGatesTest extends TestCase
 {
     use RefreshDatabase;
 
@@ -153,7 +155,7 @@ final class LeadTimeGateTest extends TestCase
         );
     }
 
-    // ── the gate ──────────────────────────────────────────────────────────
+    // ── gate 1: FR 2.17's 3-working-day notice ───────────────────────────
 
     public function test_the_cutoff_is_the_third_working_day(): void
     {
@@ -241,5 +243,78 @@ final class LeadTimeGateTest extends TestCase
 
         $wednesday = $this->cell(6, 2); // Wed 28 Oct
         $this->assertTrue($this->submit($wednesday, 6)['ok']);
+    }
+
+    // ── gate 2: D2, a holiday day is not a landing pad ───────────────────
+
+    public function test_a_target_on_a_public_holiday_is_refused_and_leaves_no_trace(): void
+    {
+        // A holiday on Thu 29 Oct (week 6 day 3) — OUTSIDE the notice window, so
+        // the lead-time gate is satisfied and the holiday gate is what fires.
+        // Sunday needs no arm: the grid has no Sunday rows at all.
+        Holiday::create([
+            'semester_id' => $this->semester->id,
+            'week_number' => 6,
+            'day_of_week' => 3,
+            'label' => 'Fixture Holiday',
+        ]);
+
+        $slot = $this->cell(6, 3);
+
+        $result = $this->submit($slot, 6);
+
+        $this->assertFalse($result['ok']);
+        $this->assertSame('holiday', $result['conflict_reason']);
+        $this->assertSame(0, ReplacementRequest::query()->count());
+        $this->assertSame(0, AuditLog::query()->count());
+        $this->assertSame('available', (string) $slot->refresh()->status);
+    }
+
+    public function test_the_same_weekdays_book_when_the_holiday_is_on_another_day(): void
+    {
+        Holiday::create([
+            'semester_id' => $this->semester->id,
+            'week_number' => 5,
+            'day_of_week' => 3, // Thursday is a holiday …
+            'label' => 'Fixture Holiday',
+        ]);
+
+        $friday = $this->cell(5, 4); // … Friday is not
+
+        $result = $this->submit($friday, 5);
+
+        $this->assertTrue($result['ok'], 'only the holiday DAY is blocked, got: '.var_export($result['conflict_reason'], true));
+        $this->assertSame('pending', (string) TimeSlot::find((int) $friday->id)->status);
+    }
+
+    public function test_a_holiday_in_another_week_does_not_block_this_target(): void
+    {
+        Holiday::create([
+            'semester_id' => $this->semester->id,
+            'week_number' => 6,
+            'day_of_week' => 3,
+            'label' => 'Next Week Holiday',
+        ]);
+
+        $thursday = $this->cell(5, 3); // week 5, not week 6
+
+        $this->assertTrue($this->submit($thursday, 5)['ok']);
+    }
+
+    public function test_replacing_the_holiday_hit_occurrence_is_still_allowed(): void
+    {
+        // The ORIGINAL class falls on the holiday (that is why it needs a makeup);
+        // the makeup LANDS on a normal Thursday. The rule blocks the landing day,
+        // never the reason for the request.
+        Holiday::create([
+            'semester_id' => $this->semester->id,
+            'week_number' => 5,
+            'day_of_week' => 0, // the class's own Monday
+            'label' => 'Fixture Holiday',
+        ]);
+
+        $makeup = $this->cell(5, 3);
+
+        $this->assertTrue($this->submit($makeup, 5)['ok']);
     }
 }

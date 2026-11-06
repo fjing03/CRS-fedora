@@ -4,6 +4,7 @@ namespace App\Actions;
 
 use App\Mail\ReplacementSubmitted;
 use App\Models\ClassSession;
+use App\Models\Holiday;
 use App\Models\ReplacementRequest;
 use App\Models\Semester;
 use App\Models\TimeSlot;
@@ -102,6 +103,21 @@ final class SubmitReplacementRequest
             if (! (new WorkingHours($semester))->isBookableOnDate($slotDate)) {
                 return $fail('slot_too_soon');
             }
+        }
+
+        /* D2 (user decision 2026-10-11, "holidays are unbookable") — the makeup
+           may not LAND on a public-holiday day; replacing the holiday-hit
+           occurrence is still exactly what the flow is for. The page has always
+           enforced this (`ReplacementArrangement::submitBlocks`); the action was
+           the last place a crafted submit could slip past it (2026-11-06).
+           Sunday needs no arm here: the grid has no Sunday cell rows
+           (day_of_week 0–5 only), so a Sunday slot cannot be referenced. */
+        if (Holiday::query()
+            ->where('semester_id', (int) $slot->semester_id)
+            ->where('week_number', (int) $slot->week_number)
+            ->where('day_of_week', (int) $slot->day_of_week)
+            ->exists()) {
+            return $fail('holiday');
         }
 
         // Pre-check: anchor must still be available (the OCC validator re-checks

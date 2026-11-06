@@ -2958,5 +2958,25 @@ such a request could never be decided in time.
   fixed-calendar suites (`ReplacementArrangementTest`, `OccurrencePinTest`) pin
   `Carbon::setTestNow('2026-09-14')` — the pipeline is date-free, the rule is not.
 
-Receipts: `LeadTimeGateTest` 6/6 · full PHPUnit **382 / 2022** (432 s) · pint
-clean · PHPStan 0.
+### Same day, the sibling hole: D2's holiday rule was page-only too
+
+`ReplacementArrangement::submitBlocks()` has blocked a makeup that LANDS on a
+public holiday since the 2026-10-11 D2 decision, but the ACTION
+(`SubmitReplacementRequest`) never checked. Now it does: a target week/day that
+carries a `holidays` row fails with the existing **`holiday`** reason and the
+page's own sentence — *"That day is a public holiday — replacement classes
+cannot be booked on it."*
+
+- Sunday needs no arm: the grid has no Sunday rows at all (`day_of_week` 0–5), so
+  a Sunday slot cannot even be referenced.
+- Replacing the holiday-HIT occurrence is still allowed — the rule blocks the
+  landing day, never the reason for the request (own test).
+- Note on precedence: the notice gate runs first, so a holiday that sits inside
+  the 3-working-day window still answers `slot_too_soon`; the holiday gate is what
+  fires for any later date.
+
+Receipts: `SubmitGatesTest` **10/10** (the file renamed from `LeadTimeGateTest`:
+6 notice cases + 4 holiday cases — refused with no row/reservation/audit, same
+week's other days still book, another week's holiday does not block, the
+holiday-hit occurrence still books) · full PHPUnit **386 / 2031** · pint clean ·
+PHPStan 0.
