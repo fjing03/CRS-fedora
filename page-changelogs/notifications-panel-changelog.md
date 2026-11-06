@@ -29,10 +29,20 @@ Replacement Request Submitted*. The old pair of subtitle spans collapses into th
 to print the same name twice); when no actor can be resolved the old spans still render, so nothing is
 lost.
 
-### 4. Zero unread keeps the header's anatomy
+### 4. The panel opens "Active only"
+`activeOnly` now defaults to **ON** (it was off): the opening view is *actionable unread* — the
+decided / superseded / undone rows are one toggle away instead of in your face. Both toggles stay
+server-owned, so the 10 s poll keeps them.
+
+### 5. Zero unread keeps the header's anatomy
 At `0` the pill no longer disappears: it stays and reads **0**, and **Mark all as read** stays visible
 but **disabled** (`.notif-iconbtn:disabled` dims it, and it keeps its tooltip). The **bell badge**
-keeps its own rule — hidden at zero, unchanged.
+keeps its own rule — hidden at zero, unchanged. A disabled control now also says so with the cursor:
+one `button:disabled, .btn:disabled, input:disabled, select:disabled, textarea:disabled { cursor:
+not-allowed; }` rule in `theme.css` covers every disabled state in the app (and still no
+`pointer-events: none`, so a disabled icon button keeps its tooltip). `#notifMarkAll` needed its own
+`:disabled` line because its long-standing **ID** rule (`cursor: pointer`) out-specifies any class —
+measured: computed `cursor` went `pointer` → `not-allowed` once the ID got the state.
 
 **Measured** (fresh `class_replacement_testing` seed, staff 5425, guarded spec
 `tests/notif-row-inactive-hide.spec.ts`): two `undone` rows render with Hide; both read

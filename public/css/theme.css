@@ -471,6 +471,10 @@ body {
     border-color: var(--color-outline-strong);
 }
 #notifMarkAll svg { display: block; flex-shrink: 0; }
+/* notif-inactive-hide-sender (2026-11-05, user follow-up): the ID rule above
+   out-specifies .notif-iconbtn:disabled, so the disabled cursor is restated here
+   (ID + state beats ID alone). */
+#notifMarkAll:disabled { cursor: not-allowed; }
 
 .notif-list {
     flex: 1;
@@ -3893,6 +3897,15 @@ body {
 }
 .btn-confirm:hover { filter: brightness(1.08); }
 .btn-confirm:disabled { opacity: 0.4; pointer-events: none; }
+/* notif-inactive-hide-sender (2026-11-05, user follow-up): disabled controls are
+   visible but inert everywhere — one cursor for all of them. No
+   `pointer-events: none` here: a disabled icon button must still show its
+   tooltip (see .notif-iconbtn:disabled). */
+button:disabled,
+.btn:disabled,
+input:disabled,
+select:disabled,
+textarea:disabled { cursor: not-allowed; }
 
 .btn-danger {
     padding: 8px 20px;

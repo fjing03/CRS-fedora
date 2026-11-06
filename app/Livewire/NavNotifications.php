@@ -91,7 +91,11 @@ class NavNotifications extends Component
      *  (cancelled / approved / rejected, or the legacy D4 disabled edge) — NOT
      *  the ones you have merely read, which stay visible because reading a
      *  pending request leaves it pending. Never the badge. */
-    public bool $activeOnly = false;
+    /* 2026-11-05 (user): the panel opens with "Active only" ON — the feed shows
+       what still needs the reader, and the decided/inactive rows are one toggle
+       away. `unreadOnly` is already true by default, so the opening view is
+       "actionable unread". */
+    public bool $activeOnly = true;
 
     /** The type filter ('' = all types). Server-owned; wire:model.live. */
     public string $typeFilter = '';

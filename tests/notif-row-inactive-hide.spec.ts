@@ -88,8 +88,15 @@ test('an inactive row hides itself from the feed and still comes back', async ({
   await page.goto(`${BASE}/my-replacements?_=inactive-a`);
   await openPanel(page);
 
-  // the panel opens unread-only; the inactive rows live in the full mailbox
-  await page.click('.notif-filters .toggle-wrapper');
+  // the panel opens "unread only" AND "active only" (2026-11-05, the user's
+  // default) — the inactive rows live in the full mailbox, so both come off
+  await expect(page.locator('#notifUnreadOnly')).toBeChecked();
+  await expect(page.locator('#notifActiveOnly')).toBeChecked();
+  const toggles = page.locator('.notif-filters .toggle-wrapper');
+  await toggles.nth(0).click();
+  await toggles.nth(1).click();
+  await expect(page.locator('#notifUnreadOnly')).not.toBeChecked();
+  await expect(page.locator('#notifActiveOnly')).not.toBeChecked();
   const inactive = page.locator('#notifList .notif-row--inactive');
   await expect(inactive).toHaveCount(2, { timeout: 20_000 });
   // R1: the action exists, inside .nr-right, under the timestamp
@@ -160,4 +167,7 @@ test('zero unread keeps the pill at 0 and Mark-all visible but disabled', async 
   await expect(page.locator('#notifUnreadPill')).toHaveText('0', { timeout: 20_000 });
   await expect(page.locator('#notifMarkAll')).toBeVisible();
   await expect(page.locator('#notifMarkAll')).toBeDisabled();
+  // ...and the disabled state says so with the cursor, not just the opacity
+  expect(await page.locator('#notifMarkAll').evaluate((el) => getComputedStyle(el).cursor))
+    .toBe('not-allowed');
 });

@@ -26,11 +26,21 @@ No hardcoded names or ids.
 When the actor is the recipient: a `cancelled` row MUST read **Your Scheduled Class Cancelled** and a
 `submitted` row **Your Replacement Request Submitted**. All other combinations keep the R2 title.
 
-## R5 Zero unread keeps the header's anatomy
+## R5 The panel opens "Active only"
+**Added 2026-11-05 (user): `activeOnly` defaults to ON**, so the opening view is *actionable unread* —
+inactive/decided rows are one toggle away. Combined with `unreadOnly` (already ON) the default is
+"unread AND active"; both toggles stay server-owned and survive the poll.
+
+## R6 Disabled means visible-but-inert
+A disabled control keeps the visible-but-inert shape and shows `cursor: not-allowed` on hover — one
+rule for every disabled control (`.notif-iconbtn:disabled` included), never `pointer-events: none`
+(the tooltip must still work).
+
+## R7 Zero unread keeps the header's anatomy
 At `0` unread the `#notifUnreadPill` MUST be visible and show `0`, and `#notifMarkAll` MUST be visible
 and disabled. Neither may be hidden. Above zero both behave as today. The bell badge keeps its current
 rule (hidden at zero).
 
-## R6 Unchanged
+## R8 Unchanged
 The hidden shelf, manage mode, the filters, the 10 s poll, the read path, the tooltip fact lines, the
 click targets, and the hide write gate.
