@@ -121,8 +121,11 @@ status and it refuses anyone but the proposer (FR 2.10). **Nothing is rewritten*
 `status = 'cancelled'`, `decided_at`, its `action = 'cancelled'` audit rows, the released slots and
 the notification, and `requestId` still rides the payload (row identity + notification jump). The
 student history page and the notification feed read the DB directly and still say *Cancelled by YOU*;
-Rejected/Approved/Completed/Pending rows are byte-identical. Receipts:
-`tests/request-cancel-pending.spec.ts` (write) + `replacement-home-status-badges.spec.ts` receipt 9.
+Rejected/Approved/Completed/Pending rows are byte-identical. The status filter offers **no
+Cancelled option** any more (nothing on the page can carry that state), and `restoreFilters()` maps a
+filter saved before the removal onto Need to Arrange. Receipts:
+`tests/request-cancel-pending.spec.ts` (write) + `replacement-home-status-badges.spec.ts` receipts
+9 and 10.
 
 ### FR 2.17 is enforced on the SERVER (2026-11-06)
 The grid refuses a too-soon cell in the browser (`leadTimeCutoff()` in `ui-common.js`), and since
