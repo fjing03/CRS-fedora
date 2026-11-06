@@ -201,7 +201,9 @@
                     <option value="pending">Pending</option>
                     <option value="approved">Approved</option>
                     <option value="rejected">Rejected</option>
-                    <option value="cancelled">Cancelled</option>
+                    {{-- No Cancelled option (2026-11-06): a request its owner cancelled is
+                         DISPLAYED as Need to Arrange, so no row on this page carries that
+                         state any more — the option could only ever match nothing. --}}
                     <option value="completed">Completed</option>
                 </select>
                 @include('partials.ui-week-nav', ['prevOnclick' => 'prevWeekFilter()', 'prevTip' => 'Previous week', 'nextOnclick' => 'nextWeekFilter()', 'nextTip' => 'Next week', 'selectId' => 'weekFilter', 'selectOnclick' => 'weekFilterChanged(this.value)', 'selectTip' => 'Pick the Original Class week to display', 'showTodayBtn' => false])
@@ -529,6 +531,11 @@
             if (!raw) return;
             try {
                 var f = JSON.parse(raw);
+                /* A filter saved before 2026-11-06 can name the removed `cancelled`
+                   option; restoring a value the <select> no longer has would blank
+                   it AND match no row. Those rows display as Need to Arrange, so
+                   that is where the old choice now lands. */
+                if (f.status === 'cancelled') f.status = 'none';
                 if (f.status) document.getElementById('statusFilter').value = f.status;
                 if (f.search) document.getElementById('searchInput').value = f.search;
                 if (f.week) document.getElementById('weekFilter').value = f.week;

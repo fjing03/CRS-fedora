@@ -234,3 +234,32 @@ test('receipt 9 — a cancelled request never reads "Cancelled by YOU" on this p
   await expect(outlined.first()).toBeVisible();
   await expect(outlined.first()).toHaveAttribute('data-tip', 'No request has been made for this class yet — it still needs arranging.');
 });
+
+/** 2026-11-06 (follow-up, user's word "remove that option") — the status filter
+ *  no longer offers **Cancelled**: no row on this page carries that state any
+ *  more. A filter SAVED before the change still names it, so the restore path
+ *  maps that value onto Need to Arrange instead of leaving the select blank.
+ */
+test('receipt 10 — the status filter drops Cancelled, and a stale saved filter degrades to Need to Arrange', async ({ page }) => {
+  await page.goto(`${HOME}?fresh=${Date.now()}`, { waitUntil: 'networkidle' });
+
+  const values = await page.$$eval('#statusFilter option', (els) =>
+    els.map((e) => (e as HTMLOptionElement).value));
+  expect(values, 'the filter offers every state this page can display, and only those').toEqual([
+    'all', 'none', 'pending', 'approved', 'rejected', 'completed',
+  ]);
+
+  // a filter saved BEFORE the removal still says "cancelled"
+  await page.evaluate(() => localStorage.setItem('mrh-filters', JSON.stringify({
+    status: 'cancelled', search: '', week: 'all', excludeCompleted: true,
+  })));
+  await page.goto(`${HOME}?stale=${Date.now()}`, { waitUntil: 'networkidle' });
+  await page.waitForSelector('#tableBody tr');
+
+  await expect(page.locator('#statusFilter'), 'a value the select no longer has must never blank it').toHaveValue('none');
+
+  const badges = await page.$$eval('#tableBody .col-status .badge', (els) =>
+    els.map((e) => (e.textContent || '').trim()));
+  expect(badges.length, 'the mapped filter still shows the rows those requests became').toBeGreaterThan(0);
+  expect(badges.every((t) => t === 'Need to Arrange'), 'only the no-request rows: ' + badges.join(' | ')).toBe(true);
+});

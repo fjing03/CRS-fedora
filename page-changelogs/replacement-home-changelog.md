@@ -985,6 +985,24 @@ manual one. Nothing else changes:
 - Rejected / Approved / Completed / Pending rows are byte-identical, and the student history page and
   the notification feed read the DB status directly, so they still say **Cancelled by YOU**.
 
+### Follow-up (same day, user's word): the **Cancelled** filter option is gone
+
+With cancelled requests displaying as *Need to Arrange*, no row on this page can carry that state any
+more, so the status filter's `Cancelled` option could only ever match nothing. It is removed —
+the filter now offers exactly the five states the page can show (`All Request Status`, Need to Arrange,
+Pending, Approved, Rejected, Completed).
+
+A filter **saved** before the removal still names it (`localStorage['mrh-filters'].status ===
+'cancelled'`), so `restoreFilters()` maps that one value onto `none` — the state those rows became.
+Restoring a value the `<select>` no longer has would blank the dropdown **and** match no row; the
+mapping is what keeps an old browser session honest. `STATUS_RANK`/`isHandled()` keep their defensive
+`cancelled` arms (a payload can still carry the state through another surface); only the filter option
+went away.
+
+Receipt: `replacement-home-status-badges.spec.ts` receipt 10 — the option list is exactly those six
+values, and a pre-removal saved filter (`status: "cancelled"`) restores to `Need to Arrange` and shows
+only no-request rows. Verified red without the mapping, green with it (13/13 on the demo DB).
+
 Receipts: `tests/request-cancel-pending.spec.ts` (write, testing DB — cancel a real pending request,
 then assert the badge text/classes/tip, the `.cell-dash`, two modal tabs with no `Proposed Replacement
 Schedule` and no `Request ID`, the DB still `cancelled` with 0 junction rows and ≥1 audit row, and the
