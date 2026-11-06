@@ -561,3 +561,13 @@ the checkbox the ✕ sets) — the bar renders EMPTY, the controls at OFF. The
 Reset Filters button keeps the DEFAULT law (Status: Pending + hideCompleted
 on — the tip 'Reset all filters to DEFAULT') byte-identical. Same receipts
 as the sibling page (the status-tooltips spec 9/9, pint + phpstan 0, 277/277).
+
+## 2026-11-06 — Pending badge tip names the auto-reject deadline
+
+The queue's `.badge.status-pending` tooltip gains a second line from the shared
+vocabulary (`ReplacementRequestMapper::statusTip`, PL voice): *If you have not
+Approved it by <deadline>, it will be Automatically Rejected.* The deadline is
+the proposed start minus 3 working hours (Mon–Fri 08:30–17:30, weekends and
+semester holidays excluded) — the same clock `php artisan requests:auto-reject`
+uses. Full write-up + receipts: `status-tooltips-filter-chips-changelog.md`
+(2026-11-06). Every other status tip is byte-identical.

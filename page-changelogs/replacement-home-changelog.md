@@ -929,3 +929,14 @@ Includes the shared `partials/page-data-script.blade.php` — a
 >60KB payload now shards into ≤16KB scripts, re-joined via JSON.parse;
 the page's PAGE_DATA contract is unchanged. (The bug's full writeup
 lives in the arrangement changelog.)
+
+## 2026-11-06 — Pending badge tip names the auto-reject deadline
+
+The merged page's `.badge.status-pending` tooltip gains a second line from the
+shared vocabulary (`ReplacementRequestMapper::statusTip`, lecturer voice): *If the
+Programme Leader has not Approved this Request by <deadline>, it will be
+Automatically Rejected.* Deadline = proposed start minus 3 working hours
+(Mon–Fri 08:30–17:30, weekends and semester holidays excluded). Two lines via
+`\n` (the shared data-tip engine renders textContent, so `\n` + pre-line, not
+`<br>`). Full write-up + receipts: `status-tooltips-filter-chips-changelog.md`
+(2026-11-06).

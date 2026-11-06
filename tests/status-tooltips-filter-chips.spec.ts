@@ -21,23 +21,44 @@ const RA = '/request-approval-ui';
    so a map that drifted on either side fails. */
 const MRH_TIPS = [
   'No request has been made for this class yet — it still needs arranging.',
-  "Your request has been Submitted and is AWAITING the Programme Leader's decision (Approve or Reject).",
   'The Programme Leader has APPROVED your request.',
   'The Programme Leader has REJECTED your request.',
   'You MANUALLY CANCELLED this request.',
   'The replacement class has been CONDUCTED — this request is complete.',
 ];
+/* Auto-reject rule (2026-11-06): a PENDING tip is two lines — the shipped
+   sentence, then the deadline the rule fires at (`\n`, never HTML: the shared
+   data-tip engine renders textContent with pre-line). The deadline is computed
+   per request, so the receipt pins the SHAPE, not one calendar date. */
+const MRH_PENDING_HEAD = "Your request has been Submitted and is AWAITING the Programme Leader's decision (Approve or Reject).";
+const MRH_PENDING_TAIL_RE = /^If the Programme Leader has not Approved this Request by ([A-Z][a-z]{2}, \d{1,2} [A-Z][a-z]{2} \d{4}, \d{1,2}:\d{2} (AM|PM)), it will be Automatically Rejected\.$/;
+
+function isLecturerStatusTip(tip: string | null): boolean {
+  if (!tip) return false;
+  if (MRH_TIPS.includes(tip)) return true;
+  const [head, ...rest] = tip.split('\n');
+  return head === MRH_PENDING_HEAD && rest.length === 1 && MRH_PENDING_TAIL_RE.test(rest[0]);
+}
 /* 1f/3B (2026-11-04): the queue badge now prints the shared M5 label and takes
    its tip from the payload's own `requestStatusTip` (PL voice) — the page-local
    3-key map is gone, which is why a Completed (or Cancelled) badge used to have
    no tip at all. Keys are the label's STATUS part: a Completed badge appends
    "— <n> days ago", so it is normalised before the lookup. */
 const RA_MAP: Record<string, string> = {
-  Pending: 'This request is AWAITING your review and decision (Approve or Reject).',
   Approved: 'You have APPROVED this request.',
   Rejected: 'You have REJECTED this request.',
   Completed: 'The replacement class has been CONDUCTED — this request is complete.',
 };
+const RA_PENDING_HEAD = 'This request is AWAITING your review and decision (Approve or Reject).';
+const RA_PENDING_TAIL_RE = /^If you have not Approved it by ([A-Z][a-z]{2}, \d{1,2} [A-Z][a-z]{2} \d{4}, \d{1,2}:\d{2} (AM|PM)), it will be Automatically Rejected\.$/;
+
+function isPlStatusTip(key: string, tip: string | null): boolean {
+  if (!tip) return false;
+  if (key in RA_MAP) return tip === RA_MAP[key];
+  if (key !== 'Pending') return false;
+  const [head, ...rest] = tip.split('\n');
+  return head === RA_PENDING_HEAD && rest.length === 1 && RA_PENDING_TAIL_RE.test(rest[0]);
+}
 const labelKey = (label: string): string => label.split(' — ')[0].trim();
 
 /* the frozen urgency receipt regex (design.md:217) */
@@ -94,7 +115,7 @@ test('T5.MRH-1: per-row status hover loop + the FULL 5-string map fallback + fai
 
   for (const pair of serverTips) {
     expect(pair.tip, 'the badge tip comes from the payload').toBe(pair.payloadTip);
-    expect(MRH_TIPS, 'and it is one of the six server strings').toContain(pair.tip);
+    expect(isLecturerStatusTip(pair.tip), `the server's own six-state tip (pending is two lines): ${JSON.stringify(pair.tip)}`).toBe(true);
   }
 
   const shared = await sharedTip(page, '#tableBody .col-status .badge[data-tip]');
@@ -179,7 +200,7 @@ test('T5.MRH-3: detail-modal Status row + mobile-card threading', async ({ page 
   const cardBadge = page.locator('#cardView .replacement-card .badge[data-tip]').first();
   await expect(cardBadge).toBeVisible();
   const cardTip = await cardBadge.getAttribute('data-tip');
-  expect(MRH_TIPS, 'the card badge carries the same server tip').toContain(cardTip);
+  expect(isLecturerStatusTip(cardTip), 'the card badge carries the same server tip').toBe(true);
   const shared = await sharedTip(page, '#cardView .replacement-card .badge[data-tip]');
   expect(shared).not.toBeNull();
   expect(shared!.above).toBe(true);
@@ -202,8 +223,9 @@ test('T5.RA-1: every status badge carries the payload tip (one source, no local 
     const b = badges.nth(i);
     const label = ((await b.textContent()) || '').trim();
     const key = labelKey(label);
-    expect(RA_MAP[key], `queue badge '${label}' is a known state (Completed included now)`).toBeTruthy();
-    await expect(b, `'${label}' carries its tip`).toHaveAttribute('data-tip', RA_MAP[key]);
+    expect(key, `queue badge '${label}' is a known state (Completed included now)`).toBeTruthy();
+    const tip = await b.getAttribute('data-tip');
+    expect(isPlStatusTip(key, tip), `'${label}' carries its tip (pending adds the auto-reject deadline)`).toBe(true);
   }
 
   /* the payload is the single source: each rendered badge's text AND tip are

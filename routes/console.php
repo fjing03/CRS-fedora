@@ -13,3 +13,12 @@ Artisan::command('inspire', function () {
    read. Runs daily; the demo runs it on demand. */
 Schedule::command('notifications:remind-pending')
     ->daily()->at('08:00');
+
+/* Auto-reject rule (user brief 2026-11-06): a pending request whose proposed
+   start is within 3 working hours (Mon–Fri 08:30–17:30, holidays excluded) can
+   no longer be decided in time, so the sweep rejects it. Five minutes keeps the
+   boundary honest without a per-request timer. In dev nothing runs this
+   daemon — `php artisan requests:auto-reject` is the manual trigger. */
+Schedule::command('requests:auto-reject')
+    ->everyFiveMinutes()
+    ->withoutOverlapping();

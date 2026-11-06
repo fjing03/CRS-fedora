@@ -96,3 +96,78 @@
   (`4a77a1f` notif-jump-flash, `bb46a19` ra-result-count-showing-of —
   piggybacked while the lane was parked); this closure's own series stages
   ONLY the remaining files (the MRH blade + this changelog).
+
+---
+
+## 2026-11-06 — Auto-Reject rule: the Pending tip states its own deadline
+
+User brief `prompts/Auto-Reject Pending Requests.md`. Two halves, one clock.
+
+### The rule (backend, no UI)
+
+A **Pending** replacement request is **automatically rejected** when its
+proposed start is within — or exactly — **3 working hours** of now, on the
+TARUMT Sabah calendar: **Mon–Fri, 08:30–17:30**, excluding weekends and the
+semester's own `holidays` rows. Requests further out stay Pending; every other
+status is never considered.
+
+- `app/Support/WorkingHours.php` — THE office-hours clock. `gapMinutes()` counts
+  only working time between two instants (a weekend proposal starts counting at
+  the next opening bell; a past start has 0), `subtractWorkingMinutes()` walks
+  the same calendar backwards (the tooltip's deadline), and `holidays()` resolves
+  the semester's `holidays` rows to real dates through `semesters.start_date` —
+  no second holiday list. `MIN_GAP_MINUTES = 180`.
+- `app/Actions/AutoRejectRequest.php` — the write leg. Same release family as
+  `CancelPendingRequest` (`pending→available` version-checked flip, junction
+  DELETE) so the reserved cells come back, but stamped `rejected` with the fixed
+  system reason; **`approver_id` stays NULL** (no human decided). Audit rows use
+  the allowed `rejected` action with `details.auto = true`, attributed to the
+  request's proposer (`audit_logs.user_id` is NOT NULL and there is no system
+  user). No mail — the in-app feed already derives the rejection from the status.
+- `app/Services/PendingRequestExpiry.php` — the sweep. Rejects only `pending`
+  rows whose window has closed; `--dry-run` answers without writing.
+- `php artisan requests:auto-reject` (`--dry-run`), scheduled every 5 minutes in
+  `routes/console.php`. **Not** a write-on-read: browsing a page never mutates
+  data, which is why the demo DB stays safe.
+
+The brief's example table is the unit contract (`tests/Feature/WorkingHoursTest`):
+Fri 11:30 → 14:30 = 3 h rejects, → 15:00 = 3.5 h stays; Fri 16:30 → Mon 09:30
+= 2 h rejects, → Mon 11:00 = 3.5 h stays.
+
+### The Pending badge tip (both pages)
+
+`.badge.status-pending` now carries the deadline, in the SHARED vocabulary
+(`ReplacementRequestMapper::statusTip`), so My Replacements and the PL queue can
+never disagree:
+
+> Your request has been Submitted and is AWAITING the Programme Leader's
+> decision (Approve or Reject).
+> **If the Programme Leader has not Approved this Request by Fri, 13 Nov 2026,
+> 10:00 AM, it will be Automatically Rejected.**
+
+The PL's voice reads the same fact from the other side: *If you have not
+Approved it by …*. The deadline = proposed start − 3 working hours, computed per
+request (row's own `replacementDate` / `replacementTime`), so it skips weekends
+and holidays exactly like the rule.
+
+**Two LINES, not `<br>`:** the brief's markup was `<br>`, but the shared
+`data-tip` engine renders `textContent` (+ `pre-line` for a `\n`), so HTML would
+print literally. The tooltip looks the same; the mechanism is the house one.
+
+Decided rows (Approved / Rejected / Cancelled / Completed) keep their shipped
+one-line tips byte-identical, and a pending row whose deadline cannot be
+resolved omits the second line rather than inventing one.
+
+### Receipts
+
+- `tests/Feature/WorkingHoursTest.php` — 7 passed (the brief's table verbatim,
+  evenings/weekend/holiday skips, the deadline as the gap's inverse).
+- `tests/Feature/AutoRejectPendingRequestsTest.php` — 10 passed (inside rejects,
+  boundary 180 rejects, 255 stays, weekend law, only-pending, dry-run writes
+  nothing, audit shape, second sweep is a no-op, both tips).
+- `tests/status-tooltips-filter-chips.spec.ts` — **9 / 9 passed** on the demo DB
+  (:8010, read-only); the pending receipts now pin the two-line SHAPE (a fixed
+  calendar date would rot).
+- Demo DB, read-only: `requests:auto-reject --dry-run` → *Scanned 2 pending
+  request(s); would auto-reject: none* (both demo requests sit 3.5 h out — the
+  brief's own "remain Pending" row). No demo row was written.

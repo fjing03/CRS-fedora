@@ -3,9 +3,11 @@
 namespace App\Services;
 
 use App\Models\ReplacementRequest;
+use App\Models\Semester;
 use App\Models\TimeSlot;
 use App\Models\Venue;
 use App\Support\LocalTime;
+use App\Support\WorkingHours;
 use Carbon\Carbon;
 use Carbon\CarbonInterface;
 use Illuminate\Support\Facades\DB;
@@ -116,13 +118,13 @@ final class ReplacementRequestMapper
      *
      * @return array{label: string, short: string, sentence: string, tip: string}
      */
-    public function statusVocabulary(?string $status, ?string $date, string $audience = 'lecturer'): array
+    public function statusVocabulary(?string $status, ?string $date, string $audience = 'lecturer', ?string $deadline = null): array
     {
         return [
             'label' => $this->statusLabel($status, $date),
             'short' => $this->statusShort($status),
             'sentence' => $this->statusSentence($status, $date),
-            'tip' => $this->statusTip($status, $audience),
+            'tip' => $this->statusTip($status, $audience, $deadline),
         ];
     }
 
@@ -189,10 +191,21 @@ final class ReplacementRequestMapper
      * the other side of the decision. One helper, two voices — the lecturer's
      * strings are byte-identical to the approved M5 text.
      */
-    public function statusTip(?string $status, string $audience = 'lecturer'): string
+    public function statusTip(?string $status, string $audience = 'lecturer', ?string $deadline = null): string
     {
+        /* Auto-reject rule (user brief 2026-11-06): a PENDING row states when the
+           rule fires. The deadline is computed by the caller (it owns the
+           semester start), so this stays a pure formatter. Two LINES, not HTML:
+           the shared `data-tip` engine renders textContent (and pre-line for a
+           `\n`), so a `<br>` would print literally. */
+        $pendingTail = $deadline === null
+            ? null
+            : ($audience === 'pl'
+                ? 'If you have not Approved it by '.$deadline.', it will be Automatically Rejected.'
+                : 'If the Programme Leader has not Approved this Request by '.$deadline.', it will be Automatically Rejected.');
+
         if ($audience === 'pl') {
-            return match ($status) {
+            $tip = match ($status) {
                 null => 'No request has been made for this class yet — it still needs arranging.',
                 'pending' => 'This request is AWAITING your review and decision (Approve or Reject).',
                 'approved' => 'You have APPROVED this request.',
@@ -201,9 +214,11 @@ final class ReplacementRequestMapper
                 'completed' => 'The replacement class has been CONDUCTED — this request is complete.',
                 default => '',
             };
+
+            return $status === 'pending' && $pendingTail !== null ? $tip."\n".$pendingTail : $tip;
         }
 
-        return match ($status) {
+        $tip = match ($status) {
             null => 'No request has been made for this class yet — it still needs arranging.',
             'pending' => "Your request has been Submitted and is AWAITING the Programme Leader's decision (Approve or Reject).",
             'approved' => 'The Programme Leader has APPROVED your request.',
@@ -212,6 +227,8 @@ final class ReplacementRequestMapper
             'completed' => 'The replacement class has been CONDUCTED — this request is complete.',
             default => '',
         };
+
+        return $status === 'pending' && $pendingTail !== null ? $tip."\n".$pendingTail : $tip;
     }
 
     /**
@@ -263,7 +280,11 @@ final class ReplacementRequestMapper
            row, so the PL page's badge, badge tip, pop-up row and status tab all
            read ONE source instead of a page-local 3-key map. `$audience` picks
            the voice for the tip only — the labels are the same on both sides. */
-        $vocabulary = $this->statusVocabulary($statusKey, $identity['classDate'] ?? null, $audience);
+        $deadline = $statusKey === 'pending'
+            ? $this->approvalDeadlineLabel($span['date'], $span['time'], (int) $r->semester_id)
+            : null;
+
+        $vocabulary = $this->statusVocabulary($statusKey, $identity['classDate'] ?? null, $audience, $deadline);
 
         // The cohort metadata (the queue bucket's byte shape: SPACED labels +
         // a values-array of counts; api/history adapters pin their own forms).
@@ -418,6 +439,73 @@ final class ReplacementRequestMapper
             'start_time' => $span['start'],
             'end_time' => $span['end'],
         ]);
+    }
+
+    /**
+     * THE proposed replacement START as a display-clock instant (auto-reject rule,
+     * user brief 2026-11-06). The date comes from the SAME week/day arithmetic the
+     * row prints (`stringsFromSpan`), the time from the span's first cell — so the
+     * deadline a tooltip promises and the moment the sweep compares against are
+     * literally one computation.
+     *
+     * Null when the request has no readable span: the callers then omit the
+     * deadline rather than inventing one.
+     */
+    public function proposedStart(ReplacementRequest $r, Carbon $semesterStart): ?Carbon
+    {
+        $slot = $this->displaySlot($r);
+
+        if ($slot === null || (string) $slot->start_time === '') {
+            return null;
+        }
+
+        $date = $semesterStart->copy()
+            ->addWeeks((int) $slot->week_number - 1)
+            ->addDays((int) $slot->day_of_week)
+            ->toDateString();
+
+        return Carbon::parse($date.' '.$slot->start_time, LocalTime::TZ);
+    }
+
+    /**
+     * The badge tooltip's "Earliest Approval Time": the proposed start minus 3
+     * working hours on the TARUMT Sabah calendar (Mon–Fri 08:30–17:30, semester
+     * holidays excluded).
+     *
+     * Takes the row's ALREADY-RESOLVED `['date','time']` strings — the merged
+     * page reads the junction once per render (a pinned law), so this helper must
+     * not read it again. Null when the pair is missing.
+     */
+    public function approvalDeadlineLabel(?string $date, ?string $time, int $semesterId): ?string
+    {
+        if ($date === null || $time === null) {
+            return null;
+        }
+
+        // `replacementStrings()` prints 'HH:MM – HH:MM'; the deadline walks back
+        // from the SPAN'S FIRST cell, so only the left side matters.
+        $start = trim(explode('–', $time)[0]);
+
+        if ($start === '') {
+            return null;
+        }
+
+        $startAt = Carbon::parse($date.' '.$start, LocalTime::TZ);
+        $workingHours = new WorkingHours($this->semesterFor($semesterId));
+
+        return LocalTime::stamp($workingHours->earliestApproval($startAt), 'D, j M Y, g:i A');
+    }
+
+    /** @var array<int, Semester|null> one holiday map per semester, not one per row */
+    private array $semesterCache = [];
+
+    private function semesterFor(int $semesterId): ?Semester
+    {
+        if (! array_key_exists($semesterId, $this->semesterCache)) {
+            $this->semesterCache[$semesterId] = Semester::query()->find($semesterId);
+        }
+
+        return $this->semesterCache[$semesterId];
     }
 
     /**

@@ -216,7 +216,13 @@ class ReplacementHome extends Component
         $status = $latest !== null
             ? $mapper->effectiveStatus($latest->setRelation('classSession', $session), $startDate, $strings['date'])
             : null;
-        $vocabulary = $mapper->statusVocabulary($status, $strings['date']);
+        /* Auto-reject rule (2026-11-06): a PENDING row's tip states the deadline
+           this request will be automatically rejected at, from the one working-hour
+           calendar. Decided rows carry no deadline. */
+        $deadline = $status === 'pending'
+            ? $mapper->approvalDeadlineLabel($strings['date'], $strings['time'], (int) $session->semester_id)
+            : null;
+        $vocabulary = $mapper->statusVocabulary($status, $strings['date'], 'lecturer', $deadline);
 
         /* explore-brief row 4 (the design authority) — the holiday badge names
            the DAY itself, from the `holidays` row's label ("Christmas Day").
