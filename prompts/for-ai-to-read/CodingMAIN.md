@@ -107,6 +107,16 @@ has no time left (0). Anything further out stays Pending, and **no other status 
 - UI: a Pending badge's `data-tip` states the deadline (proposed start − 3 working hours) through the
   shared `ReplacementRequestMapper::statusTip()`, on both My Replacements and the PL queue.
 
+### FR 2.17 is enforced on the SERVER (2026-11-06)
+The grid refuses a too-soon cell in the browser (`leadTimeCutoff()` in `ui-common.js`), and since
+2026-11-06 `App\Actions\SubmitReplacementRequest` refuses it too — a submit needs the slot's DATE to
+be at least the **3rd working day** after today (weekends + holidays skipped; the 3rd working day
+itself stays selectable; today never), failure reason **`slot_too_soon`**. `WorkingHours::noticeCutoff()`
+/ `isBookableOnDate()` is the calendar, so the grid's "Bookable from …" date, the server gate and the
+pending-deadline tooltip are one computation. Measured 2026-11-06: Fri 6 Nov → grid and server both
+say **12 Nov** (W8 Monday is Deepavali), 98/98 semester days agreeing. **A rule the page enforces must
+also exist in the action** — the page is a convenience, the action is the truth.
+
 ---
 
 ## 4. Tech Stack & Dev Tools

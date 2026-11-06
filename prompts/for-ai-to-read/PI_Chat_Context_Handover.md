@@ -26,9 +26,10 @@
 | Test DB | `class_replacement_testing` — disposable; `DB_DATABASE=class_replacement_testing php artisan migrate:fresh --seed` is fine **there only**. |
 | Ops trap | `opcache.enable_cli=On` with `revalidate_freq=180` → a long-running `artisan serve` can serve a `.php` file's old bytecode for ~3 min. Use **`scripts/dev-serve.sh [port]`** (kills that port, clears views, starts with `revalidate_freq=0`). |
 | Gates | `composer run lint:check` · `vendor/bin/phpstan analyse --memory-limit=1G` · full phpunit · `node --check` for JS. **Never** `composer run types:check` (crashes at 128M). |
-| Suite | Last full PHPUnit run **376 tests / 1998 assertions** (2026-11-06, 430 s, after `65188bd`; +17 = the auto-reject rule's 7 clock cases + 10 sweep/tip cases). Browser suites are separate and NOT part of that number — quote them by name: `venue-book` 19, venue neighbours 61 passed / 2 skipped, `cancel-class` 12 passed / 4 skipped, `status-tooltips-filter-chips` 9, `notif-row-inactive-hide` 5. |
+| Suite | Last full PHPUnit run **382 tests / 2022 assertions** (2026-11-06, 432 s, after `cd5ca73`; +23 = the auto-reject rule's 17 clock/sweep cases + the 6 lead-time gate cases). Browser suites are separate and NOT part of that number — quote them by name: `venue-book` 19, venue neighbours 61 passed / 2 skipped, `cancel-class` 12 passed / 4 skipped, `status-tooltips-filter-chips` 9, `notif-row-inactive-hide` 5. |
 | SDD lanes | **35** lane dirs under `.sdd/changes/` (**33** older finished ones + `venue-slot-validation` and `notif-inactive-hide-sender`, both `status: applied` 2026-11-05), **101** archived. Archive only on the user's word. |
 | **Auto-reject rule (2026-11-06)** | A **pending** request whose proposed start is within — or exactly — **3 working hours** is rejected by the system. Working time = TARUMT Sabah hours, **Mon–Fri 08:30–17:30**, weekends + the semester's `holidays` excluded (`App\Support\WorkingHours`, `MIN_GAP_MINUTES = 180`). Write leg `App\Actions\AutoRejectRequest` (cancel-family release, `approver_id` NULL, audits `details.auto`); trigger `php artisan requests:auto-reject` (`--dry-run`) scheduled every 5 min — **never** a write-on-read. The Pending badge's `data-tip` states the deadline (proposed start − 3 working hours) on both pages. |
+| **FR 2.17 is server-side** | Since 2026-11-06 `App\Actions\SubmitReplacementRequest` refuses a slot inside the 3-working-day notice window (`slot_too_soon`) — the grid's `leadTimeCutoff()` was only the browser's word. Calendar: `WorkingHours::noticeCutoff()` / `isBookableOnDate()`, the same class as the auto-reject sweep, so grid "Bookable from …", the gate and the pending-deadline tooltip agree (measured 2026-11-06: Fri 6 Nov → **12 Nov** on both sides, 98/98 semester days). |
 | **Venue page slot rules** | Since 2026-11-05: hover asks ONE question (**one clear hour**, `MIN_BOOK_SLOTS = 2`, never derived from a class), and a class's duration is judged only AFTER it is picked (Arrange gate → `#slotWarningOverlay`, no navigation). Lane `venue-slot-validation`; commits `daf11c6` + `bee6176`. |
 | **The merge lane** | `replacement-merge-one-table` — **APPLIED 2026-11-04**, archived `07274c1`: `e70c1ea` (payload/mapper), `6856577` (view), `ab65f9a` (routes + retired page), `d3f6f5b` + `c4d0ad3` (specs). The merged page is **My Replacements** at `/my-replacements`, with `/replacement-home-ui` and `/my-request-history-ui` as alias route entries. |
 | **Cancel Class** | **FINAL since 2026-11-05** — undo gone from the UI, the JS and the server (`23c627c`); the inbox marks stale notices inactive at read time instead of offering dead clicks (`7b7f0d9`); four final-decision modals carry *"This action cannot be UNDONE."* (`12c644a`). |
@@ -39,6 +40,29 @@
 ---
 
 ## 1. Latest sessions — 2026-11-03 → 2026-11-06
+
+### 2026-11-06 — FR 2.17 gets a server leg (the grid stops being the only guard)
+
+- The user's challenge was correct on the rule, wrong on the conflict: the grid already refuses a
+  too-soon cell (**3 working days**, `leadTimeCutoff()`), and the auto-reject rule closes the *later*
+  decay (a request legally made 3 working days out that the PL never decides). Different moments,
+  different units, no overlap.
+- But the notice lived **only in JavaScript**: `SubmitReplacementRequest` had no lead-time check, so
+  a direct submit could create a Pending row for a slot hours away — the exact row the sweep would
+  then have to clean up. Now the action refuses it: the slot's DATE must be at least the **3rd
+  working day** after today (weekends + holidays skipped, the 3rd working day selectable, today
+  never), failure **`slot_too_soon`**, mapped to the grid's own sentence.
+- One clock: `WorkingHours::noticeCutoff()` / `isBookableOnDate()`. Measured with Playwright on the
+  demo DB (read-only): the page prints *"Bookable from Thursday, 12 Nov 2026 onward"* and the
+  server's cutoff is **2026-11-12**; all **98** semester days cross-checked JS vs server → **0
+  mismatches**.
+- Receipts: new `tests/Feature/LeadTimeGateTest` 6/6; full suite **382 / 2022**.
+- Fixture consequence (kept honest, not hidden): `tests/TestCase::bookablePairs()` is now the shared
+  helper, the two scanning suites scan bookable pairs only, `SpanReservationTest`'s fixture semester
+  starts two weeks back, and the two fixed-calendar suites (`ReplacementArrangementTest`,
+  `OccurrencePinTest`) pin `Carbon::setTestNow('2026-09-14')`.
+- Still open (reported, not done): the action has no **holiday/Sunday** target check — the page
+  blocks it (`D2`), the action does not. Same class of hole as the lead-time one was.
 
 ### 2026-11-06 — the auto-reject rule (one clock, two faces)
 
@@ -281,6 +305,7 @@ date, and its files are dirty in the tree — see §3.
 | 19 | **The notification row speaks plainly** (inline brief, 2026-11-05): an inactive row can be hidden from the feed (Hide in `.nr-right`); every title reads **Title Case** at render (the stored sentence is never rewritten); the subtitle is the **sender** line — `by YOU` when the reader is the actor, else `by Name (staff_id)` — and a self-owned cancellation/submission says **Your** in the title; at zero unread the pill reads **0** and Mark-all stays visible but **disabled** (the bell badge still hides at zero). |
 | 20 | **A pending request has a 3-working-hour window — and it is the SYSTEM that closes it** (user brief `Auto-Reject Pending Requests.md`, 2026-11-06). Working time = TARUMT Sabah hours, Mon–Fri 08:30–17:30, weekends and the semester's `holidays` excluded; the boundary itself rejects (`gap ≤ 180` minutes), anything further out stays Pending, and no other status is ever considered. **`App\Support\WorkingHours` is the only clock** — the deadline a tooltip promises and the moment the sweep compares are one computation, and neither may hardcode its own hours. The sweep is `php artisan requests:auto-reject` (scheduled 5 min, `--dry-run` safe) — **never** triggered from a page render (that would be a write-on-GET against the demo DB). An auto-rejected row keeps `approver_id = NULL` and is audited with `details.auto = true`, because no human decided. The Pending badge's `data-tip` always names the deadline (both pages, one vocabulary). |
 | 21 | **The notifications panel opens on "Active only"** (user, 2026-11-05): `activeOnly` defaults ON beside `unreadOnly`, so the first view is actionable unread and the decided rows are one toggle away. A **disabled control is visible but inert** and shows `cursor: not-allowed` everywhere (one rule for `button`/`.btn`/`input`/`select`/`textarea`, no `pointer-events: none` so a disabled icon keeps its tooltip); an ID selector that sets `cursor: pointer` must restate `:disabled` itself. |
+| 22 | **A rule the page enforces must also exist in the action** (2026-11-06). FR 2.17's 3-working-day notice was JavaScript-only; `SubmitReplacementRequest` now refuses `slot_too_soon` on the same `WorkingHours` calendar, and the failure copy reuses the grid's own sentence. When you add or touch a booking rule: action first, then the page, then one test — never the browser alone. |
 
 ---
 
@@ -330,6 +355,12 @@ date, and its files are dirty in the tree — see §3.
   exactly once per render, whatever the request count" (`MyReplacementsPayloadTest` case 8). A new
   per-row value rides data that is already resolved (the auto-reject deadline uses the row's own
   `replacementDate`/`replacementTime` strings), never a fresh `span()` call inside `buildRow()`.
+- **A date-dependent gate makes old fixtures illegal.** FR 2.17's server leg (2026-11-06) broke five
+  suites at once because their fixtures submitted to weeks that are now inside/behind the notice
+  window. The cure is `tests/TestCase::bookablePairs()` for scanning fixtures (date-derived, cannot
+  rot), a `now()`-relative semester for self-contained fixtures, and `Carbon::setTestNow()` for suites
+  whose weeks are fixed — never a widened gate. A new calendar rule means auditing every fixture that
+  submits.
 - **Fortify's login limiter is 5/min.** Multi-context specs plus a few manual logins in the same
   minute produce a login that "does nothing" (no redirect). Wait a minute before concluding a spec
   is broken.
@@ -387,6 +418,7 @@ date, and its files are dirty in the tree — see §3.
 | **The lanes just applied** | `venue-slot-validation` — `.sdd/changes/venue-slot-validation/` (status `applied` 2026-11-05; the venue hover/gate split, receipt in `review-log.md`). `receipt-target-guard` — same folder (status `applied`; one leg open: `T3d`). Merge lane: `.sdd/archive/replacement-merge-one-table/` (archived `07274c1`). |
 | **The venue-page slot rules** | `resources/views/livewire/venue-timetable.blade.php` (`MIN_BOOK_SLOTS`, `spanBlocked()`, `nextEventStartAfter()`, `refreshSessions()`, `confirmIntentSession()`, `showSlotWarning()`), `resources/views/partials/ui-intent-session-modal.blade.php` (`#slotWarningOverlay`), `app/Livewire/VenueTimetable.php` (`bookableCandidates()`, `intentSessionOptions()`) |
 | **The auto-reject rule** | `app/Support/WorkingHours.php` (the office-hours clock: `gapMinutes()`, `subtractWorkingMinutes()`, `holidays()`, `MIN_GAP_MINUTES = 180`), `app/Actions/AutoRejectRequest.php` (the release + the system stamp, `approver_id` NULL), `app/Services/PendingRequestExpiry.php` (the sweep), `app/Console/Commands/AutoRejectPendingRequests.php` (`requests:auto-reject --dry-run`, scheduled in `routes/console.php`); the deadline rides `ReplacementRequestMapper::approvalDeadlineLabel()` + `statusTip()` |
+| FR 2.17 / the notice gate | `app/Actions/SubmitReplacementRequest.php` (the `slot_too_soon` gate, right after the anchor lookup), `app/Support/WorkingHours.php` (`noticeCutoff()`, `isBookableOnDate()`), `app/Livewire/ReplacementArrangement.php` (`conflictText` arm), `public/js/ui-common.js` (`leadTimeCutoff`, `isSlotTooSoon`, `renderLeadTimeNote`), `tests/Feature/LeadTimeGateTest.php` |
 | Cancel Class + the inbox rules | `app/Livewire/NavNotifications.php` (`exceptionMap()`, the two read-time classifiers), `resources/views/partials/notif-row.blade.php` (`$rowTip`), `public/js/ui-common.js` (`showCancelToast`, `needsLoadToast`, `markLoadToastShown`, `CancelClassModal`) |
 | Lanes already landed | `prompts/pi-replacement-home-status-badges.md`, `prompts/pi-request-completed-status.md` |
 | The approved picture of the merged page | `../ui-prototype/replacement-merged-preview.html` (outside the repo, never staged) |
@@ -396,7 +428,7 @@ date, and its files are dirty in the tree — see §3.
 
 ## 5. Open tasks (state at 2026-11-06)
 
-1. **[USER] Push** — 10 commits sit on `fedora-backend` past `39b2bb7` (`65188bd` newest, 2026-11-06).
+1. **[USER] Push** — 12 commits sit on `fedora-backend` past `39b2bb7` (`cd5ca73` newest, 2026-11-06).
    Nothing is pushed by an agent, ever.
 2. ~~**[USER, waiting on the archive word]** Seven finished lanes~~ — **ARCHIVED 2026-11-05**:
    `mytimetable-jump-highlight`, `notif-click-behaviour`, `receipt-target-guard`,
@@ -419,6 +451,9 @@ date, and its files are dirty in the tree — see §3.
 6. **[USER]** Confirm the viva date (anchored: week of 7 Dec 2026) and decide the viva demo data —
    both DBs are thin; a populated story needs user-gated SQL, snapshot-first, logged.
 7. **[USER/OPS]** Purge the viva repo's 27 stale jobs before any worker run.
+7a. **[AGENT, needs the word]** The submit ACTION has no holiday/Sunday target check (only the page
+   blocks it, D2). Same class of hole as the lead-time one that was just closed: one `holidayLabel()`
+   lookup + one `$fail('holiday')` in `SubmitReplacementRequest`, plus a test.
 7b. **[USER, decision]** The auto-reject sweep only runs from `php artisan requests:auto-reject`
    (scheduled every 5 min). Nothing runs the scheduler in dev, so a demo must run the command by
    hand. If the user wants the rule to bite WITHOUT that step, the honest option is to also sweep
