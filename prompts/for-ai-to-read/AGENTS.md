@@ -61,8 +61,9 @@ and the matching `page-changelogs/*.md` to learn house style before designing.
   `--dry-run` prints without writing) is the ONLY trigger — never sweep from a page render (that
   would write on GET against the demo DB), and never touch a non-pending row.
   **FR 2.17 rides the same clock on the server:** `SubmitReplacementRequest` refuses a slot whose
-  date is inside the 3-working-day notice window (`slot_too_soon`) — a rule the page enforces must
-  exist in the action too, never only in JavaScript.
+  date is inside the 3-working-day notice window (`slot_too_soon`) **and** a target that lands on a
+  public holiday (`holiday`, the D2 rule) — a rule the page enforces must exist in the action too,
+  never only in JavaScript.
 - Reuse Flux/Livewire/Tailwind + `theme.css` + `ui-common.js`; no new dependencies.
 - Conventional commits: `ui:`, `feat:`, `fix:`, `refactor:`, `oop:`, `style:`, `docs:`.
 - Working branch: `fedora-backend` (push target `origin` = `fjing03/CRS-fedora.git` only; `upstream` is PULL-ONLY — see CodingMAIN.md §10.6). Never commit secrets. Never push unless the user explicitly says so.

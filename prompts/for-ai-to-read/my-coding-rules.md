@@ -87,9 +87,10 @@ Adding a new status/legend item = **ONE row** in the relevant table above + **ON
 - Route model binding; Eloquent relationships typed with return types + PHPDoc.
 - Role gating follows the existing middleware pattern (`CheckRole`, `CheckPl`) — no new gating styles.
 - **A rule the page enforces must also exist in the action.** The browser is a convenience; the
-  server is the truth. FR 2.17's 3-working-day notice lived only in `ui-common.js` until 2026-11-06,
-  when `SubmitReplacementRequest` got the same gate (`slot_too_soon`) on the same calendar
-  (`App\Support\WorkingHours`). New gate → the action, the page copy, and one test.
+  server is the truth. TWO rules were page-only until 2026-11-06 and both now live in
+  `SubmitReplacementRequest`: FR 2.17's 3-working-day notice (`slot_too_soon`, on
+  `App\Support\WorkingHours`) and D2's holiday landing rule (`holiday`). New gate → the action, the
+  page copy, and one test; `tests/Feature/SubmitGatesTest.php` is that file.
 - Layout by convention: Fortify actions in `app/Actions/Fortify/`, concerns/traits in `app/Concerns/`, Livewire components in `app/Livewire/`.
 - **Quality gates before finishing any PHP-touching task**: `composer run lint:check` AND `vendor/bin/phpstan analyse --memory-limit=1G`. **NEVER** `composer run types:check` (crashes at the default 128M).
 

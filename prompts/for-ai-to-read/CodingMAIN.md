@@ -117,6 +117,13 @@ pending-deadline tooltip are one computation. Measured 2026-11-06: Fri 6 Nov →
 say **12 Nov** (W8 Monday is Deepavali), 98/98 semester days agreeing. **A rule the page enforces must
 also exist in the action** — the page is a convenience, the action is the truth.
 
+The same clean-up closed **D2's holiday rule** (2026-10-11 decision: a replacement class may not LAND
+on a public-holiday day): the page blocked it from the start, and `SubmitReplacementRequest` now
+refuses it too with the existing **`holiday`** reason. Replacing the holiday-HIT occurrence stays
+legal — the rule blocks the landing day, never the reason for the request. Sunday needs no arm: the
+grid has no Sunday rows (`day_of_week` 0–5), so a Sunday slot cannot be referenced. Precedence: the
+notice gate runs first, so a holiday inside the 3-working-day window answers `slot_too_soon`.
+
 ---
 
 ## 4. Tech Stack & Dev Tools
