@@ -2,10 +2,14 @@
 
 Four asks, one lane (`notif-inactive-hide-sender`).
 
-### 1. An inactive row can be put away straight from the feed
-Inactive rows (`notif-row--inactive` — the read-time `undone` / `superseded` / decided-away
-notices) now carry a **Hide** action in `.nr-right`, under the timestamp, in the shelf's `Unhide`
-shape (one CSS rule, two carriers). It calls the existing `hideOne()` gate, which already admits any
+### 1. A read row can be put away straight from the feed
+**Amended the same session at the user's request: the action is on every READ notification, not only
+the inactive ones** — the row surface now matches the hide gate exactly (`read_at !== null` OR an
+inactive reason). An active row is an `<a>`, so its action cancels the anchor's default action
+(`wire:click.stop.prevent`): hiding never navigates. Unread rows keep no action — there is nothing to
+put away until you have read them.
+Rows the gate admits now carry a **Hide** action in `.nr-right`, under the timestamp, in the shelf's
+`Unhide` shape (one CSS rule, two carriers). It calls the existing `hideOne()` gate, which already admits any
 inactive row (`isHideableRow`: read **or** inactive), so nothing about the write path changed and
 the shelf's **Unhide** is untouched. Active rows never get the action; manage mode and the shelf keep
 their own layouts.

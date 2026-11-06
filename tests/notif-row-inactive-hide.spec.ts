@@ -62,6 +62,11 @@ function seed(): void {
   sql(`INSERT INTO notifications (user_id, role_view, type, title, body, link, read_at, created_at, updated_at)
        VALUES (1, 'lecturer', 'update', '${TAG} Live update row', 'fixture body',
                '/my-request-history-ui', NULL, now(), now());`);
+  /* and one ACTIVE, already-READ row — the user's follow-up: Hide belongs on
+     every read notification, not only the inactive ones */
+  sql(`INSERT INTO notifications (user_id, role_view, type, title, body, link, read_at, created_at, updated_at)
+       VALUES (1, 'lecturer', 'update', '${TAG} Read active row', 'fixture body',
+               '/my-request-history-ui', now(), now() - interval '1 day', now());`);
 }
 
 function sweep(): void {
@@ -97,12 +102,12 @@ test('an inactive row hides itself from the feed and still comes back', async ({
      expectation carries it — the transformation under test is the rest */
   expect(titles).toEqual(['PROBE Inactive-hide Scheduled Class Cancelled', 'PROBE Inactive-hide Scheduled Class Cancelled']);
 
-  // R4: the SELF-owned LIVE cancellation says "Your" (this row is active, so it
-  // carries no Hide action — the two rules are independent)
+  // R4: the SELF-owned LIVE cancellation says "Your". It is READ in the fixture,
+  // so the follow-up rule applies too — it carries the action.
   const yours = page.locator('#notifList .notif-row:not(.notif-row--inactive)', { hasText: 'Scheduled Class Cancelled' }).first();
   await expect(yours.locator('.notif-row-title')).toHaveText('Your Scheduled Class Cancelled');
   await expect(yours.locator('.notif-row-subtitle')).toHaveText('by YOU');
-  await expect(yours.locator('.notif-hide')).toHaveCount(0);
+  await expect(yours.locator('.nr-right .notif-hide')).toBeVisible();
 
   // R3: the sender line is present and in the required shape
   for (const sub of await inactive.locator('.notif-row-subtitle').allTextContents()) {
@@ -110,8 +115,10 @@ test('an inactive row hides itself from the feed and still comes back', async ({
   }
   await expect(inactive.first().locator('.notif-row-subtitle')).toHaveText('by YOU');
 
-  // an ACTIVE row never gets the action
-  await expect(page.locator('#notifList .notif-row:not(.notif-row--inactive) .notif-hide')).toHaveCount(0);
+  // an UNREAD active row does not get the action; a READ one does (the follow-up)
+  await expect(page.locator('#notifList a.notif-row:not(.notif-row--read) .notif-hide')).toHaveCount(0);
+  const readRow = page.locator('#notifList a.notif-row--read').first();
+  await expect(readRow.locator('.nr-right .notif-hide')).toBeVisible();
 
   // the hide writes, the row leaves the feed, the shelf count rises
   /* the find-back link only renders once something IS hidden, so 0 is read as
@@ -123,11 +130,21 @@ test('an inactive row hides itself from the feed and still comes back', async ({
   await expect(page.locator('#notifList .notif-row--inactive')).toHaveCount(1, { timeout: 20_000 });
   await expect(page.locator('.notif-foot-link')).toHaveText(new RegExp(`Hidden \\(${before + 1}\\)`));
 
-  // and the shelf still restores it (Unhide untouched)
+  // the READ active row's Hide works and must not navigate (the anchor's default
+  // action is cancelled by the action itself)
+  const urlBefore = page.url();
+  const readBefore = await page.locator('#notifList a.notif-row--read').count();
+  expect(readBefore).toBeGreaterThan(0);
+  await page.locator('#notifList a.notif-row--read .notif-hide').first().click();
+  await expect(page.locator('#notifList a.notif-row--read')).toHaveCount(readBefore - 1, { timeout: 20_000 });
+  expect(page.url()).toBe(urlBefore, 'hiding from a read row never navigates');
+  await expect(page.locator('.notif-foot-link')).toHaveText(new RegExp(`Hidden \\(${before + 2}\\)`));
+
+  // the shelf holds both, and Unhide still restores one
   await page.locator('.notif-foot-link').click();
-  await expect(page.locator('.notif-row--hidden').first()).toBeVisible();
+  await expect(page.locator('.notif-row--hidden')).toHaveCount(before + 2);
   await page.locator('.notif-row--hidden .notif-unhide').first().click();
-  await expect(page.locator('#notifList .notif-row--hidden')).toHaveCount(before, { timeout: 20_000 });
+  await expect(page.locator('.notif-row--hidden')).toHaveCount(before + 1, { timeout: 20_000 });
 });
 
 test('zero unread keeps the pill at 0 and Mark-all visible but disabled', async ({ page }) => {

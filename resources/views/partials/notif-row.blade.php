@@ -183,13 +183,16 @@
             <span class="notif-row-time">{{ $relTime($m) }}</span>
             <button type="button" class="notif-unhide" wire:click="unhide({{ (int) $n->id }})">Unhide</button>
         </span>
-    @elseif($variant === null && $activation)
-        {{-- notif-inactive-hide-sender (2026-11-05, spec R1): an inactive row can
-             be put away straight from the feed — the shelf's `.nr-right` shape,
-             the same `hideOne` gate (`isHideableRow`: read OR inactive). --}}
+    @elseif($variant === null && ($activation || $n->read_at !== null))
+        {{-- notif-inactive-hide-sender (2026-11-05, spec R1 + the user's follow-up
+             "add it to every READ notification"): every row the hide gate admits
+             (`isHideableRow`: read OR inactive) can be put away straight from the
+             feed — the shelf's `.nr-right` shape, the same `hideOne` action.
+             An ACTIVE row is an <a>: the action must not navigate, so it carries
+             `.stop.prevent` (the handler cancels the anchor's default action). --}}
         <span class="nr-right">
             <span class="notif-row-time" data-tip="{{ $absTime($n->created_at) }}" data-tip-pos="left">{{ $relTime($m) }}</span>
-            <button type="button" class="notif-hide" wire:click="hideOne({{ (int) $n->id }})">Hide</button>
+            <button type="button" class="notif-hide" @if($tag === 'a') wire:click.stop.prevent="hideOne({{ (int) $n->id }})" @else wire:click="hideOne({{ (int) $n->id }})" @endif>Hide</button>
         </span>
     @else
         <span class="notif-row-time" data-tip="{{ $absTime($n->created_at) }}" data-tip-pos="left">{{ $relTime($m) }}</span>

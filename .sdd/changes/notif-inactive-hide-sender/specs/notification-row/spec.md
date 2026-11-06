@@ -1,8 +1,12 @@
 # Spec — notification row + panel header
 
-## R1 Inactive rows can be hidden from the feed
-An inactive row (`notif-row--inactive`) in the normal feed MUST render a `Hide` button inside
-`.nr-right`, below its timestamp, styled like the shelf's `Unhide`. Pressing it MUST hide that row for
+## R1 Readable rows can be hidden from the feed
+**Amended 2026-11-05 (the user's follow-up): the action belongs on every READ notification, not only
+the inactive ones** — the surface is exactly the hide gate (`isHideableRow`: `read_at !== null` OR an
+inactive reason).
+A hideable row in the normal feed MUST render a `Hide` button inside `.nr-right`, below its
+timestamp, styled like the shelf's `Unhide`. An ACTIVE row is an `<a>`, so its action MUST cancel the
+anchor's default action (`.stop.prevent`) — hiding must never navigate. Pressing it MUST hide that row for
 the viewer (existing `hideOne` gate) and the row MUST leave the feed. Unhide MUST keep working.
 Rows in manage mode / the hidden shelf / active rows keep their current layout.
 
