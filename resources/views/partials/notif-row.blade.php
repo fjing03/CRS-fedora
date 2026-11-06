@@ -106,12 +106,18 @@
            Requested-at line 2 inserted after the Staff line (the T4 closures). */
         $lines = explode("\n", $display['tip']);
         /* 2026-11-04 (user spec): Title Case label; line 1 is now
-           `Staff (Proposer):` — the guard follows the label, not the old text. */
-        $requestedAt = 'Requested At: '.$tipAbs($n->created_at).' ('.$relLong($n->created_at).')';
-        if (($lines[0] ?? '') !== '' && str_starts_with($lines[0], 'Staff')) {
-            array_splice($lines, 1, 0, [$requestedAt]);
-        } else {
-            array_splice($lines, 0, 0, [$requestedAt]);
+           `Staff (Proposer):` — the guard follows the label, not the old text.
+           2026-11-06 (tip rework): the Requested-at line belongs to the REQUEST
+           kinds only (`NotificationTip::wantsRequestedAt`), so a decision or a
+           cancellation row declares it false and no line is inserted — a
+           cancelled class has no submission time to report. */
+        if (($display['requestedAt'] ?? false) === true) {
+            $requestedAt = 'Requested At: '.$tipAbs($n->created_at).' ('.$relLong($n->created_at).')';
+            if (($lines[0] ?? '') !== '' && str_starts_with($lines[0], 'Staff')) {
+                array_splice($lines, 1, 0, [$requestedAt]);
+            } else {
+                array_splice($lines, 0, 0, [$requestedAt]);
+            }
         }
         $rowTip = implode("\n", $lines);
         $rowLabel = $display['aria'];

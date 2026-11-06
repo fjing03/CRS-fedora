@@ -4,12 +4,14 @@ namespace App\Livewire;
 
 use App\Models\ClassException;
 use App\Models\ClassSession;
+use App\Models\Holiday;
 use App\Models\Notification;
 use App\Models\ReplacementRequest;
 use App\Models\Semester;
 use App\Models\User;
 use App\Models\Venue;
 use App\Services\ReplacementRequestMapper;
+use App\Support\Notifications\NotificationTip;
 use App\Support\ReasonLabel;
 use Carbon\Carbon;
 use Illuminate\Contracts\View\View;
@@ -513,6 +515,12 @@ class NavNotifications extends Component
             $sessions = $this->classSessionsFor($rows);
             $rows = $this->dropForeignCancellations($rows, $sessions, $userId);
 
+            /* 2026-11-06 (tip rework): a class-only feed (the student panel) gets
+               the SAME layouts — Subject / Cancelled or Original / Approved
+               Replacement — from the batches this exit already holds. */
+            $semesters = $this->semestersFor(collect(), $sessions);
+            $this->attachTips($rows, collect(), $sessions, [], collect(), $semesters, $this->holidayMap($semesters), $exceptions, static fn (): ?array => null);
+
             return $this->attachStaffLines($rows, collect(), $sessions);
         }
 
@@ -567,10 +575,14 @@ class NavNotifications extends Component
             $newestByOccurrence[$key] = max($newestByOccurrence[$key] ?? 0, (int) $occurrenceRequest->id);
         }
 
-        $semesterIds = $requests->pluck('semester_id')->filter()->unique()->values();
-        $semesters = $semesterIds->isEmpty()
-            ? collect()
-            : Semester::query()->whereIn('id', $semesterIds)->get()->keyBy('id');
+        /* the class rows (cancellations) carry no request, so their semester is
+           the SESSION's — merged here before the one Semester read, so the
+           `Cancelled Class Schedule` line can date itself without a second query */
+        $sessions = $this->classSessionsFor($rows);
+        $semesters = $this->semestersFor($requests, $sessions);
+        /* the reason law (user 2026-11-06, option A): a public holiday wins over
+           the exception enum the approval flow stamps. ONE batch per render. */
+        $holidays = $this->holidayMap($semesters);
 
         /* Legacy anchor fallback shape (design §3): a request with NO
          * junction rows composes from the LOADED replacementTimeSlot — the
@@ -699,12 +711,24 @@ class NavNotifications extends Component
                constant-true once the read branch went). */
             $row->setAttribute(
                 '_display',
-                $this->composeSubmitted($row, $request, $spans, $venues, $semesters, $anchorSpan, $exceptions)
+                $this->composeSubmitted(
+                    $row,
+                    $request,
+                    $spans,
+                    $venues,
+                    $semesters,
+                    $anchorSpan,
+                    $this->occurrenceReason($request->classSession, (int) $request->week_number, $exceptions, $holidays),
+                )
             );
         }
 
-        $sessions = $this->classSessionsFor($rows);
         $rows = $this->dropForeignCancellations($rows, $sessions, $userId);
+
+        /* 2026-11-06 (tip rework): every OTHER live kind gets its layout too —
+           cancelled classes, decisions, the proposer's own confirmation and the
+           PL reminder. Same maps, same one-query law. */
+        $this->attachTips($rows, $requests, $sessions, $spans, $venues, $semesters, $holidays, $exceptions, $anchorSpan);
 
         return $this->attachStaffLines($rows, $requests, $sessions);
     }
@@ -795,7 +819,8 @@ class NavNotifications extends Component
 
         return $classIds->isEmpty()
             ? collect()
-            : ClassSession::query()->with(['lecturer.lecturer'])
+            : ClassSession::query()
+                ->with(['lecturer.lecturer', 'module', 'venue', 'cohorts.programme'])
                 ->whereIn('id', $classIds->all())->get()->keyBy('id');
     }
 
@@ -904,6 +929,171 @@ class NavNotifications extends Component
     }
 
     /**
+     * The Semester batch for BOTH row families (requests carry their own; a
+     * class row carries the session's). One read, shared with the holiday batch.
+     *
+     * @param  Collection<int, ReplacementRequest>  $requests
+     * @param  Collection<int, ClassSession>  $sessions
+     * @return Collection<int, Semester>
+     */
+    private function semestersFor(Collection $requests, Collection $sessions): Collection
+    {
+        $ids = $requests->pluck('semester_id')->filter()
+            ->merge($sessions->pluck('semester_id')->filter())
+            ->unique()->values();
+
+        return $ids->isEmpty()
+            ? collect()
+            : Semester::query()->whereIn('id', $ids->all())->get()->keyBy('id');
+    }
+
+    /**
+     * The semester's public holidays keyed `semester|week|day` — the ONE extra
+     * batch the tip rework added (2026-11-06). The `submitted` line used to read
+     * exceptions only, so a holiday-only cancellation could print no reason at
+     * all; the holiday now WINS over the stamped exception enum, exactly like the
+     * My Replacements conflict badge.
+     *
+     * @param  Collection<int, Semester>  $semesters
+     * @return array<string, string>
+     */
+    private function holidayMap(Collection $semesters): array
+    {
+        if ($semesters->isEmpty()) {
+            return [];
+        }
+
+        $map = [];
+        foreach (Holiday::query()
+            ->whereIn('semester_id', $semesters->keys()->all())
+            ->get(['semester_id', 'week_number', 'day_of_week', 'label']) as $holiday) {
+            $map[(int) $holiday->semester_id.'|'.(int) $holiday->week_number.'|'.(int) $holiday->day_of_week]
+                = trim((string) $holiday->label);
+        }
+
+        return $map;
+    }
+
+    /**
+     * The ORIGINAL occurrence's cause, resolved the user's 2026-11-06 way:
+     * a holiday label (`Public Holiday — Christmas Eve`) beats the exception
+     * enum (`Annual Leave`), and no row at all means NO reason — the line (or its
+     * parentheses) is dropped rather than invented.
+     *
+     * @param  array<string, ClassException>  $exceptions
+     * @param  array<string, string>  $holidays
+     */
+    private function occurrenceReason(?ClassSession $session, ?int $week, array $exceptions, array $holidays): ?string
+    {
+        if ($session === null || $week === null || $week < 1) {
+            return null;
+        }
+
+        $holidayKey = (int) $session->semester_id.'|'.$week.'|'.(int) $session->day_of_week;
+        if (isset($holidays[$holidayKey])) {
+            $label = $holidays[$holidayKey];
+
+            return $label !== '' ? 'Public Holiday — '.$label : 'Public Holiday';
+        }
+
+        $exception = $exceptions[(int) $session->id.'|'.$week] ?? null;
+
+        return $exception !== null ? ReasonLabel::from((string) $exception->reason) : null;
+    }
+
+    /**
+     * The tip companion for every LIVE row that is not a pending submission
+     * (user UI update 2026-11-06, "Organise Notification Row Hover Tooltips").
+     *
+     * The classification above is untouched: inactive rows keep their D1/D15
+     * reason copy. This pass only adds `_display` to rows that are still live, and
+     * `NotificationTip` decides the labels, the order and which lines are
+     * available — one vocabulary for cancelled classes, decisions, the proposer's
+     * own confirmation and the PL reminder. `_display['title'|'desc']` copy the
+     * stored strings, so the row's visible text does not move.
+     *
+     * @param  Collection<int, Notification>  $rows
+     * @param  Collection<int, ReplacementRequest>  $requests
+     * @param  Collection<int, ClassSession>  $sessions
+     * @param  array<int, array{week: int, day: int, venue_id: int, start: string, end: string, count: int}>  $spans
+     * @param  Collection<int, Venue>  $venues
+     * @param  Collection<int, Semester>  $semesters
+     * @param  array<string, string>  $holidays
+     * @param  array<string, ClassException>  $exceptions
+     * @param  \Closure(ReplacementRequest): (array{week: int, day: int, venue_id: int, start: string, end: string, count: int}|null)  $anchorSpan
+     */
+    private function attachTips(
+        Collection $rows,
+        Collection $requests,
+        Collection $sessions,
+        array $spans,
+        Collection $venues,
+        Collection $semesters,
+        array $holidays,
+        array $exceptions,
+        \Closure $anchorSpan,
+    ): void {
+        $composer = app(NotificationTip::class);
+
+        $rows->each(function (Notification $row) use (
+            $composer, $requests, $sessions, $spans, $venues, $semesters, $holidays, $exceptions, $anchorSpan
+        ): void {
+            if ($row->getAttribute('inactive_reason') !== null || (bool) $row->getAttribute('inactive_row')) {
+                return;   /* inactive rows keep their reason copy */
+            }
+            if ($row->getAttribute('_display') !== null) {
+                return;   /* a pending submission is already composed */
+            }
+
+            $kind = NotificationTip::kind((string) $row->type, (string) $row->title);
+            if ($kind === 'unknown') {
+                return;   /* no layout → the legacy `title — body` fallback */
+            }
+
+            $request = $row->request_id !== null ? $requests->get((int) $row->request_id) : null;
+            $session = $request !== null ? $request->classSession : null;
+            if ($session === null && $row->class_session_id !== null) {
+                $session = $sessions->get((int) $row->class_session_id);
+            }
+            /* junction first, the legacy anchor after a release (§6b law 3) */
+            $span = $request !== null ? ($spans[(int) $request->id] ?? $anchorSpan($request)) : null;
+            $venue = $span !== null ? $venues->get((int) $span['venue_id']) : null;
+            $semesterId = $request !== null ? (int) $request->semester_id : ($session?->semester_id);
+            $semesterStart = $semesterId !== null && $semesters->has((int) $semesterId)
+                ? Carbon::parse((string) $semesters->get((int) $semesterId)->start_date)
+                : null;
+            $week = $request !== null
+                ? (int) $request->week_number
+                : ($row->week !== null ? (int) $row->week : null);
+
+            $tip = $composer->compose(
+                $kind,
+                $request,
+                $session,
+                $span,
+                $venue,
+                $semesterStart,
+                $this->occurrenceReason($session, $week, $exceptions, $holidays),
+                (string) $row->role_view,
+                $week,
+            );
+
+            if ($tip === null) {
+                return;   /* fewer than two facts → legacy fallback */
+            }
+
+            $row->setAttribute('_display', [
+                'title' => (string) $row->title,
+                'subtitle' => null,
+                'desc' => (string) $row->body,
+                'aria' => $row->title.' — '.$row->body,
+                'tip' => $tip,
+                'requestedAt' => NotificationTip::wantsRequestedAt($kind),
+            ]);
+        });
+    }
+
+    /**
      * The `submitted` composer (design §2) — the fail-open matrix per D6:
      * IDENTITY lines per-line omitted (a missing proposer drops line 1, a
      * missing classSession/module drops line 5); SCHEDULE lines all-or-
@@ -920,8 +1110,8 @@ class NavNotifications extends Component
      * @param  Collection<int, Venue>  $venues
      * @param  Collection<int, Semester>  $semesters
      * @param  \Closure(ReplacementRequest): (array{week: int, day: int, venue_id: int, start: string, end: string, count: int}|null)  $anchorSpan
-     * @param  array<string, ClassException>  $exceptions  keyed `session|week`
-     * @return array{title: string, subtitle: ?string, desc: string, aria: string, tip: ?string}
+     * @param  string|null  $reason  the ORIGINAL occurrence's cause (holiday-first)
+     * @return array{title: string, subtitle: ?string, desc: string, aria: string, tip: ?string, requestedAt: bool}
      */
     private function composeSubmitted(
         Notification $row,
@@ -930,7 +1120,7 @@ class NavNotifications extends Component
         Collection $venues,
         Collection $semesters,
         \Closure $anchorSpan,
-        array $exceptions,
+        ?string $reason,
     ): array {
         $span = $spans[(int) $row->request_id] ?? $anchorSpan($request);
         $venue = $span !== null
@@ -979,79 +1169,27 @@ class NavNotifications extends Component
         $ariaParts = array_values(array_filter([$title, $subtitle, $desc], fn ($p) => $p !== null && $p !== ''));
         $aria = implode(' — ', $ariaParts);
 
-        /* 5) tip — the user's 2026-11-04 spec, in its exact order:
-                Staff (Proposer) / Requested At (the partial's line 2) /
-                Subject & Cohort / Conflict Reason / Original Class Schedule /
-                Proposed Replacement Schedule.
-              Every line is built from loaded data and OMITTED when its facts
-              are missing (never a wrong value, never a guess); the tip survives
-              as long as two lines do. 12-hour clocks, `~` between the times,
-              `@` then the venue CODE alone. */
-        $lines = [];
-
-        if ($request->proposer !== null) {
-            $staffId = $request->proposer->lecturer !== null
-                ? (string) $request->proposer->lecturer->staff_id
-                : null;
-            $lines[] = 'Staff (Proposer): '.(string) $request->proposer->name
-                .($staffId !== null && $staffId !== '' ? ' ('.$staffId.')' : '');
-        }
-
+        /* the tip's subject line needs the class — the eager-loaded relation */
         $session = $request->classSession;
-        $module = $session !== null ? $session->module : null;
-        if ($session !== null && $module !== null) {
-            /* the cohorts' SHORT label (`DFT2` = programme code + year), joined
-               with ` & ` — the spec's example, never the long spaced form */
-            $cohorts = $session->cohorts
-                ->map(fn ($c): ?string => $c->programme !== null
-                    ? (string) $c->programme->programme_code.(int) $c->current_year
-                    : null)
-                ->filter()
-                ->unique()   /* two groups of the same programme+year read ONCE */
-                ->values();
 
-            $lines[] = 'Subject & Cohort: '.(string) $module->module_code
-                .' ('.(string) $module->module_name.')'
-                .($cohorts->isNotEmpty() ? ' · '.$cohorts->implode(' & ') : '');
-        }
-
-        if ($session !== null) {
-            $exception = $exceptions[(int) $session->id.'|'.(int) $request->week_number] ?? null;
-            if ($exception !== null) {
-                $lines[] = 'Conflict Reason: Class Cancelled — '.ReasonLabel::from((string) $exception->reason);
-            }
-        }
-
-        /* the two schedules: the SAME shape, built independently — the original
-           from the class session + the request's own week, the proposed from
-           the span. Neither reads the other. */
-        $twelveHour = static fn (string $t): string => Carbon::parse($t)->format('g:i A');
-
-        if ($session !== null && $semStart !== null) {
-            $originalDate = $semStart->copy()
-                ->addWeeks((int) $request->week_number - 1)
-                ->addDays((int) $session->day_of_week);
-            $originalVenue = $session->venue !== null ? (string) $session->venue->room_code : '';
-
-            $lines[] = 'Original Class Schedule: Week '.(int) $request->week_number
-                .' · '.$originalDate->format('j M Y')
-                .' · '.$twelveHour((string) $session->start_time).' ~ '.$twelveHour((string) $session->end_time)
-                .($originalVenue !== '' ? ' @ '.$originalVenue : '');
-        }
-
-        if ($span !== null && $semStart !== null) {
-            $proposedDate = $semStart->copy()
-                ->addWeeks((int) $span['week'] - 1)
-                ->addDays((int) $span['day']);
-            $proposedVenue = $venue !== null ? (string) $venue->room_code : '';
-
-            $lines[] = 'Proposed Replacement Schedule: Week '.(int) $span['week']
-                .' · '.$proposedDate->format('j M Y')
-                .' · '.$twelveHour((string) $span['start']).' ~ '.$twelveHour((string) $span['end'])
-                .($proposedVenue !== '' ? ' @ '.$proposedVenue : '');
-        }
-
-        $tip = count($lines) >= 2 ? implode("\n", $lines) : null;
+        /* 5) tip — 2026-11-06 (user UI update "Organise Notification Row Hover
+              Tooltips"): ONE vocabulary for every kind. This kind's lines are
+              Staff (Proposer) / Requested At (the partial inserts it) /
+              Subject & Cohort / Original Class Schedule (+reason) /
+              Proposed Replacement Schedule / Request ID — built by
+              `NotificationTip`, so a submission and a decision can never drift
+              apart again. The reason now rides the Original line's parentheses
+              instead of a separate `Conflict Reason:` line (user's option (a)). */
+        $tip = app(NotificationTip::class)->compose(
+            'new_request',
+            $request,
+            $session,
+            $span,
+            $venue,
+            $semStart,
+            $reason,
+            'lecturer',
+        );
 
         return [
             'title' => $title,
@@ -1059,6 +1197,7 @@ class NavNotifications extends Component
             'desc' => $desc,
             'aria' => $aria,
             'tip' => $tip,
+            'requestedAt' => true,
         ];
     }
 }

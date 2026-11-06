@@ -204,6 +204,12 @@ test('a cancelled request renders the row disabled with the user tooltip', async
   await login(page);
   await page.goto(`${BASE}/my-timetable-ui?_=pw-t2`);
   await page.click('button.notif-btn');
+  /* 2026-11-05: the panel now OPENS on "Active only" (the user's default), so a
+     receipt about an INACTIVE row must switch that filter off first — otherwise
+     it is filtered out before it can be asserted (this receipt predates the
+     default and had been red since). */
+  await page.locator('.notif-filters label', { hasText: 'Active only' }).click();
+  await expect(page.locator('#notifList span.notif-row--inactive').first()).toBeVisible({ timeout: 10_000 });
 
   const disabled = page.locator('#notifList span.notif-row--inactive');
   await expect(disabled).toHaveCount(1);
@@ -255,7 +261,10 @@ test('SDD notif-new-request-ux: the decided submitted row goes inactive WITHOUT 
   // the whole mailbox visible BEFORE the (up to) 10 s poll morph carries the
   // inactive span into the re-render (the Feature receipt's unreadOnly=false
   // contract, NotificationsBridgeTest :149/:286).
-  await page.click('.notif-filters .toggle-wrapper');
+  await page.click('.notif-filters .toggle-wrapper');           // Unread only OFF
+  /* 2026-11-05 default: the panel opens on "Active only" too — an INACTIVE row
+     needs BOTH toggles off or the filter hides the very row under test */
+  await page.locator('.notif-filters label', { hasText: 'Active only' }).click();
   await page.waitForTimeout(600); // the wire:click re-render
 
   // the 10 s poll morph: up to 15 s covers ONE full poll cycle + render margin

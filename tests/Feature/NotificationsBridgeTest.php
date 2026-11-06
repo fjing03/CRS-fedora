@@ -6,6 +6,7 @@ use App\Livewire\NavNotifications;
 use App\Models\ClassException;
 use App\Models\ClassSession;
 use App\Models\Cohort;
+use App\Models\Holiday;
 use App\Models\Notification;
 use App\Models\ReplacementRequest;
 use App\Models\Student;
@@ -400,11 +401,11 @@ final class NotificationsBridgeTest extends TestCase
         $this->assertSame(1, $component->viewData('unreadTotal'));
     }
 
-    /** 2026-11-04 (user spec): the Conflict Reason line — rendered ONLY when a
-     *  class exception exists for that session+week, in the spec's exact shape
-     *  (`Class Cancelled — <reason label>`); absent data means no line, never an
-     *  invented cancellation. */
-    public function test_conflict_reason_line_follows_the_exception_row(): void
+    /** 2026-11-06 (user UI update, options (a)/(G6)): the conflict reason no longer
+     *  has its own line — it rides the ORIGINAL schedule line's parentheses, in the
+     *  `ReasonLabel` vocabulary, and a public holiday WINS over the stamped
+     *  exception. No row at all → no parentheses, never an invented reason. */
+    public function test_the_original_line_carries_the_reason_in_parentheses(): void
     {
         $request = $this->seedRequest();
         $this->submitEvent($request->id);
@@ -414,7 +415,8 @@ final class NotificationsBridgeTest extends TestCase
             'island' => 'panel', 'pageKey' => 'requestApproval', 'unreadOnly' => false, 'activeOnly' => false,
         ])->html();
 
-        $this->assertStringNotContainsString('Conflict Reason:', $html(), 'no exception row → no line');
+        $this->assertStringNotContainsString('Conflict Reason:', $html(), 'the separate line is gone');
+        $this->assertStringNotContainsString('(Medical/Sick Leave)', $html(), 'no exception row → no reason');
 
         ClassException::create([
             'class_session_id' => (int) $request->class_session_id,
@@ -422,11 +424,19 @@ final class NotificationsBridgeTest extends TestCase
             'reason' => 'medical_leave',
         ]);
 
-        $this->assertStringContainsString(
-            'Conflict Reason: Class Cancelled — Medical/Sick Leave',
-            $html(),
-            'the ONE label law (ReasonLabel) owns the reason text',
-        );
+        $this->assertStringContainsString('(Medical/Sick Leave)', $html(), 'the ONE label law (ReasonLabel) owns the reason text');
+
+        /* the holiday WINS (user option A): the approval flow stamps
+           `official_event`, but the calendar knows the day */
+        Holiday::create([
+            'semester_id' => (int) $request->semester_id,
+            'week_number' => 8,
+            'day_of_week' => 1,
+            'label' => 'Fixture Holiday',
+        ]);
+
+        $this->assertStringContainsString('(Public Holiday — Fixture Holiday)', $html());
+        $this->assertStringNotContainsString('(Official Event)', $html());
     }
 
     /**
@@ -760,6 +770,230 @@ final class NotificationsBridgeTest extends TestCase
         ]);
         $this->assertSame(1, $component->viewData('unreadTotal'),
             'the badge stays the actionable unread (the update row) — not the filtered view');
+    }
+
+    /* ── the ROW TIPS (user UI update 2026-11-06) ───────────────────────────
+       "Organise Notification Row Hover Tooltips": ONE label vocabulary for every
+       live kind — labels, order and format come from `NotificationTip`, the facts
+       from the batches the island already loads. A `data-tip` is TEXT: lines are
+       joined with "\n", so the receipts read the decoded attribute line by line. */
+
+    /** The panel HTML for the given viewer, all rows shown. */
+    private function panelHtml(User $user): string
+    {
+        $this->actingAs($user);
+
+        return Livewire::test(NavNotifications::class, [
+            'island' => 'panel', 'pageKey' => 'requestApproval', 'unreadOnly' => false, 'activeOnly' => false,
+        ])->html();
+    }
+
+    /**
+     * Every decoded `data-tip` whose text contains the needle.
+     *
+     * @return list<string>
+     */
+    private function tipsOf(string $html, string $needle): array
+    {
+        preg_match_all('/data-tip="([^"]*)"/s', $html, $matches);
+
+        $found = [];
+        foreach ($matches[1] as $raw) {
+            $tip = html_entity_decode($raw, ENT_QUOTES);
+            if (str_contains($tip, $needle)) {
+                $found[] = $tip;
+            }
+        }
+
+        return $found;
+    }
+
+    /** A decision notice exactly as the emitter writes it. */
+    private function decisionRow(User $user, int $requestId, string $decision, int $week, string $title): Notification
+    {
+        return Notification::create([
+            'user_id' => $user->id,
+            'role_view' => 'lecturer',
+            'type' => $decision,
+            'title' => $title,
+            'body' => 'BMSE3153 (P) · W'.$week.' · generic stored body',
+            'link' => $decision === 'rejected' ? '/my-request-history-ui' : '/my-replacements',
+            'request_id' => $requestId,
+            'class_session_id' => 23,
+            'week' => $week,
+        ]);
+    }
+
+    public function test_the_new_request_tip_reads_one_vocabulary(): void
+    {
+        $request = $this->seedRequest();
+        $this->submitEvent($request->id);
+        $html = $this->panelHtml($this->pl());
+
+        $tips = $this->tipsOf($html, 'Staff (Proposer)');
+        $this->assertCount(1, $tips);
+        $lines = explode("\n", $tips[0]);
+
+        $this->assertSame('Staff (Proposer): Surayaini Binti Basri (5425)', $lines[0]);
+        $this->assertStringStartsWith('Requested At: ', $lines[1], 'the live clock rides line 2, its shape pinned');
+        $this->assertSame('Subject & Cohort: BMSE3153 (Practical) — Software Project Management · RSD3', $lines[2]);
+        $this->assertSame('Original Class Schedule: Week 8 · Tue, 10 Nov 2026 · 1:00 PM–2:00 PM @ B009', $lines[3]);
+        $this->assertSame('Proposed Replacement Schedule: Week 6 · Fri, 30 Oct 2026 · 1:30 PM–2:00 PM @ B010', $lines[4]);
+        $this->assertSame('Request ID: #'.(int) $request->id, $lines[5]);
+        $this->assertCount(6, $lines, 'the six facts, nothing else — no Conflict Reason, no venue-name line');
+    }
+
+    public function test_the_rejected_tip_names_the_reason_above_both_schedules(): void
+    {
+        $request = $this->seedRequest();
+        $request->update(['status' => 'rejected', 'rejection_reason' => 'venue unavailable', 'approver_id' => $this->coordinator()->id]);
+        $this->decisionRow($this->coordinator(), (int) $request->id, 'rejected', 8, 'Replacement rejected');
+
+        $html = $this->panelHtml($this->coordinator());
+        $tips = $this->tipsOf($html, 'Rejection Reason:');
+
+        $this->assertCount(1, $tips);
+        $this->assertSame(
+            implode("\n", [
+                'Subject: BMSE3153 (Practical) — Software Project Management',
+                'Rejection Reason: Venue Unavailable',
+                'Original Class Schedule: Week 8 · Tue, 10 Nov 2026 · 1:00 PM–2:00 PM @ B009',
+                'Proposed Replacement Schedule: Week 6 · Fri, 30 Oct 2026 · 1:30 PM–2:00 PM @ B010',
+                'Request ID: #'.(int) $request->id,
+            ]),
+            $tips[0],
+            'the reason sits between the subject and the schedules, Title Cased',
+        );
+        $this->assertStringNotContainsString('Staff (Proposer)', $tips[0], 'a decision row carries no Staff line');
+    }
+
+    public function test_an_automatic_rejection_reads_automatically_rejected_by_system(): void
+    {
+        $request = $this->seedRequest();
+        /* the system's own shape: rejected with NO approver (no human decided) */
+        $request->update(['status' => 'rejected', 'rejection_reason' => 'Automatically rejected — fewer than 3 working hours remained.', 'approver_id' => null]);
+        $this->decisionRow($this->coordinator(), (int) $request->id, 'rejected', 8, 'Replacement rejected');
+
+        $tips = $this->tipsOf($this->panelHtml($this->coordinator()), 'Rejection Reason:');
+
+        $this->assertCount(1, $tips);
+        $this->assertStringContainsString('Rejection Reason: Automatically Rejected by System', $tips[0]);
+        $this->assertStringNotContainsString('fewer than 3 working hours', $tips[0], 'the stored reason never leaks');
+    }
+
+    public function test_the_class_cancelled_tip_dates_the_class_and_names_the_reason(): void
+    {
+        /* a LIVE cancellation: the exception row is what keeps the notice active */
+        ClassException::create(['class_session_id' => 23, 'week_number' => 7, 'reason' => 'annual_leave']);
+        Notification::create([
+            'user_id' => $this->coordinator()->id, 'role_view' => 'lecturer', 'type' => 'update',
+            'title' => 'Scheduled class cancelled', 'body' => 'BMSE3153 (P) · W7 · Tue · B009 · cancelled',
+            'link' => '/my-replacements', 'class_session_id' => 23, 'week' => 7,
+        ]);
+
+        $tips = $this->tipsOf($this->panelHtml($this->coordinator()), 'Cancelled Class Schedule:');
+
+        $this->assertCount(1, $tips);
+        $this->assertSame(
+            implode("\n", [
+                'Subject: BMSE3153 (Practical) — Software Project Management',
+                'Cancelled Class Schedule: Week 7 · Tue, 3 Nov 2026 · 1:00 PM–2:00 PM @ B009',
+                'Reason: Annual Leave',
+            ]),
+            $tips[0],
+            'a cancelled class has no request: Subject + the class itself + why',
+        );
+        $this->assertStringNotContainsString('Request ID', $tips[0], 'there is no request to name');
+        $this->assertStringNotContainsString('Requested At', $tips[0], 'a cancellation has no submission time');
+    }
+
+    public function test_the_class_updated_and_approved_notice_share_one_layout(): void
+    {
+        $request = $this->seedRequest();
+        $request->update(['status' => 'approved', 'approver_id' => $this->coordinator()->id]);
+        $owner = $this->coordinator();
+
+        /* both titles the `approved` tile carries */
+        $this->decisionRow($owner, (int) $request->id, 'approved', 8, 'Replacement class updated');
+        $this->decisionRow($owner, (int) $request->id, 'approved', 8, 'Replacement approved');
+
+        $tips = $this->tipsOf($this->panelHtml($owner), 'Approved Replacement Schedule:');
+
+        $expected = 'Subject: BMSE3153 (Practical) — Software Project Management'
+            ."\n".'Original Class Schedule: Week 8 · Tue, 10 Nov 2026 · 1:00 PM–2:00 PM @ B009'
+            ."\n".'Approved Replacement Schedule: Week 6 · Fri, 30 Oct 2026 · 1:30 PM–2:00 PM @ B010'
+            ."\n".'Request ID: #'.(int) $request->id;
+
+        $this->assertCount(2, $tips, 'the proposer notice and the timetable notice');
+        $this->assertSame($expected, $tips[0]);
+        $this->assertSame($expected, $tips[1], 'both print the SAME four lines');
+    }
+
+    public function test_the_submitted_copy_and_the_awaiting_reminder_carry_the_request_lines(): void
+    {
+        $request = $this->seedRequest(1, 23, 8);
+
+        Notification::create([
+            'user_id' => $this->coordinator()->id, 'role_view' => 'lecturer', 'type' => 'update',
+            'title' => 'Replacement request submitted', 'body' => 'BMSE3153 (P) · W8 · awaiting PL approval',
+            'link' => '/my-request-history-ui', 'request_id' => $request->id, 'week' => 8,
+        ]);
+        Notification::create([
+            'user_id' => $this->coordinator()->id, 'role_view' => 'pl', 'type' => 'awaiting',
+            'title' => 'Approval still pending', 'body' => 'BMSE3153 (P) · W8 · submitted by Surayaini · awaiting your decision',
+            'link' => '/request-approval-ui', 'request_id' => $request->id, 'week' => 8,
+        ]);
+
+        /* user 1 is a PL *and* the proposer, so one panel shows both rows — the
+           two shapes are what the assertion is about */
+        $tips = $this->tipsOf($this->panelHtml($this->coordinator()), 'Subject & Cohort:');
+        $this->assertCount(2, $tips);
+
+        $own = array_values(array_filter($tips, fn (string $t): bool => str_starts_with($t, 'Requested At: ')));
+        $reminder = array_values(array_filter($tips, fn (string $t): bool => str_starts_with($t, 'Staff (Proposer): ')));
+
+        $this->assertCount(1, $own, "the proposer's own copy leads with Requested At");
+        $this->assertStringNotContainsString('Staff (Proposer)', $own[0]);
+        $this->assertStringContainsString('Proposed Replacement Schedule: Week 6 · Fri, 30 Oct 2026', $own[0]);
+        $this->assertStringContainsString('Request ID: #'.(int) $request->id, $own[0]);
+
+        $this->assertCount(1, $reminder, 'the PL reminder names who submitted it');
+        $this->assertStringContainsString('Staff (Proposer): Surayaini Binti Basri (5425)', $reminder[0]);
+        $this->assertStringContainsString('Proposed Replacement Schedule: Week 6 · Fri, 30 Oct 2026', $reminder[0]);
+    }
+
+    public function test_a_student_row_drops_the_staff_line(): void
+    {
+        $request = $this->seedRequest();
+        $request->update(['status' => 'approved', 'approver_id' => $this->coordinator()->id]);
+        $student = User::query()->where('role', 'student')->firstOrFail();
+
+        Notification::create([
+            'user_id' => $student->id, 'role_view' => 'student', 'type' => 'approved',
+            'title' => 'Replacement class updated', 'body' => 'BMSE3153 (P) · W8 · your timetable is updated',
+            'link' => '/student-my-timetable-ui', 'request_id' => $request->id, 'class_session_id' => 23, 'week' => 8,
+        ]);
+
+        $tips = $this->tipsOf($this->panelHtml($student), 'Approved Replacement Schedule:');
+
+        $this->assertCount(1, $tips);
+        $this->assertStringContainsString('Approved Replacement Schedule: Week 6 · Fri, 30 Oct 2026', $tips[0]);
+        $this->assertStringNotContainsString('Staff (Proposer)', $tips[0]);
+        $this->assertStringNotContainsString('Requested At', $tips[0]);
+    }
+
+    public function test_an_unknown_kind_keeps_the_legacy_fallback(): void
+    {
+        Notification::create([
+            'user_id' => $this->coordinator()->id, 'role_view' => 'lecturer', 'type' => 'update',
+            'title' => 'Something else entirely', 'body' => 'legacy body',
+            'link' => '/my-replacements', 'read_at' => null,
+        ]);
+
+        $this->assertStringContainsString(
+            'data-tip="Something else entirely — legacy body"',
+            $this->panelHtml($this->coordinator()),
+        );
     }
 
     /* ── notif-manage-hide (2026-11-02, the user's approved design) ─────────

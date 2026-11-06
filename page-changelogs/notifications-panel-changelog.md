@@ -1059,3 +1059,60 @@ The prompt's §6 suggested extending `tests/notifications-island.spec.ts` with
 the write loop; that spec runs on the DEMO mailbox, which this lane treats as
 read-only. The write loop therefore lives in its own guarded spec on the
 disposable testing DB, and the island spec got the READ-ONLY layout half.
+
+## 2026-11-06 — every row's tooltip speaks ONE vocabulary
+
+User UI update *Organise Notification Row Hover Tooltips*. Before this, only a **pending** `submitted`
+row had fact lines; every other kind printed the legacy `title — body` single line. Now all eight live
+kinds share one label set, one order and one format.
+
+**The composer.** `App\Support\Notifications\NotificationTip` (pure, no queries) decides the kind from
+the frozen tile `type` + stored title, and builds the lines from the batches the island already loads
+(requests with module/venue/cohorts/proposer, spans, venues, semesters, exceptions). The island gained
+**one** extra batch — the semesters' `holidays` — and nothing per row: `replacement_requests` is still
+read ONCE per render (`test_the_island_renders_with_exactly_one_replacement_requests_query` green).
+
+| Kind (type · title) | Lines |
+|---|---|
+| New request (`submitted`) | Staff (Proposer) / Requested At / Subject & Cohort / Original (+reason) / Proposed / Request ID |
+| Approval still pending (`awaiting`) | same six |
+| Request submitted (`update` · *Replacement request submitted*) | same, **no** Staff line |
+| Class cancelled (`update` · *Scheduled class cancelled*) | Subject / Cancelled Class Schedule / Reason |
+| Replacement class updated / Replacement approved (`approved`) | Subject / Original (+reason) / **Approved** Replacement Schedule / Request ID |
+| Replacement rejected (`rejected`) | Subject / Rejection Reason / Original (+reason) / Proposed / Request ID |
+
+**The decisions the user gave while grilling (2026-11-06):**
+
+- **G1 students** get the same layouts minus Staff/Requested At — 69 of the 96 live demo rows are student
+  rows, so leaving them legacy would have been the bigger inconsistency.
+- **G2** the `awaiting` PL reminder is included (same six lines as a new request).
+- **G3** the proposer's own *Replacement request submitted* copy now HAS the lines (it had none).
+- **G4=B** one label for the replaced occurrence: `Original Class Schedule:` everywhere, the cancellation
+  reason in parentheses — `Replaced For:` is retired.
+- **G5** an automatic rejection is recognised by `approver_id IS NULL` (a manual PL rejection always stamps
+  the approver), so it costs no query.
+- **G6=A** the reason is holiday-first: `(Public Holiday — Christmas Eve)` beats the stamped
+  `official_event`; else `ReasonLabel` (`(Annual Leave)`, `(Medical/Sick Leave)`); else nothing.
+- **G7** the user's formats everywhere: `Mon, 9 Nov 2026`, `11:00 AM–1:00 PM` (en dash, no spaces), a
+  `Request ID: #67` line, `Subject & Cohort:` where cohorts matter and `Subject:` elsewhere.
+- **(a)** the separate `Conflict Reason:` line is gone (the reason rides the Original line) —
+  `Subject Code (Lecture) — Subject Name`.
+- **(b)** the automatic rejection reads exactly **`Rejection Reason: Automatically Rejected by System`**
+  (the user's own short form; the stored long sentence never leaks).
+
+Nothing else moved: the row markup, tiles, actions (Hide / Unhide / manage mode), click targets and the
+inactive rows' D1/D15 reason copy are untouched; a `data-tip` is still TEXT (`\n`-joined labels, no HTML).
+`Requested At` is inserted by the partial for the request kinds only (`NotificationTip::wantsRequestedAt`),
+so a cancelled class never claims a submission time.
+
+**Receipts.** `NotificationsBridgeTest` +8 cases (one per kind + the student arm + the unknown-kind
+fallback): exact line-by-line tips, the auto-rejection label, holiday-first reasons, the shared
+approved/updated layout, and the legacy fallback — **36/36** in that file, **394 / 2093** full suite.
+Live demo run (read-only): the panel's real tips read exactly as specced —
+`/tmp/opencode/notif-tip-hover.png` (the 6-line new-request tip) and `/tmp/opencode/notif-tips-panel.png`;
+`notifications-island.spec.ts` updated to the new formats **10/10**.
+
+**Two stale browser fixtures fixed on the way** (both red since the 2026-11-05 "panel opens on Active only"
+default, not caused by this change): two receipts in `notifications-island-testing-db.spec.ts` asserted
+INACTIVE rows without switching that filter off first. They now click *Active only* off explicitly —
+**6/6 green**.
