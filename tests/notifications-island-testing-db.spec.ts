@@ -183,7 +183,11 @@ test('the badge lifecycle: growth within a poll cycle, durable POST shrink, mark
   await expect(async () => {
     expect(await badgeNumber(page)).toBe(0, 'mark-all zeroed the mailbox');
   }).toPass({ timeout: 20_000 });
-  await expect(page.locator('#notifMarkAll')).toBeHidden();
+  // notif-inactive-hide-sender (2026-11-05, spec R5): Mark-all is NOT hidden at
+  // zero any more — it stays in the header and reads disabled.
+  await expect(page.locator('#notifMarkAll')).toBeVisible();
+  await expect(page.locator('#notifMarkAll')).toBeDisabled();
+  await expect(page.locator('#notifUnreadPill')).toHaveText('0');
   // the rows never delete — flip the unread-only toggle to see them READ.
   // SDD notif-new-request-ux (T7 flip): the read STAMP only renders the read
   // class for the NON-submitted types (the `update` fixture rows) — the

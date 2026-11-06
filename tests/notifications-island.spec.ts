@@ -42,12 +42,10 @@ test('bell + pill carry the actionable-unread total (F-2, notif-new-request-ux D
   await page.click('button.notif-btn');
   await expect(page.locator('#notifPanel')).toHaveClass(/open/);
   const pill = page.locator('#notifUnreadPill');
-  if (badge > 0) {
-    await expect(pill).toBeVisible();
-    expect(Number(await pill.textContent())).toBe(badge);
-  } else {
-    await expect(pill).toBeHidden();
-  }
+  // notif-inactive-hide-sender (2026-11-05, spec R5): the pill is ALWAYS there —
+  // a caught-up mailbox reads `0` instead of losing the header's anatomy.
+  await expect(pill).toBeVisible();
+  expect(Number(await pill.textContent())).toBe(badge);
   expect(consoleErrors, 'no JS page errors').toEqual([]);
 });
 

@@ -612,6 +612,10 @@ body {
     border-color: var(--color-outline-strong);
 }
 .notif-iconbtn svg { display: block; flex-shrink: 0; }
+/* notif-inactive-hide-sender (2026-11-05): zero unread keeps Mark-all visible —
+   dimmed and inert, but still there (and still hoverable for its tooltip, so no
+   pointer-events:none). */
+.notif-iconbtn:disabled { opacity: 0.45; cursor: not-allowed; }
 
 /* the manage bar replaces the filter row (same strip metrics) */
 .notif-manage-bar {
@@ -684,7 +688,8 @@ body {
     align-items: flex-end;
     gap: 2px;
 }
-.notif-unhide {
+.notif-unhide,
+.notif-hide {
     padding: 1px 6px;
     border: none;
     border-radius: var(--radius-sm);
@@ -696,7 +701,8 @@ body {
     cursor: pointer;
     transition: background var(--transition);
 }
-.notif-unhide:hover { background: var(--color-surface-variant); }
+.notif-unhide:hover,
+.notif-hide:hover { background: var(--color-surface-variant); }
 
 /* the panel footer: the find-back link, the manage actions, the shelf note */
 .notif-foot {

@@ -27,7 +27,7 @@
 | Ops trap | `opcache.enable_cli=On` with `revalidate_freq=180` → a long-running `artisan serve` can serve a `.php` file's old bytecode for ~3 min. Use **`scripts/dev-serve.sh [port]`** (kills that port, clears views, starts with `revalidate_freq=0`). |
 | Gates | `composer run lint:check` · `vendor/bin/phpstan analyse --memory-limit=1G` · full phpunit · `node --check` for JS. **Never** `composer run types:check` (crashes at 128M). |
 | Suite | Last full PHPUnit run **344 tests / 1899 assertions** (2026-11-05, 410 s, after `bee6176` — the count returned to 344 because `venue-slot-validation` added two `minClassSlots` cases and deleted the same two with the plumbing). Browser suites are separate and NOT part of that number — quote them by name: `venue-book` 19, venue neighbours 61 passed / 2 skipped, `cancel-class` 12 passed / 4 skipped. |
-| SDD lanes | **34** lane dirs under `.sdd/changes/` (**33** older finished ones + `venue-slot-validation`, `status: applied` 2026-11-05), **101** archived. Archive only on the user's word. |
+| SDD lanes | **35** lane dirs under `.sdd/changes/` (**33** older finished ones + `venue-slot-validation` and `notif-inactive-hide-sender`, both `status: applied` 2026-11-05), **101** archived. Archive only on the user's word. |
 | **Venue page slot rules** | Since 2026-11-05: hover asks ONE question (**one clear hour**, `MIN_BOOK_SLOTS = 2`, never derived from a class), and a class's duration is judged only AFTER it is picked (Arrange gate → `#slotWarningOverlay`, no navigation). Lane `venue-slot-validation`; commits `daf11c6` + `bee6176`. |
 | **The merge lane** | `replacement-merge-one-table` — **APPLIED 2026-11-04**, archived `07274c1`: `e70c1ea` (payload/mapper), `6856577` (view), `ab65f9a` (routes + retired page), `d3f6f5b` + `c4d0ad3` (specs). The merged page is **My Replacements** at `/my-replacements`, with `/replacement-home-ui` and `/my-request-history-ui` as alias route entries. |
 | **Cancel Class** | **FINAL since 2026-11-05** — undo gone from the UI, the JS and the server (`23c627c`); the inbox marks stale notices inactive at read time instead of offering dead clicks (`7b7f0d9`); four final-decision modals carry *"This action cannot be UNDONE."* (`12c644a`). |
@@ -169,6 +169,24 @@ date, and its files are dirty in the tree — see §3.
 
 ---
 
+### 2026-11-05 (notifications panel) — **`notif-inactive-hide-sender`** (the inline brief)
+
+- An **inactive row** now carries its own **Hide** in `.nr-right` (the shelf's `Unhide` shape, the
+  same `hideOne()` gate); active rows never do. `App\Support\TitleCase::of()` projects the stored
+  sentence at render (minor words stay low; `ID`, `#28`, acronyms untouched) — 15 unit cases.
+- **Sender line**: `sender_self` / `sender_line` computed per render from the R5 maps (proposer for
+  `submitted`/`awaiting`, approver for decisions, the class lecturer for class rows — no extra
+  query). The subtitle reads **`by Surayaini Binti Basri (5425)`** / **`by YOU`**, and the two
+  self-owned kinds take **Your** in the title (*Your Scheduled Class Cancelled*, *Your Replacement
+  Request Submitted*) — recognised by type **or** the stored sentence, because the emitters write
+  both as `update`.
+- **Zero unread** no longer reshapes the header: the pill reads **0** and Mark-all stays visible but
+  `disabled`. The bell badge keeps its own rule (hidden at zero).
+- Receipts: guarded `tests/notif-row-inactive-hide.spec.ts` (5 passed), `NotificationsBridgeTest`
+  28/28 with the four-state sender contract rewritten, full suite **359 / 1914**. Trap worth
+  remembering: several notification specs in ONE Playwright process can trip Fortify's 5/min login
+  limiter — the new spec uses the setup's `storageState` instead of logging in.
+
 ### 2026-11-05 (venue slot validation + archive pass)
 
 - **`c5dd0c4`** — archived the seven finished lanes (`mytimetable-jump-highlight`,
@@ -215,6 +233,7 @@ date, and its files are dirty in the tree — see §3.
 | 16 | **Toast order**: a `?blocked=request-pending\|request-approved` arrival shows the ENTRY-GUARD message first, and any pending cancellation reminder is deferred (neither shown nor spent) to the next page load. The cancellation reminder is **one-shot** — one reminder per cancellation, never one per load. |
 | 17 | **Stale notifications are marked inactive AT READ TIME**, never edited: `undone` (a request-less cancel notice whose `class_exceptions` row is gone) and `superseded` (a decision notice older than the newest request for the same class+week). Badge = D5 (actionable unread), so an inactive row leaves the badge but stays on the list. |
 | 18 | **A slot is judged by the class the user picks, not by a guess** (user brief `Venue Timetable Slot Validation.md`, 2026-11-05). On `/venue-timetable-ui` the hover answers ONE question — *is there at least one clear hour?* (`MIN_BOOK_SLOTS = 2`; `cell-no-room` = "Not Enough Slot" when the next class starts inside that hour, `cell-no-fit` = past day end). It is **never** derived from the arrange pool (the old `minClassSlots` plumbing is deleted). The real duration is checked only AFTER a session is picked, in `confirmIntentSession()` → `#slotWarningOverlay` (span or day-end copy), which never navigates. The pop-up lists every session with `data-slots` / `data-fit` and pre-selects the first fitting row; no verdict is shown before the pick. |
+| 19 | **The notification row speaks plainly** (inline brief, 2026-11-05): an inactive row can be hidden from the feed (Hide in `.nr-right`); every title reads **Title Case** at render (the stored sentence is never rewritten); the subtitle is the **sender** line — `by YOU` when the reader is the actor, else `by Name (staff_id)` — and a self-owned cancellation/submission says **Your** in the title; at zero unread the pill reads **0** and Mark-all stays visible but **disabled** (the bell badge still hides at zero). |
 
 ---
 

@@ -947,7 +947,9 @@ final class NotificationsBridgeTest extends TestCase
             $nonPl, $this->pls(), 'AMSE2003', 'P', (int) $request->id, 7
         );
         $this->actingAs($this->coordinator());
-        $this->assertSame(['Lim Jia Zheng (5770)'], $this->subtitleSpans(
+        /* notif-inactive-hide-sender (2026-11-05, spec R3): the subtitle is the
+           SENDER line and reads `by <Name (staff_id)>` / `by YOU`. */
+        $this->assertSame(['by Lim Jia Zheng (5770)'], $this->subtitleSpans(
             Livewire::test(NavNotifications::class, ['island' => 'panel', 'pageKey' => 'requestApproval', 'unreadOnly' => false])->html()
         ), 'a PL sees who proposed, with the staff id');
 
@@ -960,7 +962,7 @@ final class NotificationsBridgeTest extends TestCase
             $session, Student::query()->whereKey((int) $student->user_id)->with('user')->get(), (int) $request->id, 8
         );
         $this->actingAs($student->user);
-        $this->assertSame(['Lim Jia Zheng (5770)'], $this->subtitleSpans(
+        $this->assertSame(['by Lim Jia Zheng (5770)'], $this->subtitleSpans(
             Livewire::test(NavNotifications::class, ['island' => 'panel', 'pageKey' => 'studentTimetable', 'unreadOnly' => false])->html()
         ));
 
@@ -976,7 +978,7 @@ final class NotificationsBridgeTest extends TestCase
             Livewire::test(NavNotifications::class, ['island' => 'panel', 'pageKey' => 'myTimetable', 'unreadOnly' => false])->html()
         );
         $this->assertNotEmpty($spans, 'the owner rows do carry a line');
-        $this->assertSame(['Surayaini Binti Basri (5425)'], array_values(array_unique($spans)), 'a self row names the PL who acted — never the reader');
+        $this->assertSame(['by Surayaini Binti Basri (5425)'], array_values(array_unique($spans)), 'a self row names the PL who acted — never the reader');
     }
 
     public function test_the_staff_line_is_omitted_on_a_self_only_event(): void
@@ -994,12 +996,15 @@ final class NotificationsBridgeTest extends TestCase
 
         $this->actingAs($nonPl);
         $own = Livewire::test(NavNotifications::class, ['island' => 'panel', 'pageKey' => 'myTimetable', 'unreadOnly' => false])->html();
-        $this->assertStringContainsString('Scheduled class cancelled', $own);
-        $this->assertSame([], $this->subtitleSpans($own), 'a self-only event omits the line');
+        /* notif-inactive-hide-sender (2026-11-05): the panel reads Title Case, and
+           the SELF-owned cancellation says "Your" and carries `by YOU` — the old
+           "omit the line on a self-only event" rule is superseded by the brief. */
+        $this->assertStringContainsString('Your Scheduled Class Cancelled', $own);
+        $this->assertSame(['by YOU'], array_values(array_unique($this->subtitleSpans($own))), 'a self-only event says who did it: YOU');
 
         $this->actingAs($student->user);
         $studentHtml = Livewire::test(NavNotifications::class, ['island' => 'panel', 'pageKey' => 'studentTimetable', 'unreadOnly' => false])->html();
-        $this->assertSame(['Lim Jia Zheng (5770)'], $this->subtitleSpans($studentHtml), 'the student still sees whose class it was');
+        $this->assertSame(['by Lim Jia Zheng (5770)'], $this->subtitleSpans($studentHtml), 'the student still sees whose class it was');
     }
 
     public function test_a_row_never_shows_two_staff_lines_in_any_state(): void
@@ -1018,21 +1023,23 @@ final class NotificationsBridgeTest extends TestCase
 
         $panel = fn () => Livewire::test(NavNotifications::class, ['island' => 'panel', 'pageKey' => 'requestApproval', 'unreadOnly' => false])->html();
 
-        // 1. unread — the composer's subtitle (same text as the staff line)
-        $this->assertSame(['Lim Jia Zheng (5770)'], $this->subtitleSpans($panel()), 'unread');
+        // The line is the SENDER line since notif-inactive-hide-sender (2026-11-05),
+        // so every state reads `by <Name (staff_id)>` — one span, always.
+        // 1. unread — the composer's subtitle and the sender agree → ONE span
+        $this->assertSame(['by Lim Jia Zheng (5770)'], $this->subtitleSpans($panel()), 'unread');
 
         // 2. read — `_display` is gone; the computed line must take over, once
         Notification::query()->whereKey($row->id)->update(['read_at' => Date::now()]);
-        $this->assertSame(['Lim Jia Zheng (5770)'], $this->subtitleSpans($panel()), 'read');
+        $this->assertSame(['by Lim Jia Zheng (5770)'], $this->subtitleSpans($panel()), 'read');
 
         // 3. decided — the request is approved, the row goes inactive
         ReplacementRequest::query()->whereKey($request->id)->update(['status' => 'approved']);
-        $this->assertSame(['Lim Jia Zheng (5770)'], $this->subtitleSpans($panel()), 'decided');
+        $this->assertSame(['by Lim Jia Zheng (5770)'], $this->subtitleSpans($panel()), 'decided');
 
         // 4. hidden — the same row on the shelf
         Notification::query()->whereKey($row->id)->update(['hidden_at' => Date::now()]);
         $shelf = Livewire::test(NavNotifications::class, ['island' => 'panel', 'pageKey' => 'requestApproval', 'unreadOnly' => false])
             ->call('showHidden')->html();
-        $this->assertSame(['Lim Jia Zheng (5770)'], $this->subtitleSpans($shelf), 'hidden');
+        $this->assertSame(['by Lim Jia Zheng (5770)'], $this->subtitleSpans($shelf), 'hidden');
     }
 }

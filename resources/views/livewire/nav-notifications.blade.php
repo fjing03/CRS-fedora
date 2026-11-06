@@ -100,13 +100,17 @@
         @endif
         <div class="notif-head-actions">
             @unless($hiddenView)
-                <span class="notif-unread-pill" id="notifUnreadPill" hidden style="display: {{ $userTotal ? 'inline-flex' : 'none' }}"
+                {{-- notif-inactive-hide-sender (2026-11-05, spec R5): the header's
+                     anatomy does not change on a caught-up mailbox — the pill keeps
+                     reading `0` and Mark-all stays put, disabled. (The BELL badge
+                     keeps its own rule: hidden at zero.) --}}
+                <span class="notif-unread-pill" id="notifUnreadPill"
                       data-tip="{{ $unreadTotal }} unread messages" aria-label="{{ $unreadTotal }} unread messages">{{ $unreadTotal }}</span>
                 {{-- Mark all: ICON-ONLY at every width (user decision, notif-manage-hide).
                      The 30px square + outline border is the Close/Manage family; the
                      id and the wire:click are load-bearing (specs + behaviour). --}}
-                <button class="notif-iconbtn" id="notifMarkAll" type="button" wire:click="markAll" hidden
-                        style="display: {{ $userTotal ? 'inline-flex' : 'none' }}"
+                <button class="notif-iconbtn" id="notifMarkAll" type="button" wire:click="markAll"
+                        @disabled($unreadTotal === 0)
                         aria-label="Mark all as read" data-tip="Mark every notification as read." data-tip-pos="left">
                     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                         <path d="M22 13V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h8"/>

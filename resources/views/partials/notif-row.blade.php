@@ -61,6 +61,26 @@
             ? 'New Replacement Request (ID #'.(int) $n->request_id.')'
             : 'New Replacement Request';
     }
+    /* notif-inactive-hide-sender (2026-11-05, spec R2/R4): the panel reads Title
+       Case, and the two self-owned kinds say `Your`. The STORED title is never
+       touched — this is a render-time projection. */
+    $senderSelf = (bool) $n->getAttribute('sender_self');
+    $senderLine = $n->getAttribute('sender_line');
+    /* the KINDS are recognised by type OR by the stored sentence: the emitters
+       write the cancellation notice as type `update` (the frozen tile key) and the
+       proposer's confirmation as `update` too, so type alone would miss both. */
+    $isCancelKind = $n->type === 'cancelled' || strcasecmp((string) $n->title, 'Scheduled class cancelled') === 0;
+    $isSubmitKind = $n->type === 'submitted' || strcasecmp((string) $n->title, 'Replacement request submitted') === 0;
+    if ($senderSelf && $isCancelKind) {
+        $rowTitle = 'Your Scheduled Class Cancelled';
+    } elseif ($senderSelf && $isSubmitKind) {
+        $rowTitle = 'Your Replacement Request Submitted';
+    } else {
+        $rowTitle = \App\Support\TitleCase::of($composedTitle);
+    }
+    /* R3: ONE sender line — `by YOU` / `by Name (staff_id)`. When no actor can be
+       resolved the old pair of spans renders instead, so nothing is lost. */
+    $senderSubtitle = $senderSelf ? 'by YOU' : ($senderLine !== null && $senderLine !== '' ? 'by '.$senderLine : null);
     $composedBody = $display !== null ? $display['desc'] : $n->body;
     $subtitle = $display !== null ? ($display['subtitle'] ?? null) : null;
     $staffLine = $n->getAttribute('staff_line');   /* R5 — computed per render, survives read/hidden */
@@ -80,7 +100,7 @@
                NavNotifications::resolveRequests). Reading is not a decision. */
             default => 'This notification is inactive because the request was cancelled by the requester.',
         };
-        $rowLabel = $composedTitle.' — '.$composedBody.' (inactive)';
+        $rowLabel = $rowTitle.' — '.$composedBody.' (inactive)';
     } elseif ($display !== null && $display['tip'] !== null && $display['tip'] !== '') {
         /* T3/T4: the multiline tip = the composer's FACT lines with the dynamic
            Requested-at line 2 inserted after the Staff line (the T4 closures). */
@@ -145,19 +165,31 @@
     @endif
     <span class="notif-row-icon notif-tile-{{ $n->type }}"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">{!! $glyph !!}</svg></span>
     <span class="notif-row-body">
-        <span class="notif-row-title">{{ $composedTitle }}</span>
+        <span class="notif-row-title">{{ $rowTitle }}</span>
         {{-- R5 (notif-recipient-rulings, 2026-11-03): the `submitted` composer's own
              subtitle wins (on a live row it IS the staff line); the computed
              `staff_line` renders when its TEXT differs — so a future change to the
              composed line adds a line instead of silently dropping this one. Both
              null => nothing, byte-identical to before. --}}
-        @if($subtitle) <span class="notif-row-subtitle">{{ $subtitle }}</span> @endif@if($staffLine && $staffLine !== $subtitle) <span class="notif-row-subtitle">{{ $staffLine }}</span> @endif
+        @if($senderSubtitle)
+            <span class="notif-row-subtitle">{{ $senderSubtitle }}</span>
+        @else
+            @if($subtitle) <span class="notif-row-subtitle">{{ $subtitle }}</span> @endif@if($staffLine && $staffLine !== $subtitle) <span class="notif-row-subtitle">{{ $staffLine }}</span> @endif
+        @endif
         <span class="notif-row-desc">{{ $composedBody }}</span>
     </span>
     @if($variant === 'hidden')
         <span class="nr-right">
             <span class="notif-row-time">{{ $relTime($m) }}</span>
             <button type="button" class="notif-unhide" wire:click="unhide({{ (int) $n->id }})">Unhide</button>
+        </span>
+    @elseif($variant === null && $activation)
+        {{-- notif-inactive-hide-sender (2026-11-05, spec R1): an inactive row can
+             be put away straight from the feed — the shelf's `.nr-right` shape,
+             the same `hideOne` gate (`isHideableRow`: read OR inactive). --}}
+        <span class="nr-right">
+            <span class="notif-row-time" data-tip="{{ $absTime($n->created_at) }}" data-tip-pos="left">{{ $relTime($m) }}</span>
+            <button type="button" class="notif-hide" wire:click="hideOne({{ (int) $n->id }})">Hide</button>
         </span>
     @else
         <span class="notif-row-time" data-tip="{{ $absTime($n->created_at) }}" data-tip-pos="left">{{ $relTime($m) }}</span>

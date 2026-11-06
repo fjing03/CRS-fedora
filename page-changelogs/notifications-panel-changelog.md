@@ -1,3 +1,48 @@
+## 2026-11-05 (UI/UX, inline brief "Notifications Panel") — hide an inactive row, Title Case, a sender line, and an honest empty header
+
+Four asks, one lane (`notif-inactive-hide-sender`).
+
+### 1. An inactive row can be put away straight from the feed
+Inactive rows (`notif-row--inactive` — the read-time `undone` / `superseded` / decided-away
+notices) now carry a **Hide** action in `.nr-right`, under the timestamp, in the shelf's `Unhide`
+shape (one CSS rule, two carriers). It calls the existing `hideOne()` gate, which already admits any
+inactive row (`isHideableRow`: read **or** inactive), so nothing about the write path changed and
+the shelf's **Unhide** is untouched. Active rows never get the action; manage mode and the shelf keep
+their own layouts.
+
+### 2. Titles read Title Case
+One helper — `App\Support\TitleCase::of()` — projects the stored sentence at render, so history is
+never rewritten. Minor words (`of`, `the`, `to`, …) stay lowercase mid-title; tokens carrying digits,
+`#`, `/`, `&` or an existing acronym are left alone (`New Replacement Request (ID #28)` is
+byte-identical). 15 unit cases cover the real emitter strings.
+
+### 3. The row says who did it
+`sender_line` / `sender_self` are computed per render from the maps the R5 staff line already uses
+(no extra query): proposer for `submitted`/`awaiting`, approver for decisions, the class lecturer for
+class rows. `.notif-row-subtitle` now reads **`by Surayaini Binti Basri (5425)`** or **`by YOU`**, and
+the two self-owned kinds take **Your** in the title — *Your Scheduled Class Cancelled*, *Your
+Replacement Request Submitted*. The old pair of subtitle spans collapses into this one line (they used
+to print the same name twice); when no actor can be resolved the old spans still render, so nothing is
+lost.
+
+### 4. Zero unread keeps the header's anatomy
+At `0` the pill no longer disappears: it stays and reads **0**, and **Mark all as read** stays visible
+but **disabled** (`.notif-iconbtn:disabled` dims it, and it keeps its tooltip). The **bell badge**
+keeps its own rule — hidden at zero, unchanged.
+
+**Measured** (fresh `class_replacement_testing` seed, staff 5425, guarded spec
+`tests/notif-row-inactive-hide.spec.ts`): two `undone` rows render with Hide; both read
+*PROBE Inactive-hide Scheduled Class Cancelled*; subtitles read `by YOU`; the live self-owned
+cancellation reads *Your Scheduled Class Cancelled* with no Hide button; clicking Hide removes the row
+and raises the shelf count `Hidden (n)`; Unhide restores it; after Mark all the pill reads `0` and
+`#notifMarkAll` is visible-but-disabled. The two old island specs were updated to the new
+zero-unread contract.
+
+**Known, not caused by this lane:** running several notification specs in ONE Playwright process can
+trip Fortify's 5/min login limiter, which shows up as "badge 0" on whichever spec logs in next. Each
+of those specs is green on its own (measured today); the new spec avoids the issue by using the
+setup's `storageState`.
+
 ## 2026-11-05 — the inbox stops offering dead clicks (undone cancellations, superseded requests)
 
 The user's bug report: the 4th and 5th notifications (a `Scheduled class cancelled` and a `Replacement rejected`)

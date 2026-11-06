@@ -717,6 +717,11 @@ class NavNotifications extends Component
      * is now built ONCE by the caller (`classSessionsFor`) and shared with the
      * visibility guard, so the guard costs no extra query.
      *
+     * notif-inactive-hide-sender (2026-11-05): the same loop also stamps the
+     * SENDER — `sender_self` (the actor IS the recipient) and `sender_line`
+     * (`Name (staff_id)`) — from the very same maps. The row's subtitle and the
+     * two `Your …` titles read them, and no column or extra query is added.
+     *
      * @param  Collection<int, Notification>  $rows
      * @param  Collection<int, ReplacementRequest>  $requests
      * @param  Collection<int, ClassSession>  $sessions
@@ -726,9 +731,49 @@ class NavNotifications extends Component
     {
         foreach ($rows as $row) {
             $row->setAttribute('staff_line', $this->staffLine($row, $requests, $sessions));
+
+            [$self, $line] = $this->senderIdentity($row, $requests, $sessions);
+            $row->setAttribute('sender_self', $self);
+            $row->setAttribute('sender_line', $line);
         }
 
         return $rows;
+    }
+
+    /**
+     * WHO did this to whom (notif-inactive-hide-sender D1): the actor behind the
+     * notification, and whether the actor is the recipient.
+     *
+     *   submitted / awaiting  → the proposer (the person who submitted)
+     *   any decision / update → the approver, else the proposer
+     *   class-level rows      → the session's lecturer
+     *
+     * `staff_line` is the OTHER party; this is the SENDER. They coincide often,
+     * and diverge exactly where the brief matters (your own cancellation).
+     * Computed per render from the caller's already-built maps — one-query law.
+     *
+     * @param  Collection<int, ReplacementRequest>  $requests
+     * @param  Collection<int, ClassSession>  $sessions
+     * @return array{0: bool, 1: string|null}
+     */
+    private function senderIdentity(Notification $row, Collection $requests, Collection $sessions): array
+    {
+        $request = $row->request_id !== null ? $requests->get((int) $row->request_id) : null;
+
+        if ($request !== null) {
+            $actor = in_array($row->type, ['submitted', 'awaiting'], true)
+                ? $request->proposer
+                : ($request->approver ?? $request->proposer);
+        } else {
+            $session = $row->class_session_id !== null ? $sessions->get((int) $row->class_session_id) : null;
+            $actor = $session?->lecturer;
+        }
+
+        if ($actor === null) {
+            return [false, null];
+        }
+
+        return [(int) $actor->id === (int) $row->user_id, $this->staffLabel($actor)];
     }
 
     /**
