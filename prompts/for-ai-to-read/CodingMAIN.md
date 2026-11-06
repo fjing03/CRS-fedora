@@ -123,9 +123,11 @@ the notification, and `requestId` still rides the payload (row identity + notifi
 student history page and the notification feed read the DB directly and still say *Cancelled by YOU*;
 Rejected/Approved/Completed/Pending rows are byte-identical. The status filter offers **no
 Cancelled option** any more (nothing on the page can carry that state), and `restoreFilters()` maps a
-filter saved before the removal onto Need to Arrange. Receipts:
-`tests/request-cancel-pending.spec.ts` (write) + `replacement-home-status-badges.spec.ts` receipts
-9 and 10.
+filter saved before the removal onto Need to Arrange. The row that just changed also **pulses yellow**: `flashCancelledRow()` calls the shared
+`flashRowPulse(el, 'warning')` — the Earliest-bookable / Today mechanic with a tone argument, never a
+second animation (`bookable-pulse-warning`, same 0.5 s × 3, `--color-warning` ring; the phone card
+carries it too). Receipts: `tests/request-cancel-pending.spec.ts` (write, flash asserted through a
+MutationObserver) + `replacement-home-status-badges.spec.ts` receipts 9 and 10.
 
 ### FR 2.17 is enforced on the SERVER (2026-11-06)
 The grid refuses a too-soon cell in the browser (`leadTimeCutoff()` in `ui-common.js`), and since

@@ -66,6 +66,10 @@ Adding a new status/legend item = **ONE row** in the relevant table above + **ON
   - `public/css/theme.css` — ALL shared CSS (page-specific styles stay in `@section('page-styles')`).
   - `public/js/ui-common.js` — shared JS helpers (`buildTimetableGrid` two-axis default rendering + span coalescing, `WeekNavigator`, `computeSummary`, `buildReplacementNote`, `openClassModal`, `CancelClass`, `toast.show`, theme helpers).
   - `public/js/mock-data.js` — `window.MockData` single source of truth. Treat it as **read-only** (`slice()`/spread before mutating); new data = ONE new section in `mock-data.js`, never an inline page dataset. Real-data pages override `MockData.currentUser` / semester / holidays from the server payload.
+  - **One flash mechanic, tones — never a second animation.** `flashRowPulse(el, tone)` in
+    `ui-common.js` is the only highlight: green (Earliest bookable / Notifications / Go to My Timetable /
+    after-submit `?new-req=`), blue (Today column) and `'warning'` (the just-cancelled row,
+    `bookable-flash--warning`). New highlight → a tone on this function + a CSS arm, never new JS.
   - **A cancelled request is displayed as "no active request", never as its old proposal** (user
     brief 2026-11-06). `ReplacementHome::buildRow()` flips an owner-cancelled row to the no-request
     state (Need to Arrange badge, em-dash REQUESTED cell, no Proposed tab) — the RECORD stays
