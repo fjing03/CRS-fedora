@@ -54,6 +54,12 @@ and the matching `page-changelogs/*.md` to learn house style before designing.
   (`App\Concerns\CancelsClasses::cancelClassUndo()` no longer exists), so never re-offer it. Every
   final decision's confirm modal carries the shared sentence
   `partials.ui-irreversible-line` → *"This action cannot be UNDONE."*
+  **Auto-reject since 2026-11-06:** a PENDING request whose proposed start is within (or exactly)
+  **3 working hours** is rejected by the system — working time = TARUMT Sabah hours, Mon–Fri
+  08:30–17:30, weekends and the semester's `holidays` rows excluded. `App\Support\WorkingHours`
+  owns that clock; `php artisan requests:auto-reject` (scheduled every 5 min, manual in dev,
+  `--dry-run` prints without writing) is the ONLY trigger — never sweep from a page render (that
+  would write on GET against the demo DB), and never touch a non-pending row.
 - Reuse Flux/Livewire/Tailwind + `theme.css` + `ui-common.js`; no new dependencies.
 - Conventional commits: `ui:`, `feat:`, `fix:`, `refactor:`, `oop:`, `style:`, `docs:`.
 - Working branch: `fedora-backend` (push target `origin` = `fjing03/CRS-fedora.git` only; `upstream` is PULL-ONLY — see CodingMAIN.md §10.6). Never commit secrets. Never push unless the user explicitly says so.

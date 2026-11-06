@@ -3,7 +3,7 @@
 > The always-read form of the user's coding rules for `CRS-fedora-backend`.
 > Distilled from `CodingMAIN.md §10` (Coding Conventions + UI Design Rules, user-mandated 2026-08-01)
 > and `AGENTS.md` standing rules. On any conflict, **CodingMAIN.md §10 wins** — and tell the user
-> this file has drifted so it can be re-synced. Last synced: 2026-11-05.
+> this file has drifted so it can be re-synced. Last synced: 2026-11-06.
 
 ## 1. UI Design Rules — non-negotiable, every page, every change
 
@@ -71,6 +71,11 @@ Adding a new status/legend item = **ONE row** in the relevant table above + **ON
     end of the page's `DOMContentLoaded` block). The page script runs inside that closure, so only
     the explicitly exported names are reachable from the partial's markup — the symptom is a modal
     that opens but refuses to close with *"… is not defined"*.
+  - **A `data-tip` is TEXT, not HTML.** The shared engine (`initDataTipTooltips` in
+    `ui-common.js`) sets `textContent` and switches to `pre-line` when the string contains a
+    newline, so a multi-line tooltip is `"line one\nline two"` — a `<br>` prints literally. Keep
+    the copy in ONE server-side source (a status tip belongs in
+    `App\Services\ReplacementRequestMapper::statusTip()`), never a page-local copy.
   - **NEVER** copy-paste nav bar, tables, or helpers into a new page.
   - Theme toggle: `localStorage('theme')` = `dark`/`light`, `<html class="dark">` default; login pages use `.login-theme-toggle`.
 - **No business logic in controllers/views** — core logic lives in service classes (NFR 5.3): `App\Services\MatrixIntersectionEngine`, `App\Services\OCCValidator`.

@@ -89,6 +89,24 @@ All timetable pages use the frozen design's two-axis language: **colour = status
 5. **Notifications:** implement exactly FR 1.9 (students on timetable updates), 4.15 (PL on submission), 2.13 (lecturer on outcome); all sent via DB-backed queue (FR 4.16). No cross-lecturer alerts unless requested later.
 6. **MPU-3133 venue rule:** tutorial rooms + lecture halls OK, labs excluded (see §3 venue rules).
 
+### Auto-reject rule (user-confirmed 2026-11-06)
+A **Pending** replacement request is **automatically rejected** when its proposed start is within — or
+exactly — **3 working hours** of now. Working time is the TARUMT Sabah office clock:
+**Mon–Fri 08:30–17:30**, never evenings, Saturdays, Sundays or the semester's own `holidays` rows; a
+gap that crosses a closed period resumes at the next opening bell, and a proposal already in the past
+has no time left (0). Anything further out stays Pending, and **no other status is ever considered**.
+
+- Clock: `App\Support\WorkingHours` (`MIN_GAP_MINUTES = 180`, `gapMinutes()`,
+  `subtractWorkingMinutes()`, `holidays()` resolved through `semesters.start_date`).
+- Write leg: `App\Actions\AutoRejectRequest` — the cancel family's release (version-checked
+  `pending→available` flip + junction DELETE) so the reserved cells return, stamped `rejected` with a
+  fixed reason and **`approver_id` NULL** (no human decided); audits ride `action = 'rejected'` with
+  `details.auto = true`, attributed to the proposer (`audit_logs.user_id` is NOT NULL).
+- Trigger: `App\Services\PendingRequestExpiry` + `php artisan requests:auto-reject` (`--dry-run`),
+  scheduled every five minutes. **Never** a write-on-read (a page render must not mutate data).
+- UI: a Pending badge's `data-tip` states the deadline (proposed start − 3 working hours) through the
+  shared `ReplacementRequestMapper::statusTip()`, on both My Replacements and the PL queue.
+
 ---
 
 ## 4. Tech Stack & Dev Tools
@@ -114,6 +132,8 @@ composer run lint:check       # pint --test
 composer run types:check      # phpstan analyse (crashes at 128M here — use the line below)
 vendor/bin/phpstan analyse --memory-limit=1G
 composer run test             # lint:check + types:check + phpunit
+php artisan requests:auto-reject [--dry-run]   # the auto-reject sweep (scheduled every 5 min;
+                              # --dry-run prints what WOULD be rejected, writes nothing)
 npx playwright test tests/venue-db.spec.ts tests/timetable-wiring.spec.ts tests/nav-identity.spec.ts   # gate specs
 npm run dev / npm run build   # vite (not heavily used; UI uses static /css /js)
 ```
