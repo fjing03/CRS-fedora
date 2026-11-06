@@ -756,6 +756,9 @@
             currentFiltered.forEach(function (c) {
                 var card = document.createElement('div');
                 card.className = 'replacement-card';
+                /* the row's identity on the phone: the just-cancelled pulse
+                   (flashCancelledRow) finds the card by the same request id */
+                card.dataset.requestId = c.requestId || '';
                 card.setAttribute('role', 'button');
                 card.setAttribute('tabindex', '0');
                 card.addEventListener('click', function () { quickViewByRow(c); });
@@ -959,6 +962,22 @@
             list.push(freshRow);
         }
 
+        /* ─── The just-cancelled highlight (user 2026-11-06) ───
+           After a successful cancel the row pulses in the WARNING tone: it is
+           the SAME mechanic as the Earliest-bookable / Today jumps
+           (flashRowPulse in ui-common.js — one class, reflow restart, 3 × 0.5 s),
+           only the colour differs, so the page speaks one flash language. The
+           phone card gets it too — the table is hidden there. Never scrolls:
+           the user is already looking at the row they acted on. */
+        function flashCancelledRow(requestId) {
+            if (!requestId || typeof flashRowPulse !== 'function') return;
+            var sel = '[data-request-id="' + requestId + '"]';
+            var tr = document.querySelector('#tableBody tr' + sel);
+            if (tr) flashRowPulse(tr, 'warning');
+            var card = document.querySelector('#cardView .replacement-card' + sel);
+            if (card) flashRowPulse(card, 'warning');
+        }
+
         function bindCancelConfirm() {
             var btn = document.getElementById('confirmCancelAction');
             if (!btn) return;
@@ -990,6 +1009,9 @@
                     hideQuickView();
                     pageState.currentPage = 1;
                     buildTable();
+                    /* the receipt in the table itself: the row that just became
+                       Need to Arrange pulses yellow (one flash, after the rebuild) */
+                    flashCancelledRow(cancelId);
                     toast.show('Request #' + cancelId + ' cancelled.', null);
                 }).catch(function () {
                     restore();

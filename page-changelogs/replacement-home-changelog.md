@@ -1011,3 +1011,32 @@ same state on a fresh load; the released span is bookable again). `tests/replace
 updated: `MyReplacementsPayloadTest` cases 5 + 9, `ReplacementHistoriesTest`, `SpanReservationTest`
 (the anchor-after-release law now re-pointed at a rejected row, which is where that fallback is still
 visible).
+
+### Follow-up (same day): the cancelled row pulses in the **warning** tone
+
+User's word: *"highlight that cancelled tr, after cancel request with yellow/warning color, reuse the
+Earliest Bookable and today-btn highlight function/js."*
+
+So the receipt now lands in the table itself: the instant the cancel succeeds, that occurrence pulses —
+the **same** mechanic as the Earliest-bookable / Today jumps (`flashRowPulse()` in `ui-common.js`: one
+class, a reflow restart, `3 × 0.5 s`), with a **tone** argument instead of a second implementation.
+
+- `flashRowPulse(el, tone)` — `tone === 'warning'` adds `bookable-flash--warning`; omitted = the
+  shipped green family, byte-identical for every existing caller (earliest / today / notification /
+  Go-to-My-Timetable / after-submit `?new-req=`).
+- `theme.css` gains `@keyframes bookable-pulse-warning` + two specificity arms:
+  `tr.bookable-flash.bookable-flash--warning > td` and `.replacement-card.bookable-flash.bookable-flash--warning`.
+  Same 4 px / 63 % ring, colour `color-mix(var(--color-warning) 63%, transparent)` — so it follows the
+  light/dark token automatically. The tone means *"this is the request you just cancelled"*, not
+  *"this is bookable"*.
+- `replacement-home.blade.php`: `flashCancelledRow(requestId)` runs right after the `buildTable()` of the
+  success path and flashes the table row **and** the phone card (the card now carries
+  `data-request-id`, so the card view — where the table is hidden — gets the same receipt). It never
+  scrolls: the user is already looking at the row they acted on.
+
+Receipt: `tests/request-cancel-pending.spec.ts` watches the table from BEFORE the click (MutationObserver
+— the class lives only one run), then asserts the pulse landed on `data-request-id="<the cancelled
+request>"`, carries `bookable-flash--warning`, and that the computed animation is
+`bookable-pulse-warning / 0.5s / 3`. Measured screenshot of the ring: `/tmp/opencode/cancel-pulse-row.png`.
+The green arm is unchanged — `my-replacements-after-submit.spec.ts` still reports
+`{"name":"bookable-pulse","dur":"0.5s","count":"3"}`.

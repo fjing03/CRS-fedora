@@ -2813,6 +2813,20 @@ td.bookable-flash { animation: bookable-pulse 0.5s ease-in-out 3; }
 /* wins over `td.bookable-flash` by specificity — the today column only */
 td.today-cell.bookable-flash { animation: bookable-pulse-primary 0.5s ease-in-out 3; }
 .cell-content.today-cell.bookable-flash { animation: bookable-pulse-primary 0.5s ease-in-out 3; }
+/* ── the just-CANCELLED row's flash is YELLOW (user, 2026-11-06) ──
+   Same timing and the same 4px / 63% ring as the green and blue arms — only
+   the colour changes, because the meaning is "this is the request you just
+   cancelled", not "this is bookable / today". The tone rides a modifier class,
+   so flashRowPulse() keeps ONE mechanic and the caller picks the tone; the
+   warning token keeps light/dark in step automatically. */
+@keyframes bookable-pulse-warning {
+    0%, 100% { box-shadow: 0 0 0 0 transparent; }
+    45% { box-shadow: 0 0 0 4px color-mix(in srgb, var(--color-warning) 63%, transparent); }
+}
+/* wins over `tr.bookable-flash > td` by specificity (two classes) */
+tr.bookable-flash.bookable-flash--warning > td { animation: bookable-pulse-warning 0.5s ease-in-out 3; }
+/* the phone card view carries the same tone (the table is hidden there) */
+.replacement-card.bookable-flash.bookable-flash--warning { animation: bookable-pulse-warning 0.5s ease-in-out 3; }
 
 /* ── Bookable badge ("Bookings open" on the earliest bookable day) ──
    Same geometry as the Today/OFF/Holiday badge family; success green =

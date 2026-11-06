@@ -219,14 +219,21 @@ function flashEarliestBookableDay(weekData, weekIdx) {
 var BOOKABLE_PULSE_MS = 500;   /* one cycle — keep in step with theme.css */
 var BOOKABLE_PULSE_COUNT = 3;  /* how many flashes a jump paints */
 
-function flashRowPulse(el) {
-    el.classList.remove('bookable-flash');
+/**
+ * @param {Element} el
+ * @param {string} [tone] — 'warning' paints the yellow arm (the just-cancelled
+ *   row, 2026-11-06). Omitted = the shipped green family, byte-identical to
+ *   every existing caller (earliest / today / notification / timetable jumps).
+ */
+function flashRowPulse(el, tone) {
+    el.classList.remove('bookable-flash', 'bookable-flash--warning');
     void el.offsetWidth; /* restart the animation on repeat visits */
     el.classList.add('bookable-flash');
+    if (tone === 'warning') el.classList.add('bookable-flash--warning');
     /* the class must outlive the WHOLE run (3 × 0.5 s), or the last pulses never
        play — the old 1300 ms cap was sized for a single 1.15 s pulse */
     setTimeout(function() {
-        el.classList.remove('bookable-flash');
+        el.classList.remove('bookable-flash', 'bookable-flash--warning');
     }, BOOKABLE_PULSE_MS * BOOKABLE_PULSE_COUNT + 150);
 }
 

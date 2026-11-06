@@ -98,6 +98,28 @@ test('cancel own pending request leaves it Cancelled and releases the slot', asy
   await expect(page.locator('#cancelConfirmBody .warn-action').last()).toHaveText('UNDONE');
   await expect(page.locator('#cancelConfirmDetails dt')).toHaveCount(4);
 
+  /* the just-cancelled pulse (2026-11-06): watched from BEFORE the click, because
+     the class lives one run (3 × 0.5 s) and the rebuild is synchronous */
+  await page.evaluate(() => {
+    (window as unknown as { __cancelFlash: unknown }).__cancelFlash = null;
+    const body = document.getElementById('tableBody') as HTMLElement;
+    const obs = new MutationObserver(() => {
+      const tr = document.querySelector('#tableBody tr.bookable-flash--warning') as HTMLElement | null;
+      if (!tr) return;
+      const td = tr.querySelector('td') as HTMLElement | null;
+      const cs = td ? getComputedStyle(td) : null;
+      (window as unknown as { __cancelFlash: unknown }).__cancelFlash = {
+        requestId: tr.getAttribute('data-request-id'),
+        cls: tr.className,
+        animation: cs ? cs.animationName : null,
+        duration: cs ? cs.animationDuration : null,
+        iterations: cs ? cs.animationIterationCount : null,
+      };
+      obs.disconnect();
+    });
+    obs.observe(body, { subtree: true, childList: true, attributes: true, attributeFilter: ['class'] });
+  });
+
   const dialogs: string[] = [];
   page.on('dialog', async (d) => { dialogs.push(d.type()); await d.dismiss().catch(() => {}); });
   await page.locator('#confirmCancelAction').click(); // 'Yes, Cancel Request'
@@ -114,6 +136,15 @@ test('cancel own pending request leaves it Cancelled and releases the slot', asy
 
   // the proposed schedule is gone from the table: an em dash, no date/time/venue
   await expect(row2.locator('.col-requested .cell-dash')).toHaveText('—');
+
+  /* ── the CANCEL pulse: the Earliest/Today flash mechanic, warning tone ── */
+  const flash = await page.evaluate(() => (window as unknown as { __cancelFlash: any }).__cancelFlash);
+  expect(flash, 'the cancelled row pulses in the warning tone').not.toBeNull();
+  expect(flash.requestId, 'the pulse lands on the row that was cancelled').toBe(String(requestId));
+  expect(flash.cls).toContain('bookable-flash--warning');
+  expect(flash.animation, 'the warning arm of the one pulse').toBe('bookable-pulse-warning');
+  expect(flash.duration).toBe('0.5s');
+  expect(flash.iterations).toBe('3');
 
   // …and from the details pop-up: no Proposed tab, no Request ID, two tabs only
   await row2.locator('.col-code').click();
