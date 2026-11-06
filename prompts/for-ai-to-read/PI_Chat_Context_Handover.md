@@ -32,6 +32,7 @@
 **lecturer arm names the rule** since the 2026-11-06 UI update — *"Auto-Reject Rule: If This Request Has
 Not Been Approved At Least 3 Working Hours (…deadline…) Before The Proposed Class Start Time, It Will Be
 AUTOMATICALLY REJECTED."* (emphasis = capitalisation, a tip is textContent; the PL arm is unchanged). |
+| **The notification tooltips speak one vocabulary (2026-11-06)** | Every live row's `data-tip` is composed by `App\Support\Notifications\NotificationTip` — labels / Subject / schedules / `Rejection Reason` / `Reason` / `Request ID`, holiday-first reason in the Original line's parentheses, `Automatically Rejected by System` when `approver_id IS NULL`, students without the Staff lines, legacy `title — body` only for an unknown kind. One extra batch (`holidays`); the `replacement_requests` one-query law holds. Receipts: `NotificationsBridgeTest` +8, `notifications-island.spec.ts` 10/10, demo hover `/tmp/opencode/notif-tip-hover.png`. |
 | **A cancelled request displays as "Need to Arrange" (2026-11-06)** | A lecturer's own cancelled pending request is DISPLAYED as no active request on My Replacements: `badge-outline status-none` reading **Need to Arrange** (no-request tip), an em dash in REQUESTED REPLACEMENT, and a details pop-up with **no Proposed Replacement Schedule tab** (no Request ID/Week/Day/Date/Time/Duration/Venue). One normalisation in `ReplacementHome::buildRow()` — status→null + strings blanked. The RECORD is untouched (still `cancelled`, audited, slots released); history + notifications still say *Cancelled by YOU*. The status filter offers **no Cancelled option** (nothing on the page can carry that state); a filter saved before the removal is mapped onto Need to Arrange at restore. Receipts: `request-cancel-pending.spec.ts` (write), `replacement-home-status-badges.spec.ts` receipts 9 + 10. |
 | **A JS-owned control survives a Livewire round-trip (2026-11-06)** | The week `<select>`s have no server-side options, so a page-component re-render used to morph them empty — Approve/Reject blanked the Week filter and its chip printed a bare `Week: `. Guard: `withWeekLivewireGuard()` in `ui-common.js` (snapshot before `pageLivewire().call()`, restore options + value **before the caller's `.then()`**), plus a `Livewire.hook('commit')` net. Receipt: `tests/week-filter-preserved.spec.ts` (U1 Approve, U2 Reject, U3 Cancel Pending). |
 | **The submit action's own guards** | Since 2026-11-06 `SubmitReplacementRequest` enforces what only the page did: FR 2.17's 3-working-day notice (`slot_too_soon`, `WorkingHours::noticeCutoff()`) **and** D2's holiday landing ban (`holiday`). Sunday needs no arm (no Sunday slot rows). `tests/Feature/SubmitGatesTest.php` is the receipt file (10 cases). |
@@ -46,6 +47,22 @@ AUTOMATICALLY REJECTED."* (emphasis = capitalisation, a tip is textContent; the 
 ---
 
 ## 1. Latest sessions — 2026-11-03 → 2026-11-06
+
+### 2026-11-06 — notification row tooltips, one vocabulary (grilled brief)
+
+- The user's UI update *Organise Notification Row Hover Tooltips* came with a `grill-me`; eight
+  decisions were asked and answered before any code (G1 students, G2 the `awaiting` reminder, G3 the
+  proposer's own copy, G4=B one `Original Class Schedule:` label, G5 `approver_id IS NULL` = automatic,
+  G6=A holiday-first reason, G7 the user's date/time/ID formats, (a) no `Conflict Reason:` line,
+  (b) `Automatically Rejected by System`).
+- Implemented as one pure composer (`NotificationTip`) + `ClassTypeLabel` (the PHP twin of the JS
+  `UiLabels`): the island classifies the kind from the tile type + stored title and passes the maps it
+  already loads. ONE new batch (`holidays`) — the one-`replacement_requests`-query receipt stays green.
+- Eight Feature cases pin the exact lines per kind; the demo hover shows the real thing
+  (`/tmp/opencode/notif-tip-hover.png`: the 6-line new-request tip).
+- Two stale browser fixtures were fixed on the way (both red since the 2026-11-05 "panel opens on Active
+  only" default): `notifications-island-testing-db.spec.ts` asserted inactive rows without switching that
+  filter off. 6/6 green now. Full PHPUnit **394 / 2093**.
 
 ### 2026-11-06 — the Pending tooltip names the rule (UI update)
 
@@ -387,6 +404,7 @@ date, and its files are dirty in the tree — see §3.
 | 19 | **The notification row speaks plainly** (inline brief, 2026-11-05): an inactive row can be hidden from the feed (Hide in `.nr-right`); every title reads **Title Case** at render (the stored sentence is never rewritten); the subtitle is the **sender** line — `by YOU` when the reader is the actor, else `by Name (staff_id)` — and a self-owned cancellation/submission says **Your** in the title; at zero unread the pill reads **0** and Mark-all stays visible but **disabled** (the bell badge still hides at zero). |
 | 20 | **A pending request has a 3-working-hour window — and it is the SYSTEM that closes it** (user brief `Auto-Reject Pending Requests.md`, 2026-11-06). Working time = TARUMT Sabah hours, Mon–Fri 08:30–17:30, weekends and the semester's `holidays` excluded; the boundary itself rejects (`gap ≤ 180` minutes), anything further out stays Pending, and no other status is ever considered. **`App\Support\WorkingHours` is the only clock** — the deadline a tooltip promises and the moment the sweep compares are one computation, and neither may hardcode its own hours. The sweep is `php artisan requests:auto-reject` (scheduled 5 min, `--dry-run` safe) — **never** triggered from a page render (that would be a write-on-GET against the demo DB). An auto-rejected row keeps `approver_id = NULL` and is audited with `details.auto = true`, because no human decided. The Pending badge's `data-tip` always names the deadline (both pages, one vocabulary). |
 | 21 | **The notifications panel opens on "Active only"** (user, 2026-11-05): `activeOnly` defaults ON beside `unreadOnly`, so the first view is actionable unread and the decided rows are one toggle away. A **disabled control is visible but inert** and shows `cursor: not-allowed` everywhere (one rule for `button`/`.btn`/`input`/`select`/`textarea`, no `pointer-events: none` so a disabled icon keeps its tooltip); an ID selector that sets `cursor: pointer` must restate `:disabled` itself. |
+| 25 | **The notification tooltip has ONE vocabulary** (user UI update 2026-11-06, after a grill): every live row is composed by `NotificationTip` — Subject / schedules / reasons / `Request ID`, labels omitted when their facts are missing, the reason holiday-first inside the Original line's parentheses, `Automatically Rejected by System` for a system rejection (`approver_id IS NULL`), students without the Staff/Requested-At lines, and the legacy `title — body` only for a kind with no layout. A `data-tip` stays TEXT. |
 | 24 | **A cancelled request is displayed as "no active request"** (user brief 2026-11-06). On My Replacements an owner-cancelled occurrence shows **Need to Arrange**, an em dash in REQUESTED REPLACEMENT and no Proposed Replacement Schedule tab — one normalisation in `buildRow()` (status → null, replacement strings blanked), never three separate view patches. The RECORD is not rewritten: `cancelled`, `decided_at`, audit rows, released slots and the notification stay, and the history/notification surfaces still read *Cancelled by YOU*. `cancelled` means "the owner did it" because `CancelPendingRequest` is the only writer and it is ownership-checked. Other statuses are untouched. **Follow-up (`remove that option`):** the status filter no longer offers **Cancelled** — nothing on the page can carry that state — and a filter saved before the removal is mapped onto Need to Arrange when restored. **Follow-up (highlight):** the just-cancelled row pulses in the WARNING tone (`flashRowPulse(el, 'warning')` — the Earliest/Today mechanic, never a second animation; the phone card carries it too). |
 | 23 | **A JS-owned control must survive a Livewire round-trip** (2026-11-06). Anything the server renders EMPTY but JavaScript fills (the week selects, `#filterChips`, table bodies) is deleted by the morph. The week selects are guarded centrally (`withWeekLivewireGuard()` around `pageLivewire().call()`; restore synchronously, never in a `setTimeout` — the caller's `.then()` reads the value first). Prefer that over `wire:ignore`, which would also freeze server-driven attributes. |
 | 22 | **A rule the page enforces must also exist in the action** (2026-11-06). FR 2.17's 3-working-day notice was JavaScript-only; `SubmitReplacementRequest` now refuses `slot_too_soon` on the same `WorkingHours` calendar, and the failure copy reuses the grid's own sentence. When you add or touch a booking rule: action first, then the page, then one test — never the browser alone. |
@@ -473,7 +491,7 @@ date, and its files are dirty in the tree — see §3.
 - Playwright gotchas: run `.cjs` helpers from the repo cwd (`package.json` is
   `"type": "module"`); avoid `ctx` name collisions; `:visible` is not a CSS selector;
   add `?_=` cache-busters.
-- A full-suite number is **PHPUnit only** (386/2053 at 2026-11-06). The data-dependent specs (request-approval,
+- A full-suite number is **PHPUnit only** (394/2093 at 2026-11-06). The data-dependent specs (request-approval,
   warning-keywords) must be re-run after any data change.
 
 **SDD**
@@ -521,7 +539,7 @@ date, and its files are dirty in the tree — see §3.
 
 ## 5. Open tasks (state at 2026-11-06)
 
-1. **[USER] Push** — 25 commits sit on `fedora-backend` past `39b2bb7` (the Pending-tip copy is newest, 2026-11-06).
+1. **[USER] Push** — 27 commits sit on `fedora-backend` past `39b2bb7` (the Pending-tip copy is newest, 2026-11-06).
    Nothing is pushed by an agent, ever.
 2. ~~**[USER, waiting on the archive word]** Seven finished lanes~~ — **ARCHIVED 2026-11-05**:
    `mytimetable-jump-highlight`, `notif-click-behaviour`, `receipt-target-guard`,

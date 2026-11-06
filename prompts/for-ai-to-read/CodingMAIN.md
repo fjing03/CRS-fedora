@@ -112,6 +112,20 @@ has no time left (0). Anything further out stays Pending, and **no other status 
   those parentheses is the row's own computed value, and the three emphasis phrases ride capitalisation
   because a `data-tip` is `textContent` (never HTML). The PL arm keeps its own voice verbatim.
 
+### The notification row's tooltip vocabulary (2026-11-06)
+Every LIVE notification row's `data-tip` is composed by
+`App\Support\Notifications\NotificationTip` (pure) from the batches the island already loads — one label
+set, one order, one format across all eight kinds: `Staff (Proposer)` · `Requested At` · `Subject` /
+`Subject & Cohort` · `Conflicted/Original/Cancelled Class Schedule` · `Proposed` / `Approved Replacement
+Schedule` · `Rejection Reason` · `Reason` · `Request ID`. Rules: the kind comes from the frozen tile
+`type` + stored title; a line is omitted when its facts are missing; fewer than two lines falls back to
+the legacy `title — body`; the cancellation reason is **holiday-first** and rides the Original line's
+parentheses (there is no `Conflict Reason:` line any more); an automatic rejection is recognised by
+`approver_id IS NULL` and reads exactly **`Rejection Reason: Automatically Rejected by System`**; student
+rows drop the Staff/Requested-At lines. Formats: `Mon, 9 Nov 2026`, `11:00 AM–1:00 PM`. The island added
+ONE batch (`holidays`) — the `replacement_requests` one-query law is unchanged. Receipts:
+`NotificationsBridgeTest` (8 tip cases), `notifications-island.spec.ts`.
+
 ### A cancelled request displays as "Need to Arrange" (2026-11-06)
 When a lecturer cancels their own pending request, My Replacements does **not** keep advertising the
 released proposal. `ReplacementHome::buildRow()` normalises that row to the no-request state: status
