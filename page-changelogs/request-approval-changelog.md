@@ -571,3 +571,35 @@ the proposed start minus 3 working hours (Mon–Fri 08:30–17:30, weekends and
 semester holidays excluded) — the same clock `php artisan requests:auto-reject`
 uses. Full write-up + receipts: `status-tooltips-filter-chips-changelog.md`
 (2026-11-06). Every other status tip is byte-identical.
+
+## 2026-11-06 — the Week filter survives Approve/Reject (the morph was eating it)
+
+User report: after approving or rejecting, the **Week** dropdown went blank while its filter chip stayed
+and printed a bare `Week: `.
+
+**Cause (measured, not guessed).** The week selects have no server-side options — `populateWeekSelect()`
+builds them from `weekRanges`/`weekData`. A page component's round-trip re-renders the whole view, and
+Livewire morphs the DOM from the server's HTML, where that `<select>` is empty: the options are deleted
+and the value collapses to `''`. `renderFilterChips()` then rebuilt the chip from the now-empty select,
+so `selectedOptions[0]` was `undefined` and the label fell back to the empty value. Measured pre-fix with
+a non-writing round-trip (`approve` on an unknown id): `options 15 → 0`, `value '8' → ''`, chip
+`Week: ×`.
+
+**Fix.** `public/js/ui-common.js` now snapshots every registered select's value before a round-trip and
+restores the options (from the same cfg) plus the value after it:
+
+- `withWeekLivewireGuard()` wraps `pageLivewire()`'s `call()`, so the restore lands **before** the
+  caller's `.then()` — which is what rebuilds the chips. (A deferred restore is too late: the chip is
+  written first and keeps the blank label.)
+- a `Livewire.hook('commit')` net covers every other round-trip that re-renders a page component
+  (`wire:click` and friends).
+- Only the JS-built options and the value are restored — attributes still morph, so
+  `cohort-timetable`'s server-driven `disabled` keeps working. No `wire:ignore`, no per-page code.
+
+Nothing else changes: the chosen week still drives the filter, the chip label, the arrows and the
+persisted filter state.
+
+Receipt: `tests/week-filter-preserved.spec.ts` — U1 Approve, U2 Reject, U3 Cancel Pending
+(my-replacements), each selecting week 14, acting through the page's own modal, then asserting the
+dropdown still has 15 options / value `14` / label `Week 14` **and** that the chip still names the week.
+Red before the fix (U1 + U2), green after; guarded to the testing DB because it writes.

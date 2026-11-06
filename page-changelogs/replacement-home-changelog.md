@@ -940,3 +940,18 @@ Automatically Rejected.* Deadline = proposed start minus 3 working hours
 `\n` (the shared data-tip engine renders textContent, so `\n` + pre-line, not
 `<br>`). Full write-up + receipts: `status-tooltips-filter-chips-changelog.md`
 (2026-11-06).
+
+## 2026-11-06 — Cancel Pending no longer blanks the Week filter
+
+Same defect as `request-approval-ui` (see that changelog for the measurement): after **Cancel** on a
+pending request, the Week dropdown lost its options because the page component's re-render morphs the
+select from the server's empty HTML, and the chip (rebuilt from the empty select) printed `Week: `.
+
+The fix is shared, not per-page: `ui-common.js` snapshots the week selects before a round-trip and
+restores options + value after it (`withWeekLivewireGuard()` around `pageLivewire().call()`, plus a
+`commit`-hook net). This page needed no change of its own — `cancelRequest` goes through
+`pageLivewire().call()`, so the guard brackets it.
+
+Receipt: `tests/week-filter-preserved.spec.ts` U3 (week 14 selected → cancel → the row's status flips,
+the dropdown still reads `Week 14` and its chip still names the week). It also asserts the cancel's own
+toast, so it cannot pass vacuously.

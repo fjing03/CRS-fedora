@@ -2128,7 +2128,9 @@ window.pageLivewire = function () {
         return name !== 'navnotifications' && name !== 'nav-notifications';
     });
     if (!page) return null;
-    return page.$wire ? page.$wire : page;   // Livewire 4: the call API lives on $wire
+    // Livewire 4: the call API lives on $wire. The guard keeps a page action from
+    // blanking the JS-owned week select (see withWeekLivewireGuard).
+    return withWeekLivewireGuard(page.$wire ? page.$wire : page);
 };
 
 /** Durable mark-read: idempotent, auth-scoped, keepalive. */
@@ -3230,6 +3232,94 @@ function populateWeekSelect(selectId, cfg) {
     }
     return sel;
 }
+
+/* ── A JS-owned week <select> must survive a Livewire round-trip ─────────
+   Reported 2026-11-06: on request-approval-ui after Approve/Reject and on
+   my-replacements after Cancel, the Week dropdown went blank while its filter
+   chip stayed, printing a bare 'Week: '.
+
+   Cause: the week selects have NO server-side options — every page builds them
+   with populateWeekSelect() from weekRanges / weekData. A page component that
+   re-renders morphs its DOM from the server's HTML, where that <select> is
+   empty, so the options are deleted and the value collapses to ''.
+
+   Fix: the value is snapshotted before the round-trip and the options + value
+   are put back after it. Two entry points, because the timing differs:
+     • withWeekLivewireGuard() wraps pageLivewire()'s call(), so the restore
+       lands BEFORE the caller's .then() — which is what rebuilds the filter
+       chips (they read the select's value).
+     • the 'commit' hook is the net for every other round-trip (wire:click and
+       friends) that re-renders a page component.
+   Only the JS-built options and the value are restored: attributes still morph,
+   so cohort-timetable's server-driven `disabled` keeps working. */
+function snapshotWeekSelects() {
+    window.__weekSelectKeep = {};
+    Object.keys(populateWeekSelect._registry || {}).forEach(function (id) {
+        const el = document.getElementById(id);
+        if (el) window.__weekSelectKeep[id] = el.value;
+    });
+}
+
+function restoreWeekSelects() {
+    const kept = window.__weekSelectKeep;
+    if (!kept) return;
+    Object.keys(kept).forEach(function (id) {
+        const el = document.getElementById(id);
+        if (!el) return;
+        if (el.options.length === 0) {
+            populateWeekSelect(id, populateWeekSelect._registry[id] || {});
+        }
+        const want = kept[id];
+        if (!want || el.value === want) return;
+        const has = Array.prototype.some.call(el.options, function (o) { return o.value === want; });
+        if (has) el.value = want;
+    });
+    window.__weekSelectKeep = null;
+}
+
+/** Wrap a $wire so `.call()` brackets itself with the week-select guard. */
+function withWeekLivewireGuard(api) {
+    if (!api || typeof api.call !== 'function' || typeof Proxy !== 'function') return api;
+    const guardedCall = function () {
+        snapshotWeekSelects();
+        const promise = api.call.apply(api, arguments);
+        if (promise && typeof promise.then === 'function') {
+            return promise.then(function (result) {
+                restoreWeekSelects();
+                return result;
+            });
+        }
+        restoreWeekSelects();
+        return promise;
+    };
+    return new Proxy(api, {
+        get: function (target, prop) {
+            if (prop === 'call') return guardedCall;
+            const value = target[prop];
+            return typeof value === 'function' ? value.bind(target) : value;
+        },
+    });
+}
+
+(function wireWeekSelectGuard() {
+    function wire() {
+        if (!window.Livewire || typeof window.Livewire.hook !== 'function') return;
+        window.Livewire.hook('commit', function (payload) {
+            snapshotWeekSelects();
+            if (payload && typeof payload.succeed === 'function') {
+                payload.succeed(function () {
+                    restoreWeekSelects();
+                    setTimeout(restoreWeekSelects, 0); // second, idempotent pass
+                });
+            }
+            if (payload && typeof payload.fail === 'function') {
+                payload.fail(function () { window.__weekSelectKeep = null; });
+            }
+        });
+    }
+    if (window.Livewire && typeof window.Livewire.hook === 'function') wire();
+    else document.addEventListener('livewire:init', wire);
+})();
 
 /* The PL nav badge count — REAL-state-first (SDD span-aware-approval-flow
    user report 2026-10-18): the layout's nav partial renders the server count
