@@ -29,6 +29,7 @@
 | Suite | Last full PHPUnit run **386 tests / 2031 assertions** (2026-11-06, after `40ffb5f`; +27 = the auto-reject rule's 17 clock/sweep cases + the 10 submit-gate cases). Browser suites are separate and NOT part of that number — quote them by name: `venue-book` 19, venue neighbours 61 passed / 2 skipped, `cancel-class` 12 passed / 4 skipped, `status-tooltips-filter-chips` 9, `notif-row-inactive-hide` 5. |
 | SDD lanes | **35** lane dirs under `.sdd/changes/` (**33** older finished ones + `venue-slot-validation` and `notif-inactive-hide-sender`, both `status: applied` 2026-11-05), **101** archived. Archive only on the user's word. |
 | **Auto-reject rule (2026-11-06)** | A **pending** request whose proposed start is within — or exactly — **3 working hours** is rejected by the system. Working time = TARUMT Sabah hours, **Mon–Fri 08:30–17:30**, weekends + the semester's `holidays` excluded (`App\Support\WorkingHours`, `MIN_GAP_MINUTES = 180`). Write leg `App\Actions\AutoRejectRequest` (cancel-family release, `approver_id` NULL, audits `details.auto`); trigger `php artisan requests:auto-reject` (`--dry-run`) scheduled every 5 min — **never** a write-on-read. The Pending badge's `data-tip` states the deadline (proposed start − 3 working hours) on both pages. |
+| **A cancelled request displays as "Need to Arrange" (2026-11-06)** | A lecturer's own cancelled pending request is DISPLAYED as no active request on My Replacements: `badge-outline status-none` reading **Need to Arrange** (no-request tip), an em dash in REQUESTED REPLACEMENT, and a details pop-up with **no Proposed Replacement Schedule tab** (no Request ID/Week/Day/Date/Time/Duration/Venue). One normalisation in `ReplacementHome::buildRow()` — status→null + strings blanked. The RECORD is untouched (still `cancelled`, audited, slots released); history + notifications still say *Cancelled by YOU*. Receipts: `request-cancel-pending.spec.ts` (write), `replacement-home-status-badges.spec.ts` receipt 9. |
 | **A JS-owned control survives a Livewire round-trip (2026-11-06)** | The week `<select>`s have no server-side options, so a page-component re-render used to morph them empty — Approve/Reject blanked the Week filter and its chip printed a bare `Week: `. Guard: `withWeekLivewireGuard()` in `ui-common.js` (snapshot before `pageLivewire().call()`, restore options + value **before the caller's `.then()`**), plus a `Livewire.hook('commit')` net. Receipt: `tests/week-filter-preserved.spec.ts` (U1 Approve, U2 Reject, U3 Cancel Pending). |
 | **The submit action's own guards** | Since 2026-11-06 `SubmitReplacementRequest` enforces what only the page did: FR 2.17's 3-working-day notice (`slot_too_soon`, `WorkingHours::noticeCutoff()`) **and** D2's holiday landing ban (`holiday`). Sunday needs no arm (no Sunday slot rows). `tests/Feature/SubmitGatesTest.php` is the receipt file (10 cases). |
 | **FR 2.17 is server-side** | Since 2026-11-06 `App\Actions\SubmitReplacementRequest` refuses a slot inside the 3-working-day notice window (`slot_too_soon`) — the grid's `leadTimeCutoff()` was only the browser's word. Calendar: `WorkingHours::noticeCutoff()` / `isBookableOnDate()`, the same class as the auto-reject sweep, so grid "Bookable from …", the gate and the pending-deadline tooltip agree (measured 2026-11-06: Fri 6 Nov → **12 Nov** on both sides, 98/98 semester days). |
@@ -42,6 +43,31 @@
 ---
 
 ## 1. Latest sessions — 2026-11-03 → 2026-11-06
+
+### 2026-11-06 — a cancelled request stops advertising its dead proposal (user brief)
+
+- Brief *Cancelled Pending Requests*: after the owner cancels, the occurrence must read **Need to
+  Arrange** (badge), show `—` in REQUESTED REPLACEMENT, and lose the whole **Proposed Replacement
+  Schedule** tab in the pop-up — without touching the record.
+- Implemented as ONE normalisation in `ReplacementHome::buildRow()`: an owner-cancelled row's status
+  becomes `null` and its replacement strings (plus `remarks`/`rejectionReason`) are blanked. The view
+  already renders the no-request state for an absent date, so the badge class/tip/sentence, the dash,
+  the missing tab, the visible Arrange button and the needs-action sort group all follow — **no view
+  or JS change at all**.
+- `cancelled` == "the owner cancelled it" because `CancelPendingRequest` is the only writer of that
+  status and it is ownership-checked (FR 2.10). Untouched: the record, `decided_at`, the audit rows,
+  the released slots, the notification; `requestId` stays on the payload for the row identity and the
+  notification jump. Rejected/Approved/Completed/Pending rows are byte-identical.
+- Tests moved with the law: `MyReplacementsPayloadTest` cases 5 + 9, `ReplacementHistoriesTest`,
+  `SpanReservationTest` (its anchor-after-release leg is now re-pointed at a **rejected** row, where
+  that fallback is still visible — the cancelled row no longer displays a slot at all).
+- Receipts: `request-cancel-pending.spec.ts` green (real submit → cancel → badge/dash/modal/DB/audit
+  asserted, fresh load agrees, span bookable again); `replacement-home-status-badges.spec.ts` **12/12**
+  on the demo DB (new receipt 9); `week-filter-preserved` + `my-replacements-after-submit` +
+  `arrangement-entry-guard` 13/13; full PHPUnit **386 / 2053**.
+- Also fixed while using it: `request-cancel-pending.spec.ts` had a strict-mode violation of its own
+  (the shared irreversible line carries TWO `.warn-action` spans — CANCEL and UNDONE — so the UNDONE
+  assertion needed `.last()`). That spec had been red since the CANCEL keyword landed.
 
 ### 2026-11-06 — the Week filter no longer blanks after a decision (bug report)
 
@@ -331,6 +357,7 @@ date, and its files are dirty in the tree — see §3.
 | 19 | **The notification row speaks plainly** (inline brief, 2026-11-05): an inactive row can be hidden from the feed (Hide in `.nr-right`); every title reads **Title Case** at render (the stored sentence is never rewritten); the subtitle is the **sender** line — `by YOU` when the reader is the actor, else `by Name (staff_id)` — and a self-owned cancellation/submission says **Your** in the title; at zero unread the pill reads **0** and Mark-all stays visible but **disabled** (the bell badge still hides at zero). |
 | 20 | **A pending request has a 3-working-hour window — and it is the SYSTEM that closes it** (user brief `Auto-Reject Pending Requests.md`, 2026-11-06). Working time = TARUMT Sabah hours, Mon–Fri 08:30–17:30, weekends and the semester's `holidays` excluded; the boundary itself rejects (`gap ≤ 180` minutes), anything further out stays Pending, and no other status is ever considered. **`App\Support\WorkingHours` is the only clock** — the deadline a tooltip promises and the moment the sweep compares are one computation, and neither may hardcode its own hours. The sweep is `php artisan requests:auto-reject` (scheduled 5 min, `--dry-run` safe) — **never** triggered from a page render (that would be a write-on-GET against the demo DB). An auto-rejected row keeps `approver_id = NULL` and is audited with `details.auto = true`, because no human decided. The Pending badge's `data-tip` always names the deadline (both pages, one vocabulary). |
 | 21 | **The notifications panel opens on "Active only"** (user, 2026-11-05): `activeOnly` defaults ON beside `unreadOnly`, so the first view is actionable unread and the decided rows are one toggle away. A **disabled control is visible but inert** and shows `cursor: not-allowed` everywhere (one rule for `button`/`.btn`/`input`/`select`/`textarea`, no `pointer-events: none` so a disabled icon keeps its tooltip); an ID selector that sets `cursor: pointer` must restate `:disabled` itself. |
+| 24 | **A cancelled request is displayed as "no active request"** (user brief 2026-11-06). On My Replacements an owner-cancelled occurrence shows **Need to Arrange**, an em dash in REQUESTED REPLACEMENT and no Proposed Replacement Schedule tab — one normalisation in `buildRow()` (status → null, replacement strings blanked), never three separate view patches. The RECORD is not rewritten: `cancelled`, `decided_at`, audit rows, released slots and the notification stay, and the history/notification surfaces still read *Cancelled by YOU*. `cancelled` means "the owner did it" because `CancelPendingRequest` is the only writer and it is ownership-checked. Other statuses are untouched. |
 | 23 | **A JS-owned control must survive a Livewire round-trip** (2026-11-06). Anything the server renders EMPTY but JavaScript fills (the week selects, `#filterChips`, table bodies) is deleted by the morph. The week selects are guarded centrally (`withWeekLivewireGuard()` around `pageLivewire().call()`; restore synchronously, never in a `setTimeout` — the caller's `.then()` reads the value first). Prefer that over `wire:ignore`, which would also freeze server-driven attributes. |
 | 22 | **A rule the page enforces must also exist in the action** (2026-11-06). FR 2.17's 3-working-day notice was JavaScript-only; `SubmitReplacementRequest` now refuses `slot_too_soon` on the same `WorkingHours` calendar, and the failure copy reuses the grid's own sentence. When you add or touch a booking rule: action first, then the page, then one test — never the browser alone. |
 
@@ -416,7 +443,7 @@ date, and its files are dirty in the tree — see §3.
 - Playwright gotchas: run `.cjs` helpers from the repo cwd (`package.json` is
   `"type": "module"`); avoid `ctx` name collisions; `:visible` is not a CSS selector;
   add `?_=` cache-busters.
-- A full-suite number is **PHPUnit only** (386/2031 at 2026-11-06). The data-dependent specs (request-approval,
+- A full-suite number is **PHPUnit only** (386/2053 at 2026-11-06). The data-dependent specs (request-approval,
   warning-keywords) must be re-run after any data change.
 
 **SDD**
@@ -464,7 +491,7 @@ date, and its files are dirty in the tree — see §3.
 
 ## 5. Open tasks (state at 2026-11-06)
 
-1. **[USER] Push** — 15 commits sit on `fedora-backend` past `39b2bb7` (the week-filter fix is newest, 2026-11-06).
+1. **[USER] Push** — 17 commits sit on `fedora-backend` past `39b2bb7` (the cancelled-request display change is newest, 2026-11-06).
    Nothing is pushed by an agent, ever.
 2. ~~**[USER, waiting on the archive word]** Seven finished lanes~~ — **ARCHIVED 2026-11-05**:
    `mytimetable-jump-highlight`, `notif-click-behaviour`, `receipt-target-guard`,

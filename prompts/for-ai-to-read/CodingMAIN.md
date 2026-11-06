@@ -107,6 +107,23 @@ has no time left (0). Anything further out stays Pending, and **no other status 
 - UI: a Pending badge's `data-tip` states the deadline (proposed start − 3 working hours) through the
   shared `ReplacementRequestMapper::statusTip()`, on both My Replacements and the PL queue.
 
+### A cancelled request displays as "Need to Arrange" (2026-11-06)
+When a lecturer cancels their own pending request, My Replacements does **not** keep advertising the
+released proposal. `ReplacementHome::buildRow()` normalises that row to the no-request state: status
+`null` (badge `badge-outline status-none` reading **Need to Arrange** with the no-request tip), the
+replacement strings blanked (the REQUESTED REPLACEMENT cell renders its em dash) and `remarks` /
+`rejectionReason` dropped (the details pop-up therefore loses its whole **Proposed Replacement
+Schedule** tab, Request ID included). One normalisation, zero view code — the page already renders the
+no-request state for an absent date.
+
+`cancelled` is exactly "the owner cancelled it": `CancelPendingRequest` is the only writer of that
+status and it refuses anyone but the proposer (FR 2.10). **Nothing is rewritten**: the record keeps
+`status = 'cancelled'`, `decided_at`, its `action = 'cancelled'` audit rows, the released slots and
+the notification, and `requestId` still rides the payload (row identity + notification jump). The
+student history page and the notification feed read the DB directly and still say *Cancelled by YOU*;
+Rejected/Approved/Completed/Pending rows are byte-identical. Receipts:
+`tests/request-cancel-pending.spec.ts` (write) + `replacement-home-status-badges.spec.ts` receipt 9.
+
 ### FR 2.17 is enforced on the SERVER (2026-11-06)
 The grid refuses a too-soon cell in the browser (`leadTimeCutoff()` in `ui-common.js`), and since
 2026-11-06 `App\Actions\SubmitReplacementRequest` refuses it too — a submit needs the slot's DATE to
