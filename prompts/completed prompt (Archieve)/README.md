@@ -92,3 +92,9 @@ a reason to archive.
 
 Note: most `pi-prompt-*.md` files are gitignored (`.gitignore:38`), so some of
 these archives are filesystem-only and were never committed.
+
+## Contents (archived 2026-11-06)
+
+| Prompt | Why it counts as finished |
+|---|---|
+| `Organise Notification Row Hover Tooltips.md` | Grilled first (eight decisions answered: G1 students, G2 the `awaiting` reminder, G3 the proposer's own copy, G4=B one `Original Class Schedule:` label, G5 `approver_id IS NULL` = automatic, G6=A holiday-first reason, G7 the user's date/time/ID formats, and (b) `Automatically Rejected by System`) and then shipped in `e113618` + docs `0ee9808`. One composer, `App\Support\Notifications\NotificationTip` (+ `App\Support\ClassTypeLabel`), now gives **all eight live kinds** the same label set, order and formats — including student rows and the PL reminder, which the brief had not covered. Recorded in `page-changelogs/notifications-panel-changelog.md` (2026-11-06 entry). Receipts: `NotificationsBridgeTest` 36/36 (8 new tip cases), full PHPUnit **394 / 2093**, `notifications-island.spec.ts` 10/10 and `notifications-island-testing-db.spec.ts` 6/6 on the browser; live hover screenshot `/tmp/opencode/notif-tip-hover.png` |
