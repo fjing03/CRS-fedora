@@ -5,6 +5,7 @@ namespace App\Actions;
 use App\Mail\ReplacementSubmitted;
 use App\Models\ClassSession;
 use App\Models\ReplacementRequest;
+use App\Models\Semester;
 use App\Models\TimeSlot;
 use App\Models\User;
 use App\Models\Venue;
@@ -12,6 +13,7 @@ use App\Services\LectureSessionCatalog;
 use App\Services\MatrixIntersectionEngine;
 use App\Services\OCCValidator;
 use App\Support\Notifications\NotificationEmitter;
+use App\Support\WorkingHours;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Mail;
@@ -82,6 +84,24 @@ final class SubmitReplacementRequest
         $slot = TimeSlot::query()->find($anchorSlotId);
         if ($slot === null) {
             return $fail('slot_not_found');
+        }
+
+        /* FR 2.17 — the lead-time gate, SERVER side (2026-11-06). The grid has
+           always refused a too-soon cell (`leadTimeCutoff()` in ui-common.js),
+           but that is the browser's word: a direct request could still create a
+           pending row for a slot inside the notice window, and such a row could
+           never be decided in time. Same calendar as the auto-reject sweep —
+           `App\Support\WorkingHours` — so the grid, this gate and the deadline
+           tooltip all name the same "first bookable day". */
+        $semester = Semester::query()->find((int) $slot->semester_id);
+        if ($semester !== null) {
+            $slotDate = Carbon::parse((string) $semester->start_date)
+                ->addWeeks((int) $slot->week_number - 1)
+                ->addDays((int) $slot->day_of_week);
+
+            if (! (new WorkingHours($semester))->isBookableOnDate($slotDate)) {
+                return $fail('slot_too_soon');
+            }
         }
 
         // Pre-check: anchor must still be available (the OCC validator re-checks

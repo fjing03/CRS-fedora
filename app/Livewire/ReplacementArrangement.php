@@ -1213,6 +1213,9 @@ class ReplacementArrangement extends Component
 
         return match ($reason) {
             'slot_not_found' => 'That slot does not exist in the booking grid.',
+            /* FR 2.17's server gate (2026-11-06) — the SAME sentence the grid's
+               read-only cell shows, so the rule reads one way everywhere. */
+            'slot_too_soon' => 'Slots must be at least 3 working days from today.',
             'invalid_span' => 'Blocks are 30 minutes to 2 hours — adjust the selection.',
             'engine_precheck_failed' => 'You or the cohort is no longer free at that time.',
             'reserve_interrupted' => 'The booking could not be completed — try again.',

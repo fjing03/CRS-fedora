@@ -21,6 +21,7 @@ use App\Services\MatrixIntersectionEngine;
 use App\Services\OCCValidator;
 use Database\Seeders\DatabaseSeeder;
 use Illuminate\Foundation\Testing\DatabaseMigrations;
+use Illuminate\Support\Carbon;
 use Livewire\Livewire;
 use Tests\TestCase;
 
@@ -40,7 +41,20 @@ final class OccurrencePinTest extends TestCase
     {
         parent::setUp();
 
+        /* FR 2.17's server gate (2026-11-06): a request may only propose a slot
+           at least 3 working days ahead. This file's fixture weeks are FIXED
+           (the semester's own calendar), so the clock is pinned to week 3 — the
+           pipeline under test is date-free, and a pinned clock cannot rot. */
+        Carbon::setTestNow(Carbon::parse('2026-09-14 09:00'));
+
         $this->seed(DatabaseSeeder::class);
+    }
+
+    protected function tearDown(): void
+    {
+        Carbon::setTestNow();
+
+        parent::tearDown();
     }
 
     /** AMSE2003(L) @ B100 — the incident's own class, keyed by SHAPE (never id 67). */

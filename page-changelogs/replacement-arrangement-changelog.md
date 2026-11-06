@@ -2926,3 +2926,37 @@ Two honest notes:
    work): the arrangement page's `WeekNavigator` filter (`weekHasBookableSlot`)
    skips past weeks in both the arrows and the dropdown, so that sentence now
    survives only for the legacy design templates.
+
+## 2026-11-06 — FR 2.17 is now true on the server too
+
+The grid has always refused a too-soon cell (`leadTimeCutoff()` in
+`ui-common.js` → `cell-too-soon` → *"Slots must be at least 3 working days from
+today."*), but that was the **browser's** word. A direct submit (not through the
+grid) could still create a Pending request for a slot a few hours away — and
+such a request could never be decided in time.
+
+- **`App\Actions\SubmitReplacementRequest`** now refuses it: the slot's DATE must
+  be at least the **3rd working day** after today (weekends + the semester's
+  `holidays` rows skipped; the 3rd working day itself stays selectable; today
+  never). New failure reason **`slot_too_soon`**, mapped to the grid's own
+  sentence — the rule reads one way on the screen and in the database.
+- The calendar is `App\Support\WorkingHours::noticeCutoff()` / `isBookableOnDate()`
+  — the same class the auto-reject sweep uses, so the grid's "Bookable from …"
+  date, this gate and the pending-deadline tooltip cannot drift apart.
+- Measured on the demo DB (read-only, Playwright): the page says *"Bookable from
+  Thursday, 12 Nov 2026 onward"* (Fri 6 Nov; Mon 9 Nov is Deepavali) and the
+  server's cutoff is **2026-11-12** — the same date. All 98 semester days
+  cross-checked JS-verdict vs server-verdict: **0 mismatches**.
+- Tests: new `tests/Feature/LeadTimeGateTest` (6 cases: cutoff arithmetic, inside
+  refused with no row/reservation/audit, today refused, the boundary books, a
+  holiday pushes the cutoff, the weekend is skipped from a Friday clock).
+- Fixture consequence (documented, not hidden): five fixtures used to submit to
+  weeks that are now inside/behind the window. `tests/TestCase::bookablePairs()`
+  is the shared helper; the scanning suites (`ReplacementFlowTest`,
+  `OccConcurrencyTest`) now scan bookable pairs only, `SpanReservationTest`'s own
+  fixture semester starts two weeks back (week 5 ≈ now + 2 weeks), and the two
+  fixed-calendar suites (`ReplacementArrangementTest`, `OccurrencePinTest`) pin
+  `Carbon::setTestNow('2026-09-14')` — the pipeline is date-free, the rule is not.
+
+Receipts: `LeadTimeGateTest` 6/6 · full PHPUnit **382 / 2022** (432 s) · pint
+clean · PHPStan 0.

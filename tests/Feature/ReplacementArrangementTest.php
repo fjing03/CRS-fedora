@@ -20,6 +20,7 @@ use App\Models\TimeSlot;
 use App\Models\User;
 use App\Models\Venue;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Livewire\Livewire;
 use Tests\TestCase;
@@ -46,6 +47,12 @@ final class ReplacementArrangementTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
+
+        /* FR 2.17's server gate (2026-11-06): a request may only propose a slot
+           at least 3 working days ahead. This file's fixture weeks are FIXED
+           (the semester's own calendar), so the clock is pinned to week 3 — the
+           pipeline under test is date-free, and a pinned clock cannot rot. */
+        Carbon::setTestNow(Carbon::parse('2026-09-14 09:00'));
 
         // Sequences are NOT transactional — TimetableWiringTest asserts literal
         // ids, so every test here starts from a pristine counter.
@@ -141,6 +148,13 @@ final class ReplacementArrangementTest extends TestCase
             'start_time' => $start, 'end_time' => date('H:i:s', strtotime($start) + 1800),
             'venue_id' => $this->venue->id, 'status' => $status,
         ]);
+    }
+
+    protected function tearDown(): void
+    {
+        Carbon::setTestNow();
+
+        parent::tearDown();
     }
 
     private function payloadOf(User $lecturer): array

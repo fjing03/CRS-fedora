@@ -223,11 +223,12 @@ final class OccConcurrencyTest extends TestCase
      */
     private function freePairs(Collection $busy): \Generator
     {
-        for ($week = 1; $week <= 14; $week++) {
-            for ($day = 0; $day <= 5; $day++) {
-                if (! $busy->contains(fn (array $pair): bool => $pair['week'] === $week && $pair['day'] === $day)) {
-                    yield [$week, $day];
-                }
+        /* FR 2.17's server gate (2026-11-06): only pairs whose DATE is at least
+           3 working days ahead can be proposed, so the scan must not offer the
+           submit action a past/too-soon week (TestCase::bookablePairs). */
+        foreach ($this->bookablePairs() as [$week, $day]) {
+            if (! $busy->contains(fn (array $pair): bool => $pair['week'] === $week && $pair['day'] === $day)) {
+                yield [$week, $day];
             }
         }
     }

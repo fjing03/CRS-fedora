@@ -77,8 +77,12 @@ final class SpanReservationTest extends TestCase
         $semester = Semester::create([
             'semester_code' => 'S'.random_int(100, 999),
             'label' => 'Span Fixture Semester',
-            'start_date' => now()->subMonth()->startOfDay(),
-            'end_date' => now()->addMonth()->startOfDay(),
+            /* FR 2.17's server gate (2026-11-06): week 5 must sit at least 3
+               working days ahead, so the fixture semester starts TWO weeks back
+               (week 5 ≈ now + 2 weeks) instead of a month. Derived from `now()`,
+               so the fixture still cannot rot with the calendar. */
+            'start_date' => now()->subWeeks(2)->startOfDay(),
+            'end_date' => now()->addMonths(2)->startOfDay(),
             'week_count' => 14,
         ]);
 

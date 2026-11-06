@@ -33,6 +33,9 @@ final class WorkingHours
     /** The rule's threshold: 3 working hours (the boundary itself rejects). */
     public const MIN_GAP_MINUTES = 180;
 
+    /** FR 2.17's booking notice: a slot must sit at least this many working days ahead. */
+    public const MIN_NOTICE_WORKING_DAYS = 3;
+
     /** Opening / closing bell, minutes after midnight. */
     public const OPEN_MINUTES = 8 * 60 + 30;   // 08:30
 
@@ -59,6 +62,44 @@ final class WorkingHours
     public function earliestApproval(CarbonInterface $proposedStart, int $minutes = self::MIN_GAP_MINUTES): Carbon
     {
         return $this->subtractWorkingMinutes($proposedStart, $minutes);
+    }
+
+    /**
+     * FR 2.17's cutoff date: the 3rd WORKING day after `$today` (weekends and
+     * semester holidays skipped). That date itself is bookable — "the third
+     * working day itself shall remain selectable" — and today never is.
+     *
+     * This is the SERVER's mirror of the arrangement page's `leadTimeCutoff()`
+     * (ui-common.js): one calendar, so the grid and the action cannot disagree
+     * about which Thursday the notice names.
+     */
+    public function noticeCutoff(?CarbonInterface $today = null, int $workingDays = self::MIN_NOTICE_WORKING_DAYS): Carbon
+    {
+        $cursor = self::at($today ?? now())->startOfDay();
+        $counted = 0;
+
+        for ($guard = 0; $guard < self::MAX_DAYS; $guard++) {
+            $cursor = $cursor->copy()->addDay();
+
+            if (! $this->isWorkingDay($cursor)) {
+                continue;
+            }
+
+            if (++$counted >= max(1, $workingDays)) {
+                return $cursor;
+            }
+        }
+
+        return $cursor;
+    }
+
+    /** May a request propose this DATE? (today and anything inside the notice window may not) */
+    public function isBookableOnDate(CarbonInterface $date, ?CarbonInterface $today = null): bool
+    {
+        $day = self::at($date)->startOfDay();
+        $now = self::at($today ?? now())->startOfDay();
+
+        return $day->gt($now) && $day->gte($this->noticeCutoff($now));
     }
 
     /** Does the rule reject a proposed start that is `$proposedStart` away from `$now`? */
