@@ -64,6 +64,20 @@ and the matching `page-changelogs/*.md` to learn house style before designing.
   date is inside the 3-working-day notice window (`slot_too_soon`) **and** a target that lands on a
   public holiday (`holiday`, the D2 rule) — a rule the page enforces must exist in the action too,
   never only in JavaScript.
+- **A cancelled request displays as "no active request" (2026-11-06):** on My Replacements an
+  owner-cancelled occurrence reads **Need to Arrange** with an em-dash REQUESTED REPLACEMENT cell and
+  no Proposed Replacement Schedule tab, and the row pulses **yellow** on the cancel
+  (`flashRowPulse(el, 'warning')` — the one flash mechanic in `ui-common.js`, never a second
+  animation). The RECORD is never rewritten (still `cancelled`, audited, slots released), the status
+  filter has no Cancelled option any more, and a filter saved before its removal maps onto Need to
+  Arrange.
+- **Notification row tooltips have ONE vocabulary (2026-11-06):**
+  `app/Support/Notifications/NotificationTip.php` composes them for every live kind (Subject / schedules / reasons / `Request ID`;
+  holiday-first reason in the Original line; `Automatically Rejected by System` when
+  `approver_id IS NULL`; students without the Staff lines). Don't hand-write a tip in a page.
+- **A JS-owned control must survive a Livewire round-trip:** a page component's re-render morphs the
+  DOM from the server's HTML, so anything JS fills (the week selects, `#filterChips`) is wiped unless
+  guarded — `withWeekLivewireGuard()` in `ui-common.js` brackets `pageLivewire().call()` (2026-11-06).
 - Reuse Flux/Livewire/Tailwind + `theme.css` + `ui-common.js`; no new dependencies.
 - Conventional commits: `ui:`, `feat:`, `fix:`, `refactor:`, `oop:`, `style:`, `docs:`.
 - Working branch: `fedora-backend` (push target `origin` = `fjing03/CRS-fedora.git` only; `upstream` is PULL-ONLY — see CodingMAIN.md §10.6). Never commit secrets. Never push unless the user explicitly says so.

@@ -74,6 +74,8 @@ Adding a new status/legend item = **ONE row** in the relevant table above + **ON
     brief 2026-11-06). `ReplacementHome::buildRow()` flips an owner-cancelled row to the no-request
     state (Need to Arrange badge, em-dash REQUESTED cell, no Proposed tab) — the RECORD stays
     `cancelled` with its audit and the release. Normalise in the payload, not in three JS branches.
+    The page's status filter therefore has **no Cancelled option** any more, and a filter saved before
+    the removal is mapped onto Need to Arrange at restore.
   - **A JS-owned control must survive a Livewire round-trip.** A page component's re-render morphs the
     DOM from the server's HTML; anything the server renders EMPTY but JavaScript fills (the week
     selects, `#filterChips`) is deleted by that morph. Never park state there without a guard: the
@@ -86,6 +88,12 @@ Adding a new status/legend item = **ONE row** in the relevant table above + **ON
     end of the page's `DOMContentLoaded` block). The page script runs inside that closure, so only
     the explicitly exported names are reachable from the partial's markup — the symptom is a modal
     that opens but refuses to close with *"… is not defined"*.
+  - **A notification row's tooltip comes from ONE composer.** `App\Support\Notifications\NotificationTip`
+    decides the kind from the tile `type` + stored title and prints the shared label set (Subject /
+    schedules / `Rejection Reason` / `Reason` / `Request ID`), holiday-first reason in the Original
+    line's parentheses, `Rejection Reason: Automatically Rejected by System` when `approver_id IS NULL`,
+    students without the Staff lines, and the legacy `title — body` only for an unknown kind. New kind →
+    a branch there + one receipt, never a page-local tip.
   - **A `data-tip` is TEXT, not HTML.** The shared engine (`initDataTipTooltips` in
     `ui-common.js`) sets `textContent` and switches to `pre-line` when the string contains a
     newline, so a multi-line tooltip is `"line one\nline two"` — a `<br>` prints literally. Keep
