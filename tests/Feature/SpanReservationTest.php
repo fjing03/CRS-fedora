@@ -483,8 +483,11 @@ final class SpanReservationTest extends TestCase
 
     /** replacement-merge-one-table T17: re-pointed from the retired My Requests
      *  page to the merged occurrence row — the DATA-ACCURACY receipt for §6b
-     *  law 3 (junction first, anchor after the release) is unchanged. */
-    public function test_merged_page_pending_row_shows_the_true_range_and_cancel_reverts_to_anchor(): void
+     *  law 3 (junction first, anchor after the release). The CANCELLED leg
+     *  changed on 2026-11-06 (user brief): an owner-cancelled request displays as
+     *  "Need to Arrange", so the row carries no proposed strings at all; the
+     *  release facts (junction gone, record cancelled) are asserted on the DB. */
+    public function test_merged_page_pending_row_shows_the_true_range_and_cancel_becomes_need_to_arrange(): void
     {
         [$slotIds, $winner, $winnerSession, $loser, $loserSession] = $this->spanFixture();
 
@@ -503,9 +506,13 @@ final class SpanReservationTest extends TestCase
         $this->assertTrue(app(CancelPendingRequest::class)($winner, (int) $request->id));
 
         $rows2 = app(ReplacementHome::class)->render()->getData()['payload']['conflictedClasses'];
-        $cancelled = collect($rows2)->first(fn ($r) => $r['requestStatus'] === 'cancelled');
-        $this->assertNotNull($cancelled, 'the cancelled row renders');
-        $this->assertSame('14:00 – 14:30', $cancelled['replacementTime'], 'the anchor-only read resumes after cancel');
+        $cancelled = collect($rows2)->first(fn (array $r): bool => $r['requestId'] === (int) $request->id);
+        $this->assertNotNull($cancelled, 'the occurrence row still renders');
+        $this->assertNull($cancelled['requestStatus'], 'displayed as no active request');
+        $this->assertSame('Need to Arrange', $cancelled['requestStatusLabel']);
+        $this->assertNull($cancelled['replacementTime'], 'nothing proposed to show — the dash');
+        $this->assertSame('cancelled', (string) ReplacementRequest::query()->whereKey($request->id)->value('status'), 'the record is untouched');
+        $this->assertSame(0, ReplacementRequestSlot::query()->where('replacement_request_id', $request->id)->count(), 'the junction was released');
     }
 
     public function test_legacy_anchor_only_cancel_byte_identical(): void

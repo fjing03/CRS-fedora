@@ -955,3 +955,41 @@ restores options + value after it (`withWeekLivewireGuard()` around `pageLivewir
 Receipt: `tests/week-filter-preserved.spec.ts` U3 (week 14 selected → cancel → the row's status flips,
 the dropdown still reads `Week 14` and its chip still names the week). It also asserts the cancel's own
 toast, so it cannot pass vacuously.
+
+## 2026-11-06 — a request its owner cancelled displays as "Need to Arrange"
+
+User brief *Cancelled Pending Requests*. When a lecturer cancels their own pending request, the merged
+occurrence no longer advertises a proposed replacement that no longer exists.
+
+| Surface | Before | Now |
+|---|---|---|
+| Status badge | `Cancelled by YOU` (`status-cancelled`) | **`Need to Arrange`** (`badge-outline status-none`) |
+| Badge tip | *You MANUALLY CANCELLED this request.* | *No request has been made for this class yet — it still needs arranging.* |
+| REQUESTED REPLACEMENT | the released proposal (date · time · venue) | `—` (`<span class="cell-dash">`) |
+| Details pop-up | Proposed Replacement Schedule tab (Request ID, Week, Day, Date, Time, Duration, Venue) | **no proposed tab** — 2 tabs: Original Class Schedule + `Request Status (Need to Arrange)` |
+
+**One normalisation, no view code.** `ReplacementHome::buildRow()` flips a `cancelled` status to `null`
+and blanks the replacement strings (plus `remarks`/`rejectionReason`) before the six-state vocabulary
+runs. Everything the brief asks for follows from that, because the view already renders the no-request
+state for an absent date: the badge class + tip + sentence, the dash, the missing Proposed tab, the
+visible Arrange button and the "needs action" sort group.
+
+**Why `cancelled` == "the owner cancelled it".** `CancelPendingRequest` is the only writer of that
+status and it refuses anyone but the proposer (FR 2.10), so a stored cancellation is by definition a
+manual one. Nothing else changes:
+
+- the record keeps `status = 'cancelled'`, `decided_at`, its audit rows (`action = 'cancelled'`), the
+  released slots and the notification — history is not rewritten;
+- `requestId` still rides the payload, so the row's identity (`data-request-id`) and the notification
+  jump keep working;
+- Rejected / Approved / Completed / Pending rows are byte-identical, and the student history page and
+  the notification feed read the DB status directly, so they still say **Cancelled by YOU**.
+
+Receipts: `tests/request-cancel-pending.spec.ts` (write, testing DB — cancel a real pending request,
+then assert the badge text/classes/tip, the `.cell-dash`, two modal tabs with no `Proposed Replacement
+Schedule` and no `Request ID`, the DB still `cancelled` with 0 junction rows and ≥1 audit row, and the
+same state on a fresh load; the released span is bookable again). `tests/replacement-home-status-badges
+.spec.ts` receipt 9 is the read-only law (this page never prints `Cancelled by YOU`). Unit pins
+updated: `MyReplacementsPayloadTest` cases 5 + 9, `ReplacementHistoriesTest`, `SpanReservationTest`
+(the anchor-after-release law now re-pointed at a rejected row, which is where that fallback is still
+visible).

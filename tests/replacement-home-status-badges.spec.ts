@@ -18,7 +18,8 @@ const STATUS_LABELS = [
   'Pending — Waiting for Approval',
   'Approved',
   'Rejected',
-  'Cancelled by YOU',
+  // 2026-11-06 (user brief): a request its OWNER cancelled is displayed as
+  // "Need to Arrange" — 'Cancelled by YOU' is no longer a state of this page.
 ];
 
 type Row = {
@@ -215,4 +216,21 @@ test('receipt 8 — the Conflict Reason badge says which kind of conflict, not j
   await row.locator('.col-code').click();
   await expect(page.locator('#quickViewModal')).toBeVisible();
   await expect(page.locator('#quickViewModal .detail-facts')).toContainText(shown);
+});
+
+/** 2026-11-06 (user brief "Cancelled Pending Requests") — the display law.
+ *  A manually cancelled request is still a cancelled RECORD, but this page shows
+ *  the occurrence as if nothing had been proposed. Read-only: it asserts the
+ *  shape on whatever rows the DB has (the write receipt, with a known request id,
+ *  lives in request-cancel-pending.spec.ts).
+ */
+test('receipt 9 — a cancelled request never reads "Cancelled by YOU" on this page', async ({ page }) => {
+  const all = await rows(page);
+  const cancelledByYou = all.filter((r) => r.status === 'Cancelled by YOU');
+  expect(cancelledByYou, 'the page-wide law: cancelled requests display as Need to Arrange').toEqual([]);
+
+  // the outlined no-request badge carries the no-request tip, not the cancel one
+  const outlined = page.locator('#tableBody .col-status .badge.badge-outline.status-none');
+  await expect(outlined.first()).toBeVisible();
+  await expect(outlined.first()).toHaveAttribute('data-tip', 'No request has been made for this class yet — it still needs arranging.');
 });

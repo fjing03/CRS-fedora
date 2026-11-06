@@ -265,8 +265,10 @@ final class ReplacementHistoriesTest extends TestCase
 
         $this->assertTrue($result['ok'], 'FR 2.10: the frozen confirm modal really cancels');
         $this->assertIsArray($result['row'], 'the server answer carries the re-read row');
-        $this->assertSame('cancelled', $result['row']['requestStatus']);
-        $this->assertSame('Cancelled by YOU', $result['row']['requestStatusLabel']);
+        /* user brief 2026-11-06: a request its owner cancelled is DISPLAYED as
+           no active request (Need to Arrange / dash / no Proposed tab) */
+        $this->assertNull($result['row']['requestStatus']);
+        $this->assertSame('Need to Arrange', $result['row']['requestStatusLabel']);
 
         $request->refresh();
         $this->assertSame('cancelled', $request->status);

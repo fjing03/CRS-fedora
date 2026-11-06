@@ -360,21 +360,47 @@ final class MyReplacementsPayloadTest extends TestCase
         $this->assertSame('14:00 – 16:00', $row['replacementTime'], 'the junction TRUE range');
         $this->assertSame($cells[0]->id, ReplacementRequest::query()->whereKey($request->id)->value('replacement_time_slot_id'));
 
-        // Cancel: the action deletes the junction; the anchor is the surviving
-        // evidence, so the row re-reads 14:00 – 14:30 — never a dash.
+        // Cancel (user brief 2026-11-06): the occurrence displays as NO ACTIVE
+        // REQUEST — the badge, the dash and the missing Proposed tab all follow
+        // from one normalisation in buildRow(). The stored row is untouched.
         $component = Livewire::actingAs($this->lecturer)->test(ReplacementHome::class);
         $result = $component->instance()->cancelRequest((int) $request->id);
 
         $this->assertTrue($result['ok']);
-        $this->assertSame('cancelled', $result['row']['requestStatus']);
-        $this->assertSame('14:00 – 14:30', $result['row']['replacementTime'], 'anchor-only after the release');
+        $this->assertNull($result['row']['requestStatus'], 'displayed as no active request');
+        $this->assertSame('Need to Arrange', $result['row']['requestStatusLabel']);
+        $this->assertSame('Need to Arrange', $result['row']['requestStatusShort']);
+        $this->assertSame('No replacement has been proposed for this class yet.', $result['row']['requestStatusDesc']);
+        $this->assertSame(
+            'No request has been made for this class yet — it still needs arranging.',
+            $result['row']['requestStatusTip'],
+            'the outlined pill carries the no-request tip, not the cancellation copy'
+        );
+        foreach (['replacementDate', 'replacementTime', 'replacementWeek', 'replacementDay', 'replacementVenue', 'replacementVenueName', 'remarks', 'rejectionReason'] as $key) {
+            $this->assertNull($result['row'][$key], $key.' is null — nothing proposed is displayed');
+        }
+        $this->assertSame((int) $request->id, $result['row']['requestId'], 'the row keeps its identity (notification jump, data-request-id)');
+
+        // the RECORD is untouched — cancelled, audited, junction released
         $this->assertSame('cancelled', (string) ReplacementRequest::query()->whereKey($request->id)->value('status'));
+        $this->assertSame(0, ReplacementRequestSlot::query()->where('replacement_request_id', $request->id)->count());
 
         // and a fresh render agrees with the returned row
         $fresh = $this->rowFor($this->rows(), $session, $week);
         $this->assertNotNull($fresh);
-        $this->assertSame('Cancelled by YOU', $fresh['requestStatusLabel']);
-        $this->assertSame('14:00 – 14:30', $fresh['replacementTime']);
+        $this->assertNull($fresh['requestStatus']);
+        $this->assertSame('Need to Arrange', $fresh['requestStatusLabel']);
+        $this->assertNull($fresh['replacementTime']);
+
+        /* The anchor fallback is still what a DECIDED row reads (the junction is
+           released by RejectRequest too). Re-pointing the same occurrence at
+           `rejected` reproduces exactly the shape that action leaves behind, and
+           proves the fallback stayed alive behind the cancellation display law. */
+        ReplacementRequest::query()->whereKey($request->id)->update(['status' => 'rejected', 'rejection_reason' => 'Slot unavailable']);
+        $rejectedRow = $this->rowFor($this->rows(), $session, $week);
+        $this->assertNotNull($rejectedRow);
+        $this->assertSame('rejected', $rejectedRow['requestStatus']);
+        $this->assertSame('14:00 – 14:30', $rejectedRow['replacementTime'], 'anchor-only after the release — still displayed for a rejected row');
     }
 
     // ── case 6 ─────────────────────────────────────────────────────────────
@@ -511,7 +537,7 @@ final class MyReplacementsPayloadTest extends TestCase
 
         $this->assertTrue($result['ok']);
         $this->assertIsArray($result['row']);
-        $this->assertSame('cancelled', $result['row']['requestStatus']);
+        $this->assertNull($result['row']['requestStatus'], 'the re-read row displays as no active request');
         $this->assertSame('cancelled', (string) ReplacementRequest::query()->whereKey($request->id)->value('status'));
         $this->assertSame(
             count($cells) + 1,

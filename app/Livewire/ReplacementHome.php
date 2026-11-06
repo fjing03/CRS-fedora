@@ -216,6 +216,32 @@ class ReplacementHome extends Component
         $status = $latest !== null
             ? $mapper->effectiveStatus($latest->setRelation('classSession', $session), $startDate, $strings['date'])
             : null;
+
+        /* ── A request its OWNER cancelled displays as "no active request"
+           (user brief 2026-11-06, "Cancelled Pending Requests") ───────────
+           The badge reads Need to Arrange (outlined), the REQUESTED
+           REPLACEMENT cell shows an em dash, and the details pop-up drops its
+           Proposed Replacement Schedule tab — so the Request ID, Week, Day,
+           Date, Time, Duration and Venue simply are not there. Blanking the
+           strings is what makes all three true at once, because the view
+           already renders "no request" for an absent date; the page keeps no
+           knowledge of this rule.
+
+           Why `cancelled` means "the owner cancelled it": CancelPendingRequest
+           is the ONLY writer of that status and it refuses anyone but the
+           proposer (FR 2.10), so a stored cancellation is by definition a
+           manual one. The record, its audit row, the released slot and the
+           notification all stay exactly as they are — and `requestId` keeps
+           riding the payload, so the row's identity and the notification jump
+           still work. The history surfaces read the DB status directly and
+           keep saying "Cancelled by YOU". */
+        $ownerCancelled = $status === 'cancelled';
+
+        if ($ownerCancelled) {
+            $status = null;
+            $strings = $mapper->stringsFromSpan(null, $startDate, null);
+        }
+
         /* Auto-reject rule (2026-11-06): a PENDING row's tip states the deadline
            this request will be automatically rejected at, from the one working-hour
            calendar. Decided rows carry no deadline. */
@@ -279,8 +305,10 @@ class ReplacementHome extends Component
             'replacementDay' => $strings['day'],
             'replacementVenue' => $strings['venue'],
             'replacementVenueName' => $strings['venueName'],
-            'remarks' => $latest?->remarks,
-            'rejectionReason' => $latest?->rejection_reason,
+            /* a cancelled request shows no remark/reason either — it must look
+               exactly like the Need to Arrange state it is being displayed as */
+            'remarks' => $ownerCancelled ? null : $latest?->remarks,
+            'rejectionReason' => $ownerCancelled ? null : $latest?->rejection_reason,
         ];
     }
 

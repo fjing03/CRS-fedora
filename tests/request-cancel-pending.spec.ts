@@ -1,4 +1,5 @@
 import { test, expect, type Page } from '@playwright/test';
+import { execSync } from 'node:child_process';
 import { abortUnlessTestingTarget } from './helpers/receipt-target-guard';
 
 /* SDD check #11 — UC07 / FR 2.10 "cancel my own pending request", the receipt
@@ -15,7 +16,14 @@ import { abortUnlessTestingTarget } from './helpers/receipt-target-guard';
 
    Net effect: one Cancelled request record remains as evidence, the picked
    span returns to Available (the cancel releases the reservation), and the
-   run is re-runnable after a reseed. The week hop = W9 and the pick =
+   run is re-runnable after a reseed.
+
+   2026-11-06 (user brief "Cancelled Pending Requests"): the record stays
+   Cancelled, but the PAGE displays that occurrence as NO ACTIVE REQUEST —
+   badge "Need to Arrange" (outlined), an em dash in REQUESTED REPLACEMENT, and
+   a details pop-up without the Proposed Replacement Schedule tab. Those three
+   are asserted below against the row we just cancelled
+   (`tr[data-request-id="…"]`), plus the untouched record through psql. The week hop = W9 and the pick =
    FRI 12:00–14:00 match the frozen race-receipt targets (see
    submission-conflict-refresh). */
 
@@ -27,6 +35,12 @@ const BASE = process.env.CRS_BASE as string;
 test.use({ baseURL: BASE });
 
 const PW = 'Tarumt@2026';
+const PSQL = 'psql -q -t -U philler -d class_replacement_testing -c ';
+
+function sql(query: string): string {
+  const oneLine = query.replace(/[\r\n]+/g, ' ').replace(/\s{2,}/g, ' ').trim();
+  return String(execSync(PSQL + JSON.stringify(oneLine), { stdio: 'pipe' })).trim();
+}
 const WEEK_HOP = '8'; // → W9 (the page may resolve to the next bookable week)
 const pickedCell = '#tableBody td[data-day="4"][data-hour="8"] .cell-content'; // FRI 12:00, span 4
 const URL = '/replacement-arrangement?venue=B110&session=67&week=14&code=AMSE2003&cohort=' + encodeURIComponent('DSF2 (S1) G1') + '&from=replacement-home';
@@ -69,6 +83,9 @@ test('cancel own pending request leaves it Cancelled and releases the slot', asy
   await expect(row).toBeVisible({ timeout: 20_000 });
 
   // ── cancel from the ROW's ban icon (M6), through the frozen confirm ──
+  const onclick = (await row.locator('.col-action .btn-icon--danger').getAttribute('onclick')) || '';
+  const requestId = Number((onclick.match(/openCancelConfirm\((\d+)/) || [])[1]);
+  expect(requestId, 'the ban icon names the request id: ' + onclick).toBeGreaterThan(0);
   await row.locator('.col-action .btn-icon--danger').click();
   await expect(page.locator('#cancelConfirmOverlay')).toBeVisible({ timeout: 5_000 });
   // my-replacements UI/UX update (2026-11-04): the warning is Title-Cased
@@ -76,7 +93,9 @@ test('cancel own pending request leaves it Cancelled and releases the slot', asy
   // decision — shared partial, `UNDONE` as the bold warning-coloured keyword.
   await expect(page.locator('#cancelConfirmBody')).toContainText('Are you sure you want to CANCEL this Replacement Request?');
   await expect(page.locator('#cancelConfirmBody')).toContainText('This action cannot be UNDONE.');
-  await expect(page.locator('#cancelConfirmBody .warn-action')).toHaveText('UNDONE');
+  /* two keyword spans live in the shared irreversible line (CANCEL … UNDONE) —
+     the UNDONE one is the second, so a bare locator is a strict-mode violation */
+  await expect(page.locator('#cancelConfirmBody .warn-action').last()).toHaveText('UNDONE');
   await expect(page.locator('#cancelConfirmDetails dt')).toHaveCount(4);
 
   const dialogs: string[] = [];
@@ -84,15 +103,42 @@ test('cancel own pending request leaves it Cancelled and releases the slot', asy
   await page.locator('#confirmCancelAction').click(); // 'Yes, Cancel Request'
   expect(dialogs).toEqual([]); // the confirmation is in-app only
 
-  // ── M1: the CLASS stays on the list; only its status changes ──
-  const cancelled = page.locator('#tableBody tr:has(.col-status .badge:has-text("Cancelled by YOU"))').first();
-  await expect(cancelled).toBeVisible({ timeout: 20_000 });
+  /* ── M1 (2026-11-06 brief): the CLASS stays on the list, but the occurrence
+     now reads as if no request had ever been made — Not "Cancelled by YOU". */
+  const row2 = page.locator(`#tableBody tr[data-request-id="${requestId}"]`);
+  const badge = row2.locator('.col-status .badge');
+  await expect(badge).toHaveText('Need to Arrange', { timeout: 20_000 });
+  await expect(badge).toHaveClass(/badge-outline/);
+  await expect(badge).toHaveClass(/status-none/);
+  await expect(badge).toHaveAttribute('data-tip', 'No request has been made for this class yet — it still needs arranging.');
 
-  // ── and the record persists as cancelled on a fresh load ──
+  // the proposed schedule is gone from the table: an em dash, no date/time/venue
+  await expect(row2.locator('.col-requested .cell-dash')).toHaveText('—');
+
+  // …and from the details pop-up: no Proposed tab, no Request ID, two tabs only
+  await row2.locator('.col-code').click();
+  await expect(page.locator('#quickViewModal')).toBeVisible();
+  await expect(page.locator('#quickViewModal .modal-tab')).toHaveCount(2);
+  await expect(page.locator('#quickViewModal .modal-tab').first()).toHaveText(/Original Class Schedule/);
+  await expect(page.locator('#quickViewModal .modal-tab').nth(1)).toHaveText(/Request Status \(Need to Arrange\)/);
+  await expect(page.locator('#quickViewModal')).not.toContainText('Proposed Replacement Schedule');
+  await expect(page.locator('#quickViewModal')).not.toContainText('Request ID');
+  await page.locator('#quickViewModal .modal-close').click();
+  await expect(page.locator('#quickViewModal')).toBeHidden();
+
+  // ── the RECORD is untouched: still cancelled, still audited, junction gone ──
+  expect(sql(`select status from replacement_requests where id = ${requestId}`)).toBe('cancelled');
+  expect(sql(`select count(*) from replacement_request_slots where replacement_request_id = ${requestId}`)).toBe('0');
+  expect(Number(sql(`select count(*) from audit_logs where replacement_request_id = ${requestId} and action = 'cancelled'`))).toBeGreaterThan(0);
+
+  // ── and a fresh load shows the same display state ──
   await page.goto('/my-replacements', { waitUntil: 'domcontentloaded' });
   await expect(
-    page.locator('#tableBody tr:has(.col-status .badge:has-text("Cancelled by YOU"))').first()
-  ).toBeVisible({ timeout: 20_000 });
+    page.locator(`#tableBody tr[data-request-id="${requestId}"] .col-status .badge`)
+  ).toHaveText('Need to Arrange', { timeout: 20_000 });
+  await expect(
+    page.locator(`#tableBody tr[data-request-id="${requestId}"] .col-requested .cell-dash`)
+  ).toHaveText('—');
 
   // ── the slot is free again (the release) ──
   await arriveHopPick(page);
