@@ -198,11 +198,21 @@ final class ReplacementRequestMapper
            semester start), so this stays a pure formatter. Two LINES, not HTML:
            the shared `data-tip` engine renders textContent (and pre-line for a
            `\n`), so a `<br>` would print literally. */
-        $pendingTail = $deadline === null
+        $plPendingTail = $deadline === null
             ? null
-            : ($audience === 'pl'
-                ? 'If you have not Approved it by '.$deadline.', it will be Automatically Rejected.'
-                : 'If the Programme Leader has not Approved this Request by '.$deadline.', it will be Automatically Rejected.');
+            : 'If you have not Approved it by '.$deadline.', it will be Automatically Rejected.';
+
+        /* Lecturer arm, copy per the 2026-11-06 UI update ("Pending Status
+           Tooltip"): the sentence now NAMES the rule, the 3-working-hour
+           requirement and the consequence — the deadline sits in the same
+           parentheses the user's brief shows, and it is the row's own computed
+           value (proposed start − 3 working hours on the WorkingHours calendar,
+           holidays included), never a second calculation. The three emphasised
+           phrases ride CAPITALISATION because a data-tip is textContent: no
+           `<b>`, no markup, nothing to escape. */
+        $lecturerPendingTail = $deadline === null
+            ? null
+            : 'Auto-Reject Rule: If This Request Has Not Been Approved At Least 3 Working Hours ('.$deadline.') Before The Proposed Class Start Time, It Will Be AUTOMATICALLY REJECTED.';
 
         if ($audience === 'pl') {
             $tip = match ($status) {
@@ -215,7 +225,7 @@ final class ReplacementRequestMapper
                 default => '',
             };
 
-            return $status === 'pending' && $pendingTail !== null ? $tip."\n".$pendingTail : $tip;
+            return $status === 'pending' && $plPendingTail !== null ? $tip."\n".$plPendingTail : $tip;
         }
 
         $tip = match ($status) {
@@ -228,7 +238,7 @@ final class ReplacementRequestMapper
             default => '',
         };
 
-        return $status === 'pending' && $pendingTail !== null ? $tip."\n".$pendingTail : $tip;
+        return $status === 'pending' && $lecturerPendingTail !== null ? $tip."\n".$lecturerPendingTail : $tip;
     }
 
     /**

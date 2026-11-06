@@ -31,7 +31,10 @@ const MRH_TIPS = [
    data-tip engine renders textContent with pre-line). The deadline is computed
    per request, so the receipt pins the SHAPE, not one calendar date. */
 const MRH_PENDING_HEAD = "Your request has been Submitted and is AWAITING the Programme Leader's decision (Approve or Reject).";
-const MRH_PENDING_TAIL_RE = /^If the Programme Leader has not Approved this Request by ([A-Z][a-z]{2}, \d{1,2} [A-Z][a-z]{2} \d{4}, \d{1,2}:\d{2} (AM|PM)), it will be Automatically Rejected\.$/;
+/* 2026-11-06 UI update ("Pending Status Tooltip"): the lecturer sentence names the
+   Auto-Reject Rule, the 3-working-hour requirement and the consequence, with the
+   request's own deadline in the brief's parentheses. */
+const MRH_PENDING_TAIL_RE = /^Auto-Reject Rule: If This Request Has Not Been Approved At Least 3 Working Hours \(([A-Z][a-z]{2}, \d{1,2} [A-Z][a-z]{2} \d{4}, \d{1,2}:\d{2} (AM|PM))\) Before The Proposed Class Start Time, It Will Be AUTOMATICALLY REJECTED\.$/;
 
 function isLecturerStatusTip(tip: string | null): boolean {
   if (!tip) return false;

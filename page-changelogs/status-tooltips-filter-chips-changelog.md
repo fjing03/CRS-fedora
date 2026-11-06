@@ -171,3 +171,34 @@ resolved omits the second line rather than inventing one.
 - Demo DB, read-only: `requests:auto-reject --dry-run` → *Scanned 2 pending
   request(s); would auto-reject: none* (both demo requests sit 3.5 h out — the
   brief's own "remain Pending" row). No demo row was written.
+
+## 2026-11-06 — the Pending tip now NAMES the rule (UI update "Pending Status Tooltip")
+
+User UI update: the lecturer's `.badge.status-pending` tooltip must spell out what the auto-reject rule
+is, not just when it fires.
+
+```
+Your request has been Submitted and is AWAITING the Programme Leader's decision (Approve or Reject).
+Auto-Reject Rule: If This Request Has Not Been Approved At Least 3 Working Hours (Fri, 6 Nov 2026, 11:00 AM) Before The Proposed Class Start Time, It Will Be AUTOMATICALLY REJECTED.
+```
+
+- **Line 1 is unchanged**; only the second line changed hands in
+  `ReplacementRequestMapper::statusTip()` (lecturer arm). The PL arm keeps its own voice verbatim
+  (`If you have not Approved it by …`) — a decision queue is not the place for the rule's name.
+- **The deadline stays dynamic**: `approvalDeadlineLabel()` computes proposed start − 3 working hours
+  from that row's own resolved date/time, on the `WorkingHours` calendar (TARUMT Sabah hours,
+  Mon–Fri 08:30–17:30, public holidays from the semester's `holidays` rows). Nothing here hardcodes an
+  hour or a date, and no second junction read was added (`MyReplacementsPayloadTest` case 8 stays green).
+- **Emphasis without markup**: a `data-tip` is `textContent` (+ `pre-line` on a `\n`), so the three
+  emphasised phrases ride capitalisation — `Auto-Reject Rule:`, the literal `3 Working Hours` and
+  `AUTOMATICALLY REJECTED`. An assertion now pins `assertStringNotContainsString('<', …)` so nobody
+  "improves" it into HTML that would print verbatim.
+- **Badge untouched**: same `.badge.status-pending` class, same colours, same click behaviour — only the
+  tooltip string.
+
+Receipts: `AutoRejectPendingRequestsTest::test_the_pending_badge_tip_states_the_deadline` pins the exact
+two lines (and the two emphasis substrings); `status-tooltips-filter-chips.spec.ts` `MRH_PENDING_TAIL_RE`
+matches the new sentence with the computed deadline pattern — **9/9 on the demo DB**. Measured on the
+testing DB with fixture request 26 (Fri 25 Dec, 14:00 start): the live `data-tip` reads
+`… 3 Working Hours (Fri, 6 Nov 2026, 11:00 AM) …` — 3 working hours back from 14:00 is 11:00, same day.
+Interaction geometry checked (tooltip engine unchanged): `/tmp/opencode/pending-tip.png`.

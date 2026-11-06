@@ -322,7 +322,13 @@ final class AutoRejectPendingRequestsTest extends TestCase
         $lines = explode("\n", $lecturerTip);
         $this->assertCount(2, $lines, 'two lines, never inline HTML');
         $this->assertSame("Your request has been Submitted and is AWAITING the Programme Leader's decision (Approve or Reject).", $lines[0]);
-        $this->assertSame('If the Programme Leader has not Approved this Request by Fri, 6 Nov 2026, 10:00 AM, it will be Automatically Rejected.', $lines[1]);
+        /* 2026-11-06 UI update ("Pending Status Tooltip"): the lecturer sentence
+           names the rule, the 3-working-hour requirement and the consequence;
+           the deadline is the same computed value, in the brief's parentheses. */
+        $this->assertSame('Auto-Reject Rule: If This Request Has Not Been Approved At Least 3 Working Hours (Fri, 6 Nov 2026, 10:00 AM) Before The Proposed Class Start Time, It Will Be AUTOMATICALLY REJECTED.', $lines[1]);
+        $this->assertStringContainsString('3 Working Hours', $lines[1], 'the emphasised requirement is the literal wording');
+        $this->assertStringContainsString('AUTOMATICALLY REJECTED', $lines[1], 'emphasis rides capitalisation (a data-tip is textContent)');
+        $this->assertStringNotContainsString('<', $lines[1], 'a tip is TEXT — never markup');
 
         // the PL reads the same fact from the other side of the decision
         $plTip = $mapper->statusTip('pending', 'pl', $label);
