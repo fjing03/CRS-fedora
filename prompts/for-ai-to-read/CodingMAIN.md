@@ -500,6 +500,15 @@ These ten rules are **non-negotiable** for every page and every future change:
 
    Adding a new status/legend item = add ONE row to the relevant table above + ONE class to `theme.css`, then reuse it everywhere. Do not invent a synonym.
 
+**A JS-owned control must survive a Livewire round-trip (2026-11-06).** A page component's re-render
+morphs the DOM from the server's HTML, so any element the server renders EMPTY but JavaScript fills
+(the week `<select>`s, `#filterChips`, table bodies) loses its content. The week selects are guarded
+centrally: `withWeekLivewireGuard()` in `ui-common.js` snapshots the value before `pageLivewire().call()`
+and restores options + value **before the caller's `.then()`** (that callback is what rebuilds the filter
+chips), with a `Livewire.hook('commit')` net for other round-trips. Attributes still morph, so
+server-driven `disabled` states keep working — never reach for `wire:ignore` here. Receipt:
+`tests/week-filter-preserved.spec.ts` (Approve / Reject / Cancel Pending, week 14 kept).
+
 3. **Utilise OOP concepts** (see §10.1–10.4 below — Inheritance, Composition, Encapsulation/DRY, service classes). No copy-paste; reuse layout/partial/shared-module.
 
 4. **Minimise plain text, maximise icon buttons.**

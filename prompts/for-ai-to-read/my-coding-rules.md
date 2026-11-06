@@ -66,6 +66,13 @@ Adding a new status/legend item = **ONE row** in the relevant table above + **ON
   - `public/css/theme.css` — ALL shared CSS (page-specific styles stay in `@section('page-styles')`).
   - `public/js/ui-common.js` — shared JS helpers (`buildTimetableGrid` two-axis default rendering + span coalescing, `WeekNavigator`, `computeSummary`, `buildReplacementNote`, `openClassModal`, `CancelClass`, `toast.show`, theme helpers).
   - `public/js/mock-data.js` — `window.MockData` single source of truth. Treat it as **read-only** (`slice()`/spread before mutating); new data = ONE new section in `mock-data.js`, never an inline page dataset. Real-data pages override `MockData.currentUser` / semester / holidays from the server payload.
+  - **A JS-owned control must survive a Livewire round-trip.** A page component's re-render morphs the
+    DOM from the server's HTML; anything the server renders EMPTY but JavaScript fills (the week
+    selects, `#filterChips`) is deleted by that morph. Never park state there without a guard: the
+    week selects are snapshot+restored around `pageLivewire().call()` by
+    `withWeekLivewireGuard()` in `ui-common.js` (2026-11-06 — the blank-Week bug). If a restore must
+    land before the caller's `.then()` (because that `.then()` reads the value), do it there, not in a
+    `setTimeout`.
   - **A page function used by an inline `onclick=` in a shared partial must be exported on
     `window`** (`window.closeSlotWarning = closeSlotWarning;` beside the existing exports near the
     end of the page's `DOMContentLoaded` block). The page script runs inside that closure, so only

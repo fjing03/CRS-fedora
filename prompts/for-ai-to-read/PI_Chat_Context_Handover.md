@@ -29,6 +29,7 @@
 | Suite | Last full PHPUnit run **386 tests / 2031 assertions** (2026-11-06, after `40ffb5f`; +27 = the auto-reject rule's 17 clock/sweep cases + the 10 submit-gate cases). Browser suites are separate and NOT part of that number — quote them by name: `venue-book` 19, venue neighbours 61 passed / 2 skipped, `cancel-class` 12 passed / 4 skipped, `status-tooltips-filter-chips` 9, `notif-row-inactive-hide` 5. |
 | SDD lanes | **35** lane dirs under `.sdd/changes/` (**33** older finished ones + `venue-slot-validation` and `notif-inactive-hide-sender`, both `status: applied` 2026-11-05), **101** archived. Archive only on the user's word. |
 | **Auto-reject rule (2026-11-06)** | A **pending** request whose proposed start is within — or exactly — **3 working hours** is rejected by the system. Working time = TARUMT Sabah hours, **Mon–Fri 08:30–17:30**, weekends + the semester's `holidays` excluded (`App\Support\WorkingHours`, `MIN_GAP_MINUTES = 180`). Write leg `App\Actions\AutoRejectRequest` (cancel-family release, `approver_id` NULL, audits `details.auto`); trigger `php artisan requests:auto-reject` (`--dry-run`) scheduled every 5 min — **never** a write-on-read. The Pending badge's `data-tip` states the deadline (proposed start − 3 working hours) on both pages. |
+| **A JS-owned control survives a Livewire round-trip (2026-11-06)** | The week `<select>`s have no server-side options, so a page-component re-render used to morph them empty — Approve/Reject blanked the Week filter and its chip printed a bare `Week: `. Guard: `withWeekLivewireGuard()` in `ui-common.js` (snapshot before `pageLivewire().call()`, restore options + value **before the caller's `.then()`**), plus a `Livewire.hook('commit')` net. Receipt: `tests/week-filter-preserved.spec.ts` (U1 Approve, U2 Reject, U3 Cancel Pending). |
 | **The submit action's own guards** | Since 2026-11-06 `SubmitReplacementRequest` enforces what only the page did: FR 2.17's 3-working-day notice (`slot_too_soon`, `WorkingHours::noticeCutoff()`) **and** D2's holiday landing ban (`holiday`). Sunday needs no arm (no Sunday slot rows). `tests/Feature/SubmitGatesTest.php` is the receipt file (10 cases). |
 | **FR 2.17 is server-side** | Since 2026-11-06 `App\Actions\SubmitReplacementRequest` refuses a slot inside the 3-working-day notice window (`slot_too_soon`) — the grid's `leadTimeCutoff()` was only the browser's word. Calendar: `WorkingHours::noticeCutoff()` / `isBookableOnDate()`, the same class as the auto-reject sweep, so grid "Bookable from …", the gate and the pending-deadline tooltip agree (measured 2026-11-06: Fri 6 Nov → **12 Nov** on both sides, 98/98 semester days). |
 | **Venue page slot rules** | Since 2026-11-05: hover asks ONE question (**one clear hour**, `MIN_BOOK_SLOTS = 2`, never derived from a class), and a class's duration is judged only AFTER it is picked (Arrange gate → `#slotWarningOverlay`, no navigation). Lane `venue-slot-validation`; commits `daf11c6` + `bee6176`. |
@@ -41,6 +42,28 @@
 ---
 
 ## 1. Latest sessions — 2026-11-03 → 2026-11-06
+
+### 2026-11-06 — the Week filter no longer blanks after a decision (bug report)
+
+- Report: after **Approve/Reject** on `request-approval-ui` and **Cancel Pending** on `my-replacements`
+  the Week dropdown went blank while its chip stayed, printing a bare `Week: `.
+- **Cause, measured:** the week selects have NO server-side options — `populateWeekSelect()` builds them
+  from `weekRanges`/`weekData`. A page component's round-trip morphs the DOM from the server's HTML
+  (empty `<select>`), so the options were deleted and the value collapsed to `''`; the chip, rebuilt
+  from the empty select, lost its label. Pre-fix receipt (non-writing round-trip, `approve` on an
+  unknown id): `options 15 → 0`, `value '8' → ''`, chip `Week: ×`.
+- **Fix (shared, no per-page code):** `withWeekLivewireGuard()` — `pageLivewire()` now returns a Proxy
+  whose `call()` snapshots every registered select's value and restores options + value **before the
+  caller's `.then()`** (that callback rebuilds the chips — a deferred `setTimeout` restore is too late,
+  measured). A `Livewire.hook('commit')` net covers other round-trips. Attributes still morph, so
+  `cohort-timetable`'s server-driven `disabled` is untouched; no `wire:ignore`.
+- Receipt: `tests/week-filter-preserved.spec.ts` (guarded, writes on the testing DB; reseeds
+  `TestingFixtureSeeder` per test, clearing `audit_logs`/`notifications` first because the FK blocks it):
+  **3/3 green**, and **red before the fix** for U1/U2/U3 (U3 only went red once it also asserted the
+  cancel's own toast — a silent no-op had been passing it).
+- Neighbours re-run green: `my-replacements-after-submit` + `arrangement-entry-guard` (13 passed),
+  `venue-book` **18/19** — `U2a-T3` fails **identically on the unmodified HEAD** (hover-tooltip race;
+  pre-existing flake, logged in §5).
 
 ### 2026-11-06 — FR 2.17 gets a server leg (the grid stops being the only guard)
 
@@ -308,6 +331,7 @@ date, and its files are dirty in the tree — see §3.
 | 19 | **The notification row speaks plainly** (inline brief, 2026-11-05): an inactive row can be hidden from the feed (Hide in `.nr-right`); every title reads **Title Case** at render (the stored sentence is never rewritten); the subtitle is the **sender** line — `by YOU` when the reader is the actor, else `by Name (staff_id)` — and a self-owned cancellation/submission says **Your** in the title; at zero unread the pill reads **0** and Mark-all stays visible but **disabled** (the bell badge still hides at zero). |
 | 20 | **A pending request has a 3-working-hour window — and it is the SYSTEM that closes it** (user brief `Auto-Reject Pending Requests.md`, 2026-11-06). Working time = TARUMT Sabah hours, Mon–Fri 08:30–17:30, weekends and the semester's `holidays` excluded; the boundary itself rejects (`gap ≤ 180` minutes), anything further out stays Pending, and no other status is ever considered. **`App\Support\WorkingHours` is the only clock** — the deadline a tooltip promises and the moment the sweep compares are one computation, and neither may hardcode its own hours. The sweep is `php artisan requests:auto-reject` (scheduled 5 min, `--dry-run` safe) — **never** triggered from a page render (that would be a write-on-GET against the demo DB). An auto-rejected row keeps `approver_id = NULL` and is audited with `details.auto = true`, because no human decided. The Pending badge's `data-tip` always names the deadline (both pages, one vocabulary). |
 | 21 | **The notifications panel opens on "Active only"** (user, 2026-11-05): `activeOnly` defaults ON beside `unreadOnly`, so the first view is actionable unread and the decided rows are one toggle away. A **disabled control is visible but inert** and shows `cursor: not-allowed` everywhere (one rule for `button`/`.btn`/`input`/`select`/`textarea`, no `pointer-events: none` so a disabled icon keeps its tooltip); an ID selector that sets `cursor: pointer` must restate `:disabled` itself. |
+| 23 | **A JS-owned control must survive a Livewire round-trip** (2026-11-06). Anything the server renders EMPTY but JavaScript fills (the week selects, `#filterChips`, table bodies) is deleted by the morph. The week selects are guarded centrally (`withWeekLivewireGuard()` around `pageLivewire().call()`; restore synchronously, never in a `setTimeout` — the caller's `.then()` reads the value first). Prefer that over `wire:ignore`, which would also freeze server-driven attributes. |
 | 22 | **A rule the page enforces must also exist in the action** (2026-11-06). FR 2.17's 3-working-day notice was JavaScript-only; `SubmitReplacementRequest` now refuses `slot_too_soon` on the same `WorkingHours` calendar, and the failure copy reuses the grid's own sentence. When you add or touch a booking rule: action first, then the page, then one test — never the browser alone. |
 
 ---
@@ -378,13 +402,21 @@ date, and its files are dirty in the tree — see §3.
 - The dev `.env` Gmail App Password was exposed in a chat paste on 2026-11-03; the user
   declined rotation. Rotate if they ever ask.
 
+**Livewire + JS**
+- A page component's re-render morphs the DOM from the server's HTML: JS-filled containers
+  (`#weekFilter` options, `#filterChips`, `#tableBody`) come back EMPTY unless guarded. The week
+  selects are snapshot+restored around `pageLivewire().call()` (2026-11-06). If a restore has to land
+  before a caller's `.then()`, do it inside the wrapper — `setTimeout` runs after the `.then()`.
+- Spec caution: a test that only asserts "nothing broke" can pass because the action never ran. Assert
+  the action's own receipt (toast, row left/status flip) too — that is how the Cancel case was caught.
+
 **Receipts and honesty**
 - No claim without a receipt. Fresh in-flow login (staff `input[name="login_id"]`),
   screenshots + DOM snippets. Distinguish CONFIRMED from SUSPECTED.
 - Playwright gotchas: run `.cjs` helpers from the repo cwd (`package.json` is
   `"type": "module"`); avoid `ctx` name collisions; `:visible` is not a CSS selector;
   add `?_=` cache-busters.
-- A full-suite number is **PHPUnit only** (376/1998 at 2026-11-06). The data-dependent specs (request-approval,
+- A full-suite number is **PHPUnit only** (386/2031 at 2026-11-06). The data-dependent specs (request-approval,
   warning-keywords) must be re-run after any data change.
 
 **SDD**
@@ -420,6 +452,7 @@ date, and its files are dirty in the tree — see §3.
 | Viva runbook, queue/mail | `docs/viva-demo-runbook.md`, `docs/queue-and-emails.md` · **what to code next** → `docs/coding-todo.md` |
 | **The lanes just applied** | `venue-slot-validation` — `.sdd/changes/venue-slot-validation/` (status `applied` 2026-11-05; the venue hover/gate split, receipt in `review-log.md`). `receipt-target-guard` — same folder (status `applied`; one leg open: `T3d`). Merge lane: `.sdd/archive/replacement-merge-one-table/` (archived `07274c1`). |
 | **The venue-page slot rules** | `resources/views/livewire/venue-timetable.blade.php` (`MIN_BOOK_SLOTS`, `spanBlocked()`, `nextEventStartAfter()`, `refreshSessions()`, `confirmIntentSession()`, `showSlotWarning()`), `resources/views/partials/ui-intent-session-modal.blade.php` (`#slotWarningOverlay`), `app/Livewire/VenueTimetable.php` (`bookableCandidates()`, `intentSessionOptions()`) |
+| **The week-select guard** | `public/js/ui-common.js` — `snapshotWeekSelects()`, `restoreWeekSelects()`, `withWeekLivewireGuard()` (used by `pageLivewire()`), the `commit`-hook net; receipt `tests/week-filter-preserved.spec.ts` |
 | **The auto-reject rule** | `app/Support/WorkingHours.php` (the office-hours clock: `gapMinutes()`, `subtractWorkingMinutes()`, `holidays()`, `MIN_GAP_MINUTES = 180`), `app/Actions/AutoRejectRequest.php` (the release + the system stamp, `approver_id` NULL), `app/Services/PendingRequestExpiry.php` (the sweep), `app/Console/Commands/AutoRejectPendingRequests.php` (`requests:auto-reject --dry-run`, scheduled in `routes/console.php`); the deadline rides `ReplacementRequestMapper::approvalDeadlineLabel()` + `statusTip()` |
 | FR 2.17 / the notice gate | `app/Actions/SubmitReplacementRequest.php` (the `slot_too_soon` and `holiday` gates, both right after the anchor lookup), `app/Support/WorkingHours.php` (`noticeCutoff()`, `isBookableOnDate()`), `app/Livewire/ReplacementArrangement.php` (`conflictText` arm), `public/js/ui-common.js` (`leadTimeCutoff`, `isSlotTooSoon`, `renderLeadTimeNote`), `tests/Feature/LeadTimeGateTest.php` |
 | Cancel Class + the inbox rules | `app/Livewire/NavNotifications.php` (`exceptionMap()`, the two read-time classifiers), `resources/views/partials/notif-row.blade.php` (`$rowTip`), `public/js/ui-common.js` (`showCancelToast`, `needsLoadToast`, `markLoadToastShown`, `CancelClassModal`) |
@@ -431,7 +464,7 @@ date, and its files are dirty in the tree — see §3.
 
 ## 5. Open tasks (state at 2026-11-06)
 
-1. **[USER] Push** — 13 commits sit on `fedora-backend` past `39b2bb7` (`40ffb5f` newest, 2026-11-06).
+1. **[USER] Push** — 15 commits sit on `fedora-backend` past `39b2bb7` (the week-filter fix is newest, 2026-11-06).
    Nothing is pushed by an agent, ever.
 2. ~~**[USER, waiting on the archive word]** Seven finished lanes~~ — **ARCHIVED 2026-11-05**:
    `mytimetable-jump-highlight`, `notif-click-behaviour`, `receipt-target-guard`,
@@ -444,26 +477,30 @@ date, and its files are dirty in the tree — see §3.
    **SHIPPED 2026-11-04** (1f, 3B, 3C, 3A, 3D, 1h, 3E-3, §4 — `page-changelogs/request-approval-changelog.md`
    + the `ui(request-approval)` commits through `fc217a5`). The brief is archived as of 2026-11-05
    (`prompts/completed prompt (Archieve)/`). Nothing left here.
-4. **[AGENT]** `receipt-target-guard` `T3d` — `tests/submission-conflict-refresh.spec.ts` is **not
+4. **[AGENT, low]** `tests/venue-book.spec.ts` **U2a-T3** is flaky on the hover tooltip
+   (`#availableTooltip.show #tooltipBookBtn` never becomes visible in a 5 s window). It fails the same
+   way on unmodified HEAD (18/19), so it is a pre-existing hover-race, not a regression — worth a
+   timeboxed look when the demo drills are re-run.
+5. **[AGENT]** `receipt-target-guard` `T3d` — `tests/submission-conflict-refresh.spec.ts` is **not
    green** and never has been recorded green: it fails inside its own staged-arrival flow (a login
    redirect timeout, then `#weekSelector` absent on the landed page). Decide: diagnose it timeboxed,
    or quarantine it as `test.fixme()` with the reason recorded. The guard itself is unaffected
    (it refuses at collection, independently).
-5. **[AGENT, queued]** The "Just cancelled" chip TTL prompt had no committed file last checked —
+6. **[AGENT, queued]** The "Just cancelled" chip TTL prompt had no committed file last checked —
    re-create it if the user still wants the 30-minute display-only TTL.
-6. **[USER]** Confirm the viva date (anchored: week of 7 Dec 2026) and decide the viva demo data —
+7. **[USER]** Confirm the viva date (anchored: week of 7 Dec 2026) and decide the viva demo data —
    both DBs are thin; a populated story needs user-gated SQL, snapshot-first, logged.
-7. **[USER/OPS]** Purge the viva repo's 27 stale jobs before any worker run.
-7a. ~~**[AGENT, needs the word]** the submit action's missing holiday check~~ **CLOSED 2026-11-06**
+8. **[USER/OPS]** Purge the viva repo's 27 stale jobs before any worker run.
+8a. ~~**[AGENT, needs the word]** the submit action's missing holiday check~~ **CLOSED 2026-11-06**
    (`40ffb5f`): D2's landing ban is in `SubmitReplacementRequest` (`holiday`), test file
    `tests/Feature/SubmitGatesTest.php`.
-7b. **[USER, decision]** The auto-reject sweep only runs from `php artisan requests:auto-reject`
+8b. **[USER, decision]** The auto-reject sweep only runs from `php artisan requests:auto-reject`
    (scheduled every 5 min). Nothing runs the scheduler in dev, so a demo must run the command by
    hand. If the user wants the rule to bite WITHOUT that step, the honest option is to also sweep
    once at SUBMIT time (a POST, never a page render) — that needs their word, because it changes the
    submit flow to "your request was accepted and immediately rejected" when the slot is too soon.
-8. **[AGENT, demo week]** Chapter 5 browser-evidence run and the report; NFR benchmarks; the UAT
+9. **[AGENT, demo week]** Chapter 5 browser-evidence run and the report; NFR benchmarks; the UAT
    script (the coding side of these is tracked in `docs/coding-todo.md`).
-9. **[LOW]** `?week=` deep links still land on the remembered week (accepted); three reference
+10. **[LOW]** `?week=` deep links still land on the remembered week (accepted); three reference
     templates under `resources/views/ui-design-templates/` still carry `Exclude Completed` and a
     `ClassCancellation.undo(entry)` call — they are design references, not loaded pages.
