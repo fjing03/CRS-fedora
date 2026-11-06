@@ -28,7 +28,10 @@
 | Gates | `composer run lint:check` · `vendor/bin/phpstan analyse --memory-limit=1G` · full phpunit · `node --check` for JS. **Never** `composer run types:check` (crashes at 128M). |
 | Suite | Last full PHPUnit run **386 tests / 2031 assertions** (2026-11-06, after `40ffb5f`; +27 = the auto-reject rule's 17 clock/sweep cases + the 10 submit-gate cases). Browser suites are separate and NOT part of that number — quote them by name: `venue-book` 19, venue neighbours 61 passed / 2 skipped, `cancel-class` 12 passed / 4 skipped, `status-tooltips-filter-chips` 9, `notif-row-inactive-hide` 5. |
 | SDD lanes | **35** lane dirs under `.sdd/changes/` (**33** older finished ones + `venue-slot-validation` and `notif-inactive-hide-sender`, both `status: applied` 2026-11-05), **101** archived. Archive only on the user's word. |
-| **Auto-reject rule (2026-11-06)** | A **pending** request whose proposed start is within — or exactly — **3 working hours** is rejected by the system. Working time = TARUMT Sabah hours, **Mon–Fri 08:30–17:30**, weekends + the semester's `holidays` excluded (`App\Support\WorkingHours`, `MIN_GAP_MINUTES = 180`). Write leg `App\Actions\AutoRejectRequest` (cancel-family release, `approver_id` NULL, audits `details.auto`); trigger `php artisan requests:auto-reject` (`--dry-run`) scheduled every 5 min — **never** a write-on-read. The Pending badge's `data-tip` states the deadline (proposed start − 3 working hours) on both pages. |
+| **Auto-reject rule (2026-11-06)** | A **pending** request whose proposed start is within — or exactly — **3 working hours** is rejected by the system. Working time = TARUMT Sabah hours, **Mon–Fri 08:30–17:30**, weekends + the semester's `holidays` excluded (`App\Support\WorkingHours`, `MIN_GAP_MINUTES = 180`). Write leg `App\Actions\AutoRejectRequest` (cancel-family release, `approver_id` NULL, audits `details.auto`); trigger `php artisan requests:auto-reject` (`--dry-run`) scheduled every 5 min — **never** a write-on-read. The Pending badge's `data-tip` states the deadline (proposed start − 3 working hours) on both pages; the
+**lecturer arm names the rule** since the 2026-11-06 UI update — *"Auto-Reject Rule: If This Request Has
+Not Been Approved At Least 3 Working Hours (…deadline…) Before The Proposed Class Start Time, It Will Be
+AUTOMATICALLY REJECTED."* (emphasis = capitalisation, a tip is textContent; the PL arm is unchanged). |
 | **A cancelled request displays as "Need to Arrange" (2026-11-06)** | A lecturer's own cancelled pending request is DISPLAYED as no active request on My Replacements: `badge-outline status-none` reading **Need to Arrange** (no-request tip), an em dash in REQUESTED REPLACEMENT, and a details pop-up with **no Proposed Replacement Schedule tab** (no Request ID/Week/Day/Date/Time/Duration/Venue). One normalisation in `ReplacementHome::buildRow()` — status→null + strings blanked. The RECORD is untouched (still `cancelled`, audited, slots released); history + notifications still say *Cancelled by YOU*. The status filter offers **no Cancelled option** (nothing on the page can carry that state); a filter saved before the removal is mapped onto Need to Arrange at restore. Receipts: `request-cancel-pending.spec.ts` (write), `replacement-home-status-badges.spec.ts` receipts 9 + 10. |
 | **A JS-owned control survives a Livewire round-trip (2026-11-06)** | The week `<select>`s have no server-side options, so a page-component re-render used to morph them empty — Approve/Reject blanked the Week filter and its chip printed a bare `Week: `. Guard: `withWeekLivewireGuard()` in `ui-common.js` (snapshot before `pageLivewire().call()`, restore options + value **before the caller's `.then()`**), plus a `Livewire.hook('commit')` net. Receipt: `tests/week-filter-preserved.spec.ts` (U1 Approve, U2 Reject, U3 Cancel Pending). |
 | **The submit action's own guards** | Since 2026-11-06 `SubmitReplacementRequest` enforces what only the page did: FR 2.17's 3-working-day notice (`slot_too_soon`, `WorkingHours::noticeCutoff()`) **and** D2's holiday landing ban (`holiday`). Sunday needs no arm (no Sunday slot rows). `tests/Feature/SubmitGatesTest.php` is the receipt file (10 cases). |
@@ -43,6 +46,23 @@
 ---
 
 ## 1. Latest sessions — 2026-11-03 → 2026-11-06
+
+### 2026-11-06 — the Pending tooltip names the rule (UI update)
+
+- User UI update *Pending Status Tooltip*: `.badge.status-pending`'s tip must spell out the rule, not
+  only when it fires. Only the **lecturer** arm changed (`ReplacementRequestMapper::statusTip()`); line 1
+  and the PL voice are byte-identical.
+- New second line: *Auto-Reject Rule: If This Request Has Not Been Approved At Least 3 Working Hours
+  (Friday deadline) Before The Proposed Class Start Time, It Will Be AUTOMATICALLY REJECTED.* The
+  deadline is still the row's own `approvalDeadlineLabel()` value (proposed start − 3 working hours on
+  the `WorkingHours` calendar, holidays included), so it stays dynamic per request.
+- Emphasis rides capitalisation (`Auto-Reject Rule:`, `3 Working Hours`, `AUTOMATICALLY REJECTED`)
+  because a `data-tip` is `textContent`; an assertion now forbids `<` in the string so nobody turns it
+  into HTML. Badge class/colours/click behaviour untouched.
+- Receipts: `AutoRejectPendingRequestsTest` pins both lines + the two emphasis substrings;
+  `status-tooltips-filter-chips.spec.ts` (new `MRH_PENDING_TAIL_RE`) **9/9** on the demo DB; measured on
+  the testing fixture (proposal Fri 6 Nov 14:00 → deadline `Fri, 6 Nov 2026, 11:00 AM`),
+  screenshot `/tmp/opencode/pending-tip.png`.
 
 ### 2026-11-06 — a cancelled request stops advertising its dead proposal (user brief)
 
@@ -501,7 +521,7 @@ date, and its files are dirty in the tree — see §3.
 
 ## 5. Open tasks (state at 2026-11-06)
 
-1. **[USER] Push** — 20 commits sit on `fedora-backend` past `39b2bb7` (the cancelled-request display change is newest, 2026-11-06).
+1. **[USER] Push** — 25 commits sit on `fedora-backend` past `39b2bb7` (the Pending-tip copy is newest, 2026-11-06).
    Nothing is pushed by an agent, ever.
 2. ~~**[USER, waiting on the archive word]** Seven finished lanes~~ — **ARCHIVED 2026-11-05**:
    `mytimetable-jump-highlight`, `notif-click-behaviour`, `receipt-target-guard`,

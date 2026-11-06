@@ -105,7 +105,12 @@ has no time left (0). Anything further out stays Pending, and **no other status 
 - Trigger: `App\Services\PendingRequestExpiry` + `php artisan requests:auto-reject` (`--dry-run`),
   scheduled every five minutes. **Never** a write-on-read (a page render must not mutate data).
 - UI: a Pending badge's `data-tip` states the deadline (proposed start − 3 working hours) through the
-  shared `ReplacementRequestMapper::statusTip()`, on both My Replacements and the PL queue.
+  shared `ReplacementRequestMapper::statusTip()`, on both My Replacements and the PL queue. The
+  LECTURER arm names the rule itself (2026-11-06 UI update, "Pending Status Tooltip"):
+  *"Auto-Reject Rule: If This Request Has Not Been Approved At Least 3 Working Hours (Fri, 6 Nov 2026,
+  11:00 AM) Before The Proposed Class Start Time, It Will Be AUTOMATICALLY REJECTED."* — the deadline in
+  those parentheses is the row's own computed value, and the three emphasis phrases ride capitalisation
+  because a `data-tip` is `textContent` (never HTML). The PL arm keeps its own voice verbatim.
 
 ### A cancelled request displays as "Need to Arrange" (2026-11-06)
 When a lecturer cancels their own pending request, My Replacements does **not** keep advertising the
