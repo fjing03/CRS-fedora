@@ -26,4 +26,5 @@ folder is on the demo/critical path.
 | File | Task | Status | Added |
 |---|---|---|---|
 | `task-01-warn-confirm-modal-colour.md` | Replacement Arrangement: the "you will lose your selection" confirm modals get the warning (yellow) face instead of the neutral one — **colour only** | ⏸ parked | 2026-11-02 |
+| `Remove Change Venue Confirmation Modal.md` (+ `… — notes.md`) | Replacement Arrangement: remove the “Change Venue?” question that fires when the venue is switched with slots picked. One shared window is the page's whole confirmation shell, so this is a one-trigger removal — **but** a picked slot remembers its room, so “keep my picks” needs a real design decision first (A/B/C in the notes) | ⏸ parked | 2026-11-07 |
 | `task-02-replacement-history-timeline.md` | One honest timeline rail across **all four** rails — the student rail is temporarily removed (fake `01 Sep 2026, 09:15 AM`); the staff rails stay live for the demo but are recorded here: 8-hour `reviewedAt` skew + cancelled-looks-reviewed (lecturer), permanently empty "Viewed" step + no outcome label (PL), hardcoded "In progress"/"Next" (class modal) | ⏸ parked | 2026-11-02 |
