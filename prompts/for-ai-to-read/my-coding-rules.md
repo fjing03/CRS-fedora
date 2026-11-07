@@ -94,6 +94,14 @@ Adding a new status/legend item = **ONE row** in the relevant table above + **ON
     line's parentheses, `Rejection Reason: Automatically Rejected by System` when `approver_id IS NULL`,
     students without the Staff lines, and the legacy `title — body` only for an unknown kind. New kind →
     a branch there + one receipt, never a page-local tip.
+  - **Border weight = ownership, on the grid too.** The replacement-arrangement grid follows the
+    two-axis language (colour = state, border = owner) with **0px** instead of the 0.5px hairline:
+    amber = a pending reservation, red = a conflict; 3px = yours, no border = someone else's. One
+    resolver (`classifyCell()`, exported on `window`) decides from BOTH arms, and ownership is
+    **data** (the busy tuple's 6th key `mine`, the venue payload's `status 3` vs `4`) — never the
+    holder text, never the colour. A red cell is 3px if ANY blocking row is mine; rows that are the
+    same fact are merged in the payload so the tooltip keeps one block. A legend swatch must carry
+    the real cell class, or it will drift from the grid.
   - **A `data-tip` is TEXT, not HTML.** The shared engine (`initDataTipTooltips` in
     `ui-common.js`) sets `textContent` and switches to `pre-line` when the string contains a
     newline, so a multi-line tooltip is `"line one\nline two"` — a `<br>` prints literally. Keep

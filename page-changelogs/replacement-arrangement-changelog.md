@@ -1,3 +1,75 @@
+## 2026-11-06 (UI + bug fix, user brief `UI Update & Bug Fix — Pending Slots, Conflicts & Legend Styling.md`) — colour = state, border = owner
+
+**The bug, measured:** a cell was painted by two independent arms and the engine arm won by
+being checked first. The grid arm tests ownership (`proposer_id === auth()->id()`); the engine's
+**busy vectors do not** — the cohort layer is ownerless by design, and any pending make-up row
+painted `cell-pending`, the "Pending (You)" amber. Live proof on the demo DB: request 28
+(proposer staff **5770**) on B111 week 9 Mon 13:30–15:30 appears in
+`cohortBusyRanges(semester 1, cohort [4], 9)` — so as **5425** (any subject that shares cohort 4)
+those cells styled themselves as *her* pending. With a subject that does not share the cohort the
+same cells fell to the grid arm and read "Reserved by Others". That subject-dependence is the
+"sometimes" in the report.
+
+**The fix — ownership is data, then ONE resolver:**
+
+- `MatrixIntersectionEngine` rows gain `mine`: lecturer-vector rows `true`; cohort class rows
+  `false`; cohort make-up rows `proposer_id === viewer` (new optional `?int $viewerId`, default
+  `null` = inert, so the enforcement callers are untouched).
+- The page's busy tuple gains a 6th key `mine`. Rows that are the **same blocking fact** (my own
+  class that also carries my selected cohort) are **merged** in `busyByWeekPayload()` with
+  `mine = OR(twins)` — without that the cell tooltip would have printed "2 classes in the way".
+- `classifyCell()` (one pure function, exported on `window`) decides the class from **both arms**:
+  own pending → others' pending → own conflict → any block → too-soon/available. A red cell is
+  3px iff **any** blocking row is mine ("is any row mine?", never "is any row not mine?").
+
+**The visual law (user's table, verbatim):** pending = `--color-tertiary-container` + **3px
+`--color-tertiary`** when it is yours, **no border** when it is another staff member's; conflict =
+`--color-error-container` + **3px `--color-error`** when a cause is yours, **no border** for a
+cohort's class, another lecturer's class in the room, or a venue that cannot host the class type.
+Grey is left to `.cell-too-soon` alone (it used to double as "reserved by others").
+`.cell-occupied--mine` is **added to** the base class, so the summary counters still count every
+red cell once (an others'-pending cell now counts as Reserved → Unavailable instead of Pending —
+the honest number; the summary bar is commented out today, so nothing visible moves).
+
+**Legend — six rows, each swatch a real cell class** (so fill *and* border show, and it can never
+drift from the grid):
+
+| Swatch | Label | Hover text |
+|---|---|---|
+| `cell-available` | Available | FREE SLOT — CLICK to select as the replacement (slots inside the 3-working-day window are read-only) |
+| `event-selection` | Your Current Selection | The slot(s) you have SELECTED for the replacement |
+| `cell-pending` | Pending (You) | Your replacement request for this slot is WAITING for approval — thick border (3px) |
+| `cell-reserved` | Pending (Others) | Another staff member's replacement request is WAITING for approval here — no border, you CANNOT BOOK it |
+| `cell-occupied cell-occupied--mine` | Conflict (Yours) | CANNOT BOOK — your own Normal class or Replacement class is in this slot — thick border (3px) |
+| `cell-occupied` | Conflict (Others) | CANNOT BOOK — VENUE CONFLICT (this slot is used by another class in this room),⏎COHORT CONFLICT (the related cohorts have another class at that time) |
+
+Ownership hint line: `thick border (3px) = yours · no border = others'`. The shared partial
+(`ui-legend-bar`) accepts either `true` (cohort/venue keep their exact wording and 0.5px demo) or a
+list of demo/text lines; the borderless demo is the bare `.osd-demo`, so **no new CSS** was added
+for it.
+
+**Tips are plain text:** emphasis is capitalisation, and the Conflict (Others) break is a `\n`
+(the engine renders with `pre-line`) — a `<br>` would print literally. One scoped rule keeps the
+selection swatch's primary ring on hover (the grid's red flip is the deselect affordance).
+
+**Known, by the user's call:** the room-type red (a lecture in a 28-seat lab) has **no** legend
+line — VENUE CONFLICT means "occupied", not "unsuitable"; those cells are explained by their own
+tooltip. Also observed, untouched: `?week=` deep links land one week late on this page (a
+pre-existing arrival quirk; the week selector is the reliable path).
+
+**Receipts** (testing DB, `:8030`, guarded fixture — the spec runs alone because
+`week-filter-preserved` re-seeds `TestingFixtureSeeder`, which deletes every request):
+`tests/arrangement-slot-ownership.spec.ts` **6/6** — as 5770 his pending is `cell-pending` 3px and
+her pending `cell-reserved` 0px, as 5425 the mirror image, the same Thursday class is 3px for its
+owner and 0px for her, the engine arm alone (real payload tuples + the real resolver) flags
+`mine` correctly for both viewers, the five resolver rules + three crossing cases, and the legend's
+six rows/tips. Red-check: with the pre-fix "always mine" flag the spec fails.
+`tests/Feature/MakeUpBusyVectorTest.php` +2 cases, `ReplacementArrangementTest.php` +1 case,
+`tests/Feature/UiLegendBarTest.php` (new) 4/4 including both reference pages' unchanged hint line.
+Screenshots: `/tmp/opencode/arrangement-ownership-light.png` / `-dark.png`.
+`venue-status-parity.spec.ts` is **data-dependent on the old demo state** (it pins request 26 on
+B010 week 7) and fails on a freshly seeded DB — pre-existing rot, unrelated to this change.
+
 ## 2026-11-05 (UI/UX, user brief `UIUX Update — My Replacements After Submit.md`) — the success toast is gone; the new row is the receipt
 
 **Change:** a successful submission no longer shows the `✓ Submitted — Pending Approval`

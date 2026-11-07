@@ -63,7 +63,7 @@ A web application that replaces the manual Google-Sheets-based class replacement
 - **Blue** — current selection
 
 ### Two-axis block language (frozen UI, 2026-10)
-All timetable pages use the frozen design's two-axis language: **colour = status** (same fill for everyone), **border weight = ownership** (3px thick = your class, 0.5px hairline = others'). Block classes in `theme.css`: `event-mine` / `event-others` / `event-mine-pending` / `event-others-pending` / `event-conflict` (own conflict or public holiday — loud) / `event-public-holiday` (others', hairline red). Legend chips render these block classes directly.
+All timetable pages use the frozen design's two-axis language: **colour = status** (same fill for everyone), **border weight = ownership** (3px thick = your class, 0.5px hairline = others'). The **replacement-arrangement grid** joined it on 2026-11-06 with **0px** instead of the hairline (see the slot-state table in §10.0). Block classes in `theme.css`: `event-mine` / `event-others` / `event-mine-pending` / `event-others-pending` / `event-conflict` (own conflict or public holiday — loud) / `event-public-holiday` (others', hairline red). Legend chips render these block classes directly.
 
 ### Venue types & rules
 - **Tutorial Rooms** (cap ≤ 35): B100–B109, B014–B018, B002 — L/T sessions
@@ -521,14 +521,34 @@ These ten rules are **non-negotiable** for every page and every future change:
    | `event-conflict` | `--color-error` (red, 3px border) | YOUR conflict or public-holiday class |
    | `event-public-holiday` | `--color-error` (red, hairline) | others' conflict / holiday |
 
-   **B. Replacement-arrangement slot grid legend** (booking interface, slot states — Wave 3b):
-   | Label | Token | Meaning |
-   |-------|-------|---------|
-   | Available | `--color-secondary` (green) | satisfies all constraints |
-   | Your Current Selection | `--color-primary` (blue) | active pick |
-   | Pending (You) | `--color-tertiary` (yellow) | your submitted request awaiting PL |
-   | Reserved by Others | `--color-surface-variant` (grey) | another lecturer's pending request |
-   | Occupied / Class on Public Holiday | `--color-error` (red) | locked / blocked |
+   **B. Replacement-arrangement slot grid legend** (booking interface, slot states — Wave 3b).
+   **Since 2026-11-06 this grid speaks the same two-axis language** (user law, brief
+   `UI Update & Bug Fix — Pending Slots, Conflicts & Legend Styling.md`): colour = state,
+   border = ownership — with **0px** standing in for the cohort/venue 0.5px hairline:
+
+   | Swatch (real cell class) | Label | Fill | Border |
+   |---|---|---|---|
+   | `cell-available` | Available | `--color-success-container` | none |
+   | `event-selection` | Your Current Selection | `--color-primary-container` | 2px `--color-primary` |
+   | `cell-pending` | Pending (You) | `--color-tertiary-container` | **3px `--color-tertiary`** |
+   | `cell-reserved` | Pending (Others) | `--color-tertiary-container` | **none** |
+   | `cell-occupied cell-occupied--mine` | Conflict (Yours) | `--color-error-container` | **3px `--color-error`** |
+   | `cell-occupied` | Conflict (Others) | `--color-error-container` | **none** |
+
+   Ownership law: an amber cell is 3px iff the pending request is **yours**; a red cell is 3px iff
+   **any** blocking row is yours (own class / own approved make-up) — a cohort's class, another
+   lecturer's class in the room and a venue that cannot host the class type are all borderless.
+   The class is chosen by ONE resolver (`classifyCell()` in the page script, exported on `window`),
+   from BOTH arms (the venue slot payload's `status 1|3|4` and the busy vectors' 6th tuple key
+   `mine`) — precedence: own pending → others' pending → own conflict → any block → too-soon /
+   available. A row that is the same blocking fact (my class that also carries my cohort) is merged
+   in `busyByWeekPayload()` with `mine = OR(twins)`, so the cell tooltip still counts ONE block.
+   Legend tips are TEXT: emphasis is capitalisation (`WAITING`, `CANNOT BOOK`, `VENUE CONFLICT`), and
+   the Conflict (Others) break is a `\n` (never a `<br>`). The room-type red has no legend line by
+   the user's call (VENUE CONFLICT = occupied, not unsuitable). Receipts:
+   `tests/arrangement-slot-ownership.spec.ts` (6; run it alone — `week-filter-preserved` re-seeds the
+   fixture DB), `MakeUpBusyVectorTest`, `ReplacementArrangementTest`, `UiLegendBarTest`.
+   Grey is now `.cell-too-soon` only (it used to double as "reserved by others").
 
    **C. Request-history status badges** (`.status-*`):
    | Label | Container tokens |
