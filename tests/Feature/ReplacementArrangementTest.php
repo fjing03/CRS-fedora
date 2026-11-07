@@ -335,6 +335,65 @@ final class ReplacementArrangementTest extends TestCase
         $this->assertArrayNotHasKey('BMIT1001', $payload['blockedVenues']);
     }
 
+    /**
+     * arrangement-slot-ownership-legend: every busy tuple carries `mine` as
+     * its 6th key (the cell's border decision), and rows that are the SAME
+     * blocking fact (my own class that also carries my selected cohort) are
+     * merged — otherwise the cell tooltip would count the block twice.
+     */
+    public function test_busy_tuples_carry_ownership_and_merge_twins(): void
+    {
+        $sessionA = ClassSession::query()->with('cohorts')->where('lecturer_id', $this->lecturerA->id)->firstOrFail();
+        $cohortId = $sessionA->cohorts->firstOrFail()->id;
+
+        // A class of ANOTHER lecturer carrying the SAME cohort: it reaches this
+        // page's vectors twice — the cohort's calendar (mine = false). Plus my
+        // own class that ALSO carries the cohort: the twin case (true + false
+        // for one physical slot) that must collapse to a single mine=true row.
+        $sharedClass = ClassSession::create([
+            'semester_id' => $this->semester->id,
+            'module_id' => $sessionA->module_id,
+            'lecturer_id' => $this->lecturerB->id,
+            'day_of_week' => 4,
+            'start_time' => '09:00:00', 'end_time' => '11:00:00',
+            'venue_id' => $sessionA->venue_id, 'session_type' => 'T',
+        ]);
+        $sharedClass->cohorts()->attach([$cohortId]);
+
+        $ownSharedClass = ClassSession::create([
+            'semester_id' => $this->semester->id,
+            'module_id' => $sessionA->module_id,
+            'lecturer_id' => $this->lecturerA->id,
+            'day_of_week' => 4,
+            'start_time' => '14:00:00', 'end_time' => '16:00:00',
+            'venue_id' => $sessionA->venue_id, 'session_type' => 'T',
+        ]);
+        $ownSharedClass->cohorts()->attach([$cohortId]);
+
+        $payload = $this->payloadOf($this->lecturerA);
+        $rows = $payload['busyByWeek'][(string) $sessionA->id][0];
+
+        foreach ($rows as $row) {
+            $this->assertCount(6, $row, 'every busy tuple is [day, start, end, label, statusKind, mine]');
+            $this->assertIsBool($row[5], 'the 6th key is a boolean');
+        }
+
+        // another lecturer's class reaching my selected cohort → mine = false
+        $theirs = collect($rows)->filter(fn (array $r): bool => $r[0] === 4 && $r[1] === 2 && $r[2] === 6)->values();
+        $this->assertNotEmpty($theirs, 'the cohort vector carries the shared class Thu 09:00–11:00');
+        $this->assertTrue($theirs->every(fn (array $r): bool => $r[5] === false), 'a class I do not teach is not mine');
+
+        // my own class that also carries the same cohort → ONE row, mine = true
+        $mine = collect($rows)->filter(fn (array $r): bool => $r[0] === 4 && $r[1] === 12 && $r[2] === 16)->values();
+        $this->assertCount(1, $mine, 'the lecturer/cohort twins merge into one row (the tooltip counts blocks)');
+        $this->assertTrue($mine->first()[5], 'the merged row is mine (any-mine wins)');
+
+        // the lecturer-freedom vector ('' key) is mine throughout
+        foreach ($payload['busyByWeek'][''][0] as $row) {
+            $this->assertTrue($row[5], 'the lecturer vector is the viewer\'s own calendar');
+        }
+    }
+
     public function test_arrangement_conflict_events_feed_the_slot_picker(): void
     {
         $sessionA = ClassSession::query()->where('lecturer_id', $this->lecturerA->id)->firstOrFail();

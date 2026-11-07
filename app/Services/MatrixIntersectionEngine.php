@@ -116,8 +116,13 @@ final class MatrixIntersectionEngine
      * cell-state derivation (D4 rule 1: "excluded by engine busy vectors" renders
      * occupied). Same semantics as findAvailableSlots; no behaviour change.
      *
+     * arrangement-slot-ownership-legend: the rows now carry `mine` too. This
+     * pass-through takes no viewer, so its cohort rows keep the default
+     * (`mine = false`); its only readers (`findAvailableSlots()`, the anchor
+     * path, the arrangement payload) read `day/start/end` only.
+     *
      * @param  array<int, int>  $cohortIds
-     * @return array<int, array{day: int, start: string, end: string}>
+     * @return array<int, array{day: int, start: string, end: string, room: string, mine: bool, status?: string}>
      */
     public function busyRanges(int $lecturerId, array $cohortIds, int $semesterId, int $weekNumber): array
     {
@@ -307,7 +312,11 @@ final class MatrixIntersectionEngine
      * Venue/cohort axes stay out of THIS function (they're separate checks
      * — the user's laws: independently checked, mutually different).
      *
-     * @return array<int, array{day: int, start: string, end: string}>
+     * arrangement-slot-ownership-legend (2026-11-06): every row is `mine = true`
+     * — this vector IS the viewer's own calendar, which is what decides the
+     * cell's border thickness (3px = yours).
+     *
+     * @return array<int, array{day: int, start: string, end: string, room: string, mine: bool, status?: string}>
      */
     public function lecturerBusyRanges(int $semesterId, int $lecturerId, int $weekNumber): array
     {
@@ -319,9 +328,10 @@ final class MatrixIntersectionEngine
 
     /**
      * The class-side ranges (the pre-lane shape — the only source before the
-     * SDD makeup-busy-vector extends it into its own reader).
+     * SDD makeup-busy-vector extends it into its own reader). `mine = true`:
+     * these ARE the lecturer's own classes.
      *
-     * @return array<int, array{day: int, start: string, end: string}>
+     * @return array<int, array{day: int, start: string, end: string, room: string, mine: bool}>
      */
     /* SDD tidy-arrangement-cell-tooltips round 5: the ranges gain `room` —
        the payload's holder labels key by (week, day, start, end, room) so
@@ -340,6 +350,7 @@ final class MatrixIntersectionEngine
                 'start' => (string) $row->start_time,
                 'end' => (string) $row->end_time,
                 'room' => (string) $row->room_code,
+                'mine' => true,
             ])
             ->all();
     }
@@ -352,7 +363,7 @@ final class MatrixIntersectionEngine
      * drift both ways: a cancelled rr with slots still pending loses, a
      * released slot loses.
      *
-     * @return array<int, array{day: int, start: string, end: string}>
+     * @return array<int, array{day: int, start: string, end: string, room: string, mine: bool, status?: string}>
      */
     private function makeUpRangesForLecturer(int $semesterId, int $lecturerId, int $weekNumber): array
     {
@@ -383,6 +394,7 @@ final class MatrixIntersectionEngine
                 'end' => (string) $row->end_time,
                 'room' => (string) $row->room_code,
                 'status' => (string) $row->status,
+                'mine' => true,
             ])
             ->all();
     }
@@ -397,14 +409,20 @@ final class MatrixIntersectionEngine
      * (ownerless join — the cohorts are shared user-groups; the class-side
      * row shape already rides cooldowns from every lecturer).
      *
+     * arrangement-slot-ownership-legend (2026-11-06): the rows carry `mine`, but
+     * "mine" here can only come from a make-up whose PROPOSER is the viewer —
+     * this vector is the cohorts' shared calendar, not the viewer's own. Pass
+     * `$viewerId` to tell those apart; without it (enforcement callers) every
+     * row is `mine = false`, which they never read.
+     *
      * @param  array<int, int>  $cohortIds
-     * @return array<int, array{day: int, start: string, end: string}>
+     * @return array<int, array{day: int, start: string, end: string, room: string, mine: bool, status?: string}>
      */
-    public function cohortBusyRanges(int $semesterId, array $cohortIds, int $weekNumber): array
+    public function cohortBusyRanges(int $semesterId, array $cohortIds, int $weekNumber, ?int $viewerId = null): array
     {
         return array_merge(
             $this->classSessionRangesForCohorts($semesterId, $cohortIds, $weekNumber),
-            $this->makeUpRangesForCohorts($semesterId, $cohortIds, $weekNumber),
+            $this->makeUpRangesForCohorts($semesterId, $cohortIds, $weekNumber, $viewerId),
         );
     }
 
@@ -412,7 +430,7 @@ final class MatrixIntersectionEngine
      * The class-side ranges (the pre-lane shape).
      *
      * @param  array<int, int>  $cohortIds
-     * @return array<int, array{day: int, start: string, end: string}>
+     * @return array<int, array{day: int, start: string, end: string, room: string, mine: bool, status?: string}>
      */
     private function classSessionRangesForCohorts(int $semesterId, array $cohortIds, int $weekNumber): array
     {
@@ -429,6 +447,7 @@ final class MatrixIntersectionEngine
                 'start' => (string) $row->start_time,
                 'end' => (string) $row->end_time,
                 'room' => (string) $row->room_code,
+                'mine' => false,
             ])
             ->all();
     }
@@ -440,9 +459,9 @@ final class MatrixIntersectionEngine
      * cohort's other bookings, the user's (b) law).
      *
      * @param  array<int, int>  $cohortIds
-     * @return array<int, array{day: int, start: string, end: string}>
+     * @return array<int, array{day: int, start: string, end: string, room: string, mine: bool, status?: string}>
      */
-    private function makeUpRangesForCohorts(int $semesterId, array $cohortIds, int $weekNumber): array
+    private function makeUpRangesForCohorts(int $semesterId, array $cohortIds, int $weekNumber, ?int $viewerId = null): array
     {
         if ($cohortIds === []) {
             return [];
@@ -469,6 +488,7 @@ final class MatrixIntersectionEngine
                 'time_slots.end_time',
                 'rv.room_code',
                 'replacement_requests.status',
+                'replacement_requests.proposer_id',
             ])
             ->map(fn ($row): array => [
                 'day' => (int) $row->day_of_week,
@@ -476,6 +496,7 @@ final class MatrixIntersectionEngine
                 'end' => (string) $row->end_time,
                 'room' => (string) $row->room_code,
                 'status' => (string) $row->status,
+                'mine' => $viewerId !== null && (int) $row->proposer_id === $viewerId,
             ])
             ->all();
     }

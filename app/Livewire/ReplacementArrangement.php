@@ -662,7 +662,7 @@ class ReplacementArrangement extends Component
      * @param  Collection<int, ClassSession>  $sessions
      * @param  array<int, array<string, list<string>>>  $holderLabels  the
      *                                                                 threaded shared holder-text map (busyCellHolderLabels' shape)
-     * @return array<int|string, array<int, list<array{int, int, int}>>>
+     * @return array<int|string, array<int, list<array{int, int, int, string|null, string|null, bool}>>>
      */
     private function busyByWeekPayload(Collection $sessions, int $semesterId, int $weeks, array $holderLabels): array
     {
@@ -688,7 +688,14 @@ class ReplacementArrangement extends Component
            each label rides its own tuple. Duplicate ranges stay harmless:
            `engineBlocked` is a some() over the tuples and the payload's
            array_unique dedup (the client-side) is per-block. */
-        $toRanges = function (array $busy, int $weekIdx) use ($holderLabels): array {
+        /* arrangement-slot-ownership-legend (2026-11-06): the 6th tuple key is
+           `mine` — does this blocking row belong to the VIEWER's own calendar?
+           It is what decides a cell's border thickness (3px = yours), so it
+           must be data, never inferred from the holder text or the colour.
+           `$defaultMine` covers the producer's own scope: the lecturer vector
+           IS the viewer (true), the cohort vector is not (false) — cohort
+           make-up rows override it from their proposer. */
+        $toRanges = function (array $busy, int $weekIdx, bool $defaultMine) use ($holderLabels): array {
             $out = [];
             foreach ($busy as $range) {
                 $day = (int) $range['day'];
@@ -700,14 +707,15 @@ class ReplacementArrangement extends Component
                    their status kind ('pending'|'approved'), null for the
                    class-side rows — the client's pending arm keys on it. */
                 $statusKind = $range['status'] ?? null;
+                $mine = (bool) ($range['mine'] ?? $defaultMine);
                 $labels = array_values(array_unique($holderLabels[$weekIdx][$key] ?? []));
                 if ($labels === []) {
-                    $out[] = [$day, $startIdx, $endIdx, null, $statusKind];
+                    $out[] = [$day, $startIdx, $endIdx, null, $statusKind, $mine];
 
                     continue;
                 }
                 foreach ($labels as $label) {
-                    $out[] = [$day, $startIdx, $endIdx, $label, $statusKind];
+                    $out[] = [$day, $startIdx, $endIdx, $label, $statusKind, $mine];
                 }
             }
 
@@ -716,7 +724,7 @@ class ReplacementArrangement extends Component
 
         $lecturerBusy = [];
         for ($w = 1; $w <= $weeks; $w++) {
-            $lecturerBusy[$w - 1] = $toRanges($this->engine()->lecturerBusyRanges($semesterId, $lecturerId, $w), $w - 1);
+            $lecturerBusy[$w - 1] = $toRanges($this->engine()->lecturerBusyRanges($semesterId, $lecturerId, $w), $w - 1, true);
         }
 
         $cohortBusyCache = [];
@@ -730,17 +738,18 @@ class ReplacementArrangement extends Component
                 $cohortBusyCache[$hash] = [];
                 for ($w = 1; $w <= $weeks; $w++) {
                     $cohortBusyCache[$hash][$w - 1] = $toRanges(
-                        $this->engine()->cohortBusyRanges($semesterId, $cohortIds, $w),
+                        $this->engine()->cohortBusyRanges($semesterId, $cohortIds, $w, $lecturerId),
                         $w - 1,
+                        false,
                     );
                 }
             }
 
             $merged = [];
             for ($w = 1; $w <= $weeks; $w++) {
-                $merged[$w - 1] = array_values(array_unique(
-                    array_merge($lecturerBusy[$w - 1], $cohortBusyCache[$hash][$w - 1]),
-                    SORT_REGULAR,
+                $merged[$w - 1] = $this->dedupeBusyRanges(array_merge(
+                    $lecturerBusy[$w - 1],
+                    $cohortBusyCache[$hash][$w - 1],
                 ));
             }
 
@@ -751,6 +760,49 @@ class ReplacementArrangement extends Component
         }
 
         return $out;
+    }
+
+    /**
+     * Merge blocking rows that are the SAME fact. A slot that is both the
+     * viewer's own class and one of their selected cohorts' classes arrives
+     * twice (lecturer vector `mine = true`, cohort vector `mine = false`) with
+     * an identical `[day, start, end, label, statusKind]`. Leaving them apart
+     * breaks the cell tooltip, which counts blocks (`renderHolderTip()`'s
+     * header + the flat aria string): two rows would print
+     * "2 classes in the way" with the block listed twice.
+     *
+     * So identical first five keys collapse into one row whose `mine` is the OR
+     * of the twins (any-mine wins, matching the resolver's "is *any* row mine?").
+     * Rows that differ in label or statusKind stay separate — they are
+     * different facts (e.g. a pending and an approved make-up in one half-hour).
+     * The client therefore never sees twins, and the tip stays byte-identical.
+     *
+     * @param  list<array{int, int, int, string|null, string|null, bool}>  $ranges
+     * @return list<array{int, int, int, string|null, string|null, bool}>
+     */
+    private function dedupeBusyRanges(array $ranges): array
+    {
+        $merged = [];
+
+        foreach ($ranges as $range) {
+            $key = implode('|', [
+                (string) $range[0],
+                (string) $range[1],
+                (string) $range[2],
+                (string) ($range[3] ?? ''),
+                (string) ($range[4] ?? ''),
+            ]);
+
+            if (isset($merged[$key])) {
+                $merged[$key][5] = $merged[$key][5] || (bool) $range[5];
+
+                continue;
+            }
+
+            $merged[$key] = [(int) $range[0], (int) $range[1], (int) $range[2], $range[3], $range[4], (bool) $range[5]];
+        }
+
+        return array_values($merged);
     }
 
     /**

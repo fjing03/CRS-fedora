@@ -189,6 +189,55 @@ final class MakeUpBusyVectorTest extends TestCase
         $this->assertNull($victim, 'the cancelled rr\'s slot rows never enter the vectors');
     }
 
+    /**
+     * arrangement-slot-ownership-legend: `mine` is the DATA that decides a
+     * cell's border (3px = yours, none = someone else's). It must follow the
+     * calendar a row came from — and for a cohort make-up, the PROPOSER.
+     */
+    public function test_ownership_flag_follows_the_calendar_and_the_proposer(): void
+    {
+        $owner = User::query()->where('role', 'lecturer')->firstOrFail();
+        $ownerSession = ClassSession::query()->with('cohorts')->where('lecturer_id', $owner->id)->firstOrFail();
+        $cohortIds = $ownerSession->cohorts->pluck('id')->all();
+
+        $lab = Venue::query()->where('room_type', 'lab')->firstOrFail();
+        $this->seedMakeUp($ownerSession, 6, $lab, 'pending');
+
+        // 1. the lecturer vector is ALWAYS the viewer's own calendar
+        $own = $this->engine->lecturerBusyRanges(1, $owner->id, 6);
+        $this->assertNotEmpty($own);
+        foreach ($own as $row) {
+            $this->assertTrue($row['mine'], 'every lecturer-vector row is mine (it is that lecturer\'s own calendar)');
+        }
+
+        // 2. the cohort vector is ownerless — unless the viewer IS the proposer
+        $asOwner = collect($this->engine->cohortBusyRanges(1, $cohortIds, 6, $owner->id))
+            ->first(fn (array $r): bool => (int) $r['day'] === 4 && (string) $r['start'] === '13:30:00');
+        $this->assertNotNull($asOwner);
+        $this->assertTrue($asOwner['mine'], 'the proposer sees their own make-up as mine in the cohort vector');
+
+        $stranger = User::factory()->lecturer()->create();
+        $asStranger = collect($this->engine->cohortBusyRanges(1, $cohortIds, 6, $stranger->id))
+            ->first(fn (array $r): bool => (int) $r['day'] === 4 && (string) $r['start'] === '13:30:00');
+        $this->assertNotNull($asStranger);
+        $this->assertFalse($asStranger['mine'], 'another lecturer sees the same make-up as NOT mine');
+
+        // 3. no viewer at all (the enforcement callers) → inert false
+        $noViewer = collect($this->engine->cohortBusyRanges(1, $cohortIds, 6))
+            ->first(fn (array $r): bool => (int) $r['day'] === 4 && (string) $r['start'] === '13:30:00');
+        $this->assertNotNull($noViewer);
+        $this->assertFalse($noViewer['mine'], 'the default viewer is null → nobody owns anything');
+
+        // 4. cohort CLASS-side rows are never "mine" (they are the cohorts' calendar)
+        $classRows = collect($this->engine->cohortBusyRanges(1, $cohortIds, 6, $owner->id))
+            ->reject(fn (array $r): bool => isset($r['status']))
+            ->values();
+        $this->assertNotEmpty($classRows);
+        foreach ($classRows as $row) {
+            $this->assertFalse($row['mine'], 'a cohort class row is not the viewer\'s own class');
+        }
+    }
+
     public function test_cohort_side_blocks_shared_cohorts_and_spares_unrelated_ones(): void
     {
         $owner = User::query()->where('role', 'lecturer')->firstOrFail();
