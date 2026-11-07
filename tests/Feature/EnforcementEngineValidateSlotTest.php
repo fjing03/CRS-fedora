@@ -119,10 +119,17 @@ final class EnforcementEngineValidateSlotTest extends TestCase
             // 2026-11-03 user ruling: every subject whose seeded L/T sits in a
             // lab joined the roster (BMIT2013 + the eight kept-as-printed
             // modules). BMCS2053 is the off-roster control that stays denied.
-            'sp6_amcs1013_L_into_B006_roster' => ['AMCS1013', ['DSF'], 'L', 'B006', true],
-            'sp9_amcs1013_L_into_B010_roster' => ['AMCS1013', ['DSF'], 'L', 'B010', true],
+            /* 2026-11-07 user ruling (supersedes the 2026-11-03 "per-subject, not
+               per-class" reading; SDD lab-access-type-aware, commit 64cf0bd): the
+               roster is now TYPE-AWARE — a module may book a lab only for the
+               session types that already sit in a lab in the seeded timetable.
+               AMCS1013's T is in B006 but its L is in hall B111; BMIT1173's T is
+               in B009 but its L is in B107. So their L is DENIED here, and these
+               three rows were stale expectations left behind by that ruling. */
+            'sp6_amcs1013_L_into_B006_denied' => ['AMCS1013', ['DSF'], 'L', 'B006', false],
+            'sp9_amcs1013_L_into_B010_denied' => ['AMCS1013', ['DSF'], 'L', 'B010', false],
             'sp15_bmit2013_L_into_B009_lab' => ['BMIT2013', ['RSD'], 'L', 'B009', true],
-            'sp18_bmit1173_L_into_B009_roster' => ['BMIT1173', ['RSD'], 'L', 'B009', true],
+            'sp18_bmit1173_L_into_B009_denied' => ['BMIT1173', ['RSD'], 'L', 'B009', false],
             'sp19_bmcs2053_L_into_B009_denied' => ['BMCS2053', ['RSD'], 'L', 'B009', false],
             'sp20_bmcs2053_L_into_B006_denied' => ['BMCS2053', ['RSD'], 'L', 'B006', false],
         ];
