@@ -2746,6 +2746,48 @@ html.dark .semester-bar select:not(.week-select) {
 .cell-occupied--mine {
     border: 3px solid var(--color-error);
 }
+/* ── arrangement-cell-state-labels (user brief 2026-11-07, answers 3A/4A/6A) ──
+   The hover words are now a REAL element inside the cell, not the `::after`
+   overlay: a ~40 px cell must hold two lines ("Cohorts / Conflict"), and CSS
+   `content:` cannot carry a `<br>` or wrap.
+
+   - `:has()` retires the old overlay ONLY where the span exists, so every other
+     page (venue-timetable) keeps its own `--hover-label` copy untouched.
+   - the span fills the cell (inset 0) and never changes its size.
+   - 4A: 11 px, two lines, clipped inside the cell — words unchanged.
+   - 6A: BOTH pending families paint the amber await pair (another staff
+     member's overlay used to be grey); a conflict keeps the solid red. */
+.cell-state-label {
+    display: none;
+    position: absolute;
+    inset: 0;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 1px 2px;
+    border-radius: var(--radius-sm);
+    font-size: 11px;
+    font-weight: 600;
+    line-height: 1.12;
+    white-space: normal;
+    overflow: hidden;
+    pointer-events: none;
+}
+.cell-content:hover > .cell-state-label {
+    display: flex;
+}
+.cell-content:has(> .cell-state-label)::after {
+    content: none;
+}
+.cell-occupied > .cell-state-label {
+    background: var(--color-error);
+    color: var(--color-on-error);
+}
+.cell-pending > .cell-state-label,
+.cell-reserved > .cell-state-label {
+    background: var(--color-tertiary-container);
+    color: var(--color-on-tertiary-container);
+}
 /* the legend's "Your Current Selection" swatch is not a control: keep its
    primary ring on hover (the grid's red flip is the deselect affordance) */
 .legend-swatch.event-selection:hover {

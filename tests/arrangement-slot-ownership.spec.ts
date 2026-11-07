@@ -205,6 +205,47 @@ function assertFixtureAlive(): void {
   ).toBe(created.requestIds.length);
 }
 
+/**
+ * arrangement-cell-state-labels (user 2026-11-07): hover a cell and read the
+ * words it shows. The label is a real span now, so the receipt can assert the
+ * TEXT, that it stays INSIDE the cell box (4A: wrap + shrink, never overflow),
+ * and that the retired `::after` overlay is gone.
+ */
+async function hoverLabel(p: Page, locator: ReturnType<Page['locator']>) {
+  await locator.hover();
+  await p.waitForTimeout(220);
+
+  return locator.evaluate((el) => {
+    const span = el.querySelector('.cell-state-label') as HTMLElement | null;
+    const cell = el.getBoundingClientRect();
+    const box = span ? span.getBoundingClientRect() : null;
+    return {
+      html: span ? span.innerHTML : null,
+      // innerText (not textContent): a `<br>` is a real line break there, so the
+      // receipt reads the words a person sees ("Other Pending", never "OtherPending")
+      text: span ? (span.innerText || span.textContent || '').replace(/\s+/g, ' ').trim() : null,
+      display: span ? getComputedStyle(span).display : 'none',
+      inside: box
+        ? box.top >= cell.top - 1 && box.left >= cell.left - 1
+          && box.bottom <= cell.bottom + 1 && box.right <= cell.right + 1
+        : false,
+      fits: span ? span.scrollHeight <= span.clientHeight + 1 : false,
+      after: getComputedStyle(el, '::after').content,
+      tip: el.getAttribute('data-tip'),
+    };
+  });
+}
+
+/** Every label the cells may show (user answers 1A/2A). */
+const ALLOWED_LABELS = [
+  'Your Pending',
+  'Other Pending',
+  'Venue Conflict',
+  'Cohorts Conflict',
+  'Your Conflict',
+  'Your & Cohorts Conflict',
+];
+
 async function login(p: Page, staffId: '5425' | '5770'): Promise<void> {
   await p.goto(`${BASE}/login/staff?_=ownership-${staffId}-${Date.now()}`);
   await p.fill('#login_id', staffId);
@@ -338,6 +379,42 @@ test.describe('ownership on the grid', () => {
     await expect(viewerOthersClass).not.toHaveClass(/cell-occupied--mine/);
     expect(await ringWidth(viewerOthersClass)).toBe('0px');
 
+    /* ── 3. the HOVER WORDS (arrangement-cell-state-labels) ──────────── */
+    const ownerPendingLabel = await hoverLabel(ownerPage, ownerPending);
+    expect(ownerPendingLabel.text, 'your own pending cell says so').toBe('Your Pending');
+    expect(ownerPendingLabel.display, 'the label shows on hover').toBe('flex');
+    expect(ownerPendingLabel.inside, 'the label stays inside the cell').toBe(true);
+    expect(ownerPendingLabel.fits, 'the label is not clipped').toBe(true);
+    expect(ownerPendingLabel.after, 'the old CSS overlay is retired where the span exists').toBe('none');
+    expect(ownerPendingLabel.tip, 'the tooltip is untouched').toContain('Pending');
+
+    const ownerOthersLabel = await hoverLabel(ownerPage, ownerSeesOthers);
+    expect(ownerOthersLabel.text, "another staff member's pending says so").toBe('Other Pending');
+    expect(ownerOthersLabel.inside).toBe(true);
+    expect(ownerOthersLabel.fits).toBe(true);
+    expect(ownerOthersLabel.after).toBe('none');
+
+    const ownerOwnClassLabel = await hoverLabel(ownerPage, ownerOwnClass);
+    expect(ownerOwnClassLabel.text, 'your own class → "Your Conflict"').toBe('Your Conflict');
+    expect(ownerOwnClassLabel.inside).toBe(true);
+    expect(ownerOwnClassLabel.fits).toBe(true);
+    expect(ownerOwnClassLabel.after).toBe('none');
+
+    /* the grid-wide sweep: no cell may invent a label outside the six. The span
+       is `display:none` until hover, and `innerText` falls back to textContent
+       for a hidden node — so the words are read from the MARKUP, where a `<br>`
+       becomes the space a person sees. */
+    const labelsOnGrid = await viewerPage.evaluate(() =>
+      Array.from(document.querySelectorAll('#tableBody .cell-content .cell-state-label'))
+        .map((el) => el.innerHTML
+          .replace(/<br\s*\/?>/gi, ' ')
+          .replace(/<[^>]*>/g, '')
+          .replace(/&amp;/g, '&')
+          .replace(/\s+/g, ' ')
+          .trim()));
+    expect(labelsOnGrid.length, 'the grid shows labels at all').toBeGreaterThan(0);
+    expect(Array.from(new Set(labelsOnGrid)).every((t) => ALLOWED_LABELS.includes(t))).toBe(true);
+
     /* receipts: one grid showing every state at once, both themes. The page's
        OWN toggle is used — the app defaults to dark, so a hand-added `dark`
        class would produce two identical images. */
@@ -404,17 +481,67 @@ test.describe('resolver precedence and the legend', () => {
     expect(verdicts.fiveKeyTupleIsNotOthers, 'a stale 5-key tuple is not "others"').toBe('cell-occupied');
   });
 
-  test('the legend has six rows built from the real cell classes', async () => {
-    const rows = page.locator('.legend-bar .legend-item');
-    await expect(rows).toHaveCount(6);
+  /* arrangement-cell-state-labels (user 2026-11-07, answers 1A 2A 3A 4A):
+     the words are DATA-DRIVEN — `mine` for ownership, the 7th tuple key `arms`
+     for the reason, the grid payload's status 1 for the room. Nothing parses a
+     holder string. This pins all six labels and their class beside them. */
+  test('the six hover labels come from the data, not from the colour', async () => {
+    const verdicts = await page.evaluate(() => {
+      // [day, start, end, label, statusKind, mine, arms]
+      const minePending = [4, 12, 16, 'block', 'pending', true, ['own']];
+      const otherPending = [4, 12, 16, 'block', 'pending', false, ['cohort']];
+      const myClass = [4, 12, 16, 'block', null, true, ['own']];
+      const cohortClass = [4, 12, 16, 'block', null, false, ['cohort']];
+      const twin = [4, 12, 16, 'block', null, true, ['own', 'cohort']];
+      const state = (facts: any) => (window as any).classifyState(facts);
 
+      return {
+        yourPendingGrid: state({ gridStatus: 3, engineMatches: [], engineBlocked: false }),
+        yourPendingEngine: state({ gridStatus: null, engineMatches: [minePending], engineBlocked: true }),
+        otherPendingGrid: state({ gridStatus: 4, engineMatches: [], engineBlocked: false }),
+        otherPendingEngine: state({ gridStatus: null, engineMatches: [otherPending], engineBlocked: true }),
+        yourConflict: state({ gridStatus: null, engineMatches: [myClass], engineBlocked: true }),
+        cohortsConflict: state({ gridStatus: null, engineMatches: [cohortClass], engineBlocked: true }),
+        yourAndCohorts: state({ gridStatus: null, engineMatches: [twin], engineBlocked: true }),
+        venueConflict: state({ gridStatus: 1, engineMatches: [], engineBlocked: false }),
+        staleTuple: state({ gridStatus: null, engineMatches: [[4, 12, 16, 'block', null]], engineBlocked: true }),
+        free: state({ gridStatus: null, engineMatches: [], engineBlocked: false }),
+        // the words and the class must always agree — one resolver, one answer
+        labelOfYourConflict: (window as any).cellStateLabel({ gridStatus: null, engineMatches: [myClass], engineBlocked: true }),
+      };
+    });
+
+    expect(verdicts.yourPendingGrid).toEqual({ cls: 'cell-pending', label: 'Your Pending' });
+    expect(verdicts.yourPendingEngine).toEqual({ cls: 'cell-pending', label: 'Your Pending' });
+    expect(verdicts.otherPendingGrid).toEqual({ cls: 'cell-reserved', label: 'Other<br>Pending' });
+    expect(verdicts.otherPendingEngine).toEqual({ cls: 'cell-reserved', label: 'Other<br>Pending' });
+    expect(verdicts.yourConflict).toEqual({ cls: 'cell-occupied cell-occupied--mine', label: 'Your<br>Conflict' });
+    expect(verdicts.cohortsConflict).toEqual({ cls: 'cell-occupied', label: 'Cohorts<br>Conflict' });
+    expect(verdicts.yourAndCohorts, 'a twin keeps BOTH arms').toEqual({
+      cls: 'cell-occupied cell-occupied--mine',
+      label: 'Your &amp; Cohorts<br>Conflict',
+    });
+    expect(verdicts.venueConflict).toEqual({ cls: 'cell-occupied', label: 'Venue<br>Conflict' });
+    expect(verdicts.staleTuple, 'a tuple with no arm keeps the old word').toEqual({ cls: 'cell-occupied', label: 'Occupied' });
+    expect(verdicts.free).toBeNull();
+    expect(verdicts.labelOfYourConflict).toBe('Your<br>Conflict');
+  });
+
+  test('the legend has eight rows built from the real cell classes', async () => {
+    const rows = page.locator('.legend-bar .legend-item');
+    await expect(rows).toHaveCount(8);
+
+    /* arrangement-cell-state-labels (user answer 5B): the legend speaks the
+       SAME words the cells show — one page, one vocabulary. */
     const expected = [
       ['Available', 'cell-available'],
       ['Your Current Selection', 'event-selection'],
-      ['Pending (You)', 'cell-pending'],
-      ['Pending (Others)', 'cell-reserved'],
-      ['Conflict (Yours)', 'cell-occupied'],
-      ['Conflict (Others)', 'cell-occupied'],
+      ['Your Pending', 'cell-pending'],
+      ['Other Pending', 'cell-reserved'],
+      ['Venue Conflict', 'cell-occupied'],
+      ['Cohorts Conflict', 'cell-occupied'],
+      ['Your Conflict', 'cell-occupied'],
+      ['Your & Cohorts Conflict', 'cell-occupied'],
     ];
 
     for (let i = 0; i < expected.length; i += 1) {
@@ -424,9 +551,14 @@ test.describe('resolver precedence and the legend', () => {
       await expect(await row.getAttribute('data-tip')).toBeTruthy();
     }
 
-    // only the "yours" conflict swatch carries the ring
-    await expect(rows.nth(4).locator('.legend-swatch')).toHaveClass(/cell-occupied--mine/);
+    // only the "yours" conflict swatches carry the ring
+    await expect(rows.nth(4).locator('.legend-swatch')).not.toHaveClass(/cell-occupied--mine/);
     await expect(rows.nth(5).locator('.legend-swatch')).not.toHaveClass(/cell-occupied--mine/);
+    await expect(rows.nth(6).locator('.legend-swatch')).toHaveClass(/cell-occupied--mine/);
+    await expect(rows.nth(7).locator('.legend-swatch')).toHaveClass(/cell-occupied--mine/);
+    // the pending swatches: yours is ringed, another staff member's is flat
+    await expect(rows.nth(2).locator('.legend-swatch')).toHaveClass(/cell-pending/);
+    await expect(rows.nth(3).locator('.legend-swatch')).toHaveClass(/cell-reserved/);
 
     // tip wording (capitals = emphasis; a data-tip is plain text)
     const tips = await rows.evaluateAll((els) => els.map((el) => el.getAttribute('data-tip') ?? ''));
@@ -436,14 +568,15 @@ test.describe('resolver precedence and the legend', () => {
     expect(tips[2]).toContain('thick border (3px)');
     expect(tips[3]).toContain('WAITING');
     expect(tips[3]).toContain('no border');
-    expect(tips[4]).toContain('CANNOT BOOK');
-    expect(tips[4]).toContain('thick border (3px)');
+    expect(tips[4]).toContain('VENUE CONFLICT');
     expect(tips[4]).not.toMatch(/cohort/i);
-    expect(tips[5]).toContain('VENUE CONFLICT');
-    expect(tips[5]).toContain('COHORT CONFLICT');
-    expect(tips[5]).not.toMatch(/not suitable|class type/i);
-    expect(tips[5]).not.toMatch(/[<>]/, 'a <br> would print literally — the break is a newline');
-    expect(tips[5].split('\n')).toHaveLength(2);
+    expect(tips[5]).toContain('COHORTS CONFLICT');
+    expect(tips[5]).not.toMatch(/venue conflict/i);
+    expect(tips[6]).toContain('CANNOT BOOK');
+    expect(tips[6]).toContain('thick border (3px)');
+    expect(tips[7]).toMatch(/cohort/i);
+    expect(tips[7]).toContain('thick border (3px)');
+    expect(tips[7]).not.toMatch(/[<>]/, 'a data-tip is plain text — a <br> would print literally');
 
     // the hint line names both border states, and never claims the 0.5px hairline
     const hint = page.locator('.legend-ownership-hint');
@@ -481,10 +614,34 @@ test.describe('resolver precedence and the legend', () => {
       expect(leaving.width, `legend swatch ${i} is never viewport-sized`).not.toBe('1440px');
     }
 
-    // …and the grid keeps the affordance the swatches gave up
+    /* …and the grid keeps the affordance the swatches gave up — since
+       arrangement-cell-state-labels (2026-11-07) the grid's words are the REAL
+       span, so the receipt follows them there: the cell still says WHY it is
+       blocked, the span fills the cell, and the retired CSS overlay stays
+       `none` on the grid too (one mechanism, not two). */
     const cell = page.locator('.cell-content.cell-occupied').first();
     await cell.hover();
-    await page.waitForTimeout(200);
-    expect(await cell.evaluate((el) => getComputedStyle(el, '::after').content)).toContain('Occupied');
+    await page.waitForTimeout(220);
+    const gridReceipt = await cell.evaluate((el) => {
+      const span = el.querySelector('.cell-state-label') as HTMLElement | null;
+      const rect = el.getBoundingClientRect();
+      const box = span ? span.getBoundingClientRect() : null;
+      return {
+        after: getComputedStyle(el, '::after').content,
+        display: span ? getComputedStyle(span).display : 'none',
+        words: span ? span.innerHTML.replace(/<br\s*\/?>/gi, ' ') : '',
+        // the cell's own border (3px on a "mine" cell) sits outside the label's
+        // containing block, so "fills" means: inside the cell, and never the
+        // viewport-shaped overlay of 2026-11-07
+        fills: box
+          ? box.width <= rect.width + 1 && box.height <= rect.height + 1
+            && box.width > rect.width * 0.8 && box.height > rect.height * 0.8
+          : false,
+      };
+    });
+    expect(gridReceipt.after, 'the old overlay is retired on the grid').toBe('none');
+    expect(gridReceipt.display, 'the state label shows on hover').toBe('flex');
+    expect(gridReceipt.words, 'a red cell names its reason').toMatch(/Conflict/);
+    expect(gridReceipt.fills, 'the label fills its own cell, never the viewport').toBe(true);
   });
 });

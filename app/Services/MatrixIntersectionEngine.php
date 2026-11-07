@@ -122,7 +122,7 @@ final class MatrixIntersectionEngine
      * path, the arrangement payload) read `day/start/end` only.
      *
      * @param  array<int, int>  $cohortIds
-     * @return array<int, array{day: int, start: string, end: string, room: string, mine: bool, status?: string}>
+     * @return array<int, array{day: int, start: string, end: string, room: string, mine: bool, status?: string, arms?: list<string>}>
      */
     public function busyRanges(int $lecturerId, array $cohortIds, int $semesterId, int $weekNumber): array
     {
@@ -316,7 +316,7 @@ final class MatrixIntersectionEngine
      * — this vector IS the viewer's own calendar, which is what decides the
      * cell's border thickness (3px = yours).
      *
-     * @return array<int, array{day: int, start: string, end: string, room: string, mine: bool, status?: string}>
+     * @return array<int, array{day: int, start: string, end: string, room: string, mine: bool, status?: string, arms?: list<string>}>
      */
     public function lecturerBusyRanges(int $semesterId, int $lecturerId, int $weekNumber): array
     {
@@ -351,6 +351,10 @@ final class MatrixIntersectionEngine
                 'end' => (string) $row->end_time,
                 'room' => (string) $row->room_code,
                 'mine' => true,
+                // SDD arrangement-cell-state-labels D1 (user 2026-11-07): this
+                // vector IS the viewer's own calendar — the cell label says so
+                // ("Your Conflict") without parsing any holder text.
+                'arms' => ['own'],
             ])
             ->all();
     }
@@ -363,7 +367,7 @@ final class MatrixIntersectionEngine
      * drift both ways: a cancelled rr with slots still pending loses, a
      * released slot loses.
      *
-     * @return array<int, array{day: int, start: string, end: string, room: string, mine: bool, status?: string}>
+     * @return array<int, array{day: int, start: string, end: string, room: string, mine: bool, status?: string, arms?: list<string>}>
      */
     private function makeUpRangesForLecturer(int $semesterId, int $lecturerId, int $weekNumber): array
     {
@@ -395,6 +399,7 @@ final class MatrixIntersectionEngine
                 'room' => (string) $row->room_code,
                 'status' => (string) $row->status,
                 'mine' => true,
+                'arms' => ['own'],
             ])
             ->all();
     }
@@ -416,7 +421,7 @@ final class MatrixIntersectionEngine
      * row is `mine = false`, which they never read.
      *
      * @param  array<int, int>  $cohortIds
-     * @return array<int, array{day: int, start: string, end: string, room: string, mine: bool, status?: string}>
+     * @return array<int, array{day: int, start: string, end: string, room: string, mine: bool, status?: string, arms?: list<string>}>
      */
     public function cohortBusyRanges(int $semesterId, array $cohortIds, int $weekNumber, ?int $viewerId = null): array
     {
@@ -430,7 +435,7 @@ final class MatrixIntersectionEngine
      * The class-side ranges (the pre-lane shape).
      *
      * @param  array<int, int>  $cohortIds
-     * @return array<int, array{day: int, start: string, end: string, room: string, mine: bool, status?: string}>
+     * @return array<int, array{day: int, start: string, end: string, room: string, mine: bool, status?: string, arms?: list<string>}>
      */
     private function classSessionRangesForCohorts(int $semesterId, array $cohortIds, int $weekNumber): array
     {
@@ -448,6 +453,7 @@ final class MatrixIntersectionEngine
                 'end' => (string) $row->end_time,
                 'room' => (string) $row->room_code,
                 'mine' => false,
+                'arms' => ['cohort'],
             ])
             ->all();
     }
@@ -459,7 +465,7 @@ final class MatrixIntersectionEngine
      * cohort's other bookings, the user's (b) law).
      *
      * @param  array<int, int>  $cohortIds
-     * @return array<int, array{day: int, start: string, end: string, room: string, mine: bool, status?: string}>
+     * @return array<int, array{day: int, start: string, end: string, room: string, mine: bool, status?: string, arms?: list<string>}>
      */
     private function makeUpRangesForCohorts(int $semesterId, array $cohortIds, int $weekNumber, ?int $viewerId = null): array
     {
@@ -497,6 +503,7 @@ final class MatrixIntersectionEngine
                 'room' => (string) $row->room_code,
                 'status' => (string) $row->status,
                 'mine' => $viewerId !== null && (int) $row->proposer_id === $viewerId,
+                'arms' => ['cohort'],
             ])
             ->all();
     }

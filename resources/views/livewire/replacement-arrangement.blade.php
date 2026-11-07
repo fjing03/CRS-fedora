@@ -1065,10 +1065,12 @@
             'items' => [
                 ['class' => 'cell-available', 'label' => 'Available', 'tip' => 'FREE SLOT — CLICK to select as the replacement (slots inside the 3-working-day window are read-only)'],
                 ['class' => 'event-selection', 'label' => 'Your Current Selection', 'tip' => 'The slot(s) you have SELECTED for the replacement'],
-                ['class' => 'cell-pending', 'label' => 'Pending (You)', 'tip' => 'Your replacement request for this slot is WAITING for approval — thick border (3px)'],
-                ['class' => 'cell-reserved', 'label' => 'Pending (Others)', 'tip' => "Another staff member's replacement request is WAITING for approval here — no border, you CANNOT BOOK it"],
-                ['class' => 'cell-occupied cell-occupied--mine', 'label' => 'Conflict (Yours)', 'tip' => 'CANNOT BOOK — your own Normal class or Replacement class is in this slot — thick border (3px)'],
-                ['class' => 'cell-occupied', 'label' => 'Conflict (Others)', 'tip' => "CANNOT BOOK — VENUE CONFLICT (this slot is used by another class in this room),\nCOHORT CONFLICT (the related cohorts have another class at that time)"],
+                ['class' => 'cell-pending', 'label' => 'Your Pending', 'tip' => 'Your replacement request for this slot is WAITING for approval — thick border (3px)'],
+                ['class' => 'cell-reserved', 'label' => 'Other Pending', 'tip' => "Another staff member's replacement request is WAITING for approval here — no border, you CANNOT BOOK it"],
+                ['class' => 'cell-occupied', 'label' => 'Venue Conflict', 'tip' => 'CANNOT BOOK — VENUE CONFLICT: another class already uses THIS ROOM at that time'],
+                ['class' => 'cell-occupied', 'label' => 'Cohorts Conflict', 'tip' => 'CANNOT BOOK — COHORTS CONFLICT: the related cohorts have another class at that time'],
+                ['class' => 'cell-occupied cell-occupied--mine', 'label' => 'Your Conflict', 'tip' => 'CANNOT BOOK — your own Normal class or Replacement class is in this slot — thick border (3px)'],
+                ['class' => 'cell-occupied cell-occupied--mine', 'label' => 'Your & Cohorts Conflict', 'tip' => 'CANNOT BOOK — your own class AND a related cohort have a class at that time — thick border (3px)'],
             ]
         ])
 
@@ -1700,18 +1702,64 @@
            red cell is 3px if ANY blocking row is mine — the rule asks "is
            any row mine?", never "is any row not mine?". A missing 6th key
            is not "others'" (it falls through to rule 4). */
-        function classifyCell(facts) {
+        /* SDD arrangement-cell-state-labels (user 2026-11-07, answers 1A 2A 3A):
+             ONE state resolver answers BOTH questions — the cell's class and the
+           words it shows on hover. The words name the REASON, from data only:
+           `mine` says the block is on your own calendar; the 7th tuple key
+           `arms` says which calendar produced the row ('own'|'cohort'); the grid
+           payload's status 1 says the ROOM is taken. Nothing parses a holder
+           string. A missing 7th key (a stale tuple) simply yields no cohort arm,
+           which is the old behaviour. */
+        function classifyState(facts) {
             const matches = Array.isArray(facts.engineMatches) ? facts.engineMatches : [];
             const mine = function (b) { return b[5] === true; };
+            const arms = function (b) { return Array.isArray(b[6]) ? b[6] : []; };
             const pending = matches.filter(function (b) { return b[4] === 'pending'; });
             const others = matches.filter(function (b) { return b[4] !== 'pending'; });
 
-            if (facts.gridStatus === 3 || pending.some(mine)) return 'cell-pending';
-            if (facts.gridStatus === 4 || pending.some(function (b) { return b[5] === false; })) return 'cell-reserved';
-            if (others.some(mine)) return 'cell-occupied cell-occupied--mine';
-            if (facts.engineBlocked || facts.gridStatus === 1) return 'cell-occupied';
+            if (facts.gridStatus === 3 || pending.some(mine)) {
+                return { cls: 'cell-pending', label: 'Your Pending' };
+            }
+            if (facts.gridStatus === 4 || pending.some(function (b) { return b[5] === false; })) {
+                return { cls: 'cell-reserved', label: 'Other<br>Pending' };
+            }
+
+            const ownBlocked = others.some(mine);
+            const cohortBlocked = others.some(function (b) { return arms(b).indexOf('cohort') !== -1; });
+
+            if (ownBlocked && cohortBlocked) {
+                return { cls: 'cell-occupied cell-occupied--mine', label: 'Your &amp; Cohorts<br>Conflict' };
+            }
+            if (ownBlocked) {
+                return { cls: 'cell-occupied cell-occupied--mine', label: 'Your<br>Conflict' };
+            }
+            if (cohortBlocked) {
+                return { cls: 'cell-occupied', label: 'Cohorts<br>Conflict' };
+            }
+            if (facts.gridStatus === 1) {
+                return { cls: 'cell-occupied', label: 'Venue<br>Conflict' };
+            }
+            if (facts.engineBlocked) {
+                /* a block with no owner and no arm (a session type the room does
+                   not accept, or a stale 5/6-key tuple): keep the old word */
+                return { cls: 'cell-occupied', label: 'Occupied' };
+            }
 
             return null;   /* → too-soon / available, decided by the caller */
+        }
+
+        function classifyCell(facts) {
+            const state = classifyState(facts);
+
+            return state !== null ? state.cls : null;
+        }
+
+        /* the hover words, as HTML (the span allows a <br>; a 2-line label is the
+           most a ~40 px cell can hold — user answer 4A: wrap + shrink, same words) */
+        function cellStateLabel(facts) {
+            const state = classifyState(facts);
+
+            return state !== null ? state.label : '';
         }
 
         function buildTimetable() {
@@ -1858,11 +1906,12 @@
                            amber. Ownership is now data (the tuple's 6th key /
                            the grid's status 3-vs-4) and one resolver decides. */
                         const gridStatus = cellData ? cellData[2] : null;
-                        const ownershipClass = classifyCell({
+                        const cellFacts = {
                             gridStatus: gridStatus,
                             engineMatches: engineMatches,
                             engineBlocked: engineBlocked
-                        });
+                        };
+                        const ownershipClass = classifyCell(cellFacts);
 
                         /* The tips keep today's wording and order. The engine
                            tip wins when it has a labelled block (the same
@@ -1902,6 +1951,15 @@
 
                         if (ownershipClass) {
                             div.className += ' ' + ownershipClass;
+
+                            /* SDD arrangement-cell-state-labels D4: the hover
+                               words are a REAL element, so the two-line labels
+                               work (`<br>`) and the CSS `::after` overlay is
+                               retired exactly here (see theme.css). */
+                            const stateLabel = document.createElement('span');
+                            stateLabel.className = 'cell-state-label';
+                            stateLabel.innerHTML = cellStateLabel(cellFacts);
+                            div.appendChild(stateLabel);
                         } else if (isSlotTooSoon(weekData, weekNav.currentWeek, di)) {
                             /* lead-time rule: inside the 3-working-day window — read-only */
                             div.className += ' cell-too-soon';
@@ -4579,6 +4637,8 @@ triggerText.textContent = slotTriggerLabel(slot);
         window.clearAll = clearAll;
         window.clearSelection = clearSelection;
         window.classifyCell = classifyCell;   // arrangement-slot-ownership-legend: the browser receipt calls it directly
+        window.classifyState = classifyState;         // arrangement-cell-state-labels: class + words
+        window.cellStateLabel = cellStateLabel;       // the hover words alone (<br> joined)
         window.hideConfirmModal = hideConfirmModal;
         window.showHelp = showHelp;
         window.hideHelp = hideHelp;

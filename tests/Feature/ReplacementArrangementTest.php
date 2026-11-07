@@ -374,23 +374,38 @@ final class ReplacementArrangementTest extends TestCase
         $rows = $payload['busyByWeek'][(string) $sessionA->id][0];
 
         foreach ($rows as $row) {
-            $this->assertCount(6, $row, 'every busy tuple is [day, start, end, label, statusKind, mine]');
+            $this->assertCount(7, $row, 'every busy tuple is [day, start, end, label, statusKind, mine, arms]');
             $this->assertIsBool($row[5], 'the 6th key is a boolean');
+            // arrangement-cell-state-labels D2 (user 2026-11-07): the 7th key names
+            // the calendar that produced the block — the cell label's reason.
+            $this->assertIsArray($row[6], 'the 7th key is the arm list');
+            $this->assertNotEmpty($row[6], 'a blocking row always names at least one arm');
+            $this->assertEmpty(array_diff($row[6], ['own', 'cohort']), 'the arms are own/cohort only');
         }
 
         // another lecturer's class reaching my selected cohort → mine = false
         $theirs = collect($rows)->filter(fn (array $r): bool => $r[0] === 4 && $r[1] === 2 && $r[2] === 6)->values();
         $this->assertNotEmpty($theirs, 'the cohort vector carries the shared class Thu 09:00–11:00');
         $this->assertTrue($theirs->every(fn (array $r): bool => $r[5] === false), 'a class I do not teach is not mine');
+        $this->assertTrue(
+            $theirs->every(fn (array $r): bool => $r[6] === ['cohort']),
+            'another lecturer\'s class reaches the page through the COHORTS arm'
+        );
 
         // my own class that also carries the same cohort → ONE row, mine = true
         $mine = collect($rows)->filter(fn (array $r): bool => $r[0] === 4 && $r[1] === 12 && $r[2] === 16)->values();
         $this->assertCount(1, $mine, 'the lecturer/cohort twins merge into one row (the tooltip counts blocks)');
         $this->assertTrue($mine->first()[5], 'the merged row is mine (any-mine wins)');
+        $this->assertSame(
+            ['own', 'cohort'],
+            $mine->first()[6],
+            'the merged twin keeps BOTH arms, so the cell can say "Your & Cohorts Conflict"'
+        );
 
         // the lecturer-freedom vector ('' key) is mine throughout
         foreach ($payload['busyByWeek'][''][0] as $row) {
             $this->assertTrue($row[5], 'the lecturer vector is the viewer\'s own calendar');
+            $this->assertSame(['own'], $row[6], 'and it says so on the row');
         }
     }
 

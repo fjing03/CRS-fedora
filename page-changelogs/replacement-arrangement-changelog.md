@@ -1,3 +1,51 @@
+## 2026-11-07 (later) — the cell says WHY it is blocked
+
+User brief *UI Update — Hour-Cell Hover Labels* (grilled: answers 1A 2A 3A 4A 5B 6A).
+The hour cell used to show one word on hover — `Occupied`, `Pending` or `Reserved` — which
+hid two facts the page already knew: **whose** block it is and **why** it is blocked.
+
+| Cell state | Before | Now | Colour |
+|---|---|---|---|
+| your pending | `Pending` | **`Your Pending`** | amber |
+| another staff member's pending | `Reserved` | **`Other Pending`** | amber (the overlay used to be grey) |
+| another class in this room | `Occupied` | **`Venue Conflict`** | red |
+| the related cohorts have a class | `Occupied` | **`Cohorts Conflict`** | red |
+| your own class / replacement | `Occupied` | **`Your Conflict`** | red, 3px |
+| yours **and** the cohorts' | `Occupied` | **`Your & Cohorts Conflict`** | red, 3px |
+
+**The reason is DATA now (1A).** Each busy row gained a 7th tuple key, `arms`
+(`own` | `cohort`) filled by the engine's two vectors, and `dedupeBusyRanges()` unions the
+arms of merged twins — so a class that is both yours and the cohorts' keeps both reasons.
+The venue arm stays the grid payload's `status 1`. Nothing parses a holder string any more
+(the tooltip's `🏛 / 👥 / 👤` tags still do; the cell label does not).
+
+**One resolver (3A).** `classifyState(facts)` returns `{cls, label}`; `classifyCell()` keeps
+its old string contract byte-identically (the ownership receipt's 12 pinned verdicts pass
+untouched) and `cellStateLabel()` returns the words. The four-way red precedence is own+cohort
+→ own → cohort → venue, with `Occupied` left as the safety net for a row that names no arm.
+
+**A real element in the cell.** The hover words are now `<span class="cell-state-label">`
+inside the cell (the old CSS `::after` overlay is retired exactly where that span exists, via
+`:has()`), so `<br>` and wrapping work: 11 px, two lines, clipped inside the cell — verified
+unclipped at 390 px (48×48 cells), 768, 1024 and 1440 px, including `Your & Cohorts Conflict`.
+
+**Legend speaks the same words (5B):** eight rows — Available · Your Current Selection · Your
+Pending · Other Pending · Venue Conflict · Cohorts Conflict · Your Conflict · Your &
+Cohorts Conflict — each swatch still carrying the REAL cell class, and the ownership hint
+(`thick border (3px) = yours` / `no border = others'`).
+
+Untouched: the tooltips (`data-tip`), the booking rules, the cell colours, the ownership
+ring, and every other page (`venue-timetable` keeps its own `--hover-label`).
+
+**Receipts** (`tests/arrangement-slot-ownership.spec.ts`, run ALONE): **7/7** — the six
+labels from crafted facts with real tuple shapes; a REAL hover on the owner's pending
+(`Your Pending`), the other viewer's (`Other Pending`) and an own-class cell (`Your Conflict`),
+each asserting the text, that the box stays inside the cell, that it is not clipped, that
+`::after` is `none`, and that `data-tip` is still attached; a grid-wide sweep proving no cell
+invents a word outside the six; and the eight-row legend with its tips and rings.
+PHP: `ReplacementArrangementTest` (7-key tuples, arm union on the twin) + `MakeUpBusyVectorTest`
+66/66 in the arrangement/engine/venue-rules filter.
+
 ## 2026-11-07 (date/time batch 3, `docs/date-time-format-audit-2026-11-07.md`) — day-first dates in the slot picker and confirmation summary
 
 The conflicted-slot picker label and its hover tip now read `(L) Week 14 · Thu, 24 Dec 2026 ·

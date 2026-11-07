@@ -695,7 +695,12 @@ class ReplacementArrangement extends Component
            `$defaultMine` covers the producer's own scope: the lecturer vector
            IS the viewer (true), the cohort vector is not (false) — cohort
            make-up rows override it from their proposer. */
-        $toRanges = function (array $busy, int $weekIdx, bool $defaultMine) use ($holderLabels): array {
+        /* SDD arrangement-cell-state-labels D2 (user 2026-11-07, answer 1A): the
+           7th tuple key is `arms` — WHICH calendar put the block there ('own' =
+           the viewer's own classes/make-ups, 'cohort' = the cohorts' shared
+           calendar). The cell label names the reason from this data; nothing
+           parses a holder string for it any more. */
+        $toRanges = function (array $busy, int $weekIdx, bool $defaultMine, array $defaultArms = []) use ($holderLabels): array {
             $out = [];
             foreach ($busy as $range) {
                 $day = (int) $range['day'];
@@ -708,14 +713,15 @@ class ReplacementArrangement extends Component
                    class-side rows — the client's pending arm keys on it. */
                 $statusKind = $range['status'] ?? null;
                 $mine = (bool) ($range['mine'] ?? $defaultMine);
+                $arms = array_values(array_unique((array) ($range['arms'] ?? $defaultArms)));
                 $labels = array_values(array_unique($holderLabels[$weekIdx][$key] ?? []));
                 if ($labels === []) {
-                    $out[] = [$day, $startIdx, $endIdx, null, $statusKind, $mine];
+                    $out[] = [$day, $startIdx, $endIdx, null, $statusKind, $mine, $arms];
 
                     continue;
                 }
                 foreach ($labels as $label) {
-                    $out[] = [$day, $startIdx, $endIdx, $label, $statusKind, $mine];
+                    $out[] = [$day, $startIdx, $endIdx, $label, $statusKind, $mine, $arms];
                 }
             }
 
@@ -724,7 +730,7 @@ class ReplacementArrangement extends Component
 
         $lecturerBusy = [];
         for ($w = 1; $w <= $weeks; $w++) {
-            $lecturerBusy[$w - 1] = $toRanges($this->engine()->lecturerBusyRanges($semesterId, $lecturerId, $w), $w - 1, true);
+            $lecturerBusy[$w - 1] = $toRanges($this->engine()->lecturerBusyRanges($semesterId, $lecturerId, $w), $w - 1, true, ['own']);
         }
 
         $cohortBusyCache = [];
@@ -741,6 +747,7 @@ class ReplacementArrangement extends Component
                         $this->engine()->cohortBusyRanges($semesterId, $cohortIds, $w, $lecturerId),
                         $w - 1,
                         false,
+                        ['cohort'],
                     );
                 }
             }
@@ -777,8 +784,8 @@ class ReplacementArrangement extends Component
      * different facts (e.g. a pending and an approved make-up in one half-hour).
      * The client therefore never sees twins, and the tip stays byte-identical.
      *
-     * @param  list<array{int, int, int, string|null, string|null, bool}>  $ranges
-     * @return list<array{int, int, int, string|null, string|null, bool}>
+     * @param  list<array{int, int, int, string|null, string|null, bool, 6?: list<string>}>  $ranges
+     * @return list<array{int, int, int, string|null, string|null, bool, list<string>}>
      */
     private function dedupeBusyRanges(array $ranges): array
     {
@@ -795,11 +802,22 @@ class ReplacementArrangement extends Component
 
             if (isset($merged[$key])) {
                 $merged[$key][5] = $merged[$key][5] || (bool) $range[5];
+                /* SDD arrangement-cell-state-labels D2: a twin that arrives from
+                   BOTH calendars (my class that my cohort also attends) must keep
+                   both reasons — `mine` ORs, `arms` unions. */
+                $merged[$key][6] = array_values(array_unique(array_merge(
+                    $merged[$key][6],
+                    $range[6] ?? [],
+                )));
 
                 continue;
             }
 
-            $merged[$key] = [(int) $range[0], (int) $range[1], (int) $range[2], $range[3], $range[4], (bool) $range[5]];
+            $merged[$key] = [
+                (int) $range[0], (int) $range[1], (int) $range[2],
+                $range[3], $range[4], (bool) $range[5],
+                $range[6] ?? [],
+            ];
         }
 
         return array_values($merged);
