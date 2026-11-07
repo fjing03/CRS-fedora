@@ -18,7 +18,7 @@
 |---|---|
 | Branch / remotes | `fedora-backend` → `origin` = `fjing03/CRS-fedora.git` (**78 commits ahead**, see Push state); `upstream` = `FjingXR/class-replacement-system` (**pull-only**) |
 | Push policy | **NEVER `git push`** — the user pushes. One commanded exception, 2026-11-02; afterwards the rule resumed. |
-| Push state | `origin/fedora-backend` sits at **`39b2bb7`**; **77** commits are unpushed (2026-11-07 night, newest `ee10237` + this week-filter change). Re-check: `git rev-list --count origin/fedora-backend..HEAD`. The user pushes. |
+| Push state | `origin/fedora-backend` sits at **`39b2bb7`**; **78** commits are unpushed (2026-11-07 night, newest `9ea6bfa`). Re-check: `git rev-list --count origin/fedora-backend..HEAD`. The user pushes. |
 | AI context layout | Root **`AGENTS.md`** is a bootstrap pointer → this folder holds `AGENTS.md`, `CodingMAIN.md` (the spec), `my-coding-rules.md` (quick rules), `FR&NFR copy.md` (read-only without the user's approval), this file, and `history/`. |
 | Servers | `:8000` = `CRS-fedora-backend` / **`class_replacement_fresh`** (dev). `:8001` = `../CRS-demo` / **`class_replacement_viva`** (viva twin, `APP_DEBUG=false`). `:8030` = disposable AI/E2E lane on `class_replacement_testing` only. |
 | Database trap | `class_replacement_demo` is the **older, empty** twin (0 requests) — not the viva DB. |
