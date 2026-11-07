@@ -123,7 +123,7 @@ test('subject switch auto-selects the matching conflict slot (the bug fix)', asy
 
   const labelText = await selectedItemText(page);
   expect(labelText, 'the matching conflict slot is auto-selected after the subject change').toContain('Week 6');
-  expect(labelText).toContain('9:00 AM - 11:00 AM');
+  expect(labelText).toContain('9:00 AM ~ 11:00 AM');
   expect(labelText).toContain('B100');
   expect(await page.locator('.slot-dd-item.selected').count()).toBe(1);
 
@@ -157,7 +157,7 @@ test('subject switch auto-selects the matching conflict slot (the bug fix)', asy
   await page.waitForTimeout(2500);
   const thirdLabel = await selectedItemText(page);
   expect(thirdLabel).toContain('Week 9');
-  expect(thirdLabel).toContain('1:00 PM - 2:00 PM');
+  expect(thirdLabel).toContain('1:00 PM ~ 2:00 PM');
   expect(thirdLabel).toContain('B009');
   await expect(page.locator('.slot-dd-item.selected')).toHaveCount(1);
   const thirdPin = await page.evaluate(() => (window as any).pinnedOccurrence || null);

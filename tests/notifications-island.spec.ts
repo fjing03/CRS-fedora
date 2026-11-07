@@ -165,9 +165,9 @@ test('composer receipts on an unread submitted row (structural)', async ({ page 
   expect(tip).toMatch(/\(\d{4,}\)$/m);
   expect(tip).toMatch(/Requested At: \d{1,2} [A-Z][a-z]{2} \d{4}, \d{1,2}:\d{2} (AM|PM) \(/);
   expect(tip).toMatch(/Subject & Cohort: [A-Z]{3,5}\d{3,4} \([A-Z][a-z]+\) — .+( · \S+)?$/m);
-  /* `Mon, 9 Nov 2026` + `11:00 AM–1:00 PM` (en dash, no spaces) + `(reason)` */
-  expect(tip).toMatch(/Original Class Schedule: Week \d+ · [A-Z][a-z]{2}, \d{1,2} [A-Z][a-z]{2} \d{4} · \d{1,2}:\d{2} (AM|PM)–\d{1,2}:\d{2} (AM|PM)( @ \S+)?( \(.+\))?$/m);
-  expect(tip).toMatch(/Proposed Replacement Schedule: Week \d+ · [A-Z][a-z]{2}, \d{1,2} [A-Z][a-z]{2} \d{4} · \d{1,2}:\d{2} (AM|PM)–\d{1,2}:\d{2} (AM|PM)( @ \S+)?$/m);
+  /* `Mon, 9 Nov 2026` + `11:00 AM ~ 1:00 PM` (tilde, one space each side) + `(reason)` */
+  expect(tip).toMatch(/Original Class Schedule: Week \d+ · [A-Z][a-z]{2}, \d{1,2} [A-Z][a-z]{2} \d{4} · \d{1,2}:\d{2} (AM|PM) ~ \d{1,2}:\d{2} (AM|PM)( @ \S+)?( \(.+\))?$/m);
+  expect(tip).toMatch(/Proposed Replacement Schedule: Week \d+ · [A-Z][a-z]{2}, \d{1,2} [A-Z][a-z]{2} \d{4} · \d{1,2}:\d{2} (AM|PM) ~ \d{1,2}:\d{2} (AM|PM)( @ \S+)?$/m);
   expect(tip).toMatch(/Request ID: #\d+$/m);
   expect(tip).not.toContain('Conflict Reason:', 'the reason now rides the Original line');
   expect(tip).not.toContain('Proposed Venue: ');

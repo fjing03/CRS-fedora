@@ -1,3 +1,9 @@
+## 2026-11-07 (date/time batch 2, `docs/date-time-format-audit-2026-11-07.md`) — the schedule lines join with `~`
+
+The tooltip's Original / Proposed schedule lines printed `1:00 PM–2:00 PM` (unspaced en dash). They
+now read `1:00 PM ~ 2:00 PM`, matching the pages. The row's own 24-hour desc line and the relative
+ages are unchanged.
+
 ## 2026-11-05 (UI/UX, inline brief "Notifications Panel") — hide an inactive row, Title Case, a sender line, and an honest empty header
 
 Four asks, one lane (`notif-inactive-hide-sender`).

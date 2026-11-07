@@ -214,7 +214,7 @@ final class NotificationTip
         /* the collection re-keys to 0..n-1 — a list for the implode below */
     }
 
-    /** `Week 8 · Mon, 9 Nov 2026 · 11:00 AM–1:00 PM @ B110` (+ the reason in parentheses). */
+    /** `Week 8 · Mon, 9 Nov 2026 · 11:00 AM ~ 1:00 PM @ B110` (+ the reason in parentheses). */
     private function scheduleLine(
         string $label,
         ?int $week,
@@ -263,9 +263,9 @@ final class NotificationTip
         return 'Week '.$week.' · '.($dayName !== '' ? $dayName.', ' : '').$date->format('j M Y');
     }
 
-    /** `11:00 AM–1:00 PM` — 12-hour clocks, an en dash, no surrounding spaces. */
+    /** `11:00 AM ~ 1:00 PM` — 12-hour clocks, a tilde joiner, one space each side. */
     private function times(string $start, string $end): string
     {
-        return Carbon::parse($start)->format('g:i A').'–'.Carbon::parse($end)->format('g:i A');
+        return Carbon::parse($start)->format('g:i A').' ~ '.Carbon::parse($end)->format('g:i A');
     }
 }

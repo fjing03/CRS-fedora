@@ -919,12 +919,12 @@
                    what the class is, who is in it, when it was, when it moves to */
                 var origWeek = getWeekNumber(c.date);
                 var origWhen = (origWeek ? 'Week ' + origWeek + ', ' : '') + dayAbbr(c.day) + ', ' + formatDate(c.date) +
-                    ', ' + to12h(c.timeStart) + ' \u2013 ' + to12h(c.timeEnd) + (c.venue ? ' @ ' + c.venue : '');
+                    ', ' + to12h(c.timeStart) + ' ~ ' + to12h(c.timeEnd) + (c.venue ? ' @ ' + c.venue : '');
                 /* the replacement time arrives as a 24-hour range ('10:00 \u2013 11:00');
                    the original reads 12-hour, so convert — one clock face per modal */
                 var propRange = String(c.replacementTime || '').split(/\s*[\u2013-]\s*/);
                 var propTime = propRange.length === 2
-                    ? to12h(propRange[0]) + ' \u2013 ' + to12h(propRange[1])
+                    ? to12h(propRange[0]) + ' ~ ' + to12h(propRange[1])
                     : (c.replacementTime || '');
                 var propWhen = c.replacementDate
                     ? (c.replacementWeek ? 'Week ' + c.replacementWeek + ', ' : '') + dayAbbr(c.replacementDay) + ', ' +

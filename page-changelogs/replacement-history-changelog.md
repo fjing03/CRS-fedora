@@ -1,3 +1,9 @@
+## 2026-11-07 (date/time batch 2, `docs/date-time-format-audit-2026-11-07.md`) — Original/New Slot join with `~`
+
+Both slot columns and the detail modal's Time row printed `12:00 PM to 1:30 PM`. They now read
+`12:00 PM ~ 1:30 PM`; the mobile history card follows. Dates, week tags, sorting and the empty
+states are untouched.
+
 ## 2026-11-04 — the page description speaks the same visual language as My Replacements
 
 Minor UI update (user, all pages): the `.page-desc` line now bolds and uppercases its key terms with

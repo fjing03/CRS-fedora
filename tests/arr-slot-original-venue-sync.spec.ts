@@ -27,7 +27,7 @@ test('the label follows the picked schedule ORIGINAL room (session-change pick)'
   await page.click('.slot-dd-item .slot-dd-item-label');
   await page.waitForTimeout(2200);
   await expect(page.locator('.venue-dd-label')).toHaveText(/^B010 — /);
-  await expect(page.locator('#slotTriggerText')).toContainText('Week 14 · Dec 24, 2026 · 12:00 PM–1:00 PM');
+  await expect(page.locator('#slotTriggerText')).toContainText('Week 14 · Dec 24, 2026 · 12:00 PM ~ 1:00 PM');
 });
 
 test('alternation across rows with different original venues (auto-pin follows, picks keep parity)', async ({ page }) => {
@@ -66,7 +66,7 @@ test('same-session pick (Gap A) still runs the venue family + parity refire', as
   await page.waitForTimeout(2200);
   await expect(page.locator('.venue-dd-label')).toHaveText(/^B010 — /);
   expect(await page.evaluate(() => window.__venueSelected())).toBe('B010'); // the equal-target parity refire (design D3)
-  await expect(page.locator('#slotTriggerText')).toContainText('Week 14 · Dec 24, 2026 · 12:00 PM–1:00 PM');
+  await expect(page.locator('#slotTriggerText')).toContainText('Week 14 · Dec 24, 2026 · 12:00 PM ~ 1:00 PM');
 });
 
 test('the 68/14 → BMSE2163 sighting: the auto-pin follows @ B010 BEFORE any manual pick (round-2 law, the whole-red grid)', async ({ page }) => {

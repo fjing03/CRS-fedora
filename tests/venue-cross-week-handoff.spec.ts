@@ -8,7 +8,7 @@ import { pickSpanFreeCell, selectWeek } from './helpers/intent-modal-helper';
  *  Repro receipts (the user's exact steps): venue B111, Week 7 view, the free
  *  Tue 03 Nov 13:00 cell, pick the (L) W8 row (AMCS2093, session 97) →
  *  the URL carries &week=8 (was: 7 — the phantom pair {97,7}); the strip
- *  reads the honest Week 8 · Mon, Nov 09 2026 · 11:00 AM–1:00 PM @ B110.
+ *  reads the honest Week 8 · Mon, Nov 09 2026 · 11:00 AM ~ 1:00 PM @ B110.
  *  Control: a same-week pick produces today's URL byte-for-byte. */
 test.use({ storageState: '.auth/staff-5770.json' });
 

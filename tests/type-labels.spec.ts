@@ -46,7 +46,7 @@ test('AMCS2093 type labels: P rows say "(P)"/Practical, L and T stay byte-identi
   await expect(thu).toHaveCount(1);
   await expect(thu.locator('.cell-type-label')).toHaveText('(P)');
 
-  // #49 — Fri 11:00 AM–12:00 PM B011 (P; was "(T)" before B1)
+  // #49 — Fri 11:00 AM ~ 12:00 PM B011 (P; was "(T)" before B1)
   const fri = sessionRow(page, 'B011', '11:00 AM');
   await expect(fri).toHaveCount(1);
   await expect(fri.locator('.cell-type-label')).toHaveText('(P)');

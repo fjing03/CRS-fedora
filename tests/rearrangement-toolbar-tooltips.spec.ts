@@ -2,7 +2,7 @@ import { test, expect, type Page } from '@playwright/test';
 
 /* SDD rearrangement-toolbar-tooltips — the lean-path apply's receipt.
    Three hover tooltips (data-tip, shared engine, ABOVE):
-   a) #slotTriggerText — 'Conflicted SLOT Selector: (L) Week 14, Thursday, 24 Dec 2026, 2:30 PM - 3:30 PM @ B107'
+   a) #slotTriggerText — 'Conflicted SLOT Selector: (L) Week 14, Thursday, 24 Dec 2026, 2:30 PM ~ 3:30 PM @ B107'
       (dynamic, refreshed at EVERY trigger writer; fails open: the placeholder
       shows NO tip; the arrival anchor now carries the REAL session_type from
       pinnedSessionPayload — the 2026-10-31 user no-tip report fix);
@@ -21,7 +21,7 @@ const BASE = (process.env.CRS_BASE ?? 'http://localhost:8000');
 const PW = 'Tarumt@2026';
 
 const SLOT_TIP_RE =
-  /^Conflicted SLOT Selector: \([A-Z]\) Week \d+, (Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday), \d{1,2} [A-Z][a-z]{2} \d{4}, \d{1,2}:\d{2} (AM|PM) - \d{1,2}:\d{2} (AM|PM) @ \S+$/;
+  /^Conflicted SLOT Selector: \([A-Z]\) Week \d+, (Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday), \d{1,2} [A-Z][a-z]{2} \d{4}, \d{1,2}:\d{2} (AM|PM) ~ \d{1,2}:\d{2} (AM|PM) @ \S+$/;
 
 /* Batch 2 (2026-10-30): the venue trigger's selector-voice tip; the cohort
    tag; the star removal. */

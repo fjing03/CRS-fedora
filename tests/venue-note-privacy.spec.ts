@@ -65,13 +65,13 @@ test('unrelated staff see the same blocks with NO notes', async ({ browser }) =>
   const w7 = await blocksFor(page, W7);
   const amber = w7.find((b) => b.text.includes('2:00 PM'));
   // the block itself is unchanged (colour = status, for everyone)…
-  expect(amber?.text).toBe('AMSE2003(P) B010 2:00 PM - 3:00 PM');
+  expect(amber?.text).toBe('AMSE2003(P) B010 2:00 PM ~ 3:00 PM');
   // …but the request fact is not theirs to read
   expect(amber?.notes).toEqual([]);
 
   const w14 = await blocksFor(page, W14);
   const conflict = w14.find((b) => b.text.includes('9:00 AM'));
-  expect(conflict?.text).toBe('AMSE2003(P) B010 9:00 AM - 10:00 AM');
+  expect(conflict?.text).toBe('AMSE2003(P) B010 9:00 AM ~ 10:00 AM');
   expect(conflict?.notes).toEqual([]);
 
   expect(errors).toEqual([]);

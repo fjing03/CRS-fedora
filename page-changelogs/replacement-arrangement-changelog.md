@@ -1,3 +1,10 @@
+## 2026-11-07 (date/time batch 2, `docs/date-time-format-audit-2026-11-07.md`) — every slot line on the page joins with `~`
+
+The remaining en dashes are gone: the duplicate-conflict error line, the booking toast, the
+picked-slot toolbar line, the slot-picker trigger, its hover tip and the picker row label. All read
+`2:00 PM ~ 4:00 PM` now, and the two hyphen rows in the picker went with them so the picker and the
+toolbar agree. No selection, validation or booking logic changed.
+
 ## 2026-11-07 (date/time batch 1, `docs/date-time-format-audit-2026-11-07.md`) — the selected slot says `~`
 
 The picked-block card and the merged event block printed `2:00 PM – 4:00 PM` with an en dash — the

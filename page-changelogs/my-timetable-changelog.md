@@ -1,3 +1,10 @@
+## 2026-11-07 (date/time batch 2, `docs/date-time-format-audit-2026-11-07.md`) — event blocks and the cancel summary join with `~`
+
+The shared grid event block — used by My Timetable, Student, Cohort, Venue and Arrangement —
+printed `2:00 PM - 3:00 PM`; it now prints `2:00 PM ~ 3:00 PM`. The Cancel Class success summary
+(shared `ClassCancellation`) follows the same change. One builder, so every grid page moves
+together; no guard, state or layout changed.
+
 ## 2026-11-05 — the Cancel Class? tooltip now names the date, and holidays count as non-working
 
 The user's follow-up brief on the button's hover text (shared `CancelClass.renderButton` — My Timetable, Cohort and

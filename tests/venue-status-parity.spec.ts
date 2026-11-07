@@ -68,7 +68,7 @@ test('venue B010 week 7 — the pending block keeps its date, its class ref and 
 
   // bug #1: the note the two reference pages had all along
   expect(amber?.cls).toBe('span-2 event-mine-pending');
-  expect(amber?.text).toBe('AMSE2003(P) B010 2:00 PM - 3:00 PM (Pending since 02 Nov 2026)');
+  expect(amber?.text).toBe('AMSE2003(P) B010 2:00 PM ~ 3:00 PM (Pending since 02 Nov 2026)');
 
   // bug #5 + #6: the CLASS ref (not the slot id) and the shared footer action
   // the AMBER block (2:00 PM), not the class's own 9:00 AM block
@@ -113,7 +113,7 @@ test('venue B009 week 7 — a cancelled class is red, labelled and replaceable',
   // bug #2: the same status/appearance the other two pages always had
   expect(cancelled).toHaveLength(1);
   expect(cancelled[0].cls).toBe('span-2 event-conflict');
-  expect(cancelled[0].text).toBe('BMSE3153(P) B009 1:00 PM - 2:00 PM (Cancelled)');
+  expect(cancelled[0].text).toBe('BMSE3153(P) B009 1:00 PM ~ 2:00 PM (Cancelled)');
 
   const modal = await openBlockAndReadFooter(page, 'BMSE3153(P)');
   expect(modal.classRef).toBe('#23');
@@ -127,7 +127,7 @@ test('venue B010 week 14 — the class carrying a proposal is not deleted', asyn
 
   // bug #3: present, red, and honest about the proposal
   expect(proposed?.cls).toBe('span-2 event-conflict');
-  expect(proposed?.text).toBe('AMSE2003(P) B010 9:00 AM - 10:00 AM (Proposed ⏳)');
+  expect(proposed?.text).toBe('AMSE2003(P) B010 9:00 AM ~ 10:00 AM (Proposed ⏳)');
 
   // the pair is HANDLED → no dead-end Replace Now; the Class Ref still resolves
   const modal = await openBlockAndReadFooter(page, 'AMSE2003(P)');

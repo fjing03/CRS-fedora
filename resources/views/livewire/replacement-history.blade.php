@@ -177,7 +177,7 @@
         function fmtSlot(weekDays, week, di, start, end, time, venue, withWeek) {
             const d = weekDays[week].days[di];
             const h = (end - start + 1) * 0.5; // 30-min index space
-            const t12 = time.split('–').map(s => to12h(s.trim())).join(' to ');
+            const t12 = time.split('–').map(s => to12h(s.trim())).join(' ~ ');
             return (withWeek ? 'Week ' + (week + 1) + ' · ' : '') +
                 d.abbr + ', ' + d.date + ', ' + t12 +
                 ' (' + (h === 1 ? '1 hr' : h + ' hrs') + ') @ ' + venue;
@@ -355,7 +355,7 @@
                     { label: 'Week', value: String(week + 1) },
                     { label: 'Day', value: fullDay },
                     { label: 'Date', value: d.date },
-                    { label: 'Time', value: time.split('–').map(s => to12h(s.trim())).join(' to ') },
+                    { label: 'Time', value: time.split('–').map(s => to12h(s.trim())).join(' ~ ') },
                     { label: 'Duration', value: dur },
                     { label: 'Venue', value: venue },
                 ];

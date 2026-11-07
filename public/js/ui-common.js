@@ -1009,7 +1009,7 @@ function buildTimetableGrid(cfg) {
                 div.innerHTML =
                     '<span class="ev-code">' + e.code + '(' + e.type + ')</span>' +
                     '<span class="ev-venue">' + e.venue + '</span>' +
-                    '<span class="ev-time">' + startTime + ' - ' + endTime + '</span>' +
+                    '<span class="ev-time">' + startTime + ' ~ ' + endTime + '</span>' +
                     extraHtml;
 
                 div.addEventListener('click', function() { cfg.onEventClick(e, di); });
@@ -2661,7 +2661,7 @@ class HtmlBuilder {
         var typeLabel = UiLabels.classType(r.classType, 'long');
         var dayStr = DateHelper.dayAbbr(r.classDay);
         var dateStr = DateHelper.formatDate(r.classDate);
-        var timeStr = DateHelper.to12h(r.timeStart) + ' – ' + DateHelper.to12h(r.timeEnd);
+        var timeStr = DateHelper.to12h(r.timeStart) + ' ~ ' + DateHelper.to12h(r.timeEnd);
         var ageHtml = opts.requestAgeHtml ? opts.requestAgeHtml(r.requestedAt) : '';
         var statusTip = (opts.statusTip && opts.statusTip(r.status)) ? ' data-tip="' + opts.statusTip(r.status) + '"' : '';
         return '<div class="card-header">' +
@@ -2747,7 +2747,7 @@ class HtmlBuilder {
             '<div class="rc-body">' +
             '<strong>' + c.name + '</strong><br>' +
             c.day + ', ' + DateHelper.formatDate(c.date) + ' · Week ' + getWeekNumber(c.date) + '<br>' +
-            DateHelper.to12h(c.timeStart) + ' – ' + DateHelper.to12h(c.timeEnd) + ' · ' + c.venue +
+            DateHelper.to12h(c.timeStart) + ' ~ ' + DateHelper.to12h(c.timeEnd) + ' · ' + c.venue +
             '</div>' +
             '<div class="rc-footer">' +
             '<span class="' + urgencyCls + '">' + daysText + '</span>' +
@@ -4963,7 +4963,7 @@ const CancelClassModal = {
             const day = ctx.days && ctx.days[ev.di];
             summary.textContent = ev.code + ' (' + (ev.type || '') + ') · ' +
                 ((day && day.abbr) || '') + ' · ' + ((day && day.date) || '') + ' · ' +
-                to12h(hours[ev.start]) + ' – ' + to12h(hours[ev.end + 1] || add30min(hours[ev.end]));
+                to12h(hours[ev.start]) + ' ~ ' + to12h(hours[ev.end + 1] || add30min(hours[ev.end]));
         }
         this._swapState('success');
     },

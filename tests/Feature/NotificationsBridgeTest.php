@@ -837,8 +837,8 @@ final class NotificationsBridgeTest extends TestCase
         $this->assertSame('Staff (Proposer): Surayaini Binti Basri (5425)', $lines[0]);
         $this->assertStringStartsWith('Requested At: ', $lines[1], 'the live clock rides line 2, its shape pinned');
         $this->assertSame('Subject & Cohort: BMSE3153 (Practical) — Software Project Management · RSD3', $lines[2]);
-        $this->assertSame('Original Class Schedule: Week 8 · Tue, 10 Nov 2026 · 1:00 PM–2:00 PM @ B009', $lines[3]);
-        $this->assertSame('Proposed Replacement Schedule: Week 6 · Fri, 30 Oct 2026 · 1:30 PM–2:00 PM @ B010', $lines[4]);
+        $this->assertSame('Original Class Schedule: Week 8 · Tue, 10 Nov 2026 · 1:00 PM ~ 2:00 PM @ B009', $lines[3]);
+        $this->assertSame('Proposed Replacement Schedule: Week 6 · Fri, 30 Oct 2026 · 1:30 PM ~ 2:00 PM @ B010', $lines[4]);
         $this->assertSame('Request ID: #'.(int) $request->id, $lines[5]);
         $this->assertCount(6, $lines, 'the six facts, nothing else — no Conflict Reason, no venue-name line');
     }
@@ -857,8 +857,8 @@ final class NotificationsBridgeTest extends TestCase
             implode("\n", [
                 'Subject: BMSE3153 (Practical) — Software Project Management',
                 'Rejection Reason: Venue Unavailable',
-                'Original Class Schedule: Week 8 · Tue, 10 Nov 2026 · 1:00 PM–2:00 PM @ B009',
-                'Proposed Replacement Schedule: Week 6 · Fri, 30 Oct 2026 · 1:30 PM–2:00 PM @ B010',
+                'Original Class Schedule: Week 8 · Tue, 10 Nov 2026 · 1:00 PM ~ 2:00 PM @ B009',
+                'Proposed Replacement Schedule: Week 6 · Fri, 30 Oct 2026 · 1:30 PM ~ 2:00 PM @ B010',
                 'Request ID: #'.(int) $request->id,
             ]),
             $tips[0],
@@ -897,7 +897,7 @@ final class NotificationsBridgeTest extends TestCase
         $this->assertSame(
             implode("\n", [
                 'Subject: BMSE3153 (Practical) — Software Project Management',
-                'Cancelled Class Schedule: Week 7 · Tue, 3 Nov 2026 · 1:00 PM–2:00 PM @ B009',
+                'Cancelled Class Schedule: Week 7 · Tue, 3 Nov 2026 · 1:00 PM ~ 2:00 PM @ B009',
                 'Reason: Annual Leave',
             ]),
             $tips[0],
@@ -920,8 +920,8 @@ final class NotificationsBridgeTest extends TestCase
         $tips = $this->tipsOf($this->panelHtml($owner), 'Approved Replacement Schedule:');
 
         $expected = 'Subject: BMSE3153 (Practical) — Software Project Management'
-            ."\n".'Original Class Schedule: Week 8 · Tue, 10 Nov 2026 · 1:00 PM–2:00 PM @ B009'
-            ."\n".'Approved Replacement Schedule: Week 6 · Fri, 30 Oct 2026 · 1:30 PM–2:00 PM @ B010'
+            ."\n".'Original Class Schedule: Week 8 · Tue, 10 Nov 2026 · 1:00 PM ~ 2:00 PM @ B009'
+            ."\n".'Approved Replacement Schedule: Week 6 · Fri, 30 Oct 2026 · 1:30 PM ~ 2:00 PM @ B010'
             ."\n".'Request ID: #'.(int) $request->id;
 
         $this->assertCount(2, $tips, 'the proposer notice and the timetable notice');

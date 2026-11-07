@@ -1,3 +1,10 @@
+## 2026-11-07 (date/time batch 2, `docs/date-time-format-audit-2026-11-07.md`) — the cancel-request confirm joins with `~`
+
+The "facts you are about to give up" block printed `2:00 PM – 4:00 PM` (en dash) for both the
+original and the proposed slot. Both now read `2:00 PM ~ 4:00 PM`, matching the table, the Quick
+View tabs and the rest of the page; the mobile card footer follows the same change. Wording, order
+and layout are untouched.
+
 ## 2026-11-07 (date/time batch 1, `docs/date-time-format-audit-2026-11-07.md`) — the Proposed tab reads 12-hour, like the Original tab
 
 Quick View → Proposed Replacement Schedule printed the raw payload `13:30 ~ 15:30`, while the

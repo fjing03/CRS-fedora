@@ -2214,7 +2214,7 @@
                                     if (b) {
                                         const dayData = weekData[b.week] ? weekData[b.week].days[b.day] : null;
                                         label = b.venue + ' · ' + (dayData ? dayData.abbr + ', ' + dayData.date : '')
-                                            + ' · ' + to12h(hours[b.startHour]) + '–' + to12h(add30min(hours[b.endHour - 1]));
+                                            + ' · ' + to12h(hours[b.startHour]) + ' ~ ' + to12h(add30min(hours[b.endHour - 1]));
                                     }
                                     const reason = r.reason || 'booking conflict';
                                     /* 2026-11-05 UI/UX update (user): the
@@ -2258,7 +2258,7 @@
                                             + '<div style="font-weight:600;color:var(--color-on-surface);">' + label + '</div>'
                                             + '<div>' + 'The block overlaps with an '
                                             + '<span class="warn-keyword">EXISTING OCCUPIED BOOKING</span>'
-                                            + ' at ' + to12h(m[1]) + '\u2013' + to12h(m[2]) + '</div>'
+                                            + ' at ' + to12h(m[1]) + ' ~ ' + to12h(m[2]) + '</div>'
                                             + '</div>');
                                     } else {
                                         /* the raw reason verbatim (Type A, holiday,
@@ -2842,7 +2842,7 @@
                     || (fallbackDay && fallbackDay.abbr === undefined ? null : '');
                 /* human-facing label: week NUMBER (+1, see the picker's trigger note);
    slot.week stays the 0-based weekData index */
-slotLine = 'Week ' + (anchorSlot.week + 1) + ' · ' + ((weekdayName && weekdayName !== 'undefined') ? weekdayName + ', ' : '') + shortDate + ' ' + dateParts[2] + ' · ' + startStr + '–' + endStr + ' @ ' + anchorSlot.venue;
+slotLine = 'Week ' + (anchorSlot.week + 1) + ' · ' + ((weekdayName && weekdayName !== 'undefined') ? weekdayName + ', ' : '') + shortDate + ' ' + dateParts[2] + ' · ' + startStr + ' ~ ' + endStr + ' @ ' + anchorSlot.venue;
             }
 
             /* SDD conflict-schedule-header-status-tip (the user's ruling,
@@ -3568,7 +3568,7 @@ ${(fallbackAttribution && intentReason === 'in-the-way')
             const slots = rowSessionCandidates;
             renderSlotPicker(slots);
             document.getElementById('slotTriggerText').textContent = firstConflictRow
-                ? slotTriggerLabel(firstConflictRow) /* the same format as a picked slot (Batch-2 shape): Week 14 · Dec 24, 2026 · 12:00 PM–1:00 PM */
+                ? slotTriggerLabel(firstConflictRow) /* the same format as a picked slot (Batch-2 shape): Week 14 · Dec 24, 2026 · 12:00 PM ~ 1:00 PM */
                 : 'Select a slot to replace';
             applySlotTip(firstConflictRow || null); /* same conditional: real slot -> full tip, else cleared */
 
@@ -3828,7 +3828,7 @@ ${(fallbackAttribution && intentReason === 'in-the-way')
                 const cohortHtml = cohortNames.length
                     ? '<span class="slot-dd-item-cohort"><svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg> ' + cohortNames.join(' + ') + '</span>'
                     : '';
-                const fullLabel = '(' + slot.type + ') Week ' + (slot.week + 1) + ' · ' + slotDayNames[slot.day] + ', ' + slot.date + ', ' + startStr + ' - ' + endStr + ' @ ' + slot.venue;
+                const fullLabel = '(' + slot.type + ') Week ' + (slot.week + 1) + ' · ' + slotDayNames[slot.day] + ', ' + slot.date + ', ' + startStr + ' ~ ' + endStr + ' @ ' + slot.venue;
 
                 const item = document.createElement('div');
                 item.className = 'slot-dd-item';
@@ -3954,7 +3954,7 @@ ${(fallbackAttribution && intentReason === 'in-the-way')
             const dateParts = (slot.date || '').split(' ');
             const shortDate = dateParts[1] + ' ' + dateParts[0];
             const year = dateParts[2] || '';
-            return 'Week ' + (slot.week + 1) + ' · ' + (year ? shortDate + ', ' + year : shortDate) + ' · ' + startStr + '–' + endStr;
+            return 'Week ' + (slot.week + 1) + ' · ' + (year ? shortDate + ', ' + year : shortDate) + ' · ' + startStr + ' ~ ' + endStr;
         }
 
         /* SDD rearrangement-toolbar-tooltips: the slot picker trigger's hover
@@ -3968,7 +3968,7 @@ ${(fallbackAttribution && intentReason === 'in-the-way')
             if (!slot || slot.week == null || !slot.type || !slot.venue) { el.removeAttribute('data-tip'); return; }
             const startStr = to12h(hours[slot.start]);
             const endStr = to12h(hours[slot.end + 1] || add30min(hours[slot.end]));
-            el.setAttribute('data-tip', 'Conflicted SLOT Selector: (' + slot.type + ') Week ' + (slot.week + 1) + ', ' + slotDayNames[slot.day] + ', ' + slot.date + ', ' + startStr + ' - ' + endStr + ' @ ' + slot.venue);
+            el.setAttribute('data-tip', 'Conflicted SLOT Selector: (' + slot.type + ') Week ' + (slot.week + 1) + ', ' + slotDayNames[slot.day] + ', ' + slot.date + ', ' + startStr + ' ~ ' + endStr + ' @ ' + slot.venue);
         }
 
         /* ORIGINAL-VENUE SYNC (user law 2026-10-24, arr-slot-original-venue-sync;
