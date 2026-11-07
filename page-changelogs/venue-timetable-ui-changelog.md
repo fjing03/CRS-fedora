@@ -1,3 +1,12 @@
+## 2026-11-07 (date/time batch 1, `docs/date-time-format-audit-2026-11-07.md`) — the arrange question speaks 12-hour and full day names
+
+The hover question and the booking modal subtitle were the only prose on the page still printing
+24-hour time: `Arrange a replacement in B103 on Thu, 05 Nov 2026 at 14:30?` and
+`Booking B103 · Thu, 05 Nov 2026 · 14:30`. They now read `… on Thursday, 05 Nov 2026 at 2:30 PM?`
+and `… · 2:30 PM` — full day word in the sentence, `Thu` kept in the compact subtitle (audit §0
+ruling 3). The padded date (`05`) belongs to batch 3 and is deliberately unchanged here. Booking
+logic, the grid and the intent flow are untouched.
+
 ## 2026-11-05 (UI/UX, user brief `Venue Timetable Slot Validation.md`) — hover asks one question, the class answers the rest
 
 The pop-up used to decide a class it had not been given. Clicking a free 13:00 cell (next class at

@@ -1,3 +1,9 @@
+## 2026-11-07 (date/time batch 1, `docs/date-time-format-audit-2026-11-07.md`) — the selected slot says `~`
+
+The picked-block card and the merged event block printed `2:00 PM – 4:00 PM` with an en dash — the
+only place on the page using it as a range joiner. Both now read `2:00 PM ~ 4:00 PM`, matching the
+slot picker's existing `~` lines. Selection logic, colours and the toolbar are untouched.
+
 ## 2026-11-07 (bug fix, user report) — the legend squares stopped painting the whole screen
 
 **Symptom:** hovering a legend square and moving the mouse away made the grid area

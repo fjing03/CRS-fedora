@@ -2549,7 +2549,7 @@ class HtmlBuilder {
         var dateStr = DateHelper.formatDate(r.classDate);
         var wn = getWeekNumber(r.classDate);
         var weekTag = wn ? ' (Week ' + wn + ')' : '';
-        var timeStr = DateHelper.to12h(r.timeStart) + ' to ' + DateHelper.to12h(r.timeEnd);
+        var timeStr = DateHelper.to12h(r.timeStart) + ' ~ ' + DateHelper.to12h(r.timeEnd);
         var hrs = r.duration + ' hr' + (r.duration > 1 ? 's' : '');
         /* 1h (2026-11-04): the merged My Replacements cell — duration in words
            and the icon-led venue line the lecturer page prints. Opt-in, so the
@@ -2588,7 +2588,7 @@ class HtmlBuilder {
             var repVenue = uiVenueLine(r.replacementVenue || r.venue, r.replacementVenueName, opts);
             return '<div class="cell-class-block">' +
                 '<span class="class-day-date">' + d + ', ' + dateStr + weekTag + '</span>' +
-                '<br><span class="class-time">' + DateHelper.format12hRange(r.replacementTime) + '</span>' +
+                '<br><span class="class-time">' + DateHelper.format12hRange(r.replacementTime, ' ~ ') + '</span>' +
                 (hours !== null ? ' <span class="class-duration">(' + uiHoursWords(hours) + ')</span>' : '') +
                 (opts.showVenue !== false && repVenue ? '<br>' + (opts.slotBadge ? opts.slotBadge : '') + repVenue : '') +
                 '</div>';
@@ -2596,7 +2596,7 @@ class HtmlBuilder {
         var html = '<div class="cell-class-block">'
             + '<span class="class-day-date">' + d + ', ' + dateStr + weekTag + '</span><br>'
             + '<span class="class-time' + (opts.colorStatus === false ? '' : ' ' + statusClass(r.status)) + '">'
-            + DateHelper.format12hRange(r.replacementTime) + '</span>';
+            + DateHelper.format12hRange(r.replacementTime, ' ~ ') + '</span>';
         if (opts.showVenue !== false) {
             var venue = r.replacementVenue || r.venue || '—';
             html += '<br><span class="class-venue">'

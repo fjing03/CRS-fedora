@@ -1450,7 +1450,7 @@
                     <div class="card-venue">${b.venue}</div>
                     <div class="card-day">${b.weekLabel} · ${b.day.abbr}</div>
                     <div class="card-date">${b.day.date}</div>
-                    <div class="card-time">${to12h(startStr)} – ${to12h(endDisplay)} · ${b.slotCount} slots (${durLabel})</div>
+                    <div class="card-time">${to12h(startStr)} ~ ${to12h(endDisplay)} · ${b.slotCount} slots (${durLabel})</div>
                 `;
                 grid.appendChild(card);
             });
@@ -1562,7 +1562,7 @@
             div.setAttribute('tabindex', '0');
             const startStr = hours[selectedBlock.startHour];
             const endStr = add30min(hours[selectedBlock.endHour - 1]);
-            div.innerHTML = `<span class="ev-time-label">${to12h(startStr)} – ${to12h(endStr)}</span>`;
+            div.innerHTML = `<span class="ev-time-label">${to12h(startStr)} ~ ${to12h(endStr)}</span>`;
             div.addEventListener('click', () => userDeselectSelectedBlock());
             firstTd.appendChild(div);
             // Disable hover on other available cells

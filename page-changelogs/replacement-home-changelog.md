@@ -1,3 +1,11 @@
+## 2026-11-07 (date/time batch 1, `docs/date-time-format-audit-2026-11-07.md`) — the Proposed tab reads 12-hour, like the Original tab
+
+Quick View → Proposed Replacement Schedule printed the raw payload `13:30 ~ 15:30`, while the
+Original tab one click away printed `2:00 PM ~ 4:00 PM`. The row now uses the shared
+`DateHelper.format12hRange(c.replacementTime, ' ~ ')`, so both tabs show one clock face
+(`1:30 PM ~ 3:30 PM`). The table cells were already fixed in `024d0c6`; nothing else on the page
+changed.
+
 ## 2026-11-07 — the class-time range reads as one range, on one clock face
 
 `ORIGINAL CLASS` and `REQUESTED REPLACEMENT` had drifted apart: the original printed

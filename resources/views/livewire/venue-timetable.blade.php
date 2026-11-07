@@ -457,9 +457,16 @@
                     return;
                 }
                 const tooltip = document.getElementById('availableTooltip');
-                const dayName = weekData[currentWeek].days[di]?.abbr || '';
+                const dayCode = weekData[currentWeek].days[di]?.abbr || '';
+                /* the arrange question is a sentence, so the day word is spelled
+                   out (audit §0 ruling 3: `Thursday` in prose, `Thu` in lists) */
+                const dayLong = {
+                    Mon: 'Monday', Tue: 'Tuesday', Wed: 'Wednesday', Thu: 'Thursday',
+                    Fri: 'Friday', Sat: 'Saturday', Sun: 'Sunday'
+                };
+                const dayName = dayLong[dayCode] || dayCode;
                 const dateStr = weekData[currentWeek].days[di]?.date || '';
-                const time = hours[hi] || '';
+                const time = hours[hi] ? to12h(hours[hi]) : '';
 
                 document.getElementById('tooltipText').textContent =
                     'Arrange a replacement in ' + venueInfo.code + ' on ' + dayName + ', ' + dateStr + ' at ' + time + '?';
@@ -558,7 +565,7 @@
                 const notice = document.getElementById('intentNotice');
                 const noteText = document.getElementById('intentNoticeText');
                 const subtitle = document.getElementById('intentSubtitle');
-                subtitle.textContent = 'Booking ' + model.venue + ' · ' + weekData[currentWeek].days[di].abbr + ', ' + weekData[currentWeek].days[di].date + ' · ' + hours[hi];
+                subtitle.textContent = 'Booking ' + model.venue + ' · ' + weekData[currentWeek].days[di].abbr + ', ' + weekData[currentWeek].days[di].date + ' · ' + to12h(hours[hi]);
                 const pickers = document.getElementById('intentPickers');
                 const subjectSel = document.getElementById('intentSubjectSelect');
                 const sessionDd = document.getElementById('intentSessionDd');

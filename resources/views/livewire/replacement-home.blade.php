@@ -832,7 +832,7 @@
                         DetailModal.row('Week', c.replacementWeek ? 'Week ' + c.replacementWeek : null) +
                         DetailModal.row('Day', c.replacementDay) +
                         DetailModal.row('Date', formatDate(c.replacementDate)) +
-                        DetailModal.row('Time', String(c.replacementTime || '').replace(' \u2013 ', ' ~ '), { strong: true }) +
+                        DetailModal.row('Time', DateHelper.format12hRange(c.replacementTime, ' ~ '), { strong: true }) +
                         DetailModal.row('Duration', durationWords(rangeHours(c.replacementTime))) +
                         DetailModal.row('Venue', venueLine(c.replacementVenue, c.replacementVenueName))
                     )

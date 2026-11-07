@@ -1,3 +1,11 @@
+## 2026-11-07 (date/time batch 1, `docs/date-time-format-audit-2026-11-07.md`) — one range joiner in the queue
+
+The Approve / Reject compare cards printed `2:00 PM to 4:00 PM`, while the Request Details modal
+already used `~`. `HtmlBuilder.classBlock()` and `replacementBlock()` now join with `~`, which also
+aligns the two table columns (they share the same builders) — `2:00 PM ~ 4:00 PM` and
+`1:30 PM ~ 3:30 PM`. Thresholds, colours, labels, the Urgency column and every other page are
+untouched.
+
 ## 2026-11-07 — Urgency now counts down to the **proposed replacement**, not the original class
 
 The Urgency column was measuring the wrong date. A request whose original class was months away
