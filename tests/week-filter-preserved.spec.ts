@@ -36,7 +36,6 @@ test.use({ storageState: '.auth/staff-5425.json' });
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const PSQL = 'psql -q -t -U philler -d class_replacement_testing -c ';
-const FIXTURE_IDS = '10, 24, 25, 26';
 /* 2026-11-07 (user): the two pages filter on DIFFERENT dates — My Replacements on
    the ORIGINAL CLASS week (14 for request 26), the PL queue on the REQUESTED
    REPLACEMENT week (the fixture's proposal lands in week 7, Fri 6 Nov). */
@@ -56,10 +55,12 @@ function sql(query: string): void {
 test.beforeEach(() => {
   /* The seeder is idempotent for its OWN rows, but a decision leaves an
      audit_logs row (and a notification) that still points at the request, so the
-     FK blocks the delete. Clear the trail for the four fixture requests first —
-     audit_logs.replacement_request_id and notifications.request_id. */
-  sql(`delete from audit_logs where replacement_request_id in (${FIXTURE_IDS})`);
-  sql(`delete from notifications where request_id in (${FIXTURE_IDS})`);
+     FK blocks the delete. Clear the WHOLE trail first (audit_logs.replacement_request_id,
+     notifications.request_id) — a spec that created its own request leaves an id
+     this fixture list does not cover, and the seeder then dies on the FK. The
+     testing DB is disposable. */
+  sql('delete from audit_logs');
+  sql('delete from notifications');
   execSync('DB_DATABASE=class_replacement_testing php artisan db:seed --class=TestingFixtureSeeder', {
     cwd: ROOT,
     stdio: 'pipe',

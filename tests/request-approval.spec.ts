@@ -96,12 +96,23 @@ test('U3-T9c: the COHORT column replaced STUDENTS (consistency update) and row c
   await expect(facts.locator('[data-tip="Click to copy email"]')).toHaveCount(1);
   await expect(body.locator('.modal-timeline'), '3A removed the timeline rail').toHaveCount(0);
 
-  // 3D: three tabs, the status one LAST
+  /* 2026-11-07 (user brief "Modal Tab Order & Class Type Display"): the Proposed
+     Replacement Schedule leads and is ACTIVE on open (it is what the PL approves);
+     the status tab stays LAST. `DetailModal.render` activates index 0, so the
+     order is the default. */
   const tabs = body.locator('.modal-tab');
   await expect(tabs).toHaveCount(3);
-  await expect(tabs.nth(0)).toHaveText('Original Class Schedule');
-  await expect(tabs.nth(1)).toHaveText('Proposed Replacement Schedule');
+  await expect(tabs.nth(0)).toHaveText('Proposed Replacement Schedule');
+  await expect(tabs.nth(1)).toHaveText('Original Class Schedule');
   await expect(tabs.nth(2)).toHaveText(/^Request Status \(.+\)$/);
+  await expect(tabs.nth(0), 'the leftmost tab is the one the modal opens on').toHaveClass(/active/);
+  await expect(body.locator('.modal-tab-panel[data-panel="replacement"]'), 'its panel is the visible one').toHaveClass(/active/);
+  await expect(body.locator('.modal-tab-panel[data-panel="original"]')).not.toHaveClass(/active/);
+
+  // and the title names the class TYPE in full words (never "(L)"/"(P)")
+  await expect(page.locator('#modalTitle .modal-subtitle')).toHaveText(
+    /^#\d+ · [A-Z]+\d+ — .+ \((Lecture|Tutorial|Practical)\)$/,
+  );
 
   await page.locator('#modalOverlay .modal-close').first().click();
   await expect(page.locator('#modalOverlay')).not.toHaveClass(/show/);
@@ -217,7 +228,9 @@ test('U3-T9g: the Approve/Reject modals — Request ID in the title, [Lecture], 
   expect(dateRects, 'date + week must not wrap at the 616 px width').toBe(1);
   const originalText = (await original.innerText()).replace(/\s+/g, ' ');
   expect(originalText).toMatch(/\((Week \d+)\)/);
-  expect(originalText).toMatch(/\d{1,2}:\d{2} (AM|PM) to \d{1,2}:\d{2} (AM|PM)/);
+  /* the joiner is `~` (the 2026-11-07 date/time law, batches 1–4) — this line
+     still expected the old `to` and had been red since that law shipped */
+  expect(originalText).toMatch(/\d{1,2}:\d{2} (AM|PM) ~ \d{1,2}:\d{2} (AM|PM)/);
   expect(originalText).not.toMatch(/\((?:1|2|3) hours?\)/);
   // the venue line is the CODE alone — no `Venue Code:` label (user follow-up)
   await expect(original.locator('.class-venue')).toHaveText(/^[A-Z]{1,2}\d{2,4}$/);

@@ -1,3 +1,27 @@
+## 2026-11-07 (night) — the pop-up opens on the Proposed Replacement Schedule
+
+User brief *Modal Tab Order & Class Type Display*, part 1 (display-only; SDD waived).
+
+| Element | Before | Now |
+|---|---|---|
+| Tab order | Original Class Schedule · Proposed Replacement Schedule · Request Status | **Proposed Replacement Schedule · Original Class Schedule · Request Status** |
+| Default tab on open | Original Class Schedule | **Proposed Replacement Schedule** |
+
+`DetailModal.render()` activates index 0 of its `tabs` array, so the ORDER is the
+default — no new option, no second mechanism. The Proposed tab is only pushed when the
+row actually carries a replacement (`c.replacementDate`), so a **Need to Arrange** row
+still leads with Original Class Schedule and keeps exactly two tabs; nothing is invented
+for a request that never proposed a slot.
+
+The subtitle already named the class type (`AMSE2003 · AMSE2003 (Practical)`) through
+`UiLabels.classType(type, 'long')` — unchanged.
+
+Receipts (testing DB, `--workers=1`): `replacement-home-status-badges.spec.ts` receipt 5
+(the law: Proposed first when the tab exists) + receipt 6 (a handled row opens with
+Proposed **active**) 13/13; `replacement-home-working-days.spec.ts` now clicks Original
+explicitly before reading the class-date countdown (the pop-up no longer opens there)
+8/8; `request-cancel-pending.spec.ts` 2-tab law for a cancelled row unaffected.
+
 ## 2026-11-07 (night) — the week filter says WHICH weeks it means
 
 User brief *Week Filter Labels & Request Status*, part 1/4 (this page).

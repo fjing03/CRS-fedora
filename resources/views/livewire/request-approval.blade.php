@@ -978,7 +978,13 @@
                 ? '⚠ This make-up slot is NO LONGER FREE' + (r.conflictReason ? ' — ' + r.conflictReason : '')
                 : '✓ Slot available';
 
-            const tabs = [{ key: 'original', label: 'Original Class Schedule', html: origSection }];
+            /* 2026-11-07 (user, "Modal Tab Order & Class Type Display"): the
+               Proposed Replacement Schedule is the LEFT-MOST tab and the one the
+               modal opens on — it is the thing the PL is being asked to approve.
+               `DetailModal.render` activates index 0, so the order IS the default.
+               A row with no proposal keeps Original first: the tab cannot be
+               invented for a request that never proposed a slot. */
+            const tabs = [];
 
             if (r.replacementDate) {
                 const repSection = DetailModal.section('Proposed Replacement Schedule',
@@ -994,6 +1000,8 @@
                 );
                 tabs.push({ key: 'replacement', label: 'Proposed Replacement Schedule', html: repSection });
             }
+
+            tabs.push({ key: 'original', label: 'Original Class Schedule', html: origSection });
 
             /* Tab 3 — the status, FAR RIGHT (3D): badge + ONE sentence, then the
                PL-only facts the old Request Info / Review tabs used to hold. */
@@ -1016,7 +1024,13 @@
             DetailModal.render({
                 modalId: 'modalOverlay',
                 title: 'Request Details',
-                subtitle: '#' + r.id + ' · ' + r.courseCode + ' — ' + r.courseName,
+                /* 2026-11-07 (user): the class TYPE is part of the identity —
+                   `#28 · AMCS2093 — Operating Systems (Lecture)`, full word, from
+                   the request's own session (`classType`, the mapper's classRow
+                   key). `UiLabels.classType(…, 'long')` is the one label law, so
+                   the modal cannot drift from the table card's `[Lecture]`. */
+                subtitle: '#' + r.id + ' · ' + r.courseCode + ' — ' + r.courseName
+                    + (r.classType ? ' (' + UiLabels.classType(r.classType, 'long') + ')' : ''),
                 factsHtml: factsHtml,
                 tabs: tabs
             });

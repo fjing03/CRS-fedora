@@ -10,9 +10,14 @@ const PSQL = 'psql -q -t -U philler -d class_replacement_testing -c ';
 /** A fixture reset for the ONE receipt that needs a PENDING request (below). */
 function reseedFixture(): void {
   const run = (q: string) => execSync(PSQL + JSON.stringify(q), { stdio: 'pipe' });
-  // the FK trail first (audit_logs + notifications point at the request)
-  run('delete from audit_logs where replacement_request_id in (10,24,25,26)');
-  run('delete from notifications where request_id in (10,24,25,26)');
+  /* The seeder DELETEs every replacement_request, so the FK trail must be gone
+     first — audit_logs.replacement_request_id and notifications.request_id. It is
+     cleared WHOLE, not per fixture id: a spec that created its own request (the
+     submission + cancel specs do) leaves rows the id list would never cover, and
+     the seeder then dies on `update or delete on replacement_requests`. This is
+     the disposable testing DB. */
+  run('delete from audit_logs');
+  run('delete from notifications');
   execSync('DB_DATABASE=class_replacement_testing php artisan db:seed --class=TestingFixtureSeeder', {
     cwd: ROOT,
     stdio: 'pipe',

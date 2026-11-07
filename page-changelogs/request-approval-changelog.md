@@ -1,3 +1,33 @@
+## 2026-11-07 (night) — Proposed tab first, and the class type in the title
+
+User brief *Modal Tab Order & Class Type Display*, parts 1 + 2 (display-only; SDD waived).
+
+| Element | Before | Now |
+|---|---|---|
+| Tab order | Original Class Schedule · Proposed Replacement Schedule · Request Status | **Proposed Replacement Schedule · Original Class Schedule · Request Status** |
+| Default tab on open | Original Class Schedule | **Proposed Replacement Schedule** |
+| Modal subtitle | `Request Details #28 · AMCS2093 — Operating Systems` | **`Request Details #28 · AMCS2093 — Operating Systems (Lecture)`** |
+
+The order is the default (`DetailModal.render()` activates index 0); the status tab stays
+last. A row with no proposal keeps Original first — the tab cannot be invented for a
+request that never proposed a slot.
+
+The class type comes from the request's own session: the payload already carried
+`classType` (the mapper's `classRow()` key, `L`/`T`/`P`), and the label is
+`UiLabels.classType(…, 'long')` — the PHP twin is `App\Support\ClassTypeLabel`. So the
+modal prints the full word (**Lecture / Tutorial / Practical**), never `(L)`/`(P)`, and it
+cannot drift from the table card's `[Lecture]`.
+
+Receipts (testing DB, `--workers=1`): `request-approval.spec.ts` (the old 3D block now pins
+Proposed first + `active`, Original not active, and the subtitle's `(Lecture)` shape) plus
+`status-tooltips-filter-chips.spec.ts` 34/34 across five specs.
+
+Two test-law repairs found on the way (both pre-existing, neither caused by this brief):
+the reject card's joiner assertion still expected `9:00 AM to 10:00 AM` (the 2026-11-07
+law is `~`), and both reseed helpers only cleared the FK trail for fixture ids `10/24/25/26`
+— a spec that creates its own request made `TestingFixtureSeeder` die on
+`audit_logs_replacement_request_id_foreign`. Both reseeds now clear the whole trail.
+
 ## 2026-11-07 (night) — the week filter is about the REQUESTED week
 
 User brief *Week Filter Labels & Request Status*, parts 1–4 (this page).

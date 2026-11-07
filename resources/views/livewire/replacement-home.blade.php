@@ -864,9 +864,11 @@
                 /* the ONE place the room NAME is printed (M7) */
                 DetailModal.row('Venue', venueLine(c.venue, c.venueName))
             );
-            tabs.push({ key: 'original', label: 'Original Class Schedule', html: origHtml });
-
-            /* Tab 2 — the requested slot; absent when nothing is proposed. */
+            /* Tab 1 — the requested slot, LEFT-MOST and the tab the pop-up opens
+               on (2026-11-07, user brief "Modal Tab Order & Class Type Display":
+               the make-up schedule is what the row is about; `DetailModal.render`
+               activates index 0, so the order IS the default). Absent when nothing
+               is proposed — then Original Class Schedule leads, as before. */
             if (c.replacementDate) {
                 tabs.push({
                     key: 'replacement',
@@ -882,6 +884,9 @@
                     )
                 });
             }
+
+            /* Tab 2 — the class as timetabled. */
+            tabs.push({ key: 'original', label: 'Original Class Schedule', html: origHtml });
 
             /* Tab 3 — the status: badge + ONE sentence + [reason] + [remark]. */
             var statusHtml = '<div class="detail-row"><span class="detail-label">Status</span><span class="detail-value">' +
