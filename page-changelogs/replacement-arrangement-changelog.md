@@ -1,3 +1,25 @@
+## 2026-11-07 (later) — the legend keeps five rows and groups the rest into "Others Conflict"
+
+User: keep **Available**, **Your Current Selection**, **Your Pending**, **Other Pending**,
+**Your Conflict**; add **Others Conflict** (the previous row's wording); drop the separate
+**Venue Conflict**, **Cohorts Conflict** and **Your & Cohorts Conflict** rows.
+
+The legend is six rows again. The CELL still names the reason (`Venue Conflict`,
+`Cohorts Conflict`, `Your & Cohorts Conflict`) — the legend deliberately groups every NON-yours
+red into one row, whose tip keeps the two-line wording:
+
+```
+CANNOT BOOK — VENUE CONFLICT (this slot is used by another class in this room),
+COHORT CONFLICT (the related cohorts have another class at that time)
+```
+
+Swatches still carry the REAL cell classes: `Your Conflict` = `cell-occupied--mine` (3px),
+`Others Conflict` = `cell-occupied` (no border).
+
+Receipt: `tests/arrangement-slot-ownership.spec.ts` 7/7 — six rows with the expected labels,
+`--mine` on row 5 only, and the grouped row's tip asserted two-line + `<br>`-free.
+Screenshot `/tmp/opencode/legend-6rows.png`.
+
 ## 2026-11-07 (later) — the tip's why-tag says "Your conflict", not "Own conflict"
 
 User: *"also change the hover tooltip: 'Own Conflict' to 'Your Conflict'"*. The block tag was

@@ -1067,10 +1067,12 @@
                 ['class' => 'event-selection', 'label' => 'Your Current Selection', 'tip' => 'The slot(s) you have SELECTED for the replacement'],
                 ['class' => 'cell-pending', 'label' => 'Your Pending', 'tip' => 'Your replacement request for this slot is WAITING for approval — thick border (3px)'],
                 ['class' => 'cell-reserved', 'label' => 'Other Pending', 'tip' => "Another staff member's replacement request is WAITING for approval here — no border, you CANNOT BOOK it"],
-                ['class' => 'cell-occupied', 'label' => 'Venue Conflict', 'tip' => 'CANNOT BOOK — VENUE CONFLICT: another class already uses THIS ROOM at that time'],
-                ['class' => 'cell-occupied', 'label' => 'Cohorts Conflict', 'tip' => 'CANNOT BOOK — COHORTS CONFLICT: the related cohorts have another class at that time'],
                 ['class' => 'cell-occupied cell-occupied--mine', 'label' => 'Your Conflict', 'tip' => 'CANNOT BOOK — your own Normal class or Replacement class is in this slot — thick border (3px)'],
-                ['class' => 'cell-occupied cell-occupied--mine', 'label' => 'Your & Cohorts Conflict', 'tip' => 'CANNOT BOOK — your own class AND a related cohort have a class at that time — thick border (3px)'],
+                /* 2026-11-07 (user): the legend groups the non-yours red family into ONE
+                   row — a venue conflict and a cohorts conflict are both "Others
+                   Conflict" here (the CELL still names the reason: Venue / Cohorts /
+                   Your & Cohorts Conflict). This is the previous row's wording. */
+                ['class' => 'cell-occupied', 'label' => 'Others Conflict', 'tip' => "CANNOT BOOK — VENUE CONFLICT (this slot is used by another class in this room),\nCOHORT CONFLICT (the related cohorts have another class at that time)"],
             ]
         ])
 

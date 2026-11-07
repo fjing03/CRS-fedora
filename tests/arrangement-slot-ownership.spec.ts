@@ -556,21 +556,22 @@ test.describe('resolver precedence and the legend', () => {
     expect(verdicts.labelOfYourConflict).toBe('Your<br>Conflict');
   });
 
-  test('the legend has eight rows built from the real cell classes', async () => {
+  test('the legend has six rows built from the real cell classes', async () => {
     const rows = page.locator('.legend-bar .legend-item');
-    await expect(rows).toHaveCount(8);
+    await expect(rows).toHaveCount(6);
 
-    /* arrangement-cell-state-labels (user answer 5B): the legend speaks the
-       SAME words the cells show — one page, one vocabulary. */
+    /* arrangement-cell-state-labels (user 2026-11-07): the legend uses the cells'
+       vocabulary for the pending rows, and keeps TWO red rows — Yours (3px) and
+       Others (0px). The CELL still names the reason (Venue / Cohorts / Your &
+       Cohorts Conflict); the legend deliberately groups the non-yours family into
+       "Others Conflict" (the user's call). */
     const expected = [
       ['Available', 'cell-available'],
       ['Your Current Selection', 'event-selection'],
       ['Your Pending', 'cell-pending'],
       ['Other Pending', 'cell-reserved'],
-      ['Venue Conflict', 'cell-occupied'],
-      ['Cohorts Conflict', 'cell-occupied'],
       ['Your Conflict', 'cell-occupied'],
-      ['Your & Cohorts Conflict', 'cell-occupied'],
+      ['Others Conflict', 'cell-occupied'],
     ];
 
     for (let i = 0; i < expected.length; i += 1) {
@@ -580,11 +581,9 @@ test.describe('resolver precedence and the legend', () => {
       await expect(await row.getAttribute('data-tip')).toBeTruthy();
     }
 
-    // only the "yours" conflict swatches carry the ring
-    await expect(rows.nth(4).locator('.legend-swatch')).not.toHaveClass(/cell-occupied--mine/);
+    // only the "Yours" conflict swatch carries the ring
+    await expect(rows.nth(4).locator('.legend-swatch')).toHaveClass(/cell-occupied--mine/);
     await expect(rows.nth(5).locator('.legend-swatch')).not.toHaveClass(/cell-occupied--mine/);
-    await expect(rows.nth(6).locator('.legend-swatch')).toHaveClass(/cell-occupied--mine/);
-    await expect(rows.nth(7).locator('.legend-swatch')).toHaveClass(/cell-occupied--mine/);
     // the pending swatches: yours is ringed, another staff member's is flat
     await expect(rows.nth(2).locator('.legend-swatch')).toHaveClass(/cell-pending/);
     await expect(rows.nth(3).locator('.legend-swatch')).toHaveClass(/cell-reserved/);
@@ -597,15 +596,16 @@ test.describe('resolver precedence and the legend', () => {
     expect(tips[2]).toContain('thick border (3px)');
     expect(tips[3]).toContain('WAITING');
     expect(tips[3]).toContain('no border');
-    expect(tips[4]).toContain('VENUE CONFLICT');
+    expect(tips[4]).toContain('CANNOT BOOK');
+    expect(tips[4]).toContain('thick border (3px)');
     expect(tips[4]).not.toMatch(/cohort/i);
-    expect(tips[5]).toContain('COHORTS CONFLICT');
-    expect(tips[5]).not.toMatch(/venue conflict/i);
-    expect(tips[6]).toContain('CANNOT BOOK');
-    expect(tips[6]).toContain('thick border (3px)');
-    expect(tips[7]).toMatch(/cohort/i);
-    expect(tips[7]).toContain('thick border (3px)');
-    expect(tips[7]).not.toMatch(/[<>]/, 'a data-tip is plain text — a <br> would print literally');
+    // the grouped non-yours row keeps the previous two-line wording
+    expect(tips[5]).toContain('VENUE CONFLICT');
+    expect(tips[5]).toContain('COHORT CONFLICT');
+    expect(tips[5], 'the ownership is shown by the swatch, not spelled in the tip').not.toContain('thick border');
+    expect(tips[5]).not.toMatch(/not suitable|class type/i);
+    expect(tips[5]).not.toMatch(/[<>]/, 'a <br> would print literally — the break is a newline');
+    expect(tips[5].split('\n')).toHaveLength(2);
 
     // the hint line names both border states, and never claims the 0.5px hairline
     const hint = page.locator('.legend-ownership-hint');
