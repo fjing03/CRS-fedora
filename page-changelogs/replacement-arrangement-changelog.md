@@ -1,3 +1,19 @@
+## 2026-11-07 (later) — the cell's tip sits above the cell
+
+User: *"can u place the hovertooltip above the hour-cell?"* The conflict tip was pinned
+`data-tip-pos="left"`, so a multi-line block of text (header + one block per class) laid itself
+over the neighbouring day columns. The pin is gone from both attach paths (`attachHolder()` and
+the grid-arm branch), which puts the cell back on the shared engine's DEFAULT placement:
+horizontally centred **above** the element, 6 px clear, and automatically flipped BELOW only
+when there is no room above (the first grid row).
+
+Every other tooltip is untouched — the top-bar buttons keep `left`.
+
+Receipt (`tests/arrangement-slot-ownership.spec.ts`, T9a): hovers a real cell and asserts the
+`.data-tip-tooltip` box ends at or above the cell top, still overlaps that cell horizontally, is
+visible, and that the cell carries no `data-tip-pos` any more. 7/7 green. Screenshots:
+`/tmp/opencode/tip-above-middle.png` (tip above "Your Conflict", Tue 13:00).
+
 ## 2026-11-07 (later) — the cell says WHY it is blocked
 
 User brief *UI Update — Hour-Cell Hover Labels* (grilled: answers 1A 2A 3A 4A 5B 6A).

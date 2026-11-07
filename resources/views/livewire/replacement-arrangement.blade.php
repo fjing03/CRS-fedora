@@ -1883,11 +1883,16 @@
                             + tagged.map(b => b.replace(/\n/g, ' · ').replace(/\s{2,}/g, ' ')).join(' / ');
                         return { readable: readable, flat: flat };
                     };
+                    /* 2026-11-07 (user): the cell's tip sits ABOVE the cell — the
+                       shared engine's default placement (centred over the element,
+                       flipping below only when there is no room). It used to be
+                       pinned `left`, which put a multi-line block of text over the
+                       neighbouring day columns. Omitting `data-tip-pos` is the
+                       "above" mode; `left` stays the top-bar buttons' mode. */
                     const attachHolder = function () {
                         const rendered = renderHolderTip(engineMatches);
                         if (rendered) {
                             div.setAttribute('data-tip', rendered.readable);
-                            div.setAttribute('data-tip-pos', 'left');
                             div.setAttribute('aria-label', rendered.flat);
                             div.setAttribute('tabindex', '0');
                             div.style.cursor = 'help';
@@ -1941,7 +1946,6 @@
                                 const gridTip = renderHolderTip(gridHolderMatches);
                                 if (gridTip) {
                                     div.setAttribute('data-tip', gridTip.readable);
-                                    div.setAttribute('data-tip-pos', 'left');
                                     div.setAttribute('aria-label', gridTip.flat);
                                     div.setAttribute('tabindex', '0');
                                     div.style.cursor = 'help';

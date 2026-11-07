@@ -394,6 +394,28 @@ test.describe('ownership on the grid', () => {
     expect(ownerOthersLabel.fits).toBe(true);
     expect(ownerOthersLabel.after).toBe('none');
 
+    /* the tip sits ABOVE the cell (user 2026-11-07) — the shared engine's default
+       placement, flipping below only when there is no room. It used to be pinned
+       `left`, which laid a multi-line block of text over the day columns. */
+    const tipGeo = await ownerPage.evaluate(() => {
+      const tip = document.querySelector('.data-tip-tooltip') as HTMLElement | null;
+      const anchor = document.querySelector('#tableBody .cell-content:hover');
+      if (!tip || !anchor) return null;
+      const t = tip.getBoundingClientRect();
+      const a = anchor.getBoundingClientRect();
+      return {
+        above: t.bottom <= a.top + 8,
+        overlaps: !(t.right < a.left || t.left > a.right),
+        opacity: getComputedStyle(tip).opacity,
+        pinnedLeft: anchor.getAttribute('data-tip-pos'),
+      };
+    });
+    expect(tipGeo, 'the hovered cell shows its tip').not.toBeNull();
+    expect(tipGeo!.above, 'the tip sits ABOVE the hour cell').toBe(true);
+    expect(tipGeo!.overlaps, 'and stays over that cell horizontally').toBe(true);
+    expect(tipGeo!.opacity).toBe('1');
+    expect(tipGeo!.pinnedLeft, 'no left-pin any more').toBeNull();
+
     const ownerOwnClassLabel = await hoverLabel(ownerPage, ownerOwnClass);
     expect(ownerOwnClassLabel.text, 'your own class → "Your Conflict"').toBe('Your Conflict');
     expect(ownerOwnClassLabel.inside).toBe(true);
