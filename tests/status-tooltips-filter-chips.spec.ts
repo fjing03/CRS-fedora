@@ -286,13 +286,14 @@ test('T5.RA-2: urgency badge↔tip word-per-row; UNCONDITIONAL Overdue shift; TO
     const row = MockData.approvalRequests.find((r: any) => r.id === id) || MockData.approvalRequests[0];
     const orig = MockData.urgencyReferenceDate;
     // UNCONDITIONAL Overdue: shift the in-page reference a YEAR after the row
-    MockData.urgencyReferenceDate = new Date((new Date(row.classDate + 'T00:00:00')).getTime() + 365 * 86400000);
+    /* 2026-11-07 (user law): urgency measures the Proposed Replacement date */
+    MockData.urgencyReferenceDate = new Date((new Date((row.replacementDate || row.classDate) + 'T00:00:00')).getTime() + 365 * 86400000);
     renderTable();
     const badges = Array.from(document.querySelectorAll('#tableBody span.urgency-badge[data-tip]')) as HTMLElement[];
     const over = badges.map((b) => ({ label: (b.textContent || '').trim(), tip: b.getAttribute('data-tip') || '' }));
     const urgentRows = document.querySelectorAll('#tableBody tr.row-urgent').length;
     // TODAY-string: anchor the reference EXACTLY on the first visible row's date
-    MockData.urgencyReferenceDate = new Date(row.classDate + 'T00:00:00');
+    MockData.urgencyReferenceDate = new Date((row.replacementDate || row.classDate) + 'T00:00:00');
     renderTable();
     const today = Array.from(document.querySelectorAll('#tableBody span.urgency-badge[data-tip]'))
       .map((b) => ({ label: (b.textContent || '').trim(), tip: b.getAttribute('data-tip') || '' }));
@@ -314,7 +315,7 @@ test('T5.RA-2: urgency badge↔tip word-per-row; UNCONDITIONAL Overdue shift; TO
     const first = document.querySelector('#tableBody tr[data-id]') as HTMLElement | null;
     const id = first ? Number(first.dataset.id) : null;
     const row = MockData.approvalRequests.find((r: any) => r.id === id) || MockData.approvalRequests[0];
-    MockData.urgencyReferenceDate = new Date((new Date(row.classDate + 'T00:00:00')).getTime() + 365 * 86400000);
+    MockData.urgencyReferenceDate = new Date((new Date((row.replacementDate || row.classDate) + 'T00:00:00')).getTime() + 365 * 86400000);
     const s = document.getElementById('statusFilter') as HTMLSelectElement;
     s.value = 'all';
     renderTable();
@@ -329,7 +330,7 @@ test('T5.RA-2: urgency badge↔tip word-per-row; UNCONDITIONAL Overdue shift; TO
 
   // the column-header tip equals the pinned three-level copy
   const headerTip = await page.locator('#tableHead th[data-tip]', { hasText: 'Urgency' }).getAttribute('data-tip');
-  expect(headerTip).toBe('Days until the original class: past = Overdue (solid red), ≤3 days = Urgent (red), 4+ days = Normal');
+  expect(headerTip).toBe('Days until the proposed replacement class: past = Overdue (solid red), ≤3 days = Urgent (red), 4+ days = Normal');
 });
 
 test('T5.RA-3: resetFilters + label + Clear-all law + ✕ + mobile cards (status + urgency threading)', async ({ page }) => {

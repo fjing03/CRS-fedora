@@ -2634,7 +2634,10 @@ class HtmlBuilder {
         var urgencyHtml = '';
         var urgencyText = '';
         if (opts.urgencyLevel && opts.urgencyClass && opts.urgencyLabel) {
-            var level = opts.urgencyLevel(r.classDate);
+            /* 2026-11-07 (user law): urgency measures the PROPOSED replacement,
+               not the original class. Pages pass the replacement date on its own
+               or via this fallback (the request-approval page's rows carry both). */
+            var level = opts.urgencyLevel(r.replacementDate || r.classDate);
             var urgencyTipAttr = (opts.urgencyTip && opts.urgencyTip(r)) ? ' data-tip="' + opts.urgencyTip(r) + '"' : '';
             urgencyHtml = '<span class="urgency-badge ' + opts.urgencyClass(level) + '"' + urgencyTipAttr + '>' + opts.urgencyLabel(level) + '</span>';
             urgencyText = opts.urgencyLabel(level);

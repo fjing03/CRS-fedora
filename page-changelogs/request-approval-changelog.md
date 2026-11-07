@@ -1,3 +1,28 @@
+## 2026-11-07 — Urgency now counts down to the **proposed replacement**, not the original class
+
+The Urgency column was measuring the wrong date. A request whose original class was months away
+but whose make-up slot was tomorrow read `Normal — 90 days left`; one whose original class had
+already passed but whose replacement was still ahead read `Overdue`. The queue is a decision about
+the **proposed replacement**, so that is the date the badge (and its tooltip) now count from.
+
+- `urgencyDate(r)` = `r.replacementDate || r.classDate` — one helper, used by the badge label, the
+  badge tip, the row tint, the Urgent/Normal filter and the Urgency sort. The fallback keeps a row
+  with no proposal (null `replacementDate`) printing a real badge instead of `NaN`; no current row
+  in the queue relies on it.
+- Levels, colours and thresholds are untouched: past = Overdue, ≤3 days = Urgent, 4+ = Normal, same
+  calendar-day count (`Math.ceil`), same badge text (`Urgent — 2 days left`, `Urgent — today`,
+  `Overdue — 5 days past`).
+- Tip wording is unchanged (`… left before the Proposed Class.` / `… past the Proposed Class.`) — it
+  now describes the date it is actually counting. Only the column-header helper text changed:
+  "Days until the **original class**" → "Days until the **proposed replacement class**".
+- The mobile cards ride the same rule through `HtmlBuilder.requestCard()`, which now passes
+  `r.replacementDate || r.classDate` into the page's `urgencyLevel()`.
+- `tests/status-tooltips-filter-chips.spec.ts` shifts `MockData.urgencyReferenceDate` against
+  `replacementDate` now (and pins the new header tip).
+
+Not changed: the Original Class column, the Week filter (still keyed to the original class date),
+status vocabulary, sorting order outside the Urgency column, and every other page.
+
 ## 2026-11-05 — the decision modals name the request, and say `Lecture` in full
 
 The 2026-11-05 UI/UX brief (Update 3) on the **Rejection Reason** and **Approve Request** modals. Both confirm

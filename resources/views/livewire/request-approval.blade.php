@@ -428,8 +428,8 @@
             return name ? code + ' \u2014 ' + name : code;
         }
 
-        function urgencyLevel(classDate) {
-            var d = urgencyDays(classDate);
+        function urgencyLevel(date) {
+            var d = urgencyDays(date);
             return d < 0 ? 'overdue' : (d <= 3 ? 'urgent' : 'normal');
         }
 
@@ -445,10 +445,10 @@
             return level === 'overdue' ? 'Overdue' : level === 'urgent' ? 'Urgent' : 'Normal';
         }
 
-        function urgencyLabel(level, classDate) {
+        function urgencyLabel(level, date) {
             var base = urgencyShort(level);
-            if (!classDate) return base;                  // defensive: no date, no claim
-            var n = urgencyDays(classDate);
+            if (!date) return base;                       // defensive: no date, no claim
+            var n = urgencyDays(date);
             if (isNaN(n)) return base;
             if (level === 'overdue') {
                 return base + ' — ' + Math.abs(n) + (Math.abs(n) === 1 ? ' day' : ' days') + ' past';
@@ -457,9 +457,18 @@
             return base + ' — ' + n + (n === 1 ? ' day' : ' days') + ' left';
         }
 
-        function urgencyDays(classDate) {
-            const target = new Date(classDate + 'T00:00:00');
+        function urgencyDays(date) {
+            const target = new Date(date + 'T00:00:00');
             return Math.ceil((target - MockData.urgencyReferenceDate) / (1000 * 60 * 60 * 24));
+        }
+
+        /* 2026-11-07 (user law): the Urgency column measures the PROPOSED
+           REPLACEMENT, not the original class — the PL is deciding how soon the
+           make-up slot starts. The workbook's fallback keeps the old reading for
+           a row that carries no proposal at all (null `replacementDate`), so a
+           missing span can never print `NaN`. */
+        function urgencyDate(r) {
+            return r.replacementDate || r.classDate;
         }
 
         function urgencyMatches(level, filter) {
@@ -468,8 +477,9 @@
         }
 
         function urgencyTip(r) {
-            var n = urgencyDays(r.classDate);
-            var level = urgencyLevel(r.classDate);
+            var date = urgencyDate(r);
+            var n = urgencyDays(date);
+            var level = urgencyLevel(date);
             if (level === 'overdue') {
                 return 'Overdue — ' + Math.abs(n) + (Math.abs(n) === 1 ? ' day' : ' days') + ' past the Proposed Class.';
             }
@@ -549,7 +559,7 @@
            modal keeps it (its title carries no id). */
         function approvalCard(r, opts) {
             opts = opts || {};
-            const level = urgencyLevel(r.classDate);
+            const level = urgencyLevel(urgencyDate(r));
             const conflict = r.slotValidity === 'conflict';
             const slotBadge = '<span class="slot-badge ' + (conflict ? 'slot-conflict' : 'slot-valid')
                 + '" data-tip="' + escHtml(conflict ? (r.conflictReason || 'Slot conflict') : 'Slot available') + '">'
@@ -564,7 +574,7 @@
                 +     (opts.hideRequestId ? '' : '<span class="approval-id">#' + r.id + '</span>')
                 +     '<span class="cell-code">' + escHtml(r.courseCode) + '</span>'
                 +     slotBadge
-                +     '<span class="urgency-badge ' + urgencyClass(level) + '" data-tip="' + urgencyTip(r) + '">' + urgencyLabel(level, r.classDate) + '</span>'
+                +     '<span class="urgency-badge ' + urgencyClass(level) + '" data-tip="' + urgencyTip(r) + '">' + urgencyLabel(level, urgencyDate(r)) + '</span>'
                 +   '</div>'
                 +   '<div class="approval-course">' + escHtml(r.courseName) + ' <span class="approval-classtype">[' + escHtml(UiLabels.classType(r.classType, 'long')) + ']</span></div>'
                 +   '<div class="approval-lecturer"><span>' + lecturerHtml + '</span></div>'
@@ -628,7 +638,7 @@
             { label: 'Cohort', sortable: false, tip: 'Cohort(s) affected by this class — one per line; not sortable because a multi-cohort row has no single value' },
             { label: 'Original Class', sortable: true, field: 'classDate', tip: 'Original class the request refers to — its state varies (still upcoming, replaced, cancelled, holiday, etc.)' },
             { label: 'Requested Replacement', sortable: true, field: 'replacementDate', tip: 'Requested new date, time, and venue' },
-            { label: 'Urgency', sortable: true, field: 'urgencyDays', tip: 'Days until the original class: past = Overdue (solid red), ≤3 days = Urgent (red), 4+ days = Normal' },
+            { label: 'Urgency', sortable: true, field: 'urgencyDays', tip: 'Days until the proposed replacement class: past = Overdue (solid red), ≤3 days = Urgent (red), 4+ days = Normal' },
             { label: 'Status', sortable: true, field: 'status', tip: 'Current approval status' },
             { label: 'Actions', sortable: false, tip: 'Approve or reject this request' }
         ];
@@ -664,8 +674,8 @@
             return [...data].sort((a, b) => {
                 let va, vb;
                 if (field === 'urgencyDays') {
-                    va = urgencyDays(a.classDate);
-                    vb = urgencyDays(b.classDate);
+                    va = urgencyDays(urgencyDate(a));
+                    vb = urgencyDays(urgencyDate(b));
                     return (va - vb) * dir;
                 }
                 va = a[field] || '';
@@ -698,7 +708,7 @@
             });
 
             if (urgencyFilter !== 'all') {
-                result = result.filter(r => urgencyMatches(urgencyLevel(r.classDate), urgencyFilter));
+                result = result.filter(r => urgencyMatches(urgencyLevel(urgencyDate(r)), urgencyFilter));
             }
 
             return result;
@@ -706,14 +716,15 @@
 
         // ── Render a single row ──
         function renderRow(r, offset, i) {
-            const level = urgencyLevel(r.classDate);
+            const urgencyOn = urgencyDate(r);
+            const level = urgencyLevel(urgencyOn);
             const isSelected = bulk.has(r.id);
             const isViewed = viewedIds.has(r.id);
             let rowClass = '';
             if (isViewed) rowClass += ' row-viewed';
             if (isSelected) rowClass += ' row-selected';
             if (level === 'urgent' || level === 'overdue') rowClass += ' row-urgent';
-            else if (urgencyDays(r.classDate) <= 7) rowClass += ' row-soon';
+            else if (urgencyDays(urgencyOn) <= 7) rowClass += ' row-soon';
 
             var lecName = (typeof lookupLecturer === 'function' && lookupLecturer(r.lecturer)) ? lookupLecturer(r.lecturer).name : r.lecturer;
 
@@ -748,7 +759,7 @@
             const slotBadge = '<span class="slot-badge ' + (r.slotValidity === 'conflict' ? 'slot-conflict' : 'slot-valid') + '" data-tip="' + (r.slotValidity === 'conflict' ? (r.conflictReason || 'Slot conflict') : 'Slot available') + '">' + (r.slotValidity === 'conflict' ? '⚠' : '✓') + '</span>';
             html += '<td class="col-replacement">' + HtmlBuilder.replacementBlock(r, { colorStatus: false, merged: true, venueCodeOnly: true, slotBadge: slotBadge }) + '</td>';
 
-            html += '<td class="col-urgency"><span class="urgency-badge ' + urgencyClass(level) + '" data-tip="' + urgencyTip(r) + '">' + urgencyLabel(level, r.classDate) + '</span></td>';
+            html += '<td class="col-urgency"><span class="urgency-badge ' + urgencyClass(level) + '" data-tip="' + urgencyTip(r) + '">' + urgencyLabel(level, urgencyOn) + '</span></td>';
             html += '<td><span class="badge ' + statusClass(r.status) + '"' + statusTipAttr(r) + ' onclick="openModalById(' + r.id + ')" style="cursor:pointer">' + r.requestStatusLabel + '</span></td>';
 
             const actions = r.status === 'Pending'
@@ -902,7 +913,7 @@
                     lookupLecturer: lookupLecturer,
                     urgencyLevel: urgencyLevel,
                     urgencyClass: urgencyClass,
-                    urgencyLabel: function(level) { return urgencyLabel(level, r.classDate); },
+                    urgencyLabel: function(level) { return urgencyLabel(level, urgencyDate(r)); },
                     urgencyTip: urgencyTip,
                     requestAgeHtml: requestAgeHtml,
                     statusTip: function() { return r.requestStatusTip; }
