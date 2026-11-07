@@ -2429,20 +2429,94 @@ class DateHelper {
 // ───── Days-left display contract (replacement-home surfaces: table cell,
 // mobile card footer, quick-view modal Status row — 3rd-duplication promo) ─────
 
-/* daysLeft → label: <0 "Overdue" · 0 "Today" · 1 "1 day left" · else "N days left".
-   Urgency classes reuse the table vocabulary (urgency-high/mid/low — the only
-   defined CSS); overdue renders in the same red as imminent (error semantics). */
+/* ───── Working days (user law 2026-11-07, SDD waived — display only) ─────
+   The class-date countdown counts WORKING days: Mon–Fri and not one of the
+   semester's own holiday rows (the same set the timetable greys out and the
+   booking lead-time rule already skips — never a hard-coded calendar). */
+
+/* The semester's public-holiday DATES as 'Y-m-d' keys. MockData.holidays carries
+   week + dayIndex only, so the dates come from semester.startDate (the same
+   arithmetic as generateWeekData / ClassCancellation._holidayDateKeys). A missing
+   payload degrades to an empty set (the weekend-only rule). */
+function workingDayHolidayKeys() {
+    const out = new Set();
+    const s = window.MockData && MockData.semester ? MockData.semester.startDate : null;
+    if (!s) return out;
+    const p = String(s).split('-');
+    const start = new Date(parseInt(p[0], 10), parseInt(p[1], 10) - 1, parseInt(p[2], 10));
+    (MockData.holidays || []).forEach(function (h) {
+        const dt = new Date(start.getFullYear(), start.getMonth(), start.getDate() + ((h.week - 1) * 7) + h.dayIndex);
+        out.add(workingDayKey(dt));
+    });
+    return out;
+}
+
+/* Local-date identity 'Y-m-d' (never toISOString — that would drift a day). */
+function workingDayKey(d) {
+    return d.getFullYear() + '-' + (d.getMonth() + 1) + '-' + d.getDate();
+}
+
+/* Date | 'YYYY-MM-DD' → a LOCAL midnight Date (null when unparseable). */
+function workingDayParse(value) {
+    if (value instanceof Date) {
+        return new Date(value.getFullYear(), value.getMonth(), value.getDate());
+    }
+    const m = String(value == null ? '' : value).match(/^(\d{4})-(\d{2})-(\d{2})$/);
+    return m ? new Date(parseInt(m[1], 10), parseInt(m[2], 10) - 1, parseInt(m[3], 10)) : null;
+}
+
+/* Mon–Fri and not a holiday. */
+function isWorkingDayDate(d, holidayKeys) {
+    const day = d.getDay();
+    if (day === 0 || day === 6) return false;
+    return !(holidayKeys || workingDayHolidayKeys()).has(workingDayKey(d));
+}
+
+/* Signed working-day distance: working days in (from, to] forward, negated when
+   `to` is earlier. Both endpoints are local midnights, so the walk is symmetric. */
+function workingDaysBetween(from, to) {
+    const a = workingDayParse(from);
+    const b = workingDayParse(to);
+    if (!a || !b) return 0;
+    if (a.getTime() === b.getTime()) return 0;
+    const forward = b.getTime() > a.getTime();
+    const first = forward ? a : b;
+    const last = forward ? b : a;
+    const holidays = workingDayHolidayKeys();
+    let count = 0;
+    const cursor = new Date(first.getFullYear(), first.getMonth(), first.getDate() + 1);
+    for (let guard = 0; cursor.getTime() <= last.getTime() && guard < 5000; guard++) {
+        if (isWorkingDayDate(cursor, holidays)) count++;
+        cursor.setDate(cursor.getDate() + 1);
+    }
+    return forward ? count : -count;
+}
+
+/* The My Replacements number: signed working-day distance from today to the
+   class date. A non-working class date (Sunday, a holiday) would count 0 while
+   the calendar says otherwise, so the result clamps to ±1 — "0" must keep
+   meaning today and only today. */
+function workingDaysDiff(iso) {
+    const target = workingDayParse(iso);
+    if (!target) return 0;
+    const today = new Date(getTodayMs());
+    const days = workingDaysBetween(today, target);
+    if (days !== 0) return days;
+    const calendar = Math.round((target.getTime() - today.getTime()) / 86400000);
+    return calendar === 0 ? 0 : (calendar > 0 ? 1 : -1);
+}
+
+/* daysLeft → label (working days): <0 "Overdue (n Working Days Ago)" · 0 "Today"
+   · 1 "1 Working Day Left" · else "n Working Days Left". Urgency classes reuse
+   the table vocabulary (urgency-high/mid/low — the only defined CSS); overdue
+   renders in the same red as imminent (error semantics). */
 function daysLeftLabel(days) {
-    /* overdue carries the day count (user ask, 2026-10-06): the diff is
-       against the MockData.mockNow anchor, same as every other lead-time
-       computation — flips to real "today" at the go-live switch */
     if (days < 0) {
         const n = Math.abs(days);
-        return 'Overdue (' + n + (n === 1 ? ' day' : ' days') + ' ago)';
+        return 'Overdue (' + n + (n === 1 ? ' Working Day' : ' Working Days') + ' Ago)';
     }
     if (days === 0) return 'Today';
-    if (days === 1) return '1 day left';
-    return days + ' days left';
+    return days + (days === 1 ? ' Working Day Left' : ' Working Days Left');
 }
 
 /* Status enum → display label (§10.0: same name for the same meaning).
@@ -2708,8 +2782,14 @@ class HtmlBuilder {
            em dash; the page's sort key still reads the real date, so the order
            does not jump when a row becomes handled. `opts.isHandled` is optional
            — the legacy mock template keeps today's output. */
-        var handled = opts.isHandled ? opts.isHandled(c) : false;
-        var daysText = handled ? '\u2014' : daysLeftLabel(days);
+        /* 2026-11-07 (working-days + countdown placement): the countdown is hidden
+           on a row whose class date no longer matters — approved / completed.
+           `hideCountdown` supersedes `isHandled` here; the legacy/mock callers
+           that only pass `isHandled` keep their exact behaviour. */
+        var hideDays = opts.hideCountdown
+            ? opts.hideCountdown(c)
+            : (opts.isHandled ? opts.isHandled(c) : false);
+        var daysText = hideDays ? '\u2014' : daysLeftLabel(days);
         /* D1/D2: the page supplies the Action cell (badge / label+button); the
            default stays today's Arrange button for the mock template. */
         var actionHtml = opts.actionCell
@@ -2735,7 +2815,10 @@ class HtmlBuilder {
         /* D5/D7 (optional, so the mock template is untouched): the request
            badge rides the header and a handled row's days pill shows an em dash. */
         var statusBadge = opts.statusBadge ? opts.statusBadge(c) : '';
-        var daysText = (opts.isHandled && opts.isHandled(c)) ? '\u2014' : daysLeftLabel(days);
+        var hideDays = opts.hideCountdown
+            ? opts.hideCountdown(c)
+            : (opts.isHandled && opts.isHandled(c));
+        var daysText = hideDays ? '\u2014' : daysLeftLabel(days);
         /* the merged page supplies the composed text ("Public Holiday — Christmas
            Day" / "Class Cancelled — Annual Leave"); legacy and mock callers omit
            the hook and keep the raw reason. */

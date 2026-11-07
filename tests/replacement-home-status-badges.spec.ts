@@ -67,6 +67,9 @@ async function rows(page: Page): Promise<Row[]> {
   });
 }
 
+/* "handled" = the row has a live request (the sort-grouping law). NOT the same
+   thing as "the countdown is hidden" — since 2026-11-07 only approved/completed
+   hide it (a pending row shows the countdown; see receipt 3). */
 const isHandled = (r: Row): boolean => ['pending', 'approved', 'completed'].includes(r.statusKey);
 
 test.use({ storageState: '.auth/staff-5425.json' });
@@ -112,17 +115,22 @@ test('receipt 2 — the ban icon opens the confirm overlay; the eye opens the po
   }
 });
 
-test('receipt 3 — Days Left is an em dash on a handled row and a countdown otherwise', async ({ page }) => {
+test('receipt 3 — the countdown shows while the class date still matters', async ({ page }) => {
+  /* 2026-11-07 (user law — working days + countdown placement): the class-date
+     countdown is hidden only on a LANDED row (approved / completed). Pending,
+     rejected, cancelled and unrequested rows keep it — pending is exactly where
+     "how soon" matters. The words are now working-day words. */
   const all = await rows(page);
+  const landed = (r: Row): boolean => ['approved', 'completed'].includes(r.statusKey);
 
-  for (const row of all.filter(isHandled)) {
-    expect(row.days, 'D7: a handled row shows no countdown (em dash or no urgency span)').toBe(null);
+  for (const row of all.filter(landed)) {
+    expect(row.days, 'a landed row shows no class-date countdown (em dash)').toBe(null);
   }
 
-  const actionable = all.filter((r) => !isHandled(r));
-  expect(actionable.length, 'at least one row still needs action').toBeGreaterThan(0);
-  for (const row of actionable) {
-    expect(row.days, 'D7: an unarranged row keeps its real countdown').toMatch(/days? left|Overdue|today/i);
+  const live = all.filter((r) => !landed(r));
+  expect(live.length, 'at least one row still carries a live class date').toBeGreaterThan(0);
+  for (const row of live) {
+    expect(row.days, 'a live row keeps its countdown').toMatch(/Working Days? Left|Working Days? Ago|Today/);
   }
 });
 

@@ -57,7 +57,9 @@
            narrow Original Class column used to break it as "5 days / left" */
         .urgency-high { color: var(--color-error); font-weight: 700; white-space: nowrap; }
         .urgency-mid { color: var(--color-warning); font-weight: 600; white-space: nowrap; }
-        .urgency-low { color: var(--color-on-surface-variant); font-weight: 500; white-space: nowrap; }
+        /* 2026-11-07 (user law): 8+ working days reads green, not grey — green is
+           the app's "fine" colour; the far band is no longer a muted one. */
+        .urgency-low { color: var(--color-success); font-weight: 500; white-space: nowrap; }
 
         /* ───── Just-cancelled Chip (ledger feature — its render block is
            switched off below until the TTL prompt lands; the CSS stays) ───── */
@@ -437,9 +439,10 @@
         }
 
         function formatClassBlock(c) {
-            var handled = isHandled(c);
             var days = daysLeft(c.date);
-            var daysText = handled ? '\u2014' : '<span class="' + urgencyClass(days) + '">' + daysLeftLabel(days) + '</span>';
+            var daysText = countdownHidden(c)
+                ? '\u2014'
+                : '<span class="' + urgencyClass(days) + '">' + daysLeftLabel(days) + '</span>';
             var wn = getWeekNumber(c.date);
             var weekTag = wn ? ' (Week ' + wn + ')' : '';
             return '<div class="cell-class-block">' +
@@ -453,8 +456,18 @@
             if (!c.replacementDate) return '<span class="cell-dash">\u2014</span>';
             var wn = c.replacementWeek;
             var weekTag = wn ? ' (Week ' + wn + ')' : '';
+            /* 2026-11-07 (user law): the make-up countdown lives HERE, printed
+               beside the date it measures, and only while the request is PENDING
+               — that is when "how soon does it start" still matters. An approved
+               row keeps the plan's facts only; a rejected/cancelled one has no
+               live slot to count to. */
+            var daysText = '';
+            if (c.requestStatus === 'pending') {
+                var days = daysLeft(c.replacementDate);
+                daysText = ' <span class="' + urgencyClass(days) + '">' + daysLeftLabel(days) + '</span>';
+            }
             return '<div class="cell-class-block">' +
-                '<span class="class-day-date">' + dayAbbr(c.replacementDay) + ', ' + formatDate(c.replacementDate) + weekTag + '</span>' +
+                '<span class="class-day-date">' + dayAbbr(c.replacementDay) + ', ' + formatDate(c.replacementDate) + weekTag + '</span>' + daysText +
                 '<br><span class="class-time">' + DateHelper.format12hRange(c.replacementTime, ' ~ ') + '</span> ' +
                 '<span class="class-duration">(' + durationWords(rangeHours(c.replacementTime)) + ')</span>' +
                 '<br>' + venueLine(c.replacementVenue, null) + '</div>';
@@ -493,18 +506,28 @@
             return '<span class="badge ' + cls + '" data-tip="' + String(statusTipOf(c)).replace(/"/g, '&quot;') + '">' + statusShortOf(c) + '</span>';
         }
 
-        /* ─── Days / urgency (unchanged law) ─── */
+        /* ─── Days / urgency (working days — user law 2026-11-07) ───
+           The count is WORKING days (Mon–Fri, minus the semester's holiday rows:
+           see workingDaysDiff in ui-common.js). Calendar days are gone: a weekend
+           or a holiday no longer inflates the number. */
         function daysLeft(iso) {
-            const now = new Date(getTodayMs());
-            now.setHours(0, 0, 0, 0);
-            const target = new Date(iso + 'T00:00:00');
-            return Math.ceil((target - now) / (1000 * 60 * 60 * 24));
+            return workingDaysDiff(iso);
         }
 
+        /* The bands (user law 2026-11-07): the past AND today are red, 1–7 working
+           days amber, 8+ green. `daysLeft` is signed, so 0 = today. */
         function urgencyClass(days) {
-            if (days <= 7) return 'urgency-high';
-            if (days <= 30) return 'urgency-mid';
+            if (days <= 0) return 'urgency-high';
+            if (days <= 7) return 'urgency-mid';   // the CSS class is `mid` (brief said `med` — typo)
             return 'urgency-low';
+        }
+
+        /* The countdown is hidden only once the class date stops being the thing
+           to watch: an approved/completed row shows its make-up date instead
+           (the Requested Replacement column carries the countdown for a pending
+           request). Rejected/cancelled rows still need arranging — they keep it. */
+        function countdownHidden(c) {
+            return c.requestStatus === 'approved' || c.requestStatus === 'completed';
         }
 
         /* ─── State ─── */
@@ -774,6 +797,7 @@
                     badgeClass: badgeClass,
                     reasonText: reasonText,
                     isHandled: isHandled,
+                    hideCountdown: countdownHidden,
                     statusBadge: statusBadgeForCard
                 });
                 container.appendChild(card);

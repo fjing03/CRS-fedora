@@ -1,3 +1,61 @@
+## 2026-11-07 (business logic, user law) — the class countdown counts WORKING days
+
+**What changed on My Replacements** (display only — no PHP, no payload, no database):
+
+| Situation | Colour | Text |
+|---|---|---|
+| class date passed | red (`urgency-high`) | `Overdue (2 Working Days Ago)` / `Overdue (1 Working Day Ago)` |
+| class date is today | red | `Today` |
+| 1–7 working days ahead | amber (`urgency-mid`, `--color-warning`) | `1 Working Day Left` / `7 Working Days Left` |
+| 8+ working days ahead | **green** (`urgency-low`, `--color-success` — was grey) | `8 Working Days Left` |
+
+- **Working days** = Mon–Fri and not one of the semester's own holiday rows (the
+  same set the timetable greys out and the booking lead-time already skips).
+  `workingDaysDiff()` sits in `public/js/ui-common.js` next to `daysLeftLabel()`
+  and resolves holiday **dates** from `MockData.semester.startDate` +
+  `MockData.holidays` (`{week, dayIndex}`) — never a hard-coded calendar.
+  Dates are parsed by hand (`new Date(y, m-1, d)`), never `new Date('YYYY-MM-DD')`,
+  so no UTC drift in +08:00.
+- **The past walk is the future walk reversed**, so the distance is symmetric.
+  **Clamp:** if the calendar distance is non-zero but no working day lies between,
+  the result is ±1 — `0` still means "today" and only "today". Consequence, by
+  design: a class **tomorrow** that falls on a Sunday or a holiday reads
+  `1 Working Day Left`, and Friday read on a Saturday reads `Overdue (1 Working Day Ago)`.
+- **Countdown placement (user law):** the class-date countdown now hides only on a
+  **landed** row (approved / completed) — pending, rejected, cancelled and
+  unarranged rows keep it (a pending row is exactly where "how soon" matters; it
+  used to show a bare `—`). The **make-up countdown lives in the Requested
+  Replacement column**, beside the date it measures, and only while the request is
+  **pending**. `HtmlBuilder.replacementHomeRow/Card` gained an optional
+  `hideCountdown` predicate; the legacy/mock callers that pass only `isHandled`
+  behave byte-identically.
+- **The phone card** passes the same predicate, so the card and the table agree.
+
+**Brief typo caught by the screenshot:** §2.5 returned `'urgency-med'`, but the
+page's class is `urgency-mid`. The first render therefore had an amber band with
+no rule at all (no colour, no `nowrap` — the date line wrapped mid-label). Fixed
+to `urgency-mid`; the new spec asserts the amber band resolves to
+`--color-warning` and the far band to `--color-success`, so a typo like that can
+never land silently again.
+
+**Receipts** (testing DB, `:8030`, `TestingFixtureSeeder` rows):
+`tests/replacement-home-working-days.spec.ts` **7/7** — the walk skips weekends
+(tomorrow-Sunday → 1) and the Deepavali-in-lieu row (Mon 9 Nov → 1), the 7/8
+boundary, both Christmas rows adding nothing, the label set
+(`Today` · `1 Working Day Left` · `2 Working Days Left` · `Overdue (1 Working Day Ago)`),
+no `0 Working Days…` anywhere, the green far band, the amber mid band, and the
+rendered cells matching the new vocabulary.
+`replacement-home-status-badges.spec.ts` receipt 3 was rewritten (it encoded the
+old "every handled row shows an em dash") — **17 passed / 3 skipped** across the
+three replacement-home specs. Screenshot: `/tmp/opencode/working-days-table.png`
+(`Mon 9 Nov` → amber `1 Working Day Left`, `24/25 Dec` → green
+`32 Working Days Left`, and a pending row whose make-up date is past →
+`Overdue (1 Working Day Ago)` in the requested column).
+
+**Still to come** (agreed, not done here): the Approve Requests Urgency column,
+its sort, its tooltip and the All/Urgent/Normal chips are to be removed, and the
+age pill's `· Urgency: …` line with them.
+
 ## 2026-11-07 (date/time batch 2, `docs/date-time-format-audit-2026-11-07.md`) — the cancel-request confirm joins with `~`
 
 The "facts you are about to give up" block printed `2:00 PM – 4:00 PM` (en dash) for both the
