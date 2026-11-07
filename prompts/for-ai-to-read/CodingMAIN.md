@@ -530,19 +530,36 @@ These eleven rules are **non-negotiable** for every page and every future change
    |---|---|---|---|
    | `cell-available` | Available | `--color-success-container` | none |
    | `event-selection` | Your Current Selection | `--color-primary-container` | 2px `--color-primary` |
-   | `cell-pending` | Pending (You) | `--color-tertiary-container` | **3px `--color-tertiary`** |
-   | `cell-reserved` | Pending (Others) | `--color-tertiary-container` | **none** |
-   | `cell-occupied cell-occupied--mine` | Conflict (Yours) | `--color-error-container` | **3px `--color-error`** |
-   | `cell-occupied` | Conflict (Others) | `--color-error-container` | **none** |
+   | `cell-pending` | Your Pending | `--color-tertiary-container` | **3px `--color-tertiary`** |
+   | `cell-reserved` | Other Pending | `--color-tertiary-container` | **none** |
+   | `cell-occupied cell-occupied--mine` | Your Conflict | `--color-error-container` | **3px `--color-error`** |
+   | `cell-occupied` | Others Conflict | `--color-error-container` | **none** |
+
+   **The CELL's hover label names the REASON (user 2026-11-07, answers 1A 2A 3A 4A), and it is
+   data-driven:** `Your Pending` · `Other Pending` (ownership), then on the red family `Venue
+   Conflict` (the grid payload's `status 1`), `Cohorts Conflict` (a busy row whose 7th tuple key
+   `arms` contains `cohort`), `Your Conflict` (a non-pending row with `mine = true`), `Your &
+   Cohorts Conflict` (both), and `Occupied` only as the fallback for a row that names no arm.
+   ONE resolver answers both questions — `classifyState(facts)` → `{cls, label}`, with
+   `classifyCell()` keeping its old string contract and `cellStateLabel()` returning the words
+   (`<br>`-joined, 2 lines max). The words are a real `<span class="cell-state-label">` inside the
+   cell — the CSS `::after` overlay is switched off ONLY where that span exists (`:has()`), so
+   `venue-timetable`'s own `--hover-label` copy is untouched; 11 px, clipped inside the cell.
+   The legend deliberately groups the non-yours red family into `Others Conflict` with the old
+   two-line tip (VENUE CONFLICT / COHORT CONFLICT) — do not re-split it into rows.
+   The cell's tooltip sits ABOVE the cell (the shared engine's default; the
+   `data-tip-pos="left"` pin was removed 2026-11-07) and its own-block tag reads `👤 Your conflict`.
 
    Ownership law: an amber cell is 3px iff the pending request is **yours**; a red cell is 3px iff
    **any** blocking row is yours (own class / own approved make-up) — a cohort's class, another
    lecturer's class in the room and a venue that cannot host the class type are all borderless.
    The class is chosen by ONE resolver (`classifyCell()` in the page script, exported on `window`),
    from BOTH arms (the venue slot payload's `status 1|3|4` and the busy vectors' 6th tuple key
-   `mine`) — precedence: own pending → others' pending → own conflict → any block → too-soon /
-   available. A row that is the same blocking fact (my class that also carries my cohort) is merged
-   in `busyByWeekPayload()` with `mine = OR(twins)`, so the cell tooltip still counts ONE block.
+   `mine` + 7th key `arms`) — precedence: own pending → others' pending → own+cohort → own →
+   cohort → venue → any block → too-soon / available. A row that is the same blocking fact (my class
+   that also carries my cohort) is merged in `busyByWeekPayload()` with `mine = OR(twins)` and
+   `arms = union(twins)` — so the tooltip still counts ONE block and the cell still reads
+   `Your & Cohorts Conflict`.
    Legend tips are TEXT: emphasis is capitalisation (`WAITING`, `CANNOT BOOK`, `VENUE CONFLICT`), and
    the Conflict (Others) break is a `\n` (never a `<br>`). The room-type red has no legend line by
    the user's call (VENUE CONFLICT = occupied, not unsuitable). Receipts:

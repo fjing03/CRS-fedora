@@ -3,7 +3,7 @@
 > The always-read form of the user's coding rules for `CRS-fedora-backend`.
 > Distilled from `CodingMAIN.md §10` (Coding Conventions + UI Design Rules, user-mandated 2026-08-01)
 > and `AGENTS.md` standing rules. On any conflict, **CodingMAIN.md §10 wins** — and tell the user
-> this file has drifted so it can be re-synced. Last synced: 2026-11-07 (evening).
+> this file has drifted so it can be re-synced. Last synced: 2026-11-07 (late).
 
 ## 1. UI Design Rules — non-negotiable, every page, every change
 
@@ -33,9 +33,16 @@ Two semantic contexts share one palette — green=free/ok, red=conflict/occupied
 |-------|-------|---------|
 | Available | `--color-secondary` (green) | satisfies all constraints |
 | Your Current Selection | `--color-primary` (blue) | active pick |
-| Pending (You) | `--color-tertiary` (yellow) | your submitted request awaiting PL |
-| Reserved by Others | `--color-surface-variant` (grey) | another lecturer's pending request |
-| Occupied / Class on Public Holiday | `--color-error` (red) | locked / blocked |
+| Your Pending | `--color-tertiary` (yellow, 3px) | your submitted request awaiting PL |
+| Other Pending | `--color-tertiary` (yellow, no border) | another staff member's pending request |
+| Your Conflict | `--color-error` (red, 3px) | your own class / own replacement |
+| Others Conflict | `--color-error` (red, no border) | the room or the cohorts are taken |
+
+The **cell's** hover label names the *reason* (`Venue Conflict`, `Cohorts Conflict`,
+`Your Conflict`, `Your & Cohorts Conflict`, `Your Pending`, `Other Pending`) — chosen by one
+resolver (`classifyState()` in the page script) from the busy rows' `mine` + `arms` and the grid's
+`status 1`; the legend groups the non-yours red into `Others Conflict` on purpose. The words are
+a real `<span class="cell-state-label">` in the cell (2 lines, 11 px), never the CSS overlay.
 
 **C. Request-history status badges** (`.status-*`):
 
