@@ -1,3 +1,30 @@
+## 2026-11-07 (evening) — a rejected request's tip finally reads its real length
+
+Reported against notification `#221` / request **#38** (AMSE1003 L, Week 8, a 2-hour
+proposal): the tip said
+
+```
+Proposed Replacement Schedule: Week 8 · Fri, 13 Nov 2026 · 11:00 AM ~ 11:30 AM @ B111
+```
+
+thirty minutes for a two-hour plan, *after* the request began storing its own width.
+
+**Cause.** `NavNotifications`' `$anchorSpan` closure built the fallback span for a
+junction-less request itself — a **second copy** of `spanFromAnchor()`'s old shape, with
+`'count' => 1` hard-coded. The submitted/rejected rows lose their junction rows when the
+request is decided, so every decision tip measured the anchor's single 30-minute cell.
+
+**Fix.** The closure is now a one-line delegate to
+`ReplacementRequestMapper::spanFromAnchor($slot, $request->replacement_span)` — no query
+(the relation is eager-loaded, the width rides the row), and the tip can no longer
+disagree with the PL queue or My Replacements.
+
+Receipt: `NotificationsBridgeTest::test_a_rejected_tip_reads_the_stored_width_when_the_junction_is_gone`
+(`1:30 PM ~ 2:30 PM`, red-checked: with the old closure it reads `1:30 PM ~ 2:00 PM`).
+Browser on the demo DB: `data-tip` now reads `11:00 AM ~ 1:00 PM @ B111`, and the same
+request reads `11:00 AM ~ 1:00 PM (2 hours)` in the PL cell, the PL pop-up
+(Duration **2 hours**) and My Replacements.
+
 ## 2026-11-07 (date/time batch 2, `docs/date-time-format-audit-2026-11-07.md`) — the schedule lines join with `~`
 
 The tooltip's Original / Proposed schedule lines printed `1:00 PM–2:00 PM` (unspaced en dash). They

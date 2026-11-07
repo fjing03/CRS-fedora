@@ -17,6 +17,7 @@ use Database\Seeders\DatabaseSeeder;
 use Illuminate\Foundation\Testing\DatabaseMigrations;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Date;
+use Illuminate\Support\Facades\DB;
 use Livewire\Livewire;
 use Tests\TestCase;
 
@@ -865,6 +866,46 @@ final class NotificationsBridgeTest extends TestCase
             'the reason sits between the subject and the schedules, Title Cased',
         );
         $this->assertStringNotContainsString('Staff (Proposer)', $tips[0], 'a decision row carries no Staff line');
+    }
+
+    /**
+     * SDD replacement-span-persistence (user report 2026-11-07, request #38): a
+     * REJECTED request has no junction rows any more — the release action deleted
+     * them — so the tip falls back to the anchor. That fallback used to assume ONE
+     * 30-minute cell (a second copy of `spanFromAnchor()`'s old shape), and a
+     * 2-hour proposal therefore told the reader `11:00 AM ~ 11:30 AM`. It now reads
+     * the width the request itself stores.
+     */
+    public function test_a_rejected_tip_reads_the_stored_width_when_the_junction_is_gone(): void
+    {
+        $request = $this->seedRequest();
+        // the submit reserved 2 cells; the rejection released + deleted them
+        $second = TimeSlot::query()
+            ->where('week_number', 6)->where('day_of_week', 4)
+            ->where('start_time', '14:00:00')->where('venue_id', 21)
+            ->firstOrFail();
+        DB::table('replacement_request_slots')->insert([
+            'replacement_request_id' => $request->id,
+            'time_slot_id' => $second->id,
+        ]);
+        $request->update([
+            'status' => 'rejected',
+            'rejection_reason' => 'venue unavailable',
+            'approver_id' => $this->coordinator()->id,
+            'replacement_span' => 2,
+        ]);
+        DB::table('replacement_request_slots')->where('replacement_request_id', $request->id)->delete();
+        $this->decisionRow($this->coordinator(), (int) $request->id, 'rejected', 8, 'Replacement rejected');
+
+        $html = $this->panelHtml($this->coordinator());
+        $tips = $this->tipsOf($html, 'Rejection Reason:');
+
+        $this->assertCount(1, $tips);
+        $this->assertSame(
+            'Proposed Replacement Schedule: Week 6 · Fri, 30 Oct 2026 · 1:30 PM ~ 2:30 PM @ B010',
+            explode("\n", $tips[0])[3],
+            'the anchor is one cell; the stored width is what makes it an hour'
+        );
     }
 
     public function test_an_automatic_rejection_reads_automatically_rejected_by_system(): void

@@ -586,17 +586,21 @@ class NavNotifications extends Component
 
         /* Legacy anchor fallback shape (design §3): a request with NO
          * junction rows composes from the LOADED replacementTimeSlot — the
-         * eager `replacementTimeSlot.venue` never lazy-loads on the poll. */
-        $anchorSpan = static fn (ReplacementRequest $request): ?array => $request->replacementTimeSlot === null
-            ? null
-            : [
-                'week' => (int) $request->replacementTimeSlot->week_number,
-                'day' => (int) $request->replacementTimeSlot->day_of_week,
-                'venue_id' => (int) $request->replacementTimeSlot->venue_id,
-                'start' => (string) $request->replacementTimeSlot->start_time,
-                'end' => (string) $request->replacementTimeSlot->end_time,
-                'count' => 1,
-            ];
+         * eager `replacementTimeSlot.venue` never lazy-loads on the poll.
+         *
+         * SDD replacement-span-persistence (user report 2026-11-07, request
+         * #38): this closure used to hard-code `count = 1`, i.e. it repeated
+         * `spanFromAnchor()`'s old assumption in a SECOND copy — so a rejected
+         * 2-hour proposal told the reader `11:00 AM ~ 11:30 AM` even after the
+         * request began storing its width. It is now a delegate, so the
+         * notification tip, the PL queue and My Replacements can never
+         * disagree about how long a decided proposal was. No query: the
+         * mapper only reads the loaded relation + the stored width. */
+        $mapper = app(ReplacementRequestMapper::class);
+        $anchorSpan = static fn (ReplacementRequest $request): ?array => $mapper->spanFromAnchor(
+            $request->replacementTimeSlot,
+            $request->replacement_span,
+        );
 
         foreach ($rows as $row) {
             /* The legacy lifecycle law (notifications-real-bridge D4) lives
