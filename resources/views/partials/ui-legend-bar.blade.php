@@ -20,10 +20,25 @@
         @endforeach
     </div>
     @if(!empty($ownershipHint))
-        <span class="legend-ownership-hint">
-            <span class="osd-demo osd-thick"></span> thick border (3px) = your classes
-            &nbsp;·&nbsp;
-            <span class="osd-demo osd-thin"></span> thin border (0.5px) = others'
-        </span>
+        @if(is_array($ownershipHint))
+            {{-- A page whose "others" border is not the 0.5px hairline passes
+                 its own list — e.g. the arrangement grid, where others = no
+                 border at all — so the bar never claims a style the page does
+                 not draw. A `demo` of '' renders the bare .osd-demo
+                 (borderless). --}}
+            <span class="legend-ownership-hint">
+                @foreach($ownershipHint as $i => $line)
+                    @if($i > 0)&nbsp;·&nbsp;@endif<span class="osd-demo{{ empty($line['demo']) ? '' : ' '.$line['demo'] }}"></span> {{ $line['text'] }}
+                @endforeach
+            </span>
+        @else
+            {{-- Default (cohort + venue): kept as literal markup so their output
+                 stays byte-identical to what shipped before this option existed. --}}
+            <span class="legend-ownership-hint">
+                <span class="osd-demo osd-thick"></span> thick border (3px) = your classes
+                &nbsp;·&nbsp;
+                <span class="osd-demo osd-thin"></span> thin border (0.5px) = others'
+            </span>
+        @endif
     @endif
 </div>
