@@ -6,7 +6,8 @@ import { test, expect, type Page } from '@playwright/test';
    note cannot reach /request-approval-ui (route mw = auth + pl; 5425 is the
    demo PL) — the existing spec's storageState governs; /:8000 DEMO DB is
    READ-ONLY throughout (the Overdue receipt shifts the IN-PAGE
-   MockData.urgencyReferenceDate + re-renders — zero writes). */
+   re-renders — zero writes). 2026-11-07: the Approve Requests urgency column
+   was removed, so T5.RA-2 now guards its absence. */
 
 test.use({ storageState: '.auth/staff-5425.json' });
 
@@ -63,10 +64,6 @@ function isPlStatusTip(key: string, tip: string | null): boolean {
   return head === RA_PENDING_HEAD && rest.length === 1 && RA_PENDING_TAIL_RE.test(rest[0]);
 }
 const labelKey = (label: string): string => label.split(' — ')[0].trim();
-
-/* the frozen urgency receipt regex (design.md:217) */
-const URGENCY_RE =
-  /^(Normal|Urgent|Overdue) — (\d+ days? (left before|past) the Proposed Class\.|the Proposed Class is TODAY\.)$/;
 
 async function sharedTip(page: Page, target: string): Promise<{ text: string; above: boolean } | null> {
   await page.hover(target);
@@ -257,83 +254,41 @@ test('T5.RA-1: every status badge carries the payload tip (one source, no local 
   expect(shared!.above).toBe(true);
 });
 
-test('T5.RA-2: urgency badge↔tip word-per-row; UNCONDITIONAL Overdue shift; TODAY-string; Urgent filter keeps Overdue', async ({ page }) => {
+/* 2026-11-07 (user law): the Urgency COLUMN is gone from Approve Requests — the
+   badge, its header sort, its tooltip, the All/Urgent/Normal chips, the row
+   stripes and the phone-card line all left with it. This receipt guards the
+   removal (a comeback must be a deliberate decision, not a quiet re-add). */
+test('T5.RA-2: the Urgency column is gone — no badge, no sort, no chips, no stripes', async ({ page }) => {
   await page.goto(`${BASE}${RA}`);
   await page.waitForTimeout(1400);
-
-  // ensure rows on screen (All) for the loop
   await setRAAll(page);
-  const urg = page.locator('#tableBody span.urgency-badge[data-tip]');
-  const n = await urg.count();
-  expect(n).toBeGreaterThan(0);
 
-  // per-row: the format regex AND the badge↔tip leading-word consistency
-  for (let i = 0; i < n; i++) {
-    const b = urg.nth(i);
-    const label = ((await b.textContent()) || '').trim();
-    const tip = (await b.getAttribute('data-tip')) || '';
-    expect(tip).toMatch(URGENCY_RE);
-    /* request-approval-ui CONSISTENCY 1e (2026-11-03): the badge now prints the
-       level AND the remaining days (`Normal — 67 days left`); the tip keeps its
-       fuller sentence, so the shared part is the leading LEVEL word. */
-    expect(label).toMatch(/^(Normal|Urgent|Overdue) — /);
-    expect(tip.startsWith(label.split(' — ')[0] + ' — '), `badge '${label}' ↔ tip leading word`).toBe(true);
+  await expect(page.locator('#tableBody span.urgency-badge'), 'no urgency badge in any row').toHaveCount(0);
+  await expect(page.locator('#tableHead th', { hasText: 'Urgency' }), 'no Urgency column header').toHaveCount(0);
+  await expect(page.locator('#tableHead th[data-tip]', { hasText: 'Urgency' })).toHaveCount(0);
+  await expect(page.locator('#urgencyFilter'), 'the All/Urgent/Normal chips are gone').toHaveCount(0);
+  await expect(page.locator('.urgency-filter-chip')).toHaveCount(0);
+  await expect(page.locator('#tableBody tr.row-urgent'), 'no red row stripe').toHaveCount(0);
+  await expect(page.locator('#tableBody tr.row-soon'), 'no amber row stripe').toHaveCount(0);
+
+  // the header list the sort hint names must not promise a dead column
+  await expect(page.locator('.sort-hint')).not.toContainText('Urgency');
+
+  // the request-age pill keeps its own tip and no longer claims an urgency
+  const ageTip = await page.locator('#tableBody .request-age[data-tip]').first().getAttribute('data-tip');
+  expect(ageTip || '').not.toContain('Urgency');
+  expect(ageTip || '').toMatch(/^(Today|Yesterday|\d+ days ago) · /);
+
+  // the approve/reject compare card no longer carries the badge either
+  await page.locator('#tableBody tr[data-id] .btn-approve').first().click().catch(() => {});
+  await page.waitForTimeout(500);
+  const modalOpen = await page.locator('#approvalModal').isVisible().catch(() => false);
+  if (modalOpen) {
+    await expect(page.locator('#approvalModal .urgency-badge')).toHaveCount(0);
   }
-
-  const shift = await page.evaluate(() => {
-    const first = document.querySelector('#tableBody tr[data-id]');
-    const id = first ? Number((first as HTMLElement).dataset.id) : null;
-    const row = MockData.approvalRequests.find((r: any) => r.id === id) || MockData.approvalRequests[0];
-    const orig = MockData.urgencyReferenceDate;
-    // UNCONDITIONAL Overdue: shift the in-page reference a YEAR after the row
-    /* 2026-11-07 (user law): urgency measures the Proposed Replacement date */
-    MockData.urgencyReferenceDate = new Date((new Date((row.replacementDate || row.classDate) + 'T00:00:00')).getTime() + 365 * 86400000);
-    renderTable();
-    const badges = Array.from(document.querySelectorAll('#tableBody span.urgency-badge[data-tip]')) as HTMLElement[];
-    const over = badges.map((b) => ({ label: (b.textContent || '').trim(), tip: b.getAttribute('data-tip') || '' }));
-    const urgentRows = document.querySelectorAll('#tableBody tr.row-urgent').length;
-    // TODAY-string: anchor the reference EXACTLY on the first visible row's date
-    MockData.urgencyReferenceDate = new Date((row.replacementDate || row.classDate) + 'T00:00:00');
-    renderTable();
-    const today = Array.from(document.querySelectorAll('#tableBody span.urgency-badge[data-tip]'))
-      .map((b) => ({ label: (b.textContent || '').trim(), tip: b.getAttribute('data-tip') || '' }));
-    // restore + hand the state back (the page never writes anywhere)
-    MockData.urgencyReferenceDate = orig;
-    renderTable();
-    return { over, urgentRows, today };
-  });
-
-  expect(shift.over.length).toBeGreaterThan(0);
-  for (const o of shift.over) {
-    expect(o.label).toMatch(/^Overdue — \d+ days? past$/);          // solid-red badge + days past
-    expect(o.tip).toMatch(/^Overdue — \d+ days? past the Proposed Class\.$/); // days past
-  }
-  expect(shift.urgentRows).toBeGreaterThan(0);                    // row-urgent kept
-  // the Urgent FILTER keeps overdue rows (urgencyMatches law) — one clean
-  // re-shift + filter + render, all inside the page
-  const overdueUnderUrgentFilter = await page.evaluate(() => {
-    const first = document.querySelector('#tableBody tr[data-id]') as HTMLElement | null;
-    const id = first ? Number(first.dataset.id) : null;
-    const row = MockData.approvalRequests.find((r: any) => r.id === id) || MockData.approvalRequests[0];
-    MockData.urgencyReferenceDate = new Date((new Date((row.replacementDate || row.classDate) + 'T00:00:00')).getTime() + 365 * 86400000);
-    const s = document.getElementById('statusFilter') as HTMLSelectElement;
-    s.value = 'all';
-    renderTable();
-    setUrgencyFilter('urgent');
-    return Array.from(document.querySelectorAll('#tableBody span.urgency-badge[data-tip]'))
-      .map((b) => (b.textContent || '').trim());
-  });
-  expect(overdueUnderUrgentFilter.length).toBeGreaterThan(0);
-  for (const label of overdueUnderUrgentFilter) expect(label).toMatch(/^Overdue — /); // ALL overdue under the Urgent filter
-
-  expect(shift.today.some((t) => t.label === 'Urgent — today' && t.tip === 'Urgent — the Proposed Class is TODAY.'), 'the N=0 TODAY receipt (user-kept tip wording 2026-11-01)').toBe(true);
-
-  // the column-header tip equals the pinned three-level copy
-  const headerTip = await page.locator('#tableHead th[data-tip]', { hasText: 'Urgency' }).getAttribute('data-tip');
-  expect(headerTip).toBe('Days until the proposed replacement class: past = Overdue (solid red), ≤3 days = Urgent (red), 4+ days = Normal');
 });
 
-test('T5.RA-3: resetFilters + label + Clear-all law + ✕ + mobile cards (status + urgency threading)', async ({ page }) => {
+test('T5.RA-3: resetFilters + label + Clear-all law + ✕ + mobile cards (status threading)', async ({ page }) => {
   await page.goto(`${BASE}${RA}`);
   await page.waitForTimeout(1400);
 
@@ -380,16 +335,15 @@ test('T5.RA-3: resetFilters + label + Clear-all law + ✕ + mobile cards (status
   await expect(page.locator('#filterChips')).toHaveText(''); // no label text either
   await expect(page.locator('#filterChips .filter-chip-clear-all')).toHaveCount(0);
 
-  // mobile cards: status tip + urgency tip through the shared HtmlBuilder
+  // mobile cards: the status tip still threads through the shared HtmlBuilder,
+  // and the card carries no urgency any more (2026-11-07 removal)
   await page.setViewportSize({ width: 375, height: 800 });
   await page.waitForTimeout(600);
   const cardStatus = page.locator('#requestsCards .request-card .badge[data-tip]').first();
   await expect(cardStatus).toBeVisible();
   await expect(cardStatus).toHaveAttribute('data-tip', RA_MAP[labelKey(((await cardStatus.textContent()) || '').trim())]);
-  const cardUrg = page.locator('#requestsCards .request-card .urgency-badge[data-tip]').first();
-  await expect(cardUrg).toBeVisible();
-  await expect(((await cardUrg.getAttribute('data-tip')) || '')).toMatch(URGENCY_RE);
-  const shared = await sharedTip(page, '#requestsCards .request-card .urgency-badge[data-tip]');
+  await expect(page.locator('#requestsCards .request-card .urgency-badge')).toHaveCount(0);
+  const shared = await sharedTip(page, '#requestsCards .request-card .badge[data-tip]');
   expect(shared).not.toBeNull();
   expect(shared!.above).toBe(true);
 });

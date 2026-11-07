@@ -71,11 +71,6 @@
             margin-top: 2px;
         }
 
-        /* ───── Urgency Badges ───── */
-        .urgency-badge { display: inline-block; padding: 2px 8px; border-radius: var(--radius-md); font-size: 11px; font-weight: 600; }
-        .urgency-urgent { background: var(--color-error-container); color: var(--color-on-error-container); }
-        .urgency-normal { background: var(--color-success-container); color: var(--color-on-success-container); }
-        .urgency-overdue { background: var(--color-error); color: var(--color-on-error); }
 
         /* ───── Action Buttons ───── */
         .btn-approve { padding: 4px 10px; border-radius: var(--radius-sm); border: 1px solid var(--color-success); background: transparent; color: var(--color-success); font-size: 12px; font-weight: 500; cursor: pointer; transition: background 0.15s, color 0.15s; }
@@ -119,26 +114,6 @@
         }
         .btn-bulk-clear:hover { background: var(--color-surface-variant); }
 
-        /* ───── Urgency Filter Chips ───── */
-        .urgency-filter { display: inline-flex; gap: 4px; margin-left: 8px; }
-        .urgency-filter-chip {
-            padding: 4px 10px;
-            border-radius: var(--radius-lg);
-            border: 1px solid var(--color-outline);
-            background: transparent;
-            color: var(--color-on-surface-variant);
-            font-size: 12px;
-            font-weight: 500;
-            cursor: pointer;
-            transition: background 0.15s, color 0.15s;
-        }
-        .urgency-filter-chip.active {
-            background: var(--color-primary);
-            color: var(--color-on-primary);
-            border-color: var(--color-primary);
-        }
-        .urgency-filter-chip:hover:not(.active) { background: var(--color-surface-variant); }
-
         /* ───── Request Age Indicator (base .request-age styles in theme.css) ───── */
 
         /* ───── Reject Preset Chips ───── */
@@ -166,10 +141,6 @@
         .row-flash-rejected { animation: flashRed 0.6s ease; }
         @keyframes flashGreen { 0% { background: var(--color-success-container); } 100% { background: transparent; } }
         @keyframes flashRed { 0% { background: var(--color-error-container); } 100% { background: transparent; } }
-
-        /* ───── Row Urgency Indicators ───── */
-        .row-urgent { border-left: 3px solid var(--color-error); }
-        .row-soon { border-left: 3px solid var(--color-tertiary); }
 
         /* ───── Lecturer Cell ───── */
         .lecturer-cell-name { font-weight: 600; font-size: 13px; color: var(--color-on-surface); }
@@ -247,7 +218,7 @@
     'guideItems' => [
         '<strong>Sort</strong> — click any column header to sort ascending/descending',
         '<strong>Search</strong> — type in the search box to filter by course, lecturer, or keywords',
-        '<strong>Filter</strong> — use the status dropdown or urgency chips to narrow results',
+        '<strong>Filter</strong> — use the status dropdown or the week filter to narrow results',
         '<strong>Hover headers</strong> — hover a column name to see what it means',
         '<strong>Bulk action</strong> — tick checkboxes then approve/reject multiple requests at once',
         '<strong>Quick action</strong> — use the approve/reject buttons on individual rows',
@@ -266,11 +237,6 @@
             <option value="Cancelled">Cancelled</option>
             <option value="Completed">Completed</option>
         </select>
-        <div class="urgency-filter" id="urgencyFilter">
-            <button class="urgency-filter-chip active" data-urgency="all" onclick="setUrgencyFilter('all')" data-tip="Show requests of any urgency">All</button>
-            <button class="urgency-filter-chip" data-urgency="urgent" onclick="setUrgencyFilter('urgent')" data-tip="Show only urgent requests">Urgent</button>
-            <button class="urgency-filter-chip" data-urgency="normal" onclick="setUrgencyFilter('normal')" data-tip="Show only normal requests">Normal</button>
-        </div>
         @include('partials.ui-week-nav', ['prevOnclick' => 'prevWeekFilter()', 'prevTip' => 'Previous week', 'nextOnclick' => 'nextWeekFilter()', 'nextTip' => 'Next week', 'selectId' => 'weekFilter', 'selectOnclick' => 'onWeekFilterChange(this.value)', 'selectTip' => 'Pick the Original Class week to display', 'showTodayBtn' => false])
         <label class="toggle-wrapper" id="completedToggle" data-tip="ON = completed requests are excluded from the list">
             <input type="checkbox" id="hideCompletedToggle" checked onchange="toggleHideCompleted()">
@@ -284,7 +250,7 @@
     </div>
 </div>
 
-<div class="sort-hint">Click column headers to sort (Requested Timestamp, Original Class, Requested Replacement, Urgency, Status)</div>
+<div class="sort-hint">Click column headers to sort (Requested Timestamp, Original Class, Requested Replacement, Status)</div>
 
 <div class="filter-chips" id="filterChips"></div>
 
@@ -415,80 +381,6 @@
         initHeaderTooltips();
         // ── Shared data from mock-data.js ──
 
-        // ── Page-local urgency helpers ──
-        /* the app's compact cohort code (`RSD3 (S1) G1` → `RSD3(S1)G1`) */
-        function compactCohort(label) {
-            return String(label == null ? '' : label).replace(/\s+/g, '');
-        }
-
-        /* 3C — "B103 — Tutorial Room": the code, then the room name when the
-           payload has one. The merged page's `venueLine()` is the same rule. */
-        function venueText(code, name) {
-            if (!code) return null;
-            return name ? code + ' \u2014 ' + name : code;
-        }
-
-        function urgencyLevel(date) {
-            var d = urgencyDays(date);
-            return d < 0 ? 'overdue' : (d <= 3 ? 'urgent' : 'normal');
-        }
-
-        function urgencyClass(level) {
-            return level === 'overdue' ? 'urgency-overdue' : level === 'urgent' ? 'urgency-urgent' : 'urgency-normal';
-        }
-
-        /* request-approval-ui CONSISTENCY 1e (2026-11-03): the badge prints the
-           LEVEL and the remaining days (`Normal — 67 days left`); the category
-           and the badge styling are unchanged. `urgencyShort()` stays the bare
-           word for places that need it (the Requested-age tooltip). */
-        function urgencyShort(level) {
-            return level === 'overdue' ? 'Overdue' : level === 'urgent' ? 'Urgent' : 'Normal';
-        }
-
-        function urgencyLabel(level, date) {
-            var base = urgencyShort(level);
-            if (!date) return base;                       // defensive: no date, no claim
-            var n = urgencyDays(date);
-            if (isNaN(n)) return base;
-            if (level === 'overdue') {
-                return base + ' — ' + Math.abs(n) + (Math.abs(n) === 1 ? ' day' : ' days') + ' past';
-            }
-            if (n === 0) return base + ' — today';
-            return base + ' — ' + n + (n === 1 ? ' day' : ' days') + ' left';
-        }
-
-        function urgencyDays(date) {
-            const target = new Date(date + 'T00:00:00');
-            return Math.ceil((target - MockData.urgencyReferenceDate) / (1000 * 60 * 60 * 24));
-        }
-
-        /* 2026-11-07 (user law): the Urgency column measures the PROPOSED
-           REPLACEMENT, not the original class — the PL is deciding how soon the
-           make-up slot starts. The workbook's fallback keeps the old reading for
-           a row that carries no proposal at all (null `replacementDate`), so a
-           missing span can never print `NaN`. */
-        function urgencyDate(r) {
-            return r.replacementDate || r.classDate;
-        }
-
-        function urgencyMatches(level, filter) {
-            if (filter === 'urgent') return level === 'urgent' || level === 'overdue';
-            return level === filter;
-        }
-
-        function urgencyTip(r) {
-            var date = urgencyDate(r);
-            var n = urgencyDays(date);
-            var level = urgencyLevel(date);
-            if (level === 'overdue') {
-                return 'Overdue — ' + Math.abs(n) + (Math.abs(n) === 1 ? ' day' : ' days') + ' past the Proposed Class.';
-            }
-            if (n === 0) {
-                return 'Urgent — the Proposed Class is TODAY.';
-            }
-            return (level === 'urgent' ? 'Urgent — ' : 'Normal — ') + n + (n === 1 ? ' day' : ' days') + ' left before the Proposed Class.';
-        }
-
         // Status tooltips come from the payload (`requestStatusTip`, the shared
         // M5 vocabulary in the PL voice) — 1f/3B deleted the page-local 3-key
         // map here, which was why a Completed or Cancelled badge had no tip.
@@ -519,12 +411,24 @@
         }
 
         // ── Request age helper (§7.5) ──
+        // ── Cell helpers (kept when the urgency family was removed, 2026-11-07) ──
+        /* the app's compact cohort code (`RSD3 (S1) G1` → `RSD3(S1)G1`) */
+        function compactCohort(label) {
+            return String(label == null ? '' : label).replace(/\s+/g, '');
+        }
+
+        /* 3C — "B103 — Tutorial Room": the code, then the room name when the
+           payload has one. The merged page's `venueLine()` is the same rule. */
+        function venueText(code, name) {
+            if (!code) return null;
+            return name ? code + ' \u2014 ' + name : code;
+        }
+
         // ── Filter persistence (§7) ──
         function saveFilters() {
             const state = {
                 weekFilter: document.getElementById('weekFilter')?.value || 'all',
                 statusFilter: document.getElementById('statusFilter')?.value || 'Pending',
-                urgencyFilter: urgencyFilter,
                 rpp: rpp,
                 sortField: sortState.field,
                 sortDir: sortState.dir,
@@ -540,7 +444,6 @@
                 const state = JSON.parse(saved);
                 if (state.weekFilter) document.getElementById('weekFilter').value = state.weekFilter;
                 if (state.statusFilter) document.getElementById('statusFilter').value = state.statusFilter;
-                if (state.urgencyFilter) { urgencyFilter = state.urgencyFilter; document.querySelectorAll('.urgency-filter-chip').forEach(btn => { btn.classList.toggle('active', btn.dataset.urgency === urgencyFilter); }); }
                 if (state.rpp) { rpp = state.rpp; document.getElementById('rowsPerPage').value = state.rpp; }
                 if (state.sortField) { sortState.field = state.sortField; sortState.dir = state.sortDir || 'asc'; }
                 if (state.hideCompleted !== undefined) { hideCompleted = state.hideCompleted; document.getElementById('hideCompletedToggle').checked = hideCompleted; }
@@ -549,7 +452,7 @@
         }
 
         // ── Approval context card (§7.2) — shared by the Approve and Reject
-        //    confirm modals. Header chips (id, code, slot validity, urgency —
+        //    confirm modals. Header chips (id, code, slot validity —
         //    same badge classes/colours as the table), lecturer row, and an
         //    Original → Replacement comparison pair built from the SAME
         //    HtmlBuilder blocks the table uses, so the confirm step shows the
@@ -559,7 +462,6 @@
            modal keeps it (its title carries no id). */
         function approvalCard(r, opts) {
             opts = opts || {};
-            const level = urgencyLevel(urgencyDate(r));
             const conflict = r.slotValidity === 'conflict';
             const slotBadge = '<span class="slot-badge ' + (conflict ? 'slot-conflict' : 'slot-valid')
                 + '" data-tip="' + escHtml(conflict ? (r.conflictReason || 'Slot conflict') : 'Slot available') + '">'
@@ -574,7 +476,6 @@
                 +     (opts.hideRequestId ? '' : '<span class="approval-id">#' + r.id + '</span>')
                 +     '<span class="cell-code">' + escHtml(r.courseCode) + '</span>'
                 +     slotBadge
-                +     '<span class="urgency-badge ' + urgencyClass(level) + '" data-tip="' + urgencyTip(r) + '">' + urgencyLabel(level, urgencyDate(r)) + '</span>'
                 +   '</div>'
                 +   '<div class="approval-course">' + escHtml(r.courseName) + ' <span class="approval-classtype">[' + escHtml(UiLabels.classType(r.classType, 'long')) + ']</span></div>'
                 +   '<div class="approval-lecturer"><span>' + lecturerHtml + '</span></div>'
@@ -603,7 +504,6 @@
         let viewedIds = new Set();
         let currentApproveIds = [];
         let currentRejectId = null;
-        let urgencyFilter = 'all';
         let focusedRowIndex = -1;
         let isInitialLoad = true;
         let hideCompleted = true;
@@ -638,7 +538,6 @@
             { label: 'Cohort', sortable: false, tip: 'Cohort(s) affected by this class — one per line; not sortable because a multi-cohort row has no single value' },
             { label: 'Original Class', sortable: true, field: 'classDate', tip: 'Original class the request refers to — its state varies (still upcoming, replaced, cancelled, holiday, etc.)' },
             { label: 'Requested Replacement', sortable: true, field: 'replacementDate', tip: 'Requested new date, time, and venue' },
-            { label: 'Urgency', sortable: true, field: 'urgencyDays', tip: 'Days until the proposed replacement class: past = Overdue (solid red), ≤3 days = Urgent (red), 4+ days = Normal' },
             { label: 'Status', sortable: true, field: 'status', tip: 'Current approval status' },
             { label: 'Actions', sortable: false, tip: 'Approve or reject this request' }
         ];
@@ -673,11 +572,6 @@
             const dir = sortState.dir === 'asc' ? 1 : -1;
             return [...data].sort((a, b) => {
                 let va, vb;
-                if (field === 'urgencyDays') {
-                    va = urgencyDays(urgencyDate(a));
-                    vb = urgencyDays(urgencyDate(b));
-                    return (va - vb) * dir;
-                }
                 va = a[field] || '';
                 vb = b[field] || '';
                 /* R-4b (round-3): lecturer stores an id — sort by resolved name */
@@ -707,24 +601,16 @@
                 return true;
             });
 
-            if (urgencyFilter !== 'all') {
-                result = result.filter(r => urgencyMatches(urgencyLevel(urgencyDate(r)), urgencyFilter));
-            }
-
             return result;
         }
 
         // ── Render a single row ──
         function renderRow(r, offset, i) {
-            const urgencyOn = urgencyDate(r);
-            const level = urgencyLevel(urgencyOn);
             const isSelected = bulk.has(r.id);
             const isViewed = viewedIds.has(r.id);
             let rowClass = '';
             if (isViewed) rowClass += ' row-viewed';
             if (isSelected) rowClass += ' row-selected';
-            if (level === 'urgent' || level === 'overdue') rowClass += ' row-urgent';
-            else if (urgencyDays(urgencyOn) <= 7) rowClass += ' row-soon';
 
             var lecName = (typeof lookupLecturer === 'function' && lookupLecturer(r.lecturer)) ? lookupLecturer(r.lecturer).name : r.lecturer;
 
@@ -740,7 +626,7 @@
 
             /* 1d: the table prints the REAL request id — the header says Request ID */
             html += '<td class="col-request-id">#' + r.id + '</td>';
-            html += '<td>' + formatDateTime(r.requestedAt) + requestAgeHtml(r.requestedAt, urgencyShort(level)) + '</td>';
+            html += '<td>' + formatDateTime(r.requestedAt) + requestAgeHtml(r.requestedAt) + '</td>';
             var lec = lookupLecturer(r.lecturer);
             if (lec) {
                 html += '<td><div class="lecturer-cell-name">' + lec.name + ' <span class="lecturer-cell-id">(' + lec.staffId + ')</span></div>';
@@ -759,7 +645,6 @@
             const slotBadge = '<span class="slot-badge ' + (r.slotValidity === 'conflict' ? 'slot-conflict' : 'slot-valid') + '" data-tip="' + (r.slotValidity === 'conflict' ? (r.conflictReason || 'Slot conflict') : 'Slot available') + '">' + (r.slotValidity === 'conflict' ? '⚠' : '✓') + '</span>';
             html += '<td class="col-replacement">' + HtmlBuilder.replacementBlock(r, { colorStatus: false, merged: true, venueCodeOnly: true, slotBadge: slotBadge }) + '</td>';
 
-            html += '<td class="col-urgency"><span class="urgency-badge ' + urgencyClass(level) + '" data-tip="' + urgencyTip(r) + '">' + urgencyLabel(level, urgencyOn) + '</span></td>';
             html += '<td><span class="badge ' + statusClass(r.status) + '"' + statusTipAttr(r) + ' onclick="openModalById(' + r.id + ')" style="cursor:pointer">' + r.requestStatusLabel + '</span></td>';
 
             const actions = r.status === 'Pending'
@@ -862,15 +747,11 @@
             const container = document.getElementById('filterChips');
             const chips = [];
             const status = document.getElementById('statusFilter').value;
-            const urgency = urgencyFilter;
             const search = document.getElementById('searchInput').value.trim();
             const week = document.getElementById('weekFilter').value;
 
             if (status !== 'all') {
                 chips.push('<span class="filter-chip">Status: ' + status + '<button class="filter-chip-remove" onclick="document.getElementById(\'statusFilter\').value=\'all\';renderTable()" data-tip="Remove">&times;</button></span>');
-            }
-            if (urgency !== 'all') {
-                chips.push('<span class="filter-chip">Urgency: ' + (urgency === 'urgent' ? 'Urgent' : 'Normal') + '<button class="filter-chip-remove" onclick="setUrgencyFilter(\'all\');renderTable()" data-tip="Remove">&times;</button></span>');
             }
             if (week !== 'all') {
                 const weekLabel = document.getElementById('weekFilter').selectedOptions[0]?.textContent || week;
@@ -911,10 +792,6 @@
                 card.setAttribute('data-id', r.id);
                 card.innerHTML = HtmlBuilder.requestCard(r, {
                     lookupLecturer: lookupLecturer,
-                    urgencyLevel: urgencyLevel,
-                    urgencyClass: urgencyClass,
-                    urgencyLabel: function(level) { return urgencyLabel(level, urgencyDate(r)); },
-                    urgencyTip: urgencyTip,
                     requestAgeHtml: requestAgeHtml,
                     statusTip: function() { return r.requestStatusTip; }
                 });
@@ -965,17 +842,6 @@
             input.value = text;
             updateRejectConfirmState();
             input.focus();
-        }
-
-        // ── Urgency filter (§7.4) ──
-        function setUrgencyFilter(level) {
-            urgencyFilter = level;
-            document.querySelectorAll('.urgency-filter-chip').forEach(btn => {
-                btn.classList.toggle('active', btn.dataset.urgency === level);
-            });
-            currentPage = 1;
-            renderTable();
-            saveFilters();
         }
 
         // ── Week filter change handler ──
@@ -1311,7 +1177,6 @@
             document.getElementById('searchInput').value = '';
             document.getElementById('statusFilter').value = 'Pending';
             document.getElementById('weekFilter').value = 'all';
-            urgencyFilter = 'all';
             rpp = 10;
             document.getElementById('rowsPerPage').value = '10';
             hideCompleted = true;
@@ -1320,9 +1185,6 @@
             viewedIds.clear();
             currentPage = 1;
             sortState = { field: 'requestedAt', dir: 'asc' };
-            document.querySelectorAll('.urgency-filter-chip').forEach(btn => {
-                btn.classList.toggle('active', btn.dataset.urgency === 'all');
-            });
             localStorage.removeItem('request-approval-filters');
             renderTable();
         }
@@ -1338,7 +1200,6 @@
             document.getElementById('searchInput').value = '';
             document.getElementById('statusFilter').value = 'all';
             document.getElementById('weekFilter').value = 'all';
-            urgencyFilter = 'all';
             rpp = 10;
             document.getElementById('rowsPerPage').value = '10';
             hideCompleted = false;
@@ -1347,9 +1208,6 @@
             viewedIds.clear();
             currentPage = 1;
             sortState = { field: 'requestedAt', dir: 'asc' };
-            document.querySelectorAll('.urgency-filter-chip').forEach(btn => {
-                btn.classList.toggle('active', btn.dataset.urgency === 'all');
-            });
             localStorage.removeItem('request-approval-filters');
             renderTable();
         }
@@ -1384,7 +1242,6 @@
             MockData.currentUser = window.PAGE_DATA?.currentUser ?? MockData.currentUser;
             MockData.approvalRequests = Array.isArray(window.PAGE_DATA?.requests) ? window.PAGE_DATA.requests : MockData.approvalRequests;
             MockData.lecturers = Array.isArray(window.PAGE_DATA?.lecturers) ? window.PAGE_DATA.lecturers : MockData.lecturers;
-            MockData.urgencyReferenceDate = new Date((window.PAGE_DATA?.urgencyReferenceDate || new Date().toISOString().slice(0, 10)) + 'T00:00:00');
             populateWeekFilter();
             updateWeekArrowState();
             document.getElementById('statusFilter').value = 'Pending';

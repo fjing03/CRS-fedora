@@ -1,3 +1,51 @@
+## 2026-11-07 (business logic, user law) — the Urgency column is gone
+
+The user's decision: Approve Requests no longer judges urgency. The lecturer page
+already has the one urgency rule (working days), and a second, differently-tuned
+rule on the PL page made the same request read red in one place and green in the
+other. Measured before the removal: request 28 (pending) counted red on My
+Replacements and green here, because this page counted to the **proposed slot**
+while the lecturer page counts to the **class date**.
+
+Removed, all of it (the whole urgency notion on this page):
+
+- the **Urgency column** and its badge (`Normal — 5 days left`),
+- its **header sort** (and “Urgency” from the sort hint),
+- its **tooltip** (`Urgent — 2 days left before the Proposed Class`),
+- the **All / Urgent / Normal filter chips** (`#urgencyFilter`) and the
+  `Urgency: …` active-filter chip with them,
+- the **row stripes** (`.row-urgent` red / `.row-soon` amber left borders),
+- the **phone card line** (`Urgency:` badge + tip),
+- the **badge in the Approve/Reject compare card**,
+- the age pill's `· Urgency: Urgent` tail — it now reads
+  `5 days ago · 4+ days old`, keeping its own waiting-time colour,
+- the now-dead helpers (`urgencyLevel/Class/Short/Label/Days/Date/Matches/Tip`,
+  `setUrgencyFilter`, the `urgencyFilter` state + its save/restore, and the
+  page's `MockData.urgencyReferenceDate` bootstrap) and their CSS.
+
+**Kept untouched:** the request-age pill and its colours, the status vocabulary
+and tips, the proposed-slot validity badge, the summary cards, sorting by the
+real columns, the Approve/Reject flows, and `HtmlBuilder.requestCard`'s optional
+urgency block (no live caller passes it any more; the frozen mock template keeps
+its own copy, as always).
+
+**A caught mistake, recorded on purpose:** the first cut deleted the block that
+also held `compactCohort()` and `venueText()` (they shared the section header),
+so the page rendered no rows at all — the receipt failed on “the queue renders at
+least one status badge”, and both helpers were restored immediately afterwards.
+
+**Receipts** (testing DB, `:8030`, `TestingFixtureSeeder` rows):
+`tests/status-tooltips-filter-chips.spec.ts` **9/9** — its old urgency test
+(T5.RA-2: badge↔tip words, the Overdue shift, the TODAY string, the Urgent chip
+keeping overdue, the header tip copy) is now a **removal guard**: no badge, no
+Urgency header, no chips, no stripes, no `Urgency:` in the age tip, and no badge
+in the approve modal; T5.RA-3 keeps the filter-chip law and the card's status tip
+and asserts the card carries no urgency. Browser read: 9 headers, 0 urgency
+badges/chips/stripes, no console errors; screenshots
+`/tmp/opencode/pl-no-urgency.png` and `/tmp/opencode/pl-no-urgency-card.png`.
+The table still scrolls horizontally inside its wrapper (pre-existing: 1561 px of
+columns in a 1450 px wrapper, `overflow-x: scroll`).
+
 ## 2026-11-07 (date/time batch 4, `docs/date-time-format-audit-2026-11-07.md`) — the phone card's Date line gains its comma
 
 The mobile request card printed `Date: 5 Nov 2026 2:00 PM`; it now reads `Date: 5 Nov 2026, 2:00 PM`,
