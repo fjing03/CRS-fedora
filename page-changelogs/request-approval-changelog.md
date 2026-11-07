@@ -1,3 +1,40 @@
+## 2026-11-07 (user) — a PENDING row prints how soon its make-up starts
+
+The requested column carried only day, date, week, time and room. For a request
+still waiting for a decision, the one number that matters is how soon that slot
+begins — so a **pending** row now prints the same countdown My Replacements uses,
+beside the slot's own date:
+
+```
+Fri, 6 Nov 2026 (Week 7)  Overdue (1 Working Day Ago)
+```
+
+- Working days, the same bands and words as the lecturer page
+  (`Today` · `1 Working Day Left` · `Overdue (1 Working Day Ago)`), red / amber /
+  green from the shared `theme.css` rules — approval and rejection rows carry
+  **no** countdown (their plan is settled, and a rejected/cancelled one has no live
+  slot).
+- `HtmlBuilder.replacementBlock()` gained an opt-in `pendingCountdown`; only this
+  page passes it, so the frozen templates and every other caller are byte-identical.
+- The three `.urgency-*` colour rules moved from My Replacements' page-local style
+  block into **theme.css**, and the band choice became the shared
+  `urgencyBandClass(days)` — one colour mapping for every countdown, no second
+  copy. `daysLeftLabel()` / `workingDaysDiff()` were already shared.
+- **Live-clock fix caught while verifying:** this page's bridge never cleared
+  `MockData.mockNow`, so the new countdown measured from the frozen demo anchor
+  (Mon 5 Oct 2026) and printed `24 Working Days Left` for the 6 Nov slot. The
+  page now sets `MockData.mockNow = null` like every other live page, and the same
+  row correctly reads `Overdue (1 Working Day Ago)`.
+
+**Receipts** (testing DB, `:8030`): `tests/status-tooltips-filter-chips.spec.ts`
+**14 passed** — the new T5.RA-4 asserts a pending row carries a well-formed
+countdown and every other status carries none (status read from the page's own row
+data; the requested `<td>` has no class hook). The removal guard T5.RA-2 lost its
+approve-modal click on purpose — that click decided a real request and ate the
+pending fixture the next test needed; the file stays read-only.
+Screenshot: `/tmp/opencode/pl-pending-countdown.png` (#26 Pending →
+`Fri, 6 Nov 2026 (Week 7)  Overdue (1 Working Day Ago)`; #24 Rejected → no number).
+
 ## 2026-11-07 (business logic, user law) — the Urgency column is gone
 
 The user's decision: Approve Requests no longer judges urgency. The lecturer page

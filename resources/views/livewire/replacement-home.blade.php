@@ -52,14 +52,9 @@
 
         .grid-scroll .timetable { min-width: 1280px; }
 
-        /* ───── Urgency (inline text inside the Original Class cell) ───── */
-        /* keep the countdown on ONE line — with the columns now wrapping, a
-           narrow Original Class column used to break it as "5 days / left" */
-        .urgency-high { color: var(--color-error); font-weight: 700; white-space: nowrap; }
-        .urgency-mid { color: var(--color-warning); font-weight: 600; white-space: nowrap; }
-        /* 2026-11-07 (user law): 8+ working days reads green, not grey — green is
-           the app's "fine" colour; the far band is no longer a muted one. */
-        .urgency-low { color: var(--color-success); font-weight: 500; white-space: nowrap; }
+        /* ───── Urgency bands ───── the .urgency-* colour rules are SHARED now
+           (theme.css) because the Request Approval page prints the same
+           countdown; this page only supplies the band choice. ───── */
 
         /* ───── Just-cancelled Chip (ledger feature — its render block is
            switched off below until the TTL prompt lands; the CSS stays) ───── */
@@ -517,9 +512,7 @@
         /* The bands (user law 2026-11-07): the past AND today are red, 1–7 working
            days amber, 8+ green. `daysLeft` is signed, so 0 = today. */
         function urgencyClass(days) {
-            if (days <= 0) return 'urgency-high';
-            if (days <= 7) return 'urgency-mid';   // the CSS class is `mid` (brief said `med` — typo)
-            return 'urgency-low';
+            return urgencyBandClass(days);   // the one band rule, shared with Request Approval
         }
 
         /* The countdown is hidden only once the class date stops being the thing

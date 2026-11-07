@@ -643,7 +643,10 @@
 
             // Proposed Replacement — slot validity as a status-colored badge beside the venue
             const slotBadge = '<span class="slot-badge ' + (r.slotValidity === 'conflict' ? 'slot-conflict' : 'slot-valid') + '" data-tip="' + (r.slotValidity === 'conflict' ? (r.conflictReason || 'Slot conflict') : 'Slot available') + '">' + (r.slotValidity === 'conflict' ? '⚠' : '✓') + '</span>';
-            html += '<td class="col-replacement">' + HtmlBuilder.replacementBlock(r, { colorStatus: false, merged: true, venueCodeOnly: true, slotBadge: slotBadge }) + '</td>';
+            /* 2026-11-07 (user): the requested column prints how soon a PENDING
+               make-up starts (working-day countdown beside the slot's date). The
+               column has no urgency badge any more — this is the one number. */
+            html += '<td class="col-replacement">' + HtmlBuilder.replacementBlock(r, { colorStatus: false, merged: true, venueCodeOnly: true, slotBadge: slotBadge, pendingCountdown: true }) + '</td>';
 
             html += '<td><span class="badge ' + statusClass(r.status) + '"' + statusTipAttr(r) + ' onclick="openModalById(' + r.id + ')" style="cursor:pointer">' + r.requestStatusLabel + '</span></td>';
 
@@ -1242,6 +1245,10 @@
             MockData.currentUser = window.PAGE_DATA?.currentUser ?? MockData.currentUser;
             MockData.approvalRequests = Array.isArray(window.PAGE_DATA?.requests) ? window.PAGE_DATA.requests : MockData.approvalRequests;
             MockData.lecturers = Array.isArray(window.PAGE_DATA?.lecturers) ? window.PAGE_DATA.lecturers : MockData.lecturers;
+            /* 2026-11-07: the requested-column countdown reads the REAL today on
+               this live page (mock-data.js pins mockNow to Mon 5 Oct 2026 for the
+               frozen template). Same line every other live page carries. */
+            MockData.mockNow = null;
             populateWeekFilter();
             updateWeekArrowState();
             document.getElementById('statusFilter').value = 'Pending';

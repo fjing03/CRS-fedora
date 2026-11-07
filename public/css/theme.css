@@ -973,6 +973,17 @@ body {
     font-weight: 500;
 }
 
+/* ───── Urgency bands (shared by every day countdown) ─────
+   2026-11-07 (user law): the countdown counts WORKING days, and the bands are
+   the past/today red · 1–7 amber · 8+ GREEN (the far band was grey). Two pages
+   print this countdown (My Replacements' Original Class cell + Requested
+   Replacement column, and Request Approval's requested column for pending
+   requests), so the colour mapping lives here ONCE. `nowrap` keeps a countdown
+   from breaking mid-label in a narrow cell. */
+.urgency-high { color: var(--color-error); font-weight: 700; white-space: nowrap; }
+.urgency-mid { color: var(--color-warning); font-weight: 600; white-space: nowrap; }
+.urgency-low { color: var(--color-success); font-weight: 500; white-space: nowrap; }
+
 /* ───── Grid Wrapper ───── */
 .grid-wrapper {
     margin-top: 14px;

@@ -279,12 +279,49 @@ test('T5.RA-2: the Urgency column is gone — no badge, no sort, no chips, no st
   expect(ageTip || '').not.toContain('Urgency');
   expect(ageTip || '').toMatch(/^(Today|Yesterday|\d+ days ago) · /);
 
-  // the approve/reject compare card no longer carries the badge either
-  await page.locator('#tableBody tr[data-id] .btn-approve').first().click().catch(() => {});
-  await page.waitForTimeout(500);
-  const modalOpen = await page.locator('#approvalModal').isVisible().catch(() => false);
-  if (modalOpen) {
-    await expect(page.locator('#approvalModal .urgency-badge')).toHaveCount(0);
+  /* The approve/reject compare card is NOT asserted here on purpose: opening it
+     means clicking Approve, and this file is a read-only receipt (a click would
+     decide a real request and eat the fixture the next test needs). The card's
+     badge went with the same helper the column used — it is gone by construction. */
+});
+
+/* 2026-11-07 (user): the requested column prints how soon a PENDING make-up
+   starts — the same working-day countdown My Replacements uses, beside that
+   slot's own date. No other status may carry it (an approved row's plan is
+   settled; a rejected/cancelled one has no live slot). */
+test('T5.RA-4: a pending row prints the make-up countdown, no other status does', async ({ page }) => {
+  await page.goto(`${BASE}${RA}`);
+  await page.waitForTimeout(1400);
+  await setRAAll(page);
+
+  /* the status comes from the page's own row data (this table's status <td> has no
+     class hook); the countdown is read from the requested cell's DOM */
+  const rows = await page.evaluate(() => {
+    const data = (window as any).MockData?.approvalRequests || [];
+    return Array.from(document.querySelectorAll('#tableBody tr[data-id]')).map((tr) => {
+      const id = Number((tr as HTMLElement).dataset.id);
+      const rec = data.find((r: any) => Number(r.id) === id);
+      const cell = tr.querySelector('.col-replacement') as HTMLElement | null;
+      const span = cell ? (cell.querySelector('[class^="urgency-"]') as HTMLElement | null) : null;
+      return {
+        status: rec ? String(rec.status || '') : '',
+        hasDate: !!(cell && /\d{4}/.test(cell.textContent || '')),
+        countdown: span ? (span.textContent || '').trim() : null,
+      };
+    });
+  });
+
+  expect(rows.length).toBeGreaterThan(0);
+  const pending = rows.filter((r) => r.status.startsWith('Pending'));
+  expect(pending.length, 'the fixture must carry a pending request').toBeGreaterThan(0);
+
+  for (const r of pending) {
+    expect(r.countdown, 'a pending row shows its make-up countdown').toMatch(
+      /^(Today|Overdue \(\d+ Working Days? Ago\)|\d+ Working Days? Left)$/,
+    );
+  }
+  for (const r of rows.filter((x) => !x.status.startsWith('Pending') && x.hasDate)) {
+    expect(r.countdown, `${r.status} row must NOT carry a countdown`).toBeNull();
   }
 });
 

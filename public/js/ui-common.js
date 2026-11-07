@@ -2508,6 +2508,15 @@ function workingDaysDiff(iso) {
     return calendar === 0 ? 0 : (calendar > 0 ? 1 : -1);
 }
 
+/* The ONE band rule for a day countdown (user law 2026-11-07): past + today red,
+   1–7 working days amber, 8+ green. Both pages that print a countdown call this;
+   the colour classes themselves live in theme.css. */
+function urgencyBandClass(days) {
+    if (days <= 0) return 'urgency-high';
+    if (days <= 7) return 'urgency-mid';
+    return 'urgency-low';
+}
+
 /* daysLeft → label (working days): <0 "Overdue (n Working Days Ago)" · 0 "Today"
    · 1 "1 Working Day Left" · else "n Working Days Left". Urgency classes reuse
    the table vocabulary (urgency-high/mid/low — the only defined CSS); overdue
@@ -2659,11 +2668,20 @@ class HtmlBuilder {
         var dateStr = DateHelper.formatDate(r.replacementDate);
         var wn = getWeekNumber(r.replacementDate);
         var weekTag = wn ? ' (Week ' + wn + ')' : '';
+        /* 2026-11-07 (user): a PENDING request prints how soon its make-up slot
+           starts, beside that slot's own date — the same working-day countdown
+           My Replacements uses. Opt-in (`opts.pendingCountdown`) so every other
+           caller of this builder (and the frozen templates) stays byte-identical. */
+        var pendingDays = '';
+        if (opts.pendingCountdown && String(r.status || '').toLowerCase() === 'pending') {
+            var wd = workingDaysDiff(r.replacementDate);
+            pendingDays = ' <span class="' + urgencyBandClass(wd) + '">' + daysLeftLabel(wd) + '</span>';
+        }
         if (opts.merged) {
             var hours = uiHoursFromRange(r.replacementTime);
             var repVenue = uiVenueLine(r.replacementVenue || r.venue, r.replacementVenueName, opts);
             return '<div class="cell-class-block">' +
-                '<span class="class-day-date">' + d + ', ' + dateStr + weekTag + '</span>' +
+                '<span class="class-day-date">' + d + ', ' + dateStr + weekTag + '</span>' + pendingDays +
                 '<br><span class="class-time">' + DateHelper.format12hRange(r.replacementTime, ' ~ ') + '</span>' +
                 (hours !== null ? ' <span class="class-duration">(' + uiHoursWords(hours) + ')</span>' : '') +
                 (opts.showVenue !== false && repVenue ? '<br>' + (opts.slotBadge ? opts.slotBadge : '') + repVenue : '') +
