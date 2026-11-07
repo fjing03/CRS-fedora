@@ -587,7 +587,7 @@
             }
             if (week !== 'all') {
                 var weekLabel = document.getElementById('weekFilter').selectedOptions[0] ? document.getElementById('weekFilter').selectedOptions[0].textContent : week;
-                chips.push('<span class="filter-chip">Week: ' + weekLabel + '<button class="filter-chip-remove" onclick="document.getElementById(\'weekFilter\').value=\'all\';pageState.currentPage=1;saveFilters();buildTable()" data-tip="Remove">&times;</button></span>');
+                chips.push('<span class="filter-chip">Original Class Week: ' + weekLabel + '<button class="filter-chip-remove" onclick="document.getElementById(\'weekFilter\').value=\'all\';pageState.currentPage=1;saveFilters();buildTable()" data-tip="Remove">&times;</button></span>');
             }
             if (search) {
                 chips.push('<span class="filter-chip">Search: "' + search + '"<button class="filter-chip-remove" onclick="document.getElementById(\'searchInput\').value=\'\';pageState.currentPage=1;saveFilters();buildTable()" data-tip="Remove">&times;</button></span>');
@@ -802,7 +802,7 @@
         }
 
         function populateWeekDropdown() {
-            populateWeekSelect('weekFilter', { includeAll: true });
+            populateWeekSelect('weekFilter', { includeAll: true, allLabel: 'All Original Class Weeks' });
         }
 
         /* BRIDGE PATCH: the handoff carries the occurrence's real identity —

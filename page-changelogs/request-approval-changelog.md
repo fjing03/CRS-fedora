@@ -1,3 +1,29 @@
+## 2026-11-07 (night) — the week filter is about the REQUESTED week
+
+User brief *Week Filter Labels & Request Status*, parts 1–4 (this page).
+
+| Surface | Before | Now |
+|---|---|---|
+| Active chip | `Week: Week 7 · …` | **`Requested Replacement Week: Week 7 · 2 Nov 2026 ~ 8 Nov 2026`** |
+| "All" option | `All Weeks` | **`All Requested Replacement Weeks`** |
+| Column header | `STATUS` | **`REQUEST STATUS`** |
+| The filter | matched the **original class** date | matches the **requested replacement** date |
+
+The filter change is the real one: `filterData()` called `isInWeek(r.classDate, week)`; it now
+calls `isInWeek(r.replacementDate, week)`. So a request whose class sits in week 14 but whose
+proposal lands in week 7 belongs to **week 7** on this queue — that is the slot the PL is being
+asked to approve. The sort hint and the select's tooltip follow ("Pick the Requested Replacement
+week to display").
+
+`weekFilter-preserved.spec.ts` U1/U2 moved with it (they used to pick week 14, the fixture's
+ORIGINAL week; they now pick week 7, the fixture's requested week) — the point of those receipts
+(a decision does not blank the week filter) is unchanged.
+
+Receipts: `status-tooltips-filter-chips.spec.ts` **T5.RA-5** (the two labels, the header, the chip,
+week 7 lists request 26 while its original week 14 does not, and clearing restores it; it resets
+the fixture itself under the fail-closed guard), `week-filter-preserved` U1/W2/U3 **14/14 green**
+with the status-tooltips file.
+
 ## 2026-11-07 (night) — the pending countdown takes its own line
 
 User brief *UI Update — Urgency Label & Date Display*, part 1. The REQUESTED REPLACEMENT cell's

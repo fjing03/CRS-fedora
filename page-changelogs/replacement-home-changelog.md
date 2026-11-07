@@ -1,3 +1,20 @@
+## 2026-11-07 (night) — the week filter says WHICH weeks it means
+
+User brief *Week Filter Labels & Request Status*, part 1/4 (this page).
+
+| Surface | Before | Now |
+|---|---|---|
+| Active chip | `Week: Week 8 · …` | **`Original Class Week: Week 8 · 9 Nov 2026 ~ 15 Nov 2026`** |
+| "All" option | `All Weeks` | **`All Original Class Weeks`** |
+
+The filter itself is untouched — this page has always matched the **original class
+date**. The select's own tooltip already said "Pick the Original Class week to display" and
+still does. The shared `populateWeekSelect()` gained an opt-in `allLabel` (default `All Weeks`
+for every other caller).
+
+Receipt: `week-filter-preserved.spec.ts` **U3** (now asserts both labels beside its existing
+cancel-keeps-the-filter law); `status-tooltips-filter-chips` 14/14 together.
+
 ## 2026-11-07 (night) — the countdown owns its own line; the pop-up brackets it
 
 User brief *UI Update — Urgency Label & Date Display*.

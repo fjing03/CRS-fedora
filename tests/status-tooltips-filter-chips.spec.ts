@@ -1,4 +1,23 @@
 import { test, expect, type Page } from '@playwright/test';
+import { execSync } from 'node:child_process';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { throwUnlessTestingTarget } from './helpers/receipt-target-guard';
+
+const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+const PSQL = 'psql -q -t -U philler -d class_replacement_testing -c ';
+
+/** A fixture reset for the ONE receipt that needs a PENDING request (below). */
+function reseedFixture(): void {
+  const run = (q: string) => execSync(PSQL + JSON.stringify(q), { stdio: 'pipe' });
+  // the FK trail first (audit_logs + notifications point at the request)
+  run('delete from audit_logs where replacement_request_id in (10,24,25,26)');
+  run('delete from notifications where request_id in (10,24,25,26)');
+  execSync('DB_DATABASE=class_replacement_testing php artisan db:seed --class=TestingFixtureSeeder', {
+    cwd: ROOT,
+    stdio: 'pipe',
+  });
+}
 
 /* SDD status-tooltips-filter-chips — T5 receipt (the two specs' Receipts
    sections). House base: the frozen request-approval.spec.ts pattern —
@@ -86,6 +105,13 @@ async function setMRHAll(page: Page): Promise<number> {
 
 async function setRAAll(page: Page): Promise<number> {
   await page.selectOption('#statusFilter', 'all');
+  /* 2026-11-07 (user): this page's week filter matches the REQUESTED
+     REPLACEMENT week (a saved filter could hide the pending fixture row), so
+     every receipt here starts from All Requested Replacement Weeks. */
+  const week = await page.evaluate(() => document.getElementById('weekFilter')?.value ?? 'all');
+  if (week !== 'all') {
+    await page.selectOption('#weekFilter', 'all');
+  }
   await page.waitForTimeout(700);
   return await page.locator('#tableBody span.badge[data-tip]').count();
 }
@@ -290,6 +316,13 @@ test('T5.RA-2: the Urgency column is gone — no badge, no sort, no chips, no st
    slot's own date. No other status may carry it (an approved row's plan is
    settled; a rejected/cancelled one has no live slot). */
 test('T5.RA-4: a pending row prints the make-up countdown, no other status does', async ({ page }) => {
+  /* This receipt needs a PENDING request to prove the positive half, and a
+     previous spec (week-filter-preserved U1/U2) may have decided the fixture
+     one. It therefore RESETS the fixture itself — a write, so the fail-closed
+     guard runs first (the other receipts in this file stay read-only). */
+  throwUnlessTestingTarget('T5.RA-4 (resets the request fixture)', { requireAllowSql: true });
+  reseedFixture();
+
   await page.goto(`${BASE}${RA}`);
   await page.waitForTimeout(1400);
   await setRAAll(page);
@@ -323,6 +356,50 @@ test('T5.RA-4: a pending row prints the make-up countdown, no other status does'
   for (const r of rows.filter((x) => !x.status.startsWith('Pending') && x.hasDate)) {
     expect(r.countdown, `${r.status} row must NOT carry a countdown`).toBeNull();
   }
+});
+
+/* 2026-11-07 (user brief "Week Filter Labels & Request Status"): this page's week
+   filter is about the SLOT being approved — the requested replacement week — and
+   the labels say so. The fixture's request 26 has its class in week 14 and its
+   proposal in week 7, so the two weeks cannot be confused. */
+test('T5.RA-5: the week filter names the requested week, and filters on it', async ({ page }) => {
+  throwUnlessTestingTarget('T5.RA-5 (resets the request fixture)', { requireAllowSql: true });
+  reseedFixture();
+
+  await page.goto(`${BASE}${RA}`);
+  await page.waitForTimeout(1400);
+  await page.selectOption('#statusFilter', 'all');
+  await page.waitForTimeout(700);
+
+  // 1. the labels
+  expect(await page.locator('#weekFilter option[value="all"]').innerText()).toBe('All Requested Replacement Weeks');
+
+  // 2. the header
+  const headers = await page.locator('#tableHead th').allInnerTexts();
+  expect(headers.map((h) => h.trim())).toContain('REQUEST STATUS');
+  expect(headers.map((h) => h.trim())).not.toContain('STATUS');
+
+  // 3. the chip names the date domain
+  await page.selectOption('#weekFilter', '7');
+  await page.waitForTimeout(800);
+  await expect(page.locator('#filterChips .filter-chip', { hasText: 'Requested Replacement Week:' })).toHaveCount(1);
+  await expect(page.locator('#filterChips .filter-chip', { hasText: 'Requested Replacement Week:' })).toContainText('Week 7');
+
+  // 4. it filters by the REQUESTED date: week 7 lists #26, its original week 14 does not
+  const week7 = await page.locator('#tableBody tr[data-id]').evaluateAll((rows) => rows.map((r) => (r as HTMLElement).dataset.id));
+  expect(week7, 'the request whose proposal lands in week 7 belongs to week 7').toContain('26');
+
+  await page.selectOption('#weekFilter', '14');
+  await page.waitForTimeout(800);
+  const week14 = await page.locator('#tableBody tr[data-id]').evaluateAll((rows) => rows.map((r) => (r as HTMLElement).dataset.id));
+  expect(week14, 'its ORIGINAL class week must not list it any more').not.toContain('26');
+
+  // 5. clearing works: back to all -> the row returns, the chip is gone
+  await page.selectOption('#weekFilter', 'all');
+  await page.waitForTimeout(800);
+  const allRows = await page.locator('#tableBody tr[data-id]').evaluateAll((rows) => rows.map((r) => (r as HTMLElement).dataset.id));
+  expect(allRows).toContain('26');
+  await expect(page.locator('#filterChips .filter-chip', { hasText: 'Requested Replacement Week:' })).toHaveCount(0);
 });
 
 test('T5.RA-3: resetFilters + label + Clear-all law + ✕ + mobile cards (status threading)', async ({ page }) => {

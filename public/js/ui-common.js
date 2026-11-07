@@ -3318,7 +3318,10 @@ function populateWeekSelect(selectId, cfg) {
     }
 
     let html = '';
-    if (cfg.includeAll) html += '<option value="all">All Weeks</option>';
+    /* 2026-11-07 (user): the "all" option names WHICH date the weeks refer to —
+       `All Original Class Weeks` on My Replacements, `All Requested Replacement
+       Weeks` on the PL queue. Default stays `All Weeks` for other callers. */
+    if (cfg.includeAll) html += '<option value="all">' + (cfg.allLabel || 'All Weeks') + '</option>';
 
     /* optional visibility filter (weekData path only): only weeks passing it
        become options, keeping ABSOLUTE week numbers as values so saved

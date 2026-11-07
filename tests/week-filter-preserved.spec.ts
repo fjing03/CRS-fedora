@@ -37,7 +37,11 @@ test.use({ storageState: '.auth/staff-5425.json' });
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const PSQL = 'psql -q -t -U philler -d class_replacement_testing -c ';
 const FIXTURE_IDS = '10, 24, 25, 26';
-const WEEK = '14';          // request 26's original-class week (fixture)
+/* 2026-11-07 (user): the two pages filter on DIFFERENT dates — My Replacements on
+   the ORIGINAL CLASS week (14 for request 26), the PL queue on the REQUESTED
+   REPLACEMENT week (the fixture's proposal lands in week 7, Fri 6 Nov). */
+const WEEK = '14';          // request 26's original-class week (My Replacements)
+const PL_WEEK = '7';        // request 26's requested-replacement week (PL queue)
 const ALL_WEEKS = 15;       // 'all' + weeks 1..14
 
 /**
@@ -62,12 +66,17 @@ test.beforeEach(() => {
   });
 });
 
-async function openWithWeek14(page: Page, url: string) {
+async function openWithWeek(page: Page, url: string, week: string = WEEK, text: string = 'Week 14') {
   await page.goto(url, { waitUntil: 'networkidle' });
   await expect(page.locator('#weekFilter option')).toHaveCount(ALL_WEEKS);
-  await page.selectOption('#weekFilter', WEEK);
-  await expect(page.locator('#weekFilter')).toHaveValue(WEEK);
-  await expect(weekChip(page)).toContainText('Week 14');
+  await page.selectOption('#weekFilter', week);
+  await expect(page.locator('#weekFilter')).toHaveValue(week);
+  await expect(weekChip(page)).toContainText(text);
+}
+
+/** The PL queue's week is the REQUESTED REPLACEMENT week (week 7 in the fixture). */
+async function openWithRequestedWeek(page: Page, url: string) {
+  await openWithWeek(page, url, PL_WEEK, 'Week 7');
 }
 
 function weekChip(page: Page) {
@@ -79,19 +88,20 @@ function weekChip(page: Page) {
  * AND its label, and the chip still names the week instead of printing
  * "Week: " with nothing after the colon.
  */
-async function expectWeekFilterKept(page: Page) {
+async function expectWeekFilterKept(page: Page, week: string = WEEK, text: string = 'Week 14') {
   await expect(page.locator('#weekFilter option')).toHaveCount(ALL_WEEKS);
-  await expect(page.locator('#weekFilter')).toHaveValue(WEEK);
-  await expect(page.locator('#weekFilter option:checked')).toContainText('Week 14');
+  await expect(page.locator('#weekFilter')).toHaveValue(week);
+  await expect(page.locator('#weekFilter option:checked')).toContainText(text);
   await expect(weekChip(page)).toHaveCount(1);
-  await expect(weekChip(page)).toContainText('Week 14');
-  await expect(weekChip(page)).not.toHaveText(/^Week:\s*×$/);
+  await expect(weekChip(page)).toContainText(text);
+  await expect(weekChip(page)).not.toHaveText(/Week:\s*×$/);
 }
 
 test('U1 — Approve keeps the Week filter', async ({ page }) => {
-  await openWithWeek14(page, '/request-approval-ui');
+  await openWithRequestedWeek(page, '/request-approval-ui');
 
-  // the pending row for request 26 is visible under week 14
+  // the pending row for request 26 carries its PROPOSAL in week 7 — that is the
+  // week this page filters on, so the row is visible here
   await expect(page.locator('#tableBody tr')).toHaveCount(1);
 
   await page.locator('#tableBody .btn-approve').click();
@@ -101,7 +111,7 @@ test('U1 — Approve keeps the Week filter', async ({ page }) => {
 
   // the receipt: the row left the list, and the week survived the re-render
   await expect(page.locator('#tableBody tr')).toHaveCount(0);
-  await expectWeekFilterKept(page);
+  await expectWeekFilterKept(page, PL_WEEK, 'Week 7');
 
   // and the filter still WORKS: a week with a decided row still filters on it
   await page.selectOption('#weekFilter', 'all');
@@ -109,7 +119,7 @@ test('U1 — Approve keeps the Week filter', async ({ page }) => {
 });
 
 test('U2 — Reject keeps the Week filter', async ({ page }) => {
-  await openWithWeek14(page, '/request-approval-ui');
+  await openWithRequestedWeek(page, '/request-approval-ui');
 
   await expect(page.locator('#tableBody tr')).toHaveCount(1);
 
@@ -119,11 +129,16 @@ test('U2 — Reject keeps the Week filter', async ({ page }) => {
   await page.click('#confirmRejectBtn');
 
   await expect(page.locator('#tableBody tr')).toHaveCount(0);
-  await expectWeekFilterKept(page);
+  await expectWeekFilterKept(page, PL_WEEK, 'Week 7');
 });
 
 test('U3 — Cancel Pending keeps the Week filter (my-replacements)', async ({ page }) => {
-  await openWithWeek14(page, '/my-replacements');
+  await openWithWeek(page, '/my-replacements');
+
+  /* 2026-11-07 (user): this page's weeks are the ORIGINAL CLASS weeks, and both
+     the "all" option and the chip say so. */
+  expect(await page.locator('#weekFilter option[value="all"]').innerText()).toBe('All Original Class Weeks');
+  await expect(page.locator('#filterChips .filter-chip', { hasText: 'Original Class Week:' })).toContainText('Original Class Week: Week 14');
 
   const cancelBtn = page.locator('button[aria-label="Cancel this request"]').first();
   await expect(cancelBtn).toBeVisible();

@@ -16,9 +16,9 @@
 
 | Item | State |
 |---|---|
-| Branch / remotes | `fedora-backend` → `origin` = `fjing03/CRS-fedora.git` (**76 commits ahead**, see Push state); `upstream` = `FjingXR/class-replacement-system` (**pull-only**) |
+| Branch / remotes | `fedora-backend` → `origin` = `fjing03/CRS-fedora.git` (**78 commits ahead**, see Push state); `upstream` = `FjingXR/class-replacement-system` (**pull-only**) |
 | Push policy | **NEVER `git push`** — the user pushes. One commanded exception, 2026-11-02; afterwards the rule resumed. |
-| Push state | `origin/fedora-backend` sits at **`39b2bb7`**; **76** commits are unpushed (2026-11-07 night, newest `2b25386`). Re-check: `git rev-list --count origin/fedora-backend..HEAD`. The user pushes. |
+| Push state | `origin/fedora-backend` sits at **`39b2bb7`**; **77** commits are unpushed (2026-11-07 night, newest `ee10237` + this week-filter change). Re-check: `git rev-list --count origin/fedora-backend..HEAD`. The user pushes. |
 | AI context layout | Root **`AGENTS.md`** is a bootstrap pointer → this folder holds `AGENTS.md`, `CodingMAIN.md` (the spec), `my-coding-rules.md` (quick rules), `FR&NFR copy.md` (read-only without the user's approval), this file, and `history/`. |
 | Servers | `:8000` = `CRS-fedora-backend` / **`class_replacement_fresh`** (dev). `:8001` = `../CRS-demo` / **`class_replacement_viva`** (viva twin, `APP_DEBUG=false`). `:8030` = disposable AI/E2E lane on `class_replacement_testing` only. |
 | Database trap | `class_replacement_demo` is the **older, empty** twin (0 requests) — not the viva DB. |
@@ -88,6 +88,16 @@ B, because its own words already carry brackets). One `detailCountdown()` helper
 pop-up tabs. The same two commits archived `arrangement-slot-ownership-legend` and
 `lab-access-type-aware`. Receipts: `replacement-home-working-days.spec.ts` 8/8 (markup order +
 pop-up shape), status-badges 13/13, PL/status-tooltips 15/15.
+
+**Then the week-filter labels + the PL filter's date (brief *Week Filter Labels & Request Status*).**
+The chips and the "all" options now name their date domain (`Original Class Week:` /
+`All Original Class Weeks` on My Replacements, `Requested Replacement Week:` /
+`All Requested Replacement Weeks` on the PL queue), the PL header reads **REQUEST STATUS**, and —
+the real change — `filterData()` filters on `r.replacementDate` instead of `r.classDate`.
+`week-filter-preserved` U1/U2 moved to the fixture's requested week (7) because of it; T5.RA-5 is
+the new receipt (labels + header + the week-7/14 cross-check + clearing), and it resets the
+fixture itself under the fail-closed guard because a previous spec may have decided the pending
+request. 14/14 green across the two files.
 
 ### 2026-11-07 (later) — working-day countdowns, the PL Urgency column removed, and a request that keeps its length
 
@@ -535,6 +545,7 @@ date, and its files are dirty in the tree — see §3.
 | 28 | **The PL queue has no Urgency notion at all** (user 2026-11-07). The column, its sort, the `All/Urgent/Normal` chips, the active-filter chip, the row stripes, the phone-card line and the compare-card badge are REMOVED — do not reintroduce them. The request-age pill stays and speaks only about waiting time (`5 days ago · 4+ days old`), never urgency. The lecturer page and the PL page count down to different dates **by design** (class date vs proposed slot); the answer to *the two pages disagree* was to delete the PL rule, not to align numbers. |
 | 29 | **A request keeps its own length** (user 2026-11-07, requests #24 / #37 / #38). `replacement_requests.replacement_span` stores the block width in 30-minute cells at submit; `ReplacementRequestMapper::spanFromAnchor()` is the ONE place that turns a junction-less request into a range, and a null width keeps the legacy single-cell shape. The junction still wins when it exists. Never hard-code `count = 1` anywhere else — a second copy of that shape is exactly how the notification tip kept printing `11:00 AM ~ 11:30 AM` for a 2-hour rejection. Old rows are filled by `php artisan crs:backfill-replacement-span` (audit-derived; dry run by default). |
 | 30 | **The arrangement cell names its reason; the tip sits above it (2026-11-07).** The hover label is one of `Your Pending` · `Other Pending` · `Venue Conflict` · `Cohorts Conflict` · `Your Conflict` · `Your & Cohorts Conflict` (`Occupied` = fallback only), decided by ONE resolver (`classifyState()`) from DATA: `mine` (ownership), the busy rows' 7th tuple key `arms` (`own`/`cohort`, unioned when twins merge) and the grid payload's `status 1` (the room). The words are a real span in the cell — never the CSS `::after` overlay — so a `<br>` is legal there (11 px, 2 lines, inside the cell). The LEGEND is six rows and groups every non-yours red into **Others Conflict**: do not re-split it into Venue/Cohorts rows, and do not rename `Your Pending`/`Other Pending` back to `Pending (You)/(Others)`. The cell's tooltip is placed ABOVE the cell (the default engine mode; no `data-tip-pos`) and its own-block tag says `Your conflict`. |
+| 31 | **The week filter names which week it means, and the two pages mean different weeks (2026-11-07).** My Replacements filters the **ORIGINAL CLASS** week (chip `Original Class Week: …`, option `All Original Class Weeks`); Request Approval filters the **REQUESTED REPLACEMENT** week (chip `Requested Replacement Week: …`, option `All Requested Replacement Weeks`), because that is the slot the PL is approving — a request whose class is in week 14 and whose proposal lands in week 7 belongs to week 7 on that queue. `isInWeek()` takes whichever date the page hands it; never swap those two. The PL queue's status column header reads **REQUEST STATUS**. `populateWeekSelect(sel, { includeAll: true, allLabel })` is the one place an "all" option is built. |
 
 ---
 

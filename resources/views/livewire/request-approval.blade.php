@@ -237,7 +237,7 @@
             <option value="Cancelled">Cancelled</option>
             <option value="Completed">Completed</option>
         </select>
-        @include('partials.ui-week-nav', ['prevOnclick' => 'prevWeekFilter()', 'prevTip' => 'Previous week', 'nextOnclick' => 'nextWeekFilter()', 'nextTip' => 'Next week', 'selectId' => 'weekFilter', 'selectOnclick' => 'onWeekFilterChange(this.value)', 'selectTip' => 'Pick the Original Class week to display', 'showTodayBtn' => false])
+        @include('partials.ui-week-nav', ['prevOnclick' => 'prevWeekFilter()', 'prevTip' => 'Previous week', 'nextOnclick' => 'nextWeekFilter()', 'nextTip' => 'Next week', 'selectId' => 'weekFilter', 'selectOnclick' => 'onWeekFilterChange(this.value)', 'selectTip' => 'Pick the Requested Replacement week to display', 'showTodayBtn' => false])
         <label class="toggle-wrapper" id="completedToggle" data-tip="ON = completed requests are excluded from the list">
             <input type="checkbox" id="hideCompletedToggle" checked onchange="toggleHideCompleted()">
             <span class="toggle-track"><span class="toggle-thumb"></span></span>
@@ -250,7 +250,7 @@
     </div>
 </div>
 
-<div class="sort-hint">Click column headers to sort (Requested Timestamp, Original Class, Requested Replacement, Status)</div>
+<div class="sort-hint">Click column headers to sort (Requested Timestamp, Original Class, Requested Replacement, Request Status)</div>
 
 <div class="filter-chips" id="filterChips"></div>
 
@@ -538,7 +538,7 @@
             { label: 'Cohort', sortable: false, tip: 'Cohort(s) affected by this class — one per line; not sortable because a multi-cohort row has no single value' },
             { label: 'Original Class', sortable: true, field: 'classDate', tip: 'Original class the request refers to — its state varies (still upcoming, replaced, cancelled, holiday, etc.)' },
             { label: 'Requested Replacement', sortable: true, field: 'replacementDate', tip: 'Requested new date, time, and venue' },
-            { label: 'Status', sortable: true, field: 'status', tip: 'Current approval status' },
+            { label: 'Request Status', sortable: true, field: 'status', tip: 'Current approval status' },
             { label: 'Actions', sortable: false, tip: 'Approve or reject this request' }
         ];
 
@@ -592,7 +592,12 @@
 
             let result = MockData.approvalRequests.filter(r => {
                 if (status !== 'all' && r.status !== status) return false;
-                if (week !== 'all' && !isInWeek(r.classDate, week)) return false;
+                /* 2026-11-07 (user): the week filter on THIS page is about the
+                   slot the PL is being asked to approve — the REQUESTED
+                   REPLACEMENT date, not the original class date. A request whose
+                   class sits in week 14 but whose proposal lands in week 7 belongs
+                   to week 7 here. */
+                if (week !== 'all' && !isInWeek(r.replacementDate, week)) return false;
                 if (hideCompleted && r.status === 'Completed') return false;
                 if (search) {
                     const haystack = (r.courseCode + ' ' + r.courseName + ' ' + r.lecturer).toLowerCase();
@@ -758,7 +763,7 @@
             }
             if (week !== 'all') {
                 const weekLabel = document.getElementById('weekFilter').selectedOptions[0]?.textContent || week;
-                chips.push('<span class="filter-chip">Week: ' + weekLabel + '<button class="filter-chip-remove" onclick="document.getElementById(\'weekFilter\').value=\'all\';onWeekFilterChange()" data-tip="Remove">&times;</button></span>');
+                chips.push('<span class="filter-chip">Requested Replacement Week: ' + weekLabel + '<button class="filter-chip-remove" onclick="document.getElementById(\'weekFilter\').value=\'all\';onWeekFilterChange()" data-tip="Remove">&times;</button></span>');
             }
             if (search) {
                 chips.push('<span class="filter-chip">Search: "' + search + '"<button class="filter-chip-remove" onclick="document.getElementById(\'searchInput\').value=\'\';renderTable()" data-tip="Remove">&times;</button></span>');
@@ -1169,6 +1174,7 @@
         function populateWeekFilter() {
             populateWeekSelect('weekFilter', {
                 includeAll: true,
+                allLabel: 'All Requested Replacement Weeks',
                 labelFn: function(w) { return w.label; }
             });
         }
