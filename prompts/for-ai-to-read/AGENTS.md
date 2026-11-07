@@ -9,7 +9,7 @@ it. Paths below are relative to the repository root unless they start with `../`
   It contains: project overview, problem domain, architecture (5 objectives + slot state machine),
   tech stack & commands (incl. DB safety + stale-cache restart), domain model, RBAC matrix,
   **FR & NFR (§7)**, dataset, page inventory, git policy (§10.6), and **Coding Conventions §10** (incl. UI Design Rules §10.0).
-- **`my-coding-rules.md`** (this folder) — the user's coding rules in quick always-read form (distilled from CodingMAIN §10: the 10 UI rules + canonical color tables, OOP/PHP/naming, commit/SDD policy); read it before writing or changing any code.
+- **`my-coding-rules.md`** (this folder) — the user's coding rules in quick always-read form (distilled from CodingMAIN §10: the 11 UI rules + canonical color tables, OOP/PHP/naming, commit/SDD policy); read it before writing or changing any code.
 - Command Code memory import — the full rules are inlined into memory every turn via @path (other harnesses: read the file directly): `@prompts/for-ai-to-read/my-coding-rules.md`
 - **`FR&NFR copy.md`** (this folder) — the requirements as the codebase sees them (Chapter 3 §3.4; **49 FRs / 26 NFRs**, version `v2026-11-02`, change log at the bottom). **Editable only with the user's explicit approval** — never amend, renumber or "fix" a requirement on your own initiative; report the mismatch and ask, then mirror any approved edit into `CodingMAIN.md` §7 + the report.
 - **`docs/venue-restrictions.md`** — B005 no-Diploma REPEALED 2026-10-27 (Diploma cohorts allowed; SDD `b005-diploma-allowed`), B006 networking priority, P→labs. Read before any venue/booking work.

@@ -16,9 +16,9 @@
 
 | Item | State |
 |---|---|
-| Branch / remotes | `fedora-backend` → `origin` = `fjing03/CRS-fedora.git` (**10 commits ahead**, see Push state); `upstream` = `FjingXR/class-replacement-system` (**pull-only**) |
+| Branch / remotes | `fedora-backend` → `origin` = `fjing03/CRS-fedora.git` (**54 commits ahead**, see Push state); `upstream` = `FjingXR/class-replacement-system` (**pull-only**) |
 | Push policy | **NEVER `git push`** — the user pushes. One commanded exception, 2026-11-02; afterwards the rule resumed. |
-| Push state | `origin/fedora-backend` sits at **`39b2bb7`**; **10** commits are unpushed (2026-11-06, newest `65188bd`). Re-check: `git rev-list --count origin/fedora-backend..HEAD`. The user pushes. |
+| Push state | `origin/fedora-backend` sits at **`39b2bb7`**; **54** commits are unpushed (2026-11-07, newest `d7af7c0`). Re-check: `git rev-list --count origin/fedora-backend..HEAD`. The user pushes. |
 | AI context layout | Root **`AGENTS.md`** is a bootstrap pointer → this folder holds `AGENTS.md`, `CodingMAIN.md` (the spec), `my-coding-rules.md` (quick rules), `FR&NFR copy.md` (read-only without the user's approval), this file, and `history/`. |
 | Servers | `:8000` = `CRS-fedora-backend` / **`class_replacement_fresh`** (dev). `:8001` = `../CRS-demo` / **`class_replacement_viva`** (viva twin, `APP_DEBUG=false`). `:8030` = disposable AI/E2E lane on `class_replacement_testing` only. |
 | Database trap | `class_replacement_demo` is the **older, empty** twin (0 requests) — not the viva DB. |
@@ -39,12 +39,40 @@
 | **The merge lane** | `replacement-merge-one-table` — **APPLIED 2026-11-04**, archived `07274c1`: `e70c1ea` (payload/mapper), `6856577` (view), `ab65f9a` (routes + retired page), `d3f6f5b` + `c4d0ad3` (specs). The merged page is **My Replacements** at `/my-replacements`, with `/replacement-home-ui` and `/my-request-history-ui` as alias route entries. |
 | **Cancel Class** | **FINAL since 2026-11-05** — undo gone from the UI, the JS and the server (`23c627c`); the inbox marks stale notices inactive at read time instead of offering dead clicks (`7b7f0d9`); four final-decision modals carry *"This action cannot be UNDONE."* (`12c644a`). |
 | **E2E write-guard** | Live and fail-closed: `tests/helpers/receipt-target-guard.ts` + the three guarded specs (`b924552`, lane `receipt-target-guard` applied `7bbce9f`). Its one unverified receipt is `T3d` — the submission-conflict suite is not green; see §5. |
+| **Date & time format (2026-11-07)** | One standard, shipped in batches 1–3 (`10a51b0`, `5120a98`, `f420215`): date `5 Nov 2026` (no leading zero, day first), time `2:00 PM`, range `2:00 PM ~ 4:00 PM` (`~` joiner; hyphen acceptable but never mixed in one element; `–` is not a joiner). Day word `Thu` in compact lines / `Thursday` in prose. 24-hour grid axis and short notification tips stay. Full audit: `docs/date-time-format-audit-2026-11-07.md`; batch 4 (`#22`, `#29`, emails) open. |
 | Language | **B1-level English only** — no other language, ever. |
 | Approval rule | Investigate first. **No code edit without the user's explicit per-task approval.** |
 
 ---
 
-## 1. Latest sessions — 2026-11-03 → 2026-11-06
+## 1. Latest sessions — 2026-11-03 → 2026-11-07
+
+### 2026-11-07 — date & time format: audit, then three shipped batches
+
+- **The audit.** `docs/date-time-format-audit-2026-11-07.md` read every live render path (Blade,
+  `ui-common.js`, the PHP feeders, the mail views) and listed 30 findings. The user approved them
+  all, with three refinements: #19 (grid event block) uses `~`; #28 (week dropdown) approved; #30
+  (API chip) deferred until `/api/v1` is unparked. Rulings: `~` is the range joiner (a hyphen is
+  tolerated but no element mixes joiners); the en dash is not a joiner; day words are `Thu` in
+  compact lines and `Thursday` in prose; the 24-hour grid axis and short notification tips stay.
+- **Batch 1 (`10a51b0`)** — same-screen contradictions: Quick View proposed time 12-hour; the
+  arrangement block cards; the approve/reject compare cards (shared `classBlock` /
+  `replacementBlock`); the venue arrange question and booking subtitle.
+- **Batch 2 (`5120a98`)** — joiner drift: My Replacements cancel confirm + mobile card, history
+  `to` → `~`, arrangement error/toast/slot lines, grid event block, mobile history card,
+  `NotificationTip` schedule lines. Four unlisted en-dash spots were swept in the same pass.
+- **Batch 3 (`f420215`)** — padded/month-first dates: the shared week scaffold and
+  `DateHelper.fmt/fmtShort` unpad (`5 Nov 2026`); day headers, week dropdown, mobile chip and
+  lead-time note follow; semester chip becomes `21 Sep 2026 ~ 27 Dec 2026`; picker label/tip
+  `Thu, 24 Dec 2026`; venue session rows `Mon, 9 Nov 2026`; the holiday skip compares the same
+  unpadded shape. **Batch 4 remains**: #22 (quick-view comma), #29 (emails need their own wording
+  pass) — and #30 stays deferred.
+- **Also 2026-11-07 (`fe26b10`)**: the Request Approval urgency count now measures the **proposed
+  replacement** date (`urgencyDate(r) = r.replacementDate || r.classDate`), not the original class;
+  the header tip and `tests/status-tooltips-filter-chips.spec.ts` follow.
+- Verification for the three batches was code-level (`node --check`, `view:cache`, Pint, PHPStan)
+  plus `NotificationsBridgeTest` 36/36 (241 assertions) for batch 2; the user waived browser runs
+  for date/time changes.
 
 ### 2026-11-06 — notification row tooltips, one vocabulary (grilled brief)
 
@@ -409,6 +437,7 @@ date, and its files are dirty in the tree — see §3.
 | 23 | **A JS-owned control must survive a Livewire round-trip** (2026-11-06). Anything the server renders EMPTY but JavaScript fills (the week selects, `#filterChips`, table bodies) is deleted by the morph. The week selects are guarded centrally (`withWeekLivewireGuard()` around `pageLivewire().call()`; restore synchronously, never in a `setTimeout` — the caller's `.then()` reads the value first). Prefer that over `wire:ignore`, which would also freeze server-driven attributes. |
 | 24 | **A cancelled request is displayed as "no active request"** (user brief 2026-11-06). On My Replacements an owner-cancelled occurrence shows **Need to Arrange**, an em dash in REQUESTED REPLACEMENT and no Proposed Replacement Schedule tab — one normalisation in `buildRow()` (status → null, replacement strings blanked), never three separate view patches. The RECORD is not rewritten: `cancelled`, `decided_at`, audit rows, released slots and the notification stay, and the history/notification surfaces still read *Cancelled by YOU*. `cancelled` means "the owner did it" because `CancelPendingRequest` is the only writer and it is ownership-checked. Other statuses are untouched. **Follow-up (`remove that option`):** the status filter no longer offers **Cancelled** — nothing on the page can carry that state — and a filter saved before the removal is mapped onto Need to Arrange when restored. **Follow-up (highlight):** the just-cancelled row pulses in the WARNING tone (`flashRowPulse(el, 'warning')` — the Earliest/Today mechanic, never a second animation; the phone card carries it too). |
 | 25 | **The notification tooltip has ONE vocabulary** (user UI update 2026-11-06, after a grill): every live row is composed by `NotificationTip` — Subject / schedules / reasons / `Request ID`, labels omitted when their facts are missing, the reason holiday-first inside the Original line's parentheses, `Automatically Rejected by System` for a system rejection (`approver_id IS NULL`), students without the Staff/Requested-At lines, and the legacy `title — body` only for a kind with no layout. A `data-tip` stays TEXT. |
+| 26 | **Dates and times speak one format** (user-approved 2026-11-07, `docs/date-time-format-audit-2026-11-07.md`; batches 1–3 shipped). Date `5 Nov 2026` (day first, no leading zero); time `2:00 PM`; range `2:00 PM ~ 4:00 PM` — `~` is the joiner, a hyphen is acceptable but one element never mixes joiners, and the en dash `–` is not a range joiner (it means "no data" / a break). Day words follow their container: `Thu` in compact lines, `Thursday` in prose and expanded modal rows. Keep the 24-hour grid hour axis (a scale) and the short notification tips (no year). New surface → use this standard; never re-pad a day or move the month first. |
 
 ---
 
@@ -532,16 +561,20 @@ date, and its files are dirty in the tree — see §3.
 | **The auto-reject rule** | `app/Support/WorkingHours.php` (the office-hours clock: `gapMinutes()`, `subtractWorkingMinutes()`, `holidays()`, `MIN_GAP_MINUTES = 180`), `app/Actions/AutoRejectRequest.php` (the release + the system stamp, `approver_id` NULL), `app/Services/PendingRequestExpiry.php` (the sweep), `app/Console/Commands/AutoRejectPendingRequests.php` (`requests:auto-reject --dry-run`, scheduled in `routes/console.php`); the deadline rides `ReplacementRequestMapper::approvalDeadlineLabel()` + `statusTip()` |
 | FR 2.17 / the notice gate | `app/Actions/SubmitReplacementRequest.php` (the `slot_too_soon` and `holiday` gates, both right after the anchor lookup), `app/Support/WorkingHours.php` (`noticeCutoff()`, `isBookableOnDate()`), `app/Livewire/ReplacementArrangement.php` (`conflictText` arm), `public/js/ui-common.js` (`leadTimeCutoff`, `isSlotTooSoon`, `renderLeadTimeNote`), `tests/Feature/SubmitGatesTest.php` (renamed from `LeadTimeGateTest` when the holiday leg joined it: 6 notice + 4 holiday cases) |
 | Cancel Class + the inbox rules | `app/Livewire/NavNotifications.php` (`exceptionMap()`, the two read-time classifiers), `resources/views/partials/notif-row.blade.php` (`$rowTip`), `public/js/ui-common.js` (`showCancelToast`, `needsLoadToast`, `markLoadToastShown`, `CancelClassModal`) |
+| Date & time format (audit + batch log) | `docs/date-time-format-audit-2026-11-07.md` — approved 2026-11-07; batches 1–3 shipped (`10a51b0`, `5120a98`, `f420215`), batch 4 open |
 | Lanes already landed | `prompts/pi-replacement-home-status-badges.md`, `prompts/pi-request-completed-status.md` |
 | The approved picture of the merged page | `../ui-prototype/replacement-merged-preview.html` (outside the repo, never staged) |
 | Superseded session diaries | `history/2026-10-31-to-2026-11-03-addenda.md` |
 
 ---
 
-## 5. Open tasks (state at 2026-11-06)
+## 5. Open tasks (state at 2026-11-07)
 
-1. **[USER] Push** — 29 commits sit on `fedora-backend` past `39b2bb7` (the two prompt archives are newest, 2026-11-06).
+1. **[USER] Push** — 54 commits sit on `fedora-backend` past `39b2bb7` (newest `d7af7c0`, 2026-11-07).
    Nothing is pushed by an agent, ever.
+1a. **[AGENT, on the word] Date/time batch 4** — audit items #22 (quick-view date/time comma) and
+   #29 (the submitted/decided emails: 12-hour time + full date, their own wording pass). #30 (API
+   chip `d-M-Y`) stays deferred until `/api/v1` is unparked.
 2. ~~**[USER, waiting on the archive word]** Seven finished lanes~~ — **ARCHIVED 2026-11-05**:
    `mytimetable-jump-highlight`, `notif-click-behaviour`, `receipt-target-guard`,
    `replacement-home-status-badges`, `request-completed-status`, `notif-recipient-rulings`,

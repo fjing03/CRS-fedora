@@ -497,7 +497,7 @@ Each page's development history is logged in `page-changelogs/*.md` — **create
 The project applies **OOP principles at every layer**; FYP rubric evaluates this. Keep it consistent:
 
 ### 0. UI Design Rules (user-mandated 2026-08-01)
-These ten rules are **non-negotiable** for every page and every future change:
+These eleven rules are **non-negotiable** for every page and every future change:
 
 1. **Colors must be consistent across all pages.**
    - ALL colors come from the CSS custom-property token set in `public/css/theme.css` (`--color-bg`, `--color-surface`, `--color-primary`/`secondary`/`tertiary`/`error` + their `-container`/`-on-*` variants, defined once for dark + once for light).
@@ -590,6 +590,13 @@ server-driven `disabled` states keep working — never reach for `wire:ignore` h
 9. **Mobile responsive design.** Every page MUST include mobile layout (≤768px breakpoint): nav drawer, card layout for tables, 2-col summary cards, flex-wrap legend, bottom-sheet modals, ≥44×44px touch targets (WCAG 2.5.5), swipe week navigation, `clamp()` typography, safe-area insets, full-width inputs, viewport meta with `viewport-fit=cover`. Shared CSS in `theme.css`, JS helpers in `ui-common.js`.
 
 10. **Toast bar for critical actions.** After any critical action, show a toast bar at **bottom-left** with a success message; auto-dismiss after **5 seconds**. CSS in `theme.css`, JS helper `toast.show(message, undoCallback, duration)` in `ui-common.js` (the old `showToast()` name is gone). **The Undo button exists only for genuinely reversible actions** (hiding a notification, clearing a selection). **Cancel Class is FINAL** (user ruling 2026-11-05) — no undo affordance, no undo callback, and the server-side `cancelClassUndo()` was deleted; the toast is a plain confirmation. Every final decision's modal additionally carries the shared sentence *"This action cannot be UNDONE."* (`partials.ui-irreversible-line`, used by Approve, Reject, Cancel Request and Cancel Class). The cancellation reminder toast is **one-shot** (it cannot re-fire on every page load) and a `?blocked=request-pending|request-approved` arrival shows the entry-guard message FIRST, deferring any cancellation reminder to the next page load.
+
+11. **Dates and times speak one format (user-approved 2026-11-07, `docs/date-time-format-audit-2026-11-07.md`).**
+    - Date `5 Nov 2026` — day first, no leading zero, short month, 4-digit year. Time `2:00 PM` — 12-hour, uppercase meridiem, no leading zero.
+    - Range `2:00 PM ~ 4:00 PM` — `~` is the joiner, one space each side. A plain hyphen (`2:00 PM - 4:00 PM`) is acceptable where already used, but **one element never mixes joiners**. The en dash `–` is NOT a range joiner in this UI (it already means "no data" / a parenthetical break).
+    - Day words follow their container: `Thu` in compact lists and data lines (table cells, mobile cards, chips, slot-picker labels, tooltip data lines); `Thursday` in prose (sentences, questions, toasts) and in expanded detail-modal rows.
+    - The 24-hour grid hour axis stays 24-hour (it is a scale, not prose); notification tooltips keep the short form (no year).
+    - New surface → use this standard. Do not invent a fourth shape; do not re-pad a day or move the month first.
 
 ### 1. Inheritance
 - **Blade layout inheritance:** every page `@extends('layouts.ui-template')` and fills `@section('content')`, `@section('page-styles')`, `@section('page-scripts')`, `@yield('title')`.
