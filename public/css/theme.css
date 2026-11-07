@@ -2740,6 +2740,17 @@ html.dark .semester-bar select:not(.week-select) {
 .legend-swatch.event-selection:hover {
     border-color: var(--color-primary);
 }
+/* 2026-11-07 — the swatch keeps the state's FILL + BORDER, never the grid's
+   hover label. `.cell-occupied::after` / `.cell-pending::after` /
+   `.cell-reserved::after` (above) draw `content: var(--hover-label)` on
+   `position:absolute; inset:0`, which is meant to fill a grid CELL. A swatch has
+   no positioned ancestor, so that overlay's containing block was the viewport:
+   while hovering, the swatch's own `filter: brightness()` happened to clip it to
+   the square; the instant the pointer left, the filter went and the still-fading
+   overlay (transition 0.15s) painted the WHOLE screen in the state colour —
+   the reported red / amber / grey flash. Declared after the cell family so it
+   wins on source order (same specificity). */
+.legend-swatch::after { content: none; }
 
 /* ── Public Holiday hover label ─────────────────────────────── */
 .cell-ph {

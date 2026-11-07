@@ -450,5 +450,41 @@ test.describe('resolver precedence and the legend', () => {
     await expect(hint).toContainText('thick border (3px) = yours');
     await expect(hint).toContainText("no border = others'");
     await expect(page.locator('.legend-bar .osd-thin')).toHaveCount(0);
+
+    /* The swatches borrow the CELL classes, and those carry a "hover label"
+       overlay (`.cell-occupied::after` …) meant to fill a grid CELL. On a swatch
+       it had no positioned ancestor, so on mouse-out it painted the whole
+       viewport in the state colour for the 0.15s fade (the 2026-11-07 flash).
+       A swatch must therefore never generate that pseudo box — while hovering or
+       after leaving — and the grid cell must still get its label. */
+    const swatches = page.locator('.legend-bar .legend-swatch');
+    const count = await swatches.count();
+    for (let i = 0; i < count; i += 1) {
+      const sw = swatches.nth(i);
+      expect(
+        await sw.evaluate((el) => getComputedStyle(el, '::after').content),
+        `legend swatch ${i} paints no hover-label overlay`,
+      ).toBe('none');
+      await sw.hover();
+      await page.waitForTimeout(200);
+      expect(
+        await sw.evaluate((el) => getComputedStyle(el, '::after').content),
+        `legend swatch ${i} stays overlay-free on hover`,
+      ).toBe('none');
+      await page.mouse.move(4, 4);
+      await page.waitForTimeout(40);
+      const leaving = await sw.evaluate((el) => {
+        const cs = getComputedStyle(el, '::after');
+        return { content: cs.content, width: cs.width };
+      });
+      expect(leaving.content, `legend swatch ${i} paints nothing on mouse-out`).toBe('none');
+      expect(leaving.width, `legend swatch ${i} is never viewport-sized`).not.toBe('1440px');
+    }
+
+    // …and the grid keeps the affordance the swatches gave up
+    const cell = page.locator('.cell-content.cell-occupied').first();
+    await cell.hover();
+    await page.waitForTimeout(200);
+    expect(await cell.evaluate((el) => getComputedStyle(el, '::after').content)).toContain('Occupied');
   });
 });

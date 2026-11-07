@@ -1,3 +1,49 @@
+## 2026-11-07 (bug fix, user report) — the legend squares stopped painting the whole screen
+
+**Symptom:** hovering a legend square and moving the mouse away made the grid area
+flash red / amber / grey for a split second.
+
+**Cause (measured):** the squares carry the grid's real cell classes, and those own a
+"hover label" overlay — `.cell-occupied::after` / `.cell-pending::after` /
+`.cell-reserved::after` (`content: var(--hover-label)` = *Occupied* / *Pending* /
+*Reserved*, `position:absolute; inset:0`, `transition: opacity 0.15s`). In the grid it
+fills a cell (`td.hour-cell:has(.cell-content){position:relative}`). A swatch has **no
+positioned ancestor** (`theme.css:1689` sets none, and nor does `.legend-item`,
+`.legend-items`, `.legend-bar`, `.lw-page`, `.app-container` — all measured
+`position: static`), so its containing block is the **initial containing block = the
+viewport**.
+
+While hovering it looked fine by accident: `.cell-*:hover { filter: brightness(1.2) }`
+makes the swatch a containing block, so the overlay measured **8×8 px** (the 14 px box
+minus the 3 px borders). On mouse-out the filter goes **instantly** while the overlay
+keeps fading for 150 ms — measured at leave+0 ms **1440×900 px, opacity 0.258**,
++40 ms `0.031`, +120 ms `0`. That rectangle is the flash. No JavaScript is involved
+(no listener touches it; injecting only `content: none` removes it).
+
+**Fix:** one rule, next to the cell family so it wins on source order (same specificity):
+
+```css
+.legend-swatch::after { content: none; }
+```
+
+The swatch keeps exactly what it is for — the state fill and the 3px / no-border owner
+ring — and the grid keeps its hover labels (verified: a red cell still shows *Occupied*
+filling its 74×74 px cell). It also removes the second, smaller symptom: the 13 px
+label text used to spill out of the 14 px square over the legend wording.
+
+**Why the rule has to sit after `.cell-*::after`:** same specificity, so the first
+placement (in the generic legend block at :1689) silently lost to the later cell rules —
+the fix looked applied and did nothing. The receipt caught it.
+
+**Receipt:** `tests/arrangement-slot-ownership.spec.ts` (existing legend test, +12
+assertions): every swatch has `::after` content `none` before hover, during hover and
+40 ms after leaving, its box is never viewport-sized, and the grid cell still renders
+`Occupied`. Green 6/6; **red-check** with the rule removed fails at "legend swatch 2
+paints no hover-label overlay". Screenshots: `/tmp/opencode/after-fix-leave40-{dark,light}.png`
+(clean), against the pre-fix `/tmp/opencode/lg-leave-4-40.png` (whole page washed red).
+Re-measured in dark and light themes; the cohort/venue legends use `event-*` classes
+with `content: none` already, so they are untouched.
+
 ## 2026-11-06 (UI + bug fix, user brief `UI Update & Bug Fix — Pending Slots, Conflicts & Legend Styling.md`) — colour = state, border = owner
 
 **The bug, measured:** a cell was painted by two independent arms and the engine arm won by
