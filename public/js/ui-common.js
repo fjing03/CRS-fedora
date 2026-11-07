@@ -2434,10 +2434,12 @@ class DateHelper {
    semester's own holiday rows (the same set the timetable greys out and the
    booking lead-time rule already skips — never a hard-coded calendar). */
 
-/* The semester's public-holiday DATES as 'Y-m-d' keys. MockData.holidays carries
-   week + dayIndex only, so the dates come from semester.startDate (the same
-   arithmetic as generateWeekData / ClassCancellation._holidayDateKeys). A missing
-   payload degrades to an empty set (the weekend-only rule). */
+/* The semester's public-holiday DATES as 'Y-m-d' keys — the ONE derivation in
+   the page. MockData.holidays carries week + dayIndex only, so the dates come
+   from semester.startDate (the same arithmetic as generateWeekData). Shared by
+   the class-date countdown AND ClassCancellation's cancel window (its private
+   copy was deleted 2026-11-07). A missing payload degrades to an empty set (the
+   weekend-only rule). */
 function workingDayHolidayKeys() {
     const out = new Set();
     const s = window.MockData && MockData.semester ? MockData.semester.startDate : null;
@@ -4287,22 +4289,16 @@ const ClassCancellation = {
         return d;
     },
 
-    /* The semester's public-holiday DATES as `y-m-d` keys. MockData.holidays
-       carries week + dayIndex only, so the dates come from the semester start
-       (the same arithmetic generateWeekData() runs) — never from a hardcoded
-       calendar. Missing payload pieces degrade to an empty set (the
-       weekend-only rule) instead of throwing. */
+    /* The semester's public-holiday DATES as `y-m-d` keys — ONE derivation for
+       the whole page: `workingDayHolidayKeys()` (the countdown's own source)
+       also feeds this cancel-class window, so a holiday added to the payload can
+       never be a holiday for one rule and an ordinary day for the other.
+       2026-11-07 (user decision): the private copy was deleted, not kept in
+       step by hand. Same source data as before (MockData.semester.startDate +
+       MockData.holidays `{week, dayIndex}`), same unpadded key format as
+       `_dateKey()`. */
     _holidayDateKeys() {
-        const out = new Set();
-        const s = MockData && MockData.semester ? MockData.semester.startDate : null;
-        if (!s) return out;
-        const p = String(s).split('-');
-        const start = new Date(parseInt(p[0], 10), parseInt(p[1], 10) - 1, parseInt(p[2], 10));
-        (MockData.holidays || []).forEach(function(h) {
-            const dt = new Date(start.getFullYear(), start.getMonth(), start.getDate() + ((h.week - 1) * 7) + h.dayIndex);
-            out.add(dt.getFullYear() + '-' + (dt.getMonth() + 1) + '-' + dt.getDate());
-        });
-        return out;
+        return workingDayHolidayKeys();
     },
 
     /* One local-date identity for the holiday set and the walk-back. */

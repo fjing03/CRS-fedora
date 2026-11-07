@@ -1,3 +1,22 @@
+## 2026-11-07 — one holiday-date list for the countdown and the cancel window
+
+The page code derived the semester's holiday **dates** twice: once for the
+cancel-class window (`ClassCancellation._holidayDateKeys()`) and once for the new
+class-date countdown (`workingDayHolidayKeys()`). Both read the same payload
+(`MockData.semester.startDate` + `MockData.holidays` `{week, dayIndex}`) and both
+produced unpadded `y-m-d` keys, so they agreed — but a holiday added later could
+have been updated in one and not the other, making the cancel rule treat it as an
+ordinary day while the countdown skipped it.
+
+`ClassCancellation._holidayDateKeys()` is now a one-line delegate to
+`workingDayHolidayKeys()`; the private arithmetic copy is deleted (user decision:
+delete, not "keep in step" comments).
+
+Receipts: `tests/cancel-class.spec.ts` **16 passed / 4 skipped** — including
+`S4 — own class on a holiday day shows no cancel button (Deepavali in-lieu
+Monday)`, which is the direct proof that the cancel rule still reads the shared
+list — plus the working-days spec 7/7. No behaviour change intended or observed.
+
 ## 2026-11-07 — the details pop-up carries the same countdown
 
 The row pop-up ("Replacement Details") showed the dates but no countdown, while the
