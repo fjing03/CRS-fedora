@@ -16,9 +16,9 @@
 
 | Item | State |
 |---|---|
-| Branch / remotes | `fedora-backend` → `origin` = `fjing03/CRS-fedora.git` (**81 commits ahead**, see Push state); `upstream` = `FjingXR/class-replacement-system` (**pull-only**) |
+| Branch / remotes | `fedora-backend` → `origin` = `fjing03/CRS-fedora.git` (**82 commits ahead**, see Push state); `upstream` = `FjingXR/class-replacement-system` (**pull-only**) |
 | Push policy | **NEVER `git push`** — the user pushes. One commanded exception, 2026-11-02; afterwards the rule resumed. |
-| Push state | `origin/fedora-backend` sits at **`39b2bb7`**; **81** commits are unpushed (2026-11-07 night — the newest three are the week-filter change, the brief archive and this AI-context sync; `git log --oneline -3` for their hashes). Re-check: `git rev-list --count origin/fedora-backend..HEAD`. The user pushes. |
+| Push state | `origin/fedora-backend` sits at **`39b2bb7`**; **82** commits are unpushed (2026-11-07 night — the newest are the week-filter change, the brief archive, the AI-context sync and the detail-modal tab order; `git log --oneline -4` for their hashes). Re-check: `git rev-list --count origin/fedora-backend..HEAD`. The user pushes. |
 | AI context layout | Root **`AGENTS.md`** is a bootstrap pointer → this folder holds `AGENTS.md`, `CodingMAIN.md` (the spec), `my-coding-rules.md` (quick rules), `FR&NFR copy.md` (read-only without the user's approval), this file, and `history/`. **`my to-do list.md`** is the user's own MAIN task list — read it, mark a task Done only after verifying it, never rewrite / re-word / delete a task (ask first). |
 | Servers | `:8000` = `CRS-fedora-backend` / **`class_replacement_fresh`** (dev). `:8001` = `../CRS-demo` / **`class_replacement_viva`** (viva twin, `APP_DEBUG=false`). `:8030` = disposable AI/E2E lane on `class_replacement_testing` only. |
 | Database trap | `class_replacement_demo` is the **older, empty** twin (0 requests) — not the viva DB. |
@@ -99,6 +99,18 @@ the real change — `filterData()` filters on `r.replacementDate` instead of `r.
 the new receipt (labels + header + the week-7/14 cross-check + clearing), and it resets the
 fixture itself under the fail-closed guard because a previous spec may have decided the pending
 request. 14/14 green across the two files.
+
+**Then the detail pop-ups (user brief *Modal Tab Order & Class Type Display*, `7aa9ad7`).**
+The **Proposed Replacement Schedule** tab is now LEFT-MOST and the tab both detail modals open on
+(`DetailModal.render()` activates index 0, so the order *is* the default); the status tab stays last,
+and a row with no proposal keeps Original first because that tab cannot be invented. The PL modal's
+subtitle now prints the class TYPE in full words — `#28 · AMCS2093 — Operating Systems (Lecture)` —
+from the row's own `classType` through `UiLabels.classType(…, 'long')`. Display-only, SDD waived.
+Receipts: five specs **34/34** with `--workers=1`. Two pre-existing test-law repairs while
+verifying: the reject card's joiner assertion still said `to` (law is `~`), and both reseed helpers
+only cleared the FK trail for fixture ids 10/24/25/26 — a spec that created its own request made
+`TestingFixtureSeeder` die on `audit_logs_replacement_request_id_foreign`; both now clear the whole
+trail (disposable DB). Run the reseeding specs with `--workers=1`.
 
 ### 2026-11-07 (later) — working-day countdowns, the PL Urgency column removed, and a request that keeps its length
 
@@ -703,7 +715,7 @@ date, and its files are dirty in the tree — see §3.
 
 ## 5. Open tasks (state at 2026-11-07)
 
-1. **[USER] Push** — **81** commits sit on `fedora-backend` past `39b2bb7` (2026-11-07 night; `git log --oneline -3`).
+1. **[USER] Push** — **82** commits sit on `fedora-backend` past `39b2bb7` (2026-11-07 night; `git log --oneline -4`).
    Nothing is pushed by an agent, ever.
 1b. **[USER, the archive word]** **FOUR lanes were ARCHIVED 2026-11-07** on the user's word
    (`.sdd/archive/2026-11-07-*`, `status: archived` + `archived: 2026-11-07`):
