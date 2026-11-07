@@ -7,4 +7,4 @@
 - [x] T5 `TestingFixtureSeeder` carries spans (requests 24/25/26/10)
 - [x] T6 `ReplacementSpanTest` + the legacy leg in `MyReplacementsPayloadTest`
 - [x] T7 gates: pint, phpstan, targeted suites, full `php artisan test`
-- [ ] T8 demo-DB migrate + backfill (needs the user's word + snapshot + receipt)
+- [x] T8 demo-DB migrate + backfill (needs the user's word + snapshot + receipt)
