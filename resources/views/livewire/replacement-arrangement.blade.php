@@ -1051,13 +1051,24 @@
 
         @include('partials.ui-grid-table')
 
+        {{-- SDD arrangement-slot-ownership-legend (user law, 2026-11-06):
+             six rows, and every swatch carries the REAL cell class — so fill
+             AND border show, and the legend can never drift from the grid.
+             Capitals do the emphasis because a data-tip is plain text (the
+             engine sets textContent + pre-line; markup would print literally),
+             and the Conflict (Others) tip's line break is a \n, NOT a <br>. --}}
         @include('partials.ui-legend-bar', [
+            'ownershipHint' => [
+                ['demo' => 'osd-thick', 'text' => 'thick border (3px) = yours'],
+                ['demo' => '', 'text' => "no border = others'"],
+            ],
             'items' => [
-                ['color' => 'var(--color-success-container)', 'label' => 'Available', 'tip' => 'Free slot — click to select as replacement'],
-                ['color' => 'var(--color-primary-container)', 'label' => 'Your Current Selection', 'tip' => 'Slot you have selected for the replacement'],
-                ['color' => 'var(--color-tertiary-container)', 'label' => 'Pending (You)', 'tip' => 'Your replacement request awaiting approval'],
-                ['color' => 'var(--color-error-container)', 'label' => 'Unavailable', 'tip' => 'Cannot book — occupied by a class, or falls on a public holiday / Sunday'],
-                ['color' => 'var(--color-surface-variant)', 'label' => 'Reserved by Others', 'tip' => 'Cannot book — their replacement request is still pending approval'],
+                ['class' => 'cell-available', 'label' => 'Available', 'tip' => 'FREE SLOT — CLICK to select as the replacement (slots inside the 3-working-day window are read-only)'],
+                ['class' => 'event-selection', 'label' => 'Your Current Selection', 'tip' => 'The slot(s) you have SELECTED for the replacement'],
+                ['class' => 'cell-pending', 'label' => 'Pending (You)', 'tip' => 'Your replacement request for this slot is WAITING for approval — thick border (3px)'],
+                ['class' => 'cell-reserved', 'label' => 'Pending (Others)', 'tip' => "Another staff member's replacement request is WAITING for approval here — no border, you CANNOT BOOK it"],
+                ['class' => 'cell-occupied cell-occupied--mine', 'label' => 'Conflict (Yours)', 'tip' => 'CANNOT BOOK — your own Normal class or Replacement class is in this slot — thick border (3px)'],
+                ['class' => 'cell-occupied', 'label' => 'Conflict (Others)', 'tip' => "CANNOT BOOK — VENUE CONFLICT (this slot is used by another class in this room),\nCOHORT CONFLICT (the related cohorts have another class at that time)"],
             ]
         ])
 
@@ -1673,6 +1684,36 @@
             previewRange = null;
         }
 
+        /* SDD arrangement-slot-ownership-legend (2026-11-06): the cell's ONE
+           classification, from the two arms together. Colour = state
+           (amber = a pending reservation, red = a conflict), border =
+           ownership (3px = yours, none = others'). Pure, exported on
+           window, and exercised directly by the browser receipt.
+
+           Precedence — deliberately counter-intuitive in two places:
+             1. own pending   (grid status 3, or a pending row with mine)
+             2. others' pending (grid status 4, or a pending row without mine)
+             3. own conflict  (any non-pending row with mine)
+             4. any other block (engineBlocked, or grid status 1)
+           Rules 1–2 decide the AMBER family and rule 3 the RED one, so a
+           cell that is both my class and someone's pending is amber, and a
+           red cell is 3px if ANY blocking row is mine — the rule asks "is
+           any row mine?", never "is any row not mine?". A missing 6th key
+           is not "others'" (it falls through to rule 4). */
+        function classifyCell(facts) {
+            const matches = Array.isArray(facts.engineMatches) ? facts.engineMatches : [];
+            const mine = function (b) { return b[5] === true; };
+            const pending = matches.filter(function (b) { return b[4] === 'pending'; });
+            const others = matches.filter(function (b) { return b[4] !== 'pending'; });
+
+            if (facts.gridStatus === 3 || pending.some(mine)) return 'cell-pending';
+            if (facts.gridStatus === 4 || pending.some(function (b) { return b[5] === false; })) return 'cell-reserved';
+            if (others.some(mine)) return 'cell-occupied cell-occupied--mine';
+            if (facts.engineBlocked || facts.gridStatus === 1) return 'cell-occupied';
+
+            return null;   /* → too-soon / available, decided by the caller */
+        }
+
         function buildTimetable() {
             clearPreview(); /* a rebuild invalidates any open hover preview */
             const days = getDays();
@@ -1807,48 +1848,60 @@
 
                     if (isSunday || day.holiday) {
                         div.className += day.holiday ? ' cell-ph' : ' cell-sun';
-                    } else if (engineBlocked) {
-                        div.className += engineMatches.length
-                            && engineMatches.every(b => b[4] === 'pending')
-                            ? ' cell-pending' : ' cell-occupied';
-                        attachHolder();
-                    } else if (cellData) {
-                        /* SDD occupied-cell-explanations round (the grid arm
-                           rides the SAME renderer as the engine arm): the
-                           payload's 4th key is an ARRAY of INDICES into the
-                           deduped holder-text library (the payload gate's
-                           dictionary fallback) — resolve each to its block
-                           string, then build one pseudo-match per element in
-                           the engine arm's exact tuple shape and call the
-                           unchanged renderHolderTip (header count, why-tags,
-                           flat aria all parse per BLOCK). statusKind governs
-                           the TIP ONLY: grid 1 (occupied) → null; grid 3/4
-                           (pending families) → 'pending'. The cell's CLASS
-                           comes from the grid status via the untouched
-                           branches below (pre-existing asymmetry:
-                           engine-arm all-pending cells show cell-pending;
-                           grid-4 stays cell-reserved). */
-                        const holderTexts = (typeof MockData !== 'undefined' && MockData.holderTexts) || window.PAGE_DATA.holderTexts || [];
-                        const gridHolderMatches = Array.isArray(cellData[3]) && cellData[3].length
-                            ? cellData[3].map(id => [di, hi, hi + 1, holderTexts[id] || '', cellData[2] === 1 ? null : 'pending'])
-                                .filter(m => m[3])
-                            : null;
-                        if (gridHolderMatches) {
-                            const gridTip = renderHolderTip(gridHolderMatches);
-                            if (gridTip) {
-                                div.setAttribute('data-tip', gridTip.readable);
-                                div.setAttribute('data-tip-pos', 'left');
-                                div.setAttribute('aria-label', gridTip.flat);
-                                div.setAttribute('tabindex', '0');
-                                div.style.cursor = 'help';
+                    } else {
+                        /* SDD arrangement-slot-ownership-legend (2026-11-06):
+                           ONE classification per cell. Before this, the engine
+                           arm and the grid arm each chose a class on their own
+                           and the engine arm won by being checked first — so
+                           another staff member's pending (which reaches the
+                           cohort vector ownerless) painted the "Pending (You)"
+                           amber. Ownership is now data (the tuple's 6th key /
+                           the grid's status 3-vs-4) and one resolver decides. */
+                        const gridStatus = cellData ? cellData[2] : null;
+                        const ownershipClass = classifyCell({
+                            gridStatus: gridStatus,
+                            engineMatches: engineMatches,
+                            engineBlocked: engineBlocked
+                        });
+
+                        /* The tips keep today's wording and order. The engine
+                           tip wins when it has a labelled block (the same
+                           precedence as before); otherwise the grid library
+                           speaks. The payload merges twin rows, so the header
+                           count and the block list are unchanged. */
+                        if (engineMatches.some(function (b) { return !!b[3]; })) {
+                            attachHolder();
+                        } else if (cellData) {
+                            /* SDD occupied-cell-explanations round (the grid arm
+                               rides the SAME renderer as the engine arm): the
+                               payload's 4th key is an ARRAY of INDICES into the
+                               deduped holder-text library (the payload gate's
+                               dictionary fallback) — resolve each to its block
+                               string, then build one pseudo-match per element in
+                               the engine arm's exact tuple shape and call the
+                               unchanged renderHolderTip (header count, why-tags,
+                               flat aria all parse per BLOCK). statusKind governs
+                               the TIP ONLY: grid 1 (occupied) → null; grid 3/4
+                               (pending families) → 'pending'. */
+                            const holderTexts = (typeof MockData !== 'undefined' && MockData.holderTexts) || window.PAGE_DATA.holderTexts || [];
+                            const gridHolderMatches = Array.isArray(cellData[3]) && cellData[3].length
+                                ? cellData[3].map(id => [di, hi, hi + 1, holderTexts[id] || '', cellData[2] === 1 ? null : 'pending'])
+                                    .filter(m => m[3])
+                                : null;
+                            if (gridHolderMatches) {
+                                const gridTip = renderHolderTip(gridHolderMatches);
+                                if (gridTip) {
+                                    div.setAttribute('data-tip', gridTip.readable);
+                                    div.setAttribute('data-tip-pos', 'left');
+                                    div.setAttribute('aria-label', gridTip.flat);
+                                    div.setAttribute('tabindex', '0');
+                                    div.style.cursor = 'help';
+                                }
                             }
                         }
-                        if (cellData[2] === 1) {
-                            div.className += ' cell-occupied';
-                        } else if (cellData[2] === 3) {
-                            div.className += ' cell-pending';
-                        } else if (cellData[2] === 4) {
-                            div.className += ' cell-reserved';
+
+                        if (ownershipClass) {
+                            div.className += ' ' + ownershipClass;
                         } else if (isSlotTooSoon(weekData, weekNav.currentWeek, di)) {
                             /* lead-time rule: inside the 3-working-day window — read-only */
                             div.className += ' cell-too-soon';
@@ -1856,12 +1909,6 @@
                             div.className += ' cell-available';
                             setupAvailableCell(div, di, hi);
                         }
-                    } else if (isSlotTooSoon(weekData, weekNav.currentWeek, di)) {
-                        /* lead-time rule: inside the 3-working-day window — read-only */
-                        div.className += ' cell-too-soon';
-                    } else {
-                        div.className += ' cell-available';
-                        setupAvailableCell(div, di, hi);
                     }
 
                     const timeLabel = document.createElement('span');
@@ -4527,6 +4574,7 @@ triggerText.textContent = slotTriggerLabel(slot);
         window.proceed = proceed;
         window.clearAll = clearAll;
         window.clearSelection = clearSelection;
+        window.classifyCell = classifyCell;   // arrangement-slot-ownership-legend: the browser receipt calls it directly
         window.hideConfirmModal = hideConfirmModal;
         window.showHelp = showHelp;
         window.hideHelp = hideHelp;

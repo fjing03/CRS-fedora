@@ -2710,13 +2710,35 @@ html.dark .semester-bar select:not(.week-select) {
     background: var(--color-error-container);
     --hover-label: 'Occupied';
 }
+/* ── arrangement-slot-ownership-legend (user law, 2026-11-06) ─────────
+   COLOUR = state, BORDER = ownership — the cohort/venue two-axis language,
+   with 0px standing in for their 0.5px hairline:
+
+     amber  = a pending reservation   red = a conflict
+     3px    = YOURS                   no border = someone else's
+
+   So a pending slot is amber either way, and the ring says whose; a
+   conflict is red either way, and the ring says whose. `--mine` is ADDED to
+   the base class (never replaces it), because the summary counters count
+   `.cell-occupied` and must keep counting every red cell once. */
 .cell-pending {
     background: var(--color-tertiary-container);
+    border: 3px solid var(--color-tertiary);
     --hover-label: 'Pending';
 }
 .cell-reserved {
-    background: var(--color-surface-variant);
+    /* another staff member's pending request: same amber, no ring. (Grey is
+       left to .cell-too-soon alone, which is the collision this removes.) */
+    background: var(--color-tertiary-container);
     --hover-label: 'Reserved';
+}
+.cell-occupied--mine {
+    border: 3px solid var(--color-error);
+}
+/* the legend's "Your Current Selection" swatch is not a control: keep its
+   primary ring on hover (the grid's red flip is the deselect affordance) */
+.legend-swatch.event-selection:hover {
+    border-color: var(--color-primary);
 }
 
 /* ── Public Holiday hover label ─────────────────────────────── */
