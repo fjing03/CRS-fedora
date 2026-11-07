@@ -1,3 +1,17 @@
+## 2026-11-07 — a rejected request keeps its real length (the anchor is one cell)
+
+Same defect as the Request Approval entry of this date: the release actions delete the junction
+rows, and the anchor is ONE 30-minute cell, so a rejected 1-hour or 2-hour proposal displayed
+`(30 minutes)` with a truncated end.
+
+`replacement_requests.replacement_span` now carries the block width (written at submit,
+`span × 30` minutes read back through `spanFromAnchor()`), and this page's request query selects
+it — the explicit `get([...])` list had silently dropped it, which the new test caught. A row
+with no stored width (pre-column data the backfill could not resolve) keeps the old anchor shape.
+
+Receipt: `tests/Feature/MyReplacementsPayloadTest.php` case 5 — the legacy null still reads
+`14:00 – 14:30`, and the same row with `replacement_span = 4` reads `14:00 – 16:00`.
+
 ## 2026-11-07 — one holiday-date list for the countdown and the cancel window
 
 The page code derived the semester's holiday **dates** twice: once for the

@@ -80,7 +80,11 @@ class ReplacementHome extends Component
            written, i.e. the newest (greatest submitted_at, tie-break id).
            `replacement_time_slot_id` is REQUIRED: it is the anchor fallback for
            a junction-less request (the batch span read only sees junction
-           rows). `remarks`/`rejection_reason` are DISPLAY-ONLY columns
+           rows). `replacement_span` is REQUIRED beside it (SDD
+           replacement-span-persistence, 2026-11-07): an explicit column list
+           silently returns NULL for anything it omits, and the anchor is one
+           30-minute cell — without the width a decided row reads 0.5 hours.
+           `remarks`/`rejection_reason` are DISPLAY-ONLY columns
            (design §1.2) — no FK, no computation. */
         $latestRequests = ReplacementRequest::query()
             ->with(['replacementTimeSlot.venue'])
@@ -88,7 +92,7 @@ class ReplacementHome extends Component
             ->orderBy('submitted_at')->orderBy('id')
             ->get([
                 'id', 'class_session_id', 'week_number', 'status', 'submitted_at',
-                'replacement_time_slot_id',
+                'replacement_time_slot_id', 'replacement_span',
                 'remarks', 'rejection_reason',
             ])
             ->keyBy(fn (ReplacementRequest $r): string => $r->class_session_id.':'.$r->week_number);
@@ -204,7 +208,7 @@ class ReplacementHome extends Component
            CancelPendingRequest and RejectRequest, so without it every cancelled
            or rejected arrangement hides its own evidence (§6b law 6). */
         $span = $latest !== null
-            ? ($spans[(int) $latest->id] ?? $mapper->spanFromAnchor($latest->replacementTimeSlot))
+            ? ($spans[(int) $latest->id] ?? $mapper->spanFromAnchor($latest->replacementTimeSlot, $latest->replacement_span))
             : null;
         $venue = $span === null
             ? null

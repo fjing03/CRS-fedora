@@ -403,31 +403,43 @@ final class ReplacementRequestMapper
             ];
         }
 
-        return $this->spanFromAnchor($r->replacementTimeSlot);
+        return $this->spanFromAnchor($r->replacementTimeSlot, $r->replacement_span);
     }
 
     /**
      * span()'s step 2, extracted (replacement-merge-one-table T1, 2026-11-04) so
-     * the batch caller reuses the body instead of copying it: the legacy anchor
-     * slot (`replacement_time_slot_id`) is the ONLY surviving evidence for a
+     * the batch caller reuses the body instead of copying it: the anchor slot
+     * (`replacement_time_slot_id`) is the surviving evidence for a
      * junction-less request — a cancelled or rejected arrangement, whose
-     * junction rows the actions delete. Same six keys, same casts as step 1.
+     * junction rows the release actions delete.
+     *
+     * SDD replacement-span-persistence D3 (user 2026-11-07): the anchor is ONE
+     * 30-minute cell, so on its own it under-reported every multi-cell proposal
+     * (request #24 read 30 min instead of 1 h, #37 30 min instead of 2 h). The
+     * request now stores its block width, and `$span` grows the end from the
+     * anchor's own start. A null `$span` (a row the backfill could not resolve)
+     * keeps the old single-cell shape — no display moves without a value.
      *
      * @return array{week: int, day: int, venue_id: int, start: string, end: string, count: int}|null
      */
-    public function spanFromAnchor(?TimeSlot $anchor): ?array
+    public function spanFromAnchor(?TimeSlot $anchor, ?int $span = null): ?array
     {
         if ($anchor === null) {
             return null;
         }
+
+        // 0, negative and null all mean "no stored width" → the anchor alone.
+        $count = $span !== null && $span > 0 ? $span : 1;
 
         return [
             'week' => (int) $anchor->week_number,
             'day' => (int) $anchor->day_of_week,
             'venue_id' => (int) $anchor->venue_id,
             'start' => (string) $anchor->start_time,
-            'end' => (string) $anchor->end_time,
-            'count' => 1,
+            'end' => $count > 1
+                ? Carbon::parse((string) $anchor->start_time)->addMinutes($count * 30)->format('H:i:s')
+                : (string) $anchor->end_time,
+            'count' => $count,
         ];
     }
 

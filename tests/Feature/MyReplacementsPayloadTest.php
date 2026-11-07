@@ -400,7 +400,19 @@ final class MyReplacementsPayloadTest extends TestCase
         $rejectedRow = $this->rowFor($this->rows(), $session, $week);
         $this->assertNotNull($rejectedRow);
         $this->assertSame('rejected', $rejectedRow['requestStatus']);
-        $this->assertSame('14:00 – 14:30', $rejectedRow['replacementTime'], 'anchor-only after the release — still displayed for a rejected row');
+        $this->assertSame(
+            '14:00 – 14:30',
+            $rejectedRow['replacementTime'],
+            'LEGACY: a row with no stored width (the pre-column shape) still reads the anchor alone'
+        );
+
+        /* SDD replacement-span-persistence (user 2026-11-07): a row that CARRIES
+           its width reads the true range after the same release — the fix for
+           requests #24 (1 h) and #37 (2 h), which displayed 30 minutes. */
+        ReplacementRequest::query()->whereKey($request->id)->update(['replacement_span' => 4]);
+        $fixedRow = $this->rowFor($this->rows(), $session, $week);
+        $this->assertNotNull($fixedRow);
+        $this->assertSame('14:00 – 16:00', $fixedRow['replacementTime'], 'the stored width survives the junction delete');
     }
 
     // ── case 6 ─────────────────────────────────────────────────────────────

@@ -17,6 +17,7 @@ use Illuminate\Support\Carbon;
  * @property int $class_session_id
  * @property int $week_number
  * @property int $replacement_time_slot_id
+ * @property int|null $replacement_span the block width in 30-minute cells (null = legacy row)
  * @property int|null $approver_id
  * @property string $status
  * @property string|null $rejection_reason
@@ -26,7 +27,7 @@ use Illuminate\Support\Carbon;
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
  */
-#[Fillable(['semester_id', 'proposer_id', 'class_session_id', 'week_number', 'replacement_time_slot_id', 'approver_id', 'status', 'rejection_reason', 'remarks', 'submitted_at', 'decided_at'])]
+#[Fillable(['semester_id', 'proposer_id', 'class_session_id', 'week_number', 'replacement_time_slot_id', 'replacement_span', 'approver_id', 'status', 'rejection_reason', 'remarks', 'submitted_at', 'decided_at'])]
 class ReplacementRequest extends Model
 {
     /** @use HasFactory<ReplacementRequestFactory> */
@@ -36,6 +37,7 @@ class ReplacementRequest extends Model
     {
         return [
             'week_number' => 'integer',
+            'replacement_span' => 'integer',
             'submitted_at' => 'datetime',
             'decided_at' => 'datetime',
         ];

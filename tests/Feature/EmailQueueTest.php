@@ -291,6 +291,11 @@ final class EmailQueueTest extends TestCase
         $action = app(SubmitReplacementRequest::class);
         $action($requester, $session, 9, $slotIds[0], null, 4);
 
+        /* SDD replacement-span-persistence D2 (user 2026-11-07): an explicit
+           4-cell block is persisted on the request, so a later release can still
+           read 2 hours instead of one 30-minute anchor cell. */
+        $this->assertSame(4, (int) ReplacementRequest::query()->latest('id')->value('replacement_span'));
+
         // FR 4.15 — ONE queued copy per PL
         Mail::assertQueued(ReplacementSubmitted::class, $plCount);
         // audit #29 — the submitted mail carries the date + a 12-hour range too

@@ -181,6 +181,11 @@ final class SubmitReplacementRequest
             'class_session_id' => $session->id,
             'week_number' => $weekNumber,
             'replacement_time_slot_id' => $slot->id,
+            /* SDD replacement-span-persistence D2 (user 2026-11-07): the block
+               width travels WITH the request. The junction rows that carry it
+               today are deleted by every release action, so without this the
+               decided row can only be read as one 30-minute cell (the anchor). */
+            'replacement_span' => $span,
             'status' => 'pending',
             'remarks' => $remarks !== null && trim($remarks) !== '' ? trim($remarks) : null,
             'submitted_at' => now(),

@@ -177,6 +177,7 @@ final class ReplacementFlowTest extends TestCase
         $this->assertSame('pending', $request->status);
         $this->assertSame((int) $slot->id, (int) $request->replacement_time_slot_id);
         $this->assertSame('club event', $request->remarks);
+        $this->assertSame(1, (int) $request->replacement_span, 'SDD replacement-span-persistence D2: the width travels with the request');
 
         $slot->refresh();
         $this->assertSame('pending', $slot->status, 'Anchor slot must be pending after a winning submit');

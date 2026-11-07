@@ -1,3 +1,39 @@
+## 2026-11-07 — a rejected or cancelled request keeps its real length (1 hour, not 30 minutes)
+
+Reported on request **#24** (and the same shape on `/my-replacements`): the requested
+replacement read `1:30 PM ~ 2:00 PM (0.5 hours)` for a **1-hour** class, and request **#37**
+(`Fri, 13 Nov 2026 (Week 8) 10:30 AM ~ 11:00 AM (30 minutes)`) for a **2-hour** class.
+
+**Cause (measured, not assumed).** A replacement slot is a 30-minute cell, so a 1-hour proposal
+covers two cells and a 2-hour one four; the run lives in `replacement_request_slots`. Every
+release action — `RejectRequest`, `CancelPendingRequest`, `AutoRejectRequest` — DELETEs those
+rows (that is how the cells become bookable again), leaving only the anchor
+(`replacement_time_slot_id`, the span's **first** cell). `spanFromAnchor()` assumed `count = 1`,
+so a decided row could only ever read 30 minutes, with a truncated end.
+
+The audit log still held the truth: `#24` → `{"slots":[34412,34413]}` (two cells = 1 h),
+`#37` → four `submitted` entries (2 h). Nothing was mis-calculated at submit time; the record
+was simply destroyed at decision time.
+
+**Fix (SDD `replacement-span-persistence`, user decision 2026-11-07 "A").** The request now
+stores its own block width: additive nullable `replacement_requests.replacement_span` (number
+of 30-minute cells), written by `SubmitReplacementRequest`. `spanFromAnchor($anchor, $span)`
+grows the end from the anchor's start by `span × 30` minutes. Junction rows still win when they
+exist (approved rows are byte-identical), and a null width keeps the old single-cell shape.
+
+`sessions`/`toRow`/`buildRow` all read the stored width; `ReplacementHome`'s explicit column
+list had to include it (an omitted column silently reads NULL — caught by the new test).
+
+**Backfill.** `php artisan crs:backfill-replacement-span` (dry run by default, `--commit` to
+write, `--force` needed on demo databases) fills old rows from the audit log: the decision
+entry's `slots` list first, else the count of `submitted` entries. Unresolvable rows stay null
+and are listed.
+
+**Receipts.** `tests/Feature/ReplacementSpanTest.php` **8/8**; `MyReplacementsPayloadTest` case 5
+gained the stored-width leg (legacy null still pins 30 min); `ReplacementFlowTest` (submit writes
+1), `EmailQueueTest` (an explicit 4-cell block stores 4). Browser on the testing DB: request #24
+now reads `Fri, 13 Nov 2026 (Week 8)  2:00 PM ~ 3:00 PM (1 hour)`.
+
 ## 2026-11-07 (user) — a PENDING row prints how soon its make-up starts
 
 The requested column carried only day, date, week, time and room. For a request
