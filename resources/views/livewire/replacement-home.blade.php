@@ -444,7 +444,7 @@
             var weekTag = wn ? ' (Week ' + wn + ')' : '';
             return '<div class="cell-class-block">' +
                 '<span class="class-day-date">' + dayAbbr(c.day) + ', ' + formatDate(c.date) + weekTag + '</span> ' + daysText +
-                '<br><span class="class-time">' + to12h(c.timeStart) + ' to ' + to12h(c.timeEnd) + '</span> ' +
+                '<br><span class="class-time">' + to12h(c.timeStart) + ' ~ ' + to12h(c.timeEnd) + '</span> ' +
                 '<span class="class-duration">(' + durationWords(c.duration) + ')</span>' +
                 '<br>' + venueLine(c.venue, null) + '</div>';
         }
@@ -455,7 +455,7 @@
             var weekTag = wn ? ' (Week ' + wn + ')' : '';
             return '<div class="cell-class-block">' +
                 '<span class="class-day-date">' + dayAbbr(c.replacementDay) + ', ' + formatDate(c.replacementDate) + weekTag + '</span>' +
-                '<br><span class="class-time">' + String(c.replacementTime || '').replace(' \u2013 ', ' to ') + '</span> ' +
+                '<br><span class="class-time">' + DateHelper.format12hRange(c.replacementTime, ' ~ ') + '</span> ' +
                 '<span class="class-duration">(' + durationWords(rangeHours(c.replacementTime)) + ')</span>' +
                 '<br>' + venueLine(c.replacementVenue, null) + '</div>';
         }

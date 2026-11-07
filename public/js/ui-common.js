@@ -2347,13 +2347,14 @@ class DateHelper {
     /**
      * Convert a 24h time range string like "09:00 – 11:00" (also "09:00-11:00",
      * "09:00 - 11:00") into "9:00 AM to 11:00 AM". Returns the input unchanged
-     * when it does not look like a time range.
+     * when it does not look like a time range. `sep` overrides the joiner
+     * (My Replacements' REQUESTED REPLACEMENT cell passes ' ~ ').
      */
-    static format12hRange(t) {
+    static format12hRange(t, sep) {
         if (!t) return t;
         const m = String(t).match(/(\d{1,2}:\d{2})\s*[-–—]\s*(\d{1,2}:\d{2})/);
         if (!m) return t;
-        return DateHelper.to12h(m[1]) + ' to ' + DateHelper.to12h(m[2]);
+        return DateHelper.to12h(m[1]) + (sep || ' to ') + DateHelper.to12h(m[2]);
     }
 
     static formatDate(iso) {

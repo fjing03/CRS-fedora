@@ -1,3 +1,13 @@
+## 2026-11-07 — the class-time range reads as one range, on one clock face
+
+`ORIGINAL CLASS` and `REQUESTED REPLACEMENT` had drifted apart: the original printed
+`2:00 PM to 4:00 PM` (12-hour, the word "to"), while the requested cell printed the raw
+payload `13:30 – 15:30` (24-hour, spaced en dash). Both now use the same 12-hour range with
+the `~` joiner — `2:00 PM ~ 4:00 PM` / `1:30 PM ~ 3:30 PM` — matching the row's own
+Quick View tabs. `DateHelper.format12hRange()` gained an optional separator argument
+(default stays `' to '`, so every other caller is byte-identical); the requested cell
+passes `' ~ '`. No other cell, page or rule changed.
+
 ## 2026-11-05 (UI/UX, user brief `UIUX Update — My Replacements After Submit.md`) — `?new-req=` arrival: the freshly submitted row pulses
 
 **Change:** the page now understands a third arrival param, `?new-req=<id>[,<id>…]`, and
