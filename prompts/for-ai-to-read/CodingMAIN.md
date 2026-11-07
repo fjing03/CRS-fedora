@@ -563,7 +563,7 @@ These eleven rules are **non-negotiable** for every page and every future change
    Legend tips are TEXT: emphasis is capitalisation (`WAITING`, `CANNOT BOOK`, `VENUE CONFLICT`), and
    the Conflict (Others) break is a `\n` (never a `<br>`). The room-type red has no legend line by
    the user's call (VENUE CONFLICT = occupied, not unsuitable). Receipts:
-   `tests/arrangement-slot-ownership.spec.ts` (6; run it alone — `week-filter-preserved` re-seeds the
+   `tests/arrangement-slot-ownership.spec.ts` (7; run it alone — `week-filter-preserved` re-seeds the
    fixture DB), `MakeUpBusyVectorTest`, `ReplacementArrangementTest`, `UiLegendBarTest`.
    Grey is now `.cell-too-soon` only (it used to double as "reserved by others").
 
@@ -577,6 +577,19 @@ These eleven rules are **non-negotiable** for every page and every future change
    | Completed | `--color-primary-container` / `-on-primary-container` |
 
    Adding a new status/legend item = add ONE row to the relevant table above + ONE class to `theme.css`, then reuse it everywhere. Do not invent a synonym.
+
+**A week filter names which weeks it means — and the two replacement pages mean different weeks
+(2026-11-07).** My Replacements filters the **ORIGINAL CLASS** week (active chip
+`Original Class Week: Week 8 · 9 Nov 2026 ~ 15 Nov 2026`, "all" option `All Original Class Weeks`);
+Request Approval filters the **REQUESTED REPLACEMENT** week — the slot the PL is approving — (chip
+`Requested Replacement Week: …`, option `All Requested Replacement Weeks`, select tip "Pick the
+Requested Replacement week to display"), and its status column header reads **REQUEST STATUS**
+(was `STATUS`). The shared `isInWeek(value, week)` takes whichever date the page hands it; the two
+callers must never be swapped (`classDate` on My Replacements, `replacementDate` on the PL queue), or
+a request whose class is in week 14 and whose proposal lands in week 7 appears in the wrong week.
+`populateWeekSelect(sel, { includeAll, allLabel })` in `ui-common.js` is the ONE builder of an "all"
+option (default label `All Weeks`). Receipts: `status-tooltips-filter-chips.spec.ts` T5.RA-5,
+`week-filter-preserved.spec.ts` U1–U3.
 
 **A JS-owned control must survive a Livewire round-trip (2026-11-06).** A page component's re-render
 morphs the DOM from the server's HTML, so any element the server renders EMPTY but JavaScript fills

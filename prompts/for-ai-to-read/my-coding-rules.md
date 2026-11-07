@@ -3,7 +3,7 @@
 > The always-read form of the user's coding rules for `CRS-fedora-backend`.
 > Distilled from `CodingMAIN.md §10` (Coding Conventions + UI Design Rules, user-mandated 2026-08-01)
 > and `AGENTS.md` standing rules. On any conflict, **CodingMAIN.md §10 wins** — and tell the user
-> this file has drifted so it can be re-synced. Last synced: 2026-11-07 (late).
+> this file has drifted so it can be re-synced. Last synced: 2026-11-07 (night).
 
 ## 1. UI Design Rules — non-negotiable, every page, every change
 
@@ -99,6 +99,13 @@ Adding a new status/legend item = **ONE row** in the relevant table above + **ON
     `cancelled` with its audit and the release. Normalise in the payload, not in three JS branches.
     The page's status filter therefore has **no Cancelled option** any more, and a filter saved before
     the removal is mapped onto Need to Arrange at restore.
+  - **A week filter says WHICH weeks it means — the two pages mean different ones** (user
+    2026-11-07). My Replacements = the **original class** week: chip `Original Class Week: …`, option
+    `All Original Class Weeks`. Request Approval = the **requested replacement** week (the slot being
+    approved): chip `Requested Replacement Week: …`, option `All Requested Replacement Weeks`, and its
+    status column header reads **REQUEST STATUS**. `isInWeek(value, week)` filters whatever date the
+    page hands it — `classDate` on one page, `replacementDate` on the other; never swap them. One
+    builder of an "all" option: `populateWeekSelect(sel, { includeAll, allLabel })`.
   - **A JS-owned control must survive a Livewire round-trip.** A page component's re-render morphs the
     DOM from the server's HTML; anything the server renders EMPTY but JavaScript fills (the week
     selects, `#filterChips`) is deleted by that morph. Never park state there without a guard: the
