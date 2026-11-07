@@ -244,7 +244,7 @@ rm -f storage/framework/views/*.php && php artisan serve --port=8000 &
 | `session_cohorts` | (class_session_id, cohort_id) pivot | |
 | `time_slots` | class_session_id, day, start/end, venue, status, **version (OCC)**, week_number | ≈38,640 rows (real import) |
 | `holidays` / `class_exceptions` | semester-scoped exceptions | holiday uniqueness (2026_10_06) |
-| `replacement_requests` | class_session_id, replacement_time_slot_id, proposer, status, timestamps | one active request per block occurrence (partial unique) |
+| `replacement_requests` | class_session_id, replacement_time_slot_id, **replacement_span** (block width in 30-min cells, nullable — 2026-11-07; the release actions delete the junction that carried it), proposer, status, timestamps | one active request per block occurrence (partial unique) |
 | `audit_logs` | user, action (7 values incl. `class_cancelled`), request/slot, old/new status, OCC result | |
 | `passkeys` | WebAuthn credentials | |
 

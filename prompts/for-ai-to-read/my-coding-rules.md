@@ -3,7 +3,7 @@
 > The always-read form of the user's coding rules for `CRS-fedora-backend`.
 > Distilled from `CodingMAIN.md §10` (Coding Conventions + UI Design Rules, user-mandated 2026-08-01)
 > and `AGENTS.md` standing rules. On any conflict, **CodingMAIN.md §10 wins** — and tell the user
-> this file has drifted so it can be re-synced. Last synced: 2026-11-07.
+> this file has drifted so it can be re-synced. Last synced: 2026-11-07 (evening).
 
 ## 1. UI Design Rules — non-negotiable, every page, every change
 
@@ -46,6 +46,19 @@ Two semantic contexts share one palette — green=free/ok, red=conflict/occupied
 | Rejected | `--color-error-container` / `-on-error-container` |
 | Cancelled | `--color-surface-variant` / `-on-surface-variant` |
 | Completed | `--color-primary-container` / `-on-primary-container` |
+
+**D. Day-countdown bands** (`.urgency-*` — `theme.css`, one rule for both pages):
+
+| Band | Token | Meaning |
+|------|-------|---------|
+| `.urgency-high` | `--color-error` (red) | past or `Today` |
+| `.urgency-mid` | `--color-warning` (amber) | 1–7 working days left |
+| `.urgency-low` | `--color-success` (green) | 8+ working days left |
+
+The band is chosen by `urgencyBandClass(days)` in `ui-common.js` — never by a page. Words:
+`Today` · `1 Working Day Left` · `N Working Days Left` · `Overdue (N Working Day Ago)`;
+working days = Mon–Fri minus the timetable's holidays. A pending request also shows the
+make-up countdown beside the requested date; approved/completed print `—`.
 
 Adding a new status/legend item = **ONE row** in the relevant table above + **ONE class** in `theme.css`, then reuse it everywhere.
 
@@ -118,6 +131,13 @@ Adding a new status/legend item = **ONE row** in the relevant table above + **ON
 - PSR-4 (`App\`); anonymous classes for migrations; `protected function casts()` for attribute casting.
 - Route model binding; Eloquent relationships typed with return types + PHPDoc.
 - Role gating follows the existing middleware pattern (`CheckRole`, `CheckPl`) — no new gating styles.
+- **A request keeps its own length.** A replacement slot is a 30-minute cell, and the release
+  actions (reject / cancel / auto-reject) delete the junction rows that recorded how many cells a
+  proposal covered. `replacement_requests.replacement_span` stores the width at submit and
+  `ReplacementRequestMapper::spanFromAnchor()` is the ONLY place that turns a junction-less
+  request into a time range (a null width = the legacy single cell). Never rebuild that shape in
+  a second place — a duplicate is exactly what kept printing `11:00 AM ~ 11:30 AM` for a 2-hour
+  rejection after the fix shipped.
 - **A rule the page enforces must also exist in the action.** The browser is a convenience; the
   server is the truth. TWO rules were page-only until 2026-11-06 and both now live in
   `SubmitReplacementRequest`: FR 2.17's 3-working-day notice (`slot_too_soon`, on

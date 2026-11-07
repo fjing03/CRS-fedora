@@ -16,24 +16,26 @@
 
 | Item | State |
 |---|---|
-| Branch / remotes | `fedora-backend` → `origin` = `fjing03/CRS-fedora.git` (**57 commits ahead**, see Push state); `upstream` = `FjingXR/class-replacement-system` (**pull-only**) |
+| Branch / remotes | `fedora-backend` → `origin` = `fjing03/CRS-fedora.git` (**67 commits ahead**, see Push state); `upstream` = `FjingXR/class-replacement-system` (**pull-only**) |
 | Push policy | **NEVER `git push`** — the user pushes. One commanded exception, 2026-11-02; afterwards the rule resumed. |
-| Push state | `origin/fedora-backend` sits at **`39b2bb7`**; **57** commits are unpushed (2026-11-07, newest `e8cd339`). Re-check: `git rev-list --count origin/fedora-backend..HEAD`. The user pushes. |
+| Push state | `origin/fedora-backend` sits at **`39b2bb7`**; **67** commits are unpushed (2026-11-07 evening, newest `602a585`). Re-check: `git rev-list --count origin/fedora-backend..HEAD`. The user pushes. |
 | AI context layout | Root **`AGENTS.md`** is a bootstrap pointer → this folder holds `AGENTS.md`, `CodingMAIN.md` (the spec), `my-coding-rules.md` (quick rules), `FR&NFR copy.md` (read-only without the user's approval), this file, and `history/`. |
 | Servers | `:8000` = `CRS-fedora-backend` / **`class_replacement_fresh`** (dev). `:8001` = `../CRS-demo` / **`class_replacement_viva`** (viva twin, `APP_DEBUG=false`). `:8030` = disposable AI/E2E lane on `class_replacement_testing` only. |
 | Database trap | `class_replacement_demo` is the **older, empty** twin (0 requests) — not the viva DB. |
-| Demo data (2026-11-06) | `class_replacement_fresh`: **8 requests** — 24 rejected (session 40 W14), 25 cancelled (session 38), 26 **approved** (session 40), 27 **approved** (session 38), 28 pending (session 97 W8), 30, 31, 32 cancelled — **96** notifications (**3** hidden), **3** `class_exceptions` (24 W7 medical_leave, 38 W14 + 40 W14 official_event), 8 slot rows. Requests 30–32 and their 19 notices are the **user's own UI testing on 2026-11-06** (submit → cancel); no agent wrote to a demo DB. History: 2026-11-05 cleanup of the Test-2 cancellation + request 29 (net-zero, logged). |
+| Demo data (2026-11-07 evening, measured) | `class_replacement_fresh`: **14 requests** — 24 rejected, 25 cancelled, 26 + 27 approved, 28 pending, 30–34 cancelled, 35 pending, 36 cancelled, 37 + 38 **rejected** (37/38 = the user's own duration reports); **110 notifications** (6 hidden), **3** `class_exceptions`, 10 slot rows. Requests 33–38 carry today's date (2026-11-07); **37 and 38 are the user's own duration reports** (submit → reject, 2-hour proposals). `class_replacement_demo` stays the pristine deck: **0 requests** / 0 notifications. Both DBs now carry `replacement_requests.replacement_span` (the additive 2026-11-07 migration); `fresh` has all 14 rows filled (2:x5, 4:x9 after 37/38), `demo` has none to fill. Receipt: `docs/demo-db-data-changes.md`, 2026-11-07 row + the two `-pre-span-20261107-191721` dumps. |
 | Test DB | `class_replacement_testing` — disposable; `DB_DATABASE=class_replacement_testing php artisan migrate:fresh --seed` is fine **there only**. |
 | Ops trap | `opcache.enable_cli=On` with `revalidate_freq=180` → a long-running `artisan serve` can serve a `.php` file's old bytecode for ~3 min. Use **`scripts/dev-serve.sh [port]`** (kills that port, clears views, starts with `revalidate_freq=0`). |
 | Gates | `composer run lint:check` · `vendor/bin/phpstan analyse --memory-limit=1G` · full phpunit · `node --check` for JS. **Never** `composer run types:check` (crashes at 128M). |
-| Suite | Last full PHPUnit run **400 tests / 2137 assertions** — 397 green + **3 date-dependent errors** proven identical on unmodified HEAD (Saturday run: their `today()+1 day` fixture becomes day 6/Sunday, which the `day_of_week 0–5` CHECK refuses; see §5). Before that: **394 / 2093** (2026-11-06, after `e113618`; +8 = the notification-tip cases). Browser suites are separate and NOT part of that number — quote them by name: `venue-book` 19 (18 green + the known `U2a-T3` hover flake), venue neighbours 61 passed / 2 skipped, `cancel-class` 12 passed / 4 skipped, `status-tooltips-filter-chips` 9, `notifications-island` 10, `notifications-island-testing-db` 6, `notif-row-inactive-hide` 5, `replacement-home-status-badges` 13, `week-filter-preserved` 3, `request-cancel-pending` 1. |
-| SDD lanes | **35** lane dirs under `.sdd/changes/` (**33** older finished ones + `venue-slot-validation` and `notif-inactive-hide-sender`, both `status: applied` 2026-11-05), **101** archived. Archive only on the user's word. |
+| Suite | Last full PHPUnit run **422 tests / 2352 assertions** (2026-11-07 evening) — **419 green + 3 date-dependent errors** proven identical on unmodified HEAD (a Saturday run: their `today()+1 day` fixture becomes day 6/Sunday, which the `day_of_week 0–5` CHECK refuses; see §5 item 9a). Before that: **400 / 2137** (the arrangement-ownership lane) and **394 / 2093** (2026-11-06). Browser suites are separate and NOT part of that number — quote them by name: `venue-book` 19 (18 green + the known `U2a-T3` hover flake), venue neighbours 61 passed / 2 skipped, `cancel-class` 16 passed / 4 skipped, `status-tooltips-filter-chips` **10**, `replacement-home-working-days` **7**, `replacement-home-status-badges` 17 passed / 3 skipped (three replacement-home specs together), `notifications-island` 10, `notifications-island-testing-db` 6, `notif-row-inactive-hide` 5, `week-filter-preserved` 3, `request-cancel-pending` 1, `arrangement-slot-ownership` 6 (run it ALONE). |
+| SDD lanes | **37** lane dirs under `.sdd/changes/` (measured 2026-11-07 evening) — 33 older finished ones + `venue-slot-validation` and `notif-inactive-hide-sender` (applied 2026-11-05) + `arrangement-slot-ownership-legend` and `replacement-span-persistence` (applied 2026-11-07) — **102** archived. Archive only on the user's word. |
 | **Auto-reject rule (2026-11-06)** | A **pending** request whose proposed start is within — or exactly — **3 working hours** is rejected by the system. Working time = TARUMT Sabah hours, **Mon–Fri 08:30–17:30**, weekends + the semester's `holidays` excluded (`App\Support\WorkingHours`, `MIN_GAP_MINUTES = 180`). Write leg `App\Actions\AutoRejectRequest` (cancel-family release, `approver_id` NULL, audits `details.auto`); trigger `php artisan requests:auto-reject` (`--dry-run`) scheduled every 5 min — **never** a write-on-read. The Pending badge's `data-tip` states the deadline (proposed start − 3 working hours) on both pages; the **lecturer arm names the rule** since the 2026-11-06 UI update — *"Auto-Reject Rule: If This Request Has Not Been Approved At Least 3 Working Hours (…deadline…) Before The Proposed Class Start Time, It Will Be AUTOMATICALLY REJECTED."* (emphasis = capitalisation, a tip is textContent; the PL arm is unchanged). |
 | **The notification tooltips speak one vocabulary (2026-11-06)** | Every live row's `data-tip` is composed by `App\Support\Notifications\NotificationTip` — labels / Subject / schedules / `Rejection Reason` / `Reason` / `Request ID`, holiday-first reason in the Original line's parentheses, `Automatically Rejected by System` when `approver_id IS NULL`, students without the Staff lines, legacy `title — body` only for an unknown kind. One extra batch (`holidays`); the `replacement_requests` one-query law holds. Receipts: `NotificationsBridgeTest` +8, `notifications-island.spec.ts` 10/10, demo hover `/tmp/opencode/notif-tip-hover.png`. |
 | **A cancelled request displays as "Need to Arrange" (2026-11-06)** | A lecturer's own cancelled pending request is DISPLAYED as no active request on My Replacements: `badge-outline status-none` reading **Need to Arrange** (no-request tip), an em dash in REQUESTED REPLACEMENT, and a details pop-up with **no Proposed Replacement Schedule tab** (no Request ID/Week/Day/Date/Time/Duration/Venue). One normalisation in `ReplacementHome::buildRow()` — status→null + strings blanked. The RECORD is untouched (still `cancelled`, audited, slots released); history + notifications still say *Cancelled by YOU*. The status filter offers **no Cancelled option** (nothing on the page can carry that state); a filter saved before the removal is mapped onto Need to Arrange at restore. Receipts: `request-cancel-pending.spec.ts` (write), `replacement-home-status-badges.spec.ts` receipts 9 + 10. |
 | **A JS-owned control survives a Livewire round-trip (2026-11-06)** | The week `<select>`s have no server-side options, so a page-component re-render used to morph them empty — Approve/Reject blanked the Week filter and its chip printed a bare `Week: `. Guard: `withWeekLivewireGuard()` in `ui-common.js` (snapshot before `pageLivewire().call()`, restore options + value **before the caller's `.then()`**), plus a `Livewire.hook('commit')` net. Receipt: `tests/week-filter-preserved.spec.ts` (U1 Approve, U2 Reject, U3 Cancel Pending). |
 | **The submit action's own guards** | Since 2026-11-06 `SubmitReplacementRequest` enforces what only the page did: FR 2.17's 3-working-day notice (`slot_too_soon`, `WorkingHours::noticeCutoff()`) **and** D2's holiday landing ban (`holiday`). Sunday needs no arm (no Sunday slot rows). `tests/Feature/SubmitGatesTest.php` is the receipt file (10 cases). |
 | **The arrangement grid colours by state, rings by owner (2026-11-06)** | Lane `arrangement-slot-ownership-legend`. A cell's class comes from ONE resolver (`classifyCell()`, exported on `window`) fed by BOTH arms: the venue payload's `status 1/3/4` and the busy vectors' **6th tuple key `mine`** (engine rows: lecturer vector `true`, cohort class rows `false`, cohort make-up rows `proposer_id === viewer` via the new optional `?int $viewerId`). Precedence: own pending → others' pending → own conflict → any block → too-soon/available. Amber = pending, red = conflict; **3px = yours, no border = others'** (0px replaces the cohort/venue 0.5px hairline). Twins (my class that also carries my cohort) are merged in `busyByWeekPayload()` with `mine = OR(twins)` so the tooltip keeps one block. Legend = six rows whose swatches carry the real cell classes + the hint `thick border (3px) = yours · no border = others'`; tips are TEXT (capitals = emphasis, `\n` = line break, never `<br>`). The bug it kills: the engine arm had no ownership test, so another staff member's pending painted "Pending (You)" whenever the selected subject shared that cohort (measured: request 28 / staff 5770 on B111 W9 in cohort 4's vector). Receipts: `arrangement-slot-ownership.spec.ts` 6/6 (run it ALONE — `week-filter-preserved` re-seeds `TestingFixtureSeeder`, which deletes every request), `MakeUpBusyVectorTest`, `ReplacementArrangementTest`, `UiLegendBarTest` 4/4. |
+| **A day countdown counts WORKING days (2026-11-07)** | One rule for every countdown the app prints (My Replacements' Original Class cell + its details pop-up, and Request Approval's REQUESTED REPLACEMENT cell). Words: `Today` · `1 Working Day Left` · `N Working Days Left` · `Overdue (N Working Day(s) Ago)` — **`Today` is the only relative word** (no Yesterday/Tomorrow). Bands: past + today red (`--color-error`), **1–7 amber** (`--color-warning`), **8+ GREEN** (`--color-success` — the far band used to be grey; user law). Working days = Mon–Fri minus the timetable's own holiday rows; the walk is symmetric (a Friday read on a Saturday = `Overdue (1 Working Day Ago)`) and clamps ±1 when a calendar gap contains no working day. ONE holiday derivation for the whole page (`workingDayHolidayKeys()` — the cancel-class window reads it too, its private copy deleted, `8274ba0`). One band rule (`urgencyBandClass(days)`) and the `.urgency-*` colour rules live in **`theme.css`**, not a page. Placement: the class-date countdown rides the Original Class row everywhere; the **make-up** countdown rides the requested replacement date **only while the request is pending** (approved/completed print `—`). Receipts: `tests/replacement-home-working-days.spec.ts` 7/7, `replacement-home-status-badges` receipt 3 rewritten, `status-tooltips-filter-chips` T5.RA-4. |
+| **A request keeps its own length (2026-11-07)** | A replacement slot is a **30-minute cell**, so a 1-hour proposal covers two and a 2-hour one four. The run lives in `replacement_request_slots`, and EVERY release action (`RejectRequest`, `CancelPendingRequest`, `AutoRejectRequest`) DELETEs those rows to free the cells — leaving the anchor (`replacement_time_slot_id`, the span's FIRST cell) as sole evidence. `replacement_requests.replacement_span` (additive nullable smallint, 2026-11-07) now stores the width at submit, and `ReplacementRequestMapper::spanFromAnchor($anchor, $span)` grows the end from the anchor's start (`span × 30` min); a null width keeps the old single-cell shape. The junction still wins when present, so approved rows are byte-identical. ONE reader — never a second copy of the anchor shape (the notification tip had one, `NavNotifications::$anchorSpan`, and told a 2-hour rejection `11:00 AM ~ 11:30 AM`; `602a585`). Backfill for old rows: `php artisan crs:backfill-replacement-span` (dry run default, `--commit`, `--force` on demo DBs; reads the audit log — the decision entry's `slots` list, else the `submitted` count). Receipts: `tests/Feature/ReplacementSpanTest.php` 8/8, `MyReplacementsPayloadTest` case 5, `NotificationsBridgeTest` +1. |
 | **FR 2.17 is server-side** | Since 2026-11-06 `App\Actions\SubmitReplacementRequest` refuses a slot inside the 3-working-day notice window (`slot_too_soon`) — the grid's `leadTimeCutoff()` was only the browser's word. Calendar: `WorkingHours::noticeCutoff()` / `isBookableOnDate()`, the same class as the auto-reject sweep, so grid "Bookable from …", the gate and the pending-deadline tooltip agree (measured 2026-11-06: Fri 6 Nov → **12 Nov** on both sides, 98/98 semester days). |
 | **Venue page slot rules** | Since 2026-11-05: hover asks ONE question (**one clear hour**, `MIN_BOOK_SLOTS = 2`, never derived from a class), and a class's duration is judged only AFTER it is picked (Arrange gate → `#slotWarningOverlay`, no navigation). Lane `venue-slot-validation`; commits `daf11c6` + `bee6176`. |
 | **The merge lane** | `replacement-merge-one-table` — **APPLIED 2026-11-04**, archived `07274c1`: `e70c1ea` (payload/mapper), `6856577` (view), `ab65f9a` (routes + retired page), `d3f6f5b` + `c4d0ad3` (specs). The merged page is **My Replacements** at `/my-replacements`, with `/replacement-home-ui` and `/my-request-history-ui` as alias route entries. |
@@ -46,6 +48,52 @@
 ---
 
 ## 1. Latest sessions — 2026-11-03 → 2026-11-07
+
+### 2026-11-07 (later) — working-day countdowns, the PL Urgency column removed, and a request that keeps its length
+
+Four user reports, all shipped the same evening. Commits: `1ae378b`, `9ff4813`, `fa50a95`,
+`8274ba0`, `efeea89`, `705637a`, `7c9cef6`, `c24d72d`, `602a585`.
+
+**1. The class-date countdown now counts WORKING days** (`1ae378b`). The words, the bands
+(red / amber 1–7 / **green 8+**, the far band was grey) and the placement are in §0 and
+§2 #27. New `ui-common.js` helpers: `workingDayHolidayKeys()`, `workingDayKey()` (local
+`Y-m-d`, never `toISOString`), `workingDayParse()`, `isWorkingDayDate()`,
+`workingDaysBetween()`, `workingDaysDiff()`. **A typo caught in the brief:** it said
+`urgency-med`; the page's real class is `urgency-mid` (the first amber render had no rule
+at all — no colour, no nowrap). The new spec asserts both bands resolve, so a typo cannot
+land silently again.
+
+**2. Request Approval lost its Urgency column entirely** (`9ff4813`): badge, sort arm,
+`All/Urgent/Normal` chips, the active-filter chip, row stripes, the phone-card line and the
+compare-card badge are gone; the age pill stays (`5 days ago · 4+ days old`, no urgency
+claim). Mistake caught and fixed in the same commit: the first cut also deleted
+`compactCohort()`/`venueText()`, so the queue rendered no rows — both restored.
+
+**3. Two countdown placements** (`fa50a95`, `efeea89`): the row pop-up carries the same
+number as the table, and a PENDING request prints its make-up countdown beside the
+requested date **on both pages** (`HtmlBuilder.replacementBlock()` gained an opt-in
+`pendingCountdown`; only Request Approval passes it). The `.urgency-*` rules moved from
+My Replacements' page `<style>` into `theme.css` and the band choice became the shared
+`urgencyBandClass()`. **Caught while verifying:** that page's bridge never cleared
+`MockData.mockNow`, so the countdown measured from the frozen demo anchor (Mon 5 Oct 2026)
+and printed `24 Working Days Left` for a 6 Nov slot — the page now sets
+`MockData.mockNow = null` like every other live page.
+
+**4. A decided request keeps its real length** (`7c9cef6`, demo `c24d72d`, tip `602a585`).
+Reported as "0.5 hours" on #24 and as the `col-requested` cell of #37. Cause and cure in §0
+and §2 #29: the release actions delete the junction, the anchor is ONE 30-minute cell, so
+the width is now stored on the request (`replacement_span`) and one reader
+(`spanFromAnchor()`) owns the shape. **A test pinned the defect as a law**
+(`MyReplacementsPayloadTest:403` asserted the 30-minute anchor for a rejected row) — it now
+keeps that assertion only as the LEGACY null-width case, with a stored-width leg beside it.
+`EnforcementEngineValidateSlotTest` had also been left stale by the 2026-11-07 type-aware
+lab roster (three rows still expected AMCS1013/BMIT1173 `L` to book a lab) — fixed
+separately in `705637a`, which is why the full suite is green again apart from the three
+weekend-only fixtures.
+
+**Suite after all of it:** 422 tests / 2352 assertions — 419 green + the 3 Saturday-only
+errors (§5 item 9a). Demo DBs migrated + backfilled with a snapshot, row-count receipt and
+log entry (13 rows on `fresh`; `demo` had none to fill).
 
 ### 2026-11-07 — date & time format: audit, then three shipped batches
 
@@ -443,6 +491,9 @@ date, and its files are dirty in the tree — see §3.
 | 24 | **A cancelled request is displayed as "no active request"** (user brief 2026-11-06). On My Replacements an owner-cancelled occurrence shows **Need to Arrange**, an em dash in REQUESTED REPLACEMENT and no Proposed Replacement Schedule tab — one normalisation in `buildRow()` (status → null, replacement strings blanked), never three separate view patches. The RECORD is not rewritten: `cancelled`, `decided_at`, audit rows, released slots and the notification stay, and the history/notification surfaces still read *Cancelled by YOU*. `cancelled` means "the owner did it" because `CancelPendingRequest` is the only writer and it is ownership-checked. Other statuses are untouched. **Follow-up (`remove that option`):** the status filter no longer offers **Cancelled** — nothing on the page can carry that state — and a filter saved before the removal is mapped onto Need to Arrange when restored. **Follow-up (highlight):** the just-cancelled row pulses in the WARNING tone (`flashRowPulse(el, 'warning')` — the Earliest/Today mechanic, never a second animation; the phone card carries it too). |
 | 25 | **The notification tooltip has ONE vocabulary** (user UI update 2026-11-06, after a grill): every live row is composed by `NotificationTip` — Subject / schedules / reasons / `Request ID`, labels omitted when their facts are missing, the reason holiday-first inside the Original line's parentheses, `Automatically Rejected by System` for a system rejection (`approver_id IS NULL`), students without the Staff/Requested-At lines, and the legacy `title — body` only for a kind with no layout. A `data-tip` stays TEXT. |
 | 26 | **Dates and times speak one format** (user-approved 2026-11-07, `docs/date-time-format-audit-2026-11-07.md`; batches 1–3 shipped). Date `5 Nov 2026` (day first, no leading zero); time `2:00 PM`; range `2:00 PM ~ 4:00 PM` — `~` is the joiner, a hyphen is acceptable but one element never mixes joiners, and the en dash `–` is not a range joiner (it means "no data" / a break). Day words follow their container: `Thu` in compact lines, `Thursday` in prose and expanded modal rows. Keep the 24-hour grid hour axis (a scale) and the short notification tips (no year). New surface → use this standard; never re-pad a day or move the month first. |
+| 27 | **A countdown counts WORKING days, and its bands are red / amber / GREEN** (user 2026-11-07, brief *Urgency, Countdown & Date/Time Consistency*). Words: `Today` · `1 Working Day Left` · `N Working Days Left` · `Overdue (N Working Day Ago)` — `Today` is the ONLY relative word (Yesterday/Tomorrow were tried and reverted). Past + today red, **1–7 amber, 8+ green** (the far band was grey). Working days = Mon–Fri minus the timetable's holiday rows; ONE holiday derivation (`workingDayHolidayKeys()`) feeds both the countdown and the cancel-class window. One band rule (`urgencyBandClass()`) + the `.urgency-*` rules in `theme.css`; a page never re-colours a countdown. The class-date countdown lives on the Original Class row (table, phone card, pop-up); the make-up countdown rides the requested date **only while pending** — approved/completed print `—`. |
+| 28 | **The PL queue has no Urgency notion at all** (user 2026-11-07). The column, its sort, the `All/Urgent/Normal` chips, the active-filter chip, the row stripes, the phone-card line and the compare-card badge are REMOVED — do not reintroduce them. The request-age pill stays and speaks only about waiting time (`5 days ago · 4+ days old`), never urgency. The lecturer page and the PL page count down to different dates **by design** (class date vs proposed slot); the answer to *the two pages disagree* was to delete the PL rule, not to align numbers. |
+| 29 | **A request keeps its own length** (user 2026-11-07, requests #24 / #37 / #38). `replacement_requests.replacement_span` stores the block width in 30-minute cells at submit; `ReplacementRequestMapper::spanFromAnchor()` is the ONE place that turns a junction-less request into a range, and a null width keeps the legacy single-cell shape. The junction still wins when it exists. Never hard-code `count = 1` anywhere else — a second copy of that shape is exactly how the notification tip kept printing `11:00 AM ~ 11:30 AM` for a 2-hour rejection. Old rows are filled by `php artisan crs:backfill-replacement-span` (audit-derived; dry run by default). |
 
 ---
 
@@ -459,6 +510,23 @@ date, and its files are dirty in the tree — see §3.
   print the target → plain `migrate` → row-count receipt + log.
 - **Never stage `docs/demo-db-data-changes.md`** — it is another session's write log,
   unless that log *is* the task.
+
+**Display & data laws (2026-11-07)**
+- **A live page must set `MockData.mockNow = null`.** `mock-data.js` pins the demo clock to
+  Mon 5 Oct 2026 for the frozen templates; a live page that forgets this line measures every
+  date from October. The countdown bug that printed `24 Working Days Left` for a 6 Nov slot
+  was exactly that one missing line on `/request-approval-ui`.
+- **An explicit `get([...])` column list silently returns NULL for the column it omits.**
+  `ReplacementHome`'s request query listed its columns by hand; after `replacement_span`
+  landed it was not listed, so the page kept reading the anchor. When a model gains a
+  display column, grep for the queries that enumerate columns.
+- **One reader per fact.** A range, a label, a tip or a countdown is computed in ONE place
+  (`ReplacementRequestMapper::spanFromAnchor()`, `statusTip()`, `NotificationTip`,
+  `urgencyBandClass()`, `workingDayHolidayKeys()`). A local copy of the same shape is how
+  `NavNotifications::$anchorSpan` kept printing 30-minute rejections after the fix shipped.
+- **A test can pin a defect as a law.** `MyReplacementsPayloadTest:403` asserted the
+  30-minute anchor for a rejected row, i.e. it protected the bug. When a fix contradicts a
+  green assertion, read the assertion's intent before believing it.
 
 **Destructive tests**
 - **⛔ TC70**: `tests/venue-timetable.spec.ts:690–730` must never execute until it is
@@ -575,8 +643,9 @@ date, and its files are dirty in the tree — see §3.
 
 ## 5. Open tasks (state at 2026-11-07)
 
-1. **[USER] Push** — 57 commits sit on `fedora-backend` past `39b2bb7` (newest `e8cd339`, 2026-11-07).
+1. **[USER] Push** — **67** commits sit on `fedora-backend` past `39b2bb7` (newest `602a585`, 2026-11-07 evening).
    Nothing is pushed by an agent, ever.
+1b. **[USER, the archive word]** Lane **`replacement-span-persistence`** is APPLIED and verified (`7c9cef6` + `602a585`, demo receipt `c24d72d`) but still sits in `.sdd/changes/` — like `arrangement-slot-ownership-legend` and `lab-access-type-aware`, it moves to `.sdd/archive/` only on the user's word.
 1a. ~~**[AGENT] Date/time batch 4**~~ **SHIPPED 2026-11-07** (`1dc3edb`): #22 and #29. Only #30
    (API chip `d-M-Y`) remains, deferred until `/api/v1` is unparked.
 2. ~~**[USER, waiting on the archive word]** Seven finished lanes~~ — **ARCHIVED 2026-11-05**:
