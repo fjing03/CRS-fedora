@@ -833,12 +833,25 @@
             var typeLabel = UiLabels.classType(c.type, 'long');
             var tabs = [];
 
+            /* 2026-11-07 (user law): the countdown the table and the phone card
+               already print belongs in the pop-up too — beside the date it
+               measures, with the same words/colours and the same placement law
+               (class date while the row needs you; the make-up date, pending
+               only, in its own tab). */
+            var origCountdown = countdownHidden(c)
+                ? ' \u2014'
+                : ' <span class="' + urgencyClass(daysLeft(c.date)) + '">' + daysLeftLabel(daysLeft(c.date)) + '</span>';
+            var replCountdown = '';
+            if (c.replacementDate && c.requestStatus === 'pending') {
+                replCountdown = ' <span class="' + urgencyClass(daysLeft(c.replacementDate)) + '">' + daysLeftLabel(daysLeft(c.replacementDate)) + '</span>';
+            }
+
             /* Tab 1 — the class as timetabled. */
             var origHtml = DetailModal.section('Original Class Schedule',
                 DetailModal.row('Class ID', '#' + c.sessionId, { strong: true }) +
                 DetailModal.row('Week', getWeekNumber(c.date) ? 'Week ' + getWeekNumber(c.date) : null) +
                 DetailModal.row('Day', c.day) +
-                DetailModal.row('Date', formatDate(c.date)) +
+                DetailModal.row('Date', formatDate(c.date) + origCountdown) +
                 DetailModal.row('Time', to12h(c.timeStart) + ' ~ ' + to12h(c.timeEnd), { strong: true }) +
                 DetailModal.row('Duration', durationWords(c.duration)) +
                 /* the ONE place the room NAME is printed (M7) */
@@ -855,7 +868,7 @@
                         DetailModal.row('Request ID', '#' + c.requestId, { strong: true }) +
                         DetailModal.row('Week', c.replacementWeek ? 'Week ' + c.replacementWeek : null) +
                         DetailModal.row('Day', c.replacementDay) +
-                        DetailModal.row('Date', formatDate(c.replacementDate)) +
+                        DetailModal.row('Date', formatDate(c.replacementDate) + replCountdown) +
                         DetailModal.row('Time', DateHelper.format12hRange(c.replacementTime, ' ~ '), { strong: true }) +
                         DetailModal.row('Duration', durationWords(rangeHours(c.replacementTime))) +
                         DetailModal.row('Venue', venueLine(c.replacementVenue, c.replacementVenueName))

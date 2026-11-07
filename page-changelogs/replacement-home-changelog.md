@@ -1,3 +1,23 @@
+## 2026-11-07 — the details pop-up carries the same countdown
+
+The row pop-up ("Replacement Details") showed the dates but no countdown, while the
+table and the phone card did. It now prints the same words, colour and placement law:
+
+- **Original Class Schedule → Date** — `9 Nov 2026  1 Working Day Left` (amber), the
+  working-day countdown to the class date; a landed row (approved / completed) shows
+  `9 Nov 2026 —` instead, exactly like the table cell.
+- **Proposed Replacement Schedule → Date** — the make-up countdown
+  (`6 Nov 2026  Overdue (1 Working Day Ago)`) **only while the request is pending**,
+  matching the Requested Replacement column.
+
+Same helpers as the table (`daysLeft` → `workingDaysDiff`, `urgencyClass`,
+`daysLeftLabel`, `countdownHidden`), so the pop-up can never disagree with the row it
+describes. Receipts: the three replacement-home specs **17 passed** (the pop-up is
+exercised by the status-badge receipts), and a browser read of all five rows:
+`#99 → 9 Nov 2026 1 Working Day Left`, the three 24/25 Dec rows → `32 Working Days Left`,
+and the pending row's replacement tab → `6 Nov 2026 Overdue (1 Working Day Ago)`;
+no console errors. Screenshot: `/tmp/opencode/modal-countdown.png`.
+
 ## 2026-11-07 (business logic, user law) — the class countdown counts WORKING days
 
 **What changed on My Replacements** (display only — no PHP, no payload, no database):
