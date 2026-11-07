@@ -28,6 +28,9 @@ The user reviewed every section and **approved all findings**, with these refine
 
 No code changed yet. The next step is the implementation pass in the §10 order.
 
+**Batch status:** batch 1 shipped in `10a51b0` — #1, #7, #13, #14, #17, #18. Batches 2–3 remain
+open.
+
 ---
 
 ## 0. The reference standard (de facto, already the majority)
