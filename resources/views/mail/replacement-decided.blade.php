@@ -1,7 +1,7 @@
 Your replacement request [CRS#{{ $requestId }}] was {{ $decision }} — {{ $moduleCode }}
 
 Decision by:   {{ $decidedBy }}
-Make-up slot:  {{ $replacementTime }} @ {{ $replacementVenue }}
+Make-up slot:  {{ $replacementSchedule }} @ {{ $replacementVenue }}
 @if($reason)
 Reason (rejected): {{ $reason }}
 @endif

@@ -1,3 +1,8 @@
+## 2026-11-07 (date/time batch 4, `docs/date-time-format-audit-2026-11-07.md`) — the phone card's Date line gains its comma
+
+The mobile request card printed `Date: 5 Nov 2026 2:00 PM`; it now reads `Date: 5 Nov 2026, 2:00 PM`,
+matching every other date-plus-time surface. Desktop layout, tooltips and actions are untouched.
+
 ## 2026-11-07 (date/time batch 1, `docs/date-time-format-audit-2026-11-07.md`) — one range joiner in the queue
 
 The Approve / Reject compare cards printed `2:00 PM to 4:00 PM`, while the Request Details modal

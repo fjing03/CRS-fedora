@@ -2650,7 +2650,7 @@ class HtmlBuilder {
             '</div>' +
             '<div class="card-body">' +
             '<div><strong>Course:</strong> ' + r.courseCode + ' - ' + r.courseName + '</div>' +
-            '<div><strong>Date:</strong> ' + DateHelper.formatDate(r.classDate) + ' ' + DateHelper.to12h(r.timeStart) + '</div>' +
+            '<div><strong>Date:</strong> ' + DateHelper.formatDate(r.classDate) + ', ' + DateHelper.to12h(r.timeStart) + '</div>' +
             '<div><strong>Lecturer:</strong> ' + lecturerHtml + '</div>' +
             (urgencyHtml ? '<div><strong>Urgency:</strong> ' + urgencyHtml + '</div>' : '') +
             (ageHtml ? '<div>' + ageHtml + '</div>' : '') +

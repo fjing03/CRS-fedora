@@ -177,6 +177,32 @@ final class EmailQueueTest extends TestCase
         Mail::assertNotQueued(ReplacementApprovalNotice::class);
     }
 
+    /** Audit #29 — the emails speak the shared date + 12-hour range. */
+    public function test_decided_and_cohort_mails_speak_the_shared_date_and_12_hour_time(): void
+    {
+        [$slotIds, $request] = $this->pendingFixture($this->lecturer('Email Format'));
+        $pl = $this->lecturer('Email Format PL', true);
+
+        Mail::fake();
+        Queue::fake();
+
+        $this->assertTrue(app(ApproveRequest::class)($pl, (int) $request->id)['ok']);
+
+        Mail::assertQueued(ReplacementDecided::class, function (ReplacementDecided $mail): bool {
+            return (bool) preg_match(
+                '/Make-up slot:\s+[A-Z][a-z]{2}, \d{1,2} [A-Z][a-z]{2} \d{4}, \d{1,2}:\d{2} (AM|PM) ~ \d{1,2}:\d{2} (AM|PM) @ /',
+                $mail->render(),
+            );
+        });
+
+        Mail::assertQueued(ReplacementApprovalNotice::class, function (ReplacementApprovalNotice $mail): bool {
+            return (bool) preg_match(
+                '/Date:\s+[A-Z][a-z]{2}, \d{1,2} [A-Z][a-z]{2} \d{4}\s+Time:\s+\d{1,2}:\d{2} (AM|PM) ~ \d{1,2}:\d{2} (AM|PM)/',
+                $mail->render(),
+            );
+        });
+    }
+
     public function test_decide_own_request_queues_one_decided_mail(): void
     {
         // Q13 — the PL decides their own submission; the proposer (themselves)
@@ -267,6 +293,13 @@ final class EmailQueueTest extends TestCase
 
         // FR 4.15 — ONE queued copy per PL
         Mail::assertQueued(ReplacementSubmitted::class, $plCount);
+        // audit #29 — the submitted mail carries the date + a 12-hour range too
+        Mail::assertQueued(ReplacementSubmitted::class, function (ReplacementSubmitted $mail): bool {
+            return (bool) preg_match(
+                '/Make-up slot:\s+[A-Z][a-z]{2}, \d{1,2} [A-Z][a-z]{2} \d{4}, \d{1,2}:\d{2} (AM|PM) ~ \d{1,2}:\d{2} (AM|PM) @ /',
+                $mail->render(),
+            );
+        });
     }
 
     public function test_a_pl_proposer_is_not_emailed_their_own_request(): void

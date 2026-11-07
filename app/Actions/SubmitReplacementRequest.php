@@ -13,6 +13,7 @@ use App\Models\Venue;
 use App\Services\LectureSessionCatalog;
 use App\Services\MatrixIntersectionEngine;
 use App\Services\OCCValidator;
+use App\Services\ReplacementRequestMapper;
 use App\Support\Notifications\NotificationEmitter;
 use App\Support\WorkingHours;
 use Carbon\Carbon;
@@ -236,8 +237,17 @@ final class SubmitReplacementRequest
                 return;
             }
 
-            $replacementTime = \Illuminate\Support\Carbon::parse((string) $anchor->start_time)->format('H:i')
+            $legacyTime = \Illuminate\Support\Carbon::parse((string) $anchor->start_time)->format('H:i')
                 .' – '.\Illuminate\Support\Carbon::parse((string) $anchor->start_time)->addMinutes($span * 30)->format('H:i');
+            $semesterRow = Semester::find((int) $anchor->semester_id);
+            $replacementSchedule = $semesterRow !== null
+                ? (app(ReplacementRequestMapper::class)->mailSchedule([
+                    'week' => (int) $anchor->week_number,
+                    'day' => (int) $anchor->day_of_week,
+                    'start' => (string) $anchor->start_time,
+                    'end' => \Illuminate\Support\Carbon::parse((string) $anchor->start_time)->addMinutes($span * 30)->format('H:i'),
+                ], \Illuminate\Support\Carbon::parse((string) $semesterRow->start_date)) ?? $legacyTime)
+                : $legacyTime;
             $venueRow = Venue::find((int) $anchor->venue_id);
             $venue = $venueRow !== null ? (string) $venueRow->room_code : '';
 
@@ -254,7 +264,7 @@ final class SubmitReplacementRequest
                     $moduleCode,
                     (string) $pl->name,
                     $proposerName,
-                    $replacementTime,
+                    $replacementSchedule,
                     $venue,
                     $span,
                 ));

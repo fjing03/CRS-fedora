@@ -8,6 +8,7 @@ use App\Models\AuditLog;
 use App\Models\ClassException;
 use App\Models\ReplacementRequest;
 use App\Models\ReplacementRequestSlot;
+use App\Models\Semester;
 use App\Models\TimeSlot;
 use App\Models\User;
 use App\Services\ApprovalValidity;
@@ -319,11 +320,19 @@ final class ApproveRequest
         $mapper = app(ReplacementRequestMapper::class);
         $span = $mapper->replacementStrings($locked, Carbon::parse(now()->toDateString()));
 
+        /* audit #29: the email reads the date too — `Mon, 9 Nov 2026, 1:30 PM ~ 3:30 PM`
+           — while the page payload keeps its ISO date + 24-hour span. */
+        $mailSpan = $mapper->span($locked);
+        $semester = Semester::find((int) ($locked->classSession?->semester_id));
+        $schedule = $mailSpan !== null && $semester !== null
+            ? ($mapper->mailSchedule($mailSpan, Carbon::parse((string) $semester->start_date)) ?? ($span['time'] ?? ''))
+            : ($span['time'] ?? '');
+
         Mail::to((string) $proposer->email)->queue(new ReplacementDecided(
             (int) $locked->id,
             (string) ($locked->classSession->module->module_code ?? ''),
             'approved',
-            $span['time'] ?? '',
+            $schedule,
             $span['venue'] ?? '',
             null,
             $deciderName,
@@ -344,8 +353,15 @@ final class ApproveRequest
         $mapper = app(ReplacementRequestMapper::class);
         $span = $mapper->replacementStrings($locked, Carbon::parse(now()->toDateString()));
 
+        $mailSpan = $mapper->span($locked);
+        $semester = Semester::find((int) ($session->semester_id));
+        $mailDate = $mailSpan !== null && $semester !== null
+            ? $mapper->mailDate($mailSpan, Carbon::parse((string) $semester->start_date))
+            : ($span['date'] ?? '');
+        $mailTime = $mailSpan !== null ? $mapper->mailTime($mailSpan) : ($span['time'] ?? '');
+
         foreach ($session->cohorts as $cohort) {
-            DB::afterCommit(function () use ($cohort, $locked, $span): void {
+            DB::afterCommit(function () use ($cohort, $locked, $span, $mailDate, $mailTime): void {
                 $students = $cohort->students()->with('user')->get();
 
                 foreach ($students as $student) {
@@ -356,8 +372,8 @@ final class ApproveRequest
                             (int) $locked->id,
                             (string) ($locked->classSession->module->module_code ?? ''),
                             (string) ($cohort->programme->programme_code ?? ''),
-                            $span['date'] ?? '',
-                            $span['time'] ?? '',
+                            $mailDate,
+                            $mailTime,
                             $span['venue'] ?? '',
                         ));
                     }

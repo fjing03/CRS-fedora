@@ -576,6 +576,57 @@ final class ReplacementRequestMapper
     }
 
     /**
+     * The email schedule line — `Mon, 9 Nov 2026, 1:30 PM ~ 3:30 PM`
+     * (audit #29). Display only: `stringsFromSpan()` keeps its ISO date and
+     * 24-hour span for the page consumers.
+     *
+     * @param  array{week: int, day: int, start: string, end: string}|null  $span
+     */
+    public function mailSchedule(?array $span, Carbon $semesterStart): ?string
+    {
+        if ($span === null) {
+            return null;
+        }
+
+        $date = $this->mailDate($span, $semesterStart);
+        $time = $this->mailTime($span);
+
+        return $date === '' || $time === '' ? null : $date.', '.$time;
+    }
+
+    /**
+     * `Mon, 9 Nov 2026` — the date half of the email schedule line.
+     *
+     * @param  array{week: int, day: int}|null  $span
+     */
+    public function mailDate(?array $span, Carbon $semesterStart): string
+    {
+        if ($span === null) {
+            return '';
+        }
+
+        return $semesterStart->copy()
+            ->addWeeks((int) $span['week'] - 1)
+            ->addDays((int) $span['day'])
+            ->format('D, j M Y');
+    }
+
+    /**
+     * `1:30 PM ~ 3:30 PM` — the time half of the email schedule line.
+     *
+     * @param  array{start: string, end: string}|null  $span
+     */
+    public function mailTime(?array $span): string
+    {
+        if ($span === null) {
+            return '';
+        }
+
+        return Carbon::parse((string) $span['start'])->format('g:i A')
+            .' ~ '.Carbon::parse((string) $span['end'])->format('g:i A');
+    }
+
+    /**
      * SDD notif-new-request-ux (design §3): the BATCH span read — ONE join
      * query for a whole request-id set, grouped into span()'s first/last
      * shape. Never called per-row on a 10 s poll. NOTE: the joined tables are

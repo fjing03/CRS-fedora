@@ -6,11 +6,14 @@ use App\Mail\ReplacementDecided;
 use App\Models\AuditLog;
 use App\Models\ReplacementRequest;
 use App\Models\ReplacementRequestSlot;
+use App\Models\Semester;
 use App\Models\TimeSlot;
 use App\Models\User;
 use App\Models\Venue;
 use App\Services\ApprovalValidity;
+use App\Services\ReplacementRequestMapper;
 use App\Support\Notifications\NotificationEmitter;
+use Carbon\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Mail;
@@ -212,11 +215,24 @@ final class RejectRequest
         $venue = $venueId !== null ? Venue::find((int) $venueId) : null;
         $venueLabel = $venue !== null ? (string) $venue->room_code : '';
 
+        /* audit #29: the email reads the date too — `Mon, 9 Nov 2026, 1:30 PM ~ 3:30 PM`. */
+        $legacyTime = $start.' – '.$end;
+        $semester = Semester::find((int) ($locked->classSession?->semester_id));
+        $schedule = $legacyTime;
+        if ($semester !== null && $anchor !== null && $start !== '' && $end !== '') {
+            $schedule = app(ReplacementRequestMapper::class)->mailSchedule([
+                'week' => (int) $anchor->week_number,
+                'day' => (int) $anchor->day_of_week,
+                'start' => (string) $start,
+                'end' => (string) $end,
+            ], Carbon::parse((string) $semester->start_date)) ?? $legacyTime;
+        }
+
         Mail::to((string) $proposer->email)->queue(new ReplacementDecided(
             (int) $locked->id,
             (string) ($locked->classSession->module->module_code ?? ''),
             'rejected',
-            $start.' – '.$end,
+            $schedule,
             $venueLabel,
             $reason,
             $deciderName,

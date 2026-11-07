@@ -23,7 +23,7 @@ final class ReplacementSubmitted extends Mailable implements ShouldQueue
         public readonly string $moduleCode,
         public readonly string $moduleLabel,
         public readonly string $proposerName,
-        public readonly string $replacementTime,
+        public readonly string $replacementSchedule,
         public readonly string $replacementVenue,
         public readonly int $spanSlots,
     ) {}
@@ -44,7 +44,7 @@ final class ReplacementSubmitted extends Mailable implements ShouldQueue
                 'moduleCode' => $this->moduleCode,
                 'moduleLabel' => $this->moduleLabel,
                 'proposerName' => $this->proposerName,
-                'replacementTime' => $this->replacementTime,
+                'replacementSchedule' => $this->replacementSchedule,
                 'replacementVenue' => $this->replacementVenue,
                 'spanSlots' => $this->spanSlots,
                 'openUrl' => url('/request-approval-ui'),
