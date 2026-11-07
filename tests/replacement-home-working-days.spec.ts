@@ -177,7 +177,9 @@ test('the countdown sits on its own line, and the pop-up brackets it', async ({ 
     const i = lines.indexOf('Date');
     return i >= 0 ? lines[i + 1] : null;
   });
-  expect(modalDate, 'the modal prints the countdown in brackets').toMatch(
-    /^\d{1,2} \w{3} \d{4} \((Today|Overdue \(\d+ Working Days? Ago\)|\d+ Working Days? Left)\)$/,
+  /* Brackets — except an OVERDUE label, which already carries its own brackets and
+     therefore follows an em dash (user answer B, 2026-11-07). */
+  expect(modalDate, 'the modal prints the countdown in brackets, or after a dash when overdue').toMatch(
+    /^\d{1,2} \w{3} \d{4} (\((Today|\d+ Working Days? Left)\)|— Overdue \(\d+ Working Days? Ago\))$/,
   );
 });

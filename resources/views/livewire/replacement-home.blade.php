@@ -837,13 +837,20 @@
                only, in its own tab). */
             /* 2026-11-07 (user): the modal reads the countdown in BRACKETS —
                `Date  9 Nov 2026 (1 Working Day Left)` — while the table keeps it
-               on its own line. Same words, same colours, one calculation. */
-            var origCountdown = countdownHidden(c)
-                ? ' \u2014'
-                : ' (<span class="' + urgencyClass(daysLeft(c.date)) + '">' + daysLeftLabel(daysLeft(c.date)) + '</span>)';
+               on its own line. Same words, same colours, one calculation.
+               User answer B (same night): an OVERDUE label already carries its own
+               brackets ("Overdue (1 Working Day Ago)"), so doubling them read badly;
+               that one follows an em dash instead — `6 Nov 2026 — Overdue (…)`. */
+            var detailCountdown = function (iso) {
+                var d = daysLeft(iso);
+                var span = '<span class="' + urgencyClass(d) + '">' + daysLeftLabel(d) + '</span>';
+
+                return d < 0 ? ' \u2014 ' + span : ' (' + span + ')';
+            };
+            var origCountdown = countdownHidden(c) ? ' \u2014' : detailCountdown(c.date);
             var replCountdown = '';
             if (c.replacementDate && c.requestStatus === 'pending') {
-                replCountdown = ' (<span class="' + urgencyClass(daysLeft(c.replacementDate)) + '">' + daysLeftLabel(daysLeft(c.replacementDate)) + '</span>)';
+                replCountdown = detailCountdown(c.replacementDate);
             }
 
             /* Tab 1 — the class as timetabled. */

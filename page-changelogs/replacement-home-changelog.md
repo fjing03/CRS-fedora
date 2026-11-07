@@ -18,8 +18,10 @@ column (`HtmlBuilder.replacementBlock`'s `pendingCountdown`) follow the same sha
 would read as a missing value. Words, colours, bands and the working-day calculation are untouched.
 
 **Pop-up.** The date row now brackets the countdown — `Date  9 Nov 2026 (1 Working Day Left)` — in
-both tabs (Original Class + Proposed Replacement, pending only). Same rule for `Today`,
-`n Working Days Left` and `Overdue (n Working Days Ago)`; a landed row keeps `9 Nov 2026 —`.
+both tabs (Original Class + Proposed Replacement, pending only). Same rule for `Today` and
+`n Working Days Left`; a landed row keeps `9 Nov 2026 —`. **An OVERDUE label follows an em dash
+instead** (user answer B, same night): its own words already carry brackets, so doubling them read
+badly — `6 Nov 2026 — Overdue (1 Working Day Ago)`.
 
 **Receipts** (testing DB): `tests/replacement-home-working-days.spec.ts` **8/8** — the new case
 asserts the markup order (`date</span><br><urgency>` … `</span><br><class-time>`), that the old
