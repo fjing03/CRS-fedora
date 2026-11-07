@@ -64,8 +64,10 @@ a real `<span class="cell-state-label">` in the cell (2 lines, 11 px), never the
 
 The band is chosen by `urgencyBandClass(days)` in `ui-common.js` — never by a page. Words:
 `Today` · `1 Working Day Left` · `N Working Days Left` · `Overdue (N Working Day Ago)`;
-working days = Mon–Fri minus the timetable's holidays. A pending request also shows the
-make-up countdown beside the requested date; approved/completed print `—`.
+working days = Mon–Fri minus the timetable's holidays. **Placement:** the countdown is its own
+line under the date (date / urgency / time) in the table columns, and sits in brackets in the
+details pop-up — an overdue label follows an em dash there instead. A pending request also shows
+the make-up countdown on the requested date; approved/completed print `—`.
 
 Adding a new status/legend item = **ONE row** in the relevant table above + **ONE class** in `theme.css`, then reuse it everywhere.
 
