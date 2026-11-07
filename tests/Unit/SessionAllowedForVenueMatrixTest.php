@@ -102,10 +102,27 @@ final class SessionAllowedForVenueMatrixTest extends TestCase
             // B009, so the booking rule must not contradict the timetable.
             'sp15_bmit2013L_B009_lab_additive' => [15, 'BMIT2013', 'L', ['RSD'], 'B009', 'lab', true, true],
             'sp16_bmit2013L_B006_widen' => [16, 'BMIT2013', 'L', ['RSD'], 'B006', 'cisco_lab', true, true],
-            'sp17_bmit2013T_B010_lab_additive' => [17, 'BMIT2013', 'T', ['RSD'], 'B010', 'lab', true, true], // the roster covers L/T
-            'sp18_bmit1173L_B009_lab_additive' => [18, 'BMIT1173', 'L', ['RSD'], 'B009', 'lab', true, true],
+            // 2026-11-07 user ruling (SDD lab-access-type-aware): the roster is per
+            // module AND session type — these two flipped true → false because the
+            // type itself has no seeded lab session (sp17: BMIT2013 has NO T at all;
+            // sp18: BMIT1173's L sits in Tutorial Room B107).
+            'sp17_bmit2013T_B010_denied' => [17, 'BMIT2013', 'T', ['RSD'], 'B010', 'lab', true, false],
+            'sp18_bmit1173L_B009_denied' => [18, 'BMIT1173', 'L', ['RSD'], 'B009', 'lab', true, false],
             'sp19_bmcs2053L_B009_denied' => [19, 'BMCS2053', 'L', ['RSD'], 'B009', 'lab', true, false], // not in the timetable's lab-L/T population
             'sp20_bmcs2053L_B006_denied' => [20, 'BMCS2053', 'L', ['RSD'], 'B006', 'cisco_lab', true, false],
+
+            // ── 2026-11-07 type-aware pair (SDD lab-access-type-aware) ─────────
+            // The six over-grant modules lose their L, keep their T (where the seed
+            // has one); AMCS1013 is the partial case (T in B006, L in Hall B111).
+            'sp21_amse1003L_B009_denied' => [21, 'AMSE1003', 'L', ['DFT'], 'B009', 'lab', true, false],
+            'sp22_amse1003T_B009_allowed' => [22, 'AMSE1003', 'T', ['DFT'], 'B009', 'lab', true, true],
+            'sp23_amcs1043L_B011_denied' => [23, 'AMCS1043', 'L', ['DFT'], 'B011', 'lab', true, false],
+            'sp24_amcs1043T_B011_allowed' => [24, 'AMCS1043', 'T', ['DFT'], 'B011', 'lab', true, true],
+            'sp25_amcs1013L_B006_denied' => [25, 'AMCS1013', 'L', ['DSF'], 'B006', 'cisco_lab', true, false], // its T is the B006 resident, not its L
+            'sp26_amcs1013T_B009_allowed' => [26, 'AMCS1013', 'T', ['DSF'], 'B009', 'lab', true, true], // roster T → any lab, not only B006
+            'sp27_bmit2013T_B006_denied' => [27, 'BMIT2013', 'T', ['RSD'], 'B006', 'cisco_lab', true, false], // the B006 arm is type-aware too
+            'sp28_bmit1173L_B006_denied' => [28, 'BMIT1173', 'L', ['RSD'], 'B006', 'cisco_lab', true, false],
+            'sp29_amse1003L_B111_hall_kept' => [29, 'AMSE1003', 'L', ['DFT'], 'B111', 'lecture_hall', true, true], // losing labs must not cost the R1 row
         ];
     }
 

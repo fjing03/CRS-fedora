@@ -34,6 +34,44 @@ final class LectureSessionCatalog
     public const DAY_ABBRS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 
     /**
+     * The type-aware lab roster (user ruling 2026-11-07, SDD
+     * `lab-access-type-aware`): `module_code => session types whose OWN seeded
+     * session already sits in a `lab` / `cisco_lab`. This is the whole roster —
+     * there is no second module list; `b006_allowed_module_codes` is derived
+     * from these keys, and BOTH additive arms (any lab, and B006 by room code)
+     * require the session type to be present here.
+     *
+     * Derived from the seed in BOTH directions by
+     * `TimetableSeedInvariantsTest::test_t8_…`: every pair below has a seeded
+     * lab L/T of that exact type, and every seeded lab L/T is listed. A future
+     * import that moves a type into a lab, or out of one, fails that test until
+     * this map is edited on purpose.
+     *
+     * L in a lab (7): AMIT2033, BMIT2154, BMIT3084, AMIT2034 (B006/B010),
+     * BMIS2003 (B006), BMIT1723 (B011), BMIT2013 (B009).
+     * T in a lab (10): AMIT2033, BMIT2154, BMIT3084, AMIT2034 (B006/B010),
+     * AMCS1043 (B011), AMIS1003 (B010), AMSE1003 (B009), BMCS3033 (B011),
+     * BMIT1173 (B009), AMCS1013 (B006 — its L is in B111, hence `T` only).
+     *
+     * @var array<string, list<string>>
+     */
+    public const LAB_ACCESS = [
+        'AMIT2033' => ['L', 'T'],
+        'BMIT2154' => ['L', 'T'],
+        'BMIT3084' => ['L', 'T'],
+        'AMIT2034' => ['L', 'T'],
+        'BMIT2013' => ['L'],   // its L is in B009; it has NO seeded T at all
+        'BMIS2003' => ['L'],   // B006 lecture
+        'BMIT1723' => ['L'],   // B011 lecture
+        'AMCS1013' => ['T'],   // T in B006; its L sits in Lecture Hall B111
+        'AMCS1043' => ['T'],
+        'AMIS1003' => ['T'],
+        'AMSE1003' => ['T'],
+        'BMCS3033' => ['T'],
+        'BMIT1173' => ['T'],
+    ];
+
+    /**
      * The single-source eligibility rule (raw DB encodings; JSON-able — the
      * pages bake it into page-data and the client only READS it).
      *
@@ -50,7 +88,7 @@ final class LectureSessionCatalog
      * contradicting it.
      * Capacity is NOT part of this gate — the engine's separate check.
      *
-     * @return array{P: list<string>, T: list<string>, L: list<string>, lab_access_module_codes: list<string>, b006_allowed_module_codes: list<string>, b006_focs_programmes: list<string>, b006_banned_programmes: list<string>, b006_venue_code: string}
+     * @return array{P: list<string>, T: list<string>, L: list<string>, lab_access: array<string, list<string>>, b006_allowed_module_codes: list<string>, b006_focs_programmes: list<string>, b006_banned_programmes: list<string>, b006_venue_code: string}
      */
     public static function ruleMap(): array
     {
@@ -65,10 +103,9 @@ final class LectureSessionCatalog
             'L' => ['tutorial', 'lecture_hall'],
             /* venue-restrictions-enforcement (the user's 2026-10-24
                ALLOW/DISALLOW law): networking subjects' L/T may use any lab
-               (additive — their R1 rooms stay); B006's L/T roster = the same
-               codes (deliberately redundant with lab_access while the rosters
-               coincide — kept separate so a future divergence can't regress
-               silently); the population gate keys (R6). NOTE this
+               (additive — their R1 rooms stay); B006's L/T roster is DERIVED
+               from the same map (one authority, no second copy); the
+               population gate keys (R6). NOTE this
                module-conditioned data is the ONLY rule authority now — the
                allowed_session_types columns are untouched reference
                inventory (Q6: no migration).
@@ -80,9 +117,22 @@ final class LectureSessionCatalog
                then "are there any other subjects' L/T execute in lab but
                disallowed ?? add them to the array." The booking rule may not
                contradict the timetable it ships with; the seed invariant test
-               now pins that alignment (TimetableSeedInvariantsTest). */
-            'lab_access_module_codes' => ['AMIT2033', 'BMIT2154', 'BMIT3084', 'AMIT2034', 'BMIT2013', 'AMCS1013', 'AMCS1043', 'AMIS1003', 'AMSE1003', 'BMCS3033', 'BMIS2003', 'BMIT1173', 'BMIT1723'],
-            'b006_allowed_module_codes' => ['AMIT2033', 'BMIT2154', 'BMIT3084', 'AMIT2034', 'BMIT2013', 'AMCS1013', 'AMCS1043', 'AMIS1003', 'AMSE1003', 'BMCS3033', 'BMIS2003', 'BMIT1173', 'BMIT1723'],
+               now pins that alignment (TimetableSeedInvariantsTest).
+
+               2026-11-07 (user ruling, SDD lab-access-type-aware) — SUPERSEDES
+               the per-subject reading above: the roster is per **module AND
+               session type**. A listed module's L/T may use a lab only when
+               that type's OWN seeded session already sits in a lab. The
+               2026-11-03 widening was right about which modules and wrong
+               about which types: six modules whose L lives in a hall/tutorial
+               room could book all five labs, and AMCS1013's L could book the
+               very B006 that its T legitimately uses. The two flat arrays are
+               therefore ONE type-aware map (`LAB_ACCESS`). */
+            'lab_access' => self::LAB_ACCESS,
+            // DERIVED from `lab_access` (~never hand-maintained): the B006 roster
+            // IS the map's module set, so the two can never diverge. The shipped
+            // page payload and the docs still read this key.
+            'b006_allowed_module_codes' => array_keys(self::LAB_ACCESS),
             'b006_focs_programmes' => ['DFT', 'DSF', 'RSD'],
             'b006_banned_programmes' => ['RAF', 'RBU'],
             'b006_venue_code' => 'B006',
@@ -227,14 +277,15 @@ final class LectureSessionCatalog
         // the ALLOW half — one OR set (design D2):
         $inWidenRows = (bool) $moduleCode;
         $baseRow = in_array($rawRoomType, $allowedRooms, true);
-        $labsAdditive = in_array($sessionType, ['L', 'T'], true)
-            && $inWidenRows
-            && in_array($moduleCode, $rule['lab_access_module_codes'], true)
+        // 2026-11-07 (SDD lab-access-type-aware): the additive arms test the
+        // SESSION TYPE against the module's own entry — an L of a module whose
+        // only seeded lab session is a T gains nothing. An unknown module, or an
+        // unloaded relation, yields [] → no widening (the old fail-closed guard).
+        $moduleLabTypes = $inWidenRows ? ($rule['lab_access'][$moduleCode] ?? []) : [];
+        $labsAdditive = in_array($sessionType, $moduleLabTypes, true)
             && in_array($rawRoomType, ['lab', 'cisco_lab'], true);
         $b006Widen = $venueCode === $rule['b006_venue_code']
-            && in_array($sessionType, ['L', 'T'], true)
-            && $inWidenRows
-            && in_array($moduleCode, $rule['b006_allowed_module_codes'], true);
+            && in_array($sessionType, $moduleLabTypes, true);
         if (! ($baseRow || $labsAdditive || $b006Widen)) {
             return false;
         }

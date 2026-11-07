@@ -3676,13 +3676,16 @@ ${(fallbackAttribution && intentReason === 'in-the-way')
 
             const labs = ['lab', 'cisco_lab'];
             const baseRow = rowKeys.indexOf(tag) !== -1;
-            const isLT = type === 'L' || type === 'T';
-            const labsAdditive = isLT && !!moduleCode
-                && (rule.lab_access_module_codes || []).indexOf(moduleCode) !== -1
+            /* 2026-11-07 (SDD lab-access-type-aware): the roster is per module
+               AND session type — `lab_access[moduleCode]` lists the types whose
+               own seeded session sits in a lab. Both additive arms (any lab,
+               and B006 by room code) require the type to be listed; an unknown
+               module is `[]` → no widening (the fail-closed reading stands). */
+            const modLabTypes = !!moduleCode ? ((rule.lab_access || {})[moduleCode] || []) : [];
+            const labsAdditive = modLabTypes.indexOf(type) !== -1
                 && labs.indexOf(tag) !== -1;
             const b006Code = rule.b006_venue_code || 'B006';
-            const b006Widen = isLT && venueCode === b006Code && !!moduleCode
-                && (rule.b006_allowed_module_codes || []).indexOf(moduleCode) !== -1;
+            const b006Widen = venueCode === b006Code && modLabTypes.indexOf(type) !== -1;
             if (! (baseRow || labsAdditive || b006Widen)) return false;
 
             if (venueCode === b006Code) {

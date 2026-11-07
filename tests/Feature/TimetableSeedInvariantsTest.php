@@ -760,41 +760,110 @@ final class TimetableSeedInvariantsTest extends TestCase
     }
 
     /**
-     * 2026-11-03 (user ruling): the booking roster must not contradict the
-     * timetable it ships with. Every L/T session sitting in a lab-type room
-     * must have its module on BOTH roster arrays — that is exactly the set the
-     * user ordered added ("are there any other subjects' L/T execute in lab but
-     * disallowed ?? add them to the array"). A future import that introduces a
-     * new lab-L/T subject fails here until the roster is updated on purpose.
+     * 2026-11-03 (user ruling) → **2026-11-07 (superseded, SDD
+     * `lab-access-type-aware`)**: the roster is per module AND session type, so
+     * the invariant runs in BOTH directions over the `(module, type)` pair:
+     *
+     *  1. every pair in `lab_access` has a seeded `lab` / `cisco_lab` session of
+     *     that exact module AND type — the rule may not offer a lab its own
+     *     timetable never uses;
+     *  2. every seeded `lab` / `cisco_lab` L/T session has its pair in the map —
+     *     the rule may not contradict the timetable it ships with (the
+     *     2026-11-03 direction, now type-exact).
+     *
+     * AMCS1013 is the partial case (T in B006, L in Lecture Hall B111) and is
+     * pinned explicitly below, because "the types differ per module" is exactly
+     * what the per-subject reading got wrong.
      */
-    public function test_t8_every_seeded_lab_lt_session_is_on_the_lab_roster(): void
+    public function test_t8_the_lab_roster_matches_the_seed_in_both_directions(): void
     {
         $this->seedFreshDemoDatabase();
 
-        $codes = DB::table('class_sessions as cs')
+        $seeded = DB::table('class_sessions as cs')
             ->join('modules as m', 'm.id', '=', 'cs.module_id')
             ->join('venues as v', 'v.id', '=', 'cs.venue_id')
             ->whereIn('cs.session_type', ['L', 'T'])
             ->whereIn('v.room_type', ['lab', 'cisco_lab'])
             ->distinct()
-            ->orderBy('m.module_code')
-            ->pluck('m.module_code')
+            ->get(['m.module_code', 'cs.session_type'])
+            ->map(fn ($row): string => $row->module_code.'|'.$row->session_type)
+            ->sort()
+            ->values()
             ->all();
 
-        $this->assertNotEmpty($codes, 'the seeded deck must carry lab L/T sessions');
+        $this->assertNotEmpty($seeded, 'the seeded deck must carry lab L/T sessions');
 
         $rule = LectureSessionCatalog::ruleMap();
 
-        foreach ($codes as $code) {
+        // the map's shape: module => list of L/T types, no unknown keys
+        foreach ($rule['lab_access'] as $moduleCode => $types) {
+            $this->assertIsArray($types, 'lab_access['.$moduleCode.'] must be a list of session types');
+            $this->assertNotEmpty($types, 'lab_access['.$moduleCode.'] must not be empty');
+            foreach ($types as $type) {
+                $this->assertContains($type, ['L', 'T'], 'lab_access['.$moduleCode.'] may only list L/T');
+            }
+        }
+
+        // direction 1 — every map pair has its own seeded lab session
+        $mapPairs = [];
+        foreach ($rule['lab_access'] as $moduleCode => $types) {
+            foreach ($types as $type) {
+                $mapPairs[] = $moduleCode.'|'.$type;
+            }
+        }
+        sort($mapPairs);
+
+        $this->assertSame(
+            $seeded,
+            $mapPairs,
+            'the lab roster and the seeded lab L/T population must be the same SET of (module, type) pairs — '
+            .'a pair on the roster with no seeded lab session offers a room the timetable never uses; '
+            .'a seeded lab session missing from the roster contradicts the timetable',
+        );
+
+        // direction 2 — spelled out per direction so a failure names the direction
+        foreach ($mapPairs as $pair) {
+            [$code, $type] = explode('|', $pair);
             $this->assertContains(
-                $code,
-                $rule['lab_access_module_codes'],
-                'lab_access_module_codes is missing '.$code.' — the booking rule contradicts the seeded timetable',
+                $pair,
+                $seeded,
+                'lab_access lists '.$code.' '.$type.' but no seeded '.$type.' of '.$code.' sits in a lab',
             );
+        }
+        foreach ($seeded as $pair) {
+            [$code, $type] = explode('|', $pair);
             $this->assertContains(
-                $code,
-                $rule['b006_allowed_module_codes'],
-                'b006_allowed_module_codes is missing '.$code.' — the two rosters must stay identical',
+                $pair,
+                $mapPairs,
+                'the seeded timetable runs '.$code.' '.$type.' in a lab, but lab_access does not list it',
+            );
+        }
+
+        // the derived B006 roster cannot drift from the map's module set
+        $this->assertSame(
+            array_keys($rule['lab_access']),
+            $rule['b006_allowed_module_codes'],
+            'b006_allowed_module_codes must stay DERIVED from lab_access (array_keys)',
+        );
+
+        // the partial case, pinned: AMCS1013 keeps T, loses L
+        $this->assertContains('AMCS1013|T', $mapPairs, 'AMCS1013 T must keep lab access (its T sits in B006)');
+        $this->assertNotContains('AMCS1013|L', $mapPairs, 'AMCS1013 L must NOT have lab access (its L sits in Lecture Hall B111)');
+
+        // …and the seed still runs AMCS1013's L in a lecture hall, so the case is real
+        $amcs1013L = DB::table('class_sessions as cs')
+            ->join('modules as m', 'm.id', '=', 'cs.module_id')
+            ->join('venues as v', 'v.id', '=', 'cs.venue_id')
+            ->where('m.module_code', '=', 'AMCS1013')
+            ->where('cs.session_type', '=', 'L')
+            ->get(['v.room_code', 'v.room_type']);
+
+        $this->assertNotEmpty($amcs1013L, 'AMCS1013 must still carry a seeded L (the partial case)');
+        foreach ($amcs1013L as $row) {
+            $this->assertNotContains(
+                $row->room_type,
+                ['lab', 'cisco_lab'],
+                'AMCS1013 L sits in '.$row->room_code.' — if it ever moves into a lab, add L to lab_access on purpose',
             );
         }
     }
