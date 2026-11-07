@@ -18,7 +18,10 @@ against `main` as of `fe26b10`.
 | Kind | Shape | Example |
 |---|---|---|
 | Date | `j M Y` — day without leading zero, short month, 4-digit year | `5 Nov 2026` |
-| Date + weekday | `D, j M Y` | `Thu, 5 Nov 2026` |
+| Day name — compact | `D` — table cells, cards, chips, picker labels, tooltip data lines | `Thu` |
+| Day name — prose | full word — sentences, questions, toasts | `Thursday` |
+| Date + weekday (compact) | `D, j M Y` | `Thu, 5 Nov 2026` |
+| Date + weekday (prose) | `l, j M Y` | `Thursday, 5 Nov 2026` |
 | Time | 12-hour, uppercase meridiem, no leading zero on the hour | `2:00 PM` |
 | Time range | `2:00 PM ~ 4:00 PM` (`~`, one space each side) | `2:00 PM ~ 4:00 PM` |
 | Date range | `5 Nov 2026 ~ 11 Nov 2026` | — |
@@ -26,12 +29,20 @@ against `main` as of `fe26b10`.
 | Relative (prose) | `3 days ago` | — |
 | Relative (compact list) | `3d ago`, `2h ago`, `Yesterday` | — |
 
-Two rulings that go with it:
+Three rulings that go with it:
 
 1. **`~` is the range joiner.** A plain hyphen (`2:00 PM - 3:00 PM`) is also acceptable to the user,
    so existing hyphen ranges are not treated as broken — but a single element must not mix joiners.
 2. **The en dash `–` is not a range joiner.** It already means "no data" / a parenthetical break in
    this UI (`B103 — Tutorial Room`, `—` for empty cells). Time ranges should not borrow it.
+3. **Day words follow their container.** A compact list or data line says `Thu`; a sentence the user
+   reads says `Thursday`. The split is about the shape of the line, not the widget:
+   - **Compact (`Thu`)** — table cells, mobile cards, chips, slot-picker labels, the data half of a
+     tooltip (`Week 3 · Thu, 5 Nov 2026`), notification tip lines.
+   - **Prose (`Thursday`)** — toasts, questions and full sentences
+     (`Arrange a replacement in B103 on Thursday, 5 Nov 2026 at 2:30 PM?`).
+   - **Expanded detail-modal rows** already print the full word (`Day: Thursday`) on both pages and
+     are treated as prose — consistent, no change proposed.
 
 ---
 
@@ -78,7 +89,7 @@ Correct on this page, no action: Quick View → Original Class → Time (`:818`)
 | 8 | Duplicate-conflict error line (`:2217`) | `2:00 PM–4:00 PM` (no spaces) | `2:00 PM ~ 4:00 PM` | Medium |
 | 9 | Booking toast (`:2261`) | `at 1:00 PM–2:00 PM` | `at 1:00 PM ~ 2:00 PM` | Medium |
 | 10 | Auto-pick summary line (`:2171`) | `Thu, 05 Nov 2026 — 2:00 PM ~ 4:00 PM` (em dash before range) | `Thu, 5 Nov 2026, 2:00 PM ~ 4:00 PM` | Low |
-| 11 | Conflicted-slot picker label + hover tip (`:3831`, `:3971`; date label from `LectureSessionCatalog.php:471`, `M j`) | `Monday, Nov 9` | `Mon, 9 Nov 2026` | Medium — month-first is unique to this surface |
+| 11 | Conflicted-slot picker label + hover tip (`:3831`, `:3971`; date label from `LectureSessionCatalog.php:471`, `M j`) | `Monday, Nov 9` | `Mon, 9 Nov 2026` | Medium — month-first is unique to this surface; both are compact data lines, so `Mon` is correct under the day rule |
 | 12 | Grid hour axis (`ui-common.js:856`) | `08:00`, `09:00` (24-hour) | keep — it is a scale, not prose (same call as §7 #20) | Decision |
 
 ---
@@ -101,8 +112,8 @@ day counts, not dates — out of scope for this audit.
 
 | # | Location | Current | Suggested | Priority |
 |---|---|---|---|---|
-| 17 | "Arrange a replacement in …" click toast (`venue-timetable.blade.php:465`) | `on Thu, 05 Nov 2026 at 14:30?` | `on Thu, 5 Nov 2026 at 2:30 PM?` | **High** — 24-hour in prose |
-| 18 | Booking-session modal subtitle (`:561`) | `Thu, 05 Nov 2026 · 14:30` | `Thu, 5 Nov 2026 · 2:30 PM` | **High** |
+| 17 | "Arrange a replacement in …" click toast (`venue-timetable.blade.php:465`) | `on Thu, 05 Nov 2026 at 14:30?` | `on Thursday, 5 Nov 2026 at 2:30 PM?` | **High** — 24-hour **and** an abbreviated day inside a sentence |
+| 18 | Booking-session modal subtitle (`:561`) | `Thu, 05 Nov 2026 · 14:30` | `Thu, 5 Nov 2026 · 2:30 PM` | **High** — compact data line, so `Thu` stays |
 
 The grid's own event labels already use 12-hour (`:925-926`); only these two prose strings leak 24-hour.
 
@@ -158,8 +169,26 @@ Everything here is a display-layer change. No schema, no stored value, no calcul
 
 ---
 
+## 11. Already consistent — no action
+
+Day words were audited alongside the dates; these already obey §0 ruling 3:
+
+| Surface | Current | Verdict |
+|---|---|---|
+| Table cells, mobile cards, day headers (`formatClassBlock`, `requestCell`, `dayHeader`, `classBlock`) | `Thu, 5 Nov 2026` | compact → `Thu` ✅ |
+| Detail modal `Day` rows (`replacement-home.blade.php:816`, `:833`; `request-approval.blade.php:1093`, `:1112`) | `Thursday` | expanded row, treated as prose ✅ |
+| Notification tip day line (`NotificationTip.php:262-263`) | `Week 3 · Thu, 5 Nov 2026` | compact data line ✅ |
+| "Earliest bookable" tooltip (`replacement-arrangement.blade.php:4451`) | `Thursday, 5 Nov 2026 (Week 3)` | prose sentence ✅ |
+| Venue booking subtitle (`venue-timetable.blade.php:561`) | `Thu, 05 Nov 2026` | compact ✅ (only the time/year need the fix in #18) |
+
+The only day-word defect found is **#17**, where an abbreviation sits inside a sentence.
+
+---
+
 ## Appendix — decisions requested
 
+- [x] **Settled 2026-11-07:** day words follow their container — `Thu` in compact lists/data
+      lines, `Thursday` in prose (§0 ruling 3).
 - [ ] Confirm `~` as the only range joiner for new work (hyphen stays acceptable where already used).
 - [ ] Grid hour axis: keep 24-hour, or convert to `2:00 PM`? (Affects all four timetable pages.)
 - [ ] Notification tooltip: add the year (`5 Nov 2026, 2:30 PM`) or keep it short?
