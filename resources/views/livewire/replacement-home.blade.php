@@ -435,13 +435,17 @@
 
         function formatClassBlock(c) {
             var days = daysLeft(c.date);
+            /* 2026-11-07 (user): the countdown gets its OWN line under the date —
+               date / urgency / time — so a long label never crowds the date. A
+               landed row (approved/completed) keeps the inline em dash: it has no
+               countdown to place. */
             var daysText = countdownHidden(c)
-                ? '\u2014'
-                : '<span class="' + urgencyClass(days) + '">' + daysLeftLabel(days) + '</span>';
+                ? ' \u2014'
+                : '<br><span class="' + urgencyClass(days) + '">' + daysLeftLabel(days) + '</span>';
             var wn = getWeekNumber(c.date);
             var weekTag = wn ? ' (Week ' + wn + ')' : '';
             return '<div class="cell-class-block">' +
-                '<span class="class-day-date">' + dayAbbr(c.day) + ', ' + formatDate(c.date) + weekTag + '</span> ' + daysText +
+                '<span class="class-day-date">' + dayAbbr(c.day) + ', ' + formatDate(c.date) + weekTag + '</span>' + daysText +
                 '<br><span class="class-time">' + to12h(c.timeStart) + ' ~ ' + to12h(c.timeEnd) + '</span> ' +
                 '<span class="class-duration">(' + durationWords(c.duration) + ')</span>' +
                 '<br>' + venueLine(c.venue, null) + '</div>';
@@ -459,7 +463,7 @@
             var daysText = '';
             if (c.requestStatus === 'pending') {
                 var days = daysLeft(c.replacementDate);
-                daysText = ' <span class="' + urgencyClass(days) + '">' + daysLeftLabel(days) + '</span>';
+                daysText = '<br><span class="' + urgencyClass(days) + '">' + daysLeftLabel(days) + '</span>';
             }
             return '<div class="cell-class-block">' +
                 '<span class="class-day-date">' + dayAbbr(c.replacementDay) + ', ' + formatDate(c.replacementDate) + weekTag + '</span>' + daysText +
@@ -831,12 +835,15 @@
                measures, with the same words/colours and the same placement law
                (class date while the row needs you; the make-up date, pending
                only, in its own tab). */
+            /* 2026-11-07 (user): the modal reads the countdown in BRACKETS —
+               `Date  9 Nov 2026 (1 Working Day Left)` — while the table keeps it
+               on its own line. Same words, same colours, one calculation. */
             var origCountdown = countdownHidden(c)
                 ? ' \u2014'
-                : ' <span class="' + urgencyClass(daysLeft(c.date)) + '">' + daysLeftLabel(daysLeft(c.date)) + '</span>';
+                : ' (<span class="' + urgencyClass(daysLeft(c.date)) + '">' + daysLeftLabel(daysLeft(c.date)) + '</span>)';
             var replCountdown = '';
             if (c.replacementDate && c.requestStatus === 'pending') {
-                replCountdown = ' <span class="' + urgencyClass(daysLeft(c.replacementDate)) + '">' + daysLeftLabel(daysLeft(c.replacementDate)) + '</span>';
+                replCountdown = ' (<span class="' + urgencyClass(daysLeft(c.replacementDate)) + '">' + daysLeftLabel(daysLeft(c.replacementDate)) + '</span>)';
             }
 
             /* Tab 1 — the class as timetabled. */

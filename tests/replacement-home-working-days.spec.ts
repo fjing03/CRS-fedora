@@ -143,3 +143,41 @@ test('the rendered countdowns use the new words', async ({ page }) => {
     expect(t).toMatch(/^(Today|Overdue \(\d+ Working Days? Ago\)|\d+ Working Days? Left)$/);
   }
 });
+
+/* 2026-11-07 (user): the countdown owns its OWN line under the date —
+   date / urgency / time — and the pop-up reads it in BRACKETS. Same words,
+   same colours, one calculation; only the placement changed. */
+test('the countdown sits on its own line, and the pop-up brackets it', async ({ page }) => {
+  const cell = await page.evaluate(() => {
+    const block = document.querySelector('#tableBody .col-original .cell-class-block');
+    if (!block) return null;
+    const html = block.innerHTML;
+    const lines = (block as HTMLElement).innerText.split('\n').map((s) => s.trim()).filter(Boolean);
+    return {
+      dateThenBreak: /<span class="class-day-date">[^<]*<\/span><br><span class="urgency-(high|mid|low)"/.test(html),
+      breakThenTime: /<\/span><br><span class="class-time">/.test(html),
+      noInlineCountdown: /<\/span> <span class="urgency-/.test(html),
+      lines,
+    };
+  });
+  expect(cell, 'the original-class cell renders').not.toBeNull();
+  expect(cell!.dateThenBreak, 'date, then <br>, then the countdown').toBe(true);
+  expect(cell!.breakThenTime, 'the countdown is followed by <br> and the time').toBe(true);
+  expect(cell!.noInlineCountdown, 'the old inline shape is gone').toBe(false);
+  // three lines: date / countdown / time (+ venue)
+  expect(cell!.lines[1]).toMatch(/^(Today|Overdue \(\d+ Working Days? Ago\)|\d+ Working Days? Left)$/);
+
+  // the pop-up: `Date  9 Nov 2026 (1 Working Day Left)`
+  await page.locator('#tableBody tbody tr, #tableBody tr').first().click();
+  await page.waitForTimeout(700);
+  const modalDate = await page.evaluate(() => {
+    const body = document.getElementById('qvBody');
+    if (!body) return null;
+    const lines = (body as HTMLElement).innerText.split('\n').map((s) => s.trim()).filter(Boolean);
+    const i = lines.indexOf('Date');
+    return i >= 0 ? lines[i + 1] : null;
+  });
+  expect(modalDate, 'the modal prints the countdown in brackets').toMatch(
+    /^\d{1,2} \w{3} \d{4} \((Today|Overdue \(\d+ Working Days? Ago\)|\d+ Working Days? Left)\)$/,
+  );
+});

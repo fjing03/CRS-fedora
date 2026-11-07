@@ -1,3 +1,34 @@
+## 2026-11-07 (night) — the countdown owns its own line; the pop-up brackets it
+
+User brief *UI Update — Urgency Label & Date Display*.
+
+**Table cells (both columns).** The `n Working Days Left` label used to sit BESIDE the date; it now
+takes the line under it, so every block reads date / urgency / time:
+
+```html
+<span class="class-day-date">Mon, 9 Nov 2026 (Week 8)</span><br>
+<span class="urgency-mid">1 Working Day Left</span><br>
+<span class="class-time">9:00 AM ~ 11:00 AM</span> <span class="class-duration">(2 hours)</span><br>
+… venue
+```
+
+Both My Replacements columns (`formatClassBlock`, `requestCell`) and Request Approval's requested
+column (`HtmlBuilder.replacementBlock`'s `pendingCountdown`) follow the same shape. A LANDED row
+(approved/completed) keeps its inline em dash — it has no countdown to place, and an empty line
+would read as a missing value. Words, colours, bands and the working-day calculation are untouched.
+
+**Pop-up.** The date row now brackets the countdown — `Date  9 Nov 2026 (1 Working Day Left)` — in
+both tabs (Original Class + Proposed Replacement, pending only). Same rule for `Today`,
+`n Working Days Left` and `Overdue (n Working Days Ago)`; a landed row keeps `9 Nov 2026 —`.
+
+**Receipts** (testing DB): `tests/replacement-home-working-days.spec.ts` **8/8** — the new case
+asserts the markup order (`date</span><br><urgency>` … `</span><br><class-time>`), that the old
+inline shape is gone, the second rendered line is a countdown, and the pop-up's date row matches
+`^\d{1,2} \w{3} \d{4} \((Today|Overdue \(…\)|… Working Days? Left)\)$`;
+`replacement-home-status-badges` 13/13 and `status-tooltips-filter-chips` 15/15 across the two
+replacement-home/PL files. Screenshots `/tmp/opencode/urgency-lines-home.png`,
+`urgency-lines-pl.png`, `urgency-modal.png`.
+
 ## 2026-11-07 — a rejected request keeps its real length (the anchor is one cell)
 
 Same defect as the Request Approval entry of this date: the release actions delete the junction

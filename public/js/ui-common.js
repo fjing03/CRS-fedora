@@ -2675,7 +2675,9 @@ class HtmlBuilder {
         var pendingDays = '';
         if (opts.pendingCountdown && String(r.status || '').toLowerCase() === 'pending') {
             var wd = workingDaysDiff(r.replacementDate);
-            pendingDays = ' <span class="' + urgencyBandClass(wd) + '">' + daysLeftLabel(wd) + '</span>';
+            // 2026-11-07 (user): the countdown gets its own line under the date —
+            // date / urgency / time — on this page too (same law as My Replacements).
+            pendingDays = '<br><span class="' + urgencyBandClass(wd) + '">' + daysLeftLabel(wd) + '</span>';
         }
         if (opts.merged) {
             var hours = uiHoursFromRange(r.replacementTime);

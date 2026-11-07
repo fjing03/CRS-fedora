@@ -1,3 +1,24 @@
+## 2026-11-07 (night) — the pending countdown takes its own line
+
+User brief *UI Update — Urgency Label & Date Display*, part 1. The REQUESTED REPLACEMENT cell's
+pendency countdown sat beside the date (`Fri, 6 Nov 2026 (Week 7) Overdue (1 Working Day Ago) 2:00 PM
+~ 3:00 PM`); it now gets the line under the date, so every row reads date / urgency / time:
+
+```html
+<span class="class-day-date">Fri, 6 Nov 2026 (Week 7)</span><br>
+<span class="urgency-high">Overdue (1 Working Day Ago)</span><br>
+<span class="class-time">2:00 PM ~ 3:00 PM</span> <span class="class-duration">(1 hour)</span>
+```
+
+The change lives in `HtmlBuilder.replacementBlock()`'s opt-in `pendingCountdown` (My Replacements'
+cells are rendered by its own page code and follow the same shape). This page's ORIGINAL CLASS
+column carries no countdown — it was removed with the Urgency column on 2026-11-07 — so there is
+nothing to move there. Words, bands, colours and the working-day calculation are unchanged; the
+pop-up on this page never printed a countdown and still does not.
+
+Receipt: `status-tooltips-filter-chips.spec.ts` T5.RA-4 (15/15 with the working-days spec).
+Screenshot `/tmp/opencode/urgency-lines-pl.png`.
+
 ## 2026-11-07 — a rejected or cancelled request keeps its real length (1 hour, not 30 minutes)
 
 Reported on request **#24** (and the same shape on `/my-replacements`): the requested
