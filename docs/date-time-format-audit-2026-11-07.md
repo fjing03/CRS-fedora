@@ -3,13 +3,30 @@
 **Date:** 2026-11-07
 **Scope:** every user-visible date and time string in the TARUMT Class Replacement System —
 table cells, modals, tooltips, toasts, cards, chips, notification rows and tips, emails.
-**Status:** report only. Except for the two column fixes listed in §1, **nothing in this audit has
-been changed.** Each row below is a proposal awaiting a decision.
+**Status:** **reviewed and approved 2026-11-07** — everything agreed except #30, which is
+deferred until the API is unparked. No code has been changed by this pass; §1's two column fixes
+are already shipped.
 
 **Method:** read the live render paths rather than the frozen mock templates — Blade views under
 `resources/views/livewire`, the shared helpers in `public/js/ui-common.js`, the PHP formatters that
 feed them (`app/Concerns`, `app/Services`, `app/Support`), and the three mail views. Line numbers are
 against `main` as of `fe26b10`.
+
+---
+
+## Review outcome — 2026-11-07
+
+The user reviewed every section and **approved all findings**, with these refinements:
+
+- **§7 #19** — the grid event block switches from the hyphen to `~` (previously "acceptable as-is").
+- **§9 #28** — approved. It is the same one-line helper change as #21, so the week dropdown, day
+  headers, grid subtitle and mobile week chip unpad together.
+- **§9 #30** — **dropped** for this pass. The API is commented out; align it with #27 in the commit
+  that unparks the API.
+- **§7 #20** — the 24-hour grid axis is kept; **§8 #25** — the notification tooltip keeps the short
+  form (no year added).
+
+No code changed yet. The next step is the implementation pass in the §10 order.
 
 ---
 
@@ -58,9 +75,9 @@ Commit `024d0c6`. `DateHelper.format12hRange(t, sep)` gained an optional separat
 
 ---
 
-## 2. My Replacements (`/my-replacements`) — same page, still inconsistent
-
-| # | Location | Current | Suggested | Priority |
+## 2. My Replacements (`/my-replacements`) — same page, still inconsistent 
+### User Comment : Agree ALL
+| # | Location | Current | Suggested | Priority / decision |
 |---|---|---|---|---|
 | 1 | Quick View → **Proposed Replacement Schedule → Time** (`replacement-home.blade.php:835`) | `13:30 ~ 15:30` (24-hour) | `1:30 PM ~ 3:30 PM` | **High** — most visible leftover |
 | 2 | Cancel Request confirm → original / proposed line (`:921-927`) | `2:00 PM – 4:00 PM` (en dash) | `2:00 PM ~ 4:00 PM` | Medium |
@@ -72,8 +89,8 @@ Correct on this page, no action: Quick View → Original Class → Time (`:818`)
 ---
 
 ## 3. Replacement History (`/replacement-history`)
-
-| # | Location | Current | Suggested | Priority |
+### User Comment : Agree ALL
+| # | Location | Current | Suggested | Priority / decision |
 |---|---|---|---|---|
 | 4 | Original Slot / New Slot cells and the detail modal (`replacement-history.blade.php:180`, `:358`) | `12:00 PM to 1:30 PM` | `12:00 PM ~ 1:30 PM` | **High** — same column type as §1, different joiner |
 | 5 | Slot date, from `weekDays[…].days[…].date` (`ResolvesTimetableTimeline.php:109`, `d M Y`) | `05 Nov 2026` (padded) | `5 Nov 2026` | Low |
@@ -82,8 +99,8 @@ Correct on this page, no action: Quick View → Original Class → Time (`:818`)
 ---
 
 ## 4. Replacement Arrangement (`/replacement-arrangement`)
-
-| # | Location | Current | Suggested | Priority |
+### User Comment : Agree ALL
+| # | Location | Current | Suggested | Priority / decision |
 |---|---|---|---|---|
 | 7 | Selected-block card and event block (`replacement-arrangement.blade.php:1453`, `:1565`) | `2:00 PM – 4:00 PM` | `2:00 PM ~ 4:00 PM` | **High** |
 | 8 | Duplicate-conflict error line (`:2217`) | `2:00 PM–4:00 PM` (no spaces) | `2:00 PM ~ 4:00 PM` | Medium |
@@ -95,8 +112,9 @@ Correct on this page, no action: Quick View → Original Class → Time (`:818`)
 ---
 
 ## 5. Request Approval (`/request-approval`)
+### User Comment : Agree ALL
 
-| # | Location | Current | Suggested | Priority |
+| # | Location | Current | Suggested | Priority / decision |
 |---|---|---|---|---|
 | 13 | Approve/Reject compare cards — Original (`ui-common.js:2552`) | `2:00 PM to 4:00 PM` | `2:00 PM ~ 4:00 PM` | **High** — the same page's detail modal already uses `~` |
 | 14 | Approve/Reject compare cards — Replacement (`ui-common.js:2591`, `:2599`, `format12hRange` default) | `1:30 PM to 3:30 PM` | `1:30 PM ~ 3:30 PM` | **High** |
@@ -109,8 +127,9 @@ day counts, not dates — out of scope for this audit.
 ---
 
 ## 6. Venue Timetable (`/venue-timetable`)
+### User Comment : Agree ALL
 
-| # | Location | Current | Suggested | Priority |
+| # | Location | Current | Suggested | Priority / decision |
 |---|---|---|---|---|
 | 17 | "Arrange a replacement in …" click toast (`venue-timetable.blade.php:465`) | `on Thu, 05 Nov 2026 at 14:30?` | `on Thursday, 5 Nov 2026 at 2:30 PM?` | **High** — 24-hour **and** an abbreviated day inside a sentence |
 | 18 | Booking-session modal subtitle (`:561`) | `Thu, 05 Nov 2026 · 14:30` | `Thu, 5 Nov 2026 · 2:30 PM` | **High** — compact data line, so `Thu` stays |
@@ -120,11 +139,12 @@ The grid's own event labels already use 12-hour (`:925-926`); only these two pro
 ---
 
 ## 7. Shared timetable grid (My Timetable / Student / Cohort / Venue)
+### User Comment : Agree ALL; #19 use '~'
 
-| # | Location | Current | Suggested | Priority |
+| # | Location | Current | Suggested | Priority / decision |
 |---|---|---|---|---|
-| 19 | Event block (`ui-common.js:1012`) | `2:00 PM - 4:00 PM` | acceptable as-is (hyphen); optional unify to `~` | Decision |
-| 20 | Hour axis (`ui-common.js:856`) | `08:00` (24-hour) | keep, or convert — design call | Decision |
+| 19 | Event block (`ui-common.js:1012`) | `2:00 PM - 4:00 PM` | `2:00 PM ~ 4:00 PM` | **Approved** — use `~` (user, 2026-11-07) |
+| 20 | Hour axis (`ui-common.js:856`) | `08:00` (24-hour) | keep — a scale, not prose | **Approved** — keep 24-hour |
 | 21 | Day header date (`ui-common.js:2609` + `day.date`) | `Thu 05 Nov 2026` (padded) | `Thu 5 Nov 2026` | Low |
 | 22 | Class quick-view modal (`ui-common.js:2653`, `requestCard`) | `Date: 5 Nov 2026 2:00 PM` (no comma) | `5 Nov 2026, 2:00 PM` | Low |
 | 23 | Mobile history card (`ui-common.js:2664`, `myRequestCard`) | `2:00 PM – 4:00 PM` | `2:00 PM ~ 4:00 PM` | Medium |
@@ -132,11 +152,12 @@ The grid's own event labels already use 12-hour (`:925-926`); only these two pro
 ---
 
 ## 8. Notifications (bell panel + tips)
+### User Comment : Agree ALL
 
-| # | Location | Current | Suggested | Priority |
+| # | Location | Current | Suggested | Priority / decision |
 |---|---|---|---|---|
 | 24 | Notification tip schedule line (`NotificationTip.php:269`) | `2:00 PM–4:00 PM` (unspaced en dash) | `2:00 PM ~ 4:00 PM` | Medium |
-| 25 | Row age (`nav-notifications.blade.php:26-31`), tooltip absolute (`:38-39`) | `5m ago` / `Yesterday`; tooltip `5 Nov, 2:30 PM` (no year) | compact list is fine; **decision** on adding the year | Decision |
+| 25 | Row age (`nav-notifications.blade.php:26-31`), tooltip absolute (`:38-39`) | `5m ago` / `Yesterday`; tooltip `5 Nov, 2:30 PM` (no year) | compact list is fine; keep the short form | **Approved** — no year added |
 | 26 | Tip prose (`nav-notifications.blade.php:47-55`) | `5 minutes ago`; `5 Nov 2026, 2:30 PM` ✅ | keep — different surface, deliberately wordier | — |
 
 The compact and verbose relative formats are two vocabularies, but they never appear in the same
@@ -145,17 +166,18 @@ sentence; this looks intentional and is listed only so the decision is explicit.
 ---
 
 ## 9. Semester chip, server labels, emails
+### User Comment : Agree #27,#29; #28 #30 not sure, need explain.
 
-| # | Location | Current | Suggested | Priority |
+| # | Location | Current | Suggested | Priority / decision |
 |---|---|---|---|---|
 | 27 | Semester chip (`ResolvesTimetableTimeline.php:66`) | `21-Sep-2026 ~ 27-Dec-2026` | `21 Sep 2026 ~ 27 Dec 2026` | Medium — the only hyphenated/padded date on screen |
-| 28 | Week dropdown (`ui-common.js:85`, `range` / `rangeShort`) | `05 Nov 2026 ~ 11 Nov 2026` (padded) | unpad to match §0 | Low |
+| 28 | Week dropdown (`ui-common.js:85`, `range` / `rangeShort`) | `05 Nov 2026 ~ 11 Nov 2026` (padded) | unpad to match §0 | **Approved** — same helper change as #21 |
 | 29 | Submitted / decided email (`SubmitReplacementRequest.php:239-240`, mail views) | `13:30 – 15:30`, no date line | `Mon, 9 Nov 2026, 1:30 PM ~ 3:30 PM` | Medium — first thing a lecturer sees |
-| 30 | `ApiReadController.php:83-96` chip text | `d-M-Y` | align with §27 when the API is unparked | Low (API parked) |
+| 30 | `ApiReadController.php:83-96` chip text | `d-M-Y` | align with §27 when the API is unparked | **Deferred** — API commented out; do it in the unpark commit |
 
 ---
 
-## 10. Suggested rollout (when approved)
+## 10. Rollout order (approved 2026-11-07)
 
 1. **Same-screen contradictions** — #1 (Quick View 24-hour), #13/#14 (approve cards), #7 (arrangement
    blocks), #17/#18 (venue 24-hour). These are the ones a user can point at as "wrong" without any
@@ -185,11 +207,14 @@ The only day-word defect found is **#17**, where an abbreviation sits inside a s
 
 ---
 
-## Appendix — decisions requested
+## Appendix — decisions
 
 - [x] **Settled 2026-11-07:** day words follow their container — `Thu` in compact lists/data
       lines, `Thursday` in prose (§0 ruling 3).
-- [ ] Confirm `~` as the only range joiner for new work (hyphen stays acceptable where already used).
-- [ ] Grid hour axis: keep 24-hour, or convert to `2:00 PM`? (Affects all four timetable pages.)
-- [ ] Notification tooltip: add the year (`5 Nov 2026, 2:30 PM`) or keep it short?
-- [ ] Emails: adopt the same 12-hour + date standard, or leave transactional mail terse?
+- [x] **Settled 2026-11-07:** `~` is the range joiner for new work; the hyphen stays acceptable
+      where already used, but no element mixes the two (#19 approves the grid event block's move
+      to `~`).
+- [x] **Settled 2026-11-07:** the grid hour axis keeps 24-hour time (§7 #20).
+- [x] **Settled 2026-11-07:** notification tooltips keep the short form, no year (§8 #25).
+- [x] **Settled 2026-11-07:** emails adopt the 12-hour time + full date standard (#29).
+- [ ] **Deferred:** #30 (API chip text) — revisit in the commit that unparks `/api/v1`.
