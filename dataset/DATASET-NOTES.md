@@ -46,7 +46,17 @@ a room-level exception:
 
 **9 kept as printed (non-Networking L/T in Practical-only labs)** — no DB
 rows; documentation + importer-warn only; `venues.allowed_session_types`
-remains the guard for future manual bookings:
+remains the guard for future manual bookings.
+
+> **Type matters (2026-11-07, SDD `lab-access-type-aware`).** The booking
+> roster (`LectureSessionCatalog::LAB_ACCESS`) is per module **AND session
+> type**: a module gets lab access only for the types listed in the Type column
+> below. So BMIT2013 (Lecture) and BMIT1723 (Lecture) are `L`-only, the five
+> Tutorial/`T` rows are `T`-only, and AMCS1013 — which has both a B006 Tutorial
+> and a Lecture Hall lecture — is `T`-only. Six modules whose lecture sits in a
+> hall/tutorial room therefore lost lab access on their `L` on that date
+> (AMSE1003, AMCS1043, BMCS3033, BMIT1173, AMCS1013, AMIS1003); see
+> docs/venue-restrictions.md R3. The table's rooms/times are unchanged.
 
 | Course | Room | Day | Time | Type |
 |---|---|---|---|---|

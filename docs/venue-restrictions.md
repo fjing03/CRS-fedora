@@ -91,19 +91,23 @@ order, "everyone else yields", claims L/T/P) is REPLACED by a plain
 ALLOW / DISALLOW model — nothing ranks; the enforcement encodes plain
 admission checks only.
 
-- **ENFORCED as data since 2026-10-24** (SDD `venue-restrictions-enforcement`):
-  the matrix lives in `LectureSessionCatalog::ruleMap()` —
-  `lab_access_module_codes = [AMIT2033, BMIT2154, BMIT3084, AMIT2034,
-  BMIT2013, AMCS1013, AMCS1043, AMIS1003, AMSE1003, BMCS3033, BMIS2003,
-  BMIT1173, BMIT1723]`
-  (those modules' **L/T may ALSO use any lab** — additive: their ordinary
-  halls/tutorials stay legal; the last nine joined 2026-11-03, see below)
-  and
-  `b006_allowed_module_codes = [the same thirteen codes — AMIT2034 is the
-  FOURTH code of the original B006 roster, not just the networking trio]`
-  (their **L/T may use B006**); B006's P admission stays the base R1 row for
-  everyone. The two arrays are kept **identical on purpose**: the additive arm
-  already covers `cisco_lab`, so a divergence would only mislead a reader.
+- **ENFORCED as data since 2026-10-24** (SDD `venue-restrictions-enforcement`),
+  and **type-aware since 2026-11-07** (SDD `lab-access-type-aware`): the matrix
+  lives in `LectureSessionCatalog::ruleMap()['lab_access']` — ONE map,
+  `module_code => ['L'?, 'T'?]`, listing only the session types whose OWN
+  seeded session already sits in a lab:
+
+  | module | lab-capable types |
+  |---|---|
+  | AMIT2033, AMIT2034, BMIT2154, BMIT3084 | `L`, `T` |
+  | BMIS2003, BMIT1723, BMIT2013 | `L` |
+  | AMCS1013, AMCS1043, AMIS1003, AMSE1003, BMCS3033, BMIT1173 | `T` |
+
+  A listed type **may ALSO use any lab** (additive: its ordinary halls/tutorials
+  stay legal) and **may use B006**; `b006_allowed_module_codes` is **derived**
+  (`array_keys(lab_access)`) so the two can never diverge. B006's P admission
+  stays the base R1 row for everyone. (Before 2026-11-07 the roster was two flat
+  module arrays, which widened every `L` *and* `T` of a listed module.)
 - **Roster subjects — ALLOWED in B006**, plain allow, NO priority ranking, NO
   yield semantics: the four networking subjects (AMIT2033, BMIT2154,
   BMIT3084, AMIT2034) plus, since 2026-11-03, the nine subjects whose seeded
@@ -118,11 +122,41 @@ admission checks only.
   RSD2(S1)G3, 14 students) already sits in a lab in the seeded real
   timetable — a pinned seed invariant
   (`tests/Feature/TimetableSeedInvariantsTest.php:69`) — so the booking rule
-  contradicted the timetable it ships with. The roster is **per-subject, not
+  contradicted the timetable it ships with. ~~The roster is **per-subject, not
   per-class**: every BMIT2013 L/T may now book any lab, and B006 too (its
-  RSD cohorts pass R6). BMIT2013's P keeps its base R1 row. Neighbouring
+  RSD cohorts pass R6).~~ — **SUPERSEDED 2026-11-07** (see the entry below:
+  the roster is per module **AND session type**; BMIT2013 keeps `L` only, and
+  it has no seeded `T` at all). BMIT2013's P keeps its base R1 row. Neighbouring
   subjects outside the timetable's lab population (e.g. BMCS2053) stay
   denied — pinned by `SessionAllowedForVenueMatrixTest` sp19/sp20.
+- **2026-11-07 — the roster becomes TYPE-AWARE (user ruling, verbatim):**
+  *"A lecture (`L`) must not be allowed to book a lab room unless that subject's
+  own lecture already sits in a lab in the seeded timetable. The same type-aware
+  rule applies to tutorials (`T`). Practicals (`P`) are unchanged, they already
+  use labs through the base R1 row."* — this SUPERSEDES the "per-subject, not
+  per-class" reading of 2026-11-03 above.
+
+  **The new law:** a listed module's `L`/`T` may book a lab (`lab` or
+  `cisco_lab`, and B006 by room code) only when **that type's own seeded
+  session already sits in a lab**. The two flat arrays became one map,
+  `lab_access` (`module => types`), and `b006_allowed_module_codes` is derived
+  from its keys.
+
+  **Why:** the 2026-11-03 widening was right about *which modules* and wrong
+  about *which types*. Six modules whose `L` sits in a hall/tutorial room could
+  book all five labs (AMSE1003, AMCS1043, BMCS3033, BMIT1173, AMCS1013,
+  AMIS1003 — the last two looked harmless only because capacity blocks them),
+  and AMCS1013's `L` could book the very B006 that its `T` legitimately uses —
+  the partial case that a per-subject roster cannot express.
+
+  **Roster after the change (17 seeded lab L/T rows, matched both ways):**
+  `L`: AMIT2033, AMIT2034, BMIS2003, BMIT1723, BMIT2013, BMIT2154, BMIT3084 ·
+  `T`: AMIT2033, AMIT2034, BMIT2154, BMIT3084, AMCS1043, AMIS1003, AMSE1003,
+  BMCS3033, BMIT1173, AMCS1013. Over-grant list: **empty**.
+  Pinned by `TimetableSeedInvariantsTest::test_t8_the_lab_roster_matches_the_seed_in_both_directions`
+  (both directions over `(module, type)`), the matrix rows
+  `sp17`/`sp18`/`sp21`–`sp29`, and the seeded runtime receipt
+  `tests/Feature/LabAccessTypeAwareGateTest.php`.
 - **2026-11-03 — the other eight follow (user ruling, verbatim):**
   *"are there any other subjects' L/T execute in lab but disallowed ?? add
   them to the array."* → both arrays also gained **AMCS1013, AMCS1043,
@@ -131,7 +165,8 @@ admission checks only.
   "9 kept as printed" set; BMIT2013 was the ninth). The roster is now exactly
   the timetable's lab-L/T population, and
   `TimetableSeedInvariantsTest::test_every_seeded_lab_lt_session_is_on_the_lab_roster`
-  fails if a future import drifts from it.
+  failed if a future import drifted from it (superseded 2026-11-07 by the
+  both-direction, type-exact T8 named above).
 - **The population gate stays R6** (B006 = FOCS cohorts only; RAF/RBU
   never).
 - ~~AMIT2034's `L/T/P` sessions MUST execute in a lab~~ — the 2026-10-24
