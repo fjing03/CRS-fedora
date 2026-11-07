@@ -63,7 +63,7 @@ trait ResolvesTimetableTimeline
             'startDate' => $start->toDateString(),
             'endDate' => $end->toDateString(),
             'weeks' => $weeks,
-            'chipText' => $code.' · '.$start->format('d-M-Y').' ~ '.$end->format('d-M-Y'),
+            'chipText' => $code.' · '.$start->format('j M Y').' ~ '.$end->format('j M Y'),
         ];
     }
 
@@ -106,14 +106,14 @@ trait ResolvesTimetableTimeline
                 $dt = $monday->copy()->addDays($i);
                 $days[] = [
                     'abbr' => $abbr,
-                    'date' => $dt->format('d M Y'),
+                    'date' => $dt->format('j M Y'),
                     'sunday' => $i === 6,
                     'today' => $dt->toDateString() === $today,
                 ];
             }
             $out[] = [
                 'label' => 'Week '.$w,
-                'range' => $monday->format('d M Y').' ~ '.$monday->copy()->addDays(6)->format('d M Y'),
+                'range' => $monday->format('j M Y').' ~ '.$monday->copy()->addDays(6)->format('j M Y'),
                 'days' => $days,
             ];
         }

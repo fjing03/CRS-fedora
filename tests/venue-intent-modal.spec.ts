@@ -28,8 +28,8 @@ test('A1: B110 modal opens after wire call (the RuntimeException regression)', a
   expect(subjects).toEqual(['AMCS2093 — Operating Systems']);
   // lecture hall: only the subject's L occurrence is offered — the row label
   // carries the FLAGGED occurrence (user request 2026-10-16): type, week, day,
-  // date, time range "(L) W8, Mon, Nov 9 . 11:00 ~ 13:00"
-  expect(sessions.some(t => /\(L\) W8, Mon, Nov 9 \. 11:00 ~ 13:00/.test(t))).toBe(true);
+  // date, time range "(L) W8, Mon, 9 Nov 2026 . 11:00 ~ 13:00"
+  expect(sessions.some(t => /\(L\) W8, Mon, 9 Nov 2026 \. 11:00 ~ 13:00/.test(t))).toBe(true);
   expect(sessions.some(t => /\(P\)/.test(t))).toBe(false);
   // every row carries the shared data-tip with the full details (module, cohort
   // size, original slot, conflict reason)
@@ -61,9 +61,9 @@ test('A2: B009 modal offers only P sessions with the byte-frozen label', async (
     /* user directive 2026-10-16 (week-agnostic pool): the label carries the
        class's own recurring slot (day + time), never the occurrence date */
     /* user request 2026-10-16: the row label = the flagged occurrence —
-       "(P) W14, Thu, Dec 24 . 13:30 ~ 15:00" */
-    expect(sessions.some(t => /\(P\) W14, Thu, Dec 24 \. 13:30 ~ 14:30/.test(t))).toBe(true);
-  expect(sessions.some(t => /\(P\) W14, Fri, Dec 25 \. 11:00 ~ 12:00/.test(t))).toBe(true);
+       "(P) W14, Thu, 24 Dec 2026 . 13:30 ~ 15:00" */
+    expect(sessions.some(t => /\(P\) W14, Thu, 24 Dec 2026 \. 13:30 ~ 14:30/.test(t))).toBe(true);
+  expect(sessions.some(t => /\(P\) W14, Fri, 25 Dec 2026 \. 11:00 ~ 12:00/.test(t))).toBe(true);
   expect(sessions.some(t => /\(L\)/.test(t))).toBe(false);
   // conflicted-only (demo holidays land W14 Thu + Fri): both AMCS2093 P
   // occurrences ARE conflicted and offered; BMIT2013 (Tue/Wed) is healthy →

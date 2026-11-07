@@ -468,7 +468,7 @@ final class LectureSessionCatalog
                     'week' => (int) $week,
                     'dayAbbr' => self::DAY_ABBRS[(int) $s->day_of_week],
                     'date' => $occDate !== null ? $occDate->format('d M Y') : '',
-                    'label' => $occDate !== null ? $occDate->format('M j') : '',
+                    'label' => $occDate !== null ? $occDate->format('j M Y') : '',
                     'reason' => $reason,
                 ];
             }

@@ -56,8 +56,8 @@ function generateWeekData() {
     const arr = [];
     const todayMs = getTodayMs();
     const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-    const fmt = d => `${String(d.getDate()).padStart(2,'0')} ${months[d.getMonth()]} ${d.getFullYear()}`;
-    const fmtShort = d => `${String(d.getDate()).padStart(2,'0')} ${months[d.getMonth()]}`;
+    const fmt = d => `${d.getDate()} ${months[d.getMonth()]} ${d.getFullYear()}`;
+    const fmtShort = d => `${d.getDate()} ${months[d.getMonth()]}`;
     for (let w = 1; w <= MockData.semester.weeks; w++) {
         const ms = start.getTime() + (w - 1) * 7 * 86400000;
         const mon = new Date(ms);
@@ -97,7 +97,7 @@ function generateWeekData() {
  * The first selectable date under the lead-time rule: the 3rd working day
  * from the MockData.mockNow anchor (Mon-Fri, skipping the page's holiday
  * flags). A slot on this date IS selectable (>= 3, per the agreed boundary).
- * @param {Array} weekData — page week data (days carry .date 'DD Mon YYYY' + .holiday)
+ * @param {Array} weekData — page week data (days carry .date 'j M Y' + .holiday)
  * @returns {Date}
  */
 function leadTimeCutoff(weekData) {
@@ -113,7 +113,7 @@ function leadTimeCutoff(weekData) {
         wd.setDate(wd.getDate() + 1);
         const dow = wd.getDay();
         if (dow === 0 || dow === 6) continue; /* weekend */
-        if (holidays.has(String(wd.getDate()).padStart(2, '0') + ' ' + months[wd.getMonth()] + ' ' + wd.getFullYear())) continue;
+        if (holidays.has(wd.getDate() + ' ' + months[wd.getMonth()] + ' ' + wd.getFullYear())) continue;
         count++;
     }
     return wd;
@@ -122,7 +122,7 @@ function leadTimeCutoff(weekData) {
 /**
  * True when a slot may NOT be selected: it lies in the past or fewer than
  * 3 working days from the MockData.mockNow anchor.
- * @param {Array}  weekData — page week data (days carry .date 'DD Mon YYYY' + .holiday)
+ * @param {Array}  weekData — page week data (days carry .date 'j M Y' + .holiday)
  * @param {number} weekIdx
  * @param {number} dayIdx
  * @returns {boolean} true = the cell renders read-only
@@ -264,7 +264,7 @@ function renderLeadTimeNote(elId, weekData, weekIdx) {
     const cutoff = leadTimeCutoff(weekData);
     const days = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
     const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-    const dateStr = days[cutoff.getDay()] + ', ' + String(cutoff.getDate()).padStart(2, '0') + ' ' + months[cutoff.getMonth()] + ' ' + cutoff.getFullYear();
+    const dateStr = days[cutoff.getDay()] + ', ' + cutoff.getDate() + ' ' + months[cutoff.getMonth()] + ' ' + cutoff.getFullYear();
     /* copy: a fully-past week reads differently from the current one.
        The live variants state the rule itself ("a minimum of 3 working days'
        advance notice") and name the blocked span in words, because "some
@@ -2380,11 +2380,11 @@ class DateHelper {
     }
 
     static fmt(d) {
-        return String(d.getDate()).padStart(2, '0') + ' ' + d.toLocaleString('en', { month: 'short' }) + ' ' + d.getFullYear();
+        return d.getDate() + ' ' + d.toLocaleString('en', { month: 'short' }) + ' ' + d.getFullYear();
     }
 
     static fmtShort(d) {
-        return String(d.getDate()).padStart(2, '0') + ' ' + d.toLocaleString('en', { month: 'short' });
+        return d.getDate() + ' ' + d.toLocaleString('en', { month: 'short' });
     }
 
     static weekRangeLabel(weekNum) {

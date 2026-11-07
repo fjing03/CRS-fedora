@@ -1,3 +1,8 @@
+## 2026-11-07 (date/time batch 3, `docs/date-time-format-audit-2026-11-07.md`) — slot dates lose the leading zero
+
+The Original/New Slot dates read `5 Nov 2026` (was `05 Nov 2026`), matching the rest of the app.
+Same shared day scaffold as the grids, so the date, week tag and sorting are unchanged.
+
 ## 2026-11-07 (date/time batch 2, `docs/date-time-format-audit-2026-11-07.md`) — Original/New Slot join with `~`
 
 Both slot columns and the detail modal's Time row printed `12:00 PM to 1:30 PM`. They now read

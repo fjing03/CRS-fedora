@@ -1,3 +1,11 @@
+## 2026-11-07 (date/time batch 3, `docs/date-time-format-audit-2026-11-07.md`) — day-first dates in the slot picker and confirmation summary
+
+The conflicted-slot picker label and its hover tip now read `(L) Week 14 · Thu, 24 Dec 2026 ·
+12:00 PM ~ 1:00 PM @ B102` — abbreviated day word and a day-first unpadded date (was
+`Thursday, Dec 24`). The confirmation summary swaps the em dash before the range for a comma:
+`Thu, 24 Dec 2026, 12:00 PM ~ 1:00 PM`. Selection, conflict rules and the submitted payload are
+untouched.
+
 ## 2026-11-07 (date/time batch 2, `docs/date-time-format-audit-2026-11-07.md`) — every slot line on the page joins with `~`
 
 The remaining en dashes are gone: the duplicate-conflict error line, the booking toast, the

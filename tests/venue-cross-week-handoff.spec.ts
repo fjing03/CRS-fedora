@@ -8,7 +8,7 @@ import { pickSpanFreeCell, selectWeek } from './helpers/intent-modal-helper';
  *  Repro receipts (the user's exact steps): venue B111, Week 7 view, the free
  *  Tue 03 Nov 13:00 cell, pick the (L) W8 row (AMCS2093, session 97) →
  *  the URL carries &week=8 (was: 7 — the phantom pair {97,7}); the strip
- *  reads the honest Week 8 · Mon, Nov 09 2026 · 11:00 AM ~ 1:00 PM @ B110.
+ *  reads the honest Week 8 · Mon, Nov 9 2026 · 11:00 AM ~ 1:00 PM @ B110.
  *  Control: a same-week pick produces today's URL byte-for-byte. */
 test.use({ storageState: '.auth/staff-5770.json' });
 
@@ -41,11 +41,11 @@ test('S1 — cross-week pick threads the occurrence week (&week=8, honest strip)
   // THE FIX: the occurrence's own week — was '7' (the phantom pair {97,7})
   expect(url.searchParams.get('week')).toBe('8');
   // the honest strip: the proposed pinned occurrence under ITS OWN week
-  // (was: Week 7 · Mon, Nov 02 2026 — the pair that does not exist)
+  // (was: Week 7 · Mon, Nov 2 2026 — the pair that does not exist)
   await page.waitForTimeout(900);
   const strip = await page.locator('#subjectInfo').innerText();
   expect(strip).toContain('Week 8');
-  expect(strip).toContain('Mon, Nov 09 2026');
+  expect(strip).toContain('Mon, Nov 9 2026');
   expect(strip).toContain('11:00 AM');
   expect(strip).toContain('1:00 PM @ B110');
   // secondary (non-discriminating for this repro: the T18 auto-pin clobber

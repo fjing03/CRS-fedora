@@ -2168,7 +2168,7 @@
                     const startStr = hours[block.startHour];
                     const endStr = add30min(hours[block.endHour - 1]);
                     const slotCount = block.endHour - block.startHour;
-                    rows.push(`<div style="padding:3px 0;font-size:13px;">${venue} · (${weekData[week].label}) ${shortDayNames[block.day]}, ${dayData.date} — ${to12h(startStr)} ~ ${to12h(endStr)} · ${slotCount} slots</div>`);
+                    rows.push(`<div style="padding:3px 0;font-size:13px;">${venue} · (${weekData[week].label}) ${shortDayNames[block.day]}, ${dayData.date}, ${to12h(startStr)} ~ ${to12h(endStr)} · ${slotCount} slots</div>`);
                 }
             }
             const listHtml = rows.join('');
@@ -3736,6 +3736,7 @@ ${(fallbackAttribution && intentReason === 'in-the-way')
 
         let selectedOriginalSlot = null;
         const slotDayNames = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+        const slotDayAbbrs = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 
         function extractSlotsForSubject(courseCode) {
             const slots = [];
@@ -3828,7 +3829,7 @@ ${(fallbackAttribution && intentReason === 'in-the-way')
                 const cohortHtml = cohortNames.length
                     ? '<span class="slot-dd-item-cohort"><svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg> ' + cohortNames.join(' + ') + '</span>'
                     : '';
-                const fullLabel = '(' + slot.type + ') Week ' + (slot.week + 1) + ' · ' + slotDayNames[slot.day] + ', ' + slot.date + ', ' + startStr + ' ~ ' + endStr + ' @ ' + slot.venue;
+                const fullLabel = '(' + slot.type + ') Week ' + (slot.week + 1) + ' · ' + slotDayAbbrs[slot.day] + ', ' + slot.date + ', ' + startStr + ' ~ ' + endStr + ' @ ' + slot.venue;
 
                 const item = document.createElement('div');
                 item.className = 'slot-dd-item';
@@ -3968,7 +3969,7 @@ ${(fallbackAttribution && intentReason === 'in-the-way')
             if (!slot || slot.week == null || !slot.type || !slot.venue) { el.removeAttribute('data-tip'); return; }
             const startStr = to12h(hours[slot.start]);
             const endStr = to12h(hours[slot.end + 1] || add30min(hours[slot.end]));
-            el.setAttribute('data-tip', 'Conflicted SLOT Selector: (' + slot.type + ') Week ' + (slot.week + 1) + ', ' + slotDayNames[slot.day] + ', ' + slot.date + ', ' + startStr + ' ~ ' + endStr + ' @ ' + slot.venue);
+            el.setAttribute('data-tip', 'Conflicted SLOT Selector: (' + slot.type + ') Week ' + (slot.week + 1) + ', ' + slotDayAbbrs[slot.day] + ', ' + slot.date + ', ' + startStr + ' ~ ' + endStr + ' @ ' + slot.venue);
         }
 
         /* ORIGINAL-VENUE SYNC (user law 2026-10-24, arr-slot-original-venue-sync;

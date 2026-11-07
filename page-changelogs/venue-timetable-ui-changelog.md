@@ -1,3 +1,10 @@
+## 2026-11-07 (date/time batch 3, `docs/date-time-format-audit-2026-11-07.md`) — session rows and the semester chip lose padded/hyphenated dates
+
+The "Select a Session" rows read `(L) W8, Mon, 9 Nov 2026 . …` (was `Mon, Nov 9`), and the semester
+chip reads `202605 · 21 Sep 2026 ~ 27 Dec 2026` (was `21-Sep-2026 ~ 27-Dec-2026`). Both come from
+shared server formatters (`LectureSessionCatalog` label, `semesterJs` chipText), so the venue page
+and the other timetable pages agree. No eligibility or booking logic changed.
+
 ## 2026-11-07 (date/time batch 1, `docs/date-time-format-audit-2026-11-07.md`) — the arrange question speaks 12-hour and full day names
 
 The hover question and the booking modal subtitle were the only prose on the page still printing

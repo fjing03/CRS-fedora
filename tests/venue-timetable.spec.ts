@@ -61,7 +61,7 @@ test.describe('Venue Timetable UI', () => {
   test('TC04 — semester chip displays semester info', async ({ page }) => {
     const chip = page.locator('#semesterChip');
     await expect(chip).toBeVisible();
-    // U2a T10 re-point: real-DB chip text is "202605 · 21-Sep-2026 ~ 27-Dec-2026"
+    // U2a T10 re-point: real-DB chip text is "202605 · 21 Sep 2026 ~ 27 Dec 2026"
     // (stale mock-era assertion '202605 Semester' replaced with the stable code)
     await expect(chip).toContainText('202605');
   });

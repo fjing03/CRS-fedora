@@ -1,3 +1,11 @@
+## 2026-11-07 (date/time batch 3, `docs/date-time-format-audit-2026-11-07.md`) — day headers and week ranges lose the leading zero
+
+Day headers read `Thu 5 Nov 2026` (was `Thu 05 Nov 2026`) and the week dropdown / mobile week chip
+read `5 Nov 2026 ~ 11 Nov 2026` (was `05 Nov 2026 ~ 11 Nov 2026`). Same shared builder
+(`generateWeekData`, `DateHelper.fmt/fmtShort`), so every grid page moves together; the lead-time
+note's cutoff date follows. The holiday skip compares the same unpadded shape, so a holiday on a
+single-digit day still blocks the slot.
+
 ## 2026-11-07 (date/time batch 2, `docs/date-time-format-audit-2026-11-07.md`) — event blocks and the cancel summary join with `~`
 
 The shared grid event block — used by My Timetable, Student, Cohort, Venue and Arrangement —
