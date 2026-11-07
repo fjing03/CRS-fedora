@@ -28,6 +28,48 @@ This **supersedes** the 2026-11-03 sentence in `docs/venue-restrictions.md` R3
 that says "The roster is **per-subject, not per-class**". Record the reversal,
 do not silently delete the old ruling.
 
+## Re-verify first — this list may be incomplete
+
+The first audit pass missed a row (`AMCS1013` has a second `T` at B006), so treat
+every name below as a lead, not as the answer. Before changing code:
+
+1. Re-derive the whole population from the seeded timetable, for every module
+   and both `L` and `T`, not only the roster:
+
+```sql
+select m.module_code, cs.session_type,
+       count(*) filter (where v.room_type in ('lab','cisco_lab')) as lab_rooms,
+       count(*) as rooms
+from class_sessions cs
+join modules m on m.id = cs.module_id
+join venues  v on v.id = cs.venue_id
+where cs.session_type in ('L','T')
+group by 1, 2
+order by 1, 2;
+```
+
+   Every row with `lab_rooms > 0` must be in the map with that exact type.
+   Every map entry must have `lab_rooms > 0` for every type it lists.
+2. Build the over-grant list explicitly: modules where the type is on the map
+   but no seeded class of that type sits in a lab. After the change that list
+   must be empty.
+3. Run the same queries against `class_replacement_testing`, not only the demo
+   DB. If the seed and the demo disagree, stop and report.
+4. Check `database/seeders/RealScheduleSeeder.php`, not just the live rows. A
+   fresh install gets the seeder, not the demo DB.
+5. Grep the whole repo for a second copy of the roster. Any module list in JS,
+   a seeder, an API controller, a test fixture or a doc is a place the rule can
+   drift.
+6. Walk every consumer of the gate: the engine, the booking modal, the
+   arrangement fallback, the blocked-venues payload, and any client-side copy.
+7. Prove the new invariant test bites: remove one map entry, run it, confirm it
+   fails, restore it. Do the same by adding a fake entry.
+8. Look for partial cases like `AMCS1013`, where one type is in a lab and the
+   other is not. They are the easiest to get wrong.
+9. Baseline counts today: 1 semester, 101 sessions, 42 modules, no duplicate
+   module codes, no session without cohorts. If any of those change, redo the
+   whole audit.
+
 ## Verified current behaviour (demo DB, read-only)
 
 `LectureSessionCatalog::ruleMap()` keeps two flat, module-wide arrays, and
@@ -44,14 +86,16 @@ not in a lab:
 | AMCS1013 | Lecture Hall B111 | 48 | none (capacity blocks) |
 | AMIS1003 | Lecture Hall B111 | 48 | none (capacity blocks) |
 
-AMCS1013 has no `L` or `T` in a lab at all (its lab classes are `P`), so it
-should leave the roster completely.
+AMCS1013 is a partial case, and the first draft of this file got it wrong. Its
+`L` is in Lecture Hall B111, but it also has a `T` in **B006 (cisco lab)** and
+another `T` in B016 (tutorial). So it stays on the roster for `T` only, and
+loses `L`.
 
 Must **keep** lab access (their own class type is already in a lab):
 
 - `L`: AMIT2033, AMIT2034, BMIS2003, BMIT1723, BMIT2013, BMIT2154, BMIT3084
 - `T`: AMIT2033, AMIT2034, BMIT2154, BMIT3084, AMCS1043, AMIS1003, AMSE1003,
-  BMCS3033, BMIT1173
+  BMCS3033, BMIT1173, AMCS1013
 
 ## Required change
 
@@ -67,6 +111,7 @@ Must **keep** lab access (their own class type is already in a lab):
     'BMIT2013' => ['L'],
     'BMIS2003' => ['L'],
     'BMIT1723' => ['L'],
+    'AMCS1013' => ['T'],
     'AMCS1043' => ['T'],
     'AMIS1003' => ['T'],
     'AMSE1003' => ['T'],
@@ -94,18 +139,21 @@ Must **keep** lab access (their own class type is already in a lab):
 ## Tests
 
 - Update `tests/Unit/SessionAllowedForVenueMatrixTest.php`:
-  - `sp8` (AMCS1013 T at B006) flips to **false**
-  - `sp17` (BMIT2013 T at B010) flips to **false**
-  - `sp18` (BMIT1173 L at B009) flips to **false**
+  - `sp17` (BMIT2013 T at B010) flips to **false** — BMIT2013 has no seeded `T`
+  - `sp18` (BMIT1173 L at B009) flips to **false** — its `L` sits in B107
+  - `sp8` (AMCS1013 T at B006) must STAY **true** — its `T` really is in B006
   - add cases: AMSE1003 `L` at B009 → false, AMSE1003 `T` at B009 → true,
     AMCS1043 `L` at B011 → false, AMCS1043 `T` at B011 → true
+  - add the partial-case pair: AMCS1013 `L` at B006 → false, AMCS1013 `T` at
+    B006 → true
 - Rewrite `tests/Feature/TimetableSeedInvariantsTest.php` T8 into a
   **both-direction** invariant:
   1. every `(module, type)` pair in the map has a seeded lab/cisco_lab session
      of that exact module and type, and
   2. every seeded lab/cisco_lab `L` or `T` session has its `(module, type)`
      pair in the map.
-  AMCS1013 must disappear from the map and the test must prove why.
+  AMCS1013 stays in the map with `['T']`, and the test must prove its `L` is
+  absent while its `T` is present.
 - Add a runtime test (feature or tinker receipt) showing AMSE1003 `L` returns
   false for B005, B006, B009, B010, B011 while AMSE1003 `T` returns true where
   its own timetable is in a lab.
@@ -143,7 +191,10 @@ the superseding ruling verbatim. Verify, then archive.
   their `L` session.
 - AMSE1003, AMCS1043, BMCS3033 and BMIT1173 keep lab access on their `T`/`P`
   where the timetable has them.
-- The 7 L-in-lab and 9 T-in-lab modules behave exactly as before.
+- AMCS1013 keeps `T` access to B006 and loses `L`.
+- The 7 L-in-lab and 10 T-in-lab modules behave exactly as before.
+- The over-grant list from "Re-verify first" is empty, and the map matches the
+  seed in both directions.
 - Give the runtime proof and the test counts before and after.
 
 Report back with: files changed, test output, and the tinker proof.
