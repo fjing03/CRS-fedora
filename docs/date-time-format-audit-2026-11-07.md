@@ -31,7 +31,8 @@ No code changed yet. The next step is the implementation pass in the §10 order.
 **Batch status:** batch 1 shipped in `10a51b0` — #1, #7, #13, #14, #17, #18. Batch 2 shipped in
 `5120a98` — #2, #3, #4, #8, #9, #19, #23, #24, plus four joiner-drift spots the audit missed (the
 arrangement picked-slot toolbar line, the slot-picker trigger/tip/row label, and the Cancel Class
-success summary). Batches 3–4 remain open.
+success summary). Batch 3 shipped in `f420215` — #5, #6, #10, #11, #21, #27, #28, plus the coupled
+lead-time note/holiday-skip unpadding. Batch 4 remains open (#22, #29); #30 stays deferred.
 
 ---
 
