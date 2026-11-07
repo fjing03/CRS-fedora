@@ -418,6 +418,13 @@ test.describe('ownership on the grid', () => {
 
     const ownerOwnClassLabel = await hoverLabel(ownerPage, ownerOwnClass);
     expect(ownerOwnClassLabel.text, 'your own class → "Your Conflict"').toBe('Your Conflict');
+
+    /* the tooltip's why-tag says YOUR, not OWN (user 2026-11-07) — the cell label
+       and the tag must not use two different words for the same fact */
+    const ownTipText = await ownerPage.evaluate(() =>
+      (document.querySelector('.data-tip-tooltip') as HTMLElement | null)?.innerText ?? '');
+    expect(ownTipText).toContain('Your conflict');
+    expect(ownTipText).not.toContain('Own conflict');
     expect(ownerOwnClassLabel.inside).toBe(true);
     expect(ownerOwnClassLabel.fits).toBe(true);
     expect(ownerOwnClassLabel.after).toBe('none');

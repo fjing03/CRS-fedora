@@ -1840,7 +1840,7 @@
                        viva directive — the format is what changes). */
                     /* SDD tidy-arrangement-cell-tooltips round 3 (the
                        user's add): EACH block carries a why-subtitle —
-                       ['👤 Own conflict', '🏛 Venue conflict',
+                       ['👤 Your conflict', '🏛 Venue conflict',
                          '👥 Cohorts conflict'] — the three independent
                        checks named (the makeup-busy-vector ruling: the
                        creator's own calendar / the viewed venue / the
@@ -1870,7 +1870,9 @@
                             const own = (lines[1] || '').indexOf('You — ') === 0;
                             const blockCohorts = (lines[2] || '').split(',').map(normCohort).filter(Boolean);
                             const tags = [];
-                            if (own) tags.push('\u{1F464} Own conflict');
+                            /* 2026-11-07 (user): the cell label and the tag now agree
+                               — "Your conflict", not "Own conflict". */
+                            if (own) tags.push('\u{1F464} Your conflict');
                             if (room && String(room) === String(currentVenue)) tags.push('\u{1F3DB}\u{FE0F} Venue conflict');
                             if (ctxCohorts.length && blockCohorts.some(function (c) { return ctxCohorts.indexOf(c) !== -1; })) {
                                 tags.push('\u{1F465} Cohorts conflict');

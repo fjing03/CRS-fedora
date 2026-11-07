@@ -1,3 +1,14 @@
+## 2026-11-07 (later) — the tip's why-tag says "Your conflict", not "Own conflict"
+
+User: *"also change the hover tooltip: 'Own Conflict' to 'Your Conflict'"*. The block tag was
+`👤 Own conflict` while the cell's own label had become `Your Conflict` — two words for one fact.
+The tag now reads **`👤 Your conflict`** (sentence case, matching its neighbours `🏛 Venue
+conflict` / `👥 Cohorts conflict`); the comment above `tagsFor()` was updated with it.
+
+Receipt (`tests/arrangement-slot-ownership.spec.ts`, T9a): hovers a real own-class cell and
+asserts the visible tip contains `Your conflict` and no longer contains `Own conflict`. 7/7 green.
+Screenshot `/tmp/opencode/tip-your-conflict.png`.
+
 ## 2026-11-07 (later) — the cell's tip sits above the cell
 
 User: *"can u place the hovertooltip above the hour-cell?"* The conflict tip was pinned
