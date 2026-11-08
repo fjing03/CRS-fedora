@@ -20,6 +20,24 @@ name, whitespace only, trimming, a hyphenated code, and a module with no code at
 phpstan 0, `view:cache` OK; the wider payload/notification run is 114/116 with only the two known
 weekend-only fixture errors.
 
+**Follow-up, same day (user's second word: "just give them a random subject name").** The four
+nameless modules got real titles in the dataset's single source
+(`dataset/import/course-titles.php`), so 42/42 codes are named:
+
+| Code | Title |
+|---|---|
+| AMSE2002 | Software Design and Architecture |
+| AMSE2003 | Software Testing and Quality Assurance |
+| AMSE2013 | Software Requirements Engineering |
+| MPU-2302 | Bahasa Kebangsaan (the user's own wording) |
+
+The demo rows were updated in place (title-only `UPDATE`, snapshots + row-count receipts in
+`docs/demo-db-data-changes.md`; rehearsed on the testing DB first, where the importer reports 0
+modules without a title). Measured: My Replacements reads
+`AMSE2003 Software Testing and Quality Assurance (L)` and the modal reads
+`AMSE2002 — Software Design and Architecture`. `Module::displayName()` stays as the safety net for any
+future nameless module.
+
 ## 2026-11-07 (night) — the pop-up opens on the Proposed Replacement Schedule
 
 User brief *Modal Tab Order & Class Type Display*, part 1 (display-only; SDD waived).

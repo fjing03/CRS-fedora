@@ -16,9 +16,12 @@
 //     earlier     the Networking/IoT set + BMIT1173/BMIT2013/BMIS2003/BMCS3033
 //                 already sat in the venue extractor for the lab-exception table.
 //
-// Codes NOT listed here fall back to module_name = the code itself and are
-// reported by the importer (currently 4: AMSE2002, AMSE2003, AMSE2013,
-// MPU-2302).
+// 2026-11-08 (user request): the last four codes without a title got one, so the
+// dataset now names all 42 codes.  The user's wording was "give them a random
+// subject name" — three plausible Software-Engineering/programme-fitting titles
+// plus the one name they supplied outright (MPU-2302 = Bahasa Kebangsaan).
+// Codes NOT listed here still fall back to module_name = the code itself and are
+// reported by the importer (currently none, kept as the safety net).
 
 return [
     // ── supplied by the user 2026-10-06 ──────────────────────────────────
@@ -67,4 +70,9 @@ return [
     'MPU-2212' => 'BAHASA KEBANGSAAN A',
     'MPU-3103' => 'Penghayatan Etika dan Peradaban',
     'MPU-3302' => 'Integrity and Anti-corruption',
+    // ── 2026-11-08 (user request): the four codes that had no title ───────
+    'AMSE2002' => 'Software Design and Architecture',
+    'AMSE2003' => 'Software Testing and Quality Assurance',
+    'AMSE2013' => 'Software Requirements Engineering',
+    'MPU-2302' => 'Bahasa Kebangsaan',
 ];

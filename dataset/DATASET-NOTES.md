@@ -106,7 +106,19 @@ MPU-3232 L,T     MPU-3302 T
 
 ## 6. Module titles status
 
-38 of 42 codes have real titles (22 from the .py single source + 16
-user-directed via Downloads/mock-data.js and direct correction — see
-`dataset/import/course-titles.php` header). 4 codes remain code-fallback
-(importer reports them): AMSE2002, AMSE2003, AMSE2013, MPU-2302.
+**42 of 42** codes now carry a real title. 38 came from the original sources
+(22 from the .py single source + 16 user-directed via Downloads/mock-data.js and
+direct correction); the last four were supplied on **2026-11-08** on the user's
+instruction ("just give them a random subject name"), in
+`dataset/import/course-titles.php`:
+
+| Code | Title | Why |
+|---|---|---|
+| AMSE2002 | Software Design and Architecture | DSF year-2 Software Engineering stream |
+| AMSE2003 | Software Testing and Quality Assurance | DSF year-2 Software Engineering stream |
+| AMSE2013 | Software Requirements Engineering | DSF year-2 Software Engineering stream |
+| MPU-2302 | Bahasa Kebangsaan | the user's own name for this MPU (cf. MPU-2212 `BAHASA KEBANGSAAN A`) |
+
+No codes remain in code-fallback; the importer's "no title" report stays as the
+safety net (and `Module::displayName()` still renders a nameless module as
+"Subject <code>").
