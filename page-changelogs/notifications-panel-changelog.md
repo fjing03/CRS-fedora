@@ -1,3 +1,22 @@
+## 2026-11-08 (Student-side health check S8) — an old student notice now lands on its week
+
+Student notice links are written with `?week=N` (S4, same day), but every row already in the table
+predates that — the whole student inbox in the demo DB was the bare page — so a "class cancelled, week
+14" notice still dropped the student on today's week.
+
+The week is now appended **at read time** in `partials/notif-row.blade.php`, from the row's own stored
+`week` column: a student row whose link is the bare `/student-my-timetable-ui` and whose `week` is set
+renders as `/student-my-timetable-ui?week=N`. No data write, no backfill; a row that already carries a
+query string is left untouched, and staff/PL rows are untouched (the rule keys on `role_view`).
+
+Measured on the demo data: user 112's rows now render `?week=7` (the cancelled-class notice) and
+`?week=14` (the approved-replacement notice), and clicking one lands on that week with zero console
+errors. A staff row still resolves to `/my-replacements` and never gains a week param.
+
+Receipts: three tests in `NotificationsBridgeTest` — a legacy row gains its week, a new row is never
+appended twice, a staff row never gains one (red-check: disabling the append fails the first). Full
+bridge suite 40/40; pint passed; phpstan 0; `view:cache` OK.
+
 ## 2026-11-08 (Student-side health check S4) — student rows link their WEEK
 
 A student's `approved` / `update` row used to link the bare `/student-my-timetable-ui`, so a notice

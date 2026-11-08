@@ -1007,6 +1007,63 @@ final class NotificationsBridgeTest extends TestCase
         $this->assertStringContainsString('Proposed Replacement Schedule: Week 6 · Fri, 30 Oct 2026', $reminder[0]);
     }
 
+    /** S8 (student-side-health-check, 2026-11-08): a student row written BEFORE
+     *  the timetable honoured `?week=` must still land on its week — the week is
+     *  appended at read time from the row's own stored `week`. */
+    public function test_a_legacy_student_row_gains_its_week_at_read_time(): void
+    {
+        $student = User::query()->where('role', 'student')->firstOrFail();
+        Notification::create([
+            'user_id' => $student->id, 'role_view' => 'student', 'type' => 'approved',
+            'title' => 'Legacy student row', 'body' => 'old notice',
+            'link' => '/student-my-timetable-ui', 'class_session_id' => 23, 'week' => 8,
+        ]);
+
+        $html = $this->panelHtml($student);
+
+        $this->assertStringContainsString(
+            'href="/student-my-timetable-ui?week=8"',
+            $html,
+            'an old student row lands on its own week',
+        );
+        $this->assertStringNotContainsString('href="/student-my-timetable-ui"', $html, 'the bare page is never the target');
+    }
+
+    public function test_a_new_student_row_keeps_its_own_week_untouched(): void
+    {
+        $student = User::query()->where('role', 'student')->firstOrFail();
+        Notification::create([
+            'user_id' => $student->id, 'role_view' => 'student', 'type' => 'approved',
+            'title' => 'New student row', 'body' => 'fresh notice',
+            'link' => '/student-my-timetable-ui?week=9', 'class_session_id' => 23, 'week' => 9,
+        ]);
+
+        $html = $this->panelHtml($student);
+
+        $this->assertStringContainsString('href="/student-my-timetable-ui?week=9"', $html);
+        $this->assertStringNotContainsString('week=9?week=', $html, 'never appended twice');
+        $this->assertStringNotContainsString('week=9&week=', $html, 'never appended twice');
+    }
+
+    public function test_a_staff_row_never_gains_a_week_param(): void
+    {
+        $owner = User::query()->findOrFail(1);
+        Notification::create([
+            'user_id' => $owner->id, 'role_view' => 'lecturer', 'type' => 'update',
+            'title' => 'Staff row', 'body' => 'staff notice',
+            'link' => '/my-timetable-ui', 'class_session_id' => 23, 'week' => 8,
+        ]);
+
+        $html = $this->panelHtml($owner);
+
+        /* the staff row's own destination is covered by the cancellation test
+           above; here the point is only that the STUDENT week rule never fires
+           for a staff row (this one is 'update' + no live exception, so it
+           renders in the inactive arm with no href at all). */
+        $this->assertStringNotContainsString('my-timetable-ui?week=', $html, 'the student week rule stays student-only');
+        $this->assertStringNotContainsString('student-my-timetable-ui', $html, 'a staff row never points at the student page');
+    }
+
     public function test_a_student_row_drops_the_staff_line(): void
     {
         $request = $this->seedRequest();

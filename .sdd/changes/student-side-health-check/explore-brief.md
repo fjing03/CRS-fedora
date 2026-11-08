@@ -165,3 +165,14 @@ four more issues; two are wrong information shown to students:
 
 S10 + S11 receipts: `tests/Feature/ReplacementHistoryRowTest.php` 3/3 (+ red-check fails all 3),
 browser receipts on the demo data, pint/phpstan/view:cache clean.
+
+## S8 — APPLIED (2026-11-08)
+
+`partials/notif-row.blade.php` appends the row's own stored `week` to a student row's bare
+`/student-my-timetable-ui` link at read time (no data write, no backfill; a new row keeps the week it
+already carries; staff rows are untouched). Tests: 3 in `NotificationsBridgeTest` (legacy row gains its
+week / new row never double-appended / staff row never gains one), red-check fails on the first. Demo
+data receipt: user 112's rows render `?week=7` and `?week=14`, click lands on that week, zero console
+errors. Side note: an approved-replacement notice stores the CLASS's week (14) — the row's own body
+says "W14" — not the week the replacement actually lands in (8); landing is consistent with the
+wording, and changing it to the replacement's week would be a product decision.

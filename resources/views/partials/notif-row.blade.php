@@ -141,6 +141,21 @@
        too, so old notifications behave like new ones. Student rows keep
        `/student-my-timetable-ui` untouched. */
     $href = $n->link;
+    /* S8 (student-side-health-check, 2026-11-08): a STUDENT notice must land on
+       its own week. Rows written from now on carry `?week=N` themselves
+       (NotificationEmitter), but every row already in the table was written
+       before the timetable honoured that param — the whole student inbox in the
+       demo DB is the bare page — so the week is appended HERE, at read time,
+       from the row's own stored `week` column. No data write, no backfill: an
+       old notice and a new one resolve to the same place, and the timetable's
+       own range guard ignores a junk value. */
+    if ($n->role_view === 'student'
+        && $n->week !== null
+        && str_starts_with((string) $n->link, '/student-my-timetable-ui')
+        && ! str_contains((string) $n->link, '?')) {
+        $href = '/student-my-timetable-ui?week='.(int) $n->week;
+    }
+
     if (! $activation) {
         if ($n->link === '/request-approval-ui' && $n->request_id !== null) {
             $notifTarget = 'r'.$n->request_id;
