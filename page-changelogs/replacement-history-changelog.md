@@ -1,3 +1,30 @@
+## 2026-11-08 (Student-side health check S10 + S11) — the Original Slot is the class's own, and the New Slot shows its whole run
+
+Two wrong values on one row (request 27, BMSE2163 P), found by re-reading the brief:
+
+**S10 — the Original Slot column described the replacement, not the class.**
+It printed `Week 8 · Fri, 13 Nov 2026, 12:00 PM ~ 1:00 PM`, because the payload stored
+one `week` + `di` (the replacement slot's) and the column reused them. The class actually sits in
+**week 14, Thursday 24 Dec 2026**, 12:00–13:00. A new `originalWeek` carries the class's own week,
+`di`/`start`/`end` now come from the class's own day and times, and the four readers (sort key,
+desktop table, mobile card, detail modal) use them. Side effect: the **Hours** card counted the
+replacement's length, not the class's.
+
+**S11 — the New Slot time was cut at the first 30-minute block.**
+`1:00 PM ~ 1:30 PM (1 hr)` for a 13:00–14:00 replacement: the duration was computed from the true run
+(two cells) while the time string was read from the anchor cell alone. The string is now built from
+the same span.
+
+Now the row and the modal read exactly what the staff side reads:
+`Original = Week 14 · Thu, 24 Dec 2026, 12:00 PM ~ 1:00 PM @ B010` and
+`New = Week 8 · Fri, 13 Nov 2026, 1:00 PM ~ 2:00 PM @ B010`.
+
+Receipts: `tests/Feature/ReplacementHistoryRowTest.php` (3 tests: the class's own week/day/blocks,
+the new slot's full run, and a pending row that keeps the original slot but shows no new slot).
+Red-check: restoring the old mapping fails all 3. Browser on the demo data — row + modal correct,
+Hours card 1, pending row (DFT student) shows its class's real week 8, zero console errors. pint
+passed, phpstan 0, `view:cache` OK.
+
 ## 2026-11-08 (scope ruling — no code change) — the page lists PENDING + APPROVED only, by decision
 
 A Student-side health check (SDD `student-side-health-check` S3) found that cancelled and rejected

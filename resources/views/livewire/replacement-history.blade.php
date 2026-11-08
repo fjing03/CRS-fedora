@@ -199,7 +199,7 @@
 
         const sortKeys = {
             subject: r => r.code + ' ' + r.name,
-            originalSlot: r => [r.week, r.di, r.start],
+            originalSlot: r => [r.originalWeek, r.di, r.start],
             /* awaiting-PL rows have no replacement yet — they sort last (both directions) */
             newSlot: r => (r.newDay ? [r.week, r.newDi, r.newStart] : null),
             lecturer: r => r.lecturer || '',
@@ -275,7 +275,7 @@
                 const tip = r.status === 'replacement'
                     ? 'Confirmed — attend the new slot shown'
                     : 'Awaiting PL approval — the new slot is not confirmed yet';
-                const origSlot = fmtSlot(weekDays, r.week, r.di, r.start, r.end, r.originalTime, r.originalVenue, true);
+                const origSlot = fmtSlot(weekDays, r.originalWeek, r.di, r.start, r.end, r.originalTime, r.originalVenue, true);
                 const newSlot = r.newDay ? fmtSlot(weekDays, r.week, r.newDi, r.newStart, r.newEnd, r.newTime, r.newVenue, true) : 'Awaiting PL approval';
                 return '<tr role="button" tabindex="0" data-id="' + r.id + '">' +
                     '<td>' + (i + 1) + '</td>' +
@@ -298,7 +298,7 @@
                 const tip = r.status === 'replacement'
                     ? 'Confirmed — attend the new slot shown'
                     : 'Awaiting PL approval — the new slot is not confirmed yet';
-                const origSlot = fmtSlot(weekDays, r.week, r.di, r.start, r.end, r.originalTime, r.originalVenue, false);
+                const origSlot = fmtSlot(weekDays, r.originalWeek, r.di, r.start, r.end, r.originalTime, r.originalVenue, false);
                 const newSlot = r.newDay ? fmtSlot(weekDays, r.week, r.newDi, r.newStart, r.newEnd, r.newTime, r.newVenue, false) : 'Awaiting PL approval';
                 return '<div class="upcoming-card' + (past ? ' past' : '') + '" role="button" tabindex="0" data-id="' + r.id + '">' +
                     '<div class="upcoming-card-head">' +
@@ -373,7 +373,7 @@
                         { label: 'Class Type', value: UiLabels.classType(r.type, 'canonical') },
                         { label: 'Lecturer', value: r.lecturer },
                     ]},
-                    { heading: 'Original Slot', rows: slotRows(r.week, r.di, r.start, r.end, r.originalTime, r.originalVenue, r.originalDay) },
+                    { heading: 'Original Slot', rows: slotRows(r.originalWeek, r.di, r.start, r.end, r.originalTime, r.originalVenue, r.originalDay) },
                     { heading: 'New Slot', rows: r.newDay
                         ? slotRows(r.week, r.newDi, r.newStart, r.newEnd, r.newTime, r.newVenue, r.newDay)
                         : [{ label: 'Status', value: 'Awaiting PL approval <span class="detail-value--muted">— the Programme Leader (PL) has not confirmed this replacement; the new slot is not decided yet</span>' }] },

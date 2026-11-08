@@ -146,3 +146,20 @@ so the student is not misled about whether the class runs — and the history st
   Tests: `StudentTimetableWeekParamTest` 4/4 + the link assertion in `NotificationsBridgeTest`.
 - **S5:** the dead `notifCount => 0` layout parameter is gone (nothing read it). The legacy mock
   template note stays as documentation only — `APP_MOCK_FALLBACK` is still `false`.
+
+## Re-exploration (2026-11-08, second pass) — what the first pass missed
+
+The first pass checked the history page's ROW COUNT, not its CONTENTS. Re-reading the brief found
+four more issues; two are wrong information shown to students:
+
+- **S10 (fixed):** the Original Slot column reused the replacement's week and day → a week-14
+  Thursday class printed as `Week 8 · Fri, 13 Nov`; the Hours card counted the replacement's length.
+- **S11 (fixed):** the New Slot time string read the anchor cell only → `1:00 PM ~ 1:30 PM` for a
+  13:00–14:00 replacement (duration said 1 hr).
+- **S7 (open):** the page opens with the week filter on the CURRENT week, so a student whose only
+  replacement is next week sees 0 rows and 0 / 0 / 0 cards. Recommended: default to All Weeks.
+- **S6 (open):** `PAGE_HOME` is `/` on all four timetable pages (staff's included), so the logo
+  leaves the app for the public welcome page; `/dashboard` behind it is a bare placeholder.
+
+S10 + S11 receipts: `tests/Feature/ReplacementHistoryRowTest.php` 3/3 (+ red-check fails all 3),
+browser receipts on the demo data, pint/phpstan/view:cache clean.
