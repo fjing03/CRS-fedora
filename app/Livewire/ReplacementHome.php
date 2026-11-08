@@ -11,6 +11,7 @@ use App\Models\Cohort;
 use App\Models\ReplacementRequest;
 use App\Models\Venue;
 use App\Services\ReplacementRequestMapper;
+use App\Support\LocalTime;
 use App\Support\ReasonLabel;
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\Carbon;
@@ -56,7 +57,7 @@ class ReplacementHome extends Component
     public function render(): View
     {
         $semester = $this->timelineSemester();
-        $startDate = Carbon::parse($semester !== null ? $semester->start_date : now()->toDateString());
+        $startDate = Carbon::parse($semester !== null ? $semester->start_date : LocalTime::today());
         $weeks = $this->timelineWeeks();
 
         $sessions = ClassSession::query()
@@ -359,7 +360,7 @@ class ReplacementHome extends Component
         }
 
         $semester = $this->timelineSemester();
-        $startDate = Carbon::parse($semester !== null ? $semester->start_date : now()->toDateString());
+        $startDate = Carbon::parse($semester !== null ? $semester->start_date : LocalTime::today());
         $week = (int) $request->week_number;
 
         $exception = ClassException::query()

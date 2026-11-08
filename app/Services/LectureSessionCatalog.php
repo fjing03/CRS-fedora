@@ -7,6 +7,7 @@ use App\Models\ClassSession;
 use App\Models\Cohort;
 use App\Models\ReplacementRequest;
 use App\Models\Semester;
+use App\Support\LocalTime;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 
@@ -630,7 +631,7 @@ final class LectureSessionCatalog
             return null;
         }
 
-        $start = Carbon::parse($semester !== null ? $semester->start_date : now()->toDateString());
+        $start = Carbon::parse($semester !== null ? $semester->start_date : LocalTime::today());
         $monday = $start->copy()->addWeeks($week1 - 1);
 
         return ['monday' => $monday, 'week1' => $week1];

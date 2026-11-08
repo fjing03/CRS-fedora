@@ -102,7 +102,11 @@ final class ReplacementRequestMapper
             return $stored;             // unreadable date — never guess Completed
         }
 
-        return Carbon::parse($date)->startOfDay()->lt(today()->startOfDay())
+        /* SDD local-calendar-rules (2026-11-08): compare CAMPUS dates, not the
+           UTC clock — between 00:00 and 08:00 MYT `today()` is yesterday, so a
+           class that has already happened kept reading Approved. String compare:
+           no midnight, no zone offset, no off-by-one. */
+        return Carbon::parse($date)->toDateString() < LocalTime::dateString()
             ? 'completed'
             : 'approved';
     }
@@ -112,8 +116,8 @@ final class ReplacementRequestMapper
      * Pure, no queries: the page never decides a status, a label or a suffix, so
      * the badge, the card, the tab title and the sentence cannot disagree.
      *
-     * `<n>` uses the SERVER's today() — the same clock `effectiveStatus()`
-     * compares against — so "Completed — 1 day ago" can never contradict the
+     * `<n>` uses the campus today (LocalTime::today()) — the same calendar
+     * `effectiveStatus()` compares against — so "Completed — 1 day ago" can never contradict the
      * status that produced it (a browser in another timezone would).
      *
      * @return array{label: string, short: string, sentence: string, tip: string}
@@ -251,7 +255,8 @@ final class ReplacementRequestMapper
             return null;
         }
 
-        $days = (int) abs(Carbon::parse($date)->startOfDay()->diffInDays(today()->startOfDay()));
+        // SDD local-calendar-rules: the campus calendar (both sides read as MYT days)
+        $days = (int) abs(LocalTime::daysSince($date));
 
         return $days <= 0 ? 'today' : ($days === 1 ? '1 day ago' : $days.' days ago');
     }

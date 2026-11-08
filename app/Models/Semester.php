@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Support\LocalTime;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Carbon;
@@ -38,10 +39,14 @@ class Semester extends Model
     /**
      * The semester in progress (start_date <= today, latest first), falling
      * back to id 1 per design D9, then to the latest row overall.
+     *
+     * SDD local-calendar-rules (2026-11-08): "today" is the CAMPUS date — on the
+     * first day of a semester, before 08:00 MYT, the UTC clock still said
+     * yesterday and the previous semester stayed "current".
      */
     public static function active(): ?self
     {
-        return static::whereDate('start_date', '<=', today())
+        return static::whereDate('start_date', '<=', LocalTime::dateString())
             ->orderByDesc('start_date')
             ->first()
             ?? static::find(1)

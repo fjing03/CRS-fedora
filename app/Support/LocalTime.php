@@ -2,6 +2,7 @@
 
 namespace App\Support;
 
+use Carbon\Carbon;
 use Carbon\CarbonInterface;
 
 /**
@@ -29,5 +30,43 @@ final class LocalTime
         return $stamp === null
             ? null
             : $stamp->copy()->setTimezone(self::TZ)->format($format);
+    }
+
+    /**
+     * "What is today ON CAMPUS?" — the calendar the RULES ask (SDD
+     * `local-calendar-rules`, 2026-11-08).
+     *
+     * `today()` (the framework helper) answers in the APP clock (UTC), so between
+     * 00:00 and 08:00 Malaysia time it still calls it yesterday: a class that has
+     * already happened reads "Approved", the landing week can be one week low on
+     * a Monday, and day-ago labels are off by one. This answers with the campus
+     * calendar instead — the SAME INSTANT, a different zone, so every instant
+     * comparison that uses it stays correct.
+     *
+     * NOT for stored stamps: `submitted_at` / `decided_at` / `created_at` stay
+     * UTC on purpose (writing campus time into those columns would corrupt the
+     * history). It is for calendar reads only.
+     */
+    public static function today(): Carbon
+    {
+        return Carbon::now(self::TZ)->startOfDay();
+    }
+
+    /** The campus date as 'Y-m-d' — the safe thing to compare with any stored date column. */
+    public static function dateString(): string
+    {
+        return self::today()->toDateString();
+    }
+
+    /**
+     * Whole days from a `Y-m-d` (or any date-ish value) to the campus today —
+     * positive when the date is in the past. Both sides are read as campus
+     * midnights, so an 8-hour offset can never move the count by one.
+     */
+    public static function daysSince(CarbonInterface|string $date): int
+    {
+        $from = ($date instanceof CarbonInterface ? $date->format('Y-m-d') : (string) $date);
+
+        return (int) Carbon::parse($from, self::TZ)->startOfDay()->diffInDays(self::today());
     }
 }

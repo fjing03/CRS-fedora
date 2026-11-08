@@ -10,6 +10,7 @@ use App\Models\ReplacementRequestSlot;
 use App\Models\Semester;
 use App\Services\LectureSessionCatalog;
 use App\Services\ReplacementRequestMapper;
+use App\Support\LocalTime;
 use App\Support\ReasonLabel;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
@@ -52,7 +53,7 @@ trait ResolvesTimetableTimeline
     protected function semesterJs(): array
     {
         $semester = $this->timelineSemester();
-        $start = Carbon::parse($semester !== null ? $semester->start_date : now()->toDateString());
+        $start = Carbon::parse($semester !== null ? $semester->start_date : LocalTime::today());
         $weeks = $this->timelineWeeks();
         $end = $start->copy()->addWeeks($weeks - 1)->addDays(6);
 
@@ -95,8 +96,8 @@ trait ResolvesTimetableTimeline
     {
         $weeks = $this->timelineWeeks();
         $semester = $this->timelineSemester();
-        $start = Carbon::parse($semester !== null ? $semester->start_date : now()->toDateString());
-        $today = today()->toDateString();
+        $start = Carbon::parse($semester !== null ? $semester->start_date : LocalTime::today());
+        $today = LocalTime::dateString();   // SDD local-calendar-rules: the campus date
         $out = [];
 
         for ($w = 1; $w <= $weeks; $w++) {
@@ -128,8 +129,10 @@ trait ResolvesTimetableTimeline
             return 0;
         }
 
-        // Carbon 3: signed diff — positive when today is after the semester start.
-        $days = (int) $semester->start_date->startOfDay()->diffInDays(today());
+        /* SDD local-calendar-rules (2026-11-08): the campus calendar decides which
+           week it is. With the UTC clock, a Monday before 08:00 MYT still read as
+           Sunday → the page opened one week low. */
+        $days = LocalTime::daysSince($semester->start_date);
         $idx = intdiv($days, 7);
 
         return max(0, min($this->timelineWeeks() - 1, $idx));
@@ -169,7 +172,7 @@ trait ResolvesTimetableTimeline
     ): array {
         $weeks = $this->timelineWeeks();
         $semester = $this->timelineSemester();
-        $startDate = $semester !== null ? $semester->start_date : Carbon::parse(now()->toDateString());
+        $startDate = $semester !== null ? $semester->start_date : LocalTime::today();
 
         /* cancelled-blocks-stay-visible (user law 2026-10-27): the keyed
            ROW map replaces the boolean — presence AND the reason both read

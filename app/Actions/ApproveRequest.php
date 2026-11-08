@@ -13,6 +13,7 @@ use App\Models\TimeSlot;
 use App\Models\User;
 use App\Services\ApprovalValidity;
 use App\Services\ReplacementRequestMapper;
+use App\Support\LocalTime;
 use App\Support\Notifications\NotificationEmitter;
 use Carbon\Carbon;
 use Illuminate\Support\Collection;
@@ -318,7 +319,7 @@ final class ApproveRequest
         // are resolved NOW, pre-release — a rejected row's junction is gone
         // by the time a worker renders.
         $mapper = app(ReplacementRequestMapper::class);
-        $span = $mapper->replacementStrings($locked, Carbon::parse(now()->toDateString()));
+        $span = $mapper->replacementStrings($locked, LocalTime::today());
 
         /* audit #29: the email reads the date too — `Mon, 9 Nov 2026, 1:30 PM ~ 3:30 PM`
            — while the page payload keeps its ISO date + 24-hour span. */
@@ -351,7 +352,7 @@ final class ApproveRequest
         }
 
         $mapper = app(ReplacementRequestMapper::class);
-        $span = $mapper->replacementStrings($locked, Carbon::parse(now()->toDateString()));
+        $span = $mapper->replacementStrings($locked, LocalTime::today());
 
         $mailSpan = $mapper->span($locked);
         $semester = Semester::find((int) ($session->semester_id));

@@ -15,6 +15,7 @@ use App\Models\TimeSlot;
 use App\Models\Venue;
 use App\Services\LectureSessionCatalog;
 use App\Services\MatrixIntersectionEngine;
+use App\Support\LocalTime;
 use App\Support\ReasonLabel;
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\Carbon;
@@ -452,7 +453,7 @@ class ReplacementArrangement extends Component
     private function conflictEventsPayload(Collection $sessions): array
     {
         $semester = $this->timelineSemester();
-        $startDate = Carbon::parse($semester !== null ? $semester->start_date : now()->toDateString());
+        $startDate = Carbon::parse($semester !== null ? $semester->start_date : LocalTime::today());
         $weeks = $this->timelineWeeks();
 
         $exceptions = ClassException::query()

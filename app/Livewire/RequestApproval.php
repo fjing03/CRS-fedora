@@ -8,6 +8,7 @@ use App\Concerns\ResolvesTimetableTimeline;
 use App\Models\ReplacementRequest;
 use App\Services\ApprovalValidity;
 use App\Services\ReplacementRequestMapper;
+use App\Support\LocalTime;
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\Carbon;
 use Livewire\Component;
@@ -39,7 +40,7 @@ final class RequestApproval extends Component
             'payload' => [
                 'semester' => $this->semesterJs(),
                 'holidays' => $this->holidaysForJs(),
-                'urgencyReferenceDate' => now()->toDateString(),
+                'urgencyReferenceDate' => LocalTime::dateString(),
                 'lecturers' => $this->lecturerDirectory($start),
                 'requests' => $this->rowsPayload(),
             ],
@@ -177,6 +178,6 @@ final class RequestApproval extends Component
     {
         $semester = $this->timelineSemester();
 
-        return Carbon::parse($semester !== null ? $semester->start_date : now()->toDateString());
+        return Carbon::parse($semester !== null ? $semester->start_date : LocalTime::today());
     }
 }
