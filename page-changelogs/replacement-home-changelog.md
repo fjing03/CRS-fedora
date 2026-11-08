@@ -31,7 +31,13 @@ nameless modules got real titles in the dataset's single source
 | AMSE2013 | Software Requirements Engineering |
 | MPU-2302 | Bahasa Kebangsaan (the user's own wording) |
 
-The demo rows were updated in place (title-only `UPDATE`, snapshots + row-count receipts in
+A second sweep of all 42 titles found nothing else using its code as a name; the only leftover was
+`MPU-2212 = BAHASA KEBANGSAAN A` — the one ALL-CAPS title, beside the new `MPU-2302 Bahasa Kebangsaan`.
+It now reads `Bahasa Kebangsaan A`. Two titles repeat on different codes on purpose (`Problem Solving
+and Programming` = AMCS1013 + BMCS1013, `Software Engineering` = AMSE1003 + BMSE2163 — the A/B
+prefixes are the same subject in two programmes).
+
+The demo rows were updated in place (title-only `UPDATE`s, snapshots + row-count receipts in
 `docs/demo-db-data-changes.md`; rehearsed on the testing DB first, where the importer reports 0
 modules without a title). Measured: My Replacements reads
 `AMSE2003 Software Testing and Quality Assurance (L)` and the modal reads

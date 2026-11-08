@@ -67,7 +67,7 @@ return [
     'BMSE3153' => 'Software Project Management',
     // ── user-directed additions 2026-10-08 (continued) ───────────────────
     'BMIT3273' => 'Cloud Computing',
-    'MPU-2212' => 'BAHASA KEBANGSAAN A',
+    'MPU-2212' => 'Bahasa Kebangsaan A',   /* 2026-11-08: was ALL CAPS — matches MPU-2302 */
     'MPU-3103' => 'Penghayatan Etika dan Peradaban',
     'MPU-3302' => 'Integrity and Anti-corruption',
     // ── 2026-11-08 (user request): the four codes that had no title ───────

@@ -122,3 +122,12 @@ instruction ("just give them a random subject name"), in
 No codes remain in code-fallback; the importer's "no title" report stays as the
 safety net (and `Module::displayName()` still renders a nameless module as
 "Subject <code>").
+
+**Same day, one casing fix:** `MPU-2212` was the only title in capitals
+(`BAHASA KEBANGSAAN A`) and sat next to the new `MPU-2302 Bahasa Kebangsaan`; it
+now reads `Bahasa Kebangsaan A`. Every title is title-case.
+
+**Two titles legitimately repeat on different codes** — `Problem Solving and
+Programming` (AMCS1013 + BMCS1013) and `Software Engineering` (AMSE1003 +
+BMSE2163): the A/B prefixes are the same subject taught in two programmes, so the
+code is the distinguishing part, not the title.
