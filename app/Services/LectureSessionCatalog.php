@@ -225,7 +225,7 @@ final class LectureSessionCatalog
 
                 return [
                     'code' => (string) $first->module->module_code,
-                    'name' => (string) $first->module->module_name,
+                    'name' => $first->module->displayName(),
                     // Module-grain default kept for shape parity (occurrence-
                     // grain context rules replacements: the session's facts,
                     // never the module default — explore A2/A3).

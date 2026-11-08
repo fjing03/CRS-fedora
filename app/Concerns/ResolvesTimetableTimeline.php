@@ -471,7 +471,7 @@ trait ResolvesTimetableTimeline
             'start' => $this->slotIndex($s->start_time),
             'end' => $this->slotIndex($s->end_time) - 1,
             'code' => $s->module->module_code,
-            'name' => $s->module->module_name,
+            'name' => $s->module->displayName(),
             'type' => $s->session_type,
             'venue' => $s->venue->room_code,
             /* 2026-11-05 (Cancel this Class? UI/UX update): the modal's facts

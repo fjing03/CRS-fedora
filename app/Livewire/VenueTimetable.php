@@ -320,7 +320,7 @@ class VenueTimetable extends Component
                 'start' => $g['start'],
                 'end' => $g['end'],
                 'code' => $session->module->module_code,
-                'name' => $session->module->module_name,
+                'name' => $session->module->displayName(),
                 'type' => $session->session_type,
                 'venue' => $venue->room_code,
                 /* Cancel this Class? modal: the facts box prints `CODE — Name` */
@@ -456,7 +456,7 @@ class VenueTimetable extends Component
                 'start' => $start,
                 'end' => $end,
                 'code' => $session->module->module_code,
-                'name' => $session->module->module_name,
+                'name' => $session->module->displayName(),
                 'type' => $session->session_type,
                 'venue' => $venue->room_code,
                 /* Cancel this Class? modal: the facts box prints `CODE — Name` */
@@ -606,7 +606,7 @@ class VenueTimetable extends Component
                     'start' => $startIdx,
                     'end' => $endIdx,
                     'code' => (string) $session->module->module_code,
-                    'name' => (string) $session->module->module_name,
+                    'name' => $session->module->displayName(),
                     'type' => (string) $session->session_type,
                     'venue' => (string) $venue->room_code,
                     'venueName' => $venue->room_name,

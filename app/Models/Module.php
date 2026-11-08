@@ -23,6 +23,30 @@ class Module extends Model
     /** @use HasFactory<ModuleFactory> */
     use HasFactory;
 
+    /**
+     * The subject's name as the UI should print it.
+     *
+     * Four seeded modules carry no real name — `module_name` simply repeats the
+     * code (AMSE2002, AMSE2003, AMSE2013, MPU-2302) — so a page that prints
+     * `CODE` + name read "AMSE2003 AMSE2003 (L)". A blank or duplicated name now
+     * reads as "Subject AMSE2003" (user request 2026-11-08), matching the
+     * suppression the notification tips already did (NotificationTip::
+     * sameCodeAndName). Every display payload asks this one method, so the
+     * timetable, My Replacements, the arrangement grid, the venue pages, the
+     * student history and the read API all say the same thing.
+     */
+    public function displayName(): string
+    {
+        $code = trim((string) $this->module_code);
+        $name = trim((string) $this->module_name);
+
+        if ($name === '' || ($code !== '' && $name === $code)) {
+            return $code !== '' ? 'Subject '.$code : '';
+        }
+
+        return $name;
+    }
+
     /** @return HasMany<ClassSession, $this> */
     public function classSessions(): HasMany
     {

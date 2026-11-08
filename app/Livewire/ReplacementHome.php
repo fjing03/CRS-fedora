@@ -272,7 +272,7 @@ class ReplacementHome extends Component
             'week' => $week,
             'lecturer' => (string) $session->lecturer->name,
             'code' => (string) $session->module->module_code,
-            'name' => (string) $session->module->module_name,
+            'name' => $session->module->displayName(),
             'type' => (string) $session->session_type,
             'date' => $date->toDateString(),
             'day' => self::DAY_NAMES[(int) $session->day_of_week] ?? '',

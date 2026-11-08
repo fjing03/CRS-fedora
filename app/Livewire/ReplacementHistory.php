@@ -106,7 +106,7 @@ class ReplacementHistory extends Component
         return [
             'id' => (int) $r->id,
             'code' => (string) $session->module->module_code,
-            'name' => (string) $session->module->module_name,
+            'name' => $session->module->displayName(),
             'type' => (string) $session->session_type,
             /* the mock's 0-based week index — the ROW's week (the replacement's:
                it is what the week filter, the Past toggle and the summaries use) */

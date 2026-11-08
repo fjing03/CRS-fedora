@@ -509,7 +509,7 @@ class ReplacementArrangement extends Component
                         'cancelledReason' => $exception !== null
                             ? ReasonLabel::from((string) $exception->reason)
                             : null,
-                        'name' => (string) $session->module->module_name,
+                        'name' => $session->module->displayName(),
                         'type' => (string) $session->session_type,
                         'code' => (string) $session->module->module_code,
                     ],

@@ -1,3 +1,25 @@
+## 2026-11-08 (user request) — a subject with no real name reads "Subject AMSE2003"
+
+Four seeded modules store their code as the name — **AMSE2002, AMSE2003, AMSE2013, MPU-2302**
+(`module_name` == `module_code`) — so anywhere the UI printed `CODE` + name the row read
+**"AMSE2003 AMSE2003 (L)"**, and the class-detail modal read "AMSE2002 — AMSE2002" with
+"Subject Name: AMSE2002".
+
+One rule on the model now answers every display payload: `Module::displayName()` returns the real
+name, or **"Subject AMSE2003"** when the name is blank or merely repeats the code (the same
+"no proper name" test the notification tips already used). Applied at the timetable timeline, the
+README-style payload builders (My Replacements, Arrangement, the venue pages, the student history,
+the request mapper, the API read adapter, the venue availability feed).
+
+Measured on the demo data: My Replacements now reads `AMSE2003 Subject AMSE2003 (L)` /
+`(T)`, and the class-detail modal shows `Subject Name: Subject AMSE2002` (title `AMSE2002 — Subject
+AMSE2002`). Modules with real names are untouched (`AMSE1003 Software Engineering (L)`).
+
+Receipts: `tests/Unit/ModuleDisplayNameTest.php` (7 — a real name kept, the code repeated, an empty
+name, whitespace only, trimming, a hyphenated code, and a module with no code at all); pint passed,
+phpstan 0, `view:cache` OK; the wider payload/notification run is 114/116 with only the two known
+weekend-only fixture errors.
+
 ## 2026-11-07 (night) — the pop-up opens on the Proposed Replacement Schedule
 
 User brief *Modal Tab Order & Class Type Display*, part 1 (display-only; SDD waived).

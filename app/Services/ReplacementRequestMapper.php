@@ -362,7 +362,7 @@ final class ReplacementRequestMapper
 
         return [
             'courseCode' => (string) $session->module->module_code,
-            'courseName' => (string) $session->module->module_name,
+            'courseName' => $session->module->displayName(),
             'classType' => (string) $session->session_type,
             'classDate' => $semesterStart->copy()
                 ->addWeeks((int) $r->week_number - 1)

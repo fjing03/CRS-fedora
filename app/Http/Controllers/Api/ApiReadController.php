@@ -295,7 +295,7 @@ class ApiReadController extends Controller
             return [
                 'id' => $session->id,
                 'code' => $session->module->module_code,
-                'name' => $session->module->module_name,
+                'name' => $session->module->displayName(),
                 'type' => $session->session_type,
                 'date' => $classDate,
                 'day' => $classDay,
@@ -361,7 +361,7 @@ class ApiReadController extends Controller
                 'cohort' => $cohortCodes->join(' + '),
                 'cohorts' => $cohortCodes->toArray(),
                 'status' => 'normal',
-                'name' => $session->module->module_name,
+                'name' => $session->module->displayName(),
                 'remarks' => '',
             ];
 
@@ -460,7 +460,7 @@ class ApiReadController extends Controller
                 'cohorts' => $cohortCodes->toArray(),
                 'studentCount' => $studentCount,
                 'status' => 'normal',
-                'name' => $session->module->module_name,
+                'name' => $session->module->displayName(),
                 'remarks' => '',
             ];
 
