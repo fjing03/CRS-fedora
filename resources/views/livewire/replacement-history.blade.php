@@ -416,14 +416,22 @@
             const chipEl = document.getElementById('semesterChip');
             if (chipEl) chipEl.textContent = MockData.semester.chipText;
 
-            // BINDING: page must load on 0-based week 9 ("Week 10"), never "Week 1"
             /* includeAll: the All Weeks option renderUpcoming() filters on.
                Single writer = the shared helper (a page-side IIFE prepend used
                to double it up after includeAll landed 2026-10-06, and the old
-               hand-inserted option also vanished on breakpoint re-populate). */
-            populateWeekSelect('weekFilter', { selected: currentWeekIndex() + 1, includeAll: true });
+               hand-inserted option also vanished on breakpoint re-populate).
 
-            // Restore persisted view (defaults to the current week on first visit)
+               SDD student-side-health-check S7 (2026-11-08, user's option A):
+               this page is a HISTORY, so it opens on **All Weeks**. It used to
+               open on the CURRENT week, and since the filter hides every other
+               week, a student whose only replacement sits in a later week saw an
+               empty table plus 0 / 0 / 0 cards — measured on both demo students
+               (one approved in week 8, one pending in week 9). "Show past" still
+               starts off, so the list stays short, and the Today button + the
+               week arrows still narrow it to one week on demand. */
+            populateWeekSelect('weekFilter', { selected: 'all', includeAll: true });
+
+            // Restore persisted view (a first visit opens on All Weeks)
             (function() {
                 let saved = {};
                 try {
@@ -437,6 +445,8 @@
                         localStorage.removeItem(LEGACY_VIEW_KEY);
                     } catch (e2) { /* ignore */ }
                 }
+                /* a saved week still wins over the All Weeks default — it is a
+                   deliberate choice; the default only applies to a first visit */
                 const sel = document.getElementById('weekFilter');
                 if (saved.week && (saved.week === 'all' || sel.querySelector('option[value="' + saved.week + '"]'))) {
                     sel.value = saved.week;

@@ -156,8 +156,10 @@ four more issues; two are wrong information shown to students:
   Thursday class printed as `Week 8 · Fri, 13 Nov`; the Hours card counted the replacement's length.
 - **S11 (fixed):** the New Slot time string read the anchor cell only → `1:00 PM ~ 1:30 PM` for a
   13:00–14:00 replacement (duration said 1 hr).
-- **S7 (open):** the page opens with the week filter on the CURRENT week, so a student whose only
-  replacement is next week sees 0 rows and 0 / 0 / 0 cards. Recommended: default to All Weeks.
+- **S7 (APPLIED 2026-11-08, user's option A):** the page used to open with the week filter on the
+  CURRENT week, so a student whose only replacement was in a later week saw 0 rows and 0 / 0 / 0
+  cards. It now opens on All Weeks ("Show past" still off; Today and the week arrows still narrow
+  it; a saved filter still wins). Measured on both demo students: 1 row and correct cards.
 - **S6 (open):** `PAGE_HOME` is `/` on all four timetable pages (staff's included), so the logo
   leaves the app for the public welcome page; `/dashboard` behind it is a bare placeholder.
 

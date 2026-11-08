@@ -1,3 +1,24 @@
+## 2026-11-08 (Student-side health check S7, user's option A) — the page opens on All Weeks
+
+The week filter used to open on the **current** week, and it hides every other week. A student whose
+only replacement sits later saw an empty table and `0 / 0 / 0` cards on arrival — measured on both
+demo students: 24RSD0009 (approved replacement in week 8) and 24DFT0001 (pending request in week 9)
+both opened on "Week 7" with 0 rows.
+
+Now a first visit opens on **All Weeks**: 1 row and `Total 1 · Upcoming 1 · Hours 1` (RSD) /
+`Total 1 · Pending 1 · Hours 2` (DFT). Unchanged, on purpose:
+
+- **"Show past" still starts off**, so the list does not grow with history until asked.
+- the **week arrows** and the **Today** button still narrow the view to one week on demand
+  (Today = this week, rows 0 when nothing happens this week — an explicit choice, not the default);
+- a **saved filter still wins** over the default (the page remembers the last choice, and that is a
+  deliberate one).
+
+Receipts: `tests/Feature/ReplacementHistoryDefaultWeekTest.php` (2 source invariants: the default is
+`'all'`, and it is no longer `currentWeekIndex()`; red-check fails both), browser receipts on both
+demo students with zero console errors (`/tmp/opencode/audit-history-allweeks-24RSD0009.png`,
+`…-24DFT0001.png`), pint passed, phpstan 0, `view:cache` OK.
+
 ## 2026-11-08 (Student-side health check S10 + S11) — the Original Slot is the class's own, and the New Slot shows its whole run
 
 Two wrong values on one row (request 27, BMSE2163 P), found by re-reading the brief:
