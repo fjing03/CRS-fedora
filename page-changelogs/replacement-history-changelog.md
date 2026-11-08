@@ -1,3 +1,17 @@
+## 2026-11-08 (scope ruling — no code change) — the page lists PENDING + APPROVED only, by decision
+
+A Student-side health check (SDD `student-side-health-check` S3) found that cancelled and rejected
+requests never appear here — the component's own `whereIn('status', ['pending','approved'])`. Example
+from the demo data: a cohort with one approved and one cancelled request shows **one** row.
+
+**The user's ruling: keep it that way (option A).** The reasoning: the timetable already shows the
+cancelled class as a red block with its reason, so a student is never misled about whether the class
+runs; this page is a list of *outcomes*, not of every attempt. The staff equivalent (My Replacements)
+still keeps cancelled rows, because a lecturer acts on their own request — a role difference, not a
+bug.
+
+Do not "fix" this without a new ruling.
+
 ## 2026-11-07 (date/time batch 3, `docs/date-time-format-audit-2026-11-07.md`) — slot dates lose the leading zero
 
 The Original/New Slot dates read `5 Nov 2026` (was `05 Nov 2026`), matching the rest of the app.

@@ -128,3 +128,11 @@ Receipts:
 - `composer run lint:check` passed, `phpstan` 0 errors, `view:cache` OK.
 
 S2/S3/S4/S5 remain **open** (untouched).
+
+## S3 — DECIDED: leave as it is (user ruling, 2026-11-08, option A)
+
+The page keeps its **pending + approved** scope. Cancelled and rejected requests stay off the
+student history on purpose: the timetable already shows the cancelled class block with its reason,
+so the student is not misled about whether the class runs — and the history stays a list of
+*outcomes*, not of every attempt. No code change; recorded here and in
+`page-changelogs/replacement-history-changelog.md` so a future pass does not "fix" it as a bug.
