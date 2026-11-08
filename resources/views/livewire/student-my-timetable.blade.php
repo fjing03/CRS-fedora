@@ -68,6 +68,13 @@
         document.addEventListener('DOMContentLoaded', function () {
             MockData.semester = @json($semesterJs);
             MockData.holidays = @json($holidaysJs);
+            /* REAL clock (user report 2026-11-08): without this the page's
+               Today anchored the mock-era demo date (mockNow = Mon 5 Oct 2026),
+               so the Today button jumped to Week 3 and no day carried the
+               "Today" badge in the real current week — the same clearing line
+               the seven other live pages carry (my-timetable / cohort / venue /
+               arrangement / home / approval / history). */
+            MockData.mockNow = null;
             /* Real viewer identity (all-pages-design-parity S3): the shared
                openClassModal compares event.requestedBy against this — without
                it the student page's comparison runs against the mock-data
