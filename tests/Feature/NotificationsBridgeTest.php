@@ -163,7 +163,11 @@ final class NotificationsBridgeTest extends TestCase
         $this->assertTrue($cancelRows->contains(fn (Notification $r) => $r->user_id === 1 && $r->role_view === 'lecturer' && $r->link === '/my-replacements'), "the owner's record row links the merged page (notif-click-behaviour, 2026-11-04) — the cancelled class's own row, flashed on arrival");
         $studentRows = $cancelRows->where('role_view', 'student');
         $this->assertTrue($studentRows->count() > 0, 'the cohort students get rows');
-        $studentRows->each(fn (Notification $r) => $this->assertSame('/student-my-timetable-ui', $r->link, 'a student row NEVER links the lecturer-gated cohort page'));
+        $studentRows->each(fn (Notification $r) => $this->assertSame(
+            '/student-my-timetable-ui?week=8',
+            $r->link,
+            'a student row NEVER links the lecturer-gated cohort page — and it carries its week (S4)',
+        ));
 
         // R4 (notif-recipient-rulings, 2026-11-03) REVERSES the 2026-10-30
         // three-fan-out ruling: the department-PL copies are gone entirely, so
@@ -1236,6 +1240,17 @@ final class NotificationsBridgeTest extends TestCase
         app(NotificationEmitter::class)->approvalNotice(
             $session, Student::query()->whereKey((int) $student->user_id)->with('user')->get(), (int) $request->id, 8
         );
+        // S4 (student-side-health-check, 2026-11-08): the approval notice's link
+        // carries the affected WEEK so the timetable can land there.
+        $this->assertSame(
+            '/student-my-timetable-ui?week=8',
+            (string) Notification::query()
+                ->where('user_id', (int) $student->user_id)
+                ->where('type', 'approved')
+                ->orderByDesc('id')->value('link'),
+            'the student approval notice links its own week',
+        );
+
         $this->actingAs($student->user);
         $this->assertSame(['by Lim Jia Zheng (5770)'], $this->subtitleSpans(
             Livewire::test(NavNotifications::class, ['island' => 'panel', 'pageKey' => 'studentTimetable', 'unreadOnly' => false, 'activeOnly' => false])->html()

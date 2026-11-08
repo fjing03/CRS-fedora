@@ -136,3 +136,13 @@ student history on purpose: the timetable already shows the cancelled class bloc
 so the student is not misled about whether the class runs — and the history stays a list of
 *outcomes*, not of every attempt. No code change; recorded here and in
 `page-changelogs/replacement-history-changelog.md` so a future pass does not "fix" it as a bug.
+
+## S4 + S5 — APPLIED (2026-11-08)
+
+- **S4:** `NotificationEmitter` writes `/student-my-timetable-ui?week=N` for both student fan-outs
+  (`approvalNotice`, `classCancelled`); `StudentMyTimetable::mount()` honours `?week=` (1-based;
+  junk / out-of-range / absent → today's week). Measured: `?week=9` → Week 9, `?week=14` → Week 14,
+  `?week=99` / `?week=abc` / none → Week 7, and the param wins over a remembered week.
+  Tests: `StudentTimetableWeekParamTest` 4/4 + the link assertion in `NotificationsBridgeTest`.
+- **S5:** the dead `notifCount => 0` layout parameter is gone (nothing read it). The legacy mock
+  template note stays as documentation only — `APP_MOCK_FALLBACK` is still `false`.

@@ -139,7 +139,10 @@ final class NotificationEmitter
                     'approved',
                     'Replacement class updated',
                     $this->classFact($session, $week).' · your timetable is updated',
-                    '/student-my-timetable-ui',
+                    /* SDD student-side-health-check S4 (2026-11-08): the student's
+                       link carries its WEEK — the timetable now honours `?week=`,
+                       so the row lands on the affected week instead of today. */
+                    '/student-my-timetable-ui?week='.(int) $week,
                     $requestId,
                     (int) $session->id,
                     $week,
@@ -176,7 +179,8 @@ final class NotificationEmitter
                     if ($user === null) {
                         continue;
                     }
-                    $this->write($user, 'student', 'update', $title, $body, '/student-my-timetable-ui', null, $sessionId, $weekNumber);
+                    // S4: the week rides the link (the timetable honours `?week=`)
+                    $this->write($user, 'student', 'update', $title, $body, '/student-my-timetable-ui?week='.(int) $weekNumber, null, $sessionId, $weekNumber);
                 }
             }
         });

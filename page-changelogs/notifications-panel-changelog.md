@@ -1,3 +1,12 @@
+## 2026-11-08 (Student-side health check S4) — student rows link their WEEK
+
+A student's `approved` / `update` row used to link the bare `/student-my-timetable-ui`, so a notice
+about week 14 landed the student on whatever week the page opens on. Both student fan-outs
+(`approvalNotice`, `classCancelled`) now write `/student-my-timetable-ui?week=N` — the same number the
+row already stores in `notifications.week` — and the timetable honours that param (see its own
+changelog). Lecturer/PL links are untouched (`/my-replacements` keeps its `?notif-hl=` machinery), and
+the read path, badge counts and hide/undo laws are unchanged.
+
 ## 2026-11-07 (evening) — a rejected request's tip finally reads its real length
 
 Reported against notification `#221` / request **#38** (AMSE1003 L, Week 8, a 2-hour

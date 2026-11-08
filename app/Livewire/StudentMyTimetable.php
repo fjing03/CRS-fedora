@@ -24,7 +24,16 @@ class StudentMyTimetable extends Component
     #[Title('Student My Timetable')]
     public function mount(): void
     {
-        $this->week = $this->currentTimelineWeekIndex() + 1;
+        /* SDD student-side-health-check S4 (2026-11-08): a notification links
+           here with `?week=N` (1-based, the same number the row carries), so the
+           student lands on the week the notice is about. Anything else — no
+           param, a non-number, a week outside the semester — keeps "today". */
+        $requested = (int) request()->query('week', 0);
+        $weeks = $this->timelineWeeks();
+
+        $this->week = ($requested >= 1 && $requested <= $weeks)
+            ? $requested
+            : $this->currentTimelineWeekIndex() + 1;
     }
 
     public function render(): View
@@ -75,7 +84,8 @@ class StudentMyTimetable extends Component
                 // navItems intentionally NOT passed: wire-existing-backend's
                 // partial now derives the role-aware whitelist (student sees
                 // Cohort Timetables + Student My Timetable + Request History).
-                'notifCount' => 0,
+                // (`notifCount` was passed here and read by nobody — the bell
+                // island computes its own unread total. Dropped 2026-11-08, S5.)
             ])
             ->section('content');
     }

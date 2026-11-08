@@ -1,3 +1,27 @@
+## 2026-11-08 (Student-side health check, S1 + S4 + S5) — real "Today", and `?week=` arrivals
+
+**S1 — the page's "Today" was 5 Oct 2026.** The mock-era anchor (`public/js/mock-data.js`
+`mockNow: new Date(2026, 9, 5)`) was never cleared on this page — the other seven live pages all
+clear it — so the Today button jumped to Week 3 and no day in the real week carried the badge.
+One line in the data bridge (`MockData.mockNow = null;`), plus a guard test that every live page
+clearing-free bridge must have it (`MockNowClearedTest`) and a browser receipt
+(`tests/student-today.spec.ts`). After: lands on the real week, `Sun 8 Nov 2026` badged Today,
+Today keeps it.
+
+**S4 — a notification can now land on its own week.** Student notification links used to be the bare
+page (a "class cancelled, week 14" notice dropped the student on the current week). The emitter now
+writes `/student-my-timetable-ui?week=N`, and `StudentMyTimetable::mount()` honours it:
+`?week=9` opens Week 9, `?week=14` opens Week 14, and a missing / junk / out-of-range value keeps
+today's week. Measured that the param wins over the remembered week (browse to Week 3, then arrive
+with `?week=14` → Week 14). Focused tests: `StudentTimetableWeekParamTest` (4) + the link assertion in
+`NotificationsBridgeTest`.
+
+**S5 — dead parameter removed.** The component passed `notifCount => 0` to the layout; nothing read it
+(the bell island computes its own unread total).
+
+Receipts: `LocalCalendarRulesTest` unrelated; suites 41/41 focused, pint passed, phpstan 0, browser
+with zero console errors; `/tmp/opencode/student-today-fixed.png`, `/tmp/opencode/student-week-param.png`.
+
 ## 2026-11-04 — the page description speaks the same visual language as My Replacements
 
 Minor UI update (user, all pages): the `.page-desc` line now bolds and uppercases its key terms with
