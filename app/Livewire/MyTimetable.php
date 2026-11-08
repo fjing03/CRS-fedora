@@ -59,7 +59,7 @@ class MyTimetable extends Component
             'holidaysJs' => $this->holidaysForJs(),
             'currentWeek' => $this->week - 1,
         ])
-            ->extends('layouts.ui-template', ['activeNav' => 'my-timetable', 'pageKey' => 'myTimetable'])
+            ->extends('layouts.ui-template', ['homeUrl' => '/my-timetable-ui', 'activeNav' => 'my-timetable', 'pageKey' => 'myTimetable'])
             ->section('content');
     }
 }

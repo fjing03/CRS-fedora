@@ -91,7 +91,7 @@ class CohortTimetable extends Component
             'defaultFacultyId' => $defaultFacultyId,
             'taughtCohortIds' => $taughtCohortIds,
         ])
-            ->extends('layouts.ui-template', ['activeNav' => 'cohort-timetables', 'pageKey' => 'cohortTimetable'])
+            ->extends('layouts.ui-template', ['homeUrl' => '/my-timetable-ui', 'activeNav' => 'cohort-timetables', 'pageKey' => 'cohortTimetable'])
             ->section('content');
     }
 

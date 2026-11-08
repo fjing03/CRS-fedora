@@ -738,7 +738,7 @@ class VenueTimetable extends Component
             'semesterJs' => $this->semesterJs(),
             'holidaysJs' => $this->holidaysForJs(),
         ])
-            ->extends('layouts.ui-template', ['activeNav' => 'venue-timetable', 'pageKey' => 'venueTimetable'])
+            ->extends('layouts.ui-template', ['homeUrl' => '/my-timetable-ui', 'activeNav' => 'venue-timetable', 'pageKey' => 'venueTimetable'])
             ->section('content');
     }
 

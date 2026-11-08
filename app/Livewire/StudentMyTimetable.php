@@ -79,6 +79,13 @@ class StudentMyTimetable extends Component
             'hasCohort' => $student?->cohort_id !== null,
         ])
             ->extends('layouts.ui-template', [
+                /* S6 (student-side-health-check, 2026-11-08): the top-bar logo
+                   navigates to window.PAGE_HOME. Without this the layout fell
+                   back to '/', the public welcome page — so the logo walked a
+                   signed-in student out of the app (the welcome page then shows
+                   a bare /dashboard placeholder). The other four pages already
+                   pass their role home; the four timetables were the gap. */
+                'homeUrl' => '/student-my-timetable-ui',
                 'activeNav' => 'my-timetable',
                 'pageKey' => 'studentMyTimetable',
                 // navItems intentionally NOT passed: wire-existing-backend's

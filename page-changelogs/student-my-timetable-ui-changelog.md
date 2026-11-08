@@ -1,3 +1,20 @@
+## 2026-11-08 (Student-side health check S6) — the top-bar logo keeps you inside the app (all four timetable pages)
+
+The logo calls `navigateHome()`, which goes to `window.PAGE_HOME`, filled from the `homeUrl` a page
+hands the shared layout. My Replacements, Arrangement, Approval and History already passed their role
+home; the four **timetable** pages (staff My Timetable, Cohort, Venue, and this student page) never
+did, so their logo fell back to `/` — the public welcome page, whose only signed-in control is a bare
+`/dashboard` placeholder. A student clicking the logo left the app.
+
+All four now pass their role home. Measured on the demo data — `PAGE_HOME` is `/my-timetable-ui` on
+the six staff pages and `/student-my-timetable-ui` on both student pages; clicking the logo on
+`/venue-timetable-ui` lands on My Timetable and on the student timetable it stays put; zero console
+errors.
+
+Receipts: `tests/Feature/LogoHomeUrlTest.php` (2 invariants — every page using the shared layout passes
+`homeUrl`, and the timetable pages point at their own role home; red-check: removing one fails both),
+pint passed, phpstan 0, `view:cache` OK.
+
 ## 2026-11-08 (Student-side health check, S1 + S4 + S5) — real "Today", and `?week=` arrivals
 
 **S1 — the page's "Today" was 5 Oct 2026.** The mock-era anchor (`public/js/mock-data.js`
