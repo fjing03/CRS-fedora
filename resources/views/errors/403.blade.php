@@ -49,6 +49,7 @@
             font-size: 20px;
             font-weight: 600;
             margin-bottom: 12px;
+            color: #fff;   /* user ruling 2026-11-07: the Access Denied title is white */
         }
         .error-message {
             font-size: 14px;
@@ -75,6 +76,12 @@
             border-color: var(--color-outline);
             box-shadow: 0 4px 16px rgba(0,0,0,0.09);
         }
+        /* The "light" card above resolves to a pale surface (this standalone page
+           loads no theme stylesheet, so the variable is absent and the card shows
+           the page's own light background). White text would vanish there — the
+           user's 2026-11-07 ruling keeps the dark card's title white and lets the
+           light card carry a dark one. */
+        .light .error-title { color: #1c1e1f; }
     </style>
 </head>
 <body class="{{ request()->cookie('login_type') === 'staff' ? '' : 'light' }}">
@@ -85,7 +92,10 @@
         <div class="error-code">403</div>
         <div class="error-title">Access Denied</div>
         <div class="error-message">You don't have permission to access this page.</div>
-        <a href="/" class="btn-back">Go Back</a>
+        {{-- SDD login-access-403 (2026-11-07): "Go Back" returns the user to THEIR
+             default page (staff / student, App\Support\DefaultPage), never a bare
+             `/` — a guest keeps the welcome page. --}}
+        <a href="{{ \App\Support\DefaultPage::for(auth()->user()) }}" class="btn-back">Go Back</a>
     </div>
 </body>
 </html>

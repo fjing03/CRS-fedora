@@ -8,13 +8,16 @@ use Illuminate\Support\Facades\Route;
 
 Route::view('/', 'welcome')->name('home');
 
+/* SDD login-access-403 (2026-11-07): a signed-in user must never see a login
+   page again — `guest` sends them to their role's default page (the target is
+   App\Support\DefaultPage, wired in bootstrap/app.php's redirectUsersTo). */
 Route::get('/login/student', function () {
     return view('auth.login-student');
-})->name('login.student');
+})->middleware('guest')->name('login.student');
 
 Route::get('/login/staff', function () {
     return view('auth.login-staff');
-})->name('login.staff');
+})->middleware('guest')->name('login.staff');
 
 /*
 |--------------------------------------------------------------------------

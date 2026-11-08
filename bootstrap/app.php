@@ -3,6 +3,7 @@
 use App\Http\Middleware\CheckPl;
 use App\Http\Middleware\CheckRole;
 use App\Http\Middleware\EnsureSessionLifetime;
+use App\Support\DefaultPage;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
@@ -30,6 +31,11 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->web(append: EnsureSessionLifetime::class);
 
         $middleware->redirectGuestsTo(fn (Request $request) => route('login.student'));
+
+        // SDD login-access-403 (2026-11-07): the `guest` middleware (both login
+        // pages, and Fortify's own /login + password-reset views) sends a
+        // signed-in user to their role's default page instead of the bare `/`.
+        $middleware->redirectUsersTo(fn (Request $request) => DefaultPage::for($request->user()));
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->shouldRenderJsonWhen(
