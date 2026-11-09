@@ -152,8 +152,8 @@
             /* 2026-11-09 (user): the hours card sits SECOND, right of Awaiting
                Arrangement — the two numbers a student reads first are "how many
                classes still need arranging" and "how much teaching that is". */
-            ['class' => 'card-pending', 'valueId' => 'sumNone', 'label' => 'Awaiting Arrangement', 'description' => 'Conflicted classes with <span class="warn-keyword">no live request</span> — cancelled or on a holiday, not yet rearranged.'],
-            ['class' => 'card-hours', 'valueId' => 'sumHours', 'label' => 'Class Hours Affected', 'description' => 'Total <span class="info-keyword">class hours</span> hit by a cancellation or holiday in this view, arranged or not.'],
+            ['class' => 'card-pending', 'valueId' => 'sumNone', 'label' => 'Classes Awaiting Arrangement', 'description' => 'Conflicted classes with <span class="warn-keyword">no live request</span> — cancelled or on a holiday, not yet rearranged.'],
+            ['class' => 'card-hours', 'valueId' => 'sumHours', 'label' => 'Hours Awaiting Arrangement', 'description' => 'Total <span class="info-keyword">class hours</span> of those classes — the teaching still waiting for a replacement, so arranged classes never count here.'],
             ['class' => 'card-pending', 'valueId' => 'sumPending', 'label' => 'Pending', 'description' => 'Requests <span class="warn-keyword">waiting for PL approval</span> for your cohort.'],
             ['class' => 'card-replacement', 'valueId' => 'sumApproved', 'label' => 'Approved', 'description' => 'Replacements the PL has <span class="info-keyword">approved</span> — attend the requested slot.'],
             ['class' => 'card-hours', 'valueId' => 'sumCompleted', 'label' => 'Completed', 'description' => 'Replacements that have already taken place — switch Exclude COMPLETED Status off to see them.'],
@@ -363,7 +363,12 @@
             document.getElementById('sumPending').textContent   = visible.filter(r => r.status === 'pending').length;
             document.getElementById('sumApproved').textContent  = visible.filter(r => r.status === 'approved').length;
             document.getElementById('sumCompleted').textContent = visible.filter(r => r.status === 'completed').length;
-            document.getElementById('sumHours').textContent     = visible.reduce((s, r) => s + (r.orig.duration || 0), 0);
+            /* 2026-11-09 (user, supersedes R8): the hours card counts the teaching
+               still WAITING — only the rows with no live request. An arranged class
+               is no longer "awaiting", so its hours must not sit in this number. */
+            document.getElementById('sumHours').textContent     = visible
+                .filter(r => r.status === 'none')
+                .reduce((s, r) => s + (r.orig.duration || 0), 0);
 
             applySort(visible, all);
 

@@ -1,3 +1,10 @@
+**Card labels + hours meaning (user, same day — supersedes R8):** the first two cards now read
+**`Classes Awaiting Arrangement`** and **`Hours Awaiting Arrangement`**, and the hours number counts the
+class hours of **only the rows with no live request** — an arranged class is no longer "awaiting", so its
+hours do not sit in that number. R8 ("every visible row, arranged or not") is retired by this ruling;
+measured on `24DFT0001`, the card reads `6` from five unarranged rows of 2+1+1+1+1 hours, while the old
+total of every visible row would have been 8.
+
 **Card order (user, same day):** `Class Hours Affected` moves to the **second** slot, right of
 `Awaiting Arrangement` — the two numbers a student reads first are "how many classes still need arranging"
 and "how much teaching that is". New order: `Awaiting Arrangement` · `Class Hours Affected` · `Pending` ·

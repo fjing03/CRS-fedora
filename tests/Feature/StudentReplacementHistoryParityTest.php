@@ -17,7 +17,7 @@ use Tests\TestCase;
  *  R5 the page is Class Replacements at /student-class-replacements (alias kept);
  *  R6 read-only, with ONE control — the pop-up's jump, guarded by `requestId`;
  *  R7 five cards, no `Total`;
- *  R8 the hours card sums the class hours of every visible row.
+ *  R8 (superseded 2026-11-09 by the user) the hours card sums the class hours of the UNARRANGED rows.
  */
 class StudentReplacementHistoryParityTest extends TestCase
 {
@@ -53,8 +53,8 @@ class StudentReplacementHistoryParityTest extends TestCase
     {
         $src = $this->pageSource();
 
-        foreach (['sumNone' => 'Awaiting Arrangement', 'sumPending' => 'Pending', 'sumApproved' => 'Approved',
-            'sumCompleted' => 'Completed', 'sumHours' => 'Class Hours Affected'] as $id => $label) {
+        foreach (['sumNone' => 'Classes Awaiting Arrangement', 'sumPending' => 'Pending', 'sumApproved' => 'Approved',
+            'sumCompleted' => 'Completed', 'sumHours' => 'Hours Awaiting Arrangement'] as $id => $label) {
             $this->assertStringContainsString("'valueId' => '".$id."'", $src, 'missing card '.$id);
             $this->assertStringContainsString("'label' => '".$label."'", $src, 'missing card label '.$label);
         }
@@ -77,11 +77,18 @@ class StudentReplacementHistoryParityTest extends TestCase
             'the five cards must render in the ruled order',
         );
 
-        // R8 — the hours card sums the CLASS duration of every visible row
+        /* 2026-11-09 (user, supersedes R8): the hours card counts the teaching still
+           WAITING — only rows with no live request contribute, so an arranged class
+           never sits in this number. */
         $this->assertStringContainsString(
-            'visible.reduce((s, r) => s + (r.orig.duration || 0), 0)',
+            ".filter(r => r.status === 'none')",
             $src,
-            'Class Hours Affected counts the class hours of every visible row, arranged or not',
+            'Hours Awaiting Arrangement must filter to the unarranged rows',
+        );
+        $this->assertStringContainsString(
+            '.reduce((s, r) => s + (r.orig.duration || 0), 0)',
+            $src,
+            'and sum those rows\' class hours',
         );
     }
 
