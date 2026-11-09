@@ -2,7 +2,7 @@
 
 > **Coding only.** The report, the survey and the week-by-week schedule live in
 > **`docs/fyp-todo.md`** — never plan writing here, and never plan code there.
-> **Last planned: 2026-11-05 (Thu, 23:00) — the plan below is set for Fri 6 Nov.**
+> **Last planned: 2026-11-10 (Tue, 06:45) — the plan below is set for Tue 10 Nov.**
 > Re-plan every Monday (15 minutes) or after any lane lands.
 
 **Status key:** `- [ ]` not done · `- [x]` verifiably done (commit hash + a green gate) · 🔴 high · 🟡 medium · 🟢 low
@@ -15,18 +15,18 @@ This file only decides **what to code next**.
 
 ---
 
-## 1. Codebase state (verified 2026-11-05, 23:00)
+## 1. Codebase state (verified 2026-11-10, 06:45)
 
 | Item | State |
 |---|---|
-| Branch | `fedora-backend`. `origin` = `39b2bb7` (you pushed tonight); **1 commit unpushed** (`b57bf9d`). The agent never pushes. |
-| Demo servers | `:8000` = `class_replacement_fresh` (read-only for agents; agent serves it on `:8010`). `:8001` = `tests`-free viva twins, `CRS-demo` + `class_replacement_viva` (**behind the code right now**). `:8030` = disposable lane on `class_replacement_testing` |
-| Demo data | 5 requests · 77 notifications (3 hidden) · 2 `class_exceptions` · 8 slot rows. Any write is user-gated, snapshot-first, logged in `docs/demo-db-data-changes.md` |
-| PHPUnit | **344 passed / 1899 assertions** (2026-11-05, 410 s, `DB_DATABASE=class_replacement_testing`) |
-| Browser specs | `venue-book` **19 passed** · venue neighbours (timetable / db / status-parity / note-privacy) **61 passed / 2 skipped** · `cancel-class` **12 passed / 4 skipped** · intent-modal + cross-week + cohort-Replace-Now **5 passed** · `my-replacements-after-submit` **4 passed** |
+| Branch | `fedora-backend`. **Everything is pushed** — `origin` = `da4de30` and the branch is **0 ahead** (you pushed 2026-11-10 06:34). The agent never pushes |
+| Demo servers | `:8000` = `class_replacement_fresh` (read-only for agents; agent serves it on `:8010`). `:8001` = the viva twin, `CRS-demo` + `class_replacement_viva` — **307 commits behind** `fedora-backend`. `:8030` = disposable lane on `class_replacement_testing` |
+| Demo data | **42 modules · 101 sessions · 15 requests · 128 notifications (6 hidden) · 169 users · 155 students** (2026-11-10). Requests: 2 approved (26, 27) · 3 pending (28, 35, 39) · 3 rejected (24, 37, 38) · 7 cancelled (25, 30–34, 36). These **drift** — you add data by hand, so re-measure before quoting. Any write is user-gated, snapshot-first, logged in `docs/demo-db-data-changes.md` |
+| PHPUnit | Last **full** run **423 passed / 2371 assertions**, 2026-11-07 (the 3 date-dependent errors of that weekend run were later proven pre-existing). **11-08 → 11-09 ran targeted suites only** — re-run the full suite before quoting a total |
+| Browser specs | `arrangement-conflict-autoselect` **10** (run 3×, committed tree clean) · `venue-book` 19 (18 green + the known `U2a-T3` hover flake) · `arrangement-slot-ownership` **7** (run it ALONE) · `status-tooltips-filter-chips` **11** · `replacement-home-working-days` **8** · `replacement-home-status-badges` **13** · `notifications-island` 10 · `notif-row-inactive-hide` 5 · `week-filter-preserved` 3 · `cancel-class` 16 passed / 4 skipped |
 | Gates | `composer run lint:check` · `vendor/bin/phpstan analyse --memory-limit=1G --no-progress` (**never** `types:check`) · full PHPUnit · `node --check` for JS · `php artisan view:cache` for Blade |
 | Write guards | `tests/helpers/receipt-target-guard.ts` — a writing spec refuses to run (exit 1 at collection) unless `CRS_MODE=testing` + `CRS_BASE=http://127.0.0.1:8030` (+ `CRS_ALLOW_SQL=1`) are exact. Never loosen it, never add a soft skip |
-| SDD | **34** lane dirs in `.sdd/changes/` (33 older finished, waiting on your word) + **101** archived |
+| SDD | **1** lane in `.sdd/changes/` (`cohort-venue-replace-now`, `explore`, never built) + **145** archived |
 | Known red | **`T3d`** — `tests/submission-conflict-refresh.spec.ts` fails inside its own arrival flow (a login redirect timeout, then `#weekSelector` absent). The only browser receipt not green |
 
 > **Removed 2026-11-05 at your direction:** `docs/replacement-arrangement-pending-bugs.md` (the
@@ -46,20 +46,19 @@ This file only decides **what to code next**.
 
 ---
 
-## 3. Fri 6 Nov — TOMORROW (one main + one small)
+## 3. Tue 10 Nov — TODAY (one main + one small)
 
 - [ ] 🔴 **MAIN (60–90 min) — C1 `T3d`.** Decide it, don't leave it dangling: either make
       `tests/submission-conflict-refresh.spec.ts` run green (timebox ~45 min: it fails inside its
       own arrival flow — a login redirect timeout, then `#weekSelector` absent), or quarantine it as
       `test.fixme()` with the reason written into
-      `.sdd/changes/receipt-target-guard/tasks.md` (where `T3d-open` already lives). Either way the
-      suite stops being *"green except one nobody looks at"*.
-- [ ] 🟡 **SMALL (20–30 min) — C5 the warn-modal colour.** Parked prompt
-      `prompts/extra tasks/task-01-warn-confirm-modal-colour.md`: the Replacement Arrangement
-      "you will lose your selection" confirms get the warning (yellow) face instead of neutral.
-      **Colour only** — no copy, no logic. Re-verify the prompt's line anchors first (they drift).
-- [ ] ⏱️ **Only if both are done** — C8 the UAT results table (run the flows you already have specs
-      for and record real pass/fail), or C2 refresh `CRS-demo` so the viva copy shows tonight's code.
+      `.sdd/archive/receipt-target-guard/tasks.md` (the `T3d OPEN` note already lives there; the lane
+      was archived on 2026-11-05). Either way the suite stops being *"green except one nobody looks at"*.
+- [ ] 🟡 **SMALL (10 min) — C12 delete the junk file.** `--log-events-text` is still tracked at the
+      repo root (the second accidental file, `"`, is already gone). `git rm` it, one `docs:`/`chore`
+      commit, nothing else staged.
+- [ ] ⏱️ **Only if both are done** — C5 the warn-modal colour (colour only, no copy, no logic), or
+      C8 the UAT results table (run the flows you already have specs for and record real pass/fail).
 
 ---
 
@@ -67,24 +66,24 @@ This file only decides **what to code next**.
 
 ### 🔴 High — correctness, receipts, demo readiness
 
-**C1 · `T3d` — the one red browser receipt** *(tomorrow's main)*
+**C1 · `T3d` — the one red browser receipt** *(today's main)*
 - [ ] Green it, or quarantine with the reason recorded — see §3
 
-**C2 · Refresh the viva copy** (demo readiness, ~15 min)
-- [ ] `CRS-demo` fast-forward to tonight's commits (code only — **no DB work**), then one live check
-      on `:8001` (venue grid + a booking + the bell)
+**C2 · Refresh the viva copy** (demo readiness, ~30 min — bigger than it looked)
+- [ ] `CRS-demo` is **307 commits behind**: fast-forward it (code only — **no DB work**), then one live
+      check on `:8001` (venue grid + a booking + the bell). Its DB (`class_replacement_viva`) is untouched
+      by this.
 
-**C3 · Lane archive sweep** (needs your word, ~30 min)
-- [ ] The **33 older finished** lane dirs in `.sdd/changes/` → `git mv` + `sdd.yaml: archived` + a
-      `docs:` commit (same pass as 2026-11-05)
-- [ ] `venue-slot-validation` too, once you have read its changelog entry
+**C11 · `cohort-venue-replace-now`** — the only lane left in `.sdd/changes/`
+- [ ] Status `explore` with five open tasks and **never implemented**. Read `proposal.md` with the user
+      first; it is the last unfinished idea in the backlog, not a half-done feature.
 
 ### 🟡 Medium — quality, evidence, small features
 
 **C4 · "Just cancelled" chip TTL** — `prompts/extra tasks/pi-prompt-just-cancelled-chip-ttl.md`
 - [ ] Display-only 30-minute TTL on the chip (no data change, no new dependency)
 
-**C5 · Warn-modal colour** — `prompts/extra tasks/task-01-warn-confirm-modal-colour.md` *(tomorrow's small)*
+**C5 · Warn-modal colour** — `prompts/extra tasks/task-01-warn-confirm-modal-colour.md` *(today's small alternative)*
 
 **C6 · One honest timeline rail** — `prompts/extra tasks/task-02-replacement-history-timeline.md`
 - [ ] All four rails: the 8-hour `reviewedAt` skew, cancelled-looks-reviewed, the permanently empty
@@ -109,9 +108,10 @@ This file only decides **what to code next**.
 
 ### 🟢 Low — only if a day is light
 
-- [ ] Two accidentally tracked junk files (`"` and `--log-events-text`) — delete
 - [ ] Settings-surface footer (deliberately excluded from `ui-footer-global`)
 - [ ] Any copy/tooltip polish found while testing
+- [ ] Dead helper `UiLabels.courseTip()` in `ui-common.js` (no live call site since 2026-11-09, and its
+      comment still claims both row builders use it) — delete the function and the stale comment together
 
 ---
 
@@ -120,33 +120,37 @@ This file only decides **what to code next**.
 | # | What I need | Blocks |
 |---|---|---|
 | 1 | `T3d`: fix it properly, or quarantine it | C1 |
-| 2 | The word to archive the 33 finished lanes | C3 |
-| 3 | Staff User Panel: real work or parked? | C9 |
-| 4 | Whether `notifications:remind-pending` is wanted for the demo | C10 |
+| 2 | The viva date (still unconfirmed — anchored week of 7 Dec 2026) | C2, C7, C8 and the demo data |
+| 3 | `cohort-venue-replace-now`: read the proposal, then say build it or drop it | C11 |
+| 4 | Staff User Panel: real work or parked? | C9 |
+| 5 | Whether `notifications:remind-pending` is wanted for the demo | C10 |
+| 6 | Whether the auto-reject sweep should also run at SUBMIT time (no scheduler runs in dev) | a submit-flow change |
+| 7 | `my to-do list.md` task 2 (Remove Change Venue Confirmation Modal) — parked, one question open | task 2 |
 
 ---
 
 ## 6. Done — verified (do not re-do)
 
-- [x] **Venue slot validation** (`bee6176`, lane `venue-slot-validation` applied): hover asks one
-      clear hour; the picked class's real duration decides; warning modal instead of an early verdict.
-      `venue-book` 19 passed, PHPUnit 344 / 1899
-- [x] **Venue bookable cells** (`daf11c6`): honest `cell-no-room` state, class-driven late cells,
-      Earliest-bookable + `Bookings open` chip, the invented "2-hour gap" number deleted; 78 cells
-      audited with 0 mismatches
-- [x] **Cancel Class is FINAL** (`7b7f0d9`, `23c627c`, `12c644a`, `2156172`): undo gone from UI, JS
-      and server; one shared irreversible line on four modals; stale notices inactive at read time
-- [x] **E2E write-guard** (`b924552`, lane `receipt-target-guard` applied `7bbce9f`): writing specs
-      refuse at collection unless the blessed `:8030` env is exact
-- [x] **After-submit row pulse** (`a29f694`): no success toast, `?new-req=<id>`, the new row flashes —
-      510 / 564 ms to navigate, zero toasts, saved filters intact
-- [x] **Tooltip `ME` → `YOU`** (`476406a`, `43bda16`), live pages + the two mock-ups
-- [x] **`request-approval-ui` consistency 1 + 2** (1f, 3B, 3C, 3A, 3D, 1h, 3E-3, §4) — brief archived
-- [x] **Merge lane** (`replacement-merge-one-table`, archived `07274c1`): My Replacements is one table,
-      one row per occurrence, `/my-replacements` canonical with two alias routes
-- [x] **`ui-footer-global`** (`fea58ad`, archived)
-- [x] **Notification clock** A + B1 (`67413e3`): `App\Support\LocalTime` is the one user-facing clock
-- [x] **7 SDD lanes + 7 finished briefs archived** with evidence rows (`b57bf9d`)
+**2026-11-07 → 2026-11-09.** `student-class-replacements` (the student page lists conflicted
+**classes**, not requests; five cards, the hours card counting only unarranged rows — `758a7bc`,
+`c8eadeb`, `da4de30`, archived `6ffa054`) · `arrangement-week-keep-on-subject-switch` (changing the
+subject no longer moves the week — `b3fedcb`, archived `00af0b5`) · the student side health check's five
+fixes (campus clock `cedc8ca`, Today `0369a11`, a notice lands on its own week `aca8f49` + `57adf18`,
+row truth `336528b`, all-weeks default `c11f38b`) · login pages guest-only + a real 403 page (`2c15d2c`)
+· module titles `Module::displayName()` (`65f1648`, `d6a9b84`, `f263692`) · tooltip above the hour header
++ a Today holiday badge that stays red (`52298d6`) · the COURSE column explained once on its header
+(`5df521c`) · the student table joined the staff language (`aaf8163`, `c3b566d`) · `docs/demo-logins.md`
+(`fea3631`) · the H1 rename that the first three names missed (`781e839`).
+
+**Earlier (unchanged):**
+- [x] **Date & time format, batches 1–4** (`10a51b0`, `5120a98`, `f420215`, `1dc3edb`); only #30 (API chip) deferred
+- [x] **Working-day countdowns + the PL Urgency column removed** (2026-11-07, `replacement-home-working-days` 8/8)
+- [x] **Arrangement cell state labels + the slot-ownership legend** (`c4e2fc5 … d029a6c`, archived) — six legend rows, `Your Pending` / `Other Pending`, 3px = yours
+- [x] **`replacement_span` persistence + the backfill command** (2026-11-07, `ReplacementSpanTest` 8/8)
+- [x] **Auto-reject rule** (`65188bd`, `0694fa5`): 3 working hours, `WorkingHours` is the only clock
+- [x] **FR 2.17 server gate** (`cd5ca73`, `32b2d61`): `slot_too_soon` + the holiday landing ban in the action
+- [x] **Lane archive sweeps** (`ef0a1b4`, 36 lanes at once; `6ffa054`, `00af0b5`): `.sdd/changes/` now holds one lane
+- [x] **Venue slot validation** (`bee6176`) · **Venue bookable cells** (`daf11c6`) · **Cancel Class is FINAL** (`7b7f0d9`, `23c627c`, `12c644a`, `2156172`) · **E2E write-guard** (`b924552`, `7bbce9f`) · **after-submit row pulse** (`a29f694`) · **`ME` → `YOU`** (`476406a`, `43bda16`) · **`request-approval-ui` consistency 1 + 2** · **merge lane** (`replacement-merge-one-table`, archived `07274c1`) · **`ui-footer-global`** (`fea58ad`, archived) · **notification clock A + B1** (`67413e3`)
 
 ---
 
