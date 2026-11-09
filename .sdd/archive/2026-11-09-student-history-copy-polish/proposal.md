@@ -1,0 +1,69 @@
+# student-history-copy-polish — three stale sentences on the student Replacement History
+
+> **ABSORBED (2026-11-09, same day).** The user's "New Idea — Student Replacement History Redesign"
+> rewrites this page's data model, its copy and its summary strip, so all three findings below are
+> handled inside `.sdd/changes/student-class-replacements/` instead of a separate lane:
+> finding 1 (empty state) and 2 (page description) are rewritten with the page itself, and finding 3
+> (the Completed card) is now open question 1 of that lane's `explore-brief.md` §6. This folder is kept
+> for the record and for the analysis of *why* the sentences went stale; nothing here ships on its own.
+
+**Origin:** the §8 exploration of the 2026-11-09 "Student Side UI Update" brief. The brief said to report
+additional findings and not fix them without approval; the user approved parking them here as a small
+lane. Nothing in this lane is implemented yet.
+
+**Why they appeared:** all three were true when the page shipped and became wrong as it moved —
+first when the page started opening on *All Weeks* (S7, 2026-11-08), then when it gained a
+`COMPLETED` state and the staff's `Exclude COMPLETED Status` toggle (2026-11-09). The words never
+changed with the behaviour.
+
+## Bug 1 — the empty state names a week the default view does not filter on
+
+`resources/views/livewire/replacement-history.blade.php`, the `ui-empty-state` include:
+
+- title: **"No replacements this week"**
+- text: **"No upcoming replacement classes for <cohort> in the selected week."**
+
+The page opens on **All Requested Replacement Weeks** (S7 ruling, 2026-11-08), so when the list is
+empty there is no "this week" being shown. Worst case: a student with rows in later weeks, filtered
+away by nothing, sees "no replacements this week" and stops looking. It also says "upcoming" while a
+completed row can be on screen once the toggle is off.
+
+**Fix sketch:** neutral wording that names the real reason for emptiness — e.g. title "No replacements
+to show", text "No replacement classes match this view for <cohort>. Try another week, or switch
+**Exclude COMPLETED Status** off." One partial call site; no logic.
+
+## Bug 2 — the page description still says "confirmed or pending"
+
+`resources/views/livewire/replacement-history.blade.php:124`, the `ui-page-header` descriptionHtml:
+
+> **REPLACEMENT CLASSES** confirmed or pending for your cohort.
+
+Since 2026-11-09 the third state — **completed** — can appear (the derived status, printed by the badge
+and controlled by the toggle). The sentence lists two of the three states the page shows.
+
+**Fix sketch:** "Replacement classes confirmed, pending or completed for your cohort." — or drop the
+enumeration and say "Replacement classes affecting your cohort." One string.
+
+## Bug 3 — the Completed card reads 0 by default, with no hint why
+
+The summary strip's 5th-from-last card counts rows whose status is `completed`, but the page hides
+exactly those rows unless **Exclude COMPLETED Status** is switched off — so on a default view the card
+is always `0` even when a student has completed replacements. The old `Past` card had the same shape,
+so this is inherited, not new; it is still a number that cannot be anything but zero.
+
+**Fix sketch — needs a decision, three shapes:**
+1. count completed rows from the *unfiltered* set (the card then disagrees with the table beneath it);
+2. leave the count alone and add the reason to its hover text ("switch Exclude COMPLETED Status off to
+   see them") — cheapest, no arithmetic change;
+3. drop the card (5 cards → 4), or fold it into Total as a sub-label.
+
+**Recommendation:** option 2 — one `description` string in the summary-bar include; the number keeps
+meaning "matching rows on screen", which is what every other card counts.
+
+## Out of scope (parked by ruling, not bugs)
+
+- cancelled / rejected requests stay off this page (2026-11-08 ruling);
+- no search / status filter / result count / reset / rows-per-page on the student page (2026-11-09,
+  Q11=A) — the staff toolbar stays on the staff page;
+- the student-only divergence in conflict-reason wording (`Class Cancelled` with no leave type) is a
+  privacy ruling, 2026-11-09 Q1=B.
