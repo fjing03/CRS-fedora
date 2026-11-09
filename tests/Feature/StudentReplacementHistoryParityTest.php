@@ -64,6 +64,19 @@ class StudentReplacementHistoryParityTest extends TestCase
         $this->assertStringNotContainsString('sumUpcoming', $src, 'Upcoming was retired with the request model');
         $this->assertStringNotContainsString("'label' => 'Upcoming'", $src);
 
+        /* 2026-11-09 (user): the card ORDER is a ruling too — the hours card sits
+           second, right of Awaiting Arrangement. */
+        $order = [];
+        preg_match_all("/'valueId' => '(sum[A-Za-z]+)'/", $src, $m);
+        foreach ($m[1] as $id) {
+            $order[] = $id;
+        }
+        $this->assertSame(
+            ['sumNone', 'sumHours', 'sumPending', 'sumApproved', 'sumCompleted'],
+            $order,
+            'the five cards must render in the ruled order',
+        );
+
         // R8 — the hours card sums the CLASS duration of every visible row
         $this->assertStringContainsString(
             'visible.reduce((s, r) => s + (r.orig.duration || 0), 0)',

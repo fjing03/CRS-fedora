@@ -149,11 +149,14 @@
 
         <!-- ─── Summary strip: Awaiting Arrangement / Pending / Approved / Completed / Class Hours Affected — hidden when the view is empty ─── -->
         @include('partials.ui-summary-bar', [ 'cards' => [
+            /* 2026-11-09 (user): the hours card sits SECOND, right of Awaiting
+               Arrangement — the two numbers a student reads first are "how many
+               classes still need arranging" and "how much teaching that is". */
             ['class' => 'card-pending', 'valueId' => 'sumNone', 'label' => 'Awaiting Arrangement', 'description' => 'Conflicted classes with <span class="warn-keyword">no live request</span> — cancelled or on a holiday, not yet rearranged.'],
+            ['class' => 'card-hours', 'valueId' => 'sumHours', 'label' => 'Class Hours Affected', 'description' => 'Total <span class="info-keyword">class hours</span> hit by a cancellation or holiday in this view, arranged or not.'],
             ['class' => 'card-pending', 'valueId' => 'sumPending', 'label' => 'Pending', 'description' => 'Requests <span class="warn-keyword">waiting for PL approval</span> for your cohort.'],
             ['class' => 'card-replacement', 'valueId' => 'sumApproved', 'label' => 'Approved', 'description' => 'Replacements the PL has <span class="info-keyword">approved</span> — attend the requested slot.'],
             ['class' => 'card-hours', 'valueId' => 'sumCompleted', 'label' => 'Completed', 'description' => 'Replacements that have already taken place — switch Exclude COMPLETED Status off to see them.'],
-            ['class' => 'card-hours', 'valueId' => 'sumHours', 'label' => 'Class Hours Affected', 'description' => 'Total <span class="info-keyword">class hours</span> hit by a cancellation or holiday in this view, arranged or not.'],
         ] ])
 
         <!-- ─── Class detail modal (shared shell for openClassModal) ─── -->

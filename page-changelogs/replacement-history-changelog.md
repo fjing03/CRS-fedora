@@ -1,3 +1,8 @@
+**Card order (user, same day):** `Class Hours Affected` moves to the **second** slot, right of
+`Awaiting Arrangement` — the two numbers a student reads first are "how many classes still need arranging"
+and "how much teaching that is". New order: `Awaiting Arrangement` · `Class Hours Affected` · `Pending` ·
+`Approved` · `Completed`. Display only; the counts are unchanged, and the parity test now pins the order.
+
 **Follow-up the same day (the H1 the rename missed):** the tab title, the nav label and the address
 were renamed in `758a7bc`, but the on-page `<h1 class="page-title">` comes from a different line — the
 `ui-page-header` include's `title` argument — and it kept saying "Replacement History" on both addresses.
