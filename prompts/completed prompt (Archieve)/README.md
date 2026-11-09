@@ -100,6 +100,12 @@ these archives are filesystem-only and were never committed.
 | `Organise Notification Row Hover Tooltips.md` | Grilled first (eight decisions answered: G1 students, G2 the `awaiting` reminder, G3 the proposer's own copy, G4=B one `Original Class Schedule:` label, G5 `approver_id IS NULL` = automatic, G6=A holiday-first reason, G7 the user's date/time/ID formats, and (b) `Automatically Rejected by System`) and then shipped in `e113618` + docs `0ee9808`. One composer, `App\Support\Notifications\NotificationTip` (+ `App\Support\ClassTypeLabel`), now gives **all eight live kinds** the same label set, order and formats — including student rows and the PL reminder, which the brief had not covered. Recorded in `page-changelogs/notifications-panel-changelog.md` (2026-11-06 entry). Receipts: `NotificationsBridgeTest` 36/36 (8 new tip cases), full PHPUnit **394 / 2093**, `notifications-island.spec.ts` 10/10 and `notifications-island-testing-db.spec.ts` 6/6 on the browser; live hover screenshot `/tmp/opencode/notif-tip-hover.png` |
 | `Auto-Reject Pending Requests.md` | Shipped the same day as the rule itself: `65188bd` (the 3-working-hour rule — `App\Support\WorkingHours`, `App\Actions\AutoRejectRequest`, `PendingRequestExpiry`, `php artisan requests:auto-reject --dry-run` scheduled every 5 min, never a write-on-read) + docs `0694fa5`, then the deadline copy moved on to the Pending badge's tooltip (`fc7bfe4`: *Auto-Reject Rule: … AUTOMATICALLY REJECTED*) and the notification tips took over the lecturer's pending line. Recorded in `page-changelogs/status-tooltips-filter-chips-changelog.md` (2026-11-06). Receipts: `WorkingHoursTest` 7, `AutoRejectPendingRequestsTest` 10, full PHPUnit green (394 / 2093 at the time of archiving) |
 
+
+> **Correction, same day:** the two rows above were first *added* to `prompts/` rather than moved
+> there — the commits that claimed to archive them (`6ffa054`, `00af0b5`) staged them in their old
+> place. The files were relocated to this folder in `docs: actually move the two finished briefs`
+> and nothing else changed.
+
 ## Contents (archived 2026-11-09, arrangement week)
 
 | Prompt | Why it counts as finished |
