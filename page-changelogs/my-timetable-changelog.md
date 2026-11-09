@@ -1,3 +1,36 @@
+## 2026-11-09 (user brief) — the hover tooltip clears the hour header, and a holiday badge stays red on a Today holiday
+
+**Two one-rule style fixes in the shared stylesheet** (`public/css/theme.css`), so every grid page
+moves together: My Timetable, Student My Timetable, Cohort Timetable, Venue Timetable, and the day
+columns of Replacement Arrangement. No markup, no builder, no booking logic touched.
+
+**1. Tooltip behind the hour header.** Hovering a class block drew its info tip *underneath* the
+08:00/09:00 header row. Cause: the tip is `.event-block::after` (z-index 50) but the block is a child
+of `td.hour-cell`, and a block's own z-index never escapes its table cell — measured: raising the
+block to z-index 500 changed nothing, while raising the **cell** fixed it on all four lecture pages.
+The cell is now raised only while its own block is hovered:
+`.timetable td.hour-cell:has(.event-block:hover) { z-index: 20 }` — above the sticky header (10) and
+the sticky day column (15). The tip's text, position, colours and timing are unchanged. (Replacement
+Arrangement is unaffected: it has no `.event-block`; its cell tips use the shared `data-tip`.)
+
+**2. Holiday badge blue on a Today holiday.** On Mon 9 Nov 2026 (Week 8, Deepavali in lieu) the
+PUBLIC HOLIDAY badge printed blue. Not a cascade accident from `.today-badge`: a dedicated rule
+`.time-col.today.offday .holiday-badge` (added 2026-08-13 by `f5fe0de`, "align to venue-timetable
+design") replaced the holiday colour with `--color-primary-container`. Now the badge keeps the
+holiday red everywhere, and that blue variant survives only as the column-hover chip
+(`.time-col.offday:hover .holiday-badge`, inverse surface) — because an offday column turns solid
+red on hover, where a red badge would disappear. **This was the user's choice (option B, 2026-11-09).**
+
+Verified: all four lecture pages show the tip above the header (pixel-sampled band + screenshots);
+Mon 9 Nov shows red PUBLIC HOLIDAY + blue TODAY at rest, dark chip while the column is hovered; Week
+14's Christmas Thu/Fri holidays stay plain red; ordinary days carry no badge; mobile 390 px card
+unchanged (red chip on the blue today card); zero console errors on five pages.
+
+Receipts: `tests/Feature/TimetableBadgeAndTooltipCssTest.php` — 3/3 source invariants (no non-hover
+rule may repaint the badge blue; the hover chip exists; the raised cell out-ranks both sticky
+layers, compared as numbers, not literals). **Red-check:** restoring the two old rules fails all 3.
+`pint` passed, `phpstan` 0, `view:cache` OK, targeted PHPUnit 30/30.
+
 ## 2026-11-07 (date/time batch 3, `docs/date-time-format-audit-2026-11-07.md`) — day headers and week ranges lose the leading zero
 
 Day headers read `Thu 5 Nov 2026` (was `Thu 05 Nov 2026`) and the week dropdown / mobile week chip

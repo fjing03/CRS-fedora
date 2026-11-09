@@ -2361,9 +2361,14 @@ html.dark .semester-bar select:not(.week-select) {
 .time-col.today.offday:hover .date-label {
     color: var(--color-on-error);
 }
-.time-col.today.offday .holiday-badge {
-    background: var(--color-primary-container);
-    color: var(--color-on-primary-container);
+/* 2026-11-09 (user ruling): a holiday badge KEEPS the holiday red even when the
+   day is also today — the old blue "container" variant (added 2026-08-13 by
+   f5fe0de) overrode the badge's own colour. It survives only as the HOVER chip:
+   an offday column turns solid red on hover, so a red badge would vanish into
+   it. Nothing here changes the badge's label, size or placement. */
+.time-col.offday:hover .holiday-badge {
+    background: var(--color-inverse-surface);
+    color: var(--color-on-inverse-surface);
 }
 
 /* ── Today column highlight (hour cells) ──────────────────── */
@@ -3228,6 +3233,12 @@ tr.bookable-flash.bookable-flash--warning > td { animation: bookable-pulse-warni
 /* ── Event hover tooltip ────────────────────────────────────── */
 .event-block::after { content: attr(data-name) ' · ' attr(data-tip2); position: absolute; bottom: 100%; left: 50%; transform: translateX(-50%); background: var(--color-inverse-surface); color: var(--color-on-inverse-surface); padding: 4px 8px; border-radius: var(--radius-xs); font-size: 0.75rem; white-space: nowrap; opacity: 0; pointer-events: none; transition: opacity 0.15s; z-index: 50; }
 .event-block:hover::after { opacity: 1; }
+/* The tooltip must clear the sticky hour header (`.timetable th`, z-index 10) and
+   the sticky day column (`.time-col`, z-index 15). Raise the CELL, not the block:
+   a block's own z-index is confined to its table cell, so `.event-block:hover`'s
+   z-index 50 never escapes to the header (2026-11-09 finding — the tip appeared
+   behind the 08:00/09:00 row on all four timetable pages). */
+.timetable td.hour-cell:has(.event-block:hover) { z-index: 20; }
 .event-block.event-selection::after {
     content: "Remove these slots?";
     position: absolute;
