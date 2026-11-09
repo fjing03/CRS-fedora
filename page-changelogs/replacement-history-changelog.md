@@ -33,7 +33,7 @@ so badge, filter and summary can never disagree.
 **Toolbar:** `Show Past` became the staff's `Exclude COMPLETED Status` (ON by default, same tip, same
 remembered state; an old saved `showPast` migrates). The page gained the Active Filters bar the
 student side never had, naming the requested-replacement week and that toggle. The All-Weeks option
-reads `All Requested Replacement Weeks` because that is the date the filter keys on.
+reads `All Requested Slots Weeks` (the user's wording, same day) because that is the date the filter keys on.
 
 **Cards:** the mobile card keeps its anatomy but STACKS the two slots (each is 4 lines now) and adds
 the conflict reason; the summary card `Past` is `Completed`, counted by the same date rule.

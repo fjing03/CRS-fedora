@@ -335,7 +335,7 @@
 
         function renderUpcoming() {
             // AD-2: select values are 1-based strings; dataset weeks are 0-based.
-            // 'all' = the All Requested Replacement Weeks option (shared helpers
+            // 'all' = the All Requested Slots Weeks option (shared helpers
             // are selectedIndex-based, so they stay NaN-safe).
             const all = document.getElementById('weekFilter').value === 'all';
             const w0 = all ? null : parseInt(document.getElementById('weekFilter').value, 10) - 1;
@@ -499,7 +499,7 @@
             /* 2026-11-09 (§6): the filter keys on the REQUESTED REPLACEMENT week
                (r.week), not the original class week — so the option says so, in the
                same words Request Approval uses. */
-            populateWeekSelect('weekFilter', { selected: 'all', includeAll: true, allLabel: 'All Requested Replacement Weeks' });
+            populateWeekSelect('weekFilter', { selected: 'all', includeAll: true, allLabel: 'All Requested Slots Weeks' });
 
             // Restore persisted view (a first visit opens on All Weeks)
             (function() {

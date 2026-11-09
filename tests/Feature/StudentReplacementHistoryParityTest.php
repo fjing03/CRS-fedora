@@ -61,7 +61,7 @@ class StudentReplacementHistoryParityTest extends TestCase
     {
         $src = $this->page();
 
-        $this->assertStringContainsString("allLabel: 'All Requested Replacement Weeks'", $src);
+        $this->assertStringContainsString("allLabel: 'All Requested Slots Weeks'", $src);
         $this->assertStringContainsString('Requested Replacement Week:', $src, 'the active-filter chip uses the same words');
     }
 
