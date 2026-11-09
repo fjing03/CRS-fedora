@@ -12,6 +12,9 @@ it. Paths below are relative to the repository root unless they start with `../`
 - **`my-coding-rules.md`** (this folder) — the user's coding rules in quick always-read form (distilled from CodingMAIN §10: the 11 UI rules + canonical color tables, OOP/PHP/naming, commit/SDD policy); read it before writing or changing any code.
 - Command Code memory import — the full rules are inlined into memory every turn via @path (other harnesses: read the file directly): `@prompts/for-ai-to-read/my-coding-rules.md`
 - **`FR&NFR copy.md`** (this folder) — the requirements as the codebase sees them (Chapter 3 §3.4; **49 FRs / 26 NFRs**, version `v2026-11-02`, change log at the bottom). **Editable only with the user's explicit approval** — never amend, renumber or "fix" a requirement on your own initiative; report the mismatch and ask, then mirror any approved edit into `CodingMAIN.md` §7 + the report.
+- **`docs/demo-logins.md`** — the demo accounts: 42 student handles (3 per cohort, password `Tarumt@2026`, `/login/student`),
+  the 3 staff accounts, and which two students carry real request data (`24DFT0001`, `24RSD0009`). Use it instead of
+  guessing an ID when a demo or a Playwright receipt needs to log in.
 - **`docs/venue-restrictions.md`** — B005 no-Diploma REPEALED 2026-10-27 (Diploma cohorts allowed; SDD `b005-diploma-allowed`), B006 networking priority, P→labs. Read before any venue/booking work.
 - `docs/` holds project docs; **`docs/archive/`** holds superseded ones (FYP-BRIEFING, BACKEND-TASKS, LEFTOVER_TASKS, old CodingMAIN variants) — do not treat archived files as current policy. Index: `docs/README.md`.
 - **`prompts/general&reusable prompt references/`** — the **toolkit**: paste-ready,
@@ -86,6 +89,17 @@ and the matching `page-changelogs/*.md` to learn house style before designing.
 - **A JS-owned control must survive a Livewire round-trip:** a page component's re-render morphs the
   DOM from the server's HTML, so anything JS fills (the week selects, `#filterChips`) is wiped unless
   guarded — `withWeekLivewireGuard()` in `ui-common.js` brackets `pageLivewire().call()` (2026-11-06).
+- **A page's name lives in FOUR places** (2026-11-09): the tab title (`@section('title')`), the nav label
+  (`partials/ui-nav-bar`), the address in `routes/web.php` (keep the old route alive as an alias) **and** the
+  on-page `<h1>` — which is `partials/ui-page-header`'s own `title` argument and is the one a rename misses.
+  Measured: three said "Class Replacements" while the H1 still said "Replacement History". Pin the include line
+  in a test.
+- **The student page is `Class Replacements`** (`/student-class-replacements`, alias `/replacement-history-ui`):
+  it lists conflicted class **occurrences** (cancelled class or public holiday, request or no request), is
+  read-only apart from `Exclude COMPLETED Status`, and its five cards are `Classes Awaiting Arrangement` ·
+  `Hours Awaiting Arrangement` · `Pending` · `Approved` · `Completed` — the hours card counts only the rows with
+  **no live request** (2026-11-09 user ruling, superseding the lane's R8). A row with no live request reads
+  **Awaiting Arrangement** and never names the dead request.
 - Reuse Flux/Livewire/Tailwind + `theme.css` + `ui-common.js`; no new dependencies.
 - Conventional commits: `ui:`, `feat:`, `fix:`, `refactor:`, `oop:`, `style:`, `docs:`.
 - Working branch: `fedora-backend` (push target `origin` = `fjing03/CRS-fedora.git` only; `upstream` is PULL-ONLY — see CodingMAIN.md §10.6). Never commit secrets. Never push unless the user explicitly says so.

@@ -475,17 +475,23 @@ component class exists → the component, otherwise the untouched frozen `ui-des
 | `/replacement-home-ui`, `/my-request-history-ui` | `ReplacementHome` — the **same** component | Lecturer/PL — extra addresses, **never redirects**, so `?notif-hl=` / `?blocked=` survive stored notification links and the post-submit landing |
 | `/replacement-arrangement` | `ReplacementArrangement` | Lecturer/PL — the booking grid (pick a slot, submit a request) |
 | `/request-approval-ui` | `RequestApproval` | PL |
-| `/replacement-history-ui` | `ReplacementHistory` | Student — upcoming replacements + past |
+| `/student-class-replacements` | `ReplacementHistory` | Student — **Class Replacements**: one row per conflicted class occurrence (cancelled class OR public holiday, request or no request), read-only, with the `Exclude COMPLETED Status` toggle. Rulings in lane `student-class-replacements` (R1–R8, 2026-11-09) |
+| `/replacement-history-ui` | `ReplacementHistory` — the **same** component | Student — the old address, **kept alive as an alias** so bookmarks and stored notification links do not 404 |
 
-There is **no** `/upcoming-replacements-ui` route any more: the student's upcoming list lives inside
-`ReplacementHistory`. `/api/v1/*` stays **commented out** in `routes/api.php` (orphaned since 2026-10),
-so the API is not a live surface — every page is fed by its own Livewire payload.
+There is **no** `/upcoming-replacements-ui` route any more: the student's page IS `ReplacementHistory`, now
+titled **Class Replacements**. It walks the cohort's occurrences and lists every conflicted class — a cancelled
+class or a public holiday — whether or not a replacement request exists, so an unarranged class is visible
+(**Awaiting Arrangement**) instead of missing. Row identity is the occurrence (`"<sessionId>:<week>"`), never a
+request id. The old address `/replacement-history-ui` renders the same page (alias, never a redirect).
+
+`/api/v1/*` stays **commented out** in `routes/api.php` (orphaned since 2026-10), so the API is not a live
+surface — every page is fed by its own Livewire payload.
 One post-merge quirk kept on purpose: `/my-request-history-ui` still carries the nav key
 `replacement-history`, which no lecturer nav item uses, so nothing is highlighted on that alias.
 
 ### Nav bar (role-aware, `partials/ui-nav-bar.blade.php`)
 - **Lecturer / PL:** My Timetable · Cohort Timetables · Venue Timetable · **My Replacements** (`/my-replacements`) · Request Approval (PL only, pending-request badge)
-- **Student:** My Timetable · Replacement History
+- **Student:** My Timetable · **Class Replacements** (`/student-class-replacements`; nav key `replacement-history`)
 
 ### Page changelogs
 Each page's development history is logged in `page-changelogs/*.md` — **create or update the relevant changelog when you change a page** (`<page>-changelog.md`; append a dated entry, newest first, and create the file when the page has none).

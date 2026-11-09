@@ -11,6 +11,9 @@
    - Sole sanctioned exception (FOUC guard) in `resources/views/layouts/ui-template.blade.php`: `html.dark { background: #0D1B2A; }` / `html.light { background: #F0F3F7; }` — if the theme bg token ever changes, update BOTH together (grep `html.dark`). No other hardcoded color is permitted.
    - Slot-grid colors fixed token-mapped: Green=`--color-secondary`, Red=`--color-error`, Yellow=`--color-tertiary`, Grey=`--color-outline-strong`, Blue=`--color-primary`.
 2. **Same name + same color for the same meaning — everywhere.** The canonical pairs below are the single source of truth: never give a concept a different label or color on another page, never invent a synonym. Identical component = identical class name across pages (`.badge`, `.legend-item`, `.summary-card`, `.filter-select`, `.cell-code`, `.empty-state`, …), defined once in `theme.css`.
+   - **A page's own name is one name in four places** (2026-11-09): tab title, nav label, route (keep the old
+     address as an alias) and the `<h1>` — which comes from `partials/ui-page-header`'s `title` argument and is the
+     one a rename forgets. The student page is **Class Replacements**, not "Replacement History".
    - Timetable blocks use the **frozen two-axis language**: `event-mine` / `event-others` / `event-mine-pending` / `event-others-pending` / `event-conflict` / `event-public-holiday`; ownership hint *"thick border (3px) = your classes · thin border (0.5px) = others'"*; tooltips render `name · lecturer · status` via `data-name` + `data-tip2`.
 
 ### Canonical legend / status → color map (single source of truth)
