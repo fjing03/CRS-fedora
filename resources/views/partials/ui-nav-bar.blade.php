@@ -10,7 +10,7 @@
         $isPl = ($user->lecturer?->is_pl ?? false);
         $roleItems = $isStudent ? [
             ['key'=>'my-timetable','label'=>'My Timetable','href'=>'/student-my-timetable-ui'],
-            ['key'=>'replacement-history','label'=>'Replacement History','href'=>'/replacement-history-ui'],
+            ['key'=>'replacement-history','label'=>'Class Replacements','href'=>'/student-class-replacements'],
         ] : array_values(array_filter([
             ['key'=>'my-timetable','label'=>'My Timetable','href'=>'/my-timetable-ui'],
             ['key'=>'cohort-timetables','label'=>'Cohort Timetables','href'=>'/cohort-timetable'],

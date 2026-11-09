@@ -31,7 +31,8 @@ class RouteGateMatrixTest extends TestCase
         '/my-timetable-ui',
         '/cohort-timetable',
         '/student-my-timetable-ui',
-        '/replacement-history-ui',
+        '/student-class-replacements',
+        '/replacement-history-ui',   /* the pre-rename address, kept alive */
         '/my-replacements',
         '/replacement-home-ui',
         '/replacement-arrangement',
@@ -40,7 +41,11 @@ class RouteGateMatrixTest extends TestCase
         '/request-approval-ui',
     ];
 
-    private const STUDENT_ONLY = ['/student-my-timetable-ui', '/replacement-history-ui'];
+    private const STUDENT_ONLY = [
+        '/student-my-timetable-ui',
+        '/student-class-replacements',
+        '/replacement-history-ui',   /* alias — same component, same gate */
+    ];
 
     private const LECTURER_ONLY = [
         '/my-timetable-ui',

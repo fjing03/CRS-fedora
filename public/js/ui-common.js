@@ -382,8 +382,10 @@ function applyReplacementHighlight() {
     const qs = params.toString();
     history.replaceState(null, '', location.pathname + (qs ? '?' + qs : ''));
 
-    /* only the page that HAS the blocks; elsewhere the params are simply gone */
-    if (location.pathname !== '/my-timetable-ui' || typeof window.selectWeek !== 'function') return;
+    /* only the pages that HAVE the blocks (staff and student timetables share the
+       grid builder, so both emit `data-rid`); elsewhere the params are simply gone */
+    const TIMETABLE_PATHS = ['/my-timetable-ui', '/student-my-timetable-ui'];
+    if (TIMETABLE_PATHS.indexOf(location.pathname) === -1 || typeof window.selectWeek !== 'function') return;
 
     const wk = parseInt(weekRaw || '', 10);
     if (!isNaN(wk) && wk >= 1 && wk <= 14) window.selectWeek(String(wk - 1));   // 1-based
@@ -1624,9 +1626,13 @@ function initGridSwipeGestures(onPrev, onNext) {
  * `repl-hl` carries the REPLACEMENT REQUEST id (not a class, date or week: those
  * are not identities), `repl-w` the 1-based landing week the page should show.
  */
-function goToReplacementInTimetable(requestId, week) {
+function goToReplacementInTimetable(requestId, week, basePath) {
     if (!requestId) return;
-    window.location.href = '/my-timetable-ui?repl-hl=' + encodeURIComponent(requestId) +
+    /* 2026-11-09 (SDD student-class-replacements §7): the student page shares this
+       helper. The third argument is the page the jump belongs to; the staff call
+       sites pass nothing and keep their exact URL. */
+    const base = basePath || '/my-timetable-ui';
+    window.location.href = base + '?repl-hl=' + encodeURIComponent(requestId) +
         (week ? '&repl-w=' + encodeURIComponent(week) : '');
 }
 

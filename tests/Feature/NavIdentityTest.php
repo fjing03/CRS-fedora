@@ -99,7 +99,10 @@ final class NavIdentityTest extends TestCase
         // Positive: the student whitelist carries both student links
         // (student-nav-remove-cohort: Cohort Timetables removed from the student side).
         $response->assertSee('/student-my-timetable-ui', false);
-        $response->assertSee('/replacement-history-ui', false);
+        /* 2026-11-09 (student-class-replacements R5): the page is Class
+           Replacements at its new address; the label moved with it. */
+        $response->assertSee('/student-class-replacements', false);
+        $response->assertSee('Class Replacements', false);
 
         // Negative: cohort timetable page removed from the student side (nav + route).
         $response->assertDontSee('href="/cohort-timetable"', false);

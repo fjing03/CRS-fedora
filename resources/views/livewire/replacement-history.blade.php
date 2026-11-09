@@ -3,11 +3,11 @@
      component's render() applies layouts.ui-template — no @extends here
      (Livewire full-page: exactly one root element in the content section). --}}
 
-@section('title', 'Replacement History')
+@section('title', 'Class Replacements')
 
 @section('page-styles')
 
-        /* ─── Replacement history list: TABLE on desktop (shared .timetable/.data-table styles),
+        /* ─── Class Replacements list: TABLE on desktop (shared .timetable/.data-table styles),
                CARDS on mobile only (user revision 2026-10-01) ─── */
         .upcoming-list {
             display: none; /* cards are mobile-only */
@@ -90,6 +90,8 @@
             font-size: 12px;
             color: var(--color-on-surface-variant);
         }
+        /* the pop-up's one control (design §7) sits beside the shell's Close */
+        .modal-footer .btn-jump-timetable { margin-right: 8px; }
         .upcoming-card.past {
             border: 1px solid var(--color-outline);
             color: var(--color-on-surface-variant);
@@ -121,7 +123,7 @@
     @include('partials.page-data-script', ['payload' => $payload])
 
         <!-- ─── Page Header ─── -->
-        @include('partials.ui-page-header', ['title' => 'Replacement History', 'descriptionHtml' => '<span class="info-keyword">Replacement classes</span> confirmed or pending for your cohort.', 'chips' => $cohortLabel !== null ? [['label' => $cohortLabel]] : []]) {{-- BRIDGE PATCH: cohort chip is per-user data --}}
+        @include('partials.ui-page-header', ['title' => 'Replacement History', 'descriptionHtml' => 'Conflicted <span class="info-keyword">CLASSES</span> and where each one\'s replacement stands — read-only, for your cohort.', 'chips' => $cohortLabel !== null ? [['label' => $cohortLabel]] : []]) {{-- BRIDGE PATCH: cohort chip is per-user data --}}
 
         <!-- ─── Toolbar: week navigation + the staff's COMPLETED toggle ───
              2026-11-09 (user): this is My Replacements' control, same words, same
@@ -143,15 +145,15 @@
         <div id="upcomingList" class="upcoming-list"></div>
 
         <!-- ─── Empty state (shown by JS when the filtered list is empty; above the summary) ─── -->
-        @include('partials.ui-empty-state', ['title' => 'No replacements this week', 'text' => 'No upcoming replacement classes for '.($cohortLabel ?? 'your cohort').' in the selected week.']) {{-- BRIDGE PATCH: cohort is per-user data --}}
+        @include('partials.ui-empty-state', ['title' => 'No conflicted classes to show', 'text' => 'Nothing matches this view for '.($cohortLabel ?? 'your cohort').'. Try another week, or switch Exclude COMPLETED Status off.']) {{-- BRIDGE PATCH: cohort is per-user data --}}
 
-        <!-- ─── Summary strip (5 cards: Total / Upcoming / Pending / Past / Hours) — hidden when the view is empty ─── -->
+        <!-- ─── Summary strip: Awaiting Arrangement / Pending / Approved / Completed / Class Hours Affected — hidden when the view is empty ─── -->
         @include('partials.ui-summary-bar', [ 'cards' => [
-            ['class' => 'card-total', 'valueId' => 'sumTotal', 'label' => 'Total', 'description' => 'Replacement classes affecting <span class="info-keyword">your cohort</span> in the selected view.'],
-            ['class' => 'card-replacement', 'valueId' => 'sumUpcoming', 'label' => 'Upcoming', 'description' => 'Confirmed replacement classes <span class="info-keyword">still ahead</span> of you — check the New Slot column for when and where.'],
-            ['class' => 'card-pending', 'valueId' => 'sumPending', 'label' => 'Pending', 'description' => 'Replacement requests still <span class="warn-keyword">waiting for PL approval</span> for your cohort.'],
-            ['class' => 'card-hours', 'valueId' => 'sumCompleted', 'label' => 'Completed', 'description' => 'Replacements that have <span class="info-keyword">already taken place</span> — the same date rule the badge and the COMPLETED toggle use; switch the toggle off to see them.'],
-            ['class' => 'card-hours', 'valueId' => 'sumHours', 'label' => 'Hours', 'description' => 'Total <span class="info-keyword">hours</span> of replaced classes in the selected view (each slot = <strong>30 minutes</strong>).'],
+            ['class' => 'card-pending', 'valueId' => 'sumNone', 'label' => 'Awaiting Arrangement', 'description' => 'Conflicted classes with <span class="warn-keyword">no live request</span> — cancelled or on a holiday, not yet rearranged.'],
+            ['class' => 'card-pending', 'valueId' => 'sumPending', 'label' => 'Pending', 'description' => 'Requests <span class="warn-keyword">waiting for PL approval</span> for your cohort.'],
+            ['class' => 'card-replacement', 'valueId' => 'sumApproved', 'label' => 'Approved', 'description' => 'Replacements the PL has <span class="info-keyword">approved</span> — attend the requested slot.'],
+            ['class' => 'card-hours', 'valueId' => 'sumCompleted', 'label' => 'Completed', 'description' => 'Replacements that have already taken place — switch Exclude COMPLETED Status off to see them.'],
+            ['class' => 'card-hours', 'valueId' => 'sumHours', 'label' => 'Class Hours Affected', 'description' => 'Total <span class="info-keyword">class hours</span> hit by a cancellation or holiday in this view, arranged or not.'],
         ] ])
 
         <!-- ─── Class detail modal (shared shell for openClassModal) ─── -->
@@ -238,11 +240,13 @@
             return '<span class="badge ' + cls + '">' + text + '</span>';
         }
 
-        /* REQUEST STATUS — the staff badge (class + server label). The student
-           row only ever reaches pending / approved / completed. */
+        /* REQUEST STATUS — the staff badge (class + server label). `none` is the
+           unarranged state and wears the staff no-request shape (outline), never
+           `status-none` alone: the student page has no request to name. */
         function statusCell(r) {
             const tip = String(r.statusTip || '').replace(/"/g, '&quot;');
-            return '<span class="badge status-' + r.status + '" data-tip="' + tip + '">' + r.statusLabel + '</span>';
+            const cls = r.status === 'none' ? 'badge badge-outline status-none' : 'badge status-' + r.status;
+            return '<span class="' + cls + '" data-tip="' + tip + '">' + r.statusLabel + '</span>';
         }
 
         /* "Requested 12:25 PM, 4 Nov 2026" — the modal's one line about the ask */
@@ -278,10 +282,10 @@
             lecturer: r => r.lecturer || '',
             originalSlot: r => [r.orig.week, r.orig.date, r.orig.start],
             reason: r => (r.conflictKind || ''),
-            requestedSlot: r => (r.req ? [r.req.date, r.req.start] : null),
-            /* the derived status order, not the alphabet — and the same rank the
-               staff table uses (pending → approved → completed) */
-            status: r => ({ pending: 0, approved: 1, completed: 2 })[r.status],
+            requestedSlot: r => (r.req ? [r.req.date, r.req.start] : null),   // unarranged rows sort last
+            /* the status order, not the alphabet: pending → approved → completed,
+               and the unarranged state LAST (design §2 — never `undefined`) */
+            status: r => ({ pending: 0, approved: 1, completed: 2, none: 3 })[r.status],
         };
 
         function applySort(visible, all) {
@@ -315,7 +319,7 @@
 
         /* ── The Active Filters bar (2026-11-09): the student page had none. It
               names the two filters this page owns, in the same voice as the staff
-              page's bar ("Requested Replacement Week: …", "Exclude COMPLETED
+              page's bar ("Original Class Week: …", "Exclude COMPLETED
               Status"), and each chip removes its own filter. ── */
         function renderChips() {
             const container = document.getElementById('filterChips');
@@ -323,7 +327,7 @@
             const chips = [];
             const sel = document.getElementById('weekFilter');
             if (sel.value !== 'all' && sel.selectedOptions[0]) {
-                chips.push('<span class="filter-chip">Requested Replacement Week: ' + sel.selectedOptions[0].textContent +
+                chips.push('<span class="filter-chip">Original Class Week: ' + sel.selectedOptions[0].textContent +
                     '<button class="filter-chip-remove" data-tip="Remove" onclick="document.getElementById(\'weekFilter\').value=\'all\';document.getElementById(\'weekFilter\').dispatchEvent(new Event(\'change\'));">&times;</button></span>');
             }
             if (document.getElementById('hideCompleted').checked) {
@@ -335,7 +339,7 @@
 
         function renderUpcoming() {
             // AD-2: select values are 1-based strings; dataset weeks are 0-based.
-            // 'all' = the All Requested Slots Weeks option (shared helpers
+            // 'all' = the All Original Class Weeks option (shared helpers
             // are selectedIndex-based, so they stay NaN-safe).
             const all = document.getElementById('weekFilter').value === 'all';
             const w0 = all ? null : parseInt(document.getElementById('weekFilter').value, 10) - 1;
@@ -344,14 +348,17 @@
                passed. The filter and the badge therefore can never disagree. */
             const hideCompleted = document.getElementById('hideCompleted').checked;
 
-            // AD-5: MockData is read-only — slice() before filtering
+            // AD-5: MockData is read-only — slice() before filtering.
+            // 2026-11-09: a row is a CLASS OCCURRENCE, so the week filter reads the
+            // occurrence's own week (r.week), and only a derived `completed` row is
+            // hidden — an unarranged class is never "past" (R4).
             const visible = MockData.replacementHistory.slice()
                 .filter(r => (all || r.week === w0) && !(hideCompleted && r.status === 'completed'));
 
-            // AD-11: the summary counts come from the SAME visible predicate
-            document.getElementById('sumTotal').textContent     = visible.length;
-            document.getElementById('sumUpcoming').textContent  = visible.filter(r => r.status === 'approved').length;
+            // AD-11: the five cards count the SAME visible set (R7/R8)
+            document.getElementById('sumNone').textContent      = visible.filter(r => r.status === 'none').length;
             document.getElementById('sumPending').textContent   = visible.filter(r => r.status === 'pending').length;
+            document.getElementById('sumApproved').textContent  = visible.filter(r => r.status === 'approved').length;
             document.getElementById('sumCompleted').textContent = visible.filter(r => r.status === 'completed').length;
             document.getElementById('sumHours').textContent     = visible.reduce((s, r) => s + (r.orig.duration || 0), 0);
 
@@ -410,12 +417,13 @@
         }
 
         function openReplacementModal(id) {
-            const r = MockData.replacementHistory.find(x => x.id === id);
+            /* the row id is an OCCURRENCE key ("<sessionId>:<week>") — never Number() it */
+            const r = MockData.replacementHistory.find(x => String(x.id) === String(id));
             if (!r) return;
             const pending = r.status === 'pending';
 
-            /* Slot facts as ONE ROW EACH (data-label / data-value list) — the same
-               six facts the table block prints, from the same primitive shape. */
+            /* Slot facts as ONE ROW EACH (data-label / data-value list) — from the
+               same primitives the table block prints. */
             const slotRows = (slot) => {
                 if (!slot) return [];
                 const mins = slot.duration * 60;
@@ -435,15 +443,23 @@
                 ];
             };
 
-            /* 2026-11-09 (grill Q2=A): the REQUESTED SLOT tab now always prints the
-               real slot — a pending request holds one, and the PL's approval
-               confirms that same slot instead of choosing a new one. The Pending
-               badge keeps saying what it is: not confirmed yet. */
+            /* 2026-11-09 (SDD student-class-replacements §7): the pop-up carries ONE
+               control — Go to My Timetable — and only on a row that HAS a requested
+               slot (nothing to flash otherwise). It is appended to the shared modal's
+               footer at open time and removed at close, the CancelClass.renderButton
+               house pattern, so no shared openClassModal option is invented. */
+            const jumpCall = "goToReplacementInTimetable(" + Number(r.requestId) + ", " +
+                Number(r.req ? r.req.week : 0) + ", '/student-my-timetable-ui')";
+            const jump = (r.requestId !== null && r.requestId !== undefined && r.req)
+                ? '<button type="button" class="btn-close-modal btn-jump-timetable"' +
+                    ' data-tip="See this replacement in your timetable"' +
+                    ' onclick="' + jumpCall + '">Go to My Timetable</button>'
+                : '';
+
             openClassModal({
-                title: r.code + ' — Replacement',
+                title: r.code + ' — Class Replacement',
                 subtitle: r.name,
                 modalId: 'classModal',
-                // Grouped layout (§10.0 rule 6 — tidy categories instead of a flat wall)
                 groups: [
                     { heading: 'Course', rows: [
                         { label: 'Course Code', value: r.code },
@@ -457,7 +473,9 @@
                             ? 'Public Holiday \u2014 ' + (r.holidayName || 'Semester holiday')
                             : (r.conflictKind || '\u2014') },
                     ]},
-                    { heading: 'Requested Slot', rows: slotRows(r.req) },
+                    { heading: 'Requested Slot', rows: r.req ? slotRows(r.req) : [
+                        { label: 'Status', value: 'Not arranged yet <span class="detail-value--muted">— no replacement has been approved for this class</span>' },
+                    ] },
                     { heading: 'Request Status', rows: [
                         { label: 'Status', value: statusCell(r) },
                         ...(r.status === 'completed' ? [{ label: 'Status Note', value: 'This replacement has already taken place.' }] : []),
@@ -466,6 +484,14 @@
                 ],
                 // NOTE: no requestId — AD-12 (no View Full Request on list modals)
             });
+
+            /* the one footer control, and only when there is something to jump to */
+            const modalEl = document.getElementById('classModal');
+            const footer = modalEl ? modalEl.querySelector('.modal-footer') : null;
+            if (footer) {
+                footer.querySelectorAll('.btn-jump-timetable').forEach(b => b.remove());
+                if (jump) footer.insertAdjacentHTML('afterbegin', jump);
+            }
         }
 
         // ─── Modal close wiring — closeModal() is now the shared global in
@@ -489,17 +515,18 @@
                hand-inserted option also vanished on breakpoint re-populate).
 
                SDD student-side-health-check S7 (2026-11-08, user's option A):
-               this page is a HISTORY, so it opens on **All Weeks**. It used to
-               open on the CURRENT week, and since the filter hides every other
-               week, a student whose only replacement sits in a later week saw an
-               empty table plus 0 / 0 / 0 cards — measured on both demo students
-               (one approved in week 8, one pending in week 9). "Show past" still
-               starts off, so the list stays short, and the Today button + the
-               week arrows still narrow it to one week on demand. */
-            /* 2026-11-09 (§6): the filter keys on the REQUESTED REPLACEMENT week
-               (r.week), not the original class week — so the option says so, in the
-               same words Request Approval uses. */
-            populateWeekSelect('weekFilter', { selected: 'all', includeAll: true, allLabel: 'All Requested Slots Weeks' });
+               this page opens on **All Weeks**. It used to open on the CURRENT
+               week, and since the filter hides every other week, a student whose
+               only replacement sat in a later week saw an empty table plus
+               0 / 0 / 0 cards — measured on both demo students (one approved in
+               week 8, one pending in week 9). The Today button + the week arrows
+               still narrow it to one week on demand.
+
+               SDD student-class-replacements R3 (2026-11-09): a row is a CLASS
+               OCCURRENCE now, so `r.week` is the occurrence's OWN week and the
+               filter keys on it — that is why the All-option reads "All Original
+               Class Weeks". */
+            populateWeekSelect('weekFilter', { selected: 'all', includeAll: true, allLabel: 'All Original Class Weeks' });
 
             // Restore persisted view (a first visit opens on All Weeks)
             (function() {
@@ -547,7 +574,7 @@
             // (cards = mobile container, #upcomingBody rows = desktop table)
             const openFromEl = function(e, selector) {
                 const el = e.target.closest(selector);
-                if (el) openReplacementModal(Number(el.dataset.id));
+                if (el) openReplacementModal(el.dataset.id);   // the occurrence key stays a STRING
             };
             ['#upcomingList', '#upcomingBody'].forEach(function(sel) {
                 const root = document.querySelector(sel);
@@ -557,14 +584,19 @@
                     const el = e.target.closest(sel + ' [data-id]');
                     if (!el) return;
                     if (e.key === ' ') e.preventDefault(); // avoid page scroll
-                    openReplacementModal(Number(el.dataset.id));
+                    openReplacementModal(el.dataset.id);
                 });
             });
 
             renderUpcoming();
         }
 
-        /* inline-handler globals resolve via window */
+        /* inline-handler globals resolve via window.
+           2026-11-09 (student-class-replacements): the shared modal's overlay calls
+           `closeModalOutside(event)` from an inline attribute — without this export
+           every overlay click threw "closeModalOutside is not defined" (pre-existing
+           on this page; surfaced when the pop-up's new jump button was clicked). */
         window.renderUpcoming = renderUpcoming;
+        window.closeModalOutside = closeModalOutside;
         });
 @endsection

@@ -58,7 +58,7 @@ test('student panel + student-only nav links', async ({ page }) => {
   await expect(page.locator('.user-panel .user-role')).toHaveText('Student');
 
   // Student whitelist: both items (student-nav-remove-cohort — Cohort Timetables removed)
-  for (const href of ['/student-my-timetable-ui', '/replacement-history-ui']) {
+  for (const href of ['/student-my-timetable-ui', '/student-class-replacements']) {
     await expect(page.locator(`a[href="${href}"]`).first()).toBeAttached();
   }
   // Cohort timetable page removed from the student side (nav + route gate)
@@ -70,8 +70,8 @@ test('student panel + student-only nav links', async ({ page }) => {
 
   // Nav label parity (student-nav-label-parity): both student pages show the
   // same two labels from the shared whitelist.
-  const expectedLabels = ['My Timetable', 'Replacement History'];
-  for (const path of ['/student-my-timetable-ui', '/replacement-history-ui']) {
+  const expectedLabels = ['My Timetable', 'Class Replacements'];
+  for (const path of ['/student-my-timetable-ui', '/student-class-replacements']) {
     await page.goto(path);
     await page.waitForSelector('.nav-items a');
     const barLabels = await page.locator('.nav-items a').allTextContents();

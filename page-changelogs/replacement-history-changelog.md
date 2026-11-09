@@ -1,3 +1,60 @@
+## 2026-11-09 (SDD `student-class-replacements`) — the page lists conflicted CLASSES, and is now "Class Replacements"
+
+**User brief:** "New Idea — Student Replacement History Redesign". Eight grilling rulings, all the
+user's; proposal, design and tasks frozen after three review rounds.
+
+**What the page was.** It listed *requests* — so it could only show classes somebody had already asked to
+move. A class the lecturer cancelled, or one that falls on a public holiday next week, was invisible until
+a request existed, even though the student's timetable said the class was gone.
+
+**What it is now.** One row per **conflicted class occurrence** — a `class_exceptions` cancellation **or** a
+calendar holiday, request or no request. Measured on the demo data that is 6–11 rows per student, most of
+them holiday rows; the demo has very few exceptions because lecturers create those for their own sessions.
+
+| Area | Ruled behaviour |
+|---|---|
+| Rows | cancelled class **or** holiday, arranged or not (R1) |
+| Statuses | no request / cancelled request / rejected request → **`Awaiting Arrangement`**; otherwise the staff labels `Pending — Waiting for Approval`, `Approved`, `Completed — 1 day ago` (R2) |
+| Week filter | keys on the **class's** week; All-option **`All Original Class Weeks`** (R3) |
+| Toggle | `Exclude COMPLETED Status`, ON by default, decided by the **make-up date** (R4) — a class with no make-up never counts as completed, so it stays listed |
+| Identity | **Class Replacements** at **`/student-class-replacements`**; `/replacement-history-ui` stays alive as a second address (R5) |
+| Read-only | no action column, no arrange/cancel/approve; the pop-up carries ONE control — **Go to My Timetable** — only on a row with a requested slot (R6) |
+| Cards | `Awaiting Arrangement` · `Pending` · `Approved` · `Completed` · `Class Hours Affected`; `Total` dropped (R7/R8) |
+| Hours | the class hours of **every visible row**, arranged or not (R8) |
+
+**One word differs by audience.** `ReplacementRequestMapper::statusLabel()` gained an optional `$audience`
+argument; `'student'` prints `Awaiting Arrangement` where the staff page prints `Need to Arrange` (an
+instruction nobody on a read-only page can follow). Every other label is shared on purpose —
+`statusVocabulary()` forwards the audience so a page asks once. Staff bytes unchanged.
+
+**The jump.** `goToReplacementInTimetable()` gained an optional base path (both staff call sites untouched)
+and `applyReplacementHighlight()` now accepts `/student-my-timetable-ui` as well as `/my-timetable-ui` — the
+grid already stamps `data-rid` on replacement blocks on both pages. Measured: the button lands on the
+student timetable, switches to Week 8 and pulses the block carrying request 27.
+
+**Copy that died with the rewrite** (absorbing the parked `student-history-copy-polish` lane): the empty
+state no longer says "this week" / "the selected week" (the default view is all weeks), the page description
+names conflicted classes instead of "confirmed or pending", and the `Completed` card's hover text explains
+why it reads 0 while the toggle is on.
+
+**Also fixed while here:** the shared modal's overlay calls `closeModalOutside(event)` from an inline
+attribute, and this page never exported that function — every overlay click threw
+"closeModalOutside is not defined". It is exported now (pre-existing on this page, surfaced by the new
+button's click path).
+
+**Receipts.** `ReplacementHistoryRowTest` rewritten — 9/9 (holiday with no request; cancelled class, no leave
+type; pending prints its real span; cancelled and rejected leave the class unarranged; the latest request
+wins; completed follows the make-up date with the clock frozen; a normal occurrence is not a row; the
+original slot is the class's own). `ReplacementMapperStatusLabelTest` new — 3/3. `StudentReplacementHistoryParityTest`
+rewritten — 9/9 source invariants (columns, five cards, the unarranged badge and rank, the forbidden
+vocabulary, filter basis, toggle, read-only + the one control, route/label). Nav and route tests moved to
+the new address with the alias still gated. Browser: both demo students, desktop and 390 px, zero console
+errors.
+
+**Honest notes.** The list is holiday-heavy by ruling; an unarranged class never becomes "past" (R4's
+accepted consequence); and the student page now speaks two vocabularies on purpose (`Awaiting Arrangement`
+here, `Need to Arrange` on staff) — one mapper arm, no drift.
+
 ## 2026-11-09 (user brief "Student Side UI Update") — the student history joins the staff table
 
 Fourteen grill rulings, all from the user the same day. The page now speaks the staff My Replacements

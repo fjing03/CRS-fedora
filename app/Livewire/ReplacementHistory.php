@@ -4,6 +4,7 @@ namespace App\Livewire;
 
 use App\Concerns\ResolvesTimetableTimeline;
 use App\Models\ClassException;
+use App\Models\ClassSession;
 use App\Models\ReplacementRequest;
 use App\Models\Student;
 use App\Models\TimeSlot;
@@ -16,21 +17,26 @@ use Illuminate\Support\Collection;
 use Livewire\Component;
 
 /**
- * Replacement History (student) — 100% the frozen UI design (week nav +
- * completed toggle, sortable table / mobile cards, the 5-card summary strip,
- * class-detail modal — all client-side as frozen). This component is the
- * DATA BRIDGE: it emits the mock's `replacementHistory` row shape from real
- * rows — approved AND pending requests touching MY cohort (FR 1.4). View only:
- * students never act on requests (RBAC). Slice B (SDD:
- * wire-backend-into-refactored-ui). Legacy mock template untouched for the
- * D10 fallback.
+ * Class Replacements (student) — the student's own view of every CONFLICTED class
+ * occurrence and where its replacement stands. Read-only: students never act on a
+ * request (RBAC), and this page adds no write path of any kind.
  *
- * 2026-11-09 (user brief "Student Side UI Update", fourteen rulings): the page
- * is now aligned with the staff-side My Replacements table — six columns, the
- * staff 4-line slot blocks, the staff status vocabulary (`status-*` classes with
- * the server's long labels), a CONFLICT REASON column, the real requested slot
- * on PENDING rows too, and the staff's `Exclude COMPLETED Status` rule (a
- * replacement counts as completed once its DATE has passed).
+ * 2026-11-09 (SDD `student-class-replacements`, eight user rulings): the page
+ * stopped listing REQUESTS and started listing OCCURRENCES — a session × week
+ * that is conflicted by a `class_exceptions` row (the lecturer cancelled it) or by
+ * a calendar holiday, whether or not a request exists. That is the staff page's
+ * model, minus every action: a class nobody has arranged yet is exactly what a
+ * student most needs to see, and it used to be invisible.
+ *
+ * Eight user rulings, applied here:
+ *  - rows = cancelled class **or** holiday, request or not (R1);
+ *  - no request / cancelled request / rejected request all read
+ *    `Awaiting Arrangement` — the page never mentions a dead request (R2);
+ *  - the week filter keys on the CLASS's week (R3);
+ *  - `Exclude COMPLETED Status` is decided by the make-up date (R4);
+ *  - the page is Class Replacements at /student-class-replacements (R5);
+ *  - read-only, with one jump button in the pop-up (R6);
+ *  - five cards, `Class Hours Affected` last (R7, R8).
  */
 class ReplacementHistory extends Component
 {
@@ -43,6 +49,7 @@ class ReplacementHistory extends Component
         $semester = $this->timelineSemester();
         $semesterId = $semester !== null ? $semester->id : 1;
         $startDate = Carbon::parse($semester !== null ? $semester->start_date : LocalTime::today());
+        $weeks = $this->timelineWeeks();
 
         $student = Student::query()->where('user_id', auth()->id())->first();
         $cohort = $student?->cohort;
@@ -50,33 +57,49 @@ class ReplacementHistory extends Component
 
         $rows = [];
         if ($cohort !== null) {
-            $requests = ReplacementRequest::query()
-                ->with(['classSession.module', 'classSession.venue', 'classSession.cohorts', 'classSession.lecturer', 'replacementTimeSlot.venue'])
-                ->whereIn('status', ['pending', 'approved'])
-                ->whereHas('classSession.cohorts', fn ($q) => $q->whereKey($cohort->id))
-                ->orderByDesc('submitted_at')
+            /* One read per input, none per row (design §1): my classes, the
+               exceptions that cancelled them, the calendar, the latest request per
+               occurrence, its span, and the rooms those spans point at. */
+            $sessions = ClassSession::query()
+                ->with(['module', 'venue', 'lecturer'])
+                ->where('semester_id', $semesterId)
+                ->whereHas('cohorts', fn ($q) => $q->whereKey($cohort->id))
+                ->orderBy('day_of_week')
+                ->orderBy('start_time')
                 ->get();
 
-            /* The conflict reason is the CLASS's own cause, not the request's
-               slot validity (a decided request has no validity reason at all).
-               Two batch reads, exactly like the staff page: the exceptions for
-               the sessions in play, and the semester holidays already shaped for
-               JS. */
-            $exceptions = ClassException::query()
-                ->whereIn('class_session_id', $requests->map(fn (ReplacementRequest $r): int => (int) $r->class_session_id)->unique()->values()->all())
-                ->get()
-                ->keyBy(fn (ClassException $e): string => $e->class_session_id.':'.$e->week_number);
+            $sessionIds = $sessions->pluck('id')->map(fn ($id): int => (int) $id)->all();
+
+            $exceptions = $sessionIds === []
+                ? collect()
+                : ClassException::query()
+                    ->whereIn('class_session_id', $sessionIds)
+                    ->get()
+                    ->keyBy(fn (ClassException $e): string => $e->class_session_id.':'.$e->week_number);
 
             $holidays = collect($this->holidaysForJs())
                 ->keyBy(fn (array $h): string => $h['week'].':'.$h['dayIndex']);
 
+            /* The LATEST request per occurrence — last write wins, so a
+               re-submitted request replaces the earlier one. Cancelled and
+               rejected rows are read too: they explain why an occurrence that was
+               once offered has no live request (R2 keeps that fact off the page,
+               but the data must not lie to itself). */
+            $requests = $sessionIds === []
+                ? collect()
+                : ReplacementRequest::query()
+                    ->with(['replacementTimeSlot.venue'])
+                    ->whereIn('class_session_id', $sessionIds)
+                    ->orderBy('submitted_at')
+                    ->orderBy('id')
+                    ->get([
+                        'id', 'class_session_id', 'week_number', 'status', 'submitted_at',
+                        'semester_id', 'replacement_time_slot_id', 'replacement_span',
+                    ])
+                    ->keyBy(fn (ReplacementRequest $r): string => $r->class_session_id.':'.$r->week_number);
+
             $mapper = app(ReplacementRequestMapper::class);
 
-            /* TWO batch reads for the whole column (§1.3 of the staff page's
-               design): the junction spans, then the venues those spans point at.
-               The anchor fallback is not optional — the junction is DELETEd by
-               CancelPendingRequest/RejectRequest, so a junction-less request must
-               still show its own evidence. */
             $spans = $mapper->spansForRequests(
                 $requests->map(fn (ReplacementRequest $r): int => (int) $r->id)->values()->all()
             );
@@ -85,17 +108,34 @@ class ReplacementHistory extends Component
                 ? collect()
                 : Venue::query()->whereIn('id', $venueIds)->get()->keyBy('id');
 
-            $rows = $requests
-                ->map(fn (ReplacementRequest $r): array => $this->historyRow(
-                    $r,
-                    $mapper,
-                    $startDate,
-                    $spans[(int) $r->id] ?? $mapper->spanFromAnchor($r->replacementTimeSlot, $r->replacement_span !== null ? (int) $r->replacement_span : null),
-                    $exceptions->get($r->class_session_id.':'.$r->week_number),
-                    $holidays->get($r->week_number.':'.$r->classSession->day_of_week),
-                    $venues,
-                ))
-                ->all();
+            foreach ($sessions as $session) {
+                for ($week = 1; $week <= $weeks; $week++) {
+                    $exception = $exceptions->get($session->id.':'.$week);
+                    $holiday = $holidays->get($week.':'.$session->day_of_week);
+
+                    // neither a cancellation nor a holiday — the class runs normally
+                    if ($exception === null && $holiday === null) {
+                        continue;
+                    }
+
+                    $rows[] = $this->occurrenceRow(
+                        $session,
+                        $week,
+                        $exception,
+                        $holiday,
+                        $requests->get($session->id.':'.$week),
+                        $spans,
+                        $venues,
+                        $mapper,
+                        $startDate,
+                    );
+                }
+            }
+
+            /* Default order: class date ascending (design §1a) — a tracker reads
+               chronologically. The page's sortable headers reorder from here. */
+            usort($rows, fn (array $a, array $b): int => strcmp($a['orig']['date'], $b['orig']['date'])
+                ?: ($a['id'] <=> $b['id']));
         }
 
         return view('livewire.replacement-history', [
@@ -119,46 +159,45 @@ class ReplacementHistory extends Component
     }
 
     /**
-     * The mock's exact row shape (cf. MockData.replacementHistory §), extended
-     * (2026-11-09) with the staff-side primitives the two slot columns and the
-     * status column now render from.
+     * ONE conflicted occurrence. The row's identity is the OCCURRENCE
+     * (`"<sessionId>:<week>"`), never the request — most rows have no request at
+     * all, and a request id would leave them unclickable (design §1a).
      *
-     * @param  array{week: int, day: int, venue_id: int, start: string, end: string, count: int}|null  $span
+     * @param  array<int, array{week: int, day: int, venue_id: int, start: string, end: string, count: int}>  $spans
      * @param  array<string, int|string>|null  $holiday
      * @param  Collection<int, Venue>  $venues
      * @return array<string, mixed>
      */
-    private function historyRow(
-        ReplacementRequest $r,
-        ReplacementRequestMapper $mapper,
-        Carbon $semesterStart,
-        ?array $span,
+    private function occurrenceRow(
+        ClassSession $session,
+        int $week,
         ?ClassException $exception,
         ?array $holiday,
+        ?ReplacementRequest $request,
+        array $spans,
         Collection $venues,
+        ReplacementRequestMapper $mapper,
+        Carbon $semesterStart,
     ): array {
-        $session = $r->classSession;
-        $slot = $r->replacementTimeSlot;
+        /* R2: a cancelled or rejected request leaves the occurrence UNARRANGED.
+           The page shows the class, never the dead request. `$live` therefore
+           also implies "a request exists" for every reader below. */
+        $live = $request !== null && ! in_array((string) $request->status, ['cancelled', 'rejected'], true);
 
-        /* S10 (student-side-health-check, 2026-11-08): the ORIGINAL slot is the
-           class's OWN occurrence — its own week, day and 30-minute block indices.
-           The mock's row shape could share one `week`/`di` because its rows were
-           invented; a real row moves a class from one week to another, so reusing
-           the replacement's week/day here printed the wrong week, day and date
-           ("Week 8 · Fri, 13 Nov" for a class that actually sits in week 14,
-           Thursday 24 Dec). */
-        $originalWeek = (int) $r->week_number - 1;
-        $originalDate = $semesterStart->copy()
-            ->addWeeks((int) $r->week_number - 1)
+        $classDate = $semesterStart->copy()
+            ->addWeeks($week - 1)
             ->addDays((int) $session->day_of_week);
 
-        /* D4 item-6 (grill Q3=A) + S11: the requested slot's TRUE run — the
-           junction's span, never the anchor cell alone (an anchor-based read
-           printed "13:00 – 13:30" and 0.5 hours for a 13:00–14:00 replacement).
-           2026-11-09 (grill Q2=A): this now applies to PENDING rows too — the
-           page prints the slot the lecturer actually requested while it waits,
-           because that is what the column is named after and the PL's approval
-           confirms that same slot rather than choosing a new one. */
+        /* The requested slot's TRUE run: the junction span, with the anchor
+           fallback widened by `replacement_span` (the junction is deleted on
+           cancel/reject, so the fallback is not optional). */
+        $span = $live
+            ? ($spans[(int) $request->id] ?? $mapper->spanFromAnchor(
+                $request->replacementTimeSlot,
+                $request->replacement_span !== null ? (int) $request->replacement_span : null,
+            ))
+            : null;
+
         $requested = $span === null ? null : [
             'week' => (int) $span['week'],
             'date' => $semesterStart->copy()
@@ -168,34 +207,40 @@ class ReplacementHistory extends Component
             'day' => self::DAY_NAMES[(int) $span['day']] ?? '',
             'start' => Carbon::parse((string) $span['start'])->format('H:i'),
             'end' => Carbon::parse((string) $span['end'])->format('H:i'),
-            'duration' => self::hours($span['start'], $span['end']),
-            'venue' => self::venueCode($venues->get((int) $span['venue_id']) ?? null, $slot),
+            'duration' => self::hours((string) $span['start'], (string) $span['end']),
+            'venue' => self::venueCode($venues->get((int) $span['venue_id']) ?? null, $request->replacementTimeSlot),
         ];
 
-        /* The status is the ONE derived vocabulary the staff page and the API
-           already read (`completed` = an approved request whose replacement date
-           has passed — 2026-11-09 grill Q5=A), and the labels/tips come from the
-           mapper so both pages print the same words. The tip asks for the
-           student voice: the shared lecturer arm says "Your request", and a
-           student is not the proposer. */
-        $statusKey = $mapper->effectiveStatus($r, $semesterStart, $requested['date'] ?? null);
-        $deadline = $statusKey === 'pending'
-            ? $mapper->approvalDeadlineLabel($requested['date'] ?? '', $requested['start'].' – '.$requested['end'], (int) $r->semester_id)
-            : null;
-        $vocabulary = $mapper->statusVocabulary($statusKey, $requested['date'] ?? null, 'student', $deadline);
+        /* The derived status the staff page prints, then ONE of four words.
+           `none` is the payload's value; the MAPPER is asked with `null` (its own
+           key), which is how its arms are written. */
+        $statusKey = 'none';
+        if ($live) {
+            $statusKey = $mapper->effectiveStatus($request, $semesterStart, $requested['date'] ?? null);
+        }
 
-        /* 2026-11-09 (grill Q1=B — the user's privacy ruling): a student reads the
-           CAUSE, never the staff member's leave type. A calendar holiday keeps its
-           real name ("Public Holiday — Deepavali Holiday (In Lieu)"); every other
-           exception reads the bare "Class Cancelled". The classification is the
-           staff page's own rule, so the two pages cannot disagree about WHICH kind
-           of conflict it was — only about how much of it a student may see. */
+        $deadline = $statusKey === 'pending' && $requested !== null
+            ? $mapper->approvalDeadlineLabel(
+                $requested['date'],
+                $requested['start'].' – '.$requested['end'],
+                (int) $request->semester_id,
+            )
+            : null;
+
+        $vocabulary = $mapper->statusVocabulary(
+            $statusKey === 'none' ? null : $statusKey,
+            $requested['date'] ?? null,
+            'student',
+            $deadline,
+        );
+
+        /* The conflict's CAUSE — the staff page's own classification, then the
+           student wording (2026-11-09 Q1=B): a calendar holiday keeps its real
+           name, everything else reads the bare "Class Cancelled". A leave type
+           never leaves this method. */
         $rawReason = null;
         if ($exception !== null) {
             $rawReason = (string) $exception->reason;
-            /* D9 stamp: ApproveRequest::releaseOriginal writes `official_event`
-               when no exception existed, and on a holiday occurrence that stamp
-               must not rewrite the cause (same rule as My Replacements). */
             if ($holiday !== null && $rawReason === 'official_event') {
                 $rawReason = 'Public Holiday';
             }
@@ -208,39 +253,32 @@ class ReplacementHistory extends Component
             : ($rawReason === 'Public Holiday' ? 'Public Holiday' : 'Class Cancelled');
 
         return [
-            'id' => (int) $r->id,
+            /* the OCCURRENCE is the identity — a request id would be null on most rows */
+            'id' => $session->id.':'.$week,
+            'week' => $week - 1,
+            'requestId' => $live ? (int) $request->id : null,
             'code' => (string) $session->module->module_code,
             'name' => $session->module->displayName(),
             'type' => (string) $session->session_type,
-            /* the 0-based REQUESTED week — the week filter, the completed rule's
-               fallback and the default order all read it */
-            'week' => $requested !== null ? $requested['week'] - 1 : $originalWeek,
-            'originalWeek' => $originalWeek,
-            'di' => (int) $session->day_of_week,
-            'start' => $this->slotIndex((string) $session->start_time),
-            'end' => $this->slotIndex((string) $session->end_time) - 1,
-            /* the two slots as the SAME primitive shape, so the table, the cards
-               and the modal all format them with one set of helpers */
+            'lecturer' => $session->lecturer !== null ? (string) $session->lecturer->name : '',
             'orig' => [
-                'week' => (int) $r->week_number,
-                'date' => $originalDate->toDateString(),
+                'week' => $week,
+                'date' => $classDate->toDateString(),
                 'day' => self::DAY_NAMES[(int) $session->day_of_week] ?? '',
                 'start' => Carbon::parse((string) $session->start_time)->format('H:i'),
                 'end' => Carbon::parse((string) $session->end_time)->format('H:i'),
-                'duration' => self::hours($session->start_time, $session->end_time),
+                'duration' => self::hours((string) $session->start_time, (string) $session->end_time),
                 'venue' => (string) $session->venue->room_code,
             ],
             'req' => $requested,
-            'lecturer' => $session->lecturer !== null ? (string) $session->lecturer->name : '',
             'status' => $statusKey,
             'statusLabel' => $vocabulary['label'],
-            'statusShort' => $vocabulary['short'],
             'statusTip' => $vocabulary['tip'],
             'conflictKind' => $conflictKind,
             'holidayName' => $conflictKind === 'Public Holiday'
                 ? (trim((string) ($holiday['label'] ?? '')) !== '' ? (string) $holiday['label'] : 'Semester holiday')
                 : null,
-            'requestedAt' => $mapper->stampDisplay($r->submitted_at, 'd M Y, h:i A'),
+            'requestedAt' => $live ? $mapper->stampDisplay($request->submitted_at, 'd M Y, h:i A') : null,
         ];
     }
 
@@ -251,7 +289,11 @@ class ReplacementHistory extends Component
             return (string) $spanVenue->room_code;
         }
 
-        return $anchor?->venue !== null ? (string) $anchor->venue->room_code : '';
+        if ($anchor !== null && $anchor->venue !== null) {
+            return (string) $anchor->venue->room_code;
+        }
+
+        return '';
     }
 
     /** Whole hours between two H:i stamps (the staff page's int-hours rule). */

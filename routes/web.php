@@ -50,6 +50,17 @@ $uiPages = [
         'nav' => 'my-timetable',
         'mw' => ['auth', 'role:student'],
     ],
+    /* 2026-11-09 (SDD student-class-replacements R5): the page lists every
+       CONFLICTED class of the student's cohort and where each replacement stands,
+       so it is "Class Replacements", not a history. The old address stays alive as
+       a SECOND address (house practice: several addresses, no redirect, query
+       strings survive) because a bookmark may still hold it. */
+    '/student-class-replacements' => [
+        'component' => 'App\Livewire\ReplacementHistory',
+        'legacy' => 'ui-design-templates.replacement-history-UI-design-template',
+        'nav' => 'replacement-history',
+        'mw' => ['auth', 'role:student'],
+    ],
     '/replacement-history-ui' => [
         'component' => 'App\Livewire\ReplacementHistory',
         'legacy' => 'ui-design-templates.replacement-history-UI-design-template',

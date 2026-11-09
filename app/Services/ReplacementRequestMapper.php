@@ -125,18 +125,29 @@ final class ReplacementRequestMapper
     public function statusVocabulary(?string $status, ?string $date, string $audience = 'lecturer', ?string $deadline = null): array
     {
         return [
-            'label' => $this->statusLabel($status, $date),
+            /* 2026-11-09 (student-class-replacements, design §2): the audience now
+               reaches the LABEL too, so a page asks once. The default keeps every
+               existing caller byte-identical. */
+            'label' => $this->statusLabel($status, $date, $audience),
             'short' => $this->statusShort($status),
             'sentence' => $this->statusSentence($status, $date),
             'tip' => $this->statusTip($status, $audience, $deadline),
         ];
     }
 
-    /** The badge text (M5). A `completed` row carries how long ago, when known. */
-    public function statusLabel(?string $status, ?string $date): string
+    /**
+     * The badge text (M5). A `completed` row carries how long ago, when known.
+     *
+     * `$audience` (2026-11-09, `student-class-replacements` §2) changes ONE word:
+     * a student reads `Awaiting Arrangement` where a lecturer reads
+     * `Need to Arrange` — the staff phrasing is an instruction, and the student
+     * page is read-only. Every other label is shared on purpose, so the two pages
+     * can never disagree about what a state MEANS.
+     */
+    public function statusLabel(?string $status, ?string $date, string $audience = 'lecturer'): string
     {
         if ($status === null) {
-            return 'Need to Arrange';
+            return $audience === 'student' ? 'Awaiting Arrangement' : 'Need to Arrange';
         }
 
         if ($status === 'completed') {
