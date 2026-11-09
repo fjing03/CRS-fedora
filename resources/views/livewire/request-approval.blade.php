@@ -534,7 +534,7 @@
             { label: 'Request ID', sortable: false, tip: 'The request identifier the lecturer sees (#) — not sortable' },
             { label: 'Requested Timestamp', sortable: true, field: 'requestedAt', tip: 'When the replacement was requested. Age colour: green ≤1 day, amber 2–3 days, red 4+ days' },
             { label: 'Staff (Proposer)', sortable: true, field: 'lecturer', tip: 'The staff member who submitted the request — sorted by name' },
-            { label: 'Course Code & Name', sortable: true, field: 'courseCode', tip: 'Course affected by the conflict' },
+            { label: 'Course', sortable: true, field: 'courseCode', tip: UiLabels.courseTipSubject },
             { label: 'Cohort', sortable: false, tip: 'Cohort(s) affected by this class — one per line; not sortable because a multi-cohort row has no single value' },
             { label: 'Original Class', sortable: true, field: 'classDate', tip: 'Original class the request refers to — its state varies (still upcoming, replaced, cancelled, holiday, etc.)' },
             { label: 'Requested Replacement', sortable: true, field: 'replacementDate', tip: 'Requested new date, time, and venue' },
@@ -639,7 +639,11 @@
             } else {
                 html += '<td>' + r.lecturer + '</td>';
             }
-            html += '<td><div class="cell-code">' + r.courseCode + '</div><div class="cell-name">' + r.courseName + '</div></td>';
+            /* 2026-11-09 (user): the COLUMN is renamed Course; its hover text carries
+               the row's real code, full course name and class type plus the one
+               description sentence (UiLabels.courseTip — shared with My Replacements). */
+            html += '<td data-tip="' + escHtml(UiLabels.courseTip(r.courseCode, r.courseName, r.classType)) + '">'
+                + '<div class="cell-code">' + r.courseCode + '</div><div class="cell-name">' + r.courseName + '</div></td>';
             /* 1b: one compact cohort code per line (`RSD3(S1)G2`), never a joined blob —
                the modal prints the same codes joined with ' + '. */
             var cohortCodes = (r.cohorts || []).map(compactCohort);

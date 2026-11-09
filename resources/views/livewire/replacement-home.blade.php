@@ -684,7 +684,7 @@
             body.innerHTML = '';
 
             const columns = [
-                { label: 'Course Code &amp; Name', cls: 'col-code', sortable: true, field: 'code', tip: 'Course affected by the conflict' },
+                { label: 'Course', cls: 'col-code', sortable: true, field: 'code', tip: UiLabels.courseTipSubject },
                 { label: 'Cohort', cls: 'col-cohort', sortable: false, tip: 'Affected cohorts — not sortable: a multi-cohort row has no single value' },
                 { label: 'Original Class', cls: 'col-original', sortable: true, field: 'date', tip: 'The class that cannot run as timetabled' },
                 { label: 'Conflict Reason', cls: 'col-reason', sortable: true, field: 'reason', tip: 'Why this class cannot run' },
@@ -728,6 +728,10 @@
                     cells.forEach(function (cell) {
                         const td = document.createElement('td');
                         td.className = cell.cls;
+                        /* 2026-11-09 (user): the Course cell's hover text (the row's
+                           own code, full name and class type + the one sentence).
+                           Built in HtmlBuilder, so both tables speak the same line. */
+                        if (cell.tip) { td.setAttribute('data-tip', cell.tip); }
                         td.innerHTML = cell.html;
                         row.appendChild(td);
                     });

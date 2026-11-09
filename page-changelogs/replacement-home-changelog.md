@@ -1,3 +1,17 @@
+## 2026-11-09 (user brief) — the COURSE column: shorter label, richer hover text
+
+Same lane as Request Approval: the column is now **`COURSE`** (was `COURSE CODE & NAME`), and hovering
+a row's course cell shows that row's own subject:
+
+```
+AMSE1003, Software Engineering (L) — Subject or Course affected by the conflict
+```
+
+The cell's visible text, the sort field and the row-click pop-up are unchanged; only the hover text is
+new, composed by the shared `UiLabels.courseTip` (one sentence, one em dash, the class type in the
+`(L)` form the cell already prints). See `request-approval-changelog.md`, same date, for the full
+record and the receipt.
+
 ## 2026-11-08 (user request) — a subject with no real name reads "Subject AMSE2003"
 
 Four seeded modules store their code as the name — **AMSE2002, AMSE2003, AMSE2013, MPU-2302**

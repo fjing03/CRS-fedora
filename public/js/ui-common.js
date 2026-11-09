@@ -2554,6 +2554,20 @@ const UiLabels = {
         if (form === 'canonical') return long + ' (' + type + ')';
         return long;
     },
+
+    /* ───── The Course column's hover text (user brief 2026-11-09) ─────
+       Shape: `CODE, Full Course Name (L)` + em dash + `courseTipSubject`.
+       ONE place: both page headers ask `courseTipSubject` and both row builders ask
+       `courseTip(...)`, so the wording (and the em-dash shape) can never drift page
+       to page. Codes and names come from the row's own data; the class type uses
+       the `(L)` code form — the same shape the cell itself prints. */
+    courseTipSubject: 'Subject or Course affected by the conflict',
+    courseTip(code, name, type) {
+        const head = [String(code == null ? '' : code).trim(), String(name == null ? '' : name).trim()]
+            .filter(Boolean).join(', ');
+        const kind = type ? ' (' + this.classType(type, 'code') + ')' : '';
+        return (head || 'Course') + kind + ' \u2014 ' + this.courseTipSubject;
+    },
 };
 
 // ───── Backward-compatible global aliases (delegate to DateHelper) ─────
@@ -2788,7 +2802,10 @@ class HtmlBuilder {
                 {
                     html: '<span class="cell-code">' + c.code + '</span>' +
                         '<span class="cell-name">' + c.name + ' <span class="cell-type-label">(' + typeLabel + ')</span></span>',
-                    cls: 'col-code'
+                    cls: 'col-code',
+                    /* the hover text: the row's real code, full name and class type
+                       (see UiLabels.courseTip — the page applies it as data-tip) */
+                    tip: UiLabels.courseTip(c.code, c.name, c.type)
                 },
                 { html: opts.cohortsCell ? opts.cohortsCell(c) : c.cohorts.join('<br>'), cls: 'col-cohort' },
                 { html: opts.formatClassBlock(c), cls: 'col-original' },

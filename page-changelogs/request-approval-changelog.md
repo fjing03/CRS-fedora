@@ -1,3 +1,36 @@
+## 2026-11-09 (user brief) — the COURSE column: shorter label, richer hover text
+
+The column was `COURSE CODE & NAME` with the hover text "Course affected by the conflict". It is now
+**`COURSE`**, and its hover text names the actual row:
+
+```
+AMSE2003, Software Testing and Quality Assurance (T) — Subject or Course affected by the conflict
+```
+
+- **The header label** loses the two-part promise (the cell already prints both) on Request Approval
+  and on My Replacements — the table on both pages, one rename.
+- **The hover text** is composed from the row's own data: the subject code, the full course name from
+  the module record, and the class type — `(L)` / `(T)` / `(P)`, the same code form the cell prints.
+  Request Approval's cell needed nothing new in the payload (`courseCode` / `courseName` / `classType`
+  were already on every row); My Replacements' shared row builder passes `code` / `name` / `type`.
+- **The description after the em dash is the user's own sentence**, "Subject or Course affected by the
+  conflict" (their wording, 2026-11-09), and it lives in exactly one place —
+  `UiLabels.courseTipSubject` in `ui-common.js` — with `UiLabels.courseTip(code, name, type)` composing
+  the whole line. Both page headers ask the same constant, so the two tables cannot drift apart.
+- **Nothing else moves**: sorting on the column still works (the field is unchanged), the search/filter
+  haystack is untouched, and no booking, badge or modal logic was touched.
+
+Measured on the demo data (staff 5425): both pages read `COURSE`, the header hover prints the sentence,
+and row hovers print e.g. `AMSE1003, Software Engineering (L) — Subject or Course affected by the
+conflict` and `AMSE2003, Software Testing and Quality Assurance (T) — …` (the T row proves the type is
+the row's own). Sorting re-orders, the search filters 3 → 1 → 3 (Request Approval) and 4 → 2 → 4 (My
+Replacements), zero console errors.
+
+Receipt: `tests/Feature/CourseColumnTipTest.php` — 4/4 source invariants (both labels renamed, both
+headers take the shared constant, both row builders compose the tip from real data, and the sentence
+appears once in the stylesheet's JS). **Red-check:** restoring the old label + static tip fails 3 of 4.
+`pint` passed, `phpstan` 0, `view:cache` OK.
+
 ## 2026-11-07 (night) — Proposed tab first, and the class type in the title
 
 User brief *Modal Tab Order & Class Type Display*, parts 1 + 2 (display-only; SDD waived).
