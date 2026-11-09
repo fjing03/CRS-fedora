@@ -1,3 +1,10 @@
+## 2026-11-09 (same day, addendum) — the COURSE cell loses its hover text
+
+Same removal as Request Approval: the column is explained on its header only, and the row cells carry no
+hover text. `replacementHomeRow` no longer emits a tip. `venueLine()` / `durationWords()` moved to
+`ui-common.js` in the same pass — the student Replacement History now prints the identical slot block, so
+the two formatters live in one place instead of a second copy.
+
 ## 2026-11-09 (user brief) — the COURSE column: shorter label, richer hover text
 
 Same lane as Request Approval: the column is now **`COURSE`** (was `COURSE CODE & NAME`), and hovering

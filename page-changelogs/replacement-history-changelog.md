@@ -1,3 +1,55 @@
+## 2026-11-09 (user brief "Student Side UI Update") — the student history joins the staff table
+
+Fourteen grill rulings, all from the user the same day. The page now speaks the staff My Replacements
+table's language while keeping the student's own permissions (view only, no actions, no cohort column).
+
+**Table:** six columns, in the user's order — `COURSE` · `LECTURER` · `ORIGINAL SLOT` · `CONFLICT
+REASON` · `REQUESTED SLOT` · `REQUEST STATUS`. The row-number `#` column is gone (it lied as soon as
+you sorted), `SUBJECT` became `COURSE` (two-line cell: code, then name with `(L)`; hover explained
+once on the header, not repeated per cell), `NEW SLOT` became `REQUESTED SLOT`, and `STATUS` became
+`REQUEST STATUS`.
+
+**Both slot columns** print the staff 4-line block: day, date and academic week → the countdown →
+time with duration → venue icon and code. The countdown follows the staff law exactly: the ORIGINAL
+slot always carries one (the class is what still needs a slot); the REQUESTED slot carries one only
+while the request is PENDING — once decided, a past slot would read "Overdue" for a replacement that
+already happened. Urgency is the shared working-day calendar, holidays included.
+
+**CONFLICT REASON** is the CLASS's cause, computed with the staff page's own rule (exception reason
+title-cased, `official_event` on a holiday occurrence reading as the holiday). **A student never sees
+the leave type**: a calendar holiday keeps its real name (`Public Holiday — Deepavali Holiday (In
+Lieu)`), every other exception reads the bare `Class Cancelled` (user ruling — "Medical Leave" is the
+staff member's private business). No cause at all prints an em dash, never a guess.
+
+**PENDING rows now show the slot they asked for** (was `Awaiting PL approval`). The request holds a
+real slot, and the PL's approval confirms THAT slot rather than choosing a new one — so the column
+prints it, with the Pending badge still saying it is unconfirmed. The pop-up's slot tab follows.
+
+**REQUEST STATUS** uses the staff badge design and the staff's long labels, server-built: `Pending —
+Waiting for Approval`, `Approved`, `Completed — 1 day ago`. The student-only `Replacement` word and
+the extra `Past` chip are gone. `COMPLETED` is the derived status — the requested DATE has passed —
+so badge, filter and summary can never disagree.
+
+**Toolbar:** `Show Past` became the staff's `Exclude COMPLETED Status` (ON by default, same tip, same
+remembered state; an old saved `showPast` migrates). The page gained the Active Filters bar the
+student side never had, naming the requested-replacement week and that toggle. The All-Weeks option
+reads `All Requested Replacement Weeks` because that is the date the filter keys on.
+
+**Cards:** the mobile card keeps its anatomy but STACKS the two slots (each is 4 lines now) and adds
+the conflict reason; the summary card `Past` is `Completed`, counted by the same date rule.
+
+**Parked by ruling (not bugs):** cancelled/rejected requests stay off this page (2026-11-08 ruling);
+the staff toolbar's search, status filter, result count, reset and rows-per-page stay on the staff
+page (§8 report only). SDD exploration findings are reported separately.
+
+Receipts: `ReplacementHistoryRowTest` rewritten — 6/6 (the class's own week/day/time; the requested
+run's true span; a pending row now ships its slot; completed derived from the requested date with the
+clock frozen; a holiday named; a leave type never reaching the student). New
+`StudentReplacementHistoryParityTest` — 7/7 source invariants (column order, no `#`, the staff toggle,
+the All-Weeks wording, the Completed card, the `status-*` badge, the countdown gate, the guarded
+reason). Browser: both demo students on desktop and 390 px, zero console errors; hours card, chips,
+week chip and pop-up verified.
+
 ## 2026-11-08 (Student-side health check S7, user's option A) — the page opens on All Weeks
 
 The week filter used to open on the **current** week, and it hides every other week. A student whose

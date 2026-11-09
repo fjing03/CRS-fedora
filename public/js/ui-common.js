@@ -2591,6 +2591,25 @@ function venueTypeWording(rawType) {
     return phrases[rawType] || '';   // unknown → blank
 }
 
+/* ───── Course / venue / duration cell vocabulary (2026-11-09) ─────
+   Both replacement tables (staff My Replacements + student Replacement History)
+   print the same slot block, so these two formatters moved here from the staff
+   page — one wording, one markup, no second copy. `venueLine` keeps the house
+   house icon; an empty code renders nothing (a slot with no room says nothing
+   rather than inventing one). */
+function venueLine(code, name) {
+    if (!code) return '';
+    var label = name ? code + ' \u2014 ' + name : code;
+    return '<span class="cell-sub"><svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18"/><path d="M5 21V7l7-4 7 4v14"/><path d="M9 21v-6h6v6"/></svg>' + label + '</span>';
+}
+
+function durationWords(hours) {
+    if (!hours) return '';
+    if (hours === 1) return '1 hour';
+    if (Number.isInteger(hours)) return hours + ' hours';
+    return (hours * 60) + ' minutes';
+}
+
 /* Human label for an event's run-status — the hover-tooltip suffix on every
    timetable page ("· Normal / Pending / …"). A public-holiday day outranks
    the event's own status (its class won't run for a different reason). */
@@ -2802,10 +2821,7 @@ class HtmlBuilder {
                 {
                     html: '<span class="cell-code">' + c.code + '</span>' +
                         '<span class="cell-name">' + c.name + ' <span class="cell-type-label">(' + typeLabel + ')</span></span>',
-                    cls: 'col-code',
-                    /* the hover text: the row's real code, full name and class type
-                       (see UiLabels.courseTip — the page applies it as data-tip) */
-                    tip: UiLabels.courseTip(c.code, c.name, c.type)
+                    cls: 'col-code'
                 },
                 { html: opts.cohortsCell ? opts.cohortsCell(c) : c.cohorts.join('<br>'), cls: 'col-cohort' },
                 { html: opts.formatClassBlock(c), cls: 'col-original' },

@@ -639,11 +639,9 @@
             } else {
                 html += '<td>' + r.lecturer + '</td>';
             }
-            /* 2026-11-09 (user): the COLUMN is renamed Course; its hover text carries
-               the row's real code, full course name and class type plus the one
-               description sentence (UiLabels.courseTip — shared with My Replacements). */
-            html += '<td data-tip="' + escHtml(UiLabels.courseTip(r.courseCode, r.courseName, r.classType)) + '">'
-                + '<div class="cell-code">' + r.courseCode + '</div><div class="cell-name">' + r.courseName + '</div></td>';
+            /* 2026-11-09 (user, same day, second look): the CELL carries no hover
+               text — the column is explained once, on its header. */
+            html += '<td><div class="cell-code">' + r.courseCode + '</div><div class="cell-name">' + r.courseName + '</div></td>';
             /* 1b: one compact cohort code per line (`RSD3(S1)G2`), never a joined blob —
                the modal prints the same codes joined with ' + '. */
             var cohortCodes = (r.cohorts || []).map(compactCohort);

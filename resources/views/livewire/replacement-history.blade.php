@@ -62,20 +62,33 @@
             font-weight: 700;
             color: var(--color-on-surface);
         }
+        /* 2026-11-09 (grill Q13=A): the two slots are now full 4-line blocks
+           (date / countdown / time+duration / venue), so the card STACKS them
+           instead of squeezing them side by side with an arrow. */
         .upcoming-card-slots {
             display: flex;
-            align-items: center;
-            gap: 6px;
-            margin-bottom: 4px;
+            flex-direction: column;
+            gap: 10px;
+            margin-bottom: 8px;
             font-size: 12px;
             color: var(--color-on-surface);
+        }
+        .slot-label {
+            display: block;
+            font-size: 10px;
+            font-weight: 700;
+            letter-spacing: 0.4px;
+            text-transform: uppercase;
+            color: var(--color-on-surface-variant);
+            margin-bottom: 2px;
+        }
+        .upcoming-card-reason {
+            font-size: 12px;
+            margin-bottom: 6px;
         }
         .upcoming-card-lect {
             font-size: 12px;
             color: var(--color-on-surface-variant);
-        }
-        .slot-arrow {
-            color: var(--color-primary);
         }
         .upcoming-card.past {
             border: 1px solid var(--color-outline);
@@ -110,15 +123,20 @@
         <!-- ─── Page Header ─── -->
         @include('partials.ui-page-header', ['title' => 'Replacement History', 'descriptionHtml' => '<span class="info-keyword">Replacement classes</span> confirmed or pending for your cohort.', 'chips' => $cohortLabel !== null ? [['label' => $cohortLabel]] : []]) {{-- BRIDGE PATCH: cohort chip is per-user data --}}
 
-        <!-- ─── Toolbar: week navigation + show-past toggle ─── -->
+        <!-- ─── Toolbar: week navigation + the staff's COMPLETED toggle ───
+             2026-11-09 (user): this is My Replacements' control, same words, same
+             default (ON = completed requests are excluded from the list). A
+             replacement counts as COMPLETED once its requested DATE has passed,
+             which is the derived status the badge above it prints. ─── -->
         <div class="toolbar">
             @include('partials.ui-week-nav', ['prevOnclick' => 'prevWeekFilter()', 'nextOnclick' => 'nextWeekFilter()', 'selectId' => 'weekFilter', 'selectOnclick' => "weekFilterChanged({onRebuild: renderUpcoming})", 'showTodayBtn' => true])
-            <label class="toggle-wrapper" data-tip="Show replacement classes from weeks that have already passed">
-                <input type="checkbox" id="showPast">
+            <label class="toggle-wrapper" id="completedToggle" data-tip="ON = completed requests are excluded from the list">
+                <input type="checkbox" id="hideCompleted" checked>
                 <span class="toggle-track"><span class="toggle-thumb"></span></span>
-                <span class="toggle-label">Show Past</span>
+                <span class="toggle-label">Exclude <span class="info-keyword">COMPLETED</span> Status</span>
             </label>
         </div>
+        <div class="filter-chips" id="filterChips"></div>
 
         <!-- ─── Replacement list — desktop: shared table (JS renders rows); mobile: cards ─── -->
         @include('partials.ui-grid-table', ['wrapperId' => 'upcomingGridWrapper', 'tableId' => 'upcomingTable', 'headId' => 'upcomingHead', 'bodyId' => 'upcomingBody', 'tableClass' => 'timetable data-table'])
@@ -132,7 +150,7 @@
             ['class' => 'card-total', 'valueId' => 'sumTotal', 'label' => 'Total', 'description' => 'Replacement classes affecting <span class="info-keyword">your cohort</span> in the selected view.'],
             ['class' => 'card-replacement', 'valueId' => 'sumUpcoming', 'label' => 'Upcoming', 'description' => 'Confirmed replacement classes <span class="info-keyword">still ahead</span> of you — check the New Slot column for when and where.'],
             ['class' => 'card-pending', 'valueId' => 'sumPending', 'label' => 'Pending', 'description' => 'Replacement requests still <span class="warn-keyword">waiting for PL approval</span> for your cohort.'],
-            ['class' => 'card-hours', 'valueId' => 'sumPast', 'label' => 'Past', 'description' => 'Confirmed replacements that have <span class="info-keyword">already taken place</span> — enable Show Past to see them.'],
+            ['class' => 'card-hours', 'valueId' => 'sumCompleted', 'label' => 'Completed', 'description' => 'Replacements that have <span class="info-keyword">already taken place</span> — the same date rule the badge and the COMPLETED toggle use; switch the toggle off to see them.'],
             ['class' => 'card-hours', 'valueId' => 'sumHours', 'label' => 'Hours', 'description' => 'Total <span class="info-keyword">hours</span> of replaced classes in the selected view (each slot = <strong>30 minutes</strong>).'],
         ] ])
 
@@ -167,43 +185,103 @@
             try {
                 localStorage.setItem(VIEW_KEY, JSON.stringify({
                     week: document.getElementById('weekFilter').value,
-                    showPast: document.getElementById('showPast').checked,
+                    excludeCompleted: document.getElementById('hideCompleted').checked,
                 }));
             } catch (e) { /* storage unavailable — non-fatal */ }
         }
 
-        // ─── Shared slot formatter (list + modal):
-        // ─── Week 14 · Fri, 30 Oct 2026, 12:00 PM to 1:30 PM (1.5 hrs) @ B103
-        function fmtSlot(weekDays, week, di, start, end, time, venue, withWeek) {
-            const d = weekDays[week].days[di];
-            const h = (end - start + 1) * 0.5; // 30-min index space
-            const t12 = time.split('–').map(s => to12h(s.trim())).join(' ~ ');
-            return (withWeek ? 'Week ' + (week + 1) + ' · ' : '') +
-                d.abbr + ', ' + d.date + ', ' + t12 +
-                ' (' + (h === 1 ? '1 hr' : h + ' hrs') + ') @ ' + venue;
+        /* ── The two slot columns print the STAFF block (2026-11-09):
+                 Tue, 3 Nov 2026 (Week 7)
+                 Overdue (3 Working Days Ago)      ← the countdown line
+                 2:00 PM ~ 4:00 PM (2 hours)
+                 [house icon] B009
+              Urgency is the shared working-day law (the WorkingHours calendar,
+              holidays included — `workingDaysDiff`), never calendar days.
+
+              Which column carries the countdown (user, grill Q3=A — the staff
+              page's rule): the ORIGINAL slot always does, because the class is
+              the thing that still needs a new slot; the REQUESTED slot only while
+              the request is PENDING, because once it is decided a past slot would
+              read "Overdue" for a replacement that has already taken place. */
+        function slotBlock(slot, withCountdown) {
+            if (!slot) return '<span class="cell-dash">\u2014</span>';
+            const weekTag = slot.week ? ' (Week ' + slot.week + ')' : '';
+            let countdown = '';
+            if (withCountdown) {
+                const days = workingDaysDiff(slot.date);
+                countdown = '<br><span class="' + urgencyBandClass(days) + '">' + daysLeftLabel(days) + '</span>';
+            }
+            return '<div class="cell-class-block">' +
+                '<span class="class-day-date">' + dayAbbr(slot.day) + ', ' + formatDate(slot.date) + weekTag + '</span>' + countdown +
+                '<br><span class="class-time">' + to12h(slot.start) + ' ~ ' + to12h(slot.end) + '</span> ' +
+                '<span class="class-duration">(' + durationWords(slot.duration) + ')</span>' +
+                '<br>' + venueLine(slot.venue) + '</div>';
+        }
+
+        /* The staff two-line COURSE cell: code on its own line, then the full
+           name with the class type in small type. No hover text (user ruling). */
+        function courseCell(r) {
+            return '<span class="cell-code">' + r.code + '</span>' +
+                '<span class="cell-name">' + r.name + ' <span class="cell-type-label">(' + r.type + ')</span></span>';
+        }
+
+        /* CONFLICT REASON — the CLASS's own cause. A calendar holiday keeps its
+           real name; every other exception reads the bare "Class Cancelled"
+           (user ruling, grill Q1=B: a student never sees the staff member's leave
+           type). No cause at all prints an em dash rather than a guess. */
+        function reasonCell(r) {
+            if (!r.conflictKind) return '<span class="cell-dash">\u2014</span>';
+            const text = r.conflictKind === 'Public Holiday'
+                ? 'Public Holiday \u2014 ' + (r.holidayName || 'Semester holiday')
+                : 'Class Cancelled';
+            const cls = r.conflictKind === 'Public Holiday' ? 'badge-holiday' : 'badge-reason';
+            return '<span class="badge ' + cls + '">' + text + '</span>';
+        }
+
+        /* REQUEST STATUS — the staff badge (class + server label). The student
+           row only ever reaches pending / approved / completed. */
+        function statusCell(r) {
+            const tip = String(r.statusTip || '').replace(/"/g, '&quot;');
+            return '<span class="badge status-' + r.status + '" data-tip="' + tip + '">' + r.statusLabel + '</span>';
+        }
+
+        /* "Requested 12:25 PM, 4 Nov 2026" — the modal's one line about the ask */
+        function requestedAtLine(r) {
+            return r.requestedAt ? 'Requested ' + r.requestedAt : '';
         }
 
         /* ── R-2 (round-3): sortable columns — shared makeSortableHeader house
            pattern (cf. request-approval / my-request-history). Null field =
            the natural chronological order below; sort state is session-only
            (the VIEW_KEY persists week/past filters, not the sort). ── */
+        /* 2026-11-09 (user brief "Student Side UI Update", six rulings on this
+           list): the student table now mirrors the staff one —
+             COURSE · LECTURER · ORIGINAL SLOT · CONFLICT REASON · REQUESTED SLOT ·
+             REQUEST STATUS
+           The row-number `#` column is gone (it lied as soon as you sorted), the
+           `New Slot` column is the `Requested Slot`, and the reason sits between
+           the two slots the way the staff table orders them. The COURSE column's
+           hover text is explained ONCE, on its header (the cell already prints
+           code, name and type — a per-cell tip only repeated it). */
         const columns = [
-            { label: '#', sortable: false, tip: 'Row number' },
-            { label: 'Subject', sortable: true, field: 'subject', tip: 'Course code and name' },
-            { label: 'Original Slot', sortable: true, field: 'originalSlot', tip: 'Week, day and time of the class being replaced' },
-            { label: 'New Slot', sortable: true, field: 'newSlot', tip: 'Proposed replacement slot — rows awaiting PL approval sort last' },
+            { label: 'Course', sortable: true, field: 'course', tip: UiLabels.courseTipSubject },
             { label: 'Lecturer', sortable: true, field: 'lecturer', tip: 'Lecturer handling the replacement' },
-            { label: 'Status', sortable: true, field: 'status', tip: 'Pending first, then confirmed — nearest slot breaks ties' },
+            { label: 'Original Slot', sortable: true, field: 'originalSlot', tip: 'Week, day and time of the class being replaced' },
+            { label: 'Conflict Reason', sortable: true, field: 'reason', tip: 'Why this class cannot run as timetabled' },
+            { label: 'Requested Slot', sortable: true, field: 'requestedSlot', tip: 'The new slot proposed for this class' },
+            { label: 'Request Status', sortable: true, field: 'status', tip: 'Pending first, then approved, then completed' },
         ];
         let sortState = { field: null, dir: 'asc' };
 
         const sortKeys = {
-            subject: r => r.code + ' ' + r.name,
-            originalSlot: r => [r.originalWeek, r.di, r.start],
-            /* awaiting-PL rows have no replacement yet — they sort last (both directions) */
-            newSlot: r => (r.newDay ? [r.week, r.newDi, r.newStart] : null),
+            course: r => r.code + ' ' + r.name,
             lecturer: r => r.lecturer || '',
-            status: r => (r.status === 'pending' ? 0 : 1),
+            originalSlot: r => [r.orig.week, r.orig.date, r.orig.start],
+            reason: r => (r.conflictKind || ''),
+            requestedSlot: r => (r.req ? [r.req.date, r.req.start] : null),
+            /* the derived status order, not the alphabet — and the same rank the
+               staff table uses (pending → approved → completed) */
+            status: r => ({ pending: 0, approved: 1, completed: 2 })[r.status],
         };
 
         function applySort(visible, all) {
@@ -235,31 +313,51 @@
             });
         }
 
+        /* ── The Active Filters bar (2026-11-09): the student page had none. It
+              names the two filters this page owns, in the same voice as the staff
+              page's bar ("Requested Replacement Week: …", "Exclude COMPLETED
+              Status"), and each chip removes its own filter. ── */
+        function renderChips() {
+            const container = document.getElementById('filterChips');
+            if (!container) return;
+            const chips = [];
+            const sel = document.getElementById('weekFilter');
+            if (sel.value !== 'all' && sel.selectedOptions[0]) {
+                chips.push('<span class="filter-chip">Requested Replacement Week: ' + sel.selectedOptions[0].textContent +
+                    '<button class="filter-chip-remove" data-tip="Remove" onclick="document.getElementById(\'weekFilter\').value=\'all\';document.getElementById(\'weekFilter\').dispatchEvent(new Event(\'change\'));">&times;</button></span>');
+            }
+            if (document.getElementById('hideCompleted').checked) {
+                chips.push('<span class="filter-chip">Exclude COMPLETED Status' +
+                    '<button class="filter-chip-remove" data-tip="Remove" onclick="document.getElementById(\'hideCompleted\').checked=false;saveView();renderUpcoming();">&times;</button></span>');
+            }
+            container.innerHTML = chips.length > 0 ? '<span class="filter-chips-label">Active Filters:</span>' + chips.join('') : '';
+        }
+
         function renderUpcoming() {
             // AD-2: select values are 1-based strings; dataset weeks are 0-based.
-            // 'all' = All Weeks option (page-side addition; shared helpers are
-            // selectedIndex-based so they stay NaN-safe).
+            // 'all' = the All Requested Replacement Weeks option (shared helpers
+            // are selectedIndex-based, so they stay NaN-safe).
             const all = document.getElementById('weekFilter').value === 'all';
             const w0 = all ? null : parseInt(document.getElementById('weekFilter').value, 10) - 1;
-            const cur = currentWeekIndex();
-            const showPast = document.getElementById('showPast').checked;
+            /* 2026-11-09 (grill Q5=A): COMPLETED is the derived status, exactly as
+               the badge prints it — an approved request whose requested DATE has
+               passed. The filter and the badge therefore can never disagree. */
+            const hideCompleted = document.getElementById('hideCompleted').checked;
 
             // AD-5: MockData is read-only — slice() before filtering
             const visible = MockData.replacementHistory.slice()
-                .filter(r => (all || r.week === w0) && (r.week >= cur || showPast));
+                .filter(r => (all || r.week === w0) && !(hideCompleted && r.status === 'completed'));
 
-            // AD-11: summary counts from the SAME visible predicate
-            // Upcoming = confirmed (replacement) & week >= current; Past = confirmed & already taken
-            document.getElementById('sumTotal').textContent    = visible.length;
-            document.getElementById('sumUpcoming').textContent = visible.filter(r => r.status === 'replacement' && r.week >= cur).length;
-            document.getElementById('sumPending').textContent  = visible.filter(r => r.status === 'pending').length;
-            document.getElementById('sumPast').textContent     = visible.filter(r => r.status === 'replacement' && r.week < cur).length;
-            document.getElementById('sumHours').textContent    = visible.reduce((s, r) => s + (r.end - r.start + 1) * 0.5, 0);
+            // AD-11: the summary counts come from the SAME visible predicate
+            document.getElementById('sumTotal').textContent     = visible.length;
+            document.getElementById('sumUpcoming').textContent  = visible.filter(r => r.status === 'approved').length;
+            document.getElementById('sumPending').textContent   = visible.filter(r => r.status === 'pending').length;
+            document.getElementById('sumCompleted').textContent = visible.filter(r => r.status === 'completed').length;
+            document.getElementById('sumHours').textContent     = visible.reduce((s, r) => s + (r.orig.duration || 0), 0);
 
             applySort(visible, all);
 
-            // ── Desktop table (shared .timetable/.data-table house pattern, cf. my-request-history) ──
-            const weekDays = generateWeekData(); // one build per render; rows index into it
+            // ── Desktop table (shared .timetable/.data-table house pattern) ──
             const head = document.getElementById('upcomingHead');
             const body = document.getElementById('upcomingBody');
             head.innerHTML = '';
@@ -270,48 +368,36 @@
                 }));
             });
             head.appendChild(htr);
-            body.innerHTML = visible.map((r, i) => {
-                const past = r.week < cur;
-                const tip = r.status === 'replacement'
-                    ? 'Confirmed — attend the new slot shown'
-                    : 'Awaiting PL approval — the new slot is not confirmed yet';
-                const origSlot = fmtSlot(weekDays, r.originalWeek, r.di, r.start, r.end, r.originalTime, r.originalVenue, true);
-                const newSlot = r.newDay ? fmtSlot(weekDays, r.week, r.newDi, r.newStart, r.newEnd, r.newTime, r.newVenue, true) : 'Awaiting PL approval';
+            /* Six cells, the user's order. The requested slot's countdown rides
+               only a PENDING request (slotBlock's second argument). */
+            body.innerHTML = visible.map(r => {
+                const pending = r.status === 'pending';
                 return '<tr role="button" tabindex="0" data-id="' + r.id + '">' +
-                    '<td>' + (i + 1) + '</td>' +
-                    '<td class="col-code">' + r.code + ' · ' + r.name + ' (' + r.type + ')</td>' +
-                    '<td>' + origSlot + '</td>' +
-                    '<td>' + newSlot + '</td>' +
-                    '<td>' + r.lecturer + '</td>' +
-                    '<td class="col-status">' +
-                        '<span class="badge badge-' + r.status + '" data-tip="' + tip + '">' + (r.status === 'replacement' ? 'Replacement' : 'Pending') + '</span>' +
-                        (past ? ' <span class="badge badge-past" data-tip="This replacement has already taken place">Past</span>' : '') +
-                    '</td>' +
+                    '<td class="col-code">' + courseCell(r) + '</td>' +
+                    '<td class="col-lecturer">' + r.lecturer + '</td>' +
+                    '<td>' + slotBlock(r.orig, true) + '</td>' +
+                    '<td class="col-reason">' + reasonCell(r) + '</td>' +
+                    '<td>' + slotBlock(r.req, pending) + '</td>' +
+                    '<td class="col-status">' + statusCell(r) + '</td>' +
                 '</tr>';
             }).join('');
             document.getElementById('upcomingGridWrapper').style.display = visible.length === 0 ? 'none' : '';
 
-            // ── Mobile cards (same rows, card anatomy; week chip carries the week digit) ──
+            // ── Mobile cards: same facts, slots STACKED (2026-11-09 grill Q13=A) ──
             const list = document.getElementById('upcomingList');
             list.innerHTML = visible.map(r => {
-                const past = r.week < cur;
-                const tip = r.status === 'replacement'
-                    ? 'Confirmed — attend the new slot shown'
-                    : 'Awaiting PL approval — the new slot is not confirmed yet';
-                const origSlot = fmtSlot(weekDays, r.originalWeek, r.di, r.start, r.end, r.originalTime, r.originalVenue, false);
-                const newSlot = r.newDay ? fmtSlot(weekDays, r.week, r.newDi, r.newStart, r.newEnd, r.newTime, r.newVenue, false) : 'Awaiting PL approval';
-                return '<div class="upcoming-card' + (past ? ' past' : '') + '" role="button" tabindex="0" data-id="' + r.id + '">' +
+                const pending = r.status === 'pending';
+                return '<div class="upcoming-card' + (r.status === 'completed' ? ' past' : '') + '" role="button" tabindex="0" data-id="' + r.id + '">' +
                     '<div class="upcoming-card-head">' +
                         '<span class="upcoming-card-wk">' + (r.week + 1) + '</span>' +
-                        '<span class="upcoming-card-code">' + r.code + ' · ' + r.name + ' (' + r.type + ')</span>' +
-                        '<span class="badge badge-' + r.status + '" data-tip="' + tip + '">' + (r.status === 'replacement' ? 'Replacement' : 'Pending') + '</span>' +
-                        (past ? '<span class="badge badge-past" data-tip="This replacement has already taken place">Past</span>' : '') +
+                        '<span class="upcoming-card-code">' + r.code + ' \u00b7 ' + r.name + ' (' + r.type + ')</span>' +
+                        statusCell(r) +
                     '</div>' +
                     '<div class="upcoming-card-slots">' +
-                        origSlot +
-                        '<span class="slot-arrow">→</span>' +
-                        newSlot +
+                        '<div class="slot-block"><span class="slot-label">Original Slot</span>' + slotBlock(r.orig, true) + '</div>' +
+                        '<div class="slot-block"><span class="slot-label">Requested Slot</span>' + slotBlock(r.req, pending) + '</div>' +
                     '</div>' +
+                    '<div class="upcoming-card-reason"><span class="slot-label">Conflict Reason</span>' + reasonCell(r) + '</div>' +
                     '<div class="upcoming-card-lect">' + r.lecturer + '</div>' +
                 '</div>';
             }).join('');
@@ -320,83 +406,64 @@
             if (emptyState) emptyState.style.display = visible.length === 0 ? 'flex' : 'none';
             // Nothing to summarize when the view is empty — cf. my-request-history
             syncSummarySection(visible.length > 0);
+            renderChips();
         }
 
         function openReplacementModal(id) {
             const r = MockData.replacementHistory.find(x => x.id === id);
             if (!r) return;
             const pending = r.status === 'pending';
-            const flagsTuple = (MockData.cohortTimetable.rsd3g2Flags[r.week] || [])
-                .find(f => f[0] === r.code && f[1] === r.status);
-            const weekDays = generateWeekData();
-            const past = r.week < currentWeekIndex();
 
-            // AD-6: same default the grid fabricates
-            const requestedAt = pending ? ((flagsTuple && flagsTuple[3]) || '01 Sep 2026, 09:15 AM') : undefined;
-
-            // Holiday remap — parity with the grid (shared openClassModal behavior):
-            // pending rows whose ORIGINAL day is a holiday show a red Conflict badge.
-            const day = weekDays[r.week].days[pending ? r.di : r.newDi];
-            const conflict = day && day.holiday;
-            const statusBadge = '<span class="badge badge-' + (conflict ? 'conflict' : r.status) + '">' +
-                (conflict ? 'Conflict' : (r.status === 'replacement' ? 'Replacement' : 'Pending')) + '</span>';
-
-            // Slot facts as ONE ROW EACH (data-label / data-value list) — modal-style:
-            //   Week 10 · Day Friday · Date 02 Oct 2026 · Time … · Duration … · Venue …
-            const slotRows = (week, di, start, end, time, venue, fullDay) => {
-                const d = weekDays[week].days[di];
-                // Duration as "x hours y minutes" (30-min grid → minutes are 0 or 30; zero parts omitted)
-                const mins = (end - start + 1) * 30;
+            /* Slot facts as ONE ROW EACH (data-label / data-value list) — the same
+               six facts the table block prints, from the same primitive shape. */
+            const slotRows = (slot) => {
+                if (!slot) return [];
+                const mins = slot.duration * 60;
                 const hh = Math.floor(mins / 60);
                 const mm = mins % 60;
                 const dur = (hh ? hh + ' hour' + (hh === 1 ? '' : 's') + (mm ? ' ' : '') : '') +
                             (mm ? mm + ' minutes' : '');
+                const days = workingDaysDiff(slot.date);
                 return [
-                    { label: 'Week', value: String(week + 1) },
-                    { label: 'Day', value: fullDay },
-                    { label: 'Date', value: d.date },
-                    { label: 'Time', value: time.split('–').map(s => to12h(s.trim())).join(' ~ ') },
+                    { label: 'Week', value: String(slot.week) },
+                    { label: 'Day', value: slot.day },
+                    { label: 'Date', value: formatDate(slot.date) },
+                    { label: 'Countdown', value: '<span class="' + urgencyBandClass(days) + '">' + daysLeftLabel(days) + '</span>' },
+                    { label: 'Time', value: to12h(slot.start) + ' ~ ' + to12h(slot.end) },
                     { label: 'Duration', value: dur },
-                    { label: 'Venue', value: venue },
+                    { label: 'Venue', value: slot.venue || '\u2014' },
                 ];
             };
 
+            /* 2026-11-09 (grill Q2=A): the REQUESTED SLOT tab now always prints the
+               real slot — a pending request holds one, and the PL's approval
+               confirms that same slot instead of choosing a new one. The Pending
+               badge keeps saying what it is: not confirmed yet. */
             openClassModal({
                 title: r.code + ' — Replacement',
                 subtitle: r.name,
                 modalId: 'classModal',
                 // Grouped layout (§10.0 rule 6 — tidy categories instead of a flat wall)
                 groups: [
-                    { heading: 'Class', rows: [
-                        { label: 'Subject Code', value: r.code },
-                        { label: 'Subject Name', value: r.name },
+                    { heading: 'Course', rows: [
+                        { label: 'Course Code', value: r.code },
+                        { label: 'Course Name', value: r.name },
                         { label: 'Class Type', value: UiLabels.classType(r.type, 'canonical') },
                         { label: 'Lecturer', value: r.lecturer },
                     ]},
-                    { heading: 'Original Slot', rows: slotRows(r.originalWeek, r.di, r.start, r.end, r.originalTime, r.originalVenue, r.originalDay) },
-                    { heading: 'New Slot', rows: r.newDay
-                        ? slotRows(r.week, r.newDi, r.newStart, r.newEnd, r.newTime, r.newVenue, r.newDay)
-                        : [{ label: 'Status', value: 'Awaiting PL approval <span class="detail-value--muted">— the Programme Leader (PL) has not confirmed this replacement; the new slot is not decided yet</span>' }] },
-                    { heading: 'Status', rows: [
-                        { label: 'Status', value: statusBadge },
-                        ...(past ? [{ label: 'Status Note', value: 'This replacement has already taken place.' }] : []),
-                        ...(pending ? [{ label: 'Requested At', value: requestedAt }] : []),
-                        ...(r.requestedAt ? [{ label: 'Remarks', value: 'Requested ' + r.requestedAt }] : []),
+                    { heading: 'Original Slot', rows: slotRows(r.orig) },
+                    { heading: 'Conflict Reason', rows: [
+                        { label: 'Reason', value: r.conflictKind === 'Public Holiday'
+                            ? 'Public Holiday \u2014 ' + (r.holidayName || 'Semester holiday')
+                            : (r.conflictKind || '\u2014') },
+                    ]},
+                    { heading: 'Requested Slot', rows: slotRows(r.req) },
+                    { heading: 'Request Status', rows: [
+                        { label: 'Status', value: statusCell(r) },
+                        ...(r.status === 'completed' ? [{ label: 'Status Note', value: 'This replacement has already taken place.' }] : []),
+                        ...(requestedAtLine(r) ? [{ label: 'Request', value: requestedAtLine(r) }] : []),
                     ]},
                 ],
-                // TIMELINE TEMPORARILY REMOVED (2026-11-02, user's word) —
-                // the rail's "Submitted" time was the hardcoded fallback
-                // '01 Sep 2026, 09:15 AM': the backend deliberately ships an
-                // empty rsd3g2Flags map (ReplacementHistory.php:59), so the
-                // mock lookup at :329 never resolves. Showing a fake date is
-                // worse than showing no rail. The real fix (one dynamic
-                // timeline, driven by submitted_at/decided_at) is parked as
-                // prompts/extra tasks/task-02-replacement-history-timeline.md.
-                // timeline: pending ? [
-                //     { label: 'Submitted', time: requestedAt || 'Done', state: 'completed' },
-                //     { label: 'Under Review', time: 'In progress', state: 'active', dot: 'dot-warning' },
-                //     { label: 'Awaiting Replacement', time: 'Next', state: 'pending' },
-                // ] : null,
                 // NOTE: no requestId — AD-12 (no View Full Request on list modals)
             });
         }
@@ -429,7 +496,10 @@
                (one approved in week 8, one pending in week 9). "Show past" still
                starts off, so the list stays short, and the Today button + the
                week arrows still narrow it to one week on demand. */
-            populateWeekSelect('weekFilter', { selected: 'all', includeAll: true });
+            /* 2026-11-09 (§6): the filter keys on the REQUESTED REPLACEMENT week
+               (r.week), not the original class week — so the option says so, in the
+               same words Request Approval uses. */
+            populateWeekSelect('weekFilter', { selected: 'all', includeAll: true, allLabel: 'All Requested Replacement Weeks' });
 
             // Restore persisted view (a first visit opens on All Weeks)
             (function() {
@@ -451,11 +521,15 @@
                 if (saved.week && (saved.week === 'all' || sel.querySelector('option[value="' + saved.week + '"]'))) {
                     sel.value = saved.week;
                 }
-                if (saved.showPast) document.getElementById('showPast').checked = true;
+                /* the staff control replaces this page's old "Show past": the two
+                   are inverses, so a saved showPast:true means "do not exclude". */
+                if (saved.excludeCompleted === false || saved.showPast === true) {
+                    document.getElementById('hideCompleted').checked = false;
+                }
             })();
             updateWeekArrowState();
 
-            document.getElementById('showPast').addEventListener('change', function() {
+            document.getElementById('hideCompleted').addEventListener('change', function() {
                 saveView();
                 renderUpcoming();
             });

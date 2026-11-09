@@ -1,3 +1,11 @@
+## 2026-11-09 (same day, addendum) — the COURSE cell loses its hover text
+
+The pass above put the row's own code, full name and class type on every cell. The user removed it the
+same day: the column is explained **once, on its header** ("Subject or Course affected by the conflict"),
+and the cells carry no hover at all — the cell already prints code and name, so the tip only repeated
+itself. `UiLabels.courseTip()` is gone; `UiLabels.courseTipSubject` (the header sentence) stays.
+`CourseColumnTipTest` was rewritten to assert the absence, so a future pass cannot quietly add it back.
+
 ## 2026-11-09 (user brief) — the COURSE column: shorter label, richer hover text
 
 The column was `COURSE CODE & NAME` with the hover text "Course affected by the conflict". It is now

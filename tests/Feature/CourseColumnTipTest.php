@@ -5,21 +5,21 @@ namespace Tests\Feature;
 use Tests\TestCase;
 
 /**
- * 2026-11-09 (user brief) — the COURSE column on Request Approval and My
- * Replacements.
+ * 2026-11-09 (user briefs, same day, two passes) — the COURSE column on Request
+ * Approval and My Replacements.
  *
- * Two laws:
+ * The laws as they now stand:
  *  1. the header label is `Course` (it was `Course Code & Name`, a label that
  *     promised two things the cell already shows);
- *  2. its hover text carries the row's REAL course code, full course name and
- *     class type, then the one description sentence:
- *     `AMSE2003, Software Testing and Quality Assurance (L) — Subject or Course
- *     affected by the conflict`.
+ *  2. the column is explained ONCE, on its header: `Subject or Course affected by
+ *     the conflict`;
+ *  3. the CELLS carry NO hover text. The first pass put the row's own code, full
+ *     name and class type on every cell; the user removed it the same day — the
+ *     cell already prints code and name, so the hover only repeated itself.
  *
  * The sentence lives in ONE place (`UiLabels.courseTipSubject`), so the two pages
- * cannot drift apart, and both row builders must ask it rather than re-typing it.
- * Source invariants: the tables are built in the browser, so there is no server
- * HTML to assert against — no database, no browser needed here.
+ * cannot drift apart. Source invariants: the tables are built in the browser, so
+ * there is no server HTML to assert against — no database, no browser needed here.
  */
 class CourseColumnTipTest extends TestCase
 {
@@ -32,24 +32,26 @@ class CourseColumnTipTest extends TestCase
 
     public function test_both_pages_label_the_column_course(): void
     {
-        $approval = $this->source('resources/views/livewire/request-approval.blade.php');
-        $home = $this->source('resources/views/livewire/replacement-home.blade.php');
+        foreach ([
+            'resources/views/livewire/request-approval.blade.php',
+            'resources/views/livewire/replacement-home.blade.php',
+        ] as $path) {
+            $src = $this->source($path);
 
-        foreach (['Request Approval' => $approval, 'My Replacements' => $home] as $page => $src) {
             $this->assertMatchesRegularExpression(
                 "/label:\s*'Course',/",
                 $src,
-                $page.' must label the column Course',
+                basename($path).' must label the column Course',
             );
             $this->assertStringNotContainsString(
                 'Course Code &amp; Name',
                 $src,
-                $page.' still carries the old two-part label',
+                basename($path).' still carries the old two-part label',
             );
             $this->assertStringNotContainsString(
                 "label: 'Course Code & Name'",
                 $src,
-                $page.' still carries the old two-part label',
+                basename($path).' still carries the old two-part label',
             );
         }
     }
@@ -75,31 +77,40 @@ class CourseColumnTipTest extends TestCase
         }
     }
 
-    public function test_both_row_builders_ask_the_shared_tip(): void
+    public function test_the_course_cells_carry_no_hover_text(): void
     {
-        // Request Approval composes its own cell (page-local), keyed on the mapper's
-        // `courseCode` / `courseName` / `classType` keys.
+        // Request Approval composes the cell in the page; only the header may carry a tip.
         $approval = $this->source('resources/views/livewire/request-approval.blade.php');
-        $this->assertMatchesRegularExpression(
-            '/data-tip="\'\s*\+\s*escHtml\(UiLabels\.courseTip\(r\.courseCode, r\.courseName, r\.classType\)\)/',
+        $this->assertStringNotContainsString(
+            'UiLabels.courseTip(',
             $approval,
-            'the Request Approval course cell must carry the shared tip built from the row\'s own data',
+            'Request Approval: the row cell must not build a hover text — the header explains the column',
         );
-
-        // My Replacements' cell comes from the shared builder, which must emit the tip
-        // key; the page then applies it to the cell.
-        $js = $this->source('public/js/ui-common.js');
-        $this->assertStringContainsString(
-            'tip: UiLabels.courseTip(c.code, c.name, c.type)',
-            $js,
-            'replacementHomeRow must emit the course tip for the merged table',
-        );
-
-        $home = $this->source('resources/views/livewire/replacement-home.blade.php');
         $this->assertMatchesRegularExpression(
-            "/if \(cell\.tip\) \{ td\.setAttribute\('data-tip', cell\.tip\); \}/",
+            '/html \+= \'<td><div class="cell-code">\' \+ r\.courseCode/',
+            $approval,
+            'Request Approval: the course cell must stay a plain <td> with no data-tip',
+        );
+
+        // My Replacements' cell comes from the shared builder, which must emit no tip key.
+        $js = $this->source('public/js/ui-common.js');
+        $this->assertStringNotContainsString(
+            'tip: UiLabels.courseTip(',
+            $js,
+            'replacementHomeRow must not attach a course tip to the merged table cell',
+        );
+        $this->assertMatchesRegularExpression(
+            "/cls: 'col-code'\s*\n\s*\},/",
+            $js,
+            'replacementHomeRow: the course cell ends at its class — no tip key',
+        );
+
+        // and nothing applies cell tips on the My Replacements row anymore
+        $home = $this->source('resources/views/livewire/replacement-home.blade.php');
+        $this->assertStringNotContainsString(
+            "td.setAttribute('data-tip'",
             $home,
-            'the My Replacements row loop must put the cell tip on the <td>',
+            'the My Replacements row loop must not look for a per-cell tip',
         );
     }
 
@@ -116,18 +127,6 @@ class CourseColumnTipTest extends TestCase
             "courseTipSubject: '".self::SENTENCE."',",
             $js,
             'UiLabels.courseTipSubject is the one home of the description sentence',
-        );
-
-        // the shape: `code, name (Type)` then an em dash then the sentence
-        $this->assertStringContainsString(
-            "' (' + this.classType(type, 'code') + ')'",
-            $js,
-            'the tip must print the class type in the (L)/(T)/(P) form the cells use',
-        );
-        $this->assertStringContainsString(
-            "' \\u2014 ' + this.courseTipSubject",
-            $js,
-            'code+name+type and the description must be joined by an em dash',
         );
     }
 }

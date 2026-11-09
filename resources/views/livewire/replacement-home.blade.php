@@ -412,18 +412,9 @@
             return '<span class="badge ' + badgeClass(c.conflictReason) + '">' + reasonText(c) + '</span>';
         }
 
-        function venueLine(code, name) {
-            if (!code) return '';
-            var label = name ? code + ' \u2014 ' + name : code;
-            return '<span class="cell-sub"><svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18"/><path d="M5 21V7l7-4 7 4v14"/><path d="M9 21v-6h6v6"/></svg>' + label + '</span>';
-        }
-
-        function durationWords(hours) {
-            if (!hours) return '';
-            if (hours === 1) return '1 hour';
-            if (Number.isInteger(hours)) return hours + ' hours';
-            return (hours * 60) + ' minutes';
-        }
+        /* venueLine / durationWords now live in ui-common.js (2026-11-09): the
+           student Replacement History prints the same slot block, so the two
+           formatters moved to the shared file instead of being copied again. */
 
         function rangeHours(range) {
             if (!range) return 0;
@@ -728,10 +719,6 @@
                     cells.forEach(function (cell) {
                         const td = document.createElement('td');
                         td.className = cell.cls;
-                        /* 2026-11-09 (user): the Course cell's hover text (the row's
-                           own code, full name and class type + the one sentence).
-                           Built in HtmlBuilder, so both tables speak the same line. */
-                        if (cell.tip) { td.setAttribute('data-tip', cell.tip); }
                         td.innerHTML = cell.html;
                         row.appendChild(td);
                     });

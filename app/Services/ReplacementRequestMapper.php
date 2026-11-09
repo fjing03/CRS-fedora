@@ -232,6 +232,27 @@ final class ReplacementRequestMapper
             return $status === 'pending' && $plPendingTail !== null ? $tip."\n".$plPendingTail : $tip;
         }
 
+        /* 2026-11-09 (student-side UI update, grill Q4=B): the student history
+           prints the SAME labels as the staff table, so it needs a tip in a voice
+           that is not the proposer's — a student never submitted the request, and
+           "Your request" would be a lie on their page. The labels stay identical;
+           only the voice changes. */
+        if ($audience === 'student') {
+            $tip = match ($status) {
+                null => 'No request has been made for this class yet.',
+                'pending' => "This class's replacement has been REQUESTED and is AWAITING the Programme Leader's decision (Approve or Reject).",
+                'approved' => 'The Programme Leader has APPROVED the requested replacement — attend the requested slot.',
+                'rejected' => 'The Programme Leader has REJECTED the requested replacement.',
+                'cancelled' => 'The replacement request was CANCELLED — the class still needs arranging.',
+                'completed' => 'The replacement class has been CONDUCTED — this request is complete.',
+                default => '',
+            };
+
+            return $status === 'pending' && $deadline !== null
+                ? $tip."\n".'If the Programme Leader does not decide by '.$deadline.', this request is Automatically Rejected.'
+                : $tip;
+        }
+
         $tip = match ($status) {
             null => 'No request has been made for this class yet — it still needs arranging.',
             'pending' => "Your request has been Submitted and is AWAITING the Programme Leader's decision (Approve or Reject).",
