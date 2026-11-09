@@ -100,6 +100,30 @@ these archives are filesystem-only and were never committed.
 | `Organise Notification Row Hover Tooltips.md` | Grilled first (eight decisions answered: G1 students, G2 the `awaiting` reminder, G3 the proposer's own copy, G4=B one `Original Class Schedule:` label, G5 `approver_id IS NULL` = automatic, G6=A holiday-first reason, G7 the user's date/time/ID formats, and (b) `Automatically Rejected by System`) and then shipped in `e113618` + docs `0ee9808`. One composer, `App\Support\Notifications\NotificationTip` (+ `App\Support\ClassTypeLabel`), now gives **all eight live kinds** the same label set, order and formats — including student rows and the PL reminder, which the brief had not covered. Recorded in `page-changelogs/notifications-panel-changelog.md` (2026-11-06 entry). Receipts: `NotificationsBridgeTest` 36/36 (8 new tip cases), full PHPUnit **394 / 2093**, `notifications-island.spec.ts` 10/10 and `notifications-island-testing-db.spec.ts` 6/6 on the browser; live hover screenshot `/tmp/opencode/notif-tip-hover.png` |
 | `Auto-Reject Pending Requests.md` | Shipped the same day as the rule itself: `65188bd` (the 3-working-hour rule — `App\Support\WorkingHours`, `App\Actions\AutoRejectRequest`, `PendingRequestExpiry`, `php artisan requests:auto-reject --dry-run` scheduled every 5 min, never a write-on-read) + docs `0694fa5`, then the deadline copy moved on to the Pending badge's tooltip (`fc7bfe4`: *Auto-Reject Rule: … AUTOMATICALLY REJECTED*) and the notification tips took over the lecturer's pending line. Recorded in `page-changelogs/status-tooltips-filter-chips-changelog.md` (2026-11-06). Receipts: `WorkingHoursTest` 7, `AutoRejectPendingRequestsTest` 10, full PHPUnit green (394 / 2093 at the time of archiving) |
 
+## Contents (archived 2026-11-09, backlog sweep)
+
+Thirty-six finished SDD lanes whose code had already shipped were moved out of
+`.sdd/changes/` so that folder only shows work still open. Nothing here changes behaviour —
+every lane's artifacts (`proposal.md`, `design.md`, `tasks.md`, `review-log.md`, the
+explore brief where one exists) travelled intact to `.sdd/archive/2026-11-09-<lane>/`, and in
+every one of them the task list was already fully ticked.
+
+| Area | Lanes |
+|---|---|
+| Notifications | `notif-new-request-ux` · `notif-unified-feed` · `notifications-real-bridge` · `notif-actor-pl-dedupe` · `notif-ad2-pagekey-tab` · `notif-click-highlight` · `notif-abstime-precision` · `notif-jump-flash-family` · `notif-ghost-retract-strip` · `notif-inactive-hide-sender` |
+| Timetable & classes | `holiday-occurrence-badge` · `occupied-cell-explanations` · `cancelled-blocks-stay-visible` · `class-cancel-db-persist` · `class-cancel-2-working-day-window` · `class-modal-affordances` · `conflict-schedule-header-status-tip` |
+| Booking / arrangement | `venue-slot-validation` · `venue-c2-toast-noise` · `venue-intent-banner-kind` · `venue-intent-ghost-success-spot` · `selection-budget-original-duration` · `selection-wipe-spares-holder-tips` · `slot-cancel-restores-session-anchor` · `makeup-busy-vector` · `rearrangement-toolbar-tooltips` |
+| Tables, filters, statuses | `status-tooltips-filter-chips` · `filter-clear-all-off` · `ra-result-count-showing-of` · `summary-card-click-navigate` · `submission-conflict-modal-refresh` |
+| Access, platform, data | `login-access-403` · `local-calendar-rules` · `b005-diploma-allowed` · `mock-statics-die` · `pagelivewire-wire-call-shape` |
+
+**Left in `.sdd/changes/` on purpose:** `arrangement-week-keep-on-subject-switch` (implemented and
+verified, but its code is still uncommitted — it cannot be archived before that) and
+`cohort-venue-replace-now` (status `explore`, five tasks still open, never implemented).
+
+Each archived lane carries its own evidence: the proposal says why, the design says how, the tasks record
+the receipts, and the review log records every review round. Their user-facing changelog entries live in
+`page-changelogs/`, and their commits are in the branch history.
+
 ## Contents (archived 2026-11-09)
 
 | Prompt | Why it counts as finished |
