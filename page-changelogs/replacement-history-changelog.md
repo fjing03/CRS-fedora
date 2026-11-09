@@ -1,3 +1,9 @@
+**Follow-up the same day (the H1 the rename missed):** the tab title, the nav label and the address
+were renamed in `758a7bc`, but the on-page `<h1 class="page-title">` comes from a different line — the
+`ui-page-header` include's `title` argument — and it kept saying "Replacement History" on both addresses.
+It now reads **Class Replacements**, and `StudentReplacementHistoryParityTest` pins that include line so the
+three names cannot drift apart again.
+
 ## 2026-11-09 (SDD `student-class-replacements`) — the page lists conflicted CLASSES, and is now "Class Replacements"
 
 **User brief:** "New Idea — Student Replacement History Redesign". Eight grilling rulings, all the

@@ -143,6 +143,13 @@ class StudentReplacementHistoryParityTest extends TestCase
         $this->assertStringContainsString("'/student-class-replacements' => [", $routes);
         $this->assertStringContainsString("'/replacement-history-ui' => [", $routes, 'the old address stays alive');
         $this->assertStringContainsString("'label'=>'Class Replacements'", $nav);
+
+        /* the on-page H1 comes from the page-header partial's `title` argument — a
+           different line from the tab title and the nav label, and the one the
+           2026-11-09 rename missed. */
+        $page = $this->pageSource();
+        $this->assertStringContainsString("@include('partials.ui-page-header', ['title' => 'Class Replacements'", $page);
+        $this->assertStringNotContainsString("'title' => 'Replacement History'", $page);
         $this->assertStringContainsString("'href'=>'/student-class-replacements'", $nav);
     }
 }
