@@ -1,3 +1,44 @@
+## 2026-11-08 (SDD `arrangement-week-keep-on-subject-switch`) — switching subject no longer throws away the week you are reading
+
+**The bug (user brief 2026-11-07).** Changing the **Subject** dropdown jumped the **Week** dropdown to
+the new subject's first clashing class — measured: open for AMSE1003 (lands Week 8), browse to
+**Week 12**, switch to AMSE2003 → the page jumped to **Week 14**. The jump lived in
+`applySubjectChange()`'s post-boot auto-nav.
+
+**The rule now.** On a subject switch the week **stays** when that week is bookable for the new subject —
+the date rule (not Sunday, not a holiday, not inside the 3-working-day window) **and** at least one free
+cell in the room the page settles on (the pinned class's own room). Otherwise it moves to the
+**earliest bookable** week. If nothing is bookable it stays put and says nothing.
+
+**Unchanged on purpose** (eight grilling decisions, D1–D8 in the SDD lane): the earliest clash is still
+auto-pinned, the slot box still names it, it is still auto-ticked, the venue still syncs to that class's
+room, and every other week-jump path keeps its own law — pinned arrivals (`?session=` still lands on the
+earliest bookable week), booking intents (`?venue&date&time`), the saved-block restore, the arrows, the
+dropdown, and the "Earliest bookable" button.
+
+**The free-cell test mirrors the grid exactly.** "Free" is the *absence* of an occupancy row: the page's
+slot map is a TAKEN register (`venueSlotsByWeekPayload()` emits rows only for occupied/pending
+`time_slots`), so the predicate walks the 6 × 22 span with the same gates the grid paints with
+(`venueEligible`, `blockedVenues`, busy vectors, `isSlotTooSoon`, Sunday/holiday). The date rule is
+evaluated first and is never fail-open, so a payload glitch can never keep a week the selector hides.
+
+Measured after: same route, Week 12 kept, slot box still naming `Week 14 · Dec 24, 2026 · 9:00 AM ~ 11:00 AM`,
+venue synced to B100, zero console errors (`/tmp/opencode/t3-week-kept.png`).
+
+**Two honest notes.** (1) The week can now move *backwards* on the miss path (kept week unbookable →
+earliest bookable) — that follows D5 by ruling, not a regression. (2) `window.__switchWeek` is a
+read-only receipt/debug surface (house pattern: `window.classifyCell`), not page UI.
+
+Receipts: `tests/arrangement-conflict-autoselect.spec.ts` rewritten — **10/10 green twice** (3 auth setup
++ 7 tests), zero fixture residue (statuses back to 34677 available / 3963 occupied). The six proposal
+criteria each have a witness: kept week + pin (AC1/AC6), unbookable kept week → earliest (AC2), the walk
+skipping a filled clash week (AC3), nothing bookable → `why:'none'` (AC4), the kept week holding the
+subject's own clash → `why:'kept'` (AC5). Two fixture helpers reserve a whole room-week with `pending`
+rows (inserted rows version 999, flipped rows 998, both released in `afterEach`). **Red-check:** restoring
+the old jump fails the main test at the "week stays" assertion. Also: the picker row's time separator is
+` - ` (the strip's is ` ~ `) — the old assertion was stale and now accepts either. pint passed, phpstan 0,
+`view:cache` OK, targeted PHPUnit 49/49.
+
 ## 2026-11-07 (later) — the legend keeps five rows and groups the rest into "Others Conflict"
 
 User: keep **Available**, **Your Current Selection**, **Your Pending**, **Other Pending**,

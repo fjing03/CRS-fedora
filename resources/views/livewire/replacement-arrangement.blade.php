@@ -3638,22 +3638,32 @@ ${(fallbackAttribution && intentReason === 'in-the-way')
                 : 'Select a slot to replace';
             applySlotTip(firstConflictRow || null); /* same conditional: real slot -> full tip, else cleared */
 
-            /* the AUTO-NAV (the user's “choose the first conflicted slot for
-               me”): jump the grid to the occurrence's week; the strip's
-               anchor already names it (the trigger note above). The grid's
-               own buildTimetable runs right after this function's tail.
-               session-arrival-pin-guard T6 (user decision B, 2026-10-20):
-               the same __bootDone conjunct as the auto-pin — pre-boot
-               arrivals keep the grid standing on the PINNED week (the
-               pinned occurrence is already in front of the user; the
-               earliest-conflict jump could land/persist a different week
-               than the pin says); POST-boot subject switches still
-               auto-navigate byte-identically. */
+            /* THE WEEK DECISION (was: the auto-nav jump — the user's
+               “choose the first conflicted slot for me”). The strip's anchor
+               still names the pinned class (the trigger note above) and the
+               grid's own buildTimetable runs right after this function's tail;
+               only the WEEK is now decided by decideSwitchWeek().
+               session-arrival-pin-guard T6 (user decision B, 2026-10-20) still
+               holds through the same __bootDone conjunct: pre-boot arrivals
+               never run this block at all, so the pinned week stands.
+               arrangement-week-keep-on-subject-switch (2026-11-08) replaces the
+               old "jump to the occurrence's week" — see the comment below. */
+            /* arrangement-week-keep-on-subject-switch (user brief 2026-11-07,
+               decided 2026-11-08): the week NO LONGER jumps to the clash week.
+               It stays on the week the selector shows when that week is
+               bookable for the newly selected subject (the date rule AND at
+               least one free cell in the settled room), else it moves to the
+               earliest bookable week; when nothing is bookable it stays put and
+               says nothing (D5/D6). The auto-pin, the slot-box label, the
+               venue sync and the tail's auto-commit are untouched (D1). */
             if (firstConflictRow && window.__bootDone && typeof weekNav !== 'undefined') {
-                weekNav.selectWeek(firstConflictRow.week);
-                currentWeek = weekNav.currentWeek;
-                window.currentWeek = currentWeek;
-                saveCurrentWeek();
+                const switchTarget = decideSwitchWeek(firstConflictRow);
+                if (switchTarget.week !== weekNav.currentWeek) {
+                    weekNav.selectWeek(switchTarget.week);
+                    currentWeek = weekNav.currentWeek;
+                    window.currentWeek = currentWeek;
+                    saveCurrentWeek();
+                }
             }
             renderTitleSummary();
             buildVenueFilter();
@@ -3778,6 +3788,73 @@ ${(fallbackAttribution && intentReason === 'in-the-way')
             if (!venueMatrixAllows(ctx.type, v.rawRoomType, v.code, ctx.code, cohortCodes)) return false;
             var capOk = v.capacity >= (ctx.studentCount || 0);   // the engine-side rule, mirrored client-side as always
             return capOk;
+        }
+
+        /* ── arrangement-week-keep-on-subject-switch ─────────────────────────
+           "Bookable for THIS subject" = the existing DATE rule (not Sunday, not
+           a holiday, not inside the 3-working-day window) AND at least one free
+           half-hour in the room the page settles on (the pinned occurrence's own
+           room). The page's slot map is a TAKEN register —
+           venueSlotsByWeekPayload() emits rows ONLY for occupied/pending
+           time_slots — so a half-hour with NO row is a free cell, exactly where
+           the grid's classifyState() paints .cell-available. */
+        function weekBookableForSubject(weekIdx, row) {
+            /* the date rule is NEVER fail-open: a payload glitch must not keep a
+               week the week selector itself hides (D5) */
+            if (!weekHasBookableSlot(weekData, weekIdx)) return false;
+
+            try {
+                if (!row || !currentCourse) return true;   // free-cell half fails open
+                const roomCode = row.venue;
+                const venueRecord = (MockData.venues || []).find(v => v.code === roomCode);
+                const ctx = courseCtx();
+                if (!roomCode || !venueRecord || !ctx || !window.__ruleMap) return true;
+
+                /* the room cannot host this occurrence at all → no free cell */
+                if ((MockData.blockedVenues || {})[String(row.sessionId)]
+                    && MockData.blockedVenues[String(row.sessionId)].indexOf(roomCode) !== -1) return false;
+                if (!venueEligible(venueRecord, ctx)) return false;
+
+                /* this room's TAKEN half-hours for the week, as a day:hour set */
+                const taken = {};
+                const roomRows = ((MockData.venueSlots || {})[weekIdx] || {})[roomCode] || [];
+                roomRows.forEach(r => { taken[r[0] + ':' + r[1]] = true; });
+
+                const busyRanges = ((MockData.busyByWeek || {})[String(row.sessionId)] || {})[weekIdx] || [];
+                const days = (weekData[weekIdx] || {}).days || [];
+
+                for (let d = 0; d < days.length; d++) {
+                    const day = days[d];
+                    if (!day || day.sunday || day.abbr === 'Sun' || day.holiday) continue;
+                    if (isSlotTooSoon(weekData, weekIdx, d)) continue;
+                    for (let h = 0; h < hours.length; h++) {
+                        if (taken[d + ':' + h]) continue;
+                        if (busyRanges.some(b => b[0] === d && h >= b[1] && h < b[2])) continue;
+                        return true;   // a cell the grid would paint green
+                    }
+                }
+                return false;
+            } catch (e) {
+                return true;           // missing/broken payload → keep the week
+            }
+        }
+
+        /* the earliest week bookable for this subject, or null when none is */
+        function firstBookableWeekForSubject(row) {
+            const weeks = (weekNav && weekNav._semester && weekNav._semester.weeks) || (weekData || []).length;
+            for (let w = 0; w < weeks; w++) {
+                if (weekBookableForSubject(w, row)) return w;
+            }
+            return null;
+        }
+
+        /* the decision (design §3): keep / earliest / silent stay */
+        function decideSwitchWeek(row) {
+            const kept = weekNav ? weekNav.currentWeek : 0;
+            if (weekBookableForSubject(kept, row)) return { week: kept, why: 'kept' };
+            const earliest = firstBookableWeekForSubject(row);
+            if (earliest !== null) return { week: earliest, why: 'earliest' };
+            return { week: kept, why: 'none' };      // D6: silent stay
         }
 
         function buildVenueFilter() {
@@ -4528,6 +4605,16 @@ triggerText.textContent = slotTriggerLabel(slot);
                hook (venueDropdown + currentVenue are closure-scoped; this
                mirrors the page's __fillVenueChips/__rDebug probe surfaces). */
             window.__venueSelected = function () { return venueDropdown ? venueDropdown.getSelected() : null; };
+
+            /* arrangement-week-keep-on-subject-switch: read-only receipt/debug
+               surface (house pattern: window.classifyCell, __venueSelected). The
+               Playwright receipt drives the decision through it; it is NOT page
+               UI and must never write state. */
+            window.__switchWeek = {
+                bookable: weekBookableForSubject,
+                earliest: firstBookableWeekForSubject,
+                decide: decideSwitchWeek,
+            };
             /* Subject tooltip (SDD rearrangement-toolbar-tooltips): mirrors the
                current selection's code + full name; fail-open — no selection,
                no tip (replaces the old syncSubjectTip guide-text empty state) */
