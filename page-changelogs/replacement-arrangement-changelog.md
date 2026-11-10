@@ -1,3 +1,30 @@
+## 2026-11-10 (later) — the selected-slot card: four icon rows, one typography
+
+The selected-slot card carried wide/differently-styled lines: venue (13 px/700), week (14 px/600), date
+(11 px, 70 % opacity), time+slots (12 px/500). It is now four icon rows, in the user's order, all at
+ONE size, weight and colour:
+
+    1  B111                       ← hover tooltip: `Lecture Hall (80 seats)`
+    2  W8, Fri, 13 Nov 2026
+    3  10:00 AM ~ 12:00 PM
+    4  4 slots (2 Hours)
+
+`Week 8` prints as `W8`, "Day, date" collapsed onto the week row, and the slot count + hours sit on
+their own row instead of trailing the time. Icons: map-pin / calendar / clock / hourglass, 13 px.
+
+The tooltip reuses the one venue wording — `ModalFacts.roomName(code, name)` (new, extracted from
+`ModalFacts.venue`) strips the copy of the code the DB name carries, so the tip reads
+`Lecture Hall (80 seats)`, never `Lecture Hall B111 (80 seats)`. The tip is only on the venue row;
+the rest of the card keeps its "Click to Go to This Selected Slot on the Timetable" tip.
+
+`.card-venue/.card-day/.card-date/.card-time` are replaced by one `.card-row` rule (12 px/500, 11 px
+on a phone); the card's × remove button, click-to-navigate, keyboard handler, draft save and every
+selection rule are untouched.
+
+Measured on a live 4-slot selection: rows exactly `["B111", "W8, Fri, 13 Nov 2026", "10:00 AM ~
+12:00 PM", "4 slots (2 Hours)"]`, every row 12 px / 500 / same colour, each with its icon, and the
+venue tooltip reads `Lecture Hall (80 seats)`.
+
 ## 2026-11-10 — Code cleanup: no venue favourite star; the occupied tooltip STAYS
 
 Two decisions on the user's word.

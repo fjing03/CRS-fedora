@@ -2635,18 +2635,23 @@ var ModalFacts = {
        The code LEADS, the room's own name loses the copy of the code it carries
        (every room in this dataset does: "Tutorial Room B002", "Computer Lab B005"),
        and the seat count is optional — only the venue page asks for it. */
-    venue(code, name, seats) {
+    /* the room's own name, with the copy of its code removed — every room in this
+       dataset carries one ("Tutorial Room B002" → "Tutorial Room"). Used by the
+       Venue row above and by the arrangement page's selected-slot card tooltip. */
+    roomName(code, name) {
         var c = String(code == null ? '' : code).trim();
         var n = String(name == null ? '' : name).trim();
+        if (!n || !c) return n;
+        var esc = c.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        return n.replace(new RegExp('\\s*[\\u2013\\u2014-]?\\s*' + esc, 'ig'), ' ')
+                .replace(/\s+/g, ' ')
+                .replace(/^[\s\u2013\u2014-]+|[\s\u2013\u2014-]+$/g, '');
+    },
+
+    venue(code, name, seats) {
+        var c = String(code == null ? '' : code).trim();
+        var n = this.roomName(c, name);
         if (!c) return n || '\u2014';
-        if (n) {
-            /* drop the code wherever the name carries it, then tidy the seam
-               ("Tutorial Room B002" → "Tutorial Room", "B002" → "") */
-            var esc = c.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-            n = n.replace(new RegExp('\\s*[\\u2013\\u2014-]?\\s*' + esc, 'ig'), ' ')
-                 .replace(/\s+/g, ' ')
-                 .replace(/^[\s\u2013\u2014-]+|[\s\u2013\u2014-]+$/g, '');
-        }
         var base = n ? c + ' \u2014 ' + n : c;
         var seatsN = Number(seats);
         if (seats != null && isFinite(seatsN) && seatsN > 0) {

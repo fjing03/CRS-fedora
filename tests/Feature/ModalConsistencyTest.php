@@ -147,14 +147,19 @@ class ModalConsistencyTest extends TestCase
     public function test_one_venue_wording_leads_with_the_code_and_never_repeats_it(): void
     {
         $js = $this->read('public/js/ui-common.js');
-        $start = strpos($js, 'venue(code, name, seats) {');
-        $this->assertNotFalse($start, 'venue() takes an optional seat count');
-        $block = substr($js, $start, 1100);
-
-        $this->assertStringContainsString("var base = n ? c + ' \\u2014 ' + n : c;", $block,
-            'the code leads, the em dash joins it to the trimmed name');
+        $start = strpos($js, 'roomName(code, name) {');
+        $this->assertNotFalse($start, 'roomName() is the one code-stripper');
+        $block = substr($js, $start, 900);
         $this->assertStringContainsString("n.replace(new RegExp('\\\\s*[\\\\u2013\\\\u2014-]?\\\\s*' + esc, 'ig'), ' ')", $block,
             'the name loses the copy of the code it carries');
+
+        $start2 = strpos($js, 'venue(code, name, seats) {');
+        $this->assertNotFalse($start2, 'venue() takes an optional seat count');
+        $block2 = substr($js, $start2, 700);
+        $this->assertStringContainsString('var n = this.roomName(c, name);', $block2,
+            'venue() reuses roomName — one stripper, not two');
+        $this->assertStringContainsString("var base = n ? c + ' \\u2014 ' + n : c;", $block2,
+            'the code leads, the em dash joins it to the trimmed name');
         $this->assertStringContainsString("seatsN === 1 ? ' seat' : ' seats'", $block, 'one seat reads in the singular');
         $this->assertStringContainsString('window.ModalFacts ? ModalFacts.venue(code, name)', $js,
             'venueLine delegates to the one formulation');

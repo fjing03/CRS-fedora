@@ -666,25 +666,23 @@
         }
 
 
-        .card-venue {
-            font-size: 13px;
-            font-weight: 700;
-            margin-bottom: 2px;
-        }
-        .card-day {
-            font-size: 14px;
-            font-weight: 600;
-            margin-bottom: 2px;
-        }
-        .card-date {
-            font-size: 11px;
-            opacity: 0.7;
-            margin-bottom: 6px;
-        }
-        .card-time {
+        /* 2026-11-10 (user, "UI Update 1 — Selected Summary Card"): FOUR rows in a
+           fixed order — Venue / Week & Date / Time / Duration — each with its own
+           icon and ALL of them at one size, one weight, one colour. The old four
+           classes had 13/14/11/12 px and 700/600/—/500 weights, so the card read as
+           three different things. */
+        .card-row {
+            display: flex;
+            align-items: center;
+            gap: 6px;
             font-size: 12px;
             font-weight: 500;
+            line-height: 1.5;
+            color: inherit;
         }
+        .card-row + .card-row { margin-top: 1px; }
+        .card-row svg { flex: 0 0 auto; opacity: 0.85; }
+        .card-row .card-row-text { min-width: 0; }
 
         .card-remove {
             position: absolute;
@@ -827,10 +825,7 @@
             .sel-summary-card {
                 padding: 10px 12px;
             }
-            .card-venue { font-size: 12px; }
-            .card-day { font-size: 13px; }
-            .card-date { font-size: 10px; margin-bottom: 4px; }
-            .card-time { font-size: 11px; }
+            .card-row { font-size: 11px; }
             .theme-toggle { display: none; }
 
             /* Compact timetable grid on mobile — overrides theme.css card-block layout */
@@ -1371,6 +1366,20 @@
             }
         }
 
+        /* UI Update 1 (user, 2026-11-10): the venue row's hover tooltip is the room's
+           NAME plus its seats — `Tutorial Room (35 seats)` — never the code twice
+           (ModalFacts.roomName strips the copy the DB name already carries). */
+        function summaryVenueTip(code) {
+            var v = (MockData.venues || []).find(function (x) { return x.code === code; });
+            if (!v) return '';
+            var name = window.ModalFacts ? ModalFacts.roomName(code, v.name) : (v.name || '');
+            var cap = Number(v.capacity);
+            var seats = (v.capacity != null && isFinite(cap) && cap > 0)
+                ? ' (' + cap + (cap === 1 ? ' seat' : ' seats') + ')'
+                : '';
+            return (name || '') + seats;
+        }
+
         function updateSelectionSummary() {
             /* multi-week model: the panel lists EVERY saved selection (any week),
                matching the Submit dialog and the enabled Submit button */
@@ -1448,12 +1457,27 @@
                     if (e.target.closest && e.target.closest('.card-remove')) return;
                     navigateToSavedBlock(b.venue, b.weekIdx, b);
                 });
+                /* UI Update 1 (user, 2026-11-10) — the exact order + wording:
+                     1  B111                       (tooltip: Tutorial Room (35 seats))
+                     2  W8, Sat, 14 Nov 2026
+                     3  12:00 PM ~ 2:00 PM
+                     4  4 slots (2 Hours)                                          */
+                const icons = {
+                    venue: '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0z"/><circle cx="12" cy="10" r="3"/></svg>',
+                    week: '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>',
+                    time: '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>',
+                    duration: '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 2h12M6 22h12M8 2v4a4 4 0 0 0 8 0V2M8 22v-4a4 4 0 0 1 8 0v4"/></svg>'
+                };
+                /* "Week 8" → "W8"; the date already arrives as `14 Nov 2026` */
+                const weekShort = String(b.weekLabel).replace(/^Week\s*/i, 'W');
+                const venueTip = summaryVenueTip(b.venue);
+                const venueTipAttr = venueTip ? ' data-tip="' + String(venueTip).replace(/"/g, '&quot;') + '"' : '';
                 card.innerHTML = `
                     <button class="card-remove" onclick="removeSavedBlock('${b.venue}', ${b.weekIdx})" data-tip="Remove this Selection — Action cannot be UNDONE" aria-label="Remove">×</button>
-                    <div class="card-venue">${b.venue}</div>
-                    <div class="card-day">${b.weekLabel} · ${b.day.abbr}</div>
-                    <div class="card-date">${b.day.date}</div>
-                    <div class="card-time">${to12h(startStr)} ~ ${to12h(endDisplay)} · ${b.slotCount} slots (${durLabel})</div>
+                    <div class="card-row"${venueTipAttr}>${icons.venue}<span class="card-row-text">${b.venue}</span></div>
+                    <div class="card-row">${icons.week}<span class="card-row-text">${weekShort}, ${b.day.abbr}, ${b.day.date}</span></div>
+                    <div class="card-row">${icons.time}<span class="card-row-text">${to12h(startStr)} ~ ${to12h(endDisplay)}</span></div>
+                    <div class="card-row">${icons.duration}<span class="card-row-text">${b.slotCount} slots (${durLabel})</span></div>
                 `;
                 grid.appendChild(card);
             });
