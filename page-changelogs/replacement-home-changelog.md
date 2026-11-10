@@ -1,3 +1,28 @@
+## 2026-11-10 (later) — the ACTION column's icon is the Arrange Replacement glyph
+
+User brief "UI Update — Action Icon Consistency". The ACTION column's primary icon button now draws
+**exactly** the Arrange Replacement glyph of `#btnReplaceNow` in the Class Details modal — the same
+two-arrow swap, 15 px, viewBox `0 0 24 24`, `stroke-width` 2, `aria-hidden="true"`.
+
+It used to draw a circular-arrow "rotate" glyph at `stroke-width` 2.5, so the same trip to the
+arrangement page wore two different icons depending on where you clicked.
+
+What did NOT change: the 34×34 `.btn-icon.btn-icon--primary` box, its primary border/colour, the
+tooltip `Arrange a replacement for this class`, the aria label, the `onclick`
+(`event.stopPropagation(); goToReplacementFor(sessionId, week, 'replacement-home')`), and every other
+button in the column (the ghost calendar for approved/completed and the ghost ban for pending).
+
+Measured on `/my-replacements` (3 primary buttons) against `#btnReplaceNow` on `/my-timetable-ui`:
+
+    {w:15, h:15, vb:"0 0 24 24", sw:"2", ariaHidden:"true",
+     paths:["polyline:17 1 21 5 17 9","path:M3 11V9a4 4 0 0 1 4-4h14",
+            "polyline:7 23 3 19 7 15","path:M21 13v2a4 4 0 0 1-4 4H3"]}
+
+    ICON IDENTICAL: true   ·   box 34×34   ·   border rgb(0, 77, 152)   ·   zero console errors
+
+The constant was renamed `ROTATE_SVG` → `ARRANGE_SVG` (one definition, one use) so the name matches
+what it draws.
+
 ## 2026-11-10 (later) — the pop-up tabs are ORIGINAL SLOT SCHEDULE and REQUESTED SLOT SCHEDULE
 
 The four detail pop-ups named their two slot tabs after the *class*: `Original Class Schedule`

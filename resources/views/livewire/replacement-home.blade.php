@@ -471,7 +471,13 @@
                 statusLabelOf(c) + '</span>';
         }
 
-        var ROTATE_SVG = '<svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>';
+        /* 2026-11-10 (user, "UI Update — Action Icon Consistency"): the ACTION
+           column's primary button wears EXACTLY the Arrange Replacement glyph of
+           `#btnReplaceNow` in the Class Details modal — same viewBox, same 15px,
+           same stroke-width 2, same aria-hidden. One action, one icon: the button
+           used to draw the circular-arrow "rotate" glyph while the modal drew the
+           two-arrow "swap" glyph for the same trip to the arrangement page. */
+        var ARRANGE_SVG = '<svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg>';
         var BAN_SVG = '<svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="m4.9 4.9 14.2 14.2"/></svg>';
         /* mytimetable-jump-highlight: the calendar family voice (15px, stroke 2.5) */
         var CAL_SVG = '<svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>';
@@ -487,7 +493,7 @@
                    resolved, never the badge's text. */
                 return '<button type="button" class="btn-icon btn-icon--ghost" data-tip="Go to My Timetable" aria-label="Go to My Timetable" onclick="event.stopPropagation(); goToReplacementInTimetable(' + c.requestId + ',' + c.replacementWeek + ')">' + CAL_SVG + '</button>';
             }
-            return '<button type="button" class="btn-icon btn-icon--primary" data-tip="Arrange a replacement for this class" aria-label="Arrange a replacement" onclick="event.stopPropagation(); goToReplacementFor(' + JSON.stringify(c.sessionId) + ',' + JSON.stringify(c.week) + ', \'replacement-home\')">' + ROTATE_SVG + '</button>';
+            return '<button type="button" class="btn-icon btn-icon--primary" data-tip="Arrange a replacement for this class" aria-label="Arrange a replacement" onclick="event.stopPropagation(); goToReplacementFor(' + JSON.stringify(c.sessionId) + ',' + JSON.stringify(c.week) + ', \'replacement-home\')">' + ARRANGE_SVG + '</button>';
         }
 
         function statusBadgeForCard(c) {
