@@ -962,11 +962,11 @@ final class NotificationsBridgeTest extends TestCase
         $this->decisionRow($owner, (int) $request->id, 'approved', 8, 'Replacement class updated');
         $this->decisionRow($owner, (int) $request->id, 'approved', 8, 'Replacement approved');
 
-        $tips = $this->tipsOf($this->panelHtml($owner), 'Approved Replacement Schedule:');
+        $tips = $this->tipsOf($this->panelHtml($owner), 'Approved Slot Schedule:');
 
         $expected = 'Subject: BMSE3153 (Practical) — Software Project Management'
             ."\n".'Original Slot Schedule: Week 8 · Tue, 10 Nov 2026 · 1:00 PM ~ 2:00 PM @ B009'
-            ."\n".'Approved Replacement Schedule: Week 6 · Fri, 30 Oct 2026 · 1:30 PM ~ 2:00 PM @ B010'
+            ."\n".'Approved Slot Schedule: Week 6 · Fri, 30 Oct 2026 · 1:30 PM ~ 2:00 PM @ B010'
             ."\n".'Request ID: #'.(int) $request->id;
 
         $this->assertCount(2, $tips, 'the proposer notice and the timetable notice');
@@ -1076,10 +1076,10 @@ final class NotificationsBridgeTest extends TestCase
             'link' => '/student-my-timetable-ui', 'request_id' => $request->id, 'class_session_id' => 23, 'week' => 8,
         ]);
 
-        $tips = $this->tipsOf($this->panelHtml($student), 'Approved Replacement Schedule:');
+        $tips = $this->tipsOf($this->panelHtml($student), 'Approved Slot Schedule:');
 
         $this->assertCount(1, $tips);
-        $this->assertStringContainsString('Approved Replacement Schedule: Week 6 · Fri, 30 Oct 2026', $tips[0]);
+        $this->assertStringContainsString('Approved Slot Schedule: Week 6 · Fri, 30 Oct 2026', $tips[0]);
         $this->assertStringNotContainsString('Staff (Proposer)', $tips[0]);
         $this->assertStringNotContainsString('Requested At', $tips[0]);
     }

@@ -13,8 +13,12 @@ The tip is **built at read time** from the request + session, never stored, so e
 the database re-reads with the new wording — 0 old labels, 4 new ones in the measured panel. No
 migration, no rewrite of `notifications.message`.
 
-Kept as they are (different facts, different labels): `Cancelled Class Schedule` for a class that has
-no request at all, and `Approved Replacement Schedule` for a decided approval notice.
+**Follow-up (same day, user: "slot."):** the decided-approval label follows too —
+`Approved Replacement Schedule` → **`Approved Slot Schedule`**, measured on request #27:
+`Approved Slot Schedule: Week 8 · Fri, 13 Nov 2026 · 1:00 PM ~ 2:00 PM @ B010`.
+
+Kept as it is: `Cancelled Class Schedule` — that notice is about a class being cancelled (there is no
+request and no slot pair), so it reads "Class" on purpose.
 
 ## 2026-11-08 (Student-side health check S8) — an old student notice now lands on its week
 

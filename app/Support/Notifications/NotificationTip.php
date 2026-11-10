@@ -153,7 +153,7 @@ final class NotificationTip
             if ($span !== null) {
                 $lines[] = $this->spanLine(
                     in_array($kind, ['approval_notice', 'class_updated'], true)
-                        ? 'Approved Replacement Schedule'
+                        ? 'Approved Slot Schedule'
                         : 'Requested Slot Schedule',
                     $span,
                     $venue,
