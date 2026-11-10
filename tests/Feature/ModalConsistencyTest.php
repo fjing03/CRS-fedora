@@ -147,4 +147,27 @@ class ModalConsistencyTest extends TestCase
         $this->assertStringContainsString('!isFinite(Number(hours))', substr($js, strpos($js, 'function durationWords')));
         $this->assertStringContainsString('!isFinite(mins)', $this->read('resources/views/livewire/request-approval.blade.php'));
     }
+
+    /**
+     * Follow-up (user, 2026-11-10): "standardise on the Close button's size, 34 px.
+     * Change size ONLY for now." One exact height for every footer button, scoped to
+     * `.modal-footer` so tables, cards and toolbars keep their own sizes.
+     */
+    public function test_every_modal_footer_button_is_one_size(): void
+    {
+        $css = $this->read('public/css/theme.css');
+        $start = strpos($css, '/* ── ONE footer-button size');
+        $this->assertNotFalse($start, 'the footer-size rule must exist');
+        $block = substr($css, $start, 1600);
+
+        foreach (['btn-close-modal', 'btn-outline', 'btn-danger', 'btn-approve', 'btn-action', 'btn-replace-now'] as $cls) {
+            $this->assertStringContainsString('.modal-footer .'.$cls, $block, "{$cls} must be covered");
+        }
+        $this->assertStringContainsString('height: 34px;', $block, 'the height is fixed, not a min-height');
+        $this->assertStringContainsString('padding: 0 20px;', $block);
+        $this->assertStringContainsString('font-size: 13px;', $block);
+
+        /* the rule is scoped: the classes themselves keep their other sizes */
+        $this->assertStringNotContainsString('.btn-action {', substr($block, 0, 200), 'no global override');
+    }
 }
