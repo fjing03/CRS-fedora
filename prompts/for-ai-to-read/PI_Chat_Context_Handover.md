@@ -589,8 +589,15 @@ date, and its files are dirty in the tree — see §3.
   (`pickSpanFreeCell`) with the same assertions.
 - New standing rulings: **the hover floor is one hour and is never derived from a class**; **a
   duration verdict is only allowed after the class is picked**; **a page function used by an
-  inline `onclick=` in a shared partial must be exported on `window`** (the page script runs
-  inside a `DOMContentLoaded` closure).
+  inline `onclick=` in a shared partial must be exported on `window`** — but ONLY on a page whose
+  script is closure-wrapped. **Check the wrapper first** (measured 2026-11-10): the student pages
+  (`replacement-history`, `my-timetable`) wrap their whole script in
+  `document.addEventListener('DOMContentLoaded', function () { … })`, so nothing inside is global
+  and an inline handler calling `saveView()` threw a ReferenceError; `request-approval` and
+  `replacement-home` declare their functions at the top level of a classic `<script>`, where
+  `function foo() {}` IS a global — so their inline chip handlers work untouched (`typeof
+  window.toggleHideCompleted === 'function'`, verified in the browser). A grep for `window.x =`
+  alone proves nothing: look for the wrapper.
 
 ## 2. The user's standing rulings (do not change without approval)
 
