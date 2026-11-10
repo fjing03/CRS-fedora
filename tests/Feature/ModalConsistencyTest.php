@@ -54,7 +54,11 @@ class ModalConsistencyTest extends TestCase
     {
         $js = $this->read('public/js/ui-common.js');
         $this->assertStringContainsString("UiLabels.classType(event.type, 'long')", $js);
-        $this->assertStringContainsString("subtitle: (event.code || '')", $js);
+        /* the ONE wording is `subjectText`, built with the type and then handed to
+           the subtitle (ruling A) — it is no longer spelled out twice */
+        $this->assertStringContainsString('subtitle: subjectText,', $js);
+        $this->assertSame(1, substr_count($js, "UiLabels.classType(event.type, 'long')"),
+            'the subject line is built once, not once per consumer');
     }
 
     public function test_replace_now_is_a_primary_button_with_an_icon(): void
@@ -83,7 +87,11 @@ class ModalConsistencyTest extends TestCase
         $js = $this->read('public/js/ui-common.js');
 
         $this->assertStringContainsString("{ label: 'Session ID'", $js);
-        $this->assertStringContainsString("{ label: 'Subject', value: subjectText }", $js);
+        /* ruling A (user, 2026-11-10): the subject is the SUBTITLE's job — the row
+           that repeated it is gone, exactly like the Room Name row */
+        $this->assertStringNotContainsString("{ label: 'Subject',", $js);
+        $this->assertStringContainsString('subtitle: subjectText,', $js);
+        $this->assertStringContainsString("{ label: 'Lecturer', value: event.lecturer }", $js);
         $this->assertStringNotContainsString("{ label: 'Subject Code'", $js);
         $this->assertStringNotContainsString("{ label: 'Subject Name'", $js);
         $this->assertStringNotContainsString("{ label: 'Class Type',", $js);

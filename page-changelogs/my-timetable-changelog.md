@@ -1,5 +1,11 @@
 ## 2026-11-10 — Modal consistency (#1–#4)
 
+**Follow-up (same day, user ruling A):** the **Subject** row left Class Information — the modal
+subtitle above the tabs already prints `CODE — Name (Type)`, so the pop-up said it twice. Class
+Information is now **Session ID · Lecturer · Cohort · Total Students** on all four timetable pages,
+and the subtitle is built from ONE `subjectText` value. Measured on My Timetable, Cohort Timetable,
+Venue Timetable and Student My Timetable: same subtitle, no Subject row, zero console errors.
+
 **Follow-up (same day, user ruling B):** Slot Details stopped printing the room twice — the
 **Room Name** and **Capacity** rows left Class Information, and the Schedule's **Venue** row now
 carries them: **`B002 — Tutorial Room (35 seats)`** (code leads, the name loses the copy of the code

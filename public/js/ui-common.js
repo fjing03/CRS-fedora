@@ -1216,8 +1216,12 @@ function openClassModal(cfg) {
     const statusDesc = isConflict ? 'Class falls on a public holiday — no class runs' : event.status === 'pending' ? 'Replacement request awaiting approval' : event.status === 'conflict' ? 'Scheduling conflict — needs attention' : event.status === 'cancelled' ? 'Class cancelled — a replacement is needed' : event.status === 'replacement' ? 'Approved replacement session — this class runs at this slot' : 'Scheduled class with no issues';
 
     /* 2026-11-10 (user, modal consistency #3): Class Information now leads with the
-       record's own ID, and the subject is ONE row — code, name and class type
-       together. The separate "Subject Name" / "Class Type" rows are gone. */
+       record's own ID — code, name and class type went from three rows to ONE
+       (the separate "Subject Name" / "Class Type" rows are gone).
+       Same day, ruling A: the subject is not a ROW at all any more — the subtitle
+       above the tabs already prints it, and printing it twice in one pop-up was
+       the same repeat the Room Name row was deleted for. `subjectText` is the one
+       wording, used by the subtitle. */
     const subjectText = (event.code || '')
         + (event.name ? ' \u2014 ' + event.name : '')
         + (event.type ? ' (' + UiLabels.classType(event.type, 'long') + ')' : '');
@@ -1225,7 +1229,6 @@ function openClassModal(cfg) {
     const idFromEvent = event.sessionId != null ? event.sessionId : event.id;
     const rows = [
         { label: 'Session ID', value: idFromEvent ? '#' + idFromEvent : '\u2014' },
-        { label: 'Subject', value: subjectText },
         { label: 'Lecturer', value: event.lecturer },
         /* 2026-11-10 (user, modal consistency #4): the Schedule reads
            Venue (code — name) · Week · Day & Date · Time & Duration. */
@@ -1330,10 +1333,10 @@ function openClassModal(cfg) {
         modalId: cfg.modalId || 'classModal',
         title: cfg.title || 'Class Details',
         /* 2026-11-10 (user, modal consistency #1): the subtitle carries the class
-           TYPE too — `AMSE2003 — Software Testing and Quality Assurance (Lecture)`. */
-        subtitle: (event.code || '')
-            + (event.name ? ' \u2014 ' + event.name : '')
-            + (event.type ? ' (' + UiLabels.classType(event.type, 'long') + ')' : ''),
+           TYPE too — `AMSE2003 — Software Testing and Quality Assurance (Lecture)`.
+           And since ruling A it is the ONE place the subject is printed: the row
+           that repeated it was deleted. */
+        subtitle: subjectText,
         /* the timeline rail was removed 2026-11-10 (user) — no config here */
     }, groups);
 
