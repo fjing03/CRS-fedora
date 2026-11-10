@@ -1040,7 +1040,7 @@
                 /* 2026-11-10 (user ruling B5): the subtitle carries the SUBJECT only —
                    the request's own number was repeated there and again as the
                    "Request ID" row, so it lives in the Request Status tab alone. */
-                subtitle: r.courseCode + ' — ' + r.courseName
+                subtitle: r.courseCode + ' \u2014 ' + r.courseName
                     + (r.classType ? ' (' + UiLabels.classType(r.classType, 'long') + ')' : ''),
                 factsHtml: factsHtml,
                 tabs: tabs

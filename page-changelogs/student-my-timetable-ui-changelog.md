@@ -1,5 +1,11 @@
 ## 2026-11-10 — Modal consistency (#1–#4)
 
+**Follow-up (same day, user ruling B4):** ONE separator in a modal subtitle — the **em dash**.
+Replacement Details was the odd one out (`AMSE1003 · Software Engineering (Lecture)`); all four now
+read `CODE — Name (Type)`. Measured: Class Details `AMSE1003 — Software Engineering (Lecture)`,
+Slot Details `MPU-3232 — Entrepreneurship (Lecture)`, Request Details `AMSE2003 — Software Testing
+and Quality Assurance (Tutorial)`, Replacement Details `AMSE1003 — Software Engineering (Lecture)`.
+
 **Follow-up (same day, user ruling A):** the **Subject** row left Class Information — the modal
 subtitle above the tabs already prints `CODE — Name (Type)`, so the pop-up said it twice. Class
 Information is now **Session ID · Lecturer · Cohort · Total Students** on all four timetable pages,

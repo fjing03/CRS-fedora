@@ -1,5 +1,11 @@
 ## 2026-11-10 — Modal consistency (#1–#4)
 
+**Follow-up (same day, user ruling B4):** ONE separator in a modal subtitle — the **em dash**.
+Replacement Details was the odd one out (`AMSE1003 · Software Engineering (Lecture)`); all four now
+read `CODE — Name (Type)`. Measured: Class Details `AMSE1003 — Software Engineering (Lecture)`,
+Slot Details `MPU-3232 — Entrepreneurship (Lecture)`, Request Details `AMSE2003 — Software Testing
+and Quality Assurance (Tutorial)`, Replacement Details `AMSE1003 — Software Engineering (Lecture)`.
+
 **Follow-up (same day, user ruling B1):** every modal's **Close** is now the outline button —
 transparent background, `--color-outline` hairline, `--color-on-surface` text, i.e. it matches
 Replacement Details' Close exactly. Class Details / Slot Details used a filled chip before, so the

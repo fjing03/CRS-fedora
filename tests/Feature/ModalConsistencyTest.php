@@ -227,4 +227,24 @@ class ModalConsistencyTest extends TestCase
         $this->assertStringContainsString("(r.slotValidity === 'conflict' ? '⚠' : '✓') + '</span>'", $page,
             'the badge keeps its glyph');
     }
+
+    /**
+     * Ruling B4 (user, 2026-11-10): ONE separator for a modal subtitle — the em dash.
+     * `AMSE1003 — Software Engineering (Lecture)` everywhere; Replacement Details was
+     * the odd one out with a middle dot.
+     */
+    public function test_every_modal_subtitle_joins_code_and_name_with_an_em_dash(): void
+    {
+        $this->assertStringContainsString("subtitle: c.code + ' \\u2014 ' + c.name",
+            $this->read('resources/views/livewire/replacement-home.blade.php'));
+        $this->assertStringContainsString("subtitle: r.courseCode + ' \u2014 ' + r.courseName",
+            $this->read('resources/views/livewire/request-approval.blade.php'));
+
+        /* the class modal's one wording, and no middle dot left in any subtitle */
+        $js = $this->read('public/js/ui-common.js');
+        $this->assertStringContainsString("(event.name ? ' \\u2014 ' + event.name : '')", $js);
+        foreach (['resources/views/livewire/replacement-home.blade.php', 'resources/views/livewire/request-approval.blade.php'] as $f) {
+            $this->assertStringNotContainsString('\\u00b7', $this->read($f), "{$f}: no middle dot in a subtitle");
+        }
+    }
 }

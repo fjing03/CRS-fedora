@@ -898,7 +898,10 @@
             DetailModal.render({
                 modalId: 'quickViewModal',
                 title: 'Replacement Details',
-                subtitle: c.code + ' \u00b7 ' + c.name + ' (' + typeLabel + ')',
+                /* 2026-11-10 (user ruling B4): one separator — the EM DASH — for every
+                   modal subtitle. This one joined the code and the name with a middle
+                   dot, so the same subtitle shape read two ways across the four modals. */
+                subtitle: c.code + ' \u2014 ' + c.name + ' (' + typeLabel + ')',
                 factsHtml:
                     '<span class="df-item"><span class="df-label">Cohorts</span>' + ((c.cohorts || []).join(', ') || '\u2014') + '</span>' +
                     '<span class="df-item"><span class="df-label">Students</span>' + (window.cohortBreakdown ? window.cohortBreakdown(c) : c.totalStudents) + '</span>' +
