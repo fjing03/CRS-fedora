@@ -112,7 +112,7 @@ async function setRAAll(page: Page): Promise<number> {
   await page.selectOption('#statusFilter', 'all');
   /* 2026-11-07 (user): this page's week filter matches the REQUESTED
      REPLACEMENT week (a saved filter could hide the pending fixture row), so
-     every receipt here starts from All Requested Replacement Weeks. */
+     every receipt here starts from All Requested Slot Weeks. */
   const week = await page.evaluate(() => document.getElementById('weekFilter')?.value ?? 'all');
   if (week !== 'all') {
     await page.selectOption('#weekFilter', 'all');
@@ -377,7 +377,7 @@ test('T5.RA-5: the week filter names the requested week, and filters on it', asy
   await page.waitForTimeout(700);
 
   // 1. the labels
-  expect(await page.locator('#weekFilter option[value="all"]').innerText()).toBe('All Requested Replacement Weeks');
+  expect(await page.locator('#weekFilter option[value="all"]').innerText()).toBe('All Requested Slot Weeks');
 
   // 2. the header
   const headers = await page.locator('#tableHead th').allInnerTexts();
@@ -387,8 +387,8 @@ test('T5.RA-5: the week filter names the requested week, and filters on it', asy
   // 3. the chip names the date domain
   await page.selectOption('#weekFilter', '7');
   await page.waitForTimeout(800);
-  await expect(page.locator('#filterChips .filter-chip', { hasText: 'Requested Replacement Week:' })).toHaveCount(1);
-  await expect(page.locator('#filterChips .filter-chip', { hasText: 'Requested Replacement Week:' })).toContainText('Week 7');
+  await expect(page.locator('#filterChips .filter-chip', { hasText: 'Requested Slot Week:' })).toHaveCount(1);
+  await expect(page.locator('#filterChips .filter-chip', { hasText: 'Requested Slot Week:' })).toContainText('Week 7');
 
   // 4. it filters by the REQUESTED date: week 7 lists #26, its original week 14 does not
   const week7 = await page.locator('#tableBody tr[data-id]').evaluateAll((rows) => rows.map((r) => (r as HTMLElement).dataset.id));
@@ -404,7 +404,7 @@ test('T5.RA-5: the week filter names the requested week, and filters on it', asy
   await page.waitForTimeout(800);
   const allRows = await page.locator('#tableBody tr[data-id]').evaluateAll((rows) => rows.map((r) => (r as HTMLElement).dataset.id));
   expect(allRows).toContain('26');
-  await expect(page.locator('#filterChips .filter-chip', { hasText: 'Requested Replacement Week:' })).toHaveCount(0);
+  await expect(page.locator('#filterChips .filter-chip', { hasText: 'Requested Slot Week:' })).toHaveCount(0);
 });
 
 test('T5.RA-3: resetFilters + label + Clear-all law + ✕ + mobile cards (status threading)', async ({ page }) => {

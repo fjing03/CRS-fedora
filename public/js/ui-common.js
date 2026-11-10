@@ -2720,10 +2720,12 @@ class HtmlBuilder {
            and the icon-led venue line the lecturer page prints. Opt-in, so the
            frozen templates and the legacy grid stay byte-identical. */
         if (opts.merged) {
+            /* 2026-11-10 (user, "Table Columns"): no duration text in the slot
+               columns — the time range already says how long it runs. */
             var venueHtml = uiVenueLine(r.venue, r.venueName, opts);
             return '<div class="cell-class-block">' +
                 '<span class="class-day-date">' + d + ', ' + dateStr + weekTag + '</span>' +
-                '<br><span class="class-time">' + timeStr + '</span> <span class="class-duration">(' + uiHoursWords(r.duration) + ')</span>' +
+                '<br><span class="class-time">' + timeStr + '</span>' +
                 (venueHtml ? '<br>' + venueHtml : '') +
                 '</div>';
         }
@@ -2760,12 +2762,12 @@ class HtmlBuilder {
             pendingDays = '<br><span class="' + urgencyBandClass(wd) + '">' + daysLeftLabel(wd) + '</span>';
         }
         if (opts.merged) {
-            var hours = uiHoursFromRange(r.replacementTime);
+            /* 2026-11-10 (user, "Table Columns"): the duration text is gone here too,
+               so `uiHoursFromRange` is no longer needed to render the cell. */
             var repVenue = uiVenueLine(r.replacementVenue || r.venue, r.replacementVenueName, opts);
             return '<div class="cell-class-block">' +
                 '<span class="class-day-date">' + d + ', ' + dateStr + weekTag + '</span>' + pendingDays +
                 '<br><span class="class-time">' + DateHelper.format12hRange(r.replacementTime, ' ~ ') + '</span>' +
-                (hours !== null ? ' <span class="class-duration">(' + uiHoursWords(hours) + ')</span>' : '') +
                 (opts.showVenue !== false && repVenue ? '<br>' + (opts.slotBadge ? opts.slotBadge : '') + repVenue : '') +
                 '</div>';
         }

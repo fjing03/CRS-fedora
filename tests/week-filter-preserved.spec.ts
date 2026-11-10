@@ -138,8 +138,8 @@ test('U3 — Cancel Pending keeps the Week filter (my-replacements)', async ({ p
 
   /* 2026-11-07 (user): this page's weeks are the ORIGINAL CLASS weeks, and both
      the "all" option and the chip say so. */
-  expect(await page.locator('#weekFilter option[value="all"]').innerText()).toBe('All Original Class Weeks');
-  await expect(page.locator('#filterChips .filter-chip', { hasText: 'Original Class Week:' })).toContainText('Original Class Week: Week 14');
+  expect(await page.locator('#weekFilter option[value="all"]').innerText()).toBe('All Original Slot Weeks');
+  await expect(page.locator('#filterChips .filter-chip', { hasText: 'Original Slot Week:' })).toContainText('Original Class Week: Week 14');
 
   const cancelBtn = page.locator('button[aria-label="Cancel this request"]').first();
   await expect(cancelBtn).toBeVisible();

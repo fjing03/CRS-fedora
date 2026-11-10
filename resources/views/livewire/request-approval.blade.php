@@ -250,7 +250,7 @@
     </div>
 </div>
 
-<div class="sort-hint">Click column headers to sort (Requested Timestamp, Original Class, Requested Replacement, Request Status)</div>
+<div class="sort-hint">Click column headers to sort (Requested Timestamp, Original Slot, Requested Slot, Request Status)</div>
 
 <div class="filter-chips" id="filterChips"></div>
 
@@ -538,8 +538,8 @@
             { label: 'Staff (Proposer)', sortable: true, field: 'lecturer', tip: 'The staff member who submitted the request — sorted by name' },
             { label: 'Course', sortable: true, field: 'courseCode', tip: UiLabels.courseTipSubject },
             { label: 'Cohort', sortable: false, tip: 'Cohort(s) affected by this class — one per line; not sortable because a multi-cohort row has no single value' },
-            { label: 'Original Class', sortable: true, field: 'classDate', tip: 'Original class the request refers to — its state varies (still upcoming, replaced, cancelled, holiday, etc.)' },
-            { label: 'Requested Replacement', sortable: true, field: 'replacementDate', tip: 'Requested new date, time, and venue' },
+            { label: 'Original Slot', sortable: true, field: 'classDate', tip: 'Original slot the request refers to — its state varies (still upcoming, replaced, cancelled, holiday, etc.)' },
+            { label: 'Requested Slot', sortable: true, field: 'replacementDate', tip: 'The new slot proposed for this class — date, time and venue' },
             { label: 'Request Status', sortable: true, field: 'status', tip: 'Current approval status' },
             { label: 'Actions', sortable: false, tip: 'Approve or reject this request' }
         ];
@@ -767,7 +767,7 @@
             }
             if (week !== 'all') {
                 const weekLabel = document.getElementById('weekFilter').selectedOptions[0]?.textContent || week;
-                chips.push('<span class="filter-chip">Requested Replacement Week: ' + weekLabel + '<button class="filter-chip-remove" onclick="document.getElementById(\'weekFilter\').value=\'all\';onWeekFilterChange()" data-tip="Remove">&times;</button></span>');
+                chips.push('<span class="filter-chip">Requested Slot Week: ' + weekLabel + '<button class="filter-chip-remove" onclick="document.getElementById(\'weekFilter\').value=\'all\';onWeekFilterChange()" data-tip="Remove">&times;</button></span>');
             }
             if (search) {
                 chips.push('<span class="filter-chip">Search: "' + search + '"<button class="filter-chip-remove" onclick="document.getElementById(\'searchInput\').value=\'\';renderTable()" data-tip="Remove">&times;</button></span>');
@@ -1199,7 +1199,7 @@
         function populateWeekFilter() {
             populateWeekSelect('weekFilter', {
                 includeAll: true,
-                allLabel: 'All Requested Replacement Weeks',
+                allLabel: 'All Requested Slot Weeks',
                 labelFn: function(w) { return w.label; }
             });
         }

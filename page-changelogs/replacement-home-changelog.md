@@ -1,3 +1,33 @@
+## 2026-11-10 (later) — the slot columns are ORIGINAL SLOT and REQUESTED SLOT
+
+The two slot columns were named "Original Class" and "Requested Replacement" on the staff pages
+(the student page already said "Slot"), so the same table read two ways depending on who was looking
+at it. Now all three pages say **ORIGINAL SLOT** and **REQUESTED SLOT**.
+
+The duration text also left both columns: the cell used to print `(1 hour)` / `(2 hours)` beside the
+time range, which the range already implies. Both slots now read date (+ week) → countdown → time
+range → venue, nothing else.
+
+Everything that names those columns follows them:
+
+| | before | now |
+|---|---|---|
+| Sort hint (Request Approval) | `… Original Class, Requested Replacement …` | `… Original Slot, Requested Slot …` |
+| Week dropdown, "all" option (Request Approval) | `All Requested Replacement Weeks` | `All Requested Slot Weeks` |
+| Week dropdown, "all" option (My Replacements, Student) | `All Original Class Weeks` | `All Original Slot Weeks` |
+| Active-filter chip (Request Approval) | `Requested Replacement Week: …` | `Requested Slot Week: …` |
+| Active-filter chip (My Replacements, Student) | `Original Class Week: …` | `Original Slot Week: …` |
+| Header tooltips | `Original class the request refers to …` | `Original slot the request refers to …` |
+
+The filter **values**, the saved view state and every hand-off key are untouched — only the visible
+words changed, so filtering behaves exactly as before. The detail modals' tabs (`Original Class
+Schedule`, `Proposed Replacement Schedule`) are NOT table columns and were left alone.
+
+Measured: Request Approval headers `Original Slot · Requested Slot`, 0 `class-duration` spans in the
+tbody, cell reads `Thu, 24 Dec 2026 (Week 14) 11:00 AM ~ 12:00 PM B100`; My Replacements
+`Fri, 13 Nov 2026 (Week 8) 11:00 AM ~ 1:00 PM B111`; Student 10 rows, 0 durations, headers already
+`Original Slot · Requested Slot`.
+
 ## 2026-11-10 — Modal consistency (#1–#4)
 
 **Follow-up (same day, user ruling B4):** ONE separator in a modal subtitle — the **em dash**.

@@ -218,8 +218,9 @@
             }
             return '<div class="cell-class-block">' +
                 '<span class="class-day-date">' + dayAbbr(slot.day) + ', ' + formatDate(slot.date) + weekTag + '</span>' + countdown +
-                '<br><span class="class-time">' + to12h(slot.start) + ' ~ ' + to12h(slot.end) + '</span> ' +
-                '<span class="class-duration">(' + durationWords(slot.duration) + ')</span>' +
+                /* 2026-11-10 (user, "Table Columns"): no duration text in a slot
+                   column — the time range says it plainly. */
+                '<br><span class="class-time">' + to12h(slot.start) + ' ~ ' + to12h(slot.end) + '</span>' +
                 '<br>' + venueLine(slot.venue) + '</div>';
         }
 
@@ -322,7 +323,7 @@
 
         /* ── The Active Filters bar (2026-11-09): the student page had none. It
               names the two filters this page owns, in the same voice as the staff
-              page's bar ("Original Class Week: …", "Exclude COMPLETED
+              page's bar ("Original Slot Week: …", "Exclude COMPLETED
               Status"), and each chip removes its own filter. ── */
         function renderChips() {
             const container = document.getElementById('filterChips');
@@ -330,7 +331,7 @@
             const chips = [];
             const sel = document.getElementById('weekFilter');
             if (sel.value !== 'all' && sel.selectedOptions[0]) {
-                chips.push('<span class="filter-chip">Original Class Week: ' + sel.selectedOptions[0].textContent +
+                chips.push('<span class="filter-chip">Original Slot Week: ' + sel.selectedOptions[0].textContent +
                     '<button class="filter-chip-remove" data-tip="Remove" data-remove="weekFilter">&times;</button></span>');
             }
             if (document.getElementById('hideCompleted').checked) {
@@ -365,7 +366,7 @@
 
         function renderUpcoming() {
             // AD-2: select values are 1-based strings; dataset weeks are 0-based.
-            // 'all' = the All Original Class Weeks option (shared helpers
+            // 'all' = the All Original Slot Weeks option (shared helpers
             // are selectedIndex-based, so they stay NaN-safe).
             const all = document.getElementById('weekFilter').value === 'all';
             const w0 = all ? null : parseInt(document.getElementById('weekFilter').value, 10) - 1;
@@ -557,7 +558,7 @@
                OCCURRENCE now, so `r.week` is the occurrence's OWN week and the
                filter keys on it — that is why the All-option reads "All Original
                Class Weeks". */
-            populateWeekSelect('weekFilter', { selected: 'all', includeAll: true, allLabel: 'All Original Class Weeks' });
+            populateWeekSelect('weekFilter', { selected: 'all', includeAll: true, allLabel: 'All Original Slot Weeks' });
 
             // Restore persisted view (a first visit opens on All Weeks)
             (function() {

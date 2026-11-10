@@ -48,19 +48,19 @@ test('U3-T9c: the COHORT column replaced STUDENTS (consistency update) and row c
   await page.goto(PAGE);
 
   // request-approval-ui CONSISTENCY (2026-11-03): Students removed, Cohort added
-  // BEFORE Original Class, `#` → Request ID (printing the real id).
+  // BEFORE Original Slot, `#` → Request ID (printing the real id).
   // Column order: 0 checkbox · 1 Request ID · 2 Requested Timestamp ·
-  // 3 Staff (Proposer) · 4 Course · 5 COHORT · 6 Original Class · …
+  // 3 Staff (Proposer) · 4 Course · 5 COHORT · 6 Original Slot · …
   const headers = await page.evaluate(() =>
     Array.from(document.querySelectorAll('#tableHead th')).map((th) => (th.textContent || '').trim()));
   expect(headers).toContain('Request ID');
   expect(headers).toContain('Staff (Proposer)');
   expect(headers).toContain('Cohort');
-  expect(headers).toContain('Requested Replacement');
+  expect(headers).toContain('Requested Slot');
   expect(headers).not.toContain('Students');
   expect(headers).not.toContain('Lecturer');
   expect(headers).not.toContain('Proposed Replacement');
-  expect(headers.indexOf('Cohort')).toBe(headers.indexOf('Original Class') - 1);
+  expect(headers.indexOf('Cohort')).toBe(headers.indexOf('Original Slot') - 1);
 
   const cells = await page.evaluate(() => {
     const rows = Array.from(document.querySelectorAll('#tableBody tr'));

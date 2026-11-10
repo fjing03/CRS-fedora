@@ -12,7 +12,7 @@ use Tests\TestCase;
  *  R1 rows are conflicted CLASS OCCURRENCES (the payload's `status: 'none'` exists at all);
  *  R2 one story for every unarranged class — `Awaiting Arrangement`, never the staff
  *     words and never a dead request's state;
- *  R3 the week filter keys on the class's week (`All Original Class Weeks`);
+ *  R3 the week filter keys on the class's week (`All Original Slot Weeks`);
  *  R4 `Exclude COMPLETED Status`, decided by the make-up date;
  *  R5 the page is Class Replacements at /student-class-replacements (alias kept);
  *  R6 read-only, with ONE control — the pop-up's jump, guarded by `requestId`;
@@ -119,10 +119,10 @@ class StudentReplacementHistoryParityTest extends TestCase
     {
         $src = $this->pageSource();
 
-        $this->assertStringContainsString("allLabel: 'All Original Class Weeks'", $src);
-        $this->assertStringContainsString('Original Class Week:', $src);
+        $this->assertStringContainsString("allLabel: 'All Original Slot Weeks'", $src);
+        $this->assertStringContainsString('Original Slot Week:', $src);
         $this->assertStringNotContainsString('All Requested Slots Weeks', $src, 'that label belonged to the request model');
-        $this->assertStringNotContainsString('Requested Replacement Week:', $src);
+        $this->assertStringNotContainsString('Requested Slot Week:', $src);
 
         // the filter reads the occurrence's own week, and only a derived `completed` row hides
         $this->assertStringContainsString("(all || r.week === w0) && !(hideCompleted && r.status === 'completed')", $src);

@@ -437,8 +437,9 @@
             var weekTag = wn ? ' (Week ' + wn + ')' : '';
             return '<div class="cell-class-block">' +
                 '<span class="class-day-date">' + dayAbbr(c.day) + ', ' + formatDate(c.date) + weekTag + '</span>' + daysText +
-                '<br><span class="class-time">' + to12h(c.timeStart) + ' ~ ' + to12h(c.timeEnd) + '</span> ' +
-                '<span class="class-duration">(' + durationWords(c.duration) + ')</span>' +
+                /* 2026-11-10 (user, "Table Columns"): the duration text — the
+                   `(1 hour)` beside the time — is GONE from both slot columns. */
+                '<br><span class="class-time">' + to12h(c.timeStart) + ' ~ ' + to12h(c.timeEnd) + '</span>' +
                 '<br>' + venueLine(c.venue, null) + '</div>';
         }
 
@@ -458,8 +459,7 @@
             }
             return '<div class="cell-class-block">' +
                 '<span class="class-day-date">' + dayAbbr(c.replacementDay) + ', ' + formatDate(c.replacementDate) + weekTag + '</span>' + daysText +
-                '<br><span class="class-time">' + DateHelper.format12hRange(c.replacementTime, ' ~ ') + '</span> ' +
-                '<span class="class-duration">(' + durationWords(rangeHours(c.replacementTime)) + ')</span>' +
+                '<br><span class="class-time">' + DateHelper.format12hRange(c.replacementTime, ' ~ ') + '</span>' +
                 '<br>' + venueLine(c.replacementVenue, null) + '</div>';
         }
 
@@ -578,7 +578,7 @@
             }
             if (week !== 'all') {
                 var weekLabel = document.getElementById('weekFilter').selectedOptions[0] ? document.getElementById('weekFilter').selectedOptions[0].textContent : week;
-                chips.push('<span class="filter-chip">Original Class Week: ' + weekLabel + '<button class="filter-chip-remove" onclick="document.getElementById(\'weekFilter\').value=\'all\';pageState.currentPage=1;saveFilters();buildTable()" data-tip="Remove">&times;</button></span>');
+                chips.push('<span class="filter-chip">Original Slot Week: ' + weekLabel + '<button class="filter-chip-remove" onclick="document.getElementById(\'weekFilter\').value=\'all\';pageState.currentPage=1;saveFilters();buildTable()" data-tip="Remove">&times;</button></span>');
             }
             if (search) {
                 chips.push('<span class="filter-chip">Search: "' + search + '"<button class="filter-chip-remove" onclick="document.getElementById(\'searchInput\').value=\'\';pageState.currentPage=1;saveFilters();buildTable()" data-tip="Remove">&times;</button></span>');
@@ -677,9 +677,9 @@
             const columns = [
                 { label: 'Course', cls: 'col-code', sortable: true, field: 'code', tip: UiLabels.courseTipSubject },
                 { label: 'Cohort', cls: 'col-cohort', sortable: false, tip: 'Affected cohorts — not sortable: a multi-cohort row has no single value' },
-                { label: 'Original Class', cls: 'col-original', sortable: true, field: 'date', tip: 'The class that cannot run as timetabled' },
+                { label: 'Original Slot', cls: 'col-original', sortable: true, field: 'date', tip: 'The slot that cannot run as timetabled' },
                 { label: 'Conflict Reason', cls: 'col-reason', sortable: true, field: 'reason', tip: 'Why this class cannot run' },
-                { label: 'Requested Replacement', cls: 'col-requested', sortable: true, field: 'replacementDate', tip: 'The new slot proposed for this class' },
+                { label: 'Requested Slot', cls: 'col-requested', sortable: true, field: 'replacementDate', tip: 'The new slot proposed for this class' },
                 { label: 'Request Status', cls: 'col-status', sortable: true, field: 'status', tip: 'Where the request stands — the newest request wins' },
                 { label: 'Action', cls: 'col-action', sortable: false, tip: 'What you can do with this class' },
             ];
@@ -793,7 +793,7 @@
         }
 
         function populateWeekDropdown() {
-            populateWeekSelect('weekFilter', { includeAll: true, allLabel: 'All Original Class Weeks' });
+            populateWeekSelect('weekFilter', { includeAll: true, allLabel: 'All Original Slot Weeks' });
         }
 
         /* BRIDGE PATCH: the handoff carries the occurrence's real identity —
