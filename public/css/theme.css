@@ -2782,6 +2782,25 @@ html.dark .semester-bar select:not(.week-select) {
 .cell-content:has(> .cell-state-label)::after {
     content: none;
 }
+/* 2026-11-10 ("UI Update — Too-Soon Tooltip"): the tooltip is now a two-line
+   sentence (the retired banner's message), so the label needs to wrap on words
+   instead of forcing one long line inside a ~80 px cell. */
+.cell-too-soon > .cell-state-label {
+    white-space: normal;
+    overflow-wrap: break-word;
+    line-height: 1.15;
+    padding: 2px 3px;
+    font-size: 10px;
+}
+
+@media (max-width: 520px) {
+    /* a 48 px cell cannot hold the second sentence at all — keep the notice and
+       let the shared tooltip carry the whole message (it floats, so it always fits) */
+    .cell-too-soon > .cell-state-label { font-size: 8px; line-height: 1.1; padding: 1px; }
+    .cell-too-soon .too-soon-line--from,
+    .cell-too-soon .too-soon-br { display: none; }
+}
+
 @media (max-width: 520px) {
     /* 2026-11-10 ("UI Update 2", the fit-it-in-the-cell ask): the label is
        `inset: 0`, which only means "the cell" when the cell is its positioning box.
@@ -2792,19 +2811,17 @@ html.dark .semester-bar select:not(.week-select) {
        ⛔ Do NOT make this a global `position: relative`: that unhooks the desktop
        cell from its absolute fill and collapses every cell's height. */
     .cell-content:has(> .cell-state-label) { position: relative; }
-
-    /* a 48 px cell cannot hold "Working Days" at 11 px; 9 px keeps the two-line
-       label inside the cell instead of clipping it */
-    .cell-too-soon > .cell-state-label { font-size: 9px; }
+    /* (the too-soon label's own phone size lives in the block above — 8 px, because
+       its text is now the retired banner's sentence, not two short words) */
 }
 .cell-occupied > .cell-state-label {
     background: var(--color-error);
     color: var(--color-on-error);
 }
 /* 2026-11-10 (user, "UI Update 2"): the lead-time label is a real element too, so
-   its two lines are deliberate (`Min. 3` / `Working Days`) instead of the old
-   `::after` string that overflowed a ~40 px cell. Neutral surface tone — it is not
-   an error and not a conflict. */
+   its lines are deliberate (`<br>`-driven, see above) instead of the old `::after`
+   string that could not wrap. Neutral surface tone — it is not an error and not a
+   conflict. */
 .cell-too-soon > .cell-state-label {
     background: var(--color-surface-variant);
     color: var(--color-on-surface-variant);

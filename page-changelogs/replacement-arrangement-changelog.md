@@ -1,3 +1,33 @@
+## 2026-11-10 (later) — the lead-time banner moves into the too-soon tooltip
+
+The standalone banner above the grid (`#leadTimeNote`, "Some slots this week are too soon — Monday to
+Thursday. A minimum of 3 working days' advance notice is required. Bookable from Friday, 13 Nov 2026
+onward.") is **gone**. Its message now rides the too-soon cell's own hover text, in exactly the two
+lines the user asked for:
+
+    Min. 3 working days' notice required.
+    Bookable from Fri, 13 Nov 2026.
+
+**The date is not hard-coded.** It comes from `leadTimeTip()` → `leadTimeCutoff(weekData)`, the same
+call that decides which cells are too soon, formatted like the banner used to (`Fri, 13 Nov 2026`), so
+the words can never drift from the rule as the clock moves.
+
+Two surfaces, one wording:
+
+| surface | how it is fed | why |
+|---|---|---|
+| in-cell hover label | `tooSoonTip.html` — a real `<br>` between the lines | a cell can hold two lines; CSS `content:` cannot |
+| shared tooltip above the cell | `tooSoonTip.text` — `\n`, with ruling C's reason appended after a blank line | that tooltip renders text, not markup |
+
+**Fitting.** The sentence is longer than `Min. 3 Working Days`, so the label wraps on words
+(`white-space: normal; overflow-wrap: break-word`) at 10 px inside the 80 px desktop cell. On a phone
+(48 px cell) it drops to 8 px and **hides the second line** — a tiny in-cell box cannot hold a date —
+while the floating tooltip still shows the whole message, so nothing is lost. `preserve` asks honoured:
+the grey `.cell-too-soon` skin, the read-only behaviour and every booking restriction are untouched.
+
+Measured facts behind the copy: today Tue 10 Nov 2026 → cutoff Fri 13 Nov 2026; week 8 has 64 too-soon
+cells, 29 of them carrying a blocking reason under the new sentence.
+
 ## 2026-11-10 (later) — too-soon cells: the lead time wins, the reason stays (UI Update 2, ruling C)
 
 Ruling C (the user's choice): the 3-working-day rule now **outranks the ownership classes** on the

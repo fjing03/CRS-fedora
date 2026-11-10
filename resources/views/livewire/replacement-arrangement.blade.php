@@ -991,8 +991,9 @@
 
         <div class="booking-intent-wrap" id="bookingIntent"></div>
 
-        <!-- ─── Lead-Time Notice (bookings open ≥ 3 working days out) ─── -->
-        <div class="hint-text" id="leadTimeNote" style="display:none"></div>
+        <!-- 2026-11-10 (user, "UI Update — Too-Soon Tooltip"): the standalone
+             lead-time banner is GONE — its message now rides the too-soon cell's own
+             hover tooltip (see leadTimeTip() below). -->
 
         <div class="conflict-strip-wrap" id="subjectInfo"></div>
 
@@ -1364,6 +1365,32 @@
                 document.getElementById('sumPending').textContent = pending;
                 document.getElementById('sumUnavailable').textContent = unavailable;
             }
+        }
+
+        /* 2026-11-10 (user, "UI Update — Too-Soon Tooltip"): the retired banner's
+           message, now the too-soon cell's hover text —
+
+               Min. 3 working days’ notice required.
+               Bookable from Fri, 13 Nov 2026.
+
+           The date is NOT hard-coded: it is the same `leadTimeCutoff()` the grid uses
+           to decide which cells are too soon, formatted the way the banner used to
+           (`Fri, 13 Nov 2026`), so the words can never drift from the rule.
+           `html` feeds the in-cell label (a real `<br>`), `text` the shared tooltip
+           (`\n` — that tooltip renders text, not markup). */
+        function leadTimeTip() {
+            var cutoff = leadTimeCutoff(weekData);
+            var days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+            var months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+            var dateStr = days[cutoff.getDay()] + ', ' + cutoff.getDate() + ' ' + months[cutoff.getMonth()] + ' ' + cutoff.getFullYear();
+            return {
+                first: 'Min. 3 working days\u2019 notice required.',
+                second: 'Bookable from ' + dateStr + '.',
+                html: '<span class="too-soon-line too-soon-line--notice">Min. 3 working days\u2019 notice required.</span>'
+                    + '<br class="too-soon-br">'
+                    + '<span class="too-soon-line too-soon-line--from">Bookable from ' + dateStr + '.</span>',
+                text: 'Min. 3 working days\u2019 notice required.\nBookable from ' + dateStr + '.'
+            };
         }
 
         /* UI Update 1 (user, 2026-11-10): the venue row's hover tooltip is the room's
@@ -2002,16 +2029,18 @@
                                hold two lines, and CSS `content:` cannot carry a
                                `<br>`) — the same mechanic the conflict labels use;
                                `:has()` in theme.css retires the old `::after`. */
+                            const tooSoonTip = leadTimeTip();
                             const tooSoonLabel = document.createElement('span');
                             tooSoonLabel.className = 'cell-state-label cell-state-label--too-soon';
-                            tooSoonLabel.innerHTML = 'Min. 3<br>Working Days';
+                            tooSoonLabel.innerHTML = tooSoonTip.html;
                             div.appendChild(tooSoonLabel);
 
-                            /* ruling C: the blocking reason rides the tooltip */
+                            /* ruling C: the blocking reason still rides the tooltip,
+                               now under the retired banner's own sentence */
                             const why = div.getAttribute('data-tip');
-                            div.setAttribute('data-tip', why ? 'Min. 3 Working Days\n\n' + why : 'Min. 3 Working Days');
+                            div.setAttribute('data-tip', why ? tooSoonTip.text + '\n\n' + why : tooSoonTip.text);
                             const whyFlat = div.getAttribute('aria-label');
-                            div.setAttribute('aria-label', 'Too soon — minimum 3 working days ahead' + (whyFlat ? '. ' + whyFlat : ''));
+                            div.setAttribute('aria-label', tooSoonTip.first + ' ' + tooSoonTip.second + (whyFlat ? ' ' + whyFlat : ''));
                             div.setAttribute('tabindex', '0');
                             div.style.cursor = 'not-allowed';
                         } else if (ownershipClass) {
@@ -2045,7 +2074,8 @@
 
             loadCurrentWeek();
             updateCounter();
-            renderLeadTimeNote('leadTimeNote', weekData, weekNav.currentWeek);
+            /* the banner was retired 2026-11-10 — the message lives in the cell's
+               tooltip now (leadTimeTip), so no renderLeadTimeNote() call here */
             weekNav._updateArrows();
         }
 
