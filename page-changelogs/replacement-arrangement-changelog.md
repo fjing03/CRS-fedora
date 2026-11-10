@@ -1,3 +1,27 @@
+## 2026-11-10 (later) — the "Showing venues that fit N students" note is removed
+
+The line `Showing venues that fit N students` (`.venue-count-note` / `#venueCountNote`) above the grid is
+gone — markup and both writers removed.
+
+What did NOT change is the thing behind it: `buildVenueFilter()` still filters the venue picker to the
+venues that can host the picked occurrence (`venueEligible(v, courseCtx())`), and it is still cleared
+when no subject is picked. The note was only narration on top of that filter.
+
+Three places touched:
+
+| where | before | now |
+|---|---|---|
+| markup | `<div class="venue-count-note" id="venueCountNote" …>` | removed (comment marks the spot) |
+| `applySubjectChange()` | hid the note on subject change | no note to hide |
+| `buildVenueFilter()` | wrote the seat sentence + showed/hid it | applies the filter only |
+
+`arr-slot-original-venue-sync.spec.ts` asserted that sentence, so it now pins the **absence** of
+`#venueCountNote` and keeps checking the eligible venue types it was really about.
+
+Measured: `#venueCountNote` count = 0; after picking AMSE2003 the panel still narrows to
+`Tutorial › Lecture Hall ›` for the (L, 15) occurrence and the trigger reads `B100 — Tutorial Room`;
+zero console errors.
+
 ## 2026-11-10 (later) — the slot badge names Public Holiday / Cancelled / Conflict from data
 
 The slot picker's badge said a flat **`Conflict`** for every slot whose status was `conflict`, and

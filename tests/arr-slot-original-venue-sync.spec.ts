@@ -96,9 +96,10 @@ test('subject-change interplay: orig wins over the inherited room + options keep
   await page.click('.slot-dd-item .slot-dd-item-label'); // W14 9–11 @ B100 — orig offered → it wins (Gap B)
   await page.waitForTimeout(2200);
   await expect(page.locator('.venue-dd-label')).toHaveText(/^B100 — /);
-  // options law untouched: the filtered family for (L, 15) shows the eligible TYPES only
-  expect(await page.evaluate(() => document.getElementById('venueCountNote').textContent))
-    .toMatch(/Showing venues that fit \d+ students/);
+  // options law untouched: the filtered family for (L, 15) shows the eligible TYPES only.
+  // 2026-11-10 (user): the "Showing venues that fit N students" note is gone from the
+  // page — the FILTER is what this receipt cares about, so pin its absence instead.
+  expect(await page.locator('#venueCountNote').count()).toBe(0);
   await page.click('.venue-dd-trigger');
   await page.waitForTimeout(400);
   const types = await page.evaluate(() =>

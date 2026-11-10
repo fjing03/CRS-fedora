@@ -1032,7 +1032,9 @@
         </div>
         --}}
 
-        <div class="venue-count-note" id="venueCountNote" style="display:none; font-size:12px; color:var(--color-on-surface-variant); padding:4px 0;"></div>
+        <!-- 2026-11-10 (user): the "Showing venues that fit N students" note is
+             REMOVED — the venue filter still runs, it just no longer narrates itself
+             in a line above the grid. -->
 
         @include('partials.ui-grid-table')
 
@@ -3634,13 +3636,11 @@ ${(fallbackAttribution && intentReason === 'in-the-way')
 
         function applySubjectChange(code) {
             clearPreview(); /* subject state changed — any open hover preview is stale */
-            const noteEl = document.getElementById('venueCountNote');
 
             if (!code) {
                 currentCourse = null;
                 currentSessionId = null;
                 selectedOriginalSlot = null;
-                noteEl.style.display = 'none';
                 renderSlotPicker([]);
                 renderTitleSummary();
                 buildVenueFilter();
@@ -3922,20 +3922,18 @@ ${(fallbackAttribution && intentReason === 'in-the-way')
         }
 
         function buildVenueFilter() {
-            const noteEl = document.getElementById('venueCountNote');
             if (!venueDropdown) return;
 
+            /* 2026-11-10 (user): the "Showing venues that fit N students" note was
+               removed from the page — the FILTER is the surviving contract, so only
+               that is applied here now. */
             if (currentCourse) {
                 var ctxCourse = courseCtx(); /* occurrence-grain: follows the picked slot */
                 venueDropdown.setFilter(function(v) {
                     return venueEligible(v, ctxCourse);
                 });
-                var count = venueDropdown.getFiltered ? venueDropdown.getFiltered().length : 0;
-                noteEl.textContent = 'Showing venues that fit ' + ctxCourse.studentCount + ' students';
-                noteEl.style.display = '';
             } else {
                 venueDropdown.setFilter(null);
-                noteEl.style.display = 'none';
             }
         }
 
