@@ -35,9 +35,9 @@
 
     @if(!isset($hideNav) || !$hideNav)
         @include('partials.ui-nav-bar', ['activeNav' => $activeNav ?? '', 'navItems' => $navItems ?? null])
-        {{-- LOGOUT MODAL DISABLED — logout now submits the form directly (see ui-nav-bar)
-        @include('partials.ui-logout-modal')
-        --}}
+        {{-- 2026-11-10 (user, code cleanup): the Logout Modal is PERMANENTLY REMOVED —
+             its partial, its JS and this include are gone. Logout submits the form
+             directly (see ui-nav-bar's two logout buttons). Do not reinstate it. --}}
         @include('partials.ui-session-countdown')
     @endif
 
@@ -52,9 +52,6 @@
     {{-- R-3 (round-3): role-aware logo target — each page declares its home;
          navigateHome() reads this, falling back to the welcome view --}}
     <script>window.PAGE_HOME = '{{ $homeUrl ?? '/' }}';</script>
-    {{-- LOGOUT MODAL DISABLED
-    <script src="/js/logout-modal.js"></script>
-    --}}
     <script>
         document.addEventListener('DOMContentLoaded', function() {
             var pageKey = document.body.dataset.page;

@@ -3652,18 +3652,19 @@ class VenueDropdown {
      * @param {Object}      opts
      * @param {Array}        opts.venues         — MockData.venues array
      * @param {Function}     opts.onSelect       — callback(code) when venue selected
-     * @param {string}       [opts.storageKey]   — localStorage key for favourites
-     * @param {number}       [opts.maxFavourites] — max favourites (default 5)
      * @param {string}       [opts.initialCode]  — pre-selected venue code
+     *
+     * 2026-11-10 (user, code cleanup): the VENUE FAVOURITES feature is PERMANENTLY
+     * REMOVED — no star in any room row, no Favourites group, no toggle, no
+     * localStorage key. The leftover star beside B103 came from this component's
+     * own `isFav` branch. Recent venues keep their own keys and are untouched.
      * @param {Function}     [opts.filter]       — filter function(v) for venues
      */
     constructor(container, opts) {
         this.container = container;
         this.venues = (opts.venues || []).slice();
         this.onSelect = opts.onSelect || function() {};
-        this.storageKey = opts.storageKey || 'venueFavourites';
         this.recentStorageKey = opts.recentStorageKey || 'venueRecent';
-        this.maxFavourites = opts.maxFavourites || 5;
         this.maxRecent = opts.maxRecent || 5;
         /* SDD rearrangement-toolbar-tooltips Batch 2: the arrangement's
            selector-voice trigger tip ('Replacement VENUE Selector: …');
@@ -3709,31 +3710,6 @@ class VenueDropdown {
         return this.selectedCode;
     }
 
-    getFavourites() {
-        try { return JSON.parse(localStorage.getItem(this.storageKey) || '[]'); }
-        catch (e) { return []; }
-    }
-
-    toggleFavourite(code, starEl) {
-        const favs = this.getFavourites();
-        const idx = favs.indexOf(code);
-        if (idx === -1) {
-            if (favs.length >= this.maxFavourites) return false;
-            favs.push(code);
-        } else {
-            favs.splice(idx, 1);
-        }
-        localStorage.setItem(this.storageKey, JSON.stringify(favs));
-        this.refreshFavourites();
-        if (starEl) this.updateFavStar(starEl, code);
-        return true;
-    }
-
-    refreshFavourites() {
-        this._buildGroups();
-        this._updateActive();
-    }
-
     getRecent() {
         try { return JSON.parse(localStorage.getItem(this.recentStorageKey) || '[]'); }
         catch (e) { return []; }
@@ -3756,16 +3732,6 @@ class VenueDropdown {
     destroy() {
         document.removeEventListener('click', this._onDocClick, true);
         document.removeEventListener('keydown', this._onKeydown, true);
-    }
-
-    updateFavStar(starEl, code) {
-        if (!starEl || !code) return;
-        const favs = this.getFavourites();
-        const isFav = favs.includes(code);
-        starEl.textContent = isFav ? '\u2605' : '\u2606';
-        starEl.classList.toggle('active', isFav);
-        starEl.disabled = favs.length >= this.maxFavourites && !isFav;
-        starEl.dataset.tip = starEl.disabled ? 'Maximum 5 Favourites' : (isFav ? 'Remove from Favourites' : 'Add to Favourites');
     }
 
     /* ── Build columns ──────────────────────────────────────── */
@@ -3819,22 +3785,10 @@ class VenueDropdown {
         col.classList.add('visible');
         const venues = this._getVenues();
 
-        /* USER 2026-10-19: Favourites & Recent are COMMENTED OUT first (both
-           pages — replacement-arrangement + venue-timetable share this
-           component). Restore by un-commenting; the storage helpers below
-           stay intact. */
-        // Favourites — expandable 2-level group: ★ Favourites › [rooms]
-        // if (this.getFavourites().some(code => venues.some(v => v.code === code))) {
-        //     const favCount = this.getFavourites().filter(code => venues.some(v => v.code === code)).length;
-        //     const row = this._createParentItem('★ Favourites', { unit: 'favourites', tip: 'Favourites — ' + favCount + ' venues' });
-        //     row.addEventListener('mouseenter', () => this._buildUnitColumn('favourites'));
-        //     row.addEventListener('click', (e) => {
-        //         e.stopPropagation();
-        //         this._buildUnitColumn('favourites');
-        //     });
-        //     col.appendChild(row);
-        // }
-
+        /* USER 2026-10-19: Recent is COMMENTED OUT (both pages share this
+           component). 2026-11-10 (user): FAVOURITES is not "commented out" any
+           more — the feature is PERMANENTLY REMOVED (see the constructor note);
+           do not restore the group, the star or the localStorage key. */
         // Recent — expandable 2-level group: Recent › [rooms]
         // if (this.getRecent().some(code => venues.some(v => v.code === code))) {
         //     const recCount = this.getRecent().filter(code => venues.some(v => v.code === code)).length;
@@ -3875,6 +3829,7 @@ class VenueDropdown {
     }
 
     _buildUnitColumn(unit) {
+        /* only 'recent' remains — the 'favourites' unit was removed 2026-11-10 */
         this.activeType = null;
         this.activeBlock = null;
         this.activeFloor = null;
@@ -3882,10 +3837,10 @@ class VenueDropdown {
         this._clearColumnsFrom(1);
         const col = this.columns[1];
         col.classList.add('visible');
-        this._addSectionHeader(col, unit === 'favourites' ? 'Favourites' : 'Recent');
+        this._addSectionHeader(col, 'Recent');
 
         const venues = this._getVenues();
-        const codes = unit === 'favourites' ? this.getFavourites() : this.getRecent();
+        const codes = this.getRecent();
         const list = codes
             .map(code => venues.find(v => v.code === code))
             .filter(Boolean);
@@ -3898,7 +3853,7 @@ class VenueDropdown {
             return;
         }
 
-        list.forEach(v => col.appendChild(this._createRoomItem(v, unit === 'favourites' ? 'favourite' : 'recent')));
+        list.forEach(v => col.appendChild(this._createRoomItem(v, 'recent')));
         this._updateActiveParents();
     }
 
@@ -4047,23 +4002,12 @@ class VenueDropdown {
         const typeName = VenueDropdown.humanizeType(v.type); /* one vocabulary — the trigger label + this tip agree (user 2026-10-27) */
         row.dataset.tip = v.code + ' · ' + typeName + ' · ' + floorLabel + ', Block ' + v.code.charAt(0);
 
-        const favs = this.getFavourites();
-        const isFav = favs.includes(v.code);
-
-        if (groupType === 'favourite') {
-            const icon = document.createElement('span');
-            icon.className = 'venue-col-item-icon';
-            icon.textContent = '⭐';
-            row.appendChild(icon);
-        } else if (groupType === 'recent') {
+        /* 2026-11-10 (user): no venue favourite star anywhere — the room row
+           carries only the Recent clock when it comes from the Recent group */
+        if (groupType === 'recent') {
             const icon = document.createElement('span');
             icon.className = 'venue-col-item-icon';
             icon.textContent = '🕐';
-            row.appendChild(icon);
-        } else if (isFav) {
-            const icon = document.createElement('span');
-            icon.className = 'venue-col-item-icon';
-            icon.textContent = '⭐';
             row.appendChild(icon);
         }
 

@@ -2752,6 +2752,11 @@ html.dark .semester-bar select:not(.week-select) {
     border: 3px solid var(--color-error);
 }
 /* ── arrangement-cell-state-labels (user brief 2026-11-07, answers 3A/4A/6A) ──
+   ⛔ PERMANENT (user ruling 2026-11-10, code cleanup): the hover tooltip on
+   `.cell-content.cell-occupied` (and its pending/reserved siblings) STAYS. It was
+   once scheduled for removal before the viva — that request is REVOKED. Do not
+   delete `.cell-state-label`, its `:hover` reveal, or the `:has()` switch that
+   silences the CSS `::after` overlay where the span exists. */
    The hover words are now a REAL element inside the cell, not the `::after`
    overlay: a ~40 px cell must hold two lines ("Cohorts / Conflict"), and CSS
    `content:` cannot carry a `<br>` or wrap.

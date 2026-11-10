@@ -1,3 +1,32 @@
+## 2026-11-10 — Code cleanup: no venue favourite star; the occupied tooltip STAYS
+
+Two decisions on the user's word.
+
+**1. The venue "Add to Favourite" feature is PERMANENTLY REMOVED.** The leftover was the
+**star beside a room in the venue dropdown** (the user saw it on B103). It came from the
+shared `VenueDropdown` in `ui-common.js`: an `isFav` branch in `_createRoomItem()` — so every
+previously favourited room painted a star, even though the Favourites *group* had been
+commented out since 2026-10-19. Removed with it: `getFavourites()`, `toggleFavourite()`,
+`refreshFavourites()`, `updateFavStar()`, the `storageKey`/`maxFavourites` options, the
+`'favourite'` group arm of `_buildUnitColumn()`, and this page's own dead `toggleFavourite()`
+/ `updateFavStar()` functions plus their three call sites (which would have thrown once the
+methods were gone). **Recent venues are untouched** (the 🕐 icon and its keys stay).
+
+Measured on `:8010`: with `localStorage.venueFavourites = ["B103"]` seeded, the room row now
+renders `<div class="venue-col-item venue-col-item-room" data-code="B103" data-tip="B103 ·
+Tutorial Room · Floor 1, Block B">` with **no icon** and no star; the panel reports
+`stars: 0` on both the venue page and this page.
+
+**2. The `.cell-content.cell-occupied` hover tooltip is KEPT — permanently.** The earlier
+"remove it before the viva" request is **REVOKED**. The label is the real
+`.cell-state-label` span (`arrangement-cell-state-labels`), revealed on hover; the `:has()`
+rule keeps the CSS `::after` overlay switched off where the span exists. Both `theme.css`
+and this page now carry a ⛔ note saying so, and a test pins it. Measured on hover: the span
+is present and visible, text `YourConflict` (two lines), no console errors.
+
+Receipts: `tests/Feature/CodeCleanupRemovalsTest.php` **6/6**, targeted PHPUnit 90/90,
+pint passed, phpstan 0, `view:cache` OK, `node --check` OK.
+
 ## 2026-11-08 (SDD `arrangement-week-keep-on-subject-switch`) — switching subject no longer throws away the week you are reading
 
 **The bug (user brief 2026-11-07).** Changing the **Subject** dropdown jumped the **Week** dropdown to

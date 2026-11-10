@@ -302,7 +302,7 @@
         .toolbar-center {
             display: flex;
             align-items: center;
-            gap: 6px; /* venue trigger + favourite need breathing room */
+            gap: 6px; /* venue trigger + its chips need breathing room */
             flex: 0 0 auto; /* content-sized — leftover space goes to the subject/slot pair */
         }
         .toolbar-center .venue-dd-trigger {
@@ -1027,11 +1027,10 @@
                     <span class="badge badge-capacity" id="venueCapacity"></span>
                     <span class="badge badge-past" id="arrVenueDescription"></span>
                 </div>
-                {{-- Fav star commented out on this page only (2026-10-18) — the
-                     add/remove still lives in ui-common.js for other pages;
-                     boot guards the missing #favStar via ?., and updateFavStar/
-                     toggleFavourite are null-safe in ui-common.js --}}
-                {{-- <button class="fav-btn" id="favStar" data-tip="Add to Favourites">&#9734;</button> --}}
+                {{-- 2026-11-10 (user, code cleanup): the venue FAVOURITE star is
+                     PERMANENTLY REMOVED from the whole app — this page's button
+                     was already commented out in 2026-10-18, and the shared
+                     VenueDropdown's toggle/star went with it. Do not restore. --}}
             </div>
             <div class="toolbar-filters">
                 @include('partials.ui-week-nav', ['prevOnclick' => 'weekNav.prevWeek()', 'nextOnclick' => 'weekNav.nextWeek()', 'selectId' => 'weekSelector', 'selectOnclick' => 'weekNav.selectWeek(parseInt(this.value, 10))', 'showTodayBtn' => true, 'showPrint' => false, 'selectTip' => 'Select the WEEK that you want to arrange the replacement in', 'todayLabel' => 'Earliest bookable', 'todayTip' => 'Jump to the earliest bookable slot', 'todayIcon' => 'earliest'])
@@ -1237,7 +1236,7 @@
         let BLOCK_SPAN = 4;
         /* true when the URL carried &duration= (my-timetable/venue handoffs):
            the ORIGINAL class's size is known, so auto-default slot picks
-           (favourite/recent/first-option) must NOT resize the block away
+           (recent/first-option) must NOT resize the block away
            from it — only an explicit user pick in the slot panel may. */
         let urlSpanLocked = false;
         /* SDD arrange-intent-session-choice: the honest five-branch cause of the
@@ -1965,6 +1964,9 @@
                                work (`<br>`) and the CSS `::after` overlay is
                                retired exactly here (see theme.css). */
                             const stateLabel = document.createElement('span');
+                            /* ⛔ PERMANENT (user 2026-11-10): the occupied cell's
+                               hover label STAYS — the old "remove before the viva"
+                               request is revoked (see theme.css's note). */
                             stateLabel.className = 'cell-state-label';
                             stateLabel.innerHTML = cellStateLabel(cellFacts);
                             div.appendChild(stateLabel);
@@ -2086,16 +2088,6 @@
                the page's data hydration; the guest-state guard skips the
                boot before it exists). */
             if (window.__fillVenueChips) window.__fillVenueChips(newVenue);
-            updateFavStar();
-        }
-
-        function toggleFavourite() {
-            if (!currentVenue || !venueDropdown) return;
-            venueDropdown.toggleFavourite(currentVenue, document.getElementById('favStar'));
-        }
-
-        function updateFavStar() {
-            venueDropdown && venueDropdown.updateFavStar(document.getElementById('favStar'), currentVenue);
         }
 
         let confirmCallback = null;
@@ -3978,7 +3970,7 @@ ${(fallbackAttribution && intentReason === 'in-the-way')
                 item.className = 'slot-dd-item';
                 item.dataset.index = index;
                 /* Batch 2: the label = (TYPE) Week N · Mon D, YEAR · range @ venue
-                   · the cohorts icon+names; the favourite star is GONE (req 3a) —
+                   · the cohorts icon+names; the slot favourite star is GONE (req 3a) —
                    its machinery (FAV_KEY/getFavouriteSlot/toggleSlotFavourite +
                    the default-priority branch) removed with it. */
                 item.innerHTML = `
@@ -4318,12 +4310,13 @@ triggerText.textContent = slotTriggerLabel(slot);
             }
         }
 
-        /* SDD rearrangement-toolbar-tooltips Batch 2 (req 3a): the slot
+        /* SDD rearrangement-toolbar-tooltips Batch 2 (req 3a): the SLOT
            favourite machinery (FAV_KEY/getFavouriteSlot/toggleSlotFavourite)
            is GONE — its only consumer was the removed dropdown star; the
            default-priority branch that re-picked it dropped with it (Recent
-           → First now). The VENUE favourites (the shared VenueDropdown's
-           stars) are elsewhere and UNTOUCHED. */
+           → First now). 2026-11-10 (user, code cleanup): the VENUE favourites
+           (the shared VenueDropdown's star) are gone as well — the whole
+           feature is permanently removed, both kinds. */
 
         // ── Recent Slot (last submitted, localStorage) ──
         const RECENT_KEY = 'replacement-recent';
@@ -4342,13 +4335,13 @@ triggerText.textContent = slotTriggerLabel(slot);
         function applyDefaultSlotSelection(slots) {
             // 1. URL params from Venue Timetable (already handled in applyUrlParams)
             /* the handoff's PINNED slot (home or venue-timetable) outranks
-               favourite/recent/first — the default picks fired here used to run
+               recent/first — the default picks fired here used to run
                AFTER it and fight it (favourite re-picked the L occurrence on a
                T handoff, flipping the context AND the venue). If the URL pinned
                a slot, applyUrlParams's own branch below does the only pick. */
             if (urlParams.code && urlParams.day !== null && urlParams.start !== null && urlParams.originalVenue) return;
-            // 2. Favourite — REMOVED (Batch 2 req 3a: the dropdown star is
-            //    gone; the localStorage favourite can never be set again)
+            // 2. Favourite — REMOVED, and now removed app-wide (2026-11-10):
+            //    the slot star went in Batch 2, the venue star in the cleanup
             // 3. Recent
             const recent = getRecentSlot();
             if (recent) {
@@ -4529,8 +4522,6 @@ triggerText.textContent = slotTriggerLabel(slot);
                 chipEl.style.display = '';
             };
             window.__fillVenueChips(urlParams.venue || currentVenue);
-            updateFavStar();
-            document.getElementById('favStar')?.addEventListener('click', toggleFavourite);
             document.getElementById('semesterChip').textContent = MockData.semester.chipText;
             /* ARRANGEMENT-EARLIEST-WEEK-DEFAULT (user decisions Q2 A + Q3 A,
                2026-10-20) — as amended by ARRIVAL-GRID-NO-PIN (user law
@@ -4739,7 +4730,6 @@ triggerText.textContent = slotTriggerLabel(slot);
         window.hideHelp = hideHelp;
         window.dismissBookingIntent = dismissBookingIntent;
         window.removeSavedBlock = removeSavedBlock;
-        window.toggleFavourite = toggleFavourite;
         /* the ui-week-nav partial's inline onclick calls weekNav.* */
         window.weekNav = weekNav;
         });

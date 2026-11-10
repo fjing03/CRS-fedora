@@ -1,3 +1,15 @@
+## 2026-11-10 — Code cleanup: the venue favourite star is gone
+
+The shared venue dropdown no longer paints a star beside a room. The leftover star on this
+page (e.g. B103) came from `VenueDropdown._createRoomItem()`'s `isFav` branch in
+`public/js/ui-common.js`; the whole favourites feature is permanently removed (see the
+Replacement Arrangement changelog for the full list: `getFavourites`, `toggleFavourite`,
+`refreshFavourites`, `updateFavStar`, the storage keys and the Favourites group arm).
+**Recent venues keep their 🕐 icon and their own storage keys** — untouched.
+
+Verified on `:8010` with `localStorage.venueFavourites = ["B103"]` seeded: the room row has
+`icons: 0` and no star glyph; the panel reports `stars: 0`; zero console errors.
+
 ## 2026-11-07 (date/time batch 3, `docs/date-time-format-audit-2026-11-07.md`) — session rows and the semester chip lose padded/hyphenated dates
 
 The "Select a Session" rows read `(L) W8, Mon, 9 Nov 2026 . …` (was `Mon, Nov 9`), and the semester

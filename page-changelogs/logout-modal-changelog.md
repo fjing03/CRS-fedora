@@ -1,3 +1,23 @@
+## 2026-11-10 — PERMANENTLY REMOVED (user, code cleanup)
+
+The feature is gone for good, on the user's word: *"Logout Modal JS: Permanently remove it."*
+The modal had been inactive since 2026-10-18 (the nav buttons already submitted the form
+directly), so what was left was dead weight — and a trap for anyone who reinstated it.
+
+Removed:
+- `public/js/logout-modal.js` (the whole file: countdown, don't-ask-again flag, button wiring).
+- `resources/views/partials/ui-logout-modal.blade.php` (the shell it drove).
+- The commented `@include` + the commented `<script src>` in `layouts/ui-template.blade.php`.
+- The two commented `onclick="showLogoutModal()"` lines in `partials/ui-nav-bar.blade.php`.
+- `tests/logout-modal-test-cases.md` (the manual cases for a feature that no longer exists).
+
+**Logout still works the plain way:** both logout buttons (nav bar + mobile drawer) submit
+`#logout-form` directly. Measured on the demo copy: clicking the nav logout lands on
+`/login/staff`, zero console errors.
+
+Pinned by `tests/Feature/CodeCleanupRemovalsTest.php` — the files must stay absent and
+nothing may point at `showLogoutModal` / `logoutModal` / `logout_no_confirm` again.
+
 # Changelog — Logout Modal
 
 ## Files Changed
