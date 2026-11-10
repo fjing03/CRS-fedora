@@ -1,3 +1,32 @@
+## 2026-11-10 (later) — the action area joins the summary card (Submit right of the tip, Clear ALL commented)
+
+The action area at the bottom of the page was its own boxed strip (`.footer-area`, a bordered card with a
+left group and a right group). It is gone, and the buttons now live in the summary card itself.
+
+**Submit Request moved** into `.sel-summary-action`, the row that holds the tip — **tip on the left,
+button on the right**. The button is a SIBLING of `#summaryTip`, deliberately: that node's `innerHTML`
+is rewritten on every render (the tip changes with the selection), so a button inside it would be
+deleted the first time a slot is picked.
+
+**Clear ALL is commented out, not deleted** — the whole `#clearTip` / `#clearAllBtn` span stays in the
+file as a comment so it can come back with multi-block selection. Nothing breaks while it is out of
+the DOM: `updateCounter()` has always null-guarded `#clearAllBtn` and `#clearTip`, and `clearAll()`
+itself is untouched.
+
+**`.footer-area` removed completely** — the wrapper, `.footer-left`, `.footer-left strong`,
+`.footer-right`, and all four mobile overrides (`.footer-area`, `.footer-left`, `.footer-right`,
+`.footer-right .btn`). `.selection-counter` stays (it styles the counter chip wherever it returns).
+
+Responsive: the action row is a row on desktop and **stacks on a phone** (tip centred above a
+full-width Submit button), which is what the old footer's mobile override did.
+
+The submit lookup got tighter in the same move: `updateCounter()` now disables
+`#submitRequestBtn` by id instead of `document.querySelector('.btn-primary')`, which could have hit
+another primary button on the page.
+
+No rule was added above the action row on purpose: the grid already ends with one and the info strip
+adds a second when it shows, so a border here would have doubled it — the old tip row had none.
+
 ## 2026-11-10 (later) — the lead-time banner moves into the too-soon tooltip
 
 The standalone banner above the grid (`#leadTimeNote`, "Some slots this week are too soon — Monday to

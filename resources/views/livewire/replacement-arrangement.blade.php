@@ -454,32 +454,9 @@
 
         .cell-time-label { display: none; }
 
-        .footer-area {
-            margin-top: 14px;
-            padding: 14px 18px;
-            background: var(--color-surface);
-            border: 1px solid var(--color-outline);
-            border-radius: var(--radius-md);
-            box-shadow: var(--shadow-sm);
-            transition: background var(--transition), border-color var(--transition);
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            flex-wrap: wrap;
-            gap: 12px;
-        }
-
-        .footer-left {
-            display: flex;
-            align-items: center;
-            gap: 20px;
-            font-size: 13px;
-            color: var(--color-on-surface-variant);
-        }
-        .footer-left strong {
-            color: var(--color-on-surface);
-            font-weight: 600;
-        }
+        /* `.footer-area` / `.footer-left` / `.footer-right` were REMOVED here
+           2026-11-10 (user, "UI Update — Action Area"). The buttons live in
+           `.sel-summary-action`, right of the tip. */
 
         .selection-counter {
             display: flex;
@@ -499,12 +476,6 @@
         .selection-counter .count-max {
             font-weight: 600;
             color: var(--color-on-surface-variant);
-        }
-
-        .footer-right {
-            display: flex;
-            align-items: center;
-            gap: 10px;
         }
 
         .btn {
@@ -729,12 +700,27 @@
             color: var(--color-on-surface);
         }
 
-        .sel-summary-tip {
+        /* 2026-11-10 (user, "UI Update — Action Area"): tip on the LEFT, the Submit
+           Request button on its RIGHT, in one row that closes the summary card. */
+        .sel-summary-action {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
             padding: 12px 20px;
+            /* no rule of its own: the grid above already ends with one, and the
+               info strip adds a second when it is showing — a border here would
+               double it. The tip row had none before this change either. */
+        }
+        .sel-summary-tip {
+            flex: 1 1 auto;
+            min-width: 0;
+            padding: 0;
             font-size: 12px;
             color: var(--color-on-surface-variant);
-            text-align: center;
+            text-align: left;
         }
+        .sel-summary-action #submitTip { flex: 0 0 auto; }
         .sel-summary-tip .tip-plain { color: var(--color-on-surface); }
         .sel-summary-tip .tip-max { font-weight: 400; } /* white + CAP via literal text, no bold */
         .sel-summary-tip .tip-action {
@@ -804,14 +790,18 @@
             .slot-dd-panel {
                 min-width: 100%;
             }
-            .footer-area { flex-direction: column; text-align: center; }
-            .footer-left { justify-content: center; }
-            .footer-right {
-                justify-content: center;
-                flex-wrap: wrap;
-                gap: 8px;
+            /* the retired `.footer-area` overrides are replaced by the action row:
+               on a phone the tip sits above a full-width Submit button */
+            .sel-summary-action {
+                flex-direction: column;
+                align-items: stretch;
+                gap: 10px;
             }
-            .footer-right .btn {
+            .sel-summary-tip { text-align: center; }
+            .sel-summary-action #submitTip { align-self: stretch; }
+            .sel-summary-action .btn {
+                width: 100%;
+                justify-content: center;
                 padding: 8px 14px;
                 font-size: 12px;
             }
@@ -1119,33 +1109,14 @@
                     </div>
                 </div>
             </div>
-            <div class="sel-summary-tip" id="summaryTip">Tip: Click an <span class="tip-success">available (green)</span> time slot to begin.</div>
-        </div>
-
-        <div class="footer-area">
-            <div class="footer-left">
-            </div>
-            <div class="footer-right">
-                {{-- Clear this Page button — disabled for now (single-block selection)
-                <button class="btn btn-outline" onclick="clearSelection()">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <line x1="18" y1="6" x2="6" y2="18"/>
-                        <line x1="6" y1="6" x2="18" y2="18"/>
-                    </svg>
-                    Clear this Page
-                </button>
-                --}}
-                <span class="btn-tip" id="clearTip" data-tip="Nothing to clear yet — select a time slot first">
-                    <button class="btn btn-danger" id="clearAllBtn" disabled onclick="clearAll()">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <polyline points="3 6 5 6 21 6"/>
-                            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
-                        </svg>
-                        Clear ALL
-                    </button>
-                </span>
+            {{-- 2026-11-10 (user, "UI Update — Action Area"): the action row — the tip
+                 on the left, the Submit Request button on its RIGHT. The button is a
+                 SIBLING of #summaryTip, never a child: that node's innerHTML is
+                 rewritten on every render, which would delete the button. --}}
+            <div class="sel-summary-action">
+                <div class="sel-summary-tip" id="summaryTip">Tip: Click an <span class="tip-success">available (green)</span> time slot to begin.</div>
                 <span class="btn-tip" id="submitTip" data-tip="Select a time slot first to enable submission">
-                    <button class="btn btn-primary" onclick="proceed()">
+                    <button class="btn btn-primary" id="submitRequestBtn" onclick="proceed()">
                         Submit Request
                         <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
                             <line x1="5" y1="12" x2="19" y2="12"/>
@@ -1155,6 +1126,24 @@
                 </span>
             </div>
         </div>
+
+        {{-- 2026-11-10 (user, "UI Update — Action Area"): Clear ALL is COMMENTED OUT,
+             not deleted — it returns with multi-block selection. While it is out of the
+             DOM, `#clearAllBtn`/`#clearTip` are simply absent, and every script that
+             touched them is null-guarded (updateCounter).
+        <span class="btn-tip" id="clearTip" data-tip="Nothing to clear yet — select a time slot first">
+            <button class="btn btn-danger" id="clearAllBtn" disabled onclick="clearAll()">
+                <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="3 6 5 6 21 6"/>
+                    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+                </svg>
+                Clear ALL
+            </button>
+        </span>
+        --}}
+        {{-- `.footer-area` removed 2026-11-10 (user): the wrapper, its left/right
+             groups and their mobile overrides are gone; the action row above owns the
+             Submit button now. --}}
 
         <div class="modal-overlay" id="confirmModal" style="display:none">
         <div class="modal">
@@ -1326,7 +1315,7 @@
             const el = document.getElementById('selCount');
             if (el) el.textContent = total;
             const has = total > 0;
-            const btn = document.querySelector('.btn-primary');
+            const btn = document.getElementById('submitRequestBtn') || document.querySelector('.btn-primary');
             if (btn) btn.disabled = !has;
             const clearBtn = document.getElementById('clearAllBtn');
             if (clearBtn) clearBtn.disabled = !has;
