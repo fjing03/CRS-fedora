@@ -130,7 +130,7 @@ ONE batch (`holidays`) — the `replacement_requests` one-query law is unchanged
 When a lecturer cancels their own pending request, My Replacements does **not** keep advertising the
 released proposal. `ReplacementHome::buildRow()` normalises that row to the no-request state: status
 `null` (badge `badge-outline status-none` reading **Need to Arrange** with the no-request tip), the
-replacement strings blanked (the REQUESTED REPLACEMENT cell renders its em dash) and `remarks` /
+replacement strings blanked (the REQUESTED SLOT cell renders its em dash) and `remarks` /
 `rejectionReason` dropped (the details pop-up therefore loses its whole **Proposed Replacement
 Schedule** tab, Request ID included). One normalisation, zero view code — the page already renders the
 no-request state for an absent date.
@@ -585,11 +585,11 @@ These eleven rules are **non-negotiable** for every page and every future change
    Adding a new status/legend item = add ONE row to the relevant table above + ONE class to `theme.css`, then reuse it everywhere. Do not invent a synonym.
 
 **A week filter names which weeks it means — and the two replacement pages mean different weeks
-(2026-11-07).** My Replacements filters the **ORIGINAL CLASS** week (active chip
-`Original Class Week: Week 8 · 9 Nov 2026 ~ 15 Nov 2026`, "all" option `All Original Class Weeks`);
-Request Approval filters the **REQUESTED REPLACEMENT** week — the slot the PL is approving — (chip
-`Requested Replacement Week: …`, option `All Requested Replacement Weeks`, select tip "Pick the
-Requested Replacement week to display"), and its status column header reads **REQUEST STATUS**
+(2026-11-07; labels re-worded to SLOT on 2026-11-10).** My Replacements filters the **original slot**
+week (active chip `Original Slot Week: Week 8 · 9 Nov 2026 ~ 15 Nov 2026`, "all" option
+`All Original Slot Weeks`); Request Approval filters the **requested slot** week — the slot the PL is
+approving — (chip `Requested Slot Week: …`, option `All Requested Slot Weeks`, select tip "Pick the
+requested slot week to display"), and its status column header reads **REQUEST STATUS**
 (was `STATUS`). The shared `isInWeek(value, week)` takes whichever date the page hands it; the two
 callers must never be swapped (`classDate` on My Replacements, `replacementDate` on the PL queue), or
 a request whose class is in week 14 and whose proposal lands in week 7 appears in the wrong week.
@@ -625,7 +625,7 @@ server-driven `disabled` states keep working — never reach for `wire:ignore` h
 
 9. **Mobile responsive design.** Every page MUST include mobile layout (≤768px breakpoint): nav drawer, card layout for tables, 2-col summary cards, flex-wrap legend, bottom-sheet modals, ≥44×44px touch targets (WCAG 2.5.5), swipe week navigation, `clamp()` typography, safe-area insets, full-width inputs, viewport meta with `viewport-fit=cover`. Shared CSS in `theme.css`, JS helpers in `ui-common.js`.
 
-10. **Toast bar for critical actions.** After any critical action, show a toast bar at **bottom-left** with a success message; auto-dismiss after **5 seconds**. CSS in `theme.css`, JS helper `toast.show(message, undoCallback, duration)` in `ui-common.js` (the old `showToast()` name is gone). **The Undo button exists only for genuinely reversible actions** (hiding a notification, clearing a selection). **Cancel Class is FINAL** (user ruling 2026-11-05) — no undo affordance, no undo callback, and the server-side `cancelClassUndo()` was deleted; the toast is a plain confirmation. Every final decision's modal additionally carries the shared sentence *"This action cannot be UNDONE."* (`partials.ui-irreversible-line`, used by Approve, Reject, Cancel Request and Cancel Class). The cancellation reminder toast is **one-shot** (it cannot re-fire on every page load) and a `?blocked=request-pending|request-approved` arrival shows the entry-guard message FIRST, deferring any cancellation reminder to the next page load.
+10. **Toast bar for critical actions.** After any critical action, show a toast bar at **bottom-left** with a success message; auto-dismiss after **5 seconds**. CSS in `theme.css`, JS helper `toast.show(message, undoCallback, duration)` in `ui-common.js` (the old `showToast()` name is gone). **The Undo button exists only for genuinely reversible actions** (hiding a notification, clearing a selection). **Cancel Class is FINAL** (user ruling 2026-11-05) — no undo affordance, no undo callback, and the server-side `cancelClassUndo()` was deleted; the toast is a plain confirmation. Every final decision's modal additionally carries the shared sentence *"This action cannot be UNDONE."* (`partials.ui-irreversible-line`, used by Approve, Reject, Cancel Request and Cancel Class) — **Cancel Class uses the partial's opt-in `compact` arm instead** (user 2026-11-10): the short **`CANNOT UNDONE`**, right-aligned in the modal footer directly above Yes, visible only while Yes is armed, and never in the success state. The cancellation reminder toast is **one-shot** (it cannot re-fire on every page load) and a `?blocked=request-pending|request-approved` arrival shows the entry-guard message FIRST, deferring any cancellation reminder to the next page load.
 
 11. **Dates and times speak one format (user-approved 2026-11-07, `docs/date-time-format-audit-2026-11-07.md`).**
     - Date `5 Nov 2026` — day first, no leading zero, short month, 4-digit year. Time `2:00 PM` — 12-hour, uppercase meridiem, no leading zero.
@@ -640,7 +640,7 @@ server-driven `disabled` states keep working — never reach for `wire:ignore` h
 
 ### 2. Composition
 - **Blade partials** via `@include('partials.ui-nav-bar', ['activeNav' => ...])`, `@include('partials.ui-summary-bar', ['cards' => [...]])`, etc.
-- Timetable partials: `ui-page-header`, `ui-week-nav` (incl. `showPrint`; opt-in `showEarliestBtn` adds the Earliest-bookable action to the toolbar, default off so other pages are unchanged), `ui-guide-block`, `ui-legend-bar` (block-class chips + `ownershipHint`), `ui-summary-bar`, `ui-empty-state`, `ui-grid-table`, `ui-class-detail-modal`, `ui-cancel-class-modal` (Wave 3b), `ui-today-btn`, `ui-venue-dropdown`, `ui-logout-modal`.
+- Timetable partials: `ui-page-header`, `ui-week-nav` (incl. `showPrint`; opt-in `showEarliestBtn` adds the Earliest-bookable action to the toolbar, default off so other pages are unchanged), `ui-guide-block`, `ui-legend-bar` (block-class chips + `ownershipHint`), `ui-summary-bar`, `ui-empty-state`, `ui-grid-table`, `ui-class-detail-modal`, `ui-cancel-class-modal` (Wave 3b), `ui-today-btn`, `ui-venue-dropdown`. (`ui-logout-modal` was deleted for good on 2026-11-10; the logout form is submitted directly.)
 - **Inline-handler export law.** A page script runs inside a `DOMContentLoaded` closure, so any
   page function referenced by an inline `onclick=` in a shared partial must be exported
   (`window.fnName = fnName;`) in that block — otherwise the markup cannot see it (a modal that

@@ -3,7 +3,7 @@
 > The always-read form of the user's coding rules for `CRS-fedora-backend`.
 > Distilled from `CodingMAIN.md §10` (Coding Conventions + UI Design Rules, user-mandated 2026-08-01)
 > and `AGENTS.md` standing rules. On any conflict, **CodingMAIN.md §10 wins** — and tell the user
-> this file has drifted so it can be re-synced. Last synced: 2026-11-07 (night).
+> this file has drifted so it can be re-synced. Last synced: 2026-11-10 (evening).
 
 ## 1. UI Design Rules — non-negotiable, every page, every change
 
@@ -11,6 +11,12 @@
    - Sole sanctioned exception (FOUC guard) in `resources/views/layouts/ui-template.blade.php`: `html.dark { background: #0D1B2A; }` / `html.light { background: #F0F3F7; }` — if the theme bg token ever changes, update BOTH together (grep `html.dark`). No other hardcoded color is permitted.
    - Slot-grid colors fixed token-mapped: Green=`--color-secondary`, Red=`--color-error`, Yellow=`--color-tertiary`, Grey=`--color-outline-strong`, Blue=`--color-primary`.
 2. **Same name + same color for the same meaning — everywhere.** The canonical pairs below are the single source of truth: never give a concept a different label or color on another page, never invent a synonym. Identical component = identical class name across pages (`.badge`, `.legend-item`, `.summary-card`, `.filter-select`, `.cell-code`, `.empty-state`, …), defined once in `theme.css`.
+   - **One action, one icon** (2026-11-10): the Arrange Replacement action draws the same swap glyph
+     everywhere it appears (the ACTION column's primary button, Replacement Details' `#qvArrangeBtn`, the
+     modal's `#btnReplaceNow`) — 15 px, stroke 2. A glyph that means one thing must not change shape page to page.
+   - **A modal names the subject once and the room once** (2026-11-10): the subtitle owns the subject (no
+     `Subject` row), the `Venue` row owns the room with its seats (`B002 — Tutorial Room (35 seats)`), and the
+     wording comes from `ModalFacts` — never a copy per builder.
    - **A page's own name is one name in four places** (2026-11-09): tab title, nav label, route (keep the old
      address as an alias) and the `<h1>` — which comes from `partials/ui-page-header`'s `title` argument and is the
      one a rename forgets. The student page is **Class Replacements**, not "Replacement History".
@@ -79,7 +85,7 @@ Adding a new status/legend item = **ONE row** in the relevant table above + **ON
 5. **Don't overwhelm — detail goes in modals.** Page surface = grid/table + filters + summary cards + primary actions. Anything "nice to know" rather than "need to scan" opens in a modal behind an icon button, never inline.
 6. **Promote-on-3rd-duplication (DRY/OOP).** A markup block / CSS class / JS helper identical across 3+ pages → promote to `resources/views/partials/`, `theme.css`, or `ui-common.js` and refactor the duplicates away. Record every promotion in the SDD `design.md` "Promoted to shared" section.
 7. **Minimise steps — fewest clicks.** Pre-select sensible defaults; no page-hopping for a single task; >~3 clicks → rethink the flow.
-8. **Confirm critical actions, and say when it is final.** Delete / submit / cancel / approve / reject → confirmation popup BEFORE executing. A decision that cannot be taken back also carries the shared sentence **"This action cannot be UNDONE."** — one partial, `resources/views/partials/ui-irreversible-line.blade.php`, included by the Approve, Reject, Cancel Request and Cancel Class modals. Reversible actions do not get it.
+8. **Confirm critical actions, and say when it is final.** Delete / submit / cancel / approve / reject → confirmation popup BEFORE executing. A decision that cannot be taken back also carries the shared sentence **"This action cannot be UNDONE."** — one partial, `resources/views/partials/ui-irreversible-line.blade.php`, included by the Approve, Reject, Cancel Request and Cancel Class modals. Reversible actions do not get it. **Cancel Class wears the SHORT form** (user 2026-11-10): the same partial's opt-in `compact` arm prints **`CANNOT UNDONE`** in the modal FOOTER, right-aligned above Yes, and only while Yes is armed — the other three keep the long sentence.
 9. **Mobile responsive on every page** (≤768px breakpoint): nav drawer, card layout for tables, 2-col summary cards, flex-wrap legend, bottom-sheet modals, ≥44×44px touch targets (WCAG 2.5.5), swipe week navigation, `clamp()` typography, safe-area insets, full-width inputs, viewport meta with `viewport-fit=cover`. Shared CSS in `theme.css`, JS helpers in `ui-common.js`.
 10. **Toast bar for critical actions.** Bottom-left toast with the success message, auto-dismiss after **5 seconds** — `toast.show(message, undoCallback, duration)` in `ui-common.js`, CSS in `theme.css`. **Undo is offered only where the action is genuinely reversible** (hiding a notification, clearing a selection). **Cancel Class is FINAL** (user ruling 2026-11-05: *"i give up all UNDONE function"*) — no undo button, no undo callback, no server undo route; the confirmation itself is the receipt. The cancellation reminder is **one-shot**: it may return on ONE later page load, never on every load, and a `?blocked=` arrival speaks first (its own message wins; the reminder keeps its turn for the next load).
 11. **Dates and times speak one format — already shipped, keep it.** Date `5 Nov 2026` (no leading zero, day first); time `2:00 PM`; range `2:00 PM ~ 4:00 PM` (the tilde is the joiner; a hyphen is acceptable but never mix joiners in one element; the en dash `–` is not a range joiner). Day word `Thu` in compact lines (table cells, cards, chips, picker labels, tooltips) and `Thursday` in prose (sentences, questions, toasts, expanded modal rows). The 24-hour grid hour axis is a scale and stays 24-hour; notification tooltips stay short (no year). Emails carry the full date + 12-hour range (`Mon, 9 Nov 2026, 1:30 PM ~ 3:30 PM`) via `ReplacementRequestMapper::mailSchedule()`. Full audit + batch log: `docs/date-time-format-audit-2026-11-07.md`. New surface → use the standard, never invent a fourth shape.
@@ -87,7 +93,7 @@ Adding a new status/legend item = **ONE row** in the relevant table above + **ON
 ## 2. OOP at every layer (FYP rubric evaluates this)
 
 - **Inheritance** — every page `@extends('layouts.ui-template')` filling `@section('content')`, `@section('page-styles')`, `@section('page-scripts')`, `@yield('title')`. Eloquent models extend `Model`; `User` extends `Authenticatable`; middleware extends base classes; migrations use anonymous `class extends Migration`.
-- **Composition** — Blade partials via `@include`: `ui-nav-bar` (with `activeNav`), `ui-summary-bar`, `ui-page-header`, `ui-week-nav` (incl. `showPrint`, opt-in `showEarliestBtn`), `ui-guide-block`, `ui-legend-bar` (incl. `ownershipHint`), `ui-empty-state`, `ui-grid-table`, `ui-class-detail-modal`, `ui-cancel-class-modal`, `ui-today-btn`, `ui-venue-dropdown`, `ui-logout-modal`.
+- **Composition** — Blade partials via `@include`: `ui-nav-bar` (with `activeNav`), `ui-summary-bar`, `ui-page-header`, `ui-week-nav` (incl. `showPrint`, opt-in `showEarliestBtn`), `ui-guide-block`, `ui-legend-bar` (incl. `ownershipHint`), `ui-empty-state`, `ui-grid-table`, `ui-class-detail-modal`, `ui-cancel-class-modal`, `ui-today-btn`, `ui-venue-dropdown`. (`ui-logout-modal` was deleted for good on 2026-11-10 — the logout buttons submit `#logout-form` directly.)
 - **Encapsulation & DRY — shared homes:**
   - `public/css/theme.css` — ALL shared CSS (page-specific styles stay in `@section('page-styles')`).
   - `public/js/ui-common.js` — shared JS helpers (`buildTimetableGrid` two-axis default rendering + span coalescing, `WeekNavigator`, `computeSummary`, `buildReplacementNote`, `openClassModal`, `CancelClass`, `toast.show`, theme helpers).
@@ -103,10 +109,10 @@ Adding a new status/legend item = **ONE row** in the relevant table above + **ON
     The page's status filter therefore has **no Cancelled option** any more, and a filter saved before
     the removal is mapped onto Need to Arrange at restore.
   - **A week filter says WHICH weeks it means — the two pages mean different ones** (user
-    2026-11-07). My Replacements = the **original class** week: chip `Original Class Week: …`, option
-    `All Original Class Weeks`. Request Approval = the **requested replacement** week (the slot being
-    approved): chip `Requested Replacement Week: …`, option `All Requested Replacement Weeks`, and its
-    status column header reads **REQUEST STATUS**. `isInWeek(value, week)` filters whatever date the
+    2026-11-07; labels re-worded to **SLOT** on 2026-11-10). My Replacements = the **original slot** week:
+    chip `Original Slot Week: …`, option `All Original Slot Weeks`. Request Approval = the **requested
+    slot** week (the slot being approved): chip `Requested Slot Week: …`, option `All Requested Slot
+    Weeks`, and its status column header reads **REQUEST STATUS**. `isInWeek(value, week)` filters whatever date the
     page hands it — `classDate` on one page, `replacementDate` on the other; never swap them. One
     builder of an "all" option: `populateWeekSelect(sel, { includeAll, allLabel })`.
   - **A JS-owned control must survive a Livewire round-trip.** A page component's re-render morphs the

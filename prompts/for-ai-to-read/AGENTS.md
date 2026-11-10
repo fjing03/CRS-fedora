@@ -56,7 +56,9 @@ and the matching `page-changelogs/*.md` to learn house style before designing.
   **Cancel Class is FINAL since 2026-11-05** — undo was removed from the UI, the JS and the server
   (`App\Concerns\CancelsClasses::cancelClassUndo()` no longer exists), so never re-offer it. Every
   final decision's confirm modal carries the shared sentence
-  `partials.ui-irreversible-line` → *"This action cannot be UNDONE."*
+  `partials.ui-irreversible-line` → *"This action cannot be UNDONE."* — except **Cancel Class**, whose
+  share is the partial's opt-in `compact` arm: the short **`CANNOT UNDONE`** in the modal FOOTER, above
+  Yes, shown only while Yes is armed (user 2026-11-10).
   **Auto-reject since 2026-11-06:** a PENDING request whose proposed start is within (or exactly)
   **3 working hours** is rejected by the system — working time = TARUMT Sabah hours, Mon–Fri
   08:30–17:30, weekends and the semester's `holidays` rows excluded. `App\Support\WorkingHours`
@@ -68,7 +70,7 @@ and the matching `page-changelogs/*.md` to learn house style before designing.
   public holiday (`holiday`, the D2 rule) — a rule the page enforces must exist in the action too,
   never only in JavaScript.
 - **A cancelled request displays as "no active request" (2026-11-06):** on My Replacements an
-  owner-cancelled occurrence reads **Need to Arrange** with an em-dash REQUESTED REPLACEMENT cell and
+  owner-cancelled occurrence reads **Need to Arrange** with an em-dash REQUESTED SLOT cell and
   no Proposed Replacement Schedule tab, and the row pulses **yellow** on the cancel
   (`flashRowPulse(el, 'warning')` — the one flash mechanic in `ui-common.js`, never a second
   animation). The RECORD is never rewritten (still `cancelled`, audited, slots released), the status
@@ -78,10 +80,11 @@ and the matching `page-changelogs/*.md` to learn house style before designing.
   `app/Support/Notifications/NotificationTip.php` composes them for every live kind (Subject / schedules / reasons / `Request ID`;
   holiday-first reason in the Original line; `Automatically Rejected by System` when
   `approver_id IS NULL`; students without the Staff lines). Don't hand-write a tip in a page.
-- **A filter label names the date it filters** (2026-11-07): My Replacements' week filter is the
-  **original class** week (`Original Class Week: …` / `All Original Class Weeks`), Request Approval's
-  is the **requested replacement** week (`Requested Replacement Week: …` / `All Requested Replacement
-  Weeks`, status header **REQUEST STATUS**), and each page passes its own date to `isInWeek()`.
+- **A filter label names the date it filters** (2026-11-07; labels re-worded to **SLOT** on 2026-11-10):
+  My Replacements' week filter is the **original slot** week (`Original Slot Week: …` /
+  `All Original Slot Weeks`), Request Approval's is the **requested slot** week (`Requested Slot Week: …`
+  / `All Requested Slot Weeks`, status header **REQUEST STATUS**), and each page passes its own date to
+  `isInWeek()` — `classDate` on one page, `replacementDate` on the other. Never swap them.
 - **A request keeps its own length:** a slot is a 30-minute cell and the release actions delete the
   junction rows, so `replacement_requests.replacement_span` (written at submit) plus
   `ReplacementRequestMapper::spanFromAnchor()` is the ONLY way to turn a junction-less request into a
