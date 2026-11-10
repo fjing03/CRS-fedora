@@ -63,4 +63,48 @@ class StudentClassReplacementsFixesTest extends TestCase
         $this->assertStringContainsString("e.target.closest('.filter-chip-remove')", $blade);
         $this->assertStringContainsString("getAttribute('data-remove')", $blade);
     }
+
+    /**
+     * 2026-11-10 (user): the student page carries the staff pages' "Clear all" chip —
+     * same markup, same tooltip, LAST in the bar, and only while a filter is active.
+     * It must also be reachable from its inline `onclick`: this page's script runs
+     * inside a DOMContentLoaded closure, so the function needs a window export.
+     */
+    public function test_the_clear_all_chip_matches_the_staff_pages(): void
+    {
+        $blade = $this->pageSource();
+
+        $this->assertStringContainsString(
+            '<button type="button" class="filter-chip filter-chip-clear-all" data-tip="Remove every active filter" onclick="clearAllFilters()">Clear all</button>',
+            $blade,
+            'the markup must be the staff pages\' own, byte for byte',
+        );
+
+        /* only when something is active — the same guard the staff pages use */
+        $this->assertStringContainsString('if (chips.length > 0) {', $blade);
+        $this->assertMatchesRegularExpression(
+            '/if \(chips\.length > 0\) \{\s*chips\.push\(.<button type="button" class="filter-chip filter-chip-clear-all"/',
+            $blade,
+            'Clear all is pushed after the chips, never rendered on a clean view',
+        );
+
+        /* the closure-wrapped script needs the global */
+        $this->assertStringContainsString('window.clearAllFilters = clearAllFilters;', $blade);
+    }
+
+    public function test_clear_all_resets_this_page_s_own_filters(): void
+    {
+        $blade = $this->pageSource();
+
+        $start = strpos($blade, 'function clearAllFilters() {');
+        $this->assertNotFalse($start, 'clearAllFilters must exist');
+        $body = substr($blade, $start, 900);
+
+        $this->assertStringContainsString("getElementById('weekFilter')", $body, 'it resets the week filter');
+        $this->assertStringContainsString("sel.value = 'all'", $body);
+        $this->assertStringContainsString("getElementById('hideCompleted')", $body, 'it turns the completed filter off');
+        $this->assertStringContainsString('hc.checked = false', $body);
+        $this->assertStringContainsString('localStorage.removeItem(VIEW_KEY)', $body, 'the saved view must not resurrect them');
+        $this->assertStringContainsString('renderUpcoming();', $body, 'and the table re-renders once');
+    }
 }

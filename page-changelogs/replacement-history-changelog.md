@@ -1,3 +1,29 @@
+## 2026-11-10 (later) — the Active Filters bar gets the staff pages' "Clear all"
+
+User request: the student page must carry the same Clear-all chip as the staff side, in the
+same place. Markup is byte-identical to `replacement-home` / `request-approval`:
+`<button type="button" class="filter-chip filter-chip-clear-all" data-tip="Remove every active
+filter" onclick="clearAllFilters()">Clear all</button>` — pushed **last** in the bar and only
+while at least one chip is showing (the staff guard `if (chips.length > 0)`).
+
+`clearAllFilters()` resets the two filters this page owns (week → `all`, `Exclude COMPLETED
+Status` → off), removes the saved `replacement-history-view` key so a reload cannot bring them
+back from storage, and re-renders once. Because this page's whole script runs inside a
+`DOMContentLoaded` closure, the function is exported (`window.clearAllFilters`) — the same
+requirement that the chip × bug exposed earlier today.
+
+Measured on the demo student 24RSD0009: with Week 8 + the toggle on, the bar reads
+`Original Class Week: Week 8 · …` + `Exclude COMPLETED Status` + **Clear all** (last, correct
+class and tooltip) over 2 rows; one click → `chips: []`, week `all`, toggle off, 10 rows, and
+the bar (and the chip itself) disappears. Zero console errors.
+
+Note on reload: the page's DEFAULT view is "exclude completed ON", so reloading after Clear all
+brings that one chip back — that is the default, not a filter the user set.
+
+Receipts: `StudentClassReplacementsFixesTest` **4/4** (the markup byte-for-byte, the
+`chips.length > 0` guard, the window export, and what the reset touches), red-checked by
+removing the button (fails `test_the_clear_all_chip_matches_the_staff_pages`).
+
 ## 2026-11-10 — three bug fixes (user)
 
 **1. No Today button on this page.** The week-nav include already passed

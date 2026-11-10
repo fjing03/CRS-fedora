@@ -337,7 +337,30 @@
                 chips.push('<span class="filter-chip">Exclude COMPLETED Status' +
                     '<button class="filter-chip-remove" data-tip="Remove" data-remove="hideCompleted">&times;</button></span>');
             }
+            /* 2026-11-10 (user): the staff pages' "Clear all" sits last in the bar,
+               same markup, same tooltip. It only exists while a filter is active. */
+            if (chips.length > 0) {
+                chips.push('<button type="button" class="filter-chip filter-chip-clear-all" data-tip="Remove every active filter" onclick="clearAllFilters()">Clear all</button>');
+            }
             container.innerHTML = chips.length > 0 ? '<span class="filter-chips-label">Active Filters:</span>' + chips.join('') : '';
+        }
+
+        /* Clear every filter this page owns and forget the saved view, so a reload
+           cannot bring them back (the staff pages' law, 2026-11-09/2026-11-10).
+           Exported on window at the bottom because this page's whole script runs
+           inside a DOMContentLoaded closure (see the WRAP note above). */
+        function clearAllFilters() {
+            const sel = document.getElementById('weekFilter');
+            if (sel && sel.value !== 'all') {
+                sel.value = 'all';
+                sel.dispatchEvent(new Event('change'));   // the week path rebuilds + re-renders
+            }
+            const hc = document.getElementById('hideCompleted');
+            if (hc && hc.checked) {
+                hc.checked = false;
+            }
+            try { localStorage.removeItem(VIEW_KEY); } catch (e) { /* storage unavailable — non-fatal */ }
+            renderUpcoming();                              // ends with renderChips()
         }
 
         function renderUpcoming() {
@@ -627,5 +650,6 @@
            on this page; surfaced when the pop-up's new jump button was clicked). */
         window.renderUpcoming = renderUpcoming;
         window.closeModalOutside = closeModalOutside;
+        window.clearAllFilters = clearAllFilters;      /* 2026-11-10: the Clear all chip */
         });
 @endsection
