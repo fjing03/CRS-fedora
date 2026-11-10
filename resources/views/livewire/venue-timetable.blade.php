@@ -87,6 +87,29 @@
             font-size: 12px;
             color: var(--color-on-surface-variant);
         }
+        /* 2026-11-10 (user): the week cluster — arrows + week picker + Today +
+           Earliest bookable — sits in the MIDDLE of the semester bar, and really
+           centred, not "as centred as the venue box allows": the two flexible
+           columns on either side are equal (minmax(0,1fr)), so the middle three
+           land on the bar's own centre line. The venue box keeps the left edge,
+           the print button the right edge. Five columns = the five children the
+           bar has on this page.
+           Below 900px there is no room to centre a ~600px cluster, so the bar
+           keeps today's wrapping flex row (theme.css .semester-bar). */
+        @media (min-width: 900px) {
+            .semester-bar--venue {
+                display: grid;
+                grid-template-columns: minmax(0, 1fr) auto auto auto minmax(0, 1fr);
+                align-items: center;
+                gap: 8px;
+            }
+            .semester-bar--venue > .venue-dropdown-wrap {
+                justify-self: start;
+            }
+            .semester-bar--venue > .print-btn {
+                justify-self: end;
+            }
+        }
         /* Session-choice modal: dropdowns fill their detail-row value column */
         #intentPickers .filter-select {
             width: 100%;
@@ -129,7 +152,7 @@
          fixed in venue-toolbar-row-parity. Print stub restored via showPrint;
          fav-star ☆ stays dropped (documented divergence — mock localStorage),
          the capacity span stands where fjing's fav-btn sits. -->
-    <div class="semester-bar">
+    <div class="semester-bar semester-bar--venue">
         <div class="venue-dropdown-wrap">
             @include('partials.ui-venue-dropdown', ['selectId' => 'venueSelect'])
             {{-- venue-side-chips: the capacity badge (icon + number + tip) AND,

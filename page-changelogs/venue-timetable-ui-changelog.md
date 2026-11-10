@@ -1,3 +1,31 @@
+## 2026-11-10 (later) — the week nav cluster sits in the middle of the toolbar
+
+User request: on the Venue Timetable page, put the **week nav + Today + Earliest bookable** in the
+middle of the toolbar.
+
+They sat immediately after the venue box, 118 px left of the bar's centre line (measured at 1600 px:
+venue box 41–374, cluster 382–981 → centre 682; bar centre 800). The venue box now keeps the left edge,
+the print button the right edge, and the cluster lands on the bar's own centre.
+
+How: the bar becomes a **grid** with five columns `minmax(0,1fr) auto auto auto minmax(0,1fr)` — the two
+flexible side columns are equal, which is what actually centres the three middle items (a plain
+`space-between` would only have centred them if the venue box and the print button were the same width).
+No markup inside the bar changed apart from the hook class `semester-bar--venue`.
+
+| measured | before | after |
+|---|---|---|
+| cluster centre vs bar centre @1600 | −118 px | **0 px** |
+| @1440 / 1280 / 1024 / 920 / 900 | −… | **0 px** |
+| venue box left edge | 17 px | 17 px (unchanged) |
+| print button right edge | 17 px | 17 px (unchanged) |
+
+Below 900 px the bar keeps today's wrapping flex row (there is no room to centre a ~600 px cluster on a
+phone): at 899/768/390 px the page falls back to the previous layout, no horizontal overflow at any width,
+zero console errors.
+
+The rule lives in the page's own `<style>` block and is scoped to `.semester-bar--venue`, so every other
+page's `.semester-bar` is untouched.
+
 ## 2026-11-10 (later) — the room description is an info-icon chip, not a line
 
 User request: move the room description (`Tutorial Room. For PRACTICAL and TUTORIAL.` and friends) off
