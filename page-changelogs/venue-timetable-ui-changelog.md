@@ -1,5 +1,13 @@
 ## 2026-11-10 — Modal consistency (#1–#4)
 
+**Follow-up (same day, user ruling B):** Slot Details stopped printing the room twice — the
+**Room Name** and **Capacity** rows left Class Information, and the Schedule's **Venue** row now
+carries them: **`B002 — Tutorial Room (35 seats)`** (code leads, the name loses the copy of the code
+it already carries, seats optional). The same one wording applies everywhere a Venue row appears, so
+My Timetable / Cohort / Student Class Details now read `B111 — Lecture Hall` instead of
+`Lecture Hall B111`. Measured on room B002: five Class Information rows, `B002 — Tutorial Room
+(35 seats)`, zero console errors.
+
 **Follow-up (same day, size only):** every **modal-footer button is now exactly 34 px** — the
 size the Close buttons already used (the footers carried 31 / 32 / 34 / 37 px before). The rule is
 scoped to `.modal-footer`, so tables, cards and toolbars keep their own sizes; no button was re-ordered,

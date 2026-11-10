@@ -1229,7 +1229,7 @@ function openClassModal(cfg) {
         { label: 'Lecturer', value: event.lecturer },
         /* 2026-11-10 (user, modal consistency #4): the Schedule reads
            Venue (code — name) · Week · Day & Date · Time & Duration. */
-        { label: 'Venue', value: ModalFacts.venue(event.venue, event.venueName) },
+        { label: 'Venue', value: ModalFacts.venue(event.venue, event.venueName, cfg.venueSeats) },
         { label: 'Week', value: cfg.week ? 'Week ' + cfg.week : '\u2014' },
         { label: 'Day & Date', value: ModalFacts.dayDate(dayNames[di] || days[di].abbr, days[di].date) },
         { label: 'Time & Duration', value: ModalFacts.timeDuration(startStr, endStr, (event.end - event.start + 1) / 2), strong: true },
@@ -2628,15 +2628,28 @@ var ModalFacts = {
         return words ? run + ' (' + words + ')' : run;
     },
 
-    venue(code, name) {
+    /* `B002 — Tutorial Room (35 seats)` (user ruling B, 2026-11-10).
+       The code LEADS, the room's own name loses the copy of the code it carries
+       (every room in this dataset does: "Tutorial Room B002", "Computer Lab B005"),
+       and the seat count is optional — only the venue page asks for it. */
+    venue(code, name, seats) {
         var c = String(code == null ? '' : code).trim();
         var n = String(name == null ? '' : name).trim();
-        if (!c) return '\u2014';
-        if (!n) return c;
-        /* the DB's room names often already carry the code ("Tutorial Room B002"):
-           never print it twice — the code still leads when the name is bare */
-        if (n.toUpperCase().indexOf(c.toUpperCase()) !== -1) return n;
-        return c + ' \u2014 ' + n;
+        if (!c) return n || '\u2014';
+        if (n) {
+            /* drop the code wherever the name carries it, then tidy the seam
+               ("Tutorial Room B002" → "Tutorial Room", "B002" → "") */
+            var esc = c.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+            n = n.replace(new RegExp('\\s*[\\u2013\\u2014-]?\\s*' + esc, 'ig'), ' ')
+                 .replace(/\s+/g, ' ')
+                 .replace(/^[\s\u2013\u2014-]+|[\s\u2013\u2014-]+$/g, '');
+        }
+        var base = n ? c + ' \u2014 ' + n : c;
+        var seatsN = Number(seats);
+        if (seats != null && isFinite(seatsN) && seatsN > 0) {
+            base += ' (' + seatsN + (seatsN === 1 ? ' seat' : ' seats') + ')';
+        }
+        return base;
     },
 };
 window.ModalFacts = ModalFacts;

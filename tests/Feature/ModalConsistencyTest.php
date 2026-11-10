@@ -98,7 +98,7 @@ class ModalConsistencyTest extends TestCase
     {
         $js = $this->read('public/js/ui-common.js');
 
-        $this->assertStringContainsString('ModalFacts.venue(event.venue, event.venueName)', $js);
+        $this->assertStringContainsString('ModalFacts.venue(event.venue, event.venueName, cfg.venueSeats)', $js);
         $this->assertStringContainsString("{ label: 'Week', value: cfg.week ? 'Week ' + cfg.week : '\\u2014' }", $js);
         $this->assertStringContainsString('ModalFacts.dayDate(dayNames[di] || days[di].abbr, days[di].date)', $js);
         $this->assertStringContainsString('ModalFacts.timeDuration(startStr, endStr', $js);
@@ -130,15 +130,46 @@ class ModalConsistencyTest extends TestCase
         $this->assertStringNotContainsString("DetailModal.row('Duration', ", $home);
     }
 
-    public function test_one_venue_wording_never_repeats_the_code(): void
+    /**
+     * User ruling B (2026-11-10): `B002 — Tutorial Room (35 seats)`.
+     * The code LEADS; the name loses the copy of the code it carries — every room
+     * in this dataset has one ("Tutorial Room B002", "Computer Lab B005") — and the
+     * seat count is optional, because only the venue page knows it.
+     */
+    public function test_one_venue_wording_leads_with_the_code_and_never_repeats_it(): void
     {
         $js = $this->read('public/js/ui-common.js');
-        $start = strpos($js, 'venue(code, name) {');
-        $block = substr($js, $start, 700);
-        $this->assertStringContainsString('n.toUpperCase().indexOf(c.toUpperCase()) !== -1', $block,
-            'the code is skipped when the room name already carries it');
+        $start = strpos($js, 'venue(code, name, seats) {');
+        $this->assertNotFalse($start, 'venue() takes an optional seat count');
+        $block = substr($js, $start, 1100);
+
+        $this->assertStringContainsString("var base = n ? c + ' \\u2014 ' + n : c;", $block,
+            'the code leads, the em dash joins it to the trimmed name');
+        $this->assertStringContainsString("n.replace(new RegExp('\\\\s*[\\\\u2013\\\\u2014-]?\\\\s*' + esc, 'ig'), ' ')", $block,
+            'the name loses the copy of the code it carries');
+        $this->assertStringContainsString("seatsN === 1 ? ' seat' : ' seats'", $block, 'one seat reads in the singular');
         $this->assertStringContainsString('window.ModalFacts ? ModalFacts.venue(code, name)', $js,
             'venueLine delegates to the one formulation');
+
+        /* the venue page hands the seat count in, the other pages do not */
+        $this->assertStringContainsString('venueSeats: venueInfo.capacity || null',
+            $this->read('resources/views/livewire/venue-timetable.blade.php'));
+    }
+
+    /**
+     * The other half of ruling B (user, 2026-11-10): the room is already the
+     * Schedule's Venue row, so Slot Details stopped printing it twice — and the
+     * seats moved onto the Venue row instead of living in Class Information.
+     */
+    public function test_slot_details_does_not_print_the_room_twice(): void
+    {
+        $page = $this->read('resources/views/livewire/venue-timetable.blade.php');
+
+        $this->assertStringNotContainsString("{ label: 'Room Name'", $page, 'the duplicated Room Name row is gone');
+        $this->assertStringNotContainsString("{ label: 'Capacity'", $page, 'Capacity rides on the Venue row now');
+        /* the capacity is still read by the page's own venue badge (3 sites) and by
+           the new hand-off (1) — nothing else */
+        $this->assertSame(4, substr_count($page, 'venueInfo.capacity'), 'the badge + the one hand-off, nothing new');
     }
 
     public function test_a_duration_never_prints_nan(): void

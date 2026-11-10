@@ -339,10 +339,14 @@
                            totalStudentsLabel (ui-common.js) renders the per-
                            cohort `A + B = total` breakdown for multi-cohort
                            classes (slot payload carries studentCounts). */
-                        { label: 'Total Students', value: window.totalStudentsLabel(event) },
-                        { label: 'Room Name', value: venueInfo.name || '—' },
-                        { label: 'Capacity', value: venueInfo.capacity ? String(venueInfo.capacity) : '—' }
-                    ]
+                        { label: 'Total Students', value: window.totalStudentsLabel(event) }
+                        /* "Room Name" and "Capacity" used to sit here (user, 2026-11-10):
+                           the room is already the Schedule's Venue row, so the name was
+                           printed twice in one pop-up — the seats now ride WITH the venue
+                           (`B002 — Tutorial Room (35 seats)`) and the two rows are gone. */
+                    ],
+                    /* only this page knows the room's seat count */
+                    venueSeats: venueInfo.capacity || null
                 });
 
                 /* class-modal-affordances T3: the restored footer wiring.
