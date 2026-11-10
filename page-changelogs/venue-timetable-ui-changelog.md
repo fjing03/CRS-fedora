@@ -1,3 +1,35 @@
+## 2026-11-10 (later) — the room description is an info-icon chip, not a line
+
+User request: move the room description (`Tutorial Room. For PRACTICAL and TUTORIAL.` and friends) off
+the plain grey line under the venue dropdown and onto an **info-icon chip**, matching the reference the
+user supplied — the arrangement page's `#arrVenueDescription`.
+
+| | Before | Now |
+|---|---|---|
+| element | `<div class="venue-description">` — 12 px grey text line | `<span class="badge badge-past">` + info glyph |
+| the words | printed on the page | in the hover tip (`data-tip`) |
+| aria | none | `Room description: …` |
+| placement | its own line under the dropdown | in a `.venue-side-chips` group right of the dropdown, 4 px from the capacity chip |
+
+The two chips now share the arrangement page's group, so both pages paint from the same CSS.
+
+Numbers measured on `/venue-timetable-ui?venue=B010` **against** `/replacement-arrangement?…&venue=B111`:
+
+| surface | chip box | glyph | background | padding / radius |
+|---|---|---|---|---|
+| venue page, 1600 px | 32 × 20 | 12 px, 3 paths | `rgb(36, 52, 71)` | `4px 10px` / `999px` |
+| arrangement page, 1600 px (reference) | 32 × 20 | 12 px, 3 paths | `rgb(36, 52, 71)` | `4px 10px` / `999px` |
+| venue page, 390 px | 40 × 40 | same | same | the app's phone touch-target rule |
+| arrangement page, 390 px | 40 × 40 | same | same | same |
+
+Both chips sit on the capacity chip's row at both widths, `gap: 4px`, no horizontal overflow.
+Hover on the venue page shows `Computer Lab. For PRACTICAL.`; the aria label reads
+`Room description: Computer Lab. For PRACTICAL.`; the plain `.venue-description` element is gone from
+the DOM. Zero console errors.
+
+`venueInfo.description` (the DB payload) still feeds it — nothing is hardcoded, and each chip stays
+hidden until its value arrives (no empty stubs).
+
 ## 2026-11-10 (later) — Cancel this Class?: the Cancellation Reason block
 
 User brief `prompts/cancel-class-reason-block.md`. Only the **Cancellation Reason** area of the

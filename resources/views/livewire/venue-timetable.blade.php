@@ -87,12 +87,6 @@
             font-size: 12px;
             color: var(--color-on-surface-variant);
         }
-        /* venue-description-doc-b006-rule: the plain room description line */
-        .venue-description {
-            font-size: 12px;
-            color: var(--color-on-surface-variant);
-            margin-top: 2px;
-        }
         /* Session-choice modal: dropdowns fill their detail-row value column */
         #intentPickers .filter-select {
             width: 100%;
@@ -138,14 +132,17 @@
     <div class="semester-bar">
         <div class="venue-dropdown-wrap">
             @include('partials.ui-venue-dropdown', ['selectId' => 'venueSelect'])
-            {{-- venue-side-chips (the user's chip ask 2026-10-23): the capacity
-                 badge = icon + number + hover tooltip, RIGHT of the venue dd.
-                 The description chip on THIS page = TBD by the user (#1 not ok
-                 here yet) — the plain description line below stays. --}}
-            <span class="badge badge-capacity" id="venueCapacity" style="display:none;"></span>
-            {{-- venue-description-doc-b006-rule: the plain room description
-                 (hidden until the payload fills it — no empty stub) --}}
-            <div class="venue-description" id="venueDescription" style="display:none;"></div>
+            {{-- venue-side-chips: the capacity badge (icon + number + tip) AND,
+                 2026-11-10 (user), the room DESCRIPTION — which used to be a plain
+                 grey line under the dropdown and is now the same info-icon chip the
+                 arrangement page wears (`#arrVenueDescription`): `.badge badge-past`
+                 + info glyph, the description in the hover tip. Same group, same
+                 4px gap, same 12px glyph on both pages. Each chip stays hidden until
+                 the payload fills it — no empty stubs. --}}
+            <div class="venue-side-chips">
+                <span class="badge badge-capacity" id="venueCapacity" style="display:none;"></span>
+                <span class="badge badge-past" id="venueDescription" style="display:none;"></span>
+            </div>
         </div>
         @include('partials.ui-week-nav', ['prevOnclick' => 'prevWeek()', 'nextOnclick' => 'nextWeek()', 'selectId' => 'weekSelect', 'selectOnclick' => 'selectWeek(this.value)', 'showPrint' => true, 'showEarliestBtn' => true])
     </div>
@@ -314,13 +311,18 @@
                 capacityEl.style.display = '';
             }
 
-            /* venue-description-doc-b006-rule (the sv's directive 2026-10-23): the
-               plain room description as a data-tip on the dropdown trigger —
-               one line, no priority wording. Served from the DB via the
-               venue payload (canonical always). */
+            /* 2026-11-10 (user): the room description is a CHIP, not a line —
+               byte-identical to the arrangement page's `#arrVenueDescription`
+               fill: the same info glyph, the description in the hover tip and
+               `Room description: …` in the aria label. Served from the DB via
+               the venue payload (canonical always). */
             const venueDescEl = document.getElementById('venueDescription');
             if (venueDescEl && venueInfo.description) {
-                venueDescEl.textContent = venueInfo.description;
+                venueDescEl.textContent = '';
+                venueDescEl.insertAdjacentHTML('beforeend',
+                    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>');
+                venueDescEl.setAttribute('data-tip', venueInfo.description);
+                venueDescEl.setAttribute('aria-label', 'Room description: ' + venueInfo.description);
                 venueDescEl.style.display = '';
             }
 
