@@ -162,12 +162,12 @@ test('receipt 5 — the phone card opens the same pop-up', async ({ page }) => {
 
   await card.click();
   await expect(page.locator('#quickViewModal')).toBeVisible();
-  /* 2026-11-07 (user): the pop-up opens on the Proposed Replacement Schedule —
+  /* 2026-11-07 (user): the pop-up opens on the Requested Slot Schedule —
      but only a row that HAS a proposal carries that tab; a needs-action row
-     still leads with Original Class Schedule. */
+     still leads with Original Slot Schedule. */
   const modalLabels = await page.locator('#quickViewModal .modal-tab').allInnerTexts();
   expect(modalLabels[0]).toBe(
-    modalLabels.includes('Proposed Replacement Schedule') ? 'Proposed Replacement Schedule' : 'Original Class Schedule',
+    modalLabels.includes('Requested Slot Schedule') ? 'Requested Slot Schedule' : 'Original Slot Schedule',
   );
 });
 
@@ -185,9 +185,9 @@ test('receipt 6 — a handled row hides the arrange button and the tab names the
   /* this row carries a request (Pending/Approved/Completed), so its pop-up leads
      with the make-up schedule and opens on it (user 2026-11-07) */
   const tabs = page.locator('#quickViewModal .modal-tab');
-  await expect(tabs.first()).toHaveText(/Proposed Replacement Schedule/);
+  await expect(tabs.first()).toHaveText(/Requested Slot Schedule/);
   await expect(tabs.first()).toHaveClass(/active/);
-  await expect(tabs).toContainText([/Original Class Schedule/, /Request Status \(/]);
+  await expect(tabs).toContainText([/Original Slot Schedule/, /Request Status \(/]);
   await expect(page.locator('#qvArrangeBtn'), 'M7: a handled row offers no arrange button').toBeHidden();
 });
 

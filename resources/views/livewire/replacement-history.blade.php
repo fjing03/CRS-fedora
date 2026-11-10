@@ -499,13 +499,13 @@
                         { label: 'Class Type', value: UiLabels.classType(r.type, 'canonical') },
                         { label: 'Lecturer', value: r.lecturer },
                     ]},
-                    { heading: 'Original Slot', rows: slotRows(r.orig) },
+                    { heading: 'Original Slot Schedule', rows: slotRows(r.orig) },
                     { heading: 'Conflict Reason', rows: [
                         { label: 'Reason', value: r.conflictKind === 'Public Holiday'
                             ? 'Public Holiday \u2014 ' + (r.holidayName || 'Semester holiday')
                             : (r.conflictKind || '\u2014') },
                     ]},
-                    { heading: 'Requested Slot', rows: r.req ? slotRows(r.req) : [
+                    { heading: 'Requested Slot Schedule', rows: r.req ? slotRows(r.req) : [
                         { label: 'Status', value: 'Not arranged yet <span class="detail-value--muted">— no replacement has been approved for this class</span>' },
                     ] },
                     { heading: 'Request Status', rows: [

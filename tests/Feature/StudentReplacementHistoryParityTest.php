@@ -35,6 +35,8 @@ class StudentReplacementHistoryParityTest extends TestCase
     {
         $src = $this->pageSource();
 
+        /* the TABLE columns say Slot (user, 2026-11-10); only the pop-up's tabs
+           carry the extra word "Schedule" */
         $labels = ['Course', 'Lecturer', 'Original Slot', 'Conflict Reason', 'Requested Slot', 'Request Status'];
         $last = -1;
         foreach ($labels as $label) {
@@ -47,6 +49,17 @@ class StudentReplacementHistoryParityTest extends TestCase
         $this->assertStringNotContainsString("label: '#'", $src);
         $this->assertStringNotContainsString("label: 'Subject'", $src);
         $this->assertStringNotContainsString("label: 'New Slot'", $src);
+    }
+
+    public function test_the_pop_up_tabs_say_slot_schedule(): void
+    {
+        $src = $this->pageSource();
+
+        $this->assertStringContainsString("{ heading: 'Original Slot Schedule', rows: slotRows(r.orig) }", $src);
+        $this->assertStringContainsString("{ heading: 'Requested Slot Schedule', rows: r.req ? slotRows(r.req) : [", $src);
+        /* the TABLE columns stay short */
+        $this->assertStringContainsString("label: 'Original Slot'", $src);
+        $this->assertStringContainsString("label: 'Requested Slot'", $src);
     }
 
     public function test_the_five_cards_and_nothing_else(): void

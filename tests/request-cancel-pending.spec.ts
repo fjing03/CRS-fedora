@@ -21,7 +21,7 @@ import { abortUnlessTestingTarget } from './helpers/receipt-target-guard';
    2026-11-06 (user brief "Cancelled Pending Requests"): the record stays
    Cancelled, but the PAGE displays that occurrence as NO ACTIVE REQUEST —
    badge "Need to Arrange" (outlined), an em dash in REQUESTED REPLACEMENT, and
-   a details pop-up without the Proposed Replacement Schedule tab. Those three
+   a details pop-up without the Requested Slot Schedule tab. Those three
    are asserted below against the row we just cancelled
    (`tr[data-request-id="…"]`), plus the untouched record through psql. The week hop = W9 and the pick =
    FRI 12:00–14:00 match the frozen race-receipt targets (see
@@ -150,9 +150,9 @@ test('cancel own pending request leaves it Cancelled and releases the slot', asy
   await row2.locator('.col-code').click();
   await expect(page.locator('#quickViewModal')).toBeVisible();
   await expect(page.locator('#quickViewModal .modal-tab')).toHaveCount(2);
-  await expect(page.locator('#quickViewModal .modal-tab').first()).toHaveText(/Original Class Schedule/);
+  await expect(page.locator('#quickViewModal .modal-tab').first()).toHaveText(/Original Slot Schedule/);
   await expect(page.locator('#quickViewModal .modal-tab').nth(1)).toHaveText(/Request Status \(Need to Arrange\)/);
-  await expect(page.locator('#quickViewModal')).not.toContainText('Proposed Replacement Schedule');
+  await expect(page.locator('#quickViewModal')).not.toContainText('Requested Slot Schedule');
   await expect(page.locator('#quickViewModal')).not.toContainText('Request ID');
   await page.locator('#quickViewModal .modal-close').click();
   await expect(page.locator('#quickViewModal')).toBeHidden();

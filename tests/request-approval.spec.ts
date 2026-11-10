@@ -102,8 +102,8 @@ test('U3-T9c: the COHORT column replaced STUDENTS (consistency update) and row c
      order is the default. */
   const tabs = body.locator('.modal-tab');
   await expect(tabs).toHaveCount(3);
-  await expect(tabs.nth(0)).toHaveText('Proposed Replacement Schedule');
-  await expect(tabs.nth(1)).toHaveText('Original Class Schedule');
+  await expect(tabs.nth(0)).toHaveText('Requested Slot Schedule');
+  await expect(tabs.nth(1)).toHaveText('Original Slot Schedule');
   await expect(tabs.nth(2)).toHaveText(/^Request Status \(.+\)$/);
   await expect(tabs.nth(0), 'the leftmost tab is the one the modal opens on').toHaveClass(/active/);
   await expect(body.locator('.modal-tab-panel[data-panel="replacement"]'), 'its panel is the visible one').toHaveClass(/active/);
@@ -133,8 +133,8 @@ test('U3-T9d: the Request Details modal formats dates/hours/Start-End split + fu
   expect(origText).toMatch(/Time\s*\n?\s*\d{1,2}:\d{2} (AM|PM) ~ \d{1,2}:\d{2} (AM|PM)/);
   expect(origText).not.toMatch(/Start Time|End Time/);
 
-  // TAB: Proposed Replacement Schedule — split Start/End + the full validity text
-  await page.locator('.modal-body .modal-tab', { hasText: 'Proposed Replacement Schedule' }).click();
+  // TAB: Requested Slot Schedule — split Start/End + the full validity text
+  await page.locator('.modal-body .modal-tab', { hasText: 'Requested Slot Schedule' }).click();
   const repText = await page.locator('#modalBody').innerText();
   expect(repText).not.toContain('2026-10-23');
   expect(repText).toMatch(/Day\s*\n?\s*(Sunday|Monday|Tuesday|Wednesday|Thursday|Friday|Saturday)/);

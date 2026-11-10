@@ -173,7 +173,7 @@ test('the countdown sits on its own line, and the pop-up brackets it', async ({ 
   /* 2026-11-07 (user): the pop-up now OPENS on the Proposed tab when the row has
      one, so this receipt clicks Original explicitly — it is the class date whose
      countdown it asserts. */
-  const origTab = page.locator('#quickViewModal .modal-tab', { hasText: 'Original Class Schedule' });
+  const origTab = page.locator('#quickViewModal .modal-tab', { hasText: 'Original Slot Schedule' });
   if (await origTab.count()) { await origTab.first().click(); await page.waitForTimeout(300); }
   const modalDate = await page.evaluate(() => {
     const body = document.getElementById('qvBody');

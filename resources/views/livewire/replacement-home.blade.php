@@ -847,7 +847,7 @@
             /* Tab 1 — the class as timetabled. */
             /* 2026-11-10 (user, modal consistency #4): Day & Date and Time & Duration
                are ONE row each — the same wording as the class/slot modals. */
-            var origHtml = DetailModal.section('Original Class Schedule',
+            var origHtml = DetailModal.section('Original Slot Schedule',
                 DetailModal.row('Class ID', '#' + c.sessionId, { strong: true }) +
                 DetailModal.row('Week', getWeekNumber(c.date) ? 'Week ' + getWeekNumber(c.date) : null) +
                 DetailModal.row('Day & Date', ModalFacts.dayDate(c.day, formatDate(c.date) + origCountdown), { strong: true }) +
@@ -859,12 +859,12 @@
                on (2026-11-07, user brief "Modal Tab Order & Class Type Display":
                the make-up schedule is what the row is about; `DetailModal.render`
                activates index 0, so the order IS the default). Absent when nothing
-               is proposed — then Original Class Schedule leads, as before. */
+               is proposed — then Original Slot Schedule leads, as before. */
             if (c.replacementDate) {
                 tabs.push({
                     key: 'replacement',
-                    label: 'Proposed Replacement Schedule',
-                    html: DetailModal.section('Proposed Replacement Schedule',
+                    label: 'Requested Slot Schedule',
+                    html: DetailModal.section('Requested Slot Schedule',
                         DetailModal.row('Request ID', '#' + c.requestId, { strong: true }) +
                         DetailModal.row('Week', c.replacementWeek ? 'Week ' + c.replacementWeek : null) +
                         DetailModal.row('Day & Date', ModalFacts.dayDate(c.replacementDay, formatDate(c.replacementDate) + replCountdown), { strong: true }) +
@@ -879,7 +879,7 @@
             }
 
             /* Tab 2 — the class as timetabled. */
-            tabs.push({ key: 'original', label: 'Original Class Schedule', html: origHtml });
+            tabs.push({ key: 'original', label: 'Original Slot Schedule', html: origHtml });
 
             /* Tab 3 — the status: badge + ONE sentence + [reason] + [remark]. */
             var statusHtml = '<div class="detail-row"><span class="detail-label">Status</span><span class="detail-value">' +
@@ -981,7 +981,7 @@
                 var facts = [
                     ['Course', c.code + ' \u2014 ' + c.name + (kindLabel ? ' (' + kindLabel + ')' : '')],
                     ['Cohort', (c.cohorts && c.cohorts.length) ? c.cohorts.join(' & ') : '\u2014'],
-                    ['Original Class Schedule', origWhen],
+                    ['Original Slot Schedule', origWhen],
                     ['Proposed Class Schedule', propWhen],
                 ];
                 document.getElementById('cancelConfirmDetails').innerHTML = facts.map(function (f) {

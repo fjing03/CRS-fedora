@@ -1315,7 +1315,7 @@ function openClassModal(cfg) {
     const SCHEDULE_LABELS = ['Day', 'Date', 'Start Time', 'End Time', 'Duration', 'Venue',
         'Day & Date', 'Time & Duration', 'Week'];
     function bucketOf(label) {
-        if (label.indexOf('Original ') === 0) return 'Original Class';
+        if (label.indexOf('Original ') === 0) return 'Original Slot';
         if (STATUS_LABELS.indexOf(label) >= 0) return 'Status';
         if (SCHEDULE_LABELS.indexOf(label) >= 0) return 'Schedule';
         return 'Class Information';
@@ -1325,7 +1325,7 @@ function openClassModal(cfg) {
         (acc[k] = acc[k] || []).push(r);
         return acc;
     }, {});
-    const groups = ['Class Information', 'Schedule', 'Original Class', 'Status']
+    const groups = ['Class Information', 'Schedule', 'Original Slot', 'Status']
         .filter(k => buckets[k] && buckets[k].length)
         .map(k => ({ heading: k, rows: buckets[k] }));
 

@@ -1,3 +1,28 @@
+## 2026-11-10 (later) — the pop-up tabs are ORIGINAL SLOT SCHEDULE and REQUESTED SLOT SCHEDULE
+
+The four detail pop-ups named their two slot tabs after the *class*: `Original Class Schedule`
+and `Proposed Replacement Schedule`. They now follow the column names — **`ORIGINAL SLOT
+SCHEDULE`** and **`REQUESTED SLOT SCHEDULE`** — on Request Details, Replacement Details and the
+student's Class Replacement pop-up (whose tabs were `Original Slot` / `Requested Slot` and now carry
+the same "Schedule" word).
+
+| pop-up | before | now |
+|---|---|---|
+| Request Details | `Proposed Replacement Schedule` · `Original Class Schedule` | `Requested Slot Schedule` · `Original Slot Schedule` |
+| Replacement Details | `Proposed Replacement Schedule` · `Original Class Schedule` | `Requested Slot Schedule` · `Original Slot Schedule` |
+| Student Class Replacement | `Original Slot` · `Requested Slot` | `Original Slot Schedule` · `Requested Slot Schedule` |
+
+The left-most tab is unchanged (the requested slot still leads when one is proposed), the tab keys
+(`replacement` / `original`) are unchanged, and the table columns stay the short `ORIGINAL SLOT` /
+`REQUESTED SLOT`. The auto-group bucket heading in `ui-common.js` also says `Original Slot` now.
+
+Measured: Request Details `["Requested Slot Schedule","Original Slot Schedule","Request Status
+(Pending)"]`; Replacement Details the same with `(Rejected)`; student pop-up `["Course","Original Slot
+Schedule","Conflict Reason","Requested Slot Schedule","Request Status"]`.
+
+NOT changed: the notification tip text ("Original Class Schedule: Week 8 · …"), which is a stored
+message body, not a tab. Renaming it would leave old rows reading one way and new rows another.
+
 ## 2026-11-10 (later) — the slot columns are ORIGINAL SLOT and REQUESTED SLOT
 
 The two slot columns were named "Original Class" and "Requested Replacement" on the staff pages

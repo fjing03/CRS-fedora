@@ -960,7 +960,7 @@
                cohortBreakdown (ui-common.js) renders the per-cohort
                `A + B = total` breakdown for multi-cohort rows. */
 
-            // Tab 1: Original Class Schedule — one value per row, no grouping
+            // Tab 1: Original Slot Schedule — one value per row, no grouping
             // CONSISTENCY 3E (2026-11-03): the Week row is derived from the date
             // (semester start + 7×n), so the payload needs no new key.
             // 3A (2026-11-04): students + cohorts moved to the facts strip.
@@ -968,7 +968,7 @@
             // merged page's shape.
             /* 2026-11-10 (user, modal consistency #4): Day & Date and Time & Duration
                are ONE row each — the same wording as the class/slot modals. */
-            const origSection = DetailModal.section('Original Class Schedule',
+            const origSection = DetailModal.section('Original Slot Schedule',
                 DetailModal.row('Request ID', '#' + r.id, { strong: true }) +
                 DetailModal.row('Week', weekOfIso(r.classDate)) +
                 DetailModal.row('Day & Date', ModalFacts.dayDate(r.classDay, fullDate(r.classDate)), { strong: true }) +
@@ -976,7 +976,7 @@
                 DetailModal.row('Venue', venueText(r.venue, r.venueName))
             );
 
-            // Tab 2: Proposed Replacement Schedule — only when a slot was
+            // Tab 2: Requested Slot Schedule — only when a slot was
             // proposed (3D). The replacementTime carries "H:i – H:i".
             const repParts = (r.replacementTime || '').split(/\s*[–—-]\s*/);
             /* 2026-11-10 (user ruling B7): the badge already PAINTS the glyph —
@@ -987,7 +987,7 @@
                 : 'Slot available';
 
             /* 2026-11-07 (user, "Modal Tab Order & Class Type Display"): the
-               Proposed Replacement Schedule is the LEFT-MOST tab and the one the
+               Requested Slot Schedule is the LEFT-MOST tab and the one the
                modal opens on — it is the thing the PL is being asked to approve.
                `DetailModal.render` activates index 0, so the order IS the default.
                A row with no proposal keeps Original first: the tab cannot be
@@ -995,7 +995,7 @@
             const tabs = [];
 
             if (r.replacementDate) {
-                const repSection = DetailModal.section('Proposed Replacement Schedule',
+                const repSection = DetailModal.section('Requested Slot Schedule',
                     DetailModal.row('Week', weekOfIso(r.replacementDate)) +
                     DetailModal.row('Day & Date', ModalFacts.dayDate(fullDay(r.replacementDate), fullDate(r.replacementDate)), { strong: true }) +
                     DetailModal.row('Time & Duration', ModalFacts.timeDuration(
@@ -1006,10 +1006,10 @@
                     DetailModal.row('Venue', venueText(r.replacementVenue, r.replacementVenueName)) +
                     DetailModal.row('Slot Validity', slotBadgeInline + validityText)
                 );
-                tabs.push({ key: 'replacement', label: 'Proposed Replacement Schedule', html: repSection });
+                tabs.push({ key: 'replacement', label: 'Requested Slot Schedule', html: repSection });
             }
 
-            tabs.push({ key: 'original', label: 'Original Class Schedule', html: origSection });
+            tabs.push({ key: 'original', label: 'Original Slot Schedule', html: origSection });
 
             /* Tab 3 — the status, FAR RIGHT (3D): badge + ONE sentence, then the
                PL-only facts the old Request Info / Review tabs used to hold. */
