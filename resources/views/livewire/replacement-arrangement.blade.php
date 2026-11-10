@@ -4011,9 +4011,32 @@ ${(fallbackAttribution && intentReason === 'in-the-way')
             slots.forEach((slot, index) => {
                 const startStr = to12h(hours[slot.start]);
                 const endStr = to12h(hours[slot.end + 1] || add30min(hours[slot.end]));
-                const statusLabel = slot.status === 'conflict' ? 'Conflict' : 'Cancelled';
-                const statusBg = slot.status === 'conflict' ? 'var(--color-error-container)' : 'var(--color-surface-variant)';
-                const statusColor = slot.status === 'conflict' ? 'var(--color-on-error-container)' : 'var(--color-on-surface-variant)';
+                /* 2026-11-10 (user, "UI Update — Slot Dropdown Badge"): the badge
+                   names the REAL reason, read from the slot's own data —
+                     · the day it falls on is a public holiday → `Public Holiday`
+                     · the class is cancelled                        → `Cancelled`
+                     · otherwise (a clash)                            → `Conflict`
+                   The holiday fact is the SAME one the grid paints (`weekData[…]
+                   .days[…].holiday`, filled by generateWeekData from MockData
+                   .holidays), so the badge can never disagree with the grid. No
+                   string here is hardcoded to one occurrence. */
+                const slotDay = (weekData[slot.week] && weekData[slot.week].days)
+                    ? weekData[slot.week].days[slot.day] : null;
+                const isHolidaySlot = !!(slotDay && slotDay.holiday);
+                let statusLabel, statusBg, statusColor;
+                if (isHolidaySlot) {
+                    statusLabel = 'Public Holiday';
+                    statusBg = 'var(--color-error-container)';
+                    statusColor = 'var(--color-on-error-container)';
+                } else if (slot.status === 'cancelled') {
+                    statusLabel = 'Cancelled';
+                    statusBg = 'var(--color-surface-variant)';
+                    statusColor = 'var(--color-on-surface-variant)';
+                } else {
+                    statusLabel = 'Conflict';
+                    statusBg = 'var(--color-error-container)';
+                    statusColor = 'var(--color-on-error-container)';
+                }
                 // Parse "18 Aug 2026" → "Aug 18" + the year
                 const dateParts = slot.date.split(' ');
                 const shortDate = dateParts[1] + ' ' + dateParts[0];

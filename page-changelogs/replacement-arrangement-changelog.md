@@ -1,3 +1,31 @@
+## 2026-11-10 (later) — the slot badge names Public Holiday / Cancelled / Conflict from data
+
+The slot picker's badge said a flat **`Conflict`** for every slot whose status was `conflict`, and
+`Cancelled` for the rest — so a class that cannot run because of a public holiday was described as a
+conflict. It now names the real reason, read from the slot's own data:
+
+| slot | badge | tone |
+|---|---|---|
+| the day is a public holiday | **`Public Holiday`** | red container (same family as Conflict) |
+| the class is cancelled | `Cancelled` | surface-variant (unchanged) |
+| anything else (a clash) | `Conflict` | red container (unchanged) |
+
+The holiday fact is the SAME one the grid paints — `weekData[week].days[day].holiday`, filled by
+`generateWeekData` from `MockData.holidays` — so the badge can never disagree with the greyed cells
+behind it. Nothing is hardcoded to one occurrence.
+
+Measured on the demo data (every course in the picker):
+
+    AMSE1003  (L) Week 8 · Nov 9, 2026   → Public Holiday   (was: Conflict)
+    BMSE3153  (P) Week 8 · Nov 10, 2026  → Cancelled        (unchanged)
+    AMSE2003  (L) Week 14 · Dec 24, 2026 → Public Holiday   (Christmas Eve; was: Conflict)
+
+Note for real data: in this demo every `conflict` occurrence happens to fall on a holiday, so the
+`Conflict` arm is preserved but unreachable here — it still answers for a genuine non-holiday clash.
+
+The `.slot-dd-item-badge` styling is untouched (11 px, the same 2px/8px padding, the same radius); only
+the label and the token pair per state changed.
+
 ## 2026-11-10 (later) — too-soon: short cell label, rule + earliest date in the tooltip
 
 The cell keeps a short, glanceable hover label — **`Min 3`  /  `Working Days`** (a real `<br>` inside the
