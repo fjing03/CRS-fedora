@@ -1,5 +1,11 @@
 ## 2026-11-10 — Modal consistency (#1–#4)
 
+**Follow-up (same day, user ruling B3):** the footer action is named **Arrange Replacement**
+everywhere — the three timetable pages said "Replace Now" for the same journey. Same blue primary
+button, same icon, same 34 px. Measured on My Timetable / Cohort / Venue: `Close h34 · Arrange
+Replacement h34`, no footer overflow, and on a 390 px phone `Close h44 · Arrange Replacement h48`
+(the app's own touch-target rule).
+
 **Follow-up (same day, user ruling A):** the **Subject** row left Class Information — the modal
 subtitle above the tabs already prints `CODE — Name (Type)`, so the pop-up said it twice. Class
 Information is now **Session ID · Lecturer · Cohort · Total Students** on all four timetable pages,

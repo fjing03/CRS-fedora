@@ -10,7 +10,7 @@ use Tests\TestCase;
  *
  *  #1 every DETAILS modal is the Replacement Details width (616px), the timeline
  *     rail is gone, and the subtitle names the class type;
- *  #2 Replace Now is a primary (blue) button with an icon;
+ *  #2 the Arrange Replacement action is a primary (blue) button with an icon;
  *  #3 Class Information leads with the session ID and shows ONE combined subject
  *     row (code — name (type));
  *  #4 the Schedule reads Venue · Week · Day & Date · Time & Duration, and the same
@@ -75,9 +75,9 @@ class ModalConsistencyTest extends TestCase
         ] as $page) {
             $src = $this->read($page);
             $this->assertMatchesRegularExpression(
-                '/btn-replace-now[^>]*>\s*<svg[^>]*>.*?<\/svg>\s*Replace Now/s',
+                '/btn-replace-now[^>]*>\s*<svg[^>]*>.*?<\/svg>\s*Arrange Replacement/s',
                 $src,
-                "{$page}: the Replace Now button must lead with its icon",
+                "{$page}: the action must lead with its icon and read 'Arrange Replacement'",
             );
         }
     }

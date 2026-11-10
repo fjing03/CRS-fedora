@@ -1034,7 +1034,10 @@
                    the request's own session (`classType`, the mapper's classRow
                    key). `UiLabels.classType(…, 'long')` is the one label law, so
                    the modal cannot drift from the table card's `[Lecture]`. */
-                subtitle: '#' + r.id + ' · ' + r.courseCode + ' — ' + r.courseName
+                /* 2026-11-10 (user ruling B5): the subtitle carries the SUBJECT only —
+                   the request's own number was repeated there and again as the
+                   "Request ID" row, so it lives in the Request Status tab alone. */
+                subtitle: r.courseCode + ' — ' + r.courseName
                     + (r.classType ? ' (' + UiLabels.classType(r.classType, 'long') + ')' : ''),
                 factsHtml: factsHtml,
                 tabs: tabs

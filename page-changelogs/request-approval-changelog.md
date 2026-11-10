@@ -1,5 +1,10 @@
 ## 2026-11-10 — Modal consistency (#1–#4)
 
+**Follow-up (same day, user ruling B5):** no IDs in modal subtitles — the Request Details subtitle
+read `#28 · AMCS2093 — …` and the request number also has its own **Request ID** row in the Request
+Status tab. The subtitle is now `AMCS2093 — Operating Systems (Lecture)`. Measured: subtitle has no
+`#`, the Request ID row still carries it.
+
 **Follow-up (same day, size only):** every **modal-footer button is now exactly 34 px** — the
 size the Close buttons already used (the footers carried 31 / 32 / 34 / 37 px before). The rule is
 scoped to `.modal-footer`, so tables, cards and toolbars keep their own sizes; no button was re-ordered,

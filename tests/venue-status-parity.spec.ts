@@ -75,7 +75,7 @@ test('venue B010 week 7 — the pending block keeps its date, its class ref and 
   const modal = await openBlockAndReadFooter(page, 'AMSE2003(P)', '#classModal', '2:00 PM');
   expect(modal.classRef).toBe('#40');
   expect(modal.footer.join(' ')).toContain('View Full Request[inline-flex]');
-  expect(modal.footer.join(' ')).toContain('Replace Now[none]');
+  expect(modal.footer.join(' ')).toContain('Arrange Replacement[none]');
 
   // bug #9 (the user's `+` ruling): Total is a composition card too
   const cards = await page.evaluate(() => ({
@@ -117,7 +117,7 @@ test('venue B009 week 7 — a cancelled class is red, labelled and replaceable',
 
   const modal = await openBlockAndReadFooter(page, 'BMSE3153(P)');
   expect(modal.classRef).toBe('#23');
-  expect(modal.footer.join(' ')).toContain('Replace Now[flex]');   // a cancelled class NEEDS one
+  expect(modal.footer.join(' ')).toContain('Arrange Replacement[flex]');   // a cancelled class NEEDS one (label unified 2026-11-10)
   expect(modal.footer.join(' ')).not.toContain('Cancel Class');    // bug #7 — the action is spent
 });
 
@@ -132,7 +132,7 @@ test('venue B010 week 14 — the class carrying a proposal is not deleted', asyn
   // the pair is HANDLED → no dead-end Replace Now; the Class Ref still resolves
   const modal = await openBlockAndReadFooter(page, 'AMSE2003(P)');
   expect(modal.classRef).toBe('#40');
-  expect(modal.footer.join(' ')).toContain('Replace Now[none]');
+  expect(modal.footer.join(' ')).toContain('Arrange Replacement[none]');
 
   // the derived block is counted again (it used to vanish from the card too)
   const occupied = await page.evaluate(() => document.getElementById('sumOccupied')?.textContent);
@@ -202,5 +202,5 @@ test('my-timetable is untouched — plain numbers, same class ref', async ({ pag
   expect(modal.classRef).toBe('#23');
   test.skip(!blockText.includes('(Cancelled)'),
     'fixture absent: session 23 / week 7 is no longer cancelled (the cancel was undone)');
-  expect(modal.footer.join(' ')).toContain('Replace Now[flex]');
+  expect(modal.footer.join(' ')).toContain('Arrange Replacement[flex]');
 });
