@@ -396,9 +396,9 @@ final class NotificationsBridgeTest extends TestCase
         $this->assertStringContainsString(' · RSD3', $html);   /* deduped: one label, not two */
         // the ORIGINAL reads the class's own week (8 here), the PROPOSED the
         // request's slot week (6) — two independent reads, never a copy
-        $this->assertStringContainsString('Original Class Schedule: Week 8 · ', $html);
+        $this->assertStringContainsString('Original Slot Schedule: Week 8 · ', $html);
         $this->assertStringContainsString(' @ B010', $html);
-        $this->assertStringContainsString('Proposed Replacement Schedule: Week 6 · ', $html);
+        $this->assertStringContainsString('Requested Slot Schedule: Week 6 · ', $html);
         // the old formats are gone (one format, never two)
         $this->assertStringNotContainsString('Proposed Venue: ', $html);
         $this->assertStringNotContainsString('Requested at: ', $html);
@@ -842,8 +842,8 @@ final class NotificationsBridgeTest extends TestCase
         $this->assertSame('Staff (Proposer): Surayaini Binti Basri (5425)', $lines[0]);
         $this->assertStringStartsWith('Requested At: ', $lines[1], 'the live clock rides line 2, its shape pinned');
         $this->assertSame('Subject & Cohort: BMSE3153 (Practical) — Software Project Management · RSD3', $lines[2]);
-        $this->assertSame('Original Class Schedule: Week 8 · Tue, 10 Nov 2026 · 1:00 PM ~ 2:00 PM @ B009', $lines[3]);
-        $this->assertSame('Proposed Replacement Schedule: Week 6 · Fri, 30 Oct 2026 · 1:30 PM ~ 2:00 PM @ B010', $lines[4]);
+        $this->assertSame('Original Slot Schedule: Week 8 · Tue, 10 Nov 2026 · 1:00 PM ~ 2:00 PM @ B009', $lines[3]);
+        $this->assertSame('Requested Slot Schedule: Week 6 · Fri, 30 Oct 2026 · 1:30 PM ~ 2:00 PM @ B010', $lines[4]);
         $this->assertSame('Request ID: #'.(int) $request->id, $lines[5]);
         $this->assertCount(6, $lines, 'the six facts, nothing else — no Conflict Reason, no venue-name line');
     }
@@ -862,8 +862,8 @@ final class NotificationsBridgeTest extends TestCase
             implode("\n", [
                 'Subject: BMSE3153 (Practical) — Software Project Management',
                 'Rejection Reason: Venue Unavailable',
-                'Original Class Schedule: Week 8 · Tue, 10 Nov 2026 · 1:00 PM ~ 2:00 PM @ B009',
-                'Proposed Replacement Schedule: Week 6 · Fri, 30 Oct 2026 · 1:30 PM ~ 2:00 PM @ B010',
+                'Original Slot Schedule: Week 8 · Tue, 10 Nov 2026 · 1:00 PM ~ 2:00 PM @ B009',
+                'Requested Slot Schedule: Week 6 · Fri, 30 Oct 2026 · 1:30 PM ~ 2:00 PM @ B010',
                 'Request ID: #'.(int) $request->id,
             ]),
             $tips[0],
@@ -906,7 +906,7 @@ final class NotificationsBridgeTest extends TestCase
 
         $this->assertCount(1, $tips);
         $this->assertSame(
-            'Proposed Replacement Schedule: Week 6 · Fri, 30 Oct 2026 · 1:30 PM ~ 2:30 PM @ B010',
+            'Requested Slot Schedule: Week 6 · Fri, 30 Oct 2026 · 1:30 PM ~ 2:30 PM @ B010',
             explode("\n", $tips[0])[3],
             'the anchor is one cell; the stored width is what makes it an hour'
         );
@@ -965,7 +965,7 @@ final class NotificationsBridgeTest extends TestCase
         $tips = $this->tipsOf($this->panelHtml($owner), 'Approved Replacement Schedule:');
 
         $expected = 'Subject: BMSE3153 (Practical) — Software Project Management'
-            ."\n".'Original Class Schedule: Week 8 · Tue, 10 Nov 2026 · 1:00 PM ~ 2:00 PM @ B009'
+            ."\n".'Original Slot Schedule: Week 8 · Tue, 10 Nov 2026 · 1:00 PM ~ 2:00 PM @ B009'
             ."\n".'Approved Replacement Schedule: Week 6 · Fri, 30 Oct 2026 · 1:30 PM ~ 2:00 PM @ B010'
             ."\n".'Request ID: #'.(int) $request->id;
 
@@ -999,12 +999,12 @@ final class NotificationsBridgeTest extends TestCase
 
         $this->assertCount(1, $own, "the proposer's own copy leads with Requested At");
         $this->assertStringNotContainsString('Staff (Proposer)', $own[0]);
-        $this->assertStringContainsString('Proposed Replacement Schedule: Week 6 · Fri, 30 Oct 2026', $own[0]);
+        $this->assertStringContainsString('Requested Slot Schedule: Week 6 · Fri, 30 Oct 2026', $own[0]);
         $this->assertStringContainsString('Request ID: #'.(int) $request->id, $own[0]);
 
         $this->assertCount(1, $reminder, 'the PL reminder names who submitted it');
         $this->assertStringContainsString('Staff (Proposer): Surayaini Binti Basri (5425)', $reminder[0]);
-        $this->assertStringContainsString('Proposed Replacement Schedule: Week 6 · Fri, 30 Oct 2026', $reminder[0]);
+        $this->assertStringContainsString('Requested Slot Schedule: Week 6 · Fri, 30 Oct 2026', $reminder[0]);
     }
 
     /** S8 (student-side-health-check, 2026-11-08): a student row written BEFORE

@@ -1179,8 +1179,8 @@ class NavNotifications extends Component
         /* 5) tip — 2026-11-06 (user UI update "Organise Notification Row Hover
               Tooltips"): ONE vocabulary for every kind. This kind's lines are
               Staff (Proposer) / Requested At (the partial inserts it) /
-              Subject & Cohort / Original Class Schedule (+reason) /
-              Proposed Replacement Schedule / Request ID — built by
+              Subject & Cohort / Original Slot Schedule (+reason) /
+              Requested Slot Schedule / Request ID — built by
               `NotificationTip`, so a submission and a decision can never drift
               apart again. The reason now rides the Original line's parentheses
               instead of a separate `Conflict Reason:` line (user's option (a)). */

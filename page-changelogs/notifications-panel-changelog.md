@@ -1,3 +1,21 @@
+## 2026-11-10 (later) — the bell tips say Original Slot Schedule / Requested Slot Schedule
+
+The bell tips named the class's own schedule `Original Class Schedule` and the proposal
+`Proposed Replacement Schedule`. They now match the detail pop-ups' tabs: **`Original Slot
+Schedule`** and **`Requested Slot Schedule`**.
+
+Measured on the inbox after the change (an existing rejected request, an existing pending one):
+
+    Original Slot Schedule: Week 8 · Mon, 9 Nov 2026 · 9:00 AM ~ 11:00 AM @ B111 (Public Holiday — …)
+    Requested Slot Schedule: Week 8 · Fri, 13 Nov 2026 · 11:00 AM ~ 1:00 PM @ B111
+
+The tip is **built at read time** from the request + session, never stored, so every row already in
+the database re-reads with the new wording — 0 old labels, 4 new ones in the measured panel. No
+migration, no rewrite of `notifications.message`.
+
+Kept as they are (different facts, different labels): `Cancelled Class Schedule` for a class that has
+no request at all, and `Approved Replacement Schedule` for a decided approval notice.
+
 ## 2026-11-08 (Student-side health check S8) — an old student notice now lands on its week
 
 Student notice links are written with `?week=N` (S4, same day), but every row already in the table

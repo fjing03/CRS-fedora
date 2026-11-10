@@ -158,16 +158,16 @@ test('composer receipts on an unread submitted row (structural)', async ({ page 
   // 4) the multiline tip — 2026-11-06 ("Organise Notification Row Hover
   //    Tooltips"): ONE vocabulary, the user's formats. Order:
   //    Staff (Proposer) / Requested At / Subject & Cohort /
-  //    Original Class Schedule (+reason in parentheses) /
-  //    Proposed Replacement Schedule / Request ID.
+  //    Original Slot Schedule (+reason in parentheses) /
+  //    Requested Slot Schedule / Request ID.
   const tip = await row.getAttribute('data-tip');
   expect(tip).toContain('Staff (Proposer): ');
   expect(tip).toMatch(/\(\d{4,}\)$/m);
   expect(tip).toMatch(/Requested At: \d{1,2} [A-Z][a-z]{2} \d{4}, \d{1,2}:\d{2} (AM|PM) \(/);
   expect(tip).toMatch(/Subject & Cohort: [A-Z]{3,5}\d{3,4} \([A-Z][a-z]+\) — .+( · \S+)?$/m);
   /* `Mon, 9 Nov 2026` + `11:00 AM ~ 1:00 PM` (tilde, one space each side) + `(reason)` */
-  expect(tip).toMatch(/Original Class Schedule: Week \d+ · [A-Z][a-z]{2}, \d{1,2} [A-Z][a-z]{2} \d{4} · \d{1,2}:\d{2} (AM|PM) ~ \d{1,2}:\d{2} (AM|PM)( @ \S+)?( \(.+\))?$/m);
-  expect(tip).toMatch(/Proposed Replacement Schedule: Week \d+ · [A-Z][a-z]{2}, \d{1,2} [A-Z][a-z]{2} \d{4} · \d{1,2}:\d{2} (AM|PM) ~ \d{1,2}:\d{2} (AM|PM)( @ \S+)?$/m);
+  expect(tip).toMatch(/Original Slot Schedule: Week \d+ · [A-Z][a-z]{2}, \d{1,2} [A-Z][a-z]{2} \d{4} · \d{1,2}:\d{2} (AM|PM) ~ \d{1,2}:\d{2} (AM|PM)( @ \S+)?( \(.+\))?$/m);
+  expect(tip).toMatch(/Requested Slot Schedule: Week \d+ · [A-Z][a-z]{2}, \d{1,2} [A-Z][a-z]{2} \d{4} · \d{1,2}:\d{2} (AM|PM) ~ \d{1,2}:\d{2} (AM|PM)( @ \S+)?$/m);
   expect(tip).toMatch(/Request ID: #\d+$/m);
   expect(tip).not.toContain('Conflict Reason:', 'the reason now rides the Original line');
   expect(tip).not.toContain('Proposed Venue: ');

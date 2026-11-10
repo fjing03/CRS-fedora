@@ -139,8 +139,11 @@ final class NotificationTip
             }
         } else {
             if ($originalWeek !== null && $session !== null) {
+                /* 2026-11-10 (user): the tip names the same two schedules as the
+                   pop-up tabs — Original Slot Schedule / Requested Slot Schedule.
+                   The tip is BUILT on read, so every stored row follows. */
                 $lines[] = $this->scheduleLine(
-                    'Original Class Schedule',
+                    'Original Slot Schedule',
                     (int) $originalWeek,
                     $session,
                     $semesterStart,
@@ -151,7 +154,7 @@ final class NotificationTip
                 $lines[] = $this->spanLine(
                     in_array($kind, ['approval_notice', 'class_updated'], true)
                         ? 'Approved Replacement Schedule'
-                        : 'Proposed Replacement Schedule',
+                        : 'Requested Slot Schedule',
                     $span,
                     $venue,
                     $semesterStart,

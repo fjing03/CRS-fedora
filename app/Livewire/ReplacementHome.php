@@ -226,7 +226,7 @@ class ReplacementHome extends Component
            (user brief 2026-11-06, "Cancelled Pending Requests") ───────────
            The badge reads Need to Arrange (outlined), the REQUESTED
            REPLACEMENT cell shows an em dash, and the details pop-up drops its
-           Proposed Replacement Schedule tab — so the Request ID, Week, Day,
+           Requested Slot Schedule tab — so the Request ID, Week, Day,
            Date, Time, Duration and Venue simply are not there. Blanking the
            strings is what makes all three true at once, because the view
            already renders "no request" for an absent date; the page keeps no
