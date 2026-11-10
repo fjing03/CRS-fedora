@@ -200,7 +200,7 @@
             <button class="btn-close-modal" onclick="closeModal()">Close</button>
         </div>
         <div class="modal-footer-right">
-            <button class="btn-replace-now" id="btnReplaceNow" style="display:none" onclick="goToReplacementFor(currentModalEvent?.sessionId, currentWeek + 1, 'venue-timetable')">Replace Now</button> <!-- SDD cohort-venue-replace-now T2 (user law 2026-10-24): currentWeek was the 0-BASED index — the arrangement's pinnedSessionPayload validates the 1-BASED human week (1..weeks); the raw index also made W1 a silent no-op (the !week guard ate index 0). The page's own other flows (intentSessionOptions, the arrange-URL fallback) already pass +1. -->
+            <button class="btn-replace-now" id="btnReplaceNow" style="display:none" onclick="goToReplacementFor(currentModalEvent?.sessionId, currentWeek + 1, 'venue-timetable')"><svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg> Replace Now</button> <!-- SDD cohort-venue-replace-now T2 (user law 2026-10-24): currentWeek was the 0-BASED index — the arrangement's pinnedSessionPayload validates the 1-BASED human week (1..weeks); the raw index also made W1 a silent no-op (the !week guard ate index 0). The page's own other flows (intentSessionOptions, the arrange-URL fallback) already pass +1. -->
         </div>
     @endsection
     <!-- SDD cohort-venue-replace-now T2 (apply-phase receipt): the venue page
@@ -327,6 +327,7 @@
             function openModal(event) {
                 window.currentModalEvent = event;
                 openClassModal({
+                    week: window.currentWeek + 1,
                     event: event,
                     dayIndex: event.di,
                     days: weekData[currentWeek].days,

@@ -1954,8 +1954,10 @@ html.dark .filter-select {
     padding: 10px 20px;
     border-radius: var(--radius-md);
     border: none;
-    background: var(--color-error-container);
-    color: var(--color-on-error-container);
+    /* 2026-11-10 (user, modal consistency #2): the action is PRIMARY, not an
+       error — blue like every other "go and do it" button. */
+    background: var(--color-primary);
+    color: var(--color-on-primary);
     font-family: inherit;
     font-size: 14px;
     font-weight: 500;
@@ -1978,7 +1980,10 @@ html.dark .filter-select {
    without per-row borders, a single shared timeline, and category tabs. */
 
 .modal.modal--detail {
-    max-width: 480px;
+    /* 2026-11-10 (user, modal consistency #1): every DETAILS modal is as wide as
+       the Replacement Details modal (`.modal` + 616px inline on my-replacements) —
+       one width for Class / Slot / Request / Replacement details. */
+    max-width: 616px;
 }
 .modal--detail .modal-header {
     align-items: flex-start;
@@ -2043,61 +2048,10 @@ html.dark .filter-select {
 .detail-value--muted { color: var(--color-on-surface-variant); }
 .detail-caption { font-size: 12px; color: var(--color-on-surface-variant); margin-top: 2px; }
 
-/* ── Shared horizontal timeline rail (global info, pinned above tabs) ── */
-/* Visible plain-text reminder printed above every rail (2026-11-02, user's
-   word) — the rail is known-broken and is on the SV-demo talking points. It is
-   rendered by DetailModal.timeline() in ui-common.js; delete the rule with the
-   rail rebuild (prompts/extra tasks/task-02-replacement-history-timeline.md). */
-.modal-timeline-note {
-    font-size: 12px;
-    font-style: italic;
-    color: var(--color-on-surface-variant);
-    margin: 0 0 2px;
-}
-.modal-timeline {
-    display: flex;
-    align-items: flex-start;
-    margin: 12px 0 14px;
-    padding: 10px 12px;
-    border: 1px solid var(--color-outline-variant);
-    border-radius: var(--radius-md);
-    background: var(--color-surface-variant);
-}
-.modal-timeline .tl-step {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 3px;
-    position: relative;
-    min-width: 0;
-    padding: 0 6px;
-}
-.modal-timeline .tl-dot {
-    width: 11px; height: 11px;
-    border-radius: 50%;
-    border: 2px solid var(--color-outline);
-    background: var(--color-surface);
-    flex-shrink: 0;
-}
-/* Dot colour reflects each step's status (success/approved, error/rejected, warning/pending, primary) */
-.modal-timeline .tl-step.completed .tl-dot { background: var(--color-success); border-color: var(--color-success); }
-.modal-timeline .tl-step.active .tl-dot { background: var(--color-tertiary); border-color: var(--color-tertiary); }
-.modal-timeline .tl-step.dot-success .tl-dot { background: var(--color-success); border-color: var(--color-success); }
-.modal-timeline .tl-step.dot-error .tl-dot { background: var(--color-error); border-color: var(--color-error); }
-.modal-timeline .tl-step.dot-warning .tl-dot { background: var(--color-warning); border-color: var(--color-warning); }
-.modal-timeline .tl-step.dot-primary .tl-dot { background: var(--color-primary); border-color: var(--color-primary); }
-.modal-timeline .tl-label { font-size: 11px; font-weight: 600; color: var(--color-on-surface); white-space: nowrap; }
-.modal-timeline .tl-time { font-size: 10px; color: var(--color-on-surface-variant); white-space: nowrap; }
-.modal-timeline .tl-connector {
-    flex: 1;
-    height: 2px;
-    align-self: center;
-    margin: 0 4px;
-    background: var(--color-outline-variant);
-    min-width: 24px;
-}
-.modal-timeline .tl-connector.completed { background: var(--color-success); }
-.modal-timeline .tl-connector.active { background: linear-gradient(90deg, var(--color-success), var(--color-tertiary)); }
+/* 2026-11-10 (user, modal consistency #1): the shared `.modal-timeline` rail was
+   REMOVED from every details modal (with its note and its dots). Do not bring it
+   back without the user's word — the rebuild lives in
+   `prompts/extra tasks/task-02-replacement-history-timeline.md`. */
 
 /* ── Category tab bar (only rendered when the detail modal has 2+ groups) ── */
 .modal-tabs {

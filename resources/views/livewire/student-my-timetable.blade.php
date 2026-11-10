@@ -99,6 +99,7 @@
 
             function openModal(event) {
                 openClassModal({
+                    week: window.currentWeek + 1,
                     event: event,
                     dayIndex: event.di,
                     days: weekData[currentWeek].days,

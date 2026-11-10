@@ -85,7 +85,7 @@
                  event's EXACT-PAIR stamp week (never window.currentWeek —
                  its stale restore/Today-button/shortcut desync made #11 book
                  week 5 while the fact lived at W14). -->
-            <button class="btn-replace-now" id="btnReplaceNow" style="display:none" onclick="goToReplacementFor(currentModalEvent?.id, rarityReplaceOccurrenceWeek(), 'my-timetable')">Replace Now</button>
+            <button class="btn-replace-now" id="btnReplaceNow" style="display:none" onclick="goToReplacementFor(currentModalEvent?.id, rarityReplaceOccurrenceWeek(), 'my-timetable')"><svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg> Replace Now</button>
         </div>
     @endsection
     @include('partials.ui-class-detail-modal')
@@ -163,6 +163,7 @@
                 const studentValue = window.totalStudentsLabel(event);
 
                 openClassModal({
+                    week: window.currentWeek + 1,
                     event: event,
                     dayIndex: event.di,
                     days: days,

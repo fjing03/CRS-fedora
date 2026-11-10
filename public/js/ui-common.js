@@ -1188,8 +1188,7 @@ function openClassModal(cfg) {
         renderModalGroups({
             modalId: cfg.modalId || 'classModal',
             title: cfg.title || 'Class Details',
-            subtitle: cfg.subtitle || '',
-            timeline: cfg.timeline || null
+            subtitle: cfg.subtitle || ''
         }, cfg.groups);
         return;
     }
@@ -1216,30 +1215,31 @@ function openClassModal(cfg) {
        page. Same vocabulary as the badge / the block note. */
     const statusDesc = isConflict ? 'Class falls on a public holiday — no class runs' : event.status === 'pending' ? 'Replacement request awaiting approval' : event.status === 'conflict' ? 'Scheduling conflict — needs attention' : event.status === 'cancelled' ? 'Class cancelled — a replacement is needed' : event.status === 'replacement' ? 'Approved replacement session — this class runs at this slot' : 'Scheduled class with no issues';
 
+    /* 2026-11-10 (user, modal consistency #3): Class Information now leads with the
+       record's own ID, and the subject is ONE row — code, name and class type
+       together. The separate "Subject Name" / "Class Type" rows are gone. */
+    const subjectText = (event.code || '')
+        + (event.name ? ' \u2014 ' + event.name : '')
+        + (event.type ? ' (' + UiLabels.classType(event.type, 'long') + ')' : '');
+
+    const idFromEvent = event.sessionId != null ? event.sessionId : event.id;
     const rows = [
-        { label: 'Subject Code', value: event.code },
-        { label: 'Subject Name', value: event.name },
-        { label: 'Class Type', value: UiLabels.classType(event.type, 'canonical') },
+        { label: 'Session ID', value: idFromEvent ? '#' + idFromEvent : '\u2014' },
+        { label: 'Subject', value: subjectText },
         { label: 'Lecturer', value: event.lecturer },
-        { label: 'Venue', value: event.venue || '\u2014' },
-        { label: 'Day', value: dayNames[di] || days[di].abbr },
-        { label: 'Date', value: days[di].date },
-        { label: 'Start Time', value: startStr, strong: true },
-        { label: 'End Time', value: endStr },
+        /* 2026-11-10 (user, modal consistency #4): the Schedule reads
+           Venue (code — name) · Week · Day & Date · Time & Duration. */
+        { label: 'Venue', value: ModalFacts.venue(event.venue, event.venueName) },
+        { label: 'Week', value: cfg.week ? 'Week ' + cfg.week : '\u2014' },
+        { label: 'Day & Date', value: ModalFacts.dayDate(dayNames[di] || days[di].abbr, days[di].date) },
+        { label: 'Time & Duration', value: ModalFacts.timeDuration(startStr, endStr, (event.end - event.start + 1) / 2), strong: true },
         { label: 'Status', value: '<span class="badge badge-' + st + '">' + displayStatus + '</span>' },
         { label: 'Status Description', value: statusDesc },
         { label: 'Remarks', value: event.remarks || '\u2014' },
     ];
-    /* Reference row (2026-10-11 user decision): a quotable handle for
-       reporting a class ("class #97 venue is wrong") — shown wherever the
-       event carries the real session id. */
-    /* venue-status-parity T6 (bug #5): `id` is the grid's ROW key — on the venue
-       page that is a time_slot id, so the popup quoted "#34413" for a class whose
-       quotable reference is #40. `sessionId` is the class_session id wherever the
-       payload carries one (venue page: every block; the timeline pages: their `id`
-       already IS the class id, so nothing moves there). */
-    var classRef = event.sessionId != null ? event.sessionId : event.id;
-    if (classRef) rows.push({ label: 'Class Ref', value: '#' + classRef });
+    /* the quotable reference is now the FIRST row ("Session ID", #3 above): `id` is
+       the grid's row key on the venue page, so `sessionId` still wins when present
+       (venue-status-parity T6, bug #5 — a time_slot id must never be quoted). */
 
     /* venue-note-privacy (2026-11-02, user ruling A+A): the REQUEST facts —
        when it was submitted and by whom — belong to the person who owns the
@@ -1309,7 +1309,8 @@ function openClassModal(cfg) {
     // Same three-category taxonomy the request-history modal uses. Rows keep
     // their order inside each bucket; unknown labels default to Class Information.
     const STATUS_LABELS = ['Status', 'Status Description', 'Requested At', 'Requested By', 'Rejection Reason', 'Remarks'];
-    const SCHEDULE_LABELS = ['Day', 'Date', 'Start Time', 'End Time', 'Duration', 'Venue'];
+    const SCHEDULE_LABELS = ['Day', 'Date', 'Start Time', 'End Time', 'Duration', 'Venue',
+        'Day & Date', 'Time & Duration', 'Week'];
     function bucketOf(label) {
         if (label.indexOf('Original ') === 0) return 'Original Class';
         if (STATUS_LABELS.indexOf(label) >= 0) return 'Status';
@@ -1328,17 +1329,12 @@ function openClassModal(cfg) {
     renderModalGroups({
         modalId: cfg.modalId || 'classModal',
         title: cfg.title || 'Class Details',
-        subtitle: (event.code || '') + (event.name ? ' \u2014 ' + event.name : ''),
-        /* the timeline's own first step repeats `requestedAt` — the same gate
-           (A+A): an unrelated lecturer gets no timeline at all rather than a
-           half-timeline whose first step is blanked. */
-        timeline: event.status === 'pending' && isRecordOwner
-            ? [
-                { label: 'Submitted', time: event.requestedAt || 'Done', state: 'completed' },
-                { label: 'Under Review', time: 'In progress', state: 'active', dot: 'dot-warning' },
-                { label: 'Awaiting Replacement', time: 'Next', state: 'pending' },
-              ]
-            : null,
+        /* 2026-11-10 (user, modal consistency #1): the subtitle carries the class
+           TYPE too — `AMSE2003 — Software Testing and Quality Assurance (Lecture)`. */
+        subtitle: (event.code || '')
+            + (event.name ? ' \u2014 ' + event.name : '')
+            + (event.type ? ' (' + UiLabels.classType(event.type, 'long') + ')' : ''),
+        /* the timeline rail was removed 2026-11-10 (user) — no config here */
     }, groups);
 
     // Footer cleanup runs on EVERY open: the footer is static markup, so an
@@ -1381,7 +1377,7 @@ function openClassModal(cfg) {
 //     title: 'Request Details',
 //     subtitle: '#12 · BMIT2201 — Data Structures',
 //     status: { text: 'Pending', cls: 'status-pending' },  // optional
-//     timeline: [                    // optional global timeline (always visible)
+//     (no timeline option any more — the rail was removed 2026-11-10)
 //       { label: 'Submitted', time: '12 Aug, 3:30 AM', state: 'completed' },
 //       { label: 'Viewed',    time: '12 Aug, 7:00 AM', state: 'completed' },
 //       { label: 'Reviewed',  time: 'Pending',          state: 'active'  }
@@ -1449,7 +1445,8 @@ const DetailModal = {
         // badge row inside the body (see DetailModal.row with a .badge value).
 
         let html = '';
-        if (cfg.timeline && cfg.timeline.length) html += DetailModal.timeline(cfg.timeline);
+        /* 2026-11-10 (user, modal consistency #1): the timeline rail is GONE from
+           every details modal — no `.modal-timeline`, no note, no dots. */
 
         /* replacement-merge-one-table (M7/T9, 2026-11-04): ONE optional fixed
            facts strip above the tabs. Additive — every existing caller omits
@@ -1488,30 +1485,8 @@ const DetailModal = {
         });
     },
 
-    // Render a global horizontal timeline rail (always visible, never a tab).
-    // Each step may supply `dot` ('dot-success'|'dot-error'|'dot-warning'|'dot-primary')
-    // so the dot colour reflects that step's status.
-    timeline(steps) {
-        /* DEMO REMINDER (2026-11-02, user's word): plain text above every rail.
-           The rail is known-broken (see prompts/extra tasks/
-           task-02-replacement-history-timeline.md) and the user wants to ask
-           the SV whether it is useful at all. Delete this line with the rebuild. */
-        let html = '<div class="modal-timeline-note">the timeline function got error -- ask SV does this useful/helpful for Them</div>';
-        html += '<div class="modal-timeline">';
-        steps.forEach((s, i) => {
-            const st = s.state || 'pending';
-            const dotCls = s.dot || '';
-            html += '<div class="tl-step ' + st + ' ' + dotCls + '">';
-            html += '<div class="tl-dot"></div>';
-            html += '<div class="tl-label">' + escHtml(s.label) + '</div>';
-            if (s.time) html += '<div class="tl-time">' + escHtml(s.time) + '</div>';
-            html += '</div>';
-            if (i < steps.length - 1) {
-                html += '<div class="tl-connector' + (st === 'completed' ? ' completed' : '') + '"></div>';
-            }
-        });
-        return html + '</div>';
-    },
+    /* 2026-11-10 (user, modal consistency #1): DetailModal.timeline() was REMOVED
+       with the rail it drew (`.modal-timeline` + its note + the dots). */
 
     // Render a definition section (caption + rows) inside a tab.
     section(title, rowsHtml) {
@@ -2605,16 +2580,66 @@ function venueTypeWording(rawType) {
    rather than inventing one). */
 function venueLine(code, name) {
     if (!code) return '';
-    var label = name ? code + ' \u2014 ' + name : code;
+    /* 2026-11-10 (user, modal consistency #4): one venue wording everywhere —
+       ModalFacts.venue never repeats a code the room's own name already carries */
+    var label = window.ModalFacts ? ModalFacts.venue(code, name) : (name ? code + ' \u2014 ' + name : code);
     return '<span class="cell-sub"><svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18"/><path d="M5 21V7l7-4 7 4v14"/><path d="M9 21v-6h6v6"/></svg>' + label + '</span>';
 }
 
 function durationWords(hours) {
-    if (!hours) return '';
+    /* 2026-11-10: a non-number must never print "(NaN minutes)" */
+    if (hours == null || !isFinite(Number(hours)) || Number(hours) <= 0) return '';
+    hours = Number(hours);
     if (hours === 1) return '1 hour';
     if (Number.isInteger(hours)) return hours + ' hours';
     return (hours * 60) + ' minutes';
 }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   ModalFacts — the ONE wording for the detail modals' rows (user, 2026-11-10,
+   "Modal Consistency" #4). Three formulations, used by Class / Slot / Request /
+   Replacement Details so the same fact never reads two ways:
+     Day & Date        Wed, 11 Nov 2026            (Title Case day, comma)
+     Time & Duration   9:00 AM ~ 11:00 AM (2 hours) (the `~` joiner law)
+     Venue             B010 — Tutorial Room
+   ═══════════════════════════════════════════════════════════════════════════ */
+var ModalFacts = {
+    /* 'MONDAY' / 'Mon' / 'Monday' → 'Mon'; date strings pass through untouched */
+    _day(day) {
+        var raw = String(day == null ? '' : day).trim();
+        if (!raw) return '';
+        var three = raw.substring(0, 3).toLowerCase();
+        return three.charAt(0).toUpperCase() + three.slice(1);
+    },
+
+    dayDate(day, date) {
+        var d = this._day(day);
+        var t = String(date == null ? '' : date).trim().replace(/,$/, '');
+        if (!d) return t || '\u2014';
+        if (!t) return d;
+        return d + ', ' + t;
+    },
+
+    timeDuration(start12, end12, hours) {
+        var start = String(start12 == null ? '' : start12).trim();
+        if (!start) return '\u2014';
+        var run = start + (String(end12 == null ? '' : end12).trim() ? ' ~ ' + String(end12).trim() : '');
+        var words = durationWords(hours);
+        return words ? run + ' (' + words + ')' : run;
+    },
+
+    venue(code, name) {
+        var c = String(code == null ? '' : code).trim();
+        var n = String(name == null ? '' : name).trim();
+        if (!c) return '\u2014';
+        if (!n) return c;
+        /* the DB's room names often already carry the code ("Tutorial Room B002"):
+           never print it twice — the code still leads when the name is bare */
+        if (n.toUpperCase().indexOf(c.toUpperCase()) !== -1) return n;
+        return c + ' \u2014 ' + n;
+    },
+};
+window.ModalFacts = ModalFacts;
 
 /* Human label for an event's run-status — the hover-tooltip suffix on every
    timetable page ("· Normal / Pending / …"). A public-holiday day outranks

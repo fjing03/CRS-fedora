@@ -845,13 +845,13 @@
             }
 
             /* Tab 1 — the class as timetabled. */
+            /* 2026-11-10 (user, modal consistency #4): Day & Date and Time & Duration
+               are ONE row each — the same wording as the class/slot modals. */
             var origHtml = DetailModal.section('Original Class Schedule',
                 DetailModal.row('Class ID', '#' + c.sessionId, { strong: true }) +
                 DetailModal.row('Week', getWeekNumber(c.date) ? 'Week ' + getWeekNumber(c.date) : null) +
-                DetailModal.row('Day', c.day) +
-                DetailModal.row('Date', formatDate(c.date) + origCountdown) +
-                DetailModal.row('Time', to12h(c.timeStart) + ' ~ ' + to12h(c.timeEnd), { strong: true }) +
-                DetailModal.row('Duration', durationWords(c.duration)) +
+                DetailModal.row('Day & Date', ModalFacts.dayDate(c.day, formatDate(c.date) + origCountdown), { strong: true }) +
+                DetailModal.row('Time & Duration', ModalFacts.timeDuration(to12h(c.timeStart), to12h(c.timeEnd), c.duration), { strong: true }) +
                 /* the ONE place the room NAME is printed (M7) */
                 DetailModal.row('Venue', venueLine(c.venue, c.venueName))
             );
@@ -867,10 +867,12 @@
                     html: DetailModal.section('Proposed Replacement Schedule',
                         DetailModal.row('Request ID', '#' + c.requestId, { strong: true }) +
                         DetailModal.row('Week', c.replacementWeek ? 'Week ' + c.replacementWeek : null) +
-                        DetailModal.row('Day', c.replacementDay) +
-                        DetailModal.row('Date', formatDate(c.replacementDate) + replCountdown) +
-                        DetailModal.row('Time', DateHelper.format12hRange(c.replacementTime, ' ~ '), { strong: true }) +
-                        DetailModal.row('Duration', durationWords(rangeHours(c.replacementTime))) +
+                        DetailModal.row('Day & Date', ModalFacts.dayDate(c.replacementDay, formatDate(c.replacementDate) + replCountdown), { strong: true }) +
+                        DetailModal.row('Time & Duration', ModalFacts.timeDuration(
+                            DateHelper.to12h((String(c.replacementTime || '').split(/\s*[–—-]\s*/)[0] || '')),
+                            DateHelper.to12h((String(c.replacementTime || '').split(/\s*[–—-]\s*/)[1] || '')),
+                            rangeHours(c.replacementTime)
+                        ), { strong: true }) +
                         DetailModal.row('Venue', venueLine(c.replacementVenue, c.replacementVenueName))
                     )
                 });

@@ -1,3 +1,34 @@
+## 2026-11-10 — Modal consistency (#1–#4)
+
+The details modals now share one shell and one set of rows across the system (user brief
+"UI/UX Update — Modal Consistency"; the same change landed on Class Details / Slot Details /
+Request Details / Replacement Details).
+
+- **Width** — every details modal is **616 px**, the same as the Replacement Details modal
+  (`theme.css` `.modal.modal--detail` was 480).
+- **Timeline rail removed** — `.modal-timeline`, its "ask SV" note and the dot styles are gone,
+  with `DetailModal.timeline()` and the pending-rail config that fed it.
+- **Subtitle carries the class type** — `AMSE1003 — Software Engineering (Lecture)`.
+- **Replace Now is a primary button** — blue (`--color-primary`), with a swap icon before the
+  label (my-timetable, cohort-timetable, venue-timetable).
+- **Class Information** — leads with **Session ID** (`#99`, the `class_sessions` id; `sessionId`
+  still wins over the grid's row key), then **one Subject row**
+  (`AMSE1003 — Software Engineering (Lecture)`), Lecturer, Cohort, Total Students. The separate
+  Subject Name / Class Type / Class Ref rows and the "Subject Code" label are gone.
+- **Schedule** — **Venue** (code + name), **Week**, **Day & Date** (`Mon, 9 Nov 2026`),
+  **Time & Duration** (`9:00 AM ~ 11:00 AM (2 hours)`). The separate Day / Date / Start / End
+  rows are gone. The class modals now receive the viewed week, so the Week row is real data.
+- **One wording for the facts** — `ModalFacts.dayDate / timeDuration / venue` in `ui-common.js`;
+  `venueLine()` and `request-approval`'s `venueText()` delegate to it, so a room name that already
+  carries its code is never printed twice (`Tutorial Room B002`, not `B002 — Tutorial Room B002`).
+- **No "NaN minutes"** — `durationWords()` and `rangeHours()` refuse a non-number instead of
+  printing it.
+
+Verified with Playwright on the demo data (`:8010`), 22/22 checks: widths 616 on all four pages,
+subtitle with the type, zero timeline elements, Replace Now blue + icon, the new row order and
+formats on both schedules of Request Details and Replacement Details, no NaN, no duplicated venue
+code, zero console errors. Pinned by `tests/Feature/ModalConsistencyTest.php` (9/9).
+
 ## 2026-11-09 (user brief) — the hover tooltip clears the hour header, and a holiday badge stays red on a Today holiday
 
 **Two one-rule style fixes in the shared stylesheet** (`public/css/theme.css`), so every grid page

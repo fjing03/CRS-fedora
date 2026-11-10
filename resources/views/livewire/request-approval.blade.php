@@ -421,7 +421,9 @@
            payload has one. The merged page's `venueLine()` is the same rule. */
         function venueText(code, name) {
             if (!code) return null;
-            return name ? code + ' \u2014 ' + name : code;
+            /* 2026-11-10 (user, #4): the ONE venue wording — ModalFacts never
+               repeats a code the room's own name already carries */
+            return window.ModalFacts ? ModalFacts.venue(code, name) : (name ? code + ' \u2014 ' + name : code);
         }
 
         // ── Filter persistence (§7) ──
@@ -944,14 +946,15 @@
                 const weeks = (MockData.semester && MockData.semester.weeks) || 14;
                 return (n >= 1 && n <= weeks) ? 'Week ' + n : null;
             }
-            /* 'H:i – H:i' → '2 hours' / '1 hour' / '1.5 hours' */
+            /* 'H:i – H:i' → hours (a NUMBER, so durationWords owns the wording).
+               2026-11-10 (#4): it must never return NaN — a 12-hour string or a
+               missing separator degrades to null (no "(NaN minutes)" ever). */
             function rangeHours(t) {
-                const m = String(t || '').match(/(\d{1,2}):(\d{2})\s*[–—-]\s*(\d{1,2}):(\d{2})/);
+                const m = String(t || '').match(/(\d{1,2}):(\d{2})\s*(?:AM|PM)?\s*[–—-]\s*(\d{1,2}):(\d{2})/i);
                 if (!m) return null;
                 const mins = (parseInt(m[3]) * 60 + parseInt(m[4])) - (parseInt(m[1]) * 60 + parseInt(m[2]));
-                if (mins <= 0) return null;
-                const h = Math.round((mins / 60) * 10) / 10;
-                return h === 1 ? '1 hour' : h + ' hours';
+                if (!isFinite(mins) || mins <= 0) return null;
+                return Math.round((mins / 60) * 10) / 10;
             }
             /* BMSE3153-class-info (user law 2026-10-27): the shared
                cohortBreakdown (ui-common.js) renders the per-cohort
@@ -963,13 +966,13 @@
             // 3A (2026-11-04): students + cohorts moved to the facts strip.
             // 3E-3 (2026-11-04): start/end collapse into ONE `Time` row, the
             // merged page's shape.
+            /* 2026-11-10 (user, modal consistency #4): Day & Date and Time & Duration
+               are ONE row each — the same wording as the class/slot modals. */
             const origSection = DetailModal.section('Original Class Schedule',
                 DetailModal.row('Request ID', '#' + r.id, { strong: true }) +
                 DetailModal.row('Week', weekOfIso(r.classDate)) +
-                DetailModal.row('Day', r.classDay) +
-                DetailModal.row('Date', fullDate(r.classDate), { strong: true }) +
-                DetailModal.row('Time', fullTime(r.timeStart) + ' ~ ' + fullTime(r.timeEnd), { strong: true }) +
-                DetailModal.row('Duration', durationWords(r.duration)) +
+                DetailModal.row('Day & Date', ModalFacts.dayDate(r.classDay, fullDate(r.classDate)), { strong: true }) +
+                DetailModal.row('Time & Duration', ModalFacts.timeDuration(fullTime(r.timeStart), fullTime(r.timeEnd), r.duration), { strong: true }) +
                 DetailModal.row('Venue', venueText(r.venue, r.venueName))
             );
 
@@ -991,12 +994,12 @@
             if (r.replacementDate) {
                 const repSection = DetailModal.section('Proposed Replacement Schedule',
                     DetailModal.row('Week', weekOfIso(r.replacementDate)) +
-                    DetailModal.row('Day', fullDay(r.replacementDate)) +
-                    DetailModal.row('Date', fullDate(r.replacementDate), { strong: true }) +
-                    DetailModal.row('Time', repParts.length > 1
-                        ? DateHelper.to12h(repParts[0]) + ' ~ ' + DateHelper.to12h(repParts[1])
-                        : (repParts.length ? DateHelper.to12h(repParts[0]) : null), { strong: true }) +
-                    DetailModal.row('Duration', rangeHours(r.replacementTime)) +
+                    DetailModal.row('Day & Date', ModalFacts.dayDate(fullDay(r.replacementDate), fullDate(r.replacementDate)), { strong: true }) +
+                    DetailModal.row('Time & Duration', ModalFacts.timeDuration(
+                        repParts.length ? DateHelper.to12h(repParts[0]) : null,
+                        repParts.length > 1 ? DateHelper.to12h(repParts[1]) : null,
+                        rangeHours(r.replacementTime)
+                    ), { strong: true }) +
                     DetailModal.row('Venue', venueText(r.replacementVenue, r.replacementVenueName)) +
                     DetailModal.row('Slot Validity', slotBadgeInline + validityText)
                 );
