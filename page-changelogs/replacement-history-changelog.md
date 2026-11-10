@@ -18,7 +18,9 @@ class and tooltip) over 2 rows; one click → `chips: []`, week `all`, toggle of
 the bar (and the chip itself) disappears. Zero console errors.
 
 Note on reload: the page's DEFAULT view is "exclude completed ON", so reloading after Clear all
-brings that one chip back — that is the default, not a filter the user set.
+brings that one chip back. **User ruling (2026-11-10, answer A): leave it that way** — Clear all
+clears the current view, and a reload returns the page's documented default (the staff pages
+behave the same with their own default). Do not make it sticky.
 
 Receipts: `StudentClassReplacementsFixesTest` **4/4** (the markup byte-for-byte, the
 `chips.length > 0` guard, the window export, and what the reset touches), red-checked by
