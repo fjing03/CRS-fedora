@@ -195,6 +195,30 @@ final class ReplacementHistoryRowTest extends TestCase
         return $rows[0];
     }
 
+    /**
+     * 2026-11-10 (user bug fix): the LECTURER column was printing a bare name. It now
+     * carries the title too, and it comes from the ONE reader — `User::displayName()` —
+     * so the page and the rest of the app cannot drift.
+     */
+    public function test_the_lecturer_cell_carries_the_honorific(): void
+    {
+        $this->lecturer->update(['honorific' => 'Pn.']);
+        $this->holidayOnTheClass();
+
+        $row = $this->row();
+
+        $this->assertSame('Pn. Row Lecturer', $row['lecturer'], 'title + name, from User::displayName()');
+        $this->assertSame($this->lecturer->fresh()->displayName(), $row['lecturer']);
+    }
+
+    /** A lecturer with no title on file still reads as the bare name — no stray space. */
+    public function test_a_lecturer_without_a_title_reads_as_the_bare_name(): void
+    {
+        $this->holidayOnTheClass();
+
+        $this->assertSame('Row Lecturer', $this->row()['lecturer']);
+    }
+
     public function test_a_holiday_occurrence_is_a_row_even_with_no_request(): void
     {
         $this->holidayOnTheClass();

@@ -131,7 +131,7 @@
              replacement counts as COMPLETED once its requested DATE has passed,
              which is the derived status the badge above it prints. ─── -->
         <div class="toolbar">
-            @include('partials.ui-week-nav', ['prevOnclick' => 'prevWeekFilter()', 'nextOnclick' => 'nextWeekFilter()', 'selectId' => 'weekFilter', 'selectOnclick' => "weekFilterChanged({onRebuild: renderUpcoming})", 'showTodayBtn' => true])
+            @include('partials.ui-week-nav', ['prevOnclick' => 'prevWeekFilter()', 'nextOnclick' => 'nextWeekFilter()', 'selectId' => 'weekFilter', /* 2026-11-10 (user): NO Today button on this page */ 'selectOnclick' => "weekFilterChanged({onRebuild: renderUpcoming})", 'showTodayBtn' => false])
             <label class="toggle-wrapper" id="completedToggle" data-tip="ON = completed requests are excluded from the list">
                 <input type="checkbox" id="hideCompleted" checked>
                 <span class="toggle-track"><span class="toggle-thumb"></span></span>
@@ -331,11 +331,11 @@
             const sel = document.getElementById('weekFilter');
             if (sel.value !== 'all' && sel.selectedOptions[0]) {
                 chips.push('<span class="filter-chip">Original Class Week: ' + sel.selectedOptions[0].textContent +
-                    '<button class="filter-chip-remove" data-tip="Remove" onclick="document.getElementById(\'weekFilter\').value=\'all\';document.getElementById(\'weekFilter\').dispatchEvent(new Event(\'change\'));">&times;</button></span>');
+                    '<button class="filter-chip-remove" data-tip="Remove" data-remove="weekFilter">&times;</button></span>');
             }
             if (document.getElementById('hideCompleted').checked) {
                 chips.push('<span class="filter-chip">Exclude COMPLETED Status' +
-                    '<button class="filter-chip-remove" data-tip="Remove" onclick="document.getElementById(\'hideCompleted\').checked=false;saveView();renderUpcoming();">&times;</button></span>');
+                    '<button class="filter-chip-remove" data-tip="Remove" data-remove="hideCompleted">&times;</button></span>');
             }
             container.innerHTML = chips.length > 0 ? '<span class="filter-chips-label">Active Filters:</span>' + chips.join('') : '';
         }
@@ -568,15 +568,36 @@
                 saveView();
                 renderUpcoming();
             });
+
+            /* Each Active-Filters chip removes its own filter. ONE delegated
+               listener owns it (2026-11-10 bug fix): the old inline `onclick=`
+               called `saveView()`, which lives inside this closure — the click
+               threw, so the toggle turned off and the chip stayed. */
+            const chipBar = document.getElementById('filterChips');
+            if (chipBar) {
+                chipBar.addEventListener('click', function(e) {
+                    const btn = e.target.closest('.filter-chip-remove');
+                    if (!btn) return;
+                    e.preventDefault();
+                    const which = btn.getAttribute('data-remove');
+                    if (which === 'weekFilter') {
+                        const sel = document.getElementById('weekFilter');
+                        sel.value = 'all';
+                        sel.dispatchEvent(new Event('change'));   // the week path re-renders + saves
+                        return;
+                    }
+                    if (which === 'hideCompleted') {
+                        document.getElementById('hideCompleted').checked = false;
+                        saveView();
+                        renderUpcoming();                        // ends with renderChips()
+                    }
+                });
+            }
             document.getElementById('weekFilter').addEventListener('change', saveView);
 
-            // AD-10: pages with #weekFilter wire their own today handler
-            // (shared jumpToToday() targets #weekSelect)
-            document.getElementById('todayBtn')?.addEventListener('click', function() {
-                const sel = document.getElementById('weekFilter');
-                sel.value = String(currentWeekIndex() + 1);
-                sel.dispatchEvent(new Event('change'));
-            });
+            /* 2026-11-10 (user): this page has NO Today button — the week-nav
+               include is told so (showTodayBtn => false) and the old AD-10
+               handler went with the button. Do not re-add it here. */
 
             // Card/row events — delegated so listeners survive re-renders
             // (cards = mobile container, #upcomingBody rows = desktop table)

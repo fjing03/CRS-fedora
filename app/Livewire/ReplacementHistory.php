@@ -260,7 +260,9 @@ class ReplacementHistory extends Component
             'code' => (string) $session->module->module_code,
             'name' => $session->module->displayName(),
             'type' => (string) $session->session_type,
-            'lecturer' => $session->lecturer !== null ? (string) $session->lecturer->name : '',
+            /* 2026-11-10 (user bug fix): the LECTURER column carries the title too —
+               ONE reader (`User::displayName()`), e.g. "Pn. Lee Yee Fong". */
+            'lecturer' => $session->lecturer !== null ? $session->lecturer->displayName() : '',
             'orig' => [
                 'week' => $week,
                 'date' => $classDate->toDateString(),

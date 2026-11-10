@@ -1,3 +1,33 @@
+## 2026-11-10 — three bug fixes (user)
+
+**1. No Today button on this page.** The week-nav include already passed
+`'showTodayBtn' => true`; it now passes `false`, and the dead `#todayBtn` handler (the old
+AD-10 block that jumped the week filter to today) went with the button. The arrows, the week
+select and the filter behaviour are untouched — measured: `#todayBtn: 0`, `.today-btn: 0`,
+arrows: 2, `#weekFilter` present.
+
+**2. A filter chip now removes itself immediately.** Symptom: clicking the `×` on
+**Exclude COMPLETED Status** turned the toggle off but the chip stayed. Cause: the chip's
+inline `onclick` called `saveView()` — a function that lives inside the page's
+`DOMContentLoaded` closure, so the inline handler threw a ReferenceError *after* unchecking
+the box. Fixed properly rather than by exporting more names: the chips now carry
+`data-remove="weekFilter|hideCompleted"` and ONE delegated listener on `#filterChips` does
+the work, so it can see every page function. The week chip moved to the same delegate.
+Measured: before × `chips: ["Exclude COMPLETED Status"]` → after × `chips: [],
+toggleOn: false`; ticking the toggle again brings the chip back; setting Week 8 adds the
+week chip (2 rows) and removing it restores all 10 rows; a table row still opens its pop-up.
+
+**3. The LECTURER column carries the title.** It printed a bare name; it now prints
+`Pn. Lee Yee Fong`, `En. Lim Jia Zheng`, `Dr. …`, from the real `users.honorific` column via
+the ONE reader `User::displayName()`. A lecturer with no honorific still reads as the bare
+name (no stray space).
+
+Receipts: `ReplacementHistoryRowTest` +2 (title present / absent), new
+`StudentClassReplacementsFixesTest` **2/2** (no Today button; chips use one delegate), both
+**red-checked** — restoring `showTodayBtn => true` and re-adding the inline chip handler each
+fail their test. Targeted PHPUnit 32/32, pint passed, phpstan 0, `view:cache` OK, page script
+`node --check` OK, zero console errors on the demo student `24RSD0009`.
+
 **Card labels + hours meaning (user, same day — supersedes R8):** the first two cards now read
 **`Classes Awaiting Arrangement`** and **`Hours Awaiting Arrangement`**, and the hours number counts the
 class hours of **only the rows with no live request** — an arranged class is no longer "awaiting", so its
