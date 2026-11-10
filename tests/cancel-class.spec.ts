@@ -328,16 +328,32 @@ test.describe('Cancel Class Flow', () => {
     await expect(page.locator('#cancelClassUndoWarn')).toBeVisible();
     await expect(page.locator('#cancelClassUndoWarn')).toHaveText('CANNOT UNDONE');
 
-    // S8 — switch to "Other": textarea appears; empty detail re-disables
+    // S8 — switch to "Other": the labelled BLOCK appears below the grid; empty
+    // detail re-disables. 2026-11-10 (user, item 5): the block = wrapper + the
+    // uppercase muted `Other reason *` label + the full-width textarea.
     await page.locator('#cancelReasonList input[type="radio"][value="other"]').click();
     const detail = page.locator('#cancelOtherDetail');
+    const otherWrap = page.locator('#cancelOtherWrap');
+    await expect(otherWrap).toBeVisible();
     await expect(detail).toBeVisible();
+    await expect(page.locator('.cancel-other-label')).toHaveText('Other reason *');
+    // the block is BELOW the whole grid, not a cell inside it
+    const gridBox = await page.locator('#cancelReasonList .cancel-reasons').boundingBox();
+    const wrapBox = await otherWrap.boundingBox();
+    expect(wrapBox.y).toBeGreaterThanOrEqual(gridBox.y + gridBox.height);
     await expect(yes).toBeDisabled();
     // blank "Other" → the warning hides again (2026-11-10 brief)
     await expect(page.locator('#cancelClassUndoWarn')).toBeHidden();
     await detail.fill('Guest lecture clash — faculty seminar');
     await expect(yes).toBeEnabled();
     await expect(page.locator('#cancelClassUndoWarn')).toBeVisible();
+
+    // switching away hides the block; coming back keeps the typed text (item 5)
+    await page.locator('#cancelReasonList input[type="radio"][value="medical_leave"]').click();
+    await expect(otherWrap).toBeHidden();
+    await page.locator('#cancelReasonList input[type="radio"][value="other"]').click();
+    await expect(otherWrap).toBeVisible();
+    await expect(detail).toHaveValue('Guest lecture clash — faculty seminar');
 
     // the eight reasons sit two per row on desktop, one per row on a phone
     const cols = await page.evaluate(() => {

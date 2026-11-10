@@ -1,3 +1,46 @@
+## 2026-11-10 (later) — Cancel this Class?: the "Other" reason block
+
+User brief `prompts/cancel-class-reason-block.md`, item 5. Items 1–4 (two-column grid, heading asterisk,
+footer `CANNOT UNDONE`, gating) are untouched.
+
+**"Other" keeps its place as the eighth radio inside the grid** — it was not pulled out, and it has no
+inline field. Choosing it reveals a **labelled block below the whole grid** (never a cell beside the
+radio):
+
+| part | value |
+|---|---|
+| label | `Other reason` + the app's red required asterisk (`--color-error`), 11 px / 700 / .8 px tracking / uppercase / muted — the same shape as `.detail-group-title` |
+| textarea | the existing full-width `.modal-textarea`, `rows="3"`, `Describe the reason for "Other"…`, vertical resize, `required` |
+| position | below `#cancelReasonList`, full width, 10 px above |
+
+Behaviour:
+
+- the **wrapper** `#cancelOtherWrap` owns the visibility — the textarea is never shown or hidden on its
+  own, so the block and its label always move together;
+- choosing "Other" opens it, another reason closes it, and coming **back** keeps the typed text;
+- a fresh open starts blank and closed;
+- blank "Other" → Yes stays disabled, filled → Yes enabled and the warning strip appears (the gate in
+  `ClassCancellation.validate()` is unchanged).
+
+Measured (before the browser pass was waived): the block sits 10 px below the grid's bottom edge, the
+textarea is exactly as wide as the grid, the label renders uppercase at 11 px / 700, and the asterisk is
+`rgb(198, 40, 40)`.
+
+## 2026-11-10 (later) — Cancel this Class?: the blank-"Other" sentence is gone
+
+Follow-up the same day (user): the line `Please describe the reason for "Other".` is **removed** —
+the labelled block above it already says `Other reason *` in red, and Yes stays disabled, so the sentence
+said the same thing twice.
+
+`ClassCancellation.validate()` still REFUSES a blank "Other" detail; it is now silent (empty hint),
+exactly like the missing-reason arm. The `#cancelReasonHint` paragraph itself **stays**, because it
+carries the real refusals: `This class is outside the 2-working-day cancellation window.`,
+`This class can no longer be cancelled.`, `This class is no longer in the timetable.`,
+`Server error — the class is unchanged.`, and the server's own refusal text.
+
+Its reserved `min-height: 14px` is gone too, so the paragraph now takes space only when there is
+something real to say.
+
 ## 2026-11-10 (later) — the week nav cluster sits in the middle of the toolbar
 
 User request: on the Venue Timetable page, put the **week nav + Today + Earliest bookable** in the

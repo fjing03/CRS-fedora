@@ -1942,6 +1942,19 @@ html.dark .filter-select {
 .cancel-required-mark {
     color: var(--color-error);
 }
+/* 2026-11-10 (user, item 5): the "Other reason *" label above the full-width
+   textarea — the same small uppercase muted heading the prototype shows, and the
+   same shape as `.detail-group-title` (11px / 700 / .8px tracking / uppercase),
+   so it reads as a sub-heading of the reason block rather than a form label. */
+.cancel-other-label {
+    display: block;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.8px;
+    text-transform: uppercase;
+    color: var(--color-on-surface-variant);
+    margin-bottom: 5px;
+}
 /* one reason per row on a phone — nothing gets cramped (2026-11-10) */
 @media (max-width: 520px) {
     .cancel-reasons {

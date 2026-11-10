@@ -36,12 +36,26 @@
                      red asterisk + the disabled Yes button are the cue. --}}
                 <hr class="modal-divider">
                 <div id="cancelReasonList"></div>
-                <textarea id="cancelOtherDetail" class="modal-textarea" rows="3"
-                          placeholder="Describe the reason for &quot;Other&quot;&hellip;"
-                          style="display:none; margin-top:10px"></textarea>
-                {{-- the gate's own refusal copy (a server refusal, or the
-                     blank-"Other"-detail hint) still lands here --}}
-                <p id="cancelReasonHint" class="hint-text" style="margin:8px 0 0; min-height:14px"></p>
+                {{-- 2026-11-10 (user, item 5): "Other" keeps its place as the
+                     eighth radio INSIDE the grid; choosing it reveals this
+                     labelled block BELOW the whole grid (never a cell beside the
+                     radio) — a small uppercase muted label with the app's red
+                     required asterisk, then the full-width `.modal-textarea`.
+                     The WRAPPER owns the visibility — the textarea is never shown
+                     or hidden on its own, and its typed text survives a switch to
+                     another reason and back. --}}
+                <div id="cancelOtherWrap" style="display:none; margin-top:10px">
+                    <label class="cancel-other-label" for="cancelOtherDetail">Other reason <span class="cancel-required-mark">*</span></label>
+                    <textarea id="cancelOtherDetail" class="modal-textarea" rows="3"
+                              placeholder="Describe the reason for &quot;Other&quot;&hellip;"
+                              required></textarea>
+                </div>
+                {{-- the gate's own refusal copy still lands here — the window /
+                     "no longer cancellable" / server-error messages. 2026-11-10
+                     (user, item 5): the blank-"Other" sentence is gone, so the
+                     paragraph no longer reserves a 14px gap; it takes space only
+                     when there is something real to say. --}}
+                <p id="cancelReasonHint" class="hint-text" style="margin:8px 0 0"></p>
                 {{-- 2026-11-10: the irreversible warning no longer lives here — it
                      moved to the footer, directly above Yes (see .modal-footer). --}}
             </div>

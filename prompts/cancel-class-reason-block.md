@@ -1,144 +1,125 @@
-# Cancel this Class? — Cancellation Reason block
+# Cancel this Class? — the “Other” reason block
 
-> **Status: WAITING — do not start yet.**
-> PI is currently executing two UI updates on `replacement-arrangement`
-> (UI Update 1 — Selected Summary Card, then UI Update 2 — Too-Soon Slots).
-> PI must finish **and verify** both before this task starts. This task also
-> touches `public/css/theme.css`, so running both in the same working tree
-> risks sweeping PI's uncommitted edits into our commit. Start only after PI
-> reports both updates complete.
+> **Status: READY — items 1–4 are DONE and verified by PI.**
+> The two-column reason grid, the heading asterisk, the footer `CANNOT UNDONE`
+> strip, and the reason gating are already in place. Only item 5 remains: the
+> labelled “Other” block. Do not redo items 1–4.
 
 ---
 
 ## Section 1 — What the user wants (plain English)
 
-In the **Cancel this Class?** modal, only the **Cancellation Reason** area
-should change.
+Only the **Other** reason needs work now.
 
-1. **Remove the shouty line.**
-   Delete “You MUST Select a Cancellation Reason”. The section should go
-   straight from the divider into the reason list. The heading and the disabled
-   Yes button already tell the user that a choice is needed, so do not replace
-   the removed line with another instruction or warning paragraph.
+1. **“Other” stays the eighth reason.**
+   It remains the last radio in the two-column grid. Do not pull it out of the
+   grid or give it a special inline field.
 
-2. **Two reasons per row.**
-   The eight reasons should sit in two columns (four rows), not eight rows.
-   Keep the labels exactly as they are and keep the choice single-select. The
-   rows should stay easy to scan, with the same spacing as the rest of the
-   modal, and on a narrow screen the list should fall back to one reason per
-   row so nothing is cramped.
+2. **Choosing “Other” reveals a labelled block below the grid.**
+   The block is full width and sits below the whole reason grid — never in the
+   grid cell beside the radio. It contains:
+   - a small uppercase muted label: **`Other reason *`**, with the app’s red
+     required asterisk;
+   - the existing full-width `.modal-textarea` below it: 3 rows, the
+     `Describe the reason for "Other"…` placeholder, vertical resize, and
+     `required`.
+   The block is hidden for every other reason.
 
-3. **Mark the heading as required.**
-   Put a small red asterisk next to “Cancellation Reason”, the same way other
-   required fields in the app are marked. It sits after the heading text and is
-   only a visual marker; it should not become part of the label or a new
-   sentence.
+3. **The detail is required.**
+   With “Other” chosen and the textarea blank, Yes stays disabled and the
+   existing hint `Please describe the reason for "Other".` still appears.
+   Typing a non-empty value enables Yes again, and the warning strip follows.
 
-4. **Move and shorten the warning.**
-   The “This action cannot be UNDONE” line should move to the footer, directly
-   above the **Yes, Cancel Class** button, and read **`CANNOT UNDONE`**.
-   It should be a small, right-aligned line in the warning colour. It should
-   only appear when the Yes button is enabled (a valid reason has been chosen).
-   It must disappear again if the reason is cleared or “Other” is left blank,
-   and it must never show in the success state.
+4. **Switching reasons behaves.**
+   Choosing another reason hides the block; choosing “Other” again shows it
+   with the typed text intact.
 
-**Everything else stays the same:** the eight reasons and their values, the
-“Other” textarea and its required detail, the inline hint for a blank “Other”
-or a server refusal, the Yes-button gating, the success screen, and the modal
-on all three pages (`my-timetable-ui`, `cohort-timetable`, `venue-timetable`).
-The prototype already shows this arrangement, so the real modal should match
-that look and feel.
+5. **Everything PI verified stays untouched.**
+   The eight reasons and their values, the two-column grid, the heading
+   asterisk, the footer warning, the inline hint, the Yes gating, the success
+   screen, and the modal on all three pages
+   (`my-timetable-ui`, `cohort-timetable`, `venue-timetable`).
 
 ---
 
 ## Section 2 — The plan is a guide, not a contract
 
-The detailed route below is a **suggestion**. It does **not** have to be
-followed exactly. File placement, class names, the exact CSS location, and the
-shape of the JS helper may change if a cleaner way is found. What must not
-change is the four user-visible outcomes in Section 1 and the existing
-behaviour.
+The route below is a **suggestion**. Class names, the wrapper id, and the CSS
+location may change if a cleaner way is found. What must not change is the
+visible label + full-width textarea below the grid and the show/hide behaviour.
 
 Guardrails:
 
-- Do **not** touch `../ui-prototype/bulk-cancel-preview.html`.
-- Do **not** touch `.sdd/changes/bulk-cancel-class/` (another lane).
+- Do **not** redo items 1–4; they are verified.
+- Do **not** move the textarea into the reason grid or turn it into a one-line
+  input.
+- Do **not** edit `../ui-prototype/bulk-cancel-preview.html`.
+- Do **not** touch `.sdd/changes/bulk-cancel-class/`.
 - No DB/schema changes, no new dependency.
 - Keep the shared modal working on all three pages.
-- Commit only the files this task touches; do not sweep PI's work.
-- Playwright stays paused unless the user explicitly asks to run it.
+- Commit only the files this task touches.
+- Playwright stays paused unless the user explicitly asks.
 
 ---
 
 ## Appendix — Measured anchors and suggested route (advisory)
 
-Measured 2026-11-10 on `fedora-backend` HEAD `8688a3e`. Re-verify before editing.
+Measured 2026-11-10 on `fedora-backend` HEAD `21ae301`. Re-verify before editing.
 
 ### Current state
 
 | Fact | Where |
 |---|---|
-| Static instruction line | `resources/views/partials/ui-cancel-class-modal.blade.php:30` |
-| Irreversible line in the confirm body | same partial, `:41` |
-| Title + reasons rendered one per row | `public/js/ui-common.js`, `CancelClassModal._renderReasons()` |
-| Yes gating | `public/js/ui-common.js`, `_refreshGate()` |
-| Confirm ↔ success swap | `public/js/ui-common.js`, `_swapState()` |
-| `.cancel-reason-required` CSS | `public/css/theme.css` (~`:1897`) |
-| Shared warning partial | `resources/views/partials/ui-irreversible-line.blade.php` (also used by Cancel Replacement, Approve, Reject) |
-| Test pin for the removed line | `tests/cancel-class.spec.ts:318` |
+| Reason list container | `resources/views/partials/ui-cancel-class-modal.blade.php:38` (`#cancelReasonList`) |
+| Bare “Other” textarea | same partial `:39` (`#cancelOtherDetail`), no label/wrapper |
+| Reason renderer | `public/js/ui-common.js`, `CancelClassModal._renderReasons()` ~`:4943` |
+| “Other” show/hide + Yes gate | `public/js/ui-common.js`, `_refreshGate()` ~`:5024` |
+| “Other” required detail | `public/js/ui-common.js`, `ClassCancellation.validate()` ~`:4279` |
+| Modal open reset | `public/js/ui-common.js`, `open()` ~`:4919` |
+| Existing textarea CSS | `public/css/theme.css`, `.modal-textarea` ~`:4478` |
+| Existing reason grid CSS | `public/css/theme.css`, `.cancel-reasons` ~`:1926` |
+| Existing asterisk CSS | `public/css/theme.css`, `.cancel-required-mark` ~`:1942` |
+| Prototype reference | `../ui-prototype/bulk-cancel-preview.html` `#bcOtherWrap` ~`:446`, `.bc-other-label` ~`:135` |
 
 ### Suggested changes
 
-1. **Remove the instruction**
-   - Delete `<p class="cancel-reason-required" id="cancelClassRequired">…</p>`.
-   - Delete the unused `.cancel-reason-required` CSS rule.
-   - Update the partial/JS comments that mention it.
-   - Keep `#cancelReasonHint` — it still carries the blank-“Other” and
-     server-refusal messages.
+1. **Markup**
+   - Wrap `#cancelOtherDetail` in a hidden `#cancelOtherWrap` with
+     `margin-top:10px`.
+   - Add the label above the textarea:
+     `Other reason <span class="cancel-required-mark">*</span>`.
+   - Keep the textarea's `rows="3"`, placeholder, and add `required`.
+   - Drop the textarea's inline `display:none`; the wrapper owns visibility.
 
-2. **Two radios per row**
-   - In `_renderReasons()`, render a `.cancel-reasons` container inside the
-     `detail-group` and append the eight labels there.
-   - Suggested CSS:
-     `.cancel-reasons { display: grid; grid-template-columns: 1fr 1fr; column-gap: 20px; }`
-     and one column under `@media (max-width: 520px)`.
+2. **CSS**
+   - Add `.cancel-other-label` (block, 11px, 700, letter-spacing .8px,
+     uppercase, muted, margin-bottom 5px). Tokens only.
 
-3. **Required asterisk**
-   - Title becomes
-     `Cancellation Reason <span class="cancel-required-mark">*</span>`
-     (title is generated in `_renderReasons()`).
-   - Suggested CSS: `.cancel-required-mark { color: var(--color-error); }`
+3. **JS**
+   - `_refreshGate()`: toggle `#cancelOtherWrap` (`reason === 'other'`) instead
+     of the textarea's display.
+   - `open()`: hide the wrapper and clear the textarea value.
+   - Leave `validate()` and the Yes gating untouched.
 
-4. **Move + shorten the warning**
-   - Add an opt-in `compact` flag to `ui-irreversible-line.blade.php`; the
-     default keeps the current sentence byte-identical for the other three
-     modals.
-   - In the cancel partial, wrap the warning + Yes button in
-     `.cancel-confirm-wrap`, with the warning hidden initially.
-   - `_refreshGate()` shows the warning only when `check.ok` is true.
-   - `_swapState()` hides/shows the wrapper, so the warning never appears in
-     the success state.
-   - Suggested CSS:
-     `.cancel-confirm-wrap { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; }`
-     `.confirm-warning-compact { margin: 0; font-size: 11px; line-height: 1.2; text-align: right; }`
+4. **Tests**
+   - Update `tests/cancel-class.spec.ts` if it asserts the textarea's own
+     visibility; point it at the wrapper/label instead.
 
 ### Suggested files
 
 - `resources/views/partials/ui-cancel-class-modal.blade.php`
-- `resources/views/partials/ui-irreversible-line.blade.php`
 - `public/js/ui-common.js`
 - `public/css/theme.css`
-- `tests/cancel-class.spec.ts` (drop the `#cancelClassRequired` assertion)
+- `tests/cancel-class.spec.ts` (only if the assertion needs it)
 
-### Verification (after PI is done)
+### Verification
 
-1. `php artisan view:cache` (Blade compiles) and `php artisan view:clear`.
-2. Manual, on `/my-timetable-ui`, `/cohort-timetable`, `/venue-timetable`:
-   - no “You MUST Select…” line;
-   - heading has the red `*`;
-   - eight reasons in two columns, one column under 520px;
-   - Yes disabled → warning hidden; valid reason → warning visible above Yes;
-   - “Other” blank → warning hides; filled → shows;
-   - success state → warning gone;
-   - server-refusal hint still shows.
+1. `php artisan view:cache` and `php artisan view:clear`.
+2. Manual on the three pages:
+   - choose “Other” → `Other reason *` + full-width textarea appear below the
+     grid;
+   - choose another reason → the block hides;
+   - back to “Other” → the typed text is still there;
+   - “Other” blank → Yes disabled + hint; filled → Yes enabled + warning;
+   - success state unchanged.
 3. Update the Playwright spec only; do not run it until the user asks.

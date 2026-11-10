@@ -4286,7 +4286,14 @@ const ClassCancellation = {
             return { ok: false, hint: '' };
         }
         if (reason === 'other' && !String(detail || '').trim()) {
-            return { ok: false, hint: 'Please describe the reason for "Other".' };
+            /* 2026-11-10 (user, item 5 follow-up): the line `Please describe the
+               reason for "Other".` is GONE. The labelled block above the textarea
+               already carries `Other reason *` in red-plus-asterisk, and Yes stays
+               disabled — a second sentence said the same thing twice. The gate
+               still refuses (ok:false); it is silent, exactly like the missing-
+               reason arm above. The SAME paragraph still carries the real
+               refusals (window / no longer cancellable / server error). */
+            return { ok: false, hint: '' };
         }
         return { ok: true, hint: '' };
     },
@@ -4916,8 +4923,12 @@ const CancelClassModal = {
         this._bind();
         this._renderReasons();
         this._renderImpact();
+        /* 2026-11-10 (item 5): a fresh open starts with a BLANK "Other" detail and
+           its block closed; _refreshGate() then sets the wrapper from the reason. */
         const detail = document.getElementById('cancelOtherDetail');
-        if (detail) { detail.value = ''; detail.style.display = 'none'; }
+        if (detail) detail.value = '';
+        const detailWrap = document.getElementById('cancelOtherWrap');
+        if (detailWrap) detailWrap.style.display = 'none';
         this._swapState('confirm');
         this._refreshGate();  // S7 initial hint + disabled Yes
         const overlay = document.getElementById('cancelClassOverlay');
@@ -5026,7 +5037,11 @@ const CancelClassModal = {
         const detail = document.getElementById('cancelOtherDetail');
         const hint = document.getElementById('cancelReasonHint');
         const yes = document.getElementById('confirmCancelClassBtn');
-        if (detail) detail.style.display = reason === 'other' ? '' : 'none';
+        /* the labelled "Other" BLOCK (label + textarea) shows/hides as one unit —
+           item 5. Only the wrapper's display changes; the typed text is never
+           cleared, so switching away and back keeps it. */
+        const detailWrap = document.getElementById('cancelOtherWrap');
+        if (detailWrap) detailWrap.style.display = reason === 'other' ? '' : 'none';
         const check = ClassCancellation.validate(reason, detail ? detail.value : '');
         if (hint) hint.textContent = check.hint;
         if (yes) yes.disabled = !check.ok;
