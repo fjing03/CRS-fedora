@@ -1,3 +1,19 @@
+## 2026-11-10 (later) — Replacement Details: qvArrangeBtn uses the same glyph
+
+**Follow-up (same day, user):** the **Replacement Details** modal's `#qvArrangeBtn` wore the same old
+circular-arrow "rotate" glyph, at 14 px / stroke 2.5. It now draws the Arrange Replacement icon too —
+15 px, viewBox `0 0 24 24`, stroke-width 2 — i.e. attribute-for-attribute the same SVG as the ACTION
+column's primary button and as `#btnReplaceNow` in the Class Details modal.
+
+Unchanged: the button's 197×34 `.btn-action` box, its primary skin, the `Arrange Replacement` label,
+`onclick="qvArrange()"`, the show/hide rule (`isHandled(c)` hides it), and the `Close` / `Cancel
+Request` / `Go to My Timetable` buttons.
+
+Measured on `/my-replacements`, Replacement Details open on request #38, against `#btnReplaceNow`:
+same four path/polyline children, `w:15 h:15 sw:2 aria-hidden:true`, icon box 15×15, zero console
+errors. Siblings keep their own weights (`Cancel Request` ban and `Go to My Timetable` calendar are
+14 px / 2.5, and both are hidden on this row).
+
 ## 2026-11-10 (later) — the ACTION column's icon is the Arrange Replacement glyph
 
 User brief "UI Update — Action Icon Consistency". The ACTION column's primary icon button now draws

@@ -293,8 +293,11 @@
                         <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="m4.9 4.9 14.2 14.2"/></svg>
                         Cancel Request
                     </button>
+                    {{-- 2026-11-10 (user): the SAME glyph as the ACTION column's
+                         primary button and as `#btnReplaceNow` in the Class Details
+                         modal — one action, one icon (15px, stroke-width 2). --}}
                     <button class="btn-action" id="qvArrangeBtn" onclick="qvArrange()">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+                        <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg>
                         <span id="qvArrangeLabel">Arrange Replacement</span>
                     </button>
                     {{-- mytimetable-jump-highlight: the SAME jump as the row's icon
