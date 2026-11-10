@@ -1,3 +1,54 @@
+## 2026-11-10 (later) — too-soon cells: the lead time wins, the reason stays (UI Update 2, ruling C)
+
+Ruling C (the user's choice): the 3-working-day rule now **outranks the ownership classes** on the
+grid. Every date before the boundary reads `cell-too-soon` — even when a class sits in that half
+hour — and the reason the slot is blocked stays one hover away instead of being thrown away.
+
+Measured on week 8 / venue B111 (today = Tue 10 Nov 2026, boundary = Fri 13 Nov):
+
+| Day | before | after |
+|---|---|---|
+| Mon 9 Nov (public holiday) | 22 × `cell-ph` | 22 × `cell-ph` — **preserved** |
+| Tue 10 Nov | 14 too-soon + **8 red occupied** | **22 too-soon** |
+| Wed 11 Nov | 12 too-soon + **10 red occupied--mine** | **22 too-soon** |
+| Thu 12 Nov | 9 too-soon + **11 red** + 2 amber pending | **20 too-soon + 2 `cell-pending`** — pending preserved |
+| Fri 13 Nov (boundary) | 16 available + 6 occupied | unchanged — the boundary is bookable |
+| Sun 15 Nov | 22 `cell-sun` | unchanged |
+
+So `.cell-occupied` is applied to **0** cells in Mon–Thu (the 6 left are all on Friday), which is the
+brief's "do not apply `.cell-occupied` to these slots".
+
+**The hover words.** `Min. 3 working days ahead` → **`Min. 3 Working Days`**, and they are now a real
+`.cell-state-label` element with a deliberate `<br>` — `Min. 3` / `Working Days`. The old CSS
+`::after` string could not hold a `<br>` and overflowed a cell; `:has()` retires it exactly where the
+span exists, the same mechanic the conflict labels already use.
+
+**The reason (ruling C).** A blocked too-soon cell's tooltip reads:
+
+    Min. 3 Working Days
+
+    ⚠ Occupied — 1 class in the way
+
+    🏛️ Venue conflict · 👥 Cohorts conflict
+    B111 · AMIS1003 (L) · 10:00–12:00
+    Mohd Nur Rahmat Bin Mohd Taat (5516)
+    DFT1(S1)G1, DSF1(S1)G1
+
+and its aria line is `Too soon — minimum 3 working days ahead. <the same reason>`. 29 of the 64
+too-soon cells carry a reason; the other 35 are plain `Min. 3 Working Days`.
+
+**Fitting the cell.** Measured: desktop cell 80×80 → label 80×80, 11 px, two lines, no clipping.
+Phone (390 px) cell 48×48 → label 48×48 at 9 px, no clipping, **0 px spill** — the label used to
+anchor to an ancestor there (`.cell-content` is `position: static` on the phone grid) and spilled
+~12 px into the next column.
+
+⛔ The first attempt at that fix made `.cell-content` `position: relative` globally, which unhooked
+the desktop cell from its `position: absolute; inset: 0` fill and collapsed every cell's height to
+0 — caught live and re-scoped to the phone media query. `TooSoonCellsTest` now pins all of it.
+
+Nothing about the booking rule changed: too-soon cells still have no click/keyboard handlers and
+`toggleCell` still refuses them.
+
 ## 2026-11-10 (later) — the selected-slot card: four icon rows, one typography
 
 The selected-slot card carried wide/differently-styled lines: venue (13 px/700), week (14 px/600), date

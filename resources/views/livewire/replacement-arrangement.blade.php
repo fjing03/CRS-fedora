@@ -1980,7 +1980,41 @@
                             }
                         }
 
-                        if (ownershipClass) {
+                        /* ═══ UI Update 2 (user, 2026-11-10, ruling C) ═══
+                           The 3-working-day rule now OUTRANKS the ownership classes:
+                           every date inside the window reads `cell-too-soon`, even
+                           when a class sits in it — a replacement cannot be booked
+                           there, so the red "conflict" paint was saying the wrong
+                           thing. The reason is NOT thrown away (ruling C): it stays
+                           in the same cell's hover tooltip, under the headline.
+
+                           PRESERVED on purpose (the user's words): `cell-ph` for a
+                           public holiday — that arm is above this block and never
+                           reaches it — and `cell-pending`, which keeps its amber
+                           state and its "Your Pending" label. */
+                        const isTooSoon = isSlotTooSoon(weekData, weekNav.currentWeek, di);
+                        const keepPending = !!ownershipClass && ownershipClass.indexOf('cell-pending') !== -1;
+
+                        if (isTooSoon && !keepPending) {
+                            div.className += ' cell-too-soon';
+
+                            /* the hover words are a REAL element (a ~40 px cell must
+                               hold two lines, and CSS `content:` cannot carry a
+                               `<br>`) — the same mechanic the conflict labels use;
+                               `:has()` in theme.css retires the old `::after`. */
+                            const tooSoonLabel = document.createElement('span');
+                            tooSoonLabel.className = 'cell-state-label cell-state-label--too-soon';
+                            tooSoonLabel.innerHTML = 'Min. 3<br>Working Days';
+                            div.appendChild(tooSoonLabel);
+
+                            /* ruling C: the blocking reason rides the tooltip */
+                            const why = div.getAttribute('data-tip');
+                            div.setAttribute('data-tip', why ? 'Min. 3 Working Days\n\n' + why : 'Min. 3 Working Days');
+                            const whyFlat = div.getAttribute('aria-label');
+                            div.setAttribute('aria-label', 'Too soon — minimum 3 working days ahead' + (whyFlat ? '. ' + whyFlat : ''));
+                            div.setAttribute('tabindex', '0');
+                            div.style.cursor = 'not-allowed';
+                        } else if (ownershipClass) {
                             div.className += ' ' + ownershipClass;
 
                             /* SDD arrangement-cell-state-labels D4: the hover
@@ -1994,9 +2028,6 @@
                             stateLabel.className = 'cell-state-label';
                             stateLabel.innerHTML = cellStateLabel(cellFacts);
                             div.appendChild(stateLabel);
-                        } else if (isSlotTooSoon(weekData, weekNav.currentWeek, di)) {
-                            /* lead-time rule: inside the 3-working-day window — read-only */
-                            div.className += ' cell-too-soon';
                         } else {
                             div.className += ' cell-available';
                             setupAvailableCell(div, di, hi);

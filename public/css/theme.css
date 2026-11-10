@@ -2782,9 +2782,33 @@ html.dark .semester-bar select:not(.week-select) {
 .cell-content:has(> .cell-state-label)::after {
     content: none;
 }
+@media (max-width: 520px) {
+    /* 2026-11-10 ("UI Update 2", the fit-it-in-the-cell ask): the label is
+       `inset: 0`, which only means "the cell" when the cell is its positioning box.
+       DESKTOP's `.cell-content` is already `position: absolute; inset: 0` (so the
+       td is the box) — but the phone grid switches it to `position: static`, so the
+       label anchored further up and spilled ~12 px into the next column. Scoped to
+       the phone AND to the cells that own a label (`:has()`), so nothing else moves.
+       ⛔ Do NOT make this a global `position: relative`: that unhooks the desktop
+       cell from its absolute fill and collapses every cell's height. */
+    .cell-content:has(> .cell-state-label) { position: relative; }
+
+    /* a 48 px cell cannot hold "Working Days" at 11 px; 9 px keeps the two-line
+       label inside the cell instead of clipping it */
+    .cell-too-soon > .cell-state-label { font-size: 9px; }
+}
 .cell-occupied > .cell-state-label {
     background: var(--color-error);
     color: var(--color-on-error);
+}
+/* 2026-11-10 (user, "UI Update 2"): the lead-time label is a real element too, so
+   its two lines are deliberate (`Min. 3` / `Working Days`) instead of the old
+   `::after` string that overflowed a ~40 px cell. Neutral surface tone — it is not
+   an error and not a conflict. */
+.cell-too-soon > .cell-state-label {
+    background: var(--color-surface-variant);
+    color: var(--color-on-surface-variant);
+    border: 1px solid var(--color-outline);
 }
 .cell-pending > .cell-state-label,
 .cell-reserved > .cell-state-label {
@@ -2834,7 +2858,8 @@ html.dark .semester-bar select:not(.week-select) {
 /* ── Lead-time rule: too soon to book (read-only) ───────────── */
 .cell-too-soon {
     background: var(--color-surface-variant);
-    --hover-label: 'Min. 3 working days ahead';
+    /* 2026-11-10 (user, "UI Update 2"): "Min. 3 working days ahead" → title case */
+    --hover-label: 'Min. 3 Working Days';
     cursor: var(--cursor-cancel);
 }
 .cell-too-soon::after {
