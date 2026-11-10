@@ -1356,29 +1356,27 @@
             }
         }
 
-        /* 2026-11-10 (user, "UI Update — Too-Soon Tooltip"): the retired banner's
-           message, now the too-soon cell's hover text —
-
-               Min. 3 working days’ notice required.
-               Bookable from Fri, 13 Nov 2026.
+        /* 2026-11-10 (user, "UI Update — Too-Soon Tooltip", final wording):
+             cell hover   Min 3 / Working Days               (short, inside the cell)
+             data-tip     Rule : Only bookable at least 3 working days from today.
+                          Earliest Bookable : Friday, 13 Nov 2026.
 
            The date is NOT hard-coded: it is the same `leadTimeCutoff()` the grid uses
-           to decide which cells are too soon, formatted the way the banner used to
-           (`Fri, 13 Nov 2026`), so the words can never drift from the rule.
-           `html` feeds the in-cell label (a real `<br>`), `text` the shared tooltip
-           (`\n` — that tooltip renders text, not markup). */
+           to decide which cells are too soon, formatted with the FULL weekday name
+           (`Friday, 13 Nov 2026`), so the words can never drift from the rule.
+           `label` feeds the in-cell span (a real `<br>`); `text` goes to the shared
+           tooltip, which renders TEXT — so it takes `\n` (its multi-line class breaks
+           the line) and never a literal `<br>`, which would print as characters. */
         function leadTimeTip() {
             var cutoff = leadTimeCutoff(weekData);
             var days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
             var months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
             var dateStr = days[cutoff.getDay()] + ', ' + cutoff.getDate() + ' ' + months[cutoff.getMonth()] + ' ' + cutoff.getFullYear();
             return {
-                first: 'Min. 3 working days\u2019 notice required.',
-                second: 'Bookable from ' + dateStr + '.',
-                html: '<span class="too-soon-line too-soon-line--notice">Min. 3 working days\u2019 notice required.</span>'
-                    + '<br class="too-soon-br">'
-                    + '<span class="too-soon-line too-soon-line--from">Bookable from ' + dateStr + '.</span>',
-                text: 'Min. 3 working days\u2019 notice required.\nBookable from ' + dateStr + '.'
+                /* the cell's own hover label — short, two lines (real element, real `<br>`) */
+                label: 'Min 3<br>Working Days',
+                /* the detailed tooltip — `\n`, because its renderer writes textContent */
+                text: 'Rule : Only bookable at least 3 working days from today.\nEarliest Bookable : ' + dateStr + '.'
             };
         }
 
@@ -2021,15 +2019,15 @@
                             const tooSoonTip = leadTimeTip();
                             const tooSoonLabel = document.createElement('span');
                             tooSoonLabel.className = 'cell-state-label cell-state-label--too-soon';
-                            tooSoonLabel.innerHTML = tooSoonTip.html;
+                            tooSoonLabel.innerHTML = tooSoonTip.label;
                             div.appendChild(tooSoonLabel);
 
                             /* ruling C: the blocking reason still rides the tooltip,
-                               now under the retired banner's own sentence */
+                               under the rule + the earliest bookable date */
                             const why = div.getAttribute('data-tip');
                             div.setAttribute('data-tip', why ? tooSoonTip.text + '\n\n' + why : tooSoonTip.text);
                             const whyFlat = div.getAttribute('aria-label');
-                            div.setAttribute('aria-label', tooSoonTip.first + ' ' + tooSoonTip.second + (whyFlat ? ' ' + whyFlat : ''));
+                            div.setAttribute('aria-label', tooSoonTip.text.replace(/\n/g, ' ') + (whyFlat ? ' ' + whyFlat : ''));
                             div.setAttribute('tabindex', '0');
                             div.style.cursor = 'not-allowed';
                         } else if (ownershipClass) {

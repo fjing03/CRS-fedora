@@ -43,25 +43,36 @@ class TooSoonCellsTest extends TestCase
     }
 
     /**
-     * 2026-11-10 ("UI Update — Too-Soon Tooltip"): the standalone banner is gone and
-     * its message is the cell's hover text, two deliberate lines.
+     * 2026-11-10 ("UI Update — Too-Soon Tooltip", final wording): the standalone
+     * banner is gone; the CELL says `Min 3 / Working Days`, the TOOLTIP carries the
+     * rule and the earliest bookable date.
      */
-    public function test_the_banner_is_gone_and_its_message_is_the_tooltip(): void
+    public function test_the_banner_is_gone_and_the_two_wording_surfaces_are_split(): void
     {
         $src = $this->page();
 
         $this->assertStringNotContainsString('id="leadTimeNote"', $src, 'the banner markup is gone');
         $this->assertStringNotContainsString("renderLeadTimeNote('leadTimeNote'", $src, 'and its render call');
-        $this->assertStringContainsString('tooSoonLabel.innerHTML = tooSoonTip.html;', $src);
 
-        $this->assertStringContainsString("first: 'Min. 3 working days\\u2019 notice required.',", $src);
-        $this->assertStringContainsString("second: 'Bookable from ' + dateStr + '.',", $src);
-        /* the date is the SAME cutoff the grid uses — never hard-coded */
+        /* the cell: short, two lines, a real `<br>` */
+        $this->assertStringContainsString("label: 'Min 3<br>Working Days',", $src);
+        $this->assertStringContainsString('tooSoonLabel.innerHTML = tooSoonTip.label;', $src);
+
+        /* the tooltip: the rule + the earliest bookable date, `\n` because a data-tip
+           renders textContent — a literal `<br>` would print as characters */
+        $this->assertStringContainsString(
+            "text: 'Rule : Only bookable at least 3 working days from today.\\nEarliest Bookable : ' + dateStr + '.'",
+            $src
+        );
+        $this->assertStringNotContainsString('<br>Earliest Bookable', $src, 'never a literal <br> in the data-tip');
+
+        /* the date is the SAME cutoff the grid uses, with the FULL weekday name */
         $this->assertStringContainsString('var cutoff = leadTimeCutoff(weekData);', $src);
+        $this->assertStringContainsString("var days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];", $src);
 
         $css = $this->css();
         $this->assertStringContainsString('.cell-too-soon > .cell-state-label {', $css, 'the label has its own skin');
-        $this->assertStringContainsString("--hover-label: 'Min. 3 Working Days';", $css);
+        $this->assertStringContainsString('.cell-too-soon > .cell-state-label { font-size: 9px; line-height: 1.1; padding: 1px; }', $css);
     }
 
     public function test_the_reason_rides_the_tooltip_but_not_the_state(): void
@@ -73,7 +84,7 @@ class TooSoonCellsTest extends TestCase
             $src,
             'ruling C: the blocking reason stays one hover away'
         );
-        $this->assertStringContainsString("tooSoonTip.first + ' ' + tooSoonTip.second", $src, 'the aria line says it too');
+        $this->assertStringContainsString("tooSoonTip.text.replace(/\\n/g, ' ')", $src, 'the aria line says it too');
         /* and the cell is read-only: it never gets the available cell's handlers */
         $this->assertStringNotContainsString("div.className += ' cell-available';\n                            setupAvailableCell(div, di, hi);\n                        } else if (isTooSoon", $src);
     }
@@ -82,10 +93,7 @@ class TooSoonCellsTest extends TestCase
     {
         $css = $this->css();
         $this->assertStringContainsString('.cell-content:has(> .cell-state-label) { position: relative; }', $css);
-        /* the sentence is too long for a 48 px cell: 8 px, and the second line is
-           hidden there — the shared tooltip still carries the whole message */
-        $this->assertStringContainsString('.cell-too-soon > .cell-state-label { font-size: 8px; line-height: 1.1; padding: 1px; }', $css);
-        $this->assertStringContainsString('.cell-too-soon .too-soon-line--from,', $css);
+        $this->assertStringContainsString('.cell-too-soon > .cell-state-label { font-size: 9px; line-height: 1.1; padding: 1px; }', $css);
 
         /* the global `.cell-content` must keep its absolute fill — a global
            `position: relative` collapsed every cell's height once (caught live) */

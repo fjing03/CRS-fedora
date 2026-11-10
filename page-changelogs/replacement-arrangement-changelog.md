@@ -1,3 +1,29 @@
+## 2026-11-10 (later) — too-soon: short cell label, rule + earliest date in the tooltip
+
+The cell keeps a short, glanceable hover label — **`Min 3`  /  `Working Days`** (a real `<br>` inside the
+cell) — and the long explanation moved to the cell's `data-tip` tooltip:
+
+    Rule : Only bookable at least 3 working days from today.
+    Earliest Bookable : Friday, 13 Nov 2026.
+
+**`<br>` vs the tooltip.** The in-cell label is a real element, so it takes a real `<br>`. The `data-tip`
+tooltip renders TEXT (`textContent`) — a literal `<br>` there would print as four visible characters —
+so that surface uses `\n`, which its multi-line class turns into a line break via `white-space:
+pre-line`. The user-visible result is the same two lines in both places.
+
+**The date is generated, never typed**: `leadTimeTip()` → `leadTimeCutoff(weekData)`, the same call the
+grid uses to decide which cells are too soon, now formatted with the FULL weekday name
+(`Friday, 13 Nov 2026`). Change the clock and the sentence follows.
+
+Ruling C still holds: a too-soon cell that also has a blocking class appends that reason under the two
+lines, after a blank line (`⚠ Occupied — 1 class in the way · …`).
+
+Fitting: the label is back to two short words, 10 px desktop / 9 px phone inside the 48 px cell — the
+sentence-era 8 px sizing and the hidden-second-line rule were both removed.
+
+Untouched, as asked: the grey `.cell-too-soon` skin, the read-only behaviour, `toggleCell`'s refusal,
+and the `.cell-ph` / `.cell-pending` preservation.
+
 ## 2026-11-10 (later) — the action area joins the summary card (Submit right of the tip, Clear ALL commented)
 
 The action area at the bottom of the page was its own boxed strip (`.footer-area`, a bordered card with a

@@ -2782,23 +2782,19 @@ html.dark .semester-bar select:not(.week-select) {
 .cell-content:has(> .cell-state-label)::after {
     content: none;
 }
-/* 2026-11-10 ("UI Update — Too-Soon Tooltip"): the tooltip is now a two-line
-   sentence (the retired banner's message), so the label needs to wrap on words
-   instead of forcing one long line inside a ~80 px cell. */
+/* 2026-11-10 ("UI Update — Too-Soon Tooltip", final wording): the cell's hover
+   label is short again — `Min 3` / `Working Days` — so it reads in one glance and
+   its two lines are the `<br>`'s job, not the wrapper's. The long rule sentence
+   lives in the cell's `data-tip` tooltip instead. */
 .cell-too-soon > .cell-state-label {
     white-space: normal;
-    overflow-wrap: break-word;
     line-height: 1.15;
     padding: 2px 3px;
-    font-size: 10px;
 }
 
 @media (max-width: 520px) {
-    /* a 48 px cell cannot hold the second sentence at all — keep the notice and
-       let the shared tooltip carry the whole message (it floats, so it always fits) */
-    .cell-too-soon > .cell-state-label { font-size: 8px; line-height: 1.1; padding: 1px; }
-    .cell-too-soon .too-soon-line--from,
-    .cell-too-soon .too-soon-br { display: none; }
+    /* a 48 px cell needs a smaller size for "Working Days" to sit inside it */
+    .cell-too-soon > .cell-state-label { font-size: 9px; line-height: 1.1; padding: 1px; }
 }
 
 @media (max-width: 520px) {
