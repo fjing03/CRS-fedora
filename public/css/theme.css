@@ -1922,17 +1922,22 @@ html.dark .filter-select {
     font-size: 13px;
     border-radius: var(--radius-md);
 }
+/* 2026-11-10 (user ruling B1): every modal's Close is the OUTLINE button —
+   transparent background, `--color-outline` hairline, `--color-on-surface` text,
+   i.e. pixel-identical to `.btn-outline` (which Replacement Details already used).
+   The class name stays: it is the JS/onclick hook (`closeModal()`), and the
+   frozen specs select `.btn-close-modal`. Only its SKIN changed. */
 .btn-close-modal {
     padding: 8px 20px;
     border-radius: var(--radius-md);
-    border: 1px solid var(--color-outline-strong);
-    background: var(--color-surface);
-    color: var(--color-on-surface-variant);
+    border: 1px solid var(--color-outline);
+    background: transparent;
+    color: var(--color-on-surface);
     font-family: inherit;
     font-size: 13px;
     font-weight: 500;
     cursor: pointer;
-    transition: background var(--transition), transform 0.15s;
+    transition: background 0.15s;
 }
 .btn-close-modal:hover {
     background: var(--color-surface-variant);

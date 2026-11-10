@@ -209,4 +209,22 @@ class ModalConsistencyTest extends TestCase
         /* the rule is scoped: the classes themselves keep their other sizes */
         $this->assertStringNotContainsString('.btn-action {', substr($block, 0, 200), 'no global override');
     }
+
+    /**
+     * Ruling B7 (user, 2026-11-10): the slot-validity badge PAINTS the glyph — a
+     * green tick or a red warning circle — so the words beside it must not repeat
+     * it. Before this, the row read "\u2713 \u2713 Slot available".
+     */
+    public function test_the_slot_validity_row_prints_one_glyph(): void
+    {
+        $page = $this->read('resources/views/livewire/request-approval.blade.php');
+
+        $this->assertStringNotContainsString("'\u2713 Slot available'", $page, 'no second tick');
+        $this->assertStringNotContainsString("'\u26a0 This make-up slot is NO LONGER FREE'", $page, 'no second warning glyph');
+        $this->assertStringContainsString(": 'Slot available';", $page, 'the words carry no glyph');
+
+        /* the badge itself still paints it */
+        $this->assertStringContainsString("(r.slotValidity === 'conflict' ? '⚠' : '✓') + '</span>'", $page,
+            'the badge keeps its glyph');
+    }
 }

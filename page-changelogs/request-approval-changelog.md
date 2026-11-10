@@ -1,5 +1,16 @@
 ## 2026-11-10 — Modal consistency (#1–#4)
 
+**Follow-up (same day, user ruling B1):** every modal's **Close** is now the outline button —
+transparent background, `--color-outline` hairline, `--color-on-surface` text, i.e. it matches
+Replacement Details' Close exactly. Class Details / Slot Details used a filled chip before, so the
+same word wore two skins. `.btn-close-modal` keeps its name (it is the close hook the markup and the
+specs select) — only its skin changed.
+
+**Follow-up (same day, user ruling B7):** one glyph in the Slot Validity row — the round badge
+already paints the tick, so the words beside it no longer repeat it. The row read
+`(green ✓) ✓ Slot available`; it now reads `(green ✓) Slot available`. Same for the red warning
+case, which no longer prints a second ⚠.
+
 **Follow-up (same day, user ruling B5):** no IDs in modal subtitles — the Request Details subtitle
 read `#28 · AMCS2093 — …` and the request number also has its own **Request ID** row in the Request
 Status tab. The subtitle is now `AMCS2093 — Operating Systems (Lecture)`. Measured: subtitle has no

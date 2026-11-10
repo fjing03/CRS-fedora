@@ -1,5 +1,11 @@
 ## 2026-11-10 — Modal consistency (#1–#4)
 
+**Follow-up (same day, user ruling B1):** every modal's **Close** is now the outline button —
+transparent background, `--color-outline` hairline, `--color-on-surface` text, i.e. it matches
+Replacement Details' Close exactly. Class Details / Slot Details used a filled chip before, so the
+same word wore two skins. `.btn-close-modal` keeps its name (it is the close hook the markup and the
+specs select) — only its skin changed.
+
 **Follow-up (same day, size only):** every **modal-footer button is now exactly 34 px** — the
 size the Close buttons already used (the footers carried 31 / 32 / 34 / 37 px before). The rule is
 scoped to `.modal-footer`, so tables, cards and toolbars keep their own sizes; no button was re-ordered,

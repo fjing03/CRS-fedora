@@ -979,9 +979,12 @@
             // Tab 2: Proposed Replacement Schedule — only when a slot was
             // proposed (3D). The replacementTime carries "H:i – H:i".
             const repParts = (r.replacementTime || '').split(/\s*[–—-]\s*/);
+            /* 2026-11-10 (user ruling B7): the badge already PAINTS the glyph —
+               `slotBadgeInline` is a green tick / red warning circle — so the
+               words beside it must not repeat it ("✓ ✓ Slot available") */
             const validityText = r.slotValidity === 'conflict'
-                ? '⚠ This make-up slot is NO LONGER FREE' + (r.conflictReason ? ' — ' + r.conflictReason : '')
-                : '✓ Slot available';
+                ? 'This make-up slot is NO LONGER FREE' + (r.conflictReason ? ' — ' + r.conflictReason : '')
+                : 'Slot available';
 
             /* 2026-11-07 (user, "Modal Tab Order & Class Type Display"): the
                Proposed Replacement Schedule is the LEFT-MOST tab and the one the

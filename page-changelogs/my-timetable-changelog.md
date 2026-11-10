@@ -1,5 +1,11 @@
 ## 2026-11-10 — Modal consistency (#1–#4)
 
+**Follow-up (same day, user ruling B1):** every modal's **Close** is now the outline button —
+transparent background, `--color-outline` hairline, `--color-on-surface` text, i.e. it matches
+Replacement Details' Close exactly. Class Details / Slot Details used a filled chip before, so the
+same word wore two skins. `.btn-close-modal` keeps its name (it is the close hook the markup and the
+specs select) — only its skin changed.
+
 **Follow-up (same day, user ruling B3):** the footer action is named **Arrange Replacement**
 everywhere — the three timetable pages said "Replace Now" for the same journey. Same blue primary
 button, same icon, same 34 px. Measured on My Timetable / Cohort / Venue: `Close h34 · Arrange
