@@ -109,12 +109,13 @@ Adding a new status/legend item = **ONE row** in the relevant table above + **ON
     The page's status filter therefore has **no Cancelled option** any more, and a filter saved before
     the removal is mapped onto Need to Arrange at restore.
   - **A week filter says WHICH weeks it means — the two pages mean different ones** (user
-    2026-11-07; labels re-worded to **SLOT** on 2026-11-10). My Replacements = the **original slot** week:
-    chip `Original Slot Week: …`, option `All Original Slot Weeks`. Request Approval = the **requested
-    slot** week (the slot being approved): chip `Requested Slot Week: …`, option `All Requested Slot
-    Weeks`, and its status column header reads **REQUEST STATUS**. `isInWeek(value, week)` filters whatever date the
-    page hands it — `classDate` on one page, `replacementDate` on the other; never swap them. One
-    builder of an "all" option: `populateWeekSelect(sel, { includeAll, allLabel })`.
+    2026-11-07; labels re-worded to **SLOT** on 2026-11-10). My Replacements = the **original slot**
+    week: chip `Original Slot Week: …`, option `All Original Slot Weeks`. Request Approval = the
+    **requested slot** week (the slot being approved): chip `Requested Slot Week: …`, option
+    `All Requested Slot Weeks`, and its status column header reads **REQUEST STATUS**.
+    `isInWeek(value, week)` filters whatever date the page hands it — `classDate` on one page,
+    `replacementDate` on the other; never swap them. One builder of an "all" option:
+    `populateWeekSelect(sel, { includeAll, allLabel })`.
   - **A JS-owned control must survive a Livewire round-trip.** A page component's re-render morphs the
     DOM from the server's HTML; anything the server renders EMPTY but JavaScript fills (the week
     selects, `#filterChips`) is deleted by that morph. Never park state there without a guard: the

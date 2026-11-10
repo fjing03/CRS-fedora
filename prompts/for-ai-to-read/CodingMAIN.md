@@ -588,11 +588,15 @@ These eleven rules are **non-negotiable** for every page and every future change
 (2026-11-07; labels re-worded to SLOT on 2026-11-10).** My Replacements filters the **original slot**
 week (active chip `Original Slot Week: Week 8 · 9 Nov 2026 ~ 15 Nov 2026`, "all" option
 `All Original Slot Weeks`); Request Approval filters the **requested slot** week — the slot the PL is
-approving — (chip `Requested Slot Week: …`, option `All Requested Slot Weeks`, select tip "Pick the
-requested slot week to display"), and its status column header reads **REQUEST STATUS**
+approving — (chip `Requested Slot Week: …`, option `All Requested Slot Weeks`), and its status column
+header reads **REQUEST STATUS**
 (was `STATUS`). The shared `isInWeek(value, week)` takes whichever date the page hands it; the two
 callers must never be swapped (`classDate` on My Replacements, `replacementDate` on the PL queue), or
 a request whose class is in week 14 and whose proposal lands in week 7 appears in the wrong week.
+**Leftover (2026-11-11):** the two week-select hover tips still read `Pick the Original Class week to
+display` / `Pick the Requested Replacement week to display` — the 2026-11-10 SLOT rename did not touch
+them. Either rename them to match or accept the mismatch; it needs the user's word, so leave it alone
+until then.
 `populateWeekSelect(sel, { includeAll, allLabel })` in `ui-common.js` is the ONE builder of an "all"
 option (default label `All Weeks`). Receipts: `status-tooltips-filter-chips.spec.ts` T5.RA-5,
 `week-filter-preserved.spec.ts` U1–U3.
