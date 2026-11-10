@@ -1863,6 +1863,25 @@ html.dark .filter-select {
     color: var(--color-warning);
     font-weight: 700;
 }
+/* 2026-11-10 (user brief): Cancel Class's FOOTER form of the same warning —
+   the short `CANNOT UNDONE`, right-aligned, directly above the Yes button, and
+   visible only while Yes is armed. The wrapper keeps the two stacked and
+   flush-right inside `.modal-footer`'s space-between rail. */
+.cancel-confirm-wrap {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 4px;
+}
+.confirm-warning--compact {
+    margin: 0;
+    font-size: 11px;
+    line-height: 1.2;
+    font-weight: 700;
+    letter-spacing: 0.6px;
+    text-align: right;
+    color: var(--color-warning);
+}
 .cancel-details {
     background: var(--color-surface-variant);
     border-radius: var(--radius-sm);
@@ -1896,12 +1915,39 @@ html.dark .filter-select {
 }
 /* "You MUST Select a Cancellation Reason" — the static instruction that
    replaced the old inline "Please select a cancellation reason." hint. */
-.cancel-reason-required {
-    margin: 0 0 8px;
+/* 2026-11-10 (user, "Cancel this Class? — Cancellation Reason block"): the
+   `.cancel-reason-required` rule died with the "You MUST Select a Cancellation
+   Reason" line. Its three successors:
+     · `.cancel-reasons`      — two reasons per row (one per row on a phone)
+     · `.cancel-reason-option` — the label the radios ride (was inline styles)
+     · `.cancel-required-mark` — the app's red required asterisk
+   The footer strip (`.confirm-warning--compact` + `.cancel-confirm-wrap`) is
+   grouped with the other footer rules further down. */
+.cancel-reasons {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    column-gap: 20px;
+}
+.cancel-reason-option {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 0;
+    cursor: pointer;
     font-size: 13px;
-    font-weight: 700;
-    color: var(--color-on-surface);
-    letter-spacing: 0.01em;
+}
+.cancel-reason-option input {
+    accent-color: var(--color-primary);
+}
+.cancel-required-mark {
+    color: var(--color-error);
+}
+/* one reason per row on a phone — nothing gets cramped (2026-11-10) */
+@media (max-width: 520px) {
+    .cancel-reasons {
+        grid-template-columns: 1fr;
+        column-gap: 0;
+    }
 }
 
 /* one column on a phone: the label sits above its value */

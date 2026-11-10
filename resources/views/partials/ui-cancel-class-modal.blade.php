@@ -8,10 +8,17 @@
      2026-11-05 UI/UX update (user): title reads "Cancel this Class?", the shell
      is 40% wider (`.modal--cancel` = 588px, still capped by the responsive
      `.modal` media queries), the class facts sit in the SAME grey `dl` box the
-     Confirm Cancellation modal uses (`dl.cancel-details`), a full-width rule
-     separates them from the reason block, and the old inline
-     "Please select a cancellation reason." hint is replaced by the static
-     instruction below the rule. Bottom-left reads "No, Keep Class". --}}
+     Confirm Cancellation modal uses (`dl.cancel-details`), and a full-width rule
+     separates them from the reason block. Bottom-left reads "No, Keep Class".
+
+     2026-11-10 (user, "Cancel this Class? — Cancellation Reason block"):
+       · the shouty `You MUST Select a Cancellation Reason` line is GONE — the
+         rule now runs straight into the reasons, and the heading's required
+         asterisk plus the disabled Yes button carry the message;
+       · the eight reasons sit TWO per row (one per row under 520px);
+       · `Cancellation Reason` carries the app's red required asterisk;
+       · the irreversible warning moved to the FOOTER as the short
+         `CANNOT UNDONE`, directly above Yes, and only while Yes is armed. --}}
 <div class="modal-overlay" id="cancelClassOverlay" onclick="if(event.target===this)CancelClassModal.dismiss()">
     <div class="modal modal--cancel">
         <div class="modal-header">
@@ -24,10 +31,10 @@
                 {{-- the class facts — CancelClassModal._renderImpact() fills the
                      section title "Class Information" + the grey dl box --}}
                 <div id="cancelClassImpact"></div>
-                {{-- 2026-11-05: rule + the required-reason instruction (replaces
-                     the dynamic "Please select a cancellation reason." hint) --}}
+                {{-- 2026-11-10: the rule runs straight into the reasons — the
+                     removed instruction is not replaced by anything; the heading's
+                     red asterisk + the disabled Yes button are the cue. --}}
                 <hr class="modal-divider">
-                <p class="cancel-reason-required" id="cancelClassRequired">You MUST Select a Cancellation Reason</p>
                 <div id="cancelReasonList"></div>
                 <textarea id="cancelOtherDetail" class="modal-textarea" rows="3"
                           placeholder="Describe the reason for &quot;Other&quot;&hellip;"
@@ -35,10 +42,8 @@
                 {{-- the gate's own refusal copy (a server refusal, or the
                      blank-"Other"-detail hint) still lands here --}}
                 <p id="cancelReasonHint" class="hint-text" style="margin:8px 0 0; min-height:14px"></p>
-                {{-- 2026-11-05 (user ruling): the Undo affordance is GONE, so the
-                     decision is FINAL — the shared irreversible line says so
-                     before the confirm button. --}}
-                <span id="cancelClassIrreversible">@include('partials.ui-irreversible-line')</span>
+                {{-- 2026-11-10: the irreversible warning no longer lives here — it
+                     moved to the footer, directly above Yes (see .modal-footer). --}}
             </div>
             <!-- ─── Success state (swapped in-place, same overlay) ─── -->
             <div id="cancelClassSuccessState" style="display:none">
@@ -48,7 +53,13 @@
         </div>
         <div class="modal-footer">
             <button class="btn-outline" id="cancelKeepClassBtn" onclick="CancelClassModal.dismiss()">No, Keep Class</button>
-            <button class="btn-danger" id="confirmCancelClassBtn" onclick="CancelClassModal.confirm()" disabled>Yes, Cancel Class</button>
+            {{-- 2026-11-10: the short warning rides directly above Yes and only
+                 while Yes is armed (CancelClassModal._refreshGate toggles it; the
+                 wrapper is hidden wholesale in the success state). --}}
+            <div class="cancel-confirm-wrap" id="cancelConfirmWrap">
+                @include('partials.ui-irreversible-line', ['compact' => true])
+                <button class="btn-danger" id="confirmCancelClassBtn" onclick="CancelClassModal.confirm()" disabled>Yes, Cancel Class</button>
+            </div>
             <button class="btn-action" id="cancelArrangeNowBtn" style="display:none" onclick="CancelClassModal.arrangeNow()">Arrange Replacement Now</button>
             <button class="btn-outline" id="cancelLaterBtn" style="display:none" onclick="CancelClassModal.later()">I'll Do It Later</button>
         </div>

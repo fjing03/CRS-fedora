@@ -311,25 +311,48 @@ test.describe('Cancel Class Flow', () => {
     const yes = page.locator('#confirmCancelClassBtn');
     const hint = page.locator('#cancelReasonHint');
 
-    // S7 — no reason yet: Yes disabled; the STATIC instruction above the radios
-    // now carries the message (2026-11-05 UI/UX update: "Please select a
-    // cancellation reason." was removed from the inline hint)
+    // S7 — no reason yet: Yes disabled, the hint is silent, and the cue is the
+    // heading's red asterisk. 2026-11-10 (user brief "Cancellation Reason block"):
+    // the shouty "You MUST Select a Cancellation Reason" line is gone, so pin its
+    // ABSENCE, the required mark, and the footer warning that must stay hidden.
     await expect(yes).toBeDisabled();
-    await expect(page.locator('#cancelClassRequired')).toHaveText('You MUST Select a Cancellation Reason');
+    await expect(page.locator('#cancelClassRequired')).toHaveCount(0);
+    await expect(page.locator('.cancel-required-mark')).toHaveText('*');
+    await expect(page.locator('#cancelClassUndoWarn')).toBeHidden();
     await expect(hint).toHaveText('');
 
-    // Pick a real reason → enabled
+    // Pick a real reason → enabled, and the footer's CANNOT UNDONE strip appears
     await page.locator('#cancelReasonList input[type="radio"][value="medical_leave"]').click();
     await expect(yes).toBeEnabled();
     await expect(hint).toHaveText('');
+    await expect(page.locator('#cancelClassUndoWarn')).toBeVisible();
+    await expect(page.locator('#cancelClassUndoWarn')).toHaveText('CANNOT UNDONE');
 
     // S8 — switch to "Other": textarea appears; empty detail re-disables
     await page.locator('#cancelReasonList input[type="radio"][value="other"]').click();
     const detail = page.locator('#cancelOtherDetail');
     await expect(detail).toBeVisible();
     await expect(yes).toBeDisabled();
+    // blank "Other" → the warning hides again (2026-11-10 brief)
+    await expect(page.locator('#cancelClassUndoWarn')).toBeHidden();
     await detail.fill('Guest lecture clash — faculty seminar');
     await expect(yes).toBeEnabled();
+    await expect(page.locator('#cancelClassUndoWarn')).toBeVisible();
+
+    // the eight reasons sit two per row on desktop, one per row on a phone
+    const cols = await page.evaluate(() => {
+      const g = getComputedStyle(document.querySelector('.cancel-reasons')).gridTemplateColumns;
+      return g.trim().split(/\s+/).length;
+    });
+    expect(cols).toBe(2);
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.waitForTimeout(150);
+    const phoneCols = await page.evaluate(() => {
+      const g = getComputedStyle(document.querySelector('.cancel-reasons')).gridTemplateColumns;
+      return g.trim().split(/\s+/).length;
+    });
+    expect(phoneCols).toBe(1);
+    await page.setViewportSize({ width: 1600, height: 900 });
   });
 
   // ── S9 (+S11) — happy path: block vanishes, ledger written, Later path ──

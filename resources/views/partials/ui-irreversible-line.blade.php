@@ -8,5 +8,16 @@
      Promoted by the 3rd-duplication rule (AGENTS #7): Cancel Class, Cancel
      Replacement Request, Approve Request and Reject Request all carry it.
      Reversible actions (submitting a request, hiding a notification, logout)
-     deliberately do NOT — the line must never claim an undo that exists. --}}
+     deliberately do NOT — the line must never claim an undo that exists.
+
+     2026-11-10 (user, "Cancel this Class? — Cancellation Reason block"): the
+     Cancel Class modal passes ['compact' => true]. It gets the SHORT form,
+     `CANNOT UNDONE`, as a small right-aligned strip that sits in the FOOTER
+     directly above the Yes button, and it is visible only while that button is
+     armed (CancelClassModal._refreshGate owns the toggle). The other three
+     modals pass nothing and keep the sentence byte-identical. --}}
+@if (!empty($compact))
+<p class="confirm-warning confirm-warning--compact" id="cancelClassUndoWarn" style="display:none">CANNOT UNDONE</p>
+@else
 <p class="confirm-warning" style="margin:12px 0 0">This action cannot be <span class="warn-action">UNDONE</span>.</p>
+@endif

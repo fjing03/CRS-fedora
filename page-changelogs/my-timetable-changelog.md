@@ -1,3 +1,37 @@
+## 2026-11-10 (later) — Cancel this Class?: the Cancellation Reason block
+
+User brief `prompts/cancel-class-reason-block.md`. Only the **Cancellation Reason** area of the
+Cancel this Class? modal changed; the class facts, the eight reasons and their values, the "Other"
+textarea and its required detail, the gating, the refusal hint and the success screen are untouched.
+
+| # | Before | Now |
+|---|---|---|
+| 1 | `You MUST Select a Cancellation Reason` under the rule | **gone** — the rule runs straight into the reasons, and nothing replaced the line |
+| 2 | eight reasons, one per row | **two per row** (4 rows); **one per row** under 520 px |
+| 3 | `Cancellation Reason` heading, no marker | `Cancellation Reason` + a red `*` (`--color-error`), after the text, visual only |
+| 4 | `This action cannot be UNDONE.` in the modal body, centred 14 px | **`CANNOT UNDONE`** in the FOOTER, right-aligned 11 px warning colour, directly above Yes, and **visible only while Yes is armed** |
+
+Mechanics:
+
+- `ui-irreversible-line.blade.php` gained an **opt-in** `compact` arm. Cancel Class passes
+  `['compact' => true]` and gets `#cancelClassUndoWarn`; Cancel Replacement Request, Approve Request
+  and Reject Request pass nothing and keep `This action cannot be UNDONE.` **byte-identical**
+  (measured: 14 px, centred, `compactCount` 0 on `/my-replacements` and `/request-approval-ui`).
+- `CancelClassModal._refreshGate()` owns the warning: shown exactly when
+  `ClassCancellation.validate()` says the reason is valid, so a cleared reason or a blank "Other"
+  hides it again (the inline hint still names the blank-"Other" reason).
+- `_swapState()` hides the whole `.cancel-confirm-wrap`, so the warning can never appear in the
+  success state (measured: wrap `display:none`, warning `offsetParent === null`).
+- `.cancel-reason-required` CSS deleted; `.cancel-reasons`, `.cancel-reason-option` and
+  `.cancel-required-mark` added (the radio labels lost their inline styles).
+- `tests/cancel-class.spec.ts`: the removed line's assertion became an absence check, plus the
+  asterisk, the warning's show/hide, and the 2-column → 1-column receipt.
+
+Measured on all three pages (`/my-timetable-ui`, `/cohort-timetable`, `/venue-timetable-ui`):
+no old line, 8 reasons in 4 rows × 2 columns, asterisk `rgb(198, 40, 40)`, warning hidden while Yes
+is disabled → visible above Yes once a reason is picked, hidden again on a blank "Other", visible when
+it is filled; 1 column and no horizontal overflow at 390 px; zero console errors.
+
 ## 2026-11-10 — Modal consistency (#1–#4)
 
 **Follow-up (same day, user ruling B4):** ONE separator in a modal subtitle — the **em dash**.

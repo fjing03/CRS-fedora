@@ -4279,10 +4279,10 @@ const ClassCancellation = {
     validate(reason, detail) {
         if (!reason || !this.REASONS.some(function(r) { return r.value === reason; })) {
             /* 2026-11-05 UI/UX update (user): the "Please select a cancellation
-               reason." message is GONE from the UI — the modal shell carries the
-               static "You MUST Select a Cancellation Reason" instruction above
-               the radios, so the hint would only repeat it. The gate still
-               refuses; it just stays silent. */
+               reason." message is GONE from the UI — the gate still refuses, it
+               just stays silent (2026-11-10: the static instruction is gone too,
+               so the heading's red asterisk and the disabled Yes button are the
+               whole cue — still no second sentence here). */
             return { ok: false, hint: '' };
         }
         if (reason === 'other' && !String(detail || '').trim()) {
@@ -4943,16 +4943,23 @@ const CancelClassModal = {
     _renderReasons() {
         const list = document.getElementById('cancelReasonList');
         if (!list) return;
-        list.innerHTML = '<div class="detail-group"><div class="detail-group-title">Cancellation Reason</div></div>';
-        const group = list.firstChild;
+        /* 2026-11-10 (user brief): the heading carries the app's red required
+           asterisk (a visual mark only — it is NOT part of any label), and the
+           eight reasons sit TWO per row inside `.cancel-reasons` (one per row
+           under 520px). Labels and values are untouched. */
+        list.innerHTML = '<div class="detail-group">'
+            + '<div class="detail-group-title">Cancellation Reason'
+            + ' <span class="cancel-required-mark">*</span></div>'
+            + '<div class="cancel-reasons"></div></div>';
+        const group = list.querySelector('.cancel-reasons');
+        if (!group) return;
         ClassCancellation.REASONS.forEach(function(reason) {
             const label = document.createElement('label');
-            label.style.cssText = 'display:flex;align-items:center;gap:8px;padding:6px 0;cursor:pointer;font-size:13px;';
+            label.className = 'cancel-reason-option';
             const input = document.createElement('input');
             input.type = 'radio';
             input.name = 'cancelReason';
             input.value = reason.value;   // the DB enum travels (class-cancel-db-persist)
-            input.style.accentColor = 'var(--color-primary)';
             label.appendChild(input);
             label.appendChild(document.createTextNode(reason.label));   // the plain modal label — NOT the {value,label} object
             group.appendChild(label);
@@ -5023,6 +5030,11 @@ const CancelClassModal = {
         const check = ClassCancellation.validate(reason, detail ? detail.value : '');
         if (hint) hint.textContent = check.hint;
         if (yes) yes.disabled = !check.ok;
+        /* 2026-11-10 (user brief): the short CANNOT UNDONE strip is visible ONLY
+           while Yes is armed — a cleared reason, or "Other" left blank, hides it
+           again. _swapState() owns the success state (wrapper hidden wholesale). */
+        const undoWarn = document.getElementById('cancelClassUndoWarn');
+        if (undoWarn) undoWarn.style.display = check.ok ? '' : 'none';
     },
 
     /* S6 + S9 — confirm-time re-check, then the server-bridged cancel
@@ -5136,9 +5148,13 @@ const CancelClassModal = {
         const successState = document.getElementById('cancelClassSuccessState');
         const keep = document.getElementById('cancelKeepClassBtn');
         const yes = document.getElementById('confirmCancelClassBtn');
+        const confirmWrap = document.getElementById('cancelConfirmWrap');
         const arrange = document.getElementById('cancelArrangeNowBtn');
         const laterBtn = document.getElementById('cancelLaterBtn');
         const success = state === 'success';
+        /* the warning lives INSIDE the wrapper, so hiding the wrapper is what
+           guarantees it can never appear in the success state (2026-11-10) */
+        if (confirmWrap) confirmWrap.style.display = success ? 'none' : '';
         if (confirmState) confirmState.style.display = success ? 'none' : '';
         if (successState) successState.style.display = success ? '' : 'none';
         if (keep) keep.style.display = success ? 'none' : '';
