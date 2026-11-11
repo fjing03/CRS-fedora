@@ -590,7 +590,7 @@
         function filterData() {
             const search = document.getElementById('searchInput').value.toLowerCase();
             const status = document.getElementById('statusFilter').value;
-            const week = document.getElementById('weekFilter').value;
+            const week = weekFilterValue('weekFilter');   /* '' is not a week */
 
             let result = MockData.approvalRequests.filter(r => {
                 if (status !== 'all' && r.status !== status) return false;
@@ -760,13 +760,14 @@
             const chips = [];
             const status = document.getElementById('statusFilter').value;
             const search = document.getElementById('searchInput').value.trim();
-            const week = document.getElementById('weekFilter').value;
+            /* 2026-11-11: an unselected week box is NOT a week (weekFilterValue) */
+            const week = weekFilterValue('weekFilter');
 
             if (status !== 'all') {
                 chips.push('<span class="filter-chip">Status: ' + status + '<button class="filter-chip-remove" onclick="document.getElementById(\'statusFilter\').value=\'all\';renderTable()" data-tip="Remove">&times;</button></span>');
             }
             if (week !== 'all') {
-                const weekLabel = document.getElementById('weekFilter').selectedOptions[0]?.textContent || week;
+                const weekLabel = weekFilterLabel('weekFilter') || week;
                 chips.push('<span class="filter-chip">Requested Slot Week: ' + weekLabel + '<button class="filter-chip-remove" onclick="document.getElementById(\'weekFilter\').value=\'all\';onWeekFilterChange()" data-tip="Remove">&times;</button></span>');
             }
             if (search) {

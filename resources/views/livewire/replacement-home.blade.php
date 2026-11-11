@@ -541,7 +541,7 @@
             localStorage.setItem('mrh-filters', JSON.stringify({
                 status: document.getElementById('statusFilter').value,
                 search: document.getElementById('searchInput').value,
-                week: document.getElementById('weekFilter').value,
+                week: weekFilterValue('weekFilter'),
                 excludeCompleted: document.getElementById('hideCompleted').checked
             }));
         }
@@ -578,7 +578,8 @@
             var chips = [];
             var status = document.getElementById('statusFilter').value;
             var search = document.getElementById('searchInput').value.trim();
-            var week = document.getElementById('weekFilter').value;
+            /* 2026-11-11: an unselected week box is NOT a week (see weekFilterValue) */
+            var week = weekFilterValue('weekFilter');
             var excludeCompleted = document.getElementById('hideCompleted').checked;
 
             if (status !== 'all') {
@@ -586,7 +587,7 @@
                 chips.push('<span class="filter-chip">Status: ' + statusLabel + '<button class="filter-chip-remove" onclick="document.getElementById(\'statusFilter\').value=\'all\';pageState.currentPage=1;saveFilters();buildTable()" data-tip="Remove">&times;</button></span>');
             }
             if (week !== 'all') {
-                var weekLabel = document.getElementById('weekFilter').selectedOptions[0] ? document.getElementById('weekFilter').selectedOptions[0].textContent : week;
+                var weekLabel = weekFilterLabel('weekFilter') || week;
                 chips.push('<span class="filter-chip">Original Slot Week: ' + weekLabel + '<button class="filter-chip-remove" onclick="document.getElementById(\'weekFilter\').value=\'all\';pageState.currentPage=1;saveFilters();buildTable()" data-tip="Remove">&times;</button></span>');
             }
             if (search) {
@@ -628,7 +629,7 @@
             const query = document.getElementById('searchInput').value.toLowerCase().trim();
             const compactQuery = query.replace(/\s+/g, '');
             const status = document.getElementById('statusFilter').value;
-            const weekVal = document.getElementById('weekFilter').value;
+            const weekVal = weekFilterValue('weekFilter');   /* '' is not a week */
 
             let filtered = myConflictedRows().filter(function (c) {
                 if (completedHidden(c)) return false;

@@ -330,8 +330,10 @@
             if (!container) return;
             const chips = [];
             const sel = document.getElementById('weekFilter');
-            if (sel.value !== 'all' && sel.selectedOptions[0]) {
-                chips.push('<span class="filter-chip">Original Slot Week: ' + sel.selectedOptions[0].textContent +
+            /* 2026-11-11: an unselected box is NOT a week (weekFilterValue) and the
+               label comes from the shared labeller, so it can never print blank */
+            if (sel && weekFilterValue('weekFilter') !== 'all') {
+                chips.push('<span class="filter-chip">Original Slot Week: ' + (weekFilterLabel('weekFilter') || weekFilterValue('weekFilter')) +
                     '<button class="filter-chip-remove" data-tip="Remove" data-remove="weekFilter">&times;</button></span>');
             }
             if (document.getElementById('hideCompleted').checked) {
@@ -368,7 +370,7 @@
             // AD-2: select values are 1-based strings; dataset weeks are 0-based.
             // 'all' = the All Original Slot Weeks option (shared helpers
             // are selectedIndex-based, so they stay NaN-safe).
-            const all = document.getElementById('weekFilter').value === 'all';
+            const all = weekFilterValue('weekFilter') === 'all';   /* '' is not a week */
             const w0 = all ? null : parseInt(document.getElementById('weekFilter').value, 10) - 1;
             /* 2026-11-09 (grill Q5=A): COMPLETED is the derived status, exactly as
                the badge prints it — an approved request whose requested DATE has

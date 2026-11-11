@@ -136,10 +136,10 @@ test('U2 — Reject keeps the Week filter', async ({ page }) => {
 test('U3 — Cancel Pending keeps the Week filter (my-replacements)', async ({ page }) => {
   await openWithWeek(page, '/my-replacements');
 
-  /* 2026-11-07 (user): this page's weeks are the ORIGINAL CLASS weeks, and both
-     the "all" option and the chip say so. */
+  /* 2026-11-07 (user): this page's weeks are the ORIGINAL SLOT weeks, and both the
+     "all" option and the chip say so (re-worded to SLOT on 2026-11-10). */
   expect(await page.locator('#weekFilter option[value="all"]').innerText()).toBe('All Original Slot Weeks');
-  await expect(page.locator('#filterChips .filter-chip', { hasText: 'Original Slot Week:' })).toContainText('Original Class Week: Week 14');
+  await expect(page.locator('#filterChips .filter-chip', { hasText: 'Original Slot Week:' })).toContainText('Original Slot Week: Week 14');
 
   const cancelBtn = page.locator('button[aria-label="Cancel this request"]').first();
   await expect(cancelBtn).toBeVisible();
@@ -154,4 +154,26 @@ test('U3 — Cancel Pending keeps the Week filter (my-replacements)', async ({ p
   // the cancelled row stays on the page (status flips), so the filter must too
   await expect(page.locator('#filterChips .filter-chip', { hasText: 'Week:' })).toContainText('Week 14');
   await expectWeekFilterKept(page);
+
+  /* 2026-11-11 (user report, second half of the same family): the chip printed
+     `Original Slot Week: ×` with no words, because the week box was momentarily
+     UNSELECTED during a re-render. An empty box is now read as "no week filter":
+     the week chip disappears (it is not drawn blank) and the table is NOT emptied
+     — before the fix that state matched zero rows. */
+  await page.evaluate(() => {
+    const sel = document.getElementById('weekFilter') as HTMLSelectElement;
+    sel.selectedIndex = -1;                      // exactly what the morph leaves behind
+    (window as unknown as { buildTable: () => void }).buildTable();
+  });
+  await expect(page.locator('#filterChips .filter-chip', { hasText: 'Slot Week:' })).toHaveCount(0);
+  expect(await page.locator('#tableBody tr').count()).toBeGreaterThan(0);
+
+  /* …and the shared restore settles the box on the neutral "all" instead of
+     leaving it on -1 (selectedIndex -1 was the state that broke all three readers). */
+  await page.evaluate(() => {
+    const w = window as unknown as { snapshotWeekSelects: () => void; restoreWeekSelects: () => void };
+    w.snapshotWeekSelects();
+    w.restoreWeekSelects();
+  });
+  await expect(page.locator('#weekFilter')).toHaveValue('all');
 });

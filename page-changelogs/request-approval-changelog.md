@@ -1,3 +1,41 @@
+## 2026-11-11 — a blank week box must not empty the table or the chip
+
+User report: after cancelling a pending request the Active Filters bar showed
+`Original Slot Week: ×` — the chip with **no words in it** — while the week box itself read
+**All Original Slot Weeks**.
+
+**Cause (measured).** The week `<select>` is built by JavaScript, so a page re-render can leave it
+momentarily **unselected** (`value ''`, `selectedIndex -1`). Three readers treated that as a real week:
+
+| reader | with a real week | with an unselected box |
+|---|---|---|
+| the chip | `Original Slot Week: Week 8 · 9 Nov 2026 ~ 15 Nov 2026` | `Original Slot Week: ` (blank) |
+| the table filter | that week's rows | **0 rows** — "No classes currently need attention" |
+| the ‹ › arrows | step week by week | ‹ does nothing |
+
+The box then fell back to All a moment later, but the chip and the table stayed behind — the chip was
+showing a filter that no longer existed.
+
+**Fix — one reader, one labeller, one settled restore.**
+
+- `ui-common.js` gained `weekFilterValue(id)` (**an empty box is not a week** — it reads as `all`) and
+  `weekFilterLabel(id)` (the option's own text, else the `weekRanges` label for that value, so a chip
+  can never print blank).
+- `restoreWeekSelects()` no longer gives up when the saved value is empty or gone: if the box has lost
+  its selection it settles on the neutral `all` option (else the first one) instead of staying on `-1`.
+- `renderFilterChips()` / the table filter / `saveFilters()` read through those two helpers, and an
+  empty value means **no week chip at all** — the truth, since no week filter is applied.
+
+Measured on `/my-replacements` (demo data, nothing written):
+
+    week 8 selected   → box "Week 8 · 9 Nov 2026 ~ 15 Nov 2026", 3 rows, chip names the week
+    box unselected    → box "(nothing selected)", 6 rows (all), NO week chip     [was: 0 rows, blank chip]
+
+The same three readers were fixed on Request Approval and Class Replacements, where the identical
+pattern existed. `tests/week-filter-preserved.spec.ts` U3 now also forces the unselected state and pins
+"no week chip + rows still there"; its two stale `Original Class Week:` assertions (left behind by the
+SLOT rename) were corrected. Spec run: **6/6 under the blessed testing-lane invocation**.
+
 ## 2026-11-10 (later) — the pop-up tabs are ORIGINAL SLOT SCHEDULE and REQUESTED SLOT SCHEDULE
 
 The four detail pop-ups named their two slot tabs after the *class*: `Original Class Schedule`

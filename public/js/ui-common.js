@@ -3439,6 +3439,32 @@ function populateWeekSelect(selectId, cfg) {
     return sel;
 }
 
+/* ── Reading a week <select> (2026-11-11, my-replacements report) ────────
+   The week selects are built by JavaScript, so a page re-render can leave one
+   momentarily UNSELECTED (value '', selectedIndex -1). Three readers used to
+   treat that as a real week: the chip printed a bare label ("Original Slot
+   Week: " with nothing after it), the table filter matched nothing (0 rows) and
+   the ‹ › arrows did nothing. An empty value is NOT a week — it means "no week
+   filter" — so one reader and one labeller own the decision now:
+     · weekFilterValue(id) → the value, or 'all' when the select is unselected
+     · weekFilterLabel(id) → the option's own text, else the weekRanges label
+                             for that value (mobile labelFn respected first)   */
+function weekFilterValue(selectId) {
+    const sel = document.getElementById(selectId || 'weekFilter');
+    const v = sel ? String(sel.value || '') : '';
+    return v || 'all';
+}
+
+function weekFilterLabel(selectId) {
+    const sel = document.getElementById(selectId || 'weekFilter');
+    if (!sel) return '';
+    const opt = sel.selectedOptions && sel.selectedOptions[0];
+    if (opt && String(opt.textContent || '').trim()) return opt.textContent;
+    const list = (typeof weekRanges !== 'undefined' && weekRanges) || [];
+    const hit = list.find(function (w) { return String(w.value) === String(sel.value); });
+    return hit ? hit.label : '';
+}
+
 /* ── A JS-owned week <select> must survive a Livewire round-trip ─────────
    Reported 2026-11-06: on request-approval-ui after Approve/Reject and on
    my-replacements after Cancel, the Week dropdown went blank while its filter
@@ -3476,9 +3502,18 @@ function restoreWeekSelects() {
             populateWeekSelect(id, populateWeekSelect._registry[id] || {});
         }
         const want = kept[id];
-        if (!want || el.value === want) return;
-        const has = Array.prototype.some.call(el.options, function (o) { return o.value === want; });
-        if (has) el.value = want;
+        const has = !!want && Array.prototype.some.call(el.options, function (o) { return o.value === want; });
+        if (has) { el.value = want; return; }
+        /* 2026-11-11: the selection can be lost even when the OPTION LIST is
+           intact, and a lost selection used to be left alone (selectedIndex -1),
+           which the page then read as "the empty week": a blank chip, an empty
+           table and dead ‹ › arrows. Nothing to restore → settle on the neutral
+           'all' option, else the first one. */
+        if (el.selectedIndex < 0) {
+            const allOpt = Array.prototype.find.call(el.options, function (o) { return o.value === 'all'; });
+            if (allOpt) el.value = 'all';
+            else if (el.options.length) el.selectedIndex = 0;
+        }
     });
     window.__weekSelectKeep = null;
 }
