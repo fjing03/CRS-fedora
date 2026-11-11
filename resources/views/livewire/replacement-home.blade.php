@@ -394,16 +394,23 @@
             return reason === 'Public Holiday' ? 'badge-holiday' : 'badge-reason';
         }
 
-        /* The badge says WHICH kind of conflict, not just its colour (design
-           authority: explore-brief row 4). A holiday names the day from the
-           `holidays` row; every other reason reads "Class Cancelled". The
-           prototype's literal fallback stays for the `public_holiday`
-           exception that no calendar row backs. */
+        /* 2026-11-11 (user): the badge names ONLY the kind — "Public Holiday" or
+           "Class Cancelled" — and the detail moves into the badge's hover tip
+           (a holiday's own name, or the cancellation reason). Same rule on the
+           student page. The prototype's literal fallback stays for the
+           `public_holiday` exception that no calendar row backs. */
         function reasonText(c) {
+            return c.conflictReason === 'Public Holiday' ? 'Public Holiday' : 'Class Cancelled';
+        }
+
+        /* The new fact the hover carries: the holiday's name, else the reason
+           label ("Annual Leave", "Official Event", …). Empty when the row has
+           neither — a tip that repeats the badge would teach nothing. */
+        function reasonDetail(c) {
             if (c.conflictReason === 'Public Holiday') {
-                return 'Public Holiday \u2014 ' + (c.holidayName || 'Semester holiday');
+                return c.holidayName || 'Semester holiday';
             }
-            return 'Class Cancelled \u2014 ' + c.conflictReason;
+            return c.conflictReason && c.conflictReason !== 'Class Cancelled' ? c.conflictReason : '';
         }
 
         /* ─── Cells (design §3.3) ─── */
@@ -412,7 +419,10 @@
         }
 
         function reasonBadge(c) {
-            return '<span class="badge ' + badgeClass(c.conflictReason) + '">' + reasonText(c) + '</span>';
+            var detail = reasonDetail(c);
+            return '<span class="badge ' + badgeClass(c.conflictReason) + '"'
+                + (detail ? ' data-tip="' + detail.replace(/"/g, '&quot;') + '"' : '')
+                + '>' + reasonText(c) + '</span>';
         }
 
         /* venueLine / durationWords now live in ui-common.js (2026-11-09): the
@@ -794,6 +804,7 @@
                     urgencyClass: urgencyClass,
                     badgeClass: badgeClass,
                     reasonText: reasonText,
+                    reasonTip: reasonDetail,   /* the detail rides the phone card too */
                     isHandled: isHandled,
                     hideCountdown: countdownHidden,
                     statusBadge: statusBadgeForCard

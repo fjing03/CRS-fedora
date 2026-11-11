@@ -2789,8 +2789,10 @@ html.dark .semester-bar select:not(.week-select) {
    the base class (never replaces it), because the summary counters count
    `.cell-occupied` and must keep counting every red cell once. */
 .cell-pending {
+    /* 2026-11-11 (user): NO ring any more — your pending slot looks like any
+       other pending slot (same amber). Ownership now lives in the hover words
+       ("Your Pending" vs "Other Pending"), not in a border. */
     background: var(--color-tertiary-container);
-    border: 3px solid var(--color-tertiary);
     --hover-label: 'Pending';
 }
 .cell-reserved {
@@ -2799,8 +2801,12 @@ html.dark .semester-bar select:not(.week-select) {
     background: var(--color-tertiary-container);
     --hover-label: 'Reserved';
 }
+/* 2026-11-11 (user): the class STAYS (the hover label, the counters and the
+   classification still use it) but its 3px ring is gone — your own conflict now
+   draws exactly like a venue/cohort conflict, so COLOUR says "cannot book" and
+   the hover words are the only ownership cue. */
 .cell-occupied--mine {
-    border: 3px solid var(--color-error);
+    /* borderless on purpose — see above */
 }
 /* ── arrangement-cell-state-labels (user brief 2026-11-07, answers 3A/4A/6A) ──
    ⛔ PERMANENT (user ruling 2026-11-10, code cleanup): the hover tooltip on

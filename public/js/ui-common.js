@@ -2982,7 +2982,14 @@ class HtmlBuilder {
         return '<div class="rc-header">' +
             '<span class="rc-code">' + c.code + ' <span class="cell-type-label">(' + typeLabel + ')</span></span>' +
             statusBadge +
-            '<span class="badge ' + opts.badgeClass(c.conflictReason) + '">' + (opts.reasonText ? opts.reasonText(c) : c.conflictReason) + '</span>' +
+            /* 2026-11-11 (user): the badge names only the kind; `reasonTip` carries
+               the detail (a holiday's name / the cancellation reason) into the same
+               hover the desktop table uses. Pages that pass no tip keep no tip. */
+            '<span class="badge ' + opts.badgeClass(c.conflictReason) + '"' +
+                ((opts.reasonTip && opts.reasonTip(c))
+                    ? ' data-tip="' + String(opts.reasonTip(c)).replace(/"/g, '&quot;') + '"'
+                    : '') +
+                '>' + (opts.reasonText ? opts.reasonText(c) : c.conflictReason) + '</span>' +
             '</div>' +
             '<div class="rc-body">' +
             '<strong>' + c.name + '</strong><br>' +

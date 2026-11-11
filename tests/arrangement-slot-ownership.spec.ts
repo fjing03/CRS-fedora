@@ -6,21 +6,25 @@ import { abortUnlessTestingTarget } from './helpers/receipt-target-guard';
 /**
  * arrangement-slot-ownership-legend — the browser receipt (2026-11-06).
  *
- * The law: COLOUR = state (amber = a pending reservation, red = a conflict),
- * BORDER = ownership (3px = yours, no border = someone else's). The bug this
- * lane fixes: another staff member's pending slot used to paint the
+ * The law (2026-11-11 rewrite, user ruling): COLOUR = state (amber = a pending
+ * reservation, red = a conflict) and NOTHING ELSE — the 3px ownership ring was
+ * removed from both families, so your own slot draws like everyone else's. What
+ * still separates them is the CLASS (`cell-pending` vs `cell-reserved`,
+ * `cell-occupied--mine`) and the hover words ("Your Pending" vs "Other Pending").
+ * The bug this lane fixes: another staff member's pending slot used to paint the
  * "Pending (You)" amber whenever the selected subject shared that cohort,
  * because the engine's busy vector is ownerless and had no ownership test.
  *
  * TWO describes:
  *   T9a (writes): a pending request owned by staff 5770 on a slot pair that a
- *        staff 5425 session's cohort also carries. Viewed by 5425 it must be
- *        "Pending (Others)" (amber, 0px); viewed by 5770, "Pending (You)"
- *        (amber, 3px). Red family on seeded data: 5770's own class is 3px for
- *        him and 0px for 5425. ONE test() — the fixture flips the slots, so a
- *        second test's `available` precondition would trip on its own fixture.
+ *        staff 5425 session's cohort also carries. Viewed by 5425 it is
+ *        `cell-reserved` (Other Pending); viewed by 5770 it is `cell-pending`
+ *        (Your Pending). BOTH are amber and BOTH are borderless now — the class
+ *        and the hover words are the whole difference. ONE test() — the fixture
+ *        flips the slots, so a second test's `available` precondition would trip
+ *        on its own fixture.
  *   T9b (read-only): the resolver's precedence table (crafted facts, incl. the
- *        two counter-intuitive crossings) and the legend's six rows + tips.
+ *        two counter-intuitive crossings) and the legend's four rows + tips.
  *
  * Fixture hygiene: slots are DISCOVERED at runtime (never a hardcoded pair —
  * `TestingFixtureSeeder` already holds B010 week 7 Fri 14:00/14:30 for request
@@ -289,28 +293,19 @@ test.describe('ownership on the grid', () => {
     cleanupFixture();
   });
 
-  test('each staff member sees their own pending ringed and the other one flat', async () => {
+  test('each staff member sees their own pending named as theirs, the other one flat', async () => {
     const cellOn = (p: Page, day: number, hour: number) => p.locator(`#tableBody td[data-day="${day}"][data-hour="${hour}"] .cell-content`);
     const ringWidth = (locator: ReturnType<typeof cellOn>) => locator.evaluate((el) => getComputedStyle(el).borderTopWidth);
 
-    /* ── 1. staff 5770 — pair A is HIS (3px), pair B is hers (0px) ────── */
+    /* ── 1. staff 5770 — pair A is HIS, pair B is hers; BOTH borderless ── */
     assertFixtureAlive();
     await gotoWeek(ownerPage, OWNER_SESSION, WEEK);
 
     const ownerPending = cellOn(ownerPage, pairA.day, pairA.hours[0]);
     await expect(ownerPending).toHaveClass(/cell-pending/);
-    expect(await ringWidth(ownerPending)).toBe('3px');
-
-    // the ring is the tertiary token, not a literal colour (theme-safe compare)
-    const tertiary = await ownerPage.evaluate(() => {
-      const probe = document.createElement('span');
-      probe.style.color = 'var(--color-tertiary)';
-      document.body.appendChild(probe);
-      const rgb = getComputedStyle(probe).color;
-      probe.remove();
-      return rgb;
-    });
-    expect(await ownerPending.evaluate((el) => getComputedStyle(el).borderTopColor)).toBe(tertiary);
+    /* 2026-11-11 (user): no ownership ring on ANY family — colour alone says
+       "cannot book"; the words say whose it is. */
+    expect(await ringWidth(ownerPending)).toBe('0px');
 
     // the tip is the pending-make-up header (the twin merge keeps ONE block)
     const tip = await ownerPending.getAttribute('data-tip');
@@ -341,11 +336,11 @@ test.describe('ownership on the grid', () => {
     expect(engineArm.rows.every((r: any[]) => r[5] === true), "the owner's own make-up is flagged mine").toBe(true);
     expect(engineArm.verdict).toBe('cell-pending');
 
-    // his own class (session 39, Thu 13:30) → red WITH the ring
+    // his own class (session 39, Thu 13:30) → red, still MINE by class, no ring
     const ownerOwnClass = cellOn(ownerPage, 3, 11);
     await expect(ownerOwnClass).toHaveClass(/cell-occupied/);
     await expect(ownerOwnClass).toHaveClass(/cell-occupied--mine/);
-    expect(await ringWidth(ownerOwnClass)).toBe('3px');
+    expect(await ringWidth(ownerOwnClass)).toBe('0px');
 
     /* ── 2. staff 5425 — the mirror image on the same grid ───────────── */
     assertFixtureAlive();
@@ -358,7 +353,7 @@ test.describe('ownership on the grid', () => {
 
     const viewerPending = cellOn(viewerPage, pairB.day, pairB.hours[0]);
     await expect(viewerPending).toHaveClass(/cell-pending/);
-    expect(await ringWidth(viewerPending)).toBe('3px');
+    expect(await ringWidth(viewerPending)).toBe('0px');
 
     // the engine arm alone again — the SAME time, from the OTHER viewer
     const viewerEngineArm = await viewerPage.evaluate(({ day, hour }) => {
@@ -506,7 +501,7 @@ test.describe('resolver precedence and the legend', () => {
     // the crossings the design writes down on purpose
     expect(verdicts.ownPendingBeatsOthers).toBe('cell-pending');
     expect(verdicts.othersPendingBeatsMyClass, 'another staff\'s pending beats my own class → amber, no ring').toBe('cell-reserved');
-    expect(verdicts.twinRowsMineWins, 'is ANY row mine? → 3px').toBe('cell-occupied cell-occupied--mine');
+    expect(verdicts.twinRowsMineWins, 'is ANY row mine? → the mine class').toBe('cell-occupied cell-occupied--mine');
     expect(verdicts.fiveKeyTupleIsNotOthers, 'a stale 5-key tuple is not "others"').toBe('cell-occupied');
   });
 
@@ -556,22 +551,18 @@ test.describe('resolver precedence and the legend', () => {
     expect(verdicts.labelOfYourConflict).toBe('Your<br>Conflict');
   });
 
-  test('the legend has six rows built from the real cell classes', async () => {
+  test('the legend draws the four looks the grid actually paints', async () => {
+    /* 2026-11-11 (user): the ownership ring is gone from both families, so the
+       legend lost the extra rows that only differed by a ring AND the
+       "thick border (3px) = yours" hint line. Four rows, every swatch flat. */
     const rows = page.locator('.legend-bar .legend-item');
-    await expect(rows).toHaveCount(6);
+    await expect(rows).toHaveCount(4);
 
-    /* arrangement-cell-state-labels (user 2026-11-07): the legend uses the cells'
-       vocabulary for the pending rows, and keeps TWO red rows — Yours (3px) and
-       Others (0px). The CELL still names the reason (Venue / Cohorts / Your &
-       Cohorts Conflict); the legend deliberately groups the non-yours family into
-       "Others Conflict" (the user's call). */
     const expected = [
       ['Available', 'cell-available'],
       ['Your Current Selection', 'event-selection'],
-      ['Your Pending', 'cell-pending'],
-      ['Other Pending', 'cell-reserved'],
-      ['Your Conflict', 'cell-occupied'],
-      ['Others Conflict', 'cell-occupied'],
+      ['Pending', 'cell-pending'],
+      ['Conflict', 'cell-occupied'],
     ];
 
     for (let i = 0; i < expected.length; i += 1) {
@@ -581,36 +572,34 @@ test.describe('resolver precedence and the legend', () => {
       await expect(await row.getAttribute('data-tip')).toBeTruthy();
     }
 
-    // only the "Yours" conflict swatch carries the ring
-    await expect(rows.nth(4).locator('.legend-swatch')).toHaveClass(/cell-occupied--mine/);
-    await expect(rows.nth(5).locator('.legend-swatch')).not.toHaveClass(/cell-occupied--mine/);
-    // the pending swatches: yours is ringed, another staff member's is flat
-    await expect(rows.nth(2).locator('.legend-swatch')).toHaveClass(/cell-pending/);
-    await expect(rows.nth(3).locator('.legend-swatch')).toHaveClass(/cell-reserved/);
+    /* the swatch must equal the cell it stands for: no ring anywhere except the
+       blue "Your Current Selection" chip, which is an outline by design */
+    for (let i = 0; i < expected.length; i += 1) {
+      if (i === 1) continue;
+      const border = await rows.nth(i).locator('.legend-swatch')
+        .evaluate((el) => getComputedStyle(el).borderTopWidth);
+      expect(border, `row ${i} ("${expected[i][0]}") is borderless`).toBe('0px');
+    }
 
     // tip wording (capitals = emphasis; a data-tip is plain text)
     const tips = await rows.evaluateAll((els) => els.map((el) => el.getAttribute('data-tip') ?? ''));
     expect(tips[0]).toContain('FREE SLOT — CLICK');
     expect(tips[1]).toContain('SELECTED');
     expect(tips[2]).toContain('WAITING');
-    expect(tips[2]).toContain('thick border (3px)');
-    expect(tips[3]).toContain('WAITING');
-    expect(tips[3]).toContain('no border');
-    expect(tips[4]).toContain('CANNOT BOOK');
-    expect(tips[4]).toContain('thick border (3px)');
-    expect(tips[4]).not.toMatch(/cohort/i);
-    // the grouped non-yours row keeps the previous two-line wording
-    expect(tips[5]).toContain('VENUE CONFLICT');
-    expect(tips[5]).toContain('COHORT CONFLICT');
-    expect(tips[5], 'the ownership is shown by the swatch, not spelled in the tip').not.toContain('thick border');
-    expect(tips[5]).not.toMatch(/not suitable|class type/i);
-    expect(tips[5]).not.toMatch(/[<>]/, 'a <br> would print literally — the break is a newline');
-    expect(tips[5].split('\n')).toHaveLength(2);
+    expect(tips[2]).toContain('HOVER');
+    expect(tips[3]).toContain('CANNOT BOOK');
+    expect(tips[3]).toContain('VENUE CONFLICT');
+    expect(tips[3]).toContain('COHORT CONFLICT');
+    /* the border language is gone from BOTH tips — it described a ring the page
+       no longer paints (the exact lie this lane exists to prevent) */
+    expect(tips[2]).not.toContain('thick border');
+    expect(tips[3]).not.toContain('thick border');
+    expect(tips[3]).not.toMatch(/[<>]/, 'a <br> would print literally — the break is a newline');
+    expect(tips[3].split('\n')).toHaveLength(2);
 
-    // the hint line names both border states, and never claims the 0.5px hairline
-    const hint = page.locator('.legend-ownership-hint');
-    await expect(hint).toContainText('thick border (3px) = yours');
-    await expect(hint).toContainText("no border = others'");
+    // the ownership hint line is deleted, not re-worded
+    await expect(page.locator('.legend-ownership-hint')).toHaveCount(0);
+    await expect(page.locator('.legend-bar .osd-thick')).toHaveCount(0);
     await expect(page.locator('.legend-bar .osd-thin')).toHaveCount(0);
 
     /* The swatches borrow the CELL classes, and those carry a "hover label"
@@ -659,9 +648,9 @@ test.describe('resolver precedence and the legend', () => {
         after: getComputedStyle(el, '::after').content,
         display: span ? getComputedStyle(span).display : 'none',
         words: span ? span.innerHTML.replace(/<br\s*\/?>/gi, ' ') : '',
-        // the cell's own border (3px on a "mine" cell) sits outside the label's
-        // containing block, so "fills" means: inside the cell, and never the
-        // viewport-shaped overlay of 2026-11-07
+        // a cell's own border (if it has one) sits outside the label's containing
+        // block, so "fills" means: inside the cell, and never the viewport-shaped
+        // overlay of 2026-11-07
         fills: box
           ? box.width <= rect.width + 1 && box.height <= rect.height + 1
             && box.width > rect.width * 0.8 && box.height > rect.height * 0.8

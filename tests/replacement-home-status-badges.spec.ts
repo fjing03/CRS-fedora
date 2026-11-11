@@ -152,13 +152,18 @@ test('receipt 5 — the phone card opens the same pop-up', async ({ page }) => {
   await page.waitForSelector('#cardView .replacement-card');
 
   const card = page.locator('#cardView .replacement-card').first();
-  /* the card builds its own badge (HtmlBuilder.replacementHomeCard), so the
-     composed text needs the page's reasonText hook to reach it too. */
+  /* 2026-11-11 (user): the badge names ONLY the kind and the detail rides the
+     hover — on the phone card too (reasonText + reasonTip hooks reach it). */
   const headerBadges = (await card.locator('.rc-header .badge').allTextContents()).map((t) => t.trim());
   expect(
-    headerBadges.some((t) => /^(Public Holiday|Class Cancelled) — /.test(t)),
-    'the card badge carries the composed text, never the raw reason: ' + headerBadges.join(' | '),
+    headerBadges.some((t) => /^(Public Holiday|Class Cancelled)$/.test(t)),
+    'the card badge carries the short kind, never the raw reason: ' + headerBadges.join(' | '),
   ).toBe(true);
+  const cardReason = card.locator('.rc-header .badge-holiday, .rc-header .badge-reason').first();
+  expect(
+    await cardReason.getAttribute('data-tip'),
+    'the phone card carries the same detail tip as the table',
+  ).toBeTruthy();
 
   await card.click();
   await expect(page.locator('#quickViewModal')).toBeVisible();
@@ -203,36 +208,51 @@ test('receipt 7 — the rotate icon arranges that class and week', async ({ page
   await expect(rotate).toHaveAttribute('data-tip', 'Arrange a replacement for this class');
 });
 
-test('receipt 8 — the Conflict Reason badge says which kind of conflict, not just its colour', async ({ page }) => {
+test('receipt 8 — the Conflict Reason badge names the KIND, and the hover carries the detail', async ({ page }) => {
   const all = await rows(page);
   expect(all.length, 'the merged page lists conflicted occurrences').toBeGreaterThan(0);
 
+  /* 2026-11-11 (user): "Public Holiday" / "Class Cancelled" only — the day name
+     and the cancellation reason moved into the badge's own hover. */
   for (const row of all) {
     expect(row.reason, 'every row carries a reason badge').not.toBe('');
-    const named =
-      row.reason.startsWith('Public Holiday — ') || row.reason.startsWith('Class Cancelled — ');
-    expect(named, 'explore-brief row 4: the badge names the kind — ' + row.reason).toBeTruthy();
+    expect(
+      ['Public Holiday', 'Class Cancelled'].includes(row.reason.trim()),
+      'the badge is the kind alone — ' + row.reason,
+    ).toBe(true);
   }
 
-  const holiday = all.find((r) => r.reason.startsWith('Public Holiday — '));
-  if (holiday) {
-    expect(holiday.reason, 'a holiday badge names the day (or the prototype literal fallback)')
-      .toMatch(/^Public Holiday — \S/);
+  const badges = page.locator('#tableBody .col-reason .badge-holiday, #tableBody .col-reason .badge-reason');
+  const tips = await badges.evaluateAll((els) => els.map((el) => el.getAttribute('data-tip') || ''));
+  const holiday = all.findIndex((r) => r.reason.trim() === 'Public Holiday');
+  if (holiday >= 0) {
+    expect(holiday).toBeGreaterThanOrEqual(0);
+    expect(
+      tips.some((t) => t && t !== 'Public Holiday'),
+      'a holiday badge hovers to its own day name — got: ' + JSON.stringify(tips),
+    ).toBe(true);
   } else {
     test.info().annotations.push({ type: 'fixture', description: 'no public-holiday row in this DB — the day-name half is not exercised' });
   }
 
-  const cancelled = all.find((r) => r.reason.startsWith('Class Cancelled — '));
-  if (!cancelled) {
-    test.info().annotations.push({ type: 'fixture', description: 'no cancelled-class row in this DB — the grey half is not exercised' });
+  const cancelled = all.findIndex((r) => r.reason.trim() === 'Class Cancelled');
+  if (cancelled >= 0) {
+    expect(
+      tips.some((t) => t && t !== 'Class Cancelled'),
+      'a cancelled badge hovers to its reason label — got: ' + JSON.stringify(tips),
+    ).toBe(true);
+  } else {
+    test.info().annotations.push({ type: 'fixture', description: 'no cancelled-class row in this DB — the reason half is not exercised' });
   }
 
-  // the pop-up's facts strip prints the SAME badge, never a second vocabulary
+  // the pop-up's facts strip prints the SAME short badge, never a second wording
   const row = page.locator('#tableBody tr').first();
   const shown = ((await row.locator('.col-reason').textContent()) || '').trim();
   await row.locator('.col-code').click();
   await expect(page.locator('#quickViewModal')).toBeVisible();
   await expect(page.locator('#quickViewModal .detail-facts')).toContainText(shown);
+  await expect(page.locator('#quickViewModal .detail-facts .badge-holiday, #quickViewModal .detail-facts .badge-reason'))
+    .toContainText(/^(Public Holiday|Class Cancelled)$/);
 });
 
 /** 2026-11-06 (user brief "Cancelled Pending Requests") — the display law.

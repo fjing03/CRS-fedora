@@ -1036,28 +1036,24 @@
 
         @include('partials.ui-grid-table')
 
-        {{-- SDD arrangement-slot-ownership-legend (user law, 2026-11-06;
-             2026-11-11 simplification): four rows. Pending and Conflict each
-             merge their yours/others' pair into ONE row; the swatch shows the
-             thick "yours" style and the tooltip keeps BOTH old explanations.
-             The grid's border language is unchanged: thick = yours, no border
-             = others'. Capitals do the emphasis because a data-tip is plain
-             text (the engine sets textContent + pre-line; markup would print
-             literally), so line breaks are \n, not <br>. --}}
+        {{-- SDD arrangement-slot-ownership-legend (user law, 2026-11-06; rewritten
+             2026-11-11 on the user's ruling): COLOUR alone now says "cannot book"
+             — the thick 3px ownership ring is GONE from both the conflict and the
+             pending family, so the legend draws exactly what the grid draws and
+             the ownership hint line ("thick = yours") was DELETED, because it
+             described a border the page no longer paints. Ownership is words on
+             hover only ("Your Conflict" / "Your Pending" vs the others' arms).
+             Capitals do the emphasis: a data-tip is plain text (the engine sets
+             textContent + pre-line), so line breaks are \n, never <br>. --}}
         @include('partials.ui-legend-bar', [
-            'ownershipHint' => [
-                ['demo' => 'osd-thick', 'text' => 'Thick border (3px) = Yours'],
-                ['demo' => '', 'text' => "No border = Others' (Cohorts or Venue)"],
-            ],
             'items' => [
                 ['class' => 'cell-available', 'label' => 'Available', 'tip' => 'FREE SLOT — CLICK to select as the replacement (slots inside the 3-working-day window are read-only)'],
                 ['class' => 'event-selection', 'label' => 'Your Current Selection', 'tip' => 'The slot(s) you have SELECTED for the replacement'],
-                ['class' => 'cell-pending', 'label' => 'Pending', 'tip' => "Your replacement request for this slot is WAITING for approval — thick border (3px)\nAnother staff member's replacement request is WAITING for approval here — no border, you CANNOT BOOK it"],
-                /* 2026-11-11 (user): one Conflict row. The swatch is the thick
-                   "yours" style; the tooltip keeps both the yours and the
-                   others' (venue/cohort) explanations. The grid still draws
-                   others' conflicts without a border. */
-                ['class' => 'cell-occupied cell-occupied--mine', 'label' => 'Conflict', 'tip' => "CANNOT BOOK — your own Normal class or Replacement class is in this slot — thick border (3px)\nCANNOT BOOK — VENUE CONFLICT (this slot is used by another class in this room),\nCOHORT CONFLICT (the related cohorts have another class at that time)"],
+                ['class' => 'cell-pending', 'label' => 'Pending', 'tip' => "A replacement request for this slot is WAITING for approval\nHOVER the slot to see whether it is YOURS (you can follow it up) or another staff member's (you CANNOT BOOK it)"],
+                /* 2026-11-11 (user): one Conflict row, drawn plain — your own
+                   conflict looks the same as a venue/cohort conflict now; the
+                   hover words name which one it is. */
+                ['class' => 'cell-occupied', 'label' => 'Conflict', 'tip' => "CANNOT BOOK — the slot is taken by a scheduled class\nHOVER the slot to see WHY: your own class, a VENUE CONFLICT (another class in this room), or a COHORT CONFLICT (the related cohorts have another class at that time)"],
             ]
         ])
 

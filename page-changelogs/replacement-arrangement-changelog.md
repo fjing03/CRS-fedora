@@ -1,3 +1,36 @@
+## 2026-11-11 — the ownership ring is gone; the legend matches the grid
+
+User ruling (2026-11-11, four answers): colour alone says "cannot book".
+
+**The ring is gone.** `.cell-occupied--mine` and `.cell-pending` lost their
+`3px` border, so your own conflict and your own pending slot draw exactly like a venue/cohort
+conflict and another staff member's pending. `--mine` stays on the element (the hover words, the
+classification and the summary counters read it) but paints nothing.
+
+**The legend tells the truth again.** The ownership hint line ("Thick border (3px) = Yours · No
+border = Others'") is DELETED — it described a border the page no longer draws — and the two rows
+that only differed by a ring collapse into four looks total:
+
+| Row | Swatch | Hover |
+|---|---|---|
+| Available | green cell | FREE SLOT — CLICK … |
+| Your Current Selection | blue outline | the slot(s) you have SELECTED … |
+| Pending | amber, borderless | waiting for approval · hover the slot to see whether it is YOURS |
+| Conflict | red, borderless | cannot book · hover to see WHY (your own class / venue / cohort) |
+
+Measured on the demo data (nothing written): every `.cell-content` family reports `0px` border,
+`.legend-ownership-hint` count 0, the four swatches report `0px` except the blue selection chip
+(2px outline by design), 0 console errors.
+
+*Scope: this page only.* The Venue and Cohort grids keep their 0.5px hairline ownership border and
+their own legend line.
+
+Tests: `tests/Feature/SlotBorderAndReasonBadgeTest.php` (block-scoped: no `border:` in either rule,
+the background tokens untouched, the legend has no ownership hint, the conflict swatch is the plain
+class). `tests/arrangement-slot-ownership.spec.ts` was re-pointed from "3px = yours" to the new law
+(rings `0px` everywhere, four legend rows, no hint line): its three read-only tests pass; its write
+test is blocked by a pre-existing date-dependent fixture (`Week 8` no longer offers a bookable slot on
+2026-11-11) which fails identically on unmodified HEAD.
 ## 2026-11-11 — the Earliest-bookable tooltip named the day before
 
 User report: the `#earliestBtn` tooltip read **`Sunday, 16 Nov 2026 (Week 9)`** — 16 Nov 2026 is a

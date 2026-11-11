@@ -237,11 +237,18 @@
            type). No cause at all prints an em dash rather than a guess. */
         function reasonCell(r) {
             if (!r.conflictKind) return '<span class="cell-dash">\u2014</span>';
-            const text = r.conflictKind === 'Public Holiday'
-                ? 'Public Holiday \u2014 ' + (r.holidayName || 'Semester holiday')
-                : 'Class Cancelled';
-            const cls = r.conflictKind === 'Public Holiday' ? 'badge-holiday' : 'badge-reason';
-            return '<span class="badge ' + cls + '">' + text + '</span>';
+            /* 2026-11-11 (user): the badge names ONLY the kind; the detail rides
+               the hover. A holiday's name is public, so a student gets it
+               ("Christmas Eve"). A cancellation's reason is the lecturer's own
+               business — the student payload does not carry it by design, so that
+               badge has no tip at all. */
+            const isHoliday = r.conflictKind === 'Public Holiday';
+            const text = isHoliday ? 'Public Holiday' : 'Class Cancelled';
+            const cls = isHoliday ? 'badge-holiday' : 'badge-reason';
+            const detail = isHoliday ? (r.holidayName || 'Semester holiday') : '';
+            return '<span class="badge ' + cls + '"'
+                + (detail ? ' data-tip="' + String(detail).replace(/"/g, '&quot;') + '"' : '')
+                + '>' + text + '</span>';
         }
 
         /* REQUEST STATUS — the staff badge (class + server label). `none` is the

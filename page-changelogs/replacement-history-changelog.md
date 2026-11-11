@@ -1,3 +1,26 @@
+## 2026-11-11 — the conflict badge is the kind alone; the detail hovers
+
+User ruling (2026-11-11): the badge names only the KIND — **Public Holiday** or **Class Cancelled** —
+and the detail moved into the badge's own hover. Colours, classes and sorting are untouched.
+
+| Row | Badge | Hover |
+|---|---|---|
+| Holiday | `Public Holiday` (red) | the day's own name — "Deepavali Holiday (In Lieu)", "Christmas Eve" |
+| Cancelled class | `Class Cancelled` (grey) | the reason label — "Annual Leave", "Compassionate Leave", "Official Event" |
+
+Applied in one place per side: the table cell, the details pop-up and the phone card all build from
+the same `reasonBadge()` / `reasonCell()` (the shared `HtmlBuilder.replacementHomeCard` gained a
+`reasonTip` hook so the phone card carries the same tip).
+
+Measured on the demo data: 12 badges on the staff page (6 table + 6 phone cards), every one short and
+every one carrying its detail tip; the pop-up prints the same short badge. The student page gets the
+holiday name only (`Deepavali Holiday (In Lieu)` / `Christmas Eve` / `Christmas Day`) — a cancellation
+reason is the lecturer's own business, so those badges carry no tip by design (user's answer C).
+
+Tests: `SlotBorderAndReasonBadgeTest` pins the two functions and the card hook;
+`tests/replacement-home-status-badges.spec.ts` receipt 8 now asserts the short text + the hover detail
+(13/13 green on the testing lane).
+
 ## 2026-11-11 — a student notice lands on Class Replacements, row flashing
 
 User report: clicking a student notice went to the student **timetable**. It now goes to **Class
