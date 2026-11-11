@@ -246,7 +246,12 @@
                    full array reaches computeSummary (its tally counts the
                    cancelled conflict; myTeachingStats gates the teaching
                    numbers). */
-                computeSummary(events, weekData[currentWeek].days);
+                /* 2026-11-11 (user ruling): Total Classes = Normal + Replacement
+                   + Pending, Teaching Hours = their hours, and the cards say it
+                   the way the Cohort and Venue pages do — the finished part big,
+                   the pending part as a small `+N` (9+1, 12+1). The split is the
+                   shared builder's opt-in, so all four pages print one shape. */
+                computeSummary(events, weekData[currentWeek].days, { splitPending: true });
                 updateWeekArrows(currentWeek <= 0, currentWeek >= weekData.length - 1);
             }
 

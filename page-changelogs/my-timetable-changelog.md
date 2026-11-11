@@ -1,3 +1,25 @@
+## 2026-11-11 — the two timetable cards split finished + pending
+
+User ruling (2026-11-11): **Total Classes = Normal + Replacement + Pending** and **Teaching Hours** = their
+hours (cancelled classes excluded) — and both cards must say it the way the **Cohort** and **Venue** pages
+already do: the finished part big, the pending part as a small `+N`, so the two parts always add up.
+
+Both pages now pass the shared builder's existing `{ splitPending: true }` opt-in (`computeSummary`,
+ui-common.js). No new maths, no new writer — the same one the Cohort page uses.
+
+Measured on the demo data (Staff 5425, Week 8: 8 normal / 1 replacement / 1 pending / 2 cancelled):
+
+| Card | Before | After |
+|---|---|---|
+| Total Classes | `10` | **`9`**`+1` — 9 finished + 1 waiting = 10 |
+| Teaching Hours | `13` | **`12`**`+1` — 12 finished hours + 1 waiting hour = 13 |
+
+Week 7 reads `11+0` / `14+0` and Week 9 `10+0` / `13+0` — the `+0` tail always renders, exactly like the
+Cohort page (`8+0`, `11.5+0`), so the shape never jumps between weeks. Replacements, Pending and Conflicts
+keep their plain numbers (a `+N` on the Pending card would be nonsense).
+
+The student page (`student-my-timetable`) carries the same split: 24DFT0001, Week 8 → `11+0` classes /
+`16+0` hours. 0 console errors on both pages.
 ## 2026-11-10 (later) — Cancel this Class?: the "Other" reason block
 
 User brief `prompts/cancel-class-reason-block.md`, item 5. Items 1–4 (two-column grid, heading asterisk,

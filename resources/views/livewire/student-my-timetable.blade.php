@@ -131,7 +131,10 @@
             function updateSummary() {
                 /* cancelled-blocks-stay-visible: the filter is REMOVED — the
                    full array reaches computeSummary. */
-                computeSummary(eventsData[currentWeek] || [], weekData[currentWeek].days);
+                /* 2026-11-11 (user ruling): Total Classes = Normal + Replacement
+                   + Pending and Class Hours = their hours, printed the Cohort/
+                   Venue way — finished part big, pending part as `+N` (9+1). */
+                computeSummary(eventsData[currentWeek] || [], weekData[currentWeek].days, { splitPending: true });
                 updateWeekArrows(currentWeek <= 0, currentWeek >= weekData.length - 1);
             }
 
