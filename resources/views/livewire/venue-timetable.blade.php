@@ -193,15 +193,15 @@
     @include('partials.ui-summary-bar', [
         'cards' => [
             ['class' => 'card-total', 'valueId' => 'sumTotal', 'label' => 'Total Slots',
-                'description' => 'All time slots shown for <span class="info-keyword">this venue</span> in the selected week.'],
+                'description' => 'Every time slot shown for <span class="info-keyword">this venue</span> this week (30 minutes each). The small <strong>+N</strong> is the part held by pending requests.'],
             ['class' => 'card-available', 'valueId' => 'sumAvailable', 'label' => 'Available',
-                'description' => '<span class="info-keyword">Free time slots</span> that can be booked for this venue — Sundays and public holidays excluded.'],
+                'description' => 'Free slots you can book this week. <span class="warn-keyword">Sundays and public holidays</span> are not counted.'],
             ['class' => 'card-replacement', 'valueId' => 'sumMyClasses', 'label' => 'My Teaching Classes',
-                'description' => 'Sessions <span class="info-keyword">you teach</span> in this venue this week — confirmed + <strong>pending</strong>; each class counts separately.'],
+                'description' => 'Classes <span class="info-keyword">you teach</span> in this venue this week: normal + replacement + pending, each class counted on its own. The small <strong>+N</strong> is the pending part.'],
             ['class' => 'card-hours', 'valueId' => 'sumMyHours', 'label' => 'My Teaching Hours',
-                'description' => 'Confirmed + pending hours of <span class="info-keyword">your classes</span> in this venue this week (each slot = <strong>30 minutes</strong>).'],
+                'description' => 'Hours of the classes <span class="info-keyword">you teach</span> in this venue this week (each slot = <strong>30 minutes</strong>). The small <strong>+N</strong> is the pending part.'],
             ['class' => 'card-conflict', 'valueId' => 'sumOccupied', 'label' => 'Occupied',
-                'description' => 'Slots occupied by <span class="info-keyword">scheduled classes</span> — confirmed + <strong>pending</strong> make-up holds.'],
+                'description' => 'Slots taken by other classes this week: normal + replacement + pending. The small <strong>+N</strong> is the part held by pending requests.'],
         ]
     ])
 

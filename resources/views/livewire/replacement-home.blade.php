@@ -238,15 +238,15 @@
         @include('partials.ui-summary-bar', [
             'cards' => [
                 ['class' => 'card-conflict', 'valueId' => 'summaryNeeds', 'label' => 'Classes to Arrange',
-                    'description' => 'Your classes that <span class="warn-keyword">still need a replacement arrangement</span>.'],
+                    'description' => 'Your classes that <span class="warn-keyword">still need a replacement arranged</span> and have no request waiting.'],
                 ['class' => 'card-duration', 'valueId' => 'summaryHours', 'label' => 'Class Hours to Replace',
-                    'description' => 'Total <span class="info-keyword">hours of class time</span> that still need to be rescheduled.'],
+                    'description' => 'Hours of those classes — the teaching <span class="info-keyword">still waiting to be arranged</span>.'],
                 ['class' => 'card-pending', 'valueId' => 'summaryPending', 'label' => 'Pending Requests',
-                    'description' => 'Requests still <span class="warn-keyword">waiting for approval</span>.'],
+                    'description' => 'Your requests <span class="warn-keyword">waiting for approval</span> — no decision yet.'],
                 ['class' => 'card-approved', 'valueId' => 'summaryApproved', 'label' => 'Approved Requests',
-                    'description' => 'Requests the PL has <span class="info-keyword">approved</span>.'],
+                    'description' => 'Your requests the PL has <span class="info-keyword">approved</span> — the replacement is confirmed.'],
                 ['class' => 'card-rejected', 'valueId' => 'summaryRejected', 'label' => 'Rejected Requests',
-                    'description' => 'Requests that were <span class="warn-keyword">declined</span>.'],
+                    'description' => 'Your requests the PL <span class="warn-keyword">declined</span> — arrange them again or pick another slot.'],
             ]
         ])
 

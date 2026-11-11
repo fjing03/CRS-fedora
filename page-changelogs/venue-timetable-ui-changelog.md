@@ -1,3 +1,30 @@
+## 2026-11-11 — every summary card now explains its formula
+
+User ruling (2026-11-11): every summary card must **say how its number is made**, in plain words.
+All seven live pages (and the shared fallback map in `partials/ui-summary-bar.blade.php`) now carry
+formula-first descriptions. Only the cards that show a `+N` mention it.
+
+| Card | New description |
+|---|---|
+| Total Classes | Normal + replacement + pending classes this week. Cancelled classes are not counted. The small `+N` is the pending part. |
+| Teaching Hours / Class Hours | Hours of your normal + replacement + pending classes this week (each slot = 30 minutes). Cancelled classes are not counted. The small `+N` is the pending part. |
+| Replacements | Classes a replacement lecturer teaches for you this week. |
+| Pending | Your classes still waiting for a replacement to be approved this week. |
+| Conflicts | Classes that cannot run as scheduled — a clash, a cancellation, or a public holiday. |
+| Cohort · My Teaching Classes | Classes you teach this week: normal + replacement + pending, each class counted on its own (Subject A (T) and Subject A (L) are two). The small `+N` is the pending part. |
+| Venue · Available | Free slots you can book this week. Sundays and public holidays are not counted. |
+| Venue · Occupied | Slots taken by other classes this week: normal + replacement + pending. The small `+N` is the part held by pending requests. |
+| Replacements · Classes to Arrange | Your classes that still need a replacement arranged and have no request waiting. |
+| Request Approval · Total Requests | Requests that match the filters you have set. |
+| Class Replacements · Hours Awaiting Arrangement | Hours of those classes. Classes already arranged are not counted. |
+
+Wording style: one short line, the formula first, the `+N` explained only where the card prints one.
+
+Checked in the browser on every page: the text never overflows its card (0px on all 33 cards), values
+unchanged by the wording (`9+1` / `12+1` on My Timetable W8), 0 console errors.
+
+*Not applied to `/replacement-arrangement`: its summary bar is currently commented out in the blade (the
+2026-11-11 legend commit), so no cards are displayed there — the copy is ready to drop in when it returns.*
 ## 2026-11-11 — the Earliest-bookable tooltip named the day before
 
 User report: the `#earliestBtn` tooltip read **`Sunday, 16 Nov 2026 (Week 9)`** — 16 Nov 2026 is a

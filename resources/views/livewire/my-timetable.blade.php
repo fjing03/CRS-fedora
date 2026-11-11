@@ -63,15 +63,15 @@
     @include('partials.ui-summary-bar', [
         'cards' => [
             ['class' => 'card-total', 'valueId' => 'sumTotal', 'label' => 'Total Classes',
-                'description' => 'Total classes in <span class="info-keyword">your weekly timetable</span> for the selected week.'],
+                'description' => '<span class="info-keyword">Normal + replacement + pending</span> classes this week. Cancelled classes are not counted. The small <strong>+N</strong> is the pending part.'],
             ['class' => 'card-hours', 'valueId' => 'sumHours', 'label' => 'Teaching Hours',
-                'description' => 'Total <span class="info-keyword">teaching hours</span> in your timetable for the selected week (each slot = <strong>30 minutes</strong>).'],
+                'description' => 'Hours of your <span class="info-keyword">normal + replacement + pending</span> classes this week (each slot = <strong>30 minutes</strong>). Cancelled classes are not counted. The small <strong>+N</strong> is the pending part.'],
             ['class' => 'card-replacement', 'valueId' => 'sumReplacement', 'label' => 'Replacements',
-                'description' => 'Classes where a <span class="info-keyword">replacement lecturer</span> is covering you this week.'],
+                'description' => 'Classes a <span class="info-keyword">replacement lecturer</span> teaches for you this week.'],
             ['class' => 'card-pending', 'valueId' => 'sumPending', 'label' => 'Pending',
-                'description' => 'Replacement requests of yours still <span class="warn-keyword">waiting for approval</span> or a volunteer.'],
+                'description' => 'Your classes still <span class="warn-keyword">waiting for a replacement to be approved</span> this week.'],
             ['class' => 'card-conflict', 'valueId' => 'sumConflict', 'label' => 'Conflicts',
-                'description' => '<span class="warn-keyword">Scheduling clashes</span> in your timetable or classes on <strong>public holidays</strong> that need attention.'],
+                'description' => 'Classes that cannot run as scheduled — a <span class="warn-keyword">clash</span>, a cancellation, or a <strong>public holiday</strong>.'],
         ]
     ])
 

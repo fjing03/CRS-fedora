@@ -43,15 +43,15 @@
     @include('partials.ui-summary-bar', [
         'cards' => [
             ['class' => 'card-total', 'valueId' => 'sumTotal', 'label' => 'Total Classes',
-                'description' => 'Total classes in <span class="info-keyword">your timetable</span> this week.'],
+                'description' => '<span class="info-keyword">Normal + replacement + pending</span> classes this week. Cancelled classes are not counted. The small <strong>+N</strong> is the pending part.'],
             ['class' => 'card-hours', 'valueId' => 'sumHours', 'label' => 'Class Hours',
-                'description' => 'Total <span class="info-keyword">class hours</span> you have this week (each slot = <strong>30 minutes</strong>).'],
+                'description' => 'Hours of your <span class="info-keyword">normal + replacement + pending</span> classes this week (each slot = <strong>30 minutes</strong>). Cancelled classes are not counted. The small <strong>+N</strong> is the pending part.'],
             ['class' => 'card-replacement', 'valueId' => 'sumReplacement', 'label' => 'Replacements',
-                'description' => 'Classes where a <span class="info-keyword">different lecturer</span> is covering this week.'],
+                'description' => 'Classes a <span class="info-keyword">different lecturer</span> teaches for your class this week.'],
             ['class' => 'card-pending', 'valueId' => 'sumPending', 'label' => 'Pending',
-                'description' => 'Replacement requests still <span class="warn-keyword">being processed</span> for your classes.'],
+                'description' => 'Your classes still <span class="warn-keyword">waiting for a replacement to be approved</span> this week.'],
             ['class' => 'card-conflict', 'valueId' => 'sumConflict', 'label' => 'Conflicts',
-                'description' => '<span class="warn-keyword">Scheduling clashes and public holidays</span> in your timetable that need attention.'],
+                'description' => 'Classes that cannot run as scheduled — a <span class="warn-keyword">clash</span>, a cancellation, or a <strong>public holiday</strong>.'],
         ]
     ])
 

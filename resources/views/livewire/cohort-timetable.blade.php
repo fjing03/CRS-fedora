@@ -140,15 +140,15 @@
     @include('partials.ui-summary-bar', [
         'cards' => [
             ['class' => 'card-total', 'valueId' => 'sumTotal', 'label' => 'Total Classes',
-                'description' => 'Confirmed (replacement &amp; normal) + <span class="info-keyword">pending</span> classes for <span class="info-keyword">this cohort</span> in the selected week.'],
+                'description' => 'All classes this cohort has this week: <span class="info-keyword">normal + replacement + pending</span>. Cancelled classes are not counted. The small <strong>+N</strong> is the pending part.'],
             ['class' => 'card-hours', 'valueId' => 'sumHours', 'label' => 'Teaching Hours',
-                'description' => 'Confirmed + <span class="info-keyword">pending teaching hours</span> for this cohort in the selected week (each slot = <strong>30 minutes</strong>).'],
+                'description' => 'Hours of normal + replacement + pending classes for this cohort this week (each slot = <strong>30 minutes</strong>). Cancelled classes are not counted. The small <strong>+N</strong> is the pending part.'],
             ['class' => 'card-replacement', 'valueId' => 'sumMyClasses', 'label' => 'My Teaching Classes',
-                'description' => 'Sessions <span class="info-keyword">taught by you</span> this week — confirmed + <strong>pending</strong>; each class counts separately (e.g. Subject A (T) and Subject A (L) are two classes).'],
+                'description' => 'Classes <span class="info-keyword">you teach</span> this week: normal + replacement + pending, each class counted on its own (Subject A (T) and Subject A (L) are two). The small <strong>+N</strong> is the pending part.'],
             ['class' => 'card-hours', 'valueId' => 'sumMyHours', 'label' => 'My Teaching Hours',
-                'description' => 'Confirmed + pending hours of <span class="info-keyword">your classes</span> this week (each slot = <strong>30 minutes</strong>).'],
+                'description' => 'Hours of the classes <span class="info-keyword">you teach</span> this week: normal + replacement + pending (each slot = <strong>30 minutes</strong>). The small <strong>+N</strong> is the pending part.'],
             ['class' => 'card-conflict', 'valueId' => 'sumConflict', 'label' => 'Conflicts',
-                'description' => '<span class="warn-keyword">Scheduling clashes</span> or classes on <strong>public holidays</strong> for this cohort that need attention.'],
+                'description' => 'Classes that cannot run as scheduled — a <span class="warn-keyword">clash</span>, a cancellation, or a <strong>public holiday</strong>.'],
         ]
     ])
 

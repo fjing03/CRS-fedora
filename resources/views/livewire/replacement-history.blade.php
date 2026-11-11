@@ -152,11 +152,11 @@
             /* 2026-11-09 (user): the hours card sits SECOND, right of Awaiting
                Arrangement — the two numbers a student reads first are "how many
                classes still need arranging" and "how much teaching that is". */
-            ['class' => 'card-pending', 'valueId' => 'sumNone', 'label' => 'Classes Awaiting Arrangement', 'description' => 'Conflicted classes with <span class="warn-keyword">no live request</span> — cancelled or on a holiday, not yet rearranged.'],
-            ['class' => 'card-hours', 'valueId' => 'sumHours', 'label' => 'Hours Awaiting Arrangement', 'description' => 'Total <span class="info-keyword">class hours</span> of those classes — the teaching still waiting for a replacement, so arranged classes never count here.'],
-            ['class' => 'card-pending', 'valueId' => 'sumPending', 'label' => 'Pending', 'description' => 'Requests <span class="warn-keyword">waiting for PL approval</span> for your cohort.'],
-            ['class' => 'card-replacement', 'valueId' => 'sumApproved', 'label' => 'Approved', 'description' => 'Replacements the PL has <span class="info-keyword">approved</span> — attend the requested slot.'],
-            ['class' => 'card-hours', 'valueId' => 'sumCompleted', 'label' => 'Completed', 'description' => 'Replacements that have already taken place — switch Exclude COMPLETED Status off to see them.'],
+            ['class' => 'card-pending', 'valueId' => 'sumNone', 'label' => 'Classes Awaiting Arrangement', 'description' => 'Classes still <span class="warn-keyword">waiting for a replacement</span> — cancelled, on a holiday, and with no request sent yet.'],
+            ['class' => 'card-hours', 'valueId' => 'sumHours', 'label' => 'Hours Awaiting Arrangement', 'description' => 'Hours of those classes. Classes already arranged <span class="info-keyword">are not counted</span>.'],
+            ['class' => 'card-pending', 'valueId' => 'sumPending', 'label' => 'Pending', 'description' => 'Your requests <span class="warn-keyword">waiting for PL approval</span>.'],
+            ['class' => 'card-replacement', 'valueId' => 'sumApproved', 'label' => 'Approved', 'description' => 'Replacements the PL <span class="info-keyword">approved</span> — attend the requested slot.'],
+            ['class' => 'card-hours', 'valueId' => 'sumCompleted', 'label' => 'Completed', 'description' => 'Replacements that <span class="info-keyword">already took place</span>. Switch Exclude COMPLETED Status off to see them.'],
         ] ])
 
         <!-- ─── Class detail modal (shared shell for openClassModal) ─── -->

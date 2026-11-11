@@ -291,15 +291,15 @@
 
 @include('partials.ui-summary-bar', ['cards' => [
     ['class' => 'card-total', 'valueId' => 'summaryTotal', 'label' => 'Total Requests',
-        'description' => 'Replacement requests <span class="info-keyword">matching your current filters</span> in the selected period.'],
+        'description' => 'Requests that match the <span class="info-keyword">filters you have set</span>.'],
     ['class' => 'card-pending', 'valueId' => 'summaryPending', 'label' => 'Pending Requests',
-        'description' => 'Requests still <span class="warn-keyword">waiting for your approval</span> — no decision made yet.'],
+        'description' => 'Requests <span class="warn-keyword">waiting for your decision</span> — no approval or rejection yet.'],
     ['class' => 'card-approved', 'valueId' => 'summaryApproved', 'label' => 'Approved Requests',
-        'description' => 'Requests you have <span class="info-keyword">approved</span> and are ready to proceed.'],
+        'description' => 'Requests <span class="info-keyword">you approved</span> — the replacement is confirmed.'],
     ['class' => 'card-rejected', 'valueId' => 'summaryRejected', 'label' => 'Rejected Requests',
-        'description' => 'Requests you <span class="warn-keyword">declined</span> — the lecturer will need an alternative arrangement.'],
+        'description' => 'Requests <span class="warn-keyword">you declined</span> — the lecturer must arrange again.'],
     ['class' => 'card-total', 'valueId' => 'summaryReviewed', 'label' => 'Total Reviewed',
-        'description' => 'Requests already <span class="info-keyword">decided</span> (approved, rejected, or completed).']
+        'description' => 'Requests already <span class="info-keyword">decided</span>: approved, rejected or completed.']
 ]])
 
 <div class="modal-overlay" id="modalOverlay">
