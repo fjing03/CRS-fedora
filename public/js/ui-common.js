@@ -3666,11 +3666,10 @@ function initDataTipTooltips() {
         tip.style.visibility = 'hidden';
     }
 
-    document.addEventListener('mouseenter', function(e) {
-        var el = findTip(e.target);
-        if (!el) return;
+    function show(el) {
         var r = el.getBoundingClientRect();
         var tipText = el.getAttribute('data-tip') || '';
+        if (!tipText) { hide(); return; }
         tip.textContent = tipText;
         /* SDD tidy-arrangement-cell-tooltips (2026-10-27): the multi-line
            tips (the arrangement's conflict-state header + one block per
@@ -3708,15 +3707,31 @@ function initDataTipTooltips() {
         tip.style.top = top + 'px';
         tip.style.opacity = '1';
         tip.style.visibility = 'visible';
+    }
+
+    document.addEventListener('mouseenter', function(e) {
+        var el = findTip(e.target);
+        if (el) show(el);
     }, true);
 
     document.addEventListener('mouseleave', function(e) {
         if (findTip(e.target)) hide();
     }, true);
 
-    // Safety: hide when focusing away / on scroll so stale tips don't linger
+    // Safety: hide when the pointer leaves a tip target so stale tips don't linger
     document.addEventListener('mouseout', function(e) {
         if (findTip(e.relatedTarget)) return;
+        if (findTip(e.target)) hide();
+    }, true);
+
+    /* 2026-11-11 (user, "UI Update — Compact Tip Tooltip"): keyboard parity —
+       the same data-tip tooltip now shows on focus and hides on blur. */
+    document.addEventListener('focusin', function(e) {
+        var el = findTip(e.target);
+        if (el) show(el);
+    }, true);
+
+    document.addEventListener('focusout', function(e) {
         if (findTip(e.target)) hide();
     }, true);
 }

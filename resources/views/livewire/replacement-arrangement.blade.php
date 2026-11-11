@@ -700,49 +700,47 @@
             color: var(--color-on-surface);
         }
 
-        /* 2026-11-10 (user, "UI Update — Action Area"): tip on the LEFT, the Submit
-           Request button on its RIGHT, in one row that closes the summary card. */
+        /* 2026-11-11 (user, "UI Update — Compact Tip Tooltip"): the long hint is
+           now a compact [💡 Tip] trigger immediately LEFT of Submit Request. */
         .sel-summary-action {
             display: flex;
             align-items: center;
-            justify-content: space-between;
-            gap: 12px;
+            justify-content: flex-end;
+            gap: 10px;
             padding: 12px 20px;
             /* no rule of its own: the grid above already ends with one, and the
                info strip adds a second when it is showing — a border here would
                double it. The tip row had none before this change either. */
         }
-        .sel-summary-tip {
-            flex: 1 1 auto;
-            min-width: 0;
-            padding: 0;
-            font-size: 12px;
+        .sel-summary-tip-trigger {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            height: 32px;
+            padding: 0 11px;
+            border: 1px solid var(--color-outline);
+            border-radius: var(--radius-md);
+            background: transparent;
             color: var(--color-on-surface-variant);
-            text-align: left;
+            font-family: inherit;
+            font-size: 12px;
+            font-weight: 600;
+            line-height: 1;
+            white-space: nowrap;
+            cursor: help;
+            transition: background 0.15s, color 0.15s, border-color 0.15s;
+        }
+        .sel-summary-tip-trigger svg { flex-shrink: 0; }
+        .sel-summary-tip-trigger:hover,
+        .sel-summary-tip-trigger:focus-visible {
+            background: var(--color-surface-variant);
+            color: var(--color-on-surface);
+        }
+        .sel-summary-tip-trigger:focus-visible {
+            outline: 2px solid var(--color-primary);
+            outline-offset: 2px;
         }
         .sel-summary-action #submitTip { flex: 0 0 auto; }
-        .sel-summary-tip .tip-plain { color: var(--color-on-surface); }
-        .sel-summary-tip .tip-max { font-weight: 400; } /* white + CAP via literal text, no bold */
-        .sel-summary-tip .tip-action {
-            color: var(--color-primary);
-            font-weight: 700;
-            text-transform: uppercase;
-        }
-        html.dark .sel-summary-tip .tip-action {
-            color: var(--color-on-primary-container); /* dark navy primary is too dim on the dark surface */
-        }
-        .sel-summary-tip .tip-remove {
-            color: var(--color-on-surface); /* white, not primary */
-            font-weight: 700;
-            text-transform: uppercase;
-        }
-        .sel-summary-tip .tip-success {
-            color: var(--color-success);
-            font-weight: 700;
-        }
-        html.dark .sel-summary-tip .tip-success {
-            color: var(--color-on-success-container); /* dark green success is too dim on the dark surface */
-        }
 
         @media (max-width: 1024px) {
             .sel-summary-grid {
@@ -797,7 +795,7 @@
                 align-items: stretch;
                 gap: 10px;
             }
-            .sel-summary-tip { text-align: center; }
+            .sel-summary-tip-trigger { align-self: center; }
             .sel-summary-action #submitTip { align-self: stretch; }
             .sel-summary-action .btn {
                 width: 100%;
@@ -1038,28 +1036,28 @@
 
         @include('partials.ui-grid-table')
 
-        {{-- SDD arrangement-slot-ownership-legend (user law, 2026-11-06):
-             six rows, and every swatch carries the REAL cell class — so fill
-             AND border show, and the legend can never drift from the grid.
-             Capitals do the emphasis because a data-tip is plain text (the
-             engine sets textContent + pre-line; markup would print literally),
-             and the Conflict (Others) tip's line break is a \n, NOT a <br>. --}}
+        {{-- SDD arrangement-slot-ownership-legend (user law, 2026-11-06;
+             2026-11-11 simplification): four rows. Pending and Conflict each
+             merge their yours/others' pair into ONE row; the swatch shows the
+             thick "yours" style and the tooltip keeps BOTH old explanations.
+             The grid's border language is unchanged: thick = yours, no border
+             = others'. Capitals do the emphasis because a data-tip is plain
+             text (the engine sets textContent + pre-line; markup would print
+             literally), so line breaks are \n, not <br>. --}}
         @include('partials.ui-legend-bar', [
             'ownershipHint' => [
-                ['demo' => 'osd-thick', 'text' => 'thick border (3px) = yours'],
-                ['demo' => '', 'text' => "no border = others'"],
+                ['demo' => 'osd-thick', 'text' => 'Thick border (3px) = Yours'],
+                ['demo' => '', 'text' => "No border = Others' (Cohorts or Venue)"],
             ],
             'items' => [
                 ['class' => 'cell-available', 'label' => 'Available', 'tip' => 'FREE SLOT — CLICK to select as the replacement (slots inside the 3-working-day window are read-only)'],
                 ['class' => 'event-selection', 'label' => 'Your Current Selection', 'tip' => 'The slot(s) you have SELECTED for the replacement'],
-                ['class' => 'cell-pending', 'label' => 'Your Pending', 'tip' => 'Your replacement request for this slot is WAITING for approval — thick border (3px)'],
-                ['class' => 'cell-reserved', 'label' => 'Other Pending', 'tip' => "Another staff member's replacement request is WAITING for approval here — no border, you CANNOT BOOK it"],
-                ['class' => 'cell-occupied cell-occupied--mine', 'label' => 'Your Conflict', 'tip' => 'CANNOT BOOK — your own Normal class or Replacement class is in this slot — thick border (3px)'],
-                /* 2026-11-07 (user): the legend groups the non-yours red family into ONE
-                   row — a venue conflict and a cohorts conflict are both "Others
-                   Conflict" here (the CELL still names the reason: Venue / Cohorts /
-                   Your & Cohorts Conflict). This is the previous row's wording. */
-                ['class' => 'cell-occupied', 'label' => 'Others Conflict', 'tip' => "CANNOT BOOK — VENUE CONFLICT (this slot is used by another class in this room),\nCOHORT CONFLICT (the related cohorts have another class at that time)"],
+                ['class' => 'cell-pending', 'label' => 'Pending', 'tip' => "Your replacement request for this slot is WAITING for approval — thick border (3px)\nAnother staff member's replacement request is WAITING for approval here — no border, you CANNOT BOOK it"],
+                /* 2026-11-11 (user): one Conflict row. The swatch is the thick
+                   "yours" style; the tooltip keeps both the yours and the
+                   others' (venue/cohort) explanations. The grid still draws
+                   others' conflicts without a border. */
+                ['class' => 'cell-occupied cell-occupied--mine', 'label' => 'Conflict', 'tip' => "CANNOT BOOK — your own Normal class or Replacement class is in this slot — thick border (3px)\nCANNOT BOOK — VENUE CONFLICT (this slot is used by another class in this room),\nCOHORT CONFLICT (the related cohorts have another class at that time)"],
             ]
         ])
 
@@ -1111,12 +1109,21 @@
                     </div>
                 </div>
             </div>
-            {{-- 2026-11-10 (user, "UI Update — Action Area"): the action row — the tip
-                 on the left, the Submit Request button on its RIGHT. The button is a
-                 SIBLING of #summaryTip, never a child: that node's innerHTML is
-                 rewritten on every render, which would delete the button. --}}
+            {{-- 2026-11-11 (user, "UI Update — Compact Tip Tooltip"): the long hint
+                 is a compact [💡 Tip] trigger immediately LEFT of Submit Request.
+                 The trigger and the button are siblings; only the trigger's
+                 `data-tip` text is rewritten, never its icon/label contents. --}}
             <div class="sel-summary-action">
-                <div class="sel-summary-tip" id="summaryTip">Tip: Click an <span class="tip-success">available (green)</span> time slot to begin.</div>
+                <button type="button" class="sel-summary-tip-trigger" id="summaryTip"
+                        data-tip="Click an available (green) time slot to begin."
+                        aria-label="Tip: Click an available (green) time slot to begin.">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                        <path d="M9 18h6"/>
+                        <path d="M10 22h4"/>
+                        <path d="M12 2a7 7 0 0 0-4 12.7V17h8v-2.3A7 7 0 0 0 12 2Z"/>
+                    </svg>
+                    <span>Tip</span>
+                </button>
                 <span class="btn-tip" id="submitTip" data-tip="Select a time slot first to enable submission">
                     <button class="btn btn-primary" id="submitRequestBtn" onclick="proceed()">
                         Submit Request
@@ -1396,6 +1403,17 @@
             return (name || '') + seats;
         }
 
+        /* 2026-11-11 (user, "UI Update — Compact Tip Tooltip"): the visible
+           label is just "Tip"; the sentence lives in the shared data-tip
+           tooltip (hover + keyboard focus). */
+        const SUMMARY_TIP_BASE = 'Click an available (green) time slot to begin.';
+        function setSummaryTip(message) {
+            const tip = document.getElementById('summaryTip');
+            if (!tip) return;
+            tip.setAttribute('data-tip', message);
+            tip.setAttribute('aria-label', 'Tip: ' + message.replace(/\n/g, ' '));
+        }
+
         function updateSelectionSummary() {
             /* multi-week model: the panel lists EVERY saved selection (any week),
                matching the Submit dialog and the enabled Submit button */
@@ -1430,7 +1448,7 @@
                 grid.style.display = 'none';
                 grid.innerHTML = '';
                 document.getElementById('summaryInfo').style.display = 'none';
-                document.getElementById('summaryTip').innerHTML = 'Tip: Click an <span class="tip-success">available (green)</span> time slot to begin.';
+                setSummaryTip(SUMMARY_TIP_BASE);
                 /* the 'N of M slots' counter lives outside the empty-state —
                    without this it kept the pre-clear value (stale '4 of 4'
                    after a deselect/clear) */
@@ -1509,13 +1527,12 @@
             document.getElementById('infoDuration').textContent = durationStr;
             document.getElementById('infoBuilding').textContent = venueDropdown ? venueDropdown.getSelected() : currentVenue;
 
-            const tip = document.getElementById('summaryTip');
             if (getGlobalTotal() >= MAX_SELECTION) {
-                tip.innerHTML = 'Tip: <span class="tip-plain"><span class="tip-max">MAX</span>imum selection reached. Click the <span class="tip-action">selected block</span> to <span class="tip-remove">remove</span> it.</span>';
+                setSummaryTip('Maximum selection reached.\nClick the selected block to remove it.');
             } else if (allBlocks.length > 0) {
-                tip.innerHTML = 'Tip: <span class="tip-plain">Click the <span class="tip-action">selected block</span> to <span class="tip-remove">remove</span> it.</span>';
+                setSummaryTip('Click the selected block to remove it.');
             } else {
-                tip.innerHTML = 'Tip: Click an <span class="tip-success">available (green)</span> time slot to begin.';
+                setSummaryTip(SUMMARY_TIP_BASE);
             }
         }
 

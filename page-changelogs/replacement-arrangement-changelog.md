@@ -1,3 +1,48 @@
+## 2026-11-11 — the legend drops to four rows and the ownership hint gets its exact wording
+
+The legend now reads:
+
+| row | swatch | tooltip |
+|---|---|---|
+| Available | real `.cell-available` | unchanged |
+| Your Current Selection | real `.event-selection` | unchanged |
+| Pending | thick `.cell-pending` | both old Pending tips, one per line |
+| Conflict | thick `.cell-occupied.cell-occupied--mine` | both old Conflict tips, one per line |
+
+The hover instruction is unchanged (`Hover a colour to learn more`). The
+ownership hint is now exactly:
+
+    Thick border (3px) = Yours · No border = Others' (Cohorts or Venue)
+
+The grid's border language is unchanged: thick = yours, no border = others'.
+The combined rows show the thick "yours" swatch (the user's choice), while the
+tooltip still explains both variants.
+
+## 2026-11-11 — the tip becomes a compact `[💡 Tip]` trigger beside Submit Request
+
+The long hint line in the summary card's action row is now a compact outline
+chip: lightbulb icon + `Tip`, immediately to the left of **Submit Request**
+(the row is right-aligned, 10px gap). Hovering or keyboard-focusing the chip
+opens the shared `data-tip` tooltip with:
+
+    Click an available (green) time slot to begin.
+
+The tooltip still follows the selection state, as before:
+
+| state | tooltip |
+|---|---|
+| nothing selected | `Click an available (green) time slot to begin.` |
+| a block selected | `Click the selected block to remove it.` |
+| MAX reached | `Maximum selection reached.` / `Click the selected block to remove it.` |
+
+`initDataTipTooltips()` now also listens for `focusin` / `focusout`, so every
+`data-tip` element shows/hides its tooltip on keyboard focus as well as hover.
+The visible chip is a ghost outline (`--color-outline`, transparent fill,
+32px high, 12px/600) with a primary focus ring; the marker is a lightbulb SVG.
+
+Booking behaviour is untouched: `#submitRequestBtn`, `proceed()`, the
+`#submitTip` wrapper and its state-aware tip all stay as they were.
+
 ## 2026-11-10 (later) — the "Showing venues that fit N students" note is removed
 
 The line `Showing venues that fit N students` (`.venue-count-note` / `#venueCountNote`) above the grid is
