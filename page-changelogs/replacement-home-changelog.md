@@ -1,3 +1,27 @@
+## 2026-11-11 — the details pop-up prints the conflict badge in full
+
+User follow-up (2026-11-11): inside the pop-up there is room and nobody should have to
+hover, so the **Conflict** badge prints IN FULL — `Public Holiday — Deepavali Holiday (In Lieu)`,
+`Class Cancelled — Annual Leave`.
+
+One builder per surface, deliberately different:
+
+| Surface | Badge | Detail |
+|---|---|---|
+| Table cell (`CONFLICT REASON`) | `Public Holiday` | hover: "Deepavali Holiday (In Lieu)" |
+| Phone card | `Public Holiday` | hover: same |
+| **Details pop-up** | **`Public Holiday — Deepavali Holiday (In Lieu)`** | printed in full, no hover |
+
+`reasonTextFull()` / `reasonBadgeFull()` sit beside `reasonText()` / `reasonDetail()` in the same
+block, so the full form is composed from the same two facts — a wording change can never make the
+short and the long disagree.
+
+Measured on the demo data (5 rows): every table badge short with its hover, every pop-up badge the
+full sentence with no tooltip attached; colours unchanged; 0 console errors.
+
+*Note: the running :8000 server had to be restarted — the compiled view was being served from
+OPcache, so the first probe still saw the old line (documented trap, `scripts/dev-serve.sh`).*
+
 ## 2026-11-11 — the conflict badge is the kind alone; the detail hovers
 
 User ruling (2026-11-11): the badge names only the KIND — **Public Holiday** or **Class Cancelled** —

@@ -245,14 +245,22 @@ test('receipt 8 — the Conflict Reason badge names the KIND, and the hover carr
     test.info().annotations.push({ type: 'fixture', description: 'no cancelled-class row in this DB — the reason half is not exercised' });
   }
 
-  // the pop-up's facts strip prints the SAME short badge, never a second wording
+  // the pop-up's facts strip prints the FULL badge (2026-11-11 follow-up: there is
+   // room in a pop-up, so nobody hovers there) — still the same kind, one wording
   const row = page.locator('#tableBody tr').first();
   const shown = ((await row.locator('.col-reason').textContent()) || '').trim();
   await row.locator('.col-code').click();
   await expect(page.locator('#quickViewModal')).toBeVisible();
   await expect(page.locator('#quickViewModal .detail-facts')).toContainText(shown);
-  await expect(page.locator('#quickViewModal .detail-facts .badge-holiday, #quickViewModal .detail-facts .badge-reason'))
-    .toContainText(/^(Public Holiday|Class Cancelled)$/);
+  const popupBadge = page.locator('#quickViewModal .detail-facts .badge-holiday, #quickViewModal .detail-facts .badge-reason');
+  await expect(popupBadge).toContainText(/^(Public Holiday|Class Cancelled)/);
+  /* the detail rides the TEXT here, never the hover */
+  const popupText = ((await popupBadge.textContent()) || '').trim();
+  const rowTip = await page.locator('#tableBody .col-reason .badge').first().getAttribute('data-tip');
+  if (rowTip) {
+    expect(popupText, 'the pop-up spells out the detail the table hovers').toContain(rowTip);
+    expect(await popupBadge.getAttribute('data-tip'), 'a pop-up badge needs no hover').toBeNull();
+  }
 });
 
 /** 2026-11-06 (user brief "Cancelled Pending Requests") — the display law.

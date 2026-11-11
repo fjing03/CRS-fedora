@@ -91,6 +91,14 @@ class SlotBorderAndReasonBadgeTest extends TestCase
         /* the badge carries it, and the phone card passes the same hook */
         $this->assertStringContainsString("(detail ? ' data-tip=\"' + detail.replace(/\"/g, '&quot;') + '\"' : '')", $src);
         $this->assertStringContainsString('reasonTip: reasonDetail', $src);
+
+        /* 2026-11-11 (user follow-up): the DETAILS POP-UP prints the badge IN FULL —
+           "Public Holiday — Deepavali Holiday (In Lieu)" — while the table and the
+           phone card keep the short badge + hover. One builder per surface. */
+        $this->assertStringContainsString('function reasonTextFull(c) {', $src);
+        $this->assertStringContainsString("return detail ? reasonText(c) + ' \\u2014 ' + detail : reasonText(c);", $src);
+        $this->assertStringContainsString('function reasonBadgeFull(c) {', $src);
+        $this->assertStringContainsString("+ reasonBadgeFull(c) + '</span>'", $src);
     }
 
     /** ── B. student: same short kinds; only the holiday name travels ── */

@@ -425,6 +425,20 @@
                 + '>' + reasonText(c) + '</span>';
         }
 
+        /* 2026-11-11 (user, follow-up ruling): the DETAILS POP-UP prints the badge
+           IN FULL — "Public Holiday — Deepavali Holiday (In Lieu)" — because there
+           is room and nobody should have to hover inside a pop-up. The table cell
+           and the phone card keep the short badge + its hover (one rule per
+           surface, deliberately different). */
+        function reasonTextFull(c) {
+            var detail = reasonDetail(c);
+            return detail ? reasonText(c) + ' \u2014 ' + detail : reasonText(c);
+        }
+
+        function reasonBadgeFull(c) {
+            return '<span class="badge ' + badgeClass(c.conflictReason) + '">' + reasonTextFull(c) + '</span>';
+        }
+
         /* venueLine / durationWords now live in ui-common.js (2026-11-09): the
            student Replacement History prints the same slot block, so the two
            formatters moved to the shared file instead of being copied again. */
@@ -926,7 +940,8 @@
                 factsHtml:
                     '<span class="df-item"><span class="df-label">Cohorts</span>' + ((c.cohorts || []).join(', ') || '\u2014') + '</span>' +
                     '<span class="df-item"><span class="df-label">Students</span>' + (window.cohortBreakdown ? window.cohortBreakdown(c) : c.totalStudents) + '</span>' +
-                    '<span class="df-item df-item--full"><span class="df-label">Conflict</span>' + reasonBadge(c) + '</span>',
+                    /* the pop-up prints the FULL badge (see reasonBadgeFull) */
+                    '<span class="df-item df-item--full"><span class="df-label">Conflict</span>' + reasonBadgeFull(c) + '</span>',
                 tabs: tabs
             });
 
