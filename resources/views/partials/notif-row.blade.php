@@ -155,9 +155,29 @@
         && ! str_contains((string) $n->link, '?')) {
         $href = '/student-my-timetable-ui?week='.(int) $n->week;
     }
+    /* 2026-11-11 (user): a STUDENT notice lands on CLASS REPLACEMENTS, not the
+       timetable — that page is where the class and its request state sit in ONE
+       row, so the click can point at the row itself (the staff-side shape).
+       The stored link stays the gate (the lifecycle law): only the student
+       timetable family is re-pointed, legacy `/student-my-timetable-ui` rows and
+       the newer `?week=N` ones alike. */
+    if ($n->role_view === 'student' && str_starts_with((string) $n->link, '/student-my-timetable-ui')) {
+        $href = '/student-class-replacements';
+    }
 
     if (! $activation) {
-        if ($n->link === '/request-approval-ui' && $n->request_id !== null) {
+        if ($n->role_view === 'student' && str_starts_with((string) $n->link, '/student-my-timetable-ui')) {
+            /* the student row is keyed two ways: a notice ABOUT a request carries
+               its id (`r<id>`), a cancelled-class notice carries none and lands on
+               the class occurrence instead (`o<sessionId>` + the week) — the same
+               pair the staff cancelled-class arm uses. */
+            if ($n->request_id !== null) {
+                $notifTarget = 'r'.$n->request_id;
+            } elseif ($n->class_session_id !== null) {
+                $notifTarget = 'o'.$n->class_session_id;
+                $notifWeek = $n->week;
+            }
+        } elseif ($n->link === '/request-approval-ui' && $n->request_id !== null) {
             $notifTarget = 'r'.$n->request_id;
         } elseif ($n->link === '/my-request-history-ui' && $n->request_id !== null) {
             $notifTarget = 'r'.$n->request_id;

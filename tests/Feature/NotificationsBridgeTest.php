@@ -326,6 +326,66 @@ final class NotificationsBridgeTest extends TestCase
         $this->assertStringNotContainsString('data-notif-target="r'.$request->id.'"', $html);
     }
 
+    /**
+     * 2026-11-11 (user report): a STUDENT notice clicked from the bell used to
+     * land on /student-my-timetable-ui. It now lands on Class Replacements — the
+     * staff-side shape — and names the row to flash:
+     *   · a notice ABOUT a request      → `r<request_id>`
+     *   · a cancelled-CLASS notice      → `o<class_session_id>` + the week.
+     * Only the RENDERED anchor is re-pointed: the stored link, the read state and
+     * the lifecycle gate all stay exactly as they were, so old rows in the table
+     * behave like new ones.
+     */
+    public function test_a_student_notice_lands_on_class_replacements_and_names_its_row(): void
+    {
+        /* the two shapes a student actually receives, both from the real emitter */
+        $owner = User::query()->findOrFail(1);
+        $cancelledSession = ClassSession::query()->where('lecturer_id', 1)->where('day_of_week', 3)->firstOrFail();
+        $studentUser = Student::query()
+            ->whereIn('cohort_id', $cancelledSession->cohorts->pluck('id'))
+            ->firstOrFail()
+            ->user;
+        $this->assertNotNull($studentUser);
+
+        $this->actingAs($owner);
+        /* the cancellation the notice is about — without this row the notice reads
+           as "the cancellation was undone" and renders in the inactive arm (the
+           stale-notice gate, 2026-11-05), which has no anchor by design */
+        ClassException::create([
+            'class_session_id' => (int) $cancelledSession->id,
+            'week_number' => 8,
+            'reason' => 'medical_leave',
+        ]);
+        app(NotificationEmitter::class)->classCancelled($owner, $cancelledSession, 8);
+        $aboutClass = Notification::query()
+            ->where('user_id', $studentUser->id)->where('type', 'update')->firstOrFail();
+        $this->assertSame('/student-my-timetable-ui?week=8', $aboutClass->link, 'the STORED link is untouched');
+
+        $request = $this->seedRequest(1, (int) ClassSession::query()->where('id', '!=', (int) $cancelledSession->id)->where('lecturer_id', 1)->value('id'), 8);
+        $request->update(['status' => 'approved']);
+        Notification::create([
+            'user_id' => (int) $studentUser->id, 'role_view' => 'student', 'type' => 'approved',
+            'title' => 'Replacement class updated', 'body' => 'APPROVEDCOPY (P) · W8',
+            'link' => '/student-my-timetable-ui', 'request_id' => (int) $request->id,
+            'class_session_id' => (int) $cancelledSession->id, 'week' => 8,
+        ]);
+
+        $html = $this->panelHtml($studentUser);
+
+        /* both land on the Class Replacements page — never the timetable */
+        $this->assertStringContainsString('href="/student-class-replacements"', $html);
+        $this->assertStringNotContainsString('href="/student-my-timetable-ui', $html, 'the student anchor no longer points at the timetable');
+
+        /* and each names its own row: the request for a notice ABOUT a request,
+           the class occurrence (+ its week) for a cancelled-class notice */
+        $this->assertStringContainsString('data-notif-target="r'.$request->id.'"', $html);
+        $this->assertStringContainsString('data-notif-target="o'.$cancelledSession->id.'"', $html);
+        $this->assertStringContainsString('data-notif-week="8"', $html);
+
+        /* the stored link is NOT rewritten — the lifecycle gate keeps reading it */
+        $this->assertSame('/student-my-timetable-ui?week=8', $aboutClass->fresh()->link);
+    }
+
     public function test_reminder_dedupe_until_read_then_rearm(): void
     {
         $request = $this->seedRequest();
@@ -1021,12 +1081,13 @@ final class NotificationsBridgeTest extends TestCase
 
         $html = $this->panelHtml($student);
 
-        $this->assertStringContainsString(
-            'href="/student-my-timetable-ui?week=8"',
-            $html,
-            'an old student row lands on its own week',
-        );
-        $this->assertStringNotContainsString('href="/student-my-timetable-ui"', $html, 'the bare page is never the target');
+        /* 2026-11-11 (user): a student notice lands on Class Replacements now, so
+           the week rides the ANCHOR (`data-notif-w`) instead of the URL — the S8
+           rule survives, its carrier changed. */
+        $this->assertStringContainsString('href="/student-class-replacements"', $html, 'a student row lands on Class Replacements');
+        $this->assertStringContainsString('data-notif-target="o23"', $html, 'the cancelled-class anchor is the class occurrence');
+        $this->assertStringContainsString('data-notif-week="8"', $html, 'an old student row still lands on its own week');
+        $this->assertStringNotContainsString('href="/student-my-timetable-ui', $html, 'the timetable is never the target');
     }
 
     public function test_a_new_student_row_keeps_its_own_week_untouched(): void
@@ -1040,9 +1101,10 @@ final class NotificationsBridgeTest extends TestCase
 
         $html = $this->panelHtml($student);
 
-        $this->assertStringContainsString('href="/student-my-timetable-ui?week=9"', $html);
-        $this->assertStringNotContainsString('week=9?week=', $html, 'never appended twice');
-        $this->assertStringNotContainsString('week=9&week=', $html, 'never appended twice');
+        $this->assertStringContainsString('href="/student-class-replacements"', $html);
+        $this->assertStringContainsString('data-notif-week="9"', $html, 'a new row keeps its own week');
+        $this->assertStringNotContainsString('data-notif-week="8"', $html, 'the stored week is not overridden');
+        $this->assertSame(1, substr_count($html, 'data-notif-week="9"'), 'the week rides once — never twice');
     }
 
     public function test_a_staff_row_never_gains_a_week_param(): void

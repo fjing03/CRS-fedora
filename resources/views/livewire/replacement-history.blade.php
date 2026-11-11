@@ -413,7 +413,10 @@
                only a PENDING request (slotBlock's second argument). */
             body.innerHTML = visible.map(r => {
                 const pending = r.status === 'pending';
-                return '<tr role="button" tabindex="0" data-id="' + r.id + '">' +
+                /* 2026-11-11: the request id rides the row so a bell notice can
+                   name it (`?notif-hl=r<id>`); the occurrence key stays data-id. */
+                return '<tr role="button" tabindex="0" data-id="' + r.id + '"'
+                    + (r.requestId ? ' data-request-id="' + r.requestId + '"' : '') + '>' +
                     '<td class="col-code">' + courseCell(r) + '</td>' +
                     '<td class="col-lecturer">' + r.lecturer + '</td>' +
                     '<td>' + slotBlock(r.orig, true) + '</td>' +
@@ -428,7 +431,8 @@
             const list = document.getElementById('upcomingList');
             list.innerHTML = visible.map(r => {
                 const pending = r.status === 'pending';
-                return '<div class="upcoming-card' + (r.status === 'completed' ? ' past' : '') + '" role="button" tabindex="0" data-id="' + r.id + '">' +
+                return '<div class="upcoming-card' + (r.status === 'completed' ? ' past' : '') + '" role="button" tabindex="0" data-id="' + r.id + '"'
+                    + (r.requestId ? ' data-request-id="' + r.requestId + '"' : '') + '>' +
                     '<div class="upcoming-card-head">' +
                         '<span class="upcoming-card-wk">' + (r.week + 1) + '</span>' +
                         '<span class="upcoming-card-code">' + r.code + ' \u00b7 ' + r.name + ' (' + r.type + ')</span>' +
@@ -642,6 +646,57 @@
                     openReplacementModal(el.dataset.id);
                 });
             });
+
+            /* ─── Arrival from a bell notice (2026-11-11, user) ───
+               The student bell lands HERE now, so the row the notice is about
+               must be reachable. Two anchors ride the URL:
+                 r<request_id>            → the row whose request that is
+                 o<session_id>+notif-w    → the class occurrence (row id is
+                                            `<sessionId>:<week>`, the week 1-based)
+               A row hidden by the saved week filter or by Exclude COMPLETED Status
+               is REVEALED first — the staff page's jumpToMyRow does the same — so
+               the shared highlighter (ui-common, 150 ms) always has something to
+               flash. Read SYNCHRONOUSLY, and read `notif-w` BEFORE anything strips
+               it (the F1 lesson from applyNotifHighlight). */
+            (function revealNotifRow() {
+                const params = new URLSearchParams(location.search);
+                const raw = params.get('notif-hl');
+                if (!raw) return;
+                const occWeek = params.get('notif-w');
+                const rows = MockData.replacementHistory || [];
+                let row = null;
+                if (raw.charAt(0) === 'r') {
+                    const rid = String(raw.slice(1));
+                    row = rows.find(x => String(x.requestId) === rid) || null;
+                } else if (raw.charAt(0) === 'o') {
+                    const sid = String(raw.slice(1));
+                    row = rows.find(x => String(x.id) === sid + ':' + occWeek) ||
+                        (occWeek ? null : rows.find(x => String(x.id).indexOf(sid + ':') === 0)) || null;
+                }
+                if (!row) return;                    /* the shared arm skips silently */
+                let changed = false;
+                const sel = document.getElementById('weekFilter');
+                if (sel && weekFilterValue('weekFilter') !== 'all' && Number(sel.value) !== row.week + 1) {
+                    sel.value = String(row.week + 1);
+                    changed = true;
+                }
+                const hc = document.getElementById('hideCompleted');
+                if (hc && hc.checked && row.status === 'completed') {
+                    hc.checked = false;
+                    changed = true;
+                }
+                if (changed) { saveView(); renderUpcoming(); }
+                /* desktop rows are pulsed by the shared highlighter; on the phone
+                   layout the table is hidden, so pulse the CARD on the same beat */
+                setTimeout(function () {
+                    const tr = document.querySelector('tr[data-id="' + row.id + '"]');
+                    if (tr && tr.offsetParent) return;
+                    const card = document.querySelector('#upcomingList .upcoming-card[data-id="' + row.id + '"]');
+                    if (!card) return;
+                    card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    flashRowPulse(card);
+                }, 650);
+            })();
 
             renderUpcoming();
         }

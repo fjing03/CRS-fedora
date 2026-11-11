@@ -336,6 +336,10 @@ function applyNotifHighlight() {
     const params = new URLSearchParams(location.search);
     const raw = params.get('notif-hl');
     if (!raw) return;
+    /* 2026-11-11: read the week BEFORE the deletes below — the old `s` arm read it
+       after, so its week switch never fired (finding F1). The student `o` arm needs
+       it too, and both now take it from this one capture. */
+    const notifWeekRaw = params.get('notif-w');
     params.delete('notif-hl');
     params.delete('notif-w');
     const qs = params.toString();
@@ -355,10 +359,20 @@ function applyNotifHighlight() {
         // page's own wrapper (it re-syncs currentWeek + saveWeek). Only
         // /my-timetable-ui exposes it; other surfaces degrade silently.
         if (location.pathname !== '/my-timetable-ui' || typeof window.selectWeek !== 'function') return;
-        const wk = parseInt(params.get('notif-w') || '', 10);
+        const wk = parseInt(notifWeekRaw || '', 10);
         if (!isNaN(wk) && wk >= 1 && wk <= 14) window.selectWeek(String(wk - 1));   // 1-based, the pinned rule
         const sid = raw.slice(1);
         tryFind('#tableBody .event-block[data-sid="' + sid + '"]', 14);   /* the week rebuild margin */
+    } else if (raw.charAt(0) === 'o') {
+        /* 2026-11-11 (student notices): the student Class Replacements row is keyed
+           by the CLASS OCCURRENCE (`<sessionId>:<week>`), which is exactly the
+           `o<sessionId>` + notif-w pair the staff cancelled-class arm already
+           carries. Gated on that page's own table body, so no other surface can be
+           flashed by a stray `o` target. */
+        if (!document.getElementById('upcomingBody')) return;
+        const sid = raw.slice(1);
+        const wk = notifWeekRaw;
+        tryFind(wk ? 'tr[data-id="' + sid + ':' + wk + '"]' : 'tr[data-id^="' + sid + ':"]', 14);
     }
 }
 

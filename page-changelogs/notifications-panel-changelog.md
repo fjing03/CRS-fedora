@@ -1,3 +1,38 @@
+## 2026-11-11 — a student notice lands on Class Replacements, row flashing
+
+User report: clicking a student notice went to the student **timetable**. It now goes to **Class
+Replacements** — the page where the class and its request state sit in one row — and names the row to
+flash, exactly like the staff side.
+
+**Shape (staff parity)**
+
+| Notice | Lands on | Anchor it carries |
+|---|---|---|
+| about a request (approved / rejected) | `/student-class-replacements` | `?notif-hl=r<request_id>` |
+| a cancelled class (no request) | `/student-class-replacements` | `?notif-hl=o<session_id>&notif-w=<week>` |
+
+The row id on that page is `<sessionId>:<week>`, so the `o` anchor resolves straight to it; the `r`
+anchor now works because each row carries `data-request-id` (the request it belongs to). The shared
+highlighter pulses the row with the same three-pulse flash the staff pages use.
+
+**Arrival**: a row hidden by the saved week filter or by *Exclude COMPLETED Status* is revealed first
+(the staff page's `jumpToMyRow` does the same), otherwise the flash would land on nothing. On the phone
+layout the card is pulsed instead of the (hidden) table row.
+
+Unchanged on purpose: the STORED link (old rows keep `/student-my-timetable-ui…` and are re-pointed at
+read time), the read/unread stamping, the inactive/stale gates, the hide-in-place law for
+`completed` notices, and every role's access.
+
+Measured on a throwaway copy of the demo data (nothing written to the demo DBs):
+  · 24RSD0012, notice #203 (approved, request 27): week filter was pinned to 7 → after the click the
+    page opened on week 14 with the row `tr[data-request-id="27"]` flashing.
+  · 25DSF0024, notice #265 (cancelled class, session 26): landed on the page with `tr[data-id="26:8"]`
+    flashing.
+  · both notices were stamped read; no other notification changed; 0 console errors.
+
+Receipts: `tests/Feature/NotificationsBridgeTest.php` — a new test pins the landing page + both anchors
++ the untouched stored link, and the two pinned S8 tests were re-pointed to the new carrier (`notif-w`
+now rides the anchor instead of the URL). 41/41 in that class.
 ## 2026-11-10 (later) — the bell tips say Original Slot Schedule / Requested Slot Schedule
 
 The bell tips named the class's own schedule `Original Class Schedule` and the proposal
