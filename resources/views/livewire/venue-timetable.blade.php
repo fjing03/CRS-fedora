@@ -1116,10 +1116,14 @@
                 const paintTip = function () {
                     const target = firstBookableDay(weekData);
                     if (!target) return;
-                    const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+                    /* 2026-11-11: `target.day` is MONDAY-based (weekData.days runs
+                       Mon→Sun), so indexing a Sunday-first name list with it named the
+                       day before ("Sunday, 16 Nov 2026"). The name is derived from the
+                       date it is printed beside — DateHelper.weekdayName. */
                     const dayFacts = weekData[target.week].days[target.day];
+                    const dayName = DateHelper.weekdayName(dayFacts.date);
                     btn.setAttribute('data-tip', 'Jump to the earliest bookable slot \u2014 '
-                        + dayNames[target.day] + ', ' + dayFacts.date + ' (Week ' + (target.week + 1) + ')');
+                        + (dayName ? dayName + ', ' : '') + dayFacts.date + ' (Week ' + (target.week + 1) + ')');
                 };
                 paintTip();
                 btn.addEventListener('click', function () {

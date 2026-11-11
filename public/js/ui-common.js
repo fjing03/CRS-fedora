@@ -2395,9 +2395,43 @@ class DateHelper {
     }
 
     static isoDayName(iso) {
-        var p = iso.split('-');
-        var d = new Date(parseInt(p[0]), parseInt(p[1]) - 1, parseInt(p[2]));
-        return ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'][d.getDay()];
+        return DateHelper.weekdayName(iso);
+    }
+
+    /**
+     * The weekday NAME of a date string — "2026-11-16", "16 Nov 2026" or
+     * "16-Nov-2026" → "Monday". Returns '' when the string is not a date.
+     *
+     * 2026-11-11 (user report, #earliestBtn): the arrangement tooltip read
+     * "Sunday, 16 Nov 2026" for a MONDAY. Nothing was wrong with the date — the
+     * name was taken from `dayNames[weekData[..].days[..].day]` with a
+     * Sunday-first array, while weekData.days runs MONDAY→SUNDAY, so every name
+     * printed one day early. A name derived from the date itself cannot drift
+     * from the date printed beside it, whatever the index convention.
+     *
+     * Local midnight, all parts checked, so a DST/UTC boundary can neither shift
+     * the day nor be smuggled in by an impossible date (31 Feb → '').
+     */
+    static weekdayName(dateStr) {
+        var NAMES = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+        var MONTHS = { jan: 0, feb: 1, mar: 2, apr: 3, may: 4, jun: 5,
+            jul: 6, aug: 7, sep: 8, oct: 9, nov: 10, dec: 11 };
+        var s = String(dateStr == null ? '' : dateStr).trim();
+        var y, mo, d;
+        var iso = s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);
+        var dmy = s.match(/^(\d{1,2})[\s-]([A-Za-z]{3,})[\s-](\d{4})$/);
+        if (iso) {
+            y = parseInt(iso[1]); mo = parseInt(iso[2]) - 1; d = parseInt(iso[3]);
+        } else if (dmy) {
+            y = parseInt(dmy[3]); d = parseInt(dmy[1]);
+            mo = MONTHS[dmy[2].slice(0, 3).toLowerCase()];
+            if (mo === undefined) return '';
+        } else {
+            return '';
+        }
+        var dt = new Date(y, mo, d);
+        if (dt.getFullYear() !== y || dt.getMonth() !== mo || dt.getDate() !== d) return '';
+        return NAMES[dt.getDay()];
     }
 
     static getTodayMs() {

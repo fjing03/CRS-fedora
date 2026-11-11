@@ -2976,9 +2976,11 @@
             const earliest = firstBookableDay(weekData);
             const earliestBtn = document.getElementById('earliestBtn');
             if (earliestBtn && earliest) {
-                const dayNames = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+                /* 2026-11-11: `earliest.day` is MONDAY-based, so a Sunday-first array
+                   printed the day before ("Sunday, 16 Nov 2026"). Name from the date. */
                 const edate = weekData[earliest.week].days[earliest.day];
-                earliestBtn.setAttribute('data-tip', 'Jump to the earliest bookable slot \u2014 ' + dayNames[earliest.day] + ', ' + edate.date + ' (Week ' + (earliest.week + 1) + ')');
+                const eday = DateHelper.weekdayName(edate.date);
+                earliestBtn.setAttribute('data-tip', 'Jump to the earliest bookable slot \u2014 ' + (eday ? eday + ', ' : '') + edate.date + ' (Week ' + (earliest.week + 1) + ')');
             }
             /* applyUrlParams AFTER week selector is ready (triggers onVenueChange → buildTimetable) */
             applyUrlParams();

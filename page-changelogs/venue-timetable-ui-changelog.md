@@ -1,3 +1,36 @@
+## 2026-11-11 — the Earliest-bookable tooltip named the day before
+
+User report: the `#earliestBtn` tooltip read **`Sunday, 16 Nov 2026 (Week 9)`** — 16 Nov 2026 is a
+**Monday**.
+
+**Cause.** The date was right; the *name* was wrong. The weekday came from
+
+```js
+const dayNames = ['Sunday','Monday',…,'Saturday'];   // Sunday-first
+… + dayNames[earliest.day] + …                       // earliest.day is MONDAY-based
+```
+
+`firstBookableDay()` / `weekData.days` follow the server order — `['Mon','Tue',…,'Sun']`
+(`ResolvesTimetableTimeline::weekData()`) — so index `0` is Monday while the array said Sunday. Every
+name printed one day early. Nothing about the calendar, lead time or week numbers was wrong.
+
+**Fix — the name comes from the DATE, not from an index.** `DateHelper.weekdayName(dateStr)` (ui-common.js)
+parses `16 Nov 2026`, `2026-11-16` or `16-Nov-2026` at local midnight (all parts range-checked) and answers
+`Monday`. The older `DateHelper.isoDayName()` now delegates to it, so there is one reader, not two.
+
+    before:  Jump to the earliest bookable slot — Sunday, 16 Nov 2026 (Week 9)
+    after:   Jump to the earliest bookable slot — Monday, 16 Nov 2026 (Week 9)
+
+Applied to every owner of that button: this page, `/venue-timetable-ui`, and the frozen
+`replacement-arrangement-UIdesign-template` (parity). The grid header, the slot picker, the lead-time tip
+and the details pop-up were audited too — their weekday words were already correct, because they either
+read `days[i].abbr` from the server or pair a Sunday-first array with `getDay()`.
+
+Receipt: `tests/Feature/EarliestBookableWeekdayTest.php` (3 tests) pins the shared helper, its use by all
+three views, and the absence of the Sunday-first indexing. Browser audit on both pages: every
+weekday+date pair on screen and in every `data-tip` matches its date (1 pair checked on each page, 0
+mismatches, 0 console errors).
+
 ## 2026-11-10 (later) — Cancel this Class?: the "Other" reason block
 
 User brief `prompts/cancel-class-reason-block.md`, item 5. Items 1–4 (two-column grid, heading asterisk,

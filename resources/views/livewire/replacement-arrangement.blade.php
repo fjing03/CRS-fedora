@@ -4691,9 +4691,14 @@ triggerText.textContent = slotTriggerLabel(slot);
             const earliest = firstBookableDay(weekData);
             const earliestBtn = document.getElementById('earliestBtn');
             if (earliestBtn && earliest) {
-                const dayNames = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+                /* 2026-11-11 (user report): this read "Sunday, 16 Nov 2026" — a Monday.
+                   `earliest.day` is a MONDAY-based index (weekData.days runs Mon→Sun),
+                   so indexing a Sunday-first array named the day before. The name now
+                   comes from the same date string the tooltip prints, so the two halves
+                   can never disagree (DateHelper.weekdayName). */
                 const edate = weekData[earliest.week].days[earliest.day];
-                earliestBtn.setAttribute('data-tip', 'Jump to the earliest bookable slot \u2014 ' + dayNames[earliest.day] + ', ' + edate.date + ' (Week ' + (earliest.week + 1) + ')');
+                const eday = DateHelper.weekdayName(edate.date);
+                earliestBtn.setAttribute('data-tip', 'Jump to the earliest bookable slot \u2014 ' + (eday ? eday + ', ' : '') + edate.date + ' (Week ' + (earliest.week + 1) + ')');
             }
             /* applyUrlParams AFTER week selector is ready (triggers onVenueChange → buildTimetable) */
             applyUrlParams();
