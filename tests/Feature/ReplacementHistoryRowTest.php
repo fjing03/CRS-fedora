@@ -196,6 +196,32 @@ final class ReplacementHistoryRowTest extends TestCase
     }
 
     /**
+     * 2026-11-11 (SDD student-modal-staff-parity): the pop-up's Class Info tab prints
+     * the same three facts the staff pop-up prints, and they travel in the row —
+     * display facts only, so the leave reason still never reaches a student.
+     */
+    public function test_the_row_carries_the_class_info_facts_the_pop_up_prints(): void
+    {
+        $this->holidayOnTheClass();
+
+        $row = $this->row();
+
+        $this->assertSame(['RSD2 (S1) G2'], $row['cohorts'], 'the spaced cohort convention, one entry per cohort');
+        $this->assertSame(20, $row['totalStudents'], 'the same sum the staff pop-up prints');
+        /* the tab label speaks the STUDENT word — never the staff page's own */
+        $this->assertSame('Awaiting Arrangement', $row['statusShort']);
+    }
+
+    /** Every decided status has a short word for the tab label. */
+    public function test_the_short_status_follows_the_request_state(): void
+    {
+        $this->holidayOnTheClass();
+        $this->request('pending');
+
+        $this->assertSame('Pending', $this->row()['statusShort']);
+    }
+
+    /**
      * 2026-11-10 (user bug fix): the LECTURER column was printing a bare name. It now
      * carries the title too, and it comes from the ONE reader — `User::displayName()` —
      * so the page and the rest of the app cannot drift.

@@ -1,3 +1,49 @@
+## 2026-11-11 — the pop-up becomes the staff pop-up (Replacement Details)
+
+The user's ask: the student-side modal should follow the same design and layout as the equivalent
+staff-side modal, with four checks named — the footer, the removal of the Conflict Reason tab, the
+course line in the subtitle, and "identify any other inconsistencies". Written and applied as the SDD
+lane `student-modal-staff-parity` (`.sdd/changes/student-modal-staff-parity/`).
+
+| | Before | After |
+|---|---|---|
+| Title | `BMIT2013 — Class Replacement` | **`Replacement Details`** |
+| Subtitle | the module name alone | **`BMIT2013 — Web-Based Integrated Systems (Lecture)`** |
+| Conflict | its own tab, long form | **a strip above the tabs**, `Conflict  Public Holiday — Deepavali Holiday (In Lieu)` |
+| Tabs | Course · Original → Conflict Reason → Requested → Status | **Requested Slot Schedule · Original Slot Schedule · Class Info · Request Status (Approved)** |
+| Slot rows | Week · Day · Date · Countdown · Time · Duration · Venue | **Class ID #24** / **Request ID #43** · Week · Day & Date (countdown in brackets) · Time & Duration · Venue |
+| Footer | jump injected LEFT, Close RIGHT | **Close LEFT (outline) · Go to My Timetable RIGHT (blue)**, never flipping |
+
+*The footer was the actual defect.* The jump used to be injected at the FRONT of a
+`justify-content: space-between` rail, so on a row with a request it sat left of Close and on a row
+without one there was no jump at all — the two buttons changed places. It is a static, gated button now
+(`#stJumpTimetableBtn`), shown only when the timetable really carries the new slot.
+
+Three facts had to travel to the page for the new **Class Info** tab: the class's cohorts (the staff
+`DFT2 (S1) G1` convention, promoted out of a private method into `App\Support\CohortLabel` so there is
+ONE formatter), its student count, and the short status the tab label names. Display facts only — a
+student still never receives the lecturer's leave reason.
+
+Two checklist items from `docs/Modal inconsistent Report checklist.md` were folded in, by the user's
+choice: **B9** (the status tab label carries the short status) and **B5/B6** naming (`Request ID`,
+`Class ID`). **B8** and **B10** were deliberately left out and are still open.
+
+### The width, and the phone
+
+Four tabs need 606 px, and the details-modal body only gave 570 px at the old 616 px shell — the fourth
+tab was cut off. The user's ruling: **expand the modal**. The ONE-width law was kept, not broken, so
+`.modal.modal--detail` and the three shells that set it moved **616 → 680 px** together.
+
+On a phone the rail still needed 402 px inside 304 px, so the last tab was unreachable; the user asked
+for it fixed in the same change. `.modal-tabs` now **wraps below 520 px** — every tab visible at any
+width. Measured on the demo data (student `24RSD0012`, 10 rows, desktop 1440 and phone 390): all four
+tabs render, nothing clips, the page never scrolls sideways, 0 console errors.
+
+Receipts: `ReplacementHistoryRowTest` (+2 — the three new row keys and the short status),
+`StudentReplacementHistoryParityTest` (re-pointed: the tab labels, the static footer, and the absence
+of the `Course` / `Conflict Reason` headings), `ModalConsistencyTest` (the 680 law and every shell
+agreeing). Full suite 539/540 — the one red is the pre-existing `ReplacementHistoriesTest` stale test.
+
 ## 2026-11-11 — the conflict badge is the kind alone; the detail hovers
 
 User ruling (2026-11-11): the badge names only the KIND — **Public Holiday** or **Class Cancelled** —

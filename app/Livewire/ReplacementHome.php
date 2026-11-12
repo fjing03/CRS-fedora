@@ -11,6 +11,7 @@ use App\Models\Cohort;
 use App\Models\ReplacementRequest;
 use App\Models\Venue;
 use App\Services\ReplacementRequestMapper;
+use App\Support\CohortLabel;
 use App\Support\LocalTime;
 use App\Support\ReasonLabel;
 use Illuminate\Contracts\View\View;
@@ -390,17 +391,12 @@ class ReplacementHome extends Component
     }
 
     /**
-     * The mock's spaced cohort convention ('DFT2 (S1) G1' — the exact output
-     * of the shared ui-common formatCohortLabel applied to the compact code).
+     * The mock's spaced cohort convention ('DFT2 (S1) G1') now lives in
+     * App\Support\CohortLabel — the student pop-up needed the same law
+     * (SDD student-modal-staff-parity, 2026-11-11). Output is unchanged.
      */
     private function spacedCohortLabel(?Cohort $cohort): string
     {
-        if ($cohort === null || $cohort->programme === null) {
-            return '—';
-        }
-
-        return $cohort->programme->programme_code
-            .$cohort->current_year.' (S'.$cohort->semester.')'
-            .' G'.$cohort->tutorial_group;
+        return CohortLabel::spaced($cohort);
     }
 }

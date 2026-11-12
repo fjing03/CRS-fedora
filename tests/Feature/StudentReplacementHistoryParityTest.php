@@ -55,8 +55,16 @@ class StudentReplacementHistoryParityTest extends TestCase
     {
         $src = $this->pageSource();
 
-        $this->assertStringContainsString("{ heading: 'Original Slot Schedule', rows: slotRows(r.orig) }", $src);
-        $this->assertStringContainsString("{ heading: 'Requested Slot Schedule', rows: r.req ? slotRows(r.req) : [", $src);
+        /* 2026-11-11 (SDD student-modal-staff-parity): the pop-up is built with the
+           STAFF renderer now — four labelled tabs, not an openClassModal group list.
+           The pop-up still says "Schedule" while the table says "Slot". */
+        $this->assertStringContainsString("label: 'Original Slot Schedule'", $src);
+        $this->assertStringContainsString("label: 'Requested Slot Schedule'", $src);
+        $this->assertStringContainsString("label: 'Class Info'", $src);
+        $this->assertStringContainsString("label: 'Request Status'", $src);
+        /* the wording that no longer exists anywhere */
+        $this->assertStringNotContainsString("heading: 'Course'", $src);
+        $this->assertStringNotContainsString("heading: 'Conflict Reason'", $src);
         /* the TABLE columns stay short */
         $this->assertStringContainsString("label: 'Original Slot'", $src);
         $this->assertStringContainsString("label: 'Requested Slot'", $src);
@@ -162,10 +170,15 @@ class StudentReplacementHistoryParityTest extends TestCase
         }
         $this->assertStringNotContainsString("label: 'Action'", $src);
 
-        // the one control: the pop-up's jump, guarded by the requestId key
-        $this->assertStringContainsString('const jump = (r.requestId !== null', $src);
+        /* the one control: the pop-up's jump. 2026-11-11 (SDD
+           student-modal-staff-parity): it is a STATIC footer button now — the old
+           page injected it at the front of the rail, which flipped the two sides
+           depending on whether the row had a request — and it appears only for a
+           landed replacement. */
+        $this->assertStringContainsString('id="stJumpTimetableBtn"', $src);
         $this->assertStringContainsString("'/student-my-timetable-ui'", $src);
-        $this->assertStringContainsString("footer.insertAdjacentHTML('afterbegin', jump)", $src);
+        $this->assertStringContainsString("const landed = r.status === 'approved' || r.status === 'completed'", $src);
+        $this->assertStringNotContainsString("insertAdjacentHTML('afterbegin'", $src);
     }
 
     public function test_the_route_and_label_are_the_ruled_ones(): void

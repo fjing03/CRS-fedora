@@ -9,7 +9,7 @@
         /* 3A/3D (2026-11-04): the details pop-up now carries a facts strip and
            three schedule/status tabs — the shared 420px base cannot fit them,
            so this one matches the merged page's 616px shell. */
-        #modalOverlay .modal { max-width: 616px; }
+        #modalOverlay .modal { max-width: 680px; }
 
         /* ───── Column Widths ───── */
         .col-no { width: 40px; text-align: center; }
@@ -163,7 +163,7 @@
            (and the Replacement card loses 3 px to its green edge). The
            theme's own <=1024 px caps still win on tablet and phone. */
         @media (min-width: 1025px) {
-            .modal { max-width: 616px; }
+            .modal { max-width: 680px; }
         }
 
         /* ───── Approval context card (Approve/Reject modals) ───── */

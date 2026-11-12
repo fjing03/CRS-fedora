@@ -10,6 +10,7 @@ use App\Models\Student;
 use App\Models\TimeSlot;
 use App\Models\Venue;
 use App\Services\ReplacementRequestMapper;
+use App\Support\CohortLabel;
 use App\Support\LocalTime;
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\Carbon;
@@ -61,7 +62,11 @@ class ReplacementHistory extends Component
                exceptions that cancelled them, the calendar, the latest request per
                occurrence, its span, and the rooms those spans point at. */
             $sessions = ClassSession::query()
-                ->with(['module', 'venue', 'lecturer'])
+                /* cohorts.programme: the pop-up's Class Info tab prints the same
+                   three facts the staff pop-up prints (SDD
+                   student-modal-staff-parity, 2026-11-11). Eager-loaded, so the
+                   new keys cost no query per row. */
+                ->with(['module', 'venue', 'lecturer', 'cohorts.programme'])
                 ->where('semester_id', $semesterId)
                 ->whereHas('cohorts', fn ($q) => $q->whereKey($cohort->id))
                 ->orderBy('day_of_week')
@@ -263,6 +268,19 @@ class ReplacementHistory extends Component
             /* 2026-11-10 (user bug fix): the LECTURER column carries the title too —
                ONE reader (`User::displayName()`), e.g. "Pn. Lee Yee Fong". */
             'lecturer' => $session->lecturer !== null ? $session->lecturer->displayName() : '',
+            /* 2026-11-11 (SDD student-modal-staff-parity): the pop-up's Class Info
+               tab. DISPLAY facts only — the cancellation reason is still never
+               sent to a student (user ruling). A missing count renders as '—',
+               never 0: no cohort rows means unknown, not empty. */
+            'cohorts' => $session->cohorts
+                ->map(fn ($c): string => CohortLabel::spaced($c))
+                ->values()
+                ->all(),
+            'totalStudents' => (int) $session->cohorts->sum('student_count'),
+            /* the tab label's short word — but the unarranged state speaks the
+               STUDENT word ('Awaiting Arrangement'), never the staff page's own:
+               this page must not borrow the staff vocabulary (R2). */
+            'statusShort' => $statusKey === 'none' ? 'Awaiting Arrangement' : $vocabulary['short'],
             'orig' => [
                 'week' => $week,
                 'date' => $classDate->toDateString(),

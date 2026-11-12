@@ -1,3 +1,13 @@
+## 2026-11-11 — the details pop-up grows 616 → 680 px
+
+Not a staff-page request: the student pop-up needed a fourth tab whose labels need 606 px inside a
+570 px body, so it was cut off. The one-width law ("every details modal is as wide as Replacement
+Details") outranks one page's appetite, so `Replacement Details` widened with it — `.modal.modal--detail`
+in `theme.css`, this page's inline shell, and both `request-approval` shells moved together
+(`ModalConsistencyTest` now pins 680 and asserts no shell was left behind). Nothing inside the pop-up
+changed: its three tabs still fit with room to spare (measured at 1440: 634 px of rail in a 634 px
+body).
+
 ## 2026-11-11 — the ownership desk is re-measured: course up, conflict down, both slots equal
 
 User ask (2026-11-11), in their own numbers: the **Course** column gains 30% + a further 15%, the

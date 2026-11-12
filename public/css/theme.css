@@ -2045,9 +2045,16 @@ html.dark .filter-select {
 
 .modal.modal--detail {
     /* 2026-11-10 (user, modal consistency #1): every DETAILS modal is as wide as
-       the Replacement Details modal (`.modal` + 616px inline on my-replacements) —
-       one width for Class / Slot / Request / Replacement details. */
-    max-width: 616px;
+       the Replacement Details modal — one width for Class / Slot / Request /
+       Replacement details.
+
+       2026-11-11 (user, student-modal-staff-parity): 616 → 680 px. The student
+       pop-up carries a FOURTH tab (Requested · Original · Class Info · Request
+       Status), and its labels need 606 px inside a 570 px body at 616 — the last
+       tab was cut off. 680 gives a 634 px body, so all four fit. The staff pop-up
+       (3 tabs) is widened with it, because the ONE-width law outranks one page's
+       appetite: the inline 616 px on its shell was updated in the same change. */
+    max-width: 680px;
 }
 .modal--detail .modal-header {
     align-items: flex-start;
@@ -2173,6 +2180,16 @@ html.dark .filter-select {
 }
 .modal-tab:hover { color: var(--color-on-surface); }
 .modal-tab.active { color: var(--color-primary); border-bottom-color: var(--color-primary); }
+/* 2026-11-11 (user, student-modal-staff-parity): on a phone the tab rail WRAPS
+   instead of running off the edge. Measured: the student pop-up's four labels need
+   402 px inside a 304 px rail at 390 px wide, so the fourth tab was simply
+   unreachable — and the staff pop-up's three tabs were already ~450 px, so the same
+   clip was there first. Wrapping shows every tab at any width; the desktop rail is
+   unchanged because it already fits. */
+@media (max-width: 520px) {
+    .modal-tabs { flex-wrap: wrap; }
+    .modal-tab { flex: 0 0 auto; }
+}
 .modal-tab-panel { display: none; }
 .modal-tab-panel.active { display: block; }
 

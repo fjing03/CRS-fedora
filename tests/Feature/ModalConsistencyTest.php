@@ -27,14 +27,21 @@ class ModalConsistencyTest extends TestCase
 
     public function test_details_modals_share_the_replacement_details_width(): void
     {
+        /* 2026-11-11 (SDD student-modal-staff-parity, user): 616 → 680 px. The student
+           pop-up carries a fourth tab whose labels need 606 px inside the body; the
+           LAW is unchanged — one width for every details modal — only its number moved,
+           and every shell that sets it must agree. */
         $css = $this->read('public/css/theme.css');
         $this->assertMatchesRegularExpression(
-            '/\.modal\.modal--detail \{[^}]*max-width: 616px;/s',
+            '/\.modal\.modal--detail \{[^}]*max-width: 680px;/s',
             $css,
-            'every details modal is 616px, like the Replacement Details shell',
+            'every details modal is 680px, like the Replacement Details shell',
         );
-        $this->assertStringContainsString('max-width:616px', $this->read('resources/views/livewire/replacement-home.blade.php'),
+        $this->assertStringContainsString('max-width:680px', $this->read('resources/views/livewire/replacement-home.blade.php'),
             'the reference width on my-replacements must stay the one the modals match');
+        $this->assertStringNotContainsString('max-width: 616px', $this->read('resources/views/livewire/request-approval.blade.php'),
+            'a second shell left at 616 would split the one width in two');
+        $this->assertStringNotContainsString('max-width:616px', $this->read('resources/views/livewire/request-approval.blade.php'));
     }
 
     public function test_the_timeline_rail_is_gone(): void

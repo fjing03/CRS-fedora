@@ -90,8 +90,6 @@
             font-size: 12px;
             color: var(--color-on-surface-variant);
         }
-        /* the pop-up's one control (design §7) sits beside the shell's Close */
-        .modal-footer .btn-jump-timetable { margin-right: 8px; }
         .upcoming-card.past {
             border: 1px solid var(--color-outline);
             color: var(--color-on-surface-variant);
@@ -159,7 +157,19 @@
             ['class' => 'card-hours', 'valueId' => 'sumCompleted', 'label' => 'Completed', 'description' => 'Replacements that <span class="info-keyword">already took place</span>. Switch Exclude COMPLETED Status off to see them.'],
         ] ])
 
-        <!-- ─── Class detail modal (shared shell for openClassModal) ─── -->
+        <!-- ─── Class detail modal (shared shell for DetailModal.render) ─── -->
+        @section('modal-footer')
+            {{-- 2026-11-11 (SDD student-modal-staff-parity): the footer is STATIC and
+                 laid out by `.modal-footer`'s own space-between — Close LEFT, the jump
+                 RIGHT. The old page INJECTED the jump at the front of the rail, so the
+                 two buttons swapped sides between rows with and without a request. --}}
+            <button class="btn-outline" onclick="closeModal()">Close</button>
+            {{-- the staff pop-up's own glyph and primary skin (one action, one icon) --}}
+            <button class="btn-action" id="stJumpTimetableBtn" style="display:none" onclick="jumpToTimetable()">
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
+                <span>Go to My Timetable</span>
+            </button>
+        @endsection
         @include('partials.ui-class-detail-modal')
 
 </div>
@@ -461,83 +471,119 @@
             renderChips();
         }
 
+        /* the opened row, for the footer's jump (the button is static now) */
+        let currentReplacement = null;
+
         function openReplacementModal(id) {
             /* the row id is an OCCURRENCE key ("<sessionId>:<week>") — never Number() it */
             const r = MockData.replacementHistory.find(x => String(x.id) === String(id));
             if (!r) return;
+            currentReplacement = r;
             const pending = r.status === 'pending';
+            const sessionId = String(r.id).split(':')[0];
 
-            /* Slot facts as ONE ROW EACH (data-label / data-value list) — from the
-               same primitives the table block prints. */
-            const slotRows = (slot) => {
-                if (!slot) return [];
-                const mins = slot.duration * 60;
-                const hh = Math.floor(mins / 60);
-                const mm = mins % 60;
-                const dur = (hh ? hh + ' hour' + (hh === 1 ? '' : 's') + (mm ? ' ' : '') : '') +
-                            (mm ? mm + ' minutes' : '');
-                const days = workingDaysDiff(slot.date);
-                return [
-                    { label: 'Week', value: String(slot.week) },
-                    { label: 'Day', value: slot.day },
-                    { label: 'Date', value: formatDate(slot.date) },
-                    { label: 'Countdown', value: '<span class="' + urgencyBandClass(days) + '">' + daysLeftLabel(days) + '</span>' },
-                    { label: 'Time', value: to12h(slot.start) + ' ~ ' + to12h(slot.end) },
-                    { label: 'Duration', value: dur },
-                    { label: 'Venue', value: slot.venue || '\u2014' },
-                ];
+            /* 2026-11-11 (SDD student-modal-staff-parity): this pop-up IS the staff
+               Replacement Details pop-up — same title, same subtitle shape, same
+               strip, same tab order, same row builders (DetailModal.row + ModalFacts),
+               so the two pages cannot drift apart in wording or order. */
+            const countdown = (iso) => {
+                const d = workingDaysDiff(iso);
+                const span = '<span class="' + urgencyBandClass(d) + '">' + daysLeftLabel(d) + '</span>';
+                /* the staff law: brackets normally; an em dash before an Overdue
+                   label, whose own brackets would otherwise double up */
+                return d < 0 ? ' \u2014 ' + span : ' (' + span + ')';
             };
 
-            /* 2026-11-09 (SDD student-class-replacements §7): the pop-up carries ONE
-               control — Go to My Timetable — and only on a row that HAS a requested
-               slot (nothing to flash otherwise). It is appended to the shared modal's
-               footer at open time and removed at close, the CancelClass.renderButton
-               house pattern, so no shared openClassModal option is invented. */
-            const jumpCall = "goToReplacementInTimetable(" + Number(r.requestId) + ", " +
-                Number(r.req ? r.req.week : 0) + ", '/student-my-timetable-ui')";
-            const jump = (r.requestId !== null && r.requestId !== undefined && r.req)
-                ? '<button type="button" class="btn-close-modal btn-jump-timetable"' +
-                    ' data-tip="See this replacement in your timetable"' +
-                    ' onclick="' + jumpCall + '">Go to My Timetable</button>'
-                : '';
+            /* one slot tab — Class ID / Request ID lead, exactly as on the staff page */
+            const slotTab = (heading, slot, idLabel, idValue, withCountdown) => DetailModal.section(heading,
+                DetailModal.row(idLabel, '#' + idValue, { strong: true }) +
+                DetailModal.row('Week', slot.week ? 'Week ' + slot.week : null) +
+                DetailModal.row('Day & Date', ModalFacts.dayDate(slot.day, formatDate(slot.date) + (withCountdown ? countdown(slot.date) : '')), { strong: true }) +
+                DetailModal.row('Time & Duration', ModalFacts.timeDuration(to12h(slot.start), to12h(slot.end), slot.duration), { strong: true }) +
+                DetailModal.row('Venue', ModalFacts.venue(slot.venue))
+            );
 
-            openClassModal({
-                title: r.code + ' — Class Replacement',
-                subtitle: r.name,
-                modalId: 'classModal',
-                groups: [
-                    { heading: 'Course', rows: [
-                        { label: 'Course Code', value: r.code },
-                        { label: 'Course Name', value: r.name },
-                        { label: 'Class Type', value: UiLabels.classType(r.type, 'canonical') },
-                        { label: 'Lecturer', value: r.lecturer },
-                    ]},
-                    { heading: 'Original Slot Schedule', rows: slotRows(r.orig) },
-                    { heading: 'Conflict Reason', rows: [
-                        { label: 'Reason', value: r.conflictKind === 'Public Holiday'
-                            ? 'Public Holiday \u2014 ' + (r.holidayName || 'Semester holiday')
-                            : (r.conflictKind || '\u2014') },
-                    ]},
-                    { heading: 'Requested Slot Schedule', rows: r.req ? slotRows(r.req) : [
-                        { label: 'Status', value: 'Not arranged yet <span class="detail-value--muted">— no replacement has been approved for this class</span>' },
-                    ] },
-                    { heading: 'Request Status', rows: [
-                        { label: 'Status', value: statusCell(r) },
-                        ...(r.status === 'completed' ? [{ label: 'Status Note', value: 'This replacement has already taken place.' }] : []),
-                        ...(requestedAtLine(r) ? [{ label: 'Request', value: requestedAtLine(r) }] : []),
-                    ]},
-                ],
-                // NOTE: no requestId — AD-12 (no View Full Request on list modals)
+            const tabs = [];
+            /* the make-up schedule is what the row is about — first, and therefore
+               the tab the pop-up opens on (DetailModal activates index 0) */
+            if (r.req) {
+                tabs.push({
+                    key: 'requested',
+                    label: 'Requested Slot Schedule',
+                    html: slotTab('Requested Slot Schedule', r.req, 'Request ID', r.requestId, pending),
+                });
+            }
+            tabs.push({
+                key: 'original',
+                label: 'Original Slot Schedule',
+                html: slotTab('Original Slot Schedule', r.orig, 'Class ID', sessionId, true),
+            });
+            /* the Course tab is GONE (2026-11-11): the code/name/type live in the
+               subtitle, the lecturer here with the two facts the staff strip prints */
+            tabs.push({
+                key: 'class-info',
+                label: 'Class Info',
+                html: DetailModal.section('Class Info',
+                    DetailModal.row('Lecturer', r.lecturer) +
+                    DetailModal.row('Cohorts', (r.cohorts || []).join(', ') || '\u2014') +
+                    DetailModal.row('Students', r.totalStudents > 0 ? String(r.totalStudents) : '\u2014')
+                ),
+            });
+            tabs.push({
+                key: 'status',
+                label: 'Request Status' + (r.statusShort ? ' (' + r.statusShort + ')' : ''),
+                html: DetailModal.section('Status',
+                    '<div class="detail-row"><span class="detail-label">Status</span><span class="detail-value">' + statusCell(r) + '</span></div>' +
+                    (r.status === 'completed' ? DetailModal.row('Status Note', 'This replacement has already taken place.') : '') +
+                    (requestedAtLine(r) ? DetailModal.row('Request', requestedAtLine(r)) : '')
+                ),
             });
 
-            /* the one footer control, and only when there is something to jump to */
-            const modalEl = document.getElementById('classModal');
-            const footer = modalEl ? modalEl.querySelector('.modal-footer') : null;
-            if (footer) {
-                footer.querySelectorAll('.btn-jump-timetable').forEach(b => b.remove());
-                if (jump) footer.insertAdjacentHTML('afterbegin', jump);
+            /* the Conflict Reason TAB is gone too (2026-11-11): the conflict is the
+               strip above the tabs, printed IN FULL (there is room here, so nobody
+               has to hover) — the staff pop-up's own ruling. A cancellation still
+               prints the kind alone: a student is never sent the leave reason. */
+            const isHoliday = r.conflictKind === 'Public Holiday';
+            const conflictFull = !r.conflictKind
+                ? '\u2014'
+                : (isHoliday ? 'Public Holiday \u2014 ' + (r.holidayName || 'Semester holiday') : 'Class Cancelled');
+
+            DetailModal.render({
+                modalId: 'classModal',
+                title: 'Replacement Details',
+                subtitle: r.code + ' \u2014 ' + r.name + ' (' + UiLabels.classType(r.type, 'long') + ')',
+                factsHtml: '<span class="df-item df-item--full"><span class="df-label">Conflict</span>' +
+                    (r.conflictKind
+                        ? '<span class="badge ' + (isHoliday ? 'badge-holiday' : 'badge-reason') + '">' + conflictFull + '</span>'
+                        : '<span class="detail-value detail-value--muted">' + conflictFull + '</span>') +
+                    '</span>',
+                tabs: tabs,
+            });
+
+            /* no proposed slot → open on Class Info (2026-11-11, user decision 4) */
+            if (!r.req) DetailModal.selectTab('class-info');
+
+            /* the jump is STATIC and only becomes visible when the timetable really
+               carries the new slot — approved or already done (the staff rule); a
+               pending request has nothing to flash yet */
+            const jumpBtn = document.getElementById('stJumpTimetableBtn');
+            if (jumpBtn) {
+                const landed = r.status === 'approved' || r.status === 'completed';
+                jumpBtn.style.display = (landed && r.requestId && r.req) ? 'inline-flex' : 'none';
             }
         }
+
+        /* the footer's jump — the row it belongs to is the one just opened */
+        function jumpToTimetable() {
+            if (!currentReplacement || !currentReplacement.requestId) return;
+            goToReplacementInTimetable(
+                currentReplacement.requestId,
+                currentReplacement.req ? currentReplacement.req.week : 0,
+                '/student-my-timetable-ui'
+            );
+        }
+        /* inline onclick handlers only reach a window property */
+        window.jumpToTimetable = jumpToTimetable;
 
         // ─── Modal close wiring — closeModal() is now the shared global in
         // ─── ui-common.js (§10.0 rule 7 promote); page keeps only the
