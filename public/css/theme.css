@@ -2140,6 +2140,10 @@ html.dark .filter-select {
     padding: 1px 6px; font-size: 11px; font-weight: 700; white-space: nowrap;
 }
 .cdl-flag--withdrawn { color: var(--color-on-error-container); background: var(--color-error-container); }
+/* the sentence's second count (classes + requests) — the user's wording, one
+   sentence with two live numbers; the request half hides itself at zero */
+.cancel-day-toggle .cd-req { display: inline; }
+.cancel-day-toggle .cd-count-req { color: var(--color-on-primary-container); font-weight: 800; }
 /* the make-up note under the list (user, 2026-11-11): a block that falls on this
    day but belongs to another week's class — reported, never tickable */
 .cancel-day-note {

@@ -62,11 +62,11 @@ final class MyDayClassesTest extends TestCase
     }
 
     /** The renderless day confirm. */
-    private function cancelDay(string $reason): array
+    private function cancelDay(string $reason, array $requestIds = []): array
     {
         $this->actingAs($this->owner);
 
-        return (new MyTimetable)->cancelClassDay($this->week, $this->day, $reason);
+        return (new MyTimetable)->cancelClassDay($this->week, $this->day, $reason, null, $requestIds);
     }
 
     public function test_the_day_lists_only_my_own_classes_with_what_the_block_prints(): void
@@ -211,6 +211,66 @@ final class MyDayClassesTest extends TestCase
                 ->where('class_session_id', (int) $row['session_id'])
                 ->where('week_number', $this->week)->count());
         }
+    }
+
+    /**
+     * 2026-11-11 (user): a ticked MAKE-UP row withdraws its request only — the class
+     * it was arranged for keeps running. This is the one path where "cancel" does
+     * NOT cancel a class, so it gets its own receipt.
+     */
+    public function test_a_ticked_make_up_row_withdraws_the_request_and_leaves_the_class_alone(): void
+    {
+        $classes = $this->myDay()['classes'] ?? [];
+        $this->assertNotEmpty($classes);
+
+        $session = ClassSession::findOrFail((int) $classes[0]['sessionId']);
+        $otherWeek = $this->week === 14 ? 13 : $this->week + 1;
+
+        $slot = TimeSlot::create([
+            'semester_id' => (int) $session->semester_id,
+            'class_session_id' => null,
+            'week_number' => $this->week,
+            'day_of_week' => $this->day,
+            'start_time' => '08:00:00',
+            'end_time' => '08:30:00',
+            'venue_id' => $session->venue_id,
+            'status' => 'pending',
+            'version' => 2,
+        ]);
+
+        $request = ReplacementRequest::create([
+            'semester_id' => (int) $session->semester_id,
+            'proposer_id' => (int) $session->lecturer_id,
+            'class_session_id' => (int) $session->id,
+            'week_number' => $otherWeek,
+            'replacement_time_slot_id' => $slot->id,
+            'status' => 'pending',
+            'submitted_at' => now(),
+        ]);
+
+        ReplacementRequestSlot::create([
+            'replacement_request_id' => $request->id,
+            'time_slot_id' => $slot->id,
+        ]);
+
+        $result = $this->cancelDay('medical_leave', [(int) $request->id]);
+
+        $this->assertTrue($result['ok']);
+        $this->assertSame(1, $result['requestsWithdrawn'], 'the make-up request was withdrawn');
+
+        $request->refresh();
+        $this->assertSame('cancelled', (string) $request->status, 'the request is closed');
+        $this->assertSame('available', (string) TimeSlot::find($slot->id)->status, 'its slot came back');
+
+        /* the class the make-up was arranged FOR is untouched: no exception on its
+           own week. (The class the modal was opened for is always cancelled — that
+           is what the red button is for.) */
+        $this->assertSame(0, ClassException::query()
+            ->where('week_number', $otherWeek)
+            ->count(), 'the other week\'s class keeps running');
+
+        $this->assertCount(1, $result['cancelled'], 'only the opened class was cancelled');
+        $this->assertNotSame($otherWeek, (int) $result['cancelled'][0]['week']);
     }
 
     public function test_the_day_confirm_refuses_when_nothing_is_left_to_cancel(): void

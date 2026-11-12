@@ -236,3 +236,16 @@ Measured after Rev 4 (staff 5425, Thursday week 8, demo data): rows `67 09:00–
 `68 11:00–12:00`, `38 12:00–13:00`; the note reads
 `AMSE2003(T) · week 14 · 8:00 AM ~ 9:00 AM · B100` (the request's real 2-cell run), and the
 select-all/`.cd-count`/button numbers only count the three tickable rows.
+
+## Rev 5 — make-up rows are tickable, for the request only (2026-11-11, user)
+
+| # | Decision |
+|---|---|
+| 20 | A **pending** make-up block that falls on the day is a row of its own, tickable, labelled with its own week (`8:00 AM ~ 9:00 AM · AMSE2003(T) · week 14 · B100`) and the amber `1 request waiting` pill |
+| 21 | Ticking it **withdraws that request** (status `cancelled`, its slot released) and does **not** cancel the class it was arranged for — the user's words: "i only it tick for cancel the request" |
+| 22 | The sentence names both kinds: **"Also cancel my other 2 classes + 1 request on the same day"**, each half a live count, the request half hidden at zero, singular/plural correct |
+| 23 | An **approved** make-up keeps the quiet note (withdrawing a promise is not this box's decision) |
+
+Server: `cancelClassDay(..., array $requestIds = [])` — the ids are re-checked (mine, still `pending`)
+before anything is written, then `CancelPendingRequest` runs per id; the classes still go through
+`CancelClassBatch`. Receipt: `MyDayClassesTest::test_a_ticked_make_up_row_withdraws_the_request_and_leaves_the_class_alone`.

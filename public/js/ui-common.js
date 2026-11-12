@@ -5103,6 +5103,27 @@ const CancelClassModal = {
 
         const esc = (v) => String(v == null ? '' : v).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 
+        /* 2026-11-11 (user): a PENDING make-up block is a row of its own — ticking
+           it withdraws that request; the class it was arranged for is untouched.
+           An APPROVED one keeps the quiet note (withdrawing a promise is a
+           different decision, not this box's job). */
+        const pendingMakeUps = (makeUps || []).filter((m) => m.request === 'pending');
+        const noteOnly = (makeUps || []).filter((m) => m.request !== 'pending');
+
+        const makeupRows = pendingMakeUps.map((m) => {
+            const cohorts = Array.isArray(m.cohorts) ? m.cohorts : [];
+            const cohortCell = cohorts.length > 1
+                ? '<span class="cdl-cohort" data-tip="' + esc(cohorts.join('\n')) + '">' + cohorts.length + ' cohorts</span>'
+                : (cohorts[0] ? '<span class="cdl-cohort">' + esc(cohorts[0]) + '</span>' : '');
+            return '<li><label class="cancel-day-row">' +
+                '<input type="checkbox" data-request="' + esc(m.requestId) + '">' +
+                '<span class="cdl-time">' + esc(to12h(m.start) + ' ~ ' + to12h(m.end)) + '</span>' +
+                '<span class="cdl-what">' + esc(m.code + '(' + (m.type || '') + ')') + '</span>' +
+                '<span class="cdl-venue">' + esc(m.venue) + '</span>' +
+                '<span class="cdl-facts">' + cohortCell + '<span class="cdl-flag">1 request waiting</span></span>' +
+                '</label></li>';
+        }).join('');
+
         const rows = others.map((c) => {
             const cohortCell = this._cohortCell(c);
             const waiting = (c.request === 'pending' || c.request === 'approved')
@@ -5121,14 +5142,18 @@ const CancelClassModal = {
             '<div class="cancel-day-head">' +
                 '<label class="cancel-day-toggle">' +
                     '<input type="checkbox">' +
-                    '<span>Also cancel my other <span class="cd-count">' + others.length + '</span> classes on the <span class="info-keyword">same day</span></span>' +
+                    '<span>Also cancel my other <span class="cd-count">' + others.length + '</span> <span class="cd-class-word">' +
+                        (others.length === 1 ? 'class' : 'classes') + '</span>' +
+                        '<span class="cd-req"><span class="cd-plus"> + </span><span class="cd-count-req">' + pendingMakeUps.length +
+                        '</span> <span class="cd-req-word">' + (pendingMakeUps.length === 1 ? 'request' : 'requests') + '</span></span>' +
+                        ' on the <span class="info-keyword">same day</span></span>' +
                 '</label>' +
                 '<button type="button" class="cd-collapse" aria-expanded="true" title="Show or hide these classes">' +
                     '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>' +
                 '</button>' +
             '</div>' +
-            '<ul class="cancel-day-list">' + rows + '</ul>' +
-            this._makeUpNote(makeUps || []);
+            '<ul class="cancel-day-list">' + rows + makeupRows + '</ul>' +
+            this._makeUpNote(noteOnly);
 
         /* 2026-11-11 (user): the block opens UNTICKED and FOLDED — the whole day is
            an offer, not a default. The sentence still names how many there are;
@@ -5190,7 +5215,10 @@ const CancelClassModal = {
     _daySelection() {
         const scope = document.getElementById('cancelDayScope');
         if (!scope || scope.style.display === 'none' || !scope.classList.contains('is-on')) return [];
-        return this._dayBoxes(scope).filter((b) => b.checked).map((b) => String(b.dataset.session));
+        return this._dayBoxes(scope).filter((b) => b.checked).map((b) => ({
+            session: b.dataset.session || null,
+            request: b.dataset.request || null,
+        }));
     },
 
     /** Keeps the three live numbers agreeing: the sentence, the head tick, the button. */
@@ -5207,13 +5235,35 @@ const CancelClassModal = {
         }
         scope.classList.toggle('is-on', on > 0);
 
+        /* 2026-11-11 (user): the sentence names BOTH kinds of row it can carry —
+           classes and requests — because a make-up row withdraws a request, not a
+           class. Nothing selected ⇒ the totals; otherwise the ticks. */
+        const classesTotal = boxes.filter((b) => !b.dataset.request).length;
+        const reqsTotal = boxes.filter((b) => !!b.dataset.request).length;
+        const classesOn = boxes.filter((b) => !b.dataset.request && b.checked).length;
+        const reqsOn = boxes.filter((b) => !!b.dataset.request && b.checked).length;
+        const anyTick = on > 0;
+
+        const shownClasses = anyTick ? classesOn : classesTotal;
+        const shownReqs = anyTick ? reqsOn : reqsTotal;
+
         const count = scope.querySelector('.cd-count');
-        /* nothing selected ⇒ the sentence still says how many exist; the numbers
-           only start tracking the ticks once the user ticks something. */
-        if (count) count.textContent = String(on > 0 ? on : boxes.length);
+        if (count) count.textContent = String(shownClasses);
+        const classWord = scope.querySelector('.cd-class-word');
+        if (classWord) classWord.textContent = shownClasses === 1 ? 'class' : 'classes';
+
+        const reqWrap = scope.querySelector('.cd-req');
+        const reqCount = scope.querySelector('.cd-count-req');
+        if (reqCount) reqCount.textContent = String(shownReqs);
+        const reqWord = scope.querySelector('.cd-req-word');
+        if (reqWord) reqWord.textContent = shownReqs === 1 ? 'request' : 'requests';
+        if (reqWrap) reqWrap.style.display = shownReqs > 0 ? '' : 'none';
 
         const yes = document.getElementById('confirmCancelClassBtn');
-        if (yes) yes.textContent = on > 0 ? 'Yes, Cancel ' + (on + 1) + ' Classes' : 'Yes, Cancel Class';
+        if (yes) {
+            const label = 'Yes, Cancel ' + (classesOn + 1) + ' Class' + (classesOn + 1 === 1 ? '' : 'es');
+            yes.textContent = anyTick ? label : 'Yes, Cancel Class';
+        }
     },
 
     /* ───── S1–S5 guard + confirm-state render. `context.onCancelled` (optional)
@@ -5397,12 +5447,14 @@ const CancelClassModal = {
         /* 2026-11-11 (SDD cancel-whole-day): a ticked block means the decision is
            the WHOLE day. The server re-resolves the set from (week, day), so this
            list only decides whether to take that path — never what it cancels. */
-        const dayIds = this._daySelection();
+        const daySel = this._daySelection();
+        const dayIds = daySel.filter((x) => x.session).map((x) => x.session);
+        const dayRequests = daySel.filter((x) => x.request).map((x) => x.request);
 
         let res = null;
         try {
-            res = dayIds.length > 0
-                ? await window.pageLivewire().call('cancelClassDay', ctx.weekIndex + 1, ctx.event.di, reason, trimmedDetail)
+            res = daySel.length > 0
+                ? await window.pageLivewire().call('cancelClassDay', ctx.weekIndex + 1, ctx.event.di, reason, trimmedDetail, dayRequests)
                 : await window.pageLivewire().call('cancelClass',
                     String((ctx.event.sessionId != null) ? ctx.event.sessionId : ctx.event.id),
                     ctx.weekIndex + 1, reason, trimmedDetail);
@@ -5435,8 +5487,8 @@ const CancelClassModal = {
         }
         /* the day path already cancelled in one transaction — the client patches
            nothing; closing the modal rebuilds the grid from the server (Later). */
-        if (dayIds.length > 0) {
-            this._renderDaySuccess(res, reason, dayIds);
+        if (daySel.length > 0) {
+            this._renderDaySuccess(res, reason, daySel);
             this._swapState('success');
             return;
         }
@@ -5461,7 +5513,7 @@ const CancelClassModal = {
      * the block's own order (the opened class first). The withdrawn pill is RED —
      * amber means "will be cancelled", red means "was".
      */
-    _renderDaySuccess(res, reason, dayIds) {
+    _renderDaySuccess(res, reason, daySel) {
         const single = document.getElementById('cancelClassSummary');
         const box = document.getElementById('cancelDaySuccess');
         if (!box) return;
@@ -5470,12 +5522,15 @@ const CancelClassModal = {
         const ctx = this._ctx;
         const day = this._dayPayload || {};
         const rows = (this._dayPayload && this._dayPayload.others) || [];
-        const total = dayIds.length + 1;
+        const tickedClassIds = daySel.filter((x) => x.session).map((x) => String(x.session));
+        const tickedRequests = daySel.filter((x) => x.request).map((x) => String(x.request));
+        const withdrawn = Number(res.requestsWithdrawn || 0);
+        const total = tickedClassIds.length + 1;
 
         const dayRow = (label, value) => '<div class="detail-row"><span class="detail-label">' + label +
             '</span><span class="detail-value">' + value + '</span></div>';
 
-        const lines = rows.map((c) => {
+        const lines = rows.filter((c) => tickedClassIds.includes(String(c.sessionId))).map((c) => {
             const cohortCell = this._cohortCell(c);
             const withdrawn = (c.request === 'pending' || c.request === 'approved')
                 ? '<span class="cdl-flag cdl-flag--withdrawn">1 request withdrawn</span>'
@@ -5504,7 +5559,7 @@ const CancelClassModal = {
             '<p style="margin:0 0 10px; font-weight:600; font-size:15px;">\u2713 ' + total + ' classes cancelled</p>' +
             dayRow('Day', esc(day.date || '') ) +
             dayRow('Reason', esc((ClassCancellation.REASONS.find((r) => r.value === reason) || {}).label || reason)) +
-            (withdrawnCount > 0 ? dayRow('Requests withdrawn', String(withdrawnCount)) : '') +
+            (withdrawnCount + withdrawn > 0 ? dayRow('Requests withdrawn', String(withdrawnCount + withdrawn)) : '') +
             '<ul class="cancel-day-done" style="margin-top:10px">' + opened + lines + '</ul>';
     },
 

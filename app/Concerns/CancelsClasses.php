@@ -4,6 +4,7 @@ namespace App\Concerns;
 
 use App\Actions\CancelClass;
 use App\Actions\CancelClassBatch;
+use App\Actions\CancelPendingRequest;
 use App\Models\ClassException;
 use App\Models\ClassSession;
 use App\Models\ReplacementRequest;
@@ -114,20 +115,41 @@ trait CancelsClasses
      * tampered page cannot widen what a tick cancels. The action owns every rule;
      * this method only translates its refusal into the modal's hint.
      *
-     * @return array{ok: bool, cancelled: array<int, array<string, mixed>>, requestsClosed: int, hint?: string}
+     * @param  array<int, int|string>  $requestIds  the ticked make-up rows (request ids)
+     * @return array{ok: bool, cancelled: array<int, array<string, mixed>>, requestsClosed: int, requestsWithdrawn: int, hint?: string}
      */
     #[Renderless]
-    public function cancelClassDay(int $weekNumber, int $dayIndex, string $reason, ?string $otherDetail = null): array
+    public function cancelClassDay(int $weekNumber, int $dayIndex, string $reason, ?string $otherDetail = null, array $requestIds = []): array
     {
         $semester = Semester::active();
 
         if ($semester === null) {
-            return ['ok' => false, 'cancelled' => [], 'requestsClosed' => 0, 'hint' => 'The semester could not be read.'];
+            return ['ok' => false, 'cancelled' => [], 'requestsClosed' => 0, 'requestsWithdrawn' => 0,
+                'hint' => 'The semester could not be read.'];
         }
 
         $classes = $this->dayClasses($semester, $weekNumber, $dayIndex);
-        if ($classes === []) {
-            return ['ok' => false, 'cancelled' => [], 'requestsClosed' => 0, 'hint' => 'There is nothing to cancel that day.'];
+
+        /* 2026-11-11 (user): a ticked MAKE-UP row withdraws its request only — the
+           class it was arranged for is untouched. Ownership + pending state are
+           re-checked here, never trusted from the page. */
+        $requestIds = array_values(array_unique(array_map('intval', $requestIds)));
+        $withdrawable = $requestIds === [] ? [] : ReplacementRequest::query()
+            ->whereIn('id', $requestIds)
+            ->where('proposer_id', auth()->id())
+            ->where('status', 'pending')
+            ->pluck('id')
+            ->map(fn ($id): int => (int) $id)
+            ->all();
+
+        if ($withdrawable !== [] && count($withdrawable) !== count($requestIds)) {
+            return ['ok' => false, 'cancelled' => [], 'requestsClosed' => 0, 'requestsWithdrawn' => 0,
+                'hint' => 'One of those requests is not yours to withdraw any more.'];
+        }
+
+        if ($classes === [] && $withdrawable === []) {
+            return ['ok' => false, 'cancelled' => [], 'requestsClosed' => 0, 'requestsWithdrawn' => 0,
+                'hint' => 'There is nothing to cancel that day.'];
         }
 
         $sessions = ClassSession::query()
@@ -144,12 +166,23 @@ trait CancelsClasses
             }
         }
 
-        $result = (new CancelClassBatch)(auth()->user(), $items, $reason, $otherDetail);
+        $result = $items === []
+            ? ['ok' => true, 'cancelled' => [], 'requestsClosed' => 0, 'hint' => null]
+            : (new CancelClassBatch)(auth()->user(), $items, $reason, $otherDetail);
+
+        // a make-up row withdraws its own request (CancelPendingRequest owns that rule)
+        $withdrawn = 0;
+        foreach ($withdrawable as $id) {
+            if ((new CancelPendingRequest)(auth()->user(), $id)) {
+                $withdrawn++;
+            }
+        }
 
         return [
             'ok' => $result['ok'],
             'cancelled' => $result['cancelled'],
             'requestsClosed' => $result['requestsClosed'],
+            'requestsWithdrawn' => $withdrawn,
             'hint' => $result['hint'],
         ];
     }
@@ -185,6 +218,7 @@ trait CancelsClasses
                 $endAt = Carbon::parse((string) $slot->start_time)->addMinutes(30 * $cells);
 
                 return [
+                    'requestId' => (int) $r->id,
                     'code' => (string) ($session->module->module_code ?? ''),
                     'type' => (string) ($session->session_type ?? ''),
                     'week' => (int) $r->week_number,
