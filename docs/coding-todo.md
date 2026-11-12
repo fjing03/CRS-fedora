@@ -124,7 +124,7 @@ This file only decides **what to code next**.
 | 3 | `cohort-venue-replace-now`: read the proposal, then say build it or drop it | C11 |
 | 4 | Staff User Panel: real work or parked? | C9 |
 | 5 | Whether `notifications:remind-pending` is wanted for the demo | C10 |
-| 6 | Whether the auto-reject sweep should also run at SUBMIT time (no scheduler runs in dev) | a submit-flow change |
+| 6 | ~~Whether the auto-reject sweep should also run at SUBMIT time~~ — **settled 2026-11-12**: no submit-time sweep. The scheduled run now exists (crontab every minute → `schedule:run`, `DB_DATABASE=class_replacement_testing`), so the trigger was the missing piece, not the write path | nothing |
 | 7 | `my to-do list.md` task 2 (Remove Change Venue Confirmation Modal) — parked, one question open | task 2 |
 
 ---
