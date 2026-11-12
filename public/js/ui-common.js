@@ -5034,7 +5034,189 @@ const CancelClassModal = {
         this._bound = true;
     },
 
-    /* S1–S5 guard + confirm-state render. `context.onCancelled` (optional)
+    /* ───── The whole-day block (SDD cancel-whole-day) ─────────────────────── */
+
+    /**
+     * Ask the server for THIS lecturer's classes on the opened class's date.
+     * One read per open; the block is hidden until it answers, and hidden for
+     * good when the day has no other class (user decision 6).
+     */
+    _loadDayScope() {
+        const scope = document.getElementById('cancelDayScope');
+        const ctx = this._ctx;
+        if (!scope || !ctx) return;
+
+        scope.style.display = 'none';
+        scope.innerHTML = '';
+        this._dayPayload = null;
+
+        const livewire = window.pageLivewire ? window.pageLivewire() : (window.Livewire && window.Livewire.first ? window.Livewire.first() : null);
+        if (!livewire || typeof livewire.call !== 'function') return;
+
+        const week = ctx.weekIndex + 1;
+        const day = ctx.event.di;
+        const wanted = String(ctx.event.sessionId != null ? ctx.event.sessionId : ctx.event.id);
+
+        livewire.call('myDayClasses', week, day).then((res) => {
+            if (!res || res.ok !== true || !Array.isArray(res.classes)) return;
+            const others = res.classes.filter((c) => String(c.sessionId) !== wanted);
+            if (others.length === 0) return;          // the day has nothing else
+            this._dayPayload = {
+                day: res.day,
+                date: res.date,
+                others: others,
+                makeUps: Array.isArray(res.makeUps) ? res.makeUps : [],
+            };
+            this._renderDayScope(others, this._dayPayload.makeUps);
+        }).catch(() => { /* the block simply does not appear */ });
+    },
+
+    /**
+     * The cohort cell (user, 2026-11-11): the row prints the compact code, the
+     * hover says the full name. One cohort ⇒ its own name on the tip; several ⇒
+     * `n cohorts` and one `code — full name` per line, the shared multi-line
+     * data-tip shape (\n + pre-line) like every other tip in the app.
+     */
+    _cohortCell(c) {
+        const esc = (v) => String(v == null ? '' : v).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+        const details = Array.isArray(c.cohortDetails) && c.cohortDetails.length
+            ? c.cohortDetails
+            : (Array.isArray(c.cohorts) ? c.cohorts.map((l) => ({ label: l, full: l })) : []);
+
+        if (details.length === 0) {
+            return '<span class="cdl-cohort">\u2014</span>';
+        }
+
+        if (details.length === 1) {
+            return '<span class="cdl-cohort" data-tip="' + esc(details[0].full || details[0].label) + '">' +
+                esc(details[0].label) + '</span>';
+        }
+
+        const tip = details.map((d) => (d.full && d.full !== d.label ? d.label + ' \u2014 ' + d.full : d.label)).join('\n');
+
+        return '<span class="cdl-cohort" data-tip="' + esc(tip) + '">' + details.length + ' cohorts</span>';
+    },
+
+    _renderDayScope(others, makeUps) {
+        const scope = document.getElementById('cancelDayScope');
+        if (!scope) return;
+
+        const esc = (v) => String(v == null ? '' : v).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+
+        const rows = others.map((c) => {
+            const cohortCell = this._cohortCell(c);
+            const waiting = (c.request === 'pending' || c.request === 'approved')
+                ? '<span class="cdl-flag">1 request waiting</span>'
+                : '';
+            return '<li><label class="cancel-day-row">' +
+                '<input type="checkbox" data-session="' + esc(c.sessionId) + '">' +
+                '<span class="cdl-time">' + esc(to12h(c.start) + ' ~ ' + to12h(c.end)) + '</span>' +
+                '<span class="cdl-what">' + esc(c.code + '(' + (c.type || '') + ')') + '</span>' +
+                '<span class="cdl-venue">' + esc(c.venue) + '</span>' +
+                '<span class="cdl-facts">' + cohortCell + waiting + '</span>' +
+                '</label></li>';
+        }).join('');
+
+        scope.innerHTML =
+            '<div class="cancel-day-head">' +
+                '<label class="cancel-day-toggle">' +
+                    '<input type="checkbox">' +
+                    '<span>Also cancel my other <span class="cd-count">' + others.length + '</span> classes on the <span class="info-keyword">same day</span></span>' +
+                '</label>' +
+                '<button type="button" class="cd-collapse" aria-expanded="true" title="Show or hide these classes">' +
+                    '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>' +
+                '</button>' +
+            '</div>' +
+            '<ul class="cancel-day-list">' + rows + '</ul>' +
+            this._makeUpNote(makeUps || []);
+
+        /* 2026-11-11 (user): the block opens UNTICKED and FOLDED — the whole day is
+           an offer, not a default. The sentence still names how many there are;
+           only the selection starts empty. */
+        scope.classList.remove('is-on');
+        scope.classList.add('is-collapsed');
+        scope.style.display = '';
+
+        // one delegated listener pair: the head tick is select-all, a row tick
+        // re-counts, the chevron folds — no per-row wiring to leak on re-render
+        scope.querySelector('.cancel-day-toggle input').addEventListener('change', (e) => {
+            this._setDayAll(scope, e.target.checked);
+        });
+        scope.querySelector('.cd-collapse').setAttribute('aria-expanded', 'false');
+        scope.querySelector('.cd-collapse').addEventListener('click', () => {
+            scope.classList.toggle('is-collapsed');
+            const btn = scope.querySelector('.cd-collapse');
+            if (btn) btn.setAttribute('aria-expanded', scope.classList.contains('is-collapsed') ? 'false' : 'true');
+        });
+        scope.querySelector('.cancel-day-list').addEventListener('change', () => {
+            this._refreshDayGate();
+        });
+
+        this._refreshDayGate();
+    },
+
+    /**
+     * The make-up note (user, 2026-11-11): a make-up block that FALLS on this day
+     * belongs to another week's class, so it is named here instead of being given a
+     * tick — ticking it would cancel a class from a different week.
+     */
+    _makeUpNote(makeUps) {
+        if (!makeUps.length) return '';
+        const esc = (v) => String(v == null ? '' : v).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+
+        const lines = makeUps.map((m) => esc(m.code + '(' + (m.type || '') + ')') +
+            ' \u00b7 week ' + esc(m.week) + ' \u00b7 ' + esc(to12h(m.start) + ' ~ ' + to12h(m.end)) +
+            (m.venue ? ' \u00b7 ' + esc(m.venue) : '')).join('\n');
+
+        return '<p class="cancel-day-note" data-tip="' + esc(lines) + '">' +
+            (makeUps.length === 1 ? '1 make-up block' : makeUps.length + ' make-up blocks') +
+            ' that day ' +
+            (makeUps.length === 1 ? 'belongs' : 'belong') +
+            ' to another week \u2014 cancel ' + (makeUps.length === 1 ? 'it' : 'them') + ' from ' +
+            (makeUps.length === 1 ? 'its' : 'their') + ' own class.</p>';
+    },
+
+    _dayBoxes(scope) {
+        return Array.prototype.slice.call(scope.querySelectorAll('.cancel-day-row input'));
+    },
+
+    _setDayAll(scope, on) {
+        this._dayBoxes(scope).forEach((b) => { b.checked = on; });
+        if (on) scope.classList.remove('is-collapsed');
+        this._refreshDayGate();
+    },
+
+    /** Which classes will go WITH the opened one (the ticked rows). */
+    _daySelection() {
+        const scope = document.getElementById('cancelDayScope');
+        if (!scope || scope.style.display === 'none' || !scope.classList.contains('is-on')) return [];
+        return this._dayBoxes(scope).filter((b) => b.checked).map((b) => String(b.dataset.session));
+    },
+
+    /** Keeps the three live numbers agreeing: the sentence, the head tick, the button. */
+    _refreshDayGate() {
+        const scope = document.getElementById('cancelDayScope');
+        if (!scope || scope.style.display === 'none') return;
+
+        const boxes = this._dayBoxes(scope);
+        const on = boxes.filter((b) => b.checked).length;
+        const head = scope.querySelector('.cancel-day-toggle input');
+        if (head) {
+            head.checked = on > 0;
+            head.indeterminate = on > 0 && on < boxes.length;
+        }
+        scope.classList.toggle('is-on', on > 0);
+
+        const count = scope.querySelector('.cd-count');
+        /* nothing selected ⇒ the sentence still says how many exist; the numbers
+           only start tracking the ticks once the user ticks something. */
+        if (count) count.textContent = String(on > 0 ? on : boxes.length);
+
+        const yes = document.getElementById('confirmCancelClassBtn');
+        if (yes) yes.textContent = on > 0 ? 'Yes, Cancel ' + (on + 1) + ' Classes' : 'Yes, Cancel Class';
+    },
+
+    /* ───── S1–S5 guard + confirm-state render. `context.onCancelled` (optional)
        is the page's grid-rebuild callback used by the Later path. */
     open(event, days, weekIndex, context) {
         if (!ClassCancellation.isCancellable(event, days, weekIndex)) return;  // S1–S5
@@ -5048,6 +5230,11 @@ const CancelClassModal = {
         this._bind();
         this._renderReasons();
         this._renderImpact();
+        /* 2026-11-11 (SDD cancel-whole-day): the whole-day block needs the day's
+           classes, which only the server knows on the cohort/venue pages. The
+           modal opens immediately; the block appears when the read answers, and
+           stays absent when the day has nothing else to cancel. */
+        this._loadDayScope();
         /* 2026-11-10 (item 5): a fresh open starts with a BLANK "Other" detail and
            its block closed; _refreshGate() then sets the wrapper from the reason. */
         const detail = document.getElementById('cancelOtherDetail');
@@ -5207,11 +5394,18 @@ const CancelClassModal = {
 
             return;
         }
+        /* 2026-11-11 (SDD cancel-whole-day): a ticked block means the decision is
+           the WHOLE day. The server re-resolves the set from (week, day), so this
+           list only decides whether to take that path — never what it cancels. */
+        const dayIds = this._daySelection();
+
         let res = null;
         try {
-            res = await window.pageLivewire().call('cancelClass',
-                String((ctx.event.sessionId != null) ? ctx.event.sessionId : ctx.event.id),
-                ctx.weekIndex + 1, reason, trimmedDetail);
+            res = dayIds.length > 0
+                ? await window.pageLivewire().call('cancelClassDay', ctx.weekIndex + 1, ctx.event.di, reason, trimmedDetail)
+                : await window.pageLivewire().call('cancelClass',
+                    String((ctx.event.sessionId != null) ? ctx.event.sessionId : ctx.event.id),
+                    ctx.weekIndex + 1, reason, trimmedDetail);
         } catch (e) { res = { ok: false, hint: 'Server error — the class is unchanged.' }; }
         if (!res || res.ok !== true) {
             /* same order law as above, plus a RE-QUERY: the Livewire round-trip
@@ -5239,6 +5433,14 @@ const CancelClassModal = {
 
             return;
         }
+        /* the day path already cancelled in one transaction — the client patches
+           nothing; closing the modal rebuilds the grid from the server (Later). */
+        if (dayIds.length > 0) {
+            this._renderDaySuccess(res, reason, dayIds);
+            this._swapState('success');
+            return;
+        }
+
         out.entry.exceptionId = res.exceptionId || null;
         ClassCancellation.ledgerUpdate(out.entry);
         ctx.entry = out.entry;
@@ -5251,6 +5453,59 @@ const CancelClassModal = {
                 to12h(hours[ev.start]) + ' ~ ' + to12h(hours[ev.end + 1] || add30min(hours[ev.end]));
         }
         this._swapState('success');
+    },
+
+    /**
+     * The whole-day success screen (user, 2026-11-11): the total, the day, the
+     * reason, how many waiting requests were withdrawn, then one line per class in
+     * the block's own order (the opened class first). The withdrawn pill is RED —
+     * amber means "will be cancelled", red means "was".
+     */
+    _renderDaySuccess(res, reason, dayIds) {
+        const single = document.getElementById('cancelClassSummary');
+        const box = document.getElementById('cancelDaySuccess');
+        if (!box) return;
+
+        const esc = (v) => String(v == null ? '' : v).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+        const ctx = this._ctx;
+        const day = this._dayPayload || {};
+        const rows = (this._dayPayload && this._dayPayload.others) || [];
+        const total = dayIds.length + 1;
+
+        const dayRow = (label, value) => '<div class="detail-row"><span class="detail-label">' + label +
+            '</span><span class="detail-value">' + value + '</span></div>';
+
+        const lines = rows.map((c) => {
+            const cohortCell = this._cohortCell(c);
+            const withdrawn = (c.request === 'pending' || c.request === 'approved')
+                ? '<span class="cdl-flag cdl-flag--withdrawn">1 request withdrawn</span>'
+                : '';
+            return '<li><span class="tick">\u2713</span>' +
+                '<span class="cdl-time">' + esc(to12h(c.start) + ' ~ ' + to12h(c.end)) + '</span>' +
+                '<span class="cdl-what">' + esc(c.code + '(' + (c.type || '') + ')') + '</span>' +
+                '<span class="cdl-venue">' + esc(c.venue) + '</span>' +
+                '<span class="cdl-facts">' + cohortCell + withdrawn + '</span></li>';
+        }).join('');
+
+        const opened = ctx ? ('<li><span class="tick">\u2713</span>' +
+            '<span class="cdl-time">' + esc(to12h(hours[ctx.event.start]) + ' ~ ' + to12h(hours[ctx.event.end + 1] || add30min(hours[ctx.event.end]))) + '</span>' +
+            '<span class="cdl-what">' + esc((ctx.event.code || '') + '(' + (ctx.event.type || '') + ')') + '</span>' +
+            '<span class="cdl-venue">' + esc(ctx.event.venue || '') + '</span>' +
+            '<span class="cdl-facts"><span class="cdl-cohort">' + esc(ClassCancellation.cohortLabels(ctx.event).join(', ')) + '</span></span></li>') : '';
+
+        const withdrawnCount = Number(res.requestsClosed || 0);
+
+        if (single) {
+            single.style.display = 'none';
+        }
+
+        box.style.display = '';
+        box.innerHTML =
+            '<p style="margin:0 0 10px; font-weight:600; font-size:15px;">\u2713 ' + total + ' classes cancelled</p>' +
+            dayRow('Day', esc(day.date || '') ) +
+            dayRow('Reason', esc((ClassCancellation.REASONS.find((r) => r.value === reason) || {}).label || reason)) +
+            (withdrawnCount > 0 ? dayRow('Requests withdrawn', String(withdrawnCount)) : '') +
+            '<ul class="cancel-day-done" style="margin-top:10px">' + opened + lines + '</ul>';
     },
 
     /* S10 — navigate to the arrangement page carrying the cancelled class's
@@ -5299,8 +5554,13 @@ const CancelClassModal = {
         if (successState) successState.style.display = success ? '' : 'none';
         if (keep) keep.style.display = success ? 'none' : '';
         if (yes) yes.style.display = success ? 'none' : '';
-        if (arrange) arrange.style.display = success ? '' : 'none';
-        if (laterBtn) laterBtn.style.display = success ? '' : 'none';
+        const dayClose = document.getElementById('cancelDayCloseBtn');
+        const dayDone = success && !!document.getElementById('cancelDaySuccess') &&
+            document.getElementById('cancelDaySuccess').style.display !== 'none';
+        /* the whole-day screen is not a single next step: one Close, no Arrange */
+        if (arrange) arrange.style.display = (success && !dayDone) ? '' : 'none';
+        if (laterBtn) laterBtn.style.display = (success && !dayDone) ? '' : 'none';
+        if (dayClose) dayClose.style.display = dayDone ? '' : 'none';
     },
 };
 

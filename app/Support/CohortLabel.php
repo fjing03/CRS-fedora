@@ -29,4 +29,21 @@ final class CohortLabel
             .$cohort->current_year.' (S'.$cohort->semester.')'
             .' G'.$cohort->tutorial_group;
     }
+
+    /**
+     * The SAME cohort spelled out (2026-11-11, user): the compact code above is
+     * what the rows print; this is what their hover says —
+     * `Diploma in Software Engineering — Year 2, Semester 1, Group 1`.
+     */
+    public static function full(?Cohort $cohort): string
+    {
+        if ($cohort === null || $cohort->programme === null) {
+            return '—';
+        }
+
+        return $cohort->programme->programme_name
+            .' — Year '.$cohort->current_year
+            .', Semester '.$cohort->semester
+            .', Group '.$cohort->tutorial_group;
+    }
 }

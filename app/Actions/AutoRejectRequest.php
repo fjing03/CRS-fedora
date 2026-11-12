@@ -4,7 +4,6 @@ namespace App\Actions;
 
 use App\Models\AuditLog;
 use App\Models\ReplacementRequest;
-use App\Models\ReplacementRequestSlot;
 use App\Models\TimeSlot;
 use Illuminate\Support\Facades\DB;
 
@@ -54,45 +53,11 @@ final class AutoRejectRequest
                 return false;
             }
 
-            $slotIds = ReplacementRequestSlot::query()
-                ->where('replacement_request_id', $locked->id)
-                ->orderBy('time_slot_id')
-                ->pluck('time_slot_id')
-                ->map(fn ($id): int => (int) $id)
-                ->all();
-
-            if ($slotIds === []) {
-                $slotIds = [(int) $locked->replacement_time_slot_id];
-            }
-
-            $slots = TimeSlot::query()
-                ->whereIn('id', $slotIds)
-                ->orderBy('id')
-                ->lockForUpdate()
-                ->get()
-                ->keyBy('id');
-
-            $flipped = [];
-
-            foreach ($slotIds as $slotId) {
-                $slot = $slots->get($slotId);
-
-                if ($slot === null || (string) $slot->status !== 'pending') {
-                    continue; // skip drifted rows: no flip, no false audit
-                }
-
-                $expected = (int) $slot->version;
-                $affected = DB::update(
-                    'UPDATE time_slots SET status = ?, version = ? WHERE id = ? AND version = ?',
-                    ['available', $expected + 1, $slot->id, $expected],
-                );
-
-                if ($affected === 0) {
-                    continue; // someone flipped it first — leave their state alone
-                }
-
-                $flipped[] = (int) $slot->id;
-
+            /* 2026-11-11 (SDD cancel-whole-day, T1): the release lives in ONE
+               action now. Auto-reject keeps its NON-STRICT policy — a drifted slot
+               is skipped, no flip and no false audit row — and its own audit
+               wording (user = the proposer, `auto: true`). */
+            $freed = (new ReleaseRequestSlots)($locked, false, function (TimeSlot $slot) use ($locked): void {
                 AuditLog::create([
                     'user_id' => (int) $locked->proposer_id,
                     'action' => 'rejected',
@@ -102,12 +67,7 @@ final class AutoRejectRequest
                     'new_status' => 'available',
                     'details' => ['decision' => 'rejected', 'auto' => true, 'reason' => self::REASON],
                 ]);
-            }
-
-            // The junction rows DELETE (the receipt completes its life).
-            ReplacementRequestSlot::query()
-                ->where('replacement_request_id', $locked->id)
-                ->delete();
+            });
 
             $locked->fill([
                 'status' => 'rejected',
@@ -128,7 +88,7 @@ final class AutoRejectRequest
                     'decision' => 'rejected',
                     'auto' => true,
                     'reason' => self::REASON,
-                    'slots' => $flipped,
+                    'slots' => $freed,
                 ],
             ]);
 

@@ -1,3 +1,46 @@
+## 2026-11-11 — Cancel this Class? can cancel the whole day
+
+User ask (2026-11-11): one checkbox in the *Cancel this Class?* modal to cancel **every class the
+lecturer teaches that day**, so a day of leave is one decision instead of four.
+
+The block sits between the grey Class Information box and the Cancellation Reason section:
+
+```
+☐ Also cancel my other 3 classes on the same day                    ⌄
+   ☑ 9:00 AM ~ 10:00 AM   AMSE1003(T)  B009     DSF1 (S1) G1
+   ☑ 1:00 PM ~ 3:00 PM    BMSE2163(L)  B015     2 cohorts
+                                                1 request waiting
+   ☑ 3:00 PM ~ 4:00 PM    BMSE2163(T)  B015     2 cohorts
+   1 make-up block that day belongs to another week — cancel it from its own class.
+```
+
+- It opens **unticked and folded**; the sentence still names how many there are, and the numbers start
+  tracking ticks once something is ticked.
+- The head tick is select-all (with the indeterminate half-tick); every row is its own checkbox; the red
+  button reads **Yes, Cancel N Classes** and the warning line is untouched.
+- A cohort with several groups prints `2 cohorts`, and the hover spells each one out
+  (`RSD2 (S1) G2 — Bachelor in IT (Hons) … — Year 2, Semester 1, Group 2`); a single cohort carries its
+  full name on the hover too.
+- The day is cancelled in **one transaction**: every occurrence gets its exception, one audit row each,
+  and a pending or approved request on any of them is **closed with it** (status `cancelled`, slots
+  released, junction rows deleted). A class already moved by an approved replacement is not in the set.
+- The success screen lists exactly what went — `✓ 4 classes cancelled`, the day, the reason, how many
+  requests were withdrawn (red pill) — and offers **one Close**. The grid is then refreshed from the
+  server rather than patched by hand.
+
+**The make-up note.** The grid also paints a class's pending make-up block in the week the make-up
+falls in. That block belongs to another week's class, so it is named in a quiet line and never tickable —
+ticking it would cancel a class from a different week (user bug report, 2026-11-11, verified on the
+demo data: `AMSE2003(T) · week 14 · 8:00 AM ~ 9:00 AM · B100`, while the day's three real classes stayed
+tickable).
+
+One cancel path: the single-class *Cancel Class?* flow now goes through the same action with a one-item
+set, so it too closes the request its class holds.
+
+Receipts: `ReleaseRequestSlotsTest`, `CancelClassBatchTest`, `MyDayClassesTest`,
+`tests/cancel-whole-day.spec.ts`; full suite 557/558 (the one red is the pre-existing
+`ReplacementHistoriesTest`). 0 console errors; nothing clips at 1440 px or 390 px.
+
 ## 2026-11-11 — every summary card now explains its formula
 
 User ruling (2026-11-11): every summary card must **say how its number is made**, in plain words.

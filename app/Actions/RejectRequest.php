@@ -78,63 +78,36 @@ final class RejectRequest
                     throw new RejectStaleException(ApprovalValidity::ALREADY_DECIDED);
                 }
 
-                // Step 2 — ordered lock over the span.
-                $slots = TimeSlot::query()
-                    ->whereIn('id', $slotIds)
-                    ->orderBy('id')
-                    ->lockForUpdate()
-                    ->get()
-                    ->keyBy('id');
-
-                if ($slots->count() !== $slotIds->count()) {
+                /* 2026-11-11 (SDD cancel-whole-day, T1): steps 2–5 (ordered lock,
+                   every member still pending, version-checked flips, junction
+                   DELETE) live in ONE action now. THIS caller is STRICT: a drifted
+                   member throws, the transaction rolls back, nothing half-releases
+                   — the behaviour it has always had. */
+                try {
+                    (new ReleaseRequestSlots)($locked, true, function (TimeSlot $slot) use ($locked, $decider, $reason): void {
+                        AuditLog::create([
+                            'user_id' => $decider->id,
+                            'action' => 'rejected',
+                            'replacement_request_id' => $locked->id,
+                            'time_slot_id' => (int) $slot->id,
+                            'old_status' => 'pending',
+                            'new_status' => 'available',
+                            'details' => [
+                                'decision' => 'rejected',
+                                'reason' => $reason,
+                            ],
+                        ]);
+                    });
+                } catch (ReleaseDriftException $e) {
                     throw new RejectDriftException(
-                        ApprovalValidity::notAvailableMessage('', ''),
+                        $e->slot === null
+                            ? ApprovalValidity::ALREADY_DECIDED
+                            : ApprovalValidity::notAvailableMessage(
+                                (string) $e->slot->start_time,
+                                (string) $e->slot->end_time,
+                            ),
                     );
                 }
-
-                // Step 3 — validity = every member still `pending`.
-                foreach ($slotIds as $slotId) {
-                    $slot = $slots->get($slotId);
-
-                    if ($slot === null) {
-                        throw new RejectDriftException(ApprovalValidity::ALREADY_DECIDED);
-                    }
-
-                    if ((string) $slot->status !== 'pending') {
-                        throw new RejectDriftException(
-                            ApprovalValidity::notAvailableMessage(
-                                (string) $slot->start_time,
-                                (string) $slot->end_time,
-                            ),
-                        );
-                    }
-                }
-
-                // Step 4 — flip ALL `pending→available` (version-checked;
-                // version advances per flip).
-                foreach ($slotIds as $slotId) {
-                    $slot = $slots->get($slotId);
-                    $expected = (int) $slot->version;
-                    $affected = DB::update(
-                        'UPDATE time_slots SET status = ?, version = ? WHERE id = ? AND version = ?',
-                        ['available', $expected + 1, $slot->id, $expected],
-                    );
-
-                    if ($affected === 0) {
-                        throw new RejectDriftException(
-                            ApprovalValidity::notAvailableMessage(
-                                (string) $slot->start_time,
-                                (string) $slot->end_time,
-                            ),
-                        );
-                    }
-                }
-
-                // Step 5 — the junction rows DELETE (the release family is
-                // VERBATIM `CancelPendingRequest`'s flip+DELETE shape ONLY).
-                ReplacementRequestSlot::query()
-                    ->where('replacement_request_id', $locked->id)
-                    ->delete();
 
                 // Step 6 — the reject stamp (`approver_id` = the deciding PL).
                 $locked->fill([
@@ -161,21 +134,6 @@ final class RejectRequest
                         'slots' => $slotIds->values()->all(),
                     ],
                 ]);
-
-                foreach ($slotIds as $slotId) {
-                    AuditLog::create([
-                        'user_id' => $decider->id,
-                        'action' => 'rejected',
-                        'replacement_request_id' => $locked->id,
-                        'time_slot_id' => (int) $slotId,
-                        'old_status' => 'pending',
-                        'new_status' => 'available',
-                        'details' => [
-                            'decision' => 'rejected',
-                            'reason' => $reason,
-                        ],
-                    ]);
-                }
 
                 // Step 9 — mails AFTER COMMIT (capture-at-queue-time: read the
                 // PRE-release state internally).

@@ -2081,6 +2081,90 @@ html.dark .filter-select {
     margin-top: 2px;
 }
 
+/* ── The whole-day block (SDD cancel-whole-day, 2026-11-11) ──────────────
+   Sits between the grey Class Information box and the Cancellation Reason
+   section. Tokens only: the outline hairline, --radius-md, the warning and error
+   containers for the two pills. Every class is its own choice; the head tick is
+   select-all and shows the indeterminate half-tick when the list is partial. */
+.cancel-day-scope {
+    margin: 0 0 14px;
+    padding: 10px 14px 12px;
+    border: 1px solid var(--color-outline);
+    border-radius: var(--radius-md);
+}
+.cancel-day-head { display: flex; align-items: flex-start; gap: 10px; }
+.cancel-day-toggle {
+    display: flex; align-items: center; gap: 9px; flex: 1;
+    cursor: pointer; font-size: 13px; font-weight: 600;
+    color: var(--color-on-surface);
+}
+.cancel-day-toggle input { width: 16px; height: 16px; accent-color: var(--color-primary); cursor: pointer; }
+.cancel-day-toggle .cd-count { color: var(--color-on-primary-container); font-weight: 800; }
+.cd-collapse {
+    flex: 0 0 auto; width: 26px; height: 26px; margin: -2px -4px 0 0;
+    display: inline-flex; align-items: center; justify-content: center;
+    border: none; background: transparent; color: var(--color-on-surface-variant);
+    border-radius: var(--radius-sm); cursor: pointer;
+}
+.cd-collapse:hover { background: var(--color-surface-variant); color: var(--color-on-surface); }
+.cd-collapse svg { transition: transform 0.15s; }
+.cancel-day-scope.is-collapsed .cd-collapse svg { transform: rotate(-90deg); }
+.cancel-day-scope.is-collapsed .cancel-day-list { display: none; }
+
+.cancel-day-list { list-style: none; margin: 10px 0 0; padding: 0 0 0 25px; }
+.cancel-day-list li {
+    padding: 1px 0; font-size: 12.5px; color: var(--color-on-surface-variant);
+    border-top: 1px dashed var(--color-outline-variant);
+}
+.cancel-day-list li:first-child { border-top: none; }
+.cancel-day-row { display: flex; align-items: baseline; gap: 9px; padding: 4px 0; cursor: pointer; }
+.cancel-day-row:hover { color: var(--color-on-surface); }
+.cancel-day-row input {
+    width: 14px; height: 14px; accent-color: var(--color-primary);
+    position: relative; top: 2px; cursor: pointer; flex: 0 0 auto;
+}
+.cancel-day-list .cdl-time,
+.cancel-day-done .cdl-time {
+    font-variant-numeric: tabular-nums; min-width: 122px;
+    color: var(--color-on-surface); font-weight: 600;
+}
+.cancel-day-list .cdl-what, .cancel-day-done .cdl-what { color: var(--color-on-surface); }
+.cancel-day-list .cdl-venue { color: var(--color-on-surface-variant); font-variant-numeric: tabular-nums; min-width: 38px; }
+/* the cohort and the request mark STACK (user, 2026-11-11): cohort on top, the
+   mark under it, one right-aligned column — a long pill can never widen a row. */
+.cdl-facts { margin-left: auto; display: flex; flex-direction: column; align-items: flex-end; gap: 2px; text-align: right; }
+.cdl-flag {
+    color: var(--color-on-warning-container);
+    background: var(--color-warning-container);
+    border-radius: var(--radius-xs);
+    padding: 1px 6px; font-size: 11px; font-weight: 700; white-space: nowrap;
+}
+.cdl-flag--withdrawn { color: var(--color-on-error-container); background: var(--color-error-container); }
+/* the make-up note under the list (user, 2026-11-11): a block that falls on this
+   day but belongs to another week's class — reported, never tickable */
+.cancel-day-note {
+    margin: 8px 0 0 25px; font-size: 11.5px; line-height: 1.45;
+    color: var(--color-on-surface-variant); cursor: help;
+}
+
+/* the success screen's list — the same cells, one tick each */
+.cancel-day-done { margin: 0; padding: 0; list-style: none; }
+.cancel-day-done li {
+    display: flex; align-items: baseline; gap: 9px; font-size: 12.5px;
+    padding: 4px 0; color: var(--color-on-surface-variant);
+}
+.cancel-day-done .cdl-venue { color: var(--color-on-surface-variant); min-width: 38px; }
+.cancel-day-done .tick { color: var(--color-success); font-weight: 700; }
+
+/* phone: three short lines per row — time, then class + room + cohort stack,
+   then the mark — so nothing clips at 390 px */
+@media (max-width: 520px) {
+    .cancel-day-row, .cancel-day-done li { flex-wrap: wrap; row-gap: 1px; }
+    .cancel-day-list .cdl-time, .cancel-day-done .cdl-time { min-width: 0; flex-basis: 100%; font-size: 12px; }
+    .cancel-day-list .cdl-what, .cancel-day-done .cdl-what { flex: 0 0 auto; }
+    .cdl-facts { flex-basis: auto; margin-left: auto; }
+}
+
 /* ── ONE footer-button size (user, 2026-11-10, modal consistency follow-up) ──
    The user's word: "standardise on the Close button's size, 34 px. Change size
    ONLY for now." (No re-ordering, no colour or copy changes.)

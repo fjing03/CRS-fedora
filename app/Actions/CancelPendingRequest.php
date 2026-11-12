@@ -4,10 +4,8 @@ namespace App\Actions;
 
 use App\Models\AuditLog;
 use App\Models\ReplacementRequest;
-use App\Models\ReplacementRequestSlot;
 use App\Models\TimeSlot;
 use App\Models\User;
-use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -40,52 +38,21 @@ final class CancelPendingRequest
         }
 
         DB::transaction(function () use ($request, $user): void {
-            // The release set: junction-linked slots (span-aware), falling back
-            // to the legacy anchor for requests without junction rows.
-            $slotIds = ReplacementRequestSlot::query()
-                ->where('replacement_request_id', $request->id)
-                ->orderBy('time_slot_id')
-                ->pluck('time_slot_id');
-
-            if ($slotIds->isEmpty()) {
-                $slotIds = [(int) $request->replacement_time_slot_id];
-            }
-
-            /** @var Collection<int, TimeSlot> $slots */
-            $slots = TimeSlot::query()->whereIn('id', $slotIds)->orderBy('id')->lockForUpdate()->get()->keyBy('id');
-
-            foreach ($slotIds as $slotId) {
-                $slot = $slots->get($slotId);
-
-                if ($slot === null || $slot->status !== 'pending') {
-                    continue; // skip non-pending rows (no flip, no false audit row)
-                }
-
-                $expected = (int) $slot->version;
-                $affected = DB::update(
-                    'UPDATE time_slots SET status = ?, version = ? WHERE id = ? AND version = ?',
-                    ['available', $expected + 1, $slot->id, $expected],
-                );
-
-                if ($affected > 0) {
-                    AuditLog::create([
-                        'user_id' => $user->id,
-                        'action' => 'cancelled',
-                        'replacement_request_id' => $request->id,
-                        'time_slot_id' => $slot->id,
-                        'old_status' => 'pending',
-                        'new_status' => 'available',
-                        'details' => ['cancelled_by' => 'proposer'],
-                    ]);
-                }
-
-                $slot->refresh();
-            }
-
-            // The junction rows DELETE (the receipt completes its life).
-            ReplacementRequestSlot::query()
-                ->where('replacement_request_id', $request->id)
-                ->delete();
+            /* 2026-11-11 (SDD cancel-whole-day, T1): the release itself now lives
+               in ONE action. Cancel keeps its NON-STRICT policy — a drifted slot is
+               skipped, no flip and no audit row — and keeps its own per-flip audit
+               (the helper only frees; the wording is the caller's). */
+            (new ReleaseRequestSlots)($request, false, function (TimeSlot $slot) use ($request, $user): void {
+                AuditLog::create([
+                    'user_id' => $user->id,
+                    'action' => 'cancelled',
+                    'replacement_request_id' => $request->id,
+                    'time_slot_id' => $slot->id,
+                    'old_status' => 'pending',
+                    'new_status' => 'available',
+                    'details' => ['cancelled_by' => 'proposer'],
+                ]);
+            });
 
             $request->fill([
                 'status' => 'cancelled',

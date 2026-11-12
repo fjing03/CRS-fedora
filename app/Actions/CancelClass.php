@@ -2,13 +2,8 @@
 
 namespace App\Actions;
 
-use App\Models\AuditLog;
-use App\Models\ClassException;
 use App\Models\ClassSession;
 use App\Models\User;
-use App\Support\Notifications\NotificationEmitter;
-use Illuminate\Database\QueryException;
-use Illuminate\Support\Facades\DB;
 
 /**
  * Cancel the caller's own scheduled class for one week (FR 2.16): a
@@ -52,43 +47,19 @@ final class CancelClass
             return false;
         }
 
-        try {
-            DB::transaction(function () use ($session, $user, $weekNumber, $reason, $otherDetail): void {
-                ClassException::create([
-                    'class_session_id' => $session->id,
-                    'week_number' => $weekNumber,
-                    'reason' => $reason,
-                ]);
+        /* 2026-11-11 (SDD cancel-whole-day, T2): the ONE cancel path for both
+           doorways. The single-class flow is this action with a one-item set, so
+           it now also closes a request the occurrence holds — the same rule the
+           day cancel follows, and the rule the parked bulk lane asked for
+           ("cancelling a class cancels its request too"). */
+        $result = (new CancelClassBatch)(
+            $user,
+            [['session' => $session, 'week' => $weekNumber]],
+            $reason,
+            $otherDetail,
+            enforceWindow: false,   // the page's own S5 guard owns this for one class
+        );
 
-                $details = [
-                    'class_session_id' => (int) $session->id,
-                    'week_number' => $weekNumber,
-                    'reason' => $reason,
-                ];
-                if ($otherDetail !== null && $otherDetail !== '') {
-                    $details['other_detail'] = $otherDetail;
-                }
-
-                AuditLog::create([
-                    'user_id' => $user->id,
-                    'action' => 'class_cancelled',
-                    'details' => $details,
-                ]);
-
-                /* SDD notifications-real-bridge: the THREE cancelled fan-outs
-                   (the class's lecturer + the cohort students + the
-                   department's PLs) — the emitter adds its own afterCommit
-                   closure here (this Action queues no mail of its own). */
-                DB::afterCommit(function () use ($user, $session, $weekNumber): void {
-                    app(NotificationEmitter::class)
-                        ->classCancelled($user, $session, $weekNumber);
-                });
-            });
-        } catch (QueryException) {
-            // Unique (class_session_id, week_number) or CHECK violation.
-            return false;
-        }
-
-        return true;
+        return $result['ok'];
     }
 }

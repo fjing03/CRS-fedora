@@ -31,6 +31,12 @@
                 {{-- the class facts — CancelClassModal._renderImpact() fills the
                      section title "Class Information" + the grey dl box --}}
                 <div id="cancelClassImpact"></div>
+                {{-- 2026-11-11 (SDD cancel-whole-day): the whole-day block. Its
+                     content is built by CancelClassModal._renderDayScope() because
+                     the day's classes come from a server read (myDayClasses), not
+                     from the page payload; this shell only reserves the place.
+                     Hidden unless the day really has other classes. --}}
+                <div id="cancelDayScope" class="cancel-day-scope" style="display:none"></div>
                 {{-- 2026-11-10: the rule runs straight into the reasons — the
                      removed instruction is not replaced by anything; the heading's
                      red asterisk + the disabled Yes button are the cue. --}}
@@ -63,6 +69,9 @@
             <div id="cancelClassSuccessState" style="display:none">
                 <p style="margin:0 0 10px; font-weight:600; font-size:15px;">✓ Class cancelled</p>
                 <p id="cancelClassSummary" class="hint-text" style="margin:0"></p>
+                {{-- the whole-day success screen (2026-11-11): one line per class,
+                     the withdrawn-request pill in red, and the total above. --}}
+                <div id="cancelDaySuccess" style="display:none"></div>
             </div>
         </div>
         <div class="modal-footer">
@@ -76,6 +85,10 @@
             </div>
             <button class="btn-action" id="cancelArrangeNowBtn" style="display:none" onclick="CancelClassModal.arrangeNow()">Arrange Replacement Now</button>
             <button class="btn-outline" id="cancelLaterBtn" style="display:none" onclick="CancelClassModal.later()">I'll Do It Later</button>
+            {{-- the whole-day success screen offers ONE button (user, 2026-11-11):
+                 arranging four classes is not a single next step, so the screen
+                 closes and the grid is refreshed from the server. --}}
+            <button class="btn-outline" id="cancelDayCloseBtn" style="display:none" onclick="CancelClassModal.dismiss()">Close</button>
         </div>
     </div>
 </div>
