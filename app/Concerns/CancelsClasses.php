@@ -116,10 +116,11 @@ trait CancelsClasses
      * this method only translates its refusal into the modal's hint.
      *
      * @param  array<int, int|string>  $requestIds  the ticked make-up rows (request ids)
+     * @param  array<int, int|string>  $sessionIds  the classes to cancel: the opened one + the ticked rows
      * @return array{ok: bool, cancelled: array<int, array<string, mixed>>, requestsClosed: int, requestsWithdrawn: int, hint?: string}
      */
     #[Renderless]
-    public function cancelClassDay(int $weekNumber, int $dayIndex, string $reason, ?string $otherDetail = null, array $requestIds = []): array
+    public function cancelClassDay(int $weekNumber, int $dayIndex, string $reason, ?string $otherDetail = null, array $requestIds = [], array $sessionIds = []): array
     {
         $semester = Semester::active();
 
@@ -129,6 +130,18 @@ trait CancelsClasses
         }
 
         $classes = $this->dayClasses($semester, $weekNumber, $dayIndex);
+
+        /* 2026-11-11 (BUG, user report): the day read returns the WHOLE day, but
+           only the ticked rows may be cancelled — an unticked class must survive.
+           The page sends the opened class plus every ticked row; anything else is
+           dropped here, and a fabricated id simply resolves to nothing. */
+        if ($sessionIds !== []) {
+            $wanted = array_map('intval', $sessionIds);
+            $classes = array_values(array_filter(
+                $classes,
+                fn (array $c): bool => in_array((int) $c['sessionId'], $wanted, true),
+            ));
+        }
 
         /* 2026-11-11 (user): a ticked MAKE-UP row withdraws its request only — the
            class it was arranged for is untouched. Ownership + pending state are

@@ -67,7 +67,7 @@
             </div>
             <!-- ─── Success state (swapped in-place, same overlay) ─── -->
             <div id="cancelClassSuccessState" style="display:none">
-                <p style="margin:0 0 10px; font-weight:600; font-size:15px;">✓ Class cancelled</p>
+                <p id="cancelClassDoneTitle" style="margin:0 0 10px; font-weight:600; font-size:15px;">✓ Class cancelled</p>
                 <p id="cancelClassSummary" class="hint-text" style="margin:0"></p>
                 {{-- the whole-day success screen (2026-11-11): one line per class,
                      the withdrawn-request pill in red, and the total above. --}}

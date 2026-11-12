@@ -249,3 +249,16 @@ select-all/`.cd-count`/button numbers only count the three tickable rows.
 Server: `cancelClassDay(..., array $requestIds = [])` — the ids are re-checked (mine, still `pending`)
 before anything is written, then `CancelPendingRequest` runs per id; the classes still go through
 `CancelClassBatch`. Receipt: `MyDayClassesTest::test_a_ticked_make_up_row_withdraws_the_request_and_leaves_the_class_alone`.
+
+## Rev 6 — the tick decides the work, and the success screen earns its place (2026-11-11)
+
+| # | Decision / fix |
+|---|---|
+| 24 | **BUG (user report):** unticking a row still cancelled it. The tick boxes only changed the receipt — `cancelClassDay()` re-read the whole day and cancelled all of it. The page now sends the opened class + the ticked rows, and the server drops everything else before writing |
+| 25 | The opened class's id falls back to `event.id` (My Timetable events carry `id`; the cohort/venue payloads carry `sessionId`) |
+| 26 | The red button mirrors the sentence: `Yes, Cancel 3 Classes + 1 Request` |
+| 27 | A day with only the opened class but waiting requests **does** show the block; the sentence drops the class half (`Also cancel 1 request on the same day`) |
+| 28 | The success screen was rebuilt: one result line, the day as `Wed, 18 Nov 2026`, a two-tile strip (classes cancelled · requests withdrawn), then the classes that went, then one Close. The single-class heading is hidden in day mode |
+
+Receipts: `MyDayClassesTest` now 8 (incl. `test_an_unticked_class_is_not_cancelled`),
+`tests/cancel-whole-day.spec.ts` updated for the unticked default. Suite 560 / 559 passing.

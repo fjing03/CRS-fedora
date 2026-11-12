@@ -5060,7 +5060,13 @@ const CancelClassModal = {
         livewire.call('myDayClasses', week, day).then((res) => {
             if (!res || res.ok !== true || !Array.isArray(res.classes)) return;
             const others = res.classes.filter((c) => String(c.sessionId) !== wanted);
-            if (others.length === 0) return;          // the day has nothing else
+            const makeUps = Array.isArray(res.makeUps) ? res.makeUps : [];
+            const pendingMakeUps = makeUps.filter((m) => m.request === 'pending');
+
+            /* 2026-11-11 (user bug report): a day with only the opened class but a
+               waiting request still has something this box can do — the request is
+               withdrawable — so the block appears for it too. */
+            if (others.length === 0 && pendingMakeUps.length === 0 && makeUps.length === 0) return;
             this._dayPayload = {
                 day: res.day,
                 date: res.date,
@@ -5098,6 +5104,8 @@ const CancelClassModal = {
     },
 
     _renderDayScope(others, makeUps) {
+        /* one wording for the amber pill, wherever it appears (user, 2026-11-11) */
+        const tip = ' data-tip="This Request will be Cancelled or Withdrawn"';
         const scope = document.getElementById('cancelDayScope');
         if (!scope) return;
 
@@ -5120,14 +5128,15 @@ const CancelClassModal = {
                 '<span class="cdl-time">' + esc(to12h(m.start) + ' ~ ' + to12h(m.end)) + '</span>' +
                 '<span class="cdl-what">' + esc(m.code + '(' + (m.type || '') + ')') + '</span>' +
                 '<span class="cdl-venue">' + esc(m.venue) + '</span>' +
-                '<span class="cdl-facts">' + cohortCell + '<span class="cdl-flag">1 request waiting</span></span>' +
+                '<span class="cdl-facts">' + cohortCell +
+                '<span class="cdl-flag"' + tip + '>1 request</span></span>' +
                 '</label></li>';
         }).join('');
 
         const rows = others.map((c) => {
             const cohortCell = this._cohortCell(c);
             const waiting = (c.request === 'pending' || c.request === 'approved')
-                ? '<span class="cdl-flag">1 request waiting</span>'
+                ? '<span class="cdl-flag"' + tip + '>1 request</span>'
                 : '';
             return '<li><label class="cancel-day-row">' +
                 '<input type="checkbox" data-session="' + esc(c.sessionId) + '">' +
@@ -5142,9 +5151,12 @@ const CancelClassModal = {
             '<div class="cancel-day-head">' +
                 '<label class="cancel-day-toggle">' +
                     '<input type="checkbox">' +
-                    '<span>Also cancel my other <span class="cd-count">' + others.length + '</span> <span class="cd-class-word">' +
-                        (others.length === 1 ? 'class' : 'classes') + '</span>' +
-                        '<span class="cd-req"><span class="cd-plus"> + </span><span class="cd-count-req">' + pendingMakeUps.length +
+                    '<span>' +
+                        '<span class="cd-lead">Also cancel my other </span>' +
+                        '<span class="cd-class-half"><span class="cd-count">' + others.length + '</span> <span class="cd-class-word">' +
+                            (others.length === 1 ? 'class' : 'classes') + '</span>' +
+                            '<span class="cd-plus"> + </span></span>' +
+                        '<span class="cd-req"><span class="cd-count-req">' + pendingMakeUps.length +
                         '</span> <span class="cd-req-word">' + (pendingMakeUps.length === 1 ? 'request' : 'requests') + '</span></span>' +
                         ' on the <span class="info-keyword">same day</span></span>' +
                 '</label>' +
@@ -5247,6 +5259,14 @@ const CancelClassModal = {
         const shownClasses = anyTick ? classesOn : classesTotal;
         const shownReqs = anyTick ? reqsOn : reqsTotal;
 
+        /* a day with no OTHER class reads "cancel 1 request on the same day" */
+        const classHalf = scope.querySelector('.cd-class-half');
+        const plus = scope.querySelector('.cd-plus');
+        const lead = scope.querySelector('.cd-lead');
+        if (classHalf) classHalf.style.display = shownClasses > 0 ? '' : 'none';
+        if (plus) plus.style.display = shownClasses > 0 && shownReqs > 0 ? '' : 'none';
+        if (lead) lead.textContent = shownClasses > 0 ? 'Also cancel my other ' : 'Also cancel ';
+
         const count = scope.querySelector('.cd-count');
         if (count) count.textContent = String(shownClasses);
         const classWord = scope.querySelector('.cd-class-word');
@@ -5259,9 +5279,15 @@ const CancelClassModal = {
         if (reqWord) reqWord.textContent = shownReqs === 1 ? 'request' : 'requests';
         if (reqWrap) reqWrap.style.display = shownReqs > 0 ? '' : 'none';
 
+        /* 2026-11-11 (user): the red button mirrors the sentence — both kinds, both
+           counts — because it is the last thing read before an irreversible click. */
         const yes = document.getElementById('confirmCancelClassBtn');
         if (yes) {
-            const label = 'Yes, Cancel ' + (classesOn + 1) + ' Class' + (classesOn + 1 === 1 ? '' : 'es');
+            const classes = classesOn + 1;                  // the opened class is always one
+            let label = 'Yes, Cancel ' + classes + ' Class' + (classes === 1 ? '' : 'es');
+            if (reqsOn > 0) {
+                label += ' + ' + reqsOn + ' Request' + (reqsOn === 1 ? '' : 's');
+            }
             yes.textContent = anyTick ? label : 'Yes, Cancel Class';
         }
     },
@@ -5451,10 +5477,16 @@ const CancelClassModal = {
         const dayIds = daySel.filter((x) => x.session).map((x) => x.session);
         const dayRequests = daySel.filter((x) => x.request).map((x) => x.request);
 
+        /* the opened class is always part of the decision; the ticked rows are the
+           rest — an UNTICKED row must never be sent, or it would be cancelled */
+        /* my-timetable events carry `id`; the venue/cohort payloads carry `sessionId` */
+        const openedId = String(ctx.event.sessionId != null ? ctx.event.sessionId : ctx.event.id);
+        const sessionsToCancel = (openedId ? [openedId] : []).concat(dayIds);
+
         let res = null;
         try {
             res = daySel.length > 0
-                ? await window.pageLivewire().call('cancelClassDay', ctx.weekIndex + 1, ctx.event.di, reason, trimmedDetail, dayRequests)
+                ? await window.pageLivewire().call('cancelClassDay', ctx.weekIndex + 1, ctx.event.di, reason, trimmedDetail, dayRequests, sessionsToCancel)
                 : await window.pageLivewire().call('cancelClass',
                     String((ctx.event.sessionId != null) ? ctx.event.sessionId : ctx.event.id),
                     ctx.weekIndex + 1, reason, trimmedDetail);
@@ -5515,6 +5547,7 @@ const CancelClassModal = {
      */
     _renderDaySuccess(res, reason, daySel) {
         const single = document.getElementById('cancelClassSummary');
+        const singleTitle = document.getElementById('cancelClassDoneTitle');
         const box = document.getElementById('cancelDaySuccess');
         if (!box) return;
 
@@ -5523,44 +5556,51 @@ const CancelClassModal = {
         const day = this._dayPayload || {};
         const rows = (this._dayPayload && this._dayPayload.others) || [];
         const tickedClassIds = daySel.filter((x) => x.session).map((x) => String(x.session));
-        const tickedRequests = daySel.filter((x) => x.request).map((x) => String(x.request));
         const withdrawn = Number(res.requestsWithdrawn || 0);
+        const closedWithClasses = Number(res.requestsClosed || 0);
         const total = tickedClassIds.length + 1;
 
-        const dayRow = (label, value) => '<div class="detail-row"><span class="detail-label">' + label +
-            '</span><span class="detail-value">' + value + '</span></div>';
+        /* the day, in the app's own words: "Wed, 18 Nov 2026" */
+        const iso = String(day.date || '');
+        const prettyDay = iso
+            ? DateHelper.dayAbbr(DateHelper.isoDayName(iso)) + ', ' + DateHelper.formatDate(iso)
+            : '';
+        const reasonLabel = (ClassCancellation.REASONS.find((r) => r.value === reason) || {}).label || reason;
 
-        const lines = rows.filter((c) => tickedClassIds.includes(String(c.sessionId))).map((c) => {
-            const cohortCell = this._cohortCell(c);
-            const withdrawn = (c.request === 'pending' || c.request === 'approved')
-                ? '<span class="cdl-flag cdl-flag--withdrawn">1 request withdrawn</span>'
-                : '';
+        /* 2026-11-11 (user): the schedule rows, in the same cells the block uses */
+        const scheduleRow = (c) => {
+            const cohorts = Array.isArray(c.cohorts) ? c.cohorts : [];
+            const cohortCell = cohorts.length > 1
+                ? '<span class="cdl-cohort" data-tip="' + esc(cohorts.join('\n')) + '">' + cohorts.length + ' cohorts</span>'
+                : '<span class="cdl-cohort">' + esc(cohorts[0] || '\u2014') + '</span>';
             return '<li><span class="tick">\u2713</span>' +
                 '<span class="cdl-time">' + esc(to12h(c.start) + ' ~ ' + to12h(c.end)) + '</span>' +
                 '<span class="cdl-what">' + esc(c.code + '(' + (c.type || '') + ')') + '</span>' +
                 '<span class="cdl-venue">' + esc(c.venue) + '</span>' +
-                '<span class="cdl-facts">' + cohortCell + withdrawn + '</span></li>';
-        }).join('');
+                '<span class="cdl-facts">' + cohortCell + '</span></li>';
+        };
 
-        const opened = ctx ? ('<li><span class="tick">\u2713</span>' +
+        const openedRow = ctx ? ('<li><span class="tick">\u2713</span>' +
             '<span class="cdl-time">' + esc(to12h(hours[ctx.event.start]) + ' ~ ' + to12h(hours[ctx.event.end + 1] || add30min(hours[ctx.event.end]))) + '</span>' +
             '<span class="cdl-what">' + esc((ctx.event.code || '') + '(' + (ctx.event.type || '') + ')') + '</span>' +
             '<span class="cdl-venue">' + esc(ctx.event.venue || '') + '</span>' +
             '<span class="cdl-facts"><span class="cdl-cohort">' + esc(ClassCancellation.cohortLabels(ctx.event).join(', ')) + '</span></span></li>') : '';
 
-        const withdrawnCount = Number(res.requestsClosed || 0);
+        const body = rows.filter((c) => tickedClassIds.includes(String(c.sessionId))).map(scheduleRow).join('');
+        const withdrawnTotal = withdrawn + closedWithClasses;
 
-        if (single) {
-            single.style.display = 'none';
-        }
+        if (single) single.style.display = 'none';
+        if (singleTitle) singleTitle.style.display = 'none';
 
         box.style.display = '';
         box.innerHTML =
-            '<p style="margin:0 0 10px; font-weight:600; font-size:15px;">\u2713 ' + total + ' classes cancelled</p>' +
-            dayRow('Day', esc(day.date || '') ) +
-            dayRow('Reason', esc((ClassCancellation.REASONS.find((r) => r.value === reason) || {}).label || reason)) +
-            (withdrawnCount + withdrawn > 0 ? dayRow('Requests withdrawn', String(withdrawnCount + withdrawn)) : '') +
-            '<ul class="cancel-day-done" style="margin-top:10px">' + opened + lines + '</ul>';
+            '<p class="cancel-day-result">\u2713 ' + total + (total === 1 ? ' class' : ' classes') + ' cancelled</p>' +
+            '<p class="cancel-day-meta">' + esc(prettyDay) + (reasonLabel ? ' \u00b7 ' + esc(reasonLabel) : '') + '</p>' +
+            '<div class="cancel-day-totals">' +
+                '<div><span class="cdt-value">' + total + '</span><span class="cdt-label">' + (total === 1 ? 'Class' : 'Classes') + ' cancelled</span></div>' +
+                '<div><span class="cdt-value">' + withdrawnTotal + '</span><span class="cdt-label">' + (withdrawnTotal === 1 ? 'Request' : 'Requests') + ' withdrawn</span></div>' +
+            '</div>' +
+            '<ul class="cancel-day-done">' + openedRow + body + '</ul>';
     },
 
     /* S10 — navigate to the arrangement page carrying the cancelled class's

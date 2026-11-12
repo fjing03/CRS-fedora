@@ -62,11 +62,11 @@ final class MyDayClassesTest extends TestCase
     }
 
     /** The renderless day confirm. */
-    private function cancelDay(string $reason, array $requestIds = []): array
+    private function cancelDay(string $reason, array $requestIds = [], array $sessionIds = []): array
     {
         $this->actingAs($this->owner);
 
-        return (new MyTimetable)->cancelClassDay($this->week, $this->day, $reason, null, $requestIds);
+        return (new MyTimetable)->cancelClassDay($this->week, $this->day, $reason, null, $requestIds, $sessionIds);
     }
 
     public function test_the_day_lists_only_my_own_classes_with_what_the_block_prints(): void
@@ -199,8 +199,10 @@ final class MyDayClassesTest extends TestCase
 
     public function test_the_day_confirm_cancels_the_whole_set_and_reports_the_withdrawals(): void
     {
-        $expected = count($this->myDay()['classes']);
-        $result = $this->cancelDay('medical_leave');
+        $day = $this->myDay()['classes'];
+        $all = array_map(fn (array $r): int => (int) $r['sessionId'], $day);
+        $expected = count($all);
+        $result = $this->cancelDay('medical_leave', [], $all);
 
         $this->assertTrue($result['ok'], 'a whole day in one call');
         $this->assertSame($expected, count($result['cancelled']), 'exactly the day\'s set came back');
@@ -271,6 +273,43 @@ final class MyDayClassesTest extends TestCase
 
         $this->assertCount(1, $result['cancelled'], 'only the opened class was cancelled');
         $this->assertNotSame($otherWeek, (int) $result['cancelled'][0]['week']);
+    }
+
+    /**
+     * 2026-11-11 (BUG, user report): unticking a row still cancelled it, because the
+     * day path took the WHOLE day from the read. The page now sends only what is
+     * ticked (plus the opened class), and anything else survives.
+     */
+    public function test_an_unticked_class_is_not_cancelled(): void
+    {
+        $day = $this->myDay()['classes'];
+        $cancelSession = ClassSession::findOrFail((int) $day[0]['sessionId']);
+
+        /* a second class of MINE on the same day, so one can be left unticked */
+        $keptSession = ClassSession::create([
+            'semester_id' => $cancelSession->semester_id,
+            'module_id' => $cancelSession->module_id,
+            'lecturer_id' => $this->owner->id,
+            'day_of_week' => $this->day,
+            'start_time' => '17:00:00',
+            'end_time' => '18:00:00',
+            'venue_id' => $cancelSession->venue_id,
+            'session_type' => $cancelSession->session_type,
+        ]);
+        $keptSession->cohorts()->attach($cancelSession->cohorts()->pluck('cohorts.id')->all());
+
+        $kept = (int) $keptSession->id;
+        $cancel = [(int) $day[0]['sessionId']];
+
+        $result = $this->cancelDay('medical_leave', [], $cancel);
+
+        $this->assertTrue($result['ok']);
+        $this->assertCount(1, $result['cancelled'], 'exactly the ticked session');
+        $this->assertSame($cancel[0], (int) $result['cancelled'][0]['session_id']);
+
+        $this->assertSame(1, ClassException::query()->where('class_session_id', $cancel[0])->where('week_number', $this->week)->count());
+        $this->assertSame(0, ClassException::query()->where('class_session_id', $kept)->where('week_number', $this->week)->count(),
+            'the UNTICKED class must survive');
     }
 
     public function test_the_day_confirm_refuses_when_nothing_is_left_to_cancel(): void

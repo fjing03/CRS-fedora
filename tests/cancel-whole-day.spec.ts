@@ -77,13 +77,28 @@ test('a whole day cancels in one action and says so', async ({ page }) => {
     yes: document.getElementById('confirmCancelClassBtn')!.textContent!.trim(),
     disabled: (document.getElementById('confirmCancelClassBtn') as HTMLButtonElement).disabled,
   }));
-  const sentence = await page.evaluate(() => document.querySelector('#cancelDayScope .cancel-day-toggle span')!.textContent!.trim().replace(/\s+/g, ' '));
+  const sentence = await page.evaluate(() => (document.querySelector('#cancelDayScope .cancel-day-toggle span') as HTMLElement).innerText.trim().replace(/\s+/g, ' '));
   console.log('sentence:', sentence);
-  expect(sentence).toBe(`Also cancel my other ${target.count - 1} classes on the same day`);
+  expect(sentence.toLowerCase()).toBe(`also cancel my other ${target.count - 1} classes on the same day`);
   console.log('block:', JSON.stringify(before));
   expect(before.rows).toBe(target.count - 1);
-  expect(before.yes).toBe(`Yes, Cancel ${target.count} Classes`);
+  /* 2026-11-11 (user): the block opens UNTICKED and folded, so the button still
+     says the single-class words until the head tick is pressed */
+  expect(before.yes).toBe('Yes, Cancel Class');
   expect(before.disabled).toBe(true);          // no reason yet
+
+  // tick the head → every row selected, the words follow
+  await page.click('#cancelDayScope .cancel-day-toggle input');
+  await page.waitForTimeout(250);
+  const all = await page.evaluate(() => ({
+    rowsTicked: Array.from(document.querySelectorAll('#cancelDayScope .cancel-day-row input')).filter((b) => (b as HTMLInputElement).checked).length,
+    yes: document.getElementById('confirmCancelClassBtn')!.textContent!.trim(),
+    folded: document.getElementById('cancelDayScope')!.classList.contains('is-collapsed'),
+  }));
+  console.log('all ticked:', JSON.stringify(all));
+  expect(all.rowsTicked).toBe(target.count - 1);
+  expect(all.yes).toBe(`Yes, Cancel ${target.count} Classes`);
+  expect(all.folded).toBe(false);
 
   // untick one row → the sentence and the button both follow
   await page.evaluate(() => {
