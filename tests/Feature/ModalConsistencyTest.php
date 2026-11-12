@@ -44,6 +44,30 @@ class ModalConsistencyTest extends TestCase
         $this->assertStringNotContainsString('max-width:616px', $this->read('resources/views/livewire/request-approval.blade.php'));
     }
 
+    /**
+     * 2026-11-11 (user): the Replacement Details pop-up prints its venue as PLAIN
+     * text — `B010 — Computer Lab`, the same row Request Details prints — with no
+     * house icon and none of the table's muted `.cell-sub` skin. The TABLES keep
+     * their icon: only the pop-up's two schedule tabs were asked to change.
+     */
+    public function test_the_replacement_details_venue_row_is_plain_text(): void
+    {
+        $home = $this->read('resources/views/livewire/replacement-home.blade.php');
+
+        $this->assertSame(2, substr_count($home, "DetailModal.row('Venue', qvVenue("),
+            'both schedule tabs read the plain-text venue');
+        $this->assertStringNotContainsString("DetailModal.row('Venue', venueLine(", $home,
+            "the pop-up must not wear the table's icon/muted skin any more");
+        $this->assertMatchesRegularExpression(
+            '/function qvVenue\(code, name\) \{\s*if \(!code\) return null;/s',
+            $home,
+            'no room ⇒ no row, exactly like Request Details',
+        );
+
+        /* the table keeps the icon reader — this change must not touch it */
+        $this->assertStringContainsString("'<br>' + venueLine(c.venue, null)", $home);
+    }
+
     public function test_the_timeline_rail_is_gone(): void
     {
         $css = $this->read('public/css/theme.css');

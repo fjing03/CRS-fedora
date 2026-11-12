@@ -1,3 +1,29 @@
+## 2026-11-11 — the pop-up's venue is plain text, like Request Details
+
+User ask (2026-11-11): in **Replacement Details**, drop the venue icon from both schedule tabs —
+Original Slot Schedule and Requested Slot Schedule — and print the venue exactly as **Request Details**
+does, in the normal size, weight and colour.
+
+| | Before | After |
+|---|---|---|
+| Original Slot Schedule | 🏠 `B111 — Lecture Hall` (icon + muted `.cell-sub` skin) | `B111 — Lecture Hall` |
+| Requested Slot Schedule | 🏠 `B111 — Lecture Hall` | `B111 — Lecture Hall` |
+
+The row now reads the shared wording (`ModalFacts.venue`) through a small page reader, `qvVenue()`,
+which returns `null` when there is no room — so the row disappears instead of printing an em dash, the
+Request Details behaviour. `venueLine()` still draws the TABLE cells' icon; only the pop-up changed.
+
+Measured on the demo data (staff 5425, 1440 px), the two modals' rows side by side:
+
+| Row | Text | Icon | Class | Size | Weight | Colour |
+|---|---|---|---|---|---|---|
+| Replacement Details · both tabs | `B111 — Lecture Hall` | none | `detail-value` | 14 px | 500 | `rgb(224,230,237)` |
+| Request Details · both tabs | `B100 — Tutorial Room` | none | `detail-value` | 14 px | 500 | `rgb(224,230,237)` |
+
+Identical on every column. 0 console errors. Receipt: `ModalConsistencyTest` gained
+`test_the_replacement_details_venue_row_is_plain_text` (both rows, the reader, and the table's icon
+still intact).
+
 ## 2026-11-11 — the details pop-up grows 616 → 680 px
 
 Not a staff-page request: the student pop-up needed a fourth tab whose labels need 606 px inside a

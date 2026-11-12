@@ -853,6 +853,19 @@
         }
 
         /* ─── The detail pop-up (M7/M8) ─── */
+
+        /**
+         * 2026-11-11 (user): the Replacement Details pop-up prints its venue as
+         * PLAIN text — `B010 — Computer Lab`, the same row Request Details prints.
+         * `venueLine()` (the table's reader) keeps its house icon and its muted
+         * `.cell-sub` skin; the pop-up does not want either, so it reads the shared
+         * wording directly and skips the row when there is no room at all.
+         */
+        function qvVenue(code, name) {
+            if (!code) return null;
+            return window.ModalFacts ? ModalFacts.venue(code, name) : (name ? code + ' \u2014 ' + name : code);
+        }
+
         function quickViewByRow(c) {
             if (!c) return;
             currentRequestId = c.requestId || null;
@@ -892,8 +905,9 @@
                 DetailModal.row('Week', getWeekNumber(c.date) ? 'Week ' + getWeekNumber(c.date) : null) +
                 DetailModal.row('Day & Date', ModalFacts.dayDate(c.day, formatDate(c.date) + origCountdown), { strong: true }) +
                 DetailModal.row('Time & Duration', ModalFacts.timeDuration(to12h(c.timeStart), to12h(c.timeEnd), c.duration), { strong: true }) +
-                /* the ONE place the room NAME is printed (M7) */
-                DetailModal.row('Venue', venueLine(c.venue, c.venueName))
+                /* the ONE place the room NAME is printed (M7) — plain text, no icon
+                   (2026-11-11, user: match the Request Details row) */
+                DetailModal.row('Venue', qvVenue(c.venue, c.venueName))
             );
             /* Tab 1 — the requested slot, LEFT-MOST and the tab the pop-up opens
                on (2026-11-07, user brief "Modal Tab Order & Class Type Display":
@@ -913,7 +927,7 @@
                             DateHelper.to12h((String(c.replacementTime || '').split(/\s*[–—-]\s*/)[1] || '')),
                             rangeHours(c.replacementTime)
                         ), { strong: true }) +
-                        DetailModal.row('Venue', venueLine(c.replacementVenue, c.replacementVenueName))
+                        DetailModal.row('Venue', qvVenue(c.replacementVenue, c.replacementVenueName))
                     )
                 });
             }
