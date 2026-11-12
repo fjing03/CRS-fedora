@@ -17,7 +17,7 @@ test.use({ storageState: '.auth/staff-5770.json' });
 
 test('S1 — the pinned arrival keeps the user\'s pair + the strip reads 49\'s own facts', async ({ page }) => {
   await page.goto('/replacement-arrangement?session=49&week=14&from=my-timetable');
-  await page.waitForSelector('.conflict-strip', { timeout: 15_000 });
+  await page.waitForSelector('#subjectInfo', { timeout: 15_000 });
   await page.waitForTimeout(900);
   const strip = await page.locator('#subjectInfo').innerText();
   // the honest subject line: the PRACTICAL's own type (was "(L)")
@@ -51,7 +51,7 @@ test('S1 — the pinned arrival keeps the user\'s pair + the strip reads 49\'s o
 
 test('S2 — the replacement-home sighting (39) reads its own facts (P · DSF2 · {39,14})', async ({ page }) => {
   await page.goto('/replacement-arrangement?session=39&week=14&from=replacement-home');
-  await page.waitForSelector('.conflict-strip', { timeout: 15_000 });
+  await page.waitForSelector('#subjectInfo', { timeout: 15_000 });
   await page.waitForTimeout(900);
   const strip = await page.locator('#subjectInfo').innerText();
   expect(strip).toContain('(P)');
@@ -91,7 +91,7 @@ test('S3 — Replace Now click-through: the producer hands 49 and the boot keeps
   expect(url.searchParams.get('week')).toBe('14');
   expect(url.searchParams.get('from')).toBe('my-timetable');
   // the boot must KEEP that pair (the hijack regression receipts)
-  await page.waitForSelector('.conflict-strip', { timeout: 15_000 });
+  await page.waitForSelector('#subjectInfo', { timeout: 15_000 });
   await page.waitForTimeout(900);
   const pin = await page.evaluate(() => (window as any).pinnedOccurrence);
   expect(pin).toEqual({ sessionId: 49, week: 14 });

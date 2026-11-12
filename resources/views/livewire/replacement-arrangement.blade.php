@@ -196,61 +196,6 @@
             font-weight: 500;
             color: var(--color-on-surface);
         }
-        /* ── Conflict Schedule context strip (icon-led segments) ── */
-        .conflict-strip-wrap { width: 100%; margin: 0 0 12px; }
-        .conflict-strip {
-            display: flex;
-            align-items: center;
-            flex-wrap: wrap;
-            gap: 6px 14px;
-            background: var(--color-surface);
-            border: 1px solid var(--color-outline);
-            border-radius: var(--radius-md);
-            padding: 7px 12px;
-        }
-        .cs-head {
-            display: inline-flex;
-            align-items: center;
-            gap: 7px;
-            background: var(--color-error-container);
-            color: var(--color-on-error-container);
-            font-size: 13px;
-            font-weight: 600;
-            padding: 5px 11px 5px 8px;
-            border-radius: var(--radius-sm);
-            white-space: nowrap;
-        }
-        .cs-head svg { flex-shrink: 0; }
-        .cs-seg {
-            display: inline-flex;
-            align-items: center;
-            gap: 7px;
-            min-width: 0;
-            font-size: 13px;
-            color: var(--color-on-surface);
-        }
-        .cs-seg svg { flex-shrink: 0; color: var(--color-on-surface-variant); }
-        .cs-val { min-width: 0; }
-        .cs-val strong { color: var(--color-on-bg); font-weight: 600; }
-        .cs-none { color: var(--color-on-surface-variant); font-style: italic; }
-        .cs-hint { font-size: 12px; margin-left: 4px; font-style: normal; }
-        .cs-badge {
-            display: inline-flex;
-            align-items: center;
-            gap: 5px;
-            margin-left: auto;
-            background: var(--color-primary-container);
-            color: var(--color-on-primary-container);
-            font-size: 12px;
-            font-weight: 600;
-            padding: 4px 10px;
-            border-radius: 999px;
-            white-space: nowrap;
-        }
-        @media (max-width: 900px) {
-            .cs-badge { margin-left: 0; }
-        }
-
         /* ── Booking intent banner (arrival from venue-timetable "Book" action) ── */
         .booking-intent {
             display: flex;
@@ -1485,25 +1430,6 @@
             body.arrangement-mobile-mode #arrangementMobile [data-arrangement-mobile-slot-host] {
                 padding: 8px 12px;
             }
-            body.arrangement-mobile-mode #arrangementMobile #subjectInfo .conflict-strip {
-                flex-wrap: wrap;
-                gap: 6px 10px;
-                padding: 8px 10px;
-            }
-            body.arrangement-mobile-mode #arrangementMobile #subjectInfo .cs-head,
-            body.arrangement-mobile-mode #arrangementMobile #subjectInfo .cs-seg,
-            body.arrangement-mobile-mode #arrangementMobile #subjectInfo .cs-badge {
-                max-width: 100%;
-                white-space: normal;
-            }
-            body.arrangement-mobile-mode #arrangementMobile #subjectInfo .cs-val,
-            body.arrangement-mobile-mode #arrangementMobile #subjectInfo .cs-badge {
-                overflow-wrap: anywhere;
-            }
-            body.arrangement-mobile-mode #arrangementMobile #subjectInfo .cs-badge {
-                margin-left: 0;
-            }
-
             /* Sticky venue/week/day cluster only. */
             body.arrangement-mobile-mode #arrangementMobile [data-arrangement-mobile-controls] {
                 position: sticky;
@@ -1794,6 +1720,381 @@
             }
         }
 
+        /* ── Replacement Arrangement top zone (2026-11-12) ─────────────
+           Two cards: Conflict Schedule and Replacement Schedule. The old
+           conflict strip and single toolbar row are gone. */
+        .toolbar-restructure.ra-top-zone {
+            display: flex;
+            flex-direction: column;
+            align-items: stretch;
+            justify-content: flex-start;
+            gap: 12px;
+            flex-wrap: nowrap;
+        }
+        .ra-block {
+            background: var(--color-surface);
+            border: 1px solid var(--color-outline);
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-sm);
+            padding: 12px 16px;
+        }
+        .ra-block-head {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            min-height: 16px;
+            margin-bottom: 9px;
+        }
+        .ra-eyebrow {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 13px;
+            font-weight: 600;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            line-height: 1;
+        }
+        .ra-eyebrow svg { flex-shrink: 0; }
+        .ra-eyebrow--error { color: var(--color-on-error-container); }
+        .ra-eyebrow--primary { color: var(--color-on-primary-container); }
+        .light .ra-eyebrow--error { color: var(--color-error); }
+        .light .ra-eyebrow--primary { color: var(--color-primary); }
+        .ra-card-toggle {
+            margin-left: auto;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 28px;
+            height: 28px;
+            padding: 0;
+            border: 0;
+            border-radius: 6px;
+            background: transparent;
+            color: var(--color-on-surface-variant);
+            cursor: pointer;
+        }
+        .ra-card-toggle:hover { background: var(--color-surface-variant); }
+        .ra-card-toggle:focus-visible {
+            outline: 2px solid var(--color-primary);
+            outline-offset: 2px;
+        }
+        .ra-card-toggle:disabled { opacity: 0.35; cursor: not-allowed; }
+        .ra-card-chevron { transition: transform 0.15s ease; }
+        .ra-card-toggle[aria-expanded="true"] .ra-card-chevron { transform: rotate(180deg); }
+        .ra-collapsed-summary { display: none; margin: 2px 0 0; }
+        #subjectInfo.is-collapsed .ra-collapsed-summary { display: block; }
+        .ra-collapsed-line1 {
+            font-size: 13px;
+            font-weight: 600;
+            line-height: 1.35;
+            color: var(--color-on-surface);
+        }
+        .ra-collapsed-line2 {
+            margin-top: 2px;
+            font-size: 12px;
+            font-weight: 500;
+            line-height: 1.35;
+            color: var(--color-on-surface-variant);
+        }
+        .ra-course-code { font-weight: 700; }
+        .ra-original-controls {
+            display: grid;
+            grid-template-columns: minmax(0, 0.45fr) minmax(0, 0.55fr);
+            gap: 16px;
+        }
+        .ra-replacement-controls {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 16px;
+        }
+        .ra-replacement-venue { flex: 0 1 auto; }
+        .ra-replacement-week { flex: 0 0 auto; margin-left: auto; }
+        .ra-field { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+        .ra-field-label {
+            font-size: 10.5px;
+            font-weight: 700;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            color: var(--color-on-surface-variant);
+        }
+        .ra-original-controls .selector-dropdown {
+            width: 100%;
+            min-width: 0;
+            max-width: none;
+            height: 44px;
+            background: var(--color-surface-variant);
+        }
+        .ra-original-controls .slot-dd {
+            width: 100%;
+            min-width: 0;
+            max-width: none;
+            flex-basis: auto;
+        }
+        .ra-original-controls .slot-dd-trigger {
+            height: 44px;
+            padding: 4px 12px;
+            background: var(--color-surface-variant);
+        }
+        .ra-original-controls .slot-dd-panel {
+            width: 100%;
+            min-width: 0;
+        }
+        #slotTriggerText {
+            display: flex;
+            flex-direction: column;
+            flex: 1;
+            min-width: 0;
+            gap: 1px;
+        }
+        #slotTriggerText > span {
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        #slotTriggerText > span:last-child {
+            font-size: 12px;
+            font-weight: 500;
+            color: var(--color-on-surface-variant);
+        }
+        #slotTriggerText .ra-venue-pill { overflow: visible; }
+        .ra-slot-type {
+            color: var(--color-on-primary-container);
+            font-weight: 700;
+        }
+        .light .ra-slot-type { color: var(--color-primary); }
+        .ra-venue-pill {
+            display: inline-flex;
+            align-items: center;
+            padding: 2px 6px;
+            border: 1px solid var(--color-outline);
+            border-radius: var(--radius-pill);
+            background: var(--color-surface-variant);
+            color: var(--color-on-surface);
+            font-size: 11px;
+            font-weight: 700;
+            line-height: 1.2;
+            vertical-align: middle;
+        }
+        .slot-dd-trigger .ra-venue-pill { background: var(--color-surface); }
+        .ra-details { margin-top: 12px; border-top: 1px solid var(--color-outline); }
+        .ra-details-toggle {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            width: 100%;
+            padding: 10px 0 0;
+            border: 0;
+            background: none;
+            color: inherit;
+            font: inherit;
+            text-align: left;
+            cursor: pointer;
+        }
+        .ra-details-toggle:focus-visible {
+            outline: 2px solid var(--color-primary);
+            outline-offset: 2px;
+        }
+        .ra-details-summary {
+            min-width: 0;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            font-size: 12.5px;
+            font-weight: 600;
+            color: var(--color-on-surface-variant);
+        }
+        .ra-details-chevron {
+            flex-shrink: 0;
+            opacity: 0.7;
+            transition: transform 0.15s;
+        }
+        .ra-details.open .ra-details-chevron { transform: rotate(180deg); }
+        .ra-details-body {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) minmax(0, 1.5fr) minmax(0, 0.8fr);
+            gap: 10px 20px;
+            padding: 10px 0 2px;
+        }
+        .ra-detail-label {
+            display: block;
+            margin-bottom: 3px;
+            font-size: 10.5px;
+            font-weight: 700;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            color: var(--color-on-surface-variant);
+        }
+        .ra-detail-value {
+            display: block;
+            font-size: 12.5px;
+            line-height: 1.35;
+            color: var(--color-on-surface);
+        }
+        #detailCohorts { display: flex; flex-wrap: wrap; gap: 6px; }
+        .ra-replacement-venue .venue-dd-trigger {
+            background: var(--color-surface-variant);
+        }
+        .ra-replacement-venue .toolbar-center { gap: 8px; }
+        .ra-replacement-venue .venue-dd-label {
+            display: inline-flex;
+            align-items: center;
+            flex: 1 1 auto;
+            min-width: 0;
+            gap: 8.8px;
+        }
+        .ra-replacement-venue .venue-dd-trigger .dd-arrow { margin-left: auto; }
+        .ra-venue-code {
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--color-on-surface);
+        }
+        .ra-venue-seats {
+            font-size: 12px;
+            font-weight: 500;
+            color: var(--color-on-surface-variant);
+        }
+        .ra-replacement-week .week-select {
+            width: auto;
+            background: var(--color-surface-variant);
+        }
+        .ra-replacement-week .toolbar-filters {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex: none;
+            min-width: 0;
+        }
+        .ra-replacement-week .week-nav { width: auto; }
+
+        .ra-desc-chip {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 5px 9px;
+            border: 0;
+            font: inherit;
+            cursor: help;
+        }
+        .venue-side-chips .ra-desc-chip { padding: 5px 9px; }
+        .venue-side-chips .ra-desc-chip svg { width: 14px; height: 14px; }
+
+        @media (max-width: 900px) {
+            .ra-original-controls { grid-template-columns: 1fr; }
+            .ra-replacement-controls {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            .ra-replacement-week {
+                width: 100%;
+                margin-left: 0;
+            }
+            .ra-replacement-week .toolbar-filters { width: 100%; }
+            .ra-replacement-week .week-nav { flex: 1; }
+            .ra-replacement-week .week-select { flex: 1; min-width: 0; }
+        }
+
+        body.arrangement-mobile-mode #subjectInfo {
+            border: 0;
+            border-radius: 0;
+            box-shadow: none;
+            padding: 0;
+            background: transparent;
+        }
+        body.arrangement-mobile-mode #subjectInfo .ra-block-head {
+            min-height: 44px;
+            margin-bottom: 2px;
+        }
+        body.arrangement-mobile-mode #subjectInfo .ra-card-toggle {
+            width: 44px;
+            height: 44px;
+        }
+        body.arrangement-mobile-mode .ra-original-controls,
+        body.arrangement-mobile-mode .ra-replacement-controls { display: block; }
+        body.arrangement-mobile-mode .ra-field-label { display: none; }
+        body.arrangement-mobile-mode #subjectInfo .ra-course-field { display: none; }
+        body.arrangement-mobile-mode #buildingSelectorDropdown .venue-dd-trigger {
+            width: 100%;
+            background: var(--color-surface-variant);
+        }
+        body.arrangement-mobile-mode #buildingSelectorDropdown .venue-dd-label {
+            display: inline-flex;
+            align-items: center;
+            flex: 1 1 auto;
+            min-width: 0;
+            gap: 8.8px;
+        }
+        body.arrangement-mobile-mode #buildingSelectorDropdown .dd-arrow { margin-left: auto; }
+        body.arrangement-mobile-mode #weekSelector { background: var(--color-surface-variant); }
+        body.arrangement-mobile-mode .ra-original-controls .selector-dropdown,
+        body.arrangement-mobile-mode #subjectSelector {
+            height: 52.8px;
+            width: 100%;
+            background: var(--color-surface-variant);
+        }
+        body.arrangement-mobile-mode #slotPicker { width: 100%; }
+        body.arrangement-mobile-mode #slotPicker .slot-dd {
+            width: 100%;
+            max-width: none;
+            min-width: 0;
+            flex-basis: auto;
+        }
+        body.arrangement-mobile-mode #slotPicker .slot-dd-panel {
+            width: 100%;
+            min-width: 0;
+        }
+        body.arrangement-mobile-mode .ra-original-controls .slot-dd-trigger,
+        body.arrangement-mobile-mode #slotPicker .slot-dd-trigger {
+            height: 44px;
+            width: 100%;
+            background: var(--color-surface-variant);
+        }
+        body.arrangement-mobile-mode .ra-details-toggle { min-height: 44px; }
+        body.arrangement-mobile-mode .ra-details-body {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: flex-start;
+            gap: 14px 24px;
+        }
+        body.arrangement-mobile-mode .ra-detail {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            flex: 0 0 auto;
+            max-width: 100%;
+            text-align: left;
+        }
+        body.arrangement-mobile-mode .ra-detail-label {
+            margin-bottom: 6px;
+            font-size: 11px;
+        }
+        body.arrangement-mobile-mode .ra-detail-value {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            justify-content: flex-start;
+            gap: 6px;
+            text-align: left;
+        }
+        body.arrangement-mobile-mode .ra-detail-value .badge {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            flex: 0 0 auto;
+            box-sizing: border-box;
+            min-width: 48px;
+            min-height: 34px;
+            height: 34px;
+            padding: 0 14px;
+            border-radius: var(--radius-pill);
+            font-size: 13px;
+            font-weight: 600;
+            line-height: 1;
+            white-space: nowrap;
+        }
+
 @endsection
 
 {{-- Real-data bridge (SDD wire-backend-into-refactored-ui): the mock
@@ -1826,7 +2127,7 @@
         @include('partials.ui-guide-block', [
             'guideTitle' => 'How to use this page',
             'guideItems' => [
-                '<strong>Select subject</strong> — choose the course to arrange a replacement for',
+                '<strong>Select course</strong> — choose the course to arrange a replacement for',
                 '<strong>Slot status</strong> — Available (green), Unavailable (booked / Sunday / public holiday)',
                 '<strong>Select slot</strong> — click an available slot to propose it as the replacement',
                 '<strong>Submit</strong> — confirm your selection to send the request for approval',
@@ -1840,42 +2141,117 @@
              lead-time banner is GONE — its message now rides the too-soon cell's own
              hover tooltip (see leadTimeTip() below). -->
 
-        <div class="conflict-strip-wrap" id="subjectInfo"></div>
-
-        <div class="toolbar toolbar-restructure">
-            <div class="toolbar-primary">
-                <select class="selector-dropdown" id="subjectSelector" onchange="onSubjectChange()">
-                    <option value="">Select a subject</option>
-                </select>
-
-                {{-- Slot Picker: custom dropdown (button + panel) --}}
-                <div class="slot-dd" id="slotPicker" style="display:none;">
-                    <button class="slot-dd-trigger" type="button" id="slotTrigger" onclick="toggleSlotPanel()">
-                        <span id="slotTriggerText">Select a slot to replace</span>
-                        <svg xmlns="http://www.w3.org/2000/svg" width="10" height="6" viewBox="0 0 10 6" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M1 1l4 4 4-4"/></svg>
+        <div class="toolbar toolbar-restructure ra-top-zone">
+            <section class="ra-block" id="subjectInfo" aria-labelledby="conflictHeading">
+                <div class="ra-block-head">
+                    <span class="ra-eyebrow ra-eyebrow--error" id="conflictHeading">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                            <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/>
+                            <line x1="12" y1="9" x2="12" y2="13"/>
+                            <line x1="12" y1="17" x2="12.01" y2="17"/>
+                        </svg>
+                        Conflict Schedule
+                    </span>
+                    <button class="ra-card-toggle" type="button" id="conflictCollapse"
+                            aria-expanded="true" aria-controls="conflictCardBody"
+                            aria-label="Collapse Conflict Schedule">
+                        <svg class="ra-card-chevron" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                            <path d="m6 9 6 6 6-6"/>
+                        </svg>
                     </button>
-                    <div class="slot-dd-panel" id="slotPanel"></div>
-                    <div class="slot-dd-tooltip" id="slotTooltip"></div>
                 </div>
-            </div>
-            <div class="toolbar-center">
-                @include('partials.ui-venue-dropdown', ['selectId' => 'buildingSelector'])
-                {{-- venue-side-chips (the user's chip ask 2026-10-23): the
-                     capacity + description badges RIGHT of the venue dd
-                     ("靠着它"). Both hidden until this page's venues payload fills
-                     them — no empty stubs. --}}
-                <div class="venue-side-chips" id="venueChipGroup" style="display:none;">
-                    <span class="badge badge-capacity" id="venueCapacity"></span>
-                    <span class="badge badge-past" id="arrVenueDescription"></span>
+
+                <div class="ra-collapsed-summary" id="conflictCollapsedSummary">
+                    <div class="ra-collapsed-line1" id="conflictSummaryLine1"></div>
+                    <div class="ra-collapsed-line2" id="conflictSummaryLine2"></div>
                 </div>
-                {{-- 2026-11-10 (user, code cleanup): the venue FAVOURITE star is
-                     PERMANENTLY REMOVED from the whole app — this page's button
-                     was already commented out in 2026-10-18, and the shared
-                     VenueDropdown's toggle/star went with it. Do not restore. --}}
-            </div>
-            <div class="toolbar-filters">
-                @include('partials.ui-week-nav', ['prevOnclick' => 'weekNav.prevWeek()', 'nextOnclick' => 'weekNav.nextWeek()', 'selectId' => 'weekSelector', 'selectOnclick' => 'weekNav.selectWeek(parseInt(this.value, 10))', 'showTodayBtn' => true, 'showPrint' => false, 'selectTip' => 'Select the WEEK that you want to arrange the replacement in', 'todayLabel' => 'Earliest bookable', 'todayTip' => 'Jump to the earliest bookable slot', 'todayIcon' => 'earliest'])
-            </div>
+
+                <div id="conflictCardBody">
+                    <div class="ra-original-controls">
+                        <div class="ra-field ra-course-field">
+                            <label class="ra-field-label" for="subjectSelector">Course</label>
+                            <select class="selector-dropdown" id="subjectSelector" onchange="onSubjectChange()">
+                                <option value="">Select a course</option>
+                            </select>
+                        </div>
+
+                        {{-- Slot Picker: custom dropdown (button + panel) --}}
+                        <div class="ra-field" id="slotPicker" style="display:none;">
+                            <label class="ra-field-label" for="slotTrigger">Slot</label>
+                            <div class="slot-dd">
+                                <button class="slot-dd-trigger" type="button" id="slotTrigger" onclick="toggleSlotPanel()">
+                                    <span id="slotTriggerText">
+                                        <span id="slotTriggerLine1">Select a slot to replace</span>
+                                        <span id="slotTriggerLine2"></span>
+                                    </span>
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="10" height="6" viewBox="0 0 10 6" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M1 1l4 4 4-4"/></svg>
+                                </button>
+                                <div class="slot-dd-panel" id="slotPanel"></div>
+                                <div class="slot-dd-tooltip" id="slotTooltip"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="ra-details" id="details" hidden>
+                        <button class="ra-details-toggle" type="button" id="detailsToggle"
+                                aria-expanded="false" aria-controls="detailsBody">
+                            <span class="ra-details-summary" id="detailsSummary"></span>
+                            <svg class="ra-details-chevron" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                <path d="m6 9 6 6 6-6"/>
+                            </svg>
+                        </button>
+                        <div class="ra-details-body" id="detailsBody" hidden>
+                            <div class="ra-detail">
+                                <span class="ra-detail-label">Reason</span>
+                                <span class="ra-detail-value" id="detailReason"></span>
+                            </div>
+                            <div class="ra-detail">
+                                <span class="ra-detail-label">Cohorts</span>
+                                <span class="ra-detail-value" id="detailCohorts"></span>
+                            </div>
+                            <div class="ra-detail">
+                                <span class="ra-detail-label">Students</span>
+                                <span class="ra-detail-value" id="detailStudents"></span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section class="ra-block" aria-labelledby="replacementHeading">
+                <div class="ra-block-head">
+                    <span class="ra-eyebrow ra-eyebrow--primary" id="replacementHeading">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                            <polyline points="17 1 21 5 17 9"/>
+                            <path d="M3 11V9a4 4 0 0 1 4-4h14"/>
+                            <polyline points="7 23 3 19 7 15"/>
+                            <path d="M21 13v2a4 4 0 0 1-4 4H3"/>
+                        </svg>
+                        Replacement Schedule
+                    </span>
+                </div>
+
+                <div class="ra-replacement-controls">
+                    <div class="ra-field ra-replacement-venue">
+                        <span class="ra-field-label">Replacement venue</span>
+                        <div class="toolbar-center">
+                            @include('partials.ui-venue-dropdown', ['selectId' => 'buildingSelector'])
+                            {{-- venue-side-chips: the description badge stays; the
+                                 separate capacity chip is intentionally gone. --}}
+                            <div class="venue-side-chips" id="venueChipGroup" style="display:none;">
+                                <span class="badge badge-past ra-desc-chip" id="arrVenueDescription" aria-label="Room description"></span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="ra-field ra-replacement-week">
+                        <span class="ra-field-label">Replacement week</span>
+                        <div class="toolbar-filters">
+                            @include('partials.ui-week-nav', ['prevOnclick' => 'weekNav.prevWeek()', 'nextOnclick' => 'weekNav.nextWeek()', 'selectId' => 'weekSelector', 'selectOnclick' => 'weekNav.selectWeek(parseInt(this.value, 10))', 'showTodayBtn' => true, 'showPrint' => false, 'selectTip' => 'Select the WEEK that you want to arrange the replacement in', 'todayLabel' => 'Earliest bookable', 'todayTip' => 'Jump to the earliest bookable slot', 'todayIcon' => 'earliest'])
+                        </div>
+                    </div>
+                </div>
+            </section>
         </div>
 
         {{-- Progress bar — commented out for now
@@ -3159,7 +3535,7 @@
             div.style.pointerEvents = 'none';
             const label = document.createElement('span');
             label.className = 'preview-label';
-            label.textContent = ok ? 'Select these slots?' : (noSubject ? 'Pick a subject first' : 'Not enough slots');
+            label.textContent = ok ? 'Select these slots?' : (noSubject ? 'Pick a course first' : 'Not enough slots');
             div.appendChild(label);
             if (!ok) firstTd.style.cursor = 'not-allowed';
             table.appendChild(div);
@@ -3525,7 +3901,7 @@
         function toggleCell(di, hi, el) {
             // Grid locked until a subject is picked: guide instead of selecting
             if (!currentCourse) {
-                toast.show('Select a subject first to trigger the timeslots selector');
+                toast.show('Select a course first to trigger the timeslots selector');
                 pulseSubjectSelector();
                 return;
             }
@@ -4446,8 +4822,7 @@
         function writeSlotTriggerFromAnchor() {
             const a = anchorSlotFromPinned();
             if (!a) return false;
-            const el = document.getElementById('slotTriggerText');
-            if (el) el.textContent = slotTriggerLabel({ week: a.week, start: a.start, end: a.end, date: a.date });
+            writeSlotTrigger(a);
             /* the anchor carries the REAL type letter + numeric day from the
                pinned session (SDD rearrangement-toolbar-tooltips) — the tip
                renders fully; applySlotTip still fail-opens (tip removed) if
@@ -4506,148 +4881,251 @@
             return anchorSlot;
         }
 
-        function renderTitleSummary() {
-            const el = document.getElementById('subjectInfo');
-            const hasSubject = !!currentCourse;
-            const anchorSlot = resolveOriginalAnchorSlot();
-            const hasSlot = !!anchorSlot;
-            const ctxCourse = courseCtx(); /* occurrence-grain: follows the picked slot */
+        function topZoneMobileView() {
+            return document.body.classList.contains('arrangement-mobile-mode')
+                || window.matchMedia('(max-width: 768px)').matches;
+        }
 
-            /* Grid lock affordance: free cells read as not-allowed until a subject is picked */
-            const timetableEl = document.getElementById('timetable');
-            if (timetableEl) timetableEl.classList.toggle('no-subject', !hasSubject);
+        function topZoneSlotWeekday(slot) {
+            if (!slot) return '';
+            if (slot.weekdayName) return slot.weekdayName;
+            const dayData = (window.weekData && window.weekData[slot.week]
+                && window.weekData[slot.week].days
+                && window.weekData[slot.week].days[Number(slot.day)]) || null;
+            if (dayData && dayData.abbr) return dayData.abbr;
+            return (typeof slotDayAbbrs !== 'undefined' && slotDayAbbrs[slot.day]) || '';
+        }
 
-            // Line 1: Subject
-            const subjectLine = hasSubject
-                ? currentCourse.code + ' — ' + currentCourse.name + ' (' + ctxCourse.type + ')'
-                : null;
+        function topZoneSlotDate(slot) {
+            /* weekData already stores day-first dates ('24 Dec 2026'); keep
+               that law and only trim the year on mobile. */
+            const raw = String((slot && slot.date) || '').trim();
+            if (!raw) return '';
+            if (!topZoneMobileView()) return raw;
+            const parts = raw.split(' ');
+            return parts.length >= 2 ? parts[0] + ' ' + parts[1] : raw;
+        }
+        function topZoneSlotDateNoYear(slot) {
+            const raw = String((slot && slot.date) || '').trim();
+            if (!raw) return '';
+            const parts = raw.split(' ');
+            return parts.length >= 2 ? parts[0] + ' ' + parts[1] : raw;
+        }
 
-            // Line 2: Time Slot
-            let slotLine = null;
-            if (hasSlot) {
-                const startStr = to12h(hours[anchorSlot.start]);
-                const endStr = to12h(hours[anchorSlot.end + 1] || add30min(hours[anchorSlot.end]));
-                const dateParts = anchorSlot.date.split(' ');
-                const shortDate = dateParts[1] + ' ' + dateParts[0];
-                /* occurrence-week-pin-truthfulness (the 'undefined' bug):
-                   the REAL-pick slot objects carry NO weekdayName (only the
-                   virtual pinned anchor does) — re-derive the day name from
-                   the grid's own day row by slot-week + slot-day index. */
-                const fallbackDay = (window.weekData && window.weekData[anchorSlot.week]
-                    && window.weekData[anchorSlot.week].days
-                    && window.weekData[anchorSlot.week].days[anchorSlot.day]);
-                const weekdayName = anchorSlot.weekdayName
-                    || (fallbackDay && fallbackDay.abbr)
-                    || (fallbackDay && fallbackDay.abbr === undefined ? null : '');
-                /* human-facing label: week NUMBER (+1, see the picker's trigger note);
-   slot.week stays the 0-based weekData index */
-slotLine = 'Week ' + (anchorSlot.week + 1) + ' · ' + ((weekdayName && weekdayName !== 'undefined') ? weekdayName + ', ' : '') + shortDate + ' ' + dateParts[2] + ' · ' + startStr + ' ~ ' + endStr + ' @ ' + anchorSlot.venue;
+        function topZoneReasonFacts(slot) {
+            if (!slot) return null;
+            let dayIdx = (slot.day !== undefined && slot.day !== null) ? Number(slot.day) : -1;
+            if (dayIdx < 0) {
+                const days = (window.weekData && window.weekData[slot.week]
+                    && window.weekData[slot.week].days) || [];
+                const abbr = slot.weekdayName;
+                dayIdx = days.findIndex(function (d) { return d && d.abbr !== undefined && d.abbr === abbr; });
+                if (dayIdx < 0 && abbr) {
+                    const abbrIndex = { Mon: 0, Tue: 1, Wed: 2, Thu: 3, Fri: 4, Sat: 5, Sun: 6 };
+                    dayIdx = Object.prototype.hasOwnProperty.call(abbrIndex, abbr) ? abbrIndex[abbr] : -1;
+                }
             }
-
-            /* SDD conflict-schedule-header-status-tip (the user's ruling,
-               superseding holiday-occurrence-badge's placement): the STATUS
-               hover tooltip rides the Conflict Schedule HEAD (.cs-head) —
-               cancelled first (the payload's own precedence: exception beats
-               holiday; the arm checks event.status === 'cancelled'), then the
-               FROZEN holiday literal ('\u00B7 {label}[ holiday] \u2014 no class'),
-               else NO tip (the content always matches the actual status).
-               Attribute-only; the visible textContent is byte-identical. */
-            const statusTip = (function () {
-                if (!hasSlot || !anchorSlot) return null;
-                let dayIdx = (anchorSlot.day !== undefined && anchorSlot.day !== null)
-                    ? Number(anchorSlot.day) : -1;
-                if (dayIdx < 0) {
-                    const days = (window.weekData && window.weekData[anchorSlot.week]
-                        && window.weekData[anchorSlot.week].days) || [];
-                    const abbr = anchorSlot.weekdayName;
-                    dayIdx = days.findIndex(function (d) { return d && d.abbr !== undefined && d.abbr === abbr; });
-                    if (dayIdx < 0 && abbr) {
-                        const abbrIndex = { Mon: 0, Tue: 1, Wed: 2, Thu: 3, Fri: 4, Sat: 5, Sun: 6 };
-                        dayIdx = Object.prototype.hasOwnProperty.call(abbrIndex, abbr) ? abbrIndex[abbr] : -1;
-                    }
+            const sid = Number(slot.sessionId
+                || (window.pinnedOccurrence && window.pinnedOccurrence.sessionId)
+                || currentSessionId || 0);
+            if (sid && dayIdx >= 0) {
+                const evs = (window.MockData && MockData.cohortTimetable && MockData.cohortTimetable.events) || [];
+                const hit = evs.find(function (e) {
+                    return Number(e.week) === slot.week
+                        && Number(e.event.sessionId) === sid
+                        && Number(e.event.di) === dayIdx
+                        && Number(e.event.start) === Number(slot.start);
+                });
+                if (hit && hit.event.status === 'cancelled') {
+                    return {
+                        text: 'Class Cancelled',
+                        cls: 'badge-reason',
+                        detail: hit.event.cancelledReason || ''
+                    };
                 }
-                if (dayIdx < 0) return null;
-                const sid = Number((window.pinnedOccurrence && window.pinnedOccurrence.sessionId)
-                    || currentSessionId || 0);
-                if (sid) {
-                    const evs = (window.MockData && MockData.cohortTimetable
-                        && MockData.cohortTimetable.events) || [];
-                    const hit = evs.find(function (e) {
-                        return Number(e.week) === anchorSlot.week
-                            && Number(e.event.sessionId) === sid
-                            && Number(e.event.di) === dayIdx
-                            && Number(e.event.start) === Number(anchorSlot.start);
-                    });
-                    if (hit && hit.event.status === 'cancelled') {
-                        return '\u26A0\uFE0F Class Cancel' + 'led \u2014 '
-                            + (hit.event.cancelledReason || 'Cancel' + 'led');
-                    }
-                }
+            }
+            if (slot.status === 'cancelled') {
+                return { text: 'Class Cancelled', cls: 'badge-reason', detail: '' };
+            }
+            if (dayIdx >= 0) {
                 const hs = (window.MockData && MockData.holidays) || [];
                 const hitHol = hs.find(function (h) {
-                    return Number(h.week) === anchorSlot.week + 1 && Number(h.dayIndex) === dayIdx;
+                    return Number(h.week) === slot.week + 1 && Number(h.dayIndex) === dayIdx;
                 });
                 if (hitHol) {
-                    const label = String(hitHol.label || '');
-                    const stem = /holiday/i.test(label) ? label : label + ' holiday';
-                    return '\u00B7 ' + stem + ' \u2014 no class';
+                    return {
+                        text: 'Public Holiday',
+                        cls: 'badge-holiday',
+                        detail: String(hitHol.label || 'Public Holiday')
+                    };
                 }
-                return null;
-            })();
+                const dayData = (window.weekData && window.weekData[slot.week]
+                    && window.weekData[slot.week].days
+                    && window.weekData[slot.week].days[dayIdx]) || null;
+                if (dayData && dayData.holiday) {
+                    return {
+                        text: 'Public Holiday',
+                        cls: 'badge-holiday',
+                        detail: String(dayData.holidayLabel || 'Public Holiday')
+                    };
+                }
+            }
+            return { text: 'Conflict', cls: 'badge-reason', detail: '' };
+        }
 
-            // Line 3: Cohorts
-            let cohortsLine = null;
-            if (hasSubject) {
-                cohortsLine = (ctxCourse.cohorts || []).join(' + ');
+        function measureDetailsSummary() {
+            const el = document.getElementById('detailsSummary');
+            if (!el) return;
+            const full = el.dataset.full || '';
+            const short = el.dataset.short || full;
+            if (!full) { el.textContent = ''; return; }
+            el.textContent = full;
+            if (el.clientWidth > 0 && el.scrollWidth > el.clientWidth + 1) {
+                el.textContent = short;
+            }
+        }
+
+        if (!window.__raDetailsSummaryBound) {
+            window.__raDetailsSummaryBound = true;
+            let raDetailsSummaryTimer = null;
+            window.addEventListener('resize', function () {
+                clearTimeout(raDetailsSummaryTimer);
+                raDetailsSummaryTimer = setTimeout(measureDetailsSummary, 120);
+            });
+        }
+
+        function renderCollapsedSummary(hasCourse, slot, ctxCourse) {
+            const card = document.getElementById('subjectInfo');
+            const toggle = document.getElementById('conflictCollapse');
+            const line1 = document.getElementById('conflictSummaryLine1');
+            const line2 = document.getElementById('conflictSummaryLine2');
+            const body = document.getElementById('conflictCardBody');
+            if (!card || !toggle || !line1 || !line2) return;
+
+            if (!hasCourse) {
+                toggle.disabled = true;
+                toggle.setAttribute('aria-disabled', 'true');
+                toggle.setAttribute('aria-expanded', 'true');
+                toggle.setAttribute('aria-label', 'Collapse Conflict Schedule');
+                card.classList.remove('is-collapsed');
+                if (body) body.hidden = false;
+                line1.textContent = '';
+                line2.textContent = '';
+                return;
             }
 
-            // Line 4: Total Students
-            let totalLine = null;
-            if (hasSubject) {
-                const counts = ctxCourse.cohortCounts || [];
-                if (counts.length > 1) {
-                    totalLine = counts.join(' + ') + ' = ' + ctxCourse.studentCount;
+            toggle.disabled = false;
+            toggle.removeAttribute('aria-disabled');
+
+            if (!slot) {
+                line1.innerHTML = '<span class="ra-course-code">' + escHtml(currentCourse.code) + '</span>';
+                line2.textContent = '';
+                return;
+            }
+
+            const type = slot.type || ctxCourse.type || '';
+            const weekday = topZoneSlotWeekday(slot);
+            const date = topZoneSlotDateNoYear(slot);
+            line1.innerHTML = '<span class="ra-course-code">' + escHtml(currentCourse.code) + '</span> '
+                + '<span class="ra-slot-type">(' + escHtml(type) + ')</span> · W' + (slot.week + 1)
+                + ' · ' + escHtml(weekday) + ', ' + escHtml(date);
+            const startStr = to12h(hours[slot.start]);
+            const endStr = to12h(hours[slot.end + 1] || add30min(hours[slot.end]));
+            line2.innerHTML = startStr + ' ~ ' + endStr + ' @ <span class="ra-venue-pill">'
+                + escHtml(slot.venue) + '</span>';
+        }
+
+        function renderTitleSummary() {
+            const hasCourse = !!currentCourse;
+            const anchorSlot = resolveOriginalAnchorSlot();
+            const hasSlot = !!anchorSlot;
+            const ctxCourse = courseCtx() || {};
+
+            const timetableEl = document.getElementById('timetable');
+            if (timetableEl) timetableEl.classList.toggle('no-subject', !hasCourse);
+
+            const details = document.getElementById('details');
+            const detailsBody = document.getElementById('detailsBody');
+            const detailsToggle = document.getElementById('detailsToggle');
+            if (details && detailsBody && detailsToggle) {
+                if (!hasSlot) {
+                    details.hidden = true;
+                    detailsBody.hidden = true;
+                    detailsToggle.setAttribute('aria-expanded', 'false');
+                    details.classList.remove('open');
+                } else if (details.hidden) {
+                    details.hidden = false;
+                    detailsBody.hidden = false;
+                    detailsToggle.setAttribute('aria-expanded', 'true');
+                    details.classList.add('open');
+                }
+            }
+
+            const reason = hasSlot ? topZoneReasonFacts(anchorSlot) : null;
+            const reasonEl = document.getElementById('detailReason');
+            if (reasonEl) {
+                reasonEl.innerHTML = reason
+                    ? '<span class="badge ' + reason.cls + '"'
+                        + (reason.detail ? ' data-tip="' + escHtml(reason.detail) + '"' : '') + '>'
+                        + escHtml(reason.text) + '</span>'
+                    : '';
+            }
+
+            const cohorts = Array.isArray(ctxCourse.cohorts) ? ctxCourse.cohorts : [];
+            const fullNames = Array.isArray(ctxCourse.cohortFullNames) ? ctxCourse.cohortFullNames : [];
+            const counts = Array.isArray(ctxCourse.cohortCounts) ? ctxCourse.cohortCounts : [];
+            const total = Number(ctxCourse.studentCount || 0);
+
+            const cohortEl = document.getElementById('detailCohorts');
+            if (cohortEl) {
+                cohortEl.innerHTML = cohorts.map(function (label, i) {
+                    return '<span class="badge badge-reason" data-tip="'
+                        + escHtml(fullNames[i] || label) + '">' + escHtml(label) + '</span>';
+                }).join('');
+            }
+
+            const studentEl = document.getElementById('detailStudents');
+            if (studentEl) {
+                if (hasCourse && cohorts.length) {
+                    const value = counts.length > 1
+                        ? counts.join(' + ') + ' = ' + total
+                        : String(total);
+                    studentEl.innerHTML = '<span class="badge badge-reason">' + escHtml(value) + '</span>';
                 } else {
-                    totalLine = '' + ctxCourse.studentCount;
+                    studentEl.innerHTML = '<span class="badge badge-reason">—</span>';
                 }
             }
 
-            el.innerHTML = `<div class="conflict-strip">
-                <div class="cs-head"${statusTip ? ` data-tip="${escHtml(statusTip)}"` : ''}>
-                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
-                    Conflict Schedule
-                </div>
-                <div class="cs-seg">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
-                    ${subjectLine
-                        ? `<span class="cs-val"><strong>${currentCourse.code}</strong> — ${currentCourse.name} (${ctxCourse.type})</span>`
-                        : `<span class="cs-val cs-none">Not selected${!hasSubject ? '<span class="cs-hint">— Select a Subject first</span>' : ''}</span>`}
-                </div>
-                <div class="cs-seg">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-                                        ${slotLine
-                        ? `<span class="cs-val">${slotLine}</span>`
-                        : `<span class="cs-val cs-none">Not selected${!hasSlot ? '<span class="cs-hint">— Then pick a Conflict Slot</span>' : ''}</span>`}
-                </div>
-                <div class="cs-seg">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
-                    ${cohortsLine
-                        ? `<span class="cs-val">${cohortsLine}</span>`
-                        : `<span class="cs-val cs-none">Not selected</span>`}
-                </div>
-                <div class="cs-badge" data-tip="Total students">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-                    ${totalLine ? totalLine : '0'}
-                </div>
-            </div>`;
-            /* T05 settled point: the whole status/summary strip is rendered */
+            const summaryEl = document.getElementById('detailsSummary');
+            if (summaryEl) {
+                let full = '';
+                let short = '';
+                if (reason) {
+                    if (cohorts.length === 1) {
+                        full = reason.text + ' · ' + cohorts[0] + ' · ' + total + ' students';
+                        short = reason.text + ' · 1 cohort · ' + total;
+                    } else if (cohorts.length > 1) {
+                        full = reason.text + ' · ' + cohorts.length + ' cohorts · ' + total + ' students';
+                        short = reason.text + ' · ' + cohorts.length + ' cohorts · ' + total;
+                    } else {
+                        full = reason.text + ' · —';
+                        short = full;
+                    }
+                }
+                summaryEl.dataset.full = full;
+                summaryEl.dataset.short = short;
+                summaryEl.textContent = full;
+                setTimeout(measureDetailsSummary, 0);
+            }
+
+            renderCollapsedSummary(hasCourse, anchorSlot, ctxCourse);
             refreshArrangementMobile('original');
         }
 
         function buildSubjectDropdown() {
             const sel = document.getElementById('subjectSelector');
             const courses = MockData.courses || [];
-            sel.innerHTML = '<option value="">Select a subject</option>';
+            sel.innerHTML = '<option value="">Select a course</option>';
             courses.forEach(c => {
                 if (extractSlotsForSubject(c.code).length === 0) return;
                 const opt = document.createElement('option');
@@ -4668,7 +5146,7 @@ slotLine = 'Week ' + (anchorSlot.week + 1) + ' · ' + ((weekdayName && weekdayNa
             if (!sel.value || !opt || !opt.text) { sel.removeAttribute('data-tip'); return; }
             const sep = opt.text.indexOf(' — ');
             const name = sep >= 0 ? opt.text.slice(sep + 3) : opt.text;
-            sel.setAttribute('data-tip', 'Conflicted SUBJECT Selector : ' + sel.value + ' - ' + name);
+            sel.setAttribute('data-tip', 'Conflicted COURSE Selector : ' + sel.value + ' - ' + name);
         }
 
         function onSubjectChange() {
@@ -4679,7 +5157,7 @@ slotLine = 'Week ' + (anchorSlot.week + 1) + ' · ' + ((weekdayName && weekdayNa
             /* SDD arrangement-clear-guards-cross-week (BUG-08): same family as
                the venue guard — cross-week store-aware. */
             if ((selectedBlock || getGlobalTotal() > 0) && code !== lastSubject) {
-                confirmChangeWithSelection('subject', function() {
+                confirmChangeWithSelection('course', function() {
                     lastSubject = code;
                     applySubjectChange(code);
                 }, function() {
@@ -5300,9 +5778,7 @@ ${(fallbackAttribution && intentReason === 'in-the-way')
             // Extract and render conflict/cancelled slots for this subject
             const slots = rowSessionCandidates;
             renderSlotPicker(slots);
-            document.getElementById('slotTriggerText').textContent = firstConflictRow
-                ? slotTriggerLabel(firstConflictRow) /* the same format as a picked slot (Batch-2 shape): Week 14 · Dec 24, 2026 · 12:00 PM ~ 1:00 PM */
-                : 'Select a slot to replace';
+            writeSlotTrigger(firstConflictRow || null);
             applySlotTip(firstConflictRow || null); /* same conditional: real slot -> full tip, else cleared */
 
             /* THE WEEK DECISION (was: the auto-nav jump — the user's
@@ -5586,7 +6062,6 @@ ${(fallbackAttribution && intentReason === 'in-the-way')
         function renderSlotPicker(slots) {
             const picker = document.getElementById('slotPicker');
             const panel = document.getElementById('slotPanel');
-            const triggerText = document.getElementById('slotTriggerText');
 
             slotPickerSlots = slots || [];
 
@@ -5606,7 +6081,7 @@ ${(fallbackAttribution && intentReason === 'in-the-way')
             picker.style.display = '';
             panel.innerHTML = '';
             selectedOriginalSlot = null;
-            triggerText.textContent = 'Select a slot to replace';
+            writeSlotTrigger(null);
             applySlotTip(null); /* reset: no slot picked -> no tip */
 
             slots.forEach((slot, index) => {
@@ -5621,23 +6096,10 @@ ${(fallbackAttribution && intentReason === 'in-the-way')
                    .days[…].holiday`, filled by generateWeekData from MockData
                    .holidays), so the badge can never disagree with the grid. No
                    string here is hardcoded to one occurrence. */
-                const slotDay = (weekData[slot.week] && weekData[slot.week].days)
-                    ? weekData[slot.week].days[slot.day] : null;
-                const isHolidaySlot = !!(slotDay && slotDay.holiday);
-                let statusLabel, statusBg, statusColor;
-                if (isHolidaySlot) {
-                    statusLabel = 'Public Holiday';
-                    statusBg = 'var(--color-error-container)';
-                    statusColor = 'var(--color-on-error-container)';
-                } else if (slot.status === 'cancelled') {
-                    statusLabel = 'Cancelled';
-                    statusBg = 'var(--color-surface-variant)';
-                    statusColor = 'var(--color-on-surface-variant)';
-                } else {
-                    statusLabel = 'Conflict';
-                    statusBg = 'var(--color-error-container)';
-                    statusColor = 'var(--color-on-error-container)';
-                }
+                const reason = topZoneReasonFacts(slot);
+                const statusLabel = reason.text;
+                const statusClass = reason.cls;
+                const statusDetail = reason.detail;
                 // Parse "18 Aug 2026" → "Aug 18" + the year
                 const dateParts = slot.date.split(' ');
                 const shortDate = dateParts[1] + ' ' + dateParts[0];
@@ -5671,7 +6133,7 @@ ${(fallbackAttribution && intentReason === 'in-the-way')
                    the default-priority branch) removed with it. */
                 item.innerHTML = `
                     <span class="slot-dd-item-label"><span class="cell-type-label">(${slot.type})</span> Week ${slot.week + 1} · ${shortDate}${year ? ', ' + year : ''} · ${startStr} - ${endStr} @ ${slot.venue}${cohortHtml ? ' · ' : ''}${cohortHtml}</span>
-                    <span class="slot-dd-item-badge" style="background:${statusBg};color:${statusColor};">${statusLabel}</span>
+                    <span class="slot-dd-item-badge badge ${statusClass}"${statusDetail ? ` data-tip="${escHtml(statusDetail)}"` : ''}>${escHtml(statusLabel)}</span>
                 `;
 
                 // Hover tooltip
@@ -5687,6 +6149,10 @@ ${(fallbackAttribution && intentReason === 'in-the-way')
                 item.addEventListener('mouseleave', () => {
                     tooltip.style.display = 'none';
                 });
+                const badgeEl = item.querySelector('.slot-dd-item-badge');
+                if (badgeEl && statusDetail) {
+                    badgeEl.addEventListener('mouseenter', () => { tooltip.style.display = 'none'; });
+                }
 
                 // Click to select
                 item.addEventListener('click', () => {
@@ -5760,7 +6226,7 @@ ${(fallbackAttribution && intentReason === 'in-the-way')
                            that anchor, NOT the placeholder; the placeholder
                            stays only for genuinely anchor-less states. */
                         if (!writeSlotTriggerFromAnchor()) {
-                            document.getElementById('slotTriggerText').textContent = 'Select a slot to replace';
+                            writeSlotTrigger(null);
                             applySlotTip(null); /* placeholder -> no tip (the anchor path sets its own) */
                         }
                         renderTitleSummary();
@@ -5778,15 +6244,35 @@ ${(fallbackAttribution && intentReason === 'in-the-way')
            writers (a user pick and the post-switch auto-pin). The BRIDGE PATCH
            (+1 week number) stays: slot.week is the 0-based weekData index. */
         /* SDD rearrangement-toolbar-tooltips Batch 2 (req 3c): the trigger
-           text sizes to 'Week {N} · {Mon} {D}, {YEAR} · {range}' — the year
-           rides the weekData date dynamically. */
+           text sizes to 'Week {N} · {Day}, {D Mon YEAR}' — day-first, with
+           the year riding the weekData date dynamically. */
         function slotTriggerLabel(slot) {
+            if (!slot) return null;
             const startStr = to12h(hours[slot.start]);
             const endStr = to12h(hours[slot.end + 1] || add30min(hours[slot.end]));
-            const dateParts = (slot.date || '').split(' ');
-            const shortDate = dateParts[1] + ' ' + dateParts[0];
-            const year = dateParts[2] || '';
-            return 'Week ' + (slot.week + 1) + ' · ' + (year ? shortDate + ', ' + year : shortDate) + ' · ' + startStr + ' ~ ' + endStr;
+            const weekday = topZoneSlotWeekday(slot);
+            const date = topZoneSlotDate(slot);
+            return {
+                line1: '<span class="ra-slot-type">(' + escHtml(slot.type || '') + ')</span> Week '
+                    + (slot.week + 1) + ' · ' + escHtml(weekday) + ', ' + escHtml(date),
+                line2: escHtml(startStr) + ' ~ ' + escHtml(endStr)
+                    + ' @ <span class="ra-venue-pill">' + escHtml(slot.venue || '') + '</span>'
+            };
+        }
+
+        /* ONE writer for #slotTriggerText. Callers pass the full slot object;
+           null resets the placeholder as a single text node. */
+        function writeSlotTrigger(slot) {
+            const el = document.getElementById('slotTriggerText');
+            if (!el) return;
+            if (!slot) {
+                el.textContent = 'Select a slot to replace';
+                return;
+            }
+            const label = slotTriggerLabel(slot);
+            if (!label) return;
+            el.innerHTML = '<span id="slotTriggerLine1">' + label.line1 + '</span>'
+                + '<span id="slotTriggerLine2">' + label.line2 + '</span>';
         }
 
         /* SDD rearrangement-toolbar-tooltips: the slot picker trigger's hover
@@ -5959,14 +6445,13 @@ ${(fallbackAttribution && intentReason === 'in-the-way')
                 syncVenueFamily(slot, 'pick');
             }
             selectedOriginalSlot = slot;
-            const triggerText = document.getElementById('slotTriggerText');
             /* BRIDGE PATCH (2026-10-11 user report): slot.week is the 0-based weekData
    index (the mock's expander counts w from 0) — printing it raw showed the
    picker one week behind (Nov 9 = "W7", Dec 25 = "W13"). The label is
    human-facing: show the semester's week NUMBER (+1); all internal uses of
    slot.week stay 0-based indices. The formatting itself lives in the shared
    slotTriggerLabel() (the auto-pin writer uses it too). */
-triggerText.textContent = slotTriggerLabel(slot);
+writeSlotTrigger(slot);
             applySlotTip(slot); /* SDD rearrangement-toolbar-tooltips: full slot details on the same pick */
 
             // Update selected state in panel
@@ -6174,6 +6659,10 @@ triggerText.textContent = slotTriggerLabel(slot);
                     /* SDD rearrangement-toolbar-tooltips Batch 2 (req 1): the
                        selector-voice trigger tip — code + full name + capacity */
                     triggerTipPrefix: 'Replacement VENUE Selector: ',
+                    triggerLabel: function(v) {
+                        return '<span class="ra-venue-code">' + escHtml(v.code) + '</span>'
+                            + ' <span class="ra-venue-seats">' + escHtml(String(v.capacity || '')) + ' seats</span>';
+                    },
                     onSelect: function(code) { onVenueChange(); }
                 }
             );
@@ -6199,21 +6688,18 @@ triggerText.textContent = slotTriggerLabel(slot);
                 if (!chipEl) return;
                 const ddV = (MockData.venues || []).find(v => v.code === code) || null;
                 if (!ddV) return;
-                const capA = document.getElementById('venueCapacity');
-                if (capA && ddV.capacity) {
-                    capA.textContent = '';
-                    capA.insertAdjacentHTML('beforeend',
-                        '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>');
-                    capA.insertAdjacentText('beforeend', String(ddV.capacity));
-                    capA.setAttribute('data-tip', 'Capacity \u2014 ' + ddV.capacity + ' seats');
-                }
                 const descA = document.getElementById('arrVenueDescription');
-                if (descA && ddV.description) {
+                if (descA) {
                     descA.textContent = '';
                     descA.insertAdjacentHTML('beforeend',
                         '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>');
-                    descA.setAttribute('data-tip', ddV.description);
-                    descA.setAttribute('aria-label', 'Room description: ' + ddV.description);
+                    if (ddV.description) {
+                        descA.setAttribute('data-tip', ddV.description);
+                        descA.setAttribute('aria-label', 'Room description: ' + ddV.description);
+                    } else {
+                        descA.removeAttribute('data-tip');
+                        descA.setAttribute('aria-label', 'Room description');
+                    }
                 }
                 chipEl.style.display = '';
             };
@@ -6413,6 +6899,49 @@ triggerText.textContent = slotTriggerLabel(slot);
                     window.__earliestBtnError = err.message + ' | ' + (err.stack || '').split('\n').slice(0,3).join(' ');
                 }
             });
+
+            document.getElementById('conflictCollapse')?.addEventListener('click', function () {
+                if (this.disabled) return;
+                const card = document.getElementById('subjectInfo');
+                const body = document.getElementById('conflictCardBody');
+                if (!card || !body) return;
+                const collapsed = !card.classList.contains('is-collapsed');
+                card.classList.toggle('is-collapsed', collapsed);
+                body.hidden = collapsed;
+                this.setAttribute('aria-expanded', String(!collapsed));
+                this.setAttribute('aria-label', collapsed
+                    ? 'Expand Conflict Schedule'
+                    : 'Collapse Conflict Schedule');
+                if (!collapsed) setTimeout(measureDetailsSummary, 0);
+            });
+
+            document.getElementById('detailsToggle')?.addEventListener('click', function () {
+                const body = document.getElementById('detailsBody');
+                const details = document.getElementById('details');
+                if (!body) return;
+                const opening = body.hidden;
+                body.hidden = !opening;
+                this.setAttribute('aria-expanded', String(opening));
+                if (details) details.classList.toggle('open', opening);
+                if (opening) setTimeout(measureDetailsSummary, 0);
+            });
+
+            let topZoneResizeTimer = null;
+            window.addEventListener('resize', function () {
+                clearTimeout(topZoneResizeTimer);
+                topZoneResizeTimer = setTimeout(function () {
+                    const slot = selectedOriginalSlot || anchorSlotFromPinned();
+                    if (slot) writeSlotTrigger(slot); else writeSlotTrigger(null);
+                    renderTitleSummary();
+                }, 160);
+            });
+
+            const mobileContext = document.querySelector('[data-arrangement-mobile-context]');
+            if (mobileContext) {
+                mobileContext.addEventListener('toggle', function () {
+                    if (mobileContext.open) setTimeout(measureDetailsSummary, 0);
+                });
+            }
         }
 
         /* onclick= / inline-handler globals resolve via window */

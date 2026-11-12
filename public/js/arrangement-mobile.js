@@ -273,7 +273,7 @@
     const CONTEXT_SUMMARY_SELECTOR = '[data-arrangement-mobile-context-summary]';
     const STICKY_HEIGHT_VAR = '--arrangement-mobile-sticky-height';
     const BAR_HEIGHT_VAR = '--arrangement-mobile-bar-height';
-    const CONTEXT_EMPTY_TEXT = 'Select a subject and original slot';
+    const CONTEXT_EMPTY_TEXT = 'Select a course and original slot';
     const CONTEXT_SEPARATOR = ' \u00b7 ';
     const CONTEXT_TIME_SEPARATOR = ' ~ ';
 
@@ -1992,7 +1992,7 @@
             const name = String(original.name || '').trim();
             const subject = code && name ? code + ' \u2014 ' + name : (name || code);
             const facts = [
-                ['Subject', subject],
+                ['Course', subject],
                 ['Date', day ? dayText(day) : ''],
                 ['Time', sheetTimeText(snap, start, end)],
                 ['Duration', durationText(end - start)],
@@ -2351,7 +2351,7 @@
             const actions = summaryRemoveActions(entries);
             return openInfo(heading, function (doc) {
                 const nodes = [];
-                if (subject) nodes.push(sheetFactList(doc, [['Subject', subject]]));
+                if (subject) nodes.push(sheetFactList(doc, [['Course', subject]]));
                 if (!total) {
                     const note = doc.createElement('p');
                     note.className = 'arrangement-mobile-info-entry';

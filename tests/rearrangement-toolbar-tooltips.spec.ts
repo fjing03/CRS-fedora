@@ -8,7 +8,7 @@ import { test, expect, type Page } from '@playwright/test';
       pinnedSessionPayload — the 2026-10-31 user no-tip report fix);
    b) #weekSelector — the static selectTip passed to ui-week-nav (arrows stay
       tip-less: prev/next params remain null → other pages byte-identical);
-   c) #subjectSelector — 'Conflicted SUBJECT Selector : CODE - NAME'
+   c) #subjectSelector — 'Conflicted COURSE Selector : CODE - NAME'
       (plain hyphen in the TIP even though option text uses an em dash;
       fail-open: cleared whenever nothing is selected).
    Visible texts unchanged; no mechanism change.
@@ -71,13 +71,14 @@ test('arrival: a) the anchored slot tip carries the REAL facts; b) the week sele
   expect(tip).toContain(`@ ${facts!.venue}`);                       // the REAL venue
   if (facts!.date) expect(tip).toContain(facts!.date);              // the REAL date (weekData)
 
-  // SDD rearrangement-toolbar-tooltips Batch 2 (3c): the trigger text = 'Week {N} · {Mon} {D}, {YEAR} · {range}'
+  // SDD rearrangement-toolbar-tooltips Batch 2 (3c): the trigger text = 'Week {N} · {Day}, {D Mon YEAR} · {range}'
   const visible = (await trigger.textContent()) || '';
-  expect(visible).toMatch(/^Week \d+ · /);
+  expect(visible).toMatch(/^\([LTP]\) Week \d+ · /);
   expect(visible).not.toContain('Conflicted SLOT');
   // cross-check: the tip's week + the date agreement with the VISIBLE label (the year rides)
   const dParts = facts!.date.split(' ');
-  expect(visible).toContain(`Week ${facts!.week} · ${dParts[1]} ${dParts[0]}, ${dParts[2]}`);
+  expect(visible).toContain(`Week ${facts!.week}`);
+  expect(visible).toContain(`${dParts[0]} ${dParts[1]} ${dParts[2]}`);
 
   // -- Batch 2 req 1: the venue selector's trigger tip (the identity shape —
   //    the data-tip attribute is read straight off the DOM: hovering would
@@ -122,7 +123,7 @@ test('arrival: a) the anchored slot tip carries the REAL facts; b) the week sele
     return { value: sel.value, text: opt ? opt.text : '', tip: sel.getAttribute('data-tip') };
   });
   const emD = subj.text.indexOf(' — ');
-  expect(subj.tip).toBe('Conflicted SUBJECT Selector : ' + subj.value + ' - ' + (emD >= 0 ? subj.text.slice(emD + 3) : subj.text));
+  expect(subj.tip).toBe('Conflicted COURSE Selector : ' + subj.value + ' - ' + (emD >= 0 ? subj.text.slice(emD + 3) : subj.text));
 });
 
 test('empty states + mechanism: no pin → no tip anywhere; the subject tip follows the selection; hover shows the shared tooltip ABOVE', async ({ page }) => {
@@ -148,7 +149,7 @@ test('empty states + mechanism: no pin → no tip anywhere; the subject tip foll
     return { value: sel.value, text: opt ? opt.text : '', tip: sel.getAttribute('data-tip') };
   });
   const emDash = self.text.indexOf(' — ');
-  const expected = 'Conflicted SUBJECT Selector : ' + self.value + ' - ' + (emDash >= 0 ? self.text.slice(emDash + 3) : self.text);
+  const expected = 'Conflicted COURSE Selector : ' + self.value + ' - ' + (emDash >= 0 ? self.text.slice(emDash + 3) : self.text);
   expect(self.tip).toBe(expected);
 
   // c fail-open 2) cleared select → attribute gone
@@ -194,7 +195,7 @@ test('revert writer: with a REAL selection the subject guard pops; No restores t
   await page.locator('#subjectSelector').selectOption({ index: 1 });
   await page.waitForTimeout(900);
   await expect(page.locator('#confirmModal')).toBeVisible();
-  await expect(page.locator('#modalTitle')).toHaveText('Change Subject?');
+  await expect(page.locator('#modalTitle')).toHaveText('Change Course?');
   await page.locator('#confirmModal .btn-outline').click(); // No, Keep My Selection
   await page.waitForTimeout(900);
   await expect(page.locator('#infoTotal')).toContainText('of 4 slots'); // the store restored

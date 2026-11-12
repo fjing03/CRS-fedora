@@ -188,7 +188,7 @@ test('BUG-08 subject: the guard fires after the hop; cancel restores; Yes clears
   await page.locator('#subjectSelector').selectOption({ index: 1 }); // AMSE1003
   await page.waitForTimeout(900);
   await expect(page.locator('#confirmModal')).toBeVisible();
-  await expect(page.locator('#modalTitle')).toHaveText('Change Subject?'); // 2026-10-24: title names the trigger
+  await expect(page.locator('#modalTitle')).toHaveText('Change Course?'); // 2026-10-24: title names the trigger
   await page.locator('#confirmModal .btn-outline').click(); // No, Keep My Selection
   await page.waitForTimeout(800);
   await expect(page.locator('#infoTotal')).toContainText('4 of 4 slots');

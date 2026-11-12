@@ -83,6 +83,13 @@ final class LectureSessionCatalogTest extends TestCase
         $this->assertSame('09:00', $module['sessions'][(string) $earlier->id]['startTime']);
         $this->assertSame('16:00', $module['sessions'][(string) $later->id]['endTime']);
         $this->assertSame(4, $module['sessions'][(string) $later->id]['durationSlots'], '2h = 4 half-hour slots');
+
+        $entry = $module['sessions'][(string) $earlier->id];
+        $this->assertArrayHasKey('cohortFullNames', $entry);
+        $this->assertNotEmpty($entry['cohortFullNames']);
+        $this->assertStringContainsString('Year 1 Sem 1 Group', $entry['cohortFullNames'][0]);
+        $this->assertArrayHasKey('cohortFullNames', $module);
+        $this->assertNotEmpty($module['cohortFullNames']);
     }
 
     public function test_module_order_follows_first_occurrence_timetable_order(): void

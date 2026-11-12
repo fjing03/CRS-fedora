@@ -69,7 +69,7 @@ test('D-row3 — the pinned arrival lands EARLIEST too (the pin = data only)', a
     localStorage.removeItem('currentWeek');
   });
   await page.goto('/replacement-arrangement?session=49&week=14&from=my-timetable', { waitUntil: 'networkidle' });
-  await page.waitForSelector('.conflict-strip', { timeout: 15_000 });
+  await page.waitForSelector('#subjectInfo', { timeout: 15_000 });
   await page.waitForTimeout(900);
   // arrival-grid-no-pin (user law 2026-10-20): ?session=…&week= = data only
   // — the grid lands on the Earliest Bookable week like any plain landing

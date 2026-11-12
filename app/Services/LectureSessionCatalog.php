@@ -235,6 +235,9 @@ final class LectureSessionCatalog
                     'cohorts' => $uniqueCohorts
                         ->map(fn ($c): string => $this->spacedCohortLabel($c))
                         ->all(),
+                    'cohortFullNames' => $uniqueCohorts
+                        ->map(fn ($c): string => $this->fullCohortLabel($c))
+                        ->all(),
                     'cohortCounts' => $uniqueCohorts
                         ->map(fn ($c): int => (int) $c->student_count)
                         ->all(),
@@ -344,6 +347,9 @@ final class LectureSessionCatalog
             // 2026-10-27 — kept: the client's cohort coding stays).
             'cohorts' => $s->cohorts
                 ->map(fn ($c): string => $this->spacedCohortLabel($c))
+                ->all(),
+            'cohortFullNames' => $s->cohorts
+                ->map(fn ($c): string => $this->fullCohortLabel($c))
                 ->all(),
             'cohortCodes' => $s->cohorts
                 ->map(fn ($c): string => str_replace(' ', '', $this->spacedCohortLabel($c)))
@@ -651,5 +657,21 @@ final class LectureSessionCatalog
         return $cohort->programme->programme_code
             .$cohort->current_year.' (S'.$cohort->semester.')'
             .' G'.$cohort->tutorial_group;
+    }
+
+    /**
+     * Full cohort name for the Details badge tooltip: programme name plus the
+     * year/semester/group. Additive display field only.
+     */
+    private function fullCohortLabel(?Cohort $cohort): string
+    {
+        if ($cohort === null || $cohort->programme === null) {
+            return '—';
+        }
+
+        return $cohort->programme->programme_name
+            .' · Year '.$cohort->current_year
+            .' Sem '.$cohort->semester
+            .' Group '.$cohort->tutorial_group;
     }
 }

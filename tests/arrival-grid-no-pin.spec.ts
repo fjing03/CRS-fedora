@@ -17,7 +17,7 @@ test('R1 — the pinned arrival lands on Earliest Bookable while the strip keeps
     localStorage.removeItem('currentWeek');
   });
   await page.goto('/replacement-arrangement?session=49&week=14&from=my-timetable', { waitUntil: 'networkidle' });
-  await page.waitForSelector('.conflict-strip', { timeout: 15_000 });
+  await page.waitForSelector('#subjectInfo', { timeout: 15_000 });
   await page.waitForTimeout(900);
   // the grid = the earliest bookable week (the law's landing)
   const eb = await page.evaluate(() => (window as any).firstBookableDay((window as any).weekData));
@@ -56,7 +56,7 @@ test('R2 — a pinned arrival ignores a saved week (and does not touch it)', asy
     localStorage.setItem('arrangementWeek', String(w));
   }, picked);
   await page.goto('/replacement-arrangement?session=39&week=14&from=replacement-home', { waitUntil: 'networkidle' });
-  await page.waitForSelector('.conflict-strip', { timeout: 15_000 });
+  await page.waitForSelector('#subjectInfo', { timeout: 15_000 });
   await page.waitForTimeout(900);
   // the saved week LOSES on pinned arrivals: the grid = earliest bookable
   const eb = await page.evaluate(() => (window as any).firstBookableDay((window as any).weekData));

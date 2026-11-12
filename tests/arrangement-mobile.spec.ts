@@ -497,7 +497,7 @@ async function venueLabel(page: Page): Promise<string> {
 }
 
 function venueCodeOf(label: string): string {
-  return label.split('\u2014')[0].trim();
+  return label.split(/\s+/)[0].trim();
 }
 
 interface SpanGeometry {
@@ -824,7 +824,7 @@ test.describe('T21a — mobile calendar, context and navigation', () => {
 
   test('without a subject the guidance is shown and a tap cannot create a replacement', async ({ page }) => {
     await gotoArrangement(page);
-    await expect(page.locator('[data-arrangement-mobile-context-summary]')).toHaveText('Select a subject and original slot');
+    await expect(page.locator('[data-arrangement-mobile-context-summary]')).toHaveText('Select a course and original slot');
     await expectNoSelection(page);
 
     // The original subject control is reachable through the compact context.
@@ -846,7 +846,7 @@ test.describe('T21a — mobile calendar, context and navigation', () => {
     ).click();
     await expect(page.locator('#toastBar')).toHaveClass(/visible/, { timeout: 10_000 });
     await expect(page.locator('#toastBar .toast-message'))
-      .toHaveText('Select a subject first to trigger the timeslots selector');
+      .toHaveText('Select a course first to trigger the timeslots selector');
     await expectNoSelection(page);
     await expect(page.locator('[data-arrangement-mobile-timeline] [data-mobile-row="span"]')).toHaveCount(0);
   });
@@ -1015,7 +1015,7 @@ test.describe('T21a — mobile calendar, context and navigation', () => {
     await expect(page.locator('#submitRequestBtn')).toBeDisabled();
     await expect(page.locator('.week-arrow[aria-label="Previous week"]')).toBeDisabled();
     await expect(page.locator('.week-arrow[aria-label="Next week"]')).toBeDisabled();
-    await expect(page.locator('[data-arrangement-mobile-context-summary]')).toHaveText('Select a subject and original slot');
+    await expect(page.locator('[data-arrangement-mobile-context-summary]')).toHaveText('Select a course and original slot');
 
     // Context/tools/saved-inspection access survives the empty semester.
     await expect(page.locator('[data-arrangement-mobile-legend]')).toBeVisible();
@@ -1227,7 +1227,7 @@ test.describe('T21b — mobile timeline, selection and summary', () => {
     await expect(page.locator('[data-arrangement-mobile-info-heading]')).toHaveText('Saved selection');
     const facts = await infoFacts(page);
     // The sheet carries the subject once, then the saved entry's own facts.
-    expect(facts.some((entry) => entry.Subject)).toBe(true);
+    expect(facts.some((entry) => entry.Course)).toBe(true);
     const entryFacts = facts.find((entry) => typeof entry.Date === 'string') || {};
     expect(entryFacts.Date, 'the off-view sheet names the saved date').toBe(heading);
     expect(entryFacts.Time).toBe(`${geometry.start12} ~ ${geometry.end12}`);
@@ -1860,7 +1860,7 @@ test.describe('T22a — mobile change guards, arrival pin and leave guards', () 
     test.skip(choice === null, 'the seeded subject selector offers only the already-committed subject');
 
     await expect(page.locator('#confirmModal')).toBeVisible({ timeout: 10_000 });
-    await expect(page.locator('#modalTitle')).toHaveText('Change Subject?');
+    await expect(page.locator('#modalTitle')).toHaveText('Change Course?');
     await expect(page.locator('#confirmModal .btn-outline')).toHaveText('No, Keep My Selection');
     await page.locator('#confirmModal .btn-outline').click();
     await expect(page.locator('#confirmModal')).toBeHidden();

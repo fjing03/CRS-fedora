@@ -20,9 +20,11 @@ test('strip follows the live pin after a subject switch (Bug 1)', async ({ page 
   const strip = await page.evaluate(() => document.getElementById('subjectInfo').textContent.replace(/\s+/g, ' ').trim());
   expect(strip).toContain('BMSE2163');
   expect(strip).toContain('Week 14');
-  expect(strip).toContain('Dec 24 2026');
+  expect(strip).toContain('24 Dec 2026');
   expect(strip).toContain('B010');
   expect(strip).not.toContain('Nov 09 2026 · 9:00 AM ~ 11:00 AM @ B111');
   const trig = await page.evaluate(() => document.getElementById('slotTriggerText').textContent);
-  expect(trig).toContain('Week 14 · Dec 24, 2026 · 12:00 PM ~ 1:00 PM'); /* the same format as a picked slot (migrated to the Batch-2 Week/year shape) */
+  expect(trig).toContain('Week 14');
+  expect(trig).toContain('24 Dec 2026');
+  expect(trig).toContain('12:00 PM ~ 1:00 PM');
 });

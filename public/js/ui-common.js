@@ -3833,6 +3833,9 @@ class VenueDropdown {
            selector-voice trigger tip ('Replacement VENUE Selector: …');
            unset = the historical tip (other consumers byte-identical) */
         this.triggerTipPrefix = opts.triggerTipPrefix || null;
+        /* Opt-in page-local trigger label renderer (arrangement uses
+           code + seats); unset = every other page's existing label. */
+        this.triggerLabel = typeof opts.triggerLabel === 'function' ? opts.triggerLabel : null;
         this.filter = opts.filter || null;
         this.selectedCode = opts.initialCode || null;
 
@@ -4300,8 +4303,15 @@ class VenueDropdown {
                 || (v.name ? v.name.replace(suffixRe, '').trim() : '')
                 || VenueDropdown.humanizeType(v.type);
             const text = v.code + ' \u2014 ' + base;
-            if (label) label.textContent = text;
-            else this.trigger.textContent = text; /* legacy markup fallback */
+            if (this.triggerLabel) {
+                const html = String(this.triggerLabel(v) || '');
+                if (label) label.innerHTML = html;
+                else this.trigger.textContent = text; /* legacy markup fallback */
+            } else if (label) {
+                label.textContent = text;
+            } else {
+                this.trigger.textContent = text; /* legacy markup fallback */
+            }
             // the tooltip: the FULL name when room_name (trimmed) differs
             // from the short base (the labs: name = 'Computer Laboratory 5'
             //   base = 'Computer Lab 5' → the full rides); the code-

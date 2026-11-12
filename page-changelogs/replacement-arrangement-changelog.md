@@ -1,3 +1,61 @@
+## 2026-11-12 — desktop top zone: two cards, Course/Slot, details and venue
+
+User-approved desktop top-zone redesign. Mobile keeps its owned layout and receives the
+compatibility rules below.
+
+**Two cards.** `.toolbar-restructure` is now a column wrapper around a **Conflict
+Schedule** card (`#subjectInfo`) and a **Replacement Schedule** card. The old
+`.conflict-strip` strip and single mixed toolbar row are gone.
+
+**Conflict Schedule.** The visible field label is now **Course** (not Subject); internal
+IDs such as `subjectSelector` stay. Course and Slot use `--color-surface-variant`, 44px
+high (Course 52.8px on mobile), with the 45/55 split on desktop. The Slot trigger is
+two lines: `(L/T/P) Week N · Day, D Mon YEAR` and `time ~ time @ [venue pill]`. The venue
+pill is outlined and uses `surface` inside the variant trigger. Details is expanded by
+default and shows Reason / Cohorts / Students from one shared `reasonFacts()` helper
+(cancelled before holiday; plain clash = neutral `Conflict`). Cohort tooltips use the new
+additive `cohortFullNames` payload; the student badge shows `24` or `7 + 18 = 25`.
+The full/short summary is measured and swapped only on overflow.
+
+**Whole-card collapse.** A second arrow on the Conflict Schedule heading collapses the
+card. When collapsed it shows `CODE (T) · W8 · Fri, 19 Nov` and
+`2:00 PM ~ 3:00 PM @ venue pill`; the arrow is disabled until a Course exists, and a
+Course without a Slot shows the code only. The heading, arrow and collapsed summary
+stay visible on mobile too.
+
+**Replacement Schedule.** The real shared `VenueDropdown` is kept; its trigger now shows
+`B009` + `28 seats` with an 8.8px gap and the arrow at the far right. The description chip
+stays; the separate `#venueCapacity` chip is removed. Venue and week backgrounds use
+`--color-surface-variant`.
+
+**Mobile compatibility.** Course/Slot are full-width; the Course select is 52.8px high;
+the Desktop heading text is hidden only by the mobile adapter's own ownership, but the
+Conflict Schedule heading and 44px collapse arrow remain; Reason/Cohorts/Students wrap as
+one row of whole items with 34px pill badges; labels and badges stay left-aligned. The
+shared venue and week controls keep their page-local label/background rules after the
+mobile relocation. `#subjectInfo` remains the mount; `.toolbar-restructure` and
+`.toolbar-filters .week-nav` remain the relocation hooks.
+
+**Prototype alignment follow-up (2026-11-12).** The six visible gaps against
+`ui-prototype/replacement-arrangement-top-zone-preview.html` are closed: the replacement
+week row and `Earliest bookable` stay on one line; the replacement card uses the
+content-width venue group plus right-aligned week group; Slot line 2 is 12px/500 muted;
+the collapsed summary drops the year; the Replacement Schedule uses the swap glyph; and
+the venue info chip is the larger 14px info icon and no longer disappears when a room has
+no description. A 900px stack rule was added for the two control rows.
+
+**Slot date law.** The two-line Slot trigger now keeps `weekData`'s day-first date
+(`24 Dec 2026`) instead of reversing it to month-first; mobile still trims the year.
+The collapsed summary follows the same order.
+
+**Evidence (static + browser).** PHP lint, Blade compile, inline JS syntax, Pint,
+PHPStan (0 errors), and `LectureSessionCatalogTest` (5 passed, 31 assertions) on
+`class_replacement_testing`. On the disposable `:8030` testing DB, 17/17 core top-zone
+Playwright checks passed and the mobile suite passed 51/51; the remaining affected run
+was 57 passed, 3 skipped. Four unrelated/time-dependent checks are recorded in the SDD
+`review-log.md` (fixed W8 fixtures now filtered by the lead-time rule and an outdated
+`#clearAllBtn` assertion). No demo database or booking was touched.
+
 ## 2026-11-12 — mobile round 1: top zone, compact dates, sheets and footer
 
 User-approved mobile polish for `/replacement-arrangement` after the day-view suite went

@@ -45,7 +45,7 @@ test('S1 — cross-week pick threads the occurrence week (&week=8, honest strip)
   await page.waitForTimeout(900);
   const strip = await page.locator('#subjectInfo').innerText();
   expect(strip).toContain('Week 8');
-  expect(strip).toContain('Mon, Nov 9 2026');
+  expect(strip).toContain('Mon, 9 Nov 2026');
   expect(strip).toContain('11:00 AM');
   expect(strip).toContain('1:00 PM @ B110');
   // secondary (non-discriminating for this repro: the T18 auto-pin clobber

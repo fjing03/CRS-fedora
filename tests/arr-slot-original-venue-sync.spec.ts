@@ -26,26 +26,26 @@ test('the label follows the picked schedule ORIGINAL room (session-change pick)'
   await page.waitForTimeout(300);
   await page.click('.slot-dd-item .slot-dd-item-label');
   await page.waitForTimeout(2200);
-  await expect(page.locator('.venue-dd-label')).toHaveText(/^B010 — /);
-  await expect(page.locator('#slotTriggerText')).toContainText('Week 14 · Dec 24, 2026 · 12:00 PM ~ 1:00 PM');
+  await expect(page.locator('.venue-dd-label')).toHaveText(/^B010\s+28 seats$/);
+  await expect(page.locator('#slotTriggerText')).toContainText('Week 14');
+  await expect(page.locator('#slotTriggerText')).toContainText('24 Dec 2026');
+  await expect(page.locator('#slotTriggerText')).toContainText('12:00 PM ~ 1:00 PM');
 });
 
 test('alternation across rows with different original venues (auto-pin follows, picks keep parity)', async ({ page }) => {
   await page.goto('/replacement-arrangement?session=38&week=14&from=replacement-home');
   await page.waitForTimeout(3000);
-  await expect(page.locator('.venue-dd-label')).toHaveText(/^B010 — /);
-  await expect(page.locator('#venueCapacity')).toHaveText(/28/s);
+  await expect(page.locator('.venue-dd-label')).toHaveText(/^B010\s+28 seats$/);
   // → AMSE1003: the ROUND-2 law — the auto-pin follows the row's ORIGINAL room immediately (no manual pick)
   await page.selectOption('#subjectSelector', 'AMSE1003');
   await page.waitForTimeout(2200);
-  await expect(page.locator('.venue-dd-label')).toHaveText(/^B111 — /);
-  await expect(page.locator('#venueCapacity')).toHaveText(/80/s);
+  await expect(page.locator('.venue-dd-label')).toHaveText(/^B111\s+80 seats$/);
   // the manual pick on the same subject re-fires the same orig parity (equal-target refire):
   await page.click('#slotTrigger');
   await page.waitForTimeout(300);
   await page.click('.slot-dd-item .slot-dd-item-label');
   await page.waitForTimeout(2200);
-  await expect(page.locator('.venue-dd-label')).toHaveText(/^B111 — /);
+  await expect(page.locator('.venue-dd-label')).toHaveText(/^B111\s+80 seats$/);
   // → AMSE2003 (both rows @ B100): the auto-pin follows B100
   await page.selectOption('#subjectSelector', 'AMSE2003');
   await page.waitForTimeout(2200);
@@ -53,29 +53,31 @@ test('alternation across rows with different original venues (auto-pin follows, 
   await page.waitForTimeout(300);
   await page.click('.slot-dd-item .slot-dd-item-label');
   await page.waitForTimeout(2200);
-  await expect(page.locator('.venue-dd-label')).toHaveText(/^B100 — /);
+  await expect(page.locator('.venue-dd-label')).toHaveText(/^B100\s+35 seats$/);
 });
 
 test('same-session pick (Gap A) still runs the venue family + parity refire', async ({ page }) => {
   await page.goto('/replacement-arrangement?session=38&week=14&from=replacement-home');
   await page.waitForTimeout(3000);
-  await expect(page.locator('.venue-dd-label')).toHaveText(/^B010 — /);
+  await expect(page.locator('.venue-dd-label')).toHaveText(/^B010\s+28 seats$/);
   await page.click('#slotTrigger');
   await page.waitForTimeout(300);
   await page.click('.slot-dd-item .slot-dd-item-label'); // the same row the arrival auto-pinned (sessionId 38 = current) → the family was SKIPPED pre-fix
   await page.waitForTimeout(2200);
-  await expect(page.locator('.venue-dd-label')).toHaveText(/^B010 — /);
+  await expect(page.locator('.venue-dd-label')).toHaveText(/^B010\s+28 seats$/);
   expect(await page.evaluate(() => window.__venueSelected())).toBe('B010'); // the equal-target parity refire (design D3)
-  await expect(page.locator('#slotTriggerText')).toContainText('Week 14 · Dec 24, 2026 · 12:00 PM ~ 1:00 PM');
+  await expect(page.locator('#slotTriggerText')).toContainText('Week 14');
+  await expect(page.locator('#slotTriggerText')).toContainText('24 Dec 2026');
+  await expect(page.locator('#slotTriggerText')).toContainText('12:00 PM ~ 1:00 PM');
 });
 
 test('the 68/14 → BMSE2163 sighting: the auto-pin follows @ B010 BEFORE any manual pick (round-2 law, the whole-red grid)', async ({ page }) => {
   await page.goto('/replacement-arrangement?session=68&week=14&from=replacement-home');
   await page.waitForTimeout(3000);
-  await expect(page.locator('.venue-dd-label')).toHaveText(/^B100 — /); // the arrival law pins the booked venue (code asserted, label suffix is data-owned)
+  await expect(page.locator('.venue-dd-label')).toHaveText(/^B100\s+35 seats$/); // the arrival law pins the booked venue (code asserted, label suffix is data-owned)
   await page.selectOption('#subjectSelector', 'BMSE2163');
   await page.waitForTimeout(2500);
-  await expect(page.locator('.venue-dd-label')).toHaveText(/^B010 — /); // follows the strip WITHOUT a manual pick
+  await expect(page.locator('.venue-dd-label')).toHaveText(/^B010\s+28 seats$/); // follows the strip WITHOUT a manual pick
   // the grid is NOT all-red: bookable cells exist under the new ctx
   const avail = await page.evaluate(() => document.querySelectorAll('#tableBody .cell-available').length);
   expect(avail).toBeGreaterThan(0);
@@ -84,7 +86,7 @@ test('the 68/14 → BMSE2163 sighting: the auto-pin follows @ B010 BEFORE any ma
 test('subject-change interplay: orig wins over the inherited room + options keep the eligibility law', async ({ page }) => {
   await page.goto('/replacement-arrangement?session=99&week=8&from=replacement-home');
   await page.waitForTimeout(3000);
-  await expect(page.locator('.venue-dd-label')).toHaveText(/^B111 — /);
+  await expect(page.locator('.venue-dd-label')).toHaveText(/^B111\s+80 seats$/);
   /* venue-trigger-label law (user 2026-10-27): the seat count LEFT the label
      but the full name + capacity RIDE the trigger's hover tip */
   await expect(page.locator('#buildingSelectorDropdown .venue-dd-trigger'))
@@ -95,7 +97,7 @@ test('subject-change interplay: orig wins over the inherited room + options keep
   await page.waitForTimeout(300);
   await page.click('.slot-dd-item .slot-dd-item-label'); // W14 9–11 @ B100 — orig offered → it wins (Gap B)
   await page.waitForTimeout(2200);
-  await expect(page.locator('.venue-dd-label')).toHaveText(/^B100 — /);
+  await expect(page.locator('.venue-dd-label')).toHaveText(/^B100\s+35 seats$/);
   // options law untouched: the filtered family for (L, 15) shows the eligible TYPES only.
   // 2026-11-10 (user): the "Showing venues that fit N students" note is gone from the
   // page — the FILTER is what this receipt cares about, so pin its absence instead.
@@ -122,8 +124,6 @@ test('value/label parity + the venue chips followed (applyVenueChange ran)', asy
   const code = label.split(' ')[0];
   expect(code).toBe('B111');
   expect(await page.evaluate(() => window.__venueSelected())).toBe('B111');
-  await expect(page.locator('#venueCapacity')).toHaveText(/80/s); // the chips followed
-  await expect(page.locator('#venueCapacity')).toHaveAttribute('data-tip', /80 seats/);
   const descTip = await page.evaluate(() => document.getElementById('arrVenueDescription').getAttribute('data-tip'));
   expect(descTip && descTip.length > 0).toBe(true);
 });

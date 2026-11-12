@@ -19,19 +19,23 @@ test('T18-S1 — the subject switch auto-pins the earliest conflicted occurrence
   expect(pin).not.toBeNull();
   expect(pin.sessionId).toBeTruthy();
   expect(pin.week).toBeGreaterThan(0);
-  const current = await page.evaluate(() => window.currentWeek);
-  expect(current + 1).toBe(pin.week);
+  const weekCount = await page.evaluate(() => window.weekData.length);
+  expect(pin.week).toBeLessThanOrEqual(weekCount);
+  /* arrangement-week-keep-on-subject-switch (2026-11-08): the switch no
+     longer forces the grid to the pinned occurrence's week, so compare the
+     pin with its own valid week range, not with currentWeek + 1. */
+  await expect(page.locator('#slotTriggerText')).toContainText(`Week ${pin.week}`);
   await expect(page.locator('#slotTriggerText')).not.toHaveText('Select a slot to replace');
 });
 
 test('T18-S2 — the strip renders the weekday NAME (never "undefined")', async ({ page }) => {
   await page.goto('/replacement-arrangement?session=40&week=14&from=replacement-home');
-  await page.waitForSelector('.conflict-strip', { timeout: 15_000 });
+  await page.waitForSelector('#subjectInfo', { timeout: 15_000 });
   await page.waitForTimeout(700);
 
   const seg2 = await page.evaluate(() => {
-    const seg = document.querySelectorAll('.conflict-strip .cs-seg')[1];
-    return seg ? seg.textContent.trim().replace(/\s+/g, ' ') : '';
+    const seg = document.getElementById('conflictSummaryLine1');
+    return seg ? (seg.textContent || '').trim().replace(/\s+/g, ' ') : '';
   });
   void seg2;
 });
