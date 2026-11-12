@@ -1,3 +1,36 @@
+## 2026-11-11 — the ownership desk is re-measured: course up, conflict down, both slots equal
+
+User ask (2026-11-11), in their own numbers: the **Course** column gains 30% + a further 15%, the
+**Conflict Reason** column gives up 40%, and the two slot columns become the **same width**. The
+shares were re-cut to whole-ish numbers that still sum to exactly 100:
+
+| Column | Before | After |
+|---|---|---|
+| Course | 11% | **16%** |
+| Cohort | 10% | 10% |
+| Original Slot | 18% | **18.9%** |
+| Conflict Reason | 22% | **13.2%** |
+| Requested Slot | 16% | **18.9%** |
+| Request Status | 17% | 17% |
+| Action | 6% | 6% |
+
+The reason column could afford the cut because its badge is the SHORT kind now (`Public Holiday`,
+`Class Cancelled` — 2026-11-11, earlier entry); the course column could not, because it carries the
+code **and** the module name (and the cohort column carries two cohorts on a shared class).
+
+Measured on the demo data (`:8000`, staff 5425), rendered shares at each viewport:
+
+| Viewport | Course | Cohort | Original | Conflict | Requested | Status | Action |
+|---|---|---|---|---|---|---|---|
+| 1600 | 15.7% (243 px) | 9.8% | 18.5% (287 px) | 12.9% (200 px) | 18.5% (287 px) | 16.6% | 5.9% |
+| 1280 | 15.6% (200 px) | 9.7% | 18.4% (236 px) | 12.9% (165 px) | 18.4% (236 px) | 16.6% | 5.9% |
+
+Both slot columns measure identically at both widths (the user's second ask), no cell clips its
+content (0 cells with `scrollWidth > clientWidth + 2`), the page never scrolls sideways
+(`scrollWidth === viewport`), and 0 console errors. At 390 px the table is replaced by the phone
+cards as before — nothing changed there. The residual side-scroll at 1280 is the pre-existing
+`min-width: 1280px` on `.grid-scroll .timetable` (present since `ea6a0e9`), not a width change.
+
 ## 2026-11-11 — the details pop-up prints the conflict badge in full
 
 User follow-up (2026-11-11): inside the pop-up there is room and nobody should have to

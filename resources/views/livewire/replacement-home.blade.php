@@ -16,19 +16,24 @@
            keep the grid honest at every viewport: content wraps inside its own
            column instead of taking width from its neighbours. */
         #timetable.data-table { table-layout: fixed; width: 100%; }
-        /* 2026-11-04 (user): the code column gives up 40% of its share and the
-           reason column takes 30% more — the holiday badge then fits on one
-           line from ~1500 px up. Whole numbers, still summing to 100%. */
-        .col-code { width: 11%; }
+        /* 2026-11-11 (user, table widths): the reason column gives up 40% of its
+           share and the code column gains 30% + a further 15% — the badge is the
+           SHORT kind now ("Public Holiday"), so the narrow column still fits it,
+           while the course code + name get the room they kept asking for. The two
+           slot columns are the SAME width (the user's second ask) and absorb what
+           is left. The seven shares still sum to exactly 100%:
+           16 + 10 + 18.9 + 13.2 + 18.9 + 17 + 6 = 100. */
+        .col-code { width: 16%; }
         .col-cohort { width: 10%; }
-        .col-original { width: 18%; white-space: normal; }
+        .col-original { width: 18.9%; white-space: normal; }
         /* `.timetable td` is nowrap (theme.css) and outranks a bare class — the
            two badge columns opt out with an id + class, so a long holiday name
            wraps INSIDE its column instead of overflowing into the next one.
            The id also has to reach the <th>: under `table-layout: fixed` the
            header row is what decides the column widths. */
-        #timetable .col-reason { width: 22%; vertical-align: middle; white-space: normal; }
-        .col-requested { width: 16%; white-space: normal; }
+        #timetable .col-reason { width: 13.2%; vertical-align: middle; white-space: normal; }
+        /* same share as .col-original — the user's "both slots the same width" */
+        .col-requested { width: 18.9%; white-space: normal; }
         #timetable .col-status { width: 17%; white-space: normal; }
         /* one icon button again (2026-11-04: the eye left, the jump stayed), so the
            column returns to its original 6% and col-reason gets the 4 points back */
