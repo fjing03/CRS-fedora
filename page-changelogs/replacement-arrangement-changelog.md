@@ -1,3 +1,36 @@
+## 2026-11-12 — mobile round 1: top zone, compact dates, sheets and footer
+
+User-approved mobile polish for `/replacement-arrangement` after the day-view suite went
+green. Desktop is unchanged.
+
+**Top zone.** The mobile header is now a full-bleed light-blue
+(`--color-primary-container`) bar. The crest and two-line title stay side-by-side and are
+centred as one pair. The back control is a text-less 44px pill with `aria-label="Back"`,
+and the 44px theme toggle uses the existing sun/moon icon swap (`updateIcon()`): sun in
+light mode, moon in dark mode.
+
+**Footer gap.** The blank band between the last available row and the footer is gone. The
+fixed action bar's clearance now sits below the footer content, so the footer stays
+visible and the last row is followed immediately by the footer.
+
+**Other polish.**
+
+- `Earliest bookable` is icon-only on mobile; its tooltip/accessible name is unchanged.
+- `Colours & borders` has a palette icon and light card rows in its sheet; Pending and
+  Conflict remain borderless.
+- The day picker is compact: weekday over bold date (`Tue` / `17`), with the full date
+  kept in `aria-label`.
+- All mobile pop-ups now share the Saved Selection bottom-sheet frame: sticky header,
+  text Close, safe-area padding and full-width actions. This covers Unsaved Changes,
+  the change/submit/conflict guards, the info/legend/Tip sheets and the shortcuts card.
+
+**Evidence.** `tests/arrangement-mobile.spec.ts`: **47 passed, 3 skipped, 0 failed** on
+the disposable `class_replacement_testing` lane at 390px; the new round-1 test covers the
+top zone, compact picker and footer clearance. Static gates: unit 48/48, Pint, PHPStan
+0 errors, Blade compile, JS syntax. Real-phone touch/rotation, device text enlargement and
+screen-reader checks were **not tested**; the design was approved in the browser viewport.
+No demo database or live booking was touched.
+
 ## 2026-11-11 — the ownership ring is gone; the legend matches the grid
 
 User ruling (2026-11-11, four answers): colour alone says "cannot book".

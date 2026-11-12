@@ -3711,6 +3711,9 @@ function initDataTipTooltips() {
     var tip = document.createElement('div');
     tip.className = 'data-tip-tooltip';
     document.body.appendChild(tip);
+    /* Focus owns the tooltip while the focused element still carries data-tip;
+       a pointer leaving that element must not hide the keyboard tooltip. */
+    var focusedTipEl = null;
 
     function findTip(node) {
         if (!node) return null;
@@ -3770,11 +3773,15 @@ function initDataTipTooltips() {
     }, true);
 
     document.addEventListener('mouseleave', function(e) {
+        /* While a data-tip control has keyboard focus, focus owns the tooltip;
+           a pointer leaving another control must not hide it. */
+        if (focusedTipEl) return;
         if (findTip(e.target)) hide();
     }, true);
 
     // Safety: hide when the pointer leaves a tip target so stale tips don't linger
     document.addEventListener('mouseout', function(e) {
+        if (focusedTipEl) return;
         if (findTip(e.relatedTarget)) return;
         if (findTip(e.target)) hide();
     }, true);
@@ -3782,12 +3789,15 @@ function initDataTipTooltips() {
     /* 2026-11-11 (user, "UI Update — Compact Tip Tooltip"): keyboard parity —
        the same data-tip tooltip now shows on focus and hides on blur. */
     document.addEventListener('focusin', function(e) {
-        var el = findTip(e.target);
-        if (el) show(el);
+        focusedTipEl = findTip(e.target);
+        if (focusedTipEl) show(focusedTipEl);
     }, true);
 
     document.addEventListener('focusout', function(e) {
-        if (findTip(e.target)) hide();
+        var el = findTip(e.target);
+        if (!el) return;
+        if (focusedTipEl === el) focusedTipEl = null;
+        hide();
     }, true);
 }
 

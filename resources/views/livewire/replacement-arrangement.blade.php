@@ -935,6 +935,864 @@
             margin-top: 16px;
             text-align: right;
         }
+        /* Desktop keeps the compact ×; the mobile sheet swaps in a text
+           "Close" action to match the Saved Selection header. */
+        .modal-close-text {
+            display: none;
+        }
+
+        /* ───── SDD arrangement-mobile-day-view T06: responsive relocation shell ─────
+           ONE matchMedia owner in public/js/arrangement-mobile.js adds
+           `body.arrangement-mobile-mode` and moves the existing controls into the
+           mobile partial. These rules only (a) keep the mobile root hidden until
+           that activation, (b) defensively hide the now-empty desktop hosts while
+           the mode class is on, and (c) make the moved originals simple/full-width.
+           Full mobile composition, sticky clusters, 44px geometry and safe areas
+           are T14's scope; desktop rules above are untouched. Colors: none added. */
+        #arrangementMobile,
+        #arrangementMobile[hidden] {
+            display: none;
+        }
+        body.arrangement-mobile-mode #arrangementMobile:not([hidden]) {
+            display: block;
+        }
+
+        @media (max-width: 768px) {
+            /* The JS already sets hidden + inert on these; display:none is the
+               defensive half because .legend-bar/.toolbar-restructure are flex
+               and would otherwise beat the UA [hidden] rule. */
+            body.arrangement-mobile-mode .toolbar-restructure,
+            body.arrangement-mobile-mode .sel-summary,
+            body.arrangement-mobile-mode .grid-wrapper,
+            body.arrangement-mobile-mode .legend-bar {
+                display: none;
+            }
+
+            #arrangementMobile {
+                padding: 0 4px 24px;
+            }
+            #arrangementMobile .arrangement-mobile-controls,
+            #arrangementMobile .arrangement-mobile-tools,
+            #arrangementMobile .arrangement-mobile-day,
+            #arrangementMobile .arrangement-mobile-actions {
+                display: flex;
+                flex-direction: column;
+                gap: 8px;
+                margin: 0 0 12px;
+            }
+            #arrangementMobile .arrangement-mobile-context {
+                margin: 0 0 12px;
+            }
+            #arrangementMobile [data-arrangement-mobile-context-facts],
+            #arrangementMobile [data-arrangement-mobile-subject-host],
+            #arrangementMobile [data-arrangement-mobile-slot-host],
+            #arrangementMobile [data-arrangement-mobile-venue-host],
+            #arrangementMobile [data-arrangement-mobile-week-host],
+            #arrangementMobile [data-arrangement-mobile-earliest-host],
+            #arrangementMobile [data-arrangement-mobile-tip-host],
+            #arrangementMobile [data-arrangement-mobile-submit-host] {
+                display: flex;
+                flex-direction: column;
+                gap: 8px;
+                min-width: 0;
+            }
+            #arrangementMobile #subjectSelector,
+            #arrangementMobile .slot-dd,
+            #arrangementMobile .slot-dd-trigger,
+            #arrangementMobile #buildingSelectorDropdown,
+            #arrangementMobile .venue-dd-trigger,
+            #arrangementMobile .week-nav,
+            #arrangementMobile #earliestBtn {
+                width: 100%;
+                max-width: 100%;
+                flex: 0 0 auto;
+            }
+            #arrangementMobile .venue-side-chips {
+                flex-wrap: wrap;
+            }
+            /* #submitTip owns #submitRequestBtn — stretch the existing pair,
+               never a second submit control. */
+            #arrangementMobile #submitTip {
+                display: flex;
+                width: 100%;
+            }
+            #arrangementMobile #submitTip .btn {
+                width: 100%;
+                justify-content: center;
+            }
+            /* T07: eligible-day buttons and the empty-semester message only.
+               Sticky clusters, spacing and 44px polish remain T14. */
+            #arrangementMobile [data-arrangement-mobile-days] {
+                display: flex;
+                flex-wrap: wrap;
+                gap: 6px;
+            }
+            #arrangementMobile [data-arrangement-mobile-days] button {
+                flex: 1 0 44px;
+                flex-direction: column;
+                gap: 1px;
+                min-height: 52px;
+                padding: 4px 6px;
+                border: 1px solid var(--color-outline);
+                border-radius: var(--radius-md);
+                background: var(--color-surface);
+                color: var(--color-on-surface);
+                font: inherit;
+                cursor: pointer;
+            }
+            #arrangementMobile .arrangement-mobile-day-weekday {
+                font-size: 11px;
+                line-height: 1.1;
+            }
+            #arrangementMobile .arrangement-mobile-day-number {
+                font-size: 14px;
+                line-height: 1.1;
+                font-weight: 700;
+            }
+            #arrangementMobile [data-arrangement-mobile-days] button[aria-pressed="true"] {
+                border-color: var(--color-primary);
+                background: var(--color-primary-container);
+                color: var(--color-on-primary-container);
+            }
+            #arrangementMobile [data-arrangement-mobile-empty] {
+                margin: 0;
+                padding: 12px;
+                border: 1px solid var(--color-outline);
+                border-radius: var(--radius-sm);
+                color: var(--color-on-surface-variant);
+            }
+            /* T09: one-day timeline rows and the continuous blue saved span.
+               Rows are real buttons painted ONLY by the canonical cell-*
+               classes the snapshot port carries; the span is drawn from saved
+               start/end indexes. Sticky placement, measured insets, safe areas
+               and 44/48px polish stay T14. */
+            #arrangementMobile [data-arrangement-mobile-timeline] {
+                display: grid;
+                grid-auto-rows: minmax(var(--arrangement-mobile-row-height, 44px), auto);
+                gap: 4px;
+                min-width: 0;
+            }
+            /* T07 hides the host with the `hidden` property; this rule must
+               keep losing to it while the semester is empty. */
+            #arrangementMobile [data-arrangement-mobile-timeline][hidden] {
+                display: none;
+            }
+            #arrangementMobile [data-arrangement-mobile-timeline] .arrangement-mobile-row,
+            #arrangementMobile [data-arrangement-mobile-timeline] .arrangement-mobile-span {
+                position: relative;
+                display: flex;
+                align-items: center;
+                gap: 10px;
+                width: 100%;
+                min-width: 0;
+                padding: 8px 12px;
+                border: 1px solid var(--color-outline);
+                border-radius: var(--radius-sm);
+                color: var(--color-on-surface);
+                font: inherit;
+                text-align: left;
+                overflow-wrap: anywhere;
+            }
+            /* The canonical cell classes draw state fills in theme.css; their
+               hover overlays are grid-cell mechanics, so retire them here. */
+            #arrangementMobile [data-arrangement-mobile-timeline] .cell-available::after,
+            #arrangementMobile [data-arrangement-mobile-timeline] .cell-occupied::after,
+            #arrangementMobile [data-arrangement-mobile-timeline] .cell-pending::after,
+            #arrangementMobile [data-arrangement-mobile-timeline] .cell-reserved::after,
+            #arrangementMobile [data-arrangement-mobile-timeline] .cell-sun::after,
+            #arrangementMobile [data-arrangement-mobile-timeline] .cell-ph::after,
+            #arrangementMobile [data-arrangement-mobile-timeline] .cell-too-soon::after {
+                content: none;
+            }
+            /* Readable foreground per canonical family (fills stay theme.css's). */
+            #arrangementMobile [data-arrangement-mobile-timeline] .cell-available {
+                color: var(--color-on-success-container);
+            }
+            #arrangementMobile [data-arrangement-mobile-timeline] .cell-pending,
+            #arrangementMobile [data-arrangement-mobile-timeline] .cell-reserved {
+                color: var(--color-on-tertiary-container);
+            }
+            #arrangementMobile [data-arrangement-mobile-timeline] .cell-occupied {
+                color: var(--color-on-error-container);
+            }
+            #arrangementMobile [data-arrangement-mobile-timeline] .cell-selected {
+                color: var(--color-on-primary-container);
+                border-color: var(--color-primary);
+            }
+            #arrangementMobile [data-arrangement-mobile-timeline] .cell-too-soon,
+            #arrangementMobile [data-arrangement-mobile-timeline] .arrangement-mobile-row--unknown {
+                color: var(--color-on-surface-variant);
+            }
+            #arrangementMobile [data-arrangement-mobile-timeline] .arrangement-mobile-row--unknown {
+                background: var(--color-surface-variant);
+                cursor: not-allowed;
+            }
+            #arrangementMobile [data-arrangement-mobile-timeline] .arrangement-mobile-row-time {
+                flex: 0 0 auto;
+                font-variant-numeric: tabular-nums;
+                font-weight: 600;
+            }
+            #arrangementMobile [data-arrangement-mobile-timeline] .arrangement-mobile-row-state {
+                flex: 1 1 auto;
+                min-width: 0;
+            }
+            #arrangementMobile [data-arrangement-mobile-timeline] .arrangement-mobile-span {
+                flex-direction: column;
+                align-items: flex-start;
+                justify-content: center;
+                gap: 2px;
+                border: 2px solid var(--color-primary);
+                background: var(--color-primary-container);
+                color: var(--color-on-primary-container);
+                cursor: pointer;
+            }
+            #arrangementMobile [data-arrangement-mobile-timeline] .arrangement-mobile-span-time {
+                font-weight: 700;
+            }
+            #arrangementMobile [data-arrangement-mobile-timeline] .arrangement-mobile-span-venue {
+                font-size: 12px;
+            }
+            /* T11: one native information sheet + legend swatches + readable
+               text. Minimal on purpose — T14 owns the full bottom-sheet
+               geometry, measured/safe-area insets and 44px polish. Colours are
+               theme tokens only; Pending/Conflict swatches stay borderless. */
+            #arrangementMobile dialog.arrangement-mobile-info {
+                width: min(560px, calc(100vw - 16px));
+                max-width: calc(100vw - 16px);
+                max-height: 85dvh;
+                margin: auto auto 0;
+                padding: 0;
+                border: 1px solid var(--color-outline);
+                border-radius: var(--radius-sm) var(--radius-sm) 0 0;
+                background: var(--color-surface);
+                color: var(--color-on-surface);
+                overflow: auto;
+            }
+            #arrangementMobile dialog.arrangement-mobile-info::backdrop {
+                background: var(--color-scrim);
+            }
+            #arrangementMobile dialog.arrangement-mobile-info .modal-header {
+                gap: 8px;
+                padding: 12px;
+                border-bottom: 1px solid var(--color-outline);
+            }
+            #arrangementMobile dialog.arrangement-mobile-info .modal-header h2 {
+                margin: 0;
+                font-size: 1rem;
+                overflow-wrap: anywhere;
+            }
+            #arrangementMobile dialog.arrangement-mobile-info .modal-body {
+                padding: 12px;
+                overflow-wrap: anywhere;
+                white-space: pre-line;
+            }
+            #arrangementMobile dialog.arrangement-mobile-info .modal-body p {
+                margin: 0;
+            }
+            #arrangementMobile dialog.arrangement-mobile-info .modal-footer {
+                flex-wrap: wrap;
+                gap: 8px;
+                justify-content: flex-end;
+                padding: 12px;
+                border-top: 1px solid var(--color-outline);
+            }
+            #arrangementMobile .arrangement-mobile-info-facts {
+                list-style: none;
+                margin: 0;
+                padding: 0;
+                display: flex;
+                flex-direction: column;
+                gap: 4px;
+            }
+            #arrangementMobile .arrangement-mobile-info-facts li {
+                display: flex;
+                flex-wrap: wrap;
+                gap: 2px 8px;
+            }
+            #arrangementMobile .arrangement-mobile-info-fact-label {
+                flex: 0 0 auto;
+                font-weight: 600;
+                color: var(--color-on-surface-variant);
+            }
+            #arrangementMobile .arrangement-mobile-info-fact-value {
+                flex: 1 1 auto;
+                min-width: 0;
+                color: var(--color-on-surface);
+            }
+            #arrangementMobile .arrangement-mobile-info-reason {
+                margin-top: 10px !important;
+                color: var(--color-on-surface);
+            }
+            #arrangementMobile .arrangement-mobile-info-legend {
+                list-style: none;
+                margin: 0;
+                padding: 0;
+                display: flex;
+                flex-direction: column;
+                gap: 8px;
+            }
+            #arrangementMobile .arrangement-mobile-info-legend li {
+                display: flex;
+                align-items: flex-start;
+                gap: 12px;
+                padding: 10px 12px;
+                border: 1px solid var(--color-outline-variant);
+                border-radius: var(--radius-md);
+                background: var(--color-surface-variant);
+            }
+            #arrangementMobile .arrangement-mobile-info-legend-text strong {
+                font-size: 13px;
+            }
+            #arrangementMobile .arrangement-mobile-info-legend-text p {
+                color: var(--color-on-surface-variant);
+                font-size: 12px;
+            }
+            #arrangementMobile .arrangement-mobile-info-legend-text {
+                min-width: 0;
+            }
+            #arrangementMobile .arrangement-mobile-info-legend-text p {
+                margin: 2px 0 0;
+            }
+            /* Real canonical swatch classes supply the fills; event-selection
+               keeps its blue outline. Pending/Conflict own no border. */
+            #arrangementMobile .arrangement-mobile-info-swatch {
+                flex: 0 0 auto;
+                width: 26px;
+                height: 26px;
+                border-radius: var(--radius-xs);
+                cursor: default;
+            }
+            #arrangementMobile .arrangement-mobile-info-swatch::after {
+                content: none;
+            }
+            /* ───── SDD arrangement-mobile-day-view T12: saved-summary bar ─────
+               The action bar (summary + the relocated original Submit) stays
+               visible while the page scrolls, with safe-area padding and enough
+               reserved page-end space that content is never hidden behind it.
+               T14 replaces this with measured insets/full geometry; colours are
+               theme tokens only and no shared CSS is changed. */
+            #arrangementMobile {
+                padding-bottom: calc(112px + env(safe-area-inset-bottom, 0px));
+            }
+            #arrangementMobile [data-arrangement-mobile-summary-host] {
+                display: flex;
+                flex-direction: column;
+                gap: 4px;
+                min-width: 0;
+            }
+            #arrangementMobile .arrangement-mobile-actions {
+                position: fixed;
+                right: 0;
+                bottom: 0;
+                left: 0;
+                z-index: 45;
+                margin: 0;
+                padding: 8px 8px calc(8px + env(safe-area-inset-bottom, 0px));
+                border-top: 1px solid var(--color-outline);
+                background: var(--color-surface);
+            }
+            #arrangementMobile .arrangement-mobile-summary {
+                display: flex;
+                flex-direction: column;
+                gap: 2px;
+                width: 100%;
+                min-height: 44px;
+                padding: 6px 10px;
+                border: 1px solid var(--color-outline);
+                border-radius: var(--radius-sm);
+                background: var(--color-surface-variant);
+                color: var(--color-on-surface);
+                font: inherit;
+                text-align: left;
+                overflow-wrap: anywhere;
+            }
+            #arrangementMobile button.arrangement-mobile-summary {
+                cursor: pointer;
+            }
+            #arrangementMobile .arrangement-mobile-summary--empty {
+                color: var(--color-on-surface-variant);
+            }
+            /* T16: a saved entry whose own date expired stays inspectable in
+               the SAME bar; this is the remove-and-choose guidance. */
+            #arrangementMobile .arrangement-mobile-summary--retention {
+                border-color: var(--color-warning);
+                background: var(--color-warning-container);
+                color: var(--color-on-warning-container);
+            }
+            #arrangementMobile .arrangement-mobile-summary--single,
+            #arrangementMobile .arrangement-mobile-summary--multiple {
+                border-color: var(--color-primary);
+                background: var(--color-primary-container);
+                color: var(--color-on-primary-container);
+            }
+            #arrangementMobile .arrangement-mobile-summary-title {
+                font-weight: 700;
+            }
+            #arrangementMobile .arrangement-mobile-summary-meta {
+                font-size: 12px;
+                color: inherit;
+            }
+            #arrangementMobile .arrangement-mobile-info-entry {
+                margin-top: 12px !important;
+                font-weight: 600;
+            }
+            #arrangementMobile .arrangement-mobile-info-entry:first-child {
+                margin-top: 0 !important;
+            }
+            /* ───── SDD arrangement-mobile-day-view T13: stable keyboard focus ─────
+               One visually hidden polite live region and a visible focus ring
+               for every mobile control. No geometry change: T14 keeps the 44px
+               targets, sticky clusters and measured insets. */
+            #arrangementMobile .arrangement-mobile-live {
+                position: absolute;
+                width: 1px;
+                height: 1px;
+                margin: -1px;
+                padding: 0;
+                overflow: hidden;
+                clip: rect(0 0 0 0);
+                clip-path: inset(50%);
+                white-space: nowrap;
+                border: 0;
+            }
+            #arrangementMobile button:focus-visible,
+            #arrangementMobile select:focus-visible,
+            #arrangementMobile summary:focus-visible,
+            #arrangementMobile [tabindex]:focus-visible {
+                outline: 2px solid var(--color-primary);
+                outline-offset: 2px;
+            }
+
+            /* ───── SDD arrangement-mobile-day-view T14: sticky/header/safe-area
+               composition ─────
+               Page-local only (body.arrangement-mobile-mode, inside the 768px
+               query). The header returns to document flow, one control cluster
+               sticks, the saved bar is fixed, and the MEASURED sticky/bar heights
+               (set on <body> by arrangement-mobile.js) drive the page inset, the
+               row scroll-margin and the page-local toast offset. Desktop rules
+               above are untouched; colours/radii come from theme tokens only. */
+            body.arrangement-mobile-mode .app-container {
+                padding-top: 0;
+            }
+            /* Mobile top zone follows the approved prototype: a primary
+               built-in title bar with equal-width back/theme controls and the
+               crest + title centred between them. */
+            body.arrangement-mobile-mode .top-bar {
+                position: static;
+                /* Full-bleed against the 12px mobile app-container padding. */
+                margin: 0 -12px;
+                padding: calc(10px + env(safe-area-inset-top, 0px)) 14px 10px;
+                justify-content: center;
+                gap: 10px;
+                background: var(--color-primary-container);
+                color: var(--color-on-primary-container);
+                border-bottom: 1px solid var(--color-outline);
+            }
+            body.arrangement-mobile-mode .back-btn {
+                position: static;
+                flex: 0 0 auto;
+                width: 44px;
+                height: 44px;
+                min-width: 44px;
+                min-height: 44px;
+                padding: 0;
+                box-sizing: border-box;
+                border: 1px solid var(--color-outline-strong);
+                border-radius: var(--radius-pill);
+                background: var(--color-surface);
+                color: var(--color-on-primary-container);
+                box-shadow: none;
+                transform: none;
+            }
+            body.arrangement-mobile-mode .back-btn:hover,
+            body.arrangement-mobile-mode .back-btn:active {
+                box-shadow: none;
+                transform: none;
+            }
+            /* Mobile header: arrow only; the accessible name stays "Back". */
+            body.arrangement-mobile-mode .back-btn .today-btn-label,
+            body.arrangement-mobile-mode .back-btn > span {
+                display: none;
+            }
+            body.arrangement-mobile-mode .top-center {
+                flex: 1 1 auto;
+                min-width: 0;
+                justify-content: center;
+                gap: 10px;
+                color: var(--color-on-primary-container);
+            }
+            body.arrangement-mobile-mode .top-bar > .theme-toggle {
+                position: static;
+                display: flex;
+                flex: 0 0 auto;
+                width: 44px;
+                height: 44px;
+                min-width: 44px;
+                min-height: 44px;
+                padding: 0;
+                box-sizing: border-box;
+                border: 1px solid var(--color-outline-strong);
+                border-radius: var(--radius-pill);
+                background: var(--color-surface);
+                color: var(--color-on-primary-container);
+                box-shadow: none;
+            }
+            body.arrangement-mobile-mode .top-bar > .theme-toggle:hover,
+            body.arrangement-mobile-mode .top-bar > .theme-toggle:active {
+                transform: none;
+                opacity: 0.9;
+            }
+            body.arrangement-mobile-mode .top-bar > .back-btn:focus-visible,
+            body.arrangement-mobile-mode .top-bar > .theme-toggle:focus-visible {
+                outline: 2px solid var(--color-on-primary-container);
+                outline-offset: 2px;
+            }
+            body.arrangement-mobile-mode .top-title {
+                color: var(--color-on-primary-container);
+                font-size: clamp(16px, 4.6vw, 18px);
+                line-height: 1.12;
+                text-align: center;
+                overflow-wrap: anywhere;
+            }
+            body.arrangement-mobile-mode .top-logo {
+                height: 28px;
+            }
+
+            /* Compact expandable original context: one 44px summary line and
+               padded facts; the conflict strip wraps without hiding facts. */
+            body.arrangement-mobile-mode #arrangementMobile .arrangement-mobile-context {
+                border: 1px solid var(--color-outline);
+                border-radius: var(--radius-sm);
+                background: var(--color-surface);
+                color: var(--color-on-surface);
+            }
+            body.arrangement-mobile-mode #arrangementMobile .arrangement-mobile-context > summary {
+                display: flex;
+                align-items: center;
+                gap: 8px;
+                min-height: 44px;
+                padding: 10px 12px;
+                font-weight: 600;
+                line-height: 1.3;
+                overflow-wrap: anywhere;
+                cursor: pointer;
+            }
+            body.arrangement-mobile-mode #arrangementMobile .arrangement-mobile-context[open] > summary {
+                border-bottom: 1px solid var(--color-outline);
+            }
+            body.arrangement-mobile-mode #arrangementMobile [data-arrangement-mobile-context-facts],
+            body.arrangement-mobile-mode #arrangementMobile [data-arrangement-mobile-subject-host],
+            body.arrangement-mobile-mode #arrangementMobile [data-arrangement-mobile-slot-host] {
+                padding: 8px 12px;
+            }
+            body.arrangement-mobile-mode #arrangementMobile #subjectInfo .conflict-strip {
+                flex-wrap: wrap;
+                gap: 6px 10px;
+                padding: 8px 10px;
+            }
+            body.arrangement-mobile-mode #arrangementMobile #subjectInfo .cs-head,
+            body.arrangement-mobile-mode #arrangementMobile #subjectInfo .cs-seg,
+            body.arrangement-mobile-mode #arrangementMobile #subjectInfo .cs-badge {
+                max-width: 100%;
+                white-space: normal;
+            }
+            body.arrangement-mobile-mode #arrangementMobile #subjectInfo .cs-val,
+            body.arrangement-mobile-mode #arrangementMobile #subjectInfo .cs-badge {
+                overflow-wrap: anywhere;
+            }
+            body.arrangement-mobile-mode #arrangementMobile #subjectInfo .cs-badge {
+                margin-left: 0;
+            }
+
+            /* Sticky venue/week/day cluster only. */
+            body.arrangement-mobile-mode #arrangementMobile [data-arrangement-mobile-controls] {
+                position: sticky;
+                top: 0;
+                z-index: 30;
+                background: var(--color-bg);
+                padding: 8px 12px;
+                border-bottom: 1px solid var(--color-outline);
+            }
+            body.arrangement-mobile-mode #arrangementMobile [data-arrangement-mobile-days] {
+                flex-wrap: nowrap;
+                gap: 6px;
+                max-width: 100%;
+                min-width: 0;
+                padding-bottom: 2px;
+                overflow-x: auto;
+                overflow-y: hidden;
+                -webkit-overflow-scrolling: touch;
+                scrollbar-width: thin;
+            }
+            body.arrangement-mobile-mode #arrangementMobile [data-arrangement-mobile-days] button {
+                flex: 1 0 44px;
+                display: inline-flex;
+                flex-direction: column;
+                align-items: center;
+                justify-content: center;
+                min-width: 44px;
+                min-height: 52px;
+                white-space: normal;
+            }
+            body.arrangement-mobile-mode #arrangementMobile #subjectSelector,
+            body.arrangement-mobile-mode #arrangementMobile .slot-dd-trigger,
+            body.arrangement-mobile-mode #arrangementMobile .venue-dd-trigger,
+            body.arrangement-mobile-mode #arrangementMobile #weekSelector,
+            body.arrangement-mobile-mode #arrangementMobile .week-arrow,
+            body.arrangement-mobile-mode #arrangementMobile #earliestBtn {
+                min-height: 44px;
+            }
+            body.arrangement-mobile-mode #arrangementMobile .week-arrow {
+                min-width: 44px;
+            }
+            body.arrangement-mobile-mode #arrangementMobile .slot-dd-item,
+            body.arrangement-mobile-mode #arrangementMobile .venue-col-item {
+                min-height: 44px;
+            }
+
+            /* Tools row above the timeline: wraps instead of scrolling. */
+            body.arrangement-mobile-mode #arrangementMobile .arrangement-mobile-tools {
+                flex-direction: row;
+                flex-wrap: wrap;
+                align-items: center;
+                gap: 8px;
+                padding: 8px 12px;
+            }
+            body.arrangement-mobile-mode #arrangementMobile .arrangement-mobile-tools > * {
+                flex: 0 1 auto;
+                min-width: 0;
+            }
+            body.arrangement-mobile-mode #arrangementMobile [data-arrangement-mobile-tip-host] {
+                display: inline-flex;
+                flex: 0 0 auto;
+            }
+            /* Tip and the icon-only Earliest action share the row after the
+               legend; no full-width row is reserved for the icon. */
+            body.arrangement-mobile-mode #arrangementMobile [data-arrangement-mobile-earliest-host] {
+                display: inline-flex;
+                flex: 0 0 auto;
+                order: 3;
+            }
+            body.arrangement-mobile-mode #arrangementMobile #earliestBtn .today-btn-label {
+                display: none;
+            }
+            body.arrangement-mobile-mode #arrangementMobile [data-arrangement-mobile-legend],
+            body.arrangement-mobile-mode #arrangementMobile #earliestBtn,
+            body.arrangement-mobile-mode #arrangementMobile #summaryTip {
+                display: inline-flex;
+                align-items: center;
+                justify-content: center;
+                min-width: 44px;
+                min-height: 44px;
+            }
+            body.arrangement-mobile-mode #arrangementMobile [data-arrangement-mobile-legend] {
+                gap: 6px;
+                padding: 8px 12px;
+                border: 1px solid var(--color-outline);
+                border-radius: var(--radius-md);
+                background: var(--color-surface);
+                box-shadow: var(--shadow-sm);
+                color: var(--color-on-surface);
+                font: inherit;
+                font-weight: 600;
+                cursor: pointer;
+            }
+            body.arrangement-mobile-mode #arrangementMobile .arrangement-mobile-legend-icon {
+                flex: 0 0 auto;
+                width: 16px;
+                height: 16px;
+                color: var(--color-primary);
+            }
+
+            /* 48px nominal timeline rows; the saved span keeps its grid span. */
+            body.arrangement-mobile-mode #arrangementMobile {
+                --arrangement-mobile-row-height: 48px;
+                /* The fixed bar's clearance now lives below the footer, so the
+                   last slot is followed immediately by the footer. */
+                padding: 0 4px;
+            }
+            body.arrangement-mobile-mode .ui-footer {
+                padding-bottom: calc(var(--arrangement-mobile-bar-height, 132px) + env(safe-area-inset-bottom, 0px) + 8px);
+            }
+            body.arrangement-mobile-mode #arrangementMobile [data-arrangement-mobile-timeline] .arrangement-mobile-row,
+            body.arrangement-mobile-mode #arrangementMobile [data-arrangement-mobile-timeline] .arrangement-mobile-span {
+                min-height: 48px;
+                scroll-margin-top: calc(var(--arrangement-mobile-sticky-height, 0px) + 12px);
+                scroll-margin-bottom: calc(var(--arrangement-mobile-bar-height, 112px) + 12px);
+            }
+
+            /* Fixed measured action bar (summary + the original Submit). It may
+               grow/wrap; its real height feeds --arrangement-mobile-bar-height. */
+            body.arrangement-mobile-mode #arrangementMobile .arrangement-mobile-actions {
+                position: fixed;
+                left: 0;
+                right: 0;
+                bottom: 0;
+                z-index: 40;
+                margin: 0;
+                padding: 10px 12px calc(10px + env(safe-area-inset-bottom, 0px));
+                border-top: 1px solid var(--color-outline);
+                background: var(--color-surface);
+                box-shadow: var(--shadow-sm);
+            }
+            body.arrangement-mobile-mode #arrangementMobile [data-arrangement-mobile-summary-host] {
+                gap: 8px;
+            }
+            body.arrangement-mobile-mode #arrangementMobile .arrangement-mobile-summary {
+                min-height: 44px;
+                padding: 10px 12px;
+            }
+            body.arrangement-mobile-mode #arrangementMobile #submitTip .btn {
+                min-height: 44px;
+            }
+
+            /* Toast sits above the measured bar (page-local position only). */
+            body.arrangement-mobile-mode .toast-bar {
+                bottom: calc(var(--arrangement-mobile-bar-height, 112px) + env(safe-area-inset-bottom, 0px) + 12px);
+            }
+
+            /* Bottom-sheet geometry: full width, 85dvh, internal scroll, sticky
+               heading/Close and safe-area padding; T11 text/swatch styles stay. */
+            body.arrangement-mobile-mode #arrangementMobile dialog.arrangement-mobile-info {
+                position: fixed;
+                inset: auto 0 0;
+                width: 100%;
+                max-width: 100%;
+                max-height: 85dvh;
+                margin: 0;
+                border-radius: 18px 18px 0 0;
+                padding-bottom: calc(16px + env(safe-area-inset-bottom, 0px));
+                overflow-y: auto;
+            }
+            body.arrangement-mobile-mode #arrangementMobile dialog.arrangement-mobile-info .modal-header {
+                position: sticky;
+                top: 0;
+                z-index: 1;
+                background: var(--color-surface);
+            }
+            body.arrangement-mobile-mode #arrangementMobile dialog.arrangement-mobile-info [data-arrangement-mobile-info-close],
+            body.arrangement-mobile-mode #arrangementMobile dialog.arrangement-mobile-info .btn {
+                min-height: 44px;
+            }
+            body.arrangement-mobile-mode #arrangementMobile dialog.arrangement-mobile-info [data-arrangement-mobile-info-close] {
+                min-width: 44px;
+            }
+
+            /* One mobile sheet language for every pop-up: the Saved Selection
+               info sheet, the existing confirmation modal (Unsaved Changes,
+               change guards, submit/conflict feedback) and the shortcuts card
+               share the same bottom-sheet frame, header and action rail. */
+            body.arrangement-mobile-mode #confirmModal {
+                align-items: flex-end;
+                justify-content: center;
+                padding: 0;
+                background: var(--color-scrim);
+            }
+            body.arrangement-mobile-mode #confirmModal .modal {
+                width: 100%;
+                max-width: 100%;
+                max-height: 85dvh;
+                margin: 0;
+                padding: 0 0 calc(16px + env(safe-area-inset-bottom, 0px));
+                border-radius: 18px 18px 0 0;
+                box-shadow: none;
+                overflow-y: auto;
+            }
+            body.arrangement-mobile-mode #confirmModal .modal-header {
+                position: sticky;
+                top: 0;
+                z-index: 1;
+                padding: 14px 16px 10px;
+                background: var(--color-surface);
+                border-bottom: 1px solid var(--color-outline);
+            }
+            body.arrangement-mobile-mode #confirmModal .modal-title {
+                text-align: left;
+                font-size: 1.1rem;
+            }
+            body.arrangement-mobile-mode #confirmModal .modal-close {
+                width: auto;
+                height: auto;
+                min-width: 44px;
+                min-height: 44px;
+                padding: 0 8px;
+                border: 0;
+                border-radius: var(--radius-md);
+                background: transparent;
+                color: var(--color-on-surface);
+                font-size: 13px;
+            }
+            body.arrangement-mobile-mode #confirmModal .modal-close-x {
+                display: none;
+            }
+            body.arrangement-mobile-mode #confirmModal .modal-close-text {
+                display: inline;
+            }
+            body.arrangement-mobile-mode #confirmModal .modal-body {
+                padding: 16px;
+            }
+            body.arrangement-mobile-mode #confirmModal .modal-footer {
+                flex-direction: column;
+                align-items: stretch;
+                gap: 8px;
+                padding: 12px 16px;
+                border-top: 1px solid var(--color-outline);
+            }
+            body.arrangement-mobile-mode #confirmModal .modal-footer .btn {
+                width: 100%;
+                min-height: 44px;
+                height: auto;
+            }
+            body.arrangement-mobile-mode #confirmModal .modal-footer .btn-outline {
+                border: 1px solid var(--color-outline);
+                background: transparent;
+                color: var(--color-on-surface);
+            }
+
+            body.arrangement-mobile-mode .help-overlay {
+                align-items: flex-end;
+                padding: 0;
+                background: var(--color-scrim);
+            }
+            body.arrangement-mobile-mode .help-card {
+                width: 100%;
+                max-width: 100%;
+                max-height: 85dvh;
+                margin: 0;
+                padding: 16px 16px calc(16px + env(safe-area-inset-bottom, 0px));
+                border: 1px solid var(--color-outline);
+                border-radius: 18px 18px 0 0;
+                box-shadow: none;
+                overflow-y: auto;
+            }
+            body.arrangement-mobile-mode .help-card .help-close .btn {
+                width: 100%;
+                min-height: 44px;
+                border: 1px solid var(--color-outline);
+                background: transparent;
+                color: var(--color-on-surface);
+            }
+
+            /* Motion is never required to read state; reduced motion drops the
+               nonessential page-local transitions/scroll behaviour. */
+            @media (prefers-reduced-motion: reduce) {
+                body.arrangement-mobile-mode #arrangementMobile *,
+                body.arrangement-mobile-mode #arrangementMobile *::before,
+                body.arrangement-mobile-mode #arrangementMobile *::after {
+                    transition-duration: 0.01ms !important;
+                    animation-duration: 0.01ms !important;
+                    animation-iteration-count: 1 !important;
+                    scroll-behavior: auto !important;
+                }
+                body.arrangement-mobile-mode .toast-bar {
+                    animation-duration: 0.01ms !important;
+                }
+                body.arrangement-mobile-mode #confirmModal .modal,
+                body.arrangement-mobile-mode .help-card {
+                    animation-duration: 0.01ms !important;
+                }
+            }
+        }
 
 @endsection
 
@@ -956,13 +1814,12 @@
             <img src="/images/logo_icon.png" alt="Logo" class="top-logo" onclick="navigateHome()">
             <span class="top-title">Replacement Arrangement</span>
         </div>
+        <button class="theme-toggle" onclick="toggleTheme()" aria-label="Toggle theme">
+            <svg id="theme-icon" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+            </svg>
+        </button>
     </div>
-
-    <button class="theme-toggle" onclick="toggleTheme()" aria-label="Toggle theme">
-        <svg id="theme-icon" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
-        </svg>
-    </button>
 
     @include('partials.ui-page-header', [])
 
@@ -1150,11 +2007,16 @@
              groups and their mobile overrides are gone; the action row above owns the
              Submit button now. --}}
 
+        @include('partials.ui-arrangement-mobile')
+
         <div class="modal-overlay" id="confirmModal" style="display:none">
         <div class="modal">
             <div class="modal-header">
                 <span class="modal-title" id="modalTitle">Confirm</span>
-                <button class="modal-close" onclick="hideConfirmModal(event)" data-tip="Close">&times;</button>
+                <button class="modal-close" onclick="hideConfirmModal(event)" data-tip="Close">
+                    <span class="modal-close-x" aria-hidden="true">&times;</span>
+                    <span class="modal-close-text">Close</span>
+                </button>
             </div>
             <div class="modal-body" id="modalBody"></div>
             <div class="modal-footer">
@@ -1183,6 +2045,8 @@
 
     </div></div>
 
+<script src="/js/arrangement-mobile.js?v={{ filemtime(public_path('js/arrangement-mobile.js')) }}"></script>
+
 @section('page-scripts')
         /* WRAP: the frozen script's top-level boot (generateWeekData,
            WeekNavigator, MockData reads) needs mock-data.js / ui-common.js,
@@ -1192,6 +2056,17 @@
            bottom. Everything else is the frozen UI design, byte-for-byte
            except the BRIDGE PATCH marks. */
         document.addEventListener('DOMContentLoaded', function () {
+        // Closure-owned adapter; boot-time refreshes are safe before creation.
+        let arrangementMobile = null;
+        /* T05: refresh is COALESCED by the adapter — many calls settle into one
+           read-only snapshot per turn, and the latest reason wins. Call it only
+           at settled points (after a whole build/counter/summary/Tip update),
+           never between half-committed steps and never from a confirmation
+           callback: a pending confirmation leaves the committed context alone. */
+        function refreshArrangementMobile(reason) {
+            arrangementMobile?.refresh(reason);
+        }
+
         /* ── Real-data bridge — swap the mock's data source for the backend. ── */
         MockData.semester = window.PAGE_DATA.semester;
         MockData.holidays = window.PAGE_DATA.holidays;
@@ -1253,7 +2128,24 @@
             function(i) { return weekHasBookableSlot(weekData, i); });
         weekNav.onBeforeNavigate = function() { saveCurrentWeek(); };
         /* the "Earliest bookable" action flashes the lead-time boundary day */
-        weekNav.flashEarliestBookable = function() { flashEarliestBookableDay(weekData, weekNav.currentWeek); };
+        /* T08: on mobile the SAME action reveals the visible boundary day of
+           the destination week (even when the week does not change); desktop
+           keeps the original shared row flash. No selection is created. */
+        weekNav.flashEarliestBookable = function() {
+            if (arrangementMobile?.isMobile()) {
+                const dayIdx = firstBookableDayIn(weekData, weekNav.currentWeek);
+                if (dayIdx < 0) return;
+                arrangementMobile.revealTarget({
+                    weekIndex: weekNav.currentWeek,
+                    venueKey: currentVenue.code || currentVenue,
+                    dayIndex: dayIdx,
+                    hourIndex: null,
+                    tone: 'flash',
+                });
+                return;
+            }
+            flashEarliestBookableDay(weekData, weekNav.currentWeek);
+        };
         /* restore-after-week-jump already happens inside buildTimetable()
            (loadCurrentWeek) — no after-navigate hook needed here */
         let currentVenue = 'B103';
@@ -1266,41 +2158,572 @@
         let lastSlotIndex = null;           // last committed original-slot pick index
         let slotPickerSlots = [];           // currently rendered original-slot list (for cancel restore)
 
+        /* ── T15: retention metadata for saved entries that cannot render ──
+           selectedSlotsByVenue stays the ONLY selection store. This map only
+           remembers which saved identity was unrenderable, so a null visual
+           pointer cannot silently overwrite it (saveCurrentWeek) and the clock
+           reconciliation (T16) can tell an expired entry from an explicit
+           removal. Keyed "<venue>::<week>"; value = the exact saved block
+           identity. In-memory only, exactly like the store: nothing is
+           resurrected from metadata. */
+        let retainedUnrenderableKeys = {};
+
+        function sameBlock(a, b) {
+            if (!a || !b) return false;
+            const fields = ['day', 'startHour', 'endHour'];
+            for (let i = 0; i < fields.length; i++) {
+                const field = fields[i];
+                if (a[field] === null || a[field] === undefined) return false;
+                if (b[field] === null || b[field] === undefined) return false;
+                const av = Number(a[field]);
+                const bv = Number(b[field]);
+                if (!Number.isFinite(av) || !Number.isFinite(bv) || av !== bv) return false;
+            }
+            return true;
+        }
+
+        function key(venueKey, weekKey) {
+            const week = Number(weekKey);
+            if (!Number.isInteger(week) || week < 0) return '';
+            return String(venueKey) + '::' + week;
+        }
+
+        function markRetained(venueKey, weekKey, block) {
+            const markerKey = key(venueKey, weekKey);
+            const identity = block
+                && block.day !== null && block.day !== undefined
+                && block.startHour !== null && block.startHour !== undefined
+                && block.endHour !== null && block.endHour !== undefined
+                ? {
+                    day: Number(block.day),
+                    startHour: Number(block.startHour),
+                    endHour: Number(block.endHour)
+                } : null;
+            if (!markerKey || !sameBlock(identity, identity)) return false;
+            retainedUnrenderableKeys[markerKey] = identity;
+            return true;
+        }
+
+        function isRetained(venueKey, weekKey, block) {
+            const markerKey = key(venueKey, weekKey);
+            if (!markerKey || !retainedUnrenderableKeys[markerKey]) return false;
+            return block ? sameBlock(retainedUnrenderableKeys[markerKey], block) : true;
+        }
+
+        function clearRetained(venueKey, weekKey) {
+            const markerKey = key(venueKey, weekKey);
+            if (markerKey) delete retainedUnrenderableKeys[markerKey];
+        }
+
+        function clearAllRetained() {
+            retainedUnrenderableKeys = {};
+        }
+
         function saveCurrentWeek() {
             if (!selectedSlotsByVenue[currentVenue]) selectedSlotsByVenue[currentVenue] = {};
-            selectedSlotsByVenue[currentVenue][weekNav.currentWeek] = selectedBlock ? { day: selectedBlock.day, startHour: selectedBlock.startHour, endHour: selectedBlock.endHour } : null;
+            const venueKey = currentVenue.code || currentVenue;
+            const existing = selectedSlotsByVenue[currentVenue][weekNav.currentWeek] || null;
+            if (selectedBlock) {
+                selectedSlotsByVenue[currentVenue][weekNav.currentWeek] = { day: selectedBlock.day, startHour: selectedBlock.startHour, endHour: selectedBlock.endHour };
+                clearRetained(venueKey, weekNav.currentWeek);
+                return;
+            }
+            /* T15: a null pointer must not erase a saved entry that survives
+               only as retained/unrenderable. Matching identity = preserve the
+               store entry; anything else keeps the normal null save (and a
+               missing entry is never resurrected from metadata). */
+            if (existing && isRetained(venueKey, weekNav.currentWeek, existing)) return;
+            selectedSlotsByVenue[currentVenue][weekNav.currentWeek] = null;
         }
 
         function loadCurrentWeek() {
             selectedBlock = null;
             clearPreview();
+            const venueKey = currentVenue.code || currentVenue;
             const venueData = selectedSlotsByVenue[currentVenue] || {};
             const saved = venueData[weekNav.currentWeek] || null;
+            if (!saved) {
+                /* no saved identity to protect — never resurrect one */
+                clearRetained(venueKey, weekNav.currentWeek);
+                return;
+            }
             const body = document.getElementById('tableBody');
-            if (saved) {
+            let restored = false;
+            if (body) {
                 const firstTd = body.querySelector(`td[data-day="${saved.day}"][data-hour="${saved.startHour}"]`);
-                if (firstTd) {
-                    const cellDiv = firstTd.querySelector('.cell-content');
-                    if (cellDiv && cellDiv.classList.contains('cell-available')) {
-                        const span = saved.endHour - saved.startHour;
-                        // Check all cells in range are still available
-                        let allAvailable = true;
-                        for (let h = saved.startHour; h < saved.endHour; h++) {
-                            const td = body.querySelector(`td[data-day="${saved.day}"][data-hour="${h}"] .cell-content`);
-                            if (!td || !td.classList.contains('cell-available')) { allAvailable = false; break; }
-                        }
-                        if (allAvailable) {
-                            selectedBlock = { day: saved.day, startHour: saved.startHour, endHour: saved.endHour };
-                            renderMergedBlock(body);
-                        }
+                const firstCell = firstTd ? firstTd.querySelector('.cell-content') : null;
+                if (firstCell && (firstCell.classList.contains('cell-available') || firstCell.classList.contains('cell-selected'))) {
+                    // Check all cells in range are still available/selected
+                    let allAvailable = true;
+                    for (let h = saved.startHour; h < saved.endHour; h++) {
+                        const cell = body.querySelector(`td[data-day="${saved.day}"][data-hour="${h}"] .cell-content`);
+                        if (!cell || (!cell.classList.contains('cell-available') && !cell.classList.contains('cell-selected'))) { allAvailable = false; break; }
+                    }
+                    if (allAvailable) {
+                        selectedBlock = { day: saved.day, startHour: saved.startHour, endHour: saved.endHour };
+                        renderMergedBlock(body);
+                        restored = true;
                     }
                 }
             }
+            if (restored) {
+                clearRetained(venueKey, weekNav.currentWeek);
+            } else {
+                /* Unrenderable (expired / too-soon / Sunday / holiday / blocked):
+                   keep the pointer null and the store untouched. The rebuild
+                   already painted the real blocked states — never repaint the
+                   old cells green and never call deselect/clearVisual here. */
+                markRetained(venueKey, weekNav.currentWeek, saved);
+            }
+        }
+
+        /* T15 hook for T16's live clock reconciliation (closure-scoped only —
+           no global API). Read-only over the store: marks date-ineligible
+           saved entries retained, keeps a marker until its identity is
+           canonically restored, and drops only the stale visual pointer for a
+           retained entry without repainting or rewriting anything. It starts
+           no timer, listener, rebuild or save loop; T16 invokes it and then
+           rebuilds. */
+        function reconcileRetainedSelections() {
+            const venueNow = currentVenue.code || currentVenue;
+            const weekNow = weekNav ? Number(weekNav.currentWeek) : null;
+            const seen = {};
+            Object.keys(selectedSlotsByVenue).forEach(function (venueKey) {
+                const weekMap = selectedSlotsByVenue[venueKey] || {};
+                Object.keys(weekMap).forEach(function (weekKey) {
+                    const block = weekMap[weekKey];
+                    const weekIndex = Number(weekKey);
+                    const markerKey = key(venueKey, weekIndex);
+                    if (!markerKey) return;
+                    if (!block) { delete retainedUnrenderableKeys[markerKey]; return; }
+                    seen[markerKey] = true;
+                    const week = weekData && weekData[weekIndex] ? weekData[weekIndex] : null;
+                    const day = week && Array.isArray(week.days) ? week.days[Number(block.day)] : null;
+                    const sunday = !!(day && (day.sunday || day.abbr === 'Sun'));
+                    const holiday = !!(day && day.holiday);
+                    const tooSoon = typeof isSlotTooSoon === 'function'
+                        ? !!isSlotTooSoon(weekData, weekIndex, Number(block.day))
+                        : true; /* helpers unavailable -> fail closed */
+                    const eligible = !!day && !sunday && !holiday && !tooSoon;
+                    if (!eligible) {
+                        markRetained(venueKey, weekIndex, block);
+                        if (String(venueKey) === String(venueNow) && weekIndex === weekNow
+                            && selectedBlock && sameBlock(selectedBlock, block)) {
+                            /* stale pointer only — cells keep their painted state;
+                               no deselectBlock()/clearVisualSelection() green repaint */
+                            selectedBlock = null;
+                        }
+                        return;
+                    }
+                    /* Eligible date: a marker may only drop once canonical loading
+                       restored this exact identity (loadCurrentWeek does that).
+                       A marker whose identity no longer matches protects nothing. */
+                    if (retainedUnrenderableKeys[markerKey]) {
+                        if (!isRetained(venueKey, weekIndex, block)) {
+                            delete retainedUnrenderableKeys[markerKey];
+                        } else if (String(venueKey) === String(venueNow) && weekIndex === weekNow
+                            && selectedBlock && sameBlock(selectedBlock, block)) {
+                            clearRetained(venueKey, weekIndex);
+                        }
+                    }
+                });
+            });
+            /* a marker with no stored entry must never resurrect it */
+            Object.keys(retainedUnrenderableKeys).forEach(function (markerKey) {
+                if (!seen[markerKey]) delete retainedUnrenderableKeys[markerKey];
+            });
+        }
+
+        /* ── T16: live clock reconciliation + eligible week-option rebuild ──
+           ONE guarded entry point, shared by the local-midnight timeout, the
+           visibility/focus listeners, the mobile selection port and (T17/T18)
+           the confirmation opener. It never writes the booking store, never
+           clears saved entries/history, never switches venue, never selects a
+           time and never closes an open information sheet. */
+        let mobileClockReconciling = false;
+        let mobileClockLastDateKey = '';   // last LOCAL date a full pass ran for
+        let mobileClockTimer = null;
+
+        function mobileLocalDateKey(date) {
+            const now = date instanceof Date ? date : new Date();
+            const month = String(now.getMonth() + 1).padStart(2, '0');
+            const day = String(now.getDate()).padStart(2, '0');
+            return now.getFullYear() + '-' + month + '-' + day;
+        }
+
+        /* Existing helper only; week indexes stay ABSOLUTE. */
+        function eligibleWeekIndexes() {
+            const list = [];
+            (weekData || []).forEach(function (week, index) {
+                if (typeof weekHasBookableSlot === 'function' && weekHasBookableSlot(weekData, index)) {
+                    list.push(index);
+                }
+            });
+            return list;
+        }
+
+        /* Rebuild the EXISTING #weekSelector options through the shared helper
+           (same ranges:false shape the boot uses). populateWeekSelect only
+           rewrites innerHTML/value — it fires no synthetic change event. */
+        function rebuildMobileWeekOptions(selected) {
+            const cfg = {
+                ranges: false,
+                weekFilter: function (i) { return weekHasBookableSlot(weekData, i); }
+            };
+            if (Number.isInteger(selected)) cfg.selected = selected;
+            populateWeekSelect('weekSelector', cfg);
+            const sel = document.getElementById('weekSelector');
+            if (sel && sel.options && sel.options.length === 0) {
+                /* Zero eligible weeks: one disabled, non-navigable placeholder
+                   stays inside the same select. No navigator fallback runs, so
+                   no ineligible date can be exposed; T07's settled empty render
+                   shows the exact message and disables the date controls. */
+                const placeholder = document.createElement('option');
+                placeholder.value = '';
+                placeholder.textContent = 'No bookable weeks';
+                placeholder.disabled = true;
+                sel.appendChild(placeholder);
+                sel.selectedIndex = 0;
+            }
+            return sel;
+        }
+
+        /**
+         * Reconcile the live calendar. T15 metadata first, then rebuild the
+         * week-option list from real weekData/weekHasBookableSlot, keep the
+         * committed week when still eligible, otherwise resolve forward then
+         * earliest via the ONE existing navigator. With zero eligible weeks it
+         * writes the placeholder and refreshes T07's empty presentation only.
+         * @returns {boolean} whether a full pass ran
+         */
+        function reconcileMobileClock() {
+            if (!arrangementMobile || typeof arrangementMobile.isMobile !== 'function'
+                || !arrangementMobile.isMobile()) return false;
+            if (mobileClockReconciling) return false;
+            const dateKey = mobileLocalDateKey(new Date());
+            /* Focus/visibility/midnight can fire together. Eligibility here is
+               date-grain, so one full pass per local date is enough and this
+               guard stops any focus/visibility/rebuild feedback loop. */
+            if (dateKey === mobileClockLastDateKey) return false;
+            mobileClockReconciling = true;
+            try {
+                mobileClockLastDateKey = dateKey;
+                /* 1. T15 first: mark date-ineligible saved identities, clear
+                   only a stale matching pointer — never rewrite the store. */
+                reconcileRetainedSelections();
+                if (!weekNav) return true;
+                const eligible = eligibleWeekIndexes();
+                const current = Number(weekNav.currentWeek);
+                if (!eligible.length) {
+                    rebuildMobileWeekOptions(null);
+                    /* No build/navigation: the committed week may be ineligible.
+                       The settled refresh lets T07 show MA-03f and disable the
+                       date controls + Submit; saved entries stay inspectable. */
+                    refreshArrangementMobile('clock');
+                    return true;
+                }
+                let target = eligible.indexOf(current) !== -1 ? current : null;
+                if (target === null) {
+                    for (let i = 0; i < eligible.length; i++) {
+                        if (eligible[i] > current) { target = eligible[i]; break; }
+                    }
+                    if (target === null) target = eligible[0]; // earliest eligible
+                }
+                rebuildMobileWeekOptions(target);
+                if (target === current) {
+                    /* Same eligible week: rebuild canonical cells so newly
+                       too-soon/holiday cells repaint (refresh follows). */
+                    buildTimetable();
+                } else {
+                    /* One canonical navigation: onBeforeNavigate saves (T15
+                       protected), then grid/select/arrows rebuild. Venue and
+                       selected time are untouched. */
+                    weekNav.selectWeek(target);
+                }
+                return true;
+            } finally {
+                mobileClockReconciling = false;
+            }
+        }
+
+        /* One next-local-midnight timeout at a time; each fires the same
+           guarded reconcile and re-arms for the following boundary. */
+        function scheduleMobileClock() {
+            if (mobileClockTimer !== null) return;
+            const now = new Date();
+            const next = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1, 0, 0, 1, 0);
+            const delay = Math.max(1000, next.getTime() - now.getTime());
+            mobileClockTimer = setTimeout(function () {
+                mobileClockTimer = null;
+                reconcileMobileClock();
+                scheduleMobileClock();
+            }, delay);
+        }
+
+        /* ── T17: final-confirmation identity/date validation (mobile-origin) ──
+           proceed() captures the EXACT identity the confirmation presents; the
+           existing Yes callback rechecks it immediately before the one Livewire
+           call. Read-only over the selection store and the T15 marker map: no
+           request latch (T18), no second submit path, no auto-retry/clear. The
+           desktop-origin flow never captures a context and is unchanged. */
+        const MOBILE_SUBMIT_REVIEW_TITLE = 'Review Your Saved <span class="warn-keyword">Selection</span>';
+        const MOBILE_SUBMIT_REVIEW_HINT = 'Nothing was submitted and your saved selection was kept. Review it, remove it from the saved summary if needed, then choose another bookable date.';
+
+        function mobileHasRetention() {
+            return Object.keys(retainedUnrenderableKeys).length > 0;
+        }
+
+        function mobileTextOrNull(value) {
+            if (value === null || value === undefined) return null;
+            const text = String(value).trim();
+            return text === '' ? null : text;
+        }
+
+        function mobileNumberOrNull(value) {
+            if (value === null || value === undefined || value === '') return null;
+            const num = Number(value);
+            return Number.isFinite(num) ? num : null;
+        }
+
+        /* Deterministic shallow copy so two captures of the pinned occurrence
+           compare by value in JSON, not by property insertion order. */
+        function mobileComparableObject(value) {
+            if (!value || typeof value !== 'object' || Array.isArray(value)) return null;
+            const out = {};
+            Object.keys(value).sort().forEach(function (name) {
+                const raw = value[name];
+                out[name] = raw === undefined ? null : raw;
+            });
+            return out;
+        }
+
+        function mobileSavedEntryIdentities() {
+            const entries = [];
+            Object.keys(selectedSlotsByVenue).forEach(function (venueKey) {
+                const weekMap = selectedSlotsByVenue[venueKey] || {};
+                Object.keys(weekMap).forEach(function (weekKey) {
+                    const block = weekMap[weekKey];
+                    if (!block) return;
+                    const weekIndex = mobileNumberOrNull(weekKey);
+                    if (weekIndex === null) return;
+                    entries.push({
+                        venueKey: String(venueKey),
+                        weekIndex: weekIndex,
+                        day: mobileNumberOrNull(block.day),
+                        startHour: mobileNumberOrNull(block.startHour),
+                        endHour: mobileNumberOrNull(block.endHour)
+                    });
+                });
+            });
+            entries.sort(function (a, b) {
+                if (a.venueKey !== b.venueKey) return a.venueKey < b.venueKey ? -1 : 1;
+                return a.weekIndex - b.weekIndex;
+            });
+            return entries;
+        }
+
+        /* The existing submit argument shape: the picked original slot wins,
+           otherwise the arrival URL pair. Numbers are normalised for comparison
+           only — the submitted JSON itself is untouched. */
+        function mobileOriginalIdentity() {
+            const source = selectedOriginalSlot
+                ? { day: selectedOriginalSlot.day, start: selectedOriginalSlot.start, venue: selectedOriginalSlot.venue }
+                : { day: urlParams.day, start: urlParams.start, venue: urlParams.originalVenue };
+            return {
+                day: mobileNumberOrNull(source.day),
+                start: mobileNumberOrNull(source.start),
+                venue: mobileTextOrNull(source.venue)
+            };
+        }
+
+        function mobileRetentionIdentity() {
+            const keys = Object.keys(retainedUnrenderableKeys).sort();
+            return { count: keys.length, keys: keys };
+        }
+
+        /**
+         * Read-only snapshot of everything the pending confirmation would send.
+         * Never mutates the store or the marker map.
+         * @returns {object} JSON-comparable presented identity
+         */
+        function captureMobileSubmissionIdentity() {
+            return {
+                entries: mobileSavedEntryIdentities(),
+                subject: currentCourse ? String(currentCourse.code || '') : '',
+                original: mobileOriginalIdentity(),
+                pin: mobileComparableObject(window.pinnedOccurrence),
+                retention: mobileRetentionIdentity()
+            };
+        }
+
+        /**
+         * Re-run the EXISTING date rules for every saved entry. A missing
+         * week/day or unavailable helper fails closed.
+         * @returns {boolean} true when every saved entry is still a bookable date
+         */
+        function mobileSavedDatesStillValid() {
+            if (typeof isSlotTooSoon !== 'function') return false;
+            const venueKeys = Object.keys(selectedSlotsByVenue);
+            for (let v = 0; v < venueKeys.length; v++) {
+                const weekMap = selectedSlotsByVenue[venueKeys[v]] || {};
+                const weekKeys = Object.keys(weekMap);
+                for (let w = 0; w < weekKeys.length; w++) {
+                    const block = weekMap[weekKeys[w]];
+                    if (!block) continue;
+                    const weekIndex = Number(weekKeys[w]);
+                    if (!Number.isInteger(weekIndex) || weekIndex < 0) return false;
+                    const week = weekData && weekData[weekIndex] ? weekData[weekIndex] : null;
+                    const dayIndex = Number(block.day);
+                    const day = week && Array.isArray(week.days) && Number.isInteger(dayIndex)
+                        ? week.days[dayIndex] : null;
+                    if (!day) return false;
+                    if (day.sunday || day.abbr === 'Sun' || day.holiday) return false;
+                    if (isSlotTooSoon(weekData, weekIndex, dayIndex)) return false;
+                }
+            }
+            return true;
+        }
+
+        /**
+         * Yes-boundary validation: retention present, any saved date expired, or
+         * any saved/subject/original/pin/retention detail changed since the
+         * confirmation was presented all refuse the send.
+         * @param {object} presented — captureMobileSubmissionIdentity() at open
+         * @returns {boolean} true only for the exact still-valid presented identity
+         */
+        function mobileSubmissionStillValid(presented) {
+            if (!presented || typeof presented !== 'object') return false;
+            if (mobileHasRetention()) return false;
+            if (!mobileSavedDatesStillValid()) return false;
+            return JSON.stringify(captureMobileSubmissionIdentity()) === JSON.stringify(presented);
+        }
+
+        /* Persistent guidance only (no timer). Saved data is never cleared. */
+        function showMobileSubmissionReview(cause) {
+            let reason = 'Your saved selection is no longer bookable for the date it was picked for.';
+            if (cause === 'retention') {
+                reason = 'A saved selection is no longer bookable.';
+            } else if (cause === 'identity') {
+                reason = 'Your saved selection, subject, original slot or pinned occurrence changed while the confirmation was open.';
+            }
+            showAlertModal(MOBILE_SUBMIT_REVIEW_TITLE, reason + '<br><br>' + MOBILE_SUBMIT_REVIEW_HINT, null);
+        }
+
+        /* ── T18: mobile-origin request latch + failure recovery ──
+           ONE page-owned latch around the ONE existing Livewire submit call.
+           It is set synchronously after T17's Yes-boundary validation and is
+           released only on a confirmed business rejection or an UNCONFIRMED
+           transport/JS outcome. A desktop-origin request never sets it, and no
+           adapter resize/destroy can drop it — it is page state, not adapter
+           state. Never auto-retries, never clears the saved selection. */
+        const MOBILE_SUBMIT_UNKNOWN_TITLE = 'Request <span class="warn-keyword">OUTCOME UNKNOWN</span>';
+        const MOBILE_SUBMIT_UNKNOWN_BODY = 'We could not confirm that your replacement request reached the server, so it may or may not have been received.'
+            + '<br><br>Open <span class="go-keyword">My Replacements</span> and check for a new request before submitting again.'
+            + ' Your saved selection was kept and nothing will be sent again automatically.';
+
+        let mobileSubmissionInFlight = false;
+
+        /* The existing Submit plus the confirmation Yes/Action buttons. */
+        function mobileSubmitBusyButtons() {
+            const buttons = [];
+            const submit = document.getElementById('submitRequestBtn');
+            if (submit) buttons.push(submit);
+            const confirmBtn = document.getElementById('modalConfirmBtn');
+            if (confirmBtn) buttons.push(confirmBtn);
+            const actionBtn = document.getElementById('modalActionBtn');
+            if (actionBtn) buttons.push(actionBtn);
+            return buttons;
+        }
+
+        /* Busy=true: disabled immediately (Submit + the hidden confirmation
+           buttons, which no second Yes may reach). Busy=false restores exactly
+           those nodes; updateCounter()/the adapter gates then re-derive Submit. */
+        function setMobileSubmissionBusy(busy) {
+            mobileSubmitBusyButtons().forEach(function (btn) {
+                btn.disabled = !!busy;
+            });
+        }
+
+        /* Release = clear the latch, then hand Submit back to the EXISTING
+           updateCounter() gates (saved total + the T16 retention gate re-applied
+           by the settled mobile refresh). Store/markers are never touched. */
+        function releaseMobileSubmissionLatch() {
+            if (!mobileSubmissionInFlight) return;
+            mobileSubmissionInFlight = false;
+            setMobileSubmissionBusy(false);
+            updateCounter();
+        }
+
+        /* Persistent only (existing showAlertModal: one Close, no timer, no
+           action callback). States the outcome is UNKNOWN — never a confirmed
+           failure — and points at My Replacements before any retry. */
+        function showMobileSubmissionUnknown() {
+            showAlertModal(MOBILE_SUBMIT_UNKNOWN_TITLE, MOBILE_SUBMIT_UNKNOWN_BODY, null);
+        }
+
+        /* ── T19: page-level teardown for a real full-page departure ──
+           The page closure owns T16's ONE next-midnight timeout and its two
+           clock listeners; the adapter owns its own scheduler, pulse timer,
+           observer/resize fallback, delegates, insets and rendered hosts. Both
+           are released here, exactly once, and only after `pagehide` reports a
+           genuine unload. Back/forward-cache departures (`persisted === true`)
+           are skipped on purpose: the browser freezes this page and later
+           resumes the SAME document, so its listeners and Livewire state must
+           survive; the existing `pageshow` handler owns that restore. Nothing
+           below reads or writes booking state, selectedSlotsByVenue, T15
+           markers, selectionHistory or T18's mobileSubmissionInFlight — a real
+           page load is what resets those — and no save/build/counter/submit
+           function is called. A null-safe try/catch keeps the departure safe
+           even if a DOM-poor teardown throws; the listeners are already gone. */
+        let arrangementMobileTornDown = false;
+
+        function onMobileClockVisibility() {
+            if (document.visibilityState === 'visible') reconcileMobileClock();
+        }
+
+        function onMobileClockFocus() {
+            reconcileMobileClock();
+        }
+
+        function teardownArrangementMobile() {
+            if (arrangementMobileTornDown) return false;
+            arrangementMobileTornDown = true;
+            if (mobileClockTimer !== null) {
+                clearTimeout(mobileClockTimer);
+                mobileClockTimer = null;
+            }
+            document.removeEventListener('visibilitychange', onMobileClockVisibility);
+            window.removeEventListener('focus', onMobileClockFocus);
+            if (arrangementMobile && typeof arrangementMobile.destroy === 'function') {
+                try {
+                    arrangementMobile.destroy();
+                } catch (err) {
+                    /* The page is leaving; its clock resources are already gone. */
+                }
+            }
+            return true;
+        }
+
+        /* `pagehide` covers navigation, reload and close. `persisted === true`
+           means bfcache: keep the live controller (never a destroyed layout on
+           Back). A missing event is treated as a real departure. */
+        function onArrangementPageHide(event) {
+            if (event && event.persisted === true) return;
+            teardownArrangementMobile();
         }
 
         function getDays() {
-            const idx = parseInt(document.getElementById('weekSelector').value);
-            return weekData[idx].days;
+            /* Empty-semester fail-safe: the week select can have no eligible
+               option, so its value is ''. Fall back to the navigator's current
+               (clamped) week instead of indexing weekData[NaN] and aborting the
+               boot before the mobile empty state can mount. */
+            const sel = document.getElementById('weekSelector');
+            let idx = sel ? parseInt(sel.value, 10) : NaN;
+            if (!Number.isInteger(idx) || !weekData[idx]) {
+                idx = weekNav && Number.isInteger(weekNav.currentWeek) ? weekNav.currentWeek : 0;
+            }
+            const week = weekData[idx] || weekData[0];
+            return week && Array.isArray(week.days) ? week.days : [];
         }
 
         function getGlobalTotal() {
@@ -1321,7 +2744,10 @@
             if (el) el.textContent = total;
             const has = total > 0;
             const btn = document.getElementById('submitRequestBtn') || document.querySelector('.btn-primary');
-            if (btn) btn.disabled = !has;
+            /* T18: the mobile-origin request latch keeps Submit disabled even
+               while saved slots remain; only releaseMobileSubmissionLatch()
+               re-derives it through this same gate. Desktop never sets it. */
+            if (btn) btn.disabled = !has || mobileSubmissionInFlight;
             const clearBtn = document.getElementById('clearAllBtn');
             if (clearBtn) clearBtn.disabled = !has;
             /* Footer button tooltips — state-aware (buttons render above via the shared
@@ -1337,6 +2763,8 @@
             updateSelectionSummary();
             updateSelectionProgress();
             updateSummaryStats();
+            /* settled: counter, summary cards and progress are all committed */
+            refreshArrangementMobile('counter');
         }
 
         function updateSummaryStats() {
@@ -1408,6 +2836,8 @@
             if (!tip) return;
             tip.setAttribute('data-tip', message);
             tip.setAttribute('aria-label', 'Tip: ' + message.replace(/\n/g, ' '));
+            /* settled: Tip text + aria are both written */
+            refreshArrangementMobile('tip');
         }
 
         function updateSelectionSummary() {
@@ -1552,6 +2982,8 @@
             selectedBlock = null;
             if (!selectedSlotsByVenue[currentVenue]) selectedSlotsByVenue[currentVenue] = {};
             selectedSlotsByVenue[currentVenue][weekNav.currentWeek] = null;
+            /* T15: an explicit pointer removal retires its retention marker */
+            clearRetained(currentVenue.code || currentVenue, weekNav.currentWeek);
             // Re-enable hover on available cells
             const table = body.closest('.timetable');
             if (table) table.classList.remove('has-selection');
@@ -1696,6 +3128,8 @@
             renderMergedBlock(body);
             if (!selectedSlotsByVenue[currentVenue]) selectedSlotsByVenue[currentVenue] = {};
             selectedSlotsByVenue[currentVenue][weekNav.currentWeek] = { day, startHour, endHour: startHour + span };
+            /* T15: a new valid selection retires any marker for this key */
+            clearRetained(currentVenue.code || currentVenue, weekNav.currentWeek);
             pushHistory({ action: 'select', block: { ...selectedBlock }, venue: currentVenue.code || currentVenue, week: weekNav.currentWeek });
             updateCounter();
             return true;
@@ -2079,6 +3513,9 @@
             /* the banner was retired 2026-11-10 — the message lives in the cell's
                tooltip now (leadTimeTip), so no renderLeadTimeNote() call here */
             weekNav._updateArrows();
+            /* T05 settled point: cells, saved-week restore, counters and week
+               arrows are all committed — one coalesced snapshot follows. */
+            refreshArrangementMobile('timetable');
         }
 
         function timeLabelHtml(hi) {
@@ -2180,6 +3617,8 @@
         let confirmCallback = null;
 
         function showAlertModal(title, bodyHtml, action) {
+            /* T11: never stack the mobile info sheet under a critical modal. */
+            arrangementMobile?.closeInfo?.();
             /* 2026-10-24 user UI directive: titles carry the warn-keyword spans
                (CAP + bold + color) — innerHTML so the markup renders */
             document.getElementById('modalTitle').innerHTML = title;
@@ -2212,6 +3651,9 @@
 
         function showConfirmModal(title, bodyHtml, callback, opts) {
             opts = opts || {};
+            /* T11: the existing confirmation/cancel path stays authoritative;
+               the info sheet just gets out of the way first. */
+            arrangementMobile?.closeInfo?.();
             document.getElementById('modalTitle').innerHTML = title;
             document.getElementById('modalBody').innerHTML = bodyHtml;
             confirmCallback = callback;
@@ -2298,6 +3740,25 @@
 
 
         function proceed() {
+            /* T18: a mobile-origin request is already in flight. The latch is
+               page-owned (it survives adapter resize/destroy), so no second
+               confirmation/duplicate send can start. Desktop-origin requests
+               never set it, so that path is unchanged. */
+            if (mobileSubmissionInFlight) return;
+            /* T16: mobile rechecks the live calendar before the confirmation
+               opens. T17: then captures the presented identity; already-expired
+               dates or a retention marker refuse the confirmation outright.
+               Desktop keeps its existing path unchanged (no captured context). */
+            let mobileSubmission = null;
+            if (arrangementMobile && typeof arrangementMobile.isMobile === 'function'
+                && arrangementMobile.isMobile()) {
+                reconcileMobileClock();
+                mobileSubmission = captureMobileSubmissionIdentity();
+                if (mobileSubmission.retention.count > 0 || !mobileSavedDatesStillValid()) {
+                    showMobileSubmissionReview(mobileSubmission.retention.count > 0 ? 'retention' : 'expired');
+                    return;
+                }
+            }
             if (getGlobalTotal() === 0) {
                 showConfirmModal('No Selection', 'Please select at least one timeslot before proceeding.', null);
                 return;
@@ -2349,7 +3810,46 @@
                     const orig = selectedOriginalSlot
                         ? { day: selectedOriginalSlot.day, start: selectedOriginalSlot.start, venue: selectedOriginalSlot.venue }
                         : { day: urlParams.day, start: urlParams.start, venue: urlParams.originalVenue };
-                    pageLivewire().call('submitBlocks', JSON.stringify(blocks), currentCourse ? currentCourse.code : '', JSON.stringify(orig), JSON.stringify(window.pinnedOccurrence || {}))
+                    /* T17: the mobile-origin identity is revalidated at the Yes
+                       boundary, after the pin/orig preparation above. The
+                       disabled Submit flag is NOT proof (it settles late). On
+                       expiry/retention/change: no network call, saved data and
+                       markers untouched, persistent review guidance instead. */
+                    if (mobileSubmission) {
+                        reconcileMobileClock();
+                        if (!mobileSubmissionStillValid(mobileSubmission)) {
+                            let cause = 'identity';
+                            if (mobileHasRetention()) cause = 'retention';
+                            else if (!mobileSavedDatesStillValid()) cause = 'expired';
+                            hideConfirmModal();
+                            showMobileSubmissionReview(cause);
+                            return;
+                        }
+                        /* T18: latch synchronously AFTER the T17 validation and
+                           immediately BEFORE the ONE call. A duplicate mobile Yes
+                           cannot send again. Desktop never reaches this block. */
+                        if (mobileSubmissionInFlight) return;
+                        mobileSubmissionInFlight = true;
+                        setMobileSubmissionBusy(true);
+                    }
+                    let submitRequest = null;
+                    try {
+                        submitRequest = pageLivewire().call('submitBlocks', JSON.stringify(blocks), currentCourse ? currentCourse.code : '', JSON.stringify(orig), JSON.stringify(window.pinnedOccurrence || {}));
+                    } catch (submitError) {
+                        /* Only the mobile-origin flow has a latch/uncertain state
+                           to recover; desktop keeps its existing synchronous throw. */
+                        if (!mobileSubmission) throw submitError;
+                        releaseMobileSubmissionLatch();
+                        showMobileSubmissionUnknown();
+                        return;
+                    }
+                    /* A non-promise result cannot confirm any outcome. */
+                    if (mobileSubmission && (!submitRequest || typeof submitRequest.then !== 'function')) {
+                        releaseMobileSubmissionLatch();
+                        showMobileSubmissionUnknown();
+                        return;
+                    }
+                    const submitSettled = submitRequest
                         .then(function(results) {
                             const failed = [];
                             (results || []).forEach(function(r, i) {
@@ -2433,6 +3933,7 @@
                                    clean-up below is unchanged. */
                                 deselectBlock();
                                 Object.keys(selectedSlotsByVenue).forEach(k => { selectedSlotsByVenue[k] = {}; });
+                                clearAllRetained();   /* T15: a successful submission retires every retention marker */
                                 /* the request is sent — Ctrl+Z must not resurrect its slots */
                                 selectionHistory.length = 0;
                                 updateCounter();
@@ -2442,6 +3943,10 @@
                                 window.location.href = '/my-replacements'
                                     + (newIds.length ? '?new-req=' + newIds.join(',') : '');
                             } else {
+                                /* T18: a business rejection IS a confirmed
+                                   outcome — release the latch before the existing
+                                   conflict modal; selection/store stay kept. */
+                                if (mobileSubmission) releaseMobileSubmissionLatch();
                                 /* submission-conflict-modal-refresh (the user's
                                    spec items 1/3/4/5/6): the conflict modal = the
                                    error-look shell (errorStyle → the red title +
@@ -2480,6 +3985,19 @@
                                 );
                             }
                         });
+                    if (mobileSubmission) {
+                        submitSettled.catch(function() {
+                            /* UNCONFIRMED transport/JS outcome: release the latch,
+                               keep selection/store/retention markers, and say the
+                               result is unknown. No auto-retry, no false failure.
+                               If the latch is already released the outcome was
+                               already reported (confirmed rejection), so do not
+                               stack a second modal over it. */
+                            if (!mobileSubmissionInFlight) return;
+                            releaseMobileSubmissionLatch();
+                            showMobileSubmissionUnknown();
+                        });
+                    }
                 },
                 { confirmLabel: 'Yes, Submit Request' }
             );
@@ -2644,6 +4162,7 @@
             revalidateEntryGuard();
             allowUnload = false;
             Object.keys(selectedSlotsByVenue).forEach(k => { selectedSlotsByVenue[k] = {}; });
+            clearAllRetained();     /* T15: the bfcache wipe leaves no marker behind */
             deselectBlock();        /* removes merged block + restores green cells */
             selectionHistory = [];  /* cleared after deselectBlock (it pushes an entry) — stale Ctrl+Z can't resurrect */
             updateCounter();        /* re-sync counter/summary/footer (also covers the no-block case) */
@@ -2756,6 +4275,11 @@
                 return;
             }
 
+            /* T13: the one mobile information sheet owns the keyboard. No
+               hidden-grid command may run behind it, and native dialog keys
+               (Escape included) are deliberately not prevented here. */
+            if (arrangementMobile?.isInfoOpen?.()) return;
+
             /* let form controls keep their native keys — the grid must not
                hijack arrows/space/enter from the subject or week selects */
             const tag = ((e.target && e.target.tagName) || '').toLowerCase();
@@ -2763,6 +4287,13 @@
                 if (e.key === 'Escape') e.target.blur();
                 return;
             }
+
+            /* T13: mobile controls are real buttons/selects. Every legacy
+               grid/undo/help/week/venue shortcut below belongs to the hidden
+               desktop table; returning without preventDefault keeps native
+               button/select activation working. Critical-modal Escape above
+               still runs first on both layouts. */
+            if (arrangementMobile?.isMobile?.()) return;
 
             const days = getDays();
             const maxDay = days.length - 1;
@@ -2836,6 +4367,21 @@
                     }
                     break;
             }
+        }
+
+        /* T13: ui-common.js registers its own `[`/`]` week listener that knows
+           nothing about mobile mode or the information sheet. Intercept ONLY
+           those two keys in the capture phase while either state is active, so
+           the shared listener cannot navigate the hidden grid; every native
+           key (Escape included) still reaches its real owner. Registered once
+           at boot — resize never adds another listener. */
+        function blockSharedWeekShortcuts(e) {
+            if (!e || (e.key !== '[' && e.key !== ']')) return;
+            const infoOpen = arrangementMobile?.isInfoOpen?.() === true;
+            const mobile = arrangementMobile?.isMobile?.() === true;
+            if (!infoOpen && !mobile) return;
+            e.preventDefault();
+            e.stopImmediatePropagation();
         }
 
         // ───── Subject Dropdown + URL Param Reading ─────
@@ -2935,18 +4481,19 @@
             return true;
         }
 
-        function renderTitleSummary() {
-            const el = document.getElementById('subjectInfo');
-            const hasSubject = !!currentCourse;
-            /* replacement-strip-stale-anchor (Bug 1, user-approved 2026-10-24):
-               after boot, the strip's anchor follows the LIVE pinned pair (the
-               subject-change auto-pin or the T18 ask boundary) when that
-               occurrence exists in the CURRENT subject's conflict list — the
-               boot-frozen virtual anchor (PAGE_DATA.pinnedSession + boot
-               urlParams) previously glued the OLD subject's slot facts under
-               the NEW subject's name (the 5425 B005/B006 report). The
-               pre-boot arrivals and subjects WITHOUT that occurrence keep the
-               boot anchor byte-identically. */
+        /* replacement-strip-stale-anchor (Bug 1, user-approved 2026-10-24):
+           after boot, the strip's anchor follows the LIVE pinned pair (the
+           subject-change auto-pin or the T18 ask boundary) when that
+           occurrence exists in the CURRENT subject's conflict list — the
+           boot-frozen virtual anchor (PAGE_DATA.pinnedSession + boot
+           urlParams) previously glued the OLD subject's slot facts under
+           the NEW subject's name (the 5425 B005/B006 report). The
+           pre-boot arrivals and subjects WITHOUT that occurrence keep the
+           boot anchor byte-identically.
+
+           T04: extracted read-only so the mobile snapshot reuses this ONE
+           precedence instead of deriving (or re-ordering) it. */
+        function resolveOriginalAnchorSlot() {
             let anchorSlot = selectedOriginalSlot || null;
             if (!anchorSlot && window.__bootDone && currentCourse && window.pinnedOccurrence) {
                 const livePinSlots = extractSlotsForSubject(currentCourse.code);
@@ -2956,6 +4503,13 @@
                 if (livePinMatch) anchorSlot = livePinMatch;
             }
             if (!anchorSlot) anchorSlot = anchorSlotFromPinned();
+            return anchorSlot;
+        }
+
+        function renderTitleSummary() {
+            const el = document.getElementById('subjectInfo');
+            const hasSubject = !!currentCourse;
+            const anchorSlot = resolveOriginalAnchorSlot();
             const hasSlot = !!anchorSlot;
             const ctxCourse = courseCtx(); /* occurrence-grain: follows the picked slot */
 
@@ -3086,6 +4640,8 @@ slotLine = 'Week ' + (anchorSlot.week + 1) + ' · ' + ((weekdayName && weekdayNa
                     ${totalLine ? totalLine : '0'}
                 </div>
             </div>`;
+            /* T05 settled point: the whole status/summary strip is rendered */
+            refreshArrangementMobile('original');
         }
 
         function buildSubjectDropdown() {
@@ -3377,7 +4933,14 @@ ${(fallbackAttribution && intentReason === 'in-the-way')
             renderBookingIntent();
         }
 
+        /* T08: on mobile the canonical table is hidden, so the two feedback
+           helpers reveal the VISIBLE mobile target instead. Desktop keeps its
+           original element targeting unchanged. */
         function pulseTargetCell(dayIndex, hourIndex) {
+            if (arrangementMobile?.isMobile()) {
+                arrangementMobile.revealTarget({ dayIndex: dayIndex, hourIndex: hourIndex, tone: 'pulse' });
+                return;
+            }
             const cell = document.querySelector(`#tableBody td[data-day="${dayIndex}"][data-hour="${hourIndex}"] .cell-content`);
             if (!cell) return;
             cell.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
@@ -3392,6 +4955,10 @@ ${(fallbackAttribution && intentReason === 'in-the-way')
            pulse via the shared flashRowPulse); the blocked-cell callers
            keep pulseTargetCell's attention ring (the same-color law). */
         function flashTargetCell(dayIndex, hourIndex) {
+            if (arrangementMobile?.isMobile()) {
+                arrangementMobile.revealTarget({ dayIndex: dayIndex, hourIndex: hourIndex, tone: 'flash' });
+                return;
+            }
             const cell = document.querySelector(`#tableBody td[data-day="${dayIndex}"][data-hour="${hourIndex}"] .cell-content`);
             if (!cell) return;
             cell.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
@@ -3513,6 +5080,7 @@ ${(fallbackAttribution && intentReason === 'in-the-way')
                 }
             }
             Object.keys(selectedSlotsByVenue).forEach(k => { selectedSlotsByVenue[k] = {}; });
+            clearAllRetained();            /* T15: explicit discard retires every retention marker */
             deselectBlock();
             selectionHistory.length = 0;   /* review R1 advisory 4 — the explicit-discard undo law (proceed() :2051 + pageshow :2182: "stale Ctrl+Z can't resurrect"); without it the same-week deselect HISTORY would resurrect one block into a cleaned store while the cross-week payloads have no record */
             updateCounter();               /* review R1 blocker 2 — deselectBlock()'s rider is DEAD when !selectedBlock (its early-return :1441); the helper pays its OWN tail, the exact clearAll() law ("covers the no-block case" :2084) */
@@ -3540,6 +5108,25 @@ ${(fallbackAttribution && intentReason === 'in-the-way')
         }
 
         /* summary-card × — remove one saved block (any week/venue) */
+        /* T08: reveal the exact saved target on the visible mobile surface
+           after the existing week/venue navigation has committed. The mobile
+           port validates the now-current week/venue and eligibility; desktop
+           keeps the original canonical-cell flash. */
+        function revealSavedTarget(venueKey, weekIdx, block) {
+            if (!block) return;
+            if (arrangementMobile?.isMobile()) {
+                arrangementMobile.revealTarget({
+                    weekIndex: weekIdx,
+                    venueKey: venueKey,
+                    dayIndex: block.dayIdx,
+                    hourIndex: block.startHour,
+                    tone: 'flash',
+                });
+                return;
+            }
+            flashTargetCell(block.dayIdx, block.startHour);
+        }
+
         /* SDD summary-card-click-navigate: the card hop onto the EXACT
            slot — the auto-pin law's revertingChange pair bypasses the
            venue-discard modal; the per-week memory restores the block
@@ -3551,15 +5138,18 @@ ${(fallbackAttribution && intentReason === 'in-the-way')
                 venueDropdown.select(venueKey);
                 applyVenueChange(venueKey);
                 revertingChange = false;
-                if (block) flashTargetCell(block.dayIdx, block.startHour);
+                revealSavedTarget(venueKey, weekIdx, block);
                 return;
             }
             revertingChange = false;
-            if (block) flashTargetCell(block.dayIdx, block.startHour);
+            revealSavedTarget(venueKey, weekIdx, block);
         }
 
         function removeSavedBlock(venueKey, weekKey) {
             const data = selectedSlotsByVenue[venueKey];
+            /* T15: explicit removal retires retention metadata on BOTH paths —
+               including the off-view/null-pointer removal below (no green repaint) */
+            clearRetained(venueKey, weekKey);
             if (!data || !data[weekKey]) return;
             const removed = { ...data[weekKey] };
             const isCurrentView = venueKey === (currentVenue.code || currentVenue)
@@ -4808,6 +6398,9 @@ triggerText.textContent = slotTriggerLabel(slot);
             armIntentFallbackPrefill();
 
             document.addEventListener('keydown', handleKeyDown);
+            /* T13: capture-phase guard for the shared ui-common week shortcut
+               owner. One registration for the page lifetime. */
+            document.addEventListener('keydown', blockSharedWeekShortcuts, true);
             initWeekKeyboardShortcuts();
 
             document.getElementById('earliestBtn')?.addEventListener('click', function() {
@@ -4843,5 +6436,365 @@ triggerText.textContent = slotTriggerLabel(slot);
         window.removeSavedBlock = removeSavedBlock;
         /* the ui-week-nav partial's inline onclick calls weekNav.* */
         window.weekNav = weekNav;
+
+        /* ── T04 — read-only canonical snapshot port ────────────────────────
+           Copies page state and the canonical cell text only. It never writes
+           the selection store, never inserts HTML, never classifies raw
+           payloads and never touches the network. Missing/unrecognised cells
+           fail closed. T05 owns the coalesced refresh; T06 owns layout. */
+        const SNAPSHOT_STATE_CLASSES = [
+            'cell-available', 'cell-selected', 'cell-pending', 'cell-reserved',
+            'cell-occupied', 'cell-occupied--mine', 'cell-sun', 'cell-ph',
+            'cell-too-soon'
+        ];
+
+        /* textContent that keeps real line breaks (the canonical labels use
+           `<br>`; tooltips use `\n`). Text only — never copied as markup. */
+        function snapshotText(node) {
+            if (!node) return '';
+            let out = '';
+            Array.prototype.forEach.call(node.childNodes, function (child) {
+                if (child.nodeType === 3) {
+                    out += child.nodeValue;
+                } else if (child.nodeType === 1) {
+                    out += child.nodeName === 'BR' ? '\n' : snapshotText(child);
+                }
+            });
+            return out.replace(/[ \t\u00a0]+/g, ' ').replace(/ *\n */g, '\n').trim();
+        }
+
+        function snapshotAttr(el, name) {
+            if (!el) return '';
+            const value = el.getAttribute(name);
+            return value === null || value === undefined ? '' : String(value).trim();
+        }
+
+        function snapshotShown(el) {
+            if (!el || el.hidden) return false;
+            if (el.closest('[hidden]') || el.closest('[inert]')) return false;
+            if (!window.getComputedStyle) return true;
+            const style = window.getComputedStyle(el);
+            return !!style && style.display !== 'none' && style.visibility !== 'hidden';
+        }
+
+        function readArrangementSnapshot() {
+            const activeWeek = weekNav ? Number(weekNav.currentWeek) : null;
+            const weekIndex = Number.isInteger(activeWeek) ? activeWeek : null;
+            const venueCode = String((venueDropdown && venueDropdown.getSelected()) || currentVenue || '');
+            const activeWeekData = weekIndex !== null && weekData && weekData[weekIndex]
+                ? weekData[weekIndex] : null;
+            const ctx = typeof courseCtx === 'function' ? courseCtx() : null;
+            const anchor = typeof resolveOriginalAnchorSlot === 'function'
+                ? resolveOriginalAnchorSlot() : null;
+
+            /* Real week/day indexes and the existing helper eligibility. No
+               renumbering, no occupancy filter, no prototype clock. */
+            const weeks = (weekData || []).map(function (week, wi) {
+                const days = (week && Array.isArray(week.days) ? week.days : []).map(function (day, di) {
+                    const sunday = !!(day && (day.sunday || day.abbr === 'Sun'));
+                    const holiday = !!(day && day.holiday);
+                    const tooSoon = typeof isSlotTooSoon === 'function'
+                        ? !!isSlotTooSoon(weekData, wi, di)
+                        : true; /* helpers unavailable -> fail closed */
+                    return {
+                        index: di,
+                        abbr: day ? String(day.abbr || '') : '',
+                        date: day ? String(day.date || '') : '',
+                        sunday: sunday,
+                        holiday: holiday,
+                        holidayLabel: day ? String(day.holidayLabel || '') : '',
+                        today: !!(day && day.today),
+                        firstBookable: !!(day && day.firstBookable),
+                        tooSoon: tooSoon,
+                        eligible: !sunday && !holiday && !tooSoon
+                    };
+                });
+                return {
+                    index: wi,
+                    label: week ? String(week.label || '') : '',
+                    range: week ? String(week.range || '') : '',
+                    rangeShort: week ? String(week.rangeShort || '') : '',
+                    eligible: typeof weekHasBookableSlot === 'function'
+                        ? !!weekHasBookableSlot(weekData, wi) : false,
+                    days: days
+                };
+            });
+
+            /* Canonical cells for the CURRENT week/venue: every original day
+               and every hour index. State text comes from the resolved cell,
+               never from the raw payload. */
+            const body = document.getElementById('tableBody');
+            const hourAxis = Array.isArray(hours) ? hours.slice() : [];
+            const dayCount = activeWeekData && Array.isArray(activeWeekData.days)
+                ? activeWeekData.days.length : 0;
+            const cells = [];
+            let knownCells = 0;
+            for (let di = 0; di < dayCount; di++) {
+                for (let hi = 0; hi < hourAxis.length; hi++) {
+                    const cellEl = body
+                        ? body.querySelector('td[data-day="' + di + '"][data-hour="' + hi + '"] .cell-content')
+                        : null;
+                    const stateClasses = cellEl
+                        ? SNAPSHOT_STATE_CLASSES.filter(function (cls) {
+                            return cellEl.classList.contains(cls);
+                        })
+                        : [];
+                    const known = !!cellEl && stateClasses.length > 0;
+                    if (known) knownCells++;
+                    const timeEl = cellEl ? cellEl.querySelector('.cell-time-label') : null;
+                    cells.push({
+                        dayIndex: di,
+                        hourIndex: hi,
+                        known: known,
+                        stateClasses: stateClasses,
+                        stateLabel: snapshotText(cellEl ? cellEl.querySelector('.cell-state-label') : null),
+                        detailText: snapshotAttr(cellEl, 'data-tip'),
+                        ariaText: snapshotAttr(cellEl, 'aria-label'),
+                        timeLabel: snapshotText(timeEl)
+                    });
+                }
+            }
+
+            /* Saved entries are a plain copy from the page store; the pointer
+               is the current-view block only (never the global summary). */
+            const saved = window.ArrangementMobile && window.ArrangementMobile.utils
+                ? window.ArrangementMobile.utils.savedEntries(selectedSlotsByVenue, weekData)
+                : [];
+            const currentBlock = selectedBlock ? {
+                venueKey: venueCode,
+                weekIndex: weekIndex,
+                dayIndex: Number(selectedBlock.day),
+                startHour: Number(selectedBlock.startHour),
+                endHour: Number(selectedBlock.endHour)
+            } : null;
+
+            /* Original occurrence facts for the compact context. */
+            const anchorWeek = anchor && Number.isInteger(Number(anchor.week)) ? Number(anchor.week) : null;
+            const anchorDayIndex = anchor && Number.isInteger(Number(anchor.day)) ? Number(anchor.day) : null;
+            const anchorDay = anchorWeek !== null && anchorDayIndex !== null && weekData
+                && weekData[anchorWeek] && Array.isArray(weekData[anchorWeek].days)
+                ? weekData[anchorWeek].days[anchorDayIndex] : null;
+            const startSource = anchor && Number.isInteger(Number(anchor.start))
+                ? hourAxis[Number(anchor.start)] : '';
+            const endIndex = anchor && Number.isInteger(Number(anchor.end)) ? Number(anchor.end) : null;
+            const endSource = endIndex !== null
+                ? (hourAxis[endIndex + 1] || (hourAxis[endIndex] ? add30min(hourAxis[endIndex]) : ''))
+                : '';
+
+            const original = {
+                hasSubject: !!currentCourse,
+                code: currentCourse ? String(currentCourse.code || '') : '',
+                name: currentCourse ? String(currentCourse.name || '') : '',
+                type: ctx ? String(ctx.type || '') : '',
+                cohorts: ctx && Array.isArray(ctx.cohorts) ? ctx.cohorts.map(String) : [],
+                cohortCounts: ctx && Array.isArray(ctx.cohortCounts) ? ctx.cohortCounts.map(Number) : [],
+                studentCount: ctx && ctx.studentCount !== null && ctx.studentCount !== undefined
+                    ? Number(ctx.studentCount) : null,
+                hasSlot: !!anchor,
+                weekIndex: anchorWeek,
+                dayIndex: anchorDayIndex,
+                weekdayName: anchor
+                    ? String(anchor.weekdayName || (anchorDay && anchorDay.abbr) || '')
+                    : '',
+                date: anchor
+                    ? String(anchor.date || (anchorDay && anchorDay.date) || '')
+                    : '',
+                /* original-slot indexes as the page anchor stores them
+                   (end is INCLUSIVE) — unlike saved selection entries, whose
+                   endHour is exclusive. */
+                startIndex: anchor && Number.isInteger(Number(anchor.start)) ? Number(anchor.start) : null,
+                endIndex: endIndex,
+                startTime: startSource ? to12h(startSource) : '',
+                endTime: endSource ? to12h(endSource) : '',
+                venue: anchor ? String(anchor.venue || '') : '',
+                pin: window.pinnedOccurrence ? {
+                    sessionId: Number(window.pinnedOccurrence.sessionId),
+                    weekIndex: Number(window.pinnedOccurrence.week || 1) - 1
+                } : null
+            };
+
+            /* Existing control values/visibility, read only. */
+            const subjectSel = document.getElementById('subjectSelector');
+            const subjectOption = subjectSel && subjectSel.options && subjectSel.selectedIndex >= 0
+                ? subjectSel.options[subjectSel.selectedIndex] : null;
+            const slotTriggerText = document.getElementById('slotTriggerText');
+            const venueLabel = document.querySelector('#buildingSelectorDropdown .venue-dd-label');
+            const weekSel = document.getElementById('weekSelector');
+            const weekOption = weekSel && weekSel.options && weekSel.selectedIndex >= 0
+                ? weekSel.options[weekSel.selectedIndex] : null;
+            const summaryTipEl = document.getElementById('summaryTip');
+            const submitTipEl = document.getElementById('submitTip');
+            const submitBtn = document.getElementById('submitRequestBtn');
+            const subjectInfoEl = document.getElementById('subjectInfo');
+
+            /* T16: read-only retention metadata — WHICH saved identities T15
+               currently retains. The store itself is never exposed or mutated. */
+            const retainedKeys = Object.keys(retainedUnrenderableKeys || {});
+
+            return {
+                readOnly: true,
+                source: 'canonical-table',
+                weekIndex: weekIndex,
+                weekNumber: weekIndex !== null ? weekIndex + 1 : null,
+                venueCode: venueCode,
+                weeks: weeks,
+                hours: hourAxis,
+                cells: cells,
+                cellsComplete: cells.length > 0 && knownCells === cells.length,
+                selections: {
+                    entries: saved,
+                    current: currentBlock,
+                    totalSlots: typeof getGlobalTotal === 'function' ? getGlobalTotal() : 0
+                },
+                /* T16: metadata only (never the store). The mobile bar keeps
+                   retained entries inspectable and Submit disabled. */
+                retention: {
+                    any: retainedKeys.length > 0,
+                    count: retainedKeys.length,
+                    keys: retainedKeys.slice()
+                },
+                /* T18: read-only request-latch state so the adapter's Submit
+                   gates can never re-enable a request that is still in flight. */
+                submissionBusy: mobileSubmissionInFlight === true,
+                original: original,
+                subjectInfoText: subjectInfoEl
+                    ? snapshotText(subjectInfoEl).replace(/\n/g, ' ') : '',
+                controls: {
+                    subject: {
+                        visible: snapshotShown(subjectSel),
+                        value: subjectSel ? String(subjectSel.value || '') : '',
+                        text: subjectOption ? snapshotText(subjectOption) : ''
+                    },
+                    slot: {
+                        visible: snapshotShown(slotTriggerText),
+                        text: snapshotText(slotTriggerText)
+                    },
+                    venue: {
+                        visible: snapshotShown(venueLabel),
+                        code: venueCode,
+                        text: snapshotText(venueLabel)
+                    },
+                    week: {
+                        visible: snapshotShown(weekSel),
+                        value: weekSel ? String(weekSel.value || '') : '',
+                        text: weekOption ? snapshotText(weekOption) : '',
+                        index: weekIndex
+                    }
+                },
+                tips: {
+                    summary: {
+                        visible: snapshotShown(summaryTipEl),
+                        text: snapshotText(summaryTipEl),
+                        tip: snapshotAttr(summaryTipEl, 'data-tip'),
+                        ariaLabel: snapshotAttr(summaryTipEl, 'aria-label')
+                    },
+                    submit: {
+                        visible: snapshotShown(submitTipEl),
+                        text: snapshotText(submitTipEl),
+                        tip: snapshotAttr(submitTipEl, 'data-tip'),
+                        ariaLabel: snapshotAttr(submitTipEl, 'aria-label'),
+                        disabled: submitBtn ? !!submitBtn.disabled : null
+                    }
+                }
+            };
+        }
+
+        /* ── T10: mobile selection ports (the ONE canonical path) ──
+           Resolve the real canonical cell the table's own handlers use, then
+           call the existing toggleCell() exactly once. Availability, subject,
+           lead-time, full-span, budget and day-end rules stay in that path —
+           the adapter only decides WHETHER to ask, never how to book. */
+        function chooseAvailable(dayIndex, hourIndex) {
+            const day = Number(dayIndex);
+            const hour = Number(hourIndex);
+            if (!Number.isInteger(day) || day < 0) return false;
+            if (!Number.isInteger(hour) || hour < 0) return false;
+            /* T16: the mobile row may belong to a date that expired since the
+               last settled read. Reconcile BEFORE resolving the cell; when the
+               canonical week moved, this stale row is refused (no cross-date
+               selection, no silent navigation of its own). */
+            if (arrangementMobile && typeof arrangementMobile.isMobile === 'function'
+                && arrangementMobile.isMobile()) {
+                const weekBefore = weekNav ? Number(weekNav.currentWeek) : null;
+                reconcileMobileClock();
+                const weekAfter = weekNav ? Number(weekNav.currentWeek) : null;
+                if (weekAfter !== weekBefore) return false;
+            }
+            const cell = document.querySelector(
+                '#tableBody td[data-day="' + day + '"][data-hour="' + hour + '"] .cell-content'
+            );
+            if (!cell) return false;
+            toggleCell(day, hour, cell);
+            return true;
+        }
+
+        /* T10: mobile selection feedback is transient (5000ms) through the
+           existing shared toast. Desktop wording/timing are untouched. */
+        function showTransient(message) {
+            toast.show(message, null, 5000);
+        }
+
+        /* T11: the information sheet's explicit Remove. It only forwards the
+           exact venue/week identity the sheet displayed to the existing
+           removeSavedBlock(); no new removal rule and no second control. */
+        function removeSelection(venueKey, weekIndex) {
+            const key = venueKey === null || venueKey === undefined ? '' : String(venueKey);
+            const week = Number(weekIndex);
+            if (!key) return false;
+            if (!Number.isInteger(week) || week < 0) return false;
+            removeSavedBlock(key, week);
+            return true;
+        }
+
+        // Mount only after URL/intent, real-grid ghost checks and fallback prefill
+        // have settled. T04 supplies the read-only snapshot; T06 activates layout.
+        arrangementMobile = ArrangementMobile.create({
+            root: document.getElementById('arrangementMobile'),
+            ports: {
+                readSnapshot: readArrangementSnapshot,
+                /* T10: mobile tap -> the same canonical toggleCell/selectBlock
+                   path the desktop row click uses. No second selection path. */
+                chooseAvailable: chooseAvailable,
+                /* T10: 5-second mobile transient via the shared toast manager. */
+                showTransient: showTransient,
+                /* T11: the sheet's Remove -> the existing removeSavedBlock()
+                   path once, with the exact venue/week key shown. */
+                removeSelection: removeSelection,
+                /* T06: the page owns the two existing panel closers — the adapter
+                   calls this port instead of synthesising broad DOM clicks. */
+                closePanels: function () {
+                    /* Only invoke the existing closers when a panel is actually
+                       open; their removeEventListener calls otherwise count as
+                       new removals on every resize even though nothing changed. */
+                    const slotPanel = document.getElementById('slotPanel');
+                    if (slotPanel && slotPanel.classList.contains('open')) closeSlotPanel();
+                    if (venueDropdown && venueDropdown.container
+                        && venueDropdown.container.classList.contains('open')
+                        && typeof venueDropdown._close === 'function') {
+                        venueDropdown._close();
+                    }
+                },
+                /* T07: only default week move when the current week loses its
+                   last eligible day. Reuses the existing navigator (its own
+                   filters/guards); no venue choice and no booking write. */
+                chooseWeek: function (index) {
+                    if (!weekNav) return;
+                    const target = Number(index);
+                    if (!Number.isInteger(target) || target < 0) return;
+                    weekNav.selectWeek(target);
+                },
+            },
+        });
+        arrangementMobile.mount();
+        /* T16: the page owns the live clock lifecycle — one next-local-midnight
+           timeout plus visibility/focus listeners, each calling the SAME guarded
+           reconcile. The adapter adds no timer/observer for this; every path
+           no-ops on desktop and after the first pass on a given local date.
+           T19: the listeners are named so its pagehide teardown can remove
+           exactly these two and clear exactly this one timeout. */
+        document.addEventListener('visibilitychange', onMobileClockVisibility);
+        window.addEventListener('focus', onMobileClockFocus);
+        window.addEventListener('pagehide', onArrangementPageHide);
+        scheduleMobileClock();
         });
 @endsection

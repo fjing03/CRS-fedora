@@ -30,5 +30,5 @@
             <circle cx="12" cy="12" r="2"/>
         </svg>
     @endif
-    {{ $todayLabel }}
+    <span class="today-btn-label">{{ $todayLabel }}</span>
 </button>
