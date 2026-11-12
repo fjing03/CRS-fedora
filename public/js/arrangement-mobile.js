@@ -117,6 +117,7 @@
         { node: '#summaryTip', host: '[data-arrangement-mobile-tip-host]' },
         { node: '#submitTip', host: '[data-arrangement-mobile-submit-host]' },
         { node: '#subjectInfo', host: '[data-arrangement-mobile-context-facts]' },
+        { node: '.ra-class-details', host: '[data-arrangement-mobile-context-facts]' },
     ];
 
     /* Inactive desktop hosts: kept mounted (existing selectors still resolve),

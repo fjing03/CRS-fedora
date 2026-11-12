@@ -484,14 +484,24 @@
 
         /* ===== Selection Summary ===== */
         .sel-summary {
-            margin-top: 14px;
-            background: var(--color-surface);
-            border: 1px solid var(--color-outline);
-            border-radius: var(--radius-md);
-            box-shadow: var(--shadow-sm);
             transition: background var(--transition), border-color var(--transition);
             overflow: hidden;
         }
+        .ra-top-zone:not(.has-summary) .ra-selection-summary { display: none; }
+        .ra-top-zone .ra-selection-summary { padding: 12px 14px; }
+        .ra-selection-summary .sel-summary-header { padding: 0 0 8px; }
+        .ra-selection-summary .sel-summary-grid {
+            grid-template-columns: 1fr;
+            padding: 10px 0;
+        }
+        .ra-selection-summary .sel-summary-info { padding: 10px 0; }
+        .ra-selection-summary .sel-summary-info .info-rows { flex-direction: column; gap: 8px; }
+        .ra-selection-summary .sel-summary-action {
+            flex-wrap: wrap;
+            padding: 10px 0 0;
+        }
+        .ra-selection-summary .sel-summary-action #submitTip { flex: 1 1 auto; }
+        .ra-selection-summary .sel-summary-action .btn { width: 100%; justify-content: center; }
 
         .sel-summary-header {
             display: flex;
@@ -1720,16 +1730,57 @@
             }
         }
 
-        /* ── Replacement Arrangement top zone (2026-11-12) ─────────────
-           Two cards: Conflict Schedule and Replacement Schedule. The old
-           conflict strip and single toolbar row are gone. */
+        /* ── Replacement Arrangement top zone (2026-11-12, Round 2) ─────
+           Three setup cards: Conflict Schedule, Class Details and
+           Replacement Schedule, plus the conditional Selection Summary.
+           The old conflict strip and single toolbar row are gone. */
         .toolbar-restructure.ra-top-zone {
-            display: flex;
-            flex-direction: column;
+            display: grid;
+            grid-template-columns: minmax(0, 8fr) minmax(0, 5fr) minmax(0, 7fr);
             align-items: stretch;
-            justify-content: flex-start;
             gap: 12px;
-            flex-wrap: nowrap;
+        }
+        .toolbar-restructure.ra-top-zone > .ra-block { min-width: 0; }
+
+        @media (max-width: 1100px) {
+            .toolbar-restructure.ra-top-zone { grid-template-columns: minmax(0, 1fr); }
+        }
+
+        @media (min-width: 1101px) {
+            .ra-top-zone.conflict-collapsed { grid-template-columns: 56px minmax(0, 5fr) minmax(0, 7fr); }
+            .ra-top-zone.details-collapsed  { grid-template-columns: minmax(0, 8fr) 56px minmax(0, 7fr); }
+            .ra-top-zone.conflict-collapsed.details-collapsed {
+                grid-template-columns: 56px 56px minmax(0, 7fr);
+            }
+        }
+
+        @media (min-width: 1101px) and (max-width: 1319px) {
+            .ra-top-zone.has-summary { grid-template-columns: minmax(0, 8fr) minmax(0, 5fr) minmax(0, 7fr); }
+            .ra-top-zone.has-summary .ra-selection-summary { grid-column: 1 / -1; }
+            .ra-top-zone.has-summary.conflict-collapsed {
+                grid-template-columns: 56px minmax(0, 5fr) minmax(0, 7fr);
+            }
+            .ra-top-zone.has-summary.details-collapsed {
+                grid-template-columns: minmax(0, 8fr) 56px minmax(0, 7fr);
+            }
+            .ra-top-zone.has-summary.conflict-collapsed.details-collapsed {
+                grid-template-columns: 56px 56px minmax(0, 7fr);
+            }
+        }
+
+        @media (min-width: 1320px) {
+            .ra-top-zone.has-summary {
+                grid-template-columns: minmax(0, 8fr) minmax(0, 5fr) minmax(0, 8fr) 280px;
+            }
+            .ra-top-zone.has-summary.conflict-collapsed {
+                grid-template-columns: 56px minmax(0, 5fr) minmax(0, 8fr) 280px;
+            }
+            .ra-top-zone.has-summary.details-collapsed {
+                grid-template-columns: minmax(0, 8fr) 56px minmax(0, 8fr) 280px;
+            }
+            .ra-top-zone.has-summary.conflict-collapsed.details-collapsed {
+                grid-template-columns: 56px 56px minmax(0, 8fr) 280px;
+            }
         }
         .ra-block {
             background: var(--color-surface);
@@ -1758,8 +1809,10 @@
         .ra-eyebrow svg { flex-shrink: 0; }
         .ra-eyebrow--error { color: var(--color-on-error-container); }
         .ra-eyebrow--primary { color: var(--color-on-primary-container); }
+        .ra-eyebrow--muted { color: var(--color-on-surface-variant); }
         .light .ra-eyebrow--error { color: var(--color-error); }
         .light .ra-eyebrow--primary { color: var(--color-primary); }
+        .ra-card-toggle[hidden] { display: none; }
         .ra-card-toggle {
             margin-left: auto;
             display: inline-flex;
@@ -1781,7 +1834,46 @@
         }
         .ra-card-toggle:disabled { opacity: 0.35; cursor: not-allowed; }
         .ra-card-chevron { transition: transform 0.15s ease; }
-        .ra-card-toggle[aria-expanded="true"] .ra-card-chevron { transform: rotate(180deg); }
+        .ra-card-toggle[aria-expanded="true"] .ra-card-chevron,
+        .ra-card-toggle[aria-expanded="true"] .ra-details-chevron { transform: rotate(180deg); }
+        .ra-card-toggle[aria-expanded="false"] .ra-card-chevron,
+        .ra-card-toggle[aria-expanded="false"] .ra-details-chevron { transform: rotate(0deg); }
+
+        @media (min-width: 1101px) {
+            .ra-top-zone #conflictCollapse[aria-expanded="true"] .ra-card-chevron,
+            .ra-top-zone #detailsToggle[aria-expanded="true"] .ra-details-chevron {
+                transform: rotate(90deg);   /* left */
+            }
+            .ra-top-zone #conflictCollapse[aria-expanded="false"] .ra-card-chevron,
+            .ra-top-zone.conflict-collapsed #conflictCollapse .ra-card-chevron,
+            .ra-top-zone.details-collapsed #detailsToggle .ra-details-chevron {
+                transform: rotate(-90deg);  /* right */
+            }
+        }
+
+        @media (min-width: 1101px) {
+            .ra-top-zone.conflict-collapsed #subjectInfo { padding: 12px 8px; }
+            .ra-top-zone.conflict-collapsed #subjectInfo .ra-block-head,
+            .ra-top-zone.details-collapsed #classDetailsCard .ra-block-head {
+                flex-direction: column-reverse;
+                align-items: center;
+                gap: 12px;
+                margin-bottom: 0;
+            }
+            .ra-top-zone.conflict-collapsed #subjectInfo .ra-card-toggle,
+            .ra-top-zone.details-collapsed #classDetailsCard .ra-card-toggle {
+                margin-left: 0;
+            }
+            .ra-top-zone.conflict-collapsed #subjectInfo .ra-eyebrow,
+            .ra-top-zone.details-collapsed #classDetailsCard .ra-eyebrow {
+                writing-mode: vertical-rl;
+                white-space: nowrap;
+            }
+            .ra-top-zone.details-collapsed #classDetailsCard { padding: 12px 8px; }
+            /* The two-line Conflict summary belongs to the <=1100 collapsed state. */
+            .ra-top-zone.conflict-collapsed #subjectInfo .ra-collapsed-summary { display: none; }
+        }
+
         .ra-collapsed-summary { display: none; margin: 2px 0 0; }
         #subjectInfo.is-collapsed .ra-collapsed-summary { display: block; }
         .ra-collapsed-line1 {
@@ -1803,14 +1895,20 @@
             grid-template-columns: minmax(0, 0.45fr) minmax(0, 0.55fr);
             gap: 16px;
         }
+        /* Round 2 visual contract: the top-zone Conflict card stacks Course
+           over Slot so both triggers carry their full facts. */
+        .ra-top-zone .ra-original-controls {
+            grid-template-columns: minmax(0, 1fr);
+            gap: 14px;
+        }
         .ra-replacement-controls {
             display: flex;
-            align-items: flex-start;
-            justify-content: space-between;
-            gap: 16px;
+            flex-direction: column;
+            align-items: stretch;
+            gap: 14px;
         }
         .ra-replacement-venue { flex: 0 1 auto; }
-        .ra-replacement-week { flex: 0 0 auto; margin-left: auto; }
+        .ra-replacement-week { flex: 0 0 auto; width: 100%; margin-left: 0; }
         .ra-field { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
         .ra-field-label {
             font-size: 10.5px;
@@ -1879,6 +1977,12 @@
         }
         .slot-dd-trigger .ra-venue-pill { background: var(--color-surface); }
         .ra-details { margin-top: 12px; border-top: 1px solid var(--color-outline); }
+        .ra-class-details .ra-details { margin-top: 0; border-top: 0; }
+        .ra-empty-guidance {
+            margin: 2px 0 0;
+            font-size: 12.5px;
+            color: var(--color-on-surface-variant);
+        }
         .ra-details-toggle {
             display: flex;
             align-items: center;
@@ -1911,12 +2015,24 @@
             opacity: 0.7;
             transition: transform 0.15s;
         }
-        .ra-details.open .ra-details-chevron { transform: rotate(180deg); }
         .ra-details-body {
             display: grid;
             grid-template-columns: minmax(0, 1fr) minmax(0, 1.5fr) minmax(0, 0.8fr);
             gap: 10px 20px;
             padding: 10px 0 2px;
+        }
+        .ra-class-details .ra-details-body {
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+        }
+        .ra-class-details .ra-details-body[hidden] { display: none; }
+        @media (max-width: 1100px) {
+            .ra-class-details .ra-details-body {
+                flex-direction: row;
+                flex-wrap: wrap;
+                gap: 14px 24px;
+            }
         }
         .ra-detail-label {
             display: block;
@@ -1935,9 +2051,13 @@
         }
         #detailCohorts { display: flex; flex-wrap: wrap; gap: 6px; }
         .ra-replacement-venue .venue-dd-trigger {
+            width: 100%;
+            max-width: none;
+            min-width: 0;
             background: var(--color-surface-variant);
         }
-        .ra-replacement-venue .toolbar-center { gap: 8px; }
+        .ra-replacement-venue .toolbar-center { width: 100%; gap: 8px; }
+        .ra-replacement-venue .venue-dd { flex: 1 1 auto; width: 100%; min-width: 0; }
         .ra-replacement-venue .venue-dd-label {
             display: inline-flex;
             align-items: center;
@@ -1958,16 +2078,33 @@
         }
         .ra-replacement-week .week-select {
             width: auto;
-            background: var(--color-surface-variant);
+            background-color: var(--color-surface-variant);
         }
         .ra-replacement-week .toolbar-filters {
             display: flex;
-            align-items: center;
-            gap: 8px;
+            flex-direction: column;
+            align-items: stretch;
+            width: 100%;
+            gap: 10px;
             flex: none;
             min-width: 0;
         }
-        .ra-replacement-week .week-nav { width: auto; }
+        .ra-replacement-week .week-nav { width: 100%; }
+        .ra-replacement-week #earliestBtn {
+            width: 100%;
+            justify-content: center;
+        }
+
+        @media (min-width: 769px) {
+            .ra-replacement-venue .venue-dd-panel { max-width: calc(100vw - 24px); }
+            .ra-replacement-venue .venue-dd-panel .venue-col {
+                width: 150px;
+                min-width: 150px;
+                max-width: 150px;
+            }
+            .ra-replacement-venue .venue-dd-panel .venue-col-header { padding: 8px 10px 6px; }
+            .ra-replacement-venue .venue-dd-panel .venue-col-item { padding: 8px 10px; gap: 6px; }
+        }
 
         .ra-desc-chip {
             display: inline-flex;
@@ -1996,13 +2133,19 @@
             .ra-replacement-week .week-select { flex: 1; min-width: 0; }
         }
 
-        body.arrangement-mobile-mode #subjectInfo {
+        body.arrangement-mobile-mode #subjectInfo,
+        body.arrangement-mobile-mode .ra-class-details {
             border: 0;
             border-radius: 0;
             box-shadow: none;
             padding: 0;
             background: transparent;
         }
+        body.arrangement-mobile-mode .ra-class-details .ra-block-head { display: none; }
+        body.arrangement-mobile-mode .ra-class-details:not(.has-slot) { display: none; }
+        body.arrangement-mobile-mode .ra-class-details #details { margin: 0; border: 0; }
+        /* A desktop manual collapse must not hide the facts with no visible control. */
+        body.arrangement-mobile-mode .ra-class-details #detailsBody[hidden] { display: flex; }
         body.arrangement-mobile-mode #subjectInfo .ra-block-head {
             min-height: 44px;
             margin-bottom: 2px;
@@ -2141,7 +2284,7 @@
              lead-time banner is GONE — its message now rides the too-soon cell's own
              hover tooltip (see leadTimeTip() below). -->
 
-        <div class="toolbar toolbar-restructure ra-top-zone">
+        <div class="toolbar toolbar-restructure ra-top-zone" id="topZone">
             <section class="ra-block" id="subjectInfo" aria-labelledby="conflictHeading">
                 <div class="ra-block-head">
                     <span class="ra-eyebrow ra-eyebrow--error" id="conflictHeading">
@@ -2192,27 +2335,48 @@
                         </div>
                     </div>
 
-                    <div class="ra-details" id="details" hidden>
-                        <button class="ra-details-toggle" type="button" id="detailsToggle"
-                                aria-expanded="false" aria-controls="detailsBody">
-                            <span class="ra-details-summary" id="detailsSummary"></span>
-                            <svg class="ra-details-chevron" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                                <path d="m6 9 6 6 6-6"/>
-                            </svg>
-                        </button>
-                        <div class="ra-details-body" id="detailsBody" hidden>
-                            <div class="ra-detail">
-                                <span class="ra-detail-label">Reason</span>
-                                <span class="ra-detail-value" id="detailReason"></span>
-                            </div>
-                            <div class="ra-detail">
-                                <span class="ra-detail-label">Cohorts</span>
-                                <span class="ra-detail-value" id="detailCohorts"></span>
-                            </div>
-                            <div class="ra-detail">
-                                <span class="ra-detail-label">Students</span>
-                                <span class="ra-detail-value" id="detailStudents"></span>
-                            </div>
+                </div>
+            </section>
+
+            <section class="ra-block ra-class-details" id="classDetailsCard"
+                     aria-labelledby="classDetailsHeading">
+                <div class="ra-block-head ra-class-details-head">
+                    <span class="ra-eyebrow ra-eyebrow--muted" id="classDetailsHeading">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                            <circle cx="12" cy="12" r="10"/>
+                            <line x1="12" y1="16" x2="12" y2="12"/>
+                            <line x1="12" y1="8" x2="12.01" y2="8"/>
+                        </svg>
+                        Class Details
+                    </span>
+                    <button class="ra-card-toggle" type="button" id="detailsToggle"
+                            aria-expanded="false" aria-controls="detailsBody"
+                            aria-label="Expand Class Details">
+                        <svg class="ra-details-chevron" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                            <path d="m6 9 6 6 6-6"/>
+                        </svg>
+                    </button>
+                </div>
+
+                <span id="detailsSummary" hidden></span>
+
+                <p class="ra-empty-guidance" id="detailsEmpty" hidden>
+                    Select a course and conflict slot to see the class details.
+                </p>
+
+                <div class="ra-details" id="details" hidden>
+                    <div class="ra-details-body" id="detailsBody" hidden>
+                        <div class="ra-detail">
+                            <span class="ra-detail-label">Reason</span>
+                            <span class="ra-detail-value" id="detailReason"></span>
+                        </div>
+                        <div class="ra-detail">
+                            <span class="ra-detail-label">Cohorts</span>
+                            <span class="ra-detail-value" id="detailCohorts"></span>
+                        </div>
+                        <div class="ra-detail">
+                            <span class="ra-detail-label">Students</span>
+                            <span class="ra-detail-value" id="detailStudents"></span>
                         </div>
                     </div>
                 </div>
@@ -2233,7 +2397,7 @@
 
                 <div class="ra-replacement-controls">
                     <div class="ra-field ra-replacement-venue">
-                        <span class="ra-field-label">Replacement venue</span>
+                        <span class="ra-field-label">Venue</span>
                         <div class="toolbar-center">
                             @include('partials.ui-venue-dropdown', ['selectId' => 'buildingSelector'])
                             {{-- venue-side-chips: the description badge stays; the
@@ -2245,13 +2409,73 @@
                     </div>
 
                     <div class="ra-field ra-replacement-week">
-                        <span class="ra-field-label">Replacement week</span>
+                        <span class="ra-field-label">Week</span>
                         <div class="toolbar-filters">
                             @include('partials.ui-week-nav', ['prevOnclick' => 'weekNav.prevWeek()', 'nextOnclick' => 'weekNav.nextWeek()', 'selectId' => 'weekSelector', 'selectOnclick' => 'weekNav.selectWeek(parseInt(this.value, 10))', 'showTodayBtn' => true, 'showPrint' => false, 'selectTip' => 'Select the WEEK that you want to arrange the replacement in', 'todayLabel' => 'Earliest bookable', 'todayTip' => 'Jump to the earliest bookable slot', 'todayIcon' => 'earliest'])
                         </div>
                     </div>
                 </div>
             </section>
+
+            <div class="ra-block ra-selection-summary sel-summary" id="selSummary">
+                <div class="sel-summary-header">
+                    <span class="sel-summary-title">Selection Summary</span>
+                    {{--<span class="sel-summary-count"><strong id="summaryCount">0</strong> / 4 Selected</span>--}}
+                </div>
+                <div class="sel-summary-empty" id="summaryEmpty">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                        <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+                        <line x1="16" y1="2" x2="16" y2="6"/>
+                        <line x1="8" y1="2" x2="8" y2="6"/>
+                        <line x1="3" y1="10" x2="21" y2="10"/>
+                        <line x1="12" y1="14" x2="12" y2="18"/>
+                        <line x1="10" y1="16" x2="14" y2="16"/>
+                    </svg>
+                    <p>No time slots selected.</p>
+                </div>
+                <div class="sel-summary-grid" id="summaryGrid"></div>
+                <div class="sel-summary-info" id="summaryInfo">
+                    <div class="info-rows">
+                        <div class="info-item">
+                            <span class="info-label">Total Selected</span>
+                            <span class="info-value" id="infoTotal">0 of 4 slots</span>
+                        </div>
+                        <div class="info-item">
+                            <span class="info-label">Total Duration</span>
+                            <span class="info-value" id="infoDuration">0 hours</span>
+                        </div>
+                        <div class="info-item">
+                            <span class="info-label">Venue</span>
+                            <span class="info-value" id="infoBuilding">B103</span>
+                        </div>
+                    </div>
+                </div>
+                {{-- 2026-11-11 (user, "UI Update — Compact Tip Tooltip"): the long hint
+                     is a compact [💡 Tip] trigger immediately LEFT of Submit Request.
+                     The trigger and the button are siblings; only the trigger's
+                     `data-tip` text is rewritten, never its icon/label contents. --}}
+                <div class="sel-summary-action">
+                    <button type="button" class="sel-summary-tip-trigger" id="summaryTip"
+                            data-tip="Click an available (green) time slot to begin."
+                            aria-label="Tip: Click an available (green) time slot to begin.">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                            <path d="M9 18h6"/>
+                            <path d="M10 22h4"/>
+                            <path d="M12 2a7 7 0 0 0-4 12.7V17h8v-2.3A7 7 0 0 0 12 2Z"/>
+                        </svg>
+                        <span>Tip</span>
+                    </button>
+                    <span class="btn-tip" id="submitTip" data-tip="Select a time slot first to enable submission">
+                        <button class="btn btn-primary" id="submitRequestBtn" onclick="proceed()">
+                            Submit Request
+                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                                <line x1="5" y1="12" x2="19" y2="12"/>
+                                <polyline points="12 5 19 12 12 19"/>
+                            </svg>
+                        </button>
+                    </span>
+                </div>
+            </div>
         </div>
 
         {{-- Progress bar — commented out for now
@@ -2304,66 +2528,6 @@
             ]
         ])
         --}}
-
-        <div class="sel-summary" id="selSummary">
-            <div class="sel-summary-header">
-                <span class="sel-summary-title">Selection Summary</span>
-                {{--<span class="sel-summary-count"><strong id="summaryCount">0</strong> / 4 Selected</span>--}}
-            </div>
-            <div class="sel-summary-empty" id="summaryEmpty">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-                    <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
-                    <line x1="16" y1="2" x2="16" y2="6"/>
-                    <line x1="8" y1="2" x2="8" y2="6"/>
-                    <line x1="3" y1="10" x2="21" y2="10"/>
-                    <line x1="12" y1="14" x2="12" y2="18"/>
-                    <line x1="10" y1="16" x2="14" y2="16"/>
-                </svg>
-                <p>No time slots selected.</p>
-            </div>
-            <div class="sel-summary-grid" id="summaryGrid"></div>
-            <div class="sel-summary-info" id="summaryInfo">
-                <div class="info-rows">
-                    <div class="info-item">
-                        <span class="info-label">Total Selected</span>
-                        <span class="info-value" id="infoTotal">0 of 4 slots</span>
-                    </div>
-                    <div class="info-item">
-                        <span class="info-label">Total Duration</span>
-                        <span class="info-value" id="infoDuration">0 hours</span>
-                    </div>
-                    <div class="info-item">
-                        <span class="info-label">Venue</span>
-                        <span class="info-value" id="infoBuilding">B103</span>
-                    </div>
-                </div>
-            </div>
-            {{-- 2026-11-11 (user, "UI Update — Compact Tip Tooltip"): the long hint
-                 is a compact [💡 Tip] trigger immediately LEFT of Submit Request.
-                 The trigger and the button are siblings; only the trigger's
-                 `data-tip` text is rewritten, never its icon/label contents. --}}
-            <div class="sel-summary-action">
-                <button type="button" class="sel-summary-tip-trigger" id="summaryTip"
-                        data-tip="Click an available (green) time slot to begin."
-                        aria-label="Tip: Click an available (green) time slot to begin.">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                        <path d="M9 18h6"/>
-                        <path d="M10 22h4"/>
-                        <path d="M12 2a7 7 0 0 0-4 12.7V17h8v-2.3A7 7 0 0 0 12 2Z"/>
-                    </svg>
-                    <span>Tip</span>
-                </button>
-                <span class="btn-tip" id="submitTip" data-tip="Select a time slot first to enable submission">
-                    <button class="btn btn-primary" id="submitRequestBtn" onclick="proceed()">
-                        Submit Request
-                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                            <line x1="5" y1="12" x2="19" y2="12"/>
-                            <polyline points="12 5 19 12 12 19"/>
-                        </svg>
-                    </button>
-                </span>
-            </div>
-        </div>
 
         {{-- 2026-11-10 (user, "UI Update — Action Area"): Clear ALL is COMMENTED OUT,
              not deleted — it returns with multi-block selection. While it is out of the
@@ -2432,6 +2596,8 @@
            bottom. Everything else is the frozen UI design, byte-for-byte
            except the BRIDGE PATCH marks. */
         document.addEventListener('DOMContentLoaded', function () {
+        /* Round 2: one closure-level owner for the top-zone state classes. */
+        const topZone = document.getElementById('topZone');
         // Closure-owned adapter; boot-time refreshes are safe before creation.
         let arrangementMobile = null;
         /* T05: refresh is COALESCED by the adapter — many calls settle into one
@@ -3119,6 +3285,7 @@
             const el = document.getElementById('selCount');
             if (el) el.textContent = total;
             const has = total > 0;
+            topZone.classList.toggle('has-summary', has);
             const btn = document.getElementById('submitRequestBtn') || document.querySelector('.btn-primary');
             /* T18: the mobile-origin request latch keeps Submit disabled even
                while saved slots remain; only releaseMobileSubmissionLatch()
@@ -4985,6 +5152,32 @@
             }
         }
 
+        function fitArrangementVenuePanel() {
+            const dd = document.getElementById('buildingSelectorDropdown');
+            if (!dd || !dd.classList.contains('open')) return;
+            const panel = dd.querySelector('.venue-dd-panel');
+            const trigger = dd.querySelector('.venue-dd-trigger');
+            if (!panel || !trigger) return;
+            const width = panel.getBoundingClientRect().width || 603;
+            const triggerLeft = trigger.getBoundingClientRect().left;
+            const margin = 12;
+            let left = triggerLeft;
+            const max = window.innerWidth - margin - width;
+            if (left > max) left = max;
+            if (left < margin) left = margin;
+            panel.style.left = Math.round(left - triggerLeft) + 'px';
+            panel.style.right = 'auto';
+        }
+
+        function resetArrangementVenuePanel() {
+            const dd = document.getElementById('buildingSelectorDropdown');
+            const panel = dd && dd.querySelector('.venue-dd-panel');
+            if (panel) {
+                panel.style.left = '';
+                panel.style.right = '';
+            }
+        }
+
         if (!window.__raDetailsSummaryBound) {
             window.__raDetailsSummaryBound = true;
             let raDetailsSummaryTimer = null;
@@ -5008,6 +5201,7 @@
                 toggle.setAttribute('aria-expanded', 'true');
                 toggle.setAttribute('aria-label', 'Collapse Conflict Schedule');
                 card.classList.remove('is-collapsed');
+                topZone.classList.remove('conflict-collapsed');
                 if (body) body.hidden = false;
                 line1.textContent = '';
                 line2.textContent = '';
@@ -5044,20 +5238,33 @@
             const timetableEl = document.getElementById('timetable');
             if (timetableEl) timetableEl.classList.toggle('no-subject', !hasCourse);
 
+            const detailsCard = document.getElementById('classDetailsCard');
             const details = document.getElementById('details');
             const detailsBody = document.getElementById('detailsBody');
             const detailsToggle = document.getElementById('detailsToggle');
-            if (details && detailsBody && detailsToggle) {
+            const detailsEmpty = document.getElementById('detailsEmpty');
+            if (detailsCard && details && detailsBody && detailsToggle && detailsEmpty) {
                 if (!hasSlot) {
+                    detailsCard.classList.remove('has-slot');
                     details.hidden = true;
                     detailsBody.hidden = true;
+                    detailsToggle.hidden = true;
+                    detailsEmpty.hidden = false;
                     detailsToggle.setAttribute('aria-expanded', 'false');
+                    detailsToggle.setAttribute('aria-label', 'Expand Class Details');
                     details.classList.remove('open');
-                } else if (details.hidden) {
-                    details.hidden = false;
-                    detailsBody.hidden = false;
-                    detailsToggle.setAttribute('aria-expanded', 'true');
-                    details.classList.add('open');
+                    topZone.classList.remove('details-collapsed');
+                } else {
+                    detailsCard.classList.add('has-slot');
+                    detailsEmpty.hidden = true;
+                    detailsToggle.hidden = false;
+                    if (details.hidden) {
+                        details.hidden = false;
+                        detailsBody.hidden = false;
+                        detailsToggle.setAttribute('aria-expanded', 'true');
+                        detailsToggle.setAttribute('aria-label', 'Collapse Class Details');
+                        details.classList.add('open');
+                    }
                 }
             }
 
@@ -6907,6 +7114,7 @@ writeSlotTrigger(slot);
                 if (!card || !body) return;
                 const collapsed = !card.classList.contains('is-collapsed');
                 card.classList.toggle('is-collapsed', collapsed);
+                topZone.classList.toggle('conflict-collapsed', collapsed);
                 body.hidden = collapsed;
                 this.setAttribute('aria-expanded', String(!collapsed));
                 this.setAttribute('aria-label', collapsed
@@ -6922,9 +7130,28 @@ writeSlotTrigger(slot);
                 const opening = body.hidden;
                 body.hidden = !opening;
                 this.setAttribute('aria-expanded', String(opening));
+                this.setAttribute('aria-label', opening
+                    ? 'Collapse Class Details'
+                    : 'Expand Class Details');
+                topZone.classList.toggle('details-collapsed', !opening);
                 if (details) details.classList.toggle('open', opening);
                 if (opening) setTimeout(measureDetailsSummary, 0);
             });
+
+            const venueDd = document.getElementById('buildingSelectorDropdown');
+            if (venueDd) {
+                const venueTrigger = venueDd.querySelector('.venue-dd-trigger');
+                const venuePanel = venueDd.querySelector('.venue-dd-panel');
+                venueTrigger?.addEventListener('click', function () {
+                    setTimeout(function () {
+                        if (venueDd.classList.contains('open')) fitArrangementVenuePanel();
+                        else resetArrangementVenuePanel();
+                    }, 0);
+                });
+                venuePanel?.addEventListener('click', function () {
+                    setTimeout(fitArrangementVenuePanel, 0);
+                }, true);
+            }
 
             let topZoneResizeTimer = null;
             window.addEventListener('resize', function () {
@@ -6933,6 +7160,7 @@ writeSlotTrigger(slot);
                     const slot = selectedOriginalSlot || anchorSlotFromPinned();
                     if (slot) writeSlotTrigger(slot); else writeSlotTrigger(null);
                     renderTitleSummary();
+                    fitArrangementVenuePanel();
                 }, 160);
             });
 

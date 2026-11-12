@@ -1,3 +1,49 @@
+## 2026-11-12 — desktop top zone Round 2: three setup cards, conditional Summary, rails
+
+User-approved Round 2 desktop layout. Mobile keeps its existing lane and receives one
+compatibility relocation.
+
+**Three setup cards + conditional Summary.** The top zone now renders **Conflict
+Schedule**, **Class Details** and **Replacement Schedule** (`8fr 5fr 7fr`), plus the
+existing `#selSummary` as a fourth card only while a replacement is selected. At
+`1101–1319px` the Summary drops to a full-width second row; at `>=1320px` the row is
+`8fr 5fr 8fr + 280px`; at `<=1100px` the zone is one column. `#selSummary` keeps every ID
+and is hidden with the `has-summary` wrapper class, never `hidden`.
+
+**Class Details card.** Details moves out of the Conflict card into its own
+`#classDetailsCard`; `#details` stays the inner container and `#detailsEmpty` is the
+no-slot guidance. The heading keeps a small chevron, the body stacks on desktop, and the
+card collapses to a 56px rail independently of the Conflict card. A manual collapse
+survives slot changes; clearing the slot resets the empty state.
+
+**Rails and arrows.** Conflict and Details collapse to 56px vertical rails (vertical
+eyebrow, centred toggle, `12px 8px` padding). Desktop chevrons point left when open and
+right when closed; below 1101px they point up/down. The Conflict two-line collapsed
+summary remains at `<=1100px` and is hidden in the desktop rail.
+
+**Replacement card and venue panel.** Labels are now **Venue** and **Week**. The
+Replacement card stacks Venue then Week, and **Earliest bookable** fills the card width.
+The week select keeps the shared chevron (page-local `background-color`, not the
+`background` shorthand). Above 768px the venue panel uses four 150px columns (~603px)
+and clamps 12px inside the viewport; `<=768px` is unchanged.
+
+**Visual receipt correction (2026-11-12).** The first live pass still matched the old
+45/55 Conflict controls and kept the 216px Venue-trigger cap; the approved prototype
+does neither. The top zone now stacks **Course over Slot** at full card width, and the
+**Venue trigger fills the venue row** (the description chip stays at the tail). This is
+the live parity fix for the user's side-by-side screenshot comparison.
+
+**Mobile.** Exactly one relocation entry moves `.ra-class-details` into the Original
+class facts after `#subjectInfo`, with transparent chrome, no desktop heading and no
+empty card. A desktop manual collapse cannot hide mobile facts. `T23_NODES` now guards
+the new node.
+
+Receipts: new `tests/top-zone-round2.spec.ts` (grid matrix, rails/arrows, Earliest width,
+week chevron, Summary rebuild/clear, venue panel fit and other-page scoping);
+`tests/arrangement-mobile.spec.ts` 769px conditional Summary + empty/slotted mobile card,
+and its Tip test now makes a real selection before the desktop tooltip assertion;
+`tests/session-arrival-pin-guard.spec.ts` reads cohorts from `#classDetailsCard`.
+
 ## 2026-11-12 — desktop top zone: two cards, Course/Slot, details and venue
 
 User-approved desktop top-zone redesign. Mobile keeps its owned layout and receives the

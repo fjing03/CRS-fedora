@@ -20,17 +20,18 @@ test('S1 — the pinned arrival keeps the user\'s pair + the strip reads 49\'s o
   await page.waitForSelector('#subjectInfo', { timeout: 15_000 });
   await page.waitForTimeout(900);
   const strip = await page.locator('#subjectInfo').innerText();
+  const details = await page.locator('#classDetailsCard').innerText();
   // the honest subject line: the PRACTICAL's own type (was "(L)")
   expect(strip).toContain('(P)');
   expect(strip).not.toContain('(L)');
   // the user's clicked cohort only — NOT the lecture's joint line
-  expect(strip).toContain('DFT2 (S1) G1');
-  expect(strip).not.toContain('DFT2 (S1) G1 + DSF2 (S1) G1');
+  expect(details).toContain('DFT2 (S1) G1');
+  expect(details).not.toContain('DFT2 (S1) G1 + DSF2 (S1) G1');
   // the pinned pair the submit honours = the arrival pair (was hijacked to {97, 8})
   const pin = await page.evaluate(() => (window as any).pinnedOccurrence);
   expect(pin).toEqual({ sessionId: 49, week: 14 });
   // the enrolled headcount = 49's own (18) — not the lecture's "18 + 15 = 33"
-  expect(strip).not.toContain('18 + 15 = 33');
+  expect(details).not.toContain('18 + 15 = 33');
   // the trigger reads the pinned anchor (the boot tail's rewrite), never
   // the T18 "Auto-pinned: the earliest" wording (the dead-write becomes enforced)
   await expect(page.locator('#slotTriggerText')).not.toContainText('Auto-pinned');
@@ -54,13 +55,14 @@ test('S2 — the replacement-home sighting (39) reads its own facts (P · DSF2 �
   await page.waitForSelector('#subjectInfo', { timeout: 15_000 });
   await page.waitForTimeout(900);
   const strip = await page.locator('#subjectInfo').innerText();
+  const details = await page.locator('#classDetailsCard').innerText();
   expect(strip).toContain('(P)');
   expect(strip).not.toContain('(L)');
-  expect(strip).toContain('DSF2 (S1) G1');
-  expect(strip).not.toContain('DSF2 (S1) G1 + DFT2');
+  expect(details).toContain('DSF2 (S1) G1');
+  expect(details).not.toContain('DSF2 (S1) G1 + DFT2');
   const pin = await page.evaluate(() => (window as any).pinnedOccurrence);
   expect(pin).toEqual({ sessionId: 39, week: 14 });
-  expect(strip).not.toContain('18 + 15 = 33');
+  expect(details).not.toContain('18 + 15 = 33');
   await expect(page.locator('#slotTriggerText')).not.toContainText('Auto-pinned');
 });
 
@@ -96,7 +98,8 @@ test('S3 — Replace Now click-through: the producer hands 49 and the boot keeps
   const pin = await page.evaluate(() => (window as any).pinnedOccurrence);
   expect(pin).toEqual({ sessionId: 49, week: 14 });
   const strip = await page.locator('#subjectInfo').innerText();
+  const details = await page.locator('#classDetailsCard').innerText();
   expect(strip).toContain('(P)');
-  expect(strip).toContain('DFT2 (S1) G1');
-  expect(strip).not.toContain('18 + 15 = 33');
+  expect(details).toContain('DFT2 (S1) G1');
+  expect(details).not.toContain('18 + 15 = 33');
 });

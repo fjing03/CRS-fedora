@@ -2536,6 +2536,7 @@ const T23_NODES = [
   '#summaryTip',
   '#submitTip',
   '#subjectInfo',
+  '.ra-class-details',
 ];
 
 /** Switch to a mobile width and wait for the one breakpoint owner to settle. */
@@ -3676,6 +3677,7 @@ test.describe('T23b — responsive geometry, themes and desktop parity', () => {
       expect(layout.summaryDisplay).toBe('none');
       expect(layout.toolbarDisplay).toBe('none');
       expect(layout.legendDisplay).toBe('none');
+      await expect(page.locator('#classDetailsCard')).toBeHidden();
       expect(await page.evaluate(() =>
         !!document.getElementById('subjectSelector')?.closest('#arrangementMobile'))).toBe(true);
       expect(await page.evaluate(() =>
@@ -3695,9 +3697,12 @@ test.describe('T23b — responsive geometry, themes and desktop parity', () => {
     expect(desktop.gridDisplay).not.toBe('none');
     expect(desktop.gridHidden).toBe(false);
     expect(desktop.gridInert).toBe(false);
-    expect(desktop.summaryDisplay).not.toBe('none');
+    /* Round 2: the Summary is conditional, so a fresh page has no fourth card. */
+    expect(desktop.summaryDisplay).toBe('none');
     expect(desktop.toolbarDisplay).not.toBe('none');
     expect(desktop.legendDisplay).not.toBe('none');
+    await expect(page.locator('#classDetailsCard')).toBeVisible();
+    await expect(page.locator('#detailsEmpty')).toBeVisible();
     expect(await page.evaluate(() =>
       !!document.getElementById('subjectSelector')?.closest('#arrangementMobile'))).toBe(false);
     expect(await page.evaluate(() =>
@@ -3705,6 +3710,28 @@ test.describe('T23b — responsive geometry, themes and desktop parity', () => {
 
     const desktopTrail = await t23FocusTrail(page, 18);
     expect(desktopTrail.every((stop) => !stop.inMobile), '769px: no mobile-only control is a tab stop').toBe(true);
+  });
+
+  test('mobile Class Details appears only with a slot and keeps its facts', async ({ page }) => {
+    await page.setViewportSize({ width: 1280, height: 800 });
+    await page.goto('/replacement-arrangement?session=67&week=14&from=replacement-home');
+    await page.waitForSelector('#subjectInfo', { timeout: 15_000 });
+    await page.waitForTimeout(900);
+
+    await t23SetMobile(page, 390, 844);
+    const context = page.locator('[data-arrangement-mobile-context]');
+    if (!(await context.evaluate((node) => (node as unknown as HTMLDetailsElement).open))) {
+      await page.locator('[data-arrangement-mobile-context-summary]').click();
+    }
+    const card = page.locator('#classDetailsCard');
+    await expect(card).toBeVisible();
+    await expect(card).toHaveClass(/has-slot/);
+    await expect(page.locator('#detailsEmpty')).toBeHidden();
+    await expect(page.locator('#detailCohorts')).not.toBeEmpty();
+
+    await t23SetDesktop(page, 769, 844);
+    await expect(card).toBeVisible();
+    await expect(card).toHaveClass(/has-slot/);
   });
 
   test('round-1 mobile top zone, compact picker and footer clearance', async ({ page }) => {
@@ -4213,13 +4240,28 @@ test.describe('T23c — feedback lifetime, Tip tooltip and lifecycle isolation',
     await page.locator('[data-arrangement-mobile-info-close]').click();
     await expect(page.locator('#arrangementMobileInfo')).toBeHidden();
 
-    /* Desktop restores the latest live message and a real hover/focus tooltip. */
+    /* Desktop restores the latest live message and a real hover/focus tooltip.
+       Round 2: the Summary is conditional, so the empty desktop page has no
+       Tip to focus — make a real selection first. */
     await t23SetDesktop(page);
-    expect(await page.locator('#summaryTip').getAttribute('data-tip'),
-      'desktop gets the current message back, not the boot-stale one').toBe(message);
+    if (!(await page.locator('#selSummary').isVisible())) {
+      const course = await page.locator('#subjectSelector option').evaluateAll(
+        (options) => options.map((option) => (option as HTMLOptionElement).value).filter(Boolean)[0] || '',
+      );
+      await page.locator('#subjectSelector').selectOption(course);
+      await page.locator('#tableBody .cell-content.cell-available').first().click();
+      await expect(page.locator('#selSummary')).toBeVisible();
+    }
+    const desktopMessage = await page.evaluate(() => {
+      const tip = document.getElementById('summaryTip');
+      return tip ? (tip.getAttribute('aria-label') || '').replace(/^Tip:\s*/i, '').trim() : '';
+    });
+    expect(desktopMessage.length).toBeGreaterThan(0);
+    expect((await page.locator('#summaryTip').getAttribute('data-tip') || '').replace(/\n/g, ' '),
+      'desktop gets the current message back, not the boot-stale one').toBe(desktopMessage);
     await page.locator('#summaryTip').focus();
     await expect.poll(async () =>
-      (await t23FloatingTooltip(page)).some((tip) => tip.shown && tip.text === message)).toBe(true);
+      (await t23FloatingTooltip(page)).some((tip) => tip.shown && tip.text.replace(/\n/g, ' ') === desktopMessage)).toBe(true);
     await page.locator('#summaryTip').evaluate((node) => (node as HTMLElement).blur());
     await expect.poll(async () => (await t23FloatingTooltip(page)).every((tip) => !tip.shown)).toBe(true);
 
