@@ -1,5 +1,7 @@
 ## 2026-11-11 — Cancel this Class? can cancel the whole day
 
+> 2026-11-13, in progress: see [cancelled-slot reuse](cancelled-slot-reuse-changelog.md) for shared stacking, real room-cell availability, passing checks and remaining delivery gates. No demo cleanup or final Verify yet.
+
 User ask (2026-11-11): one checkbox in the *Cancel this Class?* modal to cancel **every class the
 lecturer teaches that day**, so a day of leave is one decision instead of four.
 

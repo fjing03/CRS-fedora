@@ -107,6 +107,25 @@ final class EmailQueueTest extends TestCase
             ]);
         }
 
+        /* cancelled-slot-reuse A08: the ORIGINAL occurrence's COMPLETE grid —
+           the session's recurring coordinates (Tue 10:00–12:00) at the
+           request's ORIGINAL week 6 (identity-owned, occupied). The strict
+           original plan refuses a missing original cell (frozen D3/S04), so
+           the approval fixture carries the full four-cell reservation. */
+        foreach (['10:00:00', '10:30:00', '11:00:00', '11:30:00'] as $ost) {
+            TimeSlot::create([
+                'semester_id' => (int) $semester->id,
+                'class_session_id' => $session->id,
+                'week_number' => 6,
+                'day_of_week' => (int) $session->day_of_week,
+                'start_time' => $ost,
+                'end_time' => date('H:i:s', strtotime($ost) + 1800),
+                'venue_id' => $venue->id,
+                'status' => 'occupied',
+                'version' => 1,
+            ]);
+        }
+
         $slotIds = [];
         for ($k = 0; $k < 3; $k++) {
             $st = date('H:i:s', strtotime('14:00:00') + $k * 1800);

@@ -1,5 +1,7 @@
 ## 2026-11-11 — every summary card now explains its formula
 
+> 2026-11-13, in progress: see [cancelled-slot reuse](cancelled-slot-reuse-changelog.md) for shared stacking, real room-cell availability, passing checks and remaining delivery gates. No demo cleanup or final Verify yet.
+
 User ruling (2026-11-11): every summary card must **say how its number is made**, in plain words.
 All seven live pages (and the shared fallback map in `partials/ui-summary-bar.blade.php`) now carry
 formula-first descriptions. Only the cards that show a `+N` mention it.

@@ -2,13 +2,18 @@
 
 namespace App\Actions;
 
+use App\Exceptions\OccurrenceWriteLockContended;
 use App\Models\AuditLog;
 use App\Models\ClassException;
 use App\Models\ClassSession;
 use App\Models\Holiday;
 use App\Models\ReplacementRequest;
+use App\Models\ReplacementRequestSlot;
 use App\Models\Semester;
+use App\Models\TimeSlot;
 use App\Models\User;
+use App\Services\OccurrenceMutationLocks;
+use App\Services\OriginalOccurrencePlan;
 use App\Support\LocalTime;
 use App\Support\Notifications\NotificationEmitter;
 use App\Support\WorkingHours;
@@ -16,7 +21,8 @@ use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 
 /**
- * Cancel a SET of class occurrences as ONE decision (SDD cancel-whole-day, T2).
+ * Cancel a SET of class occurrences as ONE decision (SDD cancel-whole-day, T2;
+ * SDD cancelled-slot-reuse A05/A06 — original-slot release integrated).
  *
  * The user's rule (2026-11-11): a lecturer who is away for a day cancels the day,
  * not four separate classes. Because that one action can also withdraw requests
@@ -24,22 +30,31 @@ use Illuminate\Support\Facades\DB;
  *
  *   · every item is re-checked BEFORE anything is written — owner, the 1–14 week
  *     range, the 2-working-day window, the holiday/Sunday ban, the reason, and
- *     "no exception for this occurrence yet";
- *   · ONE transaction — a single failure writes NOTHING (all-or-nothing);
+ *     "no exception for this occurrence yet" — first cheaply, then AGAIN under
+ *     the locks, so the locked truth is what is cancelled;
+ *   · ONE transaction: the complete mutation union (advisory locks, source
+ *     sessions, attached requests and the original + landing slot union) is
+ *     locked FIRST through {@see OccurrenceMutationLocks}, in D4 order;
+ *   · EVERY selected occurrence's original cells are classified BEFORE any
+ *     flip or closure — a missing or ambiguous cell refuses the WHOLE batch;
  *   · a pending or approved request on a cancelled occurrence is CLOSED in the
- *     same transaction (status `cancelled`, `decided_at`, slots released through
- *     ReleaseRequestSlots, junction rows deleted) — the parked bulk-cancel rule,
- *     because a request pointing at a class that no longer runs is a lie;
+ *     same transaction (status `cancelled`, `decided_at`) and ONLY its proven
+ *     landing cells are freed through `ReleaseRequestSlots`' explicit
+ *     cancellation-only policy — a newer holder is never released; the flips
+ *     ride a truthful `attached_release` receipt inside the `class_cancelled`
+ *     audit (junction ids captured before the delete, per cell the ACTUAL old
+ *     state/version/owner → available, owner pointer cleared);
+ *   · the original cells are released through `ReleaseOriginalOccurrenceSlots`
+ *     with the locked, freshly re-planned plan; the receipt rides the existing
+ *     legal `class_cancelled` audit (`original_release`) — no new audit kind;
  *   · one audit row per cancelled class;
- *   · notifications AFTER commit, one fan-out per class, using the existing
- *     `classCancelled` emitter — no new wording, no mail.
- *
- * The actions' own rules stay here, never on the page (design F2).
+ *   · notifications AFTER the OUTERMOST commit, one fan-out per class — a
+ *     rollback sends none.
  */
 final class CancelClassBatch
 {
     /**
-     * @param  array<int, array{session: ClassSession, week: int}>  $items
+     * @param  list<array{session: ClassSession, week: int}>  $items
      * @return array{ok: bool, refused: string|null, hint: string|null, cancelled: array<int, array{session_id: int, week: int, exception_id: int}>, requestsClosed: int}
      */
     public function __invoke(
@@ -71,80 +86,217 @@ final class CancelClassBatch
 
         $cancelled = [];
         $requestsClosed = 0;
+        $refusal = null;
 
-        DB::transaction(function () use ($user, $items, $reason, $otherDetail, &$cancelled, &$requestsClosed): void {
-            foreach ($items as $item) {
-                /** @var ClassSession $session */
-                $session = $item['session'];
-                $week = (int) $item['week'];
+        try {
+            DB::transaction(function () use ($user, $items, $reason, $otherDetail, $enforceWindow, &$cancelled, &$requestsClosed, &$refusal): void {
+                // A05 — the complete union FIRST, then everything re-read under it.
+                $plans = app(OccurrenceMutationLocks::class)->lock($items);
 
-                $details = [
-                    'class_session_id' => (int) $session->id,
-                    'week_number' => $week,
-                    'reason' => $reason,
-                ];
-                if ($reason === 'other' && trim((string) $otherDetail) !== '') {
-                    $details['other_detail'] = trim((string) $otherDetail);
+                $freshSessions = ClassSession::query()
+                    ->whereIn('id', array_map(fn (array $item): int => (int) $item['session']->id, $items))
+                    ->get()
+                    ->keyBy('id');
+
+                // Re-validate EVERY item under the locks, and classify EVERY
+                // occurrence's original cells, before any flip or closure.
+                $classified = [];
+
+                foreach ($items as $item) {
+                    $session = $freshSessions->get((int) $item['session']->id);
+                    $week = (int) $item['week'];
+
+                    if ($session === null) {
+                        $refusal = $this->refuse('refresh', 'One of these classes no longer exists — please refresh and try again.');
+
+                        return;
+                    }
+
+                    $refusal = $this->refusalFor($user, $session, $week, $reason, $enforceWindow);
+
+                    if ($refusal !== null) {
+                        return;
+                    }
+
+                    $plan = $plans[$session->id.':'.$week] ?? null;
+
+                    if (! $plan instanceof OriginalOccurrencePlan || $plan->hasRefusal()) {
+                        $refusal = $this->refuse('original_release', $this->releaseHint($plan));
+
+                        return;
+                    }
+
+                    // the attached request is captured BEFORE any link is
+                    // deleted — more than one live claim on one occurrence is
+                    // corrupted data the planner may not guess its way out of
+                    $attachedRequests = ReplacementRequest::query()
+                        ->where('class_session_id', (int) $session->id)
+                        ->where('week_number', $week)
+                        ->whereIn('status', ['pending', 'approved'])
+                        ->orderBy('id')
+                        ->lockForUpdate()
+                        ->get();
+
+                    if ($attachedRequests->count() > 1) {
+                        $refusal = $this->refuse('attached_ambiguous',
+                            'This class holds more than one active replacement request for this week — nothing was changed. Please contact the administrator.');
+
+                        return;
+                    }
+
+                    $request = $attachedRequests->first();
+
+                    $classified[] = ['session' => $session, 'week' => $week, 'plan' => $plan, 'request' => $request];
                 }
 
-                // the closure first: closing the request deletes its junction rows
-                $request = ReplacementRequest::query()
-                    ->where('class_session_id', (int) $session->id)
-                    ->where('week_number', $week)
-                    ->whereIn('status', ['pending', 'approved'])
-                    ->lockForUpdate()
-                    ->first();
+                // Phase B — flips and closures, all-or-nothing.
+                foreach ($classified as $entry) {
+                    /** @var ClassSession $session */
+                    $session = $entry['session'];
+                    $week = (int) $entry['week'];
+                    /** @var OriginalOccurrencePlan $plan */
+                    $plan = $entry['plan'];
+                    /** @var ReplacementRequest|null $request */
+                    $request = $entry['request'];
 
-                if ($request !== null) {
-                    (new ReleaseRequestSlots)($request, false);
+                    $details = [
+                        'class_session_id' => (int) $session->id,
+                        'week_number' => $week,
+                        'reason' => $reason,
+                    ];
+                    if ($reason === 'other' && trim((string) $otherDetail) !== '') {
+                        $details['other_detail'] = trim((string) $otherDetail);
+                    }
 
-                    $request->fill([
-                        'status' => 'cancelled',
-                        'decided_at' => now(),
+                    // the closure first: closing the request deletes its junction rows,
+                    // so the plan's classifications were captured above, before this
+                    if ($request !== null) {
+                        $oldStatus = (string) $request->status;
+
+                        // the junction receipt's ids, captured BEFORE the
+                        // release deletes them — the audit must name what it
+                        // removed
+                        $junctionSlotIds = ReplacementRequestSlot::query()
+                            ->where('replacement_request_id', (int) $request->id)
+                            ->orderBy('time_slot_id')
+                            ->pluck('time_slot_id')
+                            ->map(fn ($id): int => (int) $id)
+                            ->values()
+                            ->all();
+
+                        $attachedRelease = [];
+
+                        (new ReleaseRequestSlots)($request, false, function (TimeSlot $slot) use (&$attachedRelease): void {
+                            // the model still holds the PRE-flip row (the flip
+                            // is a version-checked raw UPDATE), so the receipt
+                            // states the truth: the ACTUAL old state and the
+                            // owner pointer the flip cleared
+                            $attachedRelease[] = [
+                                'slot_id' => (int) $slot->id,
+                                'week_number' => (int) $slot->week_number,
+                                'day_of_week' => (int) $slot->day_of_week,
+                                'venue_id' => (int) $slot->venue_id,
+                                'start_time' => (string) $slot->start_time,
+                                'end_time' => (string) $slot->end_time,
+                                'before' => [
+                                    'status' => (string) $slot->status,
+                                    'class_session_id' => $slot->class_session_id !== null ? (int) $slot->class_session_id : null,
+                                    'version' => (int) $slot->version,
+                                ],
+                                'after' => [
+                                    'status' => 'available',
+                                    'class_session_id' => null,
+                                    'version' => (int) $slot->version + 1,
+                                ],
+                            ];
+                        }, true);
+
+                        $request->fill([
+                            'status' => 'cancelled',
+                            'decided_at' => now(),
+                        ]);
+                        $request->save();
+
+                        AuditLog::create([
+                            'user_id' => (int) $user->id,
+                            'action' => 'cancelled',
+                            'replacement_request_id' => $request->id,
+                            'time_slot_id' => (int) $request->replacement_time_slot_id,
+                            'old_status' => $oldStatus,
+                            'new_status' => null,
+                            'details' => ['cancelled_by' => 'class_cancelled', 'reason' => $reason],
+                        ]);
+
+                        $details['request_id'] = (int) $request->id;
+                        $details['closed_request'] = true;
+                        $details['closed_request_status'] = $oldStatus;
+                        $details['attached_release'] = [
+                            'request_id' => (int) $request->id,
+                            'old_status' => $oldStatus,
+                            'junction_slot_ids' => $junctionSlotIds,
+                            'changed' => $attachedRelease,
+                        ];
+                        $requestsClosed++;
+                    }
+
+                    $exception = ClassException::create([
+                        'class_session_id' => (int) $session->id,
+                        'week_number' => $week,
+                        'reason' => $reason,
                     ]);
-                    $request->save();
+
+                    // the original cells: available/protected cells ride the receipt as no-ops
+                    $receipt = (new ReleaseOriginalOccurrenceSlots)($plan);
+
+                    $details['original_release'] = [
+                        'class_session_id' => (int) $session->id,
+                        'week_number' => $week,
+                        'changed' => $receipt->changed,
+                        'no_ops' => $receipt->noOps,
+                        'out_of_range' => $plan->outOfRange,
+                    ];
 
                     AuditLog::create([
                         'user_id' => (int) $user->id,
-                        'action' => 'cancelled',
-                        'replacement_request_id' => $request->id,
-                        'time_slot_id' => (int) $request->replacement_time_slot_id,
-                        'old_status' => 'pending',
-                        'new_status' => null,
-                        'details' => ['cancelled_by' => 'class_cancelled', 'reason' => $reason],
+                        'action' => 'class_cancelled',
+                        'details' => $details,
                     ]);
 
-                    $details['request_id'] = (int) $request->id;
-                    $details['closed_request'] = true;
-                    $requestsClosed++;
+                    $cancelled[] = [
+                        'session_id' => (int) $session->id,
+                        'week' => $week,
+                        'exception_id' => (int) $exception->id,
+                    ];
                 }
+            });
+        } catch (OccurrenceWriteLockContended) {
+            return $this->refuse('refresh', 'Someone else is changing these classes right now — please try again.');
+        } catch (OriginalOccurrenceReleaseException $e) {
+            return $this->refuse('original_release', $this->releaseHint(null, $e->reason));
+        } catch (ReleaseDriftException) {
+            return $this->refuse('original_release',
+                'A replacement block tied to these classes changed while cancelling — nothing was changed. Please try again.');
+        }
 
-                $exception = ClassException::create([
-                    'class_session_id' => (int) $session->id,
-                    'week_number' => $week,
-                    'reason' => $reason,
-                ]);
+        if ($refusal !== null) {
+            // the batch refused under the locks — nothing was written, so no fan-out
+            return $refusal;
+        }
 
-                AuditLog::create([
-                    'user_id' => (int) $user->id,
-                    'action' => 'class_cancelled',
-                    'details' => $details,
-                ]);
-
-                $cancelled[] = [
-                    'session_id' => (int) $session->id,
-                    'week' => $week,
-                    'exception_id' => (int) $exception->id,
-                ];
-            }
-        });
-
-        // one fan-out per cancelled class — the existing wording, nothing new
+        // one fan-out per cancelled class — the existing wording, nothing new;
+        // DB::afterCommit fires on the OUTERMOST commit (the day path's outer
+        // transaction), so a rolled-back selection notifies nobody.
+        // POST-COMMIT FAN-OUT IS BEST-EFFORT: the commit already stands, so a
+        // failing emitter must never bubble back up through the day path's
+        // catch as a false "Nothing changed" rollback claim — each class's
+        // notification failure is logged and the fan-out continues.
         DB::afterCommit(function () use ($user, $items): void {
-            $emitter = app(NotificationEmitter::class);
-
             foreach ($items as $item) {
-                $emitter->classCancelled($user, $item['session'], (int) $item['week']);
+                try {
+                    app(NotificationEmitter::class)->classCancelled($user, $item['session'], (int) $item['week']);
+                } catch (\Throwable $e) {
+                    report($e);
+                }
             }
         });
 
@@ -201,6 +353,23 @@ final class CancelClassBatch
         }
 
         return null;
+    }
+
+    /**
+     * The helpful copy for an original-release refusal — the plan's own reason
+     * when it carries one, else the exception's (`membership_drift` asks for a
+     * refresh; stale flips say retry). Never a 500.
+     */
+    private function releaseHint(?OriginalOccurrencePlan $plan, ?string $exceptionReason = null): string
+    {
+        $reason = $exceptionReason ?? $plan?->refusalReason() ?? 'unavailable';
+
+        if ($reason === 'membership_drift') {
+            return 'These classes changed while you were cancelling — please refresh and try again.';
+        }
+
+        return 'One of the selected classes\' original slots could not be released safely ('
+            .$reason.'). Nothing was changed — please try again or contact the administrator if this repeats.';
     }
 
     /** The occurrence's real date: semester start + (week − 1) weeks + the weekday. */

@@ -10,6 +10,7 @@ use App\Models\ReplacementRequestSlot;
 use App\Models\Semester;
 use App\Services\LectureSessionCatalog;
 use App\Services\ReplacementRequestMapper;
+use App\Services\TimetableEventIdentity;
 use App\Support\LocalTime;
 use App\Support\ReasonLabel;
 use Illuminate\Support\Carbon;
@@ -26,6 +27,16 @@ use Illuminate\Support\Collection;
  * class_exceptions exclude a (session, week); pending requests mark the
  * original occurrence; approved requests move the occurrence to its new
  * time slot (status 'replacement').
+ *
+ * SDD cancelled-slot-reuse (A11/A12 — design D5, specs S13–S16): every
+ * event carries a stable `eventKey` (occ:<semester>:<session>:<week> for an
+ * occurrence, request:<requestId> for a landing) from
+ * {@see TimetableEventIdentity}, the SAME deduplication the
+ * venue page shares. A cancelled HISTORY event needs the S13 discriminator
+ * (current exception + non-maintenance class_cancelled audit for the exact
+ * pair): a proven user-cancelled original stays visible whenever ANY
+ * in-scope active event overlaps its week/day/time, while an approval-only
+ * `official_event` stamp keeps today's suppression unchanged in all cases.
  */
 trait ResolvesTimetableTimeline
 {
@@ -158,6 +169,11 @@ trait ResolvesTimetableTimeline
     /**
      * Build the per-week event map (0-indexed integer keys) consumed by the grid engine.
      *
+     * cancelled-slot-reuse A11/A12 (D5, S13–S16): a two-pass build — the
+     * week's in-scope ACTIVE events first, then the cancelled-history pass
+     * decides each exception'd pair against the S13 provenance + S16 overlap
+     * evidence — and every event leaves deduplicated by `eventKey`.
+     *
      * @param  Collection<int, ClassSession>  $sessions  recurring base sessions (module/venue/cohorts/lecturer eager-loaded)
      * @param  Collection<int, ReplacementRequest>  $requests  pending+approved requests touching those sessions (proposer + replacementTimeSlot.venue eager-loaded)
      * @param  Collection<int, ClassException>  $exceptions  class_exceptions rows
@@ -222,6 +238,13 @@ trait ResolvesTimetableTimeline
             }
         }
 
+        /* cancelled-slot-reuse A11 (spec S13): the batched AUDIT half of the
+           discriminator — which of these sessions carry a NON-maintenance
+           `class_cancelled` audit naming an exact (session, week) pair. ONE
+           read per render; the exception row is the other half. */
+        $cancelledAudits = TimetableEventIdentity::userCancelledAuditPairs($sessions->pluck('id'));
+        $semesterId = (int) ($semester->id ?? 0);
+
         $baseBySession = [];
         foreach ($sessions as $s) {
             $baseBySession[$s->id] = $this->baseEvent($s, $cohortScopeCode);
@@ -237,6 +260,14 @@ trait ResolvesTimetableTimeline
         $out = [];
         for ($w = 1; $w <= $weeks; $w++) {
             $events = [];
+            /* cancelled-slot-reuse A12 (spec S16): the in-scope ACTIVE events
+               of this week (natural occurrences, pending make-ups, approved
+               landings) — the overlap evidence that keeps a PROVEN
+               user-cancelled original's history visible. Two-pass build:
+               active events first, then the cancelled-history pass reads
+               their intervals. */
+            $activeIntervals = [];
+            $rememberCancelled = [];
 
             foreach ($sessions as $s) {
                 // cancelled-blocks-stay-visible (user law 2026-10-27): the
@@ -244,42 +275,13 @@ trait ResolvesTimetableTimeline
                 // `(Cancelled)` — until the PL approves the proposed
                 // replacement (then the D7 discipline applies: the original
                 // vanishes, the landing block renders in its own week).
+                // cancelled-slot-reuse refines the approved leg (S16): a
+                // PROVEN user-cancelled original stays visible when any
+                // in-scope active event overlaps it; an approval-only stamp
+                // keeps today's suppression. The decision is deferred to the
+                // second pass so it sees the WHOLE week's active intervals.
                 if (isset($exceptionRow[$s->id.':'.$w])) {
-                    if (isset($approvedByPair[$s->id.':'.$w])) {
-                        continue; // law ④ — an approved release + the D-P10
-                        // landing block; nothing renders here
-                    }
-
-                    /* laws ①/③: the cancelled block STAYS — original slot,
-                       `event-conflict` (the client maps the status), the
-                       label rides for the home badge, the Proposed hint for
-                       a pending proposal, the D-P4 fact so the popup's
-                       Replace-Now handoff stays available (a pending or
-                       approved pair yields a NULL fact — the handled map).
-                       ALWAYS continue: the tail push can never double-fire,
-                       and the same-week amber makeup rides FROM HERE. */
-                    $ev = $baseBySession[$s->id];
-                    $ev['status'] = 'cancelled';
-                    $ev['cancelledReason'] = ReasonLabel::from(
-                        (string) $exceptionRow[$s->id.':'.$w]->reason);
-                    if (isset($pendingByOccurrence[$s->id.':'.$w])) {
-                        $ev['proposed'] = true;   // "(Proposed ⏳)" note law
-                    }
-                    $fact = $catalog->occurrenceFact($s, $w, $factContext);
-                    $ev['occurrenceFact'] = $fact !== null
-                        ? ['week' => $w, 'kind' => $fact['kind'], 'reason' => $fact['reason']]
-                        : null;
-                    $events[] = $ev;
-
-                    $requestedMakeup = $pendingByMakeupSlot[$s->id.':'.$w] ?? null;
-                    if ($requestedMakeup !== null) {
-                        // the existing amber emission (D-P10), same-week:
-                        // re-shape the natural block onto the slot's own
-                        // day/time/venue. (A different-week makeup already
-                        // rides its own week's loop pass.)
-                        $events[] = $this->buildAmberEvent(
-                            $baseBySession[$s->id], $requestedMakeup);
-                    }
+                    $rememberCancelled[] = [$s, $exceptionRow[$s->id.':'.$w], $s->id.':'.$w];
 
                     continue;
                 }
@@ -294,7 +296,8 @@ trait ResolvesTimetableTimeline
                 // renders in its own junction cell below the loop; NO
                 // landing-week natural-block swallowing survives.
 
-                $ev = $baseBySession[$s->id];
+                $ev = TimetableEventIdentity::tag($baseBySession[$s->id],
+                    TimetableEventIdentity::occurrenceKey($semesterId, (int) $s->id, $w));
                 if ($pending !== null) {
                     // occurrence-week-pin-truthfulness D-P10 (CHOICE A): the
                     // natural block KEEPS its own cell; the amber proposal
@@ -305,15 +308,18 @@ trait ResolvesTimetableTimeline
                     // slotMap last-write-wins shows the AMBER (the push-order
                     // covenant: natural FIRST, amber SECOND).
                     $events[] = $ev;
+                    $activeIntervals[] = ['di' => $ev['di'], 'start' => $ev['start'], 'end' => $ev['end']];
 
                     // USER DIRECTIVE 2026-10-17: the amber block's shape, day and
-                    // venue come from the PROPOSED slots — the WHOLE run
-                    // (ANCHOR..anchor+span−1 via the junction row count), not
+                    // venue come from the PROPOSED slots — the WHOLE TRUE span
+                    // (live junction min/max, the mapper's anchor fallback), not
                     // just the anchor's single 30-min pair. Hoisted into
                     // buildAmberEvent (cancelled-blocks-stay-visible): the
                     // exception'd branch emits the same shape for a same-week
                     // makeup.
-                    $events[] = $this->buildAmberEvent($baseBySession[$s->id], $pending);
+                    $amber = $this->buildAmberEvent($baseBySession[$s->id], $pending);
+                    $events[] = $amber;
+                    $activeIntervals[] = ['di' => $amber['di'], 'start' => $amber['start'], 'end' => $amber['end']];
 
                     continue;
                 }
@@ -334,6 +340,7 @@ trait ResolvesTimetableTimeline
                     ? ['week' => $w, 'kind' => $fact['kind'], 'reason' => $fact['reason']]
                     : null;
                 $events[] = $ev;
+                $activeIntervals[] = ['di' => $ev['di'], 'start' => $ev['start'], 'end' => $ev['end']];
             }
 
             foreach ($approvedByWeek[$w] ?? [] as $r) {
@@ -360,6 +367,8 @@ trait ResolvesTimetableTimeline
                     $ev['end'] = $this->slotIndex($span['end']) - 1;
                 }
 
+                $ev = TimetableEventIdentity::tag($ev,
+                    TimetableEventIdentity::requestKey((int) $r->id));
                 $ev['status'] = 'replacement';
                 /* mytimetable-jump-highlight (user, 2026-11-04): the replacement
                    record's OWN id rides the event, so the client can find this
@@ -383,9 +392,69 @@ trait ResolvesTimetableTimeline
                 $ev['originalStartTime'] = substr((string) $session->start_time, 0, 5);
                 $ev['originalEndTime'] = substr((string) $session->end_time, 0, 5);
                 $events[] = $ev;
+                $activeIntervals[] = ['di' => $ev['di'], 'start' => $ev['start'], 'end' => $ev['end']];
             }
 
-            $out[$w - 1] = $events;
+            /* cancelled-slot-reuse A12 — the SECOND pass (S13/S16): the
+               cancelled-history verdict per remembered pair. A PROVEN user
+               cancellation (current exception + non-maintenance
+               class_cancelled audit) renders whenever NO approved pair
+               releases it, or when ANY in-scope active event overlaps its
+               original week/day/time (the exact/partial-reuse case — its own
+               approved landing included). An approval-only `official_event`
+               stamp (no audit) keeps today's law byte-identically: released
+               pair = suppressed, otherwise the cancelled block renders.
+               Pending proposals never suppress. Withdrawn/rejected/
+               auto-rejected requests are simply absent (they remove the
+               landing only), so a suppressed-again released pair falls back
+               to the no-approved-pair leg and the history stays. */
+            foreach ($rememberCancelled as [$s, $exception, $pairKey]) {
+                $prov = TimetableEventIdentity::provenance($exception, isset($cancelledAudits[$pairKey]));
+                $approvedPair = isset($approvedByPair[$pairKey]);
+                $base = $baseBySession[$s->id];
+
+                if ($approvedPair && ! (
+                    $prov === TimetableEventIdentity::PROVENANCE_USER_CANCELLED
+                    && TimetableEventIdentity::overlapsOriginal(
+                        $activeIntervals, (int) $s->day_of_week, (int) $base['start'], (int) $base['end']))
+                ) {
+                    continue;   // the handled-original suppression, unchanged
+                }
+
+                $ev = TimetableEventIdentity::tag($base,
+                    TimetableEventIdentity::occurrenceKey($semesterId, (int) $s->id, $w));
+                $ev['status'] = 'cancelled';
+                $ev['cancelledReason'] = ReasonLabel::from(
+                    (string) $exception->reason);
+                /* S13's honest projection: the payload SAYS which evidence
+                   grade produced this history, so missing/contradictory
+                   provenance is reported, never synthesised. */
+                $ev['cancellationProvenance'] = $prov;
+                if (isset($pendingByOccurrence[$pairKey])) {
+                    $ev['proposed'] = true;   // "(Proposed ⏳)" note law
+                }
+                $fact = $catalog->occurrenceFact($s, $w, $factContext);
+                $ev['occurrenceFact'] = $fact !== null
+                    ? ['week' => $w, 'kind' => $fact['kind'], 'reason' => $fact['reason']]
+                    : null;
+                $events[] = $ev;
+
+                $requestedMakeup = $pendingByMakeupSlot[$s->id.':'.$w] ?? null;
+                if ($requestedMakeup !== null) {
+                    // the existing amber emission (D-P10), same-week:
+                    // re-shape the natural block onto the slot's own
+                    // day/time/venue. (A different-week makeup already
+                    // rides its own week's loop pass.)
+                    $amber = $this->buildAmberEvent($base, $requestedMakeup);
+                    $events[] = $amber;
+                    $activeIntervals[] = ['di' => $amber['di'], 'start' => $amber['start'], 'end' => $amber['end']];
+                }
+            }
+
+            /* cancelled-slot-reuse A11 (D5): deduplicate by eventKey before
+               the events leave the server — the client and the summary
+               calculations consume unique identities. */
+            $out[$w - 1] = TimetableEventIdentity::dedupeSameKey($events);
         }
 
         return $out;
@@ -405,8 +474,10 @@ trait ResolvesTimetableTimeline
     /**
      * The amber make-up block (USER DIRECTIVE 2026-10-17 / D-P10), hoisted
      * from the pending path (cancelled-blocks-stay-visible): the shape, day
-     * and venue come from the PROPOSED slot — the whole junction run. The
-     * cancelled-block branch reuses it for a same-week makeup.
+     * and venue come from the PROPOSED slot — the whole TRUE span (live
+     * junction min/max, the mapper's anchor fallback for junction-less
+     * rows; SDD cancelled-slot-reuse A12/S14). The cancelled-block branch
+     * reuses it for a same-week makeup.
      *
      * @param  array<string, mixed>  $base
      * @param  ReplacementRequest  $pending
@@ -415,16 +486,32 @@ trait ResolvesTimetableTimeline
     protected function buildAmberEvent(array $base, $pending): array
     {
         $slot = $pending->replacementTimeSlot;
-        $spanSlots = ReplacementRequestSlot::query()
-            ->where('replacement_request_id', $pending->id)
-            ->count();
         $evA = $base;
         if ($slot !== null) {
             $evA['di'] = (int) $slot->day_of_week;
-            $evA['start'] = $this->slotIndex((string) $slot->start_time);
-            $evA['end'] = $this->slotIndex((string) $slot->start_time) + max(1, $spanSlots) - 1;
+            /* cancelled-slot-reuse A12 (spec S14): the pending landing keeps
+               its TRUE full span — the live junction's min/max read via the
+               shared mapper, its anchor+`replacement_span` fallback for
+               junction-less rows — never a bare 30-minute anchor. The span is
+               applied only when it agrees with the anchor's week/day (a
+               drifted receipt falls back to the anchor shape). */
+            $span = app(ReplacementRequestMapper::class)->span($pending);
+            if ($span !== null
+                && (int) $span['week'] === (int) $slot->week_number
+                && (int) $span['day'] === (int) $slot->day_of_week) {
+                $evA['start'] = $this->slotIndex((string) $span['start']);
+                $evA['end'] = $this->slotIndex((string) $span['end']) - 1;
+            } else {
+                $spanSlots = ReplacementRequestSlot::query()
+                    ->where('replacement_request_id', $pending->id)
+                    ->count();
+                $evA['start'] = $this->slotIndex((string) $slot->start_time);
+                $evA['end'] = $this->slotIndex((string) $slot->start_time) + max(1, $spanSlots) - 1;
+            }
             $evA['venue'] = (string) $slot->venue->room_code;
         }
+        $evA = TimetableEventIdentity::tag($evA,
+            TimetableEventIdentity::requestKey((int) $pending->id));
         $evA['status'] = 'pending';
         $evA['requestId'] = $pending->id;
         $evA['requestedAt'] = app(ReplacementRequestMapper::class)->stampDisplay($pending->submitted_at, 'd M Y, h:i A');   // MYT (SDD occurrence-week-pin-truthfulness popup-accuracy rider)

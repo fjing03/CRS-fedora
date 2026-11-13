@@ -5,14 +5,18 @@ namespace App\Concerns;
 use App\Actions\CancelClass;
 use App\Actions\CancelClassBatch;
 use App\Actions\CancelPendingRequest;
+use App\Actions\OriginalOccurrenceReleaseException;
+use App\Exceptions\OccurrenceWriteLockContended;
 use App\Models\ClassException;
 use App\Models\ClassSession;
 use App\Models\ReplacementRequest;
 use App\Models\Semester;
+use App\Services\OccurrenceMutationLocks;
 use App\Support\CohortLabel;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 use Livewire\Attributes\Renderless;
+use RuntimeException;
 
 /**
  * Bridge between the client Cancel Class flow and the CancelClass action
@@ -141,21 +145,29 @@ trait CancelsClasses
                 $classes,
                 fn (array $c): bool => in_array((int) $c['sessionId'], $wanted, true),
             ));
+        } elseif ($requestIds !== []) {
+            /* an explicit request-only selection: ticked make-ups withdraw, but
+               the classes are NOT silently cancelled with them — the old
+               both-lists-empty shape keeps its backward-compatible whole-day
+               reading, this one must not regress into a hidden day cancel. */
+            $classes = [];
         }
 
         /* 2026-11-11 (user): a ticked MAKE-UP row withdraws its request only — the
            class it was arranged for is untouched. Ownership + pending state are
            re-checked here, never trusted from the page. */
         $requestIds = array_values(array_unique(array_map('intval', $requestIds)));
-        $withdrawable = $requestIds === [] ? [] : ReplacementRequest::query()
+        $withdrawable = $requestIds === [] ? [] : array_values(ReplacementRequest::query()
             ->whereIn('id', $requestIds)
             ->where('proposer_id', auth()->id())
             ->where('status', 'pending')
             ->pluck('id')
             ->map(fn ($id): int => (int) $id)
-            ->all();
+            ->all());
 
-        if ($withdrawable !== [] && count($withdrawable) !== count($requestIds)) {
+        /* every requested id must be owned + pending — an all-invalid list is
+           refused too, never silently treated as an empty selection */
+        if (count($withdrawable) !== count($requestIds)) {
             return ['ok' => false, 'cancelled' => [], 'requestsClosed' => 0, 'requestsWithdrawn' => 0,
                 'hint' => 'One of those requests is not yours to withdraw any more.'];
         }
@@ -179,24 +191,69 @@ trait CancelsClasses
             }
         }
 
-        $result = $items === []
-            ? ['ok' => true, 'cancelled' => [], 'requestsClosed' => 0, 'hint' => null]
-            : (new CancelClassBatch)(auth()->user(), $items, $reason, $otherDetail);
-
-        // a make-up row withdraws its own request (CancelPendingRequest owns that rule)
+        /* SDD cancelled-slot-reuse A07 — the day is ONE decision: the selected
+           class batch AND every ticked make-up withdrawal live in ONE outer
+           transaction, and the complete union (source sessions, requests,
+           original + landing cells) is locked through the shared helper BEFORE
+           the nested actions run, so they only reuse already-held locks. A
+           refused batch stops the withdrawals; a failed withdrawal rolls
+           EVERYTHING back, afterCommit notifications included. */
+        /** @var array<string, mixed>|null $result */
+        $result = null;
         $withdrawn = 0;
-        foreach ($withdrawable as $id) {
-            if ((new CancelPendingRequest)(auth()->user(), $id)) {
-                $withdrawn++;
-            }
+
+        try {
+            DB::transaction(function () use ($items, $withdrawable, $reason, $otherDetail, &$result, &$withdrawn): void {
+                app(OccurrenceMutationLocks::class)->lock($items, $withdrawable);
+
+                if ($items !== []) {
+                    $result = (new CancelClassBatch)(auth()->user(), $items, $reason, $otherDetail);
+
+                    if (! $result['ok']) {
+                        return; // a refused batch writes nothing and stops the withdrawals
+                    }
+                }
+
+                // a make-up row withdraws its own request (CancelPendingRequest owns that rule)
+                foreach ($withdrawable as $id) {
+                    if (! (new CancelPendingRequest)(auth()->user(), $id)) {
+                        // raced/contradictory selection — the throw rolls back
+                        // the batch too; the catch below answers the hint
+                        throw new RuntimeException('withdrawal_refused');
+                    }
+
+                    $withdrawn++;
+                }
+            });
+        } catch (OccurrenceWriteLockContended) {
+            $result = ['ok' => false, 'cancelled' => [], 'requestsClosed' => 0, 'hint' => 'Someone else is changing these classes right now — please try again.'];
+            $withdrawn = 0;
+        } catch (OriginalOccurrenceReleaseException) {
+            // the lock union drifted under us — a refresh, never the user's fault
+            $result = ['ok' => false, 'cancelled' => [], 'requestsClosed' => 0, 'hint' => 'These classes changed while you were cancelling — please refresh and try again.'];
+            $withdrawn = 0;
+        } catch (RuntimeException) {
+            // CancelPendingRequest's own refusal — the raced/contradictory
+            // selection is the user's to retry
+            $result = ['ok' => false, 'cancelled' => [], 'requestsClosed' => 0, 'hint' => 'One of those requests is not yours to withdraw any more.'];
+            $withdrawn = 0;
+        } catch (\Throwable) {
+            // a DB or audit failure is NOT a withdrawal refusal — the day fault
+            // must not lie about whose fault it was; nothing was written
+            $result = ['ok' => false, 'cancelled' => [], 'requestsClosed' => 0, 'hint' => 'The cancellation could not be completed — nothing was changed. Please try again.'];
+            $withdrawn = 0;
+        }
+
+        if ($result === null) {
+            $result = ['ok' => true, 'cancelled' => [], 'requestsClosed' => 0, 'hint' => null];
         }
 
         return [
-            'ok' => $result['ok'],
-            'cancelled' => $result['cancelled'],
-            'requestsClosed' => $result['requestsClosed'],
+            'ok' => (bool) $result['ok'],
+            'cancelled' => (array) $result['cancelled'],
+            'requestsClosed' => (int) $result['requestsClosed'],
             'requestsWithdrawn' => $withdrawn,
-            'hint' => $result['hint'],
+            'hint' => isset($result['hint']) ? (string) $result['hint'] : null,
         ];
     }
 

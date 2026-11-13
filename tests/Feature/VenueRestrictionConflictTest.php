@@ -193,23 +193,31 @@ final class VenueRestrictionConflictTest extends TestCase
         });
     }
 
+    /**
+     * cancelled-slot-reuse A13 (D5/S14): the SAME-key twins still merge by
+     * severity (conflict on top) through the shared identity service — now
+     * exercised through `mergeTwinEvents` (identity grouping), the ONE
+     * merge path the venue page uses.
+     */
     public function test_twin_merge_severity_keeps_conflict_on_top(): void
     {
-        $method = (new \ReflectionClass(VenueTimetable::class))->getMethod('reduceTwins');
+        $method = (new \ReflectionClass(VenueTimetable::class))->getMethod('mergeTwinEvents');
         $method->setAccessible(true);
 
         $base = fn (array $over) => array_merge([
             'id' => 1, 'di' => 2, 'start' => 6, 'end' => 9, 'code' => 'AMIT2034',
             'name' => 'Fundamentals of Computer Networks', 'type' => 'P', 'venue' => 'B005',
             'lecturer' => 'En. Daniel Royd Michael', 'cohort' => 'DFT1S1G1',
-            'cohorts' => ['DFT1S1G1'], 'studentCount' => 20, 'status' => 'normal',
-            'remarks' => '', 'mine' => false,
+            'cohorts' => ['DFT1S1G1'], 'studentCounts' => [20], 'studentCount' => 20, 'status' => 'normal',
+            'remarks' => '', 'mine' => false, 'eventKey' => 'occ:1:9:3',
         ], $over);
 
         $merged = $method->invoke(new VenueTimetable, [
-            $base(['status' => 'normal', 'mine' => false]),
-            $base(['id' => 2, 'status' => 'conflict', 'cohort' => 'DSF1S1G1', 'cohorts' => ['DSF1S1G1'], 'studentCount' => 18, 'mine' => true]),
-        ]);
+            '2:6' => [
+                $base(['status' => 'normal', 'mine' => false]),
+                $base(['id' => 2, 'status' => 'conflict', 'cohort' => 'DSF1S1G1', 'cohorts' => ['DSF1S1G1'], 'studentCounts' => [18], 'studentCount' => 18, 'mine' => true]),
+            ],
+        ])[0];
 
         $this->assertSame('conflict', $merged['status']); // conflict outranks normal
         $this->assertSame('DFT1S1G1 + DSF1S1G1', $merged['cohort']);

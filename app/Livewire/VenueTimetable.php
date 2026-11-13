@@ -11,6 +11,7 @@ use App\Models\TimeSlot;
 use App\Models\Venue;
 use App\Services\LectureSessionCatalog;
 use App\Services\ReplacementRequestMapper;
+use App\Services\TimetableEventIdentity;
 use App\Support\ReasonLabel;
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\Collection;
@@ -160,6 +161,7 @@ class VenueTimetable extends Component
                 array_fill(0, $this->timelineWeeks(), []),
                 array_fill(0, $this->timelineWeeks(), ['total' => 0, 'available' => 0, 'occupied' => 0, 'myClasses' => 0, 'myHours' => '0',
                     'pending' => 0, 'myPendingClasses' => 0, 'myPendingHours' => '0']),
+                array_fill(0, $this->timelineWeeks(), []),
             );
         }
 
@@ -247,10 +249,46 @@ class VenueTimetable extends Component
             && isset($approvedPairs[$sessionId.':'.$week]);
         $exceptionPair = fn (int $sessionId, int $week) => $factContext['exceptions'][$sessionId.':'.$week] ?? null;
 
+        /* cancelled-slot-reuse A13 (spec S14): the request read NO LONGER
+           depends on `time_slots.class_session_id IS NULL` — a released/
+           reused row can retain a stale source id, and the LIVE request
+           junction owns the event regardless of what id the row carries.
+           ONE venue-scoped join returns every junction row of an ACTIVE
+           request whose cell sits in this room: `$heldSlotIds` are those
+           cells (the request pass owns them — the recurring row pass must
+           never also emit them as normal events or ownership counts), and
+           the junction-discovered request ids feed the request pass below. */
+        $activeJunction = DB::table('replacement_request_slots')
+            ->join('time_slots', 'time_slots.id', '=', 'replacement_request_slots.time_slot_id')
+            ->join('replacement_requests', 'replacement_requests.id', '=', 'replacement_request_slots.replacement_request_id')
+            ->where('time_slots.venue_id', $venue->id)
+            ->whereIn('replacement_requests.status', ['pending', 'approved'])
+            ->orderBy('time_slots.start_time')
+            ->get([
+                'replacement_request_slots.replacement_request_id',
+                'time_slots.id as slot_id',
+            ]);
+        $heldSlotIds = $activeJunction->pluck('slot_id')->map(fn ($v): int => (int) $v)->unique()->values()->all();
+        $junctionRequestIds = $activeJunction->pluck('replacement_request_id')->map(fn ($v): int => (int) $v)->unique()->values();
+        // the S13 audit half for this room's sessions (shared discriminator)
+        $cancelAuditPairs = TimetableEventIdentity::userCancelledAuditPairs($recurringSessions->pluck('id'));
+        $semesterIdKeys = (int) ($factContext['semester']->id ?? 0);
+        // the in-scope ACTIVE intervals per week (normal/pending/replacement
+        // facts) — the S16 overlap evidence for the cancelled-history backfill
+        $activeIntervalsByWeek = [];
+
         foreach ($slots as $slot) {
             $session = $slot->classSession;
             $w = (int) $slot->week_number;
             if ($session === null || $w < 1 || $w > $weeks) {
+                continue;
+            }
+
+            // cancelled-slot-reuse A13 (S14): a row claimed by an ACTIVE
+            // request's junction belongs to the request event — never also a
+            // normal recurring event, never a duplicate ownership count (the
+            // request pass counts its own approved/pending spans below).
+            if (in_array((int) $slot->id, $heldSlotIds, true)) {
                 continue;
             }
 
@@ -359,6 +397,14 @@ class VenueTimetable extends Component
                    ?session= — the events' `id` is the SLOT id (the grid's
                    row key), so the class_session id rides here (additive). */
                 'sessionId' => $session->id,
+                /* cancelled-slot-reuse A11: the stable identity — one key per
+                   occurrence, and the S13 evidence grade (reported, never
+                   invented). */
+                'eventKey' => TimetableEventIdentity::occurrenceKey($semesterIdKeys, (int) $session->id, (int) $g['w']),
+                'cancellationProvenance' => TimetableEventIdentity::provenance(
+                    $isCancelledPair ? $pairException : null,
+                    isset($cancelAuditPairs[$session->id.':'.(int) $g['w']]),
+                ),
             ];
 
             // Twin-merge pre-bucketing (combined lectures): same venue + day +
@@ -367,71 +413,72 @@ class VenueTimetable extends Component
             // impossible until Slice B — the merge is defensive contract
             // parity, unit-tested directly (see VenueTimetableTest).
             $eventsByWeek[$g['w'] - 1][$event['di'].':'.$event['start']][] = $event;
+
+            // cancelled-slot-reuse A13: this week's ACTIVE interval evidence
+            // (a cancelled history row is never its own overlap proof).
+            if ($event['status'] !== 'cancelled') {
+                $activeIntervalsByWeek[$g['w']][] = [
+                    'di' => $event['di'], 'start' => $event['start'], 'end' => $event['end'],
+                ];
+            }
         }
 
-        // Reserved-slot second pass (venue-pending-and-type-labels D1; SDD
-        // full-block-reservation round-1 review): the span-aware read-model —
-        // ONE event per REQUEST (the junction's span reachmentioned where the
-        // anchor-keyed join can't see tails). One row per reserved slot would
-        // never coalesce (mergeTwinEvents merges same-cell twins only), so the
-        // pending join keys through replacement_request_slots and each request
-        // emits ONE event with end = start + junctionCount − 1 — the blade's
-        // span-N colSpan renders it. Class facts still come from the request's
-        // ORIGINAL session; `mine` reads the proposer_id column directly.
-        $reserved = $slots->where('class_session_id', null); // pending AND approved-occupied rows ride the junction second pass (the D4 approved-bucket switch)
-
-        // Junction spans: slot id → its request id (pending + approved).
-        $junctionLink = DB::table('replacement_request_slots')
-            ->whereIn('time_slot_id', $reserved->pluck('id'))
-            ->pluck('replacement_request_id', 'time_slot_id');
+        /* cancelled-slot-reuse A13 (spec S14): ONE event PER REQUEST — the
+           pass iterates the DISCOVERED requests (junction rows in this room
+           ∪ junction-less actives anchored on this room's own pending and
+           occupied rows), NOT the null-class-id slot subset, so a stale
+           `class_session_id` can never hide a live landing. The span is the
+           shared mapper's TRUE junction min/max (its anchor +
+           `replacement_span` fallback) — never a contiguous guess from the
+           anchor, and never an event this room does not own. */
+        $anchorRequestIds = ReplacementRequest::query()
+            ->whereIn('status', ['pending', 'approved'])
+            ->whereIn('replacement_time_slot_id', $slots->pluck('id'))
+            ->pluck('id')
+            ->map(fn ($v): int => (int) $v);
+        $requestIds = $junctionRequestIds->merge($anchorRequestIds)->unique()->values();
 
         // occurrence-week-pin-truthfulness D-P5: the original* keys read
-        // classSession.venue — eager-load it (relation-unloaded today).
+        // classSession.venue — eager-load it.
         $requests = ReplacementRequest::with(['classSession.module', 'classSession.lecturer', 'classSession.venue', 'classSession.cohorts.programme', 'proposer'])
             ->whereIn('status', ['pending', 'approved'])
-            ->whereIn('id', $junctionLink->unique()->values())
+            ->whereIn('id', $requestIds)
             ->get()
             ->keyBy('id');
 
-        // The span cover per request (min/max of its junction rows' ordered cells).
-        $spans = DB::table('replacement_request_slots')
-            ->join('time_slots', 'replacement_request_slots.time_slot_id', '=', 'time_slots.id')
-            ->whereIn('replacement_request_slots.replacement_request_id', $junctionLink->unique()->values())
-            ->groupBy('replacement_request_slots.replacement_request_id',
-                'replacement_request_slots.created_at')
-            ->orderBy('replacement_request_slots.replacement_request_id')
-            ->get([
-                'replacement_request_slots.replacement_request_id',
-                DB::raw('MIN(time_slots.start_time) as first_start'),
-            ])
-            ->keyBy('replacement_request_id');
-
         $emittedRequests = [];
-        foreach ($reserved as $slot) {
-            $requestId = (int) ($junctionLink[$slot->id] ?? 0);
-            $request = $requests->get($requestId);
-            $session = $request?->classSession;
+        foreach ($requests as $request) {
+            $requestId = (int) $request->id;
+            $session = $request->classSession;
             // Orphan defence (design D1): cancel/submit keep slot+request in
-            // lockstep, so a pending slot without an active request (or the
-            // class row it points at) should not exist — emit nothing, no
-            // error, no log noise.
-            if ($request === null || $session === null) {
+            // lockstep, so an active request without its class row should not
+            // exist — emit nothing, no error, no log noise.
+            if ($session === null) {
                 continue;
             }
             // One event PER REQUEST (identifier = the anchor slot id — frozen
-            // round-3 💡): skip the other junction-ordered rows.
+            // round-3 💡; the identity itself is `request:<id>`).
             if (in_array($requestId, $emittedRequests, true)) {
                 continue;
             }
             $emittedRequests[] = $requestId;
+
+            // The TRUE span: junction min/max, the mapper's anchor fallback.
+            // A receipt that lives in ANOTHER room belongs to THAT room's page.
+            $span = app(ReplacementRequestMapper::class)->span($request);
+            if ($span === null || (int) $span['venue_id'] !== (int) $venue->id) {
+                continue;
+            }
             // Week guard: same 1..$weeks window as the imported path.
-            $w = (int) $slot->week_number;
+            $w = (int) $span['week'];
             if ($w < 1 || $w > $weeks) {
                 continue;
             }
 
             $isApproved = (string) $request->status === 'approved';
-            $start = $this->slotIndex($slot->start_time);
+            $start = $this->slotIndex((string) $span['start']);
+            $end = min($this->slotIndex((string) $span['end']) - 1, 21); // the venue page's grid constants: 8:00..18:30 = 21 slots (design D8's shared-hours discipline)
+            $di = (int) $span['day'];
             // The ORIGINAL occurrence's date (my-timetable's remarks family —
             // '22-Oct-2026'): semester start + (request week − 1) × 7 + the
             // class's day — computed from the request's own week.
@@ -440,11 +487,9 @@ class VenueTimetable extends Component
                 ?->addWeeks((int) $request->week_number - 1)
                 ?->addDays((int) $session->day_of_week)
                 ?->format('d-M-Y');
-            // The junction cover: span = the request's LIVE junction row count
-            // (start = the anchor's own slot; end extends contiguously).
-            $junctionCount = $junctionLink->filter(fn ($rid) => $rid === $requestId)->count();
-            $spanSlots = max(1, $junctionCount);
-            $end = min($start + $spanSlots - 1, 21); // the venue page's grid constants: 8:00..18:30 = 21 slots (design D8's shared-hours discipline)
+            // The landing's own live span (junction/mapped) — the honest hour
+            // count for the ownership cards.
+            $spanSlots = max(1, (int) $span['count']);
             $event = [
                 /* `id` is the grid's ROW key for this pass (the anchor slot) —
                    the CLASS identity rides `sessionId` (venue-status-parity T6:
@@ -452,7 +497,9 @@ class VenueTimetable extends Component
                    quotes #40 like my-timetable does, not #34413). */
                 'id' => (int) $request->replacement_time_slot_id,
                 'sessionId' => (int) $session->id,
-                'di' => (int) $slot->day_of_week,
+                /* cancelled-slot-reuse A11: the stable request identity. */
+                'eventKey' => TimetableEventIdentity::requestKey($requestId),
+                'di' => $di,
                 'start' => $start,
                 'end' => $end,
                 'code' => $session->module->module_code,
@@ -490,7 +537,7 @@ class VenueTimetable extends Component
                 /* venue-status-parity T5 (bug #6): the shared modal's `View
                    Full Request` footer action keys on BOTH `requestId` and
                    `requestedBy`, and the venue payload never sent the id. */
-                'requestId' => (int) $request->id,
+                'requestId' => $requestId,
                 'proposed' => false,
                 'occurrenceFact' => null,   // a make-up block is never a Replace-Now target
                 'remarks' => $isApproved
@@ -499,7 +546,10 @@ class VenueTimetable extends Component
                 'mine' => $request->proposer_id === $myUserId,
             ];
 
-            $eventsByWeek[$w - 1][$event['di'].':'.$event['start']][] = $event;
+            $eventsByWeek[$w - 1][$di.':'.$start][] = $event;
+
+            // cancelled-slot-reuse A13: the landing is in-scope active evidence
+            $activeIntervalsByWeek[$w][] = ['di' => $di, 'start' => $start, 'end' => $end];
 
             // USER 2026-10-19 summary accuracy (A&B): the viewer's OWN approved
             // replacement is real teaching — count it in the My-Teaching cards
@@ -602,6 +652,9 @@ class VenueTimetable extends Component
                        goToReplacementFor's !sessionId guard swallowed the
                        click). Additive row, same contract as :249. */
                     'sessionId' => $session->id,
+                    /* cancelled-slot-reuse A11: the derived holiday family
+                       carries the same stable occurrence identity. */
+                    'eventKey' => TimetableEventIdentity::occurrenceKey($semesterIdKeys, (int) $session->id, $weekNum),
                     'di' => $dayIdx,
                     'start' => $startIdx,
                     'end' => $endIdx,
@@ -644,6 +697,77 @@ class VenueTimetable extends Component
             }
         }
         // ═══ end T20 derived pass ═══
+
+        /* ═══ cancelled-slot-reuse A13 — the EXCEPTION BACKFILL (spec S14) ═══
+           Cancelled history is built from the recurring session + the S13
+           evidence, NOT from occupied room rows — so it survives original
+           rows that were released/cleared (available, ids nulled). A pair the
+           row pass already rendered (pre-cleanup occupied rows) carries the
+           SAME eventKey and merges exactly once in the identity dedup below
+           (the row pass's geometry wins). The released-pair suppression keeps
+           today's law byte-identically: an approval-only `official_event`
+           stamp stays suppressed in ALL cases; a PROVEN user cancellation
+           stays visible only when an in-scope ACTIVE event overlaps the
+           original week/day/time in THIS room. History adds ZERO room
+           occupancy — the totals below never see it. */
+        $sessionById = $recurringSessions->keyBy('id');
+        foreach ($factContext['exceptions'] as $pairKey => $exception) {
+            $sessionId = (int) $exception->class_session_id;
+            $weekNum = (int) $exception->week_number;
+            $session = $sessionById->get($sessionId);
+            if ($session === null || $weekNum < 1 || $weekNum > $weeks) {
+                continue;   // the D1 week-guard / another room's session
+            }
+
+            $prov = TimetableEventIdentity::provenance($exception, isset($cancelAuditPairs[$pairKey]));
+            $startIdx = $this->slotIndex((string) $session->start_time);
+            $endIdx = $this->slotIndex((string) $session->end_time) - 1;
+
+            // the release rule (S16): a released pair renders its history only
+            // for a PROVEN user cancellation with an in-scope active overlap.
+            if (isset($approvedPairs[$pairKey]) && ! (
+                $prov === TimetableEventIdentity::PROVENANCE_USER_CANCELLED
+                && TimetableEventIdentity::overlapsOriginal(
+                    $activeIntervalsByWeek[$weekNum] ?? [],
+                    (int) $session->day_of_week, $startIdx, $endIdx,
+                )
+            )) {
+                continue;   // the handled-original suppression, unchanged
+            }
+
+            $event = [
+                'id' => null,  // NO row — the Class Ref row drops from the popup (honest)
+                'sessionId' => $session->id,
+                'eventKey' => TimetableEventIdentity::occurrenceKey($semesterIdKeys, $sessionId, $weekNum),
+                'cancellationProvenance' => $prov,
+                'di' => (int) $session->day_of_week,
+                'start' => $startIdx,
+                'end' => $endIdx,
+                'code' => (string) $session->module->module_code,
+                'name' => $session->module->displayName(),
+                'type' => (string) $session->session_type,
+                'venue' => (string) $venue->room_code,
+                'venueName' => $venue->room_name,
+                'lecturer' => (string) ($session->lecturer->name ?? ''),
+                'cohort' => $this->cohortLabel($session->cohorts),
+                'cohorts' => $session->cohorts->map(fn ($c) => $this->cohortCode($c))->all(),
+                'studentCounts' => $session->cohorts
+                    ->map(fn ($c) => (int) ($c->student_count ?? 0))
+                    ->values()
+                    ->all(),
+                'studentCount' => (int) $session->cohorts->sum('student_count'),
+                'status' => 'cancelled',
+                'proposed' => isset($pendingPairs[$pairKey]),
+                'occurrenceFact' => $catalog->occurrenceFact($session, $weekNum, $factContext),
+                'cancelledReason' => ReasonLabel::from((string) $exception->reason),
+                'remarks' => '',
+                'mine' => $session->lecturer_id === $myUserId,
+            ];
+            // the same ONE-anchor-cell push form the imported pass uses
+            // (the FE's slotMap renders the span over the colSpan rows)
+            $eventsByWeek[$weekNum - 1][(int) $session->day_of_week.':'.$startIdx][] = $event;
+        }
+        // ═══ end exception backfill pass ═══
 
         // Grid engine consumes a list — merge twins per week and strip keys.
         $eventsByWeek = array_map(fn (array $weekMap): array => $this->mergeTwinEvents($weekMap), $eventsByWeek);
@@ -703,6 +827,37 @@ class VenueTimetable extends Component
             $totalsByWeek[$i]['myPendingHours'] = rtrim(rtrim(sprintf('%.1f', $myPendingSlots[$i] * 0.5), '0'), '.');
         }
 
+        /* cancelled-slot-reuse A21 — the REAL room matrix
+           (roomCellStatesByWeek): the ACTUAL time_slots of this venue +
+           semester, week index (0-based) → 'di:hi' → status. 'free' = every
+           row of the cell available; 'blocked' = any pending/occupied/
+           unknown row (a non-available duplicate wins); a MISSING key = no
+           offer row — fail closed, never a fabricated free cell. Coordinates
+           + status only: no request or private detail rides the matrix. The
+           grid's green/bookable decisions read it (the event geometry alone
+           cannot see a pre-cleanup raw occupied row with no active holder). */
+        $roomCellStatesByWeek = array_fill(0, $weeks, []);
+        $matrixSemesterId = $this->timelineSemester()?->id;
+        if ($matrixSemesterId !== null) {
+            DB::table('time_slots')
+                ->where('venue_id', $venue->id)
+                ->where('semester_id', $matrixSemesterId)
+                ->select(['week_number', 'day_of_week', 'start_time', 'status'])
+                ->get()
+                ->each(function ($row) use (&$roomCellStatesByWeek, $weeks): void {
+                    $w = (int) $row->week_number;
+                    if ($w < 1 || $w > $weeks) {
+                        return;
+                    }
+                    $key = ((int) $row->day_of_week).':'.$this->slotIndex((string) $row->start_time);
+                    if (($row->status ?? '') === 'available') {
+                        $roomCellStatesByWeek[$w - 1][$key] ??= 'free';
+                    } else {
+                        $roomCellStatesByWeek[$w - 1][$key] = 'blocked';
+                    }
+                });
+        }
+
         return $this->renderPayload($venuesJs, [
             'code' => $venue->room_code,
             'name' => $venue->room_name ?? $venue->room_code,
@@ -711,7 +866,7 @@ class VenueTimetable extends Component
             // SDD venue-description-doc-b006-rule: the viewed room's plain description.
             'description' => $venue->description !== null ? (string) $venue->description : '',
             'rawRoomType' => (string) $venue->room_type, // D2: the modal's server-side eligibility key
-        ], $eventsByWeek, $totalsByWeek);
+        ], $eventsByWeek, $totalsByWeek, $roomCellStatesByWeek);
     }
 
     /**
@@ -719,18 +874,21 @@ class VenueTimetable extends Component
      * @param  array{code: string, name: string, short_name: string, capacity: int, rawRoomType: string}  $venue
      * @param  array<int, array<int, array<string, mixed>>>  $eventsByWeek
      * @param  array<int, array<string, int|string>>  $totalsByWeek
+     * @param  array<int, array<string, 'blocked'|'free'>>  $roomCellStatesByWeek  the real room matrix (A21): week index → 'di:hi' → cell status; a missing key = no offer row
      */
     private function renderPayload(
         Collection $venuesJs,
         array $venue,
         array $eventsByWeek,
         array $totalsByWeek,
+        array $roomCellStatesByWeek,
     ): View {
         return view('livewire.venue-timetable', [
             'venuesJs' => $venuesJs,
             'venue' => $venue,
             'eventsByWeek' => $eventsByWeek,
             'totalsByWeek' => $totalsByWeek,
+            'roomCellStatesByWeek' => $roomCellStatesByWeek,
             'weekData' => $this->weekData(),
             // venue-timetable-bookable-cells: the shortest class this venue can
             // host, in half-hour slots — the grid judges its late cells and its
@@ -743,54 +901,26 @@ class VenueTimetable extends Component
     }
 
     /**
-     * Twin-merge: keyed events (di:start → list) collapse into single blocks.
-     * Status by severity (conflict > pending > replacement > normal), cohort
-     * labels joined, cohort codes unioned, students summed, mine = OR.
+     * Identity-based twin merge (cancelled-slot-reuse A13, design D5 /
+     * spec S14): duplicates of the SAME `eventKey` merge their cohort facts
+     * exactly once, while distinct identities at the same start/geometry
+     * never merge. The keyed coalescing buckets are flattened per week, the
+     * shared identity service groups by eventKey, and the merged list
+     * returns.
      *
      * @param  array<string, array<int, array<string, mixed>>>  $keyed
-     * @return array<int, array<string, mixed>>
+     * @return list<array<string, mixed>>
      */
     private function mergeTwinEvents(array $keyed): array
     {
-        return array_values(array_map(fn (array $twins): array => $this->reduceTwins($twins), $keyed));
-    }
-
-    /**
-     * @param  array<int, array<string, mixed>>  $twins
-     * @return array<string, mixed>
-     */
-    private function reduceTwins(array $twins): array
-    {
-        $merged = $twins[0];
-        $severity = ['normal' => 0, 'replacement' => 1, 'pending' => 2, 'conflict' => 3];
-
-        foreach (array_slice($twins, 1) as $twin) {
-            if (($severity[$twin['status']] ?? 0) > ($severity[$merged['status']] ?? 0)) {
-                $merged['status'] = $twin['status'];
+        $flat = [];
+        foreach ($keyed as $twins) {
+            foreach ($twins as $twin) {
+                $flat[] = $twin;
             }
-            if (str_contains((string) $merged['cohort'], (string) $twin['cohort']) === false) {
-                $merged['cohort'] = trim((string) $merged['cohort'].' + '.$twin['cohort'], ' +');
-            }
-            foreach ($twin['cohorts'] as $ci => $cohortCode) {
-                if (! in_array($cohortCode, $merged['cohorts'], true)) {
-                    $merged['cohorts'][] = $cohortCode;
-                    // keep studentCounts POSITIONAL with the unioned cohorts
-                    // (BMSE3153-class-info: the modal's A + B = total reads
-                    // the pair by index) — a newly added cohort brings its
-                    // own count along.
-                    if (isset($twin['studentCounts'][$ci])) {
-                        $merged['studentCounts'] = array_merge(
-                            $merged['studentCounts'] ?? [],
-                            [(int) $twin['studentCounts'][$ci]],
-                        );
-                    }
-                }
-            }
-            $merged['studentCount'] += $twin['studentCount'];
-            $merged['mine'] = $merged['mine'] || $twin['mine'];
         }
 
-        return $merged;
+        return TimetableEventIdentity::dedupeSameKey($flat);
     }
 
     /**

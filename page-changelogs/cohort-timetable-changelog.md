@@ -1,5 +1,7 @@
 ## 2026-11-10 (later) — Cancel this Class?: the "Other" reason block
 
+> 2026-11-13, in progress: see [cancelled-slot reuse](cancelled-slot-reuse-changelog.md) for shared stacking, real room-cell availability, passing checks and remaining delivery gates. No demo cleanup or final Verify yet.
+
 User brief `prompts/cancel-class-reason-block.md`, item 5. Items 1–4 (two-column grid, heading asterisk,
 footer `CANNOT UNDONE`, gating) are untouched.
 

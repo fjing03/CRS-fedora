@@ -2807,6 +2807,32 @@ html.dark .semester-bar select:not(.week-select) {
     background: var(--color-surface);
 }
 
+/* Stacked history lanes (cancelled-slot-reuse D6/S17): the inert filler a
+   stacked venue cell renders when ANOTHER physical row owns that column's
+   booking control (a history lane, or the exposed base availability row).
+   Same surface background as .cell-empty — no new colour, no second
+   language; the row exists to hold geometry, not to invite clicks. */
+.lane-spacer {
+    background: var(--color-surface);
+}
+
+/* cancelled-slot-reuse A19: the base availability row's own time label.
+   DESKTOP: hidden — the cell keeps the frozen absolute fill, the 'Arrange ?'
+   hover words and unchanged geometry; the label exists for the phone's
+   block-table layout (the ≤768px rule in the mobile card block below). */
+.cell-base-offer > .cell-time-label { display: none; }
+
+/* ── Stacked history lanes (cancelled-slot-reuse D6/S17/S21) ────────
+   One physical table row per lane; the day header spans them via rowspan.
+   LOCAL, token-only rules — the hour cells keep their own position:relative
+   for absolute block content, and nothing here repositions the grid. */
+.timetable td.time-col-cont {
+    /* a lane row's continuation day header (rows 2+): hidden on desktop
+       (the rowspan'd header owns the axis), restored to a card header on
+       mobile by the media query below so every card names its day */
+    display: none;
+}
+
 /* ── Selection cell model (shared: replacement-arrangement, venue-timetable) ── */
 .timetable td.hour-cell:has(.cell-content) {
     position: relative;
@@ -3792,6 +3818,41 @@ tr.bookable-flash.bookable-flash--warning > td { animation: bookable-pulse-warni
         border-radius: var(--radius-sm);
         margin-bottom: 8px;
         padding: 8px;
+    }
+
+    /* Stacked history lanes (cancelled-slot-reuse S21): a lane row's
+       continuation header becomes that card's own day header again. */
+    .timetable td.time-col-cont {
+        display: block;
+        position: static;
+        width: 100%;
+        min-width: 0;
+        background: var(--color-primary-container);
+        border-radius: var(--radius-sm);
+        margin-bottom: 8px;
+        padding: 8px;
+    }
+
+    /* inert spacer cells (a lane row's copy of a column another row owns,
+       or the base row's non-exposed hours) never open as empty cards */
+    .timetable td.hour-cell:has(.lane-spacer) {
+        display: none;
+    }
+
+    /* cancelled-slot-reuse A19: ONLY the base row's free offers — on the
+       phone's block-table layout a text-less .cell-content stayed absolute
+       and collapsed to a thin green bar with no time. Scoped to
+       .cell-base-offer, never the global .cell-content positioning: normal
+       flow, token colours, ≥44px selectable height (WCAG 2.5.5). */
+    .cell-base-offer {
+        position: static;
+        min-height: 44px;
+        color: var(--color-on-success-container);
+        font-size: 12px;
+        font-weight: 600;
+    }
+    .cell-base-offer > .cell-time-label {
+        display: block;
     }
 
     .timetable td.time-col.today {

@@ -1,0 +1,16 @@
+name: cancelled-slot-reuse
+created: 2026-11-13
+status: applying
+batch: tasks
+planning_complete: true
+proposal_review: passed
+proposal_frozen: true
+design_review: passed
+design_frozen: true
+specs_review: passed
+specs_frozen: true
+tasks_review: passed
+tasks_frozen: true
+implementation_approved: true
+implementation_approval: "User: u may sdd apply. Code/tests only; no demo cleanup, commit or push."
+demo_cleanup_approved: false

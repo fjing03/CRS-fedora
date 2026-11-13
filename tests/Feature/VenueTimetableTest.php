@@ -333,6 +333,14 @@ final class VenueTimetableTest extends TestCase
         });
     }
 
+    /**
+     * cancelled-slot-reuse A13 (D5/S14): the twin merge is IDENTITY-based —
+     * duplicates of the SAME `eventKey` collapse once (severity, cohorts,
+     * students, mine), while DISTINCT identities at the same start/geometry
+     * never merge. The occupied/pending partial unique index still makes
+     * real twins impossible until Slice B — unit-tested directly (the
+     * service owns the merge; the venue delegates).
+     */
     public function test_twin_merge_collapses_combined_lectures_by_severity(): void
     {
         // Real twins cannot exist (occupied/pending partial unique index), so
@@ -344,29 +352,43 @@ final class VenueTimetableTest extends TestCase
             'id' => 1, 'di' => 0, 'start' => 2, 'end' => 3, 'code' => 'BMIT2154',
             'name' => 'Switching and Routing Technologies', 'type' => 'L', 'venue' => 'B006',
             'lecturer' => 'Dr. Christopher Lazarus', 'cohort' => 'RSD3S1G1',
-            'cohorts' => ['RSD3S1G1'], 'studentCount' => 20, 'status' => 'normal',
-            'remarks' => '', 'mine' => false,
+            'cohorts' => ['RSD3S1G1'], 'studentCounts' => [20], 'studentCount' => 20, 'status' => 'normal',
+            'remarks' => '', 'mine' => false, 'eventKey' => 'occ:1:1:1',
         ], $over);
 
         $merged = $method->invoke(new VenueTimetable, [
+            // SAME identity: the combined-cohort duplicates merge ONCE.
             '0:2' => [
-                $base(['id' => 1, 'cohort' => 'RSD3S1G1', 'cohorts' => ['RSD3S1G1'], 'studentCount' => 20, 'status' => 'normal', 'mine' => false]),
-                $base(['id' => 2, 'cohort' => 'RSD3S1G2', 'cohorts' => ['RSD3S1G2'], 'studentCount' => 18, 'status' => 'pending', 'mine' => true]),
+                $base(['id' => 1, 'cohort' => 'RSD3S1G1', 'cohorts' => ['RSD3S1G1'], 'studentCounts' => [20], 'studentCount' => 20, 'status' => 'normal', 'mine' => false]),
+                $base(['id' => 2, 'cohort' => 'RSD3S1G2', 'cohorts' => ['RSD3S1G2'], 'studentCounts' => [18], 'studentCount' => 18, 'status' => 'pending', 'mine' => true]),
             ],
             '1:4' => [
-                $base(['id' => 3, 'di' => 1, 'start' => 4, 'cohort' => 'RSD3S1G1', 'cohorts' => ['RSD3S1G1'], 'studentCount' => 20, 'status' => 'normal']),
+                $base(['eventKey' => 'occ:1:2:1', 'id' => 3, 'di' => 1, 'start' => 4, 'cohort' => 'RSD3S1G1', 'cohorts' => ['RSD3S1G1'], 'studentCounts' => [20], 'studentCount' => 20, 'status' => 'normal']),
+            ],
+            // DISTINCT identities at the same start never merge (S14).
+            '2:6' => [
+                $base(['eventKey' => 'occ:1:3:1', 'id' => 4, 'di' => 2, 'start' => 6, 'cohort' => 'RSD3S1G1', 'cohorts' => ['RSD3S1G1'], 'studentCounts' => [9], 'studentCount' => 9, 'status' => 'normal']),
+                $base(['eventKey' => 'occ:1:4:1', 'id' => 5, 'di' => 2, 'start' => 6, 'cohort' => 'RSD3S1G2', 'cohorts' => ['RSD3S1G2'], 'studentCounts' => [8], 'studentCount' => 8, 'status' => 'pending']),
             ],
         ]);
 
-        $this->assertCount(2, $merged);
+        $this->assertCount(4, $merged);
         $twin = $merged[0];
         $this->assertSame('pending', $twin['status']);          // severity wins
         $this->assertSame('RSD3S1G1 + RSD3S1G2', $twin['cohort']); // cohorts joined
         $this->assertSame(['RSD3S1G1', 'RSD3S1G2'], $twin['cohorts']);
+        $this->assertSame([20, 18], $twin['studentCounts']);    // POSITIONAL with the union
         $this->assertSame(38, $twin['studentCount']);           // students summed
         $this->assertTrue($twin['mine']);                       // mine = OR
         $this->assertSame(1, $twin['id']);                      // first slot id kept
         $this->assertSame(3, $merged[1]['id']);                 // singleton passed through
+        // the same-start DISTINCT pair survives untouched:
+        $this->assertSame(4, $merged[2]['id']);
+        $this->assertSame('normal', $merged[2]['status']);
+        $this->assertSame('occ:1:3:1', $merged[2]['eventKey']);
+        $this->assertSame(5, $merged[3]['id']);
+        $this->assertSame('pending', $merged[3]['status']);
+        $this->assertSame(8, $merged[3]['studentCount']);       // no cross-identity fusion
     }
 
     public function test_mine_flag_true_only_for_the_owning_lecturer(): void

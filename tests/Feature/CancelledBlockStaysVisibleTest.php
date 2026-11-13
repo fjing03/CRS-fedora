@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Livewire\MyTimetable;
+use App\Models\AuditLog;
 use App\Models\ClassException;
 use App\Models\ClassSession;
 use App\Models\Cohort;
@@ -25,8 +26,10 @@ use Tests\TestCase;
  * NEVER leaves the timetable — the original slot renders the red
  * `event-conflict` block until the PL approves the proposed replacement.
  * The discriminator is READ-TIME: an exception'd pair renders cancelled
- * IFF no approved replacement request covers it. No check-value regime,
- * no data migration (the demo sheet died in the review rounds).
+ * IFF no approved replacement request covers it (cancelled-slot-reuse
+ * refines the approved leg: a PROVEN user cancellation stays visible when
+ * an in-scope active event overlaps it — specs S13/S16). No check-value
+ * regime, no data migration (the demo sheet died in the review rounds).
  */
 class CancelledBlockStaysVisibleTest extends TestCase
 {
@@ -105,6 +108,20 @@ class CancelledBlockStaysVisibleTest extends TestCase
             'class_session_id' => $session->id,
             'week_number' => 5,
             'reason' => 'annual_leave',
+        ]);
+
+        /* cancelled-slot-reuse A11 (spec S13): the discriminator's audit half
+           — a REAL user cancellation also writes the non-maintenance
+           `class_cancelled` audit naming the exact pair (the CancelClassBatch
+           receipt shape). The exception alone is only ever a stamp. */
+        AuditLog::create([
+            'user_id' => $this->lecturerA->id,
+            'action' => 'class_cancelled',
+            'details' => [
+                'class_session_id' => (int) $session->id,
+                'week_number' => 5,
+                'reason' => 'annual_leave',
+            ],
         ]);
 
         $component = Livewire::actingAs($this->lecturerA)->test(MyTimetable::class);

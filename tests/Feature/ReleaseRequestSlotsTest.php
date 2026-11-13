@@ -170,4 +170,114 @@ final class ReleaseRequestSlotsTest extends TestCase
         $this->assertSame('available', (string) TimeSlot::find($slotIds[0])->status);
         $this->assertSame('pending', (string) TimeSlot::find($slotIds[1])->status, 'the sibling cell was never claimed');
     }
+
+    /* ── SDD cancelled-slot-reuse A06 — the explicit cancellation-only opt-in
+          policy (accepted ONLY by CancelClassBatch): proven pending OR
+          occupied landing cells free, newer holders protected, ambiguity
+          refused. The default policies above are untouched. ── */
+
+    /** Turn the fixture request into an APPROVED one whose cells are occupied. */
+    private function approvedFixture(ReplacementRequest $request, array $slotIds): void
+    {
+        $request->fill(['status' => 'approved', 'decided_at' => now()])->save();
+
+        foreach ($slotIds as $slotId) {
+            TimeSlot::query()->whereKey($slotId)->update(['status' => 'occupied']);
+        }
+    }
+
+    public function test_the_cancellation_policy_frees_a_proven_occupied_landing_block(): void
+    {
+        [$request, $slotIds] = $this->fixtureRequest();
+        $this->approvedFixture($request, $slotIds);
+
+        $freed = DB::transaction(fn (): array => (new ReleaseRequestSlots)($request, false, null, true));
+
+        $this->assertSame($slotIds, $freed, 'the whole OCCUPIED block is freed');
+
+        foreach ($slotIds as $slotId) {
+            $slot = TimeSlot::find($slotId);
+            $this->assertSame('available', (string) $slot->status);
+            $this->assertSame(3, (int) $slot->version);
+        }
+
+        $this->assertSame(0, ReplacementRequestSlot::query()
+            ->where('replacement_request_id', $request->id)->count(), 'the receipt is deleted');
+    }
+
+    public function test_the_cancellation_policy_frees_a_proven_pending_landing_block(): void
+    {
+        [$request, $slotIds] = $this->fixtureRequest();
+
+        $freed = DB::transaction(fn (): array => (new ReleaseRequestSlots)($request, false, null, true));
+
+        $this->assertSame($slotIds, $freed);
+        $this->assertSame('available', (string) TimeSlot::find($slotIds[0])->status);
+    }
+
+    public function test_the_cancellation_policy_refuses_a_newer_holder_and_frees_nothing(): void
+    {
+        [$request, $slotIds] = $this->fixtureRequest();
+
+        $session = ClassSession::query()->firstOrFail();
+
+        // a NEWER junction-less claim anchored on the block's second cell
+        ReplacementRequest::create([
+            'semester_id' => (int) $session->semester_id,
+            'proposer_id' => (int) $session->lecturer_id,
+            'class_session_id' => (int) $session->id,
+            'week_number' => 6, // one active request per (session, week) — a different week is legal
+            'replacement_time_slot_id' => $slotIds[1],
+            'status' => 'pending',
+            'submitted_at' => now(),
+        ]);
+
+        try {
+            DB::transaction(fn (): array => (new ReleaseRequestSlots)($request, false, null, true));
+            $this->fail('the cancellation policy must refuse a newer holder');
+        } catch (ReleaseDriftException $e) {
+            $this->assertNotNull($e->slot, 'the contested cell travels with the refusal');
+            $this->assertSame($slotIds[1], (int) $e->slot->id);
+        }
+
+        $this->assertSame('pending', (string) TimeSlot::find($slotIds[0])->status, 'nothing was freed');
+        $this->assertSame('pending', (string) TimeSlot::find($slotIds[1])->status);
+        $this->assertSame(2, ReplacementRequestSlot::query()
+            ->where('replacement_request_id', $request->id)->count(), 'the receipt stands');
+    }
+
+    public function test_the_cancellation_policy_refuses_a_stale_receipt(): void
+    {
+        [$request, $slotIds] = $this->fixtureRequest();
+        $this->approvedFixture($request, $slotIds);
+
+        // someone freed one cell already — the receipt no longer proves ownership
+        TimeSlot::query()->whereKey($slotIds[1])->update(['status' => 'available']);
+
+        try {
+            DB::transaction(fn (): array => (new ReleaseRequestSlots)($request, false, null, true));
+            $this->fail('a stale receipt must not steal a freed cell');
+        } catch (ReleaseDriftException $e) {
+            $this->assertSame($slotIds[1], (int) $e->slot->id);
+        }
+
+        $this->assertSame('occupied', (string) TimeSlot::find($slotIds[0])->status, 'nothing was freed');
+        $this->assertSame(2, (int) TimeSlot::find($slotIds[0])->version);
+    }
+
+    public function test_the_cancellation_policy_falls_back_to_the_mapped_span_for_legacy_rows(): void
+    {
+        [$request, $slotIds] = $this->fixtureRequest();
+        $this->approvedFixture($request, $slotIds);
+
+        // a legacy backfilled row: no junction receipt, but the stored span
+        ReplacementRequestSlot::query()->where('replacement_request_id', $request->id)->delete();
+        $request->fill(['replacement_span' => 2])->save();
+
+        $freed = DB::transaction(fn (): array => (new ReleaseRequestSlots)($request, false, null, true));
+
+        $this->assertSame($slotIds, $freed, 'the mapper widens the anchor to the whole stored span');
+        $this->assertSame('available', (string) TimeSlot::find($slotIds[0])->status);
+        $this->assertSame('available', (string) TimeSlot::find($slotIds[1])->status);
+    }
 }

@@ -362,7 +362,11 @@ function applyNotifHighlight() {
         const wk = parseInt(notifWeekRaw || '', 10);
         if (!isNaN(wk) && wk >= 1 && wk <= 14) window.selectWeek(String(wk - 1));   // 1-based, the pinned rule
         const sid = raw.slice(1);
-        tryFind('#tableBody .event-block[data-sid="' + sid + '"]', 14);   /* the week rebuild margin */
+        /* cancelled-slot-reuse S19: a request landing and its cancelled
+           original can share one cell — the SOURCE jump must flash the
+           original occurrence, never its same-cell landing neighbour.
+           Landing blocks carry data-rid; the original never does. */
+        tryFind('#tableBody .event-block[data-sid="' + sid + '"]:not([data-rid])', 14);   /* the week rebuild margin */
     } else if (raw.charAt(0) === 'o') {
         /* 2026-11-11 (student notices): the student Class Replacements row is keyed
            by the CLASS OCCURRENCE (`<sessionId>:<week>`), which is exactly the
@@ -778,6 +782,156 @@ const hours = [
     '17:00', '17:30', '18:00', '18:30'
 ];
 
+// ───── Shared lane layout (cancelled-slot-reuse D6/S17) ─────
+
+/**
+ * Pure deterministic lane planner for timetable events.
+ *
+ * Input: unique, already-scoped event records with INCLUSIVE half-hour grid
+ * indices `start..end` and a day index `di`. The day is partitioned into
+ * connected interval-overlap components (half-open `[start, end+1)` —
+ * adjacent intervals never overlap); each component is laid out
+ * independently from lane 0, so distant non-overlapping blocks reuse lanes,
+ * and a day's lane count is its largest component's, minimum one.
+ *
+ * Within a component, cancelled records sort FIRST, then every other
+ * record; each group sorts by (start, end, eventKey) with a full-record
+ * serialization as the final tiebreak, so the output is invariant under
+ * input shuffling. Cancellations take the first-fit LOWEST lane whose
+ * placed records do not overlap; active records take the first-fit lowest
+ * lane that is strictly BELOW every directly overlapping cancellation and
+ * free of overlapping actives.
+ *
+ * The input is never mutated; true time and span are preserved; every
+ * event — same coordinates or not — keeps its own record (identity dedupe
+ * is the payload's job; geometry is never identity). Layout makes no
+ * availability decision: it only stacks history.
+ *
+ * @param {Array} events
+ * @returns {{days: Object<string, {placed: Array<{event: object, lane: number, span: number}>, lanes: number}>, lanes: number}}
+ */
+function layoutTimetableDay(events) {
+    var list = (events || []).filter(function (e) {
+        return e && typeof e.start === 'number' && typeof e.end === 'number';
+    });
+
+    function groupOf(e) { return e.status === 'cancelled' ? 0 : 1; }
+    /* Documented stable comparator: cancelled-first group, then start, end,
+       eventKey, then a serialization of the remaining identity fields — the
+       last line makes the order total even for legacy key-less records, so
+       a shuffled input can never change the output. */
+    function sortKey(e) {
+        return [groupOf(e), e.start, e.end, String(e.eventKey || ''),
+            JSON.stringify([e.code, e.type, e.venue, e.lecturer, e.status, e.di, e.name])];
+    }
+    function cmp(a, b) {
+        var ka = sortKey(a), kb = sortKey(b);
+        for (var i = 0; i < ka.length; i++) {
+            if (ka[i] < kb[i]) return -1;
+            if (ka[i] > kb[i]) return 1;
+        }
+        return 0;
+    }
+    list.sort(cmp);   /* `list` is a fresh array — the caller's input is untouched */
+
+    function overlaps(a, b) { return a.start < b.end && b.start < a.end; }   /* half-open */
+
+    var days = {};
+    var maxLanes = 1;
+
+    var byDay = {};
+    list.forEach(function (e) {
+        var d = String(e.di);
+        (byDay[d] = byDay[d] || []).push(e);
+    });
+
+    Object.keys(byDay).forEach(function (d) {
+        var evs = byDay[d];   /* already globally sorted → per-day sorted */
+
+        /* 1. connected interval-overlap components, in start order */
+        var components = [];
+        var comp = null;
+        evs.forEach(function (e) {
+            var halfEnd = e.end + 1;
+            if (!comp || e.start >= comp.end) {
+                comp = { end: halfEnd, events: [e] };
+                components.push(comp);
+            } else {
+                comp.events.push(e);
+                if (halfEnd > comp.end) comp.end = halfEnd;
+            }
+        });
+
+        var placed = [];
+        var dayLanes = 1;
+
+        /* 3a. cancellations first — first-fit into the lowest
+               non-overlapping lane */
+        var cancByLane = [];
+        var actByLane = [];
+        components.forEach(function (c) {
+            var compLanes = 1;
+            c.events.forEach(function (e) {
+                if (groupOf(e) !== 0) return;
+                var lane = 0;
+                while ((cancByLane[lane] || []).some(function (cc) { return overlaps(cc, e); })) lane++;
+                (cancByLane[lane] = cancByLane[lane] || []).push({ start: e.start, end: e.end + 1 });
+                compLanes = Math.max(compLanes, lane + 1);
+                placed.push({ event: e, lane: lane, span: e.end - e.start + 1 });
+            });
+            /* 3b. active records — first-fit, but strictly below EVERY
+                   directly overlapping cancellation, and never on top of an
+                   overlapping active in the chosen lane */
+            c.events.forEach(function (e) {
+                if (groupOf(e) === 0) return;
+                var minLane = 0;
+                cancByLane.forEach(function (laneCanc, lane) {
+                    (laneCanc || []).forEach(function (cc) {
+                        if (overlaps(cc, e)) minLane = Math.max(minLane, lane + 1);
+                    });
+                });
+                var lane = minLane;
+                while ((actByLane[lane] || []).some(function (aa) { return overlaps(aa, e); })) lane++;
+                (actByLane[lane] = actByLane[lane] || []).push({ start: e.start, end: e.end + 1 });
+                compLanes = Math.max(compLanes, lane + 1);
+                placed.push({ event: e, lane: lane, span: e.end - e.start + 1 });
+            });
+            dayLanes = Math.max(dayLanes, compLanes);
+        });
+
+        /* deterministic render order: lane, then the same stable sort key */
+        placed.sort(function (a, b) {
+            if (a.lane !== b.lane) return a.lane - b.lane;
+            return cmp(a.event, b.event);
+        });
+
+        days[d] = { placed: placed, lanes: dayLanes };
+        maxLanes = Math.max(maxLanes, dayLanes);
+    });
+
+    return { days: days, lanes: maxLanes };
+}
+
+/**
+ * Dedupe by the payload's stable eventKey ONLY — never day/start or lane
+ * (cancelled-slot-reuse D7/S22). Combined-cohort duplicates of one identity
+ * count once; distinct coincident identities (same start, different key)
+ * each count. Legacy rows without a key stay separate events — coordinates
+ * are never treated as identity.
+ * @param {Array} events
+ * @returns {Array}
+ */
+function dedupeEventsByKey(events) {
+    var seen = {};
+    return (events || []).filter(function (e) {
+        if (!e) return false;
+        if (e.eventKey === undefined || e.eventKey === null || e.eventKey === '') return true;
+        if (seen[e.eventKey]) return false;
+        seen[e.eventKey] = true;
+        return true;
+    });
+}
+
 // ───── Shared timetable grid builder ─────
 
 /**
@@ -874,25 +1028,100 @@ function buildTimetableGrid(cfg) {
     }
     head.appendChild(timeHeaderRow);
 
-    cfg.days.forEach((day, di) => {
-        const tr = document.createElement('tr');
-        tr.dataset.dayIndex = di;
-
-        const dayTd = document.createElement('td');
-        let dayColClass = 'time-col';
-        if (day.today) dayColClass += ' today';
-        if (day.holiday || day.sunday) dayColClass += ' offday';
-        dayTd.className = dayColClass;
-        dayTd.innerHTML = HtmlBuilder.dayHeader(day);
-        /* "Bookings open" chip: the semester's earliest bookable day, when the
-           page opts in (cfg.bookableBadge) — data-driven via generateWeekData's
-           firstBookable flag, so it tracks the anchor and never hardcodes */
-        if (cfg.bookableBadge && day.firstBookable) {
-            dayTd.insertAdjacentHTML('beforeend', '<span class="bookable-badge">Bookings open</span>');
+    /* The default-path event block factory (my-timetable / student / cohort).
+       ONE focusable, clickable target per event identity: data-event-key
+       rides every payload event that carries one (cancelled-slot-reuse
+       S14/S18); data-sid / data-rid keep their legacy jump contracts. */
+    function makeEventBlock(e, span, day, cfg, di) {
+        const isConflict = day.holiday;
+        const div = document.createElement('div');
+        div.className = 'event-block span-' + span;
+        div.setAttribute('tabindex', '0');
+        div.__eventData = e;
+        div.dataset.name = e.name || '';
+        div.dataset.venue = e.venue || '';
+        /* notif-click-highlight (the documented bridge patch): the
+           cell carries its class session id so the notification
+           deep-link highlight can find the cancelled class cell. */
+        div.dataset.sid = String(e.sessionId ?? e.id);
+        /* mytimetable-jump-highlight (2026-11-04): a replacement block
+           also carries its request id, so `Go to My Timetable` can flash
+           THIS block and never the class's natural one. Absent on every
+           other block — the selector is unambiguous by construction. */
+        if (e.requestId !== undefined && e.requestId !== null && e.requestId !== '') {
+            div.dataset.rid = String(e.requestId);
         }
-        tr.appendChild(dayTd);
+        /* cancelled-slot-reuse S14: the payload's stable identity rides the
+           block — never invented from coordinates. */
+        if (e.eventKey !== undefined && e.eventKey !== null && e.eventKey !== '') {
+            div.dataset.eventKey = String(e.eventKey);
+        }
+        /* Hover tooltip = subject name (data-name) · page context ·
+           lecturer segment · STATUS — the 2026-10-25 hover voice
+           (the user's call): the lecturer segment is page-supplied
+           via tipLecturerFn (my-timetable drops it, cohort reads YOU
+           for own classes since 2026-11-05; default = the staff name) and the status
+           word always renders CAPS (NORMAL / PENDING / REPLACEMENT). */
+        const tipCtx = (typeof cfg.tooltipExtra === 'function')
+            ? cfg.tooltipExtra(e)
+            : '';
+        const tipLect = (typeof cfg.tipLecturerFn === 'function')
+            ? cfg.tipLecturerFn(e)
+            : (e.lecturer || '—');
+        div.dataset.tip2 = [tipCtx, tipLect, eventStatusLabel(e, isConflict).toUpperCase()]
+            .filter(Boolean).join(' · ');
+        if (typeof cfg.statusClassFn === 'function') {
+            cfg.statusClassFn(div, e, isConflict);
+        } else if (e.status === 'cancelled') {
+            // cancelled-blocks-stay-visible (law ①): the cancelled
+            // block renders the EXISTING conflict family — one loud
+            // red on personal timetables, no new CSS class. The arm
+            // sits FIRST so a cancelled-on-holiday-day block stays
+            // red even when isConflict is true.
+            div.classList.add('event-conflict');
+        } else if (isConflict || e.status === 'conflict') {
+            // §10.0: conflict & PH are the same "this class won't run as
+            // scheduled" story — one loud red on personal timetables
+            // (everything here is the viewer's own; owner-gating with a
+            // quiet tint only applies to the cohort/venue browse pages)
+            div.classList.add('event-conflict');
+        } else if (e.status === 'normal') {
+            div.classList.add('event-normal');
+        } else if (e.status === 'replacement') {
+            div.classList.add('event-replacement');
+        } else if (e.status === 'pending') {
+            div.classList.add('event-pending');
+        }
 
-        if (cfg.cellRender) {
+        const startTime = to12h(hours[e.start]);
+        const endTime = to12h(hours[e.end + 1] || add30min(hours[e.end]));
+
+        let extraHtml = '';
+        if (typeof cfg.replacementNoteFn === 'function') {
+            extraHtml = cfg.replacementNoteFn(e) || '';
+        } else if (e.status === 'replacement' && e.remarks) {
+            extraHtml = '<span class="ev-note">(Replaced for ' + e.remarks + ')</span>';
+        }
+
+        div.innerHTML =
+            '<span class="ev-code">' + e.code + '(' + e.type + ')</span>' +
+            '<span class="ev-venue">' + e.venue + '</span>' +
+            '<span class="ev-time">' + startTime + ' ~ ' + endTime + '</span>' +
+            extraHtml;
+
+        div.addEventListener('click', function() { cfg.onEventClick(e, di); });
+        return div;
+    }
+
+    cfg.days.forEach((day, di) => {
+        const dayEvents = cfg.events.filter(e => e.di === di);
+
+        /* Legacy single-row custom-cell path (replacement-arrangement and
+           any cellRender caller that has NOT opted into stacked history
+           lanes via cfg.laneLayout): byte-identical to the pre-lane
+           behaviour — one physical row per day, last-write-wins slotMap,
+           5-argument cellRender. */
+        if (cfg.cellRender && !cfg.laneLayout) {
             /* cancelled-blocks-stay-visible (user law 2026-10-27): cancelled
                events REJOIN the grid — the red-cancelled state rides the
                status (the class family maps it to event-conflict). The two
@@ -900,7 +1129,23 @@ function buildTimetableGrid(cfg) {
                made them invisible on every surface. The arr/venue share the
                cellRender path with payloads that never carry cancelled
                events — inert there. */
-            const dayEvents = cfg.events.filter(e => e.di === di);
+            const tr = document.createElement('tr');
+            tr.dataset.dayIndex = di;
+
+            const dayTd = document.createElement('td');
+            let dayColClass = 'time-col';
+            if (day.today) dayColClass += ' today';
+            if (day.holiday || day.sunday) dayColClass += ' offday';
+            dayTd.className = dayColClass;
+            dayTd.innerHTML = HtmlBuilder.dayHeader(day);
+            /* "Bookings open" chip: the semester's earliest bookable day, when the
+               page opts in (cfg.bookableBadge) — data-driven via generateWeekData's
+               firstBookable flag, so it tracks the anchor and never hardcodes */
+            if (cfg.bookableBadge && day.firstBookable) {
+                dayTd.insertAdjacentHTML('beforeend', '<span class="bookable-badge">Bookings open</span>');
+            }
+            tr.appendChild(dayTd);
+
             const slotMap = {};
             hours.forEach((_, hi) => { slotMap[hi] = null; });
             dayEvents.forEach(e => {
@@ -928,124 +1173,141 @@ function buildTimetableGrid(cfg) {
             return;
         }
 
-        /* cancelled-blocks-stay-visible: same re-admission for the grid path. */
-        const dayEvents = cfg.events.filter(e => e.di === di);
+        /* Stacked path (cancelled-slot-reuse D6/S17/S18): the shared PURE
+           lane planner decides the rows — cancelled history stacks ABOVE the
+           active records it overlaps, independent blocks reuse lanes, and a
+           normal no-overlap day keeps its single physical row (existing
+           height). Layout makes no availability decision. */
+        const lay = layoutTimetableDay(dayEvents);
+        const layDay = lay.days[String(di)] || { placed: [], lanes: 1 };
+        const laneCount = Math.max(1, layDay.lanes);
 
-        const slotMap = {};
-        hours.forEach((_, hi) => { slotMap[hi] = null; });
-
+        /* lane-agnostic facts for the custom-cell context (S20): covered =
+           ANY event occupies the cell (history included); blocked = a
+           NON-cancelled one does (real room occupancy — pending/occupied
+           still block; cancelled history never does). */
+        const covered = {};
+        const blocked = {};
         dayEvents.forEach(e => {
+            const hist = e.status === 'cancelled';
             for (let hi = e.start; hi <= e.end; hi++) {
-                if (hi === e.start) {
-                    slotMap[hi] = { event: e, span: e.end - e.start + 1 };
-                } else {
-                    slotMap[hi] = { event: null, span: 0, occupied: true };
-                }
+                covered[hi] = true;
+                if (!hist) blocked[hi] = true;
             }
         });
 
-        hours.forEach((h, hi) => {
-            const td = document.createElement('td');
-            let cellClass = 'hour-cell';
-            if (day.today) cellClass += ' today-cell';
-            if (day.sunday || day.holiday) cellClass += ' offday-slot';
-            td.className = cellClass;
-            td.dataset.day = di;
-            td.dataset.hour = hi;
+        /* Venue-only base availability row (D6/S20): the PAGE decides which
+           days need it (cfg.baseRowDays = array of day indexes) — one extra
+           physical row below the history lanes exposing the truly free cells
+           that history would otherwise cover. It is not an event and never
+           enters a summary. */
+        const hasBase = !!(cfg.cellRender && Array.isArray(cfg.baseRowDays)
+            && cfg.baseRowDays.indexOf(di) >= 0);
+        const physicalRows = laneCount + (hasBase ? 1 : 0);
 
-            const info = slotMap[hi];
+        for (let row = 0; row < physicalRows; row++) {
+            const isBase = hasBase && row === physicalRows - 1;
+            const lane = isBase ? laneCount : row;
 
-            if (info && info.event) {
-                const e = info.event;
-                const isConflict = day.holiday;
-                const div = document.createElement('div');
-                div.className = 'event-block span-' + info.span;
-                div.setAttribute('tabindex', '0');
-                div.__eventData = e;
-                div.dataset.name = e.name || '';
-                div.dataset.venue = e.venue || '';
-                /* notif-click-highlight (the documented bridge patch): the
-                   cell carries its class session id so the notification
-                   deep-link highlight can find the cancelled class cell. */
-                div.dataset.sid = String(e.sessionId ?? e.id);
-                /* mytimetable-jump-highlight (2026-11-04): a replacement block
-                   also carries its request id, so `Go to My Timetable` can flash
-                   THIS block and never the class's natural one. Absent on every
-                   other block — the selector is unambiguous by construction. */
-                if (e.requestId !== undefined && e.requestId !== null && e.requestId !== '') {
-                    div.dataset.rid = String(e.requestId);
-                }
-                /* Hover tooltip = subject name (data-name) · page context ·
-                   lecturer segment · STATUS — the 2026-10-25 hover voice
-                   (the user's call): the lecturer segment is page-supplied
-                   via tipLecturerFn (my-timetable drops it, cohort reads YOU
-                   for own classes since 2026-11-05; default = the staff name) and the status
-                   word always renders CAPS (NORMAL / PENDING / REPLACEMENT). */
-                const tipCtx = (typeof cfg.tooltipExtra === 'function')
-                    ? cfg.tooltipExtra(e)
-                    : '';
-                const tipLect = (typeof cfg.tipLecturerFn === 'function')
-                    ? cfg.tipLecturerFn(e)
-                    : (e.lecturer || '—');
-                div.dataset.tip2 = [tipCtx, tipLect, eventStatusLabel(e, isConflict).toUpperCase()]
-                    .filter(Boolean).join(' · ');
-                if (typeof cfg.statusClassFn === 'function') {
-                    cfg.statusClassFn(div, e, isConflict);
-                } else if (e.status === 'cancelled') {
-                    // cancelled-blocks-stay-visible (law ①): the cancelled
-                    // block renders the EXISTING conflict family — one loud
-                    // red on personal timetables, no new CSS class. The arm
-                    // sits FIRST so a cancelled-on-holiday-day block stays
-                    // red even when isConflict is true.
-                    div.classList.add('event-conflict');
-                } else if (isConflict || e.status === 'conflict') {
-                    // §10.0: conflict & PH are the same "this class won't run as
-                    // scheduled" story — one loud red on personal timetables
-                    // (everything here is the viewer's own; owner-gating with a
-                    // quiet tint only applies to the cohort/venue browse pages)
-                    div.classList.add('event-conflict');
-                } else if (e.status === 'normal') {
-                    div.classList.add('event-normal');
-                } else if (e.status === 'replacement') {
-                    div.classList.add('event-replacement');
-                } else if (e.status === 'pending') {
-                    div.classList.add('event-pending');
-                }
+            const tr = document.createElement('tr');
+            tr.dataset.dayIndex = di;
+            tr.dataset.laneRow = isBase ? 'base' : String(lane);
 
-                const startTime = to12h(hours[e.start]);
-                const endTime = to12h(hours[e.end + 1] || add30min(hours[e.end]));
-
-                let extraHtml = '';
-                if (typeof cfg.replacementNoteFn === 'function') {
-                    extraHtml = cfg.replacementNoteFn(e) || '';
-                } else if (e.status === 'replacement' && e.remarks) {
-                    extraHtml = '<span class="ev-note">(Replaced for ' + e.remarks + ')</span>';
-                }
-
-                div.innerHTML =
-                    '<span class="ev-code">' + e.code + '(' + e.type + ')</span>' +
-                    '<span class="ev-venue">' + e.venue + '</span>' +
-                    '<span class="ev-time">' + startTime + ' ~ ' + endTime + '</span>' +
-                    extraHtml;
-
-                div.addEventListener('click', function() { cfg.onEventClick(e, di); });
-                td.appendChild(div);
-
-                if (info.span > 1) {
-                    td.colSpan = info.span;
-                }
-            } else if (info && info.occupied) {
-                td.style.display = 'none';
+            const dayTd = document.createElement('td');
+            let dayColClass = 'time-col';
+            if (day.today) dayColClass += ' today';
+            if (day.holiday || day.sunday) dayColClass += ' offday';
+            if (row === 0) {
+                /* the day header spans EVERY physical row of the day —
+                   lane rows plus a base row when one exists */
+                dayTd.className = dayColClass;
+                dayTd.rowSpan = physicalRows;
             } else {
-                const div = document.createElement('div');
-                div.className = 'cell-empty';
-                td.appendChild(div);
+                /* continuation header: display:none on desktop (the rowspan
+                   owns the axis), restored per-card on mobile by theme.css
+                   so every card still names its day */
+                dayTd.className = dayColClass + ' time-col-cont';
+            }
+            dayTd.innerHTML = HtmlBuilder.dayHeader(day);
+            /* "Bookings open" chip: the semester's earliest bookable day, when the
+               page opts in (cfg.bookableBadge) — data-driven via generateWeekData's
+               firstBookable flag, so it tracks the anchor and never hardcodes */
+            if (cfg.bookableBadge && day.firstBookable && row === 0) {
+                dayTd.insertAdjacentHTML('beforeend', '<span class="bookable-badge">Bookings open</span>');
+            }
+            tr.appendChild(dayTd);
+
+            /* this lane's own records (the base row carries none) */
+            const lanePlaced = isBase ? [] : layDay.placed.filter(p => p.lane === lane);
+            const laneStart = {};
+            const laneCover = {};
+            lanePlaced.forEach(p => {
+                for (let hi = p.event.start; hi <= p.event.end; hi++) {
+                    laneCover[hi] = true;
+                    if (hi === p.event.start) laneStart[hi] = p;
+                }
+            });
+
+            for (let hi = 0; hi < hours.length; hi++) {
+                const td = document.createElement('td');
+                let cellClass = 'hour-cell';
+                if (day.today) cellClass += ' today-cell';
+                if (day.sunday || day.holiday) cellClass += ' offday-slot';
+                td.className = cellClass;
+                td.dataset.day = di;
+                td.dataset.hour = hi;
+
+                if (cfg.cellRender) {
+                    /* stacked custom-cell contract (S18/S20): the SAME info
+                       shape (this lane's own record) plus a BACKWARD-
+                       COMPATIBLE sixth argument — lane geometry, real
+                       occupancy facts, and the designated selectable
+                       instance of a free cell. */
+                    let info = null;
+                    if (laneStart[hi]) {
+                        info = { event: laneStart[hi].event, span: laneStart[hi].span };
+                    } else if (laneCover[hi]) {
+                        const cp = lanePlaced.find(p => p.event.start < hi && p.event.end >= hi);
+                        info = { event: null, span: 0, occupied: true, status: cp ? cp.event.status : undefined };
+                    }
+                    const ctx = {
+                        lane: lane,
+                        laneCount: laneCount,
+                        base: isBase,
+                        covered: !!covered[hi],
+                        blocked: !!blocked[hi],
+                        /* the ONE selectable instance of a free cell: lane 0
+                           when history does not cover it, the base row when
+                           it does — never one green card per lane. */
+                        designated: isBase ? !!covered[hi] : (lane === 0 && !covered[hi]),
+                    };
+                    cfg.cellRender(td, di, hi, day, info, ctx);
+                    tr.appendChild(td);
+                    continue;
+                }
+
+                const p = laneStart[hi];
+                if (p) {
+                    const e = p.event;
+                    const div = makeEventBlock(e, p.span, day, cfg, di);
+                    td.appendChild(div);
+
+                    if (p.span > 1) {
+                        td.colSpan = p.span;
+                    }
+                } else if (laneCover[hi]) {
+                    td.style.display = 'none';
+                } else {
+                    const div = document.createElement('div');
+                    div.className = 'cell-empty';
+                    td.appendChild(div);
+                }
+
+                tr.appendChild(td);
             }
 
-            tr.appendChild(td);
-        });
-
-        body.appendChild(tr);
+            body.appendChild(tr);
+        }
     });
 }
 
@@ -1060,13 +1322,17 @@ function buildTimetableGrid(cfg) {
 
 /**
  * Count + hours of the classes taught by the logged-in lecturer within a
- * page's (already week/filter-scoped) events array. Dedupes via the grid's
- * own slotMap semantics (last-write-wins per day:start) so merged-cohort
- * duplicate rows count once — the number always matches visible blocks.
- * Offday events are skipped by callers whose grid renders them as PH cells.
+ * page's (already week/filter-scoped) events array. Dedupes by the payload's
+ * stable eventKey ONLY (cancelled-slot-reuse D7/S22) so merged-cohort
+ * duplicate rows count once while same-start DISTINCT identities (a landing
+ * request and its cancelled original) can no longer overwrite each other —
+ * the old day:start last-write-wins map is gone. Legacy rows without a key
+ * stay separate (never merged by coordinates). Offday events are skipped by
+ * callers whose grid renders them as PH cells.
  */
 function myTeachingStats(events) {
-    const heads = {};
+    const seen = {};
+    const mine = [];
     (events || []).forEach(function (e) {
         if (!e || e.lecturer !== MockData.currentUser.name) return;
         /* cancelled-blocks-stay-visible (the locked summary law): a cancelled
@@ -1074,9 +1340,12 @@ function myTeachingStats(events) {
            honest-numbers law, and the frozen #sumTotal=6 receipt keeps its
            meaning) but APPEARS in the conflicts tally via computeSummary. */
         if (e.status === 'cancelled') return;
-        heads[e.di + ':' + e.start] = e;               // last-write-wins = grid slotMap semantics
+        if (e.eventKey !== undefined && e.eventKey !== null && e.eventKey !== '') {
+            if (seen[e.eventKey]) return;
+            seen[e.eventKey] = true;
+        }
+        mine.push(e);
     });
-    const mine = Object.keys(heads).map(function (k) { return heads[k]; });
     const hours = mine.reduce(function (s, e) { return s + (e.end - e.start + 1) * 0.5; }, 0);
     /* confirmed+pending split (summary-cards-confirmed-pending, 2026-11-02):
        a head whose FINAL status is `pending` is a class still awaiting
@@ -1106,10 +1375,14 @@ function computeSummary(events, days, opts) {
        requiring replacement. The three timetable blades' `filter(e =>
        e.status !== 'cancelled')` wrappers were REMOVED in this lane (they
        starved the tally); the full arrays now reach here. */
-    let total = events.length - events.filter(e => e.status === 'cancelled').length;
+    /* cancelled-slot-reuse D7/S22: every tally below reads the eventKey
+       dedupe — never day/start or lane, and never the physical lane rows
+       (a base availability row is not an event and contributes zero). */
+    const evs = dedupeEventsByKey(events);
+    let total = evs.length - evs.filter(e => e.status === 'cancelled').length;
     let replacement = 0, pending = 0, conflict = 0, hrs = 0, pendingHrs = 0;
 
-    events.forEach(e => {
+    evs.forEach(e => {
         if (e.status === 'replacement') replacement++;
         if (e.status === 'pending') pending++;
         if (e.status === 'conflict' || e.status === 'cancelled' || (days[e.di] && days[e.di].holiday)) conflict++;
@@ -1558,7 +1831,11 @@ function initTimetableKeyboardHandlers(cfg) {
         if (e.target.tagName === 'SELECT' || document.getElementById(cfg.modalId || 'classModal').style.display === 'flex') return;
         if (e.key === 'ArrowLeft') { cfg.prevWeek(); }
         if (e.key === 'ArrowRight') { cfg.nextWeek(); }
-        if (e.key === 'Enter' && e.target.classList.contains('event-block')) {
+        /* cancelled-slot-reuse S19: click, Enter AND Space open the SAME
+           event — one activation seam for every focusable block target. */
+        if ((e.key === 'Enter' || e.key === ' ' || e.key === 'Spacebar')
+            && e.target.classList && e.target.classList.contains('event-block')) {
+            e.preventDefault();
             const eventData = e.target.__eventData;
             if (eventData) cfg.openModal(eventData);
         }

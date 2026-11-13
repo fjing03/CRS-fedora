@@ -61,6 +61,26 @@ final class MyDayClassesTest extends TestCase
         return (new MyTimetable)->myDayClasses($this->week, $this->day);
     }
 
+    /**
+     * A guaranteed-free 30-minute cell on the given week/day: the fixture
+     * reuses a seeded AVAILABLE row's exact venue/time, so a hand-made pending
+     * cell can never collide with the no-double-book unique index.
+     *
+     * @return array{venue_id: int, start_time: string, end_time: string}
+     */
+    private function freeCellOn(int $semesterId, int $week, int $day): array
+    {
+        $free = TimeSlot::query()
+            ->where('semester_id', $semesterId)
+            ->where('week_number', $week)
+            ->where('day_of_week', $day)
+            ->where('status', 'available')
+            ->orderBy('id')
+            ->firstOrFail();
+
+        return ['venue_id' => (int) $free->venue_id, 'start_time' => (string) $free->start_time, 'end_time' => (string) $free->end_time];
+    }
+
     /** The renderless day confirm. */
     private function cancelDay(string $reason, array $requestIds = [], array $sessionIds = []): array
     {
@@ -112,14 +132,26 @@ final class MyDayClassesTest extends TestCase
         $sessionId = (int) $classes[0]['sessionId'];
         $session = ClassSession::findOrFail($sessionId);
 
+        /* the make-up cell must sit on a coordinate the seed has NOT occupied
+           (the no-double-book index) — take a free row of the same week/day and
+           reuse its exact venue/time instead of blindly INSERTing pending at a
+           fixed coordinate that a seeded class may already hold */
+        $free = TimeSlot::query()
+            ->where('semester_id', (int) $session->semester_id)
+            ->where('week_number', $this->week + 1)
+            ->where('day_of_week', 4)
+            ->where('status', 'available')
+            ->orderBy('id')
+            ->firstOrFail();
+
         $slot = TimeSlot::create([
             'semester_id' => (int) $session->semester_id,
             'class_session_id' => null,
             'week_number' => $this->week + 1,
             'day_of_week' => 4,
-            'start_time' => '15:00:00',
-            'end_time' => '15:30:00',   // the DB only allows the 30-minute cells
-            'venue_id' => $session->venue_id,
+            'start_time' => (string) $free->start_time,
+            'end_time' => (string) $free->end_time,
+            'venue_id' => (int) $free->venue_id,
             'status' => 'pending',
             'version' => 2,
         ]);
@@ -154,15 +186,16 @@ final class MyDayClassesTest extends TestCase
 
         $session = ClassSession::findOrFail((int) $classes[0]['sessionId']);
         $otherWeek = $this->week === 14 ? 13 : $this->week + 1;   // any OTHER valid week
+        $cell = $this->freeCellOn((int) $session->semester_id, $this->week, $this->day);
 
         $slot = TimeSlot::create([
             'semester_id' => (int) $session->semester_id,
             'class_session_id' => null,
             'week_number' => $this->week,          // the make-up FALLS on this day
             'day_of_week' => $this->day,
-            'start_time' => '08:00:00',
-            'end_time' => '08:30:00',
-            'venue_id' => $session->venue_id,
+            'start_time' => $cell['start_time'],
+            'end_time' => $cell['end_time'],
+            'venue_id' => $cell['venue_id'],
             'status' => 'pending',
             'version' => 2,
         ]);
@@ -187,8 +220,8 @@ final class MyDayClassesTest extends TestCase
 
         $this->assertCount(1, $day['makeUps'], 'the make-up block is reported');
         $this->assertSame($otherWeek, $day['makeUps'][0]['week'], 'and names its own week');
-        $this->assertSame('08:00', $day['makeUps'][0]['start']);
-        $this->assertSame('08:30', $day['makeUps'][0]['end'], 'the real run of the block');
+        $this->assertSame(substr($cell['start_time'], 0, 5), $day['makeUps'][0]['start']);
+        $this->assertSame(date('H:i', strtotime($cell['end_time'])), $day['makeUps'][0]['end'], 'the real run of the block');
         $this->assertSame('pending', $day['makeUps'][0]['request']);
 
         /* nothing in `makeUps` is a class row — the tick list cannot reach it */
@@ -227,15 +260,79 @@ final class MyDayClassesTest extends TestCase
 
         $session = ClassSession::findOrFail((int) $classes[0]['sessionId']);
         $otherWeek = $this->week === 14 ? 13 : $this->week + 1;
+        $cell = $this->freeCellOn((int) $session->semester_id, $this->week, $this->day);
 
         $slot = TimeSlot::create([
             'semester_id' => (int) $session->semester_id,
             'class_session_id' => null,
             'week_number' => $this->week,
             'day_of_week' => $this->day,
-            'start_time' => '08:00:00',
-            'end_time' => '08:30:00',
-            'venue_id' => $session->venue_id,
+            'start_time' => $cell['start_time'],
+            'end_time' => $cell['end_time'],
+            'venue_id' => $cell['venue_id'],
+            'status' => 'pending',
+            'version' => 2,
+        ]);
+
+        $request = ReplacementRequest::create([
+            'semester_id' => (int) $session->semester_id,
+            'proposer_id' => (int) $session->lecturer_id,
+            'class_session_id' => (int) $session->id,
+            'week_number' => $otherWeek,
+            'replacement_time_slot_id' => $slot->id,
+            'status' => 'pending',
+            'submitted_at' => now(),
+        ]);
+
+        ReplacementRequestSlot::create([
+            'replacement_request_id' => $request->id,
+            'time_slot_id' => $slot->id,
+        ]);
+
+        /* the page ALWAYS sends the opened class's id with the ticked rows —
+           a request-only selection (no sessionIds) must never cancel classes */
+        $result = $this->cancelDay('medical_leave', [(int) $request->id], [(int) $session->id]);
+
+        $this->assertTrue($result['ok']);
+        $this->assertSame(1, $result['requestsWithdrawn'], 'the make-up request was withdrawn');
+
+        $request->refresh();
+        $this->assertSame('cancelled', (string) $request->status, 'the request is closed');
+        $this->assertSame('available', (string) TimeSlot::find($slot->id)->status, 'its slot came back');
+
+        /* the class the make-up was arranged FOR is untouched: no exception on its
+           own week. (The class the modal was opened for is always cancelled — that
+           is what the red button is for.) */
+        $this->assertSame(0, ClassException::query()
+            ->where('week_number', $otherWeek)
+            ->count(), 'the other week\'s class keeps running');
+
+        $this->assertCount(1, $result['cancelled'], 'only the opened class was cancelled');
+        $this->assertNotSame($otherWeek, (int) $result['cancelled'][0]['week']);
+    }
+
+    /**
+     * A request-only selection (ticked make-ups, NO session ids) withdraws the
+     * requests and cancels NO class — the day read's class set must never leak
+     * into a hidden normal-class cancel behind the user's back.
+     */
+    public function test_a_request_only_selection_never_cancels_a_class(): void
+    {
+        $classes = $this->myDay()['classes'] ?? [];
+        $this->assertNotEmpty($classes);
+
+        $session = ClassSession::findOrFail((int) $classes[0]['sessionId']);
+        $otherWeek = $this->week === 14 ? 13 : $this->week + 1;
+        $cell = $this->freeCellOn((int) $session->semester_id, $this->week, $this->day);
+
+        $slot = TimeSlot::create([
+            'semester_id' => (int) $session->semester_id,
+            'class_session_id' => null,
+            'week_number' => $this->week,
+            'day_of_week' => $this->day,
+            'start_time' => $cell['start_time'],
+            'end_time' => $cell['end_time'],
+            'venue_id' => $cell['venue_id'],
             'status' => 'pending',
             'version' => 2,
         ]);
@@ -258,21 +355,14 @@ final class MyDayClassesTest extends TestCase
         $result = $this->cancelDay('medical_leave', [(int) $request->id]);
 
         $this->assertTrue($result['ok']);
-        $this->assertSame(1, $result['requestsWithdrawn'], 'the make-up request was withdrawn');
+        $this->assertSame(1, $result['requestsWithdrawn'], 'the ticked make-up was withdrawn');
+        $this->assertSame([], $result['cancelled'], 'no class was cancelled');
+        $this->assertSame(0, $result['requestsClosed']);
+        $this->assertSame(0, ClassException::query()->count(), 'no hidden class cancel');
 
         $request->refresh();
-        $this->assertSame('cancelled', (string) $request->status, 'the request is closed');
-        $this->assertSame('available', (string) TimeSlot::find($slot->id)->status, 'its slot came back');
-
-        /* the class the make-up was arranged FOR is untouched: no exception on its
-           own week. (The class the modal was opened for is always cancelled — that
-           is what the red button is for.) */
-        $this->assertSame(0, ClassException::query()
-            ->where('week_number', $otherWeek)
-            ->count(), 'the other week\'s class keeps running');
-
-        $this->assertCount(1, $result['cancelled'], 'only the opened class was cancelled');
-        $this->assertNotSame($otherWeek, (int) $result['cancelled'][0]['week']);
+        $this->assertSame('cancelled', (string) $request->status);
+        $this->assertSame('available', (string) TimeSlot::find($slot->id)->status, 'the withdrawn block is freed');
     }
 
     /**

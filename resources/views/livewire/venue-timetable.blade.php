@@ -77,6 +77,15 @@
         .cell-available.cell-no-room:hover { filter: none; }
         .cell-available.cell-no-fit::after { background: var(--color-error); color: var(--color-on-error); }
         .cell-available.cell-no-fit:hover { filter: none; }
+        /* cancelled-slot-reuse A21: a cell the room's REAL rows hold (a
+           pre-cleanup raw occupied/pending cell with no live holder to
+           render) — NEUTRAL surface tone, no hover label, never a fabricated
+           NORMAL/available look. Token-only (the reserved/neutral pair). */
+        .cell-content.cell-held {
+            background: var(--color-surface-variant);
+            cursor: not-allowed;
+        }
+        .cell-content.cell-held:hover { filter: none; }
         .booking-hint-line {
             margin: 10px 0 0;
             font-size: 12px;
@@ -140,12 +149,6 @@
          page's first update). Venue switching is ?venue= full render, so the
          server never needs to update inside this block. ─── -->
     <div wire:ignore>
-    <!-- ─── Semester Progress ─── -->
-    <div class="semester-progress" id="semesterProgress">
-        <div class="progress-label" id="progressLabel"></div>
-        <div class="progress-track"><div class="progress-fill" id="progressFill"></div></div>
-    </div>
-
     <!-- ─── Semester Bar ─── venue + week selectors on ONE row (frozen fjing
          layout, f8b35a2; matches the cohort-timetable pattern). The 2026-10-09
          DB wiring (adc95bb) had split them into two bars — unauthorised drift,
@@ -169,9 +172,6 @@
         </div>
         @include('partials.ui-week-nav', ['prevOnclick' => 'prevWeek()', 'nextOnclick' => 'nextWeek()', 'selectId' => 'weekSelect', 'selectOnclick' => 'selectWeek(this.value)', 'showPrint' => true, 'showEarliestBtn' => true])
     </div>
-
-    <!-- ─── Week Subtitle ─── -->
-    <div class="week-subtitle" id="weekSubtitle"></div>
 
     <!-- ─── Grid Wrapper ─── -->
     @include('partials.ui-grid-table')
@@ -263,6 +263,18 @@
                (the same bridge as my-timetable's — resolveMatches reads
                MockData.myTimetable.eventsByWeek). */
             MockData.myTimetable = { eventsByWeek: eventsData };
+            /* cancelled-slot-reuse: the served payload on `window` — the same
+               bridge my-timetable exposes (`window.eventsData`), so tests can
+               stage a synthetic scoped payload and re-render without scraping
+               the DOM. Read-only by convention. */
+            window.eventsData = eventsData;
+            /* cancelled-slot-reuse A21: the served REAL room matrix on `window`
+               — week index → 'di:hi' → 'free' | 'blocked' (a missing key = no
+               offer row). The green/bookable decisions read it; synthetic
+               tests must stage a truthful matrix fixture alongside their
+               events and restore both, never bypass the guard. */
+            const roomCellStatesByWeek = @json($roomCellStatesByWeek);
+            window.roomCellStatesByWeek = roomCellStatesByWeek;
             MockData.currentUser = @json(['name' => auth()->user()?->name ?? '', 'staffId' => (string) (auth()->user()?->lecturer?->staff_id ?? '')]); // class-modal-affordances: the ownership bridge (was the missing piece)
             const totalsData = @json($totalsByWeek);
 
@@ -446,31 +458,100 @@
 
             /* Index of the NEXT event start below a cell on the same day
                (Infinity = nothing below). One definition for the paint loop and
-               for the post-selection check. */
+               for the post-selection check.
+               cancelled-slot-reuse S20: CANCELLED history is not occupancy —
+               it is ignored here, so a freed range below never limits a span. */
+            function isHistoryEvent(ev) { return ev.status === 'cancelled'; }
+
+            /* cancelled-slot-reuse A21: the served room matrix is the REAL
+               room truth for the viewed week — 'free' only where the venue's
+               own time_slots rows are all available; 'blocked' where any row
+               holds the cell (pre-cleanup raw occupancy with no active holder
+               included); missing = no offer row. Fail closed: the green /
+               bookable decisions below consult it, because event geometry
+               alone cannot see a raw occupied cell. */
+            function roomCellState(di, hi) {
+                const week = roomCellStatesByWeek[currentWeek];
+                if (!week) return 'nooffer';
+                const state = week[di + ':' + hi];
+                return state === undefined ? 'nooffer' : state;
+            }
+
+            /* First hour after `hi` whose real cell is NOT a free offer (held
+               row or no offer). Infinity = none — the room run ends there even
+               when no event geometry covers the cell. */
+            function nextActualBlockAfter(di, hi) {
+                for (let k = hi + 1; k < hours.length; k++) {
+                    if (roomCellState(di, k) !== 'free') return k;
+                }
+                return Infinity;
+            }
+
             function nextEventStartAfter(di, hi) {
                 const dayEvents = eventsData[currentWeek] || [];
                 let next = Infinity;
                 dayEvents.forEach(function (ev) {
-                    if (ev.di !== di || ev.start <= hi) return;
+                    if (ev.di !== di || isHistoryEvent(ev) || ev.start <= hi) return;
                     if (ev.start < next) next = ev.start;
                 });
                 return next;
             }
 
-            /* Would an event already sit inside [hi, hi + spanSlots)? Lifted out
+            /* Would a LIVE event already sit inside [hi, hi + spanSlots)? Lifted out
                of the modal closure so stage 1 (hover) and stage 2 (after the
-               class is picked) can never disagree. */
+               class is picked) can never disagree. Cancelled history never
+               blocks a span (S20); the room matrix does (A21) — a held row or
+               a missing offer ends the span even with no event over it. */
             function spanBlocked(di, hi, spanSlots) {
                 const spanTo = Math.min(hi + spanSlots, hours.length);
+                for (let k = hi; k < spanTo; k++) {
+                    if (roomCellState(di, k) !== 'free') return true;
+                }
                 return (eventsData[currentWeek] || []).some(function (ev) {
-                    return ev.di === di && (hi < ev.end + 1) && (spanTo - 1 >= ev.start);
+                    return ev.di === di && !isHistoryEvent(ev)
+                        && (hi < ev.end + 1) && (spanTo - 1 >= ev.start);
                 });
             }
 
-            /* Room between a free cell and the NEXT event, in half-hour slots
-               (Infinity = nothing below). */
+            /* Does a LIVE (non-cancelled) event occupy one cell? Real room
+               occupancy — pending and occupied still block; cancelled history
+               never does (S20). */
+            function cellBlockedByLive(di, hi) {
+                return (eventsData[currentWeek] || []).some(function (ev) {
+                    return ev.di === di && !isHistoryEvent(ev)
+                        && hi >= ev.start && hi <= ev.end;
+                });
+            }
+
+            /* The base availability row exists ONLY on days where history
+               visually covers a cell that is otherwise selectable (free of
+               live occupancy, inside the open bookable window — not Sunday,
+               not a public holiday, not too soon, AND a real free offer in
+               the room matrix (A21): a pre-cleanup raw occupied cell under
+               history is neutral, not selectable). Those are the days that
+               need the separation (D6/S20); every other day keeps today's
+               height. */
+            function dayNeedsBaseRow(di) {
+                const day = weekData[currentWeek].days[di];
+                if (!day || day.sunday || day.holiday) return false;
+                if (isSlotTooSoon(weekData, currentWeek, di)) return false;
+                const dayEvents = (eventsData[currentWeek] || []).filter(function (ev) { return ev.di === di; });
+                for (let hi = 0; hi < hours.length; hi++) {
+                    const coveredByHistory = dayEvents.some(function (ev) {
+                        return isHistoryEvent(ev) && hi >= ev.start && hi <= ev.end;
+                    });
+                    if (coveredByHistory && !cellBlockedByLive(di, hi) && roomCellState(di, hi) === 'free') return true;
+                }
+                return false;
+            }
+
+            /* Room between a free cell and the NEXT real block, in half-hour
+               slots (Infinity = nothing below). The next block is the nearer
+               of the next live event and the first non-free room-matrix cell
+               (A21) — a raw occupied row with no event geometry still ends
+               the run. */
             function roomBeforeNextEvent(di, hi) {
-                const next = nextEventStartAfter(di, hi);
+                const next = Math.min(nextEventStartAfter(di, hi), nextActualBlockAfter(di, hi));
                 return next === Infinity ? Infinity : next - hi;
             }
 
@@ -876,6 +957,14 @@
             function buildTimetable() {
                 currentWeek = weekNav.currentWeek;
                 countedAvailable = 0;
+                /* cancelled-slot-reuse S20: the base availability row is
+                   offered ONLY where history would otherwise cover a
+                   selectable free cell — decided from the real payload's
+                   live statuses, never from the cancelled geometry alone. */
+                const baseRowDays = [];
+                (weekData[currentWeek].days || []).forEach(function (_, di) {
+                    if (dayNeedsBaseRow(di)) baseRowDays.push(di);
+                });
                 buildTimetableGrid({
                     events: eventsData[currentWeek] || [],
                     days: weekData[currentWeek].days,
@@ -883,12 +972,32 @@
                        bookable day carries the "Bookings open" chip (data-driven
                        via generateWeekData's firstBookable flag) */
                     bookableBadge: true,
+                    /* cancelled-slot-reuse S18: stacked history lanes — the
+                       shared PURE planner stacks cancelled history above the
+                       active records it overlaps; the arrangement grid is
+                       NOT stacked (it never passes laneLayout). */
+                    laneLayout: true,
+                    baseRowDays: baseRowDays,
                     /* Page paints every cell (venue-event-blocks-db design §1):
                        cellRender mode = the frozen two-axis block language.
                        PH/Sunday empties get offday cells; too-soon renders
                        read-only; free slots are bookable (U2a Arrange
                        affordance); blocks carry colour=status + border=ownership. */
-                    cellRender: function (td, di, hi, day, info) {
+                    cellRender: function (td, di, hi, day, info, ctx) {
+                        /* Stacked custom-cell context (cancelled-slot-reuse
+                           S18/S20) — the shared builder's BACKWARD-COMPATIBLE
+                           sixth argument. Geometry + real-occupancy facts of
+                           THIS cell across the whole day:
+                             lane / laneCount / base — which physical row this is;
+                             covered — ANY event (history included) occupies it;
+                             blocked — a LIVE (non-cancelled) one does (real
+                               room occupancy: pending/occupied still block);
+                             designated — the ONE selectable instance of a free
+                               cell (lane 0, or the base row when history covers
+                               it), so history lanes never duplicate the green
+                               booking controls and the base row never doubles
+                               a cell lane 0 already exposes. */
+                        ctx = ctx || { lane: 0, laneCount: 1, base: false, covered: false, blocked: false, designated: true };
                         /* PH-day exception (holiday ONLY — Sundays hide all
                            events): the viewer's OWN classes still render as
                            loud red blocks on public-holiday days ("your class
@@ -926,6 +1035,18 @@
                             div._evt = e; div._di = di; div.__eventData = e;   // parity with default builder (keyboard handlers)
                             div.dataset.name = e.name || '';
                             div.dataset.venue = e.venue || '';
+                            /* cancelled-slot-reuse S14/S19: the SAME identity
+                               fields the default grid builder carries — the
+                               payload's stable key plus the legacy sid/rid
+                               jump contracts — so a block is findable by its
+                               identity on every surface, never by coordinates. */
+                            div.dataset.sid = String(e.sessionId ?? e.id);
+                            if (e.requestId !== undefined && e.requestId !== null && e.requestId !== '') {
+                                div.dataset.rid = String(e.requestId);
+                            }
+                            if (e.eventKey !== undefined && e.eventKey !== null && e.eventKey !== '') {
+                                div.dataset.eventKey = String(e.eventKey);
+                            }
                             /* `.event-block::after` renders "name · lecturer|YOU · cohorts · STATUS"
                                (data-name + this data-tip2 — the user's hover-voice
                                directive 2026-10-25, relabelled ME → YOU 2026-11-05): the
@@ -990,7 +1111,23 @@
                             if (info.span > 1) td.colSpan = info.span;   // parity: builder sets it only when span > 1
                         } else if (info && info.occupied) {
                             td.style.display = 'none';                   // continuation consumed by head's colSpan
-                                        } else if (isSlotTooSoon(weekData, currentWeek, di)) {
+                        } else if (!ctx.designated) {
+                            /* Stacked geometry (S20): ANOTHER physical row owns
+                               this column's booking control — a history lane's
+                               copy of a free column, or a base-row hour lane 0
+                               already exposes. Inert background only; never a
+                               second green card, never a duplicated control. */
+                            const div = document.createElement('div');
+                            div.className = 'cell-content lane-spacer';
+                            td.appendChild(div);
+                        } else if (ctx.blocked) {
+                            /* a LIVE pending/occupied blocker keeps the cell
+                               blocked (S10/S20) — the room is not bookable
+                               here, whatever the cancelled history looks like. */
+                            const div = document.createElement('div');
+                            div.className = 'cell-content lane-spacer';
+                            td.appendChild(div);
+                        } else if (isSlotTooSoon(weekData, currentWeek, di)) {
                             /* lead-time rule (frozen template :861–866): inside
                                the 3-working-day window — rendered read-only
                                (no Arrange tooltip, no keyboard) */
@@ -998,33 +1135,62 @@
                             div.className = 'cell-content cell-too-soon';
                             td.appendChild(div);
                         } else {
-                            /* Available slot — frozen template :873–884. The
-                               AVAILABLE card counts ONLY what the grid renders
-                               bookable (user 2026-10-19: too-soon rows were
-                               inflating it) — this branch is the single
-                               counting point, so the card can never disagree
-                               with the cells on screen. */
-                            countedAvailable++;
-                            const div = document.createElement('div');
-                            div.className = 'cell-content cell-available';
-                            /* a class can't fit if it would run past the day end —
-                               judged by the SHORTEST class this venue can host */
-                            if (hi + MIN_BOOK_SLOTS > hours.length) div.classList.add('cell-no-fit');
-                            /* …and it can't fit if the next class below leaves too
-                               little room (cursor + hover words only, no colour) */
-                            else if (roomBeforeNextEvent(di, hi) < MIN_BOOK_SLOTS) div.classList.add('cell-no-room');
-                            div.tabIndex = 0;
-                            div.dataset.day = di;
-                            div.dataset.hour = hi;
-                            div.setAttribute('role', 'button');
-                            div.setAttribute('aria-label', 'Available slot: ' + day.abbr + ' ' + hours[hi]);
+                            /* cancelled-slot-reuse A21: the served room matrix
+                               gates the green. A DB-held cell (a pre-cleanup
+                               raw occupied/pending row with no live holder to
+                               render) reads as a NEUTRAL held cell — never a
+                               fabricated NORMAL; a cell with no offer row
+                               stays inert. Only a served free offer is
+                               bookable — no missing-grid free fallback. */
+                            const cellState = roomCellState(di, hi);
+                            if (cellState === 'free') {
+                                /* Available slot — frozen template :873–884. The
+                                   AVAILABLE card counts ONLY what the grid renders
+                                   bookable (user 2026-10-19: too-soon rows were
+                                   inflating it) — this branch is the single
+                                   counting point, so the card can never disagree
+                                   with the cells on screen. */
+                                countedAvailable++;
+                                const div = document.createElement('div');
+                                div.className = 'cell-content cell-available';
+                                /* a class can't fit if it would run past the day end —
+                                   judged by the SHORTEST class this venue can host */
+                                if (hi + MIN_BOOK_SLOTS > hours.length) div.classList.add('cell-no-fit');
+                                /* …and it can't fit if the next class below leaves too
+                                   little room (cursor + hover words only, no colour) */
+                                else if (roomBeforeNextEvent(di, hi) < MIN_BOOK_SLOTS) div.classList.add('cell-no-room');
+                                /* cancelled-slot-reuse A19: ONLY a BASE-row free offer
+                                   carries its own time label — the phone's block-table
+                                   layout turns the desktop absolute cell fill into normal
+                                   flow, so a text-less cell collapsed to a thin green bar
+                                   with no time. Safe textContent (never innerHTML), the
+                                   page's own to12h/add30min pair, the standard `~` range
+                                   joiner; lane-0 cells keep the desktop hover affordance
+                                   and no geometry changes. */
+                                if (ctx.base) {
+                                    div.classList.add('cell-base-offer');
+                                    const baseTime = document.createElement('span');
+                                    baseTime.className = 'cell-time-label';
+                                    baseTime.textContent = to12h(hours[hi]) + ' ~ ' + to12h(hours[hi + 1] || add30min(hours[hi]));
+                                    div.appendChild(baseTime);
+                                }
+                                div.tabIndex = 0;
+                                div.dataset.day = di;
+                                div.dataset.hour = hi;
+                                div.setAttribute('role', 'button');
+                                div.setAttribute('aria-label', 'Available slot: ' + day.abbr + ' ' + hours[hi]);
 
-                            div.addEventListener('click', function(ev) {
-                                focusedCell = div;
-                                showAvailableTooltip(ev, di, hi, div);
-                            });
-                            div.addEventListener('focus', function() { focusedCell = div; });
-                            td.appendChild(div);
+                                div.addEventListener('click', function(ev) {
+                                    focusedCell = div;
+                                    showAvailableTooltip(ev, di, hi, div);
+                                });
+                                div.addEventListener('focus', function() { focusedCell = div; });
+                                td.appendChild(div);
+                            } else {
+                                const div = document.createElement('div');
+                                div.className = 'cell-content ' + (cellState === 'blocked' ? 'cell-held' : 'lane-spacer');
+                                td.appendChild(div);
+                            }
                         }
                     }
                 });
@@ -1156,6 +1322,14 @@
             window.openModal = openModal;
             window.buildTimetable = buildTimetable;
             window.updateSummary = updateSummary;
+            /* cancelled-slot-reuse: the stacked-geometry helpers ride `window`
+               for the same reason eventsData does — receipts assert the served
+               truth (history-ignoring spans/room math) instead of scraping
+               pixels. Read-only. */
+            window.nextEventStartAfter = nextEventStartAfter;
+            window.spanBlocked = spanBlocked;
+            window.roomBeforeNextEvent = roomBeforeNextEvent;
+            window.roomCellState = roomCellState;
             window.closeModal = closeModal;
             window.closeModalOutside = closeModalOutside;
         });

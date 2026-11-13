@@ -156,6 +156,25 @@ final class ApprovalWorkflowTest extends TestCase
     {
         ClassException::create(['class_session_id' => (int) $session->id, 'week_number' => (int) $requestWeek, 'reason' => 'official_event']);
 
+        /* cancelled-slot-reuse A08: the ORIGINAL occurrence's COMPLETE grid —
+           the session's recurring coordinates at the request's ORIGINAL week
+           (identity-owned, occupied). The strict original plan refuses a
+           missing original cell (frozen D3/S04), so every approval fixture
+           carries the full four-cell reservation. */
+        foreach (['10:00:00', '10:30:00', '11:00:00', '11:30:00'] as $ost) {
+            TimeSlot::create([
+                'semester_id' => $session->semester_id,
+                'class_session_id' => $session->id,
+                'week_number' => (int) $requestWeek,
+                'day_of_week' => $session->day_of_week,
+                'start_time' => $ost,
+                'end_time' => date('H:i:s', strtotime($ost) + 1800),
+                'venue_id' => $session->venue_id,
+                'status' => 'occupied',
+                'version' => 1,
+            ]);
+        }
+
         $slotIds = [];
         for ($k = 0; $k < $span; $k++) {
             $st = date('H:i:s', strtotime('14:00:00') + $k * 1800);
@@ -373,35 +392,72 @@ final class ApprovalWorkflowTest extends TestCase
         [$slotIds, $requester, $pl, $request] = $this->pendingFixture();
         $session = $request->classSession;
 
-        // the original occurrence's OWN booked rows (any earlier week)
-        $originalIds = [];
-        foreach ([1, 2] as $di) {
-            $originalIds[] = TimeSlot::create([
-                'semester_id' => $session->semester_id,
-                'class_session_id' => $session->id,
-                'week_number' => 6,
-                'day_of_week' => $session->day_of_week,
-                'start_time' => date('H:i:s', strtotime('08:00:00') + $di * 1800),
-                'end_time' => date('H:i:s', strtotime('08:30:00') + $di * 1800),
-                'venue_id' => $session->venue_id,
-                'status' => 'occupied',
-                'version' => 1,
-            ])->id;
-        }
+        // The ORIGINAL occurrence's OWN booked rows: the complete grid at the
+        // session's RECURRING coordinates, created by craftSpan (identity-
+        // owned, occupied) — the strict plan refuses an incomplete occurrence.
+        $originalIds = TimeSlot::query()
+            ->where('semester_id', $session->semester_id)
+            ->where('week_number', 6)
+            ->where('day_of_week', $session->day_of_week)
+            ->where('venue_id', $session->venue_id)
+            ->whereIn('start_time', ['10:00:00', '10:30:00', '11:00:00', '11:30:00'])
+            ->where('class_session_id', $session->id)
+            ->orderBy('id')
+            ->pluck('id')
+            ->map(static fn ($id): int => (int) $id)
+            ->all();
+        $this->assertCount(4, $originalIds, 'the fixture grid is complete');
+
+        // Rows OUTSIDE the occurrence's coordinates that still carry the
+        // source id: the plan REPORTS them — the identity-scoped release
+        // never frees them (cancelled-slot-reuse D3).
+        $outsideOne = TimeSlot::create([
+            'semester_id' => $session->semester_id,
+            'class_session_id' => $session->id,
+            'week_number' => 6,
+            'day_of_week' => $session->day_of_week,
+            'start_time' => '08:30:00',
+            'end_time' => '09:00:00',
+            'venue_id' => $session->venue_id,
+            'status' => 'occupied',
+            'version' => 1,
+        ]);
+        $outsideTwo = TimeSlot::create([
+            'semester_id' => $session->semester_id,
+            'class_session_id' => $session->id,
+            'week_number' => 6,
+            'day_of_week' => $session->day_of_week,
+            'start_time' => '09:00:00',
+            'end_time' => '09:30:00',
+            'venue_id' => $session->venue_id,
+            'status' => 'occupied',
+            'version' => 1,
+        ]);
 
         $this->assertTrue(app(ApproveRequest::class)($pl, (int) $request->id)['ok']);
 
-        // the exception stamp
+        // the exception pair (craftSpan pre-created it — the stamp is
+        // once-only and the reason untouched)
         $this->assertSame(1, ClassException::query()
             ->where('class_session_id', $session->id)
             ->where('week_number', 6)
             ->where('reason', 'official_event')
             ->count(), 'the stamp rides the approve txn');
 
-        // the original rows freed
+        // the original rows freed (owner cleared, exactly one version each)
         foreach ($originalIds as $i => $id) {
             $slot = TimeSlot::find($id);
             $this->assertSame('available', (string) $slot->status, "original #$i freed");
+            $this->assertNull($slot->class_session_id, "original #$i owner cleared");
+            $this->assertSame(2, (int) $slot->version, "original #$i: one version");
+        }
+
+        // the out-of-range rows stay byte-identical
+        foreach ([$outsideOne, $outsideTwo] as $i => $row) {
+            $fresh = TimeSlot::find($row->id);
+            $this->assertSame('occupied', (string) $fresh->status, "out-of-range #$i never freed");
+            $this->assertSame(1, (int) $fresh->version, "out-of-range #$i untouched");
+            $this->assertSame((int) $session->id, (int) $fresh->class_session_id);
         }
 
         // the release rider inside the SUMMARY audit (no separate row)
@@ -409,11 +465,25 @@ final class ApprovalWorkflowTest extends TestCase
             ->where('old_status', 'pending')->where('action', 'approved')
             ->where('occ_validation_result', 'success')
             ->firstOrFail();
+        $rider = $summary->details['original_release'];
+        $this->assertSame((int) $session->id, $rider['class_session_id']);
+        $this->assertSame(6, $rider['week_number']);
+        $this->assertTrue($rider['exception_stamped']);
+        $this->assertFalse($rider['exception_created_here'], 'craftSpan pre-created the pair');
+        $this->assertSame($originalIds, $rider['freed_slots']);
+        $this->assertSame([], $rider['no_ops']);
         $this->assertSame(
-            ['class_session_id' => (int) $session->id, 'week_number' => 6,
-                'exception_stamped' => true, 'freed_slots' => $originalIds],
-            $summary->details['original_release'],
+            [$outsideOne->id, $outsideTwo->id],
+            array_map(static fn (array $entry): int => (int) $entry['slot_id'], $rider['out_of_range']),
         );
+
+        // each freed cell carries its before/after evidence
+        $this->assertCount(4, $rider['cells']);
+        $cell = $rider['cells'][0];
+        $this->assertSame('occupied', $cell['before']['status']);
+        $this->assertSame((int) $session->id, $cell['before']['class_session_id']);
+        $this->assertSame('available', $cell['after']['status']);
+        $this->assertNull($cell['after']['class_session_id']);
     }
 
     public function test_approve_never_duplicates_a_preexisting_exception(): void

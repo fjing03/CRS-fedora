@@ -2,6 +2,7 @@
 
 namespace App\Actions;
 
+use App\Exceptions\OccurrenceWriteLockContended;
 use App\Mail\ReplacementSubmitted;
 use App\Models\ClassSession;
 use App\Models\Holiday;
@@ -12,6 +13,7 @@ use App\Models\User;
 use App\Models\Venue;
 use App\Services\LectureSessionCatalog;
 use App\Services\MatrixIntersectionEngine;
+use App\Services\OccurrenceWriteLock;
 use App\Services\OCCValidator;
 use App\Services\ReplacementRequestMapper;
 use App\Support\Notifications\NotificationEmitter;
@@ -30,6 +32,16 @@ use RuntimeException;
  * loser outcome the compensation runs in the D5 order: pre-null
  * audit_logs.replacement_request_id (the conflict audit row SURVIVES — FR 4.12),
  * THEN delete the request row. The audit row itself is never touched.
+ *
+ * D4 (SDD cancelled-slot-reuse, 2026-11-13): the whole submit (validation →
+ * request-create → OCC → loser compensation) runs under a SESSION-level
+ * PostgreSQL advisory lock keyed by the SOURCE class-session id, taken on the
+ * application's own connection BEFORE any validation and released in a finally
+ * on the SAME connection — success, ordinary refusal and thrown exception all
+ * release. The wrapper adds no transaction of its own; the concurrent
+ * cancellation/approval side interlocks on the same key with transaction-level
+ * locks, so a source cannot be cancelled out from under an in-flight submit
+ * (and a submit cannot race a cancellation's release).
  */
 final class SubmitReplacementRequest
 {
@@ -44,14 +56,35 @@ final class SubmitReplacementRequest
     ) {}
 
     /**
-     * Full-block signature (SDD full-block-reservation, design D2): $span is
-     * the block width in 30-min slots (anchor..anchor+span−1). Existing
-     * callers pass nothing — span 1 = the legacy single-slot reservation,
-     * byte-identical.
+     * The D4 submit-side wrapper: acquire the source class-session's session
+     * advisory lock, run the full original submit logic under it, release in
+     * the helper's finally. Contention refuses with the EXISTING mapped
+     * `slot_not_available` loser shape BEFORE any validation/create/OCC —
+     * never a retry loop, never a new outer transaction around the submit.
      *
      * @return array{ok: bool, conflict_reason: string|null, request_id: int|null, failing_start: string|null, failing_end: string|null, failing_kind: string|null}
      */
     public function __invoke(User $proposer, ClassSession $session, int $weekNumber, int $anchorSlotId, ?string $remarks = null, int $span = 1): array
+    {
+        try {
+            return app(OccurrenceWriteLock::class)->runWithSessionLock(
+                (int) $session->id,
+                fn (): array => $this->submit($proposer, $session, $weekNumber, $anchorSlotId, $remarks, $span),
+            );
+        } catch (OccurrenceWriteLockContended) {
+            return ['ok' => false, 'conflict_reason' => 'slot_not_available', 'request_id' => null, 'failing_start' => null, 'failing_end' => null, 'failing_kind' => null];
+        }
+    }
+
+    /**
+     * The original submit logic, byte-preserving (SDD full-block-reservation
+     * design D2 + the FR 2.17/FR 2.11/FR 4.3–4.7 gates): $span is the block
+     * width in 30-min slots (anchor..anchor+span−1). Existing callers pass
+     * nothing — span 1 = the legacy single-slot reservation, byte-identical.
+     *
+     * @return array{ok: bool, conflict_reason: string|null, request_id: int|null, failing_start: string|null, failing_end: string|null, failing_kind: string|null}
+     */
+    private function submit(User $proposer, ClassSession $session, int $weekNumber, int $anchorSlotId, ?string $remarks = null, int $span = 1): array
     {
         $fail = function (string $reason, ?string $failingStart = null, ?string $failingEnd = null, ?string $failingKind = null): array {
             return ['ok' => false, 'conflict_reason' => $reason, 'request_id' => null, 'failing_start' => $failingStart, 'failing_end' => $failingEnd, 'failing_kind' => $failingKind];
