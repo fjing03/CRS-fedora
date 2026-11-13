@@ -278,7 +278,11 @@ final class ReplacementArrangementTest extends TestCase
         $this->assertCount(1, $coveredRow[3], 'one library id per holder row (the per-row law)');
         $this->assertIsInt($coveredRow[3][0], 'the 4th key rides LIBRARY ids (the measured dictionary fallback)');
         $block = $library[$coveredRow[3][0]];
-        $this->assertStringContainsString('B100 · BMIT1001 (L) · 12:00–14:30', $block, 'room-first · code (type) · en-dash span');
+        /* cancelled-slot-reuse Part B: the holder block's ACTUAL time rides the
+           ONE shared 12-hour `start ~ end` formatter (the mapper's mailTime
+           shape), and the final public state word is NORMAL for a class. */
+        $this->assertStringContainsString('B100 · BMIT1001 (L) · 12:00 PM ~ 2:30 PM', $block, 'room-first · code (type) · the 12-hour ~ span');
+        $this->assertStringContainsString("\nNORMAL", $block, 'the final public state word');
         $this->assertStringContainsString('You — Lecturer A (6001)', $block, 'the ownership marker');
         $this->assertStringContainsString('RSD3(S1)G1', $block, 'the cohort line');
 
@@ -374,13 +378,17 @@ final class ReplacementArrangementTest extends TestCase
         $rows = $payload['busyByWeek'][(string) $sessionA->id][0];
 
         foreach ($rows as $row) {
-            $this->assertCount(7, $row, 'every busy tuple is [day, start, end, label, statusKind, mine, arms]');
+            /* cancelled-slot-reuse Part B: the 8th key is the row's holder
+               IDENTITY list — the deduped library indices the merged tip
+               dedups arms by (empty for an unlabelled row). */
+            $this->assertCount(8, $row, 'every busy tuple is [day, start, end, label, statusKind, mine, arms, holderIds]');
             $this->assertIsBool($row[5], 'the 6th key is a boolean');
             // arrangement-cell-state-labels D2 (user 2026-11-07): the 7th key names
             // the calendar that produced the block — the cell label's reason.
             $this->assertIsArray($row[6], 'the 7th key is the arm list');
             $this->assertNotEmpty($row[6], 'a blocking row always names at least one arm');
             $this->assertEmpty(array_diff($row[6], ['own', 'cohort']), 'the arms are own/cohort only');
+            $this->assertIsArray($row[7], 'the 8th key is the holder identity list');
         }
 
         // another lecturer's class reaching my selected cohort → mine = false

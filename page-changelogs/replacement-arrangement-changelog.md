@@ -1,3 +1,63 @@
+## 2026-11-13 — cancelled-slot-reuse Part B: the room-only holder is now the ACTUAL holder (S24/S25)
+
+**What a room-only blocked cell says.** A cell blocked only by the ROOM (the viewer
+shares neither the lecturer nor a cohort) now names its ACTUAL active holder on hover:
+`ROOM · CODE (TYPE) · 2:00 PM ~ 4:00 PM`, the lecturer line (the same `You — ` ownership
+prefix), the cohorts, and a final public state word — exactly `NORMAL` (a recurring
+class), `PENDING` (a pending proposal) or `REPLACEMENT` (an approved one). The old
+engine-wins rule DROPPED this holder whenever any engine block existed (your own class
+in another room hid the venue's real holder); the two arms now merge into ONE tip,
+deduplicated by canonical holder identity (the deduped `holderTexts` library index), so
+the same factual holder prints once across the room/own/cohort arms while two different
+holders stay distinct even with identical display strings.
+
+**Holder resolution is evidence-based (the stale-id fix).** The venue arm no longer
+picks labels by geometric containment over a merged class+make-up map. Each occupied/
+pending slot resolves its holder: a PROVEN live request claim (the same strict junction/
+anchor-span core the release paths use — `OriginalOccurrenceReservation::validateRequestClaim`
+via the new `App\Services\ArrangementSlotHolders`) names that request with its FULL
+actual span (junction min/max or the mapper's anchor+`replacement_span` fallback — never
+the anchor or a half-cell) and outranks any stale `class_session_id`; a MALFORMED,
+contradictory or contested claim stays NEUTRAL (`Venue Conflict`, no fabricated class);
+a still-occupied pre-cleanup cancelled original is never described as a holder; released
+cells stay unannotated and available cells carry no cancellation note. The label library
+is now IDENTITY-deduped (`session:<id>` / `request:<id>`) instead of string-deduped.
+
+**Copy/format changes in the same vocabulary.** Holder blocks' times switched to the
+common 12-hour `start ~ end` joiner (the one shared formatter,
+`ReplacementRequestMapper::mailTime`'s shape) and the state word was added as the final
+line — the tip header, why-tags, cell labels, colours, classifyState precedence and
+eligibility are unchanged. The class-label pass now reads its sessions with ONE
+eager-loaded query (the per-row re-read was an N+1).
+
+**Mobile.** No second renderer: the phone day view already reads the desktop cell's
+text via the snapshot (`detailText`), so the merged holder text reaches the blocked-row
+sheet with `textContent` only — verified in both themes.
+
+**Receipts.** `tests/Feature/CancelledSlotRoomHolderTest.php` (backend payload: room-only
+own/other, full spans, stale id vs live receipt, junction-less stored span, malformed/
+contested neutral, pre-cleanup neutral, released cells, one-identity dedup, distinct
+identical-string holders, no private leak) and `tests/cancelled-slot-room-holder.spec.ts`
+(guarded 8030 browser receipt: real room-only pending fixture desktop+phone, plus a
+disclosed synthetic payload stage for merge/escaping/themes/eligibility). Run with the
+exact `CRS_MODE=testing CRS_ALLOW_SQL=1 CRS_BASE=http://127.0.0.1:8030` guard.
+
+**Completed scoped checks (later continuation).** Backend **98/98, 1,712 assertions**;
+older selected-day/venue/ownership browser checks **24/24 (21 cases + 3 auth setups)**;
+lifecycle/layout/planner **26/26 (23 + 3)**; new holder checks **8/8 (5 + 3)**. The real
+holder browser fixture reuses the guarded CSR runner and real submit action; its lecturer
+and cohort differ from the viewer's, all four covered cells show the full two-hour range,
+and the same non-selectable cell is checked on desktop and phone in both themes. The
+separate synthetic stage checks merged identities and escaped text without DB writes.
+Main inspected all four light/dark desktop/phone PNGs in
+`/tmp/crs-reconcile-b/room-holder-results-r5/`. Lint, PHPStan 1G, JS syntax, Blade cache
+and whitespace checks pass. Backend rereview passed after fixing two refused-fallback
+edge cases. No final full-suite/SDD Verify claim: the unrelated history-shape error remains.
+User approved separate continuation commits: older test fixes are `ca98fb5`; Part B
+ships in the separate feature commit containing this entry. Independent browser/fixture
+review passed, and the final seven-spec browser run passed **52/52 (49 cases + 3 shared
+setups)**. No push or demo cleanup was performed; final whole-feature Verify stays open.
+
 ## 2026-11-12 — desktop top zone Round 2: three setup cards, conditional Summary, rails
 
 User-approved Round 2 desktop layout. Mobile keeps its existing lane and receives one

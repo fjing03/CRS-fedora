@@ -1,11 +1,11 @@
 # Tasks — cancelled-slot-reuse
 
 Date: 2026-11-13
-Batch 4: frozen after independent review Round 2. Proposal, design and specs are frozen. Later user approval opened G1 (Apply); G2/G3 remain closed. See apply-log.md.
+Batch 4: frozen after independent review Round 2. Proposal, design and specs are frozen. Later user approval opened G1 (Apply), then explicitly approved the older regression fixes and Part B. The separate Part A commit approval was exercised as b1f13fd. User subsequently approved two separate commits for the regression fixes and Part B; no push or demo cleanup is approved. See apply-log.md.
 
 ## Stop and approval gates
 
-At the planning freeze, the user had authorised planning only. The later instruction “u may sdd apply.” opens G1 for code/testing. Only verified implementation units are checked below; demo cleanup, commit and push remain unapproved. Reviewer PASS alone is never implementation approval.
+At the planning freeze, the user had authorised planning only. The later instruction “u may sdd apply.” opens G1 for code/testing. Only verified implementation units are checked below. Later commit approvals are recorded in apply-log.md; demo cleanup and push remain unapproved. Reviewer PASS alone is never implementation approval.
 
 Later gates:
 
@@ -87,13 +87,13 @@ Each numbered task is one work unit of at most two hours, including its targeted
 
 ## Part B — separate holder explanation delivery
 
-- [ ] **B01 (1.5h) — actual venue-only holder payload.** After agreement with the other hover lane's owner, thread actual active holder identities/text-library references into venue-only tooltip facts, prioritising request receipt over stale class id. Share existing formatter and dedupe factual identity across room/lecturer/cohort arms. Keep public state/allowed lecturer/cohort data and no private remarks/reasons/submission data. Add payload tests for own/other lecturer, no cohort overlap, pending/approved holders and multiple distinct holders. Depends: A13, A22; G1 must cover Part B. Trace: S24.
+- [x] **B01 (1.5h) — actual venue-only holder payload.** After agreement with the other hover lane's owner, thread actual active holder identities/text-library references into venue-only tooltip facts, prioritising request receipt over stale class id. Share existing formatter and dedupe factual identity across room/lecturer/cohort arms. Keep public state/allowed lecturer/cohort data and no private remarks/reasons/submission data. Add payload tests for own/other lecturer, no cohort overlap, pending/approved holders and multiple distinct holders. Depends: A13, A22; G1 must cover Part B. Trace: S24.
 
-- [ ] **B02 (1.5h) — desktop/mobile tooltip composition.** Update arrangement desktop and mobile to consume the same holder text and permitted status/time vocabulary. Preserve classifyState and real labels/eligibility; escaped data-tip/newlines only, shared 12-hour range formatter. Test unknown/ambiguous and still-occupied pre-cleanup cancelled original produce neutral Venue Conflict; freed cells have no new cancellation note and new genuine active holders are named instead. No cleanup/read-write or border/legend redesign. Depends: B01. Trace: S24, S25.
+- [x] **B02 (1.5h) — desktop/mobile tooltip composition.** Update arrangement desktop and mobile to consume the same holder text and permitted status/time vocabulary. Preserve classifyState and real labels/eligibility; escaped data-tip/newlines only, shared 12-hour range formatter. Test unknown/ambiguous and still-occupied pre-cleanup cancelled original produce neutral Venue Conflict; freed cells have no new cancellation note and new genuine active holders are named instead. No cleanup/read-write or border/legend redesign. Depends: B01. Trace: S24, S25.
 
-- [ ] **B03 (1.5h) — Part B regression receipts/changelog/gates.** Add scoped guarded room-only hover desktop/mobile receipts for both themes, no shared lecturer/cohort, duplicate-arm deduplication, protected fields and unchanged booking answers. Run relevant feature tests, lint/PHPStan/JS/view checks, tests/timetable-lane-layout.spec.ts and arrangement browser regressions with exact testing target. Update arrangement changelog; record failures honestly. Depends: B02. Trace: S24, S25, R9.
+- [x] **B03 (1.5h) — Part B regression receipts/changelog/gates.** Add scoped guarded room-only hover desktop/mobile receipts for both themes, no shared lecturer/cohort, duplicate-arm deduplication, protected fields and unchanged booking answers. Run relevant feature tests, lint/PHPStan/JS/view checks, tests/timetable-lane-layout.spec.ts and arrangement browser regressions with exact testing target. Update arrangement changelog; record failures honestly. Depends: B02. Trace: S24, S25, R9.
 
-- [ ] **B04 (0.5h) — separate Part B commit gate.** Present diff/receipts and stage only owned Part B hunks with G3 approval, conventional commit separate from Part A. Leave parallel hover planning files and task list untouched unless user authorises reconciliation. Never push. Depends: B03, G3 for actual commit. Trace: proposal §5/§9.
+- [x] **B04 (0.5h) — separate Part B commit gate.** Present diff/receipts and stage only owned Part B hunks with G3 approval, conventional commit separate from Part A. Leave parallel hover planning files and task list untouched unless user authorises reconciliation. Never push. Depends: B03, G3 for actual commit. Trace: proposal §5/§9.
 
 ## Later operational hold — not bundled with Apply
 
@@ -134,4 +134,4 @@ Each numbered task is one work unit of at most two hours, including its targeted
 | S30 safe rollback boundary | C03, O03 |
 | R9 verification/stop | A01, A21, A21b, B03; all writes require G1/G2 as applicable |
 
-**Current Apply status:** 17/38 units verified (A01–A11 including split backend units, A14, C01/C02); delivery/browser/operational gates remain open. See apply-log.md for exact receipts and limits. A01 shared-file ownership coordination was subsequently cleared by the user; current baseline snapshots are retained. Backend foundations were isolated from those files. Room release is not yet integrated, so do not claim the feature shipped. G2/G3 and all operational demo tasks remain closed. Details and test caveats: apply-log.md.
+**Current Apply status:** 27/38 units checked, including B01–B04 after 98 passing backend checks, independent fallback rereview, and 8/8 new room-holder browser checks with inspected desktop/phone light/dark PNGs. The five older browser failures are reconciled: 24/24 combined checks now pass, including the three formerly unrun followers. The 26/26 lifecycle/layout/planner rerun passes; the unrelated known full-suite history-shape error and final Part A/whole-feature Verify remain open. Part A commit b1f13fd was approved and completed separately. User approved the two continuation commits: regression fixes ca98fb5, then the separate Part B delivery containing this update. No push or demo cleanup approval. Shared-file ownership and preflight snapshots are recorded in apply-log.md. Do not tick another lane or treat a scoped pass as final Verify.

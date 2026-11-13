@@ -13,8 +13,10 @@ use App\Models\ReplacementRequest;
 use App\Models\ReplacementRequestSlot;
 use App\Models\TimeSlot;
 use App\Models\Venue;
+use App\Services\ArrangementSlotHolders;
 use App\Services\LectureSessionCatalog;
 use App\Services\MatrixIntersectionEngine;
+use App\Services\ReplacementRequestMapper;
 use App\Support\LocalTime;
 use App\Support\ReasonLabel;
 use Illuminate\Contracts\View\View;
@@ -225,6 +227,19 @@ class ReplacementArrangement extends Component
     private ?MatrixIntersectionEngine $engineInstance = null;
 
     /**
+     * The Part B holder blocks' time format rides the ONE shared 12-hour
+     * `start ~ end` formatter (the mapper's mailTime shape) — never a
+     * page-local second clock. (Lazy resolution: Livewire's factory news
+     * components directly, bypassing constructor injection.)
+     */
+    private ?ReplacementRequestMapper $mapperInstance = null;
+
+    private function mapper(): ReplacementRequestMapper
+    {
+        return $this->mapperInstance ??= app(ReplacementRequestMapper::class);
+    }
+
+    /**
      * The grid's D4-rule-1 rendering reuses the engine's exact busy vectors —
      * no duplicated conflict semantics. (Lazy resolution: Livewire's factory
      * news components directly, bypassing constructor injection.)
@@ -269,8 +284,50 @@ class ReplacementArrangement extends Component
            (one copy per unique block, never per row); the busy-vector
            arm keeps its pre-existing inline strings (the frozen
            TEMP-HOLDER-LABEL shape). */
-        $holderLabels = $this->busyCellHolderLabels($semesterId, $weeks);
-        [$holderTexts, $holderIds] = $this->holderTextLibrary($holderLabels);
+        /* cancelled-slot-reuse Part B (D8/S24): the venue-slot grid arm's
+           holder resolution is now EVIDENCE-based. The slots are read once,
+           the live request claims are validated through the shared strict
+           core (ArrangementSlotHolders → OriginalOccurrenceReservation::
+           validateRequestClaim / the mapper's anchor-span fallback), and the
+           per-slot owner beats any stale class geometry; an unproven claim
+           stays neutral. The label library is IDENTITY-deduped
+           (`session:<id>` / `request:<id>`), so one factual holder reached
+           through several arms shares one entry while two different holders
+           stay distinct even with identical display strings. */
+        $slots = TimeSlot::query()
+            ->with('venue')
+            ->where('semester_id', $semesterId)
+            ->whereIn('week_number', range(1, $weeks))
+            ->whereIn('status', ['occupied', 'pending'])
+            ->get();
+
+        $claims = app(ArrangementSlotHolders::class)->resolve($slots);
+
+        $holderLabels = $this->busyCellHolderLabels($semesterId, $weeks, $claims);
+        [$holderTexts, $holderIds, $identityIndex, $holderKinds] = $this->holderTextLibrary($holderLabels);
+
+        /* the venue arm's containment view is CLASS-ONLY: a proven request
+           claim names its request directly, and an unproven one stays
+           neutral — class geometry must never speak over a live claim. */
+        $classHolderIds = [];
+        foreach ($holderIds as $weekIdx => $weekMap) {
+            foreach ($weekMap as $key => $idList) {
+                $classOnly = array_values(array_filter(
+                    $idList,
+                    fn (int $id): bool => ($holderKinds[$id] ?? '') === 'class',
+                ));
+                if ($classOnly !== []) {
+                    $classHolderIds[$weekIdx][(string) $key] = $classOnly;
+                }
+            }
+        }
+
+        $requestHolderIds = [];
+        foreach ($identityIndex as $identity => $libraryId) {
+            if (str_starts_with((string) $identity, 'request:')) {
+                $requestHolderIds[(int) substr((string) $identity, 8)] = (int) $libraryId;
+            }
+        }
 
         $sessions = ClassSession::query()
             ->with(['module', 'venue', 'cohorts.programme', 'lecturer'])
@@ -288,8 +345,14 @@ class ReplacementArrangement extends Component
             'ruleMap' => LectureSessionCatalog::ruleMap(),
             'courses' => $this->coursesPayload($sessions),
             'conflictEvents' => $this->conflictEventsPayload($sessions),
-            'venueSlotsByWeek' => $this->venueSlotsByWeekPayload($semesterId, $weeks, $holderIds),
-            'busyByWeek' => $this->busyByWeekPayload($sessions, $semesterId, $weeks, $holderLabels),
+            'venueSlotsByWeek' => $this->venueSlotsByWeekPayload(
+                $slots,
+                $claims['owners'],
+                $claims['unknownSlotIds'],
+                $classHolderIds,
+                $requestHolderIds,
+            ),
+            'busyByWeek' => $this->busyByWeekPayload($sessions, $semesterId, $weeks, $holderLabels, $holderIds),
             'blockedVenues' => $this->blockedVenuesPayload($sessions),
             'pinnedSession' => $this->pinnedSessionPayload($weeks),
             /* arrange-intent-session-choice (user amendment, conflicted-only):
@@ -522,75 +585,81 @@ class ReplacementArrangement extends Component
 
     /**
      * The deduped block-text library (the payload gate's dictionary
-     * fallback): one entry per UNIQUE block string, first-appearance
-     * order. Returns [texts, ids keyed [weekIdx][day:slotStart:slotEnd:
-     * room] = the text indices] — the venue-slot grid rows reference the
-     * library instead of duplicating the text per covered half-hour.
+     * fallback) — PART B IDENTITY LAW: one entry per UNIQUE holder
+     * IDENTITY (`session:<id>` / `request:<id>`), first-appearance order.
+     * The SAME factual holder shares one entry across every arm; two
+     * DIFFERENT holders keep separate entries even when their display
+     * strings are identical (they stay distinct blocks in the merged tip).
+     * Returns [texts, ids keyed [weekIdx][day:slotStart:slotEnd:room]
+     * (index-aligned with the label entries), identity→index, index→kind].
      *
-     * @param  array<int, array<string, list<string>>>  $holderLabels
-     * @return array{0: list<string>, 1: array<int, array<string, list<int>>>}
-     */
-
-    /**
-     * The deduped block-text library (the payload gate's dictionary
-     * fallback): one entry per UNIQUE block string, first-appearance
-     * order. Returns [texts, ids keyed [weekIdx][day:slotStart:slotEnd:
-     * room] = the text indices] — the venue-slot grid rows reference the
-     * library instead of duplicating the text per covered half-hour.
-     *
-     * @param  array<int, array<string, list<string>>>  $holderLabels  the
-     *                                                                 shared holder map (thealia text per key)
-     * @return array{0: list<string>, 1: array<int, array<string, list<int>>>}
+     * @param  array<int, array<string, list<array{identity: string, text: string, kind: string}>>>  $holderLabels
+     * @return array{0: list<string>, 1: array<int, array<string, list<int>>>, 2: array<string, int>, 3: array<int, string>}
      */
     private function holderTextLibrary(array $holderLabels): array
     {
         $texts = [];
+        $kinds = [];
         $index = [];
         $ids = [];
+
         foreach ($holderLabels as $weekIdx => $weekMap) {
-            foreach ($weekMap as $key => $labels) {
+            foreach ($weekMap as $key => $entries) {
                 $rowIds = [];
-                foreach ($labels as $label) {
-                    if (! isset($index[$label])) {
-                        $index[$label] = count($texts);
-                        $texts[] = $label;
+                foreach ($entries as $entry) {
+                    $identity = (string) $entry['identity'];
+                    if (! isset($index[$identity])) {
+                        $index[$identity] = count($texts);
+                        $texts[] = (string) $entry['text'];
+                        $kinds[] = (string) $entry['kind'];
                     }
-                    $rowIds[] = $index[$label];
+                    $rowIds[] = $index[$identity];
                 }
                 $ids[$weekIdx][(string) $key] = $rowIds;
             }
         }
 
-        return [$texts, $ids];
+        return [$texts, $ids, $index, $kinds];
     }
 
     /**
      * Real venue slot states, week-keyed: [weekIdx][venueCode] = [[day, hourIdx,
      * status, holderIds], …] — 1 occupied, 3 pending (mine), 4 reserved
-     * (others'). The 4th key (SDD occupied-cell-explanations) rides the
-     * holder IDENTITY for the cell: an ARRAY of INDICES into the deduped
-     * holderTexts library (the payload gate's dictionary fallback — one
-     * copy per unique block, never per row), or null when no label applies
-     * (the negative arm — tip-less, byte-identical styling). The Blade
-     * resolves the ids and feeds the UNCHANGED renderHolderTip — identical
-     * look to the engine arm.
+     * (others'). The 4th key rides the cell's ACTUAL holder identity as an
+     * ARRAY of INDICES into the deduped holderTexts library, or null when no
+     * label applies (the negative arm — tip-less, byte-identical styling).
      *
-     * @param  array<int, array<string, list<int>>>  $holderIds  the library
-     *                                                           ids keyed [weekIdx][day:slotStart:slotEnd:room]
+     * cancelled-slot-reuse Part B (D8/S24) — the holder is resolved from
+     * EVIDENCE per slot, never from a stale id:
+     *
+     *   proven claim  — the owning request's library id (the live junction
+     *                   receipt or the validated anchor/span fallback; the
+     *                   block names the request's FULL actual span);
+     *   unknown claim — null: the cell stays blocked and the tip stays
+     *                   neutral (no fabricated holder, no resurrected
+     *                   cancelled original);
+     *   no claim      — the class-geometry containment over the CLASS-ONLY
+     *                   library ids (exception'd pairs are already excluded
+     *                   upstream, so a freed occurrence never speaks).
+     *
+     * @param  Collection<int, TimeSlot>  $slots
+     * @param  array<int, int>  $slotOwners  slot id → proven owning request id
+     * @param  list<int>  $unknownSlotIds  slots an active claim touches without proving it
+     * @param  array<int, array<string, list<int>>>  $classHolderIds  class-only library ids keyed [weekIdx][day:startIdx:endIdx:room]
+     * @param  array<int, int>  $requestHolderIds  request id → library index
      * @return array<int|string, array<int|string, list<array{int, int, int, list<int>|null}>>> The
      *                                                                                          mock's map gains the week dimension; the view's cellRender lookup is the
      *                                                                                          one documented line that reads it. Availability stays client-side (the
      *                                                                                          mock's model: green = venue-free); the server re-validates lecturer +
      *                                                                                          cohort freedom at submit (engine pre-check → FR 4.10 conflict alert).
      */
-    private function venueSlotsByWeekPayload(int $semesterId, int $weeks, array $holderIds): array
-    {
-        $slots = TimeSlot::query()
-            ->where('semester_id', $semesterId)
-            ->whereIn('week_number', range(1, $weeks))
-            ->whereIn('status', ['occupied', 'pending'])
-            ->get();
-
+    private function venueSlotsByWeekPayload(
+        Collection $slots,
+        array $slotOwners,
+        array $unknownSlotIds,
+        array $classHolderIds,
+        array $requestHolderIds,
+    ): array {
         // Full-block ownership read (design D7 item 2, round-4 🔴1): the
         // anchor-keyed pluck can't see a span's tail slots — derive the
         // owner per slot from the JUNCTION (pending-geometric ONLY; approved
@@ -598,24 +667,22 @@ class ReplacementArrangement extends Component
         $proposers = ReplacementRequestSlot::query()
             ->join('replacement_requests', 'replacement_request_slots.replacement_request_id', '=', 'replacement_requests.id')
             ->where('replacement_requests.status', 'pending')
-            ->whereIn('replacement_request_slots.time_slot_id', $slots->modelKeys())
+            ->whereIn('replacement_request_slots.time_slot_id', $slots->pluck('id')->all())
             ->pluck('replacement_requests.proposer_id', 'replacement_request_slots.time_slot_id');
 
         $myId = (int) auth()->id();
+        $unknown = array_fill_keys(array_map('intval', $unknownSlotIds), true);
 
-        /* SDD occupied-cell-explanations D2: the label map is keyed by the
-           FULL class range (day:startIdx:endIdx:room); the slot grid rows
-           are 30-minute half-cells. Per week, build a day+room-indexed
-           view of [startIdx, endIdx, labels[]], then per slot row run the
-           client's containment predicate (startIdx <= hi && hi < endIdx).
-           The LIMIT-3 explode keeps the room as the remainder (room codes
-           carry no colons) — the round-5 phantom guard. */
+        /* Part B: the class-only containment view keyed by the FULL class
+           range (day:startIdx:endIdx:room); the slot grid rows are 30-minute
+           half-cells. Per week, build a day+room-indexed view of [startIdx,
+           endIdx, ids[]], then per slot row run the client's containment
+           predicate (startIdx <= hi && hi < endIdx). The LIMIT-3 explode
+           keeps the room as the remainder (room codes carry no colons) — the
+           round-5 phantom guard. */
         $view = [];
-        foreach ($holderIds as $weekIdx => $weekMap) {
+        foreach ($classHolderIds as $weekIdx => $weekMap) {
             foreach ($weekMap as $key => $labelIds) {
-                /* LIMIT-3 + a second LIMIT-2 explode: `day:startIdx:endIdx:room`
-                   — the room stays the remainder, untangled (the round-5
-                   guard: room codes carry no colons). */
                 [$day, $startIdx, $rest] = explode(':', (string) $key, 3);
                 [$endIdx, $room] = explode(':', (string) $rest, 2);
                 $view[$weekIdx][(int) $day.':'.(string) $room][] = [(int) $startIdx, (int) $endIdx, (array) $labelIds];
@@ -632,12 +699,22 @@ class ReplacementArrangement extends Component
             $day = (int) $slot->day_of_week;
             $startIdx = $this->slotIndex((string) $slot->start_time);
             $endIdx = $this->slotIndex((string) $slot->end_time);
-            $room = (string) $slot->venue->room_code;
+            $room = $slot->venue !== null ? (string) $slot->venue->room_code : '';
 
+            /* Part B: the ACTUAL holder. A proven active claim names its
+               request; an unknown/malformed one stays neutral (never a
+               guessed class); without a claim the class geometry speaks. */
             $picked = [];
-            foreach ($view[$weekIdx][$day.':'.$room] ?? [] as [$s, $e, $labels]) {
-                if ($s <= $startIdx && $endIdx <= $e) {
-                    $picked = array_merge($picked, $labels);
+            if (isset($unknown[$slot->id])) {
+                $picked = [];
+            } elseif (isset($slotOwners[$slot->id])) {
+                $ownerIndex = $requestHolderIds[$slotOwners[$slot->id]] ?? null;
+                $picked = $ownerIndex !== null ? [$ownerIndex] : [];
+            } else {
+                foreach ($view[$weekIdx][$day.':'.$room] ?? [] as [$s, $e, $ids]) {
+                    if ($s <= $startIdx && $endIdx <= $e) {
+                        $picked = array_merge($picked, $ids);
+                    }
                 }
             }
 
@@ -661,11 +738,13 @@ class ReplacementArrangement extends Component
      * a cancelled class frees its cells (the replacement may reuse them).
      *
      * @param  Collection<int, ClassSession>  $sessions
-     * @param  array<int, array<string, list<string>>>  $holderLabels  the
-     *                                                                 threaded shared holder-text map (busyCellHolderLabels' shape)
-     * @return array<int|string, array<int, list<array{int, int, int, string|null, string|null, bool}>>>
+     * @param  array<int, array<string, list<array{identity: string, text: string, kind: string}>>>  $holderLabels  the
+     *                                                                                                              threaded shared holder map (identity-tagged entries per key)
+     * @param  array<int, array<string, list<int>>>  $holderIds  the library ids keyed [weekIdx][day:slotStart:slotEnd:room],
+     *                                                           index-aligned with $holderLabels' entries
+     * @return array<int|string, array<int, list<array{int, int, int, string|null, string|null, bool, 6?: list<string>, 7?: list<int>}>>>
      */
-    private function busyByWeekPayload(Collection $sessions, int $semesterId, int $weeks, array $holderLabels): array
+    private function busyByWeekPayload(Collection $sessions, int $semesterId, int $weeks, array $holderLabels, array $holderIds): array
     {
         $lecturerId = (int) auth()->id();
 
@@ -701,7 +780,7 @@ class ReplacementArrangement extends Component
            the viewer's own classes/make-ups, 'cohort' = the cohorts' shared
            calendar). The cell label names the reason from this data; nothing
            parses a holder string for it any more. */
-        $toRanges = function (array $busy, int $weekIdx, bool $defaultMine, array $defaultArms = []) use ($holderLabels): array {
+        $toRanges = function (array $busy, int $weekIdx, bool $defaultMine, array $defaultArms = []) use ($holderLabels, $holderIds): array {
             $out = [];
             foreach ($busy as $range) {
                 $day = (int) $range['day'];
@@ -715,14 +794,25 @@ class ReplacementArrangement extends Component
                 $statusKind = $range['status'] ?? null;
                 $mine = (bool) ($range['mine'] ?? $defaultMine);
                 $arms = array_values(array_unique((array) ($range['arms'] ?? $defaultArms)));
-                $labels = array_values(array_unique($holderLabels[$weekIdx][$key] ?? []));
-                if ($labels === []) {
-                    $out[] = [$day, $startIdx, $endIdx, null, $statusKind, $mine, $arms];
+                /* cancelled-slot-reuse Part B: the entries are IDENTITY-tagged
+                   and index-aligned with $holderIds, so each exploded tuple
+                   carries its holder's canonical identity as the 8th key —
+                   the merged tip dedups arms by identity, and two different
+                   holders stay distinct even with identical display strings. */
+                $entries = $holderLabels[$weekIdx][$key] ?? [];
+                $entryIds = $holderIds[$weekIdx][$key] ?? [];
+                if ($entries === []) {
+                    $out[] = [$day, $startIdx, $endIdx, null, $statusKind, $mine, $arms, []];
 
                     continue;
                 }
-                foreach ($labels as $label) {
-                    $out[] = [$day, $startIdx, $endIdx, $label, $statusKind, $mine, $arms];
+                foreach ($entries as $i => $entry) {
+                    $out[] = [
+                        $day, $startIdx, $endIdx,
+                        (string) $entry['text'],
+                        $statusKind, $mine, $arms,
+                        isset($entryIds[$i]) ? [(int) $entryIds[$i]] : [],
+                    ];
                 }
             }
 
@@ -785,8 +875,13 @@ class ReplacementArrangement extends Component
      * different facts (e.g. a pending and an approved make-up in one half-hour).
      * The client therefore never sees twins, and the tip stays byte-identical.
      *
-     * @param  list<array{int, int, int, string|null, string|null, bool, 6?: list<string>}>  $ranges
-     * @return list<array{int, int, int, string|null, string|null, bool, list<string>}>
+     * cancelled-slot-reuse Part B: the 8th key unions too — twins that carry
+     * DIFFERENT canonical identities (the same display string from two
+     * different holders) survive as two identities; the same factual holder's
+     * twins share one library id and stay one block.
+     *
+     * @param  list<array{int, int, int, string|null, string|null, bool, 6?: list<string>, 7?: list<int>}>  $ranges
+     * @return list<array{int, int, int, string|null, string|null, bool, list<string>, list<int>}>
      */
     private function dedupeBusyRanges(array $ranges): array
     {
@@ -810,6 +905,11 @@ class ReplacementArrangement extends Component
                     $merged[$key][6],
                     $range[6] ?? [],
                 )));
+                /* Part B: the holder identities union the same way. */
+                $merged[$key][7] = array_values(array_unique(array_merge(
+                    $merged[$key][7],
+                    array_map('intval', $range[7] ?? []),
+                )));
 
                 continue;
             }
@@ -818,6 +918,7 @@ class ReplacementArrangement extends Component
                 (int) $range[0], (int) $range[1], (int) $range[2],
                 $range[3], $range[4], (bool) $range[5],
                 $range[6] ?? [],
+                array_values(array_unique(array_map('intval', $range[7] ?? []))),
             ];
         }
 
@@ -825,14 +926,30 @@ class ReplacementArrangement extends Component
     }
 
     /**
-     * TEMP-HOLDER-LABEL — the busy ranges' holder texts, keyed
-     * [weekIdx][day:slotStart:slotEnd] = list of texts. Same semantics as
-     * the engine's busy queries (semester-scoped, the week's exception'd
-     * pairs excluded). The viewer's own classes prefix 'You — '.
+     * THE holder blocks (cancelled-slot-reuse Part B, D8/S24) — one
+     * IDENTITY-tagged entry per actual active holder per covered cell key,
+     * [weekIdx][day:slotStart:slotEnd:room]. Two sources, one vocabulary:
      *
-     * @return array<int, array<string, list<string>>>
+     *   class   — every semester session NOT exception'd for that week (a
+     *             cancelled occurrence is never a holder), keyed by its FULL
+     *             range; public state NORMAL;
+     *   request — every active request whose claim PROVES through the shared
+     *             strict core, keyed per proven half-cell with the request's
+     *             FULL actual span; public state PENDING (pending) /
+     *             REPLACEMENT (approved).
+     *
+     * Identity = `session:<id>` / `request:<id>`: the same factual holder
+     * reached through several arms shares one library entry, and two
+     * different holders never share one even when their display strings
+     * match. Blocks carry the permitted public facts only — room · code
+     * (type) · 12-hour actual time, the lecturer line, the cohorts, the
+     * state word; never a remark, a private cancellation reason or a
+     * submission timestamp.
+     *
+     * @param  array{owners: array<int, int>, cells: array<int, list<array{slot_id: int, semester_id: int, week_number: int, day_of_week: int, venue_id: int, start_time: string, end_time: string, status: string, version: int, class_session_id: int|null}>>, unknownSlotIds: list<int>, requests: array<int, ReplacementRequest>}  $claims  ArrangementSlotHolders::resolve()
+     * @return array<int, array<string, list<array{identity: string, text: string, kind: string}>>>
      */
-    private function busyCellHolderLabels(int $semesterId, int $weeks): array
+    private function busyCellHolderLabels(int $semesterId, int $weeks, array $claims): array
     {
         $out = [];
 
@@ -843,155 +960,180 @@ class ReplacementArrangement extends Component
                 return [$e->class_session_id.':'.$e->week_number => true];
             });
 
-        $rows = DB::table('class_sessions')
-            ->join('modules as m', 'm.id', '=', 'class_sessions.module_id')
-            ->join('venues as v', 'v.id', '=', 'class_sessions.venue_id')
-            ->join('users as u', 'u.id', '=', 'class_sessions.lecturer_id')
-            ->join('lecturers as le', 'le.user_id', '=', 'class_sessions.lecturer_id')
-            ->where('class_sessions.semester_id', $semesterId)
-            ->get([
-                'class_sessions.id',
-                'class_sessions.day_of_week',
-                'class_sessions.start_time',
-                'class_sessions.end_time',
-                'class_sessions.session_type',
-                'class_sessions.lecturer_id',
-                'm.module_code',
-                'v.room_code',
-                'u.name as lecturer_name',
-                'le.staff_id',
-            ]);
+        /* ONE eager-loaded read (the old per-row firstWhere re-read was an
+           N+1). The old inner joins dropped sessions missing a module/venue/
+           lecturer-profile row — the labels keep that honesty and skip them. */
+        $sessions = ClassSession::query()
+            ->with(['module', 'venue', 'lecturer.lecturer', 'cohorts.programme'])
+            ->where('semester_id', $semesterId)
+            ->get();
 
-        $cohortTexts = [];
-        foreach ($rows as $row) {
-            $session = ClassSession::with('cohorts.programme')->firstWhere('id', $row->id);
-            if ($session === null) {
+        foreach ($sessions as $session) {
+            if ($session->module === null || $session->venue === null || $session->lecturer === null) {
                 continue;
             }
-            $cohortTexts[$row->id] = $session->cohorts
-                ->map(fn (Cohort $c): string => $this->cohortCode($c))
-                ->implode(', ');
-        }
+            $profile = $session->lecturer->lecturer;
+            if ($profile === null) {
+                continue;
+            }
 
-        $myId = (int) auth()->id();
-        /* SDD tidy-arrangement-cell-tooltips (2026-10-27, the user-approved
-           format): ONE 3-line block per blocking class — `ROOM · CODE (TYPE)
-           · START–END` (room FIRST, en-dash) / the lecturer line (the
-           ownership prefix) / the cohorts. The join + the header happen
-           client-side (the blade's attachHolder); this builder only shapes
-           one block. The half-hour rows from an EXCEPTION'd week's class are
-           excluded upstream; the room-code sort happens client-side. */
-        $blockFor = function (string $roomCode, string $code, string $type, string $startTime, string $endTime, string $lecturerId, string $lecturerName, string $staffId, string $cohorts) use ($myId): string {
-            $mine = (int) $lecturerId === $myId;
+            $startIdx = $this->slotIndex((string) $session->start_time);
+            $endIdx = $this->slotIndex((string) $session->end_time);
+            if ($endIdx <= $startIdx) {
+                continue;   // a non-grid range proves no half-cell
+            }
 
-            return (string) $roomCode
-                .' · '.$code.' ('.$type.')'
-                .' · '.substr($startTime, 0, 5).'–'.substr($endTime, 0, 5)
-                ."\n".($mine ? 'You — ' : '')
-                .(string) $lecturerName.' ('.$staffId.')'
-                ."\n".($cohorts !== '' ? $cohorts : '—');
-        };
-        $labelFor = function ($row) use ($blockFor, $cohortTexts): string {
-            return $blockFor(
-                (string) $row->room_code,
-                (string) $row->module_code,
-                (string) $row->session_type,
-                (string) $row->start_time,
-                (string) $row->end_time,
-                (string) $row->lecturer_id,
-                (string) $row->lecturer_name,
-                (string) $row->staff_id,
-                (string) ($cohortTexts[$row->id] ?? ''),
-            );
-        };
+            /* the key includes the ROOM CODE (round 5): classes at the
+               exact same (day, start, end) in DIFFERENT rooms must not
+               collide into one lookup — the phantom block from the
+               bug9 follow-up receipt. */
+            $key = (int) $session->day_of_week.':'.$startIdx.':'.$endIdx.':'.(string) $session->venue->room_code;
+            $entry = [
+                'identity' => 'session:'.(int) $session->id,
+                'text' => $this->holderBlock(
+                    (string) $session->venue->room_code,
+                    (string) $session->module->module_code,
+                    (string) $session->session_type,
+                    (string) $session->start_time,
+                    (string) $session->end_time,
+                    (int) $session->lecturer_id,
+                    (string) $session->lecturer->name,
+                    (string) $profile->staff_id,
+                    $session->cohorts->map(fn (Cohort $c): string => $this->cohortCode($c))->implode(', '),
+                    'NORMAL',
+                ),
+                'kind' => 'class',
+            ];
 
-        for ($w = 1; $w <= $weeks; $w++) {
-            foreach ($rows as $row) {
-                if (isset($ex[$row->id.':'.$w])) {
+            for ($w = 1; $w <= $weeks; $w++) {
+                if (isset($ex[(int) $session->id.':'.$w])) {
                     continue;   // the week's exception'd pairs are not busy (the engine's own semantics)
                 }
-                /* the key includes the ROOM CODE (round 5): classes at the
-                   exact same (day, start, end) in DIFFERENT rooms must not
-                   collide into one lookup — the phantom block from the
-                   bug9 follow-up receipt. */
-                $key = (int) $row->day_of_week.':'.$this->slotIndex((string) $row->start_time).':'.$this->slotIndex((string) $row->end_time).':'.$row->room_code;
-                $out[$w - 1][$key][] = $labelFor($row);
+                $out[$w - 1][$key][] = $entry;
             }
         }
 
-        /* SDD makeup-busy-vector (2026-10-27, design D4 + the reviewer's
-           per-row key law): the make-up slots' holder text rides the SAME
-           [weekIdx][day:slotStart:slotEnd] key — ONE tuple per time_slot
-           row (13:30-14:00 / 14:00-14:30 = two), never the rr's span.
-           The other chunks ("· Replacement") keep the aria honest. */
-        $makeUpRows = DB::table('time_slots')
-            ->whereIn('time_slots.status', ['pending', 'occupied'])
-            ->where('time_slots.semester_id', $semesterId)
-            ->where('time_slots.week_number', '<=', $weeks)
-            ->join('replacement_request_slots',
-                'replacement_request_slots.time_slot_id', '=', 'time_slots.id')
-            ->join('replacement_requests',
-                'replacement_requests.id', '=',
-                'replacement_request_slots.replacement_request_id')
-            ->whereIn('replacement_requests.status', ['pending', 'approved'])
-            ->join('class_sessions as cs', 'cs.id', '=', 'replacement_requests.class_session_id')
-            ->join('modules as m', 'm.id', '=', 'cs.module_id')
-            ->join('venues as v', 'v.id', '=', 'time_slots.venue_id')
-            ->join('users as u', 'u.id', '=', 'cs.lecturer_id')
-            ->join('lecturers as le', 'le.user_id', '=', 'cs.lecturer_id')
-            ->get([
-                'time_slots.id as slot_id',
-                'time_slots.week_number as wk',
-                'time_slots.day_of_week',
-                'time_slots.start_time',
-                'time_slots.end_time',
-                'cs.id as session_id',
-                'cs.session_type',
-                'cs.lecturer_id',
-                'm.module_code',
-                'v.room_code',
-                'u.name as lecturer_name',
-                'le.staff_id',
-                'replacement_requests.status',
-            ]);
-        /* stdClass rows (DB::table) — the TimeSlot::get model getter on the
-           aliased joins was phpstan-hostile; the query Builder row keeps
-           the same columns. */
+        /* The PROVEN active requests (the live receipt / the mapper's full
+           fallback span beats any stale class id): ONE block per request —
+           its FULL actual span — riding every proven half-cell key. A
+           refused claim produces NO label anywhere (the strict unknown →
+           neutral law; the busy rows it would have labelled simply fall
+           back to the neutral arms). */
+        $cells = $claims['cells'];
 
-        $mkCohorts = [];
-        foreach ($makeUpRows as $row) {
-            if (! isset($mkCohorts[$row->session_id])) {
-                $mkCohorts[$row->session_id] = ClassSession::query()
-                    ->where('id', $row->session_id)
-                    ->with('cohorts.programme')
-                    ->first()
-                    ?->cohorts
-                    ->map(fn (Cohort $c): string => $this->cohortCode($c))
-                    ->implode(', ');
-            }
-        }
+        if ($cells !== []) {
+            $roomCodes = Venue::query()
+                ->whereIn('id', collect($cells)->flatten(1)->pluck('venue_id')->unique()->all())
+                ->pluck('room_code', 'id');
 
-        foreach ($makeUpRows as $row) {
-            $w = (int) $row->wk;
-            if ($w < 1 || $w > $weeks) {
-                continue;
+            foreach ($cells as $requestId => $requestCells) {
+                $request = $claims['requests'][$requestId] ?? null;
+                if (! $request instanceof ReplacementRequest || $requestCells === []) {
+                    continue;
+                }
+                $source = $request->classSession;
+                if ($source === null || $source->module === null
+                    || $source->lecturer === null || $source->lecturer->lecturer === null) {
+                    continue;
+                }
+
+                $state = (string) $request->status === 'approved' ? 'REPLACEMENT' : 'PENDING';
+                /* the FULL actual span: the proven run's min start / max end
+                   ('HH:MM:SS' strings compare lexically, zero-padded) */
+                $start = (string) $requestCells[0]['start_time'];
+                $end = (string) $requestCells[0]['end_time'];
+                foreach ($requestCells as $cell) {
+                    if ((string) $cell['start_time'] < $start) {
+                        $start = (string) $cell['start_time'];
+                    }
+                    if ((string) $cell['end_time'] > $end) {
+                        $end = (string) $cell['end_time'];
+                    }
+                }
+                $room = (string) ($roomCodes[(int) $requestCells[0]['venue_id']] ?? '');
+                if ($room === '') {
+                    continue;   // an unreadable landing room proves no label
+                }
+
+                $entry = [
+                    'identity' => 'request:'.(int) $requestId,
+                    'text' => $this->holderBlock(
+                        $room,
+                        (string) $source->module->module_code,
+                        (string) $source->session_type,
+                        (string) $start,
+                        (string) $end,
+                        (int) $source->lecturer_id,
+                        (string) $source->lecturer->name,
+                        (string) $source->lecturer->lecturer->staff_id,
+                        $source->cohorts->map(fn (Cohort $c): string => $this->cohortCode($c))->implode(', '),
+                        $state,
+                    ),
+                    'kind' => 'request',
+                ];
+
+                foreach ($requestCells as $cell) {
+                    $w = (int) $cell['week_number'];
+                    if ($w < 1 || $w > $weeks) {
+                        continue;
+                    }
+                    $cellStartIdx = $this->slotIndex((string) $cell['start_time']);
+                    $cellEndIdx = $this->slotIndex((string) $cell['end_time']);
+                    if ($cellEndIdx <= $cellStartIdx) {
+                        continue;
+                    }
+                    $cellKey = (int) $cell['day_of_week'].':'.$cellStartIdx.':'.$cellEndIdx.':'.(string) ($roomCodes[(int) $cell['venue_id']] ?? '');
+                    if (str_ends_with($cellKey, ':')) {
+                        continue;   // an unreadable cell room proves no label
+                    }
+                    $out[$w - 1][$cellKey][] = $entry;
+                }
             }
-            $label = $blockFor(
-                (string) $row->room_code,
-                (string) $row->module_code,
-                (string) $row->session_type,
-                (string) $row->start_time,
-                (string) $row->end_time,
-                (string) $row->lecturer_id,
-                (string) $row->lecturer_name,
-                (string) $row->staff_id,
-                (string) ($mkCohorts[$row->session_id] ?? ''),
-            );
-            $key = (int) $row->day_of_week.':'.$this->slotIndex((string) $row->start_time).':'.$this->slotIndex((string) $row->end_time).':'.(string) $row->room_code;
-            $out[$w - 1][$key][] = $label;
         }
 
         return $out;
+    }
+
+    /**
+     * ONE holder block (the tidy-arrangement-cell-tooltips shape, Part B
+     * copy): `ROOM · CODE (TYPE) · start ~ end` / the lecturer line (the
+     * 'You — ' ownership prefix) / the cohorts / the final PUBLIC state word
+     * (NORMAL · PENDING · REPLACEMENT — the one shared vocabulary, D8).
+     * Times use the common 12-hour `start ~ end` joiner — the ONE shared
+     * formatter (`ReplacementRequestMapper::mailTime`'s shape), never a
+     * page-local second clock. No remark, no private cancellation reason,
+     * no submission metadata — the permitted public facts only.
+     */
+    private function holderBlock(
+        string $roomCode,
+        string $code,
+        string $type,
+        string $startTime,
+        string $endTime,
+        int $lecturerId,
+        string $lecturerName,
+        string $staffId,
+        string $cohorts,
+        string $state,
+    ): string {
+        $mine = $lecturerId === (int) auth()->id();
+
+        return $roomCode
+            .' · '.$code.' ('.$type.')'
+            .' · '.$this->holderTimeRange($startTime, $endTime)
+            ."\n".($mine ? 'You — ' : '')
+            .$lecturerName.' ('.$staffId.')'
+            ."\n".($cohorts !== '' ? $cohorts : '—')
+            ."\n".$state;
+    }
+
+    /**
+     * The holder block's ACTUAL time — the common 12-hour `start ~ end`
+     * range, delegated to the ONE shared formatter (the mapper's mailTime).
+     */
+    private function holderTimeRange(string $start, string $end): string
+    {
+        return (string) $this->mapper()->mailTime(['start' => $start, 'end' => $end]);
     }
 
     /**

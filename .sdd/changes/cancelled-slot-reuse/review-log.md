@@ -476,6 +476,20 @@ Independent read-only pi subprocess, model `commandcode/z-ai/glm-5.3-flash`, exi
 
 Reviewed scope-before-overlap, exact cancellation evidence, server-side student privacy, event-key deduplication, deterministic half-open lanes, truthful fail-closed room-cell matrix, source/request interaction selectors, identity-based summaries and the narrowly scoped mobile base-offer styling. No blocking code finding. Minor test gap: venue proven-user-cancelled plus no active overlap has no specifically named suppression test, though personal suppression and venue approval-stamp-only arms are covered. Main's actual full/browser/static receipts are in apply-log.md; the reviewer did not run tests.
 
+## B01/B02 implementation review — 2026-11-13 continuation
+
+Independent read-only pi subprocesses using commandcode/z-ai/glm-5.3-flash; no DB/test/edit tools. Round 1 **REQUEST CHANGES**: /tmp/crs-reconcile-b/part-b-review-r1.txt (full JSON in part-b-review-output.jsonl). Two confirmed tooltip-proof gaps: refused junction-less claims marked only their anchor unknown, not all landing tails; discovery missed fallback claims whose anchor was available or an available twin.
+
+The coding agent corrected discovery using the actual requestSlots relation, grid-semester/anchor-tuple bounds and shared claim proof. Refused evidence now marks the full input intersection of landingSlotIds neutral. Added three explicit tests: drifted tail plus uncancelled covering class; available anchor with still-held tails; available anchor twin with a uniquely proven pending run. No second geometry policy or read-time write was introduced.
+
+Round 2 **PASS for this backend/fallback slice**: /tmp/crs-reconcile-b/part-b-rereview-output.jsonl. Main's 98/98 tests / 1,712 assertions, lint and PHPStan 1G receipts were read, not rerun by the reviewer. Earlier clean frontend findings remain: merge by factual library identity, shared 12-hour formatter/public vocabulary, safe data-tip text and existing mobile snapshot/textContent flow; classification, labels, eligibility and colours are unchanged. Browser fixture was explicitly excluded from this rereview while being corrected separately. This is not full-feature Verify or a browser pass claim.
+
+## B03 and older regression fixture review — 2026-11-13 continuation
+
+Independent read-only safety/truthfulness review **PASS**: /tmp/crs-reconcile-b/browser-review-r1.txt, full browser-review-output.jsonl. Reviewed exact testing guards, natural source identity, real CSR submit seam and cohort/lecturer disjointness, correct active calendar scope when the picker is empty, registered conditional flips, locked all-or-none scoped cleanup, genuine full spans, escaped synthetic stage, preserved booking rules and explicit failure rather than skipped cases. Calendar/hover-capture corrections were present. The reviewer did not run tests or claim final browser results.
+
+Main subsequently ran the seven relevant browser specs together: **52/52 (49 cases + 3 shared auth setups)**, no skips/unrun cases, /tmp/crs-reconcile-b/integrated-browser.txt. Main inspected all four actual desktop/phone light/dark holder captures from room-holder-results-r5; new source/test/changelog work is uncommitted. These scoped passes do not close the known unrelated history-shape error, remaining Part A delivery evidence, final SDD Verify, B04 or operational cleanup authority.
+
 
 
 

@@ -2624,7 +2624,11 @@
         /* SDD occupied-cell-explanations (the payload gate's dictionary
            fallback): the grid rows' 4th key carries INDICES into the
            deduped block-text library — one copy of every holder block,
-           no per-row duplication. */
+           no per-row duplication. cancelled-slot-reuse Part B: the library
+           is IDENTITY-deduped (`session:<id>` / `request:<id>`) — the same
+           factual holder shares one entry across every arm, and two
+           different holders keep separate entries even when their display
+           strings are identical. */
         MockData.holderTexts = window.PAGE_DATA.holderTexts || [];
         MockData.venueSlots = window.PAGE_DATA.venueSlotsByWeek;
         /* D4 rule 1 — the engine's busy vectors + ineligible venues, so the
@@ -3916,6 +3920,89 @@
                             + tagged.map(b => b.replace(/\n/g, ' · ').replace(/\s{2,}/g, ' ')).join(' / ');
                         return { readable: readable, flat: flat };
                     };
+                    /* cancelled-slot-reuse Part B (D8/S24): ONE merged holder
+                       list per cell. The old engine-wins-OR-grid-fallback LOST
+                       the room-only holder whenever any engine block existed
+                       (e.g. the viewer's own class in another room covering the
+                       same half-hour hid the venue's actual holder). Canonical
+                       identities — the deduped holder library's indices, the
+                       tuples' 8th key — dedup the SAME factual holder across
+                       the room/own/cohort arms (one block), while two DIFFERENT
+                       holders stay distinct even with identical display
+                       strings. The shared renderHolderTip stays the ONE
+                       formatter; classifyState/state classes/eligibility are
+                       untouched — this is the tip only. */
+                    const mergeHolderMatches = function (engineMatches, gridMatches) {
+                        const merged = [];
+                        const seen = Object.create(null);
+                        const consider = function (m) {
+                            const ids = Array.isArray(m[7]) ? m[7] : [];
+                            if (!m[3]) {
+                                /* an unlabelled busy row carries no block; it
+                                   only feeds the header's pending read — keep
+                                   it, never dedup it into a labelled twin. */
+                                merged.push(m);
+
+                                return;
+                            }
+                            if (ids.length > 1) {
+                                /* distinct identities under one display string
+                                   (the identity-deduped library never shares an
+                                   entry across holders): explode per identity. */
+                                for (let i = 0; i < ids.length; i++) {
+                                    consider([m[0], m[1], m[2], m[3], m[4], m[5] === true, Array.isArray(m[6]) ? m[6] : [], [ids[i]]]);
+                                }
+
+                                return;
+                            }
+                            const key = ids.length === 1 ? 'i' + ids[0] : 't:' + m[3];
+                            const twin = seen[key];
+                            if (twin) {
+                                /* the SAME factual holder from two arms prints
+                                   once: mine ORs, arms union (the twin law). */
+                                twin[5] = twin[5] === true || m[5] === true;
+                                const arms = Array.isArray(twin[6]) ? twin[6] : [];
+                                const more = Array.isArray(m[6]) ? m[6] : [];
+                                for (let i = 0; i < more.length; i++) {
+                                    if (arms.indexOf(more[i]) === -1) arms.push(more[i]);
+                                }
+                                twin[6] = arms;
+
+                                return;
+                            }
+                            /* a COPY, never the payload tuple — MockData is
+                               read-only and the grid rebuilds every week. */
+                            const copy = [
+                                m[0], m[1], m[2], m[3], m[4], m[5] === true,
+                                Array.isArray(m[6]) ? m[6].slice() : [],
+                                ids.length === 1 ? [ids[0]] : [],
+                            ];
+                            seen[key] = copy;
+                            merged.push(copy);
+                        };
+                        (Array.isArray(engineMatches) ? engineMatches : []).forEach(consider);
+                        (Array.isArray(gridMatches) ? gridMatches : []).forEach(consider);
+
+                        return merged;
+                    };
+                    /* the venue-grid arm's matches: the payload's 4th key is an
+                       ARRAY of INDICES into the identity-deduped holder-text
+                       library (the dictionary fallback) — one pseudo-match per
+                       element, in the engine arm's exact tuple shape plus the
+                       8th identity key. statusKind governs the TIP ONLY: grid 1
+                       (occupied) → null; grid 3/4 (pending families) → 'pending'.
+                       An unknown/pre-cleanup cell carries NO ids — no matches,
+                       no tip, the neutral state words only. */
+                    const gridHolderMatches = (function () {
+                        if (!cellData || !Array.isArray(cellData[3]) || !cellData[3].length) return [];
+                        const holderTexts = (typeof MockData !== 'undefined' && MockData.holderTexts) || window.PAGE_DATA.holderTexts || [];
+                        const statusKind = cellData[2] === 1 ? null : 'pending';
+                        return cellData[3]
+                            .map(function (id) {
+                                return [di, hi, hi + 1, holderTexts[id] || '', statusKind, cellData[2] === 3, [], [id]];
+                            })
+                            .filter(function (m) { return !!m[3]; });
+                    })();
                     /* 2026-11-07 (user): the cell's tip sits ABOVE the cell — the
                        shared engine's default placement (centred over the element,
                        flipping below only when there is no room). It used to be
@@ -3923,7 +4010,7 @@
                        neighbouring day columns. Omitting `data-tip-pos` is the
                        "above" mode; `left` stays the top-bar buttons' mode. */
                     const attachHolder = function () {
-                        const rendered = renderHolderTip(engineMatches);
+                        const rendered = renderHolderTip(mergeHolderMatches(engineMatches, gridHolderMatches));
                         if (rendered) {
                             div.setAttribute('data-tip', rendered.readable);
                             div.setAttribute('aria-label', rendered.flat);
@@ -3951,40 +4038,14 @@
                         };
                         const ownershipClass = classifyCell(cellFacts);
 
-                        /* The tips keep today's wording and order. The engine
-                           tip wins when it has a labelled block (the same
-                           precedence as before); otherwise the grid library
-                           speaks. The payload merges twin rows, so the header
-                           count and the block list are unchanged. */
-                        if (engineMatches.some(function (b) { return !!b[3]; })) {
-                            attachHolder();
-                        } else if (cellData) {
-                            /* SDD occupied-cell-explanations round (the grid arm
-                               rides the SAME renderer as the engine arm): the
-                               payload's 4th key is an ARRAY of INDICES into the
-                               deduped holder-text library (the payload gate's
-                               dictionary fallback) — resolve each to its block
-                               string, then build one pseudo-match per element in
-                               the engine arm's exact tuple shape and call the
-                               unchanged renderHolderTip (header count, why-tags,
-                               flat aria all parse per BLOCK). statusKind governs
-                               the TIP ONLY: grid 1 (occupied) → null; grid 3/4
-                               (pending families) → 'pending'. */
-                            const holderTexts = (typeof MockData !== 'undefined' && MockData.holderTexts) || window.PAGE_DATA.holderTexts || [];
-                            const gridHolderMatches = Array.isArray(cellData[3]) && cellData[3].length
-                                ? cellData[3].map(id => [di, hi, hi + 1, holderTexts[id] || '', cellData[2] === 1 ? null : 'pending'])
-                                    .filter(m => m[3])
-                                : null;
-                            if (gridHolderMatches) {
-                                const gridTip = renderHolderTip(gridHolderMatches);
-                                if (gridTip) {
-                                    div.setAttribute('data-tip', gridTip.readable);
-                                    div.setAttribute('aria-label', gridTip.flat);
-                                    div.setAttribute('tabindex', '0');
-                                    div.style.cursor = 'help';
-                                }
-                            }
-                        }
+                        /* cancelled-slot-reuse Part B (D8/S24): ONE merged tip
+                           per cell — the engine arm's labelled rows and the
+                           venue-grid arm's actual holder merge into ONE shared
+                           renderHolderTip call (identity-deduped). The old
+                           engine-wins rule dropped the room-only holder whenever
+                           any engine block existed; the grid-arm fallback below
+                           is GONE with it. */
+                        attachHolder();
 
                         /* ═══ UI Update 2 (user, 2026-11-10, ruling C) ═══
                            The 3-working-day rule now OUTRANKS the ownership classes:
