@@ -1,5 +1,7 @@
 import { test, expect, type Page } from '@playwright/test';
+import { execFileSync } from 'node:child_process';
 import { pickSpanFreeCell, selectWeek } from './helpers/intent-modal-helper';
+import { throwUnlessTestingTarget } from './helpers/receipt-target-guard';
 
 /**
  * venue-book.spec.ts — U2a end-to-end coverage for the venue-page booking
@@ -37,6 +39,165 @@ async function weekWith(page: Page, cls: string): Promise<number> {
   return -1;
 }
 
+/* ═══════════════════════════════════════════════════════════════════════════
+   T6/T8 tail-offer fixture (cancelled-slot-reuse A21 reconciliation).
+   The seed's grid offers end at 18:00 (time_slots rows start 08:00–17:30),
+   so the day's FINAL hour-axis cells (18:00 = hi 20, 18:30 = hi 21) have no
+   offer row and render inert — a no-fit cell can never exist without a
+   fixture. T6/T8 therefore STAGE the two missing tail offers (status
+   available, version 1) for one future bookable week/day discovered on the
+   page's own campus clock (lead time + holidays — never a hardcoded week),
+   guarded by a before-write existence check and a runtime current_database
+   check, and DELETE only their own rows in finally. Read-only siblings are
+   untouched; the whole-run receipt keeps CRS_ALLOW_SQL=1. */
+function sql(query: string): string {
+  const oneLine = query.replace(/[\r\n]+/g, ' ').replace(/\s{2,}/g, ' ').trim();
+  return execFileSync('psql',
+    ['-X', '-q', '-t', '-v', 'ON_ERROR_STOP=1', '-U', 'philler', '-d', 'class_replacement_testing', '-c', oneLine],
+    { encoding: 'utf8' }).trim();
+}
+
+/** The ACTUAL connection must be the disposable testing DB before ANY write. */
+function assertTestingDb(): void {
+  const db = sql('SELECT current_database()');
+  if (db !== 'class_replacement_testing') {
+    throw new Error(`fixture write REFUSED: connected to [${db}], only class_replacement_testing may be written`);
+  }
+}
+
+/** Mirror of Semester::active(): start_date <= campus today, latest first,
+ *  then id 1, then the latest row — the id is discovered, never assumed. */
+function discoverSemesterId(): number {
+  const campus = sql("SELECT to_char((now() AT TIME ZONE 'Asia/Kuala_Lumpur')::date, 'YYYY-MM-DD')");
+  let row = sql(`SELECT id FROM semesters WHERE start_date <= '${campus}' ORDER BY start_date DESC, id ASC LIMIT 1`);
+  if (!row) row = sql('SELECT id FROM semesters WHERE id = 1');
+  if (!row) row = sql('SELECT id FROM semesters ORDER BY start_date DESC, id ASC LIMIT 1');
+  if (!row) throw new Error('no semester row exists');
+  return Number(row);
+}
+
+interface TailFixture { weekIdx: number; weekNumber: number; dayIdx: number; venueId: number; semesterId: number; slotIds: number[] }
+
+/** The two tail offers the seed never creates: 18:00 (hi 20) and 18:30
+ *  (hi 21), both available — the REAL last hour-axis cells of the day. */
+const TAIL_OFFERS = [
+  { hi: 20, start: '18:00', end: '18:30' },
+  { hi: 21, start: '18:30', end: '19:00' },
+];
+
+/** Insert the tail offers for B110 on a future bookable week/day (the page's
+ *  own lead-time + holiday clock picks it), then reload so the served room
+ *  matrix carries them. */
+async function stageTailOffers(page: Page): Promise<TailFixture> {
+  assertTestingDb();
+  const target = await page.evaluate(() => {
+    const wd = (window as any).weekData;
+    for (let w = wd.length - 1; w >= 0; w--) {
+      const d = firstBookableDayIn(wd, w);   // bookable = not Sunday/holiday/too-soon
+      if (d >= 0) return { weekIdx: w, dayIdx: d };
+    }
+    return null;
+  });
+  if (!target) {
+    throw new Error('no future bookable week exists on the campus clock — the tail-offer fixture has nowhere truthful to land');
+  }
+
+  const venueId = Number(sql(`SELECT id FROM venues WHERE room_code = 'B110'`));
+  if (!venueId) throw new Error('venue B110 not found');
+  const semesterId = discoverSemesterId();
+  const weekNumber = target.weekIdx + 1;
+
+  // guard: query the target BEFORE the write — never double-write a cell
+  for (const offer of TAIL_OFFERS) {
+    const exists = Number(sql(`SELECT count(*) FROM time_slots
+        WHERE venue_id = ${venueId} AND semester_id = ${semesterId}
+          AND week_number = ${weekNumber} AND day_of_week = ${target.dayIdx}
+          AND start_time = '${offer.start}:00'`));
+    if (exists !== 0) {
+      throw new Error(`tail fixture target already holds a row (B110 W${weekNumber} D${target.dayIdx} ${offer.start}) — refusing to double-write`);
+    }
+  }
+
+  const slotIds: number[] = [];
+  try {
+    for (const offer of TAIL_OFFERS) {
+      assertTestingDb();
+      slotIds.push(Number(sql(`INSERT INTO time_slots
+          (semester_id, venue_id, class_session_id, week_number, day_of_week,
+           start_time, end_time, status, version, created_at, updated_at)
+         VALUES (${semesterId}, ${venueId}, NULL, ${weekNumber}, ${target.dayIdx},
+                 '${offer.start}:00', '${offer.end}:00', 'available', 1, now(), now())
+         RETURNING id`)));
+    }
+
+    // a fresh payload: the served room matrix is read at DOMContentLoaded
+    await page.goto(PAGE);
+    await selectWeek(page, target.weekIdx);
+  } catch (err) {
+    // never leave a half-staged fixture behind — a reload/setup failure
+    // cleans up too
+    cleanupTailOffers({ weekIdx: target.weekIdx, weekNumber, dayIdx: target.dayIdx, venueId, semesterId, slotIds });
+    throw err;
+  }
+  return { weekIdx: target.weekIdx, weekNumber, dayIdx: target.dayIdx, venueId, semesterId, slotIds };
+}
+
+/** Scoped restore: delete only the rows THIS fixture inserted — and only while
+ *  each still reads exactly like the fixture's own creation (version 1,
+ *  available, ownerless, the exact staged coordinate) with no live request
+ *  link and no ACTIVE anchor whose fallback span intersects the row (same
+ *  semester/week/day/venue, row start inside anchor start + span) — not just
+ *  an exact anchor match. The checks and the guarded delete run in ONE atomic
+ *  DO block: any drift RAISEs and deletes nothing, so a newer holder is never
+ *  freed silently. */
+function cleanupTailOffers(fx: TailFixture): void {
+  fx.slotIds.forEach((id, i) => {
+    assertTestingDb();
+    const expectedStart = `${TAIL_OFFERS[i].start}:00`;
+    sql(`DO $tail$ DECLARE
+           v_deleted int;
+         BEGIN
+           IF NOT EXISTS (
+             SELECT 1 FROM time_slots
+              WHERE id = ${id}
+                AND status = 'available' AND version = 1 AND class_session_id IS NULL
+                AND venue_id = ${fx.venueId} AND semester_id = ${fx.semesterId}
+                AND week_number = ${fx.weekNumber} AND day_of_week = ${fx.dayIdx}
+                AND start_time = '${expectedStart}'
+           ) THEN
+             RAISE EXCEPTION 'tail fixture row ${id} is gone or drifted from its created shape (B110 W${fx.weekNumber} D${fx.dayIdx} ${expectedStart}) — refusing to delete a reused offer';
+           END IF;
+           IF EXISTS (
+             SELECT 1 FROM replacement_request_slots WHERE time_slot_id = ${id}
+           ) THEN
+             RAISE EXCEPTION 'tail fixture row ${id} acquired a live request link — refusing to delete';
+           END IF;
+           IF EXISTS (
+             SELECT 1 FROM replacement_requests r
+               JOIN time_slots a ON a.id = r.replacement_time_slot_id
+               JOIN time_slots s ON s.id = ${id}
+              WHERE r.status IN ('pending', 'approved')
+                AND a.semester_id = s.semester_id AND a.week_number = s.week_number
+                AND a.day_of_week = s.day_of_week AND a.venue_id = s.venue_id
+                AND s.start_time >= a.start_time
+                AND s.start_time < a.start_time + COALESCE(NULLIF(r.replacement_span, 0), 1) * interval '30 minutes'
+           ) THEN
+             RAISE EXCEPTION 'tail fixture row ${id} acquired a live anchor-span claim — refusing to delete';
+           END IF;
+           DELETE FROM time_slots
+            WHERE id = ${id}
+              AND status = 'available' AND version = 1 AND class_session_id IS NULL
+              AND venue_id = ${fx.venueId} AND semester_id = ${fx.semesterId}
+              AND week_number = ${fx.weekNumber} AND day_of_week = ${fx.dayIdx}
+              AND start_time = '${expectedStart}';
+           GET DIAGNOSTICS v_deleted = ROW_COUNT;
+           IF v_deleted <> 1 THEN
+             RAISE EXCEPTION 'tail fixture row ${id} changed during cleanup — refusing to delete a newer holder';
+           END IF;
+         END $tail$;`);
+  });
+}
+
 test('U2a-T1: free cell exposes the "Arrange ?" hover overlay (class + ::after label)', async ({ page }) => {
   await page.goto(PAGE);
   await selectLastWeek(page);
@@ -55,7 +216,17 @@ test('U2a-T2: clicking a free cell opens the tooltip with the exact Arrange sent
   const expected = await page.evaluate(
     ([d, h]) => {
       const day = (window as any).weekData[(window as any).currentWeek].days[Number(d)];
-      return 'Arrange a replacement in B110 on ' + day.abbr + ', ' + day.date + ' at ' + hours[Number(h)] + '?';
+      /* the arrange question is a SENTENCE, so the date/time standard prose
+         applies (audit §0 ruling 3 + rule 11: the day word spelled out, the
+         time 12-hour) — the page composes exactly this in
+         showAvailableTooltip, so the expectation mirrors it, room/date/time
+         all exact. */
+      const dayLong: Record<string, string> = {
+        Mon: 'Monday', Tue: 'Tuesday', Wed: 'Wednesday', Thu: 'Thursday',
+        Fri: 'Friday', Sat: 'Saturday', Sun: 'Sunday',
+      };
+      return 'Arrange a replacement in B110 on ' + (dayLong[day.abbr] || day.abbr) + ', '
+        + day.date + ' at ' + to12h(hours[Number(h)]) + '?';
     },
     [di, hi],
   );
@@ -69,13 +240,21 @@ test('U2a-T2: clicking a free cell opens the tooltip with the exact Arrange sent
 test('U2a-T3: clicking Arrange opens the session modal, then hands off — arrangement page opens pre-pinned', async ({ page }) => {
   // SDD arrange-intent-session-choice: the modal interposes (designed contract
   // change — session + cohort + week join the handoff); routed through it here.
-  // W8 (Deepavali week): AMCS2093 (L) is the conflicted occurrence the modal
-  // offers; W14 has no conflicted L → zero-compat would hide [Arrange] by design.
+  // The pool is WEEK-AGNOSTIC (VenueTimetable::intentSessionOptions): $week1 no
+  // longer filters candidates — every own conflicted session occurrence is
+  // offered wherever the booked cell lives. So a future landing week is valid
+  // even when the pinned SOURCE occurrence (the Deepavali AMCS2093 week) sits
+  // in the past; the last semester week keeps this test bookable without a
+  // hardcoded week number.
   await page.goto(PAGE);
-  await selectWeek(page, 7);
+  await selectLastWeek(page);
   await pickSpanFreeCell(page);
   await page.locator('#availableTooltip.show #tooltipBookBtn').click();
   await expect(page.locator('#intentSessionModal')).toBeVisible({ timeout: 10_000 });
+  // the modal's options arrive over a wire call — wait for the populated
+  // fitting row (the first fit is auto-selected) before pressing Arrange
+  await expect(page.locator('#intentSessionPanel .session-dd-item[data-fit="1"]').first())
+    .toBeAttached({ timeout: 10_000 });
   await page.locator('#intentArrangeBtn').click();
   await page.waitForURL(/\/replacement-arrangement\/?\?.*session=/, { timeout: 10_000 });
   expect(page.url()).toMatch(/venue=B110&date=.+&time=.+&from=venue-timetable&code=.+&session=\d+&cohort=.+&week=\d+/);
@@ -111,31 +290,42 @@ test('U2a-T5: B opens the tooltip on a focused free cell; Escape and .grid-scrol
 });
 
 test('U2a-T6: no-fit cell shows the two-line "Too Late / to Book" label; click gives the shared toast, no navigation', async ({ page }) => {
+  // writes: guarded fail-closed (exact strings, first line, loud red)
+  throwUnlessTestingTarget('U2a-T6', { requireAllowSql: true });
   await page.goto(PAGE);
-  await selectLastWeek(page);
-  const noFit = page.locator('.cell-available.cell-no-fit').first();
-  // venue-timetable-bookable-cells: the late run now follows the SHORTEST class
-  // this venue can host, so its size varies by lecturer/venue — never assert 1.
-  expect(await page.locator('.cell-available.cell-no-fit').count()).toBeGreaterThan(0);
-  const label = await noFit.evaluate((el) => getComputedStyle(el, '::after').content);
-  // Two-line label law (user, 2026-10-25): "Too Late" / "to Book". The
-  // computed content CSS-serialises the embedded newline — Chromium hands it
-  // back as "\a" (lowercase), other engines as "\A" or a literal newline —
-  // normalise all forms, strip the CSS string quotes, assert the lines.
-  const lines = label
-    .replace(/^["']|["']$/g, '')
-    .replace(/\\a\s?/gi, '\n')
-    .split('\n')
-    .map((s) => s.trim())
-    .filter(Boolean);
-  expect(lines).toEqual(['Too Late', 'to Book']);
-  await noFit.click();
-  // venue-slot-validation (2026-11-06): the hover floor is a fixed 60 minutes —
-  // never a class-derived number, never the old 120.
-  await expect(page.locator('#toastBar .toast-message'))
-    .toHaveText(/^A booking needs 60 minutes/);
-  await expect(page.locator('#availableTooltip')).not.toHaveClass(/show/);
-  expect(page.url()).toContain('/venue-timetable-ui');
+  const fx = await stageTailOffers(page);
+  try {
+    // venue-timetable-bookable-cells: the no-fit state is judged ONLY by the
+    // day end (`hi + MIN_BOOK_SLOTS > hours.length`) — the staged 18:30 offer
+    // IS the day's final hour-axis cell, so the grid must paint it no-fit.
+    const noFit = page.locator('.cell-available.cell-no-fit');
+    expect(await noFit.count()).toBeGreaterThan(0);
+    const coords = await noFit.first().evaluate((el) => ({ day: el.dataset.day, hour: el.dataset.hour }));
+    const lastHourIdx = await page.evaluate(() => hours.length - 1);
+    expect(Number(coords.hour), 'the no-fit cell sits at the FINAL hour-axis index').toBe(lastHourIdx);
+    expect(Number(coords.day), 'and on the staged week/day').toBe(fx.dayIdx);
+    const label = await noFit.first().evaluate((el) => getComputedStyle(el, '::after').content);
+    // Two-line label law (user, 2026-10-25): "Too Late" / "to Book". The
+    // computed content CSS-serialises the embedded newline — Chromium hands it
+    // back as "\a" (lowercase), other engines as "\A" or a literal newline —
+    // normalise all forms, strip the CSS string quotes, assert the lines.
+    const lines = label
+      .replace(/^["']|["']$/g, '')
+      .replace(/\\a\s?/gi, '\n')
+      .split('\n')
+      .map((s) => s.trim())
+      .filter(Boolean);
+    expect(lines).toEqual(['Too Late', 'to Book']);
+    await noFit.first().click();
+    // venue-slot-validation (2026-11-06): the hover floor is a fixed 60 minutes —
+    // never a class-derived number, never the old 120.
+    await expect(page.locator('#toastBar .toast-message'))
+      .toHaveText(/^A booking needs 60 minutes/);
+    await expect(page.locator('#availableTooltip')).not.toHaveClass(/show/);
+    expect(page.url()).toContain('/venue-timetable-ui');
+  } finally {
+    cleanupTailOffers(fx);
+  }
 });
 
 test('U2a-T7: a free cell with too little room before the next class is blocked by cursor + words only', async ({ page }) => {
@@ -164,34 +354,81 @@ test('U2a-T7: a free cell with too little room before the next class is blocked 
 });
 
 test('U2a-T8: the late and no-room states follow the real shortest class, cell by cell', async ({ page }) => {
-  // both directions — nothing blocked that fits, nothing offered that does not
+  // writes: guarded fail-closed (exact strings, first line, loud red)
+  throwUnlessTestingTarget('U2a-T8', { requireAllowSql: true });
   await page.goto(PAGE);
-  await selectLastWeek(page);
-  const audit = await page.evaluate(() => {
-    /* MIN_BOOK_SLOTS — the fixed one-hour hover floor (venue-slot-validation) */
-    const min = 2;
-    /* `hours` is a top-level const in ui-common.js — a lexical global, not a
-       window property, so read it by its bare name (same as U2a-T2 does). */
-    const hoursLen = hours.length;
-    const cur = (window as any).currentWeek;
-    const evs = (MockData.myTimetable.eventsByWeek || [])[cur] || [];
-    const cells = Array.from(document.querySelectorAll('#tableBody .cell-available')) as HTMLElement[];
-    const bad: string[] = [];
-    cells.forEach((el) => {
-      const di = Number(el.dataset.day);
-      const hi = Number(el.dataset.hour);
-      let next = Infinity;
-      evs.forEach((ev: any) => { if (ev.di === di && ev.start > hi && ev.start < next) next = ev.start; });
-      const room = next === Infinity ? Infinity : next - hi;
-      const expectLate = hi + min > hoursLen;
-      const expectNoRoom = !expectLate && room < min;
-      if (expectLate !== el.classList.contains('cell-no-fit')) bad.push('late ' + di + '/' + hi);
-      if (expectNoRoom !== el.classList.contains('cell-no-room')) bad.push('room ' + di + '/' + hi + ' room=' + room + ' min=' + min);
+  const fx = await stageTailOffers(page);
+  try {
+    /* both arms, judged SEPARATELY against the page's real contracts — never
+       one folded formula (cancelled-slot-reuse A21 reconciliation):
+       · END OF DAY (no-fit): `hi + MIN_BOOK_SLOTS > hours.length` — the day
+         axis alone decides; the staged 18:30 offer exercises it for real.
+       · NEXT BLOCK (no-room): the EXPECTED room is derived INDEPENDENTLY of
+         the page helper — the first live (cancelled history is NOT occupancy,
+         S20) event start after `hi`, and the first non-free served-matrix
+         cell after `hi`, whichever comes first; Infinity = no next blocker.
+         The actual roomBeforeNextEvent must EQUAL that derivation (including
+         Infinity) before the class comparison — this checks the page's bug
+         fixes instead of merely repeating its own result. The old audit read
+         events only and read Infinity as "no room", which contradicted the
+         served matrix — that was the test's wrong assumption, not a page
+         bug. */
+    const audit = await page.evaluate(() => {
+      const min = 2;   /* MIN_BOOK_SLOTS — the fixed one-hour hover floor */
+      const hoursLen = hours.length;
+      const cells = Array.from(document.querySelectorAll('#tableBody .cell-available')) as HTMLElement[];
+      const bad: string[] = [];
+      let late = 0;
+      let noNextBlocker = 0;
+      cells.forEach((el) => {
+        const di = Number(el.dataset.day);
+        const hi = Number(el.dataset.hour);
+        /* arm 1 — the day end */
+        const lateHere = hi + min > hoursLen;
+        if (lateHere !== el.classList.contains('cell-no-fit')) bad.push('late ' + di + '/' + hi);
+        if (lateHere) { late += 1; return; }
+        /* arm 2 — the next-block gap, derived INDEPENDENTLY first */
+        const liveStarts = ((MockData.myTimetable.eventsByWeek || [])[(window as any).currentWeek] || [])
+          .filter((ev: any) => ev.di === di && ev.status !== 'cancelled' && ev.start > hi)
+          .map((ev: any) => ev.start);
+        const matrix = ((window as any).roomCellStatesByWeek || [])[(window as any).currentWeek] || {};
+        let firstBlocked = Infinity;
+        for (let k = hi + 1; k < hoursLen; k++) {
+          if (matrix[di + ':' + k] !== 'free') { firstBlocked = k; break; }
+        }
+        /* the next blocker is an ABSOLUTE index; the room helper answers a
+           DELTA from hi — convert, keeping Infinity as Infinity */
+        const next = Math.min(...liveStarts, firstBlocked);
+        const derived = next === Infinity ? Infinity : next - hi;
+        const room = (window as any).roomBeforeNextEvent(di, hi);
+        /* the page helper must agree with the independent derivation —
+           including Infinity — before anything else is judged against it */
+        if (room !== derived) {
+          bad.push('room-derivation ' + di + '/' + hi + ' actual=' + room + ' derived=' + derived);
+        }
+        if ((room < min) !== el.classList.contains('cell-no-room')) {
+          bad.push('room ' + di + '/' + hi + ' room=' + room + ' min=' + min);
+        }
+        if (room === Infinity) {
+          noNextBlocker += 1;
+          return;
+        }
+        /* a FINITE room must be grounded: a live event starts exactly at
+           hi+room, or the room run ends at a non-free offer there */
+        const evGround = ((MockData.myTimetable.eventsByWeek || [])[(window as any).currentWeek] || [])
+          .some((ev: any) => ev.di === di && ev.status !== 'cancelled' && ev.start === hi + room);
+        const mxGround = matrix[di + ':' + (hi + room)] !== 'free';
+        if (!evGround && !mxGround) bad.push('room ungrounded ' + di + '/' + hi + ' room=' + room);
+      });
+      return { min, hoursLen, checked: cells.length, late, noNextBlocker, bad };
     });
-    return { min, hoursLen, checked: cells.length, bad };
-  });
-  expect(audit.checked).toBeGreaterThan(0);
-  expect(audit.bad).toEqual([]);
+    expect(audit.checked).toBeGreaterThan(0);
+    expect(audit.late, 'the end-of-day no-fit arm is exercised on a real tail cell').toBeGreaterThan(0);
+    expect(audit.noNextBlocker, 'a no-next-blocker (Infinity) cell exists and stays bookable').toBeGreaterThan(0);
+    expect(audit.bad).toEqual([]);
+  } finally {
+    cleanupTailOffers(fx);
+  }
 });
 
 test('U2a-T9: "Earliest bookable" sits after Today, jumps to the semester week and paints the chip', async ({ page }) => {

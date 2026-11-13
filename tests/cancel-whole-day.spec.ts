@@ -6,11 +6,16 @@ import { abortUnlessTestingTarget } from './helpers/receipt-target-guard';
  * the day confirm, end to end on the DISPOSABLE database.
  *
  * It writes (four classes cancelled, four audit rows, the request paths closed),
- * so it is guarded: run it only against `class_replacement_testing` on :8030,
- * after `migrate:fresh --seed` + `TestingFixtureSeeder`:
+ * so it is guarded: run it only against `class_replacement_testing` on :8030.
+ * The testing DB is a dedicated baseline, NOT a reset of anything: prepare it
+ * when it is empty, once, with a plain `php artisan migrate --seed` (the default
+ * `DatabaseSeeder` builds the testing fixtures with fixed IDs — never wipe,
+ * refresh or reseed an already-prepared DB just to fit this spec's IDs).
  *
  *   DB_DATABASE=class_replacement_testing scripts/dev-serve.sh 8030
- *   CRS_BASE=http://localhost:8030 npx playwright test tests/cancel-whole-day.spec.ts
+ *   CRS_MODE=testing CRS_ALLOW_SQL=1 CRS_BASE=http://127.0.0.1:8030 \
+ *     npx playwright test tests/cancel-whole-day.spec.ts \
+ *     --project=chromium --workers=1 --grep-invert TC70
  *
  * What it pins (spec R1–R6): the block appears with the day's OTHER classes,
  * every row is its own tick, the sentence says "on the same day", the head tick
@@ -60,12 +65,18 @@ test('a whole day cancels in one action and says so', async ({ page }) => {
   expect(target).not.toBeNull();
   if (!target) return;
 
-  await page.evaluate((wk) => { const f = (window as any).selectWeek; if (f) f(String(wk)); }, target.week);
+  /* selectWeek takes the component's own 0-based index, but myDayClasses's
+     target.week is 1-based — pass week-1, then verify the grid actually settled
+     on the target week before hunting for the block. */
+  await page.evaluate((wk) => { const f = (window as any).selectWeek; if (f) f(String(wk - 1)); }, target.week);
   await page.waitForTimeout(1100);
+  expect(await page.evaluate(() => Number((window as any).currentWeek) + 1)).toBe(target.week);
   await page.evaluate((ids) => {
     const blocks = Array.from(document.querySelectorAll('#tableBody .event-block')) as HTMLElement[];
-    const hit = blocks.find((b) => ids.includes(Number(b.dataset.sid))) || blocks[0];
-    hit?.click();
+    const hit = blocks.find((b) => ids.includes(Number(b.dataset.sid))
+      && (b as any).__eventData?.status !== 'cancelled');
+    if (!hit) throw new Error(`no bookable block among [${ids.join(', ')}] — repeat run found none uncancelled`);
+    hit.click();
   }, target.ids);
   await page.waitForTimeout(700);
   await page.click('[data-cancel-class-btn]');
@@ -125,6 +136,7 @@ test('a whole day cancels in one action and says so', async ({ page }) => {
      index) — this is the week the cancel will write, so it is the week the
      after-check must ask about */
   const weekCancelled = await page.evaluate(() => Number((window as any).currentWeek) + 1);
+  expect(weekCancelled).toBe(target.week);   // the after-check asks about the exact target week
 
   await page.click('#confirmCancelClassBtn');
   await page.waitForTimeout(2200);

@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test';
 import type { BrowserContext, Page } from '@playwright/test';
-import { execSync } from 'node:child_process';
+import { execFileSync } from 'node:child_process';
 import { abortUnlessTestingTarget } from './helpers/receipt-target-guard';
 
 /**
@@ -49,36 +49,161 @@ import { abortUnlessTestingTarget } from './helpers/receipt-target-guard';
 abortUnlessTestingTarget('tests/arrangement-slot-ownership.spec.ts', { requireAllowSql: true });
 
 const BASE = process.env.CRS_BASE as string;
-const PSQL = 'psql -q -t -U philler -d class_replacement_testing -c ';
 
-/* Seed identities (semester 1): session 39 = staff 5770's AMCS2093 (P) Thu
-   13:30 B010, cohort DSF2; session 40 = staff 5425's AMSE2003 (P) Thu 09:00
-   B010, same cohort. The pending request below belongs to session 39 and its
-   slots land on a week-8 Friday, so 5425 (who shares the cohort) sees it in
-   her cohort vector while 5770 owns it. */
-const OWNER_SESSION = 39;   // staff 5770
-const VIEWER_SESSION = 40;  // staff 5425
-const WEEK = 8;
+/* Fixture identities are DISCOVERED at runtime (cancelled-slot-reuse A21
+   reconciliation): the old session-39/40 + semester-1 + week-8 constants died
+   the moment the sequences advanced past the seed ids. The natural identities
+   still exist and are all this fixture needs — staff 5770 (owner) and staff
+   5425 (viewer) sharing ONE cohort through two B010 sessions — found by their
+   staff_id + session_cohorts membership, never by an id. The owner side is
+   additionally pinned to its natural type + code, AMCS2093 (P) Thu 13:30
+   (see discoverIdentity): the mirror assertion needs the owner's class NOT
+   to sit on the viewer's own calendar, and the first B010 5770 session by id
+   (BM… P, Wed 09:00) does — 5425 teaches B009 at that same time. The proposal week is
+   picked on the CAMPUS notice clock (Asia/Kuala_Lumpur, Semester::active()
+   mirror) at least two campus weeks ahead, so the 5-minute auto-reject
+   checker's 3-working-hour window can never touch these pendings; the source
+   occurrence week per request is a week that session really teaches with no
+   other ACTIVE request holding the pair (one-active-per-source-week). */
+const OWNER_STAFF = '5770';
+const VIEWER_STAFF = '5425';
 const VENUE = 'B010';
 const FIXTURE_MARK = 'PW ownership receipt';
 
-/** RESTORED week_number must differ from the week under test (entry guard). */
-const REQUEST_OCCURRENCE_WEEK = 9;
-
 function sql(query: string): string {
   const oneLine = query.replace(/[\r\n]+/g, ' ').replace(/\s{2,}/g, ' ').trim();
-  return execSync(PSQL + JSON.stringify(oneLine), { encoding: 'utf8' }).trim();
+  return execFileSync('psql',
+    ['-X', '-q', '-t', '-v', 'ON_ERROR_STOP=1', '-U', 'philler', '-d', 'class_replacement_testing', '-c', oneLine],
+    { encoding: 'utf8' }).trim();
+}
+
+/** EVERY fixture write (and restore) checks the ACTUAL connection first. */
+function assertTestingDb(): void {
+  const db = sql('SELECT current_database()');
+  if (db !== 'class_replacement_testing') {
+    throw new Error(`fixture write REFUSED: connected to [${db}], only class_replacement_testing may be written`);
+  }
+}
+
+interface Semester { id: number; startDate: string; weeks: number }
+
+/** Mirror of Semester::active(): start_date <= campus today, latest first,
+ *  then id 1, then the latest row — the id is discovered, never assumed. */
+function discoverSemester(): Semester {
+  const campus = sql("SELECT to_char((now() AT TIME ZONE 'Asia/Kuala_Lumpur')::date, 'YYYY-MM-DD')");
+  let row = sql(`SELECT id, start_date::text, week_count FROM semesters
+                  WHERE start_date <= '${campus}' ORDER BY start_date DESC, id ASC LIMIT 1`);
+  if (!row) row = sql('SELECT id, start_date::text, week_count FROM semesters WHERE id = 1');
+  if (!row) row = sql('SELECT id, start_date::text, week_count FROM semesters ORDER BY start_date DESC, id ASC LIMIT 1');
+  if (!row) throw new Error('no semester row exists — the fixture has no timeline to live on');
+  const [id, startDate, weeks] = row.split('|').map((x) => x.trim());
+  return { id: Number(id), startDate, weeks: Number(weeks) };
+}
+
+/** The CAMPUS week index (LocalTime::daysSince + currentTimelineWeekIndex). */
+function campusWeekIndex(sem: Semester): number {
+  const days = Math.floor((Date.parse(sql("SELECT to_char((now() AT TIME ZONE 'Asia/Kuala_Lumpur')::date, 'YYYY-MM-DD')"))
+    - Date.parse(sem.startDate)) / 86_400_000);
+  return Math.max(0, Math.min(sem.weeks - 1, Math.floor(days / 7)));
+}
+
+interface SessionIdentity { id: number; day: number; hour: number; viewerSession: number }
+
+/** The owner session: the ${OWNER_STAFF} AMCS2093 (P) session IN B010 that
+ *  carries cohorts, paired with an ${VIEWER_STAFF} session sharing one of them
+ *  (the shared cohort is the natural identity — never a hardcoded session id).
+ *
+ *  The module_code + session_type pin is NOT arbitrary. The fixture's mirror
+ *  assertion reads the owner's class cell from the viewer's grid and demands
+ *  it NOT be hers (`cell-occupied` WITHOUT `--mine`). First-B010-session-by-id
+ *  picked BM… (P) Wed 09:00, and staff 5425 teaches a different room (B009)
+ *  at that same Wed 09:00 — a legitimate any-own overlap sitting in the
+ *  VIEWER'S OWN calendar — which would make the not-mine assertion invalid.
+ *  The natural identity AMCS2093 (P) Thu 13:30 has no such unrelated
+ *  own-calendar collision, so the owner side is pinned to its type + code
+ *  (discovered live: class 87 in the current testing DB, id 39 long dead);
+ *  staff / venue / semester / cohort-shared viewer stay dynamically resolved. */
+function discoverIdentity(semId: number): SessionIdentity {
+  const owners = sql(`SELECT cs.id, cs.day_of_week, cs.start_time
+                        FROM class_sessions cs
+                        JOIN lecturers l ON l.user_id = cs.lecturer_id
+                        JOIN venues v ON v.id = cs.venue_id
+                        JOIN modules m ON m.id = cs.module_id
+                       WHERE l.staff_id = '${OWNER_STAFF}' AND v.room_code = '${VENUE}'
+                         AND m.module_code = 'AMCS2093' AND cs.session_type = 'P'
+                         AND cs.semester_id = ${semId}
+                         AND EXISTS (SELECT 1 FROM session_cohorts sc WHERE sc.class_session_id = cs.id)
+                       ORDER BY cs.id ASC`);
+  for (const line of owners.split('\n').filter(Boolean)) {
+    const [id, day, start] = line.split('|').map((x) => x.trim());
+    const minute = Number(start.slice(0, 2)) * 60 + Number(start.slice(3, 5));
+    const viewer = sql(`SELECT cs.id FROM class_sessions cs
+                          JOIN lecturers l ON l.user_id = cs.lecturer_id
+                          JOIN session_cohorts sc1 ON sc1.class_session_id = ${id}
+                          JOIN session_cohorts sc2 ON sc2.cohort_id = sc1.cohort_id AND sc2.class_session_id = cs.id
+                         WHERE l.staff_id = '${VIEWER_STAFF}' AND cs.semester_id = ${semId}
+                         ORDER BY cs.id ASC LIMIT 1`);
+    if (viewer) {
+      return { id: Number(id), day: Number(day), hour: (minute - 8 * 60) / 30, viewerSession: Number(viewer) };
+    }
+  }
+  throw new Error(
+    `no ${OWNER_STAFF} AMCS2093 (P) session in ${VENUE} shares a cohort with a ${VIEWER_STAFF} session — `
+    + 'the ownership fixture has no natural identity to build on',
+  );
+}
+
+/** The proposal week: the first campus-clock-future week (≥ current + 2, so
+ *  the 5-minute checker can never reach the proposed start) whose B010 Friday
+ *  still offers TWO disjoint adjacent available pairs. */
+function discoverProposalWeek(sem: Semester): number {
+  const start = campusWeekIndex(sem) + 2;
+  for (let w = start; w <= sem.weeks; w++) {
+    try {
+      discoverTwoPairs(w, sem.id);
+      return w;
+    } catch { /* that week's Friday has no two free pairs — try the next */ }
+  }
+  throw new Error(`no week from ${start} to ${sem.weeks} offers two disjoint adjacent pairs on B010 Friday`);
+}
+
+/** The source occurrence week for one request: a week that session REALLY
+ *  teaches with NO class_exception for that exact (session, week) — an
+ *  occupied row alone proves nothing, because the exception is what makes the
+ *  occurrence need a replacement (and active claims may retain a stale
+ *  class_session_id, so they are no proof either) — plus no other ACTIVE
+ *  request holding the (session, week) pair (one-active-per-source-week). */
+function discoverSourceWeek(sem: Semester, sessionId: number, proposalWeek: number): number {
+  for (let w = 1; w <= sem.weeks; w++) {
+    if (w === proposalWeek) continue;   // the entry guard: source week ≠ test week
+    const taught = Number(sql(`SELECT count(*) FROM time_slots ts
+                                WHERE ts.class_session_id = ${sessionId}
+                                  AND ts.semester_id = ${sem.id}
+                                  AND ts.week_number = ${w} AND ts.status = 'occupied'
+                                  AND NOT EXISTS (SELECT 1 FROM class_exceptions ce
+                                                   WHERE ce.class_session_id = ${sessionId}
+                                                     AND ce.week_number = ${w})`));
+    if (taught === 0) continue;
+    const active = Number(sql(`SELECT count(*) FROM replacement_requests
+                                WHERE class_session_id = ${sessionId} AND week_number = ${w}
+                                  AND semester_id = ${sem.id}
+                                  AND status IN ('pending', 'approved')`));
+    if (active !== 0) continue;         // one-active-per-source-week
+    return w;
+  }
+  throw new Error(`session ${sessionId} has no free source week (unexceptioned teaching occurrence, no active request, ≠ ${proposalWeek})`);
 }
 
 interface SlotPair { ids: number[]; starts: string[]; day: number; hours: number[] }
 
-/** The FIRST TWO disjoint adjacent pairs of the day (one per staff member). */
-function discoverTwoPairs(week: number): [SlotPair, SlotPair] {
-  const first = discoverSlotPair(week);
+/** The FIRST TWO disjoint adjacent pairs of the day (one per staff member).
+ *  Throws a plain Error (no expect) so the proposal-week scan can skip a week. */
+function discoverTwoPairs(week: number, semesterId: number): [SlotPair, SlotPair] {
+  const first = discoverSlotPair(week, semesterId);
   const taken = new Set(first.ids);
   const raw = sql(`SELECT ts.id, ts.start_time, ts.day_of_week
                      FROM time_slots ts JOIN venues v ON v.id = ts.venue_id
-                    WHERE ts.semester_id = 1 AND ts.week_number = ${week}
+                    WHERE ts.semester_id = ${semesterId} AND ts.week_number = ${week}
                       AND ts.day_of_week = 4 AND v.room_code = '${VENUE}'
                       AND ts.status = 'available'
                     ORDER BY ts.start_time ASC`);
@@ -103,10 +228,10 @@ function discoverTwoPairs(week: number): [SlotPair, SlotPair] {
 }
 
 /** Two ADJACENT available half-hours, venue B010, that week's Friday. */
-function discoverSlotPair(week: number): SlotPair {
+function discoverSlotPair(week: number, semesterId: number): SlotPair {
   const raw = sql(`SELECT ts.id, ts.start_time, ts.day_of_week
                      FROM time_slots ts JOIN venues v ON v.id = ts.venue_id
-                    WHERE ts.semester_id = 1 AND ts.week_number = ${week}
+                    WHERE ts.semester_id = ${semesterId} AND ts.week_number = ${week}
                       AND ts.day_of_week = 4 AND v.room_code = '${VENUE}'
                       AND ts.status = 'available'
                     ORDER BY ts.start_time ASC`);
@@ -114,7 +239,7 @@ function discoverSlotPair(week: number): SlotPair {
     const [id, start, day] = line.split('|').map((x) => x.trim());
     return { id: Number(id), start, day: Number(day) };
   });
-  expect(all.length, `free half-hours must exist on B010 week ${week} Friday`).toBeGreaterThan(1);
+  if (all.length < 2) throw new Error(`free half-hours must exist on B010 week ${week} Friday`);
 
   // the FIRST genuinely adjacent pair (30 minutes apart) — a 2-slot request
   // needs a real pair, and a drifted seed must not hand us a 90-minute "pair"
@@ -126,7 +251,7 @@ function discoverSlotPair(week: number): SlotPair {
   for (let i = all.length - 2; i >= 0; i -= 1) {
     if (toMin(all[i + 1].start) - toMin(all[i].start) === 30) { pairIndex = i; break; }
   }
-  expect(pairIndex, `an adjacent free pair must exist on B010 week ${week} Friday`).toBeGreaterThanOrEqual(0);
+  if (pairIndex < 0) throw new Error(`an adjacent free pair must exist on B010 week ${week} Friday`);
 
   const rows = [all[pairIndex], all[pairIndex + 1]];
   const day = rows[0].day;
@@ -135,42 +260,162 @@ function discoverSlotPair(week: number): SlotPair {
   return { ids: rows.map((r) => r.id), starts: rows.map((r) => r.start), day, hours };
 }
 
-/** Everything this spec created — cleaned up in afterAll, never a blind sweep. */
-const created: { requestIds: number[]; slotIds: number[] } = { requestIds: [], slotIds: [] };
+/** Everything this spec created — cleaned up in afterAll, never a blind sweep.
+ *  Each slot is registered with the OWNED creation facts the fixture found and
+ *  made: the original ownerless-available version, and the version the flip
+ *  produced — so the cleanup can prove every row is still exactly what this
+ *  fixture wrote before restoring it, and refuse LOUDLY when it is not
+ *  (a blind restore would erase a newer live holder). */
+interface TrackedSlot { id: number; requestId: number; originalVersion: number; flippedVersion: number }
+const created: { requests: number[]; slots: TrackedSlot[] } = { requests: [], slots: [] };
 
-/** A pending request on `pair`, proposed by the staff member who owns `sessionId`. */
-function insertPending(sessionId: number, staffId: string, pair: SlotPair): void {
+/** A pending request on `pair`, proposed by the staff member who owns `sessionId`.
+ *  semester_id and the source occurrence week are DISCOVERED inputs (A21
+ *  reconciliation — never the dead literal 1/9); the anchor slot lives in the
+ *  future proposal week, so the 5-minute checker can never reach these rows.
+ *
+ *  Setup hygiene: BOTH rows' owned creation facts are snapshotted, validated
+ *  and REGISTERED before the first junction/flip write, so a setup error
+ *  leaves a registry the scoped cleanup can act on (a request with 0/1/2
+ *  linked/flipped slots) — never a blind sweep. Each slot's conditional flip
+ *  + junction link is ONE statement (all-or-nothing), verified by the
+ *  RETURNING id, never by a command tag (psql -q suppresses those). */
+function insertPending(sessionId: number, staffId: string, pair: SlotPair, semesterId: number, sourceWeek: number): void {
   const proposer = sql(`SELECT user_id FROM lecturers WHERE staff_id = '${staffId}' LIMIT 1`);
-  const anchor = pair.ids[0];
+  if (!proposer) throw new Error(`staff ${staffId} has no lecturer row — fixture identity invalid`);
+
+  /* snapshot and validate BOTH rows first — an available row in this grid is
+     ownerless (class_session_id NULL) */
+  const facts = pair.ids.map((slotId) => {
+    assertTestingDb();
+    const before = sql(`SELECT status, version, class_session_id IS NULL AS ownerless
+                          FROM time_slots WHERE id = ${slotId}`);
+    if (!before) throw new Error(`slot ${slotId} vanished before the fixture flip`);
+    const [status, version, ownerless] = before.split('|').map((x) => x.trim());
+    if (status !== 'available' || ownerless !== 't') {
+      throw new Error(`slot ${slotId} is (status=${status} ownerless=${ownerless}) — refusing to flip a foreign holder`);
+    }
+    return { slotId, originalVersion: Number(version) };
+  });
+
+  assertTestingDb();
   const requestId = Number(sql(`INSERT INTO replacement_requests
        (semester_id, proposer_id, class_session_id, week_number, replacement_time_slot_id,
         status, remarks, submitted_at, created_at, updated_at)
-     VALUES (1, ${proposer}, ${sessionId}, ${REQUEST_OCCURRENCE_WEEK}, ${anchor},
+     VALUES (${semesterId}, ${proposer}, ${sessionId}, ${sourceWeek}, ${pair.ids[0]},
              'pending', '${FIXTURE_MARK}', now(), now(), now())
      RETURNING id`));
+  created.requests.push(requestId);
 
-  created.requestIds.push(requestId);
-  created.slotIds.push(...pair.ids);
+  /* register BEFORE the first junction/flip write */
+  for (const f of facts) {
+    created.slots.push({ id: f.slotId, requestId, originalVersion: f.originalVersion, flippedVersion: f.originalVersion + 1 });
+  }
 
-  for (const slotId of pair.ids) {
-    sql(`INSERT INTO replacement_request_slots (replacement_request_id, time_slot_id, created_at, updated_at)
-         VALUES (${requestId}, ${slotId}, now(), now())`);
-    sql(`UPDATE time_slots SET status = 'pending', version = version + 1, updated_at = now() WHERE id = ${slotId}`);
+  for (const f of facts) {
+    assertTestingDb();
+    /* the junction insert only sees rows the guarded update produced, so a
+       drifted row inserts nothing and the RETURNING id proves the flip */
+    const flipped = sql(`WITH flipped AS (
+        UPDATE time_slots SET status = 'pending', version = version + 1, updated_at = now()
+         WHERE id = ${f.slotId} AND status = 'available'
+           AND version = ${f.originalVersion} AND class_session_id IS NULL
+        RETURNING id
+      )
+      INSERT INTO replacement_request_slots (replacement_request_id, time_slot_id, created_at, updated_at)
+      SELECT ${requestId}, id, now(), now() FROM flipped
+      RETURNING time_slot_id`);
+    if (Number(flipped) !== f.slotId) {
+      throw new Error(`slot ${f.slotId} changed under the fixture (expected available v${f.originalVersion}) — flip refused`);
+    }
   }
 }
 
+/** Full-set cleanup in ONE atomic DO block. It row-locks the registered
+ *  requests then the slot ids (each sorted), re-verifies inside that same
+ *  transaction every tracked row's exact original/flipped ownerless shape and
+ *  that no foreign live claim exists (anchor equality AND fallback-span
+ *  intersection — same semester/week/day/venue, row start inside anchor start
+ *  + span, own requests excluded), then deletes only this spec's junction,
+ *  audit, notification and request rows and monotonic-restores every slot it
+ *  actually flipped (matched count verified via GET DIAGNOSTICS). Any drift
+ *  or mismatch RAISEs, so the whole block rolls back — a newer live holder is
+ *  never freed silently and no partial cleanup is ever committed. */
 function cleanupFixture(): void {
-  for (const requestId of created.requestIds) {
-    sql(`DELETE FROM replacement_request_slots WHERE replacement_request_id = ${requestId}`);
-    sql(`DELETE FROM audit_logs WHERE replacement_request_id = ${requestId}`);
-    sql(`DELETE FROM notifications WHERE request_id = ${requestId}`);
-    sql(`DELETE FROM replacement_requests WHERE id = ${requestId}`);
-  }
-  for (const slotId of created.slotIds) {
-    sql(`UPDATE time_slots SET status = 'available', version = version + 1, updated_at = now() WHERE id = ${slotId}`);
-  }
-  created.requestIds.length = 0;
-  created.slotIds.length = 0;
+  if (created.requests.length === 0 && created.slots.length === 0) return;
+  assertTestingDb();
+
+  const ownIds = created.requests.join(',');
+  const slotIds = created.slots.map((s) => s.id).join(',');
+  const slotLock = slotIds
+    ? `PERFORM 1 FROM time_slots WHERE id IN (${slotIds}) ORDER BY id FOR UPDATE;`
+    : '';
+
+  const requestGuards = created.requests.map((id) => `
+    IF (SELECT status FROM replacement_requests WHERE id = ${id}) IS DISTINCT FROM 'pending' THEN
+      RAISE EXCEPTION 'request ${id} is gone or no longer pending — refusing blind cleanup';
+    END IF;`).join('\n');
+
+  const slotGuards = created.slots.map((s) => `
+    SELECT ts.status, ts.version,
+           coalesce((SELECT string_agg(rrs.replacement_request_id::text, ',' ORDER BY rrs.replacement_request_id)
+                       FROM replacement_request_slots rrs WHERE rrs.time_slot_id = ${s.id}), ''),
+           (SELECT count(*) FROM replacement_requests r
+             WHERE r.replacement_time_slot_id = ${s.id}
+               AND r.status IN ('pending', 'approved') AND r.id NOT IN (${ownIds})),
+           (SELECT count(*) FROM replacement_requests r
+              JOIN time_slots a ON a.id = r.replacement_time_slot_id
+              JOIN time_slots t ON t.id = ${s.id}
+             WHERE r.status IN ('pending', 'approved')
+               AND a.semester_id = t.semester_id AND a.week_number = t.week_number
+               AND a.day_of_week = t.day_of_week AND a.venue_id = t.venue_id
+               AND t.start_time >= a.start_time
+               AND t.start_time < a.start_time + COALESCE(NULLIF(r.replacement_span, 0), 1) * interval '30 minutes'
+               AND r.id NOT IN (${ownIds}))
+      INTO v_status, v_version, v_junction, v_anchor, v_span
+      FROM time_slots ts WHERE ts.id = ${s.id};
+    IF NOT FOUND THEN
+      RAISE EXCEPTION 'slot ${s.id} vanished — another writer removed it; refusing to touch anything';
+    END IF;
+    IF EXISTS (SELECT 1 FROM time_slots WHERE id = ${s.id} AND class_session_id IS NOT NULL) THEN
+      RAISE EXCEPTION 'slot ${s.id} has a class_session_id inside the locked transaction — refusing blind restore';
+    END IF;
+    IF v_anchor <> 0 OR v_span <> 0 THEN
+      RAISE EXCEPTION 'slot ${s.id} carries a foreign live claim (anchor=%, span=%) — refusing blind restore', v_anchor, v_span;
+    END IF;
+    IF v_status = 'pending' AND v_version = ${s.flippedVersion} AND v_junction = '${s.requestId}' THEN
+      v_flipped := array_append(v_flipped, ${s.id});
+    ELSIF NOT (v_status = 'available' AND v_version = ${s.originalVersion} AND v_junction = '') THEN
+      RAISE EXCEPTION 'slot ${s.id} drifted (status=%, version=%, junction=%) — refusing blind restore', v_status, v_version, v_junction;
+    END IF;`).join('\n');
+
+  const restoreGuards = created.slots.map((s) => `
+    IF ${s.id} = ANY (v_flipped) THEN
+      UPDATE time_slots SET status = 'available', version = version + 1, updated_at = now()
+       WHERE id = ${s.id} AND status = 'pending' AND version = ${s.flippedVersion};
+      GET DIAGNOSTICS v_cnt = ROW_COUNT;
+      IF v_cnt <> 1 THEN
+        RAISE EXCEPTION 'slot ${s.id} changed between the cleanup checks and its restore — refusing to guess';
+      END IF;
+    END IF;`).join('\n');
+
+  sql(`DO $ownership$ DECLARE
+         v_status text; v_version int; v_junction text; v_anchor int; v_span int;
+         v_flipped int[] := ARRAY[]::int[]; v_cnt int;
+       BEGIN
+         PERFORM 1 FROM replacement_requests WHERE id IN (${ownIds}) ORDER BY id FOR UPDATE;
+         ${slotLock}
+         ${requestGuards}
+         ${slotGuards}
+         DELETE FROM replacement_request_slots WHERE replacement_request_id IN (${ownIds});
+         DELETE FROM audit_logs WHERE replacement_request_id IN (${ownIds});
+         DELETE FROM notifications WHERE request_id IN (${ownIds});
+         DELETE FROM replacement_requests WHERE id IN (${ownIds});
+         ${restoreGuards}
+       END $ownership$;`);
+
+  created.requests.length = 0;
+  created.slots.length = 0;
 }
 
 /**
@@ -202,11 +447,11 @@ async function gotoWeek(page: Page, sessionId: number, week: number, venue: stri
 
 /** The fixture must still exist — a concurrent re-seed deletes it (see header). */
 function assertFixtureAlive(): void {
-  const alive = Number(sql(`SELECT count(*) FROM replacement_requests WHERE id IN (${created.requestIds.join(',')})`));
+  const alive = Number(sql(`SELECT count(*) FROM replacement_requests WHERE id IN (${created.requests.join(',')})`));
   expect(
     alive,
     'the fixture vanished mid-run — another spec re-seeded the database; run THIS spec alone',
-  ).toBe(created.requestIds.length);
+  ).toBe(created.requests.length);
 }
 
 /**
@@ -264,15 +509,28 @@ test.describe.configure({ mode: 'serial', timeout: 120_000 });
 test.describe('ownership on the grid', () => {
   let pairA: SlotPair;   // staff 5770's pending
   let pairB: SlotPair;   // staff 5425's pending
+  let fx: { semesterId: number; ownerSession: number; ownerDay: number; ownerHour: number; viewerSession: number; proposalWeek: number };
   let ownerCtx: BrowserContext;
   let viewerCtx: BrowserContext;
   let ownerPage: Page;
   let viewerPage: Page;
 
   test.beforeAll(async ({ browser }) => {
-    [pairA, pairB] = discoverTwoPairs(WEEK);
-    insertPending(OWNER_SESSION, '5770', pairA);
-    insertPending(VIEWER_SESSION, '5425', pairB);
+    assertTestingDb();
+    const sem = discoverSemester();
+    const identity = discoverIdentity(sem.id);
+    const proposalWeek = discoverProposalWeek(sem);
+    fx = {
+      semesterId: sem.id,
+      ownerSession: identity.id,
+      ownerDay: identity.day,
+      ownerHour: identity.hour,
+      viewerSession: identity.viewerSession,
+      proposalWeek,
+    };
+    [pairA, pairB] = discoverTwoPairs(proposalWeek, sem.id);
+    insertPending(identity.id, OWNER_STAFF, pairA, sem.id, discoverSourceWeek(sem, identity.id, proposalWeek));
+    insertPending(identity.viewerSession, VIEWER_STAFF, pairB, sem.id, discoverSourceWeek(sem, identity.viewerSession, proposalWeek));
 
     /* ONE CONTEXT PER IDENTITY. A second login on the same context does not
        switch the session (measured: the form posts, /dashboard loads, the
@@ -299,7 +557,7 @@ test.describe('ownership on the grid', () => {
 
     /* ── 1. staff 5770 — pair A is HIS, pair B is hers; BOTH borderless ── */
     assertFixtureAlive();
-    await gotoWeek(ownerPage, OWNER_SESSION, WEEK);
+    await gotoWeek(ownerPage, fx.ownerSession, fx.proposalWeek);
 
     const ownerPending = cellOn(ownerPage, pairA.day, pairA.hours[0]);
     await expect(ownerPending).toHaveClass(/cell-pending/);
@@ -324,27 +582,28 @@ test.describe('ownership on the grid', () => {
        paint itself "Pending (You)". Here the page's own payload (real tuples,
        real owner flag) is fed to the page's own resolver with NO grid row —
        exactly the arm-only situation — for both viewers. */
-    const engineArm = await ownerPage.evaluate(({ day, hour }) => {
-      const rows = ((window as any).PAGE_DATA.busyByWeek?.['39']?.[7] ?? [])
+    const engineArm = await ownerPage.evaluate(({ sid, weekIdx, day, hour }) => {
+      const rows = ((window as any).PAGE_DATA.busyByWeek?.[String(sid)]?.[weekIdx] ?? [])
         .filter((r: any[]) => r[0] === day && r[1] === hour && r[4] === 'pending');
       return {
         rows,
         verdict: (window as any).classifyCell({ gridStatus: null, engineMatches: rows, engineBlocked: rows.length > 0 }),
       };
-    }, { day: pairA.day, hour: pairA.hours[0] });
+    }, { sid: fx.ownerSession, weekIdx: fx.proposalWeek - 1, day: pairA.day, hour: pairA.hours[0] });
     expect(engineArm.rows.length).toBeGreaterThan(0);
     expect(engineArm.rows.every((r: any[]) => r[5] === true), "the owner's own make-up is flagged mine").toBe(true);
     expect(engineArm.verdict).toBe('cell-pending');
 
-    // his own class (session 39, Thu 13:30) → red, still MINE by class, no ring
-    const ownerOwnClass = cellOn(ownerPage, 3, 11);
+    // his own class (the DISCOVERED owner session, in B010) → red, still MINE
+    // by class, no ring
+    const ownerOwnClass = cellOn(ownerPage, fx.ownerDay, fx.ownerHour);
     await expect(ownerOwnClass).toHaveClass(/cell-occupied/);
     await expect(ownerOwnClass).toHaveClass(/cell-occupied--mine/);
     expect(await ringWidth(ownerOwnClass)).toBe('0px');
 
     /* ── 2. staff 5425 — the mirror image on the same grid ───────────── */
     assertFixtureAlive();
-    await gotoWeek(viewerPage, VIEWER_SESSION, WEEK);
+    await gotoWeek(viewerPage, fx.viewerSession, fx.proposalWeek);
 
     const viewerSeesOthers = cellOn(viewerPage, pairA.day, pairA.hours[0]);
     await expect(viewerSeesOthers).toHaveClass(/cell-reserved/);
@@ -356,20 +615,21 @@ test.describe('ownership on the grid', () => {
     expect(await ringWidth(viewerPending)).toBe('0px');
 
     // the engine arm alone again — the SAME time, from the OTHER viewer
-    const viewerEngineArm = await viewerPage.evaluate(({ day, hour }) => {
-      const rows = ((window as any).PAGE_DATA.busyByWeek?.['40']?.[7] ?? [])
+    const viewerEngineArm = await viewerPage.evaluate(({ sid, weekIdx, day, hour }) => {
+      const rows = ((window as any).PAGE_DATA.busyByWeek?.[String(sid)]?.[weekIdx] ?? [])
         .filter((r: any[]) => r[0] === day && r[1] === hour && r[4] === 'pending');
       return {
         rows,
         verdict: (window as any).classifyCell({ gridStatus: null, engineMatches: rows, engineBlocked: rows.length > 0 }),
       };
-    }, { day: pairA.day, hour: pairA.hours[0] });
+    }, { sid: fx.viewerSession, weekIdx: fx.proposalWeek - 1, day: pairA.day, hour: pairA.hours[0] });
     expect(viewerEngineArm.rows.length).toBeGreaterThan(0);
     expect(viewerEngineArm.rows.every((r: any[]) => r[5] === false), 'the same make-up is NOT hers').toBe(true);
     expect(viewerEngineArm.verdict, "engine arm alone: someone else's pending → amber, no ring").toBe('cell-reserved');
 
-    // the same Thursday class is someone else's from her side → red, no ring
-    const viewerOthersClass = cellOn(viewerPage, 3, 11);
+    // the owner's class (the SAME discovered coordinates) is someone else's
+    // from her side → red, no ring
+    const viewerOthersClass = cellOn(viewerPage, fx.ownerDay, fx.ownerHour);
     await expect(viewerOthersClass).toHaveClass(/cell-occupied/);
     await expect(viewerOthersClass).not.toHaveClass(/cell-occupied--mine/);
     expect(await ringWidth(viewerOthersClass)).toBe('0px');
@@ -427,17 +687,29 @@ test.describe('ownership on the grid', () => {
     /* the grid-wide sweep: no cell may invent a label outside the six. The span
        is `display:none` until hover, and `innerText` falls back to textContent
        for a hidden node — so the words are read from the MARKUP, where a `<br>`
-       becomes the space a person sees. */
+       becomes the space a person sees. `.cell-too-soon` labels are the
+       separately specified lead-time flags (the 3-working-day rule), not
+       ownership wording, so they are excluded from the six-label sweep and
+       pinned by their own class instead — nothing arbitrary is waved through. */
     const labelsOnGrid = await viewerPage.evaluate(() =>
       Array.from(document.querySelectorAll('#tableBody .cell-content .cell-state-label'))
-        .map((el) => el.innerHTML
-          .replace(/<br\s*\/?>/gi, ' ')
-          .replace(/<[^>]*>/g, '')
-          .replace(/&amp;/g, '&')
-          .replace(/\s+/g, ' ')
-          .trim()));
+        .map((el) => ({
+          tooSoon: Boolean(el.closest('.cell-too-soon')) && el.classList.contains('cell-state-label--too-soon'),
+          text: el.innerHTML
+            .replace(/<br\s*\/?>/gi, ' ')
+            .replace(/<[^>]*>/g, '')
+            .replace(/&amp;/g, '&')
+            .replace(/\s+/g, ' ')
+            .trim(),
+        })));
     expect(labelsOnGrid.length, 'the grid shows labels at all').toBeGreaterThan(0);
-    expect(Array.from(new Set(labelsOnGrid)).every((t) => ALLOWED_LABELS.includes(t))).toBe(true);
+    const ownershipLabels = labelsOnGrid.filter((l) => !l.tooSoon).map((l) => l.text);
+    expect(ownershipLabels.length, 'ownership labels are on the grid').toBeGreaterThan(0);
+    expect(Array.from(new Set(ownershipLabels)).every((t) => ALLOWED_LABELS.includes(t))).toBe(true);
+    /* anything NOT in the six must be a `.cell-too-soon` lead-time flag — a
+       label may not dodge the sweep by being merely unknown wording. */
+    const offSweep = labelsOnGrid.filter((l) => !ALLOWED_LABELS.includes(l.text));
+    expect(offSweep.every((l) => l.tooSoon), 'every label outside the six is a .cell-too-soon flag').toBe(true);
 
     /* receipts: one grid showing every state at once, both themes. The page's
        OWN toggle is used — the app defaults to dark, so a hand-added `dark`
