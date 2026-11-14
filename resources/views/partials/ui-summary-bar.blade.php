@@ -21,7 +21,14 @@
 <div class="summary-section{{ $flipCards ? ' summary-section--flip' : '' }}" id="summarySection">
     <div class="summary-hint">
         <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
-        <span>Stats reflect the <strong>selected period</strong> and any active filters. @if($flipCards)Hover or tap a card to learn more.@else Hover a card to learn more.@endif</span>
+        {{-- summary-cards-button (2026-11-14): the sheet is a phone surface, so
+             the plain (non-flip) variant gets a sentence that speaks to touch.
+             The six flip pages already say "Hover or tap" — true on a touch
+             screen — so they keep exactly one sentence. --}}
+        <span class="summary-hint-pointer">Stats reflect the <strong>selected period</strong> and any active filters. @if($flipCards)Hover or tap a card to learn more.@else Hover a card to learn more.@endif</span>
+        @unless($flipCards)
+            <span class="summary-hint-touch">Stats reflect the <strong>selected period</strong> and any active filters. Tap a card to see what it counts.</span>
+        @endunless
     </div>
     <div class="summary-bar" id="summaryBar">
         @foreach ($cards as $i => $card)
@@ -132,3 +139,19 @@
         </div>
     </div>
 @endif
+
+{{-- summary-cards-button (2026-11-14): ONE shared sheet frame per page, emitted by
+     the partial that owns the cards, so a page cannot ship the button without the
+     panel. SummarySheet moves #summarySection into #summarySheetBody at <=768px and
+     back at >=769px; the node, its ids and its numbers never change owner. --}}
+<div class="summary-sheet-overlay" id="summarySheet" hidden
+     onclick="if(event.target===this)SummarySheet.close()">
+    <div class="summary-sheet" role="dialog" aria-modal="true" aria-labelledby="summarySheetTitle">
+        <div class="summary-sheet-head">
+            <h2 class="summary-sheet-title" id="summarySheetTitle">Summary</h2>
+            <button type="button" class="summary-sheet-close" aria-label="Close Summary"
+                    data-tip="Close" onclick="SummarySheet.close()">&#10005;</button>
+        </div>
+        <div class="summary-sheet-body" id="summarySheetBody"></div>
+    </div>
+</div>

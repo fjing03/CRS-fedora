@@ -205,6 +205,7 @@
     'title' => 'Request Approval',
     'guideToggle' => true,
     'guideModal' => true,
+    'summaryButton' => true,
 ])
 
 @include('partials.ui-guide-modal', [

@@ -1,3 +1,12 @@
+## 2026-11-14 — the commented-out summary block is gone
+
+The page carried a `{{-- Summary Bar — commented out for now … --}}` copy of the five-card summary
+include (and the only place its ids `#sumTotal` / `#sumAvailable` / `#sumPending` / `#sumUnavailable`
+were ever rendered). Removed at the user's instruction so nobody mistakes it for a live plan. Nothing
+changed on screen — it never rendered, and the page is verified 200 / zero page errors / 154 grid cells
+at both 1360 and 390. This page gets no Summary button: it shows no statistics cards, only the
+Selection Summary (the picked-slot panel), which is a different thing.
+
 ## 2026-11-14 — the Selection Summary cannot fold, and each slot row is readable
 
 Two asks from one message.

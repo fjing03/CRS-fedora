@@ -298,3 +298,43 @@ relocation)**, which the reviewer caught as a dead-end in the trace.
 All twelve assertions (a)–(l) are present exactly once (T11a: a, b, c, h, k · T11b: d, e, f, g, i, j, l).
 
 **`tasks.md` is FROZEN. The lane is ready for `/sdd-apply` and STOPS here.**
+
+---
+
+## VERIFY — 2026-11-14 (late evening)
+
+Independent read-only verification pass (separate pi subprocess, `commandcode/z-ai/glm-5.3-flash`,
+tools read/grep/find/ls) over the implementation diff against the frozen proposal, design and spec.
+
+**Verdict from the verifier: PASS — no requirement unimplemented, nothing contradicts a frozen design
+decision.** It checked each R against the diff and named the exact lines it read.
+
+### 🔴 Fixed / found
+- none.
+
+### 🟡 Addressed after the pass (minutes-of-work items, code aligned to the frozen letter)
+1. **R7/R5 — the 1024 pin was missing from the automated spec.** Added to the plain-variant test: at
+   769 and at 1024 the plain variant keeps **3 columns** (the tablet block this lane must not disturb).
+2. **aria-label drift.** `relocate()` wrote "tap to **see** what it counts" while design §6 pins
+   "tap to **show** what it counts". Code and the spec's regex now say `show`; the touch hint keeps
+   design §4.3's own "Tap a card to see what it counts.".
+3. Comment in `ui-page-header.blade.php` said the button is "empty below 769px" — it is empty **at
+   ≥769px**. Corrected.
+
+### 🟡 Accepted residuals (recorded, not fixed)
+- **R2's "crossing back MUST relocate again"** is exercised only in the 390→900 direction by the spec
+  (the reverse rides the same `_mq.change → sync()` path); the 900→390 direction is manual (T13).
+- **R2's Tab/Shift+Tab containment** is implemented and was checked by hand (six real Tab presses stay
+  inside `.summary-sheet`, and one reaches the ⓘ when it is open), but the automated spec asserts only
+  the suspension half.
+- **Two specs named by R7 are not green, and are not this lane**: `ui-regression` TC-7.2 (card sums vs
+  row count, 10 vs 9 on the testing DB) and `cancelled-slot-layout` S21 (6 vs 8 `.cell-available`,
+  fixture state left by earlier `cancelled-slot-reuse` runs). Both assertions read data this lane never
+  paints or moves. `guide-toggle-icon` and `top-zone-round2`'s 150px case likewise belong to the
+  committed guide-modal migration and to the other session's venue-picker work (`.page-desc` lives
+  inside `#guideModal`; 150px comes from the venue-timetable picker CSS).
+- **Commit hygiene warning:** this lane's seven page edits are one key each, but some of those files also
+  carry another session's uncommitted guide-modal work — stage this lane's hunks only.
+
+### Post-fix evidence
+`tests/summary-cards-button.spec.ts` **13/13** after the three alignments.

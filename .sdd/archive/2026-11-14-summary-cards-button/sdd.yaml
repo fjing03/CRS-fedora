@@ -1,0 +1,46 @@
+name: summary-cards-button
+created: 2026-11-14
+status: archived
+batch: tasks
+lane_shape: standard
+page: resources/views/partials/ui-summary-bar.blade.php (+ ui-page-header, ui-common.js, theme.css)
+source_brief: prompts/pi-prompt-summary-cards-button.md
+proposal_review: passed
+proposal_frozen: true
+design_review: passed
+design_frozen: true
+specs_review: passed
+specs_frozen: true
+tasks_review: passed
+tasks_frozen: true
+review_rounds: 7
+implementation_approved: true
+next: /sdd-archive
+review_rounds_detail: "proposal 1, design 3, specs 2, tasks 3"
+recommended_option: "A — move the section into a shared sheet emitted by ui-summary-bar (prototype-faithful)"
+open_decisions: []
+decisions_taken:
+  - "2026-11-14: arrangement page out of scope AND its dead commented ui-summary-bar block deleted (7 pages ship) — the deletion was done OUTSIDE SDD at the user's instruction; updateSummaryStats() is now dead but left in place, offered not taken"
+  - "2026-11-14: keep the .summary-hint line (it moves into the sheet)"
+  - "2026-11-14: 768 is phone (confirmed) - a 768x1024 tablet gets the button"
+  - "2026-11-14: hide the Summary button on an empty view"
+  - "2026-11-14: fix the plain card variant in this lane (2 columns at <=768, 1 below 390, tap-to-flip in the sheet, touch hint)"
+page_count: 7
+
+applied: 2026-11-14
+apply_evidence:
+  new_spec: "tests/summary-cards-button.spec.ts — 13/13 pass at :8030 (320/390/768/769/1024/1440)"
+  summary_id_specs: "pages-parity 200, ui-regression Section 7 4/5 (TC-7.2 pre-existing data failure), venue-timetable TC36/TC37/TC58 6/6, cancelled-slot-reuse 15/15, cancelled-slot-layout S21 pre-existing fixture-count failure (8 vs 6 cells)"
+  preexisting_failures_not_this_lane:
+    - "guide-toggle-icon.spec.ts: .page-desc count is 1 because ui-guide-modal.blade.php renders <p class=\"page-desc\">; the only .page-desc on the live page is inside #guideModal (verified in the browser). Committed guide-modal migration, not this lane."
+    - "top-zone-round2.spec.ts '150px venue columns are scoped away': the venue page now measures exactly 150px, from the OTHER session's uncommitted venue-timetable.blade.php picker work — not this lane."
+    - "ui-regression TC-7.2: 'the four status cards cannot count more rows than are listed' (10 vs 9) — a data assertion on the testing DB; this lane never paints a number."
+    - "cancelled-slot-layout S21: expects 6 .cell-available, found 8, alone and after the reuse suite — fixture state left by earlier runs of cancelled-slot-reuse on the testing DB; the assertion reads grid cells, which this lane never touches."
+  screenshots: "/tmp/sc-explore/m-*.png (dark, all 7 pages) and /tmp/sc-explore/light-*.png (light, the two representative pages at 320/390/768/769/1024/1440)"
+  page_errors: "0 on all seven pages at all six widths"
+  view_cache: "php artisan view:cache passed (every Blade compiles), then cleared"
+verify: passed
+verify_date: 2026-11-14
+verify_note: "independent read-only subprocess PASS; three small alignments applied (1024 pin, aria-label verb, comment); residuals recorded in review-log.md"
+archived: 2026-11-14
+archive_path: .sdd/archive/2026-11-14-summary-cards-button/

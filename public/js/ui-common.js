@@ -2213,7 +2213,11 @@ var SummaryCards = {
                 return;
             }
 
-            var card = e.target.closest ? e.target.closest('.summary-section--flip .summary-card') : null;
+            /* summary-cards-button: a plain (non-flip) card flips by tap inside the
+               sheet only — outside it nothing matches and the page is unchanged. */
+            var card = e.target.closest
+                ? e.target.closest('.summary-section--flip .summary-card, #summarySheetBody .summary-card')
+                : null;
             if (card) SummaryCards.toggle(card);
         });
 
@@ -2303,6 +2307,242 @@ var SummaryCards = {
 
 document.addEventListener('DOMContentLoaded', function () {
     SummaryCards.init();
+});
+
+// ───── Summary sheet (phones: the cards live behind one header button) ─────
+// summary-cards-button, 2026-11-14. At <=768px the page's own #summarySection is
+// MOVED into #summarySheetBody (never copied), because the pages hide/show that
+// section through its inline `display` (syncSummarySection, cohort-timetable's
+// empty view) and only a move carries that intent into the sheet. At >=769px the
+// node goes back to its exact place and the sheet never shows.
+//
+// Layering law: the sheet is a plain .modal-overlay-style div (z 1200), so the
+// existing #summaryExplainModal (.modal-overlay, z 999/1000) can be lifted above
+// it with ONE scoped rule. A native <dialog>.showModal() would have used the top
+// layer and could never have been beaten by that dialog (measured).
+var SummarySheet = {
+    _mq: null,
+    _opener: null,
+    _placeholder: null,
+    _observer: null,
+    _onKeyDown: null,
+
+    init: function () {
+        if (this._bound) return;
+        this._bound = true;
+
+        this._mq = window.matchMedia('(max-width: 768px)');
+        var self = this;
+        var onChange = function () { self.sync(); };
+        if (this._mq.addEventListener) this._mq.addEventListener('change', onChange);
+        else if (this._mq.addListener) this._mq.addListener(onChange);
+
+        /* Printing can never capture the sheet: put the cards back inline for the
+           paper (paper is ~794px wide, above the breakpoint, where inline is the
+           intended look) and return them to the sheet afterwards. */
+        window.addEventListener('beforeprint', function () { self.unrelocate(); });
+        window.addEventListener('afterprint', function () { self.sync(); });
+
+        this.sync();
+    },
+
+    _section: function () { return document.getElementById('summarySection'); },
+    _body: function () { return document.getElementById('summarySheetBody'); },
+    _sheet: function () { return document.getElementById('summarySheet'); },
+
+    /* Which state is the sheet in for this width? Relocation + button visibility.
+       Runs at init, on every breakpoint change and after printing. */
+    sync: function () {
+        var section = this._section();
+        var body = this._body();
+        if (!section || !body) return;
+
+        if (this._mq.matches) {
+            this.relocate(section, body);
+        } else {
+            if (section.parentNode === body) this.unrelocate();
+            this.close();
+        }
+
+        this.syncButton();
+
+        /* The page can hide the section at RUNTIME (syncSummarySection(false) when
+           a filtered view is empty, and cohort-timetable writing style.display
+           directly), so button visibility cannot be decided here alone. */
+        if (!this._observer && window.MutationObserver) {
+            var self = this;
+            this._observer = new MutationObserver(function () { self.syncButton(); });
+            this._observer.observe(section, { attributes: true, attributeFilter: ['style', 'class'] });
+        }
+    },
+
+    /* Hide the opener whenever the page has nothing to summarise. The predicate is
+       the section's OWN display — never offsetParent: inside the hidden sheet the
+       section has no offsetParent on every phone page, which would hide the button
+       in the normal state. */
+    syncButton: function () {
+        var btn = document.getElementById('summaryButton');
+        if (!btn) return;
+        var section = this._section();
+        var pageHidIt = !section || window.getComputedStyle(section).display === 'none';
+        btn.hidden = !this._mq.matches || pageHidIt;
+    },
+
+    relocate: function (section, body) {
+        if (!section || !body || section.parentNode === body) return;
+
+        var ph = document.createElement('span');
+        ph.className = 'summary-section-placeholder';
+        ph.hidden = true;
+        if (section.parentNode) section.parentNode.insertBefore(ph, section);
+        this._placeholder = ph;
+        body.appendChild(section);
+
+        /* The flip variant already ships tabindex/role/aria-label per card (and is
+           driven by data-summary). The plain variant has none, and inside the sheet
+           its cards must be reachable and announce themselves. */
+        var cards = section.querySelectorAll('.summary-card');
+        for (var i = 0; i < cards.length; i++) {
+            var card = cards[i];
+            if (card.hasAttribute('data-summary') || card.getAttribute('data-sheet-a11y')) continue;
+            var label = card.querySelector('.summary-label');
+            card.setAttribute('tabindex', '0');
+            card.setAttribute('role', 'group');
+            card.setAttribute('aria-expanded', 'false');
+            card.setAttribute('aria-label',
+                (label ? label.textContent.trim() : 'Summary card') + ': tap to show what it counts');
+            card.setAttribute('data-sheet-a11y', '1');
+        }
+    },
+
+    unrelocate: function () {
+        var section = this._section();
+        if (!section) return;
+
+        if (this._placeholder && this._placeholder.parentNode) {
+            this._placeholder.parentNode.insertBefore(section, this._placeholder);
+            this._placeholder.parentNode.removeChild(this._placeholder);
+        }
+        this._placeholder = null;
+
+        /* Strip exactly what relocate() added, marker included, so repeated
+           cycles cannot accumulate state. The tap state has to go too: the widened
+           delegations no longer match plain cards outside the sheet, so a carried
+           .is-unflipped would leave a desktop card hover-dead for the session. */
+        var marked = section.querySelectorAll('[data-sheet-a11y]');
+        for (var i = 0; i < marked.length; i++) {
+            marked[i].removeAttribute('tabindex');
+            marked[i].removeAttribute('role');
+            marked[i].removeAttribute('aria-expanded');
+            marked[i].removeAttribute('aria-label');
+            marked[i].removeAttribute('data-sheet-a11y');
+        }
+        var cards = section.querySelectorAll('.summary-card');
+        for (var j = 0; j < cards.length; j++) {
+            if (cards[j].hasAttribute('data-summary')) continue;
+            cards[j].classList.remove('is-flipped');
+            cards[j].classList.remove('is-unflipped');
+        }
+    },
+
+    open: function (btn) {
+        var sheet = this._sheet();
+        var section = this._section();
+        if (!sheet || !section) return;
+        if (btn && btn.hidden) return;
+        if (window.getComputedStyle(section).display === 'none') return;
+
+        this._opener = btn || document.getElementById('summaryButton');
+        sheet.hidden = false;
+        document.body.classList.add('summary-sheet-open');
+        if (this._opener) this._opener.setAttribute('aria-expanded', 'true');
+
+        var close = sheet.querySelector('.summary-sheet-close');
+        if (close) close.focus({ preventScroll: true });
+
+        this._bindKeys();
+    },
+
+    close: function () {
+        var sheet = this._sheet();
+        if (!sheet) return;
+
+        var wasOpen = !sheet.hidden;
+        sheet.hidden = true;
+        document.body.classList.remove('summary-sheet-open');
+        this._unbindKeys();
+
+        var opener = this._opener;
+        this._opener = null;
+        if (opener) opener.setAttribute('aria-expanded', 'false');
+        /* A resize-up close targets a button that is display:none at >=769px — the
+           focus call is a deliberate silent no-op there. */
+        if (wasOpen && opener) opener.focus({ preventScroll: true });
+    },
+
+    /* Capture phase on purpose: it runs BEFORE the ⓘ's own bubble-phase Esc
+       handler, so the two can be arbitrated deterministically. */
+    _bindKeys: function () {
+        if (this._onKeyDown) return;
+        var self = this;
+        this._onKeyDown = function (e) {
+            var sheet = self._sheet();
+            if (!sheet || sheet.hidden) return;
+
+            var explain = document.getElementById('summaryExplainModal');
+            var explainOpen = !!(explain && explain.style.display !== 'none');
+
+            if (e.key === 'Escape') {
+                /* One keypress, one layer: while the ⓘ is up its own handler closes
+                   it, and the sheet (plus the scroll lock) survives. */
+                if (explainOpen) return;
+                e.preventDefault();
+                e.stopPropagation();
+                self.close();
+                return;
+            }
+
+            if (e.key !== 'Tab' || explainOpen) return;   /* trap suspended for the ⓘ */
+
+            var panel = sheet.querySelector('.summary-sheet');
+            if (!panel) return;
+            var nodes = panel.querySelectorAll(
+                'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), ' +
+                'textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
+            );
+            var items = [];
+            for (var i = 0; i < nodes.length; i++) {
+                if (nodes[i].offsetWidth || nodes[i].offsetHeight || nodes[i].getClientRects().length) {
+                    items.push(nodes[i]);
+                }
+            }
+            if (!items.length) return;
+            var first = items[0];
+            var last = items[items.length - 1];
+            var active = document.activeElement;
+
+            if (e.shiftKey) {
+                if (active === first || !panel.contains(active)) {
+                    e.preventDefault();
+                    last.focus();
+                }
+            } else if (active === last) {
+                e.preventDefault();
+                first.focus();
+            }
+        };
+        document.addEventListener('keydown', this._onKeyDown, true);
+    },
+
+    _unbindKeys: function () {
+        if (!this._onKeyDown) return;
+        document.removeEventListener('keydown', this._onKeyDown, true);
+        this._onKeyDown = null;
+    }
+};
+
+document.addEventListener('DOMContentLoaded', function () {
+    SummarySheet.init();
 });
 
 // ───── Guide modal ─────

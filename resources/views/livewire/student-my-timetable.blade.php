@@ -17,6 +17,7 @@
         'guideToggle' => true,
         'guideModal' => true,
         'chips' => $cohortCode ? [['label' => $cohortCode]] : [],
+        'summaryButton' => true,
     ])
 
     @include('partials.ui-guide-modal', [

@@ -14,6 +14,9 @@
     /* Pages that moved their guide into the shared dialog pass true; the rest
        keep the inline #guideBlock toggle. */
     $guideModal = $guideModal ?? false;
+    /* summary-cards-button: the phone Summary opener. Opt-in, so a page that
+       does not pass it renders exactly what it did before. */
+    $summaryButton = $summaryButton ?? false;
 @endphp
 
 <div class="page-header">
@@ -37,6 +40,18 @@
             <p class="page-desc">{{ $description }}</p>
         @endif
     </div>
+    @if($summaryButton)
+        {{-- summary-cards-button: opens the phone sheet that holds this page's own
+             summary cards. Rendered for the opted pages only; empty at >=769px
+             by `.summary-button { display: none }`, and also `hidden` when the
+             page has hidden the cards (SummarySheet.syncButton). --}}
+        <button class="summary-button" type="button" id="summaryButton"
+                aria-haspopup="dialog" aria-controls="summarySheet" aria-expanded="false"
+                aria-label="Summary" data-tip="Summary"
+                onclick="SummarySheet.open(this)">
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="6" y1="20" x2="6" y2="14"/><line x1="12" y1="20" x2="12" y2="8"/><line x1="18" y1="20" x2="18" y2="11"/></svg>
+        </button>
+    @endif
     @if($guideToggle)
         <button class="guide-toggle-icon" type="button"
                 aria-haspopup="{{ $guideModal ? 'dialog' : 'false' }}"

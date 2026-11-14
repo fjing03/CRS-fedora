@@ -1,3 +1,13 @@
+## 2026-11-14 (late) — the cards move behind one Summary button on a phone
+
+At ≤768px this page's summary cards leave the flow and open from a bare bar-chart icon beside the help
+"?". The sheet is the shared one (`partials/ui-summary-bar`), titled **Summary**, docked at the bottom
+with the dim, a scroll lock of its own, and closes on ×, dim tap or Esc — focus returns to the button.
+The cards are MOVED, not copied, so the ids, wording, colours and numbers (including the ⓘ explanation
+dialog, which opens above the sheet) are exactly what they were. At ≥769px nothing changed. The button
+hides itself when the page hides the cards (an empty filtered view). One shared JS module
+(`SummarySheet`) and one CSS block drive it, so all seven card pages behave the same.
+
 ## 2026-11-11 — the pop-up becomes the staff pop-up (Replacement Details)
 
 The user's ask: the student-side modal should follow the same design and layout as the equivalent

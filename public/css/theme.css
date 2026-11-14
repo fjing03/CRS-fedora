@@ -904,6 +904,47 @@ body {
     min-width: 0;
     flex: 1 1 auto;
 }
+
+/* ───── Summary opener (phone only) — summary-cards-button 2026-11-14 ─────
+   Bare on purpose: the prototype kept it transparent so it does not read as a
+   second filled button beside the boxed help. 44x44 opts out of the global 48px
+   mobile floor explicitly (same as .guide-toggle-icon). */
+.summary-button {
+    display: none;
+}
+.summary-button[hidden] {
+    display: none !important;
+}
+@media (max-width: 768px) {
+    .summary-button {
+        flex: 0 0 auto;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 44px;
+        height: 44px;
+        min-width: 44px;
+        min-height: 44px;
+        padding: 0;
+        border: 1px solid transparent;
+        border-radius: var(--radius-md);
+        background: transparent;
+        color: var(--color-primary);
+        cursor: pointer;
+        transition: background var(--transition), color var(--transition);
+    }
+    .summary-button:hover {
+        background: var(--color-surface-variant);
+    }
+    .summary-button:focus-visible {
+        outline: 2px solid var(--color-primary);
+        outline-offset: 2px;
+    }
+    .summary-button[aria-expanded="true"] {
+        background: var(--color-primary-container);
+        color: var(--color-on-primary-container);
+    }
+}
 .guide-toggle-icon {
     flex: 0 0 auto;
     display: inline-flex;
@@ -1701,8 +1742,15 @@ html.dark .filter-select {
     transition: transform 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
     transform-style: preserve-3d;
 }
-.summary-card:hover .summary-card-inner {
-    transform: rotateY(180deg);
+/* summary-cards-button (2026-11-14): was unconditional. Pointer-only now, and it
+   yields to an explicit tap (`.is-unflipped`), so a card pinned inside the phone
+   sheet is not re-flipped by a mouse after it is tapped back. On a real desktop
+   this is behaviourally identical; the flip variant already shipped this idiom
+   (.summary-section--flip … :hover), which this rule now also covers. */
+@media (hover: hover) and (pointer: fine) {
+    .summary-card:not(.is-unflipped):hover .summary-card-inner {
+        transform: rotateY(180deg);
+    }
 }
 .summary-card-front,
 .summary-card-back {
@@ -1964,6 +2012,135 @@ body.summary-locked { overflow: hidden; }
 @media (max-width: 389px) {
     .summary-section--flip .summary-bar {
         grid-template-columns: 1fr;
+    }
+}
+
+/* ───── Summary sheet — summary-cards-button 2026-11-14 ─────
+   One frame per page, emitted by partials/ui-summary-bar beside the cards.
+   SummarySheet relocates #summarySection into #summarySheetBody at <=768px.
+   z 1200 sits above .modal-overlay (999 / 1000 at <=600); the ⓘ dialog is lifted
+   to 1400 while the sheet is open, and the tooltip engine stays above both at 9999. */
+.summary-sheet-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 1200;
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    background: rgba(0, 0, 0, 0.45);   /* the .modal-overlay dim, deliberately literal */
+}
+.summary-sheet-overlay[hidden] {
+    display: none;
+}
+.summary-sheet {
+    width: 100%;
+    max-height: 88dvh;
+    display: flex;
+    flex-direction: column;
+    background: var(--color-surface);
+    color: var(--color-on-surface);
+    border: 1px solid var(--color-outline);
+    border-bottom: 0;
+    border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+}
+.summary-sheet-head {
+    position: sticky;
+    top: 0;
+    z-index: 2;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 10px 14px;
+    background: var(--color-surface);
+    border-bottom: 1px solid var(--color-outline);
+}
+.summary-sheet-title {
+    margin: 0;
+    font-size: 14px;
+    font-weight: 700;
+}
+.summary-sheet-close {
+    width: 44px;
+    height: 44px;
+    border: 0;
+    border-radius: var(--radius-sm);
+    background: transparent;
+    color: inherit;
+    font-size: 22px;
+    line-height: 1;
+    cursor: pointer;
+}
+.summary-sheet-close:focus-visible {
+    outline: 2px solid var(--color-primary);
+    outline-offset: 2px;
+}
+.summary-sheet-body {
+    min-height: 0;
+    padding: 12px 12px 16px;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+}
+.summary-sheet-body .summary-section {
+    margin-top: 0;
+}
+body.summary-sheet-open {
+    overflow: hidden;
+}
+body.summary-sheet-open #summaryExplainModal {
+    z-index: 1400;
+}
+
+/* The plain variant gets a sentence that speaks to touch, inside the sheet only.
+   The six flip pages say "Hover or tap", which is true on a touch screen, so their
+   hint is untouched. */
+.summary-hint-touch {
+    display: none;
+}
+#summarySheetBody .summary-section:not(.summary-section--flip) .summary-hint-pointer {
+    display: none;
+}
+#summarySheetBody .summary-hint-touch {
+    display: inline;
+}
+
+/* Plain variant inside the sheet: two columns (one below 390) like the flip pages,
+   and a card tall enough for its sentence-long backs — the faces are absolutely
+   positioned, so a short card CLIPS rather than grows. 148px = the measured 142px
+   longest back at a 175px card + slack; 132px is the same budget at 320. */
+#summarySheetBody .summary-section:not(.summary-section--flip) .summary-bar {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+#summarySheetBody .summary-section:not(.summary-section--flip) .summary-card,
+#summarySheetBody .summary-section:not(.summary-section--flip) .summary-card-inner {
+    min-height: 148px;
+    height: 148px;
+}
+#summarySheetBody .summary-card {
+    cursor: pointer;
+}
+#summarySheetBody .summary-card.is-flipped .summary-card-inner {
+    transform: rotateY(180deg);
+}
+@media (max-width: 389px) {
+    #summarySheetBody .summary-section:not(.summary-section--flip) .summary-bar {
+        grid-template-columns: 1fr;
+    }
+    #summarySheetBody .summary-section:not(.summary-section--flip) .summary-card,
+    #summarySheetBody .summary-section:not(.summary-section--flip) .summary-card-inner {
+        min-height: 132px;
+        height: 132px;
+    }
+}
+
+/* Printing never captures the sheet, and never inherits its scroll lock. */
+@media print {
+    .summary-sheet-overlay,
+    .summary-button {
+        display: none !important;
+    }
+    body.summary-sheet-open {
+        overflow: visible;
     }
 }
 

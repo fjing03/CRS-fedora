@@ -173,7 +173,7 @@
     @include('partials.page-data-script', ['payload' => $payload])
 
         <!-- ─── Page Header ─── -->
-        @include('partials.ui-page-header', ['title' => 'My Replacements', 'guideToggle' => true, 'guideModal' => true])
+        @include('partials.ui-page-header', ['title' => 'My Replacements', 'guideToggle' => true, 'guideModal' => true, 'summaryButton' => true])
 
         @include('partials.ui-guide-modal', [
             'guideTitle' => 'How to use this page',

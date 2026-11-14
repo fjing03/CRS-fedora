@@ -97,7 +97,7 @@
     </style>
 
     <!-- ─── Page Header ─── -->
-    @include('partials.ui-page-header', ['title' => 'Cohort Timetable', 'guideToggle' => true, 'guideModal' => true])
+    @include('partials.ui-page-header', ['title' => 'Cohort Timetable', 'guideToggle' => true, 'guideModal' => true, 'summaryButton' => true])
 
     @include('partials.ui-guide-modal', [
         'guideTitle' => 'How to use this page',
