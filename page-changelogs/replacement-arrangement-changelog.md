@@ -1,3 +1,34 @@
+## 2026-11-14 — the Selection Summary cannot fold, and each slot row is readable
+
+Two asks from one message.
+
+**The Selection Summary is no longer foldable.** It used to carry a chevron that folded its body
+away — and with it the picked slots, the totals and the Submit Request button. The button, its
+click listener and the now-unreachable `.is-collapsed` rule are gone; the card is always open at
+every width. Conflict Schedule and Class Details keep their own toggles (unchanged), so the
+removal is scoped to this card.
+
+**Each row in the slot list is a stack of four labelled rows** instead of one wrapping sentence:
+
+- `📅 (P) Week 8 · Nov 9, 2026` — type, week and date, with the status badge on the right;
+- `🕐 11:00 AM ~ 1:00 PM` — the time range, now with the standard `~` joiner (it used `-`);
+- `📍 B110` — the venue, on its own row instead of trailing `@ ...`;
+- `👥 DFT2 + DSF2 (2 cohorts)` — the cohort code(s), then **how many cohorts** attend.
+
+The cohort bracket counts the cohorts underneath, not the distinct codes: two cohorts that shorten
+to the same word still read `DSF2 (2 cohorts)`, one cohort reads `DSF2` with no bracket, and a
+session with no cohorts gets no cohort row at all.
+
+Both faces use the page's existing 13px glyphs, now declared once (`RA_ICONS`) instead of being
+copied into each builder. `.slot-dd-item-label`, `.slot-dd-item-cohort` and the whole click /
+selection flow are unchanged, so nothing that locates a row by those names was touched. The hover
+pop-up still prints the one-line detail (`… @ B110`), since the row is now the summary.
+
+Verified at 1360 in both themes and on the phone shell: four rows, badge aligned with the first
+row, no page errors. Two specs pin the old behaviour and were updated honestly:
+`tests/selection-summary-collapse.spec.ts` now asserts the toggle is **absent** and the body always
+open, and the `@ B` assertion in `tests/rearrangement-toolbar-tooltips.spec.ts` became the venue row.
+
 ## 2026-11-14 — the phone venue sheet's grey captions became folding bars
 
 The "Choose venue" sheet listed 23 rooms under grey captions (`Block B · Floor 0`,

@@ -312,7 +312,8 @@
         }
         .slot-dd-item {
             display: flex;
-            align-items: center;
+            /* top-aligned so the status badge lines up with the first row, not the middle */
+            align-items: flex-start;
             gap: 8px;
             padding: 10px 14px;
             cursor: pointer;
@@ -328,10 +329,35 @@
         .slot-dd-item.selected {
             background: var(--color-primary-container);
         }
+        /* 2026-11-14 (user): the row is a STACK, not one wrapping sentence —
+           type+week+date / time / venue / cohorts, each with its own glyph.
+           The wrapper keeps its class so every existing click target and
+           selector still resolves. */
         .slot-dd-item-label {
-            flex: 1;
+            flex: 1 1 auto;
+            min-width: 0;
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
             font-size: 13px;
             color: var(--color-on-surface);
+        }
+        .slot-dd-row {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 12.5px;
+            line-height: 1.35;
+            color: var(--color-on-surface-variant);
+        }
+        .slot-dd-row--head {
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--color-on-surface);
+        }
+        .slot-dd-row svg {
+            flex: 0 0 auto;
+            opacity: 0.9;
         }
         .slot-dd-item-badge {
             font-size: 11px;
@@ -518,7 +544,6 @@
             font-weight: 600;
             color: var(--color-on-surface);
         }
-        .sel-summary.is-collapsed .sel-summary-body { display: none; }
 
         .sel-summary-count {
             font-size: 13px;
@@ -2591,19 +2616,10 @@
                 <div class="sel-summary-header">
                     <span class="sel-summary-title">Selection Summary</span>
                     {{--<span class="sel-summary-count"><strong id="summaryCount">0</strong> / 4 Selected</span>--}}
-                    {{-- Default is EXPANDED. The arrow only lets the user fold the
-                         body away; the header (and the selected-count story) stays.
-                         Uses the shared .ra-card-toggle / .ra-card-chevron family,
-                         so its direction + rotation match Conflict Schedule and
-                         Class Details exactly. --}}
-                    <button type="button" class="ra-card-toggle" id="summaryToggle"
-                            aria-controls="summaryBody" aria-expanded="true"
-                            aria-label="Collapse Selection Summary"
-                            data-tip="Collapse Selection Summary">
-                        <svg class="ra-card-chevron" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                            <path d="m6 9 6 6 6-6"/>
-                        </svg>
-                    </button>
+                    {{-- 2026-11-14 (user): the Selection Summary is NOT foldable. A folded card
+                         could hide the picked slots, the totals AND the Submit button behind a
+                         chevron, so the control is gone and the body is always open. Conflict
+                         Schedule and Class Details keep their own toggles. --}}
                 </div>
                 <div class="sel-summary-body" id="summaryBody">
                     <div class="sel-summary-empty" id="summaryEmpty">
@@ -3568,6 +3584,18 @@
             refreshArrangementMobile('tip');
         }
 
+        /* 2026-11-14 (user): ONE icon home for the page. The Selection Summary
+           cards and the slot-dropdown rows draw the same four glyphs, so the
+           strings live here instead of being copied into each builder.
+           13px, currentColor, aria-hidden — the page's existing vocabulary. */
+        const RA_ICONS = {
+            venue: '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0z"/><circle cx="12" cy="10" r="3"/></svg>',
+            week: '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>',
+            time: '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>',
+            duration: '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 2h12M6 22h12M8 2v4a4 4 0 0 0 8 0V2M8 22v-4a4 4 0 0 1 8 0v4"/></svg>',
+            cohort: '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>'
+        };
+
         function updateSelectionSummary() {
             /* multi-week model: the panel lists EVERY saved selection (any week),
                matching the Submit dialog and the enabled Submit button */
@@ -3650,12 +3678,7 @@
                      2  W8, Sat, 14 Nov 2026
                      3  12:00 PM ~ 2:00 PM
                      4  4 slots (2 Hours)                                          */
-                const icons = {
-                    venue: '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0z"/><circle cx="12" cy="10" r="3"/></svg>',
-                    week: '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>',
-                    time: '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>',
-                    duration: '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 2h12M6 22h12M8 2v4a4 4 0 0 0 8 0V2M8 22v-4a4 4 0 0 1 8 0v4"/></svg>'
-                };
+                const icons = RA_ICONS;
                 /* "Week 8" → "W8"; the date already arrives as `14 Nov 2026` */
                 const weekShort = String(b.weekLabel).replace(/^Week\s*/i, 'W');
                 const venueTip = summaryVenueTip(b.venue);
@@ -6718,20 +6741,32 @@ ${(fallbackAttribution && intentReason === 'in-the-way')
                     });
                     return out;
                 })();
-                const cohortHtml = cohortNames.length
-                    ? '<span class="slot-dd-item-cohort"><svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg> ' + cohortNames.join(' + ') + '</span>'
+                /* 2026-11-14 (user answer A): the bracket counts the cohorts
+                   UNDERNEATH (the raw list), not the distinct codes — two cohorts
+                   that shorten to the same word still read `DSF2 (2 cohorts)`.
+                   One cohort prints no bracket; none prints no row at all. */
+                const cohortCount = ((sess && Array.isArray(sess.cohorts)) ? sess.cohorts : []).length;
+                const cohortLabel = cohortNames.length
+                    ? cohortNames.join(' + ') + (cohortCount > 1 ? ' (' + cohortCount + ' cohorts)' : '')
+                    : '';
+                const cohortHtml = cohortLabel
+                    ? '<span class="slot-dd-row slot-dd-row--cohort slot-dd-item-cohort">' + RA_ICONS.cohort + cohortLabel + '</span>'
                     : '';
                 const fullLabel = '(' + slot.type + ') Week ' + (slot.week + 1) + ' · ' + slotDayAbbrs[slot.day] + ', ' + slot.date + ', ' + startStr + ' ~ ' + endStr + ' @ ' + slot.venue;
 
                 const item = document.createElement('div');
                 item.className = 'slot-dd-item';
                 item.dataset.index = index;
-                /* Batch 2: the label = (TYPE) Week N · Mon D, YEAR · range @ venue
-                   · the cohorts icon+names; the slot favourite star is GONE (req 3a) —
-                   its machinery (FAV_KEY/getFavouriteSlot/toggleSlotFavourite +
-                   the default-priority branch) removed with it. */
+                /* 2026-11-14 (user): the label is a stack of four glyph rows —
+                   type+week+date / time / venue / cohorts. The favourite star stays
+                   gone (req 3a) along with its machinery. */
                 item.innerHTML = `
-                    <span class="slot-dd-item-label"><span class="cell-type-label">(${slot.type})</span> Week ${slot.week + 1} · ${shortDate}${year ? ', ' + year : ''} · ${startStr} - ${endStr} @ ${slot.venue}${cohortHtml ? ' · ' : ''}${cohortHtml}</span>
+                    <span class="slot-dd-item-label">
+                        <span class="slot-dd-row slot-dd-row--head">${RA_ICONS.week}<span class="cell-type-label">(${slot.type})</span> Week ${slot.week + 1} · ${shortDate}${year ? ', ' + year : ''}</span>
+                        <span class="slot-dd-row">${RA_ICONS.time}${startStr} ~ ${endStr}</span>
+                        <span class="slot-dd-row">${RA_ICONS.venue}${slot.venue}</span>
+                        ${cohortHtml}
+                    </span>
                     <span class="slot-dd-item-badge badge ${statusClass}"${statusDetail ? ` data-tip="${escHtml(statusDetail)}"` : ''}>${escHtml(statusLabel)}</span>
                 `;
 
@@ -7513,21 +7548,6 @@ writeSlotTrigger(slot);
                     ? 'Expand Conflict Schedule'
                     : 'Collapse Conflict Schedule');
                 if (!collapsed) setTimeout(measureDetailsSummary, 0);
-            });
-
-            /* Selection Summary fold: expanded by default, only the body folds.
-               The header stays visible so the selected-count story never hides. */
-            document.getElementById('summaryToggle')?.addEventListener('click', function () {
-                const card = document.getElementById('selSummary');
-                const body = document.getElementById('summaryBody');
-                if (!card || !body) return;
-                const collapsed = !card.classList.contains('is-collapsed');
-                card.classList.toggle('is-collapsed', collapsed);
-                body.hidden = collapsed;
-                this.setAttribute('aria-expanded', String(!collapsed));
-                const label = collapsed ? 'Expand Selection Summary' : 'Collapse Selection Summary';
-                this.setAttribute('aria-label', label);
-                this.setAttribute('data-tip', label);
             });
 
             document.getElementById('detailsToggle')?.addEventListener('click', function () {

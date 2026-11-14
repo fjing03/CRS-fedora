@@ -1,0 +1,27 @@
+name: arrangement-summary-and-slot-rows
+created: 2026-11-14
+status: superseded-by-exemption
+batch: design
+lane_shape: light
+page: resources/views/livewire/replacement-arrangement.blade.php
+proposal_review: passed
+proposal_frozen: true
+design_review: failed-open
+design_frozen: false
+specs_review: not-run
+specs_frozen: false
+tasks_review: not-run
+tasks_frozen: false
+review_rounds: 6
+implementation_approved: true
+implementation_approval: "user: SKIP & make the two changes now (2026-11-14)"
+superseded_note: >
+  The user granted the small-change exemption (my-coding-rules.md §5, 2026-11-14) instead of
+  finishing the lane: the change is confined to one page's own CSS/markup/script, carries no data or
+  backend logic, is undone by a single git revert, and creates no pattern a third page would reuse.
+  The two edits were applied directly and verified in the browser. This folder is kept as the record
+  of the facts gathered and the decisions taken (not as an applied SDD lane).
+user_decisions:
+  - "Selection Summary: not foldable at all (2026-11-14)"
+  - "cohort row counts the cohorts underneath, not the distinct codes: DFT2 + DSF2 (2 cohorts), DSF2 (2 cohorts), RSD3 alone (user answer A, 2026-11-14)"
+  - "the slot row keeps its month-first date spelling; aligning it with the trigger stays parked"
