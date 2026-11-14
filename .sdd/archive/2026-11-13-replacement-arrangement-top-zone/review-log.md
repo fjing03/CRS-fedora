@@ -1746,3 +1746,26 @@ No re-explore, no soft-freeze, no unfreeze.
   filter now hides; the venue BUG-08 final line still asserts the removed
   `#clearAllBtn`; the slot BUG-08 first item is already the pinned pair. None
   of these touch the top-zone code or were introduced by this change.
+
+## Superseded — 2026-11-13 (docs note only)
+
+This lane built the **two-card** top zone (Conflict Schedule + Class Details)
+with the toolbar row beneath it. It was superseded the next day by
+`replacement-arrangement-top-zone-round2`, which replaced that layout with
+three setup cards (Conflict Schedule / Class Details / Replacement Schedule)
+plus the always-present Selection Summary.
+
+Round 2 is itself archived at
+`.sdd/archive/2026-11-13-replacement-arrangement-top-zone-round2/`. Read this
+lane for the card/styling foundation and the trigger-writer laws; read the
+Round 2 archive for the current top-zone geometry. Do not re-apply this lane's
+grid on top of Round 2.
+
+Follow-up status at archive time:
+
+- Live mobile venue picker — **delivered** 2026-11-12 as
+  `#arrangementMobileVenue` (searchable sheet, selects through
+  `VenueDropdown.select()`; `tests/venue-dropdown-responsive.spec.ts`).
+- Live mobile `Colours & borders` sheet — the adapter recognises the legend
+  trigger (`[data-arrangement-mobile-legend]`) and opens the shared sheet.
+- Live mobile four bottom sheets / `venueDescription` tap — still parked.

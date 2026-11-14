@@ -271,8 +271,9 @@
 - [ ] Live mobile pop-ups: after `arrangement-mobile-day-view` is finished,
   add the four bottom sheets and the `venueDescription` tap to the real phone
   page. Do not start this before the mobile lane is verified.
-- [ ] Live mobile venue picker: replace the wide nested panel on phones with
-  the `Choose venue` bottom sheet (search + collapsible Block/Floor groups);
-  keep the desktop panel unchanged. Same follow-up window.
-- [ ] Live mobile `Colours & borders`: wire the tool to the four-state legend
-  sheet (Available / Selection / Pending / Conflict). Same follow-up window.
+  (Still parked at archive time; the legend sheet itself is wired.)
+- [x] Live mobile venue picker: DELIVERED 2026-11-12 — the `Choose venue`
+  sheet (`#arrangementMobileVenue`, search + Block/Floor groups) replaces the
+  wide panel at `<=768px`; desktop panel unchanged.
+- [x] Live mobile `Colours & borders`: the adapter opens the shared legend
+  sheet from `[data-arrangement-mobile-legend]`.

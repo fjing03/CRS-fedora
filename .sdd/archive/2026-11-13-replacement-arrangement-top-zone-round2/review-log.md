@@ -277,3 +277,29 @@ Batch: `tasks.md` (new). Frozen proposal/design/spec.
 
 - None for apply/verify. Archive (T16) remains gated on the user's approval.
 
+
+## Superseded — 2026-11-13 (user instruction, docs note only)
+
+Two later user decisions changed what this lane's frozen artifacts describe.
+They are recorded here so the archived spec is not read as current truth:
+
+1. **Selection Summary is always visible.** The frozen design/spec make the
+   Summary conditional (`has-summary` shows/hides the card). The user's
+   2026-11-13 instruction made the card permanent, with its empty state
+   ("No time slots selected.") shown until slots are picked. `has-summary`
+   now only drives Submit/Tip enablement, never visibility or layout.
+2. **The Summary gained a collapse arrow**, expanded by default, using the
+   shared `.ra-card-toggle` / `.ra-card-chevron` family so its direction and
+   rotation match Conflict Schedule and Class Details.
+
+Both landed in `resources/views/livewire/replacement-arrangement.blade.php`
+and `tests/top-zone-round2.spec.ts` (the "no Summary" cases were re-pointed to
+"empty Summary"). Receipts after the change: `top-zone-round2` **14/14**,
+`selection-summary-collapse` **1/1**.
+
+Parked follow-up now delivered: the compact venue sheet at `<=768px`
+(`#arrangementMobileVenue`, searchable, selects through
+`VenueDropdown.select()`), covered by `tests/venue-dropdown-responsive.spec.ts`.
+
+Remaining parked item, still open: the broader mobile top-zone redesign
+(Round 2 phone patterns).

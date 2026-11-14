@@ -170,7 +170,7 @@
     mobile 768/769, venue panel clamp, and the week arrow.
   - Record results in `review-log.md`; do not relax unrelated guards.
 
-- [ ] T16. Archive (0.25h)
+- [x] T16. Archive (0.25h)
   - After verify passes and the user approves, archive through
     `~/.config/opencode/tools/sdd/archive-change.sh`.
 
@@ -178,4 +178,5 @@
 
 - [ ] Mobile top-zone redesign (Round2 phone patterns): separate change after
   this desktop lane.
-- [ ] Compact venue sheet at `<=768px`: separate mobile follow-up.
+- [x] Compact venue sheet at `<=768px`: DELIVERED 2026-11-12
+  (`#arrangementMobileVenue`; see `tests/venue-dropdown-responsive.spec.ts`).
