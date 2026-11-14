@@ -1,13 +1,13 @@
 name: filters-button
 created: 2026-11-14
 status: active
-batch: proposal
+batch: proposal (frozen)
 lane_shape: standard
 source_brief: prompts/pi-prompt-filters-button.md
 pages: 3
-proposal_review: failed
-proposal_frozen: false
-review_rounds: 2
+proposal_review: passed
+proposal_frozen: true
+review_rounds: 4
 design_review: not-run
 design_frozen: false
 specs_review: not-run
@@ -23,8 +23,13 @@ outstanding_small:
   - "§3 week-field clause: Request Approval rows carry no week key; the original slot is a date"
   - "§4 student touch points: three, not five"
 open_decisions:
-  - "Student page Reset in the panel head (it has none today). Recommended: yes"
-  - "My Replacements #resultCount below 1500px (M15): keep hidden, retire so the pill shows at every width, or retarget the hide to the pagination count. Recommended: retire"
-  - "All Weeks wording vs the 2026-11-10 'SLOT' ruling — keep the ruling or change it"
-  - "Second week dropdown: out of this lane (recommended, priced in explore §6 / proposal §3)"
+  - "DEFERRED TO ANOTHER CHAT (user): My Replacements #resultCount below 1500px (M15): keep hidden, retire so the pill shows at every width, or retarget the hide to the pagination count. Recommended: retire"
+  - "DEFERRED TO ANOTHER CHAT (user): All Weeks wording vs the 2026-11-10 'SLOT' ruling"
+decisions_taken:
+  - "2026-11-14 (user): follow the prototype — the second week dropdown is IN on ALL THREE pages (My Replacements gains Requested; Request Approval gains Original; the student page gains Requested). The lane is no longer layout-only."
+  - "2026-11-14 (user): decision 2 (count pill / the 1500px hide rule) deferred to another chat."
+  - "2026-11-14 (user): decision 3 (All Weeks vs the 2026-11-10 SLOT ruling) deferred to another chat."
+  - "2026-11-14 (user): Option B — the student page gets NO Reset button; its panel head shows the title and the close only. Brief item 4 therefore holds on the two staff pages only."
 recommended_option: "A — shared frame partial + JS relocate + labels in Blade"
+frozen: 2026-11-14
+frozen_note: "proposal frozen after 4 review rounds (round 4: ready to freeze once the (h) wording was qualified — applied with the freeze). Design.md is the next batch and has NOT been written."

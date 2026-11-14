@@ -29,7 +29,8 @@ the door, and make the door a shared piece instead of a third copy.
 3. Panel = **popover under the button at ≥769px**, **bottom sheet at ≤768px**; dim, page scroll locked,
    closes on ×, Escape and a tap outside; focus returns to the button. The trigger stays at full colour
    above the dim.
-4. Panel head: **Filters** title, **Reset Filters** (circular-arrow, grey) beside the ×.
+4. Panel head: **Filters** title, then **Reset Filters** (circular-arrow, grey) beside the × **on the
+   two staff pages only** — the student page has no Reset (decision 1), so its head is title + close.
 5. Each control keeps a **label above it** — Search, Status, Original slot week, Requested slot week,
    Hide COMPLETED; the switch gets a real `<label for>` and shares the status row on its right.
 6. Look from `theme.css` tokens: grey fields (`--color-surface-variant`), tinted body (`--color-bg`),
@@ -37,25 +38,29 @@ the door, and make the door a shared piece instead of a third copy.
 7. Chips stay on the page and say what is applied, **without** the "Active Filters:" prefix (the button
    names the row); the completed chip reads **Completed hidden**, the switch **Hide COMPLETED**.
 8. Week "no filter" option reads **All Weeks**.
-9. Row count becomes a **pill at the right of the chips row** on the two pages that have one; the
-   student page has no count and gets no pill. **Open:** My Replacements hides `#resultCount` below
-   1500px today (M15, `replacement-home.blade.php:106–110`, "the pagination bar still reports it —
-   hidden, never removed"). See decision 1b.
+9. Row count becomes a **pill at the right of the chips row**, **visible at every width**, on the two
+   pages that have one ("Showing 5 of 5 classes" / "Showing 2 of 16 results"); the student page has no
+   count and gets no pill. The old M15 rule that hid `#resultCount` below 1500px
+   (`replacement-home.blade.php:106–110`) is **retired** — decision 1b, answered: follow the prototype.
 10. **One shared home** for the frame, the row and the behaviour — not a third hand-rolled copy.
+11. **A second week dropdown, as the prototype has it — on all three pages.** My Replacements gains
+    **Requested slot week** (it only filters by the Original week today); Request Approval gains
+    **Original slot week** (it only filters by the Requested week); Class Replacements gains
+    **Requested slot week** too. Adding it is real behaviour, not layout — for each page: a second
+    predicate in the filter function, a matching chip with its own removal path, a reset that clears
+    both, a saved view that remembers both, and its own tests. The payload carries no requested-week
+    field, so that week is **derived from `replacementDate`** — the same way Request Approval's single
+    dropdown already works. No backend change.
 
 ## 3. Out of scope
 
-- **The second week dropdown** (explore §6). It is a filter feature, not a panel: a new predicate in each
-  page's filter function, a new chip with its own removal path, a two-week reset and a saved-view key
-  that carries two weeks. The payload does **not** carry a requested-week field: each row has the
-  original occurrence `week` plus a `replacementDate`, and the requested week has to be **derived** from
-  that date client-side — which is exactly how Request Approval's single week dropdown already works.
-  So there is no backend work either way, but it is its own lane. Recommendation: **out**; the panel's
-  label names the one week the page owns.
+- *(The second week dropdown is no longer out of scope: the user's "follow prototype" moved it in. It is
+  listed under §2 item 11, on all three pages.)*
 - The summary cards, page headings, guide dialogs (brief's rule).
 - Print (`timetable-print-v2` owns it). This lane only must not make print worse.
 - The nine `ui-design-templates/*` reference pages.
-- Any filter's meaning, values, or default — no filter is dropped and none gains a new option.
+- Any **existing** filter's meaning, values or default: none is dropped, renamed or given a new value.
+  (The second week dropdown is a new control — §2 item 11 — not an exception to this line.)
 
 ## 4. Options
 
@@ -67,8 +72,8 @@ the door, and make the door a shared piece instead of a third copy.
 - Each page keeps its own `.toolbar` markup. Per page the edits are: a `<label for>` above search, above
   status, and inside a wrapper around the **existing** week include; the switch rebuilt into its labelled
   wrapper (status + switch share a line via CSS, not markup); `#resultCount` moved into the chips row;
-  the panel include. That is six touch points on My Replacements and Request Approval, five on the
-  student page — small each, but not "3".
+  the panel include (plus, per decision 4, the second week field). That is seven touch points on My
+  Replacements and Request Approval and five on the student page — small each, but not "3".
 - One JS module (`FiltersPanel`) moves the page's `.toolbar` into the panel body at load, opens/closes,
   traps focus, locks scroll, and returns focus — modelled on `SummarySheet`, minus the media-query
   branching (the panel exists at every width; only its **shape** changes at 768).
@@ -139,22 +144,34 @@ working untouched), just no longer `:empty{display:none}` on its own — the row
 the button lives in it. Edits: drop the `Active Filters:` prefix in the three builders, rename the
 completed chip to `Completed hidden`, and move `#resultCount` beside it.
 
-### 5.5 Reset semantics — one button, three meanings (and they are all "page defaults")
-Each page's Reset restores its **own defaults**, not an empty state (verified in the code, not assumed):
-- My Replacements: `resetAllFilters()` — search empty, status `all`, week `all`, exclusion **on**.
-- Request Approval: `resetFilters()` (`:1256–1263`) — search empty, status **`Pending`**, week `all`,
-  rows-per-page back to 10, exclusion **on**. ("Everything off" is a *different* function,
+### 5.5 Reset semantics — two pages, each restoring its own defaults
+Reset is a **staff-only** control (decision 1: the student page deliberately gets none — §7.1). Where it
+exists it restores that page's **own defaults**, not an empty state (verified in the code):
+- My Replacements: `resetAllFilters()` — search empty, status `all`, **both** weeks → All Weeks,
+  exclusion **on**.
+- Request Approval: `resetFilters()` (`:1256–1263`) — search empty, status **`Pending`**, **both** weeks
+  → All Weeks, rows-per-page back to 10, exclusion **on**. ("Everything off" is a *different* function,
   `clearAllFilters()`, behind the chips' Clear-all — the 2026-10-30 ruling. Reset must not become it.)
-- Class Replacements: **none today**, so this lane writes one: week → All Weeks, switch → on, saved
-  view forgotten — its `clearAllFilters()` shape with the switch's default restored.
+- Class Replacements: **no Reset**, by decision. Its chips' Clear-all stays as it is.
 
-The shared frame carries one Reset button; each page keeps its own function. The frame must not
-standardise the three.
+The shared frame therefore renders the Reset slot **conditionally**: pages that pass a reset handler get
+the button; a page that does not gets the title and the close only. The frame must not standardise the
+two staff functions either.
 
-### 5.6 `All Weeks`
+### 5.6 `All Weeks` — decided: shorten, and the 10 November ruling gives way
 Three `allLabel` strings (`replacement-home:880`, `request-approval:1248`, `replacement-history:690`).
-No logic. No spec pins the option **text** today (every week assertion is by value or index), so the
-rename is spec-safe.
+No logic. This **deliberately reverses** the 2026-11-10 wording ruling that changed the option to say
+"SLOT" (recorded at `tests/week-filter-preserved.spec.ts:140`): with a visible "Original slot week" /
+"Requested slot week" label above it, the option no longer needs to repeat the kind of week.
+**Three pinned strings must be amended in the same commit** (they are evidence of the old wording, not
+of anything this lane must preserve):
+- `tests/status-tooltips-filter-chips.spec.ts:380` — `'All Requested Slot Weeks'`
+- `tests/week-filter-preserved.spec.ts:141` — `'All Original Slot Weeks'`
+- `tests/Feature/StudentReplacementHistoryParityTest.php` — the whole file, not one line: `:143` pins the
+  `allLabel` source string, `:144` pins the `Original Slot Week:` chip text, `:146` asserts the student
+  source does **not** contain `Requested Slot Week:` (which this lane makes false), and `:148` pins the
+  exact single-week filter predicate. Its docblock (`:15`) and test name also describe the old
+  single-week premise. Amending only `:143` would leave a failing, wrongly-scoped test behind.
 
 ### 5.7 Locks, layering, print
 - Own scroll lock (`filters-panel-open`); never reuse `summary-locked` (shared, unrefcounted).
@@ -182,10 +199,11 @@ No new dependency, no migration, no DB work, no backend change.
 2. Button opens: ≥769 a popover under it, ≤768 a bottom sheet; dim + scroll lock; trigger stays bright.
 3. Every control has its label above it; the switch sits right of Status on one line; fields are grey,
    body tinted.
-4. Change a filter → chips update and remove correctly; the count pill matches **at every width the
-   chosen answer to 1b allows** (with (b): 320 → 1440); Reset returns the page to its own default
-   (My Replacements: exclusion on; Request Approval: status **Pending** + exclusion on; student: All
-   Weeks + switch on).
+4. Change a filter → chips update and remove correctly, including the **new second week** chip; the
+   count pill shows and matches **at every width** (320 → 1440). On the two staff pages, Reset returns
+   that page to its own default (My Replacements: exclusion on, both weeks All Weeks; Request Approval:
+   status **Pending**, both weeks All Weeks, exclusion on). The student page has **no Reset** — its
+   Clear-all chip is the only bulk action and must keep working.
 5. Close by ×, Escape and a tap outside — each returns focus to the button and unlocks the page.
 6. Keyboard: Tab reaches the button, panel traps Tab/Shift+Tab, Esc closes; the bell panel cannot be
    opened underneath it.
@@ -195,34 +213,53 @@ No new dependency, no migration, no DB work, no backend change.
 **Automated:** a new spec pinning (a) no `.toolbar` control is visible before opening, (b) the panel
 opens with the right shape at 768 vs 769, (c) `aria-expanded` + focus enter/return, (d) chips repaint
 after a filter change with the panel closed, (e) Escape/veil close and unlock, (f) the count pill text on
-the two pages that have one, (g) `#filterChips` keeps the same node identity across an open/close.
+the two pages that have one, (g) `#filterChips` keeps the same node identity across an open/close,
+(h) **the new second week filter, per page**: selecting it narrows the list, its chip appears and removes
+only itself, the page's bulk action clears **both** weeks (Reset on the two staff pages, Clear-all on the
+student page — it has no Reset), and the saved view restores both after a reload.
 Existing specs that touch these pages' toolbars (`pages-parity`, `ui-regression` §7, `nav-identity`,
 `venue-*`) must stay green — **except one that this lane amends on purpose**:
-`tests/status-tooltips-filter-chips.spec.ts` pins the exact strings being changed (`.filter-chips-label`
-= `Active Filters:` at `:416`, and chips reading `Exclude COMPLETED Status` at `:171/:206/:422`). Those
-assertions move to the new wording in the same commit; leaving them would either fail the run or force
-the implementer to abandon the brief's rename.
+three files pin strings this lane changes on purpose and move with it:
+- `tests/status-tooltips-filter-chips.spec.ts` — `.filter-chips-label` = `Active Filters:` (`:416`),
+  chips reading `Exclude COMPLETED Status` (`:171/:206/:422`), and the week option
+  `'All Requested Slot Weeks'` (`:380`)
+- `tests/week-filter-preserved.spec.ts:141` — `'All Original Slot Weeks'`
+- `tests/Feature/StudentReplacementHistoryParityTest.php` — the whole file, not one line: `:143` pins the
+  `allLabel` source string, `:144` pins the `Original Slot Week:` chip text, `:146` asserts the student
+  source does **not** contain `Requested Slot Week:` (which this lane makes false), and `:148` pins the
+  exact single-week filter predicate. Its docblock (`:15`) and test name also describe the old
+  single-week premise. Amending only `:143` would leave a failing, wrongly-scoped test behind.
+
+Leaving any of them would either fail the run or force the implementer to abandon the brief's rename.
+Two comments in those files record the old wording as a ruling (`week-filter-preserved.spec.ts:137–140`,
+`status-tooltips-filter-chips.spec.ts:115`) and are updated with the assertions, so no file testifies to a
+ruling that no longer stands.
 
 ## 7. Decisions needed before apply
 
-1. **Student reset.** The student page has no Reset today; item 4 wants one in the panel head. Add it
-   (week → All Weeks, switch → on)? *Recommended: yes.*
+1. **Student reset — ANSWERED (user, 2026-11-14): NO.** The student page has no Reset today and gets
+   none: its panel head carries the title and the close only. Brief item 4 ("Reset Filters in the head")
+   therefore applies to the **two staff pages only**; the shared frame must make Reset optional, not
+   mandatory.
 
-1b. **My Replacements' count pill below 1500px.** Today `#resultCount` is hidden under 1500px (M15:
-    "the pagination bar still reports it"). The brief wants it as a pill in the chips row — which is
-    visible at every width. Choose: **(a)** keep M15 and only show the pill ≥1500px (the pill exists in
-    the markup but stays hidden on a laptop and phone — the brief's ask is then only half true);
-    **(b)** **retire M15** so the pill is visible at every width, leaving the pagination bar's own count
-    as a duplicate on wide screens; **(c)** retarget M15 to hide the *pagination* count instead.
-    *Recommended: (b) — the brief explicitly asks for the count in the row at every width and the pill is
-    the same number the pagination bar prints, so a duplicate is a fair trade; it is also the only option
-    that makes §6's check single.*
-2. **Magnifier glyph.** My Replacements' search field has one; inside a panel whose label says "Search",
-   keep it or drop it? *Recommended: drop inside the panel (the label does the work), keep the input
-   identical otherwise.*
-3. **Sort hint** on Request Approval ("Click column headers to sort…") — stays on the page above the
-   chips row, not in the panel. *Recommended: stays.*
-4. **Second week dropdown** — out of this lane (explore §6). Confirm.
+1b. **My Replacements' count pill — ANSWERED (user, 2026-11-14): follow the prototype, option (a).**
+    The M15 rule (`replacement-home.blade.php:106–110`) is **retired**: `#resultCount` is a pill in the
+    chips row and is visible at every width. Accepted trade: on a screen wider than 1500px the
+    pagination bar reports the same number again.
+2. **Magnifier glyph — carried into `design.md` with the stated answer** (drop it inside the panel: the
+   visible "Search" label does the work; the input is otherwise identical). Flagged rather than decided
+   because it changes one page's look, which the brief reserves for you.
+3. **Sort hint on Request Approval — carried into `design.md` with the stated answer** (it explains the
+   table, not the filters, so it stays on the page above the chips row). Same flag as 2.
+4. **Second week dropdown — ANSWERED (user, 2026-11-14): FOLLOW THE PROTOTYPE, so it is IN, on all
+   three pages.** My Replacements gains *Requested slot week*, Request Approval gains *Original slot
+   week*, and Class Replacements gains *Requested slot week*. The lane is therefore no longer
+   layout-only: it carries one new filter per page (predicate + chip + reset + remembered state), with
+   the requested week derived from the replacement date. No backend change.
+
+   Consequence for the panel: every page now shows **two labelled week fields**, so the panel's height
+   and its field order (Search · Status + Hide COMPLETED · Original slot week · Requested slot week)
+   must be designed for that, not for the one-field bar that exists today.
 
 ## 8. Risks
 

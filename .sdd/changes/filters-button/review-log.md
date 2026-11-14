@@ -74,3 +74,61 @@ the overlay-coexistence rule, and the payload correction — each verified again
   only, so the stop is inside the brief — but it is *before* a freeze, not after.
 - Carried to 2026-11-15 with the four user decisions still open (student Reset, M15 count pill, the
   "All Weeks" wording vs the 2026-11-10 ruling, and the second-week dropdown staying out).
+
+---
+
+## Round 2 blockers resolved by user decision — 2026-11-14 (night)
+
+The two items this lane could not settle alone were handed to another chat and came back as
+"follow the prototype":
+
+1. **Count pill (M15) — retire the hide rule.** `#resultCount` becomes a chips-row pill visible at every
+   width; on screens wider than 1500px the pagination bar repeats the same number, and that duplicate is
+   accepted. §2.9 and §6 step 4 no longer carry an open question.
+2. **Week wording — "All Weeks".** The 2026-11-10 "SLOT" ruling is deliberately reversed, on the ground
+   that the visible "Original slot week" / "Requested slot week" label now carries that meaning. The three
+   pinned strings (`status-tooltips-filter-chips.spec.ts:380`, `week-filter-preserved.spec.ts:141`,
+   `StudentReplacementHistoryParityTest.php:143`) are amended in the same commit — §6 names all three.
+
+Also fixed from round 2's small items: §3 no longer claims a `week` key exists on Request Approval rows
+(it carries dates; both weeks are derived), and §4's per-page touch count is corrected.
+
+**Nothing blocks the proposal now.** It has not been re-reviewed or frozen yet — that is the next step,
+and the user has not asked for it.
+
+---
+
+## proposal Round 3 — 2026-11-14 (night)
+
+**Verdict: not ready — three leftover-text blockers, all created by the broadened scope.**
+
+### 🔴 Fixed
+- **§5.5 still wrote a Reset for the student page**, contradicting the user's decision 1. Reset is now
+  stated as staff-only, with the student page's Clear-all chip named as its only bulk action.
+- **§2.4 and §6 step 4 assumed a student Reset.** §2.4 now says "the two staff pages only", §6 step 4
+  says "the student page has **no Reset**".
+- **The parity-test amendment named one line of a file that pins the old premise in four places.**
+  `StudentReplacementHistoryParityTest.php` is now amended as a whole: `:143` (allLabel), `:144` (chip
+  text), `:146` (the now-false "does not contain Requested Slot Week:"), `:148` (single-week predicate),
+  plus its docblock and test name.
+
+### 🟡 Addressed
+- §3's "no filter gains a new option" now carves out the new second week control explicitly.
+- §5.5 says "both weeks → All Weeks" on the two staff pages (there are two dropdowns now).
+- The automated plan gained item (h) for the new filter (narrowing, its chip, both weeks cleared, saved
+  view restored).
+- §7.2 (magnifier) and §7.3 (sort hint) are no longer open asks: both are carried into `design.md` with
+  the stated answer and flagged there, since each changes one page's look.
+
+---
+
+## proposal Round 4 — 2026-11-14 (night) — FROZEN
+
+**Verdict: ready to freeze**, with one one-word carry-along.
+
+All seven round-3 items verified resolved. One slip introduced by the (h) addition: (h) said "Reset
+clears both weeks" per page, but the student page has no Reset. Qualified with the freeze — "(Reset on
+the two staff pages, Clear-all on the student page — it has no Reset)".
+
+**`proposal.md` is FROZEN.** Declarative-only changes from here; any decision-level change needs the
+full chain unfrozen. `design.md` has not been written.
