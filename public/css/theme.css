@@ -3376,8 +3376,13 @@ html.dark .semester-bar select:not(.week-select) {
 /* ── Lead-time rule: too soon to book (read-only) ───────────── */
 .cell-too-soon {
     background: var(--color-surface-variant);
-    /* 2026-11-10 (user, "UI Update 2"): "Min. 3 working days ahead" → title case */
-    --hover-label: 'Min. 3 Working Days';
+    /* 2026-11-10 (user, "UI Update 2"): "Min. 3 working days ahead" → title case
+       2026-11-14 (user): the single 13px nowrap string did not fit an 80px cell
+       and `overflow: visible` let it run over the neighbouring cells. Two
+       deliberate lines now, the same `\A` + pre-line pattern `.cell-no-fit`
+       already uses, at 11px so "Working Days" sits inside the cell. */
+    --hover-label: 'Min 3\A Working Days';
+    white-space: pre-line;
     cursor: var(--cursor-cancel);
 }
 .cell-too-soon::after {
@@ -3387,14 +3392,25 @@ html.dark .semester-bar select:not(.week-select) {
     display: flex;
     align-items: center;
     justify-content: center;
+    text-align: center;
+    padding: 2px;
+    /* contained + bordered: the pill used to be the same token as the cell
+       behind it, so the words floated over neighbours with no backdrop */
+    overflow: hidden;
+    border: 1px solid var(--color-outline);
     background: var(--color-surface-variant);
     color: var(--color-on-surface-variant);
-    font-size: 13px;
+    font-size: 11px;
     font-weight: 600;
+    line-height: 1.15;
     border-radius: var(--radius-sm);
     opacity: 0;
     transition: opacity 0.15s;
     pointer-events: none;
+}
+@media (max-width: 520px) {
+    /* a 48 px cell needs the arrangement page's phone size for the same words */
+    .cell-too-soon::after { font-size: 9px; line-height: 1.1; padding: 1px; }
 }
 .cell-too-soon:hover::after { opacity: 1; }
 

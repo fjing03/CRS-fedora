@@ -1000,6 +1000,20 @@
             function buildTimetable() {
                 currentWeek = weekNav.currentWeek;
                 countedAvailable = 0;
+                /* 2026-11-14 (user): hovering a too-soon cell now explains the
+                   rule and names the real earliest bookable day, the same words
+                   the arrangement page uses. The date is NOT hard-coded: it is
+                   the SHARED leadTimeCutoff() that already decides which cells
+                   are too soon, so the words can never drift from the rule.
+                   Computed once per render, not once per cell. */
+                const tooSoonTip = (function () {
+                    const cutoff = leadTimeCutoff(weekData);
+                    const days = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+                    const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+                    return 'Rule : Only bookable at least 3 working days from today.'
+                        + '\nEarliest Bookable : ' + days[cutoff.getDay()] + ', '
+                        + cutoff.getDate() + ' ' + months[cutoff.getMonth()] + ' ' + cutoff.getFullYear();
+                })();
                 /* cancelled-slot-reuse S20: the base availability row is
                    offered ONLY where history would otherwise cover a
                    selectable free cell — decided from the real payload's
@@ -1173,9 +1187,13 @@
                         } else if (isSlotTooSoon(weekData, currentWeek, di)) {
                             /* lead-time rule (frozen template :861–866): inside
                                the 3-working-day window — rendered read-only
-                               (no Arrange tooltip, no keyboard) */
+                               (no Arrange tooltip, no keyboard). 2026-11-14
+                               (user): it still explains itself on hover — the
+                               in-cell two-line label is the short form, this
+                               data-tip is the long form. */
                             const div = document.createElement('div');
                             div.className = 'cell-content cell-too-soon';
+                            div.setAttribute('data-tip', tooSoonTip);
                             td.appendChild(div);
                         } else {
                             /* cancelled-slot-reuse A21: the served room matrix
