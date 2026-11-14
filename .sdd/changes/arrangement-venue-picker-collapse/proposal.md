@@ -136,7 +136,8 @@ Regression re-runs:
 ### 5. Changelog — `page-changelogs/replacement-arrangement-changelog.md`
 
 A new **`##` entry at the top** of the file (its convention is newest-first; the
-newest `##` is currently `## 2026-11-12 — desktop top zone Round 2` at line 1).
+newest `##` is currently `## 2026-11-13 — cancelled-slot-reuse Part B: the room-only holder is now the
+ACTUAL holder (S24/S25)` at line 1 — re-checked 2026-11-14).
 It cross-references the venue-page precedent and carries a one-line **ownership
 note**.
 
@@ -145,7 +146,7 @@ arrangement blade (tooltip composition) and **B03** is the one that rewrites
 *this changelog* ("Update arrangement changelog"). `renderArrangementVenuePicker`
 belongs to this lane and must not be reverted by either.
 
-The file also holds an uncommitted `###` block at lines **3753–3786** (the
+The file also holds an uncommitted `###` block at lines **3812–3846** (the
 2026-11-12 venue-sheet entry and the 2026-11-13 Selection Summary entry). Those
 stay exactly where they are — this lane does not move, reorder or rewrite them.
 
@@ -155,7 +156,7 @@ stay exactly where they are — this lane does not move, reorder or rewrite them
 This is not a normal clean-tree change and must not be treated as one.
 
 ```
-resources/views/livewire/replacement-arrangement.blade.php   +423 / -67   uncommitted
+resources/views/livewire/replacement-arrangement.blade.php   +424 / -164  uncommitted
 page-changelogs/replacement-arrangement-changelog.md         +35          uncommitted
 tests/venue-dropdown-responsive.spec.ts                      untracked
 ```
@@ -208,7 +209,7 @@ reformat it, and touches only its own hunks.
 Why not:
 
 - `git checkout` / `git restore` / `git stash` / `git clean` — revert or hide the
-  pre-existing `+423/−67`, which is not this lane's to discard.
+  pre-existing `+424/−164`, which is not this lane's to discard.
 - `git diff <file> > lane.patch` then `git apply -R lane.patch` — **does not
   work either.** `git diff` diffs against the index/HEAD, so the patch contains
   *every* uncommitted change in that file: the 94-line venue-sheet CSS insertion

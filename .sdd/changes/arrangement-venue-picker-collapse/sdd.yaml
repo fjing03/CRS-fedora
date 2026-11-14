@@ -1,6 +1,6 @@
 name: arrangement-venue-picker-collapse
 created: 2026-11-13
-status: ready-to-apply
+status: applied
 batch: done
 lane_shape: light
 planning_complete: true
@@ -13,11 +13,23 @@ specs_frozen: false
 tasks_review: passed
 tasks_frozen: true
 review_rounds: 4
-implementation_approved: false
-implementation_approval: ""
-implementation_blocked_by: "absolute gate: cancelled-slot-reuse B02 and B03 must be ticked before T1 — both edit these same two files"
-precedent: page-changelogs/venue-timetable-ui-changelog.md (2026-11-13)
+implementation_approved: true
+implementation_approval: "yes. proceed."
+implementation_approved_at: 2026-11-14
+applied_at: 2026-11-14
+applied_commit: "none — uncommitted, test file untracked, awaiting the user"
+implementation_blocked_by: ""
+open_items:
+  - "tests/arrangement-mobile.spec.ts not run: it requires a destructive migrate:fresh --seed on class_replacement_testing, which now holds the user's restored manual data"
+  - "tests/venue-dropdown-responsive.spec.ts is untracked (another session's file); this lane's test lives inside it"
+  - "the live 5-minute cron auto-rejected requests 35 and 39 in the testing DB at 19:15 while this lane applied; left unreverted"
+gate_cleared_at: 2026-11-14
+gate_cleared_note: "cancelled-slot-reuse B02 and B03 are both ticked and its Part B is committed (74ab29b, b1f13fd); T1 may start once the user approves implementation"
+precedent: page-changelogs/venue-timetable-ui-changelog.md (2026-11-13 + the 2026-11-14 tooltip entry)
+precedent_note: "the venue picker collapse itself is UNCOMMITTED work in venue-timetable.blade.php (12 hits in the working tree, 0 in HEAD) — quote it by structure, never by line number"
 dirty_baseline: true
-dirty_baseline_note: "blade +423/-67 uncommitted from two earlier sessions; changelog ### block 3753-3786 uncommitted; test file untracked; no git command is a valid rollback"
+dirty_baseline_note: "re-measured 2026-11-14: blade +424/-164 uncommitted from two earlier sessions; changelog ### block 3812-3846 uncommitted (+35 lines); test file untracked; no git command is a valid rollback"
 shared_files_touched: false
 promote_on_third_duplication: "2nd copy of the collapsible category header pattern; the 3rd must move it to theme.css"
+refs_resynced: 2026-11-14
+refs_resync_note: "line references re-checked against the tree: blade +424/-164 (was +423/-67); changelog block 3812-3846 (was 3753-3786); theme.css .skeleton 4471 (was 4273); newest ## in the arrangement changelog is the 2026-11-13 Part B entry; renderArrangementVenuePicker still 5332-5412 and its CSS still 1257-1263; tests/arrangement-mobile.spec.ts guard still line 72 and playwright.config.ts baseURL still line 10"

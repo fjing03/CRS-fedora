@@ -202,7 +202,7 @@ double-sticky band.
   `transition-duration: 0.01ms !important` on
   `body.arrangement-mobile-mode #arrangementMobile *` (and `::before`/`::after`),
   so the chevron's 0.15s transform collapses to nothing under reduced motion.
-  `theme.css:4273` only disables `.skeleton` — reading that alone gives the wrong
+  `theme.css:4471` only disables `.skeleton` — reading that alone gives the wrong
   answer. The test must not assert `transform` while reduced motion is emulated.
 
 ## 11. What could break, and why it does not
@@ -258,7 +258,7 @@ B02 lands, it holds the pre-B02 function and a rollback would revert B02's edits
    `groupIndex` in the callback signature.
 4. New test.
 5. Changelog: a new `##` entry at the top; do not touch the uncommitted `###`
-   block at 3753–3786.
+   block at 3812–3846.
 6. **Restart the blade** — `DB_DATABASE=class_replacement_testing scripts/dev-serve.sh 8030`
    — or the stale-view trap serves the old markup and the new test fails for a
    phantom reason.

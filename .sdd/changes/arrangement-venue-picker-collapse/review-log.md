@@ -376,3 +376,128 @@ negations ("does not work either" / "There is no … option") and should stay.
 
 Apply may start only after `cancelled-slot-reuse` **B02 and B03 are both ticked**
 (`sdd.yaml` → `status: ready-to-apply`, `implementation_approved: false`).
+
+## Re-sync — 2026-11-14 (no re-review, facts only)
+
+The plan was frozen on 2026-11-13; the tree has moved since. Re-checked every line
+reference the frozen artifacts quote and corrected the stale ones. **No design or task
+decision changed** — nothing was re-planned, and the verdicts above stand.
+
+| Frozen claim | Actual on 2026-11-14 | Where it was fixed |
+|---|---|---|
+| blade `+423 / −67` uncommitted | **`+424 / −164`** | proposal, tasks, `sdd.yaml` |
+| changelog block at **3753–3786** | **3812–3846** (the 2026-11-12 venue-sheet + 2026-11-13 Selection Summary entries, still uncommitted `+35`) | proposal, design, tasks, `sdd.yaml` |
+| `theme.css:4273` is `.skeleton` | **4471** — today's pop-up lanes grew the file | design |
+| newest `##` in the arrangement changelog is `2026-11-12 — desktop top zone Round 2` | **`2026-11-13 — cancelled-slot-reuse Part B: the room-only holder is now the ACTUAL holder (S24/S25)`** | proposal, tasks |
+| gate: B02 + B03 must be ticked | **both ticked**, Part B committed (`74ab29b`, `b1f13fd`) — gate **cleared** | tasks, `sdd.yaml` |
+| `renderArrangementVenuePicker` 5332–5412, CSS 1257–1263 | unchanged ✓ | — |
+| `tests/arrangement-mobile.spec.ts:72` guard, `playwright.config.ts:10` baseURL | unchanged ✓ | — |
+
+**One structural risk found while re-syncing.** The precedent this lane copies — the
+collapsible venue picker in `venue-timetable.blade.php` (its CSS at 249–296 and the
+`heading.className = 'venue-picker-group'` builder near 732) — is **uncommitted work in the
+working tree**: 12 hits there, **0 in `HEAD`**. So its line numbers are the least stable
+thing in the plan. Copy it **by structure** (`<button aria-expanded aria-controls>` + label +
+chevron + `[hidden]` items wrapper), and re-read it at apply time rather than trusting an
+offset. The new 2026-11-14 `tests/venue-selector-responsive.spec.ts` (untracked, the venue
+page's own picker receipt) also names `.venue-picker-group` / `svg.venue-picker-group-chevron`
+— that is the same pattern, on the other page, and it is not this lane's file.
+
+**Gate status now:** `implementation_blocked_by` is empty; `status` stays `ready-to-apply` and
+`implementation_approved` stays **false** — the lane still needs the user's explicit go-ahead
+before T1.
+
+## Apply log — 2026-11-14 (T1 → T7)
+
+User said "yes. proceed." Apply started only after the gate was confirmed clear.
+
+### T1 — baseline, captured from the tree (not restated)
+
+`/tmp/arr-venue-collapse/t1.txt`:
+
+```
+ M page-changelogs/replacement-arrangement-changelog.md
+ M resources/views/livewire/replacement-arrangement.blade.php
+?? tests/venue-dropdown-responsive.spec.ts
+ changelog  +35        · blade  +588/−164  (a re-read showed +424/−164 for the blade)
+regions: CSS `#arrangementMobile .arrangement-mobile-venue-group {` at 1257
+         JS  `function renderArrangementVenuePicker(query) {`     at 5332
+:8030 already LISTENing (php pid 2157978, DB_DATABASE=class_replacement_testing)
+```
+
+Rollback oracle = **region text only**, both saved before any edit:
+`/tmp/arr-venue-collapse/region-css.txt` (8 lines) and `region-js.txt` (81 lines).
+No whole-file copy, no git command used for rollback.
+
+**Green baseline:** `CRS_MODE=testing CRS_ALLOW_SQL=1 CRS_BASE=http://127.0.0.1:8030
+npx playwright test tests/venue-dropdown-responsive.spec.ts` → **6 passed** (3 auth
+setups + 3 tests), run twice, identical.
+
+### T2/T3 — what was written
+
+- CSS: the 8-line caption rule replaced by a 47-line block — sticky bar, token fill
+  `--color-surface-variant`, `1px solid var(--color-outline)`, `var(--radius-sm)`,
+  `font: inherit` **before** `font-size: 11px`, plus `-label` (ellipsis trio),
+  `-chevron` (14px, 0.15s transform), `[aria-expanded="false"]` rotation,
+  `-items[hidden]`, hover/:focus-visible border, 2px primary focus outline.
+- JS: `forEach(function (group, groupIndex))`; `<button type="button">` with
+  `aria-expanded` + `aria-controls="arrangementPickerGroup<N>"` + `data-venue-group`;
+  label span; chevron built with `createElementNS` (svg **and** path);
+  `-items` wrapper with `hidden`; toggle reading state back from the DOM; items
+  appended to that wrapper. Item markup, `data-venue-code`, `aria-pressed` and the
+  `venueDropdown.select` click are byte-identical.
+
+### T4 — test
+
+One new test in `tests/venue-dropdown-responsive.spec.ts` (line 117), covering the
+six design §12 points, including the `groupCount > 1` guard before the
+"search opens everything" assertion (`tutorial` → 2 groups, 16 rooms on the served
+data) and a **polled** chevron transform (`matrix(0, -1, 1, 0, 0, 0)`).
+
+### T6 — verification actually performed
+
+| Check | Result |
+|---|---|
+| `venue-dropdown-responsive.spec.ts` (**the exact blessed invocation**) | **7 passed / 21.4s** (3 setups + 4 tests, new test included) |
+| Groups on the served data | 2 — `B|0` (11 rooms), `B|1` (12 rooms) |
+| Default state | first `aria-expanded="true"`, second `"false"` |
+| Bar reads as chrome | bar `rgb(36,52,71)` dark / `rgb(228,232,238)` light; rows and body transparent |
+| Bar geometry | `48px` tall, `8px` radius, `11px`/700, uppercase, `position: sticky` |
+| Chevron | one `svg…-chevron` per header, 14px, real `path` |
+| Mouse fold | header 1 → closed, header 2 → open; chevron transform polled |
+| Keyboard | **real Tab** from the search box lands on the bar with `outline: 2px solid rgb(0,77,152)` (`--color-primary`) and the border moves to `--color-outline-strong`; **Space** closes, **Enter** reopens |
+| Search across groups | `tutorial` → both groups `aria-expanded="true"`, both lists visible |
+| Selection | `B010` still fills the chip, sheet closes |
+| Both themes | checked dark + light, tokens only, no per-theme override needed |
+| Desktop 1440 | 1 `venue-col.visible` default, 0 group bars in the DOM, **0 console/page errors** |
+| Phone 390 | 2 group bars, **0 console/page errors** |
+| Blade diff | only this lane's two hunks — the CSS insertion rides inside the other session's pre-existing `+94` block (adjacent), and the JS hunk sits on top of the pre-existing uncommitted function. Nothing of theirs was reformatted or removed |
+| Changelog diff | 2 hunks: the new entry at the top, and the pre-existing block at 3812–3846 (untouched, still `+35`) |
+
+Screenshots: `/tmp/arr-venue-collapse/{sheet-dark,sheet-light,focus-ring,final-phone,final-desktop}.png`.
+
+### Honest gaps
+
+1. **`tests/arrangement-mobile.spec.ts` was NOT run.** Its own header requires
+   `DB_DATABASE=class_replacement_testing php artisan migrate:fresh --seed`, and it
+   inserts/deletes `time_slots`, `class_exceptions` and `holidays` rows. That
+   database now holds the user's restored manual data (2026-11-14 restore), so a
+   destructive run needs explicit permission. Its `t22DifferentVenue` helper was
+   checked statically instead: it queries `.arrangement-mobile-venue-item` and
+   `data-venue-code`, both unchanged. **This is the lane's one missing regression
+   receipt.**
+2. **The user's live cron changed the testing DB while I worked:** at
+   19:15:01 (+08) `requests:auto-reject` rejected requests **#35** and **#39**
+   (both `pending` with deadlines already past), which deleted 4 junction rows and
+   wrote 6 audit rows (`request_slots` 18 → 14, `audit_logs` 164 → 170). That is the
+   documented behaviour of the every-5-minute sweep on restored older data — **not**
+   this lane, and **not** reverted. Left for the user to decide.
+3. `tests/venue-dropdown-responsive.spec.ts` stays **untracked** (another session's
+   file). This lane's test lives inside it, so the test cannot be committed without
+   dragging that file along. Not staged.
+4. No `theme.css`, `ui-common.js`, partial or desktop picker change; nothing committed.
+
+### Final line numbers
+
+CSS region now starts at **1261**; `renderArrangementVenuePicker` at **5379**.
+`cancelled-slot-reuse` B02/B03 had already landed (committed `74ab29b`) before T1.

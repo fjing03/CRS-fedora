@@ -1,3 +1,35 @@
+## 2026-11-14 — the phone venue sheet's grey captions became folding bars
+
+The "Choose venue" sheet listed 23 rooms under grey captions (`Block B · Floor 0`,
+`Block B · Floor 1`). The captions were decoration — they did nothing, and the list
+was a long scroll of rooms with no way to skip a block.
+
+- **Each caption is now a bar you can tap or click to fold its rooms away**, with a
+  small arrow that turns. It is a real button, so Tab reaches it and Enter or Space
+  toggles it; the focus ring is the shared primary outline.
+- **The first block is open when the sheet opens; the rest start folded.**
+- **A search opens every block that has a match** — otherwise your result could sit
+  hidden inside a folded block. One room search still behaves as before.
+- **Opening the sheet again, or typing, resets the folding on purpose.** That is the
+  same behaviour as the venue page's own picker, so the two sheets no longer disagree.
+  One consequence worth knowing: a room you picked from a later block is not visible
+  when you reopen the sheet — the first block is open again. Not a defect.
+- The bar is sticky at the top of the scrolling list, so while you scroll a long
+  block its name stays visible.
+
+Nothing else changed: the rows themselves, the search box, the seat counts, picking
+a room and the chip are byte-identical, and the desktop four-column picker is
+untouched. Verified at 390px in both themes, by mouse and by keyboard, plus a new
+test that pins the fold state, the bar's own fill, the arrow, and the
+"search opens every matching block" rule across two groups.
+
+**Same pattern as the venue page** (`venue-timetable.blade.php`, `.venue-picker-group`)
+— this is the second copy. If a third page needs it, it must move into `theme.css`.
+
+**Ownership note:** `renderArrangementVenuePicker` belongs to this change. The
+`cancelled-slot-reuse` work (**B02/B03**) touched the same file and this changelog and
+must not revert it.
+
 ## 2026-11-13 — cancelled-slot-reuse Part B: the room-only holder is now the ACTUAL holder (S24/S25)
 
 **What a room-only blocked cell says.** A cell blocked only by the ROOM (the viewer
