@@ -3,7 +3,7 @@
 > The always-read form of the user's coding rules for `CRS-fedora-backend`.
 > Distilled from `CodingMAIN.md §10` (Coding Conventions + UI Design Rules, user-mandated 2026-08-01)
 > and `AGENTS.md` standing rules. On any conflict, **CodingMAIN.md §10 wins** — and tell the user
-> this file has drifted so it can be re-synced. Last synced: 2026-11-14.
+> this file has drifted so it can be re-synced. Last synced: 2026-11-14 late evening (adds: no card may hide its action, list rows are stacks, one icon home).
 
 ## 1. UI Design Rules — non-negotiable, every page, every change
 
@@ -30,6 +30,22 @@
    - **One details-popup width: 680px** (2026-11-11/12). The student Class Replacements popup is the staff
      Replacement Details popup (four tabs, static Close-left / Go-right footer, conflict strip above the tabs);
      `.modal-tabs` wraps below 520px. Do not shave one page's modal narrower.
+   - **680 is a ceiling, not a fixed width** (2026-11-14). ONE shared `theme.css` rule sizes every pop-up — no
+     page pins its own width. Above 600px: `width: fit-content`, 420px floor, `max-height: 85dvh`; at ≤600px: a
+     full-width phone sheet. Variant ceilings: details 680 · guide 520 · summary 420 · Cancel Class 560 (588 at
+     ≥1025). Close button 48×48; the phone footer stretches every button; header / scrolling body / footer are
+     pinned separately. The grey facts strip never decides the width (`width: 0; min-width: 100%`).
+   - **A list opened inside a pop-up is never clipped** (2026-11-14): `overflow: visible` while it is open; on
+     phones it opens upward inside the sheet. One arrow language inside pop-ups — the `.week-select` chevron at
+     a 12px inset, same stroke in both themes.
+   - **A card never hides the action it exists for** (2026-11-14). The arrangement Selection Summary
+     cannot fold — its chevron could hide the picked slots, the totals and Submit Request. The other two
+     cards keep their toggles. A collapsible region may hide reference detail, never the card's action.
+   - **A list row is a stack, not a sentence** (2026-11-14). Slot rows read: type + week + date → time
+     (`~`) → venue → `CODES (N cohorts)`, badge top-aligned. The bracket counts the cohorts underneath,
+     not the distinct codes. Keep `.slot-dd-item-label` / `.slot-dd-item-cohort` (specs click/read them).
+   - **One icon home per page** (2026-11-14): glyph strings in one page-level constant (`RA_ICONS`),
+     never copied into a second builder.
    - **A cancelled original hides only for its OWN approval** (2026-11-14): its block leaves the timetable
      only when that exact class occurrence's replacement request is **Approved**. Pending, rejected,
      withdrawn/cancelled, auto-rejected and no-request states keep the cancelled block; another
@@ -101,6 +117,10 @@ Adding a new status/legend item = **ONE row** in the relevant table above + **ON
 7. **Minimise steps — fewest clicks.** Pre-select sensible defaults; no page-hopping for a single task; >~3 clicks → rethink the flow.
 8. **Confirm critical actions, and say when it is final.** Delete / submit / cancel / approve / reject → confirmation popup BEFORE executing. A decision that cannot be taken back also carries the shared sentence **"This action cannot be UNDONE."** — one partial, `resources/views/partials/ui-irreversible-line.blade.php`, included by the Approve, Reject, Cancel Request and Cancel Class modals. Reversible actions do not get it. **Cancel Class wears the SHORT form** (user 2026-11-10): the same partial's opt-in `compact` arm prints **`CANNOT UNDONE`** in the modal FOOTER, right-aligned above Yes, and only while Yes is armed — the other three keep the long sentence. **The modal can also cancel the whole day** (2026-11-11): the optional block ticks every class the lecturer teaches that day; one transaction cancels the set, closes pending/approved requests and releases slots; the make-up block is a note, never a tickable row; the single-class path stays unchanged. **Cancel Class acts on what was clicked** (2026-11-14): an approved replacement is cancelled by its own request plus the shown landing day, never by re-cancelling its already-cancelled source; the success list and count name only what the server actually saved.
 9. **Mobile responsive on every page** (≤768px breakpoint): nav drawer, card layout for tables, 2-col summary cards, flex-wrap legend, bottom-sheet modals, ≥44×44px touch targets (WCAG 2.5.5), swipe week navigation, `clamp()` typography, safe-area insets, full-width inputs, viewport meta with `viewport-fit=cover`. Shared CSS in `theme.css`, JS helpers in `ui-common.js`. **`/replacement-arrangement` uses its dedicated phone day view** (2026-11-12): one day at a time, compact weekday/date picker, shared bottom-sheet frame, fixed action footer; desktop keeps the grid. Do not fork that page's mobile layout into another page.
+   - **A floating box stays inside the window** (2026-11-14). Any box floating over the page needs a width
+     ceiling (`max-width: min(340px, calc(100vw - 24px))`) and JS that clamps it 8px inside every edge, opens it
+     ABOVE the anchor when there is no room below, re-places it on `resize` (after layout), and hides it when a
+     pop-up opens over it. Measure it at `left: 8px` first — measuring at the final spot loops and ends on the edge.
 10. **Toast bar for critical actions.** Bottom-left toast with the success message, auto-dismiss after **5 seconds** — `toast.show(message, undoCallback, duration)` in `ui-common.js`, CSS in `theme.css`. **Undo is offered only where the action is genuinely reversible** (hiding a notification, clearing a selection). **Cancel Class is FINAL** (user ruling 2026-11-05: *"i give up all UNDONE function"*) — no undo button, no undo callback, no server undo route; the confirmation itself is the receipt. The cancellation reminder is **one-shot**: it may return on ONE later page load, never on every load, and a `?blocked=` arrival speaks first (its own message wins; the reminder keeps its turn for the next load).
 11. **Dates and times speak one format — already shipped, keep it.** Date `5 Nov 2026` (no leading zero, day first); time `2:00 PM`; range `2:00 PM ~ 4:00 PM` (the tilde is the joiner; a hyphen is acceptable but never mix joiners in one element; the en dash `–` is not a range joiner). Day word `Thu` in compact lines (table cells, cards, chips, picker labels, tooltips) and `Thursday` in prose (sentences, questions, toasts, expanded modal rows). The 24-hour grid hour axis is a scale and stays 24-hour; notification tooltips stay short (no year). Emails carry the full date + 12-hour range (`Mon, 9 Nov 2026, 1:30 PM ~ 3:30 PM`) via `ReplacementRequestMapper::mailSchedule()`. Full audit + batch log: `docs/date-time-format-audit-2026-11-07.md`. New surface → use the standard, never invent a fourth shape.
 
