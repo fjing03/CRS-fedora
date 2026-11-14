@@ -2235,7 +2235,9 @@ var SummaryCards = {
             var target = e.target;
             /* The info button owns its own activation — do not also flip the card. */
             if (target.closest && target.closest('[data-summary-info]')) return;
-            var card = target.closest ? target.closest('.summary-section--flip .summary-card') : null;
+            var card = target.closest
+                ? target.closest('.summary-section--flip .summary-card, #summarySheetBody .summary-card')
+                : null;
             if (!card) return;
             e.preventDefault();
             SummaryCards.toggle(card);
@@ -2244,7 +2246,9 @@ var SummaryCards = {
         /* Once the pointer leaves, the click-pinned unflipped state is released,
            so hover behaves normally on the next visit. */
         document.addEventListener('mouseout', function (e) {
-            var card = e.target.closest ? e.target.closest('.summary-section--flip .summary-card') : null;
+            var card = e.target.closest
+                ? e.target.closest('.summary-section--flip .summary-card, #summarySheetBody .summary-card')
+                : null;
             if (!card || card.contains(e.relatedTarget)) return;
             card.classList.remove('is-unflipped');
         });

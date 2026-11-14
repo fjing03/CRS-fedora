@@ -121,7 +121,7 @@
     @include('partials.page-data-script', ['payload' => $payload])
 
         <!-- ─── Page Header ─── -->
-        @include('partials.ui-page-header', ['title' => 'Class Replacements', 'guideToggle' => true, 'chips' => $cohortLabel !== null ? [['label' => $cohortLabel]] : []]) {{-- BRIDGE PATCH: cohort chip is per-user data --}}
+        @include('partials.ui-page-header', ['title' => 'Class Replacements', 'guideToggle' => true, 'summaryButton' => true, 'chips' => $cohortLabel !== null ? [['label' => $cohortLabel]] : []]) {{-- BRIDGE PATCH: cohort chip is per-user data --}}
 
         @include('partials.ui-guide-block', [
             'showToggle' => false,
