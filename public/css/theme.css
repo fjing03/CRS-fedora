@@ -887,6 +887,48 @@ body {
 .page-header {
     margin-bottom: 20px;
 }
+/* Scoped to the shared partial's wrapper so raw/frozen template headers keep
+   their original block flow (the frozen request-approval template still has
+   bare h1 + p children). */
+.page-header:has(> .page-header-main) {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+}
+.page-header-main {
+    min-width: 0;
+    flex: 1 1 auto;
+}
+.guide-toggle-icon {
+    flex: 0 0 auto;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    padding: 0;
+    border: 1px solid var(--color-outline);
+    border-radius: var(--radius-md);
+    background: var(--color-surface);
+    color: var(--color-primary);
+    cursor: pointer;
+    transition: background var(--transition), border-color var(--transition),
+                color var(--transition);
+}
+.guide-toggle-icon:hover {
+    background: var(--color-surface-variant);
+    border-color: var(--color-outline-strong);
+}
+.guide-toggle-icon:focus-visible {
+    outline: 2px solid var(--color-primary);
+    outline-offset: 2px;
+}
+.guide-toggle-icon[aria-expanded="true"] {
+    background: var(--color-primary-container);
+    border-color: var(--color-primary);
+    color: var(--color-on-primary-container);
+}
 .page-title {
     font-size: 22px;
     font-weight: 700;
@@ -1123,6 +1165,34 @@ body {
 .guide-list li strong {
     font-weight: 600;
     color: var(--color-on-surface);
+}
+/* Icon-only guide: the header icon owns the toggle, so the old bar chrome and
+   margin disappear while #guideBlock keeps the same open/closed class law. */
+.guide-block--content {
+    margin: 8px 0 12px;
+    background: transparent;
+    border: 0;
+    border-radius: 0;
+    overflow: visible;
+}
+.guide-block--content .guide-content {
+    padding: 8px 0 12px;
+}
+.guide-description {
+    margin: 0 0 10px;
+    font-size: 14px;
+    line-height: 1.5;
+    color: var(--color-on-surface-variant);
+}
+@media (max-width: 768px) {
+    /* the global mobile button floor is 48px; this control's frozen target is
+       44px, so opt out explicitly. */
+    .guide-toggle-icon {
+        width: 44px;
+        height: 44px;
+        min-width: 44px;
+        min-height: 44px;
+    }
 }
 
 /* ───── Week Filter ───── */
@@ -1665,6 +1735,114 @@ html.dark .filter-select {
 .summary-description strong {
     font-weight: 700;
     color: var(--color-on-surface);
+}
+
+/* ───── Flip-card variant (timetable pages) ─────
+   96px cards, left-aligned three-bullet backs and a 44px info button, matching
+   the approved mobile-preview design. Scoped to the opt-in section class so
+   the other summary pages keep their existing cards. */
+.summary-section--flip .summary-card {
+    min-height: 96px;
+    cursor: pointer;
+}
+.summary-section--flip .summary-card-inner {
+    min-height: 96px;
+    height: 96px;
+}
+/* Hover flip is pointer-only and yields to an explicit click/tap state, so a
+   pinned ("show me the back") card is not undone by moving the pointer away. */
+@media (hover: hover) and (pointer: fine) {
+    .summary-section--flip .summary-card:not(.is-unflipped):hover .summary-card-inner {
+        transform: rotateY(180deg);
+    }
+}
+.summary-section--flip .summary-card.is-flipped .summary-card-inner {
+    transform: rotateY(180deg);
+}
+.summary-section--flip .summary-card-back {
+    padding: 6px 8px;
+    align-items: flex-start;
+    justify-content: flex-start;
+    text-align: left;
+}
+.summary-section--flip .summary-card-back .summary-description {
+    width: 100%;
+    font-size: 12px;
+    line-height: 1.15;
+    padding-right: 30px;
+}
+.summary-section--flip .summary-value .sum-pending {
+    font-size: 0.62em;
+    font-weight: 600;
+    margin-left: 1px;
+}
+.summary-points {
+    margin: 0;
+    padding-left: 12px;
+    display: grid;
+    gap: 0;
+}
+.summary-points li::marker {
+    color: var(--color-on-surface-variant);
+}
+.summary-points .summary-normal { color: var(--color-on-secondary-container); }
+.summary-points .summary-replacement { color: var(--color-on-primary-container); }
+.summary-points .summary-pending { color: var(--color-on-tertiary-container); }
+.summary-points .summary-excluded { color: var(--color-on-error-container); }
+.summary-info {
+    position: absolute;
+    right: 0;
+    bottom: 0;
+    width: 44px;
+    height: 44px;
+    min-width: 44px;
+    min-height: 44px;
+    display: grid;
+    place-items: center;
+    padding: 0;
+    border: 0;
+    border-radius: var(--radius-sm);
+    background: transparent;
+    color: var(--color-on-surface-variant);
+    cursor: pointer;
+}
+.summary-info:hover,
+.summary-info:focus-visible {
+    color: var(--color-primary);
+    background: var(--color-primary-container);
+}
+.summary-section--flip .summary-card:not(.is-flipped):not(:hover) .summary-info {
+    visibility: hidden;
+}
+.summary-section--flip .summary-card:focus-visible {
+    outline: 2px solid var(--color-primary);
+    outline-offset: 2px;
+    border-radius: 16px;
+}
+.modal.modal--summary { max-width: 420px; }
+.modal.modal--guide { max-width: 520px; }
+.summary-explanation {
+    font-size: 13px;
+    line-height: 1.5;
+    color: var(--color-on-surface);
+}
+body.summary-locked { overflow: hidden; }
+@media (max-width: 768px) {
+    .summary-section--flip .summary-card,
+    .summary-section--flip .summary-card-inner { min-height: 96px; }
+    /* The approved Week-summary sheet uses two columns on phones; the flip-card
+       variant follows it. Scoped, so the other summary pages keep their grid. */
+    .summary-section--flip .summary-bar {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 10px;
+    }
+    .modal.modal--summary { max-width: 100%; }
+}
+/* Phones: the back copy needs the full card, so keep the 96px target and drop
+   the front padding that would otherwise squeeze the bullets. */
+@media (max-width: 768px) {
+    .summary-section--flip .summary-card-back { padding: 6px 8px; }
+    .summary-section--flip .summary-card-front { padding: 12px 8px; }
 }
 
 /* ───── Responsive ───── */
@@ -2400,6 +2578,16 @@ html.dark .filter-select {
 }
 .week-select:hover {
     border-color: var(--color-primary);
+}
+/* Timetable pages only: the approved preview puts the week selector on the
+   tinted surface at rest and the plain surface on hover. The chevron, option
+   colours, height and focus ring are untouched, and the replacement pages'
+   selects keep their existing white surface. */
+.week-select--tinted {
+    background-color: var(--color-surface-variant);
+}
+.week-select--tinted:hover {
+    background-color: var(--color-surface);
 }
 .week-select:focus {
     outline: none;
@@ -3973,6 +4161,12 @@ tr.bookable-flash.bookable-flash--warning > td { animation: bookable-pulse-warni
     }
     .summary-card-inner {
         min-height: 60px;
+    }
+    /* The flip-card variant keeps its approved 96px height on phones too. */
+    .summary-section--flip .summary-card,
+    .summary-section--flip .summary-card-inner {
+        min-height: 96px;
+        height: 96px;
     }
     .summary-card-front,
     .summary-card-back {
