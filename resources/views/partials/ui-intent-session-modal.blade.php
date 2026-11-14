@@ -15,15 +15,33 @@
                 <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: var(--color-error); vertical-align: -2px; margin-right: 6px;"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg><span id="intentNoticeText"></span>
             </div>
             {{-- venue-intent-advisory (user minor-update, 2026-11-02): the
-                 ALWAYS-visible availability caveat. Bold + selective caps +
-                 token colors only (yellow head, red risk line, blue/green
-                 keyword classes). No booking or conflict-selection logic
-                 touched. --}}
+                 ALWAYS-visible availability caveat. Token colors only (yellow
+                 head, red risk line, blue/green keyword classes).
+
+                 2026-11-14 (user): the caveat folds. The two facts that change
+                 a decision — the check is venue-only, and "available" does not
+                 mean "conflict-free" — stay on screen; only the scope sentence
+                 opens on click, and the default state is collapsed.
+
+                 Two sentences were removed rather than folded:
+                 - "Please verify your timetable before proceeding" — Arrange
+                   books nothing, it hands off to /replacement-arrangement,
+                   which shows the real conflict picture one step later.
+                 - "You may also select another available time slot on this
+                   page" — describes the picker to itself. --}}
             <div class="detail-group intent-advisory">
-                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: var(--color-warning); vertical-align: -2px; margin-right: 6px;" aria-hidden="true"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg><span class="advisory-head">Warning: Venue availability only</span>
-                <span class="advisory-line">This page checks availability for the <span class="ge-keyword">selected venue</span> only. It does <b>not</b> check your own timetable or the <span class="ge-keyword">cohort timetable</span>.</span>
-                <span class="advisory-line"><b style="color: var(--color-error);">A time slot marked as <span class="go-keyword">available</span> may still have scheduling conflicts.</b></span>
-                <span class="advisory-line">Please <span class="ge-keyword">verify your timetable</span> before proceeding. You may also select another available time slot on this page.</span>
+                <button type="button" class="intent-advisory-bar"
+                        aria-controls="intentAdvisoryDetail"
+                        aria-expanded="false"
+                        onclick="var d=document.getElementById('intentAdvisoryDetail');if(!d)return;var open=d.hidden;d.hidden=!open;this.setAttribute('aria-expanded',String(open))">
+                    <svg class="intent-advisory-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                    <span class="intent-advisory-text">
+                        <span class="advisory-head">Warning: Venue availability only</span>
+                        <span class="advisory-risk">Slots marked <span class="go-keyword">available</span> may still conflict</span>
+                    </span>
+                    <svg class="intent-advisory-chevron" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
+                </button>
+                <p class="intent-advisory-detail" id="intentAdvisoryDetail" hidden>This page only checks the <span class="ge-keyword">selected venue</span> — <span class="ge-keyword">your own</span> and the <span class="ge-keyword">cohort timetable</span> are not consulted.</p>
             </div>
             <div id="intentPickers" class="detail-group">
                 <div class="detail-group-title">Class information</div>

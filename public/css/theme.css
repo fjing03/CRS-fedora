@@ -5009,7 +5009,7 @@ textarea:disabled { cursor: not-allowed; }
 }
 .intent-notice .notice-head + .notice-muted { margin-top: 4px; }
 .intent-notice .notice-muted,
-.intent-advisory .advisory-line {
+.intent-advisory .intent-advisory-detail {
     color: var(--color-on-surface-variant);
     font-size: 13px;
     line-height: 1.55;
@@ -5035,14 +5035,69 @@ textarea:disabled { cursor: not-allowed; }
     margin-top: 10px;
     padding: 2px 0 2px 10px;
 }
+/* 2026-11-14 (user): the caveat folds. The bar keeps the two facts that change
+   a decision — venue-only scope and the available-but-conflicting trap — and
+   the scope sentence opens on click, collapsed by default. `.advisory-line`
+   retired with the two sentences it used to carry. */
+.intent-advisory-bar {
+    display: flex;
+    align-items: flex-start;
+    gap: 6px;
+    width: 100%;
+    padding: 0;
+    border: 0;
+    background: none;
+    color: inherit;
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+}
+.intent-advisory-bar:focus-visible {
+    outline: 2px solid var(--color-primary);
+    outline-offset: 2px;
+}
+.intent-advisory-icon {
+    flex: 0 0 auto;
+    width: 14px;
+    height: 14px;
+    margin-top: 2px;
+    color: var(--color-warning);
+}
+.intent-advisory-text {
+    flex: 1 1 auto;
+    min-width: 0;
+}
 .intent-advisory .advisory-head {
+    display: block;
     color: var(--color-warning);
     font-weight: 700;
     text-transform: uppercase;
     line-height: 1.5;
 }
-.intent-advisory .advisory-line { display: block; }
-.intent-advisory .advisory-line + .advisory-line { margin-top: 4px; }
+.intent-advisory .advisory-risk {
+    display: block;
+    margin-top: 2px;
+    color: var(--color-error);
+    font-weight: 700;
+    font-size: 13px;
+    line-height: 1.55;
+}
+.intent-advisory-chevron {
+    flex: 0 0 auto;
+    width: 12px;
+    height: 12px;
+    margin-top: 5px;
+    color: var(--color-on-surface-variant);
+    transform: rotate(-90deg);          /* collapsed: pointing right */
+    transition: transform 0.15s ease;
+}
+.intent-advisory-bar[aria-expanded="true"] .intent-advisory-chevron {
+    transform: rotate(0deg);            /* expanded: pointing down */
+}
+.intent-advisory-detail {
+    margin: 6px 0 0;
+}
+.intent-advisory-detail[hidden] { display: none; }
 
 /* ── Data-Tip Tooltip (shared CSS) ──────────────────────────── */
 /* SDD tidy-arrangement-cell-tooltips (2026-10-27): the multi-line tips
