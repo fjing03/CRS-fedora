@@ -3,7 +3,7 @@
 > The always-read form of the user's coding rules for `CRS-fedora-backend`.
 > Distilled from `CodingMAIN.md §10` (Coding Conventions + UI Design Rules, user-mandated 2026-08-01)
 > and `AGENTS.md` standing rules. On any conflict, **CodingMAIN.md §10 wins** — and tell the user
-> this file has drifted so it can be re-synced. Last synced: 2026-11-14 late evening (adds: no card may hide its action, list rows are stacks, one icon home).
+> this file has drifted so it can be re-synced. Last synced: 2026-11-14 night (adds: cards behind one phone button, overlay-not-dialog layering, per-surface locks, hide-the-control rule, hunk-commit check).
 
 ## 1. UI Design Rules — non-negotiable, every page, every change
 
@@ -46,6 +46,16 @@
      not the distinct codes. Keep `.slot-dd-item-label` / `.slot-dd-item-cohort` (specs click/read them).
    - **One icon home per page** (2026-11-14): glyph strings in one page-level constant (`RA_ICONS`),
      never copied into a second builder.
+   - **Phone hides the cards behind one header button** (2026-11-14, lane `summary-cards-button`):
+     ≤768px moves `#summarySection` (never copies it) into the shared sheet from `ui-summary-bar`.
+     The move is the point — the pages hide that section via inline `display`; ids and card arrays stay.
+   - **A sheet is an overlay, not `<dialog>`, when something must open above it** (2026-11-14): top layer
+     beats any `z-index`, so lift the upper dialog instead (1200 sheet / 1400 dialog / 9999 tooltips).
+     **One Escape, one layer**: capture-phase listener that no-ops while the upper dialog is open, and a
+     Tab trap suspended for that time. **A scroll lock is per surface** — never reuse `summary-locked`.
+   - **A control hides when its target is hidden** (2026-11-14): read the target's own computed `display`
+     on a `MutationObserver` (runtime hides exist), never `offsetParent` (null inside a closed overlay).
+     A sheet never prints: `@media print` + `beforeprint` un-relocate + `afterprint` restore.
    - **A cancelled original hides only for its OWN approval** (2026-11-14): its block leaves the timetable
      only when that exact class occurrence's replacement request is **Approved**. Pending, rejected,
      withdrawn/cancelled, auto-rejected and no-request states keep the cancelled block; another
@@ -230,6 +240,13 @@ Adding a new status/legend item = **ONE row** in the relevant table above + **ON
        (that would trigger promote-on-3rd-duplication, which always needs a lane).
     5. **User says go** — the exemption is granted per change, not assumed.
     Everything else gets a lane. "It looked small" is not criterion 1.
+- **After a hunk-wise commit, diff the index against the worktree for every lane file** (2026-11-14).
+  Staging selected hunks out of files that also hold another session's work is the right move, but a
+  hunk filter keyed on a marker string silently drops the hunks that carry no marker — one lane's
+  keydown/mouseout delegations were committed missing this way, and only `git diff` after the commit
+  showed it. `git diff --stat` for your files must be empty of YOUR lines before you call it done; if a
+  line of yours sits on a line another session rewrote, build the index entry from `HEAD` + your change
+  (`git hash-object` + `update-index --cacheinfo`) instead of committing their half.
 
 ## 6. Hard session-ops absolutes live elsewhere — obey both, don't duplicate
 
