@@ -1,3 +1,26 @@
+## 2026-11-14 — the Select a Session pop-up: list no longer cut off, one arrow
+
+Two defects the user found in the shared "Select a Session" pop-up.
+
+**The session list was cut off.** Opening the picker showed one row and hid the
+rest behind the pop-up's edge. Cause: the pinned layout added earlier today makes
+the pop-up clip its own body, and the list is an absolutely positioned layer
+inside that body — measured 53px hidden. While the picker is open, both clippers
+step aside, so every row is visible and clickable; closing restores them exactly
+as they were. On a phone the sheet sits flush on the screen edge, so there the list
+opens **upward** instead — measured at 390: both rows fully on screen.
+
+**Two different arrows on one form.** The Subject control is a native select, so the
+browser drew its own arrow at the padding edge while the Session picker beside it
+drew a custom chevron inset 12px. Inside a pop-up both controls now draw the same
+10×6 chevron at the same inset, reusing the stylesheet's existing (sanctioned)
+arrow — no new colour, light theme included. Page-level filter selects are
+untouched, because the rule is scoped to pop-ups.
+
+Checked in a real browser at 1440 (dark and light) and 390: every picker row
+visible, the two arrows identical in shape and inset, nothing else moved.
+`ModalConsistencyTest` **16/16** with the two new pins.
+
 ## 2026-11-14 — the facts strip stops leaving an empty gap
 
 Details pop-ups still showed a dead strip of empty space beside their short rows.

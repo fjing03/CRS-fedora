@@ -124,6 +124,44 @@ class ModalConsistencyTest extends TestCase
     }
 
     /**
+     * 2026-11-14 (SDD modal-dropdown-fixes, user report with a screenshot): two
+     * defects in the shared Select a Session pop-up.
+     *
+     * 1. The session picker's list was CLIPPED. The pinned pop-up layout makes
+     *    `.modal` overflow:hidden and `.modal-body` a scroll box, and the panel is
+     *    an absolutely positioned child inside it — measured 53px of the list hidden.
+     *    While the picker is open both clippers step aside (and on phones the list
+     *    opens upward instead, because the sheet sits flush on the viewport edge).
+     * 2. The Subject select drew the browser's own arrow while the Session picker
+     *    beside it draws a custom 10x6 chevron — two arrow languages on one form.
+     *    The pop-up's selects now use the sanctioned shared chevron.
+     */
+    public function test_the_session_picker_is_not_clipped_and_the_arrows_match(): void
+    {
+        $css = $this->read('public/css/theme.css');
+
+        $this->assertMatchesRegularExpression(
+            '/\.modal:has\(\.session-dd\.open\),\s*\n\s*\.modal-body:has\(\.session-dd\.open\) \{ overflow: visible; \}/',
+            $css,
+            'an open session picker must escape both clippers',
+        );
+        $this->assertMatchesRegularExpression(
+            '/@media \(max-width: 600px\) \{[\s\S]*?\.session-dd-panel \{[^}]*bottom: calc\(100% \+ 4px\);/s',
+            $css,
+            'phones open the list upward — the sheet sits on the viewport edge',
+        );
+
+        /* one chevron for the pop-up's native selects, the sanctioned data URI */
+        $this->assertMatchesRegularExpression(
+            '/\.modal \.filter-select \{[^}]*appearance: none;[^}]*padding-right: 34px;[^}]*background-position: right 12px center;/s',
+            $css,
+            'the pop-up selects draw the shared chevron at the same inset',
+        );
+        $this->assertStringContainsString('.light .modal .filter-select', $css,
+            'the light theme needs its own stroke (an SVG data URI cannot use var())');
+    }
+
+    /**
      * 2026-11-11 (user): the Replacement Details pop-up prints its venue as PLAIN
      * text — `B010 — Computer Lab`, the same row Request Details prints — with no
      * house icon and none of the table's muted `.cell-sub` skin. The TABLES keep

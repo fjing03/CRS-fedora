@@ -1224,6 +1224,27 @@ body {
     background: var(--color-surface);
     color: var(--color-on-surface);
 }
+
+/* ── 2026-11-14 (modal-dropdown-fixes, user): one arrow inside a pop-up ──
+   The pop-up's Subject control is a native <select class="filter-select">, so the
+   browser drew its own arrow at the padding edge while the Session picker beside
+   it draws a custom 10x6 chevron inset 12px — two arrow languages on one form.
+   Scoped to `.modal`, so page-level filter selects keep their look. The data URI
+   is the SANCTIONED chevron copied verbatim from .week-select (no new hex); the
+   light-theme stroke mirrors .light .week-select. */
+.modal .filter-select {
+    appearance: none;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    padding-right: 34px;   /* 12px inset + 10px glyph + 12px breathing room */
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%239EAAB8' stroke-width='1.5' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 12px center;
+}
+.light .modal .filter-select {
+    color-scheme: light;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%235A6978' stroke-width='1.5' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+}
 html.dark {
     color-scheme: dark;
 }
@@ -3662,6 +3683,28 @@ tr.bookable-flash.bookable-flash--warning > td { animation: bookable-pulse-warni
     scrollbar-width: thin;
 }
 .session-dd.open .session-dd-panel { display: flex; }
+/* 2026-11-14 (modal-dropdown-fixes, user): the picker's list was clipped.
+   `modal-responsive-width` turned the pop-up into a pinned three-row flex column
+   (.modal overflow:hidden, .modal-body overflow-y:auto), and this panel is an
+   ABSOLUTELY positioned child of a row inside that scroll box — so its lower rows
+   were cut off at the body's edge (measured: 53px hidden). While the picker is
+   open, both clippers step aside; z-index 1000 already paints the panel over the
+   footer. Closing restores the pinned layout untouched.
+   Phones keep the sheet flush to the viewport bottom, where an escaped panel would
+   run off-screen — there the list opens UPWARD instead (see the <=600px block). */
+.modal:has(.session-dd.open),
+.modal-body:has(.session-dd.open) { overflow: visible; }
+
+/* phones: no escaping needed — the list opens above the trigger, inside the sheet */
+@media (max-width: 600px) {
+    .modal:has(.session-dd.open),
+    .modal-body:has(.session-dd.open) { overflow: hidden; }
+    .session-dd-panel {
+        top: auto;
+        bottom: calc(100% + 4px);
+        max-height: 180px;
+    }
+}
 .session-dd-item {
     display: flex;
     align-items: center;
