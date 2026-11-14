@@ -5345,14 +5345,33 @@ const CancelClassModal = {
         const livewire = window.pageLivewire ? window.pageLivewire() : (window.Livewire && window.Livewire.first ? window.Livewire.first() : null);
         if (!livewire || typeof livewire.call !== 'function') return;
 
+        /* approved-replacement-cancellation T3: one token per open — the read is
+           async, so an answer belonging to an EARLIER open must never land in
+           this modal's scope. */
+        const seq = this._openSeq;
+
         const week = ctx.weekIndex + 1;
         const day = ctx.event.di;
+        const isApproved = ctx.event.status === 'replacement';
+        /* normal opened: the opened class itself arrives in the day list and is
+           dropped by its own session id. Approved opened: the shown coordinate is
+           the LANDING week — a recurring row of the same session on this weekday
+           is another week's legitimate class (its exception lives in its own
+           source week), so NOTHING is excluded by session id here. */
         const wanted = String(ctx.event.sessionId != null ? ctx.event.sessionId : ctx.event.id);
+        /* the opened request's OWN make-up note is removed (it is this modal's
+           subject, not another week's block); every other note stays */
+        const openedReqId = (isApproved && ctx.event.requestId != null)
+            ? Number(ctx.event.requestId) : null;
 
         livewire.call('myDayClasses', week, day).then((res) => {
+            if (this._openSeq !== seq || this._ctx !== ctx) return;   // stale modal's answer
             if (!res || res.ok !== true || !Array.isArray(res.classes)) return;
-            const others = res.classes.filter((c) => String(c.sessionId) !== wanted);
-            const makeUps = Array.isArray(res.makeUps) ? res.makeUps : [];
+            const others = isApproved ? res.classes.slice()
+                : res.classes.filter((c) => String(c.sessionId) !== wanted);
+            const makeUps = (Array.isArray(res.makeUps) ? res.makeUps : [])
+                .filter((m) => openedReqId === null || m.requestId == null ||
+                    Number(m.requestId) !== openedReqId);
             const pendingMakeUps = makeUps.filter((m) => m.request === 'pending');
 
             /* 2026-11-11 (user bug report): a day with only the opened class but a
@@ -5363,7 +5382,7 @@ const CancelClassModal = {
                 day: res.day,
                 date: res.date,
                 others: others,
-                makeUps: Array.isArray(res.makeUps) ? res.makeUps : [],
+                makeUps: makeUps,
             };
             this._renderDayScope(others, this._dayPayload.makeUps);
         }).catch(() => { /* the block simply does not appear */ });
@@ -5595,6 +5614,9 @@ const CancelClassModal = {
             onCancelled: (context && typeof context.onCancelled === 'function') ? context.onCancelled : null,
             entry: null,
         };
+        /* approved-replacement-cancellation T3: a fresh token per open — the
+           async day-scope read checks it before its answer is applied. */
+        this._openSeq = (this._openSeq || 0) + 1;
         this._bind();
         this._renderReasons();
         this._renderImpact();
@@ -5738,7 +5760,12 @@ const CancelClassModal = {
        trait call runs, and the SERVER response is the truth — ok → the
        existing client mutation + the ledger (exceptionId stamped for the
        undo); fail → the honest hint, NO flip, NO ledger (the midnight-roll
-       receipt: the client's own re-check never overrides the server). */
+       receipt: the client's own re-check never overrides the server).
+
+       approved-replacement-cancellation T3: an OPENED APPROVED replacement is
+       its own target — its requestId plus the shown LANDING week/day ride the
+       call (cancelClass's 5th/6th args, or the day call's approved list); its
+       success is receipt-only, never the recurring ledger. */
     async confirm() {
         const ctx = this._ctx;
         if (!ctx || ctx.entry) return;
@@ -5769,19 +5796,50 @@ const CancelClassModal = {
         const dayIds = daySel.filter((x) => x.session).map((x) => x.session);
         const dayRequests = daySel.filter((x) => x.request).map((x) => x.request);
 
-        /* the opened class is always part of the decision; the ticked rows are the
-           rest — an UNTICKED row must never be sent, or it would be cancelled */
         /* my-timetable events carry `id`; the venue/cohort payloads carry `sessionId` */
         const openedId = String(ctx.event.sessionId != null ? ctx.event.sessionId : ctx.event.id);
-        const sessionsToCancel = (openedId ? [openedId] : []).concat(dayIds);
+        /* approved-replacement-cancellation T3: an OPENED APPROVED replacement is
+           its own target — identified by its requestId and the shown LANDING
+           week/day, never by its source session. The requestId is REQUIRED (the
+           timetable stamps it on every replacement block); without it the modal
+           cannot name the request, so it refuses instead of silently falling
+           back to a normal cancellation. */
+        const isApproved = ctx.event.status === 'replacement';
+        const approvedReqId = isApproved && ctx.event.requestId != null
+            ? String(ctx.event.requestId) : null;
+        if (isApproved && approvedReqId === null) {
+            /* same order law as the refusals below: the copy lands AFTER
+               _refreshGate(), which would otherwise overwrite it */
+            this._refreshGate();
+            const missing = document.getElementById('cancelReasonHint');
+            if (missing) {
+                missing.textContent = 'This replacement can no longer be cancelled from here — refresh the page and try again.';
+            }
+            return;
+        }
+
+        /* the opened class is always part of the decision; the ticked rows are the
+           rest — an UNTICKED row must never be sent, or it would be cancelled.
+           An approved opened block rides the day call's APPROVED list ONLY — its
+           source session is NEVER sent among the normal selections, because a
+           recurring row of that same session on this landing day is another
+           week's legitimate class, not the opened one. */
+        const sessionsToCancel = isApproved ? dayIds.slice() : (openedId ? [openedId] : []).concat(dayIds);
+        const approvedIds = approvedReqId ? [approvedReqId] : [];
 
         let res = null;
         try {
             res = daySel.length > 0
-                ? await window.pageLivewire().call('cancelClassDay', ctx.weekIndex + 1, ctx.event.di, reason, trimmedDetail, dayRequests, sessionsToCancel)
-                : await window.pageLivewire().call('cancelClass',
-                    String((ctx.event.sessionId != null) ? ctx.event.sessionId : ctx.event.id),
-                    ctx.weekIndex + 1, reason, trimmedDetail);
+                ? await window.pageLivewire().call('cancelClassDay', ctx.weekIndex + 1, ctx.event.di, reason, trimmedDetail, dayRequests, sessionsToCancel, approvedIds)
+                : isApproved
+                    /* single approved: (sourceSessionId, LANDING week, reason,
+                       detail, requestId, LANDING dayIndex) — the landing window
+                       is the server-enforced one, per the frozen contract */
+                    ? await window.pageLivewire().call('cancelClass',
+                        openedId, ctx.weekIndex + 1, reason, trimmedDetail, approvedReqId, ctx.event.di)
+                    : await window.pageLivewire().call('cancelClass',
+                        String((ctx.event.sessionId != null) ? ctx.event.sessionId : ctx.event.id),
+                        ctx.weekIndex + 1, reason, trimmedDetail);
         } catch (e) { res = { ok: false, hint: 'Server error — the class is unchanged.' }; }
         if (!res || res.ok !== true) {
             /* same order law as above, plus a RE-QUERY: the Livewire round-trip
@@ -5794,6 +5852,67 @@ const CancelClassModal = {
 
             return;
         }
+        /* the day path already cancelled in one transaction — the client patches
+           nothing. approved-replacement-cancellation T3: the success entry is
+           stamped from the receipt BEFORE the success state, so Escape / header
+           × / overlay dismissal refresh exactly like Close (later()). */
+        if (daySel.length > 0) {
+            const rows = Array.isArray(res.cancelled) ? res.cancelled : [];
+            /* the opened target, only when the receipt actually has it */
+            const primary = rows.find((r) => isApproved
+                ? r.request_id != null && Number(r.request_id) === Number(approvedReqId)
+                : r.request_id == null && r.session_id != null &&
+                  String(r.session_id) === openedId &&
+                  r.week != null && Number(r.week) === ctx.weekIndex + 1) || null;
+            const pick = primary || rows[0] || null;
+            ctx.entry = pick && pick.session_id != null && pick.week != null
+                ? { sessionId: pick.session_id, week: pick.week,
+                    row: { sessionId: pick.session_id, week: pick.week } }
+                : { row: {} };
+            this._renderDaySuccess(res, reason);
+            this._swapState('success');
+            return;
+        }
+
+        if (isApproved) {
+            /* approved-replacement-cancellation T3: an approved cancellation is
+               SERVER-FACT ONLY — no ClassCancellation.cancel, no MockData
+               conflicted row, no ledger append/update. A ledger entry would
+               replay the LANDING week as a cancelled recurring occurrence (the
+               ledger maps week+code+day, and a landing is not one). The entry
+               carries the receipt's SOURCE pair so Arrange Now opens the
+               request's own source-week occurrence. */
+            const rows = Array.isArray(res.cancelled) ? res.cancelled : [];
+            /* saved-only receipt: the ONLY acceptable row is the exact
+               request_id match that also carries its source session/week
+               pair — never rows[0], never anything derived from ctx.event
+               (the server said success, so no fact is invented here). */
+            const row = rows.find((r) => r.request_id != null &&
+                    Number(r.request_id) === Number(approvedReqId) &&
+                    r.session_id != null && r.week != null) || null;
+            if (!row) {
+                /* same order law as the refusals above: the copy lands AFTER
+                   _refreshGate(), which would otherwise overwrite it */
+                this._refreshGate();
+                const unconfirmed = document.getElementById('cancelReasonHint');
+                if (unconfirmed) {
+                    unconfirmed.textContent = 'The server could not confirm this replacement cancellation — reload to check its status.';
+                }
+                return;
+            }
+            const summary = document.getElementById('cancelClassSummary');
+            if (summary) {
+                const day = ctx.days && ctx.days[ctx.event.di];
+                summary.textContent = row.code + ' (' + (row.type || '') + ') · ' +
+                    ((day && day.abbr) || '') + ' · ' + ((day && day.date) || '') + ' · ' +
+                    to12h(row.start) + ' ~ ' + to12h(row.end);
+            }
+            ctx.entry = { sessionId: row.session_id, week: row.week,
+                row: { sessionId: row.session_id, week: row.week } };
+            this._swapState('success');
+            return;
+        }
+
         const out = ClassCancellation.cancel(ctx.event, ctx.days, ctx.weekIndex, reason, trimmedDetail);
         if (!out.ok) {
             /* The server row is WRITTEN but the client guards now disagree
@@ -5809,14 +5928,6 @@ const CancelClassModal = {
 
             return;
         }
-        /* the day path already cancelled in one transaction — the client patches
-           nothing; closing the modal rebuilds the grid from the server (Later). */
-        if (daySel.length > 0) {
-            this._renderDaySuccess(res, reason, daySel);
-            this._swapState('success');
-            return;
-        }
-
         out.entry.exceptionId = res.exceptionId || null;
         ClassCancellation.ledgerUpdate(out.entry);
         ctx.entry = out.entry;
@@ -5832,12 +5943,14 @@ const CancelClassModal = {
     },
 
     /**
-     * The whole-day success screen (user, 2026-11-11): the total, the day, the
-     * reason, how many waiting requests were withdrawn, then one line per class in
-     * the block's own order (the opened class first). The withdrawn pill is RED —
-     * amber means "will be cancelled", red means "was".
+     * The whole-day success screen: the total and the list come ONLY from the
+     * server's acknowledged `res.cancelled` receipt rows — never from the ticks
+     * and never a fabricated opened row (approved-replacement-cancellation T3:
+     * a defensive partial receipt shows exactly the acknowledged set). The
+     * opened target is ordered first only when it is actually in the receipt.
+     * The reason, the day line and the withdrawn pill keep the existing shape.
      */
-    _renderDaySuccess(res, reason, daySel) {
+    _renderDaySuccess(res, reason) {
         const single = document.getElementById('cancelClassSummary');
         const singleTitle = document.getElementById('cancelClassDoneTitle');
         const box = document.getElementById('cancelDaySuccess');
@@ -5845,40 +5958,48 @@ const CancelClassModal = {
 
         const esc = (v) => String(v == null ? '' : v).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
         const ctx = this._ctx;
-        const day = this._dayPayload || {};
-        const rows = (this._dayPayload && this._dayPayload.others) || [];
-        const tickedClassIds = daySel.filter((x) => x.session).map((x) => String(x.session));
-        const withdrawn = Number(res.requestsWithdrawn || 0);
-        const closedWithClasses = Number(res.requestsClosed || 0);
-        const total = tickedClassIds.length + 1;
+        /* ONLY acknowledged rows — the receipt is the whole truth */
+        const rows = (res && Array.isArray(res.cancelled)) ? res.cancelled : [];
+        const withdrawn = Number((res && res.requestsWithdrawn) || 0);
+        const closedWithClasses = Number((res && res.requestsClosed) || 0);
+
+        /* the opened target first — only if the receipt actually has it */
+        const openedId = ctx ? String(ctx.event.sessionId != null ? ctx.event.sessionId : ctx.event.id) : null;
+        const openedReqId = (ctx && ctx.event.status === 'replacement' && ctx.event.requestId != null)
+            ? Number(ctx.event.requestId) : null;
+        const openedWeek = ctx ? ctx.weekIndex + 1 : null;
+        const isPrimary = (r) => openedReqId != null
+            ? (r.request_id != null && Number(r.request_id) === openedReqId)
+            : (r.request_id == null && r.session_id != null && openedId !== null &&
+               String(r.session_id) === openedId && r.week != null &&
+               Number(r.week) === openedWeek);
+        const primary = rows.find(isPrimary) || null;
+        const ordered = primary ? [primary].concat(rows.filter((r) => r !== primary)) : rows.slice();
 
         /* the day, in the app's own words: "Wed, 18 Nov 2026" */
+        const day = this._dayPayload || {};
         const iso = String(day.date || '');
         const prettyDay = iso
             ? DateHelper.dayAbbr(DateHelper.isoDayName(iso)) + ', ' + DateHelper.formatDate(iso)
             : '';
         const reasonLabel = (ClassCancellation.REASONS.find((r) => r.value === reason) || {}).label || reason;
 
-        /* 2026-11-11 (user): the schedule rows, in the same cells the block uses */
-        const scheduleRow = (c) => {
-            const cohorts = Array.isArray(c.cohorts) ? c.cohorts : [];
+        /* the schedule rows print the receipt's OWN server facts — one row per
+           acknowledged cancellation, receipt order (opened target first when
+           present); nothing here is synthesized from the unsaved payload */
+        const scheduleRow = (r) => {
+            const cohorts = Array.isArray(r.cohorts) ? r.cohorts : [];
             const cohortCell = cohorts.length > 1
                 ? '<span class="cdl-cohort" data-tip="' + esc(cohorts.join('\n')) + '">' + cohorts.length + ' cohorts</span>'
                 : '<span class="cdl-cohort">' + esc(cohorts[0] || '\u2014') + '</span>';
             return '<li><span class="tick">\u2713</span>' +
-                '<span class="cdl-time">' + esc(to12h(c.start) + ' ~ ' + to12h(c.end)) + '</span>' +
-                '<span class="cdl-what">' + esc(c.code + '(' + (c.type || '') + ')') + '</span>' +
-                '<span class="cdl-venue">' + esc(c.venue) + '</span>' +
+                '<span class="cdl-time">' + esc(to12h(r.start) + ' ~ ' + to12h(r.end)) + '</span>' +
+                '<span class="cdl-what">' + esc((r.code || '') + '(' + (r.type || '') + ')') + '</span>' +
+                '<span class="cdl-venue">' + esc(r.venue || '') + '</span>' +
                 '<span class="cdl-facts">' + cohortCell + '</span></li>';
         };
 
-        const openedRow = ctx ? ('<li><span class="tick">\u2713</span>' +
-            '<span class="cdl-time">' + esc(to12h(hours[ctx.event.start]) + ' ~ ' + to12h(hours[ctx.event.end + 1] || add30min(hours[ctx.event.end]))) + '</span>' +
-            '<span class="cdl-what">' + esc((ctx.event.code || '') + '(' + (ctx.event.type || '') + ')') + '</span>' +
-            '<span class="cdl-venue">' + esc(ctx.event.venue || '') + '</span>' +
-            '<span class="cdl-facts"><span class="cdl-cohort">' + esc(ClassCancellation.cohortLabels(ctx.event).join(', ')) + '</span></span></li>') : '';
-
-        const body = rows.filter((c) => tickedClassIds.includes(String(c.sessionId))).map(scheduleRow).join('');
+        const total = rows.length;
         const withdrawnTotal = withdrawn + closedWithClasses;
 
         if (single) single.style.display = 'none';
@@ -5892,7 +6013,7 @@ const CancelClassModal = {
                 '<div><span class="cdt-value">' + total + '</span><span class="cdt-label">' + (total === 1 ? 'Class' : 'Classes') + ' cancelled</span></div>' +
                 '<div><span class="cdt-value">' + withdrawnTotal + '</span><span class="cdt-label">' + (withdrawnTotal === 1 ? 'Request' : 'Requests') + ' withdrawn</span></div>' +
             '</div>' +
-            '<ul class="cancel-day-done">' + openedRow + body + '</ul>';
+            '<ul class="cancel-day-done">' + ordered.map(scheduleRow).join('') + '</ul>';
     },
 
     /* S10 — navigate to the arrangement page carrying the cancelled class's
@@ -5904,13 +6025,19 @@ const CancelClassModal = {
            page from bfcache, and an open success modal would replay with it
            (2026-10-08 user report). open() resets state on next open. */
         this.close();
-        const row = ctx.entry.row;
+        const row = ctx.entry.row || {};
+        /* approved-replacement-cancellation T3: a server receipt entry carries
+           the SOURCE pair, so Arrange Now opens the request's own source-week
+           occurrence — never the landing week. A degenerate entry without a
+           code+date handoff degrades to the plain arrangement page. */
         if (row.sessionId && row.week) {
             goToReplacementFor(row.sessionId, row.week, 'my-timetable');
-        } else {
+        } else if (row.code && row.date) {
             window.location.href = '/replacement-arrangement?code=' + encodeURIComponent(row.code) +
                 '&date=' + encodeURIComponent(row.date) +
                 '&duration=' + row.duration;
+        } else {
+            window.location.href = '/replacement-arrangement';
         }
         /* navigation unloads the page — the bootstrap toast fires there (§6) */
     },

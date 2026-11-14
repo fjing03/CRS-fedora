@@ -386,18 +386,21 @@ final class CancelClassBatchTest extends TestCase
 
     public function test_a_newer_request_holding_an_original_cell_is_preserved(): void
     {
-        $owner = $this->owner();
+        // pick the fixture by the multi-cell original FIRST (any lecturer,
+        // deterministic order), then derive the owner from that session —
+        // never the reverse, which made this test row-order dependent.
         $session = ClassSession::query()
-            ->where('lecturer_id', $owner->id)
-            ->get()
-            ->first(fn (ClassSession $s): bool => TimeSlot::query()
-                ->where('class_session_id', $s->id)
+            ->whereIn('id', TimeSlot::query()
+                ->select('class_session_id')
                 ->where('week_number', self::WEEK)
                 ->where('status', 'occupied')
-                ->count() >= 3);
-        $this->assertNotNull($session, 'the seed has a multi-cell original occurrence');
+                ->groupBy('class_session_id')
+                ->havingRaw('COUNT(*) >= 3'))
+            ->orderBy('id')
+            ->firstOrFail();
+        $owner = User::query()->findOrFail($session->lecturer_id);
         $cells = $this->originalCells($session, self::WEEK);
-        $this->assertGreaterThanOrEqual(3, count($cells));
+        $this->assertGreaterThanOrEqual(3, count($cells), 'the seed has a multi-cell original occurrence');
 
         // a newer request of ANOTHER class whose live receipt covers the first
         // two original cells — the live claim outranks the stale original id

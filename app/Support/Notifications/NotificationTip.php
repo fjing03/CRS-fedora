@@ -28,6 +28,14 @@ use Illuminate\Support\Carbon;
  *   awaiting        (PL reminder)            same as new_request
  *   submitted_copy  (the proposer's own)     same, minus Staff
  *   class_cancelled (update + the sentence)  Subject / Cancelled Class Schedule / Reason
+ *                                            (request-linked rows: the request's
+ *                                            LANDING span via the shared span line —
+ *                                            the line is omitted when the span is
+ *                                            missing — and NO Reason — the source
+ *                                            exception's
+ *                                            reason must not pose as the landing
+ *                                            cancellation's; the new reason stays in
+ *                                            the cancellation audit)
  *   class_updated   (approved, timetable)    Subject / Original (+reason) / Approved / ID
  *   approval_notice (approved, proposer)     same as class_updated
  *   rejected                                 Subject / Rejection Reason / Original / Proposed / ID
@@ -75,7 +83,9 @@ final class NotificationTip
      *
      * @param  array{week: int, day: int, venue_id: int, start: string, end: string, count: int}|null  $span
      * @param  string|null  $reason  the ORIGINAL occurrence's cause, already resolved
-     *                               (`Public Holiday — Christmas Eve` / `Annual Leave` / null)
+     *                               (`Public Holiday — Christmas Eve` / `Annual Leave` / null;
+     *                               request-linked class_cancelled rows OMIT it — it is the
+     *                               source exception's reason, not the new landing one)
      * @param  string  $audience  `student` rows carry no Staff line; every other line is shared
      */
     public function compose(
@@ -128,14 +138,35 @@ final class NotificationTip
         $originalReason = $reason;
 
         if ($kind === 'class_cancelled') {
-            /* no request exists — the row's own session + week are the class */
-            $week = $request !== null ? (int) $request->week_number : $rowWeek;
-            $line = $this->scheduleLine('Cancelled Class Schedule', $week, $session, $semesterStart);
-            if ($line !== null) {
-                $lines[] = $line;
-            }
-            if ($reason !== null) {
-                $lines[] = 'Reason: '.$reason;
+            if ($request !== null) {
+                /* request-linked cancellation (approved-replacement-cancellation
+                   T2/D3): the row's facts are the request's LANDING span — the
+                   already-loaded span + venue say where the replacement actually
+                   sat, so the shared spanLine prints it instead of
+                   reconstructing the original recurring schedule. The source
+                   exception reason is OMITTED: it is not the landing
+                   cancellation's reason (that new reason lives in the
+                   cancellation audit). When the landing span is MISSING the
+                   line is omitted: falling back to `$request->week_number` +
+                   the session would print the ORIGINAL source schedule, which
+                   is not where the replacement sat — missing-fact honesty,
+                   never an invented wrong schedule. */
+                $line = $span !== null
+                    ? $this->spanLine('Cancelled Class Schedule', $span, $venue, $semesterStart)
+                    : null;
+                if ($line !== null) {
+                    $lines[] = $line;
+                }
+            } else {
+                /* no request exists — the row's own session + week are the class */
+                $week = $rowWeek;
+                $line = $this->scheduleLine('Cancelled Class Schedule', $week, $session, $semesterStart);
+                if ($line !== null) {
+                    $lines[] = $line;
+                }
+                if ($reason !== null) {
+                    $lines[] = 'Reason: '.$reason;
+                }
             }
         } else {
             if ($originalWeek !== null && $session !== null) {

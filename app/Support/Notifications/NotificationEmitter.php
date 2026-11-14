@@ -7,6 +7,7 @@ use App\Models\Notification;
 use App\Models\Student;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -158,19 +159,43 @@ final class NotificationEmitter
      * record row) and every cohort student. The department-PL fan-out is
      * gone — a PL outside the class cannot act on a cancellation, and the
      * owner dedupe that fan-out required disappears with it.
+     *
+     * Approved-replacement bridge (approved-replacement-cancellation T2/D3,
+     * ADDITIVE — the requestless path keeps its exact old shape): when the
+     * caller cancels an APPROVED replacement it passes the optional
+     * `$requestId` and supplies `$session` as an UNSAVED projection of the
+     * original session carrying the ACTUAL landing day/time/venue, with
+     * `$weekNumber` = the LANDING week. The projection is never persisted:
+     * the request-linked rows reference the request instead
+     * (`class_session_id = null` — the unsaved projection is not a persisted
+     * session, so it carries no trustworthy id of its own: a clone may even
+     * retain the source session's id, and storing it would conflate the
+     * source row with the landing; `request_id` is the authoritative link).
+     * The projection MUST carry the loaded `module`,
+     * `venue` and `cohorts` relations (setRelation — an unsaved id cannot
+     * lazy-load them) or the fact line and the student fan-out break. Same
+     * recipients/queues/afterCommit/no-private-reason body law.
      */
-    public function classCancelled(User $actor, ClassSession $session, int $weekNumber): void
+    public function classCancelled(User $actor, ClassSession $session, int $weekNumber, ?int $requestId = null): void
     {
-        $this->commit(function () use ($actor, $session, $weekNumber): void {
+        $this->commit(function () use ($actor, $session, $weekNumber, $requestId): void {
             $title = 'Scheduled class cancelled';
-            $body = $this->classFact($session, $weekNumber).' · cancelled';
-            $sessionId = (int) $session->id;
+            /* R4 (frozen spec): request-linked rows carry the FULL actual
+               landing span in the body — the projection already holds the
+               landing start/end as its attrs. The requestless fact line
+               keeps its exact old shape. */
+            $body = $this->classFact($session, $weekNumber, $requestId !== null).' · cancelled';
+            /* request-linked rows point at the request — the authoritative
+               link; class_session_id stays null there because the unsaved
+               projection must never be stored by id (a clone may even keep
+               the source id), which would conflate source with landing */
+            $sessionId = $requestId !== null ? null : (int) $session->id;
 
             // 1. the class's own lecturer (the actor's record row)
             /* notif-click-highlight stage 2 (the user's link-law ruling, 2026-10-30):
             the actor's row lands on THEIR OWN timetable page so the
             notification deep link can switch the week + flash the cell. */
-            $this->write($actor, 'lecturer', 'update', $title, $body, '/my-replacements', null, $sessionId, $weekNumber);
+            $this->write($actor, 'lecturer', 'update', $title, $body, '/my-replacements', $requestId, $sessionId, $weekNumber);
 
             // 2. every cohort student
             foreach ($session->cohorts as $cohort) {
@@ -180,7 +205,7 @@ final class NotificationEmitter
                         continue;
                     }
                     // S4: the week rides the link (the timetable honours `?week=`)
-                    $this->write($user, 'student', 'update', $title, $body, '/student-my-timetable-ui?week='.(int) $weekNumber, null, $sessionId, $weekNumber);
+                    $this->write($user, 'student', 'update', $title, $body, '/student-my-timetable-ui?week='.(int) $weekNumber, $requestId, $sessionId, $weekNumber);
                 }
             }
         });
@@ -246,13 +271,18 @@ final class NotificationEmitter
         DB::afterCommit($rows);
     }
 
-    private function classFact(ClassSession $session, int $weekNumber): string
+    private function classFact(ClassSession $session, int $weekNumber, bool $withSpan = false): string
     {
         $code = (string) ($session->module->module_code ?? '');
         $type = (string) $session->session_type;
         $venue = (string) ($session->venue->room_code ?? '');
         $abbr = self::DAY_ABBRS[(int) $session->day_of_week] ?? 'Day';
 
-        return $code.' ('.$type.') · W'.$weekNumber.' · '.$abbr.' · '.$venue;
+        $span = $withSpan && (string) $session->start_time !== '' && (string) $session->end_time !== ''
+            ? ' · '.Carbon::parse((string) $session->start_time)->format('g:i A')
+                .' ~ '.Carbon::parse((string) $session->end_time)->format('g:i A')
+            : '';
+
+        return $code.' ('.$type.') · W'.$weekNumber.' · '.$abbr.' · '.$venue.$span;
     }
 }

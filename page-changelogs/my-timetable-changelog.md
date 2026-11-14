@@ -1,3 +1,9 @@
+## 2026-11-14 — cancel the actual approved replacement
+
+The shared Cancel Class flow now identifies an opened approved replacement by its request and actual scheduled day, rather than cancelling its original occurrence again. Single and mixed selections share the atomic release path. Success lists and counts come from saved server receipts; a stale selected class refuses the whole decision.
+
+The cancelled request keeps its audit and original class history. Its active blue landing disappears, and My Replacements returns to Need to Arrange. No new status or second cancelled landing block is added. Existing manual records are not repaired automatically. Scoped checks and limitations are recorded in [the verification report](../.sdd/changes/approved-replacement-cancellation/verify-report.md).
+
 ## 2026-11-14 — hide only the own-approved cancelled original
 
 A cancelled original now disappears only when its own replacement is Approved. Pending, rejected, withdrawn/cancelled, auto-rejected and no-request cases keep it. Another occurrence's approval cannot hide it. The server filters the exact source pair before summaries and layout; stored history and the approved landing's true span remain unchanged.

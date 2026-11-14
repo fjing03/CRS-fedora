@@ -1,3 +1,7 @@
+## 2026-11-14 — approved cancellation names the actual schedule
+
+Cancelling an approved replacement sends a request-linked record to its lecturer and affected students after the transaction commits. The body and tooltip use the replacement's actual day, room and full time range, not its original class schedule. The original exception's reason is not reused as the new cancellation reason; private detail stays in the audit. Ordinary class notices and existing inactive-request behaviour are unchanged. See [scoped verification](../.sdd/changes/approved-replacement-cancellation/verify-report.md).
+
 ## 2026-11-11 — a student notice lands on Class Replacements, row flashing
 
 User report: clicking a student notice went to the student **timetable**. It now goes to **Class

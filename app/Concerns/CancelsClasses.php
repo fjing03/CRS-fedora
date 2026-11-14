@@ -12,6 +12,7 @@ use App\Models\ClassSession;
 use App\Models\ReplacementRequest;
 use App\Models\Semester;
 use App\Services\OccurrenceMutationLocks;
+use App\Services\ReplacementRequestMapper;
 use App\Support\CohortLabel;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
@@ -39,11 +40,23 @@ trait CancelsClasses
      * resolve: a fabricated id resolves to null. The server response is
      * the truth.
      *
-     * @return array{ok: bool, exceptionId?: int, hint?: string}
+     * SDD approved-replacement-cancellation (D1): with a `$requestId`, the
+     * caller is cancelling an OWNED APPROVED replacement at its ACTUAL landing
+     * slot — `$weekNumber`/`$dayIndex` are the LANDING coordinates and
+     * `$sessionId` must be the request's SOURCE session. The batch's approved
+     * path is the only executor; a missing/stale/foreign/mismatched target
+     * refuses WITHOUT a normal fallback, and the server enforces the window
+     * there. Legacy normal single cancellation is byte-identically unchanged.
+     *
+     * @return array{ok: bool, exceptionId?: int, cancelled?: array<int, array<string, mixed>>, requestsClosed?: int, hint?: string}
      */
     #[Renderless]
-    public function cancelClass(string $sessionId, int $weekNumber, string $reason, ?string $otherDetail = null): array
+    public function cancelClass(string $sessionId, int $weekNumber, string $reason, ?string $otherDetail = null, ?int $requestId = null, ?int $dayIndex = null): array
     {
+        if ($requestId !== null) {
+            return $this->cancelApprovedLanding((int) $requestId, (int) $sessionId, (int) $weekNumber, $reason, $otherDetail, $dayIndex);
+        }
+
         $session = ClassSession::query()
             ->where('lecturer_id', auth()->id())
             ->find((int) $sessionId);
@@ -66,6 +79,73 @@ trait CancelsClasses
             ->first();
 
         return ['ok' => true, 'exceptionId' => (int) $exception->id];
+    }
+
+    /**
+     * The approved branch of `cancelClass()` (SDD approved-replacement-cancellation,
+     * D1): resolve the exact OWNED APPROVED request for the shown LANDING
+     * coordinate, verify its SOURCE session, and hand it to the batch's
+     * approved path — the only executor. The batch re-validates every gate
+     * fresh under the locks (owner, state, semester, coordinate, proven claim,
+     * landing window/holiday/Sunday) and writes the receipt/audit.
+     *
+     * @return array{ok: bool, cancelled: array<int, array<string, mixed>>, requestsClosed: int, hint?: string}
+     */
+    private function cancelApprovedLanding(int $requestId, int $sessionId, int $weekNumber, string $reason, ?string $otherDetail, ?int $dayIndex): array
+    {
+        $refusal = fn (string $hint): array => ['ok' => false, 'cancelled' => [], 'requestsClosed' => 0, 'hint' => $hint];
+
+        if ($dayIndex === null || $dayIndex < 0 || $dayIndex > 6 || $weekNumber < 1 || $weekNumber > 14) {
+            return $refusal('That replacement slot is outside the semester.');
+        }
+
+        if (! CancelClass::validReason($reason)) {
+            return $refusal('Please select a cancellation reason.');
+        }
+
+        $request = ReplacementRequest::query()->with('classSession')->find($requestId);
+
+        if ($request === null
+            || (int) $request->proposer_id !== (int) auth()->id()
+            || (string) $request->status !== 'approved') {
+            return $refusal('That replacement is not an approved request of yours.');
+        }
+
+        $session = $request->classSession;
+
+        if ($session === null
+            || (int) $session->id !== $sessionId
+            || (int) $session->lecturer_id !== (int) auth()->id()) {
+            return $refusal('That replacement does not belong to this class.');
+        }
+
+        $semester = Semester::active();
+
+        if ($semester === null || (int) $request->semester_id !== (int) $semester->id) {
+            return $refusal('That replacement does not belong to the active semester.');
+        }
+
+        // the shown coordinate must BE the request's actual landing slot —
+        // never inferred, never silently corrected (D1)
+        $span = (new ReplacementRequestMapper)->span($request);
+
+        if ($span === null || (int) $span['week'] !== $weekNumber || (int) $span['day'] !== $dayIndex) {
+            return $refusal('That replacement no longer runs at the shown time — please refresh and try again.');
+        }
+
+        $result = (new CancelClassBatch)(auth()->user(), [], $reason, $otherDetail, true, [
+            ['request_id' => (int) $request->id, 'week' => $weekNumber, 'day' => $dayIndex],
+        ]);
+
+        if (! $result['ok']) {
+            return $refusal((string) $result['hint']);
+        }
+
+        return [
+            'ok' => true,
+            'cancelled' => (array) $result['cancelled'],
+            'requestsClosed' => (int) $result['requestsClosed'],
+        ];
     }
 
     /**
@@ -121,10 +201,11 @@ trait CancelsClasses
      *
      * @param  array<int, int|string>  $requestIds  the ticked make-up rows (request ids)
      * @param  array<int, int|string>  $sessionIds  the classes to cancel: the opened one + the ticked rows
+     * @param  array<int, int|string>  $approvedRequestIds  the opened APPROVED replacement(s) landing on this day (request ids; SDD approved-replacement-cancellation D1 — the opened replacement contributes ONLY here, never to `$sessionIds`)
      * @return array{ok: bool, cancelled: array<int, array<string, mixed>>, requestsClosed: int, requestsWithdrawn: int, hint?: string}
      */
     #[Renderless]
-    public function cancelClassDay(int $weekNumber, int $dayIndex, string $reason, ?string $otherDetail = null, array $requestIds = [], array $sessionIds = []): array
+    public function cancelClassDay(int $weekNumber, int $dayIndex, string $reason, ?string $otherDetail = null, array $requestIds = [], array $sessionIds = [], array $approvedRequestIds = []): array
     {
         $semester = Semester::active();
 
@@ -133,30 +214,69 @@ trait CancelsClasses
                 'hint' => 'The semester could not be read.'];
         }
 
+        /* D1 (frozen): the reason gates run for EVERY shape of the day decision —
+           a pending-only or approved-only selection still writes an audit trail,
+           so an invalid reason or a blank “Other” detail refuses the WHOLE day
+           before anything resolves; no withdrawals ride on an invalid reason.
+           The normal single-class path keeps its own shipped flow untouched. */
+        if (! CancelClass::validReason($reason)) {
+            return ['ok' => false, 'cancelled' => [], 'requestsClosed' => 0, 'requestsWithdrawn' => 0,
+                'hint' => 'Please select a cancellation reason.'];
+        }
+
+        if ($reason === 'other' && trim((string) $otherDetail) === '') {
+            return ['ok' => false, 'cancelled' => [], 'requestsClosed' => 0, 'requestsWithdrawn' => 0,
+                'hint' => 'Please describe the reason for “Other”.'];
+        }
+
         $classes = $this->dayClasses($semester, $weekNumber, $dayIndex);
 
         /* 2026-11-11 (BUG, user report): the day read returns the WHOLE day, but
            only the ticked rows may be cancelled — an unticked class must survive.
-           The page sends the opened class plus every ticked row; anything else is
-           dropped here, and a fabricated id simply resolves to nothing. */
+           SDD approved-replacement-cancellation (D1): the submitted normal ids
+           are normalized, must resolve EXACTLY against the day's classes, and
+           an empty `$sessionIds` beside a non-empty request list means NO
+           normal classes — the old all-lists-empty shape keeps its
+           backward-compatible whole-day reading. */
+        $sessionIds = array_values(array_unique(array_map('intval', $sessionIds)));
+        $requestIds = array_values(array_unique(array_map('intval', $requestIds)));
+        $approvedRequestIds = array_values(array_unique(array_map('intval', $approvedRequestIds)));
+
+        /* one request is never selected in two roles — a contradiction, never a
+           double close (SDD approved-replacement-cancellation D1) */
+        if ($requestIds !== [] && $approvedRequestIds !== []
+            && array_intersect($requestIds, $approvedRequestIds) !== []) {
+            return ['ok' => false, 'cancelled' => [], 'requestsClosed' => 0, 'requestsWithdrawn' => 0,
+                'hint' => 'One of those requests was selected both as a make-up note and as a replacement to cancel.'];
+        }
+
         if ($sessionIds !== []) {
-            $wanted = array_map('intval', $sessionIds);
+            /* EXACT cardinality — every submitted normal id must be one of the
+               day's classes; a fabricated/stale id refuses the WHOLE selection,
+               it is never silently filtered away. */
+            $dayIds = array_map(fn (array $c): int => (int) $c['sessionId'], $classes);
+
+            if (array_diff($sessionIds, $dayIds) !== []) {
+                return ['ok' => false, 'cancelled' => [], 'requestsClosed' => 0, 'requestsWithdrawn' => 0,
+                    'hint' => 'One of those classes is not part of that day.'];
+            }
+
             $classes = array_values(array_filter(
                 $classes,
-                fn (array $c): bool => in_array((int) $c['sessionId'], $wanted, true),
+                fn (array $c): bool => in_array((int) $c['sessionId'], $sessionIds, true),
             ));
-        } elseif ($requestIds !== []) {
-            /* an explicit request-only selection: ticked make-ups withdraw, but
-               the classes are NOT silently cancelled with them — the old
-               both-lists-empty shape keeps its backward-compatible whole-day
-               reading, this one must not regress into a hidden day cancel. */
+        } elseif ($requestIds !== [] || $approvedRequestIds !== []) {
+            /* an explicit request-only/approved-only selection: ticked make-ups
+               withdraw and owned approved replacements cancel, but the classes
+               are NOT silently cancelled with them — the old both-lists-empty
+               shape keeps its backward-compatible whole-day reading, this one
+               must not regress into a hidden day cancel. */
             $classes = [];
         }
 
         /* 2026-11-11 (user): a ticked MAKE-UP row withdraws its request only — the
            class it was arranged for is untouched. Ownership + pending state are
            re-checked here, never trusted from the page. */
-        $requestIds = array_values(array_unique(array_map('intval', $requestIds)));
         $withdrawable = $requestIds === [] ? [] : array_values(ReplacementRequest::query()
             ->whereIn('id', $requestIds)
             ->where('proposer_id', auth()->id())
@@ -172,7 +292,56 @@ trait CancelsClasses
                 'hint' => 'One of those requests is not yours to withdraw any more.'];
         }
 
-        if ($classes === [] && $withdrawable === []) {
+        /* SDD approved-replacement-cancellation (D1): the approved list carries
+           ONLY owned APPROVED replacements whose ACTUAL landing is the shown
+           day — the opened one plus, if ever, another request of the same day.
+           Their landing coordinates are derived from the validated mapper span,
+           never trusted from the page; the batch re-validates everything under
+           the locks. */
+        $approvedTargets = [];
+        $mapper = new ReplacementRequestMapper;
+
+        foreach ($approvedRequestIds as $id) {
+            $request = ReplacementRequest::query()->find($id);
+
+            if ($request === null
+                || (int) $request->proposer_id !== (int) auth()->id()
+                || (string) $request->status !== 'approved'
+                || (int) $request->semester_id !== (int) $semester->id) {
+                return ['ok' => false, 'cancelled' => [], 'requestsClosed' => 0, 'requestsWithdrawn' => 0,
+                    'hint' => 'One of those replacements is not an approved request of yours any more.'];
+            }
+
+            $span = $mapper->span($request);
+
+            if ($span === null || (int) $span['week'] !== $weekNumber || (int) $span['day'] !== $dayIndex) {
+                return ['ok' => false, 'cancelled' => [], 'requestsClosed' => 0, 'requestsWithdrawn' => 0,
+                    'hint' => 'One of those replacements does not land on that day.'];
+            }
+
+            $approvedTargets[] = ['request_id' => $id, 'week' => (int) $span['week'], 'day' => (int) $span['day']];
+        }
+
+        /* a pending withdrawal may never double as an occurrence closure: a
+           request attached to one of the selected classes is closed BY that
+           cancellation, so selecting it as a withdrawal too is contradictory
+           (never close twice — SDD approved-replacement-cancellation R2) */
+        if ($withdrawable !== [] && $classes !== []) {
+            $attachedIds = ReplacementRequest::query()
+                ->whereIn('class_session_id', array_map(fn (array $c): int => (int) $c['sessionId'], $classes))
+                ->where('week_number', $weekNumber)
+                ->whereIn('status', ['pending', 'approved'])
+                ->pluck('id')
+                ->map(fn ($id): int => (int) $id)
+                ->all();
+
+            if (array_intersect($withdrawable, $attachedIds) !== []) {
+                return ['ok' => false, 'cancelled' => [], 'requestsClosed' => 0, 'requestsWithdrawn' => 0,
+                    'hint' => 'One of those make-up notes belongs to a class being cancelled.'];
+            }
+        }
+
+        if ($classes === [] && $withdrawable === [] && $approvedTargets === []) {
             return ['ok' => false, 'cancelled' => [], 'requestsClosed' => 0, 'requestsWithdrawn' => 0,
                 'hint' => 'There is nothing to cancel that day.'];
         }
@@ -183,12 +352,19 @@ trait CancelsClasses
             ->get()
             ->keyBy('id');
 
+        /* every selected class must still resolve to an OWNED session — one that
+           vanished or changed ownership refuses the WHOLE selection; it is never
+           silently dropped from the items while the rest cancels (D1) */
+        if ($sessions->count() !== count($classes)) {
+            return ['ok' => false, 'cancelled' => [], 'requestsClosed' => 0, 'requestsWithdrawn' => 0,
+                'hint' => 'One of those classes is not yours to cancel any more — please refresh and try again.'];
+        }
+
         $items = [];
         foreach ($classes as $class) {
+            /** @var ClassSession $session */
             $session = $sessions->get((int) $class['sessionId']);
-            if ($session !== null) {
-                $items[] = ['session' => $session, 'week' => $weekNumber];
-            }
+            $items[] = ['session' => $session, 'week' => $weekNumber];
         }
 
         /* SDD cancelled-slot-reuse A07 — the day is ONE decision: the selected
@@ -203,11 +379,14 @@ trait CancelsClasses
         $withdrawn = 0;
 
         try {
-            DB::transaction(function () use ($items, $withdrawable, $reason, $otherDetail, &$result, &$withdrawn): void {
-                app(OccurrenceMutationLocks::class)->lock($items, $withdrawable);
+            DB::transaction(function () use ($items, $withdrawable, $approvedTargets, $approvedRequestIds, $reason, $otherDetail, &$result, &$withdrawn): void {
+                // the COMPLETE union locks FIRST — the pending withdrawals AND
+                // the approved targets' requests join the recurring items (D2);
+                // the nested batch reuses these already-held locks
+                app(OccurrenceMutationLocks::class)->lock($items, array_merge($withdrawable, $approvedRequestIds));
 
-                if ($items !== []) {
-                    $result = (new CancelClassBatch)(auth()->user(), $items, $reason, $otherDetail);
+                if ($items !== [] || $approvedTargets !== []) {
+                    $result = (new CancelClassBatch)(auth()->user(), $items, $reason, $otherDetail, true, $approvedTargets);
 
                     if (! $result['ok']) {
                         return; // a refused batch writes nothing and stops the withdrawals
@@ -232,10 +411,15 @@ trait CancelsClasses
             // the lock union drifted under us — a refresh, never the user's fault
             $result = ['ok' => false, 'cancelled' => [], 'requestsClosed' => 0, 'hint' => 'These classes changed while you were cancelling — please refresh and try again.'];
             $withdrawn = 0;
-        } catch (RuntimeException) {
-            // CancelPendingRequest's own refusal — the raced/contradictory
-            // selection is the user's to retry
-            $result = ['ok' => false, 'cancelled' => [], 'requestsClosed' => 0, 'hint' => 'One of those requests is not yours to withdraw any more.'];
+        } catch (RuntimeException $e) {
+            /* ONLY the withdrawal action's own refusal marker is a withdrawal
+               refusal — a PDO/audit RuntimeException is a day fault, not an
+               authorization failure, and gets the honest generic copy. The
+               message is compared, never logged or echoed (no secrets). */
+            $result = ['ok' => false, 'cancelled' => [], 'requestsClosed' => 0,
+                'hint' => $e->getMessage() === 'withdrawal_refused'
+                    ? 'One of those requests is not yours to withdraw any more.'
+                    : 'The cancellation could not be completed — nothing was changed. Please try again.'];
             $withdrawn = 0;
         } catch (\Throwable) {
             // a DB or audit failure is NOT a withdrawal refusal — the day fault
