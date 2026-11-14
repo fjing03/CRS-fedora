@@ -42,3 +42,14 @@ The 22 half-hour columns are unchanged; no column is removed.
 - `venue-timetable` / `venue-status-parity` / `venue-book` specs unchanged in
   intent.
 - Read-only measurement on the demo lane recorded in the changelog.
+
+## R8 — The evening is genuinely bookable (round 2, user 2026-11-14)
+
+- Every venue/week/day carries 18:00–18:30 and 18:30–19:00 `available` rows.
+- A 1-hour booking at 18:00 is accepted by the normal booking path.
+- `TimeSlotsSeeder` reproduces the same 42,504 rows (loop `< 19`).
+
+## R9 — One label for "cannot fit"
+
+- No cell emits `.cell-no-fit`; the red "Too Late to Book" day-end state is retired.
+- 18:30–19:00 is green with `cell-no-room` and the "Not Enough Slot" hover.

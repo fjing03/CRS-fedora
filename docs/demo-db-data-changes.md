@@ -1,3 +1,72 @@
+## 2026-11-14 — evening booking slots added, demo DB (user request)
+
+- **Why:** the user asked for 6–7 PM to be genuinely bookable on the venue grid. A room's
+  `time_slots` rows stopped at a 17:30 start, so the grid's 18:00/18:30 columns had no row to
+  offer — clicking "Arrange" there was refused with "Slot Too Short".
+- **What:** two `INSERT … SELECT` statements adding, per venue/week/day, the 18:00–18:30 and
+  18:30–19:00 rows as plain `available` rows (copied from each day's 17:30 row, so coverage is
+  identical). No update, no delete, no schema change, no existing row touched.
+- **Target (printed before and after):** `class_replacement_fresh` · port 5432 ·
+  `/var/lib/postgres/data`.
+- **Snapshot first:** `pg_dump -Fc` → `/tmp/crs-evening/manual-before.dump` (344,130 bytes,
+  `pg_restore --list` = 252 lines).
+- **Rehearsed** inside a rolled-back transaction on the same DB: `INSERT 0 1932` ×2, all new rows
+  `available`, `class_session_id` NULL, no Sunday rows.
+- **Row-count receipt:**
+  - `time_slots` **38,640 → 42,504** (+3,864 = 1,932 × 2);
+  - per start time: 17:30 = 1,932, **18:00 = 1,932 (new)**, **18:30 = 1,932 (new)**;
+  - rows with `status <> 'available'` or a holder among the new ones: **0**;
+  - every other table untouched.
+- **Source of truth updated in the same pass:** `database/seeders/TimeSlotsSeeder.php` now loops
+  `$hour < 19` (was `< 18`), so a reseed reproduces the same 42,504 rows.
+- **Follow-up in the same session:** the venue grid's red "Too Late to Book" day-end state was
+  retired (user ruling) so the now-real 18:30–19:00 cell reads green "Not Enough Slot" instead.
+
+## 2026-11-08 — four module titles filled in, both demo DBs (user request)
+
+- **Why:** `AMSE2002`, `AMSE2003`, `AMSE2013` and `MPU-2302` stored their own code as the title, so
+  every page read "AMSE2003 AMSE2003 (L)". The user asked for a plausible name instead (and supplied
+  `Bahasa Kebangsaan` for the MPU).
+- **What:** a title-only `UPDATE` on `modules` — 4 rows per database, no inserts/deletes/schema
+  change. `updated_at` touched, nothing else.
+
+  | Code | Old `module_name` | New `module_name` |
+  |---|---|---|
+  | AMSE2002 | AMSE2002 | Software Design and Architecture |
+  | AMSE2003 | AMSE2003 | Software Testing and Quality Assurance |
+  | AMSE2013 | AMSE2013 | Software Requirements Engineering |
+  | MPU-2302 | MPU-2302 | Bahasa Kebangsaan |
+
+- **Targets (both printed before running):** `class_replacement_fresh` and `class_replacement_demo`.
+- **Snapshots first** (`pg_dump -Fc`, in git-ignored `backups/`):
+  `class_replacement_fresh-20261108-161722-pre-module-titles.dump`,
+  `class_replacement_demo-20261108-161722-pre-module-titles.dump`.
+- **Rehearsed** on `class_replacement_testing` (`migrate:fresh --seed`): the importer's verify phase
+  reported 0 modules without a title, and the four names landed.
+- **Row-count receipt (unchanged by the update):**
+  - `class_replacement_fresh` — 42 modules / 101 sessions / 14 requests / 110 notifications, before and after;
+  - `class_replacement_demo` — 42 modules / 101 sessions / 0 requests / 0 notifications, before and after.
+- **Source of truth updated in the same pass:** `dataset/import/course-titles.php` gained the four
+  titles (with the 2026-11-08 provenance note) and `dataset/DATASET-NOTES.md` §6 now reads 42/42, so a
+  reseed reproduces the names.
+- **Follow-up, same day (user: "fix the last odd one"):** `MPU-2212` was the only title in capitals —
+  `BAHASA KEBANGSAAN A` — and sat beside the new `MPU-2302 Bahasa Kebangsaan`. One title-only
+  `UPDATE` per database → `Bahasa Kebangsaan A`; 0 ALL-CAPS titles remain, row counts unchanged
+  (fresh 42/101/14/110, demo 42/101/0/0). Snapshots:
+  `…-20261108-162834-pre-mpu2212-case.dump` (both DBs). Rehearsed on the testing DB first.
+
+## 2026-11-08 — two read flags flipped by read-only browsing (agent, `class_replacement_fresh`)
+
+- **What:** `notifications.id = 135` (user 112 · `update` · week 7 · "Scheduled class cancelled") and
+  `notifications.id = 200` (user 112 · `approved` · week 14 · "Replacement class updated") went from
+  `read_at = NULL` to a timestamp. Nothing else changed: both rows keep `hidden_at = NULL`, no deletes,
+  no inserts, no schema change.
+- **How:** while verifying the notification-click receipts (student-side health check S4/S8) I clicked
+  those two rows in the panel on `:8010`. The panel's capture-phase handler fires the durable
+  mark-read POST before navigating — by design — so a "browse only" click is still a write.
+- **Restore, if the unread state matters:** `UPDATE notifications SET read_at = NULL WHERE id IN (135,200);`
+  (agent will not run it without an explicit go-ahead; the demo DBs stay read-only otherwise).
+
 ## 2026-11-05 — request 29 (the user's manual submission-conflict test) removed
 
 - **Final state:** back to the standing baseline — 5 requests / **77** notifications / 3 hidden /

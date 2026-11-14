@@ -15,3 +15,4 @@ implementation_approved: true
 implementation_approved_at: 2026-11-14
 implementation_approved_by: user ("apply")
 implementation_blocked_by: none
+round2: "2026-11-14 — real evening slots (data, logged) + red day-end state retired (user rulings)"

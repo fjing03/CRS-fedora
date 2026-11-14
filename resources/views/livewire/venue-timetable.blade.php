@@ -53,6 +53,11 @@
 
         /* ───── Available slot hover label ───── */
         .cell-available { --hover-label: 'Arrange ?'; }
+        /* 2026-11-14 (venue-evening-tail, user): the grid no longer emits
+           `.cell-no-fit` — the day-end case now speaks the same "Not Enough Slot"
+           language as every other "your class cannot fit here" cell. The rules
+           below are kept because the phone/print layers and older cached views
+           still reference the class; nothing new applies it. */
         /* too late in the day for a full booking — hover says so instead.
            Two-line label law (user, 2026-10-25): "Too Late" / "to Book" —
            \A is the CSS line-break escape; white-space: pre-line makes the
@@ -1256,14 +1261,15 @@
                                 countedAvailable++;
                                 const div = document.createElement('div');
                                 div.className = 'cell-content cell-available';
-                                /* a class can't fit if it would run past the day end —
-                                   judged by the SHORTEST class this venue can host.
-                                   A tail cell is exempt (no real offer is being
-                                   promised there); its own room test below labels it. */
-                                if (!tail && hi + MIN_BOOK_SLOTS > hours.length) div.classList.add('cell-no-fit');
-                                /* …and it can't fit if the next class below leaves too
-                                   little room (cursor + hover words only, no colour) */
-                                else if (roomBeforeNextEvent(di, hi) < MIN_BOOK_SLOTS) div.classList.add('cell-no-room');
+                                /* 2026-11-14 (venue-evening-tail, user): ONE language for
+                                   "no class of yours fits here" — the green "Not Enough
+                                   Slot" state. The old red "Too Late to Book" day-end arm is
+                                   retired: with the evening slots live, 18:30–19:00 is a real
+                                   cell with only 30 minutes left, and the user asked for it
+                                   to read like its neighbour rather than paint the whole day
+                                   red at the end. `roomBeforeNextEvent` already answers
+                                   `hours.length - hi` at the day end, so no arm is needed. */
+                                if (roomBeforeNextEvent(di, hi) < MIN_BOOK_SLOTS) div.classList.add('cell-no-room');
                                 /* cancelled-slot-reuse A19: ONLY a BASE-row free offer
                                    carries its own time label — the phone's block-table
                                    layout turns the desktop absolute cell fill into normal

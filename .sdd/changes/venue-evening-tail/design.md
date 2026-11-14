@@ -126,3 +126,23 @@ inert.
   separately.
 - **Paint the tail without counting it** — the user ruled it counts, and the
   AVAILABLE card's own law is "what the grid renders bookable".
+
+## 7. Round 2 — the evening becomes real (user, 2026-11-14)
+
+After round 1 shipped, the user clicked 6:00 PM and got "Slot Too Short — runs into an existing
+event below" (there was no event; the missing 18:30 row was being read as a blocker). Their
+ruling: make the evening genuinely bookable.
+
+**Data.** Two `INSERT … SELECT` statements add 18:00–18:30 and 18:30–19:00 as `available` rows for
+every venue/week/day, copied from each day's 17:30 row (`time_slots` 38,640 → 42,504). Snapshot
+first, rehearsed in a rolled-back transaction, logged in `docs/demo-db-data-changes.md`.
+`TimeSlotsSeeder` now loops `$hour < 19` so a reseed reproduces them.
+
+**Rule.** The red `.cell-no-fit` day-end arm is **retired** (user ruling): with real evening rows,
+18:30–19:00 is an ordinary cell with 30 minutes left, and it must read the same as every other
+"cannot fit" cell — green + "Not Enough Slot". `roomBeforeNextEvent` already answers
+`hours.length - hi`, so the room arm alone produces it; no new arithmetic. The class is kept in CSS
+(older cached views and the phone/print layers still reference it) but is no longer emitted.
+
+**Consequence on the tail.** With rows everywhere the tail guard never fires — it stays as the
+safety net for any venue/week that still lacks rows.

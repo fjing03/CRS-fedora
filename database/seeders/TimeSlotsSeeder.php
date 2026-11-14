@@ -15,7 +15,11 @@ class TimeSlotsSeeder extends Seeder
         foreach ($venueIds as $venueId) {
             for ($week = 1; $week <= 14; $week++) {
                 for ($day = 0; $day <= 5; $day++) {
-                    for ($hour = 8; $hour < 18; $hour++) {
+                    /* 2026-11-14 (venue-evening-tail, user): the evening is part of
+                       the bookable day — 17:30 was the last start, which left the
+                       grid's 18:00/18:30 columns with no slot row at all. The loop
+                       now runs to 19:00 so a reseed reproduces the live rows. */
+                    for ($hour = 8; $hour < 19; $hour++) {
                         foreach ([0, 30] as $minute) {
                             $startH = str_pad((string) $hour, 2, '0', STR_PAD_LEFT);
                             $startM = str_pad((string) $minute, 2, '0', STR_PAD_LEFT);

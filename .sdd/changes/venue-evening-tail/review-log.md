@@ -49,3 +49,16 @@ array, `tests/venue-book.spec.ts`, and the verified data fact that every venue's
 ## Freeze — 2026-11-14
 
 All four artifacts frozen after the two blocking items were fixed.
+
+## Round 2 — scope change, 2026-11-14
+
+Two changes the round-1 review did not cover, both **user-initiated** after seeing round 1 work:
+
+1. the evening rows become real data (approved: "yes" to adding 6–7 PM slots for every room);
+2. the red day-end state is retired in favour of green "Not Enough Slot" (approved: "6:30–7:00,
+   keep green Not Enough Slot").
+
+Both were applied as specified. The blocking items from round 1 stay satisfied: the audit's
+`Infinity` arm is gone, the day-end ground is explicit, and the retired arm is now asserted absent
+(`cell-no-fit` count 0). No frozen decision was reinterpreted; the R1 "nothing grows wider" spirit
+is untouched (this is a grid state, not a layout).

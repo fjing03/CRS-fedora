@@ -289,38 +289,34 @@ test('U2a-T5: B opens the tooltip on a focused free cell; Escape and .grid-scrol
   await expect(page.locator('#availableTooltip')).not.toHaveClass(/show/);
 });
 
-test('U2a-T6: no-fit cell shows the two-line "Too Late / to Book" label; click gives the shared toast, no navigation', async ({ page }) => {
+test('U2a-T6: the day-end cell reads "Not Enough Slot" (green) and click gives the shared toast, no navigation', async ({ page }) => {
+  /* 2026-11-14 (venue-evening-tail, user): the red "Too Late / to Book" day-end
+     state is retired. With the evening slots live, 18:30–19:00 is a REAL cell
+     with only 30 minutes left, and the user ruled it must read like every other
+     "your class cannot fit here" cell: green + "Not Enough Slot". */
   // writes: guarded fail-closed (exact strings, first line, loud red)
   throwUnlessTestingTarget('U2a-T6', { requireAllowSql: true });
   await page.goto(PAGE);
   const fx = await stageTailOffers(page);
   try {
-    // venue-timetable-bookable-cells: the no-fit state is judged ONLY by the
-    // day end (`hi + MIN_BOOK_SLOTS > hours.length`) — the staged 18:30 offer
-    // IS the day's final hour-axis cell, so the grid must paint it no-fit.
-    const noFit = page.locator('.cell-available.cell-no-fit');
-    expect(await noFit.count()).toBeGreaterThan(0);
-    const coords = await noFit.first().evaluate((el) => ({ day: el.dataset.day, hour: el.dataset.hour }));
+    // the day's final hour-axis cell must be green + "Not Enough Slot", and the
+    // red day-end class must no longer be painted anywhere.
+    expect(await page.locator('.cell-available.cell-no-fit').count(), 'no red day-end cell is painted').toBe(0);
+    const dayEnd = page.locator('.cell-available.cell-no-room').last();
+    const coords = await dayEnd.evaluate((el) => ({ day: el.dataset.day, hour: el.dataset.hour }));
     const lastHourIdx = await page.evaluate(() => hours.length - 1);
-    expect(Number(coords.hour), 'the no-fit cell sits at the FINAL hour-axis index').toBe(lastHourIdx);
-    expect(Number(coords.day), 'and on the staged week/day').toBe(fx.dayIdx);
-    const label = await noFit.first().evaluate((el) => getComputedStyle(el, '::after').content);
-    // Two-line label law (user, 2026-10-25): "Too Late" / "to Book". The
-    // computed content CSS-serialises the embedded newline — Chromium hands it
-    // back as "\a" (lowercase), other engines as "\A" or a literal newline —
-    // normalise all forms, strip the CSS string quotes, assert the lines.
-    const lines = label
-      .replace(/^["']|["']$/g, '')
-      .replace(/\\a\s?/gi, '\n')
-      .split('\n')
-      .map((s) => s.trim())
-      .filter(Boolean);
-    expect(lines).toEqual(['Too Late', 'to Book']);
-    await noFit.first().click();
+    expect(Number(coords.hour), 'the labelled cell sits at the FINAL hour-axis index').toBe(lastHourIdx);
+    const facts = await dayEnd.evaluate((el) => ({
+      label: getComputedStyle(el, '::after').content.toLowerCase(),
+      cursor: getComputedStyle(el).cursor,
+    }));
+    expect(facts.label).toContain('not enough slot');
+    expect(facts.cursor).toBe('not-allowed');
+    await dayEnd.click();
     // venue-slot-validation (2026-11-06): the hover floor is a fixed 60 minutes —
     // never a class-derived number, never the old 120.
     await expect(page.locator('#toastBar .toast-message'))
-      .toHaveText(/^A booking needs 60 minutes/);
+      .toHaveText('Not enough room below this class — pick a Free Cell.');
     await expect(page.locator('#availableTooltip')).not.toHaveClass(/show/);
     expect(page.url()).toContain('/venue-timetable-ui');
   } finally {
@@ -395,12 +391,10 @@ test('U2a-T8: the late and no-room states follow the real shortest class, cell b
         }
         const isTail = hi > lastServed;
         if (isTail) unofferedTail += 1;
-        /* arm 1 — the day end. A REAL offer past the day end is red; the
-           unoffered tail never is (it promises nothing) — it carries
-           cell-no-room only when less than one booking fits before 19:00. */
-        const lateHere = !isTail && hi + min > hoursLen;
-        if (lateHere !== el.classList.contains('cell-no-fit')) bad.push('late ' + di + '/' + hi);
-        if (lateHere) { late += 1; return; }
+        /* 2026-11-14 (venue-evening-tail, user): the red day-end arm is retired —
+           no cell may wear cell-no-fit any more. The day end is just another
+           "not enough room" case, so it is judged by the room test below. */
+        if (el.classList.contains('cell-no-fit')) bad.push('late ' + di + '/' + hi);
         /* arm 2 — the next-block gap, derived INDEPENDENTLY first */
         const liveStarts = ((MockData.myTimetable.eventsByWeek || [])[(window as any).currentWeek] || [])
           .filter((ev: any) => ev.di === di && ev.status !== 'cancelled' && ev.start > hi)
@@ -434,7 +428,7 @@ test('U2a-T8: the late and no-room states follow the real shortest class, cell b
       return { min, hoursLen, checked: cells.length, late, dayEndRoom, unofferedTail, bad };
     });
     expect(audit.checked).toBeGreaterThan(0);
-    expect(audit.late, 'the end-of-day no-fit arm is exercised on a real served cell').toBeGreaterThan(0);
+    expect(audit.late, 'no cell wears the retired red day-end class').toBe(0);
     expect(audit.dayEndRoom, 'some rooms run to the grid end and are grounded by it').toBeGreaterThan(0);
     expect(audit.bad).toEqual([]);
   } finally {

@@ -1,3 +1,24 @@
+## 2026-11-14 — 6–7 PM is now bookable for real
+
+The evening half-hours were painted earlier today, but clicking them still failed: the room had
+no booking slot after 5:30 PM, so the pop-up answered "Slot Too Short — runs into an existing
+event below" (with no event anywhere). The evening is now part of the real bookable day.
+
+- **6:00–6:30 PM** — a genuine slot. A 1-hour class books there normally.
+- **6:30–7:00 PM** — a genuine slot, but only 30 minutes remain before the grid ends, so it shows
+  the green **"Not Enough Slot"** label. The old red **"Too Late to Book"** state is retired
+  (user ruling, 2026-11-14): one plain language for "your class cannot fit here" instead of a red
+  cell at the end of every day.
+- Nothing else on the grid changes; 5:00, 5:30 and 6:00 PM stay plain green.
+
+Every room, week and day gained the two rows (38,640 → 42,504 slot rows, additive only, snapshot
+taken first — see [the data log](../docs/demo-db-data-changes.md)), and the seeder now reproduces
+them. Verified on B009, Thu 19 Nov: 6:00 PM plain green, 6:30 PM "Not Enough Slot", no red cell
+anywhere, and the Available card still equals the green cells (72 = 72).
+
+Tests updated to the new rule: the cell audit no longer expects any `cell-no-fit`, and the
+day-end case asserts the green label instead. PHPStan 0 errors, Pint clean.
+
 ## 2026-11-14 — the evening half-hours are painted again
 
 The grid still ends at 7pm, but the last two half-hours of every day were blank:
