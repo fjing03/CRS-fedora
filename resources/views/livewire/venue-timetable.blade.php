@@ -521,13 +521,46 @@
             }
 
             /* First hour after `hi` whose real cell is NOT a free offer (held
-               row or no offer). Infinity = none — the room run ends there even
-               when no event geometry covers the cell. */
+               row). Infinity = none — the room run ends there even when no event
+               geometry covers the cell.
+
+               2026-11-14 (venue-evening-tail, user): the scan stops at the day's
+               LAST served row. The half-hours after it carry no slot row at all
+               and are no longer treated as a blocker, which is what puts
+               17:30–18:00 back to a plain green cell. A hole INSIDE the served
+               range still ends the run (A21 preserved). */
             function nextActualBlockAfter(di, hi) {
-                for (let k = hi + 1; k < hours.length; k++) {
+                const last = lastOfferIndex(di);
+                for (let k = hi + 1; k <= last; k++) {
                     if (roomCellState(di, k) !== 'free') return k;
                 }
                 return Infinity;
+            }
+
+            /* The LAST half-hour of this day that has a real room row. A `blocked`
+               (held) row counts as served on purpose: it is a real row, just not
+               free, so it must end a run and must not extend the tail. -1 = the
+               day offers nothing at all. */
+            function lastOfferIndex(di) {
+                const week = roomCellStatesByWeek[currentWeek];
+                if (!week) return -1;
+                let last = -1;
+                for (let k = 0; k < hours.length; k++) {
+                    if (week[di + ':' + k] !== undefined) last = k;
+                }
+                return last;
+            }
+
+            /* 2026-11-14 (venue-evening-tail, user): the grid always draws 08:00–19:00
+               but a room's rows stop at 17:30, so the last two half-hours had no
+               cell at all — a blank hole at the right edge of every day. They are
+               painted as available cells instead. The guard keeps the change honest:
+               only a day whose last served row sits in the grid's FINAL hour gets
+               them, so a room that closes at midday is never painted green to the
+               evening. */
+            function isServedTail(di, hi) {
+                const last = lastOfferIndex(di);
+                return last >= hours.length - 3 && hi > last;
             }
 
             function nextEventStartAfter(di, hi) {
@@ -589,13 +622,14 @@
             }
 
             /* Room between a free cell and the NEXT real block, in half-hour
-               slots (Infinity = nothing below). The next block is the nearer
-               of the next live event and the first non-free room-matrix cell
-               (A21) — a raw occupied row with no event geometry still ends
-               the run. */
+               slots. The next block is the nearer of the next live event and the
+               first non-free SERVED cell (A21) — a raw occupied row with no event
+               geometry still ends the run — and never later than the grid's own
+               end (2026-11-14, venue-evening-tail): the unoffered tail is not a
+               blocker, so the answer is always finite (`hours.length - hi`). */
             function roomBeforeNextEvent(di, hi) {
-                const next = Math.min(nextEventStartAfter(di, hi), nextActualBlockAfter(di, hi));
-                return next === Infinity ? Infinity : next - hi;
+                const next = Math.min(nextEventStartAfter(di, hi), nextActualBlockAfter(di, hi), hours.length);
+                return next - hi;
             }
 
             function showAvailableTooltip(ev, di, hi, cell) {
@@ -1204,7 +1238,15 @@
                                stays inert. Only a served free offer is
                                bookable — no missing-grid free fallback. */
                             const cellState = roomCellState(di, hi);
-                            if (cellState === 'free') {
+                            /* 2026-11-14 (venue-evening-tail, user): the half-hours
+                               after the day's last served row are painted as
+                               available cells, count as Available, and never wear the
+                               red day-end class — the day-end red belongs to a REAL
+                               offer that cannot fit. The 18:30 cell keeps the same
+                               "Not Enough Slot" language the 17:30 cell used to
+                               carry, because only 30 minutes are left. */
+                            const tail = cellState === 'nooffer' && isServedTail(di, hi);
+                            if (cellState === 'free' || tail) {
                                 /* Available slot — frozen template :873–884. The
                                    AVAILABLE card counts ONLY what the grid renders
                                    bookable (user 2026-10-19: too-soon rows were
@@ -1215,8 +1257,10 @@
                                 const div = document.createElement('div');
                                 div.className = 'cell-content cell-available';
                                 /* a class can't fit if it would run past the day end —
-                                   judged by the SHORTEST class this venue can host */
-                                if (hi + MIN_BOOK_SLOTS > hours.length) div.classList.add('cell-no-fit');
+                                   judged by the SHORTEST class this venue can host.
+                                   A tail cell is exempt (no real offer is being
+                                   promised there); its own room test below labels it. */
+                                if (!tail && hi + MIN_BOOK_SLOTS > hours.length) div.classList.add('cell-no-fit');
                                 /* …and it can't fit if the next class below leaves too
                                    little room (cursor + hover words only, no colour) */
                                 else if (roomBeforeNextEvent(di, hi) < MIN_BOOK_SLOTS) div.classList.add('cell-no-room');

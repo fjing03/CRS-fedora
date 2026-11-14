@@ -365,70 +365,134 @@ test('U2a-T8: the late and no-room states follow the real shortest class, cell b
          axis alone decides; the staged 18:30 offer exercises it for real.
        · NEXT BLOCK (no-room): the EXPECTED room is derived INDEPENDENTLY of
          the page helper — the first live (cancelled history is NOT occupancy,
-         S20) event start after `hi`, and the first non-free served-matrix
-         cell after `hi`, whichever comes first; Infinity = no next blocker.
-         The actual roomBeforeNextEvent must EQUAL that derivation (including
-         Infinity) before the class comparison — this checks the page's bug
-         fixes instead of merely repeating its own result. The old audit read
-         events only and read Infinity as "no room", which contradicted the
-         served matrix — that was the test's wrong assumption, not a page
-         bug. */
+         S20) event start after `hi`, and the first non-free SERVED row after
+         `hi`, whichever comes first, and never later than the grid's end.
+         The actual roomBeforeNextEvent must EQUAL that derivation before the
+         class comparison — this checks the page's bug fixes instead of merely
+         repeating its own result.
+       · 2026-11-14 (venue-evening-tail, user): the scan stops at the day's
+         LAST served row, so the unoffered half-hours after it are no longer a
+         blocker and the room is capped by `hours.length`. `Infinity` therefore
+         cannot occur any more; a room that reaches the grid's end is grounded
+         by the DAY END itself, and a served cell's own day-end red rule only
+         applies where a real row exists (`hi <= last served row`). */
     const audit = await page.evaluate(() => {
       const min = 2;   /* MIN_BOOK_SLOTS — the fixed one-hour hover floor */
       const hoursLen = hours.length;
       const cells = Array.from(document.querySelectorAll('#tableBody .cell-available')) as HTMLElement[];
       const bad: string[] = [];
       let late = 0;
-      let noNextBlocker = 0;
+      let dayEndRoom = 0;
+      let unofferedTail = 0;
       cells.forEach((el) => {
         const di = Number(el.dataset.day);
         const hi = Number(el.dataset.hour);
-        /* arm 1 — the day end */
-        const lateHere = hi + min > hoursLen;
+        const matrix = ((window as any).roomCellStatesByWeek || [])[(window as any).currentWeek] || {};
+        /* the day's LAST served row — derived from the matrix itself */
+        let lastServed = -1;
+        for (let k = 0; k < hoursLen; k++) {
+          if (matrix[di + ':' + k] !== undefined) lastServed = k;
+        }
+        const isTail = hi > lastServed;
+        if (isTail) unofferedTail += 1;
+        /* arm 1 — the day end. A REAL offer past the day end is red; the
+           unoffered tail never is (it promises nothing) — it carries
+           cell-no-room only when less than one booking fits before 19:00. */
+        const lateHere = !isTail && hi + min > hoursLen;
         if (lateHere !== el.classList.contains('cell-no-fit')) bad.push('late ' + di + '/' + hi);
         if (lateHere) { late += 1; return; }
         /* arm 2 — the next-block gap, derived INDEPENDENTLY first */
         const liveStarts = ((MockData.myTimetable.eventsByWeek || [])[(window as any).currentWeek] || [])
           .filter((ev: any) => ev.di === di && ev.status !== 'cancelled' && ev.start > hi)
           .map((ev: any) => ev.start);
-        const matrix = ((window as any).roomCellStatesByWeek || [])[(window as any).currentWeek] || {};
         let firstBlocked = Infinity;
-        for (let k = hi + 1; k < hoursLen; k++) {
+        for (let k = hi + 1; k <= lastServed; k++) {
           if (matrix[di + ':' + k] !== 'free') { firstBlocked = k; break; }
         }
         /* the next blocker is an ABSOLUTE index; the room helper answers a
-           DELTA from hi — convert, keeping Infinity as Infinity */
-        const next = Math.min(...liveStarts, firstBlocked);
-        const derived = next === Infinity ? Infinity : next - hi;
+           DELTA from hi, capped by the grid's own end */
+        const next = Math.min(...liveStarts, firstBlocked, hoursLen);
+        const derived = next - hi;
         const room = (window as any).roomBeforeNextEvent(di, hi);
-        /* the page helper must agree with the independent derivation —
-           including Infinity — before anything else is judged against it */
         if (room !== derived) {
           bad.push('room-derivation ' + di + '/' + hi + ' actual=' + room + ' derived=' + derived);
         }
         if ((room < min) !== el.classList.contains('cell-no-room')) {
           bad.push('room ' + di + '/' + hi + ' room=' + room + ' min=' + min);
         }
-        if (room === Infinity) {
-          noNextBlocker += 1;
+        if (hi + room === hoursLen) {
+          dayEndRoom += 1;   // grounded by the grid's own end
           return;
         }
-        /* a FINITE room must be grounded: a live event starts exactly at
-           hi+room, or the room run ends at a non-free offer there */
+        /* a FINITE room below the end must be grounded: a live event starts
+           exactly at hi+room, or the room run ends at a non-free SERVED row */
         const evGround = ((MockData.myTimetable.eventsByWeek || [])[(window as any).currentWeek] || [])
           .some((ev: any) => ev.di === di && ev.status !== 'cancelled' && ev.start === hi + room);
         const mxGround = matrix[di + ':' + (hi + room)] !== 'free';
         if (!evGround && !mxGround) bad.push('room ungrounded ' + di + '/' + hi + ' room=' + room);
       });
-      return { min, hoursLen, checked: cells.length, late, noNextBlocker, bad };
+      return { min, hoursLen, checked: cells.length, late, dayEndRoom, unofferedTail, bad };
     });
     expect(audit.checked).toBeGreaterThan(0);
-    expect(audit.late, 'the end-of-day no-fit arm is exercised on a real tail cell').toBeGreaterThan(0);
-    expect(audit.noNextBlocker, 'a no-next-blocker (Infinity) cell exists and stays bookable').toBeGreaterThan(0);
+    expect(audit.late, 'the end-of-day no-fit arm is exercised on a real served cell').toBeGreaterThan(0);
+    expect(audit.dayEndRoom, 'some rooms run to the grid end and are grounded by it').toBeGreaterThan(0);
     expect(audit.bad).toEqual([]);
   } finally {
     cleanupTailOffers(fx);
   }
+});
+
+test('U2a-T17: the evening tail is painted, counted and labelled (venue-evening-tail)', async ({ page }) => {
+  /* 2026-11-14 (user ruling): the grid keeps ending at 19:00, and the half-hours
+     after the day's last served row (17:30) are no longer blank —
+       17:30–18:00  plain green, NO "Not Enough Slot"
+       18:00–18:30  plain green
+       18:30–19:00  green + "Not Enough Slot" (never the red "Too Late to Book")
+     and all of them count towards Available. Read-only: nothing is staged. */
+  await selectWeek(page, await page.evaluate(() => (window as any).weekData.length - 1));
+  await page.waitForTimeout(400);
+
+  const tail = await page.evaluate(() => {
+    const rowFor = (di: number) => {
+      const out: Record<number, { cls: string; label: string } | null> = {};
+      [18, 19, 20, 21].forEach((hi) => {
+        const el = document.querySelector(`#tableBody td[data-day="${di}"][data-hour="${hi}"] .cell-content`);
+        out[hi] = el ? { cls: (el as HTMLElement).className, label: getComputedStyle(el, '::after').content } : null;
+      });
+      return out;
+    };
+    /* the last bookable day of the visible week (never Sunday/holiday) */
+    const days = (window as any).weekData[(window as any).currentWeek].days;
+    let di = -1;
+    days.forEach((d: any, i: number) => { if (!d.sunday && !d.holiday) di = i; });
+    return {
+      di,
+      cells: rowFor(di),
+      greenCells: document.querySelectorAll('#tableBody .cell-available').length,
+      availableCard: (document.getElementById('sumAvailable')?.textContent || '').trim(),
+    };
+  });
+
+  expect(tail.di, 'a plain (non-Sunday, non-holiday) day exists').toBeGreaterThanOrEqual(0);
+  const c = tail.cells;
+  for (const hi of [18, 19, 20, 21]) expect(c[hi], `cell ${hi} renders`).not.toBeNull();
+
+  // 17:00–17:30 and 17:30–18:00 and 18:00–18:30: plain green, no label
+  for (const hi of [18, 19, 20]) {
+    expect(c[hi]!.cls, `hi ${hi}: available`).toContain('cell-available');
+    expect(c[hi]!.cls, `hi ${hi}: not the red day-end state`).not.toContain('cell-no-fit');
+    expect(c[hi]!.cls, `hi ${hi}: no "Not Enough Slot"`).not.toContain('cell-no-room');
+    expect(c[hi]!.label.toLowerCase()).toContain('arrange');
+  }
+
+  // 18:30–19:00: green + "Not Enough Slot", never red
+  expect(c[21]!.cls).toContain('cell-available');
+  expect(c[21]!.cls).toContain('cell-no-room');
+  expect(c[21]!.cls).not.toContain('cell-no-fit');
+  expect(c[21]!.label.toLowerCase()).toContain('not enough slot');
+
+  // the tail counts towards Available, so the card matches the grid
+  expect(Number(tail.availableCard)).toBe(tail.greenCells);
 });
 
 test('U2a-T9: "Earliest bookable" sits after Today, jumps to the semester week and paints the chip', async ({ page }) => {

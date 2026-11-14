@@ -1,3 +1,31 @@
+## 2026-11-14 — the evening half-hours are painted again
+
+The grid still ends at 7pm, but the last two half-hours of every day were blank:
+a room's booking rows stop at 5:30pm, so 6:00–7:00 had no cell to draw. They are
+back, with the states the user asked for:
+
+- **5:30–6:00** — plain green. The "Not Enough Slot" label it carried until today
+  is gone (the unoffered evening tail is no longer counted as a blocker).
+- **6:00–6:30** — plain green.
+- **6:30–7:00** — green with the "Not Enough Slot" hover, never the red "Too Late
+  to Book" (that red is for a real slot that cannot fit before 7pm).
+- All of them count towards **Available**, so the card still equals the number of
+  green cells on screen (measured: 130 = 130).
+
+Checked read-only on the demo page for every day of a full week: 17:00, 17:30 and
+18:00 plain green, 18:30 "Not Enough Slot", and no red cell anywhere in the tail.
+
+Two limits stated plainly. A room that stops offering slots earlier in the day is
+**not** painted green to the evening — only a day whose last row is in the grid's
+final hour gets the tail, so a half-day room stays truthful. And a booking made in
+those evening cells is still refused, because the room has no real slot after
+6pm; creating real evening slots is a separate data change.
+
+Tests: `VenueTimetableTest` + `ModalConsistencyTest` **34/34**, 137 assertions;
+the `venue-book` cell audit now derives the bounded room rule on its own and keeps
+its grounding checks; PHPStan 0 errors, Pint clean. No database, route or content
+change; colours and tokens untouched.
+
 ## 2026-11-14 — summary card back spacing and structured explanation
 
 The flip cards shipped on 2026-11-13 (see that entry) were too tight to read: the back text sat 7px from the top and left 48px of dead space below, with lines 1.8px apart. The 44px info button in the bottom-right corner was the cause. It now sits **top-right**, the block is vertically centred, bullets carry a 4px gap and the described text uses `line-height: 1.45`. Every line reserves 38px so it can never run under the button; 39px was the last value that did not re-wrap a bullet.

@@ -1,0 +1,17 @@
+name: venue-evening-tail
+created: 2026-11-14
+status: applied
+batch: tasks
+planning_complete: true
+proposal_review: passed
+proposal_frozen: true
+design_review: passed
+design_frozen: true
+specs_review: passed
+specs_frozen: true
+tasks_review: passed
+tasks_frozen: true
+implementation_approved: true
+implementation_approved_at: 2026-11-14
+implementation_approved_by: user ("apply")
+implementation_blocked_by: none
