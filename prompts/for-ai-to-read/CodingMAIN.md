@@ -63,7 +63,7 @@ A web application that replaces the manual Google-Sheets-based class replacement
 - **Blue** — current selection
 
 ### Two-axis block language (frozen UI, 2026-10)
-All timetable pages use the frozen design's two-axis language: **colour = status** (same fill for everyone), **border weight = ownership** (3px thick = your class, 0.5px hairline = others'). The **replacement-arrangement grid** joined it on 2026-11-06 with **0px** instead of the hairline (see the slot-state table in §10.0). Block classes in `theme.css`: `event-mine` / `event-others` / `event-mine-pending` / `event-others-pending` / `event-conflict` (own conflict or public holiday — loud) / `event-public-holiday` (others', hairline red). Legend chips render these block classes directly.
+**Read-only timetable pages** use the frozen design's two-axis language: **colour = status** (same fill for everyone), **border weight = ownership** (3px thick = your class, 0.5px hairline = others'). The **replacement-arrangement grid is the exception since 2026-11-11:** no ownership ring, colour alone says “cannot book”, and its legend is four rows (see the slot-state table in §10.0). Block classes in `theme.css`: `event-mine` / `event-others` / `event-mine-pending` / `event-others-pending` / `event-mine-replacement` / `event-others-replacement` / `event-conflict` (own conflict or public holiday — loud) / `event-public-holiday` (others', hairline outline on the red fill). Legend chips render these block classes directly.
 
 ### Venue types & rules
 - **Tutorial Rooms** (cap ≤ 35): B100–B109, B014–B018, B002 — L/T sessions
@@ -104,6 +104,12 @@ has no time left (0). Anything further out stays Pending, and **no other status 
   `details.auto = true`, attributed to the proposer (`audit_logs.user_id` is NOT NULL).
 - Trigger: `App\Services\PendingRequestExpiry` + `php artisan requests:auto-reject` (`--dry-run`),
   scheduled every five minutes. **Never** a write-on-read (a page render must not mutate data).
+  **Status 2026-11-14:** the user's crontab now runs `php artisan schedule:run` every minute with
+  `DB_DATABASE=class_replacement_testing`, so the sweep is live and fires every five minutes against
+  that database. **That database now holds the user's protected manual testing data**, so the sweep
+  can reject a pending request they are testing by hand. Do not stop, alter or re-point the cron line
+  without explicit permission, and never point it at a demo DB. Request #35's manual decision is
+  history; do not manually reject it. Background: `prompts/pi-prompt-auto-reject-scheduler.md`.
 - UI: a Pending badge's `data-tip` states the deadline (proposed start − 3 working hours) through the
   shared `ReplacementRequestMapper::statusTip()`, on both My Replacements and the PL queue. The
   LECTURER arm names the rule itself (2026-11-06 UI update, "Pending Status Tooltip"):
@@ -216,14 +222,14 @@ rm -f storage/framework/views/*.php && php artisan serve --port=8000 &
 - PLs: Pn. Surayaini Binti Basri (5425), En. Mohd Nur Rahmat Bin Mohd Taat (5516) — `is_pl = true`
 
 ### Database safety (non-negotiable)
-- Demo DBs hold **real imported data** — `class_replacement_fresh` (:8000) + `class_replacement_demo` (:8001 twin) on the CachyOS machine, `class_replacement` on the HP — **never re-seed, never `migrate:fresh`, never `wipedata`** on them. Every demo-DB write (user clicks included) is user-gated and logged in `docs/demo-db-data-changes.md`.
-- Tests use the disposable `class_replacement_testing`, where `php artisan migrate:fresh --seed` is fine — selected ONLY via `DB_DATABASE=class_replacement_testing php artisan …`.
-- **Port map:** `:8000` = dev on `class_replacement_fresh` · `:8001` = the demo twin (`CRS-demo`, its own viva DB) · **`:8030` = the disposable AI/E2E self-test lane** (`DB_DATABASE=class_replacement_testing scripts/dev-serve.sh 8030`) — Playwright/spec runs only, never a demo DB, killed after the run.
-- **E2E write-guard law (2026-11-01 DATA-LOSS incident, lane `receipt-target-guard`, applied 2026-11-05):** every Playwright spec that WRITES to the database is fail-closed through `tests/helpers/receipt-target-guard.ts` — `abortUnlessTestingTarget(specPath, { requireAllowSql })` as the first statement after the imports (aborts at COLLECTION, before any login or SQL), or `throwUnlessTestingTarget(name)` on the first line of an individual dangerous test. Both demand the EXACT strings `CRS_MODE=testing` + `CRS_BASE=http://127.0.0.1:8030` (+ `CRS_ALLOW_SQL=1` where a fixture runs SQL). There are no defaults and no `test.skip(!ALLOWED)` escapes left: a missing flag is a loud exit-1 refusal that prints the blessed invocation. Run them as `CRS_MODE=testing CRS_ALLOW_SQL=1 CRS_BASE=http://127.0.0.1:8030 npx playwright test <spec>` after `DB_DATABASE=class_replacement_testing php artisan migrate:fresh --seed`. Never loosen the guard to make a run "work".
+- Demo DBs hold **real imported data** — `class_replacement_fresh` (:8000) + `class_replacement_viva` (:8001 viva twin) on the CachyOS machine, `class_replacement` on the HP — **never re-seed, never `migrate:fresh`, never `wipedata`** on them. `class_replacement_demo` is the older, empty twin (not the viva DB). Every demo-DB write (user clicks included) is user-gated and logged in `docs/demo-db-data-changes.md`.
+- **2026-11-14 — `class_replacement_testing` is protected manual data, not a disposable test DB.** It holds the user's hand-made testing work on `:8030`. Never `migrate:fresh`/`migrate:refresh`/`db:wipe`, reseed, use `RefreshDatabase`, or run writing browser fixtures there without explicit per-task permission. Backend refresh tests must use a separate verified PostgreSQL instance with the same literal database name; force and then query host/socket, port, database and `data_directory` before any write, and abort on a mismatch. Read-only checks are safe.
+- **Port map:** `:8000` = dev on `class_replacement_fresh` · `:8001` = the viva twin (`CRS-demo`, its own `class_replacement_viva` DB) · **`:8030` = the user's manual testing lane** (`DB_DATABASE=class_replacement_testing scripts/dev-serve.sh 8030`) — leave it running; it is no longer a disposable lane and must never be reseeded or killed after a run.
+- **E2E write-guard law (2026-11-01 DATA-LOSS incident, lane `receipt-target-guard`, applied 2026-11-05):** every Playwright spec that WRITES to the database is fail-closed through `tests/helpers/receipt-target-guard.ts` — `abortUnlessTestingTarget(specPath, { requireAllowSql })` as the first statement after the imports (aborts at COLLECTION, before any login or SQL), or `throwUnlessTestingTarget(name)` on the first line of an individual dangerous test. Both demand the EXACT strings `CRS_MODE=testing` + `CRS_BASE=http://127.0.0.1:8030` (+ `CRS_ALLOW_SQL=1` where a fixture runs SQL). There are no defaults and no `test.skip(!ALLOWED)` escapes left: a missing flag is a loud exit-1 refusal that prints the blessed invocation. Run them as `CRS_MODE=testing CRS_ALLOW_SQL=1 CRS_BASE=http://127.0.0.1:8030 npx playwright test <spec>` only after the target is independently verified; since 2026-11-14 `:8030` holds manual data, so a writing run needs explicit permission and an isolated testing instance — never `migrate:fresh --seed` on the manual database. The guard checks the flags, not which PostgreSQL cluster backs `:8030`; verify host/port/database separately first. Never loosen the guard to make a run "work".
 - **⛔ The `--env=testing` trap (real accident 2026-10-26):** this machine has **no `.env.testing`**, so `--env=testing` on any command **silently boots `.env`** — i.e. the DEMO DB — and a fresh/seed then destroys real records. Never append `--env=testing` to any destructive command; the env-var form above is the only sanctioned testing-DB switch.
-- **Schema-migration law (2026-11-02):** migrations are **strictly additive** on any demo DB — add a nullable column / add an index, nothing else. Never `change`, `rename`, `drop*`, or data statements. Every run: verified `pg_dump -Fc` snapshot → rehearse on `class_replacement_testing` via `DB_DATABASE=…` → **print the target first** (`php artisan tinker --execute="echo DB::connection()->getDatabaseName();"`) → plain `php artisan migrate` on `class_replacement_fresh`, then `DB_DATABASE=class_replacement_demo …` → row-count receipt before/after (`crs:db-row-counts`) → log it in `docs/demo-db-data-changes.md`. A migration run **is** a demo-DB write (user-gated). Reference execution: `2026_11_02_000001_add_hidden_at_to_notifications_table.php` (5 + 0 rows preserved, every `hidden_at` NULL).
+- **Schema-migration law (2026-11-02):** migrations are **strictly additive** on any demo DB — add a nullable column / add an index, nothing else. Never `change`, `rename`, `drop*`, or data statements. Every run: verified `pg_dump -Fc` snapshot → rehearse on an isolated verified testing instance (same literal DB name; never the manual `:8030` data) → **print the target first** (`php artisan tinker --execute="echo DB::connection()->getDatabaseName();"`) → plain `php artisan migrate` on `class_replacement_fresh`, then `DB_DATABASE=class_replacement_viva …` → row-count receipt before/after (`crs:db-row-counts`) → log it in `docs/demo-db-data-changes.md`. A migration run **is** a demo-DB write (user-gated). Reference execution: `2026_11_02_000001_add_hidden_at_to_notifications_table.php` (5 + 0 rows preserved, every `hidden_at` NULL).
 - **Snapshot law (the 2026-10-31 loss lesson):** before **any** demo-DB write take a verified `pg_dump -Fc` (pattern `<db>-<state>-<date>.dump`; `pg_restore --list` must pass) into the backups dir — `/home/philler/Desktop/tarumt/backups/` (HP mirror: `/home/jinglinux/tarumt/backups/`) — and take another dump after any demo-worthy milestone (user's own demo prep clicks count). Restores follow the backups README recipe (stop the server precisely → drop → restore → restart; two separate commands).
-- **Canonical viva state (2026-11-01):** `class_replacement_demo-post-recovery-2026-11-01.dump` = the recovered October record and the current live content of BOTH :8000 and :8001 (see `docs/demo-db-oct31-recovered.md`).
+- **Canonical viva baseline (2026-11-01):** `class_replacement_demo-post-recovery-2026-11-01.dump` = the recovered October record; **not** the current live content — both :8000 and :8001 have drifted since, so re-measure before quoting (see `docs/demo-db-oct31-recovered.md`).
 - Pristine snapshot + restore recipe: `/home/jinglinux/tarumt/backups/README.md` (HP) + its CachyOS mirror `Desktop/tarumt/backups/README.md`.
 
 ---
@@ -445,7 +451,7 @@ Source: `FR&NFR copy.md` (this folder — a verbatim copy of `../../../final/FR&
 - Tutorial (16): B002, B014–B018, B100–B109 | Lecture Halls (2): B110, B111 | Labs (4): B005, B009–B011 | Cisco Lab (1): B006
 
 ### Timetable dataset (real import — done)
-- Past-semester timetable PDFs from TAR UMT Sabah, imported to the demo DB (≈38,640 time slots across 14 weeks). The demo DB is **never re-seeded** (§4 Database safety). Test DB uses the disposable seeder dataset.
+- Past-semester timetable PDFs from TAR UMT Sabah, imported to the demo DB (≈38,640 time slots across 14 weeks). The demo DB is **never re-seeded** (§4 Database safety). The testing DB now holds the user's protected manual testing data (2026-11-14) — never reseed it; refresh-style backend tests use an isolated instance.
 
 ### High-risk use cases (engine validation targets)
 1. **Cross-faculty (MPU-3133 Falsafah dan Isu Semasa):** shared across RAF2, RBU1, RSD3 → must compute unified slot across faculties; venue filter = exclude labs.
@@ -473,7 +479,7 @@ component class exists → the component, otherwise the untouched frozen `ui-des
 | `/venue-timetable-ui` | `VenueTimetable` | Lecturer/PL |
 | `/my-replacements` | `ReplacementHome` | Lecturer/PL — **the canonical My Replacements page** (merge lane `replacement-merge-one-table`, 2026-11-04): one table, one row per class occurrence |
 | `/replacement-home-ui`, `/my-request-history-ui` | `ReplacementHome` — the **same** component | Lecturer/PL — extra addresses, **never redirects**, so `?notif-hl=` / `?blocked=` survive stored notification links and the post-submit landing |
-| `/replacement-arrangement` | `ReplacementArrangement` | Lecturer/PL — the booking grid (pick a slot, submit a request) |
+| `/replacement-arrangement` | `ReplacementArrangement` | Lecturer/PL — the booking grid (pick a slot, submit a request). Desktop top zone: Conflict Schedule · Class Details · Replacement Schedule + conditional Selection Summary (Round 2, `d2d91ae`); phone: the dedicated mobile day view |
 | `/request-approval-ui` | `RequestApproval` | PL |
 | `/student-class-replacements` | `ReplacementHistory` | Student — **Class Replacements**: one row per conflicted class occurrence (cancelled class OR public holiday, request or no request), read-only, with the `Exclude COMPLETED Status` toggle. Rulings in lane `student-class-replacements` (R1–R8, 2026-11-09) |
 | `/replacement-history-ui` | `ReplacementHistory` — the **same** component | Student — the old address, **kept alive as an alias** so bookmarks and stored notification links do not 404 |
@@ -514,32 +520,32 @@ These eleven rules are **non-negotiable** for every page and every future change
 2. **Use the same name + same color for the same meaning everywhere.**
    - A status/legend label and its color are a **canonical pair defined once below**; every page must use that exact pair. Never give the same concept a different label or a different color on another page.
    - Identical component = identical class name across pages (`.badge`, `.legend-item`, `.summary-card`, `.filter-select`, `.cell-code`, `.empty-state`, etc.), defined once in `theme.css`.
-   - **Timetable blocks use the frozen two-axis language** (§3): block classes `event-mine`/`event-others`/`event-mine-pending`/`event-others-pending`/`event-conflict`/`event-public-holiday`; legends render block-class chips + the ownership hint ("thick border (3px) = your classes · thin border (0.5px) = others'"). Tooltips render `name · lecturer · status` via `data-name` + `data-tip2` (`lecturer · status`).
+   - **Read-only timetable blocks use the frozen two-axis language** (§3): block classes `event-mine`/`event-others`/`event-mine-pending`/`event-others-pending`/`event-conflict`/`event-public-holiday`; legends render block-class chips + the ownership hint ("thick border (3px) = your classes · thin border (0.5px) = others'"). Tooltips render `name · lecturer · status` via `data-name` + `data-tip2` (`lecturer · status`). **The arrangement grid is the exception:** since 2026-11-11 it has no ownership ring, and its legend is four rows (see B).
+   - **One details-popup width: 680px** (2026-11-11/12). The student Class Replacements popup is the staff Replacement Details popup — four tabs, static Close-left / Go-right footer, conflict strip above the tabs — and `.modal-tabs` wraps below 520px. Do not shave one page's modal narrower.
 
    #### Canonical legend / status → color map (single source of truth)
    Two semantic contexts share one palette — green=free/ok, red=conflict/occupied, yellow=pending, blue=primary, grey=reserved/neutral.
 
    **A. Read-only timetable legend** (block classes in `theme.css`):
-   | Block class | Fill token | Meaning |
-   |-------------|-----------|---------|
-   | `event-mine` / `event-others` | `--color-secondary` (green) | scheduled class (border weight = ownership) |
-   | `event-mine-pending` / `event-others-pending` | `--color-tertiary` (yellow) | awaiting PL approval |
-   | `event-conflict` | `--color-error` (red, 3px border) | YOUR conflict or public-holiday class |
-   | `event-public-holiday` | `--color-error` (red, hairline) | others' conflict / holiday |
+   | Block class | Fill / border | Meaning |
+   |-------------|--------------|---------|
+   | `event-mine` / `event-others` | fill `--color-success-container`; border 3px `--color-success` / 0.5px `--color-outline-strong` | scheduled class (border weight = ownership) |
+   | `event-mine-pending` / `event-others-pending` | fill `--color-tertiary-container`; border 3px `--color-tertiary` / 0.5px `--color-outline-strong` | awaiting PL approval |
+   | `event-mine-replacement` / `event-others-replacement` | fill `--color-primary-container`; border 3px `--color-primary` / 0.5px `--color-outline-strong` | approved replacement (personal pages keep their own blue; cohort/venue use the same family) |
+   | `event-conflict` | fill `--color-error-container`; 3px `--color-error` border | YOUR conflict or public-holiday class |
+   | `event-public-holiday` | fill `--color-error-container`; 0.5px `--color-outline-strong` border | others' conflict / holiday |
 
-   **B. Replacement-arrangement slot grid legend** (booking interface, slot states — Wave 3b).
-   **Since 2026-11-06 this grid speaks the same two-axis language** (user law, brief
-   `UI Update & Bug Fix — Pending Slots, Conflicts & Legend Styling.md`): colour = state,
-   border = ownership — with **0px** standing in for the cohort/venue 0.5px hairline:
+   **B. Replacement-arrangement slot grid legend** (booking interface, slot states).
+   **Since 2026-11-11 colour alone says “cannot book”** (user ruling): the 3px ownership
+   ring is gone from both the conflict and pending families, and the legend has **four rows**
+   with **no ownership-hint line**. Venue and Cohort keep their 0.5px hairline.
 
    | Swatch (real cell class) | Label | Fill | Border |
    |---|---|---|---|
    | `cell-available` | Available | `--color-success-container` | none |
    | `event-selection` | Your Current Selection | `--color-primary-container` | 2px `--color-primary` |
-   | `cell-pending` | Your Pending | `--color-tertiary-container` | **3px `--color-tertiary`** |
-   | `cell-reserved` | Other Pending | `--color-tertiary-container` | **none** |
-   | `cell-occupied cell-occupied--mine` | Your Conflict | `--color-error-container` | **3px `--color-error`** |
-   | `cell-occupied` | Others Conflict | `--color-error-container` | **none** |
+   | `cell-pending` | Pending | `--color-tertiary-container` | **none** |
+   | `cell-occupied` | Conflict | `--color-error-container` | **none** |
 
    **The CELL's hover label names the REASON (user 2026-11-07, answers 1A 2A 3A 4A), and it is
    data-driven:** `Your Pending` · `Other Pending` (ownership), then on the red family `Venue
@@ -551,14 +557,13 @@ These eleven rules are **non-negotiable** for every page and every future change
    (`<br>`-joined, 2 lines max). The words are a real `<span class="cell-state-label">` inside the
    cell — the CSS `::after` overlay is switched off ONLY where that span exists (`:has()`), so
    `venue-timetable`'s own `--hover-label` copy is untouched; 11 px, clipped inside the cell.
-   The legend deliberately groups the non-yours red family into `Others Conflict` with the old
-   two-line tip (VENUE CONFLICT / COHORT CONFLICT) — do not re-split it into rows.
+   The legend no longer splits the red family into “Your Conflict” / “Others Conflict”:
+   it has one **Conflict** row, and the CELL's hover words carry the ownership/reason.
    The cell's tooltip sits ABOVE the cell (the shared engine's default; the
    `data-tip-pos="left"` pin was removed 2026-11-07) and its own-block tag reads `👤 Your conflict`.
 
-   Ownership law: an amber cell is 3px iff the pending request is **yours**; a red cell is 3px iff
-   **any** blocking row is yours (own class / own approved make-up) — a cohort's class, another
-   lecturer's class in the room and a venue that cannot host the class type are all borderless.
+   Ownership law (arrangement): **there is no border ring any more**. An amber or red cell looks the
+   same whether it is yours or another staff member's; the hover words are the only ownership signal.
    The class is chosen by ONE resolver (`classifyCell()` in the page script, exported on `window`),
    from BOTH arms (the venue slot payload's `status 1|3|4` and the busy vectors' 6th tuple key
    `mine` + 7th key `arms`) — precedence: own pending → others' pending → own+cohort → own →
@@ -567,10 +572,11 @@ These eleven rules are **non-negotiable** for every page and every future change
    `arms = union(twins)` — so the tooltip still counts ONE block and the cell still reads
    `Your & Cohorts Conflict`.
    Legend tips are TEXT: emphasis is capitalisation (`WAITING`, `CANNOT BOOK`, `VENUE CONFLICT`), and
-   the Conflict (Others) break is a `\n` (never a `<br>`). The room-type red has no legend line by
-   the user's call (VENUE CONFLICT = occupied, not unsuitable). Receipts:
-   `tests/arrangement-slot-ownership.spec.ts` (7; run it alone — `week-filter-preserved` re-seeds the
-   fixture DB), `MakeUpBusyVectorTest`, `ReplacementArrangementTest`, `UiLegendBarTest`.
+   line breaks are `\n` (never a `<br>`). The room-type red has no legend line by the user's call
+   (VENUE CONFLICT = occupied, not unsuitable). Receipts:
+   `tests/arrangement-slot-ownership.spec.ts` (four rows, rings `0px`; its write test is blocked by a
+   pre-existing W8 date fixture), `SlotBorderAndReasonBadgeTest`, `MakeUpBusyVectorTest`,
+   `ReplacementArrangementTest`, `UiLegendBarTest`.
    Grey is now `.cell-too-soon` only (it used to double as "reserved by others").
 
    **C. Request-history status badges** (`.status-*`):
@@ -692,11 +698,14 @@ server-driven `disabled` states keep working — never reach for `wire:ignore` h
 ### ✅ Done
 - Laravel 13 scaffold (Livewire starter kit + Fortify + passkeys + Flux), role-specific logins (incl. `P`-prefix staff IDs), per-role session lifetimes
 - Full schema migrated + **real timetable dataset imported** (≈38,640 time slots, 14 cohorts / 14 staff / 23 venues) — demo DB protected by the no-reseed rule + pristine snapshot
-- Engine services + Feature tests: `MatrixIntersectionEngine`, `OCCValidator` (PHPUnit 130/130 green)
+- Engine services + Feature tests: `MatrixIntersectionEngine`, `OCCValidator`; last recorded full suite **721/721 PASS, 6,090 assertions** (2026-11-14, `/tmp/crs-history-test-fix/full-suite-r2.txt`) — re-run before quoting. The former stale `ReplacementHistoriesTest` error was repaired with test-only changes (`0e6bc1a`).
 - Venue-restriction conflict derivation live (B005 no-Diploma; `docs/venue-restrictions.md`)
-- **All pages at frozen upstream UI design** (two-axis block language, span coalescing, honest cards): venue / cohort / my-timetable / student = real data; arrangement / approval / histories / home = frozen mock-fallback templates
+- **All live pages are wired to real DB data** (two-axis block language, span coalescing, honest cards): timetables, My Replacements, Request Approval, Class Replacements, Replacement Arrangement. The `ui-design-templates/*` copies remain frozen mocks.
+- **2026-11-11/12 UI batch:** whole-day cancel, arrangement mobile day view, desktop top-zone cards (Round 2 **applied and committed `d2d91ae`**), student Class Replacements popup parity, My Replacements column shares + plain-text venue, four-row arrangement legend / no ownership ring, short conflict badges, formula-first summary cards. Round 2 = three setup cards + conditional Summary, 56px rails, the 1101/1320px grid matrix, Course-over-Slot and a full-width Venue trigger. Details in `page-changelogs/`.
+- **2026-11-14 timetable lifecycle:** a cancelled original disappears only when its own replacement is Approved; pending/rejected/withdrawn/auto-rejected/no-request keep it, and another occurrence's approval never hides it. Server-side source-pair filtering on all four timetable pages, stored history intact. `fix: hide a cancelled block only after its own approval` (`46fd6f7`).
+- **2026-11-14 approved cancellation:** an opened Approved replacement is cancelled by its exact request ID plus the shown landing week/day — never by re-cancelling its source occurrence. Source session/week stays for history and Arrange Now; single and mixed selections share the batch, full mutation-lock union and strict full-span release; every selected target must resolve and a later failure rolls the whole decision back. Success list/count come from saved server receipts (never ticks plus an assumed primary class); Approved cancellation writes no recurring client ledger, and request-linked notices describe the actual landing, never the old private reason. `fix: cancel the actual approved replacement` (`b480a95`); `.sdd/changes/approved-replacement-cancellation/`.
 - SDD archives: `wire-backend-into-refactored-ui` (Slice A), `venue-event-blocks-db`, `venue-block-span-coalescing`, `all-pages-design-parity`, `b005-diploma-conflict`, etc.
-- Playwright gates: `venue-db`, `timetable-wiring`, `nav-identity` (+ `pages-parity`)
+- Playwright gates: `venue-db`, `timetable-wiring`, `nav-identity` (+ `pages-parity`); the `arrangement-mobile`, `cancel-whole-day` and `top-zone-round2` specs are committed (`tests/top-zone-round2.spec.ts`, 13/13 on 2026-11-12).
 
 ### 🔲 Not built
 - ~~**Notifications data bridge**~~ — **SHIPPED 2026-11-03** (lane `notifications-real-bridge`, applied): real
@@ -718,7 +727,7 @@ server-driven `disabled` states keep working — never reach for `wire:ignore` h
 |--------|-------------|--------|
 | Sprint 1 | Venue/module/timetable schema + real data import; `MatrixIntersectionEngine` | ✅ Done |
 | Sprint 2 | OCC layer + state machine + FCFS dashboard + audit trail | ✅ Shipped — OCC wired to the live submit path; span-aware approval shipped |
-| Sprint 3 | Real data into UI templates; RBAC gates; emails; tests | ✅ Shipped — timetables + booking + approvals + cancellations live; mails queued from the real Actions; suite 266/266 |
+| Sprint 3 | Real data into UI templates; RBAC gates; emails; tests | ✅ Shipped — timetables + booking + approvals + cancellations + whole-day cancel live; mails queued from the real Actions; last recorded suite **721/721, 6,090 assertions** (2026-11-14) |
 | Final | Thesis Chapters 5–7, documentation, viva prep | 🔲 |
 
 ### Success criteria to verify per objective (from Ch1)
@@ -764,5 +773,5 @@ prompts/                             ← SDD templates + run prompts
 
 - **Before coding:** read `AGENTS.md` + this file, check `.sdd/changes/` for active proposals, run `git status`/`git log`.
 - **Always:** update the matching `page-changelogs/*.md` for UI changes; follow the SDD flow for non-trivial features; never push without explicit user authorization.
-- **Demo DB is fragile:** never `migrate:fresh` / re-seed the demo DBs (`class_replacement_fresh` / `class_replacement_demo`; HP: `class_replacement`) — tests use `class_replacement_testing` via `DB_DATABASE=…`. Remember the ⛔ `--env=testing` trap (no `.env.testing` on the machine — it silently boots `.env` = the demo DB) and the snapshot law: verified `pg_dump` before any demo-DB write and after any milestone (§4 Database safety). Restore recipe + the canonical viva-state dump: `/home/philler/Desktop/tarumt/backups/README.md` (HP: `/home/jinglinux/tarumt/…`).
+- **Demo DB is fragile:** never `migrate:fresh` / re-seed the demo DBs (`class_replacement_fresh` / `class_replacement_viva`; HP: `class_replacement`). **The old test DB `class_replacement_testing` is also protected manual data since 2026-11-14** — refresh-style tests use a separate verified PostgreSQL instance with the same literal database name. Remember the ⛔ `--env=testing` trap (no `.env.testing` on the machine — it silently boots `.env` = the demo DB) and the snapshot law: verified `pg_dump` before any demo-DB write and after any milestone (§4 Database safety). Restore recipe + the canonical viva-state dump: `/home/philler/Desktop/tarumt/backups/README.md` (HP: `/home/jinglinux/tarumt/…`).
 - If the database isn't reachable, check `php artisan migrate:status` and that PostgreSQL is running (`pg_isready`).

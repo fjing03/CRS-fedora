@@ -3,7 +3,7 @@
 > The always-read form of the user's coding rules for `CRS-fedora-backend`.
 > Distilled from `CodingMAIN.md §10` (Coding Conventions + UI Design Rules, user-mandated 2026-08-01)
 > and `AGENTS.md` standing rules. On any conflict, **CodingMAIN.md §10 wins** — and tell the user
-> this file has drifted so it can be re-synced. Last synced: 2026-11-10 (evening).
+> this file has drifted so it can be re-synced. Last synced: 2026-11-14.
 
 ## 1. UI Design Rules — non-negotiable, every page, every change
 
@@ -20,7 +20,22 @@
    - **A page's own name is one name in four places** (2026-11-09): tab title, nav label, route (keep the old
      address as an alias) and the `<h1>` — which comes from `partials/ui-page-header`'s `title` argument and is the
      one a rename forgets. The student page is **Class Replacements**, not "Replacement History".
-   - Timetable blocks use the **frozen two-axis language**: `event-mine` / `event-others` / `event-mine-pending` / `event-others-pending` / `event-conflict` / `event-public-holiday`; ownership hint *"thick border (3px) = your classes · thin border (0.5px) = others'"*; tooltips render `name · lecturer · status` via `data-name` + `data-tip2`.
+   - **A conflict badge names the KIND, the popup prints the detail** (2026-11-11): tables/phone cards show only
+     `Public Holiday` or `Class Cancelled` (detail in the hover); the details popup prints the full
+     `Public Holiday — <name>` / `Class Cancelled — <reason>`. The student side does not receive the
+     lecturer's cancellation reason.
+   - **Every summary card states its formula** (2026-11-11): description first, `+N` explained only where it
+     prints. My Timetable and Student My Timetable split **Total Classes** and **Teaching Hours** into
+     `finished +pending` (`9+1`, `12+1`) through `{ splitPending: true }`.
+   - **One details-popup width: 680px** (2026-11-11/12). The student Class Replacements popup is the staff
+     Replacement Details popup (four tabs, static Close-left / Go-right footer, conflict strip above the tabs);
+     `.modal-tabs` wraps below 520px. Do not shave one page's modal narrower.
+   - **A cancelled original hides only for its OWN approval** (2026-11-14): its block leaves the timetable
+     only when that exact class occurrence's replacement request is **Approved**. Pending, rejected,
+     withdrawn/cancelled, auto-rejected and no-request states keep the cancelled block; another
+     occurrence's approval never hides it. The server filters the exact source pair before counts and
+     layout; stored history, reasons and the approved landing's true span stay unchanged.
+   - **Read-only timetable blocks** use the **frozen two-axis language**: `event-mine` / `event-others` / `event-mine-pending` / `event-others-pending` / `event-conflict` / `event-public-holiday`; ownership hint *"thick border (3px) = your classes · thin border (0.5px) = others'"*; tooltips render `name · lecturer · status` via `data-name` + `data-tip2`. **The arrangement grid is the exception since 2026-11-11:** no ownership ring, four-row legend, ownership only in the hover words.
 
 ### Canonical legend / status → color map (single source of truth)
 
@@ -28,30 +43,29 @@ Two semantic contexts share one palette — green=free/ok, red=conflict/occupied
 
 **A. Read-only timetable legend** (block classes in `theme.css`):
 
-| Block class | Fill token | Meaning |
-|-------------|-----------|---------|
-| `event-mine` / `event-others` | `--color-secondary` (green) | scheduled class (border weight = ownership) |
-| `event-mine-pending` / `event-others-pending` | `--color-tertiary` (yellow) | awaiting PL approval |
-| `event-mine-replacement` / `event-others-replacement` | `--color-primary` (blue) | approved replacement (border weight = ownership; the my-timetable replacement hue extended to cohort + venue, user-mandated 2026-10-19) |
-| `event-conflict` | `--color-error` (red, 3px border) | YOUR conflict or public-holiday class |
-| `event-public-holiday` | `--color-error` (red, hairline) | others' conflict / holiday |
+| Block class | Fill / border | Meaning |
+|-------------|--------------|---------|
+| `event-mine` / `event-others` | fill `--color-success-container`; border 3px `--color-success` / 0.5px `--color-outline-strong` | scheduled class (border weight = ownership) |
+| `event-mine-pending` / `event-others-pending` | fill `--color-tertiary-container`; border 3px `--color-tertiary` / 0.5px `--color-outline-strong` | awaiting PL approval |
+| `event-mine-replacement` / `event-others-replacement` | fill `--color-primary-container`; border 3px `--color-primary` / 0.5px `--color-outline-strong` | approved replacement (the my-timetable replacement hue extended to cohort + venue, user-mandated 2026-10-19) |
+| `event-conflict` | fill `--color-error-container`; 3px `--color-error` border | YOUR conflict or public-holiday class |
+| `event-public-holiday` | fill `--color-error-container`; 0.5px `--color-outline-strong` border | others' conflict / holiday |
 
-**B. Replacement-arrangement slot grid legend** (booking interface, slot states — Wave 3b):
+**B. Replacement-arrangement slot grid legend** (booking interface, slot states — four rows since 2026-11-11):
 
 | Label | Token | Meaning |
 |-------|-------|---------|
-| Available | `--color-secondary` (green) | satisfies all constraints |
-| Your Current Selection | `--color-primary` (blue) | active pick |
-| Your Pending | `--color-tertiary` (yellow, 3px) | your submitted request awaiting PL |
-| Other Pending | `--color-tertiary` (yellow, no border) | another staff member's pending request |
-| Your Conflict | `--color-error` (red, 3px) | your own class / own replacement |
-| Others Conflict | `--color-error` (red, no border) | the room or the cohorts are taken |
+| Available | `--color-success-container` (green) | satisfies all constraints |
+| Your Current Selection | `--color-primary-container` + `--color-primary` border (blue) | active pick |
+| Pending | `--color-tertiary-container` (yellow) | waiting for approval; no ownership ring |
+| Conflict | `--color-error-container` (red) | cannot book; no ownership ring |
 
 The **cell's** hover label names the *reason* (`Venue Conflict`, `Cohorts Conflict`,
 `Your Conflict`, `Your & Cohorts Conflict`, `Your Pending`, `Other Pending`) — chosen by one
 resolver (`classifyState()` in the page script) from the busy rows' `mine` + `arms` and the grid's
-`status 1`; the legend groups the non-yours red into `Others Conflict` on purpose. The words are
-a real `<span class="cell-state-label">` in the cell (2 lines, 11 px), never the CSS overlay.
+`status 1`. The legend has **four rows and no ownership-hint line**; ownership is words only. Venue
+and Cohort keep the 0.5px hairline and their own legend line. The words are a real
+`<span class="cell-state-label">` in the cell (2 lines, 11 px), never the CSS overlay.
 
 **C. Request-history status badges** (`.status-*`):
 
@@ -85,8 +99,8 @@ Adding a new status/legend item = **ONE row** in the relevant table above + **ON
 5. **Don't overwhelm — detail goes in modals.** Page surface = grid/table + filters + summary cards + primary actions. Anything "nice to know" rather than "need to scan" opens in a modal behind an icon button, never inline.
 6. **Promote-on-3rd-duplication (DRY/OOP).** A markup block / CSS class / JS helper identical across 3+ pages → promote to `resources/views/partials/`, `theme.css`, or `ui-common.js` and refactor the duplicates away. Record every promotion in the SDD `design.md` "Promoted to shared" section.
 7. **Minimise steps — fewest clicks.** Pre-select sensible defaults; no page-hopping for a single task; >~3 clicks → rethink the flow.
-8. **Confirm critical actions, and say when it is final.** Delete / submit / cancel / approve / reject → confirmation popup BEFORE executing. A decision that cannot be taken back also carries the shared sentence **"This action cannot be UNDONE."** — one partial, `resources/views/partials/ui-irreversible-line.blade.php`, included by the Approve, Reject, Cancel Request and Cancel Class modals. Reversible actions do not get it. **Cancel Class wears the SHORT form** (user 2026-11-10): the same partial's opt-in `compact` arm prints **`CANNOT UNDONE`** in the modal FOOTER, right-aligned above Yes, and only while Yes is armed — the other three keep the long sentence.
-9. **Mobile responsive on every page** (≤768px breakpoint): nav drawer, card layout for tables, 2-col summary cards, flex-wrap legend, bottom-sheet modals, ≥44×44px touch targets (WCAG 2.5.5), swipe week navigation, `clamp()` typography, safe-area insets, full-width inputs, viewport meta with `viewport-fit=cover`. Shared CSS in `theme.css`, JS helpers in `ui-common.js`.
+8. **Confirm critical actions, and say when it is final.** Delete / submit / cancel / approve / reject → confirmation popup BEFORE executing. A decision that cannot be taken back also carries the shared sentence **"This action cannot be UNDONE."** — one partial, `resources/views/partials/ui-irreversible-line.blade.php`, included by the Approve, Reject, Cancel Request and Cancel Class modals. Reversible actions do not get it. **Cancel Class wears the SHORT form** (user 2026-11-10): the same partial's opt-in `compact` arm prints **`CANNOT UNDONE`** in the modal FOOTER, right-aligned above Yes, and only while Yes is armed — the other three keep the long sentence. **The modal can also cancel the whole day** (2026-11-11): the optional block ticks every class the lecturer teaches that day; one transaction cancels the set, closes pending/approved requests and releases slots; the make-up block is a note, never a tickable row; the single-class path stays unchanged.
+9. **Mobile responsive on every page** (≤768px breakpoint): nav drawer, card layout for tables, 2-col summary cards, flex-wrap legend, bottom-sheet modals, ≥44×44px touch targets (WCAG 2.5.5), swipe week navigation, `clamp()` typography, safe-area insets, full-width inputs, viewport meta with `viewport-fit=cover`. Shared CSS in `theme.css`, JS helpers in `ui-common.js`. **`/replacement-arrangement` uses its dedicated phone day view** (2026-11-12): one day at a time, compact weekday/date picker, shared bottom-sheet frame, fixed action footer; desktop keeps the grid. Do not fork that page's mobile layout into another page.
 10. **Toast bar for critical actions.** Bottom-left toast with the success message, auto-dismiss after **5 seconds** — `toast.show(message, undoCallback, duration)` in `ui-common.js`, CSS in `theme.css`. **Undo is offered only where the action is genuinely reversible** (hiding a notification, clearing a selection). **Cancel Class is FINAL** (user ruling 2026-11-05: *"i give up all UNDONE function"*) — no undo button, no undo callback, no server undo route; the confirmation itself is the receipt. The cancellation reminder is **one-shot**: it may return on ONE later page load, never on every load, and a `?blocked=` arrival speaks first (its own message wins; the reminder keeps its turn for the next load).
 11. **Dates and times speak one format — already shipped, keep it.** Date `5 Nov 2026` (no leading zero, day first); time `2:00 PM`; range `2:00 PM ~ 4:00 PM` (the tilde is the joiner; a hyphen is acceptable but never mix joiners in one element; the en dash `–` is not a range joiner). Day word `Thu` in compact lines (table cells, cards, chips, picker labels, tooltips) and `Thursday` in prose (sentences, questions, toasts, expanded modal rows). The 24-hour grid hour axis is a scale and stays 24-hour; notification tooltips stay short (no year). Emails carry the full date + 12-hour range (`Mon, 9 Nov 2026, 1:30 PM ~ 3:30 PM`) via `ReplacementRequestMapper::mailSchedule()`. Full audit + batch log: `docs/date-time-format-audit-2026-11-07.md`. New surface → use the standard, never invent a fourth shape.
 
@@ -134,14 +148,13 @@ Adding a new status/legend item = **ONE row** in the relevant table above + **ON
     line's parentheses, `Rejection Reason: Automatically Rejected by System` when `approver_id IS NULL`,
     students without the Staff lines, and the legacy `title — body` only for an unknown kind. New kind →
     a branch there + one receipt, never a page-local tip.
-  - **Border weight = ownership, on the grid too.** The replacement-arrangement grid follows the
-    two-axis language (colour = state, border = owner) with **0px** instead of the 0.5px hairline:
-    amber = a pending reservation, red = a conflict; 3px = yours, no border = someone else's. One
-    resolver (`classifyCell()`, exported on `window`) decides from BOTH arms, and ownership is
-    **data** (the busy tuple's 6th key `mine`, the venue payload's `status 3` vs `4`) — never the
-    holder text, never the colour. A red cell is 3px if ANY blocking row is mine; rows that are the
-    same fact are merged in the payload so the tooltip keeps one block. A legend swatch must carry
-    the real cell class, or it will drift from the grid.
+  - **The arrangement grid has no ownership ring (2026-11-11).** Colour alone says "cannot book":
+    amber = pending, red = conflict; there is no 3px "yours" border and no "thick = yours" legend
+    line. Ownership is **data** in the hover words only (the busy tuple's 6th key `mine`, the venue
+    payload's `status 3` vs `4`) — never the holder text, never the colour. Rows that are the same
+    fact are merged in the payload so the tooltip keeps one block. The legend has four rows
+    (Available / Your Current Selection / Pending / Conflict); a swatch must carry the real cell
+    class, or it will drift from the grid. Venue and Cohort keep the 0.5px hairline.
   - **A `data-tip` is TEXT, not HTML.** The shared engine (`initDataTipTooltips` in
     `ui-common.js`) sets `textContent` and switches to `pre-line` when the string contains a
     newline, so a multi-line tooltip is `"line one\nline two"` — a `<br>` prints literally. Keep
@@ -188,7 +201,7 @@ Adding a new status/legend item = **ONE row** in the relevant table above + **ON
 
 ## 6. Hard session-ops absolutes live elsewhere — obey both, don't duplicate
 
-The demo-DB sanctity rules (never re-seed `class_replacement_fresh`/`class_replacement_demo`; tests → `class_replacement_testing` only via `DB_DATABASE=…`; **⛔ never `--env=testing` any destructive command — no `.env.testing` exists, it silently boots `.env` = the demo DB**; **snapshot law: verified `pg_dump -Fc` before any demo-DB write and after any demo-worthy milestone**; every demo-DB edit user-gated + logged in `docs/demo-db-data-changes.md`; **schema migrations are additive-only on the demo DBs — snapshot → rehearse on `class_replacement_testing` → print the target → plain `migrate` (fresh, then demo) → row-count receipt**), the ⛔TC70 `--grep-invert` guard, **the fail-closed Playwright write-guard (`tests/helpers/receipt-target-guard.ts`: a writing spec refuses to run unless `CRS_MODE=testing`, `CRS_BASE=http://127.0.0.1:8030` and `CRS_ALLOW_SQL=1` are exactly right — never loosen it, never add a soft skip)**, the stale-cache restart (**`scripts/dev-serve.sh [port]`**; never `pkill -9 php`, never one combined kill-and-serve string), the port map (`:8000` dev · `:8001` demo twin · **`:8030` = disposable AI/E2E lane on `class_replacement_testing`, kill it after**) + re-login 5770, honest zeros, and the after-UI-change changelog requirement are owned by **`AGENTS.md`** + the pi skill **`crs-workspace`** + **`CodingMAIN.md` §4 Database safety** — read those too before acting.
+The demo-DB sanctity rules (never re-seed `class_replacement_fresh`/`class_replacement_viva`; **`class_replacement_testing` is protected manual data since 2026-11-14 — never reset/reseed/RefreshDatabase or run writing fixtures there without permission; refresh tests use a separate verified PostgreSQL instance with the same literal DB name**; **⛔ never `--env=testing` any destructive command — no `.env.testing` exists, it silently boots `.env` = the demo DB**; **snapshot law: verified `pg_dump -Fc` before any demo-DB write and after any demo-worthy milestone**; every demo-DB edit user-gated + logged in `docs/demo-db-data-changes.md`; **schema migrations are additive-only on the demo DBs — snapshot → rehearse on `class_replacement_testing` → print the target → plain `migrate` (fresh, then viva) → row-count receipt**), the ⛔TC70 `--grep-invert` guard, **the fail-closed Playwright write-guard (`tests/helpers/receipt-target-guard.ts`: a writing spec refuses to run unless `CRS_MODE=testing`, `CRS_BASE=http://127.0.0.1:8030` and `CRS_ALLOW_SQL=1` are exactly right — never loosen it, never add a soft skip; it checks flags only, not which DB cluster `:8030` uses — verify the connection separately)**, the stale-cache restart (**`scripts/dev-serve.sh [port]`**; never `pkill -9 php`, never one combined kill-and-serve string), the port map (`:8000` dev · `:8001` viva twin · **`:8030` = the user's manual testing lane on `class_replacement_testing`, leave it running and never reseed it**) + re-login 5770, honest zeros, and the after-UI-change changelog requirement are owned by **`AGENTS.md`** + the pi skill **`crs-workspace`** + **`CodingMAIN.md` §4 Database safety** — read those too before acting.
 
 ## 7. How to talk to me (every session)
 
