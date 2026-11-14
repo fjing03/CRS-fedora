@@ -1,0 +1,16 @@
+name: modal-responsive-width
+created: 2026-11-13
+status: frozen
+batch: tasks
+planning_complete: true
+proposal_review: passed
+proposal_frozen: true
+design_review: passed
+design_frozen: true
+specs_review: passed
+specs_frozen: true
+tasks_review: passed
+tasks_frozen: true
+implementation_approved: false
+implementation_blocked_by: "theme.css claimed by 6 lanes; cancelled-slot-reuse is applying"
+prototype_approved: true
