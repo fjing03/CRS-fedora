@@ -1,3 +1,9 @@
+## 2026-11-14 — hide only the own-approved cancelled original
+
+A cancelled original now disappears only when its own replacement is Approved. Pending, rejected, withdrawn/cancelled, auto-rejected and no-request cases keep it. Another occurrence's approval cannot hide it. The server filters the exact source pair before summaries and layout; stored history and the approved landing's true span remain unchanged.
+
+Checks: **122/122 backend tests, 2,659 assertions**, on a verified isolated PostgreSQL instance; **18/18** read-only planner/layout cases plus **3/3** auth setups. Actual approved request **19** checked on all four timetable pages at desktop/phone widths in both themes. Manual business records unchanged. Writing lifecycle expectations updated and collection-checked, not executed on the user's data. [Full receipts](cancelled-slot-reuse-changelog.md). Whole-feature Verify remains separate.
+
 ## 2026-11-14 — half-hour overlap alignment
 
 Fixed the shared lane planner so a pending 1:00 PM ~ 2:00 PM block and a cancelled 1:30 PM ~ 2:30 PM block stack on separate rows, aligned to their real times. Touching times still share a row. No booking rule, colour, label or database change. The same helper serves personal, cohort, student and venue timetables.

@@ -1,5 +1,9 @@
 # Review log — cancelled-slot-reuse
 
+## Revision 2 — scoped implementation review — 2026-11-14
+
+Independent read-only reviewer **PASS**, `/tmp/crs-approved-suppression/implementation-review.jsonl`. Checked both source builders against before-copies and frozen D5/S16; exact own-approved source key, no geometry-based retention, all venue passes consistent, no changes to span/occupancy/privacy/actions, only obsolete accumulators removed, generic API/JS retained. Reviewed all-four six-state/six-location matrix, other-source/other-week controls, unchanged business snapshots and writing T1c update. Verified isolated target/refusal, baseline10 expected failures, final122/122 and actual four-page receipts. No blockers. Non-blocking notes: auto rejection is correctly modelled as persisted rejected state; retained generic overlap API is deliberately caller-less. Whole-feature Verify remains open; no operational/Git approval implied.
+
 ## Proposal Round 1 — 2026-11-13
 
 Independent read-only pi subprocess, model `commandcode/z-ai/glm-5.3-flash`; exit 0. Scope: Batch 1 only; no artifacts previously frozen.
@@ -495,4 +499,22 @@ Main subsequently ran the seven relevant browser specs together: **52/52 (49 cas
 Independent read-only pi reviewer (`commandcode/z-ai/glm-5.3-flash`), **PASS for this narrow regression slice**, `/tmp/crs-half-hour-overlap/review-agent.jsonl`. Reviewed frozen D6/S17 against the planner and three added cases: consistent normalisation of stored/candidate intervals, chronological components then cancelled-first allocation, fresh component lane arrays, true event references/ranges/spans, input-order invariance, independent cell-occupancy oracle, real DOM column-position assertions and read-only synthetic staging. No blockers. The reviewer did not run tests or claim whole-feature Verify.
 
 Nonblocking observations: a pre-existing key-less legacy comparator tie omits id; broader 3+ event exhaustive generation is optional (existing targeted cases retain multi-cancellation/multi-active coverage). No unrelated comparator redesign was made. Main separately executed **18/18** planner/layout cases and **3/3** auth setups, checked all **1,764** pair combinations in both orders, inspected actual staff 5770 request 19 on desktop/phone, and confirmed the manual DB receipt unchanged. Details in apply-log.md. The full backend's earlier history-test caveat was resolved in the separate student-history-test-contract lane; no DB-refresh suite was rerun over current manual data. This does not archive or close remaining Part A acceptance/whole-feature Verify/demo cleanup gates.
+
+## Revision 2 — Proposal Round 1 — 2026-11-14
+
+User explicitly changed the approved lifecycle: hide the cancelled original ONLY when that occurrence's OWN replacement is approved; pending/rejected/withdrawn/auto-rejected/no request retain it, as does approval of another source. Confirmed all four timetable surfaces, stored history retained. Full-chain unfreeze from proposal was recorded; prior implemented work is not being undone.
+
+Independent read-only reviewer **PASS**, `/tmp/crs-approved-suppression/proposal-review.jsonl` (`commandcode/z-ai/glm-5.3-flash`). Reviewed revised proposal against latest brief: exact source identity, all overlap/landing-week/room cases, unrelated reuse, non-approved states, all four scopes/privacy, no data deletion or booking change and isolated backend testing/manual-DB protection. No outstanding blockers. Proposal revision 2 frozen; design/spec/tasks require their own sequential reviews before code. No new commit/push/archive/demo operation authority.
+
+## Revision 2 — Design Round 1 — 2026-11-14
+
+Independent read-only reviewer **PASS**, `/tmp/crs-approved-suppression/design-review.jsonl`. D5's own-approved source-pair filtering on the shared timeline and venue backfill, D7 emitted-event summaries and D10 isolated backend/manual-DB protection match frozen revision-2 proposal. Reviewer verified the two approved maps and that active-interval accumulation serves only the superseded exception. No outstanding blockers. Carry-forward declarative spec clarifications: exact source-pair key and fail-closed test-target assertions. Design revision 2 frozen; specs/tasks remain gated. Reviewer ran no tests.
+
+## Revision 2 — Specs Round 1 — 2026-11-14
+
+Independent read-only reviewer **PASS**, `/tmp/crs-approved-suppression/specs-review.jsonl`. S16 exactly limits suppression to own stored approved source pair; S14/S15/S17/S22 clarify emission/privacy/layout/summary boundaries; R9 forces and asserts isolated backend connection plus queried target before writes, protects manual :8030 and discloses updated-but-unexecuted writing lifecycle tests. Release/concurrency/privacy/cleanup obligations retained. No outstanding blockers. Specs revision 2 frozen; tasks require review. No test execution or operational approval claimed.
+
+## Revision 2 — Tasks Round 1 — 2026-11-14
+
+Independent read-only reviewer **PASS**, `/tmp/crs-approved-suppression/tasks-review.jsonl`. Verified R201–R205 completeness, <=2h units and sequence; actual two suppression sites/four obsolete test cases; all-four state/location/unrelated-source/no-mutation coverage; forced/asserted isolated backend target; read-only actual/browser checks and updated-but-unexecuted writing lifecycle spec; preservation/static/review/receipt/temporary-cluster teardown boundaries. No outstanding blockers. Optional explicit dependency annotations were not needed for the clear numbered sequence. Full revision-2 chain is now frozen; the user's explicit fix/test approval opens this narrowly scoped implementation. No commit/push/archive/demo-cleanup/whole-feature Verify authority.
 

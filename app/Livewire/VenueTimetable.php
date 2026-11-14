@@ -241,10 +241,11 @@ class VenueTimetable extends Component
                 $approvedPairs[$pairKey] = true;
             }
         }
-        /* the release law (ResolvesTimetableTimeline law ④, byte-parity): an
-           exception'd pair that ALSO carries an approved request is released —
-           the original occurrence does not run and the approved landing block
-           (its own week/venue) carries it. Everything else renders. */
+        /* the release law (2026-11-14 OWN-approved rule, D5): an exception'd
+           pair whose OWN replacement is approved is suppressed — the
+           original occurrence does not run and the approved landing block
+           (its own week/venue) carries it. Everything else renders, and
+           ANOTHER occurrence's approval never suppresses here. */
         $isReleasedPair = fn (int $sessionId, int $week): bool => isset($factContext['exceptions'][$sessionId.':'.$week])
             && isset($approvedPairs[$sessionId.':'.$week]);
         $exceptionPair = fn (int $sessionId, int $week) => $factContext['exceptions'][$sessionId.':'.$week] ?? null;
@@ -273,9 +274,6 @@ class VenueTimetable extends Component
         // the S13 audit half for this room's sessions (shared discriminator)
         $cancelAuditPairs = TimetableEventIdentity::userCancelledAuditPairs($recurringSessions->pluck('id'));
         $semesterIdKeys = (int) ($factContext['semester']->id ?? 0);
-        // the in-scope ACTIVE intervals per week (normal/pending/replacement
-        // facts) — the S16 overlap evidence for the cancelled-history backfill
-        $activeIntervalsByWeek = [];
 
         foreach ($slots as $slot) {
             $session = $slot->classSession;
@@ -413,14 +411,6 @@ class VenueTimetable extends Component
             // impossible until Slice B — the merge is defensive contract
             // parity, unit-tested directly (see VenueTimetableTest).
             $eventsByWeek[$g['w'] - 1][$event['di'].':'.$event['start']][] = $event;
-
-            // cancelled-slot-reuse A13: this week's ACTIVE interval evidence
-            // (a cancelled history row is never its own overlap proof).
-            if ($event['status'] !== 'cancelled') {
-                $activeIntervalsByWeek[$g['w']][] = [
-                    'di' => $event['di'], 'start' => $event['start'], 'end' => $event['end'],
-                ];
-            }
         }
 
         /* cancelled-slot-reuse A13 (spec S14): ONE event PER REQUEST — the
@@ -547,9 +537,6 @@ class VenueTimetable extends Component
             ];
 
             $eventsByWeek[$w - 1][$di.':'.$start][] = $event;
-
-            // cancelled-slot-reuse A13: the landing is in-scope active evidence
-            $activeIntervalsByWeek[$w][] = ['di' => $di, 'start' => $start, 'end' => $end];
 
             // USER 2026-10-19 summary accuracy (A&B): the viewer's OWN approved
             // replacement is real teaching — count it in the My-Teaching cards
@@ -704,11 +691,12 @@ class VenueTimetable extends Component
            rows that were released/cleared (available, ids nulled). A pair the
            row pass already rendered (pre-cleanup occupied rows) carries the
            SAME eventKey and merges exactly once in the identity dedup below
-           (the row pass's geometry wins). The released-pair suppression keeps
-           today's law byte-identically: an approval-only `official_event`
-           stamp stays suppressed in ALL cases; a PROVEN user cancellation
-           stays visible only when an in-scope ACTIVE event overlaps the
-           original week/day/time in THIS room. History adds ZERO room
+           (the row pass's geometry wins). Suppression is the 2026-11-14
+           OWN-approved rule (D5): a pair disappears ONLY when THIS
+           session/source-week's own replacement is approved — pending,
+           rejected, withdrawn, auto-rejected or request-less pairs (and
+           ANOTHER occurrence's approval) keep the original visible, with
+           its provenance and public reason intact. History adds ZERO room
            occupancy — the totals below never see it. */
         $sessionById = $recurringSessions->keyBy('id');
         foreach ($factContext['exceptions'] as $pairKey => $exception) {
@@ -723,16 +711,11 @@ class VenueTimetable extends Component
             $startIdx = $this->slotIndex((string) $session->start_time);
             $endIdx = $this->slotIndex((string) $session->end_time) - 1;
 
-            // the release rule (S16): a released pair renders its history only
-            // for a PROVEN user cancellation with an in-scope active overlap.
-            if (isset($approvedPairs[$pairKey]) && ! (
-                $prov === TimetableEventIdentity::PROVENANCE_USER_CANCELLED
-                && TimetableEventIdentity::overlapsOriginal(
-                    $activeIntervalsByWeek[$weekNum] ?? [],
-                    (int) $session->day_of_week, $startIdx, $endIdx,
-                )
-            )) {
-                continue;   // the handled-original suppression, unchanged
+            // the 2026-11-14 OWN-approved rule (D5): a pair whose OWN
+            // replacement is approved is suppressed unconditionally — no
+            // landing geometry or another source's status is evidence.
+            if (isset($approvedPairs[$pairKey])) {
+                continue;
             }
 
             $event = [

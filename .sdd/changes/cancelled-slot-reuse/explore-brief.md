@@ -3,6 +3,14 @@
 Date: 2026-11-13 (discussion began 2026-11-12).
 Mode: proposal only. The user said “write it but don't execute it first”, then approved including the hover task and said “proceed”. This is NOT approval to implement or change data.
 
+## 2026-11-14 — approved lifecycle refinement (supersedes approval-retention choice)
+
+User screenshot `/tmp/pi-clipboard-5466a774-0aa6-467e-99e1-c9811bdd3faf.png` shows staff 5770's cancelled 13:30–14:30 original above its approved 13:00–14:00 replacement. User explicitly said the cancelled block should disappear after approval, then approved updating/fixing/testing this rule across My Timetable, Cohort, Student and Venue timetables.
+
+Current ruling: pending keeps the original cancelled block and the pending landing; an approved replacement for the SAME semester/session/source-week occurrence hides that original on all four timetable surfaces, regardless of exact/partial/no overlap, other active reuse, landing week or selected venue. Approval of ANOTHER source occurrence must not hide this cancellation. Unhandled originals and withdrawal/rejection/automatic-rejection cases still show cancellation. Keep cancellation exceptions, reasons, audits and replacement-history records; this is server-side display filtering only, not deletion or release. Existing true-span/identity/privacy/availability rules remain. Summary changes follow the existing data formulas naturally; no client-side hiding or count patch.
+
+This reopens proposal and all downstream planning batches for real sequential review before implementation; it does not reopen demo cleanup, commit, push or archive authority. Protect the user's manual testing DB and leave :8030 running. Backend tests may use an isolated temporary PostgreSQL instance with the same literal testing database name, verified socket/port/data_directory, never the user's active cluster. No new dependency or application configuration change.
+
 ## Evidence supplied by the user
 
 - `../ui-prototype/cancelled class.png`: staff 5425's classes on Thu, 19 Nov 2026, Week 9: AMSE2003(L), 09:00–11:00, B100; AMSE2003(T), 11:00–12:00, B100; BMSE2163(P), 12:00–13:00, B010. All are cancelled.

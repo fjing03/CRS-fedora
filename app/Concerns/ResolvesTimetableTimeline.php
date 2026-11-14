@@ -34,9 +34,11 @@ use Illuminate\Support\Collection;
  * {@see TimetableEventIdentity}, the SAME deduplication the
  * venue page shares. A cancelled HISTORY event needs the S13 discriminator
  * (current exception + non-maintenance class_cancelled audit for the exact
- * pair): a proven user-cancelled original stays visible whenever ANY
- * in-scope active event overlaps its week/day/time, while an approval-only
- * `official_event` stamp keeps today's suppression unchanged in all cases.
+ * pair). 2026-11-14 lifecycle rule (D5): a cancelled original disappears
+ * ONLY when that SAME (semester, session, source week) occurrence's own
+ * replacement is APPROVED — the source-pair approved map. Pending,
+ * rejected, withdrawn, auto-rejected or request-less pairs keep the
+ * original visible, and ANOTHER occurrence's approval never suppresses it.
  */
 trait ResolvesTimetableTimeline
 {
@@ -170,9 +172,10 @@ trait ResolvesTimetableTimeline
      * Build the per-week event map (0-indexed integer keys) consumed by the grid engine.
      *
      * cancelled-slot-reuse A11/A12 (D5, S13–S16): a two-pass build — the
-     * week's in-scope ACTIVE events first, then the cancelled-history pass
-     * decides each exception'd pair against the S13 provenance + S16 overlap
-     * evidence — and every event leaves deduplicated by `eventKey`.
+     * cancelled-history pass decides each exception'd pair on the S13
+     * provenance plus the 2026-11-14 OWN-approved suppression (an approved
+     * request on the SAME pair removes the original; everything else keeps
+     * it) — and every event leaves deduplicated by `eventKey`.
      *
      * @param  Collection<int, ClassSession>  $sessions  recurring base sessions (module/venue/cohorts/lecturer eager-loaded)
      * @param  Collection<int, ReplacementRequest>  $requests  pending+approved requests touching those sessions (proposer + replacementTimeSlot.venue eager-loaded)
@@ -192,10 +195,11 @@ trait ResolvesTimetableTimeline
 
         /* cancelled-blocks-stay-visible (user law 2026-10-27): the keyed
            ROW map replaces the boolean — presence AND the reason both read
-           from it. The discriminator stays READ-TIME: a pair is skipped iff
-           an APPROVED replacement request covers it (a release stamp, D7,
-           always coexists with its approved pair; a user cancel never
-           does) — no check-value regime, no data migration. */
+           from it. Suppression is READ-TIME and SOURCE-PAIR-scoped
+           (2026-11-14 D5): a cancelled original disappears only when THIS
+           pair's own approved request exists — keyed session:SOURCE week
+           off the status===approved map — never another occurrence's
+           approval, landing geometry or selected room. */
         $exceptionRow = [];
         foreach ($exceptions as $e) {
             $exceptionRow[$e->class_session_id.':'.$e->week_number] = $e;
@@ -260,26 +264,18 @@ trait ResolvesTimetableTimeline
         $out = [];
         for ($w = 1; $w <= $weeks; $w++) {
             $events = [];
-            /* cancelled-slot-reuse A12 (spec S16): the in-scope ACTIVE events
-               of this week (natural occurrences, pending make-ups, approved
-               landings) — the overlap evidence that keeps a PROVEN
-               user-cancelled original's history visible. Two-pass build:
-               active events first, then the cancelled-history pass reads
-               their intervals. */
-            $activeIntervals = [];
             $rememberCancelled = [];
 
             foreach ($sessions as $s) {
                 // cancelled-blocks-stay-visible (user law 2026-10-27): the
                 // exception'd pair KEEPS its block — original slot, red,
-                // `(Cancelled)` — until the PL approves the proposed
-                // replacement (then the D7 discipline applies: the original
-                // vanishes, the landing block renders in its own week).
-                // cancelled-slot-reuse refines the approved leg (S16): a
-                // PROVEN user-cancelled original stays visible when any
-                // in-scope active event overlaps it; an approval-only stamp
-                // keeps today's suppression. The decision is deferred to the
-                // second pass so it sees the WHOLE week's active intervals.
+                // `(Cancelled)` — until the PL approves THAT pair's own
+                // replacement (then the original vanishes, the landing
+                // block renders in its own week). 2026-11-14 (D5): only the
+                // SAME pair's approval suppresses — a proven user-cancelled
+                // original stays visible under pending/rejected/withdrawn/
+                // auto-rejected/no request and under ANOTHER occurrence's
+                // approval. The verdict is read in the second pass.
                 if (isset($exceptionRow[$s->id.':'.$w])) {
                     $rememberCancelled[] = [$s, $exceptionRow[$s->id.':'.$w], $s->id.':'.$w];
 
@@ -308,7 +304,6 @@ trait ResolvesTimetableTimeline
                     // slotMap last-write-wins shows the AMBER (the push-order
                     // covenant: natural FIRST, amber SECOND).
                     $events[] = $ev;
-                    $activeIntervals[] = ['di' => $ev['di'], 'start' => $ev['start'], 'end' => $ev['end']];
 
                     // USER DIRECTIVE 2026-10-17: the amber block's shape, day and
                     // venue come from the PROPOSED slots — the WHOLE TRUE span
@@ -319,7 +314,6 @@ trait ResolvesTimetableTimeline
                     // makeup.
                     $amber = $this->buildAmberEvent($baseBySession[$s->id], $pending);
                     $events[] = $amber;
-                    $activeIntervals[] = ['di' => $amber['di'], 'start' => $amber['start'], 'end' => $amber['end']];
 
                     continue;
                 }
@@ -340,7 +334,6 @@ trait ResolvesTimetableTimeline
                     ? ['week' => $w, 'kind' => $fact['kind'], 'reason' => $fact['reason']]
                     : null;
                 $events[] = $ev;
-                $activeIntervals[] = ['di' => $ev['di'], 'start' => $ev['start'], 'end' => $ev['end']];
             }
 
             foreach ($approvedByWeek[$w] ?? [] as $r) {
@@ -392,33 +385,29 @@ trait ResolvesTimetableTimeline
                 $ev['originalStartTime'] = substr((string) $session->start_time, 0, 5);
                 $ev['originalEndTime'] = substr((string) $session->end_time, 0, 5);
                 $events[] = $ev;
-                $activeIntervals[] = ['di' => $ev['di'], 'start' => $ev['start'], 'end' => $ev['end']];
             }
 
-            /* cancelled-slot-reuse A12 — the SECOND pass (S13/S16): the
-               cancelled-history verdict per remembered pair. A PROVEN user
-               cancellation (current exception + non-maintenance
-               class_cancelled audit) renders whenever NO approved pair
-               releases it, or when ANY in-scope active event overlaps its
-               original week/day/time (the exact/partial-reuse case — its own
-               approved landing included). An approval-only `official_event`
-               stamp (no audit) keeps today's law byte-identically: released
-               pair = suppressed, otherwise the cancelled block renders.
-               Pending proposals never suppress. Withdrawn/rejected/
-               auto-rejected requests are simply absent (they remove the
-               landing only), so a suppressed-again released pair falls back
-               to the no-approved-pair leg and the history stays. */
+            /* cancelled-slot-reuse A12 — the SECOND pass (S13 + the
+               2026-11-14 D5 lifecycle rule): the cancelled-history verdict
+               per remembered pair. A pair whose OWN approved replacement
+               exists is suppressed unconditionally — no landing geometry,
+               selected room, DOM proximity or another occurrence's status
+               is ever suppression evidence. A PROVEN user cancellation
+               (current exception + non-maintenance class_cancelled audit)
+               renders otherwise: pending proposals coexist (amber block +
+               Proposed hint), and withdrawn/rejected/auto-rejected/absent
+               requests leave the history visible. Provenance is still
+               stamped on every still-visible original. */
             foreach ($rememberCancelled as [$s, $exception, $pairKey]) {
                 $prov = TimetableEventIdentity::provenance($exception, isset($cancelledAudits[$pairKey]));
-                $approvedPair = isset($approvedByPair[$pairKey]);
                 $base = $baseBySession[$s->id];
 
-                if ($approvedPair && ! (
-                    $prov === TimetableEventIdentity::PROVENANCE_USER_CANCELLED
-                    && TimetableEventIdentity::overlapsOriginal(
-                        $activeIntervals, (int) $s->day_of_week, (int) $base['start'], (int) $base['end']))
-                ) {
-                    continue;   // the handled-original suppression, unchanged
+                // 2026-11-14 OWN-approved suppression (D5): the original
+                // disappears ONLY when THIS pair's own replacement is
+                // approved — unconditional, never inferred from landing
+                // geometry or another source's status.
+                if (isset($approvedByPair[$pairKey])) {
+                    continue;
                 }
 
                 $ev = TimetableEventIdentity::tag($base,
@@ -447,7 +436,6 @@ trait ResolvesTimetableTimeline
                     // rides its own week's loop pass.)
                     $amber = $this->buildAmberEvent($base, $requestedMakeup);
                     $events[] = $amber;
-                    $activeIntervals[] = ['di' => $amber['di'], 'start' => $amber['start'], 'end' => $amber['end']];
                 }
             }
 

@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Livewire\CohortTimetable;
 use App\Livewire\MyTimetable;
 use App\Livewire\StudentMyTimetable;
 use App\Livewire\VenueTimetable;
@@ -26,6 +27,7 @@ use App\Services\TimetableEventIdentity;
 use Carbon\Carbon;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Livewire\Livewire;
+use PHPUnit\Framework\Attributes\DataProvider;
 use Tests\TestCase;
 
 /**
@@ -34,6 +36,12 @@ use Tests\TestCase;
  * Fixtures are minimal RefreshDatabase builds with valid 30-minute cells,
  * full spans and the frozen 2026-08-31 semester. Everything asserts the
  * SERVER payload (eventsByWeek / totalsByWeek) — never the DOM.
+ *
+ * The R203 revision-2 matrix (spec S16, 2026-11-14): ONLY a stored
+ * `approved` request for that exact original occurrence suppresses the
+ * cancelled event on all four surfaces; pending keeps both blocks and
+ * dead/absent requests keep the original with no dead landing. A display
+ * read never touches business rows (a before/after snapshot proves it).
  *
  * The S13 discriminator: a cancelled HISTORY event needs the current
  * exception AND a non-maintenance `class_cancelled` audit for the exact
@@ -155,10 +163,15 @@ class CancelledSlotTimelineTest extends TestCase
      * cells are 'occupied', a pending one's 'pending' (the request row
      * itself carries the request status).
      *
+     * `$landingVenue` (optional, LAST) moves the LANDING's own room — the
+     * source stays where the session teaches (the cross-room own-approved
+     * landing case). Defaults to the existing venue.
+     *
      * @return array{0: TimeSlot, 1: ReplacementRequest, 2: list<int>}
      */
-    private function spanRequest(ClassSession $session, int $occurrenceWeek, int $anchorWeek, int $day, string $start, int $cells, string $status, ?int $staleClassId = null): array
+    private function spanRequest(ClassSession $session, int $occurrenceWeek, int $anchorWeek, int $day, string $start, int $cells, string $status, ?int $staleClassId = null, ?Venue $landingVenue = null): array
     {
+        $landingVenue ??= $this->venue;
         $first = null;
         $slotIds = [];
         $slotStatus = $status === 'pending' ? 'pending' : 'occupied';
@@ -171,7 +184,7 @@ class CancelledSlotTimelineTest extends TestCase
                 'day_of_week' => $day,
                 'start_time' => $from->format('H:i:s'),
                 'end_time' => $from->copy()->addMinutes(30)->format('H:i:s'),
-                'venue_id' => $this->venue->id,
+                'venue_id' => $landingVenue->id,
                 'status' => $slotStatus,
                 'version' => 1,
             ]);
@@ -314,7 +327,7 @@ class CancelledSlotTimelineTest extends TestCase
 
     /* ── A12 — personal timeline: lifecycle + approved suppression ─────── */
 
-    public function test_exact_reuse_keeps_the_user_cancelled_history_with_the_landing(): void
+    public function test_exact_own_approved_suppresses_the_original_and_lands_once(): void
     {
         $session = $this->sessionFor($this->lecturerA);
         $this->cancelFor($session, 5);
@@ -323,29 +336,37 @@ class CancelledSlotTimelineTest extends TestCase
         $events = Livewire::actingAs($this->lecturerA)->test(MyTimetable::class)->viewData('eventsByWeek');
         $week5 = $events[4];
 
-        $history = $this->cancelledEvent($week5, $session, 5);
-        $this->assertNotNull($history, 'the proven original keeps its history above its exact-reuse landing');
-        $this->assertSame('user_cancelled', $history['cancellationProvenance']);
-        $this->assertSame('Annual Leave', $history['cancelledReason']);
-        $this->assertSame(1, $history['di']);
-        $this->assertSame(4, $history['start']);
-        $this->assertSame(7, $history['end']);
+        // S16 revision 2: the OWN-approved handled original is suppressed —
+        // the stored exception/audit stay, only the display changes
+        $this->assertNull($this->cancelledEvent($week5, $session, 5),
+            'an own-approved exact-reuse original is suppressed');
 
+        // the approved landing still renders EXACTLY ONCE with its identity
+        // and the TRUE full junction span
         $landing = array_values(array_filter($week5, fn ($e) => ($e['eventKey'] ?? null) === 'request:'.$request->id));
         $this->assertCount(1, $landing);
         $this->assertSame('replacement', $landing[0]['status']);
         $this->assertSame(4, $landing[0]['start']);   // the TRUE full junction span
         $this->assertSame(7, $landing[0]['end']);
+        $this->assertSame(1, $landing[0]['di']);
+        $this->assertSame((int) $request->id, $landing[0]['requestId']);
+        $this->assertSame('B100', $landing[0]['venue']);
     }
 
-    public function test_partial_reuse_also_keeps_the_history(): void
+    public function test_partial_own_approved_suppresses_the_original_and_lands_once(): void
     {
         $session = $this->sessionFor($this->lecturerA);
         $this->cancelFor($session, 5);
-        $this->spanRequest($session, 5, 5, 1, '10:00:00', 2, 'approved');   // 10:00–11:00 inside 10:00–12:00
+        [, $request] = $this->spanRequest($session, 5, 5, 1, '10:00:00', 2, 'approved');   // 10:00–11:00 inside 10:00–12:00
 
         $events = Livewire::actingAs($this->lecturerA)->test(MyTimetable::class)->viewData('eventsByWeek');
-        $this->assertNotNull($this->cancelledEvent($events[4], $session, 5));
+        $this->assertNull($this->cancelledEvent($events[4], $session, 5),
+            'an own-approved PARTIAL overlap still suppresses the handled original');
+        $landing = array_values(array_filter($events[4], fn ($e) => ($e['eventKey'] ?? null) === 'request:'.$request->id));
+        $this->assertCount(1, $landing);
+        $this->assertSame('replacement', $landing[0]['status']);
+        $this->assertSame(4, $landing[0]['start']);   // the TRUE full junction span
+        $this->assertSame(5, $landing[0]['end']);
     }
 
     public function test_non_overlapping_approval_suppresses_as_today(): void
@@ -359,19 +380,24 @@ class CancelledSlotTimelineTest extends TestCase
         $this->assertNotEmpty($events[7]);   // the landing renders in its own week
     }
 
-    public function test_another_in_scope_active_event_retains_the_history(): void
+    public function test_another_in_scope_active_event_keeps_normal_reuse_after_own_approval(): void
     {
         $session = $this->sessionFor($this->lecturerA);
         $this->cancelFor($session, 5);
-        $this->spanRequest($session, 5, 8, 4, '14:00:00', 2, 'approved');   // non-overlapping own landing
+        $this->spanRequest($session, 5, 8, 4, '14:00:00', 2, 'approved');   // own landing, different week
         // ANOTHER class of the same lecturer now runs over the original range
         $reuse = $this->sessionFor($this->lecturerA, [$this->cohortA], 1, '10:00:00', '12:00:00');
 
         $events = Livewire::actingAs($this->lecturerA)->test(MyTimetable::class)->viewData('eventsByWeek');
-        $history = $this->cancelledEvent($events[4], $session, 5);
-        $this->assertNotNull($history, 'the in-scope reuse keeps the history visible');
+        // ONLY the handled original is suppressed: the other class's normal
+        // reuse of the range keeps its own event, and the own landing still
+        // renders in its own week
+        $this->assertNull($this->cancelledEvent($events[4], $session, 5),
+            'the own-approved handled original is suppressed even under another active reuse');
         $this->assertSame('normal', $events[4][0]['status']);   // the reusing class
         $this->assertSame('occ:'.$this->semester->id.':'.$reuse->id.':5', $events[4][0]['eventKey']);
+        $landing = array_values(array_filter($events[7], fn ($e) => ($e['status'] ?? null) === 'replacement'));
+        $this->assertCount(1, $landing, 'the own landing still renders in its own week');
     }
 
     public function test_approval_only_stamp_never_phantoms_the_history(): void
@@ -560,7 +586,7 @@ class CancelledSlotTimelineTest extends TestCase
         $this->assertCount(1, $replacement);
     }
 
-    public function test_venue_released_user_cancelled_reuse_keeps_history(): void
+    public function test_venue_released_user_cancelled_own_approved_suppresses_original(): void
     {
         $session = $this->sessionFor($this->lecturerA);
         $this->cancelFor($session, 3);
@@ -574,15 +600,20 @@ class CancelledSlotTimelineTest extends TestCase
         $events = $component->viewData('eventsByWeek');
         $week3 = $events[2];
 
-        $this->assertNotNull($this->cancelledEvent($week3, $session, 3),
-            'the history stays above the same-coordinates approved landing');
+        // S16 revision 2: the OWN-approved original is suppressed even though
+        // its landing sits at the exact original coordinates — geometry is
+        // not identity
+        $this->assertNull($this->cancelledEvent($week3, $session, 3),
+            'an own-approved original is suppressed on the venue surface too');
+        // the approved landing still renders exactly once at the full span
         $landing = array_values(array_filter($week3, fn ($e) => ($e['eventKey'] ?? null) === 'request:'.$request->id));
         $this->assertCount(1, $landing);
         $this->assertSame('replacement', $landing[0]['status']);
         $this->assertSame(4, $landing[0]['start']);
         $this->assertSame(7, $landing[0]['end']);
 
-        // the UNION summary: the landing's 4 real cells, zero history inflation
+        // the UNION summary is unchanged: the landing's 4 real cells, zero
+        // history inflation
         $totals = $component->viewData('totalsByWeek');
         $this->assertSame(4, $totals[2]['occupied']);
         $this->assertSame(1, $totals[2]['myClasses']);
@@ -703,5 +734,401 @@ class CancelledSlotTimelineTest extends TestCase
         // maintenance flag: truthy marks it, falsy does not
         $this->assertTrue(CancelledOccurrenceEvidence::isMaintenanceDetails(['maintenance' => 1]));
         $this->assertFalse(CancelledOccurrenceEvidence::isMaintenanceDetails(['maintenance' => 0]));
+    }
+
+    /* ── R203 — the all-4-surface matrix, own-approved locations and the
+        unrelated-source approval control (spec S16, revision 2) ─────────── */
+
+    /**
+     * A DEAD request's LEGAL persisted end-state: released landing cells
+     * (available, version bumped, owner nulled) and NO junctions — the shape
+     * the unchanged release actions leave behind, built directly instead of
+     * re-running them. An auto-rejected row carries the system reason and no
+     * approver; a PL-decided row carries the deciding user.
+     */
+    private function deadRequest(ClassSession $session, int $occurrenceWeek, int $anchorWeek, int $day, string $start, int $cells, string $status, ?int $approverId, ?string $rejectionReason): ReplacementRequest
+    {
+        $first = null;
+        for ($k = 0; $k < $cells; $k++) {
+            $from = Carbon::parse($start)->addMinutes($k * 30);
+            $slot = TimeSlot::create([
+                'semester_id' => $this->semester->id,
+                'class_session_id' => null,
+                'week_number' => $anchorWeek,
+                'day_of_week' => $day,
+                'start_time' => $from->format('H:i:s'),
+                'end_time' => $from->copy()->addMinutes(30)->format('H:i:s'),
+                'venue_id' => $this->venue->id,
+                'status' => 'available',
+                'version' => 2,
+            ]);
+            $first ??= $slot;
+        }
+
+        return ReplacementRequest::create([
+            'semester_id' => $this->semester->id,
+            'proposer_id' => $session->lecturer_id,
+            'class_session_id' => $session->id,
+            'week_number' => $occurrenceWeek,
+            'replacement_time_slot_id' => (int) $first->id,
+            'replacement_span' => $cells,
+            'status' => $status,
+            'approver_id' => $approverId,
+            'rejection_reason' => $rejectionReason,
+            'decided_at' => now(),
+            'submitted_at' => now(),
+        ]);
+    }
+
+    /** The request event with EXACTLY this request identity, not geometry. */
+    private function requestEvent(array $weekEvents, int $requestId): ?array
+    {
+        foreach ($weekEvents as $event) {
+            if (($event['requestId'] ?? null) === $requestId
+                && ($event['eventKey'] ?? null) === TimetableEventIdentity::requestKey($requestId)) {
+                return $event;
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * The business rows a display read must NEVER touch (S16's read-only
+     * law: exceptions, audits, requests, junctions, slots, sessions),
+     * serialised for a cheap deep compare.
+     *
+     * @return array<string, list<array<string, mixed>>>
+     */
+    private function businessRowsSnapshot(): array
+    {
+        $rows = [];
+        foreach ([
+            'exceptions' => ClassException::query(),
+            'audits' => AuditLog::query(),
+            'requests' => ReplacementRequest::query(),
+            'junctions' => ReplacementRequestSlot::query(),
+            'slots' => TimeSlot::query(),
+            'sessions' => ClassSession::query(),
+        ] as $key => $query) {
+            $rows[$key] = $query->orderBy('id')->get()
+                ->map(static fn ($row) => $row->attributesToArray())
+                ->all();
+        }
+
+        return $rows;
+    }
+
+    /**
+     * Every request lifecycle state against the SAME source occurrence:
+     * cancelled week-5 Thu 13:30–14:30 (B100, cohort A), own landing week-5
+     * Thu 13:00–14:00 — the reported half-hour overlap. Dead rows persist
+     * their legal released end-state; "no request" books nothing.
+     *
+     * @return array<string, array{0: ?string, 1: string, 2: ?string}>
+     */
+    public static function lifecycleStatuses(): array
+    {
+        // [request end status, decided-by marker, stored rejection reason]
+        return [
+            'pending' => ['pending', 'none', null],
+            'approved' => ['approved', 'pl', null],
+            'rejected by the PL' => ['rejected', 'pl', 'Slot conflict — the room was rebooked for a seminar.'],
+            'withdrawn by the owner' => ['cancelled', 'none', null],
+            'auto-rejected by the system' => ['rejected', 'none', 'Automatically rejected by system — the 3 working hours deadline passed.'],
+            'no request at all' => [null, 'none', null],
+        ];
+    }
+
+    #[DataProvider('lifecycleStatuses')]
+    public function test_all_four_surfaces_follow_the_request_lifecycle(?string $status, string $decidedBy, ?string $rejectionReason): void
+    {
+        $session = $this->sessionFor($this->lecturerA, [$this->cohortA], 4, '13:30:00', '14:30:00');
+        $this->cancelFor($session, 5, 'annual_leave');
+        // ANOTHER source week of the same class — never touched by the
+        // week-5 request's fate (S16: other source weeks stay unaffected)
+        $this->cancelFor($session, 6, 'medical_leave');
+
+        $requestId = null;
+        if ($status === 'pending' || $status === 'approved') {
+            [, $request] = $this->spanRequest($session, 5, 5, 4, '13:00:00', 2, $status);
+            if ($status === 'approved' && $decidedBy === 'pl') {
+                $request->update(['approver_id' => $this->lecturerB->id, 'decided_at' => now()]);
+            }
+            $requestId = (int) $request->id;
+        } elseif ($status !== null) {
+            $approverId = $decidedBy === 'pl' ? $this->lecturerB->id : null;
+            $requestId = (int) $this->deadRequest($session, 5, 5, 4, '13:00:00', 2, $status, $approverId, $rejectionReason)->id;
+        }
+
+        // one cohort-A student reads the student surface (the S15 precedent)
+        $student = User::factory()->create(['role' => 'student', 'name' => 'Student A']);
+        Student::create(['user_id' => $student->id, 'student_id' => '25RSD0001', 'cohort_id' => $this->cohortA->id]);
+
+        $before = $this->businessRowsSnapshot();
+
+        $staff = Livewire::actingAs($this->lecturerA)->test(MyTimetable::class)->viewData('eventsByWeek');
+        $cohortAEvents = Livewire::actingAs($this->lecturerA)
+            ->test(CohortTimetable::class)->viewData('eventsByCohort')[$this->cohortA->id];
+        $studentEvents = Livewire::actingAs($student)->test(StudentMyTimetable::class)->viewData('eventsByWeek');
+        $venueComponent = Livewire::withQueryParams(['venue' => 'B100'])
+            ->actingAs($this->lecturerA)->test(VenueTimetable::class);
+        $venue = $venueComponent->viewData('eventsByWeek');
+
+        // a display read mutates NOTHING — the six business row families are
+        // byte-identical before and after all four reads
+        $this->assertSame($before, $this->businessRowsSnapshot(),
+            'a timetable display read must never touch business rows');
+
+        foreach ([
+            'staff MyTimetable' => $staff,
+            'staff CohortTimetable cohort A' => $cohortAEvents,
+            'own-cohort StudentMyTimetable' => $studentEvents,
+            'VenueTimetable B100' => $venue,
+        ] as $surface => $events) {
+            // the request-less week-6 source keeps its history on EVERY status
+            $this->assertNotNull($this->cancelledEvent($events[5], $session, 6),
+                "$surface: the request-less week-6 source is unaffected");
+
+            if ($status === 'approved') {
+                // ONLY the approved status suppresses the exact original identity
+                $this->assertNull($this->cancelledEvent($events[4], $session, 5),
+                    "$surface: only the own-approved status suppresses the original");
+                $this->assertCount(1, array_filter($events[4], fn ($e) => ($e['requestId'] ?? null) === $requestId),
+                    "$surface: the approved landing appears exactly once");
+                $landing = $this->requestEvent($events[4], (int) $requestId);
+                $this->assertNotNull($landing, "$surface: the approved landing is emitted");
+                $this->assertSame('replacement', $landing['status']);
+                $this->assertSame(4, $landing['di']);
+                $this->assertSame(10, $landing['start']);   // 1:00 PM — the TRUE junction span
+                $this->assertSame(11, $landing['end']);     // through 2:00 PM — the half-hour overlap
+                $this->assertSame('B100', $landing['venue']);
+            } elseif ($status === 'pending') {
+                // pending keeps BOTH: the original history and the amber landing
+                $history = $this->cancelledEvent($events[4], $session, 5);
+                $this->assertNotNull($history, "$surface: pending keeps the cancelled original");
+                if ($surface === 'staff MyTimetable') {
+                    $this->assertTrue($history['proposed'], 'the Proposed hint rides the pending pair');
+                }
+                $landing = $this->requestEvent($events[4], (int) $requestId);
+                $this->assertNotNull($landing, "$surface: the pending landing is emitted");
+                $this->assertSame('pending', $landing['status']);
+                $this->assertSame(4, $landing['di']);
+                $this->assertSame(10, $landing['start']);   // 1:00 PM
+                $this->assertSame(11, $landing['end']);     // through 2:00 PM
+                $this->assertSame('B100', $landing['venue']);
+            } else {
+                // a dead or absent request keeps the original and emits NO dead
+                // landing anywhere — never an occupied claim just for display
+                $this->assertNotNull($this->cancelledEvent($events[4], $session, 5),
+                    "$surface: a dead/absent request keeps the cancelled original");
+                $this->assertSame([], array_values(array_filter($events[4],
+                    fn ($e) => in_array($e['status'] ?? '', ['pending', 'replacement'], true))),
+                    "$surface: no dead landing block");
+                if ($requestId !== null) {
+                    foreach ($events as $weekEvents) {
+                        $this->assertNull($this->requestEvent($weekEvents, (int) $requestId),
+                            "$surface: the dead landing never rides any week");
+                    }
+                }
+            }
+        }
+
+        // the venue page's REAL room truth: only an approved landing's two
+        // cells occupy the room; a pending pair holds pending cells; dead
+        // rows leave the released cells plain and the history adds nothing
+        $totals = $venueComponent->viewData('totalsByWeek');
+        $this->assertSame($status === 'approved' ? 2 : 0, $totals[4]['occupied'], 'venue: real room occupancy');
+        $this->assertSame($status === 'pending' ? 2 : 0, $totals[4]['pending'], 'venue: real pending cells');
+        $this->assertSame($status === 'approved' ? 1 : 0, $totals[4]['myClasses'], "venue: the viewer's classes");
+        $this->assertSame($status === 'approved' ? '1' : '0', $totals[4]['myHours'], 'venue: real teaching hours');
+    }
+
+    /**
+     * Own-approved landings at every geometry. The cancelled week-5 Thu
+     * 13:30–14:30 (B100) original is suppressed on ALL FOUR surfaces while
+     * the approved landing renders at its true full span in its own
+     * week/day/room — landing coordinates never identify the original.
+     *
+     * @return array<string, array{0: int, 1: int, 2: string, 3: string}>
+     */
+    public static function ownApprovedLandings(): array
+    {
+        // [landing week, landing day, landing start, landing room]
+        return [
+            'exact same coordinates' => [5, 4, '13:30:00', 'B100'],
+            'partial earlier half-hour' => [5, 4, '13:00:00', 'B100'],
+            'partial later half-hour' => [5, 4, '14:00:00', 'B100'],
+            'different week 8' => [8, 4, '13:30:00', 'B100'],
+            'different day' => [5, 5, '13:30:00', 'B100'],
+            'different room B101' => [5, 4, '13:30:00', 'B101'],
+        ];
+    }
+
+    #[DataProvider('ownApprovedLandings')]
+    public function test_own_approved_suppression_holds_at_every_landing_geometry(int $landingWeek, int $landingDay, string $landingStart, string $landingRoom): void
+    {
+        $session = $this->sessionFor($this->lecturerA, [$this->cohortA], 4, '13:30:00', '14:30:00');
+        $this->cancelFor($session, 5, 'annual_leave');
+
+        $landingVenue = $landingRoom === 'B100' ? $this->venue : Venue::create([
+            'room_code' => 'B101', 'room_name' => 'Tutorial Room B101',
+            'room_type' => 'tutorial', 'allowed_session_types' => 'L,T', 'capacity' => 30,
+        ]);
+        [, $request] = $this->spanRequest($session, 5, $landingWeek, $landingDay, $landingStart, 2, 'approved', null, $landingVenue);
+        $requestId = (int) $request->id;
+
+        // the same half-hour index the trait's slotIndex() computes
+        $startIdx = ((int) substr($landingStart, 0, 2) - 8) * 2 + intdiv((int) substr($landingStart, 3, 2), 30);
+        $endIdx = $startIdx + 1;   // the TRUE 2-cell span
+
+        $student = User::factory()->create(['role' => 'student', 'name' => 'Student A']);
+        Student::create(['user_id' => $student->id, 'student_id' => '25RSD0001', 'cohort_id' => $this->cohortA->id]);
+
+        $before = $this->businessRowsSnapshot();
+
+        $staff = Livewire::actingAs($this->lecturerA)->test(MyTimetable::class)->viewData('eventsByWeek');
+        $cohortAEvents = Livewire::actingAs($this->lecturerA)
+            ->test(CohortTimetable::class)->viewData('eventsByCohort')[$this->cohortA->id];
+        $studentEvents = Livewire::actingAs($student)->test(StudentMyTimetable::class)->viewData('eventsByWeek');
+        $oldRoom = Livewire::withQueryParams(['venue' => 'B100'])
+            ->actingAs($this->lecturerA)->test(VenueTimetable::class);
+        $oldRoomEvents = $oldRoom->viewData('eventsByWeek');
+        if ($landingRoom === 'B100') {
+            $landingRoomComponent = $oldRoom;
+            $landingRoomEvents = $oldRoomEvents;
+        } else {
+            $landingRoomComponent = Livewire::withQueryParams(['venue' => 'B101'])
+                ->actingAs($this->lecturerA)->test(VenueTimetable::class);
+            $landingRoomEvents = $landingRoomComponent->viewData('eventsByWeek');
+        }
+
+        $this->assertSame($before, $this->businessRowsSnapshot(),
+            'a timetable display read must never touch business rows');
+
+        foreach ([
+            'staff MyTimetable' => $staff,
+            'staff CohortTimetable cohort A' => $cohortAEvents,
+            'own-cohort StudentMyTimetable' => $studentEvents,
+        ] as $surface => $events) {
+            $this->assertNull($this->cancelledEvent($events[4], $session, 5),
+                "$surface: the own-approved original is suppressed at the $landingRoom geometry");
+            $this->assertCount(1, array_filter($events[$landingWeek - 1], fn ($e) => ($e['requestId'] ?? null) === $requestId),
+                "$surface: the approved landing appears exactly once");
+            $landing = $this->requestEvent($events[$landingWeek - 1], $requestId);
+            $this->assertNotNull($landing, "$surface: the approved landing renders in its own week");
+            $this->assertSame('replacement', $landing['status']);
+            $this->assertSame($landingDay, $landing['di']);
+            $this->assertSame($startIdx, $landing['start']);
+            $this->assertSame($endIdx, $landing['end']);
+            $this->assertSame($landingRoom, $landing['venue']);
+            // no stray landing anywhere else — no source-week confusion
+            foreach ($events as $w => $weekEvents) {
+                if ($w === $landingWeek - 1) {
+                    continue;
+                }
+                $this->assertNull($this->requestEvent($weekEvents, $requestId),
+                    "$surface: no stray landing in week ".($w + 1));
+            }
+        }
+
+        // the OLD room's venue view: the source is suppressed even when the
+        // landing moved away, and the landing never leaks into B100
+        $this->assertNull($this->cancelledEvent($oldRoomEvents[4], $session, 5),
+            'venue B100: the source is suppressed even when the landing moved elsewhere');
+        if ($landingRoom !== 'B100') {
+            foreach ($oldRoomEvents as $w => $weekEvents) {
+                $this->assertNull($this->requestEvent($weekEvents, $requestId),
+                    'venue B100: the landing never leaks into the old room (week '.($w + 1).')');
+            }
+        }
+        $this->assertSame($landingRoom === 'B100' ? 2 : 0, $oldRoom->viewData('totalsByWeek')[$landingWeek - 1]['occupied'],
+            'venue B100: the real room occupancy follows only a landing that actually moved in');
+
+        // the landing room's venue view: the full approved landing in its
+        // proper week, with the real union occupancy
+        $landingEvent = $this->requestEvent($landingRoomEvents[$landingWeek - 1], $requestId);
+        $this->assertNotNull($landingEvent, "venue $landingRoom: the approved landing renders in its proper week");
+        $this->assertSame('replacement', $landingEvent['status']);
+        $this->assertSame($landingDay, $landingEvent['di']);
+        $this->assertSame($startIdx, $landingEvent['start']);
+        $this->assertSame($endIdx, $landingEvent['end']);
+        $this->assertSame($landingRoom, $landingEvent['venue']);
+        $landingTotals = $landingRoomComponent->viewData('totalsByWeek');
+        $this->assertSame(2, $landingTotals[$landingWeek - 1]['occupied'], "venue $landingRoom: the landing's real occupancy");
+        $this->assertSame(1, $landingTotals[$landingWeek - 1]['myClasses'], "venue $landingRoom: the viewer's landing class");
+        $this->assertSame('1', $landingTotals[$landingWeek - 1]['myHours'], "venue $landingRoom: the landing's real hours");
+    }
+
+    /* ── R203 — the unrelated-source approval control (spec S16) ────────── */
+
+    public function test_another_sources_approval_never_suppresses_this_original(): void
+    {
+        // source A: cancelled, NO own approved request
+        $sourceA = $this->sessionFor($this->lecturerA, [$this->cohortA], 4, '13:30:00', '14:30:00');
+        $this->cancelFor($sourceA, 5, 'annual_leave');
+        // source B: ANOTHER occurrence of the same lecturer, cancelled AND
+        // approved — its landing overlaps source A's original coordinates
+        // EXACTLY. Suppression keys on the SOURCE identity, never geometry.
+        $sourceB = $this->sessionFor($this->lecturerA, [$this->cohortB], 4, '13:30:00', '14:30:00');
+        $this->cancelFor($sourceB, 5, 'medical_leave');
+        [, $requestB] = $this->spanRequest($sourceB, 5, 5, 4, '13:30:00', 2, 'approved');
+        $requestBId = (int) $requestB->id;
+
+        $student = User::factory()->create(['role' => 'student', 'name' => 'Student A']);
+        Student::create(['user_id' => $student->id, 'student_id' => '25RSD0001', 'cohort_id' => $this->cohortA->id]);
+
+        $before = $this->businessRowsSnapshot();
+
+        $staff = Livewire::actingAs($this->lecturerA)->test(MyTimetable::class)->viewData('eventsByWeek');
+        $cohortAEvents = Livewire::actingAs($this->lecturerA)
+            ->test(CohortTimetable::class)->viewData('eventsByCohort')[$this->cohortA->id];
+        $studentEvents = Livewire::actingAs($student)->test(StudentMyTimetable::class)->viewData('eventsByWeek');
+        $venueComponent = Livewire::withQueryParams(['venue' => 'B100'])
+            ->actingAs($this->lecturerA)->test(VenueTimetable::class);
+        $venue = $venueComponent->viewData('eventsByWeek');
+
+        $this->assertSame($before, $this->businessRowsSnapshot(),
+            'a timetable display read must never touch business rows');
+
+        // EVERY surface: source A STAYS — another source's approval is not
+        // evidence, even at identical/overlapping coordinates
+        foreach ([
+            'staff MyTimetable' => $staff,
+            'staff CohortTimetable cohort A' => $cohortAEvents,
+            'own-cohort StudentMyTimetable' => $studentEvents,
+            'VenueTimetable B100' => $venue,
+        ] as $surface => $events) {
+            $history = $this->cancelledEvent($events[4], $sourceA, 5);
+            $this->assertNotNull($history, "$surface: source A stays — the approval belongs to another source");
+            $this->assertSame('user_cancelled', $history['cancellationProvenance']);
+            $this->assertSame('Annual Leave', $history['cancelledReason']);
+            $this->assertSame(11, $history['start']);   // the ORIGINAL 1:30–2:30 PM range
+            $this->assertSame(12, $history['end']);
+        }
+
+        // where source B is IN SCOPE, its own approval suppresses IT and its
+        // landing renders exactly once at the overlapping full span; where
+        // source B is out of scope (the cohort-A views), neither appears
+        foreach (['staff MyTimetable' => $staff, 'VenueTimetable B100' => $venue] as $surface => $events) {
+            $this->assertNull($this->cancelledEvent($events[4], $sourceB, 5),
+                "$surface: source B's OWN approval suppresses it");
+            $landing = $this->requestEvent($events[4], $requestBId);
+            $this->assertNotNull($landing, "$surface: the other-source landing is emitted");
+            $this->assertSame('replacement', $landing['status']);
+            $this->assertSame(4, $landing['di']);
+            $this->assertSame(11, $landing['start']);
+            $this->assertSame(12, $landing['end']);
+        }
+        foreach (['staff CohortTimetable cohort A' => $cohortAEvents, 'own-cohort StudentMyTimetable' => $studentEvents] as $surface => $events) {
+            $this->assertNull($this->requestEvent($events[4], $requestBId),
+                "$surface: the cohort-B landing is out of the cohort-A scope");
+        }
+
+        // the venue union counts the real landing cells, zero history inflation
+        $totals = $venueComponent->viewData('totalsByWeek');
+        $this->assertSame(2, $totals[4]['occupied']);
+        $this->assertSame(1, $totals[4]['myClasses']);
+        $this->assertSame('1', $totals[4]['myHours']);
     }
 }

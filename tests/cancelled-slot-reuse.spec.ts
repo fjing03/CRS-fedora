@@ -406,7 +406,7 @@ test.describe('cancelled-slot-reuse A20 — approved/ending lifecycle on the tes
 
   /* ─────────── T1c · the PL approves in the real queue UI ─────────────── */
 
-  test('T1c · the PL approves in the queue UI — landing occupied and never freed, original reason preserved (S11/S14/S16/S22/S23)', async ({ browser }) => {
+  test('T1c · the PL approves in the queue UI — landing occupied and never freed, own-approved original suppressed, original reason preserved (S11/S14/S16/S22/S23)', async ({ browser }) => {
     test.setTimeout(300_000);
     const sid = F.session.id;
     const aw = F.weeks.approve;
@@ -481,15 +481,15 @@ test.describe('cancelled-slot-reuse A20 — approved/ending lifecycle on the tes
       + ` and json_array_length(details->'original_release'->'freed_slots')=0`
       + ` and json_array_length(details->'slots')=4`)).toBe(1);
 
-    /* ── the staff timetable: cancellation ABOVE the approved block (S16).
-       This is the frozen cancelled-slot-reuse target — it deliberately
-       supersedes the older cancelled-blocks-stay-visible suppression-on-
-       approval for an overlapping position; it stays the gating assertion
-       until the A14–A17 stack ships. ── */
+    /* ── the staff timetable after approval (S16 revision 2): the
+       own-approved original is SUPPRESSED — served cancelled 0, DOM
+       cancelled 0 — and exactly the approved landing renders with its full
+       true span. The stored history stays in the DB (asserted above); only
+       the DISPLAY changes. ── */
     const { context: ctx2, page: page2, errors: errors2 } = await openStaff(browser, FIX_STAFF_STATE);
     await gotoMyTimetableWeek(page2, aw.week - 1);
     const events = await servedEvents(page2, aw.week - 1);
-    expect(events.filter((e) => e.status === 'cancelled')).toHaveLength(1);
+    expect(events.filter((e) => e.status === 'cancelled')).toHaveLength(0);
     const replacementEvents = events.filter((e) => e.status === 'replacement');
     expect(replacementEvents).toHaveLength(1);
     expect(replacementEvents[0]).toMatchObject({
@@ -497,17 +497,12 @@ test.describe('cancelled-slot-reuse A20 — approved/ending lifecycle on the tes
     });
 
     const blocks = await domBlocks(page2);
-    const cancelled = blocks.filter((b) => b.cls.includes('event-conflict') && b.sid === String(sid) && b.rid === null);
     const approved = blocks.filter((b) => b.rid === String(requestId));
-    expect(cancelled).toHaveLength(1);
+    expect(blocks.filter((b) => b.cls.includes('event-conflict') && b.sid === String(sid) && b.rid === null)).toHaveLength(0);
     expect(approved).toHaveLength(1);
     expect(approved[0].cls).toContain('event-replacement');
-    expect(cancelled[0].top).toBeLessThan(approved[0].top);
-    expect(Math.abs(cancelled[0].left - approved[0].left)).toBeLessThan(60);
     expect(approved[0].tip.toUpperCase()).toContain('REPLACEMENT');
-    for (const b of [cancelled[0], approved[0]]) {
-      expect(b.text).toContain('9:00 AM ~ 11:00 AM');
-    }
+    expect(approved[0].text, 'the true 2-hour span, never an anchor-only 30 min').toContain('9:00 AM ~ 11:00 AM');
 
     /* the approved popup: its own landing facts + the ORIGINAL rows (S14) */
     await page2.locator(`#tableBody .event-block[data-rid="${requestId}"]`).first().click();
@@ -522,11 +517,13 @@ test.describe('cancelled-slot-reuse A20 — approved/ending lifecycle on the tes
     await expect(page2.locator('#classModal')).toBeHidden();
 
     /* the cards after approval: 2 confirmed hours, cancelled still 0, the
-       landing counted as the replacement (S22) */
+       landing counted as the replacement, and the suppressed original no
+       longer adds a cancelled conflict (S22) */
     expect((await summaryCard(page2, 'sumTotal'))?.text).toBe('1+0');
     expect((await summaryCard(page2, 'sumHours'))?.text).toBe('2+0');
     expect((await summaryCard(page2, 'sumReplacement'))?.text).toBe('1');
     expect((await summaryCard(page2, 'sumPending'))?.text).toBe('0');
+    expect((await summaryCard(page2, 'sumConflict'))?.text).toBe('0');
 
     /* the venue cards: the union of REAL cells is 2 teaching hours at this
        room — cancelled history and any base rows contribute nothing (S22/S23,

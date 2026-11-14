@@ -1,5 +1,16 @@
 # Cancelled-slot reuse — work in progress
 
+## 2026-11-14 — own-approved original suppression
+
+The user reconfirmed: ONLY that exact occurrence's own Approved replacement hides its cancelled original. Pending, rejected, withdrawn/cancelled, automatically rejected and no-request states retain it. An approval for another source or source week never hides it. This replaces the earlier own-approved-overlap retention rule, not stored history.
+
+- Shared staff/cohort/student payload and venue exception backfill now filter by the existing own-approved source-pair maps, before deduplication, summaries and layout. Landing week/day/room/overlap do not decide suppression. Removed only obsolete overlap accumulators; generic helper API, lane planner, booking actions and privacy remain intact.
+- New all-four lifecycle/location/control coverage and read-only business snapshots. Saved-original baseline: **10 expected failures / 31 cases**, with no live-source rollback. Current combined backend: **122/122 PASS, 2,659 assertions**; related-only run **91/91, 1,703 assertions**. Every refresh test used a forced and queried temporary PostgreSQL target: testing database, socket `/tmp/crs-approved-suppression/socket`, port **55439**, verified data directory. Wrong-target refusal also checked. The user's manual database was never reset.
+- Read-only planner/layout: **18/18 PASS**, plus **3/3 auth setups**. Writing lifecycle T1c expectations updated; **11 tests collected, none of that writing suite executed** on manual data.
+- Real approved request **19**, source **2673**, week **10**, checked on My Timetable, Cohort DSF2(S1)G1, Student My Timetable (24DSF0001), and Venue B010. Served JSON and DOM omit the original; one approved **1:00 PM ~ 2:00 PM** landing remains, span two half-hours. All four pages captured at **1440/390, light/dark**; main inspected one capture per page. No staged payload or booking action. Existing student access denial to the lecturer-only cohort route remains unchanged.
+- Lint, PHPStan 1G, PHP/JS syntax, Blade compilation, whitespace and independent scoped review **PASS**. Manual requests, exception/reason, links, affected cells/versions and audit/notification counts compare identical. Receipts: `/tmp/crs-approved-suppression/` and matching SDD logs.
+- Sequential revised proposal/design/spec/tasks reviews passed before implementation. No new commit/push/archive/demo cleanup; whole-feature Verify remains open. Testing **:8030 stays available** for manual work.
+
 ## 2026-11-14 — half-hour overlap regression fixed
 
 Staff 5770 exposed a missed 30-minute intersection: pending 1:00 PM ~ 2:00 PM versus cancelled 1:30 PM ~ 2:30 PM. Stored intervals used an exclusive end but comparisons received an inclusive candidate end. Both sides now use the same half-open interval. Components form in time order before cancellation-first lane allocation; each component reuses lanes from zero. Original event coordinates and durations are unchanged.

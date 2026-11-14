@@ -3,14 +3,18 @@ created: 2026-11-13
 status: applying
 batch: tasks
 planning_complete: true
-proposal_review: passed
+proposal_review: passed_revision_2_round_1
 proposal_frozen: true
-design_review: passed
+design_review: passed_revision_2_round_1
 design_frozen: true
-specs_review: passed
+specs_review: passed_revision_2_round_1
 specs_frozen: true
-tasks_review: passed
+tasks_review: passed_revision_2_round_1
 tasks_frozen: true
+revision_2: "2026-11-14 user-approved own-approved-original timetable suppression on all four surfaces; sequential re-review before implementation; no new commit/push/demo/archival authority."
+revision_2_status: scoped_complete
+revision_2_implementation_review: passed_round_1
+revision_2_scoped_checks: "122 backend / 2659 assertions; 18 read-only browser +3 auth; actual four-page 16-variant checks; writing lifecycle collected only. Whole-feature Verify still open."
 implementation_approved: true
 implementation_approval: "User: u may sdd apply; later approved fixing the five older browser regressions and all Part B. Code/tests allowed. Part A-only commit approval was exercised as b1f13fd. User then answered yes to committing the regression fixes and Part B separately; this grants only those two commits, not push or demo cleanup. See apply-log.md."
 demo_cleanup_approved: false

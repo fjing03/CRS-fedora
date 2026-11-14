@@ -3,13 +3,13 @@
 Date: 2026-11-13
 Change: `cancelled-slot-reuse`
 Batch: 1 — proposal
-Status: proposal frozen after independent review Round 1; not approved for implementation
+Status: proposal revision 2 frozen after independent Round 1 PASS, 2026-11-14. User-approved approval-suppression refinement; downstream batches require sequential review before code. Prior delivered work remains implemented.
 
 ## 1. Why
 
 A cancelled class will not run. Its lecturer and cohorts already stop blocking that occurrence in the availability checks, but its original room cells may remain occupied. The user now wants all three resources released for that occurrence.
 
-The user also wants the cancellation to remain visible when someone books that room/time. A cancelled history block is not a second active booking. The timetable must show both records clearly, without painting one over the other or making the cancelled record block the new request.
+The user also wants the cancellation to remain visible when someone books that room/time. A cancelled history block is not a second active booking. The timetable must show both records clearly while the original remains unhandled or its replacement is pending, without painting one over the other or making the cancelled record block the new request. Once that original occurrence's own replacement is approved, hide its cancelled block and show the approved landing only; keep the stored cancellation/history records.
 
 The supplied screenshots show different venues (B100/B010 versus B111); they are not evidence of an actual double booking. This is a requested rule and display change, not a claim that two active bookings have been found.
 
@@ -18,6 +18,8 @@ The supplied screenshots show different venues (B100/B010 versus B111); they are
 The choices in `explore-brief.md` are the baseline. They replace the earlier decision to keep cancelled rooms reserved. They do NOT introduce a leave/unavailability calendar.
 
 **This document is planning only.** No app code, test code, schema, services or data is changed. Implementation requires a later explicit approval after design/spec/tasks review. The existing-data cleanup is a separate apply gate: immediately before it, present the current affected rows and obtain approval for that exact write. Approval to write this proposal is not approval to run the cleanup.
+
+2026-11-14 refinement authority: the user approved fixing/testing own-approved-original suppression across all four timetable surfaces. Re-review this proposal, then design, specs and tasks sequentially before editing code. Existing delivered Part A/B work is not being redone. No new commit, push, archive or demo-cleanup approval is implied. Protect the user's active testing DB; run DB-refresh backend tests only on a separately verified temporary local PostgreSQL instance, still named `class_replacement_testing`, while read-only browser checks use the existing :8030 server.
 
 Do not edit the formal FR/NFR copy without separate permission. Do not commit or push this planning batch without the user's instruction.
 
@@ -54,12 +56,12 @@ Ownership and student read-only access; one live request per source occurrence; 
 
 ### Shared behaviour
 
-- Keep cancelled and new Pending/approved blocks separately visible whenever they overlap in a viewer's scope. Neither silently replaces, merges with, or covers the other.
+- Keep cancelled and new Pending/approved blocks separately visible whenever they overlap in a viewer's scope, EXCEPT when the cancelled occurrence has its OWN approved replacement: then suppress that original block. A pending replacement never suppresses it. Approval of another source occurrence never suppresses this cancellation.
 - Stack the blocks vertically in separate lanes; enlarge that day's row only as needed. The cancelled block is above the new booking.
 - Keep each event's true start/end position and duration, including partial overlaps, adjacent blocks and different spans. Do not shorten two hours to one cell, duplicate events, or shift their time to fit.
 - Handle more than two overlapping records with stable ordering. Within the cancellation group and within the new-booking group, use a deterministic order to be defined in design.
 - Each visible block has its own course, time, venue and status, existing colours/ownership styling, accessible focus target and correct details popup. Notification jumps must target the intended event, not a cancelled neighbour sharing its cells.
-- If the new request is withdrawn/rejected, its active booking block disappears as it does today; the original cancellation remains. If approved at the overlapping position, the cancelled history block remains above the approved replacement. Existing behaviour for approved make-ups at non-overlapping positions is otherwise unchanged.
+- If the new request is withdrawn/rejected/automatically rejected, its active booking block disappears as it does today; the original cancellation remains. If its own request is approved, suppress the original cancelled block for that exact semester/session/source-week pair, irrespective of exact/partial/no overlap, another booking reusing the original range, landing week or room. Retain the approved landing's true range and every stored cancellation exception/reason/audit/history record. Do not suppress other occurrences or another class's cancellation.
 - Cancelled history does not consume room capacity, teaching hours or bookable-cell totals. Summary cards must follow their documented formulas; do not count extra layout lanes as extra occupied time or active classes. Any cancellation-history class count remains governed by the existing card formula.
 
 ### Pages and privacy
@@ -85,7 +87,7 @@ Include the parked Thursday 12 November Small tasks item 1 as a separate, wordin
 - Use the existing shared text tooltip style and data-driven wording; keep the existing cell label and booking answer.
 - Include enough allowed facts to explain the conflict: course/type, room and actual time, and the relevant public status. Respect the current restrictions on other staff's request information. Do not expose remarks, private cancellation reasons or hidden request data.
 - Where more than one genuine blocking record applies, preserve the distinct facts without duplicates. The final copy and field list are to be defined in design using existing tooltip vocabulary.
-- A freed cancelled occurrence is not an active holder and must not be described as holding the room. The old to-do example ending in “cancelled” is superseded for freed cells by Part A. Cancelled history remains available in its own timetable block/details instead.
+- A freed cancelled occurrence is not an active holder and must not be described as holding the room. The old to-do example ending in “cancelled” is superseded for freed cells by Part A. Cancellation records remain in history; any original still visible under the lifecycle rule has its own timetable block/details instead.
 - Part B itself changes no eligibility rule. It must not restore the old “keep room blocked” rule or add a note to green cells.
 
 ## 6. Existing cancellations — planned cleanup, not executed
@@ -125,8 +127,8 @@ These are requirements for later tests, not claims of tests run now:
 1. Cancelling session 67 in Week 9 frees its original 09:00–11:00 room cells; other weeks and unticked day classes remain unchanged. Single/day cancellation share the rule and remain all-or-nothing on failure.
 2. Eligible own/other-class reuse succeeds, including the exact same class/date/time/room, while a normal-week class and every unrelated active clash still block. Full-span/concurrent requests cannot produce two active bookings.
 3. Releasing or approving an original occurrence never frees a later pending/approved booking of those cells. This includes same-class same-slot rebooking.
-4. Every relevant timetable shows two independently clickable, readable stacked blocks for exact and partial overlaps, cancelled first. Test 30-minute, one-hour, two-hour and multiple-history cases, no-overlap and adjacent-event regressions, own/other lecturer and cohort filtering.
-5. Approval at the same coordinates retains both records; rejection/withdrawal/automatic rejection removes the active proposal only and leaves the cancellation. No lost reservation links, stuck cells, false busy ranges or wrong modal duration.
+4. Every relevant timetable shows independently clickable, readable stacked blocks for exact/partial overlaps while the cancelled original is unhandled or pending, cancelled first. Once its own replacement is approved, the original is absent and only the approved landing remains. Test all four surfaces, exact/partial/no-overlap, cross-week/room, unrelated-approved reuse, 30-minute/one-hour/two-hour spans, multiple-history/no-overlap/adjacent regressions and viewer scoping.
+5. Own approval hides the original timetable block without deleting its cancellation/history records or changing any room-cell status/version or request link. Rejection/withdrawal/automatic rejection removes the active proposal only and leaves cancellation visible. Approval for another source occurrence does not hide this cancellation. No lost reservation links, stuck cells, false busy ranges or wrong modal duration.
 6. Green arrangement cells have no new cancellation hover; red room-only cells explain the real active holder. Student/other-staff privacy remains intact.
 7. Guarded cleanup dry-run writes nothing; apply is identity-scoped, repeatable and leaves live-request cells alone. Snapshot/rehearsal/approval/receipt and rollback checks are demonstrated before any demo write.
 8. Run backend tests on testing only; lint, static analysis, JS syntax and compiled-view checks. Playwright receipts use the exact testing-target guards; cover desktop/tablet/phone, both themes, keyboard/modal targeting, summary formulas and print compatibility. Report pre-existing failures honestly.
