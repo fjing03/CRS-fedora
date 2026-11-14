@@ -299,36 +299,96 @@ final class ReplacementHistoriesTest extends TestCase
        surface. Named replacement: the per-request cancel test above plus
        request-cancel-pending.spec.ts (§8.2). */
 
-    public function test_replacement_history_emits_own_cohort_rows_in_the_mock_shape(): void
+    /** The student history page lists OCCURRENCES (student-class-replacements
+     *  §1a): a row's identity is `"<sessionId>:<week>"` — never the request id,
+     *  which most rows do not even have. The original facts live in `orig`, the
+     *  requested make-up in `req` (a pending row's req is a PROPOSAL, not a
+     *  confirmed replacement), and the raw cancellation reason never leaves the
+     *  component: a student reads the 'Class Cancelled' kind, not the leave
+     *  type. Fixed clock 2026-10-01 keeps week 8's approved make-up (Oct 23)
+     *  strictly in the future, so it cannot age into 'completed'. */
+    public function test_replacement_history_emits_own_cohort_occurrence_rows(): void
     {
-        $pending = $this->createRequest($this->lecturerA, $this->sessionA, 7, 'pending');
-        $approved = $this->createRequest($this->lecturerA, $this->sessionA, 8, 'approved');
-        $this->createRequest($this->lecturerB, $this->sessionB, 7, 'approved'); // other cohort
+        Carbon::withTestNow('2026-10-01 09:00:00', function (): void {
+            $pending = $this->createRequest($this->lecturerA, $this->sessionA, 7, 'pending');
+            $approved = $this->createRequest($this->lecturerA, $this->sessionA, 8, 'approved');
+            $foreign = $this->createRequest($this->lecturerB, $this->sessionB, 7, 'approved'); // other cohort
 
-        $payload = $this->rhPayload($this->studentA);
+            $payload = $this->rhPayload($this->studentA);
 
-        $this->assertCount(2, $payload['replacementHistory'], 'FR 1.4: my cohort, pending + approved');
-        $this->assertSame([], $payload['cohortTimetable']['rsd3g2Flags']);
+            $this->assertSame([], $payload['cohortTimetable']['rsd3g2Flags']);
 
-        $byId = collect($payload['replacementHistory'])->keyBy('id');
+            $rows = $payload['replacementHistory'];
+            $this->assertCount(2, $rows, 'FR 1.4: my cohort, pending + approved');
 
-        // Pending: the frozen semantic — no confirmed new slot.
-        $p = $byId[$pending->id];
-        $this->assertSame('pending', $p['status']);
-        $this->assertNull($p['newDay']);
-        $this->assertSame(6, $p['week']); // week 7 → 0-based index 6
-        $this->assertSame('BMIT1001', $p['code']);
-        $this->assertSame('Lecturer A', $p['lecturer']);
-        $this->assertSame('10:00 – 12:00', $p['originalTime']);
-        $this->assertSame('B100', $p['originalVenue']);
+            /* The identity is the OCCURRENCE — sessionA weeks 7 and 8, in
+               chronological order, and distinct from any request id. */
+            $ids = array_column($rows, 'id');
+            $this->assertSame([$this->sessionA->id.':7', $this->sessionA->id.':8'], $ids);
+            $this->assertNotContains($this->sessionB->id.':7', $ids, "the foreign cohort's occurrence is not mine");
 
-        // Approved: the confirmed new slot fills the frozen New Slot columns.
-        $a = $byId[$approved->id];
-        $this->assertSame('replacement', $a['status']);
-        $this->assertSame(7, $a['week']);
-        $this->assertSame('Friday', $a['newDay']); // slotSeq cycle: pending→day 3, approved→day 4
-        $this->assertSame('14:00 – 14:30', $a['newTime']);
-        $this->assertSame('B100', $a['newVenue']);
+            /* Pending (week 7): proposed, not confirmed — `req` is present
+               (the Oct 15 proposal) while the status stays 'pending'. */
+            $p = $rows[0];
+            $this->assertSame('pending', $p['status']);
+            $this->assertSame('Pending', $p['statusShort']);
+            $this->assertSame((int) $pending->id, $p['requestId']);
+            $this->assertSame(6, $p['week']); // week 7 → 0-based
+            $this->assertSame('BMIT1001', $p['code']);
+            $this->assertSame('Software Engineering', $p['name']);
+            $this->assertSame('L', $p['type']);
+            $this->assertSame('Lecturer A', $p['lecturer']);
+            $this->assertSame([
+                'week' => 7, 'date' => '2026-10-13', 'day' => 'Tuesday',
+                'start' => '10:00', 'end' => '12:00', 'duration' => 2, 'venue' => 'B100',
+            ], $p['orig']);
+            $this->assertIsArray($p['req'], 'a pending proposal still names its slot');
+            $this->assertSame([
+                'week' => 7, 'date' => '2026-10-15', 'day' => 'Thursday',
+                'start' => '14:00', 'end' => '14:30', 'venue' => 'B100',
+            ], [
+                'week' => $p['req']['week'], 'date' => $p['req']['date'], 'day' => $p['req']['day'],
+                'start' => $p['req']['start'], 'end' => $p['req']['end'], 'venue' => $p['req']['venue'],
+            ]);
+            $this->assertSame('Class Cancelled', $p['conflictKind']);
+
+            /* Approved (week 8): confirmed make-up Friday Oct 23 — strictly
+               future at the fixed clock, so it stays 'approved'. */
+            $a = $rows[1];
+            $this->assertSame('approved', $a['status']);
+            $this->assertSame('Approved', $a['statusShort']);
+            $this->assertSame((int) $approved->id, $a['requestId']);
+            $this->assertSame(7, $a['week']); // week 8 → 0-based
+            $this->assertSame('BMIT1001', $a['code']);
+            $this->assertSame('Lecturer A', $a['lecturer']);
+            $this->assertSame([
+                'week' => 8, 'date' => '2026-10-20', 'day' => 'Tuesday',
+                'start' => '10:00', 'end' => '12:00', 'duration' => 2, 'venue' => 'B100',
+            ], $a['orig']);
+            $this->assertIsArray($a['req']);
+            $this->assertSame([
+                'week' => 8, 'date' => '2026-10-23', 'day' => 'Friday',
+                'start' => '14:00', 'end' => '14:30', 'venue' => 'B100',
+            ], [
+                'week' => $a['req']['week'], 'date' => $a['req']['date'], 'day' => $a['req']['day'],
+                'start' => $a['req']['start'], 'end' => $a['req']['end'], 'venue' => $a['req']['venue'],
+            ]);
+            $this->assertSame('Class Cancelled', $a['conflictKind']);
+
+            /* Privacy: the foreign cohort's request, session, module and
+               lecturer never appear, and the raw leave type never leaves the
+               component (students read 'Class Cancelled'). */
+            foreach ($rows as $row) {
+                $this->assertNotSame((int) $foreign->id, $row['requestId']);
+                $this->assertNotSame('BMIT2002', $row['code']);
+                $this->assertNotSame('Lecturer B', $row['lecturer']);
+            }
+            $serialized = json_encode($rows, JSON_THROW_ON_ERROR);
+            $this->assertStringNotContainsString('annual_leave', $serialized);
+            $this->assertStringNotContainsString('Annual Leave', $serialized);
+            $this->assertStringNotContainsString('BMIT2002', $serialized);
+            $this->assertStringNotContainsString('Databases', $serialized);
+        });
     }
 
     public function test_replacement_history_never_leaks_other_cohorts(): void
@@ -381,29 +441,35 @@ final class ReplacementHistoriesTest extends TestCase
 
     public function test_merged_page_keeps_today_and_future_approved_requests_as_approved(): void
     {
-        // The BOUNDARY: the comparison is by date, not by the clock — a class
-        // today reads Approved all day, and a class tomorrow obviously does.
-        $today = $this->cellFor(Carbon::today());
-        $tomorrow = $this->cellFor(Carbon::today()->addDay());
+        // Fixed in-term Thu/Fri: at 2026-11-12 09:00 UTC and campus share the
+        // same date (Thu, week11/day3), so no Sunday fixture is ever needed.
+        Carbon::withTestNow('2026-11-12 09:00:00', function (): void {
+            // The BOUNDARY: the comparison is by date, not by the clock — a class
+            // today reads Approved all day, and a class tomorrow obviously does.
+            $today = $this->cellFor(Carbon::today());
+            $tomorrow = $this->cellFor(Carbon::today()->addDay());
+            $this->assertSame(['week' => 11, 'day' => 3], $today, 'fixed clock must land on Thu 12 Nov, week11 day3');
+            $this->assertSame(['week' => 11, 'day' => 4], $tomorrow, 'fixed clock must land on Fri 13 Nov, week11 day4');
 
-        $this->stampException($this->sessionA, 7);
-        $this->stampException($this->sessionA, 8);
-        $due = ReplacementRequest::create([
-            'semester_id' => $this->semester->id, 'proposer_id' => $this->lecturerA->id,
-            'class_session_id' => $this->sessionA->id, 'week_number' => 7,
-            'replacement_time_slot_id' => $this->createSlotAt($today['week'], $today['day'])->id,
-            'status' => 'approved', 'submitted_at' => now(), 'decided_at' => now(),
-        ]);
-        $later = ReplacementRequest::create([
-            'semester_id' => $this->semester->id, 'proposer_id' => $this->lecturerA->id,
-            'class_session_id' => $this->sessionA->id, 'week_number' => 8,
-            'replacement_time_slot_id' => $this->createSlotAt($tomorrow['week'], $tomorrow['day'])->id,
-            'status' => 'approved', 'submitted_at' => now(), 'decided_at' => now(),
-        ]);
+            $this->stampException($this->sessionA, 7);
+            $this->stampException($this->sessionA, 8);
+            $due = ReplacementRequest::create([
+                'semester_id' => $this->semester->id, 'proposer_id' => $this->lecturerA->id,
+                'class_session_id' => $this->sessionA->id, 'week_number' => 7,
+                'replacement_time_slot_id' => $this->createSlotAt($today['week'], $today['day'])->id,
+                'status' => 'approved', 'submitted_at' => now(), 'decided_at' => now(),
+            ]);
+            $later = ReplacementRequest::create([
+                'semester_id' => $this->semester->id, 'proposer_id' => $this->lecturerA->id,
+                'class_session_id' => $this->sessionA->id, 'week_number' => 8,
+                'replacement_time_slot_id' => $this->createSlotAt($tomorrow['week'], $tomorrow['day'])->id,
+                'status' => 'approved', 'submitted_at' => now(), 'decided_at' => now(),
+            ]);
 
-        $byRequestId = collect($this->mergedPayload($this->lecturerA))->keyBy('requestId');
+            $byRequestId = collect($this->mergedPayload($this->lecturerA))->keyBy('requestId');
 
-        $this->assertSame('approved', $byRequestId[$due->id]['requestStatus'], 'a class that happens today is not past');
-        $this->assertSame('approved', $byRequestId[$later->id]['requestStatus']);
+            $this->assertSame('approved', $byRequestId[$due->id]['requestStatus'], 'a class that happens today is not past');
+            $this->assertSame('approved', $byRequestId[$later->id]['requestStatus']);
+        });
     }
 }

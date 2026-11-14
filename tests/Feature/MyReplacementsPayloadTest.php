@@ -313,36 +313,45 @@ final class MyReplacementsPayloadTest extends TestCase
 
     public function test_completed_is_derived_and_the_boundary_is_today(): void
     {
-        $yesterday = today()->subDay();
-        [$w, $d] = $this->weekDayFor($yesterday);
-        $past = $this->occurrence($w, $d, 'BMIT3001');
-        $this->requestFor($past, $w, 'approved', [], null, null, now()->subDays(3));
+        // T6 frozen clock: setUp creates the semester relative to the real date,
+        // so the freeze is derived from $this->startDate — never a literal. It is
+        // a Monday UTC, so +3w3d at 09:00 UTC (17:00 MYT, same campus date) is
+        // Thursday of week 4, day 3; yesterday/tomorrow are week4 day2/day4.
+        Carbon::withTestNow($this->startDate->copy()->addWeeks(3)->addDays(3)->setTime(9, 0), function (): void {
+            $yesterday = today()->subDay();
+            [$w, $d] = $this->weekDayFor($yesterday);
+            $this->assertSame([4, 2], [$w, $d], 'yesterday must be the week4/day2 cell');
+            $past = $this->occurrence($w, $d, 'BMIT3001');
+            $this->requestFor($past, $w, 'approved', [], null, null, now()->subDays(3));
 
-        [$tw] = $this->weekDayFor(today());
-        $todaySession = $this->occurrence($tw, (int) today()->dayOfWeekIso - 1, 'BMIT3002');
-        $this->requestFor($todaySession, $tw, 'approved', [], null, null, now()->subDay());
+            [$tw, $td] = $this->weekDayFor(today());
+            $this->assertSame([4, 3], [$tw, $td], 'today must be the week4/day3 cell');
+            $todaySession = $this->occurrence($tw, (int) today()->dayOfWeekIso - 1, 'BMIT3002');
+            $this->requestFor($todaySession, $tw, 'approved', [], null, null, now()->subDay());
 
-        $tomorrow = today()->addDay();
-        [$nw, $nd] = $this->weekDayFor($tomorrow);
-        $future = $this->occurrence($nw, $nd, 'BMIT3003');
-        $this->requestFor($future, $nw, 'approved', [], null, null, now()->subDay());
+            $tomorrow = today()->addDay();
+            [$nw, $nd] = $this->weekDayFor($tomorrow);
+            $this->assertSame([4, 4], [$nw, $nd], 'tomorrow must be the week4/day4 cell');
+            $future = $this->occurrence($nw, $nd, 'BMIT3003');
+            $this->requestFor($future, $nw, 'approved', [], null, null, now()->subDay());
 
-        $rows = $this->rows();
+            $rows = $this->rows();
 
-        $completed = $this->rowFor($rows, $past, $w);
-        $this->assertNotNull($completed);
-        $this->assertSame('completed', $completed['requestStatus']);
-        $this->assertSame('Completed — 1 day ago', $completed['requestStatusLabel']);
-        $this->assertSame('The replacement took place 1 day ago.', $completed['requestStatusDesc']);
-        $this->assertSame('approved', ReplacementRequest::query()->where('class_session_id', $past->id)->value('status'), 'derived — nothing stored');
+            $completed = $this->rowFor($rows, $past, $w);
+            $this->assertNotNull($completed);
+            $this->assertSame('completed', $completed['requestStatus']);
+            $this->assertSame('Completed — 1 day ago', $completed['requestStatusLabel']);
+            $this->assertSame('The replacement took place 1 day ago.', $completed['requestStatusDesc']);
+            $this->assertSame('approved', ReplacementRequest::query()->where('class_session_id', $past->id)->value('status'), 'derived — nothing stored');
 
-        $todayRow = $this->rowFor($rows, $todaySession, $tw);
-        $this->assertNotNull($todayRow);
-        $this->assertSame('approved', $todayRow['requestStatus'], 'a class TODAY is not completed');
+            $todayRow = $this->rowFor($rows, $todaySession, $tw);
+            $this->assertNotNull($todayRow);
+            $this->assertSame('approved', $todayRow['requestStatus'], 'a class TODAY is not completed');
 
-        $futureRow = $this->rowFor($rows, $future, $nw);
-        $this->assertNotNull($futureRow);
-        $this->assertSame('approved', $futureRow['requestStatus'], 'a class TOMORROW is not completed');
+            $futureRow = $this->rowFor($rows, $future, $nw);
+            $this->assertNotNull($futureRow);
+            $this->assertSame('approved', $futureRow['requestStatus'], 'a class TOMORROW is not completed');
+        });
     }
 
     // ── case 5 ─────────────────────────────────────────────────────────────

@@ -275,52 +275,60 @@ final class ReplacementHomeTest extends TestCase
 
     public function test_home_reads_the_effective_status_per_the_date_matrix(): void
     {
-        // request-completed-status R1/R2 (C1/C2/C3): the home payload carries
-        // the DERIVED status — approved + a replacement class strictly before
-        // today reads 'completed'; today and tomorrow stay 'approved'. The date
-        // grain is the day, not the second.
-        $session = ClassSession::query()
-            ->where('lecturer_id', $this->lecturerA->id)
-            ->where('venue_id', $this->venue->id)
-            ->firstOrFail();
+        // T6 frozen clock: the fixture semester starts 2026-08-31 (a Monday), so
+        // 2026-11-12 09:00 UTC (17:00 MYT, same campus date) is Thursday of
+        // week 11, day 3; yesterday/tomorrow are week11 day2/day4.
+        Carbon::withTestNow('2026-11-12 09:00:00', function (): void {
+            // request-completed-status R1/R2 (C1/C2/C3): the home payload carries
+            // the DERIVED status — approved + a replacement class strictly before
+            // today reads 'completed'; today and tomorrow stay 'approved'. The date
+            // grain is the day, not the second.
+            $session = ClassSession::query()
+                ->where('lecturer_id', $this->lecturerA->id)
+                ->where('venue_id', $this->venue->id)
+                ->firstOrFail();
 
-        // week 5 is already conflicted by the seeded holiday; 6 and 7 need one
-        ClassException::create(['class_session_id' => $session->id, 'week_number' => 6, 'reason' => 'official_event']);
-        ClassException::create(['class_session_id' => $session->id, 'week_number' => 7, 'reason' => 'official_event']);
+            // week 5 is already conflicted by the seeded holiday; 6 and 7 need one
+            ClassException::create(['class_session_id' => $session->id, 'week_number' => 6, 'reason' => 'official_event']);
+            ClassException::create(['class_session_id' => $session->id, 'week_number' => 7, 'reason' => 'official_event']);
 
-        $yesterday = $this->cellFor(Carbon::today()->subDay());
-        $today = $this->cellFor(Carbon::today());
-        $tomorrow = $this->cellFor(Carbon::today()->addDay());
+            $yesterday = $this->cellFor(Carbon::today()->subDay());
+            $today = $this->cellFor(Carbon::today());
+            $tomorrow = $this->cellFor(Carbon::today()->addDay());
+            $this->assertSame(['week' => 11, 'day' => 2], $yesterday, 'yesterday must be the week11/day2 cell');
+            $this->assertSame(['week' => 11, 'day' => 3], $today, 'today must be the week11/day3 cell');
+            $this->assertSame(['week' => 11, 'day' => 4], $tomorrow, 'tomorrow must be the week11/day4 cell');
 
-        $cases = [
-            5 => ['cell' => $yesterday, 'expect' => 'completed'],
-            6 => ['cell' => $today, 'expect' => 'approved'],
-            7 => ['cell' => $tomorrow, 'expect' => 'approved'],
-        ];
-        foreach ($cases as $week => $case) {
-            ReplacementRequest::create([
-                'semester_id' => $this->semester->id, 'proposer_id' => $this->lecturerA->id,
-                'class_session_id' => $session->id, 'week_number' => $week,
-                'replacement_time_slot_id' => $this->createSlotAt($case['cell']['week'], $case['cell']['day'])->id,
-                'status' => 'approved', 'submitted_at' => now(), 'decided_at' => now(),
-            ]);
-        }
+            $cases = [
+                5 => ['cell' => $yesterday, 'expect' => 'completed'],
+                6 => ['cell' => $today, 'expect' => 'approved'],
+                7 => ['cell' => $tomorrow, 'expect' => 'approved'],
+            ];
+            foreach ($cases as $week => $case) {
+                ReplacementRequest::create([
+                    'semester_id' => $this->semester->id, 'proposer_id' => $this->lecturerA->id,
+                    'class_session_id' => $session->id, 'week_number' => $week,
+                    'replacement_time_slot_id' => $this->createSlotAt($case['cell']['week'], $case['cell']['day'])->id,
+                    'status' => 'approved', 'submitted_at' => now(), 'decided_at' => now(),
+                ]);
+            }
 
-        $this->componentFor($this->lecturerA)
-            ->assertViewHas('payload', function (array $payload) use ($session, $cases): bool {
-                foreach ($cases as $week => $case) {
-                    $row = collect($payload['conflictedClasses'])->first(
-                        fn (array $r): bool => $r['sessionId'] === (int) $session->id && $r['week'] === $week,
-                    );
-                    $this->assertNotNull($row, "week {$week} keeps its row");
-                    $this->assertSame($case['expect'], $row['requestStatus'], "week {$week}: derived status (C2)");
-                }
+            $this->componentFor($this->lecturerA)
+                ->assertViewHas('payload', function (array $payload) use ($session, $cases): bool {
+                    foreach ($cases as $week => $case) {
+                        $row = collect($payload['conflictedClasses'])->first(
+                            fn (array $r): bool => $r['sessionId'] === (int) $session->id && $r['week'] === $week,
+                        );
+                        $this->assertNotNull($row, "week {$week} keeps its row");
+                        $this->assertSame($case['expect'], $row['requestStatus'], "week {$week}: derived status (C2)");
+                    }
 
-                return true;
-            });
+                    return true;
+                });
 
-        // C1: nothing was written by reading the page.
-        $this->assertSame(3, ReplacementRequest::query()->where('status', 'approved')->count(), 'the stored status is untouched — derivation only');
+            // C1: nothing was written by reading the page.
+            $this->assertSame(3, ReplacementRequest::query()->where('status', 'approved')->count(), 'the stored status is untouched — derivation only');
+        });
     }
 
     public function test_home_reports_the_newest_request_for_the_occurrence(): void

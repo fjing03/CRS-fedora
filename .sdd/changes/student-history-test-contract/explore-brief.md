@@ -1,0 +1,7 @@
+# Student history test contract — exploration
+
+The prior full-suite receipt /tmp/crs-reuse-full-phpunit-r3.txt reports Undefined array key 1 in ReplacementHistoriesTest's old mock-shape case. Current code keys rows by session:week, not request id. It emits nested orig/req and approved/completed statuses, not flat originalTime/newTime or replacement status. The approved archived student-class-replacements proposal/design define this contract. Original test creates two own conflicted occurrences and one other-cohort occurrence, so retain that scenario and privacy check.
+
+Do not change production to restore a retired mock shape, delete/skip the test, use a golden payload copied from the component, or broaden to other failing tests. Freeze only this test's date so approved stays future; assert independently derived source/request geometry and explicit identities. Current pending rows expose a PROPOSED req with pending status (not a confirmed slot); previous conversational example saying the pending slot was blank described the retired contract.
+
+Scope: one test method and necessary test-only documentation. Tests select literal DB_DATABASE=class_replacement_testing and verify actual PHP current_database before RefreshDatabase runs; no browser fixture concurrency, demo work, manual reseed/reset, commit or push. Formal cancelled-slot-reuse whole-feature Verify is a separate parked task.

@@ -1,0 +1,19 @@
+name: student-history-test-contract
+created: 2026-11-14
+status: verified
+verification_scope: "Four explicitly approved test-method repairs across three files; full backend suite green. Cancelled-slot-reuse whole-feature Verify remains separate."
+implementation_review: scoped_pass
+whole_file_result: "8/8 pass, 97 assertions"
+full_suite_result: "721/721 passed, 6090 assertions; /tmp/crs-history-test-fix/full-suite-r2.txt"
+commit_approved: true
+commit_approval: "User answered yes to committing these test fixes after the 721/721 pass. Scoped test files and this change's verification notes only; no push or archive authority."
+archive_ready: true
+proposal_frozen: true
+proposal_review: passed
+batch: tasks
+tasks_frozen: true
+tasks_review: passed
+design_frozen: true
+design_review: passed
+implementation_approved: true
+approval: "User: ok go. Aim for speed without sacrificing quality; 60-minute investigation/fix timebox. User subsequently approved the second test date-setup fix, then the two remaining named date fixtures from the 721-test full run. Later user approval grants the scoped test-fix commit. No push, demo write or broader product fix authority."
