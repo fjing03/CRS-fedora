@@ -1,3 +1,33 @@
+## 2026-11-14 (night) — the last page on the old summary cards joins the other six
+
+Reported: these cards still showed the old variant — one dense paragraph on the back
+and no ⓘ — while every other page has had flip cards since `my-timetable-ui-cleanup`.
+Now they match: **three short bullets** on the back, the full sentence in the ⓘ dialog,
+and the structured term list the `summary-card-detail-copy` lane designed.
+
+| card | three bullets | ⓘ says |
+|---|---|---|
+| Classes Awaiting Arrangement | Cancelled / holiday · No request yet · **Needs action** | what "cannot run as timetabled" means, and where to send the request |
+| Hours Awaiting Arrangement | Teaching time · **30 min** / slot · Arranged excluded | the sum-of-lengths formula, and that breaks/free slots never count |
+| Pending | Sent to the PL · No decision yet · **+N** on totals | the class is not replaced until approved, and why pending shows as **+N** |
+| Approved | PL approved · Attend the slot · **Blue** block | the requested time is now your class; the block turns blue |
+| Completed | Already took place · Hidden by switch · Turn it off to see | the Exclude COMPLETED switch is what hides them |
+
+Copy detail: three bullets wrap at 390px inside a two-column sheet, so they were
+shortened until every back renders **3 lines with 0px spill** at 320, 390 and 768
+("Cancelled or holiday" → "Cancelled / holiday", "Arranged ones excluded" → "Arranged
+excluded", "**Hidden** by the switch" → "Hidden by switch"). The full sentences live in
+the ⓘ dialog, where there is room.
+
+Ids and colours are unchanged (`sumNone`, `sumHours`, `sumPending`, `sumApproved`,
+`sumCompleted`, same `card-*` classes), so the page's own paint code was not touched.
+The phone sheet keeps two columns and its 96px flip cards; `SummarySheet.unrelocate()`
+now strips the tap state from **every** card (it used to skip flip cards), so a card
+left flipped in the sheet comes back inline in its hover state.
+
+Supersedes R5 of the archived `summary-cards-button` lane, which described this page as
+the plain variant; its spec was updated rather than deleted.
+
 ## 2026-11-14 (late) — the cards move behind one Summary button on a phone
 
 At ≤768px this page's summary cards leave the flow and open from a bare bar-chart icon beside the help

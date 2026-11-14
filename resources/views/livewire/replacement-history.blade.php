@@ -150,17 +150,75 @@
         <!-- ─── Empty state (shown by JS when the filtered list is empty; above the summary) ─── -->
         @include('partials.ui-empty-state', ['title' => 'No conflicted classes to show', 'text' => 'Nothing matches this view for '.($cohortLabel ?? 'your cohort').'. Try another week, or switch Exclude COMPLETED Status off.']) {{-- BRIDGE PATCH: cohort is per-user data --}}
 
-        <!-- ─── Summary strip: Awaiting Arrangement / Pending / Approved / Completed / Class Hours Affected — hidden when the view is empty ─── -->
-        @include('partials.ui-summary-bar', [ 'cards' => [
-            /* 2026-11-09 (user): the hours card sits SECOND, right of Awaiting
-               Arrangement — the two numbers a student reads first are "how many
-               classes still need arranging" and "how much teaching that is". */
-            ['class' => 'card-pending', 'valueId' => 'sumNone', 'label' => 'Classes Awaiting Arrangement', 'description' => 'Classes still <span class="warn-keyword">waiting for a replacement</span> — cancelled, on a holiday, and with no request sent yet.'],
-            ['class' => 'card-hours', 'valueId' => 'sumHours', 'label' => 'Hours Awaiting Arrangement', 'description' => 'Hours of those classes. Classes already arranged <span class="info-keyword">are not counted</span>.'],
-            ['class' => 'card-pending', 'valueId' => 'sumPending', 'label' => 'Pending', 'description' => 'Your requests <span class="warn-keyword">waiting for PL approval</span>.'],
-            ['class' => 'card-replacement', 'valueId' => 'sumApproved', 'label' => 'Approved', 'description' => 'Replacements the PL <span class="info-keyword">approved</span> — attend the requested slot.'],
-            ['class' => 'card-hours', 'valueId' => 'sumCompleted', 'label' => 'Completed', 'description' => 'Replacements that <span class="info-keyword">already took place</span>. Switch Exclude COMPLETED Status off to see them.'],
-        ] ])
+        <!-- ─── Summary strip: Awaiting Arrangement / Class Hours / Pending / Approved / Completed ───
+             Hidden when the view is empty (JS calls syncSummarySection).
+             2026-11-14 (user): this page was the last one still on the PLAIN card
+             variant — one paragraph on the back and no ⓘ — while the six other
+             card pages had been flip cards since `my-timetable-ui-cleanup`. It now
+             matches them: three short bullets on the back (`bullets`), the full
+             sentence in the ⓘ dialog (`explanation`), and the structured term list
+             the `summary-card-detail-copy` lane designed (`detail`). The ids are
+             untouched, so the page's own paint code keeps working as it did. -->
+        @include('partials.ui-summary-bar', [
+            'flipCards' => true,
+            'cards' => [
+                /* 2026-11-09 (user): the hours card sits SECOND, right of Awaiting
+                   Arrangement — the two numbers a student reads first are "how many
+                   classes still need arranging" and "how much teaching that is". */
+                ['class' => 'card-pending', 'valueId' => 'sumNone', 'label' => 'Classes Awaiting Arrangement',
+                    'bullets' => ['Cancelled / holiday', 'No request yet', '<strong class="summary-excluded">Needs action</strong>'],
+                    'explanation' => 'Classes that <span class="warn-keyword">cannot run as timetabled</span> — cancelled or on a public holiday — and with no replacement request sent yet.',
+                    'detail' => [
+                        'items' => [
+                            ['Cancelled or holiday', '<span>The class cannot run as timetabled.</span>'],
+                            ['No request yet', '<span>Nothing is waiting for a PL decision.</span>'],
+                            ['Needs action', '<span>Send a request from <strong>My Timetable</strong>.</span>'],
+                        ],
+                        'foot' => 'Counts the rows your week selector and the Exclude COMPLETED switch leave on the page.',
+                    ]],
+                ['class' => 'card-hours', 'valueId' => 'sumHours', 'label' => 'Hours Awaiting Arrangement',
+                    'bullets' => ['Teaching time', '<strong>30 min</strong> / slot', 'Arranged excluded'],
+                    'explanation' => 'Hours of those classes for your cohort. Classes that <span class="info-keyword">already have a replacement</span> are not counted.',
+                    'detail' => [
+                        'formula' => [['v' => 'sum of class lengths'], ['op' => '='], ['v' => 'time to arrange']],
+                        'items' => [
+                            ['Adds up duration', '<span>Every unarranged class adds its own<br>length, not one fixed block.</span>'],
+                            ['Only class hours', '<span>Breaks and free slots are never counted.</span>'],
+                        ],
+                        'foot' => 'Same period and filters as Classes Awaiting Arrangement.',
+                    ]],
+                ['class' => 'card-pending', 'valueId' => 'sumPending', 'label' => 'Pending',
+                    'bullets' => ['Sent to the PL', 'No decision yet', '<strong class="summary-pending">+N</strong> on totals'],
+                    'explanation' => 'Your requests <span class="warn-keyword">waiting for the PL to decide</span> — no answer yet.',
+                    'detail' => [
+                        'items' => [
+                            ['Sent to the PL', '<span>The request waits for a programme leader.</span>'],
+                            ['No decision yet', '<span>The class is not replaced until it is approved.</span>'],
+                            ['Also in <strong>+N</strong>', '<span>Pending requests appear as a small <strong>+N</strong><br>on the number cards.</span>'],
+                        ],
+                    ]],
+                ['class' => 'card-replacement', 'valueId' => 'sumApproved', 'label' => 'Approved',
+                    'bullets' => ['PL approved', 'Attend the slot', '<strong class="summary-replacement">Blue</strong> block'],
+                    'explanation' => 'Replacements the PL <span class="info-keyword">approved</span> — attend the requested slot instead of the original time.',
+                    'detail' => [
+                        'items' => [
+                            ['PL approved', '<span>A programme leader accepted the request.</span>'],
+                            ['Attend the slot', '<span>The requested time is now your class.</span>'],
+                            ['Shown in blue', '<span>The replacement block turns blue on your timetable.</span>'],
+                        ],
+                    ]],
+                ['class' => 'card-hours', 'valueId' => 'sumCompleted', 'label' => 'Completed',
+                    'bullets' => ['Already took place', 'Hidden by switch', 'Turn it off to see'],
+                    'explanation' => 'Replacements that <span class="info-keyword">already took place</span>. The Exclude COMPLETED switch hides them — turn it off to see them again.',
+                    'detail' => [
+                        'items' => [
+                            ['Already took place', '<span>Its replacement date has passed.</span>'],
+                            ['Hidden by default', '<span>The <strong>Exclude COMPLETED Status</strong> switch<br>removes it from the list.</span>'],
+                            ['Turn it off to see', '<span>The switch sits in the filter bar above the list.</span>'],
+                        ],
+                    ]],
+            ]
+        ])
 
         <!-- ─── Class detail modal (shared shell for DetailModal.render) ─── -->
         @section('modal-footer')

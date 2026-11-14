@@ -9,9 +9,14 @@ import { test, expect, type Page } from '@playwright/test';
  * bar-chart icon beside the help "?". At ≥769px nothing moves, nothing shows and
  * the button is `display:none`.
  *
- * Two identities: staff 5770 (flip-card pages) and a student (the plain variant on
- * `student-class-replacements`). Both states are produced by `tests/auth.setup.ts`
- * and the student login below; the Fortify limiter is 5/min per identity.
+ * Two identities: staff 5770 (flip-card pages) and a student (Class Replacements).
+ * Both states are produced by `tests/auth.setup.ts` and the student login below; the
+ * Fortify limiter is 5/min per identity.
+ *
+ * 2026-11-14 (user): `student-class-replacements` was the last page on the PLAIN card
+ * variant — one paragraph on the back, no ⓘ. It is a flip-card page now (three bullets
+ * + the explanation dialog), so the assertions below that used to describe the plain
+ * variant describe the flip one. R5 of the archived lane is superseded by that change.
  */
 
 const BASE = process.env.CRS_BASE || 'http://127.0.0.1:8030';
@@ -283,7 +288,7 @@ test.describe('T11b — closing, layering, the plain variant and print', () => {
     await ctx.close();
   });
 
-  test('plain variant: two columns, tap-to-flip, reachable cards, and a clean resize back', async ({ browser }) => {
+  test('Class Replacements: three-bullet flip cards with the ⓘ, and a clean resize back', async ({ browser }) => {
     const ctx = await browser.newContext({ viewport: { width: 390, height: 900 } });
     const page = await ctx.newPage();
     await loginStudent(page);
@@ -293,10 +298,10 @@ test.describe('T11b — closing, layering, the plain variant and print', () => {
     await page.locator('#summaryButton').click();
     await expect(page.locator('#summarySheet')).toBeVisible();
 
-    /* two columns, not today's three cramped ones */
+    /* two columns in the phone sheet (the flip pages' own rule), three in the tablet band */
     const cols = await page.evaluate(() =>
       getComputedStyle(document.getElementById('summaryBar')!).gridTemplateColumns.split(' ').length);
-    expect(cols, 'the plain variant gets the flip pages’ two-column phone sheet').toBe(2);
+    expect(cols, 'the sheet uses the flip pages’ two-column phone grid').toBe(2);
 
     /* the frozen R5 letter: the tablet band (769-1024) must keep TODAY's three
        columns — the block this lane must not disturb */
@@ -311,11 +316,16 @@ test.describe('T11b — closing, layering, the plain variant and print', () => {
     await page.locator('#summaryButton').click();
     await expect(page.locator('#summarySheet')).toBeVisible();
 
-    /* the plain cards are focusable and announce themselves inside the sheet */
+    /* 2026-11-14 (user): the page must carry the house card standard — three
+       bullets on the back and an ⓘ per card — not the one-paragraph plain variant */
     const card = page.locator('#summarySheetBody .summary-card').first();
+    await expect(page.locator('#summarySheetBody .summary-points li')).toHaveCount(15); // 5 cards x 3 lines
+    await expect(page.locator('#summarySheetBody [data-summary-info]')).toHaveCount(5);
     await expect(card).toHaveAttribute('role', 'group');
     await expect(card).toHaveAttribute('tabindex', '0');
-    expect((await card.getAttribute('aria-label')) || '').toMatch(/tap to show what it counts/i);
+    expect((await card.getAttribute('aria-label')) || '').toMatch(/flip/i);
+    const cardHeight = (await card.boundingBox())!.height;
+    expect(Math.round(cardHeight), 'the flip card is 96px, not the 148px plain card').toBe(96);
 
     /* tap flips it, and the back has room — nothing clips */
     await card.click();
@@ -344,7 +354,7 @@ test.describe('T11b — closing, layering, the plain variant and print', () => {
     await ctx.close();
   });
 
-  test('no card back overflows at 320, 390 and 768 — both variants', async ({ browser }) => {
+  test('no card back overflows at 320, 390 and 768', async ({ browser }) => {
     for (const [path, state] of [['/my-timetable-ui', '.auth/staff-5770.json'], ['/student-class-replacements', null]] as const) {
       for (const width of [320, 390, 768]) {
         const ctx = await browser.newContext({ viewport: { width, height: 900 }, storageState: state || undefined });

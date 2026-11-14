@@ -2441,9 +2441,12 @@ var SummarySheet = {
             marked[i].removeAttribute('aria-label');
             marked[i].removeAttribute('data-sheet-a11y');
         }
+        /* The tap state goes for EVERY card, not only the plain variant: a card
+           left flipped in the sheet must come back inline in its hover state.
+           (Class Replacements became a flip-card page on 2026-11-14, so the
+           "plain cards only" strip would have left it pinned.) */
         var cards = section.querySelectorAll('.summary-card');
         for (var j = 0; j < cards.length; j++) {
-            if (cards[j].hasAttribute('data-summary')) continue;
             cards[j].classList.remove('is-flipped');
             cards[j].classList.remove('is-unflipped');
         }
