@@ -545,3 +545,27 @@ they are **not this lane's**:
 A/B restore). The two `arrangement-mobile` failures are pre-existing and data-driven,
 proven by reverting this lane's two regions and seeing them fail the same way.**
 The lane did not weaken, skip or edit any other spec to get here.
+
+## Third pass — 2026-11-14 (user: "yes bring in.")
+
+The user approved bringing the enclosing uncommitted work in so the folding bars could ship as
+working code.
+
+**`bd4a8e8 feat: fold the arrangement venue sheet's category headers`** — 5 files, +769/−201:
+
+| File | What |
+|---|---|
+| `resources/views/livewire/replacement-arrangement.blade.php` | the 2026-11-12 searchable sheet (`renderArrangementVenuePicker`, its CSS) **plus** this lane's folding bars **plus** the 2026-11-13 Selection Summary arrow (interleaved in the same regions — not separable) |
+| `resources/views/partials/ui-arrangement-mobile.blade.php` | the `#arrangementMobileVenue` dialog markup (+15) |
+| `tests/venue-dropdown-responsive.spec.ts` | new file: the sheet's three existing tests **plus** this lane's new one |
+| `tests/arrangement-mobile.spec.ts` | the T22 helper retargeted from the four-column panel to the sheet |
+| `page-changelogs/replacement-arrangement-changelog.md` | the 2026-11-12/13 block that documents the sheet (+35) |
+
+Deliberately **not** included: `resources/views/livewire/venue-timetable.blade.php` (the venue page's
+own picker collapse — a different page and a different change), `tests/venue-timetable.spec.ts` and
+`tests/top-zone-round2.spec.ts` (guide-icon and Selection Summary test copy — different features of
+the same session). Those stay uncommitted.
+
+After the commit the lane's own suite was re-run: **7/7**, and the database counts were compared
+again — **identical**.
+

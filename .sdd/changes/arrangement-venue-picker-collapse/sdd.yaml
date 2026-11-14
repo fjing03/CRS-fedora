@@ -17,11 +17,11 @@ implementation_approved: true
 implementation_approval: "yes. proceed."
 implementation_approved_at: 2026-11-14
 applied_at: 2026-11-14
-applied_commit: "none — uncommitted, test file untracked, awaiting the user"
+applied_commit: "bd4a8e8 (code + spec + changelog block); records in ef1e537 + e42146e"
 implementation_blocked_by: ""
 open_items:
   - "tests/arrangement-mobile.spec.ts not run: it requires a destructive migrate:fresh --seed on class_replacement_testing, which now holds the user's restored manual data"
-  - "tests/venue-dropdown-responsive.spec.ts is untracked (another session's file); this lane's test lives inside it"
+  - "resolved: the enclosing searchable sheet, its dialog markup and venue-dropdown-responsive.spec.ts were committed with this lane (bd4a8e8) on the user's instruction"
   - "the live 5-minute cron auto-rejected requests 35 and 39 in the testing DB at 19:15 while this lane applied; left unreverted"
 gate_cleared_at: 2026-11-14
 gate_cleared_note: "cancelled-slot-reuse B02 and B03 are both ticked and its Part B is committed (74ab29b, b1f13fd); T1 may start once the user approves implementation"
