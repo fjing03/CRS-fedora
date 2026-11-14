@@ -1454,6 +1454,44 @@ html.dark .filter-select {
     color: var(--color-on-surface-variant);
 }
 
+/* ── 2026-11-14 (user, "split each detail-facts, one row each") ───────────
+   The strip used to be a wrapping row of label+value pairs, so the values
+   started at a different x on every line and the long ones (Staff) pushed
+   their neighbours around. It is now ONE FACT PER ROW with a fixed label
+   column, so all values share a left edge and the strip reads like the
+   detail rows under it (which use `.detail-label`). `--full` is kept as a
+   no-op so the markup that carries it does not have to change. */
+.detail-facts,
+.modal--detail .detail-facts {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;   /* the pages ship `center` — a column of centred rows
+                               works only while every row is the same width */
+    gap: 5px;
+}
+.detail-facts .df-item,
+.detail-facts .df-item--full {
+    display: flex;
+    flex-basis: auto;
+    width: 100%;
+    min-width: 0;
+    align-items: baseline;
+    flex-wrap: wrap;        /* a long value (the proposer's email) drops to its
+                               own line instead of pushing the row off the box */
+    row-gap: 2px;
+    column-gap: 10px;
+}
+.detail-facts .df-item > * { min-width: 0; }
+/* the proposer's email chip is the one value long enough to drop to a second
+   line on a phone — indent it under the value column instead of the label */
+@media (max-width: 520px) {
+    .detail-facts .lecturer-cell-email { margin-left: 122px; }
+}
+.detail-facts .df-label {
+    flex: 0 0 112px;
+    line-height: 1.35;
+}
+
 /* ───── Cell Class Block (multi-line cell) ───── */
 .cell-class-block {
     line-height: 1.55;
@@ -2556,6 +2594,87 @@ body.summary-sheet-open #summaryExplainModal {
 /* Status badge pinned top-right of the identity strip (theme owns colors) */
 .modal--detail .modal-status-badge {
     margin-top: 2px;
+}
+
+/* ── 2026-11-14 (mobile-modal-top3): ONE primary action per details pop-up ──
+   The ruling, repeated so nobody re-derives it: a details pop-up keeps exactly
+   one filled action; a second action is the smaller outline button ABOVE it.
+   Before this block the phone footer stacked two equal full-width buttons and
+   spent 120px of a 589px sheet on them.
+
+   Scoped to `.modal--detail` on purpose — the confirm dialogs (Cancel / Confirm
+   Reject / Approve notes) keep their own Cancel-left, Confirm-right pattern.
+
+   Nothing about pinning lives here: the 2026-11-14 R6 block further down makes
+   `.modal` a flex column and only `.modal-body` scrolls, so the header and the
+   footer are already fixed. Do not add `position: sticky` on top of that. */
+.modal--detail .modal-footer .btn-outline.is-primary {
+    background: var(--color-primary);
+    border-color: var(--color-primary);
+    color: var(--color-on-primary);
+    font-weight: 600;
+}
+.modal--detail .modal-footer .btn-outline.is-primary:hover {
+    background: var(--color-primary);
+    filter: brightness(1.08);
+}
+/* the action sits on the right rail even when it is the only button left */
+.modal--detail .modal-footer .btn-action { margin-left: auto; }
+/* `.btn-approve` ships as a green OUTLINE; as the footer's primary it fills.
+   `.modal-footer .btn-approve` in the 2026-11-10 size block is the reason the
+   selector needs three classes to win. */
+.modal--detail .modal-footer .btn-approve.is-primary {
+    background: var(--color-success);
+    border-color: var(--color-success);
+    color: var(--color-on-success);
+    font-weight: 600;
+}
+.modal--detail .modal-footer .btn-approve.is-primary:hover {
+    background: var(--color-success);
+    filter: brightness(1.08);
+}
+@media (max-width: 520px) {
+    .modal--detail .modal-footer { gap: 8px; }
+    /* the secondary: outline, never full width, never the bottom-most target.
+       Both families are covered because the second action is Close on one page
+       (`.btn-outline`) and Cancel/Reject on the others (`.btn-danger`). */
+    .modal--detail .modal-footer .btn-danger,
+    .modal--detail .modal-footer .btn-outline:not(.is-primary) {
+        order: 1;
+        align-self: center;
+        width: auto;
+        min-height: 40px;
+    }
+    /* the rails are block by default, so `align-items` alone would not centre */
+    .modal--detail .modal-footer-left,
+    .modal--detail .modal-footer-right {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        width: 100%;
+    }
+    /* the primary owns the full width and the thumb — whichever family it is */
+    .modal--detail .modal-footer .is-primary,
+    .modal--detail .modal-footer .btn-action,
+    .modal--detail .modal-footer .btn-approve { order: 2; width: 100%; }
+}
+
+/* ── 2026-11-14 (mobile-modal-top3): the Status fact in the strip ──
+   Short tab labels gave up their "(Approved)", so the strip carries the value —
+   and it carries it as THE TABLE'S BADGE (`.badge.status-*`), not as coloured
+   text: the user's ruling was that one status must not have two designs. The
+   `.df-status` plain-text skin that stood here first is gone; do not bring it
+   back, the strip is not a second visual language.
+   The badge's own padding makes that row ~4px taller than the rest — that is
+   the table's badge, not a strip-specific size.
+
+   `.badge-reason` is `surface-variant` on `surface-variant` — invisible inside
+   the strip (the user saw "Class Cancelled" as plain grey text beside a green
+   "Approved" pill). On the strip it takes the modal surface instead, so the
+   reason reads as a badge too; tables and cards keep their own skin. */
+.detail-facts .badge-reason {
+    background: var(--color-surface);
+    color: var(--color-on-surface);
 }
 
 /* ── The whole-day block (SDD cancel-whole-day, 2026-11-11) ──────────────
