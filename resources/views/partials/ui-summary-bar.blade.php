@@ -29,6 +29,11 @@
                 $desc = $card['description'] ?? $descriptions[$card['class']] ?? $card['label'];
                 $explanation = $card['explanation'] ?? $desc;
                 $bullets = $card['bullets'] ?? null;
+                /* SD-04: optional structured explanation. Additive — a card
+                   without `detail` keeps today's single `explanation`
+                   paragraph. `formula` and `foot` are optional; `items` is
+                   what makes the two-line term/meaning list. */
+                $detail = $card['detail'] ?? null;
             @endphp
             @if ($flipCards)
                 <div class="summary-card {{ $card['class'] }}"
@@ -53,7 +58,31 @@
                                     {!! $desc !!}
                                 @endif
                             </div>
-                            <div class="summary-explanation-source" hidden>{!! $explanation !!}</div>
+                            {{-- SD-04: structured detail wins; the paragraph is
+                                 the fallback for any card without one. --}}
+                            <div class="summary-explanation-source" hidden>@if(is_array($detail))
+{{-- formula strip: relationship only, never a live number (SD-05) --}}
+@if(!empty($detail['formula']))
+<div class="explain-formula">
+@foreach($detail['formula'] as $chip)
+@if(!empty($chip['op']))
+<span class="explain-plus">{{ $chip['op'] }}</span>
+@else
+<span class="explain-chip{{ !empty($chip['c']) ? ' ' . $chip['c'] : '' }}">{{ $chip['v'] ?? '' }}</span>
+@endif
+@endforeach
+</div>
+@endif
+{{-- term <br> meaning; the <span> is what makes the meaning muted --}}
+@if(!empty($detail['items']))
+<ul class="explain-list">
+@foreach($detail['items'] as $item)
+<li>{!! $item[0] ?? '' !!}<br><span>{!! $item[1] ?? '' !!}</span></li>
+@endforeach
+</ul>
+@endif
+@if(!empty($detail['foot']))<p class="explain-foot">{!! $detail['foot'] !!}</p>@endif
+@else{!! $explanation !!}@endif</div>
                             <button type="button" class="summary-info"
                                     data-summary-info="{{ $i }}"
                                     aria-haspopup="dialog"

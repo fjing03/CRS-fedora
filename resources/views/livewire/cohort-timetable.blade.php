@@ -143,19 +143,59 @@
         'cards' => [
             ['class' => 'card-total', 'valueId' => 'sumTotal', 'label' => 'Total Classes',
                 'bullets' => ['<strong class="summary-normal">Normal</strong> + <strong class="summary-replacement">blue</strong>', '<strong class="summary-pending">+N</strong> = pending', 'No <strong class="summary-excluded">red</strong> blocks'],
-                'explanation' => 'All classes this cohort has this week: <span class="info-keyword">normal + replacement + pending</span>. Cancelled classes are not counted. The small <strong>+N</strong> is the pending part.'],
+                'explanation' => 'All classes this cohort has this week: <span class="info-keyword">normal + replacement + pending</span>. Cancelled classes are not counted. The small <strong>+N</strong> is the pending part.',
+                'detail' => [
+                    'formula' => [['v' => 'normal'], ['op' => '+'], ['v' => 'replacement', 'c' => 'is-blue'], ['op' => '+'], ['v' => 'pending', 'c' => 'is-pending']],
+                    'items' => [
+                        ['Normal', '<span>Class runs as scheduled.</span>'],
+                        ['Replacement', '<span>A replacement lecturer teaches it.</span>'],
+                        ['Pending', '<span>Waiting for a PL decision.<br>Counted in the small <strong>+N</strong>.</span>'],
+                        ['Cancelled', '<span>Not counted in this card.</span>'],
+                    ],
+                ]],
             ['class' => 'card-hours', 'valueId' => 'sumHours', 'label' => 'Teaching Hours',
                 'bullets' => ['Teaching time', '<strong>30 min</strong> / slot', '<strong class="summary-pending">+N</strong> = pending'],
-                'explanation' => 'Hours of normal + replacement + pending classes for this cohort this week (each slot = <strong>30 minutes</strong>). Cancelled classes are not counted. The small <strong>+N</strong> is the pending part.'],
+                'explanation' => 'Hours of normal + replacement + pending classes for this cohort this week (each slot = <strong>30 minutes</strong>). Cancelled classes are not counted. The small <strong>+N</strong> is the pending part.',
+                'detail' => [
+                    'formula' => [['v' => 'slots × 30 min'], ['op' => '='], ['v' => 'teaching time']],
+                    'items' => [
+                        ['Measured in slots', '<span>Each timetable slot is <strong>30 minutes</strong>.<br>Two slots make one hour.</span>'],
+                        ['Pending', '<span>Counted in the small <strong>+N</strong> only.</span>'],
+                        ['Cancelled', '<span>Excluded — no teaching happens.</span>'],
+                    ],
+                ]],
             ['class' => 'card-replacement', 'valueId' => 'sumMyClasses', 'label' => 'My Teaching Classes',
                 'bullets' => ['Classes you teach', 'Counted per class', '<strong class="summary-pending">+N</strong> = pending'],
-                'explanation' => 'Classes <span class="info-keyword">you teach</span> this week: normal + replacement + pending, each class counted on its own (Subject A (T) and Subject A (L) are two). The small <strong>+N</strong> is the pending part.'],
+                'explanation' => 'Classes <span class="info-keyword">you teach</span> this week: normal + replacement + pending, each class counted on its own (Subject A (T) and Subject A (L) are two). The small <strong>+N</strong> is the pending part.',
+                'detail' => [
+                    'items' => [
+                        ['Classes you teach', '<span>Only the classes with you as lecturer.</span>'],
+                        ['Counted per class', '<span>A two-hour class counts once.</span>'],
+                        ['Pending', '<span>Added in the small <strong>+N</strong> only.</span>'],
+                    ],
+                ]],
             ['class' => 'card-hours', 'valueId' => 'sumMyHours', 'label' => 'My Teaching Hours',
                 'bullets' => ['Your teaching', '<strong>30 min</strong> / slot', '<strong class="summary-pending">+N</strong> = pending'],
-                'explanation' => 'Hours of the classes <span class="info-keyword">you teach</span> this week: normal + replacement + pending (each slot = <strong>30 minutes</strong>). The small <strong>+N</strong> is the pending part.'],
+                'explanation' => 'Hours of the classes <span class="info-keyword">you teach</span> this week: normal + replacement + pending (each slot = <strong>30 minutes</strong>). The small <strong>+N</strong> is the pending part.',
+                'detail' => [
+                    'formula' => [['v' => 'slots × 30 min'], ['op' => '='], ['v' => 'your teaching']],
+                    'items' => [
+                        ['Your teaching only', '<span>Other lecturers’ classes are excluded.</span>'],
+                        ['Each slot is 30 min', '<span>Two slots make one hour.</span>'],
+                        ['Pending', '<span>Added in the small <strong>+N</strong> only.</span>'],
+                    ],
+                ]],
             ['class' => 'card-conflict', 'valueId' => 'sumConflict', 'label' => 'Conflicts',
                 'bullets' => ['Cancelled/clash', 'Or a holiday', '<strong class="summary-excluded">Needs make-up</strong>'],
-                'explanation' => 'Classes that cannot run as scheduled — a <span class="warn-keyword">clash</span>, a cancellation, or a <strong>public holiday</strong>.'],
+                'explanation' => 'Classes that cannot run as scheduled — a <span class="warn-keyword">clash</span>, a cancellation, or a <strong>public holiday</strong>.',
+                'detail' => [
+                    'items' => [
+                        ['Clash', '<span>Another class already booked in the slot.</span>'],
+                        ['Cancelled', '<span>The class was called off.</span>'],
+                        ['Public holiday', '<span>The whole day is closed.</span>'],
+                    ],
+                    'foot' => 'Each conflict needs a make-up class to be arranged.',
+                ]],
         ]
     ])
 

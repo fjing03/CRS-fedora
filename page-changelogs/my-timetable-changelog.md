@@ -1,3 +1,17 @@
+## 2026-11-14 — summary card back spacing and structured explanation
+
+The flip cards shipped on 2026-11-13 (see that entry) were too tight to read: the back text sat 7px from the top and left 48px of dead space below, with lines 1.8px apart. The 44px info button in the bottom-right corner was the cause. It now sits **top-right**, the block is vertically centred, bullets carry a 4px gap and the described text uses `line-height: 1.45`. Every line reserves 38px so it can never run under the button; 39px was the last value that did not re-wrap a bullet.
+
+Below 390px the summary bar drops to **one column**. A 178px card with a 110px text column cannot hold three lines, so the rule was required rather than cosmetic. At 390px and above the layout is unchanged.
+
+The explanation popup is no longer one dense paragraph. It now opens as an optional **formula strip**, then one line per term with the meaning muted underneath, then an optional footnote. The strip states the *relationship* between terms and never a live number, because every front value is written at runtime by the page's own summary code — a printed number would be wrong on any other week. Total Classes deliberately does **not** claim `= total`: conflict blocks are counted in that card's number but appear in none of its parts, so the sum would be false on any week with a red block.
+
+Four bullets were shortened so each card stays at three lines on a phone, with the full wording kept in the popup: `Replacement confirmed` → `Confirmed` (My Replacements, Request Approval), `Lecturer must re-arrange` → `Arrange again` and `Approved or rejected` → `Approved/rejected` (Request Approval).
+
+Verified on all six flip-card pages with a real browser: **48 page-and-width combinations** (320, 360, 375, 390, 414, 768, 1024, 1360px), every card at **3 lines or fewer**, text never under the button, above/below space matched within 0px, and one column at 320/360/375 stepping to two at 390. All **30 explanation popups** open with a formula or at least two term lines, checked again in dark theme. No page errors. `ThemeCssIntegrityTest` 3/3, `php -l` clean on every touched view, views cached.
+
+No value, calculation, filter, `valueId` or card colour changed. No database, route or dependency change.
+
 ## 2026-11-14 — cancel the actual approved replacement
 
 The shared Cancel Class flow now identifies an opened approved replacement by its request and actual scheduled day, rather than cancelling its original occurrence again. Single and mixed selections share the atomic release path. Success lists and counts come from saved server receipts; a stale selected class refuses the whole decision.

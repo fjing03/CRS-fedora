@@ -296,19 +296,55 @@
     'cards' => [
         ['class' => 'card-total', 'valueId' => 'summaryTotal', 'label' => 'Total Requests',
             'bullets' => ['Matches filters', 'All statuses', 'One list'],
-            'explanation' => 'Requests that match the <span class="info-keyword">filters you have set</span>.'],
+            'explanation' => 'Requests that match the <span class="info-keyword">filters you have set</span>.',
+            'detail' => [
+                'items' => [
+                    ['Matches filters', '<span>Search, status and week narrow the list<br>before this number is taken.</span>'],
+                    ['All statuses', '<span>Pending, approved, rejected,<br>cancelled and completed.</span>'],
+                    ['One list', '<span>Every request from lecturers<br>in your programme.</span>'],
+                ],
+            ]],
         ['class' => 'card-pending', 'valueId' => 'summaryPending', 'label' => 'Pending Requests',
             'bullets' => ['Awaiting you', 'No decision yet', 'Approve or reject'],
-            'explanation' => 'Requests <span class="warn-keyword">waiting for your decision</span> — no approval or rejection yet.'],
+            'explanation' => 'Requests <span class="warn-keyword">waiting for your decision</span> — no approval or rejection yet.',
+            'detail' => [
+                'items' => [
+                    ['Awaiting you', '<span>Only requests you have not decided on.</span>'],
+                    ['No decision yet', '<span>Approve or reject it to clear the card.</span>'],
+                    ['Request age', '<span>Colour shows how long it has waited:<br><span style="color:var(--color-primary)">● 1 day</span> · <span style="color:var(--color-tertiary)">● 2–3 days</span> · <span style="color:var(--color-error)">● 4+ days</span></span>'],
+                ],
+            ]],
         ['class' => 'card-approved', 'valueId' => 'summaryApproved', 'label' => 'Approved Requests',
             'bullets' => ['You approved', 'Confirmed', '<strong class="summary-replacement">Blue</strong> blocks'],
-            'explanation' => 'Requests <span class="info-keyword">you approved</span> — the replacement is confirmed.'],
+            'explanation' => 'Requests <span class="info-keyword">you approved</span> — the replacement is confirmed.',
+            'detail' => [
+                'items' => [
+                    ['You approved', '<span>Your own decision, not another PL’s.</span>'],
+                    ['Replacement confirmed', '<span>The lecturer’s class is now replaced.</span>'],
+                    ['Shown in blue', '<span>The new block is blue on the timetable.</span>'],
+                ],
+            ]],
         ['class' => 'card-rejected', 'valueId' => 'summaryRejected', 'label' => 'Rejected Requests',
             'bullets' => ['You declined', 'Arrange again', 'No slot move'],
-            'explanation' => 'Requests <span class="warn-keyword">you declined</span> — the lecturer must arrange again.'],
+            'explanation' => 'Requests <span class="warn-keyword">you declined</span> — the lecturer must arrange again.',
+            'detail' => [
+                'items' => [
+                    ['You declined', '<span>The request was turned down.</span>'],
+                    ['Lecturer must re-arrange', '<span>It returns to <strong>Classes to Arrange</strong><br>for the lecturer.</span>'],
+                    ['No slot move', '<span>The class stays where it was.</span>'],
+                ],
+            ]],
         ['class' => 'card-total', 'valueId' => 'summaryReviewed', 'label' => 'Total Reviewed',
             'bullets' => ['Already decided', 'Approved/rejected', 'Includes completed'],
-            'explanation' => 'Requests already <span class="info-keyword">decided</span>: approved, rejected or completed.'],
+            'explanation' => 'Requests already <span class="info-keyword">decided</span>: approved, rejected or completed.',
+            'detail' => [
+                'formula' => [['v' => 'approved', 'c' => 'is-blue'], ['op' => '+'], ['v' => 'rejected'], ['op' => '+'], ['v' => 'completed']],
+                'items' => [
+                    ['Already decided', '<span>Approved or rejected, plus completed.</span>'],
+                    ['Completed', '<span>The replacement class has already run.</span>'],
+                    ['Not pending', '<span>Pending requests are never<br>counted in this card.</span>'],
+                ],
+            ]]
     ]
 ])
 

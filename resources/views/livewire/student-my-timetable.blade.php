@@ -42,19 +42,60 @@
         'cards' => [
             ['class' => 'card-total', 'valueId' => 'sumTotal', 'label' => 'Total Classes',
                 'bullets' => ['<strong class="summary-normal">Normal</strong> + <strong class="summary-replacement">blue</strong>', '<strong class="summary-pending">+N</strong> = pending', 'No <strong class="summary-excluded">red</strong> blocks'],
-                'explanation' => '<span class="info-keyword">Normal + replacement + pending</span> classes this week. Cancelled classes are not counted. The small <strong>+N</strong> is the pending part.'],
+                'explanation' => '<span class="info-keyword">Normal + replacement + pending</span> classes this week. Cancelled classes are not counted. The small <strong>+N</strong> is the pending part.',
+                'detail' => [
+                    'formula' => [['v' => 'normal'], ['op' => '+'], ['v' => 'replacement', 'c' => 'is-blue'], ['op' => '+'], ['v' => 'pending', 'c' => 'is-pending']],
+                    'items' => [
+                        ['Normal', '<span>A class that runs as scheduled.</span>'],
+                        ['Replacement', '<span>A different lecturer teaches it.</span>'],
+                        ['Pending', '<span>Waiting for a PL decision.<br>Counted only in the small <strong>+N</strong>.</span>'],
+                        ['Cancelled', '<span>Not counted in this card.</span>'],
+                    ],
+                    'foot' => 'Counts the week selected above.',
+                ]],
             ['class' => 'card-hours', 'valueId' => 'sumHours', 'label' => 'Class Hours',
                 'bullets' => ['Teaching time', '<strong>30 min</strong> / slot', '<strong class="summary-pending">+N</strong> = pending'],
-                'explanation' => 'Hours of your <span class="info-keyword">normal + replacement + pending</span> classes this week (each slot = <strong>30 minutes</strong>). Cancelled classes are not counted. The small <strong>+N</strong> is the pending part.'],
+                'explanation' => 'Hours of your <span class="info-keyword">normal + replacement + pending</span> classes this week (each slot = <strong>30 minutes</strong>). Cancelled classes are not counted. The small <strong>+N</strong> is the pending part.',
+                'detail' => [
+                    'formula' => [['v' => 'slots × 30 min'], ['op' => '='], ['v' => 'class time']],
+                    'items' => [
+                        ['Measured in slots', '<span>Each timetable slot is <strong>30 minutes</strong>.<br>Two slots make one hour.</span>'],
+                        ['Pending', '<span>Counted in the small <strong>+N</strong> only.</span>'],
+                        ['Cancelled', '<span>Excluded — no class happens.</span>'],
+                    ],
+                    'foot' => 'Same week as Total Classes.',
+                ]],
             ['class' => 'card-replacement', 'valueId' => 'sumReplacement', 'label' => 'Replacements',
                 'bullets' => ['New class time', 'PL approved', '<strong class="summary-replacement">Blue</strong> blocks'],
-                'explanation' => 'Classes a <span class="info-keyword">different lecturer</span> teaches for your class this week.'],
+                'explanation' => 'Classes a <span class="info-keyword">different lecturer</span> teaches for your class this week.',
+                'detail' => [
+                    'items' => [
+                        ['New class time', '<span>The replacement moves to a new slot.</span>'],
+                        ['PL approved first', '<span>A PL must approve it.<br>Until then it is Pending, not here.</span>'],
+                        ['Shown in blue', '<span>Blue blocks mark the new class time.</span>'],
+                    ],
+                ]],
             ['class' => 'card-pending', 'valueId' => 'sumPending', 'label' => 'Pending',
                 'bullets' => ['Awaiting PL', 'Not confirmed', '<strong class="summary-pending">+N</strong> on totals'],
-                'explanation' => 'Your classes still <span class="warn-keyword">waiting for a replacement to be approved</span> this week.'],
+                'explanation' => 'Your classes still <span class="warn-keyword">waiting for a replacement to be approved</span> this week.',
+                'detail' => [
+                    'items' => [
+                        ['Awaiting PL', '<span>A replacement is requested, but<br>no programme leader has decided.</span>'],
+                        ['Not confirmed', '<span>The class is not replaced yet.</span>'],
+                        ['Appears as <strong>+N</strong>', '<span>Pending classes are also added to<br>Total Classes and Class Hours.</span>'],
+                    ],
+                ]],
             ['class' => 'card-conflict', 'valueId' => 'sumConflict', 'label' => 'Conflicts',
                 'bullets' => ['Cancelled/clash', 'Or a holiday', '<strong class="summary-excluded">Needs make-up</strong>'],
-                'explanation' => 'Classes that cannot run as scheduled — a <span class="warn-keyword">clash</span>, a cancellation, or a <strong>public holiday</strong>.'],
+                'explanation' => 'Classes that cannot run as scheduled — a <span class="warn-keyword">clash</span>, a cancellation, or a <strong>public holiday</strong>.',
+                'detail' => [
+                    'items' => [
+                        ['Clash', '<span>Another class already booked in the slot.</span>'],
+                        ['Cancelled', '<span>The class was called off.</span>'],
+                        ['Public holiday', '<span>The whole day is closed.</span>'],
+                    ],
+                    'foot' => 'Your lecturer must arrange a make-up class.',
+                ]],
         ]
     ])
 

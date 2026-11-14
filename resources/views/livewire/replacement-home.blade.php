@@ -245,19 +245,55 @@
             'cards' => [
                 ['class' => 'card-conflict', 'valueId' => 'summaryNeeds', 'label' => 'Classes to Arrange',
                     'bullets' => ['Still needs action', 'No request yet', '<strong class="summary-excluded">Needs make-up</strong>'],
-                    'explanation' => 'Your classes that <span class="warn-keyword">still need a replacement arranged</span> and have no request waiting.'],
+                    'explanation' => 'Your classes that <span class="warn-keyword">still need a replacement arranged</span> and have no request waiting.',
+                    'detail' => [
+                        'items' => [
+                            ['Still needs action', '<span>No replacement is arranged yet.</span>'],
+                            ['No request yet', '<span>Nothing is waiting for a PL decision.</span>'],
+                            ['Already requested?', '<span>Then it moves to <strong>Pending Requests</strong>,<br>not this card.</span>'],
+                        ],
+                        'foot' => 'Counts the rows left after your search, status and week filters.',
+                    ]],
                 ['class' => 'card-duration', 'valueId' => 'summaryHours', 'label' => 'Class Hours to Replace',
                     'bullets' => ['Teaching time', '<strong>30 min</strong> / slot', 'Only class hours'],
-                    'explanation' => 'Hours of those classes — the teaching <span class="info-keyword">still waiting to be arranged</span>.'],
+                    'explanation' => 'Hours of those classes — the teaching <span class="info-keyword">still waiting to be arranged</span>.',
+                    'detail' => [
+                        'formula' => [['v' => 'sum of class lengths'], ['op' => '='], ['v' => 'time to replace']],
+                        'items' => [
+                            ['Adds up duration', '<span>Every unarranged class adds its own<br>length, not one fixed block.</span>'],
+                            ['Only class hours', '<span>Breaks, holidays and free slots<br>are never counted.</span>'],
+                        ],
+                    ]],
                 ['class' => 'card-pending', 'valueId' => 'summaryPending', 'label' => 'Pending Requests',
                     'bullets' => ['Awaiting PL', 'Not confirmed', '<strong class="summary-pending">+N</strong> on totals'],
-                    'explanation' => 'Your requests <span class="warn-keyword">waiting for approval</span> — no decision yet.'],
+                    'explanation' => 'Your requests <span class="warn-keyword">waiting for approval</span> — no decision yet.',
+                    'detail' => [
+                        'items' => [
+                            ['Awaiting PL', '<span>The request is sent and waits for<br>a programme leader to decide.</span>'],
+                            ['Not confirmed', '<span>The class is not yet replaced.</span>'],
+                            ['Also in <strong>+N</strong>', '<span>Pending requests are added to<br>the totals as a small <strong>+N</strong>.</span>'],
+                        ],
+                    ]],
                 ['class' => 'card-approved', 'valueId' => 'summaryApproved', 'label' => 'Approved Requests',
                     'bullets' => ['PL approved', 'Confirmed', '<strong class="summary-replacement">Blue</strong> blocks'],
-                    'explanation' => 'Your requests the PL has <span class="info-keyword">approved</span> — the replacement is confirmed.'],
+                    'explanation' => 'Your requests the PL has <span class="info-keyword">approved</span> — the replacement is confirmed.',
+                    'detail' => [
+                        'items' => [
+                            ['PL approved', '<span>A programme leader accepted the request.</span>'],
+                            ['Replacement confirmed', '<span>The new class time is now official.</span>'],
+                            ['Shown in blue', '<span>The replacement block turns blue on the timetable.</span>'],
+                        ],
+                    ]],
                 ['class' => 'card-rejected', 'valueId' => 'summaryRejected', 'label' => 'Rejected Requests',
                     'bullets' => ['PL declined', 'Arrange again', 'Pick another slot'],
-                    'explanation' => 'Your requests the PL <span class="warn-keyword">declined</span> — arrange them again or pick another slot.'],
+                    'explanation' => 'Your requests the PL <span class="warn-keyword">declined</span> — arrange them again or pick another slot.',
+                    'detail' => [
+                        'items' => [
+                            ['PL declined', '<span>The request was not accepted.</span>'],
+                            ['Arrange again', '<span>The class returns to <strong>Classes to Arrange</strong>.</span>'],
+                            ['Pick another slot', '<span>Choose a different free slot next time.</span>'],
+                        ],
+                    ]],
             ]
         ])
 

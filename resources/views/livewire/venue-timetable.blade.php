@@ -195,19 +195,56 @@
         'cards' => [
             ['class' => 'card-total', 'valueId' => 'sumTotal', 'label' => 'Total Slots',
                 'bullets' => ['Every slot shown', '<strong>30 min</strong> each', '<strong class="summary-pending">+N</strong> = pending'],
-                'explanation' => 'Every time slot shown for <span class="info-keyword">this venue</span> this week (30 minutes each). The small <strong>+N</strong> is the part held by pending requests.'],
+                'explanation' => 'Every time slot shown for <span class="info-keyword">this venue</span> this week (30 minutes each). The small <strong>+N</strong> is the part held by pending requests.',
+                'detail' => [
+                    'formula' => [['v' => 'slots × 30 min'], ['op' => '='], ['v' => 'the full week']],
+                    'items' => [
+                        ['Every slot shown', '<span>All slots the venue grid displays,<br>free or taken.</span>'],
+                        ['Each slot is 30 min', '<span>Two slots make one hour.</span>'],
+                        ['Pending', '<span>Added in the small <strong>+N</strong> only.</span>'],
+                    ],
+                ]],
             ['class' => 'card-available', 'valueId' => 'sumAvailable', 'label' => 'Available',
                 'bullets' => ['Free to book', 'No Sunday/holiday', 'Click a green slot'],
-                'explanation' => 'Free slots you can book this week. <span class="warn-keyword">Sundays and public holidays</span> are not counted.'],
+                'explanation' => 'Free slots you can book this week. <span class="warn-keyword">Sundays and public holidays</span> are not counted.',
+                'detail' => [
+                    'items' => [
+                        ['Free to book', '<span>No class, request or holiday in the slot.</span>'],
+                        ['Click a green slot', '<span>Green means it can be booked.</span>'],
+                        ['No Sundays or holidays', '<span>Closed days never count as available.</span>'],
+                    ],
+                ]],
             ['class' => 'card-replacement', 'valueId' => 'sumMyClasses', 'label' => 'My Teaching Classes',
                 'bullets' => ['Classes you teach', 'Counted per class', '<strong class="summary-pending">+N</strong> = pending'],
-                'explanation' => 'Classes <span class="info-keyword">you teach</span> in this venue this week: normal + replacement + pending, each class counted on its own. The small <strong>+N</strong> is the pending part.'],
+                'explanation' => 'Classes <span class="info-keyword">you teach</span> in this venue this week: normal + replacement + pending, each class counted on its own. The small <strong>+N</strong> is the pending part.',
+                'detail' => [
+                    'items' => [
+                        ['Classes you teach', '<span>Only your own classes in this venue.</span>'],
+                        ['Counted per class', '<span>A two-hour class counts once,<br>not twice.</span>'],
+                        ['Pending', '<span>Added in the small <strong>+N</strong> only.</span>'],
+                    ],
+                ]],
             ['class' => 'card-hours', 'valueId' => 'sumMyHours', 'label' => 'My Teaching Hours',
                 'bullets' => ['Your teaching', '<strong>30 min</strong> / slot', '<strong class="summary-pending">+N</strong> = pending'],
-                'explanation' => 'Hours of the classes <span class="info-keyword">you teach</span> in this venue this week (each slot = <strong>30 minutes</strong>). The small <strong>+N</strong> is the pending part.'],
+                'explanation' => 'Hours of the classes <span class="info-keyword">you teach</span> in this venue this week (each slot = <strong>30 minutes</strong>). The small <strong>+N</strong> is the pending part.',
+                'detail' => [
+                    'formula' => [['v' => 'slots × 30 min'], ['op' => '='], ['v' => 'your teaching']],
+                    'items' => [
+                        ['Your teaching only', '<span>Other lecturers’ classes are excluded.</span>'],
+                        ['Each slot is 30 min', '<span>Two slots make one hour.</span>'],
+                        ['Pending', '<span>Added in the small <strong>+N</strong> only.</span>'],
+                    ],
+                ]],
             ['class' => 'card-conflict', 'valueId' => 'sumOccupied', 'label' => 'Occupied',
                 'bullets' => ['Taken by others', 'Normal + pending', '<strong class="summary-pending">+N</strong> = pending'],
-                'explanation' => 'Slots taken by other classes this week: normal + replacement + pending. The small <strong>+N</strong> is the part held by pending requests.'],
+                'explanation' => 'Slots taken by other classes this week: normal + replacement + pending. The small <strong>+N</strong> is the part held by pending requests.',
+                'detail' => [
+                    'items' => [
+                        ['Taken by others', '<span>Booked by classes that are not yours.</span>'],
+                        ['Normal + pending', '<span>Both count as occupied,<br>so the slot cannot be booked.</span>'],
+                        ['Pending', '<span>Shown as the small <strong>+N</strong>.</span>'],
+                    ],
+                ]],
         ]
     ])
 
