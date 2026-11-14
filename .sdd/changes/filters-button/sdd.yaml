@@ -1,0 +1,30 @@
+name: filters-button
+created: 2026-11-14
+status: active
+batch: proposal
+lane_shape: standard
+source_brief: prompts/pi-prompt-filters-button.md
+pages: 3
+proposal_review: failed
+proposal_frozen: false
+review_rounds: 2
+design_review: not-run
+design_frozen: false
+specs_review: not-run
+specs_frozen: false
+tasks_review: not-run
+tasks_frozen: false
+implementation_approved: false
+stopped: 2026-11-14
+stopped_note: "user: stop before SDD apply, carry to 2026-11-15"
+outstanding_blockers:
+  - "All Weeks rename breaks tests/status-tooltips-filter-chips.spec.ts:380, tests/week-filter-preserved.spec.ts:141 and tests/Feature/StudentReplacementHistoryParityTest.php:143 — and reverses the 2026-11-10 'SLOT' wording ruling, which needs to be surfaced as a decision"
+outstanding_small:
+  - "§3 week-field clause: Request Approval rows carry no week key; the original slot is a date"
+  - "§4 student touch points: three, not five"
+open_decisions:
+  - "Student page Reset in the panel head (it has none today). Recommended: yes"
+  - "My Replacements #resultCount below 1500px (M15): keep hidden, retire so the pill shows at every width, or retarget the hide to the pagination count. Recommended: retire"
+  - "All Weeks wording vs the 2026-11-10 'SLOT' ruling — keep the ruling or change it"
+  - "Second week dropdown: out of this lane (recommended, priced in explore §6 / proposal §3)"
+recommended_option: "A — shared frame partial + JS relocate + labels in Blade"
