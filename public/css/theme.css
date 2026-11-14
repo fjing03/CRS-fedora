@@ -1369,6 +1369,16 @@ html.dark .filter-select {
     background: var(--color-surface-variant);
     font-size: 12px;
 }
+/* 2026-11-14 (modal-facts-fit-content): the strip spans the pop-up but must not
+   WIDEN it. Its one-line max-content is ~900px, which forced every details
+   pop-up to its 680 ceiling and left a dead area beside the short rows. width:0
+   removes it from the pop-up's intrinsic size; min-width:100% keeps it edge to
+   edge, and its own flex items wrap inside. Scoped to .modal: the strip is only
+   ever used inside a pop-up. */
+.modal .detail-facts {
+    width: 0;
+    min-width: 100%;
+}
 .df-item {
     display: inline-flex;
     align-items: center;

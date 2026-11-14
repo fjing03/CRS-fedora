@@ -73,18 +73,51 @@ class ModalConsistencyTest extends TestCase
             'the bottom sheet is the <=600 range, and it docks flush',
         );
 
-        /* no page pins a second width any more (the 2026-11-03 split is gone) */
+        /* no page pins a second width on its DETAILS shell any more (the 2026-11-03
+           split is gone). Other pop-ups may still carry a maximum of their own — the
+           Confirm Cancellation shell legitimately does (modal-facts-fit-content) —
+           so the assertion targets the details shells, not the whole file. */
         $home = $this->read('resources/views/livewire/replacement-home.blade.php');
         $req = $this->read('resources/views/livewire/request-approval.blade.php');
-        foreach (['max-width:680px', 'max-width: 680px'] as $pin) {
-            $this->assertStringNotContainsString($pin, $home, 'my-replacements must not re-pin the shared ceiling');
-            $this->assertStringNotContainsString($pin, $req, 'request-approval must not re-pin the shared ceiling');
+        $this->assertMatchesRegularExpression('/id="quickViewModal"[^>]*>\s*<div class="modal">/s', $home,
+            'the Replacement Details shell must carry no page-local width');
+        foreach (['max-width: 680px', 'max-width:680px'] as $pin) {
+            $this->assertStringNotContainsString($pin, $req,
+                'request-approval must not re-pin the shared ceiling');
         }
         $this->assertStringNotContainsString('#modalOverlay .modal { max-width', $req,
             'the ID-specificity pin is the one the fit-content rule cannot outrank');
         foreach (['max-width: 616px', 'max-width:616px'] as $old) {
             $this->assertStringNotContainsString($old, $req, 'a second shell left at 616 would split the one width in two');
         }
+    }
+
+    /**
+     * 2026-11-14 (SDD modal-facts-fit-content, user: "fix. allow wrap"): the grey
+     * facts strip must not WIDEN its pop-up. Its one-line max-content (~900px) used
+     * to push every details pop-up to the 680 ceiling, leaving a dead area beside
+     * the short rows. `width: 0` takes it out of the pop-up's intrinsic size;
+     * `min-width: 100%` keeps it painted edge to edge, wrapping its own items.
+     */
+    public function test_the_facts_strip_does_not_widen_the_pop_up(): void
+    {
+        $css = $this->read('public/css/theme.css');
+        $this->assertMatchesRegularExpression(
+            '/\.modal \.detail-facts \{\s*width: 0;\s*min-width: 100%;\s*\}/s',
+            $css,
+            'the facts strip spans the pop-up without sizing it',
+        );
+
+        /* the other half of the user's ruling: the two approved maxima */
+        $home = $this->read('resources/views/livewire/replacement-home.blade.php');
+        $this->assertStringContainsString('<div class="modal" style="max-width:680px">', $home,
+            'Confirm Cancellation carries the shared 680 ceiling');
+        $this->assertStringNotContainsString('max-width:635px', $home, 'the old 635 maximum is gone');
+
+        /* Select a Session is NOT the 560 shell — it already uses the details class */
+        $intent = $this->read('resources/views/partials/ui-intent-session-modal.blade.php');
+        $this->assertMatchesRegularExpression('/id="intentSessionModal"[^>]*>\s*<div class="modal modal--detail">/s', $intent,
+            'Select a Session already shares the 680 details ceiling');
     }
 
     /**

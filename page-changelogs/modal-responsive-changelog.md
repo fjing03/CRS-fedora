@@ -1,3 +1,28 @@
+## 2026-11-14 — the facts strip stops leaving an empty gap
+
+Details pop-ups still showed a dead strip of empty space beside their short rows.
+The cause was the grey facts box at the top (Staff · Cohorts · Students ·
+Conflict): held on one line, it wants about 900px, so it pushed the pop-up to its
+**680px ceiling** while the rows underneath only needed a few hundred.
+
+The strip now takes the pop-up's width without deciding it. The pop-up sizes to
+its tabs and rows, and the grey box's items wrap onto a second row when they must
+(that is the approved behaviour). Measured on a clone of the real Request Details
+pop-up, same content: **626px → 513px**, with the strip still spanning the box.
+Class and slot details have no strip, so they do not move.
+
+One maximum was raised in the same breath, as approved: **Confirm Cancellation**
+`635` → `680`, matching the shared ceiling. It is still a maximum, so it only
+grows if its own content is wider than 635.
+
+Correction worth recording: **Select a Session was never the 560 pop-up** — it
+already uses the shared details style, so its ceiling is already 680. The `560`
+lives on `#slotWarningOverlay` ("Slot Too Short"), a different pop-up in the same
+file, and it was left untouched.
+
+Checks: `ModalConsistencyTest` **15/15**, 92 assertions (the strip rule, the two
+shells, no re-pinned ceiling). No content, wording, colour or database change.
+
 ## 2026-11-14 — pop-ups size to their content, and the sheet is phones only
 
 Every details pop-up used to be pinned at **680px** whatever it held, and a
