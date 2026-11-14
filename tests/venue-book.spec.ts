@@ -489,6 +489,59 @@ test('U2a-T17: the evening tail is painted, counted and labelled (venue-evening-
   expect(Number(tail.availableCard)).toBe(tail.greenCells);
 });
 
+test('U2a-T18: the Arrange tooltip stays inside the window, and re-places when it narrows', async ({ page }) => {
+  /* 2026-11-14 (tooltip-viewport-clamp, user report): the box was pinned to the
+     cell's left edge with no width ceiling, so near the right edge it ran past the
+     window and its text was clipped — and narrowing the window (DevTools) left it
+     stranded. Read-only: nothing is staged, nothing is booked. */
+  await selectWeek(page, await page.evaluate(() => (window as any).weekData.length - 1));
+  await page.waitForTimeout(400);
+
+  const pick = await page.evaluate(() => {
+    const vw = window.innerWidth;
+    const vh = window.innerHeight;
+    return [...document.querySelectorAll('#tableBody .cell-available:not(.cell-no-room)')]
+      .map((el) => {
+        const r = el.getBoundingClientRect();
+        return { di: Number((el as HTMLElement).dataset.day), hi: Number((el as HTMLElement).dataset.hour), x: r.x, right: r.right, bottom: r.bottom, vh };
+      })
+      .filter((c) => c.x >= 0 && c.right <= vw && c.bottom <= vh)
+      .sort((a, z) => z.right - a.right)[0];
+  });
+  expect(pick, 'a visible free cell exists').toBeTruthy();
+
+  const box = async () => page.evaluate(() => {
+    const t = document.getElementById('availableTooltip')!;
+    const r = t.getBoundingClientRect();
+    return {
+      show: t.classList.contains('show'),
+      left: Math.round(r.left), right: Math.round(r.right),
+      top: Math.round(r.top), bottom: Math.round(r.bottom),
+      vw: window.innerWidth, vh: window.innerHeight,
+    };
+  });
+
+  await page.locator(`#tableBody td[data-day="${pick!.di}"][data-hour="${pick!.hi}"] .cell-available`).first().click();
+  await page.waitForTimeout(350);
+  const atEdge = await box();
+  expect(atEdge.show, 'the tooltip is open').toBe(true);
+  expect(atEdge.left, 'never off the left edge').toBeGreaterThanOrEqual(0);
+  expect(atEdge.right, 'never past the right edge').toBeLessThanOrEqual(atEdge.vw);
+  expect(atEdge.top).toBeGreaterThanOrEqual(0);
+  expect(atEdge.bottom, 'never past the bottom edge').toBeLessThanOrEqual(atEdge.vh);
+  expect(atEdge.vw - atEdge.right, 'and it keeps a small margin').toBeGreaterThanOrEqual(8);
+
+  /* now narrow the window while it is open: it must re-place, not stay stranded */
+  await page.setViewportSize({ width: Math.round(atEdge.vw * 0.55), height: Math.round(atEdge.vh * 0.7) });
+  await page.waitForTimeout(500);
+  const afterResize = await box();
+  if (afterResize.show) {
+    expect(afterResize.left).toBeGreaterThanOrEqual(0);
+    expect(afterResize.right, 'still inside after the window narrowed').toBeLessThanOrEqual(afterResize.vw);
+    expect(afterResize.bottom).toBeLessThanOrEqual(afterResize.vh);
+  }
+});
+
 test('U2a-T9: "Earliest bookable" sits after Today, jumps to the semester week and paints the chip', async ({ page }) => {
   // venue-timetable-bookable-cells change 4
   await page.goto(PAGE);

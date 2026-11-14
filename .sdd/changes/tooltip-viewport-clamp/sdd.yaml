@@ -1,0 +1,16 @@
+name: tooltip-viewport-clamp
+created: 2026-11-14
+status: frozen
+batch: tasks
+planning_complete: true
+proposal_review: passed
+design_review: passed
+specs_review: passed
+tasks_review: passed
+proposal_frozen: true
+design_frozen: true
+specs_frozen: true
+tasks_frozen: true
+implementation_approved: true
+implementation_approved_at: 2026-11-14
+implementation_approved_by: user (reported the three symptoms)

@@ -25,6 +25,12 @@
             z-index: 9999;
             display: none;
             min-width: 250px;
+            /* 2026-11-14 (tooltip-viewport-clamp, user): the box had no ceiling, so a
+               cell near the right edge pushed it past the window and the text was cut
+               off. 340px holds the longest demo sentence in a few lines; the calc keeps
+               it inside a narrow window (the JS clamp then pulls it fully in). */
+            max-width: min(340px, calc(100vw - 24px));
+            box-sizing: border-box;
         }
         .available-tooltip.show {
             display: block;
@@ -671,26 +677,74 @@
                     openIntentSessionModal(time, di, hi);
                 };
 
-                if (ev && ev.target) {
-                    const rect = ev.target.getBoundingClientRect();
-                    tooltip.style.left = rect.left + 'px';
-                    tooltip.style.top = (rect.bottom + 4) + 'px';
-                } else {
-                    tooltip.style.left = '50%';
-                    tooltip.style.top = '50%';
-                    tooltip.style.transform = 'translate(-50%, -50%)';
-                }
-
+                /* 2026-11-14 (tooltip-viewport-clamp, user): the box used to be pinned
+                   to the cell's left edge whatever the window width — near the right
+                   edge it ran off-screen and its text was clipped, and narrowing the
+                   window left it stranded. Every path (click AND the B shortcut) now
+                   goes through ONE placement: measure the box, pull it inside the
+                   window, and open it above the cell when there is no room below. */
+                tooltip._anchorCell = cell || (ev && ev.target) || null;
                 tooltip.classList.add('show');
+                placeAvailableTooltip();
+            }
+
+            /* Place the open tooltip against its anchor cell. Re-run on resize, so a
+               narrowing window can never leave it outside the viewport.
+               Two measured passes: the first fixes the coordinates, the second
+               absorbs the few pixels the text gains once it re-wraps at the new
+               width (otherwise the box could end exactly on the window edge). */
+            function placeAvailableTooltip() {
+                const t = document.getElementById('availableTooltip');
+                const cell = t._anchorCell;
+                if (!cell || !cell.isConnected) {
+                    hideAvailableTooltip();
+                    return;
+                }
+                const rect = cell.getBoundingClientRect();
+                /* A narrow window can push the grid sideways and take the cell out of
+                   sight. The box still stays READABLE (the clamp below pins it inside
+                   the window) rather than vanishing under the user's cursor — the
+                   Arrange action it carries still belongs to that cell. */
+                const m = 8;
+                t.style.transform = '';
+                /* Measure at the widest the window allows, NOT at the final spot: a
+                   shrink-to-fit fixed box takes its width from the space left of it,
+                   so measuring after moving it would re-wrap it narrower and the
+                   next clamp would move it again (a loop that ends on the edge). At
+                   left = m its natural width is final, and the clamp below always
+                   leaves room for exactly that width. */
+                t.style.left = m + 'px';
+                t.style.top = m + 'px';
+                const box = t.getBoundingClientRect();
+
+                let left = Math.min(rect.left, window.innerWidth - box.width - m);
+                left = Math.max(m, left);
+                let top = rect.bottom + 4;
+                if (top + box.height + m > window.innerHeight) {
+                    const above = rect.top - box.height - 4;
+                    top = above >= m ? above : Math.max(m, window.innerHeight - box.height - m);
+                }
+                t.style.left = Math.round(left) + 'px';
+                t.style.top = Math.round(top) + 'px';
             }
 
             function hideAvailableTooltip() {
-                document.getElementById('availableTooltip').classList.remove('show');
-                document.getElementById('availableTooltip').style.transform = '';
+                const t = document.getElementById('availableTooltip');
+                t.classList.remove('show');
+                t.style.transform = '';
+                t._anchorCell = null;
             }
 
             /* close tooltip on scroll (cell position is no longer relevant) */
             window.addEventListener('scroll', hideAvailableTooltip, { passive: true });
+            /* …but a RESIZE keeps it: re-place it against the same cell (hiding only
+               when the cell itself is gone) — 2026-11-14, tooltip-viewport-clamp. */
+            window.addEventListener('resize', function () {
+                const t = document.getElementById('availableTooltip');
+                if (!t.classList.contains('show')) return;
+                /* after the layout settles, not during it */
+                requestAnimationFrame(function () { placeAvailableTooltip(); });
+            }, { passive: true });
             document.querySelector('.grid-scroll')?.addEventListener('scroll', hideAvailableTooltip, { passive: true });
 
             function bookVenue(venueCode, date, time) {
@@ -715,6 +769,10 @@
             let intentContext = null; // {dateStr, timeStr, di, hi, venue} of the BOOKED slot
 
             function openIntentSessionModal(time, di, hi) {
+                /* the pop-up sits BELOW the tooltip (overlay 999 vs 9999), so the
+                   tooltip must go — otherwise it floats over the dimmed page and a
+                   resize would re-place it there (tooltip-viewport-clamp review). */
+                hideAvailableTooltip();
                 intentModalOpen = true;
                 intentContext = {
                     dateStr: weekData[currentWeek].days[di].date,

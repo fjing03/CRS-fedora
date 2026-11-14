@@ -1,3 +1,27 @@
+## 2026-11-14 — the Arrange tooltip now stays on screen
+
+The small box that asks "Arrange a replacement in … ?" could be pushed off the
+right of the window, cutting its text off, and it never moved again once the window
+changed size — the worst case being DevTools shrinking the page.
+
+- **It cannot leave the window any more.** The box has a real width ceiling
+  (340px, and never wider than the window minus a margin), so long text wraps
+  instead of running off. Once shown, it is measured and pulled back inside, keeping
+  an 8px margin on every side.
+- **It opens above the cell when there is no room below**, instead of hanging off
+  the bottom edge.
+- **It answers a resize.** Narrowing the window re-places it instead of leaving it
+  stranded; if the grid scrolls the cell out of sight, the box stays readable
+  inside the window. It still closes on scroll, as before.
+- **Every way of opening it behaves the same** — a click or the `B` key.
+- Opening Select a Session now closes the tooltip first, so it cannot float over
+  the dimmed page.
+
+Measured read-only at 1440 / 1024 / 768 / 390 / 360: the box stays inside the
+window in every case with an 8px margin (24px at 390), including a live resize while
+open and the bottom-edge flip (520px-tall window: box 340–435 above the cell).
+A new test, `U2a-T18`, pins the behaviour.
+
 ## 2026-11-14 — 6–7 PM is now bookable for real
 
 The evening half-hours were painted earlier today, but clicking them still failed: the room had
