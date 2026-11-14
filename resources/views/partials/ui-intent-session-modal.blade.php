@@ -85,7 +85,7 @@
      that notice for the room-type case (a fact about the venue, not a duration).
      Tokens only; one clear close that returns to the timetable. --}}
 <div class="modal-overlay" id="slotWarningOverlay" style="display:none" onclick="closeSlotWarning(event)">
-    <div class="modal" style="max-width:560px">
+    <div class="modal" style="max-width:680px">
         <div class="modal-header">
             <h3 class="modal-title" id="slotWarningTitle">Slot Too Short</h3>
             <button class="modal-close" onclick="closeSlotWarning()" data-tip="Close">✕</button>

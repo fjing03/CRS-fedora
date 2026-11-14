@@ -118,6 +118,9 @@ class ModalConsistencyTest extends TestCase
         $intent = $this->read('resources/views/partials/ui-intent-session-modal.blade.php');
         $this->assertMatchesRegularExpression('/id="intentSessionModal"[^>]*>\s*<div class="modal modal--detail">/s', $intent,
             'Select a Session already shares the 680 details ceiling');
+        $this->assertStringContainsString('<div class="modal" style="max-width:680px">', $intent,
+            'Slot Too Short carries the shared 680 ceiling too (user, 2026-11-14)');
+        $this->assertStringNotContainsString('max-width:560px', $intent, 'the old 560 maximum is gone');
     }
 
     /**

@@ -27,7 +27,11 @@ when it must (taller by roughly one row, no gap).
 Plus the maximum the user approved in the same breath (2026-11-14):
 
 - `replacement-home.blade.php:363` — Confirm Cancellation: `635` → `680`.
-  It stays a **maximum**: `fit-content` still shrinks it to its content.
+- `partials/ui-intent-session-modal.blade.php:88` — "Slot Too Short"
+  (`#slotWarningOverlay`): `560` → `680` (user, 2026-11-14, after the
+  Select-a-Session correction).
+
+Both stay **maxima**: `fit-content` still shrinks them to their content.
 
 **Correction found while applying.** "Select a Session" is NOT the pop-up that
 carries `560`: it already uses `.modal--detail`, so its ceiling is already the

@@ -21,8 +21,8 @@
 
 - Confirm Cancellation's shell says `680` (was 635) and stays a maximum.
 - Select a Session already uses `.modal--detail` (ceiling 680) — no change.
-- The `560` shell in the same partial is `#slotWarningOverlay` ("Slot Too
-  Short") and is deliberately untouched.
+- The `560` shell in the same partial, `#slotWarningOverlay` ("Slot Too
+  Short"), says `680` too (user, 2026-11-14) and stays a maximum.
 
 ## Acceptance
 

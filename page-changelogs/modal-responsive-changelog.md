@@ -17,8 +17,9 @@ grows if its own content is wider than 635.
 
 Correction worth recording: **Select a Session was never the 560 pop-up** — it
 already uses the shared details style, so its ceiling is already 680. The `560`
-lives on `#slotWarningOverlay` ("Slot Too Short"), a different pop-up in the same
-file, and it was left untouched.
+lived on `#slotWarningOverlay` ("Slot Too Short"), a different pop-up in the same
+file; the user then raised that one to `680` too (2026-11-14), so every pop-up in
+that partial now carries the shared ceiling.
 
 Checks: `ModalConsistencyTest` **15/15**, 92 assertions (the strip rule, the two
 shells, no re-pinned ceiling). No content, wording, colour or database change.
