@@ -501,3 +501,47 @@ Screenshots: `/tmp/arr-venue-collapse/{sheet-dark,sheet-light,focus-ring,final-p
 
 CSS region now starts at **1261**; `renderArrangementVenuePicker` at **5379**.
 `cancelled-slot-reuse` B02/B03 had already landed (committed `74ab29b`) before T1.
+
+## Second pass — 2026-11-14 (user: "commit. then test.")
+
+### What the commit contains, and why the code is not in it
+
+`ef1e537 docs: record the arrangement venue picker collapse` — the changelog entry and
+this lane's records only.
+
+**Both edited regions live inside another session's uncommitted code.**
+`renderArrangementVenuePicker` and the `.arrangement-mobile-venue-group` rule exist in
+**no commit** (`git log -S` → 0 hits; `git show HEAD:…` → 0 hits): the whole 2026-11-12
+venue-sheet function is still uncommitted. A change *inside* an uncommitted function
+cannot be staged without committing that function, so the Blade hunks stay in the
+working tree rather than dragging another session's work into a commit.
+
+### The remaining regression receipt — `arrangement-mobile.spec.ts`, run
+
+Run with the exact blessed invocation, serial, alone. The database was snapshotted
+first (`/tmp/arr-venue-collapse/testing-pre-mobile-spec.dump`) and compared afterwards:
+**the spec's fixtures clean up after themselves — all eight counts identical before and
+after every run**, so the user's restored manual data was never put at risk.
+
+| Run | Result |
+|---|---|
+| Whole spec **with** this lane's change | 36 passed · **1 failed** · 2 skipped · 12 did not run (serial `describe` stops after a failure) |
+| Failing test alone, **with** the change | fails |
+| Failing test alone, **without** the change (regions restored from the oracle, blade restarted) | **fails identically** |
+
+The three failures seen are all `T23b` desktop/mobile **geometry or data** checks, and
+they are **not this lane's**:
+
+- `768px is mobile and 769px is the untouched desktop layout` — `#arrangementMobile`
+  computed `display: block` instead of `none` at 769px. Reproduced with the lane's
+  regions reverted → pre-existing.
+- `mobile Class Details appears only with a slot and keeps its facts` — `TimeoutError`
+  waiting for `#subjectInfo` on `?session=67&week=14`, which the restored manual data
+  does not render for this viewer. Reproduced with the lane's regions reverted →
+  pre-existing, and data-dependent: the spec's own header says it needs a **freshly
+  seeded** database, which this one deliberately is not.
+
+**Honest verdict: this lane's own spec is green (7/7, twice, plus once more after the
+A/B restore). The two `arrangement-mobile` failures are pre-existing and data-driven,
+proven by reverting this lane's two regions and seeing them fail the same way.**
+The lane did not weaken, skip or edit any other spec to get here.
