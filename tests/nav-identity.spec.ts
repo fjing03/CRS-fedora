@@ -31,9 +31,15 @@ test('5425 panel shows real identity, no mock, drawer works, no console errors',
   await expect(page.locator('.user-panel')).not.toContainText('5770');
   await expect(page.locator('.user-panel .user-avatar')).toHaveText('SB');
 
-  // PL nav carries Request Approval in three places now (desktop, drawer and
-  // the badge link added by the notification lane); lecturer items present
-  await expect(page.locator('a[href="/request-approval-ui"]')).toHaveCount(3);
+  // PL nav carries Request Approval twice: the desktop bar and the phone drawer.
+  // Counted by class, not by href alone: a notification ROW that points at the
+  // approval page is also an `a[href="/request-approval-ui"]`, so a bare href
+  // count silently depends on the mailbox (it read 2 when written, 3 on
+  // 2026-11-03 when the leader happened to have such a message, and 2 again
+  // once that data moved to other accounts). The bell's own behaviour is pinned
+  // by the notification specs — this one is about the nav.
+  await expect(page.locator('a.nav-item[href="/request-approval-ui"]')).toHaveCount(1);
+  await expect(page.locator('a.nav-drawer-item[href="/request-approval-ui"]')).toHaveCount(1);
   await expect(page.locator('a[href="/venue-timetable-ui"]').first()).toBeVisible();
 
   // Mobile drawer renders the same identity after interaction (drawer is a
@@ -101,5 +107,6 @@ test('plain lecturer 5770 has no approval link, sees own name', async ({ page })
   await expect(page.locator('.user-panel .user-name')).toHaveText('En. Lim Jia Zheng');
   await expect(page.locator('.user-panel .user-id')).toHaveText('5770');
   await expect(page.locator('.user-panel .user-role')).toHaveText('Lecturer');
-  await expect(page.locator('a[href="/request-approval-ui"]')).toHaveCount(0);
+  await expect(page.locator('a.nav-item[href="/request-approval-ui"]')).toHaveCount(0);
+  await expect(page.locator('a.nav-drawer-item[href="/request-approval-ui"]')).toHaveCount(0);
 });
