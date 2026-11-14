@@ -159,6 +159,14 @@ class ModalConsistencyTest extends TestCase
         );
         $this->assertStringContainsString('.light .modal .filter-select', $css,
             'the light theme needs its own stroke (an SVG data URI cannot use var())');
+
+        /* and both arrows sit at the SAME 12px inset — the trigger used to pad 24px,
+           which put the two arrows in one form 13px apart (measured, user report) */
+        $this->assertMatchesRegularExpression(
+            '/\.session-dd-trigger \{[^}]*padding: 7px 12px;/s',
+            $css,
+            'the session picker arrow matches the select chevron inset',
+        );
     }
 
     /**

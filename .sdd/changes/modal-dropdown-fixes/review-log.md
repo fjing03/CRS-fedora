@@ -35,3 +35,11 @@ Non-blocking notes, all resolved before apply:
 
 All four artifacts frozen; `implementation_approved: true` (user reported the two
 defects and asked for them fixed).
+
+## Round 2 — arrow inset follow-up, 2026-11-14
+
+User report after round 1: the two arrows were still inconsistent. Measured cause
+(the trigger padded 24px, the select's chevron sits at 12px) and fixed by matching
+the trigger's padding to the select's inset. Structural pin added to
+`ModalConsistencyTest`; no assertion removed. Screenshot evidence at 2× in both
+themes.

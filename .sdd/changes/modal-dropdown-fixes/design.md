@@ -74,3 +74,14 @@ inset) before/after; screenshot in both themes.
   mirroring `.light .week-select`.
 - **Keyboard** — the picker's list has no keyboard navigation today; unchanged and
   out of scope here.
+
+## 6. Round-2 follow-up — the two arrows must share one inset (user, 2026-11-14)
+
+With the chevron unified, the user spotted that the two arrows still sat at
+different distances from the same right edge. Measured: the select's glyph sits
+**12px** inside the border (`background-position: right 12px center`), the session
+trigger's arrow **25px** (`padding-right: 24px` + 1px border) — 13px apart.
+
+Fix: `.session-dd-trigger { padding: 7px 12px; }` (was `7px 24px 7px 12px`), so both
+arrows are 13px from the outer edge. The label keeps `flex: 1` + ellipsis, so no
+text can run under the arrow. Measured after: both at 13px; boxes unchanged.

@@ -1,3 +1,15 @@
+## 2026-11-14 — the two arrows in the pop-up now line up
+
+The Subject and Session controls are the same width and share a right edge, but
+their arrows did not line up: the select drew its chevron 12px inside the border
+while the session picker padded 24px, so the two arrows sat **13px apart**
+(measured). The picker's right padding is now 12px, matching the select, and the
+two chevrons are the same 10×6 shape at the same inset.
+
+Checked in a real browser at 1440 (both themes): both arrows 13px from the outer
+edge, boxes unchanged in width and height. `ModalConsistencyTest` 16/16 with the
+inset pinned.
+
 ## 2026-11-14 — the Select a Session pop-up: list no longer cut off, one arrow
 
 Two defects the user found in the shared "Select a Session" pop-up.
