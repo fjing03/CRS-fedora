@@ -138,13 +138,224 @@
             font-size: 14px;
             color: var(--color-on-surface);
         }
+
+        /* ───── Venue selector: darker trigger + responsive panel ─────
+           2026-11-13 (user): the venue trigger must not read as white — it
+           uses the same darker surface-variant fill as the arrangement page,
+           so the control separates from the white toolbars and the grid. */
+        .semester-bar--venue .venue-dd-trigger {
+            background: var(--color-surface-variant);
+            color: var(--color-on-surface);
+            min-width: 0;
+            max-width: min(340px, 100%);
+        }
+        .semester-bar--venue .venue-dropdown-wrap {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            min-width: 0;
+            max-width: 100%;
+        }
+        /* 2026-11-13 (user): the four columns are fluid instead of a fixed
+           800px block. Before, opening the panel or letting hover reveal the
+           later columns pushed it past the viewport (DevTools narrow desktop
+           clipped the Rooms column). The clamp function lives in the page
+           script; this rule makes the panel able to shrink at all. */
+        @media (min-width: 769px) {
+            .semester-bar--venue .venue-dd-panel {
+                width: max-content;
+                max-width: calc(100vw - 24px);
+            }
+            .semester-bar--venue .venue-dd-panel .venue-col {
+                flex: 0 1 150px;
+                width: 150px;
+                min-width: 0;
+                max-width: 150px;
+            }
+            .semester-bar--venue .venue-dd-panel .venue-col-header { padding: 8px 10px 6px; }
+            .semester-bar--venue .venue-dd-panel .venue-col-item {
+                min-width: 0;
+                padding: 8px 10px;
+                gap: 6px;
+            }
+            .semester-bar--venue .venue-dd-panel .venue-col-item .venue-col-item-meta {
+                flex-shrink: 1;
+                min-width: 0;
+                overflow: hidden;
+                text-overflow: ellipsis;
+            }
+        }
+
+        /* ───── Mobile venue sheet (<=768px) ─────
+           Same pattern as the replacement-arrangement page: one searchable
+           bottom sheet instead of the wide four-column cascade. */
+        dialog#venueTimetablePicker {
+            width: min(560px, 100%);
+            max-width: 100%;
+            max-height: 88dvh;
+            margin: auto auto 0;
+            padding: 0;
+            border: 1px solid var(--color-outline);
+            border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+            background: var(--color-surface);
+            color: var(--color-on-surface);
+            overflow: hidden;
+        }
+        dialog#venueTimetablePicker::backdrop {
+            background: var(--color-scrim);
+        }
+        dialog#venueTimetablePicker[open] {
+            display: flex;
+            flex-direction: column;
+        }
+        dialog#venueTimetablePicker .venue-picker-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 8px;
+            padding: 12px 16px;
+            border-bottom: 1px solid var(--color-outline);
+        }
+        dialog#venueTimetablePicker .venue-picker-header h2 {
+            margin: 0;
+            font-size: 1rem;
+        }
+        dialog#venueTimetablePicker .venue-picker-search {
+            padding: 12px 16px;
+            border-bottom: 1px solid var(--color-outline);
+        }
+        dialog#venueTimetablePicker .venue-picker-search input {
+            box-sizing: border-box;
+            width: 100%;
+            min-height: 44px;
+            padding: 0 12px;
+            border: 1px solid var(--color-outline);
+            border-radius: var(--radius-md);
+            background: var(--color-surface-variant);
+            color: var(--color-on-surface);
+            font: inherit;
+        }
+        dialog#venueTimetablePicker .venue-picker-body {
+            flex: 1 1 auto;
+            min-height: 0;
+            overflow-y: auto;
+            overscroll-behavior: contain;
+            padding: 8px 16px calc(16px + env(safe-area-inset-bottom, 0px));
+            scrollbar-width: thin;
+        }
+        /* 2026-11-13 (user): category headers are visually distinct from the
+           venue rows — darker filled bar, sticky while their group scrolls,
+           and a real expand/collapse button on the right. */
+        dialog#venueTimetablePicker .venue-picker-group {
+            position: sticky;
+            top: 0;
+            z-index: 1;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 8px;
+            width: 100%;
+            margin: 8px 0 2px;
+            padding: 10px 10px 10px 12px;
+            border: 1px solid var(--color-outline);
+            border-radius: var(--radius-sm);
+            background: var(--color-surface-variant);
+            color: var(--color-on-surface);
+            font: inherit;
+            font-size: 11px;
+            font-weight: 700;
+            letter-spacing: 0.6px;
+            text-transform: uppercase;
+            text-align: left;
+            cursor: pointer;
+        }
+        dialog#venueTimetablePicker .venue-picker-group:hover,
+        dialog#venueTimetablePicker .venue-picker-group:focus-visible {
+            border-color: var(--color-outline-strong);
+        }
+        dialog#venueTimetablePicker .venue-picker-group:focus-visible {
+            outline: 2px solid var(--color-primary);
+            outline-offset: 1px;
+        }
+        dialog#venueTimetablePicker .venue-picker-group-label {
+            min-width: 0;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        dialog#venueTimetablePicker .venue-picker-group-chevron {
+            flex: 0 0 auto;
+            width: 14px;
+            height: 14px;
+            color: var(--color-on-surface-variant);
+            transition: transform 0.15s ease;
+        }
+        dialog#venueTimetablePicker .venue-picker-group[aria-expanded="false"] .venue-picker-group-chevron {
+            transform: rotate(-90deg);   /* right-pointing when collapsed */
+        }
+        dialog#venueTimetablePicker .venue-picker-group-items[hidden] { display: none; }
+        dialog#venueTimetablePicker .venue-picker-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            width: 100%;
+            min-height: 44px;
+            padding: 9px 4px;
+            border: 0;
+            border-bottom: 1px solid var(--color-outline-variant);
+            background: transparent;
+            color: var(--color-on-surface);
+            font: inherit;
+            text-align: left;
+            cursor: pointer;
+        }
+        dialog#venueTimetablePicker .venue-picker-item:hover,
+        dialog#venueTimetablePicker .venue-picker-item:focus-visible {
+            background: var(--color-surface-variant);
+        }
+        dialog#venueTimetablePicker .venue-picker-item.selected {
+            background: var(--color-primary-container);
+            color: var(--color-on-primary-container);
+        }
+        dialog#venueTimetablePicker .venue-picker-item-main {
+            display: flex;
+            flex-direction: column;
+            gap: 1px;
+            flex: 1 1 auto;
+            min-width: 0;
+        }
+        dialog#venueTimetablePicker .venue-picker-item-main strong { font-size: 13px; }
+        dialog#venueTimetablePicker .venue-picker-item-name,
+        dialog#venueTimetablePicker .venue-picker-item-meta {
+            font-size: 12px;
+            color: var(--color-on-surface-variant);
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        dialog#venueTimetablePicker .venue-picker-item.selected .venue-picker-item-name,
+        dialog#venueTimetablePicker .venue-picker-item.selected .venue-picker-item-meta {
+            color: inherit;
+        }
+        dialog#venueTimetablePicker .venue-picker-item-meta { flex: 0 0 auto; }
+        dialog#venueTimetablePicker .venue-picker-empty {
+            margin: 12px 0;
+            font-size: 13px;
+            color: var(--color-on-surface-variant);
+            font-style: italic;
+        }
+        @media (max-width: 768px) {
+            .semester-bar--venue .venue-dd-panel { display: none !important; }
+            .semester-bar--venue .venue-dd-trigger { max-width: 100%; }
+        }
     </style>
 
     <!-- ─── Page Header ─── -->
-    @include('partials.ui-page-header', ['title' => 'Venue Timetable', 'descriptionHtml' => 'Inspect any <span class="info-keyword">venue\'s weekly occupancy</span> — <span class="info-keyword">real slot states</span> from the timetable database.'])
+    @include('partials.ui-page-header', ['title' => 'Venue Timetable', 'guideToggle' => true, 'guideModal' => true, 'summaryButton' => true])
 
-    @include('partials.ui-guide-block', [
+    @include('partials.ui-guide-modal', [
         'guideTitle' => 'How to use this page',
+        'guideDescriptionHtml' => 'Inspect any <span class="info-keyword">venue\'s weekly occupancy</span> — <span class="info-keyword">real slot states</span> from the timetable database.',
         'guideItems' => [
             '<strong>Venue selection</strong> — pick a venue from the dropdown; the grid shows its full semester',
             '<strong>Week navigation</strong> — use arrows, the dropdown or Today button to browse weeks',
@@ -268,6 +479,22 @@
         <button class="btn-book" id="tooltipBookBtn">Arrange</button>
     </div>
 
+    {{-- Mobile venue picker (2026-11-13, user): below 769px the wide
+         four-column cascade is replaced by one searchable sheet, matching the
+         replacement-arrangement page. Selection still goes through
+         VenueDropdown.select(), so last-visit memory and the ?venue= full
+         render are untouched. --}}
+    <dialog id="venueTimetablePicker" aria-labelledby="venueTimetablePickerHeading" data-venue-timetable-picker>
+        <div class="venue-picker-header">
+            <h2 id="venueTimetablePickerHeading">Choose venue</h2>
+            <button type="button" class="btn btn-outline" aria-label="Close venue picker" data-venue-picker-close>Close</button>
+        </div>
+        <div class="venue-picker-search">
+            <input type="search" placeholder="Search code or room name" aria-label="Search venues" autocomplete="off" data-venue-picker-search>
+        </div>
+        <div class="venue-picker-body" data-venue-picker-list></div>
+    </dialog>
+
     <!-- ═══ Class Detail Modal ═══ -->
     @section('modal-footer')
         <div class="modal-footer-left">
@@ -346,6 +573,7 @@
 
             const venueInfo = @json($venue);
 
+
             // last-visit-dd-memory (D4): ONE hoisted const, TWO consumers —
             // the dd's opts + the restore's known-code guard. The name
             // names what the blade SERVED (never conflate with the saved
@@ -370,7 +598,7 @@
 
             /* Venue switching = ?venue= full render (scripts re-run naturally);
                the shared factory is callback-based — no forking. */
-            new VenueDropdown(
+            const venueDropdown = new VenueDropdown(
                 document.getElementById('venueSelectDropdown'),
                 {
                     venues: servedVenues,
@@ -386,6 +614,251 @@
                     }
                 }
             );
+
+            /* ── 2026-11-13 (user): keep the desktop panel inside the viewport.
+               The panel is a 4 x 150px cascade, so it is ~600px wide the
+               moment hover reveals the later columns. Without a clamp it ran
+               under a docked DevTools pane / off a narrow window and the Rooms
+               column became unclickable. Same law as the arrangement page:
+               cap the width in CSS, then slide `left` so the box stays 12px
+               inside the viewport; re-clamp whenever the panel's width changes
+               because columns appear on HOVER, not only on click. */
+            function fitVenuePanel() {
+                const dd = document.getElementById('venueSelectDropdown');
+                if (!dd || !dd.classList.contains('open')) return;
+                const panel = dd.querySelector('.venue-dd-panel');
+                const trigger = dd.querySelector('.venue-dd-trigger');
+                if (!panel || !trigger) return;
+                const width = panel.getBoundingClientRect().width;
+                const triggerLeft = trigger.getBoundingClientRect().left;
+                const margin = 12;
+                let left = triggerLeft;
+                const max = window.innerWidth - margin - width;
+                if (left > max) left = max;
+                if (left < margin) left = margin;
+                panel.style.left = Math.round(left - triggerLeft) + 'px';
+                panel.style.right = 'auto';
+            }
+
+            function resetVenuePanel() {
+                const panel = document.querySelector('#venueSelectDropdown .venue-dd-panel');
+                if (!panel) return;
+                panel.style.left = '';
+                panel.style.right = '';
+            }
+
+            const venueDdRoot = document.getElementById('venueSelectDropdown');
+            if (venueDdRoot) {
+                const trigger = venueDdRoot.querySelector('.venue-dd-trigger');
+                const panel = venueDdRoot.querySelector('.venue-dd-panel');
+                trigger?.addEventListener('click', function () {
+                    setTimeout(function () {
+                        if (venueDdRoot.classList.contains('open')) fitVenuePanel();
+                        else resetVenuePanel();
+                    }, 0);
+                });
+                panel?.addEventListener('click', function () {
+                    setTimeout(fitVenuePanel, 0);
+                }, true);
+                if (panel && typeof ResizeObserver === 'function') {
+                    new ResizeObserver(function () {
+                        if (venueDdRoot.classList.contains('open')) fitVenuePanel();
+                    }).observe(panel);
+                }
+                window.addEventListener('resize', function () {
+                    if (venueDdRoot.classList.contains('open')) fitVenuePanel();
+                });
+            }
+
+            /* ── 2026-11-13 (user): mobile venue sheet (<=768px).
+               Same pattern as the arrangement page — one searchable bottom
+               sheet instead of the wide cascade. Selection still goes through
+               venueDropdown.select(), preserving last-visit memory and the
+               ?venue= full render. */
+            function venuePickerParts(code) {
+                const text = String(code || '');
+                const blockMatch = text.match(/^([A-Za-z]+)/);
+                const floorMatch = text.match(/\d/);
+                return {
+                    block: blockMatch ? blockMatch[1].toUpperCase() : 'OTHER',
+                    floor: floorMatch ? floorMatch[0] : '0'
+                };
+            }
+
+            function renderVenuePicker(query) {
+                const host = document.querySelector('[data-venue-picker-list]');
+                if (!host) return;
+                host.textContent = '';
+                const q = String(query || '').trim().toLowerCase();
+                const venues = servedVenues.filter(function (v) {
+                    if (!q) return true;
+                    const label = [v.code, v.name, v.short_name, VenueDropdown.humanizeType(v.type)]
+                        .join(' ').toLowerCase();
+                    return label.indexOf(q) !== -1;
+                }).slice().sort(function (a, b) {
+                    return String(a.code).localeCompare(String(b.code), undefined, { numeric: true });
+                });
+
+                if (!venues.length) {
+                    const empty = document.createElement('p');
+                    empty.className = 'venue-picker-empty';
+                    empty.textContent = 'No venues match that search.';
+                    host.appendChild(empty);
+                    return;
+                }
+
+                const selected = venueDropdown ? venueDropdown.getSelected() : null;
+                const groups = new Map();
+                venues.forEach(function (v) {
+                    const parts = venuePickerParts(v.code);
+                    const key = parts.block + '|' + parts.floor;
+                    if (!groups.has(key)) groups.set(key, { block: parts.block, floor: parts.floor, venues: [] });
+                    groups.get(key).venues.push(v);
+                });
+
+                Array.from(groups.values()).sort(function (a, b) {
+                    return a.block === b.block
+                        ? Number(a.floor) - Number(b.floor)
+                        : a.block.localeCompare(b.block);
+                }).forEach(function (group, groupIndex) {
+                    /* Default: only the first (topmost) category is expanded.
+                       When a search is active every group with a match opens, so
+                       a hit is never hidden behind a collapsed header. */
+                    const expanded = q ? true : groupIndex === 0;
+                    const groupLabel = 'Block ' + group.block + ' \u00b7 Floor ' + group.floor;
+
+                    const heading = document.createElement('button');
+                    heading.type = 'button';
+                    heading.className = 'venue-picker-group';
+                    heading.setAttribute('aria-expanded', String(expanded));
+                    heading.setAttribute('aria-controls', 'venuePickerGroup' + groupIndex);
+                    heading.dataset.venueGroup = group.block + '|' + group.floor;
+
+                    const label = document.createElement('span');
+                    label.className = 'venue-picker-group-label';
+                    label.textContent = groupLabel;
+
+                    const chevron = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+                    chevron.setAttribute('class', 'venue-picker-group-chevron');
+                    chevron.setAttribute('width', '14');
+                    chevron.setAttribute('height', '14');
+                    chevron.setAttribute('viewBox', '0 0 24 24');
+                    chevron.setAttribute('fill', 'none');
+                    chevron.setAttribute('stroke', 'currentColor');
+                    chevron.setAttribute('stroke-width', '2');
+                    chevron.setAttribute('stroke-linecap', 'round');
+                    chevron.setAttribute('stroke-linejoin', 'round');
+                    chevron.setAttribute('aria-hidden', 'true');
+                    const chevronPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+                    chevronPath.setAttribute('d', 'm6 9 6 6 6-6');
+                    chevron.appendChild(chevronPath);
+
+                    heading.appendChild(label);
+                    heading.appendChild(chevron);
+
+                    const items = document.createElement('div');
+                    items.className = 'venue-picker-group-items';
+                    items.id = 'venuePickerGroup' + groupIndex;
+                    if (!expanded) items.hidden = true;
+
+                    heading.addEventListener('click', function () {
+                        const isOpen = heading.getAttribute('aria-expanded') === 'true';
+                        heading.setAttribute('aria-expanded', String(!isOpen));
+                        items.hidden = isOpen;
+                    });
+
+                    host.appendChild(heading);
+                    host.appendChild(items);
+
+                    group.venues.forEach(function (v) {
+                        const isSelected = v.code === selected;
+                        const item = document.createElement('button');
+                        item.type = 'button';
+                        item.className = 'venue-picker-item' + (isSelected ? ' selected' : '');
+                        item.setAttribute('aria-pressed', String(isSelected));
+                        item.dataset.venueCode = v.code;
+
+                        const main = document.createElement('span');
+                        main.className = 'venue-picker-item-main';
+                        const code = document.createElement('strong');
+                        code.textContent = v.code;
+                        const name = document.createElement('span');
+                        name.className = 'venue-picker-item-name';
+                        const displayName = window.ModalFacts
+                            ? window.ModalFacts.roomName(v.code, v.name)
+                            : v.name;
+                        name.textContent = displayName || VenueDropdown.humanizeType(v.type);
+                        main.appendChild(code);
+                        main.appendChild(name);
+
+                        const meta = document.createElement('span');
+                        meta.className = 'venue-picker-item-meta';
+                        meta.textContent = v.capacity ? v.capacity + ' seats' : '';
+
+                        item.appendChild(main);
+                        item.appendChild(meta);
+                        item.addEventListener('click', function () {
+                            closeVenuePicker();
+                            if (venueDropdown) venueDropdown.select(v.code);
+                        });
+                        items.appendChild(item);
+                    });
+                });
+            }
+
+            function openVenuePicker() {
+                const dialog = document.getElementById('venueTimetablePicker');
+                if (!dialog || window.innerWidth > 768) return;
+                if (venueDropdown && typeof venueDropdown._close === 'function') venueDropdown._close();
+                const search = dialog.querySelector('[data-venue-picker-search]');
+                if (search) search.value = '';
+                renderVenuePicker('');
+                if (!dialog.open) {
+                    if (typeof dialog.showModal === 'function') dialog.showModal();
+                    else dialog.setAttribute('open', '');
+                }
+            }
+
+            function closeVenuePicker() {
+                const dialog = document.getElementById('venueTimetablePicker');
+                if (!dialog) return;
+                if (dialog.open && typeof dialog.close === 'function') dialog.close();
+                else dialog.removeAttribute('open');
+            }
+
+            (function initVenuePicker() {
+                const dialog = document.getElementById('venueTimetablePicker');
+                if (!dialog) return;
+                const search = dialog.querySelector('[data-venue-picker-search]');
+                const closeBtn = dialog.querySelector('[data-venue-picker-close]');
+
+                closeBtn?.addEventListener('click', closeVenuePicker);
+                search?.addEventListener('input', function () {
+                    renderVenuePicker(search.value);
+                });
+                dialog.addEventListener('click', function (event) {
+                    if (event.target === dialog) closeVenuePicker();
+                });
+
+                /* Capture phase runs before VenueDropdown's own trigger
+                   listener, so a phone tap never opens the desktop cascade. */
+                document.addEventListener('click', function (event) {
+                    if (window.innerWidth > 768) return;
+                    const target = event.target;
+                    const trigger = target && target.closest
+                        ? target.closest('#venueSelectDropdown .venue-dd-trigger')
+                        : null;
+                    if (!trigger) return;
+                    event.preventDefault();
+                    event.stopPropagation();
+                    if (event.stopImmediatePropagation) event.stopImmediatePropagation();
+                    openVenuePicker();
+                }, true);
+
+                window.addEventListener('resize', function () {
+                    if (window.innerWidth > 768) closeVenuePicker();
+                });
+            })();
 
             const capacityEl = document.getElementById('venueCapacity');
             if (capacityEl && venueInfo.capacity) {

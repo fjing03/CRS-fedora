@@ -53,9 +53,14 @@ test.describe('Venue Timetable UI', () => {
     await expect(page.locator('.page-title')).toHaveText('Venue Timetable');
   });
 
-  test('TC03 — page description is visible', async ({ page }) => {
-    // U2a T10 re-point: live header copy (was stale mock-era text)
-    await expect(page.locator('.page-desc')).toContainText("Inspect any venue's weekly occupancy");
+  test('TC03 — page description is visible inside the guide', async ({ page }) => {
+    // guide-toggle-icon-only, then my-timetable-ui-cleanup: the purpose copy
+    // lives in the shared guide DIALOG (the icon opens #guideModal), so the
+    // header prints no description and the copy is read after opening.
+    await expect(page.locator('.page-header .page-desc')).toHaveCount(0);
+    await page.locator('.guide-toggle-icon').click();
+    await expect(page.locator('#guideModal')).toBeVisible();
+    await expect(page.locator('#guideModal .page-desc')).toContainText("Inspect any venue's weekly occupancy");
   });
 
   test('TC04 — semester chip displays semester info', async ({ page }) => {
