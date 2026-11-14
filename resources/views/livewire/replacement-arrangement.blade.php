@@ -2715,21 +2715,6 @@
             ]
         ])
 
-        {{-- Summary Bar — commented out for now
-        @include('partials.ui-summary-bar', [
-            'cards' => [
-                ['class' => 'card-total', 'valueId' => 'sumTotal', 'label' => 'Total Slots',
-                    'description' => 'All time slots shown for <span class="info-keyword">this venue</span> in the selected week.'],
-                ['class' => 'card-available', 'valueId' => 'sumAvailable', 'label' => 'Available',
-                    'description' => '<span class="info-keyword">Free slots</span> you can select as the replacement.'],
-                ['class' => 'card-pending', 'valueId' => 'sumPending', 'label' => 'Pending',
-                    'description' => 'Your replacement requests <span class="warn-keyword">awaiting approval</span>.'],
-                ['class' => 'card-conflict', 'valueId' => 'sumUnavailable', 'label' => 'Unavailable',
-                    'description' => '<span class="warn-keyword">Cannot select</span> — booked by others, Sunday, or public holiday.'],
-            ]
-        ])
-        --}}
-
         {{-- 2026-11-10 (user, "UI Update — Action Area"): Clear ALL is COMMENTED OUT,
              not deleted — it returns with multi-block selection. While it is out of the
              DOM, `#clearAllBtn`/`#clearTip` are simply absent, and every script that
