@@ -534,4 +534,158 @@ test.describe('cancelled-slot stacked layout receipts', () => {
       await unstage(page, wk, backup);
     }
   });
+
+  /* A16 half-hour DOM regression (default grid, NO DB writes — the same
+     stageAndRebuild/unstage JS staging as every proof above). The D6-style
+     half-hour split on a THURSDAY: pending 13:00–14:00 (cells 10–11), a
+     cancelled original 13:30–14:30 (cells 11–12) overlapping its tail, and
+     an ADJACENT normal 14:30–15:30 (cells 13–14) that must SHARE lane 0
+     with the cancelled original → two physical rows, cancellation lane 0,
+     pending lane 1, day header rowspan 2. Asserts the REAL rendered td
+     left/width against the row's own empty half-hour cell (origin + per-
+     slot step, self-calibrated from two adjacent empty cells), not merely
+     the colSpan metadata, so shifted HTML colSpans move the td and fail. */
+  test('half-hour DOM regression: Thursday pending 13:00–14:00 / cancelled 13:30–14:30 / adjacent normal 14:30–15:30 on two true lanes', async ({ page }) => {
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await page.goto('/my-timetable-ui', { waitUntil: 'networkidle' });
+
+    const wk = await pickStagingWeek(page);
+    expect(wk, 'a bookable staging week (Mon+Tue, ≥2 weeks ahead) must exist').toBeGreaterThanOrEqual(0);
+
+    /* precondition: the staged THURSDAY must be an ordinary day */
+    const thuOff = await page.evaluate((w) => {
+      const win = window as unknown as { weekData: { days: { holiday: boolean; sunday: boolean }[] }[] };
+      const d = win.weekData[w].days[3];
+      return d.holiday || d.sunday;
+    }, wk);
+    expect(thuOff, 'staging Thursday must not be a holiday/Sunday').toBe(false);
+
+    const me = await page.evaluate(() =>
+      (window as unknown as { MockData: { currentUser: { name: string } } }).MockData.currentUser.name);
+
+    const backup = await stageAndRebuild(page, wk, [
+      { id: 9201, sessionId: 921, eventKey: 'occ:202605:921:14', code: 'THC1', name: 'Thursday Cancelled', type: 'L', venue: 'B004', lecturer: me, di: 3, start: 11, end: 12, status: 'cancelled', cohorts: ['RSD3(S1)'], studentCount: 20 },
+      { id: 9202, sessionId: 921, requestId: 920, eventKey: 'request:920', code: 'THC1', name: 'Thursday Pending', type: 'L', venue: 'B004', lecturer: me, di: 3, start: 10, end: 11, status: 'pending', requestedAt: '2026-01-01 09:00', requestedBy: me, cohorts: ['RSD3(S1)'], studentCount: 20 },
+      { id: 9203, sessionId: 923, eventKey: 'occ:202605:923:14', code: 'THN1', name: 'Thursday Normal', type: 'L', venue: 'B006', lecturer: me, di: 3, start: 13, end: 14, status: 'normal', cohorts: ['RSD3(S1)'], studentCount: 20 },
+    ]);
+
+    const cxlSel = '#tableBody tr[data-day-index="3"][data-lane-row="0"] .event-block[data-event-key="occ:202605:921:14"]';
+    const pendSel = '#tableBody tr[data-day-index="3"][data-lane-row="1"] .event-block[data-event-key="request:920"]';
+    const normSel = '#tableBody tr[data-day-index="3"][data-lane-row="0"] .event-block[data-event-key="occ:202605:923:14"]';
+
+    const info = test.info();
+    try {
+      for (const variant of [{ width: 1440, height: 900, theme: 'light' }, { width: 390, height: 844, theme: 'dark' }]) {
+        await page.setViewportSize({ width: variant.width, height: variant.height });
+        await page.evaluate((t) => {
+          const html = document.documentElement;
+          html.classList.remove('light', 'dark');
+          html.classList.add(t);
+        }, variant.theme);
+        await settleThemeAnimations(page);
+
+        /* two physical rows; the day header spans BOTH lane rows */
+        await expect(page.locator('#tableBody tr[data-day-index="3"]')).toHaveCount(2);
+        await expect(page.locator('#tableBody tr[data-day-index="3"] td.time-col[rowspan="2"]')).toHaveCount(1);
+
+        /* one block per identity, exactly where the planner put it */
+        for (const sel of [cxlSel, pendSel, normSel]) {
+          await expect(page.locator(sel)).toHaveCount(1);
+          await expect(page.locator(sel)).toBeVisible();
+          expect(await blockInsideOwnTd(page, sel), `${sel} must sit inside its own td`).toBe(true);
+        }
+
+        /* metadata + real geometry of every lane row's data-hour cells */
+        const geo = await page.evaluate(() => {
+          const grab = (lane: string) => {
+            const row = document.querySelector(`#tableBody tr[data-day-index="3"][data-lane-row="${lane}"]`) as HTMLTableRowElement | null;
+            if (!row) return null;
+            const tds = Array.from(row.querySelectorAll<HTMLTableCellElement>('td[data-hour]'));
+            const rects = tds.map((td) => td.getBoundingClientRect());
+            const cells: Record<string, { left: number; width: number; span: number }> = {};
+            tds.forEach((td, k) => {
+              cells[td.dataset.hour as string] = { left: rects[k].left, width: rects[k].width, span: td.colSpan };
+            });
+            /* origin + per-slot step self-calibrated from two adjacent EMPTY
+               single cells of the SAME row (cells 0 and 1 are empty here) */
+            return {
+              domCount: tds.length,
+              origin: rects[0].left,
+              unit: rects[0].width,
+              step: rects[1].left - rects[0].left,
+              cells,
+            };
+          };
+          return { lane0: grab('0'), lane1: grab('1') };
+        });
+        const g0 = geo.lane0!;
+        const g1 = geo.lane1!;
+
+        /* every lane row still carries ALL 22 half-hour data-hour cells */
+        expect(g0.domCount, 'lane 0 data-hour cells').toBe(22);
+        expect(g1.domCount, 'lane 1 data-hour cells').toBe(22);
+
+        /* colSpan metadata: 2 exactly where the half-hour split says so */
+        expect(g0.cells['11'].span, 'cancelled td colSpan').toBe(2);
+        expect(g0.cells['13'].span, 'normal td colSpan').toBe(2);
+        expect(g1.cells['10'].span, 'pending td colSpan').toBe(2);
+
+        if (variant.width >= 768) {
+          /* desktop table layout: the VISIBLE data-hour cells' colSpans must
+             total exactly the day's 22 half-hour slots in BOTH lane rows —
+             a shifted or lost colspan breaks this total */
+          const totals = await page.evaluate(() => ['0', '1'].map((lane) => {
+            const row = document.querySelector(`#tableBody tr[data-day-index="3"][data-lane-row="${lane}"]`) as HTMLTableRowElement;
+            return Array.from(row.querySelectorAll<HTMLTableCellElement>('td[data-hour]'))
+              .reduce((s, td) => s + (td.getBoundingClientRect().width > 0 ? td.colSpan : 0), 0);
+          }));
+          expect(totals, 'visible colSpan totals per lane row').toEqual([22, 22]);
+
+          /* REAL rendered positions: left = origin + hour × per-slot step,
+             width = 2 half-hour columns (unit + step) — shifted HTML
+             colSpans displace the td and fail here, metadata cannot. */
+          const near = (got: number, want: number, what: string) =>
+            expect(Math.abs(got - want), what).toBeLessThanOrEqual(2);
+          /* cancelled 13:30–14:30 → lane 0 at cell 11, 2 slots wide */
+          near(g0.cells['11'].left, g0.origin + 11 * g0.step, 'cancelled td left = origin + 11 slots');
+          near(g0.cells['11'].width, g0.unit + g0.step, 'cancelled td width = 2 half-hour columns');
+          /* adjacent normal 14:30–15:30 → SAME lane 0 at cell 13 */
+          near(g0.cells['13'].left, g0.origin + 13 * g0.step, 'normal td left = origin + 13 slots');
+          near(g0.cells['13'].width, g0.unit + g0.step, 'normal td width = 2 half-hour columns');
+          /* pending 13:00–14:00 → lane 1 at cell 10, sharing 13:30–14:00 */
+          near(g1.cells['10'].left, g1.origin + 10 * g1.step, 'pending td left = origin + 10 slots');
+          near(g1.cells['10'].width, g1.unit + g1.step, 'pending td width = 2 half-hour columns');
+        }
+        /* at 390 the frozen ≤768px mobile-card layout stacks the cells and
+           hides the empty half-hour cells (theme.css), so column arithmetic
+           is undefined there — the visibility/containment asserts above
+           carry the variant, matching the S21 receipt's precedent */
+
+        /* coordinates are judged RELATIVE to the grid's own origin/viewport
+           (the .grid-scroll ancestor), never the page viewport, so allowed
+           horizontal scrolling can never fake a pass at either variant */
+        for (const sel of [cxlSel, pendSel, normSel]) {
+          const inside = await page.evaluate((s) => {
+            const el = document.querySelector(s) as HTMLElement;
+            const scroll = el.closest('.grid-scroll') as HTMLElement | null;
+            if (!scroll) return null;
+            const r = el.getBoundingClientRect();
+            const sr = scroll.getBoundingClientRect();
+            return { before: r.left - sr.left, after: sr.right - r.right };
+          }, sel);
+          expect(inside, `${sel} must live inside the grid's own .grid-scroll`).not.toBeNull();
+          expect(inside!.before, `${sel} clipped left of the grid origin`).toBeGreaterThanOrEqual(-1);
+          expect(inside!.after, `${sel} clipped right of the grid viewport`).toBeGreaterThanOrEqual(-1);
+        }
+
+        /* evidence screenshot for the main session */
+        const name = `half-hour-dom-${variant.width}-${variant.theme}`;
+        const shot = info.outputPath(`${name}.png`);
+        await page.screenshot({ path: shot, fullPage: true });
+        await info.attach(name, { path: shot, contentType: 'image/png' });
+      }
+    } finally {
+      await unstage(page, wk, backup);
+    }
+  });
 });

@@ -490,8 +490,9 @@ Independent read-only safety/truthfulness review **PASS**: /tmp/crs-reconcile-b/
 
 Main subsequently ran the seven relevant browser specs together: **52/52 (49 cases + 3 shared auth setups)**, no skips/unrun cases, /tmp/crs-reconcile-b/integrated-browser.txt. Main inspected all four actual desktop/phone light/dark holder captures from room-holder-results-r5; new source/test/changelog work is uncommitted. These scoped passes do not close the known unrelated history-shape error, remaining Part A delivery evidence, final SDD Verify, B04 or operational cleanup authority.
 
+## A14/A15 half-hour overlap regression review — 2026-11-14
 
+Independent read-only pi reviewer (`commandcode/z-ai/glm-5.3-flash`), **PASS for this narrow regression slice**, `/tmp/crs-half-hour-overlap/review-agent.jsonl`. Reviewed frozen D6/S17 against the planner and three added cases: consistent normalisation of stored/candidate intervals, chronological components then cancelled-first allocation, fresh component lane arrays, true event references/ranges/spans, input-order invariance, independent cell-occupancy oracle, real DOM column-position assertions and read-only synthetic staging. No blockers. The reviewer did not run tests or claim whole-feature Verify.
 
-
-
+Nonblocking observations: a pre-existing key-less legacy comparator tie omits id; broader 3+ event exhaustive generation is optional (existing targeted cases retain multi-cancellation/multi-active coverage). No unrelated comparator redesign was made. Main separately executed **18/18** planner/layout cases and **3/3** auth setups, checked all **1,764** pair combinations in both orders, inspected actual staff 5770 request 19 on desktop/phone, and confirmed the manual DB receipt unchanged. Details in apply-log.md. The full backend's earlier history-test caveat was resolved in the separate student-history-test-contract lane; no DB-refresh suite was rerun over current manual data. This does not archive or close remaining Part A acceptance/whole-feature Verify/demo cleanup gates.
 

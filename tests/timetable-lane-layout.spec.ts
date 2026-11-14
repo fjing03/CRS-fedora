@@ -13,7 +13,9 @@ import { abortUnlessTestingTarget } from './helpers/receipt-target-guard';
  *
  * Covered: exact / partial / multiple / adjacent / non-overlap lane reuse,
  * shuffle invariance, input non-mutation, per-day lane scoping, and the
- * cancelled-first deterministic comparator.
+ * cancelled-first deterministic comparator — plus the half-hour true-
+ * alignment case (pending 13:00–14:00 / cancellation 13:30–14:30) and an
+ * exhaustive 1764-pair oracle against an independent occupied-cell model.
  */
 
 abortUnlessTestingTarget('tests/timetable-lane-layout.spec.ts');
@@ -22,7 +24,7 @@ abortUnlessTestingTarget('tests/timetable-lane-layout.spec.ts');
 const ev = (over: Record<string, unknown>) => Object.assign({ di: 0, type: 'L', venue: 'B001', name: '', code: 'TST' }, over);
 
 type Res = {
-  days: Record<string, { placed: { event: { eventKey?: string; id?: number }; lane: number; span: number }[]; lanes: number }>;
+  days: Record<string, { placed: { event: { eventKey?: string; id?: number; start?: number; end?: number }; lane: number; span: number }[]; lanes: number }>;
   lanes: number;
 };
 
@@ -192,5 +194,125 @@ test.describe('layoutTimetableDay (A14 / S17)', () => {
     const b = await res(events);
     expect(a.days['0'].placed).toEqual(b.days['0'].placed);
     expect(a.days['0'].lanes).toBe(2);
+  });
+
+  test('half-hour staff5770 case: pending 13:00–14:00 (10–11) vs cancellation 13:30–14:30 (11–12)', async () => {
+    /* 08:00 = cell 0 → 13:00 = 10, 13:30 = 11, 14:30 = 12 (inclusive ends).
+       The pending covers cells 10–11, the cancellation 11–12: they share
+       exactly the 13:30–14:00 cell, so two lanes with the cancellation
+       ABOVE, and every original coordinate must survive verbatim. */
+    const r = await res([
+      ev({ id: 1, eventKey: 'request:5770', status: 'pending', start: 10, end: 11 }),
+      ev({ id: 2, eventKey: 'occ:S:5770:1', status: 'cancelled', start: 11, end: 12 }),
+    ]);
+    expect(r.days['0'].lanes).toBe(2);
+    const lanes = lanesOf(r);
+    expect(lanes['occ:S:5770:1']).toBe(0);
+    expect(lanes['request:5770']).toBe(1);
+    /* TRUE coordinates: no half-open normalisation, no start shifting */
+    const placed = Object.fromEntries(
+      r.days['0'].placed.map((p) => [String(p.event.eventKey), { start: p.event.start, end: p.event.end, span: p.span }]),
+    );
+    expect(placed['occ:S:5770:1']).toEqual({ start: 11, end: 12, span: 2 });
+    expect(placed['request:5770']).toEqual({ start: 10, end: 11, span: 2 });
+  });
+
+  test('half-hour exhaustive oracle: 1764 ordered range×status pairs vs independent cell occupancy', async ({ page }) => {
+    const out = await page.evaluate(() => {
+      const layout = (window as unknown as { layoutTimetableDay: (e: unknown[]) => Res }).layoutTimetableDay;
+
+      /* 21 inclusive half-hour ranges: start 0..5, end start..5 */
+      const ranges: Array<[number, number]> = [];
+      for (let s = 0; s <= 5; s++) for (let e = s; e <= 5; e++) ranges.push([s, e]);
+
+      /* INDEPENDENT occupancy oracle: explicit occupied-cell arrays per
+         range — intersection is decided by shared CELLS, never by the
+         production half-open arithmetic, so a wrong `[start,end)` in
+         layoutTimetableDay cannot agree with its own oracle. Covers exact
+         30-minute (single-cell), one-cell partial, containment and
+         adjacency (adjacent cell sets are disjoint → no intersection). */
+      const cellSets = ranges.map((r: [number, number]) => {
+        const c: number[] = [];
+        for (let i = r[0]; i <= r[1]; i++) c.push(i);
+        return c;
+      });
+      const overlaps = (i: number, j: number) => cellSets[i].some((c) => cellSets[j].indexOf(c) >= 0);
+
+      const mk = (id: number, eventKey: string, status: string, r: [number, number]) =>
+        ({ id, eventKey, di: 0, status, start: r[0], end: r[1], type: 'L', venue: 'B001', code: 'TST', name: '' });
+
+      const STATUS_PAIRS: string[][] = [
+        ['cancelled', 'cancelled'], ['cancelled', 'pending'],
+        ['pending', 'cancelled'], ['pending', 'replacement'],
+      ];
+
+      const failures: string[] = [];
+      let checked = 0;
+
+      for (const [st1, st2] of STATUS_PAIRS) {
+        for (let i = 0; i < ranges.length; i++) {
+          for (let j = 0; j < ranges.length; j++) {
+            const r1 = ranges[i];
+            const r2 = ranges[j];
+            /* Expected assignment derived ONLY from the frozen documented
+               comparator (cancelled first, then start/end/eventKey) plus
+               first-fit over the independent CELL sets: the first event
+               always takes lane 0; the second takes lane 1 exactly when the
+               cell sets intersect. On an overlap the cancellation (which
+               the comparator sorts first) is therefore ABOVE the active. */
+            const a = mk(1, 'occ:pair', st1, r1);
+            const b = mk(2, 'request:pair', st2, r2);
+            const first = [a, b].sort((x, y) =>
+              (x.status === 'cancelled' ? 0 : 1) - (y.status === 'cancelled' ? 0 : 1)
+              || x.start - y.start || x.end - y.end || (x.eventKey < y.eventKey ? -1 : 1))[0];
+            const second = first === a ? b : a;
+            const overlap = overlaps(i, j);
+            const expectLane: Record<string, number> = { [first.eventKey]: 0, [second.eventKey]: overlap ? 1 : 0 };
+            const expectLanes = overlap ? 2 : 1;
+
+            const norms: Record<string, Record<string, string>> = {};
+            for (const order of ['ab', 'ba']) {
+              const input = order === 'ab' ? [a, b] : [b, a];
+              const before = JSON.stringify(input);
+              const r = layout(input) as Res;
+              const after = JSON.stringify(input);
+              const ctx = `statuses=[${st1},${st2}] r1=[${r1}] r2=[${r2}] order=${order}`;
+              const fail = (msg: string) => { if (failures.length < 8) failures.push(`${ctx}: ${msg}`); };
+
+              if (after !== before) fail('input payload mutated');
+              const day = r.days['0'];
+              if (!day) { fail('day 0 missing from result'); continue; }
+              if (day.lanes !== expectLanes) fail(`day lanes=${day.lanes} expected ${expectLanes}`);
+              if (day.placed.length !== 2) { fail(`placed.length=${day.placed.length} expected 2`); continue; }
+              const norm: Record<string, string> = {};
+              for (const p of day.placed) {
+                const key = String(p.event.eventKey);
+                norm[key] = `${p.lane}/${p.span}`;
+                if (p.lane !== expectLane[key]) fail(`${key} lane=${p.lane} expected ${expectLane[key]}`);
+                if (p.event !== (key === 'occ:pair' ? a : b)) fail(`${key} lost its original event reference`);
+                const src = key === 'occ:pair' ? r1 : r2;
+                if (p.event.start !== src[0] || p.event.end !== src[1]) {
+                  fail(`${key} coordinates drifted to [${p.event.start},${p.event.end}] expected [${src[0]},${src[1]}]`);
+                }
+                if (p.span !== src[1] - src[0] + 1) fail(`${key} span=${p.span} expected ${src[1] - src[0] + 1}`);
+              }
+              norms[order] = norm;
+            }
+            /* reverse input must produce IDENTICAL lane/span assignments */
+            if (JSON.stringify(norms.ab) !== JSON.stringify(norms.ba)) {
+              if (failures.length < 8) {
+                failures.push(`statuses=[${st1},${st2}] r1=[${r1}] r2=[${r2}]: reverse input changed assignments `
+                  + `${JSON.stringify(norms.ab)} → ${JSON.stringify(norms.ba)}`);
+              }
+            }
+            checked++;
+          }
+        }
+      }
+      return { checked, failures };
+    });
+
+    expect(out.checked).toBe(21 * 21 * 4);
+    expect(out.failures, `oracle mismatches (first shown):\n${out.failures.join('\n')}`).toEqual([]);
   });
 });

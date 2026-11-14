@@ -832,7 +832,14 @@ function layoutTimetableDay(events) {
         }
         return 0;
     }
-    list.sort(cmp);   /* `list` is a fresh array — the caller's input is untouched */
+    /* Chronological component order: sort by (start, end) first so the
+       interval-overlap components form in time order; cmp breaks exact
+       ties. `list` is a fresh array — the caller's input is untouched. */
+    list.sort(function (a, b) {
+        if (a.start !== b.start) return a.start - b.start;
+        if (a.end !== b.end) return a.end - b.end;
+        return cmp(a, b);
+    });
 
     function overlaps(a, b) { return a.start < b.end && b.start < a.end; }   /* half-open */
 
@@ -846,7 +853,7 @@ function layoutTimetableDay(events) {
     });
 
     Object.keys(byDay).forEach(function (d) {
-        var evs = byDay[d];   /* already globally sorted → per-day sorted */
+        var evs = byDay[d];   /* chronological sort → per-day chronological */
 
         /* 1. connected interval-overlap components, in start order */
         var components = [];
@@ -865,17 +872,24 @@ function layoutTimetableDay(events) {
         var placed = [];
         var dayLanes = 1;
 
-        /* 3a. cancellations first — first-fit into the lowest
-               non-overlapping lane */
-        var cancByLane = [];
-        var actByLane = [];
+        /* D6 step 2: restore cancellation-first allocation order inside
+           each component; step 4: lane bookkeeping is per component, so
+           independent components restart from lane zero. */
         components.forEach(function (c) {
+            c.events.sort(cmp);
+            var cancByLane = [];
+            var actByLane = [];
             var compLanes = 1;
+
+            /* 3a. cancellations first — first-fit into the lowest
+                   non-overlapping lane. Stored and candidate intervals are
+                   both half-open {start, end+1}. */
             c.events.forEach(function (e) {
                 if (groupOf(e) !== 0) return;
+                var interval = { start: e.start, end: e.end + 1 };
                 var lane = 0;
-                while ((cancByLane[lane] || []).some(function (cc) { return overlaps(cc, e); })) lane++;
-                (cancByLane[lane] = cancByLane[lane] || []).push({ start: e.start, end: e.end + 1 });
+                while ((cancByLane[lane] || []).some(function (cc) { return overlaps(cc, interval); })) lane++;
+                (cancByLane[lane] = cancByLane[lane] || []).push(interval);
                 compLanes = Math.max(compLanes, lane + 1);
                 placed.push({ event: e, lane: lane, span: e.end - e.start + 1 });
             });
@@ -884,15 +898,16 @@ function layoutTimetableDay(events) {
                    overlapping active in the chosen lane */
             c.events.forEach(function (e) {
                 if (groupOf(e) === 0) return;
+                var interval = { start: e.start, end: e.end + 1 };
                 var minLane = 0;
                 cancByLane.forEach(function (laneCanc, lane) {
                     (laneCanc || []).forEach(function (cc) {
-                        if (overlaps(cc, e)) minLane = Math.max(minLane, lane + 1);
+                        if (overlaps(cc, interval)) minLane = Math.max(minLane, lane + 1);
                     });
                 });
                 var lane = minLane;
-                while ((actByLane[lane] || []).some(function (aa) { return overlaps(aa, e); })) lane++;
-                (actByLane[lane] = actByLane[lane] || []).push({ start: e.start, end: e.end + 1 });
+                while ((actByLane[lane] || []).some(function (aa) { return overlaps(aa, interval); })) lane++;
+                (actByLane[lane] = actByLane[lane] || []).push(interval);
                 compLanes = Math.max(compLanes, lane + 1);
                 placed.push({ event: e, lane: lane, span: e.end - e.start + 1 });
             });

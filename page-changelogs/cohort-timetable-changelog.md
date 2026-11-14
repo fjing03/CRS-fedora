@@ -1,3 +1,9 @@
+## 2026-11-14 — half-hour overlap alignment
+
+Fixed the shared lane planner so a pending 1:00 PM ~ 2:00 PM block and a cancelled 1:30 PM ~ 2:30 PM block stack on separate rows, aligned to their real times. Touching times still share a row. No booking rule, colour, label or database change. The same helper serves personal, cohort, student and venue timetables.
+
+Checks: **18/18** read-only planner/layout browser cases; the new independent oracle covers **1,764 range/status combinations in both input orders**. Existing responsive/theme/print checks pass. Actual staff 5770 request 19 was also checked without staging data, on desktop and phone in both themes. Details: [cancelled-slot reuse](cancelled-slot-reuse-changelog.md). Whole-feature Verify remains separate.
+
 ## 2026-11-10 (later) — Cancel this Class?: the "Other" reason block
 
 > 2026-11-13, in progress: see [cancelled-slot reuse](cancelled-slot-reuse-changelog.md) for shared stacking, real room-cell availability, passing checks and remaining delivery gates. No demo cleanup or final Verify yet.

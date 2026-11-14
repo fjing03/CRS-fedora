@@ -1,5 +1,15 @@
 # Cancelled-slot reuse — work in progress
 
+## 2026-11-14 — half-hour overlap regression fixed
+
+Staff 5770 exposed a missed 30-minute intersection: pending 1:00 PM ~ 2:00 PM versus cancelled 1:30 PM ~ 2:30 PM. Stored intervals used an exclusive end but comparisons received an inclusive candidate end. Both sides now use the same half-open interval. Components form in time order before cancellation-first lane allocation; each component reuses lanes from zero. Original event coordinates and durations are unchanged.
+
+- **18/18** planner/layout browser cases pass, plus **3/3** separately executed auth setups. New coverage includes the exact report, an independent **1,764-pair** cell-occupancy oracle with reversed input, and actual desktop column-position checks. Existing venue availability, responsive 1440/768/390, both-theme and print checks remain green.
+- Baseline independent oracle found **124/1,764 mismatches**. An isolated browser supplied with the original JS also reproduced one row instead of two against the user's real request. The live JS was not rolled back for that check.
+- Actual testing request **19**, source **2673**, week **10**, now shows cancellation above pending with the true 30-minute overlap. Desktop/phone captures in both themes are in `/tmp/crs-half-hour-overlap/`; main inspected desktop light and phone dark. This live-booking check used no synthetic payload and no booking action. Synthetic regression fixtures are disclosed separately.
+- Lint, PHPStan 1G, JS syntax and scoped independent review pass. No PHP/Blade/CSS edit, booking/data reset, scheduler change, commit or push. Testing :8030 stays open for the user's manual work. Whole-feature Verify and demo cleanup remain separate.
+
+
 ## 2026-11-13
 
 Scope: My Timetable, Cohort Timetables, Student My Timetable and Venue Timetable. SDD: `.sdd/changes/cancelled-slot-reuse/`.
