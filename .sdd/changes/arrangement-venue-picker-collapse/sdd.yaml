@@ -1,0 +1,23 @@
+name: arrangement-venue-picker-collapse
+created: 2026-11-13
+status: ready-to-apply
+batch: done
+lane_shape: light
+planning_complete: true
+proposal_review: passed
+proposal_frozen: true
+design_review: passed
+design_frozen: true
+specs_required: false
+specs_frozen: false
+tasks_review: passed
+tasks_frozen: true
+review_rounds: 4
+implementation_approved: false
+implementation_approval: ""
+implementation_blocked_by: "absolute gate: cancelled-slot-reuse B02 and B03 must be ticked before T1 — both edit these same two files"
+precedent: page-changelogs/venue-timetable-ui-changelog.md (2026-11-13)
+dirty_baseline: true
+dirty_baseline_note: "blade +423/-67 uncommitted from two earlier sessions; changelog ### block 3753-3786 uncommitted; test file untracked; no git command is a valid rollback"
+shared_files_touched: false
+promote_on_third_duplication: "2nd copy of the collapsible category header pattern; the 3rd must move it to theme.css"
