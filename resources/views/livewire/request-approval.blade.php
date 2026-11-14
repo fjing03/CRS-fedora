@@ -210,11 +210,13 @@
 
 @include('partials.ui-page-header', [
     'title' => 'Request Approval',
-    'descriptionHtml' => 'Review and manage <span class="info-keyword">replacement requests</span> from <span class="info-keyword">lecturers in your program</span>.',
+    'guideToggle' => true,
+    'guideModal' => true,
 ])
 
-@include('partials.ui-guide-block', [
+@include('partials.ui-guide-modal', [
     'guideTitle' => 'How to use this page',
+    'guideDescriptionHtml' => 'Review and manage <span class="info-keyword">replacement requests</span> from <span class="info-keyword">lecturers in your program</span>.',
     'guideItems' => [
         '<strong>Sort</strong> — click any column header to sort ascending/descending',
         '<strong>Search</strong> — type in the search box to filter by course, lecturer, or keywords',
@@ -289,18 +291,26 @@
     <p id="emptyText">No requests match your search or filter criteria.</p>
 </div>
 
-@include('partials.ui-summary-bar', ['cards' => [
-    ['class' => 'card-total', 'valueId' => 'summaryTotal', 'label' => 'Total Requests',
-        'description' => 'Requests that match the <span class="info-keyword">filters you have set</span>.'],
-    ['class' => 'card-pending', 'valueId' => 'summaryPending', 'label' => 'Pending Requests',
-        'description' => 'Requests <span class="warn-keyword">waiting for your decision</span> — no approval or rejection yet.'],
-    ['class' => 'card-approved', 'valueId' => 'summaryApproved', 'label' => 'Approved Requests',
-        'description' => 'Requests <span class="info-keyword">you approved</span> — the replacement is confirmed.'],
-    ['class' => 'card-rejected', 'valueId' => 'summaryRejected', 'label' => 'Rejected Requests',
-        'description' => 'Requests <span class="warn-keyword">you declined</span> — the lecturer must arrange again.'],
-    ['class' => 'card-total', 'valueId' => 'summaryReviewed', 'label' => 'Total Reviewed',
-        'description' => 'Requests already <span class="info-keyword">decided</span>: approved, rejected or completed.']
-]])
+@include('partials.ui-summary-bar', [
+    'flipCards' => true,
+    'cards' => [
+        ['class' => 'card-total', 'valueId' => 'summaryTotal', 'label' => 'Total Requests',
+            'bullets' => ['Matches filters', 'All statuses', 'One list'],
+            'explanation' => 'Requests that match the <span class="info-keyword">filters you have set</span>.'],
+        ['class' => 'card-pending', 'valueId' => 'summaryPending', 'label' => 'Pending Requests',
+            'bullets' => ['Awaiting you', 'No decision yet', 'Approve or reject'],
+            'explanation' => 'Requests <span class="warn-keyword">waiting for your decision</span> — no approval or rejection yet.'],
+        ['class' => 'card-approved', 'valueId' => 'summaryApproved', 'label' => 'Approved Requests',
+            'bullets' => ['You approved', 'Confirmed', '<strong class="summary-replacement">Blue</strong> blocks'],
+            'explanation' => 'Requests <span class="info-keyword">you approved</span> — the replacement is confirmed.'],
+        ['class' => 'card-rejected', 'valueId' => 'summaryRejected', 'label' => 'Rejected Requests',
+            'bullets' => ['You declined', 'Arrange again', 'No slot move'],
+            'explanation' => 'Requests <span class="warn-keyword">you declined</span> — the lecturer must arrange again.'],
+        ['class' => 'card-total', 'valueId' => 'summaryReviewed', 'label' => 'Total Reviewed',
+            'bullets' => ['Already decided', 'Approved/rejected', 'Includes completed'],
+            'explanation' => 'Requests already <span class="info-keyword">decided</span>: approved, rejected or completed.'],
+    ]
+])
 
 <div class="modal-overlay" id="modalOverlay">
     <div class="modal">

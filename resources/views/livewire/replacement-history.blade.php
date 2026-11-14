@@ -121,7 +121,12 @@
     @include('partials.page-data-script', ['payload' => $payload])
 
         <!-- ─── Page Header ─── -->
-        @include('partials.ui-page-header', ['title' => 'Class Replacements', 'descriptionHtml' => 'Conflicted <span class="info-keyword">CLASSES</span> and where each one\'s replacement stands — read-only, for your cohort.', 'chips' => $cohortLabel !== null ? [['label' => $cohortLabel]] : []]) {{-- BRIDGE PATCH: cohort chip is per-user data --}}
+        @include('partials.ui-page-header', ['title' => 'Class Replacements', 'guideToggle' => true, 'chips' => $cohortLabel !== null ? [['label' => $cohortLabel]] : []]) {{-- BRIDGE PATCH: cohort chip is per-user data --}}
+
+        @include('partials.ui-guide-block', [
+            'showToggle' => false,
+            'guideDescriptionHtml' => 'Conflicted <span class="info-keyword">CLASSES</span> and where each one\'s replacement stands — read-only, for your cohort.',
+        ])
 
         <!-- ─── Toolbar: week navigation + the staff's COMPLETED toggle ───
              2026-11-09 (user): this is My Replacements' control, same words, same

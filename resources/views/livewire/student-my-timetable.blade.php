@@ -14,23 +14,20 @@
     <!-- ─── Page Header ─── -->
     @include('partials.ui-page-header', [
         'title' => 'Student My Timetable',
-        'descriptionHtml' => 'View your weekly <span class="info-keyword">class schedule</span> across all sessions.',
+        'guideToggle' => true,
+        'guideModal' => true,
         'chips' => $cohortCode ? [['label' => $cohortCode]] : [],
     ])
 
-    <!-- ─── Semester Progress ─── -->
-    <div class="semester-progress" id="semesterProgress">
-        <div class="progress-label" id="progressLabel"></div>
-        <div class="progress-track"><div class="progress-fill" id="progressFill"></div></div>
-    </div>
+    @include('partials.ui-guide-modal', [
+        'guideTitle' => 'How to use this page',
+        'guideDescriptionHtml' => 'View your weekly <span class="info-keyword">class schedule</span> across all sessions.',
+    ])
 
     <!-- ─── Semester Bar ─── -->
     <div class="semester-bar">
-        @include('partials.ui-week-nav', ['prevOnclick' => 'prevWeek()', 'nextOnclick' => 'nextWeek()', 'selectId' => 'weekSelect', 'selectOnclick' => 'selectWeek(this.value)', 'showPrint' => true])
+        @include('partials.ui-week-nav', ['prevOnclick' => 'prevWeek()', 'nextOnclick' => 'nextWeek()', 'selectId' => 'weekSelect', 'selectOnclick' => 'selectWeek(this.value)', 'selectTinted' => true, 'showPrint' => true])
     </div>
-
-    <!-- ─── Week Subtitle ─── -->
-    <div class="week-subtitle" id="weekSubtitle"></div>
 
     <!-- ─── Grid Wrapper ─── -->
     @include('partials.ui-grid-table')
@@ -41,17 +38,23 @@
 
     <!-- ─── Weekly Summary Bar ─── -->
     @include('partials.ui-summary-bar', [
+        'flipCards' => true,
         'cards' => [
             ['class' => 'card-total', 'valueId' => 'sumTotal', 'label' => 'Total Classes',
-                'description' => '<span class="info-keyword">Normal + replacement + pending</span> classes this week. Cancelled classes are not counted. The small <strong>+N</strong> is the pending part.'],
+                'bullets' => ['<strong class="summary-normal">Normal</strong> + <strong class="summary-replacement">blue</strong>', '<strong class="summary-pending">+N</strong> = pending', 'No <strong class="summary-excluded">red</strong> blocks'],
+                'explanation' => '<span class="info-keyword">Normal + replacement + pending</span> classes this week. Cancelled classes are not counted. The small <strong>+N</strong> is the pending part.'],
             ['class' => 'card-hours', 'valueId' => 'sumHours', 'label' => 'Class Hours',
-                'description' => 'Hours of your <span class="info-keyword">normal + replacement + pending</span> classes this week (each slot = <strong>30 minutes</strong>). Cancelled classes are not counted. The small <strong>+N</strong> is the pending part.'],
+                'bullets' => ['Teaching time', '<strong>30 min</strong> / slot', '<strong class="summary-pending">+N</strong> = pending'],
+                'explanation' => 'Hours of your <span class="info-keyword">normal + replacement + pending</span> classes this week (each slot = <strong>30 minutes</strong>). Cancelled classes are not counted. The small <strong>+N</strong> is the pending part.'],
             ['class' => 'card-replacement', 'valueId' => 'sumReplacement', 'label' => 'Replacements',
-                'description' => 'Classes a <span class="info-keyword">different lecturer</span> teaches for your class this week.'],
+                'bullets' => ['New class time', 'PL approved', '<strong class="summary-replacement">Blue</strong> blocks'],
+                'explanation' => 'Classes a <span class="info-keyword">different lecturer</span> teaches for your class this week.'],
             ['class' => 'card-pending', 'valueId' => 'sumPending', 'label' => 'Pending',
-                'description' => 'Your classes still <span class="warn-keyword">waiting for a replacement to be approved</span> this week.'],
+                'bullets' => ['Awaiting PL', 'Not confirmed', '<strong class="summary-pending">+N</strong> on totals'],
+                'explanation' => 'Your classes still <span class="warn-keyword">waiting for a replacement to be approved</span> this week.'],
             ['class' => 'card-conflict', 'valueId' => 'sumConflict', 'label' => 'Conflicts',
-                'description' => 'Classes that cannot run as scheduled — a <span class="warn-keyword">clash</span>, a cancellation, or a <strong>public holiday</strong>.'],
+                'bullets' => ['Cancelled/clash', 'Or a holiday', '<strong class="summary-excluded">Needs make-up</strong>'],
+                'explanation' => 'Classes that cannot run as scheduled — a <span class="warn-keyword">clash</span>, a cancellation, or a <strong>public holiday</strong>.'],
         ]
     ])
 

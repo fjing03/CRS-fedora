@@ -170,7 +170,7 @@
                 <span class="badge badge-past" id="venueDescription" style="display:none;"></span>
             </div>
         </div>
-        @include('partials.ui-week-nav', ['prevOnclick' => 'prevWeek()', 'nextOnclick' => 'nextWeek()', 'selectId' => 'weekSelect', 'selectOnclick' => 'selectWeek(this.value)', 'showPrint' => true, 'showEarliestBtn' => true])
+        @include('partials.ui-week-nav', ['prevOnclick' => 'prevWeek()', 'nextOnclick' => 'nextWeek()', 'selectId' => 'weekSelect', 'selectOnclick' => 'selectWeek(this.value)', 'selectTinted' => true, 'showPrint' => true, 'showEarliestBtn' => true])
     </div>
 
     <!-- ─── Grid Wrapper ─── -->
@@ -191,17 +191,23 @@
     <!-- ─── Weekly Summary Bar ─── pinned 5-card set (Occupied kept: documented
          deviation, venue-event-blocks-db design §3); keyword spans per upstream -->
     @include('partials.ui-summary-bar', [
+        'flipCards' => true,
         'cards' => [
             ['class' => 'card-total', 'valueId' => 'sumTotal', 'label' => 'Total Slots',
-                'description' => 'Every time slot shown for <span class="info-keyword">this venue</span> this week (30 minutes each). The small <strong>+N</strong> is the part held by pending requests.'],
+                'bullets' => ['Every slot shown', '<strong>30 min</strong> each', '<strong class="summary-pending">+N</strong> = pending'],
+                'explanation' => 'Every time slot shown for <span class="info-keyword">this venue</span> this week (30 minutes each). The small <strong>+N</strong> is the part held by pending requests.'],
             ['class' => 'card-available', 'valueId' => 'sumAvailable', 'label' => 'Available',
-                'description' => 'Free slots you can book this week. <span class="warn-keyword">Sundays and public holidays</span> are not counted.'],
+                'bullets' => ['Free to book', 'No Sunday/holiday', 'Click a green slot'],
+                'explanation' => 'Free slots you can book this week. <span class="warn-keyword">Sundays and public holidays</span> are not counted.'],
             ['class' => 'card-replacement', 'valueId' => 'sumMyClasses', 'label' => 'My Teaching Classes',
-                'description' => 'Classes <span class="info-keyword">you teach</span> in this venue this week: normal + replacement + pending, each class counted on its own. The small <strong>+N</strong> is the pending part.'],
+                'bullets' => ['Classes you teach', 'Counted per class', '<strong class="summary-pending">+N</strong> = pending'],
+                'explanation' => 'Classes <span class="info-keyword">you teach</span> in this venue this week: normal + replacement + pending, each class counted on its own. The small <strong>+N</strong> is the pending part.'],
             ['class' => 'card-hours', 'valueId' => 'sumMyHours', 'label' => 'My Teaching Hours',
-                'description' => 'Hours of the classes <span class="info-keyword">you teach</span> in this venue this week (each slot = <strong>30 minutes</strong>). The small <strong>+N</strong> is the pending part.'],
+                'bullets' => ['Your teaching', '<strong>30 min</strong> / slot', '<strong class="summary-pending">+N</strong> = pending'],
+                'explanation' => 'Hours of the classes <span class="info-keyword">you teach</span> in this venue this week (each slot = <strong>30 minutes</strong>). The small <strong>+N</strong> is the pending part.'],
             ['class' => 'card-conflict', 'valueId' => 'sumOccupied', 'label' => 'Occupied',
-                'description' => 'Slots taken by other classes this week: normal + replacement + pending. The small <strong>+N</strong> is the part held by pending requests.'],
+                'bullets' => ['Taken by others', 'Normal + pending', '<strong class="summary-pending">+N</strong> = pending'],
+                'explanation' => 'Slots taken by other classes this week: normal + replacement + pending. The small <strong>+N</strong> is the part held by pending requests.'],
         ]
     ])
 

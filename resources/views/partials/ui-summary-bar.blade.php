@@ -1,4 +1,7 @@
 @php
+    /* The flip-card variant (96px, three bullets, per-card info button) is
+       opt-in so the other summary pages keep their existing cards. */
+    $flipCards = $flipCards ?? false;
     $descriptions = [
         'card-total'       => '<span class="info-keyword">Normal + replacement + pending</span> classes for the selected period. Cancelled classes are not counted.',
         'card-hours'       => 'Hours of those classes for the selected period (each slot = <strong>30 minutes</strong>). Cancelled classes are not counted.',
@@ -15,27 +18,88 @@
     ];
 @endphp
 
-<div class="summary-section" id="summarySection">
+<div class="summary-section{{ $flipCards ? ' summary-section--flip' : '' }}" id="summarySection">
     <div class="summary-hint">
         <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
-        <span>Stats reflect the <strong>selected period</strong> and any active filters. Hover a card to learn more.</span>
+        <span>Stats reflect the <strong>selected period</strong> and any active filters. @if($flipCards)Hover or tap a card to learn more.@else Hover a card to learn more.@endif</span>
     </div>
     <div class="summary-bar" id="summaryBar">
-        @foreach ($cards as $card)
+        @foreach ($cards as $i => $card)
             @php
                 $desc = $card['description'] ?? $descriptions[$card['class']] ?? $card['label'];
+                $explanation = $card['explanation'] ?? $desc;
+                $bullets = $card['bullets'] ?? null;
             @endphp
-            <div class="summary-card {{ $card['class'] }}">
-                <div class="summary-card-inner">
-                    <div class="summary-card-front">
-                        <span class="summary-value" id="{{ $card['valueId'] }}">{{ $card['value'] ?? 0 }}</span>
-                        <span class="summary-label">{{ $card['label'] }}</span>
-                    </div>
-                    <div class="summary-card-back">
-                        <span class="summary-description">{!! $desc !!}</span>
+            @if ($flipCards)
+                <div class="summary-card {{ $card['class'] }}"
+                     tabindex="0"
+                     role="group"
+                     data-summary="{{ $i }}"
+                     aria-label="{{ $card['label'] }}: hover, tap or press Enter to flip">
+                    <div class="summary-card-inner">
+                        <div class="summary-card-front">
+                            <span class="summary-value" id="{{ $card['valueId'] }}">{{ $card['value'] ?? 0 }}</span>
+                            <span class="summary-label">{{ $card['label'] }}</span>
+                        </div>
+                        <div class="summary-card-back">
+                            <div class="summary-description">
+                                @if(is_array($bullets) && count($bullets) > 0)
+                                    <ul class="summary-points">
+                                        @foreach(array_slice($bullets, 0, 3) as $bullet)
+                                            <li>{!! $bullet !!}</li>
+                                        @endforeach
+                                    </ul>
+                                @else
+                                    {!! $desc !!}
+                                @endif
+                            </div>
+                            <div class="summary-explanation-source" hidden>{!! $explanation !!}</div>
+                            <button type="button" class="summary-info"
+                                    data-summary-info="{{ $i }}"
+                                    aria-haspopup="dialog"
+                                    aria-label="{{ $card['label'] }}: full explanation"
+                                    data-tip="Full explanation">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>
+                            </button>
+                        </div>
                     </div>
                 </div>
-            </div>
+            @else
+                <div class="summary-card {{ $card['class'] }}">
+                    <div class="summary-card-inner">
+                        <div class="summary-card-front">
+                            <span class="summary-value" id="{{ $card['valueId'] }}">{{ $card['value'] ?? 0 }}</span>
+                            <span class="summary-label">{{ $card['label'] }}</span>
+                        </div>
+                        <div class="summary-card-back">
+                            <span class="summary-description">{!! $desc !!}</span>
+                        </div>
+                    </div>
+                </div>
+            @endif
         @endforeach
     </div>
 </div>
+
+@if ($flipCards)
+    {{-- Full explanation popup — one per page, filled from the clicked card's
+         own long description, so no formula is duplicated here. --}}
+    <div class="modal-overlay" id="summaryExplainModal" style="display:none"
+         onclick="if(event.target===this)SummaryCards.close()">
+        <div class="modal modal--summary" role="dialog" aria-modal="true"
+             aria-labelledby="summaryExplainTitle">
+            <div class="modal-header">
+                <h3 class="modal-title" id="summaryExplainTitle">Explanation</h3>
+                <button type="button" class="modal-close" data-tip="Close"
+                        aria-label="Close" onclick="SummaryCards.close()">✕</button>
+            </div>
+            <div class="modal-body" id="summaryExplainBody"></div>
+            <div class="modal-footer">
+                <div class="modal-footer-left"></div>
+                <div class="modal-footer-right">
+                    <button type="button" class="btn-close-modal" onclick="SummaryCards.close()">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+@endif

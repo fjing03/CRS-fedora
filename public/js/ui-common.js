@@ -2193,6 +2193,160 @@ function syncSummarySection(visible) {
     if (s) s.style.display = visible ? '' : 'none';
 }
 
+// ───── Summary flip cards (timetable pages) ─────// One delegated controller for the opt-in flip-card variant. Hover is CSS-only;
+// click/tap and Enter/Space toggle `.is-flipped`. The info button opens the
+// shared explanation modal without flipping the card, and closing restores both
+// the card state and focus.
+var SummaryCards = {
+    _lastTrigger: null,
+
+    init: function () {
+        if (this._bound) return;
+        this._bound = true;
+
+        document.addEventListener('click', function (e) {
+            var info = e.target.closest ? e.target.closest('[data-summary-info]') : null;
+            if (info) {
+                e.preventDefault();
+                e.stopPropagation();
+                SummaryCards.open(info);
+                return;
+            }
+
+            var card = e.target.closest ? e.target.closest('.summary-section--flip .summary-card') : null;
+            if (card) SummaryCards.toggle(card);
+        });
+
+        document.addEventListener('keydown', function (e) {
+            if (e.key === 'Escape') {
+                var modal = document.getElementById('summaryExplainModal');
+                if (modal && modal.style.display !== 'none') {
+                    e.preventDefault();
+                    SummaryCards.close();
+                }
+                return;
+            }
+
+            if (e.key !== 'Enter' && e.key !== ' ') return;
+            var target = e.target;
+            /* The info button owns its own activation — do not also flip the card. */
+            if (target.closest && target.closest('[data-summary-info]')) return;
+            var card = target.closest ? target.closest('.summary-section--flip .summary-card') : null;
+            if (!card) return;
+            e.preventDefault();
+            SummaryCards.toggle(card);
+        });
+
+        /* Once the pointer leaves, the click-pinned unflipped state is released,
+           so hover behaves normally on the next visit. */
+        document.addEventListener('mouseout', function (e) {
+            var card = e.target.closest ? e.target.closest('.summary-section--flip .summary-card') : null;
+            if (!card || card.contains(e.relatedTarget)) return;
+            card.classList.remove('is-unflipped');
+        });
+    },
+
+    toggle: function (card) {
+        /* A click means "pin this state": `.is-unflipped` keeps a mouse still
+           resting on the card from re-flipping it via :hover. */
+        if (card.classList.contains('is-flipped')) {
+            card.classList.remove('is-flipped');
+            card.classList.add('is-unflipped');
+            card.setAttribute('aria-expanded', 'false');
+        } else {
+            card.classList.remove('is-unflipped');
+            card.classList.add('is-flipped');
+            card.setAttribute('aria-expanded', 'true');
+        }
+    },
+
+    open: function (trigger) {
+        var modal = document.getElementById('summaryExplainModal');
+        var body = document.getElementById('summaryExplainBody');
+        if (!modal || !body) return;
+
+        var card = trigger.closest('.summary-card');
+        var title = card ? card.querySelector('.summary-label') : null;
+        var source = card ? card.querySelector('.summary-explanation-source') : null;
+        var explanation = source ? source.innerHTML : '';
+
+        var heading = document.getElementById('summaryExplainTitle');
+        if (heading && title) heading.textContent = title.textContent;
+
+        body.innerHTML = '<div class="summary-explanation">' + (explanation || '') + '</div>';
+
+        this._lastTrigger = trigger;
+        this._lastCard = card;
+        modal.style.display = 'flex';
+        document.body.classList.add('summary-locked');
+
+        var close = modal.querySelector('.modal-close');
+        if (close) close.focus({ preventScroll: true });
+    },
+
+    close: function () {
+        var modal = document.getElementById('summaryExplainModal');
+        if (!modal) return;
+        modal.style.display = 'none';
+        document.body.classList.remove('summary-locked');
+
+        if (this._lastCard) {
+            this._lastCard.classList.remove('is-unflipped');
+            this._lastCard.classList.add('is-flipped');
+            this._lastCard.setAttribute('aria-expanded', 'true');
+        }
+        if (this._lastTrigger) this._lastTrigger.focus({ preventScroll: true });
+        this._lastTrigger = null;
+        this._lastCard = null;
+    }
+};
+
+document.addEventListener('DOMContentLoaded', function () {
+    SummaryCards.init();
+});
+
+// ───── Guide modal ─────
+// One shared dialog, opened by the page header's guide icon. The opener keeps
+// aria-expanded in sync; closing restores focus and unlocks the page.
+var GuideModal = {
+    _opener: null,
+
+    open: function (opener) {
+        var modal = document.getElementById('guideModal');
+        if (!modal) return;
+
+        this._opener = opener || null;
+        modal.style.display = 'flex';
+        document.body.classList.add('summary-locked');
+        if (opener) opener.setAttribute('aria-expanded', 'true');
+
+        var close = modal.querySelector('.modal-close') || modal.querySelector('.btn-close-modal');
+        if (close) close.focus({ preventScroll: true });
+    },
+
+    close: function () {
+        var modal = document.getElementById('guideModal');
+        if (!modal) return;
+        modal.style.display = 'none';
+        document.body.classList.remove('summary-locked');
+
+        if (this._opener) {
+            this._opener.setAttribute('aria-expanded', 'false');
+            this._opener.focus({ preventScroll: true });
+        }
+        this._opener = null;
+    }
+};
+
+document.addEventListener('keydown', function (e) {
+    if (e.key !== 'Escape') return;
+    var modal = document.getElementById('guideModal');
+    if (modal && modal.style.display !== 'none') {
+        e.preventDefault();
+        GuideModal.close();
+    }
+});
+
 class ModalController {
     constructor(modalId, renderFn) {
         this._modalId = modalId;

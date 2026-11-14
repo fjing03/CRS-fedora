@@ -1,5 +1,9 @@
 @php
     $selectClass = $selectClass ?? 'week-select';
+    /* Optional tinted surface for the timetable pages (approved preview). The
+       replacement pages keep the default white .week-select. */
+    $selectTinted = $selectTinted ?? false;
+    $selectClass = $selectTinted ? $selectClass.' week-select--tinted' : $selectClass;
     $showTodayBtn = $showTodayBtn ?? true;
     $disabled = $disabled ?? false;
     $showPrint = $showPrint ?? false;

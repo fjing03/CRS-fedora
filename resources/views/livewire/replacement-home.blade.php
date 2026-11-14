@@ -173,11 +173,11 @@
     @include('partials.page-data-script', ['payload' => $payload])
 
         <!-- ─── Page Header ─── -->
-        @include('partials.ui-page-header', ['title' => 'My Replacements', 'descriptionHtml' =>
-            'Every <span class="info-keyword">class</span> that needs a replacement, and every <span class="info-keyword">request</span> you have made for it — in <span class="info-keyword">one list</span>.'])
+        @include('partials.ui-page-header', ['title' => 'My Replacements', 'guideToggle' => true, 'guideModal' => true])
 
-        @include('partials.ui-guide-block', [
+        @include('partials.ui-guide-modal', [
             'guideTitle' => 'How to use this page',
+            'guideDescriptionHtml' => 'Every <span class="info-keyword">class</span> that needs a replacement, and every <span class="info-keyword">request</span> you have made for it — in <span class="info-keyword">one list</span>.',
             'guideItems' => [
                 '<strong>Sort</strong> — click a sortable column header to sort ascending/descending; the arrow shows which one is active',
                 '<strong>Search</strong> — type to filter by course code, course name or cohort code',
@@ -241,17 +241,23 @@
 
         <!-- ─── Five summary cards (M9) — the values follow the filters ─── -->
         @include('partials.ui-summary-bar', [
+            'flipCards' => true,
             'cards' => [
                 ['class' => 'card-conflict', 'valueId' => 'summaryNeeds', 'label' => 'Classes to Arrange',
-                    'description' => 'Your classes that <span class="warn-keyword">still need a replacement arranged</span> and have no request waiting.'],
+                    'bullets' => ['Still needs action', 'No request yet', '<strong class="summary-excluded">Needs make-up</strong>'],
+                    'explanation' => 'Your classes that <span class="warn-keyword">still need a replacement arranged</span> and have no request waiting.'],
                 ['class' => 'card-duration', 'valueId' => 'summaryHours', 'label' => 'Class Hours to Replace',
-                    'description' => 'Hours of those classes — the teaching <span class="info-keyword">still waiting to be arranged</span>.'],
+                    'bullets' => ['Teaching time', '<strong>30 min</strong> / slot', 'Only class hours'],
+                    'explanation' => 'Hours of those classes — the teaching <span class="info-keyword">still waiting to be arranged</span>.'],
                 ['class' => 'card-pending', 'valueId' => 'summaryPending', 'label' => 'Pending Requests',
-                    'description' => 'Your requests <span class="warn-keyword">waiting for approval</span> — no decision yet.'],
+                    'bullets' => ['Awaiting PL', 'Not confirmed', '<strong class="summary-pending">+N</strong> on totals'],
+                    'explanation' => 'Your requests <span class="warn-keyword">waiting for approval</span> — no decision yet.'],
                 ['class' => 'card-approved', 'valueId' => 'summaryApproved', 'label' => 'Approved Requests',
-                    'description' => 'Your requests the PL has <span class="info-keyword">approved</span> — the replacement is confirmed.'],
+                    'bullets' => ['PL approved', 'Confirmed', '<strong class="summary-replacement">Blue</strong> blocks'],
+                    'explanation' => 'Your requests the PL has <span class="info-keyword">approved</span> — the replacement is confirmed.'],
                 ['class' => 'card-rejected', 'valueId' => 'summaryRejected', 'label' => 'Rejected Requests',
-                    'description' => 'Your requests the PL <span class="warn-keyword">declined</span> — arrange them again or pick another slot.'],
+                    'bullets' => ['PL declined', 'Arrange again', 'Pick another slot'],
+                    'explanation' => 'Your requests the PL <span class="warn-keyword">declined</span> — arrange them again or pick another slot.'],
             ]
         ])
 

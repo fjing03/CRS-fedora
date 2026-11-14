@@ -97,10 +97,11 @@
     </style>
 
     <!-- ─── Page Header ─── -->
-    @include('partials.ui-page-header', ['title' => 'Cohort Timetable', 'descriptionHtml' => 'View the <span class="info-keyword">weekly timetable</span> for <span class="info-keyword">any cohort</span> across all faculties.'])
+    @include('partials.ui-page-header', ['title' => 'Cohort Timetable', 'guideToggle' => true, 'guideModal' => true])
 
-    @include('partials.ui-guide-block', [
+    @include('partials.ui-guide-modal', [
         'guideTitle' => 'How to use this page',
+        'guideDescriptionHtml' => 'View the <span class="info-keyword">weekly timetable</span> for <span class="info-keyword">any cohort</span> across all faculties.',
         'guideItems' => [
             '<strong>Auto-selected</strong> — your faculty and the first cohort you teach load on arrival; switch the dropdowns to view any cohort\'s timetable',
             '<strong>Week navigation</strong> — use arrows or Today button to browse weeks',
@@ -119,7 +120,7 @@
         <select id="cohortSelect" onchange="onCohortChange(this.value, { origin: 'user' })" disabled>
             <option value="">Select Cohort</option>
         </select>
-        @include('partials.ui-week-nav', ['prevOnclick' => 'prevWeek()', 'nextOnclick' => 'nextWeek()', 'selectId' => 'weekSelect', 'selectOnclick' => 'selectWeek(this.value)', 'disabled' => $pinnedCohortId === null, 'showPrint' => true])
+        @include('partials.ui-week-nav', ['prevOnclick' => 'prevWeek()', 'nextOnclick' => 'nextWeek()', 'selectId' => 'weekSelect', 'selectOnclick' => 'selectWeek(this.value)', 'selectTinted' => true, 'disabled' => $pinnedCohortId === null, 'showPrint' => true])
     </div>
 
     <!-- ─── Grid Wrapper ─── -->
@@ -138,17 +139,23 @@
 
     <!-- ─── Summary Bar ─── frozen 5-card set (all-pages-design-parity C2) -->
     @include('partials.ui-summary-bar', [
+        'flipCards' => true,
         'cards' => [
             ['class' => 'card-total', 'valueId' => 'sumTotal', 'label' => 'Total Classes',
-                'description' => 'All classes this cohort has this week: <span class="info-keyword">normal + replacement + pending</span>. Cancelled classes are not counted. The small <strong>+N</strong> is the pending part.'],
+                'bullets' => ['<strong class="summary-normal">Normal</strong> + <strong class="summary-replacement">blue</strong>', '<strong class="summary-pending">+N</strong> = pending', 'No <strong class="summary-excluded">red</strong> blocks'],
+                'explanation' => 'All classes this cohort has this week: <span class="info-keyword">normal + replacement + pending</span>. Cancelled classes are not counted. The small <strong>+N</strong> is the pending part.'],
             ['class' => 'card-hours', 'valueId' => 'sumHours', 'label' => 'Teaching Hours',
-                'description' => 'Hours of normal + replacement + pending classes for this cohort this week (each slot = <strong>30 minutes</strong>). Cancelled classes are not counted. The small <strong>+N</strong> is the pending part.'],
+                'bullets' => ['Teaching time', '<strong>30 min</strong> / slot', '<strong class="summary-pending">+N</strong> = pending'],
+                'explanation' => 'Hours of normal + replacement + pending classes for this cohort this week (each slot = <strong>30 minutes</strong>). Cancelled classes are not counted. The small <strong>+N</strong> is the pending part.'],
             ['class' => 'card-replacement', 'valueId' => 'sumMyClasses', 'label' => 'My Teaching Classes',
-                'description' => 'Classes <span class="info-keyword">you teach</span> this week: normal + replacement + pending, each class counted on its own (Subject A (T) and Subject A (L) are two). The small <strong>+N</strong> is the pending part.'],
+                'bullets' => ['Classes you teach', 'Counted per class', '<strong class="summary-pending">+N</strong> = pending'],
+                'explanation' => 'Classes <span class="info-keyword">you teach</span> this week: normal + replacement + pending, each class counted on its own (Subject A (T) and Subject A (L) are two). The small <strong>+N</strong> is the pending part.'],
             ['class' => 'card-hours', 'valueId' => 'sumMyHours', 'label' => 'My Teaching Hours',
-                'description' => 'Hours of the classes <span class="info-keyword">you teach</span> this week: normal + replacement + pending (each slot = <strong>30 minutes</strong>). The small <strong>+N</strong> is the pending part.'],
+                'bullets' => ['Your teaching', '<strong>30 min</strong> / slot', '<strong class="summary-pending">+N</strong> = pending'],
+                'explanation' => 'Hours of the classes <span class="info-keyword">you teach</span> this week: normal + replacement + pending (each slot = <strong>30 minutes</strong>). The small <strong>+N</strong> is the pending part.'],
             ['class' => 'card-conflict', 'valueId' => 'sumConflict', 'label' => 'Conflicts',
-                'description' => 'Classes that cannot run as scheduled — a <span class="warn-keyword">clash</span>, a cancellation, or a <strong>public holiday</strong>.'],
+                'bullets' => ['Cancelled/clash', 'Or a holiday', '<strong class="summary-excluded">Needs make-up</strong>'],
+                'explanation' => 'Classes that cannot run as scheduled — a <span class="warn-keyword">clash</span>, a cancellation, or a <strong>public holiday</strong>.'],
         ]
     ])
 
