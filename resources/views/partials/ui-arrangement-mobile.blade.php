@@ -48,4 +48,19 @@
         <div class="modal-body" data-arrangement-mobile-info-body></div>
         <div class="modal-footer" data-arrangement-mobile-info-actions></div>
     </dialog>
+
+    {{-- Mobile venue picker: the shared four-column dropdown is unusable on a
+         phone, so the same venue list opens as one searchable sheet. Selection
+         still goes through VenueDropdown.select(), so every existing guard and
+         the selected venue survive. --}}
+    <dialog id="arrangementMobileVenue" class="arrangement-mobile-info arrangement-mobile-venue" aria-labelledby="arrangementMobileVenueHeading" data-arrangement-mobile-venue>
+        <div class="modal-header">
+            <h2 id="arrangementMobileVenueHeading">Choose venue</h2>
+            <button type="button" class="btn btn-outline" aria-label="Close venue picker" data-arrangement-mobile-venue-close>Close</button>
+        </div>
+        <div class="arrangement-mobile-venue-search">
+            <input type="search" class="form-input" placeholder="Search code or room name" aria-label="Search venues" autocomplete="off" data-arrangement-mobile-venue-search>
+        </div>
+        <div class="modal-body arrangement-mobile-venue-body" data-arrangement-mobile-venue-list></div>
+    </dialog>
 </section>

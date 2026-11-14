@@ -487,7 +487,9 @@
             transition: background var(--transition), border-color var(--transition);
             overflow: hidden;
         }
-        .ra-top-zone:not(.has-summary) .ra-selection-summary { display: none; }
+        /* 2026-11-13 (user): the Selection Summary is ALWAYS present on
+           desktop — with no selection it shows its empty state. `has-summary`
+           now only drives the Submit/Tip state, never visibility. */
         .ra-top-zone .ra-selection-summary { padding: 12px 14px; }
         .ra-selection-summary .sel-summary-header { padding: 0 0 8px; }
         .ra-selection-summary .sel-summary-grid {
@@ -516,6 +518,7 @@
             font-weight: 600;
             color: var(--color-on-surface);
         }
+        .sel-summary.is-collapsed .sel-summary-body { display: none; }
 
         .sel-summary-count {
             font-size: 13px;
@@ -1220,6 +1223,147 @@
             #arrangementMobile .arrangement-mobile-info-swatch::after {
                 content: none;
             }
+            /* Mobile venue picker: one searchable sheet over the day view.
+               Visible only inside the existing 768px mobile lane; desktop keeps
+               the four-column dropdown. */
+            #arrangementMobile dialog.arrangement-mobile-venue {
+                width: min(560px, 100%);
+                max-width: 100%;
+                max-height: 88dvh;
+                overflow: hidden;
+            }
+            #arrangementMobile dialog.arrangement-mobile-venue[open] {
+                display: flex;
+                flex-direction: column;
+            }
+            #arrangementMobile .arrangement-mobile-venue-search {
+                padding: 12px;
+                border-bottom: 1px solid var(--color-outline);
+            }
+            #arrangementMobile .arrangement-mobile-venue-search .form-input {
+                box-sizing: border-box;
+                width: 100%;
+                min-height: 44px;
+            }
+            #arrangementMobile .arrangement-mobile-venue-body {
+                flex: 1 1 auto;
+                min-height: 0;
+                overflow-y: auto;
+                overscroll-behavior: contain;
+                padding: 8px 12px calc(16px + env(safe-area-inset-bottom, 0px));
+                white-space: normal;
+                scrollbar-width: thin;
+            }
+            /* 2026-11-14 (arrangement-venue-picker-collapse) — the category header is a
+               folding BAR, not a caption. Same geometry as the venue page's picker
+               (`venue-timetable.blade.php` .venue-picker-group) so the two sheets
+               read as one pattern. 2nd copy: a 3rd must move this into theme.css. */
+            #arrangementMobile .arrangement-mobile-venue-group {
+                position: sticky;
+                top: 0;
+                z-index: 1;
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                gap: 8px;
+                width: 100%;
+                margin: 8px 0 2px;
+                padding: 10px 10px 10px 12px;
+                border: 1px solid var(--color-outline);
+                border-radius: var(--radius-sm);
+                background: var(--color-surface-variant);
+                color: var(--color-on-surface);
+                /* font BEFORE font-size: `font` is a shorthand and resets the size */
+                font: inherit;
+                font-size: 11px;
+                font-weight: 700;
+                letter-spacing: 0.6px;
+                text-transform: uppercase;
+                text-align: left;
+                cursor: pointer;
+            }
+            #arrangementMobile .arrangement-mobile-venue-group-label {
+                min-width: 0;
+                overflow: hidden;
+                text-overflow: ellipsis;
+                white-space: nowrap;
+            }
+            #arrangementMobile .arrangement-mobile-venue-group-chevron {
+                flex: 0 0 auto;
+                width: 14px;
+                height: 14px;
+                color: var(--color-on-surface-variant);
+                transition: transform 0.15s ease;
+            }
+            #arrangementMobile .arrangement-mobile-venue-group[aria-expanded="false"] .arrangement-mobile-venue-group-chevron {
+                transform: rotate(-90deg);
+            }
+            #arrangementMobile .arrangement-mobile-venue-group-items[hidden] {
+                display: none;
+            }
+            #arrangementMobile .arrangement-mobile-venue-group:hover,
+            #arrangementMobile .arrangement-mobile-venue-group:focus-visible {
+                border-color: var(--color-outline-strong);
+            }
+            #arrangementMobile .arrangement-mobile-venue-group:focus-visible {
+                outline: 2px solid var(--color-primary);
+                outline-offset: 1px;
+            }
+            #arrangementMobile .arrangement-mobile-venue-item {
+                display: flex;
+                align-items: center;
+                gap: 10px;
+                width: 100%;
+                min-height: 44px;
+                padding: 9px 4px;
+                border: 0;
+                border-bottom: 1px solid var(--color-outline-variant);
+                background: transparent;
+                color: var(--color-on-surface);
+                font: inherit;
+                text-align: left;
+                cursor: pointer;
+            }
+            #arrangementMobile .arrangement-mobile-venue-item:hover,
+            #arrangementMobile .arrangement-mobile-venue-item:focus-visible {
+                background: var(--color-surface-variant);
+            }
+            #arrangementMobile .arrangement-mobile-venue-item.selected {
+                background: var(--color-primary-container);
+                color: var(--color-on-primary-container);
+            }
+            #arrangementMobile .arrangement-mobile-venue-item-main {
+                display: flex;
+                flex-direction: column;
+                gap: 1px;
+                flex: 1 1 auto;
+                min-width: 0;
+            }
+            #arrangementMobile .arrangement-mobile-venue-item-main strong {
+                font-size: 13px;
+            }
+            #arrangementMobile .arrangement-mobile-venue-item-name,
+            #arrangementMobile .arrangement-mobile-venue-item-meta {
+                font-size: 12px;
+                color: var(--color-on-surface-variant);
+                overflow: hidden;
+                text-overflow: ellipsis;
+                white-space: nowrap;
+            }
+            #arrangementMobile .arrangement-mobile-venue-item.selected .arrangement-mobile-venue-item-name,
+            #arrangementMobile .arrangement-mobile-venue-item.selected .arrangement-mobile-venue-item-meta {
+                color: inherit;
+            }
+            #arrangementMobile .arrangement-mobile-venue-item-meta {
+                flex: 0 0 auto;
+            }
+            #arrangementMobile .arrangement-mobile-venue-empty {
+                margin: 12px 0;
+                font-size: 13px;
+                color: var(--color-on-surface-variant);
+                font-style: italic;
+            }
+
             /* ───── SDD arrangement-mobile-day-view T12: saved-summary bar ─────
                The action bar (summary + the relocated original Submit) stays
                visible while the page scrolls, with safe-area padding and enough
@@ -1747,38 +1891,41 @@
         }
 
         @media (min-width: 1101px) {
-            .ra-top-zone.conflict-collapsed { grid-template-columns: 56px minmax(0, 5fr) minmax(0, 7fr); }
-            .ra-top-zone.details-collapsed  { grid-template-columns: minmax(0, 8fr) 56px minmax(0, 7fr); }
-            .ra-top-zone.conflict-collapsed.details-collapsed {
+            .toolbar-restructure.ra-top-zone.conflict-collapsed { grid-template-columns: 56px minmax(0, 5fr) minmax(0, 7fr); }
+            .toolbar-restructure.ra-top-zone.details-collapsed  { grid-template-columns: minmax(0, 8fr) 56px minmax(0, 7fr); }
+            .toolbar-restructure.ra-top-zone.conflict-collapsed.details-collapsed {
                 grid-template-columns: 56px 56px minmax(0, 7fr);
             }
         }
 
+        /* 2026-11-13 (user): the Selection Summary is always laid out. It is
+           expanded by default and shows its empty state until slots are picked;
+           `has-summary` no longer controls layout. */
         @media (min-width: 1101px) and (max-width: 1319px) {
-            .ra-top-zone.has-summary { grid-template-columns: minmax(0, 8fr) minmax(0, 5fr) minmax(0, 7fr); }
-            .ra-top-zone.has-summary .ra-selection-summary { grid-column: 1 / -1; }
-            .ra-top-zone.has-summary.conflict-collapsed {
+            .toolbar-restructure.ra-top-zone { grid-template-columns: minmax(0, 8fr) minmax(0, 5fr) minmax(0, 7fr); }
+            .toolbar-restructure.ra-top-zone .ra-selection-summary { grid-column: 1 / -1; }
+            .toolbar-restructure.ra-top-zone.conflict-collapsed {
                 grid-template-columns: 56px minmax(0, 5fr) minmax(0, 7fr);
             }
-            .ra-top-zone.has-summary.details-collapsed {
+            .toolbar-restructure.ra-top-zone.details-collapsed {
                 grid-template-columns: minmax(0, 8fr) 56px minmax(0, 7fr);
             }
-            .ra-top-zone.has-summary.conflict-collapsed.details-collapsed {
+            .toolbar-restructure.ra-top-zone.conflict-collapsed.details-collapsed {
                 grid-template-columns: 56px 56px minmax(0, 7fr);
             }
         }
 
         @media (min-width: 1320px) {
-            .ra-top-zone.has-summary {
+            .toolbar-restructure.ra-top-zone {
                 grid-template-columns: minmax(0, 8fr) minmax(0, 5fr) minmax(0, 8fr) 280px;
             }
-            .ra-top-zone.has-summary.conflict-collapsed {
+            .toolbar-restructure.ra-top-zone.conflict-collapsed {
                 grid-template-columns: 56px minmax(0, 5fr) minmax(0, 8fr) 280px;
             }
-            .ra-top-zone.has-summary.details-collapsed {
+            .toolbar-restructure.ra-top-zone.details-collapsed {
                 grid-template-columns: minmax(0, 8fr) 56px minmax(0, 8fr) 280px;
             }
-            .ra-top-zone.has-summary.conflict-collapsed.details-collapsed {
+            .toolbar-restructure.ra-top-zone.conflict-collapsed.details-collapsed {
                 grid-template-columns: 56px 56px minmax(0, 8fr) 280px;
             }
         }
@@ -2077,7 +2224,9 @@
             color: var(--color-on-surface-variant);
         }
         .ra-replacement-week .week-select {
+            flex: 1 1 auto;
             width: auto;
+            min-width: 0;
             background-color: var(--color-surface-variant);
         }
         .ra-replacement-week .toolbar-filters {
@@ -2089,21 +2238,42 @@
             flex: none;
             min-width: 0;
         }
-        .ra-replacement-week .week-nav { width: 100%; }
+        .ra-replacement-week .week-nav {
+            width: 100%;
+            justify-content: space-between;
+        }
         .ra-replacement-week #earliestBtn {
             width: 100%;
             justify-content: center;
         }
 
         @media (min-width: 769px) {
-            .ra-replacement-venue .venue-dd-panel { max-width: calc(100vw - 24px); }
+            /* Responsive panel: 4 x 150px when there is room, then columns
+               shrink together so the panel never runs off the viewport.
+               The JS clamp only moves the panel; it cannot shrink fixed
+               columns, which is why the old 150/150/150/150 set clipped. */
+            .ra-replacement-venue .venue-dd-panel {
+                width: max-content;
+                max-width: calc(100vw - 24px);
+            }
             .ra-replacement-venue .venue-dd-panel .venue-col {
+                flex: 0 1 150px;
                 width: 150px;
-                min-width: 150px;
+                min-width: 0;
                 max-width: 150px;
             }
             .ra-replacement-venue .venue-dd-panel .venue-col-header { padding: 8px 10px 6px; }
-            .ra-replacement-venue .venue-dd-panel .venue-col-item { padding: 8px 10px; gap: 6px; }
+            .ra-replacement-venue .venue-dd-panel .venue-col-item {
+                min-width: 0;
+                padding: 8px 10px;
+                gap: 6px;
+            }
+            .ra-replacement-venue .venue-dd-panel .venue-col-item .venue-col-item-meta {
+                flex-shrink: 1;
+                min-width: 0;
+                overflow: hidden;
+                text-overflow: ellipsis;
+            }
         }
 
         .ra-desc-chip {
@@ -2265,10 +2435,10 @@
         </button>
     </div>
 
-    @include('partials.ui-page-header', [])
+    @include('partials.ui-page-header', ['guideToggle' => true])
 
         @include('partials.ui-guide-block', [
-            'guideTitle' => 'How to use this page',
+            'showToggle' => false,
             'guideItems' => [
                 '<strong>Select course</strong> — choose the course to arrange a replacement for',
                 '<strong>Slot status</strong> — Available (green), Unavailable (booked / Sunday / public holiday)',
@@ -2421,59 +2591,74 @@
                 <div class="sel-summary-header">
                     <span class="sel-summary-title">Selection Summary</span>
                     {{--<span class="sel-summary-count"><strong id="summaryCount">0</strong> / 4 Selected</span>--}}
+                    {{-- Default is EXPANDED. The arrow only lets the user fold the
+                         body away; the header (and the selected-count story) stays.
+                         Uses the shared .ra-card-toggle / .ra-card-chevron family,
+                         so its direction + rotation match Conflict Schedule and
+                         Class Details exactly. --}}
+                    <button type="button" class="ra-card-toggle" id="summaryToggle"
+                            aria-controls="summaryBody" aria-expanded="true"
+                            aria-label="Collapse Selection Summary"
+                            data-tip="Collapse Selection Summary">
+                        <svg class="ra-card-chevron" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                            <path d="m6 9 6 6 6-6"/>
+                        </svg>
+                    </button>
                 </div>
-                <div class="sel-summary-empty" id="summaryEmpty">
-                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-                        <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
-                        <line x1="16" y1="2" x2="16" y2="6"/>
-                        <line x1="8" y1="2" x2="8" y2="6"/>
-                        <line x1="3" y1="10" x2="21" y2="10"/>
-                        <line x1="12" y1="14" x2="12" y2="18"/>
-                        <line x1="10" y1="16" x2="14" y2="16"/>
-                    </svg>
-                    <p>No time slots selected.</p>
-                </div>
-                <div class="sel-summary-grid" id="summaryGrid"></div>
-                <div class="sel-summary-info" id="summaryInfo">
-                    <div class="info-rows">
-                        <div class="info-item">
-                            <span class="info-label">Total Selected</span>
-                            <span class="info-value" id="infoTotal">0 of 4 slots</span>
-                        </div>
-                        <div class="info-item">
-                            <span class="info-label">Total Duration</span>
-                            <span class="info-value" id="infoDuration">0 hours</span>
-                        </div>
-                        <div class="info-item">
-                            <span class="info-label">Venue</span>
-                            <span class="info-value" id="infoBuilding">B103</span>
+                <div class="sel-summary-body" id="summaryBody">
+                    <div class="sel-summary-empty" id="summaryEmpty">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                            <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+                            <line x1="16" y1="2" x2="16" y2="6"/>
+                            <line x1="8" y1="2" x2="8" y2="6"/>
+                            <line x1="3" y1="10" x2="21" y2="10"/>
+                            <line x1="12" y1="14" x2="12" y2="18"/>
+                            <line x1="10" y1="16" x2="14" y2="16"/>
+                        </svg>
+                        <p>No time slots selected.</p>
+                    </div>
+                    <div class="sel-summary-grid" id="summaryGrid"></div>
+                    <div class="sel-summary-info" id="summaryInfo">
+                        <div class="info-rows">
+                            <div class="info-item">
+                                <span class="info-label">Total Selected</span>
+                                <span class="info-value" id="infoTotal">0 of 4 slots</span>
+                            </div>
+                            <div class="info-item">
+                                <span class="info-label">Total Duration</span>
+                                <span class="info-value" id="infoDuration">0 hours</span>
+                            </div>
+                            <div class="info-item">
+                                <span class="info-label">Venue</span>
+                                <span class="info-value" id="infoBuilding">B103</span>
+                            </div>
                         </div>
                     </div>
-                </div>
-                {{-- 2026-11-11 (user, "UI Update — Compact Tip Tooltip"): the long hint
-                     is a compact [💡 Tip] trigger immediately LEFT of Submit Request.
-                     The trigger and the button are siblings; only the trigger's
-                     `data-tip` text is rewritten, never its icon/label contents. --}}
-                <div class="sel-summary-action">
-                    <button type="button" class="sel-summary-tip-trigger" id="summaryTip"
-                            data-tip="Click an available (green) time slot to begin."
-                            aria-label="Tip: Click an available (green) time slot to begin.">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                            <path d="M9 18h6"/>
-                            <path d="M10 22h4"/>
-                            <path d="M12 2a7 7 0 0 0-4 12.7V17h8v-2.3A7 7 0 0 0 12 2Z"/>
-                        </svg>
-                        <span>Tip</span>
-                    </button>
-                    <span class="btn-tip" id="submitTip" data-tip="Select a time slot first to enable submission">
-                        <button class="btn btn-primary" id="submitRequestBtn" onclick="proceed()">
-                            Submit Request
-                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                                <line x1="5" y1="12" x2="19" y2="12"/>
-                                <polyline points="12 5 19 12 12 19"/>
+                    {{-- 2026-11-11 (user, "UI Update — Compact Tip Tooltip"): the long hint
+                         is a compact [💡 Tip] trigger immediately LEFT of Submit Request.
+                         The trigger and the button are siblings; only the trigger's
+                         `data-tip` text is rewritten, never its icon/label contents. --}}
+                    <div class="sel-summary-action">
+                        <button type="button" class="sel-summary-tip-trigger" id="summaryTip"
+                                data-tip="Click an available (green) time slot to begin."
+                                aria-label="Tip: Click an available (green) time slot to begin.">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                <path d="M9 18h6"/>
+                                <path d="M10 22h4"/>
+                                <path d="M12 2a7 7 0 0 0-4 12.7V17h8v-2.3A7 7 0 0 0 12 2Z"/>
                             </svg>
+                            <span>Tip</span>
                         </button>
-                    </span>
+                        <span class="btn-tip" id="submitTip" data-tip="Select a time slot first to enable submission">
+                            <button class="btn btn-primary" id="submitRequestBtn" onclick="proceed()">
+                                Submit Request
+                                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                                    <line x1="5" y1="12" x2="19" y2="12"/>
+                                    <polyline points="12 5 19 12 12 19"/>
+                                </svg>
+                            </button>
+                        </span>
+                    </div>
                 </div>
             </div>
         </div>
@@ -2624,11 +2809,7 @@
         /* SDD occupied-cell-explanations (the payload gate's dictionary
            fallback): the grid rows' 4th key carries INDICES into the
            deduped block-text library — one copy of every holder block,
-           no per-row duplication. cancelled-slot-reuse Part B: the library
-           is IDENTITY-deduped (`session:<id>` / `request:<id>`) — the same
-           factual holder shares one entry across every arm, and two
-           different holders keep separate entries even when their display
-           strings are identical. */
+           no per-row duplication. */
         MockData.holderTexts = window.PAGE_DATA.holderTexts || [];
         MockData.venueSlots = window.PAGE_DATA.venueSlotsByWeek;
         /* D4 rule 1 — the engine's busy vectors + ineligible venues, so the
@@ -3920,89 +4101,6 @@
                             + tagged.map(b => b.replace(/\n/g, ' · ').replace(/\s{2,}/g, ' ')).join(' / ');
                         return { readable: readable, flat: flat };
                     };
-                    /* cancelled-slot-reuse Part B (D8/S24): ONE merged holder
-                       list per cell. The old engine-wins-OR-grid-fallback LOST
-                       the room-only holder whenever any engine block existed
-                       (e.g. the viewer's own class in another room covering the
-                       same half-hour hid the venue's actual holder). Canonical
-                       identities — the deduped holder library's indices, the
-                       tuples' 8th key — dedup the SAME factual holder across
-                       the room/own/cohort arms (one block), while two DIFFERENT
-                       holders stay distinct even with identical display
-                       strings. The shared renderHolderTip stays the ONE
-                       formatter; classifyState/state classes/eligibility are
-                       untouched — this is the tip only. */
-                    const mergeHolderMatches = function (engineMatches, gridMatches) {
-                        const merged = [];
-                        const seen = Object.create(null);
-                        const consider = function (m) {
-                            const ids = Array.isArray(m[7]) ? m[7] : [];
-                            if (!m[3]) {
-                                /* an unlabelled busy row carries no block; it
-                                   only feeds the header's pending read — keep
-                                   it, never dedup it into a labelled twin. */
-                                merged.push(m);
-
-                                return;
-                            }
-                            if (ids.length > 1) {
-                                /* distinct identities under one display string
-                                   (the identity-deduped library never shares an
-                                   entry across holders): explode per identity. */
-                                for (let i = 0; i < ids.length; i++) {
-                                    consider([m[0], m[1], m[2], m[3], m[4], m[5] === true, Array.isArray(m[6]) ? m[6] : [], [ids[i]]]);
-                                }
-
-                                return;
-                            }
-                            const key = ids.length === 1 ? 'i' + ids[0] : 't:' + m[3];
-                            const twin = seen[key];
-                            if (twin) {
-                                /* the SAME factual holder from two arms prints
-                                   once: mine ORs, arms union (the twin law). */
-                                twin[5] = twin[5] === true || m[5] === true;
-                                const arms = Array.isArray(twin[6]) ? twin[6] : [];
-                                const more = Array.isArray(m[6]) ? m[6] : [];
-                                for (let i = 0; i < more.length; i++) {
-                                    if (arms.indexOf(more[i]) === -1) arms.push(more[i]);
-                                }
-                                twin[6] = arms;
-
-                                return;
-                            }
-                            /* a COPY, never the payload tuple — MockData is
-                               read-only and the grid rebuilds every week. */
-                            const copy = [
-                                m[0], m[1], m[2], m[3], m[4], m[5] === true,
-                                Array.isArray(m[6]) ? m[6].slice() : [],
-                                ids.length === 1 ? [ids[0]] : [],
-                            ];
-                            seen[key] = copy;
-                            merged.push(copy);
-                        };
-                        (Array.isArray(engineMatches) ? engineMatches : []).forEach(consider);
-                        (Array.isArray(gridMatches) ? gridMatches : []).forEach(consider);
-
-                        return merged;
-                    };
-                    /* the venue-grid arm's matches: the payload's 4th key is an
-                       ARRAY of INDICES into the identity-deduped holder-text
-                       library (the dictionary fallback) — one pseudo-match per
-                       element, in the engine arm's exact tuple shape plus the
-                       8th identity key. statusKind governs the TIP ONLY: grid 1
-                       (occupied) → null; grid 3/4 (pending families) → 'pending'.
-                       An unknown/pre-cleanup cell carries NO ids — no matches,
-                       no tip, the neutral state words only. */
-                    const gridHolderMatches = (function () {
-                        if (!cellData || !Array.isArray(cellData[3]) || !cellData[3].length) return [];
-                        const holderTexts = (typeof MockData !== 'undefined' && MockData.holderTexts) || window.PAGE_DATA.holderTexts || [];
-                        const statusKind = cellData[2] === 1 ? null : 'pending';
-                        return cellData[3]
-                            .map(function (id) {
-                                return [di, hi, hi + 1, holderTexts[id] || '', statusKind, cellData[2] === 3, [], [id]];
-                            })
-                            .filter(function (m) { return !!m[3]; });
-                    })();
                     /* 2026-11-07 (user): the cell's tip sits ABOVE the cell — the
                        shared engine's default placement (centred over the element,
                        flipping below only when there is no room). It used to be
@@ -4010,7 +4108,7 @@
                        neighbouring day columns. Omitting `data-tip-pos` is the
                        "above" mode; `left` stays the top-bar buttons' mode. */
                     const attachHolder = function () {
-                        const rendered = renderHolderTip(mergeHolderMatches(engineMatches, gridHolderMatches));
+                        const rendered = renderHolderTip(engineMatches);
                         if (rendered) {
                             div.setAttribute('data-tip', rendered.readable);
                             div.setAttribute('aria-label', rendered.flat);
@@ -4038,14 +4136,40 @@
                         };
                         const ownershipClass = classifyCell(cellFacts);
 
-                        /* cancelled-slot-reuse Part B (D8/S24): ONE merged tip
-                           per cell — the engine arm's labelled rows and the
-                           venue-grid arm's actual holder merge into ONE shared
-                           renderHolderTip call (identity-deduped). The old
-                           engine-wins rule dropped the room-only holder whenever
-                           any engine block existed; the grid-arm fallback below
-                           is GONE with it. */
-                        attachHolder();
+                        /* The tips keep today's wording and order. The engine
+                           tip wins when it has a labelled block (the same
+                           precedence as before); otherwise the grid library
+                           speaks. The payload merges twin rows, so the header
+                           count and the block list are unchanged. */
+                        if (engineMatches.some(function (b) { return !!b[3]; })) {
+                            attachHolder();
+                        } else if (cellData) {
+                            /* SDD occupied-cell-explanations round (the grid arm
+                               rides the SAME renderer as the engine arm): the
+                               payload's 4th key is an ARRAY of INDICES into the
+                               deduped holder-text library (the payload gate's
+                               dictionary fallback) — resolve each to its block
+                               string, then build one pseudo-match per element in
+                               the engine arm's exact tuple shape and call the
+                               unchanged renderHolderTip (header count, why-tags,
+                               flat aria all parse per BLOCK). statusKind governs
+                               the TIP ONLY: grid 1 (occupied) → null; grid 3/4
+                               (pending families) → 'pending'. */
+                            const holderTexts = (typeof MockData !== 'undefined' && MockData.holderTexts) || window.PAGE_DATA.holderTexts || [];
+                            const gridHolderMatches = Array.isArray(cellData[3]) && cellData[3].length
+                                ? cellData[3].map(id => [di, hi, hi + 1, holderTexts[id] || '', cellData[2] === 1 ? null : 'pending'])
+                                    .filter(m => m[3])
+                                : null;
+                            if (gridHolderMatches) {
+                                const gridTip = renderHolderTip(gridHolderMatches);
+                                if (gridTip) {
+                                    div.setAttribute('data-tip', gridTip.readable);
+                                    div.setAttribute('aria-label', gridTip.flat);
+                                    div.setAttribute('tabindex', '0');
+                                    div.style.cursor = 'help';
+                                }
+                            }
+                        }
 
                         /* ═══ UI Update 2 (user, 2026-11-10, ruling C) ═══
                            The 3-working-day rule now OUTRANKS the ownership classes:
@@ -5238,6 +5362,213 @@
                 panel.style.right = '';
             }
         }
+
+        /* ── Mobile venue picker (<=768px) ───────────────────────────────
+           The same VenueDropdown data, one searchable sheet. The desktop
+           four-column panel still owns widths above the mobile lane. */
+        function arrangementVenueParts(code) {
+            const text = String(code || '');
+            const blockMatch = text.match(/^([A-Za-z]+)/);
+            const floorMatch = text.match(/\d/);
+            return {
+                block: blockMatch ? blockMatch[1].toUpperCase() : 'OTHER',
+                floor: floorMatch ? floorMatch[0] : '0'
+            };
+        }
+
+        function renderArrangementVenuePicker(query) {
+            const host = document.querySelector('[data-arrangement-mobile-venue-list]');
+            if (!host) return;
+            host.textContent = '';
+            const q = String(query || '').trim().toLowerCase();
+            const all = venueDropdown && typeof venueDropdown.getFiltered === 'function'
+                ? venueDropdown.getFiltered()
+                : [];
+            const venues = all.filter(function (v) {
+                if (!q) return true;
+                const label = [
+                    v.code, v.name, v.short_name,
+                    VenueDropdown.humanizeType(v.type)
+                ].join(' ').toLowerCase();
+                return label.indexOf(q) !== -1;
+            }).slice().sort(function (a, b) {
+                return String(a.code).localeCompare(String(b.code), undefined, { numeric: true });
+            });
+
+            if (!venues.length) {
+                const empty = document.createElement('p');
+                empty.className = 'arrangement-mobile-venue-empty';
+                empty.textContent = 'No venues match that search.';
+                host.appendChild(empty);
+                return;
+            }
+
+            const selected = venueDropdown ? venueDropdown.getSelected() : null;
+            const groups = new Map();
+            venues.forEach(function (v) {
+                const parts = arrangementVenueParts(v.code);
+                const key = parts.block + '|' + parts.floor;
+                if (!groups.has(key)) groups.set(key, { block: parts.block, floor: parts.floor, venues: [] });
+                groups.get(key).venues.push(v);
+            });
+
+            Array.from(groups.values()).sort(function (a, b) {
+                return a.block === b.block
+                    ? Number(a.floor) - Number(b.floor)
+                    : a.block.localeCompare(b.block);
+            }).forEach(function (group, groupIndex) {
+                /* 2026-11-14 (arrangement-venue-picker-collapse): the caption is now a
+                   folding bar. `aria-expanded` on the button is the ONLY state — the
+                   toggle reads it back from the DOM, so button and list cannot drift.
+                   A search opens every matching group, or hits in a closed group would
+                   be invisible; with no search only the first (sorted) group is open.
+                   Re-rendering resets this on purpose (open + every keystroke). */
+                const expanded = q ? true : groupIndex === 0;
+                const itemsId = 'arrangementPickerGroup' + groupIndex;
+
+                const heading = document.createElement('button');
+                heading.type = 'button';
+                heading.className = 'arrangement-mobile-venue-group';
+                heading.setAttribute('aria-expanded', String(expanded));
+                heading.setAttribute('aria-controls', itemsId);
+                heading.dataset.venueGroup = group.block + '|' + group.floor;
+
+                const label = document.createElement('span');
+                label.className = 'arrangement-mobile-venue-group-label';
+                label.textContent = 'Block ' + group.block + ' · Floor ' + group.floor;
+                heading.appendChild(label);
+
+                /* createElementNS, NOT createElement: an HTML `svg` keeps its `path`
+                   in the HTML namespace and never paints. */
+                const chevron = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+                chevron.setAttribute('class', 'arrangement-mobile-venue-group-chevron');
+                chevron.setAttribute('width', '14');
+                chevron.setAttribute('height', '14');
+                chevron.setAttribute('viewBox', '0 0 24 24');
+                chevron.setAttribute('fill', 'none');
+                chevron.setAttribute('stroke', 'currentColor');
+                chevron.setAttribute('stroke-width', '2');
+                chevron.setAttribute('stroke-linecap', 'round');
+                chevron.setAttribute('stroke-linejoin', 'round');
+                chevron.setAttribute('aria-hidden', 'true');
+                const chevronPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+                chevronPath.setAttribute('d', 'm6 9 6 6 6-6');
+                chevron.appendChild(chevronPath);
+                heading.appendChild(chevron);
+
+                const items = document.createElement('div');
+                items.className = 'arrangement-mobile-venue-group-items';
+                items.id = itemsId;
+                items.hidden = !expanded;
+
+                heading.addEventListener('click', function () {
+                    const isOpen = heading.getAttribute('aria-expanded') === 'true';
+                    heading.setAttribute('aria-expanded', String(!isOpen));
+                    items.hidden = isOpen;
+                });
+
+                host.appendChild(heading);
+                host.appendChild(items);
+
+                group.venues.forEach(function (v) {
+                    const isSelected = v.code === selected;
+                    const item = document.createElement('button');
+                    item.type = 'button';
+                    item.className = 'arrangement-mobile-venue-item' + (isSelected ? ' selected' : '');
+                    item.setAttribute('aria-pressed', String(isSelected));
+                    item.dataset.venueCode = v.code;
+
+                    const main = document.createElement('span');
+                    main.className = 'arrangement-mobile-venue-item-main';
+                    const code = document.createElement('strong');
+                    code.textContent = v.code;
+                    const name = document.createElement('span');
+                    name.className = 'arrangement-mobile-venue-item-name';
+                    const displayName = window.ModalFacts
+                        ? window.ModalFacts.roomName(v.code, v.name)
+                        : v.name;
+                    name.textContent = displayName || VenueDropdown.humanizeType(v.type);
+                    main.appendChild(code);
+                    main.appendChild(name);
+
+                    const meta = document.createElement('span');
+                    meta.className = 'arrangement-mobile-venue-item-meta';
+                    meta.textContent = v.capacity ? v.capacity + ' seats' : '';
+
+                    item.appendChild(main);
+                    item.appendChild(meta);
+                    item.addEventListener('click', function () {
+                        closeArrangementVenuePicker();
+                        if (venueDropdown) venueDropdown.select(v.code);
+                    });
+                    items.appendChild(item);
+                });
+            });
+        }
+
+        function openArrangementVenuePicker() {
+            const dialog = document.getElementById('arrangementMobileVenue');
+            if (!dialog || !document.body.classList.contains('arrangement-mobile-mode')) return;
+            if (venueDropdown && typeof venueDropdown._close === 'function') venueDropdown._close();
+            const search = dialog.querySelector('[data-arrangement-mobile-venue-search]');
+            if (search) search.value = '';
+            renderArrangementVenuePicker('');
+            if (!dialog.open) {
+                if (typeof dialog.showModal === 'function') dialog.showModal();
+                else dialog.setAttribute('open', '');
+            }
+            window.requestAnimationFrame(function () {
+                if (search) search.focus();
+            });
+        }
+
+        function closeArrangementVenuePicker() {
+            const dialog = document.getElementById('arrangementMobileVenue');
+            if (!dialog) return;
+            if (dialog.open && typeof dialog.close === 'function') dialog.close();
+            else dialog.removeAttribute('open');
+        }
+
+        function initArrangementVenuePicker() {
+            if (window.__arrangementVenuePickerBound) return;
+            window.__arrangementVenuePickerBound = true;
+
+            const dialog = document.getElementById('arrangementMobileVenue');
+            if (!dialog) return;
+            const search = dialog.querySelector('[data-arrangement-mobile-venue-search]');
+            const closeBtn = dialog.querySelector('[data-arrangement-mobile-venue-close]');
+
+            closeBtn?.addEventListener('click', closeArrangementVenuePicker);
+            search?.addEventListener('input', function () {
+                renderArrangementVenuePicker(search.value);
+            });
+            dialog.addEventListener('click', function (event) {
+                if (event.target === dialog) closeArrangementVenuePicker();
+            });
+
+            /* Capture phase runs before VenueDropdown's own trigger listener,
+               so mobile never opens the four-column desktop panel. */
+            document.addEventListener('click', function (event) {
+                if (!document.body.classList.contains('arrangement-mobile-mode')) return;
+                const target = event.target;
+                const trigger = target && target.closest
+                    ? target.closest('#buildingSelectorDropdown .venue-dd-trigger')
+                    : null;
+                if (!trigger) return;
+                event.preventDefault();
+                event.stopPropagation();
+                if (event.stopImmediatePropagation) event.stopImmediatePropagation();
+                openArrangementVenuePicker();
+            }, true);
+
+            window.addEventListener('resize', function () {
+                if (!document.body.classList.contains('arrangement-mobile-mode')) {
+                    closeArrangementVenuePicker();
+                }
+            });
+        }
+
+        initArrangementVenuePicker();
 
         if (!window.__raDetailsSummaryBound) {
             window.__raDetailsSummaryBound = true;
@@ -7184,6 +7515,21 @@ writeSlotTrigger(slot);
                 if (!collapsed) setTimeout(measureDetailsSummary, 0);
             });
 
+            /* Selection Summary fold: expanded by default, only the body folds.
+               The header stays visible so the selected-count story never hides. */
+            document.getElementById('summaryToggle')?.addEventListener('click', function () {
+                const card = document.getElementById('selSummary');
+                const body = document.getElementById('summaryBody');
+                if (!card || !body) return;
+                const collapsed = !card.classList.contains('is-collapsed');
+                card.classList.toggle('is-collapsed', collapsed);
+                body.hidden = collapsed;
+                this.setAttribute('aria-expanded', String(!collapsed));
+                const label = collapsed ? 'Expand Selection Summary' : 'Collapse Selection Summary';
+                this.setAttribute('aria-label', label);
+                this.setAttribute('data-tip', label);
+            });
+
             document.getElementById('detailsToggle')?.addEventListener('click', function () {
                 const body = document.getElementById('detailsBody');
                 const details = document.getElementById('details');
@@ -7212,6 +7558,14 @@ writeSlotTrigger(slot);
                 venuePanel?.addEventListener('click', function () {
                     setTimeout(fitArrangementVenuePanel, 0);
                 }, true);
+                /* Columns are revealed on HOVER, not only click: the panel
+                   grows after the initial fit, so clamp again whenever its
+                   measured width changes. */
+                if (venuePanel && typeof ResizeObserver === 'function') {
+                    new ResizeObserver(function () {
+                        if (venueDd.classList.contains('open')) fitArrangementVenuePanel();
+                    }).observe(venuePanel);
+                }
             }
 
             let topZoneResizeTimer = null;
@@ -7591,6 +7945,7 @@ writeSlotTrigger(slot);
                         && typeof venueDropdown._close === 'function') {
                         venueDropdown._close();
                     }
+                    closeArrangementVenuePicker();
                 },
                 /* T07: only default week move when the current week loses its
                    last eligible day. Reuses the existing navigator (its own

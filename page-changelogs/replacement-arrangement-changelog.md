@@ -3841,3 +3841,38 @@ Receipts: `SubmitGatesTest` **10/10** (the file renamed from `LeadTimeGateTest`:
 week's other days still book, another week's holiday does not block, the
 holiday-hit occurrence still books) · full PHPUnit **386 / 2031** · pint clean ·
 PHPStan 0.
+
+### 2026-11-12 — venue picker width, week nav width, mobile venue sheet
+
+- `.venue-dd-panel` is fluid: it keeps four 150px columns when there is room and
+  shrinks them together under the `calc(100vw - 24px)` cap. A `ResizeObserver`
+  re-clamps the panel when hover reveals extra columns (the old one-shot fit ran
+  before the panel grew, which is why narrow desktop/DevTools clipped it).
+- Week navigation now fills the card: the arrows sit at the edges and the week
+  select takes the remaining width.
+- At `<=768px` the four-column dropdown is replaced by one searchable venue
+  sheet (`#arrangementMobileVenue`). Selection still goes through
+  `VenueDropdown.select()`, so venue guards, chips and the selected state are
+  unchanged. Desktop keeps the dropdown.
+- Receipts: `tests/venue-dropdown-responsive.spec.ts` 3/3 (wide week nav, 820px
+  four-column fit, 390px mobile sheet open/search/select/reopen).
+
+### 2026-11-13 — Selection Summary always present + collapse arrow
+
+The Selection Summary card is now **always on the page**, even before any slot
+is picked — in that state it shows its existing empty state
+("No time slots selected."). Previously `has-summary` hid the whole card. The
+class still drives Submit/Tip enablement, but no longer visibility or layout.
+
+The header also gained a chevron button. It is **expanded by default**; the
+arrow only folds the body (cards / totals / Tip / Submit) away, never the
+header, and the selection state itself is untouched. `aria-expanded` and the
+button's label/tooltip flip with the state.
+
+Receipts: `tests/selection-summary-collapse.spec.ts` 1/1;
+`tests/top-zone-round2.spec.ts` 14/14 (including the new empty-state and
+row-2-with-no-selection cases).
+
+The arrow now uses the shared `.ra-card-toggle` / `.ra-card-chevron` family —
+identical markup, chrome and rotation to the Conflict Schedule and Class
+Details toggles, so all three fold the same way at every breakpoint.

@@ -1807,37 +1807,24 @@ async function t22DifferentSlot(
 }
 
 /**
- * Drive the real four-column venue row handlers. T23 owns the panel's mobile
- * geometry; T22 only needs the real onSelect/confirm path, so the hierarchy is
- * clicked in-page after the real trigger opens the panel.
+ * Drive the real venue picker. Mobile now opens the searchable sheet, so T22
+ * only needs the real onSelect/confirm path: open the sheet and click the first
+ * other room. Desktop's four-column panel is unchanged and exercised elsewhere.
  */
 async function t22DifferentVenue(page: Page): Promise<string | null> {
   const current = venueCodeOf(await venueLabel(page));
-  const isOpen = await page.locator('#buildingSelectorDropdown').evaluate((node) => node.classList.contains('open'));
-  if (!isOpen) await page.locator('#buildingSelectorDropdown .venue-dd-trigger').click();
-  await expect(page.locator('#buildingSelectorDropdown')).toHaveClass(/open/);
+  await page.locator('#buildingSelectorDropdown .venue-dd-trigger').click();
+  const dialog = page.locator('#arrangementMobileVenue');
+  await expect(dialog).toBeVisible();
   const picked = await page.evaluate((currentCode) => {
-    const host = document.getElementById('buildingSelectorDropdown');
-    if (!host) return null;
-    const click = (node: Element | null) => { if (node) (node as HTMLElement).click(); };
-    const types = Array.from(host.querySelectorAll('.venue-col-item-parent[data-type]'));
-    for (const type of types) {
-      click(type);
-      const blocks = Array.from(host.querySelectorAll('.venue-col-item-parent[data-block]'));
-      for (const block of blocks) {
-        click(block);
-        const floors = Array.from(host.querySelectorAll('.venue-col-item-parent[data-floor]'));
-        for (const floor of floors) {
-          click(floor);
-          const rooms = Array.from(host.querySelectorAll('.venue-col-item-room[data-code]'));
-          for (const room of rooms) {
-            const code = room.getAttribute('data-code');
-            if (code && code !== currentCode) { (room as HTMLElement).click(); return code; }
-          }
-        }
-      }
-    }
-    return null;
+    const items = Array.from(document.querySelectorAll('#arrangementMobileVenue .arrangement-mobile-venue-item'));
+    const room = items.find((item) => {
+      const code = item.getAttribute('data-venue-code');
+      return code && code !== currentCode;
+    });
+    if (!room) return null;
+    (room as HTMLElement).click();
+    return room.getAttribute('data-venue-code');
   }, current);
   if (!picked) await page.keyboard.press('Escape');
   return picked;
@@ -4241,17 +4228,10 @@ test.describe('T23c — feedback lifetime, Tip tooltip and lifecycle isolation',
     await expect(page.locator('#arrangementMobileInfo')).toBeHidden();
 
     /* Desktop restores the latest live message and a real hover/focus tooltip.
-       Round 2: the Summary is conditional, so the empty desktop page has no
-       Tip to focus — make a real selection first. */
+       Round 2 / 2026-11-13: the Summary is always present now (empty state
+       until a selection), so the Tip is focusable without creating one. */
     await t23SetDesktop(page);
-    if (!(await page.locator('#selSummary').isVisible())) {
-      const course = await page.locator('#subjectSelector option').evaluateAll(
-        (options) => options.map((option) => (option as HTMLOptionElement).value).filter(Boolean)[0] || '',
-      );
-      await page.locator('#subjectSelector').selectOption(course);
-      await page.locator('#tableBody .cell-content.cell-available').first().click();
-      await expect(page.locator('#selSummary')).toBeVisible();
-    }
+    await expect(page.locator('#selSummary')).toBeVisible();
     const desktopMessage = await page.evaluate(() => {
       const tip = document.getElementById('summaryTip');
       return tip ? (tip.getAttribute('aria-label') || '').replace(/^Tip:\s*/i, '').trim() : '';
