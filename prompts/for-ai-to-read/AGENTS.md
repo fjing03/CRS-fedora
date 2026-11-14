@@ -98,10 +98,11 @@ and the matching `page-changelogs/*.md` to learn house style before designing.
   `app/Support/Notifications/NotificationTip.php` composes them for every live kind (Subject / schedules / reasons / `Request ID`;
   holiday-first reason in the Original line; `Automatically Rejected by System` when
   `approver_id IS NULL`; students without the Staff lines). Don't hand-write a tip in a page.
-- **A filter label names the date it filters** (2026-11-07; labels re-worded to **SLOT** on 2026-11-10):
-  My Replacements' week filter is the **original slot** week (`Original Slot Week: …` /
-  `All Original Slot Weeks`), Request Approval's is the **requested slot** week (`Requested Slot Week: …`
-  / `All Requested Slot Weeks`, status header **REQUEST STATUS**), and each page passes its own date to
+- **A filter label names the date it filters** (2026-11-07; labels re-worded to **SLOT** on 2026-11-10;
+  the "all" option shortened to **`All Weeks`** on 2026-11-14 — the visible label already names the
+  week): My Replacements' week filter is the **original slot** week (`Original Slot Week: …`), Request
+  Approval's is the **requested slot** week (`Requested Slot Week: …`, status header
+  **REQUEST STATUS**), each page passes its own date to
   `isInWeek()` — `classDate` on one page, `replacementDate` on the other. Never swap them.
 - **A request keeps its own length:** a slot is a 30-minute cell and the release actions delete the
   junction rows, so `replacement_requests.replacement_span` (written at submit) plus

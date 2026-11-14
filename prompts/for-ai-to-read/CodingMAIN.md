@@ -603,10 +603,10 @@ These eleven rules are **non-negotiable** for every page and every future change
    Adding a new status/legend item = add ONE row to the relevant table above + ONE class to `theme.css`, then reuse it everywhere. Do not invent a synonym.
 
 **A week filter names which weeks it means — and the two replacement pages mean different weeks
-(2026-11-07; labels re-worded to SLOT on 2026-11-10).** My Replacements filters the **original slot**
-week (active chip `Original Slot Week: Week 8 · 9 Nov 2026 ~ 15 Nov 2026`, "all" option
-`All Original Slot Weeks`); Request Approval filters the **requested slot** week — the slot the PL is
-approving — (chip `Requested Slot Week: …`, option `All Requested Slot Weeks`), and its status column
+(2026-11-07; labels re-worded to SLOT on 2026-11-10; "all" option shortened to `All Weeks` on
+2026-11-14).** My Replacements filters the **original slot** week (active chip
+`Original Slot Week: Week 8 · 9 Nov 2026 ~ 15 Nov 2026`); Request Approval filters the **requested
+slot** week — the slot the PL is approving — (chip `Requested Slot Week: …`), and its status column
 header reads **REQUEST STATUS**
 (was `STATUS`). The shared `isInWeek(value, week)` takes whichever date the page hands it; the two
 callers must never be swapped (`classDate` on My Replacements, `replacementDate` on the PL queue), or
@@ -616,8 +616,12 @@ display` / `Pick the Requested Replacement week to display` — the 2026-11-10 S
 them. Either rename them to match or accept the mismatch; it needs the user's word, so leave it alone
 until then.
 `populateWeekSelect(sel, { includeAll, allLabel })` in `ui-common.js` is the ONE builder of an "all"
-option (default label `All Weeks`). Receipts: `status-tooltips-filter-chips.spec.ts` T5.RA-5,
-`week-filter-preserved.spec.ts` U1–U3.
+option. **The "no filter" option reads `All Weeks` on every page (user, 2026-11-14)** — the visible
+label above the field ("Original slot week" / "Requested slot week") already names which week it is, so
+the long `All Original/Requested Slot Weeks` form was dropped; three pinned strings moved with it
+(`status-tooltips-filter-chips.spec.ts:380`, `week-filter-preserved.spec.ts:141`, and the student
+parity test). Receipts: `status-tooltips-filter-chips.spec.ts` T5.RA-5, `week-filter-preserved.spec.ts`
+U1–U3.
 
 **A JS-owned control must survive a Livewire round-trip (2026-11-06).** A page component's re-render
 morphs the DOM from the server's HTML, so any element the server renders EMPTY but JavaScript fills
