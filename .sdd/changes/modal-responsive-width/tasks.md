@@ -1,7 +1,7 @@
 # Tasks — responsive modal width
 
 > **Change:** `modal-responsive-width`
-> **Apply status:** **FROZEN — NOT STARTED; live apply gated on theme.css ownership**
+> **Apply status:** **APPLIED 2026-11-14** at HEAD `bc99181` (T3b deferred by the user)
 > Prototype trial: `ui-prototype/my-timetable-mobile-preview.html` (applied,
 > measured, user approved "yea good").
 > Frozen inputs: `proposal.md`, `design.md`,
@@ -9,7 +9,7 @@
 
 ## Apply gate
 
-- [ ] T1. Confirm explicit approval to touch **live** `theme.css` (0.25h)
+- [x] T1. Confirm explicit approval to touch **live** `theme.css` (0.25h)
   - The user's standing instruction is "do not edit my system code file
     first". The prototype is done; live apply waits for a separate word.
   - Record the apply-time HEAD in `review-log.md`.
@@ -23,7 +23,7 @@
 
 ## Shared CSS
 
-- [ ] T2. Width + breakpoint (1h)
+- [x] T2. Width + breakpoint (1h)
   - **Placement is load-bearing:** append the new `@media (min-width: 601px)`
     block **after line 4071**, where the shipped `@media (max-width: 768px)`
     phone block ends. Placed near the base `.modal`, the later phone block
@@ -39,7 +39,7 @@
   - Keep the unordered `<=768px` phone rules (48px targets, body padding) as
     they are.
 
-- [ ] T3. Footer + dock + close target (0.75h)
+- [x] T3. Footer + dock + close target (0.75h)
   - Sheet footer: `align-items: stretch`; both wrappers
     `flex-direction: column; align-items: stretch; width: 100%`.
   - Add to the full-width set: `btn-close-modal`, `btn-outline`, `btn-danger`,
@@ -51,13 +51,13 @@
   - `.modal-close` 48×48 in the sheet range.
   - Keep `env(safe-area-inset-bottom)` on `.modal`.
 
-- [ ] T3b. Reconcile `#confirmModal` on the arrangement page (0.5h)
+- [ ] **T3b. DEFERRED by the user 2026-11-14** (uncommitted work in that file) — Reconcile `#confirmModal` on the arrangement page (0.5h)
   - `replacement-arrangement.blade.php` lines 1718–1760 set a page-local
     `overflow-y: auto` + sticky header under `body.arrangement-mobile-mode`.
     Convert it to the same three-region pinning (design §11 option B) so one
     scrolling model exists, or record the chosen exception in the spec.
 
-- [ ] T4. Pinned regions (0.5h)
+- [x] T4. Pinned regions (0.5h)
   - `.modal { display:flex; flex-direction:column; overflow:hidden }`.
   - Header and footer `flex: 0 0 auto`.
   - Body `flex: 1 1 auto; min-height: 0; overflow-y: auto;
@@ -66,13 +66,13 @@
 
 ## Tests
 
-- [ ] T5. Rewrite `tests/Feature/ModalConsistencyTest.php` (0.5h)
+- [x] T5. Rewrite `tests/Feature/ModalConsistencyTest.php` (0.5h)
   - Replace the `max-width: 680px` regex with the bounded invariant: floor
     420, ceiling 680, `fit-content` present.
   - Keep the "one ceiling, not two" intent for the other shells.
   - Do **not** delete the test.
 
-- [ ] T6. Add `tests/modal-responsive-width.spec.ts` (1.5h)
+- [x] T6. Add `tests/modal-responsive-width.spec.ts` (1.5h)
   - Widths 390 / 600 / 601 / 700 / 768 / 1024 / 1360.
   - R1: dialog narrower than 680 and >= 420; no horizontal clipping.
   - R2: sheet at 390/600, dialog at 601/700/768; radius symmetry.
@@ -82,7 +82,7 @@
   - R6: 390×420 + injected filler → body scrolls, header/footer pinned.
   - R1: guide stays at its ceiling (paragraph body does not shrink).
 
-- [ ] T7. Run the existing modal suites (1h)
+- [x] T7. Run the existing modal suites (1h)
   - `cancel-class`, `class-modal-affordances`, `session-arrival-pin-guard`,
     `venue-db`, `request-approval`, `replacement-home-qv` and the
     confirmation-dialog specs.
@@ -92,14 +92,14 @@
 
 ## Close-out
 
-- [ ] T8. Changelog + supersession note (0.5h)
+- [x] T8. Changelog + supersession note (0.5h)
   - One shared `page-changelogs/` entry listing the affected pop-ups.
   - State that **680px is now a ceiling, not a fixed width**.
   - Note the `cancelled-slot-reuse` A17 correction; do **not** edit that
     lane's frozen files.
   - `php artisan view:cache`, `git diff --check`.
 
-- [ ] T9. Verify (0.75h)
+- [x] T9. Verify (0.75h)
   - Full spec + the suites in T7 on the testing lane.
   - Manual look at 390 / 600 / 601 / 700 / 768 / 1024 / 1360.
   - Confirm no pop-up is wider than before.

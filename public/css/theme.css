@@ -4181,7 +4181,10 @@ tr.bookable-flash.bookable-flash--warning > td { animation: bookable-pulse-warni
 }
 
 /* ── Mobile: full-screen modal (bottom sheet style) ── */
-@media (max-width: 768px) {
+@media (max-width: 600px) {
+    /* 2026-11-14 (modal-responsive-width): the bottom sheet is PHONES ONLY.
+       Above 600px the pop-up is the centred dialog in the `min-width: 601px`
+       block further down, so this block no longer reaches a 768px tablet. */
     .modal-overlay {
         position: fixed;
         inset: 0;
@@ -4191,6 +4194,7 @@ tr.bookable-flash.bookable-flash--warning > td { animation: bookable-pulse-warni
         -webkit-backdrop-filter: blur(6px);
         align-items: flex-end;
         justify-content: center;
+        padding: 0;                 /* R4: dock flush — was 20px, so the sheet floated */
     }
 
     .modal-overlay.show {
@@ -4200,12 +4204,20 @@ tr.bookable-flash.bookable-flash--warning > td { animation: bookable-pulse-warni
     .modal {
         width: 100%;
         max-width: 100%;
+        min-width: 0;
         max-height: 80vh;
         max-height: 80dvh;
         border-radius: var(--radius-xl) var(--radius-xl) 0 0;
         margin: 0;
-        overflow-y: auto;
+        overflow: hidden;           /* R6: the body scrolls, the shell does not */
         padding-bottom: env(safe-area-inset-bottom);
+    }
+
+    .modal-close {
+        width: 48px;                /* R5: 40px measured today, below the 48px floor */
+        height: 48px;
+        min-height: 48px;
+        font-size: 20px;
     }
 
     .modal-body {
@@ -4227,15 +4239,40 @@ tr.bookable-flash.bookable-flash--warning > td { animation: bookable-pulse-warni
 
     .modal-footer {
         flex-direction: column;
+        align-items: stretch;       /* R3 cause 1: the wrappers could not stretch */
         gap: 8px;
         padding: 12px 16px;
         padding-bottom: calc(12px + env(safe-area-inset-bottom));
     }
 
+    .modal-footer-left,
+    .modal-footer-right {
+        flex-direction: column;
+        align-items: stretch;       /* R3: the wrapper must fill the footer */
+        gap: 8px;
+        width: 100%;
+    }
+
+    /* R3 cause 2: the full-width set was missing the confirm/intent families,
+       so "Arrange", "Confirm" and every confirm-dialog button stayed narrow. */
     .modal-footer .btn-action,
-    .modal-footer .btn-close-modal {
+    .modal-footer .btn-close-modal,
+    .modal-footer .btn-outline,
+    .modal-footer .btn-danger,
+    .modal-footer .btn-approve,
+    .modal-footer .btn-replace-now,
+    .modal-footer .btn-confirm,
+    .modal-footer .btn-primary,
+    .modal-footer .btn {
         width: 100%;
         min-height: 44px;
+    }
+
+    /* R3 cause 3: the destructive Cancel sits in a wrapper that right-aligns,
+       which blocked the same stretch one level deeper. */
+    .modal-footer .cancel-confirm-wrap {
+        align-items: stretch;
+        width: 100%;
     }
 }
 
@@ -4535,6 +4572,86 @@ body {
     .modal {
         max-width: 560px;
     }
+}
+
+/* ── 2026-11-14 (modal-responsive-width): above phone width every pop-up is a
+   centred DIALOG that shrinks to its content — floored at today's 420px base,
+   capped by each variant's existing ceiling. 680px is now a CEILING, not a
+   fixed width (see the comment above `.modal.modal--detail`).
+
+   PLACEMENT IS LOAD-BEARING: this block sits after the `max-width: 600px`
+   sheet block and after the tablet cap above, so it wins at 601–1024. Put it
+   beside the base `.modal` rule and the later media queries silently override
+   it — the 601–768 band would stay a half-sheet (the bug the prototype hit). ── */
+@media (min-width: 601px) {
+    .modal {
+        width: fit-content;
+        min-width: 420px;
+        max-height: 85dvh;
+        margin: auto;
+        border-radius: var(--radius-2xl);
+        border-bottom: 1px solid var(--color-outline);
+    }
+
+    .modal-overlay {
+        align-items: center;
+    }
+
+    .modal-header { padding: 18px 22px 0; }
+    .modal-body { padding: 16px 22px; }
+
+    .modal-footer {
+        flex-direction: row;
+        align-items: center;
+        justify-content: space-between;
+        padding: 14px 24px 18px;
+    }
+
+    .modal-footer-left,
+    .modal-footer-right {
+        flex-direction: row;
+        align-items: center;
+        gap: 10px;
+        width: auto;
+    }
+
+    /* Ceilings unchanged — the change only moves the width BELOW them. The
+       0,2,0 specificity is deliberate: it beats the `<= 768px`
+       `.modal.modal--summary { max-width: 100% }` on the 601–768 band. */
+    .modal.modal--detail { max-width: 680px; }
+    .modal.modal--guide { max-width: 520px; }
+    .modal.modal--summary { max-width: 420px; }
+    /* Cancel is 560 in the 601–1024 band (the tablet cap) and 588 above it —
+       today's numbers, so R1 "never wider" holds. Re-declaring 588 here would
+       have grown it from 560. */
+    .modal.modal--cancel { max-width: 560px; }
+}
+
+@media (min-width: 1025px) {
+    .modal.modal--cancel { max-width: 588px; }
+}
+
+/* ── 2026-11-14 (modal-responsive-width R6): three pinned regions at every
+   size — the header and the footer stay put, only the body scrolls.
+   `min-height: 0` is the load-bearing line: without it a flex item refuses to
+   shrink below its content and the footer is pushed off-screen. ── */
+.modal {
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.modal-header,
+.modal-footer {
+    flex: 0 0 auto;
+}
+
+.modal-body {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    scrollbar-width: thin;
 }
 
 /* ── Tablet: 40px minimum touch targets ── */

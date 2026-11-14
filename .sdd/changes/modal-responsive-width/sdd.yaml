@@ -1,6 +1,6 @@
 name: modal-responsive-width
 created: 2026-11-13
-status: frozen
+status: applied
 batch: tasks
 planning_complete: true
 proposal_review: passed
@@ -11,6 +11,21 @@ specs_review: passed
 specs_frozen: true
 tasks_review: passed
 tasks_frozen: true
-implementation_approved: false
-implementation_blocked_by: "theme.css claimed by 6 lanes; cancelled-slot-reuse is applying"
+implementation_approved: true
+implementation_approved_at: 2026-11-14
+implementation_approved_by: user ("yes" to editing live theme.css)
+apply_head: bc99181
+implementation_blocked_by: "none — the theme.css contention that named this lane is resolved"
+blocker_history: "Until 2026-11-14 this lane was blocked by 'theme.css claimed by 6 lanes; cancelled-slot-reuse is applying'. summary-card-detail-copy has since applied and its theme.css work is committed (b9673aa), so the file is no longer held by a queue of lanes. Re-checked 2026-11-14: no other lane is mid-apply in a way that would conflict with a modal-width change."
+resynced: 2026-11-14
+resync_note: "Frozen artifacts were written 2026-11-13 and have not been re-read against the current tree. Before applying, re-check the three premises the proposal rests on: the 680px fixed width, the 768px sheet geometry, and the two phone defects. theme.css gained ~100 lines of flip-card and explain-* rules since, so a selector or specificity collision is possible but unlikely — the modal rules are scoped to .modal / .modal--*."
 prototype_approved: true
+prototype_readonly: "ui-prototype/my-timetable-mobile-preview.html was trialled and measured; no live file was touched for it."
+
+deferred:
+  - task: T3b
+    what: "Reconcile #confirmModal's page-local sheet block in replacement-arrangement.blade.php (design §11 option B)."
+    reason: "Deferred by the user 2026-11-14 — replacement-arrangement.blade.php carries another session's uncommitted work; revisit after that lands."
+    blocked_by: "resources/views/livewire/replacement-arrangement.blade.php (dirty, other session's work)"
+applied_head: faefccd
+verify: "checks run 2026-11-14 (14/14 ModalConsistencyTest, 9/9 new spec, suites compared against HEAD); independent verify review still pending"

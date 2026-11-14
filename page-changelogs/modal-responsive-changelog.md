@@ -1,0 +1,63 @@
+## 2026-11-14 — pop-ups size to their content, and the sheet is phones only
+
+Every details pop-up used to be pinned at **680px** whatever it held, and a
+768px tablet got a phone bottom sheet with 591px of empty overlay above it. Both
+are gone. **680px is now a ceiling, not a fixed width.**
+
+Above 600px a pop-up is a centred dialog that takes `width: fit-content` under a
+**420px floor** and its own existing ceiling. Below 601px it is the bottom
+sheet — and only there. Between 601 and 768 the pop-up is now a normal dialog
+with symmetric corners and a one-row footer; the page behind it keeps its own
+768px layout, which is deliberate.
+
+Widths measured in a real browser before and after (viewport → px):
+
+| Pop-up | 390 | 600 | 601 | 700 | 768 | 1024 | 1360 |
+|---|---|---|---|---|---|---|---|
+| Class details | 350 → **390** | 560 → **600** | 561 → **420** | 660 → **420** | 680 → **420** | 680 → **420** | 680 → **420** |
+| Summary explain | 350 → **390** | 560 → **600** | 561 → **420** | 660 → **420** | 728 → **420** | 420 → 420 | 420 → 420 |
+| Guide | 350 → **390** | 520 → 520 | 520 → 520 | 520 → 520 | 520 → 520 | 520 → 520 | 520 → 520 |
+| Cancel this Class | 350 → **390** | 560 → 560 | 560 → **420** | 560 → **420** | 560 → **420** | 560 → **420** | 588 → **420** |
+| My Replacements details | 350 → **390** | 560 → **600** | 561 → 561 | 660 → 660 | 680 → 680 | 680 → 680 | 680 → 680 |
+| Request Approval details | 350 → **390** | 560 → 560 | 561 → **420** | 660 → **420** | 680 → **420** | 680 → **420** | 680 → **420** |
+
+At 390 and 600 the sheets now **dock flush**: side gap 0, bottom gap 0, top
+radius only. The phone footer finally fills the sheet (the two wrappers did not
+stretch, three button families were missing from the full-width list, and the
+destructive Cancel sat inside a wrapper that right-aligned), the × is a 48×48
+target, and the header and footer are **pinned** — with long content only the
+body scrolls, so the title, the × and Close/Arrange never leave the screen.
+
+Two things worth stating plainly:
+
+- **My Replacements details still reads 680 above 768.** Its tab rail's own
+  content needs ~634px, so `fit-content` legitimately reaches the ceiling. The
+  page-local 680px pin is gone (that is what this change removed); whether that
+  rail should wrap into two rows is a content decision, not this one.
+- **A narrow-ceiling pop-up is not stretched to full width at 600.** Guide (520),
+  Cancel this Class (560 in the 601–1024 band, 588 above) and the Request
+  Approval shell (560, the tablet cap) keep exactly today's widths — widening
+  them to the viewport would grow pop-ups this change promised never to grow.
+  The reference details sheet, whose ceiling is 680, is the one that fills 600.
+
+The arrangement page's confirm dialog is the known exception: it keeps its own
+page-local sheet rules for now, so on that one page the pop-up stays a sheet at
+601–768. That reconciliation is deferred by the user (the file carries another
+session's uncommitted work) and is recorded in the lane's `sdd.yaml`.
+
+The `cancelled-slot-reuse` note A17 ("keep 680px details width") is superseded by
+this entry: 680 is the ceiling, not the width. That lane's frozen files were not
+edited.
+
+Checks: new `tests/modal-responsive-width.spec.ts` **9/9** (R1–R6 at 390 / 600 /
+601 / 700 / 768 / 1024 / 1360, plus the 390×420 pinned-scroll case and both
+pages whose 680 pins were removed); `ModalConsistencyTest` rewritten to the
+bounded invariant, **14/14**; the existing modal suites went from **20 failed /
+23 passed** at HEAD to **17 failed / 26 passed** — the same 17 data-dependent
+failures remain (the testing lane's request queue is empty and the Fortify login
+limiter trips on long runs), and three cancel-class cases now pass. Full backend
+suite: **760 tests, 759 passed**; the one error
+(`CancelClassBatchTest::test_a_pending_request_is_closed_with_its_class`,
+duplicate `time_slots` key) is an order-dependent fixture collision that passes
+on its own and predates this change. No database, route, dependency or content
+change; colours untouched.

@@ -8,8 +8,9 @@ use Tests\TestCase;
  * Modal consistency (user, 2026-11-10) — four laws, pinned so a later edit cannot
  * quietly undo them:
  *
- *  #1 every DETAILS modal is the Replacement Details width (616px), the timeline
- *     rail is gone, and the subtitle names the class type;
+ *  #1 every DETAILS modal shares one CEILING (680px) and one FLOOR (420px) and
+ *     sizes itself with `fit-content` above phone width — since 2026-11-14
+ *     (SDD modal-responsive-width) the width is no longer pinned at 680;
  *  #2 the Arrange Replacement action is a primary (blue) button with an icon;
  *  #3 Class Information leads with the session ID and shows ONE combined subject
  *     row (code — name (type));
@@ -25,23 +26,65 @@ class ModalConsistencyTest extends TestCase
         return (string) file_get_contents(base_path($rel));
     }
 
-    public function test_details_modals_share_the_replacement_details_width(): void
+    /**
+     * 2026-11-14 (SDD modal-responsive-width, user decision R8): 680px is now a
+     * CEILING, not a fixed width. Above 600px every pop-up is
+     * `width: fit-content; min-width: 420px` under a per-variant ceiling, and the
+     * three page-local 680px pins (my-replacements inline, request-approval's ID
+     * selector and its 1025+ media block) were REMOVED so the two widest pages
+     * shrink with their content like every other one.
+     *
+     * The guard therefore pins the BOUNDED invariant: floor + ceiling + fit-content
+     * present, and no page re-pinning a second width. It still fails if someone
+     * restores a fixed 680px with no floor, or raises the ceiling above 680.
+     */
+    public function test_details_modals_share_one_bounded_width(): void
     {
-        /* 2026-11-11 (SDD student-modal-staff-parity, user): 616 → 680 px. The student
-           pop-up carries a fourth tab whose labels need 606 px inside the body; the
-           LAW is unchanged — one width for every details modal — only its number moved,
-           and every shell that sets it must agree. */
         $css = $this->read('public/css/theme.css');
+
+        /* the shared rule: shrink-to-content, floored at today's base */
+        $this->assertMatchesRegularExpression(
+            '/@media \(min-width: 601px\) \{[\s\S]*?\.modal \{[^}]*width: fit-content;[^}]*min-width: 420px;/s',
+            $css,
+            'above phone width a modal sizes to its content and never gets narrower than today',
+        );
+
+        /* the ceiling survives, and it is still 680 */
         $this->assertMatchesRegularExpression(
             '/\.modal\.modal--detail \{[^}]*max-width: 680px;/s',
             $css,
-            'every details modal is 680px, like the Replacement Details shell',
+            'every details modal is still capped at 680px',
         );
-        $this->assertStringContainsString('max-width:680px', $this->read('resources/views/livewire/replacement-home.blade.php'),
-            'the reference width on my-replacements must stay the one the modals match');
-        $this->assertStringNotContainsString('max-width: 616px', $this->read('resources/views/livewire/request-approval.blade.php'),
-            'a second shell left at 616 would split the one width in two');
-        $this->assertStringNotContainsString('max-width:616px', $this->read('resources/views/livewire/request-approval.blade.php'));
+        $this->assertDoesNotMatchRegularExpression(
+            '/\.modal\.modal--detail \{[^}]*max-width: (7\d\d|69\d|68[1-9])px;/s',
+            $css,
+            'the details ceiling must not be raised above 680',
+        );
+        $this->assertDoesNotMatchRegularExpression(
+            '/\.modal\.modal--detail \{[^}]*(?<!max-)width: 680px;/s',
+            $css,
+            'a fixed 680px width would undo the fit-content rule',
+        );
+
+        /* the sheet is phones only — that is what makes 601–768 a dialog */
+        $this->assertMatchesRegularExpression(
+            '/@media \(max-width: 600px\) \{[\s\S]*?\.modal-overlay \{[^}]*padding: 0;/s',
+            $css,
+            'the bottom sheet is the <=600 range, and it docks flush',
+        );
+
+        /* no page pins a second width any more (the 2026-11-03 split is gone) */
+        $home = $this->read('resources/views/livewire/replacement-home.blade.php');
+        $req = $this->read('resources/views/livewire/request-approval.blade.php');
+        foreach (['max-width:680px', 'max-width: 680px'] as $pin) {
+            $this->assertStringNotContainsString($pin, $home, 'my-replacements must not re-pin the shared ceiling');
+            $this->assertStringNotContainsString($pin, $req, 'request-approval must not re-pin the shared ceiling');
+        }
+        $this->assertStringNotContainsString('#modalOverlay .modal { max-width', $req,
+            'the ID-specificity pin is the one the fit-content rule cannot outrank');
+        foreach (['max-width: 616px', 'max-width:616px'] as $old) {
+            $this->assertStringNotContainsString($old, $req, 'a second shell left at 616 would split the one width in two');
+        }
     }
 
     /**

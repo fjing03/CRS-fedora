@@ -6,10 +6,10 @@
 
 @section('page-styles')
 
-        /* 3A/3D (2026-11-04): the details pop-up now carries a facts strip and
-           three schedule/status tabs — the shared 420px base cannot fit them,
-           so this one matches the merged page's 616px shell. */
-        #modalOverlay .modal { max-width: 680px; }
+        /* 2026-11-14 (modal-responsive-width): the page-local 680px pin is GONE.
+           The shared rule above 600px is `width: fit-content; min-width: 420px`
+           with 680 as the ceiling, so this pop-up shrinks with its content like
+           every other one instead of always reserving 680px. */
 
         /* ───── Column Widths ───── */
         .col-no { width: 40px; text-align: center; }
@@ -155,16 +155,9 @@
         .lecturer-cell-email:hover { opacity: 0.8; }
         .lecturer-cell-email .copy-icon { font-size: 10px; opacity: 0.6; }
 
-        /* 2026-11-05 (user): the two decision modals widen to the Request
-           Details modal's own 616 px shell, so all three pop-ups on this page
-           match and the cards keep `date + week` on a single line for every
-           week of the semester. Measured: the longest real string
-           (`Wed, 30 Sep 2026 (Week 14)`) needs 600 px; 570 wrapped both cards
-           (and the Replacement card loses 3 px to its green edge). The
-           theme's own <=1024 px caps still win on tablet and phone. */
-        @media (min-width: 1025px) {
-            .modal { max-width: 680px; }
-        }
+        /* 2026-11-14 (modal-responsive-width): the page-local 1025+ ceiling that
+           used to live here is GONE — one shared ceiling now governs every
+           pop-up, and this page does not re-pin it. */
 
         /* ───── Approval context card (Approve/Reject modals) ───── */
         .approval-compare { display: flex; flex-direction: column; gap: 12px; margin-bottom: 12px; }
