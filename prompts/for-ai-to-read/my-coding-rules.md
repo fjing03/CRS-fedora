@@ -198,6 +198,18 @@ Adding a new status/legend item = **ONE row** in the relevant table above + **ON
 - Never commit secrets.
 - **Push ONLY when the user explicitly says "push"** — `origin` (`fjing03/CRS-fedora.git`) is the only push target; `upstream` is PULL-ONLY. Verify `git remote -v && git branch --show-current` before any push.
 - Every change runs through SDD: `.sdd/changes/<change-name>/` (`proposal.md`, `design.md`, `tasks.md`, `review-log.md`) → verify → archive to `.sdd/archive/`. **No proposal, no change** — and review gates are honest (a real reviewer round or an explicitly logged user waiver; never self-declare frozen).
+  - **Small-change exemption (user, 2026-11-14).** A change may skip the lane when
+    ALL of these hold — it is about blast radius, not line count:
+    1. **Confined** — every hunk touches copy, markup or CSS whose consumers you
+       can name and count (one component, one page). A shared file is allowed
+       only when the hunk sits inside a selector/scope with a single consumer.
+    2. **No logic** — no JS state machine, no Livewire/PHP behaviour, no DB,
+       schema or migration.
+    3. **Undoable** — a single `git revert` restores the prior behaviour.
+    4. **Not a pattern** — it does not create something a 3rd page would reuse
+       (that would trigger promote-on-3rd-duplication, which always needs a lane).
+    5. **User says go** — the exemption is granted per change, not assumed.
+    Everything else gets a lane. "It looked small" is not criterion 1.
 
 ## 6. Hard session-ops absolutes live elsewhere — obey both, don't duplicate
 
