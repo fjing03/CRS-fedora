@@ -3,9 +3,15 @@
 > The always-read form of the user's coding rules for `CRS-fedora-backend`.
 > Distilled from `CodingMAIN.md §10` (Coding Conventions + UI Design Rules, user-mandated 2026-08-01)
 > and `AGENTS.md` standing rules. On any conflict, **CodingMAIN.md §10 wins** — and tell the user
-> this file has drifted so it can be re-synced. Last synced: 2026-11-14 night (adds: cards behind one phone button, overlay-not-dialog layering, per-surface locks, hide-the-control rule, hunk-commit check).
+> this file has drifted so it can be re-synced. Last synced: 2026-11-15 (adds: prototypes now live in `ui-prototype/` and carry the design intent in comments; `Class Cancelled` is grey, never red; `Close` is never the filled primary; the 2026-11-14 batch of card/overlay/lock rules).
 
 ## 1. UI Design Rules — non-negotiable, every page, every change
+
+> **The prototypes are in the repo: `ui-prototype/`** (since 2026-11-15; they used to sit one level
+> above it). They are the picture, and they carry the design intent in **code comments**. Open the
+> matching one before designing; in the lane paper, point at it and quote it rather than restating it.
+> Only a *decision* change needs the paper edited. Saved live pages need the dev server
+> (`<base href="http://127.0.0.1:8000/">`); hand-built previews load `../public/css/theme.css`.
 
 1. **Colors: tokens only.** All colors come from the CSS custom-property set in `public/css/theme.css` (`--color-bg`, `--color-surface`, `--color-primary/secondary/tertiary/error` + their `-container`/`-on-*` variants; defined once for dark + once for light). **NEVER hardcode hex/rgb/rgba** in a page's `@section('page-styles')` — use `var(--color-...)`. A new color needed → add the token to `theme.css` ONCE.
    - Sole sanctioned exception (FOUC guard) in `resources/views/layouts/ui-template.blade.php`: `html.dark { background: #0D1B2A; }` / `html.light { background: #F0F3F7; }` — if the theme bg token ever changes, update BOTH together (grep `html.dark`). No other hardcoded color is permitted.
@@ -120,6 +126,12 @@ the make-up countdown on the requested date; approved/completed print `—`.
 
 Adding a new status/legend item = **ONE row** in the relevant table above + **ONE class** in `theme.css`, then reuse it everywhere.
 
+**`Class Cancelled` is grey, never red** (2026-11-15, user): `.badge-cancelled` takes the same
+pair as `Cancelled` above (`--color-surface-variant` / `-on-surface-variant`) — the chip My
+Replacements already prints. Red is **Public Holiday**'s and **Conflict**'s; a third meaning
+would blunt it. `theme.css` has no `.badge-cancelled` skin yet — that line is owed, and it
+copies `.badge-reason`, not `.badge-conflict`.
+
 3. **Utilise OOP concepts** (§2 below): no copy-paste — reuse layout / partials / shared modules.
 4. **Minimise plain text, maximise icon buttons.** Icon buttons for self-evident actions (edit ✎, cancel ✕, approve ✓, view 👁, chevrons ‹ ›, sort ▲▼, theme-toggle, notifications) with `title`/`aria-label` for accessibility; visible text only for page title, table headers, status badges, and the key data. Reuse the inline SVG set in `resources/views/flux/icon/` — no ad-hoc SVGs per page.
 5. **Don't overwhelm — detail goes in modals.** Page surface = grid/table + filters + summary cards + primary actions. Anything "nice to know" rather than "need to scan" opens in a modal behind an icon button, never inline.
@@ -133,6 +145,12 @@ Adding a new status/legend item = **ONE row** in the relevant table above + **ON
      pop-up opens over it. Measure it at `left: 8px` first — measuring at the final spot loops and ends on the edge.
 10. **Toast bar for critical actions.** Bottom-left toast with the success message, auto-dismiss after **5 seconds** — `toast.show(message, undoCallback, duration)` in `ui-common.js`, CSS in `theme.css`. **Undo is offered only where the action is genuinely reversible** (hiding a notification, clearing a selection). **Cancel Class is FINAL** (user ruling 2026-11-05: *"i give up all UNDONE function"*) — no undo button, no undo callback, no server undo route; the confirmation itself is the receipt. The cancellation reminder is **one-shot**: it may return on ONE later page load, never on every load, and a `?blocked=` arrival speaks first (its own message wins; the reminder keeps its turn for the next load).
 11. **Dates and times speak one format — already shipped, keep it.** Date `5 Nov 2026` (no leading zero, day first); time `2:00 PM`; range `2:00 PM ~ 4:00 PM` (the tilde is the joiner; a hyphen is acceptable but never mix joiners in one element; the en dash `–` is not a range joiner). Day word `Thu` in compact lines (table cells, cards, chips, picker labels, tooltips) and `Thursday` in prose (sentences, questions, toasts, expanded modal rows). The 24-hour grid hour axis is a scale and stays 24-hour; notification tooltips stay short (no year). Emails carry the full date + 12-hour range (`Mon, 9 Nov 2026, 1:30 PM ~ 3:30 PM`) via `ReplacementRequestMapper::mailSchedule()`. Full audit + batch log: `docs/date-time-format-audit-2026-11-07.md`. New surface → use the standard, never invent a fourth shape.
+
+**Pop-up footers.** **`Close` is never the filled button** (2026-11-15, user) — closing is not an
+action worth the fill, so a footer with no real action shows one quiet outline `Close` and a
+footer with an action fills the action. Covers all five details/class pop-ups (the two
+timetable class ones and the three replacement ones). This reverses the 2026-11-14 "Close
+fills when it is alone" rule: delete any `is-primary` toggle on a Close, never re-add it.
 
 ## 2. OOP at every layer (FYP rubric evaluates this)
 

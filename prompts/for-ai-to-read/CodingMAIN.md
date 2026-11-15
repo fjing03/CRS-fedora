@@ -511,6 +511,17 @@ The project applies **OOP principles at every layer**; FYP rubric evaluates this
 ### 0. UI Design Rules (user-mandated 2026-08-01)
 These eleven rules are **non-negotiable** for every page and every future change:
 
+> **Where the picture lives (2026-11-15).** The HTML prototypes are in **`ui-prototype/`**, inside
+> this repo — they used to sit one level above it, where git could not see them. They are the visual
+> reference for UI work, and they **carry the design intent in code comments** (why a card tier is
+> 11px, why a badge is grey, which rule a class obeys). Before designing a page or a pop-up, open the
+> matching prototype; in the lane's paper, point at it and quote its comments instead of restating
+> them. A change to a **decision** still needs the paper updated — a change to a pixel does not.
+> The hand-built previews load `../public/css/theme.css` from this repo; the three pages **saved**
+> from the live site (`my-replacements.html`, `request-approval.html`,
+> `student-class-replacements.html`) keep `<base href="http://127.0.0.1:8000/">`, so they need the
+> dev server for CSS/JS. Reference screenshots stay out of git (`ui-prototype/.gitignore`).
+
 1. **Colors must be consistent across all pages.**
    - ALL colors come from the CSS custom-property token set in `public/css/theme.css` (`--color-bg`, `--color-surface`, `--color-primary`/`secondary`/`tertiary`/`error` + their `-container`/`-on-*` variants, defined once for dark + once for light).
    - **NEVER hardcode hex/rgb/rgba** in a page's `@section('page-styles')`. Use `var(--color-...)`. If a new color is needed, add the token to `theme.css` once.
@@ -523,6 +534,15 @@ These eleven rules are **non-negotiable** for every page and every future change
    - **Read-only timetable blocks use the frozen two-axis language** (§3): block classes `event-mine`/`event-others`/`event-mine-pending`/`event-others-pending`/`event-conflict`/`event-public-holiday`; legends render block-class chips + the ownership hint ("thick border (3px) = your classes · thin border (0.5px) = others'"). Tooltips render `name · lecturer · status` via `data-name` + `data-tip2` (`lecturer · status`). **The arrangement grid is the exception:** since 2026-11-11 it has no ownership ring, and its legend is four rows (see B).
    - **One details-popup width: 680px** (2026-11-11/12). The student Class Replacements popup is the staff Replacement Details popup — four tabs, static Close-left / Go-right footer, conflict strip above the tabs — and `.modal-tabs` wraps below 520px. Do not shave one page's modal narrower.
    - **680 is a CEILING, not a fixed width** (2026-11-14, lane `modal-responsive-width`). One shared rule in `theme.css` governs every pop-up; **no page pins its own width** (the page-local `max-width: 680px` on the quick view and on the Request Approval shell were deleted — on ID specificity they beat the shared rule). Above 600px a pop-up is `width: fit-content` with a **420px floor** and `max-height: 85dvh`; at **≤600px** it is a full-width phone sheet (`padding: 0` on the overlay). Variants keep their own ceiling: details **680**, guide **520**, summary **420**, Cancel Class **560** (588 at ≥1025). The close button is **48×48** and the phone footer stretches every button full width. A pop-up is three pinned regions — header, scrolling body, footer — so a long body never pushes the buttons off screen.
+   - **`Close` is never the filled primary** (2026-11-15, user). A filled button reads as "the thing to
+     do", and closing is never the thing to do. Five pop-ups are covered — the two timetable class
+     pop-ups and the three replacement ones (Replacement Details on My Replacements, Request Details on
+     Request Approval, Class Replacements on the student page). A footer with no real action shows one
+     quiet outline `Close`; a footer with an action fills the action and leaves `Close` outlined. This
+     reverses the 2026-11-14 "Close fills when it is alone" rule for both families — delete that
+     toggle rather than re-adding it: `.modal--detail .modal-footer .btn-outline.is-primary` in
+     `theme.css` stays as the shared fill, but nothing should assign `is-primary` to a Close any more
+     (`replacement-history.blade.php` hard-codes it; `replacement-home.blade.php` toggles it).
    - **Content never decides a pop-up's width** (2026-11-14). The grey facts strip (`.detail-facts`) is `width: 0; min-width: 100%`: it fills whatever the pop-up is and wraps. It must not widen it (measured 626 → 513 at the same height).
    - **A bookable cell is green, even in the last hour** (2026-11-14, lane `venue-evening-tail`). The venue grid's day now runs **08:00–18:30** (22 half-hours, real `time_slots` rows to 19:00) and its last served half-hours are **painted and counted like any other free cell** — never red, never silently dropped. A cell with no room left below it says **`Not Enough Slot`** in green and explains itself in the toast (`Not enough room below this class — pick a Free Cell.`); the red `Too Late to Book` day-end arm is retired. The tail exists only for days whose last served row is in the final hour, so a half-day room stays truthful. A class's duration is still judged only after it is picked (`#slotWarningOverlay`, shared 680 ceiling).
    - **A list opened inside a pop-up is never clipped** (2026-11-14). `.modal:has(.session-dd.open)` / `.modal-body:has(.session-dd.open)` go `overflow: visible` so the session picker floats outside the box; **at ≤600px it opens upward inside the sheet** (`top: auto; bottom: calc(100% + 4px)`, `max-height: 180px`) and the clipping stays. **One arrow language:** a select arrow inside a pop-up is the sanctioned `.week-select` chevron at a **12px inset** (13px from the outer edge), same stroke in dark and light (`%239EAAB8` / `%235A6978`).
@@ -601,6 +621,14 @@ These eleven rules are **non-negotiable** for every page and every future change
    | Completed | `--color-primary-container` / `-on-primary-container` |
 
    Adding a new status/legend item = add ONE row to the relevant table above + ONE class to `theme.css`, then reuse it everywhere. Do not invent a synonym.
+
+   **`Class Cancelled` is grey, never red** (2026-11-15, user). The timetable class pop-up's
+   Status row wears `.badge-cancelled` = the **same pair as `Cancelled` above**
+   (`--color-surface-variant` / `-on-surface-variant`), which is also the chip My Replacements
+   already prints in its Reason column. `--color-error` belongs to **Public Holiday** and
+   **Conflict** (`.badge-conflict` / `.badge-public-holiday`); a third meaning on red would blunt
+   the signal. `theme.css` still has **no** `.badge-cancelled` skin — adding it is owed work; do
+   not ship the transparent pill, and do not copy `.badge-conflict`'s tokens.
 
 **A week filter names which weeks it means — and the two replacement pages mean different weeks
 (2026-11-07; labels re-worded to SLOT on 2026-11-10; "all" option shortened to `All Weeks` on
