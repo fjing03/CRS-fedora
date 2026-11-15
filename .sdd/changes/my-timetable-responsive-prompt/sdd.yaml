@@ -1,21 +1,32 @@
 name: my-timetable-responsive-prompt
 created: 2026-11-14
 status: proposed
-batch: proposal
+batch: tasks (frozen) — ready for apply
 lane_shape: full
-brief: ../ui-prototype/my-timetable-responsive-prompt.md
-reference_prototype: ../ui-prototype/my-timetable-mobile-preview.html
+brief: ui-prototype/my-timetable-responsive-prompt.md
+reference_prototype: ui-prototype/my-timetable-mobile-preview.html
+reference_prototype_phase_b: ui-prototype/student-my-timetable-mobile-preview.html
+prototype_alignment: 2026-11-15
 page: resources/views/livewire/my-timetable.blade.php
 phase_b_page: resources/views/livewire/student-my-timetable.blade.php
 phase_b_decided: 2026-11-15
-proposal_review: pending
-proposal_frozen: false
-design_review: pending
-design_frozen: false
-specs_review: pending
-specs_frozen: false
-tasks_review: pending
-tasks_frozen: false
-review_rounds: 2
+proposal_review: passed
+proposal_frozen: true
+proposal_frozen_on: 2026-11-15
+design_review: passed
+design_frozen: true
+design_frozen_on: 2026-11-15
+review_rounds_design: 3
+specs_review: passed
+specs_frozen: true
+specs_frozen_on: 2026-11-15
+review_rounds_specs: 2
+specs_path: "specs/timetable-responsive/spec.md"
+tasks_review: passed
+tasks_frozen: true
+tasks_frozen_on: 2026-11-15
+review_rounds_tasks: 2
+tasks_path: "tasks.md (T0a-T19, eight batches)"
+review_rounds: 4
 implementation_approved: false
-implementation_approval: ""
+implementation_approval: "not asked — the brief is explore + propose only (batches 1-4 frozen)"
