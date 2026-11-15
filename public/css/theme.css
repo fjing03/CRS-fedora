@@ -6092,6 +6092,23 @@ body.filters-panel-open .filters-btn { position:relative; z-index:1300; }
         min-width: 0;
         height: 44px;
     }
+    /* the preview's PHONE week label (`Week 9 · 16 Nov ~ 22 Nov`, no year): at
+       390 the select's own 12/32px padding left a 79px text box, so the label
+       clipped to "Week 8 · 9 N" even though the row had the room. Same font and
+       paddings as the approved preview (R5b). */
+    .tt-responsive .tt-sticky .week-select {
+        font-size: 12px;
+        padding-left: 6px;
+        padding-right: 24px;
+        text-overflow: ellipsis;
+    }
+    /* the preview's phone row carries no print button (`preview-desktop-only`):
+       the week row is arrows + select + Today at 390, which is exactly what pays
+       for the un-truncated `Week 8 · 9 Nov ~ 15 Nov` label above. Printing from a
+       phone is the browser's own menu. */
+    .tt-responsive .print-btn {
+        display: none;
+    }
 
     /* the strip: all seven chips at every width, scrollable, momentum on touch */
     .tt-responsive .tt-days {
@@ -6328,6 +6345,14 @@ body.filters-panel-open .filters-btn { position:relative; z-index:1300; }
 .tt-responsive .tt-card.event-block::after {
     display: none;
 }
+/* and the same on the DESKTOP blocks of an opted-in page: the builder writes
+   `data-tip` there too (T12), so the ::after pair resolves to "<name> · " and
+   used to paint a truncated bubble under the shared engine's correct one.
+   Found by the T11 verification, not by the design — the frozen CSS list only
+   covered the card. */
+.tt-responsive .event-block[data-tip]::after {
+    display: none;
+}
 .tt-responsive .tt-card .tt-time {
     font-size: 14px;
     font-weight: 700;
@@ -6398,6 +6423,33 @@ body.filters-panel-open .filters-btn { position:relative; z-index:1300; }
         border-radius: var(--radius-md);
         overflow: hidden;
         background: var(--color-surface);
+    }
+    /* The header row and the time axis (Batch C, T7) — the approved preview's
+       `.preview-tablet-head` / `.preview-axis` / `.preview-grid-cell` furniture.
+       The module writes ONLY the grid-column/grid-row placement inline; every
+       size and colour is here, under the scope, in theme.css tokens. */
+    .tt-responsive .tt-whead {
+        padding: 10px 6px;
+        text-align: center;
+        font-size: 13px;
+        font-weight: 600;
+        border-bottom: 1px solid var(--color-outline);
+        background: var(--color-surface-variant);
+    }
+    .tt-responsive .tt-whead small {
+        display: block;
+        font-size: 11px;
+        font-weight: 400;
+    }
+    .tt-responsive .tt-axis {
+        padding: 5px 4px;
+        font-size: 10px;
+        color: var(--color-on-surface-variant);
+        border-bottom: 1px solid var(--color-outline);
+    }
+    .tt-responsive .tt-gcell {
+        border-left: 1px solid var(--color-outline);
+        border-bottom: 1px solid var(--color-outline);
     }
     /* the cell reuses .tt-card, so it keeps the focusable button, the details modal,
        the aria-label and the tip of a desktop block; only the sizes drop to the
@@ -6498,6 +6550,16 @@ body.filters-panel-open .filters-btn { position:relative; z-index:1300; }
 .tt-responsive .tt-sheet-body .summary-section {
     margin-top: 0;
 }
+/* The BUILT semester-range line (T9, spec R6). It is GENERATED from
+   MockData.semester.chipText — there is no range node on the page to move, and the
+   header's #semesterChip keeps its own copy — so it is the one child of the body the
+   movers never touch. Last in the body, after the five cards: legend → cards → range. */
+.tt-responsive #ttSheetBody .tt-sheet-range {
+    margin: 10px 2px 0;
+    font-size: 12px;
+    line-height: 1.4;
+    color: var(--color-on-surface-variant);
+}
 /* scroll lock. A body class cannot carry the `.tt-responsive` prefix, so it is
    scoped with :has() instead — the rule still cannot bite a page without the scope. */
 body.tt-sheet-open:has(.tt-responsive) {
@@ -6514,6 +6576,16 @@ body.tt-sheet-open:has(.tt-responsive) {
 @media (max-width: 389px) {
     .tt-responsive #ttSheetBody .summary-bar {
         grid-template-columns: 1fr;
+    }
+    /* 320-389: the week label needs ~145px of text and the row cannot pay for it
+       beside two arrows and Today, so the week nav takes the full line and Today
+       drops under it — the label never truncates (R5b: "nothing clipped"). */
+    .tt-responsive .tt-sticky .semester-bar {
+        flex-wrap: wrap;
+        row-gap: 4px;
+    }
+    .tt-responsive .tt-sticky .week-nav {
+        flex: 1 1 100%;
     }
 }
 

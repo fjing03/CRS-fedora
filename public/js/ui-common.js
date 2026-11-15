@@ -1106,8 +1106,21 @@ function buildTimetableGrid(cfg) {
         const tipLect = (typeof cfg.tipLecturerFn === 'function')
             ? cfg.tipLecturerFn(e)
             : (e.lecturer || '—');
-        div.dataset.tip2 = [tipCtx, tipLect, eventStatusLabel(e, isConflict).toUpperCase()]
+        const tipText = [tipCtx, tipLect, eventStatusLabel(e, isConflict).toUpperCase()]
             .filter(Boolean).join(' · ');
+        if (cfg.responsive) {
+            /* my-timetable-responsive-prompt T12(a) — the TIP MIGRATION, and it
+               lives inside this flag only (spec R5). The two pieces the CSS
+               `::after` (theme.css: `content: attr(data-name) ' · ' attr(data-tip2)`)
+               used to join become ONE `data-tip` for the shared engine, composed by
+               the exact expression design §6 pins — so the rendered sentence is
+               byte-identical to today's, and the four callers without the flag keep
+               the old attribute pair (T0a baseline: tests/fixtures/t0a-baseline.json).
+               `data-name` stays set: it is the name half of the expression above. */
+            div.dataset.tip = [div.dataset.name, tipText].filter(Boolean).join(' · ');
+        } else {
+            div.dataset.tip2 = tipText;
+        }
         if (typeof cfg.statusClassFn === 'function') {
             cfg.statusClassFn(div, e, isConflict);
         } else if (e.status === 'cancelled') {
@@ -1141,10 +1154,25 @@ function buildTimetableGrid(cfg) {
             extraHtml = '<span class="ev-note">(Replaced for ' + e.remarks + ')</span>';
         }
 
+        /* T12(b) — the ONE desktop change (spec R4): at >=1280 a cancelled or
+           conflicted block prints `✕ Cancelled` / `⚠ Conflict` UNDER the time, in the
+           block's own colour. `.ev-note` supplies the shipped note tier (11px/600,
+           centred, margin-top 1px) and inherits the block's `color`, so this is the
+           block's own colour with no new skin; `.tt-block-status` is the stable hook
+           (no rules of its own). A public holiday prints NO word inside a block, and
+           nothing else about the block moves — code, venue, time, note keep their
+           order. Flag-only, so the other four callers stay byte-identical (T0a). */
+        let statusWord = '';
+        if (cfg.responsive && !isConflict && (e.status === 'cancelled' || e.status === 'conflict')) {
+            statusWord = '<span class="ev-note tt-block-status">'
+                + (e.status === 'cancelled' ? '✕ Cancelled' : '⚠ Conflict') + '</span>';
+        }
+
         div.innerHTML =
             '<span class="ev-code">' + e.code + '(' + e.type + ')</span>' +
             '<span class="ev-venue">' + e.venue + '</span>' +
             '<span class="ev-time">' + startTime + ' ~ ' + endTime + '</span>' +
+            statusWord +
             extraHtml;
 
         div.addEventListener('click', function() { cfg.onEventClick(e, di); });
@@ -1528,9 +1556,17 @@ function openClassModal(cfg) {
     // "Conflict" — holiday ≠ clash, two different §10.0 meanings. Grid block
     // already styles it event-public-holiday; the badge now matches.
     const st = isConflict ? 'public-holiday' : (event.status || 'normal');
+    /* my-timetable-responsive-prompt T13 — the LONG word, PAGE-SCOPED (spec R4).
+       The bare `Cancelled` can be read as the REQUEST being cancelled, so the two
+       timetable pages pass `longCancelledLabel: true` and their Status row reads
+       `Class Cancelled`. The flag is per-call on purpose: this modal is shared with
+       Cohort, Venue and Student Replacement History, whose Status badge is not this
+       lane's to change — every other caller keeps `Cancelled` byte-identically. */
     const displayStatus = st === 'public-holiday'
         ? 'Public Holiday'
-        : st.charAt(0).toUpperCase() + st.slice(1);
+        : (st === 'cancelled' && cfg.longCancelledLabel === true)
+            ? 'Class Cancelled'
+            : st.charAt(0).toUpperCase() + st.slice(1);
 
     const startStr = to12h(hours[event.start]);
     const endStr = to12h(hours[event.end + 1] || add30min(hours[event.end]));
@@ -2355,6 +2391,25 @@ var SummarySheet = {
     _onKeyDown: null,
 
     init: function () {
+        /* THE GATE — my-timetable-responsive-prompt (T9, 2026-11-15), and it must
+           stay the first line of init(). On the two timetable pages that carry
+           `.tt-responsive` this module is NOT the owner of #summarySection:
+           sync() relocates that node into #summarySheetBody at <=768 REGARDLESS of
+           the header button (the button only gates visibility), while
+           TimetableResponsive moves the same node into #ttSheetBody. With both
+           alive the two relocators fight for one node, this module's
+           MutationObserver and its print handlers yank it back out of the sheet,
+           and unrelocate()'s parent guard then leaves TWO placeholders behind. So
+           on those pages TimetableResponsive is the single owner and nothing here
+           ever binds — not the matchMedia listener, not beforeprint/afterprint,
+           not the observer, not _bindKeys.
+           The `#summarySheet` frame that partials/ui-summary-bar always renders
+           stays in the DOM, and that is fine: it is inert, not merely quiet. Nothing
+           binds to it (both its handlers are inline on its own hidden overlay and X),
+           and nothing calls open() on these pages once T11/T14 drop the header's
+           `summaryButton` opt-in — the only caller of open() in the whole file is
+           that header button's inline onclick. */
+        if (document.querySelector('.tt-responsive')) return;
         if (this._bound) return;
         this._bound = true;
 
@@ -3179,6 +3234,16 @@ function hideNotifRowInPlace(row) {
 function openNotifPanel() { // AD-12 direction 1 — drawer never stacks with panel
     if (window.FiltersPanel) FiltersPanel.close(false);
     closeNavDrawer();
+    /* The other half of "one overlay at a time" (my-timetable-responsive-prompt R6,
+       T9): the bell and the Week summary sheet sit on the same layer, so opening the
+       bell closes the sheet from HERE — inside this file's own bell code, so no blade
+       has to know the sheet exists and no onclick grows a second handler.
+       restoreFocus=false: the bell owns the focus, and closeSheet() must not pull it
+       back to #ttSummaryButton. Safe when the sheet is closed: closeSheet() then only
+       re-asserts the resting state (it is idempotent). */
+    if (window.TimetableResponsive && typeof TimetableResponsive.closeSheet === 'function') {
+        TimetableResponsive.closeSheet(false);
+    }
     const panel = document.getElementById('notifPanel');
     const overlay = document.getElementById('notifOverlay');
     const bell = document.querySelector('.notif-btn');
@@ -6886,15 +6951,15 @@ window.LastVisit = LastVisit;
 
 
 /* ═════ TimetableResponsive — the ≤1279px chrome for the two timetable pages ═════
-   SDD my-timetable-responsive-prompt (lane frozen 2026-11-15). BATCH A IS THE SHELL:
-   state, breakpoints and `data-tt-mode` only — no surface is built yet, and each
-   stub below names the batch that fills it.
+   SDD my-timetable-responsive-prompt (lane frozen 2026-11-15). Batch A = the shell
+   (state, breakpoints, `data-tt-mode`); Batch B = the phone (day strip, agenda card,
+   next-class hint — T4/T5/T6); Batch C = the tablet window (transposed grid, window
+   cell — T7/T8); Batch D = the Week summary sheet (T9). The two blades still do not
+   call init(): they opt in at T11 (staff, phase A) and T14 (student, phase B).
 
    The scope class `.tt-responsive` is the whole safety story: the page root carries
    it, every rule the lane adds to theme.css is prefixed with it, and this module
-   only ever acts when it finds one. NOTHING CALLS init() IN THIS BATCH, so the app
-   behaves exactly as it does today (design §4.1/§10); the two blades opt in at T11
-   (staff, phase A) and T14 (student, phase B).
+   only ever acts when it finds one.
 
    State law (design §3): ONE object, `{ width, day, mode }`. `mode` is
    'agenda' | 'window' | 'full'; `day` is 0..6 (Monday first) and is CLAMPED on every
@@ -6908,7 +6973,20 @@ const TimetableResponsive = {
        every init(), so a week change hands in the week the grid just drew. */
     _cfg: null,
     _bound: false,
+    /* T11's extra behaviour, decided 2026-11-15: the FIRST init() opens the week on
+       TODAY's index when this week contains today, else Monday. Set here (not in a
+       blade) and only once, so a week change never yanks the reader off the day they
+       picked. */
+    _dayInitialised: false,
+    /* one hidden placeholder per MOVED node, keyed by `#id` / `.class` — the
+       SummarySheet discipline landing in T9: the same node is moved, never copied,
+       and the placeholder is the exact seat it goes back to. */
     _placeholders: {},
+    /* the sheet's controls are static markup, so they are bound exactly once; the
+       module re-inits on every week change and must never double-bind. */
+    _sheetBound: false,
+    /* the one document keydown this module owns, while the sheet is open */
+    _onKeyDown: null,
 
     /* The four bands live in the queries, not in a number: width is cached only for
        consumers that want to read it, never for a decision (R2). */
@@ -6937,6 +7015,28 @@ const TimetableResponsive = {
                 if (this._mq[i].addEventListener) this._mq[i].addEventListener('change', onChange);
                 else if (this._mq[i].addListener) this._mq[i].addListener(onChange);
             }
+
+            /* R8: printing can never capture the sheet. The two moved nodes go back
+               inline for the paper (the print rules in theme.css un-hide them there,
+               because the shipped SummarySheet's own print unrelocate is gated off on
+               these pages) and return into #ttSheetBody afterwards — the summary
+               bar's own beforeprint/afterprint pattern. Bound once, beside the three
+               queries, never per week. */
+            window.addEventListener('beforeprint', function () { self._sheetBeforePrint(); });
+            window.addEventListener('afterprint', function () { self._sheetAfterPrint(); });
+        }
+
+        /* First init only: land on today when the current week contains it, else
+           Monday (index 0). Runs BEFORE sync(), which then renders the strip and the
+           agenda for that day. */
+        if (!this._dayInitialised) {
+            this._dayInitialised = true;
+            var days = this._days();
+            var startDay = 0;
+            for (var d = 0; d < days.length; d++) {
+                if (this._isToday(days[d])) { startDay = d; break; }
+            }
+            this._state.day = startDay;
         }
 
         this.sync();
@@ -6983,61 +7083,875 @@ const TimetableResponsive = {
         var table = document.getElementById('timetable');
         if (table) table.style.display = mode === 'full' ? '' : 'none';
 
-        /* ≥1280 is today's page: nothing of this lane renders there. */
-        if (mode === 'full') return;
+        /* ≥1280 is today's page: nothing of this lane renders there. The window grid
+           is a plain div outside its media block, so it is hidden by hand — unlike
+           the strip/agenda/hint, which the base rules in theme.css already hide. */
+        var winGrid = document.getElementById('ttWindowGrid');
+
+        /* R6: below 1280 the sheet holds the legend + the cards, so its opener is
+           offered; at >=1280 the sheet does not exist (proposal §9c) — this closes it
+           and puts the two moved nodes back before the early return. */
+        this._syncSheet(mode);
+
+        if (mode === 'full') {
+            if (winGrid) winGrid.hidden = true;
+            return;
+        }
 
         this.buildStrip();
-        if (mode === 'agenda') this.buildAgenda();
+        if (mode === 'agenda') {
+            /* one surface at a time: a window left over from 900px must not paint
+               under the agenda, and the empty agenda node collapses (`:empty`) */
+            if (winGrid) winGrid.hidden = true;
+            this.buildAgenda();
+        } else {
+            var agendaEl = document.getElementById('ttAgenda');
+            if (agendaEl) agendaEl.innerHTML = '';
+            this._buildWindow();
+        }
+    },
+
+    /* ── Batch B/C surfaces (T4–T8) ───────────────────────────────────── */
+
+    /* cfg.days() / cfg.events() are the page's OWN closures — they read the week
+       the grid has just drawn, so the strip, the agenda and the window can never
+       show a week the table does not. Both are guarded: a page rebuilding itself
+       must never be left with a half-drawn surface (design §10). */
+    _days: function () {
+        var cfg = this._cfg || {};
+        try { return (typeof cfg.days === 'function' && cfg.days()) || []; } catch (e) { return []; }
+    },
+
+    _events: function () {
+        var cfg = this._cfg || {};
+        try { return (typeof cfg.events === 'function' && cfg.events()) || []; } catch (e) { return []; }
+    },
+
+    /* `day.date` is generateWeekData's `D Mon YYYY`; parse it to LOCAL midnight and
+       compare against getTodayMs() — the same anchor MockData.mockNow feeds (the
+       blades set mockNow = null for the real clock), so "today" can never drift.
+       Returns null when the string is not a date. */
+    _dayDate: function (day) {
+        var MONTHS = { jan: 0, feb: 1, mar: 2, apr: 3, may: 4, jun: 5,
+            jul: 6, aug: 7, sep: 8, oct: 9, nov: 10, dec: 11 };
+        var m = String((day && day.date) || '').match(/^(\d{1,2})[\s-]([A-Za-z]{3,})[\s-](\d{4})$/);
+        if (!m) return null;
+        var mo = MONTHS[m[2].slice(0, 3).toLowerCase()];
+        if (mo === undefined) return null;
+        var dt = new Date(parseInt(m[3], 10), mo, parseInt(m[1], 10));
+        if (dt.getFullYear() !== parseInt(m[3], 10) || dt.getMonth() !== mo) return null;
+        return dt;
+    },
+
+    _isToday: function (day) {
+        if (!day) return false;
+        if (day.today === true) return true;          /* the payload's own flag */
+        var dt = this._dayDate(day);
+        return !!dt && dt.getTime() === getTodayMs();
+    },
+
+    /* days AFTER today read quieter on the strip (theme.css `.tt-day.is-ahead`). */
+    _isAhead: function (day) {
+        var dt = this._dayDate(day);
+        return !!dt && dt.getTime() > getTodayMs();
+    },
+
+    /* The R7 accessible name needs `Monday`, not `Mon`. DateHelper.weekdayName
+       derives it FROM THE DATE (the 2026-11-11 lesson: an index-derived name
+       prints one day early), so it is the helper to reuse here. */
+    _fullDayName: function (day) {
+        var fromDate = DateHelper.weekdayName(day && day.date);
+        if (fromDate) return fromDate;
+        var FULL = { Mon: 'Monday', Tue: 'Tuesday', Wed: 'Wednesday', Thu: 'Thursday',
+            Fri: 'Friday', Sat: 'Saturday', Sun: 'Sunday' };
+        return (day && (FULL[day.abbr] || day.abbr)) || '';
+    },
+
+    /* `10:00 AM ~ 11:00 AM` — the exact expression makeEventBlock() uses, so the
+       card, the window cell and the desktop block can never print a different
+       clock. Reuses to12h(), the shared `hours` axis and DateHelper.add30min(). */
+    _timeRange: function (e) {
+        var startT = to12h(hours[e.start]);
+        var endT = to12h(hours[e.end + 1] || add30min(hours[e.end]));
+        return startT + ' ~ ' + endT;
+    },
+
+    /* The SPOKEN status (aria-label / tip), never the visible word: R4 gives the
+       long form `Class Cancelled` to the modal Status row and to the agenda card's
+       spoken status, while every visible block keeps the short one (a 60–110px cell
+       cannot carry it). Reuses eventStatusLabel() — the one status vocabulary. */
+    _spokenStatus: function (e, isHoliday) {
+        if (isHoliday) return eventStatusLabel(e, true);           /* 'Public Holiday' */
+        if (e.status === 'cancelled') return 'Class Cancelled';    /* spec R4, spoken only */
+        return eventStatusLabel(e, false);
+    },
+
+    /* The hover tip, composed exactly as design §6 states:
+       `[name, [tipCtx, tipLect, status].filter(Boolean).join(' · ')]` joined the
+       same way — the shape the flag's tip migration gives the desktop block, with the
+       lecturer segment empty on these pages (the viewer is the lecturer; the segment
+       stays in the expression so phase B composes identically). A page may supply both
+       pieces through cfg.tooltipExtra / cfg.tipLecturerFn, exactly as it supplies them
+       to buildTimetableGrid; absent, the sentence is `AMSE2003 … · CANCELLED`. */
+    _tipFor: function (e, isHoliday) {
+        var cfg = this._cfg || {};
+        var tipCtx = (typeof cfg.tooltipExtra === 'function') ? (cfg.tooltipExtra(e) || '') : '';
+        var tipLect = (typeof cfg.tipLecturerFn === 'function') ? (cfg.tipLecturerFn(e) || '') : '';
+        var status = eventStatusLabel(e, isHoliday).toUpperCase();
+        return [e.name, [tipCtx, tipLect, status].filter(Boolean).join(' · ')].filter(Boolean).join(' · ');
+    },
+
+    /* The cards of one day that share time with `e` — inclusive half-hour indices,
+       the prototype's test. An identical eventKey is the SAME identity (the house
+       dedupe law), so a merged-cohort duplicate can never fake a clash. */
+    _othersOverlapping: function (e, list) {
+        return (list || []).filter(function (o) {
+            if (!o || o === e) return false;
+            if (e.eventKey !== undefined && e.eventKey !== null && e.eventKey !== ''
+                && o.eventKey === e.eventKey) return false;
+            return o.start <= e.end && e.start <= o.end;
+        });
+    },
+
+    /* `Overlaps 10:30 AM ~ 12:30 PM · BMCS2023 (T)` when exactly one other class,
+       `Overlaps 2 other classes` when several — the two approved forms (R3/R3b),
+       and the same words are appended to aria-label. */
+    _overlapText: function (e, others) {
+        if (!others || !others.length) return '';
+        if (others.length === 1) {
+            var o = others[0];
+            return 'Overlaps ' + this._timeRange(o) + ' · '
+                + (o.code || '') + (o.type ? ' (' + o.type + ')' : '');
+        }
+        return 'Overlaps ' + others.length + ' other classes';
+    },
+
+    /* ── T5/T8 — THE CARD (one builder, two surfaces) ──
+       Frozen design §4.2 markup: `.tt-card-top` (.tt-time / .tt-venue), `.tt-course`
+       (code + type), `.tt-note` (the date note + ONE status word) and `.tt-overlap`
+       on a clash. The SAME builder feeds the phone agenda and the tablet window, so
+       both carry the same focusable <button>, the same aria-label and the same
+       data-tip; only the CSS sizes differ (14px phone tiers, the brief's 11/10/9.5px
+       tablet tiers — design §5 / R3b). The subject NAME is never on the card: it
+       stays in aria-label, the tip and the details modal (R3).
+
+       Reused: to12h/hours/add30min through _timeRange(), buildReplacementNote() for
+       the note wording, eventStatusLabel() for the status words. NOT reused because
+       no helper exists: buildTimetableGrid()'s colour ladder is inline inside
+       makeEventBlock(), so the ladder below mirrors it arm for arm — and defers to a
+       page's cfg.statusClassFn when one is passed, the same contract the builder has.
+       `cfg.readonly` needs no branch: a card ONLY opens the details modal, so phase B
+       (read-only) and phase A behave identically and no cancel affordance is ever
+       attached here (R9). */
+    _card: function (e, day, dayEvents) {
+        var cfg = this._cfg || {};
+        var isHoliday = !!(day && day.holiday);
+        var others = this._othersOverlapping(e, dayEvents);
+        var overlap = this._overlapText(e, others);
+
+        var btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'event-block tt-card';
+        if (overlap) btn.classList.add('is-overlap');
+
+        /* Colour ladder — makeEventBlock()'s, arm for arm. A holiday day's block is
+           the CONFLICT red on these two personal pages (that is what the live grid
+           paints, and what the approved preview's statusMeta says);
+           `event-public-holiday` is the browse pages' "not yours" hairline and is
+           deliberately NOT used here. */
+        if (typeof cfg.statusClassFn === 'function') {
+            cfg.statusClassFn(btn, e, isHoliday);
+        } else if (e.status === 'cancelled') {
+            btn.classList.add('event-conflict');
+        } else if (isHoliday || e.status === 'conflict') {
+            btn.classList.add('event-conflict');
+        } else if (e.status === 'normal') {
+            btn.classList.add('event-normal');
+        } else if (e.status === 'replacement') {
+            btn.classList.add('event-replacement');
+        } else if (e.status === 'pending') {
+            btn.classList.add('event-pending');
+        }
+
+        /* Identity rides the card exactly as it rides a desktop block: data-id is
+           the design's hook, data-sid the session the page's own modal reads. */
+        btn.dataset.id = String(e.id == null ? '' : e.id);
+        btn.dataset.sid = String(e.sessionId == null ? (e.id == null ? '' : e.id) : e.sessionId);
+        var tip = this._tipFor(e, isHoliday);
+        if (tip) btn.dataset.tip = tip;
+
+        var spoken = [
+            this._timeRange(e),
+            (e.code || '') + (e.type ? ' (' + e.type + ')' : ''),
+            e.name || '',
+            e.venue || '',
+            this._spokenStatus(e, isHoliday)
+        ].filter(Boolean).join(', ');
+        if (overlap) spoken += ', ' + overlap;
+        btn.setAttribute('aria-label', spoken);
+
+        /* PRIMARY tier — the time range and the venue code, one size and weight */
+        var top = document.createElement('span');
+        top.className = 'tt-card-top';
+        var timeEl = document.createElement('span');
+        timeEl.className = 'tt-time';
+        timeEl.textContent = this._timeRange(e);
+        var venueEl = document.createElement('span');
+        venueEl.className = 'tt-venue';
+        venueEl.textContent = e.venue || '';
+        top.appendChild(timeEl);
+        top.appendChild(venueEl);
+        btn.appendChild(top);
+
+        /* SECONDARY tier — the course code + type, smaller and grey. The subject
+           name is NOT here (R3): it lives in the spoken label, the tip, the modal. */
+        var course = document.createElement('span');
+        course.className = 'tt-course';
+        course.textContent = (e.code || '') + (e.type ? ' (' + e.type + ')' : '');
+        btn.appendChild(course);
+
+        /* TERTIARY tier — the note line: at most the date note plus ONE status word.
+           The date note is the house wording (buildReplacementNote: `(Pending since
+           …)` / `(Cancelled)` / `(Replaced for …)` / `(Proposed ⏳)`), read from the
+           page's own replacementNoteFn when it passes one so the card and the grid
+           can never diverge. Only Cancelled/Conflict print a word, and a public
+           holiday prints none at all — the day itself is the label (R3). */
+        var noteHtml = '';
+        try {
+            noteHtml = (typeof cfg.replacementNoteFn === 'function')
+                ? (cfg.replacementNoteFn(e) || '')
+                : buildReplacementNote(e);
+        } catch (err) { noteHtml = ''; }
+        var wordStatus = (!isHoliday && (e.status === 'cancelled' || e.status === 'conflict')) ? e.status : null;
+
+        if (noteHtml || wordStatus) {
+            var note = document.createElement('span');
+            note.className = 'tt-note';
+            if (noteHtml) {
+                /* the note contract is HTML (buildReplacementNote returns its own
+                   <span class="ev-note">), so it is the one innerHTML here */
+                note.innerHTML = noteHtml;
+            }
+            if (wordStatus) {
+                var word = document.createElement('span');
+                word.className = 'tt-status status-' + wordStatus;
+                word.textContent = wordStatus === 'cancelled' ? '✕ Cancelled' : '⚠ Conflict';
+                note.appendChild(word);
+            }
+            btn.appendChild(note);
+        }
+
+        if (overlap) {
+            var line = document.createElement('span');
+            line.className = 'tt-overlap';
+            line.textContent = overlap;
+            btn.appendChild(line);
+        }
+
+        /* The card opens the page's OWN details modal — the same handler a desktop
+           block calls, so nothing about the modal is re-implemented here. */
+        btn.addEventListener('click', function () {
+            if (typeof cfg.onEventClick === 'function') cfg.onEventClick(e, e.di);
+        });
+        return btn;
+    },
+
+    /* ── T4 — the day strip ── */
+    buildStrip: function () {
+        var strip = document.getElementById('ttDayStrip');
+        if (!strip) return;
+        var days = this._days();
+        var events = this._events();
+        var selected = this._state.day;
+        var self = this;
+
+        strip.innerHTML = '';
+        days.forEach(function (d, di) {
+            var count = events.filter(function (e) { return e && Number(e.di) === di; }).length;
+            var isToday = self._isToday(d);
+            var btn = document.createElement('button');
+            btn.type = 'button';
+            btn.className = 'tt-day'
+                + (isToday ? ' is-today' : '')
+                + (d && d.holiday ? ' is-holiday' : '')
+                + (self._isAhead(d) ? ' is-ahead' : '');
+            btn.dataset.day = String(di);
+            btn.setAttribute('aria-pressed', String(di === selected));
+            /* aria-current="date" ONLY on the real today, and only while it is the
+               selected day (R5) — a selected Wednesday is not "the current date". */
+            if (isToday && di === selected) btn.setAttribute('aria-current', 'date');
+
+            /* R7 accessible name: `Monday, 3 classes[, selected][, public holiday]`.
+               The state lives in the label, not in the chip's pixels, so it is
+               testable and a screen reader hears it. */
+            var name = self._fullDayName(d) + ', ' + count + ' ' + (count === 1 ? 'class' : 'classes');
+            if (di === selected) name += ', selected';
+            if (d && d.holiday) name += ', public holiday';
+            btn.setAttribute('aria-label', name);
+
+            var abbr = document.createElement('strong');
+            abbr.textContent = (d && d.abbr) || '';
+            btn.appendChild(abbr);
+            btn.appendChild(document.createTextNode(String(count)));
+            strip.appendChild(btn);
+        });
+
+        /* ONE delegated listener, bound once: buildStrip() re-renders the chips on
+           every sync, so per-chip listeners would have to be re-attached forever. */
+        if (!this._stripBound) {
+            this._stripBound = true;
+            strip.addEventListener('click', function (ev) {
+                var chip = ev.target && ev.target.closest ? ev.target.closest('[data-day]') : null;
+                if (!chip || !strip.contains(chip)) return;
+                var i = parseInt(chip.getAttribute('data-day'), 10);
+                if (isNaN(i)) return;
+                self.setDay(i);          /* the selected day is a no-op (R5b) */
+            });
+        }
+    },
+
+    /* ── T5 — the agenda (≤767) ── */
+    buildAgenda: function () {
+        var host = document.getElementById('ttAgenda');
+        if (!host) return;
+        var days = this._days();
+        var events = this._events();
+        var di = this._state.day;
+        var day = days[di] || null;
+        /* time order, then the shortest first, then code — a stable, readable list */
+        var list = events.filter(function (e) { return e && Number(e.di) === di; })
+            .sort(function (a, b) {
+                return (a.start - b.start) || (a.end - b.end)
+                    || String(a.code || '').localeCompare(String(b.code || ''));
+            });
+        var self = this;
+        host.innerHTML = '';
+        list.forEach(function (e) { host.appendChild(self._card(e, day, list)); });
+        this._syncTools();
+        this._buildNextHint();
+    },
+
+    /* The tools row's heading + count (design §4.1 ships both empty; the module fills
+       them for the surface it just drew). Same words the approved preview uses. */
+    _syncTools: function () {
+        var days = this._days();
+        var events = this._events();
+        var heading = document.getElementById('ttDayHeading');
+        var countEl = document.getElementById('ttDayCount');
+        var di = this._state.day;
+        if (this._state.mode === 'agenda') {
+            var n = events.filter(function (e) { return e && Number(e.di) === di; }).length;
+            if (heading) heading.textContent = this._fullDayName(days[di]) || '';
+            if (countEl) countEl.textContent = n + (n === 1 ? ' class this day' : ' classes this day');
+            return;
+        }
+        var size = this._windowSize();
+        var start = this._windowStart(size);
+        var first = days[start], last = days[start + size - 1];
+        if (heading) heading.textContent = ((first && first.abbr) || '') + ' ~ ' + ((last && last.abbr) || '');
+        if (countEl) countEl.textContent = size + ' days visible';
+    },
+
+    /* ── T7 — the transposed window grid (768–1279) ──
+       N = 2 at 768–1023, 3 at 1024–1279; the window starts at the selected day and
+       is clamped so it never runs past Sunday: start = min(day, 7 - N). Rendered into
+       #ttWindowGrid, and the legacy #timetable is hidden by sync() — the real table
+       has days as ROWS and 22 half-hour columns, so hiding rows could never look like
+       the approved transposed grid (design §5). */
+    _windowSize: function () {
+        if (this._mq[2] && this._mq[2].matches) return 3;
+        if (this._mq[1] && this._mq[1].matches) return 2;
+        return window.innerWidth >= 1024 ? 3 : 2;
+    },
+
+    _windowStart: function (size) {
+        return Math.max(0, Math.min(this._state.day, 7 - size));
+    },
+
+    _buildWindow: function () {
+        var grid = document.getElementById('ttWindowGrid');
+        if (!grid) return;
+        var days = this._days();
+        var events = this._events();
+        var size = this._windowSize();
+        var start = this._windowStart(size);
+        var self = this;
+
+        grid.hidden = false;
+        /* the ONE custom property the CSS template reads (theme.css §window mode) */
+        grid.style.setProperty('--tt-day-count', String(size));
+        grid.innerHTML = '';
+
+        function addCell(cls, col, row, text) {
+            var cell = document.createElement('div');
+            cell.className = cls;
+            cell.style.gridColumn = String(col);
+            cell.style.gridRow = String(row);
+            if (text !== undefined) cell.textContent = text;
+            grid.appendChild(cell);
+            return cell;
+        }
+
+        /* the 62px header row: a corner label + one column per visible day */
+        addCell('tt-whead', 1, 1, 'Time');
+        for (var i = 0; i < size; i++) {
+            var head = addCell('tt-whead', i + 2, 1);
+            var d = days[start + i] || {};
+            head.appendChild(document.createTextNode(d.abbr || ''));
+            var dateLine = document.createElement('small');
+            dateLine.textContent = d.date || '';
+            head.appendChild(dateLine);
+            if (d.holiday) {
+                var hol = document.createElement('small');
+                hol.textContent = 'Public Holiday';
+                head.appendChild(hol);
+            }
+        }
+
+        /* the time axis down the left: the same 22 half-hour rows the grid uses, so
+           each of the 11 hours is two rows (design §5) */
+        for (var slot = 0; slot < hours.length; slot++) {
+            addCell('tt-axis', 1, slot + 2, hours[slot]);
+            for (var c = 0; c < size; c++) addCell('tt-gcell', c + 2, slot + 2);
+        }
+
+        /* one cell per event, placed by day index and half-hour span. The shared
+           lane planner decides the side-by-side split (cancelled history stacks
+           above the live class it overlaps, exactly as on the desktop grid) — two
+           classes sharing time must never be drawn on top of each other. */
+        for (var col = 0; col < size; col++) {
+            var di = start + col;
+            var day = days[di] || null;
+            var list = events.filter(function (e) { return e && Number(e.di) === di; });
+            var lay = layoutTimetableDay(list).days[String(di)] || { placed: [], lanes: 1 };
+            var lanes = Math.max(1, lay.lanes || 1);
+            lay.placed.forEach(function (p) {
+                var e = p.event;
+                var card = self._card(e, day, list);
+                var span = Math.max(1, p.span || (e.end - e.start + 1));
+                var geom = 'grid-column:' + (col + 2)
+                    + ';grid-row:' + (e.start + 2) + ' / span ' + span;
+                if (lanes > 1) {
+                    geom += ';justify-self:start;width:calc(100% / ' + lanes + ' - 4px)'
+                        + ';margin-left:calc(100% * ' + (p.lane || 0) + ' / ' + lanes + ')';
+                }
+                card.setAttribute('style', geom);
+                grid.appendChild(card);
+            });
+        }
+
+        this._syncTools();
+        this._buildNextHint();
+    },
+
+    /* ── T6 — the next-class hint ──
+       Only an EMPTY selected day or a PUBLIC HOLIDAY offers it (R5); any other day
+       hides it. cfg.findNextClass(fromWeek, fromDay) is the page's cross-week source
+       (events() is the current week only), so the hint is rendered by ASKING it —
+       design §4.4 calls the result "that event's week", and the label needs that
+       event's start time and code, so `res.event` is used when the page supplies it
+       and the hint degrades to the weekday alone when it does not. A page without
+       the knob gets no hint at all (graceful, R5). */
+    _currentWeek: function () {
+        var w = parseInt(window.currentWeek, 10);
+        if (!isNaN(w)) return w;
+        try { return currentWeekIndex(); } catch (e) { return 0; }
+    },
+
+    _buildNextHint: function () {
+        var hint = document.getElementById('ttNextHint');
+        if (!hint) return;
+        var self = this;
+        hint.innerHTML = '';
+        hint.hidden = true;
+
+        var cfg = this._cfg || {};
+        if (typeof cfg.findNextClass !== 'function') return;
+        var days = this._days();
+        var di = this._state.day;
+        var day = days[di] || null;
+        var dayCount = this._events().filter(function (e) { return e && Number(e.di) === di; }).length;
+        var isHoliday = !!(day && day.holiday);
+        if (dayCount > 0 && !isHoliday) return;      /* only the empty day / the holiday */
+
+        var res = null;
+        try { res = cfg.findNextClass(this._currentWeek(), di); } catch (e) { res = null; }
+        if (!res || res.week === undefined || res.week === null
+            || res.day === undefined || res.day === null) return;
+
+        var target = days[parseInt(res.day, 10)] || null;
+        var ev = res.event || null;
+        var when = (target && target.abbr ? target.abbr : '')
+            + (ev && typeof ev.start === 'number' ? ' ' + to12h(hours[ev.start]) : '');
+        var sentence = 'Next class: ' + when + (ev && ev.code ? ' · ' + ev.code : '');
+
+        var btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'tt-next-hint';
+        btn.dataset.nextWeek = String(res.week);
+        btn.dataset.nextDay = String(res.day);
+        btn.setAttribute('aria-label', sentence);
+
+        var row = document.createElement('span');
+        row.className = 'tt-next-details';
+        var line = document.createElement('span');
+        line.appendChild(document.createTextNode('Next class: '));
+        var strong = document.createElement('strong');
+        strong.textContent = when;
+        line.appendChild(strong);
+        if (ev && ev.code) {
+            line.appendChild(document.createTextNode(' · '));
+            var chip = document.createElement('span');
+            chip.className = 'tt-next-venue';
+            chip.textContent = ev.code;
+            line.appendChild(chip);
+        }
+        row.appendChild(line);
+        btn.appendChild(row);
+        btn.addEventListener('click', function () { self.nextClass(); });
+        hint.appendChild(btn);
+        hint.hidden = false;
+    },
+
+    /* ── T4 — day selection ──
+       Re-renders the strip and the surface for a new day. A tap on the day that is
+       ALREADY selected does nothing at all — no re-render, no scroll, no focus jump
+       (R5b). In window mode `_buildWindow()` moves the window so the tapped day is
+       its first column, clamped at Sunday. */
+    setDay: function (i) {
+        var day = parseInt(i, 10);
+        if (isNaN(day)) return;
+        day = Math.max(0, Math.min(6, day));
+        if (day === this._state.day) return;
+        this._state.day = day;
+        if (this._state.mode === 'full') return;     /* ≥1280 renders nothing of ours */
+        this.buildStrip();
+        if (this._state.mode === 'agenda') this.buildAgenda();
         else this._buildWindow();
     },
 
-    /* ── Surface stubs, in the order the batches land. Empty on purpose. ── */
-
-    /* Batch B/C — seven chips (aria-pressed, today dot, holiday class) from cfg.days(). */
-    buildStrip: function () {
-        /* Batch B/C */
-    },
-
-    /* Batch B/C — the agenda card of design §4.2, from cfg.events(). */
-    buildAgenda: function () {
-        /* Batch B/C */
-    },
-
-    /* Batch B/C — the transposed 2/3-day grid rendered into #ttWindowGrid. */
-    _buildWindow: function () {
-        /* Batch B/C */
-    },
-
-    /* Batch B — re-render strip + agenda for a new day (a tap on the selected day
-       is a no-op, R5b); in window mode the tap moves the window instead. */
-    setDay: function (i) {
-        /* Batch B */
-    },
-
-    /* Batch B — the next-class jump: week → day → focus #ttDayHeading + scroll. */
+    /* ── T6 — the jump: week → day → focus + scroll ──
+       THE ROUTE, stated exactly (task T6 asked for it in a comment): both timetable
+       blades export `window.selectWeek(index)`, which is `weekNav.selectWeek(index)`
+       + `window.currentWeek` + the session memory. WeekNavigator.selectWeek() re-values
+       #weekSelect, calls the page's own `buildTimetable()` (the same hook the week
+       <select> fires on change) and saves. That is the minimal existing route: no new
+       endpoint, no blade edit, and no second data shape — cfg.events()/cfg.days() close
+       over the page's `currentWeek`, so after the call they hand back the NEW week.
+       `window.nextWeek()`/`window.prevWeek()` remain the fallback for a page that has
+       not exported selectWeek. */
     nextClass: function () {
-        /* Batch B */
+        var cfg = this._cfg || {};
+        if (typeof cfg.findNextClass !== 'function') return;
+        var fromWeek = this._currentWeek();
+        var res = null;
+        try { res = cfg.findNextClass(fromWeek, this._state.day); } catch (e) { res = null; }
+        if (!res) return;
+        var week = parseInt(res.week, 10);
+        var day = parseInt(res.day, 10);
+        if (isNaN(week) || isNaN(day)) return;
+
+        if (typeof window.selectWeek === 'function') {
+            window.selectWeek(week);
+        } else {
+            /* fallback for a page that has not exported selectWeek: step week by week
+               with the hooks these blades do export, bounded so a page that never
+               moves falls through instead of spinning */
+            var guard = 0;
+            while (this._currentWeek() !== week && guard++ < 60) {
+                if (this._currentWeek() < week && typeof window.nextWeek === 'function') window.nextWeek();
+                else if (this._currentWeek() > week && typeof window.prevWeek === 'function') window.prevWeek();
+                else break;
+            }
+        }
+
+        /* The page's rebuild re-enters init() once T11/T14 land; sync() here is
+           idempotent and keeps a standalone probe page working. */
+        this.sync();
+        this.setDay(day);
+
+        var heading = document.getElementById('ttDayHeading');
+        if (heading) {
+            heading.setAttribute('tabindex', '-1');
+            if (typeof heading.focus === 'function') heading.focus({ preventScroll: true });
+            if (typeof heading.scrollIntoView === 'function') {
+                heading.scrollIntoView({ block: 'center', behavior: 'instant' });
+            }
+        }
     },
 
-    /* Batch D — the Week summary sheet: two movers, a built range line, scroll lock,
-       Tab trap, Esc, focus back to #ttSummaryButton (R6). */
+    /* ═════ T9 — the Week summary sheet (R6, design §6) ═══════════════════════════
+       Below 1280 theme.css hides the page's own `.legend-bar` and `#summarySection`
+       on screen, so the summary lives behind `#ttSummaryButton`. The sheet MOVES those
+       two nodes — the SAME node, never a copy, each with a hidden placeholder holding
+       its seat so the restore is exact (the SummarySheet discipline) — and BUILDS one
+       extra line, `#ttSheetRange`, from MockData.semester.chipText. The header's
+       #semesterChip keeps its own copy, which is why the range line is generated and
+       not relocated: there is no range NODE on the page to move.
+       Body order is fixed and asserted by spec R6: legend → the five cards → range.
+
+       One overlay at a time: openSheet() closes the bell below; the bell closes this
+       sheet from inside openNotifPanel()'s own code. (No FiltersPanel line here on
+       purpose — neither timetable page opts into it, and this file must not grow a
+       second half-wired pairing.) */
+
+    _sheet: function () { return document.getElementById('ttSheet'); },
+    _sheetBody: function () { return document.getElementById('ttSheetBody'); },
+    _legendNode: function () { return document.querySelector('.legend-bar'); },
+    _summaryNode: function () { return document.getElementById('summarySection'); },
+
+    /* The resting/offered state, run from sync(): below 1280 the opener is offered and
+       the controls are bound (once); at >=1280 the sheet does not exist, so it is
+       closed and the two nodes go home. A page without the nodes hides the button and
+       openSheet() no-ops (design §10) — it never throws and never half-opens. */
+    _syncSheet: function (mode) {
+        var sheet = this._sheet();
+        var body = this._sheetBody();
+        var btn = document.getElementById('ttSummaryButton');
+        if (!sheet || !body) { if (btn) btn.hidden = true; return; }
+
+        this._bindSheetControls();
+
+        if (!this._legendNode() || !this._summaryNode()) { if (btn) btn.hidden = true; return; }
+        if (btn) btn.hidden = false;
+
+        if (mode === 'full') this.closeSheet(false);
+    },
+
+    /* The shell ships the three controls and binds none of them (no inline onclick is
+       allowed on the chrome partial), so the module binds them — idempotently, because
+       sync() runs again on every week change and on every breakpoint crossing. */
+    _bindSheetControls: function () {
+        if (this._sheetBound) return;
+        var sheet = this._sheet();
+        if (!sheet) return;
+        this._sheetBound = true;
+        var self = this;
+
+        var btn = document.getElementById('ttSummaryButton');
+        if (btn && !btn.hasAttribute('onclick')) {
+            btn.addEventListener('click', function () { self.openSheet(); });
+        }
+
+        var close = sheet.querySelector('.tt-sheet-close');
+        if (close) close.addEventListener('click', function () { self.closeSheet(); });
+
+        /* The veil closes; a click inside the dialog never does (same test the house
+           overlays use: the event target must BE the overlay). */
+        sheet.addEventListener('click', function (e) {
+            if (e.target === sheet) self.closeSheet();
+        });
+    },
+
     openSheet: function () {
-        /* Batch D */
+        var sheet = this._sheet();
+        var body = this._sheetBody();
+        var legend = this._legendNode();
+        var section = this._summaryNode();
+        var btn = document.getElementById('ttSummaryButton');
+
+        /* design §10: a page with no nodes gets no sheet and no button. */
+        if (!sheet || !body || !legend || !section) {
+            if (btn) btn.hidden = true;
+            return;
+        }
+        if (!sheet.hidden) return;              /* already open: no second bind, no re-move */
+
+        /* One overlay at a time: the bell sits on the same layer (z 1200). */
+        if (typeof closeNotifPanel === 'function') closeNotifPanel();
+
+        /* Move, never copy — and in this order, so the body reads legend → cards, with
+           the built range line appended after them. */
+        this._relocate(legend);
+        this._relocate(section);
+        this._appendRange();
+
+        sheet.hidden = false;
+        document.body.classList.add('tt-sheet-open');   /* the NEW lock class, not summary-sheet-open */
+        if (btn) btn.setAttribute('aria-expanded', 'true');
+
+        var close = sheet.querySelector('.tt-sheet-close');
+        if (close) close.focus({ preventScroll: true });
+
+        this._bindKeys();
     },
 
-    closeSheet: function () {
-        /* Batch D */
+    /* restoreFocus=false is for the co-existence rules only (the bell opening on top
+       closes the sheet without stealing its focus). Restores even when the sheet is
+       already closed, so it is safe to call as a "put everything back" guard. */
+    closeSheet: function (restoreFocus) {
+        var sheet = this._sheet();
+        if (!sheet) return;
+        var wasOpen = !sheet.hidden;
+
+        /* The generated line goes first: it is not a page node, so it must not survive
+           as a ghost inside an empty body. The two movers then go back to their seats
+           (their placeholders are removed with them). */
+        var line = document.getElementById('ttSheetRange');
+        if (line && line.parentNode) line.parentNode.removeChild(line);
+
+        this._restore(this._legendNode());
+        this._restore(this._summaryNode());
+
+        sheet.hidden = true;
+        document.body.classList.remove('tt-sheet-open');
+        this._unbindKeys();
+
+        var btn = document.getElementById('ttSummaryButton');
+        if (btn) btn.setAttribute('aria-expanded', 'false');
+        /* At >=1280 the button sits inside a hidden #ttTools, so this focus call is a
+           deliberate silent no-op there — the SummarySheet.close() convention. */
+        if (wasOpen && restoreFocus !== false && btn && !btn.hidden) btn.focus({ preventScroll: true });
     },
 
-    /* Batch D — move a node with a placeholder so its restore is exact. */
+    /* ── the movers: the same node + a hidden placeholder for its exact seat ── */
+    _nodeKey: function (node) {
+        if (!node) return '';
+        if (node.id) return '#' + node.id;
+        var cls = String(node.className || '').split(/\s+/)[0];
+        return cls ? '.' + cls : '';
+    },
+
     _relocate: function (node) {
-        /* Batch D */
+        var body = this._sheetBody();
+        if (!node || !body || node.parentNode === body) return node;   /* idempotent */
+
+        var ph = document.createElement('span');
+        ph.className = 'tt-sheet-placeholder';
+        ph.hidden = true;
+        if (node.parentNode) node.parentNode.insertBefore(ph, node);
+        this._placeholders[this._nodeKey(node)] = ph;
+        body.appendChild(node);
         return node;
     },
 
     _restore: function (node) {
-        /* Batch D */
+        if (!node) return node;
+
+        var key = this._nodeKey(node);
+        var ph = this._placeholders[key];
+        /* No placeholder means this node was never moved by openSheet(), so there is
+           nothing to restore — the parent guard that keeps a second relocator from
+           fighting us (design §2). */
+        if (ph && ph.parentNode) {
+            ph.parentNode.insertBefore(node, ph);
+            ph.parentNode.removeChild(ph);
+        }
+        delete this._placeholders[key];
         return node;
+    },
+
+    /* The BUILT range line (12px, --color-on-surface-variant, see theme.css): the text
+       is the header chip's own, so the sheet can never print a different semester. It
+       is re-appended last on every open and every post-print relocation, which is what
+       keeps the R6 order — legend → cards → range — without any reordering code. */
+    _appendRange: function () {
+        var body = this._sheetBody();
+        if (!body) return;
+
+        var line = document.getElementById('ttSheetRange');
+        if (!line) {
+            line = document.createElement('p');
+            line.id = 'ttSheetRange';
+            line.className = 'tt-sheet-range';
+        }
+
+        var chip = '';
+        try { chip = (window.MockData && window.MockData.semester && window.MockData.semester.chipText) || ''; }
+        catch (err) { chip = ''; }
+        line.textContent = chip;
+
+        if (body.lastElementChild !== line) body.appendChild(line);
+    },
+
+    /* Print, both halves (R8). before: the nodes go back inline, where theme.css's
+       print rules un-hide them. after: they return into #ttSheetBody while the sheet
+       is closed — below 1280 that is where the summary lives, and the page hides both
+       nodes inline anyway, so nothing is lost, doubled or left on screen. */
+    _sheetBeforePrint: function () {
+        this._restore(this._legendNode());
+        this._restore(this._summaryNode());
+    },
+
+    _sheetAfterPrint: function () {
+        if (this._state.mode === 'full') return;        /* >=1280: inline is home */
+        var body = this._sheetBody();
+        var legend = this._legendNode();
+        var section = this._summaryNode();
+        if (!body || !legend || !section) return;
+
+        this._relocate(legend);
+        this._relocate(section);
+        this._appendRange();
+    },
+
+    /* A dialog ABOVE this sheet owns the next Escape: the class details modal, the
+       guide dialog and the summary explain modal all show themselves with inline
+       display:flex on a `.modal-overlay` (FiltersPanel's own predicate, reused), and
+       the cancel modal shows itself with `.show`. While one is up, Esc and Tab are
+       left entirely to it. */
+    _dialogAbove: function () {
+        if (document.querySelector('.modal-overlay[style*="flex"]')) return true;
+        var cancel = document.getElementById('cancelClassOverlay');
+        if (cancel && cancel.classList.contains('show')) return true;
+        var explain = document.getElementById('summaryExplainModal');
+        return !!(explain && explain.style.display !== 'none');
+    },
+
+    /* Capture phase on purpose, the SummarySheet mechanism copied arm for arm: it runs
+       BEFORE the pages' and SummaryCards' bubble-phase Escape handlers, so one
+       keypress closes exactly one layer. Bound only while the sheet is open. */
+    _bindKeys: function () {
+        if (this._onKeyDown) return;
+        var self = this;
+        this._onKeyDown = function (e) {
+            var sheet = self._sheet();
+            if (!sheet || sheet.hidden) return;
+
+            if (e.key === 'Escape') {
+                if (self._dialogAbove()) return;    /* one Escape = one layer */
+                e.preventDefault();
+                e.stopPropagation();
+                self.closeSheet();
+                return;
+            }
+
+            if (e.key !== 'Tab' || self._dialogAbove()) return;   /* trap suspended for the dialog */
+
+            var panel = sheet.querySelector('.tt-sheet');
+            if (!panel) return;
+            var nodes = panel.querySelectorAll(
+                'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), ' +
+                'textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
+            );
+            var items = [];
+            for (var i = 0; i < nodes.length; i++) {
+                if (nodes[i].offsetWidth || nodes[i].offsetHeight || nodes[i].getClientRects().length) {
+                    items.push(nodes[i]);
+                }
+            }
+            if (!items.length) return;
+            var first = items[0];
+            var last = items[items.length - 1];
+            var active = document.activeElement;
+
+            if (e.shiftKey) {
+                if (active === first || !panel.contains(active)) {
+                    e.preventDefault();
+                    last.focus();
+                }
+            } else if (active === last) {
+                e.preventDefault();
+                first.focus();
+            }
+        };
+        document.addEventListener('keydown', this._onKeyDown, true);
+    },
+
+    _unbindKeys: function () {
+        if (!this._onKeyDown) return;
+        document.removeEventListener('keydown', this._onKeyDown, true);
+        this._onKeyDown = null;
     },
 };
 window.TimetableResponsive = TimetableResponsive;

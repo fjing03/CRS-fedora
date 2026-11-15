@@ -1,0 +1,109 @@
+# Apply log — `my-timetable-responsive-prompt`
+
+Batches A–F applied 2026-11-15 on the testing DB (`class_replacement_testing`, `:8030`), by subagents
+under the orchestrating session, each verified before the next began. Batches G–H below.
+
+## T0a — baselines (before any code)
+
+Captured `tests/fixtures/t0a-baseline.json` and committed it **alone**, so the file's history proves it
+was taken while the builder was still untouched:
+
+- **synthetic**: `buildTimetableGrid()` driven with a fixed five-event array through `/login` (the only
+  route that loads `ui-common.js` without a session), plain non-`cellRender` mode plus the cohort page's
+  `tipLecturerFn`/`statusClassFn` shapes. This is the branch T12's two edits land in.
+- **live**: `#timetable.outerHTML` from Cohort (`?week=9`, 11 blocks, 19 690 bytes) and Venue
+  (`?venue=B005&week=9`, 5 blocks, 30 914 bytes).
+
+**Deviation, recorded:** the Arrangement page paints no grid until a course is picked, and its course
+picker did not respond to `selectOption()` through three attempts; a third live capture was therefore
+dropped. Arrangement is covered by the synthetic call (same function, same flags), and T15's live pins
+are Cohort + Venue. Nothing about the invariant is weaker: the synthetic call is the branch that
+actually changes.
+
+## Batch A — the shell (T1, T2, T3)
+
+- T1 `partials/ui-tt-chrome.blade.php` (new) as design §4.1, taking `$ttScope`, `$ttReadonly`,
+  `$ttWeekNav`. Nothing calls `init()` yet and no page carried the scope class, so the app was
+  unchanged by this batch.
+- T2 one new `theme.css` section, every rule prefixed `.tt-responsive`, plus the single unscoped
+  `.badge-cancelled` skin (it had never been defined: a cancelled class's Status row printed a bare
+  word in a transparent pill; it takes `.badge-reason`'s token pair, not `--color-error`, which is
+  already public holiday's and conflict's). Two specificity fixes were needed against the 44px sticky
+  rules and the card's `min-height: 0`; both are commented in place.
+- T3 `TimetableResponsive` state + three media queries + `sync()`, which sets `data-tt-mode` (the hook
+  the mode rules key on) and hides the legacy 22-column table below 1280.
+
+## Batch B/C — the phone and the tablet (T4–T8)
+
+- The strip, the agenda card, the next-class hint, and the transposed window grid. Reused rather than
+  re-invented: `to12h()`, `DateHelper.add30min()`, `buildReplacementNote()`, `eventStatusLabel()`, and
+  `layoutTimetableDay()` for the side-by-side split inside a window cell. `sync()` gained the
+  one-surface-at-a-time switch (the window node sits outside its media block, so CSS alone cannot hide
+  it).
+- **T6's week change** goes through `window.selectWeek()` — the very function the week `<select>` calls
+  today — so no new route and no blade edit. `findNextClass()` may return `{ week, day, event }`; the
+  event is read for the hint's label.
+- **CSS added, declared:** `.tt-whead`, `.tt-whead small`, `.tt-axis`, `.tt-gcell` — the preview's
+  tablet head/axis/cell had no skin in the shell, so the window grid would have rendered unstyled.
+- **Four rules ported from the preview's phone block** that the shell's CSS list had missed (found by
+  measuring, not by reading): `.week-select` 12px with 6/24px padding, the print button hidden below
+  768 (the preview's own `preview-desktop-only`), and — for 320–389 only — a wrapped week row with the
+  nav taking the full line. Without them the phone label clipped to `Week 8 · 9 N` at 390 and worse at
+  320; with them 320/360/390/430 all show `Week 8 · 9 Nov ~ 15 Nov` complete, zero page-level
+  horizontal scroll. The print-button hiding is **prototype parity, not a feature drop**: the approved
+  preview marks it desktop-only, and printing from a phone is the browser's menu.
+
+## Batch D — the Week summary sheet (T9)
+
+- The gate first: `SummarySheet.init()` returns early when the document carries `.tt-responsive`, before
+  it binds anything — no observer, no print handlers, no `_bound`. The residual `#summarySheet` frame is
+  inert (its only opener is the header's `$summaryButton`, which T11/T14 remove).
+- `openSheet()`/`closeSheet()` move `.legend-bar` and `#summarySection` with per-node placeholders;
+  `#ttSheetRange` is built from `MockData.semester.chipText` and appended last, so the body order is
+  legend → cards → range with no reordering code. Esc is capture-phase and suspended while a dialog is
+  above (one Escape, one layer); Tab wraps inside the dialog; focus returns to `#ttSummaryButton`; the
+  lock is the new `tt-sheet-open`. `beforeprint` restores the nodes, `afterprint` re-relocates.
+- The bell ↔ sheet "one overlay at a time" pair is closed both ways, the second half from inside
+  `openNotifPanel()` — no blade touched.
+
+## Batch E/F — the two pages (T11–T14)
+
+- Both roots gain `tt-responsive` + `data-tt-page`; the week row is rendered once as a string and passed
+  into the chrome partial's sticky wrapper; `responsive: true` on both builder calls; `summaryButton`
+  removed on both; `TimetableResponsive.init()` at the end of `buildTimetable()` with the same closures
+  the grid gets (so a card's tip and colour cannot disagree with its desktop block).
+- **Design §7.1's include placement was wrong and did not ship.** It puts the chrome include after the
+  legend/summary includes; that seats the sticky wrapper — which carries the week row — *below* the five
+  summary cards at ≥1280, a desktop regression. The include sits in the old `.semester-bar` seat
+  instead: measured order at 1440 is header → guide modal → sticky (week row + strip) → tools/agenda
+  (hidden) → grid → legend → cards, i.e. today's order exactly, while the phone still reads week row →
+  strip → tools → agenda because everything after the agenda is hidden there.
+- **One undesigned rule was needed:** `.tt-responsive .event-block[data-tip]::after { display: none }`.
+  T12 writes a single `data-tip` on the desktop blocks, so the legacy `::after` pair resolved to
+  `"<name> · "` and painted a truncated bubble *under* the shared engine's correct one. The frozen CSS
+  list only suppressed it on `.tt-card`.
+- **A decision the design left open, taken and recorded here:** the selected day starts as **today's**
+  index when the current week contains today, else Monday. It is a `_dayInitialised` flag in `init()`,
+  so a later week change or resize never re-defaults it.
+- T13's flag is per-call (`longCancelledLabel`), so Cohort / Venue / Replacement History keep
+  `Cancelled`; the two timetable pages print `Class Cancelled`.
+
+## Verified live at the end of Batch F (testing DB, zero page errors)
+
+| width | `data-tt-mode` | strip | agenda cards | window cells | table | h-scroll |
+|---|---|---|---|---|---|---|
+| 390 | agenda | 7 chips | 1–2 on the days that have classes | — | hidden | 0 |
+| 900 | window | 7 chips | — | 0 (Sat/Sun) | hidden | 0 |
+| 1100 | window | 7 chips | — | 1 (Fri–Sun) | hidden | 0 |
+| 1440 | full | none | — | — | restored | 0 |
+
+Also measured: migrated tip `Operating Systems · DFT2(S1)G1 + DSF2(S1)G1 · PUBLIC HOLIDAY` in one
+`data-tip` (no `data-tip2`); sheet body order `legend-bar | summarySection | ttSheetRange`; day survives
+a week change; card click reaches the page's own details modal; `Class Hours` and the cohort chip intact.
+
+## Known reds, not this lane's
+
+- `tests/e2e/timetable.spec.js` was **red before this lane** (it asserts that `#semesterProgress` /
+  `#weekSubtitle` are visible; both were removed 2026-11-13). T17 amends it.
+- `tests/summary-cards-button.spec.ts`'s My Timetable arms cannot hold once `SummarySheet` is gated and
+  the header opt-in is gone; T17 amends them by name.

@@ -49,18 +49,18 @@ surfaces, E wires the staff page, F the student page, G proves it, H records it.
 
 ## Batch B — the phone
 
-- [ ] **T4 — the day strip.** `buildStrip()` + `setDay(i)`: seven chips at every width, `aria-pressed`
+- [x] **T4 — the day strip.** `buildStrip()` + `setDay(i)`: seven chips at every width, `aria-pressed`
   on the selected one, `aria-current="date"` only on today-selected, the dot, the holiday class, the
   accessible name of spec R7 (`Monday, 3 classes[, selected][, public holiday]`), and the "tap the
   selected day is a no-op" rule (spec R5b). In window mode a tap moves the window. *Satisfies R2, R5,
   R5b, R7.*
 
-- [ ] **T5 — the agenda card.** `buildAgenda()` per design §4.2: three tiers, the name off the card,
+- [x] **T5 — the agenda card.** `buildAgenda()` per design §4.2: three tiers, the name off the card,
   the status word on the note line (Cancelled / Conflict only, block colour), the overlap strip + line
   in both forms on every card of a clash, the same words in `aria-label`, `event-pending` /
   `event-replacement` borders, and the card wired to the page's `onEventClick`. *Satisfies R3, R7.*
 
-- [ ] **T6 — the next-class hint.** On an empty day and on a public holiday only: the button, the jump
+- [x] **T6 — the next-class hint.** On an empty day and on a public holiday only: the button, the jump
   (week → day), the focus on `#ttDayHeading` and the scroll into view; hidden otherwise.
   **The module needs a cross-week source** — `events()` is the *current* week only, so `init()` gains
   one more knob and the page passes it (declarative append to design §6's cfg list, recorded in the
@@ -69,18 +69,18 @@ surfaces, E wires the staff page, F the student page, G proves it, H records it.
 
 ## Batch C — the tablet
 
-- [ ] **T7 — the transposed window grid.** `#ttWindowGrid` rendered from `events()`/`days()`:
+- [x] **T7 — the transposed window grid.** `#ttWindowGrid` rendered from `events()`/`days()`:
   `50px repeat(N, 1fr)` × `62px repeat(22, 44px)`, `N` = 2 or 3, window `start = min(day, 7 - N)`,
   each event placed by day index and half-hour span; the legacy table hidden in that mode. *Satisfies
   R2, R3b.*
 
-- [ ] **T8 — the window cell.** Design §4.2's tiers at the brief's tablet sizes (time/venue 11px, code
+- [x] **T8 — the window cell.** Design §4.2's tiers at the brief's tablet sizes (time/venue 11px, code
   10px, note 9.5px, venue may wrap), the status word on the note line, the overlap strip + line, the
   same focusable button / details modal / `aria-label` / `data-tip` as a desktop block. *Satisfies R3b.*
 
 ## Batch D — the Week summary sheet
 
-- [ ] **T9 — the `SummarySheet` gate first, then the sheet.** One line in `SummarySheet.init()`:
+- [x] **T9 — the `SummarySheet` gate first, then the sheet.** One line in `SummarySheet.init()`:
   bail when the document carries `.tt-responsive` — **apply this before the mover below**, or the two
   relocators fight for `#summarySection` while you are debugging it. Then `openSheet()` / `closeSheet()`:
   move the legend bar and `#summarySection` with placeholders, build `#ttSheetRange` from
@@ -92,24 +92,24 @@ surfaces, E wires the staff page, F the student page, G proves it, H records it.
 
 ## Batch E — the staff page (phase A)
 
-- [ ] **T11 — My Timetable wiring.** Root gets `tt-responsive` **and `data-tt-page="staff"`**; the week-nav include moves inside the
+- [x] **T11 — My Timetable wiring.** Root gets `tt-responsive` **and `data-tt-page="staff"`**; the week-nav include moves inside the
   chrome partial's sticky wrapper; the partial is included after the legend/summary includes;
   `buildTimetableGrid({ …, responsive: true })`; `'summaryButton' => true` removed from the header
   include; the week-nav tips passed through `$prevTip` / `$nextTip` / `$selectTip`;
   `TimetableResponsive.init({ events, days, onEventClick, pageKey: 'staff' })` at the end of
   `buildTimetable()`. *Satisfies R1, R5.*
 
-- [ ] **T12 — the builder's two flag-only changes.** Inside the `responsive: true` branch only:
+- [x] **T12 — the builder's two flag-only changes.** Inside the `responsive: true` branch only:
   (a) the tip migration — one `data-tip` = `[data-name, [tipCtx, tipLect, status].filter(Boolean).join(' · ')].filter(Boolean).join(' · ')`,
   and (b) the desktop status word under the time (`✕ Cancelled` / `⚠ Conflict`, block colour). Nothing
   else in the builder. *Satisfies R4, R5.*
 
-- [ ] **T13 — `Class Cancelled` in the details modal, page-scoped.** `openClassModal()` gains a cfg
+- [x] **T13 — `Class Cancelled` in the details modal, page-scoped.** `openClassModal()` gains a cfg
   flag for the long word; only the two timetable pages pass it. *Satisfies R4.*
 
 ## Batch F — the student page (phase B)
 
-- [ ] **T14 — Student My Timetable wiring.** The same include with `readonly => true`,
+- [x] **T14 — Student My Timetable wiring.** The same include with `readonly => true`,
   `data-tt-page="student"`, `responsive: true` on its builder call, **`'summaryButton' => true`
   removed** (without it the header icon survives, stays visible at ≤768 and calls the gated-off
   `SummarySheet` — a control that does nothing), no cancel wiring, the cohort chip untouched,

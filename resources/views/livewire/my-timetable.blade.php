@@ -4,7 +4,7 @@
 
 @section('title', 'My Timetable')
 
-<div class="lw-page">
+<div class="lw-page tt-responsive" data-tt-page="staff">
 
     <style>
         /* Page styles (moved from legacy page-styles section, D2) */
@@ -26,7 +26,7 @@
     </style>
 
     <!-- ─── Page Header ─── -->
-    @include('partials.ui-page-header', ['title' => 'My Timetable', 'guideToggle' => true, 'guideModal' => true, 'summaryButton' => true])
+    @include('partials.ui-page-header', ['title' => 'My Timetable', 'guideToggle' => true, 'guideModal' => true])
 
     @include('partials.ui-guide-modal', [
         'guideTitle' => 'How to use this page',
@@ -39,10 +39,46 @@
         ]
     ])
 
-    <!-- ─── Semester Bar ─── -->
-    <div class="semester-bar">
-        @include('partials.ui-week-nav', ['prevOnclick' => 'prevWeek()', 'nextOnclick' => 'nextWeek()', 'selectId' => 'weekSelect', 'selectOnclick' => 'selectWeek(this.value)', 'selectTinted' => true, 'showPrint' => true])
-    </div>
+    <!-- ─── Week nav (my-timetable-responsive-prompt T11) ─── -->
+    {{-- The week row is RENDERED to a string here and handed to the chrome partial,
+         which wraps it in its sticky `.tt-sticky` row (design §4.1: a static wrap in
+         the blade, never a runtime move). Same arguments as before, plus the three
+         tips R5 asks for; ui-week-nav itself is never edited (design §8) and renders
+         byte-identically for every caller that passes no tips. The `.semester-bar`
+         wrapper travels WITH the row: theme.css's `.tt-sticky .semester-bar` rule and
+         the desktop surface both need it, so only the row's position changes. --}}
+    @php
+        $ttWeekNav = '<div class="semester-bar">'
+            . view('partials.ui-week-nav', [
+                'prevOnclick' => 'prevWeek()',
+                'nextOnclick' => 'nextWeek()',
+                'selectId' => 'weekSelect',
+                'selectOnclick' => 'selectWeek(this.value)',
+                'selectTinted' => true,
+                'showPrint' => true,
+                'prevTip' => 'Previous week',
+                'nextTip' => 'Next week',
+                'selectTip' => 'Pick the week to display',
+            ])->render()
+            . '</div>';
+    @endphp
+
+    <!-- ─── Responsive chrome (my-timetable-responsive-prompt T11) ─── -->
+    {{-- The sticky week row (above), the day strip, the tools row, the agenda mount,
+         the next-class hint and the Week summary sheet — design §4.1's markup.
+
+         PLACEMENT, and why it is the old `.semester-bar` seat rather than after the
+         legend/summary includes: the week row now travels INSIDE this include, so
+         "after the legend/summary" would drop the week picker BELOW the five summary
+         cards at >=1280 (measured 2026-11-15) — a desktop regression, while R1/design
+         §9 row 5 promise the page is exactly today's there. In this seat both bands
+         read correctly with no CSS work: below 1280 the grid/legend/summary are
+         hidden and the order is the preview's (week row -> strip -> tools -> agenda);
+         at >=1280 the strip/tools/agenda/hint/sheet are hidden, so the page is
+         today's order (week row -> grid -> legend -> summary). Every control in it is
+         bound by TimetableResponsive; there is no inline onclick, so nothing needs
+         exporting. --}}
+    @include('partials.ui-tt-chrome', ['ttWeekNav' => $ttWeekNav, 'ttReadonly' => false])
 
     <!-- ─── Grid Wrapper ─── -->
     @include('partials.ui-grid-table')
@@ -207,6 +243,11 @@
                     days: days,
                     modalId: 'classModal',
                     title: 'Class Details',
+                    /* my-timetable-responsive-prompt T13 (spec R4): the Status row
+                       reads `Class Cancelled` on THESE two pages only — the bare word
+                       can be read as the request being cancelled. Blocks keep the
+                       short word (a 60-110px cell cannot carry the long one). */
+                    longCancelledLabel: true,
                     extraFields: [
                         { label: 'Cohort', value: cohortValue },
                         { label: 'Total Students', value: studentValue }
@@ -256,26 +297,90 @@
 
             closeOnEsc(closeModal);
 
+            /* T6/T11 — the next-class hint's cross-week source (design §6's
+               `findNextClass(fromWeek, fromDay)`). `events()` is the CURRENT week
+               only, so the hint asks this instead; it scans the page's OWN eventsData
+               (the same payload — no second data shape): the rest of this week from
+               the selected day, then the weeks after it, and the first day carrying a
+               class wins. That day's earliest event (start, then code) is the one the
+               hint names, so `{ week, day, event }` is enough to jump and to print
+               `Next class: Wed 10:00 AM · AMCS1033`. Returns null when the semester
+               has nothing later. */
+            function findNextClass(fromWeek, fromDay) {
+                var week = parseInt(fromWeek, 10);
+                var day = parseInt(fromDay, 10);
+                if (isNaN(week)) week = currentWeek;
+                if (isNaN(day)) day = 0;
+
+                for (var wk = week; wk < weekData.length; wk++) {
+                    var list = eventsData[wk] || [];
+                    if (!list.length) continue;
+                    for (var di = (wk === week ? day + 1 : 0); di < 7; di++) {
+                        var best = null;
+                        for (var i = 0; i < list.length; i++) {
+                            var e = list[i];
+                            if (!e || Number(e.di) !== di) continue;
+                            if (!best || e.start < best.start
+                                || (e.start === best.start && String(e.code || '') < String(best.code || ''))) {
+                                best = e;
+                            }
+                        }
+                        if (best) return { week: wk, day: di, event: best };
+                    }
+                }
+                return null;
+            }
+
             function buildTimetable() {
                 currentWeek = weekNav.currentWeek;
+                /* ONE set of closures for both consumers (T11): the module's cards must
+                   speak exactly like the grid's blocks, so the grid's own closures are
+                   named once here and handed to both calls. */
+                var tooltipExtra = function (e) {
+                    // Viewer is the lecturer — tooltip shows the cohort(s).
+                    if (e.cohorts && e.cohorts.length) return e.cohorts.join(' + ');
+                    return e.cohort || '';
+                };
+                /* the user's hover-voice directive 2026-10-25: the staff
+                   name is DROPPED here — every block on this page is the
+                   viewer's own, so "name · cohorts · STATUS" says it all. */
+                var tipLecturerFn = function () { return ''; };
+                var replacementNoteFn = function (e) {
+                    return buildReplacementNote(e);
+                };
+
                 buildTimetableGrid({
                     events: eventsData[currentWeek] || [],
                     days: weekData[currentWeek].days,
                     onEventClick: function (e) { openModal(e); },
-                    tooltipExtra: function (e) {
-                        // Viewer is the lecturer — tooltip shows the cohort(s).
-                        if (e.cohorts && e.cohorts.length) return e.cohorts.join(' + ');
-                        return e.cohort || '';
-                    },
-                    /* the user's hover-voice directive 2026-10-25: the staff
-                       name is DROPPED here — every block on this page is the
-                       viewer's own, so "name · cohorts · STATUS" says it all. */
-                    tipLecturerFn: function () { return ''; },
-                    replacementNoteFn: function (e) {
-                        return buildReplacementNote(e);
-                    }
+                    tooltipExtra: tooltipExtra,
+                    tipLecturerFn: tipLecturerFn,
+                    replacementNoteFn: replacementNoteFn,
+                    /* T12's two flag-only edits (the tip migration + the desktop
+                       status word) live inside this flag; the other four callers
+                       never pass it (spec R1/R5). */
+                    responsive: true
                 });
                 updateSummary();
+
+                /* The <=1279 chrome (T11): the day strip, the agenda, the window grid,
+                   the next-class hint and the Week summary sheet, all read from the
+                   SAME week the grid just drew. init() is idempotent — buildTimetable()
+                   runs again on every week change, replacing the cfg, never re-binding
+                   the listeners. `weekNav` is deliberately NOT passed (optional and
+                   unused: the week row's tips come from the blade). */
+                TimetableResponsive.init({
+                    scope: 'tt-responsive',
+                    pageKey: 'staff',
+                    readonly: false,
+                    onEventClick: function (e) { openModal(e); },
+                    events: function () { return eventsData[currentWeek] || []; },
+                    days: function () { return weekData[currentWeek].days; },
+                    tooltipExtra: tooltipExtra,
+                    tipLecturerFn: tipLecturerFn,
+                    replacementNoteFn: replacementNoteFn,
+                    findNextClass: findNextClass
+                });
             }
 
             function updateSummary() {
