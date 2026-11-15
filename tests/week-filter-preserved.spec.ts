@@ -4,6 +4,7 @@ import { execSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
 import { abortUnlessTestingTarget } from './helpers/receipt-target-guard';
+import { openFiltersPanel, withFilters } from './helpers/filters-panel-helper';
 
 /**
  * week-filter-preserved (2026-11-06) — the user's bug report: after an action
@@ -70,7 +71,13 @@ test.beforeEach(() => {
 async function openWithWeek(page: Page, url: string, week: string = WEEK, text: string = 'Week 14') {
   await page.goto(url, { waitUntil: 'networkidle' });
   await expect(page.locator('#weekFilter option')).toHaveCount(ALL_WEEKS);
-  await page.selectOption('#weekFilter', week);
+  /* SDD filters-button (2026-11-15): the week selects MOVED into the Filters
+     panel's `hidden` overlay, so the driver opens the door, picks the week and
+     closes it again — every receipt below then clicks the page itself
+     (Approve / Reject / Cancel), which the veil would block while it is open. */
+  await withFilters(page, async () => {
+    await page.selectOption('#weekFilter', week);
+  });
   await expect(page.locator('#weekFilter')).toHaveValue(week);
   await expect(weekChip(page)).toContainText(text);
 }
@@ -115,6 +122,7 @@ test('U1 — Approve keeps the Week filter', async ({ page }) => {
   await expectWeekFilterKept(page, PL_WEEK, 'Week 7');
 
   // and the filter still WORKS: a week with a decided row still filters on it
+  await openFiltersPanel(page);
   await page.selectOption('#weekFilter', 'all');
   await expect(page.locator('#tableBody tr')).toHaveCount(0); // Pending-only default
 });
@@ -136,9 +144,12 @@ test('U2 — Reject keeps the Week filter', async ({ page }) => {
 test('U3 — Cancel Pending keeps the Week filter (my-replacements)', async ({ page }) => {
   await openWithWeek(page, '/my-replacements');
 
-  /* 2026-11-07 (user): this page's weeks are the ORIGINAL SLOT weeks, and both the
-     "all" option and the chip say so (re-worded to SLOT on 2026-11-10). */
-  expect(await page.locator('#weekFilter option[value="all"]').innerText()).toBe('All Original Slot Weeks');
+  /* 2026-11-07 (user): this page's weeks are the ORIGINAL SLOT weeks. The "all"
+     option read `All Original Slot Weeks` until SDD filters-button (2026-11-15)
+     collapsed it to `All Weeks` on all three pages — the domain is now named by
+     the panel's own `Original slot week` field label above the select, and the
+     chip still says SLOT. */
+  expect(await page.locator('#weekFilter option[value="all"]').innerText()).toBe('All Weeks');
   await expect(page.locator('#filterChips .filter-chip', { hasText: 'Original Slot Week:' })).toContainText('Original Slot Week: Week 14');
 
   const cancelBtn = page.locator('button[aria-label="Cancel this request"]').first();

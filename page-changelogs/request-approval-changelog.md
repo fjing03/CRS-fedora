@@ -1,3 +1,9 @@
+## 2026-11-15 — every filter moves behind one Filters button, and an original-week filter joins them
+
+The search box, the status select, the week select and the COMPLETED switch now sit in one panel behind a labelled **Filters** button — a popover anchored under the button at ≥769px, a bottom sheet at ≤768px — while the chips and the count pill stay in the row on the page, below the sort hint. Inside, each control carries its label above it, the head holds **Reset** (status `Pending`, exclusion ON, 10 rows per page), and the **original** slot week now sits above the requested one, filtering on `r.classDate` and composing with it (AND). The week option that means "no filter" now reads **All Weeks** — reversing the 2026-11-10 `All … Slot Weeks` form for that one option (chips and column headers keep SLOT) — the completed chip reads **Completed hidden**, and the `Active Filters:` prefix is gone from the chip bar.
+
+Measured at 390×844, default view, nothing opened, on the demo data (the testing fixture's default view filters to nothing): the first card's top edge is **226px** (bound ≤400, was 541); the chips row is **72px**, over its 44px bound because it is two lines at phone width (34px button + 6px row gap + 32px chip pill) — reported, not patched. Smoke: the new `tests/filters-button.spec.ts` (21 passed, 2 skipped for a fixture gap) and the four rewired specs (`status-tooltips-filter-chips`, `week-filter-preserved`, `request-completed-status`, `summary-cards-button`).
+
 ## 2026-11-14 (late) — the cards move behind one Summary button on a phone
 
 At ≤768px this page's summary cards leave the flow and open from a bare bar-chart icon beside the help
@@ -7,6 +13,18 @@ The cards are MOVED, not copied, so the ids, wording, colours and numbers (inclu
 dialog, which opens above the sheet) are exactly what they were. At ≥769px nothing changed. The button
 hides itself when the page hides the cards (an empty filtered view). One shared JS module
 (`SummarySheet`) and one CSS block drive it, so all seven card pages behave the same.
+
+## 2026-11-14 (later) — a filter option that could only ever be empty, and a fuller guide
+
+Two small changes, no SDD.
+
+**The status filter loses `Cancelled`.** This page's payload carries pending, approved/rejected and
+completed-by-date requests — a cancelled request never reaches it, so picking Cancelled always produced
+an empty list. The option is gone; `Completed` stays, because the mapper does derive that status from an
+approved request whose replacement date has passed. Same ruling My Replacements took on 2026-11-06.
+
+**The help dialog now names the cards and the switch**, which it never did: what the five cards count,
+and what the COMPLETED switch hides.
 
 ## 2026-11-14 — summary card back spacing and structured explanation
 

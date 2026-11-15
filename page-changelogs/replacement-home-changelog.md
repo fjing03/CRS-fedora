@@ -1,3 +1,9 @@
+## 2026-11-15 — every filter moves behind one Filters button, and a requested-week filter joins them
+
+The search box, the status select, both week selects and the COMPLETED switch now sit in one panel behind a labelled **Filters** button — a popover anchored under the button at ≥769px, a bottom sheet at ≤768px — while the chips and the count stay in the row on the page; the count pill now shows at **every** width (the old hide-below-1500px rule is retired). Inside, each control carries its label above it, the head holds **Reset** (status `all`, exclusion ON), and the **requested** slot week sits beside the original one, filtering on `c.replacementDate`. The week option that means "no filter" now reads **All Weeks** — reversing the 2026-11-10 `All … Slot Weeks` form for that one option (chips and column headers keep SLOT) — the completed chip reads **Completed hidden**, and the `Active Filters:` prefix is gone from the chip bar.
+
+Measured at 390×844, default view, nothing opened: the first card's top edge is **214px** (bound ≤400, was 519); the chips row is **72px**, over its 44px bound because it is two lines at phone width (34px button + 6px row gap + 32px chip pill) — reported, not patched. Smoke: the new `tests/filters-button.spec.ts` (21 passed, 2 skipped for a fixture gap) and the four rewired specs (`status-tooltips-filter-chips`, `week-filter-preserved`, `request-completed-status`, `summary-cards-button`).
+
 ## 2026-11-14 (late) — the cards move behind one Summary button on a phone
 
 At ≤768px this page's summary cards leave the flow and open from a bare bar-chart icon beside the help
@@ -7,6 +13,13 @@ The cards are MOVED, not copied, so the ids, wording, colours and numbers (inclu
 dialog, which opens above the sheet) are exactly what they were. At ≥769px nothing changed. The button
 hides itself when the page hides the cards (an empty filtered view). One shared JS module
 (`SummarySheet`) and one CSS block drive it, so all seven card pages behave the same.
+
+## 2026-11-14 (later) — the help dialog names the cards and the switch
+
+The guide listed sorting, searching, the Action icons and the week filter, but never mentioned the five
+cards above the list or the COMPLETED switch — the two things a new user reaches for first. Two lines
+added, matching the wording now used on Request Approval and on the student Class Replacements page.
+No code, no SDD.
 
 ## 2026-11-14 — summary card back spacing and structured explanation
 

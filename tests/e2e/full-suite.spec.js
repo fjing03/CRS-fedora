@@ -2,6 +2,21 @@ import { test, expect } from '@playwright/test';
 
 const API = '/api/v1';
 
+/**
+ * SDD filters-button (2026-11-15): each page's `.toolbar` was MOVED into
+ * `#filtersPanelBody`, inside `#filtersOverlay`, which is `hidden` at rest — so
+ * `#searchInput` is no longer VISIBLE on load, and `fill()` is visibility-gated.
+ * This is the local (no TS import) door: click the Filters button and wait for the
+ * overlay. A page that never opted into the lane has no panel and is left alone.
+ */
+async function openFilters(page) {
+  if ((await page.locator('#filtersPanel').count()) === 0) return;
+  const overlay = page.locator('#filtersOverlay');
+  if (await overlay.isVisible()) return;
+  await page.locator('#filtersButton').click();
+  await overlay.waitFor({ state: 'visible' });
+}
+
 // ══════════════════════════════════════════════════════════════
 // 1. API ENDPOINTS — shape, status, data integrity
 // ══════════════════════════════════════════════════════════════
@@ -593,6 +608,7 @@ test.describe('Interaction: Cohort Timetable faculty/cohort picker', () => {
 test.describe('Interaction: My Replacements search', () => {
   test('typing in search filters results', async ({ page }) => {
     await page.goto('/my-replacements', { waitUntil: 'networkidle' });
+    await openFilters(page);
     const searchInput = page.locator('#searchInput');
     await searchInput.waitFor({ state: 'visible' });
     const initialCount = await page.locator('#resultCount').textContent();
@@ -606,6 +622,7 @@ test.describe('Interaction: My Replacements search', () => {
 test.describe('Interaction: Replacement Home search', () => {
   test('typing in search filters conflict cards', async ({ page }) => {
     await page.goto('/replacement-home-ui', { waitUntil: 'networkidle' });
+    await openFilters(page);
     const searchInput = page.locator('#searchInput');
     await searchInput.waitFor({ state: 'visible' });
     await searchInput.fill('BMIT');

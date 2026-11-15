@@ -12,7 +12,8 @@ use Tests\TestCase;
  *  R1 rows are conflicted CLASS OCCURRENCES (the payload's `status: 'none'` exists at all);
  *  R2 one story for every unarranged class — `Awaiting Arrangement`, never the staff
  *     words and never a dead request's state;
- *  R3 the week filter keys on the class's week (`All Original Slot Weeks`);
+ *  R3 the two week filters slice by the class's own week and — amended 2026-11-15 by the
+ *     `filters-button` lane (proposal decision 4) — by the request's week; each offers `All Weeks`;
  *  R4 `Exclude COMPLETED Status`, decided by the make-up date;
  *  R5 the page is Class Replacements at /student-class-replacements (alias kept);
  *  R6 read-only, with ONE control — the pop-up's jump, guarded by `requestId`;
@@ -140,13 +141,23 @@ class StudentReplacementHistoryParityTest extends TestCase
     {
         $src = $this->pageSource();
 
-        $this->assertStringContainsString("allLabel: 'All Original Slot Weeks'", $src);
+        /* 2026-11-15 (lane `filters-button`, proposal decision 4): both week selects are
+           built by the shared helper with the same "no filter" wording — `All Weeks` */
+        $this->assertStringContainsString("allLabel: 'All Weeks'", $src);
         $this->assertStringContainsString('Original Slot Week:', $src);
         $this->assertStringNotContainsString('All Requested Slots Weeks', $src, 'that label belonged to the request model');
-        $this->assertStringNotContainsString('Requested Slot Week:', $src);
+        /* 2026-11-15 (lane `filters-button`, proposal decision 4): the page gains a SECOND
+           week filter (a requested-week chip), so the old negative assertion is now false
+           and is flipped into a positive one on purpose */
+        $this->assertStringContainsString('Requested Slot Week:', $src);
 
         // the filter reads the occurrence's own week, and only a derived `completed` row hides
-        $this->assertStringContainsString("(all || r.week === w0) && !(hideCompleted && r.status === 'completed')", $src);
+        /* 2026-11-15 (lane `filters-button`, proposal decision 4): the predicate gained the
+           requested-week clause and now wraps over three lines, so the clauses are pinned
+           one by one instead of as one brittle whole-line match */
+        $this->assertStringContainsString('(all || r.week === w0)', $src, 'the original-week clause still keys on the class week');
+        $this->assertStringContainsString("(req === 'all' || (r.req && Number(r.req.week) === wReq))", $src, 'the requested week compares numerically — no original-week -1');
+        $this->assertStringContainsString("!(hideCompleted && r.status === 'completed')", $src, 'only a derived completed row hides');
     }
 
     public function test_the_toggle_is_the_staff_control_with_the_staff_default(): void

@@ -1,5 +1,6 @@
 import { test, expect } from '@playwright/test';
 import { execSync } from 'node:child_process';
+import { openFiltersPanel } from './helpers/filters-panel-helper';
 
 /**
  * request-completed-status — the BROWSER receipts (R3/R4/R5 of
@@ -101,7 +102,10 @@ test('receipt 1 — the home toggle is checked on load and hides the Completed r
   await expect(badge, 'R3: while Exclude COMPLETED is ON the completed row is not listed').toHaveCount(0);
 
   // untick → the row appears with a Completed badge that carries this request's id
-  // (the input itself is visually hidden behind the styled track — click that)
+  // (the input itself is visually hidden behind the styled track — click that).
+  // SDD filters-button: the switch moved into the Filters panel's `hidden`
+  // overlay, so the door opens first and stays open for the re-tick below.
+  await openFiltersPanel(page);
   await page.locator('#completedToggle .toggle-track').click();
   await page.waitForTimeout(700);
   await expect(badge).toHaveCount(1);
@@ -143,6 +147,8 @@ test('receipt 3 — any OTHER hiding cause keeps the toast and leaves the toggle
   await page.waitForTimeout(800);
 
   // a status filter that excludes Completed — a second hiding cause
+  // (SDD filters-button: the select lives behind the panel's door now)
+  await openFiltersPanel(page);
   await page.selectOption('#statusFilter', 'pending');
   await page.waitForTimeout(600);
 

@@ -3,6 +3,7 @@ import { execSync } from 'node:child_process';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { throwUnlessTestingTarget } from './helpers/receipt-target-guard';
+import { closeFiltersPanel, openFiltersPanel, withFilters } from './helpers/filters-panel-helper';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const PSQL = 'psql -q -t -U philler -d class_replacement_testing -c ';
@@ -102,22 +103,32 @@ async function sharedTip(page: Page, target: string): Promise<{ text: string; ab
   }, target);
 }
 
+/* SDD filters-button (2026-11-15): every filter control now lives inside the
+   panel's `hidden` overlay, so a driver opens the door, does its work and closes
+   it again — the receipts that follow hover/click the page itself. */
 async function setMRHAll(page: Page): Promise<number> {
-  await page.selectOption('#statusFilter', 'all');
-  await page.waitForTimeout(700);
+  await withFilters(page, async () => {
+    await page.selectOption('#statusFilter', 'all');
+    await page.waitForTimeout(700);
+  });
   return await page.locator('#tableBody .badge[data-tip]').count();
 }
 
 async function setRAAll(page: Page): Promise<number> {
-  await page.selectOption('#statusFilter', 'all');
-  /* 2026-11-07 (user): this page's week filter matches the REQUESTED
-     REPLACEMENT week (a saved filter could hide the pending fixture row), so
-     every receipt here starts from All Requested Slot Weeks. */
-  const week = await page.evaluate(() => document.getElementById('weekFilter')?.value ?? 'all');
-  if (week !== 'all') {
-    await page.selectOption('#weekFilter', 'all');
-  }
-  await page.waitForTimeout(700);
+  await withFilters(page, async () => {
+    await page.selectOption('#statusFilter', 'all');
+    /* 2026-11-07 (user): this page's week filter matches the REQUESTED
+       REPLACEMENT week (a saved filter could hide the pending fixture row), so
+       every receipt here starts from the "no filter" option of BOTH weeks. It
+       read `All Requested Slot Weeks` until SDD filters-button renamed it — the
+       option now reads `All Weeks` on every page (the domain is the panel's own
+       `Requested slot week` field label). */
+    const week = await page.evaluate(() => document.getElementById('weekFilter')?.value ?? 'all');
+    if (week !== 'all') {
+      await page.selectOption('#weekFilter', 'all');
+    }
+    await page.waitForTimeout(700);
+  });
   return await page.locator('#tableBody span.badge[data-tip]').count();
 }
 
@@ -159,28 +170,34 @@ test('T5.MRH-2: resetFilters rename + tip; Clear-all law + individual ✕', asyn
   await page.goto(`${BASE}${MRH}`);
   await page.waitForTimeout(1200);
 
-  // the rename + retip (and the old id is gone)
-  await expect(page.locator('#resetFilters')).toHaveAttribute('data-tip', 'Reset all filters to DEFAULT');
+  // the rename + retip (and the old id is gone) — SDD filters-button moved Reset
+  // out of the toolbar into the panel head (design §4.2): #filtersResetButton,
+  // same tip, and #resetFilters no longer exists anywhere on the page.
+  await expect(page.locator('#resetFilters')).toHaveCount(0);
+  await expect(page.locator('#filtersResetButton')).toHaveAttribute('data-tip', 'Reset all filters to DEFAULT');
   await expect(page.locator('#clearFilters')).toHaveCount(0);
   await expect(page.locator('#filterChips .filter-chip-clear-all')).toHaveCount(1); // persists at default
 
-  // default-state chips law: exactly the Exclude COMPLETED Status chip + Clear all
+  // default-state chips law: exactly the Completed hidden chip + Clear all
   await page.waitForTimeout(400);
   let chips = await page.locator('#filterChips .filter-chip:not(.filter-chip-clear-all)');
   await expect(chips).toHaveCount(1);
-  await expect(chips.first()).toContainText(/Exclude COMPLETED/);
+  await expect(chips.first()).toContainText(/Completed hidden/);
 
-  // two non-default filters → chips grow
+  // two non-default filters → chips grow (both controls sit behind the panel)
+  await openFiltersPanel(page);
   await page.fill('#searchInput', 'AMSE');
   await page.waitForTimeout(600);
   await page.selectOption('#statusFilter', 'approved');
   await page.waitForTimeout(600);
+  await closeFiltersPanel(page); // the chips are clicked on the page, under the veil
   chips = page.locator('#filterChips .filter-chip:not(.filter-chip-clear-all)');
-  expect(await chips.count()).toBeGreaterThanOrEqual(3); // Exclude COMPLETED Status + Status + Search
+  expect(await chips.count()).toBeGreaterThanOrEqual(3); // Completed hidden + Status + Search
 
   // SDD filter-clear-all-off (2026-10-30, the user's ruling): Clear all = EVERY
   // filter OFF — the exclusion chips go too, and the bar renders EMPTY (no
-  // chips, no 'Active Filters:', no Clear-all pill). The Reset button keeps
+  // chips, no Clear-all pill; SDD filters-button also deleted the old
+  // 'Active Filters:' prefix label). The Reset button keeps
   // the DEFAULT law (untouched).
   await page.locator('#filterChips .filter-chip-clear-all').click();
   await page.waitForTimeout(700);
@@ -195,15 +212,17 @@ test('T5.MRH-2: resetFilters rename + tip; Clear-all law + individual ✕', asyn
   await expect(chips).toHaveCount(0);
   await expect(page.locator('#filterChips')).toHaveText('');
   await expect(page.locator('#filterChips .filter-chip-clear-all')).toHaveCount(0);
-  await expect(page.locator('#filterChips .filter-chips-label')).toHaveCount(0);
+  await expect(page.locator('#filterChips .filter-chips-label')).toHaveCount(0); // the prefix label is gone (design §2.1)
 
-  // individual ✕ law still stands: re-arm ONE chip via the visible toggle,
+  // individual ✕ law still stands: re-arm ONE chip via the panel's visible toggle,
   // then the ✕ empties the bar
-  await page.locator('#completedToggle').click(); // the hidden switch's visible label
+  await openFiltersPanel(page);
+  await page.locator('#completedToggle').click(); // the switch's visible label
   await page.waitForTimeout(400);
+  await closeFiltersPanel(page);
   chips = page.locator('#filterChips .filter-chip:not(.filter-chip-clear-all)');
   await expect(chips).toHaveCount(1);
-  await expect(chips.first()).toContainText(/Exclude COMPLETED/);
+  await expect(chips.first()).toContainText(/Completed hidden/);
   await page.locator('#filterChips .filter-chip .filter-chip-remove').first().click();
   await page.waitForTimeout(600);
   await expect(page.locator('#hideCompleted')).not.toBeChecked();
@@ -373,11 +392,16 @@ test('T5.RA-5: the week filter names the requested week, and filters on it', asy
 
   await page.goto(`${BASE}${RA}`);
   await page.waitForTimeout(1400);
+  /* SDD filters-button: the panel stays open for the whole receipt — the chip
+     assertions and the row reads below need no uncovered page. */
+  await openFiltersPanel(page);
   await page.selectOption('#statusFilter', 'all');
   await page.waitForTimeout(700);
 
-  // 1. the labels
-  expect(await page.locator('#weekFilter option[value="all"]').innerText()).toBe('All Requested Slot Weeks');
+  // 1. the labels — both week selects' "no filter" option reads `All Weeks`
+  // (SDD filters-button; it read `All Requested Slot Weeks` before, and the
+  // domain is now named by the panel's `Requested slot week` field label).
+  expect(await page.locator('#weekFilter option[value="all"]').innerText()).toBe('All Weeks');
 
   // 2. the header
   const headers = await page.locator('#tableHead th').allInnerTexts();
@@ -411,24 +435,31 @@ test('T5.RA-3: resetFilters + label + Clear-all law + ✕ + mobile cards (status
   await page.goto(`${BASE}${RA}`);
   await page.waitForTimeout(1400);
 
-  await expect(page.locator('#resetFilters')).toHaveAttribute('data-tip', 'Reset all filters to DEFAULT');
+  // SDD filters-button moved Reset out of the toolbar into the panel head:
+  // #filtersResetButton carries the same tip, #resetFilters is gone.
+  await expect(page.locator('#resetFilters')).toHaveCount(0);
+  await expect(page.locator('#filtersResetButton')).toHaveAttribute('data-tip', 'Reset all filters to DEFAULT');
   await expect(page.locator('#clearFilters')).toHaveCount(0);
-  await expect(page.locator('#filterChips .filter-chips-label')).toHaveText('Active Filters:'); // was 'Filters:'
-  // default chips: Status: Pending + Exclude COMPLETED Status (+ Clear all persists at default)
+  // the 'Active Filters:' prefix label is gone (design §2.1) — the row is named
+  // by the Filters button; the chip bar carries chips only
+  await expect(page.locator('#filterChips .filter-chips-label')).toHaveCount(0);
+  // default chips: Status: Pending + Completed hidden (+ Clear all persists at default)
   await page.waitForTimeout(400);
   let chips = page.locator('#filterChips .filter-chip:not(.filter-chip-clear-all)');
   await expect(chips).toHaveCount(2);
   await expect(chips.first()).toContainText('Status: Pending');
-  await expect(chips.nth(1)).toContainText('Exclude COMPLETED Status');
+  await expect(chips.nth(1)).toContainText('Completed hidden');
   await expect(page.locator('#filterChips .filter-chip-clear-all')).toHaveCount(1);
 
-  // non-default filters → chips grow
+  // non-default filters → chips grow (both controls sit behind the panel)
+  await openFiltersPanel(page);
   await page.fill('#searchInput', 'AMSE');
   await page.waitForTimeout(600);
   await page.selectOption('#statusFilter', 'Approved');
   await page.waitForTimeout(600);
+  await closeFiltersPanel(page); // the chips are clicked on the page, under the veil
   chips = page.locator('#filterChips .filter-chip:not(.filter-chip-clear-all)');
-  expect(await chips.count()).toBeGreaterThanOrEqual(3); // Status(Approved) + Exclude COMPLETED Status + Search
+  expect(await chips.count()).toBeGreaterThanOrEqual(3); // Status(Approved) + Completed hidden + Search
 
   // individual ✕ first (the pre-law state still suits it): remove the
   // 'Status: Approved' chip → the others persist
@@ -436,14 +467,13 @@ test('T5.RA-3: resetFilters + label + Clear-all law + ✕ + mobile cards (status
   await page.waitForTimeout(600);
   await expect(page.locator('#statusFilter')).toHaveValue('all');
   chips = page.locator('#filterChips .filter-chip:not(.filter-chip-clear-all)');
-  expect(await chips.count()).toBeGreaterThanOrEqual(2); // Exclude COMPLETED Status + Search remain
+  expect(await chips.count()).toBeGreaterThanOrEqual(2); // Completed hidden + Search remain
   await expect(page.locator('#filterChips .filter-chip-clear-all')).toHaveCount(1);
 
   // SDD filter-clear-all-off (2026-10-30, the user's ruling): Clear all = EVERY
   // filter OFF — status goes to 'all' (not the default 'Pending'), the
   // hideCompleted exclusion turns OFF, and the bar renders EMPTY (no chips,
-  // no 'Active Filters:', no Clear-all pill). The Reset button keeps the
-  // DEFAULT law (untouched).
+  // no Clear-all pill). The Reset button keeps the DEFAULT law (untouched).
   await page.locator('#filterChips .filter-chip-clear-all').click();
   await page.waitForTimeout(700);
   await expect(page.locator('#searchInput')).toHaveValue('');

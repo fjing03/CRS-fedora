@@ -5360,6 +5360,119 @@ textarea:disabled { cursor: not-allowed; }
     color: var(--color-error);
 }
 
+/* ── Filters button + panel ──────────────────────────────────────────
+   Lane: filters-button (2026-11-15). The row replaces the old chip bar: the
+   Filters button and the count pill are siblings of #filterChips, and the
+   page's own .toolbar is MOVED into .filters-panel-body by FiltersPanel — so
+   the `.filters-panel-body …` rules below restyle the same nodes the page has
+   always had, never a rebuilt copy. The button stays display:none until the
+   module adds `.filters-ready` to <html> (design §2), so a page whose JS never
+   runs keeps today's inline toolbar and no dead door.
+   Two colours are deliberately literals, not tokens (spec R7): the sheet veil
+   keeps .modal-overlay's rgba(0,0,0,.45) and the desktop card the prototype's
+   rgba(0,0,0,.32). Everything else is a theme.css token. */
+.filters-row { display:flex; flex-wrap:wrap; align-items:center; gap:6px 12px; margin-bottom:8px; }
+.filters-btn { display:none; }                    /* revealed by .filters-ready */
+.filters-ready .filters-btn {
+    display:inline-flex; align-items:center; gap:6px;
+    height:34px; min-height:34px; padding:0 12px;
+    border:1px solid var(--color-outline); border-radius:var(--radius-sm);
+    background:var(--color-surface-variant); color:var(--color-on-surface);
+    font:600 12px/1 inherit; cursor:pointer; transition:border-color .15s, color .15s;
+}
+.filters-ready .filters-btn:hover { border-color:var(--color-primary); color:var(--color-primary); }
+.filters-ready .filters-btn svg { width:14px; height:14px; flex:0 0 auto; }
+
+/* chips stop being a bar: the row is the bar now */
+.filters-row #filterChips { flex:1 1 auto; min-width:0; margin-bottom:0;
+    padding:0; background:none; border:0; border-radius:0; }
+
+/* the count becomes a pill at the right, at every width (M15 retired) */
+.filters-row .result-count { display:inline-flex; align-items:center; flex:0 0 auto;
+    margin-left:auto; height:26px; padding:0 12px; border-radius:var(--radius-pill);
+    background:var(--color-surface-variant); color:var(--color-on-surface-variant);
+    font:600 12px/1 inherit; white-space:nowrap; }
+
+.filters-overlay { position:fixed; inset:0; z-index:1200; display:flex;
+    align-items:flex-end; justify-content:center; background:rgba(0,0,0,.45); }
+.filters-overlay[hidden] { display:none; }
+.filters-panel { display:flex; flex-direction:column; background:var(--color-surface);
+    color:var(--color-on-surface); border:1px solid var(--color-outline); }
+.filters-panel-head { position:sticky; top:0; z-index:2; display:flex; align-items:center;
+    gap:8px; padding:10px 14px; background:var(--color-surface);
+    border-bottom:1px solid var(--color-outline); }
+.filters-panel-title { margin:0; font-size:14px; font-weight:700; }
+.filters-panel-reset { margin-left:auto; display:inline-flex; align-items:center; gap:6px;
+    height:30px; min-height:30px; padding:0 10px; border:1px solid var(--color-outline);
+    border-radius:var(--radius-sm); background:var(--color-surface-variant);
+    color:var(--color-on-surface); font:600 12px/1 inherit; cursor:pointer; }
+.filters-panel-reset:hover { border-color:var(--color-primary); color:var(--color-primary); }
+.filters-panel-close { width:44px; height:44px; border:0; border-radius:var(--radius-sm);
+    background:transparent; color:inherit; font-size:22px; line-height:1; cursor:pointer; }
+.filters-panel-reset:focus-visible, .filters-panel-close:focus-visible,
+.filters-btn:focus-visible { outline:2px solid var(--color-primary); outline-offset:2px; }
+.filters-panel-body { min-height:0; padding:12px 12px 16px; overflow-y:auto;
+    overscroll-behavior:contain; background:var(--color-bg); }
+
+/* the moved toolbar loses its own card and becomes a stacked form */
+.filters-panel-body .toolbar { display:grid; grid-template-columns:minmax(0,1fr);
+    gap:10px; margin:0; padding:0; background:none; border:0; box-shadow:none; }
+.filters-panel-body .toolbar-left { display:grid; grid-template-columns:minmax(0,1fr);
+    gap:10px; width:100%; }
+.filters-panel-body .toolbar-right { display:none; }   /* the count lives in the row */
+.filter-line { display:grid; grid-template-columns:minmax(0,1fr) auto; gap:10px; align-items:end; }
+.filter-field { display:block; min-width:0; }
+.filter-label { display:block; margin:0 0 4px 2px; font-size:10px; font-weight:700;
+    letter-spacing:.06em; text-transform:uppercase; color:var(--color-primary); }
+.filter-field--toggle .filter-label { text-align:right; }
+.filter-field--toggle .toggle-wrapper { height:38px; padding:0 12px; gap:0;
+    border:1px solid var(--color-outline); border-radius:var(--radius-md);
+    background:var(--color-surface-variant); }
+.filter-field--toggle .toggle-label { display:none; }
+
+/* the fields read as one set of controls */
+.filters-panel-body .search-input { width:100% !important; padding-left:12px; }
+.filters-panel-body .filter-select { width:100%; color:var(--color-on-surface); }
+.filters-panel-body .week-nav { width:100%; margin:0; min-width:0; }
+.filters-panel-body .week-select { flex:1 1 auto; min-width:0;
+    background-color:var(--color-surface-variant); }
+.filters-panel-body .week-arrow { color:var(--color-primary); }
+.filters-panel-body .week-arrow:disabled { color:var(--color-on-surface-variant); }
+
+body.filters-panel-open { overflow:hidden; }
+/* the door keeps its full colour above the dim */
+body.filters-panel-open .filters-btn { position:relative; z-index:1300; }
+
+@media (max-width:768px) {
+    .filters-panel { width:100%; max-height:88dvh; border-bottom:0;
+        border-radius:var(--radius-lg) var(--radius-lg) 0 0;
+        padding-bottom:env(safe-area-inset-bottom); }
+    /* button and count share the first line, the chips take the next */
+    .filters-row .filters-btn { order:1; }
+    .filters-row .result-count { order:2; }
+    .filters-row #filterChips { order:3; flex:1 1 100%; gap:4px 6px; }
+    /* the app-wide 48px touch floor makes every chip ✕ a 48px square and the row
+       120px tall; the pill becomes the target instead (prototype's own trade) */
+    .filters-row #filterChips .filter-chip { padding:2px 9px; font-size:11px; gap:4px; min-height:32px; }
+    .filters-row #filterChips .filter-chip-remove { width:26px; height:26px;
+        min-width:0; min-height:0; font-size:14px; }
+    .filters-row #filterChips .filter-chip-clear-all { height:26px; min-height:0;
+        padding:0 10px; font-size:11px; }
+}
+@media (min-width:769px) {
+    .filters-overlay { align-items:flex-start; justify-content:flex-start; background:rgba(0,0,0,.32); }
+    /* design §3: the CARD is positioned from the button's rect by FiltersPanel._place(),
+       which writes inline left/top/max-height — those only mean anything on a fixed box.
+       (The §5 snippet omitted this property; §3 names it as deliberate. Without it the
+       card rendered at the overlay's content origin, not under the button.) */
+    .filters-panel { position:fixed; width:min(460px, calc(100vw - 16px)); border-radius:var(--radius-lg);
+        box-shadow:var(--shadow-lg); }
+}
+@media print {
+    .filters-overlay, .filters-btn { display:none !important; }
+    body.filters-panel-open { overflow:visible; }
+}
+
 /* ── Title Subtitle ────────────────────────────────────────────── */
 .title-subtitle {
     font-size: 13px;

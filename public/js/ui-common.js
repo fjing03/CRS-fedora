@@ -31,6 +31,17 @@ function updateWeekArrows(prevDisabled, nextDisabled) {
     if (next) next.disabled = nextDisabled;
 }
 
+/* Scoped variant of updateWeekArrows: the pair inside ONE .week-nav parent. Kept
+   separate so updateWeekArrows' document-order contract cannot drift — the page
+   with two week fields must never let the second nav's arrows go stale. */
+function updateWeekArrowsIn(nav, prevDisabled, nextDisabled) {
+    if (!nav) return;
+    const prev = nav.querySelector('.week-arrow[aria-label="Previous week"]');
+    const next = nav.querySelector('.week-arrow[aria-label="Next week"]');
+    if (prev) prev.disabled = prevDisabled;
+    if (next) next.disabled = nextDisabled;
+}
+
 // ───── Week helpers (shared by timetable pages) ─────
 
 function currentWeekIndex() {
@@ -307,7 +318,19 @@ function updateWeekSubtitle() {
     }
 }
 
-function updateWeekArrowState() {
+function updateWeekArrowState(selectId) {
+    /* No id = today's behaviour exactly: #weekFilter, and the first pair in
+       document order. With an id, only that select's own .week-nav pair moves. */
+    if (selectId) {
+        var scoped = document.getElementById(selectId);
+        if (!scoped) return;
+        updateWeekArrowsIn(
+            scoped.parentNode && scoped.parentNode.closest ? scoped.parentNode.closest('.week-nav') : null,
+            scoped.selectedIndex <= 0,
+            scoped.selectedIndex >= scoped.options.length - 1
+        );
+        return;
+    }
     var sel = document.getElementById('weekFilter');
     updateWeekArrows(sel.selectedIndex <= 0, sel.selectedIndex >= sel.options.length - 1);
 }
@@ -2458,6 +2481,7 @@ var SummarySheet = {
         if (!sheet || !section) return;
         if (btn && btn.hidden) return;
         if (window.getComputedStyle(section).display === 'none') return;
+        if (window.FiltersPanel) FiltersPanel.close(false);
 
         this._opener = btn || document.getElementById('summaryButton');
         sheet.hidden = false;
@@ -2551,6 +2575,272 @@ var SummarySheet = {
 document.addEventListener('DOMContentLoaded', function () {
     SummarySheet.init();
 });
+
+// ───── Filters panel (filters-button, 2026-11-15) ─────
+// The page's own .toolbar is MOVED into #filtersPanelBody, never rebuilt, so every
+// control id and every listener the page already bound survives. A hidden
+// placeholder span keeps the toolbar's seat in #filterToolbarHost for printing and
+// for the case where this module never boots. The move happens at EVERY width —
+// only the panel's shape changes at 768 (popover → bottom sheet), so there is no
+// matchMedia relocation branch here. The `.filters-ready` class is added LAST in
+// init(): the reveal of the button IS the proof the move succeeded (design §2), so
+// a page whose JS never runs keeps today's toolbar inline and simply has no door.
+var FiltersPanel = {
+    _overlay: null,
+    _panel: null,
+    _button: null,
+    _host: null,
+    _placeholder: null,
+    _opener: null,
+    _mq: null,
+    _onKeyDown: null,
+    _onResize: null,
+
+    init: function () {
+        if (this._bound) return;
+
+        this._panel = document.getElementById('filtersPanel');
+        if (!this._panel) return;                     /* page never opted in */
+
+        this._overlay = document.getElementById('filtersOverlay');
+        this._button = document.getElementById('filtersButton');
+        this._host = document.getElementById('filterToolbarHost');
+
+        var toolbar = document.querySelector('.toolbar');
+        if (!this._host || !toolbar) return;          /* nothing to move, or nowhere to go back to */
+
+        this._bound = true;
+        var self = this;
+
+        /* The page emits the placeholder; create it only if a page forgot, so
+           unrelocate() always has a seat to put the toolbar back into. */
+        this._placeholder = this._host.querySelector('.filters-toolbar-placeholder');
+        if (!this._placeholder) {
+            this._placeholder = document.createElement('span');
+            this._placeholder.className = 'filters-toolbar-placeholder';
+            this._placeholder.hidden = true;
+            this._host.insertBefore(this._placeholder, this._host.firstChild);
+        }
+
+        /* Crossing 768 while open keeps the panel open and re-places it: a rotated
+           phone must not throw away a half-entered search. */
+        this._mq = window.matchMedia('(max-width: 768px)');
+        var onBreakpoint = function () {
+            if (self._overlay && !self._overlay.hidden) self._place();
+        };
+        if (this._mq.addEventListener) this._mq.addEventListener('change', onBreakpoint);
+        else if (this._mq.addListener) this._mq.addListener(onBreakpoint);
+
+        if (this._button) {
+            this._button.addEventListener('click', function () { self.open(); });
+        }
+        if (this._overlay) {
+            this._overlay.addEventListener('click', function (e) {
+                if (e.target === self._overlay) self.close();
+            });
+        }
+        var close = this._panel.querySelector('.filters-panel-close');
+        if (close) close.addEventListener('click', function () { self.close(); });
+
+        /* Print never captures the frame: the toolbar goes back inline for the
+           paper (so the fields still print) and returns into the panel after. */
+        window.addEventListener('beforeprint', function () { self.unrelocate(); });
+        window.addEventListener('afterprint', function () { self.relocate(); });
+
+        this.relocate();
+
+        /* Sync the closed state, then reveal — always last. */
+        if (this._overlay) this._overlay.hidden = true;
+        if (this._button) this._button.setAttribute('aria-expanded', 'false');
+        document.body.classList.remove('filters-panel-open');
+
+        document.documentElement.classList.add('filters-ready');
+    },
+
+    _body: function () { return document.getElementById('filtersPanelBody'); },
+
+    /* .toolbar → #filtersPanelBody. Idempotent: the SAME node, never a copy. */
+    relocate: function () {
+        var toolbar = document.querySelector('.toolbar');
+        var body = this._body();
+        if (!toolbar || !body || !this._host) return;
+        if (toolbar.parentNode === body) return;
+
+        /* The placeholder stays in the host, hidden (the SummarySheet discipline):
+           it is what keeps the toolbar's seat while the toolbar is away. */
+        var ph = this._placeholder;
+        if (ph && ph.parentNode !== this._host) this._host.insertBefore(ph, this._host.firstChild);
+        body.appendChild(toolbar);
+    },
+
+    /* .toolbar → its seat in #filterToolbarHost, next to the placeholder. */
+    unrelocate: function () {
+        var toolbar = document.querySelector('.toolbar');
+        var host = this._host;
+        if (!toolbar || !host) return;
+        if (toolbar.parentNode === host) return;
+
+        var ph = this._placeholder;
+        if (ph && ph.parentNode === host) host.insertBefore(toolbar, ph);
+        else host.appendChild(toolbar);
+    },
+
+    open: function () {
+        var overlay = this._overlay;
+        var panel = this._panel;
+        if (!overlay || !panel || !overlay.hidden) return;
+
+        /* One overlay at a time (design §6.7): the bell and the summary sheet sit at
+           the same z-index 1200, so without this the winner would be DOM order. */
+        closeNotifPanel();
+        if (window.SummarySheet) SummarySheet.close();
+
+        this._opener = document.getElementById('filtersButton') || this._button;
+        overlay.hidden = false;
+        if (this._button) this._button.setAttribute('aria-expanded', 'true');
+        document.body.classList.add('filters-panel-open');
+
+        this._place();
+
+        /* The first control, never a .week-arrow: those are landmarks, not entries. */
+        var body = this._body();
+        if (body) {
+            var first = body.querySelector('input:not([type=hidden]), select, button:not(.week-arrow)');
+            if (first) first.focus({ preventScroll: true });
+        }
+
+        this._bindKeys();
+        this._bindResize();
+    },
+
+    /* restoreFocus=false is for the co-existence rule only: a bell or a summary
+       sheet opening on top closes this panel without stealing their focus. */
+    close: function (restoreFocus) {
+        var overlay = this._overlay;
+
+        if (overlay) overlay.hidden = true;
+        document.body.classList.remove('filters-panel-open');
+        if (this._button) this._button.setAttribute('aria-expanded', 'false');
+
+        this._unbindKeys();
+        this._unbindResize();
+
+        var opener = this._opener;
+        this._opener = null;
+        if (restoreFocus !== false && opener) opener.focus({ preventScroll: true });
+    },
+
+    /* ≥769: the card, anchored under the button's left edge and clamped inside the
+       viewport. ≤768: CSS owns the bottom sheet, so the inline box is cleared. */
+    _place: function () {
+        var panel = this._panel;
+        var btn = this._button;
+        if (!panel || !btn) return;
+
+        if (window.innerWidth <= 768) {
+            panel.style.left = '';
+            panel.style.top = '';
+            panel.style.width = '';
+            panel.style.maxHeight = '';
+            return;
+        }
+
+        var r = btn.getBoundingClientRect();
+        var w = Math.min(460, window.innerWidth - 16);
+        var left = Math.min(Math.max(r.left, 8), window.innerWidth - w - 8);
+        panel.style.left = left + 'px';
+        panel.style.top = (r.bottom + 8) + 'px';
+        panel.style.width = w + 'px';
+        panel.style.maxHeight = Math.max(200, window.innerHeight - (r.bottom + 8) - 8) + 'px';
+    },
+
+    /* A resize re-places the card and MUST NEVER close the panel (design §6.3) —
+       deliberately not the summary sheet's resize-up close. Bound only while open. */
+    _bindResize: function () {
+        if (this._onResize) return;
+        var self = this;
+        var pending = false;
+        this._onResize = function () {
+            if (!self._overlay || self._overlay.hidden) return;
+            if (pending) return;
+            pending = true;
+            var run = function () { pending = false; self._place(); };
+            if (window.requestAnimationFrame) window.requestAnimationFrame(run);
+            else setTimeout(run, 100);
+        };
+        window.addEventListener('resize', this._onResize);
+        window.addEventListener('orientationchange', this._onResize);
+    },
+
+    _unbindResize: function () {
+        if (!this._onResize) return;
+        window.removeEventListener('resize', this._onResize);
+        window.removeEventListener('orientationchange', this._onResize);
+        this._onResize = null;
+    },
+
+    /* A dialog ABOVE this panel owns the next Escape: the guide dialog and the row
+       modals set style.display='flex', the summary ⓘ is 'none' at rest. */
+    _dialogAbove: function () {
+        if (document.querySelector('.modal-overlay[style*="flex"]')) return true;
+        var explain = document.getElementById('summaryExplainModal');
+        return !!(explain && explain.style.display !== 'none');
+    },
+
+    /* Capture phase on purpose: it runs BEFORE the pages' bubble-phase Escape
+       handlers, so the layers can be arbitrated deterministically. */
+    _bindKeys: function () {
+        if (this._onKeyDown) return;
+        var self = this;
+        this._onKeyDown = function (e) {
+            if (!self._overlay || self._overlay.hidden) return;
+
+            if (e.key === 'Escape') {
+                if (self._dialogAbove()) return;      /* one keypress, one layer */
+                e.preventDefault();
+                e.stopPropagation();
+                self.close();
+                return;
+            }
+
+            if (e.key !== 'Tab' || self._dialogAbove()) return;   /* trap suspended for the dialog */
+
+            var panel = self._panel;
+            if (!panel) return;
+            var nodes = panel.querySelectorAll(
+                'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), ' +
+                'textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
+            );
+            var items = [];
+            for (var i = 0; i < nodes.length; i++) {
+                if (nodes[i].offsetWidth || nodes[i].offsetHeight || nodes[i].getClientRects().length) {
+                    items.push(nodes[i]);
+                }
+            }
+            if (!items.length) return;
+            var first = items[0];
+            var last = items[items.length - 1];
+            var active = document.activeElement;
+
+            if (e.shiftKey) {
+                if (active === first || !panel.contains(active)) {
+                    e.preventDefault();
+                    last.focus();
+                }
+            } else if (active === last) {
+                e.preventDefault();
+                first.focus();
+            }
+        };
+        document.addEventListener('keydown', this._onKeyDown, true);
+    },
+
+    _unbindKeys: function () {
+        if (!this._onKeyDown) return;
+        document.removeEventListener('keydown', this._onKeyDown, true);
+        this._onKeyDown = null;
+    }
+};
 
 // ───── Guide modal ─────
 // One shared dialog, opened by the page header's guide icon. The opener keeps
@@ -2882,6 +3172,7 @@ function hideNotifRowInPlace(row) {
 }
 
 function openNotifPanel() { // AD-12 direction 1 — drawer never stacks with panel
+    if (window.FiltersPanel) FiltersPanel.close(false);
     closeNavDrawer();
     const panel = document.getElementById('notifPanel');
     const overlay = document.getElementById('notifOverlay');
@@ -3995,8 +4286,8 @@ function weekFilterChanged(opts) {
     updateWeekArrowState();
 }
 
-function prevWeekFilter() {
-    const sel = document.getElementById('weekFilter');
+function prevWeekFilter(selectId) {
+    const sel = document.getElementById(selectId || 'weekFilter');
     if (!sel) return; /* page has no week filter — its own keyboard nav applies */
     if (sel.selectedIndex > 0) {
         sel.selectedIndex--;
@@ -4004,8 +4295,8 @@ function prevWeekFilter() {
     }
 }
 
-function nextWeekFilter() {
-    const sel = document.getElementById('weekFilter');
+function nextWeekFilter(selectId) {
+    const sel = document.getElementById(selectId || 'weekFilter');
     if (!sel) return;
     if (sel.selectedIndex < sel.options.length - 1) {
         sel.selectedIndex++;

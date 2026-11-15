@@ -1,3 +1,9 @@
+## 2026-11-15 — every filter moves behind one Filters button, with a requested-week filter and no Reset
+
+The search box, both week selects and the COMPLETED switch now sit in one panel behind a labelled **Filters** button — a popover anchored under the button at ≥769px, a bottom sheet at ≤768px — while the chips stay in the row on the page (this page has no count pill, so none is drawn). Inside, each control carries its label above it and the head is title + close only: the student page gets no **Reset**, by decision. The **requested** slot week is new beside the original one — read from `r.req.week`, already 1-based, so a specific requested week hides every class with no arrangement yet. The week option that means "no filter" now reads **All Weeks** — reversing the 2026-11-10 `All … Slot Weeks` form for that one option (chips and column headers keep SLOT) — the completed chip reads **Completed hidden**, and the `Active Filters:` prefix is gone from the chip bar.
+
+Measured at 390×844, default view, nothing opened: the first card's top edge is **247px** (bound ≤375, was 375 — 128px better); the chips row is **72px**, over its 44px bound because it is two lines at phone width (34px button + 6px row gap + 32px chip pill) — reported, not patched. Smoke: the new `tests/filters-button.spec.ts` (21 passed, 2 skipped for a fixture gap) and the four rewired specs (`status-tooltips-filter-chips`, `week-filter-preserved`, `request-completed-status`, `summary-cards-button`).
+
 ## 2026-11-14 (night) — the last page on the old summary cards joins the other six
 
 Reported: these cards still showed the old variant — one dense paragraph on the back
@@ -37,6 +43,43 @@ The cards are MOVED, not copied, so the ids, wording, colours and numbers (inclu
 dialog, which opens above the sheet) are exactly what they were. At ≥769px nothing changed. The button
 hides itself when the page hides the cards (an empty filtered view). One shared JS module
 (`SummarySheet`) and one CSS block drive it, so all seven card pages behave the same.
+
+## 2026-11-14 (later) — the page names itself once, and the help dialog explains itself
+
+Same day, same ask (no SDD): the heading now reads **Student Class Replacements**, so the student page
+and the staff My Replacements cannot be confused at a glance, and the help dialog was filled in — it
+had one sentence and nothing else.
+
+| | Before | After |
+|---|---|---|
+| `<h1>` | `Class Replacements` | **`Student Class Replacements`** |
+| Help lead | "Conflicted CLASSES and where each one's replacement stands — read-only, for your cohort." | "Every class of your cohort that **cannot run as timetabled** — a cancellation or a public holiday — and how far its replacement has got." |
+| Help items | none | Read-only · The week (two slots, two weeks) · COMPLETED switch · the four statuses · click a row or card for details |
+
+Only the `<h1>` text changed — the tab title (`@section('title')`) and the nav label still read
+"Class Replacements", so the page name now differs in two of its four homes. Left as asked; flagged to
+the user rather than changed on my own.
+
+## 2026-11-14 — the help icon opens the shared dialog, like every other page
+
+The user's ask: on this page the `?` icon was the last one still opening an **inline** guide panel —
+every other staff and student page had already moved to the shared guide dialog. Updated on the real
+page and on the prototype, one page only, no SDD lane (the user's instruction).
+
+| | Before | After |
+|---|---|---|
+| Button | `aria-haspopup="false"`, `aria-controls="guideBlock"`, an inline `onclick` toggling a class | `aria-haspopup="dialog"`, `aria-controls="guideModal"`, `onclick="GuideModal.open(this)"` |
+| What opens | `#guideBlock`, a panel pushed into the page, then collapsed by the same icon | `#guideModal` — the shared dialog, with Close, Esc and a click on the dim area |
+| Page markup | `partials.ui-guide-block` (`showToggle => false`) | `partials.ui-guide-modal` |
+
+Same wording as before ("Conflicted CLASSES and where each one's replacement stands — read-only, for
+your cohort."), so nothing was re-written, only re-housed. The inline `#guideBlock` block is gone from
+this page; nothing else on it changed.
+
+**Verified:** logged in as `24RSD0009` on `:8000` — the button reports `dialog` / `guideModal` /
+`GuideModal.open(this)`, `#guideBlock` no longer exists, and clicking the icon opens the dialog with the
+same sentence. The prototype (`ui-prototype/student-class-replacements.html`) carries the identical
+button and dialog at desktop and phone width, no page errors.
 
 ## 2026-11-11 — the pop-up becomes the staff pop-up (Replacement Details)
 

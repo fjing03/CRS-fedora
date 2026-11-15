@@ -103,12 +103,6 @@
         .summary-card.card-approved .summary-value { color: var(--color-success); }
         .summary-card.card-rejected .summary-value { color: var(--color-error); }
 
-        /* ───── M15: the toolbar count yields below 1500 px (the pagination bar
-           still reports it). Hidden, never removed. ───── */
-        @media (max-width: 1499px) {
-            #resultCount { display: none; }
-        }
-
         /* ───── Responsive card view ───── */
         .replacement-card {
             background: var(--color-surface);
@@ -187,41 +181,58 @@
             ]
         ])
 
-        <!-- ─── Toolbar (moved from My Requests: one filter bar, M17) ─── -->
-        <div class="toolbar">
-            <div class="toolbar-left">
-                <div class="search-wrapper">
-                    <svg class="search-icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <circle cx="11" cy="11" r="8"/>
-                        <line x1="21" y1="21" x2="16.65" y2="16.65"/>
-                    </svg>
-                    <input class="search-input" id="searchInput" placeholder="Search course code, name or cohort..." data-tip="Search by course code, course name or cohort code">
+        <!-- ─── Toolbar (moved from My Requests: one filter bar, M17).
+               filters-button: the host + placeholder keep the toolbar's seat so
+               FiltersPanel can MOVE it into the panel and back — never rebuild it. ─── -->
+        <div id="filterToolbarHost" wire:ignore>
+            <span class="filters-toolbar-placeholder" hidden></span>
+            <div class="toolbar">
+                <div class="toolbar-left">
+                    <div class="filter-field">
+                        <label class="filter-label" for="searchInput">Search</label>
+                        <input class="search-input" id="searchInput" placeholder="Search course code, name or cohort..." data-tip="Search by course code, course name or cohort code">
+                    </div>
+                    <div class="filter-line">
+                        <div class="filter-field">
+                            <label class="filter-label" for="statusFilter">Status</label>
+                            <select class="filter-select" id="statusFilter" data-tip="Request Status">
+                                <option value="all">All Request Status</option>
+                                <option value="none">Need to Arrange</option>
+                                <option value="pending">Pending</option>
+                                <option value="approved">Approved</option>
+                                <option value="rejected">Rejected</option>
+                                {{-- No Cancelled option (2026-11-06): a request its owner cancelled is
+                                     DISPLAYED as Need to Arrange, so no row on this page carries that
+                                     state any more — the option could only ever match nothing. --}}
+                                <option value="completed">Completed</option>
+                            </select>
+                        </div>
+                        <div class="filter-field filter-field--toggle">
+                            <label class="filter-label" for="hideCompleted">Hide COMPLETED</label>
+                            <label class="toggle-wrapper" id="completedToggle" data-tip="ON = completed requests are excluded from the list">
+                                <input type="checkbox" id="hideCompleted" checked>
+                                <span class="toggle-track"><span class="toggle-thumb"></span></span>
+                                <span class="toggle-label">Exclude <span class="info-keyword">COMPLETED</span> Status</span>
+                            </label>
+                        </div>
+                    </div>
+                    <div class="filter-field">
+                        <label class="filter-label" for="weekFilter">Original slot week</label>
+                        @include('partials.ui-week-nav', ['prevOnclick' => 'prevWeekFilter()', 'prevTip' => 'Previous week', 'nextOnclick' => 'nextWeekFilter()', 'nextTip' => 'Next week', 'selectId' => 'weekFilter', 'selectOnclick' => 'weekFilterChanged(this.value)', 'selectTip' => 'Pick the Original Class week to display', 'showTodayBtn' => false])
+                    </div>
+                    <div class="filter-field">
+                        <label class="filter-label" for="weekFilterRequested">Requested slot week</label>
+                        @include('partials.ui-week-nav', ['prevOnclick' => "prevWeekFilter('weekFilterRequested')", 'prevTip' => 'Previous requested week', 'nextOnclick' => "nextWeekFilter('weekFilterRequested')", 'nextTip' => 'Next requested week', 'selectId' => 'weekFilterRequested', 'selectOnclick' => 'requestedWeekFilterChanged(this.value)', 'selectTip' => 'Show only rows whose requested slot falls in this week', 'showTodayBtn' => false])
+                    </div>
                 </div>
-                <select class="filter-select" id="statusFilter" data-tip="Request Status" aria-label="Request Status">
-                    <option value="all">All Request Status</option>
-                    <option value="none">Need to Arrange</option>
-                    <option value="pending">Pending</option>
-                    <option value="approved">Approved</option>
-                    <option value="rejected">Rejected</option>
-                    {{-- No Cancelled option (2026-11-06): a request its owner cancelled is
-                         DISPLAYED as Need to Arrange, so no row on this page carries that
-                         state any more — the option could only ever match nothing. --}}
-                    <option value="completed">Completed</option>
-                </select>
-                @include('partials.ui-week-nav', ['prevOnclick' => 'prevWeekFilter()', 'prevTip' => 'Previous week', 'nextOnclick' => 'nextWeekFilter()', 'nextTip' => 'Next week', 'selectId' => 'weekFilter', 'selectOnclick' => 'weekFilterChanged(this.value)', 'selectTip' => 'Pick the Original Class week to display', 'showTodayBtn' => false])
-                <label class="toggle-wrapper" id="completedToggle" data-tip="ON = completed requests are excluded from the list">
-                    <input type="checkbox" id="hideCompleted" checked>
-                    <span class="toggle-track"><span class="toggle-thumb"></span></span>
-                    <span class="toggle-label">Exclude <span class="info-keyword">COMPLETED</span> Status</span>
-                </label>
-                <button class="btn-clear" id="resetFilters" data-tip="Reset all filters to DEFAULT">Reset Filters</button>
-            </div>
-            <div class="toolbar-right">
-                <span class="result-count" id="resultCount" data-tip="Classes matching the current filters">Showing 0 of 0 classes</span>
             </div>
         </div>
 
-        <div class="filter-chips" id="filterChips"></div>
+        @include('partials.ui-filter-panel', [
+            'filtersReset' => true,
+            'filtersResetOnclick' => 'resetAllFilters()',
+            'filtersCountTip' => 'Classes matching the current filters',
+        ])
 
         <!-- ─── Grid Wrapper ─── -->
         @include('partials.ui-grid-table', ['tableClass' => 'timetable data-table'])
@@ -613,6 +624,7 @@
                 status: document.getElementById('statusFilter').value,
                 search: document.getElementById('searchInput').value,
                 week: weekFilterValue('weekFilter'),
+                requestedWeek: weekFilterValue('weekFilterRequested'),
                 excludeCompleted: document.getElementById('hideCompleted').checked
             }));
         }
@@ -630,6 +642,14 @@
                 if (f.status) document.getElementById('statusFilter').value = f.status;
                 if (f.search) document.getElementById('searchInput').value = f.search;
                 if (f.week) document.getElementById('weekFilter').value = f.week;
+                /* The requested week is a later field: a saved view that predates
+                   it (or names a week this build does not list) falls back to
+                   ALL WEEKS rather than blanking the select and matching nothing. */
+                var reqWeekSel = document.getElementById('weekFilterRequested');
+                if (reqWeekSel && f.requestedWeek
+                    && Array.prototype.some.call(reqWeekSel.options, function (o) { return o.value === f.requestedWeek; })) {
+                    reqWeekSel.value = f.requestedWeek;
+                }
                 if (typeof f.excludeCompleted === 'boolean') document.getElementById('hideCompleted').checked = f.excludeCompleted;
             } catch (e) {}
         }
@@ -661,16 +681,24 @@
                 var weekLabel = weekFilterLabel('weekFilter') || week;
                 chips.push('<span class="filter-chip">Original Slot Week: ' + weekLabel + '<button class="filter-chip-remove" onclick="document.getElementById(\'weekFilter\').value=\'all\';pageState.currentPage=1;saveFilters();buildTable()" data-tip="Remove">&times;</button></span>');
             }
+            /* the ADDED requested week (design §4.4): the same chip shape as the
+               original week above, so its ✕ removes only itself */
+            var reqWeek = weekFilterValue('weekFilterRequested');
+            if (reqWeek !== 'all') {
+                var reqWeekLabel = weekFilterLabel('weekFilterRequested') || reqWeek;
+                chips.push('<span class="filter-chip">Requested Slot Week: ' + reqWeekLabel + '<button class="filter-chip-remove" onclick="document.getElementById(\'weekFilterRequested\').value=\'all\';pageState.currentPage=1;saveFilters();buildTable()" data-tip="Remove">&times;</button></span>');
+            }
             if (search) {
                 chips.push('<span class="filter-chip">Search: "' + search + '"<button class="filter-chip-remove" onclick="document.getElementById(\'searchInput\').value=\'\';pageState.currentPage=1;saveFilters();buildTable()" data-tip="Remove">&times;</button></span>');
             }
             if (excludeCompleted) {
-                chips.push('<span class="filter-chip">Exclude COMPLETED Status<button class="filter-chip-remove" onclick="document.getElementById(\'hideCompleted\').checked=false;pageState.currentPage=1;saveFilters();buildTable()" data-tip="Remove">&times;</button></span>');
+                chips.push('<span class="filter-chip">Completed hidden<button class="filter-chip-remove" onclick="document.getElementById(\'hideCompleted\').checked=false;pageState.currentPage=1;saveFilters();buildTable()" data-tip="Remove">&times;</button></span>');
             }
             if (chips.length > 0) {
                 chips.push('<button type="button" class="filter-chip filter-chip-clear-all" data-tip="Remove every active filter" onclick="clearAllFilters()">Clear all</button>');
             }
-            container.innerHTML = chips.length > 0 ? '<span class="filter-chips-label">Active Filters:</span>' + chips.join('') : '';
+            /* No prefix label (design §2.1): the row is named by the button. */
+            container.innerHTML = chips.join('');
         }
 
         /* Reset = the PAGE DEFAULTS (exclusion ON). */
@@ -678,10 +706,14 @@
             document.getElementById('searchInput').value = '';
             document.getElementById('statusFilter').value = 'all';
             document.getElementById('weekFilter').value = 'all';
+            document.getElementById('weekFilterRequested').value = 'all';
             document.getElementById('hideCompleted').checked = true;
             localStorage.removeItem('mrh-filters');
             pageState.currentPage = 1;
-            rebuildTable({ render: buildTable, after: updateWeekArrowState });
+            rebuildTable({ render: buildTable, after: function () {
+                updateWeekArrowState();
+                updateWeekArrowState('weekFilterRequested');
+            } });
         }
 
         /* Clear all = EVERY filter off (exclusion OFF) — the chip bar empties. */
@@ -689,10 +721,14 @@
             document.getElementById('searchInput').value = '';
             document.getElementById('statusFilter').value = 'all';
             document.getElementById('weekFilter').value = 'all';
+            document.getElementById('weekFilterRequested').value = 'all';
             document.getElementById('hideCompleted').checked = false;
             localStorage.removeItem('mrh-filters');
             pageState.currentPage = 1;
-            rebuildTable({ render: buildTable, after: updateWeekArrowState });
+            rebuildTable({ render: buildTable, after: function () {
+                updateWeekArrowState();
+                updateWeekArrowState('weekFilterRequested');
+            } });
         }
 
         /* ─── Table ─── */
@@ -701,6 +737,7 @@
             const compactQuery = query.replace(/\s+/g, '');
             const status = document.getElementById('statusFilter').value;
             const weekVal = weekFilterValue('weekFilter');   /* '' is not a week */
+            const reqWeekVal = weekFilterValue('weekFilterRequested');
 
             let filtered = myConflictedRows().filter(function (c) {
                 if (completedHidden(c)) return false;
@@ -716,8 +753,12 @@
                 var matchesStatus = status === 'all'
                     || (status === 'none' ? !c.requestStatus : c.requestStatus === status);
                 var matchesWeek = weekVal === 'all' || String(getWeekNumber(c.date)) === weekVal;
+                /* A specific requested week hides every row with no arrangement —
+                   `Need to Arrange` included (design §4.3). */
+                var matchesReqWeek = reqWeekVal === 'all'
+                    || (!!c.replacementDate && String(getWeekNumber(c.replacementDate)) === reqWeekVal);
 
-                return matchesSearch && matchesStatus && matchesWeek;
+                return matchesSearch && matchesStatus && matchesWeek && matchesReqWeek;
             });
 
             filtered.sort(function (a, b) {
@@ -875,7 +916,17 @@
         }
 
         function populateWeekDropdown() {
-            populateWeekSelect('weekFilter', { includeAll: true, allLabel: 'All Original Slot Weeks' });
+            populateWeekSelect('weekFilter', { includeAll: true, allLabel: 'All Weeks' });
+            populateWeekSelect('weekFilterRequested', { includeAll: true, allLabel: 'All Weeks' });
+        }
+
+        /* The second week field's own handler — the arrows pass their select id so
+           only ITS pair moves (design §4.3). */
+        function requestedWeekFilterChanged(value) {
+            pageState.currentPage = 1;
+            saveFilters();
+            buildTable();
+            updateWeekArrowState('weekFilterRequested');
         }
 
         /* BRIDGE PATCH: the handoff carries the occurrence's real identity —
@@ -1182,9 +1233,14 @@
             var idx = currentFiltered.findIndex(function (c) { return Number(c.requestId) === Number(requestId); });
 
             if (idx < 0) {
+                /* filters-button (2026-11-15): the requested week is a filter too —
+                   without it here, a row hidden ONLY by the new week would be blamed
+                   on the completed switch and needlessly untick it (design gap: the
+                   frozen design named the other two arrival paths, not this one). */
                 var otherFiltersActive = document.getElementById('statusFilter').value !== 'all'
                     || document.getElementById('searchInput').value.trim() !== ''
-                    || document.getElementById('weekFilter').value !== 'all';
+                    || document.getElementById('weekFilter').value !== 'all'
+                    || document.getElementById('weekFilterRequested').value !== 'all';
                 var onlyCompletedHidesIt = !!inPayload && inPayload.requestStatus === 'completed'
                     && document.getElementById('hideCompleted').checked
                     && !otherFiltersActive;
@@ -1240,9 +1296,11 @@
                     document.getElementById('searchInput').value = '';
                     document.getElementById('statusFilter').value = 'all';
                     document.getElementById('weekFilter').value = 'all';
+                    document.getElementById('weekFilterRequested').value = 'all';
                     pageState.currentPage = 1;
                     buildTable();               /* also re-renders the filter chips */
                     updateWeekArrowState();
+                    updateWeekArrowState('weekFilterRequested');
                     idx = findIdx(id);
                 }
                 if (idx < 0) return;            /* silent skip — never flash a guess */
@@ -1409,12 +1467,21 @@
                 saveFilters();
                 rebuildTable({ render: buildTable, after: updateWeekArrowState });
             });
+            document.getElementById('weekFilterRequested').addEventListener('change', function () {
+                saveFilters();
+                rebuildTable({ render: buildTable, after: function () {
+                    updateWeekArrowState('weekFilterRequested');
+                } });
+            });
             document.getElementById('hideCompleted').addEventListener('change', function () {
                 saveFilters();
                 pageState.currentPage = 1;
                 buildTable();
             });
-            document.getElementById('resetFilters').addEventListener('click', resetAllFilters);
+            /* filters-button: the panel head's Reset carries the inline onclick, so
+               the toolbar's old Reset button and its click listener are gone (a null
+               here would throw and kill every listener wired after it). */
+            FiltersPanel.init();
 
             document.getElementById('cancelConfirmOverlay').addEventListener('click', function (e) {
                 if (e.target === this) closeCancelConfirm();
@@ -1431,6 +1498,7 @@
         window.closeCancelConfirm = closeCancelConfirm;
         window.clearAllFilters = clearAllFilters;
         window.resetAllFilters = resetAllFilters;
+        window.requestedWeekFilterChanged = requestedWeekFilterChanged;
         window.buildTable = buildTable;
         window.saveFilters = saveFilters;
         window.pageState = pageState;

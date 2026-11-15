@@ -1,4 +1,5 @@
 import { test, expect, type Page } from '@playwright/test';
+import { closeFiltersPanel, openFiltersPanel, withFilters } from './helpers/filters-panel-helper';
 
 /**
  * Summary cards behind one header button on phones — summary-cards-button
@@ -138,7 +139,9 @@ test.describe('T11a — relocation, repaint and the empty view', () => {
     await dp.goto(BASE + '/my-replacements', { waitUntil: 'networkidle' });
     await dp.waitForTimeout(1000);
     const allCount = ((await dp.locator('#summarySection #summaryNeeds').textContent()) || '').trim();
-    await dp.selectOption('#statusFilter', 'none');
+    await withFilters(dp, async () => {
+      await dp.selectOption('#statusFilter', 'none');
+    });
     await dp.waitForTimeout(700);
     const filtInline = ((await dp.locator('#summarySection #summaryNeeds').textContent()) || '').trim();
     expect(filtInline, 'the filter really repaints the cards').not.toBe(allCount);
@@ -149,8 +152,13 @@ test.describe('T11a — relocation, repaint and the empty view', () => {
     await pp.goto(BASE + '/my-replacements', { waitUntil: 'networkidle' });
     await pp.waitForTimeout(1000);
     /* every control that repaints sits OUTSIDE the sheet, so the sheet is closed
-       while the filter changes and reopened after — the moved node must carry it */
-    await pp.selectOption('#statusFilter', 'none');
+       while the filter changes and reopened after — the moved node must carry it.
+       SDD filters-button: that control now sits behind the Filters panel's door,
+       so the panel opens for the change and closes again before the sheet opens
+       (two overlays never share the page — design §6.7). */
+    await withFilters(pp, async () => {
+      await pp.selectOption('#statusFilter', 'none');
+    });
     await pp.waitForTimeout(800);
     await pp.locator('#summaryButton').click();
     await expect(pp.locator('#summarySheet')).toBeVisible();
@@ -201,9 +209,13 @@ test.describe('T11a — relocation, repaint and the empty view', () => {
     expect((await cardPlacement(page)).sectionDisplay).not.toBe('none');
 
     /* a search that matches nothing makes the page hide the section
-       (syncSummarySection(false)) — the button must follow it */
+       (syncSummarySection(false)) — the button must follow it. SDD filters-button:
+       the search box moved into the Filters panel, so the door opens, the query is
+       typed, and the panel closes again before the sheet/button is read. */
+    await openFiltersPanel(page);
     await page.fill('#searchInput', 'zzzz-no-such-class');
     await page.keyboard.press('Enter');
+    await closeFiltersPanel(page);
     await page.waitForTimeout(900);
 
     const at = await cardPlacement(page);

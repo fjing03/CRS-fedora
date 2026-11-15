@@ -218,37 +218,63 @@
         '<strong>Hover headers</strong> — hover a column name to see what it means',
         '<strong>Bulk action</strong> — tick checkboxes then approve/reject multiple requests at once',
         '<strong>Quick action</strong> — use the approve/reject buttons on individual rows',
+        '<strong>The five cards</strong> — Total Requests, Pending, Approved, Rejected and Total Reviewed; they count what your filters currently show',
+        '<strong>COMPLETED</strong> — the switch hides requests whose replacement date has passed; turn it off to see them',
         '<strong>Request age</strong> — colour indicates how long ago it was submitted: <span style="color:var(--color-primary)">● ≤1 day</span> <span style="color:var(--color-tertiary)">● 2–3 days</span> <span style="color:var(--color-error)">● 4+ days</span>',
     ]
 ])
 
-<div class="toolbar">
-    <div class="toolbar-left">
-        <input class="search-input" id="searchInput" placeholder="Search course code, name, or lecturer..." data-tip="Search by course code, name, or lecturer">
-        <select class="filter-select" id="statusFilter" data-tip="Filter by Request Status" aria-label="Filter by Request Status">
-            <option value="all">All Status</option>
-            <option value="Pending" selected>Pending</option>
-            <option value="Approved">Approved</option>
-            <option value="Rejected">Rejected</option>
-            <option value="Cancelled">Cancelled</option>
-            <option value="Completed">Completed</option>
-        </select>
-        @include('partials.ui-week-nav', ['prevOnclick' => 'prevWeekFilter()', 'prevTip' => 'Previous week', 'nextOnclick' => 'nextWeekFilter()', 'nextTip' => 'Next week', 'selectId' => 'weekFilter', 'selectOnclick' => 'onWeekFilterChange(this.value)', 'selectTip' => 'Pick the Requested Replacement week to display', 'showTodayBtn' => false])
-        <label class="toggle-wrapper" id="completedToggle" data-tip="ON = completed requests are excluded from the list">
-            <input type="checkbox" id="hideCompletedToggle" checked onchange="toggleHideCompleted()">
-            <span class="toggle-track"><span class="toggle-thumb"></span></span>
-            <span class="toggle-label">Exclude <span class="info-keyword">COMPLETED</span> Status</span>
-        </label>
-        <button class="btn-clear" id="resetFilters" data-tip="Reset all filters to DEFAULT">Reset Filters</button>
-    </div>
-    <div class="toolbar-right">
-        <span class="result-count" id="resultCount" data-tip="Rows matching the current filters"></span>
+<!-- ─── Toolbar (filters-button: the host + placeholder keep the toolbar's seat,
+       so FiltersPanel can MOVE it into the panel and back — never rebuild it). ─── -->
+<div id="filterToolbarHost" wire:ignore>
+    <span class="filters-toolbar-placeholder" hidden></span>
+    <div class="toolbar">
+        <div class="toolbar-left">
+            <div class="filter-field">
+                <label class="filter-label" for="searchInput">Search</label>
+                <input class="search-input" id="searchInput" placeholder="Search course code, name, or lecturer..." data-tip="Search by course code, name, or lecturer">
+            </div>
+            <div class="filter-line">
+                <div class="filter-field">
+                    <label class="filter-label" for="statusFilter">Status</label>
+                    <select class="filter-select" id="statusFilter" data-tip="Filter by Request Status">
+                        <option value="all">All Status</option>
+                        <option value="Pending" selected>Pending</option>
+                        <option value="Approved">Approved</option>
+                        <option value="Rejected">Rejected</option>
+                        <option value="Cancelled">Cancelled</option>
+                        <option value="Completed">Completed</option>
+                    </select>
+                </div>
+                <div class="filter-field filter-field--toggle">
+                    <label class="filter-label" for="hideCompletedToggle">Hide COMPLETED</label>
+                    <label class="toggle-wrapper" id="completedToggle" data-tip="ON = completed requests are excluded from the list">
+                        <input type="checkbox" id="hideCompletedToggle" checked onchange="toggleHideCompleted()">
+                        <span class="toggle-track"><span class="toggle-thumb"></span></span>
+                        <span class="toggle-label">Exclude <span class="info-keyword">COMPLETED</span> Status</span>
+                    </label>
+                </div>
+            </div>
+            {{-- The ADDED field (design §4.3): the ORIGINAL slot week, rendered ABOVE
+                 the existing requested one to follow the panel's field order. --}}
+            <div class="filter-field">
+                <label class="filter-label" for="weekFilterOriginal">Original slot week</label>
+                @include('partials.ui-week-nav', ['prevOnclick' => "prevWeekFilter('weekFilterOriginal')", 'prevTip' => 'Previous original week', 'nextOnclick' => "nextWeekFilter('weekFilterOriginal')", 'nextTip' => 'Next original week', 'selectId' => 'weekFilterOriginal', 'selectOnclick' => 'onOrigWeekFilterChange(this.value)', 'selectTip' => 'Show only rows whose original slot falls in this week', 'showTodayBtn' => false])
+            </div>
+            <div class="filter-field">
+                <label class="filter-label" for="weekFilter">Requested slot week</label>
+                @include('partials.ui-week-nav', ['prevOnclick' => 'prevWeekFilter()', 'prevTip' => 'Previous week', 'nextOnclick' => 'nextWeekFilter()', 'nextTip' => 'Next week', 'selectId' => 'weekFilter', 'selectOnclick' => 'onWeekFilterChange(this.value)', 'selectTip' => 'Pick the Requested Replacement week to display', 'showTodayBtn' => false])
+            </div>
+        </div>
     </div>
 </div>
 
 <div class="sort-hint">Click column headers to sort (Requested Timestamp, Original Slot, Requested Slot, Request Status)</div>
 
-<div class="filter-chips" id="filterChips"></div>
+@include('partials.ui-filter-panel', [
+    'filtersReset' => true,
+    'filtersResetOnclick' => 'resetFilters()',
+])
 
 <div class="grid-wrapper" id="gridWrapper">
     <div class="grid-scroll">
@@ -467,9 +493,19 @@
         }
 
         // ── Filter persistence (§7) ──
+        /* filters-button (2026-11-15): the boot order is initRpp() (which fires its
+           onChange → saveFilters) BEFORE SkeletonLoader runs restoreFilters(), so
+           an unconditional save overwrote the stored view with the just-populated
+           defaults and every reload forgot the filters — the original week filter
+           included, i.e. a pre-existing bug. Saves are therefore ignored until the
+           restore has read the stored view; nothing else calls saveFilters() that
+           early. */
+        var filtersRestored = false;
         function saveFilters() {
+            if (!filtersRestored) return;
             const state = {
                 weekFilter: document.getElementById('weekFilter')?.value || 'all',
+                origWeekFilter: weekFilterValue('weekFilterOriginal'),
                 statusFilter: document.getElementById('statusFilter')?.value || 'Pending',
                 rpp: rpp,
                 sortField: sortState.field,
@@ -480,11 +516,21 @@
         }
 
         function restoreFilters() {
+            filtersRestored = true;      /* from here on, saves are real again */
             const saved = localStorage.getItem('request-approval-filters');
             if (!saved) return false;
             try {
                 const state = JSON.parse(saved);
                 if (state.weekFilter) document.getElementById('weekFilter').value = state.weekFilter;
+                /* The original week is a later field: a saved view that predates it (or
+                   names a week this build does not list) falls back to ALL WEEKS rather
+                   than blanking the select and matching nothing. */
+                if (state.origWeekFilter) {
+                    var origWeekSel = document.getElementById('weekFilterOriginal');
+                    if (origWeekSel && Array.prototype.some.call(origWeekSel.options, function (o) { return o.value === state.origWeekFilter; })) {
+                        origWeekSel.value = state.origWeekFilter;
+                    }
+                }
                 if (state.statusFilter) document.getElementById('statusFilter').value = state.statusFilter;
                 if (state.rpp) { rpp = state.rpp; document.getElementById('rowsPerPage').value = state.rpp; }
                 if (state.sortField) { sortState.field = state.sortField; sortState.dir = state.sortDir || 'asc'; }
@@ -631,6 +677,7 @@
             const search = document.getElementById('searchInput').value.toLowerCase();
             const status = document.getElementById('statusFilter').value;
             const week = weekFilterValue('weekFilter');   /* '' is not a week */
+            const origWeek = weekFilterValue('weekFilterOriginal');
 
             let result = MockData.approvalRequests.filter(r => {
                 if (status !== 'all' && r.status !== status) return false;
@@ -640,6 +687,9 @@
                    class sits in week 14 but whose proposal lands in week 7 belongs
                    to week 7 here. */
                 if (week !== 'all' && !isInWeek(r.replacementDate, week)) return false;
+                /* the ADDED original-week filter (design §4.3): the ORIGINAL class
+                   date — composes (AND) with the requested-week test above. */
+                if (origWeek !== 'all' && !isInWeek(r.classDate, origWeek)) return false;
                 if (hideCompleted && r.status === 'Completed') return false;
                 if (search) {
                     const haystack = (r.courseCode + ' ' + r.courseName + ' ' + r.lecturer).toLowerCase();
@@ -802,9 +852,17 @@
             const search = document.getElementById('searchInput').value.trim();
             /* 2026-11-11: an unselected week box is NOT a week (weekFilterValue) */
             const week = weekFilterValue('weekFilter');
+            const origWeek = weekFilterValue('weekFilterOriginal');
 
             if (status !== 'all') {
                 chips.push('<span class="filter-chip">Status: ' + status + '<button class="filter-chip-remove" onclick="document.getElementById(\'statusFilter\').value=\'all\';renderTable()" data-tip="Remove">&times;</button></span>');
+            }
+            /* The ADDED original week (design §4.4): inserted BEFORE the requested
+               one so the chips follow the panel's field order — Status · Original ·
+               Requested · Search · exclusion · Clear all. */
+            if (origWeek !== 'all') {
+                const origWeekLabel = weekFilterLabel('weekFilterOriginal') || origWeek;
+                chips.push('<span class="filter-chip">Original Slot Week: ' + origWeekLabel + '<button class="filter-chip-remove" onclick="document.getElementById(\'weekFilterOriginal\').value=\'all\';onOrigWeekFilterChange()" data-tip="Remove">&times;</button></span>');
             }
             if (week !== 'all') {
                 const weekLabel = weekFilterLabel('weekFilter') || week;
@@ -814,12 +872,13 @@
                 chips.push('<span class="filter-chip">Search: "' + search + '"<button class="filter-chip-remove" onclick="document.getElementById(\'searchInput\').value=\'\';renderTable()" data-tip="Remove">&times;</button></span>');
             }
             if (hideCompleted) {
-                chips.push('<span class="filter-chip">Exclude COMPLETED Status<button class="filter-chip-remove" onclick="document.getElementById(\'hideCompletedToggle\').checked=false;toggleHideCompleted()" data-tip="Remove">&times;</button></span>');
+                chips.push('<span class="filter-chip">Completed hidden<button class="filter-chip-remove" onclick="document.getElementById(\'hideCompletedToggle\').checked=false;toggleHideCompleted()" data-tip="Remove">&times;</button></span>');
             }
             if (chips.length > 0) {
                 chips.push('<button type="button" class="filter-chip filter-chip-clear-all" data-tip="Remove every active filter" onclick="clearAllFilters()">Clear all</button>');
             }
-            container.innerHTML = chips.length > 0 ? '<span class="filter-chips-label">Active Filters:</span>' + chips.join('') : '';
+            /* No prefix label (design §2.1): the row is named by the button. */
+            container.innerHTML = chips.join('');
         }
 
         // ── Main render ──
@@ -903,7 +962,17 @@
             currentPage = 1;
             saveFilters();
             renderTable();
-            updateWeekArrowState();
+            updateWeekArrowState('weekFilter');
+        }
+
+        /* the ADDED original-week field (design §4.3) — same shape as
+           onWeekFilterChange(), scoped to its own nav's arrows. */
+        function onOrigWeekFilterChange(value) {
+            if (typeof pageState !== 'undefined' && pageState) pageState.currentPage = 1;
+            currentPage = 1;
+            saveFilters();
+            renderTable();
+            updateWeekArrowState('weekFilterOriginal');
         }
 
         // ── Modal ──
@@ -1240,8 +1309,13 @@
         function populateWeekFilter() {
             populateWeekSelect('weekFilter', {
                 includeAll: true,
-                allLabel: 'All Requested Slot Weeks',
+                allLabel: 'All Weeks',
                 labelFn: function(w) { return w.label; }
+            });
+            populateWeekSelect('weekFilterOriginal', {
+                includeAll: true,
+                allLabel: 'All Weeks',
+                labelFn: function (w) { return w.label; }
             });
         }
 
@@ -1252,6 +1326,7 @@
             document.getElementById('searchInput').value = '';
             document.getElementById('statusFilter').value = 'Pending';
             document.getElementById('weekFilter').value = 'all';
+            document.getElementById('weekFilterOriginal').value = 'all';
             rpp = 10;
             document.getElementById('rowsPerPage').value = '10';
             hideCompleted = true;
@@ -1262,6 +1337,8 @@
             sortState = { field: 'requestedAt', dir: 'asc' };
             localStorage.removeItem('request-approval-filters');
             renderTable();
+            updateWeekArrowState('weekFilter');
+            updateWeekArrowState('weekFilterOriginal');
         }
 
         /* SDD filter-clear-all-off (the user's 2026-10-30 ruling): the chips
@@ -1269,12 +1346,13 @@
            status goes to 'all' (not the default 'Pending') and the
            hideCompleted exclusion turns OFF (BOTH statements — the variable
            the chip branch reads + the checkbox the ✕ sets) — so the bar
-           renders EMPTY (no chips, no 'Active Filters:' label). Chips
+           renders EMPTY (no chips, no prefix label). Chips
            disappear because the filters ARE off, never a visual hide. */
         function clearAllFilters() {
             document.getElementById('searchInput').value = '';
             document.getElementById('statusFilter').value = 'all';
             document.getElementById('weekFilter').value = 'all';
+            document.getElementById('weekFilterOriginal').value = 'all';
             rpp = 10;
             document.getElementById('rowsPerPage').value = '10';
             hideCompleted = false;
@@ -1285,12 +1363,15 @@
             sortState = { field: 'requestedAt', dir: 'asc' };
             localStorage.removeItem('request-approval-filters');
             renderTable();
+            updateWeekArrowState('weekFilter');
+            updateWeekArrowState('weekFilterOriginal');
         }
 
         /* the inline onclick resolves via the top-level scope chain anyway —
            exported explicitly so the dependency is visible (mirrors MRH). */
         window.clearAllFilters = clearAllFilters;
         window.resetFilters = resetFilters;
+        window.onOrigWeekFilterChange = onOrigWeekFilterChange;
 
         // ── Deep link support ──
         function checkDeepLink() {
@@ -1322,7 +1403,7 @@
                frozen template). Same line every other live page carries. */
             MockData.mockNow = null;
             populateWeekFilter();
-            updateWeekArrowState();
+            updateWeekArrowState('weekFilter');
             document.getElementById('statusFilter').value = 'Pending';
             /* the shared page header carries the semester chip every other page
                shows; this page's hand-rolled header never had one */
@@ -1360,7 +1441,13 @@
                 rebuildTable({ render: renderTable });
                 saveFilters();
             });
-            document.getElementById('resetFilters').addEventListener('click', resetFilters);
+            /* filters-button: #weekFilterOriginal carries its own inline
+               onchange (like the requested field), so no second listener here —
+               one user change must run one render. */
+            /* filters-button: the panel head's Reset carries the inline onclick, so
+               the toolbar's old Reset button and its click listener are gone (a null
+               here would throw and kill every listener wired after it). */
+            FiltersPanel.init();
 
             document.getElementById('modalOverlay').addEventListener('click', function(e) {
                 if (e.target === this) closeModal();

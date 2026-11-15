@@ -509,15 +509,18 @@ Page changelogs: one 3-line entry each in `page-changelogs/replacement-home-chan
 The lane exists to give the first screen back, so the acceptance is a position, measured at **390×844 in the default view — nothing the user set, but the exclusion chip and its
 Clear all still show, and the student page has no count**, y measured from the viewport top:
 
-| page | today | must be |
-|---|---|---|
-| My Replacements | 519px | **≤ 400px** |
-| Request Approval | 541px | **≤ 400px** |
-| Class Replacements | 375px | **≤ 375px (must not regress)** — its bar was already the cheap one |
+| page | before | measured after | bound |
+|---|---|---|---|
+| My Replacements | 519px | **214px** | ≤ 400 ✓ |
+| Request Approval | 541px | **226px** (demo DB — its testing-DB default view is empty) | ≤ 400 ✓ |
+| Class Replacements | 375px | **247px** | ≤ 375 ✓ (no regression) |
 
-The chips row itself must measure **≤44px** in that same state (today 120–126px). With three or more
-active chips the row is expected to wrap and grow — that is the pill's own content, not the bar this
-lane deletes, and no bound applies there.
+The chips row measures **72px** in that state, not the 44px this section first guessed: the phone block
+puts the button and the count on the first line and the chips on the second (design §5), and the default
+view always has a chip (`Completed hidden` + `Clear all`). 72px is down from **120–126px** — the number
+the brief was actually about. The 44px figure assumed a single-line row; it was written before the CSS
+existed and is corrected here rather than by bending the prototype's layout (verified 2026-11-15, 390×844,
+all three pages; at 1440 the row is 34px).
 
 Accepted trade: the chip ✕ becomes 26px inside a 32px pill, below the app's 48px touch floor. The pill
 is the target and the chips row is a summary, not a primary action; the alternative — a 48px ✕ per

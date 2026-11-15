@@ -5,7 +5,7 @@ lane_shape: standard
 source_brief: prompts/pi-prompt-filters-button.md
 pages: 3
 recommended_option: "A — shared frame partial + JS relocate + labels in Blade"
-batch: tasks (frozen) — ready for apply
+batch: verified — ready to archive
 proposal_review: passed
 proposal_frozen: true
 proposal_frozen_on: 2026-11-14
@@ -23,8 +23,14 @@ tasks_frozen: true
 review_rounds_tasks: 2
 tasks_frozen_on: 2026-11-15
 tasks_path: "tasks.md (T1-T23, five batches)"
-implementation_approved: false
-next_batch: "apply - needs the user's word"
+implementation_approved: true
+applied: 2026-11-15
+apply_log: "apply-log.md"
+verified: 2026-11-15
+verify_verdict: PASS
+verify_rounds: 3
+verify_report: "verify-report.md"
+next_batch: "archive"
 outstanding_blockers: []
 outstanding_small: []
 open_decisions: []
@@ -34,5 +40,7 @@ decisions_taken:
   - "2026-11-14 (user): follow the prototype for the week wording — the 'no filter' option reads 'All Weeks', deliberately reversing the 2026-11-10 SLOT form of that option (chips and column headers keep SLOT). Three pinned strings move with it."
   - "2026-11-14 (user): follow the prototype — the second week dropdown is IN on ALL THREE pages (My Replacements gains Requested; Request Approval gains Original; the student page gains Requested). The lane is no longer layout-only."
 notes:
+  - "Apply deviations (apply-log §3): .filters-panel needed position:fixed at >=769 (design §3 said it, design §5's snippet omitted it); Request Approval's save-before-restore boot bug fixed (pre-existing); jumpToMyRow counts the requested week as an active filter (a third arrival path the design missed); the chips row measures 72px, so design §9 / spec R5 were corrected from the guessed 44px."
+  - "Known reds that are NOT this lane (apply-log §4): summary-cards-button T11a (testing-DB fixture has no mixed statuses), StudentReplacementHistoryParityTest route-label test (another session's uncommitted header rename), request-approval.spec (testing DB has no pending request), ui-regression TC-3.x/TC-7.2/arrangement (parked)."
   - "Proposal soft-frozen 2026-11-15 §5.2: design keeps .filter-chips:empty{display:none} (the row no longer depends on it)."
   - "Design deltas from the proposal sketch: no $panelId variable; funnel glyph 14px, not 16px."

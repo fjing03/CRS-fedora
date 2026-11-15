@@ -117,9 +117,11 @@ live pages and MUST NOT be edited; the nine `ui-design-templates/*` reference pa
 - `.filter-chips:empty { display: none }` MUST be **kept** (proposal §5.2's soft-frozen note): the row no
   longer depends on it — the button and the pill are siblings — and an empty chip bar collapses instead
   of leaving a gap.
-- On a phone the chip ✕ MUST be 26px inside a pill of at least 32px (the pill is the touch target) so
-  the row measures ≤44px in the default view, and the rest of the row's 48px touch floor MUST be
-  untouched elsewhere.
+- On a phone the chip ✕ MUST be 26px inside a pill of at least 32px (the pill is the touch target), so
+  the row measures **≤80px** in the default view — measured 72px, down from 120–126px (the frozen 44px
+  figure assumed a single-line row; the prototype's phone block puts the chips on a second line, and the
+  default view always carries the `Completed hidden` chip). The rest of the row's 48px touch floor MUST
+  be untouched elsewhere.
 
 ## R6 — keyboard, focus, lock, Escape
 - The button MUST open on click, `Enter` and `Space`; `aria-expanded` MUST follow the open state.
@@ -173,7 +175,7 @@ live pages and MUST NOT be edited; the nine `ui-design-templates/*` reference pa
   every width and the chip texts with no `Active Filters:` (R5); focus in, trap, Escape, veil and focus
   return (R6); the printed page (R7); and the §9 acceptance numbers — at 390×844, default view, the
   first list row's top edge at **≤400px** on the two staff pages (from 519 and 541) and **≤375px** on
-  the student page (no regression), with the chips row ≤44px. At 390px the grid is `display: none` and
+  the student page (no regression), with the chips row **≤80px** (measured 72px; see R5). At 390px the grid is `display: none` and
   the card view renders, so "first row" means the first **card**; the table-row form applies at ≥769px.
 - A new Playwright spec MUST pin proposal (a)–(h): nothing filter-shaped visible before opening · the
   panel's shape at 768 vs 769 · `aria-expanded` with focus in and back · chips repaint after a change
