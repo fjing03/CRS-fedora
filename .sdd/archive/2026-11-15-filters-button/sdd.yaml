@@ -1,6 +1,6 @@
 name: filters-button
 created: 2026-11-14
-status: active
+status: archived
 lane_shape: standard
 source_brief: prompts/pi-prompt-filters-button.md
 pages: 3
@@ -30,7 +30,8 @@ verified: 2026-11-15
 verify_verdict: PASS
 verify_rounds: 3
 verify_report: "verify-report.md"
-next_batch: "archive"
+archived: 2026-11-15
+archived_to: ".sdd/archive/2026-11-15-filters-button/"
 outstanding_blockers: []
 outstanding_small: []
 open_decisions: []
