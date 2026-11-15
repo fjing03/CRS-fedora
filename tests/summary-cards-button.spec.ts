@@ -24,7 +24,13 @@ const BASE = process.env.CRS_BASE || 'http://127.0.0.1:8030';
 const PW = 'Tarumt@2026';
 
 const FLIP_PAGES = [
-  { name: 'my-timetable', path: '/my-timetable-ui', state: '.auth/staff-5770.json' },
+  /* 2026-11-15 — SDD `my-timetable-responsive-prompt` T17a: My Timetable was
+     REMOVED from this list. Its page root now carries `.tt-responsive`, its header
+     no longer renders `$summaryButton` (T11), and `SummarySheet.init()` bails on the
+     scope class (T9) — so `/my-timetable-ui` has no `#summaryButton` and no sheet to
+     open. The phone Week summary is that lane's own sheet, proven by
+     `tests/timetable-responsive.spec.ts` (T16). Venue stays: it is an unopted
+     SummarySheet caller and this lane must not disturb it. */
   { name: 'venue-timetable', path: '/venue-timetable-ui', state: '.auth/staff-5770.json' },
 ];
 
@@ -112,9 +118,16 @@ test.describe('T11a — relocation, repaint and the empty view', () => {
   });
 
   test('opening moves nothing but shows the cards, the lock and the expanded state', async ({ browser }) => {
+    /* 2026-11-15 — SDD `my-timetable-responsive-prompt` T17a: retargeted from
+       `/my-timetable-ui` to `/venue-timetable-ui`. The claim is SummarySheet's, not
+       My Timetable's: opening the sheet moves no node, shows the five cards, holds
+       the lock and lands focus in the panel. My Timetable left this machinery
+       (T9 gate + T11 header opt-in removal); its Week summary is
+       `TimetableResponsive`'s own sheet, receipted by
+       `tests/timetable-responsive.spec.ts` (T16). */
     const ctx = await browser.newContext({ viewport: { width: 390, height: 900 }, storageState: '.auth/staff-5770.json' });
     const page = await ctx.newPage();
-    await page.goto(BASE + '/my-timetable-ui', { waitUntil: 'networkidle' });
+    await page.goto(BASE + '/venue-timetable-ui', { waitUntil: 'networkidle' });
     await page.waitForTimeout(900);
 
     await page.locator('#summaryButton').click();
@@ -233,9 +246,15 @@ test.describe('T11a — relocation, repaint and the empty view', () => {
 
 test.describe('T11b — closing, layering, the plain variant and print', () => {
   test('three ways to close, all returning focus to the button', async ({ browser }) => {
+    /* 2026-11-15 — SDD `my-timetable-responsive-prompt` T17a: retargeted to
+       `/venue-timetable-ui` for the same reason as the receipt above — the three
+       close paths belong to SummarySheet, which this lane gates OFF on My Timetable
+       (T9) and whose header opener it removes (T11). My Timetable's sheet is
+       `TimetableResponsive`'s, receipted by `tests/timetable-responsive.spec.ts`
+       (T16). */
     const ctx = await browser.newContext({ viewport: { width: 390, height: 900 }, storageState: '.auth/staff-5770.json' });
     const page = await ctx.newPage();
-    await page.goto(BASE + '/my-timetable-ui', { waitUntil: 'networkidle' });
+    await page.goto(BASE + '/venue-timetable-ui', { waitUntil: 'networkidle' });
     await page.waitForTimeout(900);
     const btn = page.locator('#summaryButton');
 
@@ -256,9 +275,15 @@ test.describe('T11b — closing, layering, the plain variant and print', () => {
   });
 
   test('the ⓘ opens ABOVE the sheet; one Escape closes only the ⓘ; the trap yields to it', async ({ browser }) => {
+    /* 2026-11-15 — SDD `my-timetable-responsive-prompt` T17a: retargeted to
+       `/venue-timetable-ui`. The layering rule (ⓘ above the sheet, one Escape per
+       layer, trap suspension) is SummarySheet's and is untouched by this lane on
+       every page that still uses it. The My Timetable arm cannot hold: no
+       `#summaryButton`, no SummarySheet (T9 gate), and its own sheet's ⓘ/Escape
+       behaviour is receipted by `tests/timetable-responsive.spec.ts` (T16). */
     const ctx = await browser.newContext({ viewport: { width: 390, height: 900 }, storageState: '.auth/staff-5770.json' });
     const page = await ctx.newPage();
-    await page.goto(BASE + '/my-timetable-ui', { waitUntil: 'networkidle' });
+    await page.goto(BASE + '/venue-timetable-ui', { waitUntil: 'networkidle' });
     await page.waitForTimeout(900);
 
     await page.locator('#summaryButton').click();
@@ -367,7 +392,12 @@ test.describe('T11b — closing, layering, the plain variant and print', () => {
   });
 
   test('no card back overflows at 320, 390 and 768', async ({ browser }) => {
-    for (const [path, state] of [['/my-timetable-ui', '.auth/staff-5770.json'], ['/student-class-replacements', null]] as const) {
+    /* 2026-11-15 — SDD `my-timetable-responsive-prompt` T17a: the My Timetable arm
+       is GONE. That page has no SummarySheet and no `#summaryButton` any more, so
+       there is no sheet to open there; its cards are rendered by
+       `TimetableResponsive`, whose own spec (T16) carries the overflow receipt.
+       The plain-variant student arm is untouched — this lane does not reach it. */
+    for (const [path, state] of [['/student-class-replacements', null]] as const) {
       for (const width of [320, 390, 768]) {
         const ctx = await browser.newContext({ viewport: { width, height: 900 }, storageState: state || undefined });
         const page = await ctx.newPage();
@@ -392,9 +422,17 @@ test.describe('T11b — closing, layering, the plain variant and print', () => {
   });
 
   test('print: the sheet never captures the page, and the cards come back afterwards', async ({ browser }) => {
+    /* 2026-11-15 — SDD `my-timetable-responsive-prompt` T17a: retargeted to
+       `/venue-timetable-ui`. The subject is SummarySheet's print pair
+       (`beforeprint` restores the moved nodes, `afterprint` re-relocates them), and
+       it survives exactly on the pages that still use SummarySheet. On My Timetable
+       the afterprint re-relocation cannot hold by design: `SummarySheet.init()`
+       bails on `.tt-responsive` (T9), and the print rules that un-hide the legend
+       and cards are the lane's own `theme.css` section, receipted by
+       `tests/timetable-responsive.spec.ts` (T16). */
     const ctx = await browser.newContext({ viewport: { width: 390, height: 900 }, storageState: '.auth/staff-5770.json' });
     const page = await ctx.newPage();
-    await page.goto(BASE + '/my-timetable-ui', { waitUntil: 'networkidle' });
+    await page.goto(BASE + '/venue-timetable-ui', { waitUntil: 'networkidle' });
     await page.waitForTimeout(900);
 
     await page.locator('#summaryButton').click();
