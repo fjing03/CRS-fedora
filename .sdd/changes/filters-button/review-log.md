@@ -198,3 +198,98 @@ traceability deltas.
   clear it and re-sync its arrows.
 
 **`design.md` is FROZEN.** Next batch: `specs/`.
+
+---
+
+## specs Round 1 — 2026-11-15
+
+**Verdict: not ready — two blockers, seven should-fixes.**
+
+### 🔴 Fixed
+- **The evidence clause would have shipped a red suite.** R8 listed `summary-cards-button` and
+  `request-completed-status` among the specs that "must stay green", but both drive controls this lane
+  moves behind a `hidden` overlay, and Playwright's `click`/`fill`/`selectOption` need visibility. The
+  four specs that touch the moved controls are now **amended** files (see below), and the stay-green
+  list is limited to specs that never need visibility.
+- **"Strings only" was not enough.** `status-tooltips-filter-chips` (23 references) and
+  `week-filter-preserved` (9) interact with the toolbar as well as pin its text; the amendment is now
+  interaction rewiring through one new helper (`tests/helpers/filters-panel-helper.ts`) plus the strings.
+
+### 🟡 Addressed
+- the row sits where the chips row sits today (below Request Approval's sort hint), and the row's
+  composition is stated per page (the student page has no count);
+- the arrow-helper paragraph no longer invents a reason — it states the three helpers' differing
+  no-id behaviours (`prevWeekFilter`/`nextWeekFilter` null-guard, `updateWeekArrowState` assumes
+  `#weekFilter`, `updateWeekArrows` is the document-order one);
+- the soft-frozen `:empty` ruling is now a requirement, so nobody "restores" the dropped rule;
+- the desktop card's horizontal clamp formula is pinned in R2, not just "kept inside the viewport";
+- the acceptance sentence now says "first **card**" at 390 (the grid is `display: none` there);
+- the parity-test amendment is scoped precisely: `:143`, `:146`, `:149`, docblock `:15` are amended,
+  while `:144` (the Original chip text) and `:156` (the toggle test) stay green — editing them would be
+  a false amendment.
+
+---
+
+## specs Round 2 — 2026-11-15 — FROZEN
+
+**Verdict: ready to freeze once two one-liners landed; both applied with the freeze.**
+
+Every round-1 item verified resolved, including the parity-test anchors (the reviewer re-read the file
+and confirmed `143/144/146/149`). No contradiction found against the frozen proposal, the frozen design,
+or the source.
+
+### 🟡 Fixed with the freeze
+- **Request Approval's chip order was ambiguous** (insert-after vs the general Status · Original ·
+  Requested order). The spec now pins the field order for both fields and chips, and design §4.4 carries
+  a soft-freeze note saying the new Original chip goes **before** the existing Requested one.
+- The missing round-1 entry above.
+
+Also corrected: "two" behaviours → three in the arrow paragraph; two more unamended survivors named
+(`my-replacements-after-submit`, `request-approval`); `e2e/full-suite.spec.js` is outside
+`playwright.config.ts`'s `testDir` and must not be "fixed".
+
+**`specs/filters-panel/spec.md` is FROZEN.** Next batch: `tasks.md`.
+
+---
+
+## tasks Round 1 — 2026-11-15
+
+**Verdict: not ready — four blockers, five should-fixes.**
+
+### 🔴 Fixed
+- **The arrow helpers sat after the tasks that need them.** Between the page tasks and T12, every new
+  second week nav's ‹ › would have driven the **original** select (`prevWeekFilter`/`nextWeekFilter`
+  ignore their argument today). Moved into Batch A as T6, before any page opts in.
+- **My Replacements' second week field was missing from the markup task.** T7 now adds
+  `#weekFilterRequested` with its include, tips and handlers, and claims R4.
+- **Two pages never populated the new select.** Without `populateWeekSelect`, the second dropdown ships
+  empty, the restore guard always falls back to `all`, and the (h) test would fail with no task to blame.
+  T8 and T12 now carry the populate call **and** the `All Weeks` re-word of the existing select.
+- **The Livewire-morph canary had no task.** Design §8.15 is now T18's last assertion (approve, reopen,
+  exactly one `.toolbar` inside the panel, both week selects holding their values) — the one failure mode
+  that silently loses the controls.
+
+### 🟡 Addressed
+- the spec's `tests/e2e/full-suite.spec.js` claim was false — it **is** collected; the file now carries a
+  soft-freeze correction and its two search tests are a task (T17);
+- chip wording moved wholly into T13, so behaviour tasks cannot double-edit it;
+- T9's three removals are as explicit as T7's, with anchors;
+- the two heavy spec rewires split from the two light ones; the new spec split into frame (a–g) and
+  second-week (h);
+- T3 says its handlers land in T4; T20 carries the exact predicate string.
+
+---
+
+## tasks Round 2 — 2026-11-15 — FROZEN
+
+**Verdict: ready to freeze**, with two one-line evidence steps carried with the freeze (applied).
+
+All four blockers and five should-fixes verified fixed against the frozen baselines; numbering (T1–T23),
+requirement ownership (R1–R8) and ordering all check out, and no task depends on a later one.
+
+### 🟡 Fixed with the freeze
+- design rows 13 (print) and 16 (Escape inside a row modal) had an implementation owner but no evidence
+  step: both are now asserted in T18, so R8's "the printed page" clause has one.
+
+**`tasks.md` is FROZEN. All four batches are frozen; the lane is ready for `/sdd-apply` and nothing has
+been applied.**

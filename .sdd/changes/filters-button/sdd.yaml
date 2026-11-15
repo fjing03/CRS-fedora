@@ -5,7 +5,7 @@ lane_shape: standard
 source_brief: prompts/pi-prompt-filters-button.md
 pages: 3
 recommended_option: "A — shared frame partial + JS relocate + labels in Blade"
-batch: design (frozen)
+batch: tasks (frozen) — ready for apply
 proposal_review: passed
 proposal_frozen: true
 proposal_frozen_on: 2026-11-14
@@ -14,11 +14,17 @@ design_review: passed
 design_frozen: true
 design_frozen_on: 2026-11-15
 review_rounds_design: 3
-specs_review: not-run
-specs_frozen: false
-tasks_review: not-run
-tasks_frozen: false
+review_rounds_specs: 2
+specs_review: passed
+specs_frozen: true
+specs_path: "specs/filters-panel/spec.md"
+tasks_review: passed
+tasks_frozen: true
+review_rounds_tasks: 2
+tasks_frozen_on: 2026-11-15
+tasks_path: "tasks.md (T1-T23, five batches)"
 implementation_approved: false
+next_batch: "apply - needs the user's word"
 outstanding_blockers: []
 outstanding_small: []
 open_decisions: []
@@ -30,4 +36,3 @@ decisions_taken:
 notes:
   - "Proposal soft-frozen 2026-11-15 §5.2: design keeps .filter-chips:empty{display:none} (the row no longer depends on it)."
   - "Design deltas from the proposal sketch: no $panelId variable; funnel glyph 14px, not 16px."
-next_batch: "specs/"

@@ -260,7 +260,7 @@ Same nodes and same removal mechanisms as today, three text edits plus one new c
 | page | builder | edits |
 |---|---|---|
 | My Replacements | `renderFilterChips()` (`replacement-home:648`) | drop the `Active Filters:` prefix; insert the requested chip after the original one; `Exclude COMPLETED Status` → `Completed hidden` |
-| Request Approval | `renderFilterChips()` (`request-approval:803`) | same, with `Original Slot Week:` inserted after `Requested Slot Week:` |
+| Request Approval | `renderFilterChips()` (`request-approval:803`) | same, with `Original Slot Week:` inserted **before** the existing `Requested Slot Week:` chip (soft-frozen 2026-11-15: chips follow the panel's field order, Status · Original · Requested) |
 | Class Replacements | `renderChips()` (`replacement-history:415`) | drop the prefix; add a requested chip with `data-remove="weekFilterRequested"`; `Completed hidden`; the delegated handler (`:729`) gains that branch |
 
 Chip order: Status · Original slot week · Requested slot week · Search · Completed hidden · Clear all.
