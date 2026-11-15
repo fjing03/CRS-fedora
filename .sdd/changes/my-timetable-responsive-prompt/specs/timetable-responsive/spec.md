@@ -63,13 +63,13 @@ Replacement Arrangement MUST NOT change** — they call the same builder without
   branch, so R1's byte-identical promise holds.
 - The details modal's Status row MUST read **`Class Cancelled`**, not `Cancelled`; blocks keep the
   short word (a 60–110px cell cannot carry the long one).
-- **The cancelled hover tip stays SHORT (`… · CANCELLED`) — provisional user ruling, recorded
-  2026-11-15.** Frozen proposal §3.7 and design §6 make the migrated tip byte-identical to today's,
+- **The cancelled hover tip stays SHORT (`… · CANCELLED`) — USER RULING, 2026-11-15 ("CANCELLED ."),
+  no longer provisional.** Frozen proposal §3.7 and design §6 make the migrated tip byte-identical to today's,
   and today's last segment is `eventStatusLabel()` = `Cancelled`; proposal §10.4's "the hover tip
   takes the long form" contradicts them. The default this lane builds is the frozen pair (short tip),
-  and the long form applies to **the modal Status row and the agenda card's spoken status**. If the
-  user wants `CLASS CANCELLED` in the tip instead, it is one string in the flag branch — and it
-  reverses §3.7, so the log must say so.
+  and the long form applies to **the modal Status row and the agenda card's spoken status** only.
+  Proposal §10.4's "the hover tip takes the long form" is superseded by this ruling and must not be
+  implemented.
 - The modal wording MUST be **page-scoped**: `openClassModal()` gains a cfg flag (the long word on the
   two timetable pages only), because the modal is shared with Cohort, Venue and Student
   Replacement History and changing their Status badge is not this lane's to take.

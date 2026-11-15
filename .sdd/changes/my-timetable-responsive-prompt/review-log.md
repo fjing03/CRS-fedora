@@ -304,3 +304,11 @@ blockers verified resolved and the order is executable top to bottom.
 
 **`tasks.md` is FROZEN. All four batches are frozen; the lane is ready for `/sdd-apply` and nothing has
 been applied.**
+
+## User ruling — 2026-11-15 — cancelled hover tip
+
+Asked directly ("what short tooltip??"), then ruled: **`CANCELLED`**. The tip keeps today's word and
+proposal §10.4's `CLASS CANCELLED` is superseded — the long form stays in the details modal's Status
+row and in the agenda card's spoken status. Spec R4's provisional flag is withdrawn; the freeze stands
+unchanged otherwise (no other artifact needed an edit, because the frozen pair — §3.7 + design §6 —
+already said short).
