@@ -2705,7 +2705,12 @@ var FiltersPanel = {
         /* The first control, never a .week-arrow: those are landmarks, not entries. */
         var body = this._body();
         if (body) {
-            var first = body.querySelector('input:not([type=hidden]), select, button:not(.week-arrow)');
+            /* A text field or a select first: focusing the switch would pop its tip
+               the moment the panel opens (the student page's switch is its first
+               control). Checkboxes are skipped for that reason, not as a11y policy. */
+            var first = body.querySelector(
+                'input:not([type=hidden]):not([type=checkbox]), select, button:not(.week-arrow)'
+            );
             if (first) first.focus({ preventScroll: true });
         }
 

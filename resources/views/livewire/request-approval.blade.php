@@ -242,7 +242,10 @@
                         <option value="Pending" selected>Pending</option>
                         <option value="Approved">Approved</option>
                         <option value="Rejected">Rejected</option>
-                        <option value="Cancelled">Cancelled</option>
+                        {{-- No Cancelled option (2026-11-14): a cancelled request never reaches this page —
+                             the payload carries pending, approved, rejected and completed-by-date rows only,
+                             so the option could only ever show an empty list. Same ruling as My Replacements
+                             on 2026-11-06. --}}
                         <option value="Completed">Completed</option>
                     </select>
                 </div>
@@ -269,7 +272,6 @@
     </div>
 </div>
 
-<div class="sort-hint">Click column headers to sort (Requested Timestamp, Original Slot, Requested Slot, Request Status)</div>
 
 @include('partials.ui-filter-panel', [
     'filtersReset' => true,

@@ -321,8 +321,9 @@ test('T5.RA-2: the Urgency column is gone — no badge, no sort, no chips, no st
   await expect(page.locator('#tableBody tr.row-urgent'), 'no red row stripe').toHaveCount(0);
   await expect(page.locator('#tableBody tr.row-soon'), 'no amber row stripe').toHaveCount(0);
 
-  // the header list the sort hint names must not promise a dead column
-  await expect(page.locator('.sort-hint')).not.toContainText('Urgency');
+  // 2026-11-15 (user): the sort hint is gone from this page altogether, so it cannot
+  // promise a dead column any more — assert the removal, not its text
+  await expect(page.locator('.sort-hint')).toHaveCount(0);
 
   // the request-age pill keeps its own tip and no longer claims an urgency
   const ageTip = await page.locator('#tableBody .request-age[data-tip]').first().getAttribute('data-tip');

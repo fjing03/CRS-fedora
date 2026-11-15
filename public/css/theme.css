@@ -5383,9 +5383,9 @@ textarea:disabled { cursor: not-allowed; }
 .filters-ready .filters-btn:hover { border-color:var(--color-primary); color:var(--color-primary); }
 .filters-ready .filters-btn svg { width:14px; height:14px; flex:0 0 auto; }
 
-/* chips stop being a bar: the row is the bar now */
-.filters-row #filterChips { flex:1 1 auto; min-width:0; margin-bottom:0;
-    padding:0; background:none; border:0; border-radius:0; }
+/* the chips keep their own tinted bar (2026-11-15, user) but sit IN the one row,
+   between the button and the count: they take the middle and shrink before wrapping */
+.filters-row #filterChips { flex:1 1 auto; min-width:0; margin-bottom:0; }
 
 /* the count becomes a pill at the right, at every width (M15 retired) */
 .filters-row .result-count { display:inline-flex; align-items:center; flex:0 0 auto;
@@ -5407,7 +5407,7 @@ textarea:disabled { cursor: not-allowed; }
     border-radius:var(--radius-sm); background:var(--color-surface-variant);
     color:var(--color-on-surface); font:600 12px/1 inherit; cursor:pointer; }
 .filters-panel-reset:hover { border-color:var(--color-primary); color:var(--color-primary); }
-.filters-panel-close { width:44px; height:44px; border:0; border-radius:var(--radius-sm);
+.filters-panel-close { margin-left:auto; width:44px; height:44px; border:0; border-radius:var(--radius-sm);
     background:transparent; color:inherit; font-size:22px; line-height:1; cursor:pointer; }
 .filters-panel-reset:focus-visible, .filters-panel-close:focus-visible,
 .filters-btn:focus-visible { outline:2px solid var(--color-primary); outline-offset:2px; }
@@ -5424,7 +5424,8 @@ textarea:disabled { cursor: not-allowed; }
 .filter-field { display:block; min-width:0; }
 .filter-label { display:block; margin:0 0 4px 2px; font-size:10px; font-weight:700;
     letter-spacing:.06em; text-transform:uppercase; color:var(--color-primary); }
-.filter-field--toggle .filter-label { text-align:right; }
+.filter-field--toggle .filter-label { text-align:left; }
+.filter-line .filter-field--toggle .filter-label { text-align:right; }
 .filter-field--toggle .toggle-wrapper { height:38px; padding:0 12px; gap:0;
     border:1px solid var(--color-outline); border-radius:var(--radius-md);
     background:var(--color-surface-variant); }
@@ -5447,7 +5448,9 @@ body.filters-panel-open .filters-btn { position:relative; z-index:1300; }
     .filters-panel { width:100%; max-height:88dvh; border-bottom:0;
         border-radius:var(--radius-lg) var(--radius-lg) 0 0;
         padding-bottom:env(safe-area-inset-bottom); }
-    /* button and count share the first line, the chips take the next */
+    /* a phone cannot hold all three on one line (the count alone is ~130px), so the
+       button and the count share the first line and the chip bar takes the second —
+       measured 72px, against 120-126px before this lane */
     .filters-row .filters-btn { order:1; }
     .filters-row .result-count { order:2; }
     .filters-row #filterChips { order:3; flex:1 1 100%; gap:4px 6px; }
