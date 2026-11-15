@@ -186,3 +186,12 @@ Nothing in the lane's own suite is skipped or `test.fail`-annotated.
   across a week change.
 - **T0a's checkbox** ticked, and the commit-level proof that the seven shared partials were never
   edited (`git log c8b06ff..HEAD -- <path>` → 0 commits each).
+
+## Post-verify correction — the day chip shows the DATE (user, 2026-11-15)
+
+The user asked why a chip read `Mon 2`: the second line was the class **count**. The approved preview
+renders `${d.abbr}<strong>${dayOfMonth}</strong>` — abbreviation small, **day of the month** bold —
+and design §4.3 had it inverted (`<strong>Mon</strong>3`). Corrected in `buildStrip()`: `Mon` in the
+11px line, `16` in the bold line, count kept in the accessible name (R7). The frozen design line and
+the spec's strip requirement both carry the correction with its date, because this is the second thing
+the preview would have settled had the design been read against it.

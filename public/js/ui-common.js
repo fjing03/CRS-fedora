@@ -7403,10 +7403,20 @@ const TimetableResponsive = {
             if (d && d.holiday) name += ', public holiday';
             btn.setAttribute('aria-label', name);
 
-            var abbr = document.createElement('strong');
-            abbr.textContent = (d && d.abbr) || '';
-            btn.appendChild(abbr);
-            btn.appendChild(document.createTextNode(String(count)));
+            /* The chip is the PREVIEW's, not an inversion of it: the abbreviation
+               is the small line and the DAY OF THE MONTH is the bold one
+               (`Mon` / `9`), so a chip answers "which day is this?" without
+               counting classes. The class count stays in the accessible name
+               (R7) — it is data a screen reader wants and a 44px chip cannot
+               spend two lines on. User ruling 2026-11-15: the date, not the
+               count. Found by reading the preview's own renderer
+               (`<abbr>${d.abbr}<strong>${date}</strong>`) after the user asked
+               why the chip showed `Mon 2`. */
+            btn.appendChild(document.createTextNode((d && d.abbr) || ''));
+            var dayNum = document.createElement('strong');
+            var dm = String((d && d.date) || '').match(/^(\d{1,2})\b/);
+            dayNum.textContent = dm ? dm[1] : (d && d.num != null ? String(d.num) : '');
+            btn.appendChild(dayNum);
             strip.appendChild(btn);
         });
 

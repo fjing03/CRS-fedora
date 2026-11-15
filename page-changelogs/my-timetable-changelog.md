@@ -700,3 +700,8 @@ Checks: 21 responsive receipts (320/360/390/430/768/1024/1280/1440, both themes,
 the receipts were fixed the same day: the sheet painted only its range line (the mode rules
 matched the relocated nodes too) and Enter/Space on a card opened nothing (the shared key
 seam reads `__eventData`, which the built cards did not carry).
+
+### Correction, same day — the day chip shows the date, not the class count
+The chip's second line read the number of classes (`Mon 2`). The approved preview puts the **day of
+the month** there (`Mon` over `16`) and keeps the abbreviation small, so the chip answers "which day
+is this?"; the class count moves into the chip's accessible name, where a screen reader still gets it.

@@ -154,7 +154,12 @@ One card per event in the selected day, in time order, built by `buildAgenda()`:
 ### 4.3 The day strip
 
 One `<button class="tt-day" aria-pressed="…" aria-current="date"|absent>` per day:
-`<strong>Mon</strong>3`, a dot for today (`.is-today::after`), `.is-holiday` on a public-holiday day.
+`Mon<strong>16</strong>` — the abbreviation small, the **day of the month** bold, exactly as the
+preview's own renderer writes it (`${d.abbr}<strong>${date}</strong>`) — a dot for today
+(`.is-today::after`), `.is-holiday` on a public-holiday day. *(This line first read
+`<strong>Mon</strong>3`, i.e. the abbreviation bold and the class COUNT beside it — inverted
+against the preview. Corrected 2026-11-15 on the user's word: the chip answers "which day is
+this?". The class count stays in the accessible name, R7.)*
 `setDay(i)` re-renders the strip and the agenda; `aria-current="date"` only on the real today **and**
 only while that day is the selected one. In **window mode** a tap moves the window so that day is its
 first column (clamped at Sunday) — there is no agenda to scroll there.

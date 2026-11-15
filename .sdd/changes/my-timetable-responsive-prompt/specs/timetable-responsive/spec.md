@@ -88,6 +88,10 @@ Replacement Arrangement MUST NOT change** — they call the same builder without
   `top: var(--top-bar-height)`, no JS measurement). At ≥1280 it MUST stay in flow.
 - *(Frozen design §3's strip cells read "one day" / "2-day window" — they describe the *window*, not
   the chip count; this requirement is the authority.)*
+- Each chip MUST show the day's abbreviation small and its **day of the month** bold (`Mon` /
+  `16`), per the approved preview's own renderer; the class count MUST stay in the accessible
+  name (R7) and MUST NOT occupy the chip's second line. *(User ruling 2026-11-15 — the frozen
+  pair first had this inverted, abbreviation bold with the count beside it.)*
 - The day strip MUST show **all seven** days at every width, `aria-pressed` on the selected one and
   `aria-current="date"` only on today while it is selected. In window mode a tap moves the window.
 - On an empty day and on a public holiday only, a next-class button MUST appear, jump to that event's
