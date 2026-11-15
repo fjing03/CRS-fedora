@@ -6,7 +6,7 @@
 > toolbar with two cards. If PI's work is still uncommitted in the same blade,
 > wait for a clean tree before editing.
 >
-> **Reference prototype:** `../ui-prototype/replacement-arrangement-top-zone-preview.html`
+> **Reference prototype:** `ui-prototype/replacement-arrangement-top-zone-preview.html`
 > — it is the visual contract for both cards. Do not edit the prototype while
 > implementing the real page.
 
@@ -183,7 +183,7 @@ Guardrails:
   `Choose venue` bottom sheet (search + collapsible Block/Floor groups); desktop
   stays unchanged. Wire mobile `Colours & borders` to the four-state legend
   sheet (Available / Selection / Pending / Conflict).
-- Do **not** edit `../ui-prototype/replacement-arrangement-top-zone-preview.html`
+- Do **not** edit `ui-prototype/replacement-arrangement-top-zone-preview.html`
   — it is the reference.
 - Do **not** touch `.sdd/changes/bulk-cancel-class/` or the cancel-class lane.
 - Commit only the files this task touches; update
@@ -219,7 +219,7 @@ editing; PI may have moved lines.
 | Venue payload | `app/Livewire/ReplacementArrangement.php:398` (`code`, `name`, `short_name`, `type`, `capacity`, `description`) |
 | Cohort data | `ctxCourse.cohorts` + `ctxCourse.cohortCounts`; `LectureSessionCatalog::sessionEntry()` |
 | Shared time helpers | `ui-common.js` `hours` (30-min slots), `to12h()`, `add30min()` |
-| Reference prototype | `../ui-prototype/replacement-arrangement-top-zone-preview.html` |
+| Reference prototype | `ui-prototype/replacement-arrangement-top-zone-preview.html` |
 
 ### Suggested changes
 

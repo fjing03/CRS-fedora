@@ -1,0 +1,1253 @@
+<!doctype html>
+<html lang="en" class="light">
+<!--
+  MY TIMETABLE — RESPONSIVE, THROWAWAY PROTOTYPE · 12 Nov 2026
+  Question: can the current CRS look work as 1 / 2 / 3 days and the original desktop grid?
+  Approved interview decisions: 320–767 one-day agenda; 768–1023 two-day grid;
+  1024–1279 three-day grid; 1280+ ORIGINAL horizontal-time weekly grid.
+  Keep theme.css, original block colours, desktop grid appearance and system typography.
+  Round 2: stacked content-sized cards, compact phone labels.
+  15 Nov 2026 (user): below 1280px a card prints the subject CODE and type
+  only — the name lives in the hover tip and the details pop-up, so a phone
+  card stops spending a second line on words it cannot show at once.
+  The preview control panel (sample-state switcher, viewport readout, sample clock)
+  is removed; the page always shows the normal week with all five class states.
+  No cohort/student count on blocks. Only Cancelled/Conflict carry icon + word labels,
+  directly below the time range at every width. Holiday is labelled on the day, not blocks.
+  Replacement notes use (Replaced for DD-Mon-YYYY); pending notes follow the system.
+  Phone week ranges omit the year; tablet/desktop retain both years. Today uses .today-btn.
+  Page description and browsing guide live only in Help, at every width.
+  Summary cards keep their current width and 96px height. Hover/tap flips to three
+  short coloured bullet lines; keyboard toggles too. Each back has an info button
+  for a full explanation; that button does not toggle the flip.
+  Class Details and Cancel this Class? mirror the shipped partials and theme classes;
+  cancellation reasons are radios, not a custom dropdown. All actions remain mock-only.
+  Round 3 audit: the popup keeps the shipped type scale (14px values, 128px labels,
+  16px row gap), 85vh / 80dvh heights, the theme's phone dock (no grabber, no drag),
+  a stacked phone footer, Requested At/By and Original Slot rows, the owner's
+  View Full Request link, and `badge badge-<status>` straight from the status.
+  The page surface also uses the shipped nav anchors + bell, print SVG, theme-toggle
+  tips, `.empty-state`, `data-tip` legend items and `.toast-bar` instead of local copies.
+  Hover tips run a local copy of `initDataTipTooltips()` (same `.data-tip-tooltip`
+  node, placement, `data-tip-pos="left"`, pre-line and focus parity). Covered: Today,
+  print, bell, theme toggle, legend items, Help, Week summary, day strip, week arrows
+  and week select, plus every class block (subject · lecturer · STATUS).
+  The week subtitle and semester progress bar are removed here; the live page keeps them
+  until the follow-up in `my-timetable-responsive-prompt.md` §12.
+  Details/actions in a sheet; secondary information behind Week summary on smaller screens.
+  ONLY THIS FILE is new. Shared assets are read-only, linked from the sibling repo.
+  Dummy data and rendering live in this HTML; no system JavaScript or DB dependency.
+  No API calls, submissions, navigation to live pages or storage writes.
+  Print links to the sibling print prototype with a mock snapshot in the URL fragment;
+  Back restores the selected week/day/theme through validated query parameters.
+  Clock: Thu, 12 Nov 2026, 7:45 AM. Reload resets all preview state.
+  Open this file directly, or from the parent directory run: python3 -m http.server 8090
+  then visit http://127.0.0.1:8090/ui-prototype/my-timetable-mobile-preview.html
+  Playwright remains paused. No claim of browser verification.
+-->
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>My Timetable — responsive prototype</title>
+  <link rel="stylesheet" href="../public/css/theme.css">
+  <style>
+    [hidden] { display: none !important; }
+    html { color-scheme: light; }
+    html.dark { color-scheme: dark; }
+    body { min-width: 320px; }
+    button, select, textarea { font: inherit; }
+    button { cursor: pointer; }
+    button:focus-visible, select:focus-visible, textarea:focus-visible, [tabindex]:focus-visible {
+      outline: 2px solid var(--color-primary); outline-offset: 3px;
+    }
+    button:disabled { opacity: .4; cursor: not-allowed; }
+    .preview-icon { width: 16px; height: 16px; flex: none; vertical-align: middle; }
+    .preview-button { min-width: 44px; min-height: 44px; display: inline-flex; align-items: center; justify-content: center; gap: 7px; padding: 8px 12px; border: 1px solid var(--color-outline); border-radius: var(--radius-md); background: var(--color-surface); color: var(--color-on-surface); }
+    .preview-button:hover { background: var(--color-surface-variant); }
+    .preview-icon-button { padding: 8px; }
+    /* The live header is `position: fixed`; the preview used to override it to
+       `relative`, so the whole bar — hamburger included — scrolled away. Keep it
+       pinned, and reserve its height below so nothing hides underneath. */
+    .preview-nav { position: fixed; top: 0; left: 0; right: 0; }
+    /* Below 1280px the inline nav is hidden, so nothing pushes the action group
+       across and the hamburger drifted into the middle of the bar. Pin the group
+       to the right edge so the menu button stays at the top-right corner. */
+    .preview-nav .top-right { margin-left: auto; }
+    .preview-nav .top-logo img { max-width: 150px; }
+    .preview-nav .preview-menu { display: none; }
+    .preview-main { padding-top: calc(var(--top-bar-height) + 24px); }
+    .preview-heading { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
+    .preview-heading .page-title { font-size: clamp(20px, 3vw, 22px); }
+    .preview-controls { margin-bottom: 12px; }
+    .preview-controls .semester-bar { flex-direction: row; flex-wrap: nowrap; }
+    .preview-controls .week-nav { min-width: 0; }
+    .preview-controls .week-select { max-width: 100%; background-color: var(--color-surface-variant); }
+    .preview-controls .week-select:hover { background-color: var(--color-surface); }
+    .preview-days { display: none; }
+    .preview-day { min-width: 44px; min-height: 52px; flex: 1 0 44px; border: 1px solid var(--color-outline); border-radius: var(--radius-md); padding: 4px; background: var(--color-surface); color: var(--color-on-surface-variant); font-size: 11px; }
+    .preview-day strong { display: block; font-size: 14px; color: var(--color-on-surface); }
+    .preview-day[aria-pressed="true"] { border: 2px solid var(--color-primary); background: var(--color-primary-container); color: var(--color-on-primary-container); }
+    .preview-day::after { content: ''; display: block; width: 4px; height: 4px; margin: 3px auto 0; border-radius: 50%; }
+    .preview-day.is-today::after { background: var(--color-primary); }
+    .preview-day.is-holiday { color: var(--color-error); }
+    .preview-tools { display: none; align-items: center; justify-content: space-between; gap: 10px; margin: 10px 0 14px; }
+    #previewDayCount { display: block; margin-top: 4px; font-size: 12px; color: var(--color-on-surface-variant); }
+    .preview-day-heading { margin: 0; font-size: 15px; font-weight: 600; }
+    .preview-agenda { display: grid; gap: 12px; }
+    .preview-class.event-block { position: relative; inset: auto; display: flex; flex-direction: column; width: 100%; height: auto; min-height: 0; align-items: stretch; justify-content: flex-start; gap: 8px; padding: 12px 14px; text-align: left; white-space: normal; border-radius: var(--radius-sm); font-family: inherit; }
+    .preview-class-top { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
+    .preview-class-top .preview-time { min-width: 0; }
+    .preview-class-top .preview-venue { flex: none; }
+    /* 2026-11-15 (user): below 1280px a card prints the CODE and type only.
+       The subject name lives in the hover tip and the details pop-up, so a
+       phone card stops spending two lines on words it cannot show at once. */
+    .preview-course-code { display: block; }
+    .preview-class .preview-note { font-size: 12px; }
+    /* theme hides .ev-note inside a narrow .event-block; the phone card keeps it */
+    /* Two classes sharing time look like two unrelated cards in the phone list,
+       so the pair is marked: a thin strip down the left edge of BOTH cards, plus
+       one plain-English line naming the class it overlaps. */
+    .preview-class.is-overlap::before {
+      content: ''; position: absolute; left: 1px; top: 1px; bottom: 1px; width: 5px;
+      border-radius: var(--radius-sm) 0 0 var(--radius-sm);
+      background: var(--color-on-surface-variant); opacity: .5;
+    }
+    .preview-class .ev-overlap {
+      display: block; margin-top: 7px; padding-top: 6px;
+      border-top: 1px dashed var(--color-outline);
+      font-size: 11.5px; font-weight: 600; color: var(--color-on-surface-variant);
+    }
+    .preview-class.event-block::after { display: none; }
+    /* Three tiers, by size and one grey — never a second colour language
+       (user, 2026-11-15). PRIMARY: the time range and the venue code, the two
+       things a student reads to know where to be and when. SECONDARY: the
+       subject code + type, smaller and grey. TERTIARY: the note line, small
+       and grey, right-aligned — the Cancelled / Conflict word now sits there
+       with the "(Pending since …)" / "(Replaced for …)" note instead of
+       hanging under the time. */
+    .preview-class .preview-time { font-size: 14px; font-weight: 700; }
+    .preview-class .preview-venue { font-size: 14px; font-weight: 700; }
+    .preview-class .preview-course { font-size: 12px; font-weight: 500; color: var(--color-on-surface-variant); overflow-wrap: anywhere; }
+    .preview-class .preview-class-note { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 3px 8px; margin-top: 3px; font-size: 11px; font-weight: 500; line-height: 1.35; color: var(--color-on-surface-variant); }
+    .preview-class .preview-class-note .ev-note { display: inline; margin: 0; font-size: 11px; font-weight: 500; text-align: right; color: inherit; }
+    .preview-status { display: inline-flex; align-items: center; gap: 4px; font-size: 10px; font-weight: 700; line-height: 1.4; }
+    .preview-status .preview-icon { width: 13px; height: 13px; }
+    /* the word keeps the block's own colour — it is the alarm, only its size
+       drops to the note tier */
+    .preview-class .preview-class-note .preview-status { font-size: 11px; font-weight: 500; color: var(--color-on-error-container); }
+    .preview-class .preview-class-note .preview-status .preview-icon { width: 12px; height: 12px; }
+    .preview-class.event-pending { border-style: dashed; }
+    .preview-class.event-replacement { border-left-width: 6px; }
+    /* the cancelled card's code is already the grey secondary tier — no second fade */
+    .preview-note { font-size: 11px; }
+    /* Empty states use the shipped ui-empty-state markup; the next-class hint is
+       the approved phone addition that rides inside it. */
+    .preview-next-hint { display: grid; gap: 7px; margin-top: 16px; padding-top: 14px; border-top: 1px solid var(--color-outline); text-align: left; }
+    button.preview-next-hint { width: 100%; min-height: 44px; padding: 14px 0 0; border-right: 0; border-bottom: 0; border-left: 0; border-radius: 0; background: transparent; color: inherit; font: inherit; }
+    button.preview-next-hint:hover .preview-next-details { color: var(--color-primary); }
+    .preview-next-caption { display: flex; align-items: center; gap: 6px; font-size: 11px; color: var(--color-on-surface-variant); }
+    .preview-next-details { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; font-size: 12px; }
+    .preview-next-details strong { font-weight: 600; }
+    .preview-next-venue { padding: 3px 7px; border-radius: var(--radius-sm); background: var(--color-surface-variant); color: var(--color-on-surface); font-size: 11px; font-weight: 600; }
+    .preview-holiday { margin-bottom: 12px; padding: 24px 20px; border-radius: var(--radius-md); background: var(--color-error-container); color: var(--color-on-error-container); }
+    .preview-holiday .empty-title, .preview-holiday .empty-text, .preview-holiday .empty-icon { color: inherit; }
+    .preview-holiday .preview-next-hint { border-top-color: var(--color-on-error-container); }
+    .preview-tablet-grid { display: grid; grid-template-columns: 50px repeat(var(--day-count), minmax(0, 1fr)); grid-template-rows: 62px repeat(22, 44px); border: 1px solid var(--color-outline); border-radius: var(--radius-md); overflow: hidden; background: var(--color-surface); }
+    .preview-tablet-head { padding: 10px 6px; text-align: center; font-size: 13px; font-weight: 600; border-bottom: 1px solid var(--color-outline); background: var(--color-surface-variant); }
+    .preview-tablet-head small { display: block; font-size: 11px; font-weight: 400; }
+    .preview-axis { padding: 5px 4px; font-size: 10px; color: var(--color-on-surface-variant); border-bottom: 1px solid var(--color-outline); }
+    .preview-grid-cell { border-left: 1px solid var(--color-outline); border-bottom: 1px solid var(--color-outline); }
+    .preview-tablet-grid .preview-class { z-index: 1; min-height: 0; margin: 2px; width: auto; padding: 6px; gap: 2px; border-radius: 0; }
+    .preview-tablet-grid .preview-time { font-size: 11px; }
+    .preview-tablet-grid .preview-venue { font-size: 11px; }
+    .preview-tablet-grid .preview-course { font-size: 10px; }
+    .preview-tablet-grid .preview-class-note { font-size: 9.5px; }
+    .preview-tablet-grid .preview-class-note .preview-status { font-size: 9.5px; }
+    /* a 1-column tablet block is ~150px: the tablet rule below lets the venue
+       fall to a second line rather than shrink the time range. */
+    .preview-tablet-grid .preview-note { font-size: 10px; }
+    .preview-tablet-grid .preview-class { overflow-y: auto; }
+    .preview-tablet-grid .preview-class-top { flex-wrap: wrap; gap: 2px 8px; }
+    /* when the venue cannot share the line, it keeps the right rail */
+    .preview-tablet-grid .preview-venue { margin-left: auto; }
+    .preview-desktop-grid .event-block { border-radius: 0; }
+    .preview-desktop-grid td.hour-cell.offday-slot { background: transparent; }
+    .preview-desktop-grid .event-block:focus-visible { z-index: 51; outline-offset: -3px; }
+    .preview-desktop-grid .event-block .preview-status { font-size: 9px; }
+    .preview-desktop-extras { margin-top: 18px; }
+    /* Restore the shipped flip, but keep the approved 96px height and column widths.
+       Three short bullets fit on the back; both faces stay absolutely positioned. */
+    .summary-card { min-height: 96px; cursor: pointer; }
+    .summary-card .summary-card-inner { min-height: 96px; height: 96px; }
+    .summary-card:hover .summary-card-inner { transform: none; }
+    .summary-card.preview-flipped .summary-card-inner { transform: rotateY(180deg); }
+    @media (hover: hover) and (pointer: fine) {
+      .summary-card:not(.preview-unflipped):hover .summary-card-inner { transform: rotateY(180deg); }
+    }
+    /* `+N` is the pending tail, not a second headline: keep the shared tertiary
+       colour but set it clearly smaller than the main number (user, round 1). */
+    .summary-card .summary-value .sum-pending { font-size: 0.62em; font-weight: 600; margin-left: 1px; }
+    /* ── Enhanced summary cards ──────────────────────────────────────────────
+       Adopted from ui-prototype/summary-card-back-preview.html ("Proposed"):
+       leading 1.45, 4px between bullets, the block vertically centred, and the
+       info button moved to the top-right so it stops eating the bottom of the
+       text. The 38px right reserve is uniform, so it clears the 44px button on
+       every line (back padding 8px + 38 = 46px). 39px is the last reserve that
+       does not re-wrap a bullet; 40px re-wraps "Includes completed". */
+    .summary-card-back { padding: 6px 8px; text-align: left; justify-content: center; }
+    .summary-card-back .summary-description { width: 100%; font-size: 12px; line-height: 1.45; padding-right: 38px; }
+    .preview-summary-points { margin: 0; padding-left: 12px; display: grid; gap: 4px; }
+    .summary-card-back .preview-summary-info { position: absolute; top: 0; bottom: auto; right: 0; width: 44px; height: 44px; min-width: 44px; min-height: 44px; display: grid; place-items: center; padding: 0; border: 0; border-radius: var(--radius-sm); background: transparent; color: var(--color-on-surface-variant); cursor: pointer; }
+    .preview-summary-info:hover, .preview-summary-info:focus-visible { color: var(--color-primary); background: var(--color-primary-container); }
+    .preview-modal.modal--summary { max-width: 420px; }
+    .preview-summary-full { font-size: 13px; line-height: 1.5; }
+    .preview-summary-full .preview-summary-points { gap: 8px; padding-left: 18px; }
+    .summary-card:not(.preview-flipped):not(:hover) .preview-summary-info { visibility: hidden; }
+    .preview-summary-points li::marker { color: var(--color-on-surface-variant); }
+    .preview-summary-points .summary-normal { color: var(--color-on-secondary-container); }
+    .preview-summary-points .summary-replacement { color: var(--color-on-primary-container); }
+    .preview-summary-points .summary-pending { color: var(--color-on-tertiary-container); }
+    .preview-summary-points .summary-excluded { color: var(--color-on-error-container); }
+
+    /* ── Structured explanation (enhanced design) ────────────────────────────
+       A short formula strip first, then two-line bullets: the bold term on
+       line 1, the meaning under it via <br>. Nothing is one dense paragraph.
+       Chips carry a TERM, never a live number: every front value is written at
+       runtime, so a printed number would be wrong on any other week. */
+    .explain-formula { display: flex; flex-wrap: wrap; align-items: stretch; gap: 6px; margin: 0 0 16px; }
+    .explain-chip {
+      display: flex; flex-direction: column; gap: 1px; justify-content: center;
+      text-align: center; padding: 9px 13px; min-width: 0;
+      border-radius: var(--radius-md); background: var(--color-surface-variant);
+      border: 0.5px solid var(--color-outline);
+    }
+    .explain-chip b { font-size: 12.5px; font-weight: 700; line-height: 1.25; letter-spacing: -.1px; }
+    .explain-chip.is-pending b { color: var(--color-on-tertiary-container); }
+    .explain-chip.is-blue b { color: var(--color-on-primary-container); }
+    .explain-plus { align-self: center; font-weight: 600; font-size: 14px; color: var(--color-on-surface-variant); }
+    .explain-list { margin: 0; padding: 0; list-style: none; display: grid; gap: 11px; }
+    .explain-list li { font-size: 13px; line-height: 1.4; color: var(--color-on-surface); }
+    .explain-list li strong { font-weight: 700; }
+    .explain-list li span { color: var(--color-on-surface-variant); }
+    .explain-foot {
+      margin: 15px 0 0; padding-top: 11px;
+      border-top: 0.5px solid var(--color-outline);
+      font-size: 11.5px; line-height: 1.45; color: var(--color-on-surface-variant);
+    }
+    .preview-modal .summary-bar { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .preview-modal .summary-hint { display: flex; }
+    /* Two columns cannot hold three bullets below 390px (measured on the live
+       page: 320px spills +14px, 360 and 375px spill +5px). One column fixes it.
+       PLACEMENT MATTERS: this must stay AFTER the 2-column rule above — both are
+       `.preview-modal .summary-bar` (specificity 0,2,0), so source order decides.
+       Placed earlier, the 2-column rule wins and 320px still spills. */
+    @media (max-width: 389px) {
+      .preview-modal .summary-bar { grid-template-columns: 1fr; }
+    }
+    .preview-footer { padding: 28px 0 20px; text-align: center; font-size: 11px; color: var(--color-on-surface-variant); }
+    /* Shipped detail/cancel skins only. theme.css owns the type scale, the modal
+       width, the phone dock and the stacked phone footer; the page's own footer
+       rules (.modal-footer padding / left / right) are mirrored from my-timetable. */
+    .preview-overlay { z-index: 200; }
+    /* ══ 2026-11-13 (user): responsive modal — PROTOTYPE TRIAL, NOT LIVE ══
+       Seven agreed decisions, applied here only so they can be looked at
+       before anything shared is touched.
+
+       1. Sheet cut-off moves 768 -> 600. Above 600 the pop-up is a centred,
+          content-sized dialog; at <=600 it is a flush bottom sheet.
+       2. The 601-768 mismatch (phone-ish page, desktop-ish dialog) is accepted
+          and pinned by a test rather than assumed safe.
+       3. Footer bug fixed: the two wrappers stretch and `.btn-danger` joins the
+          full-width list, so the stacked buttons actually fill the sheet.
+       4. Overlay padding is dropped <=600 so the sheet docks flush.
+       5. The x becomes a 48px target <=600 instead of the 40px it measured.
+       6. Header and footer are pinned; only the body scrolls.
+       7. Prototype first, then live with the full test pass.
+
+       Why the width law changed at all: `fit-content` measures the widest
+       intrinsic row (subtitle, tab rail, label/value) and clamps it between a
+       420px floor and each variant's existing ceiling. A paragraph-only body
+       still reaches its ceiling - correct, and unavoidable. */
+
+    /* -- The dialog: every size above the sheet cut-off --
+       NOTE: theme.css still ships its sheet rules at `max-width: 768px`, so
+       between 601 and 768 the shipped stylesheet parks the pop-up on the
+       bottom edge with a square bottom, a stacked footer and 16px body
+       padding. These declarations put the DIALOG back in that band; without
+       them 601-768 stays a half-sheet, which is the mismatch decision 2 was
+       meant to constrain rather than create. */
+    @media (min-width: 601px) {
+      .preview-modal {
+        width: fit-content;
+        min-width: 420px;
+        margin: auto;
+        border-radius: var(--radius-2xl);
+        border-bottom: 1px solid var(--color-outline);
+        max-height: 85dvh;
+        padding-bottom: 0;
+      }
+      .preview-overlay { align-items: center; }
+      .preview-modal .modal-header { padding: 18px 22px 0; }
+      .preview-modal .modal-body { padding: 16px 22px; }
+      /* the shipped sheet stacks the footer; the dialog puts it back on one
+         row, Close left / actions right */
+      .preview-modal .modal-footer {
+        flex-direction: row;
+        align-items: center;
+        justify-content: space-between;
+        padding: 14px 24px 18px;
+      }
+      .preview-modal .modal-footer-left,
+      .preview-modal .modal-footer-right {
+        flex-direction: row;
+        align-items: center;
+        gap: 10px;
+        width: auto;
+      }
+      /* ceilings: unchanged, each was chosen for a reason */
+      .preview-modal.modal--detail { max-width: 680px; }
+      .preview-modal.modal--cancel { max-width: 588px; }
+      .preview-modal.modal--guide { max-width: 520px; }
+      .preview-modal.modal--summary { max-width: 420px; }
+    }
+
+    /* -- Pinned header + footer, scrollable body (all sizes) --
+       The whole `.modal` used to be the scroller, so a long tab scrolled the
+       title, the x and the Close/Cancel actions off-screen. Now the modal is a
+       fixed three-row column: header / body (flex:1, scrolls) / footer.
+       `min-height: 0` is what lets the middle actually shrink. */
+    .preview-modal {
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+    .preview-modal .modal-header,
+    .preview-modal .modal-footer {
+      flex: 0 0 auto;
+    }
+    .preview-modal .modal-body {
+      flex: 1 1 auto;
+      min-height: 0;
+      overflow-y: auto;
+      overscroll-behavior: contain;
+      scrollbar-width: thin;
+    }
+    .preview-modal .modal-body .page-desc { margin-bottom: 14px; }
+    .preview-modal .modal-footer {
+      padding: 14px 24px 18px;
+      border-top: 1px solid var(--color-outline-variant);
+    }
+    .preview-modal .modal-footer-left { display: flex; align-items: center; }
+    .preview-modal .modal-footer-right { display: flex; align-items: center; gap: 10px; }
+
+    /* -- The sheet: phones only, <=600px -- */
+    @media (max-width: 600px) {
+      /* 4. drop the overlay's 20px so the sheet truly docks flush.
+         The safe-area inset is applied on the modal below. */
+      .preview-overlay {
+        padding: 0;
+        align-items: flex-end;
+      }
+      .preview-modal {
+        width: 100%;
+        max-width: 100%;
+        min-width: 0;
+        max-height: 85dvh;
+        margin: 0;
+        border-radius: var(--radius-xl) var(--radius-xl) 0 0;
+        border-bottom: 0;
+        padding-bottom: env(safe-area-inset-bottom);
+      }
+      /* 5. the x was 40px - one tap target below the floor the stylesheet
+         declares for phones. 48 is the honest size for the control people
+         reach for most. */
+      .preview-modal .modal-close {
+        width: 48px;
+        height: 48px;
+        font-size: 20px;
+      }
+      .preview-modal .modal-header { padding: 14px 16px 0; }
+      .preview-modal .modal-body { padding: 16px; }
+      /* 3. stack the footer and make BOTH groups stretch. Without
+         `align-items: stretch` the wrappers stay shrink-to-fit and a
+         `width:100%` child can only fill its own tiny wrapper - which is
+         exactly the 75px/126px buttons the screenshots showed. */
+      .preview-modal .modal-footer {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 8px;
+        padding: 12px 16px calc(12px + env(safe-area-inset-bottom));
+      }
+      .preview-modal .modal-footer-left,
+      .preview-modal .modal-footer-right {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 8px;
+        width: 100%;
+      }
+      /* `.btn-danger` was missing from theme.css's full-width list, so
+         "Cancel Class?" stayed 126px wide while everything around it was
+         meant to fill the sheet. */
+      .preview-modal .modal-footer .btn-close-modal,
+      .preview-modal .modal-footer .btn-outline,
+      .preview-modal .modal-footer .btn-danger,
+      .preview-modal .modal-footer .btn-action,
+      .preview-modal .modal-footer .btn-replace-now {
+        width: 100%;
+        min-height: 48px;
+        height: auto;
+      }
+    }
+
+    /* 2. the band between the page's mobile layout (768) and the sheet
+       cut-off (600): the page looks phone-ish while the dialog looks
+       desktop-ish. Accepted deliberately; the spec pins 601 / 700 / 768 so a
+       future change cannot make this band silently broken. */
+    body.preview-locked { overflow: hidden; }
+    /* Badge system (badge-spec): ONE pill geometry, colours untouched.
+       The 40px touch-target rule in theme.css exists for tappable chips, so it is
+       cancelled here — a status badge inside a detail row is not a control. */
+    .preview-modal .badge,
+    .preview-modal .badge-holiday,
+    .preview-modal .badge-reason,
+    .preview-modal .badge-outline {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 0;
+      min-height: 0;
+      height: 24px;
+      padding: 0 10px;
+      border-radius: var(--radius-pill);
+      font-size: 12px;
+      font-weight: 600;
+      line-height: 1;
+      white-space: nowrap;
+      vertical-align: middle;
+    }
+    .preview-modal .badge-outline { background: transparent; }
+    /* 2026-11-15 (user, second ruling): theme.css never defined badge-cancelled,
+       so the Status row printed a bare word in a transparent pill — but the red
+       is already PUBLIC HOLIDAY's (`badge-public-holiday` / `badge-conflict`
+       share `--color-error` in §10.0), so a cancelled class must not take it too.
+       Same tokens as the Class Cancelled chip on My Replacements (`.badge-reason`):
+       neutral grey, no new colour. */
+    .preview-modal .badge-cancelled { background: var(--color-surface-variant); color: var(--color-on-surface-variant); }
+    @media (max-width: 1279px) {
+      .preview-nav .nav-items, .preview-nav .user-panel { display: none; }
+      .preview-nav .preview-menu { display: inline-flex; }
+      .preview-nav { padding: 8px 16px; }
+      .preview-desktop-only, .preview-desktop-extras { display: none; }
+      .preview-main { padding: 16px; padding-top: calc(var(--top-bar-height) + 16px); }
+      .preview-controls { position: sticky; top: var(--top-bar-height); z-index: 20; margin: 0 -4px; padding: 8px 4px; background: var(--color-bg); border-bottom: 1px solid var(--color-outline); }
+      .preview-controls .semester-bar { padding: 8px; gap: 4px; }
+      .preview-controls .week-nav { flex: 1; gap: 3px; }
+      .preview-controls .week-arrow { width: 44px; height: 44px; }
+      .preview-controls .week-select { flex: 1; min-width: 0; height: 44px; }
+      .preview-days { display: flex; gap: 5px; overflow-x: auto; padding: 10px 1px 2px; }
+      .preview-tools { display: flex; }
+      .preview-nav .top-right { gap: 8px; }
+    }
+    @media (max-width: 767px) {
+      .preview-main { padding: 12px; padding-top: calc(var(--top-bar-height) + 12px); }
+      .preview-heading { margin-bottom: 10px; }
+      .preview-heading .semester-chip { font-size: 12px; padding: 3px 8px; }
+      .preview-controls .week-select { font-size: 12px; padding-left: 6px; padding-right: 24px; }
+    }
+    @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; } }
+  </style>
+</head>
+<body>
+  <svg hidden aria-hidden="true"><defs>
+    <symbol id="i-calendar" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 11h18"/></symbol>
+    <symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></symbol>
+    <symbol id="i-swap" viewBox="0 0 24 24"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></symbol>
+    <symbol id="i-close" viewBox="0 0 24 24"><path d="m6 6 12 12M6 18 18 6"/></symbol>
+    <symbol id="i-warning" viewBox="0 0 24 24"><path d="m12 3 10 18H2L12 3Z"/><path d="M12 9v4M12 17h.01"/></symbol>
+    <symbol id="i-pending" viewBox="0 0 24 24"><path d="M6 3h12M6 21h12M7 3v4l10 10v4M17 3v4L7 17v4"/></symbol>
+    <symbol id="i-menu" viewBox="0 0 24 24"><path d="M3 6h18M3 12h18M3 18h18"/></symbol>
+    <symbol id="i-help" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M9 9a3 3 0 0 1 6 0c0 2-3 2-3 5M12 17h.01"/></symbol>
+    <symbol id="i-moon" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79Z"/></symbol>
+    <symbol id="i-summary" viewBox="0 0 24 24"><path d="M4 20h16M7 16v-5M12 16V5M17 16V8"/></symbol>
+    <symbol id="i-target" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></symbol>
+  </defs></svg>
+  <header class="top-bar preview-nav">
+    <div class="top-logo"><img src="../public/images/logo_banner.png" alt="TAR UMT"></div>
+    <nav class="nav-items" aria-label="Main navigation">
+      <a class="nav-item active" href="#" aria-current="page" data-preview-link>My Timetable</a>
+      <a class="nav-item" href="#" data-preview-link>Cohort Timetables</a>
+      <a class="nav-item" href="#" data-preview-link>Venue Timetable</a>
+      <a class="nav-item" href="#" data-preview-link>My Replacements</a>
+    </nav>
+    <div class="top-right">
+      <button class="theme-toggle" id="previewTheme" aria-label="Toggle theme" data-tip="Switch between light &amp; dark mode" data-tip-pos="left"><svg class="preview-icon" fill="none" stroke="currentColor" stroke-width="2"><use href="#i-moon"/></svg></button>
+      <button class="notif-btn" id="previewBell" aria-label="Notifications" aria-haspopup="true" data-tip="Notifications" data-tip-pos="left"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg><span class="notif-badge" id="previewNotifBadge" style="display:flex">3</span></button>
+      <div class="user-panel"><div class="user-profile"><div class="user-avatar">LJ</div><div class="user-info"><span class="user-name" id="previewUser"></span><span class="user-id">5770</span><span class="user-role">Lecturer</span></div></div></div>
+      <button class="preview-button preview-icon-button preview-menu" id="previewMenu" aria-label="Open navigation"><svg class="preview-icon" fill="none" stroke="currentColor" stroke-width="2"><use href="#i-menu"/></svg></button>
+    </div>
+  </header>
+  <main class="app-container preview-main">
+    <div class="page-header preview-heading">
+      <div><h1 class="page-title">My Timetable</h1><span class="semester-chip" id="previewSemester"></span></div>
+      <button class="preview-button preview-icon-button" id="previewHelp" aria-label="How to use this page" data-tip="How to use this page"><svg class="preview-icon" fill="none" stroke="currentColor" stroke-width="2"><use href="#i-help"/></svg></button>
+    </div>
+    <section class="preview-controls" aria-label="Timetable controls">
+      <div class="semester-bar">
+        <div class="week-nav"><button class="week-arrow" id="previewPrev" aria-label="Previous week" data-tip="Previous week">‹</button><select class="week-select" id="previewWeek" aria-label="Timetable week" data-tip="Pick the week to display"></select><button class="week-arrow" id="previewNext" aria-label="Next week" data-tip="Next week">›</button></div>
+        <button class="today-btn" id="previewToday" data-tip="Go to current week" aria-label="Go to current week"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><use href="#i-target"/></svg><span class="today-btn-label">Today</span></button>
+        <button type="button" class="print-btn preview-desktop-only" id="previewPrint" data-tip="Open print preview" aria-label="Open print preview"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg></button>
+      </div>
+      <div class="preview-days" id="previewDays" aria-label="Days of this week"></div>
+    </section>
+    <div class="preview-tools"><div><h2 class="preview-day-heading" id="previewDayHeading"></h2><span id="previewDayCount"></span></div><button class="preview-button preview-icon-button" id="previewSummary" aria-label="Week summary" data-tip="Week summary"><svg class="preview-icon" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><use href="#i-summary"/></svg></button></div>
+    <div id="previewHoliday"></div>
+    <section id="previewAgenda" class="preview-agenda" aria-label="Classes for the selected day"></section>
+    <section id="previewTablet" aria-label="Timetable for the selected days"></section>
+    <section id="previewDesktop" class="preview-desktop-grid" aria-label="Weekly timetable">
+      <div class="grid-wrapper"><div class="grid-scroll"><table class="timetable" id="timetable"><thead id="tableHead"></thead><tbody id="tableBody"></tbody></table></div></div>
+    </section>
+    <div id="previewEmpty" hidden></div>
+    <section class="preview-desktop-extras" id="previewExtras" aria-label="Week summary"></section>
+    <footer class="preview-footer">TAR UMT · Class Replacement System<br>Design preview only — no real bookings or cancellations.</footer>
+  </main>
+  <!-- Shared preview host: the shipped .modal shell; .modal--cancel for cancellation. -->
+  <div class="modal-overlay preview-overlay" id="previewOverlay" style="display:none">
+    <div class="modal modal--detail preview-modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+      <div class="modal-header" id="previewModalHeader">
+        <span class="modal-title" id="modalTitle">Class Details<span class="modal-subtitle" id="modalSubtitle"></span></span>
+        <button class="modal-close" id="previewClose" data-tip="Close" aria-label="Close">&times;</button>
+      </div>
+      <div class="modal-body" id="modalBody"></div>
+      <div class="modal-footer">
+        <div class="modal-footer-left"><button class="btn-close-modal" id="previewCloseBtn">Close</button></div>
+        <div class="modal-footer-right" id="modalFooterRight"></div>
+      </div>
+    </div>
+  </div>
+  <!-- Navigation drawer — the app's own markup and theme.css classes -->
+  <div class="nav-drawer-overlay" id="navDrawerOverlay"></div>
+  <div class="nav-drawer" id="navDrawer">
+    <div class="nav-drawer-header">
+      <span class="nav-drawer-title">Navigation</span>
+      <button class="nav-drawer-close" id="navDrawerClose" aria-label="Close navigation menu">
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+    <div class="nav-drawer-items">
+      <a class="nav-drawer-item active" href="#" aria-current="page" data-preview-link>My Timetable</a>
+      <a class="nav-drawer-item" href="#" data-preview-link>Cohort Timetables</a>
+      <a class="nav-drawer-item" href="#" data-preview-link>Venue Timetable</a>
+      <a class="nav-drawer-item" href="#" data-preview-link>My Replacements</a>
+    </div>
+    <div class="nav-drawer-user">
+      <div class="nav-drawer-user-info">
+        <div class="nav-drawer-user-avatar" id="navDrawerAvatar">LJ</div>
+        <div class="nav-drawer-user-details">
+          <span class="nav-drawer-user-name" id="navDrawerName"></span>
+          <span class="nav-drawer-user-id" id="navDrawerId"></span>
+          <span class="nav-drawer-user-role">Lecturer</span>
+        </div>
+      </div>
+      <button class="nav-drawer-logout" id="navDrawerLogout" aria-label="Logout">
+        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+        Logout
+      </button>
+    </div>
+  </div>
+  <div class="toast-bar" id="previewToast" role="status" aria-live="polite"><div class="toast-content"><span class="toast-message" id="previewToastMessage"></span></div></div>
+  <script>
+  (() => {
+    'use strict';
+    // Invented preview fixtures only. Nothing is loaded from or written to the system.
+    const MockData = {
+      semester: { label:'202605 Semester', startDate:'2026-09-21', weeks:14 },
+      currentUser: { name:'En. Lim Jia Zheng', staffId:'5770' },
+      holidays: [
+        {week:8,dayIndex:0,label:'Deepavali Holiday (In Lieu)'},
+        {week:14,dayIndex:3,label:'Christmas Eve'},
+        {week:14,dayIndex:4,label:'Christmas Day'}
+      ],
+      venues: [
+        {code:'B111',name:'Lecture Hall',seats:100},
+        {code:'B110',name:'Lecture Hall',seats:80},
+        {code:'B009',name:'Computer Lab',seats:28},
+        {code:'B010',name:'Computer Lab',seats:28},
+        {code:'B100',name:'Tutorial Room',seats:35},
+        {code:'B106',name:'Tutorial Room',seats:35}
+      ],
+      // Thursday intentionally demonstrates all five states without overlapping
+      // classes. Tuesday and Friday each carry ONE deliberate overlap so the
+      // lane stacking is visible: an overlapping block must stack above/below,
+      // never disappear and never draw on top of the other.
+      sampleClasses: [
+        {id:'101',di:0,start:2,end:5,code:'BMIT2201',name:'Software Engineering',type:'L',venue:'B111',cohorts:['RSD3 (S1) G1','RSD3 (S1) G2'],studentCounts:[14,14],status:'normal'},
+        {id:'102',di:0,start:12,end:13,code:'BMCS2023',name:'Database Systems',type:'T',venue:'B106',cohorts:['DSF2 (S1) G1'],studentCounts:[22],status:'normal'},
+        {id:'103',di:1,start:4,end:7,code:'BMIT3103',name:'Web Application Development',type:'P',venue:'B009',cohorts:['RSD3 (S1) G2'],studentCounts:[14],status:'normal'},
+        {id:'104',di:1,start:14,end:15,code:'BMCS2023',name:'Database Systems',type:'T',venue:'B100',cohorts:['DFT2 (S1) G1'],studentCounts:[28],status:'pending',requestedAt:'12-Nov-2026',requestId:'35',requestedBy:'En. Lim Jia Zheng',remarks:'Replacement request waiting for approval.'},
+        {id:'105',di:2,start:2,end:5,code:'BMCS3404',name:'Project I',type:'P',venue:'B010',cohorts:['RSD3 (S1) G2'],studentCounts:[14],status:'normal'},
+        {id:'106',di:2,start:12,end:15,code:'BMIT2201',name:'Software Engineering',type:'L',venue:'B110',cohorts:['RSD3 (S1) G1','RSD3 (S1) G2'],studentCounts:[14,14],status:'replacement',replacedFor:'04-Nov-2026'},
+        {id:'107',di:3,start:2,end:5,code:'BMIT2201',name:'Software Engineering',type:'L',venue:'B111',cohorts:['RSD3 (S1) G1','RSD3 (S1) G2'],studentCounts:[14,14],status:'normal'},
+        {id:'108',di:3,start:6,end:7,code:'BMCS2023',name:'Database Systems',type:'T',venue:'B106',cohorts:['DSF2 (S1) G1'],studentCounts:[22],status:'pending',requestedAt:'12-Nov-2026',requestId:'39',requestedBy:'En. Lim Jia Zheng',remarks:'Replacement request waiting for approval.'},
+        {id:'109',di:3,start:8,end:11,code:'BMIT3103',name:'Web Application Development',type:'P',venue:'B009',cohorts:['RSD3 (S1) G2'],studentCounts:[14],status:'replacement',replacedFor:'05-Nov-2026'},
+        {id:'110',di:3,start:12,end:13,code:'BMCS3404',name:'Project I',type:'T',venue:'B100',cohorts:['RSD3 (S1) G2'],studentCounts:[14],status:'cancelled',remarks:'Lecturer on annual leave.'},
+        {id:'111',di:3,start:16,end:17,code:'BMIT3303',name:'Computer Networks',type:'L',venue:'B110',cohorts:['DFT2 (S1) G1'],studentCounts:[28],status:'conflict',remarks:'Venue unavailable — maintenance work.'},
+        {id:'112',di:4,start:4,end:7,code:'BMIT3303',name:'Computer Networks',type:'P',venue:'B010',cohorts:['DFT2 (S1) G1'],studentCounts:[28],status:'normal'},
+        {id:'113',di:4,start:12,end:13,code:'BMIT2201',name:'Software Engineering',type:'T',venue:'B106',cohorts:['RSD3 (S1) G1'],studentCounts:[14],status:'normal'},
+        {id:'114',di:5,start:2,end:3,code:'BMCS3404',name:'Project I',type:'T',venue:'B100',cohorts:['RSD3 (S1) G2'],studentCounts:[14],status:'normal'},
+        // ── Deliberate overlap 1: Tuesday. A pending request proposes 10:30–12:30
+        //    while the 10:00–12:00 class still runs, so the two blocks overlap.
+        {id:'115',di:1,start:5,end:8,code:'BMCS2023',name:'Database Systems',type:'T',venue:'B106',cohorts:['DSF2 (S1) G1'],studentCounts:[22],status:'pending',requestedAt:'12-Nov-2026',requestId:'41',requestedBy:'En. Lim Jia Zheng',remarks:'Proposed 10:30 slot clashes with the 10:00 class.'},
+        // ── Deliberate overlap 2: Friday. A cancelled original sits inside the
+        //    10:00–12:00 class — history stacks ABOVE the live block.
+        {id:'116',di:4,start:6,end:7,code:'BMCS3404',name:'Project I',type:'T',venue:'B100',cohorts:['RSD3 (S1) G2'],studentCounts:[14],status:'cancelled',remarks:'Cancelled — stacks above the class it overlaps.'}
+      ]
+    };
+    // The payload always ships the lecturer; these fixtures are the viewer's own classes.
+    MockData.sampleClasses.forEach(e => { if(e.lecturer==null) e.lecturer=MockData.currentUser.name; });
+    const cancellationReasons = ['Medical/Sick Leave','Annual Leave','Emergency Leave','Hospitalisation Leave','Maternity Leave','Compassionate Leave','Paternity Leave','Other'];
+    const $ = id => document.getElementById(id);
+    const esc = value => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+    const icon = (name, cls='preview-icon') => `<svg class="${cls}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><use href="#i-${name}"/></svg>`;
+    const fixtureToday = '2026-11-12';
+    const state = { week: 7, day: 3, mode: 'normal' };
+    // Only local preview navigation reads these; never boot or call the live system.
+    const returnParams=new URLSearchParams(window.location.search);
+    for(const [key,max] of [['week',MockData.semester.weeks-1],['day',6]]) {
+      const raw=returnParams.get(key), value=Number(raw);
+      if(raw!==null && /^\d+$/.test(raw) && Number.isInteger(value) && value>=0 && value<=max) state[key]=value;
+    }
+    if(['light','dark'].includes(returnParams.get('theme'))) {
+      const dark=returnParams.get('theme')==='dark';
+      document.documentElement.classList.toggle('dark',dark);
+      document.documentElement.classList.toggle('light',!dark);
+    }
+    const fmt = (date, options = {}) => new Intl.DateTimeFormat('en-GB', { timeZone:'UTC', day:'numeric', month:'short', year:'numeric', ...options }).format(date);
+    function dateAt(week, day) { const d = new Date(MockData.semester.startDate + 'T12:00:00Z'); d.setUTCDate(d.getUTCDate() + week * 7 + day); return d; }
+    const dateKey = (week, day) => dateAt(week, day).toISOString().slice(0, 10);
+    const clock = slot => { const m = 480 + slot * 30; return `${Math.floor(m / 60) % 12 || 12}:${String(m % 60).padStart(2,'0')} ${m >= 720 ? 'PM' : 'AM'}`; };
+    const timeOf = e => `${clock(e.start)} ~ ${clock(e.end + 1)}`;
+    const widthCount = width => width < 768 ? 1 : width < 1024 ? 2 : width < 1280 ? 3 : 7;
+    const dayWindow = (day, count) => { const start = Math.min(day, 7 - count); return Array.from({length:count}, (_, i) => start + i); };
+    const holidayAt = (week, day) => MockData.holidays.find(h => h.week === week + 1 && h.dayIndex === day);
+    function daysOf(week) { return Array.from({length:7}, (_, di) => ({ abbr:['Mon','Tue','Wed','Thu','Fri','Sat','Sun'][di], date:fmt(dateAt(week,di)), sunday:di===6, today:dateKey(week,di)===fixtureToday, holiday:!!holidayAt(week,di), holidayLabel:holidayAt(week,di)?.label || '' })); }
+    function eventsOf(week) {
+      if (state.mode === 'empty-week' && week === 7) return [];
+      let events = MockData.sampleClasses.map(e => ({...e, id:`${week}-${e.id}`, lecturer:MockData.currentUser.name, cohorts:e.cohorts.slice(), studentCounts:e.studentCounts.slice()}));
+      if (week !== 7) events = events.map(e => ({...e,status:'normal',remarks:'',replacedFor:undefined}));
+      if (week === 7 && state.mode === 'empty-day') events = events.filter(e => e.di !== 3);
+      return events.sort((a,b) => a.di-b.di || a.start-b.start);
+    }
+    function statusOf(e, week = state.week) { return holidayAt(week,e.di) ? 'holiday' : e.status; }
+    const statusMeta = {
+      normal:['Normal','calendar','event-normal'], pending:['Pending','pending','event-pending'], replacement:['Replacement','swap','event-replacement'],
+      cancelled:['Cancelled','close','event-conflict'], conflict:['Conflict','warning','event-conflict'], holiday:['Public Holiday','calendar','event-conflict']
+    };
+    /* 2026-11-15 (user): the details pop-up names the state in full — "Class
+       Cancelled", never a bare "Cancelled", which a reader can take as the
+       REQUEST being cancelled rather than the class. A block keeps the short
+       word: a one-hour desktop cell is ~60px wide and cannot carry the longer
+       one. The spoken label and the hover tip use the full form. */
+    const statusFull = { cancelled:'Class Cancelled' };
+    const statusLabel = s => statusFull[s] || statusMeta[s][0];
+    // Holiday is labelled on the day; only cancellation and conflict need a block label.
+    const BADGED = ['cancelled', 'conflict'];
+    function badge(e, week = state.week) { const s = statusOf(e,week), meta = statusMeta[s]; return BADGED.includes(s) ? `<span class="preview-status">${icon(meta[1])}${meta[0]}</span>` : ''; }
+    // The shipped note vocabulary (buildReplacementNote): parenthesised, system date format.
+    function blockNote(e) {
+      if(e.status==='replacement' && e.replacedFor) return `(Replaced for ${e.replacedFor})`;
+      if(e.status==='pending' && e.requestedAt) return `(Pending since ${e.requestedAt})`;
+      return '';
+    }
+    // Block hover voice — the system's composed shape: subject name · lecturer · STATUS.
+    function blockTip(e) { return [e.name, e.lecturer || '—', statusLabel(statusOf(e)).toUpperCase()].filter(Boolean).join(' · '); }
+    /* The other class(es) this one shares time with, in plain words. Only the
+       phone list uses this — the desktop grid stacks the blocks and the tablet
+       shows them side by side, so both already make the overlap obvious. */
+    function overlapText(e, list) {
+      const others=list.filter(o => o.id!==e.id && o.start<=e.end && e.start<=o.end);
+      if(!others.length) return null;
+      if(others.length===1) return `Overlaps ${timeOf(others[0])} · ${others[0].code} (${others[0].type})`;
+      return `Overlaps ${others.length} other classes`;
+    }
+    function card(e, overlap) { const s=statusOf(e), note=blockNote(e); return `<button class="event-block preview-class ${statusMeta[s][2]} ${s==='cancelled'?'is-cancelled':''}${overlap?' is-overlap':''}" data-event="${esc(e.id)}" data-tip="${esc(blockTip(e))}" aria-label="${esc(`${timeOf(e)}, ${e.code} ${e.name}, ${e.venue}, ${statusLabel(s)}${overlap?', '+overlap:''}`)}"><span class="preview-class-top"><span class="preview-time">${timeOf(e)}</span><span class="preview-venue">${esc(e.venue)}</span></span><span class="preview-course"><span class="preview-course-code">${esc(e.code)} (${esc(e.type)})</span></span>${(badge(e)||note)?`<span class="preview-class-note">${badge(e)}${note?`<span class="ev-note">${esc(note)}</span>`:''}</span>`:''}${overlap?`<span class="ev-overlap">${esc(overlap)}</span>`:''}</button>`; }
+    function nextClass(week, day, after = -1) {
+      for (let w=week; w<MockData.semester.weeks; w++) {
+        const found=eventsOf(w).find(e => (w>week || e.di>day || (e.di===day && e.end*30+510>after)) && !['cancelled','conflict','holiday','pending'].includes(statusOf(e,w)));
+        if(found) return {e:found,w};
+      }
+      return null;
+    }
+    function shortTimeOf(e) {
+      const start=clock(e.start),end=clock(e.end+1);
+      const compact=value=>value.replace(':00','');
+      return `${compact(start.slice(-2)===end.slice(-2)?start.slice(0,-3):start)}–${compact(end)}`;
+    }
+    function nextHint(week,day,after=-1) {
+      const n=nextClass(week,day,after);
+      if(!n) return '<p class="preview-next-hint">No more classes this semester.</p>';
+      return `<button type="button" class="preview-next-hint" data-next-week="${n.w}" data-next-day="${n.e.di}" aria-label="Go to ${esc(fmt(dateAt(n.w,n.e.di),{weekday:'long'}))}"><span class="preview-next-caption">${icon('clock')}Next class <span aria-hidden="true">→</span></span><span class="preview-next-details"><span>${esc(fmt(dateAt(n.w,n.e.di),{weekday:'short',year:undefined}))} · <strong>${esc(shortTimeOf(n.e))}</strong></span><span class="preview-next-venue" aria-label="Venue ${esc(n.e.venue)}">${esc(n.e.venue)}</span></span></button>`;
+    }
+    // Shipped ui-empty-state shape: .empty-icon + h3.empty-title + .empty-text,
+    // with the approved next-class hint riding inside the same block.
+    function emptyMessage(week, day, wholeWeek=false) {
+      const title=wholeWeek?'No classes this week':`No classes on ${fmt(dateAt(week,day),{weekday:'long'})}`;
+      const text=wholeWeek?'All classes for this week have been cancelled.':'';
+      return `<div class="empty-state">${icon('calendar','empty-icon')}<h3 class="empty-title">${esc(title)}</h3>${text?`<p class="empty-text">${esc(text)}</p>`:''}${nextHint(week,wholeWeek?6:day)}</div>`;
+    }
+    function totals(events) {
+      const active=events.filter(e => !['cancelled','conflict','holiday','pending'].includes(statusOf(e)));
+      const pending=events.filter(e => statusOf(e)==='pending');
+      const duration=list => list.reduce((sum,e) => sum+(e.end-e.start+1)/2,0);
+      return [
+        ['Total Classes',`${active.length}<span class="sum-pending">+${pending.length}</span>`,summaryPoints([
+          '<strong class="summary-normal">Normal</strong> + <strong class="summary-replacement">blue</strong>',
+          '<strong class="summary-pending">+N</strong> = pending',
+          'No <strong class="summary-excluded">red</strong> blocks'
+        ]),'card-total'],
+        ['Teaching Hours',`${duration(active)}<span class="sum-pending">+${duration(pending)}</span>`,summaryPoints([
+          'Teaching time',
+          '<strong>30 min</strong> / slot',
+          '<strong class="summary-pending">+N</strong> = pending'
+        ]),'card-hours'],
+        ['Replacements',events.filter(e => statusOf(e)==='replacement').length,summaryPoints([
+          'New class time',
+          'PL approved',
+          '<strong class="summary-replacement">Blue</strong> blocks'
+        ]),'card-replacement'],
+        ['Pending',pending.length,summaryPoints([
+          'Awaiting PL',
+          'Not confirmed',
+          '<strong class="summary-pending">+N</strong> on totals'
+        ]),'card-pending'],
+        ['Conflicts',events.filter(e => ['cancelled','conflict','holiday'].includes(statusOf(e))).length,summaryPoints([
+          'Cancelled/clash',
+          'Or a holiday',
+          '<strong class="summary-excluded">Needs make-up</strong>'
+        ]),'card-conflict']
+      ];
+    }
+    function summaryPoints(items) { return `<ul class="preview-summary-points">${items.map(item=>`<li>${item}</li>`).join('')}</ul>`; }
+    /* ── Structured explanation (enhanced design) ────────────────────────────
+       Adopted from ui-prototype/summary-card-back-preview.html: an optional
+       formula strip, then two-line bullets (bold term <br> muted meaning), then
+       an optional footnote — replacing the single dense paragraph.
+       Chips carry a TERM, never a live number: every front value is written at
+       runtime, so a printed number would be wrong on any other week.
+       Total Classes deliberately has NO "= total" chip: computeSummary() sets
+       total = all − cancelled, so conflict blocks ARE counted in total and the
+       three terms would not add up on a week with a red block. */
+    const SUMMARY_DETAILS = [
+      {
+        formula:[{v:'normal'},{op:'+'},{v:'replacement',c:'is-blue'},{op:'+'},{v:'pending',c:'is-pending'}],
+        items:[
+          ['Normal','<span>Class runs as scheduled.</span>'],
+          ['Replacement','<span>A replacement lecturer teaches it.</span>'],
+          ['Pending','<span>Waiting for a PL decision.<br>Counted only in the small <strong>+N</strong>.</span>'],
+          ['Cancelled','<span>Not counted in this card.</span>']
+        ],
+        foot:'Counts the period and week selected above, plus any active filter.'
+      },
+      {
+        formula:[{v:'slots × 30 min'},{op:'='},{v:'teaching time'}],
+        items:[
+          ['Measured in slots','<span>Each timetable slot is <strong>30 minutes</strong>.<br>Two slots make one hour.</span>'],
+          ['Pending','<span>Counted in the small <strong>+N</strong> only.</span>'],
+          ['Cancelled','<span>Excluded — no teaching happens.</span>']
+        ],
+        foot:'Same period and filters as Total Classes.'
+      },
+      {
+        items:[
+          ['Approved first','<span>A PL must approve the request.<br>Until then it is Pending, not here.</span>'],
+          ['Shown in blue','<span>Blue blocks mark the new class time.</span>']
+        ]
+      },
+      {
+        items:[
+          ['What it means','<span>A request is sent, but no PL has decided yet.</span>'],
+          ['Not confirmed','<span>The class is not yet a replacement.</span>'],
+          ['Appears as <strong>+N</strong>','<span>Pending classes are also added to<br>Total Classes and Teaching Hours.</span>']
+        ]
+      },
+      {
+        items:[
+          ['Clash','<span>Another class already booked in the slot.</span>'],
+          ['Cancelled','<span>The class was called off.</span>'],
+          ['Public holiday','<span>The whole day is closed.</span>']
+        ],
+        foot:'Each conflict needs a make-up class to be arranged.'
+      }
+    ];
+    function formulaMarkup(chips) {
+      if(!chips) return '';
+      return '<div class="explain-formula">' + chips.map(c => c.op
+        ? `<span class="explain-plus">${c.op}</span>`
+        : `<span class="explain-chip ${c.c||''}"><b>${c.v}</b></span>`
+      ).join('') + '</div>';
+    }
+    function fullSummaryDescription(index) {
+      const d=SUMMARY_DETAILS[index];
+      if(!d) return '';
+      return formulaMarkup(d.formula)
+        + '<ul class="explain-list">' + d.items.map(([term,meaning]) =>
+            `<li><strong>${term}</strong><br>${meaning}</li>`).join('') + '</ul>'
+        + (d.foot ? `<p class="explain-foot">${d.foot}</p>` : '');
+    }
+    function summaryHtml(events) {
+      // Shared two-face card skins; short bullet backs never change the card dimensions.
+      const legend = [
+        ['event-normal','Normal Class','Scheduled class with no issues'],
+        ['event-replacement','Replacement','Approved replacement session'],
+        ['event-pending','Pending','Replacement request awaiting approval'],
+        ['event-conflict','Conflict / Public Holiday','Scheduling conflict or public holiday — this class will not run as scheduled']
+      ];
+      return `<div class="legend-bar"><span class="legend-hint" aria-hidden="true"><span class="hint-hover">Hover a colour to learn more</span><span class="hint-touch">Tap a colour to learn more</span></span><div class="legend-items">${legend.map(([cls,label,tip])=>`<div class="legend-item" data-tip="${esc(tip)}"><span class="legend-swatch ${cls}"></span><span>${label}</span></div>`).join('')}</div></div>
+        <div class="summary-section"><div class="summary-hint"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg><span>Stats reflect the <strong>selected period</strong>. Hover or tap a card to learn more.</span></div>
+        <div class="summary-bar">${totals(events).map(([label,value,description,cls],i)=>`<div class="summary-card ${cls}" tabindex="0" role="group" data-summary="${i}" aria-label="${esc(label)}: hover, tap or press Enter to flip"><div class="summary-card-inner"><div class="summary-card-front"><span class="summary-value">${value}</span><span class="summary-label">${label}</span></div><div class="summary-card-back"><div class="summary-description">${description}</div><button type="button" class="preview-summary-info" data-summary-info="${i}" aria-haspopup="dialog" aria-label="${esc(label)}: full explanation" data-tip="Full explanation"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg></button></div></div></div>`).join('')}</div></div>`;
+    }
+    function renderTablet(events,count) {
+      const indices=dayWindow(state.day,count);
+      let html=`<div class="preview-tablet-grid" style="--day-count:${count}"><div class="preview-tablet-head">Time</div>`;
+      indices.forEach((di,i) => { html+=`<div class="preview-tablet-head" style="grid-column:${i+2};grid-row:1">${daysOf(state.week)[di].abbr}<small>${fmt(dateAt(state.week,di))}</small>${holidayAt(state.week,di)?'<small>Public Holiday</small>':''}</div>`; });
+      for(let slot=0;slot<22;slot++) {
+        html+=`<div class="preview-axis" style="grid-column:1;grid-row:${slot+2}">${String(8+Math.floor(slot/2)).padStart(2,'0')}:${slot%2?'30':'00'}</div>`;
+        indices.forEach((di,i) => { html+=`<div class="preview-grid-cell" style="grid-column:${i+2};grid-row:${slot+2}"></div>`; });
+      }
+      /* Tablet keeps time on the vertical axis, so the desktop's extra rows do
+         not apply: overlapping blocks share the column and would draw on top of
+         each other. They split the day column side by side instead, using the
+         same lane planner, so nothing is hidden. */
+      indices.forEach((di,i) => {
+        const layout=laneLayout(events.filter(e => e.di===di));
+        layout.placed.forEach(({event:e, lane}) => {
+          const lanes=layout.lanes, span=e.end-e.start+1;
+          const geom = lanes>1
+            ? `grid-column:${i+2};grid-row:${e.start+2} / span ${span};width:calc(100% / ${lanes} - 4px);margin-left:calc(100% * ${lane} / ${lanes});justify-self:start`
+            : `grid-column:${i+2};grid-row:${e.start+2} / span ${span}`;
+          html+=card(e).replace('data-event=',`style="${geom}" data-event=`);
+        });
+      });
+      $('previewTablet').innerHTML=html+'</div>';
+    }
+    /* Lane planner — mirrors the live `layoutTimetableDay()`.
+       Overlapping blocks NEVER share a row: each day renders one physical row
+       per lane and the day header spans them with rowspan, so two overlapping
+       classes stack top and bottom. Before this, the renderer used
+       `events.find(e => e.di === di && e.start === slot)`, which silently drew
+       only the first event per start slot and dropped the other one — it was
+       still counted in the summary, so the grid and the numbers disagreed. */
+    function laneLayout(dayEvents) {
+      const sorted=[...dayEvents].sort((a,b)=>a.start-b.start || a.end-b.end);
+      const lanes=[]; const placed=[];
+      const overlaps=(x,iv)=> x.start<=iv.end && iv.start<=x.end;   /* inclusive slots */
+      const fits=(lane,iv)=> !(lanes[lane]||[]).some(x=>overlaps(x,iv));
+      const put=(e,lane)=>{ (lanes[lane]=lanes[lane]||[]).push(e); placed.push({event:e,lane}); };
+      /* 1. Cancelled history claims the LOWEST lanes, so it stacks ABOVE the
+            live blocks it overlaps — the same rule the live planner uses. */
+      sorted.filter(e=>e.status==='cancelled').forEach(e=>{
+        let lane=0; while(!fits(lane,e)) lane++; put(e,lane);
+      });
+      /* 2. Everything else sits strictly BELOW any cancelled block it overlaps,
+            then takes the first free lane from there. */
+      sorted.filter(e=>e.status!=='cancelled').forEach(e=>{
+        let lane=0;
+        lanes.forEach((recs,i)=>{ if(recs.some(x=>overlaps(x,e))) lane=Math.max(lane,i+1); });
+        while(!fits(lane,e)) lane++;
+        put(e,lane);
+      });
+      return {lanes:Math.max(1,lanes.length), placed};
+    }
+    function renderDesktop(events) {
+      // Prototype-only renderer, retaining the system's day rows / horizontal time axis.
+      let head='<tr><th class="time-header-col">Day / Time</th>';
+      for(let slot=0;slot<22;slot+=2) head+=`<th class="hour-header" colspan="2"><span class="hour-top">${String(8+slot/2).padStart(2,'0')}:00</span><span class="hour-bottom">${String(9+slot/2).padStart(2,'0')}:00</span></th>`;
+      $('tableHead').innerHTML=head+'</tr>';
+      let body='';
+      daysOf(state.week).forEach((day,di)=>{
+        const layout=laneLayout(events.filter(e=>e.di===di));
+        for(let lane=0;lane<layout.lanes;lane++) {
+          body+=`<tr data-lane="${lane}">`;
+          /* The day cell spans every lane row of its day, so the axis still
+             reads as one day. */
+          if(lane===0) body+=`<td class="time-col ${day.today?'today':''} ${day.holiday||day.sunday?'offday':''}" rowspan="${layout.lanes}"><span class="day-label">${day.abbr}</span><span class="date-label">${day.date}</span>${day.holiday?'<span class="holiday-badge">Public Holiday</span>':''}${day.today?'<span class="today-badge">Today</span>':''}</td>`;
+          const inLane=layout.placed.filter(p=>p.lane===lane).map(p=>p.event);
+          for(let slot=0;slot<22;slot++) {
+            const e=inLane.find(item=>item.start===slot);
+            if(e) {
+              const status=statusOf(e),note=blockNote(e);
+              body+=`<td class="hour-cell ${day.today?'today-cell':''}" colspan="${e.end-e.start+1}"><div class="event-block ${statusMeta[status][2]}" role="button" tabindex="0" data-event="${esc(e.id)}" data-tip="${esc(blockTip(e))}" aria-label="${esc(`${e.code}, ${timeOf(e)}, ${e.venue}, ${statusLabel(status)}`)}"><span class="ev-code">${esc(e.code)} (${esc(e.type)})</span><span class="ev-venue">${esc(e.venue)}</span><span class="ev-time">${timeOf(e)}</span>${badge(e)}${note?`<span class="ev-note">${esc(note)}</span>`:''}</div></td>`;
+              slot=e.end;
+            } else body+='<td class="hour-cell"><div class="cell-empty"></div></td>';
+          }
+          body+='</tr>';
+        }
+      });
+      $('tableBody').innerHTML=body;
+    }
+    function render() {
+      const count=widthCount(window.innerWidth), events=eventsOf(state.week), dayEvents=events.filter(e=>e.di===state.day), days=daysOf(state.week), wholeWeek=!events.length;
+      updateWeekLabels();
+      $('previewSemester').textContent=count===1?MockData.semester.label:semesterLabel();
+      $('previewWeek').value=state.week;
+      $('previewPrev').disabled=state.week===0; $('previewNext').disabled=state.week===MockData.semester.weeks-1;
+      $('previewDays').innerHTML=days.map((d,di)=>`<button class="preview-day ${d.today?'is-today':''} ${d.holiday?'is-holiday':''}" ${d.today?'aria-current="date"':''} aria-pressed="${di===state.day}" aria-label="${fmt(dateAt(state.week,di),{weekday:'long'})}${d.today?', Today':''}${d.holiday?', '+esc(d.holidayLabel):''}" data-tip="${esc(`${fmt(dateAt(state.week,di),{weekday:'long'})}${d.today?' · Today':''}${d.holiday?' · '+d.holidayLabel:''}`)}" data-day="${di}">${d.abbr}<strong>${dateAt(state.week,di).getUTCDate()}</strong></button>`).join('');
+      $('previewDayCount').textContent=count===1?`${dayEvents.length} class${dayEvents.length===1?'':'es'} this day`:`${count} days visible`;
+      const visible=dayWindow(state.day,count);
+      $('previewDayHeading').textContent=count===1?fmt(dateAt(state.week,state.day),{weekday:'long'}):count===7?'':`${fmt(dateAt(state.week,visible[0]),{weekday:'short'})} ~ ${fmt(dateAt(state.week,visible.at(-1)),{weekday:'short'})}`;
+      $('previewDayHeading').hidden=count===7;
+      // Empty/holiday panels carry next-class hints; populated days need only their cards.
+      const holiday=holidayAt(state.week,state.day);
+      $('previewHoliday').innerHTML=count===1&&holiday?`<div class="empty-state preview-holiday">${icon('calendar','empty-icon')}<h3 class="empty-title">Public Holiday · ${esc(holiday.label)}</h3><p class="empty-text">${fmt(dateAt(state.week,state.day),{weekday:'long'})}</p>${nextHint(state.week,state.day)}</div>`:'';
+      $('previewAgenda').hidden=count!==1 || wholeWeek;
+      $('previewTablet').hidden=count===1 || count===7 || wholeWeek;
+      $('previewDesktop').hidden=count!==7 || wholeWeek;
+      $('previewEmpty').hidden=!wholeWeek;
+      if(wholeWeek) $('previewEmpty').innerHTML=emptyMessage(state.week,state.day,true);
+      else if(count===1) $('previewAgenda').innerHTML=dayEvents.length?dayEvents.map(e=>card(e, overlapText(e, dayEvents))).join(''):holiday?'':emptyMessage(state.week,state.day);
+      else if(count<7) renderTablet(events,count);
+      else renderDesktop(events);
+      $('previewExtras').innerHTML=summaryHtml(events);
+    }
+    /* ── Class Details modal: the shipped shell, tabs, rows and footer ── */
+    const overlay=$('previewOverlay');
+    const modal=overlay.querySelector('.preview-modal');
+    let modalOpen=false, modalOrigin=null, modalScroll={x:0,y:0};
+    function openModal({title,subtitle='',body='',footer='',closeLabel='Close',variant='detail'}) {
+      if(!modalOpen) { modalOrigin=document.activeElement; modalScroll={x:window.scrollX,y:window.scrollY}; modalOpen=true; }
+      $('modalTitle').innerHTML=esc(title)+(subtitle?`<span class="modal-subtitle">${esc(subtitle)}</span>`:'');
+      $('modalBody').innerHTML=body;
+      $('modalFooterRight').innerHTML=footer;
+      $('previewCloseBtn').textContent=closeLabel;
+      $('previewCloseBtn').onclick=closeModal;
+      /* 2026-11-14 (mobile-modal-top3): ONE filled action per detail footer.
+         Close is the primary only when no real action shares the rail. */
+      /* 2026-11-15 (user): Close is NEVER the filled primary — a Close
+         dismisses, it is not the thing to do, so it wears the grey close skin
+         even when it is the only button in the footer. Reverses the 2026-11-14
+         "Close takes the fill when it is alone" rule. */
+      $('previewCloseBtn').className=variant==='cancel'?'btn-outline':'btn-close-modal';
+      $('previewCloseBtn').hidden=false;
+      modal.classList.toggle('modal--cancel',variant==='cancel');
+      modal.classList.toggle('modal--detail',variant!=='cancel');
+      modal.classList.toggle('modal--summary',variant==='summary');
+      modal.dataset.view='';
+      overlay.style.display='flex'; overlay.classList.add('show');
+      document.body.classList.add('preview-locked');
+      modal.scrollTop=0;
+      $('previewClose').focus({preventScroll:true});
+    }
+    function closeModal() {
+      if(!modalOpen) return;
+      overlay.classList.remove('show'); overlay.style.display='none'; modalOpen=false;
+      document.body.classList.remove('preview-locked');
+      modalOrigin?.focus({preventScroll:true});
+      window.scrollTo({left:modalScroll.x,top:modalScroll.y,behavior:'instant'});
+    }
+    function detailRow(label,value,strong) {
+      if(value===''||value==null) return '';
+      return `<div class="detail-row"><span class="detail-label">${esc(label)}</span><span class="detail-value${strong?' detail-value--strong':''}">${value}</span></div>`;
+    }
+    function detailSection(title,rows) { return `<div class="detail-group"><div class="detail-group-title">${esc(title)}</div>${rows.join('')}</div>`; }
+    // Same law as window.totalStudentsLabel: multi-cohort reads `14 + 14 = 28`.
+    function totalStudentsLabel(e) {
+      const counts=e.studentCounts;
+      if(e.cohorts?.length>1&&Array.isArray(counts)&&counts.length===e.cohorts.length) return `${counts.join(' + ')} = ${counts.reduce((a,b)=>a+b,0)}`;
+      return e.studentCount!=null?String(e.studentCount):counts?.length===1?String(counts[0]):'—';
+    }
+    function tabsHtml(tabs) {
+      return `<div class="modal-tabs">${tabs.map((t,i)=>`<button type="button" class="modal-tab${i?'':' active'}" data-tab="${t.key}">${esc(t.label)}</button>`).join('')}</div>`
+        + tabs.map((t,i)=>`<div class="modal-tab-panel${i?'':' active'}" data-panel="${t.key}">${t.html}</div>`).join('');
+    }
+    const statusDescription={normal:'Scheduled class with no issues',pending:'Replacement request awaiting approval',replacement:'Approved replacement session — this class runs at this slot',cancelled:'Class cancelled — a replacement is needed',conflict:'Scheduling conflict — needs attention',holiday:'Class falls on a public holiday — no class runs'};
+    const typeLong={L:'Lecture',T:'Tutorial',P:'Practical'};
+    // `04-Nov-2026` → the weekday word the Original Slot rows print.
+    const MONTH_INDEX={Jan:0,Feb:1,Mar:2,Apr:3,May:4,Jun:5,Jul:6,Aug:7,Sep:8,Oct:9,Nov:10,Dec:11};
+    function weekdayOf(stamp) {
+      const m=String(stamp||'').match(/^(\d{2})-([A-Za-z]{3})-(\d{4})$/);
+      if(!m || MONTH_INDEX[m[2]]===undefined) return '';
+      const d=new Date(Date.UTC(+m[3],MONTH_INDEX[m[2]],+m[1],12));
+      return new Intl.DateTimeFormat('en-GB',{timeZone:'UTC',weekday:'long'}).format(d);
+    }
+    let selectedEvent=null;
+    function openClass(e) {
+      if(!e) return;
+      selectedEvent=e;
+      const venue=MockData.venues.find(v=>(v.code||v.roomCode)===e.venue), s=statusOf(e);
+      const students=totalStudentsLabel(e);
+      const mine=e.mine===true || e.lecturer===MockData.currentUser.name || e.requestedBy===MockData.currentUser.name;
+      /* Same shape as openClassModal: Status row = `badge badge-<status>`
+         (holiday spells out `badge-public-holiday`). */
+      const badgeClass=s==='holiday'?'badge-public-holiday':`badge-${s}`;
+      let footer=['cancelled','conflict','holiday'].includes(s)
+        ? `<button class="btn-replace-now" id="previewArrange">${icon('swap')}Arrange Replacement</button>`
+        : s==='normal' ? '<button class="btn-danger preview-danger" id="previewCancel">Cancel Class?</button>' : '';
+      // Own pending request gets the shipped footer link (never another lecturer's).
+      if(s==='pending' && e.requestId && mine) footer += `<a class="btn-action" id="previewFullRequest" href="#"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg> View Full Request</a>`;
+      const statusRows=[
+        detailRow('Status',`<span class="badge ${badgeClass}">${esc(statusLabel(s))}</span>`),
+        detailRow('Status Description',esc(statusDescription[s]))
+      ];
+      // Owner-only request facts, before Remarks — the shipped row order.
+      if(e.status==='pending' && mine) statusRows.push(
+        detailRow('Requested At',esc(e.requestedAt||'—')),
+        detailRow('Requested By',esc(e.requestedBy||'—'))
+      );
+      statusRows.push(detailRow('Remarks',esc(e.remarks || '—')));
+      const tabs=[
+        { key:'class-information', label:'Class Info', html: detailSection('Class Information',[
+            detailRow('Session ID',`#${esc(e.id)}`),
+            detailRow('Lecturer',esc(e.lecturer)),
+            detailRow('Cohort',esc((e.cohorts||[e.cohort]).join(' + '))),
+            detailRow('Total Students',esc(students))
+          ]) },
+        { key:'schedule', label:'Schedule', html: detailSection('Schedule',[
+            detailRow('Venue',esc(`${e.venue}${venue?.name?' — '+venue.name:''}${venue?.seats?' ('+venue.seats+' seats)':''}`)),
+            detailRow('Week',`Week ${state.week+1}`),
+            detailRow('Day & Date',esc(fmt(dateAt(state.week,e.di),{weekday:'long'}))),
+            detailRow('Time & Duration',esc(`${timeOf(e)} (${(e.end-e.start+1)/2} hours)`),true)
+          ]) }
+      ];
+      // Confirmed replacement: the replaced original conflicted slot, as the system prints it.
+      if(e.status==='replacement' && e.replacedFor) tabs.push({ key:'original-slot', label:'Original', html: detailSection('Original Slot',[
+        detailRow('Original Day',esc(weekdayOf(e.replacedFor))),
+        detailRow('Original Date',esc(e.replacedFor),true),
+        detailRow('Original Start Time',esc(clock(e.start)),true),
+        detailRow('Original End Time',esc(clock(e.end+1))),
+        detailRow('Original Venue',esc(e.originalVenue||e.venue)),
+        detailRow('Original Venue Name',esc(e.originalVenueName||venue?.name||'—'))
+      ]) });
+      tabs.push({ key:'status', label:'Status', html: detailSection('Status',statusRows) });
+      openModal({
+        title:'Class Details',
+        subtitle:`${e.code} — ${e.name} (${typeLong[e.type]||e.type})`,
+        body:tabsHtml(tabs),
+        footer
+      });
+      $('previewArrange')?.addEventListener('click',()=>{closeModal();notify('Preview only — this would open Replacement Arrangement. No request was made.');});
+      $('previewCancel')?.addEventListener('click',openCancel);
+      $('previewFullRequest')?.addEventListener('click',ev=>{ev.preventDefault();notify('Preview only — request #'+e.requestId+' lives on My Replacements in the real system.');});
+    }
+    // Mirror ui-cancel-class-modal + CancelClassModal: same facts, reasons and footer.
+    // Never call the real controller: no request, DB mutation or fake success claim.
+    function openCancel() {
+      const e=selectedEvent, venue=MockData.venues.find(v=>v.code===e.venue);
+      const facts=[['Course',`${e.code} (${e.type}) — ${e.name}`],['Week',`Week ${state.week+1}`],
+        ['Day & Date',fmt(dateAt(state.week,e.di),{weekday:'long'})],
+        ['Time',`${timeOf(e)} (${(e.end-e.start+1)/2} Hours)`],
+        ['Venue',`${e.venue}${venue?.name?' — '+venue.name:''}`],
+        ['Cohort(s)',(e.cohorts||[]).join(' + ')],['Students',totalStudentsLabel(e)]];
+      openModal({
+        title:'Cancel this Class?',variant:'cancel',closeLabel:'No, Keep Class',
+        body:detailSection('Class Information',[`<dl class="cancel-details">${facts.map(([label,value])=>`<dt>${esc(label)}</dt><dd>${esc(value)}</dd>`).join('')}</dl>`])
+          +cancelDayScope(e)
+          +`<hr class="modal-divider"><div class="detail-group"><div class="detail-group-title">Cancellation Reason <span class="cancel-required-mark">*</span></div><div class="cancel-reasons" id="previewReasonList">${cancellationReasons.map(label=>`<label class="cancel-reason-option"><input type="radio" name="previewReason" value="${label==='Other'?'other':esc(label)}">${esc(label)}</label>`).join('')}</div></div><div id="previewOther" hidden style="margin-top:10px"><label class="cancel-other-label" for="previewReasonText">Other reason <span class="cancel-required-mark">*</span></label><textarea id="previewReasonText" class="modal-textarea" rows="3" placeholder="Describe the reason for &quot;Other&quot;…" required></textarea></div><p id="previewReasonHint" class="hint-text" style="margin:8px 0 0"></p>`,
+        footer:`<div class="cancel-confirm-wrap"><p id="previewIrreversible" class="confirm-warning confirm-warning--compact" hidden>CANNOT UNDONE</p><button class="btn-danger" id="previewConfirmCancel" disabled>Yes, Cancel Class</button></div>`
+      });
+      const gate=()=>{ const reason=$('previewReasonList').querySelector('input:checked')?.value||'',other=reason==='other'; $('previewOther').hidden=!other; const valid=!!reason&&(!other||!!$('previewReasonText').value.trim()); $('previewConfirmCancel').disabled=!valid; $('previewIrreversible').hidden=!valid; };
+      $('previewReasonList').onchange=gate; $('previewReasonText').oninput=gate;
+      bindCancelDayScope();
+      $('previewConfirmCancel').onclick=()=>{
+        openModal({title:'Cancel this Class?',variant:'cancel',closeLabel:'Close',body:'<p class="hint-text">Preview complete. No class or request was changed.</p>'});
+      };
+    }
+    // Same-day offer follows the live folded/unticked design, using only local fixtures.
+    function cancelDayScope(e) {
+      const sameDay=eventsOf(state.week).filter(c=>c.di===e.di&&c.id!==e.id);
+      const others=sameDay.filter(c=>statusOf(c)==='normal'),pending=sameDay.filter(c=>statusOf(c)==='pending');
+      const makeUps=sameDay.filter(c=>statusOf(c)==='replacement');
+      if(!others.length&&!pending.length&&!makeUps.length) return '';
+      const rows=[...others,...pending].map(c=>`<li><label class="cancel-day-row"><input type="checkbox"><span class="cdl-time">${timeOf(c)}</span><span class="cdl-what">${esc(c.code)}(${esc(c.type)})</span><span class="cdl-venue">${esc(c.venue)}</span><span class="cdl-facts"><span class="cdl-cohort">${esc(c.cohorts.length>1?c.cohorts.length+' cohorts':c.cohorts[0])}</span>${c.status==='pending'?'<span class="cdl-flag" title="This Request will be Cancelled or Withdrawn">1 request</span>':''}</span></label></li>`).join('');
+      return `<div id="previewDayScope" class="cancel-day-scope is-collapsed"><div class="cancel-day-head"><label class="cancel-day-toggle"><input type="checkbox" id="previewDayAll"><span><span class="cd-lead">Also cancel my other </span><span class="cd-class-half"><span class="cd-count">${others.length}</span> <span class="cd-class-word">${others.length===1?'class':'classes'}</span><span class="cd-plus"> + </span></span><span class="cd-req"><span class="cd-count-req">${pending.length}</span> <span class="cd-req-word">${pending.length===1?'request':'requests'}</span></span> on the <span class="info-keyword">same day</span></span></label><button type="button" class="cd-collapse" id="previewDayCollapse" aria-expanded="false" aria-label="Show or hide these classes"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg></button></div><ul class="cancel-day-list">${rows}</ul>${makeUps.length?`<p class="cancel-day-note">${makeUps.length} make-up ${makeUps.length===1?'block that day belongs':'blocks that day belong'} to another week — cancel ${makeUps.length===1?'it from its':'them from their'} own class.</p>`:''}</div>`;
+    }
+    function bindCancelDayScope() {
+      const scope=$('previewDayScope'); if(!scope) return;
+      const boxes=()=>[...scope.querySelectorAll('.cancel-day-row input')];
+      $('previewDayCollapse').onclick=()=>{scope.classList.toggle('is-collapsed');$('previewDayCollapse').setAttribute('aria-expanded',String(!scope.classList.contains('is-collapsed')));};
+      $('previewDayAll').onchange=()=>{boxes().forEach(box=>box.checked=$('previewDayAll').checked);scope.classList.toggle('is-on',$('previewDayAll').checked);};
+      scope.querySelector('.cancel-day-list').onchange=()=>{const list=boxes(),n=list.filter(box=>box.checked).length;$('previewDayAll').checked=!!n&&n===list.length;$('previewDayAll').indeterminate=n>0&&n<list.length;scope.classList.toggle('is-on',n>0);};
+    }
+    $('modalBody').addEventListener('click',e=>{
+      const tab=e.target.closest('.modal-tab');
+      if(!tab) return;
+      $('modalBody').querySelectorAll('.modal-tab').forEach(btn=>btn.classList.toggle('active',btn===tab));
+      $('modalBody').querySelectorAll('.modal-tab-panel').forEach(panel=>panel.classList.toggle('active',panel.dataset.panel===tab.dataset.tab));
+    });
+    let toastTimer;
+    // The shipped toast: .toast-bar + .toast-message, toggled by `.visible` (5s).
+    function notify(text) { clearTimeout(toastTimer); $('previewToastMessage').textContent=text; $('previewToast').classList.add('visible'); toastTimer=setTimeout(()=>$('previewToast').classList.remove('visible'),5000); }
+    function changeWeek(week) { state.week=Math.max(0,Math.min(MockData.semester.weeks-1,week)); render(); }
+    function semesterLabel() { return `${MockData.semester.label} · ${fmt(dateAt(0,0))} ~ ${fmt(dateAt(MockData.semester.weeks-1,6))}`; }
+    let weekLabelMode=null;
+    function updateWeekLabels() {
+      const phone=window.innerWidth<768;
+      if(phone===weekLabelMode) return;
+      weekLabelMode=phone;
+      // Phone: `Week 9 · 16 Nov ~ 22 Nov`. Tablet + desktop: the full dated range.
+      $('previewWeek').innerHTML=Array.from({length:MockData.semester.weeks},(_,w)=>{
+        const start=fmt(dateAt(w,0),{year:undefined}),end=fmt(dateAt(w,6),{year:undefined});
+        const range=phone?`${start} ~ ${end}`:`${fmt(dateAt(w,0))} ~ ${fmt(dateAt(w,6))}`;
+        return `<option value="${w}">Week ${w+1} · ${range}</option>`;
+      }).join('');
+    }
+    $('previewWeek').onchange=e=>changeWeek(Number(e.target.value));
+    $('previewPrev').onclick=()=>changeWeek(state.week-1); $('previewNext').onclick=()=>changeWeek(state.week+1);
+    $('previewToday').onclick=()=>{state.week=7;state.day=3;render();};
+    $('previewDays').onclick=e=>{const b=e.target.closest('[data-day]');if(b&&Number(b.dataset.day)!==state.day){state.day=Number(b.dataset.day);render();}};
+    [$('previewAgenda'),$('previewTablet'),$('previewDesktop')].forEach(host=>host.addEventListener('click',e=>{const b=e.target.closest('[data-event]');if(b)openClass(eventsOf(state.week).find(item=>item.id===b.dataset.event));}));
+    $('previewDesktop').addEventListener('keydown',e=>{const b=e.target.closest('[data-event]');if(b&&(e.key==='Enter'||e.key===' ')){e.preventDefault();openClass(eventsOf(state.week).find(item=>item.id===b.dataset.event));}});
+    $('previewTheme').onclick=()=>{const dark=document.documentElement.classList.toggle('dark');document.documentElement.classList.toggle('light',!dark);};
+    $('previewClose').onclick=closeModal;
+    $('previewCloseBtn').onclick=closeModal;
+    overlay.addEventListener('click',e=>{ if(e.target===overlay) closeModal(); });
+    document.addEventListener('keydown',e=>{ if(e.key!=='Escape') return; if(modalOpen) closeModal(); else closeNavDrawer(); });
+    function openWeekSummary() {
+      openModal({title:'Week summary',subtitle:`Week ${state.week+1} · ${semesterLabel()} · sample data`,body:summaryHtml(eventsOf(state.week))});
+      modal.dataset.view='week-summary';
+    }
+    function openSummaryExplanation(index) {
+      const entry=totals(eventsOf(state.week))[index]; if(!entry) return;
+      const fromSummary=modalOpen&&modal.dataset.view==='week-summary';
+      openModal({title:entry[0],subtitle:`Week ${state.week+1}`,variant:'summary',
+        body:`<div class="preview-summary-full">${fullSummaryDescription(index)}</div>`,
+        closeLabel:fromSummary?'Back to summary':'Close'});
+      if(fromSummary) $('previewCloseBtn').onclick=()=>{
+        openWeekSummary();
+        const card=$('modalBody').querySelector(`[data-summary="${index}"]`);
+        card?.classList.add('preview-flipped');
+        card?.querySelector('.preview-summary-info')?.focus({preventScroll:true});
+      };
+    }
+    $('previewSummary').onclick=openWeekSummary;
+    $('previewHelp').onclick=()=>openModal({title:'How to use this page',subtitle:'My Timetable',body:`
+      <p class="page-desc">View your weekly <span class="info-keyword">class schedule</span> and manage <span class="info-keyword">replacement requests</span> across all cohorts.</p>
+      <div class="detail-group"><div class="detail-group-title">Week navigation</div><p>Use the arrows or the <strong>Today</strong> button to move between weeks.</p></div>
+      <div class="detail-group"><div class="detail-group-title">Slot status</div><p><span class="legend-swatch event-normal"></span> Normal (green) &nbsp;·&nbsp; <span class="legend-swatch event-conflict"></span> Conflicted (red) &nbsp;·&nbsp; <span class="legend-swatch event-pending"></span> Pending (amber)</p></div>
+      <div class="detail-group"><div class="detail-group-title">Request replacement</div><p>Click a conflicted slot to open the request form.</p></div>
+      <div class="detail-group"><div class="detail-group-title">View details</div><p>Click any slot to see the class details.</p></div>`});
+    /* ── Small-screen navigation drawer ─────────────────────────────────────
+       Uses the app's OWN drawer markup and theme.css classes (`.nav-drawer`,
+       `.nav-drawer-overlay`, `.nav-drawer-item.active`, `.nav-drawer-user`), so
+       the side bar here matches the real one — including the signed-in user and
+       Logout, which the old centred dialog had nowhere to put. */
+    const navDrawer=$('navDrawer');
+    const navOverlay=$('navDrawerOverlay');
+    /* The drawer is only pushed off-screen, so by default Tab still walks into
+       its hidden buttons — Logout included. Marking it `inert` while closed
+       keeps the keyboard out until it is actually open. Preview-only fix. */
+    navDrawer.inert = true;
+    let navOrigin=null;
+    function openNavDrawer() {
+      const user=MockData.currentUser;
+      $('navDrawerName').textContent=user.name;
+      $('navDrawerId').textContent=user.staffId;
+      $('navDrawerAvatar').textContent=user.name
+        .replace(/^(En\.|Pn\.|Dr\.|Mr\.|Ms\.|Mrs\.)\s*/,'')
+        .split(' ').filter(Boolean).map(part=>part[0]).slice(0,2).join('').toUpperCase();
+      navOrigin=document.activeElement;
+      navDrawer.inert = false;
+      navDrawer.classList.add('open');
+      navOverlay.classList.add('open');
+      document.body.classList.add('preview-locked');
+      $('navDrawerClose').focus({preventScroll:true});
+    }
+    function closeNavDrawer() {
+      if(!navDrawer.classList.contains('open')) return;
+      navDrawer.classList.remove('open');
+      navOverlay.classList.remove('open');
+      navDrawer.inert = true;
+      document.body.classList.remove('preview-locked');
+      navOrigin?.focus({preventScroll:true});
+    }
+    $('previewMenu').onclick=openNavDrawer;
+    $('navDrawerClose').onclick=closeNavDrawer;
+    $('navDrawerLogout').onclick=()=>notify('Preview only — logging out is disabled.');
+    navOverlay.addEventListener('click',closeNavDrawer);
+    document.addEventListener('click',e=>{const link=e.target.closest('[data-preview-link]');if(link){e.preventDefault();notify('Preview only — navigation to the live system is disabled.');}});
+    document.addEventListener('click',e=>{
+      const info=e.target.closest('[data-summary-info]');
+      if(info) { e.preventDefault(); e.stopPropagation(); openSummaryExplanation(Number(info.dataset.summaryInfo)); return; }
+      const next=e.target.closest('[data-next-week]');
+      if(next) {
+        state.week=Number(next.dataset.nextWeek);
+        state.day=Number(next.dataset.nextDay);
+        render();
+        $('previewDayHeading').setAttribute('tabindex','-1');
+        $('previewDayHeading').focus({preventScroll:true});
+        $('previewDayHeading').scrollIntoView({block:'center',behavior:'instant'});
+      }
+      const card=e.target.closest('.summary-card');
+      if(card) {
+        const hover=window.matchMedia('(hover: hover) and (pointer: fine)').matches&&card.matches(':hover');
+        const showing=card.classList.contains('preview-flipped')||(hover&&!card.classList.contains('preview-unflipped'));
+        card.classList.toggle('preview-flipped',!showing);
+        card.classList.toggle('preview-unflipped',showing);
+      }
+    });
+    document.addEventListener('keydown',e=>{
+      if((e.key==='Enter'||e.key===' ')&&e.target.matches('.summary-card')) { e.preventDefault(); e.target.click(); }
+    });
+    document.addEventListener('mouseleave',e=>{
+      if(e.target.matches?.('.summary-card')) e.target.classList.remove('preview-unflipped');
+    },true);
+    // Snapshot only the displayed week's mock facts. The hash works for file:// and
+    // local HTTP without storage, postMessage, a server or a live-system endpoint.
+    function printPreviewUrl() {
+      const snapshot={
+        version:1, week:state.week, day:state.day, weeks:MockData.semester.weeks,
+        theme:document.documentElement.classList.contains('dark')?'dark':'light',
+        semester:MockData.semester.label, lecturer:MockData.currentUser.name,
+        staffId:MockData.currentUser.staffId,
+        hours:Array.from({length:22},(_,i)=>`${String(8+Math.floor(i/2)).padStart(2,'0')}:${i%2?'30':'00'}`),
+        days:daysOf(state.week).map(d=>({label:d.abbr,date:d.date,off:d.sunday||d.holiday,holiday:d.holidayLabel})),
+        events:eventsOf(state.week).map(e=>({day:e.di,start:e.start,span:e.end-e.start+1,
+          code:`${e.code} (${e.type})`,lecturer:e.lecturer,venue:e.venue,status:statusOf(e),
+          note:e.status==='cancelled'?'(Cancelled)':statusOf(e)==='conflict'?'(Conflict)':blockNote(e)}))
+      };
+      return `timetable-print-preview.html?page=my&from=my-timetable-prototype#snapshot=${encodeURIComponent(JSON.stringify(snapshot))}`;
+    }
+    $('previewPrint').onclick=()=>{window.location.href=printPreviewUrl();};
+    $('previewBell').onclick=()=>notify('Preview only — the notification panel is not part of this mock.');
+    /* ── data-tip tooltip, same contract as initDataTipTooltips() in ui-common.js ──
+       One .data-tip-tooltip node (theme.css owns its look), above the element,
+       `data-tip-pos="left"` for the top bar, `\n` tips switch to pre-line, and
+       keyboard focus shows the same tip. Nothing is invented here. */
+    function initDataTips() {
+      const tip=document.createElement('div');
+      tip.className='data-tip-tooltip';
+      document.body.appendChild(tip);
+      let focusedTipEl=null;
+      const findTip=node=>node?.closest?.('[data-tip]')||null;
+      const hide=()=>{ tip.style.opacity='0'; tip.style.visibility='hidden'; };
+      function show(el) {
+        const r=el.getBoundingClientRect(), text=el.getAttribute('data-tip')||'';
+        if(!text) { hide(); return; }
+        tip.textContent=text;
+        tip.classList.toggle('data-tip-tooltip--multi',text.includes('\n'));
+        tip.style.visibility='hidden'; tip.style.opacity='1';
+        tip.style.left='0px'; tip.style.top='0px';
+        const tw=tip.offsetWidth, th=tip.offsetHeight;
+        let left, top;
+        if(el.getAttribute('data-tip-pos')==='left') {
+          left=Math.max(4,r.left-tw-8); top=Math.max(4,r.top+r.height/2-th/2);
+        } else {
+          left=Math.max(4,Math.min(r.left+r.width/2-tw/2,window.innerWidth-tw-4));
+          top=r.top-th-6;
+          if(top<4) top=r.bottom+6;
+        }
+        tip.style.left=`${left}px`; tip.style.top=`${top}px`;
+        tip.style.opacity='1'; tip.style.visibility='visible';
+      }
+      document.addEventListener('mouseenter',e=>{const el=findTip(e.target);if(el)show(el);},true);
+      document.addEventListener('mouseleave',e=>{if(focusedTipEl)return;if(findTip(e.target))hide();},true);
+      document.addEventListener('mouseout',e=>{if(focusedTipEl)return;if(findTip(e.relatedTarget))return;if(findTip(e.target))hide();},true);
+      document.addEventListener('focusin',e=>{focusedTipEl=findTip(e.target);if(focusedTipEl)show(focusedTipEl);},true);
+      document.addEventListener('focusout',e=>{const el=findTip(e.target);if(!el)return;if(focusedTipEl===el)focusedTipEl=null;hide();},true);
+    }
+    $('previewUser').textContent=MockData.currentUser.name;
+    initDataTips();
+    window.addEventListener('resize',render);
+    render();
+  })();
+  </script>
+</body>
+</html>

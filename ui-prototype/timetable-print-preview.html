@@ -1,0 +1,1654 @@
+<!doctype html>
+<html lang="en" class="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Timetable Print — Prototype</title>
+<style>
+    :root {
+        --app-bg: #F0F3F7;
+        --app-text: #1B2838;
+        --app-surface: #FFFFFF;
+        --app-muted: #5A6978;
+        --app-border: rgba(30, 50, 70, 0.12);
+        --app-primary: #004D98;
+        --app-primary-soft: rgba(0, 77, 152, 0.12);
+        --app-primary-solid: #004D98;
+        --app-on-primary: #FFFFFF;
+        --app-topbar: #DCE8F5;
+        --app-on-topbar: #003366;
+        --app-topbar-border: rgba(30, 50, 70, 0.12);
+
+        /* Fixed paper palette — print must stay light in either screen theme. */
+        --p-surface: #FFFFFF;
+        --p-surface-variant: #F3F5F8;
+        --p-on-surface: #1B2838;
+        --p-on-surface-variant: #5A6978;
+        --p-outline: rgba(30, 50, 70, 0.14);
+        --p-outline-strong: rgba(30, 50, 70, 0.28);
+        --p-primary: #004D98;
+        --p-on-primary: #FFFFFF;
+        --p-primary-container: rgba(0, 77, 152, 0.22);
+        --p-on-primary-container: #003366;
+        --p-success: #2E7D5A;
+        --p-success-container: rgba(46, 125, 90, 0.20);
+        --p-on-success-container: #1B5E3A;
+        --p-tertiary: #DBA800;
+        --p-tertiary-container: rgba(219, 168, 0, 0.22);
+        --p-on-tertiary-container: #8A6D00;
+        --p-error: #C62828;
+        --p-error-container: rgba(198, 40, 40, 0.20);
+        --p-on-error-container: #8B1A1A;
+    }
+
+    html.dark {
+        --app-bg: #0D1B2A;
+        --app-text: #E0E6ED;
+        --app-surface: #1B2838;
+        --app-muted: #9EAAB8;
+        --app-border: rgba(155, 170, 190, 0.35);
+        --app-primary: #6BA3E0;
+        --app-primary-soft: rgba(107, 163, 224, 0.16);
+        --app-primary-solid: #004D98;
+        --app-on-primary: #FFFFFF;
+        --app-topbar: #0D2A4A;
+        --app-on-topbar: #E0E6ED;
+        --app-topbar-border: rgba(155, 170, 190, 0.20);
+    }
+
+    * { box-sizing: border-box; }
+    html, body { min-height: 100%; }
+    body {
+        margin: 0;
+        background: var(--app-bg);
+        color: var(--app-text);
+        font-family: -apple-system, BlinkMacSystemFont, "Inter", "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
+        transition: background 0.15s ease, color 0.15s ease;
+    }
+
+    .top-bar {
+        position: sticky;
+        top: 0;
+        z-index: 50;
+        height: 56px;
+        display: flex;
+        align-items: center;
+        background: var(--app-topbar);
+        border-bottom: 1px solid var(--app-topbar-border);
+        padding: 0 20px;
+        backdrop-filter: blur(20px);
+        -webkit-backdrop-filter: blur(20px);
+    }
+
+    .back-btn {
+        height: 36px;
+        padding: 0 14px;
+        border: 0;
+        border-radius: 14px;
+        background: var(--app-primary-solid);
+        color: #FFFFFF;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+        font-size: 14px;
+        font-weight: 500;
+        font-family: inherit;
+        cursor: pointer;
+        flex-shrink: 0;
+        margin-right: 10px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.10), 0 1px 3px rgba(0, 0, 0, 0.06);
+        transition: transform 0.15s, box-shadow 0.15s;
+    }
+
+    .back-btn:hover {
+        transform: scale(1.04);
+        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15), 0 1px 4px rgba(0, 0, 0, 0.08);
+    }
+
+    .back-btn:active { transform: scale(0.96); }
+
+    .back-btn:focus-visible {
+        outline: 2px solid var(--app-primary);
+        outline-offset: 2px;
+    }
+
+    .top-logo {
+        display: flex;
+        align-items: center;
+        flex-shrink: 0;
+        margin-right: 24px;
+    }
+
+    .logo-crest {
+        width: 38px;
+        height: 46px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 1px;
+        background: linear-gradient(150deg, #004D98 0%, #0D2A4A 100%);
+        border: 1px solid rgba(255, 255, 255, 0.28);
+        clip-path: polygon(50% 0, 100% 14%, 100% 66%, 50% 100%, 0 66%, 0 14%);
+        color: #FFFFFF;
+        line-height: 1;
+    }
+
+    .logo-tar {
+        font-size: 8px;
+        font-weight: 800;
+        letter-spacing: 0.2px;
+    }
+
+    .logo-umt {
+        font-size: 5px;
+        font-weight: 700;
+        letter-spacing: 0.6px;
+        opacity: 0.9;
+    }
+
+    .nav-items {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 4px;
+        flex: 1;
+        height: 100%;
+    }
+
+    .nav-item {
+        height: 32px;
+        display: flex;
+        align-items: center;
+        padding: 0 14px;
+        font-size: 13px;
+        font-weight: 500;
+        color: var(--app-on-topbar);
+        text-decoration: none;
+        border-radius: 8px;
+        opacity: 0.75;
+        white-space: nowrap;
+        transition: background 0.15s, opacity 0.15s;
+    }
+
+    .nav-item:hover {
+        opacity: 1;
+        background: rgba(255, 255, 255, 0.08);
+    }
+
+    html:not(.dark) .nav-item:hover {
+        background: rgba(7, 27, 51, 0.08);
+    }
+
+    .nav-item.active {
+        opacity: 1;
+        font-weight: 600;
+        background: var(--app-primary-solid);
+        color: #FFFFFF;
+    }
+
+    .top-right {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        flex-shrink: 0;
+        padding-left: 20px;
+    }
+
+    .theme-toggle {
+        width: 32px;
+        height: 32px;
+        border: 0;
+        border-radius: 8px;
+        background: rgba(255, 255, 255, 0.07);
+        color: var(--app-on-topbar);
+        cursor: pointer;
+        display: grid;
+        place-items: center;
+        flex-shrink: 0;
+    }
+
+    html:not(.dark) .theme-toggle {
+        background: rgba(0, 77, 152, 0.08);
+    }
+
+    .theme-toggle:hover { opacity: 0.85; }
+    .theme-toggle:active { transform: scale(0.95); }
+
+    .user-panel {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .user-avatar {
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+        background: var(--app-primary-solid);
+        color: #FFFFFF;
+        font-size: 11px;
+        font-weight: 800;
+        display: grid;
+        place-items: center;
+    }
+
+    .user-info {
+        display: flex;
+        flex-direction: column;
+        line-height: 1.1;
+    }
+
+    .user-name {
+        font-size: 12px;
+        font-weight: 600;
+        color: var(--app-text);
+    }
+
+    .user-role {
+        font-size: 10px;
+        color: var(--app-muted);
+    }
+
+    .page-header {
+        width: 100%;
+        max-width: 1123px;
+        margin: 0 auto;
+        padding: 18px 24px 0;
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        gap: 12px;
+    }
+
+    .page-title {
+        margin: 0;
+        font-size: 22px;
+        line-height: 1.2;
+        font-weight: 700;
+        color: var(--app-text);
+    }
+
+    .page-chips { margin-top: 6px; }
+
+    .page-header .semester-chip {
+        display: inline-flex;
+        align-items: center;
+        padding: 3px 12px;
+        border-radius: 999px;
+        background: var(--app-primary-soft);
+        color: var(--app-primary);
+        font-size: 12px;
+        font-weight: 600;
+    }
+
+    .page-desc {
+        margin: 4px 0 0;
+        font-size: 14px;
+        color: var(--app-muted);
+    }
+
+    /* Same help control as the My Timetable prototype. */
+    .preview-button {
+        min-width: 44px;
+        min-height: 44px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 7px;
+        padding: 8px 12px;
+        border: 1px solid var(--app-border);
+        border-radius: 8px;
+        background: var(--app-surface);
+        color: var(--app-text);
+    }
+
+    .preview-button:hover { background: var(--app-bg); }
+
+    .preview-icon-button { padding: 8px; }
+
+    .preview-icon {
+        width: 16px;
+        height: 16px;
+        flex: none;
+        vertical-align: middle;
+    }
+
+    .preview-button[data-tip] { position: relative; }
+
+    .preview-button[data-tip]::after {
+        content: attr(data-tip);
+        position: absolute;
+        top: calc(100% + 8px);
+        right: 0;
+        z-index: 60;
+        padding: 5px 8px;
+        border-radius: 6px;
+        background: var(--app-text);
+        color: var(--app-surface);
+        font-size: 11px;
+        font-weight: 600;
+        line-height: 1.3;
+        white-space: nowrap;
+        opacity: 0;
+        pointer-events: none;
+        transform: translateY(-2px);
+        transition: opacity 0.12s ease, transform 0.12s ease;
+    }
+
+    .preview-button[data-tip]:hover::after,
+    .preview-button[data-tip]:focus-visible::after {
+        opacity: 1;
+        transform: translateY(0);
+    }
+
+    .help-dialog {
+        width: min(520px, calc(100vw - 32px));
+        max-height: calc(100vh - 32px);
+        overflow: auto;
+        padding: 0;
+        border: 1px solid var(--app-border);
+        border-radius: 12px;
+        background: var(--app-surface);
+        color: var(--app-text);
+        box-shadow: 0 18px 45px rgba(13, 27, 42, 0.22);
+    }
+
+    .help-dialog::backdrop { background: rgba(13, 27, 42, 0.45); }
+
+    .help-dialog form { padding: 20px; }
+
+    .help-dialog h2 {
+        margin: 0 0 8px;
+        font-size: 18px;
+        line-height: 1.25;
+    }
+
+    .help-dialog p {
+        margin: 0 0 12px;
+        font-size: 13px;
+        line-height: 1.5;
+    }
+
+    .help-dialog .page-desc {
+        margin: 0 0 12px;
+        font-size: 14px;
+    }
+
+    .help-dialog .detail-group { padding: 4px 0 10px; }
+
+    .help-dialog .detail-group + .detail-group {
+        border-top: 1px solid var(--app-border);
+        margin-top: 8px;
+    }
+
+    .help-dialog .detail-group-title {
+        font-size: 11px;
+        font-weight: 700;
+        letter-spacing: 0.8px;
+        text-transform: uppercase;
+        color: var(--app-muted);
+        margin-bottom: 8px;
+    }
+
+    .help-dialog .detail-group p { margin: 0; }
+
+    .help-dialog .dialog-actions {
+        display: flex;
+        justify-content: flex-end;
+        margin-top: 4px;
+    }
+
+    .preview-bar {
+        width: 100%;
+        max-width: 1123px;
+        margin: 14px auto 0;
+        padding: 8px 12px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        background: var(--app-surface);
+        border: 1px solid var(--app-border);
+        border-radius: 10px;
+    }
+
+    .preview-label {
+        display: flex;
+        flex-direction: column;
+        gap: 1px;
+        line-height: 1.2;
+    }
+
+    .preview-label strong { font-size: 12px; }
+    .preview-label span { font-size: 11px; color: var(--app-muted); }
+
+    .controls {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 8px;
+        font-size: 12px;
+    }
+
+    .controls label {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        color: var(--app-muted);
+        font-weight: 600;
+    }
+
+    /* Temporary print-layout control. Remove with the busy sample. */
+    .sample-btn {
+        white-space: nowrap;
+        font-weight: 600;
+    }
+
+    .sample-btn[aria-pressed="true"] {
+        border-color: var(--app-primary);
+        color: var(--app-primary);
+    }
+
+    .normal-only {
+        display: inline-flex;
+        align-items: center;
+        gap: 7px;
+        color: var(--app-text);
+        cursor: pointer;
+        font-weight: 600;
+        white-space: nowrap;
+        user-select: none;
+    }
+
+    .normal-only input {
+        position: absolute;
+        width: 0;
+        height: 0;
+        opacity: 0;
+    }
+
+    .switch-track {
+        position: relative;
+        width: 30px;
+        height: 17px;
+        flex-shrink: 0;
+        border-radius: 999px;
+        background: var(--app-border);
+        transition: background 0.15s ease;
+    }
+
+    .switch-thumb {
+        position: absolute;
+        top: 2px;
+        left: 2px;
+        width: 13px;
+        height: 13px;
+        border-radius: 50%;
+        background: #FFFFFF;
+        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.25);
+        transition: transform 0.15s ease;
+    }
+
+    .normal-only input:checked + .switch-track {
+        background: var(--app-primary-solid);
+    }
+
+    .normal-only input:checked + .switch-track .switch-thumb {
+        transform: translateX(13px);
+    }
+
+    .normal-only input:focus-visible + .switch-track {
+        outline: 2px solid var(--app-primary);
+        outline-offset: 2px;
+    }
+
+    select,
+    button {
+        font: inherit;
+        border-radius: 8px;
+        border: 1px solid var(--app-border);
+        background: var(--app-surface);
+        color: var(--app-text);
+        padding: 7px 10px;
+        cursor: pointer;
+    }
+
+    select:focus-visible,
+    button:focus-visible {
+        outline: 2px solid var(--app-primary);
+        outline-offset: 2px;
+    }
+
+    button.primary {
+        background: var(--app-primary-solid);
+        border-color: var(--app-primary-solid);
+        color: #FFFFFF;
+        font-weight: 700;
+    }
+
+    button.primary.icon-only {
+        width: 38px;
+        height: 34px;
+        padding: 0;
+        display: inline-grid;
+        place-items: center;
+        flex-shrink: 0;
+    }
+
+    .preview-wrap {
+        padding: 18px 24px 40px;
+        overflow-x: auto;
+    }
+
+    /* A4 landscape at 96 dpi: 1123 x 794 px. */
+    .sheet {
+        width: 1123px;
+        max-width: 100%;
+        min-height: 794px;
+        margin: 0 auto;
+        padding: 34px 38px 28px;
+        background: var(--p-surface);
+        color: var(--p-on-surface);
+        border-radius: 6px;
+        box-shadow: 0 18px 45px rgba(13, 27, 42, 0.22), 0 2px 8px rgba(13, 27, 42, 0.10);
+        display: flex;
+        flex-direction: column;
+        align-items: stretch;
+        gap: 9px;
+    }
+
+    .print-head {
+        display: grid;
+        width: 100%;
+        grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+        align-items: start;
+        gap: 18px;
+        padding-bottom: 7px;
+        border-bottom: 1px solid var(--p-outline);
+    }
+
+    .print-context-title {
+        align-self: start;
+        text-align: center;
+        font-size: 20px;
+        font-weight: 800;
+        line-height: 1.2;
+        color: var(--p-on-surface);
+        white-space: nowrap;
+        padding-top: 1px;
+    }
+
+    .print-title {
+        margin: 0;
+        font-size: 21px;
+        line-height: 1.15;
+        font-weight: 800;
+        letter-spacing: -0.2px;
+    }
+
+    .print-sub {
+        margin: 4px 0 0;
+        font-size: 10px;
+        color: var(--p-on-surface-variant);
+        line-height: 1.4;
+    }
+
+    .print-meta {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-end;
+        gap: 5px;
+        flex-shrink: 0;
+    }
+
+    .semester-chip {
+        display: inline-flex;
+        align-items: center;
+        padding: 2px 9px;
+        border-radius: 999px;
+        background: var(--p-primary-container);
+        color: var(--p-on-primary-container);
+        font-size: 9px;
+        font-weight: 700;
+        letter-spacing: 0.3px;
+        white-space: nowrap;
+    }
+
+    .week-line {
+        font-size: 10px;
+        color: var(--p-on-surface-variant);
+        white-space: nowrap;
+    }
+
+    .grid-wrap {
+        border: 1px solid var(--p-outline);
+        border-radius: 4px;
+        overflow: hidden;
+    }
+
+    /* A week with no classes replaces the blank grid with a clear printed message. */
+    .print-empty {
+        margin: 0;
+        padding: 38px 16px;
+        text-align: center;
+        font-size: 12px;
+        line-height: 1.4;
+        color: var(--p-on-surface-variant);
+    }
+
+    .print-empty[hidden] { display: none; }
+
+    .print-empty strong {
+        display: block;
+        margin-bottom: 3px;
+        font-size: 14px;
+        color: var(--p-on-surface);
+    }
+
+    .grid-wrap.is-empty table { display: none; }
+
+    table {
+        width: 100%;
+        border-collapse: collapse;
+        table-layout: fixed;
+        background: var(--p-surface);
+    }
+
+    col.day-col { width: 78px; }
+
+    thead { display: table-header-group; }
+
+    th,
+    td {
+        border: 1px solid var(--p-outline);
+        vertical-align: middle;
+    }
+
+    thead th {
+        height: 24px;
+        padding: 2px 1px;
+        background: var(--p-surface-variant);
+        color: var(--p-on-surface-variant);
+        font-size: 8px;
+        font-weight: 700;
+        text-align: center;
+        white-space: nowrap;
+    }
+
+    thead th.day-col {
+        text-align: left;
+        padding-left: 7px;
+        font-size: 8px;
+        letter-spacing: 0.2px;
+    }
+
+    tbody th.day-col {
+        padding: 4px 6px;
+        text-align: left;
+        background: var(--p-surface-variant);
+        font-weight: 700;
+    }
+
+    .day-label {
+        display: block;
+        font-size: 11px;
+        line-height: 1.15;
+    }
+
+    .date-label {
+        display: block;
+        margin-top: 1px;
+        font-size: 8px;
+        font-weight: 500;
+        color: var(--p-on-surface-variant);
+        white-space: nowrap;
+    }
+
+    /* Round 3: the day cell only carries Public Holiday [Hn]. Full holiday
+       names appear below the grid; wrapping here is a narrow-paper fallback. */
+    .holiday-label {
+        display: block;
+        margin-top: 3px;
+        font-size: 8px;
+        font-weight: 500;
+        line-height: 1.25;
+        color: var(--p-on-surface-variant);
+        white-space: normal;
+        overflow-wrap: anywhere;
+    }
+
+    tbody tr.off th.day-col {
+        color: var(--p-on-surface-variant);
+        background: #EEF1F5;
+    }
+
+    td.slot {
+        height: 86px;
+        padding: 0;
+        background: var(--p-surface);
+    }
+
+    td.slot.empty { background: var(--p-surface); }
+
+    .event {
+        height: 100%;
+        min-height: 80px;
+        padding: 5px 6px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 1px;
+        text-align: center;
+        overflow: hidden;
+        border: 3px solid transparent;
+        line-height: 1.16;
+    }
+
+    .event.normal {
+        background: var(--p-success-container);
+        color: var(--p-on-success-container);
+        border-color: var(--p-success);
+    }
+
+    .event.replacement {
+        background: var(--p-primary-container);
+        color: var(--p-on-primary-container);
+        border-color: var(--p-primary);
+    }
+
+    .event.pending {
+        background: var(--p-tertiary-container);
+        color: var(--p-on-tertiary-container);
+        border-color: var(--p-tertiary);
+    }
+
+    .event.conflict {
+        background: var(--p-error-container);
+        color: var(--p-on-error-container);
+        border-color: var(--p-error);
+    }
+
+    .event.others { border-width: 1px; }
+
+    .ev-code {
+        font-size: 13px;
+        font-weight: 800;
+        white-space: normal;
+    }
+
+    .ev-lecturer {
+        font-size: 10px;
+        font-weight: 600;
+        opacity: 0.9;
+        white-space: normal;
+    }
+
+    .ev-venue,
+    .ev-time {
+        font-size: 11px;
+        opacity: 0.82;
+        white-space: normal;
+    }
+
+    .ev-note {
+        font-size: 9.5px;
+        font-weight: 700;
+        opacity: 0.9;
+    }
+
+    /* Round 2: narrow blocks get complete clock lines, not a stranded AM/PM.
+       Course code + type stay together; long pending dates move to paper notes. */
+    .event.narrow { padding-left: 3px; padding-right: 3px; }
+    /* Long codes such as BMCS3404-ADVANCED (P) must wrap inside the block
+       instead of crossing its border. Normal codes still stay on one line. */
+    .event.narrow .ev-code {
+        font-size: 10.5px;
+        white-space: normal;
+        overflow-wrap: anywhere;
+        word-break: break-word;
+        hyphens: auto;
+    }
+    .ev-time-part { display: block; white-space: nowrap; }
+    .ev-status { font-size: 9.5px; font-weight: 700; line-height: 1.2; }
+    .print-notes { display: flex; flex-wrap: wrap; gap: 3px 16px; font-size: 8px; line-height: 1.35; color: var(--p-on-surface-variant); }
+    .print-notes:empty { display: none; }
+    .print-note { margin: 0; }
+    .sheet.normal-only .pending-notes { display: none; }
+
+    .sheet.normal-only .event:not(.normal) {
+        display: none;
+    }
+
+    .sheet.normal-only .legend-item:not(.legend-normal) {
+        display: none;
+    }
+
+    .sheet.normal-only .ownership-hint {
+        display: none;
+    }
+
+    .legend {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 6px 14px;
+        padding-top: 2px;
+        font-size: 9px;
+        color: var(--p-on-surface-variant);
+    }
+
+    .legend-item {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        white-space: nowrap;
+    }
+
+    .swatch {
+        width: 11px;
+        height: 11px;
+        border-radius: 2px;
+        border: 2px solid;
+        flex-shrink: 0;
+    }
+
+    .swatch.normal { background: var(--p-success-container); border-color: var(--p-success); }
+    .swatch.replacement { background: var(--p-primary-container); border-color: var(--p-primary); }
+    .swatch.pending { background: var(--p-tertiary-container); border-color: var(--p-tertiary); }
+    .swatch.conflict { background: var(--p-error-container); border-color: var(--p-error); }
+    .swatch.available { background: var(--p-surface); border-color: var(--p-outline-strong); }
+
+    .ownership-hint {
+        margin-left: auto;
+        font-size: 8px;
+        color: var(--p-on-surface-variant);
+        white-space: nowrap;
+    }
+
+    .ownership-hint:empty { display: none; }
+
+    .ownership-demo {
+        display: inline-block;
+        width: 10px;
+        height: 10px;
+        vertical-align: -1px;
+        margin: 0 3px 0 6px;
+        border: 2px solid var(--p-on-surface-variant);
+        border-radius: 2px;
+    }
+
+    .ownership-demo.thin { border-width: 1px; }
+
+    .paper-foot {
+        margin-top: auto;
+        padding-top: 4px;
+        border-top: 1px solid var(--p-outline);
+        display: flex;
+        justify-content: space-between;
+        gap: 12px;
+        font-size: 7px;
+        color: var(--p-on-surface-variant);
+    }
+
+    /* Very busy weeks use the same tighter blocks on screen and in print, so
+       the preview matches the exported page. Normal weeks keep their spacing. */
+    .sheet.dense .event {
+        min-height: 0;
+        padding: 3px 4px;
+        border-width: 2px;
+        gap: 0;
+        line-height: 1.0;
+    }
+
+    @media (max-width: 900px) {
+        .top-bar { padding: 0 12px; }
+        .top-logo { margin-right: 0; }
+        .nav-items { display: none; }
+        .back-btn { width: 36px; padding: 0; }
+        .back-btn span { display: none; }
+        .page-header,
+        .preview-bar { padding-left: 12px; padding-right: 12px; }
+        .preview-bar { flex-wrap: wrap; }
+        .sheet { min-height: 0; padding: 20px; }
+        .preview-wrap { padding: 12px; }
+    }
+
+    /* ─────────────────────────────────────────────────────────────
+       PRINT
+       A4 landscape, 8 mm margin. Everything here must also work when
+       the browser ignores @page (portrait fallback): the table must
+       stay a table and the text must stay readable.
+       ───────────────────────────────────────────────────────────── */
+    @media print {
+        @page { size: A4 landscape; margin: 8mm; }
+
+        html,
+        body {
+            background: #ffffff !important;
+            color: #1B2838 !important;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+        }
+
+        .top-bar,
+        .page-header,
+        .preview-bar,
+        .no-print {
+            display: none !important;
+        }
+
+        .preview-wrap {
+            padding: 0 !important;
+            overflow: visible !important;
+        }
+
+        .sheet {
+            width: auto !important;
+            max-width: none !important;
+            min-height: 0 !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            border: 0 !important;
+            border-radius: 0 !important;
+            box-shadow: none !important;
+            display: block !important;
+            gap: 0 !important;
+        }
+
+        .print-head {
+            margin-bottom: 4px;
+        }
+
+        .print-title { font-size: 18.5px; }
+        .print-sub { font-size: 9px; }
+        .print-context-title { font-size: 15px; padding-top: 0; }
+        .semester-chip { font-size: 8.5px; padding: 1px 7px; }
+        .week-line { font-size: 9px; }
+
+        .grid-wrap {
+            border: 0;
+            border-radius: 0;
+            overflow: visible;
+        }
+
+        table {
+            width: 100% !important;
+            table-layout: fixed;
+            border-collapse: collapse;
+        }
+
+        col.day-col { width: 68px; }
+
+        thead { display: table-header-group; }
+        tbody { display: table-row-group; }
+        /* Only day rows need class-block height. Giving the header 76px too
+           wasted 52px and could push the footer onto a near-empty second page. */
+        tr { display: table-row; break-inside: avoid; }
+        thead tr { height: 24px; }
+        tbody tr { height: 76px; }
+        th,
+        td {
+            display: table-cell;
+            white-space: normal;
+            border: 1px solid var(--p-outline);
+        }
+
+        thead th {
+            height: auto;
+            padding: 3px 1px;
+            font-size: 8.5px;
+        }
+
+        thead th.day-col { font-size: 8.5px; padding-left: 5px; }
+
+        tbody th.day-col {
+            padding: 3px 5px;
+            background: var(--p-surface-variant) !important;
+        }
+
+        .day-label { font-size: 11px; }
+        .date-label { font-size: 8px; }
+
+        td.slot {
+            height: 76px;
+            min-height: 0;
+            padding: 0;
+        }
+
+        .event {
+            position: static;
+            height: auto;
+            min-height: 72px;
+            padding: 4px 5px;
+            gap: 0;
+            overflow: visible;
+            border-width: 2px;
+            font-size: 9px;
+        }
+
+        .event.others { border-width: 1px; }
+
+        .ev-code { font-size: 12px; }
+        .ev-lecturer { font-size: 9px; }
+        .ev-venue,
+        .ev-time { font-size: 10.5px; }
+        .ev-note { font-size: 9px; }
+        .event.narrow .ev-code {
+            font-size: 10.5px;
+            white-space: normal;
+            overflow-wrap: anywhere;
+            word-break: break-word;
+            hyphens: auto;
+        }
+        .ev-status { font-size: 9px; }
+        .print-notes { margin-top: 3px; font-size: 8px; break-inside: avoid; }
+
+        /* Dense weeks also pull the notes and footer closer in print. */
+        .sheet.dense .print-notes { margin-top: 1px; }
+        .sheet.dense .paper-foot { margin-top: 2px; }
+
+        .legend {
+            break-inside: avoid;
+            padding-top: 4px;
+            font-size: 8.5px;
+            gap: 5px 12px;
+        }
+
+        .swatch { width: 10px; height: 10px; border-width: 2px; }
+        .ownership-hint { font-size: 7.5px; }
+        .paper-foot { font-size: 7px; margin-top: 6px; break-inside: avoid; }
+    }
+</style>
+</head>
+<body>
+
+<svg xmlns="http://www.w3.org/2000/svg" style="display:none" aria-hidden="true">
+    <symbol id="i-help" viewBox="0 0 24 24">
+        <circle cx="12" cy="12" r="9"/>
+        <path d="M9 9a3 3 0 0 1 6 0c0 2-3 2-3 5M12 17h.01"/>
+    </symbol>
+</svg>
+
+<header class="top-bar no-print">
+    <button type="button" class="back-btn" id="backBtn" aria-label="Back" title="Back">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <line x1="19" y1="12" x2="5" y2="12"/>
+            <polyline points="12 19 5 12 12 5"/>
+        </svg>
+        <span>Back</span>
+    </button>
+    <div class="top-logo" aria-label="TAR UMT logo placeholder">
+        <span class="logo-crest">
+            <span class="logo-tar">TAR</span>
+            <span class="logo-umt">UMT</span>
+        </span>
+    </div>
+
+    <nav class="nav-items" aria-label="Main navigation">
+        <a href="#" class="nav-item" data-page="my">My Timetable</a>
+        <a href="#" class="nav-item" data-page="cohort">Cohort Timetables</a>
+        <a href="#" class="nav-item" data-page="venue">Venue Timetable</a>
+        <a href="#" class="nav-item">My Replacements</a>
+    </nav>
+
+    <div class="top-right">
+        <button type="button" class="theme-toggle" id="themeBtn" aria-label="Toggle theme">
+            <svg id="themeIcon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+            </svg>
+        </button>
+        <div class="user-panel">
+            <div class="user-avatar" id="userAvatar">SU</div>
+            <div class="user-info">
+                <span class="user-name" id="userName">Staff User</span>
+                <span class="user-role" id="userRole">Lecturer</span>
+            </div>
+        </div>
+    </div>
+</header>
+
+<div class="page-header no-print">
+    <div>
+        <h1 class="page-title" id="pageTitle">My Timetable</h1>
+        <div class="page-chips">
+            <span class="semester-chip" id="pageSemester">Semester 202605</span>
+        </div>
+    </div>
+    <button type="button" class="preview-button preview-icon-button" id="previewHelp" aria-label="How to use this page" data-tip="How to use this page">
+        <svg class="preview-icon" fill="none" stroke="currentColor" stroke-width="2"><use href="#i-help"></use></svg>
+    </button>
+</div>
+
+<dialog class="help-dialog no-print" id="helpDialog" aria-labelledby="helpTitle">
+    <form method="dialog">
+        <h2 id="helpTitle">How to use this page</h2>
+        <p class="page-desc" id="pageDesc">View your weekly class schedule and manage replacement requests across all cohorts.</p>
+        <div class="detail-group">
+            <div class="detail-group-title">Browsing</div>
+            <p>Use the week arrows or selector, then choose a day. Today returns to the current date.</p>
+        </div>
+        <div class="detail-group">
+            <div class="detail-group-title">Class details</div>
+            <p>Select a class for its cohort, student count and available actions. Close it with the ×, a tap outside, or Escape.</p>
+        </div>
+        <div class="detail-group">
+            <div class="detail-group-title">This preview</div>
+            <p>Standalone print preview. Choose a week in My Timetable, then use <strong>Print / Save PDF</strong>. None of its actions change the real system.</p>
+        </div>
+        <div class="dialog-actions">
+            <button class="preview-button" value="close">Close</button>
+        </div>
+    </form>
+</dialog>
+
+<div class="preview-bar no-print">
+    <div class="preview-label">
+        <strong>Print preview</strong>
+        <span>A4 landscape · 8 mm margin · the paper stays light</span>
+    </div>
+    <div class="controls">
+        <button type="button" id="busySampleBtn" class="sample-btn" aria-pressed="false" title="Temporary 48-class test week">Busy week sample</button>
+        <label class="normal-only" title="Show normal (green) classes only">
+            <input type="checkbox" id="normalOnlyToggle">
+            <span class="switch-track" aria-hidden="true"><span class="switch-thumb"></span></span>
+            <span class="switch-label">Normal Class</span>
+        </label>
+        <button type="button" class="primary icon-only" id="printBtn" aria-label="Print / Save PDF" title="Print / Save PDF">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <polyline points="6 9 6 2 18 2 18 9"/>
+                <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/>
+                <rect x="6" y="14" width="12" height="8"/>
+            </svg>
+        </button>
+    </div>
+</div>
+
+<main class="preview-wrap">
+    <section class="sheet" id="sheet" data-page="my">
+        <div class="print-head">
+            <div>
+                <h1 class="print-title" id="printTitle">My Timetable</h1>
+                <p class="print-sub" id="printSub">Weekly class schedule</p>
+            </div>
+            <div class="print-context-title" id="printContextTitle">Kylian Mbappe</div>
+            <div class="print-meta">
+                <span class="semester-chip" id="printSemester">Semester 202605</span>
+                <span class="week-line" id="weekLine">Week 5 of 14 · 5 Oct 2026 ~ 11 Oct 2026</span>
+            </div>
+        </div>
+
+        <div class="grid-wrap">
+            <table id="timetable" aria-label="Sample weekly timetable">
+                <colgroup id="colgroup"></colgroup>
+                <thead id="tableHead"></thead>
+                <tbody id="tableBody"></tbody>
+            </table>
+            <p class="print-empty" id="printEmpty" hidden>
+                <strong>No classes this week.</strong>
+                <span>There are no scheduled classes for the selected week.</span>
+            </p>
+        </div>
+
+        <div class="legend" id="legend">
+            <span class="legend-item"><span class="swatch normal"></span> Normal Class</span>
+            <span class="legend-item"><span class="swatch replacement"></span> Replacement</span>
+            <span class="legend-item"><span class="swatch pending"></span> Pending</span>
+            <span class="legend-item"><span class="swatch conflict"></span> Conflict / Public Holiday</span>
+            <span class="ownership-hint" id="ownershipHint"></span>
+        </div>
+
+        <div class="print-notes holiday-notes" id="holidayNotes" aria-label="Public holiday notes"></div>
+        <div class="print-notes pending-notes" id="printNotes" aria-label="Pending request notes"></div>
+        <div class="paper-foot">
+            <span>Class Replacement System · sample print preview</span>
+            <span id="printWeekFooter">Week 5 · 5 Oct 2026 ~ 11 Oct 2026</span>
+        </div>
+    </section>
+</main>
+
+<script>
+    // Standalone mock link from My Timetable. Snapshot lives in the URL fragment,
+    // never in storage or a server request. Opening this file alone keeps its demos.
+    const previewParams = new URLSearchParams(window.location.search);
+    const linkedFromTimetable = previewParams.get('from') === 'my-timetable-prototype';
+    let snapshotError = false;
+    const esc = value => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+    function readTimetableSnapshot() {
+        if (!linkedFromTimetable) return null;
+        try {
+            if (window.location.hash.length > 150000) throw new Error('Snapshot too large');
+            const raw = new URLSearchParams(window.location.hash.slice(1)).get('snapshot');
+            const data = JSON.parse(raw);
+            const integer = (n, min, max) => Number.isInteger(n) && n >= min && n <= max;
+            const text = value => typeof value === 'string' && value.length <= 500;
+            if (!data || data.version !== 1 || !integer(data.weeks, 1, 100)
+                || !integer(data.week, 0, data.weeks - 1) || !integer(data.day, 0, 6)
+                || !['dark', 'light'].includes(data.theme)
+                || ![data.semester, data.lecturer, data.staffId].every(text)
+                || !Array.isArray(data.hours) || data.hours.length !== 22
+                || !data.hours.every((h, i) => h === `${String(8 + Math.floor(i / 2)).padStart(2, '0')}:${i % 2 ? '30' : '00'}`)
+                || !Array.isArray(data.days) || data.days.length !== 7
+                || !data.days.every(d => d && [d.label, d.date, d.holiday].every(text) && typeof d.off === 'boolean')
+                || !Array.isArray(data.events) || data.events.length > 200) throw new Error('Invalid snapshot');
+            const slots = new Set();
+            for (const e of data.events) {
+                if (!e || !integer(e.day, 0, 6) || !integer(e.start, 0, 21)
+                    || !integer(e.span, 1, 22 - e.start)
+                    || !['normal', 'replacement', 'pending', 'cancelled', 'conflict', 'holiday'].includes(e.status)
+                    || ![e.code, e.lecturer, e.venue, e.note].every(text)) throw new Error('Invalid class');
+                for (let i = e.start; i < e.start + e.span; i++) {
+                    const key = `${e.day}:${i}`;
+                    if (slots.has(key)) throw new Error('Overlapping classes');
+                    slots.add(key);
+                }
+            }
+            return data;
+        } catch {
+            snapshotError = true;
+            return null;
+        }
+    }
+    const originalLinkedTimetable = readTimetableSnapshot();
+    let linkedTimetable = originalLinkedTimetable;
+    const hours = [
+        '08:00', '08:30', '09:00', '09:30', '10:00', '10:30', '11:00', '11:30',
+        '12:00', '12:30', '13:00', '13:30', '14:00', '14:30', '15:00', '15:30',
+        '16:00', '16:30', '17:00', '17:30'
+    ];
+    let displayedHours = hours;
+
+    const days = [
+        { label: 'Mon', date: '5 Oct 2026' },
+        { label: 'Tue', date: '6 Oct 2026' },
+        { label: 'Wed', date: '7 Oct 2026' },
+        { label: 'Thu', date: '8 Oct 2026' },
+        { label: 'Fri', date: '9 Oct 2026' },
+        { label: 'Sat', date: '10 Oct 2026', off: true },
+        { label: 'Sun', date: '11 Oct 2026', off: true }
+    ];
+
+    // start is the half-hour index from 08:00; span is the number of half-hours.
+    const events = [
+        { day: 0, start: 0, span: 4, code: 'BMCS3153 (L)', lecturer: 'Dr Tan', venue: 'B110', status: 'normal' },
+        { day: 0, start: 6, span: 3, code: 'BMSE2153 (T)', lecturer: 'Ms Lim', venue: 'B205', status: 'pending', note: 'Pending since 2 Oct', others: true },
+        { day: 0, start: 12, span: 4, code: 'BACS2063 (L)', lecturer: 'Mr Wong', venue: 'A301', status: 'normal' },
+        { day: 1, start: 2, span: 4, code: 'BMCS3404 (L)', lecturer: 'Dr Raj', venue: 'B110', status: 'replacement', note: 'Replaced for Dr Tan' },
+        { day: 1, start: 10, span: 4, code: 'MPU3412 (L)', lecturer: 'Ms Lee', venue: 'D101', status: 'normal' },
+        { day: 1, start: 16, span: 3, code: 'BMCS3153 (T)', lecturer: 'Dr Tan', venue: 'C402', status: 'normal' },
+        { day: 2, start: 1, span: 3, code: 'BACS2063 (T)', lecturer: 'Mr Wong', venue: 'A301', status: 'normal' },
+        { day: 2, start: 4, span: 4, code: 'BMSE2153 (L)', lecturer: 'Ms Lim', venue: 'B205', status: 'normal' },
+        { day: 2, start: 12, span: 4, code: 'BMCS3404 (P)', lecturer: 'Dr Raj', venue: 'Lab 5', status: 'normal' },
+        { day: 3, start: 2, span: 4, code: 'BMCS3153 (L)', lecturer: 'Dr Tan', venue: 'B110', status: 'normal' },
+        { day: 3, start: 8, span: 3, code: 'MPU3412 (T)', lecturer: 'Ms Lee', venue: 'D101', status: 'conflict', note: 'Conflict' },
+        { day: 3, start: 14, span: 4, code: 'BACS2063 (L)', lecturer: 'Mr Wong', venue: 'A301', status: 'normal' },
+        { day: 4, start: 0, span: 4, code: 'BMSE2153 (T)', lecturer: 'Ms Lim', venue: 'B205', status: 'normal' },
+        { day: 4, start: 6, span: 3, code: 'BMCS3404 (L)', lecturer: 'Dr Raj', venue: 'B110', status: 'normal' },
+        { day: 4, start: 12, span: 4, code: 'BMCS3153 (P)', lecturer: 'Dr Tan', venue: 'Lab 5', status: 'normal' }
+    ];
+
+    // TEMPORARY: a 48-class stress sample for print-layout checks. It is not
+    // real timetable data. Remove this function and #busySampleBtn before shipping.
+    function busySampleTimetable() {
+        const sampleHours = Array.from({length: 22}, (_, i) =>
+            `${String(8 + Math.floor(i / 2)).padStart(2, '0')}:${i % 2 ? '30' : '00'}`);
+        const sampleDays = [
+            { label: 'Mon', date: '9 Nov 2026', holiday: 'Deepavali Holiday (In Lieu)', off: true },
+            { label: 'Tue', date: '10 Nov 2026', holiday: '', off: false },
+            { label: 'Wed', date: '11 Nov 2026', holiday: '', off: false },
+            { label: 'Thu', date: '12 Nov 2026', holiday: '', off: false },
+            { label: 'Fri', date: '13 Nov 2026', holiday: '', off: false },
+            { label: 'Sat', date: '14 Nov 2026', holiday: '', off: false },
+            { label: 'Sun', date: '15 Nov 2026', holiday: '', off: true }
+        ];
+        const sampleEvents = [];
+        for (let day = 0; day < 6; day++) {
+            for (let n = 0; n < 8; n++) {
+                const status = ['normal', 'normal', 'pending', 'replacement'][n % 4];
+                sampleEvents.push({
+                    day, start: n * 2, span: 2,
+                    code: `BMCS${2000 + day * 8 + n} (T)`,
+                    lecturer: 'En. Lim Jia Zheng',
+                    venue: 'B100',
+                    status,
+                    note: status === 'pending' ? '(Pending since 12-Nov-2026)'
+                        : status === 'replacement' ? '(Replaced for 05-Nov-2026)' : ''
+                });
+            }
+        }
+        return {
+            version: 1, week: 7, day: 3, weeks: 14, theme: 'light',
+            semester: '202605 Semester', lecturer: 'En. Lim Jia Zheng', staffId: '5770',
+            hours: sampleHours, days: sampleDays, events: sampleEvents
+        };
+    }
+
+    const pages = {
+        my: {
+            title: 'My Timetable',
+            sub: 'Weekly class schedule',
+            pageTitle: 'My Timetable',
+            pageDesc: 'View your weekly class schedule and manage replacement requests across all cohorts.',
+            contextTitle: 'Kylian Mbappe',
+            context: '',
+            ownership: '',
+            legend: [
+                ['normal', 'Normal Class'],
+                ['replacement', 'Replacement'],
+                ['pending', 'Pending'],
+                ['conflict', 'Conflict / Public Holiday']
+            ]
+        },
+        student: {
+            title: 'Student My Timetable',
+            sub: 'Cohort: BCS (T)',
+            pageTitle: 'Student My Timetable',
+            pageDesc: 'View your weekly class schedule across all sessions.',
+            contextTitle: 'Aisyah Rahman',
+            context: '',
+            ownership: '',
+            legend: [
+                ['normal', 'Normal Class'],
+                ['replacement', 'Replacement'],
+                ['pending', 'Pending'],
+                ['conflict', 'Conflict / Public Holiday']
+            ]
+        },
+        cohort: {
+            title: 'Cohort Timetable',
+            sub: 'Faculty: FOCS',
+            pageTitle: 'Cohort Timetable',
+            pageDesc: 'View the weekly timetable for any cohort across all faculties.',
+            contextTitle: 'DSF2(S1)G1',
+            context: '',
+            ownership: 'thick border = your classes · thin border = others\'',
+            legend: [
+                ['normal', 'Normal'],
+                ['replacement', 'Replacement'],
+                ['pending', 'Pending'],
+                ['conflict', 'Conflict / Public Holiday']
+            ]
+        },
+        venue: {
+            title: 'Venue Timetable',
+            sub: 'Venue occupancy',
+            pageTitle: 'Venue Timetable',
+            pageDesc: 'Inspect any venue\'s weekly occupancy — real slot states from the timetable database.',
+            contextTitle: 'B110 -- Computer Lab 5',
+            context: '',
+            ownership: 'thick border = your classes · thin border = others\'',
+            legend: [
+                ['available', 'Available'],
+                ['normal', 'Normal'],
+                ['replacement', 'Replacement'],
+                ['pending', 'Pending'],
+                ['conflict', 'Conflict / Public Holiday']
+            ]
+        }
+    };
+
+    const colgroup = document.getElementById('colgroup');
+    const head = document.getElementById('tableHead');
+    const body = document.getElementById('tableBody');
+    const legend = document.getElementById('legend');
+    const sheet = document.getElementById('sheet');
+
+    function buildColgroup() {
+        colgroup.innerHTML = '<col class="day-col">' + '<col>'.repeat(displayedHours.length);
+    }
+
+    function buildHead() {
+        let html = '<tr><th class="day-col">Day / Time</th>';
+        for (let i = 0; i < displayedHours.length; i += 2) {
+            html += '<th colspan="2">' + to12h(displayedHours[i]) + '</th>';
+        }
+        html += '</tr>';
+        head.innerHTML = html;
+    }
+
+    function to12h(t) {
+        const parts = t.split(':');
+        const h = parseInt(parts[0], 10);
+        const ampm = h >= 12 ? 'PM' : 'AM';
+        const h12 = h === 0 ? 12 : h > 12 ? h - 12 : h;
+        return h12 + ':' + parts[1] + ' ' + ampm;
+    }
+
+    function eventTime(ev) {
+        const start = displayedHours[ev.start];
+        // The exclusive end can lie after the final half-hour cell (e.g. 7 PM).
+        const endMinutes = 480 + (ev.start + ev.span) * 30;
+        const end = `${String(Math.floor(endMinutes / 60)).padStart(2, '0')}:${String(endMinutes % 60).padStart(2, '0')}`;
+        return to12h(start) + ' ~ ' + to12h(end);
+    }
+
+    function buildBody(page) {
+        body.innerHTML = '';
+        const linked = linkedTimetable && page === 'my';
+        const shownDays = linked ? linkedTimetable.days : days;
+        const shownEvents = linked ? linkedTimetable.events : events;
+        // A blank grid is not a clear answer. Hide it and print a short message.
+        const isEmptyWeek = shownEvents.length === 0;
+        sheet.querySelector('.grid-wrap').classList.toggle('is-empty', isEmptyWeek);
+        document.getElementById('printEmpty').hidden = !isEmptyWeek;
+        // Separate H references from pending-request numbers. Holiday notes stay
+        // visible under Normal only because day headings still identify holidays.
+        const holidays = shownDays.filter(day => day.holiday);
+        document.getElementById('holidayNotes').innerHTML = holidays.map((day, i) =>
+            '<p class="print-note"><strong>[H' + (i + 1) + ']</strong> ' + esc(day.label) +
+            ', ' + esc(day.date) + ' — ' + esc(day.holiday) + '</p>'
+        ).join('');
+        const notes = shownEvents.filter(e => e.status === 'pending' && e.note);
+        document.getElementById('printNotes').innerHTML = notes.map((e, i) =>
+            '<p class="print-note"><strong>[' + (i + 1) + ']</strong> ' + esc(shownDays[e.day].label) +
+            ' · ' + esc(e.code) + ', ' + esc(e.venue) + ' — ' +
+            esc(e.note.replace(/^\((.*)\)$/, '$1')) + '</p>'
+        ).join('');
+        // A very full week uses slightly tighter printed blocks so its notes and
+        // footer stay on page 1. Normal weeks keep the roomier spacing.
+        const replacementCount = shownEvents.filter(e => e.status === 'replacement').length;
+        const densePrint = shownEvents.length > 32 || notes.length + replacementCount > 6;
+        sheet.classList.toggle('dense', densePrint);
+
+        shownDays.forEach(function (day, di) {
+            const tr = document.createElement('tr');
+            if (day.off) tr.className = 'off';
+
+            const th = document.createElement('th');
+            th.className = 'day-col';
+            th.innerHTML = '<span class="day-label">' + esc(day.label) + '</span>' +
+                '<span class="date-label">' + esc(day.date) + '</span>' +
+                (day.holiday ? '<span class="holiday-label">Public Holiday [H' + (holidays.indexOf(day) + 1) + ']</span>' : '');
+            tr.appendChild(th);
+
+            const dayEvents = shownEvents
+                .filter(function (e) { return e.day === di; })
+                .sort(function (a, b) { return a.start - b.start; });
+
+            let slot = 0;
+            while (slot < displayedHours.length) {
+                const ev = dayEvents.find(function (e) { return e.start === slot; });
+
+                if (ev) {
+                    const td = document.createElement('td');
+                    td.className = 'slot filled';
+                    td.colSpan = ev.span;
+
+                    const block = document.createElement('div');
+                    const status = ['cancelled', 'holiday'].includes(ev.status) ? 'conflict' : ev.status;
+                    block.className = 'event ' + status + (ev.span <= 2 ? ' narrow' : '') + (((page === 'cohort' || page === 'venue') && ev.others) ? ' others' : '');
+                    let inner = '<span class="ev-code">' + esc(ev.code) + '</span>';
+                    if (page !== 'my') {
+                        inner += '<span class="ev-lecturer">' + esc(ev.lecturer) + '</span>';
+                    }
+                    const clockParts = eventTime(ev).split(' ~ ');
+                    inner += '<span class="ev-venue">' + esc(ev.venue) + '</span>' +
+                        '<span class="ev-time">' + (ev.span <= 2
+                            ? '<span class="ev-time-part">' + clockParts[0] + '</span><span class="ev-time-part">~ ' + clockParts[1] + '</span>'
+                            : eventTime(ev)) + '</span>';
+                    // Written status survives greyscale printing. Pending's long
+                    // submitted date belongs below the grid, linked by its number.
+                    const noteNumber = notes.indexOf(ev) + 1;
+                    const statusLabel = ev.status === 'pending' ? 'Pending' + (noteNumber ? ' [' + noteNumber + ']' : '')
+                        : ev.status === 'replacement' ? 'Replacement'
+                        : ev.status === 'cancelled' ? 'Cancelled'
+                        : ev.status === 'conflict' ? 'Conflict' : '';
+                    if (statusLabel) inner += '<span class="ev-status">' + statusLabel + '</span>';
+                    if (ev.note && ev.status !== 'pending' && !['(Cancelled)', '(Conflict)', 'Conflict'].includes(ev.note)) {
+                        inner += '<span class="ev-note">' + esc(ev.note) + '</span>';
+                    }
+                    block.innerHTML = inner;
+                    td.appendChild(block);
+                    tr.appendChild(td);
+                    slot += ev.span;
+                } else {
+                    const td = document.createElement('td');
+                    td.className = 'slot empty';
+                    tr.appendChild(td);
+                    slot++;
+                }
+            }
+
+            body.appendChild(tr);
+        });
+    }
+
+    function buildLegend(page) {
+        const items = pages[page].legend.map(function (item) {
+            return '<span class="legend-item legend-' + item[0] + '"><span class="swatch ' + item[0] + '"></span>' + item[1] + '</span>';
+        }).join('');
+        legend.innerHTML = items + '<span class="ownership-hint" id="ownershipHint">' + pages[page].ownership + '</span>';
+    }
+
+    function applyPage(page) {
+        const linked = linkedTimetable && page === 'my';
+        const cfg = linked ? {...pages.my, contextTitle: linkedTimetable.lecturer} : pages[page];
+        displayedHours = linked ? linkedTimetable.hours : hours;
+        buildColgroup();
+        buildHead();
+        sheet.dataset.page = page;
+        document.getElementById('pageTitle').textContent = cfg.pageTitle;
+        document.getElementById('pageDesc').textContent = cfg.pageDesc;
+        document.getElementById('printTitle').textContent = cfg.title;
+        document.getElementById('printSub').textContent = cfg.sub;
+        document.getElementById('printContextTitle').textContent = cfg.contextTitle;
+
+        const isStudent = page === 'student';
+        document.getElementById('userAvatar').textContent = isStudent ? 'ST' : 'SU';
+        document.getElementById('userName').textContent = isStudent ? 'Student User' : 'Staff User';
+        document.getElementById('userRole').textContent = isStudent ? 'Student' : 'Lecturer';
+        const weekText = linked
+            ? `Week ${linkedTimetable.week + 1} of ${linkedTimetable.weeks} · ${linkedTimetable.days[0].date} ~ ${linkedTimetable.days[6].date}`
+            : 'Week 5 of 14 · 5 Oct 2026 ~ 11 Oct 2026';
+        document.getElementById('weekLine').textContent = weekText;
+        document.getElementById('printWeekFooter').textContent = linked
+            ? `Week ${linkedTimetable.week + 1} · ${linkedTimetable.days[0].date} ~ ${linkedTimetable.days[6].date}`
+            : 'Week 5 · 5 Oct 2026 ~ 11 Oct 2026';
+        document.getElementById('pageSemester').textContent = linked ? linkedTimetable.semester : 'Semester 202605';
+        document.getElementById('printSemester').textContent = linked ? linkedTimetable.semester : 'Semester 202605';
+        if (linked) {
+            document.getElementById('userName').textContent = linkedTimetable.lecturer;
+            document.getElementById('userAvatar').textContent = linkedTimetable.lecturer.split(/\s+/).filter(Boolean).slice(-2).map(n => n[0]).join('');
+        }
+        if (snapshotError && page === 'my') {
+            document.getElementById('pageDesc').textContent = 'The selected week could not be loaded. This is the print page’s own sample data. Use Back to try again.';
+        }
+
+        const navKey = isStudent ? 'my' : page;
+        document.querySelectorAll('.nav-item[data-page]').forEach(function (item) {
+            item.classList.toggle('active', item.dataset.page === navKey);
+        });
+
+        buildLegend(page);
+        buildBody(page);
+    }
+
+    document.getElementById('themeBtn').addEventListener('click', function () {
+        const dark = document.documentElement.classList.toggle('dark');
+        const icon = document.getElementById('themeIcon');
+        if (dark) {
+            icon.innerHTML = '<path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>';
+            this.setAttribute('aria-label', 'Switch to light theme');
+        } else {
+            icon.innerHTML = '<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/>';
+            this.setAttribute('aria-label', 'Switch to dark theme');
+        }
+    });
+
+    document.getElementById('printBtn').addEventListener('click', function () {
+        window.print();
+    });
+
+    const helpDialog = document.getElementById('helpDialog');
+    document.getElementById('previewHelp').addEventListener('click', function () {
+        if (typeof helpDialog.showModal === 'function') helpDialog.showModal();
+        else helpDialog.setAttribute('open', '');
+    });
+    helpDialog.addEventListener('click', function (event) {
+        if (event.target !== helpDialog) return;
+        if (typeof helpDialog.close === 'function') helpDialog.close();
+        else helpDialog.removeAttribute('open');
+    });
+
+    const backRoutes = {
+        'my-timetable': '?page=my',
+        'student-my-timetable': '?page=student',
+        'cohort-timetable': '?page=cohort',
+        'venue-timetable': '?page=venue'
+    };
+
+    document.getElementById('backBtn').addEventListener('click', function () {
+        if (linkedFromTimetable) {
+            const params = new URLSearchParams();
+            if (linkedTimetable) {
+                params.set('week', String(linkedTimetable.week));
+                params.set('day', String(linkedTimetable.day));
+                params.set('theme', document.documentElement.classList.contains('dark') ? 'dark' : 'light');
+            }
+            // Fixed sibling destination, never a caller-supplied return URL.
+            window.location.href = 'my-timetable-mobile-preview.html' + (params.size ? '?' + params.toString() : '');
+            return;
+        }
+        const from = previewParams.get('from');
+        window.location.href = backRoutes[from] || '?page=my';
+    });
+
+    document.getElementById('normalOnlyToggle').addEventListener('change', function () {
+        sheet.classList.toggle('normal-only', this.checked);
+    });
+
+    document.querySelectorAll('.nav-item').forEach(function (item) {
+        item.addEventListener('click', function (event) {
+            event.preventDefault();
+            if (!this.dataset.page) return;
+            applyPage(this.dataset.page);
+        });
+    });
+
+    // TEMPORARY: busy sample control. Remove with busySampleTimetable().
+    const busySampleBtn = document.getElementById('busySampleBtn');
+    let busySampleActive = previewParams.get('sample') === 'busy';
+    if (busySampleActive) linkedTimetable = busySampleTimetable();
+
+    function updateBusySampleButton() {
+        busySampleBtn.textContent = busySampleActive ? 'Back to normal sample' : 'Busy week sample';
+        busySampleBtn.setAttribute('aria-pressed', String(busySampleActive));
+    }
+
+    busySampleBtn.addEventListener('click', function () {
+        busySampleActive = !busySampleActive;
+        linkedTimetable = busySampleActive ? busySampleTimetable() : originalLinkedTimetable;
+        document.documentElement.classList.toggle('dark', !!linkedTimetable && linkedTimetable.theme === 'dark');
+        updateBusySampleButton();
+        applyPage('my');
+    });
+    updateBusySampleButton();
+
+    if (linkedTimetable) document.documentElement.classList.toggle('dark', linkedTimetable.theme === 'dark');
+    const requestedPage = previewParams.get('page');
+    applyPage(Object.hasOwn(pages, requestedPage) ? requestedPage : 'my');
+</script>
+</body>
+</html>

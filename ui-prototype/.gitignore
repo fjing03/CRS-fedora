@@ -1,0 +1,5 @@
+# Reference screenshots / PDFs — the picture is in the HTML files, not in these.
+# They stay on disk (5.8 MB) but out of git: images bloat every clone, and no
+# page here links to them.
+*.png
+*.pdf

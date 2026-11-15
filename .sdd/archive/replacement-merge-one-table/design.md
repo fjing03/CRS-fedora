@@ -1,7 +1,7 @@
 # Design — replacement-merge-one-table
 
 Baseline: the frozen `proposal.md` (M1–M17, §6b data contract) + `explore-brief.md` + the approved
-prototype `../ui-prototype/replacement-merged-preview.html`.
+prototype `ui-prototype/replacement-merged-preview.html`.
 
 **Line references re-measured 2026-11-04** after another session's `LocalTime` refactor of the mapper
 (the class body moved **−2 lines** from `effectiveStatus()` onward; the class docblock **+1**). Numbers in

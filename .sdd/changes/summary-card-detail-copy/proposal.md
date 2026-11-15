@@ -2,10 +2,10 @@
 
 > **Status:** active · created 2026-11-13 · **re-synced 2026-11-14**
 > **Change:** `summary-card-detail-copy`
-> **Reference:** `../ui-prototype/summary-card-back-preview.html` (repo parent — not
+> **Reference:** `ui-prototype/summary-card-back-preview.html` (repo parent — not
 > inside `CRS-fedora-backend`; earlier drafts wrote it as a repo path, which is wrong)
 > **Follows:** `my-timetable-ui-cleanup` (shipped the flip cards this lane adjusts)
-> **Prompt:** `../ui-prototype/my-timetable-responsive-prompt.md` §9
+> **Prompt:** `ui-prototype/my-timetable-responsive-prompt.md` §9
 
 ## Re-sync check — 2026-11-14
 
@@ -36,7 +36,7 @@ differently:
 - **The files this lane would touch have all moved.** `ui-summary-bar.blade.php`
   is now 105 lines with the flip branch and a sibling modal; `SummaryCards` sits
   at ~2200 in `ui-common.js`, not `~1971`.
-- **`../ui-prototype/` is the correct path**, not `ui-prototype/`.
+- **`ui-prototype/` is the correct path**, not `ui-prototype/`.
 
 Everything else in this proposal is unchanged and still describes the work to
 be done.
@@ -139,7 +139,7 @@ must not extend it.
 
 ## References
 
-- Prototype: `../ui-prototype/summary-card-back-preview.html` — six card sets, a
+- Prototype: `ui-prototype/summary-card-back-preview.html` — six card sets, a
   Current/Proposed switch, and a live readout of lines / space above / space
   below / text under the button.
 - Measurements in `design.md` were taken in headless Chromium at 1360px and

@@ -1,0 +1,1300 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark" class="dark">
+<!--
+  ═══════════════════════════════════════════════════════════════════════════
+  BULK CANCEL CLASS — PROTOTYPE DESIGN REQUIREMENTS (2026-11-10)
+  ───────────────────────────────────────────────────────────────────────────
+  This is a standalone prototype for the bulk-cancel-class modal. It is NOT
+  the Laravel app; it loads the real public/css/theme.css from :8000 so every
+  colour is a token.
+
+  Entry point (matches my-timetable-ui): a "Cancel Classes" button (error
+  colour) in the .semester-bar, immediately left of the Print button. The
+  demo bar at the top mirrors that bar: week arrows + Week select + Today +
+  Cancel Classes + Print.
+
+  What the design must show:
+  · Date range picker (From / To) inside the 202605 semester
+    (21 Sep 2026 ~ 27 Dec 2026). From <= To. Maximum 7 working days
+    (Mon–Fri, inclusive; public holidays are not modelled here). The native
+    date pickers grey out dates that would break those rules; the red bar
+    message is only a fallback for typed dates.
+  · Range bar: the summary stays hidden (user 2026-11-10), but the same bar
+    shows the red validation message when the dates break the semester,
+    From <= To or the 7-working-day rule.
+  · Class list grouped by week: each week header has a select-all checkbox,
+    a "Week n" subtitle and a chevron; weeks start expanded. Day headers show
+    only the date, a (n classes) count, a per-day select-all checkbox and a
+    collapse chevron. Days are collapsed by default. Already-cancelled classes
+    are hidden. Empty days are not listed.
+  · Each class row is four icon lines: course code (book), time (clock),
+    venue (building), cohort(s) (users, joined with " & "). Hover titles:
+    subject name, venue name + seats, cohort full name + head-count.
+    NOTE for the real build: the prototype uses the native `title` attribute
+    only because it does not load ui-common.js. The real page must use the
+    app's shared `data-tip` + initDataTipTooltips tooltip so the hover matches
+    every other page (same position, colour, delay).
+  · Summary bar below the list: clipboard icon + "Summary" + book icon +
+    n classes + clock icon + n hours. The whole bar is hidden when nothing
+    is selected. It expands (default collapsed) into a grid of cards styled
+    like .sel-summary-card, one icon line each: code/subject, cohorts, week +
+    date, time, venue; no hover lift.
+  · Cancellation Reason group: collapsed by default, chevron disabled until
+    at least one class is ticked, auto-expands on the first tick. A reason is
+    required. Choosing "Other" reveals a required description textarea.
+  · All-or-nothing confirmation; success receipt and refusal state.
+  · Date/time format: 5 Nov 2026, 2:00 PM, ranges 2:00 PM ~ 4:00 PM.
+  ═══════════════════════════════════════════════════════════════════════════
+-->
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Bulk Cancel Class — prototype</title>
+<script>
+    /* anti-FOUC, same as layouts/ui-template: honour a saved choice before paint */
+    (function () {
+        try {
+            var saved = localStorage.getItem('theme');
+            if (saved === 'light' || saved === 'dark') {
+                document.documentElement.className = saved;
+                document.documentElement.setAttribute('data-theme', saved);
+            }
+        } catch (e) {}
+    })();
+</script>
+<link rel="stylesheet" href="../public/css/theme.css">
+<style>
+    /* ═══ Prototype-only styles ═══════════════════════════════════════════════
+       Borrows the app's real theme.css (tokens only — no hardcoded colours).
+       The modal's own classes (.modal, .modal--cancel, .btn-danger, .badge,
+       .filter-select …) come from theme.css; this block only adds the pieces
+       being designed: the picker list, the day header, the state badges. */
+    /* ── demo shell: top bar, note, floating switches ── */
+    body { background: var(--color-bg); color: var(--color-on-bg); font-family: var(--font-body, system-ui, sans-serif); margin: 0; padding: 28px; }
+    .proto-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; margin-bottom: 10px; }
+    .proto-bar-actions { margin-left: auto; display: inline-flex; align-items: center; gap: 8px; }
+    .proto-bar-actions .btn-danger { height: 32px; padding: 0 14px; }
+    .proto-bar-actions .print-btn { margin-left: 0; }
+    .proto-note { font-size: 12.5px; color: var(--color-on-surface-variant); max-width: 780px; line-height: 1.55; }
+    .proto-bar > .btn-danger { height: 34px; }
+    /* prototype-only demo switches: a floating panel bottom-right, ABOVE the
+       modal (theme.css .modal-overlay is z-index 999), so they stay usable
+       while the box is open and never overlap the semester bar */
+    .proto-switches {
+        position: fixed; bottom: 12px; right: 12px; z-index: 1200;
+        display: flex; flex-direction: column; gap: 8px;
+        background: var(--color-surface); border: 1px solid var(--color-outline);
+        border-radius: 10px; padding: 10px 12px; font-size: 12px;
+        color: var(--color-on-surface-variant); max-width: 300px; line-height: 1.4;
+        box-shadow: 0 6px 20px rgba(0,0,0,.28);
+    }
+    .proto-switches label { display: flex; gap: 7px; align-items: flex-start; cursor: pointer; }
+    /* theme switch — a small track + knob, colours from tokens only */
+    .proto-theme { align-items: center; gap: 9px; font-weight: 600; color: var(--color-on-surface); }
+    /* the real checkbox stays, hidden: the track is the visible control, the
+       input keeps keyboard focus + the change event */
+    .proto-theme-input { position: absolute; opacity: 0; width: 1px; height: 1px; pointer-events: none; }
+    .proto-theme:focus-within .proto-theme-track { outline: 2px solid var(--color-primary); outline-offset: 2px; }
+    .proto-theme-track {
+        width: 38px; height: 20px; border-radius: 999px; flex: 0 0 38px;
+        background: var(--color-surface-container-highest, var(--color-surface-container));
+        border: 1px solid var(--color-outline); position: relative; transition: background .15s ease;
+    }
+    .proto-theme-knob {
+        position: absolute; top: 2px; left: 2px; width: 14px; height: 14px; border-radius: 50%;
+        background: var(--color-on-surface-variant); transition: left .15s ease, background .15s ease;
+    }
+    html.light .proto-theme-track { background: var(--color-primary-container); }
+    html.light .proto-theme-knob { left: 20px; background: var(--color-on-primary-container); }
+
+    /* ── modal shell: overlay + sheet (theme.css owns the look) ── */
+    /* no custom width: the bulk box is the SAME shell as the single cancel
+       (.modal--cancel, 588px) so the two read as one family */
+    /* theme.css hides .modal-overlay until it carries .show (display:flex) — this
+       prototype opens/closes with that class exactly like the app does. */
+    /* let theme.css own the centring (desktop) and the bottom-sheet behaviour
+       (≤768px); the extra padding only keeps the box off the window edges */
+    #bulkOverlay { padding: 24px 16px; }
+
+    /* ── range picker: From/To fields + the range bar ── */
+    /* fields are centred in the row and each is ~30% wider than the native
+       date box (146px -> 190px), so the pair reads as one balanced block */
+    .bc-range { display: flex; gap: 12px; flex-wrap: wrap; align-items: flex-end; justify-content: center; margin: 0 0 14px; }
+    .bc-range .field { display: flex; flex-direction: column; gap: 5px; flex: 0 1 190px; }
+    .bc-range .field input { width: 100%; box-sizing: border-box; }
+    .bc-range label {
+        font-size: 11px; font-weight: 700; letter-spacing: .8px; text-transform: uppercase;
+        color: var(--color-on-surface-variant);
+    }
+    /* 2026-11-10 (user): the bulk box lays its 8 reasons out in TWO columns
+       (the single-class modal keeps one column — that modal is untouched).
+       Labels keep the house typography; only the grid is ours. */
+    .bc-reasons { display: grid; grid-template-columns: 1fr 1fr; column-gap: 20px; }
+    @media (max-width: 720px) { .bc-reasons { grid-template-columns: 1fr; } }
+    .bc-required { color: var(--color-error); }
+    .bc-other-label {
+        display: block; font-size: 11px; font-weight: 700; letter-spacing: .8px;
+        text-transform: uppercase; color: var(--color-on-surface-variant); margin-bottom: 5px;
+    }
+    /* ── reason group: collapsible; chevron disabled until a class is picked ── */
+    .bc-reason-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+    .bc-reason-toggle {
+        display: inline-flex; align-items: center; justify-content: center;
+        width: 24px; height: 24px; padding: 0; border: 0; border-radius: 6px;
+        background: transparent; color: var(--color-on-surface-variant); cursor: pointer;
+    }
+    .bc-reason-toggle:hover:not(:disabled) { background: var(--color-surface-container-highest, var(--color-surface-container)); color: var(--color-on-surface); }
+    .bc-reason-toggle:focus-visible { outline: 2px solid var(--color-primary); outline-offset: 1px; }
+    .bc-reason-toggle:disabled { opacity: .35; cursor: not-allowed; }
+    .bc-reason-toggle svg { transition: transform .15s ease; transform: rotate(-90deg); }
+    .bc-reason-toggle.is-open svg { transform: rotate(0deg); }
+
+    /* the two date fields borrow the house field look — no custom input styling */
+    .bc-range .filter-select { width: 150px; font-size: 13px; padding: 7px 10px; }
+    /* ── summary: collapsed bar + expandable card grid (sel-summary-card look) ── */
+    .bc-summary {
+        margin-top: 10px;
+        border: 1px solid var(--color-outline);
+        border-radius: var(--radius-md, 8px);
+        overflow: hidden;
+    }
+    .bc-summary-bar {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        width: 100%;
+        margin: 0;
+        padding: 9px 12px;
+        border: 0;
+        background: var(--color-surface);
+        color: var(--color-on-surface);
+        font: inherit;
+        text-align: left;
+        cursor: pointer;
+    }
+    .bc-summary-bar:hover { background: var(--color-surface-variant); }
+    .bc-summary-bar:focus-visible { outline: 2px solid var(--color-primary); outline-offset: -2px; }
+    .bc-summary-chevron {
+        display: inline-flex; flex-shrink: 0; color: var(--color-on-surface-variant);
+        transition: transform .15s ease; transform: rotate(-90deg);
+    }
+    .bc-summary-bar.is-open .bc-summary-chevron { transform: rotate(0deg); }
+    .bc-summary-panel { border-top: 1px solid var(--color-outline); padding: 12px; }
+    .bc-summary-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 10px; }
+    /* mirrors .sel-summary-card on replacement-arrangement */
+    .bc-sum-card {
+        position: relative;
+        background: var(--color-primary-container);
+        color: var(--color-on-primary-container);
+        border: 1px solid transparent;
+        border-radius: var(--radius-md, 8px);
+        padding: 10px 12px;
+        line-height: 1.5;
+        animation: bcCardIn .2s ease;
+    }
+    .bc-sum-line { display: inline-flex; align-items: center; gap: 5px; }
+    .bc-sum-line svg { flex-shrink: 0; opacity: .8; }
+    .bc-sum-code { font-size: 13px; font-weight: 700; }
+    .bc-sum-groups { font-size: 11.5px; }
+    .bc-sum-day { font-size: 12.5px; font-weight: 600; }
+    .bc-sum-time { font-size: 12px; font-weight: 500; }
+    .bc-sum-venue { font-size: 12px; }
+    /* mirrors .card-remove on the replacement-arrangement selection card */
+    .bc-sum-remove {
+        position: absolute;
+        top: 6px;
+        right: 6px;
+        width: 24px; height: 24px;
+        border-radius: var(--radius-sm, 6px);
+        border: none;
+        background: transparent;
+        color: var(--color-on-primary-container);
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 16px;
+        line-height: 1;
+        transition: background .15s, color .15s;
+        opacity: .5;
+    }
+    .bc-sum-remove:hover { background: var(--color-error-container); color: var(--color-error); opacity: 1; }
+    @keyframes bcCardIn {
+        from { opacity: 0; transform: translateY(6px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+    .bc-summary-icon { display: inline-flex; flex-shrink: 0; color: var(--color-on-surface-variant); }
+    .bc-summary-label {
+        font-size: 11px; font-weight: 700; letter-spacing: .8px; text-transform: uppercase;
+        color: var(--color-on-surface-variant);
+    }
+    .bc-summary-values { display: flex; align-items: center; gap: 14px; margin-left: auto; }
+    .bc-summary-values b { color: var(--color-on-surface); font-size: 15px; }
+    .bc-summary-values #bcPickDetail { font-size: 12.5px; color: var(--color-on-surface-variant); }
+
+    .bc-list { border: 1px solid var(--color-outline); border-radius: 12px; overflow: hidden; max-height: 320px; overflow-y: auto; }
+    .bc-week + .bc-week { border-top: 1px solid var(--color-outline); }
+    .bc-week-head {
+        display: flex; align-items: center; gap: 10px; padding: 9px 12px;
+        /* the app's table-header grey is --color-surface-variant, but in the dark
+           theme that is lighter than the modal surface; --color-bg is the one
+           token that is darker than the sheet in BOTH themes */
+        background: var(--color-bg);
+    }
+    .bc-week-head .bc-week-right { margin-left: auto; display: flex; align-items: center; gap: 8px; }
+    .bc-week-toggle {
+        display: inline-flex; align-items: center; justify-content: center;
+        width: 24px; height: 24px; padding: 0; border: 0; border-radius: 6px;
+        background: transparent; color: var(--color-on-surface-variant); cursor: pointer;
+    }
+    .bc-week-toggle:hover { background: var(--color-surface-variant); color: var(--color-on-surface); }
+    .bc-week-toggle:focus-visible { outline: 2px solid var(--color-primary); outline-offset: 1px; }
+    .bc-week-toggle svg { transition: transform .15s ease; }
+    .bc-week:not(.is-open) .bc-week-toggle svg { transform: rotate(-90deg); }
+    .bc-week:not(.is-open) .bc-day { display: none; }
+    .bc-week-title {
+        font-size: 11px; font-weight: 700; letter-spacing: .8px; text-transform: uppercase;
+        color: var(--color-on-surface-variant);
+    }
+    .bc-day { border-top: 1px solid var(--color-outline); }
+    .bc-day:first-child { border-top: 0; }
+    /* NOT sticky: the list is short enough without it (measured 2026-11-10) */
+    .bc-day-head {
+        display: flex; align-items: center; gap: 10px; padding: 9px 12px;
+        background: var(--color-surface-container);
+    }
+    .bc-day-head .dname { font-weight: 600; font-size: 13px; }
+    .bc-day-head .dcount { font-size: 11.5px; color: var(--color-on-surface-variant); }
+    .bc-day-head .bc-day-right { margin-left: auto; display: flex; align-items: center; gap: 8px; }
+    .bc-day-toggle {
+        display: inline-flex; align-items: center; justify-content: center;
+        width: 24px; height: 24px; padding: 0; border: 0; border-radius: 6px;
+        background: transparent; color: var(--color-on-surface-variant); cursor: pointer;
+    }
+    .bc-day-toggle:hover { background: var(--color-surface-container-highest, var(--color-surface-container)); color: var(--color-on-surface); }
+    .bc-day-toggle:focus-visible { outline: 2px solid var(--color-primary); outline-offset: 1px; }
+    .bc-day-toggle svg { transition: transform .15s ease; }
+    .bc-day:not(.is-open) .bc-day-toggle svg { transform: rotate(-90deg); }
+    .bc-day:not(.is-open) .bc-row { display: none; }
+    .bc-row {
+        display: grid; grid-template-columns: 22px 1fr auto; gap: 10px; align-items: center;
+        padding: 8px 12px 8px 14px; border-top: 1px dashed var(--color-outline);
+    }
+    .bc-row:first-of-type { border-top: 0; }
+    .bc-row.is-off { opacity: .45; }
+    .bc-row .what { font-size: 13px; line-height: 1.4; display: flex; flex-direction: column; gap: 2px; }
+    .bc-row .what .line { display: flex; align-items: center; gap: 7px; }
+    .bc-row .what .line svg { flex: 0 0 13px; color: var(--color-on-surface-variant); }
+    .bc-row .what .code { font-weight: 600; }
+    .bc-row .why { font-size: 11px; color: var(--color-error); }
+    /* every checkbox in the picker uses the same blue as the app's bulk boxes */
+    .bc-list input[type="checkbox"] { accent-color: var(--color-primary); }
+    .bc-row input[type="checkbox"] { width: 15px; height: 15px; accent-color: var(--color-primary); }
+    .bc-row input[type="checkbox"]:disabled { cursor: not-allowed; }
+
+    .bc-hint { margin: 10px 0 0; font-size: 12px; color: var(--color-on-surface-variant); min-height: 16px; }
+    .bc-hint.is-bad { color: var(--color-error); }
+    .bc-range-bar {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 4px;
+        /* sits at the right end of the From/To row, bottom-aligned with the inputs */
+        margin: 0 0 0 auto;
+        padding: 8px 12px;
+        background: var(--color-surface);
+        border: 1px solid var(--color-outline);
+        border-radius: var(--radius-md, 8px);
+        font-size: 12.5px;
+        color: var(--color-on-surface-variant);
+    }
+    /* a long validation message needs the full row, not the narrow right column */
+    .bc-range-bar.is-bad { color: var(--color-error); border-color: var(--color-error); flex: 1 1 100%; margin-left: 0; }
+    /* same treatment as the summary bar's label, so the two bars read as a pair */
+    .bc-range-label {
+        font-size: 11px; font-weight: 700; letter-spacing: .8px; text-transform: uppercase;
+        color: inherit;
+    }
+    .bc-stat { display: inline-flex; align-items: center; gap: 6px; }
+    .bc-stat svg { flex-shrink: 0; opacity: .8; }
+    .bc-stat-note { font-style: italic; opacity: .8; }
+    .bc-range input:invalid { border-color: var(--color-error); }
+
+
+    /* success / refusal */
+    .bc-receipt-list { margin: 10px 0 0; padding: 0; list-style: none; max-height: 200px; overflow-y: auto; }
+    .bc-receipt-list li { display: flex; gap: 10px; font-size: 12.5px; padding: 6px 0; border-top: 1px dashed var(--color-outline); }
+    .bc-receipt-list li:first-child { border-top: 0; }
+    .bc-receipt-list .when { min-width: 132px; color: var(--color-on-surface-variant); }
+    .bc-receipt-totals { display: flex; gap: 16px; flex-wrap: wrap; margin-top: 12px; font-size: 12.5px; color: var(--color-on-surface-variant); }
+    .bc-receipt-totals b { color: var(--color-on-surface); }
+    .bc-ok { font-weight: 600; font-size: 15px; margin: 0 0 4px; }
+    .bc-bad { font-weight: 600; font-size: 15px; margin: 0 0 4px; color: var(--color-error); }
+    .is-hidden { display: none !important; }
+
+    /* ── footer: the CANNOT UNDONE line sits above the confirm button ── */
+    .bc-confirm-wrap { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; }
+    .bc-undo-warn {
+        margin: 0; font-size: 11px; line-height: 1.2; font-weight: 700;
+        letter-spacing: .6px; text-align: right; color: var(--color-warning);
+    }
+
+    /* ── responsive: one scroll surface + stacked reasons/summary ── */
+    @media (max-width: 720px) {
+        body { padding: 16px; }
+        /* the demo panel must not cover the sheet on a phone */
+        .proto-switches { position: static; max-width: none; margin: 0 0 16px; box-shadow: none; }
+        /* one scroll surface on a phone: the sheet scrolls, not the list inside it */
+        .bc-list { max-height: none; }
+        .bc-reasons { grid-template-columns: 1fr; }
+        .bc-summary-bar { flex-wrap: wrap; }
+        .bc-summary-values { margin-left: 0; }
+    }
+</style>
+</head>
+<body>
+
+<div class="proto-bar semester-bar">
+    <div class="week-nav">
+        <button type="button" class="week-arrow" aria-label="Previous week">&#8249;</button>
+        <select class="week-select"><option>Week 8 · 9 Nov 2026 ~ 15 Nov 2026</option></select>
+        <button type="button" class="week-arrow" aria-label="Next week">&#8250;</button>
+    </div>
+    <button type="button" class="today-btn" id="protoToday" data-tip="Go to current week">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>
+        Today
+    </button>
+    <span class="proto-bar-actions">
+        <button class="btn-danger" id="protoCancelBtn">Cancel Classes</button>
+        <button type="button" class="print-btn" data-tip="Coming soon" title="Coming soon" onclick="alert('Printing is coming soon')">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+        </button>
+    </span>
+</div>
+<div class="proto-note">
+    <b>Prototype — not the app.</b> `theme.css` is loaded live from `:8000`, so every colour is a token.
+    The <b>Cancel Classes</b> button is the error-coloured one in the semester bar, immediately left of
+    Print; use the switches below to see the two button states, the picker, the reason gate and both end states.
+</div>
+
+<div class="proto-switches">
+    <label class="proto-theme">
+        <input type="checkbox" id="swTheme" class="proto-theme-input">
+        <span class="proto-theme-track" aria-hidden="true"><span class="proto-theme-knob"></span></span>
+        <span id="swThemeLabel">Dark theme</span>
+    </label>
+    <label><input type="checkbox" id="swEnable"> viewed week has a cancellable class (button enabled)</label>
+    <label><input type="checkbox" id="swShowRefusal"> show the refusal (all-or-nothing) state</label>
+</div>
+
+<!-- ═══ The modal ═══════════════════════════════════════════════════════════ -->
+<div class="modal-overlay" id="bulkOverlay" style="display:none" onclick="if(event.target===this)BulkCancel.dismiss()">
+  <div class="modal modal--cancel" role="dialog" aria-modal="true" aria-labelledby="bulkTitle">
+    <div class="modal-header">
+        <span class="modal-title" id="bulkTitle">Cancel Classes</span>
+        <button class="modal-close" onclick="BulkCancel.dismiss()" data-tip="Close">&times;</button>
+    </div>
+
+    <div class="modal-body">
+        <!-- ─── confirm state ─── -->
+        <div id="bulkConfirmState">
+
+            <div class="detail-group">
+            <!-- Range picker: From/To; every change rebuilds the week-grouped list below. -->
+            <div class="bc-range">
+                <div class="field"><label for="bcFrom">From</label><input type="date" id="bcFrom" class="filter-select" value="2026-11-09" min="2026-09-21" max="2026-12-27"></div>
+                <div class="field"><label for="bcTo">To</label><input type="date" id="bcTo" class="filter-select" value="2026-11-13" min="2026-09-21" max="2026-12-27"></div>
+                <!-- Range summary stays hidden (user, 2026-11-10), but the same
+                     element is reused for the red validation message (7 working
+                     days / semester / From <= To). -->
+                <p class="bc-hint bc-range-bar is-hidden" id="bcRangeHint" aria-live="polite"></p>
+            </div>
+
+            <!-- Week-grouped list: week header = select-all + "Week n";
+                 day header = date + (n classes) + per-day select-all + chevron. -->
+            <div class="bc-list" id="bcList"><!-- day groups injected --></div>
+            <!-- Summary: collapsed bar; click to expand a card grid of every picked
+                 class (card look mirrors .sel-summary-card on replacement-arrangement). -->
+            <div class="bc-summary" id="bcSummaryWrap">
+                <button type="button" class="bc-summary-bar" id="bcSummaryBar" aria-expanded="false" aria-controls="bcSummaryPanel">
+                    <span class="bc-summary-icon" aria-hidden="true"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/><path d="M9 12h6"/><path d="M9 16h4"/></svg></span>
+                    <span class="bc-summary-label">Summary</span>
+                    <span class="bc-summary-values">
+                        <span class="bc-stat"><svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg><b id="bcPickCount">0 classes</b></span>
+                        <span class="bc-stat"><svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg><span id="bcPickDetail">None selected</span></span>
+                    </span>
+                    <span class="bc-summary-chevron" aria-hidden="true"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></span>
+                </button>
+                <div class="bc-summary-panel is-hidden" id="bcSummaryPanel">
+                    <div class="bc-summary-grid" id="bcSummaryGrid"><!-- selected-class cards injected --></div>
+                </div>
+            </div>
+            </div><!-- /detail-group -->
+
+            <hr class="modal-divider">
+            <!-- Reason group: collapsed by default; chevron disabled until a class is ticked;
+                 auto-expands on the first tick. "Other" reveals a required textarea. -->
+            <div class="detail-group">
+                <div class="detail-group-title bc-reason-head">
+                    <span>Cancellation Reason <span class="bc-required">*</span></span>
+                    <button type="button" class="bc-reason-toggle" id="bcReasonToggle" aria-expanded="false" aria-label="Expand cancellation reason" disabled>
+                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+                    </button>
+                </div>
+                <div class="bc-reason-body" id="bcReasonBody" hidden>
+                    <div class="bc-reasons" id="bcReasons"><!-- reason radios injected, two columns --></div>
+                    <div id="bcOtherWrap" style="display:none;margin-top:10px">
+                        <label for="bcOther" class="bc-other-label">Other reason <span class="bc-required">*</span></label>
+                        <textarea id="bcOther" class="modal-textarea" rows="3" placeholder="Describe the reason for &quot;Other&quot;…" required></textarea>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ─── success state: receipt of what was cancelled + totals ─── -->
+        <div id="bulkSuccessState" class="is-hidden">
+            <p class="bc-ok">✓ <span id="bcOkCount">0 classes</span> cancelled</p>
+            <ul class="bc-receipt-list" id="bcReceiptList"></ul>
+            <div class="bc-receipt-totals" id="bcReceiptTotals"></div>
+            <p class="bc-hint" id="bcReceiptTold"></p>
+        </div>
+
+        <!-- ─── refusal state (all-or-nothing): nothing was changed ─── -->
+        <div id="bulkRefusalState" class="is-hidden">
+            <p class="bc-bad">✕ Nothing was cancelled</p>
+            <p class="bc-hint" style="margin-top:0">These classes could not be cancelled, so the whole batch was left unchanged:</p>
+            <ul class="bc-receipt-list" id="bcRefusalList"></ul>
+            <p class="bc-hint">Fix the selection above, or go back and pick different classes.</p>
+        </div>
+    </div>
+
+    <!-- Footer buttons swap per state: pick / success / refusal. -->
+    <div class="modal-footer">
+        <button class="btn-outline" id="bcKeepBtn" onclick="BulkCancel.dismiss()">No, Keep Classes</button>
+        <!-- warning sits directly above the confirm button and only shows when it is enabled -->
+        <div class="bc-confirm-wrap" id="bcConfirmWrap">
+            <p class="confirm-warning bc-undo-warn is-hidden" id="bcUndoWarn">CANNOT UNDONE</p>
+            <button class="btn-danger" id="bcConfirmBtn" onclick="BulkCancel.confirm()" disabled>Yes, Cancel Classes</button>
+        </div>
+        <button class="btn-action is-hidden" id="bcViewBtn" onclick="BulkCancel.viewTimetable()">View my timetable</button>
+        <button class="btn-outline is-hidden" id="bcDoneBtn" onclick="BulkCancel.dismiss()">Done</button>
+        <button class="btn-outline is-hidden" id="bcBackBtn" onclick="BulkCancel.backToPick()">Back</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ═════════════════════════════════════════════════════════════════════════════
+   BulkCancel — prototype controller.
+
+   Real implementation notes (for the SDD design):
+   · the days + classes come from the page's own payload ($eventsByWeek, all 14
+     weeks) — no round trip to build the list;
+   · the reason vocabulary is the real ClassCancellation.REASONS (8 entries);
+   · the server re-checks everything (ownership, 2-working-day window, holiday,
+     duplicates) and writes all-or-nothing in one transaction.
+   ═════════════════════════════════════════════════════════════════════════════ */
+var BulkCancel = {
+    /* the 8 reasons the real modal offers (DB enum values, frozen wording) */
+    REASONS: [
+        { value: 'medical_leave', label: 'Medical/Sick Leave' },
+        { value: 'annual_leave', label: 'Annual Leave' },
+        { value: 'emergency_leave', label: 'Emergency Leave' },
+        { value: 'hospitalisation_leave', label: 'Hospitalisation Leave' },
+        { value: 'maternity_leave', label: 'Maternity Leave' },
+        { value: 'compassionate_leave', label: 'Compassionate Leave' },
+        { value: 'paternity_leave', label: 'Paternity Leave' },
+        { value: 'other', label: 'Other' }
+    ],
+
+    /* mock days for the preview — the shape the real page already has.
+       Two weeks, so the picker's week label is visible (week 8 = 9–15 Nov,
+       week 9 = 16–22 Nov 2026 for this semester). */
+    ALL_DAYS: [
+        { iso: '2026-11-09', week: 8, name: 'Mon, 9 Nov 2026', classes: [
+            { id: '11:8', time: '9:00 AM ~ 11:00 AM', code: 'AMSE1003', type: 'L', venue: 'B100', groups: ['DFT2(S1)G1'], state: 'normal' },
+            { id: '12:8', time: '2:00 PM ~ 4:00 PM', code: 'AMSE2003', type: 'P', venue: 'B009', groups: ['DFT2(S1)G1', 'DSF2(S1)G1'], state: 'replacement' }
+        ]},
+        { iso: '2026-11-10', week: 8, name: 'Tue, 10 Nov 2026', classes: [
+            { id: '21:8', time: '8:30 AM ~ 10:30 AM', code: 'BMSE3153', type: 'L', venue: 'B105', groups: ['RSD2(S1)G2'], state: 'normal' },
+            { id: '22:8', time: '11:00 AM ~ 1:00 PM', code: 'AMSE2013', type: 'T', venue: 'B110', groups: ['RSD2(S1)G1'], state: 'normal' }
+        ]},
+        { iso: '2026-11-11', week: 8, name: 'Wed, 11 Nov 2026', classes: [
+            { id: '31:8', time: '9:00 AM ~ 11:00 AM', code: 'MPU-2212', type: 'L', venue: 'B103', groups: [], state: 'normal' }
+        ]},
+        { iso: '2026-11-12', week: 8, name: 'Thu, 12 Nov 2026', classes: [
+            { id: '43:8', time: '8:00 AM ~ 10:00 AM', code: 'AMSE2013', type: 'T', venue: 'B110', groups: ['RSD2(S1)G1'], state: 'normal' },
+            { id: '41:8', time: '10:00 AM ~ 12:00 PM', code: 'AMSE1003', type: 'L', venue: 'B100', groups: ['DFT2(S1)G2'], state: 'already' },
+            { id: '44:8', time: '12:00 PM ~ 2:00 PM', code: 'MPU-2212', type: 'L', venue: 'B103', groups: [], state: 'normal' },
+            { id: '42:8', time: '3:00 PM ~ 5:00 PM', code: 'BMSE3153', type: 'P', venue: 'B009', groups: ['RSD2(S1)G2'], state: 'normal' },
+            { id: '45:8', time: '5:00 PM ~ 7:00 PM', code: 'AMSE2002', type: 'L', venue: 'B112', groups: ['DFT2(S1)G3'], state: 'normal' }
+        ]},
+        { iso: '2026-11-13', week: 8, name: 'Fri, 13 Nov 2026', classes: [
+            { id: '51:8', time: '1:30 PM ~ 3:30 PM', code: 'AMSE2002', type: 'L', venue: 'B112', groups: ['DFT2(S1)G3'], state: 'normal' }
+        ]},
+        { iso: '2026-11-14', week: 8, name: 'Sat, 14 Nov 2026', classes: [] },
+        { iso: '2026-11-15', week: 8, name: 'Sun, 15 Nov 2026', classes: [], sunday: true },
+        { iso: '2026-11-16', week: 9, name: 'Mon, 16 Nov 2026', classes: [
+            { id: '61:9', time: '9:00 AM ~ 11:00 AM', code: 'AMSE1003', type: 'L', venue: 'B100', groups: ['DFT2(S1)G1'], state: 'normal' },
+            { id: '62:9', time: '2:00 PM ~ 4:00 PM', code: 'AMSE2003', type: 'P', venue: 'B009', groups: ['DFT2(S1)G1', 'DSF2(S1)G1'], state: 'normal' }
+        ]},
+        { iso: '2026-11-17', week: 9, name: 'Tue, 17 Nov 2026', classes: [
+            { id: '71:9', time: '8:30 AM ~ 10:30 AM', code: 'BMSE3153', type: 'L', venue: 'B105', groups: ['RSD2(S1)G2'], state: 'normal' }
+        ]},
+        { iso: '2026-11-18', week: 9, name: 'Wed, 18 Nov 2026', classes: [
+            { id: '81:9', time: '9:00 AM ~ 11:00 AM', code: 'MPU-2212', type: 'L', venue: 'B103', groups: [], state: 'normal' },
+            { id: '82:9', time: '3:00 PM ~ 5:00 PM', code: 'AMSE2013', type: 'T', venue: 'B110', groups: ['RSD2(S1)G1'], state: 'replacement' }
+        ]},
+        { iso: '2026-11-19', week: 9, name: 'Thu, 19 Nov 2026', classes: [
+            { id: '91:9', time: '10:00 AM ~ 12:00 PM', code: 'AMSE1003', type: 'L', venue: 'B100', groups: ['DFT2(S1)G2'], state: 'normal' }
+        ]},
+        { iso: '2026-11-20', week: 9, name: 'Fri, 20 Nov 2026', classes: [] },
+        { iso: '2026-11-23', week: 10, name: 'Mon, 23 Nov 2026', classes: [
+            { id: '101:10', time: '9:00 AM ~ 11:00 AM', code: 'AMSE1003', type: 'L', venue: 'B100', groups: ['DFT2(S1)G1'], state: 'normal' }
+        ]},
+        { iso: '2026-11-24', week: 10, name: 'Tue, 24 Nov 2026', classes: [
+            { id: '111:10', time: '8:30 AM ~ 10:30 AM', code: 'BMSE3153', type: 'L', venue: 'B105', groups: ['RSD2(S1)G2'], state: 'normal' }
+        ]},
+        { iso: '2026-11-25', week: 10, name: 'Wed, 25 Nov 2026', classes: [] },
+        { iso: '2026-11-26', week: 10, name: 'Thu, 26 Nov 2026', classes: [
+            { id: '121:10', time: '3:00 PM ~ 5:00 PM', code: 'AMSE2002', type: 'L', venue: 'B112', groups: ['DFT2(S1)G3'], state: 'normal' }
+        ]},
+        { iso: '2026-11-27', week: 10, name: 'Fri, 27 Nov 2026', classes: [] }
+    ],
+    /* ── semester bounds + week numbering (202605, 14 weeks) ── */
+    SEMESTER_WEEK_ONE_START: '2026-11-09',   /* week 8 begins on this Monday (demo calendar) */
+    FIRST_WEEK_NUMBER: 8,
+    /* the real 202605 semester (14 weeks) — the picker refuses dates outside it */
+    SEMESTER_START: '2026-09-21',
+    SEMESTER_END: '2026-12-27',
+
+    /* ── state labels, badge classes and the row's four fact icons ── */
+    STATE_LABEL: { normal: 'Normal', replacement: 'Replacement', already: 'Already cancelled', old: 'Too old', holiday: 'Holiday' },
+    /* the SAME families the app's block pop-up uses: selectable states carry the
+       modal status badge, the rest fall back to the neutral outline badge */
+    STATE_CLASS: { normal: 'modal-status-badge normal', replacement: 'modal-status-badge replacement', already: 'badge badge-outline', old: 'badge badge-outline', holiday: 'badge badge-outline' },
+
+    /* the row's four fact icons — the app's own Feather set (book / clock /
+       building / users), 13px, stroke inherits the muted token */
+    ICON: {
+        book: '<svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>',
+        clock: '<svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>',
+        venue: '<svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18"/><path d="M5 21V7l7-4 7 4v14"/><path d="M9 21v-6h6v6"/></svg>',
+        cohort: '<svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>',
+        calendar: '<svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>',
+        days: '<svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/><path d="M8 14h.01M12 14h.01M16 14h.01M8 18h.01M12 18h.01M16 18h.01"/></svg>'
+    },
+
+    /* ── hover details (mock, matching the class_replacement_fresh rows) ── */
+    MODULE_NAME: {
+        'AMSE1003': 'Software Engineering',
+        'AMSE2002': 'Software Design and Architecture',
+        'AMSE2003': 'Software Testing and Quality Assurance',
+        'AMSE2013': 'Software Requirements Engineering',
+        'BMSE3153': 'Software Project Management',
+        'MPU-2212': 'Bahasa Kebangsaan A'
+    },
+    VENUE_FULL: {
+        'B009': 'Computer Lab B009 (28 seats)',
+        'B100': 'Tutorial Room B100 (35 seats)',
+        'B103': 'Tutorial Room B103 (35 seats)',
+        'B105': 'Tutorial Room B105 (35 seats)',
+        'B110': 'Lecture Hall B110 (80 seats)',
+        'B112': 'Tutorial Room B112 (35 seats)'
+    },
+    COHORT_FULL: {
+        'DFT2(S1)G1': 'Diploma in Information Technology · Year 2 Sem 1 Group 1 (18 students)',
+        'DFT2(S1)G2': 'Diploma in Information Technology · Year 2 Sem 1 Group 2 (17 students)',
+        'DFT2(S1)G3': 'Diploma in Information Technology · Year 2 Sem 1 Group 3 (16 students)',
+        'DSF2(S1)G1': 'Diploma in Software Engineering · Year 2 Sem 1 Group 1 (15 students)',
+        'RSD2(S1)G1': 'Bachelor in IT (Hons) Software Systems Development · Year 2 Sem 1 Group 1 (7 students)',
+        'RSD2(S1)G2': 'Bachelor in IT (Hons) Software Systems Development · Year 2 Sem 1 Group 2 (5 students)'
+    },
+
+    /* ── runtime state (reset on every open) ── */
+    selected: {},
+    openDays: {},
+    openWeeks: {},
+    _summaryOpen: false,
+    reason: null,
+    visibleDays: [],
+    lastDropped: 0,
+    _rangeKey: null,
+
+    /* ── open / close / reason-group helpers ── */
+    open() {
+        this.selected = {};
+        this.openDays = {};
+        this.openWeeks = {};
+        this.reason = null;
+        this._hadPicks = false;
+        this._summaryOpen = false;
+        this.setReasonOpen(false);
+        this.setSummaryOpen(false);
+        document.getElementById('bulkConfirmState').classList.remove('is-hidden');
+        document.getElementById('bulkSuccessState').classList.add('is-hidden');
+        document.getElementById('bulkRefusalState').classList.add('is-hidden');
+        document.getElementById('bcKeepBtn').classList.remove('is-hidden');
+        document.getElementById('bcConfirmWrap').classList.remove('is-hidden');
+        document.getElementById('bcViewBtn').classList.add('is-hidden');
+        document.getElementById('bcDoneBtn').classList.add('is-hidden');
+        document.getElementById('bcBackBtn').classList.add('is-hidden');
+        document.getElementById('bcOtherWrap').style.display = 'none';
+        document.getElementById('bcOther').value = '';
+        this.renderReasons();
+        this.applyRange();
+        var ov = document.getElementById('bulkOverlay');
+        ov.classList.add('show'); ov.style.display = 'flex';
+    },
+
+    setReasonOpen(open) {
+        var body = document.getElementById('bcReasonBody');
+        var toggle = document.getElementById('bcReasonToggle');
+        body.hidden = !open;
+        toggle.classList.toggle('is-open', open);
+        toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+        toggle.setAttribute('aria-label', open ? 'Collapse cancellation reason' : 'Expand cancellation reason');
+    },
+
+    /* the summary bar folds the card grid; default is collapsed (user 2026-11-10) */
+    setSummaryOpen(open) {
+        this._summaryOpen = open;
+        var bar = document.getElementById('bcSummaryBar');
+        var panel = document.getElementById('bcSummaryPanel');
+        if (bar) {
+            bar.classList.toggle('is-open', open);
+            bar.setAttribute('aria-expanded', open ? 'true' : 'false');
+        }
+        if (panel) panel.classList.toggle('is-hidden', !open);
+    },
+
+    toggleSummary() {
+        this.setSummaryOpen(!this._summaryOpen);
+    },
+
+    dismiss() {
+        var ov = document.getElementById('bulkOverlay');
+        ov.classList.remove('show'); ov.style.display = 'none';
+        /* the real page refreshes from the server here (ruling R16) */
+    },
+
+    /* ── the date range: filtering + the checks ───────────────────────────── */
+    _iso(d) {
+        return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+    },
+
+    _parse(iso) {
+        var m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso || '');
+        if (!m) return null;
+        return new Date(+m[1], +m[2] - 1, +m[3]);
+    },
+
+    _weekOf(date) {
+        var anchor = this._parse(this.SEMESTER_WEEK_ONE_START);
+        var days = Math.floor((Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()) -
+                               Date.UTC(anchor.getFullYear(), anchor.getMonth(), anchor.getDate())) / 86400000);
+        return this.FIRST_WEEK_NUMBER + Math.floor(days / 7);
+    },
+
+    _dayName(date) {
+        var DOW = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+        var MON = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+        return DOW[date.getDay()] + ', ' + date.getDate() + ' ' + MON[date.getMonth()] + ' ' + date.getFullYear();
+    },
+
+    _shortDate(iso) {
+        var d = this._parse(iso);
+        if (!d) return iso;
+        var MON = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+        return d.getDate() + ' ' + MON[d.getMonth()] + ' ' + d.getFullYear();
+    },
+
+    _rangeMessage(text, bad) {
+        var el = document.getElementById('bcRangeHint');
+        if (!el) return;
+        /* "Selected range" label temporarily hidden (user, 2026-11-10) —
+           restore by un-commenting the string below */
+        el.innerHTML = /* '<span class="bc-range-label">Selected range</span>' + */ (text ? '<span>' + text + '</span>' : '');
+        el.classList.toggle('is-bad', !!bad);
+        el.classList.toggle('is-hidden', !text);   /* only validation messages show */
+    },
+
+    _rangeSummary(html) {
+        var el = document.getElementById('bcRangeHint');
+        if (!el) return;
+        /* the summary bar itself stays hidden (user, 2026-11-10); only the red
+           validation message shows. Restore by setting el.innerHTML = html. */
+        el.innerHTML = '';
+        el.classList.add('is-hidden');
+        el.classList.remove('is-bad');
+    },
+
+    /* Mon–Fri only; public holidays are not modelled in this prototype. */
+    _isWorkingDay(d) {
+        var dow = d.getDay();
+        return dow !== 0 && dow !== 6;
+    },
+
+    _workingDaysBetween(from, to) {
+        var n = 0;
+        var d = new Date(from.getFullYear(), from.getMonth(), from.getDate());
+        while (d.getTime() <= to.getTime()) {
+            if (this._isWorkingDay(d)) n++;
+            d.setDate(d.getDate() + 1);
+        }
+        return n;
+    },
+
+    /* The nth working day at or after `date` (step +1) or at or before it (step -1). */
+    _nthWorkingDay(date, n, step) {
+        var d = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+        var count = 0;
+        while (true) {
+            if (this._isWorkingDay(d)) {
+                count++;
+                if (count === n) return new Date(d);
+            }
+            d.setDate(d.getDate() + step);
+        }
+    },
+
+    /* Native date-picker guards: the calendar greys out any date that would
+       break the semester, reverse the range, or push it past 7 working days.
+       The red message in applyRange() stays as a fallback for typed-in dates. */
+    _syncDateBounds() {
+        var fromEl = document.getElementById('bcFrom');
+        var toEl = document.getElementById('bcTo');
+        var semStart = this._parse(this.SEMESTER_START);
+        var semEnd = this._parse(this.SEMESTER_END);
+        var from = this._parse(fromEl.value);
+        var to = this._parse(toEl.value);
+
+        fromEl.min = this.SEMESTER_START;
+        fromEl.max = this.SEMESTER_END;
+        toEl.min = this.SEMESTER_START;
+        toEl.max = this.SEMESTER_END;
+
+        if (to) {
+            /* From must be <= To, and the range may hold at most 7 working days */
+            var fMin = this._nthWorkingDay(to, 7, -1);
+            fromEl.min = this._iso(fMin < semStart ? semStart : fMin);
+            fromEl.max = this._iso(to > semEnd ? semEnd : to);
+        }
+        if (from) {
+            /* To must be >= From, and at most the 7th working day from From */
+            var tMax = this._nthWorkingDay(from, 7, 1);
+            toEl.min = this._iso(from < semStart ? semStart : from);
+            toEl.max = this._iso(tMax > semEnd ? semEnd : tMax);
+        }
+    },
+
+    /* Rebuilds the visible days from the two dates. Refuses (and says why) when
+       the range is malformed — the confirm button stays dead in that state. */
+    applyRange() {
+        var fromEl = document.getElementById('bcFrom');
+        var toEl = document.getElementById('bcTo');
+        var from = this._parse(fromEl.value);
+        var to = this._parse(toEl.value);
+        this._syncDateBounds();
+
+        /* one edit can fire both `input` and `change`; only a REAL value change
+           starts a new range, otherwise the "picks dropped" note is wiped by the
+           second, already-empty pass (measured 2026-11-10) */
+        var rangeKey = fromEl.value + '|' + toEl.value;
+        if (rangeKey !== this._rangeKey) { this._rangeKey = rangeKey; this.lastDropped = 0; }
+
+        this.visibleDays = [];
+
+        if (!from || !to) {
+            this._rangeMessage('Choose both dates to see the classes.', true);
+            this.renderList(); this.refresh();
+            return;
+        }
+        var semStart = this._parse(this.SEMESTER_START);
+        var semEnd = this._parse(this.SEMESTER_END);
+        if (from.getTime() < semStart.getTime() || from.getTime() > semEnd.getTime() ||
+            to.getTime() < semStart.getTime() || to.getTime() > semEnd.getTime()) {
+            this._rangeMessage('Dates must be within this semester (' + this._shortDate(this.SEMESTER_START) + ' ~ ' + this._shortDate(this.SEMESTER_END) + ').', true);
+            this.renderList(); this.refresh();
+            return;
+        }
+        /* validation #2: From must be on or before To (equal is a one-day range) */
+        if (to.getTime() < from.getTime()) {
+            this._rangeMessage('The “From” date must be on or before the “To” date.', true);
+            this.renderList(); this.refresh();
+            return;
+        }
+        var spanDays = Math.round((to.getTime() - from.getTime()) / 86400000) + 1;
+        var workingDays = this._workingDaysBetween(from, to);
+        if (workingDays > 7) {
+            this._rangeMessage('That is ' + workingDays + ' working days. Please pick a range of 7 working days or less.', true);
+            this.renderList(); this.refresh();
+            return;
+        }
+
+        var byIso = {};
+        this.ALL_DAYS.forEach(function (d) { byIso[d.iso] = d; });
+
+        var dropped = 0;
+        var visible = [];
+        for (var i = 0; i < spanDays; i++) {
+            var d = new Date(from.getFullYear(), from.getMonth(), from.getDate() + i);
+            var iso = this._iso(d);
+            var day = byIso[iso];
+            if (!day) {
+                day = { iso: iso, week: this._weekOf(d), name: this._dayName(d), classes: [], synthetic: true };
+            }
+            /* already-cancelled classes are hidden from the list (user ruling 2026-11-10) */
+            var shownClasses = (day.classes || []).filter(function (c) { return c.state !== 'already'; });
+            var copy = Object.assign({}, day, { classes: shownClasses });
+            if (d.getDay() === 0) copy.sunday = true;
+            visible.push(copy);
+        }
+        this.visibleDays = visible;
+
+        /* a selection that fell outside the new range is dropped, and we say how many */
+        var keep = {};
+        visible.forEach(function (day) { day.classes.forEach(function (c) { keep[c.id] = true; }); });
+        Object.keys(this.selected).forEach(function (id) {
+            if (!keep[id]) { delete BulkCancel.selected[id]; dropped++; }
+        });
+        this.lastDropped += dropped;
+
+        var classes = visible.reduce(function (n, day) { return n + day.classes.length; }, 0);
+        /* only class days are listed, so the day count follows the list (user
+           ruling 2026-11-10: no "No class" rows) */
+        var shownDays = visible.filter(function (d) { return d.classes.length > 0; }).length;
+        var firstWeek = visible[0].week, lastWeek = visible[visible.length - 1].week;
+        var weekText = firstWeek === lastWeek ? 'Week ' + firstWeek : 'Week ' + firstWeek + ' ~ ' + lastWeek;
+        var summary =
+            '<span class="bc-stat">' + this.ICON.calendar + '<span>' + weekText + '</span></span>' +
+            '<span class="bc-stat">' + this.ICON.days + '<span>' + shownDays + ' Working Day' + (shownDays === 1 ? '' : 's') + '</span></span>' +
+            '<span class="bc-stat">' + this.ICON.book + '<span>' + classes + ' class' + (classes === 1 ? '' : 'es') + '</span></span>';
+        if (this.lastDropped) {
+            summary += '<span class="bc-stat bc-stat-note">' + this.lastDropped + ' earlier pick' + (this.lastDropped === 1 ? '' : 's') + ' dropped (outside the new range)</span>';
+        }
+        this._rangeSummary(summary);
+
+        this.renderList();
+        this.refresh();
+    },
+
+    /* ── reason radios (the real 8 reasons, two columns) ── */
+    renderReasons() {
+        var box = document.getElementById('bcReasons');
+        box.innerHTML = '';
+        this.REASONS.forEach(function (r) {
+            var l = document.createElement('label');
+            l.style.cssText = 'display:flex;align-items:center;gap:8px;padding:6px 0;cursor:pointer;font-size:13px;';
+            var i = document.createElement('input');
+            i.type = 'radio'; i.name = 'bcReason'; i.value = r.value;
+            i.addEventListener('change', function () {
+                BulkCancel.reason = r.value;
+                document.getElementById('bcOtherWrap').style.display = r.value === 'other' ? 'block' : 'none';
+                BulkCancel.refresh();
+            });
+            l.appendChild(i); l.appendChild(document.createTextNode(r.label));
+            box.appendChild(l);
+        });
+    },
+
+    /* ── week-grouped list: week header → day header → class rows ── */
+    renderList() {
+        var list = document.getElementById('bcList');
+        list.innerHTML = '';
+        var shown = 0;
+
+        /* group the class days by week so a multi-week range reads as
+           Week 8 -> its days, Week 9 -> its days (user ruling 2026-11-10) */
+        var weeks = [];
+        var byWeek = {};
+        this.visibleDays.forEach(function (day) {
+            if (day.classes.length === 0) return;
+            shown++;
+            if (!byWeek[day.week]) {
+                byWeek[day.week] = { week: day.week, days: [] };
+                weeks.push(byWeek[day.week]);
+            }
+            byWeek[day.week].days.push(day);
+        });
+
+        weeks.forEach(function (group) {
+            /* weeks start expanded (user ruling 2026-11-10); the map only stores
+               an explicit false when the user folds one */
+            var weekOpen = BulkCancel.openWeeks[group.week] !== false;
+            var weekWrap = document.createElement('div');
+            weekWrap.className = 'bc-week' + (weekOpen ? ' is-open' : '');
+
+            var weekHead = document.createElement('div');
+            weekHead.className = 'bc-week-head';
+
+            var weekBox = document.createElement('input');
+            weekBox.type = 'checkbox';
+            var weekClasses = [];
+            group.days.forEach(function (day) {
+                day.classes.forEach(function (c) {
+                    if (BulkCancel.selectable(c)) weekClasses.push(c);
+                });
+            });
+            var weekPicked = weekClasses.filter(function (c) { return BulkCancel.selected[c.id]; }).length;
+            weekBox.disabled = weekClasses.length === 0;
+            weekBox.checked = weekClasses.length > 0 && weekPicked === weekClasses.length;
+            weekBox.indeterminate = weekPicked > 0 && weekPicked < weekClasses.length;
+            weekBox.addEventListener('change', function () {
+                weekClasses.forEach(function (c) {
+                    if (weekBox.checked) BulkCancel.selected[c.id] = true; else delete BulkCancel.selected[c.id];
+                });
+                BulkCancel.renderList();
+                BulkCancel.refresh();
+            });
+
+            var weekTitle = document.createElement('span');
+            weekTitle.className = 'bc-week-title';
+            weekTitle.textContent = 'Week ' + group.week;
+
+            var weekRight = document.createElement('span');
+            weekRight.className = 'bc-week-right';
+            var weekToggle = document.createElement('button');
+            weekToggle.type = 'button';
+            weekToggle.className = 'bc-week-toggle';
+            weekToggle.setAttribute('aria-expanded', weekOpen ? 'true' : 'false');
+            weekToggle.setAttribute('aria-label', weekOpen ? 'Collapse week ' + group.week : 'Expand week ' + group.week);
+            weekToggle.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>';
+            weekToggle.addEventListener('click', function () {
+                var next = BulkCancel.openWeeks[group.week] === false;
+                BulkCancel.openWeeks[group.week] = next;
+                weekWrap.classList.toggle('is-open', next);
+                weekToggle.setAttribute('aria-expanded', next ? 'true' : 'false');
+                weekToggle.setAttribute('aria-label', next ? 'Collapse week ' + group.week : 'Expand week ' + group.week);
+            });
+            weekRight.appendChild(weekToggle);
+
+            weekHead.appendChild(weekBox);
+            weekHead.appendChild(weekTitle);
+            weekHead.appendChild(weekRight);
+            weekWrap.appendChild(weekHead);
+
+            group.days.forEach(function (day) {
+                var wrap = document.createElement('div');
+                var open = !!BulkCancel.openDays[day.iso];
+                wrap.className = 'bc-day' + (open ? ' is-open' : '');
+
+                var head = document.createElement('div');
+                head.className = 'bc-day-head';
+                var all = day.classes.every(function (c) { return c.state !== 'normal' && c.state !== 'replacement'; });
+                var headBox = document.createElement('input');
+                headBox.type = 'checkbox';
+                headBox.disabled = all;
+                headBox.checked = !all && day.classes.every(function (c) {
+                    return !BulkCancel.selectable(c) || BulkCancel.selected[c.id];
+                });
+                headBox.addEventListener('change', function () {
+                    day.classes.forEach(function (c) {
+                        if (!BulkCancel.selectable(c)) return;
+                        if (headBox.checked) BulkCancel.selected[c.id] = true; else delete BulkCancel.selected[c.id];
+                    });
+                    BulkCancel.renderList();
+                    BulkCancel.refresh();
+                });
+
+                var name = document.createElement('span');
+                name.className = 'dname';
+                name.textContent = day.name;
+                var cnt = document.createElement('span');
+                cnt.className = 'dcount';
+                cnt.textContent = '(' + day.classes.length + (day.classes.length === 1 ? ' class' : ' classes') + ')';
+
+                head.appendChild(headBox);
+                head.appendChild(name);
+                head.appendChild(cnt);
+
+                var right = document.createElement('span');
+                right.className = 'bc-day-right';
+                if (day.sunday) {
+                    var t = document.createElement('span');
+                    t.className = 'dtag badge badge-outline';
+                    t.textContent = 'Holiday';
+                    right.appendChild(t);
+                }
+
+                /* the day folds by default (user ruling 2026-11-10) — the arrow owns
+                   the state so selecting a class re-renders without closing the day */
+                var toggle = document.createElement('button');
+                toggle.type = 'button';
+                toggle.className = 'bc-day-toggle';
+                toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+                toggle.setAttribute('aria-label', open ? 'Collapse day' : 'Expand day');
+                toggle.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>';
+                toggle.addEventListener('click', function () {
+                    var next = !BulkCancel.openDays[day.iso];
+                    BulkCancel.openDays[day.iso] = next;
+                    wrap.classList.toggle('is-open', next);
+                    toggle.setAttribute('aria-expanded', next ? 'true' : 'false');
+                    toggle.setAttribute('aria-label', next ? 'Collapse day' : 'Expand day');
+                });
+                right.appendChild(toggle);
+                head.appendChild(right);
+                wrap.appendChild(head);
+
+                day.classes.forEach(function (c) {
+                    var row = document.createElement('label');
+                    row.className = 'bc-row' + (BulkCancel.selectable(c) ? '' : ' is-off');
+
+                    var box = document.createElement('input');
+                    box.type = 'checkbox';
+                    box.disabled = !BulkCancel.selectable(c);
+                    box.checked = !!BulkCancel.selected[c.id];
+                    box.addEventListener('change', function () {
+                        if (box.checked) BulkCancel.selected[c.id] = true; else delete BulkCancel.selected[c.id];
+                        BulkCancel.renderList();
+                        BulkCancel.refresh();
+                    });
+
+                    var what = document.createElement('span');
+                    what.className = 'what';
+                    var groups = (c.groups && c.groups.length) ? c.groups.join(' & ') : 'No group';
+                    var moduleFull = BulkCancel.MODULE_NAME[c.code] || '';
+                    var venueFull = BulkCancel.VENUE_FULL[c.venue] || '';
+                    var cohortFull = (c.groups || []).map(function (g) { return BulkCancel.COHORT_FULL[g] || g; }).join(' | ');
+                    what.innerHTML =
+                        '<span class="line">' + BulkCancel.ICON.book + '<span class="code" title="' + moduleFull + '">' + c.code + ' (' + c.type + ')</span></span>' +
+                        '<span class="line">' + BulkCancel.ICON.clock + '<span>' + c.time + '</span></span>' +
+                        '<span class="line">' + BulkCancel.ICON.venue + '<span title="' + venueFull + '">' + c.venue + '</span></span>' +
+                        '<span class="line">' + BulkCancel.ICON.cohort + '<span title="' + cohortFull + '">' + groups + '</span></span>' +
+                        (BulkCancel.selectable(c) ? '' : '<span class="line why">' + BulkCancel.why(c) + '</span>');
+
+                    var badge = document.createElement('span');
+                    badge.className = BulkCancel.STATE_CLASS[c.state] || 'badge badge-outline';
+                    badge.textContent = BulkCancel.STATE_LABEL[c.state] || c.state;
+
+                    row.appendChild(box);
+                    row.appendChild(what);
+                    row.appendChild(badge);
+                    wrap.appendChild(row);
+                });
+
+                weekWrap.appendChild(wrap);
+            });
+
+            list.appendChild(weekWrap);
+        });
+
+        /* no class days in the range: hide the empty box, the summary already says 0 */
+        list.classList.toggle('is-hidden', shown === 0);
+    },
+
+    /* ── selection helpers ── */
+    picked() {
+        var out = [];
+        this.visibleDays.forEach(function (day) {
+            day.classes.forEach(function (c) { if (BulkCancel.selected[c.id]) out.push({ day: day, cls: c }); });
+        });
+        return out;
+    },
+
+    selectable(c) {
+        return c.state === 'normal' || c.state === 'replacement';
+    },
+
+    why(c) {
+        if (c.state === 'already') return 'Already cancelled — no need to cancel again.';
+        if (c.state === 'old') return 'Too old — only classes from 2 working days ago can be cancelled.';
+        if (c.state === 'holiday') return 'Public holiday — the class does not run.';
+        return '';
+    },
+
+    /* selected classes as cards — same look as .sel-summary-card on the
+       replacement-arrangement page (primary-container fill, 4 text lines) */
+    renderSummaryCards(picked) {
+        var grid = document.getElementById('bcSummaryGrid');
+        if (!grid) return;
+        grid.innerHTML = '';
+        picked.forEach(function (p) {
+            var day = p.day, c = p.cls;
+            var groups = (c.groups && c.groups.length) ? c.groups.join(' & ') : 'No group';
+            var moduleFull = BulkCancel.MODULE_NAME[c.code] || '';
+            var venueFull = BulkCancel.VENUE_FULL[c.venue] || '';
+            var cohortFull = (c.groups || []).map(function (g) { return BulkCancel.COHORT_FULL[g] || g; }).join(' | ');
+            var card = document.createElement('div');
+            card.className = 'bc-sum-card';
+            card.innerHTML =
+                '<button type="button" class="bc-sum-remove" aria-label="Remove" data-tip="Remove this Selection — Action cannot be UNDONE">×</button>' +
+                '<span class="bc-sum-line">' + BulkCancel.ICON.book + '<span class="bc-sum-code" title="' + moduleFull + '">' + c.code + ' (' + c.type + ')</span></span><br>' +
+                '<span class="bc-sum-line">' + BulkCancel.ICON.cohort + '<span class="bc-sum-groups" title="' + cohortFull + '">' + groups + '</span></span><br>' +
+                '<span class="bc-sum-line">' + BulkCancel.ICON.calendar + '<span class="bc-sum-day">W' + day.week + ', ' + day.name + '</span></span><br>' +
+                '<span class="bc-sum-line">' + BulkCancel.ICON.clock + '<span class="bc-sum-time">' + c.time + '</span></span><br>' +
+                '<span class="bc-sum-line">' + BulkCancel.ICON.venue + '<span class="bc-sum-venue" title="' + venueFull + '">' + c.venue + '</span></span>';
+            card.querySelector('.bc-sum-remove').addEventListener('click', function (e) {
+                e.stopPropagation();
+                delete BulkCancel.selected[c.id];
+                BulkCancel.renderList();
+                BulkCancel.refresh();
+            });
+            grid.appendChild(card);
+        });
+    },
+
+    /* ── summary bar + reason gate + confirm enablement ── */
+    refresh() {
+        var picked = this.picked();
+        var hours = picked.reduce(function (s, p) { return s + BulkCancel.hours(p.cls.time); }, 0);
+
+        var reasonToggle = document.getElementById('bcReasonToggle');
+        var hadPicks = this._hadPicks;
+        this._hadPicks = picked.length > 0;
+        reasonToggle.disabled = picked.length === 0;
+        if (picked.length === 0) {
+            this.setReasonOpen(false);
+        } else if (!hadPicks) {
+            this.setReasonOpen(true);
+        }
+
+        var noPicks = picked.length === 0;
+        document.getElementById('bcSummaryWrap').classList.toggle('is-hidden', noPicks);
+        if (noPicks) this.setSummaryOpen(false);
+        document.getElementById('bcPickCount').textContent = picked.length + (picked.length === 1 ? ' class' : ' classes');
+        document.getElementById('bcPickDetail').textContent = picked.length === 0
+            ? 'None selected'
+            : hours + ' hour' + (hours === 1 ? '' : 's');
+        this.renderSummaryCards(picked);
+
+        var otherOk = this.reason !== 'other' || document.getElementById('bcOther').value.trim().length > 0;
+        var ok = picked.length > 0 && this.reason !== null && otherOk;
+        document.getElementById('bcConfirmBtn').disabled = !ok;
+        /* the warning is only there when the button can actually be pressed */
+        document.getElementById('bcUndoWarn').classList.toggle('is-hidden', !ok);
+    },
+
+    /* ── teaching hours from a "2:00 PM ~ 4:00 PM" range ── */
+    hours(range) {
+        var m = /^(\d{1,2}):(\d{2})\s*(AM|PM)\s*~\s*(\d{1,2}):(\d{2})\s*(AM|PM)$/.exec(range);
+        if (!m) return 0;
+        var a = (+m[1] % 12) + (m[3] === 'PM' ? 12 : 0);
+        var b = (+m[4] % 12) + (m[6] === 'PM' ? 12 : 0);
+        return Math.max(0, b - a);
+    },
+
+    /* ── confirm / refusal / back / view actions ── */
+    confirm() {
+        var picked = this.picked();
+        if (!picked.length || !this.reason) return;
+
+        if (document.getElementById('swShowRefusal').checked) {
+            this.showRefusal(picked);
+            return;
+        }
+
+        var count = picked.length;
+        var closed = picked.filter(function (p) { return p.cls.state === 'replacement'; }).length;
+        var hours = picked.reduce(function (s, p) { return s + BulkCancel.hours(p.cls.time); }, 0);
+        var days = {};
+        picked.forEach(function (p) { days[p.day.iso] = true; });
+
+        document.getElementById('bulkConfirmState').classList.add('is-hidden');
+        document.getElementById('bulkSuccessState').classList.remove('is-hidden');
+        document.getElementById('bcKeepBtn').classList.add('is-hidden');
+        document.getElementById('bcConfirmWrap').classList.add('is-hidden');
+        document.getElementById('bcViewBtn').classList.remove('is-hidden');
+        document.getElementById('bcDoneBtn').classList.remove('is-hidden');
+
+        document.getElementById('bcOkCount').textContent = count + (count === 1 ? ' class' : ' classes');
+
+        var list = document.getElementById('bcReceiptList');
+        list.innerHTML = '';
+        picked.forEach(function (p) {
+            var li = document.createElement('li');
+            var g = (p.cls.groups && p.cls.groups.length) ? p.cls.groups.join(' · ') : 'No group';
+            li.innerHTML = '<span class="when">W' + p.day.week + ' · ' + p.day.name.replace(/^\w+, /, '') + '</span>' +
+                '<span><b>' + p.cls.code + ' (' + p.cls.type + ')</b> · ' + p.cls.time + ' · ' + p.cls.venue + ' · ' + g + '</span>';
+            list.appendChild(li);
+        });
+
+        var nDays = Object.keys(days).length;
+        document.getElementById('bcReceiptTotals').innerHTML =
+            '<span><b>' + count + '</b> class' + (count === 1 ? '' : 'es') + '</span>' +
+            '<span><b>' + nDays + '</b> day' + (nDays === 1 ? '' : 's') + '</span>' +
+            '<span><b>' + hours + '</b> hour' + (hours === 1 ? '' : 's') + '</span>' +
+            (closed ? '<span><b>' + closed + '</b> request' + (closed === 1 ? '' : 's') + ' withdrawn</span>' : '');
+
+        document.getElementById('bcReceiptTold').textContent =
+            'Students of each class have a message in their bell' +
+            (closed ? ', and the PL has one for each withdrawn request' : '') + '.';
+    },
+
+    showRefusal(picked) {
+        document.getElementById('bulkConfirmState').classList.add('is-hidden');
+        document.getElementById('bulkRefusalState').classList.remove('is-hidden');
+        document.getElementById('bcKeepBtn').classList.add('is-hidden');
+        document.getElementById('bcConfirmWrap').classList.add('is-hidden');
+        document.getElementById('bcBackBtn').classList.remove('is-hidden');
+
+        var list = document.getElementById('bcRefusalList');
+        list.innerHTML = '';
+        /* pretend the server found two blockers */
+        var blockers = [
+            { when: picked[0].day.name.replace(/^\\w+, /, ''), what: picked[0].cls.code + ' (' + picked[0].cls.type + ') · ' + picked[0].cls.time, why: 'This class was cancelled a moment ago.' },
+            { when: 'W' + picked[picked.length - 1].day.week + ' · ' + (picked[picked.length - 1].day.name).replace(/^\w+, /, ''), what: picked[picked.length - 1].cls.code + ' (' + picked[picked.length - 1].cls.type + ') · ' + picked[picked.length - 1].cls.time, why: 'A pending request for this class was approved while you were choosing.' }
+        ];
+        blockers.forEach(function (b) {
+            var li = document.createElement('li');
+            li.innerHTML = '<span class="when">' + b.when + '</span><span><b>' + b.what + '</b><br><span class="why">' + b.why + '</span></span>';
+            list.appendChild(li);
+        });
+    },
+
+    backToPick() {
+        document.getElementById('bulkRefusalState').classList.add('is-hidden');
+        document.getElementById('bulkConfirmState').classList.remove('is-hidden');
+        document.getElementById('bcKeepBtn').classList.remove('is-hidden');
+        document.getElementById('bcConfirmWrap').classList.remove('is-hidden');
+        document.getElementById('bcBackBtn').classList.add('is-hidden');
+        this.refresh();
+    },
+
+    viewTimetable() {
+        /* the real page: close, refresh from the server, land on the first cancelled week */
+        alert('Prototype: the page would close this box, refresh from the server and land on Week 8.');
+    }
+};
+
+/* ── theme: the app's own rule (html.dark / html.light, remembered in localStorage 'theme') ── */
+function applyTheme(isLight) {
+    document.documentElement.classList.toggle('light', isLight);
+    document.documentElement.classList.toggle('dark', !isLight);
+    document.documentElement.setAttribute('data-theme', isLight ? 'light' : 'dark');
+    document.getElementById('swThemeLabel').textContent = isLight ? 'Light theme' : 'Dark theme';
+    try { localStorage.setItem('theme', isLight ? 'light' : 'dark'); } catch (e) {}
+}
+document.getElementById('swTheme').checked = document.documentElement.classList.contains('light');
+document.getElementById('swThemeLabel').textContent =
+    document.getElementById('swTheme').checked ? 'Light theme' : 'Dark theme';
+document.getElementById('swTheme').addEventListener('change', function () { applyTheme(this.checked); });
+
+/* ── prototype switches ── */
+document.getElementById('protoCancelBtn').addEventListener('click', function () {
+    if (this.disabled) return;
+    BulkCancel.open();
+});
+document.getElementById('swEnable').addEventListener('change', function () {
+    var btn = document.getElementById('protoCancelBtn');
+    btn.disabled = !this.checked;
+    btn.style.cursor = this.checked ? 'pointer' : 'not-allowed';
+    btn.style.opacity = this.checked ? '1' : '.5';
+    btn.setAttribute('data-tip', this.checked ? '' : 'No cancellable class this week — move to Week 8 or later.');
+});
+/* ── event wiring: date inputs, reason toggle, Other input ── */
+/* the dates really filter the list now, and the checks run on every change */
+document.getElementById('bcFrom').addEventListener('change', function () { BulkCancel.applyRange(); });
+document.getElementById('bcTo').addEventListener('change', function () { BulkCancel.applyRange(); });
+document.getElementById('bcReasonToggle').addEventListener('click', function () {
+    if (this.disabled) return;
+    BulkCancel.setReasonOpen(document.getElementById('bcReasonBody').hidden);
+});
+document.getElementById('bcSummaryBar').addEventListener('click', function () {
+    BulkCancel.toggleSummary();
+});
+document.getElementById('bcOther').addEventListener('input', function () { BulkCancel.refresh(); });
+document.getElementById('swEnable').checked = true;
+</script>
+</body>
+</html>

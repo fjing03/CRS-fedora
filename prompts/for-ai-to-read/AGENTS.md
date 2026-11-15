@@ -28,6 +28,16 @@ it. Paths below are relative to the repository root unless they start with `../`
   that truth lives in `.sdd/changes/`, `.sdd/archive/` and `page-changelogs/`. (A
   hand-maintained `sdd.md` tracker was moved in on 2026-11-03 and moved back out the same
   day for exactly that reason.)
+- **`ui-prototype/`** — the HTML prototypes, **inside the repo since 2026-11-15** (they used to sit
+  outside it, so nothing could cite them). They are the visual reference for every UI lane, and they
+  **carry the design intent in code comments** (why a tier is 11px, why a badge is grey, which rule
+  a class obeys). A lane's `proposal.md`/`design.md` should point at the prototype and quote its
+  comments rather than restating them; when a prototype changes a *decision* (not a pixel), that
+  still needs the lane paper updated — the prototype is the picture, not the contract.
+  The hand-built previews are self-contained (`../public/css/theme.css`); the pages **saved** from the
+  live site (`my-replacements.html`, `request-approval.html`, `student-class-replacements.html`) keep
+  their `<base href="http://127.0.0.1:8000/">`, so they need the dev server for CSS/JS.
+
 - **`prompts/extra tasks/`** — parked, low-priority tasks for spare time. A file sitting there is **not** an instruction: never start one unless the user names it. Parked ≠ done, so never archive them silently; when one ships, move it to `prompts/completed prompt (Archieve)/` with an evidence row and ask first.
 
 ## Running /sdd-propose (or /sdd-apply) for a NEW UI frontend-only page

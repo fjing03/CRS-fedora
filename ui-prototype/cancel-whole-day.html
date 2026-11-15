@@ -1,0 +1,652 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark" class="dark">
+<!--
+  ═══════════════════════════════════════════════════════════════════════════
+  CANCEL THIS CLASS? — "whole day" checkbox — PROTOTYPE (2026-11-11)
+
+  Standalone design sheet. NOT the Laravel app. It loads the real
+  public/css/theme.css from :8000, so every colour is a token from the app.
+
+  The eight rulings it must show (grill 2026-11-11):
+   1. its own block BETWEEN the grey Class Information box and the
+      Cancellation Reason section;
+   2. the set is every class the lecturer teaches that day — all modules,
+      cohorts and rooms;
+   3. the label carries the count, and the list of the other classes appears
+      once ticked; every row is its OWN checkbox (user, 2026-11-11) and the red
+      button follows how many rows are still ticked;
+   4. a class whose request is still waiting is marked, because ticking
+      cancels that request too;
+   5. success: one Close button, ✓ N classes cancelled, the list;
+   6. a day with no other class shows NO block at all (screen C);
+   7. label words: "Also cancel my other 3 classes on Wednesday";
+   8. the red button reads "Yes, Cancel 4 Classes" while ticked.
+
+  The data is Surayaini (5425) on a Wednesday, week 8, opening the 11:00
+  class — the same screenshot the ask came from:
+     09:00  AMSE1003 Tutorial   B009  DSF1 (S1) G1
+     11:00  AMSE1003 Practical  B010  DSF1 (S1) G1   ← the class on screen
+     13:00  BMSE2163 Lecture    B015  RSD2 (S1) G2 + RSD2 (S1) G3
+     15:00  BMSE2163 Tutorial   B015  RSD2 (S1) G2 + RSD2 (S1) G3
+  NOTE: the demo data has no waiting request on that Wednesday, so the
+  "1 request waiting" mark on the 13:00 row is ILLUSTRATIVE — it shows the
+  state, it is not that day's real data.
+  ═══════════════════════════════════════════════════════════════════════════
+-->
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Prototype — Cancel this Class? · whole day</title>
+<link rel="stylesheet" href="../public/css/theme.css">
+<style>
+  /* ── page chrome (prototype only — never part of the app) ── */
+  body { margin: 0; padding: 24px; background: var(--color-bg); color: var(--color-on-surface);
+         font-family: var(--font-sans, system-ui, sans-serif); }
+  .sheet-head { max-width: 1280px; margin: 0 auto 20px; }
+  .sheet-head h1 { font-size: 20px; margin: 0 0 6px; }
+  .sheet-head p { margin: 0; font-size: 13px; color: var(--color-on-surface-variant); max-width: 78ch; }
+  .sheet-actions { margin-top: 12px; display: flex; gap: 8px; }
+  .sheet-grid { max-width: 1280px; margin: 0 auto; display: grid; gap: 22px;
+                grid-template-columns: repeat(auto-fit, minmax(420px, 1fr)); align-items: start; }
+  .frame { padding: 14px; border: 1px dashed var(--color-outline); border-radius: var(--radius-lg); }
+  .frame h2 { font-size: 12px; letter-spacing: .5px; text-transform: uppercase;
+              color: var(--color-on-surface-variant); margin: 0 0 10px; font-weight: 700; }
+  .frame .note { font-size: 12px; color: var(--color-on-surface-variant); margin: 10px 0 0; line-height: 1.45; }
+  .phone { width: 390px; max-width: 100%; }
+
+  /* theme.css hides .modal-overlay until .show; this sheet shows the SHEET
+     itself, standing in the page, so the frames compare side by side. */
+  .frame .modal { max-width: 588px; width: 100%; }
+
+  /* ── the ONE new block (proposal: .cancel-day-scope) ─────────────────────
+     Sits between the grey Class Information box and the reason section.
+     Tokens only: --color-outline hairline, --radius-md, muted small type for
+     the list, the app's warning colour for the waiting-request mark. */
+  .cancel-day-scope {
+      margin: 0 0 14px;
+      padding: 10px 14px 12px;
+      border: 1px solid var(--color-outline);
+      border-radius: var(--radius-md);
+  }
+  /* the block's head: the select-all tick + its sentence on the left, the
+     collapse chevron on the right (user, 2026-11-11: the whole block folds). */
+  .cancel-day-head { display: flex; align-items: flex-start; gap: 10px; }
+  .cancel-day-toggle {
+      display: flex; align-items: center; gap: 9px; flex: 1;
+      cursor: pointer; font-size: 13px; font-weight: 600;
+      color: var(--color-on-surface);
+  }
+  .cd-collapse {
+      flex: 0 0 auto; width: 26px; height: 26px; margin: -2px -4px 0 0;
+      display: inline-flex; align-items: center; justify-content: center;
+      border: none; background: transparent; color: var(--color-on-surface-variant);
+      border-radius: var(--radius-sm); cursor: pointer;
+  }
+  .cd-collapse:hover { background: var(--color-surface-variant); color: var(--color-on-surface); }
+  .cd-collapse svg { transition: transform 0.15s; }
+  .cancel-day-scope.is-collapsed .cd-collapse svg { transform: rotate(-90deg); }
+  .cancel-day-scope.is-collapsed .cancel-day-list { display: none !important; }
+  .cancel-day-toggle input { width: 16px; height: 16px; accent-color: var(--color-primary); cursor: pointer; }
+  /* the count is a fact, not a button: the app's "important information"
+     keyword colour (theme owns it), NOT --color-primary — that is the deep
+     button blue and disappears on the dark surface. */
+  .cancel-day-toggle .cd-count { color: var(--color-on-primary-container); font-weight: 800; }
+
+  /* the list appears only when ticked (decision 3) */
+  .cancel-day-list { display: none; list-style: none; margin: 10px 0 0; padding: 0 0 0 25px; }
+  .cancel-day-scope.is-on .cancel-day-list { display: block; }
+  .cancel-day-list li {
+      padding: 1px 0; font-size: 12.5px; color: var(--color-on-surface-variant);
+      border-top: 1px dashed var(--color-outline-variant);
+  }
+  .cancel-day-list li:first-child { border-top: none; }
+  /* 2026-11-11 (user): every class is its OWN choice — the whole-day tick is
+     select-all, and the red button follows how many rows are still ticked. */
+  .cancel-day-row {
+      display: flex; align-items: baseline; gap: 9px;
+      padding: 4px 0; cursor: pointer;
+  }
+  .cancel-day-row:hover { color: var(--color-on-surface); }
+  .cancel-day-row input { width: 14px; height: 14px; accent-color: var(--color-primary);
+                          position: relative; top: 2px; cursor: pointer; flex: 0 0 auto; }
+  .cancel-day-list .cdl-time { font-variant-numeric: tabular-nums; min-width: 122px; color: var(--color-on-surface); font-weight: 600; }
+  .cancel-day-list .cdl-what { color: var(--color-on-surface); }
+  /* the room code sits with the class, before the cohort column */
+  .cancel-day-list .cdl-venue { color: var(--color-on-surface-variant); font-variant-numeric: tabular-nums;
+                                min-width: 38px; }
+  /* the cohort cell keeps its place even when the mark sits beside it */
+  /* user (2026-11-11): the cohort and the request mark STACK — cohort on top,
+     the mark below — one right-aligned column, so a long flag never widens the
+     row or pushes the class name. */
+  .cdl-facts { margin-left: auto; display: flex; flex-direction: column;
+               align-items: flex-end; gap: 2px; text-align: right; }
+  .cancel-day-list .cdl-cohort { text-align: right; }
+  .cancel-day-list .cdl-what { color: var(--color-on-surface); }
+  .cancel-day-list .cdl-type { color: var(--color-on-surface-variant); }
+  .cancel-day-list .cdl-cohort { margin-left: auto; text-align: right; }
+  /* under 520 px a row cannot hold time + class + cohort + a mark on one line:
+     the row wraps, the cohort drops under the class name, the mark stays whole */
+  /* phone: three short lines — time · class + cohort · the request mark.
+     Nothing may be clipped, so the mark gets its own line.
+     NOTE: the sheet's phone frame is 390 px wide INSIDE a 1400 px page, so a
+     media query cannot fire there — the `.phone` copies below are the same
+     rules, applied to the frame so the sheet shows the phone truthfully. In
+     the real build only the media query is needed. */
+  @media (max-width: 520px) {
+      .cancel-day-row { flex-wrap: wrap; row-gap: 1px; }
+      .cancel-day-list .cdl-time { min-width: 0; flex-basis: 100%; font-size: 12px; }
+      .cancel-day-list .cdl-what { flex: 0 0 auto; }
+  }
+  .phone .cancel-day-row { flex-wrap: wrap; row-gap: 1px; }
+  .phone .cancel-day-list .cdl-time { min-width: 0; flex-basis: 100%; font-size: 12px; }
+  .phone .cancel-day-list .cdl-what { flex: 0 0 auto; }
+  /* user (2026-11-11): the success screen's "1 request withdrawn" is an ERROR
+     pill (the app's error-container tokens), stacked under the cohort — the
+     waiting mark stays the warning pill, so the two states cannot be confused. */
+  .cdl-flag--withdrawn {
+      color: var(--color-on-error-container);
+      background: var(--color-error-container);
+  }
+  .cancel-day-list .cdl-flag {
+      color: var(--color-on-warning-container, var(--color-on-surface));
+      background: var(--color-warning-container, var(--color-surface-variant));
+      border-radius: var(--radius-xs, 4px);
+      padding: 1px 6px; font-size: 11px; font-weight: 700; white-space: nowrap;
+  }
+
+  /* the success screen's list (decision 5) */
+  .cancel-day-done { margin: 0; padding: 0; list-style: none; }
+  .cancel-day-done li { display: flex; align-items: baseline; gap: 9px; font-size: 12.5px;
+                        padding: 4px 0; color: var(--color-on-surface-variant); }
+  .cancel-day-done .cdl-time { min-width: 122px; color: var(--color-on-surface); font-weight: 600;
+                               font-variant-numeric: tabular-nums; }
+  .cancel-day-done .cdl-what { color: var(--color-on-surface); }
+  .cancel-day-done .cdl-venue { color: var(--color-on-surface-variant); min-width: 38px; }
+  .cancel-day-done .cdl-facts { margin-left: auto; }
+  .cancel-day-done .tick { color: var(--color-success, var(--color-primary)); font-weight: 700; }
+  /* the sheet's stand-in for the app's shared data-tip: one cohort per line,
+     the same dark box the rest of the app shows (ui-common.js owns it there) */
+  .cdl-cohort[data-tip] { position: relative; cursor: help; }
+  .cdl-cohort[data-tip]:hover::after {
+      content: attr(data-tip);
+      position: absolute; right: 0; bottom: calc(100% + 6px);
+      white-space: pre; text-align: left;
+      background: var(--color-surface-variant); color: var(--color-on-surface);
+      border: 1px solid var(--color-outline); border-radius: var(--radius-sm);
+      padding: 6px 9px; font-size: 12px; line-height: 1.4; z-index: 5;
+      box-shadow: var(--shadow-md);
+  }
+</style>
+</head>
+<body>
+
+<div class="sheet-head">
+  <h1>Cancel this Class? — “whole day” checkbox</h1>
+  <p>Four states of the same modal: not ticked · ticked · a day with nothing else to cancel · the
+     success screen. Then the ticked state at phone width. Every colour comes from the app’s own
+     <code>theme.css</code>, so this is the real look, not a drawing of it.</p>
+  <div class="sheet-actions">
+    <button class="btn-outline" onclick="toggleTheme()">Light / Dark</button>
+    <button class="btn-outline" onclick="toggleAll()">Tick / untick both</button>
+  </div>
+</div>
+
+<div class="sheet-grid">
+
+  <!-- ─────────────── A · not ticked ─────────────── -->
+  <div class="frame">
+    <h2>A · not ticked</h2>
+    <div class="modal modal--cancel">
+      <div class="modal-header">
+        <span class="modal-title">Cancel this Class?</span>
+        <button class="modal-close" title="Close">×</button>
+      </div>
+      <div class="modal-body">
+        <div class="detail-group">
+          <div class="detail-group-title">Class Information</div>
+          <dl class="cancel-details">
+            <dt>Course</dt><dd>AMSE1003 (P) — Software Engineering</dd>
+            <dt>Week</dt><dd>Week 8</dd>
+            <dt>Day &amp; Date</dt><dd>Wednesday · 11 Nov 2026</dd>
+            <dt>Time</dt><dd>11:00 AM ~ 12:00 PM (1 hour)</dd>
+            <dt>Venue</dt><dd>B010 — Computer Lab B010</dd>
+            <dt>Cohort(s)</dt><dd>DSF1 (S1) G1</dd>
+            <dt>Students</dt><dd>25</dd>
+          </dl>
+        </div>
+
+        <!-- ▼▼ THE NEW BLOCK ▼▼ -->
+        <div class="cancel-day-scope is-collapsed" id="scopeA">
+          <div class="cancel-day-head">
+            <label class="cancel-day-toggle">
+              <input type="checkbox" onchange="setOn('scopeA', this.checked)">
+              <span>Also cancel my other <span class="cd-count">3</span> classes on the <span class="info-keyword">same day</span></span>
+            </label>
+            <button type="button" class="cd-collapse" aria-expanded="true"
+                    title="Show or hide these classes" onclick="toggleCollapse('scopeA')">
+              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none"
+                   stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"
+                   aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
+            </button>
+          </div>
+                    <ul class="cancel-day-list">
+            <li>
+              <label class="cancel-day-row">
+                <input type="checkbox" onchange="recount(scopeOf(this))">
+                <span class="cdl-time">9:00 AM ~ 10:00 AM</span>
+                <span class="cdl-what">AMSE1003(L)</span>
+                <span class="cdl-venue">B009</span>
+                <span class="cdl-facts">
+                  <span class="cdl-cohort" data-tip="Diploma in Software Engineering &#10;&#8212; Year 1, Semester 1, Group 1">DSF1 (S1) G1</span>
+                </span>
+              </label>
+            </li>
+            <li>
+              <label class="cancel-day-row">
+                <input type="checkbox" onchange="recount(scopeOf(this))">
+                <span class="cdl-time">1:00 PM ~ 3:00 PM</span>
+                <span class="cdl-what">BMSE2163(L)</span>
+                <span class="cdl-venue">B015</span>
+                <span class="cdl-facts">
+                  <span class="cdl-cohort" data-tip="RSD2 (S1) G2&#10;RSD2 (S1) G3">2 cohorts</span>
+                  <span class="cdl-flag">1 request waiting</span>
+                </span>
+              </label>
+            </li>
+            <li>
+              <label class="cancel-day-row">
+                <input type="checkbox" onchange="recount(scopeOf(this))">
+                <span class="cdl-time">3:00 PM ~ 4:00 PM</span>
+                <span class="cdl-what">BMSE2163(T)</span>
+                <span class="cdl-venue">B015</span>
+                <span class="cdl-facts">
+                  <span class="cdl-cohort" data-tip="RSD2 (S1) G2&#10;RSD2 (S1) G3">2 cohorts</span>
+                </span>
+              </label>
+            </li>
+          </ul>
+        </div>
+        <!-- ▲▲ THE NEW BLOCK ▲▲ -->
+
+        <hr class="modal-divider">
+        <div class="detail-group">
+          <div class="detail-group-title">Cancellation Reason <span class="cancel-required-mark">*</span></div>
+          <div class="cancel-reasons">
+            <label class="cancel-reason-option"><input type="radio" name="rA" checked>Medical/Sick Leave</label>
+            <label class="cancel-reason-option"><input type="radio" name="rA">Annual Leave</label>
+            <label class="cancel-reason-option"><input type="radio" name="rA">Emergency Leave</label>
+            <label class="cancel-reason-option"><input type="radio" name="rA">Hospitalisation Leave</label>
+            <label class="cancel-reason-option"><input type="radio" name="rA">Maternity Leave</label>
+            <label class="cancel-reason-option"><input type="radio" name="rA">Compassionate Leave</label>
+            <label class="cancel-reason-option"><input type="radio" name="rA">Paternity Leave</label>
+            <label class="cancel-reason-option"><input type="radio" name="rA">Other</label>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-outline">No, Keep Class</button>
+        <div class="cancel-confirm-wrap">
+          <p class="confirm-warning confirm-warning--compact">CANNOT UNDONE</p>
+          <button class="btn-danger" id="yesA">Yes, Cancel Class</button>
+        </div>
+      </div>
+    </div>
+    <p class="note">The block sits between the facts and the reasons, closed. Nothing else in the
+      modal moves; the red button keeps today’s words.</p>
+  </div>
+
+  <!-- ─────────────── B · ticked ─────────────── -->
+  <div class="frame">
+    <h2>B · ticked</h2>
+    <div class="modal modal--cancel">
+      <div class="modal-header">
+        <span class="modal-title">Cancel this Class?</span>
+        <button class="modal-close" title="Close">×</button>
+      </div>
+      <div class="modal-body">
+        <div class="detail-group">
+          <div class="detail-group-title">Class Information</div>
+          <dl class="cancel-details">
+            <dt>Course</dt><dd>AMSE1003 (P) — Software Engineering</dd>
+            <dt>Week</dt><dd>Week 8</dd>
+            <dt>Day &amp; Date</dt><dd>Wednesday · 11 Nov 2026</dd>
+            <dt>Time</dt><dd>11:00 AM ~ 12:00 PM (1 hour)</dd>
+            <dt>Venue</dt><dd>B010 — Computer Lab B010</dd>
+            <dt>Cohort(s)</dt><dd>DSF1 (S1) G1</dd>
+            <dt>Students</dt><dd>25</dd>
+          </dl>
+        </div>
+
+        <div class="cancel-day-scope is-on" id="scopeB">
+          <div class="cancel-day-head">
+            <label class="cancel-day-toggle">
+              <input type="checkbox" checked onchange="setOn('scopeB', this.checked)">
+              <span>Also cancel my other <span class="cd-count">3</span> classes on the <span class="info-keyword">same day</span></span>
+            </label>
+            <button type="button" class="cd-collapse" aria-expanded="true"
+                    title="Show or hide these classes" onclick="toggleCollapse('scopeB')">
+              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none"
+                   stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"
+                   aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
+            </button>
+          </div>
+                    <ul class="cancel-day-list">
+            <li>
+              <label class="cancel-day-row">
+                <input type="checkbox" checked onchange="recount(scopeOf(this))">
+                <span class="cdl-time">9:00 AM ~ 10:00 AM</span>
+                <span class="cdl-what">AMSE1003(L)</span>
+                <span class="cdl-venue">B009</span>
+                <span class="cdl-facts">
+                  <span class="cdl-cohort" data-tip="Diploma in Software Engineering &#10;&#8212; Year 1, Semester 1, Group 1">DSF1 (S1) G1</span>
+                </span>
+              </label>
+            </li>
+            <li>
+              <label class="cancel-day-row">
+                <input type="checkbox" checked onchange="recount(scopeOf(this))">
+                <span class="cdl-time">1:00 PM ~ 3:00 PM</span>
+                <span class="cdl-what">BMSE2163(L)</span>
+                <span class="cdl-venue">B015</span>
+                <span class="cdl-facts">
+                  <span class="cdl-cohort" data-tip="RSD2 (S1) G2&#10;RSD2 (S1) G3">2 cohorts</span>
+                  <span class="cdl-flag">1 request waiting</span>
+                </span>
+              </label>
+            </li>
+            <li>
+              <label class="cancel-day-row">
+                <input type="checkbox" checked onchange="recount(scopeOf(this))">
+                <span class="cdl-time">3:00 PM ~ 4:00 PM</span>
+                <span class="cdl-what">BMSE2163(T)</span>
+                <span class="cdl-venue">B015</span>
+                <span class="cdl-facts">
+                  <span class="cdl-cohort" data-tip="RSD2 (S1) G2&#10;RSD2 (S1) G3">2 cohorts</span>
+                </span>
+              </label>
+            </li>
+          </ul>
+        </div>
+
+        <hr class="modal-divider">
+        <div class="detail-group">
+          <div class="detail-group-title">Cancellation Reason <span class="cancel-required-mark">*</span></div>
+          <div class="cancel-reasons">
+            <label class="cancel-reason-option"><input type="radio" name="rB" checked>Medical/Sick Leave</label>
+            <label class="cancel-reason-option"><input type="radio" name="rB">Annual Leave</label>
+            <label class="cancel-reason-option"><input type="radio" name="rB">Emergency Leave</label>
+            <label class="cancel-reason-option"><input type="radio" name="rB">Hospitalisation Leave</label>
+            <label class="cancel-reason-option"><input type="radio" name="rB">Maternity Leave</label>
+            <label class="cancel-reason-option"><input type="radio" name="rB">Compassionate Leave</label>
+            <label class="cancel-reason-option"><input type="radio" name="rB">Paternity Leave</label>
+            <label class="cancel-reason-option"><input type="radio" name="rB">Other</label>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-outline">No, Keep Class</button>
+        <div class="cancel-confirm-wrap">
+          <p class="confirm-warning confirm-warning--compact">CANNOT UNDONE</p>
+          <button class="btn-danger" id="yesB">Yes, Cancel 4 Classes</button>
+        </div>
+      </div>
+    </div>
+    <p class="note">Ticked: the three other classes appear, the row with a request says so, and the red
+      button names the total. The warning line is unchanged — the number lives on the button.</p>
+  </div>
+
+  <!-- ─────────────── C · nothing else that day ─────────────── -->
+  <div class="frame">
+    <h2>C · a day with no other class</h2>
+    <div class="modal modal--cancel">
+      <div class="modal-header">
+        <span class="modal-title">Cancel this Class?</span>
+        <button class="modal-close" title="Close">×</button>
+      </div>
+      <div class="modal-body">
+        <div class="detail-group">
+          <div class="detail-group-title">Class Information</div>
+          <dl class="cancel-details">
+            <dt>Course</dt><dd>AMSE2003 (P) — Software Testing and Quality Assurance</dd>
+            <dt>Week</dt><dd>Week 8</dd>
+            <dt>Day &amp; Date</dt><dd>Friday · 13 Nov 2026</dd>
+            <dt>Time</dt><dd>09:00 AM ~ 10:00 AM (1 hour)</dd>
+            <dt>Venue</dt><dd>B010 — Computer Lab B010</dd>
+            <dt>Cohort(s)</dt><dd>DSF2 (S1) G1</dd>
+            <dt>Students</dt><dd>22</dd>
+          </dl>
+        </div>
+        <!-- no block at all (decision 6) -->
+        <hr class="modal-divider">
+        <div class="detail-group">
+          <div class="detail-group-title">Cancellation Reason <span class="cancel-required-mark">*</span></div>
+          <div class="cancel-reasons">
+            <label class="cancel-reason-option"><input type="radio" name="rC" checked>Medical/Sick Leave</label>
+            <label class="cancel-reason-option"><input type="radio" name="rC">Annual Leave</label>
+            <label class="cancel-reason-option"><input type="radio" name="rC">Emergency Leave</label>
+            <label class="cancel-reason-option"><input type="radio" name="rC">Hospitalisation Leave</label>
+            <label class="cancel-reason-option"><input type="radio" name="rC">Maternity Leave</label>
+            <label class="cancel-reason-option"><input type="radio" name="rC">Compassionate Leave</label>
+            <label class="cancel-reason-option"><input type="radio" name="rC">Paternity Leave</label>
+            <label class="cancel-reason-option"><input type="radio" name="rC">Other</label>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-outline">No, Keep Class</button>
+        <div class="cancel-confirm-wrap">
+          <p class="confirm-warning confirm-warning--compact">CANNOT UNDONE</p>
+          <button class="btn-danger">Yes, Cancel Class</button>
+        </div>
+      </div>
+    </div>
+    <p class="note">Fridays look exactly like the modal does today: no block, no wording about a whole
+      day, red button unchanged.</p>
+  </div>
+
+  <!-- ─────────────── D · success ─────────────── -->
+  <div class="frame">
+    <h2>D · success screen</h2>
+    <div class="modal modal--cancel">
+      <div class="modal-header">
+        <span class="modal-title">Cancel this Class?</span>
+        <button class="modal-close" title="Close">×</button>
+      </div>
+      <div class="modal-body">
+        <p style="margin:0 0 10px; font-weight:600; font-size:15px;">✓ 4 classes cancelled</p>
+        <p class="hint-text" style="margin:0 0 10px">Wednesday · 11 Nov 2026 · Medical/Sick Leave · 1 waiting request withdrawn</p>
+        <ul class="cancel-day-done">
+          <li><span class="tick">✓</span><span class="cdl-time">11:00 AM ~ 12:00 PM</span><span class="cdl-what">AMSE1003(P)</span><span class="cdl-venue">B010</span><span class="cdl-facts">
+  <span class="cdl-cohort" data-tip="Diploma in Software Engineering &#10;&#8212; Year 1, Semester 1, Group 1">DSF1 (S1) G1</span>
+</span></li>
+          <li><span class="tick">✓</span><span class="cdl-time">9:00 AM ~ 10:00 AM</span><span class="cdl-what">AMSE1003(L)</span><span class="cdl-venue">B009</span><span class="cdl-facts">
+  <span class="cdl-cohort" data-tip="Diploma in Software Engineering &#10;&#8212; Year 1, Semester 1, Group 1">DSF1 (S1) G1</span>
+</span></li>
+          <li><span class="tick">✓</span><span class="cdl-time">1:00 PM ~ 3:00 PM</span><span class="cdl-what">BMSE2163(L)</span><span class="cdl-venue">B015</span><span class="cdl-facts">
+  <span class="cdl-cohort" data-tip="RSD2 (S1) G2&#10;RSD2 (S1) G3">2 cohorts</span>
+  <span class="cdl-flag cdl-flag--withdrawn">1 request withdrawn</span>
+</span></li>
+          <li><span class="tick">✓</span><span class="cdl-time">3:00 PM ~ 4:00 PM</span><span class="cdl-what">BMSE2163(T)</span><span class="cdl-venue">B015</span><span class="cdl-facts">
+  <span class="cdl-cohort" data-tip="RSD2 (S1) G2&#10;RSD2 (S1) G3">2 cohorts</span>
+</span></li>
+        </ul>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-outline">Close</button>
+      </div>
+    </div>
+    <p class="note">One button. The class you opened is listed first, the rest follow in time order;
+      the withdrawn request is named on its own line and counted in the summary.</p>
+  </div>
+
+  <!-- ─────────────── E · phone ─────────────── -->
+  <div class="frame">
+    <h2>E · phone (390 px) — ticked</h2>
+    <div class="phone">
+      <div class="modal modal--cancel">
+        <div class="modal-header">
+          <span class="modal-title">Cancel this Class?</span>
+          <button class="modal-close" title="Close">×</button>
+        </div>
+        <div class="modal-body">
+          <div class="detail-group">
+            <div class="detail-group-title">Class Information</div>
+            <dl class="cancel-details">
+              <dt>Course</dt><dd>AMSE1003 (P) — Software Engineering</dd>
+              <dt>Week</dt><dd>Week 8</dd>
+              <dt>Day &amp; Date</dt><dd>Wednesday · 11 Nov 2026</dd>
+              <dt>Time</dt><dd>11:00 AM ~ 12:00 PM (1 hour)</dd>
+              <dt>Venue</dt><dd>B010 — Computer Lab B010</dd>
+              <dt>Cohort(s)</dt><dd>DSF1 (S1) G1</dd>
+              <dt>Students</dt><dd>25</dd>
+            </dl>
+          </div>
+          <div class="cancel-day-scope is-on" id="scopeE">
+            <div class="cancel-day-head">
+              <label class="cancel-day-toggle">
+                <input type="checkbox" checked onchange="setOn('scopeE', this.checked)">
+                <span>Also cancel my other <span class="cd-count">3</span> classes on the <span class="info-keyword">same day</span></span>
+              </label>
+              <button type="button" class="cd-collapse" aria-expanded="true"
+                      title="Show or hide these classes" onclick="toggleCollapse('scopeE')">
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none"
+                     stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"
+                     aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
+              </button>
+            </div>
+                        <ul class="cancel-day-list">
+              <li>
+                <label class="cancel-day-row">
+                  <input type="checkbox" checked onchange="recount(scopeOf(this))">
+                  <span class="cdl-time">9:00 AM ~ 10:00 AM</span>
+                  <span class="cdl-what">AMSE1003(L)</span>
+                  <span class="cdl-venue">B009</span>
+                  <span class="cdl-facts">
+                    <span class="cdl-cohort" data-tip="Diploma in Software Engineering &#10;&#8212; Year 1, Semester 1, Group 1">DSF1 (S1) G1</span>
+                  </span>
+                </label>
+              </li>
+              <li>
+                <label class="cancel-day-row">
+                  <input type="checkbox" checked onchange="recount(scopeOf(this))">
+                  <span class="cdl-time">1:00 PM ~ 3:00 PM</span>
+                  <span class="cdl-what">BMSE2163(L)</span>
+                  <span class="cdl-venue">B015</span>
+                  <span class="cdl-facts">
+                    <span class="cdl-cohort" data-tip="RSD2 (S1) G2&#10;RSD2 (S1) G3">2 cohorts</span>
+                    <span class="cdl-flag">1 request waiting</span>
+                  </span>
+                </label>
+              </li>
+              <li>
+                <label class="cancel-day-row">
+                  <input type="checkbox" checked onchange="recount(scopeOf(this))">
+                  <span class="cdl-time">3:00 PM ~ 4:00 PM</span>
+                  <span class="cdl-what">BMSE2163(T)</span>
+                  <span class="cdl-venue">B015</span>
+                  <span class="cdl-facts">
+                    <span class="cdl-cohort" data-tip="RSD2 (S1) G2&#10;RSD2 (S1) G3">2 cohorts</span>
+                  </span>
+                </label>
+              </li>
+            </ul>
+          </div>
+          <hr class="modal-divider">
+          <div class="detail-group">
+            <div class="detail-group-title">Cancellation Reason <span class="cancel-required-mark">*</span></div>
+            <div class="cancel-reasons">
+              <label class="cancel-reason-option"><input type="radio" name="rE" checked>Medical/Sick Leave</label>
+              <label class="cancel-reason-option"><input type="radio" name="rE">Annual Leave</label>
+              <label class="cancel-reason-option"><input type="radio" name="rE">Emergency Leave</label>
+              <label class="cancel-reason-option"><input type="radio" name="rE">Hospitalisation Leave</label>
+              <label class="cancel-reason-option"><input type="radio" name="rE">Maternity Leave</label>
+              <label class="cancel-reason-option"><input type="radio" name="rE">Compassionate Leave</label>
+              <label class="cancel-reason-option"><input type="radio" name="rE">Paternity Leave</label>
+              <label class="cancel-reason-option"><input type="radio" name="rE">Other</label>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn-outline">No, Keep Class</button>
+          <div class="cancel-confirm-wrap">
+            <p class="confirm-warning confirm-warning--compact">CANNOT UNDONE</p>
+            <button class="btn-danger">Yes, Cancel 4 Classes</button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <p class="note">On a phone the modal is a bottom sheet and the footer stacks; the list wraps its
+      cohort onto the next line and the waiting-request mark stays whole.</p>
+  </div>
+
+</div>
+
+<script>
+  function toggleTheme() {
+    var h = document.documentElement;
+    var dark = h.classList.toggle('dark');
+    h.setAttribute('data-theme', dark ? 'dark' : 'light');
+  }
+
+  /* the scope block's own pieces: the parent tick, the row ticks, the label's
+     number and the red button's words — ONE reader keeps them agreeing. */
+  function scopeOf(node) { return node.closest('.cancel-day-scope'); }
+  function rowBoxes(scope) { return Array.prototype.slice.call(scope.querySelectorAll('.cancel-day-row input')); }
+  function yesOf(scope) { var m = scope.closest('.modal'); return m && m.querySelector('.btn-danger'); }
+  function countOf(scope) { return scope.querySelector('.cd-count'); }
+
+  function recount(scope) {
+    var boxes = rowBoxes(scope);
+    var on = boxes.filter(function (b) { return b.checked; }).length;
+    var parent = scope.querySelector('.cancel-day-toggle input');
+    parent.checked = on > 0;
+    parent.indeterminate = on > 0 && on < boxes.length;   /* partial = half tick */
+    scope.classList.toggle('is-on', on > 0);
+
+    var cd = countOf(scope);
+    if (cd) cd.textContent = String(on);
+
+    var yes = yesOf(scope);
+    if (yes) yes.textContent = on > 0 ? 'Yes, Cancel ' + (on + 1) + ' Classes' : 'Yes, Cancel Class';
+  }
+
+  /* the parent tick is select-all: it fills or clears every row, and turning
+     the feature ON opens the list (a folded list under a fresh tick would hide
+     exactly what the tick is about to do) */
+  function setOn(id, on) {
+    var scope = document.getElementById(id);
+    rowBoxes(scope).forEach(function (b) { b.checked = on; });
+    if (on) setCollapsed(scope, false);
+    recount(scope);
+  }
+
+  /* the chevron folds the list only — the selection and the counts survive */
+  function toggleCollapse(id) {
+    var scope = document.getElementById(id);
+    setCollapsed(scope, !scope.classList.contains('is-collapsed'));
+  }
+  function setCollapsed(scope, collapsed) {
+    scope.classList.toggle('is-collapsed', collapsed);
+    var btn = scope.querySelector('.cd-collapse');
+    if (btn) btn.setAttribute('aria-expanded', collapsed ? 'false' : 'true');
+  }
+
+  /* the sheet's own convenience button — flips A and B together */
+  function toggleAll() {
+    ['scopeA', 'scopeB', 'scopeE'].forEach(function (id) {
+      var scope = document.getElementById(id);
+      if (!scope) return;
+      setOn(id, !scope.classList.contains('is-on'));
+    });
+  }
+
+  /* first paint: A opens closed, B and E open with every row ticked */
+  window.addEventListener('load', function () {
+    ['scopeA', 'scopeB', 'scopeE'].forEach(function (id) { var el = document.getElementById(id); if (el) recount(el); });
+    /* screen A is the DEFAULT state: unticked, folded, button unchanged */
+    var a = document.getElementById('scopeA');
+    if (a) { rowBoxes(a).forEach(function (b) { b.checked = false; }); recount(a); }
+  });
+</script>
+</body>
+</html>

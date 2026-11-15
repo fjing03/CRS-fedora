@@ -4,7 +4,7 @@
 > **Change:** `replacement-arrangement-top-zone-round2`
 > **Baseline:** commit `7692d80` (the verified two-card top zone)
 > **Explore brief:** `.sdd/changes/replacement-arrangement-top-zone-round2/explore-brief.md`
-> **Visual contract:** `../ui-prototype/replacement-arrangement-top-zone-preview.html`
+> **Visual contract:** `ui-prototype/replacement-arrangement-top-zone-preview.html`
 
 ## Why
 

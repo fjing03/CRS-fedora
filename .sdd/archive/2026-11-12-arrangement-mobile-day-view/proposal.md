@@ -14,7 +14,7 @@ while retaining the existing booking rules and keeping desktop unchanged.
 
 - User approved the mobile prototype, completed Explore, and requested SDD Propose.
 - `explore-brief.md` contains the binding user decisions and source-code findings.
-- Visual/interaction reference: `../ui-prototype/replacement-arrangement-mobile-preview.html`.
+- Visual/interaction reference: `ui-prototype/replacement-arrangement-mobile-preview.html`.
 - Its sample timetable, fixture clock, simplified guards and mock submission are
   NOT implementation contracts. Existing system rules take precedence.
 - This batch proposes **what and why** only. It does not authorise implementation.

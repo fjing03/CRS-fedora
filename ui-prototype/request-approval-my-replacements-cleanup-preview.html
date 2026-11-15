@@ -1,0 +1,1065 @@
+<!DOCTYPE html>
+<html lang="en" class="light">
+<!--
+  ═══════════════════════════════════════════════════════════════════════════
+  REQUEST APPROVAL + MY REPLACEMENTS — cleanup prototype (2026-11-14)
+
+  Standalone design sheet. NOT the Laravel app. It loads the real
+  public/css/theme.css from :8000, so every colour is a token from the app.
+
+  Why this exists: a grilling session on the two screenshots produced 9
+  accepted changes and 7 deliberate "keep" calls. This file renders both
+  pages so the changes can be judged before any live file is touched.
+
+  HOW TO READ IT
+    · "Before / After" switch — before is today's shipped page, after is the
+      proposal. Every text change reverts too, so the diff is feelable.
+    · Numbered markers (1–9) sit on changed elements; press "Markers" to hide
+      them and see the page clean.
+    · Page tabs switch between the two pages.
+    · Light / Dark toggles the app's own light theme class.
+
+  THE 9 CHANGES
+    1  "Total Requests" renamed — it only counts rows left by your filters,
+       while the toolbar still says 13 exist. Label now says what it counts.
+    2  The total card loses its green fill and green number. Green then means
+       approved and nothing else, matching My Replacements, where the loudest
+       card is the work to do.
+    3  The toolbar counter stops saying "Showing". Two counters both claiming
+       to show, with 13 and 4, read as a contradiction.
+    4  The toggle is shortened to "Hide COMPLETED", and the chip reads
+       "Completed hidden". Clicking × on the old "Exclude…" chip made completed
+       requests APPEAR — a double negative inside a filters row.
+    5  The sort instruction line is deleted. The active header already draws ▲.
+    6  An empty requested slot says "Not requested" instead of "—".
+    7  The status pill's hover text says it is a status, not a button. It is a
+       plain <span> with an outline — the shape of a button that does nothing.
+    8  The STAFF column drops the staff ID and the email; both stay in the popup.
+    9  The COURSE column drops the course name and shows "AMSE2003 (T)"; the name
+       stays in the popup and the search box still finds it.
+
+  DROPPED AFTER REVIEW (the user does not want them)
+    · the act-on-several bar and its tick column — no bar above the table and no
+      checkboxes in it. Approve and Reject are per row only.
+
+  THE 7 KEEPS (decided, so a later session does not reopen them)
+    · the four-word status chip repeated down every row
+    · the icon-only ACTION column (three meanings, all on hover)
+    · zeros under a status filter ("Approved 0" can be false)
+    · "Total Reviewed" (it re-adds its two neighbours plus completed)
+    · "Reset Filters" vs "Clear all" keeping two different meanings
+    · the number cards staying below the pager
+    · "6 classes" sitting beside "8 hours"
+
+  WITHDRAWN during grilling — do not "fix" these, they are not defects
+    · there is NO urgency line in the Original Slot cell (measured on :8000;
+      only the Requested Slot column carries one)
+    · the two tables already share column order; the extra columns differ for
+      a real reason (own classes vs other people's requests)
+
+  DATA is the demo screenshot data (Surayaini 5425 / Lim Jia Zheng 5770,
+  semester 202605). It is illustrative, not a live query.
+  ═══════════════════════════════════════════════════════════════════════════
+-->
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Prototype — Request Approval + My Replacements cleanup</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<!-- the app's own tokens; requires `bash scripts/dev-serve.sh 8000` to be running -->
+<link rel="stylesheet" href="../public/css/theme.css">
+<style>
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    background: var(--color-bg);
+    color: var(--color-on-bg);
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    font-size: 14px;
+    line-height: 1.45;
+    padding-bottom: 40px;
+  }
+  body.no-markers .p-mark { display: none !important; }
+
+  /* ── prototype control bar (not part of the design) ───────────────────── */
+  .proto {
+    position: sticky; top: 0; z-index: 50;
+    display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+    padding: 10px 18px;
+    background: var(--color-surface);
+    border-bottom: 1px solid var(--color-outline-strong);
+  }
+  .proto__name {
+    font-size: 12px; font-weight: 700; letter-spacing: .04em;
+    text-transform: uppercase; color: var(--color-on-surface-variant);
+    margin-right: 6px;
+  }
+  .proto__group {
+    display: inline-flex; padding: 2px;
+    background: var(--color-surface-variant);
+    border-radius: var(--radius-md);
+  }
+  .proto__btn {
+    border: 0; background: transparent; color: var(--color-on-surface-variant);
+    font: inherit; font-size: 12.5px; font-weight: 600;
+    padding: 5px 12px; border-radius: 8px; cursor: pointer;
+  }
+  .proto__btn.is-on { background: var(--color-primary); color: var(--color-on-primary); }
+  .proto__note { margin-left: auto; font-size: 12px; color: var(--color-on-surface-variant); }
+
+  /* ── app shell ────────────────────────────────────────────────────────── */
+  .app-nav {
+    display: flex; align-items: center; gap: 26px;
+    padding: 0 26px; height: 54px;
+    background: var(--color-surface);
+    border-bottom: 1px solid var(--color-outline);
+    font-size: 14px;
+  }
+  .app-nav a { color: var(--color-on-surface-variant); text-decoration: none; }
+  .app-nav a.is-current { color: var(--color-on-surface); font-weight: 600; }
+  .app-nav__badge {
+    display: inline-block; min-width: 18px; padding: 1px 6px; margin-left: 6px;
+    border-radius: 999px; background: var(--color-secondary);
+    color: var(--color-on-secondary); font-size: 11px; font-weight: 700;
+    text-align: center;
+  }
+  .app-nav__me {
+    margin-left: auto; display: flex; align-items: center; gap: 8px;
+    padding: 5px 12px; border-radius: 999px;
+    background: var(--color-surface-variant);
+    font-size: 12px; color: var(--color-on-surface-variant);
+  }
+  .app-nav__me b { color: var(--color-on-surface); font-weight: 600; }
+
+  .page { max-width: 1640px; margin: 0 auto; padding: 22px 26px 0; }
+  .page__head { display: flex; align-items: flex-start; gap: 10px; margin-bottom: 14px; }
+  .page__title { font-size: 26px; font-weight: 700; margin: 0; letter-spacing: -.01em; }
+  .page__period {
+    display: inline-block; margin-top: 7px; padding: 3px 10px;
+    border-radius: 999px; background: var(--color-primary-container);
+    color: var(--color-on-primary-container);
+    font-size: 12px; font-weight: 600;
+  }
+  .page__help {
+    margin-left: auto; width: 32px; height: 32px; flex: 0 0 auto;
+    display: grid; place-items: center;
+    background: var(--color-surface); border: 1px solid var(--color-outline);
+    border-radius: 50%; color: var(--color-on-surface-variant);
+    font-size: 13px; font-weight: 700;
+  }
+
+  /* ── toolbar ──────────────────────────────────────────────────────────── */
+  .bar {
+    display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+    padding: 10px; margin-bottom: 10px;
+    background: var(--color-surface);
+    border: 1px solid var(--color-outline);
+    border-radius: var(--radius-lg);
+  }
+  .bar__search {
+    flex: 1 1 260px; min-width: 200px;
+    display: flex; align-items: center; gap: 8px;
+    padding: 8px 12px;
+    background: var(--color-surface-variant);
+    border-radius: var(--radius-md);
+    color: var(--color-on-surface-variant);
+    font-size: 13px;
+  }
+  .chip-select {
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 8px 12px; font-size: 13px;
+    background: var(--color-surface-variant);
+    border: 1px solid var(--color-outline);
+    border-radius: var(--radius-md);
+    color: var(--color-on-surface);
+    white-space: nowrap;
+  }
+  .chip-select--wide { min-width: 196px; justify-content: space-between; }
+  .arrow-btn {
+    width: 26px; height: 30px; display: grid; place-items: center;
+    background: transparent; border: 0;
+    color: var(--color-on-surface-variant); cursor: pointer; font-size: 15px;
+  }
+  .switch { display: inline-flex; align-items: center; gap: 8px; font-size: 13px; white-space: nowrap; }
+  .switch__track {
+    width: 38px; height: 22px; border-radius: 999px;
+    background: var(--color-primary); position: relative; flex: 0 0 auto;
+  }
+  .switch__track::after {
+    content: ''; position: absolute; top: 2px; right: 2px;
+    width: 18px; height: 18px; border-radius: 50%;
+    background: var(--color-on-primary);
+  }
+  .btn-plain {
+    padding: 8px 12px; font: inherit; font-size: 13px; cursor: pointer;
+    background: transparent; color: var(--color-on-surface-variant);
+    border: 1px solid var(--color-outline); border-radius: var(--radius-md);
+  }
+  .bar__count { margin-left: auto; font-size: 12.5px; color: var(--color-on-surface-variant); white-space: nowrap; }
+
+  /* ── active filters + sort hint ───────────────────────────────────────── */
+  .filters {
+    display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+    padding: 8px 12px; margin-bottom: 10px;
+    background: var(--color-surface-variant);
+    border-radius: var(--radius-md);
+    font-size: 12.5px; color: var(--color-on-surface-variant);
+  }
+  .filters__label { font-weight: 600; color: var(--color-on-surface); }
+  .fchip {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 4px 8px; border-radius: 999px;
+    background: var(--color-primary-container);
+    color: var(--color-on-primary-container);
+    font-weight: 600; font-size: 12px;
+  }
+  .fchip__x {
+    border: 0; background: transparent; cursor: pointer;
+    color: inherit; font: inherit; font-size: 13px; line-height: 1;
+    padding: 0 1px;
+  }
+  .filters__clear {
+    border: 0; background: transparent; cursor: pointer;
+    color: var(--color-on-surface-variant); font: inherit;
+    text-decoration: underline; text-underline-offset: 2px;
+  }
+  .sort-hint {
+    padding: 6px 4px 10px;
+    font-size: 12px; font-style: italic;
+    color: var(--color-on-surface-variant);
+  }
+  /* change 6: the line only exists in the "before" state */
+  .sort-hint { display: none; }
+  body.before .sort-hint { display: block; }
+
+  /* ── table ────────────────────────────────────────────────────────────── */
+  .tbl-wrap {
+    background: var(--color-surface);
+    border: 1px solid var(--color-outline);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    overflow-x: auto;
+  }
+  table { width: 100%; border-collapse: collapse; min-width: 1500px; }
+  thead th {
+    text-align: left; vertical-align: bottom;
+    padding: 11px 10px; font-size: 11px; font-weight: 700;
+    letter-spacing: .06em; text-transform: uppercase;
+    color: var(--color-on-surface-variant);
+    background: var(--color-surface-variant);
+    border-bottom: 1px solid var(--color-outline);
+    white-space: nowrap;
+  }
+  thead th.is-sorted { color: var(--color-on-surface); }
+  tbody td {
+    padding: 13px 10px; vertical-align: top;
+    border-bottom: 1px solid var(--color-outline);
+    font-size: 12.5px;
+  }
+  /* slot cells keep their date and countdown on one line each */
+  #page-ra tbody td:nth-child(7) span,
+  #page-ra tbody td:nth-child(8) span,
+  #page-mr tbody td:nth-child(3) span,
+  #page-mr tbody td:nth-child(5) span { white-space: nowrap; }
+  #page-ra tbody td:nth-child(5) { min-width: 168px; }
+  tbody tr:last-child td { border-bottom: 0; }
+  .strong { font-weight: 600; }
+  .muted { color: var(--color-on-surface-variant); }
+  .small { font-size: 12px; }
+  .stack > span { display: block; }
+  .stack > span + span { margin-top: 1px; }
+
+  .urgent { font-weight: 600; }
+  .urgent--late { color: var(--color-error); }
+  .urgent--soon { color: var(--color-tertiary); }
+
+  /* status pills (changes 8) */
+  .pill {
+    display: inline-flex; align-items: center;
+    padding: 4px 11px; border-radius: 999px;
+    font-size: 11.5px; font-weight: 700; letter-spacing: .02em;
+    white-space: nowrap;
+  }
+  .pill--pending { background: var(--color-warning-container); color: var(--color-on-warning-container); }
+  .pill--outline {
+    background: transparent;
+    border: 1px solid var(--color-on-primary-container);
+    color: var(--color-on-primary-container);
+    font-weight: 600;
+  }
+  .pill--holiday { background: var(--color-error-container); color: var(--color-on-error-container); }
+  .pill--cancelled { background: var(--color-surface-variant); color: var(--color-on-surface-variant); }
+
+  /* actions */
+  .btn-row { display: flex; gap: 8px; }
+  .btn-act {
+    display: inline-flex; align-items: center; gap: 5px;
+    padding: 6px 12px; font: inherit; font-size: 12.5px; font-weight: 600;
+    background: transparent; border-radius: var(--radius-md);
+    cursor: pointer; white-space: nowrap;
+  }
+  .btn-act--ok { border: 1px solid var(--color-success); color: var(--color-success); }
+  .btn-act--no { border: 1px solid var(--color-error); color: var(--color-error); }
+  .icon-btn {
+    width: 30px; height: 30px; display: grid; place-items: center;
+    border-radius: var(--radius-sm); cursor: pointer;
+    background: transparent; border: 1px solid var(--color-outline);
+    color: var(--color-on-surface-variant);
+  }
+  .icon-btn--primary { border-color: var(--color-primary); color: var(--color-primary); }
+  .icon-btn--danger { border-color: var(--color-error); color: var(--color-error); }
+
+  .cohort-line { display: block; }
+
+  /* new course cell: code + type only; the name lives in the popup */
+  .course { white-space: nowrap; }
+  .course__type {
+    color: var(--color-on-surface-variant);
+    font-size: 11.5px; font-weight: 600;
+  }
+
+  /* real search box */
+  .bar__search input {
+    flex: 1 1 auto; min-width: 0;
+    border: 0; background: transparent; outline: none;
+    color: var(--color-on-surface); font: inherit; font-size: 13px;
+  }
+  .bar__search input::placeholder { color: var(--color-on-surface-variant); }
+  .bar__search:focus-within { outline: 2px solid var(--color-primary); outline-offset: 1px; }
+
+  /* ── pager ────────────────────────────────────────────────────────────── */
+  .pager {
+    display: flex; align-items: center; gap: 12px;
+    padding: 12px 4px; font-size: 12.5px;
+    color: var(--color-on-surface-variant);
+  }
+  .pager__mid { margin: 0 auto; }
+  .pager__page {
+    width: 28px; height: 28px; display: grid; place-items: center;
+    border-radius: var(--radius-sm); background: var(--color-primary);
+    color: var(--color-on-primary); font-weight: 700; font-size: 12px;
+  }
+
+  /* ── summary cards (changes 1, 2) ─────────────────────────────────────── */
+  .cards {
+    display: grid; grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: 12px; margin-top: 6px;
+  }
+  .card {
+    position: relative;
+    padding: 14px 18px 16px;
+    background: var(--color-surface);
+    border: 1px solid var(--color-outline);
+    border-radius: var(--radius-lg);
+    text-align: center;
+  }
+  .card__value { font-size: 26px; font-weight: 700; line-height: 1.1; }
+  .card__label {
+    display: block; margin-top: 6px;
+    font-size: 11.5px; font-weight: 600; letter-spacing: .04em;
+    text-transform: uppercase; color: var(--color-on-surface-variant);
+  }
+  .card__info {
+    position: absolute; top: 8px; right: 8px;
+    width: 22px; height: 22px; display: grid; place-items: center;
+    border-radius: 50%; border: 1px solid var(--color-outline);
+    background: transparent; color: var(--color-on-surface-variant);
+    font-size: 11px; font-weight: 700; cursor: pointer;
+  }
+  .card--pending .card__value { color: var(--color-warning); }
+  .card--approved .card__value { color: var(--color-success); }
+  .card--rejected .card__value { color: var(--color-error); }
+  .card--conflict .card__value { color: var(--color-error); }
+  .card--hours .card__value { color: var(--color-on-surface); }
+
+  /* BEFORE: the total card is green and filled, exactly as it ships today */
+  .card--total .card__value { color: var(--color-success); }
+  .card--total {
+    border: 1.5px solid var(--color-success);
+    background: var(--color-success-container);
+  }
+  /* AFTER (change 2): the total stops borrowing the approved colour */
+  body:not(.before) .card--total .card__value { color: var(--color-on-surface); }
+  body:not(.before) .card--total {
+    border: 1px solid var(--color-outline);
+    background: var(--color-surface);
+  }
+
+  .cards-hint {
+    margin: 12px 2px 0;
+    font-size: 12px; color: var(--color-on-surface-variant);
+  }
+
+  /* ── markers (prototype only) ─────────────────────────────────────────── */
+  .p-mark {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 17px; height: 17px; margin-left: 6px;
+    border-radius: 50%; background: var(--color-secondary);
+    color: var(--color-on-secondary);
+    font-size: 10.5px; font-weight: 700; line-height: 1;
+    vertical-align: middle; flex: 0 0 auto;
+  }
+
+  /* ── legend ───────────────────────────────────────────────────────────── */
+  .legend {
+    max-width: 1640px; margin: 26px auto 0; padding: 18px 26px 0;
+    display: grid; grid-template-columns: 1fr 1fr; gap: 26px;
+    border-top: 1px solid var(--color-outline);
+  }
+  .legend h2 {
+    font-size: 12px; font-weight: 700; letter-spacing: .06em;
+    text-transform: uppercase; color: var(--color-on-surface-variant);
+    margin: 0 0 10px;
+  }
+  .legend ol, .legend ul { margin: 0; padding-left: 18px; font-size: 12.5px; }
+  .legend li { margin-bottom: 7px; }
+  .legend li b { color: var(--color-on-surface); }
+  .legend code {
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 11.5px; padding: 1px 5px;
+    border-radius: 4px; background: var(--color-surface-variant);
+    color: var(--color-on-surface);
+  }
+
+  [hidden] { display: none !important; }
+</style>
+</head>
+<body>
+
+<!-- ══ prototype controls ═════════════════════════════════════════════════ -->
+<div class="proto">
+  <span class="proto__name">Prototype</span>
+
+  <span class="proto__group" id="pageTabs">
+    <button class="proto__btn is-on" data-page="ra">Request Approval</button>
+    <button class="proto__btn" data-page="mr">My Replacements</button>
+  </span>
+
+  <span class="proto__group" id="modeTabs">
+    <button class="proto__btn" data-mode="before">Before</button>
+    <button class="proto__btn is-on" data-mode="after">After</button>
+  </span>
+
+  <button class="proto__btn" id="markerBtn" style="border:1px solid var(--color-outline)">Markers</button>
+  <button class="proto__btn" id="themeBtn" style="border:1px solid var(--color-outline)">Light / Dark</button>
+
+  <span class="proto__note">nothing here is live; it reads the real theme.css</span>
+</div>
+
+<div class="app-nav">
+  <a href="#">My Timetable</a>
+  <a href="#">Cohort Timetables</a>
+  <a href="#">Venue Timetable</a>
+  <a href="#" id="navMr">My Replacements</a>
+  <a href="#" id="navRa">Request Approval<span class="app-nav__badge">4</span></a>
+  <span class="app-nav__me"><b>SB</b> Surayaini Binti Basri · Lecturer (PL)</span>
+</div>
+
+<!-- ══ PAGE: Request Approval ═════════════════════════════════════════════ -->
+<section class="page" id="page-ra">
+  <div class="page__head">
+    <div>
+      <h1 class="page__title">Request Approval</h1>
+      <span class="page__period">202605 · 21 Sep 2026 – 27 Dec 2026</span>
+    </div>
+    <span class="page__help" title="How this page works">?</span>
+  </div>
+
+  <div class="bar">
+    <span class="bar__search">🔍 <input id="qRa" type="search" autocomplete="off" placeholder="Search course code — e.g. AMSE2003 (T) — or lecturer…"></span>
+    <span class="chip-select">Pending ▾</span>
+    <button class="arrow-btn" aria-label="Previous week">‹</button>
+    <span class="chip-select chip-select--wide">All Requested Slot Weeks ▾</span>
+    <button class="arrow-btn" aria-label="Next week">›</button>
+    <span class="switch">
+      <span class="switch__track" role="switch" aria-checked="true" aria-label="Hide completed requests"></span>
+      <span data-before="Exclude COMPLETED Status" data-after="Hide COMPLETED">Hide COMPLETED</span>
+    </span>
+    <button class="btn-plain">Reset Filters</button>
+    <span class="bar__count"
+          data-before="Showing 4 of 13 results"
+          data-after="4 of 13 match your filters">Showing 4 of 13 results</span><span class="p-mark">3</span>
+  </div>
+
+  <div class="filters">
+    <span class="filters__label">Active Filters:</span>
+    <span class="fchip">Status: Pending <button class="fchip__x" aria-label="Remove status filter">×</button></span>
+    <span class="fchip">
+      <span data-before="Exclude COMPLETED Status" data-after="Completed hidden">Exclude COMPLETED Status</span>
+      <button class="fchip__x" aria-label="Show completed requests">×</button>
+      <span class="p-mark">4</span>
+    </span>
+    <button class="filters__clear">Clear all</button>
+  </div>
+
+  <div class="sort-hint">
+    Click column headers to sort (Requested Timestamp, Original Slot, Requested Slot, Request Status)
+    <span class="p-mark">5</span>
+  </div>
+
+  <div class="tbl-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Request ID</th>
+          <th class="is-sorted">Requested Timestamp ▲</th>
+          <th>Staff (Proposer)<span class="p-mark">8</span></th>
+          <th>Course<span class="p-mark">9</span></th>
+          <th>Cohort</th>
+          <th>Original Slot</th>
+          <th>Requested Slot</th>
+          <th>Request Status</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td class="strong">#35</td>
+          <td class="stack">
+            <span>7 Nov 2026, 3:56 PM</span>
+            <span class="small urgent urgent--late">● 7 days ago</span>
+          </td>
+          <td>Surayaini Binti Basri</td>
+          <td class="course" data-code="AMSE2003" data-type="T" data-name="Software Testing and Quality Assurance"><span class="strong">AMSE2003</span> <span class="course__type">(T)</span></td>
+          <td>DSF2(S1)G1</td>
+          <td class="stack">
+            <span class="strong">Thu, 24 Dec 2026 <span class="muted">(Week 14)</span></span>
+            <span>11:00 AM – 12:00 PM</span>
+            <span class="small muted">⌚ B100</span>
+          </td>
+          <td class="stack">
+            <span class="strong">Thu, 12 Nov 2026 <span class="muted">(Week 8)</span></span>
+            <span class="urgent urgent--late">Overdue (1 Working Day Ago)</span>
+            <span>8:00 AM – 9:00 AM</span>
+            <span class="small muted">✓ ⌚ B100</span>
+          </td>
+          <td>
+            <span class="pill pill--pending"
+                  title="Status only — approve or reject with the buttons on the right"
+                  data-before="Pending — Waiting for Approval"
+                  data-after="Pending — Waiting for Approval">Pending — Waiting for Approval</span>
+            <span class="p-mark">7</span>
+          </td>
+          <td>
+            <div class="btn-row">
+              <button class="btn-act btn-act--ok">✓ Approve</button>
+              <button class="btn-act btn-act--no">✕ Reject</button>
+            </div>
+          </td>
+        </tr>
+
+        <tr>
+          <td class="strong">#39</td>
+          <td class="stack">
+            <span>8 Nov 2026, 9:22 PM</span>
+            <span class="small urgent urgent--late">● 6 days ago</span>
+          </td>
+          <td>Lim Jia Zheng</td>
+          <td class="course" data-code="AMCS2093" data-type="L" data-name="Operating Systems"><span class="strong">AMCS2093</span> <span class="course__type">(L)</span></td>
+          <td>DSF2(S1)G1</td>
+          <td class="stack">
+            <span class="strong">Thu, 24 Dec 2026 <span class="muted">(Week 14)</span></span>
+            <span>1:30 PM – 2:30 PM</span>
+            <span class="small muted">⌚ B010</span>
+          </td>
+          <td class="stack">
+            <span class="strong">Fri, 13 Nov 2026 <span class="muted">(Week 8)</span></span>
+            <span class="urgent urgent--late">Overdue (1 Working Day Ago)</span>
+            <span>2:00 PM – 3:00 PM</span>
+            <span class="small muted">✓ ⌚ B010</span>
+          </td>
+          <td><span class="pill pill--pending">Pending — Waiting for Approval</span></td>
+          <td>
+            <div class="btn-row">
+              <button class="btn-act btn-act--ok">✓ Approve</button>
+              <button class="btn-act btn-act--no">✕ Reject</button>
+            </div>
+          </td>
+        </tr>
+
+        <tr>
+          <td class="strong">#46</td>
+          <td class="stack">
+            <span>12 Nov 2026, 8:24 PM</span>
+            <span class="small urgent urgent--soon">● 2 days ago</span>
+          </td>
+          <td>Surayaini Binti Basri</td>
+          <td class="course" data-code="AMSE2003" data-type="L" data-name="Software Testing and Quality Assurance"><span class="strong">AMSE2003</span> <span class="course__type">(L)</span></td>
+          <td>DSF2(S1)G1</td>
+          <td class="stack">
+            <span class="strong">Thu, 24 Dec 2026 <span class="muted">(Week 14)</span></span>
+            <span>9:00 AM – 11:00 AM</span>
+            <span class="small muted">⌚ B100</span>
+          </td>
+          <td class="stack">
+            <span class="strong">Fri, 20 Nov 2026 <span class="muted">(Week 9)</span></span>
+            <span class="urgent urgent--soon">5 Working Days Left</span>
+            <span>1:00 PM – 3:00 PM</span>
+            <span class="small muted">✓ ⌚ B100</span>
+          </td>
+          <td><span class="pill pill--pending">Pending — Waiting for Approval</span></td>
+          <td>
+            <div class="btn-row">
+              <button class="btn-act btn-act--ok">✓ Approve</button>
+              <button class="btn-act btn-act--no">✕ Reject</button>
+            </div>
+          </td>
+        </tr>
+
+        <tr>
+          <td class="strong">#47</td>
+          <td class="stack">
+            <span>14 Nov 2026, 10:47 AM</span>
+            <span class="small muted">● Today</span>
+          </td>
+          <td>Surayaini Binti Basri</td>
+          <td class="course" data-code="AMSE2003" data-type="T" data-name="Software Testing and Quality Assurance"><span class="strong">AMSE2003</span> <span class="course__type">(T)</span></td>
+          <td>DSF2(S1)G1</td>
+          <td class="stack">
+            <span class="strong">Thu, 19 Nov 2026 <span class="muted">(Week 9)</span></span>
+            <span>11:00 AM – 12:00 PM</span>
+            <span class="small muted">⌚ B100</span>
+          </td>
+          <td class="stack">
+            <span class="strong">Thu, 19 Nov 2026 <span class="muted">(Week 9)</span></span>
+            <span class="urgent urgent--soon">4 Working Days Left</span>
+            <span>12:30 PM – 1:30 PM</span>
+            <span class="small muted">✓ ⌚ B100</span>
+          </td>
+          <td><span class="pill pill--pending">Pending — Waiting for Approval</span></td>
+          <td>
+            <div class="btn-row">
+              <button class="btn-act btn-act--ok">✓ Approve</button>
+              <button class="btn-act btn-act--no">✕ Reject</button>
+            </div>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="pager">
+    <span>Rows: <b>10</b> ▾</span>
+    <span class="pager__mid">Showing 1-4 of 4</span>
+    <span class="pager__page">1</span>
+  </div>
+
+  <p class="cards-hint">ⓘ Stats reflect the selected period and any active filters. Hover or tap a card to learn more.</p>
+
+  <div class="cards">
+    <div class="card card--total">
+      <button class="card__info" title="What this counts">i</button>
+      <div class="card__value">4</div>
+      <span class="card__label"
+            data-before="Total Requests"
+            data-after="Requests Shown">Total Requests</span>
+      <span class="p-mark">1</span>
+    </div>
+    <div class="card card--pending">
+      <button class="card__info" title="What this counts">i</button>
+      <div class="card__value">4</div>
+      <span class="card__label">Pending Requests</span>
+    </div>
+    <div class="card card--approved">
+      <button class="card__info" title="What this counts">i</button>
+      <div class="card__value">0</div>
+      <span class="card__label">Approved Requests</span>
+    </div>
+    <div class="card card--rejected">
+      <button class="card__info" title="What this counts">i</button>
+      <div class="card__value">0</div>
+      <span class="card__label">Rejected Requests</span>
+    </div>
+    <div class="card card--total">
+      <button class="card__info" title="What this counts">i</button>
+      <div class="card__value">0</div>
+      <span class="card__label">Total Reviewed</span>
+      <span class="p-mark">2</span>
+    </div>
+  </div>
+</section>
+
+<!-- ══ PAGE: My Replacements ══════════════════════════════════════════════ -->
+<section class="page" id="page-mr" hidden>
+  <div class="page__head">
+    <div>
+      <h1 class="page__title">My Replacements</h1>
+      <span class="page__period">202605 · 21 Sep 2026 – 27 Dec 2026</span>
+    </div>
+    <span class="page__help" title="How this page works">?</span>
+  </div>
+
+  <div class="bar">
+    <span class="bar__search">🔍 <input id="qMr" type="search" autocomplete="off" placeholder="Search course code — e.g. AMSE2003 (T) — or cohort…"></span>
+    <span class="chip-select">All Request Status ▾</span>
+    <button class="arrow-btn" aria-label="Previous week">‹</button>
+    <span class="chip-select chip-select--wide">All Original Slot Weeks ▾</span>
+    <button class="arrow-btn" aria-label="Next week">›</button>
+    <span class="switch">
+      <span class="switch__track" role="switch" aria-checked="true" aria-label="Hide completed requests"></span>
+      <span data-before="Exclude COMPLETED Status" data-after="Hide COMPLETED">Hide COMPLETED</span>
+    </span>
+    <button class="btn-plain">Reset Filters</button>
+    <span class="bar__count" data-before="Showing 9 of 9 classes" data-after="Showing 9 of 9 classes">Showing 9 of 9 classes</span>
+  </div>
+
+  <div class="filters">
+    <span class="filters__label">Active Filters:</span>
+    <span class="fchip">
+      <span data-before="Exclude COMPLETED Status" data-after="Completed hidden">Exclude COMPLETED Status</span>
+      <button class="fchip__x" aria-label="Show completed classes">×</button>
+      <span class="p-mark">4</span>
+    </span>
+    <button class="filters__clear">Clear all</button>
+  </div>
+
+  <div class="tbl-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Course<span class="p-mark">9</span></th>
+          <th>Cohort</th>
+          <th class="is-sorted">Original Slot ▲</th>
+          <th>Conflict Reason</th>
+          <th>Requested Slot</th>
+          <th>Request Status</th>
+          <th>Action</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td class="course" data-code="AMSE1003" data-type="L" data-name="Software Engineering"><span class="strong">AMSE1003</span> <span class="course__type">(L)</span></td>
+          <td>DSF1 (S1) G1</td>
+          <td class="stack">
+            <span class="strong">Mon, 9 Nov 2026 <span class="muted">(Week 8)</span></span>
+            <span class="urgent urgent--late">Overdue (4 Working Days Ago)</span>
+            <span>9:00 AM – 11:00 AM</span>
+            <span class="small muted">⌚ B111</span>
+          </td>
+          <td><span class="pill pill--holiday">Public Holiday</span></td>
+          <td class="muted"><span data-before="—" data-after="Not requested">—</span><span class="p-mark">6</span></td>
+          <td>
+            <span class="pill pill--outline"
+                  title="Status only — use the button in the Action column">Need to Arrange</span>
+            <span class="p-mark">7</span>
+          </td>
+          <td>
+            <button class="icon-btn icon-btn--primary"
+                    title="Arrange a replacement" aria-label="Arrange a replacement">⇄</button>
+          </td>
+        </tr>
+
+        <tr>
+          <td class="course" data-code="BMSE3153" data-type="P" data-name="Software Project Management"><span class="strong">BMSE3153</span> <span class="course__type">(P)</span></td>
+          <td class="stack">
+            <span class="cohort-line">RSD3 (S1) G2</span>
+            <span class="cohort-line">RSD3 (S1) G3</span>
+          </td>
+          <td class="stack">
+            <span class="strong">Tue, 10 Nov 2026 <span class="muted">(Week 8)</span></span>
+            <span class="urgent urgent--late">Overdue (3 Working Days Ago)</span>
+            <span>1:00 PM – 2:30 PM</span>
+            <span class="small muted">⌚ B009</span>
+          </td>
+          <td><span class="pill pill--cancelled">Class Cancelled</span></td>
+          <td class="muted"><span data-before="—" data-after="Not requested">—</span></td>
+          <td><span class="pill pill--outline" title="Status only — use the button in the Action column">Need to Arrange</span></td>
+          <td>
+            <button class="icon-btn icon-btn--primary"
+                    title="Arrange a replacement" aria-label="Arrange a replacement">⇄</button>
+          </td>
+        </tr>
+
+        <tr>
+          <td class="course" data-code="BMSE2163" data-type="P" data-name="Software Engineering"><span class="strong">BMSE2163</span> <span class="course__type">(P)</span></td>
+          <td class="stack">
+            <span class="cohort-line">RSD2 (S1) G2</span>
+            <span class="cohort-line">RSD2 (S1) G1</span>
+          </td>
+          <td class="stack">
+            <span class="strong">Thu, 19 Nov 2026 <span class="muted">(Week 9)</span></span>
+            <span class="urgent urgent--soon">4 Working Days Left</span>
+            <span>12:00 PM – 1:00 PM</span>
+            <span class="small muted">⌚ B010</span>
+          </td>
+          <td><span class="pill pill--cancelled">Class Cancelled</span></td>
+          <td class="muted"><span data-before="—" data-after="Not requested">—</span></td>
+          <td><span class="pill pill--outline" title="Status only — use the button in the Action column">Need to Arrange</span></td>
+          <td>
+            <button class="icon-btn icon-btn--primary"
+                    title="Arrange a replacement" aria-label="Arrange a replacement">⇄</button>
+          </td>
+        </tr>
+
+        <tr>
+          <td class="course" data-code="AMSE2003" data-type="T" data-name="Software Testing and Quality Assurance"><span class="strong">AMSE2003</span> <span class="course__type">(T)</span></td>
+          <td>DSF2 (S1) G1</td>
+          <td class="stack">
+            <span class="strong">Thu, 19 Nov 2026 <span class="muted">(Week 9)</span></span>
+            <span class="urgent urgent--soon">4 Working Days Left</span>
+            <span>11:00 AM – 12:00 PM</span>
+            <span class="small muted">⌚ B100</span>
+          </td>
+          <td><span class="pill pill--cancelled">Class Cancelled</span></td>
+          <td class="stack">
+            <span class="strong">Thu, 19 Nov 2026 <span class="muted">(Week 9)</span></span>
+            <span class="urgent urgent--soon">4 Working Days Left</span>
+            <span>12:30 PM – 1:30 PM</span>
+            <span class="small muted">⌚ B100</span>
+          </td>
+          <td><span class="pill pill--pending">Pending — Waiting for Approval</span></td>
+          <td>
+            <button class="icon-btn icon-btn--danger"
+                    title="Cancel this request" aria-label="Cancel this request">⊘</button>
+          </td>
+        </tr>
+
+        <tr>
+          <td class="course" data-code="AMSE2003" data-type="L" data-name="Software Testing and Quality Assurance"><span class="strong">AMSE2003</span> <span class="course__type">(L)</span></td>
+          <td>DSF2 (S1) G1</td>
+          <td class="stack">
+            <span class="strong">Thu, 24 Dec 2026 <span class="muted">(Week 14)</span></span>
+            <span class="urgent urgent--soon">28 Working Days Left</span>
+            <span>9:00 AM – 11:00 AM</span>
+            <span class="small muted">⌚ B100</span>
+          </td>
+          <td><span class="pill pill--holiday">Public Holiday</span></td>
+          <td class="stack">
+            <span class="strong">Fri, 20 Nov 2026 <span class="muted">(Week 9)</span></span>
+            <span class="urgent urgent--soon">5 Working Days Left</span>
+            <span>1:00 PM – 3:00 PM</span>
+            <span class="small muted">⌚ B100</span>
+          </td>
+          <td><span class="pill pill--pending">Pending — Waiting for Approval</span></td>
+          <td>
+            <button class="icon-btn icon-btn--danger"
+                    title="Cancel this request" aria-label="Cancel this request">⊘</button>
+          </td>
+        </tr>
+
+        <tr>
+          <td class="course" data-code="AMSE2003" data-type="T" data-name="Software Testing and Quality Assurance"><span class="strong">AMSE2003</span> <span class="course__type">(T)</span></td>
+          <td>DSF2 (S1) G1</td>
+          <td class="stack">
+            <span class="strong">Thu, 24 Dec 2026 <span class="muted">(Week 14)</span></span>
+            <span class="urgent urgent--soon">28 Working Days Left</span>
+            <span>11:00 AM – 12:00 PM</span>
+            <span class="small muted">⌚ B100</span>
+          </td>
+          <td><span class="pill pill--holiday">Public Holiday</span></td>
+          <td class="stack">
+            <span class="strong">Thu, 12 Nov 2026 <span class="muted">(Week 8)</span></span>
+            <span class="urgent urgent--late">Overdue (1 Working Day Ago)</span>
+            <span>8:00 AM – 9:00 AM</span>
+            <span class="small muted">⌚ B100</span>
+          </td>
+          <td><span class="pill pill--pending">Pending — Waiting for Approval</span></td>
+          <td>
+            <button class="icon-btn icon-btn--danger"
+                    title="Cancel this request" aria-label="Cancel this request">⊘</button>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="pager">
+    <span>Rows: <b>10</b> ▾</span>
+    <span class="pager__mid">Showing 1-6 of 9</span>
+    <span class="pager__page">1</span>
+  </div>
+
+  <p class="cards-hint">ⓘ Stats reflect the selected period and any active filters. Hover or tap a card to learn more.</p>
+
+  <div class="cards">
+    <div class="card card--conflict">
+      <button class="card__info" title="What this counts">i</button>
+      <div class="card__value">6</div>
+      <span class="card__label">Classes to Arrange</span>
+    </div>
+    <div class="card card--hours">
+      <button class="card__info" title="What this counts">i</button>
+      <div class="card__value">8</div>
+      <span class="card__label">Class Hours to Replace</span>
+    </div>
+    <div class="card card--pending">
+      <button class="card__info" title="What this counts">i</button>
+      <div class="card__value">3</div>
+      <span class="card__label">Pending Requests</span>
+    </div>
+    <div class="card card--approved">
+      <button class="card__info" title="What this counts">i</button>
+      <div class="card__value">0</div>
+      <span class="card__label">Approved Requests</span>
+    </div>
+    <div class="card card--rejected">
+      <button class="card__info" title="What this counts">i</button>
+      <div class="card__value">0</div>
+      <span class="card__label">Rejected Requests</span>
+    </div>
+  </div>
+</section>
+
+<!-- ══ legend ═════════════════════════════════════════════════════════════ -->
+<div class="legend">
+  <div>
+    <h2>The 9 changes</h2>
+    <ol>
+      <li><b>1</b> — "Total Requests" renamed. It counts only what the filters leave, while the toolbar still says 13 exist.</li>
+      <li><b>2</b> — the total card loses its green fill and number. Green then only means <i>approved</i>, so the loudest card is the work, as on My Replacements.</li>
+      <li><b>3</b> — the toolbar counter stops saying "Showing"; two counters both "showing" 13 and 4 read as a contradiction.</li>
+      <li><b>4</b> — the toggle is shortened to <b>Hide COMPLETED</b> (it named a status the toggle does not know) and the chip reads "Completed hidden". Its × used to say "Exclude…", so removing it <i>showed</i> more — a double negative in a filter row.</li>
+      <li><b>5</b> — the sort instruction line is deleted. The active header already draws ▲.</li>
+      <li><b>6</b> — an empty requested slot says "Not requested" instead of "—".</li>
+      <li><b>7</b> — the status pill's hover text says it is a status. It is a plain span wearing a button's outline.</li>
+      <li><b>8</b> — the STAFF column drops the staff ID and the email. Both stay in the request popup, where there is room to read them.</li>
+      <li><b>9</b> — the COURSE column drops the course name and shows <code>AMSE2003 (T)</code>. The name stays in the popup and the search box still finds it — type a name, or the new <code>AMSE2003 (T)</code> form.</li>
+    </ol>
+    <p style="margin:10px 0 0;font-size:12px;color:var(--color-on-surface-variant)">
+      The act-on-several bar and its tick column were proposed, then dropped at your
+      request — so the table has no tick boxes and nothing sits above it but the filters.
+    </p>
+  </div>
+  <div>
+    <h2>Deliberately unchanged</h2>
+    <ul>
+      <li>the four-word status chip repeated down every row</li>
+      <li>the icon-only Action column — three meanings, all on hover</li>
+      <li>zeros under a status filter ("Approved 0" can be false)</li>
+      <li>"Total Reviewed" — it re-adds its two neighbours plus completed</li>
+      <li>"Reset Filters" vs "Clear all" keeping two different jobs</li>
+      <li>the number cards staying below the pager</li>
+      <li>"6 classes" sitting beside "8 hours"</li>
+    </ul>
+    <h2 style="margin-top:18px">Withdrawn — not defects</h2>
+    <ul>
+      <li>there is no urgency line in the Original Slot cell; measured on :8000, only Requested Slot carries one</li>
+      <li>the two tables already share column order; the extra columns differ because one page is your own classes and the other is other people's requests</li>
+    </ul>
+  </div>
+</div>
+
+<script>
+  const body = document.body;
+
+  /* page tabs */
+  document.getElementById('pageTabs').addEventListener('click', (e) => {
+    const btn = e.target.closest('[data-page]');
+    if (!btn) return;
+    for (const b of document.querySelectorAll('#pageTabs .proto__btn')) b.classList.toggle('is-on', b === btn);
+    document.getElementById('page-ra').hidden = btn.dataset.page !== 'ra';
+    document.getElementById('page-mr').hidden = btn.dataset.page !== 'mr';
+  });
+
+  /* before / after */
+  let mode = 'after';
+
+  function counterDefault(page) {
+    const el = document.querySelector('#page-' + page + ' .bar__count');
+    if (!el) return;
+    el.textContent = mode === 'before' ? el.dataset.before : el.dataset.after;
+  }
+
+  function applyMode(next) {
+    mode = next;
+    body.classList.toggle('before', mode === 'before');
+    for (const el of document.querySelectorAll('[data-before]')) {
+      if (el.classList.contains('bar__count')) continue;   /* the counter is live */
+      el.textContent = mode === 'before' ? el.dataset.before : el.dataset.after;
+    }
+    for (const b of document.querySelectorAll('#modeTabs .proto__btn')) {
+      b.classList.toggle('is-on', b.dataset.mode === mode);
+    }
+    applySearch('ra');
+    applySearch('mr');
+  }
+
+  /* ── search: it works, and it proves the new "AMSE2003 (T)" form is findable.
+     The course NAME is no longer on screen, so it rides the cell in data-name
+     and is still matched — that is what "name in the popup only" has to mean. */
+  const TOTAL = { ra: 13, mr: 9 };
+
+  const pagerEls = {
+    ra: document.querySelector('#page-ra .pager__mid'),
+    mr: document.querySelector('#page-mr .pager__mid'),
+  };
+  const pagerDefault = {
+    ra: pagerEls.ra ? pagerEls.ra.textContent : '',
+    mr: pagerEls.mr ? pagerEls.mr.textContent : '',
+  };
+
+  function haystack(row) {
+    const hidden = [...row.querySelectorAll('td[data-name]')].map(td => td.dataset.name);
+    return (row.innerText + ' ' + hidden.join(' ')).replace(/\s+/g, ' ').toLowerCase();
+  }
+
+  function applySearch(page) {
+    const input = document.getElementById(page === 'ra' ? 'qRa' : 'qMr');
+    const tbody = document.querySelector('#page-' + page + ' tbody');
+    if (!input || !tbody) return;
+
+    const q = input.value.trim().replace(/\s+/g, ' ').toLowerCase();
+    let shown = 0;
+    for (const row of tbody.rows) {
+      const hit = !q || haystack(row).includes(q);
+      row.hidden = !hit;
+      if (hit) shown++;
+    }
+
+    const el = document.querySelector('#page-' + page + ' .bar__count');
+    if (!el) return;
+
+    const pager = pagerEls[page];
+    if (!q) {
+      counterDefault(page);
+      if (pager) pager.textContent = pagerDefault[page];
+      return;
+    }
+
+    if (pager) {
+      pager.textContent = shown === 0
+        ? 'No rows match this search'
+        : 'Showing 1-' + shown + ' of ' + shown;
+    }
+
+    const total = TOTAL[page];
+    el.textContent = mode === 'before'
+      ? 'Showing ' + shown + ' of ' + total + ' results'
+      : shown + ' of ' + total + ' match your filters';
+  }
+
+  for (const id of ['qRa', 'qMr']) {
+    const el = document.getElementById(id);
+    if (el) el.addEventListener('input', () => applySearch(id === 'qRa' ? 'ra' : 'mr'));
+  }
+  document.getElementById('modeTabs').addEventListener('click', (e) => {
+    const btn = e.target.closest('[data-mode]');
+    if (btn) applyMode(btn.dataset.mode);
+  });
+
+  /* markers */
+  document.getElementById('markerBtn').addEventListener('click', () => {
+    body.classList.toggle('no-markers');
+  });
+
+  /* theme */
+  document.getElementById('themeBtn').addEventListener('click', () => {
+    document.documentElement.classList.toggle('light');
+  });
+
+  /* the nav links highlight the visible page (cosmetic only) */
+  const navMr = document.getElementById('navMr');
+  const navRa = document.getElementById('navRa');
+  function syncNav() {
+    const onRa = !document.getElementById('page-ra').hidden;
+    navRa.classList.toggle('is-current', onRa);
+    navMr.classList.toggle('is-current', !onRa);
+  }
+  document.getElementById('pageTabs').addEventListener('click', syncNav);
+  syncNav();
+  applyMode('after');
+</script>
+</body>
+</html>

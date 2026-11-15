@@ -146,7 +146,7 @@ venue-timetable, replacement-home, request-approval}.blade.php` · six
 `public/js/ui-common.js` was **not** touched — no JS change was needed, and a
 concurrent session owns uncommitted changes there.
 
-`../ui-prototype/summary-card-back-preview.html` was **verified only, never
+`ui-prototype/summary-card-back-preview.html` was **verified only, never
 modified**, per the standing instruction.
 
 ## Not committed

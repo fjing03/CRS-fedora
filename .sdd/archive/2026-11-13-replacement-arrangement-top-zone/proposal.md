@@ -3,7 +3,7 @@
 > **Status:** proposed · 2026-11-11
 > **Change:** `replacement-arrangement-top-zone`
 > **Explore baseline:** `.sdd/changes/replacement-arrangement-top-zone/explore-brief.md`
-> **Visual contract:** `../ui-prototype/replacement-arrangement-top-zone-preview.html`
+> **Visual contract:** `ui-prototype/replacement-arrangement-top-zone-preview.html`
 
 ## Why
 

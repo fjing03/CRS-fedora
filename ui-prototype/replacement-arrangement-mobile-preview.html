@@ -1,0 +1,244 @@
+<!doctype html>
+<html lang="en" class="light">
+<!--
+  REPLACEMENT ARRANGEMENT — MOBILE INTERACTION PROTOTYPE · 2026-11-11
+  GENERAL DESIGN REQUIREMENTS
+  · Mobile-first, not a miniature weekly desktop grid. Existing CRS theme tokens only.
+  · [USER] One day / vertical timeline; whole class-length selection on one tap.
+  · [USER] Hide Sunday, public holidays, too-soon dates and weeks with no eligible dates.
+  · [USER] Collapsible original details; sticky venue/week/day controls; fixed action bar.
+  · [USER] Tap selected block for details, with explicit Remove selection inside.
+  · [USER] Conflict details stay open; temporary errors disappear after 5 seconds.
+  · [CLONE] Green means free, not necessarily long enough; validate the whole span on tap.
+  · [SCOPE] Standalone fixture ONLY. No database, app requests, local storage or submissions.
+    The only system resource loaded is its real theme.css (Laravel :8000).
+    Fixture clock is Wed, 11 Nov 2026; earliest date is Mon, 16 Nov 2026.
+    Schedules are invented interaction samples, not the live lecturer timetable.
+  · [SCOPE] This file proposes MOBILE only. A wide browser shows a phone-width canvas;
+    it does not propose changing the real desktop layout. Playwright remains paused.
+-->
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Mobile preview — Replacement Arrangement</title>
+  <link rel="stylesheet" href="../public/css/theme.css">
+  <style>
+    [hidden] { display: none !important; }
+    * { box-sizing: border-box; }
+    body { margin: 0; background: var(--color-bg); color: var(--color-on-surface); font: 14px/1.5 system-ui, sans-serif; }
+    button, select { font: inherit; color: inherit; }
+    button { cursor: pointer; }
+    button:focus-visible, select:focus-visible, summary:focus-visible { outline: 2px solid var(--color-primary); outline-offset: 3px; }
+    button:disabled { opacity: .45; cursor: not-allowed; }
+    .phone { max-width: 480px; margin: auto; padding-bottom: calc(110px + env(safe-area-inset-bottom)); }
+    header { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 20px 16px 10px; }
+    h1 { font-size: clamp(18px, 5vw, 22px); line-height: 1.25; margin: 2px 0; }
+    .eyebrow { font-size: 10px; letter-spacing: .1em; text-transform: uppercase; font-weight: 700; color: var(--color-on-surface-variant); }
+    .muted { color: var(--color-on-surface-variant); }
+    .fixture-note { margin: 0 16px 14px; font-size: 12px; color: var(--color-on-surface-variant); }
+    .icon-btn { min-width: 44px; min-height: 44px; border: 1px solid var(--color-outline); border-radius: var(--radius-md); background: var(--color-surface); }
+    .card { margin: 0 12px 12px; border: 1px solid var(--color-outline); background: var(--color-surface); border-radius: var(--radius-md); }
+    /* [USER] Original class essentials stay visible; secondary details expand on tap. */
+    details.original { padding: 0 14px; }
+    summary { min-height: 44px; padding: 13px 0; cursor: pointer; }
+    summary .eyebrow { display: block; color: var(--color-on-error-container); margin-bottom: 5px; }
+    .original-title { display: block; font-size: 13px; font-weight: 650; }
+    .original-date { display: block; font-size: 12px; margin-top: 4px; }
+    .original-body { border-top: 1px solid var(--color-outline); padding: 12px 0; }
+    label { display: block; font-size: 11px; font-weight: 650; color: var(--color-on-surface-variant); margin-bottom: 4px; }
+    select { width: 100%; min-height: 44px; min-width: 0; padding: 8px; border: 1px solid var(--color-outline); border-radius: var(--radius-md); background: var(--color-surface); }
+    .original-body select { margin-bottom: 10px; }
+    dl { margin: 0; }
+    .detail-row { display: grid; grid-template-columns: 85px minmax(0, 1fr); gap: 12px; padding: 8px 0; border-bottom: 1px solid var(--color-outline); }
+    dt { color: var(--color-on-surface-variant); font-size: 12px; }
+    dd { margin: 0; overflow-wrap: anywhere; }
+    /* [USER] Only this small control cluster sticks, not the large page heading. */
+    .controls { position: sticky; top: 0; z-index: 20; padding: 10px 12px 8px; background: var(--color-bg); border-bottom: 1px solid var(--color-outline); }
+    .control-row { display: grid; grid-template-columns: minmax(0, .9fr) minmax(0, 1.4fr); gap: 8px; }
+    .week-row { display: grid; grid-template-columns: 44px minmax(0, 1fr) 44px; gap: 3px; }
+    .week-row select { padding: 5px; font-size: 12px; }
+    .days { display: flex; gap: 5px; overflow-x: auto; padding: 10px 2px 2px; scrollbar-width: thin; }
+    .day { flex: 1 0 44px; min-height: 52px; padding: 4px; border: 1px solid var(--color-outline); border-radius: var(--radius-md); background: var(--color-surface); font-size: 11px; }
+    .day strong { display: block; font-size: 14px; }
+    .day[aria-pressed="true"] { background: var(--color-primary-container); color: var(--color-on-primary-container); border: 2px solid var(--color-primary); }
+    .tools { display: flex; gap: 8px; padding: 8px 14px 0; flex-wrap: wrap; }
+    .quiet { display: inline-flex; align-items: center; justify-content: center; gap: 6px; min-height: 44px; padding: 6px 10px; border: 1px solid var(--color-outline); border-radius: var(--radius-md); background: var(--color-surface); font-size: 12px; }
+    .quiet svg { width: 15px; height: 15px; }
+    .day-heading { margin: 18px 16px 10px; display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+    .day-heading h2 { font-size: 15px; margin: 0; }
+    .day-heading span { font-size: 11px; color: var(--color-on-surface-variant); }
+    /* [USER] A continuous vertical time scale. A selected span is ONE block. */
+    .timeline { margin: 0 12px; padding: 12px 10px; border: 1px solid var(--color-outline); border-radius: var(--radius-md); background: var(--color-surface); }
+    .time-row { display: grid; grid-template-columns: 46px minmax(0, 1fr); gap: 8px; margin-bottom: 5px; align-items: start; }
+    .time-label { padding-top: 14px; color: var(--color-on-surface-variant); font-size: 11px; font-variant-numeric: tabular-nums; }
+    .slot { width: 100%; min-height: 48px; padding: 10px 12px; text-align: left; border: 0; border-radius: var(--radius-sm); font-size: 12px; }
+    .slot small { display: block; opacity: .85; font-size: 11px; }
+    .free { background: var(--color-success-container); color: var(--color-on-success-container); }
+    .conflict { background: var(--color-error-container); color: var(--color-on-error-container); }
+    .pending { background: var(--color-tertiary-container); color: var(--color-on-tertiary-container); }
+    .conflict.mine { border: 3px solid var(--color-error); }
+    .pending.mine { border: 3px solid var(--color-tertiary); }
+    .picked { background: var(--color-primary-container); color: var(--color-on-primary-container); border: 2px solid var(--color-primary); display: flex; flex-direction: column; justify-content: center; gap: 6px; }
+    .end-time { padding: 2px 0 0; font-size: 11px; color: var(--color-on-surface-variant); }
+    /* [USER] Persistent summary/action bar; safe area + page padding prevent overlap. */
+    .action-bar { position: fixed; z-index: 30; bottom: 0; left: 50%; transform: translateX(-50%); width: min(100%, 480px); display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 10px; align-items: center; padding: 12px 14px calc(12px + env(safe-area-inset-bottom)); background: var(--color-surface); border-top: 1px solid var(--color-outline); box-shadow: var(--shadow-sm); }
+    .selection-summary { border: 0; background: transparent; min-height: 48px; text-align: left; padding: 0; font-size: 12px; }
+    .selection-summary strong, .selection-summary span { display: block; }
+    .selection-summary span { color: var(--color-on-surface-variant); font-size: 11px; }
+    .primary { min-height: 44px; padding: 10px 14px; border: 0; border-radius: var(--radius-md); background: var(--color-primary); color: var(--color-on-primary); font-size: 12px; font-weight: 650; }
+    .danger { width: 100%; min-height: 44px; margin-top: 18px; border: 1px solid var(--color-error); border-radius: var(--radius-md); background: var(--color-error-container); color: var(--color-on-error-container); }
+    /* [USER] Tap-open details stay until closed. No hover-only mobile information. */
+    dialog { position: fixed; inset: auto 0 0; width: min(100%, 480px); max-width: 100%; max-height: 85dvh; margin: 0 auto; padding: 0 18px calc(18px + env(safe-area-inset-bottom)); border: 1px solid var(--color-outline); border-radius: 20px 20px 0 0; background: var(--color-surface); color: var(--color-on-surface); overflow-y: auto; overscroll-behavior: contain; }
+    dialog::backdrop { background: color-mix(in srgb, var(--color-on-surface) 35%, transparent); }
+    body:has(dialog[open]) { overflow: hidden; }
+    .sheet-head { position: sticky; top: 0; display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 14px 0 10px; background: var(--color-surface); }
+    .sheet-head h2 { margin: 0; font-size: 18px; }
+    .sheet-actions { display: flex; justify-content: flex-end; gap: 8px; padding-top: 18px; }
+    .legend-line { display: flex; gap: 12px; align-items: flex-start; margin: 15px 0; }
+    .swatch { width: 20px; height: 20px; border-radius: var(--radius-sm); flex-shrink: 0; margin-top: 2px; }
+    .legend-line p { margin: 2px 0; font-size: 12px; color: var(--color-on-surface-variant); }
+    .toast { position: fixed; z-index: 100; left: max(12px, calc((100vw - 456px) / 2)); bottom: calc(100px + env(safe-area-inset-bottom)); width: min(360px, calc(100vw - 24px)); padding: 12px 16px; background: var(--color-inverse-surface); color: var(--color-on-inverse-surface); border-radius: var(--radius-md); box-shadow: var(--shadow-sm); font-size: 13px; }
+    .empty { padding: 25px 14px; color: var(--color-on-surface-variant); }
+    @media (prefers-reduced-motion: no-preference) { dialog[open] { animation: arrive .15s ease-out; } @keyframes arrive { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } } }
+  </style>
+</head>
+<body>
+  <main class="phone">
+    <header><div><div class="eyebrow">Mobile interaction preview</div><h1>Replacement Arrangement</h1></div><button class="icon-btn" id="theme" aria-label="Switch colour theme">◐</button></header>
+    <p class="fixture-note">Sample timetable · preview clock: 11 Nov 2026.<br>No real booking will be made.</p>
+    <details class="original card">
+      <summary><span class="eyebrow">Conflict Schedule · expand details</span><span class="original-title" id="originalTitle"></span><span class="original-date" id="originalDate"></span></summary>
+      <div class="original-body">
+        <label for="subject">Subject</label><select id="subject"><option value="0">AMSE1003 — Software Engineering (L)</option><option value="1">BMSE3153 — Software Project (P)</option></select>
+        <label for="originalSlot">Conflicted slot</label><select id="originalSlot"></select>
+        <dl id="originalDetails"></dl>
+      </div>
+    </details>
+    <section class="controls" aria-label="Timetable controls">
+      <div class="control-row"><div><label for="venue">Replacement venue</label><select id="venue"></select></div><div><label for="week">Replacement week</label><div class="week-row"><button class="icon-btn" id="prev" aria-label="Previous eligible week">‹</button><select id="week"></select><button class="icon-btn" id="next" aria-label="Next eligible week">›</button></div></div></div>
+      <div class="days" id="days" aria-label="Bookable dates"></div>
+    </section>
+    <div class="tools"><button class="quiet" id="legendBtn">Colours &amp; borders</button><button class="quiet" id="tipBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M9 18h6M10 22h4M12 2a7 7 0 0 0-4 12.7V17h8v-2.3A7 7 0 0 0 12 2Z"/></svg>Tip</button><button class="quiet" id="earliestBtn">Earliest bookable</button></div>
+    <div class="day-heading"><h2 id="dayTitle"></h2><span id="durationLabel"></span></div>
+    <div class="timeline" id="timeline"></div>
+    <p class="fixture-note" style="margin-top:14px">End of day · 19:00<br>Red and amber rows open details. Green rows select the full class length if it fits.</p>
+  </main>
+  <aside class="action-bar" aria-label="Selection and submission">
+    <button class="selection-summary" id="selectionSummary" disabled><strong>Select a time</strong><span>Tap a green time to begin.</span></button>
+    <button class="primary" id="submit" disabled>Submit Request</button>
+  </aside>
+  <dialog id="sheet" aria-labelledby="sheetTitle"><div class="sheet-head"><h2 id="sheetTitle"></h2><button class="icon-btn" id="closeSheet" aria-label="Close details">✕</button></div><div id="sheetBody"></div></dialog>
+  <div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
+  <script>
+    'use strict';
+    const $ = id => document.getElementById(id);
+    const subjects = [
+      { code: 'AMSE1003', name: 'Software Engineering', type: 'L', span: 4, venue: 'B111', cohorts: 'DSF1 (S1) G1', students: 25, slots: [{ date: '2026-11-09', time: '9:00 AM ~ 11:00 AM', reason: 'Public Holiday · Deepavali' }, { date: '2026-12-24', time: '9:00 AM ~ 11:00 AM', reason: 'Public Holiday · Christmas Eve' }] },
+      { code: 'BMSE3153', name: 'Software Project', type: 'P', span: 2, venue: 'B005', cohorts: 'RSD3 (S1) G1 + RSD3 (S1) G2', students: 28, slots: [{ date: '2026-11-10', time: '2:00 PM ~ 3:00 PM', reason: 'Cancelled · Lecturer unavailable' }] }
+    ];
+    const venues = [{ code: 'B111', name: 'Lecture Hall', seats: 80, type: 'L' }, { code: 'B110', name: 'Lecture Hall', seats: 80, type: 'L' }, { code: 'B005', name: 'Computer Lab', seats: 28, type: 'P' }, { code: 'B009', name: 'Computer Lab', seats: 28, type: 'P' }];
+    const holidays = new Set(['2026-11-09', '2026-12-24', '2026-12-25']);
+    const cutoff = '2026-11-16';
+    const state = { subject: 0, original: 0, week: 9, day: '2026-11-16', venue: 'B111', selection: null };
+    const parse = key => new Date(key + 'T12:00:00Z');
+    const keyFor = date => date.toISOString().slice(0, 10);
+    function addDays(key, n) { const d = parse(key); d.setUTCDate(d.getUTCDate() + n); return keyFor(d); }
+    function dateText(key, weekday = 'short') { return new Intl.DateTimeFormat('en-GB', { timeZone: 'UTC', weekday, day: 'numeric', month: 'short', year: 'numeric' }).format(parse(key)); }
+    function clock(index) { const m = 480 + index * 30; return `${Math.floor(m / 60) % 12 || 12}:${String(m % 60).padStart(2, '0')} ${m >= 720 ? 'PM' : 'AM'}`; }
+    function axis(index) { const m = 480 + index * 30; return `${String(Math.floor(m / 60)).padStart(2, '0')}:${String(m % 60).padStart(2, '0')}`; }
+    const escape = text => String(text).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+    function row(label, value) { return `<div class="detail-row"><dt>${escape(label)}</dt><dd>${escape(value)}</dd></div>`; }
+    function datesFor(week) { const monday = addDays('2026-09-21', (week - 1) * 7); return Array.from({ length: 6 }, (_, i) => addDays(monday, i)).filter(key => key >= cutoff && !holidays.has(key)); }
+    const weeks = Array.from({ length: 14 }, (_, i) => i + 1).filter(week => datesFor(week).length);
+    let toastTimer;
+    function warn(message) { clearTimeout(toastTimer); $('toast').textContent = message; $('toast').hidden = false; toastTimer = setTimeout(() => { $('toast').hidden = true; }, 5000); }
+    function openSheet(title, html) { $('sheetTitle').textContent = title; $('sheetBody').innerHTML = html; if (!$('sheet').open) $('sheet').showModal(); $('closeSheet').focus(); }
+    $('closeSheet').onclick = () => $('sheet').close();
+    $('sheet').addEventListener('click', e => { if (e.target === $('sheet')) { const r = $('sheet').getBoundingClientRect(); if (e.clientY < r.top || e.clientX < r.left || e.clientX > r.right) $('sheet').close(); } });
+    /* [SCOPE] Deterministic sample occupancy, deliberately including short free gaps.
+       Do NOT replace or derive the production availability engine from this fixture. */
+    function facts(index) {
+      const variant = (parse(state.day).getUTCDate() + venues.findIndex(v => v.code === state.venue)) % 3;
+      if (index >= 2 + variant && index < 4 + variant) return { cls: 'conflict mine', label: 'Your Conflict', detail: 'Your normal class occupies this time.', course: 'AMSE2003 — Data Structures' };
+      if (index >= 10 && index < 12) return { cls: 'pending mine', label: 'Your Pending', detail: 'Your replacement request is waiting for approval.', course: 'AMSE1003 — Software Engineering' };
+      if (index >= 15 && index < 17) return { cls: 'conflict', label: 'Cohorts Conflict', detail: 'The related cohorts have another class at this time.', course: 'BMCS2023 — Database Systems' };
+      if (index >= 19 && index < 21) return { cls: 'pending', label: 'Other Pending', detail: 'Another lecturer has a pending request for this room.', course: '' };
+      return { cls: 'free', label: 'Available' };
+    }
+    function renderOriginal() {
+      const s = subjects[state.subject], original = s.slots[state.original];
+      $('originalTitle').textContent = `${s.code} — ${s.name} (${s.type})`;
+      $('originalDate').textContent = `${dateText(original.date)} · ${original.time}`;
+      $('originalSlot').innerHTML = s.slots.map((slot, i) => `<option value="${i}">${escape(dateText(slot.date) + ' · ' + slot.time)}</option>`).join('');
+      $('originalSlot').value = state.original;
+      $('originalDetails').innerHTML = row('Reason', original.reason) + row('Venue', s.venue) + row('Cohorts', s.cohorts) + row('Students', s.students);
+    }
+    function renderControls() {
+      $('venue').innerHTML = venues.filter(v => v.type === subjects[state.subject].type).map(v => `<option value="${v.code}">${v.code} · ${v.seats} seats</option>`).join('');
+      $('venue').value = state.venue;
+      $('venue').setAttribute('aria-label', `Replacement venue: ${venues.find(v => v.code === state.venue).name}`);
+      $('week').innerHTML = weeks.map(week => `<option value="${week}">Week ${week}</option>`).join('');
+      $('week').value = state.week;
+      $('prev').disabled = state.week === weeks[0]; $('next').disabled = state.week === weeks[weeks.length - 1];
+      $('days').innerHTML = datesFor(state.week).map(key => `<button class="day" aria-pressed="${key === state.day}" aria-label="${escape(dateText(key, 'long'))}" data-day="${key}">${new Intl.DateTimeFormat('en-GB', { weekday: 'short', timeZone: 'UTC' }).format(parse(key))}<strong>${parse(key).getUTCDate()}</strong></button>`).join('');
+    }
+    function renderTimeline() {
+      $('dayTitle').textContent = dateText(state.day); $('durationLabel').textContent = `${subjects[state.subject].span / 2} ${subjects[state.subject].span === 2 ? 'hour' : 'hours'} needed`;
+      let html = '';
+      for (let i = 0; i < 22; i++) {
+        const picked = state.selection && state.selection.day === state.day && state.selection.venue === state.venue && state.selection.start === i;
+        const f = facts(i);
+        if (picked) {
+          const end = i + state.selection.span;
+          html += `<div class="time-row"><div class="time-label">${axis(i)}</div><button class="slot picked" data-picked="true" style="min-height:${state.selection.span * 53 - 5}px" aria-label="View selected block, ${clock(i)} to ${clock(end)}"><strong>Your Current Selection</strong><span>${clock(i)} ~ ${clock(end)}</span><small>${state.venue} · Tap for details</small></button></div>`;
+          i = end - 1;
+        } else html += `<div class="time-row"><div class="time-label">${axis(i)}</div><button class="slot ${f.cls}" data-index="${i}" aria-label="${escape(f.label)}, ${clock(i)} to ${clock(i + 1)}">${f.label}<small>${clock(i)} ~ ${clock(i + 1)}</small></button></div>`;
+      }
+      $('timeline').innerHTML = html + '<div class="end-time">19:00</div>';
+    }
+    function renderBar() {
+      const s = state.selection;
+      $('submit').disabled = !s; $('selectionSummary').disabled = !s;
+      $('selectionSummary').innerHTML = s ? `<strong>${escape(dateText(s.day).split(',')[0])} · ${clock(s.start)} ~ ${clock(s.start + s.span)}</strong><span>${s.venue} · ${s.span / 2} ${s.span === 2 ? 'hour' : 'hours'} · View details ▴</span>` : '<strong>Select a time</strong><span>Tap a green time to begin.</span>';
+    }
+    function render() { renderOriginal(); renderControls(); renderTimeline(); renderBar(); }
+    // [USER] Same weekday across weeks if eligible; otherwise first eligible day.
+    function changeWeek(week) { const weekday = parse(state.day).getUTCDay(); state.week = week; const dates = datesFor(week); state.day = dates.find(key => parse(key).getUTCDay() === weekday) || dates[0]; renderControls(); renderTimeline(); }
+    $('week').onchange = e => changeWeek(Number(e.target.value));
+    $('prev').onclick = () => changeWeek(weeks[weeks.indexOf(state.week) - 1]);
+    $('next').onclick = () => changeWeek(weeks[weeks.indexOf(state.week) + 1]);
+    $('days').onclick = e => { const button = e.target.closest('[data-day]'); if (button) { state.day = button.dataset.day; renderControls(); renderTimeline(); } };
+    $('venue').onchange = e => { state.venue = e.target.value; renderControls(); renderTimeline(); };
+    $('earliestBtn').onclick = () => { state.week = weeks[0]; state.day = datesFor(state.week)[0]; renderControls(); renderTimeline(); };
+    $('subject').onchange = e => { if (state.selection && !confirm('Changing the subject clears this preview selection. Continue?')) { e.target.value = state.subject; return; } state.subject = Number(e.target.value); state.original = 0; state.venue = subjects[state.subject].venue; state.selection = null; render(); };
+    $('originalSlot').onchange = e => { if (state.selection && !confirm('Changing the original class clears this preview selection. Continue?')) { e.target.value = state.original; return; } state.original = Number(e.target.value); state.selection = null; render(); };
+    function selectedDetails() {
+      const s = state.selection; if (!s) return;
+      openSheet('Your selected time', '<dl>' + row('Subject', subjects[state.subject].code + ' — ' + subjects[state.subject].name) + row('Date', dateText(s.day)) + row('Time', clock(s.start) + ' ~ ' + clock(s.start + s.span)) + row('Duration', `${s.span} slots (${s.span / 2} ${s.span === 2 ? 'Hour' : 'Hours'})`) + row('Venue', s.venue + ' — ' + venues.find(v => v.code === s.venue).name) + '</dl><button class="danger" id="removeSelection">Remove selection</button>');
+      $('removeSelection').onclick = () => { state.selection = null; $('sheet').close(); renderTimeline(); renderBar(); };
+    }
+    $('selectionSummary').onclick = selectedDetails;
+    $('timeline').onclick = e => {
+      if (e.target.closest('[data-picked]')) { selectedDetails(); return; }
+      const button = e.target.closest('[data-index]'); if (!button) return;
+      const index = Number(button.dataset.index), f = facts(index), span = subjects[state.subject].span;
+      if (f.cls !== 'free') { openSheet(f.label, '<dl>' + row('Date', dateText(state.day)) + row('Time', clock(index) + ' ~ ' + clock(index + 1)) + row('Venue', state.venue) + row('Reason', f.detail) + (f.course ? row('Class', f.course) : '') + '</dl><p class="muted">This time cannot be booked.</p>'); return; }
+      if (state.selection) { warn('You already selected a class-length block. Open its details to remove it before choosing another.'); return; }
+      if (index + span > 22 || Array.from({ length: span }, (_, offset) => facts(index + offset)).some(fact => fact.cls !== 'free')) { warn('Not enough continuous time here. Choose another green start time.'); return; }
+      state.selection = { day: state.day, week: state.week, venue: state.venue, start: index, span };
+      renderTimeline(); renderBar();
+      $('toast').hidden = true; clearTimeout(toastTimer);
+    };
+    $('tipBtn').onclick = () => openSheet('Tip', `<p>${state.selection ? 'Open the selected blue block to view details or remove your selection.' : 'Click an available (green) time slot to begin.'}</p><p class="muted">One tap selects the full class length. If it cannot fit, choose another start time.</p>`);
+    $('legendBtn').onclick = () => openSheet('Colours & borders', '<div class="legend-line"><span class="swatch free"></span><div><strong>Available</strong><p>Free time. Tap to select if the full class fits.</p></div></div><div class="legend-line"><span class="swatch picked"></span><div><strong>Your Current Selection</strong><p>Tap the blue block for details or to remove it.</p></div></div><div class="legend-line"><span class="swatch pending mine"></span><div><strong>Pending</strong><p>A replacement request is waiting for approval. This time cannot be booked.</p></div></div><div class="legend-line"><span class="swatch conflict mine"></span><div><strong>Conflict</strong><p>You, the cohorts or the venue have another class at this time. Tap a row for its reason.</p></div></div><p>Thick border (3px) = Yours · No border = Others\' (Cohorts or Venue)</p>');
+    $('submit').onclick = () => {
+      const s = state.selection; if (!s) return;
+      openSheet('Submit Request?', '<p>Review your replacement before continuing.</p><dl>' + row('Date', dateText(s.day)) + row('Time', clock(s.start) + ' ~ ' + clock(s.start + s.span)) + row('Venue', s.venue) + '</dl><p class="muted">Prototype only. This does not contact the system or make a real request.</p><div class="sheet-actions"><button class="quiet" id="backToSelection">Go back</button><button class="primary" id="confirmPreview">Confirm preview</button></div>');
+      $('backToSelection').onclick = () => $('sheet').close();
+      $('confirmPreview').onclick = () => { $('sheet').close(); warn('Preview complete. No request was submitted.'); };
+    };
+    $('theme').onclick = () => { document.documentElement.classList.toggle('dark'); document.documentElement.classList.toggle('light'); };
+    render();
+  </script>
+</body>
+</html>

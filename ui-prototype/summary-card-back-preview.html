@@ -1,0 +1,935 @@
+<!doctype html>
+<html lang="en" class="light">
+<!--
+  SUMMARY CARD BACK — SPACING PROTOTYPE · 13 Nov 2026 (THROWAWAY)
+
+  Question: the back of the summary card is too tight. What does it look like when
+  the lines are given real leading and the info button stops eating the corner?
+
+  Nothing here is wired to the app. It links the sibling theme.css read-only and
+  reproduces the shipped flip markup, then switches five CSS properties between
+  "Current" (what shipped) and "Proposed" (the fix under review).
+
+  Current  : line-height 1.15, .summary-points gap 0, icon bottom-right,
+             description padding-right 30px, block top-aligned.
+  Proposed : line-height 1.45, .summary-points gap 4px, icon top-right,
+             description padding-right 38px on EVERY line (uniform — the
+             earlier "first two lines only" scheme wrapped the first bullet),
+             block vertically centred, and a single-column summary bar below
+             390px (two columns overflow at 320 and 360px).
+
+  The 44x44px info target is kept in both variants (WCAG 2.5.5); only the 16px
+  glyph is drawn. Card height stays 96px. Four bullets are shortened in the
+  Proposed variant (three distinct wordings) so the phone width does not wrap.
+
+  Six card sets are shown: My Timetable, Student My Timetable, My Replacements,
+  Request Approval, Venue Timetable and Cohort Timetable. The explanation modal
+  has its own switch: the shipped dense paragraph, or the Proposed formula strip
+  plus two-line bullets. Every formula is read from the page's updateSummary().
+
+  Open this file directly, or from the parent directory run:
+    python3 -m http.server 8090
+  then visit http://127.0.0.1:8090/ui-prototype/summary-card-back-preview.html
+-->
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Summary card back — spacing prototype</title>
+  <link rel="stylesheet" href="../public/css/theme.css">
+  <style>
+    [hidden] { display: none !important; }
+    html { color-scheme: light; }
+    html.dark { color-scheme: dark; }
+    body { min-width: 320px; background: var(--color-background); color: var(--color-on-surface); }
+    button, select { font: inherit; }
+    button { cursor: pointer; }
+    button:focus-visible, [tabindex]:focus-visible {
+      outline: 2px solid var(--color-primary); outline-offset: 3px;
+    }
+
+    .shell { max-width: 1280px; margin: 0 auto; padding: 32px 24px 72px; }
+    .proto-head { border-bottom: 1px solid var(--color-outline); padding-bottom: 20px; margin-bottom: 24px; }
+    .proto-kicker {
+      font-size: 11px; letter-spacing: .08em; text-transform: uppercase;
+      color: var(--color-on-surface-variant); margin: 0 0 6px;
+    }
+    .proto-title { font-size: 22px; font-weight: 700; margin: 0 0 8px; letter-spacing: -.3px; }
+    .proto-desc { margin: 0; max-width: 74ch; font-size: 13px; line-height: 1.6; color: var(--color-on-surface-variant); }
+    .proto-desc strong { color: var(--color-on-surface); font-weight: 600; }
+
+    .controls {
+      display: flex; flex-wrap: wrap; gap: 20px; align-items: flex-start;
+      margin: 20px 0 4px;
+    }
+    .control-group { display: flex; flex-direction: column; gap: 6px; }
+    .control-group > span {
+      font-size: 10px; letter-spacing: .08em; text-transform: uppercase;
+      color: var(--color-on-surface-variant);
+    }
+    .seg {
+      display: inline-flex; padding: 3px; gap: 2px;
+      background: var(--color-surface-variant); border: 0.5px solid var(--color-outline);
+      border-radius: 10px;
+    }
+    .seg button {
+      border: 0; background: transparent; color: var(--color-on-surface-variant);
+      padding: 7px 14px; border-radius: 7px; font-size: 12.5px; font-weight: 600;
+      min-height: 34px;
+    }
+    .seg button[aria-pressed="true"] {
+      background: var(--color-surface); color: var(--color-on-surface);
+      box-shadow: 0 1px 2px rgba(0,0,0,.08);
+    }
+    .seg button:hover:not([aria-pressed="true"]) { color: var(--color-on-surface); }
+
+    .legend-note {
+      margin: 18px 0 0; padding: 10px 12px; border-radius: 10px;
+      background: var(--color-surface-variant); border: 0.5px solid var(--color-outline);
+      font-size: 12px; line-height: 1.5; color: var(--color-on-surface-variant);
+    }
+    .legend-note b { color: var(--color-on-surface); }
+
+    /* ── Page sections ── */
+    .page-section { margin-top: 32px; }
+    .page-section-head {
+      display: flex; flex-wrap: wrap; align-items: baseline; gap: 10px;
+      margin-bottom: 4px;
+    }
+    .page-section-head h2 { font-size: 14px; font-weight: 700; margin: 0; letter-spacing: -.1px; }
+    .page-section-head code {
+      font-size: 11px; color: var(--color-on-surface-variant);
+      background: var(--color-surface-variant); padding: 2px 6px; border-radius: 5px;
+    }
+    .page-section-note { font-size: 11.5px; color: var(--color-on-surface-variant); margin: 0 0 10px; }
+
+    /* ── The phone frame: a real 390px column, so text wraps like the device ── */
+    .stage { overflow-x: auto; padding-bottom: 6px; }
+    /* 12px side padding reproduces the live page's 390px layout exactly:
+       390 − 24 = 366 content, two 178px cards with a 10px gap. The ring is a
+       box-shadow so it costs no layout width (a 0.5px border would shave a
+       pixel off each card and invent phone wrapping). */
+    .stage[data-width="phone"] .phone-frame {
+      width: 390px; max-width: 100%; margin: 0 auto;
+      padding: 12px; border-radius: 18px; box-sizing: border-box;
+      border: 0;
+      box-shadow: 0 0 0 0.5px var(--color-outline), 0 8px 24px rgba(0,0,0,.08);
+    }
+
+    /* ── Flip block, mirrored from theme.css so this file is self-contained ── */
+    .summary-section { margin-bottom: 8px; }
+    .summary-section .summary-hint { display: none; }
+    .summary-bar { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 14px; }
+    .stage[data-width="phone"] .summary-bar {
+      grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px;
+    }
+
+    .summary-card { perspective: 800px; cursor: pointer; min-height: 96px; }
+    .summary-card-inner {
+      position: relative; width: 100%; height: 96px; min-height: 96px;
+      transition: transform .6s cubic-bezier(.34, 1.56, .64, 1);
+      transform-style: preserve-3d;
+    }
+    .summary-card-front, .summary-card-back {
+      position: absolute; inset: 0;
+      backface-visibility: hidden; -webkit-backface-visibility: hidden;
+      border-radius: 16px; display: flex; flex-direction: column;
+      align-items: center; justify-content: center; text-align: center;
+      padding: 18px 14px;
+    }
+    .summary-card-front {
+      background: var(--color-surface); border: 0.5px solid var(--color-outline);
+      box-shadow: 0 1px 2px rgba(0,0,0,.04), 0 4px 12px rgba(0,0,0,.06);
+    }
+    .summary-card-back {
+      background: var(--color-surface-variant); border: 0.5px solid var(--color-outline);
+      transform: rotateY(180deg); padding: 14px 12px; text-align: left;
+      box-shadow: 0 1px 2px rgba(0,0,0,.04), 0 4px 12px rgba(0,0,0,.06);
+    }
+    .summary-value { font-size: 26px; font-weight: 700; line-height: 1.2; letter-spacing: -.3px; }
+    .summary-value .sum-pending { font-size: .62em; font-weight: 600; margin-left: 1px; }
+    .summary-label { font-size: 12px; font-weight: 500; color: var(--color-on-surface-variant); margin-top: 2px; }
+    .summary-description { width: 100%; font-size: 12px; font-weight: 400; color: var(--color-on-surface); }
+
+    /* Flip states */
+    .summary-card:hover .summary-card-inner { transform: none; }
+    .summary-card.is-flipped .summary-card-inner { transform: rotateY(180deg); }
+    @media (hover: hover) and (pointer: fine) {
+      .summary-card:not(.is-unflipped):hover .summary-card-inner { transform: rotateY(180deg); }
+    }
+
+    .summary-points { margin: 0; padding-left: 12px; display: grid; }
+    .summary-points li::marker { color: var(--color-on-surface-variant); }
+    .summary-points .summary-normal { color: var(--color-on-secondary-container); }
+    .summary-points .summary-replacement { color: var(--color-on-primary-container); }
+    .summary-points .summary-pending { color: var(--color-on-tertiary-container); }
+    .summary-points .summary-excluded { color: var(--color-on-error-container); }
+
+    .summary-info {
+      position: absolute; right: 0; width: 44px; height: 44px;
+      min-width: 44px; min-height: 44px; display: grid; place-items: center;
+      padding: 0; border: 0; border-radius: var(--radius-sm, 6px);
+      background: transparent; color: var(--color-on-surface-variant); cursor: pointer;
+    }
+    .summary-info:hover, .summary-info:focus-visible {
+      color: var(--color-primary); background: var(--color-primary-container);
+    }
+    .summary-card:not(.is-flipped):not(:hover) .summary-info { visibility: hidden; }
+
+    /* ══ VARIANT A — CURRENT (shipped) ══
+       Every selector carries the same `.summary-section--flip` chain as
+       theme.css so it outranks it; theme.css is linked before this block. */
+    body[data-variant="current"] .summary-section--flip .summary-card-back { justify-content: flex-start; padding: 6px 8px; }
+    body[data-variant="current"] .summary-section--flip .summary-card-back .summary-description { line-height: 1.15; padding-right: 30px; }
+    body[data-variant="current"] .summary-points { gap: 0; }
+    body[data-variant="current"] .summary-info { bottom: 0; top: auto; }
+
+    /* ══ VARIANT B — PROPOSED (the fix) ══
+       The reserve is uniform: 38px clears the 44px button on every line, which
+       is safer than reserving only the two lines level with it (that made the
+       first bullet wrap). 40px also passes; 46px re-wraps “Available”. */
+    body[data-variant="proposed"] .summary-section--flip .summary-card-back { justify-content: center; padding: 6px 8px; }
+    body[data-variant="proposed"] .summary-section--flip .summary-card-back .summary-description { line-height: 1.45; padding-right: 38px; }
+    body[data-variant="proposed"] .summary-points { gap: 4px; }
+    body[data-variant="proposed"] .summary-info { top: 0; bottom: auto; }
+    /* Two columns cannot hold three bullets below 390px: measured on the live
+       page, 320px spills +14px and 360px +5px. One column fixes both. */
+    @media (max-width: 389px) {
+      body[data-variant="proposed"] .stage[data-width="phone"] .summary-bar {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    /* ── Measurement readout ── */
+    .metrics {
+      display: flex; flex-wrap: wrap; gap: 8px 18px; margin-top: 12px;
+      font-size: 11.5px; color: var(--color-on-surface-variant);
+    }
+    .metrics b { color: var(--color-on-surface); font-variant-numeric: tabular-nums; }
+    .metrics .ok { color: var(--color-primary); font-weight: 600; }
+    .metrics .bad { color: var(--color-error); font-weight: 600; }
+
+    /* ── Explanation modal ── */
+    .modal-overlay {
+      position: fixed; inset: 0; z-index: 200;
+      display: flex; align-items: center; justify-content: center;
+      background: rgba(0,0,0,.5); padding: 20px;
+    }
+    .modal.modal--summary { max-width: 420px; width: 100%; }
+    .modal-title { margin: 0; font-size: 16px; font-weight: 700; }
+    .summary-explanation { font-size: 13px; line-height: 1.5; color: var(--color-on-surface); }
+
+    /* ── Structured explanation (Proposed) ──────────────────────────────────
+       A short formula strip first, then two-line bullets: the bold term on
+       line 1, the meaning under it via <br>. Nothing is one dense paragraph. */
+    .explain-formula {
+      display: flex; flex-wrap: wrap; align-items: stretch; gap: 6px;
+      margin: 0 0 16px;
+    }
+    .explain-chip {
+      display: flex; flex-direction: column; gap: 1px; text-align: center;
+      justify-content: center;
+      padding: 9px 13px; min-width: 0;
+      border-radius: 10px; background: var(--color-surface-variant);
+      border: 0.5px solid var(--color-outline);
+    }
+    /* Chips carry a TERM, never a live number: every front value is written at
+       runtime, so a literal would be wrong on any other week. */
+    .explain-chip b {
+      font-size: 12.5px; font-weight: 700; line-height: 1.25;
+      letter-spacing: -.1px;
+    }
+    .explain-chip span {
+      font-size: 10.5px; line-height: 1.25; color: var(--color-on-surface-variant);
+    }
+    .explain-chip.is-pending b { color: var(--color-on-tertiary-container); }
+    .explain-chip.is-blue b { color: var(--color-on-primary-container); }
+    .explain-plus {
+      align-self: center; font-weight: 600; font-size: 14px;
+      color: var(--color-on-surface-variant);
+    }
+    .explain-list { margin: 0; padding: 0; list-style: none; display: grid; gap: 11px; }
+    .explain-list li { font-size: 13px; line-height: 1.4; color: var(--color-on-surface); }
+    .explain-list li strong { font-weight: 700; }
+    .explain-list li span { color: var(--color-on-surface-variant); }
+    .explain-foot {
+      margin: 15px 0 0; padding-top: 11px;
+      border-top: 0.5px solid var(--color-outline);
+      font-size: 11.5px; line-height: 1.45; color: var(--color-on-surface-variant);
+    }
+    .modal-footer-right { display: flex; justify-content: flex-end; }
+    body.is-locked { overflow: hidden; }
+
+    @media (max-width: 900px) {
+      .summary-bar { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    }
+  </style>
+</head>
+<body>
+<div class="shell">
+
+  <header class="proto-head">
+    <p class="proto-kicker">Throwaway prototype · My Timetable UI cleanup</p>
+    <h1 class="proto-title">Summary card back — spacing</h1>
+    <p class="proto-desc">
+      The back face is <strong>96px tall</strong> and its three bullets were set at
+      <strong>line-height 1.15</strong> with <strong>zero gap</strong>, so the lines sat 1.8px apart.
+      The info button reserved the bottom-right corner, which pushed the block to the top and left
+      ~48px unused. Switch the variant below, and flip a card with hover, tap, or Enter.
+    </p>
+
+    <div class="controls">
+      <div class="control-group">
+        <span>Variant</span>
+        <div class="seg" id="variantSeg" role="group" aria-label="Variant">
+          <button type="button" data-variant-btn="current">Current</button>
+          <button type="button" data-variant-btn="proposed" aria-pressed="true">Proposed</button>
+        </div>
+      </div>
+      <div class="control-group">
+        <span>Width</span>
+        <div class="seg" id="widthSeg" role="group" aria-label="Width">
+          <button type="button" data-width-btn="desktop" aria-pressed="true">Desktop</button>
+          <button type="button" data-width-btn="phone">Phone 390px</button>
+        </div>
+      </div>
+      <div class="control-group">
+        <span>Show</span>
+        <div class="seg" id="stateSeg" role="group" aria-label="Card state">
+          <button type="button" data-state-btn="auto" aria-pressed="true">Interactive</button>
+          <button type="button" data-state-btn="pinned">All flipped</button>
+        </div>
+      </div>
+      <div class="control-group">
+        <span>Explanation</span>
+        <div class="seg" id="detailSeg" role="group" aria-label="Explanation style">
+          <button type="button" data-detail-btn="current">Dense paragraph</button>
+          <button type="button" data-detail-btn="proposed" aria-pressed="true">Formula + bullets</button>
+        </div>
+      </div>
+    </div>
+
+    <p class="legend-note">
+      <b>Proposed</b> is the variant under review: leading <b>1.45</b>, <b>4px</b> between bullets,
+      info button moved to the <b>top-right</b>, a uniform <b>38px</b> right reserve on every line,
+      and a <b>single column below 390px</b> (two columns overflow at 320 and 360px).
+      Four bullet edits (three distinct wordings: <code>Confirmed</code>, <code>Arrange again</code>,
+      <code>Approved/rejected</code>) stop the wrapping at 390px. The full wording is still in each
+      card's explanation modal.
+      <br><br>
+      The formula chips carry <b>terms only, never a live number</b>: every card value is written at
+      runtime, so a printed number would be wrong on any other week.
+    </p>
+  </header>
+
+  <div id="sections"></div>
+
+  <div class="modal-overlay" id="explainOverlay" hidden>
+    <div class="modal modal--summary" role="dialog" aria-modal="true" aria-labelledby="explainTitle">
+      <div class="modal-header">
+        <h3 class="modal-title" id="explainTitle">Explanation</h3>
+        <button type="button" class="modal-close" aria-label="Close" id="explainX">✕</button>
+      </div>
+      <div class="modal-body" id="explainBody"></div>
+      <div class="modal-footer">
+        <div class="modal-footer-left"></div>
+        <div class="modal-footer-right">
+          <button type="button" class="btn-close-modal" id="explainClose">Close</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ── Real card sets, copied from the five pages ─────────────────────────────
+   `now` is what ships today. `next` is the shortened copy for the Proposed
+   variant, only where a bullet would wrap at 390px. `detail` is the structured
+   explanation the Proposed modal shows: an optional formula strip, then
+   two-line bullets (term <br> meaning), then an optional footnote. Every
+   formula below is read from the page's own updateSummary(): not invented.   */
+const PAGES = [
+  {
+    name: 'My Timetable',
+    file: '/my-timetable-ui',
+    note: 'No copy change — the shared CSS alone fixes the spacing.',
+    cards: [
+      { cls:'card-total',   label:'Total Classes', value:'6',
+        now:['<strong class="summary-normal">Normal</strong> + <strong class="summary-replacement">blue</strong>', '<strong class="summary-pending">+N</strong> = pending', 'No <strong class="summary-excluded">red</strong> blocks'],
+        explanation:'Normal, replacement and pending classes for the selected period. Cancelled classes are not counted.',
+        detail:{
+          formula:[{v:'normal'},{op:'+'},{v:'replacement',c:'is-blue'},{op:'+'},{v:'pending',c:'is-pending'}],
+          items:[
+            ['Normal','<span>Class runs as scheduled.</span>'],
+            ['Replacement','<span>A replacement lecturer teaches it.</span>'],
+            ['Pending','<span>Waiting for a PL decision.<br>Counted only in the small <strong>+N</strong>.</span>'],
+            ['Cancelled','<span>Not counted in this card.</span>']
+          ],
+          foot:'Counts the period and week selected above, plus any active filter.'
+        }},
+      { cls:'card-hours',   label:'Teaching Hours', value:'18',
+        now:['Teaching time', '<strong>30 min</strong> / slot', '<strong class="summary-pending">+N</strong> = pending'],
+        explanation:'Hours of those classes for the selected period (each slot = <strong>30 minutes</strong>). Cancelled classes are not counted.',
+        detail:{
+          formula:[{v:'slots × 30 min'},{op:'='},{v:'teaching time'}],
+          items:[
+            ['Measured in slots','<span>Each timetable slot is <strong>30 minutes</strong>.<br>Two slots make one hour.</span>'],
+            ['Pending','<span>Counted in the small <strong>+N</strong> only.</span>'],
+            ['Cancelled','<span>Excluded — no teaching happens.</span>']
+          ],
+          foot:'Same period and filters as Total Classes.'
+        }},
+      { cls:'card-replacement', label:'Replacements', value:'2',
+        now:['New class time', 'PL approved', '<strong class="summary-replacement">Blue</strong> blocks'],
+        explanation:'Classes a replacement lecturer teaches.',
+        detail:{
+          items:[
+            ['Approved first','<span>A PL must approve the request.<br>Until then it is Pending, not here.</span>'],
+            ['Shown in blue','<span>Blue blocks mark the new class time.</span>']
+          ]
+        }},
+      { cls:'card-pending', label:'Pending', value:'1',
+        now:['Awaiting PL', 'Not confirmed', '<strong class="summary-pending">+N</strong> on totals'],
+        explanation:'Classes still waiting for a replacement to be approved.',
+        detail:{
+          items:[
+            ['What it means','<span>A request is sent, but no PL has decided yet.</span>'],
+            ['Not confirmed','<span>The class is not yet a replacement.</span>'],
+            ['Appears as <strong>+N</strong>','<span>Pending classes are also added to<br>Total Classes and Teaching Hours.</span>']
+          ]
+        }},
+      { cls:'card-conflict', label:'Conflicts', value:'1',
+        now:['Cancelled/clash', 'Or a holiday', '<strong class="summary-excluded">Needs make-up</strong>'],
+        explanation:'Classes that cannot run as scheduled — a clash, a cancellation, or a <strong>public holiday</strong>.',
+        detail:{
+          items:[
+            ['Clash','<span>Another class already booked in the slot.</span>'],
+            ['Cancelled','<span>The class was called off.</span>'],
+            ['Public holiday','<span>The whole day is closed.</span>']
+          ],
+          foot:'Each conflict needs a make-up class to be arranged.'
+        }}
+    ]
+  },
+  {
+    name: 'Student My Timetable',
+    file: '/student-my-timetable-ui',
+    note: 'Same five cards as My Timetable, in student voice: “Class Hours”, “your class”. Ids are sum* (sumTotal, sumHours, sumReplacement, sumPending, sumConflict).',
+    cards: [
+      { cls:'card-total',   label:'Total Classes', value:'6',
+        now:['<strong class="summary-normal">Normal</strong> + <strong class="summary-replacement">blue</strong>', '<strong class="summary-pending">+N</strong> = pending', 'No <strong class="summary-excluded">red</strong> blocks'],
+        explanation:'Normal, replacement and pending classes this week. Cancelled classes are not counted. The small <strong>+N</strong> is the pending part.',
+        detail:{
+          formula:[{v:'normal'},{op:'+'},{v:'replacement',c:'is-blue'},{op:'+'},{v:'pending',c:'is-pending'}],
+          items:[
+            ['Normal','<span>A class that runs as scheduled.</span>'],
+            ['Replacement','<span>A different lecturer teaches it.</span>'],
+            ['Pending','<span>Waiting for a PL decision.<br>Counted only in the small <strong>+N</strong>.</span>'],
+            ['Cancelled','<span>Not counted in this card.</span>']
+          ],
+          foot:'Counts the week selected above.'
+        }},
+      { cls:'card-hours',   label:'Class Hours', value:'18',
+        now:['Teaching time', '<strong>30 min</strong> / slot', '<strong class="summary-pending">+N</strong> = pending'],
+        explanation:'Hours of your normal, replacement and pending classes this week (each slot = <strong>30 minutes</strong>). Cancelled classes are not counted. The small <strong>+N</strong> is the pending part.',
+        detail:{
+          formula:[{v:'slots × 30 min'},{op:'='},{v:'class time'}],
+          items:[
+            ['Measured in slots','<span>Each timetable slot is <strong>30 minutes</strong>.<br>Two slots make one hour.</span>'],
+            ['Pending','<span>Counted in the small <strong>+N</strong> only.</span>'],
+            ['Cancelled','<span>Excluded — no class happens.</span>']
+          ],
+          foot:'Same week as Total Classes.'
+        }},
+      { cls:'card-replacement', label:'Replacements', value:'2',
+        now:['New class time', 'PL approved', '<strong class="summary-replacement">Blue</strong> blocks'],
+        explanation:'Classes a <span class="info-keyword">different lecturer</span> teaches for your class this week.',
+        detail:{
+          items:[
+            ['New class time','<span>The replacement moves to a new slot.</span>'],
+            ['PL approved first','<span>A PL must approve it.<br>Until then it is Pending, not here.</span>'],
+            ['Shown in blue','<span>Blue blocks mark the new class time.</span>']
+          ]
+        }},
+      { cls:'card-pending', label:'Pending', value:'1',
+        now:['Awaiting PL', 'Not confirmed', '<strong class="summary-pending">+N</strong> on totals'],
+        explanation:'Your classes still waiting for a replacement to be approved this week.',
+        detail:{
+          items:[
+            ['Awaiting PL','<span>A replacement is requested, but<br>no programme leader has decided.</span>'],
+            ['Not confirmed','<span>The class is not replaced yet.</span>'],
+            ['Appears as <strong>+N</strong>','<span>Pending classes are also added to<br>Total Classes and Class Hours.</span>']
+          ]
+        }},
+      { cls:'card-conflict', label:'Conflicts', value:'1',
+        now:['Cancelled/clash', 'Or a holiday', '<strong class="summary-excluded">Needs make-up</strong>'],
+        explanation:'Classes that cannot run as scheduled — a clash, a cancellation, or a <strong>public holiday</strong>.',
+        detail:{
+          items:[
+            ['Clash','<span>Another class already booked in the slot.</span>'],
+            ['Cancelled','<span>The class was called off.</span>'],
+            ['Public holiday','<span>The whole day is closed.</span>']
+          ],
+          foot:'Your lecturer must arrange a make-up class.'
+        }}
+    ]
+  },
+  {
+    name: 'My Replacements',
+    file: '/my-replacements',
+    note: 'One bullet shortened: “Replacement confirmed” → “Confirmed” (136px does not fit 110px).',
+    cards: [
+      { cls:'card-conflict', label:'Classes to Arrange', value:'3',
+        now:['Still needs action', 'No request yet', '<strong class="summary-excluded">Needs make-up</strong>'],
+        explanation:'Your classes that still need a replacement arranged and have no request waiting.',
+        detail:{
+          items:[
+            ['Still needs action','<span>No replacement is arranged yet.</span>'],
+            ['No request yet','<span>Nothing is waiting for a PL decision.</span>'],
+            ['Already requested?','<span>Then it moves to <strong>Pending Requests</strong>,<br>not this card.</span>']
+          ],
+          foot:'Counts the rows left after your search, status and week filters.'
+        }},
+      { cls:'card-duration', label:'Class Hours to Replace', value:'9',
+        now:['Teaching time', '<strong>30 min</strong> / slot', 'Only class hours'],
+        explanation:'Hours of those classes — the teaching still waiting to be arranged.',
+        detail:{
+          formula:[{v:'sum of class lengths'},{op:'='},{v:'time to replace'}],
+          items:[
+            ['Adds up duration','<span>Every unarranged class adds its own<br>length, not one fixed block.</span>'],
+            ['Only class hours','<span>Breaks, holidays and free slots<br>are never counted.</span>']
+          ]
+        }},
+      { cls:'card-pending', label:'Pending Requests', value:'2',
+        now:['Awaiting PL', 'Not confirmed', '<strong class="summary-pending">+N</strong> on totals'],
+        explanation:'Your requests waiting for approval — no decision yet.',
+        detail:{
+          items:[
+            ['Awaiting PL','<span>The request is sent and waits for<br>a programme leader to decide.</span>'],
+            ['Not confirmed','<span>The class is not yet replaced.</span>'],
+            ['Also in <strong>+N</strong>','<span>Pending requests are added to<br>the totals as a small <strong>+N</strong>.</span>']
+          ]
+        }},
+      { cls:'card-approved', label:'Approved Requests', value:'4',
+        now:['PL approved', '<strong>Replacement confirmed</strong>', '<strong class="summary-replacement">Blue</strong> blocks'],
+        next:['PL approved', '<strong>Confirmed</strong>', '<strong class="summary-replacement">Blue</strong> blocks'],
+        explanation:'Your requests the PL has approved — the replacement is confirmed.',
+        detail:{
+          items:[
+            ['PL approved','<span>A programme leader accepted the request.</span>'],
+            ['Replacement confirmed','<span>The new class time is now official.</span>'],
+            ['Shown in blue','<span>The replacement block turns blue on the timetable.</span>']
+          ]
+        }},
+      { cls:'card-rejected', label:'Rejected Requests', value:'1',
+        now:['PL declined', 'Arrange again', 'Pick another slot'],
+        explanation:'Your requests the PL declined — arrange them again or pick another slot.',
+        detail:{
+          items:[
+            ['PL declined','<span>The request was not accepted.</span>'],
+            ['Arrange again','<span>The class returns to <strong>Classes to Arrange</strong>.</span>'],
+            ['Pick another slot','<span>Choose a different free slot next time.</span>']
+          ]
+        }}
+    ]
+  },
+  {
+    name: 'Request Approval',
+    file: '/request-approval-ui',
+    note: 'Three bullets shortened. “Total Reviewed” was the worst: 4 lines at 390px.',
+    cards: [
+      { cls:'card-total', label:'Total Requests', value:'12',
+        now:['Matches filters', 'All statuses', 'One list'],
+        explanation:'Requests that match the filters you have set.',
+        detail:{
+          items:[
+            ['Matches filters','<span>Search, status and week narrow the list<br>before this number is taken.</span>'],
+            ['All statuses','<span>Pending, approved, rejected,<br>cancelled and completed.</span>'],
+            ['One list','<span>Every request from lecturers<br>in your programme.</span>']
+          ]
+        }},
+      { cls:'card-pending', label:'Pending Requests', value:'5',
+        now:['Awaiting you', 'No decision yet', 'Approve or reject'],
+        explanation:'Requests waiting for your decision — no approval or rejection yet.',
+        detail:{
+          items:[
+            ['Awaiting you','<span>Only requests you have not decided on.</span>'],
+            ['No decision yet','<span>Approve or reject it to clear the card.</span>'],
+            ['Request age','<span>Colour shows how long it has waited:<br><span style="color:var(--color-primary)">● 1 day</span> · <span style="color:var(--color-tertiary)">● 2–3 days</span> · <span style="color:var(--color-error)">● 4+ days</span></span>']
+          ]
+        }},
+      { cls:'card-approved', label:'Approved Requests', value:'4',
+        now:['You approved', '<strong>Replacement confirmed</strong>', '<strong class="summary-replacement">Blue</strong> blocks'],
+        next:['You approved', '<strong>Confirmed</strong>', '<strong class="summary-replacement">Blue</strong> blocks'],
+        explanation:'Requests you approved — the replacement is confirmed.',
+        detail:{
+          items:[
+            ['You approved','<span>Your own decision, not another PL’s.</span>'],
+            ['Replacement confirmed','<span>The lecturer’s class is now replaced.</span>'],
+            ['Shown in blue','<span>The new block is blue on the timetable.</span>']
+          ]
+        }},
+      { cls:'card-rejected', label:'Rejected Requests', value:'2',
+        now:['You declined', '<strong>Lecturer must re-arrange</strong>', 'No slot move'],
+        next:['You declined', '<strong>Arrange again</strong>', 'No slot move'],
+        explanation:'Requests you declined — the lecturer must arrange again.',
+        detail:{
+          items:[
+            ['You declined','<span>The request was turned down.</span>'],
+            ['Lecturer must re-arrange','<span>It returns to <strong>Classes to Arrange</strong><br>for the lecturer.</span>'],
+            ['No slot move','<span>The class stays where it was.</span>']
+          ]
+        }},
+      { cls:'card-total', label:'Total Reviewed', value:'9',
+        now:['Already decided', '<strong>Approved or rejected</strong>', 'Includes completed'],
+        next:['Already decided', '<strong>Approved/rejected</strong>', 'Includes completed'],
+        explanation:'Requests already decided: approved, rejected or completed.',
+        detail:{
+          formula:[{v:'approved',c:'is-blue'},{op:'+'},{v:'rejected'},{op:'+'},{v:'completed'}],
+          items:[
+            ['Already decided','<span>Approved or rejected, plus completed.</span>'],
+            ['Completed','<span>The replacement class has already run.</span>'],
+            ['Not pending','<span>Pending requests are never<br>counted in this card.</span>']
+          ]
+        }}
+    ]
+  },
+  {
+    name: 'Venue Timetable',
+    file: '/venue-timetable-ui',
+    note: 'No copy change — its 106px bullet fits the 110px column.',
+    cards: [
+      { cls:'card-total', label:'Total Slots', value:'24',
+        now:['Every slot shown', '<strong>30 min</strong> each', '<strong class="summary-pending">+N</strong> = pending'],
+        explanation:'Every slot shown for this venue in the selected week (each slot = <strong>30 minutes</strong>).',
+        detail:{
+          formula:[{v:'slots × 30 min'},{op:'='},{v:'the full week'}],
+          items:[
+            ['Every slot shown','<span>All slots the venue grid displays,<br>free or taken.</span>'],
+            ['Each slot is 30 min','<span>Two slots make one hour.</span>'],
+            ['Pending','<span>Added in the small <strong>+N</strong> only.</span>']
+          ]
+        }},
+      { cls:'card-available', label:'Available', value:'7',
+        now:['Free to book', '<strong>No Sunday/holiday</strong>', 'Click a green slot'],
+        explanation:'Free time slots that can be booked for this venue.',
+        detail:{
+          items:[
+            ['Free to book','<span>No class, request or holiday in the slot.</span>'],
+            ['Click a green slot','<span>Green means it can be booked.</span>'],
+            ['No Sundays or holidays','<span>Closed days never count as available.</span>']
+          ]
+        }},
+      { cls:'card-conflict', label:'My Teaching Classes', value:'3',
+        now:['Classes you teach', 'Counted per class', '<strong class="summary-pending">+N</strong> = pending'],
+        explanation:'Classes you teach in this venue — each class counted once.',
+        detail:{
+          items:[
+            ['Classes you teach','<span>Only your own classes in this venue.</span>'],
+            ['Counted per class','<span>A two-hour class counts once,<br>not twice.</span>'],
+            ['Pending','<span>Added in the small <strong>+N</strong> only.</span>']
+          ]
+        }},
+      { cls:'card-hours', label:'My Teaching Hours', value:'9',
+        now:['Your teaching', '<strong>30 min</strong> / slot', '<strong class="summary-pending">+N</strong> = pending'],
+        explanation:'Your teaching hours in this venue (each slot = <strong>30 minutes</strong>).',
+        detail:{
+          formula:[{v:'slots × 30 min'},{op:'='},{v:'your teaching'}],
+          items:[
+            ['Your teaching only','<span>Other lecturers’ classes are excluded.</span>'],
+            ['Each slot is 30 min','<span>Two slots make one hour.</span>'],
+            ['Pending','<span>Added in the small <strong>+N</strong> only.</span>']
+          ]
+        }},
+      { cls:'card-pending', label:'Occupied', value:'14',
+        now:['Taken by others', 'Normal + pending', '<strong class="summary-pending">+N</strong> = pending'],
+        explanation:'Slots already taken by other classes or pending requests.',
+        detail:{
+          items:[
+            ['Taken by others','<span>Booked by classes that are not yours.</span>'],
+            ['Normal + pending','<span>Both count as occupied,<br>so the slot cannot be booked.</span>'],
+            ['Pending','<span>Shown as the small <strong>+N</strong>.</span>']
+          ]
+        }}
+    ]
+  },
+  {
+    name: 'Cohort Timetable',
+    file: '/cohort-timetable',
+    note: 'No copy change — mobile 2-column grid only.',
+    cards: [
+      { cls:'card-total', label:'Total Classes', value:'8',
+        now:['<strong class="summary-normal">Normal</strong> + <strong class="summary-replacement">blue</strong>', '<strong class="summary-pending">+N</strong> = pending', 'No <strong class="summary-excluded">red</strong> blocks'],
+        explanation:'Normal, replacement and pending classes for the selected period. Cancelled classes are not counted.',
+        detail:{
+          formula:[{v:'normal'},{op:'+'},{v:'replacement',c:'is-blue'},{op:'+'},{v:'pending',c:'is-pending'}],
+          items:[
+            ['Normal','<span>Class runs as scheduled.</span>'],
+            ['Replacement','<span>A replacement lecturer teaches it.</span>'],
+            ['Pending','<span>Waiting for a PL decision.<br>Counted in the small <strong>+N</strong>.</span>']
+          ]
+        }},
+      { cls:'card-hours', label:'Teaching Hours', value:'24',
+        now:['Teaching time', '<strong>30 min</strong> / slot', '<strong class="summary-pending">+N</strong> = pending'],
+        explanation:'Hours of those classes (each slot = <strong>30 minutes</strong>).',
+        detail:{
+          formula:[{v:'slots × 30 min'},{op:'='},{v:'teaching time'}],
+          items:[
+            ['Measured in slots','<span>Each timetable slot is <strong>30 minutes</strong>.<br>Two slots make one hour.</span>'],
+            ['Pending','<span>Counted in the small <strong>+N</strong> only.</span>'],
+            ['Cancelled','<span>Excluded — no teaching happens.</span>']
+          ]
+        }},
+      { cls:'card-conflict', label:'My Teaching Classes', value:'2',
+        now:['Classes you teach', 'Counted per class', '<strong class="summary-pending">+N</strong> = pending'],
+        explanation:'Classes you teach in this cohort — each class counted once.',
+        detail:{
+          items:[
+            ['Classes you teach','<span>Only the classes with you as lecturer.</span>'],
+            ['Counted per class','<span>A two-hour class counts once.</span>'],
+            ['Pending','<span>Added in the small <strong>+N</strong> only.</span>']
+          ]
+        }},
+      { cls:'card-hours', label:'My Teaching Hours', value:'6',
+        now:['Your teaching', '<strong>30 min</strong> / slot', '<strong class="summary-pending">+N</strong> = pending'],
+        explanation:'Your teaching hours in this cohort (each slot = <strong>30 minutes</strong>).',
+        detail:{
+          formula:[{v:'slots × 30 min'},{op:'='},{v:'your teaching'}],
+          items:[
+            ['Your teaching only','<span>Other lecturers’ classes are excluded.</span>'],
+            ['Each slot is 30 min','<span>Two slots make one hour.</span>'],
+            ['Pending','<span>Added in the small <strong>+N</strong> only.</span>']
+          ]
+        }},
+      { cls:'card-conflict', label:'Conflicts', value:'1',
+        now:['Cancelled/clash', 'Or a holiday', '<strong class="summary-excluded">Needs make-up</strong>'],
+        explanation:'Classes that cannot run as scheduled — a clash, a cancellation, or a <strong>public holiday</strong>.',
+        detail:{
+          items:[
+            ['Clash','<span>Another class already booked in the slot.</span>'],
+            ['Cancelled','<span>The class was called off.</span>'],
+            ['Public holiday','<span>The whole day is closed.</span>']
+          ],
+          foot:'Each conflict needs a make-up class to be arranged.'
+        }}
+    ]
+  }
+];
+
+const state = { variant: 'proposed', width: 'desktop', cardState: 'auto', detail: 'proposed' };
+
+const esc = s => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const bulletsFor = (card, variant) => (variant === 'proposed' && card.next) ? card.next : card.now;
+
+function cardMarkup(card, index, variant) {
+  const points = bulletsFor(card, variant);
+  return `
+    <div class="summary-card ${card.cls}" tabindex="0" role="group"
+         data-card="${index}" aria-label="${esc(card.label)}: hover, tap or press Enter to flip">
+      <div class="summary-card-inner">
+        <div class="summary-card-front">
+          <span class="summary-value">${esc(card.value)}</span>
+          <span class="summary-label">${esc(card.label)}</span>
+        </div>
+        <div class="summary-card-back">
+          <div class="summary-description">
+            <ul class="summary-points">${points.map(p => `<li>${p}</li>`).join('')}</ul>
+          </div>
+          <button type="button" class="summary-info" data-info="${index}"
+                  aria-haspopup="dialog" aria-label="${esc(card.label)}: full explanation" data-tip="Full explanation">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+              <circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/>
+            </svg>
+          </button>
+        </div>
+      </div>
+    </div>`;
+}
+
+function render() {
+  const host = document.getElementById('sections');
+  host.innerHTML = PAGES.map((page, pi) => `
+    <section class="page-section" data-page="${pi}">
+      <div class="page-section-head">
+        <h2>${esc(page.name)}</h2>
+        <code>${esc(page.file)}</code>
+      </div>
+      <p class="page-section-note">${page.note}</p>
+      <div class="stage" data-width="${state.width}">
+        <div class="phone-frame">
+          <div class="summary-section summary-section--flip">
+            <div class="summary-bar">${page.cards.map((c, ci) => cardMarkup(c, ci, state.variant)).join('')}</div>
+          </div>
+        </div>
+      </div>
+      <div class="metrics" data-metrics="${pi}"></div>
+    </section>`).join('');
+
+  document.body.dataset.variant = state.variant;
+  host.querySelectorAll('.summary-card').forEach(bindCard);
+  if (state.cardState === 'pinned') {
+    host.querySelectorAll('.summary-card').forEach(c => c.classList.add('is-flipped'));
+  }
+  requestAnimationFrame(measureAll);
+}
+
+/* ── Flip + info behaviour ── */
+function bindCard(card) {
+  const flip = () => card.classList.toggle('is-flipped');
+
+  card.addEventListener('click', e => {
+    if (e.target.closest('[data-info]')) return;   // the info button never flips
+    flip();
+  });
+  card.addEventListener('keydown', e => {
+    if (e.target.closest('[data-info]')) return;
+    if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); flip(); }
+  });
+  card.addEventListener('mouseenter', () => card.classList.remove('is-unflipped'));
+  card.querySelector('[data-info]').addEventListener('click', e => {
+    e.stopPropagation();
+    const pageIndex = +card.closest('[data-page]').dataset.page;
+    const cardIndex = +card.dataset.card;
+    openExplanation(PAGES[pageIndex].cards[cardIndex]);
+  });
+}
+
+/* ── Explanation modal ─────────────────────────────────────────────────────
+   Current  : one dense paragraph (what ships today).
+   Proposed : formula strip → two-line bullets → footnote.                 */
+const overlay = document.getElementById('explainOverlay');
+let lastFocus = null;
+
+function formulaMarkup(chips) {
+  if (!chips) return '';
+  /* A chip is a TERM, never a live number: card values are written at runtime,
+     so a printed number would be wrong on any other week. */
+  return `<div class="explain-formula">` + chips.map(c => c.op
+    ? `<span class="explain-plus">${c.op}</span>`
+    : `<span class="explain-chip ${c.c||''}"><b>${c.v}</b></span>`
+  ).join('') + `</div>`;
+}
+
+function detailMarkup(detail) {
+  return formulaMarkup(detail.formula)
+    + `<ul class="explain-list">` + detail.items.map(([term, meaning]) =>
+        `<li><strong>${term}</strong><br>${meaning}</li>`).join('')
+    + `</ul>`
+    + (detail.foot ? `<p class="explain-foot">${detail.foot}</p>` : '');
+}
+
+function openExplanation(card) {
+  document.getElementById('explainTitle').textContent = card.label;
+  const body = document.getElementById('explainBody');
+  if (state.detail === 'proposed' && card.detail) {
+    body.innerHTML = detailMarkup(card.detail);
+  } else {
+    body.innerHTML = `<p class="summary-explanation">${card.explanation}</p>`;
+  }
+  lastFocus = document.activeElement;
+  overlay.hidden = false;
+  document.body.classList.add('is-locked');
+  document.getElementById('explainClose').focus();
+}
+function closeExplanation() {
+  overlay.hidden = true;
+  document.body.classList.remove('is-locked');
+  if (lastFocus && lastFocus.isConnected) lastFocus.focus();
+  lastFocus = null;
+}
+document.getElementById('explainX').addEventListener('click', closeExplanation);
+document.getElementById('explainClose').addEventListener('click', closeExplanation);
+overlay.addEventListener('click', e => { if (e.target === overlay) closeExplanation(); });
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape' && !overlay.hidden) closeExplanation();
+});
+
+/* ── Live measurement, so the claim is visible rather than asserted ── */
+function measureAll() {
+  PAGES.forEach((page, pi) => {
+    const metrics = document.querySelector(`[data-metrics="${pi}"]`);
+    if (!metrics) return;
+    const cards = [...document.querySelectorAll(`[data-page="${pi}"] .summary-card`)];
+    let maxLines = 0, minTop = Infinity, minBottom = Infinity, underBtn = 0;
+
+    cards.forEach(card => {
+      card.classList.add('is-flipped');
+      const back = card.querySelector('.summary-card-back').getBoundingClientRect();
+      const desc = card.querySelector('.summary-description').getBoundingClientRect();
+      const btn  = card.querySelector('.summary-info').getBoundingClientRect();
+      const lis  = [...card.querySelectorAll('.summary-points li')];
+      const lh   = parseFloat(getComputedStyle(lis[0]).lineHeight);
+
+      const lines = lis.reduce((n, li) => n + Math.round(li.getBoundingClientRect().height / lh), 0);
+      maxLines = Math.max(maxLines, lines);
+      minTop = Math.min(minTop, Math.round(desc.top - back.top));
+      minBottom = Math.min(minBottom, Math.round(back.bottom - desc.bottom));
+
+      const seen = new Set();
+      lis.forEach(li => {
+        const range = document.createRange();
+        range.selectNodeContents(li);
+        for (const r of range.getClientRects()) {
+          const key = Math.round(r.top) + ':' + Math.round(r.left);
+          if (seen.has(key)) continue;
+          seen.add(key);
+          const hits = r.left < btn.right - 1 && r.right > btn.left + 1 &&
+                       r.top < btn.bottom - 1 && r.bottom > btn.top + 1;
+          if (hits) underBtn++;
+        }
+      });
+    });
+
+    if (state.cardState !== 'pinned') cards.forEach(c => c.classList.remove('is-flipped'));
+
+    const ok = maxLines <= 3 && underBtn === 0;
+    metrics.innerHTML =
+      `<span>lines per card <b class="${maxLines > 3 ? 'bad' : 'ok'}">${maxLines}</b></span>` +
+      `<span>space above <b>${minTop}px</b></span>` +
+      `<span>space below <b>${minBottom}px</b></span>` +
+      `<span>text under button <b class="${underBtn ? 'bad' : 'ok'}">${underBtn}</b></span>` +
+      `<span>${ok ? '<b class="ok">fits</b>' : '<b class="bad">does not fit</b>'}</span>`;
+  });
+}
+
+/* ── Controls ── */
+document.getElementById('variantSeg').addEventListener('click', e => {
+  const btn = e.target.closest('[data-variant-btn]');
+  if (!btn) return;
+  state.variant = btn.dataset.variantBtn;
+  syncPressed('variantSeg', 'variant-btn', state.variant);
+  render();
+});
+document.getElementById('widthSeg').addEventListener('click', e => {
+  const btn = e.target.closest('[data-width-btn]');
+  if (!btn) return;
+  state.width = btn.dataset.widthBtn;
+  syncPressed('widthSeg', 'width-btn', state.width);
+  document.querySelectorAll('.stage').forEach(s => s.dataset.width = state.width);
+  requestAnimationFrame(measureAll);
+});
+document.getElementById('stateSeg').addEventListener('click', e => {
+  const btn = e.target.closest('[data-state-btn]');
+  if (!btn) return;
+  state.cardState = btn.dataset.stateBtn;
+  syncPressed('stateSeg', 'state-btn', state.cardState);
+  document.querySelectorAll('.summary-card')
+    .forEach(c => c.classList.toggle('is-flipped', state.cardState === 'pinned'));
+  requestAnimationFrame(measureAll);
+});
+document.getElementById('detailSeg').addEventListener('click', e => {
+  const btn = e.target.closest('[data-detail-btn]');
+  if (!btn) return;
+  state.detail = btn.dataset.detailBtn;
+  syncPressed('detailSeg', 'detail-btn', state.detail);
+});
+
+function syncPressed(segId, attr, value) {
+  document.getElementById(segId).querySelectorAll('button').forEach(b => {
+    b.setAttribute('aria-pressed', String(b.dataset[attr.replace(/-([a-z])/g, (_, c) => c.toUpperCase())] === value));
+  });
+}
+
+render();
+</script>
+</body>
+</html>

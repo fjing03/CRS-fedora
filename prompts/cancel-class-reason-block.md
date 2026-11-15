@@ -53,7 +53,7 @@ Guardrails:
 - Do **not** redo items 1–4; they are verified.
 - Do **not** move the textarea into the reason grid or turn it into a one-line
   input.
-- Do **not** edit `../ui-prototype/bulk-cancel-preview.html`.
+- Do **not** edit `ui-prototype/bulk-cancel-preview.html`.
 - Do **not** touch `.sdd/changes/bulk-cancel-class/`.
 - No DB/schema changes, no new dependency.
 - Keep the shared modal working on all three pages.
@@ -79,7 +79,7 @@ Measured 2026-11-10 on `fedora-backend` HEAD `21ae301`. Re-verify before editing
 | Existing textarea CSS | `public/css/theme.css`, `.modal-textarea` ~`:4478` |
 | Existing reason grid CSS | `public/css/theme.css`, `.cancel-reasons` ~`:1926` |
 | Existing asterisk CSS | `public/css/theme.css`, `.cancel-required-mark` ~`:1942` |
-| Prototype reference | `../ui-prototype/bulk-cancel-preview.html` `#bcOtherWrap` ~`:446`, `.bc-other-label` ~`:135` |
+| Prototype reference | `ui-prototype/bulk-cancel-preview.html` `#bcOtherWrap` ~`:446`, `.bc-other-label` ~`:135` |
 
 ### Suggested changes
 

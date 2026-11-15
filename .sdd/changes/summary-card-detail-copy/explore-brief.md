@@ -4,7 +4,7 @@
 > **Re-synced 2026-11-14** against the current working tree.
 > Baseline: `fedora-backend` with `my-timetable-ui-cleanup` applied (flip cards
 > shipped, uncommitted).
-> Reference: `../ui-prototype/summary-card-back-preview.html` (repo parent).
+> Reference: `ui-prototype/summary-card-back-preview.html` (repo parent).
 
 ## Re-sync summary
 

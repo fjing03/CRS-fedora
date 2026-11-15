@@ -2,7 +2,7 @@
 
 > **Change:** `summary-card-detail-copy`
 > **Frozen inputs:** `proposal.md`, `specs/summary-detail/spec.md`
-> **Prototype:** `../ui-prototype/summary-card-back-preview.html`
+> **Prototype:** `ui-prototype/summary-card-back-preview.html`
 > **Re-synced:** 2026-11-14 against the current working tree. Status per section
 > is stated inline; §9 lists the premises that the other lanes invalidated.
 

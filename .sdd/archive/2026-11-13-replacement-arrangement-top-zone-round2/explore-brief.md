@@ -2,7 +2,7 @@
 
 > Created 2026-11-12. This is the completeness checklist for the proposal.
 > Baseline: commit `7692d80` (the two-card top-zone change).
-> Visual contract: `../ui-prototype/replacement-arrangement-top-zone-preview.html`.
+> Visual contract: `ui-prototype/replacement-arrangement-top-zone-preview.html`.
 > No live code is edited during explore.
 
 ## Problem

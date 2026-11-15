@@ -116,7 +116,7 @@ Batch: `design.md` (new). Frozen proposal passed.
   `#classDetailsCard` / `#detailCohorts`.
 - Added `tests/top-zone-round2.spec.ts` and the pinned-page precondition for
   rail assertions.
-- Fixed the prototype path to `../../../../ui-prototype/…`.
+- Fixed the prototype path to `ui-prototype/…`.
 - Added `.ra-empty-guidance` styling.
 - Fit function re-runs after each panel click and resets when closed.
 

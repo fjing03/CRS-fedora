@@ -394,7 +394,7 @@ they do not need re-exploring or unfreezing, and neither should hold this batch.
 Batch: `design.md` (new). **`proposal.md` is frozen**; specs/tasks do not exist
 yet by design. Reviewed against `explore-brief.md`, the frozen proposal,
 `prompts/replacement-arrangement-top-zone.md` (the user's confirmation doc), the
-prototype (`../../ui-prototype/replacement-arrangement-top-zone-preview.html`),
+prototype (`ui-prototype/replacement-arrangement-top-zone-preview.html`),
 the real code (`blade:115-364,1627-1663,3555-3811,4457-4497,4711-4864,4900-4966,
 5329-5341,5615-5640,5779-5847`; `ui-common.js:69-82,3838-3852,4267-4308`;
 `arrangement-mobile.js:109-129,1241-1250`; `LectureSessionCatalog:156,236,
@@ -549,7 +549,7 @@ top-zone spec suite.
 
 - The front-matter "visual contract" path resolves to nothing from the change
   dir; from `.sdd/changes/<change>/` it is
-  `../../../../ui-prototype/replacement-arrangement-top-zone-preview.html`. Fix
+  `ui-prototype/replacement-arrangement-top-zone-preview.html`. Fix
   it so the implementer opens the contract instead of re-deriving it.
 - One line in §2 that `badge-reason` is the my-replacements
   **cancellation-reason** class (`theme.css:1261`), reused for cohort/student
@@ -725,7 +725,7 @@ below is anchored to a symbol, not a line.
 - §11 now carries the changelog entry, the `LectureSessionCatalogTest.php`
   addition and the `refreshArrangementMobile('original')` tail (`:320-323`) — all
   three were silent-loss risks. The front-matter visual-contract path now
-  resolves (`../../../../ui-prototype/…` from the change dir).
+  resolves (`ui-prototype/…` from the change dir).
 - Plain-clash handling on both surfaces is still the right ruling (neutral
   `badge-reason` + `Conflict`, no detail, never `Class Cancelled`) and still
   refuses the prototype's collapse into `Class Cancelled`
@@ -942,7 +942,7 @@ Batch: `specs/top-zone/spec.md` (new). **`proposal.md` and `design.md` are froze
 `tasks.md` does not exist yet by design. Reviewed against `explore-brief.md`, the
 frozen proposal (11 success criteria), the frozen design (§1–§11), the user's
 confirmation doc, the prototype
-(`../../../../ui-prototype/replacement-arrangement-top-zone-preview.html`), the
+(`ui-prototype/replacement-arrangement-top-zone-preview.html`), the
 live code (`renderTitleSummary()`, `courseCtx()`, `statusTip`, the
 `renderSlotPicker()` row builder, `slotTriggerLabel()`, `_updateTrigger()` /
 `initDataTipTooltips()` / `snapshotText()`, `LectureSessionCatalog::sessionEntry()`)
@@ -1647,7 +1647,7 @@ No re-explore, no soft-freeze, no unfreeze.
     card preserves the Details open/closed state;
   - the collapse is desktop-only: mobile hides the heading arrow and forces the
     card body visible.
-- The prototype (`../../ui-prototype/replacement-arrangement-top-zone-preview.html`)
+- The prototype (`ui-prototype/replacement-arrangement-top-zone-preview.html`)
   and `prompts/replacement-arrangement-top-zone.md` now show the same
   heading arrow and body wrapper.
 - This is a new interaction, not a visual token change. Apply still waits for

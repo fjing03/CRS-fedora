@@ -1,0 +1,2251 @@
+<!DOCTYPE html><html lang="en" class="dark"><head>
+<base href="http://127.0.0.1:8000/">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    
+    <meta name="csrf-token" content="Tt2hRHkkPhpfiCtMB9ne82R9AaVkEurzjJedeYC9">
+    <title>Class Replacements</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+    <script>
+        (function() {
+            var saved = localStorage.getItem('theme');
+            if (saved && ['dark', 'light'].includes(saved)) {
+                document.documentElement.className = saved;
+            }
+            // Default is 'dark' from HTML
+        })();
+    </script>
+    
+    <style>
+        html.dark  { background: #0D1B2A; }
+        html.light { background: #F0F3F7; }
+        .nav-drawer { display: none; }
+    </style>
+    <link rel="stylesheet" href="/css/theme.css">
+    <style>
+        
+        /* ─── Class Replacements list: TABLE on desktop (shared .timetable/.data-table styles),
+               CARDS on mobile only (user revision 2026-10-01) ─── */
+        .upcoming-list {
+            display: none; /* cards are mobile-only */
+        }
+        #upcomingBody tr {
+            cursor: pointer;
+        }
+        #upcomingBody tr:focus-visible {
+            outline: 2px solid var(--color-primary);
+            outline-offset: -2px;
+        }
+        .col-status { white-space: nowrap; }
+        .upcoming-card-wk {
+            font-size: 11px;
+            font-weight: 600;
+            color: var(--color-on-surface-variant);
+            background: var(--color-surface-variant);
+            border-radius: var(--radius-sm);
+            padding: 2px 8px;
+            white-space: nowrap;
+        }
+
+        /* ─── Toolbar: stick Today to the right of the week nav
+               (page-scoped override of the shared space-between distribution) ─── */
+        .toolbar { justify-content: flex-start; }
+
+        .upcoming-card {
+            background: var(--color-surface);
+            border: 1px solid var(--color-outline);
+            border-radius: var(--radius-lg);
+            padding: 14px 16px;
+            cursor: pointer;
+            transition: background 0.15s, box-shadow 0.15s;
+        }
+        /* hover elevation mirrors theme.css .request-card / cell-hover pattern */
+        .upcoming-card:hover {
+            background: var(--color-surface-variant);
+            box-shadow: var(--shadow-sm);
+        }
+        .upcoming-card:active {
+            transform: scale(0.99);
+        }
+        .upcoming-card-head {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 8px;
+            margin-bottom: 8px;
+        }
+        .upcoming-card-code {
+            font-size: 14px;
+            font-weight: 700;
+            color: var(--color-on-surface);
+        }
+        /* 2026-11-09 (grill Q13=A): the two slots are now full 4-line blocks
+           (date / countdown / time+duration / venue), so the card STACKS them
+           instead of squeezing them side by side with an arrow. */
+        .upcoming-card-slots {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin-bottom: 8px;
+            font-size: 12px;
+            color: var(--color-on-surface);
+        }
+        .slot-label {
+            display: block;
+            font-size: 10px;
+            font-weight: 700;
+            letter-spacing: 0.4px;
+            text-transform: uppercase;
+            color: var(--color-on-surface-variant);
+            margin-bottom: 2px;
+        }
+        .upcoming-card-reason {
+            font-size: 12px;
+            margin-bottom: 6px;
+        }
+        .upcoming-card-lect {
+            font-size: 12px;
+            color: var(--color-on-surface-variant);
+        }
+        .upcoming-card.past {
+            border: 1px solid var(--color-outline);
+            color: var(--color-on-surface-variant);
+        }
+
+        /* ─── Mobile (≤768px): cards replace the table; toolbar stacks via theme.css shared rules ─── */
+        @media (max-width: 768px) {
+            #upcomingGridWrapper {
+                display: none !important;
+            }
+            .upcoming-list {
+                display: grid;
+                grid-template-columns: 1fr;
+                gap: 8px;
+                margin-top: 14px;
+            }
+            /* whole card is the touch target — keep it ≥44px */
+            .upcoming-card {
+                min-height: 44px;
+            }
+        }
+    </style>
+<!-- Livewire Styles --><style>[wire\:loading][wire\:loading], [wire\:loading\.delay][wire\:loading\.delay], [wire\:loading\.list-item][wire\:loading\.list-item], [wire\:loading\.inline-block][wire\:loading\.inline-block], [wire\:loading\.inline][wire\:loading\.inline], [wire\:loading\.block][wire\:loading\.block], [wire\:loading\.flex][wire\:loading\.flex], [wire\:loading\.table][wire\:loading\.table], [wire\:loading\.grid][wire\:loading\.grid], [wire\:loading\.inline-flex][wire\:loading\.inline-flex] {display: none;}[wire\:loading\.delay\.none][wire\:loading\.delay\.none], [wire\:loading\.delay\.shortest][wire\:loading\.delay\.shortest], [wire\:loading\.delay\.shorter][wire\:loading\.delay\.shorter], [wire\:loading\.delay\.short][wire\:loading\.delay\.short], [wire\:loading\.delay\.default][wire\:loading\.delay\.default], [wire\:loading\.delay\.long][wire\:loading\.delay\.long], [wire\:loading\.delay\.longer][wire\:loading\.delay\.longer], [wire\:loading\.delay\.longest][wire\:loading\.delay\.longest] {display: none;}[wire\:offline][wire\:offline] {display: none;}[wire\:dirty]:not(textarea):not(input):not(select) {display: none;}:root {--livewire-progress-bar-color: #2299dd;}[x-cloak] {display: none !important;}[wire\:cloak] {display: none !important;}dialog#livewire-error::backdrop {background-color: rgba(0, 0, 0, .6);}</style>
+<style>/* Make clicks pass-through */
+
+    #nprogress {
+      pointer-events: none;
+    }
+
+    #nprogress .bar {
+      background: var(--livewire-progress-bar-color, #29d);
+
+      position: fixed;
+      z-index: 1031;
+      top: 0;
+      left: 0;
+
+      width: 100%;
+      height: 2px;
+    }
+
+    /* Fancy blur effect */
+    #nprogress .peg {
+      display: block;
+      position: absolute;
+      right: 0px;
+      width: 100px;
+      height: 100%;
+      box-shadow: 0 0 10px var(--livewire-progress-bar-color, #29d), 0 0 5px var(--livewire-progress-bar-color, #29d);
+      opacity: 1.0;
+
+      -webkit-transform: rotate(3deg) translate(0px, -4px);
+          -ms-transform: rotate(3deg) translate(0px, -4px);
+              transform: rotate(3deg) translate(0px, -4px);
+    }
+
+    /* Remove these to get rid of the spinner */
+    #nprogress .spinner {
+      display: block;
+      position: fixed;
+      z-index: 1031;
+      top: 15px;
+      right: 15px;
+    }
+
+    #nprogress .spinner-icon {
+      width: 18px;
+      height: 18px;
+      box-sizing: border-box;
+
+      border: solid 2px transparent;
+      border-top-color: var(--livewire-progress-bar-color, #29d);
+      border-left-color: var(--livewire-progress-bar-color, #29d);
+      border-radius: 50%;
+
+      -webkit-animation: nprogress-spinner 400ms linear infinite;
+              animation: nprogress-spinner 400ms linear infinite;
+    }
+
+    .nprogress-custom-parent {
+      overflow: hidden;
+      position: relative;
+    }
+
+    .nprogress-custom-parent #nprogress .spinner,
+    .nprogress-custom-parent #nprogress .bar {
+      position: absolute;
+    }
+
+    @-webkit-keyframes nprogress-spinner {
+      0%   { -webkit-transform: rotate(0deg); }
+      100% { -webkit-transform: rotate(360deg); }
+    }
+    @keyframes nprogress-spinner {
+      0%   { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+    </style><style id="fact-value-rhythm">
+        /* The facts strip mixes a badge (Conflict) with plain text (Lecturer).
+           The plain text inherited 14px/500 from .detail-value, so it read
+           bigger and darker than the badge beside it. One size, one weight,
+           one colour — at every width, since nothing here is media-scoped. */
+        .detail-facts .detail-value {
+            font-size: 12px;
+            font-weight: 600;
+            line-height: 1.4;
+            color: var(--color-on-surface);
+        }
+    </style>
+<style id="badge-polish">
+        /* ═══ Badge polish — geometry, spacing and type only ═══════════════
+           No colour, background or border-colour is declared here, so the
+           palette is untouched. Every rule only sizes, centres or spaces. */
+
+        /* 1 — one pill language for every text badge. Request Approval used
+               to override radius to 8px and display:inline-block, which made
+               its badges a different shape to My Replacements'. */
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            box-sizing: border-box;
+            min-height: 22px;
+            max-width: 100%;
+            padding: 3px 10px;
+            border-radius: 999px;
+            font-size: 12px;
+            font-weight: 600;
+            line-height: 1.2;
+            text-align: center;
+            vertical-align: middle;
+        }
+
+        /* 2 — the outlined pill carries a 1px border and used to stand 2px
+               taller than its filled neighbours; border-box evens them out. */
+        .badge-outline { box-sizing: border-box; }
+
+        /* 3 — the details strip: the label and its value now share one
+               optical line, so REASON / COHORTS / STUDENTS line up even when
+               one value is a badge and the others are plain text. */
+        .detail-facts { align-items: center; }
+        .df-item { min-height: 22px; }
+        .df-label { line-height: 1.2; }
+
+        /* 4 — the ✓ slot marker keeps its 18px size but now shares the text
+               baseline instead of towering over it. */
+        .slot-badge { vertical-align: -3px; }
+
+</style>
+</head>
+<body data-page="replacementHistory">
+
+            <div class="top-bar">
+    <div class="top-logo" onclick="navigateHome()">
+        <img src="/images/logo_banner.png" alt="TAR UMT">
+    </div>
+
+    <div class="nav-items">
+                <a class="nav-item " href="/student-my-timetable-ui">My Timetable</a>
+                <a class="nav-item active" href="/student-class-replacements">Class Replacements</a>
+            </div>
+
+    <div class="top-right">
+        <button class="theme-toggle" onclick="toggleTheme()" aria-label="Toggle theme" data-tip="Switch between light &amp; dark mode" data-tip-pos="left">
+            <svg id="theme-icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>
+        </button>
+
+        
+        <div wire:key="notif-bell" wire:snapshot="{&quot;data&quot;:{&quot;island&quot;:&quot;bell&quot;,&quot;pageKey&quot;:&quot;&quot;,&quot;unreadOnly&quot;:true,&quot;activeOnly&quot;:true,&quot;typeFilter&quot;:&quot;&quot;,&quot;manageMode&quot;:false,&quot;selectedIds&quot;:[[],{&quot;s&quot;:&quot;arr&quot;}],&quot;hiddenView&quot;:false,&quot;undoIds&quot;:[[],{&quot;s&quot;:&quot;arr&quot;}]},&quot;memo&quot;:{&quot;id&quot;:&quot;iasS1Xi5mbBwVlMPkOuU&quot;,&quot;name&quot;:&quot;NavNotifications&quot;,&quot;path&quot;:&quot;student-class-replacements&quot;,&quot;method&quot;:&quot;GET&quot;,&quot;release&quot;:&quot;a-a-a&quot;,&quot;children&quot;:[],&quot;scripts&quot;:[],&quot;assets&quot;:[],&quot;errors&quot;:[],&quot;locale&quot;:&quot;en&quot;,&quot;islands&quot;:[]},&quot;checksum&quot;:&quot;129a00225f56baf9ad9f683d1c33e68ffc69c99838cad16b7b06975dc404fc10&quot;}" wire:effects="[]" wire:id="iasS1Xi5mbBwVlMPkOuU" wire:name="NavNotifications" wire:poll.10s.visible="">
+<!--[if BLOCK]><![endif]-->    <button class="notif-btn" onclick="toggleNotifPanel()" aria-label="Notifications" aria-haspopup="true" data-tip="Notifications" data-tip-pos="left">
+        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
+            <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
+        </svg>
+        <span class="notif-badge" id="notifBadge" hidden="" style="display: flex">2</span>
+    </button>
+<!--[if ENDBLOCK]><![endif]--></div>
+
+        <div class="user-panel session-critical" id="userPanel">
+            <div class="user-profile">
+                <div class="user-avatar">S2</div>
+                <div class="user-info">
+                    <span class="user-name">Student 24RSD0009</span>
+                    <span class="user-id">24RSD0009</span>
+                    <span class="user-role">Student</span>
+                </div>
+            </div>
+
+            <button class="logout-btn" onclick="document.getElementById('logout-form').submit()" aria-label="Logout">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+                    <polyline points="16 17 21 12 16 7"></polyline>
+                    <line x1="21" y1="12" x2="9" y2="12"></line>
+                </svg>
+            </button>
+        </div>
+
+        <button class="nav-hamburger" id="navHamburger" aria-label="Open navigation menu">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="3" y1="6" x2="21" y2="6"></line>
+                <line x1="3" y1="12" x2="21" y2="12"></line>
+                <line x1="3" y1="18" x2="21" y2="18"></line>
+            </svg>
+        </button>
+    </div>
+</div>
+
+<div class="nav-drawer-overlay" id="navDrawerOverlay"></div>
+
+<div class="nav-drawer" id="navDrawer">
+    <div class="nav-drawer-header">
+        <span class="nav-drawer-title">Navigation</span>
+        <button class="nav-drawer-close" id="navDrawerClose" aria-label="Close navigation menu">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="18" y1="6" x2="6" y2="18"></line>
+                <line x1="6" y1="6" x2="18" y2="18"></line>
+            </svg>
+        </button>
+    </div>
+    <div class="nav-drawer-items">
+                <a class="nav-drawer-item " href="/student-my-timetable-ui">My Timetable</a>
+                <a class="nav-drawer-item active" href="/student-class-replacements">Class Replacements</a>
+            </div>
+    <div class="nav-drawer-user">
+        <div class="nav-drawer-user-info">
+            <div class="nav-drawer-user-avatar">S2</div>
+            <div class="nav-drawer-user-details">
+                <span class="nav-drawer-user-name">Student 24RSD0009</span>
+                <span class="nav-drawer-user-id">24RSD0009</span>
+                <span class="nav-drawer-user-role">Student</span>
+            </div>
+        </div>
+        <button class="nav-drawer-logout" onclick="document.getElementById('logout-form').submit()" aria-label="Logout">
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+                <polyline points="16 17 21 12 16 7"></polyline>
+                <line x1="21" y1="12" x2="9" y2="12"></line>
+            </svg>
+            Logout
+        </button>
+    </div>
+</div>
+
+
+
+<div class="notif-overlay" id="notifOverlay"></div>
+
+<div class="notif-panel" id="notifPanel" role="dialog" aria-label="Notifications">
+    <div wire:key="notif-panel" wire:snapshot="{&quot;data&quot;:{&quot;island&quot;:&quot;panel&quot;,&quot;pageKey&quot;:&quot;replacementHistory&quot;,&quot;unreadOnly&quot;:true,&quot;activeOnly&quot;:true,&quot;typeFilter&quot;:&quot;&quot;,&quot;manageMode&quot;:false,&quot;selectedIds&quot;:[[],{&quot;s&quot;:&quot;arr&quot;}],&quot;hiddenView&quot;:false,&quot;undoIds&quot;:[[],{&quot;s&quot;:&quot;arr&quot;}]},&quot;memo&quot;:{&quot;id&quot;:&quot;jOjLKgC9zn7u2cYE9BL7&quot;,&quot;name&quot;:&quot;NavNotifications&quot;,&quot;path&quot;:&quot;student-class-replacements&quot;,&quot;method&quot;:&quot;GET&quot;,&quot;release&quot;:&quot;a-a-a&quot;,&quot;children&quot;:[],&quot;scripts&quot;:[],&quot;assets&quot;:[],&quot;errors&quot;:[],&quot;locale&quot;:&quot;en&quot;,&quot;islands&quot;:[]},&quot;checksum&quot;:&quot;466f3464f6c2ced27c6823ecf77f8cdd1b2beff8a79affbea098a1f27c4bc6e7&quot;}" wire:effects="[]" wire:id="jOjLKgC9zn7u2cYE9BL7" wire:name="NavNotifications" wire:poll.10s.visible="">
+<!--[if BLOCK]><![endif]-->    
+    <div class="notif-head">
+        <!--[if BLOCK]><![endif]-->            <span class="notif-head-title">Notifications</span>
+        <!--[if ENDBLOCK]><![endif]-->        <div class="notif-head-actions">
+            <!--[if BLOCK]><![endif]-->                
+                <span class="notif-unread-pill" id="notifUnreadPill" data-tip="2 unread messages" aria-label="2 unread messages">2</span>
+                
+                <button class="notif-iconbtn" id="notifMarkAll" type="button" wire:click="markAll" aria-label="Mark all as read" data-tip="Mark every notification as read." data-tip-pos="left">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M22 13V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h8"></path>
+                        <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"></path>
+                        <path d="m16 19 2 2 4-4"></path>
+                    </svg>
+                </button>
+                
+                <!--[if BLOCK]><![endif]-->                    <button class="notif-iconbtn" id="notifManage" type="button" wire:click="enterManage" aria-label="Manage notifications" data-tip="Put away notifications you have already read.
+Nothing is deleted — you can bring them back." data-tip-pos="left">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="m3 17 2 2 4-4"></path>
+                            <path d="m3 7 2 2 4-4"></path>
+                            <path d="M13 6h8"></path>
+                            <path d="M13 12h8"></path>
+                            <path d="M13 18h8"></path>
+                        </svg>
+                    </button>
+                <!--[if ENDBLOCK]><![endif]-->            <!--[if ENDBLOCK]><![endif]-->            <button class="notif-close" type="button" onclick="closeNotifPanel()" aria-label="Close notifications" data-tip="Close" data-tip-pos="left">
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="18" y1="6" x2="6" y2="18"></line>
+                    <line x1="6" y1="6" x2="18" y2="18"></line>
+                </svg>
+            </button>
+        </div>
+    </div>
+
+    <!--[if BLOCK]><![endif]-->        <div class="notif-filters">
+            <label class="toggle-wrapper" data-tip="Show only rows you haven't actioned yet">
+                <input type="checkbox" id="notifUnreadOnly" wire:model.live="unreadOnly" checked="">
+                <span class="toggle-track"><span class="toggle-thumb"></span></span>
+                <span class="toggle-label">Unread only</span>
+            </label>
+            <label class="toggle-wrapper" data-tip="Hide decided/inactive rows — show live items only">
+                <input type="checkbox" id="notifActiveOnly" wire:model.live="activeOnly" checked="">
+                <span class="toggle-track"><span class="toggle-thumb"></span></span>
+                <span class="toggle-label">Active only</span>
+            </label>
+            
+            <select class="notif-type-select" id="notifTypeFilter" aria-label="Filter by notification type" data-tip="Filter the list by notification type." wire:model.live="typeFilter">
+                <option value="">All types</option>
+                <option value="submitted">New requests</option>
+                <option value="awaiting">Awaiting decision</option>
+                <option value="approved">Approved</option>
+                <option value="rejected">Rejected</option>
+                <option value="update">Updates</option>
+            </select>
+        </div>
+    <!--[if ENDBLOCK]><![endif]-->
+    <!--[if BLOCK]><![endif]-->                <div class="notif-list" id="notifList" style="display: ">
+            <!--[if BLOCK]><![endif]-->                <a class="notif-row" data-id="356" data-notif-target="o38" data-notif-week="9" href="/student-class-replacements" data-tip="Subject: BMSE2163 (Practical) — Software Engineering
+Cancelled Class Schedule: Week 9 · Thu, 19 Nov 2026 · 12:00 PM ~ 1:00 PM @ B010
+Reason: Maternity Leave" aria-label="Scheduled class cancelled — BMSE2163 (P) · W9 · Thu · B010 · cancelled">
+    <!--[if BLOCK]><![endif]--><!--[if ENDBLOCK]><![endif]-->    <span class="notif-row-icon notif-tile-update"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg></span>
+    <span class="notif-row-body">
+        <span class="notif-row-title">Scheduled Class Cancelled</span>
+        
+        <!--[if BLOCK]><![endif]-->            <span class="notif-row-subtitle">by Surayaini Binti Basri (5425)</span>
+        <!--[if ENDBLOCK]><![endif]-->        <span class="notif-row-desc">BMSE2163 (P) · W9 · Thu · B010 · cancelled</span>
+    </span>
+    <!--[if BLOCK]><![endif]-->        <span class="notif-row-time" data-tip="12 Nov, 8:53 PM" data-tip-pos="left">Yesterday</span>
+    <!--[if ENDBLOCK]><![endif]--></a>
+                            <a class="notif-row" data-id="281" data-notif-target="r43" data-notif-status="approved" href="/student-class-replacements" data-tip="Subject: BMIT2013 (Lecture) — Web-Based Integrated Systems
+Original Slot Schedule: Week 7 · Tue, 3 Nov 2026 · 2:00 PM ~ 4:00 PM @ B009 (Medical/Sick Leave)
+Approved Slot Schedule: Week 10 · Mon, 23 Nov 2026 · 3:30 PM ~ 5:30 PM @ B009
+Request ID: #43" aria-label="Replacement class updated — BMIT2013 (L) · W7 · Tue · B009 · your timetable is updated">
+    <!--[if BLOCK]><![endif]--><!--[if ENDBLOCK]><![endif]-->    <span class="notif-row-icon notif-tile-approved"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><path d="m9 12 2 2 4-4"></path></svg></span>
+    <span class="notif-row-body">
+        <span class="notif-row-title">Replacement Class Updated</span>
+        
+        <!--[if BLOCK]><![endif]-->            <span class="notif-row-subtitle">by Surayaini Binti Basri (5425)</span>
+        <!--[if ENDBLOCK]><![endif]-->        <span class="notif-row-desc">BMIT2013 (L) · W7 · Tue · B009 · your timetable is updated</span>
+    </span>
+    <!--[if BLOCK]><![endif]-->        <span class="notif-row-time" data-tip="11 Nov, 4:29 PM" data-tip-pos="left">3d ago</span>
+    <!--[if ENDBLOCK]><![endif]--></a>
+            <!--[if ENDBLOCK]><![endif]-->        </div>
+
+        <div class="notif-empty" id="notifEmpty" style="display: none">
+            <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="10"></circle>
+                <path d="m9 12 2 2 4-4"></path>
+            </svg>
+            
+            <span>You're all caught up</span>
+        </div>
+    <!--[if ENDBLOCK]><![endif]-->
+    
+    <!--[if BLOCK]><![endif]--><!--[if ENDBLOCK]><![endif]-->
+    
+    <!--[if BLOCK]><![endif]--><!--[if ENDBLOCK]><![endif]--><!--[if ENDBLOCK]><![endif]--></div>
+</div>
+
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // MOCK: pretend the user logged in 25 seconds ago
+    var authStart = Date.now() - (25 * 1000);
+
+    var panel = document.getElementById('userPanel');
+    if (!panel) return;
+
+    function updateSessionColor() {
+        var elapsed = (Date.now() - authStart) / 1000;
+        panel.classList.remove('session-critical', 'session-warning');
+        if (elapsed < 30) {
+            panel.classList.add('session-critical');       // < 30s   → error-container (red)
+        } else if (elapsed < 120) {
+            panel.classList.add('session-warning');        // < 2 min → tertiary-container
+        }
+        // >= 2 min → no extra class, base .user-panel = primary-container
+    }
+
+    updateSessionColor();
+    setInterval(updateSessionColor, 30000);
+});
+</script>
+
+<form id="logout-form" method="POST" action="http://127.0.0.1:8000/logout" style="display:none;">
+    <input type="hidden" name="_token" value="Tt2hRHkkPhpfiCtMB9ne82R9AaVkEurzjJedeYC9" autocomplete="off"></form>
+        
+        <div class="session-countdown" data-lifetime="720" data-last-activity="1794660443" style="display: none;">
+    <span class="countdown-text">Session expires in <span id="countdown-min">--</span> min</span>
+    <button onclick="location.reload()" class="btn-extend">Still here?</button>
+    <form id="countdown-logout-form" method="POST" action="http://127.0.0.1:8000/logout" style="display:none;">
+        <input type="hidden" name="_token" value="Tt2hRHkkPhpfiCtMB9ne82R9AaVkEurzjJedeYC9" autocomplete="off">    </form>
+</div>
+
+<div class="session-modal-overlay" id="sessionModal" style="display: none;">
+    <div class="session-modal">
+        <h3>Session Expiring Soon</h3>
+        <p>Your session expires in <span id="modal-countdown">60</span> seconds.</p>
+        <div class="session-modal-actions">
+            <button onclick="location.reload()" class="btn-primary">Stay logged in</button>
+            <form method="POST" action="http://127.0.0.1:8000/logout" style="display:inline;">
+                <input type="hidden" name="_token" value="Tt2hRHkkPhpfiCtMB9ne82R9AaVkEurzjJedeYC9" autocomplete="off">                <button type="submit" class="btn-secondary">Logout</button>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+(function () {
+    'use strict';
+
+    var root = document.querySelector('.session-countdown');
+    if (!root || !root.dataset.lifetime) return;
+
+    var modal = document.getElementById('sessionModal');
+    var minsEl = document.getElementById('countdown-min');
+    var modalSecsEl = document.getElementById('modal-countdown');
+    var logoutForm = document.getElementById('countdown-logout-form');
+
+    var duration = parseInt(root.dataset.lifetime, 10) * 60; // seconds
+    var baseline = parseInt(root.dataset.lastActivity, 10) || Math.floor(Date.now() / 1000);
+    /* PROTOTYPE ONLY (2026-11-15): `data-last-activity` was frozen when this page
+       was saved from the live site, so the 12-hour stub had long expired and its
+       first tick auto-submitted the real /logout — a saved page that kicks the
+       reader out to the dev server. Re-base to load time: the pill still counts
+       down, the trap is gone. Never copy this back into the blade. */
+    baseline = Math.floor(Date.now() / 1000);
+    var fired = false;
+    var timer = null;
+
+    // Server refreshes _auth_last_activity on every request incl. Livewire AJAX —
+    // keep the client baseline in step (see SDD design §2).
+    try {
+        if (window.Livewire && typeof window.Livewire.hook === 'function') {
+            window.Livewire.hook('commit', function () {
+                baseline = Math.floor(Date.now() / 1000);
+            });
+        }
+        document.addEventListener('livewire:navigated', function () {
+            baseline = Math.floor(Date.now() / 1000);
+        });
+    } catch (e) { /* non-Livewire page: fine */ }
+
+    // The stub's modal logout form has no id — capture its submit so a manual
+    // click in the final second cannot race the interval's auto-submit.
+    if (modal) {
+        modal.addEventListener('submit', function () { fired = true; if (timer) clearInterval(timer); }, true);
+    }
+
+    function fireLogout() {
+        if (fired) return;
+        fired = true;
+        if (timer) clearInterval(timer);
+        document.querySelectorAll('.session-countdown button, .session-modal button').forEach(function (b) { b.disabled = true; });
+        if (logoutForm) logoutForm.submit();
+    }
+
+    function tick() {
+        var remaining = duration - (Math.floor(Date.now() / 1000) - baseline);
+
+        if (remaining <= 0) { fireLogout(); return; }
+
+        var shortLifetime = duration <= 300;
+        var barVisible = shortLifetime || remaining <= 300;
+        root.style.display = barVisible ? 'flex' : 'none';
+        if (minsEl && barVisible) minsEl.textContent = String(Math.max(1, Math.ceil(remaining / 60)));
+
+        if (modal) {
+            var modalVisible = remaining <= 60;
+            modal.style.display = modalVisible ? 'flex' : 'none';
+            if (modalSecsEl && modalVisible) modalSecsEl.textContent = String(remaining);
+        }
+    }
+
+    tick();
+    timer = setInterval(tick, 1000);
+})();
+</script>
+    
+
+    <div class="app-container">
+                <div wire:snapshot="{&quot;data&quot;:[],&quot;memo&quot;:{&quot;id&quot;:&quot;MnQZws0ytBOMK5Nl0sGe&quot;,&quot;name&quot;:&quot;replacement-history&quot;,&quot;path&quot;:&quot;student-class-replacements&quot;,&quot;method&quot;:&quot;GET&quot;,&quot;release&quot;:&quot;a-a-a&quot;,&quot;children&quot;:[],&quot;scripts&quot;:[],&quot;assets&quot;:[],&quot;errors&quot;:[],&quot;locale&quot;:&quot;en&quot;,&quot;islands&quot;:[]},&quot;checksum&quot;:&quot;b442ea870b308fcfa2bccc1c924bacc6245770b1ea5d63a1c36b590911f5368a&quot;}" wire:effects="[]" wire:id="MnQZws0ytBOMK5Nl0sGe" wire:name="replacement-history" class="lw-page">
+    <!--[if BLOCK]><![endif]-->    <script>window.PAGE_DATA = {"semester":{"label":"202605","startDate":"2026-09-21","endDate":"2026-12-27","weeks":14,"chipText":"202605 \u00b7 21 Sep 2026 ~ 27 Dec 2026"},"holidays":[{"week":8,"dayIndex":0,"label":"Deepavali Holiday (In Lieu)"},{"week":14,"dayIndex":3,"label":"Christmas Eve"},{"week":14,"dayIndex":4,"label":"Christmas Day"}],"currentUser":{"name":"Student 24RSD0009"},"cohortTimetable":{"rsd3g2Flags":[]},"replacementHistory":[{"id":"24:7","week":6,"requestId":43,"code":"BMIT2013","name":"Web-Based Integrated Systems","type":"L","lecturer":"En. Lim Jia Zheng","cohorts":["RSD2 (S1) G2","RSD2 (S1) G3"],"totalStudents":14,"statusShort":"Approved","orig":{"week":7,"date":"2026-11-03","day":"Tuesday","start":"14:00","end":"16:00","duration":2,"venue":"B009"},"req":{"week":10,"date":"2026-11-23","day":"Monday","start":"15:30","end":"17:30","duration":2,"venue":"B009"},"status":"approved","statusLabel":"Approved","statusTip":"The Programme Leader has APPROVED the requested replacement \u2014 attend the requested slot.","conflictKind":"Class Cancelled","holidayName":null,"requestedAt":"11 Nov 2026, 04:28 PM"},{"id":"1:8","week":7,"requestId":null,"code":"MPU-3232","name":"Entrepreneurship","type":"L","lecturer":"Pn. Tan Sharon","cohorts":["RSD2 (S1) G2","RSD2 (S1) G3","RSD3 (S1) G3"],"totalStudents":23,"statusShort":"Awaiting Arrangement","orig":{"week":8,"date":"2026-11-09","day":"Monday","start":"14:00","end":"15:00","duration":1,"venue":"B002"},"req":null,"status":"none","statusLabel":"Awaiting Arrangement","statusTip":"No request has been made for this class yet.","conflictKind":"Public Holiday","holidayName":"Deepavali Holiday (In Lieu)","requestedAt":null},{"id":"59:8","week":7,"requestId":null,"code":"BMIT2203","name":"Human Computer Interaction","type":"L","lecturer":"Pn. Lee Yee Fong","cohorts":["RSD2 (S1) G2","RSD2 (S1) G3"],"totalStudents":14,"statusShort":"Awaiting Arrangement","orig":{"week":8,"date":"2026-11-09","day":"Monday","start":"11:00","end":"13:00","duration":2,"venue":"B016"},"req":null,"status":"none","statusLabel":"Awaiting Arrangement","statusTip":"No request has been made for this class yet.","conflictKind":"Public Holiday","holidayName":"Deepavali Holiday (In Lieu)","requestedAt":null},{"id":"38:9","week":8,"requestId":null,"code":"BMSE2163","name":"Software Engineering","type":"P","lecturer":"Pn. Surayaini Binti Basri","cohorts":["RSD2 (S1) G2","RSD2 (S1) G1"],"totalStudents":12,"statusShort":"Awaiting Arrangement","orig":{"week":9,"date":"2026-11-19","day":"Thursday","start":"12:00","end":"13:00","duration":1,"venue":"B010"},"req":null,"status":"none","statusLabel":"Awaiting Arrangement","statusTip":"No request has been made for this class yet.","conflictKind":"Class Cancelled","holidayName":null,"requestedAt":null},{"id":"28:14","week":13,"requestId":null,"code":"BMIT2203","name":"Human Computer Interaction","type":"P","lecturer":"Pn. Lee Yee Fong","cohorts":["RSD2 (S1) G2","RSD2 (S1) G3"],"totalStudents":14,"statusShort":"Awaiting Arrangement","orig":{"week":14,"date":"2026-12-24","day":"Thursday","start":"09:30","end":"10:30","duration":1,"venue":"B009"},"req":null,"status":"none","statusLabel":"Awaiting Arrangement","statusTip":"No request has been made for this class yet.","conflictKind":"Public Holiday","holidayName":"Christmas Eve","requestedAt":null},{"id":"38:14","week":13,"requestId":27,"code":"BMSE2163","name":"Software Engineering","type":"P","lecturer":"Pn. Surayaini Binti Basri","cohorts":["RSD2 (S1) G2","RSD2 (S1) G1"],"totalStudents":12,"statusShort":"Completed","orig":{"week":14,"date":"2026-12-24","day":"Thursday","start":"12:00","end":"13:00","duration":1,"venue":"B010"},"req":{"week":8,"date":"2026-11-13","day":"Friday","start":"13:00","end":"14:00","duration":1,"venue":"B010"},"status":"completed","statusLabel":"Completed \u2014 1 day ago","statusTip":"The replacement class has been CONDUCTED \u2014 this request is complete.","conflictKind":"Public Holiday","holidayName":"Christmas Eve","requestedAt":"03 Nov 2026, 11:10 AM"},{"id":"57:14","week":13,"requestId":null,"code":"MPU-3133","name":"Falsafah dan Isu Semasa","type":"T","lecturer":"En. Muada Bin Ojih","cohorts":["RBU1 (S1) G1","RAF2 (S3) G4","RAF2 (S3) G2","RSD2 (S1) G2","RSD2 (S1) G3"],"totalStudents":35,"statusShort":"Awaiting Arrangement","orig":{"week":14,"date":"2026-12-24","day":"Thursday","start":"11:00","end":"12:00","duration":1,"venue":"B015"},"req":null,"status":"none","statusLabel":"Awaiting Arrangement","statusTip":"No request has been made for this class yet.","conflictKind":"Public Holiday","holidayName":"Christmas Eve","requestedAt":null},{"id":"32:14","week":13,"requestId":null,"code":"BMCS2053","name":"Object-Oriented Analysis and Design","type":"P","lecturer":"Ts. Norshikin Binti Zainal Abidin","cohorts":["RSD2 (S1) G1","RSD2 (S1) G2","RSD2 (S1) G3"],"totalStudents":21,"statusShort":"Awaiting Arrangement","orig":{"week":14,"date":"2026-12-25","day":"Friday","start":"15:00","end":"16:00","duration":1,"venue":"B009"},"req":null,"status":"none","statusLabel":"Awaiting Arrangement","statusTip":"No request has been made for this class yet.","conflictKind":"Public Holiday","holidayName":"Christmas Day","requestedAt":null},{"id":"77:14","week":13,"requestId":null,"code":"MPU-3232","name":"Entrepreneurship","type":"T","lecturer":"Dr. Chang Foo Chung","cohorts":["RSD2 (S1) G2","RSD2 (S1) G3","RSD3 (S1) G3"],"totalStudents":23,"statusShort":"Awaiting Arrangement","orig":{"week":14,"date":"2026-12-25","day":"Friday","start":"10:00","end":"11:00","duration":1,"venue":"B103"},"req":null,"status":"none","statusLabel":"Awaiting Arrangement","statusTip":"No request has been made for this class yet.","conflictKind":"Public Holiday","holidayName":"Christmas Day","requestedAt":null},{"id":"78:14","week":13,"requestId":null,"code":"BMCS2053","name":"Object-Oriented Analysis and Design","type":"L","lecturer":"Ts. Norshikin Binti Zainal Abidin","cohorts":["RSD2 (S1) G1","RSD2 (S1) G2","RSD2 (S1) G3"],"totalStudents":21,"statusShort":"Awaiting Arrangement","orig":{"week":14,"date":"2026-12-25","day":"Friday","start":"11:00","end":"13:00","duration":2,"venue":"B103"},"req":null,"status":"none","statusLabel":"Awaiting Arrangement","statusTip":"No request has been made for this class yet.","conflictKind":"Public Holiday","holidayName":"Christmas Day","requestedAt":null},{"id":"79:14","week":13,"requestId":null,"code":"BMCS2053","name":"Object-Oriented Analysis and Design","type":"T","lecturer":"Ts. Norshikin Binti Zainal Abidin","cohorts":["RSD2 (S1) G1","RSD2 (S1) G2","RSD2 (S1) G3"],"totalStudents":21,"statusShort":"Awaiting Arrangement","orig":{"week":14,"date":"2026-12-25","day":"Friday","start":"14:00","end":"15:00","duration":1,"venue":"B103"},"req":null,"status":"none","statusLabel":"Awaiting Arrangement","statusTip":"No request has been made for this class yet.","conflictKind":"Public Holiday","holidayName":"Christmas Day","requestedAt":null}]};</script>
+<!--[if ENDBLOCK]><![endif]-->
+        <!-- ─── Page Header ─── -->
+        <div class="page-header">
+    <div class="page-header-main">
+        <!--[if BLOCK]><![endif]-->            <h1 class="page-title">Student Class Replacements</h1>
+        <!--[if ENDBLOCK]><![endif]-->        <!--[if BLOCK]><![endif]-->            <div class="page-chips">
+                <span class="semester-chip" id="semesterChip">202605 · 21 Sep 2026 ~ 27 Dec 2026</span>
+                <!--[if BLOCK]><![endif]-->                    <span class="semester-chip">RSD2(S1)G2</span>
+                <!--[if ENDBLOCK]><![endif]-->            </div>
+        <!--[if ENDBLOCK]><![endif]-->        <!--[if BLOCK]><![endif]--><!--[if ENDBLOCK]><![endif]-->    </div>
+    <!--[if BLOCK]><![endif]-->        <button class="guide-toggle-icon" type="button" aria-haspopup="dialog" aria-controls="guideModal" aria-expanded="false" aria-label="How to use this page" onclick="GuideModal.open(this)">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+    <circle cx="12" cy="12" r="10"></circle>
+    <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path>
+    <line x1="12" y1="17" x2="12.01" y2="17"></line>
+</svg>
+        </button>
+    <!--[if ENDBLOCK]><![endif]--></div>
+ 
+
+        <div class="modal-overlay" id="guideModal" style="display:none"
+     onclick="if(event.target===this)GuideModal.close()">
+    <div class="modal modal--guide" role="dialog" aria-modal="true"
+         aria-labelledby="guideModalTitle">
+        <div class="modal-header">
+            <h3 class="modal-title" id="guideModalTitle">How to use this page</h3>
+            <button type="button" class="modal-close" data-tip="Close"
+                    aria-label="Close" onclick="GuideModal.close()">✕</button>
+        </div>
+        <div class="modal-body">
+            <p class="page-desc">Every class of your cohort that <span class="info-keyword">cannot run as timetabled</span> — a cancellation or a public holiday — and how far its replacement has got.</p>
+            <ul class="guide-list">
+                <li><strong>Read-only</strong> — your Programme Leader arranges the replacement; this page only tells you where it stands</li>
+                <li><strong>The week</strong> — the week selector narrows the list to one week; a row can name two different weeks, one for each slot</li>
+                <li><strong>COMPLETED</strong> — the switch hides classes whose replacement date has already passed; turn it off to see them again</li>
+                <li><strong>Status</strong> — Awaiting Arrangement (no request yet), Pending (waiting for a decision), Approved (attend the requested slot), Completed (that date has passed)</li>
+                <li><strong>Details</strong> — click a row, or a card on a phone, for the full replacement details</li>
+            </ul>
+        </div>
+        <div class="modal-footer">
+            <div class="modal-footer-left"></div>
+            <div class="modal-footer-right">
+                <button type="button" class="btn-close-modal" onclick="GuideModal.close()">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+        <!-- ─── Toolbar: week navigation + the staff's COMPLETED toggle ───
+             2026-11-09 (user): this is My Replacements' control, same words, same
+             default (ON = completed requests are excluded from the list). A
+             replacement counts as COMPLETED once its requested DATE has passed,
+             which is the derived status the badge above it prints. ─── -->
+        <div class="toolbar">
+            <div class="week-nav">
+    <button class="week-arrow" onclick="prevWeekFilter()" aria-label="Previous week" disabled="">‹</button>
+    <select class="week-select" id="weekFilter" onchange="weekFilterChanged({onRebuild: renderUpcoming})"><option value="all">All Weeks</option><option value="1">Week 1 · 21 Sep 2026 ~ 27 Sep 2026</option><option value="2">Week 2 · 28 Sep 2026 ~ 4 Oct 2026</option><option value="3">Week 3 · 5 Oct 2026 ~ 11 Oct 2026</option><option value="4">Week 4 · 12 Oct 2026 ~ 18 Oct 2026</option><option value="5">Week 5 · 19 Oct 2026 ~ 25 Oct 2026</option><option value="6">Week 6 · 26 Oct 2026 ~ 1 Nov 2026</option><option value="7">Week 7 · 2 Nov 2026 ~ 8 Nov 2026</option><option value="8">Week 8 · 9 Nov 2026 ~ 15 Nov 2026</option><option value="9">Week 9 · 16 Nov 2026 ~ 22 Nov 2026</option><option value="10">Week 10 · 23 Nov 2026 ~ 29 Nov 2026</option><option value="11">Week 11 · 30 Nov 2026 ~ 6 Dec 2026</option><option value="12">Week 12 · 7 Dec 2026 ~ 13 Dec 2026</option><option value="13">Week 13 · 14 Dec 2026 ~ 20 Dec 2026</option><option value="14">Week 14 · 21 Dec 2026 ~ 27 Dec 2026</option></select>
+    <button class="week-arrow" onclick="nextWeekFilter()" aria-label="Next week">›</button>
+</div>
+<!--[if BLOCK]><![endif]--><!--[if ENDBLOCK]><![endif]--><!--[if BLOCK]><![endif]--><!--[if ENDBLOCK]><![endif]--><!--[if BLOCK]><![endif]--><!--[if ENDBLOCK]><![endif]-->            <label class="toggle-wrapper" id="completedToggle" data-tip="ON = completed requests are excluded from the list">
+                <input type="checkbox" id="hideCompleted" checked="">
+                <span class="toggle-track"><span class="toggle-thumb"></span></span>
+                <span class="toggle-label">Exclude <span class="info-keyword">COMPLETED</span> Status</span>
+            </label>
+        </div>
+        <div class="filter-chips" id="filterChips"><span class="filter-chips-label">Active Filters:</span><span class="filter-chip">Exclude COMPLETED Status<button class="filter-chip-remove" data-tip="Remove" data-remove="hideCompleted">×</button></span><button type="button" class="filter-chip filter-chip-clear-all" data-tip="Remove every active filter" onclick="clearAllFilters()">Clear all</button></div>
+
+        <!-- ─── Replacement list — desktop: shared table (JS renders rows); mobile: cards ─── -->
+        <div class="grid-wrapper" id="upcomingGridWrapper">
+    <div class="grid-scroll" id="gridScroll">
+        <table class="timetable data-table" id="upcomingTable">
+            <thead id="upcomingHead"><tr><th class="undefined sortable" data-tip="Subject or Course affected by the conflict">Course</th><th class="undefined sortable" data-tip="Lecturer handling the replacement">Lecturer</th><th class="undefined sortable" data-tip="Week, day and time of the class being replaced">Original Slot</th><th class="undefined sortable" data-tip="Why this class cannot run as timetabled">Conflict Reason</th><th class="undefined sortable" data-tip="The new slot proposed for this class">Requested Slot</th><th class="undefined sortable" data-tip="Pending first, then approved, then completed">Request Status</th></tr></thead>
+            <tbody id="upcomingBody"><tr role="button" tabindex="0" data-id="24:7" data-request-id="43"><td class="col-code"><span class="cell-code">BMIT2013</span><span class="cell-name">Web-Based Integrated Systems <span class="cell-type-label">(L)</span></span></td><td class="col-lecturer">En. Lim Jia Zheng</td><td><div class="cell-class-block"><span class="class-day-date">Tue, 3 Nov 2026 (Week 7)</span><br><span class="urgency-high">Overdue (7 Working Days Ago)</span><br><span class="class-time">2:00 PM ~ 4:00 PM</span><br><span class="cell-sub"><svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18"></path><path d="M5 21V7l7-4 7 4v14"></path><path d="M9 21v-6h6v6"></path></svg>B009</span></div></td><td class="col-reason"><span class="badge badge-reason">Class Cancelled</span></td><td><div class="cell-class-block"><span class="class-day-date">Mon, 23 Nov 2026 (Week 10)</span><br><span class="class-time">3:30 PM ~ 5:30 PM</span><br><span class="cell-sub"><svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18"></path><path d="M5 21V7l7-4 7 4v14"></path><path d="M9 21v-6h6v6"></path></svg>B009</span></div></td><td class="col-status"><span class="badge status-approved" data-tip="The Programme Leader has APPROVED the requested replacement — attend the requested slot.">Approved</span></td></tr><tr role="button" tabindex="0" data-id="1:8"><td class="col-code"><span class="cell-code">MPU-3232</span><span class="cell-name">Entrepreneurship <span class="cell-type-label">(L)</span></span></td><td class="col-lecturer">Pn. Tan Sharon</td><td><div class="cell-class-block"><span class="class-day-date">Mon, 9 Nov 2026 (Week 8)</span><br><span class="urgency-high">Overdue (4 Working Days Ago)</span><br><span class="class-time">2:00 PM ~ 3:00 PM</span><br><span class="cell-sub"><svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18"></path><path d="M5 21V7l7-4 7 4v14"></path><path d="M9 21v-6h6v6"></path></svg>B002</span></div></td><td class="col-reason"><span class="badge badge-holiday" data-tip="Deepavali Holiday (In Lieu)">Public Holiday</span></td><td><span class="cell-dash">—</span></td><td class="col-status"><span class="badge badge-outline status-none" data-tip="No request has been made for this class yet.">Awaiting Arrangement</span></td></tr><tr role="button" tabindex="0" data-id="59:8"><td class="col-code"><span class="cell-code">BMIT2203</span><span class="cell-name">Human Computer Interaction <span class="cell-type-label">(L)</span></span></td><td class="col-lecturer">Pn. Lee Yee Fong</td><td><div class="cell-class-block"><span class="class-day-date">Mon, 9 Nov 2026 (Week 8)</span><br><span class="urgency-high">Overdue (4 Working Days Ago)</span><br><span class="class-time">11:00 AM ~ 1:00 PM</span><br><span class="cell-sub"><svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18"></path><path d="M5 21V7l7-4 7 4v14"></path><path d="M9 21v-6h6v6"></path></svg>B016</span></div></td><td class="col-reason"><span class="badge badge-holiday" data-tip="Deepavali Holiday (In Lieu)">Public Holiday</span></td><td><span class="cell-dash">—</span></td><td class="col-status"><span class="badge badge-outline status-none" data-tip="No request has been made for this class yet.">Awaiting Arrangement</span></td></tr><tr role="button" tabindex="0" data-id="38:9"><td class="col-code"><span class="cell-code">BMSE2163</span><span class="cell-name">Software Engineering <span class="cell-type-label">(P)</span></span></td><td class="col-lecturer">Pn. Surayaini Binti Basri</td><td><div class="cell-class-block"><span class="class-day-date">Thu, 19 Nov 2026 (Week 9)</span><br><span class="urgency-mid">4 Working Days Left</span><br><span class="class-time">12:00 PM ~ 1:00 PM</span><br><span class="cell-sub"><svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18"></path><path d="M5 21V7l7-4 7 4v14"></path><path d="M9 21v-6h6v6"></path></svg>B010</span></div></td><td class="col-reason"><span class="badge badge-reason">Class Cancelled</span></td><td><span class="cell-dash">—</span></td><td class="col-status"><span class="badge badge-outline status-none" data-tip="No request has been made for this class yet.">Awaiting Arrangement</span></td></tr><tr role="button" tabindex="0" data-id="28:14"><td class="col-code"><span class="cell-code">BMIT2203</span><span class="cell-name">Human Computer Interaction <span class="cell-type-label">(P)</span></span></td><td class="col-lecturer">Pn. Lee Yee Fong</td><td><div class="cell-class-block"><span class="class-day-date">Thu, 24 Dec 2026 (Week 14)</span><br><span class="urgency-low">28 Working Days Left</span><br><span class="class-time">9:30 AM ~ 10:30 AM</span><br><span class="cell-sub"><svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18"></path><path d="M5 21V7l7-4 7 4v14"></path><path d="M9 21v-6h6v6"></path></svg>B009</span></div></td><td class="col-reason"><span class="badge badge-holiday" data-tip="Christmas Eve">Public Holiday</span></td><td><span class="cell-dash">—</span></td><td class="col-status"><span class="badge badge-outline status-none" data-tip="No request has been made for this class yet.">Awaiting Arrangement</span></td></tr><tr role="button" tabindex="0" data-id="57:14"><td class="col-code"><span class="cell-code">MPU-3133</span><span class="cell-name">Falsafah dan Isu Semasa <span class="cell-type-label">(T)</span></span></td><td class="col-lecturer">En. Muada Bin Ojih</td><td><div class="cell-class-block"><span class="class-day-date">Thu, 24 Dec 2026 (Week 14)</span><br><span class="urgency-low">28 Working Days Left</span><br><span class="class-time">11:00 AM ~ 12:00 PM</span><br><span class="cell-sub"><svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18"></path><path d="M5 21V7l7-4 7 4v14"></path><path d="M9 21v-6h6v6"></path></svg>B015</span></div></td><td class="col-reason"><span class="badge badge-holiday" data-tip="Christmas Eve">Public Holiday</span></td><td><span class="cell-dash">—</span></td><td class="col-status"><span class="badge badge-outline status-none" data-tip="No request has been made for this class yet.">Awaiting Arrangement</span></td></tr><tr role="button" tabindex="0" data-id="32:14"><td class="col-code"><span class="cell-code">BMCS2053</span><span class="cell-name">Object-Oriented Analysis and Design <span class="cell-type-label">(P)</span></span></td><td class="col-lecturer">Ts. Norshikin Binti Zainal Abidin</td><td><div class="cell-class-block"><span class="class-day-date">Fri, 25 Dec 2026 (Week 14)</span><br><span class="urgency-low">28 Working Days Left</span><br><span class="class-time">3:00 PM ~ 4:00 PM</span><br><span class="cell-sub"><svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18"></path><path d="M5 21V7l7-4 7 4v14"></path><path d="M9 21v-6h6v6"></path></svg>B009</span></div></td><td class="col-reason"><span class="badge badge-holiday" data-tip="Christmas Day">Public Holiday</span></td><td><span class="cell-dash">—</span></td><td class="col-status"><span class="badge badge-outline status-none" data-tip="No request has been made for this class yet.">Awaiting Arrangement</span></td></tr><tr role="button" tabindex="0" data-id="77:14"><td class="col-code"><span class="cell-code">MPU-3232</span><span class="cell-name">Entrepreneurship <span class="cell-type-label">(T)</span></span></td><td class="col-lecturer">Dr. Chang Foo Chung</td><td><div class="cell-class-block"><span class="class-day-date">Fri, 25 Dec 2026 (Week 14)</span><br><span class="urgency-low">28 Working Days Left</span><br><span class="class-time">10:00 AM ~ 11:00 AM</span><br><span class="cell-sub"><svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18"></path><path d="M5 21V7l7-4 7 4v14"></path><path d="M9 21v-6h6v6"></path></svg>B103</span></div></td><td class="col-reason"><span class="badge badge-holiday" data-tip="Christmas Day">Public Holiday</span></td><td><span class="cell-dash">—</span></td><td class="col-status"><span class="badge badge-outline status-none" data-tip="No request has been made for this class yet.">Awaiting Arrangement</span></td></tr><tr role="button" tabindex="0" data-id="78:14"><td class="col-code"><span class="cell-code">BMCS2053</span><span class="cell-name">Object-Oriented Analysis and Design <span class="cell-type-label">(L)</span></span></td><td class="col-lecturer">Ts. Norshikin Binti Zainal Abidin</td><td><div class="cell-class-block"><span class="class-day-date">Fri, 25 Dec 2026 (Week 14)</span><br><span class="urgency-low">28 Working Days Left</span><br><span class="class-time">11:00 AM ~ 1:00 PM</span><br><span class="cell-sub"><svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18"></path><path d="M5 21V7l7-4 7 4v14"></path><path d="M9 21v-6h6v6"></path></svg>B103</span></div></td><td class="col-reason"><span class="badge badge-holiday" data-tip="Christmas Day">Public Holiday</span></td><td><span class="cell-dash">—</span></td><td class="col-status"><span class="badge badge-outline status-none" data-tip="No request has been made for this class yet.">Awaiting Arrangement</span></td></tr><tr role="button" tabindex="0" data-id="79:14"><td class="col-code"><span class="cell-code">BMCS2053</span><span class="cell-name">Object-Oriented Analysis and Design <span class="cell-type-label">(T)</span></span></td><td class="col-lecturer">Ts. Norshikin Binti Zainal Abidin</td><td><div class="cell-class-block"><span class="class-day-date">Fri, 25 Dec 2026 (Week 14)</span><br><span class="urgency-low">28 Working Days Left</span><br><span class="class-time">2:00 PM ~ 3:00 PM</span><br><span class="cell-sub"><svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18"></path><path d="M5 21V7l7-4 7 4v14"></path><path d="M9 21v-6h6v6"></path></svg>B103</span></div></td><td class="col-reason"><span class="badge badge-holiday" data-tip="Christmas Day">Public Holiday</span></td><td><span class="cell-dash">—</span></td><td class="col-status"><span class="badge badge-outline status-none" data-tip="No request has been made for this class yet.">Awaiting Arrangement</span></td></tr></tbody>
+        </table>
+    </div>
+</div>
+        <div id="upcomingList" class="upcoming-list"><div class="upcoming-card" role="button" tabindex="0" data-id="24:7" data-request-id="43"><div class="upcoming-card-head"><span class="upcoming-card-wk">7</span><span class="upcoming-card-code">BMIT2013 · Web-Based Integrated Systems (L)</span><span class="badge status-approved" data-tip="The Programme Leader has APPROVED the requested replacement — attend the requested slot.">Approved</span></div><div class="upcoming-card-slots"><div class="slot-block"><span class="slot-label">Original Slot</span><div class="cell-class-block"><span class="class-day-date">Tue, 3 Nov 2026 (Week 7)</span><br><span class="urgency-high">Overdue (7 Working Days Ago)</span><br><span class="class-time">2:00 PM ~ 4:00 PM</span><br><span class="cell-sub"><svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18"></path><path d="M5 21V7l7-4 7 4v14"></path><path d="M9 21v-6h6v6"></path></svg>B009</span></div></div><div class="slot-block"><span class="slot-label">Requested Slot</span><div class="cell-class-block"><span class="class-day-date">Mon, 23 Nov 2026 (Week 10)</span><br><span class="class-time">3:30 PM ~ 5:30 PM</span><br><span class="cell-sub"><svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18"></path><path d="M5 21V7l7-4 7 4v14"></path><path d="M9 21v-6h6v6"></path></svg>B009</span></div></div></div><div class="upcoming-card-reason"><span class="slot-label">Conflict Reason</span><span class="badge badge-reason">Class Cancelled</span></div><div class="upcoming-card-lect">En. Lim Jia Zheng</div></div><div class="upcoming-card" role="button" tabindex="0" data-id="1:8"><div class="upcoming-card-head"><span class="upcoming-card-wk">8</span><span class="upcoming-card-code">MPU-3232 · Entrepreneurship (L)</span><span class="badge badge-outline status-none" data-tip="No request has been made for this class yet.">Awaiting Arrangement</span></div><div class="upcoming-card-slots"><div class="slot-block"><span class="slot-label">Original Slot</span><div class="cell-class-block"><span class="class-day-date">Mon, 9 Nov 2026 (Week 8)</span><br><span class="urgency-high">Overdue (4 Working Days Ago)</span><br><span class="class-time">2:00 PM ~ 3:00 PM</span><br><span class="cell-sub"><svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18"></path><path d="M5 21V7l7-4 7 4v14"></path><path d="M9 21v-6h6v6"></path></svg>B002</span></div></div><div class="slot-block"><span class="slot-label">Requested Slot</span><span class="cell-dash">—</span></div></div><div class="upcoming-card-reason"><span class="slot-label">Conflict Reason</span><span class="badge badge-holiday" data-tip="Deepavali Holiday (In Lieu)">Public Holiday</span></div><div class="upcoming-card-lect">Pn. Tan Sharon</div></div><div class="upcoming-card" role="button" tabindex="0" data-id="59:8"><div class="upcoming-card-head"><span class="upcoming-card-wk">8</span><span class="upcoming-card-code">BMIT2203 · Human Computer Interaction (L)</span><span class="badge badge-outline status-none" data-tip="No request has been made for this class yet.">Awaiting Arrangement</span></div><div class="upcoming-card-slots"><div class="slot-block"><span class="slot-label">Original Slot</span><div class="cell-class-block"><span class="class-day-date">Mon, 9 Nov 2026 (Week 8)</span><br><span class="urgency-high">Overdue (4 Working Days Ago)</span><br><span class="class-time">11:00 AM ~ 1:00 PM</span><br><span class="cell-sub"><svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18"></path><path d="M5 21V7l7-4 7 4v14"></path><path d="M9 21v-6h6v6"></path></svg>B016</span></div></div><div class="slot-block"><span class="slot-label">Requested Slot</span><span class="cell-dash">—</span></div></div><div class="upcoming-card-reason"><span class="slot-label">Conflict Reason</span><span class="badge badge-holiday" data-tip="Deepavali Holiday (In Lieu)">Public Holiday</span></div><div class="upcoming-card-lect">Pn. Lee Yee Fong</div></div><div class="upcoming-card" role="button" tabindex="0" data-id="38:9"><div class="upcoming-card-head"><span class="upcoming-card-wk">9</span><span class="upcoming-card-code">BMSE2163 · Software Engineering (P)</span><span class="badge badge-outline status-none" data-tip="No request has been made for this class yet.">Awaiting Arrangement</span></div><div class="upcoming-card-slots"><div class="slot-block"><span class="slot-label">Original Slot</span><div class="cell-class-block"><span class="class-day-date">Thu, 19 Nov 2026 (Week 9)</span><br><span class="urgency-mid">4 Working Days Left</span><br><span class="class-time">12:00 PM ~ 1:00 PM</span><br><span class="cell-sub"><svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18"></path><path d="M5 21V7l7-4 7 4v14"></path><path d="M9 21v-6h6v6"></path></svg>B010</span></div></div><div class="slot-block"><span class="slot-label">Requested Slot</span><span class="cell-dash">—</span></div></div><div class="upcoming-card-reason"><span class="slot-label">Conflict Reason</span><span class="badge badge-reason">Class Cancelled</span></div><div class="upcoming-card-lect">Pn. Surayaini Binti Basri</div></div><div class="upcoming-card" role="button" tabindex="0" data-id="28:14"><div class="upcoming-card-head"><span class="upcoming-card-wk">14</span><span class="upcoming-card-code">BMIT2203 · Human Computer Interaction (P)</span><span class="badge badge-outline status-none" data-tip="No request has been made for this class yet.">Awaiting Arrangement</span></div><div class="upcoming-card-slots"><div class="slot-block"><span class="slot-label">Original Slot</span><div class="cell-class-block"><span class="class-day-date">Thu, 24 Dec 2026 (Week 14)</span><br><span class="urgency-low">28 Working Days Left</span><br><span class="class-time">9:30 AM ~ 10:30 AM</span><br><span class="cell-sub"><svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18"></path><path d="M5 21V7l7-4 7 4v14"></path><path d="M9 21v-6h6v6"></path></svg>B009</span></div></div><div class="slot-block"><span class="slot-label">Requested Slot</span><span class="cell-dash">—</span></div></div><div class="upcoming-card-reason"><span class="slot-label">Conflict Reason</span><span class="badge badge-holiday" data-tip="Christmas Eve">Public Holiday</span></div><div class="upcoming-card-lect">Pn. Lee Yee Fong</div></div><div class="upcoming-card" role="button" tabindex="0" data-id="57:14"><div class="upcoming-card-head"><span class="upcoming-card-wk">14</span><span class="upcoming-card-code">MPU-3133 · Falsafah dan Isu Semasa (T)</span><span class="badge badge-outline status-none" data-tip="No request has been made for this class yet.">Awaiting Arrangement</span></div><div class="upcoming-card-slots"><div class="slot-block"><span class="slot-label">Original Slot</span><div class="cell-class-block"><span class="class-day-date">Thu, 24 Dec 2026 (Week 14)</span><br><span class="urgency-low">28 Working Days Left</span><br><span class="class-time">11:00 AM ~ 12:00 PM</span><br><span class="cell-sub"><svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18"></path><path d="M5 21V7l7-4 7 4v14"></path><path d="M9 21v-6h6v6"></path></svg>B015</span></div></div><div class="slot-block"><span class="slot-label">Requested Slot</span><span class="cell-dash">—</span></div></div><div class="upcoming-card-reason"><span class="slot-label">Conflict Reason</span><span class="badge badge-holiday" data-tip="Christmas Eve">Public Holiday</span></div><div class="upcoming-card-lect">En. Muada Bin Ojih</div></div><div class="upcoming-card" role="button" tabindex="0" data-id="32:14"><div class="upcoming-card-head"><span class="upcoming-card-wk">14</span><span class="upcoming-card-code">BMCS2053 · Object-Oriented Analysis and Design (P)</span><span class="badge badge-outline status-none" data-tip="No request has been made for this class yet.">Awaiting Arrangement</span></div><div class="upcoming-card-slots"><div class="slot-block"><span class="slot-label">Original Slot</span><div class="cell-class-block"><span class="class-day-date">Fri, 25 Dec 2026 (Week 14)</span><br><span class="urgency-low">28 Working Days Left</span><br><span class="class-time">3:00 PM ~ 4:00 PM</span><br><span class="cell-sub"><svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18"></path><path d="M5 21V7l7-4 7 4v14"></path><path d="M9 21v-6h6v6"></path></svg>B009</span></div></div><div class="slot-block"><span class="slot-label">Requested Slot</span><span class="cell-dash">—</span></div></div><div class="upcoming-card-reason"><span class="slot-label">Conflict Reason</span><span class="badge badge-holiday" data-tip="Christmas Day">Public Holiday</span></div><div class="upcoming-card-lect">Ts. Norshikin Binti Zainal Abidin</div></div><div class="upcoming-card" role="button" tabindex="0" data-id="77:14"><div class="upcoming-card-head"><span class="upcoming-card-wk">14</span><span class="upcoming-card-code">MPU-3232 · Entrepreneurship (T)</span><span class="badge badge-outline status-none" data-tip="No request has been made for this class yet.">Awaiting Arrangement</span></div><div class="upcoming-card-slots"><div class="slot-block"><span class="slot-label">Original Slot</span><div class="cell-class-block"><span class="class-day-date">Fri, 25 Dec 2026 (Week 14)</span><br><span class="urgency-low">28 Working Days Left</span><br><span class="class-time">10:00 AM ~ 11:00 AM</span><br><span class="cell-sub"><svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18"></path><path d="M5 21V7l7-4 7 4v14"></path><path d="M9 21v-6h6v6"></path></svg>B103</span></div></div><div class="slot-block"><span class="slot-label">Requested Slot</span><span class="cell-dash">—</span></div></div><div class="upcoming-card-reason"><span class="slot-label">Conflict Reason</span><span class="badge badge-holiday" data-tip="Christmas Day">Public Holiday</span></div><div class="upcoming-card-lect">Dr. Chang Foo Chung</div></div><div class="upcoming-card" role="button" tabindex="0" data-id="78:14"><div class="upcoming-card-head"><span class="upcoming-card-wk">14</span><span class="upcoming-card-code">BMCS2053 · Object-Oriented Analysis and Design (L)</span><span class="badge badge-outline status-none" data-tip="No request has been made for this class yet.">Awaiting Arrangement</span></div><div class="upcoming-card-slots"><div class="slot-block"><span class="slot-label">Original Slot</span><div class="cell-class-block"><span class="class-day-date">Fri, 25 Dec 2026 (Week 14)</span><br><span class="urgency-low">28 Working Days Left</span><br><span class="class-time">11:00 AM ~ 1:00 PM</span><br><span class="cell-sub"><svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18"></path><path d="M5 21V7l7-4 7 4v14"></path><path d="M9 21v-6h6v6"></path></svg>B103</span></div></div><div class="slot-block"><span class="slot-label">Requested Slot</span><span class="cell-dash">—</span></div></div><div class="upcoming-card-reason"><span class="slot-label">Conflict Reason</span><span class="badge badge-holiday" data-tip="Christmas Day">Public Holiday</span></div><div class="upcoming-card-lect">Ts. Norshikin Binti Zainal Abidin</div></div><div class="upcoming-card" role="button" tabindex="0" data-id="79:14"><div class="upcoming-card-head"><span class="upcoming-card-wk">14</span><span class="upcoming-card-code">BMCS2053 · Object-Oriented Analysis and Design (T)</span><span class="badge badge-outline status-none" data-tip="No request has been made for this class yet.">Awaiting Arrangement</span></div><div class="upcoming-card-slots"><div class="slot-block"><span class="slot-label">Original Slot</span><div class="cell-class-block"><span class="class-day-date">Fri, 25 Dec 2026 (Week 14)</span><br><span class="urgency-low">28 Working Days Left</span><br><span class="class-time">2:00 PM ~ 3:00 PM</span><br><span class="cell-sub"><svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18"></path><path d="M5 21V7l7-4 7 4v14"></path><path d="M9 21v-6h6v6"></path></svg>B103</span></div></div><div class="slot-block"><span class="slot-label">Requested Slot</span><span class="cell-dash">—</span></div></div><div class="upcoming-card-reason"><span class="slot-label">Conflict Reason</span><span class="badge badge-holiday" data-tip="Christmas Day">Public Holiday</span></div><div class="upcoming-card-lect">Ts. Norshikin Binti Zainal Abidin</div></div></div>
+
+        <!-- ─── Empty state (shown by JS when the filtered list is empty; above the summary) ─── -->
+        <div class="empty-state" id="emptyState" style="display:none">
+    <svg class="empty-icon" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+    <h3 class="empty-title" id="emptyTitle">No conflicted classes to show</h3>
+    <!--[if BLOCK]><![endif]-->        <p class="empty-text" id="emptyText">Nothing matches this view for RSD2(S1)G2. Try another week, or switch Exclude COMPLETED Status off.</p>
+    <!--[if ENDBLOCK]><![endif]-->    <!--[if BLOCK]><![endif]--><!--[if ENDBLOCK]><![endif]--></div>
+ 
+
+        <!-- ─── Summary strip: Awaiting Arrangement / Pending / Approved / Completed / Class Hours Affected — hidden when the view is empty ─── -->
+        <div class="summary-section" id="summarySection">
+    <div class="summary-hint">
+        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
+        <span>Stats reflect the <strong>selected period</strong> and any active filters. <!--[if BLOCK]><![endif]--> Hover a card to learn more.<!--[if ENDBLOCK]><![endif]--></span>
+    </div>
+    <div class="summary-bar" id="summaryBar">
+        <!--[if BLOCK]><![endif]-->                        <!--[if BLOCK]><![endif]-->                <div class="summary-card card-pending">
+                    <div class="summary-card-inner">
+                        <div class="summary-card-front">
+                            <span class="summary-value" id="sumNone">9</span>
+                            <span class="summary-label">Classes Awaiting Arrangement</span>
+                        </div>
+                        <div class="summary-card-back">
+                            <span class="summary-description">Classes still <span class="warn-keyword">waiting for a replacement</span> — cancelled, on a holiday, and with no request sent yet.</span>
+                        </div>
+                    </div>
+                </div>
+            <!--[if ENDBLOCK]><![endif]-->                                <!--[if BLOCK]><![endif]-->                <div class="summary-card card-hours">
+                    <div class="summary-card-inner">
+                        <div class="summary-card-front">
+                            <span class="summary-value" id="sumHours">11</span>
+                            <span class="summary-label">Hours Awaiting Arrangement</span>
+                        </div>
+                        <div class="summary-card-back">
+                            <span class="summary-description">Hours of those classes. Classes already arranged <span class="info-keyword">are not counted</span>.</span>
+                        </div>
+                    </div>
+                </div>
+            <!--[if ENDBLOCK]><![endif]-->                                <!--[if BLOCK]><![endif]-->                <div class="summary-card card-pending">
+                    <div class="summary-card-inner">
+                        <div class="summary-card-front">
+                            <span class="summary-value" id="sumPending">0</span>
+                            <span class="summary-label">Pending</span>
+                        </div>
+                        <div class="summary-card-back">
+                            <span class="summary-description">Your requests <span class="warn-keyword">waiting for PL approval</span>.</span>
+                        </div>
+                    </div>
+                </div>
+            <!--[if ENDBLOCK]><![endif]-->                                <!--[if BLOCK]><![endif]-->                <div class="summary-card card-replacement">
+                    <div class="summary-card-inner">
+                        <div class="summary-card-front">
+                            <span class="summary-value" id="sumApproved">1</span>
+                            <span class="summary-label">Approved</span>
+                        </div>
+                        <div class="summary-card-back">
+                            <span class="summary-description">Replacements the PL <span class="info-keyword">approved</span> — attend the requested slot.</span>
+                        </div>
+                    </div>
+                </div>
+            <!--[if ENDBLOCK]><![endif]-->                                <!--[if BLOCK]><![endif]-->                <div class="summary-card card-hours">
+                    <div class="summary-card-inner">
+                        <div class="summary-card-front">
+                            <span class="summary-value" id="sumCompleted">0</span>
+                            <span class="summary-label">Completed</span>
+                        </div>
+                        <div class="summary-card-back">
+                            <span class="summary-description">Replacements that <span class="info-keyword">already took place</span>. Switch Exclude COMPLETED Status off to see them.</span>
+                        </div>
+                    </div>
+                </div>
+            <!--[if ENDBLOCK]><![endif]-->        <!--[if ENDBLOCK]><![endif]-->    </div>
+</div>
+
+<!--[if BLOCK]><![endif]--><!--[if ENDBLOCK]><![endif]-->
+        <!-- ─── Class detail modal (shared shell for DetailModal.render) ─── -->
+                <div class="modal-overlay" id="classModal" style="display:none" onclick="closeModalOutside(event)">
+    <div class="modal">
+        <div class="modal-header">
+            <span class="modal-title" id="modalTitle">Class Details</span>
+            <button class="modal-close" onclick="closeModal()" data-tip="Close">×</button>
+        </div>
+        <div class="modal-body" id="modalBody"></div>
+        <div class="modal-footer">
+                                        
+            <button class="btn-outline" id="stCloseBtn" onclick="closeModal()">Close</button>
+            <button class="btn-action" id="stJumpTimetableBtn" style="display:none" onclick="jumpToTimetable()">
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2"></rect><path d="M16 2v4M8 2v4M3 10h18"></path></svg>
+                <span>Go to My Timetable</span>
+            </button>
+                    <!--[if ENDBLOCK]><![endif]-->        </div>
+    </div>
+</div>
+
+</div>
+
+
+            <footer class="ui-footer" role="contentinfo">
+    <span class="ui-footer-brand">TAR UMT Class Replacement System</span>
+    <span class="ui-footer-chip">v1.0</span>
+    <span class="ui-footer-owner">© 2026 Poong Foo Jing · Bachelor in Information Technology (Honours) (Software Systems Development) · TAR UMT Sabah (RSD)</span>
+    <span class="ui-footer-note">Demo dataset — all names &amp; schedules simulated</span>
+    <a class="ui-footer-link" href="mailto:poongfj@gmail.com" aria-label="Email the developer at poongfj@gmail.com" title="poongfj@gmail.com">
+        <svg class="shrink-0 [:where(&amp;)]:size-6 ui-footer-icon" data-flux-icon="" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" data-slot="icon">
+    <rect width="20" height="16" x="2" y="4" rx="2"></rect>
+    <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"></path>
+</svg>
+        <span>poongfj@gmail.com</span>
+    </a>
+    <a class="ui-footer-link" href="https://github.com/fjing03/CRS-fedora" target="_blank" rel="noopener noreferrer" aria-label="Project repository on GitHub: github.com/fjing03/CRS-fedora" title="https://github.com/fjing03/CRS-fedora">
+        <svg class="shrink-0 [:where(&amp;)]:size-6 ui-footer-icon" data-flux-icon="" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" data-slot="icon">
+    <path d="M9 20H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h3.9a2 2 0 0 1 1.69.9l.81 1.2a2 2 0 0 0 1.67.9H20a2 2 0 0 1 2 2v5"></path>
+    <circle cx="13" cy="12" r="2"></circle>
+    <path d="M18 19c-2.8 0-5-2.2-5-5v8"></path>
+    <circle cx="20" cy="19" r="2"></circle>
+</svg>
+        <span>https://github.com/fjing03/CRS-fedora</span>
+    </a>
+</footer>
+    </div>
+
+    <script src="/js/mock-data.js?v=1793085314"></script>
+    <script src="/js/ui-common.js?v=1794636854"></script>
+    
+    <script>window.PAGE_HOME = '/student-my-timetable-ui';</script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            var pageKey = document.body.dataset.page;
+            if (pageKey) initScrollRestore(pageKey);
+            updateIcon(document.documentElement.classList.contains('dark')); initMobileNav();
+            if (typeof updateNavBadge === 'function') updateNavBadge();
+            if (typeof initDataTipTooltips === 'function') initDataTipTooltips();
+        });
+
+                /* WRAP: the frozen script's top-level boot reads MockData, which is
+           re-pointed at the backend below and parsed after            — so the whole script runs on DOMContentLoaded (the my-timetable
+           conversion pattern); the inline-handler globals are exported to
+           window at the bottom. Everything else is the frozen UI design,
+           byte-for-byte except the BRIDGE PATCH marks. */
+        document.addEventListener('DOMContentLoaded', function () {
+        /* ── Real-data bridge — swap the mock's data source for the backend. ── */
+        MockData.semester = window.PAGE_DATA.semester;
+        MockData.holidays = window.PAGE_DATA.holidays;
+        MockData.currentUser = window.PAGE_DATA.currentUser;
+        MockData.replacementHistory = window.PAGE_DATA.replacementHistory;
+        MockData.cohortTimetable = window.PAGE_DATA.cohortTimetable;
+        MockData.mockNow = null; /* real clock — the demo anchor is mock-era only */
+
+        // ─── Top-level functions (inline handler strings run in global scope) ───
+
+        // ─── Persisted view state (house pattern, cf. my-request-history saveFilters/restoreFilters) ───
+        const VIEW_KEY = 'replacement-history-view';
+            /* legacy key from the pre-rename page (2026-10-06) */
+            const LEGACY_VIEW_KEY = 'upcoming-replacements-view';
+        function saveView() {
+            try {
+                localStorage.setItem(VIEW_KEY, JSON.stringify({
+                    week: document.getElementById('weekFilter').value,
+                    excludeCompleted: document.getElementById('hideCompleted').checked,
+                }));
+            } catch (e) { /* storage unavailable — non-fatal */ }
+        }
+
+        /* ── The two slot columns print the STAFF block (2026-11-09):
+                 Tue, 3 Nov 2026 (Week 7)
+                 Overdue (3 Working Days Ago)      ← the countdown line
+                 2:00 PM ~ 4:00 PM (2 hours)
+                 [house icon] B009
+              Urgency is the shared working-day law (the WorkingHours calendar,
+              holidays included — `workingDaysDiff`), never calendar days.
+
+              Which column carries the countdown (user, grill Q3=A — the staff
+              page's rule): the ORIGINAL slot always does, because the class is
+              the thing that still needs a new slot; the REQUESTED slot only while
+              the request is PENDING, because once it is decided a past slot would
+              read "Overdue" for a replacement that has already taken place. */
+        function slotBlock(slot, withCountdown) {
+            if (!slot) return '<span class="cell-dash">\u2014</span>';
+            const weekTag = slot.week ? ' (Week ' + slot.week + ')' : '';
+            let countdown = '';
+            if (withCountdown) {
+                const days = workingDaysDiff(slot.date);
+                countdown = '<br><span class="' + urgencyBandClass(days) + '">' + daysLeftLabel(days) + '</span>';
+            }
+            return '<div class="cell-class-block">' +
+                '<span class="class-day-date">' + dayAbbr(slot.day) + ', ' + formatDate(slot.date) + weekTag + '</span>' + countdown +
+                /* 2026-11-10 (user, "Table Columns"): no duration text in a slot
+                   column — the time range says it plainly. */
+                '<br><span class="class-time">' + to12h(slot.start) + ' ~ ' + to12h(slot.end) + '</span>' +
+                '<br>' + venueLine(slot.venue) + '</div>';
+        }
+
+        /* The staff two-line COURSE cell: code on its own line, then the full
+           name with the class type in small type. No hover text (user ruling). */
+        function courseCell(r) {
+            return '<span class="cell-code">' + r.code + '</span>' +
+                '<span class="cell-name">' + r.name + ' <span class="cell-type-label">(' + r.type + ')</span></span>';
+        }
+
+        /* CONFLICT REASON — the CLASS's own cause. A calendar holiday keeps its
+           real name; every other exception reads the bare "Class Cancelled"
+           (user ruling, grill Q1=B: a student never sees the staff member's leave
+           type). No cause at all prints an em dash rather than a guess. */
+        function reasonCell(r) {
+            if (!r.conflictKind) return '<span class="cell-dash">\u2014</span>';
+            /* 2026-11-11 (user): the badge names ONLY the kind; the detail rides
+               the hover. A holiday's name is public, so a student gets it
+               ("Christmas Eve"). A cancellation's reason is the lecturer's own
+               business — the student payload does not carry it by design, so that
+               badge has no tip at all. */
+            const isHoliday = r.conflictKind === 'Public Holiday';
+            const text = isHoliday ? 'Public Holiday' : 'Class Cancelled';
+            const cls = isHoliday ? 'badge-holiday' : 'badge-reason';
+            const detail = isHoliday ? (r.holidayName || 'Semester holiday') : '';
+            return '<span class="badge ' + cls + '"'
+                + (detail ? ' data-tip="' + String(detail).replace(/"/g, '&quot;') + '"' : '')
+                + '>' + text + '</span>';
+        }
+
+        /* REQUEST STATUS — the staff badge (class + server label). `none` is the
+           unarranged state and wears the staff no-request shape (outline), never
+           `status-none` alone: the student page has no request to name. */
+        function statusCell(r) {
+            const tip = String(r.statusTip || '').replace(/"/g, '&quot;');
+            const cls = r.status === 'none' ? 'badge badge-outline status-none' : 'badge status-' + r.status;
+            return '<span class="' + cls + '" data-tip="' + tip + '">' + r.statusLabel + '</span>';
+        }
+
+        /* "Requested 12:25 PM, 4 Nov 2026" — the modal's one line about the ask */
+        function requestedAtLine(r) {
+            return r.requestedAt ? 'Requested ' + r.requestedAt : '';
+        }
+
+        /* ── R-2 (round-3): sortable columns — shared makeSortableHeader house
+           pattern (cf. request-approval / my-request-history). Null field =
+           the natural chronological order below; sort state is session-only
+           (the VIEW_KEY persists week/past filters, not the sort). ── */
+        /* 2026-11-09 (user brief "Student Side UI Update", six rulings on this
+           list): the student table now mirrors the staff one —
+             COURSE · LECTURER · ORIGINAL SLOT · CONFLICT REASON · REQUESTED SLOT ·
+             REQUEST STATUS
+           The row-number `#` column is gone (it lied as soon as you sorted), the
+           `New Slot` column is the `Requested Slot`, and the reason sits between
+           the two slots the way the staff table orders them. The COURSE column's
+           hover text is explained ONCE, on its header (the cell already prints
+           code, name and type — a per-cell tip only repeated it). */
+        const columns = [
+            { label: 'Course', sortable: true, field: 'course', tip: UiLabels.courseTipSubject },
+            { label: 'Lecturer', sortable: true, field: 'lecturer', tip: 'Lecturer handling the replacement' },
+            { label: 'Original Slot', sortable: true, field: 'originalSlot', tip: 'Week, day and time of the class being replaced' },
+            { label: 'Conflict Reason', sortable: true, field: 'reason', tip: 'Why this class cannot run as timetabled' },
+            { label: 'Requested Slot', sortable: true, field: 'requestedSlot', tip: 'The new slot proposed for this class' },
+            { label: 'Request Status', sortable: true, field: 'status', tip: 'Pending first, then approved, then completed' },
+        ];
+        let sortState = { field: null, dir: 'asc' };
+
+        const sortKeys = {
+            course: r => r.code + ' ' + r.name,
+            lecturer: r => r.lecturer || '',
+            originalSlot: r => [r.orig.week, r.orig.date, r.orig.start],
+            reason: r => (r.conflictKind || ''),
+            requestedSlot: r => (r.req ? [r.req.date, r.req.start] : null),   // unarranged rows sort last
+            /* the status order, not the alphabet: pending → approved → completed,
+               and the unarranged state LAST (design §2 — never `undefined`) */
+            status: r => ({ pending: 0, approved: 1, completed: 2, none: 3 })[r.status],
+        };
+
+        function applySort(visible, all) {
+            if (!sortState.field || !sortKeys[sortState.field]) {
+                visible.sort(all
+                    ? (a, b) => (a.week - b.week) || (a.di - b.di) || (a.start - b.start)
+                    : (a, b) => (a.di - b.di) || (a.start - b.start));
+                return;
+            }
+            const dir = sortState.dir === 'asc' ? 1 : -1;
+            const key = sortKeys[sortState.field];
+            visible.sort((a, b) => {
+                const ka = key(a), kb = key(b);
+                if (ka === null && kb === null) return 0;
+                if (ka === null) return 1;   /* nulls stay last regardless of direction */
+                if (kb === null) return -1;
+                let c;
+                if (Array.isArray(ka)) {
+                    c = 0;
+                    for (let i = 0; i < ka.length && c === 0; i++) {
+                        c = (ka[i] < kb[i] ? -1 : ka[i] > kb[i] ? 1 : 0);
+                    }
+                } else {
+                    c = (ka < kb ? -1 : ka > kb ? 1 : 0);
+                }
+                if (c !== 0) return c * dir;
+                /* tiebreak: the natural chronological order */
+                return (a.week - b.week) || (a.di - b.di) || (a.start - b.start);
+            });
+        }
+
+        /* ── The Active Filters bar (2026-11-09): the student page had none. It
+              names the two filters this page owns, in the same voice as the staff
+              page's bar ("Original Slot Week: …", "Exclude COMPLETED
+              Status"), and each chip removes its own filter. ── */
+        function renderChips() {
+            const container = document.getElementById('filterChips');
+            if (!container) return;
+            const chips = [];
+            const sel = document.getElementById('weekFilter');
+            /* 2026-11-11: an unselected box is NOT a week (weekFilterValue) and the
+               label comes from the shared labeller, so it can never print blank */
+            if (sel && weekFilterValue('weekFilter') !== 'all') {
+                chips.push('<span class="filter-chip">Original Slot Week: ' + (weekFilterLabel('weekFilter') || weekFilterValue('weekFilter')) +
+                    '<button class="filter-chip-remove" data-tip="Remove" data-remove="weekFilter">&times;</button></span>');
+            }
+            if (document.getElementById('hideCompleted').checked) {
+                chips.push('<span class="filter-chip">Exclude COMPLETED Status' +
+                    '<button class="filter-chip-remove" data-tip="Remove" data-remove="hideCompleted">&times;</button></span>');
+            }
+            /* 2026-11-10 (user): the staff pages' "Clear all" sits last in the bar,
+               same markup, same tooltip. It only exists while a filter is active. */
+            if (chips.length > 0) {
+                chips.push('<button type="button" class="filter-chip filter-chip-clear-all" data-tip="Remove every active filter" onclick="clearAllFilters()">Clear all</button>');
+            }
+            container.innerHTML = chips.length > 0 ? '<span class="filter-chips-label">Active Filters:</span>' + chips.join('') : '';
+        }
+
+        /* Clear every filter this page owns and forget the saved view, so a reload
+           cannot bring them back (the staff pages' law, 2026-11-09/2026-11-10).
+           Exported on window at the bottom because this page's whole script runs
+           inside a DOMContentLoaded closure (see the WRAP note above). */
+        function clearAllFilters() {
+            const sel = document.getElementById('weekFilter');
+            if (sel && sel.value !== 'all') {
+                sel.value = 'all';
+                sel.dispatchEvent(new Event('change'));   // the week path rebuilds + re-renders
+            }
+            const hc = document.getElementById('hideCompleted');
+            if (hc && hc.checked) {
+                hc.checked = false;
+            }
+            try { localStorage.removeItem(VIEW_KEY); } catch (e) { /* storage unavailable — non-fatal */ }
+            renderUpcoming();                              // ends with renderChips()
+        }
+
+        function renderUpcoming() {
+            // AD-2: select values are 1-based strings; dataset weeks are 0-based.
+            // 'all' = the All Weeks option (shared helpers
+            // are selectedIndex-based, so they stay NaN-safe).
+            const all = weekFilterValue('weekFilter') === 'all';   /* '' is not a week */
+            const w0 = all ? null : parseInt(document.getElementById('weekFilter').value, 10) - 1;
+            /* 2026-11-09 (grill Q5=A): COMPLETED is the derived status, exactly as
+               the badge prints it — an approved request whose requested DATE has
+               passed. The filter and the badge therefore can never disagree. */
+            const hideCompleted = document.getElementById('hideCompleted').checked;
+
+            // AD-5: MockData is read-only — slice() before filtering.
+            // 2026-11-09: a row is a CLASS OCCURRENCE, so the week filter reads the
+            // occurrence's own week (r.week), and only a derived `completed` row is
+            // hidden — an unarranged class is never "past" (R4).
+            const visible = MockData.replacementHistory.slice()
+                .filter(r => (all || r.week === w0) && !(hideCompleted && r.status === 'completed'));
+
+            // AD-11: the five cards count the SAME visible set (R7/R8)
+            document.getElementById('sumNone').textContent      = visible.filter(r => r.status === 'none').length;
+            document.getElementById('sumPending').textContent   = visible.filter(r => r.status === 'pending').length;
+            document.getElementById('sumApproved').textContent  = visible.filter(r => r.status === 'approved').length;
+            document.getElementById('sumCompleted').textContent = visible.filter(r => r.status === 'completed').length;
+            /* 2026-11-09 (user, supersedes R8): the hours card counts the teaching
+               still WAITING — only the rows with no live request. An arranged class
+               is no longer "awaiting", so its hours must not sit in this number. */
+            document.getElementById('sumHours').textContent     = visible
+                .filter(r => r.status === 'none')
+                .reduce((s, r) => s + (r.orig.duration || 0), 0);
+
+            applySort(visible, all);
+
+            // ── Desktop table (shared .timetable/.data-table house pattern) ──
+            const head = document.getElementById('upcomingHead');
+            const body = document.getElementById('upcomingBody');
+            head.innerHTML = '';
+            const htr = document.createElement('tr');
+            columns.forEach(function(col) {
+                htr.appendChild(makeSortableHeader(col, sortState, function() {
+                    renderUpcoming();
+                }));
+            });
+            head.appendChild(htr);
+            /* Six cells, the user's order. The requested slot's countdown rides
+               only a PENDING request (slotBlock's second argument). */
+            body.innerHTML = visible.map(r => {
+                const pending = r.status === 'pending';
+                /* 2026-11-11: the request id rides the row so a bell notice can
+                   name it (`?notif-hl=r<id>`); the occurrence key stays data-id. */
+                return '<tr role="button" tabindex="0" data-id="' + r.id + '"'
+                    + (r.requestId ? ' data-request-id="' + r.requestId + '"' : '') + '>' +
+                    '<td class="col-code">' + courseCell(r) + '</td>' +
+                    '<td class="col-lecturer">' + r.lecturer + '</td>' +
+                    '<td>' + slotBlock(r.orig, true) + '</td>' +
+                    '<td class="col-reason">' + reasonCell(r) + '</td>' +
+                    '<td>' + slotBlock(r.req, pending) + '</td>' +
+                    '<td class="col-status">' + statusCell(r) + '</td>' +
+                '</tr>';
+            }).join('');
+            document.getElementById('upcomingGridWrapper').style.display = visible.length === 0 ? 'none' : '';
+
+            // ── Mobile cards: same facts, slots STACKED (2026-11-09 grill Q13=A) ──
+            const list = document.getElementById('upcomingList');
+            list.innerHTML = visible.map(r => {
+                const pending = r.status === 'pending';
+                return '<div class="upcoming-card' + (r.status === 'completed' ? ' past' : '') + '" role="button" tabindex="0" data-id="' + r.id + '"'
+                    + (r.requestId ? ' data-request-id="' + r.requestId + '"' : '') + '>' +
+                    '<div class="upcoming-card-head">' +
+                        '<span class="upcoming-card-wk">' + (r.week + 1) + '</span>' +
+                        '<span class="upcoming-card-code">' + r.code + ' \u00b7 ' + r.name + ' (' + r.type + ')</span>' +
+                        statusCell(r) +
+                    '</div>' +
+                    '<div class="upcoming-card-slots">' +
+                        '<div class="slot-block"><span class="slot-label">Original Slot</span>' + slotBlock(r.orig, true) + '</div>' +
+                        '<div class="slot-block"><span class="slot-label">Requested Slot</span>' + slotBlock(r.req, pending) + '</div>' +
+                    '</div>' +
+                    '<div class="upcoming-card-reason"><span class="slot-label">Conflict Reason</span>' + reasonCell(r) + '</div>' +
+                    '<div class="upcoming-card-lect">' + r.lecturer + '</div>' +
+                '</div>';
+            }).join('');
+
+            const emptyState = document.getElementById('emptyState');
+            if (emptyState) emptyState.style.display = visible.length === 0 ? 'flex' : 'none';
+            // Nothing to summarize when the view is empty — cf. my-request-history
+            syncSummarySection(visible.length > 0);
+            renderChips();
+        }
+
+        /* the opened row, for the footer's jump (the button is static now) */
+        let currentReplacement = null;
+
+        function openReplacementModal(id) {
+            /* the row id is an OCCURRENCE key ("<sessionId>:<week>") — never Number() it */
+            const r = MockData.replacementHistory.find(x => String(x.id) === String(id));
+            if (!r) return;
+            currentReplacement = r;
+            const pending = r.status === 'pending';
+            const sessionId = String(r.id).split(':')[0];
+
+            /* 2026-11-11 (SDD student-modal-staff-parity): this pop-up IS the staff
+               Replacement Details pop-up — same title, same subtitle shape, same
+               strip, same tab order, same row builders (DetailModal.row + ModalFacts),
+               so the two pages cannot drift apart in wording or order. */
+            /* 2026-11-14 (user, mobile-modal-top3): the countdown gets its OWN row
+               under Day & Date — same words, same colours, same visibility law as
+               the 2026-11-07 ruling, but no longer glued to the date with brackets
+               (which wrapped the row and printed it larger than the date). */
+            const countdownRow = (iso) => {
+                const d = workingDaysDiff(iso);
+                return DetailModal.row('Days Left',
+                    '<span class="' + urgencyBandClass(d) + '">' + daysLeftLabel(d) + '</span>');
+            };
+
+            /* one slot tab — Class ID / Request ID lead, exactly as on the staff page */
+            const slotTab = (heading, slot, idLabel, idValue, withCountdown) => DetailModal.section(heading,
+                DetailModal.row(idLabel, '#' + idValue, { strong: true }) +
+                DetailModal.row('Week', slot.week ? 'Week ' + slot.week : null) +
+                DetailModal.row('Day & Date', ModalFacts.dayDate(slot.day, formatDate(slot.date)), { strong: true }) +
+                (withCountdown ? countdownRow(slot.date) : '') +
+                DetailModal.row('Time & Duration', ModalFacts.timeDuration(to12h(slot.start), to12h(slot.end), slot.duration), { strong: true }) +
+                DetailModal.row('Venue', ModalFacts.venue(slot.venue))
+            );
+
+            const tabs = [];
+            /* the make-up schedule is what the row is about — first, and therefore
+               the tab the pop-up opens on (DetailModal activates index 0) */
+            if (r.req) {
+                tabs.push({
+                    key: 'requested',
+                    label: 'Requested',
+                    html: slotTab('Requested Slot Schedule', r.req, 'Request ID', r.requestId, pending),
+                });
+            }
+            tabs.push({
+                key: 'original',
+                label: 'Original',
+                html: slotTab('Original Slot Schedule', r.orig, 'Class ID', sessionId, true),
+            });
+            /* the Course tab is GONE (2026-11-11): the code/name/type live in the
+               subtitle, the lecturer here with the two facts the staff strip prints */
+            tabs.push({
+                key: 'class-info',
+                label: 'Class Info',
+                html: DetailModal.section('Class Info',
+                    /* the lecturer moved up into the facts strip, beside the
+                       conflict, so the two things a student reads first sit
+                       together and the tab keeps only the class facts */
+                    DetailModal.row('Cohorts', (r.cohorts || []).join(', ') || '\u2014') +
+                    DetailModal.row('Students', r.totalStudents > 0 ? String(r.totalStudents) : '\u2014')
+                ),
+            });
+            tabs.push({
+                key: 'status',
+                label: 'Status',
+                html: DetailModal.section('Status',
+                    '<div class="detail-row"><span class="detail-label">Status</span><span class="detail-value">' + statusCell(r) + '</span></div>' +
+                    (r.status === 'completed' ? DetailModal.row('Status Note', 'This replacement has already taken place.') : '') +
+                    (requestedAtLine(r) ? DetailModal.row('Request', requestedAtLine(r)) : '')
+                ),
+            });
+
+            /* the Conflict Reason TAB is gone too (2026-11-11): the conflict is the
+               strip above the tabs, printed IN FULL (there is room here, so nobody
+               has to hover) — the staff pop-up's own ruling. A cancellation still
+               prints the kind alone: a student is never sent the leave reason. */
+            const isHoliday = r.conflictKind === 'Public Holiday';
+            const conflictFull = !r.conflictKind
+                ? '\u2014'
+                : (isHoliday ? 'Public Holiday \u2014 ' + (r.holidayName || 'Semester holiday') : 'Class Cancelled');
+
+            DetailModal.render({
+                modalId: 'classModal',
+                title: 'Replacement Details',
+                subtitle: r.code + ' \u2014 ' + r.name + ' (' + UiLabels.classType(r.type, 'long') + ')',
+                /* 2026-11-14 (user): the strip's order is the SAME in every pop-up
+                   — Status first, Conflict last. It used to lead with the conflict
+                   here and with the status on My Replacements, so the same two
+                   facts swapped places between two modals with one name. */
+                factsHtml: '<span class="df-item df-item--full"><span class="df-label">Status</span>' +
+                    /* 2026-11-14 (user): the SAME badge the row and the table print
+                       — `statusCell` is the one builder, so the strip cannot drift
+                       from the card or the table. */
+                    statusCell(r) + '</span>' +
+                    '<span class="df-item"><span class="df-label">Lecturer</span>' +
+                    '<span class="detail-value">' + (r.lecturer || '\u2014') + '</span></span>' +
+                    '<span class="df-item df-item--full"><span class="df-label">Conflict</span>' +
+                    (r.conflictKind
+                        ? '<span class="badge ' + (isHoliday ? 'badge-holiday' : 'badge-reason') + '">' + conflictFull + '</span>'
+                        : '<span class="detail-value detail-value--muted">' + conflictFull + '</span>') +
+                    '</span>',
+                tabs: tabs,
+            });
+
+            /* no proposed slot → open on Class Info (2026-11-11, user decision 4) */
+            if (!r.req) DetailModal.selectTab('class-info');
+
+            /* the jump is STATIC and only becomes visible when the timetable really
+               carries the new slot — approved or already done (the staff rule); a
+               pending request has nothing to flash yet */
+            const jumpBtn = document.getElementById('stJumpTimetableBtn');
+            const closeBtn = document.getElementById('stCloseBtn');
+            if (jumpBtn) {
+                const landed = r.status === 'approved' || r.status === 'completed';
+                const showJump = !!(landed && r.requestId && r.req);
+                jumpBtn.style.display = showJump ? 'inline-flex' : 'none';
+                /* 2026-11-14 (mobile-modal-top3): ONE primary per footer — when
+                   the jump is here it IS the action; Close steps aside (the
+                   header ✕ and the scrim still close, as they always did).
+                   2026-11-15 (user): Close is NEVER the filled primary on this
+                   page either, so it keeps the outline skin whenever it shows. */
+                if (closeBtn) closeBtn.style.display = showJump ? 'none' : 'inline-flex';
+            }
+        }
+
+        /* the footer's jump — the row it belongs to is the one just opened */
+        function jumpToTimetable() {
+            if (!currentReplacement || !currentReplacement.requestId) return;
+            goToReplacementInTimetable(
+                currentReplacement.requestId,
+                currentReplacement.req ? currentReplacement.req.week : 0,
+                '/student-my-timetable-ui'
+            );
+        }
+        /* inline onclick handlers only reach a window property */
+        window.jumpToTimetable = jumpToTimetable;
+
+        // ─── Modal close wiring — closeModal() is now the shared global in
+        // ─── ui-common.js (§10.0 rule 7 promote); page keeps only the
+        // ─── overlay/Escape wiring (cf. student-my-timetable).
+        function closeModalOutside(e) {
+            closeOnOverlayClick(e, closeModal);
+        }
+
+        closeOnEsc(closeModal);
+
+        /* (the mock's own DOMContentLoaded wrapper is unwrapped — this whole
+            script already runs inside the one above) */
+        {
+            const chipEl = document.getElementById('semesterChip');
+            if (chipEl) chipEl.textContent = MockData.semester.chipText;
+
+            /* includeAll: the All Weeks option renderUpcoming() filters on.
+               Single writer = the shared helper (a page-side IIFE prepend used
+               to double it up after includeAll landed 2026-10-06, and the old
+               hand-inserted option also vanished on breakpoint re-populate).
+
+               SDD student-side-health-check S7 (2026-11-08, user's option A):
+               this page opens on **All Weeks**. It used to open on the CURRENT
+               week, and since the filter hides every other week, a student whose
+               only replacement sat in a later week saw an empty table plus
+               0 / 0 / 0 cards — measured on both demo students (one approved in
+               week 8, one pending in week 9). The Today button + the week arrows
+               still narrow it to one week on demand.
+
+               SDD student-class-replacements R3 (2026-11-09): a row is a CLASS
+               OCCURRENCE now, so `r.week` is the occurrence's OWN week and the
+               filter keys on it — that is why the All-option reads "All Original
+               Class Weeks". */
+            populateWeekSelect('weekFilter', { selected: 'all', includeAll: true, allLabel: 'All Weeks' });
+
+            // Restore persisted view (a first visit opens on All Weeks)
+            (function() {
+                let saved = {};
+                try {
+                    saved = JSON.parse(localStorage.getItem(VIEW_KEY) || '{}');
+                } catch (e) { saved = {}; }
+                /* legacy key from the pre-rename page (2026-10-06) — migrate once */
+                if (Object.keys(saved).length === 0) {
+                    try {
+                        const legacy = JSON.parse(localStorage.getItem(LEGACY_VIEW_KEY) || 'null');
+                        if (legacy) { saved = legacy; localStorage.setItem(VIEW_KEY, JSON.stringify(legacy)); }
+                        localStorage.removeItem(LEGACY_VIEW_KEY);
+                    } catch (e2) { /* ignore */ }
+                }
+                /* a saved week still wins over the All Weeks default — it is a
+                   deliberate choice; the default only applies to a first visit */
+                const sel = document.getElementById('weekFilter');
+                if (saved.week && (saved.week === 'all' || sel.querySelector('option[value="' + saved.week + '"]'))) {
+                    sel.value = saved.week;
+                }
+                /* the staff control replaces this page's old "Show past": the two
+                   are inverses, so a saved showPast:true means "do not exclude". */
+                if (saved.excludeCompleted === false || saved.showPast === true) {
+                    document.getElementById('hideCompleted').checked = false;
+                }
+            })();
+            updateWeekArrowState();
+
+            document.getElementById('hideCompleted').addEventListener('change', function() {
+                saveView();
+                renderUpcoming();
+            });
+
+            /* Each Active-Filters chip removes its own filter. ONE delegated
+               listener owns it (2026-11-10 bug fix): the old inline `onclick=`
+               called `saveView()`, which lives inside this closure — the click
+               threw, so the toggle turned off and the chip stayed. */
+            const chipBar = document.getElementById('filterChips');
+            if (chipBar) {
+                chipBar.addEventListener('click', function(e) {
+                    const btn = e.target.closest('.filter-chip-remove');
+                    if (!btn) return;
+                    e.preventDefault();
+                    const which = btn.getAttribute('data-remove');
+                    if (which === 'weekFilter') {
+                        const sel = document.getElementById('weekFilter');
+                        sel.value = 'all';
+                        sel.dispatchEvent(new Event('change'));   // the week path re-renders + saves
+                        return;
+                    }
+                    if (which === 'hideCompleted') {
+                        document.getElementById('hideCompleted').checked = false;
+                        saveView();
+                        renderUpcoming();                        // ends with renderChips()
+                    }
+                });
+            }
+            document.getElementById('weekFilter').addEventListener('change', saveView);
+
+            /* 2026-11-10 (user): this page has NO Today button — the week-nav
+               include is told so (showTodayBtn => false) and the old AD-10
+               handler went with the button. Do not re-add it here. */
+
+            // Card/row events — delegated so listeners survive re-renders
+            // (cards = mobile container, #upcomingBody rows = desktop table)
+            const openFromEl = function(e, selector) {
+                const el = e.target.closest(selector);
+                if (el) openReplacementModal(el.dataset.id);   // the occurrence key stays a STRING
+            };
+            ['#upcomingList', '#upcomingBody'].forEach(function(sel) {
+                const root = document.querySelector(sel);
+                root.addEventListener('click', function(e) { openFromEl(e, sel + ' [data-id]'); });
+                root.addEventListener('keydown', function(e) {
+                    if (e.key !== 'Enter' && e.key !== ' ') return;
+                    const el = e.target.closest(sel + ' [data-id]');
+                    if (!el) return;
+                    if (e.key === ' ') e.preventDefault(); // avoid page scroll
+                    openReplacementModal(el.dataset.id);
+                });
+            });
+
+            /* ─── Arrival from a bell notice (2026-11-11, user) ───
+               The student bell lands HERE now, so the row the notice is about
+               must be reachable. Two anchors ride the URL:
+                 r<request_id>            → the row whose request that is
+                 o<session_id>+notif-w    → the class occurrence (row id is
+                                            `<sessionId>:<week>`, the week 1-based)
+               A row hidden by the saved week filter or by Exclude COMPLETED Status
+               is REVEALED first — the staff page's jumpToMyRow does the same — so
+               the shared highlighter (ui-common, 150 ms) always has something to
+               flash. Read SYNCHRONOUSLY, and read `notif-w` BEFORE anything strips
+               it (the F1 lesson from applyNotifHighlight). */
+            (function revealNotifRow() {
+                const params = new URLSearchParams(location.search);
+                const raw = params.get('notif-hl');
+                if (!raw) return;
+                const occWeek = params.get('notif-w');
+                const rows = MockData.replacementHistory || [];
+                let row = null;
+                if (raw.charAt(0) === 'r') {
+                    const rid = String(raw.slice(1));
+                    row = rows.find(x => String(x.requestId) === rid) || null;
+                } else if (raw.charAt(0) === 'o') {
+                    const sid = String(raw.slice(1));
+                    row = rows.find(x => String(x.id) === sid + ':' + occWeek) ||
+                        (occWeek ? null : rows.find(x => String(x.id).indexOf(sid + ':') === 0)) || null;
+                }
+                if (!row) return;                    /* the shared arm skips silently */
+                let changed = false;
+                const sel = document.getElementById('weekFilter');
+                if (sel && weekFilterValue('weekFilter') !== 'all' && Number(sel.value) !== row.week + 1) {
+                    sel.value = String(row.week + 1);
+                    changed = true;
+                }
+                const hc = document.getElementById('hideCompleted');
+                if (hc && hc.checked && row.status === 'completed') {
+                    hc.checked = false;
+                    changed = true;
+                }
+                if (changed) { saveView(); renderUpcoming(); }
+                /* desktop rows are pulsed by the shared highlighter; on the phone
+                   layout the table is hidden, so pulse the CARD on the same beat */
+                setTimeout(function () {
+                    const tr = document.querySelector('tr[data-id="' + row.id + '"]');
+                    if (tr && tr.offsetParent) return;
+                    const card = document.querySelector('#upcomingList .upcoming-card[data-id="' + row.id + '"]');
+                    if (!card) return;
+                    card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    flashRowPulse(card);
+                }, 650);
+            })();
+
+            renderUpcoming();
+        }
+
+        /* inline-handler globals resolve via window.
+           2026-11-09 (student-class-replacements): the shared modal's overlay calls
+           `closeModalOutside(event)` from an inline attribute — without this export
+           every overlay click threw "closeModalOutside is not defined" (pre-existing
+           on this page; surfaced when the pop-up's new jump button was clicked). */
+        window.renderUpcoming = renderUpcoming;
+        window.closeModalOutside = closeModalOutside;
+        window.clearAllFilters = clearAllFilters;      /* 2026-11-10: the Clear all chip */
+        });
+    </script>
+
+    <!-- Toast/Undo Bar (shared) -->
+    <div class="toast-bar" id="toastBar">
+        <div class="toast-content">
+            <span class="toast-message"></span>
+            <span class="toast-details"></span>
+        </div>
+        <div class="toast-actions">
+            <a class="toast-link" href="#" style="display:none"></a>
+            <button class="toast-undo" style="display:none">Undo</button>
+            <button class="toast-close" onclick="toast.close()">✕</button>
+        </div>
+    </div>
+<!-- Livewire Scripts -->
+<script src="http://127.0.0.1:8000/livewire-f983032f/livewire.js?id=657d57c2" data-csrf="Tt2hRHkkPhpfiCtMB9ne82R9AaVkEurzjJedeYC9" data-module-url="http://127.0.0.1:8000/livewire-f983032f" data-update-uri="http://127.0.0.1:8000/livewire-f983032f/update" data-navigate-once="true"></script>
+
+
+<div class="data-tip-tooltip"></div><script>
+/* ══════════════════════════════════════════════════════════════════════════
+   CLEANUP LAYER — student "Class Replacements" (replacementHistory), same
+   updates as the two staff pages, applied on top of the REAL page.
+
+   The file next to this one is the page exactly as the app served it: same
+   markup, same theme.css, same ui-common.js, same page script. This layer
+   changes only what the staff pages settled, and hooks the page's OWN
+   renderUpcoming(), so it works on the live rows rather than a copy.
+
+   WHAT THIS PAGE GETS (the staff set, minus what it does not have)
+     1  the semester chip says "202605 Semester" only
+     2  the toggle says "Hide COMPLETED", the chip says "Completed hidden"
+     3  the filters hide behind one labelled Filters button (both widths)
+     4  the five cards hide behind a Summary icon below 769px
+     5  COURSE shows "BMIT2013 (L)", not the course name
+     6  an empty requested slot says "Not requested"
+     7  the status pill says on hover that it is a status
+     8  the phone card names the code + short type, not the course name
+   Not on this page, so not here: a result counter, a search box, a status
+   dropdown, a second week dropdown, an explanation pop-up.
+   ══════════════════════════════════════════════════════════════════════════ */
+(function () {
+  'use strict';
+
+  var PHONE = window.matchMedia('(max-width: 768px)');
+  var TYPE_SHORT = { Lecture: 'L', Practical: 'P', Tutorial: 'T' };
+
+  function q(sel, root) { return (root || document).querySelector(sel); }
+  function qa(sel, root) { return Array.prototype.slice.call((root || document).querySelectorAll(sel)); }
+
+  var ICON_FILTER =
+    '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"' +
+    ' stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
+    '<polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon></svg>';
+
+  var ICON_SUMMARY =
+    '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"' +
+    ' stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
+    '<line x1="18" y1="20" x2="18" y2="10"></line>' +
+    '<line x1="12" y1="20" x2="12" y2="4"></line>' +
+    '<line x1="6" y1="20" x2="6" y2="14"></line></svg>';
+
+  /* ══ styles ═══════════════════════════════════════════════════════════ */
+  function injectCss() {
+    if (q('#cl-style')) return;
+    var st = document.createElement('style');
+    st.id = 'cl-style';
+    st.textContent =
+      /* the semester chip, a size smaller */
+      '.semester-chip { margin-top: 4px; padding: 2px 9px; font-size: 11px; }' +
+      '@media (max-width: 768px) {' +
+      '  .semester-chip { margin-top: 3px; padding: 2px 8px; font-size: 10px; }' +
+      '}' +
+
+      /* an empty cell reads as a sentence, but stays quiet */
+      '.cell-dash.cl-muted { color: var(--color-on-surface-variant); }' +
+
+      /* ── the filters live behind their own button at EVERY width ── */
+      '.cl-sheet-btn { display: inline-flex !important; }' +
+      '#clSummaryBtn { border-color: transparent; background: transparent; }' +
+      '#clSummaryBtn:hover { background: var(--color-surface-variant);' +
+      '  border-color: transparent; }' +
+      '@media (min-width: 769px) { .cl-sheet-btn--phone { display: none !important; } }' +
+      '.cl-sheet-overlay { position: fixed; inset: 0; z-index: 1200;' +
+      '  display: none; align-items: flex-end; justify-content: center;' +
+      '  background: rgba(0, 0, 0, .45); }' +
+      '.cl-sheet-overlay.is-open { display: flex; }' +
+      '.cl-sheet { width: 100%; max-height: 88vh; overflow-y: auto;' +
+      '  overflow-x: hidden; overscroll-behavior: contain;' +
+      '  -webkit-overflow-scrolling: touch;' +
+      '  background: var(--color-surface); color: var(--color-on-surface);' +
+      '  border: 1px solid var(--color-outline); border-bottom: 0;' +
+      '  border-radius: var(--radius-lg) var(--radius-lg) 0 0; }' +
+      '.cl-sheet-head { position: sticky; top: 0; z-index: 2;' +
+      '  display: flex; align-items: center; justify-content: space-between;' +
+      '  gap: 8px; padding: 10px 14px; background: var(--color-surface);' +
+      '  border-bottom: 1px solid var(--color-outline); }' +
+      '.cl-sheet-title { font-size: 14px; font-weight: 700; }' +
+      '.cl-sheet-close { border: 0; background: transparent; color: inherit;' +
+      '  font-size: 22px; line-height: 1; padding: 0 4px; cursor: pointer; }' +
+      '.cl-sheet-body { padding: 12px 12px 16px; }' +
+      /* the filter bar loses its own card frame once it lives in the panel */
+      '.cl-sheet-body .toolbar { margin: 0; padding: 0; background: transparent;' +
+      '  border: 0; box-shadow: none; gap: 10px; display: grid;' +
+      '  grid-template-columns: minmax(0, 1fr); }' +
+
+      /* every control carries its own label */
+      '.cl-field { display: block; min-width: 0; }' +
+      '.cl-field-label { display: block; margin: 0 0 4px 2px; font-size: 10px;' +
+      '  font-weight: 700; letter-spacing: .06em; text-transform: uppercase;' +
+      '  color: var(--color-primary); }' +
+      '.cl-field .week-nav { margin: 0; }' +
+      '.cl-week-nav .cl-week-select { flex: 1 1 auto; min-width: 0; }' +
+      /* the fields that sit outside the moved toolbar need the same gap */
+      '#clFilterBody > .cl-field { margin-top: 10px; }' +
+      '.cl-sheet-body { background: var(--color-bg); }' +
+      '.cl-sheet-body .week-arrow { color: var(--color-primary); }' +
+      '.cl-sheet-body .week-arrow:disabled { color: var(--color-on-surface-variant); }' +
+      '.cl-sheet-body .week-nav { width: 100%; min-width: 0; flex-shrink: 1; }' +
+      '.cl-sheet-body .week-select { flex: 1 1 auto; min-width: 0;' +
+      '  background-color: var(--color-surface-variant); }' +
+      /* the switch sits under its own label, in the same pill as the fields */
+      '.cl-field-toggle .toggle-wrapper { display: inline-flex; height: 38px;' +
+      '  min-height: 38px; padding: 0 12px; gap: 0; border: 1px solid var(--color-outline);' +
+      '  border-radius: var(--radius-md); background: var(--color-surface-variant);' +
+      '  transition: border-color .15s; }' +
+      '.cl-field-toggle .toggle-wrapper:hover { border-color: var(--color-primary); }' +
+      '.cl-field-toggle .toggle-label { display: none; }' +
+      'body.cl-sheet-open { overflow: hidden; }' +
+
+      /* desktop: a small card under the button, not a full-width sheet */
+      '@media (min-width: 769px) {' +
+      '  .cl-sheet-overlay { align-items: flex-start; justify-content: flex-end;' +
+      '    background: rgba(0, 0, 0, .32); }' +
+      '  .cl-sheet { position: fixed; width: fit-content; min-width: 300px;' +
+      '    max-width: min(460px, calc(100vw - 24px));' +
+      '    max-height: calc(100vh - 24px);' +
+      '    border-bottom: 1px solid var(--color-outline);' +
+      '    border-radius: var(--radius-lg); box-shadow: var(--shadow-lg); }' +
+      '}' +
+
+      /* the chips share the row with the button that opens the filters */
+      '.cl-status-row { display: flex; flex-wrap: wrap; align-items: center;' +
+      '  gap: 6px 12px; margin-bottom: 8px; }' +
+      '.cl-status-row #filterChips { flex: 1 1 100%; margin-bottom: 0; }' +
+      '.cl-status-row #resultCount { display: inline-flex !important;' +
+      '  align-items: center; flex: 0 0 auto; margin-left: auto; height: 26px;' +
+      '  padding: 0 12px; border-radius: var(--radius-pill);' +
+      '  background: var(--color-surface-variant);' +
+      '  color: var(--color-on-surface-variant); font-size: 12px;' +
+      '  font-weight: 600; white-space: nowrap; }' +
+      '.cl-filters-btn { flex: 0 0 auto; display: inline-flex; align-items: center;' +
+      '  gap: 6px; height: 34px; min-height: 34px; padding: 0 12px;' +
+      '  border: 1px solid var(--color-outline); border-radius: var(--radius-sm);' +
+      '  background: var(--color-surface-variant); color: var(--color-on-surface);' +
+      '  font-family: inherit; font-size: 12px; font-weight: 600; cursor: pointer;' +
+      '  transition: border-color .15s, color .15s; }' +
+      '.cl-filters-btn:hover { border-color: var(--color-primary); color: var(--color-primary); }' +
+      '.cl-filters-btn svg { width: 14px; height: 14px; flex: 0 0 auto; }' +
+      /* the button that opened a panel keeps its colour above the dim layer;
+         every other control dims with the page */
+      'body[data-cl-sheet="clFilterSheet"] .cl-filters-btn {' +
+      '  position: relative; z-index: 1300; }' +
+      '#filterChips .filter-chips-label { display: none; }' +
+      /* in the panel the five cards get two columns and room for their
+         longer labels ("Classes Awaiting Arrangement") */
+      '#clSummaryBody .summary-bar { grid-template-columns: repeat(2, minmax(0, 1fr));' +
+      '  gap: 10px; }' +
+      '#clSummaryBody .summary-card, #clSummaryBody .summary-card-inner {' +
+      '  min-height: 108px; height: 108px; }' +
+      '#clSummaryBody .summary-value { font-size: 24px; }' +
+      '#clSummaryBody .summary-label { font-size: 11px; line-height: 1.25;' +
+      '  padding: 0 6px; }' +
+      /* ══ the phone card: a comparison, not a tower of labels ══════════
+         Original and Requested sit side by side under one tiny label each,
+         the date / countdown / time + venue collapse from four lines to
+         three, and the conflict badge joins the lecturer on one footer line
+         instead of owning a labelled block of its own. */
+      '.upcoming-card { display: grid; grid-template-columns: auto minmax(0, 1fr);' +
+      '  column-gap: 10px; align-items: center; }' +
+      '.upcoming-card-head, .upcoming-card-slots { grid-column: 1 / -1; }' +
+      /* a bare "14" next to the code asked which week it meant; the slot
+         labels carry their own week now, so the pill is gone */
+      '.upcoming-card-wk { display: none; }' +
+      '.upcoming-card-head { padding-bottom: 8px; margin-bottom: 8px;' +
+      '  border-bottom: 1px solid var(--color-outline-strong); }' +
+      '.upcoming-card-slots { display: grid;' +
+      '  grid-template-columns: minmax(0, 1fr);' +
+      '  gap: 6px; padding-bottom: 8px; margin-bottom: 8px; font-size: 12px;' +
+      '  border-bottom: 1px solid var(--color-outline-strong); }' +
+      /* one row per slot: the tiny label on the left, date · time · venue on
+         one line beside it, and only the countdown keeps a line of its own */
+      '.upcoming-card .slot-block { display: grid;' +
+      '  grid-template-columns: 72px minmax(0, 1fr); column-gap: 8px;' +
+      '  align-items: start; }' +
+      '.upcoming-card .slot-label { margin: 2px 0 0; font-size: 9px; line-height: 1.2;' +
+      '  letter-spacing: .06em; text-transform: uppercase;' +
+      '  color: var(--color-on-surface-variant); }' +
+      /* the slot's week as a pill under its label, in its own words */
+      '.upcoming-card .cl-week-pill { display: inline-flex; align-items: center;' +
+      '  margin-top: 3px; padding: 1px 7px; border-radius: var(--radius-pill);' +
+      '  background: var(--color-surface-variant);' +
+      '  color: var(--color-on-surface-variant); text-transform: none;' +
+      '  letter-spacing: 0; font-size: 9.5px; font-weight: 700; line-height: 1.5;' +
+      '  white-space: nowrap; }' +
+      /* the slot's four facts read as 2 x 2: date over time on the left,
+         countdown over venue on the right */
+      '.upcoming-card .cell-class-block { display: grid;' +
+      '  grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);' +
+      '  column-gap: 6px; row-gap: 1px; align-items: baseline; }' +
+      '.upcoming-card .cell-class-block br { display: none; }' +
+      '.upcoming-card .cell-class-block .class-day-date { grid-area: 1 / 1;' +
+      '  font-size: 12px; font-weight: 600; line-height: 1.35; }' +
+      '.upcoming-card .cell-class-block [class^="urgency-"] { grid-area: 1 / 2;' +
+      '  font-size: 9px; font-weight: 600; line-height: 1.3; text-align: right;' +
+      '  white-space: normal; }' +
+      '.upcoming-card .cell-class-block .class-time { grid-area: 2 / 1;' +
+      '  font-size: 11px; line-height: 1.35; }' +
+      '.upcoming-card .cell-class-block .cell-sub { grid-area: 2 / 2;' +
+      '  justify-self: end; font-size: 11px; margin-left: 0; }' +
+      '.upcoming-card .cell-class-block .cell-sub svg { width: 10px; height: 10px;' +
+      '  vertical-align: -1px; margin-right: 2px; }' +
+      /* a real line between the two slots, not just whitespace */
+      '.upcoming-card .slot-block + .slot-block { margin-top: 8px; padding-top: 8px;' +
+      '  border-top: 1px solid var(--color-outline-strong); }' +
+      /* a tablet is wide enough for the two slots to sit side by side again:
+         the band divider turns vertical and the hollow middle disappears */
+      '@media (min-width: 600px) {' +
+      '  .upcoming-card-slots { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);' +
+      '    gap: 0 16px; }' +
+      '  .upcoming-card .slot-block + .slot-block { margin-top: 0; padding-top: 0;' +
+      '    border-top: 0; border-left: 1px solid var(--color-outline-strong);' +
+      '    padding-left: 16px; }' +
+      '}' +
+      '.upcoming-card-reason { grid-column: 1; display: flex; align-items: center;' +
+      '  gap: 6px; margin: 0; }' +
+      '.upcoming-card-reason .slot-label { display: none; }' +
+      '.upcoming-card-lect { grid-column: 2; justify-self: end; margin: 0;' +
+      '  min-width: 0; font-size: 11px; line-height: 1.25;' +
+      '  color: var(--color-on-surface-variant); text-align: right; }' +
+      /* below 360px two columns cannot hold a date and a time; the same
+         comparison stacks, still labelled, instead of squeezing */
+      /* a pinned modal header must never look see-through */
+      '.modal-header { background: var(--color-surface); }' +
+
+      /* the card head keeps the code next to its week number; only the
+         status badge is pushed to the far side */
+      '.upcoming-card-head { justify-content: flex-start; }' +
+      '.upcoming-card-head .badge { margin-left: auto; }' +
+      '@media (max-width: 768px) {' +
+      '  .cl-status-row .cl-filters-btn { order: 1; }' +
+      '  .cl-status-row #resultCount { order: 2; }' +
+      '  .cl-status-row #filterChips { order: 3; padding: 4px 10px; gap: 4px 6px; }' +
+      '  #filterChips .filter-chip { padding: 2px 9px; font-size: 11px; gap: 4px; }' +
+      '  #filterChips .filter-chip-remove { width: 26px; height: 26px;' +
+      '    min-width: 0; min-height: 0; font-size: 14px; }' +
+      '  #filterChips .filter-chip.filter-chip-clear-all { min-height: 0;' +
+      '    height: 26px; padding: 0 10px; font-size: 11px; }' +
+      '}' +
+      '@media (min-width: 769px) {' +
+      '  .cl-status-row #filterChips { flex: 1 1 auto; }' +
+      '}';
+    document.head.appendChild(st);
+  }
+
+  /* ══ 1. the semester chip ═════════════════════════════════════════════ */
+  function patchSemester() {
+    var chip = q('#semesterChip');
+    if (!chip) return;
+    var code = (chip.textContent.match(/\d{6}/) || ['202605'])[0];
+    var want = code + ' Semester';
+    if (chip.textContent.trim() !== want) chip.textContent = want;
+  }
+
+  /* ══ 2. the toggle says Hide COMPLETED ════════════════════════════════ */
+  function patchToggle() {
+    var t = qa('.toggle-label').find(function (el) { return /Exclude/i.test(el.textContent); });
+    if (!t) return;
+    t.innerHTML = 'Hide <span class="info-keyword">COMPLETED</span>';
+    t.setAttribute('data-before', 'Exclude COMPLETED Status');
+    var wrap = t.closest('.toggle-wrapper');
+    if (wrap) wrap.setAttribute('data-tip', 'ON = completed classes are hidden');
+    /* the empty state used the old words too */
+    var empty = q('#emptyText');
+    if (empty && /Exclude COMPLETED Status/.test(empty.textContent)) {
+      empty.textContent = empty.textContent.replace(/Exclude COMPLETED Status/g, 'Hide COMPLETED');
+    }
+  }
+
+  function patchChip(chip) {
+    if (/Exclude\s*COMPLETED/i.test(chip.textContent) && !chip.dataset.clDone) {
+      var x = q('.filter-chip-remove', chip);
+      chip.dataset.clDone = '1';
+      chip.dataset.clBefore = chip.innerHTML;
+      chip.innerHTML = '';
+      chip.appendChild(document.createTextNode('Completed hidden '));
+      if (x) chip.appendChild(x);
+    }
+  }
+
+  function patchChips() {
+    qa('#filterChips .filter-chip').forEach(patchChip);
+  }
+
+  /* ══ 5 + 6 + 7. the table cells ═══════════════════════════════════════
+     Six columns: 0 course, 1 lecturer, 2 original, 3 reason, 4 requested,
+     5 status. */
+  function patchRows() {
+    qa('#upcomingBody tr').forEach(function (tr) {
+      /* 5 — the course cell keeps code + type; the name is what the pop-up
+         is for */
+      var course = tr.children[0];
+      if (course && !course.dataset.clCourse) {
+        var code = q('.cell-code', course);
+        var typeEl = q('.cell-type-label', course);
+        if (code) {
+          var kind = typeEl ? typeEl.textContent.replace(/[()]/g, '').trim() : '';
+          course.dataset.clCourse = '1';
+          course.innerHTML = '';
+          var line = document.createElement('div');
+          line.className = 'cell-code';
+          line.textContent = code.textContent.trim() + (kind ? ' (' + kind + ')' : '');
+          course.appendChild(line);
+        }
+      }
+
+      /* 6 — the em dash says what it means */
+      var slot = tr.children[4];
+      if (slot && !slot.dataset.clSlot) {
+        var dash = q('.cell-dash', slot);
+        if (dash && /^[\u2014\u2013-]$/.test(dash.textContent.trim())) {
+          slot.dataset.clSlot = '1';
+          dash.textContent = 'Not requested';
+          dash.classList.add('cl-muted');
+        }
+      }
+
+      /* 7 — the pill is a status; there is no action column on this page, so
+         the note stops there */
+      var status = tr.children[5];
+      var badge = status ? q('.badge', status) : null;
+      if (badge && !badge.dataset.clStatus) {
+        badge.dataset.clStatus = '1';
+        var tip = (badge.getAttribute('data-tip') || '').trim();
+        badge.setAttribute('data-tip', (tip ? tip + '\n\n' : '') +
+          'This is a status, not a button.');
+      }
+    });
+  }
+
+  /* ══ the phone card's two slots: which week, and one row each ═════════
+     "Original Slot" alone left the week guessing; the week now rides the
+     label ("ORIGINAL W7") and leaves the value on one line. The time range
+     drops the repeated meridiem when both ends share it. */
+  function shortTime(el) {
+    var m = /^(\d{1,2}:\d{2})\s*(AM|PM)\s*~\s*(\d{1,2}:\d{2})\s*(AM|PM)$/i
+      .exec((el.textContent || '').trim());
+    if (!m) return;
+    var a = m[2].toUpperCase(), b = m[4].toUpperCase();
+    el.textContent = a === b
+      ? m[1] + '\u2013' + m[3] + ' ' + a
+      : m[1] + ' ' + a + ' \u2013 ' + m[3] + ' ' + b;
+  }
+
+  function patchSlotRows() {
+    qa('.upcoming-card .slot-block').forEach(function (block) {
+      var lab = q('.slot-label', block);
+      var date = q('.class-day-date', block);
+      if (lab && !lab.dataset.clWk) {
+        var m = date ? /\(Week\s+(\d+)\)/.exec(date.textContent) : null;
+        lab.dataset.clWk = '1';
+        lab.textContent = lab.textContent.replace(/\s*Slot/i, '').trim();
+        if (m) {
+          date.textContent = date.textContent.replace(/\s*\(Week\s+\d+\)/, '');
+          var pill = document.createElement('span');
+          pill.className = 'cl-week-pill';
+          pill.textContent = 'Week ' + m[1];
+          /* a pill under the label, not beside it */
+          lab.appendChild(document.createElement('br'));
+          lab.appendChild(pill);
+        }
+      }
+      var time = q('.class-time', block);
+      if (time && !time.dataset.clShort) {
+        time.dataset.clShort = '1';
+        shortTime(time);
+      }
+    });
+  }
+
+  /* ══ 8. the phone card names the code + short type ════════════════════ */
+  function patchCards() {
+    patchSlotRows();
+    /* the card's empty requested slot says the same thing as the table's */
+    qa('.upcoming-card .cell-dash').forEach(function (d) {
+      if (d.dataset.clDash) return;
+      if (/^[\u2014\u2013-]$/.test(d.textContent.trim())) {
+        d.dataset.clDash = '1';
+        d.textContent = 'Not requested';
+        d.classList.add('cl-muted');
+      }
+    });
+    qa('.upcoming-card .upcoming-card-code').forEach(function (el) {
+      if (el.dataset.clCode) return;
+      var m = /^(.*?)\s*\u00b7\s*(.*?)\s*\(([^)]+)\)\s*$/.exec(el.textContent.trim());
+      if (!m) return;
+      el.dataset.clCode = '1';
+      el.textContent = m[1] + ' (' + (TYPE_SHORT[m[3]] || m[3]) + ')';
+      el.setAttribute('data-tip', m[2]);
+    });
+  }
+
+  /* ══ the two panels ═══════════════════════════════════════════════════ */
+  function closeSheets() {
+    qa('.cl-sheet-overlay').forEach(function (ov) { ov.classList.remove('is-open'); });
+    document.body.classList.remove('cl-sheet-open');
+    document.body.removeAttribute('data-cl-sheet');
+  }
+
+  function openSheet(id) {
+    var ov = q('#' + id);
+    if (!ov) return;
+    closeSheets();
+    ov.classList.add('is-open');
+    document.body.classList.add('cl-sheet-open');
+    document.body.setAttribute('data-cl-sheet', id);
+    positionSheet(ov);
+  }
+
+  function positionSheet(ov) {
+    var panel = q('.cl-sheet', ov);
+    if (!panel) return;
+    if (PHONE.matches || !ov.classList.contains('is-open')) {
+      panel.style.top = '';
+      panel.style.left = '';
+      panel.style.right = '';
+      panel.style.maxHeight = '';
+      return;
+    }
+    var btn = q('#' + (ov.id === 'clSummarySheet' ? 'clSummaryBtn' : 'clFilterBtn'));
+    if (!btn) return;
+    var r = btn.getBoundingClientRect();
+    var w = panel.offsetWidth || 420;
+    panel.style.top = Math.round(r.bottom + 8) + 'px';
+    panel.style.left = Math.round(Math.min(Math.max(12, r.left), window.innerWidth - w - 12)) + 'px';
+    panel.style.right = 'auto';
+    panel.style.maxHeight = Math.round(window.innerHeight - r.bottom - 24) + 'px';
+  }
+
+  function makeSheet(id, title, bodyId) {
+    if (q('#' + id)) return;
+    var ov = document.createElement('div');
+    ov.id = id;
+    ov.className = 'cl-sheet-overlay';
+    ov.innerHTML =
+      '<div class="cl-sheet" role="dialog" aria-modal="true" aria-labelledby="' + id + 'Title">' +
+        '<div class="cl-sheet-head">' +
+          '<span class="cl-sheet-title" id="' + id + 'Title">' + title + '</span>' +
+          '<button type="button" class="cl-sheet-close" aria-label="Close">&times;</button>' +
+        '</div>' +
+        '<div class="cl-sheet-body" id="' + bodyId + '"></div>' +
+      '</div>';
+    document.body.appendChild(ov);
+    q('.cl-sheet-close', ov).addEventListener('click', closeSheets);
+    ov.addEventListener('click', function (e) { if (e.target === ov) closeSheets(); });
+  }
+
+  function makeSheetButton(id, label, icon, sheetId, phoneOnly) {
+    var header = q('.page-header');
+    if (!header || q('#' + id)) return;
+    var btn = document.createElement('button');
+    btn.type = 'button';
+    btn.id = id;
+    btn.className = 'guide-toggle-icon cl-sheet-btn' + (phoneOnly ? ' cl-sheet-btn--phone' : '');
+    btn.setAttribute('aria-label', label);
+    btn.setAttribute('aria-haspopup', 'dialog');
+    btn.innerHTML = icon;
+    header.insertBefore(btn, q('.guide-toggle-icon:not(.cl-sheet-btn)', header) || null);
+    btn.addEventListener('click', function () {
+      var ov = q('#' + sheetId);
+      if (ov && ov.classList.contains('is-open')) closeSheets();
+      else openSheet(sheetId);
+    });
+  }
+
+  function buildSheets() {
+    makeSheetButton('clSummaryBtn', 'Summary', ICON_SUMMARY, 'clSummarySheet', true);
+    makeSheet('clFilterSheet', 'Filters', 'clFilterBody');
+    makeSheet('clSummarySheet', 'Summary', 'clSummaryBody');
+    if (!window.__clSheetsEsc) {
+      window.__clSheetsEsc = true;
+      document.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape') closeSheets();
+      });
+    }
+  }
+
+  /* ══ the week filter this page is missing ═════════════════════════════
+     The page ships ONE dropdown, on the ORIGINAL slot. The staff pages got
+     the other kind, so this one gets "Requested Slot Week" too — same look,
+     same arrows, and it narrows whatever the other filters already show. */
+  function reqWeekOf(r) {
+    return r && r.req && typeof r.req.week === 'number' ? r.req.week : null;
+  }
+
+  function extraSelect() { return q('#clExtraWeek'); }
+
+  function extraValue() {
+    var s = extraSelect();
+    if (!s) return null;
+    return s.value === 'all' ? null : (parseInt(s.value, 10) || null);
+  }
+
+  /* the page's own renderer reads MockData, so the extra filter is applied by
+     handing it a narrowed copy for the length of one call — nothing is written
+     into the data itself, and the copy is put back in `finally` */
+  function wrapRenderer() {
+    if (window.__clExtraWrap || typeof window.renderUpcoming !== 'function') return;
+    window.__clExtraWrap = true;
+    var orig = window.renderUpcoming;
+    window.renderUpcoming = function () {
+      var full = window.MockData && window.MockData.replacementHistory;
+      var want = extraValue();
+      if (want != null && Array.isArray(full)) {
+        window.MockData.replacementHistory = full.filter(function (r) {
+          return reqWeekOf(r) === want;
+        });
+      }
+      try {
+        return orig.apply(this, arguments);
+      } finally {
+        if (Array.isArray(full) && window.MockData) {
+          window.MockData.replacementHistory = full;
+        }
+      }
+    };
+  }
+
+  function buildExtraWeek() {
+    var body = q('#clFilterBody');
+    var native = q('#weekFilter', body);
+    if (!body || !native || q('#clExtraWeek', body)) return;
+
+    var field = document.createElement('div');
+    field.className = 'cl-field';
+
+    var lab = document.createElement('label');
+    lab.className = 'cl-field-label';
+    lab.setAttribute('for', 'clExtraWeek');
+    lab.textContent = 'Requested slot week';
+
+    var nav = document.createElement('div');
+    nav.className = 'week-nav cl-week-nav';
+
+    var back = document.createElement('button');
+    back.type = 'button'; back.className = 'week-arrow'; back.textContent = '\u2039';
+    back.setAttribute('aria-label', 'Previous requested week');
+
+    var s = document.createElement('select');
+    s.id = 'clExtraWeek';
+    s.className = 'week-select cl-week-select';
+    s.setAttribute('data-tip', 'Show only the classes whose REQUESTED slot falls in this week');
+    for (var i = 0; i < native.options.length; i++) {
+      var o = document.createElement('option');
+      o.value = native.options[i].value;
+      o.textContent = i === 0 ? 'All Weeks' : native.options[i].textContent;
+      s.appendChild(o);
+    }
+
+    var fwd = document.createElement('button');
+    fwd.type = 'button'; fwd.className = 'week-arrow'; fwd.textContent = '\u203a';
+    fwd.setAttribute('aria-label', 'Next requested week');
+
+    function sync() {
+      back.disabled = s.selectedIndex <= 0;
+      fwd.disabled = s.selectedIndex >= s.options.length - 1;
+    }
+    function step(d) {
+      var i = s.selectedIndex + d;
+      if (i < 0 || i >= s.options.length) return;
+      s.selectedIndex = i;
+      s.dispatchEvent(new Event('change'));
+    }
+    back.addEventListener('click', function () { step(-1); });
+    fwd.addEventListener('click', function () { step(1); });
+    s.addEventListener('change', function () {
+      sync();
+      if (typeof window.renderUpcoming === 'function') window.renderUpcoming();
+      ensureExtraChip();
+    });
+    sync();
+
+    nav.appendChild(back); nav.appendChild(s); nav.appendChild(fwd);
+    field.appendChild(lab); field.appendChild(nav);
+    var toggleField = q('.cl-field-toggle', body);
+    if (toggleField && toggleField.parentNode) toggleField.parentNode.insertBefore(field, toggleField);
+    else body.appendChild(field);
+  }
+
+  function ensureExtraChip() {
+    var chips = q('#filterChips');
+    if (!chips) return;
+    var v = extraValue();
+    var chip = q('#clExtraChip', chips);
+    if (v == null) { if (chip) chip.remove(); return; }
+
+    var s = extraSelect();
+    var text = s ? (s.options[s.selectedIndex] || {}).textContent || '' : '';
+    var label = (text.match(/^Week\s+\d+/) || ['Week ' + v])[0];
+
+    if (!chip) {
+      chip = document.createElement('span');
+      chip.id = 'clExtraChip';
+      chip.className = 'filter-chip';
+      var txt = document.createElement('span');
+      txt.className = 'cl-extra-txt';
+      var x = document.createElement('button');
+      x.type = 'button';
+      x.className = 'filter-chip-remove';
+      x.setAttribute('data-tip', 'Remove');
+      x.setAttribute('aria-label', 'Remove filter');
+      x.textContent = '\u00d7';
+      x.addEventListener('click', function () {
+        var sel = extraSelect();
+        if (!sel) return;
+        sel.value = 'all';
+        sel.dispatchEvent(new Event('change'));
+      });
+      chip.appendChild(txt); chip.appendChild(x);
+    }
+    var t2 = q('.cl-extra-txt', chip);
+    var want = 'Requested Slot Week: ' + label;
+    if (t2.textContent.trim() !== want) t2.textContent = want;
+
+    var clearAll = q('.filter-chip-clear-all', chips);
+    if (!chip.parentNode) chips.insertBefore(chip, clearAll || null);
+    else if (clearAll && chip.nextSibling !== clearAll) chips.insertBefore(chip, clearAll);
+  }
+
+  /* Clear all must clear this one too, or it would stick */
+  function hookResets() {
+    if (window.__clExtraResets) return;
+    window.__clExtraResets = true;
+    document.addEventListener('click', function (e) {
+      if (!e.target || !e.target.closest) return;
+      if (e.target.closest('.filter-chip-clear-all')) {
+        setTimeout(function () {
+          var sel = extraSelect();
+          if (sel && sel.value !== 'all') {
+            sel.value = 'all';
+            sel.dispatchEvent(new Event('change'));
+          }
+        }, 0);
+      }
+    }, true);
+  }
+
+  /* the panel's two fields: the week dropdown, then the switch */
+  function fieldWrap(el, text, forEl) {
+    if (!el || el.closest('.cl-field')) return null;
+    var wrap = document.createElement('div');
+    wrap.className = 'cl-field';
+    var lab = document.createElement('label');
+    lab.className = 'cl-field-label';
+    lab.setAttribute('for', (forEl || el).id);
+    lab.textContent = text;
+    el.parentNode.insertBefore(wrap, el);
+    wrap.appendChild(lab);
+    wrap.appendChild(el);
+    return wrap;
+  }
+
+  function buildFields() {
+    var body = q('#clFilterBody');
+    if (!body) return;
+
+    var nav = q('.week-nav', body);
+    var native = q('#weekFilter', body);
+    if (nav && native) fieldWrap(nav, 'Original slot week', native);
+
+    buildExtraWeek();
+
+    var tog = q('#completedToggle', body);
+    if (tog && !tog.closest('.cl-field')) {
+      var cb = q('input', tog);
+      var field = document.createElement('div');
+      field.className = 'cl-field cl-field-toggle';
+      var lab = document.createElement('label');
+      lab.className = 'cl-field-label';
+      if (cb && cb.id) lab.setAttribute('for', cb.id);
+      lab.textContent = 'Hide COMPLETED';
+      field.appendChild(lab);
+      /* the switch sits under both week dropdowns, not between them */
+      body.appendChild(field);
+      field.appendChild(tog);
+    }
+  }
+
+  /* chips + the one visible door to the filters */
+  function buildStatusRow() {
+    if (q('#clStatusRow')) return;
+    var chips = q('#filterChips');
+    if (!chips || !chips.parentNode) return;
+
+    var row = document.createElement('div');
+    row.id = 'clStatusRow';
+    row.className = 'cl-status-row';
+    chips.parentNode.insertBefore(row, chips);
+
+    var btn = document.createElement('button');
+    btn.type = 'button';
+    btn.id = 'clFilterBtn';
+    btn.className = 'cl-filters-btn';
+    btn.setAttribute('aria-haspopup', 'dialog');
+    btn.innerHTML = ICON_FILTER + '<span>Filters</span>';
+    btn.addEventListener('click', function () {
+      var ov = q('#clFilterSheet');
+      if (ov && ov.classList.contains('is-open')) closeSheets();
+      else openSheet('clFilterSheet');
+    });
+    row.appendChild(btn);
+    row.appendChild(chips);
+
+    /* how many of the whole list the filters leave — the same sentence the
+       two staff pages print in the same place */
+    if (!q('#resultCount')) {
+      var count = document.createElement('span');
+      count.className = 'result-count';
+      count.id = 'resultCount';
+      count.setAttribute('data-tip', 'How many of the whole list match your filters');
+      row.appendChild(count);
+    }
+    paintCount();
+  }
+
+  function paintCount() {
+    var el = q('#resultCount');
+    if (!el) return;
+    var shown = qa('#upcomingBody tr').length;
+    var total = ((window.MockData && window.MockData.replacementHistory) || []).length;
+    var txt = shown + ' of ' + total + ' match your filters';
+    if (el.textContent.trim() !== txt) el.textContent = txt;
+  }
+
+  /* a comment holds the original place, so the panels can go back */
+  function relocate(el, parent) {
+    if (!el || !el.parentNode || !parent || el.dataset.clHome) return;
+    var ph = document.createComment('cl-sheet-home');
+    el.parentNode.insertBefore(ph, el);
+    el.dataset.clHome = '1';
+    el.clHome = { parent: ph.parentNode, ph: ph };
+    parent.appendChild(el);
+  }
+
+  function moveIntoSheet(el, bodyId) {
+    relocate(el, q('#' + bodyId));
+  }
+
+  function moveOutOfSheet(el) {
+    if (!el || !el.dataset.clHome || !el.clHome) return;
+    var h = el.clHome;
+    delete el.dataset.clHome;
+    el.clHome = null;
+    if (h.ph && h.ph.parentNode) {
+      h.ph.parentNode.insertBefore(el, h.ph);
+      h.ph.parentNode.removeChild(h.ph);
+    } else {
+      h.parent.appendChild(el);
+    }
+  }
+
+  function applySheetMode() {
+    moveIntoSheet(q('.toolbar'), 'clFilterBody');
+    buildFields();
+
+    if (PHONE.matches) {
+      moveIntoSheet(q('#summarySection'), 'clSummaryBody');
+    } else {
+      var sumSheet = q('#clSummarySheet');
+      if (sumSheet && sumSheet.classList.contains('is-open')) closeSheets();
+      moveOutOfSheet(q('#summarySection'));
+    }
+
+    var open = q('.cl-sheet-overlay.is-open');
+    if (open) positionSheet(open);
+  }
+
+  /* ══ hook the page's own renderers ════════════════════════════════════ */
+  function patchAll() {
+    patchSemester();
+    patchToggle();
+    patchChips();
+    patchRows();
+    patchCards();
+  }
+
+  function hook(name, after) {
+    if (typeof window[name] !== 'function') return false;
+    var orig = window[name];
+    window[name] = function () {
+      var out = orig.apply(this, arguments);
+      try { after(); } catch (e) { /* never break the page */ }
+      return out;
+    };
+    return true;
+  }
+
+  function boot() {
+    injectCss();
+    patchAll();
+    buildSheets();
+    buildStatusRow();
+    hookResets();
+    applySheetMode();
+
+    window.addEventListener('resize', function () {
+      var open = q('.cl-sheet-overlay.is-open');
+      if (open) positionSheet(open);
+    });
+    if (PHONE.addEventListener) PHONE.addEventListener('change', applySheetMode);
+    else if (PHONE.addListener) PHONE.addListener(applySheetMode);
+
+    wrapRenderer();
+    hook('renderUpcoming', function () {
+      patchRows();
+      patchCards();
+      patchChips();
+      patchToggle();
+      ensureExtraChip();
+      paintCount();
+    });
+
+    var chips = q('#filterChips');
+    if (chips) {
+      new MutationObserver(function () { patchChips(); ensureExtraChip(); })
+        .observe(chips, { childList: true, subtree: true });
+    }
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', boot);
+  } else {
+    boot();
+  }
+})();
+
+</script>
+</body></html>

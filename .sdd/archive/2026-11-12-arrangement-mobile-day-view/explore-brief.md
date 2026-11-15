@@ -16,8 +16,8 @@ scrolling. Day labels scroll out of view, selected-block labels overlap, control
 are far from the choice, and the summary/Submit area lies below the whole week.
 Hover-dependent explanations are unsuitable for touch.
 
-- Screenshots: `../ui-prototype/Current Version Mobile Design/` (LEFT and RIGHT PNGs).
-- Approved mobile prototype: `../ui-prototype/replacement-arrangement-mobile-preview.html`.
+- Screenshots: `ui-prototype/Current Version Mobile Design/` (LEFT and RIGHT PNGs).
+- Approved mobile prototype: `ui-prototype/replacement-arrangement-mobile-preview.html`.
 - Scope: `/replacement-arrangement`, mobile at <=768px only; no desktop redesign.
 - Prototype data and fixed preview clock are invented fixtures, not production rules.
 - The top-zone prototype/prompt is a separate task, not part of this lane.

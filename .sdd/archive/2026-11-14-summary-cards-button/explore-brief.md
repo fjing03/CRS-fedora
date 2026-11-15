@@ -141,7 +141,7 @@ already wraps to its own line at 390. At 320 it is tighter — the 320 check sta
   `position: fixed; inset: 0; z-index: 99999` — `document.elementFromPoint(195, 400)` still returned
   the dialog. So a dialog-based sheet would put the existing ⓘ `.modal-overlay` **behind** it, and
   satisfying "the ⓘ opens above the sheet" would force converting that frozen modal to a dialog too.
-- **The prototype** (`../ui-prototype/my-replacements.html`, `request-approval.html`) is the
+- **The prototype** (`ui-prototype/my-replacements.html`, `request-approval.html`) is the
   behaviour of record for this job. Its numbers: sheet overlay `z-index: 1200`, `.cl-sheet` bottom
   sheet with sticky head (title + ×), `body.cl-sheet-open` scroll lock, and
   `#summaryExplainModal { z-index: 1400 }` — one rule to lift the ⓘ above the sheet. It also

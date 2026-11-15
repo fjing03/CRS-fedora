@@ -9,5 +9,5 @@ pages: "My, Student, Cohort, Venue Timetable, My Replacements, Request Approval"
 verification: "48 page+width combos (320-1360px) + 35 modal checks + dark theme; see apply-log.md"
 implementation_approved: true
 implementation_approval: "User: '/sdd-apply summary-card-detail-copy' on 2026-11-14, after the lane was described and its 4 open items confirmed."
-prototype_readonly: "../ui-prototype/summary-card-back-preview.html was verified, never modified"
+prototype_readonly: "ui-prototype/summary-card-back-preview.html was verified, never modified"
 note: "Follows my-timetable-ui-cleanup (archived 2026-11-14), whose flip cards this lane adjusts. No JS change was needed: SummaryCards.open() already prints .summary-explanation-source innerHTML."

@@ -1,0 +1,1024 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Replacement — merged one-table design preview</title>
+<link rel="stylesheet" href="../public/css/theme.css">
+<style>
+    /* ── PREVIEW-ONLY ─────────────────────────────────────────────────────
+       A static mock for the "merge the two pages into one table" idea.
+       It borrows the app's real theme.css; every colour below is a token.
+       Nothing here is app code. Page-local classes that live in the blades
+       today (bulk bar, summary colours) are copied so the mock looks right. */
+
+    /* summary card colours — currently page-local in replacement-home */ 
+    .summary-card.card-conflict .summary-value { color: var(--color-error); }
+    .summary-card.card-duration .summary-value { color: var(--color-primary); }
+    .summary-card.card-pending .summary-value { color: var(--color-warning); }
+    .summary-card.card-approved .summary-value { color: var(--color-success); }
+
+    /* no request yet: an outlined pill, so it never reads as one of the filled statuses */
+    .pv-status-none {
+        background: transparent;
+        color: var(--color-on-primary-container);
+        border: 1px solid var(--color-on-primary-container);
+    }
+
+    /* row affordances — no checkbox column: cancelling is a per-row action */
+    .data-table tbody tr { cursor: pointer; }
+    .data-table tbody tr:hover { background: var(--color-surface-variant); }
+
+    /* days-left urgency — copied from replacement-home.blade.php (colour only, no badge) */
+    .urgency-high { color: var(--color-error); font-weight: 700; }
+    .urgency-mid { color: var(--color-warning); font-weight: 600; }
+    .urgency-low { color: var(--color-on-surface-variant); font-weight: 500; }
+
+    /* conflict-reason badge — the holiday is the only one that stays red */
+    .badge-holiday { background: var(--color-error-container); color: var(--color-on-error-container); }
+
+    /* a cancelled class is neutral, not an alarm: one grey badge for every reason */
+    .pv-reason-cancelled { background: var(--color-surface-variant); color: var(--color-on-surface-variant); }
+
+    /* icon-only action buttons */
+    .pv-icon-btn {
+        width: 34px; height: 34px; padding: 0; display: inline-flex;
+        align-items: center; justify-content: center;
+        border-radius: var(--radius-md); cursor: pointer; border: none;
+        transition: transform .15s, filter .15s;
+    }
+    .pv-icon-btn:hover { filter: brightness(1.08); }
+    .pv-icon-btn--primary { background: var(--color-primary); color: var(--color-on-primary); }
+    .pv-icon-btn--ghost { background: transparent; color: var(--color-primary); border: 1px solid var(--color-outline); }
+    .pv-icon-btn--ghost:hover { background: var(--color-surface-variant); }
+    /* withdraw a pending request: ghost keeps the column quiet, the tint says it is destructive */
+    .pv-icon-btn--danger { color: var(--color-error); }
+    .pv-icon-btn--danger:hover { background: var(--color-error-container); border-color: var(--color-error); }
+
+    /* the date line carries the days-left beside it (wraps below when tight) */
+    .pv-date-line {
+        display: flex; flex-wrap: wrap; align-items: baseline; column-gap: 10px;
+    }
+
+    /* room + cohorts: two icon-led lines inside the Original Class cell */
+    .pv-cell-sub {
+        display: inline-flex; align-items: center; gap: 5px;
+        font-size: 12px; color: var(--color-on-surface-variant);
+    }
+    .pv-cell-icon { width: 12px; height: 12px; flex: 0 0 12px; opacity: .85; }
+    /* the toolbar's count duplicates the pagination bar — it yields below 1500px,
+       where the longer toggle label needs the room */
+    @media (max-width: 1499px) {
+        .result-count { display: none; }
+    }
+
+    /* the cohort column: plain text, one cohort per line for multi-cohort rows */
+    .pv-cohort { font-size: 12.5px; color: var(--color-on-surface-variant); line-height: 1.45; }
+    .pv-cohort::selection { background: var(--color-primary-container); }
+    /* "nothing here" — a token-coloured dash, never a hand-written colour */
+    .pv-dash { color: var(--color-on-surface-variant); opacity: .6; }
+    .pv-dash--faint { opacity: .5; }
+
+    /* preview-only hover tooltip, keyed on the same `data-tip` attribute the app
+       uses — the real page gets it from initDataTipTooltips() instead */
+    [data-tip] { position: relative; }
+    [data-tip]::after {
+        content: attr(data-tip);
+        position: absolute; right: 0; bottom: calc(100% + 6px);
+        padding: 4px 8px; border-radius: var(--radius-xs);
+        background: var(--color-inverse-surface); color: var(--color-on-inverse-surface);
+        font-size: 11px; font-weight: 500; white-space: nowrap;
+        opacity: 0; pointer-events: none; transition: opacity .12s; z-index: 20;
+    }
+    [data-tip]:hover::after { opacity: 1; }
+
+    /* demo frame */
+    .pv-note {
+        margin: 0 0 14px; padding: 8px 12px; font-size: 12px; line-height: 1.5;
+        border: 1px dashed var(--color-outline); border-radius: var(--radius-md);
+        color: var(--color-on-surface-variant);
+    }
+    .pv-help {
+        margin: 18px 0 8px; max-width: 560px;
+        font-size: 12px; line-height: 1.5; color: var(--color-on-surface-variant);
+        background: var(--color-surface); border: 1px dashed var(--color-outline);
+        border-radius: var(--radius-md); padding: 10px 12px;
+        box-shadow: 0 6px 18px rgba(0,0,0,.22);
+    }
+    .pv-help summary { cursor: pointer; font-weight: 700; color: var(--color-on-surface); }
+    .pv-help[open] summary { margin-bottom: 6px; }
+    .pv-help b { color: var(--color-on-surface); }
+    .pv-help button {
+        margin-top: 8px; padding: 4px 10px; font: inherit; font-size: 12px; font-weight: 600;
+        border: 1px solid var(--color-outline); border-radius: var(--radius-sm);
+        background: transparent; color: var(--color-primary); cursor: pointer;
+    }
+    .pv-help button:hover { background: var(--color-surface-variant); }
+
+    /* "Decision by PL Timestamp" and "Proposed Replacement Schedule" must stay on one line */
+    .modal--detail .detail-label { width: 200px; }
+
+    .pv-desc-value {
+        color: var(--color-on-surface-variant);
+        font-weight: 400;
+        line-height: 1.6;
+    }
+    /* the footer's destructive button carries the same ban mark as the row icon */
+    .modal-footer .btn-danger {
+        display: inline-flex; align-items: center; gap: 6px;
+    }
+
+    /* the modal is the app's DetailModal shape (title · subtitle · facts · tabs) */
+    .modal--detail .detail-group + .detail-group { margin-top: 12px; }
+
+    /* fixed facts: always visible, between the subtitle and the tab bar */
+    .detail-facts {
+        display: flex; flex-wrap: wrap; gap: 4px 20px;
+        padding: 10px 22px 12px;
+        font-size: 12.5px;
+        color: var(--color-on-surface);
+        border-bottom: 1px solid var(--color-outline);
+        margin-bottom: 12px;
+    }
+    .df-item { display: inline-flex; align-items: center; gap: 6px; }
+    /* the conflict badge is wide — it gets its own line */
+    .df-item--full { flex-basis: 100%; }
+    .df-label {
+        font-size: 10.5px; font-weight: 700; letter-spacing: .05em;
+        text-transform: uppercase; color: var(--color-on-surface-variant);
+    }
+
+    @media (max-width: 900px) {
+        .pv-help { display: none; }
+        .timetable th.col-students, .timetable td.col-students,
+        .timetable th.col-cohort, .timetable td.col-cohort { display: none; }
+    }
+</style>
+</head>
+<body>
+
+<!-- fake page chrome, real nav classes -->
+<div class="top-bar">
+    <div class="top-logo"><span class="pv-brand" style="font-weight:700;color:var(--color-on-primary-container)">TAR UMT</span></div>
+    <div class="nav-items">
+        <a class="nav-item" href="#">My Timetable</a>
+        <a class="nav-item" href="#">Cohort Timetables</a>
+        <a class="nav-item" href="#">Venue Timetable</a>
+        <a class="nav-item active" href="#">My Replacements</a>
+        <a class="nav-item" href="#">Request Approval</a>
+    </div>
+</div>
+
+<div class="app-container">
+
+    <div class="page-header">
+        <h1 class="page-title">My Replacements</h1>
+        <span class="semester-chip">202505 · Semester 202505</span>
+        <p class="page-desc">Every <span class="info-keyword">class</span> that needs a replacement, and every <span class="info-keyword">request</span> you have made for it — in <span class="info-keyword">one list</span>.</p>
+    </div>
+
+    <p class="pv-note">
+        <b>Design preview.</b> This is the proposed merged page — <b>My Replacements</b>,
+        living at <code>/my-replacements</code>, with <code>/replacement-home-ui</code> and
+        <code>/my-request-history-ui</code> kept as aliases so old links and notifications still land here.
+    </p>
+
+    <!-- toolbar -->
+    <div class="toolbar">
+        <div class="toolbar-left">
+            <div class="search-wrapper">
+                <svg class="search-icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                <input class="search-input" id="searchInput" placeholder="Search by course code or name...">
+            </div>
+            <div class="week-nav">
+                <button class="week-arrow" aria-label="Previous week">&#8249;</button>
+                <select class="week-select" id="weekSelect" aria-label="Week"></select>
+                <button class="week-arrow" aria-label="Next week">&#8250;</button>
+            </div>
+            <select class="filter-select week-select" id="statusFilter">
+                <option value="all">All request statuses</option>
+                <option value="none">Need to Arrange</option>
+                <option value="pending">Pending</option>
+                <option value="approved">Approved</option>
+                <option value="rejected">Rejected</option>
+                <option value="cancelled">Cancelled</option>
+                <option value="completed">Completed</option>
+            </select>
+            <label class="toggle-wrapper" id="completedToggle">
+                <input type="checkbox" id="hideCompleted" checked>
+                <span class="toggle-track"><span class="toggle-thumb"></span></span>
+                <span class="toggle-label">Exclude <span class="info-keyword">Completed</span> Status</span>
+            </label>
+            <button class="btn-clear" id="resetFilters">Reset Filters</button>
+        </div>
+        <div class="toolbar-right">
+            <span class="result-count" id="resultCount">Showing 8 of 8 classes</span>
+        </div>
+    </div>
+
+    <div class="sort-hint">Click <strong>Course Code &amp; Name</strong> or <strong>Original Class</strong> to sort</div>
+
+    <!-- filter chips: the same element + vocabulary as my-request-history -->
+    <div class="filter-chips" id="filterChips"></div>
+
+    <!-- grid -->
+    <div class="grid-wrapper">
+        <div class="grid-scroll">
+            <table class="timetable data-table" id="replacementTable">
+                <thead>
+                    <tr>
+                        <th class="sortable" data-sort="code" data-label="Course Code &amp; Name" data-tip="Course affected by the conflict">Course Code &amp; Name</th>
+                        <th class="pv-th-cohort" data-label="Cohort" data-tip="Affected cohorts — not sortable: a multi-cohort row has no single value">Cohort</th>
+                        <th class="sortable" data-sort="date" data-label="Original Class" data-tip="The class that cannot run as timetabled">Original Class</th>
+                        <th class="sortable" data-sort="reason" data-label="Conflict Reason" data-tip="Why this class cannot run">Conflict Reason</th>
+                        <th class="sortable" data-sort="replacementDate" data-label="Requested Replacement" data-tip="The new slot proposed for this class">Requested Replacement</th>
+                        <th class="sortable" data-sort="status" data-label="Request Status" data-tip="Where the request stands — the newest request wins">Request Status</th>
+                        <th data-label="Action" data-tip="What you can do with this class">Action</th>
+                    </tr>
+                </thead>
+                <tbody id="tableBody"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="pagination-bar" id="paginationBar">
+        <div class="rpp-wrapper">
+            <label for="rowsPerPage">Rows:</label>
+            <select class="rpp-select" id="rowsPerPage">
+                <option value="10" selected>10</option>
+                <option value="25">25</option>
+                <option value="50">50</option>
+                <option value="all">All</option>
+            </select>
+        </div>
+        <span class="pagination-info" id="paginationInfo">Showing 1-7 of 7</span>
+        <div class="pagination-controls" id="paginationControls"></div>
+    </div>
+
+    <!-- summary -->
+    <div class="summary-section">
+        <div class="summary-hint">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+            <span>Stats follow the <strong>active filters</strong>. Hover a card for what it means.</span>
+        </div>
+        <div class="summary-bar">
+            <div class="summary-card card-conflict"><div class="summary-card-inner">
+                <div class="summary-card-front"><span class="summary-value" id="sumNeeds">0</span><span class="summary-label">Classes to Arrange</span></div>
+                <div class="summary-card-back"><span class="summary-description">Your classes that still <span class="warn-keyword">need a replacement arrangement</span>.</span></div>
+            </div></div>
+            <div class="summary-card card-duration"><div class="summary-card-inner">
+                <div class="summary-card-front"><span class="summary-value" id="sumHours">0</span><span class="summary-label">Class Hours to Replace</span></div>
+                <div class="summary-card-back"><span class="summary-description">Total <span class="info-keyword">hours of class time</span> that must be rescheduled.</span></div>
+            </div></div>
+            <div class="summary-card card-pending"><div class="summary-card-inner">
+                <div class="summary-card-front"><span class="summary-value" id="sumPending">0</span><span class="summary-label">Pending Requests</span></div>
+                <div class="summary-card-back"><span class="summary-description">Requests <span class="warn-keyword">waiting for the PL's approval</span>.</span></div>
+            </div></div>
+            <div class="summary-card card-approved"><div class="summary-card-inner">
+                <div class="summary-card-front"><span class="summary-value" id="sumApproved">0</span><span class="summary-label">Approved Requests</span></div>
+                <div class="summary-card-back"><span class="summary-description">Requests the PL has <span class="info-keyword">approved</span> and are ready to run.</span></div>
+            </div></div>
+            <div class="summary-card card-rejected"><div class="summary-card-inner">
+                <div class="summary-card-front"><span class="summary-value" id="sumRejected">0</span><span class="summary-label">Rejected Requests</span></div>
+                <div class="summary-card-back"><span class="summary-description">Requests the PL <span class="warn-keyword">declined</span> — arrange an alternative.</span></div>
+            </div></div>
+        </div>
+    </div>
+<details class="pv-help">
+    <summary>Preview notes — click to open</summary>
+    <b>Static preview — not the app.</b> theme.css is loaded live from :8000, so
+    start the dev server to see the real colours.<br>
+    <b>Live here:</b> search, request-status filter, the Exclude Completed Status toggle, sorting, row
+    click, the Active Filters chips and the pagination bar.<br>
+    <b>Decided:</b> no checkbox column and no bulk cancel — a request is cancelled
+    one at a time, from its detail modal. Action is icon-only: rotate = arrange,
+    eye = view — hover for the wording.<br>
+    <b>Still open:</b> the page name, the summary card set, whether the
+    request-status badge is also a shortcut, and status chips vs the dropdown.<br>
+    <button id="themeToggle">Toggle light / dark</button>
+</details>
+
+</div>
+
+<!-- detail modal — same shell as the app's DetailModal (title · tabs · panels) -->
+<div class="modal-overlay" id="detailOverlay">
+    <div class="modal modal--detail" style="max-width:640px">
+        <div class="modal-header">
+            <span class="modal-title" id="detailTitle">Replacement Details</span>
+            <button class="modal-close" onclick="closeDetail()" aria-label="Close" data-tip="Close">&times;</button>
+        </div>
+        <div class="detail-facts" id="detailFacts"></div>
+        <div class="modal-body" id="detailBody"></div>
+        <div class="modal-footer">
+            <button class="btn-close-modal" onclick="closeDetail()">Close</button>
+            <button class="btn-action" id="detailArrange" style="display:none"></button>
+            <button class="btn-danger" id="detailCancel" style="display:none">Cancel this request</button>
+        </div>
+    </div>
+</div>
+
+
+<script>
+/* ── fake data — every status appears exactly once, plus a real trail ── */
+var TODAY = new Date('2025-11-07T00:00:00');
+var ROWS = [
+    {
+        id: 1, sessionId: 101, code: 'AMIT2033', name: 'Advanced Networking', type: 'L',
+        date: '2025-11-10', day: 'Mon', time: '09:00 to 11:00', hours: 2, venue: 'B006',
+        cohorts: ['RSD2 (S1) G1'], students: 24, reason: 'Annual Leave',
+        status: null, replacement: null, trail: []
+    },
+    {
+        id: 2, sessionId: 102, code: 'BMIT2013', name: 'Web-Based Integrated Systems', type: 'L',
+        date: '2025-11-11', day: 'Tue', time: '14:00 to 16:00', hours: 2, venue: 'B009',
+        cohorts: ['RSD2 (S1) G2', 'RSD2 (S1) G3'], students: 34, reason: 'Medical Leave',
+        status: 'pending',
+        replacement: { date: '2025-11-13', day: 'Thu', time: '10:00 to 12:00', venue: 'B011' },
+        trail: [
+            { status: 'rejected', submitted: '09 Nov 2025, 4:12 PM', decided: '10 Nov 2025, 9:05 AM',
+              by: 'Pn. Surayaini (PL)', replacement: 'Thu, 13 Nov 2025 · 08:00 to 10:00 · B109',
+              note: 'Venue already booked for another cohort.' },
+            { status: 'cancelled', submitted: '10 Nov 2025, 10:30 AM', decided: '10 Nov 2025, 11:02 AM',
+              by: 'You', replacement: 'Thu, 13 Nov 2025 · 11:00 to 13:00 · B011',
+              note: 'Cancelled while waiting, to try a different slot.' },
+            { status: 'pending', submitted: '11 Nov 2025, 7:55 AM', decided: null, by: null,
+              replacement: 'Thu, 13 Nov 2025 · 10:00 to 12:00 · B011', note: '' }
+        ]
+    },
+    {
+        id: 3, sessionId: 103, code: 'BMSE3153', name: 'Software Testing', type: 'T',
+        date: '2025-11-12', day: 'Wed', time: '10:00 to 11:00', hours: 1, venue: 'B103',
+        cohorts: ['DFT2 (S1) G1'], students: 18, reason: 'Annual Leave',
+        status: 'approved',
+        replacement: { date: '2025-11-14', day: 'Fri', time: '09:00 to 10:00', venue: 'B109' },
+        trail: [
+            { status: 'approved', submitted: '08 Nov 2025, 2:20 PM', decided: '09 Nov 2025, 8:30 AM',
+              by: 'Pn. Surayaini (PL)', replacement: 'Fri, 14 Nov 2025 · 09:00 to 10:00 · B109', note: '' }
+        ]
+    },
+    {
+        id: 4, sessionId: 104, code: 'AMCS1013', name: 'Problem Solving and Programming', type: 'T',
+        date: '2025-11-13', day: 'Thu', time: '13:30 to 14:30', hours: 1, venue: 'B006',
+        cohorts: ['DSF1 (S1) G1'], students: 21, reason: 'Official Event',
+        status: 'rejected',
+        rejectionReason: 'The proposed slot clashes with another cohort\u2019s lab session.',
+        replacement: { date: '2025-11-15', day: 'Sat', time: '10:00 to 11:00', venue: 'B010' },
+        trail: [
+            { status: 'rejected', submitted: '09 Nov 2025, 5:02 PM', decided: '10 Nov 2025, 10:15 AM',
+              by: 'Pn. Surayaini (PL)', replacement: 'Sat, 15 Nov 2025 · 10:00 to 11:00 · B010',
+              note: 'Students already have a replacement class that morning.' }
+        ]
+    },
+    {
+        id: 5, sessionId: 105, code: 'BMIT1175', name: 'Data Structures', type: 'P',
+        date: '2025-11-14', day: 'Fri', time: '08:00 to 10:00', hours: 2, venue: 'B006',
+        cohorts: ['RSD2 (S1) G1'], students: 22, reason: 'Medical Leave',
+        status: 'cancelled',
+        replacement: { date: '2025-11-14', day: 'Fri', time: '14:00 to 16:00', venue: 'B006' },
+        trail: [
+            { status: 'cancelled', submitted: '10 Nov 2025, 8:11 AM', decided: '10 Nov 2025, 9:02 AM',
+              by: 'You', replacement: 'Fri, 14 Nov 2025 · 14:00 to 16:00 · B006',
+              note: 'Cancelled by the requester.' }
+        ]
+    },
+    {
+        id: 6, sessionId: 106, code: 'BMIT2173', name: 'Human Computer Interaction', type: 'L',
+        date: '2025-11-03', day: 'Mon', time: '11:00 to 13:00', hours: 2, venue: 'B110',
+        cohorts: ['RSD3 (S1) G1'], students: 30, reason: 'Public Holiday', holidayName: 'Deepavali Holiday (In Lieu)', week: 5,
+        status: 'completed',
+        replacement: { date: '2025-11-04', day: 'Tue', time: '14:00 to 16:00', venue: 'B110', week: 5 },
+        trail: [
+            { status: 'approved', submitted: '01 Nov 2025, 9:30 AM', decided: '02 Nov 2025, 10:00 AM',
+              by: 'Pn. Surayaini (PL)', replacement: 'Tue, 04 Nov 2025 · 14:00 to 16:00 · B110', note: '' }
+        ]
+    },
+    {
+        id: 7, sessionId: 107, code: 'AMCS1043', name: 'Database Development and Applications', type: 'T',
+        date: '2025-11-11', day: 'Tue', time: '10:00 to 11:00', hours: 1, venue: 'B011',
+        cohorts: ['DSF1 (S1) G2'], students: 19, reason: 'Public Holiday', holidayName: 'Chinese New Year',
+        status: null, replacement: null, trail: []
+    },
+    {
+        id: 8, sessionId: 108, code: 'BMIT1723', name: 'IT Fundamentals and Applications', type: 'L',
+        date: '2025-11-12', day: 'Wed', time: '15:00 to 17:00', hours: 2, venue: 'B009',
+        cohorts: ['RSD1 (S1) G1'], students: 28, reason: 'Annual Leave',
+        status: 'pending',
+        replacement: { date: '2025-11-13', day: 'Thu', time: '15:00 to 17:00', venue: 'B009' },
+        trail: [
+            { status: 'pending', submitted: '11 Nov 2025, 7:55 AM', decided: null, by: null,
+              replacement: 'Thu, 13 Nov 2025 · 15:00 to 17:00 · B009', note: '' }
+        ]
+    },
+    /* four more rows so the pagination bar has a real second page */
+    {
+        id: 9, sessionId: 109, code: 'AMIT2034', name: 'Network Security', type: 'T',
+        date: '2025-11-11', day: 'Tue', time: '15:00 to 16:00', hours: 1, venue: 'B006',
+        cohorts: ['DSF2 (S1) G1'], students: 20, reason: 'Medical Leave',
+        status: 'pending',
+        replacement: { date: '2025-11-12', day: 'Wed', time: '10:00 to 11:00', venue: 'B010' },
+        trail: [
+            { status: 'pending', submitted: '10 Nov 2025, 3:20 PM', decided: null, by: null,
+              replacement: 'Wed, 12 Nov 2025 · 10:00 to 11:00 · B010', note: '' }
+        ]
+    },
+    {
+        id: 10, sessionId: 110, code: 'BMIT3084', name: 'Mobile Application Development', type: 'L',
+        date: '2025-11-10', day: 'Mon', time: '08:00 to 10:00', hours: 2, venue: 'B103',
+        cohorts: ['DFT2 (S1) G2'], students: 25, reason: 'Annual Leave',
+        status: null, replacement: null, trail: []
+    },
+    {
+        id: 11, sessionId: 111, code: 'AMCS2093', name: 'Object Oriented Programming', type: 'L',
+        date: '2025-11-13', day: 'Thu', time: '09:00 to 11:00', hours: 2, venue: 'B110',
+        cohorts: ['RSD1 (S1) G2'], students: 31, reason: 'Official Event',
+        status: 'approved',
+        replacement: { date: '2025-11-14', day: 'Fri', time: '14:00 to 16:00', venue: 'B109' },
+        trail: [
+            { status: 'approved', submitted: '09 Nov 2025, 10:05 AM', decided: '10 Nov 2025, 8:40 AM',
+              by: 'Pn. Surayaini (PL)', replacement: 'Fri, 14 Nov 2025 · 14:00 to 16:00 · B109', note: '' }
+        ]
+    },
+    {
+        id: 12, sessionId: 112, code: 'BMCS3033', name: 'Social and Professional Issues', type: 'T',
+        date: '2025-11-14', day: 'Fri', time: '11:00 to 12:00', hours: 1, venue: 'B011',
+        cohorts: ['DFT3 (S1) G1'], students: 17, reason: 'Public Holiday', holidayName: 'Christmas Day',
+        status: null, replacement: null, trail: []
+    },
+    /* three more Completed occurrences — class + replacement both in week 5 (past) */
+    {
+        id: 13, sessionId: 113, code: 'BMIT2154', name: 'Network Infrastructure', type: 'L',
+        date: '2025-11-03', day: 'Mon', time: '08:00 to 10:00', hours: 2, venue: 'B006',
+        cohorts: ['DFT2 (S1) G1'], students: 26, reason: 'Annual Leave', week: 5,
+        status: 'completed',
+        replacement: { date: '2025-11-05', day: 'Wed', time: '10:00 to 12:00', venue: 'B006', week: 5 },
+        trail: [
+            { status: 'approved', submitted: '29 Oct 2025, 9:10 AM', decided: '30 Oct 2025, 8:35 AM',
+              by: 'Pn. Surayaini (PL)', replacement: 'Wed, 05 Nov 2025 · 10:00 to 12:00 · B006', note: '' }
+        ]
+    },
+    {
+        id: 14, sessionId: 114, code: 'BMIT1173', name: 'IT Fundamentals', type: 'T',
+        date: '2025-11-04', day: 'Tue', time: '14:00 to 15:00', hours: 1, venue: 'B009',
+        cohorts: ['RSD1 (S1) G2'], students: 23, reason: 'Medical Leave', week: 5,
+        status: 'completed',
+        replacement: { date: '2025-11-06', day: 'Thu', time: '09:00 to 10:00', venue: 'B010', week: 5 },
+        trail: [
+            { status: 'approved', submitted: '30 Oct 2025, 2:45 PM', decided: '31 Oct 2025, 9:05 AM',
+              by: 'Pn. Surayaini (PL)', replacement: 'Thu, 06 Nov 2025 · 09:00 to 10:00 · B010', note: '' }
+        ]
+    },
+    {
+        id: 15, sessionId: 115, code: 'BMIS2003', name: 'Blockchain Application Development', type: 'L',
+        date: '2025-11-05', day: 'Wed', time: '11:00 to 13:00', hours: 2, venue: 'B006',
+        cohorts: ['RSD3 (S1) G1'], students: 29, reason: 'Annual Leave', week: 5,
+        status: 'completed',
+        replacement: { date: '2025-11-06', day: 'Thu', time: '14:00 to 16:00', venue: 'B110', week: 5 },
+        trail: [
+            { status: 'approved', submitted: '28 Oct 2025, 11:20 AM', decided: '29 Oct 2025, 10:15 AM',
+              by: 'Pn. Surayaini (PL)', replacement: 'Thu, 06 Nov 2025 · 14:00 to 16:00 · B110', note: '' }
+        ]
+    }
+];
+
+/* images for the arrange button, copied from HtmlBuilder.replacementHomeRow */
+var ARRANGE_SVG = '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>';
+/* ban: the request is withdrawn, not the window closed */
+var CANCEL_SVG = '<svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><line x1="5.6" y1="5.6" x2="18.4" y2="18.4"/></svg>';
+var EYE_SVG = '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>';
+var VENUE_SVG = '<svg class="pv-cell-icon" xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>';
+/* the exact users glyph the arrangement page uses (slot dropdown, :3773) */
+var USERS_SVG = '<svg class="pv-cell-icon" xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>';
+
+var state = { sort: 'date', dir: 'asc' };
+var currentRows = [];
+
+function daysLeft(row) {
+    return Math.round((new Date(row.date + 'T00:00:00') - TODAY) / 86400000);
+}
+function isHandled(row) {
+    return row.status !== null && row.status !== 'rejected' && row.status !== 'cancelled';
+}
+function actorLabel(by) {
+    if (!by) return null;
+    if (/you/i.test(by)) return 'YOU';
+    if (/\(PL\)/i.test(by)) return 'PL';
+    return by;
+}
+function relativeDays(iso) {
+    var d = Math.round((TODAY - new Date(iso + 'T00:00:00')) / 86400000);
+    if (d <= 0) return 'Today';
+    if (d === 1) return '1 day ago';
+    return d + ' days ago';
+}
+function statusLabel(s, by, short, dateIso) {
+    if (!s) return 'Need to Arrange';
+    if (s === 'pending') {
+        return short ? 'Pending' : 'Pending \u2014 Waiting for Approval';
+    }
+    if (s === 'completed') {
+        /* the tab label only has room for the word; the badge carries the "how long ago" */
+        if (short) return 'Completed';
+        /* at most three words after the dash, and only when the date is known */
+        return dateIso && relativeDays(dateIso) ? 'Completed \u2014 ' + relativeDays(dateIso) : 'Completed';
+    }
+    /* who decided is no longer in the label: on this page the reader is always
+       the lecturer, so `Approved by PL` said the same thing five times. The name
+       is still on the request's own record. */
+    if (s === 'approved' || s === 'rejected') {
+        return s.charAt(0).toUpperCase() + s.slice(1);
+    }
+    var label = s.charAt(0).toUpperCase() + s.slice(1);
+    /* the tab label has no room for "(Cancelled by YOU)" — the sentence under it
+       already says "You cancelled this request" */
+    if (short) return label;
+    var actor = actorLabel(by);
+    return actor ? label + ' by ' + actor : label;
+}
+function latestBy(row) {
+    return (row.trail && row.trail.length) ? row.trail[row.trail.length - 1].by : null;
+}
+function statusBadge(row) {
+    var cls = row.status ? 'status-' + row.status : 'pv-status-none';
+    var label = statusLabel(row.status, row.by, false, row.completedAt);
+    return '<span class="badge ' + cls + '">' + label + '</span>';
+}
+/* the occurrence's own status — one call, so the facts strip and CURRENT can never disagree */
+function currentBadge(r) {
+    return statusBadge({ status: r.status, by: latestBy(r), completedAt: r.replacement ? r.replacement.date : null });
+}
+/* one plain sentence saying what the status means for this class */
+function statusDescription(r) {
+    switch (r.status) {
+        case 'pending':
+            return 'The proposed replacement is waiting for the PL to approve or reject it.';
+        case 'approved':
+            return 'The PL approved the proposed replacement, so this class will run at the new time.';
+        case 'rejected':
+            return 'The PL declined the proposed replacement, so a different slot has to be arranged.';
+        case 'cancelled':
+            return 'You cancelled this request, so the class is free to be arranged again.';
+        case 'completed':
+            /* the badge says "Completed — 1 day ago"; the sentence repeats the
+               count so a reader who skips the badge still knows how long ago */
+            var done = r.replacement && relativeDays(r.replacement.date);
+            return done && done !== 'Today'
+                ? 'The replacement took place ' + done + '.'
+                : 'The replacement took place today.';
+        default:
+            return 'No replacement has been proposed for this class yet.';
+    }
+}
+function reasonBadge(reason, holidayName) {
+    if (reason === 'Public Holiday') {
+        return '<span class="badge badge-holiday">Public Holiday \u2014 ' + (holidayName || 'Semester holiday') + '</span>';
+    }
+    return '<span class="badge pv-reason-cancelled">Class Cancelled \u2014 ' + reason + '</span>';
+}
+/* copied from replacement-home.blade.php — plain coloured text, never a badge */
+function urgencyClass(days) {
+    if (days <= 7) return 'urgency-high';
+    if (days <= 30) return 'urgency-mid';
+    return 'urgency-low';
+}
+function daysLeftLabel(days) {
+    if (days < 0) {
+        var n = Math.abs(days);
+        return 'Overdue (' + n + (n === 1 ? ' day' : ' days') + ' ago)';
+    }
+    if (days === 0) return 'Today';
+    if (days === 1) return '1 day left';
+    return days + ' days left';
+}
+function daysInline(row) {
+    if (isHandled(row)) return '<span class="pv-dash">&mdash;</span>';
+    var d = daysLeft(row);
+    return '<span class="' + urgencyClass(d) + '">' + daysLeftLabel(d) + '</span>';
+}
+function hoursBetween(a, b) {
+    var x = a.split(':'), y = b.split(':');
+    return ((parseInt(y[0], 10) * 60 + parseInt(y[1], 10)) - (parseInt(x[0], 10) * 60 + parseInt(x[1], 10))) / 60;
+}
+function replacementCell(row) {
+    if (!row.replacement) {
+        return '<span class="pv-dash pv-dash--faint">&mdash;</span>';
+    }
+    var r = row.replacement;
+    var times = r.time.split(' to ');
+    var hrs = hoursBetween(times[0], times[1]);
+    return '<div class="cell-class-block">'
+         + '<span class="class-day-date">' + r.day + ', ' + fmtDate(r.date) + ' (Week ' + (r.week || 6) + ')</span><br>'
+         + '<span class="class-time">' + r.time + '</span>'
+         + ' <span class="class-duration">(' + hrs + ' hr' + (hrs === 1 ? '' : 's') + ')</span><br>'
+         + '<span class="pv-cell-sub">' + VENUE_SVG + r.venue + '</span>'
+         + '</div>';
+}
+function actionCell(row) {
+    /* a pending request has nothing to arrange and nothing to read that the row
+       click does not already open — its one action is to withdraw it */
+    if (row.status === 'pending') {
+        return '<button type="button" class="pv-icon-btn pv-icon-btn--ghost pv-icon-btn--danger pv-tip"'
+            + ' data-tip="Cancel this request" aria-label="Cancel this request"'
+            + ' data-cancel="' + row.id + '">' + CANCEL_SVG + '</button>';
+    }
+    if (isHandled(row)) {
+        return '<button type="button" class="pv-icon-btn pv-icon-btn--ghost pv-tip"'
+            + ' data-tip="View this request and its history" aria-label="View this request"'
+            + ' data-open="' + row.id + '">' + EYE_SVG + '</button>';
+    }
+    return '<button type="button" class="pv-icon-btn pv-icon-btn--primary pv-tip"'
+        + ' data-tip="Arrange a replacement for this class" aria-label="Arrange a replacement"'
+        + ' data-arrange="' + row.id + '">' + ARRANGE_SVG + '</button>';
+}
+
+function filteredRows() {
+    var q = document.getElementById('searchInput').value.toLowerCase().trim();
+    var st = document.getElementById('statusFilter').value;
+    var hideDone = document.getElementById('hideCompleted').checked;
+
+    var rows = ROWS.filter(function (r) {
+        if (hideDone && r.status === 'completed') return false;
+        if (st !== 'all') {
+            if (st === 'none' && r.status !== null) return false;
+            if (st !== 'none' && r.status !== st) return false;
+        }
+        if (q) {
+            var qCompact = q.replace(/\s+/g, '');
+            var hit = r.code.toLowerCase().indexOf(q) !== -1
+                || r.name.toLowerCase().indexOf(q) !== -1
+                /* cohorts are searchable too (user decision, 2026-11-03) — and the
+                   spaced convention means "RSD3(S1)G2" must match "RSD3 (S1) G2" */
+                || r.cohorts.some(function (c) {
+                    var lc = c.toLowerCase();
+                    return lc.indexOf(q) !== -1 || lc.replace(/\s+/g, '').indexOf(qCompact) !== -1;
+                });
+            if (!hit) return false;
+        }
+        return true;
+    });
+
+    var dir = state.dir === 'asc' ? 1 : -1;
+    rows.sort(function (a, b) {
+        var ha = isHandled(a) ? 1 : 0, hb = isHandled(b) ? 1 : 0;
+        if (ha !== hb) return ha - hb;                       /* needs action first */
+        var va, vb;
+        if (state.sort === 'reason') { va = a.reason; vb = b.reason; }
+        else if (state.sort === 'status') { va = a.status || 'none'; vb = b.status || 'none'; }
+        else if (state.sort === 'replacementDate') { va = a.replacement ? a.replacement.date : '9999'; vb = b.replacement ? b.replacement.date : '9999'; }
+        else if (state.sort === 'code') { va = a.code; vb = b.code; }
+        else if (state.sort === 'venue') { va = a.venue; vb = b.venue; }
+        else { va = a.date; vb = b.date; }
+        if (va < vb) return -1 * dir;
+        if (va > vb) return 1 * dir;
+        return 0;
+    });
+    return rows;
+}
+
+/* ── paging + filter chips — the same vocabulary as my-request-history ── */
+var pageState = { currentPage: 1 };
+var rowsPerPage = 10;
+
+function renderTable() { render(); }          /* the copied chip onclick calls this */
+function saveFilters() { /* preview: filters are not persisted */ }
+
+function renderFilterChips() {
+    var chips = [];
+    var status = document.getElementById('statusFilter').value;
+    var search = document.getElementById('searchInput').value.trim();
+
+    if (status !== 'all') {
+        var label = document.getElementById('statusFilter').selectedOptions[0].textContent;
+        chips.push('<span class="filter-chip">Status: ' + label
+            + '<button class="filter-chip-remove" data-tip="Remove" onclick="document.getElementById(\'statusFilter\').value=\'all\';pageState.currentPage=1;saveFilters();renderTable()">&times;</button></span>');
+    }
+    if (search) {
+        chips.push('<span class="filter-chip">Search: "' + search
+            + '"<button class="filter-chip-remove" data-tip="Remove" onclick="document.getElementById(\'searchInput\').value=\'\';pageState.currentPage=1;saveFilters();renderTable()">&times;</button></span>');
+    }
+    if (document.getElementById('hideCompleted').checked) {
+        chips.push('<span class="filter-chip">Exclude Completed<button class="filter-chip-remove" data-tip="Remove" onclick="document.getElementById(\'hideCompleted\').checked=false;pageState.currentPage=1;saveFilters();renderTable()">&times;</button></span>');
+    }
+    if (chips.length > 0) {
+        chips.push('<button type="button" class="filter-chip filter-chip-clear-all" data-tip="Remove every active filter" onclick="clearAllFilters()">Clear all</button>');
+    }
+
+    document.getElementById('filterChips').innerHTML = chips.length > 0
+        ? '<span class="filter-chips-label">Active Filters:</span>' + chips.join('')
+        : '';
+}
+
+/* "Clear all" shows everything, completed included — the chips' own law */
+function clearAllFilters() {
+    document.getElementById('searchInput').value = '';
+    document.getElementById('statusFilter').value = 'all';
+    document.getElementById('hideCompleted').checked = false;
+    pageState.currentPage = 1;
+    render();
+}
+
+function paintPagination(pages) {
+    var c = document.getElementById('paginationControls');
+    var html = '<button class="page-btn" data-page="prev"' + (pageState.currentPage === 1 ? ' disabled' : '') + '>&#8249;</button>';
+    for (var i = 1; i <= pages; i++) {
+        html += '<button class="page-btn' + (i === pageState.currentPage ? ' active' : '') + '" data-page="' + i + '">' + i + '</button>';
+    }
+    html += '<button class="page-btn" data-page="next"' + (pageState.currentPage === pages ? ' disabled' : '') + '>&#8250;</button>';
+    c.innerHTML = html;
+}
+
+function render() {
+    currentRows = filteredRows();
+    var totalRows = currentRows.length;
+    var pageSize = rowsPerPage === 'all' ? totalRows : rowsPerPage;
+    if (pageSize < 1) pageSize = 1;
+    var pages = Math.max(1, Math.ceil(totalRows / pageSize));
+    if (pageState.currentPage > pages) pageState.currentPage = pages;
+    if (pageState.currentPage < 1) pageState.currentPage = 1;
+    var start = (pageState.currentPage - 1) * pageSize;
+    var pageRows = currentRows.slice(start, start + pageSize);
+
+    var body = document.getElementById('tableBody');
+    body.innerHTML = pageRows.map(function (r) {
+        return '<tr data-id="' + r.id + '">'
+            + '<td><span class="cell-code">' + r.code + '</span> <span class="cell-type-label">(' + r.type + ')</span>'
+                + '<br><span class="cell-name">' + r.name + '</span></td>'
+            + '<td class="pv-cohort">' + r.cohorts.join('<br>') + '</td>'
+            + '<td><div class="cell-class-block"><div class="pv-date-line">'
+                + '<span class="class-day-date">' + r.day + ', '
+                + new Date(r.date + 'T00:00:00').toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })
+                + ' (Week ' + (r.week || 6) + ')</span>'
+                + daysInline(r)
+                + '</div>'
+                + '<span class="class-time">' + r.time + '</span>'
+                + ' <span class="class-duration">(' + r.hours + ' hr' + (r.hours > 1 ? 's' : '') + ')</span><br>'
+                + '<span class="pv-cell-sub">' + VENUE_SVG + r.venue + '</span></div></td>'
+            + '<td>' + reasonBadge(r.reason, r.holidayName) + '</td>'
+            + '<td>' + replacementCell(r) + '</td>'
+            + '<td>' + statusBadge({ status: r.status, by: latestBy(r), completedAt: r.replacement ? r.replacement.date : null }) + '</td>'
+            + '<td>' + actionCell(r) + '</td>'
+            + '</tr>';
+    }).join('') || '<tr><td colspan="7" style="text-align:center;padding:26px;color:var(--color-on-surface-variant)">No classes match your filters.</td></tr>';
+
+    var from = totalRows ? start + 1 : 0;
+    var to = Math.min(start + pageSize, totalRows);
+    document.getElementById('paginationInfo').textContent = 'Showing ' + from + '-' + to + ' of ' + totalRows;
+    document.getElementById('resultCount').textContent = 'Showing ' + totalRows + ' of ' + ROWS.length + ' classes';
+
+    /* the shared sort arrow — same markup and class the app's table builders emit */
+    document.querySelectorAll('#replacementTable thead th').forEach(function (th) {
+        var label = th.getAttribute('data-label');
+        if (!label) return;
+        var on = th.classList.contains('sortable') && state.sort === th.getAttribute('data-sort');
+        th.innerHTML = label + (on
+            ? '<span class="sort-arrow">' + (state.dir === 'asc' ? '&#9650;' : '&#9660;') + '</span>'
+            : '');
+    });
+
+    paintPagination(pages);
+    renderFilterChips();
+
+    /* summary follows the filters */
+    var needs = currentRows.filter(function (r) { return !isHandled(r); });
+    document.getElementById('sumNeeds').textContent = needs.length;
+    document.getElementById('sumHours').textContent = needs.reduce(function (a, r) { return a + r.hours; }, 0);
+    document.getElementById('sumPending').textContent = currentRows.filter(function (r) { return r.status === 'pending'; }).length;
+    document.getElementById('sumApproved').textContent = currentRows.filter(function (r) { return r.status === 'approved'; }).length;
+    document.getElementById('sumRejected').textContent = currentRows.filter(function (r) { return r.status === 'rejected'; }).length;
+}
+
+/* ── the modal — the app's DetailModal shell: title · subtitle · tabs ── */
+function detailRow(label, value, strong) {
+    if (value === null || value === '' || value === undefined) return '';
+    return '<div class="detail-row"><span class="detail-label">' + label + '</span>'
+         + '<span class="detail-value' + (strong ? ' detail-value--strong' : '') + '">' + value + '</span></div>';
+}
+/* a sentence-valued row: muted and lighter than a fact */
+function descRow(label, text) {
+    if (!text) return '';
+    return '<div class="detail-row"><span class="detail-label">' + label + '</span>'
+         + '<span class="detail-value pv-desc-value">' + text + '</span></div>';
+}
+/* the occurrence's remark = the newest request's note */
+function latestRemark(r) {
+    var t = r.trail && r.trail.length ? r.trail[r.trail.length - 1] : null;
+    return t && t.note ? t.note : null;
+}
+function detailSection(title, rows) {
+    return '<div class="detail-group"><div class="detail-group-title">' + title + '</div>' + rows + '</div>';
+}
+function fmtDate(iso) {
+    return new Date(iso + 'T00:00:00').toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+}
+/* ── long-form display, used by the modal's two schedule tabs ── */
+function ordinalSuffix(n) {
+    var s = ['th', 'st', 'nd', 'rd'], v = n % 100;
+    return n + (s[(v - 20) % 10] || s[v] || s[0]);
+}
+function longDay(iso) {
+    return new Date(iso + 'T00:00:00').toLocaleDateString('en-GB', { weekday: 'long' });
+}
+function longDate(iso) {
+    var d = new Date(iso + 'T00:00:00');
+    return ordinalSuffix(d.getDate()) + ' '
+        + d.toLocaleDateString('en-GB', { month: 'long' }) + ' ' + d.getFullYear();
+}
+function to12h(t) {
+    var p = t.split(':'), h = parseInt(p[0], 10);
+    var ap = h >= 12 ? 'PM' : 'AM';
+    var hh = h % 12; if (hh === 0) hh = 12;
+    return hh + ':' + p[1] + ' ' + ap;
+}
+function timeRange(a, b) { return to12h(a) + ' ~ ' + to12h(b); }
+function durationWords(h) { return h + (h === 1 ? ' hour' : ' hours'); }
+/* short room names, taken from venues.room_name with the code stripped */
+var VENUE_NAMES = {
+    B006: 'Cisco Lab', B009: 'Computer Lab', B010: 'Computer Lab', B011: 'Computer Lab',
+    B103: 'Tutorial Room', B109: 'Tutorial Room', B110: 'Lecture Hall'
+};
+function venueLabel(code) {
+    return VENUE_NAMES[code] ? code + ' \u2014 ' + VENUE_NAMES[code] : code;
+}
+
+function openDetail(id) {
+    var r = ROWS.filter(function (x) { return x.id === id; })[0];
+    if (!r) return;
+
+    var typeLabel = r.type === 'L' ? 'Lecture' : (r.type === 'T' ? 'Tutorial' : 'Practical');
+    var times = r.time.split(' to ');
+
+    var week = r.week || 6;
+
+    /* fixed facts — always visible, between the subtitle and the tab bar */
+    var facts =
+        '<span class="df-item"><span class="df-label">Cohorts</span>' + r.cohorts.join(', ') + '</span>'
+        + '<span class="df-item"><span class="df-label">Students</span>' + r.students + '</span>'
+        + '<span class="df-item df-item--full"><span class="df-label">Conflict</span>' + reasonBadge(r.reason, r.holidayName) + '</span>';
+
+    /* tab 1 — the class exactly as it is timetabled */
+    var originalRows = detailRow('Class ID', '#' + r.sessionId, true)
+        + detailRow('Week', 'Week ' + week)
+        + detailRow('Day', longDay(r.date))
+        + detailRow('Date', longDate(r.date))
+        + detailRow('Time', timeRange(times[0], times[1]))
+        + detailRow('Duration', durationWords(r.hours))
+        + detailRow('Venue', venueLabel(r.venue));
+
+    /* tab 2 — what has been proposed instead */
+    var repl = r.replacement;
+    var replacementRows;
+    if (!repl) {
+        replacementRows = '<div class="detail-caption">No replacement has been proposed yet. Use Arrange Replacement to start one.</div>';
+    } else {
+        var rtimes = repl.time.split(' to ');
+        var rhrs = hoursBetween(rtimes[0], rtimes[1]);
+        replacementRows = detailRow('Request ID', '#R' + r.sessionId, true)
+            + detailRow('Week', 'Week ' + (repl.week || week))
+            + detailRow('Day', longDay(repl.date))
+            + detailRow('Date', longDate(repl.date))
+            + detailRow('Time', timeRange(rtimes[0], rtimes[1]))
+            + detailRow('Duration', durationWords(rhrs))
+            + detailRow('Venue', venueLabel(repl.venue));
+    }
+
+    /* tab 3 — the status as a badge (the colour is the point), what it means, and
+       the two notes behind it. Back by user request: the tab label alone is
+       monochrome, so the badge is where the red/amber/green lives. */
+    var statusRows = detailRow('Status', currentBadge(r))
+        + descRow('Status Description', statusDescription(r))
+        + (r.status === 'rejected' ? detailRow('Rejection Reason', r.rejectionReason || null, true) : '')
+        + detailRow('Remark', latestRemark(r));
+
+    /* the proposed-schedule tab only exists when something was actually proposed */
+    var tabs = [{ key: 'original', label: 'Original Class Schedule', html: originalRows }];
+    if (repl) {
+        tabs.push({ key: 'replacement', label: 'Proposed Replacement Schedule', html: replacementRows });
+    }
+    tabs.push({ key: 'status', label: 'Request Status (' + statusLabel(r.status, latestBy(r), true, r.replacement ? r.replacement.date : null) + ')', html: statusRows });
+
+    document.getElementById('detailTitle').innerHTML = 'Replacement Details'
+        + '<span class="modal-subtitle">' + r.code + ' · ' + r.name + ' (' + typeLabel + ')</span>';
+    document.getElementById('detailFacts').innerHTML = facts;
+
+    var html = '<div class="modal-tabs">' + tabs.map(function (t, i) {
+        return '<button type="button" class="modal-tab' + (i === 0 ? ' active' : '') + '" data-tab="' + t.key + '">' + t.label + '</button>';
+    }).join('') + '</div>';
+
+    html += tabs.map(function (t, i) {
+        return '<div class="modal-tab-panel' + (i === 0 ? ' active' : '') + '" data-panel="' + t.key + '">' + t.html + '</div>';
+    }).join('');
+
+    var body = document.getElementById('detailBody');
+    body.innerHTML = html;
+
+    body.querySelectorAll('.modal-tab').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+            body.querySelectorAll('.modal-tab').forEach(function (b) { b.classList.toggle('active', b === btn); });
+            body.querySelectorAll('.modal-tab-panel').forEach(function (p) {
+                p.classList.toggle('active', p.getAttribute('data-panel') === btn.getAttribute('data-tab'));
+            });
+        });
+    });
+
+    document.getElementById('detailCancel').style.display = r.status === 'pending' ? 'inline-flex' : 'none';
+    document.getElementById('detailCancel').onclick = function () { explainCancel(); };
+    /* footer action: arrange what still needs arranging (same button as the row) */
+    var arrangeBtn = document.getElementById('detailArrange');
+    if (isHandled(r)) {
+        arrangeBtn.style.display = 'none';
+    } else {
+        arrangeBtn.style.display = 'inline-flex';
+        arrangeBtn.innerHTML = ARRANGE_SVG + ' Arrange Replacement';
+        arrangeBtn.onclick = function () {
+            closeDetail();
+            alert('In the app this opens /replacement-arrangement for this class.');
+        };
+    }
+
+    document.getElementById('detailOverlay').classList.add('show');
+}
+
+function closeDetail() {
+    document.getElementById('detailOverlay').classList.remove('show');
+}
+
+/* preview only: the real page confirms, then cancels the pending request */
+function explainCancel() {
+    alert('Preview only.\n\nThe app would ask you to confirm, then cancel the pending request. The request stays in this class\u2019s history, marked Cancelled by YOU.');
+}
+
+/* ── wiring ── */
+(function () {
+    var weeks = document.getElementById('weekSelect');
+    for (var w = 1; w <= 14; w++) {
+        weeks.innerHTML += '<option value="' + w + '"' + (w === 6 ? ' selected' : '') + '>Week ' + w + ' (preview)</option>';
+    }
+
+    /* the row icon and the footer button share one mark */
+    document.getElementById('detailCancel').insertAdjacentHTML('afterbegin', CANCEL_SVG);
+
+    document.getElementById('searchInput').addEventListener('input', function () { pageState.currentPage = 1; render(); });
+    document.getElementById('statusFilter').addEventListener('change', function () { pageState.currentPage = 1; render(); });
+    document.getElementById('hideCompleted').addEventListener('change', function () { pageState.currentPage = 1; render(); });
+
+    /* "Reset Filters" restores the page DEFAULTS (Exclude Completed back ON).
+       The chip bar's "Clear all" is the opposite: it shows everything. */
+    document.getElementById('resetFilters').addEventListener('click', function () {
+        document.getElementById('searchInput').value = '';
+        document.getElementById('statusFilter').value = 'all';
+        document.getElementById('hideCompleted').checked = true;
+        state.sort = 'date'; state.dir = 'asc';
+        pageState.currentPage = 1;
+        render();
+    });
+
+    document.getElementById('rowsPerPage').addEventListener('change', function (e) {
+        rowsPerPage = e.target.value === 'all' ? 'all' : parseInt(e.target.value, 10);
+        pageState.currentPage = 1;
+        render();
+    });
+
+    document.getElementById('paginationControls').addEventListener('click', function (e) {
+        var b = e.target.closest('.page-btn');
+        if (!b || b.disabled) return;
+        var p = b.getAttribute('data-page');
+        if (p === 'prev') pageState.currentPage -= 1;
+        else if (p === 'next') pageState.currentPage += 1;
+        else pageState.currentPage = parseInt(p, 10);
+        render();
+    });
+
+    document.querySelectorAll('th.sortable').forEach(function (th) {
+        th.addEventListener('click', function () {
+            var f = th.getAttribute('data-sort');
+            if (state.sort === f) { state.dir = state.dir === 'asc' ? 'desc' : 'asc'; }
+            else { state.sort = f; state.dir = 'asc'; }
+            pageState.currentPage = 1;
+            render();
+        });
+    });
+
+    document.getElementById('tableBody').addEventListener('click', function (e) {
+        var open = e.target.closest('[data-open]');
+        if (open) { e.preventDefault(); openDetail(parseInt(open.getAttribute('data-open'), 10)); return; }
+        if (e.target.closest('[data-arrange]')) { e.preventDefault(); alert('In the app this opens /replacement-arrangement for that class.'); return; }
+        if (e.target.closest('[data-cancel]')) { e.preventDefault(); explainCancel(); return; }
+        var tr = e.target.closest('tr[data-id]');
+        if (tr) openDetail(parseInt(tr.getAttribute('data-id'), 10));
+    });
+
+    document.getElementById('detailOverlay').addEventListener('click', function (e) {
+        if (e.target === this) closeDetail();
+    });
+    document.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape') closeDetail();
+    });
+
+    document.getElementById('themeToggle').addEventListener('click', function () {
+        document.documentElement.classList.toggle('light');
+    });
+
+    render();
+})();
+</script>
+</body>
+</html>

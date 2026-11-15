@@ -3,7 +3,7 @@
 > **Status:** frozen · 2026-11-12
 > **Frozen proposal:** `.sdd/changes/replacement-arrangement-top-zone-round2/proposal.md`
 > **Baseline:** commit `7692d80`
-> **Visual contract:** `../../../../ui-prototype/replacement-arrangement-top-zone-preview.html`
+> **Visual contract:** `ui-prototype/replacement-arrangement-top-zone-preview.html`
 
 ## 1. Grid and state classes
 
