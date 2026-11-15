@@ -71,6 +71,14 @@ None.
 - `tasks.md` skips T10 (T9 absorbed the gate and the sheet). Left as written, since the numbers are
   referenced by the apply log.
 
+## 4b. Verify round 2 (confirm)
+
+PASS — the four round-1 items are done in code, not merely recorded, and nothing they touched broke R3
+or R5b. Two documentation drifts were caught and fixed before archive: the apply log still said
+`19/19` (now `21/21`, with the two verify receipts named) and the changelog said "22 responsive
+receipts" while describing the note line without the duplicate-note suppression. Test 3c now polls
+`currentWeek` instead of waiting a fixed 600ms.
+
 ## 5. Regression readings (recorded in the apply log)
 
 | spec | result |

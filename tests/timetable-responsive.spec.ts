@@ -423,8 +423,9 @@ test.describe('T16a — the phone (320 / 360 / 390 / 430)', () => {
       (window as any).selectWeek(target);
       return target;
     });
-    await page.waitForTimeout(600);
-    expect(await page.evaluate(() => Number((window as any).currentWeek)), 'the week really moved')
+    /* poll, not a fixed wait: a slow Livewire round trip must not make this flaky */
+    await expect
+      .poll(async () => page.evaluate(() => Number((window as any).currentWeek)), { timeout: 10_000 })
       .toBe(moved);
     const pressedAfter = (await chipState(page)).filter((c) => c.pressed).map((c) => c.index);
     expect(pressedAfter, 'R5b — a Wednesday stays a Wednesday across a week change, never resets to Monday')

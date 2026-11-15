@@ -670,7 +670,9 @@ week, same legend and cards, geometry within a pixel of before.
 
 - **Phone (≤767)**: one day at a time as cards — time range and venue large, course code and
   type under it, one grey note line, the status word in the block's own colour (only
-  Cancelled / Conflict; a holiday card is the conflict red, as the grid already painted). A
+  Cancelled / Conflict; a holiday card is the conflict red, as the grid already painted). The
+  word **replaces** the old `(Cancelled)` note rather than sitting beside it, so the line reads
+  `✕ Cancelled` once, with a date note in front when there is one. A
   seven-chip day strip sits under the week row, which pins beneath the top bar. Overlapping
   classes get a 5px left strip and an `Overlaps …` line on **every** card of the clash, and
   the same words in their `aria-label`.
@@ -693,7 +695,7 @@ week, same legend and cards, geometry within a pixel of before.
 - `buildTimetableGrid()` gained two changes, both behind a `responsive` flag: Cohort, Venue
   and Replacement Arrangement render byte-identically, pinned against a captured baseline.
 
-Checks: 22 responsive receipts (320/360/390/430/768/1024/1280/1440, both themes, keyboard,
+Checks: 21 responsive receipts (320/360/390/430/768/1024/1280/1440, both themes, keyboard,
 `hasTouch`, print emulation), the three-caller pin, and zero page errors. Two defects found by
 the receipts were fixed the same day: the sheet painted only its range line (the mode rules
 matched the relocated nodes too) and Enter/Space on a card opened nothing (the shared key

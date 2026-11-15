@@ -115,7 +115,8 @@ a week change; card click reaches the page's own details modal; `Class Hours` an
   display byte for byte; then Cohort and Venue live against the captured `outerHTML`, failing with
   the first differing offset and both snippets. Also asserts the flag-absent proof: on those two
   pages every block carries `data-tip2` and **none** carries the migrated `data-tip`.
-- **T16 `tests/timetable-responsive.spec.ts`** — 19 receipts, green: phone at 320/360/390/430,
+- **T16 `tests/timetable-responsive.spec.ts`** — 21 receipts, green (19 at apply, plus verify's two
+  R5b receipts 3b/3c): phone at 320/360/390/430,
   tablet at 768/1024, desktop + touch at 1440. `?week=` is **not** honoured by the two blades
   (both derive the week from the timeline), so the week is fixed through the page's own
   `window.selectWeek()` — the function the week select calls.
@@ -166,7 +167,7 @@ nothing to grow there; every other in-scope control is ≥48×48 under `hasTouch
 | spec | result | reading |
 |---|---|---|
 | `tests/timetable-callers-pin.spec.ts` | 6/6 | the invariant holds |
-| `tests/timetable-responsive.spec.ts` | 19/19 | this lane's contract |
+| `tests/timetable-responsive.spec.ts` | 21/21 | this lane's contract (19 at apply, +2 R5b receipts added in verify) |
 | `tests/timetable-lane-layout.spec.ts` | 13/13 | the pure lane planner is untouched |
 | `tests/filters-button.spec.ts` | 20 pass + 2 skip (known) | the shared toolbar still behaves |
 | `tests/summary-cards-button.spec.ts` | 15/16 | the one red is the documented testing-DB data gap on `/my-replacements` (`statusFilter=none` has no rejected/cancelled rows to filter for 5770), not this lane |
@@ -175,3 +176,13 @@ nothing to grow there; every other in-scope control is ≥48×48 under `hasTouch
 | `tests/class-modal-affordances.spec.ts` | 3/6 | fails inside its own `loginStaff()` — the file sets `storageState: .auth/staff-5770.json` **and** logs in again, so `/login/staff` redirects an authenticated session away and the form never appears. Unmodified by this lane; worth its own fix |
 
 Nothing in the lane's own suite is skipped or `test.fail`-annotated.
+
+## Verify round 2 — three cosmetic/presentational corrections
+
+- **R3's note line is now honest.** A cancelled card read `(Cancelled) ✕ Cancelled`; the word now
+  suppresses the legacy status note it duplicates (date notes stay), and `.tt-status` is transparent so
+  the two status words present identically. Found by looking at a real cancelled card, not by a test.
+- **Two R5b receipts** (3b, 3c) — the week label's 768 re-format, and a Wednesday staying a Wednesday
+  across a week change.
+- **T0a's checkbox** ticked, and the commit-level proof that the seven shared partials were never
+  edited (`git log c8b06ff..HEAD -- <path>` → 0 commits each).
