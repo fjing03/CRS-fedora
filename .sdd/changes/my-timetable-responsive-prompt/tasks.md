@@ -28,12 +28,12 @@ surfaces, E wires the staff page, F the student page, G proves it, H records it.
   (13) — and record the run. Nothing else may be edited first: with the builder untouched, this is the
   only moment a *before* means anything. *Satisfies R1, R10.*
 
-- [ ] **T1 — the chrome partial (`resources/views/partials/ui-tt-chrome.blade.php`, new).** The sticky
+- [x] **T1 — the chrome partial (`resources/views/partials/ui-tt-chrome.blade.php`, new).** The sticky
   wrapper for the caller's week row, `#ttDayStrip`, `#ttTools` (`hidden`) with the day heading + count +
   `#ttSummaryButton`, `#ttWindowGrid` (`hidden`), `#ttAgenda`, `#ttNextHint` (`hidden`) and the
   `#ttSheet` overlay/dialog/body (`wire:ignore`) exactly as design §4.1. *Satisfies R1, R2, R5, R6.*
 
-- [ ] **T2 — the CSS section (`public/css/theme.css`).** One new section, every rule scoped
+- [x] **T2 — the CSS section (`public/css/theme.css`).** One new section, every rule scoped
   `.tt-responsive` (design §5): sticky row and strip, day chips (44×52 base, pressed/today/holiday),
   tools and heading, the agenda card's three tiers with the `.is-overlap` strip and `.tt-overlap`
   line, the window grid's template, the sheet, the two print rules (hide the six blocks, un-hide the
@@ -41,7 +41,7 @@ surfaces, E wires the staff page, F the student page, G proves it, H records it.
   full control list of spec R7, and **the one unscoped rule** `.badge-cancelled` in
   `.badge-reason`'s token pair. *Satisfies R1, R3, R3b, R5, R6, R7, R8.*
 
-- [ ] **T3 — `TimetableResponsive`: skeleton, breakpoints, state (`public/js/ui-common.js`).** The
+- [x] **T3 — `TimetableResponsive`: skeleton, breakpoints, state (`public/js/ui-common.js`).** The
   object shell; three `matchMedia` queries with `change` → `sync()`; `_state { width, day, mode }`;
   `sync()` that clamps the day, **sets `data-tt-mode` on the page root**, hides `#timetable` in
   `agenda`/`window` and restores it in `full`, and calls the builders of B–D. No surface built yet.

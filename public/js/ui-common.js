@@ -6882,3 +6882,162 @@ const LastVisit = {
     },
 };
 window.LastVisit = LastVisit;
+
+
+
+/* ═════ TimetableResponsive — the ≤1279px chrome for the two timetable pages ═════
+   SDD my-timetable-responsive-prompt (lane frozen 2026-11-15). BATCH A IS THE SHELL:
+   state, breakpoints and `data-tt-mode` only — no surface is built yet, and each
+   stub below names the batch that fills it.
+
+   The scope class `.tt-responsive` is the whole safety story: the page root carries
+   it, every rule the lane adds to theme.css is prefixed with it, and this module
+   only ever acts when it finds one. NOTHING CALLS init() IN THIS BATCH, so the app
+   behaves exactly as it does today (design §4.1/§10); the two blades opt in at T11
+   (staff, phase A) and T14 (student, phase B).
+
+   State law (design §3): ONE object, `{ width, day, mode }`. `mode` is
+   'agenda' | 'window' | 'full'; `day` is 0..6 (Monday first) and is CLAMPED on every
+   crossing, never reset, so a day selected at 900px is still the selected day at
+   1300px and a 7-day week can never leave a stale index. The three matchMedia
+   queries are the only listeners: the top bar is a fixed `var(--top-bar-height)`,
+   so there is nothing to measure and no separate `resize` listener (design §3). */
+const TimetableResponsive = {
+    /* The page's config as passed by init() (design §6): { scope, pageKey, readonly,
+       onEventClick, events(), days(), findNextClass(fromWeek, fromDay) }. Replaced on
+       every init(), so a week change hands in the week the grid just drew. */
+    _cfg: null,
+    _bound: false,
+    _placeholders: {},
+
+    /* The four bands live in the queries, not in a number: width is cached only for
+       consumers that want to read it, never for a decision (R2). */
+    _state: { width: 0, day: 0, mode: 'full' },
+
+    /* (max-width: 767px) · (min-width: 768px) and (max-width: 1023px) ·
+       (min-width: 1024px) and (max-width: 1279px). No match at ≥1280 — and that
+       silence IS 'full'. */
+    _mq: [],
+
+    init: function (cfg) {
+        this._cfg = cfg || {};
+
+        /* buildTimetable() runs again on every week change, so init() must be
+           idempotent: the cfg is replaced, the listeners are bound exactly once. */
+        if (!this._bound) {
+            this._bound = true;
+            this._mq = [
+                window.matchMedia('(max-width: 767px)'),
+                window.matchMedia('(min-width: 768px) and (max-width: 1023px)'),
+                window.matchMedia('(min-width: 1024px) and (max-width: 1279px)'),
+            ];
+            var self = this;
+            var onChange = function () { self.sync(); };
+            for (var i = 0; i < this._mq.length; i++) {
+                if (this._mq[i].addEventListener) this._mq[i].addEventListener('change', onChange);
+                else if (this._mq[i].addListener) this._mq[i].addListener(onChange);
+            }
+        }
+
+        this.sync();
+    },
+
+    /* Which band are we in? Checked in width order, first match wins. */
+    _mode: function () {
+        if (this._mq[0] && this._mq[0].matches) return 'agenda';
+        if (this._mq[1] && this._mq[1].matches) return 'window';
+        if (this._mq[2] && this._mq[2].matches) return 'window';
+        return 'full';
+    },
+
+    /* Mode + day clamp → the attribute the CSS keys on → the builder of that band.
+       Runs at init, on each of the three media queries and after buildTimetable(). */
+    sync: function () {
+        var root = document.querySelector('.tt-responsive');
+        /* No scope class = not this lane's page: leave it byte-identical (§10). */
+        if (!root) return;
+
+        var mode = this._mode();
+        this._state.width = window.innerWidth;
+        this._state.mode = mode;
+
+        /* Clamp, never reset — a Wednesday stays a Wednesday across a crossing. */
+        var day = parseInt(this._state.day, 10);
+        if (isNaN(day)) day = 0;
+        this._state.day = Math.min(6, Math.max(0, day));
+
+        /* The CSS keys on `data-tt-mode` (three rules in theme.css); `data-tt-page`
+           is the phase-B hook ('staff' | 'student'), set from cfg.pageKey so the
+           blade and the module cannot disagree. */
+        root.setAttribute('data-tt-mode', mode);
+        if (this._cfg && this._cfg.pageKey) root.setAttribute('data-tt-page', this._cfg.pageKey);
+
+        /* R6: the tools block ships `hidden` and only this module offers it, below
+           1280 — so at ≥1280 the receipt is toBeHidden(), never toHaveCount(0). */
+        var tools = document.getElementById('ttTools');
+        if (tools) tools.hidden = mode === 'full';
+
+        /* R2: the legacy 22-column table must never render under the agenda or the
+           window, or the sideways scroll this lane exists to remove comes back.
+           'full' restores exactly what the page had before this module ran. */
+        var table = document.getElementById('timetable');
+        if (table) table.style.display = mode === 'full' ? '' : 'none';
+
+        /* ≥1280 is today's page: nothing of this lane renders there. */
+        if (mode === 'full') return;
+
+        this.buildStrip();
+        if (mode === 'agenda') this.buildAgenda();
+        else this._buildWindow();
+    },
+
+    /* ── Surface stubs, in the order the batches land. Empty on purpose. ── */
+
+    /* Batch B/C — seven chips (aria-pressed, today dot, holiday class) from cfg.days(). */
+    buildStrip: function () {
+        /* Batch B/C */
+    },
+
+    /* Batch B/C — the agenda card of design §4.2, from cfg.events(). */
+    buildAgenda: function () {
+        /* Batch B/C */
+    },
+
+    /* Batch B/C — the transposed 2/3-day grid rendered into #ttWindowGrid. */
+    _buildWindow: function () {
+        /* Batch B/C */
+    },
+
+    /* Batch B — re-render strip + agenda for a new day (a tap on the selected day
+       is a no-op, R5b); in window mode the tap moves the window instead. */
+    setDay: function (i) {
+        /* Batch B */
+    },
+
+    /* Batch B — the next-class jump: week → day → focus #ttDayHeading + scroll. */
+    nextClass: function () {
+        /* Batch B */
+    },
+
+    /* Batch D — the Week summary sheet: two movers, a built range line, scroll lock,
+       Tab trap, Esc, focus back to #ttSummaryButton (R6). */
+    openSheet: function () {
+        /* Batch D */
+    },
+
+    closeSheet: function () {
+        /* Batch D */
+    },
+
+    /* Batch D — move a node with a placeholder so its restore is exact. */
+    _relocate: function (node) {
+        /* Batch D */
+        return node;
+    },
+
+    _restore: function (node) {
+        /* Batch D */
+        return node;
+    },
+};
+window.TimetableResponsive = TimetableResponsive;

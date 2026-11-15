@@ -1338,6 +1338,16 @@ html.dark .filter-select {
     background: var(--color-surface-variant);
     color: var(--color-on-surface-variant);
 }
+/* A cancelled class's Status row — my-timetable-responsive-prompt, 2026-11-15 (R4).
+   theme.css never defined `badge-cancelled`, so the details pop-up printed a bare
+   word in a transparent pill. The red is already PUBLIC HOLIDAY's
+   (`badge-public-holiday` / `badge-conflict` share `--color-error` in §10.0), so a
+   cancelled class must not take it too: this is `.badge-reason`'s token pair, no
+   new colour. UNSCOPED on purpose — the lane's one all-pages exception. */
+.badge-cancelled {
+    background: var(--color-surface-variant);
+    color: var(--color-on-surface-variant);
+}
 
 /* ───── replacement-merge-one-table (2026-11-04) — five token-only definitions ─────
    M10's promote-on-third law: the icon-only Action button, the conflict badge
@@ -6005,3 +6015,608 @@ body.filters-panel-open .filters-btn { position:relative; z-index:1300; }
         display: none;
     }
 }
+
+/* ─────────────────────────────────────────────────────────────────────────
+   MY TIMETABLE — RESPONSIVE CHROME (SDD my-timetable-responsive-prompt)
+   Frozen 2026-11-15 · Batch A (the shell). Markup: partials/ui-tt-chrome.
+   State: TimetableResponsive in public/js/ui-common.js.
+
+   THE SCOPE IS THE WHOLE SAFETY STORY: every rule below is prefixed
+   `.tt-responsive`, so a page that does not opt in (Cohort, Venue, Replacement
+   Arrangement) is byte-identical to today. The only exception in this lane is
+   the unscoped `.badge-cancelled` skin, which sits with the badge base (:1321).
+
+   Four bands: ≤767 agenda · 768–1023 two-day window · 1024–1279 three-day
+   window · ≥1280 today's full week, no strip, no Week summary control (R2).
+   The module sets `data-tt-mode` = agenda|window|full on the page root; three
+   rules below key on it. Colours come from theme.css tokens only (§10.0).
+   ───────────────────────────────────────────────────────────────────────── */
+
+/* ── The mode rules (R2) — the legacy 22-column table never shows under the
+      agenda, and the legend + the five cards step aside for the sheet below 1280.
+      `full` restores the table itself (CSS here, inline `display` in sync()). ── */
+.tt-responsive[data-tt-mode="agenda"] #timetable,
+.tt-responsive[data-tt-mode="window"] #timetable {
+    display: none;
+}
+
+/* At ≥1280 this lane renders NOTHING: the page is exactly today's page even if the
+   module painted a strip/agenda before the window grew (R2, design §10). */
+.tt-responsive .tt-days,
+.tt-responsive .tt-agenda,
+.tt-responsive .tt-next-hint {
+    display: none;
+}
+
+/* Any node the shell ships `hidden` stays hidden: a class selector outranks the
+   UA's `[hidden]` rule, so without this the tools/grid/hint/sheet would show. */
+.tt-responsive .tt-tools[hidden],
+.tt-responsive .tt-window-grid[hidden],
+.tt-responsive .tt-next-hint[hidden],
+.tt-responsive .tt-sheet-overlay[hidden] {
+    display: none;
+}
+
+/* ── Below 1280: the sticky row + the seven day chips + the tools row ──
+   `top: var(--top-bar-height)` needs no JS measurement — the top bar is a fixed
+   `--top-bar-height` tall (design §3). Not applied at ≥1280, where the week row
+   stays in flow exactly as it is today (R5). */
+@media (max-width: 1279px) {
+    .tt-responsive .tt-sticky {
+        position: sticky;
+        top: var(--top-bar-height);
+        z-index: 20;                     /* above the grid, under the top bar */
+        margin: 0 -4px;
+        padding: 8px 4px;
+        background: var(--color-bg);
+        border-bottom: 1px solid var(--color-outline);
+    }
+    /* the caller's week row, laid out as the preview has it: one line, arrows and
+       select sharing the width (below 768 the page's own rule would wrap it) */
+    .tt-responsive .tt-sticky .semester-bar {
+        flex-direction: row;
+        flex-wrap: nowrap;
+        padding: 8px;
+        gap: 4px;
+    }
+    .tt-responsive .tt-sticky .week-nav {
+        flex: 1;
+        gap: 3px;
+    }
+    .tt-responsive .tt-sticky .week-arrow {
+        width: 44px;
+        height: 44px;
+    }
+    .tt-responsive .tt-sticky .week-select {
+        flex: 1;
+        min-width: 0;
+        height: 44px;
+    }
+
+    /* the strip: all seven chips at every width, scrollable, momentum on touch */
+    .tt-responsive .tt-days {
+        display: flex;
+        gap: 5px;
+        overflow-x: auto;
+        padding: 10px 1px 2px;
+        padding-inline-end: 2px;
+        -webkit-overflow-scrolling: touch;
+    }
+    .tt-responsive .tt-day {
+        min-width: 44px;
+        min-height: 52px;
+        flex: 1 0 44px;
+        padding: 4px;
+        border: 1px solid var(--color-outline);
+        border-radius: var(--radius-md);
+        background: var(--color-surface);
+        color: var(--color-on-surface-variant);
+        font-family: inherit;
+        font-size: 11px;
+        cursor: pointer;
+    }
+    .tt-responsive .tt-day strong {
+        display: block;
+        font-size: 14px;
+        color: var(--color-on-surface);
+    }
+    .tt-responsive .tt-day[aria-pressed="true"] {
+        border: 2px solid var(--color-primary);
+        background: var(--color-primary-container);
+        color: var(--color-on-primary-container);
+    }
+    /* the today dot: an empty 4px slot on every chip so no row jumps */
+    .tt-responsive .tt-day::after {
+        content: '';
+        display: block;
+        width: 4px;
+        height: 4px;
+        margin: 3px auto 0;
+        border-radius: 50%;
+    }
+    .tt-responsive .tt-day.is-today::after {
+        background: var(--color-primary);
+    }
+    .tt-responsive .tt-day.is-holiday {
+        color: var(--color-error);
+    }
+    /* days AFTER today read quieter than the ones already taught (design §5).
+       Batch B's buildStrip() sets it; until then the rule is simply inert. */
+    .tt-responsive .tt-day.is-ahead {
+        opacity: 0.62;
+    }
+
+    /* tools = day heading + count + the Week summary opener (R6) */
+    .tt-responsive .tt-tools {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        margin: 10px 0 14px;
+    }
+    .tt-responsive .tt-day-heading {
+        margin: 0;
+        font-size: 15px;
+        font-weight: 600;
+    }
+    .tt-responsive .tt-day-count {
+        display: block;
+        margin-top: 4px;
+        font-size: 12px;
+        color: var(--color-on-surface-variant);
+    }
+    .tt-responsive .tt-summary-btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 7px;
+        width: auto;
+        min-width: 44px;
+        height: 44px;
+        padding: 0 12px;
+        border: 1px solid var(--color-outline);
+        border-radius: var(--radius-md);
+        background: var(--color-surface);
+        color: var(--color-on-surface);
+        font: inherit;
+        font-size: 12px;
+        font-weight: 600;
+        cursor: pointer;
+    }
+    .tt-responsive .tt-summary-btn:hover {
+        background: var(--color-surface-variant);
+    }
+
+    /* the agenda mount: content-sized cards, 12px apart, nothing drawn when empty
+       (design §10: the module never booting leaves no gap, not a blank panel) */
+    .tt-responsive .tt-agenda {
+        display: grid;
+        gap: 12px;
+    }
+    .tt-responsive .tt-agenda:empty {
+        display: none;
+    }
+
+    /* the next-class hint (empty day / public holiday only — R5) */
+    .tt-responsive .tt-next-hint {
+        display: grid;
+        gap: 7px;
+        margin-top: 16px;
+        padding-top: 14px;
+        border-top: 1px solid var(--color-outline);
+        text-align: left;
+    }
+    .tt-responsive button.tt-next-hint {
+        width: 100%;
+        min-height: 44px;
+        padding: 14px 0 0;
+        border-right: 0;
+        border-bottom: 0;
+        border-left: 0;
+        border-radius: 0;
+        background: transparent;
+        color: inherit;
+        font: inherit;
+        text-align: left;
+        cursor: pointer;
+    }
+    .tt-responsive button.tt-next-hint:hover .tt-next-details {
+        color: var(--color-primary);
+    }
+    .tt-responsive .tt-next-caption {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 11px;
+        color: var(--color-on-surface-variant);
+    }
+    .tt-responsive .tt-next-details {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+        font-size: 12px;
+    }
+    .tt-responsive .tt-next-details strong {
+        font-weight: 600;
+    }
+    .tt-responsive .tt-next-venue {
+        padding: 3px 7px;
+        border-radius: var(--radius-sm);
+        background: var(--color-surface-variant);
+        color: var(--color-on-surface);
+        font-size: 11px;
+        font-weight: 600;
+    }
+
+    /* below 1280 the legend and the five cards live in the Week summary sheet, not
+       inline — the preview's order is week row → strip → tools → agenda (design §7.1) */
+    .tt-responsive[data-tt-mode="agenda"] .legend-bar,
+    .tt-responsive[data-tt-mode="window"] .legend-bar,
+    .tt-responsive[data-tt-mode="agenda"] #summarySection,
+    .tt-responsive[data-tt-mode="window"] #summarySection {
+        display: none;
+    }
+}
+
+/* ── The agenda card (R3) — ported from the approved preview's .preview-class
+      rules, three tiers by size and one grey, never a second colour language:
+      PRIMARY = time range + venue code · SECONDARY = course code + type ·
+      TERTIARY = one right-aligned note line (date note + one status word).
+      The subject NAME is not on the card (R3); it stays in aria-label, the tip
+      and the details modal. Sized by content: no fixed height, no empty gaps. ── */
+.tt-responsive .tt-card.event-block {
+    position: relative;
+    inset: auto;
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    height: auto;
+    min-height: 0;
+    align-items: stretch;
+    justify-content: flex-start;
+    gap: 8px;
+    padding: 12px 14px;
+    text-align: left;
+    white-space: normal;
+    border-radius: var(--radius-sm);
+    font-family: inherit;
+}
+.tt-responsive .tt-card-top {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 8px;
+}
+.tt-responsive .tt-card-top .tt-time {
+    min-width: 0;
+}
+.tt-responsive .tt-card-top .tt-venue {
+    flex: none;
+}
+/* the code + type line may break anywhere — a long code must not push the card wide */
+.tt-responsive .tt-course {
+    display: block;
+    overflow-wrap: anywhere;
+}
+/* two classes sharing time read as two unrelated cards in a list, so the pair is
+   marked: a thin strip down the left edge of BOTH cards (5px, R3) … */
+.tt-responsive .tt-card.is-overlap::before {
+    content: '';
+    position: absolute;
+    left: 1px;
+    top: 1px;
+    bottom: 1px;
+    width: 5px;
+    border-radius: var(--radius-sm) 0 0 var(--radius-sm);
+    background: var(--color-on-surface-variant);
+    opacity: 0.5;
+}
+/* … plus one plain-English line naming the class (or the count) it overlaps */
+.tt-responsive .tt-card .tt-overlap {
+    display: block;
+    margin-top: 7px;
+    padding-top: 6px;
+    border-top: 1px dashed var(--color-outline);
+    font-size: 11.5px;
+    font-weight: 600;
+    color: var(--color-on-surface-variant);
+}
+/* the legacy CSS tooltip (attr(data-name) ' · ' attr(data-tip2)) must never paint
+   under the card: the migrated `data-tip` rides the shared engine instead (R5) */
+.tt-responsive .tt-card.event-block::after {
+    display: none;
+}
+.tt-responsive .tt-card .tt-time {
+    font-size: 14px;
+    font-weight: 700;
+}
+.tt-responsive .tt-card .tt-venue {
+    font-size: 14px;
+    font-weight: 700;
+}
+.tt-responsive .tt-card .tt-course {
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--color-on-surface-variant);
+    overflow-wrap: anywhere;
+}
+.tt-responsive .tt-card .tt-note {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 3px 8px;
+    margin-top: 3px;
+    font-size: 11px;
+    font-weight: 500;
+    line-height: 1.35;
+    color: var(--color-on-surface-variant);
+}
+/* theme.css hides .ev-note inside a narrow .event-block; the card keeps it */
+.tt-responsive .tt-card .tt-note .ev-note {
+    display: inline;
+    margin: 0;
+    font-size: 11px;
+    font-weight: 500;
+    text-align: right;
+    color: inherit;
+}
+/* the word keeps the block's own colour — it is the alarm, only its size drops to
+   the note tier (only Cancelled / Conflict ever print a word, R3) */
+.tt-responsive .tt-card .tt-status {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 11px;
+    font-weight: 500;
+    line-height: 1.4;
+    color: var(--color-on-error-container);
+}
+.tt-responsive .tt-card .tt-status .tt-icon {
+    width: 12px;
+    height: 12px;
+}
+.tt-responsive .tt-card.event-pending {
+    border-style: dashed;
+}
+.tt-responsive .tt-card.event-replacement {
+    border-left-width: 6px;
+}
+
+/* ── Window mode, 768–1279 (R3b): the module renders a TRANSPOSED grid into
+      #ttWindowGrid — time down the left axis, one column per visible day, N = 2
+      at 768–1023 and 3 at 1024–1279 (--tt-day-count is set inline by T7). The
+      legacy #timetable stays hidden in this mode (the rule at the top). ── */
+@media (min-width: 768px) and (max-width: 1279px) {
+    .tt-responsive .tt-window-grid {
+        display: grid;
+        grid-template-columns: 50px repeat(var(--tt-day-count, 2), minmax(0, 1fr));
+        grid-template-rows: 62px repeat(22, 44px);
+        border: 1px solid var(--color-outline);
+        border-radius: var(--radius-md);
+        overflow: hidden;
+        background: var(--color-surface);
+    }
+    /* the cell reuses .tt-card, so it keeps the focusable button, the details modal,
+       the aria-label and the tip of a desktop block; only the sizes drop to the
+       brief's tablet tier and the 2px inset lets the grid lines read */
+    .tt-responsive .tt-window-grid .tt-card {
+        z-index: 1;
+        min-height: 0;
+        width: auto;
+        margin: 2px;
+        padding: 6px;
+        gap: 2px;
+        border-radius: 0;
+        overflow-y: auto;
+    }
+    .tt-responsive .tt-window-grid .tt-card-top {
+        flex-wrap: wrap;
+        gap: 2px 8px;
+    }
+    /* when the venue cannot share the line it keeps the right rail (R3b) */
+    .tt-responsive .tt-window-grid .tt-venue {
+        margin-left: auto;
+    }
+    .tt-responsive .tt-window-grid .tt-time,
+    .tt-responsive .tt-window-grid .tt-venue {
+        font-size: 11px;
+    }
+    .tt-responsive .tt-window-grid .tt-course {
+        font-size: 10px;
+    }
+    .tt-responsive .tt-window-grid .tt-note,
+    .tt-responsive .tt-window-grid .tt-note .ev-note,
+    .tt-responsive .tt-window-grid .tt-status {
+        font-size: 9.5px;
+    }
+}
+
+/* ── The Week summary sheet (R6, ≤1279): overlay fixed at z 1200, the same layer
+      the shipped summary sheet used, so the ⓘ dialog (1400) can be lifted above it.
+      Batch D fills #ttSheetBody; this section owns only the frame. ── */
+.tt-responsive .tt-sheet-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 1200;
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    background: var(--color-scrim);
+}
+.tt-responsive .tt-sheet {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    max-height: 88dvh;
+    border: 1px solid var(--color-outline);
+    border-bottom: 0;
+    border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+    background: var(--color-surface);
+    color: var(--color-on-surface);
+}
+.tt-responsive .tt-sheet-head {
+    position: sticky;
+    top: 0;
+    z-index: 2;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 10px 14px;
+    background: var(--color-surface);
+    border-bottom: 1px solid var(--color-outline);
+}
+.tt-responsive .tt-sheet-title {
+    margin: 0;
+    font-size: 14px;
+    font-weight: 700;
+}
+.tt-responsive .tt-sheet-close {
+    width: 44px;
+    height: 44px;
+    border: 0;
+    border-radius: var(--radius-sm);
+    background: transparent;
+    color: inherit;
+    font-size: 22px;
+    line-height: 1;
+    cursor: pointer;
+}
+.tt-responsive .tt-sheet-close:focus-visible {
+    outline: 2px solid var(--color-primary);
+    outline-offset: 2px;
+}
+.tt-responsive .tt-sheet-body {
+    min-height: 0;
+    padding: 12px 12px 16px;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+}
+.tt-responsive .tt-sheet-body .summary-section {
+    margin-top: 0;
+}
+/* scroll lock. A body class cannot carry the `.tt-responsive` prefix, so it is
+   scoped with :has() instead — the rule still cannot bite a page without the scope. */
+body.tt-sheet-open:has(.tt-responsive) {
+    overflow: hidden;
+}
+/* R6: the sheet's five cards read as two columns until the viewport can no longer
+   hold them. Written AFTER the page's 768px one-column rule and with a higher
+   specificity, so source order decides; measured spill without it: +14px at 320,
+   +5px at 360/375. */
+.tt-responsive #ttSheetBody .summary-bar {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+}
+@media (max-width: 389px) {
+    .tt-responsive #ttSheetBody .summary-bar {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* ── Print (R8): the full week at paper width, legend + cards visible whatever
+      the on-screen mode, and none of the phone/tablet furniture on paper. This
+      lane only must not make printing worse; the print lane owns the rest. ── */
+@media print {
+    .tt-responsive .tt-days,
+    .tt-responsive .tt-tools,
+    .tt-responsive .tt-sheet-overlay,
+    .tt-responsive .tt-next-hint,
+    .tt-responsive #ttWindowGrid,
+    .tt-responsive .tt-agenda {
+        display: none !important;
+    }
+    /* below 1280 the legend bar and the five cards are hidden on screen, and the
+       shipped SummarySheet's print unrelocate is gated off on these pages, so the
+       receipt has to be restored here or a narrow-window printout loses it */
+    .tt-responsive .legend-bar {
+        display: flex !important;
+    }
+    .tt-responsive #summarySection {
+        display: block !important;
+    }
+    /* and the legacy table prints even from agenda/window mode */
+    .tt-responsive #timetable {
+        display: table !important;
+    }
+}
+
+/* ── Touch (R7): 48 × 48 CSS px for EVERY control inside the scope, at EVERY
+      width, on a coarse pointer only — capability, not width. A touch laptop at
+      1440px gets 48px; a mouse desktop keeps today's compact controls, so the
+      desktop look does not move. Grow the real hit box (min-width/min-height),
+      never an invisible overlapping padding: neighbouring rows must not steal
+      each other's taps. Text sizes are untouched. The shared top bar sits OUTSIDE
+      the page root and therefore keeps its shipped sizes (design §2). ── */
+@media (any-pointer: coarse) {
+    /* no min-height here: the chip is already 52px tall at every width, and
+       lowering it to 48 would shrink the approved target */
+    .tt-responsive .tt-day {
+        flex: 1 0 48px;
+        min-width: 48px;
+    }
+    /* both spellings on purpose: in flow at ≥1280, inside the sticky row below it —
+       the sticky rules above are more specific, so they must be re-stated here */
+    .tt-responsive .week-arrow,
+    .tt-responsive .tt-sticky .week-arrow {
+        width: 48px;
+        height: 48px;
+        flex: 0 0 48px;
+    }
+    .tt-responsive .week-select,
+    .tt-responsive .tt-sticky .week-select {
+        height: 48px;
+    }
+    .tt-responsive .today-btn {
+        min-width: 48px;
+        min-height: 48px;
+    }
+    .tt-responsive .print-btn {
+        width: 48px;
+        height: 48px;
+    }
+    /* the page header's own icons sit inside .lw-page, so the law reaches them */
+    .tt-responsive .summary-button,
+    .tt-responsive .guide-toggle-icon {
+        min-width: 48px;
+        min-height: 48px;
+    }
+    .tt-responsive .tt-summary-btn {
+        min-width: 48px;
+        min-height: 48px;
+    }
+    .tt-responsive .tt-sheet-close {
+        width: 48px;
+        height: 48px;
+    }
+    .tt-responsive .tt-sheet .btn-close-modal,
+    .tt-responsive .tt-sheet .btn-outline,
+    .tt-responsive .tt-sheet .btn-danger,
+    .tt-responsive .tt-sheet .btn-action,
+    .tt-responsive .tt-sheet .btn-replace-now {
+        min-height: 48px;
+    }
+    .tt-responsive .summary-info {
+        width: 48px;
+        height: 48px;
+        min-width: 48px;
+        min-height: 48px;
+    }
+    .tt-responsive .tt-window-grid {
+        grid-template-rows: 62px repeat(22, 48px);
+    }
+    .tt-responsive button.tt-next-hint {
+        min-height: 48px;
+    }
+    /* the card base and the window-cell rule both set `min-height: 0` at a higher
+       specificity, so the 48px floor has to name the same selectors */
+    .tt-responsive .tt-card.event-block,
+    .tt-responsive .tt-window-grid .tt-card {
+        min-height: 48px;
+    }
+}
+/* No transition is added by this lane, so the global
+   `@media (prefers-reduced-motion: reduce)` kill-switch stays in charge (R7). */
