@@ -195,3 +195,10 @@ and design §4.3 had it inverted (`<strong>Mon</strong>3`). Corrected in `buildS
 11px line, `16` in the bold line, count kept in the accessible name (R7). The frozen design line and
 the spec's strip requirement both carry the correction with its date, because this is the second thing
 the preview would have settled had the design been read against it.
+
+### Same day — the chips are no longer dimmed after today
+
+The user: *"since Tue 17 all are grey, make them all black"*. Design §5 dimmed every day after today to
+0.62 opacity, which read as "disabled" rather than "later". The rule is gone, `_isAhead()` and the
+`is-ahead` class went with it, and every chip now reads at full strength; today's dot, the holiday red
+and the selected outline are the only marks left. Measured after the change: opacity 1 on all seven.

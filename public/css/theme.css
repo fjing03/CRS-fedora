@@ -6157,11 +6157,11 @@ body.filters-panel-open .filters-btn { position:relative; z-index:1300; }
     .tt-responsive .tt-day.is-holiday {
         color: var(--color-error);
     }
-    /* days AFTER today read quieter than the ones already taught (design §5).
-       Batch B's buildStrip() sets it; until then the rule is simply inert. */
-    .tt-responsive .tt-day.is-ahead {
-        opacity: 0.62;
-    }
+    /* Days after today used to be dimmed (opacity .62, design §5). The user
+       reversed that on 2026-11-15 — "since Tue 17 all are grey, make them all
+       the same" — so every chip reads at full strength and only today's dot,
+       the holiday red and the selected outline mark a chip. The class is still
+       set by buildStrip() and now has no rule. */
 
     /* tools = day heading + count + the Week summary opener (R6) */
     .tt-responsive .tt-tools {

@@ -175,6 +175,9 @@ event's week, calls the page's `prevWeek/nextWeek` equivalent, `setDay(thatDay)`
 
 Every selector below is prefixed `.tt-responsive`, with one exception noted at the end.
 
+- *(The strip's "ahead-of-today dimmed" state is **retired** — user, 2026-11-15: a Tuesday after a
+  Monday looked grey and disabled. Only the today dot, the holiday red and the selected outline mark
+  a chip now.)*
 - **Layout/state**, all under `@media (max-width: 1279px)` except where noted: `.tt-sticky`
   (`position: sticky; top: var(--top-bar-height)` — **not** applied at ≥1280, where the preview keeps
   its controls in flow), `.tt-days`

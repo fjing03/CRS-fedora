@@ -7150,12 +7150,6 @@ const TimetableResponsive = {
         return !!dt && dt.getTime() === getTodayMs();
     },
 
-    /* days AFTER today read quieter on the strip (theme.css `.tt-day.is-ahead`). */
-    _isAhead: function (day) {
-        var dt = this._dayDate(day);
-        return !!dt && dt.getTime() > getTodayMs();
-    },
-
     /* The R7 accessible name needs `Monday`, not `Mon`. DateHelper.weekdayName
        derives it FROM THE DATE (the 2026-11-11 lesson: an index-derived name
        prints one day early), so it is the helper to reuse here. */
@@ -7387,8 +7381,9 @@ const TimetableResponsive = {
             btn.type = 'button';
             btn.className = 'tt-day'
                 + (isToday ? ' is-today' : '')
-                + (d && d.holiday ? ' is-holiday' : '')
-                + (self._isAhead(d) ? ' is-ahead' : '');
+                + (d && d.holiday ? ' is-holiday' : '');
+            /* no `is-ahead` any more: the user reversed the dimming on 2026-11-15
+               (a chip after today read grey and looked disabled). */
             btn.dataset.day = String(di);
             btn.setAttribute('aria-pressed', String(di === selected));
             /* aria-current="date" ONLY on the real today, and only while it is the

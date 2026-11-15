@@ -705,3 +705,8 @@ seam reads `__eventData`, which the built cards did not carry).
 The chip's second line read the number of classes (`Mon 2`). The approved preview puts the **day of
 the month** there (`Mon` over `16`) and keeps the abbreviation small, so the chip answers "which day
 is this?"; the class count moves into the chip's accessible name, where a screen reader still gets it.
+
+### Correction, same day — nothing on the strip is dimmed
+Days after today were drawn at 62% opacity, which read as "disabled" rather than "later in the week".
+Every chip now reads at full strength; only the selected outline, today's dot and a holiday's red mark
+one.
