@@ -160,3 +160,18 @@ Screenshots: `/tmp/mt-resp/shots/t18-*` (both themes, both pages). Changelog ent
 pages. **One deviation from spec R7's enumeration, recorded here:** the print button is hidden below
 768 (the approved preview marks its own print control `preview-desktop-only`), so the 48px law has
 nothing to grow there; every other in-scope control is ≥48×48 under `hasTouch`.
+
+## The regression sweep, and what is red for reasons older than this lane
+
+| spec | result | reading |
+|---|---|---|
+| `tests/timetable-callers-pin.spec.ts` | 6/6 | the invariant holds |
+| `tests/timetable-responsive.spec.ts` | 19/19 | this lane's contract |
+| `tests/timetable-lane-layout.spec.ts` | 13/13 | the pure lane planner is untouched |
+| `tests/filters-button.spec.ts` | 20 pass + 2 skip (known) | the shared toolbar still behaves |
+| `tests/summary-cards-button.spec.ts` | 15/16 | the one red is the documented testing-DB data gap on `/my-replacements` (`statusFilter=none` has no rejected/cancelled rows to filter for 5770), not this lane |
+| `tests/e2e/timetable.spec.js` | 6/6 | **was red before** (asserted two elements removed on 2026-11-13, and carried no session at all) — amended, now green |
+| `tests/ui-regression.spec.ts` | 19 pass / 9 fail | all nine are stale by earlier decisions: TC-3.x expects a `Subject Code` label that no longer exists anywhere in the modal (removed by `0e43019`), TC-4.x drives the pre-merge replacement flow, TC-6.1 the old history badges. None of the three pages involved carries `.tt-responsive`, and this lane's CSS is scoped to it |
+| `tests/class-modal-affordances.spec.ts` | 3/6 | fails inside its own `loginStaff()` — the file sets `storageState: .auth/staff-5770.json` **and** logs in again, so `/login/staff` redirects an authenticated session away and the form never appears. Unmodified by this lane; worth its own fix |
+
+Nothing in the lane's own suite is skipped or `test.fail`-annotated.
