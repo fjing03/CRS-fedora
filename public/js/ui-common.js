@@ -7274,7 +7274,12 @@ const TimetableResponsive = {
         }
 
         /* Identity rides the card exactly as it rides a desktop block: data-id is
-           the design's hook, data-sid the session the page's own modal reads. */
+           the design's hook, data-sid the session the page's own modal reads.
+           `__eventData` too — the shared key seam (initTimetableKeyboardHandlers)
+           reads exactly that field, preventDefaults the key and opens the modal;
+           without it an Enter/Space on a card was swallowed with nothing to show
+           (found by T16a's keyboard receipt, not by the design). */
+        btn.__eventData = e;
         btn.dataset.id = String(e.id == null ? '' : e.id);
         btn.dataset.sid = String(e.sessionId == null ? (e.id == null ? '' : e.id) : e.sessionId);
         var tip = this._tipFor(e, isHoliday);
@@ -7891,11 +7896,25 @@ const TimetableResponsive = {
        the cancel modal shows itself with `.show`. While one is up, Esc and Tab are
        left entirely to it. */
     _dialogAbove: function () {
-        if (document.querySelector('.modal-overlay[style*="flex"]')) return true;
+        var overlays = document.querySelectorAll('.modal-overlay');
+        for (var i = 0; i < overlays.length; i++) {
+            if (this._shown(overlays[i])) return true;
+        }
         var cancel = document.getElementById('cancelClassOverlay');
-        if (cancel && cancel.classList.contains('show')) return true;
-        var explain = document.getElementById('summaryExplainModal');
-        return !!(explain && explain.style.display !== 'none');
+        if (cancel && cancel.classList.contains('show') && this._shown(cancel)) return true;
+        return this._shown(document.getElementById('summaryExplainModal'));
+    },
+
+    /* Shown, not merely present: `style.display !== 'none'` is true for an element
+       that has never been styled at all, and #summaryExplainModal ships with no
+       inline display — so the FiltersPanel predicate this was copied from would
+       have reported a dialog above the sheet on every page, suspending both the
+       Tab trap and Escape (found by T16b's trap receipt). */
+    _shown: function (el) {
+        if (!el) return false;
+        var cs = window.getComputedStyle(el);
+        if (cs.display === 'none' || cs.visibility === 'hidden' || cs.opacity === '0') return false;
+        return !!(el.offsetWidth || el.offsetHeight || el.getClientRects().length);
     },
 
     /* Capture phase on purpose, the SummarySheet mechanism copied arm for arm: it runs
@@ -7926,6 +7945,14 @@ const TimetableResponsive = {
             );
             var items = [];
             for (var i = 0; i < nodes.length; i++) {
+                /* Two filters the size test alone cannot do (found by T16b's trap
+                   receipt — Tab walked out into the footer on the 6th press):
+                   the cards' ⓘ buttons match `button:not([disabled])` but are taken
+                   out of the tab order, and they keep their 44x44 box while
+                   visibility:hidden. Either would make `last` a node Tab can never
+                   reach, so the wrap never fired. */
+                if (nodes[i].tabIndex < 0) continue;
+                if (window.getComputedStyle(nodes[i]).visibility === 'hidden') continue;
                 if (nodes[i].offsetWidth || nodes[i].offsetHeight || nodes[i].getClientRects().length) {
                     items.push(nodes[i]);
                 }

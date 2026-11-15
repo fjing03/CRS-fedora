@@ -6275,6 +6275,17 @@ body.filters-panel-open .filters-btn { position:relative; z-index:1300; }
     .tt-responsive[data-tt-mode="window"] #summarySection {
         display: none;
     }
+    /* …but they DO live inside the sheet, which is where the two rules above would
+       otherwise hide them again (the sheet body is inside the page root, so the
+       hide rule matches the relocated nodes too). Found by T16b's sheet receipt:
+       the body held all three children in the right order and painted only the
+       range line. */
+    .tt-responsive #ttSheetBody .legend-bar {
+        display: flex;
+    }
+    .tt-responsive #ttSheetBody #summarySection {
+        display: block;
+    }
 }
 
 /* ── The agenda card (R3) — ported from the approved preview's .preview-class
