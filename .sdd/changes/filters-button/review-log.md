@@ -132,3 +132,69 @@ the two staff pages, Clear-all on the student page — it has no Reset)".
 
 **`proposal.md` is FROZEN.** Declarative-only changes from here; any decision-level change needs the
 full chain unfrozen. `design.md` has not been written.
+
+---
+
+## design Round 1 — 2026-11-15
+
+**Verdict: not ready — two blockers, ten should-fixes.**
+
+### 🔴 Fixed
+- **Deleting `#resetFilters` from the toolbar would crash both staff pages' boot.** The pages bind it by
+  id (`replacement-home:1419`, `request-approval:1368`); a `null` there throws at `DOMContentLoaded` and
+  every listener wired after it dies. §4.2 now pins the two deletions, and §7.1/§7.2 no longer say
+  "keep the listeners".
+- **Reset on Request Approval also returns rows-per-page to 10** (proposal §5.5) — added to the
+  behaviour table, which is what verify tests against.
+
+### 🟡 Addressed
+- resize never closes the panel (was a §3 vs §6.3 contradiction);
+- the switch's id differs per page (`#hideCompleted` / `#hideCompletedToggle`) — pinned in §1 and §4.2;
+- `#filterChips` node identity across open/close added as behaviour row 7b (proposal's automated (g));
+- My Replacements keeps its own count tip ("Classes matching…");
+- Request Approval's include goes **after** the sort hint, which stays on the page (proposal §7.3);
+- reset/clear re-sync both week navs' arrows;
+- the no-argument arrow behaviour is pinned to today's (first pair in document order) because four
+  timetable pages call it with no `#weekFilter` on the page at all;
+- the student requested-week compare is cast (`Number(r.req.week)`);
+- the acceptance numbers gained a measurement condition;
+- a stacking-context fallback is written for the trigger-at-1300 trick (move the overlay to `body`,
+  never raise the overlay's z-index).
+
+---
+
+## design Round 2 — 2026-11-15
+
+**Verdict: not ready — four items resolved, two new blockers created by those fixes.**
+
+### 🔴 Fixed
+- **Request Approval's existing week nav would go stale.** The new Original field renders above the
+  requested one, so the page's no-argument arrow calls (`:911`, `:1330`) would re-sync the wrong nav;
+  both now pass `'weekFilter'`, and reset/clear sync both ids.
+- **§7.3 still carried the uncast student predicate** while §4.3 demanded the cast — aligned.
+
+### 🟡 Addressed
+- §9's acceptance numbers rewritten as a per-page table with a measurement condition and a
+  no-regression bound for the student page (375px today, so a flat "≤400" would have measured nothing
+  there);
+- the `:empty{display:none}` divergence gets a soft-freeze note in the frozen proposal §5.2.
+
+---
+
+## design Round 3 — 2026-11-15 — FROZEN
+
+**Verdict: ready to freeze** once two one-liners landed; both applied with the freeze.
+
+Verified: the arrow-call pins match the real call sites, the student `-1`/no-`-1` base difference is
+correct against `ReplacementHistory.php`, the §9 condition, the soft-freeze note and the two §4.1
+traceability deltas.
+
+### 🟡 Fixed with the freeze
+- §9's condition said the default chips row is empty apart from the button and the count. It is not:
+  the exclusion chip and its Clear all show by default, and the student page has no count. Reworded.
+- Two **reveal** paths would have been blinded by the new filter: `jumpToNewRequest()`
+  (`replacement-home:1234`) and `revealNotifRow()` (`replacement-history:798`) only cleared the
+  original week, so a saved requested week could hide the very row the arrival wanted to show. Both now
+  clear it and re-sync its arrows.
+
+**`design.md` is FROZEN.** Next batch: `specs/`.
