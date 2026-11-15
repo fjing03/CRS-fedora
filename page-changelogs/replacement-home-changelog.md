@@ -1,3 +1,7 @@
+## 2026-11-15 (later, user review) — one-row filters
+
+`[Filters] [chips] [count]` now sit on a single line at ≥769 (34px), with the chips keeping their tinted frame; a phone keeps the button and count on the first line and the chips below.
+
 ## 2026-11-15 — every filter moves behind one Filters button, and a requested-week filter joins them
 
 The search box, the status select, both week selects and the COMPLETED switch now sit in one panel behind a labelled **Filters** button — a popover anchored under the button at ≥769px, a bottom sheet at ≤768px — while the chips and the count stay in the row on the page; the count pill now shows at **every** width (the old hide-below-1500px rule is retired). Inside, each control carries its label above it, the head holds **Reset** (status `all`, exclusion ON), and the **requested** slot week sits beside the original one, filtering on `c.replacementDate`. The week option that means "no filter" now reads **All Weeks** — reversing the 2026-11-10 `All … Slot Weeks` form for that one option (chips and column headers keep SLOT) — the completed chip reads **Completed hidden**, and the `Active Filters:` prefix is gone from the chip bar.

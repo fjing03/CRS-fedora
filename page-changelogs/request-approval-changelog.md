@@ -1,3 +1,7 @@
+## 2026-11-15 (later, user review) — one-row filters, and the sort hint goes
+
+The Filters button, the chip bar and the row count now share **one line** (34px); the chips keep their tinted frame rather than being flattened into the row. On a phone the button and count take the first line and the chips the second. The "Click column headers to sort (…)" line is **removed** at the user's word — the table's own headers still explain themselves on hover.
+
 ## 2026-11-15 — every filter moves behind one Filters button, and an original-week filter joins them
 
 The search box, the status select, the week select and the COMPLETED switch now sit in one panel behind a labelled **Filters** button — a popover anchored under the button at ≥769px, a bottom sheet at ≤768px — while the chips and the count pill stay in the row on the page, below the sort hint. Inside, each control carries its label above it, the head holds **Reset** (status `Pending`, exclusion ON, 10 rows per page), and the **original** slot week now sits above the requested one, filtering on `r.classDate` and composing with it (AND). The week option that means "no filter" now reads **All Weeks** — reversing the 2026-11-10 `All … Slot Weeks` form for that one option (chips and column headers keep SLOT) — the completed chip reads **Completed hidden**, and the `Active Filters:` prefix is gone from the chip bar.

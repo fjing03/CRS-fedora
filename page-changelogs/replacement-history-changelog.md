@@ -1,3 +1,7 @@
+## 2026-11-15 (later, user review) — one-row filters, and the panel head/switch fixed
+
+The Filters button, chips and (absent) count row follows the staff pages: one line at ≥769, button + chips stacked on a phone. In the panel, the close × now takes the right edge on its own (this page has no Reset to push it), the **Hide COMPLETED** label sits directly above its switch instead of being right-aligned over a left-aligned control, and opening the panel focuses the first text field/select rather than the switch, so its tooltip no longer pops on open.
+
 ## 2026-11-15 — every filter moves behind one Filters button, with a requested-week filter and no Reset
 
 The search box, both week selects and the COMPLETED switch now sit in one panel behind a labelled **Filters** button — a popover anchored under the button at ≥769px, a bottom sheet at ≤768px — while the chips stay in the row on the page (this page has no count pill, so none is drawn). Inside, each control carries its label above it and the head is title + close only: the student page gets no **Reset**, by decision. The **requested** slot week is new beside the original one — read from `r.req.week`, already 1-based, so a specific requested week hides every class with no arrangement yet. The week option that means "no filter" now reads **All Weeks** — reversing the 2026-11-10 `All … Slot Weeks` form for that one option (chips and column headers keep SLOT) — the completed chip reads **Completed hidden**, and the `Active Filters:` prefix is gone from the chip bar.
