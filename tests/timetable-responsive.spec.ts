@@ -48,6 +48,7 @@ import { test, expect, type Browser, type BrowserContext, type Page } from '@pla
 const BASE = process.env.CRS_BASE || 'http://127.0.0.1:8030';
 const STUDENT = { id: '24DFT0001', password: 'Tarumt@2026' };
 const STAFF_TT = '/my-timetable-ui';
+const STAFF_AUTH = '.auth/staff-5770.json';
 const STUDENT_TT = '/student-my-timetable-ui';
 
 test.use({ storageState: '.auth/staff-5770.json' });
@@ -375,6 +376,61 @@ test.describe('T16a — the phone (320 / 360 / 390 / 430)', () => {
     }));
     expect(moved.probe, 'a DIFFERENT day re-renders (the marked node is gone)').toBe('');
     expect(moved.cards, `the agenda follows the tapped day (${to.count} classes)`).toBe(to.count);
+  });
+
+  test('3b. R5b — the week label re-formats across 768: no year on the phone, both years above', async ({ browser }) => {
+    /* R5b's first commitment is "do not break it, asserted once". The label is written by
+       populateWeekSelect()'s own 768 re-label (ui-common.js, shared by every page), so the
+       receipt is a before/after pair rather than a new format. */
+    const read = async (width: number) => {
+      const ctx = await browser.newContext({ viewport: { width, height: 900 }, storageState: STAFF_AUTH });
+      const page = await ctx.newPage();
+      try {
+        await open(page, width);
+        const label = await page.evaluate(() => {
+          const sel = document.getElementById('weekSelect') as HTMLSelectElement | null;
+          return sel ? sel.options[sel.selectedIndex].text.trim() : '';
+        });
+        expect(label, `${width}: the week label is present`).toMatch(/Week \d+/);
+        return label;
+      } finally {
+        await ctx.close();
+      }
+    };
+
+    const phone = await read(390);
+    const tablet = await read(900);
+    expect(phone, `R5b — the phone label carries no year: "${phone}"`).not.toMatch(/\b20\d\d\b/);
+    expect(phone, 'R5b — and it is the compact `Week N · d Mon ~ d Mon` form').toMatch(/Week \d+ · /);
+    expect(tablet, `R5b — the tablet label carries the year(s): "${tablet}"`).toMatch(/\b20\d\d\b/);
+    expect(tablet.length, 'R5b — the wide label is the fuller one').toBeGreaterThan(phone.length);
+  });
+
+  test('3c. R5b — changing week keeps the same weekday selected', async ({ page }) => {
+    await open(page, 390);
+    const chips = await chipState(page);
+    /* pick the middle of the week: a Wednesday has room on both sides of any crossing */
+    await tapDay(page, 3);
+    expect(chips.length, 'the strip is there to read').toBe(7);
+    const pressedNow = (await chipState(page)).filter((c) => c.pressed).map((c) => c.index);
+    expect(pressedNow, 'the tap selected Wednesday').toEqual([3]);
+
+    /* the page's own week control (the same function the <select> calls) */
+    const moved = await page.evaluate(() => {
+      const cur = Number((window as any).currentWeek ?? 0);
+      const total = Number((window as any).weekData?.length ?? 0);
+      const target = cur + 1 < total ? cur + 1 : cur - 1;
+      (window as any).selectWeek(target);
+      return target;
+    });
+    await page.waitForTimeout(600);
+    expect(await page.evaluate(() => Number((window as any).currentWeek)), 'the week really moved')
+      .toBe(moved);
+    const pressedAfter = (await chipState(page)).filter((c) => c.pressed).map((c) => c.index);
+    expect(pressedAfter, 'R5b — a Wednesday stays a Wednesday across a week change, never resets to Monday')
+      .toEqual([3]);
+    expect((await cards(page)).length, 'and the agenda followed the week, still on that day')
+      .toBe((await chipState(page)).find((c) => c.index === 3)!.count);
   });
 
   test('4. a card is a button, opens the details modal on click, and the Status row reads "Class Cancelled"', async ({ page }) => {

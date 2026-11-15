@@ -7329,6 +7329,15 @@ const TimetableResponsive = {
         } catch (err) { noteHtml = ''; }
         var wordStatus = (!isHoliday && (e.status === 'cancelled' || e.status === 'conflict')) ? e.status : null;
 
+        /* R3 caps the note line at "the date note and ONE status word" — so the
+           word REPLACES the legacy status note it duplicates. A cancelled class
+           used to read `(Cancelled) ✕ Cancelled` on one line (caught by the
+           verify audit's browser look); a date note (pending since …, replaced
+           for …, proposed) is a different fact and stays beside the word. */
+        if (wordStatus && /Cancelled|Conflict/.test(noteHtml.replace(/<[^>]*>/g, ''))) {
+            noteHtml = '';
+        }
+
         if (noteHtml || wordStatus) {
             var note = document.createElement('span');
             note.className = 'tt-note';

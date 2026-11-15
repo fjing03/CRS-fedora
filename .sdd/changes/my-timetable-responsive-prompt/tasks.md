@@ -21,7 +21,7 @@ surfaces, E wires the staff page, F the student page, G proves it, H records it.
 
 ## Batch A — the shell (and the two baselines the rest is measured against, first)
 
-- [ ] **T0a — the baselines, before any page changes.** (i) Capture `#timetable`'s `outerHTML` for a
+- [x] **T0a — the baselines, before any page changes.** (i) Capture `#timetable`'s `outerHTML` for a
   fixed week on the testing DB from **Cohort, Venue and Replacement Arrangement** and save it as the
   pin's baseline (T15 compares against it); (ii) capture the two timetable pages' ≥1280 geometry with
   the existing net — `tests/ui-regression.spec.ts` (17 receipts) and `tests/timetable-lane-layout.spec.ts`

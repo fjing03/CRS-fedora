@@ -6409,11 +6409,13 @@ body.filters-panel-open .filters-btn { position:relative; z-index:1300; }
     font-weight: 500;
     line-height: 1.4;
     color: var(--color-on-error-container);
+    /* the card's word is TEXT in the block's own colour, not a badge: the legacy
+       `.status-cancelled` skin (theme.css:5049) would otherwise paint a grey pill
+       behind `✕ Cancelled` while `⚠ Conflict` — which has no legacy skin — stayed
+       bare, so two presentations for one tier (found by the verify audit). */
+    background: transparent;
 }
-.tt-responsive .tt-card .tt-status .tt-icon {
-    width: 12px;
-    height: 12px;
-}
+
 .tt-responsive .tt-card.event-pending {
     border-style: dashed;
 }
