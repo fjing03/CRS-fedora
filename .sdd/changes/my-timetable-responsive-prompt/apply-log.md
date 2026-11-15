@@ -107,3 +107,56 @@ a week change; card click reaches the page's own details modal; `Class Hours` an
   `#weekSubtitle` are visible; both were removed 2026-11-13). T17 amends it.
 - `tests/summary-cards-button.spec.ts`'s My Timetable arms cannot hold once `SummarySheet` is gated and
   the header opt-in is gone; T17 amends them by name.
+
+## Batch G — the tests (T15–T17)
+
+- **T15 `tests/timetable-callers-pin.spec.ts`** — 6 receipts, green. Rebuilds the captured call
+  (the fixture now carries its own `syntheticEvents` / `syntheticDays`) and compares head + body +
+  display byte for byte; then Cohort and Venue live against the captured `outerHTML`, failing with
+  the first differing offset and both snippets. Also asserts the flag-absent proof: on those two
+  pages every block carries `data-tip2` and **none** carries the migrated `data-tip`.
+- **T16 `tests/timetable-responsive.spec.ts`** — 19 receipts, green: phone at 320/360/390/430,
+  tablet at 768/1024, desktop + touch at 1440. `?week=` is **not** honoured by the two blades
+  (both derive the week from the timeline), so the week is fixed through the page's own
+  `window.selectWeek()` — the function the week select calls.
+- **T17** — `summary-cards-button.spec.ts`: My Timetable out of `FLIP_PAGES` (Venue stays) and its
+  six receipts retargeted/removed with reasons in place. `e2e/timetable.spec.js`: the removed pair
+  replaced by `#timetable` + two "never resurrected" assertions, **and** the entries given sessions
+  — they had none, so the file had been stopping on the login page for months (green now: 6/6).
+
+### Four defects found by the receipts, fixed the same day
+
+1. **The sheet showed only its range line.** The mode rules that hide the legend bar and
+   `#summarySection` inline match the *relocated* nodes too (the sheet body is inside the page
+   root); they are now re-shown inside `#ttSheetBody`.
+2. **Enter/Space on a card opened nothing.** The shared key seam reads `__eventData`, which
+   `makeEventBlock()` sets and the built cards did not — the key was swallowed and the native click
+   suppressed. Cards now carry it.
+3. **Tab escaped the sheet on the sixth press.** The trap's reachable list counted the cards' ⓘ
+   buttons (matching the selector, keeping their 44px box while `visibility:hidden`, out of the tab
+   order), so its `last` node was unreachable and the wrap never fired.
+4. **`_dialogAbove()` was true on every page**, suspending the trap and Escape: it copied a
+   predicate that treats "never styled" as "shown" (`#summaryExplainModal` has no inline display).
+   It now asks whether the node is actually shown.
+
+The two `test.fail` annotations T16 shipped with came off once 1 and 2 were fixed.
+
+## Batch H — evidence (T18, T19)
+
+Both pages, both themes, six widths, **zero page errors**, page-level horizontal scroll **0**
+everywhere:
+
+| page | width | mode | strip | tables | other |
+|---|---|---|---|---|---|
+| staff | 320 / 390 | agenda | 7 chips | hidden | h-scroll 0, week label complete |
+| staff | 768 | window | 7 chips | hidden | 2-day window |
+| staff | 1024 | window | 7 chips | hidden | 3-day window, cell 84px |
+| staff | 1280 / 1440 | full | none | restored | tools `hidden`, no sheet opener |
+| student | 390 | agenda | 7 chips | hidden | 2 cards, cohort chip + `Class Hours` intact |
+| student | 768 | window | 7 chips | hidden | 4 cells |
+| student | 1440 | full | none | restored | 7 blocks |
+
+Screenshots: `/tmp/mt-resp/shots/t18-*` (both themes, both pages). Changelog entries added to both
+pages. **One deviation from spec R7's enumeration, recorded here:** the print button is hidden below
+768 (the approved preview marks its own print control `preview-desktop-only`), so the 48px law has
+nothing to grow there; every other in-scope control is ≥48×48 under `hasTouch`.

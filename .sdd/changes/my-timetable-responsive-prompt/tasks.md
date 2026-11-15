@@ -118,24 +118,24 @@ surfaces, E wires the staff page, F the student page, G proves it, H records it.
 
 ## Batch G — the tests
 
-- [ ] **T15 — the pin first (`tests/timetable-callers-pin.spec.ts`, new).** Capture `#timetable`'s
+- [x] **T15 — the pin first (`tests/timetable-callers-pin.spec.ts`, new).** Capture `#timetable`'s
   `outerHTML` for a fixed week on the testing DB and compare it across the change for **Cohort, Venue
   and Arrangement**. Run it before any page opt-in so it fails loudly if the builder moved. *Satisfies
   R1, R10.*
 
-- [ ] **T16a — the responsive spec, phone half (`tests/timetable-responsive.spec.ts`, new).** R2, R3,
+- [x] **T16a — the responsive spec, phone half (`tests/timetable-responsive.spec.ts`, new).** R2, R3,
   R5, R5b, R7 and R8 at 320 / 360 / 390 / 430, both themes, keyboard-only arms, print emulation, both
   page roots. *Satisfies R2, R3, R5, R5b, R7, R8.*
 
-- [ ] **T16b — the responsive spec, tablet + sheet half (same file).** R2, R3b and R6 at 768 / 1024,
+- [x] **T16b — the responsive spec, tablet + sheet half (same file).** R2, R3b and R6 at 768 / 1024,
   the transposed grid's window and its clamp, the sheet's contents, order, focus/Esc/lock, the
   one-column rule below 390, and the `toBeHidden()` tools receipt at 1280/1440. *Satisfies R2, R3b, R6.*
 
-- [ ] **T16c — the responsive spec, touch + desktop half (same file).** The 48px law under `hasTouch`
+- [x] **T16c — the responsive spec, touch + desktop half (same file).** The 48px law under `hasTouch`
   at 390 and 1440 (every control of spec R7's list), and the ≥1280 arm: no strip, tools hidden, the
   full week, the desktop word under the time. *Satisfies R4, R7.*
 
-- [ ] **T17 — the three amended files.** `tests/summary-cards-button.spec.ts` (the FLIP_PAGES entry and
+- [x] **T17 — the three amended files.** `tests/summary-cards-button.spec.ts` (the FLIP_PAGES entry and
   the **five** receipts of spec R10, each with a comment naming this lane);
   `tests/e2e/timetable.spec.js` — **both page entries** pass
   `['#semesterProgress', '#weekSubtitle']` to the generic `helpers/page-check.js` helper, so the
@@ -144,10 +144,10 @@ surfaces, E wires the staff page, F the student page, G proves it, H records it.
 
 ## Batch H — evidence
 
-- [ ] **T18 — measure and record.** Before/after geometry for the two pages at ≥1280 (the ~97%
+- [x] **T18 — measure and record.** Before/after geometry for the two pages at ≥1280 (the ~97%
   promise), the four phone widths, both themes, the touch arm; screenshots into `/tmp/mt-resp/shots/`;
   the three-caller receipt; zero page errors. Record the numbers in the apply log. *Satisfies R10.*
 
-- [ ] **T19 — changelogs.** One dated entry each in `page-changelogs/my-timetable-changelog.md` and
+- [x] **T19 — changelogs.** One dated entry each in `page-changelogs/my-timetable-changelog.md` and
   `page-changelogs/student-my-timetable-ui-changelog.md`. *(Evidence of the change, per proposal §8 —
   not a spec requirement.)*

@@ -40,9 +40,31 @@ Fixed the shared lane planner so a pending 1:00 PM ~ 2:00 PM block and a cancell
 
 Checks: **18/18** read-only planner/layout browser cases; the new independent oracle covers **1,764 range/status combinations in both input orders**. Existing responsive/theme/print checks pass. Actual staff 5770 request 19 was also checked without staging data, on desktop and phone in both themes. Details: [cancelled-slot reuse](cancelled-slot-reuse-changelog.md). Whole-feature Verify remains separate.
 
-## 2026-11-11 — Cancel this Class? can cancel the whole day
+## 2026-11-13 — summary cards, guide modal, semester chrome, week select
 
 > 2026-11-13, in progress: see [cancelled-slot reuse](cancelled-slot-reuse-changelog.md) for shared stacking, real room-cell availability, passing checks and remaining delivery gates. No demo cleanup or final Verify yet.
+
+User brief: reuse the approved `ui-prototype/my-timetable-mobile-preview.html`
+design instead of a second direction. SDD lane `my-timetable-ui-cleanup`.
+
+- Summary cards are now the 96px flip cards from the preview: left-aligned back
+  face, up to three short bullets, and a 44px info button that opens the full
+  explanation in a 420px modal. Hover flips on pointer devices, tap on touch,
+  Enter/Space from the keyboard; closing the explanation restores the card and
+  focus. The value ids and every calculation are untouched.
+- The header guide icon opens a shared `How to use this page` modal containing
+  the page description and all guide items. The inline guide bar is no longer
+  rendered on this page; ×, Close, overlay and Escape close the modal.
+- `#semesterProgress` (label, track, fill) and `.week-subtitle`/`#weekSubtitle`
+  are removed. `updateProgress()` / `updateWeekSubtitle()` stay null-safe, so
+  the existing calls are inert.
+- `.week-select` now uses `var(--color-surface-variant)` at rest and
+  `var(--color-surface)` on hover; text, chevron, height and focus ring are
+  unchanged.
+
+---
+
+## 2026-11-11 — Cancel this Class? can cancel the whole day
 
 User ask (2026-11-11): one checkbox in the *Cancel this Class?* modal to cancel **every class the
 lecturer teaches that day**, so a day of leave is one decision instead of four.
@@ -641,3 +663,38 @@ The arrangement availability now honours the approved/pending make-up
 slots in the lecturer/cohort busy vectors (the bug9 double-book fix);
 this page's own rendering was already correct (the `event-replacement`
 block receipts rr #1) and is untouched.
+
+## 2026-11-15 — below 1280 the timetable is the approved mobile preview
+SDD lane `my-timetable-responsive-prompt` (T1–T19). Above 1280 nothing changed: same full
+week, same legend and cards, geometry within a pixel of before.
+
+- **Phone (≤767)**: one day at a time as cards — time range and venue large, course code and
+  type under it, one grey note line, the status word in the block's own colour (only
+  Cancelled / Conflict; a holiday card is the conflict red, as the grid already painted). A
+  seven-chip day strip sits under the week row, which pins beneath the top bar. Overlapping
+  classes get a 5px left strip and an `Overlaps …` line on **every** card of the clash, and
+  the same words in their `aria-label`.
+- **Tablet (768–1279)**: two days at 768–1023, three at 1024–1279, from the selected day and
+  clamped at Mon/Sun. It is a **transposed** grid the page builds from the same payload, not
+  the old table with rows hidden — that table has days as rows and 22 half-hour columns, so
+  hiding rows would have produced unreadable ~32px columns.
+- **Week summary** (`#ttSummaryButton`, below 1280 only): opens a sheet holding the legend,
+  the five cards and a built semester-range line. `SummarySheet` is switched off on this page
+  — its `sync()` relocates `#summarySection` at ≤768 regardless of the header button, so two
+  relocators would have fought over one node. The header's ⓘ for it is gone; Esc closes one
+  layer, Tab stays inside, focus returns to the button.
+- **Desktop**: the blocks now print `✕ Cancelled` / `⚠ Conflict` under the time, in the
+  block's own colour, and carry one `data-tip` instead of the `data-name` + `data-tip2` pair
+  (same sentence as before, byte for byte). The details pop-up's Status row reads
+  **`Class Cancelled`** on this page only, so it is not read as the *request* being cancelled.
+- **Phone week label** no longer clips: `Week 8 · 9 Nov ~ 15 Nov` at 320–430 (the row wraps
+  under 390 so the label is never cut), and the print button is hidden below 768 exactly as
+  the approved preview hides it.
+- `buildTimetableGrid()` gained two changes, both behind a `responsive` flag: Cohort, Venue
+  and Replacement Arrangement render byte-identically, pinned against a captured baseline.
+
+Checks: 22 responsive receipts (320/360/390/430/768/1024/1280/1440, both themes, keyboard,
+`hasTouch`, print emulation), the three-caller pin, and zero page errors. Two defects found by
+the receipts were fixed the same day: the sheet painted only its range line (the mode rules
+matched the relocated nodes too) and Enter/Space on a card opened nothing (the shared key
+seam reads `__eventData`, which the built cards did not carry).

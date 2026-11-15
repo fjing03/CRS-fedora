@@ -8,6 +8,19 @@ dialog, which opens above the sheet) are exactly what they were. At ≥769px not
 hides itself when the page hides the cards (an empty filtered view). One shared JS module
 (`SummarySheet`) and one CSS block drive it, so all seven card pages behave the same.
 
+## 2026-11-14 — the help dialog says something useful now
+
+The user's ask: *"the HOW TO USE THIS PAGE for student side is too 敷衍, please enhance it"* — the
+dialog opened with one thin sentence and nothing else. No SDD lane (explicitly skipped); the shared
+modal partial was already in place, so only its content changed.
+
+| | Before | After |
+|---|---|---|
+| Lead line | "View your weekly class schedule across all sessions." | "Your weekly **class schedule** for the whole semester — every session you attend, across all your courses." |
+| Items | none | Week (arrows, week list, Today) · Class details (click a block) · Colours (Normal / Replacement / Pending / Conflict, hover the legend) · the five numbers count the shown week, not the semester · Read-only, and Class Replacements says where each replacement stands |
+
+Only text; the dialog's markup, button and behaviour are untouched.
+
 ## 2026-11-14 — summary card back spacing and structured explanation
 
 The flip cards shipped on 2026-11-13 (see that entry) were too tight to read: the back text sat 7px from the top and left 48px of dead space below, with lines 1.8px apart. The 44px info button in the bottom-right corner was the cause. It now sits **top-right**, the block is vertically centred, bullets carry a 4px gap and the described text uses `line-height: 1.45`. Every line reserves 38px so it can never run under the button; 39px was the last value that did not re-wrap a bullet.
@@ -40,9 +53,31 @@ Fixed the shared lane planner so a pending 1:00 PM ~ 2:00 PM block and a cancell
 
 Checks: **18/18** read-only planner/layout browser cases; the new independent oracle covers **1,764 range/status combinations in both input orders**. Existing responsive/theme/print checks pass. Actual staff 5770 request 19 was also checked without staging data, on desktop and phone in both themes. Details: [cancelled-slot reuse](cancelled-slot-reuse-changelog.md). Whole-feature Verify remains separate.
 
-## 2026-11-11 — every summary card now explains its formula
+## 2026-11-13 — summary cards, guide modal, semester chrome, week select
 
 > 2026-11-13, in progress: see [cancelled-slot reuse](cancelled-slot-reuse-changelog.md) for shared stacking, real room-cell availability, passing checks and remaining delivery gates. No demo cleanup or final Verify yet.
+
+User brief: reuse the approved `ui-prototype/my-timetable-mobile-preview.html`
+design instead of a second direction. SDD lane `my-timetable-ui-cleanup`.
+
+- Summary cards are now the 96px flip cards from the preview: left-aligned back
+  face, up to three short bullets, and a 44px info button that opens the full
+  explanation in a 420px modal. Hover flips on pointer devices, tap on touch,
+  Enter/Space from the keyboard; closing the explanation restores the card and
+  focus. The value ids and every calculation are untouched.
+- The header guide icon opens a shared `How to use this page` modal containing
+  the page description and all guide items. The inline guide bar is no longer
+  rendered on this page; ×, Close, overlay and Escape close the modal.
+- `#semesterProgress` (label, track, fill) and `.week-subtitle`/`#weekSubtitle`
+  are removed. `updateProgress()` / `updateWeekSubtitle()` stay null-safe, so
+  the existing calls are inert.
+- `.week-select` now uses `var(--color-surface-variant)` at rest and
+  `var(--color-surface)` on hover; text, chevron, height and focus ring are
+  unchanged.
+
+---
+
+## 2026-11-11 — every summary card now explains its formula
 
 User ruling (2026-11-11): every summary card must **say how its number is made**, in plain words.
 All seven live pages (and the shared fallback map in `partials/ui-summary-bar.blade.php`) now carry
@@ -573,3 +608,17 @@ One shared trait change — the student timetable inherits the cancelled
 block (red, `(Cancelled)` note) with the same lifecycle (stays through
 pending; vanishes at the PL approval). The summary filter re-cut the
 same way.
+
+## 2026-11-15 — the same responsive timetable as My Timetable (read-only)
+SDD lane `my-timetable-responsive-prompt`, phase B. One day of cards on a phone, two or three
+days on a tablet, the week row pinned under the top bar, and a Week summary sheet with the
+legend, the five cards and the semester range. Above 1280 nothing moved.
+
+What stays this page's own: a card opens the details pop-up and nothing else (no cancel
+wiring, no footer action), the cohort chip stays in the header, the summary card still reads
+**Class Hours**, and a request's state is colour plus its date note — no new word. The
+header's summary ⓘ is gone here too: below 1280 the Week summary button is the only door, and
+`SummarySheet` is switched off on this page so the two cannot fight over `#summarySection`.
+
+The cancelled tooltip keeps the short `CANCELLED`; the details pop-up's Status row reads
+`Class Cancelled`, and a card announces its status in words to a screen reader.
