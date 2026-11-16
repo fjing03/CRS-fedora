@@ -7508,10 +7508,14 @@ const TimetableResponsive = {
             : ('No classes on ' + this._fullDayName(day));
         panel.appendChild(title);
 
-        var dateLine = document.createElement('p');
-        dateLine.className = 'empty-text';
-        dateLine.textContent = this._fullDayName(day) + ', ' + ((day && day.date) || '');
-        panel.appendChild(dateLine);
+        /* the preview prints the date line on the HOLIDAY panel only — an empty
+           weekday already says which day it is in its own title */
+        if (isHoliday) {
+            var dateLine = document.createElement('p');
+            dateLine.className = 'empty-text';
+            dateLine.textContent = this._fullDayName(day) + ', ' + ((day && day.date) || '');
+            panel.appendChild(dateLine);
+        }
 
         var hint = this._nextHintNode();
         if (hint) panel.appendChild(hint);

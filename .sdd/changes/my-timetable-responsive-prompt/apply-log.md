@@ -226,3 +226,7 @@ Two defects surfaced while building it, both worth recording because both would 
 
 New receipt: T16a #9 (panel, title, date line, hint inside, zero cards, and the jump lands on the day
 the button named). 25 spec receipts + 6 pin receipts, green.
+
+One detail settled against the preview after the first look: the date line is on the **holiday** panel
+only. An empty weekday already names itself in its title, and the preview's own `emptyMessage()` passes
+no text for that case, so `No classes on Sunday` sits alone above the hint.

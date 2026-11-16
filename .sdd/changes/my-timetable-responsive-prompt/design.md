@@ -175,7 +175,8 @@ An empty day and a public holiday each render ONE panel in the agenda's place �
 
 - **Holiday**: `.tt-empty.tt-holiday`, the error-container pair, a calendar icon, the title
   `Public Holiday · <holidayLabel>`, and the date line `Monday, 9 Nov 2026`.
-- **Empty day**: `.tt-empty`, the same shell with `No classes on <weekday>` (no date line).
+- **Empty day**: `.tt-empty`, the same shell with `No classes on <weekday>` — the date line is the
+  holiday's alone (the preview passes no text for an empty weekday).
 - **Inside either**: the hint — a `⏱ Next class →` caption over `Tue 10 Nov · 8–10 AM` and the
   venue chip, as one button whose `aria-label` is `Go to Tuesday, 10 Nov 2026`. Pressing it moves
   the week (when it differs), selects the day, then **focuses `#ttDayHeading` and scrolls it into
