@@ -637,3 +637,8 @@ and that headcount is other students' business, not the reader's.
 ### A pending proposal replaces the "Cancelled" word
 - A cancelled block or card that already says **(Proposed ⏳)** no longer also says **✕ Cancelled**.
   A plain cancelled class keeps its word; a conflicted class with a proposal keeps both.
+
+### Round 2 against the prototype — same nine fixes
+- Week dropdown sized per band, every phone label fitting; tablet heading with both dates; a plain
+  empty day that names its date; one panel for a whole empty week with the next class inside; a
+  content-height Week summary with a Close at the foot; the help dialog in the prototype's layout.

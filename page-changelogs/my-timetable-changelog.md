@@ -764,3 +764,13 @@ teaches it, between the cohorts and the status.
 - A cancelled block or card that already says **(Proposed ⏳)** no longer also says **✕ Cancelled** —
   one answer instead of two, and the proposal is the live one. A plain cancelled class keeps its word,
   and a conflicted class with a proposal keeps both the ⚠ and the hint.
+
+### Round 2 against the prototype — nine fixes
+- The week dropdown copies the prototype on each size: bigger, normal text from tablet width up, and
+  every phone label now fits instead of ending in `…`.
+- The tablet heading names both days **and** their dates (`Mon, 23 Nov 2026 ~ Tue, 24 Nov 2026`).
+- An empty day is no longer a box, and it says which date it is: **No classes on Sunday, 22 Nov 2026**.
+- A week with no classes at all shows one panel — **No classes this week** — with the next class
+  underneath, instead of an empty grid.
+- The Week summary panel is only as tall as what it holds, and it has a **Close** button at the bottom.
+- The help dialog follows the prototype: title on the left, page name underneath, labelled sections.

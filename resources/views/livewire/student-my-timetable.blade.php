@@ -19,15 +19,19 @@
         'chips' => $cohortCode ? [['label' => $cohortCode]] : [],
     ])
 
+    {{-- 2026-11-16 (comparison item #12): the prototype's own shape — subtitle plus
+         labelled sections. The five facts are unchanged; only the way they are laid out
+         follows the approved preview. --}}
     @include('partials.ui-guide-modal', [
         'guideTitle' => 'How to use this page',
+        'guideSubtitle' => 'Student My Timetable',
         'guideDescriptionHtml' => 'Your weekly <span class="info-keyword">class schedule</span> for the whole semester — every session you attend, across all your courses.',
-        'guideItems' => [
-            '<strong>Week</strong> — use the arrows or the week list to move between weeks; <strong>Today</strong> jumps back to the current one',
-            '<strong>Class details</strong> — click a class block to see its course, lecturer, venue and request status',
-            '<strong>Colours</strong> — Normal Class, Replacement, Pending and Conflict / Public Holiday; hover a colour in the legend to see what it means',
-            '<strong>The five numbers</strong> above the grid count the week you are looking at, not the whole semester',
-            '<strong>Read-only</strong> — you cannot request or cancel a class here. Your Programme Leader arranges replacements; <strong>Class Replacements</strong> shows where each one stands',
+        'guideGroups' => [
+            ['Week', 'Use the arrows or the week list to move between weeks; <strong>Today</strong> jumps back to the current one.'],
+            ['Class details', 'Click a class block to see its course, lecturer, venue and request status.'],
+            ['Colours', 'Normal Class, Replacement, Pending and Conflict / Public Holiday. Hover a colour in the legend to see what it means.'],
+            ['The five numbers', 'They count the week you are looking at, not the whole semester.'],
+            ['Read-only', 'You cannot request or cancel a class here. Your Programme Leader arranges replacements; <strong>Class Replacements</strong> shows where each one stands.'],
         ],
     ])
 

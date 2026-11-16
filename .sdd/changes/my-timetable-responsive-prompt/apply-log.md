@@ -366,3 +366,40 @@ surfaces, plain cancelled → `Cancelled`, conflicted+proposed → both kept.
 **Also:** the TODAY listener's retry budget went 6 → 12 × 80ms — one full-suite run had
 it give up while a loaded machine's round trip was still in flight. Nothing changes when
 the week lands on the first try.
+
+## Round 2 of the prototype comparison — nine rulings applied (2026-11-16)
+
+A second full comparison (both pages, both prototypes, every screenshot, live at
+320/360/390/430/768/900/1024/1280/1440 in both themes) found 13 differences. The user kept four
+(#5 the 320 toolbar wrap, #6 the full-width tablet sheet, #9 the short semester chip above the phone
+band, #13 the cohort chip's spacing) and asked for the other nine to follow the preview.
+
+| # | Change | Where |
+|---|---|---|
+| 1 | week dropdown: shipped 13px from 768 up, 11px below | theme.css, phone-band media query |
+| 2 | phone band ends at 767 (768 is a tablet, so the label gets the year) | `populateWeekSelect()` |
+| 3 | every phone label fits (143px box vs a 154px worst case → 6px from padding, 7px from type) | theme.css |
+| 4 | tablet heading: `Mon, 23 Nov 2026 ~ Tue, 24 Nov 2026` | `_syncTools()` |
+| 7 | the sheet's foot: one full-width 48px Close | ui-tt-chrome + theme.css |
+| 8 | the sheet is content-height (the 83dvh floor is gone) | theme.css |
+| 10 | an empty weekday is plain, and names its date | `_emptyPanel()` + theme.css |
+| 11 | a whole empty week is one panel with the hint inside it | `_syncEmptyWeek()` + theme.css |
+| 12 | the guide dialog: left title, subtitle, labelled sections (opt-in) | ui-guide-modal + theme.css |
+
+**Two things the work turned up, fixed in the same pass:**
+- the real table's `.grid-wrapper` kept its 1px frame while the table inside was hidden, so a short
+  agenda showed a stray hairline under the panel — the non-full bands now hide the whole wrapper
+  (print re-shows it).
+- #11 first shipped as a SECOND panel beside the page's own `#emptyState`, which already carries the
+  preview's exact words. It now only adds the next-class hint inside that panel — one panel, as the
+  preview draws it (caught by the browser look at 390 and 1440, not by a test).
+
+**Receipts:** `T16d` (six cases) pins items #1/#2/#3 (measured fit, not eyeballed), #4 (the heading
+names real days), #10, #11 (at 390/900/1440, by blanking the week in the page's own payload), #12
+(including that the venue page keeps the old centred guide), #7/#8 (foot target size, content
+height, and that the foot really closes).
+
+**Known reds, unchanged and not this lane's:** `summary-cards-button` T11a (testing-DB data gap on
+`/my-replacements`), `student-today` + `timetable-wiring` (both assert `#weekSubtitle`, removed from
+the live blades earlier), `modal-responsive-width` (5 reds at HEAD — verified by stashing this
+round's changes and re-running).

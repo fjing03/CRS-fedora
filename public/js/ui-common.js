@@ -4524,7 +4524,10 @@ function populateWeekSelect(selectId, cfg) {
     const sel = document.getElementById(selectId);
     if (!sel) return;
     cfg = cfg || {};
-    const isMobile = window.innerWidth <= 768;
+    /* 2026-11-16 (user, item #2): the phone band ends at 767, so 768 itself is a
+       tablet and takes the dated label. `<= 768` put the boundary one pixel inside
+       the tablet band, which is why the year disappeared at exactly 768. */
+    const isMobile = window.innerWidth < 768;
     const useRanges = cfg.ranges !== false; // default: weekRanges (string "1".."14")
     const source = useRanges ? weekRanges : weekData;
 
@@ -4541,7 +4544,7 @@ function populateWeekSelect(selectId, cfg) {
         window.addEventListener('resize', function() {
             clearTimeout(_pwTimer);
             _pwTimer = setTimeout(function() {
-                var mobileNow = window.innerWidth <= 768;
+                var mobileNow = window.innerWidth < 768;
                 Object.keys(populateWeekSelect._registry).forEach(function(id) {
                     var el = document.getElementById(id);
                     if (!el || populateWeekSelect._mobileState[id] === mobileNow) return;
@@ -7113,6 +7116,15 @@ const TimetableResponsive = {
         root.setAttribute('data-tt-mode', mode);
         if (this._cfg && this._cfg.pageKey) root.setAttribute('data-tt-page', this._cfg.pageKey);
 
+        /* 2026-11-16 (user, item #11): a WHOLE WEEK with no classes is its own state in
+           the prototype — one panel, `No classes this week` / `All classes for this
+           week have been cancelled.`, instead of seven empty days or an empty grid.
+           The flag rides the root so the CSS can swap the surfaces in every band
+           (including the desktop table, which this module does not build). */
+        var emptyWeek = this._events().length === 0 && this._days().length > 0;
+        if (emptyWeek) root.setAttribute('data-tt-empty-week', '1');
+        else root.removeAttribute('data-tt-empty-week');
+
         /* R6: the tools block ships `hidden` and only this module offers it, below
            1280 — so at ≥1280 the receipt is toBeHidden(), never toHaveCount(0). */
         var tools = document.getElementById('ttTools');
@@ -7141,10 +7153,24 @@ const TimetableResponsive = {
 
         if (mode === 'full') {
             if (winGrid) winGrid.hidden = true;
+                /* the page's own `#emptyState` speaks for an empty week, at every width */
+            var agendaFull = document.getElementById('ttAgenda');
+            if (agendaFull) agendaFull.innerHTML = '';
+            this._syncEmptyWeek(emptyWeek);
             return;
         }
 
         this.buildStrip();
+        /* the whole-week panel replaces BOTH lower bands (item #11) — one surface,
+           whichever the width would otherwise have drawn */
+        if (emptyWeek) {
+            if (winGrid) winGrid.hidden = true;
+            this.buildAgenda();
+            this._syncTools();
+            this._syncEmptyWeek(true);
+            return;
+        }
+        this._syncEmptyWeek(false);
         if (mode === 'agenda') {
             /* one surface at a time: a window left over from 900px must not paint
                under the agenda, and the empty agenda node collapses (`:empty`) */
@@ -7635,6 +7661,18 @@ const TimetableResponsive = {
            desktop grid still showed them — the class was there, only the phone hid it.
            An empty weekday still gets the panel on its own; a holiday with no classes
            gets just the panel. */
+        /* 2026-11-16 (item #11): a week with no classes at all is the PAGE's own
+           `#emptyState` — the very words the prototype uses (`No classes this week` /
+           `All classes for this week have been cancelled.`), which the shared grid
+           builder already shows when the week is empty. Drawing a second panel here
+           put two calendars on screen; this host just stays empty and lets the page
+           speak. The hint the prototype rides inside that panel is added by
+           `_syncEmptyWeek()`. */
+        if (!events.length) {
+            host.innerHTML = '';
+            this._syncTools();
+            return;
+        }
         if (day && day.holiday) host.appendChild(this._emptyPanel(day, true));
         if (list.length) {
             list.forEach(function (e) { host.appendChild(self._card(e, day, list)); });
@@ -7649,37 +7687,17 @@ const TimetableResponsive = {
         var panel = document.createElement('div');
         panel.className = 'empty-state tt-empty' + (isHoliday ? ' tt-holiday' : '');
 
-        var icon = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-        icon.setAttribute('class', 'empty-icon');
-        icon.setAttribute('viewBox', '0 0 24 24');
-        icon.setAttribute('fill', 'none');
-        icon.setAttribute('stroke', 'currentColor');
-        icon.setAttribute('stroke-width', '2');
-        icon.setAttribute('stroke-linecap', 'round');
-        icon.setAttribute('stroke-linejoin', 'round');
-        icon.setAttribute('aria-hidden', 'true');
-        var cal = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
-        cal.setAttribute('x', '3'); cal.setAttribute('y', '4');
-        cal.setAttribute('width', '18'); cal.setAttribute('height', '18');
-        cal.setAttribute('rx', '2');
-        var l1 = document.createElementNS('http://www.w3.org/2000/svg', 'line');
-        l1.setAttribute('x1', '16'); l1.setAttribute('y1', '2');
-        l1.setAttribute('x2', '16'); l1.setAttribute('y2', '6');
-        var l2 = document.createElementNS('http://www.w3.org/2000/svg', 'line');
-        l2.setAttribute('x1', '8'); l2.setAttribute('y1', '2');
-        l2.setAttribute('x2', '8'); l2.setAttribute('y2', '6');
-        var l3 = document.createElementNS('http://www.w3.org/2000/svg', 'line');
-        l3.setAttribute('x1', '3'); l3.setAttribute('y1', '10');
-        l3.setAttribute('x2', '21'); l3.setAttribute('y2', '10');
-        [cal, l1, l2, l3].forEach(function (n) { icon.appendChild(n); });
-        panel.appendChild(icon);
+        panel.appendChild(this._calendarIcon());
 
         var title = document.createElement('h3');
         title.className = 'empty-title';
         var label = (day && day.holidayLabel) ? String(day.holidayLabel) : '';
+        /* 2026-11-16 (user, item #10): `No classes on Sunday, 15 Nov 2026` — the
+           prototype prints the date, so an empty day answers "which Sunday?" without
+           reading back up to the heading. The holiday panel keeps its own title. */
         title.textContent = isHoliday
             ? ('Public Holiday' + (label ? ' · ' + label : ''))
-            : ('No classes on ' + this._fullDayName(day));
+            : ('No classes on ' + this._fullDayName(day) + (day && day.date ? ', ' + day.date : ''));
         panel.appendChild(title);
 
         /* the preview prints the date line on the HOLIDAY panel only — an empty
@@ -7696,14 +7714,61 @@ const TimetableResponsive = {
         return panel;
     },
 
+    /* The empty/holiday panel's calendar glyph — one drawing for both panels, so an
+       empty week and an empty day cannot drift apart. */
+    _calendarIcon: function () {
+        var svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+        svg.setAttribute('class', 'empty-icon');
+        svg.setAttribute('viewBox', '0 0 24 24');
+        svg.setAttribute('fill', 'none');
+        svg.setAttribute('stroke', 'currentColor');
+        svg.setAttribute('stroke-width', '2');
+        svg.setAttribute('stroke-linecap', 'round');
+        svg.setAttribute('stroke-linejoin', 'round');
+        svg.setAttribute('aria-hidden', 'true');
+        var cal = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+        cal.setAttribute('x', '3'); cal.setAttribute('y', '4');
+        cal.setAttribute('width', '18'); cal.setAttribute('height', '18');
+        cal.setAttribute('rx', '2');
+        var l1 = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+        l1.setAttribute('x1', '16'); l1.setAttribute('y1', '2');
+        l1.setAttribute('x2', '16'); l1.setAttribute('y2', '6');
+        var l2 = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+        l2.setAttribute('x1', '8'); l2.setAttribute('y1', '2');
+        l2.setAttribute('x2', '8'); l2.setAttribute('y2', '6');
+        var l3 = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+        l3.setAttribute('x1', '3'); l3.setAttribute('y1', '10');
+        l3.setAttribute('x2', '21'); l3.setAttribute('y2', '10');
+        [cal, l1, l2, l3].forEach(function (n) { svg.appendChild(n); });
+        return svg;
+    },
+
+    /* The next-class hint rides INSIDE the page's whole-week panel (item #11): the
+       prototype draws it there, and it is the one thing `#emptyState` cannot know —
+       which class comes next. Idempotent, and removed again the moment the week has
+       classes, so the panel is never left wearing a stale hint. */
+    _syncEmptyWeek: function (flag) {
+        var panel = document.getElementById('emptyState');
+        if (!panel) return;
+        var existing = panel.querySelector('.tt-next-hint');
+        if (!flag) {
+            if (existing) existing.remove();
+            return;
+        }
+        if (existing) return;
+        var hint = this._nextHintNode(6);
+        if (hint) panel.appendChild(hint);
+    },
+
     /* The hint inside the panel, in the preview's own shape: a small
        `⏱ Next class →` caption over one line `Tue 10 Nov · 8–10 AM` and the
        venue chip. `No more classes this semester.` when the scan finds none. */
-    _nextHintNode: function () {
+    _nextHintNode: function (fromDay) {
         var cfg = this._cfg || {};
         var res = null;
+        var day = (typeof fromDay === 'number') ? fromDay : this._state.day;
         if (typeof cfg.findNextClass === 'function') {
-            try { res = cfg.findNextClass(this._currentWeek(), this._state.day); } catch (e) { res = null; }
+            try { res = cfg.findNextClass(this._currentWeek(), day); } catch (e) { res = null; }
         }
         if (!res || res.week == null || res.day == null) {
             var none = document.createElement('p');
@@ -7794,6 +7859,7 @@ const TimetableResponsive = {
     /* The tools row's heading + count (design §4.1 ships both empty; the module fills
        them for the surface it just drew). Same words the approved preview uses. */
     _syncTools: function () {
+        var self = this;
         var days = this._days();
         var events = this._events();
         var heading = document.getElementById('ttDayHeading');
@@ -7816,7 +7882,18 @@ const TimetableResponsive = {
         var size = this._windowSize();
         var start = this._windowStart(size);
         var first = days[start], last = days[start + size - 1];
-        if (heading) heading.textContent = ((first && first.abbr) || '') + ' ~ ' + ((last && last.abbr) || '');
+        /* 2026-11-16 (user, item #4): `Thu, 12 Nov 2026 ~ Fri, 13 Nov 2026` — the
+           prototype's own words, short weekday and full date. `Mon ~ Tue` named the
+           weekdays but not the week, so the heading could not answer "which Monday is
+           this?", which is the one thing it exists for (the agenda heading two bands
+           down already prints its date, in full). */
+        if (heading) {
+            var label = function (d) {
+                if (!d) return '';
+                return (d.abbr || '') + (d.date ? ', ' + d.date : '');
+            };
+            heading.textContent = label(first) + (last && last !== first ? ' ~ ' + label(last) : '');
+        }
         if (countEl) countEl.textContent = size + ' days visible';
     },
 
@@ -8059,6 +8136,10 @@ const TimetableResponsive = {
 
         var close = sheet.querySelector('.tt-sheet-close');
         if (close) close.addEventListener('click', function () { self.closeSheet(); });
+        /* the foot's Close (item #7) — same door, second handle */
+        Array.prototype.forEach.call(sheet.querySelectorAll('[data-tt-sheet-close]'), function (b) {
+            b.addEventListener('click', function () { self.closeSheet(); });
+        });
 
         /* The veil closes; a click inside the dialog never does (same test the house
            overlays use: the event target must BE the overlay). */

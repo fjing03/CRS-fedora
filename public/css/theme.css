@@ -1962,6 +1962,32 @@ html.dark .filter-select {
 }
 .modal.modal--summary { max-width: 420px; }
 .modal.modal--guide { max-width: 520px; }
+/* 2026-11-16 (my-timetable comparison, item #12): the opt-in LEFT layout — the
+   prototype's own shape, a left title with the page's name under it and uppercase
+   section labels. Only a caller passing `guideSubtitle`/`guideGroups` gets it, so the
+   other pages that share this dialog are untouched. The section labels reuse the
+   shipped `.detail-group` / `.detail-group-title` (11px / 700 / uppercase). */
+.modal--guide-left .modal-title {
+    text-align: left;
+    flex: 1;
+}
+.modal--guide-left .modal-subtitle {
+    display: block;
+    font-size: 12px;
+    font-weight: 400;
+    color: var(--color-on-surface-variant);
+    margin-top: 3px;
+    line-height: 1.35;
+}
+.modal--guide-left .detail-group p {
+    margin: 0;
+    font-size: 13px;
+    line-height: 1.45;
+    color: var(--color-on-surface);
+}
+.modal--guide-left .page-desc {
+    margin-bottom: 14px;
+}
 .summary-explanation {
     font-size: 13px;
     line-height: 1.5;
@@ -6104,12 +6130,6 @@ body.filters-panel-open .filters-btn { position:relative; z-index:1300; }
        390 the select's own 12/32px padding left a 79px text box, so the label
        clipped to "Week 8 · 9 N" even though the row had the room. Same font and
        paddings as the approved preview (R5b). */
-    .tt-responsive .tt-sticky .week-select {
-        font-size: 12px;
-        padding-left: 6px;
-        padding-right: 24px;
-        text-overflow: ellipsis;
-    }
     /* the preview's phone row carries no print button (`preview-desktop-only`):
        the week row is arrows + select + Today at 390, which is exactly what pays
        for the un-truncated `Week 8 · 9 Nov ~ 15 Nov` label above. Printing from a
@@ -6228,11 +6248,13 @@ body.filters-panel-open .filters-btn { position:relative; z-index:1300; }
        next-class hint riding inside it, not as a row underneath. A holiday
        panel takes the error-container pair, so it reads as "the day is off"
        without a single red class card pretending a class is happening. */
+    /* 2026-11-16 (user, item #10): an empty weekday is NOT a card. The prototype draws
+       the shipped empty-state shell — plain, centred, no box — and only the public
+       holiday wraps itself in the error-container fill (rule below). The padding stays
+       so the glyph and the words keep the preview's breathing room. */
     .tt-responsive .tt-empty {
         padding: 24px 20px;
-        border-radius: var(--radius-md);
-        background: var(--color-surface);
-        border: 1px solid var(--color-outline);
+        text-align: center;
     }
     .tt-responsive .tt-empty .empty-icon {
         width: 44px;
@@ -6588,8 +6610,10 @@ body.filters-panel-open .filters-btn { position:relative; z-index:1300; }
     /* the prototype's panel is tall — it opens at ~17% of the screen and runs to the
        bottom (measured 390x698 on an 844-high phone). User, 2026-11-15 (#3, option B):
        the taller mockup panel, so all five cards are visible with little scrolling. */
-    min-height: 83vh;
-    min-height: 83dvh;
+    /* 2026-11-16 (user, items #7 and #8): the panel is as tall as what it holds, with a
+       Close at its foot — the prototype's shape (measured 390x698 on the phone, its
+       close bar included). The old 83dvh floor made a five-card sheet on a tall phone
+       run 747px with a hand's width of nothing under the last card. */
     max-height: 92dvh;
     border: 1px solid var(--color-outline);
     border-bottom: 0;
@@ -6647,6 +6671,63 @@ body.filters-panel-open .filters-btn { position:relative; z-index:1300; }
 .tt-responsive .tt-sheet-body .summary-section {
     margin-top: 0;
 }
+/* the sheet's foot — one full-width Close, the prototype's own bar (item #7). It is
+   the second way out beside the header x, and the one a thumb reaches. */
+.tt-responsive .tt-sheet-foot {
+    flex: 0 0 auto;
+    padding: 10px 12px calc(10px + env(safe-area-inset-bottom));
+    border-top: 1px solid var(--color-outline);
+    background: var(--color-surface);
+}
+.tt-responsive .tt-sheet-foot button {
+    width: 100%;
+    /* 48, not 44: this is a phone control and R7 wants a 48px target for every one of
+       them (the sheet's own touch receipt measures it) */
+    min-height: 48px;
+    border: 1px solid var(--color-outline);
+    border-radius: var(--radius-md);
+    background: var(--color-surface-variant);
+    color: var(--color-on-surface);
+    font: inherit;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+}
+.tt-responsive .tt-sheet-foot button:hover {
+    background: var(--color-surface);
+    border-color: var(--color-primary);
+}
+.tt-responsive .tt-sheet-foot button:focus-visible {
+    outline: 2px solid var(--color-primary);
+    outline-offset: 2px;
+}
+/* The real table's wrapper keeps its 1px frame even when the table inside it is
+   hidden, which showed as a stray hairline under a short agenda (found while laying
+   out the empty-day panel, item #10). Non-full bands hide the whole wrapper; 'full'
+   restores exactly what the page had, and print re-shows it above. */
+.tt-responsive[data-tt-mode="agenda"] .grid-wrapper,
+.tt-responsive[data-tt-mode="window"] .grid-wrapper {
+    display: none;
+}
+
+/* 2026-11-16 (user, item #11): a week with no classes at all is ONE panel, not seven
+   empty days and not an empty grid. `data-tt-empty-week` is set by the module on the
+   scope root, so the swap works in every band — including 1280+, where the table is
+   the page's own and the module only hides it. The agenda mount is this lane's own
+   container, so the panel lands where the timetable stood, under the tools row. */
+.tt-responsive[data-tt-empty-week="1"] #ttWindowGrid,
+.tt-responsive[data-tt-empty-week="1"] .grid-wrapper {
+    display: none !important;
+}
+/* the page's own panel already carries the prototype's words; the module adds only
+   the next-class hint inside it (_syncEmptyWeek) */
+.tt-responsive #emptyState .tt-next-hint {
+    margin-top: 16px;
+    padding-top: 14px;
+    border-top: 1px solid var(--color-outline);
+    text-align: left;
+}
+
 /* scroll lock. A body class cannot carry the `.tt-responsive` prefix, so it is
    scoped with :has() instead — the rule still cannot bite a page without the scope. */
 body.tt-sheet-open:has(.tt-responsive) {
@@ -6697,7 +6778,18 @@ body.tt-sheet-open:has(.tt-responsive) {
     .tt-responsive #summarySection {
         display: block !important;
     }
-    /* and the legacy table prints even from agenda/window mode */
+    /* an empty week prints the page's panel, not a blank table (item #11) */
+    .tt-responsive[data-tt-empty-week="1"] .grid-wrapper {
+        display: none !important;
+    }
+    .tt-responsive[data-tt-empty-week="1"] #emptyState {
+        display: flex !important;
+    }
+    /* and the legacy table prints even from agenda/window mode — its wrapper too,
+       which the band rules below hide so its 1px frame cannot show as a stray line */
+    .tt-responsive .grid-wrapper {
+        display: block !important;
+    }
     .tt-responsive #timetable {
         display: table !important;
     }
@@ -6779,3 +6871,20 @@ body.tt-sheet-open:has(.tt-responsive) {
 }
 /* No transition is added by this lane, so the global
    `@media (prefers-reduced-motion: reduce)` kill-switch stays in charge (R7). */
+
+/* ── The phone band's own week-select type (my-timetable-responsive-prompt, user
+   rulings of 2026-11-16: items #1 and #3) ───────────────────────────────────────
+   From 768 up the select keeps the shipped 13px / 12-32 padding — the approved
+   preview's tablet type, not the phone's. Inside the phone band the label is the
+   preview's own words (`Week 9 · 16 Nov ~ 22 Nov`) and it has to FIT: at 390 the box
+   offered 143px against a worst case of 154px (Week 10), so weeks 9-14 clipped.
+   Tightening the two paddings to the arrow's own clearance and dropping 1px of type
+   buys 13px — all fourteen labels now fit at 390 and above, in the preview's words. */
+@media (max-width: 767px) {
+    .tt-responsive .tt-sticky .week-select {
+        font-size: 11px;
+        padding-left: 4px;
+        padding-right: 18px;
+        text-overflow: ellipsis;
+    }
+}

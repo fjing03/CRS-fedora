@@ -124,6 +124,29 @@ Replacement Arrangement MUST NOT change** — they call the same builder without
   selected weekday across week changes, so "view Thursday 26 Nov → TODAY" landed on Thursday 19 Nov;
   the whole week is visible at ≥1280, which is why only the narrower bands showed it.)*
 
+## R5c — the nine round-2 comparison rulings (user, 2026-11-16)
+Each one closes a measured difference between the live pages and the approved preview. The four
+differences the user chose to KEEP are recorded in the comparison report, not here, and no receipt
+pins them.
+
+- **The week dropdown wears the phone's type only on the phone** — the shipped 13px / 12-32 padding
+  from 768 up, 11px with the arrow's own clearance below it.
+- **The phone band ends at 767** — 768 itself is a tablet, so its week label carries the year.
+- **Every phone week label MUST fit its box** — all fourteen of them, at 390 and above, in the
+  preview's own words (`Week 9 · 16 Nov ~ 22 Nov`).
+- **The tablet heading MUST name both visible days and their dates** —
+  `Mon, 23 Nov 2026 ~ Tue, 24 Nov 2026`.
+- **An empty weekday MUST NOT be drawn as a card** — the shipped empty-state shell, plain, titled
+  `No classes on <weekday>, <date>`.
+- **A week with no classes MUST show one panel** — `No classes this week` /
+  `All classes for this week have been cancelled.`, the next-class hint inside it, in every band, with
+  no empty table or grid underneath.
+- **The Week summary panel MUST be as tall as its content** (no height floor) and **MUST carry a
+  full-width Close at its foot**.
+- **The guide dialog MUST follow the preview's layout** — left title, the page's name as a subtitle,
+  labelled sections instead of one bulleted list. Opt-in, so the seven other pages that share the
+  partial keep what they have.
+
 ## R5b — three commitments the brief carries that the proposal left implicit
 - **The week label re-formats across 768px**: compact above 768 (`Week 9 · 16 Nov ~ 22 Nov`), full
   with the year below it — this is what `populateWeekSelect()`'s 768 re-label already does, so the

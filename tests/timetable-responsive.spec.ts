@@ -659,8 +659,18 @@ test.describe('T16a — the phone (320 / 360 / 390 / 430)', () => {
         }
 
         await page.locator('#todayBtn').click();
+        /* Poll on the LANDED PAIR, not on the chip alone: the strip repaints the moment
+           the week arrives and the day follows one tick later, so a chip-only wait can
+           catch the strip mid-settle on a loaded run (seen once in a full-suite pass).
+           The claim under test is "TODAY ends on today's day", and that is what this
+           waits for. */
         await expect
-          .poll(() => page.evaluate(() => (document.querySelector('#ttDayStrip .tt-day[data-today="1"]') as HTMLElement | null)?.dataset.day ?? null), { timeout: 10_000 })
+          .poll(() => page.evaluate(() => {
+            const todayChip = document.querySelector('#ttDayStrip .tt-day[data-today="1"]') as HTMLElement | null;
+            const pressed = document.querySelector('#ttDayStrip .tt-day[aria-pressed="true"]') as HTMLElement | null;
+            if (!todayChip) return null;
+            return pressed && pressed.dataset.day === todayChip.dataset.day ? todayChip.dataset.day : null;
+          }), { timeout: 10_000 })
           .not.toBeNull();
         const landed = await page.evaluate(() => {
           const todayChip = document.querySelector('#ttDayStrip .tt-day[data-today="1"]') as HTMLElement;
@@ -1346,5 +1356,232 @@ test.describe('T16c — desktop (1440) and touch', () => {
         'R7 — the summary cards\' ⓘ was reached by the walk').toBe(true);
       expectTouchTargets(deskState, 'touch laptop @1440');
     });
+  });
+});
+
+/**
+ * T16d — the nine rulings from the round-2 prototype comparison (user, 2026-11-16).
+ *
+ * Every case here was a MEASURED difference between the live pages and the approved
+ * preview, and each one names the item number from that report. The four the user
+ * chose to keep as they are (#5 the toolbar wrap at 320, #6 the full-width tablet
+ * sheet, #9 the short semester chip above the phone band, #13 the cohort chip's
+ * spacing) are deliberately NOT asserted — a receipt that pins a rejected change is
+ * worse than no receipt.
+ */
+test.describe('T16d — the round-2 rulings', () => {
+  test('1. items #1/#2/#3 — the phone label fits, and the phone band ends at 767', async ({ browser }) => {
+    /* #1: from 768 up the select wears the shipped 13px, not the phone's smaller type.
+       #2: 768 itself is a TABLET, so its label carries the year (the boundary used to
+           be `<= 768`, which put 768 inside the phone band).
+       #3: inside the phone band the preview's words have to FIT — at 390 the box offered
+           143px against a 154px worst case, and weeks 9-14 clipped to `…`. */
+    const measure = async (width: number) => {
+      const ctx = await browser.newContext({ viewport: { width, height: 900 }, storageState: STAFF_AUTH });
+      const page = await ctx.newPage();
+      try {
+        await open(page, width);
+        return await page.evaluate(() => {
+          const sel = document.getElementById('weekSelect') as HTMLSelectElement;
+          const cs = getComputedStyle(sel);
+          const probe = document.createElement('span');
+          probe.style.cssText = 'position:absolute;visibility:hidden;white-space:nowrap;font:' + cs.font;
+          document.body.appendChild(probe);
+          let worst = 0;
+          let widest = '';
+          Array.from(sel.options).forEach((o) => {
+            probe.textContent = o.textContent;
+            const w = probe.getBoundingClientRect().width;
+            if (w > worst) { worst = w; widest = o.textContent || ''; }
+          });
+          probe.remove();
+          const box = sel.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight);
+          return { fontSize: parseFloat(cs.fontSize), box, worst, widest,
+            label: sel.options[sel.selectedIndex].text };
+        });
+      } finally {
+        await ctx.close();
+      }
+    };
+
+    const phone = await measure(390);
+    expect(phone.fontSize, 'item #1 — the phone band keeps its own type size').toBeLessThan(13);
+    expect(phone.worst, `item #3 — every week label fits the phone box ("${phone.widest}")`)
+      .toBeLessThanOrEqual(phone.box);
+    expect(phone.label, 'item #2 — the phone label carries no year').not.toMatch(/\b20\d\d\b/);
+
+    for (const width of [768, 1024]) {
+      const wide = await measure(width);
+      expect(wide.fontSize, `item #1 — ${width} takes the shipped 13px`).toBe(13);
+      expect(wide.label, `item #2 — ${width} is a tablet, so the label carries the year`).toMatch(/\b20\d\d\b/);
+      expect(wide.worst, `item #3 — ${width} has room to spare`).toBeLessThanOrEqual(wide.box);
+    }
+  });
+
+  test('2. item #4 — the tablet heading names both days AND their dates', async ({ browser }) => {
+    /* `Mon ~ Tue` answered "which weekdays" but not "which week" — the one question a
+       heading under a two-day window exists to answer. The preview prints the date. */
+    for (const width of [768, 1024]) {
+      const ctx = await browser.newContext({ viewport: { width, height: 900 }, storageState: STAFF_AUTH });
+      const page = await ctx.newPage();
+      try {
+        await open(page, width);
+        const heading = (await page.locator('#ttDayHeading').textContent())?.trim() || '';
+        const days = await page.evaluate(() => {
+          const w = window as unknown as { currentWeek: number; weekData: Array<{ days: Array<{ abbr: string; date: string }> }> };
+          return w.weekData[w.currentWeek].days.map((d) => ({ abbr: d.abbr, date: d.date }));
+        });
+        const [first, last] = heading.split(' ~ ');
+        expect(heading, `${width}: two days and two dates, the preview's shape`)
+          .toMatch(/^[A-Z][a-z]{2}, \d{1,2} [A-Z][a-z]{2} \d{4} ~ [A-Z][a-z]{2}, \d{1,2} [A-Z][a-z]{2} \d{4}$/);
+        const names = days.map((d) => `${d.abbr}, ${d.date}`);
+        expect(names, `${width}: the heading names days this week really has`).toContain(first);
+        expect(names, `${width}: and the last one it really has`).toContain(last);
+      } finally {
+        await ctx.close();
+      }
+    }
+  });
+
+  test('3. item #10 — an empty weekday is not a box, and it names its date', async ({ page }) => {
+    await open(page, 390);
+    const chips = await chipState(page);
+    let empty = -1;
+    for (const c of chips) {
+      if (c.count === 0 && !c.holiday) { empty = c.index; break; }
+    }
+    test.skip(empty < 0, 'fixture: every day of this week has a class');
+
+    await tapDay(page, empty);
+    const panel = await page.evaluate(() => {
+      const p = document.querySelector('#ttAgenda .tt-empty') as HTMLElement | null;
+      if (!p) return null;
+      const cs = getComputedStyle(p);
+      return { title: (p.querySelector('.empty-title')?.textContent || '').trim(),
+        border: cs.borderTopWidth, background: cs.backgroundColor };
+    });
+    expect(panel, 'the empty day still draws its panel').toBeTruthy();
+    expect(panel!.border, 'item #10 — no card frame (the preview draws none)').toBe('0px');
+    expect(panel!.background, 'item #10 — and no card fill').toMatch(/rgba\(0, 0, 0, 0\)|transparent/);
+    expect(panel!.title, 'item #10 — `No classes on <weekday>, <date>`')
+      .toMatch(/^No classes on [A-Z][a-z]+(day)?, \d{1,2} [A-Z][a-z]{2} \d{4}$/);
+  });
+
+  test('4. item #11 — a week with no classes shows ONE panel, with the hint inside it', async ({ browser }) => {
+    /* The state the preview ships and the demo data never reaches: blank the week in
+       the page's own payload (no server change) and read what is on screen. */
+    for (const width of [390, 900, 1440]) {
+      const ctx = await browser.newContext({ viewport: { width, height: 950 }, storageState: STAFF_AUTH });
+      const page = await ctx.newPage();
+      try {
+        await open(page, width);
+        await page.evaluate(() => {
+          const w = window as unknown as { currentWeek: number; eventsData: unknown[][]; selectWeek: (n: number) => void };
+          w.eventsData[w.currentWeek] = [];
+          w.selectWeek(w.currentWeek);
+        });
+        await expect.poll(() => page.evaluate(() => (document.getElementById('emptyState') as HTMLElement | null)?.offsetParent !== null),
+          { message: `${width}: the panel is on screen` }).toBe(true);
+        const seen = await page.evaluate(() => ({
+          panels: document.querySelectorAll('.tt-responsive .empty-state:not([style*="display: none"])').length,
+          title: (document.getElementById('emptyTitle')?.textContent || '').trim(),
+          text: (document.getElementById('emptyText')?.textContent || '').trim(),
+          hint: (document.querySelector('#emptyState .tt-next-hint')?.textContent || '').replace(/\s+/g, ' ').trim(),
+          gridShown: (() => { const g = document.querySelector('.grid-wrapper') as HTMLElement | null; return g ? getComputedStyle(g).display !== 'none' : false; })(),
+          windowShown: (() => { const g = document.getElementById('ttWindowGrid') as HTMLElement | null; return g ? getComputedStyle(g).display !== 'none' : false; })(),
+        }));
+        expect(seen.panels, `${width}: one panel, not two`).toBe(1);
+        expect(seen.title, `${width}: the preview's words`).toBe('No classes this week');
+        expect(seen.text, `${width}: and its second line`).toBe('All classes for this week have been cancelled.');
+        expect(seen.hint, `${width}: the next-class hint rides inside the panel`).toMatch(/^Next class/);
+        expect(seen.gridShown, `${width}: no empty table underneath`).toBe(false);
+        expect(seen.windowShown, `${width}: no empty transposed grid underneath`).toBe(false);
+        expectNoPageErrors(page, `${width}: empty week`);
+      } finally {
+        await ctx.close();
+      }
+    }
+  });
+
+  test('5. item #12 — the guide dialog: left title, subtitle, labelled sections', async ({ browser }) => {
+    /* The preview's shape for this dialog. It is opt-in (`guideSubtitle`/`guideGroups`),
+       so a page that shares the partial keeps the old centred list — asserted here on
+       the venue page, which is one of the seven. */
+    const ctx = await browser.newContext({ viewport: { width: 390, height: 900 }, storageState: STAFF_AUTH });
+    const page = await ctx.newPage();
+    try {
+      await open(page, 390);
+      await page.locator('[aria-label="How to use this page"]').first().click();
+      await expect(page.locator('.modal--guide')).toBeVisible();
+      const guide = await page.evaluate(() => {
+        const m = document.querySelector('.modal--guide') as HTMLElement;
+        const title = m.querySelector('.modal-title') as HTMLElement;
+        return {
+          optIn: m.classList.contains('modal--guide-left'),
+          align: getComputedStyle(title).textAlign,
+          subtitle: (m.querySelector('.modal-subtitle')?.textContent || '').trim(),
+          groups: Array.from(m.querySelectorAll('.detail-group-title')).map((g) => (g.textContent || '').trim()),
+          bullets: m.querySelectorAll('.guide-list').length,
+        };
+      });
+      expect(guide.optIn, 'item #12 — these pages opt into the preview layout').toBe(true);
+      expect(guide.align, 'item #12 — the title sits on the left').toBe('left');
+      expect(guide.subtitle, 'item #12 — the page names itself under the title').toBe('My Timetable');
+      expect(guide.groups.length, 'item #12 — one label per section').toBeGreaterThanOrEqual(3);
+      expect(guide.bullets, 'item #12 — the old bullet list is gone here').toBe(0);
+      await page.keyboard.press('Escape');
+
+      await page.goto(BASE + '/venue-timetable-ui', { waitUntil: 'networkidle' });
+      await expect(page.locator('.tt-responsive')).toHaveCount(0);
+      await page.locator('[aria-label="How to use this page"]').first().click();
+      await expect(page.locator('.modal--guide')).toBeVisible();
+      const other = await page.evaluate(() => {
+        const m = document.querySelector('.modal--guide') as HTMLElement;
+        return { optIn: m.classList.contains('modal--guide-left'),
+          align: getComputedStyle(m.querySelector('.modal-title') as HTMLElement).textAlign };
+      });
+      expect(other.optIn, 'the other seven pages keep the layout they have').toBe(false);
+      expect(other.align, 'and stay centred').toBe('center');
+    } finally {
+      await ctx.close();
+    }
+  });
+});
+
+test.describe('T16d — the Week summary sheet, items #7/#8', () => {
+  test('6. the sheet is as tall as its content, and its foot closes it', async ({ page }) => {
+    /* #7: the preview puts a full-width Close at the foot of the panel — the way out a
+           thumb reaches without crossing the screen.
+       #8: and the panel is content-height. The old 83dvh floor made a five-card sheet
+           747px tall on a 900px screen, with a hand's width of nothing under the last
+           card (measured before the change). */
+    await open(page, 390);
+    await page.locator('#ttSummaryButton').click();
+    await expect(page.locator('#ttSheet')).toBeVisible();
+
+    const sheet = await page.evaluate(() => {
+      const el = document.querySelector('#ttSheet .tt-sheet') as HTMLElement;
+      const foot = el.querySelector('.tt-sheet-foot button') as HTMLElement | null;
+      const body = el.querySelector('.tt-sheet-body') as HTMLElement;
+      return {
+        height: Math.round(el.getBoundingClientRect().height),
+        viewport: window.innerHeight,
+        foot: !!foot,
+        footText: (foot?.textContent || '').trim(),
+        footHeight: foot ? Math.round(foot.getBoundingClientRect().height) : 0,
+        bodyFits: body.scrollHeight <= body.clientHeight + 1,
+      };
+    });
+    expect(sheet.foot, 'item #7 — the sheet has a foot').toBe(true);
+    expect(sheet.footText, 'item #7 — and it says what it does').toBe('Close');
+    expect(sheet.footHeight, 'item #7 — a 48px target, like every other phone control').toBeGreaterThanOrEqual(48);
+    expect(sheet.bodyFits, 'item #8 — the cards fit without scrolling at 390').toBe(true);
+    expect(sheet.height, 'item #8 — content height, not a floor of 83% of the screen')
+      .toBeLessThan(Math.round(sheet.viewport * 0.83));
+
+    await page.locator('#ttSheet .tt-sheet-foot button').click();
+    await expect(page.locator('#ttSheet'), 'item #7 — the foot really closes it').toBeHidden();
+    await expect(page.locator('#ttSummaryButton'), 'and focus comes back to the opener').toBeFocused();
+    expect(await page.evaluate(() => document.body.classList.contains('tt-sheet-open')), 'the scroll lock is released').toBe(false);
   });
 });

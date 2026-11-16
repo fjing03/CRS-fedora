@@ -80,5 +80,12 @@
             <button type="button" class="tt-sheet-close" aria-label="Close week summary">&times;</button>
         </div>
         <div class="tt-sheet-body" id="ttSheetBody" wire:ignore></div>
+        {{-- the sheet's foot: the prototype puts a full-width Close here, and it is
+             the way out a thumb can reach without crossing the panel (user,
+             2026-11-16, item #7). Bound by TimetableResponsive._bindSheetControls,
+             never by an inline onclick — same law as every other control here. --}}
+        <div class="tt-sheet-foot">
+            <button type="button" data-tt-sheet-close>Close</button>
+        </div>
     </div>
 </div>
