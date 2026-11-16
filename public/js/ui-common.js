@@ -1070,6 +1070,17 @@ function buildTimetableGrid(cfg) {
        ONE focusable, clickable target per event identity: data-event-key
        rides every payload event that carries one (cancelled-slot-reuse
        S14/S18); data-sid / data-rid keep their legacy jump contracts. */
+    /* item #11 — which lecturer name a tooltip should print: the class's own lecturer
+       UNLESS that is the person reading, in which case nothing (their own name on every
+       block says nothing, and repeated names cost a segment of the tooltip). Lives here,
+       not inline in a blade, so a receipt can drive it with synthetic events. */
+    function tipLecturerUnlessSelf(e, viewerName) {
+        const lect = (e && e.lecturer) || '';
+        const me = viewerName || '';
+        return (lect && lect !== me) ? lect : '';
+    }
+    window.tipLecturerUnlessSelf = tipLecturerUnlessSelf;
+
     /* The status word's glyph as an HTML string — makeEventBlock() builds its block
        content as a string, so the DOM builder inside TimetableResponsive cannot be
        used there. Same two shapes, one file, no second vocabulary (item #9). */

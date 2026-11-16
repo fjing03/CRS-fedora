@@ -611,6 +611,35 @@ test.describe('T16a — the phone (320 / 360 / 390 / 430)', () => {
       .not.toBe(seen.dark);
   });
 
+  test('11. staff tips name the lecturer only when it is someone else (item #11, option C)', async ({ page }) => {
+    /* The rule is a shared helper now, so it can be driven with synthetic events: the
+       viewer's own class prints no lecturer segment, anyone else's prints theirs. The
+       page has to be open first — the helper ships inside ui-common.js. */
+    await open(page, 390);
+    const rule = await page.evaluate(() =>
+      (window as any).tipLecturerUnlessSelf
+        ? {
+            mine: (window as any).tipLecturerUnlessSelf({ lecturer: 'Lim Jia Zheng' }, 'Lim Jia Zheng'),
+            other: (window as any).tipLecturerUnlessSelf({ lecturer: 'Ellis Chieng' }, 'Lim Jia Zheng'),
+            empty: (window as any).tipLecturerUnlessSelf({}, 'Lim Jia Zheng'),
+          }
+        : null,
+    );
+    expect(rule, 'the helper ships with ui-common.js').toBeTruthy();
+    expect(rule!.mine, 'item #11 — your own name is never printed back to you').toBe('');
+    expect(rule!.other, "item #11 — someone else's class names who teaches it").toBe('Ellis Chieng');
+    expect(rule!.empty, 'item #11 — no lecturer in the payload means no segment').toBe('');
+
+    /* …and on the live page, no card repeats the viewer's own name in its tip */
+    const me = await page.evaluate(() => (window as any).MockData?.currentUser?.name || '');
+    const tips = await page.evaluate(() =>
+      Array.from(document.querySelectorAll('#ttAgenda .tt-card')).map((e) => e.getAttribute('data-tip') || ''));
+    for (const tip of tips) {
+      expect(tip, 'item #11 — the viewer\'s own name is not in their own tip').not.toContain(`, ${me}, `);
+    }
+    expectNoPageErrors(page, 'tips @390');
+  });
+
   test('10. items #1/#5/#6 — the heading names the date, the phone chip is short, the title is 20px', async ({ page }) => {
     /* Three prototype details the user chose to follow on 2026-11-15:
          #1 the day heading reads `Monday, 9 Nov 2026`, not just `Monday`;

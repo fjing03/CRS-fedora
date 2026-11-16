@@ -746,3 +746,7 @@ desktop block carry them, in the block's own colour.
 ### Prototype comparison, same day — the desktop block's status word is smaller
 9px instead of 11px, as the prototype has it, so the word sits inside a narrow block without crowding
 the code, venue and time. The phone card's word keeps its own size.
+
+### Prototype comparison, same day — the tooltip names a lecturer only when it isn't you
+Your own classes keep the short tooltip; a class taught by someone else (a replacement) now names who
+teaches it, between the cohorts and the status.

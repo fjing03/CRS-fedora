@@ -289,3 +289,12 @@ module's `_statusIcon()` builds the DOM version for the card.
 `.tt-responsive .tt-block-status { font-size: 9px; font-weight: 600 }`, the prototype's size. Measured
 after the change: 9px/600, 11px tall. The card's word keeps its 11px tier — only the desktop block
 gives way, because that block already carries code, venue and time inside ~90px of height.
+
+### #11 answered — the staff tip names a lecturer only when it is someone else
+
+Option C. The rule lives in `tipLecturerUnlessSelf(e, viewerName)` in ui-common.js (exported), and the
+staff blade's `tipLecturerFn` calls it — so a receipt can drive it with synthetic events instead of
+needing a fixture where another lecturer teaches one of 5770's classes (the current demo data has
+none: every block on this page is the viewer's own, which is exactly why the segment was dropped).
+Own classes: `Operating Systems · DFT2(S1)G1 + DSF2(S1)G1 · NORMAL`. Someone else's: the lecturer's
+name appears between the cohorts and the status.

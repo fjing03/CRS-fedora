@@ -359,7 +359,15 @@
                 /* the user's hover-voice directive 2026-10-25: the staff
                    name is DROPPED here — every block on this page is the
                    viewer's own, so "name · cohorts · STATUS" says it all. */
-                var tipLecturerFn = function () { return ''; };
+                /* item #11 — the lecturer's name rides the tip only when it is NOT the
+                   viewer (user, 2026-11-15: "option C"). Every block here is the
+                   viewer's own class, so printing their own name on each of them says
+                   nothing; a class taught by someone else — a replacement — is exactly
+                   the case where the name is worth a segment. */
+                var tipLecturerFn = function (e) {
+                    var me = (window.MockData && MockData.currentUser && MockData.currentUser.name) || '';
+                    return tipLecturerUnlessSelf(e, me);
+                };
                 var replacementNoteFn = function (e) {
                     return buildReplacementNote(e);
                 };
