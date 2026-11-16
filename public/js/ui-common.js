@@ -1070,6 +1070,18 @@ function buildTimetableGrid(cfg) {
        ONE focusable, clickable target per event identity: data-event-key
        rides every payload event that carries one (cancelled-slot-reuse
        S14/S18); data-sid / data-rid keep their legacy jump contracts. */
+    /* The status word's glyph as an HTML string — makeEventBlock() builds its block
+       content as a string, so the DOM builder inside TimetableResponsive cannot be
+       used there. Same two shapes, one file, no second vocabulary (item #9). */
+    function statusIconHtml(kind) {
+        const paths = kind === 'cancelled'
+            ? '<line x1="6" y1="6" x2="18" y2="18"/><line x1="18" y1="6" x2="6" y2="18"/>'
+            : '<path d="M12 3 2.6 20h18.8L12 3z"/><path d="M12 9v5M12 17.2v.2"/>';
+        return '<svg class="tt-status-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" '
+            + 'stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'
+            + paths + '</svg>';
+    }
+
     function makeEventBlock(e, span, day, cfg, di) {
         const isConflict = day.holiday;
         const div = document.createElement('div');
@@ -1165,7 +1177,8 @@ function buildTimetableGrid(cfg) {
         let statusWord = '';
         if (cfg.responsive && !isConflict && (e.status === 'cancelled' || e.status === 'conflict')) {
             statusWord = '<span class="ev-note tt-block-status">'
-                + (e.status === 'cancelled' ? '✕ Cancelled' : '⚠ Conflict') + '</span>';
+                + statusIconHtml(e.status)
+                + (e.status === 'cancelled' ? 'Cancelled' : 'Conflict') + '</span>';
         }
 
         /* …and the word REPLACES the legacy `(Cancelled)` note it duplicates, the
@@ -7194,6 +7207,39 @@ const TimetableResponsive = {
         return eventStatusLabel(e, false);
     },
 
+    /* The status word's GLYPH, drawn rather than typed (user, 2026-11-15, prototype
+       comparison #9): `\u2715` and `\u26a0` are text characters, so they render at
+       different weights and heights on different phones. One 12px inline SVG per kind,
+       in the block's own colour via `currentColor`, looks the same everywhere. */
+    _statusIcon: function (kind) {
+        var svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+        svg.setAttribute('class', 'tt-status-icon');
+        svg.setAttribute('viewBox', '0 0 24 24');
+        svg.setAttribute('fill', 'none');
+        svg.setAttribute('stroke', 'currentColor');
+        svg.setAttribute('stroke-width', '2.5');
+        svg.setAttribute('stroke-linecap', 'round');
+        svg.setAttribute('stroke-linejoin', 'round');
+        svg.setAttribute('aria-hidden', 'true');
+        var n1, n2;
+        if (kind === 'cancelled') {
+            n1 = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+            n1.setAttribute('x1', '6'); n1.setAttribute('y1', '6');
+            n1.setAttribute('x2', '18'); n1.setAttribute('y2', '18');
+            n2 = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+            n2.setAttribute('x1', '18'); n2.setAttribute('y1', '6');
+            n2.setAttribute('x2', '6'); n2.setAttribute('y2', '18');
+        } else {
+            n1 = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+            n1.setAttribute('d', 'M12 3 2.6 20h18.8L12 3z');
+            n2 = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+            n2.setAttribute('d', 'M12 9v5M12 17.2v.2');
+        }
+        svg.appendChild(n1);
+        svg.appendChild(n2);
+        return svg;
+    },
+
     /* The hover tip, composed exactly as design §6 states:
        `[name, [tipCtx, tipLect, status].filter(Boolean).join(' · ')]` joined the
        same way — the shape the flag's tip migration gives the desktop block, with the
@@ -7357,7 +7403,9 @@ const TimetableResponsive = {
             if (wordStatus) {
                 var word = document.createElement('span');
                 word.className = 'tt-status status-' + wordStatus;
-                word.textContent = wordStatus === 'cancelled' ? '✕ Cancelled' : '⚠ Conflict';
+                word.appendChild(this._statusIcon(wordStatus));
+                word.appendChild(document.createTextNode(
+                    wordStatus === 'cancelled' ? 'Cancelled' : 'Conflict'));
                 note.appendChild(word);
             }
             btn.appendChild(note);

@@ -6464,6 +6464,21 @@ body.filters-panel-open .filters-btn { position:relative; z-index:1300; }
     background: transparent;
 }
 
+/* the drawn glyph beside the status word (item #9) — card and desktop block alike */
+.tt-responsive .tt-status-icon {
+    width: 12px;
+    height: 12px;
+    flex: none;
+}
+.tt-responsive .ev-note.tt-block-status {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+}
+.tt-responsive .tt-block-status .tt-status-icon {
+    width: 10px;
+    height: 10px;
+}
 .tt-responsive .tt-card.event-pending {
     border-style: dashed;
 }

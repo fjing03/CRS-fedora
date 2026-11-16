@@ -737,3 +737,8 @@ prototype. The word "selected" is gone because the chip is already marked as the
 ### Prototype comparison, same day — "today" is marked even when you look at another day
 The strip now keeps its current-day mark on today while you browse a different day; the pressed state
 still says which day you picked, so the two never say the same thing twice. Screen readers only.
+
+### Prototype comparison, same day — drawn symbols beside "Cancelled" / "Conflict"
+The cross and the warning triangle are now small drawn icons instead of typed characters, so they look
+the same on every phone instead of shifting with the device's fonts. Both the class card and the
+desktop block carry them, in the block's own colour.

@@ -274,3 +274,12 @@ generic "public holiday" became the holiday's real name. The chips also carry `d
 The prototype's rule: the mark rides the REAL today whether or not it is selected, while
 `aria-pressed` keeps saying which day is chosen. A blind reader can now always find today in the
 strip even when looking at another day.
+
+### #9 answered — the status word's glyph is drawn, not typed
+
+`✕` and `⚠` were text characters, so they rendered at different weights and heights across phones. Both
+surfaces now carry a 12px inline SVG (card and window cell) or 10px (the desktop block's word), in the
+block's colour through `currentColor`. The word itself stays text — `Cancelled` / `Conflict` — so the
+accessible name and the receipts never had to change. The desktop twin lives beside `makeEventBlock()`
+as `statusIconHtml()`, because that block is built as an HTML string and cannot take a DOM node; the
+module's `_statusIcon()` builds the DOM version for the card.

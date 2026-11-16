@@ -36,7 +36,9 @@ Replacement Arrangement MUST NOT change** — they call the same builder without
 - The subject **name** MUST NOT appear on the card; it MUST remain in `aria-label`, the hover tip and
   the details modal.
 - Only **Cancelled** and **Conflict** print a word inside a card, on the note line, in the block's own
-  colour. Public Holiday prints none inside a block.
+  colour. Public Holiday prints none inside a block. The word carries a **drawn 12px glyph** (a cross
+  for cancelled, a warning triangle for conflict) rather than a typed character, so it renders the same
+  on every device. *(User ruling 2026-11-15, comparison #9.)*
 - *(Behaviour-table row 10 in the frozen design reads "one card at a time" — superseded: this
   requirement is the authority, and every card of a clash carries the affordance.)*
 - A card in a clash MUST carry `is-overlap` (5px left strip) **and** an overlap line on **every** card

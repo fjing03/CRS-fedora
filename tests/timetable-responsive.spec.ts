@@ -487,14 +487,22 @@ test.describe('T16a — the phone (320 / 360 / 390 / 430)', () => {
     const cancelled = drawn.find((c) => /, Class Cancelled$/.test(c.label));
     expect(cancelled, 'the cancelled class is drawn as a card, and says so in its spoken label').toBeTruthy();
     expect(cancelled!.tag, 'R3 — a card is a real <button>').toBe('BUTTON');
-    expect(cancelled!.text, 'R3 — the block prints the short word on the note line').toContain('✕ Cancelled');
+    expect(cancelled!.text, 'R3 — the block prints the short word on the note line').toContain('Cancelled');
+    /* item #9 — the glyph is a DRAWN icon now, not a typed character, so it reads the
+       same on every phone; the word itself stays text */
+    expect(
+      await page.locator('#ttAgenda .tt-status svg.tt-status-icon').count(),
+      'item #9 — the status word carries its drawn icon',
+    ).toBeGreaterThan(0);
 
     /* R3: the subject NAME lives in aria-label / the tip / the modal — never on the card */
     const name = (cancelled!.tip.split(' · ')[0] || '').trim();
     expect(cancelled!.label, 'R3 — the spoken label carries the subject name').toContain(name);
     expect(cancelled!.text, 'R3 — the subject name must NOT be printed on the card').not.toContain(name);
 
-    const cardEl = page.locator('#ttAgenda .tt-card').filter({ hasText: '✕ Cancelled' }).first();
+    /* item #9 — the glyph is an icon now, so the card is found by its status class,
+       not by a typed character */
+    const cardEl = page.locator('#ttAgenda .tt-card').filter({ has: page.locator('.tt-status.status-cancelled') }).first();
 
     /* a click reaches the page's OWN details handler */
     await cardEl.click();
@@ -1051,13 +1059,15 @@ test.describe('T16c — desktop (1440) and touch', () => {
         text: (block.querySelector('.tt-block-status')?.textContent || '').trim(),
         cls: block.className,
         afterTime: children.indexOf('ev-note tt-block-status') === children.indexOf('ev-time') + 1,
+        icon: !!document.querySelector('#timetable .tt-block-status svg.tt-status-icon'),
         colour: getComputedStyle(block.querySelector('.tt-block-status')!).color,
         blockColour: getComputedStyle(block).color,
       };
     });
     expect(word, 'R4 — the block carries the status word').toBeTruthy();
-    expect(word!.text, 'R4 — "✕ Cancelled" / "⚠ Conflict", never the long form inside a block')
-      .toMatch(/^(✕ Cancelled|⚠ Conflict)$/);
+    expect(word!.text, 'R4 — "Cancelled" / "Conflict" with a drawn glyph, never the long form inside a block')
+      .toMatch(/^(Cancelled|Conflict)$/);
+    expect(word!.icon, "item #9 — the block's word carries the drawn icon too").toBe(true);
     expect(word!.afterTime, 'R4 — the word sits UNDER the time (the next child after .ev-time)').toBe(true);
     expect(word!.cls, 'R4 — a cancelled/conflicted block still rides the conflict family').toContain('event-conflict');
     expect(word!.colour, 'R4 — the word takes the block\'s own colour').toBe(word!.blockColour);
