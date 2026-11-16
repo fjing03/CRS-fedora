@@ -1,3 +1,6 @@
+> **Archived 2026-11-16** (user's word). This folder was `.sdd/changes/my-timetable-responsive-prompt/`
+> while it was being built; every path below is written against the repo root and still resolves.
+
 # Apply log — `my-timetable-responsive-prompt`
 
 Batches A–F applied 2026-11-15 on the testing DB (`class_replacement_testing`, `:8030`), by subagents

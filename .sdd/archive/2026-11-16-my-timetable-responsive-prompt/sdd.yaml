@@ -1,7 +1,7 @@
 name: my-timetable-responsive-prompt
 created: 2026-11-14
-status: proposed
-batch: tasks (frozen) — ready for apply
+status: archived  # verified PASS 2026-11-15 (2 rounds), extended 2026-11-16, archived 2026-11-16
+batch: complete (T0a-T19) — archived 2026-11-16
 lane_shape: full
 brief: ui-prototype/my-timetable-responsive-prompt.md
 reference_prototype: ui-prototype/my-timetable-mobile-preview.html
@@ -28,5 +28,5 @@ tasks_frozen_on: 2026-11-15
 review_rounds_tasks: 2
 tasks_path: "tasks.md (T0a-T19, eight batches)"
 review_rounds: 4
-implementation_approved: false
-implementation_approval: "not asked — the brief is explore + propose only (batches 1-4 frozen)"
+implementation_approved: true
+implementation_approval: "approved 2026-11-15; applied in batches A-H, verified PASS, then extended 2026-11-16 (12 follow-ups, 2 bug fixes, the Proposed/Cancelled ruling, nine round-2 rulings). HEAD of that work: 7809c1b."

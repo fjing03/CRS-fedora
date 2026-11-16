@@ -774,3 +774,8 @@ teaches it, between the cohorts and the status.
   underneath, instead of an empty grid.
 - The Week summary panel is only as tall as what it holds, and it has a **Close** button at the bottom.
 - The help dialog follows the prototype: title on the left, page name underneath, labelled sections.
+
+### Lane closed
+- The `my-timetable-responsive-prompt` lane (this page's responsive rebuild, both bug fixes, the
+  Proposed/Cancelled ruling and the nine round-2 rulings) was **archived 2026-11-16** to
+  `.sdd/archive/2026-11-16-my-timetable-responsive-prompt/`. No behaviour change.

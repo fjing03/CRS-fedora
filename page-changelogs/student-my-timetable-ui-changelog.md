@@ -642,3 +642,7 @@ and that headcount is other students' business, not the reader's.
 - Week dropdown sized per band, every phone label fitting; tablet heading with both dates; a plain
   empty day that names its date; one panel for a whole empty week with the next class inside; a
   content-height Week summary with a Close at the foot; the help dialog in the prototype's layout.
+
+### Lane closed
+- The `my-timetable-responsive-prompt` lane was **archived 2026-11-16** to
+  `.sdd/archive/2026-11-16-my-timetable-responsive-prompt/`. No behaviour change.
