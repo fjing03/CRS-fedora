@@ -6479,6 +6479,13 @@ body.filters-panel-open .filters-btn { position:relative; z-index:1300; }
     width: 10px;
     height: 10px;
 }
+/* item #10 — the prototype's 9px: a desktop block already carries code, venue, time
+   and this word inside ~90px of height, so the word gives way rather than crowding
+   them (user, 2026-11-15) */
+.tt-responsive .tt-block-status {
+    font-size: 9px;
+    font-weight: 600;
+}
 .tt-responsive .tt-card.event-pending {
     border-style: dashed;
 }

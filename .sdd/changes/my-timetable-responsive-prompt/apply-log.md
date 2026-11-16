@@ -283,3 +283,9 @@ block's colour through `currentColor`. The word itself stays text — `Cancelled
 accessible name and the receipts never had to change. The desktop twin lives beside `makeEventBlock()`
 as `statusIconHtml()`, because that block is built as an HTML string and cannot take a DOM node; the
 module's `_statusIcon()` builds the DOM version for the card.
+
+### #10 answered — the desktop block's word is 9px
+
+`.tt-responsive .tt-block-status { font-size: 9px; font-weight: 600 }`, the prototype's size. Measured
+after the change: 9px/600, 11px tall. The card's word keeps its 11px tier — only the desktop block
+gives way, because that block already carries code, venue and time inside ~90px of height.

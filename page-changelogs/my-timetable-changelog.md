@@ -742,3 +742,7 @@ still says which day you picked, so the two never say the same thing twice. Scre
 The cross and the warning triangle are now small drawn icons instead of typed characters, so they look
 the same on every phone instead of shifting with the device's fonts. Both the class card and the
 desktop block carry them, in the block's own colour.
+
+### Prototype comparison, same day — the desktop block's status word is smaller
+9px instead of 11px, as the prototype has it, so the word sits inside a narrow block without crowding
+the code, venue and time. The phone card's word keeps its own size.
