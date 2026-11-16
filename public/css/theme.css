@@ -6563,7 +6563,12 @@ body.filters-panel-open .filters-btn { position:relative; z-index:1300; }
     display: flex;
     flex-direction: column;
     width: 100%;
-    max-height: 88dvh;
+    /* the prototype's panel is tall — it opens at ~17% of the screen and runs to the
+       bottom (measured 390x698 on an 844-high phone). User, 2026-11-15 (#3, option B):
+       the taller mockup panel, so all five cards are visible with little scrolling. */
+    min-height: 83vh;
+    min-height: 83dvh;
+    max-height: 92dvh;
     border: 1px solid var(--color-outline);
     border-bottom: 0;
     border-radius: var(--radius-lg) var(--radius-lg) 0 0;

@@ -253,3 +253,11 @@ the code. Receipts: T16a #10 (heading, chip, title at 390 and the wide-width hal
 Red elsewhere, unchanged and not this lane's: `tests/timetable-wiring.spec.ts` asserts `#weekSubtitle`,
 which was removed on 2026-11-13, and its own `loginStaff()` hits the Fortify limiter after the three
 setup logins — same stale-test family the lane already recorded for `e2e/timetable.spec.js`.
+
+### #3 answered — the taller panel (option B)
+
+The user chose the prototype's taller panel. `min-height: 83dvh` (with a `vh` fallback) on
+`.tt-responsive .tt-sheet`: measured **390×701 at top 143** on an 844-high phone, against the
+prototype's 390×698 at 146 — the same panel, within a few pixels. Everything else about the sheet is
+unchanged: it still rises from the bottom, still dims the page, still traps Tab, closes on Esc, the ×
+or a tap outside, and returns focus to its button.

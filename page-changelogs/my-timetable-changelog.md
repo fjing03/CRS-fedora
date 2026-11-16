@@ -723,3 +723,8 @@ Week summary sheet's header carries `Week 9 · 202605 Semester · 21 Sep 2026 ~ 
 subtitle (and the range line that used to repeat it inside the body is gone); the semester chip is the
 short `202605 Semester` on a phone; the page title is 20px on a phone instead of 18px. The Week
 summary **button** keeps its words — that one was kept as it is on request.
+
+### Prototype comparison, same day — the Week summary panel is taller
+It now opens tall, covering about 85% of the screen as the approved prototype does (measured
+390×701 against the prototype's 390×698), so the legend and all five cards are visible with far less
+scrolling. Closing it is unchanged: ×, Esc, or a tap on the dimmed page behind.
