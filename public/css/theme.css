@@ -7099,6 +7099,10 @@ body.tt-sheet-open:has(.tt-responsive) {
     font-weight: 600;
     text-align: center;
     border: 1px solid var(--p-outline);
+    /* the paper paints its OWN surface: a transparent cell would show the app's
+       dark canvas through it in either theme, and paper must be light in both */
+    background: var(--p-surface);
+    color: var(--p-on-surface);
 }
 
 /* the day column is a fixed strip, the half-hours share the rest evenly */
@@ -7118,14 +7122,34 @@ body.tt-sheet-open:has(.tt-responsive) {
     padding: 0;
     vertical-align: top;
     border: 1px solid var(--p-outline);
+    background: var(--p-surface);   /* see thead th — paper paints itself */
+    color: var(--p-on-surface);
 }
 
-.print-table tbody .time-col {
+/* The paper's day strip and hour cells are their OWN classes (design §2.1) — the
+   builder emits `.print-day` / `.print-cell` under `cfg.print`. The screen's
+   `.time-col` is `position: sticky; width 120px; z-index 15` and `.hour-cell` carries
+   offday fills; reusing them made the printed table paint against the page box. */
+.print-table tbody .print-day {
     width: 68px;
     padding: 3px 5px;
     text-align: center;
     vertical-align: middle;
+    font-weight: 600;
     background: var(--p-surface-variant);
+}
+
+.print-table tbody .print-cell {
+    position: relative;
+    height: 76px;
+    padding: 0;
+    vertical-align: top;
+    background: var(--p-surface);
+}
+
+/* an empty cell is bare paper: no fill, no cursor, nothing to read */
+.print-table .print-cell .cell-empty {
+    display: none;
 }
 
 .print-table .day-label {
@@ -7144,6 +7168,7 @@ body.tt-sheet-open:has(.tt-responsive) {
    the print set is empty, so a week whose only blocks are pending prints the truth */
 .print-empty {
     display: none;
+    background: var(--p-bg);
     flex-direction: column;
     align-items: center;
     gap: 3px;
@@ -7159,6 +7184,139 @@ body.tt-sheet-open:has(.tt-responsive) {
 }
 
 .print-empty span { font-size: 9px; }
+
+/* ── The paper's BLOCK: two quiet corners, one bold centre, the time at the foot,
+      the note hard against the bottom centre line (contract BLOCK LAYOUT).
+      The corners are ABSOLUTE on purpose — that is what the measured band exists
+      for: a centre of two or more lines is pushed clear of them by a gap measured
+      from the tallest corner that actually rendered, never by a guessed padding.
+      The note is absolute too, so the fit pass reserves its strip by hand or a
+      crowded block would shrink to fit and then print the note over the clock. ── */
+.print-block {
+    position: relative;
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 1px;
+    height: 100%;
+    min-height: 72px;
+    padding: 4px 5px;
+    overflow: hidden;
+    text-align: center;
+    line-height: 1.16;
+    border: 2px solid transparent;
+    border-radius: 3px;
+    color: var(--p-on-surface);
+}
+
+/* colour = status; border weight = ownership. Both weights move together or the
+   key would be false (contract DENSE MODE). */
+.print-block.print-normal {
+    background: var(--p-normal-fill);
+    border-color: var(--p-normal-border);
+}
+.print-block.print-replacement {
+    background: var(--p-replacement-fill);
+    border-color: var(--p-replacement-border);
+}
+.print-block.print-conflict {
+    background: var(--p-conflict-fill);
+    border-color: var(--p-conflict-border);
+}
+.print-block.print-others { border-width: 1px; }
+
+/* a public-holiday row paints EVERY block conflict-red and keeps its content: on a
+   PH nothing runs, so a green block under a red mark told two stories at once
+   (contract NO INVENTED STATUS WORD). Ownership survives in the border weight. */
+.print-block.print-on-holiday {
+    background: var(--p-conflict-fill);
+    border-color: var(--p-conflict-border);
+}
+
+/* the corners: quiet furniture, not content — a lighter weight and 80% opacity, so
+   the eye lands on the centre. They clip with an ellipsis rather than wrapping, so a
+   long venue or surname can never push the centre off-axis. */
+.print-corner {
+    position: absolute;
+    top: 2px;
+    max-width: 47%;
+    font-size: 8px;
+    font-weight: 500;
+    line-height: 1.15;
+    opacity: 0.8;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.print-corner-left { left: 4px; text-align: left; }
+.print-corner-right { right: 4px; text-align: right; }
+
+/* the measured band: height comes from the fit pass, 0 until it runs */
+.print-band {
+    display: block;
+    width: 100%;
+    height: var(--print-band, 0px);
+}
+
+.print-main {
+    display: block;
+    width: 100%;
+    font-size: var(--print-main-size, 11.5px);
+    font-weight: 800;
+    line-height: 1.1;
+    overflow-wrap: anywhere;
+}
+
+.print-main-line { display: block; }
+
+.print-time {
+    display: block;
+    font-size: 8.5px;
+    opacity: 0.9;
+    white-space: nowrap;
+}
+
+.print-note {
+    position: absolute;
+    left: 4px;
+    right: 4px;
+    bottom: 1px;
+    font-size: 4.5px;
+    line-height: 1.1;
+    opacity: 0.85;
+}
+
+/* a one-hour block has no room for two full-size corners */
+.print-narrow .print-corner { font-size: 7px; }
+.print-narrow .print-main { font-size: var(--print-main-size, 9px); }
+.print-narrow .print-time { font-size: 7.5px; }
+
+/* ── DENSE MODE — a very full week still fits one sheet. It tightens spacing and the
+      children's line-heights; it never touches a font size and never flattens the
+      ownership weights. Computed from the PRINT SET, so it cannot count a pending
+      block that never prints. ── */
+.ui-print-sheet[data-print-dense="1"] .print-block {
+    min-height: 0;
+    padding: 2px 3px;
+    gap: 0;
+}
+.ui-print-sheet[data-print-dense="1"] .print-corner { line-height: 1.05; }
+.ui-print-sheet[data-print-dense="1"] .print-main { line-height: 1.04; }
+.ui-print-sheet[data-print-dense="1"] .print-time { line-height: 1.05; }
+
+/* ── NORMAL CLASS VIEW — a semester-wide sheet stops dating itself: the date line
+      goes and the day prints alone, upper-cased at the contract's size. The KEY is
+      hidden by the page (a key for one status explains nothing). ── */
+.ui-print-sheet.normal-view .print-table .date-label { display: none; }
+.ui-print-sheet.normal-view .print-table .day-label {
+    text-transform: uppercase;
+    font-size: 13px;
+}
+
+/* the empty panel is a block-level message when it is shown */
+.print-empty[style*="flex"] { display: flex !important; }
 
 /* ─────────────────────────────────────────────────────────────────────────────
    PRINT ONLY — what belongs to the sheet of paper rather than to the sheet's own
@@ -7193,19 +7351,34 @@ body.tt-sheet-open:has(.tt-responsive) {
     .filters-btn,
     .filters-overlay,
     #toastBar,
-    #emptyState {
+    #emptyState,
+    /* screen instructions: paper answers "what classes are on this week", so a line
+       telling a reader to click a green slot has nothing to say on it */
+    .booking-hint-line,
+    .lead-time-note,
+    .progress-bar,
+    .summary-hint {
         display: none !important;
     }
 
     /* the two paper surfaces come into flow, in document order, one after the other */
+    /* The page root is a FLEX container, so `width: auto` made each surface a
+       shrink-to-fit flex item — the sheet collapsed to its narrowest content and the
+       table with it (found on the first PDF: only the day column painted). The paper
+       stretches to the page instead, and paints its own background so the sheet is
+       light whatever canvas the browser puts behind it. */
     .ui-print-header,
     .ui-print-sheet {
         position: static;
         left: auto;
         top: auto;
-        width: auto;
+        width: 100% !important;
+        max-width: none !important;
+        align-self: stretch;
+        flex: 1 1 100%;
         visibility: visible;
         pointer-events: auto;
+        background: var(--p-bg);
     }
 
     html,
@@ -7216,10 +7389,17 @@ body.tt-sheet-open:has(.tt-responsive) {
         print-color-adjust: exact;
     }
 
-    .app-container {
+    /* The app shell is a FLEX container, and a flex item with `width: auto` is
+       shrink-to-fit: inside it the paper collapsed to its narrowest content and the
+       printed table landed wrong (found on the first PDFs). On paper the shell has no
+       job, so it steps out of the way and the paper gets a plain block context. */
+    .app-container,
+    .lw-page {
+        display: block !important;
         padding: 0 !important;
         max-width: none !important;
         margin: 0 !important;
+        width: 100% !important;
     }
 
     /* PAGE BREAKS: the header prints once, the hour row repeats on every page, and a

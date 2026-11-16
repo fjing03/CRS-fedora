@@ -1253,6 +1253,8 @@ function buildTimetableGrid(cfg) {
         const div = document.createElement('div');
         const isHoliday = !!day.holiday;
         div.className = 'print-block print-span-' + span;
+        /* a one-hour block (two half-hour cells) has no room for full-size corners */
+        if (span <= 2) div.classList.add('print-narrow');
         if (isHoliday) div.classList.add('print-on-holiday');
 
         const shape = (typeof cfg.printShape === 'function') ? (cfg.printShape(e, day, di) || {}) : {};
@@ -1419,7 +1421,10 @@ function buildTimetableGrid(cfg) {
                 let cellClass = 'hour-cell';
                 if (day.today) cellClass += ' today-cell';
                 if (day.sunday || day.holiday) cellClass += ' offday-slot';
-                td.className = cellClass;
+                /* the paper's cells are its own class: the screen's `.hour-cell` /
+                   `.offday-slot` carry screen fills and cursor rules that must not
+                   reach paper (design §2.1) */
+                td.className = cfg.print ? 'print-cell' : cellClass;
                 td.dataset.day = di;
                 td.dataset.hour = hi;
 
@@ -8584,6 +8589,13 @@ const PrintSheet = {
             /* the toggle has no inline onclick (design §8.2): a page script lives in a
                closure, so an inline handler would need a window export */
             if (toggle) toggle.addEventListener('change', function () { self.rebuild(); });
+            /* a narrower window narrows the columns, so the fit is re-measured
+               (debounced) instead of keeping a size that only suited the old width */
+            var fitTimer = null;
+            window.addEventListener('resize', function () {
+                clearTimeout(fitTimer);
+                fitTimer = setTimeout(function () { self.fit(); }, 120);
+            });
         }
         this.rebuild();
     },
@@ -8599,6 +8611,68 @@ const PrintSheet = {
         if (value === undefined) return;
         var el = document.getElementById(id);
         if (el) el.textContent = value == null ? '' : String(value);
+    },
+
+    /**
+     * The fit (design §5.1). The sheet is laid out OFF-VIEWPORT at the paper's own
+     * content width, so the geometry measured here IS the geometry printed — no
+     * ratio, no stand-in. `beforeprint` could not do this: it fires around the print
+     * render and page JS never sees print metrics, so the pass runs on every rebuild
+     * and (debounced) on resize instead.
+     *
+     * Two jobs, both per block:
+     *   · every centre of TWO OR MORE lines gets its band measured from the tallest
+     *     corner that actually rendered + 3px of air;
+     *   · a centre of THREE OR MORE lines is shrunk half a pixel at a time until it
+     *     stops overflowing, never below 7px — and the note's strip is reserved first,
+     *     because the note is out of flow and would otherwise print over the clock.
+     *
+     * If the sheet has no measurable width, the static per-line-count size IS the
+     * result (the stylesheet default) — never a half-measured size.
+     */
+    fit: function () {
+        var sheetEl = document.getElementById('printSheet');
+        var body = document.getElementById('printTableBody');
+        if (!sheetEl || !body) return;
+
+        var width = sheetEl.getBoundingClientRect().width;
+        var blocks = body.querySelectorAll('.print-block');
+        if (!width) return;                    /* unmeasurable: static sizes stand */
+
+        for (var i = 0; i < blocks.length; i++) {
+            var block = blocks[i];
+            var main = block.querySelector('.print-main');
+            if (!main) continue;
+            var lines = main.querySelectorAll('.print-main-line').length;
+            if (lines < 2) continue;
+
+            var narrow = block.classList.contains('print-narrow');
+
+            var band = block.querySelector('.print-band');
+            if (band) {
+                var cornerH = 0;
+                var corners = block.querySelectorAll('.print-corner');
+                for (var c = 0; c < corners.length; c++) {
+                    if (corners[c].offsetHeight > cornerH) cornerH = corners[c].offsetHeight;
+                }
+                band.style.setProperty('--print-band', (cornerH + 3) + 'px');
+            }
+
+            /* only a three-line centre can overflow, so only those are shrunk */
+            if (lines < 3) continue;
+            var base = narrow ? 9 : 11.5;
+            var floor = 7;
+            var size = base;
+            main.style.setProperty('--print-main-size', base + 'px');
+
+            var note = block.querySelector('.print-note');
+            var available = block.clientHeight - (note ? note.offsetHeight + 2 : 0);
+            var guard = 0;
+            while (block.scrollHeight > available + 1 && size > floor && guard++ < 60) {
+                size -= 0.5;
+                main.style.setProperty('--print-main-size', size + 'px');
+            }
+        }
     },
 
     rebuild: function () {
@@ -8648,8 +8722,8 @@ const PrintSheet = {
             onEventClick: function () { /* paper is not clickable */ }
         });
 
-        /* the fit pass (Batch C) measures this sheet at paper width */
-        if (typeof cfg.fit === 'function') cfg.fit();
+        /* the fit pass measures this sheet at paper width */
+        this.fit();
     }
 };
 window.PrintSheet = PrintSheet;
