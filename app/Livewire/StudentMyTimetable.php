@@ -76,6 +76,11 @@ class StudentMyTimetable extends Component
             'holidaysJs' => $this->holidaysForJs(),
             'currentWeek' => $this->week - 1,
             'cohortCode' => $cohortCode,
+            /* timetable-print-v2 (2026-11-16): the paper prints the student's own
+               number beside their name — a person's context carries its ID (contract
+               ONE HEADER). One array key off the `$student` row this method already
+               loads; no query, no schema change. */
+            'studentNumber' => $student === null ? '' : (string) $student->student_id,
             'hasCohort' => $student?->cohort_id !== null,
         ])
             ->extends('layouts.ui-template', [

@@ -126,6 +126,19 @@
     <!-- ─── Grid Wrapper ─── -->
     @include('partials.ui-grid-table')
 
+    <!-- ─── Print surfaces (SDD timetable-print-v2, 2026-11-16) ───
+         The context here is a COHORT CODE, not a person, so no ID prints. The centre
+         and the `Faculty:` subtitle are filled by page JS (PrintSheet, design §6.2):
+         the faculty/cohort selects change without a navigation, so a server-rendered
+         value would go stale the moment the reader switches cohort. -->
+    @include('partials.ui-print-header', [
+        'printTitle' => 'Cohort Timetable',
+        'printSub' => '',
+        'printContext' => '',
+        'printOwnership' => true,
+    ])
+    @include('partials.ui-print-sheet')
+
     <!-- ─── Legend Bar ─── frozen 4-item block-class legend (the user's Replacement chip, 2026-10-25) + ownership hint (all-pages-design-parity) -->
     @include('partials.ui-legend-bar', [
         'ownershipHint' => true,

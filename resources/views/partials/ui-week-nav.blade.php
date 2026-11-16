@@ -35,8 +35,13 @@
     ])
 @endif
 @if($showPrint)
-    {{-- Enabled stub — click shows the shared "coming soon" toast; printing ships post-mock --}}
-    <button type="button" class="print-btn" data-tip="Coming soon" onclick="toast.show('Printing is coming soon')">
+    {{-- timetable-print-v2 (2026-11-16): the REAL action. `window.print()` opens the
+         browser's own dialog and prints the hidden paper surface this lane adds
+         (partials/ui-print-header + ui-print-sheet) — no in-app print screen, no
+         PDF library, no server render. The old "Printing is coming soon" toast, its
+         tip and its comment are gone with the stub; the icon, the class and the
+         32×32 / 48×48 geometry are unchanged, so nothing on the page moves. --}}
+    <button type="button" class="print-btn" aria-label="Print this week" data-tip="Print this week" onclick="window.print()">
         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <polyline points="6 9 6 2 18 2 18 9"/>
             <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/>

@@ -6783,9 +6783,25 @@ body.tt-sheet-open:has(.tt-responsive) {
     }
 }
 
-/* ── Print (R8): the full week at paper width, legend + cards visible whatever
-      the on-screen mode, and none of the phone/tablet furniture on paper. This
-      lane only must not make printing worse; the print lane owns the rest. ── */
+/* ── Print (R8): NO phone/tablet furniture on paper. ──
+   timetable-print-v2 (2026-11-16) WITHDREW three rules that lived here. This lane
+   must not make printing worse, but it also must not fight the print lane, and the
+   print lane now owns what reaches paper: the paper is its OWN surface
+   (partials/ui-print-header + ui-print-sheet, built by the same builder), so the
+   screen grid, the screen legend and the summary cards never print at all.
+
+   Removed here, each for a contract subject:
+     · `.legend-bar { display: flex !important }` — VENUE ON PAPER: the paper's key is
+       the print header's own three chips; a five-chip screen legend on paper was
+       wrong (and Pending/Available must not appear).
+     · `#summarySection { display: block !important }` — PAGE BREAKS: no printed
+       summary strip.
+     · `.grid-wrapper`/`#timetable` forced back into `display` — the screen grid is
+       hidden on paper now; printing it again would double every class.
+     · the `data-tt-empty-week` swap — the PAPER has its own empty panel (#printEmpty),
+       so the screen's #emptyState must not print over it. The screen behaviour of
+       that attribute is unchanged (it is a screen rule, not a print one).
+   What stays: the phone/tablet surfaces must never print. */
 @media print {
     .tt-responsive .tt-days,
     .tt-responsive .tt-tools,
@@ -6794,30 +6810,6 @@ body.tt-sheet-open:has(.tt-responsive) {
     .tt-responsive #ttWindowGrid,
     .tt-responsive .tt-agenda {
         display: none !important;
-    }
-    /* below 1280 the legend bar and the five cards are hidden on screen, and the
-       shipped SummarySheet's print unrelocate is gated off on these pages, so the
-       receipt has to be restored here or a narrow-window printout loses it */
-    .tt-responsive .legend-bar {
-        display: flex !important;
-    }
-    .tt-responsive #summarySection {
-        display: block !important;
-    }
-    /* an empty week prints the page's panel, not a blank table (item #11) */
-    .tt-responsive[data-tt-empty-week="1"] .grid-wrapper {
-        display: none !important;
-    }
-    .tt-responsive[data-tt-empty-week="1"] #emptyState {
-        display: flex !important;
-    }
-    /* and the legacy table prints even from agenda/window mode — its wrapper too,
-       which the band rules below hide so its 1px frame cannot show as a stray line */
-    .tt-responsive .grid-wrapper {
-        display: block !important;
-    }
-    .tt-responsive #timetable {
-        display: table !important;
     }
 }
 
@@ -6912,5 +6904,352 @@ body.tt-sheet-open:has(.tt-responsive) {
         padding-left: 4px;
         padding-right: 18px;
         text-overflow: ellipsis;
+    }
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   TIMETABLE PRINT v2 — the paper surface (SDD timetable-print-v2, 2026-11-16)
+
+   THE REQUIREMENT SET IS THE PROTOTYPE, not this file:
+   `ui-prototype/timetable-print-preview.html`'s DESIGN CONTRACT block (lines 3–205)
+   carries the intent and the numbers in its own comments. This region only PLACES
+   the rules and says where each lives.
+
+   TWO SURFACES, ONE BUILDER. The screen keeps #timetable byte-for-byte (apart from
+   the venue time joiner); the paper is its own hidden table — `partials/ui-print-sheet`
+   — painted by the SAME buildTimetableGrid() through its `print` flag (design §1).
+   Nothing here restyles the screen grid, and nothing here reuses `.event-block` or
+   `.timetable`, because three suites scan for those page-wide.
+
+   ⚠ THE ONE RULE A FUTURE EDITOR MUST NOT BREAK: the sheet's own structure — sizes,
+   spacing, dense, row/column metrics, the corner/centre/band box — lives OUTSIDE any
+   media query, scoped to `.ui-print-sheet` / `.ui-print-header`. The fit pass
+   measures the sheet in SCREEN media (that is why it is laid out off-viewport rather
+   than hidden); move these rules into `@media print` and the fit silently stops
+   working, with the static fallback masking the reason (design §5.1 / §7.1).
+   ───────────────────────────────────────────────────────────────────────── */
+
+/* ── The paper palette — declared ONCE, used only by print rules.
+      Paper is light in EITHER screen theme, so it cannot ride the theme-swapped
+      `--color-*` tokens; these are the light theme's own values, given a `--p-*`
+      name so no rule below hardcodes a colour (UI rule 1's sanctioned shape: a
+      token set added to theme.css once). ── */
+:root {
+    --p-bg: #FFFFFF;
+    --p-surface: #FFFFFF;
+    --p-on-surface: #1B2838;
+    --p-on-surface-variant: #5A6978;
+    --p-surface-variant: #E4E8EE;
+    --p-outline: rgba(30, 50, 70, 0.25);
+    --p-normal-fill: rgba(46, 125, 90, 0.25);
+    --p-normal-border: #2E7D5A;
+    --p-replacement-fill: rgba(0, 77, 152, 0.25);
+    --p-replacement-border: #004D98;
+    --p-conflict-fill: rgba(198, 40, 40, 0.25);
+    --p-conflict-border: #C62828;
+}
+
+/* ── The two paper surfaces, off the viewport but LAID OUT.
+      1047 was the first draft's arithmetic and it was wrong: A4 landscape is
+      1123 CSS px and 8 mm is 30.24 px at 96 dpi, so the paper's content width is
+      1062. The same number is the design's measuring width, so the geometry the
+      fit measures IS the geometry printed (design §5.1).
+      `visibility: hidden` — not `display: none` — because a display:none box has no
+      layout to measure; visibility also keeps the sheet's blocks out of the tab
+      order, so a keyboard user never lands on paper. ── */
+.ui-print-header,
+.ui-print-sheet {
+    position: absolute;
+    left: -10000px;
+    top: 0;
+    width: 1062px;              /* A4 landscape 1123 − 2 × 8 mm (8 mm = 30.24px @96dpi) */
+    visibility: hidden;
+    pointer-events: none;
+    box-sizing: border-box;
+    color: var(--p-on-surface);
+    background: var(--p-bg);
+}
+
+/* ── The paper's header (ONE HEADER): title + subtitle left, context centred by two
+      equal gutters, semester chip + the two-part week line right, one rule under
+      it. In flow at three sections, never pinned or transform-nudged — that is what
+      kept an absolutely positioned control from drifting (contract ruling). ── */
+.ui-print-header {
+    padding: 0 0 6px;
+}
+
+.ui-print-header .print-head-row {
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    align-items: end;
+    gap: 12px;
+    padding-bottom: 4px;
+    border-bottom: 1px solid var(--p-outline);
+}
+
+.ui-print-header .print-head-left { justify-self: start; }
+.ui-print-header .print-head-centre { justify-self: center; }
+.ui-print-header .print-head-right {
+    justify-self: end;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 2px;
+}
+
+.print-title {
+    margin: 0;
+    font-size: 18.5px;
+    font-weight: 700;
+    line-height: 1.1;
+    color: var(--p-on-surface);
+}
+
+.print-sub {
+    margin: 1px 0 0;
+    font-size: 9px;
+    color: var(--p-on-surface-variant);
+}
+
+.print-context {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--p-on-surface);
+}
+
+/* the semester chip keeps the app's shape but takes paper colours and paper type */
+.ui-print-header .print-semester {
+    margin-top: 0;
+    padding: 1px 7px;
+    font-size: 8.5px;
+    background: var(--p-surface-variant);
+    color: var(--p-on-surface-variant);
+}
+
+/* TWO PARTS, never one run-on string: the count is heavier, the dates are the
+   quieter note beside it (contract ruling 2026-11-16) */
+.ui-print-header .week-line {
+    font-size: 9px;
+    color: var(--p-on-surface-variant);
+    white-space: nowrap;
+}
+
+.ui-print-header .week-line .week-count {
+    font-weight: 700;
+    color: var(--p-on-surface);
+}
+
+.ui-print-header .week-line .week-dates {
+    margin-left: 4px;
+}
+
+/* ── The paper's key: three chips on one line, the ownership hint hard left on the
+      next. `Available` is screen-only and `Pending` never prints, so the paper key
+      is its OWN markup rather than the screen's `.legend-bar`. ── */
+.print-key {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 3px 14px;
+    margin-top: 4px;
+    font-size: 9px;
+    color: var(--p-on-surface);
+}
+
+.print-key-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.print-swatch {
+    display: inline-block;
+    width: 10px;
+    height: 10px;
+    border-radius: 2px;
+    border: 1px solid var(--p-outline);
+}
+
+.print-swatch.print-normal { background: var(--p-normal-fill); border-color: var(--p-normal-border); }
+.print-swatch.print-replacement { background: var(--p-replacement-fill); border-color: var(--p-replacement-border); }
+.print-swatch.print-conflict { background: var(--p-conflict-fill); border-color: var(--p-conflict-border); }
+
+.print-ownership {
+    flex-basis: 100%;
+    font-size: 8.5px;
+    color: var(--p-on-surface-variant);
+}
+
+/* ── The paper's table skeleton. Block internals (corners, centre, band, time,
+      note, dense) are Batch C's; this is the frame they sit in. ── */
+.print-grid-wrap {
+    margin-top: 4px;
+}
+
+.print-table {
+    width: 100%;
+    table-layout: fixed;
+    border-collapse: collapse;
+    color: var(--p-on-surface);
+}
+
+.print-table thead th {
+    padding: 3px 1px;
+    font-size: 8.5px;
+    font-weight: 600;
+    text-align: center;
+    border: 1px solid var(--p-outline);
+}
+
+/* the day column is a fixed strip, the half-hours share the rest evenly */
+.print-table thead th.time-header-col {
+    width: 68px;
+    font-size: 8.5px;
+    padding-left: 5px;
+    text-align: left;
+}
+
+.print-table thead th .hour-top { display: block; font-size: 9px; font-weight: 600; }
+.print-table thead th .hour-bottom { display: block; font-size: 7.5px; font-weight: 400; opacity: 0.6; }
+
+.print-table tbody td,
+.print-table tbody th {
+    height: 76px;
+    padding: 0;
+    vertical-align: top;
+    border: 1px solid var(--p-outline);
+}
+
+.print-table tbody .time-col {
+    width: 68px;
+    padding: 3px 5px;
+    text-align: center;
+    vertical-align: middle;
+    background: var(--p-surface-variant);
+}
+
+.print-table .day-label {
+    display: block;
+    font-size: 11px;
+    font-weight: 600;
+}
+
+.print-table .date-label {
+    display: block;
+    font-size: 8px;
+    color: var(--p-on-surface-variant);
+}
+
+/* the paper's empty panel — the shared builder shows this instead of the table when
+   the print set is empty, so a week whose only blocks are pending prints the truth */
+.print-empty {
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    gap: 3px;
+    padding: 22px 12px;
+    border: 1px dashed var(--p-outline);
+    text-align: center;
+    color: var(--p-on-surface-variant);
+}
+
+.print-empty strong {
+    font-size: 12px;
+    color: var(--p-on-surface);
+}
+
+.print-empty span { font-size: 9px; }
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   PRINT ONLY — what belongs to the sheet of paper rather than to the sheet's own
+   layout. Everything that decides a size stays above (see the warning at the top).
+   ───────────────────────────────────────────────────────────────────────────── */
+@media print {
+    @page {
+        size: A4 landscape;
+        margin: 8mm;
+    }
+
+    /* the app shell and every screen surface — only the paper prints */
+    .top-bar,
+    .nav-drawer,
+    .ui-session-countdown,
+    .ui-footer,
+    .page-header,
+    .guide-block,
+    .semester-bar,
+    .tt-sticky,
+    .tt-days,
+    .tt-tools,
+    .tt-agenda,
+    .tt-next-hint,
+    .tt-window-grid,
+    .tt-sheet-overlay,
+    .grid-wrapper,
+    #summarySection,
+    .legend-bar,
+    .print-btn,
+    .summary-button,
+    .filters-btn,
+    .filters-overlay,
+    #toastBar,
+    #emptyState {
+        display: none !important;
+    }
+
+    /* the two paper surfaces come into flow, in document order, one after the other */
+    .ui-print-header,
+    .ui-print-sheet {
+        position: static;
+        left: auto;
+        top: auto;
+        width: auto;
+        visibility: visible;
+        pointer-events: auto;
+    }
+
+    html,
+    body {
+        background: var(--p-bg) !important;
+        color: var(--p-on-surface) !important;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+    }
+
+    .app-container {
+        padding: 0 !important;
+        max-width: none !important;
+        margin: 0 !important;
+    }
+
+    /* PAGE BREAKS: the header prints once, the hour row repeats on every page, and a
+       day never splits down the middle of a class. The key must not be pushed onto an
+       empty page either, so it is one unbreakable block with the header. */
+    .ui-print-header {
+        break-inside: avoid;
+        break-after: avoid;
+    }
+
+    .print-table thead {
+        display: table-header-group;
+    }
+
+    .print-table tbody {
+        display: table-row-group;
+    }
+
+    .print-table tr {
+        display: table-row;
+        break-inside: avoid;
+    }
+
+    .print-table td,
+    .print-table th {
+        display: table-cell;
+        white-space: normal;
+    }
+
+    .print-table {
+        display: table;
     }
 }

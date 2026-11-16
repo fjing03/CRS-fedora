@@ -87,6 +87,22 @@
 
     <!-- ─── Grid Wrapper ─── -->
     @include('partials.ui-grid-table')
+
+    <!-- ─── Print surfaces (SDD timetable-print-v2, 2026-11-16) ───
+         Off-screen, laid out, invisible: the paper's header and its own table. The
+         context is this page's own identity — a person, so the ID prints (contract
+         ONE HEADER). See partials/ui-print-header.blade.php. -->
+    @php
+        $printStaffName = auth()->user()?->name ?? '';
+        $printStaffId = (string) (auth()->user()?->lecturer?->staff_id ?? '');
+        $printMyContext = $printStaffId !== '' ? $printStaffName.' ('.$printStaffId.')' : $printStaffName;
+    @endphp
+    @include('partials.ui-print-header', [
+        'printTitle' => 'My Timetable',
+        'printSub' => 'Weekly class schedule',
+        'printContext' => $printMyContext,
+    ])
+    @include('partials.ui-print-sheet')
         @include('partials.ui-empty-state', ['title' => 'No classes this week', 'text' => 'All classes for this week have been cancelled.'])
 
     <!-- ─── Legend Bar ─── -->

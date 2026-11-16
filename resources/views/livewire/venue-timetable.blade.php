@@ -397,6 +397,30 @@
 
     <!-- ─── Grid Wrapper ─── -->
     @include('partials.ui-grid-table')
+
+    <!-- ─── Print surfaces (SDD timetable-print-v2, 2026-11-16) ───
+         A room code and a room name already identify themselves, so no ID prints: one
+         em dash, spaces either side. The three empty-case traps are the design's own
+         (design §6.2) — `$venue` is an ARRAY and the empty-venues path passes
+         `name => ''`, so `??` would never fire and the sheet would print a bare
+         `Venue:`; a room with no name falls back to its code; and only when BOTH are
+         empty does it say `Select a venue`. -->
+    @php
+        $printVenueCode = (string) ($venue['code'] ?? '');
+        $printVenueName = (string) ($venue['name'] ?? '');
+        if ($printVenueCode === '' && $printVenueName === '') {
+            $printVenueContext = 'Select a venue';
+        } else {
+            $printVenueContext = $printVenueCode.' — '.($printVenueName !== '' ? $printVenueName : $printVenueCode);
+        }
+    @endphp
+    @include('partials.ui-print-header', [
+        'printTitle' => 'Venue Timetable',
+        'printSub' => 'Venue occupancy',
+        'printContext' => $printVenueContext,
+        'printOwnership' => true,
+    ])
+    @include('partials.ui-print-sheet')
         @include('partials.ui-empty-state', ['title' => 'No classes this week', 'text' => 'This venue is free all week.'])
 
     <!-- ─── Legend Bar ─── 5 items + ownership hint (venue-event-blocks-db design §2,
@@ -1712,7 +1736,13 @@
                             div.innerHTML =
                                 '<span class="ev-code">' + e.code + '(' + e.type + ')</span>' +
                                 '<span class="ev-venue">' + e.venue + '</span>' +
-                                '<span class="ev-time">' + startTime + ' - ' + endTime + '</span>' +
+                                /* timetable-print-v2 (2026-11-16): the ONE block on any
+                                   page that did not speak the house time joiner — `'-'`
+                                   where the shared builder and the rest of the app use
+                                   `' ~ '` (design §9 / PR-03). This is a screen change
+                                   the contract orders, not a print one, and it is the
+                                   pin's single permitted difference. */
+                                '<span class="ev-time">' + startTime + ' ~ ' + endTime + '</span>' +
                                 /* venue-status-parity T4 (bugs #1/#2/#3/#8): the
                                    venue page hand-rolled ONE note arm and silently
                                    dropped the rest, so a pending block lost "(Pending

@@ -73,6 +73,29 @@
 
     <!-- ─── Grid Wrapper ─── -->
     @include('partials.ui-grid-table')
+
+    <!-- ─── Print surfaces (SDD timetable-print-v2, 2026-11-16) ───
+         A student is a person too, so the ID prints; the subtitle names the cohort
+         (the app's em dash when there is none). Read-only: nothing here is a control.
+
+         The demo/seed student NAME is literally `Student 24RSD0009`, so appending the
+         ID blindly printed it twice (`Student 24RSD0009 (24RSD0009)`). The contract's
+         shape is "name + (ID)", so the ID is added only when the name does not
+         already carry it. -->
+    @php
+        $printStudentName = (string) (auth()->user()?->name ?? '');
+        $printStudentNumber = (string) ($studentNumber ?? '');
+        $printStudentContext = $printStudentName;
+        if ($printStudentNumber !== '' && !str_contains($printStudentName, $printStudentNumber)) {
+            $printStudentContext = trim($printStudentName.' ('.$printStudentNumber.')');
+        }
+    @endphp
+    @include('partials.ui-print-header', [
+        'printTitle' => 'Student My Timetable',
+        'printSub' => 'Cohort: '.($cohortCode ?: '—'),
+        'printContext' => $printStudentContext,
+    ])
+    @include('partials.ui-print-sheet')
         @include('partials.ui-empty-state', ['title' => 'No classes this week', 'text' => $hasCohort ? 'All classes for this week have been cancelled.' : 'You are not assigned to a cohort yet.'])
 
     <!-- ─── Legend Bar ─── -->
