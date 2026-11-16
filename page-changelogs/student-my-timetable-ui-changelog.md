@@ -622,3 +622,8 @@ header's summary ⓘ is gone here too: below 1280 the Week summary button is the
 
 The cancelled tooltip keeps the short `CANCELLED`; the details pop-up's Status row reads
 `Class Cancelled`, and a card announces its status in words to a screen reader.
+
+### Prototype comparison, same day — the class pop-up names the cohort
+The details pop-up now shows a **Cohort** row (the signed-in student's own group), using the shared
+modal's existing extra-field hook. It deliberately stops there: the mockup also shows "Total Students",
+and that headcount is other students' business, not the reader's.

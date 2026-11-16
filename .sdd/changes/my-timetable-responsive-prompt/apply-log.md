@@ -298,3 +298,12 @@ needing a fixture where another lecturer teaches one of 5770's classes (the curr
 none: every block on this page is the viewer's own, which is exactly why the segment was dropped).
 Own classes: `Operating Systems · DFT2(S1)G1 + DSF2(S1)G1 · NORMAL`. Someone else's: the lecturer's
 name appears between the cohorts and the status.
+
+### #12 answered — the student's pop-up names the cohort, not the headcount
+
+Option C. The student blade passes the signed-in student's cohort label through the shared modal's
+existing `extraFields` hook (`window.__studentCohort = @json($cohortCode ?? '')`), so the pop-up reads
+Session ID · Lecturer · **Cohort** · Venue · Week · Day & Date · Time & Duration · Status · Status
+Description · Remarks — and stops there. "Total Students" is deliberately absent: how many students
+share the class is other students' business, not this reader's. No row markup was duplicated; the staff
+page keeps its own Cohort **and** Total Students rows.

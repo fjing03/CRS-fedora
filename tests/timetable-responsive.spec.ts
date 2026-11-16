@@ -767,7 +767,21 @@ test.describe('T16a — the phone (320 / 360 / 390 / 430)', () => {
       expect(cancel.byId + cancel.danger, 'R9 — phase B wires no cancel affordance into the modal').toBe(0);
       await page.keyboard.press('Escape');
       await expect(page.locator('#classModal')).toBeHidden();
-      expectNoPageErrors(page, 'student page @390');
+      /* item #12 option C — the student's pop-up names the cohort and nothing more:
+       the headcount is other students' business */
+    const studentCard = page.locator('#ttAgenda .tt-card').first();
+    if (await studentCard.count()) {
+      await studentCard.click();
+      await expect(page.locator('#classModal')).toBeVisible();
+      const rows = await page.evaluate(() =>
+        Array.from(document.querySelectorAll('#classModal .detail-row, #classModal .modal-row'))
+          .map((r) => (r.textContent || '').replace(/\s+/g, ' ').trim()));
+      expect(rows.some((r) => /^Cohort/.test(r)), 'item #12 — the pop-up names the cohort').toBe(true);
+      expect(rows.some((r) => /^Total Students/.test(r)), 'item #12 — and not the headcount').toBe(false);
+      await page.keyboard.press('Escape');
+    }
+
+    expectNoPageErrors(page, 'student page @390');
     } finally {
       await ctx.close();
     }

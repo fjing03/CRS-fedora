@@ -164,6 +164,9 @@
                matches. */
             MockData.currentUser = @json(['name' => auth()->user()?->name ?? '']);
 
+            /* the signed-in student's cohort label, for the details pop-up (item #12) */
+            window.__studentCohort = @json($cohortCode ?? '');
+
             window.weekData = generateWeekData();
             const weekData = window.weekData;
             const eventsData = @json($eventsByWeek);
@@ -186,6 +189,14 @@
                     dayIndex: event.di,
                     days: weekData[currentWeek].days,
                     title: event.code || 'Class Details',
+                    /* item #12 option C (user, 2026-11-15): the student's pop-up names
+                       the COHORT the session belongs to — useful to a student — and
+                       deliberately stops there: the headcount is other students'
+                       business, not theirs. `extraFields` is the shared modal's own
+                       hook, so no row markup is duplicated here. */
+                    extraFields: (window.__studentCohort
+                        ? [{ label: 'Cohort', value: window.__studentCohort }]
+                        : []),
                     /* my-timetable-responsive-prompt T13 (spec R4): the Status row
                        reads `Class Cancelled` on these two pages only. Blocks keep the
                        short word (a 60-110px cell cannot carry the long one). */
