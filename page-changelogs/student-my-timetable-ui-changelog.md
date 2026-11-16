@@ -633,3 +633,7 @@ and that headcount is other students' business, not the reader's.
   weekday you were reading, so "Thursday 26 Nov → TODAY" showed Thursday 19 Nov on a phone or iPad).
 - **A public holiday** keeps its class cards, with the holiday notice above them: 9 Nov 2026 shows both
   its 11:00–13:00 class and its notice, instead of the notice alone below 768px.
+
+### A pending proposal replaces the "Cancelled" word
+- A cancelled block or card that already says **(Proposed ⏳)** no longer also says **✕ Cancelled**.
+  A plain cancelled class keeps its word; a conflicted class with a proposal keeps both.

@@ -759,3 +759,8 @@ teaches it, between the cohorts and the status.
 - **A public holiday** now shows its notice **and** the day's class cards beneath it. The first cut
   replaced the cards with the notice, so a holiday appeared to have no classes below 768px while the
   desktop grid still drew them.
+
+### A pending proposal replaces the "Cancelled" word
+- A cancelled block or card that already says **(Proposed ⏳)** no longer also says **✕ Cancelled** —
+  one answer instead of two, and the proposal is the live one. A plain cancelled class keeps its word,
+  and a conflicted class with a proposal keeps both the ⚠ and the hint.
