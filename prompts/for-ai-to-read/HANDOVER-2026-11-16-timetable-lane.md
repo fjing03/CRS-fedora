@@ -26,8 +26,8 @@ start an approval-requiring action before the answer.
 | Fact | Value |
 |---|---|
 | Branch | `fedora-backend` (`origin` = `fjing03/CRS-fedora.git`; `upstream` is pull-only) |
-| HEAD | **`803aed7`** (a login-page fix from another session; the timetable lane's own work ends at **`7809c1b`**) |
-| Unpushed | **40 commits** — `origin/fedora-backend` is still at `c8b06ff`. Re-check: `git rev-list --count origin/fedora-backend..HEAD` |
+| HEAD | **`a9a4b23`** (the lane's archive commit; the lane's own work ends there — its last behaviour commit is `7809c1b`) |
+| Unpushed | **41 commits** (measured at the handover) — `origin/fedora-backend` is still at `c8b06ff`. **Re-measure, never quote this:** `git rev-list --count origin/fedora-backend..HEAD` |
 | Dev server | `:8030` on **`class_replacement_testing`** — this DB holds the **user's protected manual work**. It is running. |
 | SDD lanes | 18 folders in `.sdd/changes/`; **153** in `.sdd/archive/` — the timetable lane was **archived 2026-11-16** (`.sdd/archive/2026-11-16-my-timetable-responsive-prompt/`) |
 
@@ -49,6 +49,8 @@ Timetable pages. Four phases, four commits, all verified:
 | `13489ea` | **Word ruling (§2 #51).** A cancelled block/card already saying `(Proposed ⏳)` no longer also says `✕ Cancelled` — both surfaces, cancelled only (a conflicted block with a proposal keeps `⚠ Conflict`). Tips/modal/payload keep the server's truth. |
 | `f285139` | Page-changelog entries for the above. |
 | `7809c1b` | **Round 2 of the prototype comparison: nine rulings applied, four kept.** Applied: #1 week dropdown type per band (13px from 768 up) · #2 phone band ends at **767** · #3 every phone week label fits (all 14) · #4 tablet heading `Mon, 23 Nov 2026 ~ Tue, 24 Nov 2026` · #7 sheet foot Close (48px) · #8 sheet is content-height · #10 empty weekday is plain + names its date · #11 a whole empty week is ONE panel with the hint inside · #12 guide dialog takes the preview layout (**opt-in**; the other seven pages unchanged). **Kept as-is on the user's word:** #5 the 320 toolbar wrap · #6 the full-width tablet sheet · #9 the short semester chip above the phone band · #13 the cohort chip's spacing. |
+
+| `a9a4b23` | **The lane was archived** to `.sdd/archive/2026-11-16-my-timetable-responsive-prompt/` on the user's word (`status: archived`, `implementation_approved: true`), together with this handover. No behaviour change. |
 
 Earlier in the same lane (already in `origin` history before this session): the phone agenda + day
 strip, the tablet transposed window, the Week summary sheet with `SummarySheet` **gated off** on these
