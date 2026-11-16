@@ -157,6 +157,17 @@ name *is* the ID, so appending it blindly printed it twice. The blade now append
 ID only when the name does not already carry it (the contract's shape is "name +
 (ID)", and a real name will get it).
 
+### Commits
+
+| | |
+|---|---|
+| `acb5d13` | `docs(timetable-print)` — explore, proposal, design, specs, tasks |
+| `b61960b` | `ui(timetable-print)` — the real button, the two paper surfaces, the print region, task 8's withdrawn rules, the venue joiner, the student number |
+| `65080b9` | `test(timetable-print)` — the two receipts the real button reset |
+
+Unpushed, as always. Nothing of this lane was hunk-staged out of another
+session's file: none of the files it touches carries another session's work.
+
 ### Rollback
 
 `git revert` of this batch's commits restores the stub button, the hyphen joiner and
