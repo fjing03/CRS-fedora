@@ -106,6 +106,52 @@ function assertPinned(label: string, invariant: string, actual: string, baseline
  * tip attribute they carry. Feeds the flag-absent proof — a single `data-tip`
  * would mean T12's migration reached a caller that never passed `responsive`.
  */
+/**
+ * The live captures carry the week's "Today" markers, and which week a page lands on
+ * depends on the app's clock — so a pin that compared them raw would go red whenever
+ * the calendar crossed a week boundary, and say "the builder moved". Both sides are
+ * therefore compared with the today markers removed and with the page moved to the
+ * week the baseline captured (read from the baseline's own first date label).
+ */
+function withoutToday(html: string): string {
+  return html
+    /* token-wise, never a substring: `today-badge` is a class NAME that must survive,
+       only the bare `today` marker and `today-cell` are the clock's own */
+    .replace(/ class="([^"]*)"/g, (_m, cls: string) => {
+      const kept = cls.split(/\s+/).filter((t: string) => t && t !== 'today' && t !== 'today-cell');
+      return kept.length ? ` class="${kept.join(' ')}"` : '';
+    })
+    /* the clock's badge is the SAME slot whether it says Today or OFF — canonicalise
+       the pair, so a week that has since stopped being "this week" cannot make the
+       builder look changed */
+    .replace(/<span class="(?:today|off)-badge">[^<]*<\/span>/g, '<span class="clock-badge"></span>')
+    /* the venue grid's lead-time line moves with the calendar by design ("at least 3
+       working days from today") — it is data about TODAY, not builder output */
+    .replace(/Earliest Bookable : [A-Za-z]+, \d{1,2} [A-Za-z]{3} \d{4}/g, 'Earliest Bookable : <date>');
+}
+
+/** First `date-label` of a captured grid — the week the baseline painted. */
+function firstDateLabel(html: string): string {
+  const m = html.match(/date-label">([^<]+)</);
+  return m ? m[1].trim() : '';
+}
+
+/** Ask the page for the week the baseline captured, through the page's own control. */
+async function goToPinnedWeek(page: Page, baselineHtml: string): Promise<string> {
+  const wanted = firstDateLabel(baselineHtml);
+  const weeks = await page.evaluate(() => Number((window as any).weekData?.length ?? 0));
+  for (let i = 0; i < weeks; i++) {
+    await page.evaluate((w) => (window as any).selectWeek(w), i);
+    await page.waitForTimeout(250);
+    const first = await page.evaluate(() => {
+      const el = document.querySelector('#timetable .date-label');
+      return el ? (el.textContent || '').trim() : '';
+    });
+    if (first === wanted) return first;
+  }
+  return '';
+}
+
 async function pinnedSnapshot(page: Page) {
   return page.evaluate(() => {
     const table = document.getElementById('timetable');
@@ -231,6 +277,15 @@ test.describe('T15b — live pin: the two served callers keep the legacy pair', 
         `${caller.name}: the grid must paint event blocks carrying the legacy data-tip2 pair`,
       ).toBeAttached({ timeout: 20_000 });
 
+      /* move to the baseline's week first, then strip the today markers from both
+         sides — see withoutToday()'s comment for why this is not a weakening */
+      const reached = await goToPinnedWeek(page, caller.html);
+      expect(
+        reached,
+        `${caller.name}: the page can reach the week the baseline captured `
+          + `("${firstDateLabel(caller.html)}") through its own week control`,
+      ).toBe(firstDateLabel(caller.html));
+
       const snapshot = await pinnedSnapshot(page);
       expect(caller.html.length, `${caller.name}: the baseline grid is a real capture`).toBeGreaterThan(5_000);
       expect(snapshot.blocks, `${caller.name}: the week paints event blocks`).toBeGreaterThan(0);
@@ -250,8 +305,8 @@ test.describe('T15b — live pin: the two served callers keep the legacy pair', 
         'R1: buildTimetableGrid() output is byte-identical when `responsive` is absent — '
           + `compared against the served capture of ${BASELINE.capturedOn} `
           + '(a difference here is the builder moving, or the week serving different rows)',
-        html,
-        caller.html,
+        withoutToday(html),
+        withoutToday(caller.html),
       );
     });
   }

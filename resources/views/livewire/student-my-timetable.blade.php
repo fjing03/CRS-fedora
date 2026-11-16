@@ -218,6 +218,14 @@
                 if (isNaN(week)) week = currentWeek;
                 if (isNaN(day)) day = 0;
 
+                /* THE PAGE'S OWN WEEK WINS, not the caller's number: the module's
+                   `_currentWeek()` reads `window.currentWeek`, which a Livewire week
+                   swap can leave a step behind the payload these closures already
+                   point at — that mismatch put "week 8" on a hint whose class was in
+                   week 7 (found by T16a's holiday receipt). `currentWeek` here is the
+                   very variable `events()`/`days()` close over, so all three agree. */
+                if (typeof currentWeek === 'number' && !isNaN(currentWeek)) week = currentWeek;
+
                 for (var wk = week; wk < weekData.length; wk++) {
                     var list = eventsData[wk] || [];
                     if (!list.length) continue;
@@ -231,7 +239,14 @@
                                 best = e;
                             }
                         }
-                        if (best) return { week: wk, day: di, event: best };
+                        if (best) {
+                            /* the day's own labels ride the result, so the hint never
+                               has to borrow them from whichever week it happens to have
+                               rendered (that is how "Tue 10 Nov" got a week-8 dataset) */
+                            var dayMeta = (weekData[wk] && weekData[wk].days && weekData[wk].days[di]) || {};
+                            return { week: wk, day: di, event: best,
+                                date: dayMeta.date || '', abbr: dayMeta.abbr || '' };
+                        }
                     }
                 }
                 return null;

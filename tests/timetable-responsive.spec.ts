@@ -255,7 +255,9 @@ async function controls(page: Page): Promise<Control[]> {
       w: n.offsetWidth,
       h: n.offsetHeight,
       inStrip: !!n.closest('#ttDayStrip'),
-      isHint: !!n.closest('#ttNextHint'),
+      /* the next-class control moved INSIDE the empty/holiday panel on 2026-11-15
+         (the preview's shape), so it is found by its own class, not by a container id */
+      isHint: !!n.closest('.tt-next-hint') || (n.classList.contains('tt-next-hint')),
       inSheet: !!n.closest('#ttSheet'),
     }));
   });
@@ -578,6 +580,60 @@ test.describe('T16a — the phone (320 / 360 / 390 / 430)', () => {
     }
     expect(seen.light, 'the theme really switched (R10: colours come from theme.css tokens)')
       .not.toBe(seen.dark);
+  });
+
+  test('9. R5 — a public-holiday day is the PREVIEW PANEL, not a red card, and the hint rides inside it', async ({ page }) => {
+    /* The user, 2026-11-15: "Public Holiday shud shows this", with the approved
+       preview as the sample. So a holiday day paints one empty-state panel
+       (`Public Holiday · <label>` + the date + the next class inside it) and draws
+       no class card at all — a red card would claim a class is happening. */
+    await open(page, 390);
+    const holiday = await page.evaluate(() => {
+      const wd = (window as any).weekData || [];
+      for (let w = 0; w < wd.length; w++) {
+        const days = wd[w].days || [];
+        for (let i = 0; i < days.length; i++) {
+          if (days[i].holiday) return { week: w, day: i, label: String(days[i].holidayLabel || '') };
+        }
+      }
+      return null;
+    });
+    test.skip(!holiday, 'fixture: the served semester timeline carries no public holiday');
+
+    await page.evaluate((w) => (window as any).selectWeek(w), holiday!.week);
+    await expect
+      .poll(() => page.evaluate(() => Number((window as any).currentWeek)), { timeout: 10_000 })
+      .toBe(holiday!.week);
+    await tapDay(page, holiday!.day);
+
+    const panel = page.locator('#ttAgenda .tt-empty.tt-holiday');
+    await expect(panel, 'R5 — the holiday panel is the whole agenda for that day').toHaveCount(1);
+    await expect(panel.locator('.empty-title'), 'R5 — the title names the holiday').toHaveText(
+      new RegExp(`^Public Holiday · ${holiday!.label.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`),
+    );
+    await expect(panel.locator('.empty-text'), 'R5 — under it, the day and its date').toHaveText(
+      /^[A-Z][a-z]+, \d{1,2} [A-Z][a-z]{2} \d{4}$/,
+    );
+    await expect(panel.locator('button.tt-next-hint'), 'R5 — the next class rides INSIDE the panel').toHaveCount(1);
+    expect(
+      await page.locator('#ttAgenda .tt-card').count(),
+      'R5 — no class card is drawn on a holiday',
+    ).toBe(0);
+
+    /* and the hint still goes somewhere: it lands on the day it named (the next class
+       can be later the same week, so the DAY is the thing to assert, not the week) */
+    const target = await panel.locator('button.tt-next-hint').evaluate((el) => ({
+      week: Number((el as HTMLElement).dataset.nextWeek),
+      day: Number((el as HTMLElement).dataset.nextDay),
+    }));
+    await panel.locator('button.tt-next-hint').click();
+    await expect
+      .poll(() => page.evaluate(() => ({
+        week: Number((window as any).currentWeek),
+        day: (document.querySelector('#ttDayStrip .tt-day[aria-pressed="true"]') as HTMLElement | null)?.dataset.day,
+      })), { timeout: 10_000 })
+      .toEqual({ week: target.week, day: String(target.day) });
+    expectNoPageErrors(page, 'holiday panel @390');
   });
 
   test('8. the student page is wired the same way — and stays read-only (R9)', async ({ browser }) => {

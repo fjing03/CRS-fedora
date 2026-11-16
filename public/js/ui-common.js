@@ -1168,6 +1168,15 @@ function buildTimetableGrid(cfg) {
                 + (e.status === 'cancelled' ? '✕ Cancelled' : '⚠ Conflict') + '</span>';
         }
 
+        /* …and the word REPLACES the legacy `(Cancelled)` note it duplicates, the
+           same rule the phone card follows (R3: one status word, not two). Found
+           live: the desktop block printed "✕ Cancelled (Cancelled)" — the word
+           added by T12 beside the note the page's own replacementNoteFn still
+           supplied. The user's word, 2026-11-15: "remove the old ev note".
+           Flag-only, and only when a word is actually printed, so the other four
+           callers keep the note and stay byte-identical (T0a). */
+        if (statusWord && /\(Cancelled\)/.test(extraHtml)) extraHtml = '';
+
         div.innerHTML =
             '<span class="ev-code">' + e.code + '(' + e.type + ')</span>' +
             '<span class="ev-venue">' + e.venue + '</span>' +
@@ -7445,9 +7454,163 @@ const TimetableResponsive = {
             });
         var self = this;
         host.innerHTML = '';
-        list.forEach(function (e) { host.appendChild(self._card(e, day, list)); });
+        /* The approved preview's EMPTY STATES, not a red card on a holiday: a
+           public-holiday day shows one panel (`Public Holiday · <label>` + the
+           date + the next class), and a day with no classes shows the shipped
+           empty-state shell with the same hint inside it (user, 2026-11-15:
+           "Public Holiday shud shows this", with the preview as the sample).
+           Cards only ever render on a day that has classes. */
+        if (day && day.holiday) {
+            host.appendChild(this._emptyPanel(day, true));
+        } else if (!list.length) {
+            host.appendChild(this._emptyPanel(day, false));
+        } else {
+            list.forEach(function (e) { host.appendChild(self._card(e, day, list)); });
+        }
         this._syncTools();
-        this._buildNextHint();
+    },
+
+    /* ── The empty/holiday panel (preview markup: ui-empty-state's own shell) ── */
+    _emptyPanel: function (day, isHoliday) {
+        var panel = document.createElement('div');
+        panel.className = 'empty-state tt-empty' + (isHoliday ? ' tt-holiday' : '');
+
+        var icon = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+        icon.setAttribute('class', 'empty-icon');
+        icon.setAttribute('viewBox', '0 0 24 24');
+        icon.setAttribute('fill', 'none');
+        icon.setAttribute('stroke', 'currentColor');
+        icon.setAttribute('stroke-width', '2');
+        icon.setAttribute('stroke-linecap', 'round');
+        icon.setAttribute('stroke-linejoin', 'round');
+        icon.setAttribute('aria-hidden', 'true');
+        var cal = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+        cal.setAttribute('x', '3'); cal.setAttribute('y', '4');
+        cal.setAttribute('width', '18'); cal.setAttribute('height', '18');
+        cal.setAttribute('rx', '2');
+        var l1 = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+        l1.setAttribute('x1', '16'); l1.setAttribute('y1', '2');
+        l1.setAttribute('x2', '16'); l1.setAttribute('y2', '6');
+        var l2 = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+        l2.setAttribute('x1', '8'); l2.setAttribute('y1', '2');
+        l2.setAttribute('x2', '8'); l2.setAttribute('y2', '6');
+        var l3 = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+        l3.setAttribute('x1', '3'); l3.setAttribute('y1', '10');
+        l3.setAttribute('x2', '21'); l3.setAttribute('y2', '10');
+        [cal, l1, l2, l3].forEach(function (n) { icon.appendChild(n); });
+        panel.appendChild(icon);
+
+        var title = document.createElement('h3');
+        title.className = 'empty-title';
+        var label = (day && day.holidayLabel) ? String(day.holidayLabel) : '';
+        title.textContent = isHoliday
+            ? ('Public Holiday' + (label ? ' · ' + label : ''))
+            : ('No classes on ' + this._fullDayName(day));
+        panel.appendChild(title);
+
+        var dateLine = document.createElement('p');
+        dateLine.className = 'empty-text';
+        dateLine.textContent = this._fullDayName(day) + ', ' + ((day && day.date) || '');
+        panel.appendChild(dateLine);
+
+        var hint = this._nextHintNode();
+        if (hint) panel.appendChild(hint);
+        return panel;
+    },
+
+    /* The hint inside the panel, in the preview's own shape: a small
+       `⏱ Next class →` caption over one line `Tue 10 Nov · 8–10 AM` and the
+       venue chip. `No more classes this semester.` when the scan finds none. */
+    _nextHintNode: function () {
+        var cfg = this._cfg || {};
+        var res = null;
+        if (typeof cfg.findNextClass === 'function') {
+            try { res = cfg.findNextClass(this._currentWeek(), this._state.day); } catch (e) { res = null; }
+        }
+        if (!res || res.week == null || res.day == null) {
+            var none = document.createElement('p');
+            none.className = 'tt-next-hint';
+            none.textContent = 'No more classes this semester.';
+            return none;
+        }
+        /* The PAGE hands back the day's own labels (`res.date` / `res.abbr`). Falling
+           back to the current week's `days()` is what produced a hint labelled
+           "Tue 10 Nov" from week 7 with a week-8 target (found by T16a). */
+        var days = this._days();
+        var target = days[parseInt(res.day, 10)] || null;
+        var ev = res.event || null;
+        /* `10 Nov` — the preview drops the year in the hint ("Tue 10 Nov · 8–10 AM"),
+           because the year is on the page once and never ambiguous in a week hint */
+        var when = String(res.date || (target && target.date) || '').replace(/\s+\d{4}\s*$/, '');
+        var abbr = String(res.abbr || (target && target.abbr) || '');
+
+        var btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'tt-next-hint';
+        btn.dataset.nextWeek = String(res.week);
+        btn.dataset.nextDay = String(res.day);
+        btn.setAttribute('aria-label', 'Go to ' + this._fullDayName(target) + ', '
+            + String(res.date || (target && target.date) || ''));
+
+        var caption = document.createElement('span');
+        caption.className = 'tt-next-caption';
+        caption.appendChild(this._clockIcon());
+        caption.appendChild(document.createTextNode('Next class '));
+        var arrow = document.createElement('span');
+        arrow.setAttribute('aria-hidden', 'true');
+        arrow.textContent = '→';
+        caption.appendChild(arrow);
+        btn.appendChild(caption);
+
+        var details = document.createElement('span');
+        details.className = 'tt-next-details';
+        var line = document.createElement('span');
+        line.appendChild(document.createTextNode((abbr ? abbr + ' ' : '') + when));
+        if (ev && typeof ev.start === 'number' && typeof ev.end === 'number') {
+            line.appendChild(document.createTextNode(' · '));
+            var strong = document.createElement('strong');
+            strong.textContent = this._shortTime(ev.start, ev.end);
+            line.appendChild(strong);
+        }
+        details.appendChild(line);
+        if (ev && ev.venue) {
+            var venue = document.createElement('span');
+            venue.className = 'tt-next-venue';
+            venue.setAttribute('aria-label', 'Venue ' + ev.venue);
+            venue.textContent = ev.venue;
+            details.appendChild(venue);
+        }
+        btn.appendChild(details);
+
+        var self = this;
+        btn.addEventListener('click', function () { self.nextClass(); });
+        return btn;
+    },
+
+    _clockIcon: function () {
+        var svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+        svg.setAttribute('class', 'tt-next-icon');
+        svg.setAttribute('viewBox', '0 0 24 24');
+        svg.setAttribute('fill', 'none');
+        svg.setAttribute('stroke', 'currentColor');
+        svg.setAttribute('stroke-width', '2');
+        svg.setAttribute('stroke-linecap', 'round');
+        svg.setAttribute('aria-hidden', 'true');
+        var c = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+        c.setAttribute('cx', '12'); c.setAttribute('cy', '12'); c.setAttribute('r', '9');
+        var p1 = document.createElementNS('http://www.w3.org/2000/svg', 'polyline');
+        p1.setAttribute('points', '12 7 12 12 16 14');
+        svg.appendChild(c); svg.appendChild(p1);
+        return svg;
+    },
+
+    /* `8–10 AM` when both ends share a meridiem, `11:30 AM–1 PM` when they do not
+       — the preview's own shortTimeOf(), same two rules. */
+    _shortTime: function (start, end) {
+        var a = to12h(hours[start]);
+        var b = to12h(hours[end + 1] || add30min(hours[end]));
+        var compact = function (v) { return String(v).replace(':00', ''); };
+        return compact(a.slice(-2) === b.slice(-2) ? a.slice(0, -3) : a) + '–' + compact(b);
     },
 
     /* The tools row's heading + count (design §4.1 ships both empty; the module fills
@@ -7577,60 +7740,16 @@ const TimetableResponsive = {
         try { return currentWeekIndex(); } catch (e) { return 0; }
     },
 
+    /* Retired 2026-11-15: the hint now rides INSIDE the empty/holiday panel
+       (`_nextHintNode()`), exactly as the preview draws it. The `#ttNextHint`
+       node still ships in the chrome partial, so this keeps it hidden rather
+       than leaving a stale row under the panel. */
     _buildNextHint: function () {
-        var hint = document.getElementById('ttNextHint');
-        if (!hint) return;
-        var self = this;
-        hint.innerHTML = '';
-        hint.hidden = true;
-
-        var cfg = this._cfg || {};
-        if (typeof cfg.findNextClass !== 'function') return;
-        var days = this._days();
-        var di = this._state.day;
-        var day = days[di] || null;
-        var dayCount = this._events().filter(function (e) { return e && Number(e.di) === di; }).length;
-        var isHoliday = !!(day && day.holiday);
-        if (dayCount > 0 && !isHoliday) return;      /* only the empty day / the holiday */
-
-        var res = null;
-        try { res = cfg.findNextClass(this._currentWeek(), di); } catch (e) { res = null; }
-        if (!res || res.week === undefined || res.week === null
-            || res.day === undefined || res.day === null) return;
-
-        var target = days[parseInt(res.day, 10)] || null;
-        var ev = res.event || null;
-        var when = (target && target.abbr ? target.abbr : '')
-            + (ev && typeof ev.start === 'number' ? ' ' + to12h(hours[ev.start]) : '');
-        var sentence = 'Next class: ' + when + (ev && ev.code ? ' · ' + ev.code : '');
-
-        var btn = document.createElement('button');
-        btn.type = 'button';
-        btn.className = 'tt-next-hint';
-        btn.dataset.nextWeek = String(res.week);
-        btn.dataset.nextDay = String(res.day);
-        btn.setAttribute('aria-label', sentence);
-
-        var row = document.createElement('span');
-        row.className = 'tt-next-details';
-        var line = document.createElement('span');
-        line.appendChild(document.createTextNode('Next class: '));
-        var strong = document.createElement('strong');
-        strong.textContent = when;
-        line.appendChild(strong);
-        if (ev && ev.code) {
-            line.appendChild(document.createTextNode(' · '));
-            var chip = document.createElement('span');
-            chip.className = 'tt-next-venue';
-            chip.textContent = ev.code;
-            line.appendChild(chip);
-        }
-        row.appendChild(line);
-        btn.appendChild(row);
-        btn.addEventListener('click', function () { self.nextClass(); });
-        hint.appendChild(btn);
-        hint.hidden = false;
+        var legacy = document.getElementById('ttNextHint');
+        if (legacy) { legacy.innerHTML = ''; legacy.hidden = true; }
+        return;
     },
+
 
     /* ── T4 — day selection ──
        Re-renders the strip and the surface for a new day. A tap on the day that is

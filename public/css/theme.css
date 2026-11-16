@@ -6214,6 +6214,46 @@ body.filters-panel-open .filters-btn { position:relative; z-index:1300; }
         display: none;
     }
 
+    /* ── The empty / public-holiday panel (R5, preview markup) ──
+       The preview draws an empty day and a holiday with the SHIPPED
+       ui-empty-state shell — calendar icon, title, date line — and the
+       next-class hint riding inside it, not as a row underneath. A holiday
+       panel takes the error-container pair, so it reads as "the day is off"
+       without a single red class card pretending a class is happening. */
+    .tt-responsive .tt-empty {
+        padding: 24px 20px;
+        border-radius: var(--radius-md);
+        background: var(--color-surface);
+        border: 1px solid var(--color-outline);
+    }
+    .tt-responsive .tt-empty .empty-icon {
+        width: 44px;
+        height: 44px;
+        margin-bottom: 14px;
+        background: transparent;
+        opacity: 0.45;
+    }
+    .tt-responsive .tt-holiday {
+        background: var(--color-error-container);
+        color: var(--color-on-error-container);
+        border-color: transparent;
+    }
+    .tt-responsive .tt-holiday .empty-title,
+    .tt-responsive .tt-holiday .empty-text,
+    .tt-responsive .tt-holiday .empty-icon {
+        color: inherit;
+    }
+    .tt-responsive .tt-holiday .empty-icon {
+        opacity: 0.6;
+    }
+    .tt-responsive .tt-holiday .tt-next-hint {
+        border-top-color: var(--color-on-error-container);
+    }
+    .tt-responsive .tt-next-icon {
+        width: 13px;
+        height: 13px;
+        flex: none;
+    }
     /* the next-class hint (empty day / public holiday only — R5) */
     .tt-responsive .tt-next-hint {
         display: grid;

@@ -166,10 +166,25 @@ first column (clamped at Sunday) — there is no agenda to scroll there.
 
 ### 4.4 Next-class hint
 
-On an empty day and on a public holiday only (proposal §3.5): one button reading
-`Next class: Wed 10:00 AM · AMCS1033` that calls `goToNextClass()` — sets `currentWeek` to that
-event's week, calls the page's `prevWeek/nextWeek` equivalent, `setDay(thatDay)`, then **focuses
-`#ttDayHeading` and scrolls it into view** (preview behaviour).
+*(Rewritten 2026-11-15 on the user's word — "Public Holiday shud shows this", with the approved
+preview as the sample. The hint is no longer a row under the agenda; it rides INSIDE the
+empty/holiday panel, and a holiday day draws no card at all.)*
+
+An empty day and a public holiday each render ONE panel in the agenda's place — the shipped
+`.empty-state` shell with the preview's own overrides:
+
+- **Holiday**: `.tt-empty.tt-holiday`, the error-container pair, a calendar icon, the title
+  `Public Holiday · <holidayLabel>`, and the date line `Monday, 9 Nov 2026`.
+- **Empty day**: `.tt-empty`, the same shell with `No classes on <weekday>` (no date line).
+- **Inside either**: the hint — a `⏱ Next class →` caption over `Tue 10 Nov · 8–10 AM` and the
+  venue chip, as one button whose `aria-label` is `Go to Tuesday, 10 Nov 2026`. Pressing it moves
+  the week (when it differs), selects the day, then **focuses `#ttDayHeading` and scrolls it into
+  view**. When the semester has nothing later it prints `No more classes this semester.` instead of
+  a button.
+
+The day labels the hint prints come from the PAGE (`findNextClass` returns `date` and `abbr` beside
+`{ week, day, event }`), never from whichever week the module happens to have rendered — borrowing
+them produced a hint reading `Tue 10 Nov` with a week-8 target.
 
 ## 5. CSS (`public/css/theme.css`, one new section)
 
@@ -310,7 +325,7 @@ cohort chip stays in the header, the summary card keeps `Class Hours`, and the b
 | 4 | 1024 / 1279 | three days |
 | 5 | 1280 / 1440 | today's full week, no strip, no Week summary button, geometry comparable |
 | 6 | any | selecting a day re-renders the agenda; `aria-pressed` follows; today keeps its dot |
-| 7 | empty day / holiday | the next-class button shows, jumps to the right week and day, focuses the heading |
+| 7 | empty day / holiday | ONE panel replaces the cards (`Public Holiday · <label>` + date, or `No classes on <weekday>`), the next-class button rides inside it, and it jumps to the right week and day then focuses the heading |
 | 8 | any | a card opens the details modal (`openClassModal`); closing returns to the same scroll position |
 | 9 | ≤1279 | the Week summary sheet shows legend + five cards + semester range, one column below 390px |
 | 10 | any | one card at a time can carry `Overlaps …` + the left strip; the words are in `aria-label` |

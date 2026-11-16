@@ -710,3 +710,9 @@ is this?"; the class count moves into the chip's accessible name, where a screen
 Days after today were drawn at 62% opacity, which read as "disabled" rather than "later in the week".
 Every chip now reads at full strength; only the selected outline, today's dot and a holiday's red mark
 one.
+
+### Correction, same day — a public holiday is a panel, not a red card
+A holiday day no longer draws its classes as red cards. It draws one panel with a calendar icon,
+`Public Holiday · Deepavali Holiday (In Lieu)`, the date, and the next-class hint inside it
+(`Next class → Tue 10 Nov · 2–4 PM`, with the venue). An empty day gets the same panel reading
+`No classes on Sunday`. Cards now only appear on a day that has classes.

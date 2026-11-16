@@ -202,3 +202,27 @@ The user: *"since Tue 17 all are grey, make them all black"*. Design §5 dimmed 
 0.62 opacity, which read as "disabled" rather than "later". The rule is gone, `_isAhead()` and the
 `is-ahead` class went with it, and every chip now reads at full strength; today's dot, the holiday red
 and the selected outline are the only marks left. Measured after the change: opacity 1 on all seven.
+
+## Post-verify change — the public-holiday panel (user, 2026-11-15)
+
+The user, after the chip correction: *"Public Holiday shud shows this"*, with the approved preview as
+the sample. A holiday day used to render its classes as red cards with the next-class row underneath;
+it now renders **one panel** — the shipped empty-state shell with a calendar icon,
+`Public Holiday · <holidayLabel>`, the date line, and the `⏱ Next class →` hint inside it, with the
+venue chip. An empty non-holiday day gets the same shell reading `No classes on <weekday>`. Cards now
+only ever render on a day that has classes.
+
+Two defects surfaced while building it, both worth recording because both would have shipped:
+
+1. **The hint could name a day from a different week.** The module's `_currentWeek()` reads
+   `window.currentWeek`, which a Livewire week swap can leave a step behind the payload the page's own
+   closures point at, so the panel printed `Tue 10 Nov` (week 7) while carrying `data-next-week="8"`.
+   The page now wins: `findNextClass()` uses its own closure's `currentWeek` and returns the day's
+   `date`/`abbr` with the result, so the label can never be borrowed from the wrong week.
+2. **The live pin went red for a clock reason, not a builder reason.** The captures carry the week's
+   `Today` markers and the venue grid's "at least 3 working days from today" line, both of which move
+   with the calendar; the pin now moves the page to the baseline's own week and canonicalises those
+   clock markers before comparing, and says so in the test.
+
+New receipt: T16a #9 (panel, title, date line, hint inside, zero cards, and the jump lands on the day
+the button named). 25 spec receipts + 6 pin receipts, green.
