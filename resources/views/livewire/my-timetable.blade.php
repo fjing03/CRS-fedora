@@ -64,6 +64,7 @@
                 'prevTip' => 'Previous week',
                 'nextTip' => 'Next week',
                 'selectTip' => 'Pick the week to display',
+                'showNormalToggle' => true,
             ])->render()
             . '</div>';
     @endphp

@@ -6980,7 +6980,10 @@ body.tt-sheet-open:has(.tt-responsive) {
 
 .ui-print-header .print-head-row {
     display: grid;
-    grid-template-columns: 1fr auto 1fr;
+    /* the right-hand column is a hair wider than the left: it carries the semester
+       chip AND the week line, and in the normal view that line reads
+       `Week 1 ~ 14  (Whole Semester)` — at an equal `1fr` it clipped at the page edge */
+    grid-template-columns: minmax(0, 1fr) auto minmax(0, 1.15fr);
     align-items: end;
     gap: 12px;
     padding-bottom: 4px;
@@ -6995,6 +6998,22 @@ body.tt-sheet-open:has(.tt-responsive) {
     flex-direction: column;
     align-items: flex-end;
     gap: 2px;
+    min-width: 0;
+}
+
+/* a flex column sizes its items to their content, and this column's two items are
+   the LONGEST strings on the sheet (the semester chip and the week line). Without a
+   ceiling they grow past the page edge and both clipped — measured on the first
+   normal-view PDF, where `(Whole Semester)` was cut in half. */
+.ui-print-header .print-head-right > * {
+    max-width: 100%;
+}
+
+.ui-print-header .print-semester {
+    display: block;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
 .print-title {
@@ -7031,7 +7050,10 @@ body.tt-sheet-open:has(.tt-responsive) {
 .ui-print-header .week-line {
     font-size: 9px;
     color: var(--p-on-surface-variant);
-    white-space: nowrap;
+    /* wraps rather than overflowing the page: the normal view's range is the longest
+       thing this line ever says */
+    white-space: normal;
+    text-align: right;
 }
 
 .ui-print-header .week-line .week-count {
@@ -7078,6 +7100,80 @@ body.tt-sheet-open:has(.tt-responsive) {
     flex-basis: 100%;
     font-size: 8.5px;
     color: var(--p-on-surface-variant);
+}
+
+/* ── The Normal Class toggle — the lane's one new control on screen. It sits beside
+      the print button in the shared week row and reads as a reading mode, not a
+      filter: a switch, not a button. Paper never shows it. ── */
+.print-normal-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 0 6px;
+    font-size: 12px;
+    color: var(--color-on-surface-variant);
+    cursor: pointer;
+    user-select: none;
+    white-space: nowrap;
+}
+
+.print-normal-toggle input {
+    position: absolute;
+    opacity: 0;
+    width: 1px;
+    height: 1px;
+}
+
+.print-normal-toggle__label {
+    position: relative;
+    padding-left: 26px;
+    line-height: 18px;
+}
+
+.print-normal-toggle__label::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 1px;
+    width: 20px;
+    height: 12px;
+    border-radius: var(--radius-pill);
+    background: var(--color-surface-variant);
+    border: 1px solid var(--color-outline-strong);
+    transition: background var(--transition), border-color var(--transition);
+}
+
+.print-normal-toggle__label::after {
+    content: '';
+    position: absolute;
+    left: 3px;
+    top: 3px;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--color-on-surface-variant);
+    transition: transform var(--transition), background var(--transition);
+}
+
+.print-normal-toggle input:checked + .print-normal-toggle__label::before {
+    background: var(--color-primary-container);
+    border-color: var(--color-primary);
+}
+
+.print-normal-toggle input:checked + .print-normal-toggle__label::after {
+    transform: translateX(8px);
+    background: var(--color-primary);
+}
+
+.print-normal-toggle input:focus-visible + .print-normal-toggle__label {
+    outline: 2px solid var(--color-primary);
+    outline-offset: 2px;
+    border-radius: var(--radius-xs);
+}
+
+/* 48 × 48 on a coarse pointer, like every other control in the row */
+@media (any-pointer: coarse) {
+    .print-normal-toggle { min-height: 48px; }
 }
 
 /* ── The paper's table skeleton. Block internals (corners, centre, band, time,
@@ -7352,6 +7448,10 @@ body.tt-sheet-open:has(.tt-responsive) {
     .filters-overlay,
     #toastBar,
     #emptyState,
+    /* a hover pill can be on screen when the print dialog opens; paper never carries
+       one (contract TOOLTIPS — the pill is an affordance, not content) */
+    .data-tip-tooltip,
+    .data-tip-tooltip[hidden],
     /* screen instructions: paper answers "what classes are on this week", so a line
        telling a reader to click a green slot has nothing to say on it */
     .booking-hint-line,

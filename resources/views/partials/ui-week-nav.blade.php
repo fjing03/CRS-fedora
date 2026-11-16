@@ -12,6 +12,11 @@
        every existing caller stays byte-identical (the arrangement page uses the
        earliest variant AS its Today button instead). */
     $showEarliestBtn = $showEarliestBtn ?? false;
+    /* timetable-print-v2 (2026-11-16): the Normal Class toggle. Opt-in and default
+       FALSE, so the arrangement page and the frozen templates render byte-identically.
+       It has no inline onclick — PrintSheet binds it (public/js/ui-common.js), because
+       a page script lives in a closure and an inline handler would need an export. */
+    $showNormalToggle = $showNormalToggle ?? false;
     // Optional hover hints (shared data-tip tooltip, shown ABOVE the element).
     // Null by default → pages that don't pass them render byte-identical.
     $prevTip = $prevTip ?? null;
@@ -33,6 +38,15 @@
         'todayLabel' => $earliestLabel ?? 'Earliest bookable',
         'todayTip' => $earliestTip ?? 'Jump to the earliest bookable slot',
     ])
+@endif
+@if($showNormalToggle)
+    {{-- The semester's normal timetable, as a reading mode for the paper. Its hover
+         tip rides the shared data-tip pill (contract TOOLTIPS) and its state never
+         leaves the page: on every rebuild, off again on reload. --}}
+    <label class="print-normal-toggle" data-tip="Show the semester's normal timetable only">
+        <input type="checkbox" id="printNormalToggle">
+        <span class="print-normal-toggle__label">Normal Class</span>
+    </label>
 @endif
 @if($showPrint)
     {{-- timetable-print-v2 (2026-11-16): the REAL action. `window.print()` opens the

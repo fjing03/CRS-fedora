@@ -392,7 +392,7 @@
                 <span class="badge badge-past" id="venueDescription" style="display:none;"></span>
             </div>
         </div>
-        @include('partials.ui-week-nav', ['prevOnclick' => 'prevWeek()', 'nextOnclick' => 'nextWeek()', 'selectId' => 'weekSelect', 'selectOnclick' => 'selectWeek(this.value)', 'selectTinted' => true, 'showPrint' => true, 'showEarliestBtn' => true])
+        @include('partials.ui-week-nav', ['prevOnclick' => 'prevWeek()', 'nextOnclick' => 'nextWeek()', 'selectId' => 'weekSelect', 'selectOnclick' => 'selectWeek(this.value)', 'selectTinted' => true, 'showPrint' => true, 'showNormalToggle' => true, 'showEarliestBtn' => true])
     </div>
 
     <!-- ─── Grid Wrapper ─── -->
