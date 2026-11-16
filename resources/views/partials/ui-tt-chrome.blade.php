@@ -68,12 +68,15 @@
 <div class="tt-next-hint" id="ttNextHint" hidden></div>
 
 {{-- Week summary sheet (≤1279, Batch D). Its body is FILLED by the module from the
-     page's own nodes (legend bar + the five cards + a built range line), moved rather
-     than copied, so `wire:ignore` keeps Livewire's morphs out of the relocated nodes. --}}
+     page's own nodes (legend bar + the five cards), moved rather than copied, so
+     `wire:ignore` keeps Livewire's morphs out of the relocated nodes. The head carries
+     a SUBTITLE (user, 2026-11-15, following the prototype: `Week 8 · 202605 Semester ·
+     21 Sep 2026 ~ 27 Dec 2026`), which is why no range line sits in the body. --}}
 <div class="tt-sheet-overlay" id="ttSheet" hidden>
     <div class="tt-sheet" role="dialog" aria-modal="true" aria-labelledby="ttSheetTitle">
         <div class="tt-sheet-head">
-            <h2 class="tt-sheet-title" id="ttSheetTitle">Week summary</h2>
+            <h2 class="tt-sheet-title" id="ttSheetTitle">Week summary<span
+                    class="tt-sheet-subtitle" id="ttSheetSubtitle"></span></h2>
             <button type="button" class="tt-sheet-close" aria-label="Close week summary">&times;</button>
         </div>
         <div class="tt-sheet-body" id="ttSheetBody" wire:ignore></div>

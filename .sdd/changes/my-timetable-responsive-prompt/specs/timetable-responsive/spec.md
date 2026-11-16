@@ -88,6 +88,13 @@ Replacement Arrangement MUST NOT change** — they call the same builder without
   `top: var(--top-bar-height)`, no JS measurement). At ≥1280 it MUST stay in flow.
 - *(Frozen design §3's strip cells read "one day" / "2-day window" — they describe the *window*, not
   the chip count; this requirement is the authority.)*
+- The day heading MUST read `<Weekday>, <d Mon yyyy>` in agenda mode (`Monday, 16 Nov 2026`) and
+  `<Abbr> ~ <Abbr>` in window mode, with `<N> class(es) this day` / `<N> days visible` beneath it.
+  *(User ruling 2026-11-15 — difference #1 in the prototype comparison: the date was missing.)*
+- The page title MUST be 20px on a phone and 22px above it, per the prototype's
+  `clamp(20px, 3vw, 22px)`. *(User ruling 2026-11-15, difference #6.)*
+- The semester chip MUST read the short label on a phone (`202605 Semester`) and the dated range from
+  768px up. *(User ruling 2026-11-15, difference #5.)*
 - A chip MUST NOT be dimmed for being later in the week: every chip reads at full strength, and only
   the selected outline, the today dot and the public-holiday colour mark one. *(User ruling
   2026-11-15, reversing design §5's ahead-of-today dimming.)*
@@ -112,8 +119,11 @@ Replacement Arrangement MUST NOT change** — they call the same builder without
 - One button (`Week summary`, `aria-haspopup="dialog"`, `aria-controls`, `aria-expanded`) beside the
   day heading. The tools block ships `hidden` and the module unhides it below 1280, so at ≥1280 the
   receipt asserts **`toBeHidden()`** (not `toHaveCount(0)`) — the node exists, it is not offered.
-- The sheet body's order MUST be **legend → the five cards → the built range line**, and the two
-  movers MUST preserve it.
+- The sheet's HEAD MUST carry a subtitle `<Week N · <code> Semester · <range>>`
+  (`Week 9 · 202605 Semester · 21 Sep 2026 ~ 27 Dec 2026`). *(User ruling 2026-11-15, difference #4 —
+  it replaces the built range line that used to sit at the bottom of the body, which repeated the
+  page's own chip.)*
+- The sheet body's order MUST be **legend → the five cards**, and the two movers MUST preserve it.
   moving the page's own nodes (never copies) with placeholders so their restore is exact.
 - Opening MUST lock scroll (`tt-sheet-open`), trap Tab, set the button's `aria-expanded`, and close on
   the ×, the veil and `Escape` — returning focus to the button. `Escape` MUST be a no-op while a

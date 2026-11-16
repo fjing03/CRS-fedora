@@ -230,3 +230,26 @@ the button named). 25 spec receipts + 6 pin receipts, green.
 One detail settled against the preview after the first look: the date line is on the **holiday** panel
 only. An empty weekday already names itself in its title, and the preview's own `emptyMessage()` passes
 no text for that case, so `No classes on Sunday` sits alone above the hint.
+
+## Prototype comparison, 2026-11-15 — four items followed, one kept
+
+The user's ruling on the comparison table: **follow the prototype for #1, #4, #5, #6; keep the
+current button (#2); the rest TBD.**
+
+| item | what changed |
+|---|---|
+| #1 | the day heading prints `<Weekday>, <d Mon yyyy>` (`Monday, 16 Nov 2026`) in agenda mode; window mode keeps `Mon ~ Tue` |
+| #4 | the sheet's head carries a subtitle `Week 9 · 202605 Semester · 21 Sep 2026 ~ 27 Dec 2026`; the built `#ttSheetRange` line is **gone** from the body, because it repeated the page's own chip |
+| #5 | the semester chip reads `202605 Semester` on a phone and the dated range from 768px up (scoped to `.tt-responsive`, so the shared header is untouched on every other page) |
+| #6 | the page title is `clamp(20px, 3vw, 22px)` — 20px on a phone instead of 18px |
+| #2 | **kept** — the Week summary button keeps its icon **and** the words `Week summary` |
+
+Two things the payload forced, both harmless: the live `MockData.semester.label` is the bare code
+(`202605`) while the preview writes `202605 Semester`, so the module adds the word when the data omits
+it; and `chipText` is `<code> · <range>`, so the subtitle takes only the range half and never repeats
+the code. Receipts: T16a #10 (heading, chip, title at 390 and the wide-width halves at 900) and T16b #3
+(body is legend → cards, no range node, subtitle pattern).
+
+Red elsewhere, unchanged and not this lane's: `tests/timetable-wiring.spec.ts` asserts `#weekSubtitle`,
+which was removed on 2026-11-13, and its own `loginStaff()` hits the Fortify limiter after the three
+setup logins — same stale-test family the lane already recorded for `e2e/timetable.spec.js`.

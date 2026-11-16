@@ -582,6 +582,48 @@ test.describe('T16a — the phone (320 / 360 / 390 / 430)', () => {
       .not.toBe(seen.dark);
   });
 
+  test('10. items #1/#5/#6 — the heading names the date, the phone chip is short, the title is 20px', async ({ page }) => {
+    /* Three prototype details the user chose to follow on 2026-11-15:
+         #1 the day heading reads `Monday, 9 Nov 2026`, not just `Monday`;
+         #5 the phone semester chip is the short label, the dated range from 768 up;
+         #6 the page title is 20px at phone width, 22px above (not 18px). */
+    await open(page, 390);
+
+    const heading = await page.evaluate(() => {
+      const el = document.getElementById('ttDayHeading')!;
+      const date = (window as any).weekData[Number((window as any).currentWeek)].days[
+        Number((document.querySelector('#ttDayStrip .tt-day[aria-pressed="true"]') as HTMLElement).dataset.day)
+      ].date;
+      return { text: (el.textContent || '').trim(), date };
+    });
+    expect(heading.text, '#1 — the heading is `<weekday>, <date>`').toBe(
+      new RegExp(`^[A-Z][a-z]+day, ${heading.date.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`).source.replace(/^\^|\$$/g, '') === heading.date
+        ? heading.text
+        : heading.text,
+    );
+    expect(heading.text, '#1 — the weekday AND the date are both printed').toMatch(
+      new RegExp(`^[A-Z][a-z]+, ${heading.date.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`),
+    );
+
+    expect((await page.locator('#semesterChip').textContent())?.trim(), '#5 — short on the phone')
+      .toBe('202605 Semester');
+    expect(
+      await page.evaluate(() => getComputedStyle(document.querySelector('.page-title')!).fontSize),
+      '#6 — 20px at phone width',
+    ).toBe('20px');
+
+    /* …and the two wide-width halves of the same two rules */
+    await page.setViewportSize({ width: 900, height: 900 });
+    await expect.poll(() => mode(page)).toBe('window');
+    expect((await page.locator('#semesterChip').textContent())?.trim(), '#5 — the dated range returns')
+      .toMatch(/^202605 · \d{1,2} [A-Z][a-z]{2} \d{4} ~ \d{1,2} [A-Z][a-z]{2} \d{4}$/);
+    expect(
+      await page.evaluate(() => getComputedStyle(document.querySelector('.page-title')!).fontSize),
+      '#6 — 22px above phone width',
+    ).toBe('22px');
+    expectNoPageErrors(page, 'text bits @390/900');
+  });
+
   test('9. R5 — a public-holiday day is the PREVIEW PANEL, not a red card, and the hint rides inside it', async ({ page }) => {
     /* The user, 2026-11-15: "Public Holiday shud shows this", with the approved
        preview as the sample. So a holiday day paints one empty-state panel
@@ -776,10 +818,11 @@ test.describe('T16b — the tablet window (768 / 1024) and the Week summary shee
     await expect(page.locator('#classModal')).toBeHidden();
   });
 
-  test('3. the Week summary sheet: order, range text, lock, trap, Esc, restore (R6)', async ({ page }) => {
+  test('3. the Week summary sheet: order, subtitle, lock, trap, Esc, restore (R6)', async ({ page }) => {
     await open(page, 390);
+    /* at 390 the header chip is the prototype's SHORT label (`202605 Semester`, item #5) */
     const chipText = (await page.locator('#semesterChip').textContent())?.trim() || '';
-    expect(chipText, 'the header chip prints a semester range').toMatch(/\d{4}/);
+    expect(chipText, 'item #5 — the phone chip is the short semester label').toBe('202605 Semester');
 
     const before = await page.evaluate(() => {
       const legend = document.querySelector('.legend-bar') as HTMLElement;
@@ -806,7 +849,9 @@ test.describe('T16b — the tablet window (768 / 1024) and the Week summary shee
       const body = document.getElementById('ttSheetBody')!;
       return {
         order: Array.from(body.children).map((c) => c.id || c.className.trim()),
-        range: (document.getElementById('ttSheetRange')?.textContent || '').trim(),
+        /* item #4 — the semester range lives in the HEAD's subtitle now, not in a body line */
+        subtitle: (document.getElementById('ttSheetSubtitle')?.textContent || '').trim(),
+        rangeNode: document.getElementById('ttSheetRange'),
         cards: body.querySelectorAll('.summary-card').length,
         focusInSheet: !!document.activeElement?.closest('#ttSheet'),
         dialog: {
@@ -816,10 +861,13 @@ test.describe('T16b — the tablet window (768 / 1024) and the Week summary shee
         },
       };
     });
-    expect(opened.order, 'R6 — body order is legend → the five cards → the built range line')
-      .toEqual(['legend-bar', 'summarySection', 'ttSheetRange']);
+    expect(opened.order, 'R6 — body order is legend → the five cards, nothing else')
+      .toEqual(['legend-bar', 'summarySection']);
     expect(opened.cards, 'R6 — the five cards moved in (as nodes)').toBe(5);
-    expect(opened.range, 'R6 — the range line equals the header chip\'s own text').toBe(chipText);
+    expect(opened.rangeNode, 'item #4 — no range line is built inside the body any more').toBeNull();
+    expect(opened.subtitle, 'item #4 — the head carries `Week N · semester · range`').toMatch(
+      /^Week \d+ · 202605 Semester · \d{1,2} [A-Z][a-z]{2} \d{4} ~ \d{1,2} [A-Z][a-z]{2} \d{4}$/,
+    );
     expect(opened.focusInSheet, 'R6 — focus lands inside the dialog').toBe(true);
     expect(opened.dialog, 'R7 — a labelled aria-modal dialog').toEqual({
       role: 'dialog', modal: 'true', labelled: 'ttSheetTitle',

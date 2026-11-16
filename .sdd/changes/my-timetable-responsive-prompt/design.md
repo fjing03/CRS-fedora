@@ -151,6 +151,10 @@ One card per event in the selected day, in time order, built by `buildAgenda()`:
 - The card is a `<button>` that calls the page's own `onEventClick` — the page's existing handler,
   so a card opens the same details modal a desktop block does.
 
+*(2026-11-15, prototype comparison #1/#5/#6: the heading prints `<Weekday>, <d Mon yyyy>`; the
+semester chip is the short label on a phone and the dated range above 768px; the page title is the
+prototype's `clamp(20px, 3vw, 22px)`.)*
+
 ### 4.3 The day strip
 
 One `<button class="tt-day" aria-pressed="…" aria-current="date"|absent>` per day:

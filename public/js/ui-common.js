@@ -7092,6 +7092,11 @@ const TimetableResponsive = {
         var table = document.getElementById('timetable');
         if (table) table.style.display = mode === 'full' ? '' : 'none';
 
+        /* The semester chip is the prototype's: `202605 Semester` on the phone and the
+           dated range from 768 up (user, 2026-11-15, item #5). The chip belongs to the
+           shared page header, so this only runs on a page carrying the scope class. */
+        this._syncSemesterChip(mode);
+
         /* ≥1280 is today's page: nothing of this lane renders there. The window grid
            is a plain div outside its media block, so it is hidden by hand — unlike
            the strip/agenda/hint, which the base rules in theme.css already hide. */
@@ -7374,6 +7379,42 @@ const TimetableResponsive = {
     },
 
     /* ── T4 — the day strip ── */
+    /* The live payload's `semester.label` is the bare code (`202605`) while the preview
+       writes `202605 Semester`; the word is added here when the data omits it, so the
+       chip looks like the prototype without editing the payload. */
+    _semesterShort: function () {
+        var sem = null;
+        try { sem = (window.MockData && window.MockData.semester) || null; } catch (err) { sem = null; }
+        if (!sem) return '';
+        var label = String(sem.label || '').trim();
+        if (!label) return '';
+        return /semester/i.test(label) ? label : label + ' Semester';
+    },
+
+    /* The range half of `chipText` (`<code> · <dd Mon yyyy> ~ <dd Mon yyyy>`), so a
+       subtitle never repeats the code it already printed. */
+    _semesterRange: function () {
+        var sem = null;
+        try { sem = (window.MockData && window.MockData.semester) || null; } catch (err) { sem = null; }
+        if (!sem || !sem.chipText) return '';
+        var parts = String(sem.chipText).split(' · ');
+        return parts.length > 1 ? parts.slice(1).join(' · ') : '';
+    },
+
+    /* `202605 Semester` in agenda mode, the dated range otherwise — read from the same
+       MockData the page's own boot writes, so the two can never disagree. */
+    _syncSemesterChip: function (mode) {
+        var chip = document.getElementById('semesterChip');
+        if (!chip) return;
+        var sem = null;
+        try { sem = (window.MockData && window.MockData.semester) || null; } catch (err) { sem = null; }
+        if (!sem) return;
+        var text = (mode === 'agenda')
+            ? this._semesterShort()
+            : (sem.chipText || this._semesterShort());
+        if (text && chip.textContent !== text) chip.textContent = text;
+    },
+
     buildStrip: function () {
         var strip = document.getElementById('ttDayStrip');
         if (!strip) return;
@@ -7627,7 +7668,15 @@ const TimetableResponsive = {
         var di = this._state.day;
         if (this._state.mode === 'agenda') {
             var n = events.filter(function (e) { return e && Number(e.di) === di; }).length;
-            if (heading) heading.textContent = this._fullDayName(days[di]) || '';
+            /* `Monday, 9 Nov 2026` — the prototype names the day AND its date, so the
+               heading answers "which Monday is this?" without reading the strip
+               (user, 2026-11-15: follow the prototype, item #1). */
+            if (heading) {
+                var day0 = days[di] || null;
+                var label = this._fullDayName(day0) || '';
+                if (day0 && day0.date) label += ', ' + day0.date;
+                heading.textContent = label;
+            }
             if (countEl) countEl.textContent = n + (n === 1 ? ' class this day' : ' classes this day');
             return;
         }
@@ -7902,11 +7951,12 @@ const TimetableResponsive = {
         /* One overlay at a time: the bell sits on the same layer (z 1200). */
         if (typeof closeNotifPanel === 'function') closeNotifPanel();
 
-        /* Move, never copy — and in this order, so the body reads legend → cards, with
-           the built range line appended after them. */
+        /* Move, never copy — and in this order, so the body reads legend → cards.
+           The semester range moved INTO the sheet's subtitle (the prototype's header),
+           so the body has no third line to append. */
         this._relocate(legend);
         this._relocate(section);
-        this._appendRange();
+        this._syncSheetSubtitle();
 
         sheet.hidden = false;
         document.body.classList.add('tt-sheet-open');   /* the NEW lock class, not summary-sheet-open */
@@ -7926,12 +7976,8 @@ const TimetableResponsive = {
         if (!sheet) return;
         var wasOpen = !sheet.hidden;
 
-        /* The generated line goes first: it is not a page node, so it must not survive
-           as a ghost inside an empty body. The two movers then go back to their seats
-           (their placeholders are removed with them). */
-        var line = document.getElementById('ttSheetRange');
-        if (line && line.parentNode) line.parentNode.removeChild(line);
-
+        /* The two movers go back to their seats (their placeholders are removed with
+           them); nothing generated lives in the body any more. */
         this._restore(this._legendNode());
         this._restore(this._summaryNode());
 
@@ -7983,27 +8029,21 @@ const TimetableResponsive = {
         return node;
     },
 
-    /* The BUILT range line (12px, --color-on-surface-variant, see theme.css): the text
-       is the header chip's own, so the sheet can never print a different semester. It
-       is re-appended last on every open and every post-print relocation, which is what
-       keeps the R6 order — legend → cards → range — without any reordering code. */
-    _appendRange: function () {
-        var body = this._sheetBody();
-        if (!body) return;
-
-        var line = document.getElementById('ttSheetRange');
-        if (!line) {
-            line = document.createElement('p');
-            line.id = 'ttSheetRange';
-            line.className = 'tt-sheet-range';
-        }
-
-        var chip = '';
-        try { chip = (window.MockData && window.MockData.semester && window.MockData.semester.chipText) || ''; }
-        catch (err) { chip = ''; }
-        line.textContent = chip;
-
-        if (body.lastElementChild !== line) body.appendChild(line);
+    /* The sheet's SUBTITLE — the prototype puts the week number and the semester in the
+       header (`Week 8 · 202605 Semester · 21 Sep 2026 ~ 27 Dec 2026`) instead of a range
+       line under the cards (user, 2026-11-15, item #4). Built from the page's own week
+       and MockData, so it can never print a different semester than the header chip. */
+    _syncSheetSubtitle: function () {
+        var el = document.getElementById('ttSheetSubtitle');
+        if (!el) return;
+        var week = this._currentWeek();
+        var parts = [];
+        if (!isNaN(week)) parts.push('Week ' + (week + 1));
+        var short = this._semesterShort();
+        if (short) parts.push(short);
+        var range = this._semesterRange();
+        if (range) parts.push(range);
+        el.textContent = parts.join(' · ');
     },
 
     /* Print, both halves (R8). before: the nodes go back inline, where theme.css's
@@ -8024,7 +8064,7 @@ const TimetableResponsive = {
 
         this._relocate(legend);
         this._relocate(section);
-        this._appendRange();
+        this._syncSheetSubtitle();
     },
 
     /* A dialog ABOVE this sheet owns the next Escape: the class details modal, the

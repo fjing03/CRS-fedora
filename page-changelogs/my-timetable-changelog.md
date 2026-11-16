@@ -716,3 +716,10 @@ A holiday day no longer draws its classes as red cards. It draws one panel with 
 `Public Holiday · Deepavali Holiday (In Lieu)`, the date, and the next-class hint inside it
 (`Next class → Tue 10 Nov · 2–4 PM`, with the venue). An empty day gets the same panel reading
 `No classes on Sunday`. Cards now only appear on a day that has classes.
+
+### Prototype comparison, same day — four details followed, one kept
+Following the approved prototype: the day heading now names the date (`Monday, 16 Nov 2026`); the
+Week summary sheet's header carries `Week 9 · 202605 Semester · 21 Sep 2026 ~ 27 Dec 2026` as a
+subtitle (and the range line that used to repeat it inside the body is gone); the semester chip is the
+short `202605 Semester` on a phone; the page title is 20px on a phone instead of 18px. The Week
+summary **button** keeps its words — that one was kept as it is on request.
