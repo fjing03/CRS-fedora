@@ -36,16 +36,30 @@
             --shadow-card: 0 24px 80px rgba(0,0,0,0.08);
         }
 
+        /* 2026-11-16 (user): the login page must never trap its own content.
+           The old pair — `overflow: hidden` here + a `position: fixed` footer —
+           meant that on any window shorter than the card (320x568, an open phone
+           keyboard, landscape) the footer sat ON the form, covering the password
+           field and the links, and nothing could be scrolled: the covered part was
+           simply unreachable. The page is now a normal scrollable column and the
+           footer is the last item in that flow (see .ui-footer--fixed in theme.css),
+           so it can never cover the card at ANY width or height.
+           The card is centred with `margin-block: auto` rather than
+           `justify-content: center`, because auto margins collapse on overflow while
+           centring would clip the top of the card off-screen. */
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
             background: var(--color-bg);
             color: var(--color-on-bg);
             min-height: 100vh;
+            min-height: 100dvh;
             display: flex;
+            flex-direction: column;
             align-items: center;
-            justify-content: center;
             position: relative;
-            overflow: hidden;
+            overflow-x: hidden;
+            overflow-y: auto;
+            padding: 12px 0 0;
         }
 
         .bg-layer {
@@ -101,7 +115,11 @@
             z-index: 10;
             width: 100%;
             max-width: 460px;
-            margin: 24px;
+            /* auto BLOCK margins = "safe centring": centred while there is room,
+               collapses to 0 (and the page scrolls) when the content is taller
+               than the window. Inline margins keep the old 24px gutter. */
+            margin-block: auto;
+            margin-inline: 24px;
             padding: 48px 44px 40px;
             background: var(--card-bg);
             border: 1px solid var(--card-border);
@@ -323,14 +341,61 @@
             opacity: 0.6;
         }
 
+        /* ── Phone / narrow: keep the photo as a frame, not as a filter over the
+              form. At 65% the sky and grass read straight through the card and the
+              12px hint + placeholder washed out to nearly nothing (light mode was
+              the worst). Still colour-mix tokens only, no new colour. ── */
+        @media (max-width: 768px) {
+            :root {
+                --card-bg: color-mix(in srgb, var(--color-surface) 88%, transparent);
+                /* the fields used to be ~70% transparent, so a bright cloud moved
+                   behind them as the page scrolled and the text washed out with it.
+                   They keep the same colour family, just denser. */
+                --input-bg: color-mix(in srgb, var(--color-surface-variant) 70%, transparent);
+            }
+            .light {
+                --card-bg: color-mix(in srgb, var(--color-surface) 94%, transparent);
+                --input-bg: color-mix(in srgb, var(--color-surface-variant) 80%, transparent);
+            }
+            .format-hint { opacity: 0.85; }
+            .input-wrapper input::placeholder { color: rgba(212, 220, 230, 0.5); }
+            .light .input-wrapper input::placeholder { color: rgba(84, 92, 102, 0.5); }
+            /* the theme toggle is fixed at the top-right; on a screen too short to
+               centre the card, the card starts at the top edge — reserve the toggle's
+               band so the two never sit on each other, and let the toggle scroll with
+               the page instead of floating over a field once the card is scrolled. */
+            body { padding-top: 72px; }
+            .theme-toggle { position: absolute; }
+        }
+
         @media (max-width: 480px) {
-            .login-card { padding: 32px 24px 28px; margin: 12px; border-radius: var(--radius-lg); max-width: 100%; }
+            .login-card { padding: 32px 24px 28px; margin-inline: 12px; border-radius: var(--radius-lg); max-width: 100%; }
             .logo-img { max-width: 200px; }
             .login-btn { padding: 14px; }
             .theme-toggle { top: 16px; right: 16px; width: 36px; height: 36px; }
         }
         @media (max-width: 380px) {
             .login-card { padding: 28px 20px 24px; border-radius: var(--radius-xl); }
+        }
+
+        /* 2026-11-16 (user): 48 x 48px targets on TOUCH-CAPABLE devices ONLY —
+           capability (`any-pointer: coarse`), not width (my-coding-rules.md #9).
+           A touch laptop or an iPad Pro at any width qualifies; a mouse-only
+           desktop keeps today's compact controls. Real hit box, not padding. */
+        @media (any-pointer: coarse) {
+            .theme-toggle {
+                width: 48px;
+                height: 48px;
+                min-width: 48px;
+                min-height: 48px;
+            }
+            .toggle-pw {
+                min-width: 48px;
+                min-height: 48px;
+                justify-content: center;
+                padding: 0;
+            }
+            .login-btn { min-height: 48px; }
         }
     </style>
     @yield('page-styles')

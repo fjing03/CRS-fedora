@@ -6017,23 +6017,48 @@ body.filters-panel-open .filters-btn { position:relative; z-index:1300; }
     flex-shrink: 0;
 }
 
-/* AUTH pages (decision 7): pinned to the viewport bottom over the animated
-   background. Written AFTER the media mirror on purpose — equal specificity,
-   later wins, and `margin: 0` neutralises the bleed here (left/right: 0 make
-   the margins inert anyway). .bg-layer/.bg-overlay are pointer-events: none;
-   .login-card (z 10) and .theme-toggle (z 20) sit ABOVE this z 5 strip. */
+/* AUTH pages (decision 7, amended 2026-11-16 — user): the strip is the LAST ITEM
+   IN THE PAGE FLOW, not an overlay.
+
+   Why: `position: fixed` pinned a six-item strip over the login card on every
+   window shorter than the card — at 320x568 it covered the PASSWORD field and both
+   links, at 390x700 it covered the last 107px of the card — and the layout's
+   `body { overflow: hidden }` made the covered part unreachable, keyboard included.
+   A fixed strip can never be safe at "any width and height" because its height
+   (74px desktop → 242px at 320px) varies with the text wrap.
+
+   `position: relative` keeps it in flow (so the page scrolls it away and the card
+   is never covered) while still painting ABOVE .bg-layer / .bg-overlay — those are
+   fixed with `z-index: auto`, so a truly `static` footer would hide behind the
+   photo. `flex-shrink: 0` stops a short window squashing the strip; `width: 100%`
+   keeps it full-bleed inside the login body (which is NOT `.app-container`, so the
+   -24px bleed margins of `.ui-footer` are neutralised by this `margin`).
+   The scrim is unchanged: over the photo it reads exactly as the old strip did. */
 .ui-footer--fixed {
-    position: fixed;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    margin: 0;
+    position: relative;
     z-index: 5;
+    flex-shrink: 0;
+    width: 100%;
+    /* 12px of air above the strip: when the page scrolls, the card's auto block
+       margins collapse to 0 and only this gap keeps the card off the footer. */
+    margin: 12px 0 0;
     /* §4's sanctioned conditional: eyeballed over the login photo, the plain
        transparent strip failed AA legibility in LIGHT mode (12px text on grass),
        so the allowed TOOL is a token-only `color-mix` scrim — no new hex/rgb.
        In dark mode the same mix darkens under the light text. */
     background: color-mix(in srgb, var(--color-bg) 62%, transparent);
+}
+
+/* Phone width: six items over a photo need an opaque strip, and the rhythm
+   tightens so the band stays short. NOTHING is hidden, shortened or renamed —
+   brand, version, owner, demo notice, e-mail and repo all stay verbatim. */
+@media (max-width: 768px) {
+    .ui-footer--fixed {
+        background: var(--color-bg);
+        gap: 6px 10px;
+        line-height: 1.45;
+        padding: 10px 12px;
+    }
 }
 
 @media print {
