@@ -6049,12 +6049,13 @@ body.filters-panel-open .filters-btn { position:relative; z-index:1300; }
     background: color-mix(in srgb, var(--color-bg) 62%, transparent);
 }
 
-/* Phone width: six items over a photo need an opaque strip, and the rhythm
-   tightens so the band stays short. NOTHING is hidden, shortened or renamed —
-   brand, version, owner, demo notice, e-mail and repo all stay verbatim. */
+/* Phone width: the rhythm tightens so the six-item band stays short, and the
+   strip keeps the same 62% scrim as desktop — the user wanted it see-through
+   over the photo rather than an opaque slab (2026-11-16). NOTHING is hidden,
+   shortened or renamed: brand, version, owner, demo notice, e-mail and repo all
+   stay verbatim. */
 @media (max-width: 768px) {
     .ui-footer--fixed {
-        background: var(--color-bg);
         gap: 6px 10px;
         line-height: 1.45;
         padding: 10px 12px;
