@@ -560,26 +560,51 @@ test.describe('T16a — the phone (320 / 360 / 390 / 430)', () => {
     expect((await cards(page)).length, 'Enter selected that day too').toBe(chips[enterTarget].count);
   });
 
-  test('6. print: the paper gets the full week, the legend and the cards — never the phone furniture (R8)', async ({ page }) => {
+  test('6. print: the paper surface replaces the screen — never the phone furniture (R8, revised by timetable-print-v2)', async ({ page }) => {
+    /* REVISED 2026-11-16 by SDD `timetable-print-v2`. R8's ORIGINAL receipt asserted
+       that the screen grid, the screen legend and the five cards all came back on
+       paper. That was task 8's own print rule, and it was deliberately withdrawn:
+       the paper is now its own surface (`.ui-print-sheet` + `.ui-print-header`, built
+       by the same builder from the print set), so printing the screen grid as well
+       would double every class, print a five-chip key and print a summary strip the
+       contract forbids. What R8 still owns — the phone/tablet furniture must never
+       reach paper — is unchanged and still asserted here. */
     await open(page, 390);
     await page.emulateMedia({ media: 'print' });
 
-    await expect(page.locator('.legend-bar'), 'R8 — the legend prints whatever the on-screen mode').toBeVisible();
-    await expect(page.locator('#summarySection'), 'R8 — the five cards print too').toBeVisible();
     for (const selector of ['.tt-days', '.tt-tools', '.tt-agenda', '#ttNextHint', '#ttWindowGrid', '#ttSheet']) {
       await expect(page.locator(selector), `R8 — ${selector} must not print`).toBeHidden();
     }
 
+    /* the screen surface steps aside on paper — grid, legend, cards and chrome */
+    await expect(page.locator('.grid-wrapper'), 'the screen grid does not print any more').toBeHidden();
+    await expect(page.locator('.legend-bar'), 'the screen legend does not print (the paper key does)').toBeHidden();
+    await expect(page.locator('#summarySection'), 'no printed summary strip').toBeHidden();
+
+    /* and the paper surface is there instead, in flow */
     const paper = await page.evaluate(() => {
-      const table = document.getElementById('timetable') as HTMLElement;
-      return { display: getComputedStyle(table).display, tag: table.tagName };
+      const sheet = document.getElementById('printSheet') as HTMLElement;
+      const header = document.getElementById('printHeader') as HTMLElement;
+      const s = getComputedStyle(sheet);
+      const h = getComputedStyle(header);
+      return {
+        sheetVisible: s.visibility, sheetPosition: s.position,
+        headerVisible: h.visibility,
+        tableTag: (document.getElementById('printTimetable') as HTMLElement).tagName,
+        tableDisplay: getComputedStyle(document.getElementById('printTimetable') as HTMLElement).display,
+        headerOnce: document.querySelectorAll('.ui-print-header').length,
+      };
     });
-    expect(paper.tag, 'R8 — the legacy grid is a table again on paper').toBe('TABLE');
-    expect(paper.display, 'R8 — and it is displayed at paper width').toBe('table');
+    expect(paper.tableTag, 'the paper is a table').toBe('TABLE');
+    expect(paper.tableDisplay, 'the paper table is displayed').toBe('table');
+    expect(paper.sheetVisible, 'the paper sheet is visible on paper').toBe('visible');
+    expect(paper.headerVisible, 'the paper header prints').toBe('visible');
+    expect(paper.headerOnce, 'ONE header, not one per surface').toBe(1);
 
     await page.emulateMedia({ media: 'screen' });
     expect(await mode(page), 'the screen state survived the print emulation').toBe('agenda');
     await expect(page.locator('#timetable'), 'and the table is hidden again on screen').toBeHidden();
+    await expect(page.locator('#printSheet'), 'the paper is off the viewport again on screen').toBeHidden();
   });
 
   test('7. both themes at 390: token-driven colour, same geometry, no clipping', async ({ page }) => {

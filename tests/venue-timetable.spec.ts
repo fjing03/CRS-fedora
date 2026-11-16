@@ -71,13 +71,27 @@ test.describe('Venue Timetable UI', () => {
     await expect(chip).toContainText('202605');
   });
 
-  test('TC05 — print button exists and shows coming-soon toast', async ({ page }) => {
+  test('TC05 — print button prints (not a toast any more)', async ({ page }) => {
+    /* REVISED 2026-11-16 by SDD `timetable-print-v2`. This case used to pin the
+       placeholder: every click showed the shared "Printing is coming soon" toast.
+       The button is real now — `window.print()` — so the receipt is the call itself.
+       `window.print` is stubbed before the click (a real one would block the run on a
+       native dialog); what the operator sees on paper is the separate print spec's
+       job (tests/timetable-print.spec.ts). */
+    await page.addInitScript(() => {
+      (window as unknown as { __printCalls: number }).__printCalls = 0;
+      window.print = () => { (window as unknown as { __printCalls: number }).__printCalls += 1; };
+    });
+    await page.goto(PAGE, { waitUntil: 'networkidle' });
+
     const btn = page.locator('.print-btn');
     await expect(btn).toBeVisible();
-    // 2026-10-03: the print action is a placeholder — enabled, but every
-    // click explains itself via the shared toast instead of printing.
+    await expect(btn).toHaveAttribute('aria-label', 'Print this week');
+
     await btn.click();
-    await expect(page.locator('#toastBar')).toContainText('Printing is coming soon');
+    expect(await page.evaluate(() => (window as unknown as { __printCalls: number }).__printCalls),
+      'the button asks the browser to print').toBe(1);
+    await expect(page.locator('#toastBar'), 'no placeholder toast any more').not.toContainText('Printing is coming soon');
   });
 
   // ════════════════════════════════════════════
