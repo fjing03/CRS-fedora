@@ -105,9 +105,20 @@ Replacement Arrangement MUST NOT change** — they call the same builder without
   name (R7) and MUST NOT occupy the chip's second line. *(User ruling 2026-11-15 — the frozen
   pair first had this inverted, abbreviation bold with the count beside it.)*
 - The day strip MUST show **all seven** days at every width, `aria-pressed` on the selected one and
-  `aria-current="date"` only on today while it is selected. In window mode a tap moves the window.
+  `aria-current="date"` on today **whether or not it is selected**. In window mode a tap moves the window.
 - On an empty day and on a public holiday only, a next-class button MUST appear, jump to that event's
   week and day, then focus the day heading and scroll it into view.
+- **A public holiday MUST draw its notice panel ABOVE the day's class cards and MUST keep those
+  cards.** The panel is the shipped empty-state shell in the error-container pair, titled
+  `Public Holiday · <label>` with `Monday, 9 Nov 2026` beneath it and the next-class button inside.
+  *(Corrected 2026-11-16 by the bug report "Missing Class Event Blocks on Public Holidays": the first
+  cut replaced the cards with the panel, which hid real classes below 768px while the desktop grid
+  still drew them. The approved prototype shows both.)*
+- A day with no classes MUST render the same shell alone, reading `No classes on <weekday>`.
+- **The TODAY button MUST return to today's DAY, not only today's week** — from any other week and any
+  other day, at every width. *(Bug 2026-11-16: the button moved the week while this lane keeps the
+  selected weekday across week changes, so "view Thursday 26 Nov → TODAY" landed on Thursday 19 Nov;
+  the whole week is visible at ≥1280, which is why only the narrower bands showed it.)*
 
 ## R5b — three commitments the brief carries that the proposal left implicit
 - **The week label re-formats across 768px**: compact above 768 (`Week 9 · 16 Nov ~ 22 Nov`), full

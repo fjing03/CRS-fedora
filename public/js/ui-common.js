@@ -7072,6 +7072,7 @@ const TimetableResponsive = {
             this._state.day = startDay;
         }
 
+        this._bindToday();
         this.sync();
     },
 
@@ -7460,6 +7461,46 @@ const TimetableResponsive = {
         return parts.length > 1 ? parts.slice(1).join(' · ') : '';
     },
 
+    /* ── T4b — the TODAY button also selects TODAY'S DAY ──
+       Bug report 2026-11-16 ("TODAY Button Navigates to the Wrong Date on Smaller
+       Screens"): the shared button jumps the WEEK (WeekNavigator.jumpToToday), while
+       this module deliberately keeps the selected weekday across a week change — so
+       "view Thursday 26 Nov, press Today" landed on Thursday 19 Nov. The whole week is
+       visible at ≥1280, which is why only the narrower bands showed it. The listener is
+       added AFTER the page's own handler, so the week has already landed when it runs;
+       all it has to do is put the selected day back on today. */
+    _bindToday: function () {
+        if (this._todayBound) return;
+        var btn = document.getElementById('todayBtn');
+        if (!btn) return;
+        this._todayBound = true;
+        var self = this;
+        btn.addEventListener('click', function () {
+            /* Deferred, and retried: the page's own handler may be bound before OR
+               after this one, and its week jump may land a Livewire round trip later.
+               Reading today's index from the OLD week would find nothing (a week with
+               no "today" flag), which is exactly how the first attempt failed to fix
+               anything. So: wait until the landed week really carries today, then
+               select it. Six tries at 80ms covers a slow round trip without waiting
+               forever on a payload that will never have one. */
+            var attempt = 0;
+            function settle() {
+                var days = self._days();
+                var today = -1;
+                for (var i = 0; i < days.length; i++) {
+                    if (self._isToday(days[i])) { today = i; break; }
+                }
+                if (today < 0) {
+                    if (attempt++ < 6) setTimeout(settle, 80);
+                    return;
+                }
+                if (self._state.mode === 'full') { self._state.day = today; return; }
+                if (self._state.day !== today) self.setDay(today);
+            }
+            setTimeout(settle, 0);
+        });
+    },
+
     /* `202605 Semester` in agenda mode, the dated range otherwise — read from the same
        MockData the page's own boot writes, so the two can never disagree. */
     _syncSemesterChip: function (mode) {
@@ -7574,12 +7615,19 @@ const TimetableResponsive = {
            empty-state shell with the same hint inside it (user, 2026-11-15:
            "Public Holiday shud shows this", with the preview as the sample).
            Cards only ever render on a day that has classes. */
-        if (day && day.holiday) {
-            host.appendChild(this._emptyPanel(day, true));
-        } else if (!list.length) {
-            host.appendChild(this._emptyPanel(day, false));
-        } else {
+        /* The holiday panel is ADDITIVE, never a replacement (bug report 2026-11-16,
+           "Missing Class Event Blocks on Public Holidays"): the approved prototype
+           draws the `Public Holiday · …` panel ABOVE the day's cards, so a holiday
+           keeps both its notice and its classes. The first cut returned after the
+           panel, which left a holiday with no cards at all below 768px while the
+           desktop grid still showed them — the class was there, only the phone hid it.
+           An empty weekday still gets the panel on its own; a holiday with no classes
+           gets just the panel. */
+        if (day && day.holiday) host.appendChild(this._emptyPanel(day, true));
+        if (list.length) {
             list.forEach(function (e) { host.appendChild(self._card(e, day, list)); });
+        } else if (!(day && day.holiday)) {
+            host.appendChild(this._emptyPanel(day, false));
         }
         this._syncTools();
     },

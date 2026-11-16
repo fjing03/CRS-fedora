@@ -640,6 +640,83 @@ test.describe('T16a — the phone (320 / 360 / 390 / 430)', () => {
     expectNoPageErrors(page, 'tips @390');
   });
 
+  test('12. the TODAY button lands on today\'s DAY, not just today\'s week (bug 2026-11-16)', async ({ browser }) => {
+    /* The report: viewing Thursday 26 Nov, pressing Today on a narrow screen landed on
+       Thursday 19 Nov. Root cause: the button moves the WEEK, and this module keeps the
+       selected weekday across a week change — so the day had to be put back on today. */
+    for (const width of [390, 744, 900]) {
+      const ctx = await browser.newContext({ viewport: { width, height: 900 }, storageState: STAFF_AUTH });
+      const page = await ctx.newPage();
+      try {
+        await open(page, width);
+        /* stand somewhere else: a later week, and (below 1280) a different day */
+        await page.evaluate(() => (window as any).selectWeek(9));
+        await expect.poll(() => page.evaluate(() => Number((window as any).currentWeek))).toBe(9);
+        if (width < 1280) {
+          await tapDay(page, 3);
+          expect((await chipState(page)).filter((c) => c.pressed).map((c) => c.index), 'standing on Thursday')
+            .toEqual([3]);
+        }
+
+        await page.locator('#todayBtn').click();
+        await expect
+          .poll(() => page.evaluate(() => (document.querySelector('#ttDayStrip .tt-day[data-today="1"]') as HTMLElement | null)?.dataset.day ?? null), { timeout: 10_000 })
+          .not.toBeNull();
+        const landed = await page.evaluate(() => {
+          const todayChip = document.querySelector('#ttDayStrip .tt-day[data-today="1"]') as HTMLElement;
+          const pressed = document.querySelector('#ttDayStrip .tt-day[aria-pressed="true"]') as HTMLElement | null;
+          const heading = (document.getElementById('ttDayHeading')?.textContent || '').trim();
+          /* the chip's own spoken label carries the date, so the assertion cannot race
+             a week the page is still repainting */
+          const m = (todayChip.getAttribute('aria-label') || '').match(/^(\w+day), (\d{1,2} \w{3} \d{4})/);
+          return { todayIdx: todayChip.dataset.day, pressed: pressed?.dataset.day ?? null,
+            heading, weekday: m ? m[1] : '', date: m ? m[2] : '' };
+        });
+        expect(landed.pressed, `${width}: TODAY selects today\'s day, not the day you were reading`)
+          .toBe(landed.todayIdx);
+        if (width < 768) {
+          /* agenda mode prints the whole heading; window mode prints `Mon ~ Tue` */
+          expect(landed.heading, `${width}: the heading names today`)
+            .toBe(`${landed.weekday}, ${landed.date}`);
+        }
+      } finally {
+        await ctx.close();
+      }
+    }
+  });
+
+  test('13. a public-holiday day keeps its class cards, with the notice ABOVE them (bug 2026-11-16)', async ({ page }) => {
+    /* The second report: on a phone, a holiday day showed the panel and NO cards while
+       the desktop grid still showed both classes. Root cause: the panel was a
+       replacement, not an addition. */
+    await open(page, 390);
+    const holiday = await page.evaluate(() => {
+      const wd = (window as any).weekData || [];
+      for (let w = 0; w < wd.length; w++) {
+        const days = wd[w].days || [];
+        for (let i = 0; i < days.length; i++) {
+          const n = ((window as any).eventsData?.[w] || []).filter((e: any) => Number(e.di) === i).length;
+          if (days[i].holiday && n > 0) return { week: w, day: i, classes: n };
+        }
+      }
+      return null;
+    });
+    test.skip(!holiday, 'fixture: no public holiday carries a class in the served payload');
+
+    await page.evaluate((w) => (window as any).selectWeek(w), holiday!.week);
+    await expect.poll(() => page.evaluate(() => Number((window as any).currentWeek))).toBe(holiday!.week);
+    await tapDay(page, holiday!.day);
+
+    await expect(page.locator('#ttAgenda .tt-empty.tt-holiday'), 'the holiday notice is there').toHaveCount(1);
+    expect(
+      await page.locator('#ttAgenda .tt-card').count(),
+      'bug 2026-11-16 — a holiday day still draws every class it has',
+    ).toBe(holiday!.classes);
+    const order = await page.evaluate(() =>
+      Array.from(document.getElementById('ttAgenda')!.children).map((c) => (c.classList.contains('tt-empty') ? 'panel' : 'card')));
+    expect(order[0], 'the notice sits ABOVE the cards, as the prototype has it').toBe('panel');
+  });
+
   test('10. items #1/#5/#6 — the heading names the date, the phone chip is short, the title is 20px', async ({ page }) => {
     /* Three prototype details the user chose to follow on 2026-11-15:
          #1 the day heading reads `Monday, 9 Nov 2026`, not just `Monday`;
@@ -715,10 +792,16 @@ test.describe('T16a — the phone (320 / 360 / 390 / 430)', () => {
       /^[A-Z][a-z]+, \d{1,2} [A-Z][a-z]{2} \d{4}$/,
     );
     await expect(panel.locator('button.tt-next-hint'), 'R5 — the next class rides INSIDE the panel').toHaveCount(1);
+    /* the notice is ADDITIVE (bug 2026-11-16): a holiday still draws the classes it
+       has, below the notice — a red card no longer stands in for the holiday, but the
+       day's own classes are not hidden either */
+    const expectedClasses = await page.evaluate((h) =>
+      ((window as any).eventsData?.[h.week] || []).filter((e: any) => Number(e.di) === h.day).length,
+      holiday!);
     expect(
       await page.locator('#ttAgenda .tt-card').count(),
-      'R5 — no class card is drawn on a holiday',
-    ).toBe(0);
+      'R5 — a holiday draws exactly the classes that day has, under the notice',
+    ).toBe(expectedClasses);
 
     /* and the hint still goes somewhere: it lands on the day it named (the next class
        can be later the same week, so the DAY is the thing to assert, not the week) */

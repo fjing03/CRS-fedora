@@ -307,3 +307,37 @@ Session ID · Lecturer · **Cohort** · Venue · Week · Day & Date · Time & Du
 Description · Remarks — and stops there. "Total Students" is deliberately absent: how many students
 share the class is other students' business, not this reader's. No row markup was duplicated; the staff
 page keeps its own Cohort **and** Total Students rows.
+
+## Two bugs reported 2026-11-16, fixed the same day
+
+### BUG 1 — TODAY landed on the wrong DATE below 1280
+
+**Report:** viewing Thursday 26 Nov, pressing TODAY on a phone or iPad landed on Thursday 19 Nov
+instead of Monday 16 Nov — only on smaller screens, not consistently.
+
+**Root cause:** the shared button moves the **week** (`WeekNavigator.jumpToToday`), while this lane
+deliberately keeps the selected **weekday** across a week change (R5b — a Wednesday stays a
+Wednesday). Together: the week landed on 16–22 Nov, the day stayed on index 3, and the agenda showed
+Thursday 19 Nov. At ≥1280 the whole week is on screen, so nothing looked wrong — the exact size
+pattern the report describes.
+
+**Fix:** `TimetableResponsive._bindToday()` — a listener on `#todayBtn` that selects today's index once
+the page's own jump has landed. It is **deferred and retried** (6 × 80ms) on purpose: the page's
+handler may be bound before or after ours and a Livewire round trip can land later, so reading today's
+index immediately found nothing — which is what made the first attempt a no-op.
+
+### BUG 2 — a public holiday lost its class cards below 768
+
+**Report:** Student My Timetable, 9 Nov 2026, two classes — desktop shows both blocks, phone shows none.
+
+**Root cause:** this lane's own holiday panel was a REPLACEMENT: `buildAgenda()` returned after
+appending it, so no card was built at all. Tablet (window mode) and desktop were untouched, matching
+"desktop is fine, smaller screens are not". The approved prototype draws the notice ABOVE the cards.
+
+**Fix:** the panel is additive — appended first, the day's cards after it. An empty weekday still gets
+the panel alone.
+
+**Receipts:** T16a #12 (TODAY from a later week lands on today's day at 390/744/900) and T16a #13 (a
+holiday keeps every class it has, notice first). T16a #9's old "no card on a holiday" assertion was
+inverted by the bug report and now asserts the day's own class count. 32 spec receipts + 6 pin receipts
+green.

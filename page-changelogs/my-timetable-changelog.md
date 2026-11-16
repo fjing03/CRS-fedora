@@ -750,3 +750,12 @@ the code, venue and time. The phone card's word keeps its own size.
 ### Prototype comparison, same day — the tooltip names a lecturer only when it isn't you
 Your own classes keep the short tooltip; a class taught by someone else (a replacement) now names who
 teaches it, between the cohorts and the status.
+
+### Two bugs fixed, same day — TODAY's date, and a holiday's classes
+- **TODAY** now lands on today's **day**, not just today's week. The button moved the week while the
+  strip kept the weekday you were reading, so "Thursday 26 Nov → TODAY" showed Thursday 19 Nov on a
+  phone or iPad. The whole week is on screen at desktop, which is why it only showed up on smaller
+  screens.
+- **A public holiday** now shows its notice **and** the day's class cards beneath it. The first cut
+  replaced the cards with the notice, so a holiday appeared to have no classes below 768px while the
+  desktop grid still drew them.

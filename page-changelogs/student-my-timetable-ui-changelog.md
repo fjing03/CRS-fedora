@@ -627,3 +627,9 @@ The cancelled tooltip keeps the short `CANCELLED`; the details pop-up's Status r
 The details pop-up now shows a **Cohort** row (the signed-in student's own group), using the shared
 modal's existing extra-field hook. It deliberately stops there: the mockup also shows "Total Students",
 and that headcount is other students' business, not the reader's.
+
+### Two bugs fixed, same day — TODAY's date, and a holiday's classes
+- **TODAY** lands on today's day at every width, not only in today's week (the strip used to keep the
+  weekday you were reading, so "Thursday 26 Nov → TODAY" showed Thursday 19 Nov on a phone or iPad).
+- **A public holiday** keeps its class cards, with the holiday notice above them: 9 Nov 2026 shows both
+  its 11:00–13:00 class and its notice, instead of the notice alone below 768px.
