@@ -135,8 +135,9 @@ Replacement Arrangement MUST NOT change** — they call the same builder without
 
 ## R7 — accessibility and touch
 - The day strip MUST be keyboard operable. Each day's accessible name MUST be
-  `<full day name>, <N> classes` with `, selected` appended while it is the selected one, and
-  `, public holiday` on a holiday — so the state is testable and not left to the visible chip text.
+  `<full day name>, <d Mon yyyy>, <N> class(es)[, Today][, <holiday name>]`, with the selection carried
+  by `aria-pressed` alone and `aria-current="date"` marking the real today **whether or not it is
+  selected**. *(User rulings 2026-11-15 — prototype comparison #7 option C and #8.)*
   The sheet MUST be a labelled `aria-modal` dialog; `prefers-reduced-motion` MUST be respected.
 - Under `@media (any-pointer: coarse)` **every** interactive control **inside the scope** MUST be at
   least 48 × 48 CSS px at every width — the day chips, both week arrows, the week select, the Today

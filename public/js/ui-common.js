@@ -7436,9 +7436,12 @@ const TimetableResponsive = {
                (a chip after today read grey and looked disabled). */
             btn.dataset.day = String(di);
             btn.setAttribute('aria-pressed', String(di === selected));
-            /* aria-current="date" ONLY on the real today, and only while it is the
-               selected day (R5) — a selected Wednesday is not "the current date". */
-            if (isToday && di === selected) btn.setAttribute('aria-current', 'date');
+            /* aria-current="date" rides the REAL today, whether or not it is the
+               selected day (user, 2026-11-15, prototype comparison #8 — the preview
+               marks today always). A blind user should be able to find today in the
+               strip even while looking at another day; `aria-pressed` still says which
+               day is the selection, so the two never claim the same thing. */
+            if (isToday) btn.setAttribute('aria-current', 'date');
 
             /* R7 accessible name, MERGED from the prototype and the shipped wording
                (user, 2026-11-15, prototype comparison #7 option C):

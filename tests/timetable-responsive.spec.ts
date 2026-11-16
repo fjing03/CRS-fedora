@@ -335,14 +335,28 @@ test.describe('T16a — the phone (320 / 360 / 390 / 430)', () => {
       'R7 — aria-pressed is what tells a screen reader it is the selected day',
     ).toBe('true');
 
-    /* aria-current="date" rides the real today, and only while it is the selection */
+    /* item #8 — aria-current="date" rides the REAL today, selected or not; the
+       selection is aria-pressed, so the two never claim the same thing */
     const current = await page.evaluate(() =>
       Array.from(document.querySelectorAll('#ttDayStrip .tt-day'))
-        .map((el, i) => ({ i, cur: el.getAttribute('aria-current') }))
+        .map((el, i) => ({ i, cur: el.getAttribute('aria-current'), today: (el as HTMLElement).dataset.today }))
         .filter((x) => x.cur !== null));
     expect(current.length, 'R5 — at most one aria-current="date"').toBeLessThanOrEqual(1);
-    if (current.length === 1) {
-      expect(current[0].i, 'R5 — aria-current sits on the selected day').toBe(pressed[0].index);
+    for (const c of current) {
+      expect(c.cur, 'item #8 — the mark is `date`').toBe('date');
+      expect(c.today, 'item #8 — and it sits on the day the payload calls today').toBe('1');
+    }
+    /* prove the "today, not selected" case: pick a day that is NOT today and re-read */
+    const other = chips.find((c) => !c.pressed && !(current.length === 1 && c.index === current[0].i));
+    if (other) {
+      await tapDay(page, other.index);
+      const after = await page.evaluate(() =>
+        Array.from(document.querySelectorAll('#ttDayStrip .tt-day'))
+          .map((el, i) => ({ i, cur: el.getAttribute('aria-current'), pressed: el.getAttribute('aria-pressed') }))
+          .filter((x) => x.cur !== null));
+      if (after.length === 1) {
+        expect(after[0].pressed, 'item #8 — today keeps the mark while another day is selected').toBe('false');
+      }
     }
   });
 

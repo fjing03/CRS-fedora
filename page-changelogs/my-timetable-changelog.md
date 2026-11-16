@@ -733,3 +733,7 @@ scrolling. Closing it is unchanged: ×, Esc, or a tap on the dimmed page behind.
 A screen reader now hears `Monday, 9 Nov 2026, 1 class, Today, Deepavali Holiday (In Lieu)`: the date
 and the class count kept from the shipped wording, plus `Today` and the holiday's own name from the
 prototype. The word "selected" is gone because the chip is already marked as the pressed one.
+
+### Prototype comparison, same day — "today" is marked even when you look at another day
+The strip now keeps its current-day mark on today while you browse a different day; the pressed state
+still says which day you picked, so the two never say the same thing twice. Screen readers only.

@@ -268,3 +268,9 @@ or a tap outside, and returns focus to its button.
 count, the preview's `Today` and holiday NAME. `selected` is gone (aria-pressed carries it), and the
 generic "public holiday" became the holiday's real name. The chips also carry `data-count`,
 `data-holiday` and `data-today` now, so a receipt reads the facts instead of parsing prose.
+
+### #8 answered — `aria-current="date"` marks today always
+
+The prototype's rule: the mark rides the REAL today whether or not it is selected, while
+`aria-pressed` keeps saying which day is chosen. A blind reader can now always find today in the
+strip even when looking at another day.
