@@ -728,3 +728,8 @@ summary **button** keeps its words — that one was kept as it is on request.
 It now opens tall, covering about 85% of the screen as the approved prototype does (measured
 390×701 against the prototype's 390×698), so the legend and all five cards are visible with far less
 scrolling. Closing it is unchanged: ×, Esc, or a tap on the dimmed page behind.
+
+### Prototype comparison, same day — the day chip's spoken name
+A screen reader now hears `Monday, 9 Nov 2026, 1 class, Today, Deepavali Holiday (In Lieu)`: the date
+and the class count kept from the shipped wording, plus `Today` and the holiday's own name from the
+prototype. The word "selected" is gone because the chip is already marked as the pressed one.

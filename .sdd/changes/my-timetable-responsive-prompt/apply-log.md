@@ -261,3 +261,10 @@ The user chose the prototype's taller panel. `min-height: 83dvh` (with a `vh` fa
 prototype's 390×698 at 146 — the same panel, within a few pixels. Everything else about the sheet is
 unchanged: it still rises from the bottom, still dims the page, still traps Tab, closes on Esc, the ×
 or a tap outside, and returns focus to its button.
+
+### #7 answered — the chip's spoken name, merged (option C)
+
+`Monday, 9 Nov 2026, 1 class, Today, Deepavali Holiday (In Lieu)` — the shipped wording's date and
+count, the preview's `Today` and holiday NAME. `selected` is gone (aria-pressed carries it), and the
+generic "public holiday" became the holiday's real name. The chips also carry `data-count`,
+`data-holiday` and `data-today` now, so a receipt reads the facts instead of parsing prose.

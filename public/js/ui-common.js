@@ -7440,13 +7440,24 @@ const TimetableResponsive = {
                selected day (R5) — a selected Wednesday is not "the current date". */
             if (isToday && di === selected) btn.setAttribute('aria-current', 'date');
 
-            /* R7 accessible name: `Monday, 3 classes[, selected][, public holiday]`.
-               The state lives in the label, not in the chip's pixels, so it is
-               testable and a screen reader hears it. */
-            var name = self._fullDayName(d) + ', ' + count + ' ' + (count === 1 ? 'class' : 'classes');
-            if (di === selected) name += ', selected';
-            if (d && d.holiday) name += ', public holiday';
+            /* R7 accessible name, MERGED from the prototype and the shipped wording
+               (user, 2026-11-15, prototype comparison #7 option C):
+                 `Monday, 9 Nov 2026, 1 class, Today, Deepavali Holiday (In Lieu)`
+               — the date and the class count from the shipped label, `Today` and the
+               holiday's own NAME from the preview. `selected` is gone because
+               aria-pressed already carries it, and a generic "public holiday" became
+               the holiday's real name. The state lives in the label, not in the chip's
+               pixels, so it stays testable. */
+            var name = self._fullDayName(d);
+            if (d && d.date) name += ', ' + d.date;
+            name += ', ' + count + ' ' + (count === 1 ? 'class' : 'classes');
+            if (isToday) name += ', Today';
+            if (d && d.holiday) name += ', ' + (d.holidayLabel || 'public holiday');
             btn.setAttribute('aria-label', name);
+            /* the same facts as attributes, so a receipt never has to parse prose */
+            btn.dataset.count = String(count);
+            btn.dataset.holiday = d && d.holiday ? '1' : '0';
+            btn.dataset.today = isToday ? '1' : '0';
 
             /* The chip is the PREVIEW's, not an inversion of it: the abbreviation
                is the small line and the DAY OF THE MONTH is the bold one

@@ -67,8 +67,8 @@ async function chipState(page: Page): Promise<DayChip[]> {
       return {
         index,
         label,
-        count: m ? Number(m[1]) : -1,
-        holiday: /, public holiday$/.test(label),
+        count: node.dataset.count !== undefined ? Number(node.dataset.count) : (m ? Number(m[1]) : -1),
+        holiday: node.dataset.holiday === '1',
         pressed: node.getAttribute('aria-pressed') === 'true',
       };
     }),
@@ -321,12 +321,19 @@ test.describe('T16a — the phone (320 / 360 / 390 / 430)', () => {
 
     expect(chips.length, 'R5 — all seven days at 390').toBe(7);
     for (const chip of chips) {
-      expect(chip.label, `chip ${chip.index}: R7 name "<day>, <N> class(es)[, selected][, public holiday]"`)
-        .toMatch(/^(Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday), \d+ (class|classes)(, selected)?(, public holiday)?$/);
+      /* item #7 option C — `<day>, <date>, <N> class(es)[, Today][, <holiday name>]` */
+      expect(chip.label, `chip ${chip.index}: R7 name "<day>, <date>, <N> class(es)[, Today][, <holiday>]"`)
+        .toMatch(/^(Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday), \d{1,2} [A-Z][a-z]{2} \d{4}, \d+ (class|classes)(, Today)?(, [^,]+)?$/);
     }
     const pressed = chips.filter((c) => c.pressed);
     expect(pressed.length, 'R5 — exactly one chip is the selected day').toBe(1);
-    expect(pressed[0].label, 'R7 — the selected chip says so in its name').toMatch(/, selected(, |$)/);
+    /* option C dropped the word "selected" — aria-pressed carries the state, and the
+       chip that IS today now says "Today" in its name instead */
+    expect(pressed[0].label, 'R7 — the selected chip is announced as pressed').toContain(', ');
+    expect(
+      await page.locator('#ttDayStrip .tt-day[aria-pressed="true"]').getAttribute('aria-pressed'),
+      'R7 — aria-pressed is what tells a screen reader it is the selected day',
+    ).toBe('true');
 
     /* aria-current="date" rides the real today, and only while it is the selection */
     const current = await page.evaluate(() =>
