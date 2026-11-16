@@ -1061,7 +1061,17 @@ function buildTimetableGrid(cfg) {
         const th = document.createElement('th');
         th.className = 'hour-header';
         th.colSpan = 2;
-        th.innerHTML = '<span class="hour-top">' + hours[i] + '</span><span class="hour-bottom">' + (hours[i + 2] || add30min(hours[i + 1])) + '</span>';
+        /* PRINT READS 12-HOUR TIME (SDD timetable-print-v2): the paper's hour axis
+           prints its START over its END in 12-hour form, and the final column still
+           names where it stops because it takes the same `add30min` fallback. The
+           SCREEN header is untouched — the contract's `.hour-12` swap is the print
+           sheet's own rendering, since the two surfaces no longer share a header. */
+        if (cfg.print) {
+            th.innerHTML = '<span class="hour-top">' + to12h(hours[i]) + '</span>'
+                + '<span class="hour-bottom">' + to12h(hours[i + 2] || add30min(hours[i + 1])) + '</span>';
+        } else {
+            th.innerHTML = '<span class="hour-top">' + hours[i] + '</span><span class="hour-bottom">' + (hours[i + 2] || add30min(hours[i + 1])) + '</span>';
+        }
         timeHeaderRow.appendChild(th);
     }
     head.appendChild(timeHeaderRow);
@@ -1219,6 +1229,56 @@ function buildTimetableGrid(cfg) {
         return div;
     }
 
+    /* ═════ print mode (SDD timetable-print-v2, 2026-11-16) ═════
+       The paper's block: two quiet corners, one bold centre, the time at the foot and
+       the note on the bottom centre line (contract BLOCK LAYOUT). It is built HERE,
+       by the same function that builds the screen block, under `cfg.print` — one
+       builder called twice, never a second renderer (design §1).
+
+       Pages supply the per-page shape through `cfg.printShape(e, day, di)`:
+         { cornerLeft, cornerRight, centre: [lines], note }
+       and the paper's classes through `cfg.printClassFn(div, e, isHoliday)`, so a page
+       owns its status/ownership rules and this function stays page-agnostic. */
+    function printDayMeta(day) {
+        /* the day cell keeps its name, its date and its holiday mark — no clock badges:
+           "Today" and "OFF" say nothing on a sheet of paper */
+        return {
+            abbr: day.abbr, date: day.date,
+            holiday: day.holiday, holidayLabel: day.holidayLabel,
+            sunday: false, today: false,
+        };
+    }
+
+    function makePrintBlock(e, span, day, cfg, di) {
+        const div = document.createElement('div');
+        const isHoliday = !!day.holiday;
+        div.className = 'print-block print-span-' + span;
+        if (isHoliday) div.classList.add('print-on-holiday');
+
+        const shape = (typeof cfg.printShape === 'function') ? (cfg.printShape(e, day, di) || {}) : {};
+        if (typeof cfg.printClassFn === 'function') cfg.printClassFn(div, e, isHoliday);
+        else div.classList.add('print-normal');
+
+        const centre = Array.isArray(shape.centre) ? shape.centre.filter(Boolean) : [];
+        const startTime = to12h(hours[e.start]);
+        const endTime = to12h(hours[e.end + 1] || add30min(hours[e.end]));
+
+        let inner = '';
+        if (shape.cornerLeft) inner += '<span class="print-corner print-corner-left">' + shape.cornerLeft + '</span>';
+        if (shape.cornerRight) inner += '<span class="print-corner print-corner-right">' + shape.cornerRight + '</span>';
+        /* a centre of two or more lines gets an empty band whose HEIGHT is measured
+           from the tallest corner that actually rendered (contract: a measured band,
+           never a guessed padding) */
+        if (centre.length >= 2) inner += '<span class="print-band" aria-hidden="true"></span>';
+        inner += '<span class="print-main">' + centre.map(function (line) {
+            return '<span class="print-main-line">' + line + '</span>';
+        }).join('') + '</span>';
+        inner += '<span class="print-time">' + startTime + ' ~ ' + endTime + '</span>';
+        if (shape.note) inner += '<span class="print-note">' + shape.note + '</span>';
+        div.innerHTML = inner;
+        return div;
+    }
+
     cfg.days.forEach((day, di) => {
         const dayEvents = cfg.events.filter(e => e.di === di);
 
@@ -1334,7 +1394,7 @@ function buildTimetableGrid(cfg) {
                    so every card still names its day */
                 dayTd.className = dayColClass + ' time-col-cont';
             }
-            dayTd.innerHTML = HtmlBuilder.dayHeader(day);
+            dayTd.innerHTML = HtmlBuilder.dayHeader(cfg.print ? printDayMeta(day) : day);
             /* "Bookings open" chip: the semester's earliest bookable day, when the
                page opts in (cfg.bookableBadge) — data-driven via generateWeekData's
                firstBookable flag, so it tracks the anchor and never hardcodes */
@@ -1395,7 +1455,12 @@ function buildTimetableGrid(cfg) {
                 const p = laneStart[hi];
                 if (p) {
                     const e = p.event;
-                    const div = makeEventBlock(e, p.span, day, cfg, di);
+                    /* the ONLY difference between the screen and the paper (design §4):
+                       same days, same events, same span/lane machinery, different block
+                       builder and class vocabulary. Absent flag = today's bytes. */
+                    const div = cfg.print
+                        ? makePrintBlock(e, p.span, day, cfg, di)
+                        : makeEventBlock(e, p.span, day, cfg, di);
                     td.appendChild(div);
 
                     if (p.span > 1) {
@@ -8373,3 +8438,224 @@ const TimetableResponsive = {
     },
 };
 window.TimetableResponsive = TimetableResponsive;
+
+/* ═════════════════════════════════════════════════════════════════════════════
+   PRINT SHEET — the paper surface (SDD timetable-print-v2, 2026-11-16)
+
+   The paper is its OWN table, painted by buildTimetableGrid() through its `print`
+   flag (design §1/§4). Everything here is either a pure derivation the four pages
+   share, or the PrintSheet object that owns the header, the toggle, the density
+   flag and (Batch C) the fit pass.
+
+   The screen is not involved: no function below is called by the screen build, and
+   none of them reads what is rendered — they read the payload.
+   ═════════════════════════════════════════════════════════════════════════════ */
+
+/**
+ * What runs. A request awaiting approval and a cancelled history row are not classes
+ * that will take place, so neither reaches paper (contract PAPER SHOWS WHAT RUNS).
+ * The SCREEN keeps both — this set is only ever handed to the print sheet.
+ * @param {Array} events
+ * @returns {Array}
+ */
+function printRunSet(events) {
+    return (events || []).filter(function (e) {
+        return e && e.status !== 'pending' && e.status !== 'cancelled';
+    });
+}
+
+/**
+ * The semester's normal timetable, deduplicated.
+ *
+ * NOT a flat union: the payload carries every class once PER WEEK, each copy stamped
+ * with its own occurrence key, so concatenating fourteen weeks prints fourteen copies
+ * and a dedup on `eventKey` would silently do nothing (design §3.1). Identity is the
+ * class session plus its slot; the first occurrence wins, so the members are stable.
+ * Two DIFFERENT normal classes sharing a slot both survive — the builder's own lane
+ * planner stacks them, which is the truth about that slot.
+ *
+ * @param {Array<Array>} eventsData - every week's events
+ * @returns {Array}
+ */
+function printSemesterSet(eventsData) {
+    var seen = {};
+    var out = [];
+    (eventsData || []).forEach(function (week) {
+        (week || []).forEach(function (e) {
+            if (!e || e.status !== 'normal') return;
+            var key = [e.sessionId != null ? e.sessionId : e.id, e.di, e.start, e.end, e.code].join('|');
+            if (seen[key]) return;
+            seen[key] = 1;
+            out.push(e);
+        });
+    });
+    return out;
+}
+
+/**
+ * The days input for the normal view: no dates, no holidays, no clock. A PH day is an
+ * ordinary teaching day there, and the date line is dropped because a semester-wide
+ * sheet has no dated week to name (contract NORMAL CLASS VIEW).
+ * @returns {Array}
+ */
+function printNormalDays() {
+    var abbr = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+    var out = [];
+    for (var d = 0; d < 7; d++) {
+        out.push({ abbr: abbr[d], date: '', sunday: d === 6, today: false, holiday: false, holidayLabel: '' });
+    }
+    return out;
+}
+
+/**
+ * The paper's day rows. Rows come from the DAYS, not from the events (the builder
+ * appends one <tr> per day unconditionally), so an empty Sunday is suppressed here.
+ * A Sunday stays when it has something real to say: a block in the print set, or a
+ * holiday (which carries its own mark and note). Only TRAILING days may be dropped —
+ * a filter renumbers the survivors, which would break the day/event `di` match.
+ *
+ * @param {Array} days
+ * @param {Array} printSet
+ * @returns {Array}
+ */
+function printDays(days, printSet) {
+    var list = (days || []).slice();
+    while (list.length > 6 && list[list.length - 1] && list[list.length - 1].sunday) {
+        var lastIndex = list.length - 1;
+        var hasBlock = (printSet || []).some(function (e) { return Number(e.di) === lastIndex; });
+        if (hasBlock || list[lastIndex].holiday) break;
+        list.pop();
+    }
+    return list;
+}
+
+/**
+ * One surname, no honorific. Malaysian Chinese names put the surname first, so the
+ * first remaining token wins (`En. Lim Jia Zheng` → `Lim`, `Dr Tan` → `Tan`). A missing
+ * or `—` lecturer prints an EMPTY corner — the placeholder never reaches paper.
+ * @param {string} lecturer
+ * @returns {string}
+ */
+function printSurname(lecturer) {
+    var s = String(lecturer == null ? '' : lecturer).trim();
+    if (!s || s === '—' || s === '-') return '';
+    var parts = s.replace(/\./g, '. ').split(/\s+/).filter(Boolean);
+    var honorifics = ['en.', 'pn.', 'puan', 'cik', 'dr.', 'mr.', 'mrs.', 'ms.', 'prof.', 'hj.', 'hjh.'];
+    if (parts.length > 1 && honorifics.indexOf(parts[0].toLowerCase()) !== -1) parts.shift();
+    return parts[0] || '';
+}
+
+/**
+ * The shared note renderer returns HTML (`<span class="ev-note">…</span>`); paper wants
+ * plain text on the block's bottom line, so the markup is unwrapped once, here.
+ * @param {string} html
+ * @returns {string}
+ */
+function printNoteText(html) {
+    if (!html) return '';
+    var box = document.createElement('div');
+    box.innerHTML = html;
+    return (box.textContent || '').replace(/\s+/g, ' ').trim();
+}
+
+/**
+ * PrintSheet — the paper's page-level owner (design §8.2).
+ *
+ * A page calls `PrintSheet.init({ build, printShape, printClassFn })` from its own
+ * `buildPrintSheet()`, once per grid rebuild. `build(normal)` returns exactly what the
+ * paper needs for the current toggle state, so the paper can never disagree with the
+ * page it belongs to.
+ *
+ * @typedef {object} PrintSheetCfg
+ * @property {function(boolean): object} build
+ * @property {function(object): object} [printShape]
+ * @property {function(HTMLElement, object, boolean): void} [printClassFn]
+ */
+const PrintSheet = {
+    _cfg: null,
+    _bound: false,
+
+    init: function (cfg) {
+        this._cfg = cfg || {};
+        if (!this._bound) {
+            this._bound = true;
+            var self = this;
+            var toggle = document.getElementById('printNormalToggle');
+            /* the toggle has no inline onclick (design §8.2): a page script lives in a
+               closure, so an inline handler would need a window export */
+            if (toggle) toggle.addEventListener('change', function () { self.rebuild(); });
+        }
+        this.rebuild();
+    },
+
+    /** Is the Normal Class view on? Absent toggle = off, so a page without it is inert. */
+    isNormal: function () {
+        var t = document.getElementById('printNormalToggle');
+        return !!(t && t.checked);
+    },
+
+    /** `undefined` means "leave whatever the blade served" (My/Student/Venue context). */
+    _setText: function (id, value) {
+        if (value === undefined) return;
+        var el = document.getElementById(id);
+        if (el) el.textContent = value == null ? '' : String(value);
+    },
+
+    rebuild: function () {
+        var cfg = this._cfg;
+        var sheetEl = document.getElementById('printSheet');
+        if (!cfg || !cfg.build || !sheetEl) return;
+
+        var normal = this.isNormal();
+        var data = cfg.build(normal) || {};
+
+        /* ── the header ── */
+        var chip = document.getElementById('semesterChip');
+        this._setText('printSemester', chip ? (chip.textContent || '').trim() : '');
+        this._setText('printContext', data.context);
+        this._setText('printSub', data.sub);
+        this._setText('printWeekCount', data.weekCount);
+        this._setText('printWeekDates', data.weekDates);
+
+        /* a key for a single status explains nothing, so the whole key goes */
+        var key = document.getElementById('printKey');
+        if (key) key.style.display = normal ? 'none' : '';
+
+        /* the sheet's own state classes */
+        sheetEl.classList.toggle('normal-view', normal);
+
+        /* ── dense: computed from what will PRINT, never from what is rendered ── */
+        var events = data.events || [];
+        var replacements = events.filter(function (e) { return e.status === 'replacement'; }).length;
+        var dense = events.length > 32 || replacements > 6;
+        sheetEl.setAttribute('data-print-dense', dense ? '1' : '0');
+
+        /* ── the empty panel speaks for the paper, and says which emptiness it is ── */
+        this._setText('printEmptyTitle', data.emptyTitle);
+        this._setText('printEmptyText', data.emptyText);
+
+        /* ── the sheet itself: the SAME builder, aimed at the print ids ── */
+        buildTimetableGrid({
+            events: events,
+            days: printDays(data.days, events),
+            print: true,
+            printShape: cfg.printShape,
+            printClassFn: cfg.printClassFn,
+            tableId: 'printTimetable',
+            headId: 'printTableHead',
+            bodyId: 'printTableBody',
+            emptyId: 'printEmpty',
+            onEventClick: function () { /* paper is not clickable */ }
+        });
+
+        /* the fit pass (Batch C) measures this sheet at paper width */
+        if (typeof cfg.fit === 'function') cfg.fit();
+    }
+};
+window.PrintSheet = PrintSheet;
+window.printRunSet = printRunSet;
+window.printSemesterSet = printSemesterSet;
+window.printNormalDays = printNormalDays;
+window.printDays = printDays;
+window.printSurname = printSurname;
+window.printNoteText = printNoteText;

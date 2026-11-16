@@ -406,6 +406,63 @@
                     responsive: true
                 });
                 updateSummary();
+                buildPrintSheet();
+
+            /* ═══ The paper (SDD timetable-print-v2, 2026-11-16) ═══
+               The sheet is its own table, built by the SAME builder from a set derived
+               here (design §1). My Timetable leads with the COHORTS in the centre and
+               puts the COURSE in the top-right corner: a lecturer already knows their
+               own course and needs to know who is in the room (contract BLOCK LAYOUT).
+               Every block on this page is the viewer's own, so the paper draws no
+               ownership split — the key has no ownership line here. */
+            function printCohortLines(e) {
+                if (e.cohorts && e.cohorts.length) return e.cohorts.slice();
+                return e.cohort ? [e.cohort] : [];
+            }
+
+            function printBlockShape(e) {
+                var cohorts = printCohortLines(e);
+                return {
+                    cornerLeft: e.venue,
+                    /* with no cohort data the course takes the corner, and the centre
+                       falls back to it too — never an empty block */
+                    cornerRight: cohorts.length ? e.code : '',
+                    centre: cohorts.length ? cohorts : [e.code],
+                    note: printNoteText(buildReplacementNote(e)),
+                };
+            }
+
+            function printBlockClass(div, e, isHoliday) {
+                if (isHoliday || e.status === 'conflict' || e.status === 'cancelled') div.classList.add('print-conflict');
+                else if (e.status === 'replacement') div.classList.add('print-replacement');
+                else div.classList.add('print-normal');
+            }
+
+            function buildPrintSheet() {
+                PrintSheet.init({
+                    build: function (normal) {
+                        return {
+                            events: normal
+                                ? printSemesterSet(eventsData)
+                                : printRunSet(eventsData[currentWeek] || []),
+                            days: normal ? printNormalDays() : weekData[currentWeek].days,
+                            sub: 'Weekly class schedule',
+                            /* TWO PARTS, never one run-on string: the bold count, then
+                               the quieter dates (contract ONE HEADER) */
+                            weekCount: normal
+                                ? 'Week 1 ~ ' + MockData.semester.weeks
+                                : 'Week ' + (currentWeek + 1) + ' of ' + MockData.semester.weeks,
+                            weekDates: normal ? '(Whole Semester)' : ' · ' + weekData[currentWeek].range,
+                            emptyTitle: normal ? 'No normal classes.' : 'No classes this week.',
+                            emptyText: normal
+                                ? 'This timetable carries no normal class in the semester.'
+                                : 'All classes for this week have been cancelled.',
+                        };
+                    },
+                    printShape: printBlockShape,
+                    printClassFn: printBlockClass,
+                });
+            }
 
                 /* The <=1279 chrome (T11): the day strip, the agenda, the window grid,
                    the next-class hint and the Week summary sheet, all read from the

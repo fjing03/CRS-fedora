@@ -290,6 +290,49 @@
                 return null;
             }
 
+            /* ═══ The paper (SDD timetable-print-v2, 2026-11-16) ═══
+               Same two-table shape as the staff page. A student reads the COURSE in the
+               centre and the lecturer's surname in the corner; nothing here is theirs to
+               own, so the paper draws no ownership split (the key's ownership line is
+               Cohort/Venue only — contract ONE HEADER). */
+            function printBlockShape(e) {
+                return {
+                    cornerLeft: e.venue,
+                    cornerRight: printSurname(e.lecturer),
+                    centre: [e.code],
+                    note: printNoteText(buildReplacementNote(e)),
+                };
+            }
+
+            function printBlockClass(div, e, isHoliday) {
+                if (isHoliday || e.status === 'conflict' || e.status === 'cancelled') div.classList.add('print-conflict');
+                else if (e.status === 'replacement') div.classList.add('print-replacement');
+                else div.classList.add('print-normal');
+            }
+
+            function buildPrintSheet() {
+                PrintSheet.init({
+                    build: function (normal) {
+                        return {
+                            events: normal
+                                ? printSemesterSet(eventsData)
+                                : printRunSet(eventsData[currentWeek] || []),
+                            days: normal ? printNormalDays() : weekData[currentWeek].days,
+                            weekCount: normal
+                                ? 'Week 1 ~ ' + MockData.semester.weeks
+                                : 'Week ' + (currentWeek + 1) + ' of ' + MockData.semester.weeks,
+                            weekDates: normal ? '(Whole Semester)' : ' · ' + weekData[currentWeek].range,
+                            emptyTitle: normal ? 'No normal classes.' : 'No classes this week.',
+                            emptyText: normal
+                                ? 'This timetable carries no normal class in the semester.'
+                                : 'All classes for this week have been cancelled.',
+                        };
+                    },
+                    printShape: printBlockShape,
+                    printClassFn: printBlockClass,
+                });
+            }
+
             function buildTimetable() {
                 currentWeek = weekNav.currentWeek;
                 /* ONE set of closures for both consumers (T14): the card must speak
@@ -312,6 +355,7 @@
                     responsive: true
                 });
                 updateSummary();
+                buildPrintSheet();
 
                 /* Phase B's chrome (T14): READ-ONLY throughout — a card calls this
                    page's own details handler and nothing else, so no cancel wiring and

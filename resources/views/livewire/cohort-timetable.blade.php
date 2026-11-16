@@ -527,6 +527,70 @@
                 updateWeekArrows(currentWeek <= 0, currentWeek >= weekData.length - 1);
             }
 
+            /* ═══ The paper (SDD timetable-print-v2, 2026-11-16) ═══
+               The sheet is its own table, built by the SAME builder from a set derived
+               here (design §1). The context is a COHORT CODE — not a person, so no ID
+               prints — and it is read from the selects on every rebuild, because those
+               change without a navigation (design §6.2). Ownership is the page's OWN
+               test (`e.lecturer === viewer`), which is what the key's ownership line
+               promises; the venue payload's `e.mine` does not exist on this page. */
+            function printSelectedText(id, fallback) {
+                var sel = document.getElementById(id);
+                if (!sel || sel.selectedIndex < 0) return fallback;
+                var opt = sel.options[sel.selectedIndex];
+                var txt = opt ? (opt.textContent || '').trim() : '';
+                return (txt && opt.value) ? txt : fallback;
+            }
+
+            function printIsMine(e) {
+                return e.lecturer === MockData.currentUser.name;
+            }
+
+            function printBlockShape(e) {
+                return {
+                    cornerLeft: e.venue,
+                    cornerRight: printSurname(e.lecturer),
+                    centre: [e.code],
+                    note: printNoteText(buildReplacementNote(e, { checkOwnership: printIsMine })),
+                };
+            }
+
+            function printBlockClass(div, e, isHoliday) {
+                /* a public holiday paints EVERY block conflict-red; ownership survives
+                   only in the border weight (design §5.2) */
+                if (isHoliday || e.status === 'conflict' || e.status === 'cancelled') div.classList.add('print-conflict');
+                else if (e.status === 'replacement') div.classList.add('print-replacement');
+                else div.classList.add('print-normal');
+                div.classList.add(printIsMine(e) ? 'print-mine' : 'print-others');
+            }
+
+            function buildPrintSheet() {
+                PrintSheet.init({
+                    build: function (normal) {
+                        var weeks = selectedCohortId ? (eventsByCohort[selectedCohortId] || []) : [];
+                        var weekEvents = weeks[currentWeek] || [];
+                        return {
+                            events: normal ? printSemesterSet(weeks) : printRunSet(weekEvents),
+                            days: normal ? printNormalDays() : weekData[currentWeek].days,
+                            context: printSelectedText('cohortSelect', 'Select a cohort'),
+                            sub: selectedCohortId ? 'Faculty: ' + printSelectedText('facultySelect', '—') : '',
+                            weekCount: normal
+                                ? 'Week 1 ~ ' + MockData.semester.weeks
+                                : 'Week ' + (currentWeek + 1) + ' of ' + MockData.semester.weeks,
+                            weekDates: normal ? '(Whole Semester)' : ' · ' + weekData[currentWeek].range,
+                            emptyTitle: normal ? 'No normal classes.' : 'No classes this week.',
+                            emptyText: normal
+                                ? 'This cohort carries no normal class in the semester.'
+                                : (selectedCohortId
+                                    ? 'No classes scheduled for this cohort in the selected week.'
+                                    : 'Select a cohort to print its timetable.'),
+                        };
+                    },
+                    printShape: printBlockShape,
+                    printClassFn: printBlockClass,
+                });
+            }
+
             function buildTimetable() {
                 /* class-modal-affordances T2: the cancel machinery's twin
                    store follows the SELECTED cohort (resolveMatches reads
@@ -536,6 +600,9 @@
                 currentWeek = weekNav.currentWeek;
                 if (!selectedCohortId) {
                     showGuidance();
+                    /* design §3.3: this exit is BEFORE the grid build, so the paper has
+                       to be rebuilt here too or it would print the previous cohort's week */
+                    buildPrintSheet();
                     return;
                 }
 
@@ -550,6 +617,8 @@
                     });
                     document.getElementById('summarySection').style.display = 'none';
                     updateWeekArrows(currentWeek <= 0, currentWeek >= weekData.length - 1);
+                    /* same reason as above — an empty week must clear the paper too */
+                    buildPrintSheet();
                     return;
                 }
 
@@ -611,6 +680,7 @@
                    dies with the tallies being cancelled-aware). */
                 computeSummary(weekEvents, weekData[currentWeek].days, { splitPending: true });
                 updateWeekArrows(currentWeek <= 0, currentWeek >= weekData.length - 1);
+                buildPrintSheet();
             }
 
             /* ════════ MODAL ════════ */

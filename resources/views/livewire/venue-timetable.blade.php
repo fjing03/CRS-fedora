@@ -1591,6 +1591,68 @@
                 }
             });
 
+            /* ═══ The paper (SDD timetable-print-v2, 2026-11-16) ═══
+               The sheet is its own table, built by the SAME builder (design §1). It is
+               built on the DEFAULT path — no `cellRender`, no `laneLayout`, no
+               `baseRowDays` — because on paper there are no free / no-room / too-soon /
+               held / holiday cells to blank, only class blocks (PR-15), and because the
+               builder's empty-week panel only runs without `cellRender`, so a week whose
+               only blocks are pending prints the truth instead of a blank table (PR-11).
+               Venue puts the COURSE in the top-left corner (the page already names the
+               venue) and leads with the COHORTS in the centre, one per line. Ownership
+               is the payload's own `e.mine` (the server's truth), which is what the
+               key's ownership line promises. */
+            function printCohortLines(e) {
+                if (e.cohorts && e.cohorts.length) return e.cohorts.slice();
+                return e.cohort ? [e.cohort] : [];
+            }
+
+            function printBlockShape(e) {
+                var cohorts = printCohortLines(e);
+                return {
+                    cornerLeft: e.code,
+                    cornerRight: printSurname(e.lecturer),
+                    centre: cohorts.length ? cohorts : [e.code],
+                    note: printNoteText(buildReplacementNote(e, {
+                        checkOwnership: function (ev) { return ev.mine === true; },
+                    })),
+                };
+            }
+
+            function printBlockClass(div, e, isHoliday) {
+                if (isHoliday || e.status === 'conflict' || e.status === 'cancelled') div.classList.add('print-conflict');
+                else if (e.status === 'replacement') div.classList.add('print-replacement');
+                else div.classList.add('print-normal');
+                div.classList.add(e.mine === true ? 'print-mine' : 'print-others');
+            }
+
+            function buildPrintSheet() {
+                PrintSheet.init({
+                    build: function (normal) {
+                        var weekEvents = (eventsData[currentWeek] || []);
+                        return {
+                            /* the venue page has no semester union: on a room sheet one
+                               teaching week IS the semester's pattern, so the normal view
+                               filters this week (design §3.3) */
+                            events: normal
+                                ? weekEvents.filter(function (e) { return e.status === 'normal'; })
+                                : printRunSet(weekEvents),
+                            days: normal ? printNormalDays() : weekData[currentWeek].days,
+                            weekCount: normal
+                                ? 'Week 1 ~ ' + MockData.semester.weeks
+                                : 'Week ' + (currentWeek + 1) + ' of ' + MockData.semester.weeks,
+                            weekDates: normal ? '(Whole Semester)' : ' · ' + weekData[currentWeek].range,
+                            emptyTitle: normal ? 'No normal classes.' : 'No classes this week.',
+                            emptyText: normal
+                                ? 'This venue carries no normal class in the semester.'
+                                : 'This venue is free all week.',
+                        };
+                    },
+                    printShape: printBlockShape,
+                    printClassFn: printBlockClass,
+                });
+            }
+
             function buildTimetable() {
                 currentWeek = weekNav.currentWeek;
                 countedAvailable = 0;
@@ -1903,6 +1965,7 @@
                 split('sumMyHours', t.myHours, t.myPendingHours || '0');
                 split('sumOccupied', t.occupied, t.pending || 0);
                 updateWeekArrows(currentWeek <= 0, currentWeek >= weekData.length - 1);
+                buildPrintSheet();
             }
 
             function saveWeek() { weekNav.save(); window.currentWeek = currentWeek; }

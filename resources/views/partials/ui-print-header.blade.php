@@ -47,7 +47,11 @@
                 <h1 class="print-title">{{ $printTitle }}</h1>
             @endif
             @if($printSub)
-                <p class="print-sub">{{ $printSub }}</p>
+                <p class="print-sub" id="printSub">{{ $printSub }}</p>
+            @else
+                {{-- a page whose subtitle is decided at runtime (Cohort's faculty) still
+                     needs the node, or PrintSheet would have nothing to fill --}}
+                <p class="print-sub" id="printSub"></p>
             @endif
         </div>
 
