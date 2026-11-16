@@ -108,6 +108,10 @@ Replacement Arrangement MUST NOT change** — they call the same builder without
   `aria-current="date"` on today **whether or not it is selected**. In window mode a tap moves the window.
 - On an empty day and on a public holiday only, a next-class button MUST appear, jump to that event's
   week and day, then focus the day heading and scroll it into view.
+- **A cancelled class or card whose note is the `(Proposed ⏳)` hint MUST print the note and MUST NOT
+  also print the `Cancelled` status word** — one answer, not two. A plain cancelled block keeps its
+  word, and a conflicted block with a proposal keeps `Conflict` too. *(User ruling 2026-11-16, from a
+  screenshot of `AMSE2003(T)`: "if got 'Proposed', pls keep it & remove 'Cancelled'".)*
 - **A public holiday MUST draw its notice panel ABOVE the day's class cards and MUST keep those
   cards.** The panel is the shipped empty-state shell in the error-container pair, titled
   `Public Holiday · <label>` with `Monday, 9 Nov 2026` beneath it and the next-class button inside.

@@ -341,3 +341,28 @@ the panel alone.
 holiday keeps every class it has, notice first). T16a #9's old "no card on a holiday" assertion was
 inverted by the bug report and now asserts the day's own class count. 32 spec receipts + 6 pin receipts
 green.
+
+## Third user ruling, same day — a proposal replaces the "Cancelled" word
+
+**Report (screenshot):** a desktop block read `AMSE2003(T) / B100 / 11:00 AM ~ 12:00 PM`
+with **both** `✕ Cancelled` and `(Proposed ⏳)`. The user's words: "if got 'Proposed', pls
+keep it & remove 'Cancelled'".
+
+**Ruling:** two answers to one question; the proposal is the live one. A **cancelled**
+block or card whose note is the `(Proposed ⏳)` hint prints the note and drops the word.
+
+**Scope, deliberately narrow:**
+- only the **cancelled** word stands down — a plain cancelled block keeps `✕ Cancelled`, and
+  a **conflicted** block with a proposal keeps `⚠ Conflict` (the clash is still true);
+- both surfaces, so they cannot diverge: `makeEventBlock()` (desktop, inside
+  `cfg.responsive`) and `TimetableResponsive._card()` (phone card + tablet grid);
+- the tooltip, the class-details Status row and the payload are untouched — they still
+  say Cancelled, which is the server truth.
+
+**Receipt:** T16c #2b drives the pair synthetically (the served payload has no
+cancelled+proposed event): proposed → `{ word: '', note: '(Proposed ⏳)' }` on both
+surfaces, plain cancelled → `Cancelled`, conflicted+proposed → both kept.
+
+**Also:** the TODAY listener's retry budget went 6 → 12 × 80ms — one full-suite run had
+it give up while a loaded machine's round trip was still in flight. Nothing changes when
+the week lands on the first try.

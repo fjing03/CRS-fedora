@@ -1185,8 +1185,15 @@ function buildTimetableGrid(cfg) {
            (no rules of its own). A public holiday prints NO word inside a block, and
            nothing else about the block moves — code, venue, time, note keep their
            order. Flag-only, so the other four callers stay byte-identical (T0a). */
+        /* 2026-11-16 (user, screenshot of AMSE2003(T) B100): "if got 'Proposed', pls keep
+           it & remove 'Cancelled'". A cancelled block WITH a pending proposal read
+           `✕ Cancelled` on one line and `(Proposed ⏳)` on the next — two answers to the
+           same question, and the second is the live one. The word stands down for that
+           pair only: a plain cancelled block keeps its word, and a conflicted block with
+           a proposal keeps `⚠ Conflict` beside it (the clash is still true). */
         let statusWord = '';
-        if (cfg.responsive && !isConflict && (e.status === 'cancelled' || e.status === 'conflict')) {
+        let wordStoodDown = e.status === 'cancelled' && /\(Proposed/.test(extraHtml);
+        if (cfg.responsive && !isConflict && !wordStoodDown && (e.status === 'cancelled' || e.status === 'conflict')) {
             statusWord = '<span class="ev-note tt-block-status">'
                 + statusIconHtml(e.status)
                 + (e.status === 'cancelled' ? 'Cancelled' : 'Conflict') + '</span>';
@@ -7393,7 +7400,11 @@ const TimetableResponsive = {
                 ? (cfg.replacementNoteFn(e) || '')
                 : buildReplacementNote(e);
         } catch (err) { noteHtml = ''; }
-        var wordStatus = (!isHoliday && (e.status === 'cancelled' || e.status === 'conflict')) ? e.status : null;
+        /* the same pair, the same rule as the desktop block: `(Proposed ⏳)` speaks for
+           itself, so a cancelled card does not also print `✕ Cancelled` (user,
+           2026-11-16). Conflict keeps its word — the clash is still true. */
+        var wordStoodDown = e.status === 'cancelled' && /\(Proposed/.test(noteHtml.replace(/<[^>]*>/g, ''));
+        var wordStatus = (!isHoliday && !wordStoodDown && (e.status === 'cancelled' || e.status === 'conflict')) ? e.status : null;
 
         /* R3 caps the note line at "the date note and ONE status word" — so the
            word REPLACES the legacy status note it duplicates. A cancelled class
@@ -7481,8 +7492,9 @@ const TimetableResponsive = {
                Reading today's index from the OLD week would find nothing (a week with
                no "today" flag), which is exactly how the first attempt failed to fix
                anything. So: wait until the landed week really carries today, then
-               select it. Six tries at 80ms covers a slow round trip without waiting
-               forever on a payload that will never have one. */
+               select it. Twelve tries at 80ms covers a slow round trip (a loaded
+               machine, a throttled phone) without waiting forever on a payload that
+               will never have one; when the week has already landed the first try wins. */
             var attempt = 0;
             function settle() {
                 var days = self._days();
@@ -7491,7 +7503,7 @@ const TimetableResponsive = {
                     if (self._isToday(days[i])) { today = i; break; }
                 }
                 if (today < 0) {
-                    if (attempt++ < 6) setTimeout(settle, 80);
+                    if (attempt++ < 12) setTimeout(settle, 80);
                     return;
                 }
                 if (self._state.mode === 'full') { self._state.day = today; return; }

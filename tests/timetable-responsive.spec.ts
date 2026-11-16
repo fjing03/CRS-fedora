@@ -1199,6 +1199,59 @@ test.describe('T16c — desktop (1440) and touch', () => {
     expect(word!.colour, 'R4 — the word takes the block\'s own colour').toBe(word!.blockColour);
   });
 
+  test('2b. a cancelled block WITH a pending proposal prints the proposal, not "Cancelled" (user, 2026-11-16)', async ({ page }) => {
+    /* The user's screenshot: AMSE2003(T) / B100 / 11:00 AM ~ 12:00 PM printed
+       "✕ Cancelled" AND "(Proposed ⏳)" — two answers to one question, and the second is
+       the live one. "if got 'Proposed', pls keep it & remove 'Cancelled'".
+       Driven synthetically: the served demo payload has no cancelled+proposed pair, and
+       the pair is decided by the event object, not by the week it sits in. */
+    await open(page, 1440);
+
+    const out = await page.evaluate(() => {
+      const mk = (over: Record<string, unknown>) => Object.assign({
+        id: 1, sessionId: 1, di: 0, start: 6, end: 8, code: 'AMSE2003', type: 'T',
+        name: 'Synthetic', venue: 'B100', lecturer: 'X', status: 'normal',
+      }, over);
+      const days = [{ abbr: 'Mon', date: '16 Nov 2026', today: true, holiday: false }];
+      const block = (ev: unknown) => {
+        (window as any).buildTimetableGrid({
+          headId: 'tableHead', bodyId: 'tableBody', tableId: 'timetable', emptyId: 'emptyState',
+          days, events: [ev], responsive: true, onEventClick: function () {},
+          replacementNoteFn: function (e: unknown) { return (window as any).buildReplacementNote(e); },
+        });
+        const b = document.querySelector('#tableBody .event-block') as HTMLElement;
+        return {
+          word: (b.querySelector('.tt-block-status')?.textContent || '').trim(),
+          note: (b.querySelector('.ev-note:not(.tt-block-status)')?.textContent || '').trim(),
+        };
+      };
+      const card = (ev: unknown) => {
+        const node = (window as any).TimetableResponsive._card(ev, days[0], [ev]);
+        return {
+          word: (node.querySelector('.tt-status')?.textContent || '').trim(),
+          note: (node.querySelector('.ev-note')?.textContent || '').trim(),
+        };
+      };
+      return {
+        blockProposed: block(mk({ status: 'cancelled', proposed: true })),
+        blockPlain: block(mk({ status: 'cancelled' })),
+        blockConflict: block(mk({ status: 'conflict', proposed: true })),
+        cardProposed: card(mk({ status: 'cancelled', proposed: true })),
+        cardPlain: card(mk({ status: 'cancelled' })),
+        cardConflict: card(mk({ status: 'conflict', proposed: true })),
+      };
+    });
+
+    expect(out.blockProposed, 'desktop block: the proposal stands alone').toEqual({ word: '', note: '(Proposed ⏳)' });
+    expect(out.cardProposed, 'phone/tablet card: the proposal stands alone').toEqual({ word: '', note: '(Proposed ⏳)' });
+    expect(out.blockPlain, 'a plain cancelled block keeps its word and its note rules').toEqual({ word: 'Cancelled', note: '' });
+    expect(out.cardPlain, 'same on the card').toEqual({ word: 'Cancelled', note: '' });
+    expect(out.blockConflict, 'a conflicted block with a proposal keeps BOTH — the clash is still true')
+      .toEqual({ word: 'Conflict', note: '(Proposed ⏳)' });
+    expect(out.cardConflict.word, 'same on the card').toBe('Conflict');
+    expectNoPageErrors(page, '1440: proposed/cancelled pair');
+  });
+
   test('3. both themes at 1440: same full week, same tokens-only colour', async ({ page }) => {
     await open(page, 1440);
     const seen: Record<string, string> = {};
