@@ -1,0 +1,55 @@
+Review the pointer-contract amendment for the SDD lane at .sdd/changes/hover-only-copy-touch/.
+Read, in this order: proposal.md and sdd.yaml (FROZEN after a clean round 2), then
+amendments/2026-11-17-clarify-pointer-contract.md (NEW, decision-level, unfreezes the lane), then
+review-log.md for what rounds 1 and 2 already settled.
+
+Evidence file: docs/ui-hover-only-2026-11-17.md. Do not re-review the frozen proposal's direction — it
+passed. Review only whether the amendment is correct, self-consistent with the frozen artifacts, and
+safe to apply.
+
+VERIFY THESE CLAIMS AGAINST THE CODE (do this before any judgement):
+
+1. ui-legend-bar.blade.php:11 really ships BOTH hint strings (.hint-hover and .hint-touch), and
+   theme.css:2283-2284 swaps them under @media (hover: none). Check whether any OTHER legend or hint
+   in the codebase swaps copy, and whether any other rule uses (hover: none) rather than
+   (any-pointer: coarse) — list them, because that decides the true scope of "extend the contract".
+
+2. .legend-item is a div carrying data-tip with NO tabindex (ui-legend-bar.blade.php ~line 14), and
+   the data-tip engine has no touch path (ui-common.js initDataTipTooltips, ~4883-5000). Confirm that
+   together these make the "Tap a colour to learn more" instruction impossible to fulfil, which is the
+   amendment's central claim.
+
+3. student-my-timetable.blade.php:32 contains a non-swapped "Hover a colour in the legend" sentence.
+
+4. The house capability law is @media (any-pointer: coarse) — check theme.css around 6903, 6937, 7037
+   — and confirm whether keying the legend swap on (hover: none) is genuinely inconsistent with it, or
+   whether there is a deliberate reason (e.g. hover:none also excludes stylus-only devices, which
+   any-pointer: coarse would include). If a deliberate reason exists, say so: that would turn the
+   amendment's third finding from a bug into a trade-off.
+
+5. ui-summary-bar.blade.php:28 and :30 — confirm the dual copy and that "Hover or tap a card to learn
+   more" is accurate for flip cards.
+
+6. The amendment proposes tabindex="0" + aria-label on .legend-item. Check what that collides with:
+   the hint span is aria-hidden but the items are not; the legend sits inside pages where the grid
+   already exposes many tab stops; grep the tests for anything asserting legend markup, aria or tab
+   order that this would break (tests/**/*.spec.ts). Also say whether a roleless focusable div with
+   aria-label is the right carrier, or whether role="note" / role="img" is needed for the name to be
+   announced.
+
+JUDGE:
+
+- Are A-1..A-6 testable and would they FAIL if the implementation were wrong? Name any AC that is
+  already true and therefore vacuous.
+- Is the copy proposal ("Hover, tap or focus a colour in the legend…") right? It is a paragraph in a
+  help list, not a gesture hint, so it does not get the media-query swap — is that reasoning sound, or
+  does it create a fifth phrasing for the same idea?
+- The amendment says the frozen proposal's phase-2 list did not include the legend items; adding them
+  now — is that a scope expansion that should be its own lane, or genuinely the same contract?
+- Any claim in the amendment that is OVERSTATED or unverifiable here must be flagged. In particular the
+  hybrid-pointer reasoning is measured (hasTouch contexts report hover:none AND any-pointer:coarse), but
+  behaviour on real iOS Safari or iPadOS with a trackpad is NOT testable in this environment — do not
+  let the amendment assert it as fact if it does.
+
+Report BLOCKERS first, then non-blocking notes, in the format your system prompt requires. If there are
+no blockers, say so plainly and do not invent issues to appear thorough.
