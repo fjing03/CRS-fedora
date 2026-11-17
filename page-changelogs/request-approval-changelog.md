@@ -1,3 +1,15 @@
+## 2026-11-17 — the phone card shows the slot you are approving
+
+On a phone, a request card now leads with the request id, the proposer's name and the status,
+then one labelled **REQUESTED** band: week, date, countdown, time, room — and a ✓ or ⚠ telling
+you whether that make-up slot is still free. The foot carries the course and how long the
+request has waited.
+
+Before this, the card printed `Course:` / `Date:` / `Lecturer:` — and that `Date:` was the
+**original** class date. The slot being approved appeared nowhere, so a programme leader
+deciding from a phone could not see what they were deciding on, and a proposed slot that had
+since been taken was not flagged.
+
 ## 2026-11-15 (later, user review) — one-row filters, and the sort hint goes
 
 The Filters button, the chip bar and the row count now share **one line** (34px); the chips keep their tinted frame rather than being flattened into the row. On a phone the button and count take the first line and the chips the second. The "Click column headers to sort (…)" line is **removed** at the user's word — the table's own headers still explain themselves on hover.

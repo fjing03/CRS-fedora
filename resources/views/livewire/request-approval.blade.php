@@ -185,6 +185,54 @@
         /* ───── Responsive Card View (base .request-card styles in theme.css) ───── */
         @media (max-width: 768px) {
             .grid-wrapper, .pagination-bar, .sort-hint { display: none !important; }
+            /* ══ the phone card shows the slot being APPROVED (2026-11-17) ══
+               Ported from `ui-prototype/my-replacements.html` (`wrapRequestCard` + its
+               `.cl-rc-*` block). Before this the card printed `Course: / Date: /
+               Lecturer:` with the ORIGINAL class date and never the requested slot —
+               so a PL on a phone was deciding on a slot the card did not show. */
+            .cl-rc-head { display: flex; align-items: center; gap: 8px;
+                padding-bottom: 8px; margin-bottom: 8px;
+                border-bottom: 1px solid var(--color-outline-strong); }
+            .cl-rc-head .rc-code { flex: 1 1 auto; min-width: 0; font-size: 13px; font-weight: 600; }
+            .cl-id-pill { display: inline-flex; align-items: center; flex: 0 0 auto;
+                padding: 1px 8px; border-radius: 999px;
+                background: var(--color-surface-variant);
+                color: var(--color-on-surface-variant);
+                font-size: 10.5px; font-weight: 700; line-height: 1.6;
+                letter-spacing: .02em; white-space: nowrap; }
+            .cl-rc-slot { display: grid; grid-template-columns: 72px minmax(0, 1fr);
+                column-gap: 8px; align-items: start; }
+            .cl-rc-label { margin-top: 2px; font-size: 9px; line-height: 1.2;
+                letter-spacing: .06em; text-transform: uppercase;
+                color: var(--color-on-surface-variant); }
+            .cl-rc-label .cl-week-pill { display: inline-flex; margin-top: 3px;
+                padding: 1px 7px; border-radius: var(--radius-pill);
+                background: var(--color-surface-variant);
+                color: var(--color-on-surface-variant); text-transform: none;
+                letter-spacing: 0; font-size: 9.5px; font-weight: 700; line-height: 1.5;
+                white-space: nowrap; }
+            .cl-rc-grid { display: grid;
+                grid-template-columns: minmax(0, 1fr) minmax(0, 1.28fr);
+                column-gap: 6px; row-gap: 1px; align-items: baseline; }
+            .cl-rc-date { grid-area: 1 / 1; font-size: 12px; font-weight: 600; line-height: 1.35; }
+            .cl-rc-urg { grid-area: 1 / 2; font-size: 9.5px; font-weight: 600;
+                line-height: 1.3; text-align: right; }
+            .cl-rc-time { grid-area: 2 / 1; font-size: 11px; line-height: 1.35; }
+            .cl-rc-venue { grid-area: 2 / 2; justify-self: end; font-size: 11px; line-height: 1.35; }
+            .cl-rc-venue .slot-badge { margin-left: 4px; vertical-align: -2px; }
+            .cl-rc-foot { display: flex; align-items: baseline; gap: 10px;
+                margin-top: 8px; padding-top: 8px;
+                border-top: 1px solid var(--color-outline-strong); }
+            .cl-rc-course { font-size: 11px; line-height: 1.25; font-weight: 600;
+                color: var(--color-on-surface); min-width: 0; overflow-wrap: anywhere; }
+            .cl-rc-meta { display: flex; align-items: baseline; gap: 6px;
+                margin-left: auto; font-size: 11px; line-height: 1.25;
+                color: var(--color-on-surface-variant); white-space: nowrap; }
+            .cl-rc-meta .cl-req-age { font-weight: 600; }
+            .cl-rc-meta .cl-req-age.age-fresh { color: var(--color-success); }
+            .cl-rc-meta .cl-req-age.age-waiting { color: var(--color-warning); }
+            .cl-rc-meta .cl-req-age.age-stale { color: var(--color-error); }
+            @media (max-width: 360px) { .cl-rc-urg { white-space: normal; } }
             .requests-cards { display: grid !important; gap: 12px; padding: 12px; }
             .card-view { display: block; }
         }
@@ -887,12 +935,80 @@
         function renderTable() {
             currentFiltered = filterData();
             renderHeader();
+            /* survey finding B3: reassigned ONCE, before the first render */
+            wrapRequestCard();
             renderBody();
             updateSummary();
             updatePagination();
             updateResultCount({ elId: 'resultCount', data: currentFiltered, total: MockData.approvalRequests.length, label: 'results' });
             renderCards();
             renderFilterChips();
+        }
+
+        /* ══ the phone card, ported from the drawing (2026-11-17) ══════════
+           `ui-prototype/my-replacements.html` carries this as `wrapRequestCard`, a
+           page-local wrapper around the shared `HtmlBuilder.requestCard`. Ported the
+           same way: this page reassigns its own renderer, no other surface moves. */
+        function shortRange(a, b) {
+            var m = /^(\d{1,2}:\d{2})\s*(AM|PM)$/i.exec(a);
+            var n = /^(\d{1,2}:\d{2})\s*(AM|PM)$/i.exec(b);
+            if (!m || !n) return a + ' \u2013 ' + b;
+            return m[2].toUpperCase() === n[2].toUpperCase()
+                ? m[1] + '\u2013' + n[1] + ' ' + m[2].toUpperCase()
+                : a + ' \u2013 ' + b;
+        }
+
+        function wrapRequestCard() {
+            if (window.__clReqCardWrap) return;
+            if (typeof HtmlBuilder === 'undefined' || !HtmlBuilder.requestCard) return;
+            window.__clReqCardWrap = true;
+
+            var original = HtmlBuilder.requestCard.bind(HtmlBuilder);
+
+            HtmlBuilder.requestCard = function (r, opts) {
+                if (!r.replacementDate) return original(r, opts);
+
+                var iso = r.replacementDate;
+                var parts = String(r.replacementTime || '').split(/\s*[\u2013\u2014-]\s*/);
+                var range = parts.length > 1
+                    ? shortRange(DateHelper.to12h(parts[0]), DateHelper.to12h(parts[1]))
+                    : (r.replacementTime || '');
+                var days = workingDaysDiff(iso);
+                var statusTip = r.requestStatusTip
+                    ? ' data-tip="' + String(r.requestStatusTip).replace(/"/g, '&quot;') + '"'
+                    : '';
+                /* one calculation: the page's own age chip, re-skinned inline */
+                var m = /class="request-age ([a-z-]+)"[^>]*>([^<]*)</.exec(requestAgeHtml(r.requestedAt));
+                var ageHtml = m ? '<span class="cl-req-age ' + m[1] + '">' + m[2] + '</span>' : '';
+                var slot = r.slotValidity === 'conflict'
+                    ? '<span class="slot-badge slot-conflict" data-tip="This make-up slot is NO LONGER FREE">\u26a0</span>'
+                    : '<span class="slot-badge slot-valid" data-tip="Slot available">\u2713</span>';
+
+                return '<div class="cl-rc-head">' +
+                    '<span class="cl-id-pill">#' + r.id + '</span>' +
+                    '<span class="rc-code">' + (r.lecturer || '') + '</span>' +
+                    '<span class="badge ' + statusClass(r.status) + '"' + statusTip + '>' +
+                      (r.requestStatusShort || r.status) + '</span>' +
+                  '</div>' +
+                  '<div class="cl-rc-slot">' +
+                    '<div class="cl-rc-label">Requested' +
+                      '<span class="cl-week-pill">Week ' + getWeekNumber(iso) + '</span></div>' +
+                    '<div class="cl-rc-grid">' +
+                      '<span class="cl-rc-date">' +
+                        DateHelper.dayAbbr(DateHelper.weekdayName(iso)) + ', ' +
+                        formatDate(iso) + '</span>' +
+                      '<span class="cl-rc-urg ' + urgencyBandClass(days) + '">' +
+                        daysLeftLabel(days) + '</span>' +
+                      '<span class="cl-rc-time">' + range + '</span>' +
+                      '<span class="cl-rc-venue">' + (r.replacementVenue || '') + slot + '</span>' +
+                    '</div>' +
+                  '</div>' +
+                  '<div class="cl-rc-foot">' +
+                    '<span class="cl-rc-course">' + r.courseCode +
+                      ' <span class="cell-type-label">(' + (r.classType || '') + ')</span></span>' +
+                    '<span class="cl-rc-meta">' + ageHtml + '</span>' +
+                  '</div>';
+            };
         }
 
         // ── Render cards (mobile responsive view) ──

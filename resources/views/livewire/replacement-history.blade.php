@@ -73,6 +73,67 @@
             font-size: 12px;
             color: var(--color-on-surface);
         }
+        /* ══ the phone card: a COMPARISON, not a tower of labels (2026-11-17) ══
+           Ported from `ui-prototype/student-class-replacements.html` (its phone
+           band + `patchSlotRows`): Original and Requested sit side by side under
+           one tiny label each, the week rides its own pill under that label, and
+           the four facts become a 2 × 2 (date over time, countdown over venue)
+           instead of four stacked lines. Same markup — only the arrangement. */
+        .upcoming-card { display: grid; grid-template-columns: auto minmax(0, 1fr);
+            column-gap: 10px; align-items: center; }
+        .upcoming-card-head, .upcoming-card-slots { grid-column: 1 / -1; }
+        /* a bare "14" next to the code asked which week it meant; the slot labels
+           carry their own week now, so the pill is gone */
+        .upcoming-card-wk { display: none; }
+        .upcoming-card-head { padding-bottom: 8px; margin-bottom: 8px;
+            border-bottom: 1px solid var(--color-outline-strong); }
+        .upcoming-card-slots { display: grid; grid-template-columns: minmax(0, 1fr);
+            gap: 6px; padding-bottom: 8px; margin-bottom: 8px; font-size: 12px;
+            border-bottom: 1px solid var(--color-outline-strong); }
+        .upcoming-card .slot-block { display: grid;
+            grid-template-columns: 72px minmax(0, 1fr); column-gap: 8px;
+            align-items: start; }
+        .upcoming-card .slot-label { margin: 2px 0 0; font-size: 9px; line-height: 1.2;
+            letter-spacing: .06em; text-transform: uppercase;
+            color: var(--color-on-surface-variant); }
+        .upcoming-card .cl-week-pill { display: inline-flex; align-items: center;
+            margin-top: 3px; padding: 1px 7px; border-radius: var(--radius-pill);
+            background: var(--color-surface-variant);
+            color: var(--color-on-surface-variant); text-transform: none;
+            letter-spacing: 0; font-size: 9.5px; font-weight: 700; line-height: 1.5;
+            white-space: nowrap; }
+        .upcoming-card .cell-class-block { display: grid;
+            grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
+            column-gap: 6px; row-gap: 1px; align-items: baseline; }
+        .upcoming-card .cell-class-block br { display: none; }
+        .upcoming-card .cell-class-block .class-day-date { grid-area: 1 / 1;
+            font-size: 12px; font-weight: 600; line-height: 1.35; }
+        .upcoming-card .cell-class-block [class^="urgency-"] { grid-area: 1 / 2;
+            font-size: 9px; font-weight: 600; line-height: 1.3; text-align: right;
+            white-space: normal; }
+        .upcoming-card .cell-class-block .class-time { grid-area: 2 / 1;
+            font-size: 11px; line-height: 1.35; }
+        .upcoming-card .cell-class-block .cell-sub { grid-area: 2 / 2;
+            justify-self: end; font-size: 11px; margin-left: 0; }
+        .upcoming-card .cell-class-block .cell-sub svg { width: 10px; height: 10px;
+            vertical-align: -1px; margin-right: 2px; }
+        /* a real line between the two slots, not just whitespace */
+        .upcoming-card .slot-block + .slot-block { margin-top: 8px; padding-top: 8px;
+            border-top: 1px solid var(--color-outline-strong); }
+        /* a tablet is wide enough for the two slots to sit side by side again */
+        @media (min-width: 600px) {
+            .upcoming-card-slots { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+                gap: 0 16px; }
+            .upcoming-card .slot-block + .slot-block { margin-top: 0; padding-top: 0;
+                border-top: 0; border-left: 1px solid var(--color-outline-strong);
+                padding-left: 16px; }
+        }
+        .upcoming-card-reason { grid-column: 1; display: flex; align-items: center;
+            gap: 6px; margin: 0; }
+        .upcoming-card-reason .slot-label { display: none; }
+        .upcoming-card-lect { grid-column: 2; justify-self: end; margin: 0;
+            min-width: 0; font-size: 11px; line-height: 1.25;
+            color: var(--color-on-surface-variant); text-align: right; }
         .slot-label {
             display: block;
             font-size: 10px;
@@ -492,6 +553,47 @@
             renderUpcoming();                              // ends with renderChips()
         }
 
+        /* ══ the phone card's two slots: which week, and one row each ═════════
+           Ported from `ui-prototype/student-class-replacements.html` (its
+           `patchSlotRows` + `shortTime`). "Original Slot" alone left the week to be
+           guessed; the week moves into a pill under the label, "Slot" leaves the
+           label, and the time range drops a repeated meridiem. Idempotent: each
+           node carries a dataset flag, so a re-render can never double-patch. */
+        function shortTime(el) {
+            var m = /^(\d{1,2}:\d{2})\s*(AM|PM)\s*~\s*(\d{1,2}:\d{2})\s*(AM|PM)$/i
+                .exec((el.textContent || '').trim());
+            if (!m) return;
+            var a = m[2].toUpperCase(), b = m[4].toUpperCase();
+            el.textContent = a === b
+                ? m[1] + '\u2013' + m[3] + ' ' + a
+                : m[1] + ' ' + a + ' \u2013 ' + m[3] + ' ' + b;
+        }
+
+        function patchSlotRows() {
+            document.querySelectorAll('.upcoming-card .slot-block').forEach(function (block) {
+                var lab = block.querySelector('.slot-label');
+                var date = block.querySelector('.class-day-date');
+                if (lab && !lab.dataset.clWk) {
+                    var m = date ? /\(Week\s+(\d+)\)/.exec(date.textContent) : null;
+                    lab.dataset.clWk = '1';
+                    lab.textContent = lab.textContent.replace(/\s*Slot/i, '').trim();
+                    if (m) {
+                        date.textContent = date.textContent.replace(/\s*\(Week\s+\d+\)/, '');
+                        var pill = document.createElement('span');
+                        pill.className = 'cl-week-pill';
+                        pill.textContent = 'Week ' + m[1];
+                        lab.appendChild(document.createElement('br'));
+                        lab.appendChild(pill);
+                    }
+                }
+                var time = block.querySelector('.class-time');
+                if (time && !time.dataset.clShort) {
+                    time.dataset.clShort = '1';
+                    shortTime(time);
+                }
+            });
+        }
+
         function renderUpcoming() {
             // AD-2: select values are 1-based strings; dataset weeks are 0-based.
             // 'all' = the All Original Slot Weeks option (shared helpers
@@ -585,6 +687,9 @@
             if (emptyState) emptyState.style.display = visible.length === 0 ? 'flex' : 'none';
             // Nothing to summarize when the view is empty — cf. my-request-history
             syncSummarySection(visible.length > 0);
+            /* the cards are in the DOM now: move the week into its pill and shorten
+               the time range (the drawing's patchSlotRows) */
+            patchSlotRows();
             renderChips();
         }
 

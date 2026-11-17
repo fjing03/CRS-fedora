@@ -1,3 +1,14 @@
+## 2026-11-17 — the phone card compares the two slots
+
+Each card now puts **ORIGINAL** and **REQUESTED** side by side, one tiny label each with the
+week in its own pill underneath, and the four facts in a tidy 2 × 2: date over time on the
+left, countdown over room on the right. The bare week number beside the course is gone (the
+slot labels carry the week now), the time range prints the meridiem once (`2:00–4:00 PM`), and
+the conflict reason shares the foot with the lecturer's name.
+
+It is the same information as before, arranged so a student can compare the class they lost
+with the one they gained without reading four stacked lines twice.
+
 ## 2026-11-15 (later, user review) — one-row filters, and the panel head/switch fixed
 
 The Filters button, chips and (absent) count row follows the staff pages: one line at ≥769, button + chips stacked on a phone. In the panel, the close × now takes the right edge on its own (this page has no Reset to push it), the **Hide COMPLETED** label sits directly above its switch instead of being right-aligned over a left-aligned control, and opening the panel focuses the first text field/select rather than the switch, so its tooltip no longer pops on open.
