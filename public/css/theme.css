@@ -1188,6 +1188,23 @@ body {
 .timetable th.sortable:hover {
     background: var(--color-outline);
 }
+/* 2026-11-17 (P2 phase 2): the header is a focus stop now, so it needs the same visible ring every
+   other stop in the sheet has — a sticky header that takes focus but shows nothing would be a new
+   hole where the audit found none. */
+.timetable th.sortable:focus-visible {
+    outline: 2px solid var(--color-primary);
+    outline-offset: -2px;
+}
+/* The 48px law of 2026-11-15 is about controls, and a sortable header is one. On a coarse pointer
+   the row is floored like every other control; on a phone the request table is not drawn at all
+   (`th` measures 0x0 at 390), so this only ever shows on a touch tablet.
+   `height`, not `min-height`: a `th` is `display: table-cell`, where min-height is silently ignored
+   (measured — it computed to 48px and the box stayed at 35). For a cell, `height` is the floor. */
+@media (any-pointer: coarse) {
+    .timetable th.sortable {
+        height: 48px;
+    }
+}
 .data-table tbody tr:hover {
     background: var(--color-surface-variant);
 }

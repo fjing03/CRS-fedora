@@ -2135,12 +2135,23 @@ function makeSortableHeader(col, sortState, render) {
     if (col.tip) th.setAttribute('data-tip', col.tip);
     if (col.sortable) {
         th.classList.add('sortable');
+        /* 2026-11-17 (P2 pointer contract, phase 2 — owner ruling A): a column that sorts on a click
+           must sort on Enter too. Mouse and finger had a path; the keyboard had none, so sorting was
+           a function only one kind of hand could use. The `th` keeps its implicit columnheader role
+           (so `aria-sort` is the state attribute, unlike role=button which may not carry one), and
+           the tab stop gives the column's own explanation focus parity through the shared tip engine,
+           which already listens for focusin. Headers are rebuilt on every render, so aria-sort cannot
+           go stale. */
+        th.tabIndex = 0;
+        th.setAttribute('aria-sort', sortState.field === col.field
+            ? (sortState.dir === 'asc' ? 'ascending' : 'descending')
+            : 'none');
         var arrow = '';
         if (sortState.field === col.field) {
             arrow = '<span class="sort-arrow">' + (sortState.dir === 'asc' ? '&#9650;' : '&#9660;') + '</span>';
         }
         th.innerHTML = col.label + arrow;
-        th.addEventListener('click', function() {
+        const toggle = function () {
             if (sortState.field === col.field) {
                 sortState.dir = sortState.dir === 'asc' ? 'desc' : 'asc';
             } else {
@@ -2148,7 +2159,24 @@ function makeSortableHeader(col, sortState, render) {
                 sortState.dir = 'asc';
             }
             render();
+        };
+        th.addEventListener('click', toggle);
+        th.addEventListener('keydown', function (e) {
+            /* Space also activates: once a header is a focus stop it is a button in all but name, and
+               a keyboard user pressing Space on a button expects it to fire. preventDefault keeps the
+               page from scrolling under the sort. */
+            if (e.key === 'Enter' || e.key === ' ' || e.key === 'Spacebar') {
+                e.preventDefault();
+                toggle();
+            }
         });
+    } else if (col.tip) {
+        /* A header that does not sort is not a control, so it gets no tab stop and no 48px floor —
+           but its tip still explains the column ("Affected cohorts — not sortable: a multi-cohort
+           row has no single value"), and an explanation that only exists under a mouse pointer is
+           the same fault this lane exists to stop. It travels invisibly instead, the way the count
+           explanations do. */
+        th.innerHTML = col.label + '<span class="sr-only"> \u2014 ' + escHtml(col.tip) + '</span>';
     } else {
         th.textContent = col.label;
     }
