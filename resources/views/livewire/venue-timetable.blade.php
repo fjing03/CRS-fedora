@@ -119,7 +119,11 @@
         @media (min-width: 900px) {
             .semester-bar--venue {
                 display: grid;
-                grid-template-columns: minmax(0, 1fr) auto auto auto minmax(0, 1fr);
+                /* timetable-print-v2 (2026-11-16): SIX columns now, not five — the
+                   lane's Normal Class switch sits beside the print button. Left as
+                   five, the sixth child fell into an implicit column and squeezed the
+                   venue dropdown (venue-db's deep-link and B005 receipts went red). */
+                grid-template-columns: minmax(0, 1fr) auto auto auto auto minmax(0, 1fr);
                 align-items: center;
                 gap: 8px;
             }

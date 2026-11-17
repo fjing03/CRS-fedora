@@ -1,3 +1,20 @@
+## 2026-11-16 — the printer button prints a real sheet (and the time joiner changes)
+
+The button in the week row has shown *"Printing is coming soon"* since the mock era. It now opens the
+browser's own print dialog and prints a **paper** for the room.
+
+On paper only class blocks are marked — free, "not enough slot", too soon, held and public-holiday
+cells print as bare paper, because a printed room sheet answers "what classes are on this week", not
+"what can I book". Each block carries the **course** in the top-left corner, the lecturer's surname in
+the top-right and the **cohorts** in the middle, one per line. The header names the room as
+`B005 — Computer Lab B005`, and the key is three chips over the ownership line.
+
+**One screen change:** a block's time now reads `12:00 PM ~ 2:00 PM` instead of `12:00 PM - 2:00 PM`.
+It was the only block on any page that did not already speak the house joiner.
+
+The **Normal Class** switch prints the semester's normal timetable; the room page has no semester
+union, so it prints this week's normal classes under that label.
+
 ## 2026-11-14 (late) — the cards move behind one Summary button on a phone
 
 At ≤768px this page's summary cards leave the flow and open from a bare bar-chart icon beside the help
@@ -30,7 +47,8 @@ changed size — the worst case being DevTools shrinking the page.
 Measured read-only at 1440 / 1024 / 768 / 390 / 360: the box stays inside the
 window in every case with an 8px margin (24px at 390), including a live resize while
 open and the bottom-edge flip (520px-tall window: box 340–435 above the cell).
-A new test, `U2a-T18`, pins the behaviour.
+A new test, `U2a-T18`, pins the behaviour — written, but not yet run: it refuses to run outside the
+`:8030` testing lane and that lane cannot log in right now (the testing database has no users).
 
 ## 2026-11-14 — 6–7 PM is now bookable for real
 
@@ -113,9 +131,85 @@ Fixed the shared lane planner so a pending 1:00 PM ~ 2:00 PM block and a cancell
 
 Checks: **18/18** read-only planner/layout browser cases; the new independent oracle covers **1,764 range/status combinations in both input orders**. Existing responsive/theme/print checks pass. Actual staff 5770 request 19 was also checked without staging data, on desktop and phone in both themes. Details: [cancelled-slot reuse](cancelled-slot-reuse-changelog.md). Whole-feature Verify remains separate.
 
-## 2026-11-11 — every summary card now explains its formula
+## 2026-11-13 — venue selector: darker trigger, viewport fit, mobile sheet
 
 > 2026-11-13, in progress: see [cancelled-slot reuse](cancelled-slot-reuse-changelog.md) for shared stacking, real room-cell availability, passing checks and remaining delivery gates. No demo cleanup or final Verify yet.
+
+User brief (three points, with the replacement-arrangement page as the
+reference): the venue dropdown must not read as white; the open panel must not
+run under a docked DevTools pane / off a narrow window; and below phone width
+the wide cascade should become a pop-up picker.
+
+1. **Trigger fill.** `.semester-bar--venue .venue-dd-trigger` now uses
+   `var(--color-surface-variant)` (the same darker fill the arrangement page
+   already used), so the control separates from the white toolbar and grid.
+   Text, chevron, height and focus ring are unchanged.
+2. **Viewport fit.** The four columns were fixed at 200px each (~800px), so
+   merely opening the panel overflowed an 820px window by 23px and the Rooms
+   column was unreachable. Now: the panel is `width: max-content` capped by
+   `calc(100vw - 24px)`, the columns flex 150px and shrink together, and a
+   page-local `fitVenuePanel()` slides `left` to keep the box 12px inside the
+   viewport. A `ResizeObserver` re-clamps because columns appear on HOVER, not
+   only on click (the earlier one-shot fit ran before the panel grew — the
+   root cause of the DevTools clipping). Measured at 820px: panel 602px wide,
+   x=41, right=643, all four columns 150px, no horizontal scroll.
+3. **Mobile sheet.** At `<=768px` the cascade is replaced by
+   `#venueTimetablePicker`, a searchable bottom sheet matching the
+   arrangement page: Block/Floor group headings, code + room name + seats per
+   row, 44px rows, Close button, backdrop/Escape close. Taps are intercepted in
+   the capture phase so the desktop panel never opens behind it. Selection
+   still calls `venueDropdown.select()`, so last-visit memory and the
+   `?venue=` full render are untouched.
+
+Receipts: `tests/venue-selector-responsive.spec.ts` **9/9** (trigger token
+match, 820px four-column fit, mobile sheet open/search/close, category headers,
+search-in-collapsed-groups, mobile pick navigation).
+
+### 2026-11-13 — mobile picker category headers are collapsible bars
+
+Venue page first (the user's instruction: prove it here before porting to
+replacement-arrangement). Mobile sheet only — desktop cascade untouched.
+
+- `.venue-picker-group` is now a `<button>` bar instead of a plain caption:
+  `var(--color-surface-variant)` fill (darker than the sheet body and the rows),
+  700 weight, 10/12px padding, sticky at the top of its group while scrolling.
+- Each bar carries a right-side chevron: down when expanded, rotated -90°
+  (right-pointing) when collapsed, 0.15s transition.
+- Default: **first category expanded, the rest collapsed**. Clicking the bar or
+  its arrow toggles that category only; others keep their state.
+- Items live in a `#venuePickerGroup<N>` container bound by
+  `aria-controls`/`aria-expanded`, so state is announced, not just visual.
+- Search still filters the full list and opens any group that has a match — a
+  hit is never hidden behind a collapsed header.
+- Selection is unchanged: rows still call `venueDropdown.select()`.
+
+Note during apply: the chevron had to be built with
+`document.createElementNS(...)`; `createElement('svg')` produces an HTML
+unknown element whose `<path>` never paints (stroke computed as `none`). Desktop cascade tests for the shared component are
+
+## 2026-11-13 — summary cards, guide modal, semester chrome, week select
+
+User brief: reuse the approved `ui-prototype/my-timetable-mobile-preview.html`
+design instead of a second direction. SDD lane `my-timetable-ui-cleanup`.
+
+- Summary cards are now the 96px flip cards from the preview: left-aligned back
+  face, up to three short bullets, and a 44px info button that opens the full
+  explanation in a 420px modal. Hover flips on pointer devices, tap on touch,
+  Enter/Space from the keyboard; closing the explanation restores the card and
+  focus. The value ids and every calculation are untouched.
+- The header guide icon opens a shared `How to use this page` modal containing
+  the page description and all guide items. The inline guide bar is no longer
+  rendered on this page; ×, Close, overlay and Escape close the modal.
+- `#semesterProgress` (label, track, fill) and `.week-subtitle`/`#weekSubtitle`
+  are removed. `updateProgress()` / `updateWeekSubtitle()` stay null-safe, so
+  the existing calls are inert.
+- `.week-select` now uses `var(--color-surface-variant)` at rest and
+  `var(--color-surface)` on hover; text, chevron, height and focus ring are
+  unchanged.
+
+---
+
+## 2026-11-11 — every summary card now explains its formula
 
 User ruling (2026-11-11): every summary card must **say how its number is made**, in plain words.
 All seven live pages (and the shared fallback map in `partials/ui-summary-bar.blade.php`) now carry

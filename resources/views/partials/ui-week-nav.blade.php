@@ -44,7 +44,7 @@
          tip rides the shared data-tip pill (contract TOOLTIPS) and its state never
          leaves the page: on every rebuild, off again on reload. --}}
     <label class="print-normal-toggle" data-tip="Show the semester's normal timetable only">
-        <input type="checkbox" id="printNormalToggle">
+        <input type="checkbox" id="printNormalToggle" aria-label="Show the semester's normal timetable only">
         <span class="print-normal-toggle__label">Normal Class</span>
     </label>
 @endif

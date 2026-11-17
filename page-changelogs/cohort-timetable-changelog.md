@@ -1,3 +1,16 @@
+## 2026-11-16 — the printer button prints a real sheet
+
+The button in the week row has shown *"Printing is coming soon"* since the mock era. It now opens the
+browser's own print dialog and prints a **paper** for the selected cohort.
+
+The header names the cohort code and its faculty (`DFT2(S1)G1`, `Faculty: FOCS`) and follows the
+dropdowns live, so printing after switching cohort prints the new one — and with no cohort picked it
+says so instead of printing the last one. Each block carries the venue, the lecturer's surname and the
+course, with the time at the foot. Pending and cancelled never print; a public-holiday row paints its
+blocks red; an empty Sunday row is not printed.
+
+The **Normal Class** switch prints the semester's normal timetable (`Week 1 ~ 14 (Whole Semester)`).
+
 ## 2026-11-14 (late) — the cards move behind one Summary button on a phone
 
 At ≤768px this page's summary cards leave the flow and open from a bare bar-chart icon beside the help
@@ -40,9 +53,30 @@ Fixed the shared lane planner so a pending 1:00 PM ~ 2:00 PM block and a cancell
 
 Checks: **18/18** read-only planner/layout browser cases; the new independent oracle covers **1,764 range/status combinations in both input orders**. Existing responsive/theme/print checks pass. Actual staff 5770 request 19 was also checked without staging data, on desktop and phone in both themes. Details: [cancelled-slot reuse](cancelled-slot-reuse-changelog.md). Whole-feature Verify remains separate.
 
-## 2026-11-10 (later) — Cancel this Class?: the "Other" reason block
+## 2026-11-13 — summary cards, guide modal, semester chrome, week select
 
 > 2026-11-13, in progress: see [cancelled-slot reuse](cancelled-slot-reuse-changelog.md) for shared stacking, real room-cell availability, passing checks and remaining delivery gates. No demo cleanup or final Verify yet.
+
+User brief: reuse the approved `ui-prototype/my-timetable-mobile-preview.html`
+design instead of a second direction. SDD lane `my-timetable-ui-cleanup`.
+
+- Summary cards are now the 96px flip cards from the preview: left-aligned back
+  face, up to three short bullets, and a 44px info button that opens the full
+  explanation in a 420px modal. Hover flips on pointer devices, tap on touch,
+  Enter/Space from the keyboard; closing the explanation restores the card and
+  focus. The value ids and every calculation are untouched.
+- The header guide icon opens a shared `How to use this page` modal containing
+  the page description and all guide items. The inline guide bar is no longer
+  rendered on this page; ×, Close, overlay and Escape close the modal.
+- This page never rendered `#semesterProgress` or `#weekSubtitle`; it only
+  gained the shared summary cards and guide modal.
+- `.week-select` now uses `var(--color-surface-variant)` at rest and
+  `var(--color-surface)` on hover; text, chevron, height and focus ring are
+  unchanged.
+
+---
+
+## 2026-11-10 (later) — Cancel this Class?: the "Other" reason block
 
 User brief `prompts/cancel-class-reason-block.md`, item 5. Items 1–4 (two-column grid, heading asterisk,
 footer `CANNOT UNDONE`, gating) are untouched.

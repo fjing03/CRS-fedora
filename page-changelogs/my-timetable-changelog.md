@@ -1,3 +1,22 @@
+## 2026-11-16 — the printer button prints a real sheet
+
+The button in the week row has shown *"Printing is coming soon"* since the mock era. It now opens the
+browser's own print dialog and prints a **paper** — not a printout of the screen.
+
+The paper is its own surface: a header (title, `Weekly class schedule`, your name and staff ID, the
+semester chip and a two-part week line) with a three-chip key — **Normal · Replacement · Conflict /
+Public Holiday** — and below it a day-by-hour table built for A4 landscape at 8 mm. Nothing pending
+and nothing cancelled prints (the screen keeps both); a public-holiday row paints its blocks red; a
+Sunday with nothing on it does not print; the hours read 12-hour, start over end. This page leads with
+the **cohorts** in the middle of each block and puts the **course** in the top-right corner, because a
+lecturer reading their own week already knows the course.
+
+A new **Normal Class** switch beside the printer prints the semester's normal timetable instead:
+`Week 1 ~ 14 (Whole Semester)`, no dates, no holiday marks, no key. It changes the paper only — the
+week you are looking at on screen does not move.
+
+Off screen nothing moved: same grid, same blocks, same cards, same legend.
+
 ## 2026-11-14 (late) — the cards move behind one Summary button on a phone
 
 At ≤768px this page's summary cards leave the flow and open from a bare bar-chart icon beside the help

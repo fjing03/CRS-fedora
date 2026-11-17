@@ -1,3 +1,16 @@
+## 2026-11-16 — the printer button prints a real sheet
+
+The button in the week row has shown *"Printing is coming soon"* since the mock era. It now opens the
+browser's own print dialog and prints a **paper** of the student's own week.
+
+The header carries the student's name and number, `Cohort: <code>`, the semester and a two-part week
+line, over a three-chip key. Each block shows the venue, the lecturer's surname and the course, with
+the time at the foot. Pending and cancelled never print (they stay on screen); a public-holiday row
+paints its blocks red; an empty Sunday row is not printed.
+
+The **Normal Class** switch prints the semester's normal timetable (`Week 1 ~ 14 (Whole Semester)`).
+The page stays read-only — nothing here is a control.
+
 ## 2026-11-14 (late) — the cards move behind one Summary button on a phone
 
 At ≤768px this page's summary cards leave the flow and open from a bare bar-chart icon beside the help

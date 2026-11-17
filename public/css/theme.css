@@ -7106,6 +7106,10 @@ body.tt-sheet-open:has(.tt-responsive) {
       the print button in the shared week row and reads as a reading mode, not a
       filter: a switch, not a button. Paper never shows it. ── */
 .print-normal-toggle {
+    /* `position: relative` is load-bearing: the input below is `inset: 0`, and without
+       a positioned parent it escapes to the nearest one (the sticky week row) and
+       covers every control in it — 17 receipts went red on exactly that */
+    position: relative;
     display: inline-flex;
     align-items: center;
     gap: 6px;
@@ -7117,11 +7121,18 @@ body.tt-sheet-open:has(.tt-responsive) {
     white-space: nowrap;
 }
 
+/* The INPUT is the hit box and the label is the picture. A 1×1 visually-hidden input
+   would be the thing a finger has to hit — R7 (48 × 48 on a coarse pointer) measures
+   the real control, and rightly refused it. Laid over the label, the input is as big
+   as the label: ~90 × 20 with a mouse, 48 tall on touch. */
 .print-normal-toggle input {
     position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    margin: 0;
     opacity: 0;
-    width: 1px;
-    height: 1px;
+    cursor: pointer;
 }
 
 .print-normal-toggle__label {
@@ -7173,7 +7184,25 @@ body.tt-sheet-open:has(.tt-responsive) {
 
 /* 48 × 48 on a coarse pointer, like every other control in the row */
 @media (any-pointer: coarse) {
-    .print-normal-toggle { min-height: 48px; }
+    .print-normal-toggle { min-height: 48px; min-width: 48px; }
+}
+
+/* Below 1280 the week row is already sharing its width with the arrows, the week
+   select, Today and Print — and on a phone the WEEK LABEL has to keep fitting its
+   box (T16d item #3). The switch stays, the two words go: the control keeps its
+   hover tip and its accessible name, and it is still the same 26px picture. */
+/* THE SWITCH IS A TABLET-AND-UP CONTROL. The phone band's week row was tuned to the
+   millimetre by task 8 (at 390 the label needs 144px and the box offers 143 — its
+   paddings were shaved to buy 13px), so any sixth control in that row truncates the
+   week label, which that lane's receipt rightly refuses. Rather than shave the label
+   again for a reading mode, the switch stands down below 768: a phone still prints
+   the week, and the normal view is reachable from a tablet or a desktop, where the
+   row has room. Recorded in the proposal's PR-02 note, the four changelogs and
+   `tests/timetable-print.spec.ts`. */
+@media (max-width: 767px) {
+    .print-normal-toggle {
+        display: none;
+    }
 }
 
 /* ── The paper's table skeleton. Block internals (corners, centre, band, time,
