@@ -119,11 +119,14 @@
         @media (min-width: 900px) {
             .semester-bar--venue {
                 display: grid;
-                /* timetable-print-v2 (2026-11-16): SIX columns now, not five — the
-                   lane's Normal Class switch sits beside the print button. Left as
-                   five, the sixth child fell into an implicit column and squeezed the
-                   venue dropdown (venue-db's deep-link and B005 receipts went red). */
-                grid-template-columns: minmax(0, 1fr) auto auto auto auto minmax(0, 1fr);
+                /* FIVE columns, and that is final (2026-11-17): the 2026-11-16 lane
+                   added a sixth for its Normal Class switch, but the switch moved into
+                   the Print dialog, so the sixth cell became an empty spacer — the
+                   print button stopped 377px short of the right edge and floated in
+                   the middle of the bar. Five columns with the print button in the last
+                   one (`justify-self: end`) pins it to the edge, which is where a
+                   printer icon belongs on every page. */
+                grid-template-columns: minmax(0, 1fr) auto auto auto minmax(0, 1fr);
                 align-items: center;
                 gap: 8px;
             }

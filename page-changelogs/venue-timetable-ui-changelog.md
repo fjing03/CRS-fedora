@@ -1,3 +1,14 @@
+## 2026-11-17 — the printer sits at the right edge
+
+The print button was floating in the middle of the bar, about 380px short of the right edge. The row's
+grid still had a spare column on the right, left over from the moment the Normal Class switch lived
+beside the printer. The switch moved into the Print dialog, the column stayed empty, and the button
+stopped where that empty column began.
+
+The spare column is gone and the button sits in the last one, pinned right: 17px from the edge, which
+is the bar's own padding, so it is flush on this page and matches My Timetable and Cohort Timetable at
+every width.
+
 ## 2026-11-17 — the print switch says what it prints
 
 Hovering (or tabbing to) **Show normal class only** in the Print dialog now says what the paper will
