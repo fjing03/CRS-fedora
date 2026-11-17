@@ -1,6 +1,8 @@
 # Phase 2 — the carriers the legend fix did not reach
 
-**Status: DRAFT — owner has chosen the approach, plan not frozen, no code written.** Prepared
+**Status: APPLIED 2026-11-17 — lane complete.** `7b7b09b` (counts + `.sr-only`), `75a2c14` (keyboard
+sortable headers), `1d7017b` (badges, holiday badge, make-up note, age chip). Phase 1 shipped earlier in
+`47c5dd8`. **Status: DRAFT — owner has chosen the approach, plan not frozen, no code written.** Prepared
 2026-11-17 while another chat owned `ui-common.js`, `theme.css` and the replacement blades. Nothing
 here is measured against that tree; the inventory is read from source, and the browser numbers are
 quoted from the Phase 1 survey (`docs/ui-hover-only-2026-11-17.md`, committed `3bcac14` + correction
@@ -106,7 +108,15 @@ is a desktop-only concern).
 **Landed, `7b7b09b`:** `.sr-only` in `theme.css`, the result-count explanation as a sibling, and the
 four cohort carriers. **Waiting on a decision:** the sortable headers (§3a) and the badge copy (§5).
 
-## 5. Decisions
+## 5. Decisions — settled and applied
+
+Every carrier in §2 now has a reachable path, and the split that shipped is: a focus stop and a 48px
+floor where the thing is a **control** (sortable headers), `.sr-only` beside the visible element where
+the tip was an **explanation** (counts, badges, holiday name, make-up list, age band), and nothing at
+all where the detail already had a tap path — the details pop-up prints the full badge and a Status
+Description row, which is why leaving the short badge in the cell (2026-11-11) took nothing away.
+
+### Original decision list
 
 1. **Settled 2026-11-17: A for badges + day headers, B for the count lines.** C rejected — eight tab
    stops before the first class is worse than no tooltip, and a 48px badge reopens the task-11 ruling.
