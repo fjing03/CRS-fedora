@@ -149,9 +149,12 @@ printed sheet uses its own 8px–11px steps and never borrows a screen size.
 - **Spacing rhythm is 8-based** (4 / 6 / 8 / 10 / 12 / 14 / 16 / 20). There are no `--spacing-*`
   tokens; the rhythm is observed in the components, not centralised — worth promoting if a third
   page ever needs the same gaps.
-- **Breakpoints**: **767/768** phone↔tablet, **600** card↔two-column cards, **1024** tablet→desktop
-  touch sizes, **1280** the desktop timetable and its print button. Responsive behaviour is
-  structural — grids collapse, chips become a sheet, tables become cards — never fluid typography.
+- **Breakpoints**: **767/768** phone↔tablet, and the summary cards stop being two columns
+  above it (measured: two at 700, three at 900); **600/601** the pop-up swaps between a bottom
+  sheet and a centred dialog, and the session dropdown opens upward below 600; **1024**
+  tablet→desktop touch sizes; **1280** the desktop timetable and its print button. Responsive
+  behaviour is structural — grids collapse, chips become a sheet, tables become cards — never
+  fluid typography.
 - **Touch sizes are gated on capability, not width** (`@media (any-pointer: coarse)`): 48 × 48 for
   real controls, never for badges, and never width-gated. A mouse-only window keeps compact sizes at
   every width.
