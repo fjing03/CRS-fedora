@@ -1,7 +1,7 @@
 name: timetable-print-v2
 created: 2026-11-12
-status: applied  # explored, proposed, designed, spec'd, tasked, APPLIED and VERIFIED 2026-11-16
-batch: "complete (0, A, B, C, D, E, F) — verified PASS; then amendments 1 and 2, both frozen, applied and verified; ready for /sdd-archive on the user's word"
+status: archived  # explored, proposed, designed, spec'd, tasked, applied, verified 2026-11-16; two amendments applied; ARCHIVED 2026-11-17
+batch: "complete (0, A, B, C, D, E, F) — verified PASS; then amendments 1 and 2, both frozen, applied and verified; archived 2026-11-17 on the user's word"
 amendments:
   - file: amendments/2026-11-16-print-modal.md
     title: "the Print dialog — week choice + the switch moves in"
@@ -41,6 +41,14 @@ review_rounds_tasks: 1
 tasks_path: "tasks.md (T01-T24 + T03b, T19a/T19b)"
 implementation_approved: true
 implementation_approval: "approved 2026-11-16 ('yes' for batch A, then 'proceed until F'); applied in batches A-F and verified PASS"
+archived_on: 2026-11-17
+archive_note: >-
+  Closed after a follow-up question about non-normal classes on paper. The answer was that
+  the paper already does exactly what the user then stated as the rule: Show normal class
+  off prints everything except cancelled and pending; on prints normal classes only. Proven
+  across 14 weeks on five pages (two lecturers, two rooms, one cohort), with the one
+  cancelled class in the demo data as the only class ever dropped. No code changed as a
+  result of that investigation.
 verify_report: verify-report.md
 verify_verdict: "PASS — 12 new print receipts, 4 existing suites unchanged or better, 5 PDFs at A4 landscape on one page, lint + phpstan clean. Four red suites proven pre-existing by a pre-lane checkout run."
 notes: >-
