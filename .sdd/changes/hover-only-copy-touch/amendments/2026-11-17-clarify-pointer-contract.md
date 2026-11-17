@@ -19,7 +19,7 @@ emulation on My Timetable:
 | iPad 1024, touch | **true** | **true** | **"Tap a colour to learn more"** |
 | phone 390, touch | **true** | **true** | **"Tap a colour to learn more"** |
 
-`resources/views/partials/ui-legend-bar.blade.php:11` ships **both** strings and `theme.css:2283-2284` swaps
+`resources/views/partials/ui-legend-bar.blade.php:11` ships **both** strings and `theme.css:2333-2336` swaps
 them under `@media (hover: none)`. So the instruction is already honest on the iPad — the swap exists, exactly
 as the item's own "fix" line concedes. The claim rests on a desktop screenshot read as if it were an iPad.
 
@@ -30,6 +30,9 @@ The copy says **"Tap a colour to learn more."** It cannot be kept:
 - `.legend-item` is `<div class="legend-item" data-tip="…">` — **`tabindex` is `null` in every context**
   measured (desktop, iPad, phone).
 - The engine has **no touch path** (`mouseenter`/`mouseleave`/`mouseout`/`focusin`/`focusout` only).
+  *Same discipline as §3:* this is code-level fact plus Chromium measurement. Browsers fire compatibility
+  mouse events on tap, and the engine has a document-level `mouseenter` listener, so the statement "a tap
+  summons nothing" is measured-in-Chromium — true there, not asserted for real iOS.
 - Therefore nothing can summon those four tips on a touch device: not a tap (no handler), not focus (not
   focusable).
 
@@ -59,10 +62,6 @@ report `hover: none` **and** `any-pointer: coarse` together, and desktop reports
 iOS Safari or iPadOS with a trackpad is **not** testable in this environment and is therefore not asserted
 here — if it matters, it needs a device, not an emulator.
 
-**What is measured, and what is not.** The hybrid behaviour above is measured in Chromium: touch contexts
-report `hover: none` **and** `any-pointer: coarse` together, and desktop reports neither. Behaviour on real
-iOS Safari or iPadOS with a trackpad is **not** testable in this environment and is therefore not asserted
-here — if it matters, it needs a device, not an emulator.
 
 ## 4. The contract, stated once
 
@@ -91,7 +90,8 @@ which use "OPEN the slot's tooltip" because `data-tip` strings cannot be swapped
 | Work | File | State |
 |---|---|---|
 | `tabindex="0"` + `aria-label` on `.legend-item` | `resources/views/partials/ui-legend-bar.blade.php` | **free** |
-| swap `(hover: none)` → `(any-pointer: coarse)` for the legend + summary hints | `public/css/theme.css` | **BLOCKED** — held by the Cohort/Venue port |
+| swap `(hover: none)` → `(any-pointer: coarse)` for the legend hint only | `public/css/theme.css` | **free now — the port landed** |
+| summary hints | — | **nothing to do:** the plain card's touch sentence swaps by *sheet scope* (`#summarySheetBody …`, `theme.css:2244-2252`), not by media, and the flip variant keeps "Hover or tap" because tap is implemented (`ui-common.js:2396-2401`) |
 | help-text wording | `resources/views/livewire/student-my-timetable.blade.php` | **free** |
 | focus ring for the new tab stops | `theme.css` or a scoped block | **BLOCKED** with the swap |
 
@@ -102,13 +102,77 @@ tabindex work fixes the promise, and the swap work makes the instruction exact.
 ## 7. Acceptance criteria (amendment)
 
 - **A-1** On a touch context, tapping a legend item shows its tip; on desktop, hovering still shows it.
-- **A-2** Legend items are reachable by Tab and announce their meaning (accessible name = tip text).
-- **A-3** On a hybrid (`hover: hover` **and** `any-pointer: coarse`), the hint names tap — not hover.
+- **A-2** Legend items are reachable by Tab and **announced**, with a carrier that a screen reader will
+  actually name: `role="img"` and an `aria-label` carrying **both** the visible word and the meaning
+  ("Normal Class: Scheduled class with no issues"). A roleless focusable `<div>` gets a Chromium-computed
+  name that Playwright would pass and a real screen reader would not — the false pass this AC exists to
+  prevent.
+- **A-3** With the hybrid media combination *forced* (CDP `Emulation.setEmulatedMedia`), the hint names tap.
+  This verifies the **swap wiring**, not real hardware: Playwright cannot produce a true `hover: hover` +
+  `any-pointer: coarse` device, and this AC says so rather than posing as a device test.
 - **A-4** No hint names a gesture the code does not implement, in any context.
-- **A-5** No copy change to the tip strings themselves; the legend's four meanings are untouched.
-- **A-6** No behaviour change to the timetable grid, the print sheet, or the arrangement.
+- **A-5** *Guard, already true:* no copy change to the tip strings; the legend's four meanings are untouched.
+- **A-6** *Guard, already true:* no behaviour change to the timetable grid, the print sheet, or the arrangement.
 
 ## 8. Gate
 
 Decision-level amendment to a frozen lane → **round 3 review required**, then the owner's explicit go.
 Nothing applied; no system code touched. `theme.css` items wait for the port regardless.
+
+---
+
+## 9. Rev 2 — round 3 found the blocker that decides this lane
+
+Round 3 verified the findings and corrected several citations (§1–§6 above are amended), but it found that
+the "free" tabindex work is **not free**, and it is right.
+
+### 9.1 The 48 × 48 law applies the moment a legend item can take focus
+
+`[tabindex]:not([tabindex="-1"])` is inside both touch walks:
+`tests/timetable-responsive.spec.ts:260-276` (and its `touch laptop @1440` case, `:1382`) and
+`tests/cohort-venue-responsive.spec.ts:398` — whose comment says the law's only allowance is the native
+`<option>`.
+
+Measured on the live pages, the legend items are **16px tall**:
+
+| Page | items | item box | hint shown at touch |
+|---|---|---|---|
+| `/my-timetable-ui` | 4 | 105 × **16** | TAP |
+| `/cohort-timetable` | 4 | 66 × **16** | TAP |
+| `/venue-timetable-ui` | 5 | 77 × **16** | TAP |
+| `/replacement-arrangement` | 4 | 77 × **16** | TAP |
+| `/my-timetable` (real route) | 0 | — | no legend |
+
+So `tabindex="0"` alone would add four to five R7 offenders per page, at the very contexts the amendment
+cites as safe. My §6 claim that the tabindex work is "safe without the swap" was wrong, and this is the
+second time this lane has been caught assuming a piece of work was free.
+
+### 9.2 The decision this lane now needs — and it is the owner's
+
+| Option | What it means | Cost | Risk |
+|---|---|---|---|
+| **A. 48px floor on coarse pointers** | theme.css (free) gives `.legend-item` a 48×48 minimum under `any-pointer: coarse`; then tabindex is legal | the legend grows from ~16px to 48px per item on every touch device — roughly +32px of page height, four to five times per page | none to the law; the legend becomes visually heavy on iPad |
+| **B. Tap path in the engine** | the shared tip engine gets a `pointerup`-with-`touch` branch: tap shows, next tap / scroll / Escape hides | one shared-JS change; **no** tab stops, so no R7 impact and no size floor | touches a file every page uses; needs a dismissal rule; the lane's "no engine change" stance is reversed |
+| **C. Exempt the legend in both walks** | add a documented exception for `.legend-item` | none in layout | contradicts the law's own written allowance ("the only allowance is the native `<option>`") — the one thing this house does not do quietly |
+
+**The amendment does not pick one.** B is the only option that keeps the promised gesture (`Tap a colour`)
+without changing what the legend looks like, and it is also the largest blast radius. A is the smallest
+change that is fully legal, at the cost of a visibly taller legend on tablets. C is cheapest and worst.
+
+### 9.3 What is ready regardless of that decision
+
+- The **help-text wording** (`student-my-timetable.blade.php:34`) is independent, unblocked, and harmless on
+  its own — but "or focus" is only true once the focus stop exists, so if the owner picks B the wording loses
+  the word "focus" and keeps "Hover, tap".
+- The **swap re-key** (`hover: none` → `any-pointer: coarse`) is now unblocked. Round 3 argues it is a
+  *trade-off, not a bug*: `hover: none` answers "can nothing hover?", `any-pointer: coarse` answers "does a
+  coarse pointer exist?", and on a hybrid the hover copy is not false — it just does not name the second
+  gesture. Recorded as a choice for the owner, with the house's own precedent ("Hover or tap a card") as the
+  middle path.
+- **A-2's carrier** is decided: `role="img"` + `aria-label` carrying label and meaning.
+- **A-3** is a wiring test, A-5/A-6 are guards (marked as such).
+
+### 9.4 Gate
+
+Round 3 raised two blockers; one (A-2's carrier) is now decided in the text, the other (9.1) needs the
+owner's choice between A, B and C before any code. Nothing applied; no system code touched.
