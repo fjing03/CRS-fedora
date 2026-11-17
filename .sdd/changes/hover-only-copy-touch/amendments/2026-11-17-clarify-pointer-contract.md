@@ -172,6 +172,25 @@ change that is fully legal, at the cost of a visibly taller legend on tablets. C
 - **A-2's carrier** is decided: `role="img"` + `aria-label` carrying label and meaning.
 - **A-3** is a wiring test, A-5/A-6 are guards (marked as such).
 
+### 9.3a Owner's decision (2026-11-17): **A — the 48px floor**
+
+The legend items become real controls, so they get the law's size, not an exemption:
+
+```css
+/* Capability, not width: a coarse pointer means a finger, and a finger needs 48px.
+   The legend grows on tablets only; a mouse device keeps today's 16px row. */
+@media (any-pointer: coarse) {
+    .legend-item { min-height: 48px; min-width: 48px; }
+}
+```
+
+Consequence, stated plainly: on touch devices the legend is 48px per row instead of 16px, roughly +32px of
+page height, four to five items. That is the price of keeping the law and satisfying WCAG 1.4.13 at once —
+`hover: none` content must also be reachable by keyboard focus, which the tap-path option (B) would not give.
+
+This also settles the wording: **"Hover, tap or focus"** is now true on all three paths, so the help text
+keeps all three words.
+
 ### 9.4 Gate
 
 Round 3 raised two blockers; one (A-2's carrier) is now decided in the text, the other (9.1) needs the

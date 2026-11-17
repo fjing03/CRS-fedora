@@ -54,6 +54,8 @@ amendment_2026_11_17_pointer_contract:
     - "the real defect is the broken promise: .legend-item has no tabindex and the engine has no touch path, so 'Tap a colour' does nothing"
     - "second location: student-my-timetable.blade.php:32 help text says Hover with no swap"
     - "the swap keys on (hover: none) while the house capability law is (any-pointer: coarse) — hybrids keep the HOVER copy while a finger is on the screen"
+  - "tabindex on a legend item would fail the 48x48 walks (measured 16px tall); round 3 caught this"
+  - "OWNER DECISION 2026-11-17: option A — 48px floor under (any-pointer: coarse), then tabindex"
   files_free: ["resources/views/partials/ui-legend-bar.blade.php", "resources/views/livewire/student-my-timetable.blade.php"]
   files_blocked: ["public/css/theme.css — held by cohort-venue-responsive-port"]
   gate: "round 3 review, then owner explicit go"
