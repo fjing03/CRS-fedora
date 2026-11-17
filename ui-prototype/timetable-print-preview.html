@@ -1,5 +1,230 @@
 <!doctype html>
 <html lang="en" class="dark">
+<!--
+  TIMETABLE PRINT v2 — PROTOTYPE · 15 Nov 2026
+  DESIGN CONTRACT — prompts / SDD / future ports MUST read and follow this block.
+  The full requirement set is `.sdd/changes/timetable-print-v2/design.md`; this
+  block is the summary a porter needs before touching a number, and the comments
+  beside the CSS below (the A4 `@page` block, `.sheet.dense`, the empty-week
+  panel, `.event.narrow`, the two row heights) say why each number is that number.
+  Point here, do not restate the numbers in a prompt.
+
+  SCOPE — the four timetable pages that already render the printer button:
+  My · Student My · Cohort · Venue. The button is REAL (`window.print()`): no
+  in-app print screen, no Back button, no PDF library, no server render, no new
+  dependency. The arrangement page keeps `showPrint => false`. The screen
+  layout is unchanged apart from the real print button, the Normal Class toggle,
+  the venue separator `' - '` -> `' ~ '`, and the print-only nodes
+  (`.ui-print-header`, `.ev-lecturer`, `.hour-12`), which are `display: none` on
+  screen and are the ONLY things print reveals. Those nodes belong to the LIVE
+  pages; THIS FILE is the paper itself — it renders one 12-hour sheet with no
+  screen-only blocks to hide, its screen view IS the print layout, and everything
+  around the sheet (top bar, header row, preview bar, help dialog) is preview
+  furniture marked `no-print`.
+
+  CHROME IS THE LIVE PRINT BAR — the top bar copies the live Replacement
+  Arrangement page: back button on the left, logo + a centred title, theme
+  toggle on the right. The title reads `Print Preview — <page title>` (em dash,
+  spaces either side), never the bare page name: the preview can sit next to the
+  real page and the sheet below already carries the plain `My Timetable` heading
+  (user ruling 2026-11-16). No nav and no user chip, because a printed page never
+  shows the app shell. The routes are role-gated (`role:lecturer` on My / Cohort /
+  Venue, `role:student` on Student My), so nobody can open another role's
+  timetable — which is why the preview picker offers a lecturer/PL only My ·
+  Cohort · Venue and offers a student NOTHING at all; the student sheet is reached
+  from the help box instead and its role is read from its own title (`Student My
+  Timetable`), never from a chip that could lie. Below that bar the header is
+  THREE in-flow sections on one centred line — semester chip LEFT, preview picker
+  on the page's CENTRE line, guide opener RIGHT — all sharing `align-items:
+  center`. Nothing is pinned, floated or transform-nudged, so the three cannot
+  drift out of vertical alignment the way an absolutely positioned button did, and
+  the picker is centred by the two equal `1fr` gutters rather than by an offset
+  (user ruling 2026-11-16). The picker's chips read 13px — one step larger than
+  the 11px bar chips they replaced — so they look like header controls, not
+  footnotes.
+
+  TOOLTIPS — every hover tooltip on these pages (and on anything ported from
+  them) MUST follow the live system's tooltip design: the shared `data-tip`
+  attribute plus the `.preview-button[data-tip]::after` pill (dark `--app-text`
+  chip, `--app-surface` text, 11px/600, 6px radius, 8px under the control,
+  visible on hover AND focus-visible). Never hand-roll a second popover — no
+  native `title=` tooltip next to it, no bespoke card, no arrow. A control that
+  sits at the right edge anchors its pill with `right: 0`; one near the left edge
+  uses `left: 0` (the info icon does) so the text never leaves the page (user
+  ruling 2026-11-16).
+
+  ONE SHEET — a very full week must still fit one A4 landscape page. Dense mode is
+  the page-level lever and never touches a font size; the ONLY type that moves is
+  a block's own centre when its cohort list is long, and that is a per-block
+  measurement (BLOCK LAYOUT), never a page-wide shrink.
+  A4 landscape + 8mm margin = 1123 x 794 CSS px at 96dpi, and the sheet also
+  carries its own size because a browser that ignores @page falls back to
+  portrait. Paper is LIGHT in either screen theme: the fixed `--p-*` palette at
+  the top of the stylesheet is paper, never the app's dark tokens.
+
+  ONE HEADER — title + subtitle left, centred context, semester chip + week line
+  right, one rule under it; printed once on the first sheet, while only the
+  table `thead` repeats on later sheets. Context per page: staff name + the
+  staff ID in parentheses (My), student name + the student ID in parentheses
+  (Student, subtitle `Cohort: <code>`), selected cohort code (Cohort, subtitle
+  `Faculty: <code>`), `<venue code> — <venue name>` (Venue; `Select a venue`
+  when both are empty — never a bare `—`). One em dash, spaces either side, the
+  same separator the block times use; the ASCII `--` it replaced read as a code
+  artefact on paper (user ruling 2026-11-16). The ID prints ONLY where the
+  context is a person, because a cohort code and a room code already identify
+  themselves (user ruling 2026-11-16) — a cohort sheet that grew `(…)` would read
+  as a person's ID. The week line is TWO parts, never one run-on string: the
+  count (`Week 5 of 14`) is set heavier in `--p-on-surface`, the date range is the
+  quieter note beside it in `--p-on-surface-variant` (user ruling 2026-11-16).
+  While the Normal Class view is on, that line reads `Week 1 ~ 14 (Whole
+  Semester)` — the range, not a date range the sheet cannot own. In the preview
+  bar the label stays left, the sample + print controls stay right, and the Normal
+  Class toggle sits on the bar's centre line.
+
+  PRINT READS 12-HOUR TIME — on the live pages `.hour-24` shows on screen and
+  `.hour-12` in print (the swap lives in the print block, not the builder); this
+  file prints 12-hour everywhere, because it IS the paper. Block times keep the
+  ` ~ ` separator, and the bottom label is `hours[i + 2]`, not `[i + 1]`.
+  Each hour header prints its START over its END in the live system's shape
+  (`<th class="hour-header" colspan="2">` + `.hour-top` / `.hour-bottom`,
+  `ui-common.js:1064`): the top line carries the header's weight, the bottom sits
+  at 0.82em and 60% opacity, and the final hour's end comes from the same
+  `addHalfHour` fallback the live builder uses — so no printed column leaves the
+  reader to work out where it stops (user ruling 2026-11-16). The day cell's
+  `day-label` + `date-label` stack is centred in its column; in the normal view
+  the date is dropped and the day prints alone, upper-cased at 13px, because that
+  sheet has no dated week to name (user ruling 2026-11-16). A Sunday row with no
+  class and no holiday is skipped entirely — six rows print, not seven, unless
+  Sunday has something real to say (user ruling 2026-11-16).
+  The lecturer never prints as a full name — one surname only, in the top-right
+  corner of Student / Cohort / Venue, and nothing at all on My Timetable, whose
+  corner carries the course (see BLOCK LAYOUT). Never the Cohort `YOU` label,
+  never the `—` placeholder.
+
+  BLOCK LAYOUT — two quiet corners and one loud centre (user ruling 2026-11-16).
+  Top-left is the venue and top-right the lecturer's SINGLE surname with no
+  honorific (`En. Lim Jia Zheng` → `Lim`, `Dr Tan` → `Tan`: the honorific is
+  stripped and the first remaining token wins, because Malaysian Chinese names put
+  the surname first). The centre is the sheet's subject in bold: the COURSE on
+  Student and Cohort, the COHORTS on Venue and on My Timetable. Two overrides:
+  Venue puts the COURSE in the top-left (the venue already names the page, so
+  repeating it is noise — it prints nowhere on that sheet), and My Timetable swaps
+  its two right-hand facts — the COURSE moves to the top-right and the COHORTS take
+  the centre, because a lecturer reading their own week already knows the course and
+  needs to know who is in the room. Where cohorts lead, they list ONE PER ROW, never
+  joined with ` + ` (the centre stacks `RSD3(S1)G2` / `DFT1(S1)G1` / `RBU2(S1)G1`),
+  because a room full of three groups is a list, not a sentence. The centre FITS
+  ITSELF — `fitBlockCentres()` measures each block with three or more centre lines
+  after the rows are built and shrinks the type half a pixel at a time until
+  `scrollHeight` stops exceeding `clientHeight` — which catches what no line count
+  can: a long code wrapping to two lines, a seven-cohort list, a one-hour block
+  whose corners eat the width. The size rides the stylesheet as `--ev-main-size`
+  (screen) and `--ev-main-size-print` (paper, same ratio), never below 7px, and the
+  pass re-runs on every rebuild and on resize (debounced 120ms). The staff My sheet
+  takes its cohorts from the snapshot (`ui-prototype/my-timetable-mobile-preview.html`
+  sends `e.cohorts`; the hash validator accepts an optional list of up to 20
+  strings) — ids 101, 106 and 107 in its mock data are shared; an older link with no
+  cohorts falls back to the course in the centre, never an empty block. The time
+  range keeps its place under the centre line, 3px below it and 2px smaller, and a
+  note — `(Replaced for 25-Dec-2026)` — sits on the block's bottom CENTRE line, hard
+  against the foot, in every block type, at 5.5px on screen / 4.5px on paper, and
+  the fit pass reserves its strip so it can never print over the clock. Both corners and the note sit at weight 500
+  and 80–85% opacity, never 600/700 like the old code line, so the bold centre owns
+  the block. A centre of TWO OR MORE lines is pushed clear of the corners by a
+  MEASURED band: the builder inserts an empty `.ev-band` and `fitBlockCentres()`
+  sets its height from the tallest corner that actually rendered plus 3px
+  (`--ev-band` on screen, `--ev-band-print` on paper, scaled by the corner's print
+  size) — so a long course label or a wrapped surname opens its own gap instead of
+  a hard-coded padding, and a one-line centre keeps its old position. Corners clip
+  with an ellipsis instead of wrapping, so a long venue or surname can never push
+  the centre off-axis.
+
+  NO INVENTED STATUS WORD — the live grid has no `.ev-status`
+  span at all, and the only words it adds (`✕ Cancelled` / `⚠ Conflict`) sit
+  behind a 1280px rule that a ~1047px printed page never matches. A replacement
+  is known by its note alone — `(Replaced for 25-Dec-2026)`, built from
+  `e.remarks` (the ORIGINAL class's date in `d-M-Y`, never a lecturer name) by
+  the shared `buildReplacementNote()`, and it keeps that function's live
+  ownership gate: another lecturer's request facts do not print on the room
+  sheet. A conflict block therefore prints red with no word — the key explains
+  the colour. A PUBLIC-HOLIDAY row goes further in the prototype: every block on
+  it paints in that same conflict red, because no class runs on a PH and a green
+  block under a red `[Hn]` mark told two stories at once (user ruling 2026-11-16).
+  The blocks keep their content; only the skin changes.
+
+  NORMAL CLASS VIEW — the toggle means "the semester's normal timetable", on all
+  four pages: a normal class repeats every teaching week, so the filter drops
+  EVERY other status before the grid is built — replacement and conflict blocks,
+  plus every trace of a public holiday (the `[Hn]` day mark, its note, and the
+  day's off-shading: a PH day prints as an ordinary teaching day). The sheet then
+  stops dating itself to one week and states the range instead: `Week 1 ~ 14`
+  followed by `(Whole Semester)` (user ruling 2026-11-16). Filter the DATA, never hide
+  rendered blocks with CSS, so the empty message ("No normal classes.") and the
+  printed key stay true; the whole legend is hidden — every chip including the
+  Normal one, plus the ownership hint — because a key for a single status explains
+  nothing and would leave an empty row above the notes (user ruling 2026-11-16).
+  The screen chrome keeps the summary, nav and footer. Pending and cancelled are already gone (PAPER SHOWS WHAT RUNS).
+  The sheet's state class is `normal-view`, deliberately NOT the toggle's own
+  `.normal-only` — that label sets weight 600, `cursor: pointer`, `nowrap` and a
+  flex display, so a sheet carrying it turned bold the moment the switch went on
+  (fixed 2026-11-16).
+
+  VENUE ON PAPER — only the class blocks are marked. Free/bookable, "not enough
+  slot", "too soon", held and public-holiday cells all print as bare paper,
+  because the printed sheet answers "what classes are on this week", not "what
+  can I book" — the hover words and the booking colours cannot be read on a
+  printer anyway. The printed key carries three chips (Normal, Replacement,
+  Conflict / Public Holiday) — see PAPER SHOWS WHAT RUNS for the Pending chip,
+  and "Available" is screen-only, since blank now also means held, too soon and
+  holiday — an empty box no longer reads as "free". The key STACKS: the three
+  chips on one line, the ownership hint (`thick border = your classes · thin
+  border = others'`) on the next line, hard left under them (user ruling
+  2026-11-16) — as a `space-between` row the two halves were flung to opposite
+  edges of the page and read as unrelated. The SCREEN keeps every
+  colour and the five-chip key: this is a print rule, and no screen rule moves
+  (2026-11-16 user ruling). Note the `.cell-available.cell-no-fit` red day-end
+  arm is retired in the live page (2026-11-14), so "no-fit stays red on paper" in
+  design.md is stale.
+
+  PAPER SHOWS WHAT RUNS — pending and cancelled blocks do NOT print (user ruling
+  2026-11-16); the SCREEN keeps both exactly as today (cancelled stays the loud
+  conflict red on personal timetables, law 2026-10-27). Pending is a request
+  awaiting approval, cancelled is history — neither is a class that will run, so
+  neither belongs on a sheet someone pins to a wall. Filter the DATA before the
+  grid is built; never hide rendered blocks with print CSS, or the empty-week
+  message would lie. Consequences: the printed key loses its Pending chip (three
+  chips left), density counts replacement only, and the `[n]` pending-note
+  machinery dies with the blocks. A week whose only blocks are pending prints
+  the "no classes" panel, which is the truth on paper.
+
+  DENSE MODE — computed from the blocks that will actually print, after the
+  filter and after pending/cancelled are gone: more than 32 blocks, or more than
+  6 replacement. It toggles `dense` on the `.sheet` root and applies on SCREEN as
+  well as on paper, because the preview must not lie about the paper. Dense
+  tightens block padding/gap and the child line-heights and drops `min-height`; it
+  never touches a font size, and it never flattens the OWNERSHIP KEY — yours `3px`
+  vs others' `1px` on screen, `2px` vs `1px` on paper. Both widths move together
+  or not at all, or the key would be false.
+
+  PAGE BREAKS — `thead` repeats, day rows avoid breaking, no printed summary
+  strip, and adding the header must not push the legend onto an empty second
+  page; that is why the legend block and the paper foot both set
+  `break-inside: avoid`.
+
+  PREVIEW-ONLY, NOT FOR THE PORT — the `.print-notes` holiday list, the
+  `.paper-foot` at the bottom of the sheet (one line only: the week it used to
+  repeat in the corner is already printed in the header — user ruling
+  2026-11-16), the `.page-chip` picker in the page header and the
+  `#rolePreviewLine` door in the help box are the prototype's own preview
+  furniture: design.md's dense-mode section says the real page prints neither
+  notes nor footer, and the real pages are separate routes, so no page picker and
+  no role door exist in the product. Treat that as the open question at apply, not
+  as a requirement to copy. Also prototype-only: the `Busy week sample` button
+  (temporary 48-class stress week — remove it before shipping), the `?page=` query
+  that chooses a sheet, and this file's dummy data — week 5's one sample public
+  holiday (Wed 7 Oct), the five-cohort B110 replacement on Monday, and the other
+  multi-cohort classes.
+-->
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -66,6 +291,8 @@
         transition: background 0.15s ease, color 0.15s ease;
     }
 
+    /* 2026-11-16 (user): one centred title between an absolute back button and an
+       absolute theme toggle — the live Replacement Arrangement bar. */
     .top-bar {
         position: sticky;
         top: 0;
@@ -73,14 +300,37 @@
         height: 56px;
         display: flex;
         align-items: center;
+        justify-content: center;
         background: var(--app-topbar);
         border-bottom: 1px solid var(--app-topbar-border);
-        padding: 0 20px;
+        padding: 0 16px;
         backdrop-filter: blur(20px);
         -webkit-backdrop-filter: blur(20px);
     }
 
+    .top-center {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        min-width: 0;
+    }
+
+    .top-title {
+        font-size: 18px;
+        font-weight: 700;
+        letter-spacing: -0.2px;
+        color: var(--app-on-topbar);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        min-width: 0;
+    }
+
     .back-btn {
+        position: absolute;
+        left: 16px;
+        top: 50%;
+        transform: translateY(-50%);
         height: 36px;
         padding: 0 14px;
         border: 0;
@@ -95,18 +345,16 @@
         font-weight: 500;
         font-family: inherit;
         cursor: pointer;
-        flex-shrink: 0;
-        margin-right: 10px;
         box-shadow: 0 2px 8px rgba(0, 0, 0, 0.10), 0 1px 3px rgba(0, 0, 0, 0.06);
         transition: transform 0.15s, box-shadow 0.15s;
     }
 
     .back-btn:hover {
-        transform: scale(1.04);
+        transform: translateY(-50%) scale(1.04);
         box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15), 0 1px 4px rgba(0, 0, 0, 0.08);
     }
 
-    .back-btn:active { transform: scale(0.96); }
+    .back-btn:active { transform: translateY(-50%) scale(0.96); }
 
     .back-btn:focus-visible {
         outline: 2px solid var(--app-primary);
@@ -148,55 +396,11 @@
         opacity: 0.9;
     }
 
-    .nav-items {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        gap: 4px;
-        flex: 1;
-        height: 100%;
-    }
-
-    .nav-item {
-        height: 32px;
-        display: flex;
-        align-items: center;
-        padding: 0 14px;
-        font-size: 13px;
-        font-weight: 500;
-        color: var(--app-on-topbar);
-        text-decoration: none;
-        border-radius: 8px;
-        opacity: 0.75;
-        white-space: nowrap;
-        transition: background 0.15s, opacity 0.15s;
-    }
-
-    .nav-item:hover {
-        opacity: 1;
-        background: rgba(255, 255, 255, 0.08);
-    }
-
-    html:not(.dark) .nav-item:hover {
-        background: rgba(7, 27, 51, 0.08);
-    }
-
-    .nav-item.active {
-        opacity: 1;
-        font-weight: 600;
-        background: var(--app-primary-solid);
-        color: #FFFFFF;
-    }
-
-    .top-right {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        flex-shrink: 0;
-        padding-left: 20px;
-    }
-
     .theme-toggle {
+        position: absolute;
+        right: 16px;
+        top: 50%;
+        transform: translateY(-50%);
         width: 32px;
         height: 32px;
         border: 0;
@@ -206,7 +410,6 @@
         cursor: pointer;
         display: grid;
         place-items: center;
-        flex-shrink: 0;
     }
 
     html:not(.dark) .theme-toggle {
@@ -214,72 +417,46 @@
     }
 
     .theme-toggle:hover { opacity: 0.85; }
-    .theme-toggle:active { transform: scale(0.95); }
+    .theme-toggle:active { transform: translateY(-50%) scale(0.95); }
 
-    .user-panel {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-    }
-
-    .user-avatar {
-        width: 32px;
-        height: 32px;
-        border-radius: 50%;
-        background: var(--app-primary-solid);
-        color: #FFFFFF;
-        font-size: 11px;
-        font-weight: 800;
-        display: grid;
-        place-items: center;
-    }
-
-    .user-info {
-        display: flex;
-        flex-direction: column;
-        line-height: 1.1;
-    }
-
-    .user-name {
-        font-size: 12px;
-        font-weight: 600;
-        color: var(--app-text);
-    }
-
-    .user-role {
-        font-size: 10px;
-        color: var(--app-muted);
-    }
-
+    /* 2026-11-16 (user): THREE SECTIONS on one line — semester left, page picker
+       on the page's centre line, guide opener right. All three are ordinary
+       in-flow grid items sharing `align-items: center`: nothing is pinned,
+       floated or nudged with transforms, so the row cannot drift out of vertical
+       alignment and the picker is centred by the two equal `1fr` gutters rather
+       than by an absolute offset. */
     .page-header {
         width: 100%;
         max-width: 1123px;
         margin: 0 auto;
         padding: 18px 24px 0;
-        display: flex;
-        justify-content: space-between;
-        align-items: flex-start;
+        display: grid;
+        grid-template-columns: 1fr auto 1fr;
+        align-items: center;
         gap: 12px;
     }
 
-    .page-title {
-        margin: 0;
-        font-size: 22px;
-        line-height: 1.2;
-        font-weight: 700;
-        color: var(--app-text);
+    .page-header-left,
+    .page-header-center,
+    .page-header-right {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        min-width: 0;
     }
 
-    .page-chips { margin-top: 6px; }
+    .page-header-left { justify-self: start; }
+    .page-header-center { justify-self: center; }
+    .page-header-right { justify-self: end; }
 
     .page-header .semester-chip {
         display: inline-flex;
         align-items: center;
-        padding: 3px 12px;
+        padding: 4px 14px;
         border-radius: 999px;
         background: var(--app-primary-soft);
         color: var(--app-primary);
-        font-size: 12px;
+        font-size: 14px;
         font-weight: 600;
     }
 
@@ -315,6 +492,11 @@
         vertical-align: middle;
     }
 
+    /* TOOLTIP LAW (2026-11-16, user): this is THE tooltip the system uses. Any
+       control that needs a hover hint reuses `data-tip` and this pill — same
+       colours, size, radius and offset — never a native `title=` or a bespoke
+       popover. `right: 0` anchors under a right-edge control; `.tip-start` swaps
+       it to `left: 0` for controls near the left edge. */
     .preview-button[data-tip] { position: relative; }
 
     .preview-button[data-tip]::after {
@@ -393,6 +575,7 @@
     }
 
     .help-dialog .detail-group p { margin: 0; }
+    .help-dialog .detail-group a { color: var(--app-primary); font-weight: 600; }
 
     .help-dialog .dialog-actions {
         display: flex;
@@ -401,6 +584,7 @@
     }
 
     .preview-bar {
+        position: relative;
         width: 100%;
         max-width: 1123px;
         margin: 14px auto 0;
@@ -414,6 +598,16 @@
         border-radius: 10px;
     }
 
+    /* 2026-11-16 (user): the Normal Class toggle sits on the bar's centre line,
+       between the label on the left and the sample + print controls on the right,
+       so the bar balances instead of crowding everything to one edge. */
+    .preview-bar .normal-only {
+        position: absolute;
+        left: 50%;
+        top: 50%;
+        transform: translate(-50%, -50%);
+    }
+
     .preview-label {
         display: flex;
         flex-direction: column;
@@ -423,6 +617,62 @@
 
     .preview-label strong { font-size: 12px; }
     .preview-label span { font-size: 11px; color: var(--app-muted); }
+
+    .preview-label-head {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .preview-button.info-tip {
+        width: 24px;
+        height: 24px;
+        min-width: 0;
+        min-height: 0;
+        padding: 0;
+        border-radius: 50%;
+        background: transparent;
+        color: var(--app-muted);
+    }
+
+    .preview-button.info-tip .preview-icon { width: 14px; height: 14px; }
+
+    /* The icon sits near the left edge of the bar, so its tooltip must open to the
+       RIGHT — the shared rule anchors the help button's tooltip to the left. */
+    .preview-button.info-tip[data-tip]::after {
+        left: 0;
+        right: auto;
+    }
+
+    /* PREVIEW-ONLY page picker (see the note at its markup). Four chips, one per
+       printed page, so a reviewer never has to know `?page=student`. */
+    .page-picker {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 6px;
+    }
+
+    .page-chip {
+        font: inherit;
+        font-size: 13px;
+        font-weight: 600;
+        line-height: 1;
+        padding: 6px 12px;
+        border: 1px solid var(--app-border);
+        border-radius: 999px;
+        background: transparent;
+        color: var(--app-muted);
+        cursor: pointer;
+    }
+
+    .page-chip:hover { color: var(--app-text); }
+
+    .page-chip[aria-pressed="true"] {
+        background: var(--app-primary-soft);
+        border-color: var(--app-primary);
+        color: var(--app-primary);
+    }
 
     .controls {
         display: flex;
@@ -622,6 +872,16 @@
         white-space: nowrap;
     }
 
+    /* 2026-11-16 (user): "week 5 of 14" and the date range are two different
+       facts, so they no longer read as one string — the count is the anchor and
+       the dates sit beside it as the quieter note. */
+    .week-line .week-count {
+        font-weight: 700;
+        color: var(--p-on-surface);
+    }
+
+    .week-line .week-dates { color: var(--p-on-surface-variant); }
+
     .grid-wrap {
         border: 1px solid var(--p-outline);
         border-radius: 4px;
@@ -684,9 +944,26 @@
         letter-spacing: 0.2px;
     }
 
+    /* Live design (`theme.css` :3239): start on top, end beneath it, lighter and
+       smaller. Sized in `em` so the print block's 8.5px header scales both. */
+    .hour-header .hour-top {
+        display: block;
+        font-weight: 700;
+        line-height: 1.15;
+    }
+
+    .hour-header .hour-bottom {
+        display: block;
+        font-size: 0.82em;
+        font-weight: 500;
+        line-height: 1.15;
+        opacity: 0.6;
+    }
+
     tbody th.day-col {
         padding: 4px 6px;
-        text-align: left;
+        /* 2026-11-16 (user): the day + date stack is centred in its column. */
+        text-align: center;
         background: var(--p-surface-variant);
         font-weight: 700;
     }
@@ -706,6 +983,17 @@
         white-space: nowrap;
     }
 
+    /* 2026-11-16 (user): the normal view is the semester's recurring pattern, not
+       a dated week — there is no date to print. The day alone stays, upper-cased
+       and one step larger, so a row is still easy to find on paper. */
+    .sheet.normal-view .date-label { display: none; }
+
+    .sheet.normal-view .day-label {
+        font-size: 13px;
+        letter-spacing: 0.4px;
+        text-transform: uppercase;
+    }
+
     /* Round 3: the day cell only carries Public Holiday [Hn]. Full holiday
        names appear below the grid; wrapping here is a narrow-paper fallback. */
     .holiday-label {
@@ -714,7 +1002,9 @@
         font-size: 8px;
         font-weight: 500;
         line-height: 1.25;
-        color: var(--p-on-surface-variant);
+        /* 2026-11-16 (user): a holiday is an exception to the timetable, so its
+           mark wears the same red the key uses for Conflict / Public Holiday. */
+        color: var(--p-error);
         white-space: normal;
         overflow-wrap: anywhere;
     }
@@ -733,6 +1023,7 @@
     td.slot.empty { background: var(--p-surface); }
 
     .event {
+        position: relative;
         height: 100%;
         min-height: 80px;
         padding: 5px 6px;
@@ -773,30 +1064,73 @@
 
     .event.others { border-width: 1px; }
 
-    .ev-code {
-        font-size: 13px;
+    /* The printed block answers its page at a glance: two quiet corners, one
+       bold centre, the time at the foot, the note bottom-right (user ruling
+       2026-11-16). */
+    .ev-corner {
+        position: absolute;
+        top: 2px;
+        max-width: 47%;
+        font-size: 9.5px;
+        /* 2026-11-16 (user): the corners are quiet furniture, not content — a
+           lighter weight than the block, so the eye lands on the centre line. */
+        font-weight: 500;
+        line-height: 1.15;
+        opacity: 0.8;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .ev-corner-left { left: 4px; }
+    .ev-corner-right { right: 4px; }
+
+    /* 2026-11-16 (user): the centre's size is FLEXIBLE, not one fixed step. A
+       block with a long cohort list sets `--ev-main-size` /
+       `--ev-main-size-print` inline (the builder scales by line count), and
+       everything else falls back to the normal sizes below. */
+    .ev-main {
+        font-size: var(--ev-main-size, 14px);
         font-weight: 800;
+        line-height: 1.1;
         white-space: normal;
+        overflow-wrap: anywhere;
     }
 
-    .ev-lecturer {
-        font-size: 10px;
-        font-weight: 600;
-        opacity: 0.9;
-        white-space: normal;
+    .ev-main-line { display: block; }
+
+    /* Height is set inline from the measured corner band; 0 keeps a single-line
+       centre exactly where it was. */
+    .ev-band {
+        display: block;
+        flex: none;
+        height: var(--ev-band, 0px);
     }
 
-    .ev-venue,
     .ev-time {
-        font-size: 11px;
+        /* 2026-11-16 (user): both the centre and the clock drop 2px, and the clock
+           gets a little air between it and the line above. */
+        margin-top: 3px;
+        font-size: 9px;
         opacity: 0.82;
         white-space: normal;
     }
 
     .ev-note {
-        font-size: 9.5px;
-        font-weight: 700;
-        opacity: 0.9;
+        /* 2026-11-16 (user): centred on the block's axis, stuck to its foot. */
+        position: absolute;
+        left: 3px;
+        right: 3px;
+        bottom: 2px;
+        /* 2026-11-16 (user): the note drops 3px below its old size, so it reads as
+           a footnote under the block instead of competing with the centre. */
+        font-size: 5.5px;
+        /* Same rule as the corners: the note is an annotation, so it matches
+           their lighter weight instead of shouting over the block (2026-11-16). */
+        font-weight: 500;
+        line-height: 1.1;
+        opacity: 0.85;
+        text-align: center;
     }
 
     /* Round 2: narrow blocks get complete clock lines, not a stranded AM/PM.
@@ -804,29 +1138,32 @@
     .event.narrow { padding-left: 3px; padding-right: 3px; }
     /* Long codes such as BMCS3404-ADVANCED (P) must wrap inside the block
        instead of crossing its border. Normal codes still stay on one line. */
-    .event.narrow .ev-code {
-        font-size: 10.5px;
+    /* A one-hour block is only ~2 slots wide, so its corners step down too — the
+       cohort corner (`RSD3 (S1) G1 +1`) would otherwise clip at the very first
+       code. It still clips rather than folds; the corners never wrap. */
+    .event.narrow .ev-corner { font-size: 8.5px; }
+
+    .event.narrow .ev-main {
+        font-size: var(--ev-main-size, 10px);
         white-space: normal;
         overflow-wrap: anywhere;
         word-break: break-word;
         hyphens: auto;
     }
     .ev-time-part { display: block; white-space: nowrap; }
-    .ev-status { font-size: 9.5px; font-weight: 700; line-height: 1.2; }
     .print-notes { display: flex; flex-wrap: wrap; gap: 3px 16px; font-size: 8px; line-height: 1.35; color: var(--p-on-surface-variant); }
     .print-notes:empty { display: none; }
     .print-note { margin: 0; }
-    .sheet.normal-only .pending-notes { display: none; }
 
-    .sheet.normal-only .event:not(.normal) {
-        display: none;
-    }
-
-    .sheet.normal-only .legend-item:not(.legend-normal) {
-        display: none;
-    }
-
-    .sheet.normal-only .ownership-hint {
+    /* The sheet's state class is `normal-view`, NOT `normal-only`: that name
+       already belongs to the toggle label (display: inline-flex, weight 600,
+       nowrap, pointer cursor), so a sheet carrying it inherited all of those and
+       the subtitle turned bold the moment the switch went on (2026-11-16). */
+    /* 2026-11-16 (user): the whole key goes in the normal view — every chip,
+       Normal included, and the ownership hint with them. A key for one status
+       explains nothing, and hiding the block (not just its chips) leaves no empty
+       row above the notes. */
+    .sheet.normal-view .legend {
         display: none;
     }
 
@@ -862,7 +1199,10 @@
     .swatch.available { background: var(--p-surface); border-color: var(--p-outline-strong); }
 
     .ownership-hint {
-        margin-left: auto;
+        /* Stacked under the chips (user ruling 2026-11-16): as a space-between
+           row the key and the hint sat at opposite edges of the page. */
+        flex-basis: 100%;
+        margin-left: 0;
         font-size: 8px;
         color: var(--p-on-surface-variant);
         white-space: nowrap;
@@ -905,13 +1245,19 @@
 
     @media (max-width: 900px) {
         .top-bar { padding: 0 12px; }
-        .top-logo { margin-right: 0; }
-        .nav-items { display: none; }
         .back-btn { width: 36px; padding: 0; }
         .back-btn span { display: none; }
+        /* The title now carries a prefix, so it must not run under the round
+           back button and the theme toggle on a phone: cap the centred group
+           and let the ellipsis cut it instead. */
+        .top-center { max-width: calc(100% - 128px); }
+        .top-title { font-size: 15px; }
         .page-header,
         .preview-bar { padding-left: 12px; padding-right: 12px; }
+        .page-header { grid-template-columns: 1fr auto; row-gap: 10px; }
+        .page-header-center { grid-column: 1 / -1; grid-row: 2; justify-self: stretch; justify-content: center; }
         .preview-bar { flex-wrap: wrap; }
+        .preview-bar .normal-only { position: static; transform: none; }
         .sheet { min-height: 0; padding: 20px; }
         .preview-wrap { padding: 12px; }
     }
@@ -1031,19 +1377,19 @@
 
         .event.others { border-width: 1px; }
 
-        .ev-code { font-size: 12px; }
-        .ev-lecturer { font-size: 9px; }
-        .ev-venue,
-        .ev-time { font-size: 10.5px; }
-        .ev-note { font-size: 9px; }
-        .event.narrow .ev-code {
-            font-size: 10.5px;
+        .ev-main { font-size: var(--ev-main-size-print, 11.5px); }
+        .ev-band { height: var(--ev-band-print, 0px); }
+        .ev-corner { font-size: 8px; }
+        .ev-time { font-size: 8.5px; }
+        .ev-note { font-size: 4.5px; }
+        .event.narrow .ev-corner { font-size: 7px; }
+        .event.narrow .ev-main {
+            font-size: var(--ev-main-size-print, 9px);
             white-space: normal;
             overflow-wrap: anywhere;
             word-break: break-word;
             hyphens: auto;
         }
-        .ev-status { font-size: 9px; }
         .print-notes { margin-top: 3px; font-size: 8px; break-inside: avoid; }
 
         /* Dense weeks also pull the notes and footer closer in print. */
@@ -1070,6 +1416,10 @@
         <circle cx="12" cy="12" r="9"/>
         <path d="M9 9a3 3 0 0 1 6 0c0 2-3 2-3 5M12 17h.01"/>
     </symbol>
+    <symbol id="i-info" viewBox="0 0 24 24">
+        <circle cx="12" cy="12" r="9"/>
+        <path d="M12 11v5M12 8h.01"/>
+    </symbol>
 </svg>
 
 <header class="top-bar no-print">
@@ -1080,46 +1430,52 @@
         </svg>
         <span>Back</span>
     </button>
-    <div class="top-logo" aria-label="TAR UMT logo placeholder">
-        <span class="logo-crest">
-            <span class="logo-tar">TAR</span>
-            <span class="logo-umt">UMT</span>
+    <!-- 2026-11-16 (user): the bar matches the live Replacement Arrangement page
+         — back button, logo + page title centred, theme toggle. No nav and no
+         user chip: the printed page never shows the app shell, and a role cannot
+         open another role's timetable anyway (`role:lecturer` / `role:student`). -->
+    <div class="top-center">
+        <span class="top-logo" aria-label="TAR UMT logo placeholder">
+            <span class="logo-crest">
+                <span class="logo-tar">TAR</span>
+                <span class="logo-umt">UMT</span>
+            </span>
         </span>
+        <span class="top-title" id="pageTitle">Print Preview — My Timetable</span>
     </div>
-
-    <nav class="nav-items" aria-label="Main navigation">
-        <a href="#" class="nav-item" data-page="my">My Timetable</a>
-        <a href="#" class="nav-item" data-page="cohort">Cohort Timetables</a>
-        <a href="#" class="nav-item" data-page="venue">Venue Timetable</a>
-        <a href="#" class="nav-item">My Replacements</a>
-    </nav>
-
-    <div class="top-right">
-        <button type="button" class="theme-toggle" id="themeBtn" aria-label="Toggle theme">
-            <svg id="themeIcon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
-            </svg>
-        </button>
-        <div class="user-panel">
-            <div class="user-avatar" id="userAvatar">SU</div>
-            <div class="user-info">
-                <span class="user-name" id="userName">Staff User</span>
-                <span class="user-role" id="userRole">Lecturer</span>
-            </div>
-        </div>
-    </div>
+    <button type="button" class="theme-toggle" id="themeBtn" aria-label="Toggle theme">
+        <svg id="themeIcon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+        </svg>
+    </button>
 </header>
 
 <div class="page-header no-print">
-    <div>
-        <h1 class="page-title" id="pageTitle">My Timetable</h1>
-        <div class="page-chips">
-            <span class="semester-chip" id="pageSemester">Semester 202605</span>
+    <!-- the title moved into the top bar (live replacement-arrangement pattern):
+         LEFT semester · CENTRE page picker · RIGHT guide opener, one centred row -->
+    <div class="page-header-left">
+        <span class="semester-chip" id="pageSemester">Semester 202605</span>
+    </div>
+    <div class="page-header-center">
+        <!-- PREVIEW-ONLY page picker (2026-11-16, user): the printed pages are
+             separate routes in the live app, so this control exists nowhere in
+             the product. It mirrors the role rule — a lecturer/PL (My · Cohort ·
+             Venue) gets the three pages they can open; a student gets NOTHING,
+             because a student owns one timetable and can never open a lecturer's
+             (`routes/web.php`: `role:lecturer` on those three, `role:student` on
+             Student My). The student sheet is opened from the help box instead,
+             so the row never offers a page the role cannot own. Never port it. -->
+        <div class="page-picker" role="group" aria-label="Preview page">
+            <button type="button" class="page-chip" data-preview-page="my" aria-pressed="true">My</button>
+            <button type="button" class="page-chip" data-preview-page="cohort" aria-pressed="false">Cohort</button>
+            <button type="button" class="page-chip" data-preview-page="venue" aria-pressed="false">Venue</button>
         </div>
     </div>
-    <button type="button" class="preview-button preview-icon-button" id="previewHelp" aria-label="How to use this page" data-tip="How to use this page">
-        <svg class="preview-icon" fill="none" stroke="currentColor" stroke-width="2"><use href="#i-help"></use></svg>
-    </button>
+    <div class="page-header-right">
+        <button type="button" class="preview-button preview-icon-button" id="previewHelp" aria-label="How to use this page" data-tip="How to use this page">
+            <svg class="preview-icon" fill="none" stroke="currentColor" stroke-width="2"><use href="#i-help"></use></svg>
+        </button>
+    </div>
 </div>
 
 <dialog class="help-dialog no-print" id="helpDialog" aria-labelledby="helpTitle">
@@ -1137,6 +1493,11 @@
         <div class="detail-group">
             <div class="detail-group-title">This preview</div>
             <p>Standalone print preview. Choose a week in My Timetable, then use <strong>Print / Save PDF</strong>. None of its actions change the real system.</p>
+            <!-- PREVIEW-ONLY role door (2026-11-16, user): a student owns one
+                 timetable and a lecturer can never open it, so the student sheet
+                 has no place in the page picker. This line is the way in (and
+                 back out) for a reviewer. Never port it. -->
+            <p id="rolePreviewLine"></p>
         </div>
         <div class="dialog-actions">
             <button class="preview-button" value="close">Close</button>
@@ -1146,8 +1507,16 @@
 
 <div class="preview-bar no-print">
     <div class="preview-label">
-        <strong>Print preview</strong>
-        <span>A4 landscape · 8 mm margin · the paper stays light</span>
+        <div class="preview-label-head">
+            <strong>Print preview</strong>
+            <!-- 2026-11-16 (user): the paper facts moved off the line into this
+                 info tooltip, so the bar reads as one short label. -->
+            <button type="button" class="preview-button preview-icon-button info-tip" id="previewInfo"
+                    aria-label="A4 landscape · 8 mm margin · the paper stays light"
+                    data-tip="A4 landscape · 8 mm margin · the paper stays light">
+                <svg class="preview-icon" fill="none" stroke="currentColor" stroke-width="2"><use href="#i-info"></use></svg>
+            </button>
+        </div>
     </div>
     <div class="controls">
         <button type="button" id="busySampleBtn" class="sample-btn" aria-pressed="false" title="Temporary 48-class test week">Busy week sample</button>
@@ -1176,7 +1545,7 @@
             <div class="print-context-title" id="printContextTitle">Kylian Mbappe</div>
             <div class="print-meta">
                 <span class="semester-chip" id="printSemester">Semester 202605</span>
-                <span class="week-line" id="weekLine">Week 5 of 14 · 5 Oct 2026 ~ 11 Oct 2026</span>
+                <span class="week-line" id="weekLine"><span class="week-count">Week 5 of 14</span><span class="week-dates"> · 5 Oct 2026 ~ 11 Oct 2026</span></span>
             </div>
         </div>
 
@@ -1195,16 +1564,13 @@
         <div class="legend" id="legend">
             <span class="legend-item"><span class="swatch normal"></span> Normal Class</span>
             <span class="legend-item"><span class="swatch replacement"></span> Replacement</span>
-            <span class="legend-item"><span class="swatch pending"></span> Pending</span>
             <span class="legend-item"><span class="swatch conflict"></span> Conflict / Public Holiday</span>
             <span class="ownership-hint" id="ownershipHint"></span>
         </div>
 
         <div class="print-notes holiday-notes" id="holidayNotes" aria-label="Public holiday notes"></div>
-        <div class="print-notes pending-notes" id="printNotes" aria-label="Pending request notes"></div>
         <div class="paper-foot">
             <span>Class Replacement System · sample print preview</span>
-            <span id="printWeekFooter">Week 5 · 5 Oct 2026 ~ 11 Oct 2026</span>
         </div>
     </section>
 </main>
@@ -1238,7 +1604,13 @@
                 if (!e || !integer(e.day, 0, 6) || !integer(e.start, 0, 21)
                     || !integer(e.span, 1, 22 - e.start)
                     || !['normal', 'replacement', 'pending', 'cancelled', 'conflict', 'holiday'].includes(e.status)
-                    || ![e.code, e.lecturer, e.venue, e.note].every(text)) throw new Error('Invalid class');
+                    || ![e.code, e.lecturer, e.venue, e.note].every(text)
+                    /* 2026-11-16 (user): the staff My sheet prints the class's
+                       cohort(s) in the top-right corner, so the snapshot now
+                       carries `cohorts` too. Optional, because an older link may
+                       not have them — bounded like everything else from the hash. */
+                    || !(e.cohorts === undefined
+                        || (Array.isArray(e.cohorts) && e.cohorts.length <= 20 && e.cohorts.every(text)))) throw new Error('Invalid class');
                 for (let i = e.start; i < e.start + e.span; i++) {
                     const key = `${e.day}:${i}`;
                     if (slots.has(key)) throw new Error('Overlapping classes');
@@ -1260,10 +1632,14 @@
     ];
     let displayedHours = hours;
 
+    /* 2026-11-16 (user): week 5's sample carries ONE public holiday (Wed 7 Oct)
+       so the printed `[H1]` day mark and the note under the sheet can be reviewed
+       on a normal week — the busy sample has its own Deepavali row. Real pages take
+       the holiday from the data; this label is deliberately generic sample text. */
     const days = [
         { label: 'Mon', date: '5 Oct 2026' },
         { label: 'Tue', date: '6 Oct 2026' },
-        { label: 'Wed', date: '7 Oct 2026' },
+        { label: 'Wed', date: '7 Oct 2026', holiday: 'Sample Public Holiday', off: true },
         { label: 'Thu', date: '8 Oct 2026' },
         { label: 'Fri', date: '9 Oct 2026' },
         { label: 'Sat', date: '10 Oct 2026', off: true },
@@ -1272,25 +1648,27 @@
 
     // start is the half-hour index from 08:00; span is the number of half-hours.
     const events = [
-        { day: 0, start: 0, span: 4, code: 'BMCS3153 (L)', lecturer: 'Dr Tan', venue: 'B110', status: 'normal' },
-        { day: 0, start: 6, span: 3, code: 'BMSE2153 (T)', lecturer: 'Ms Lim', venue: 'B205', status: 'pending', note: 'Pending since 2 Oct', others: true },
-        { day: 0, start: 12, span: 4, code: 'BACS2063 (L)', lecturer: 'Mr Wong', venue: 'A301', status: 'normal' },
-        { day: 1, start: 2, span: 4, code: 'BMCS3404 (L)', lecturer: 'Dr Raj', venue: 'B110', status: 'replacement', note: 'Replaced for Dr Tan' },
-        { day: 1, start: 10, span: 4, code: 'MPU3412 (L)', lecturer: 'Ms Lee', venue: 'D101', status: 'normal' },
-        { day: 1, start: 16, span: 3, code: 'BMCS3153 (T)', lecturer: 'Dr Tan', venue: 'C402', status: 'normal' },
-        { day: 2, start: 1, span: 3, code: 'BACS2063 (T)', lecturer: 'Mr Wong', venue: 'A301', status: 'normal' },
-        { day: 2, start: 4, span: 4, code: 'BMSE2153 (L)', lecturer: 'Ms Lim', venue: 'B205', status: 'normal' },
-        { day: 2, start: 12, span: 4, code: 'BMCS3404 (P)', lecturer: 'Dr Raj', venue: 'Lab 5', status: 'normal' },
-        { day: 3, start: 2, span: 4, code: 'BMCS3153 (L)', lecturer: 'Dr Tan', venue: 'B110', status: 'normal' },
-        { day: 3, start: 8, span: 3, code: 'MPU3412 (T)', lecturer: 'Ms Lee', venue: 'D101', status: 'conflict', note: 'Conflict' },
-        { day: 3, start: 14, span: 4, code: 'BACS2063 (L)', lecturer: 'Mr Wong', venue: 'A301', status: 'normal' },
-        { day: 4, start: 0, span: 4, code: 'BMSE2153 (T)', lecturer: 'Ms Lim', venue: 'B205', status: 'normal' },
-        { day: 4, start: 6, span: 3, code: 'BMCS3404 (L)', lecturer: 'Dr Raj', venue: 'B110', status: 'normal' },
-        { day: 4, start: 12, span: 4, code: 'BMCS3153 (P)', lecturer: 'Dr Tan', venue: 'Lab 5', status: 'normal' }
+        { day: 0, start: 0, span: 4, code: 'BMCS3153 (L)', lecturer: 'Dr Tan', venue: 'B110', cohorts: ['BCS (T)', 'DSF2(S1)G1', 'DFT1(S1)G1', 'RSD3(S1)G2', 'RBU2(S1)G1'], status: 'replacement', note: '(Replaced for 28-Sep-2026)' },
+        { day: 0, start: 6, span: 3, code: 'BMSE2153 (T)', lecturer: 'Ms Lim', venue: 'B205', cohort: 'DSF2(S1)G1', status: 'pending', note: 'Pending since 2 Oct', others: true },
+        { day: 0, start: 12, span: 4, code: 'BACS2063 (L)', lecturer: 'Mr Wong', venue: 'A301', cohorts: ['RSD3(S1)G2', 'DFT1(S1)G1'], status: 'normal' },
+        { day: 1, start: 2, span: 4, code: 'BMCS3404 (L)', lecturer: 'Dr Raj', venue: 'B110', cohort: 'BCS (T)', status: 'replacement', note: '(Replaced for 25-Dec-2026)' },
+        { day: 1, start: 10, span: 4, code: 'MPU3412 (L)', lecturer: 'Ms Lee', venue: 'D101', cohorts: ['DSF2(S1)G1', 'DFT1(S1)G1'], status: 'normal' },
+        { day: 1, start: 16, span: 3, code: 'BMCS3153 (T)', lecturer: 'Dr Tan', venue: 'C402', cohort: 'BCS (T)', status: 'normal' },
+        { day: 2, start: 1, span: 3, code: 'BACS2063 (T)', lecturer: 'Mr Wong', venue: 'A301', cohort: 'RSD3(S1)G2', status: 'normal' },
+        { day: 2, start: 4, span: 4, code: 'BMSE2153 (L)', lecturer: 'Ms Lim', venue: 'B205', cohort: 'DSF2(S1)G1', status: 'normal' },
+        { day: 2, start: 12, span: 4, code: 'BMCS3404 (P)', lecturer: 'Dr Raj', venue: 'Lab 5', cohorts: ['BCS (T)', 'DSF2(S1)G1'], status: 'normal' },
+        { day: 3, start: 2, span: 4, code: 'BMCS3153 (L)', lecturer: 'Dr Tan', venue: 'B110', cohort: 'BCS (T)', status: 'normal' },
+        { day: 3, start: 8, span: 3, code: 'MPU3412 (T)', lecturer: 'Ms Lee', venue: 'D101', cohort: 'DSF2(S1)G1', status: 'conflict' },
+        { day: 3, start: 14, span: 4, code: 'BACS2063 (L)', lecturer: 'Mr Wong', venue: 'A301', cohorts: ['RSD3(S1)G2', 'DFT1(S1)G1', 'RBU2(S1)G1'], status: 'normal' },
+        { day: 4, start: 0, span: 4, code: 'BMSE2153 (T)', lecturer: 'Ms Lim', venue: 'B205', cohort: 'DSF2(S1)G1', status: 'normal' },
+        { day: 4, start: 6, span: 3, code: 'BMCS3404 (L)', lecturer: 'Dr Raj', venue: 'B110', cohort: 'BCS (T)', status: 'normal' },
+        { day: 4, start: 12, span: 4, code: 'BMCS3153 (P)', lecturer: 'Dr Tan', venue: 'Lab 5', cohort: 'BCS (T)', status: 'normal' }
     ];
 
     // TEMPORARY: a 48-class stress sample for print-layout checks. It is not
     // real timetable data. Remove this function and #busySampleBtn before shipping.
+    // One in four entries is `pending`, which no longer prints (2026-11-16), so
+    // the sheet shows 36 of the 48 — still over the 32-block dense threshold.
     function busySampleTimetable() {
         const sampleHours = Array.from({length: 22}, (_, i) =>
             `${String(8 + Math.floor(i / 2)).padStart(2, '0')}:${i % 2 ? '30' : '00'}`);
@@ -1312,6 +1690,7 @@
                     code: `BMCS${2000 + day * 8 + n} (T)`,
                     lecturer: 'En. Lim Jia Zheng',
                     venue: 'B100',
+                    cohort: 'BCS (T)',
                     status,
                     note: status === 'pending' ? '(Pending since 12-Nov-2026)'
                         : status === 'replacement' ? '(Replaced for 05-Nov-2026)' : ''
@@ -1331,13 +1710,12 @@
             sub: 'Weekly class schedule',
             pageTitle: 'My Timetable',
             pageDesc: 'View your weekly class schedule and manage replacement requests across all cohorts.',
-            contextTitle: 'Kylian Mbappe',
+            contextTitle: 'Kylian Mbappe (6767)',
             context: '',
             ownership: '',
             legend: [
                 ['normal', 'Normal Class'],
                 ['replacement', 'Replacement'],
-                ['pending', 'Pending'],
                 ['conflict', 'Conflict / Public Holiday']
             ]
         },
@@ -1346,13 +1724,12 @@
             sub: 'Cohort: BCS (T)',
             pageTitle: 'Student My Timetable',
             pageDesc: 'View your weekly class schedule across all sessions.',
-            contextTitle: 'Aisyah Rahman',
+            contextTitle: 'Aisyah Rahman (24BCS0031)',
             context: '',
             ownership: '',
             legend: [
                 ['normal', 'Normal Class'],
                 ['replacement', 'Replacement'],
-                ['pending', 'Pending'],
                 ['conflict', 'Conflict / Public Holiday']
             ]
         },
@@ -1367,7 +1744,6 @@
             legend: [
                 ['normal', 'Normal'],
                 ['replacement', 'Replacement'],
-                ['pending', 'Pending'],
                 ['conflict', 'Conflict / Public Holiday']
             ]
         },
@@ -1376,14 +1752,12 @@
             sub: 'Venue occupancy',
             pageTitle: 'Venue Timetable',
             pageDesc: 'Inspect any venue\'s weekly occupancy — real slot states from the timetable database.',
-            contextTitle: 'B110 -- Computer Lab 5',
+            contextTitle: 'B110 — Computer Lab 5',
             context: '',
             ownership: 'thick border = your classes · thin border = others\'',
             legend: [
-                ['available', 'Available'],
                 ['normal', 'Normal'],
                 ['replacement', 'Replacement'],
-                ['pending', 'Pending'],
                 ['conflict', 'Conflict / Public Holiday']
             ]
         }
@@ -1399,10 +1773,26 @@
         colgroup.innerHTML = '<col class="day-col">' + '<col>'.repeat(displayedHours.length);
     }
 
+    /* 2026-11-16 (user): each hour header prints the hour's START and END, the
+       live system's shape (`<th class="hour-header" colspan="2"><span
+       class="hour-top">09:00</span><span class="hour-bottom">10:00</span>` in
+       `ui-common.js:1064`). The paper keeps 12-hour time, so the spans read
+       `8:00 AM` over `9:00 AM`; the end of the last hour comes from the same
+       `add30min` fallback the live builder uses. */
+    function addHalfHour(t) {
+        const [h, m] = t.split(':').map(Number);
+        const total = h * 60 + m + 30;
+        return String(Math.floor(total / 60) % 24).padStart(2, '0') + ':' + String(total % 60).padStart(2, '0');
+    }
+
     function buildHead() {
         let html = '<tr><th class="day-col">Day / Time</th>';
         for (let i = 0; i < displayedHours.length; i += 2) {
-            html += '<th colspan="2">' + to12h(displayedHours[i]) + '</th>';
+            const start = displayedHours[i];
+            const end = displayedHours[i + 2] || addHalfHour(displayedHours[i + 1]);
+            html += '<th class="hour-header" colspan="2">' +
+                '<span class="hour-top">' + to12h(start) + '</span>' +
+                '<span class="hour-bottom">' + to12h(end) + '</span></th>';
         }
         html += '</tr>';
         head.innerHTML = html;
@@ -1416,6 +1806,17 @@
         return h12 + ':' + parts[1] + ' ' + ampm;
     }
 
+    /* 2026-11-16 (user): a printed block names its lecturer in ONE word with no
+       honorific (Dr/Mr/Ms/Pn/En…). Malaysian Chinese names carry the surname
+       first, so the first token after the honorific is the one to print:
+       `En. Lim Jia Zheng` → `Lim`, `Dr Tan` → `Tan`. */
+    function surnameOf(name) {
+        return String(name || '')
+            .replace(/^(dr|mr|mrs|ms|miss|prof|ir|ts|pn|en|cik|encik|puan)\.?\s+/i, '')
+            .trim()
+            .split(/\s+/)[0] || '';
+    }
+
     function eventTime(ev) {
         const start = displayedHours[ev.start];
         // The exclusive end can lie after the final half-hour cell (e.g. 7 PM).
@@ -1424,43 +1825,124 @@
         return to12h(start) + ' ~ ' + to12h(end);
     }
 
+    /* 2026-11-16 (user: "i prefer dynamic of course"): TRUE dynamic fit. A
+       crowded block is measured AFTER it renders, and the centre is shrunk half a
+       pixel at a time until the block no longer overflows its row. That catches
+       everything a line count cannot: a long code that wraps to two visual lines, a
+       seven-cohort list, a one-hour block whose corners eat the width. The paper
+       size follows the screen size by the same ratio, and never drops below the
+       floor — the floors are the only static numbers left. */
+    function fitBlockCentres() {
+        const blocks = body.querySelectorAll('.event');
+        for (const block of blocks) {
+            const main = block.querySelector('.ev-main');
+            if (!main) continue;
+            const lines = main.querySelectorAll('.ev-main-line').length;
+            if (lines < 2) continue;
+            const narrow = block.classList.contains('narrow');
+
+            /* The gap under the corners is DYNAMIC: measure the tallest corner that
+               actually rendered and reserve that band plus 3px of air, so a wrapped
+               course label or a two-line name pushes the centre down by its own
+               height instead of a guessed padding. The paper value is scaled by the
+               corner's print size (9.5 -> 8px, 8.5 -> 7px) so the gap does not grow
+               on paper. */
+            const band = block.querySelector('.ev-band');
+            if (band) {
+                let cornerH = 0;
+                block.querySelectorAll('.ev-corner').forEach(function (corner) {
+                    if (corner.offsetHeight > cornerH) cornerH = corner.offsetHeight;
+                });
+                const ratio = narrow ? (7 / 8.5) : (8 / 9.5);
+                band.style.setProperty('--ev-band', (cornerH + 3) + 'px');
+                band.style.setProperty('--ev-band-print', Math.max(4, (cornerH + 3) * ratio).toFixed(1) + 'px');
+            }
+
+            /* Only a three-line centre can overflow, so only those are shrunk. */
+            if (lines < 3) continue;
+            const baseScreen = narrow ? 10 : 14;
+            const basePrint = narrow ? 9 : 11.5;
+            const floor = 7;
+            let size = baseScreen;
+            main.style.setProperty('--ev-main-size', baseScreen + 'px');
+            main.style.setProperty('--ev-main-size-print', basePrint + 'px');
+            /* The note is absolutely positioned, so it adds nothing to
+               `scrollHeight` — reserve its strip by hand, or a crowded block that
+               also carries a note would shrink to fit and then print the note over
+               the clock. */
+            const note = block.querySelector('.ev-note');
+            const available = block.clientHeight - (note ? note.offsetHeight + 2 : 0);
+            let guard = 0;
+            while (block.scrollHeight > available + 1 && size > floor && guard++ < 60) {
+                size -= 0.5;
+                main.style.setProperty('--ev-main-size', size + 'px');
+                main.style.setProperty('--ev-main-size-print',
+                    Math.max(floor, size * (basePrint / baseScreen)).toFixed(1) + 'px');
+            }
+        }
+    }
+
     function buildBody(page) {
         body.innerHTML = '';
         const linked = linkedTimetable && page === 'my';
         const shownDays = linked ? linkedTimetable.days : days;
-        const shownEvents = linked ? linkedTimetable.events : events;
+        /* PAPER SHOWS WHAT RUNS (2026-11-16, user): pending is a request awaiting
+           approval and cancelled is history, so neither is printed — the SCREEN
+           keeps both. Filtering the data here (never hiding rendered blocks with
+           CSS) also keeps the empty-week message honest: a week whose only blocks
+           are pending prints the "no classes" panel, which is the truth on paper.
+           Consequence: the printed key loses its Pending chip, and density counts
+           replacement only. */
+        /* NORMAL VIEW (2026-11-16, user): only `normal` survives. Replacement,
+           conflict and pending/cancelled blocks go, and so does every trace of a
+           public holiday — the [Hn] day mark and its note are exceptions to the
+           weekly pattern, not classes. Filtering the DATA (never hiding rendered
+           blocks) keeps the empty message and the printed key honest. */
+        const normalOnly = document.getElementById('normalOnlyToggle').checked;
+        const shownEvents = (linked ? linkedTimetable.events : events)
+            .filter(e => e.status !== 'pending' && e.status !== 'cancelled')
+            .filter(e => !normalOnly || e.status === 'normal');
         // A blank grid is not a clear answer. Hide it and print a short message.
         const isEmptyWeek = shownEvents.length === 0;
         sheet.querySelector('.grid-wrap').classList.toggle('is-empty', isEmptyWeek);
-        document.getElementById('printEmpty').hidden = !isEmptyWeek;
-        // Separate H references from pending-request numbers. Holiday notes stay
-        // visible under Normal only because day headings still identify holidays.
-        const holidays = shownDays.filter(day => day.holiday);
+        const emptyPanel = document.getElementById('printEmpty');
+        emptyPanel.hidden = !isEmptyWeek;
+        emptyPanel.querySelector('strong').textContent = normalOnly ? 'No normal classes.' : 'No classes this week.';
+        emptyPanel.querySelector('span').textContent = normalOnly
+            ? 'This timetable carries no normal class in the semester.'
+            : 'There are no scheduled classes for the selected week.';
+        // Holiday references stay: the day label carries the [Hn] mark, so the
+        // printed note explains a blank day without printing a PH cell. The normal
+        // view is the semester's teaching pattern, so a PH day is an ordinary day.
+        const holidays = normalOnly ? [] : shownDays.filter(day => day.holiday);
         document.getElementById('holidayNotes').innerHTML = holidays.map((day, i) =>
             '<p class="print-note"><strong>[H' + (i + 1) + ']</strong> ' + esc(day.label) +
             ', ' + esc(day.date) + ' — ' + esc(day.holiday) + '</p>'
         ).join('');
-        const notes = shownEvents.filter(e => e.status === 'pending' && e.note);
-        document.getElementById('printNotes').innerHTML = notes.map((e, i) =>
-            '<p class="print-note"><strong>[' + (i + 1) + ']</strong> ' + esc(shownDays[e.day].label) +
-            ' · ' + esc(e.code) + ', ' + esc(e.venue) + ' — ' +
-            esc(e.note.replace(/^\((.*)\)$/, '$1')) + '</p>'
-        ).join('');
-        // A very full week uses slightly tighter printed blocks so its notes and
+        // A very full week uses slightly tighter printed blocks so its legend and
         // footer stay on page 1. Normal weeks keep the roomier spacing.
+        // Density counts what PRINTS only: pending no longer prints, so its term
+        // is gone with the blocks themselves (2026-11-16).
         const replacementCount = shownEvents.filter(e => e.status === 'replacement').length;
-        const densePrint = shownEvents.length > 32 || notes.length + replacementCount > 6;
+        const densePrint = shownEvents.length > 32 || replacementCount > 6;
         sheet.classList.toggle('dense', densePrint);
 
         shownDays.forEach(function (day, di) {
+            /* 2026-11-16 (user): a Sunday row with nothing on it is a dead strip of
+               paper, so it is not built at all. The guard keeps the sheet honest —
+               a Sunday that really carries a class, or a holiday the note explains,
+               still prints its row. */
+            if (day.label === 'Sun' && !day.holiday && !shownEvents.some(function (e) { return e.day === di; })) {
+                return;
+            }
             const tr = document.createElement('tr');
-            if (day.off) tr.className = 'off';
+            if (day.off && !(normalOnly && day.holiday)) tr.className = 'off';
 
             const th = document.createElement('th');
             th.className = 'day-col';
             th.innerHTML = '<span class="day-label">' + esc(day.label) + '</span>' +
                 '<span class="date-label">' + esc(day.date) + '</span>' +
-                (day.holiday ? '<span class="holiday-label">Public Holiday [H' + (holidays.indexOf(day) + 1) + ']</span>' : '');
+                (day.holiday && !normalOnly ? '<span class="holiday-label">Public Holiday [H' + (holidays.indexOf(day) + 1) + ']</span>' : '');
             tr.appendChild(th);
 
             const dayEvents = shownEvents
@@ -1477,26 +1959,70 @@
                     td.colSpan = ev.span;
 
                     const block = document.createElement('div');
-                    const status = ['cancelled', 'holiday'].includes(ev.status) ? 'conflict' : ev.status;
+                    /* 2026-11-16 (user, prototype): every block on a public-holiday
+                       row paints in the conflict red — nothing on that day will run,
+                       so the row should read as dead at a glance instead of showing
+                       green "normal" classes under a red PH mark. */
+                    const holidayDay = !!day.holiday && !normalOnly;
+                    const status = (holidayDay || ['cancelled', 'holiday'].includes(ev.status)) ? 'conflict' : ev.status;
                     block.className = 'event ' + status + (ev.span <= 2 ? ' narrow' : '') + (((page === 'cohort' || page === 'venue') && ev.others) ? ' others' : '');
-                    let inner = '<span class="ev-code">' + esc(ev.code) + '</span>';
-                    if (page !== 'my') {
-                        inner += '<span class="ev-lecturer">' + esc(ev.lecturer) + '</span>';
+                    /* PRINT BLOCK LAYOUT — two small corners, one bold centre
+                       (user rulings 2026-11-16).
+                         cohort  · venue | surname  · centre: course
+                         venue   · course| surname  · centre: cohorts
+                         my      · venue | course   · centre: cohorts
+                         student · venue | surname  · centre: course
+                       My Timetable swapped its corners so the COHORTS lead: the
+                       reader knows their own course, what they need is who else is
+                       in the room. Both sheets that lead with cohorts list them one
+                       per row, never `A + B + C`. The time keeps its old place at
+                       the foot and a note sits on the bottom centre line. */
+                    const cornerLeft = page === 'venue' ? ev.code : ev.venue;
+                    const cohortLines = ev.cohorts || (ev.cohort ? [ev.cohort] : []);
+                    const leadsWithCohorts = page === 'venue' || page === 'my';
+                    const cornerRight = page === 'my'
+                        ? (cohortLines.length ? ev.code : '')
+                        : surnameOf(ev.lecturer);
+                    /* A link from an older snapshot may carry no cohorts at all:
+                       the centre then falls back to the course rather than printing
+                       an empty block. */
+                    const centreLines = leadsWithCohorts && cohortLines.length
+                        ? cohortLines
+                        : [ev.code];
+                    let inner = '';
+                    if (cornerLeft) {
+                        inner += '<span class="ev-corner ev-corner-left">' + esc(cornerLeft) + '</span>';
                     }
+                    if (cornerRight) {
+                        inner += '<span class="ev-corner ev-corner-right">' + esc(cornerRight) + '</span>';
+                    }
+                    /* The centre's size is NOT guessed from a line count — the
+                       sheet measures the block it just rendered and shrinks the type
+                       until the block fits (see fitBlockCentres below). */
+                    /* A multi-line centre can ride up under the top corner. The
+                       band is an empty flex item whose height is MEASURED from the
+                       corners that actually rendered (fitBlockCentres), so the gap
+                       follows the real corner height instead of a guessed padding. */
+                    if (centreLines.length >= 2) {
+                        inner += '<span class="ev-band" aria-hidden="true"></span>';
+                    }
+                    inner += '<span class="ev-main">' +
+                        centreLines.map(function (line) {
+                            return '<span class="ev-main-line">' + esc(line) + '</span>';
+                        }).join('') + '</span>';
                     const clockParts = eventTime(ev).split(' ~ ');
-                    inner += '<span class="ev-venue">' + esc(ev.venue) + '</span>' +
-                        '<span class="ev-time">' + (ev.span <= 2
-                            ? '<span class="ev-time-part">' + clockParts[0] + '</span><span class="ev-time-part">~ ' + clockParts[1] + '</span>'
-                            : eventTime(ev)) + '</span>';
-                    // Written status survives greyscale printing. Pending's long
-                    // submitted date belongs below the grid, linked by its number.
-                    const noteNumber = notes.indexOf(ev) + 1;
-                    const statusLabel = ev.status === 'pending' ? 'Pending' + (noteNumber ? ' [' + noteNumber + ']' : '')
-                        : ev.status === 'replacement' ? 'Replacement'
-                        : ev.status === 'cancelled' ? 'Cancelled'
-                        : ev.status === 'conflict' ? 'Conflict' : '';
-                    if (statusLabel) inner += '<span class="ev-status">' + statusLabel + '</span>';
-                    if (ev.note && ev.status !== 'pending' && !['(Cancelled)', '(Conflict)', 'Conflict'].includes(ev.note)) {
+                    inner += '<span class="ev-time">' + (ev.span <= 2
+                        ? '<span class="ev-time-part">' + clockParts[0] + '</span><span class="ev-time-part">~ ' + clockParts[1] + '</span>'
+                        : eventTime(ev)) + '</span>';
+                    /* NO INVENTED STATUS WORDS (2026-11-16, user: "follow the
+                       current system"). The live grid has no `.ev-status` span at
+                       all — a replacement is known by its note, and `✕ Cancelled`
+                       / `⚠ Conflict` sit behind a 1280px rule that a ~1047px
+                       printed page never matches. So the printed block carries no
+                       status word: corners, centre, time and note say everything,
+                       and the block's colour carries the status. Pending and
+                       cancelled never reach here (filtered above). */
+                    if (ev.note) {
                         inner += '<span class="ev-note">' + esc(ev.note) + '</span>';
                     }
                     block.innerHTML = inner;
@@ -1513,6 +2039,8 @@
 
             body.appendChild(tr);
         });
+
+        fitBlockCentres();
     }
 
     function buildLegend(page) {
@@ -1524,42 +2052,60 @@
 
     function applyPage(page) {
         const linked = linkedTimetable && page === 'my';
-        const cfg = linked ? {...pages.my, contextTitle: linkedTimetable.lecturer} : pages[page];
+        const cfg = linked ? {...pages.my, contextTitle: linkedTimetable.staffId ? `${linkedTimetable.lecturer} (${linkedTimetable.staffId})` : linkedTimetable.lecturer} : pages[page];
         displayedHours = linked ? linkedTimetable.hours : hours;
         buildColgroup();
         buildHead();
         sheet.dataset.page = page;
-        document.getElementById('pageTitle').textContent = cfg.pageTitle;
+        document.getElementById('pageTitle').textContent = 'Print Preview \u2014 ' + cfg.pageTitle;
         document.getElementById('pageDesc').textContent = cfg.pageDesc;
         document.getElementById('printTitle').textContent = cfg.title;
         document.getElementById('printSub').textContent = cfg.sub;
         document.getElementById('printContextTitle').textContent = cfg.contextTitle;
 
+        /* The top bar carries the page title only (no user chip), so the role is
+           read from the sheet itself: "Student My Timetable" vs the staff sheets. */
         const isStudent = page === 'student';
-        document.getElementById('userAvatar').textContent = isStudent ? 'ST' : 'SU';
-        document.getElementById('userName').textContent = isStudent ? 'Student User' : 'Staff User';
-        document.getElementById('userRole').textContent = isStudent ? 'Student' : 'Lecturer';
-        const weekText = linked
-            ? `Week ${linkedTimetable.week + 1} of ${linkedTimetable.weeks} · ${linkedTimetable.days[0].date} ~ ${linkedTimetable.days[6].date}`
-            : 'Week 5 of 14 · 5 Oct 2026 ~ 11 Oct 2026';
-        document.getElementById('weekLine').textContent = weekText;
-        document.getElementById('printWeekFooter').textContent = linked
-            ? `Week ${linkedTimetable.week + 1} · ${linkedTimetable.days[0].date} ~ ${linkedTimetable.days[6].date}`
-            : 'Week 5 · 5 Oct 2026 ~ 11 Oct 2026';
+        /* NORMAL VIEW COVERS THE SEMESTER (2026-11-16, user): a normal class
+           repeats every teaching week, so once the other statuses are filtered
+           out there is no single week to date — the sheet states the whole range
+           instead of claiming "week 5 of 14" for a timetable that is true all
+           semester, on all four pages. */
+        const normalOnly = document.getElementById('normalOnlyToggle').checked;
+        const weeks = linked ? linkedTimetable.weeks : 14;
+        const weekCount = normalOnly
+            ? `Week 1 ~ ${weeks}`
+            : (linked ? `Week ${linkedTimetable.week + 1} of ${linkedTimetable.weeks}` : 'Week 5 of 14');
+        const weekDates = normalOnly
+            ? '\u00a0(Whole Semester)'
+            : (linked
+                ? ' · ' + esc(linkedTimetable.days[0].date) + ' ~ ' + esc(linkedTimetable.days[6].date)
+                : ' · 5 Oct 2026 ~ 11 Oct 2026');
+        document.getElementById('weekLine').innerHTML =
+            '<span class="week-count">' + weekCount + '</span>' +
+            '<span class="week-dates">' + weekDates + '</span>';
         document.getElementById('pageSemester').textContent = linked ? linkedTimetable.semester : 'Semester 202605';
         document.getElementById('printSemester').textContent = linked ? linkedTimetable.semester : 'Semester 202605';
-        if (linked) {
-            document.getElementById('userName').textContent = linkedTimetable.lecturer;
-            document.getElementById('userAvatar').textContent = linkedTimetable.lecturer.split(/\s+/).filter(Boolean).slice(-2).map(n => n[0]).join('');
-        }
         if (snapshotError && page === 'my') {
             document.getElementById('pageDesc').textContent = 'The selected week could not be loaded. This is the print page’s own sample data. Use Back to try again.';
         }
 
-        const navKey = isStudent ? 'my' : page;
-        document.querySelectorAll('.nav-item[data-page]').forEach(function (item) {
-            item.classList.toggle('active', item.dataset.page === navKey);
+        /* PREVIEW-ONLY picker state — a lecturer/PL sees the three pages they can
+           open; a STUDENT SEES NO OPTIONS AT ALL (2026-11-16, user ruling), so the
+           whole picker goes while the student sheet is on screen. */
+        const picker = document.querySelector('.page-picker');
+        if (picker) picker.style.display = isStudent ? 'none' : '';
+        document.querySelectorAll('.page-chip').forEach(function (chip) {
+            chip.setAttribute('aria-pressed', String(chip.dataset.previewPage === page));
         });
+        /* PREVIEW-ONLY role door in the help box: the way in to the student sheet
+           and the way back out, without ever putting it in the page picker. */
+        const roleLine = document.getElementById('rolePreviewLine');
+        if (roleLine) {
+            roleLine.innerHTML = isStudent
+                ? 'This is the student&#39;s own timetable. <a href="?page=my">Back to the lecturer printouts</a>.'
+                : 'The student printout belongs to a different login — <a href="?page=student">preview the student printout</a>.';
+        }
 
         buildLegend(page);
         buildBody(page);
@@ -1615,15 +2161,28 @@
         window.location.href = backRoutes[from] || '?page=my';
     });
 
-    document.getElementById('normalOnlyToggle').addEventListener('change', function () {
-        sheet.classList.toggle('normal-only', this.checked);
+    /* A narrower window narrows the columns, so the fit is recomputed (debounced)
+       instead of keeping a size that only suited the old width. */
+    let fitTimer = null;
+    window.addEventListener('resize', function () {
+        clearTimeout(fitTimer);
+        fitTimer = setTimeout(fitBlockCentres, 120);
     });
 
-    document.querySelectorAll('.nav-item').forEach(function (item) {
-        item.addEventListener('click', function (event) {
-            event.preventDefault();
-            if (!this.dataset.page) return;
-            applyPage(this.dataset.page);
+    document.getElementById('normalOnlyToggle').addEventListener('change', function () {
+        sheet.classList.toggle('normal-view', this.checked);
+        applyPage(sheet.dataset.page || 'my');
+    });
+
+    /* PREVIEW-ONLY page picker (see the note at its markup): switch the sheet,
+       then keep `?page=` in step so the URL can be shared or bookmarked. Never
+       port this control — the live pages are separate routes. */
+    document.querySelectorAll('.page-chip').forEach(function (chip) {
+        chip.addEventListener('click', function () {
+            applyPage(this.dataset.previewPage);
+            const url = new URL(window.location.href);
+            url.searchParams.set('page', this.dataset.previewPage);
+            window.history.replaceState(null, '', url);
         });
     });
 

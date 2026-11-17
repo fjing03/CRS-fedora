@@ -3,10 +3,11 @@ import { test, expect, type Page } from '@playwright/test';
 /**
  * SDD replacement-arrangement-top-zone-round2 — desktop receipts.
  *
- * Grid law: three setup cards (Conflict / Class Details / Replacement) and a
- * conditional fourth Summary. 1360 + Summary = 8/5/8 + 280; 1200 + Summary
- * keeps the 8/5/7 setup row and drops the Summary to row 2; 1100 = one column.
- * Rail classes are the only owner of the 56px tracks.
+ * Grid law: three setup cards (Conflict / Class Details / Replacement) plus the
+ * always-present Selection Summary. 1360 = 8/5/8 + 280; 1200 = setup row 8/5/7
+ * with the Summary on row 2; 1100 = one column. The Summary stays visible with
+ * its empty state until slots are picked (user law 2026-11-13). Rail classes
+ * are the only owner of the 56px tracks.
  */
 test.use({ storageState: '.auth/staff-5770.json' });
 
@@ -45,25 +46,28 @@ async function chrome(card: ReturnType<Page['locator']>) {
   });
 }
 
-test('1360px, no Summary: three setup cards at 8/5/7 with the shared chrome', async ({ page }) => {
+test('1360px, empty Summary: three setup cards at 8/5/8 plus the 280px summary', async ({ page }) => {
   await page.setViewportSize({ width: 1360, height: 900 });
   await page.goto('/replacement-arrangement', { waitUntil: 'networkidle' });
   await page.waitForSelector('#subjectInfo', { timeout: 15_000 });
   await page.waitForTimeout(900);
 
-  await expect(page.locator('#selSummary')).toBeHidden();
   await expect(page.locator('#topZone')).not.toHaveClass(/has-summary/);
-  await expect(page.locator('#topZone > .ra-block:visible')).toHaveCount(3);
+  await expect(page.locator('#topZone > .ra-block:visible')).toHaveCount(4);
+  await expect(page.locator('#selSummary')).toBeVisible();
+  await expect(page.locator('#summaryEmpty')).toBeVisible();
+  await expect(page.locator('#summaryGrid')).toBeHidden();
 
   const widths = await tracks(page);
-  expect(widths).toHaveLength(3);
+  expect(widths).toHaveLength(4);
+  expect(Math.abs(widths[3] - 280)).toBeLessThanOrEqual(1);
   const available = await page.evaluate(() => {
     const top = document.getElementById('topZone') as HTMLElement;
     const s = getComputedStyle(top);
-    return top.clientWidth - parseFloat(s.paddingLeft) - parseFloat(s.paddingRight) - 2 * 12;
+    return top.clientWidth - parseFloat(s.paddingLeft) - parseFloat(s.paddingRight) - 280 - 3 * 12;
   });
-  const expected = [available * 8 / 20, available * 5 / 20, available * 7 / 20];
-  widths.forEach((w, i) => expect(Math.abs(w - expected[i])).toBeLessThanOrEqual(1.1));
+  const expected = [available * 8 / 21, available * 5 / 21, available * 8 / 21];
+  widths.slice(0, 3).forEach((w, i) => expect(Math.abs(w - expected[i])).toBeLessThanOrEqual(1.1));
 
   for (const selector of ['#subjectInfo', '#classDetailsCard', '#replacementHeading']) {
     const card = selector === '#replacementHeading'
@@ -102,7 +106,7 @@ test('1360px, Summary: 8/5/8 plus a 280px fourth card', async ({ page }) => {
   expect(Math.abs((summary as any).width - 280)).toBeLessThanOrEqual(1);
 });
 
-test('1200px, Summary: setup row stays 8/5/7 and the Summary spans row 2', async ({ page }) => {
+test('1200px, Summary row: setup row stays 8/5/7 and the Summary spans row 2', async ({ page }) => {
   await page.setViewportSize({ width: 1200, height: 900 });
   await openPinned(page);
   await selectFirstBlock(page);
@@ -121,6 +125,20 @@ test('1200px, Summary: setup row stays 8/5/7 and the Summary spans row 2', async
     return el.clientWidth - parseFloat(s.paddingLeft) - parseFloat(s.paddingRight);
   });
   expect(Math.abs((row2 as any).width - contentWidth)).toBeLessThanOrEqual(1);
+});
+
+test('1200px, no selection: the Summary still occupies row 2 with its empty state', async ({ page }) => {
+  await page.setViewportSize({ width: 1200, height: 900 });
+  await page.goto('/replacement-arrangement', { waitUntil: 'networkidle' });
+  await page.waitForSelector('#subjectInfo', { timeout: 15_000 });
+  await page.waitForTimeout(900);
+
+  const summary = page.locator('#selSummary');
+  await expect(summary).toBeVisible();
+  await expect(page.locator('#summaryEmpty')).toBeVisible();
+  const row1 = await page.locator('#topZone > .ra-block').nth(2).boundingBox();
+  const row2 = await summary.boundingBox();
+  expect((row2 as any).y).toBeGreaterThan((row1 as any).y + (row1 as any).height - 1);
 });
 
 test('1100px is one full-width column', async ({ page }) => {
@@ -247,7 +265,10 @@ test('Summary rebuilds on the boot path and hides after the last clear', async (
   await page.evaluate(() => (window as any).clearAll());
   await page.locator('#modalConfirmBtn').click();
   await expect(page.locator('#topZone')).not.toHaveClass(/has-summary/);
-  await expect(page.locator('#selSummary')).toBeHidden();
+  /* the Summary card stays; only its body falls back to the empty state */
+  await expect(page.locator('#selSummary')).toBeVisible();
+  await expect(page.locator('#summaryEmpty')).toBeVisible();
+  await expect(page.locator('#summaryGrid')).toBeHidden();
 
   await expect(page.locator('#detailsSummary')).toBeHidden();
 });

@@ -121,11 +121,18 @@
     @include('partials.page-data-script', ['payload' => $payload])
 
         <!-- ─── Page Header ─── -->
-        @include('partials.ui-page-header', ['title' => 'Class Replacements', 'guideToggle' => true, 'summaryButton' => true, 'chips' => $cohortLabel !== null ? [['label' => $cohortLabel]] : []]) {{-- BRIDGE PATCH: cohort chip is per-user data --}}
+        @include('partials.ui-page-header', ['title' => 'Student Class Replacements', 'guideToggle' => true, 'guideModal' => true, 'chips' => $cohortLabel !== null ? [['label' => $cohortLabel]] : [], 'summaryButton' => true]) {{-- BRIDGE PATCH: cohort chip is per-user data --}}
 
-        @include('partials.ui-guide-block', [
-            'showToggle' => false,
-            'guideDescriptionHtml' => 'Conflicted <span class="info-keyword">CLASSES</span> and where each one\'s replacement stands — read-only, for your cohort.',
+        @include('partials.ui-guide-modal', [
+            'guideTitle' => 'How to use this page',
+            'guideDescriptionHtml' => 'Every class of your cohort that <span class="info-keyword">cannot run as timetabled</span> — a cancellation or a public holiday — and how far its replacement has got.',
+            'guideItems' => [
+                '<strong>Read-only</strong> — your Programme Leader arranges the replacement; this page only tells you where it stands',
+                '<strong>The week</strong> — the week selector narrows the list to one week; a row can name two different weeks, one for each slot',
+                '<strong>COMPLETED</strong> — the switch hides classes whose replacement date has already passed; turn it off to see them again',
+                '<strong>Status</strong> — Awaiting Arrangement (no request yet), Pending (waiting for a decision), Approved (attend the requested slot), Completed (that date has passed)',
+                '<strong>Details</strong> — click a row, or a card on a phone, for the full replacement details',
+            ],
         ])
 
         <!-- ─── Toolbar: week navigation + the staff's COMPLETED toggle ───

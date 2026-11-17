@@ -1,0 +1,2009 @@
+<!doctype html>
+<html lang="en" class="light">
+<!--
+  VENUE TIMETABLE — RESPONSIVE PROTOTYPE · 15 Nov 2026
+  DESIGN CONTRACT — prompts / SDD / future ports MUST read and follow this block
+  and the VENUE CONTRACT comments beside the CSS and JS below. Minor spacing
+  adjustments live here; do not duplicate their numbers in separate prompts.
+
+  Based on the existing My Timetable preview and live Venue Timetable Blade/partials.
+  Goal: retain the current system appearance, not redesign the brand. Mock data
+  is not a live DB snapshot; 95% similarity is a target, NOT a measured claim.
+  Desktop >=1280: retain day rows, horizontal time axis, venue/week controls,
+  five venue summary cards and ownership legend. No production file changes.
+  Below 1280: 1 day <768, 2 days <1024, 3 days <1280; seven-day picker.
+  Grid: 50px time column / 62px heading, 08:00 to 19:00.
+  TOUCH CONTRACT: >=48 x 48 CSS px ONLY on touch-capable devices, at ANY
+  width (any-pointer: coarse). Mouse-only devices retain compact controls and
+  44px responsive half-hour rows. Touch rows are 48px; day buttons scroll
+  rather than shrink. Screen width alone must not impose touch dimensions.
+  Venue row scrolls away; week controls and day picker remain pinned below nav.
+  Below 1280, legend + ownership hint live inside Week summary, opened by the
+  Summary button, like My Timetable. Desktop retains its on-page legend.
+  Do not repeat the selected date above the grid: the day strip and grid header
+  already identify it. Keep the class count and Summary button on that row.
+  Day-strip dots: blue = Today; green = this venue's earliest bookable day.
+  The green dot and Earliest bookable button MUST use the same slot lookup.
+  Round 3: ordinary day buttons have no date tooltip (the grid already names
+  the date). Only Today, Earliest bookable and holidays get useful tooltip text.
+  On an empty, bookable visible day, the count line suggests tapping a green
+  slot. Never suggest booking on Sunday, a holiday or a too-soon day.
+  Responsive time-axis labels use 12px text; touch half-hour rows are 48px tall.
+  Summary/count row has 4px vertical margins; Summary is 48px on touch only.
+  The responsive timeline ends with a non-interactive 19:00 marker, not an
+  extra bookable slot. There are still exactly 22 half-hour slots per day.
+  A free 18:30–19:00 cell shows "Not Enough Slots" on hover/focus, not
+  "Available". Keep its green paint and hover explanation, but mark it
+  aria-disabled and block activation: no session picker, popup or toast.
+  Holiday, occupied and too-soon states must not be relabelled.
+  Phone only (<768px): semester badge shows "202605 Semester" without dates;
+  hide Print. Tablet and desktop keep the full semester badge and Print button.
+  Blocks: time + venue primary; course code/type small grey; notes last/right.
+  Subject names remain in tooltip, popup subtitle and accessible labels.
+  Free cells stay green; too-soon cells neutral; PH/Sunday red and unbookable.
+  Desktop grid: one continuous calendar, exactly like the current system — the
+  shipped 4px `border-spacing` gutter separates the half-hour cells and no slot
+  draws its own border (2026-11-15 user: a per-cell border turned the gutters into
+  "thick white gaps" and every cell into a framed card; closing the gutter lost the
+  half-hour boundary). Cell size, row height and colours are unchanged.
+  Earliest bookable: find a free slot, jump and flash its whole day row.
+  Booking: venue-only warning -> Subject / Session -> Arrange -> LOCAL preview.
+  Validate span, room type and seats, but never pretend to validate live conflicts.
+  No network writes, live forms, login, storage writes or real submit actions.
+  Close is always outline. Class Cancelled badge is neutral grey, never error red.
+  BADGE CONTRACT: follow prompts/extra tasks/Improve the UIUX of the badges.md.
+  Preserve every existing colour, label, meaning and icon. Badge paint is a
+  compact 24px pill, 12px/600 text, 4px icon gap; numeric badges are not circles.
+  Day state uses the SHIPPED day-cell vocabulary, not new pills: PUBLIC HOLIDAY
+  (.holiday-badge), TODAY (.today-badge) and OFF (.off-badge) sit under the date
+  with theme.css's own 10px uppercase styling. Never print OFF/PH inside a slot
+  cell; the red fill alone marks the column.
+  Interactive chips keep a separate >=48px hit area on touch devices. Status badges
+  are not buttons and must not inherit the touch-target minimum.
+  Touch-device venue picker follows the CURRENT system's venueTimetablePicker, not a
+  new card list: Choose venue / Close header, plain search, Block/Floor groups,
+  only the first group expanded initially; search opens every matching group.
+  Compact rows show code + room name, with capacity on the right. No footer.
+  Choose the sheet on touch-capable devices at ANY width (including iPad Pro),
+  or at <=768px. Do not infer mouse/hover support from screen width alone.
+  Mouse-only desktop venue picker retains the current system's anchored four-column
+  cascade: Types -> Blocks -> Floors -> Rooms. Hover or click expands columns;
+  room rows show code, seats and the selected checkmark. Not a modal/card list.
+  Desktop toolbar: ONE outer surface/border/shadow, laid out as the SHIPPED FIVE
+  columns — venue wrap | week nav | Today | Earliest bookable | print — with equal
+  flexible edges. Both fields size to their CONTENT (trigger ~192px, week field
+  ~275px); no fixed width clamps. Non-touch desktop keeps the shipped 36px trigger
+  and week select, 32px arrows/Today/Earliest/print. 48px minimums apply only
+  under (any-pointer: coarse). The shipped 8px group gap separates Today and
+  Earliest; no extra margin.
+  Today / Earliest bookable jump: flash the WHOLE DAY (the shipped
+  tr.bookable-flash pulse, 3 x 0.5s) — blue for Today, green for Earliest; below
+  1280 the day's column cells take the same pulse.
+  Block notes copy buildReplacementNote: "(Pending since 30 Nov 2026)" — the time
+  is dropped (split on the comma), exactly like the live note.
+  area. Below 1280 the wrapper has no layout box so the room row still scrolls
+  away and week/day controls stay sticky. Preserve the 15px Earliest margin.
+  Select a Session: phone labels sit ABOVE full-width controls, not in a
+  fixed label column. Subject name stays in its selector, without a repeated
+  label underneath. Show every occurrence's
+  type, source week/date, time, venue and cohorts. Never substitute the chosen
+  replacement date for the original occurrence date or merge different weeks.
+  Session-choice hierarchy: primary = type + source week/date (14px/600);
+  secondary = time range (13px/500, existing muted text);
+  tertiary footer = cohort icon/short label left, ra-venue-pill right.
+  Count original cohorts, not distinct shortened codes: RSD3 (2 cohorts).
+  Mixed codes remain visible (RSD2 + RSD3); full cohort names stay in the tip.
+  Touch Subject picker uses real >=48px option buttons, not native option rows
+  whose size is browser-controlled. Mouse-only desktop keeps its native select.
+  Expand the touch list in flow so the sheet never clips it; retain keyboard
+  arrows, selection state and Escape-to-close-list before closing the modal.
+  Run from repository root: python3 -m http.server 8125
+  Open /ui-prototype/venuetimetable/venue-timetable-responsive-preview.html
+
+  Reference: ../my-timetable-mobile-preview.html; production structure:
+  resources/views/livewire/venue-timetable.blade.php, ui-intent-session-modal,
+  ui-class-detail-modal, ui-week-nav and ui-summary-bar. Shared assets read-only.
+  Clock: Thu 12 Nov 2026. Default visible week: Week 9, Mon 16 Nov.
+  No production port or SDD work is included in this prototype task.
+-->
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Venue Timetable — responsive prototype</title>
+  <link rel="stylesheet" href="../../public/css/theme.css">
+  <style>
+    [hidden] { display: none !important; }
+    html { color-scheme: light; }
+    html.dark { color-scheme: dark; }
+    body { min-width: 320px; }
+    button, select, textarea { font: inherit; }
+    button { cursor: pointer; }
+    button:focus-visible, select:focus-visible, textarea:focus-visible, [tabindex]:focus-visible {
+      outline: 2px solid var(--color-primary); outline-offset: 3px;
+    }
+    button:disabled { opacity: .4; cursor: not-allowed; }
+    .preview-icon { width: 16px; height: 16px; flex: none; vertical-align: middle; }
+    .preview-button { min-width: 44px; min-height: 44px; display: inline-flex; align-items: center; justify-content: center; gap: 7px; padding: 8px 12px; border: 1px solid var(--color-outline); border-radius: var(--radius-md); background: var(--color-surface); color: var(--color-on-surface); }
+    .preview-button:hover { background: var(--color-surface-variant); }
+    .preview-icon-button { padding: 8px; }
+    /* The live header is `position: fixed`; the preview used to override it to
+       `relative`, so the whole bar — hamburger included — scrolled away. Keep it
+       pinned, and reserve its height below so nothing hides underneath. */
+    .preview-nav { position: fixed; top: 0; left: 0; right: 0; }
+    /* Below 1280px the inline nav is hidden, so nothing pushes the action group
+       across and the hamburger drifted into the middle of the bar. Pin the group
+       to the right edge so the menu button stays at the top-right corner. */
+    .preview-nav .top-right { margin-left: auto; }
+    .preview-nav .top-logo img { max-width: 150px; }
+    .preview-nav .preview-menu { display: none; }
+    .preview-main { padding-top: calc(var(--top-bar-height) + 24px); }
+    .preview-heading { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
+    .preview-heading .page-title { font-size: clamp(20px, 3vw, 22px); }
+    .preview-controls { margin-bottom: 12px; }
+    .preview-controls .semester-bar { flex-direction: row; flex-wrap: nowrap; }
+    .preview-controls .week-nav { min-width: 0; }
+    .preview-controls .week-select { max-width: 100%; background-color: var(--color-surface-variant); }
+    .preview-controls .week-select:hover { background-color: var(--color-surface); }
+    .preview-days { display: none; }
+    .preview-day { min-width: 44px; min-height: 52px; flex: 1 0 44px; border: 1px solid var(--color-outline); border-radius: var(--radius-md); padding: 4px; background: var(--color-surface); color: var(--color-on-surface-variant); font-size: 11px; }
+    .preview-day strong { display: block; font-size: 14px; color: var(--color-on-surface); }
+    .preview-day[aria-pressed="true"] { border: 2px solid var(--color-primary); background: var(--color-primary-container); color: var(--color-on-primary-container); }
+    .preview-day::after { content: ''; display: block; width: 4px; height: 4px; margin: 3px auto 0; border-radius: 50%; }
+    .preview-day.is-today::after { background: var(--color-primary); }
+    .preview-day.is-earliest::after { background: var(--color-success); }
+    .preview-day.is-holiday { color: var(--color-error); }
+    .preview-tools { display: none; align-items: center; justify-content: space-between; gap: 10px; margin: 10px 0 14px; }
+    #previewDayCount { display: block; margin-top: 4px; font-size: 12px; color: var(--color-on-surface-variant); }
+    .preview-day-heading { margin: 0; font-size: 15px; font-weight: 600; }
+    .preview-agenda { display: grid; gap: 12px; }
+    .preview-class.event-block { position: relative; inset: auto; display: flex; flex-direction: column; width: 100%; height: auto; min-height: 0; align-items: stretch; justify-content: flex-start; gap: 8px; padding: 12px 14px; text-align: left; white-space: normal; border-radius: var(--radius-sm); font-family: inherit; }
+    .preview-class-top { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
+    .preview-class-top .preview-time { min-width: 0; }
+    .preview-class-top .preview-venue { flex: none; }
+    /* 2026-11-15 (user): below 1280px a card prints the CODE and type only.
+       The subject name lives in the hover tip and the details pop-up, so a
+       phone card stops spending two lines on words it cannot show at once. */
+    .preview-course-code { display: block; }
+    .preview-class .preview-note { font-size: 12px; }
+    /* theme hides .ev-note inside a narrow .event-block; the phone card keeps it */
+    /* Two classes sharing time look like two unrelated cards in the phone list,
+       so the pair is marked: a thin strip down the left edge of BOTH cards, plus
+       one plain-English line naming the class it overlaps. */
+    .preview-class.is-overlap::before {
+      content: ''; position: absolute; left: 1px; top: 1px; bottom: 1px; width: 5px;
+      border-radius: var(--radius-sm) 0 0 var(--radius-sm);
+      background: var(--color-on-surface-variant); opacity: .5;
+    }
+    .preview-class .ev-overlap {
+      display: block; margin-top: 7px; padding-top: 6px;
+      border-top: 1px dashed var(--color-outline);
+      font-size: 11.5px; font-weight: 600; color: var(--color-on-surface-variant);
+    }
+    .preview-class.event-block::after { display: none; }
+    /* Three tiers, by size and one grey — never a second colour language
+       (user, 2026-11-15). PRIMARY: the time range and the venue code, the two
+       things a student reads to know where to be and when. SECONDARY: the
+       subject code + type, smaller and grey. TERTIARY: the note line, small
+       and grey, right-aligned — the Cancelled / Conflict word now sits there
+       with the "(Pending since …)" / "(Replaced for …)" note instead of
+       hanging under the time. */
+    .preview-class .preview-time { font-size: 14px; font-weight: 700; }
+    .preview-class .preview-venue { font-size: 14px; font-weight: 700; }
+    .preview-class .preview-course { font-size: 12px; font-weight: 500; color: var(--color-on-surface-variant); overflow-wrap: anywhere; }
+    .preview-class .preview-class-note { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 3px 8px; margin-top: 3px; font-size: 11px; font-weight: 500; line-height: 1.35; color: var(--color-on-surface-variant); }
+    .preview-class .preview-class-note .ev-note { display: inline; margin: 0; font-size: 11px; font-weight: 500; text-align: right; color: inherit; }
+    .preview-status { display: inline-flex; align-items: center; gap: 4px; font-size: 10px; font-weight: 700; line-height: 1.4; }
+    .preview-status .preview-icon { width: 13px; height: 13px; }
+    /* the word keeps the block's own colour — it is the alarm, only its size
+       drops to the note tier */
+    .preview-class .preview-class-note .preview-status { font-size: 11px; font-weight: 500; color: var(--color-on-error-container); }
+    .preview-class .preview-class-note .preview-status .preview-icon { width: 12px; height: 12px; }
+    .preview-class.event-pending { border-style: dashed; }
+    .preview-class.event-replacement { border-left-width: 6px; }
+    /* the cancelled card's code is already the grey secondary tier — no second fade */
+    .preview-note { font-size: 11px; }
+    /* Empty states use the shipped ui-empty-state markup; the next-class hint is
+       the approved phone addition that rides inside it. */
+    .preview-next-hint { display: grid; gap: 7px; margin-top: 16px; padding-top: 14px; border-top: 1px solid var(--color-outline); text-align: left; }
+    button.preview-next-hint { width: 100%; min-height: 44px; padding: 14px 0 0; border-right: 0; border-bottom: 0; border-left: 0; border-radius: 0; background: transparent; color: inherit; font: inherit; }
+    button.preview-next-hint:hover .preview-next-details { color: var(--color-primary); }
+    .preview-next-caption { display: flex; align-items: center; gap: 6px; font-size: 11px; color: var(--color-on-surface-variant); }
+    .preview-next-details { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; font-size: 12px; }
+    .preview-next-details strong { font-weight: 600; }
+    .preview-next-venue { padding: 3px 7px; border-radius: var(--radius-sm); background: var(--color-surface-variant); color: var(--color-on-surface); font-size: 11px; font-weight: 600; }
+    .preview-holiday { margin-bottom: 12px; padding: 24px 20px; border-radius: var(--radius-md); background: var(--color-error-container); color: var(--color-on-error-container); }
+    .preview-holiday .empty-title, .preview-holiday .empty-text, .preview-holiday .empty-icon { color: inherit; }
+    .preview-holiday .preview-next-hint { border-top-color: var(--color-on-error-container); }
+    .preview-tablet-grid { display: grid; grid-template-columns: 50px repeat(var(--day-count), minmax(0, 1fr)); grid-template-rows: 62px repeat(22, 44px); border: 1px solid var(--color-outline); border-radius: var(--radius-md); overflow: hidden; background: var(--color-surface); }
+    .preview-tablet-head { padding: 10px 6px; text-align: center; font-size: 13px; font-weight: 600; border-bottom: 1px solid var(--color-outline); background: var(--color-surface-variant); }
+    .preview-tablet-head small { display: block; font-size: 11px; font-weight: 400; }
+    .preview-axis { padding: 5px 4px; font-size: 10px; color: var(--color-on-surface-variant); border-bottom: 1px solid var(--color-outline); }
+    .preview-grid-cell { border-left: 1px solid var(--color-outline); border-bottom: 1px solid var(--color-outline); }
+    .preview-tablet-grid .preview-class { z-index: 1; min-height: 0; margin: 2px; width: auto; padding: 6px; gap: 2px; border-radius: 0; }
+    .preview-tablet-grid .preview-time { font-size: 11px; }
+    .preview-tablet-grid .preview-venue { font-size: 11px; }
+    .preview-tablet-grid .preview-course { font-size: 10px; }
+    .preview-tablet-grid .preview-class-note { font-size: 9.5px; }
+    .preview-tablet-grid .preview-class-note .preview-status { font-size: 9.5px; }
+    /* a 1-column tablet block is ~150px: the tablet rule below lets the venue
+       fall to a second line rather than shrink the time range. */
+    .preview-tablet-grid .preview-note { font-size: 10px; }
+    .preview-tablet-grid .preview-class { overflow-y: auto; }
+    .preview-tablet-grid .preview-class-top { flex-wrap: wrap; gap: 2px 8px; }
+    /* when the venue cannot share the line, it keeps the right rail */
+    .preview-tablet-grid .preview-venue { margin-left: auto; }
+    .preview-desktop-grid .event-block { border-radius: 0; }
+    .preview-desktop-grid td.hour-cell.offday-slot { background: transparent; }
+    .preview-desktop-grid .event-block:focus-visible { z-index: 51; outline-offset: -3px; }
+    .preview-desktop-grid .event-block .preview-status { font-size: 9px; }
+    .preview-desktop-extras { margin-top: 18px; }
+    /* Restore the shipped flip, but keep the approved 96px height and column widths.
+       Three short bullets fit on the back; both faces stay absolutely positioned. */
+    .summary-card { min-height: 96px; cursor: pointer; }
+    .summary-card .summary-card-inner { min-height: 96px; height: 96px; }
+    .summary-card:hover .summary-card-inner { transform: none; }
+    .summary-card.preview-flipped .summary-card-inner { transform: rotateY(180deg); }
+    @media (hover: hover) and (pointer: fine) {
+      .summary-card:not(.preview-unflipped):hover .summary-card-inner { transform: rotateY(180deg); }
+    }
+    /* `+N` is the pending tail, not a second headline: keep the shared tertiary
+       colour but set it clearly smaller than the main number (user, round 1). */
+    .summary-card .summary-value .sum-pending { font-size: 0.62em; font-weight: 600; margin-left: 1px; }
+    /* ── Enhanced summary cards ──────────────────────────────────────────────
+       Adopted from ui-prototype/summary-card-back-preview.html ("Proposed"):
+       leading 1.45, 4px between bullets, the block vertically centred, and the
+       info button moved to the top-right so it stops eating the bottom of the
+       text. The 38px right reserve is uniform, so it clears the 44px button on
+       every line (back padding 8px + 38 = 46px). 39px is the last reserve that
+       does not re-wrap a bullet; 40px re-wraps "Includes completed". */
+    .summary-card-back { padding: 6px 8px; text-align: left; justify-content: center; }
+    .summary-card-back .summary-description { width: 100%; font-size: 12px; line-height: 1.45; padding-right: 38px; }
+    .preview-summary-points { margin: 0; padding-left: 12px; display: grid; gap: 4px; }
+    .summary-card-back .preview-summary-info { position: absolute; top: 0; bottom: auto; right: 0; width: 44px; height: 44px; min-width: 44px; min-height: 44px; display: grid; place-items: center; padding: 0; border: 0; border-radius: var(--radius-sm); background: transparent; color: var(--color-on-surface-variant); cursor: pointer; }
+    .preview-summary-info:hover, .preview-summary-info:focus-visible { color: var(--color-primary); background: var(--color-primary-container); }
+    .preview-modal.modal--summary { max-width: 420px; }
+    .preview-summary-full { font-size: 13px; line-height: 1.5; }
+    .preview-summary-full .preview-summary-points { gap: 8px; padding-left: 18px; }
+    .summary-card:not(.preview-flipped):not(:hover) .preview-summary-info { visibility: hidden; }
+    .preview-summary-points li::marker { color: var(--color-on-surface-variant); }
+    .preview-summary-points .summary-normal { color: var(--color-on-secondary-container); }
+    .preview-summary-points .summary-replacement { color: var(--color-on-primary-container); }
+    .preview-summary-points .summary-pending { color: var(--color-on-tertiary-container); }
+    .preview-summary-points .summary-excluded { color: var(--color-on-error-container); }
+
+    /* ── Structured explanation (enhanced design) ────────────────────────────
+       A short formula strip first, then two-line bullets: the bold term on
+       line 1, the meaning under it via <br>. Nothing is one dense paragraph.
+       Chips carry a TERM, never a live number: every front value is written at
+       runtime, so a printed number would be wrong on any other week. */
+    .explain-formula { display: flex; flex-wrap: wrap; align-items: stretch; gap: 6px; margin: 0 0 16px; }
+    .explain-chip {
+      display: flex; flex-direction: column; gap: 1px; justify-content: center;
+      text-align: center; padding: 9px 13px; min-width: 0;
+      border-radius: var(--radius-md); background: var(--color-surface-variant);
+      border: 0.5px solid var(--color-outline);
+    }
+    .explain-chip b { font-size: 12.5px; font-weight: 700; line-height: 1.25; letter-spacing: -.1px; }
+    .explain-chip.is-pending b { color: var(--color-on-tertiary-container); }
+    .explain-chip.is-blue b { color: var(--color-on-primary-container); }
+    .explain-plus { align-self: center; font-weight: 600; font-size: 14px; color: var(--color-on-surface-variant); }
+    .explain-list { margin: 0; padding: 0; list-style: none; display: grid; gap: 11px; }
+    .explain-list li { font-size: 13px; line-height: 1.4; color: var(--color-on-surface); }
+    .explain-list li strong { font-weight: 700; }
+    .explain-list li span { color: var(--color-on-surface-variant); }
+    .explain-foot {
+      margin: 15px 0 0; padding-top: 11px;
+      border-top: 0.5px solid var(--color-outline);
+      font-size: 11.5px; line-height: 1.45; color: var(--color-on-surface-variant);
+    }
+    .preview-modal .summary-bar { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .preview-modal .summary-hint { display: flex; }
+    /* Two columns cannot hold three bullets below 390px (measured on the live
+       page: 320px spills +14px, 360 and 375px spill +5px). One column fixes it.
+       PLACEMENT MATTERS: this must stay AFTER the 2-column rule above — both are
+       `.preview-modal .summary-bar` (specificity 0,2,0), so source order decides.
+       Placed earlier, the 2-column rule wins and 320px still spills. */
+    @media (max-width: 389px) {
+      .preview-modal .summary-bar { grid-template-columns: 1fr; }
+    }
+    .preview-footer { padding: 28px 0 20px; text-align: center; font-size: 11px; color: var(--color-on-surface-variant); }
+    /* Shipped detail/cancel skins only. theme.css owns the type scale, the modal
+       width, the phone dock and the stacked phone footer; the page's own footer
+       rules (.modal-footer padding / left / right) are mirrored from my-timetable. */
+    .preview-overlay { z-index: 200; }
+    /* ══ 2026-11-13 (user): responsive modal — PROTOTYPE TRIAL, NOT LIVE ══
+       Seven agreed decisions, applied here only so they can be looked at
+       before anything shared is touched.
+
+       1. Sheet cut-off moves 768 -> 600. Above 600 the pop-up is a centred,
+          content-sized dialog; at <=600 it is a flush bottom sheet.
+       2. The 601-768 mismatch (phone-ish page, desktop-ish dialog) is accepted
+          and pinned by a test rather than assumed safe.
+       3. Footer bug fixed: the two wrappers stretch and `.btn-danger` joins the
+          full-width list, so the stacked buttons actually fill the sheet.
+       4. Overlay padding is dropped <=600 so the sheet docks flush.
+       5. The x becomes a 48px target <=600 instead of the 40px it measured.
+       6. Header and footer are pinned; only the body scrolls.
+       7. Prototype first, then live with the full test pass.
+
+       Why the width law changed at all: `fit-content` measures the widest
+       intrinsic row (subtitle, tab rail, label/value) and clamps it between a
+       420px floor and each variant's existing ceiling. A paragraph-only body
+       still reaches its ceiling - correct, and unavoidable. */
+
+    /* -- The dialog: every size above the sheet cut-off --
+       NOTE: theme.css still ships its sheet rules at `max-width: 768px`, so
+       between 601 and 768 the shipped stylesheet parks the pop-up on the
+       bottom edge with a square bottom, a stacked footer and 16px body
+       padding. These declarations put the DIALOG back in that band; without
+       them 601-768 stays a half-sheet, which is the mismatch decision 2 was
+       meant to constrain rather than create. */
+    @media (min-width: 601px) {
+      .preview-modal {
+        width: fit-content;
+        min-width: 420px;
+        margin: auto;
+        border-radius: var(--radius-2xl);
+        border-bottom: 1px solid var(--color-outline);
+        max-height: 85dvh;
+        padding-bottom: 0;
+      }
+      .preview-overlay { align-items: center; }
+      .preview-modal .modal-header { padding: 18px 22px 0; }
+      .preview-modal .modal-body { padding: 16px 22px; }
+      /* the shipped sheet stacks the footer; the dialog puts it back on one
+         row, Close left / actions right */
+      .preview-modal .modal-footer {
+        flex-direction: row;
+        align-items: center;
+        justify-content: space-between;
+        padding: 14px 24px 18px;
+      }
+      .preview-modal .modal-footer-left,
+      .preview-modal .modal-footer-right {
+        flex-direction: row;
+        align-items: center;
+        gap: 10px;
+        width: auto;
+      }
+      /* ceilings: unchanged, each was chosen for a reason */
+      .preview-modal.modal--detail { max-width: 680px; }
+      .preview-modal.modal--cancel { max-width: 588px; }
+      .preview-modal.modal--guide { max-width: 520px; }
+      .preview-modal.modal--summary { max-width: 420px; }
+    }
+
+    /* -- Pinned header + footer, scrollable body (all sizes) --
+       The whole `.modal` used to be the scroller, so a long tab scrolled the
+       title, the x and the Close/Cancel actions off-screen. Now the modal is a
+       fixed three-row column: header / body (flex:1, scrolls) / footer.
+       `min-height: 0` is what lets the middle actually shrink. */
+    .preview-modal {
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+    .preview-modal .modal-header,
+    .preview-modal .modal-footer {
+      flex: 0 0 auto;
+    }
+    .preview-modal .modal-body {
+      flex: 1 1 auto;
+      min-height: 0;
+      overflow-y: auto;
+      overscroll-behavior: contain;
+      scrollbar-width: thin;
+    }
+    .preview-modal .modal-body .page-desc { margin-bottom: 14px; }
+    .preview-modal .modal-footer {
+      padding: 14px 24px 18px;
+      border-top: 1px solid var(--color-outline-variant);
+    }
+    .preview-modal .modal-footer-left { display: flex; align-items: center; }
+    .preview-modal .modal-footer-right { display: flex; align-items: center; gap: 10px; }
+
+    /* -- The sheet: phones only, <=600px -- */
+    @media (max-width: 600px) {
+      /* 4. drop the overlay's 20px so the sheet truly docks flush.
+         The safe-area inset is applied on the modal below. */
+      .preview-overlay {
+        padding: 0;
+        align-items: flex-end;
+      }
+      .preview-modal {
+        width: 100%;
+        max-width: 100%;
+        min-width: 0;
+        max-height: 85dvh;
+        margin: 0;
+        border-radius: var(--radius-xl) var(--radius-xl) 0 0;
+        border-bottom: 0;
+        padding-bottom: env(safe-area-inset-bottom);
+      }
+      /* 5. the x was 40px - one tap target below the floor the stylesheet
+         declares for phones. 48 is the honest size for the control people
+         reach for most. */
+      .preview-modal .modal-close {
+        width: 48px;
+        height: 48px;
+        font-size: 20px;
+      }
+      .preview-modal .modal-header { padding: 14px 16px 0; }
+      .preview-modal .modal-body { padding: 16px; }
+      /* 3. stack the footer and make BOTH groups stretch. Without
+         `align-items: stretch` the wrappers stay shrink-to-fit and a
+         `width:100%` child can only fill its own tiny wrapper - which is
+         exactly the 75px/126px buttons the screenshots showed. */
+      .preview-modal .modal-footer {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 8px;
+        padding: 12px 16px calc(12px + env(safe-area-inset-bottom));
+      }
+      .preview-modal .modal-footer-left,
+      .preview-modal .modal-footer-right {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 8px;
+        width: 100%;
+      }
+      /* `.btn-danger` was missing from theme.css's full-width list, so
+         "Cancel Class?" stayed 126px wide while everything around it was
+         meant to fill the sheet. */
+      .preview-modal .modal-footer .btn-close-modal,
+      .preview-modal .modal-footer .btn-outline,
+      .preview-modal .modal-footer .btn-danger,
+      .preview-modal .modal-footer .btn-action,
+      .preview-modal .modal-footer .btn-replace-now {
+        width: 100%;
+        min-height: 48px;
+        height: auto;
+      }
+    }
+
+    /* 2. the band between the page's mobile layout (768) and the sheet
+       cut-off (600): the page looks phone-ish while the dialog looks
+       desktop-ish. Accepted deliberately; the spec pins 601 / 700 / 768 so a
+       future change cannot make this band silently broken. */
+    body.preview-locked { overflow: hidden; }
+    /* Badge system (badge-spec): ONE pill geometry, colours untouched.
+       The 40px touch-target rule in theme.css exists for tappable chips, so it is
+       cancelled here — a status badge inside a detail row is not a control. */
+    .preview-modal .badge,
+    .preview-modal .badge-holiday,
+    .preview-modal .badge-reason,
+    .preview-modal .badge-outline {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 0;
+      min-height: 0;
+      height: 24px;
+      padding: 0 10px;
+      border-radius: var(--radius-pill);
+      font-size: 12px;
+      font-weight: 600;
+      line-height: 1;
+      white-space: nowrap;
+      vertical-align: middle;
+    }
+    .preview-modal .badge-outline { background: transparent; }
+    /* 2026-11-15 (user, second ruling): theme.css never defined badge-cancelled,
+       so the Status row printed a bare word in a transparent pill — but the red
+       is already PUBLIC HOLIDAY's (`badge-public-holiday` / `badge-conflict`
+       share `--color-error` in §10.0), so a cancelled class must not take it too.
+       Same tokens as the Class Cancelled chip on My Replacements (`.badge-reason`):
+       neutral grey, no new colour. */
+    .preview-modal .badge-cancelled { background: var(--color-surface-variant); color: var(--color-on-surface-variant); }
+    @media (max-width: 1279px) {
+      .preview-nav .nav-items, .preview-nav .user-panel { display: none; }
+      .preview-nav .preview-menu { display: inline-flex; }
+      .preview-nav { padding: 8px 16px; }
+      .preview-desktop-only, .preview-desktop-extras { display: none; }
+      .preview-main { padding: 16px; padding-top: calc(var(--top-bar-height) + 16px); }
+      .preview-controls { position: sticky; top: var(--top-bar-height); z-index: 20; margin: 0 -4px; padding: 8px 4px; background: var(--color-bg); border-bottom: 1px solid var(--color-outline); }
+      .preview-controls .semester-bar { padding: 8px; gap: 4px; }
+      .preview-controls .week-nav { flex: 1; gap: 3px; }
+      .preview-controls .week-arrow { width: 44px; height: 44px; }
+      .preview-controls .week-select { flex: 1; min-width: 0; height: 44px; }
+      .preview-days { display: flex; gap: 5px; overflow-x: auto; padding: 10px 1px 2px; }
+      .preview-tools { display: flex; }
+      .preview-nav .top-right { gap: 8px; }
+    }
+    @media (max-width: 767px) {
+      .preview-main { padding: 12px; padding-top: calc(var(--top-bar-height) + 12px); }
+      .preview-heading { margin-bottom: 10px; }
+      .preview-heading .semester-chip { font-size: 12px; padding: 3px 8px; }
+      .preview-controls .week-select { font-size: 12px; padding-left: 6px; padding-right: 24px; }
+    }
+    /* VENUE CONTRACT — matching My Timetable is intentional, not a new theme.
+       A room is a bookable timeline, NOT an agenda: keep every half-hour visible
+       even on an empty day. The room row scrolls; only the week/day rows stick.
+       All semantic colours come from theme.css, including hover/focus states. */
+    .venue-preview-room { gap: 8px; margin-bottom: 8px; }
+    .venue-preview-room .venue-dd-trigger { min-height: 44px; display: flex; gap: 16px; align-items: center; justify-content: space-between; }
+    .venue-preview-room .venue-dd { min-width: 0; }
+    .venue-preview-room .venue-dd-trigger { background: var(--color-surface-variant); color: var(--color-on-surface); max-width: min(340px, 100%); }
+    #venueCascadePanel { position: fixed; top: auto; left: auto; width: max-content; max-width: calc(100vw - 24px); }
+    #venueCascadePanel .venue-col { flex: 0 1 150px; width: 150px; min-width: 0; max-width: 150px; }
+    #venueCascadePanel .venue-col-header { padding: 8px 10px 6px; }
+    #venueCascadePanel .venue-col-item { min-width: 0; padding: 8px 10px; gap: 6px; }
+    #venueCascadePanel .venue-col-item-meta { flex-shrink: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+    .venue-info { border: 0; min-width: 44px; min-height: 44px; }
+    /* BADGE CONTRACT — geometry only; theme.css still owns all badge colours.
+       Non-interactive pills have no 40/48px minimum from mobile control rules.
+       Long values may grow/wrap instead of losing information to ellipsis.
+       The info button's transparent hit area surrounds its existing grey pill;
+       do not inflate the painted badge to 48px or turn a count into a circle. */
+    .preview-main .semester-chip,
+    .venue-preview-room .badge,
+    .preview-modal .badge {
+      box-sizing: border-box;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+      min-width: 0;
+      min-height: 24px;
+      height: auto;
+      padding: 4px 10px;
+      border-radius: var(--radius-pill);
+      font-size: 12px;
+      font-weight: 600;
+      line-height: 16px;
+      vertical-align: middle;
+      text-align: center;
+    }
+    .venue-preview-room .badge-capacity {
+      flex: 0 0 auto;
+      max-width: none;
+      white-space: nowrap;
+      overflow: visible;
+    }
+    .venue-preview-room .badge svg { width: 12px; height: 12px; flex: 0 0 12px; }
+    .venue-preview-room .venue-info {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      flex: 0 0 auto;
+      padding: 0;
+      border-radius: var(--radius-pill);
+      background: transparent;
+    }
+    .venue-info .badge { min-width: 32px; pointer-events: none; }
+    .preview-modal .detail-value .badge { max-width: 100%; white-space: normal; overflow-wrap: anywhere; }
+    .preview-tablet-head:has(.bookable-badge) { padding: 5px 4px; line-height: 14px; }
+    
+    .venue-earliest { background: var(--color-success-container); color: var(--color-on-success-container); }
+    .venue-earliest-icon { width: 16px; height: 16px; flex: 0 0 16px; }
+    /* 2026-11-15 (user): today's header must match the current system's compact
+       bar, so the earlier 15px "spacing trial" margin on Earliest bookable is
+       retired — the shipped 8px group gap is the only spacing between the two
+       buttons now. */
+    .venue-slot { position: relative; border: 0; border-bottom: 1px solid var(--color-outline); border-right: 1px solid var(--color-outline); border-radius: 0; margin: 0; padding: 0; min-width: 0; background: var(--color-success-container); color: var(--color-on-success-container); }
+    .venue-slot:hover:not(:disabled):not([aria-disabled="true"]) { box-shadow: inset 0 0 0 2px var(--color-primary); }
+    .venue-slot[aria-disabled="true"] { cursor: not-allowed; }
+    .venue-slot:focus-visible { outline-offset: -3px; z-index: 3; }
+    .venue-slot.too-soon { background: var(--color-surface-variant); color: var(--color-on-surface-variant); opacity: 1; }
+    .venue-slot.off-day { background: var(--color-error-container); color: var(--color-on-error-container); opacity: 1; }
+    .venue-slot-label { font-size: 10px; pointer-events: none; }
+    .venue-slot:not(.off-day):not(:hover):not(:focus-visible) .venue-slot-label { visibility: hidden; }
+    .venue-legend { margin-top: 14px; }
+    .venue-ownership { margin: 8px 0 0; font-size: 11px; color: var(--color-on-surface-variant); }
+    .venue-legend .legend-item { border: 0; background: transparent; color: var(--color-on-surface); padding: 8px; }
+    .venue-free-swatch { background: var(--color-success-container); }
+    .venue-picker-search { width: 100%; min-height: 44px; margin-bottom: 14px; }
+    .venue-picker-list { display: grid; gap: 8px; }
+    .venue-picker-option { text-align: left; display: flex; justify-content: space-between; gap: 12px; padding: 12px; min-height: 52px; border: 1px solid var(--color-outline); border-radius: var(--radius-md); background: var(--color-surface); color: var(--color-on-surface); }
+    .venue-picker-option[aria-pressed="true"] { border: 2px solid var(--color-primary); background: var(--color-primary-container); color: var(--color-on-primary-container); }
+    .venue-picker-option small { display: block; margin-top: 3px; color: var(--color-on-surface-variant); }
+    .venue-select { width: 100%; min-height: 44px; }
+    .venue-subject-trigger { display: flex; align-items: center; justify-content: space-between; gap: 12px; box-sizing: border-box; width: 100%; min-width: 44px; min-height: 44px; padding: 10px 12px; border: 1px solid var(--color-outline); border-radius: var(--radius-md); background: var(--color-surface-variant); color: var(--color-on-surface); text-align: left; }
+    .venue-subject-trigger span:first-child { min-width: 0; white-space: normal; overflow-wrap: anywhere; }
+    .venue-subject-trigger svg { flex: 0 0 10px; }
+    .venue-subject-options { display: grid; gap: 0; max-height: min(288px, 40dvh); overflow-y: auto; overscroll-behavior: contain; margin-top: 4px; border: 1px solid var(--color-outline); border-radius: var(--radius-md); background: var(--color-surface); }
+    .venue-subject-option { box-sizing: border-box; width: 100%; min-width: 44px; min-height: 44px; padding: 12px; border: 0; border-bottom: 1px solid var(--color-outline); border-radius: 0; background: transparent; color: var(--color-on-surface); text-align: left; font-size: 14px; line-height: 1.5; white-space: normal; overflow-wrap: anywhere; }
+    .venue-subject-option:last-child { border-bottom: 0; }
+    .venue-subject-option[aria-selected="true"] { background: var(--color-primary-container); color: var(--color-on-primary-container); }
+    /* Arrange uses the existing i-swap symbol (the user's two-arrow SVG),
+       shared with Arrange Replacement; do not introduce a different glyph. */
+    #venueArrange { display: inline-flex; align-items: center; justify-content: center; gap: 6px; }
+    .venue-arrange-icon { width: 15px; height: 15px; flex: 0 0 15px; }
+    .venue-session-fields { display: grid; gap: 16px; }
+    .venue-field { display: grid; grid-template-columns: 128px minmax(0, 1fr); gap: 8px 16px; align-items: start; }
+    .venue-field-label { font-size: 12px; color: var(--color-on-surface-variant); }
+    .venue-field-control { min-width: 0; }
+    .venue-session-choice { display: flex; align-items: flex-start; justify-content: flex-start; gap: 10px; margin-bottom: 8px; }
+    .venue-session-choice:last-child { margin-bottom: 0; }
+    .venue-session-choice input { flex: 0 0 auto; margin: 3px 0 0; }
+    .venue-session-choice .venue-session-text { min-width: 0; font-size: 13px; line-height: 1.5; }
+    .venue-session-meta { display: block; margin-top: 3px; font-size: 12px; color: var(--color-on-surface-variant); white-space: normal; overflow-wrap: anywhere; }
+    .venue-session-primary { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: 2px 12px; font-size: 14px; font-weight: 600; }
+    .venue-session-choice .venue-session-text { flex: 1; }
+    .venue-session-choice .venue-session-secondary { display: flex; align-items: center; gap: 4px; font-size: 13px; font-weight: 500; }
+    .venue-session-secondary .preview-icon { width: 13px; height: 13px; flex: 0 0 13px; }
+    .venue-session-choice .venue-session-tertiary { font-size: 11px; font-weight: 400; }
+    .venue-session-choice .venue-session-text { display: flex; flex-direction: column; align-self: stretch; }
+    .venue-session-footer { display: flex; align-items: flex-end; justify-content: space-between; gap: 8px; margin-top: auto; padding-top: 8px; }
+    .venue-session-cohorts { display: inline-flex; align-items: center; gap: 4px; min-width: 0; font-size: 11px; font-weight: 400; color: var(--color-on-surface-variant); overflow-wrap: anywhere; }
+    .venue-cohort-icon { width: 13px; height: 13px; flex: 0 0 13px; }
+    /* Same venue pill as the current Replacement Arrangement page. */
+    .ra-venue-pill { display: inline-flex; align-items: center; flex: 0 0 auto; padding: 2px 6px; border: 1px solid var(--color-outline); border-radius: var(--radius-pill); background: var(--color-surface-variant); color: var(--color-on-surface); font-size: 11px; font-weight: 700; line-height: 1.2; vertical-align: middle; white-space: nowrap; }
+    .venue-status-note { font-size: 12px; color: var(--color-on-surface-variant); margin: 12px 0; }
+    .venue-result { padding: 12px; border-radius: var(--radius-md); background: var(--color-primary-container); color: var(--color-on-primary-container); }
+    /* 2026-11-15 (user): Today and Earliest bookable flash the WHOLE DAY, the
+       shipped mechanic (theme.css `tr.bookable-flash > td`: 3 pulses × 0.5s with
+       a 4px ring at 63%). Today keeps the BLUE arm because it comes from the blue
+       button; Earliest bookable keeps the green one. On the desktop table the
+       target is the day's <tr>; below 1280 there is no row, so the day's column
+       cells take the same pulse. */
+    @keyframes venue-row-pulse { 0%, 100% { box-shadow: 0 0 0 0 transparent; } 45% { box-shadow: 0 0 0 4px color-mix(in srgb, var(--color-success) 63%, transparent); } }
+    @keyframes venue-row-pulse-primary { 0%, 100% { box-shadow: 0 0 0 0 transparent; } 45% { box-shadow: 0 0 0 4px color-mix(in srgb, var(--color-primary) 63%, transparent); } }
+    #previewDesktop tbody tr.venue-row-flash > td { animation: venue-row-pulse .5s ease-in-out 3; }
+    #previewDesktop tbody tr.venue-row-flash--today > td { animation: venue-row-pulse-primary .5s ease-in-out 3; }
+    .venue-slot.venue-cell-flash { animation: venue-row-pulse .5s ease-in-out 3; }
+    .venue-slot.venue-cell-flash--today { animation: venue-row-pulse-primary .5s ease-in-out 3; }
+    #previewTablet { scroll-margin-top: 235px; }
+    .preview-tablet-head small { overflow-wrap: anywhere; }
+    #previewTablet .preview-class { border-width: .5px; }
+    #previewTablet .preview-class.venue-mine { border-width: 3px; }
+    /* 2026-11-15 (user): the desktop fill ABSOLUTELY fills its cell, the way the
+       live page's `.cell-content` does. A fixed 80px button left a white strip
+       under every cell whenever a day cell grew past 80px (PUBLIC HOLIDAY or
+       BOOKINGS OPEN on two lines), which is what broke the row into fragments.
+       No per-cell border: the shipped 4px `border-spacing` gutter is the only
+       separator, exactly like the current system. */
+    .venue-desktop-slot { position: absolute; inset: 0; width: auto; height: auto; display: block; border: 0; }
+    /* 2026-11-15 (user): the desktop venue grid closes its gutters. theme.css
+       .timetable ships `border-spacing: 4px`, so every half-hour cell sat in a
+       4px white gutter on all four sides — the user read those white columns as
+       "empty spaces", made worse because each slot also draws its own 1px outline
+       border. Cells now tile edge to edge and one 1px hairline separates them,
+       exactly how the responsive grid draws it. Cell size (80px), row height,
+       colours and the day column are unchanged — only the gap is closed. */
+    /* 2026-11-15 (user): the day-column badges (PUBLIC HOLIDAY / BOOKINGS OPEN /
+       TODAY / OFF) get 4px of air above the date instead of 2px, so they do not
+       crowd the date line. The row may grow past 80px — the fill above stretches
+       with it, so the colour still spans the whole day. */
+    #previewDesktop .time-col .holiday-badge,
+    #previewDesktop .time-col .bookable-badge,
+    #previewDesktop .time-col .today-badge,
+    #previewDesktop .time-col .off-badge { margin-top: 4px; line-height: 1.3; }
+    .venue-session-option { width: 100%; margin-bottom: 8px; text-align: left; }
+    .venue-toolbar { display: contents; }
+    @media (min-width: 1280px) {
+      /* Desktop keeps the shipped horizontal-time grid. Only responsive layouts
+         below 1280 change orientation. One toolbar surface replaces two joined
+         cards: inner groups must not add their own border/shadow/padding. */
+      /* 2026-11-15 (user, matched to the current system's header): the bar is the
+         shipped FIVE-child grid — venue wrap | week-nav | Today | Earliest |
+         print — with equal flexible edges (minmax(0,1fr)) so the middle cluster
+         sits like the live page and print holds the right edge. The two wrappers
+         dissolve (display:contents) instead of nesting two flex rows. */
+      .venue-toolbar { display: grid; grid-template-columns: minmax(0, 1fr) auto auto auto minmax(0, 1fr); align-items: center; gap: 8px; padding: 12px 16px; border: 1px solid var(--color-outline); border-radius: var(--radius-lg); background: var(--color-surface); box-shadow: var(--shadow-sm); }
+      .venue-toolbar > .venue-preview-room { justify-self: start; margin: 0; padding: 0; border: 0; border-radius: 0; background: transparent; box-shadow: none; gap: 4px; }
+      .venue-toolbar > .preview-controls,
+      .venue-toolbar .preview-controls > .semester-bar { display: contents; }
+      .venue-toolbar .print-btn { justify-self: end; }
+      /* NON-TOUCH DESKTOP: the shipped theme.css sizes win. The live page's own
+         rules give the trigger 36px, the week select 36px/180px-min, arrows 32px,
+         Today 32px and print 32px — do not impose 44px here. The 48px touch
+         rules live only under (any-pointer: coarse) further down. */
+      /* Both fields size to their CONTENT, exactly like the live page: the venue
+         trigger is ~196px, the week field ~288px. No fixed clamps — the old
+         288px/340px widths spent horizontal space for nothing. */
+      .venue-toolbar .venue-dd-trigger { height: 36px; min-height: 0; width: auto; min-width: 0; max-width: min(340px, 100%); gap: 6px; justify-content: flex-start; }
+      #venuePicker { margin-right: 4px; }
+      .venue-toolbar .week-select { height: 36px; min-height: 36px; min-width: 180px; width: auto; }
+      .venue-toolbar .week-arrow,
+      .venue-toolbar .print-btn,
+      .venue-toolbar .venue-info { width: 32px; height: 32px; min-width: 32px; min-height: 0; flex: 0 0 32px; }
+      .venue-toolbar .today-btn { height: 32px; min-height: 32px; width: auto; }
+      .venue-toolbar .week-nav { min-width: 0; flex: 0 0 auto; }
+      #previewDesktop { margin-top: 16px; min-width: 0; }
+      #previewTablet { display: none !important; }
+      .venue-legend { clear: both; }
+    }
+    @media (max-width: 1279px) {
+      #previewTablet .preview-tablet-grid { grid-template-columns: 50px repeat(var(--day-count), minmax(0, 1fr)); grid-template-rows: 62px repeat(22, 44px) 24px; }
+      #previewTablet .preview-axis { font-size: 12px; }
+      .preview-tools { margin: 4px 0; }
+      #previewDayCount { margin-top: 0; }
+      #previewTablet .venue-end-time { border-bottom: 0; }
+      #previewTablet .venue-end-line { grid-column: 2 / -1; grid-row: 24; background: var(--color-surface); }
+      .preview-controls .semester-bar { flex-wrap: wrap; }
+      .preview-controls .week-nav { flex-basis: calc(100% - 4px); }
+      .preview-controls .print-btn { display: inline-flex; margin-left: auto; }
+      .venue-preview-room .venue-dd-trigger { flex: 1; min-width: 0; }
+      .venue-preview-room .venue-dd { flex: 1; }
+      .venue-preview-room .venue-dd-trigger { width: 100%; }
+      .venue-preview-room #venueLabel { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+      .preview-desktop-extras { display: none; }
+    }
+    /* TOUCH CONTRACT — capability, NOT viewport width. Mouse-only desktops
+       retain their ordinary compact controls. Touch hit boxes grow at every
+       width, including landscape tablets; invisible overlapping padding
+       is forbidden, especially between neighbouring time slots/day buttons.
+       Labelled radio rows provide the target; the radio glyph stays small. */
+    @media (any-pointer: coarse) {
+      body .preview-nav button,
+      body .preview-main button,
+      body .preview-overlay button,
+      body .nav-drawer button,
+      body .preview-main select,
+      body .preview-overlay select,
+      body .preview-overlay input[type="search"],
+      body .preview-overlay .btn-action {
+        box-sizing: border-box;
+        min-width: 48px;
+        min-height: 48px;
+      }
+      body .preview-days .preview-day { flex: 1 0 48px; min-width: 48px; }
+      body .preview-controls .week-arrow { flex: 0 0 48px; width: 48px; height: 48px; }
+      body .preview-controls .week-select { height: 48px; }
+      body .venue-preview-room .venue-dd-trigger { min-height: 48px; }
+      body .preview-overlay .cancel-reason-option,
+      body .preview-overlay .cancel-day-row { min-height: 48px; box-sizing: border-box; }
+      body .preview-overlay .summary-card-back .preview-summary-info { width: 48px; height: 48px; }
+      .venue-toolbar .venue-dd-trigger,
+      .venue-toolbar .week-select,
+      .venue-toolbar .week-arrow,
+      .venue-toolbar .today-btn,
+      .venue-toolbar .print-btn,
+      .venue-toolbar .venue-info { min-height: 48px; height: 48px; }
+      .venue-toolbar .week-arrow,
+      .venue-toolbar .print-btn,
+      .venue-toolbar .venue-info { min-width: 48px; width: 48px; flex: 0 0 48px; }
+      #previewTablet .preview-tablet-grid { grid-template-rows: 62px repeat(22, 48px) 24px; }
+      .preview-days { overscroll-behavior-x: contain; scroll-padding-inline: 1px; }
+    }
+    @media (max-width: 767px) {
+      .preview-controls .print-btn { display: none; }
+      /* Phone form fields use all available width; details elsewhere keep
+         their usual label/value rows. The radio label is the full touch target. */
+      .venue-session-fields .venue-field { grid-template-columns: minmax(0, 1fr); gap: 6px; }
+    }
+    /* Current-system mobile picker: copied geometry/structure from
+       resources/views/livewire/venue-timetable.blade.php, with the user's 48px
+       target minimum retained. This native sheet is independent of details. */
+    dialog#venueTimetablePicker { width: min(560px, 100%); max-width: 100%; max-height: 88dvh; margin: auto auto 0; padding: 0; border: 1px solid var(--color-outline); border-radius: var(--radius-lg) var(--radius-lg) 0 0; background: var(--color-surface); color: var(--color-on-surface); overflow: hidden; }
+    dialog#venueTimetablePicker::backdrop { background: var(--color-scrim); }
+    dialog#venueTimetablePicker[open] { display: flex; flex-direction: column; }
+    #venueTimetablePicker .venue-picker-header { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 12px 16px; border-bottom: 1px solid var(--color-outline); }
+    #venueTimetablePicker h2 { margin: 0; font-size: 1rem; }
+    #venueTimetablePicker .venue-picker-search { width: auto; margin: 0; padding: 12px 16px; border-bottom: 1px solid var(--color-outline); }
+    #venueTimetablePicker input { box-sizing: border-box; width: 100%; min-height: 44px; padding: 0 12px; border: 1px solid var(--color-outline); border-radius: var(--radius-md); background: var(--color-surface-variant); color: var(--color-on-surface); font: inherit; }
+    #venueTimetablePicker button { box-sizing: border-box; min-width: 32px; min-height: 44px; }
+    #venueTimetablePicker .venue-picker-body { flex: 1 1 auto; min-height: 0; overflow-y: auto; overscroll-behavior: contain; padding: 8px 16px calc(16px + env(safe-area-inset-bottom, 0px)); scrollbar-width: thin; }
+    #venueTimetablePicker .venue-picker-group { position: sticky; top: 0; z-index: 1; display: flex; align-items: center; justify-content: space-between; gap: 8px; width: 100%; margin: 8px 0 2px; padding: 10px 10px 10px 12px; border: 1px solid var(--color-outline); border-radius: var(--radius-sm); background: var(--color-surface-variant); color: var(--color-on-surface); font: inherit; font-size: 11px; font-weight: 700; letter-spacing: .6px; text-transform: uppercase; text-align: left; }
+    #venueTimetablePicker .venue-picker-group-chevron { flex: 0 0 14px; width: 14px; height: 14px; color: var(--color-on-surface-variant); transition: transform .15s ease; }
+    #venueTimetablePicker .venue-picker-group[aria-expanded="false"] svg { transform: rotate(-90deg); }
+    #venueTimetablePicker .venue-picker-item { display: flex; align-items: center; gap: 10px; width: 100%; padding: 9px 4px; border: 0; border-bottom: 1px solid var(--color-outline-variant); border-radius: 0; background: transparent; color: var(--color-on-surface); font: inherit; text-align: left; }
+    #venueTimetablePicker .venue-picker-item:hover, #venueTimetablePicker .venue-picker-item:focus-visible { background: var(--color-surface-variant); }
+    #venueTimetablePicker .venue-picker-item.selected { background: var(--color-primary-container); color: var(--color-on-primary-container); }
+    #venueTimetablePicker .venue-picker-item-main { display: flex; flex-direction: column; gap: 1px; flex: 1 1 auto; min-width: 0; }
+    #venueTimetablePicker .venue-picker-item-main strong { font-size: 13px; }
+    #venueTimetablePicker .venue-picker-item-name, #venueTimetablePicker .venue-picker-item-meta { font-size: 12px; color: var(--color-on-surface-variant); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    #venueTimetablePicker .selected .venue-picker-item-name, #venueTimetablePicker .selected .venue-picker-item-meta { color: inherit; }
+    #venueTimetablePicker .venue-picker-item-meta { flex: 0 0 auto; }
+    #venueTimetablePicker .venue-picker-empty { margin: 12px 0; font-size: 13px; color: var(--color-on-surface-variant); font-style: italic; }
+    @media (any-pointer: coarse) {
+      #venueTimetablePicker input,
+      #venueTimetablePicker button { min-width: 48px; min-height: 48px; }
+    }
+    @media print { .preview-nav, .preview-controls, .venue-preview-room, .preview-tools, .preview-overlay, #venueTimetablePicker { display: none !important; } }
+    @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; } }
+  </style>
+</head>
+<body>
+  <svg hidden aria-hidden="true"><defs>
+    <symbol id="i-calendar" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 11h18"/></symbol>
+    <!-- User-supplied earliest-bookable glyph: calendar + right chevron. -->
+    <symbol id="i-calendar-arrow" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line><path d="m14.5 14.5 2.5 2.5-2.5 2.5"></path></symbol>
+    <symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></symbol>
+    <symbol id="i-swap" viewBox="0 0 24 24"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></symbol>
+    <symbol id="i-close" viewBox="0 0 24 24"><path d="m6 6 12 12M6 18 18 6"/></symbol>
+    <symbol id="i-warning" viewBox="0 0 24 24"><path d="m12 3 10 18H2L12 3Z"/><path d="M12 9v4M12 17h.01"/></symbol>
+    <symbol id="i-pending" viewBox="0 0 24 24"><path d="M6 3h12M6 21h12M7 3v4l10 10v4M17 3v4L7 17v4"/></symbol>
+    <symbol id="i-menu" viewBox="0 0 24 24"><path d="M3 6h18M3 12h18M3 18h18"/></symbol>
+    <symbol id="i-help" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M9 9a3 3 0 0 1 6 0c0 2-3 2-3 5M12 17h.01"/></symbol>
+    <symbol id="i-moon" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79Z"/></symbol>
+    <symbol id="i-summary" viewBox="0 0 24 24"><path d="M4 20h16M7 16v-5M12 16V5M17 16V8"/></symbol>
+    <symbol id="i-target" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></symbol>
+    <symbol id="i-cohorts" viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></symbol>
+  </defs></svg>
+  <header class="top-bar preview-nav">
+    <div class="top-logo"><img src="../../public/images/logo_banner.png" alt="TAR UMT"></div>
+    <nav class="nav-items" aria-label="Main navigation">
+      <a class="nav-item" href="#" data-preview-link>My Timetable</a>
+      <a class="nav-item" href="#" data-preview-link>Cohort Timetables</a>
+      <a class="nav-item active" href="#" aria-current="page" data-preview-link>Venue Timetable</a>
+      <a class="nav-item" href="#" data-preview-link>My Replacements</a>
+    </nav>
+    <div class="top-right">
+      <button class="theme-toggle" id="previewTheme" aria-label="Toggle theme" data-tip="Switch between light &amp; dark mode" data-tip-pos="left"><svg class="preview-icon" fill="none" stroke="currentColor" stroke-width="2"><use href="#i-moon"/></svg></button>
+      <button class="notif-btn" id="previewBell" aria-label="Notifications" aria-haspopup="true" data-tip="Notifications" data-tip-pos="left"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg><span class="notif-badge" id="previewNotifBadge" style="display:flex">3</span></button>
+      <div class="user-panel"><div class="user-profile"><div class="user-avatar">LJ</div><div class="user-info"><span class="user-name" id="previewUser"></span><span class="user-id">5770</span><span class="user-role">Lecturer</span></div></div></div>
+      <button class="preview-button preview-icon-button preview-menu" id="previewMenu" aria-label="Open navigation"><svg class="preview-icon" fill="none" stroke="currentColor" stroke-width="2"><use href="#i-menu"/></svg></button>
+    </div>
+  </header>
+  <main class="app-container preview-main">
+    <div class="page-header preview-heading">
+      <div><h1 class="page-title">Venue Timetable</h1><span class="semester-chip" id="previewSemester"></span></div>
+      <button class="preview-button preview-icon-button" id="previewHelp" aria-label="How to use this page" data-tip="How to use this page"><svg class="preview-icon" fill="none" stroke="currentColor" stroke-width="2"><use href="#i-help"/></svg></button>
+    </div>
+    <!-- One desktop toolbar; display:contents preserves separate mobile rows. -->
+    <div class="venue-toolbar" role="group" aria-label="Venue and week controls">
+    <!-- VENUE CONTRACT: only this room row scrolls away on small screens. -->
+    <div class="semester-bar venue-preview-room" id="venueRoomRow">
+      <div class="venue-dd" id="venueDropdown">
+        <button type="button" class="venue-dd-trigger" id="venuePicker" aria-haspopup="true" aria-expanded="false" aria-controls="venueCascadePanel"><span class="venue-dd-label" id="venueLabel">B002 — Tutorial Room</span><svg class="dd-arrow" width="10" height="6" viewBox="0 0 10 6" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M1 1l4 4 4-4"/></svg></button>
+        <div class="venue-dd-panel" id="venueCascadePanel"></div>
+      </div>
+      <span class="badge badge-capacity" id="venueSeats" aria-label="Room capacity"></span>
+      <button class="venue-info" id="venueInfo" aria-label="Room information"><span class="badge badge-past" aria-hidden="true">ⓘ</span></button>
+    </div>
+    <section class="preview-controls" aria-label="Timetable controls">
+      <div class="semester-bar">
+        <div class="week-nav"><button class="week-arrow" id="previewPrev" aria-label="Previous week" data-tip="Previous week">‹</button><select class="week-select" id="previewWeek" aria-label="Timetable week" data-tip="Pick the week to display"></select><button class="week-arrow" id="previewNext" aria-label="Next week" data-tip="Next week">›</button></div>
+        <button class="today-btn" id="previewToday" data-tip="Go to current week" aria-label="Go to current week"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><use href="#i-target"/></svg><span class="today-btn-label">Today</span></button>
+        <button class="today-btn venue-earliest" id="venueEarliest" data-tip="Jump to the earliest available slot"><svg class="venue-earliest-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><use href="#i-calendar-arrow"/></svg><span>Earliest bookable</span></button>
+        <button type="button" class="print-btn preview-desktop-only" id="previewPrint" data-tip="Open print preview" aria-label="Open print preview"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg></button>
+      </div>
+      <div class="preview-days" id="previewDays" aria-label="Days of this week"></div>
+    </section>
+    </div>
+    <div class="preview-tools"><div><span id="previewDayCount"></span></div><button class="preview-button preview-icon-button" id="previewSummary" aria-label="Week summary" data-tip="Week summary"><svg class="preview-icon" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><use href="#i-summary"/></svg></button></div>
+    <div id="previewHoliday"></div>
+    <section id="previewAgenda" class="preview-agenda" aria-label="Classes for the selected day"></section>
+    <section id="previewTablet" aria-label="Timetable for the selected days"></section>
+    <section id="previewDesktop" class="preview-desktop-grid" aria-label="Weekly timetable">
+      <div class="grid-wrapper"><div class="grid-scroll"><table class="timetable" id="timetable"><thead id="tableHead"></thead><tbody id="tableBody"></tbody></table></div></div>
+    </section>
+    <div id="previewEmpty" hidden></div>
+    <section class="preview-desktop-extras" id="previewExtras" aria-label="Week summary"></section>
+    <footer class="preview-footer">TAR UMT · Class Replacement System<br>Design preview only — no real bookings or cancellations.</footer>
+  </main>
+  <!-- Mobile picker matches the current live sheet, including no footer. -->
+  <dialog id="venueTimetablePicker" aria-labelledby="venueTimetablePickerHeading">
+    <div class="venue-picker-header"><h2 id="venueTimetablePickerHeading">Choose venue</h2><button type="button" class="btn btn-outline" id="venuePickerClose">Close</button></div>
+    <div class="venue-picker-search"><input type="search" id="systemVenueSearch" placeholder="Search code or room name" aria-label="Search venues" autocomplete="off"></div>
+    <div class="venue-picker-body" id="systemVenueList"></div>
+  </dialog>
+  <!-- Shared preview host: the shipped .modal shell; .modal--cancel for cancellation. -->
+  <div class="modal-overlay preview-overlay" id="previewOverlay" style="display:none">
+    <div class="modal modal--detail preview-modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+      <div class="modal-header" id="previewModalHeader">
+        <span class="modal-title" id="modalTitle">Class Details<span class="modal-subtitle" id="modalSubtitle"></span></span>
+        <button class="modal-close" id="previewClose" data-tip="Close" aria-label="Close">&times;</button>
+      </div>
+      <div class="modal-body" id="modalBody"></div>
+      <div class="modal-footer">
+        <div class="modal-footer-left"><button class="btn-close-modal" id="previewCloseBtn">Close</button></div>
+        <div class="modal-footer-right" id="modalFooterRight"></div>
+      </div>
+    </div>
+  </div>
+  <!-- Navigation drawer — the app's own markup and theme.css classes -->
+  <div class="nav-drawer-overlay" id="navDrawerOverlay"></div>
+  <div class="nav-drawer" id="navDrawer">
+    <div class="nav-drawer-header">
+      <span class="nav-drawer-title">Navigation</span>
+      <button class="nav-drawer-close" id="navDrawerClose" aria-label="Close navigation menu">
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+    <div class="nav-drawer-items">
+      <a class="nav-drawer-item" href="#" data-preview-link>My Timetable</a>
+      <a class="nav-drawer-item" href="#" data-preview-link>Cohort Timetables</a>
+      <a class="nav-drawer-item active" href="#" aria-current="page" data-preview-link>Venue Timetable</a>
+      <a class="nav-drawer-item" href="#" data-preview-link>My Replacements</a>
+    </div>
+    <div class="nav-drawer-user">
+      <div class="nav-drawer-user-info">
+        <div class="nav-drawer-user-avatar" id="navDrawerAvatar">LJ</div>
+        <div class="nav-drawer-user-details">
+          <span class="nav-drawer-user-name" id="navDrawerName"></span>
+          <span class="nav-drawer-user-id" id="navDrawerId"></span>
+          <span class="nav-drawer-user-role">Lecturer</span>
+        </div>
+      </div>
+      <button class="nav-drawer-logout" id="navDrawerLogout" aria-label="Logout">
+        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+        Logout
+      </button>
+    </div>
+  </div>
+  <div class="toast-bar" id="previewToast" role="status" aria-live="polite"><div class="toast-content"><span class="toast-message" id="previewToastMessage"></span></div></div>
+  <script src="../../public/js/mock-data.js"></script>
+  <script>
+  (() => {
+    'use strict';
+    // Local adapter only: never mutate the shared mock registry. No second
+    // lecturer/room/course dataset is declared inside this prototype.
+    const MockData = {...window.MockData, sampleClasses: []};
+    const cancellationReasons = ['Medical/Sick Leave','Annual Leave','Emergency Leave','Hospitalisation Leave','Maternity Leave','Compassionate Leave','Paternity Leave','Other'];
+    const $ = id => document.getElementById(id);
+    const esc = value => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+    const icon = (name, cls='preview-icon') => `<svg class="${cls}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><use href="#i-${name}"/></svg>`;
+    const fixtureToday = '2026-11-12';
+    const state = { week: 7, day: 3, mode: 'normal' };
+    // Only local preview navigation reads these; never boot or call the live system.
+    const returnParams=new URLSearchParams(window.location.search);
+    for(const [key,max] of [['week',MockData.semester.weeks-1],['day',6]]) {
+      const raw=returnParams.get(key), value=Number(raw);
+      if(raw!==null && /^\d+$/.test(raw) && Number.isInteger(value) && value>=0 && value<=max) state[key]=value;
+    }
+    if(['light','dark'].includes(returnParams.get('theme'))) {
+      const dark=returnParams.get('theme')==='dark';
+      document.documentElement.classList.toggle('dark',dark);
+      document.documentElement.classList.toggle('light',!dark);
+    }
+    const fmt = (date, options = {}) => new Intl.DateTimeFormat('en-GB', { timeZone:'UTC', day:'numeric', month:'short', year:'numeric', ...options }).format(date);
+    function dateAt(week, day) { const d = new Date(MockData.semester.startDate + 'T12:00:00Z'); d.setUTCDate(d.getUTCDate() + week * 7 + day); return d; }
+    const dateKey = (week, day) => dateAt(week, day).toISOString().slice(0, 10);
+    const clock = slot => { const m = 480 + slot * 30; return `${Math.floor(m / 60) % 12 || 12}:${String(m % 60).padStart(2,'0')} ${m >= 720 ? 'PM' : 'AM'}`; };
+    const timeOf = e => `${clock(e.start)} ~ ${clock(e.end + 1)}`;
+    const widthCount = width => width < 768 ? 1 : width < 1024 ? 2 : width < 1280 ? 3 : 7;
+    const dayWindow = (day, count) => { const start = Math.min(day, 7 - count); return Array.from({length:count}, (_, i) => start + i); };
+    const holidayAt = (week, day) => MockData.holidays.find(h => h.week === week + 1 && h.dayIndex === day);
+    function daysOf(week) { return Array.from({length:7}, (_, di) => ({ abbr:['Mon','Tue','Wed','Thu','Fri','Sat','Sun'][di], date:fmt(dateAt(week,di)), sunday:di===6, today:dateKey(week,di)===fixtureToday, holiday:!!holidayAt(week,di), holidayLabel:holidayAt(week,di)?.label || '' })); }
+    function eventsOf(week) {
+      if (state.mode === 'empty-week' && week === 7) return [];
+      let events = MockData.sampleClasses.map(e => ({...e, id:`${week}-${e.id}`, lecturer:MockData.currentUser.name, cohorts:e.cohorts.slice(), studentCounts:e.studentCounts.slice()}));
+      if (week !== 7) events = events.map(e => ({...e,status:'normal',remarks:'',replacedFor:undefined}));
+      if (week === 7 && state.mode === 'empty-day') events = events.filter(e => e.di !== 3);
+      return events.sort((a,b) => a.di-b.di || a.start-b.start);
+    }
+    function statusOf(e, week = state.week) { return holidayAt(week,e.di) ? 'holiday' : e.status; }
+    const statusMeta = {
+      normal:['Normal','calendar','event-normal'], pending:['Pending','pending','event-pending'], replacement:['Replacement','swap','event-replacement'],
+      cancelled:['Cancelled','close','event-conflict'], conflict:['Conflict','warning','event-conflict'], holiday:['Public Holiday','calendar','event-conflict']
+    };
+    /* 2026-11-15 (user): the details pop-up names the state in full — "Class
+       Cancelled", never a bare "Cancelled", which a reader can take as the
+       REQUEST being cancelled rather than the class. A block keeps the short
+       word: a one-hour desktop cell is ~60px wide and cannot carry the longer
+       one. The spoken label and the hover tip use the full form. */
+    const statusFull = { cancelled:'Class Cancelled' };
+    const statusLabel = s => statusFull[s] || statusMeta[s][0];
+    // Holiday is labelled on the day; only cancellation and conflict need a block label.
+    const BADGED = ['cancelled', 'conflict'];
+    function badge(e, week = state.week) { const s = statusOf(e,week), meta = statusMeta[s]; return BADGED.includes(s) ? `<span class="preview-status">${icon(meta[1])}${meta[0]}</span>` : ''; }
+    // The shipped note vocabulary (buildReplacementNote): parenthesised, system date format.
+    function blockNote(e) {
+      if(e.status==='replacement' && e.replacedFor) return `(Replaced for ${e.replacedFor})`;
+      // 2026-11-15 (user): the shipped formatter drops the time — `requestedAt`
+      // is "30 Nov 2026, 10:00 AM" and the live note prints `(Pending since 30
+      // Nov 2026)`, because buildReplacementNote splits on the comma.
+      if(e.status==='pending' && e.requestedAt) return `(Pending since ${String(e.requestedAt).split(',')[0]})`;
+      return '';
+    }
+    // Block hover voice — the system's composed shape: subject name · lecturer · STATUS.
+    function blockTip(e) { return [e.name, e.lecturer || '—', statusLabel(statusOf(e)).toUpperCase()].filter(Boolean).join(' · '); }
+    /* The other class(es) this one shares time with, in plain words. Only the
+       phone list uses this — the desktop grid stacks the blocks and the tablet
+       shows them side by side, so both already make the overlap obvious. */
+    function overlapText(e, list) {
+      const others=list.filter(o => o.id!==e.id && o.start<=e.end && e.start<=o.end);
+      if(!others.length) return null;
+      if(others.length===1) return `Overlaps ${timeOf(others[0])} · ${others[0].code} (${others[0].type})`;
+      return `Overlaps ${others.length} other classes`;
+    }
+    function card(e, overlap) { const s=statusOf(e), note=blockNote(e); return `<button class="event-block preview-class ${statusMeta[s][2]} ${s==='cancelled'?'is-cancelled':''}${overlap?' is-overlap':''}" data-event="${esc(e.id)}" data-tip="${esc(blockTip(e))}" aria-label="${esc(`${timeOf(e)}, ${e.code} ${e.name}, ${e.venue}, ${statusLabel(s)}${overlap?', '+overlap:''}`)}"><span class="preview-class-top"><span class="preview-time">${timeOf(e)}</span><span class="preview-venue">${esc(e.venue)}</span></span><span class="preview-course"><span class="preview-course-code">${esc(e.code)} (${esc(e.type)})</span></span>${(badge(e)||note)?`<span class="preview-class-note">${badge(e)}${note?`<span class="ev-note">${esc(note)}</span>`:''}</span>`:''}${overlap?`<span class="ev-overlap">${esc(overlap)}</span>`:''}</button>`; }
+    function nextClass(week, day, after = -1) {
+      for (let w=week; w<MockData.semester.weeks; w++) {
+        const found=eventsOf(w).find(e => (w>week || e.di>day || (e.di===day && e.end*30+510>after)) && !['cancelled','conflict','holiday','pending'].includes(statusOf(e,w)));
+        if(found) return {e:found,w};
+      }
+      return null;
+    }
+    function shortTimeOf(e) {
+      const start=clock(e.start),end=clock(e.end+1);
+      const compact=value=>value.replace(':00','');
+      return `${compact(start.slice(-2)===end.slice(-2)?start.slice(0,-3):start)}–${compact(end)}`;
+    }
+    function nextHint(week,day,after=-1) {
+      const n=nextClass(week,day,after);
+      if(!n) return '<p class="preview-next-hint">No more classes this semester.</p>';
+      return `<button type="button" class="preview-next-hint" data-next-week="${n.w}" data-next-day="${n.e.di}" aria-label="Go to ${esc(fmt(dateAt(n.w,n.e.di),{weekday:'long'}))}"><span class="preview-next-caption">${icon('clock')}Next class <span aria-hidden="true">→</span></span><span class="preview-next-details"><span>${esc(fmt(dateAt(n.w,n.e.di),{weekday:'short',year:undefined}))} · <strong>${esc(shortTimeOf(n.e))}</strong></span><span class="preview-next-venue" aria-label="Venue ${esc(n.e.venue)}">${esc(n.e.venue)}</span></span></button>`;
+    }
+    // Shipped ui-empty-state shape: .empty-icon + h3.empty-title + .empty-text,
+    // with the approved next-class hint riding inside the same block.
+    function emptyMessage(week, day, wholeWeek=false) {
+      const title=wholeWeek?'No classes this week':`No classes on ${fmt(dateAt(week,day),{weekday:'long'})}`;
+      const text=wholeWeek?'All classes for this week have been cancelled.':'';
+      return `<div class="empty-state">${icon('calendar','empty-icon')}<h3 class="empty-title">${esc(title)}</h3>${text?`<p class="empty-text">${esc(text)}</p>`:''}${nextHint(week,wholeWeek?6:day)}</div>`;
+    }
+    function totals(events) {
+      const active=events.filter(e => !['cancelled','conflict','holiday','pending'].includes(statusOf(e)));
+      const pending=events.filter(e => statusOf(e)==='pending');
+      const duration=list => list.reduce((sum,e) => sum+(e.end-e.start+1)/2,0);
+      return [
+        ['Total Classes',`${active.length}<span class="sum-pending">+${pending.length}</span>`,summaryPoints([
+          '<strong class="summary-normal">Normal</strong> + <strong class="summary-replacement">blue</strong>',
+          '<strong class="summary-pending">+N</strong> = pending',
+          'No <strong class="summary-excluded">red</strong> blocks'
+        ]),'card-total'],
+        ['Teaching Hours',`${duration(active)}<span class="sum-pending">+${duration(pending)}</span>`,summaryPoints([
+          'Teaching time',
+          '<strong>30 min</strong> / slot',
+          '<strong class="summary-pending">+N</strong> = pending'
+        ]),'card-hours'],
+        ['Replacements',events.filter(e => statusOf(e)==='replacement').length,summaryPoints([
+          'New class time',
+          'PL approved',
+          '<strong class="summary-replacement">Blue</strong> blocks'
+        ]),'card-replacement'],
+        ['Pending',pending.length,summaryPoints([
+          'Awaiting PL',
+          'Not confirmed',
+          '<strong class="summary-pending">+N</strong> on totals'
+        ]),'card-pending'],
+        ['Conflicts',events.filter(e => ['cancelled','conflict','holiday'].includes(statusOf(e))).length,summaryPoints([
+          'Cancelled/clash',
+          'Or a holiday',
+          '<strong class="summary-excluded">Needs make-up</strong>'
+        ]),'card-conflict']
+      ];
+    }
+    function summaryPoints(items) { return `<ul class="preview-summary-points">${items.map(item=>`<li>${item}</li>`).join('')}</ul>`; }
+    /* ── Structured explanation (enhanced design) ────────────────────────────
+       Adopted from ui-prototype/summary-card-back-preview.html: an optional
+       formula strip, then two-line bullets (bold term <br> muted meaning), then
+       an optional footnote — replacing the single dense paragraph.
+       Chips carry a TERM, never a live number: every front value is written at
+       runtime, so a printed number would be wrong on any other week.
+       Total Classes deliberately has NO "= total" chip: computeSummary() sets
+       total = all − cancelled, so conflict blocks ARE counted in total and the
+       three terms would not add up on a week with a red block. */
+    const SUMMARY_DETAILS = [
+      {
+        formula:[{v:'normal'},{op:'+'},{v:'replacement',c:'is-blue'},{op:'+'},{v:'pending',c:'is-pending'}],
+        items:[
+          ['Normal','<span>Class runs as scheduled.</span>'],
+          ['Replacement','<span>A replacement lecturer teaches it.</span>'],
+          ['Pending','<span>Waiting for a PL decision.<br>Counted only in the small <strong>+N</strong>.</span>'],
+          ['Cancelled','<span>Not counted in this card.</span>']
+        ],
+        foot:'Counts the period and week selected above, plus any active filter.'
+      },
+      {
+        formula:[{v:'slots × 30 min'},{op:'='},{v:'teaching time'}],
+        items:[
+          ['Measured in slots','<span>Each timetable slot is <strong>30 minutes</strong>.<br>Two slots make one hour.</span>'],
+          ['Pending','<span>Counted in the small <strong>+N</strong> only.</span>'],
+          ['Cancelled','<span>Excluded — no teaching happens.</span>']
+        ],
+        foot:'Same period and filters as Total Classes.'
+      },
+      {
+        items:[
+          ['Approved first','<span>A PL must approve the request.<br>Until then it is Pending, not here.</span>'],
+          ['Shown in blue','<span>Blue blocks mark the new class time.</span>']
+        ]
+      },
+      {
+        items:[
+          ['What it means','<span>A request is sent, but no PL has decided yet.</span>'],
+          ['Not confirmed','<span>The class is not yet a replacement.</span>'],
+          ['Appears as <strong>+N</strong>','<span>Pending classes are also added to<br>Total Classes and Teaching Hours.</span>']
+        ]
+      },
+      {
+        items:[
+          ['Clash','<span>Another class already booked in the slot.</span>'],
+          ['Cancelled','<span>The class was called off.</span>'],
+          ['Public holiday','<span>The whole day is closed.</span>']
+        ],
+        foot:'Each conflict needs a make-up class to be arranged.'
+      }
+    ];
+    function formulaMarkup(chips) {
+      if(!chips) return '';
+      return '<div class="explain-formula">' + chips.map(c => c.op
+        ? `<span class="explain-plus">${c.op}</span>`
+        : `<span class="explain-chip ${c.c||''}"><b>${c.v}</b></span>`
+      ).join('') + '</div>';
+    }
+    function fullSummaryDescription(index) {
+      const d=SUMMARY_DETAILS[index];
+      if(!d) return '';
+      return formulaMarkup(d.formula)
+        + '<ul class="explain-list">' + d.items.map(([term,meaning]) =>
+            `<li><strong>${term}</strong><br>${meaning}</li>`).join('') + '</ul>'
+        + (d.foot ? `<p class="explain-foot">${d.foot}</p>` : '');
+    }
+    function summaryHtml(events) {
+      // Shared two-face card skins; short bullet backs never change the card dimensions.
+      const legend = [
+        ['event-normal','Normal Class','Scheduled class with no issues'],
+        ['event-replacement','Replacement','Approved replacement session'],
+        ['event-pending','Pending','Replacement request awaiting approval'],
+        ['event-conflict','Conflict / Public Holiday','Scheduling conflict or public holiday — this class will not run as scheduled']
+      ];
+      return `<div class="legend-bar"><span class="legend-hint" aria-hidden="true"><span class="hint-hover">Hover a colour to learn more</span><span class="hint-touch">Tap a colour to learn more</span></span><div class="legend-items">${legend.map(([cls,label,tip])=>`<div class="legend-item" data-tip="${esc(tip)}"><span class="legend-swatch ${cls}"></span><span>${label}</span></div>`).join('')}</div></div>
+        <div class="summary-section"><div class="summary-hint"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg><span>Stats reflect the <strong>selected period</strong>. Hover or tap a card to learn more.</span></div>
+        <div class="summary-bar">${totals(events).map(([label,value,description,cls],i)=>`<div class="summary-card ${cls}" tabindex="0" role="group" data-summary="${i}" aria-label="${esc(label)}: hover, tap or press Enter to flip"><div class="summary-card-inner"><div class="summary-card-front"><span class="summary-value">${value}</span><span class="summary-label">${label}</span></div><div class="summary-card-back"><div class="summary-description">${description}</div><button type="button" class="preview-summary-info" data-summary-info="${i}" aria-haspopup="dialog" aria-label="${esc(label)}: full explanation" data-tip="Full explanation"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg></button></div></div></div>`).join('')}</div></div>`;
+    }
+    function renderTablet(events,count) {
+      const indices=dayWindow(state.day,count);
+      let html=`<div class="preview-tablet-grid" style="--day-count:${count}"><div class="preview-tablet-head">Time</div>`;
+      indices.forEach((di,i) => { html+=`<div class="preview-tablet-head" style="grid-column:${i+2};grid-row:1">${daysOf(state.week)[di].abbr}<small>${fmt(dateAt(state.week,di))}</small>${holidayAt(state.week,di)?'<small>Public Holiday</small>':''}</div>`; });
+      for(let slot=0;slot<22;slot++) {
+        html+=`<div class="preview-axis" style="grid-column:1;grid-row:${slot+2}">${String(8+Math.floor(slot/2)).padStart(2,'0')}:${slot%2?'30':'00'}</div>`;
+        indices.forEach((di,i) => { html+=`<div class="preview-grid-cell" style="grid-column:${i+2};grid-row:${slot+2}"></div>`; });
+      }
+      /* Tablet keeps time on the vertical axis, so the desktop's extra rows do
+         not apply: overlapping blocks share the column and would draw on top of
+         each other. They split the day column side by side instead, using the
+         same lane planner, so nothing is hidden. */
+      indices.forEach((di,i) => {
+        const layout=laneLayout(events.filter(e => e.di===di));
+        layout.placed.forEach(({event:e, lane}) => {
+          const lanes=layout.lanes, span=e.end-e.start+1;
+          const geom = lanes>1
+            ? `grid-column:${i+2};grid-row:${e.start+2} / span ${span};width:calc(100% / ${lanes} - 4px);margin-left:calc(100% * ${lane} / ${lanes});justify-self:start`
+            : `grid-column:${i+2};grid-row:${e.start+2} / span ${span}`;
+          html+=card(e).replace('data-event=',`style="${geom}" data-event=`);
+        });
+      });
+      $('previewTablet').innerHTML=html+'</div>';
+    }
+    /* Lane planner — mirrors the live `layoutTimetableDay()`.
+       Overlapping blocks NEVER share a row: each day renders one physical row
+       per lane and the day header spans them with rowspan, so two overlapping
+       classes stack top and bottom. Before this, the renderer used
+       `events.find(e => e.di === di && e.start === slot)`, which silently drew
+       only the first event per start slot and dropped the other one — it was
+       still counted in the summary, so the grid and the numbers disagreed. */
+    function laneLayout(dayEvents) {
+      const sorted=[...dayEvents].sort((a,b)=>a.start-b.start || a.end-b.end);
+      const lanes=[]; const placed=[];
+      const overlaps=(x,iv)=> x.start<=iv.end && iv.start<=x.end;   /* inclusive slots */
+      const fits=(lane,iv)=> !(lanes[lane]||[]).some(x=>overlaps(x,iv));
+      const put=(e,lane)=>{ (lanes[lane]=lanes[lane]||[]).push(e); placed.push({event:e,lane}); };
+      /* 1. Cancelled history claims the LOWEST lanes, so it stacks ABOVE the
+            live blocks it overlaps — the same rule the live planner uses. */
+      sorted.filter(e=>e.status==='cancelled').forEach(e=>{
+        let lane=0; while(!fits(lane,e)) lane++; put(e,lane);
+      });
+      /* 2. Everything else sits strictly BELOW any cancelled block it overlaps,
+            then takes the first free lane from there. */
+      sorted.filter(e=>e.status!=='cancelled').forEach(e=>{
+        let lane=0;
+        lanes.forEach((recs,i)=>{ if(recs.some(x=>overlaps(x,e))) lane=Math.max(lane,i+1); });
+        while(!fits(lane,e)) lane++;
+        put(e,lane);
+      });
+      return {lanes:Math.max(1,lanes.length), placed};
+    }
+    function renderDesktop(events) {
+      // Prototype-only renderer, retaining the system's day rows / horizontal time axis.
+      let head='<tr><th class="time-header-col">Day / Time</th>';
+      for(let slot=0;slot<22;slot+=2) head+=`<th class="hour-header" colspan="2"><span class="hour-top">${String(8+slot/2).padStart(2,'0')}:00</span><span class="hour-bottom">${String(9+slot/2).padStart(2,'0')}:00</span></th>`;
+      $('tableHead').innerHTML=head+'</tr>';
+      let body='';
+      daysOf(state.week).forEach((day,di)=>{
+        const layout=laneLayout(events.filter(e=>e.di===di));
+        for(let lane=0;lane<layout.lanes;lane++) {
+          body+=`<tr data-lane="${lane}" data-day="${di}">`;
+          /* The day cell spans every lane row of its day, so the axis still
+             reads as one day. */
+          if(lane===0) body+=`<td class="time-col ${day.today?'today':''} ${day.holiday||day.sunday?'offday':''}" rowspan="${layout.lanes}"><span class="day-label">${day.abbr}</span><span class="date-label">${day.date}</span>${day.holiday?'<span class="holiday-badge">Public Holiday</span>':''}${day.today?'<span class="today-badge">Today</span>':(!day.holiday&&day.sunday?'<span class="off-badge">OFF</span>':'')}${earliestBookable()?.week===state.week&&earliestBookable()?.di===di?'<span class="bookable-badge">Bookings open</span>':''}</td>`;
+          const inLane=layout.placed.filter(p=>p.lane===lane).map(p=>p.event);
+          for(let slot=0;slot<22;slot++) {
+            const e=inLane.find(item=>item.start===slot);
+            if(e) {
+              const status=statusOf(e),note=blockNote(e);
+              body+=`<td class="hour-cell ${day.today?'today-cell':''}" colspan="${e.end-e.start+1}"><div class="event-block ${statusMeta[status][2]}" role="button" tabindex="0" data-event="${esc(e.id)}" data-tip="${esc(blockTip(e))}" aria-label="${esc(`${e.code}, ${timeOf(e)}, ${e.venue}, ${statusLabel(status)}`)}"><span class="ev-code">${esc(e.code)} (${esc(e.type)})</span><span class="ev-venue">${esc(e.venue)}</span><span class="ev-time">${timeOf(e)}</span>${badge(e)}${note?`<span class="ev-note">${esc(note)}</span>`:''}</div></td>`;
+              slot=e.end;
+            } else body+='<td class="hour-cell"><div class="cell-empty"></div></td>';
+          }
+          body+='</tr>';
+        }
+      });
+      $('tableBody').innerHTML=body;
+    }
+    function render() {
+      const count=widthCount(window.innerWidth), events=eventsOf(state.week), dayEvents=events.filter(e=>e.di===state.day), days=daysOf(state.week), wholeWeek=!events.length;
+      updateWeekLabels();
+      $('previewSemester').textContent=count===1?MockData.semester.label:semesterLabel();
+      $('previewWeek').value=state.week;
+      $('previewPrev').disabled=state.week===0; $('previewNext').disabled=state.week===MockData.semester.weeks-1;
+      $('previewDays').innerHTML=days.map((d,di)=>`<button class="preview-day ${d.today?'is-today':''} ${d.holiday?'is-holiday':''}" ${d.today?'aria-current="date"':''} aria-pressed="${di===state.day}" aria-label="${fmt(dateAt(state.week,di),{weekday:'long'})}${d.today?', Today':''}${d.holiday?', '+esc(d.holidayLabel):''}" data-tip="${esc(`${fmt(dateAt(state.week,di),{weekday:'long'})}${d.today?' · Today':''}${d.holiday?' · '+d.holidayLabel:''}`)}" data-day="${di}">${d.abbr}<strong>${dateAt(state.week,di).getUTCDate()}</strong></button>`).join('');
+      $('previewDayCount').textContent=count===1?`${dayEvents.length} class${dayEvents.length===1?'':'es'} this day`:`${count} days visible`;
+      const visible=dayWindow(state.day,count);
+      $('previewDayHeading').textContent=count===1?fmt(dateAt(state.week,state.day),{weekday:'long'}):count===7?'':`${fmt(dateAt(state.week,visible[0]),{weekday:'short'})} ~ ${fmt(dateAt(state.week,visible.at(-1)),{weekday:'short'})}`;
+      $('previewDayHeading').hidden=count===7;
+      // Empty/holiday panels carry next-class hints; populated days need only their cards.
+      const holiday=holidayAt(state.week,state.day);
+      $('previewHoliday').innerHTML=count===1&&holiday?`<div class="empty-state preview-holiday">${icon('calendar','empty-icon')}<h3 class="empty-title">Public Holiday · ${esc(holiday.label)}</h3><p class="empty-text">${fmt(dateAt(state.week,state.day),{weekday:'long'})}</p>${nextHint(state.week,state.day)}</div>`:'';
+      $('previewAgenda').hidden=count!==1 || wholeWeek;
+      $('previewTablet').hidden=count===1 || count===7 || wholeWeek;
+      $('previewDesktop').hidden=count!==7 || wholeWeek;
+      $('previewEmpty').hidden=!wholeWeek;
+      if(wholeWeek) $('previewEmpty').innerHTML=emptyMessage(state.week,state.day,true);
+      else if(count===1) $('previewAgenda').innerHTML=dayEvents.length?dayEvents.map(e=>card(e, overlapText(e, dayEvents))).join(''):holiday?'':emptyMessage(state.week,state.day);
+      else if(count<7) renderTablet(events,count);
+      else renderDesktop(events);
+      $('previewExtras').innerHTML=summaryHtml(events);
+    }
+    /* ── Class Details modal: the shipped shell, tabs, rows and footer ── */
+    const overlay=$('previewOverlay');
+    const modal=overlay.querySelector('.preview-modal');
+    let modalOpen=false, modalOrigin=null, modalScroll={x:0,y:0};
+    function openModal({title,subtitle='',body='',footer='',closeLabel='Close',variant='detail'}) {
+      if(!modalOpen) { modalOrigin=document.activeElement; modalScroll={x:window.scrollX,y:window.scrollY}; modalOpen=true; }
+      $('modalTitle').innerHTML=esc(title)+(subtitle?`<span class="modal-subtitle">${esc(subtitle)}</span>`:'');
+      $('modalBody').innerHTML=body;
+      $('modalFooterRight').innerHTML=footer;
+      $('previewCloseBtn').textContent=closeLabel;
+      $('previewCloseBtn').onclick=closeModal;
+      /* 2026-11-14 (mobile-modal-top3): ONE filled action per detail footer.
+         Close is the primary only when no real action shares the rail. */
+      /* 2026-11-15 (user): Close is NEVER the filled primary — a Close
+         dismisses, it is not the thing to do, so it wears the grey close skin
+         even when it is the only button in the footer. Reverses the 2026-11-14
+         "Close takes the fill when it is alone" rule. */
+      $('previewCloseBtn').className=variant==='cancel'?'btn-outline':'btn-close-modal';
+      $('previewCloseBtn').hidden=false;
+      modal.classList.toggle('modal--cancel',variant==='cancel');
+      modal.classList.toggle('modal--detail',variant!=='cancel');
+      modal.classList.toggle('modal--summary',variant==='summary');
+      modal.dataset.view='';
+      overlay.style.display='flex'; overlay.classList.add('show');
+      document.body.classList.add('preview-locked');
+      modal.scrollTop=0;
+      $('previewClose').focus({preventScroll:true});
+    }
+    function closeModal() {
+      if(!modalOpen) return;
+      overlay.classList.remove('show'); overlay.style.display='none'; modalOpen=false;
+      document.body.classList.remove('preview-locked');
+      modalOrigin?.focus({preventScroll:true});
+      window.scrollTo({left:modalScroll.x,top:modalScroll.y,behavior:'instant'});
+    }
+    function detailRow(label,value,strong) {
+      if(value===''||value==null) return '';
+      return `<div class="detail-row"><span class="detail-label">${esc(label)}</span><span class="detail-value${strong?' detail-value--strong':''}">${value}</span></div>`;
+    }
+    function detailSection(title,rows) { return `<div class="detail-group"><div class="detail-group-title">${esc(title)}</div>${rows.join('')}</div>`; }
+    // Same law as window.totalStudentsLabel: multi-cohort reads `14 + 14 = 28`.
+    function totalStudentsLabel(e) {
+      const counts=e.studentCounts;
+      if(e.cohorts?.length>1&&Array.isArray(counts)&&counts.length===e.cohorts.length) return `${counts.join(' + ')} = ${counts.reduce((a,b)=>a+b,0)}`;
+      return e.studentCount!=null?String(e.studentCount):counts?.length===1?String(counts[0]):'—';
+    }
+    function tabsHtml(tabs) {
+      return `<div class="modal-tabs">${tabs.map((t,i)=>`<button type="button" class="modal-tab${i?'':' active'}" data-tab="${t.key}">${esc(t.label)}</button>`).join('')}</div>`
+        + tabs.map((t,i)=>`<div class="modal-tab-panel${i?'':' active'}" data-panel="${t.key}">${t.html}</div>`).join('');
+    }
+    const statusDescription={normal:'Scheduled class with no issues',pending:'Replacement request awaiting approval',replacement:'Approved replacement session — this class runs at this slot',cancelled:'Class cancelled — a replacement is needed',conflict:'Scheduling conflict — needs attention',holiday:'Class falls on a public holiday — no class runs'};
+    const typeLong={L:'Lecture',T:'Tutorial',P:'Practical'};
+    // `04-Nov-2026` → the weekday word the Original Slot rows print.
+    const MONTH_INDEX={Jan:0,Feb:1,Mar:2,Apr:3,May:4,Jun:5,Jul:6,Aug:7,Sep:8,Oct:9,Nov:10,Dec:11};
+    function weekdayOf(stamp) {
+      const m=String(stamp||'').match(/^(\d{2})-([A-Za-z]{3})-(\d{4})$/);
+      if(!m || MONTH_INDEX[m[2]]===undefined) return '';
+      const d=new Date(Date.UTC(+m[3],MONTH_INDEX[m[2]],+m[1],12));
+      return new Intl.DateTimeFormat('en-GB',{timeZone:'UTC',weekday:'long'}).format(d);
+    }
+    let selectedEvent=null;
+    function openClass(e) {
+      if(!e) return;
+      selectedEvent=e;
+      const venue=MockData.venues.find(v=>(v.code||v.roomCode)===e.venue), s=statusOf(e);
+      const students=totalStudentsLabel(e);
+      const mine=e.mine===true || e.lecturer===MockData.currentUser.name || e.requestedBy===MockData.currentUser.name;
+      /* Same shape as openClassModal: Status row = `badge badge-<status>`
+         (holiday spells out `badge-public-holiday`). */
+      const badgeClass=s==='holiday'?'badge-public-holiday':`badge-${s}`;
+      let footer=mine && ['cancelled','conflict','holiday'].includes(s)
+        ? `<button class="btn-replace-now" id="previewArrange">${icon('swap')}Arrange Replacement</button>`
+        : mine && s==='normal' ? '<button class="btn-danger preview-danger" id="previewCancel">Cancel Class?</button>' : '';
+      // Own pending request gets the shipped footer link (never another lecturer's).
+      if(s==='pending' && e.requestId && mine) footer += `<a class="btn-action" id="previewFullRequest" href="#"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg> View Full Request</a>`;
+      const statusRows=[
+        detailRow('Status',`<span class="badge ${badgeClass}">${esc(statusLabel(s))}</span>`),
+        detailRow('Status Description',esc(statusDescription[s]))
+      ];
+      // Owner-only request facts, before Remarks — the shipped row order.
+      if(e.status==='pending' && mine) statusRows.push(
+        detailRow('Requested At',esc(e.requestedAt||'—')),
+        detailRow('Requested By',esc(e.requestedBy||'—'))
+      );
+      statusRows.push(detailRow('Remarks',esc(e.remarks || '—')));
+      const tabs=[
+        { key:'class-information', label:'Class Info', html: detailSection('Class Information',[
+            detailRow('Session ID',`#${esc(e.id)}`),
+            detailRow('Lecturer',esc(e.lecturer)),
+            detailRow('Cohort',esc((e.cohorts||[e.cohort]).join(' + '))),
+            detailRow('Total Students',esc(students))
+          ]) },
+        { key:'schedule', label:'Schedule', html: detailSection('Schedule',[
+            detailRow('Venue',esc(`${e.venue}${venue?.name?' — '+venue.name:''}${venue?.seats?' ('+venue.seats+' seats)':''}`)),
+            detailRow('Week',`Week ${state.week+1}`),
+            detailRow('Day & Date',esc(fmt(dateAt(state.week,e.di),{weekday:'long'}))),
+            detailRow('Time & Duration',esc(`${timeOf(e)} (${(e.end-e.start+1)/2} hours)`),true)
+          ]) }
+      ];
+      // Confirmed replacement: the replaced original conflicted slot, as the system prints it.
+      if(e.status==='replacement' && e.replacedFor) tabs.push({ key:'original-slot', label:'Original', html: detailSection('Original Slot',[
+        detailRow('Original Day',esc(weekdayOf(e.replacedFor))),
+        detailRow('Original Date',esc(e.replacedFor),true),
+        detailRow('Original Start Time',esc(clock(e.start)),true),
+        detailRow('Original End Time',esc(clock(e.end+1))),
+        detailRow('Original Venue',esc(e.originalVenue||e.venue)),
+        detailRow('Original Venue Name',esc(e.originalVenueName||venue?.name||'—'))
+      ]) });
+      tabs.push({ key:'status', label:'Status', html: detailSection('Status',statusRows) });
+      openModal({
+        title:'Class Details',
+        subtitle:`${e.code} — ${e.name} (${typeLong[e.type]||e.type})`,
+        body:tabsHtml(tabs),
+        footer
+      });
+      $('previewArrange')?.addEventListener('click',()=>{closeModal();notify('Preview only — this would open Replacement Arrangement. No request was made.');});
+      $('previewCancel')?.addEventListener('click',openCancel);
+      $('previewFullRequest')?.addEventListener('click',ev=>{ev.preventDefault();notify('Preview only — request #'+e.requestId+' lives on My Replacements in the real system.');});
+    }
+    // Mirror ui-cancel-class-modal + CancelClassModal: same facts, reasons and footer.
+    // Never call the real controller: no request, DB mutation or fake success claim.
+    function openCancel() {
+      const e=selectedEvent, venue=MockData.venues.find(v=>v.code===e.venue);
+      const facts=[['Course',`${e.code} (${e.type}) — ${e.name}`],['Week',`Week ${state.week+1}`],
+        ['Day & Date',fmt(dateAt(state.week,e.di),{weekday:'long'})],
+        ['Time',`${timeOf(e)} (${(e.end-e.start+1)/2} Hours)`],
+        ['Venue',`${e.venue}${venue?.name?' — '+venue.name:''}`],
+        ['Cohort(s)',(e.cohorts||[]).join(' + ')],['Students',totalStudentsLabel(e)]];
+      openModal({
+        title:'Cancel this Class?',variant:'cancel',closeLabel:'No, Keep Class',
+        body:detailSection('Class Information',[`<dl class="cancel-details">${facts.map(([label,value])=>`<dt>${esc(label)}</dt><dd>${esc(value)}</dd>`).join('')}</dl>`])
+          +cancelDayScope(e)
+          +`<hr class="modal-divider"><div class="detail-group"><div class="detail-group-title">Cancellation Reason <span class="cancel-required-mark">*</span></div><div class="cancel-reasons" id="previewReasonList">${cancellationReasons.map(label=>`<label class="cancel-reason-option"><input type="radio" name="previewReason" value="${label==='Other'?'other':esc(label)}">${esc(label)}</label>`).join('')}</div></div><div id="previewOther" hidden style="margin-top:10px"><label class="cancel-other-label" for="previewReasonText">Other reason <span class="cancel-required-mark">*</span></label><textarea id="previewReasonText" class="modal-textarea" rows="3" placeholder="Describe the reason for &quot;Other&quot;…" required></textarea></div><p id="previewReasonHint" class="hint-text" style="margin:8px 0 0"></p>`,
+        footer:`<div class="cancel-confirm-wrap"><p id="previewIrreversible" class="confirm-warning confirm-warning--compact" hidden>CANNOT UNDONE</p><button class="btn-danger" id="previewConfirmCancel" disabled>Yes, Cancel Class</button></div>`
+      });
+      const gate=()=>{ const reason=$('previewReasonList').querySelector('input:checked')?.value||'',other=reason==='other'; $('previewOther').hidden=!other; const valid=!!reason&&(!other||!!$('previewReasonText').value.trim()); $('previewConfirmCancel').disabled=!valid; $('previewIrreversible').hidden=!valid; };
+      $('previewReasonList').onchange=gate; $('previewReasonText').oninput=gate;
+      bindCancelDayScope();
+      $('previewConfirmCancel').onclick=()=>{
+        openModal({title:'Cancel this Class?',variant:'cancel',closeLabel:'Close',body:'<p class="hint-text">Preview complete. No class or request was changed.</p>'});
+      };
+    }
+    // Same-day offer follows the live folded/unticked design, using only local fixtures.
+    function cancelDayScope(e) {
+      const sameDay=eventsOf(state.week).filter(c=>c.di===e.di&&c.id!==e.id);
+      const others=sameDay.filter(c=>statusOf(c)==='normal'),pending=sameDay.filter(c=>statusOf(c)==='pending');
+      const makeUps=sameDay.filter(c=>statusOf(c)==='replacement');
+      if(!others.length&&!pending.length&&!makeUps.length) return '';
+      const rows=[...others,...pending].map(c=>`<li><label class="cancel-day-row"><input type="checkbox"><span class="cdl-time">${timeOf(c)}</span><span class="cdl-what">${esc(c.code)}(${esc(c.type)})</span><span class="cdl-venue">${esc(c.venue)}</span><span class="cdl-facts"><span class="cdl-cohort">${esc(c.cohorts.length>1?c.cohorts.length+' cohorts':c.cohorts[0])}</span>${c.status==='pending'?'<span class="cdl-flag" title="This Request will be Cancelled or Withdrawn">1 request</span>':''}</span></label></li>`).join('');
+      return `<div id="previewDayScope" class="cancel-day-scope is-collapsed"><div class="cancel-day-head"><label class="cancel-day-toggle"><input type="checkbox" id="previewDayAll"><span><span class="cd-lead">Also cancel my other </span><span class="cd-class-half"><span class="cd-count">${others.length}</span> <span class="cd-class-word">${others.length===1?'class':'classes'}</span><span class="cd-plus"> + </span></span><span class="cd-req"><span class="cd-count-req">${pending.length}</span> <span class="cd-req-word">${pending.length===1?'request':'requests'}</span></span> on the <span class="info-keyword">same day</span></span></label><button type="button" class="cd-collapse" id="previewDayCollapse" aria-expanded="false" aria-label="Show or hide these classes"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg></button></div><ul class="cancel-day-list">${rows}</ul>${makeUps.length?`<p class="cancel-day-note">${makeUps.length} make-up ${makeUps.length===1?'block that day belongs':'blocks that day belong'} to another week — cancel ${makeUps.length===1?'it from its':'them from their'} own class.</p>`:''}</div>`;
+    }
+    function bindCancelDayScope() {
+      const scope=$('previewDayScope'); if(!scope) return;
+      const boxes=()=>[...scope.querySelectorAll('.cancel-day-row input')];
+      $('previewDayCollapse').onclick=()=>{scope.classList.toggle('is-collapsed');$('previewDayCollapse').setAttribute('aria-expanded',String(!scope.classList.contains('is-collapsed')));};
+      $('previewDayAll').onchange=()=>{boxes().forEach(box=>box.checked=$('previewDayAll').checked);scope.classList.toggle('is-on',$('previewDayAll').checked);};
+      scope.querySelector('.cancel-day-list').onchange=()=>{const list=boxes(),n=list.filter(box=>box.checked).length;$('previewDayAll').checked=!!n&&n===list.length;$('previewDayAll').indeterminate=n>0&&n<list.length;scope.classList.toggle('is-on',n>0);};
+    }
+    $('modalBody').addEventListener('click',e=>{
+      const tab=e.target.closest('.modal-tab');
+      if(!tab) return;
+      $('modalBody').querySelectorAll('.modal-tab').forEach(btn=>btn.classList.toggle('active',btn===tab));
+      $('modalBody').querySelectorAll('.modal-tab-panel').forEach(panel=>panel.classList.toggle('active',panel.dataset.panel===tab.dataset.tab));
+    });
+    let toastTimer;
+    // The shipped toast: .toast-bar + .toast-message, toggled by `.visible` (5s).
+    function notify(text) { clearTimeout(toastTimer); $('previewToastMessage').textContent=text; $('previewToast').classList.add('visible'); toastTimer=setTimeout(()=>$('previewToast').classList.remove('visible'),5000); }
+    function changeWeek(week) { state.week=Math.max(0,Math.min(MockData.semester.weeks-1,week)); render(); }
+    function semesterLabel() { return `${MockData.semester.label} · ${fmt(dateAt(0,0))} ~ ${fmt(dateAt(MockData.semester.weeks-1,6))}`; }
+    let weekLabelMode=null;
+    function updateWeekLabels() {
+      const phone=window.innerWidth<768;
+      if(phone===weekLabelMode) return;
+      weekLabelMode=phone;
+      // Phone: `Week 9 · 16 Nov ~ 22 Nov`. Tablet + desktop: the full dated range.
+      $('previewWeek').innerHTML=Array.from({length:MockData.semester.weeks},(_,w)=>{
+        const start=fmt(dateAt(w,0),{year:undefined}),end=fmt(dateAt(w,6),{year:undefined});
+        const range=phone?`${start} ~ ${end}`:`${fmt(dateAt(w,0))} ~ ${fmt(dateAt(w,6))}`;
+        return `<option value="${w}">Week ${w+1} · ${range}</option>`;
+      }).join('');
+    }
+    $('previewWeek').onchange=e=>changeWeek(Number(e.target.value));
+    $('previewPrev').onclick=()=>changeWeek(state.week-1); $('previewNext').onclick=()=>changeWeek(state.week+1);
+    $('previewToday').onclick=()=>{state.week=7;state.day=3;render();};
+    $('previewDays').onclick=e=>{const b=e.target.closest('[data-day]');if(b&&Number(b.dataset.day)!==state.day){state.day=Number(b.dataset.day);render();}};
+    [$('previewAgenda'),$('previewTablet'),$('previewDesktop')].forEach(host=>host.addEventListener('click',e=>{const b=e.target.closest('[data-event]');if(b)openClass(eventsOf(state.week).find(item=>item.id===b.dataset.event));}));
+    $('previewDesktop').addEventListener('keydown',e=>{const b=e.target.closest('[data-event]');if(b&&(e.key==='Enter'||e.key===' ')){e.preventDefault();openClass(eventsOf(state.week).find(item=>item.id===b.dataset.event));}});
+    $('previewTheme').onclick=()=>{const dark=document.documentElement.classList.toggle('dark');document.documentElement.classList.toggle('light',!dark);};
+    $('previewClose').onclick=closeModal;
+    $('previewCloseBtn').onclick=closeModal;
+    overlay.addEventListener('click',e=>{ if(e.target===overlay) closeModal(); });
+    document.addEventListener('keydown',e=>{ if(e.key!=='Escape') return; if(modalOpen) closeModal(); else closeNavDrawer(); });
+    function openWeekSummary() {
+      // VENUE CONTRACT: same Summary door as My Timetable: legend first,
+      // including ownership guidance, then the five venue summary cards.
+      openModal({title:'Week summary',subtitle:`Week ${state.week+1} · ${semesterLabel()} · sample data`,body:legendHtml()+summaryHtml(eventsOf(state.week))});
+      modal.dataset.view='week-summary';
+    }
+    function openSummaryExplanation(index) {
+      const entry=totals(eventsOf(state.week))[index]; if(!entry) return;
+      const fromSummary=modalOpen&&modal.dataset.view==='week-summary';
+      openModal({title:entry[0],subtitle:`Week ${state.week+1}`,variant:'summary',
+        body:`<div class="preview-summary-full">${fullSummaryDescription(index)}</div>`,
+        closeLabel:fromSummary?'Back to summary':'Close'});
+      if(fromSummary) $('previewCloseBtn').onclick=()=>{
+        openWeekSummary();
+        const card=$('modalBody').querySelector(`[data-summary="${index}"]`);
+        card?.classList.add('preview-flipped');
+        card?.querySelector('.preview-summary-info')?.focus({preventScroll:true});
+      };
+    }
+    $('previewSummary').onclick=openWeekSummary;
+    $('previewHelp').onclick=()=>openModal({title:'How to use this page',subtitle:'My Timetable',body:`
+      <p class="page-desc">View your weekly <span class="info-keyword">class schedule</span> and manage <span class="info-keyword">replacement requests</span> across all cohorts.</p>
+      <div class="detail-group"><div class="detail-group-title">Week navigation</div><p>Use the arrows or the <strong>Today</strong> button to move between weeks.</p></div>
+      <div class="detail-group"><div class="detail-group-title">Slot status</div><p><span class="legend-swatch event-normal"></span> Normal (green) &nbsp;·&nbsp; <span class="legend-swatch event-conflict"></span> Conflicted (red) &nbsp;·&nbsp; <span class="legend-swatch event-pending"></span> Pending (amber)</p></div>
+      <div class="detail-group"><div class="detail-group-title">Request replacement</div><p>Click a conflicted slot to open the request form.</p></div>
+      <div class="detail-group"><div class="detail-group-title">View details</div><p>Click any slot to see the class details.</p></div>`});
+    /* ── Small-screen navigation drawer ─────────────────────────────────────
+       Uses the app's OWN drawer markup and theme.css classes (`.nav-drawer`,
+       `.nav-drawer-overlay`, `.nav-drawer-item.active`, `.nav-drawer-user`), so
+       the side bar here matches the real one — including the signed-in user and
+       Logout, which the old centred dialog had nowhere to put. */
+    const navDrawer=$('navDrawer');
+    const navOverlay=$('navDrawerOverlay');
+    /* The drawer is only pushed off-screen, so by default Tab still walks into
+       its hidden buttons — Logout included. Marking it `inert` while closed
+       keeps the keyboard out until it is actually open. Preview-only fix. */
+    navDrawer.inert = true;
+    let navOrigin=null;
+    function openNavDrawer() {
+      const user=MockData.currentUser;
+      $('navDrawerName').textContent=user.name;
+      $('navDrawerId').textContent=user.staffId;
+      $('navDrawerAvatar').textContent=user.name
+        .replace(/^(En\.|Pn\.|Dr\.|Mr\.|Ms\.|Mrs\.)\s*/,'')
+        .split(' ').filter(Boolean).map(part=>part[0]).slice(0,2).join('').toUpperCase();
+      navOrigin=document.activeElement;
+      navDrawer.inert = false;
+      navDrawer.classList.add('open');
+      navOverlay.classList.add('open');
+      document.body.classList.add('preview-locked');
+      $('navDrawerClose').focus({preventScroll:true});
+    }
+    function closeNavDrawer() {
+      if(!navDrawer.classList.contains('open')) return;
+      navDrawer.classList.remove('open');
+      navOverlay.classList.remove('open');
+      navDrawer.inert = true;
+      document.body.classList.remove('preview-locked');
+      navOrigin?.focus({preventScroll:true});
+    }
+    $('previewMenu').onclick=openNavDrawer;
+    $('navDrawerClose').onclick=closeNavDrawer;
+    $('navDrawerLogout').onclick=()=>notify('Preview only — logging out is disabled.');
+    navOverlay.addEventListener('click',closeNavDrawer);
+    document.addEventListener('click',e=>{const link=e.target.closest('[data-preview-link]');if(link){e.preventDefault();notify('Preview only — navigation to the live system is disabled.');}});
+    document.addEventListener('click',e=>{
+      const info=e.target.closest('[data-summary-info]');
+      if(info) { e.preventDefault(); e.stopPropagation(); openSummaryExplanation(Number(info.dataset.summaryInfo)); return; }
+      const next=e.target.closest('[data-next-week]');
+      if(next) {
+        state.week=Number(next.dataset.nextWeek);
+        state.day=Number(next.dataset.nextDay);
+        render();
+        $('previewDayHeading').setAttribute('tabindex','-1');
+        $('previewDayHeading').focus({preventScroll:true});
+        $('previewDayHeading').scrollIntoView({block:'center',behavior:'instant'});
+      }
+      const card=e.target.closest('.summary-card');
+      if(card) {
+        const hover=window.matchMedia('(hover: hover) and (pointer: fine)').matches&&card.matches(':hover');
+        const showing=card.classList.contains('preview-flipped')||(hover&&!card.classList.contains('preview-unflipped'));
+        card.classList.toggle('preview-flipped',!showing);
+        card.classList.toggle('preview-unflipped',showing);
+      }
+    });
+    document.addEventListener('keydown',e=>{
+      if((e.key==='Enter'||e.key===' ')&&e.target.matches('.summary-card')) { e.preventDefault(); e.target.click(); }
+    });
+    document.addEventListener('mouseleave',e=>{
+      if(e.target.matches?.('.summary-card')) e.target.classList.remove('preview-unflipped');
+    },true);
+    // Snapshot only the displayed week's mock facts. The hash works for file:// and
+    // local HTTP without storage, postMessage, a server or a live-system endpoint.
+    function printPreviewUrl() {
+      const snapshot={
+        version:1, week:state.week, day:state.day, weeks:MockData.semester.weeks,
+        theme:document.documentElement.classList.contains('dark')?'dark':'light',
+        semester:MockData.semester.label, lecturer:MockData.currentUser.name,
+        staffId:MockData.currentUser.staffId,
+        hours:Array.from({length:22},(_,i)=>`${String(8+Math.floor(i/2)).padStart(2,'0')}:${i%2?'30':'00'}`),
+        days:daysOf(state.week).map(d=>({label:d.abbr,date:d.date,off:d.sunday||d.holiday,holiday:d.holidayLabel})),
+        events:eventsOf(state.week).map(e=>({day:e.di,start:e.start,span:e.end-e.start+1,
+          code:`${e.code} (${e.type})`,lecturer:e.lecturer,venue:e.venue,
+          cohorts:Array.isArray(e.cohorts)?e.cohorts.slice(0,20):undefined,status:statusOf(e),
+          note:e.status==='cancelled'?'(Cancelled)':statusOf(e)==='conflict'?'(Conflict)':blockNote(e)}))
+      };
+      return `timetable-print-preview.html?page=my&from=my-timetable-prototype#snapshot=${encodeURIComponent(JSON.stringify(snapshot))}`;
+    }
+    $('previewPrint').onclick=()=>{window.location.href=printPreviewUrl();};
+    $('previewBell').onclick=()=>notify('Preview only — the notification panel is not part of this mock.');
+    /* ── data-tip tooltip, same contract as initDataTipTooltips() in ui-common.js ──
+       One .data-tip-tooltip node (theme.css owns its look), above the element,
+       `data-tip-pos="left"` for the top bar, `\n` tips switch to pre-line, and
+       keyboard focus shows the same tip. Nothing is invented here. */
+    function initDataTips() {
+      const tip=document.createElement('div');
+      tip.className='data-tip-tooltip';
+      document.body.appendChild(tip);
+      let focusedTipEl=null;
+      const findTip=node=>node?.closest?.('[data-tip]')||null;
+      const hide=()=>{ tip.style.opacity='0'; tip.style.visibility='hidden'; };
+      function show(el) {
+        const r=el.getBoundingClientRect(), text=el.getAttribute('data-tip')||'';
+        if(!text) { hide(); return; }
+        tip.textContent=text;
+        tip.classList.toggle('data-tip-tooltip--multi',text.includes('\n'));
+        tip.style.visibility='hidden'; tip.style.opacity='1';
+        tip.style.left='0px'; tip.style.top='0px';
+        const tw=tip.offsetWidth, th=tip.offsetHeight;
+        let left, top;
+        if(el.getAttribute('data-tip-pos')==='left') {
+          left=Math.max(4,r.left-tw-8); top=Math.max(4,r.top+r.height/2-th/2);
+        } else {
+          left=Math.max(4,Math.min(r.left+r.width/2-tw/2,window.innerWidth-tw-4));
+          top=r.top-th-6;
+          if(top<4) top=r.bottom+6;
+        }
+        tip.style.left=`${left}px`; tip.style.top=`${top}px`;
+        tip.style.opacity='1'; tip.style.visibility='visible';
+      }
+      document.addEventListener('mouseenter',e=>{const el=findTip(e.target);if(el)show(el);},true);
+      document.addEventListener('mouseleave',e=>{if(focusedTipEl)return;if(findTip(e.target))hide();},true);
+      document.addEventListener('mouseout',e=>{if(focusedTipEl)return;if(findTip(e.relatedTarget))return;if(findTip(e.target))hide();},true);
+      document.addEventListener('focusin',e=>{focusedTipEl=findTip(e.target);if(focusedTipEl)show(focusedTipEl);},true);
+      document.addEventListener('focusout',e=>{const el=findTip(e.target);if(!el)return;if(focusedTipEl===el)focusedTipEl=null;hide();},true);
+    }
+    /* VENUE CONTRACT: the code below adapts the copied My Timetable shell.
+       Registries and timetable facts come from window.MockData, READ ONLY.
+       The source is the existing mock registry, not a capture of the demo DB.
+       Fixed clock matches the My Timetable reference so the lead-time example
+       stays inspectable after today. Reload resets every local choice. */
+    const shared=window.MockData;
+    MockData.venues=shared.venues.map(v=>({...v,name:({Tutorial:'Tutorial Room',LectureHall:'Lecture Hall',Lab:'Computer Lab',CiscoLab:'Cisco Lab'})[v.type]||v.type,seats:v.capacity}));
+    MockData.semester={...shared.semester};
+    MockData.holidays=shared.holidays.map(h=>({...h}));
+    MockData.currentUser={...shared.currentUser};
+    const venueState={code:'B002',booking:null};
+    if(MockData.venues.some(v=>v.code===returnParams.get('venue'))) venueState.code=returnParams.get('venue');
+    if(!returnParams.has('week')) state.week=8;
+    if(!returnParams.has('day')) state.day=0;
+    const currentRoom=()=>MockData.venues.find(v=>v.code===venueState.code);
+
+    // Merge shared multi-cohort rows into ONE class block. Never fake an overlap
+    // by rendering the same lecturer/subject/time once for each cohort.
+    eventsOf=function(week) {
+      const merged=new Map();
+      shared.cohortTimetable.events.filter(r=>r.week===week&&r.event.venue===venueState.code).forEach(r=>{
+        const e=r.event,key=[e.di,e.start,e.end,e.code,e.type,e.lecturer,e.status].join('|');
+        if(!merged.has(key)) merged.set(key,{...e,id:`venue-${week}-${merged.size}`,cohorts:[],studentCounts:[],mine:e.lecturer===shared.currentUser.name});
+        const entry=merged.get(key);
+        if(e.cohort&&!entry.cohorts.includes(e.cohort)) entry.cohorts.push(e.cohort);
+      });
+      return [...merged.values()].sort((a,b)=>a.di-b.di||a.start-b.start);
+    };
+
+    // VENUE CONTRACT: free means ROOM free only. A grey day is inside the
+    // three-working-day notice window; weekends and public holidays do not count.
+    // Saturday can be booked once beyond the cutoff; Sunday/PH never can.
+    function noticeDate() {
+      const date=new Date(fixtureToday+'T12:00:00Z'); let counted=0;
+      while(counted<3) {
+        date.setUTCDate(date.getUTCDate()+1);
+        const index=Math.round((date-new Date(MockData.semester.startDate+'T12:00:00Z'))/86400000);
+        const holiday=MockData.holidays.some(h=>(h.week-1)*7+h.dayIndex===index);
+        if(date.getUTCDay()!==0&&date.getUTCDay()!==6&&!holiday) counted++;
+      }
+      return date.toISOString().slice(0,10);
+    }
+    const cutoff=noticeDate();
+    function slotState(week,di,slot) {
+      if(di===6) return {cls:'off-day',label:'OFF',bookable:false};
+      if(holidayAt(week,di)) return {cls:'off-day',label:'PH',bookable:false};
+      if(dateKey(week,di)<cutoff) return {cls:'too-soon',label:'Too soon',bookable:false};
+      // Cancellation alone does NOT release the source room in the live system.
+      // A source disappears only after its own replacement is approved.
+      if(eventsOf(week).some(e=>e.di===di&&slot>=e.start&&slot<=e.end)) return {cls:'occupied',label:'Occupied',bookable:false};
+      return {cls:'',label:'Available',bookable:true};
+    }
+    // One answer for the green day dot AND the jump button: a day beyond the
+    // notice cutoff is not necessarily bookable if this room is fully occupied.
+    function earliestBookable() {
+      for(let week=0;week<MockData.semester.weeks;week++) for(let di=0;di<7;di++) {
+        if(dateKey(week,di)<cutoff) continue;
+        for(let slot=0;slot<21;slot++) {
+          if(slotState(week,di,slot).bookable) return {week,di,slot};
+        }
+      }
+      return null;
+    }
+    function freeCell(di,slot,geometry='',desktop=false) {
+      const f=slotState(state.week,di,slot);
+      const hoverLabel=f.bookable&&slot===21?'Not Enough Slots':f.label;
+      const tailDisabled=f.bookable&&slot===21;
+      const tip=f.bookable?`${clock(slot)} ~ ${clock(slot+1)} · ${venueState.code}\n${slot===21?'Not Enough Slots':'Available — select a session to arrange a replacement'}`:f.label==='Too soon'?`Bookings open from ${cutoff}`:f.label;
+      return `<button type="button" class="venue-slot ${f.cls}${desktop?' venue-desktop-slot':''}" style="${geometry}" data-free-day="${di}" data-free-slot="${slot}" ${f.bookable?'':'disabled'} ${tailDisabled?'aria-disabled="true"':''} aria-label="${esc(`${daysOf(state.week)[di].abbr}, ${fmt(dateAt(state.week,di))}, ${clock(slot)} ~ ${clock(slot+1)}, ${venueState.code}: ${hoverLabel}`)}" data-tip="${esc(tip)}"><span class="venue-slot-label">${f.cls==='off-day'?'':hoverLabel}</span></button>`;
+    }
+
+    function venueGrid(events,count) {
+      const indices=dayWindow(state.day,count),days=daysOf(state.week);
+      let html=`<div class="preview-tablet-grid" style="--day-count:${count}"><div class="preview-tablet-head">Time</div>`;
+      const first=earliestBookable();
+      indices.forEach((di,i)=>{
+        // Shipped day-cell vocabulary: PUBLIC HOLIDAY / TODAY / OFF / BOOKINGS
+        // OPEN are the theme.css day-badge family under the date — never text
+        // inside a slot cell. The bookable chip is data-driven: it marks the
+        // semester's earliest bookable day, the same lookup that feeds the green
+        // day dot and the Earliest bookable button (never a hardcoded date).
+        const day=days[di];
+        const stateBadge=day.holiday?`<span class="holiday-badge"${day.holidayLabel?` data-tip="${esc(day.holidayLabel)}"`:''}>Public Holiday</span>`
+          :day.today?'<span class="today-badge">Today</span>'
+          :day.sunday?'<span class="off-badge">OFF</span>':'';
+        html+=`<div class="preview-tablet-head" style="grid-column:${i+2};grid-row:1">${day.abbr}<small>${esc(fmt(dateAt(state.week,di)))}</small>${stateBadge}${first?.week===state.week&&first.di===di?'<span class="bookable-badge">Bookings open</span>':''}</div>`;
+      });
+      for(let slot=0;slot<22;slot++) {
+        html+=`<div class="preview-axis" style="grid-column:1;grid-row:${slot+2}">${String(8+Math.floor(slot/2)).padStart(2,'0')}:${slot%2?'30':'00'}</div>`;
+        indices.forEach((di,i)=>html+=freeCell(di,slot,`grid-column:${i+2};grid-row:${slot+2}`));
+      }
+      indices.forEach((di,i)=>{
+        const layout=laneLayout(events.filter(e=>e.di===di));
+        layout.placed.forEach(({event:e,lane})=>{
+          const geometry=`grid-column:${i+2};grid-row:${e.start+2} / span ${e.end-e.start+1};width:calc(100% / ${layout.lanes} - 4px);margin-left:calc(100% * ${lane} / ${layout.lanes});justify-self:start`;
+          html+=card(e).replace('data-event=',`style="${geometry}" data-event=`).replace('preview-class ',`preview-class ${e.mine?'venue-mine ':''}`);
+        });
+      });
+      // Boundary label only: never append a 19:00–19:30 selectable cell.
+      html+='<div class="preview-axis venue-end-time" style="grid-column:1;grid-row:24">19:00</div><div class="venue-end-line" aria-hidden="true"></div>';
+      $('previewTablet').innerHTML=html+'</div>';
+    }
+    function venueDesktop(events) {
+      renderDesktop(events);
+      $('tableBody').querySelectorAll('[data-event]').forEach(block=>{
+        const event=events.find(e=>e.id===block.dataset.event);
+        block.style.borderWidth=event.mine?'3px':'.5px';
+      });
+      // Preserve the original day-row/horizontal-time desktop renderer. Populate
+      // its existing empty half-hour cells instead of rotating the desktop grid.
+      let di=-1;
+      $('tableBody').querySelectorAll('tr').forEach(row=>{
+        if(row.querySelector('.time-col')) di++;
+        let slot=0;
+        row.querySelectorAll('td.hour-cell').forEach(td=>{
+          if(td.querySelector('.cell-empty')) td.innerHTML=freeCell(di,slot,'',true);
+          slot+=Number(td.getAttribute('colspan')||1);
+        });
+      });
+    }
+    const legendEntries=[['venue-free-swatch','Available','Room free — other conflicts are checked during arrangement.'],['event-normal','Normal','Scheduled class.'],['event-replacement','Replacement','Approved replacement at its new slot.'],['event-pending','Pending','Awaiting Programme Leader approval.'],['event-conflict','Conflict / Public Holiday','This class will not run as scheduled.']];
+    const legendHtml=()=>`<div class="legend-bar venue-legend"><span class="legend-hint">Tap a colour to learn more</span><div class="legend-items">${legendEntries.map(([cls,label,tip])=>`<button type="button" class="legend-item" data-venue-legend="${esc(label)}" data-tip="${esc(tip)}"><span class="legend-swatch ${cls}"></span>${label}</button>`).join('')}</div><p class="venue-ownership">Thick border (3px) = your classes · thin border (0.5px) = others’</p></div>`;
+    function venueCounts(events) {
+      let available=0,occupied=0,pending=0;
+      for(let di=0;di<7;di++) for(let slot=0;slot<22;slot++) {
+        if(slotState(state.week,di,slot).bookable) available++;
+        const blocks=events.filter(e=>e.di===di&&slot>=e.start&&slot<=e.end);
+        if(blocks.some(e=>e.status==='pending')) pending++;
+        else if(blocks.length) occupied++;
+      }
+      const mine=events.filter(e=>e.mine),hours=mine.reduce((sum,e)=>sum+(e.end-e.start+1)/2,0);
+      // Keep the EXACT five shipped venue-card labels; never replace them with
+      // My Timetable's card set. Pending is a qualifier, not a sixth card.
+      return [['Total Slots',154,'Every half-hour shown in this venue’s week.','card-total'],['Available',available,'Free room slots outside the notice window, excluding Sundays and holidays.','card-available'],['My Teaching Classes',mine.length,'Your class blocks in this room and week.','card-replacement'],['My Teaching Hours',hours,'Your total teaching duration in this room and week.','card-hours'],['Occupied',occupied+(pending?` +${pending}`:''),'Occupied half-hours; +N shows the pending portion separately.','card-conflict']];
+    }
+    totals=venueCounts;
+    fullSummaryDescription=index=>`<p>${esc(venueCounts(eventsOf(state.week))[index]?.[2]||'')}</p><p class="venue-status-note">Sample data · selected venue and full week, not just the visible days.</p>`;
+    summaryHtml=events=>`<div class="summary-section"><div class="summary-bar">${venueCounts(events).map(([label,value,description,cls],i)=>`<div class="summary-card ${cls}" tabindex="0" role="group" data-summary="${i}"><div class="summary-card-inner"><div class="summary-card-front"><span class="summary-value">${value}</span><span class="summary-label">${label}</span></div><div class="summary-card-back"><div class="summary-description">${esc(description)}</div><button class="preview-summary-info" data-summary-info="${i}" aria-label="${esc(label)} explanation">ⓘ</button></div></div></div>`).join('')}</div></div>`;
+    render=function() {
+      const count=widthCount(innerWidth),events=eventsOf(state.week),room=currentRoom();
+      updateWeekLabels(); $('previewSemester').textContent=innerWidth<768?MockData.semester.label:MockData.semester.chipText;
+      $('previewWeek').value=state.week; $('previewPrev').disabled=state.week===0; $('previewNext').disabled=state.week===13;
+      $('venueLabel').textContent=`${room.code} — ${room.name}`;
+      $('venueSeats').innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>'+room.seats;
+      $('venueSeats').setAttribute('data-tip',`${room.seats} seats`);
+      const earliest=earliestBookable();
+      $('previewDays').innerHTML=daysOf(state.week).map((d,di)=>{
+        const first=earliest?.week===state.week&&earliest.di===di;
+        const label=`${d.abbr}, ${d.date}${d.today?', Today':''}${first?', Earliest bookable':''}${d.holiday?', '+d.holidayLabel:''}`;
+        const tip=[d.today?'Today — blue dot':'',first?'Earliest bookable — green dot':'',d.holiday?d.holidayLabel:''].filter(Boolean).join(' · ');
+        return `<button class="preview-day ${d.today?'is-today':''} ${first?'is-earliest':''} ${d.holiday?'is-holiday':''}" aria-pressed="${di===state.day}" ${d.today?'aria-current="date"':''} data-day="${di}" aria-label="${esc(label)}" ${tip?`data-tip="${esc(tip)}"`:''}>${d.abbr}<strong>${dateAt(state.week,di).getUTCDate()}</strong></button>`;
+      }).join('');
+      const visibleDays=dayWindow(state.day,count);
+      const classCount=events.filter(e=>visibleDays.includes(e.di)).length;
+      const hasFreeSlot=visibleDays.some(di=>Array.from({length:22},(_,slot)=>slotState(state.week,di,slot).bookable).some(Boolean));
+      $('previewDayCount').textContent=classCount
+        ? `${classCount} ${classCount===1?'class':'classes'} · sample data`
+        : hasFreeSlot?'No classes · tap a green slot to arrange':'No classes · no bookable slots';
+      $('previewAgenda').hidden=true; $('previewHoliday').innerHTML=''; $('previewEmpty').hidden=true;
+      $('previewTablet').hidden=count===7; $('previewDesktop').hidden=count!==7;
+      if(count<7) venueGrid(events,count); else venueDesktop(events);
+      $('previewExtras').innerHTML=summaryHtml(events);
+      let legend=$('venueLegend');
+      if(!legend) { legend=document.createElement('section'); legend.id='venueLegend'; $('previewExtras').before(legend); }
+      legend.innerHTML=legendHtml();
+      legend.hidden=count<7;
+    };
+
+    // Input capability, not tablet width: an iPad Pro can be wider than the
+    // desktop breakpoint but must never require hover to navigate the picker.
+    // Hybrid touch/mouse devices also get the sheet so either input works.
+    const venueTouchQuery=matchMedia('(any-pointer: coarse)');
+    const venueNoHoverQuery=matchMedia('(hover: none)');
+    const useVenueSheet=()=>innerWidth<=768||venueTouchQuery.matches||venueNoHoverQuery.matches;
+    function openVenuePicker() {
+      if(useVenueSheet()) { closeVenueCascade();openSystemVenuePicker();return; }
+      const dropdown=$('venueDropdown');
+      if(dropdown.classList.contains('open')) {closeVenueCascade();return;}
+      cascade.type=null;cascade.block=null;cascade.floor=null;
+      dropdown.classList.add('open');$('venuePicker').setAttribute('aria-expanded','true');
+      drawVenueCascade();
+    }
+    // Local, storage-free adapter of the shipped VenueDropdown hierarchy. Reuse
+    // its theme.css classes and labels, not the replacement card-list design.
+    const cascade={type:null,block:null,floor:null};
+    const cascadeType=v=>v.type==='CiscoLab'?'Lab':v.type;
+    function closeVenueCascade() {
+      $('venueDropdown').classList.remove('open');$('venuePicker').setAttribute('aria-expanded','false');
+    }
+    function placeVenueCascade() {
+      if(!$('venueDropdown').classList.contains('open')) return;
+      const panel=$('venueCascadePanel'),trigger=$('venuePicker').getBoundingClientRect();
+      panel.style.left='12px';panel.style.top='0px';
+      const rect=panel.getBoundingClientRect();
+      panel.style.left=`${Math.max(12,Math.min(trigger.left,innerWidth-rect.width-12))}px`;
+      panel.style.maxHeight=`${Math.max(48,innerHeight-24)}px`;panel.style.overflowY='auto';
+      panel.style.top=`${trigger.bottom+4+rect.height<=innerHeight-12?trigger.bottom+4:Math.max(12,trigger.top-rect.height-4)}px`;
+    }
+    function drawVenueCascade() {
+      const types=[['Tutorial','Tutorial'],['LectureHall','Lecture Hall'],['Lab','Lab']];
+      const parent=(label,level,value,active)=>`<div class="venue-col-item venue-col-item-parent${active?' active':''}" role="button" tabindex="0" data-cascade-level="${level}" data-cascade-value="${esc(value)}"><span class="venue-col-item-name">${esc(label)}</span><span class="venue-col-item-chevron" aria-hidden="true">›</span></div>`;
+      const column=(title,rows)=>`<div class="venue-col visible"><div class="venue-col-header">${title}</div>${rows}</div>`;
+      let html=column('Types',types.filter(([type])=>MockData.venues.some(v=>cascadeType(v)===type)).map(([type,label])=>parent(label,'type',type,cascade.type===type)).join(''));
+      const inType=MockData.venues.filter(v=>cascadeType(v)===cascade.type);
+      if(cascade.type) html+=column('Blocks',[...new Set(inType.map(v=>v.code[0]))].sort().map(block=>parent(`Block ${block}`,'block',block,cascade.block===block)).join(''));
+      const inBlock=inType.filter(v=>v.code[0]===cascade.block);
+      if(cascade.block) html+=column('Floors',[...new Set(inBlock.map(v=>v.code[1]))].sort().map(floor=>parent(floor==='0'?'Ground Floor':`Floor ${floor}`,'floor',floor,cascade.floor===floor)).join(''));
+      if(cascade.floor!==null) html+=column('Rooms',inBlock.filter(v=>v.code[1]===cascade.floor).slice().sort((a,b)=>a.code.localeCompare(b.code)).map(v=>`<div class="venue-col-item venue-col-item-room${v.code===venueState.code?' selected':''}" role="button" tabindex="0" data-cascade-room="${esc(v.code)}" data-tip="${esc(`${v.code} · ${v.name} · ${cascade.floor==='0'?'Ground Floor':'Floor '+cascade.floor}, Block ${cascade.block}`)}"><span class="venue-col-item-name">${esc(v.code)}</span><span class="venue-col-item-meta">${v.seats} seats</span>${v.code===venueState.code?'<span class="venue-col-item-check" aria-hidden="true">✓</span>':''}</div>`).join(''));
+      $('venueCascadePanel').innerHTML=html;placeVenueCascade();
+    }
+    function expandVenueCascade(row) {
+      const level=row.dataset.cascadeLevel,value=row.dataset.cascadeValue;
+      if(cascade[level]===value) return;
+      cascade[level]=value;
+      if(level==='type') {cascade.block=null;cascade.floor=null;}
+      if(level==='block') cascade.floor=null;
+      drawVenueCascade();
+    }
+    $('venueCascadePanel').addEventListener('mouseover',e=>{const row=e.target.closest('[data-cascade-level]');if(row) expandVenueCascade(row);});
+    $('venueCascadePanel').addEventListener('click',e=>{
+      const row=e.target.closest('[data-cascade-level]');
+      if(row) {expandVenueCascade(row);$('venueCascadePanel').querySelector(`[data-cascade-level="${row.dataset.cascadeLevel}"][data-cascade-value="${row.dataset.cascadeValue}"]`)?.focus({preventScroll:true});return;}
+      const room=e.target.closest('[data-cascade-room]');
+      if(room) {venueState.code=room.dataset.cascadeRoom;closeVenueCascade();render();$('venuePicker').focus({preventScroll:true});}
+    });
+    $('venueCascadePanel').addEventListener('keydown',e=>{
+      if((e.key==='Enter'||e.key===' ')&&e.target.matches('[role="button"]')) {e.preventDefault();e.target.click();}
+    });
+    document.addEventListener('click',e=>{if(!e.target.closest('#venueDropdown')) closeVenueCascade();});
+    document.addEventListener('keydown',e=>{if(e.key==='Escape'&&$('venueDropdown').classList.contains('open')) {closeVenueCascade();$('venuePicker').focus({preventScroll:true});}});
+    function syncVenuePickerMode() {
+      $('venuePicker').setAttribute('aria-haspopup',useVenueSheet()?'dialog':'true');
+      if(useVenueSheet()) closeVenueCascade();else placeVenueCascade();
+    }
+    window.addEventListener('resize',syncVenuePickerMode);
+    venueTouchQuery.addEventListener('change',syncVenuePickerMode);
+    venueNoHoverQuery.addEventListener('change',syncVenuePickerMode);
+    syncVenuePickerMode();
+    window.addEventListener('scroll',()=>closeVenueCascade(),{passive:true});
+    function openSystemVenuePicker() {
+      const dialog=$('venueTimetablePicker'),search=$('systemVenueSearch'),host=$('systemVenueList');
+      search.value='';
+      function draw() {
+        const q=search.value.trim().toLowerCase(),groups=new Map();
+        MockData.venues.filter(v=>`${v.code} ${v.name} ${v.type}`.toLowerCase().includes(q)).slice().sort((a,b)=>a.code.localeCompare(b.code,undefined,{numeric:true})).forEach(v=>{
+          const block=v.code.match(/^([A-Za-z]+)/)?.[1].toUpperCase()||'OTHER',floor=v.code.match(/\d/)?.[0]||'0';
+          const key=`Block ${block} · Floor ${floor}`;
+          if(!groups.has(key)) groups.set(key,[]);
+          groups.get(key).push(v);
+        });
+        host.innerHTML=groups.size?[...groups].map(([label,venues],i)=>{
+          const expanded=!!q||i===0,id=`systemVenueGroup${i}`;
+          return `<button type="button" class="venue-picker-group" aria-expanded="${expanded}" aria-controls="${id}"><span>${esc(label)}</span><svg class="venue-picker-group-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></button><div id="${id}" ${expanded?'':'hidden'}>${venues.map(v=>`<button type="button" class="venue-picker-item${v.code===venueState.code?' selected':''}" aria-pressed="${v.code===venueState.code}" data-picker-venue="${esc(v.code)}"><span class="venue-picker-item-main"><strong>${esc(v.code)}</strong><span class="venue-picker-item-name">${esc(v.name)}</span></span><span class="venue-picker-item-meta">${v.seats} seats</span></button>`).join('')}</div>`;
+        }).join(''):'<p class="venue-picker-empty">No venues match that search.</p>';
+      }
+      search.oninput=draw;draw();
+      dialog.showModal();document.body.classList.add('preview-locked');
+    }
+    const systemPicker=$('venueTimetablePicker');
+    $('venuePickerClose').onclick=()=>systemPicker.close();
+    systemPicker.addEventListener('close',()=>document.body.classList.remove('preview-locked'));
+    systemPicker.addEventListener('click',e=>{
+      const group=e.target.closest('.venue-picker-group');
+      if(group) {const expanded=group.getAttribute('aria-expanded')==='true';group.setAttribute('aria-expanded',String(!expanded));$(group.getAttribute('aria-controls')).hidden=expanded;return;}
+      const item=e.target.closest('[data-picker-venue]');
+      if(item) {venueState.code=item.dataset.pickerVenue;systemPicker.close();render();}
+      else if(e.target===systemPicker) {
+        const r=systemPicker.getBoundingClientRect();
+        if(e.clientX<r.left||e.clientX>r.right||e.clientY<r.top||e.clientY>r.bottom) systemPicker.close();
+      }
+    });
+    $('venuePicker').onclick=openVenuePicker;
+    $('venueInfo').onclick=()=>openModal({title:'Room information',subtitle:currentRoom().code,body:detailSection('Venue',[detailRow('Room',esc(currentRoom().name)),detailRow('Capacity',`${currentRoom().seats} seats`),detailRow('Session types',esc(currentRoom().allowedSessions.join(' / '))),detailRow('Description',esc(currentRoom().description||'—'))])});
+
+    /* VENUE CONTRACT: local session flow mirrors ui-intent-session-modal.
+       The warning is NEVER hidden; only its scope explanation folds. Free venue
+       cells do not promise lecturer/cohort availability. Arrange creates no request.
+       Validate the chosen duration AFTER a class is picked, including the tail. */
+    // Keep each original week: flattening values and deduplicating by course/
+    // weekday erased occurrence dates. All copies below leave MockData intact.
+    const candidateSessions=Object.entries(shared.myTimetable.eventsByWeek).flatMap(([week,events])=>
+      events.filter(e=>e.status==='conflict'||e.status==='cancelled').map(e=>({...e,sourceWeek:Number(week)}))
+    );
+    function sessionCohortLabel(session) {
+      const cohorts=(session.cohorts?.length?session.cohorts:[session.cohort||'']).flatMap(value=>String(value).split(/\s*\+\s*/)).map(value=>value.trim()).filter(Boolean);
+      const codes=[...new Set(cohorts.map(value=>value.match(/^([A-Za-z]+\d+)/)?.[1]||value))];
+      return {full:cohorts.join(' + '),short:codes.join(' + ')+(cohorts.length>1?` (${cohorts.length} cohorts)`:'')};
+    }
+    function openSessionPicker(di,slot) {
+      venueState.booking={week:state.week,di,slot};
+      const subjectCodes=[...new Set(candidateSessions.map(e=>e.code))];
+      openModal({title:'Select a Session',subtitle:`${venueState.code} · ${fmt(dateAt(state.week,di))} · ${clock(slot)}`,body:`
+        <div class="detail-group intent-advisory"><button type="button" class="intent-advisory-bar" id="venueWarning" aria-expanded="false"><span class="intent-advisory-text"><span class="advisory-head">Warning: Venue availability only</span><span class="advisory-risk">Slots marked available may still conflict</span></span><span aria-hidden="true">⌄</span></button><p class="intent-advisory-detail" id="venueWarningDetail" hidden>This page only checks the selected venue — your own and the cohort timetable are not consulted.</p></div>
+        <div class="detail-group"><div class="detail-group-title">Class information</div><div class="venue-session-fields"><div class="venue-field"><label class="venue-field-label" for="venueSubject">Subject</label><div class="venue-field-control"><select class="filter-select venue-select" id="venueSubject">${subjectCodes.map(code=>`<option value="${esc(code)}">${esc(code)} — ${esc(candidateSessions.find(e=>e.code===code).name)}</option>`).join('')}</select></div></div><div class="venue-field"><span class="venue-field-label" id="venueSessionsLabel">Session</span><div class="venue-field-control" id="venueSessions" role="radiogroup" aria-labelledby="venueSessionsLabel"></div></div></div></div><p class="venue-status-note">Design preview only. These are sample conflicted classes, not your current requests.</p>`,footer:`<button class="btn-confirm" id="venueArrange">${icon('swap','venue-arrange-icon')}Arrange</button>`,closeLabel:'Cancel'});
+      const refresh=()=>{
+        const choices=candidateSessions.map((e,index)=>({e,index})).filter(({e})=>e.code===$('venueSubject').value);
+        $('venueSessions').innerHTML=choices.map(({e,index},i)=>{
+          const cohort=sessionCohortLabel(e);
+          return `<label class="venue-picker-option venue-session-choice"><input type="radio" name="venueSession" value="${index}" ${i===0?'checked':''}><span class="venue-session-text"><span class="venue-session-primary">(${esc(e.type)}) Week ${e.sourceWeek+1} · ${esc(fmt(dateAt(e.sourceWeek,e.di),{weekday:'short'}))}</span><span class="venue-session-meta venue-session-secondary">${icon('clock')}<span>${esc(timeOf(e))}</span></span><span class="venue-session-footer"><span class="venue-session-cohorts" data-tip="${esc(cohort.full)}" aria-label="${esc(cohort.full)}">${cohort.full?icon('cohorts','venue-cohort-icon'):''}<span>${esc(cohort.short)}</span></span><span class="ra-venue-pill">${esc(e.venue)}</span></span></span></label>`;
+        }).join('');
+        $('venueArrange').disabled=!choices.length;
+      };
+      $('venueSubject').onchange=refresh; refresh();
+      if(venueTouchQuery.matches) installTouchSubjectPicker(refresh);
+      $('venueWarning').onclick=()=>{const detail=$('venueWarningDetail');detail.hidden=!detail.hidden;$('venueWarning').setAttribute('aria-expanded',String(!detail.hidden));};
+      $('venueArrange').onclick=()=>{
+        const selected=$('modalBody').querySelector('input[name="venueSession"]:checked');
+        if(!selected) return;
+        showArrangement(candidateSessions[Number(selected.value)]);
+      };
+    }
+    function installTouchSubjectPicker(refresh) {
+      const select=$('venueSubject'),picker=document.createElement('div');
+      const label=$('modalBody').querySelector('label[for="venueSubject"]');
+      label.id='venueSubjectLabel';label.htmlFor='venueSubjectTrigger';
+      picker.innerHTML='<button type="button" class="venue-subject-trigger" id="venueSubjectTrigger" aria-labelledby="venueSubjectLabel venueSubjectTriggerText" aria-haspopup="listbox" aria-expanded="false" aria-controls="venueSubjectOptions"><span id="venueSubjectTriggerText"></span><svg width="10" height="6" viewBox="0 0 10 6" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M1 1l4 4 4-4"/></svg></button><div class="venue-subject-options" id="venueSubjectOptions" role="listbox" aria-labelledby="venueSubjectLabel" hidden></div>';
+      select.hidden=true;select.after(picker);
+      const trigger=$('venueSubjectTrigger'),list=$('venueSubjectOptions');
+      const options=[...select.options];
+      list.innerHTML=options.map(option=>`<button type="button" class="venue-subject-option" role="option" tabindex="-1" aria-selected="${option.value===select.value}" data-subject-value="${esc(option.value)}">${esc(option.textContent)}</button>`).join('');
+      const rows=[...list.querySelectorAll('[role="option"]')];
+      const update=()=>{
+        $('venueSubjectTriggerText').textContent=select.selectedOptions[0]?.textContent||'Select a subject';
+        rows.forEach(row=>row.setAttribute('aria-selected',String(row.dataset.subjectValue===select.value)));
+      };
+      function closeList(restoreFocus=true) {
+        list.hidden=true;trigger.setAttribute('aria-expanded','false');
+        if(restoreFocus) trigger.focus({preventScroll:true});
+      }
+      function openList(last=false) {
+        list.hidden=false;trigger.setAttribute('aria-expanded','true');
+        (last?rows.at(-1):rows.find(row=>row.getAttribute('aria-selected')==='true')||rows[0])?.focus();
+      }
+      trigger.onclick=()=>list.hidden?openList():closeList();
+      trigger.addEventListener('keydown',e=>{
+        if(e.key==='ArrowDown'||e.key==='ArrowUp') {e.preventDefault();openList(e.key==='ArrowUp');}
+      });
+      list.addEventListener('click',e=>{
+        const row=e.target.closest('[data-subject-value]');if(!row) return;
+        select.value=row.dataset.subjectValue;refresh();update();closeList();
+      });
+      picker.addEventListener('keydown',e=>{
+        if(e.key==='Escape'&&!list.hidden) {e.preventDefault();e.stopPropagation();closeList();return;}
+        if(list.hidden||e.target===trigger) return;
+        const index=rows.indexOf(document.activeElement);
+        if(['ArrowDown','ArrowUp','Home','End'].includes(e.key)) {
+          e.preventDefault();
+          const next=e.key==='Home'?0:e.key==='End'?rows.length-1:(index+(e.key==='ArrowDown'?1:-1)+rows.length)%rows.length;
+          rows[next]?.focus();
+        }
+      });
+      picker.addEventListener('focusout',e=>{if(!picker.contains(e.relatedTarget)) closeList(false);});
+      update();
+    }
+    function showArrangement(session) {
+      const target=venueState.booking,span=session.end-session.start+1,room=currentRoom();
+      const fits=target.slot+span<=22&&Array.from({length:span},(_,i)=>slotState(target.week,target.di,target.slot+i).bookable).every(Boolean);
+      const allowed=room.allowedSessions.includes(session.type);
+      const students=session.studentCount||(session.studentCounts||[]).reduce((a,b)=>a+b,0);
+      const issue=!fits?'Slot Too Short':!allowed?'Room Type Not Suitable':students>room.seats?'Not Enough Seats':'';
+      if(issue) {
+        openModal({title:issue,subtitle:room.code,body:`<p>This sample class needs ${span/2} hours${students?` and ${students} seats`:''}. ${!fits?'The whole time range must be available.':!allowed?`This room supports ${esc(room.allowedSessions.join(' / '))} sessions.`:'Choose a larger room.'}</p>`,footer:'<button class="btn-confirm" id="venueTryAgain">Pick another slot</button>'});
+        $('venueTryAgain').onclick=closeModal; return;
+      }
+      openModal({title:'Replacement Schedule',subtitle:`${session.code} — ${session.name}`,body:`${detailSection('Selected slot',[detailRow('Venue',`${room.code} — ${esc(room.name)} (${room.seats} seats)`),detailRow('Day & Date',esc(fmt(dateAt(target.week,target.di),{weekday:'long'}))),detailRow('Time & Duration',`${clock(target.slot)} ~ ${clock(target.slot+span)} (${span/2} hours)`,true),detailRow('Class type',esc(typeLong[session.type])),detailRow('Cohort',esc(session.cohort||(session.cohorts||[]).join(' + ')))])}<div class="venue-result">Preview only — no request has been submitted.</div><p class="venue-status-note">In the live system, Arrangement checks the lecturer, cohorts, room and capacity before submission. Those checks have not been run here.</p>`,footer:'<button class="btn-confirm" id="venueBackToSlot">Back to timetable</button>'});
+      $('venueBackToSlot').onclick=closeModal;
+    }
+    /* 2026-11-15 (user): both jumps land like the shipped buttons — the whole DAY
+       pulses (theme.css `tr.bookable-flash > td`, 3 × 0.5s) instead of one cell.
+       Desktop: the day's row. Below 1280 there is no row, so the day's column
+       cells take the same pulse. Today = blue (its own button colour), Earliest
+       bookable = green. */
+    const ROW_FLASH_MS = 1650;                       /* 3 × 0.5s + slack */
+    const FLASH_CLASSES = ['venue-row-flash','venue-row-flash--today','venue-cell-flash','venue-cell-flash--today'];
+    function flashDay(di, tone) {
+      const rowCls = tone === 'today' ? 'venue-row-flash--today' : 'venue-row-flash';
+      const cellCls = tone === 'today' ? 'venue-cell-flash--today' : 'venue-cell-flash';
+      const targets = [...document.querySelectorAll(`#tableBody tr[data-day="${di}"]`),
+                       ...document.querySelectorAll(`#previewTablet .venue-slot[data-free-day="${di}"]`)];
+      targets.forEach(el => { el.classList.remove(...FLASH_CLASSES); void el.offsetWidth; el.classList.add(el.tagName === 'TR' ? rowCls : cellCls); });
+      setTimeout(() => targets.forEach(el => el.classList.remove(...FLASH_CLASSES)), ROW_FLASH_MS);
+    }
+    function todayTarget() {
+      for(let week=0; week<MockData.semester.weeks; week++) for(let di=0; di<7; di++) if(dateKey(week,di)===fixtureToday) return {week,di};
+      return null;
+    }
+    $('venueEarliest').onclick=()=>{
+      const earliest=earliestBookable();
+      if(earliest) {
+        const {week,di,slot}=earliest;
+        state.week=week;state.day=di;render();
+        requestAnimationFrame(()=>{
+          const host=innerWidth<1280?$('previewTablet'):$('previewDesktop');
+          const target=host.querySelector(`[data-free-day="${di}"][data-free-slot="${slot}"]`);
+          target?.scrollIntoView({block:'center',behavior:matchMedia('(prefers-reduced-motion: reduce)').matches?'instant':'smooth'});
+          target?.focus({preventScroll:true});
+          flashDay(di,'bookable');
+        }); return;
+      }
+      notify('No bookable room slots in this semester.');
+    };
+    $('previewToday').onclick=()=>{
+      const target=todayTarget();
+      state.week=target?target.week:7; state.day=target?target.di:3; render();
+      requestAnimationFrame(()=>{
+        document.querySelector('.grid-wrapper')?.scrollIntoView({block:'start',behavior:matchMedia('(prefers-reduced-motion: reduce)').matches?'instant':'smooth'});
+        if(target) flashDay(target.di,'today');
+      });
+    };
+    $('previewHelp').onclick=()=>openModal({title:'How to use this page',subtitle:'Venue Timetable',body:'<p>Choose a venue, week and day. Tap a class for details, or a free green slot to select a session.</p><p>Below 1280px the day strip moves a one-, two- or three-day window. The week controls stay visible while you scroll.</p><p>Earliest bookable jumps to the first free room slot beyond the three-working-day notice period.</p><p>All data is sample data. No booking, cancellation or request is saved.</p>'});
+    $('previewPrint').onclick=()=>window.print();
+    document.addEventListener('click',e=>{
+      const choice=e.target.closest('[data-choose-venue]');
+      if(choice) {venueState.code=choice.dataset.chooseVenue;closeModal();render();return;}
+      const cell=e.target.closest('[data-free-day]');
+      if(cell&&!cell.disabled&&cell.getAttribute('aria-disabled')!=='true') openSessionPicker(Number(cell.dataset.freeDay),Number(cell.dataset.freeSlot));
+      const legend=e.target.closest('[data-venue-legend]');
+      if(legend) {
+        const fromSummary=modalOpen&&modal.dataset.view==='week-summary';
+        openModal({title:legend.dataset.venueLegend,body:`<p>${esc(legend.getAttribute('data-tip'))}</p>`,closeLabel:fromSummary?'Back to summary':'Close'});
+        if(fromSummary) $('previewCloseBtn').onclick=openWeekSummary;
+      }
+    });
+    // Keyboard stays inside whichever sheet is open; Escape is handled by the
+    // inherited shell. Return focus to the opener; no hidden offscreen tab stops.
+    overlay.addEventListener('keydown',e=>{
+      if(e.key!=='Tab') return;
+      const items=[...modal.querySelectorAll('button:not(:disabled), input, select, a[href], [tabindex="0"]')].filter(el=>el.getClientRects().length&&!el.hidden);
+      if(!items.length) return;
+      if(e.shiftKey&&document.activeElement===items[0]) {e.preventDefault();items.at(-1).focus();}
+      else if(!e.shiftKey&&document.activeElement===items.at(-1)) {e.preventDefault();items[0].focus();}
+    });
+    $('previewUser').textContent=MockData.currentUser.name;
+    initDataTips();
+    window.addEventListener('resize',render);
+    render();
+  })();
+  </script>
+</body>
+</html>

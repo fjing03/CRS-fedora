@@ -178,6 +178,8 @@
                 '<strong>Hover headers</strong> — hover a column name to see what it means',
                 '<strong>Track progress</strong> — the Action icon tells you what you can do: rotate to arrange, ban to cancel a pending request, eye to view the details',
                 '<strong>Week filter</strong> — use the week navigator to view conflicts for a specific week',
+                '<strong>The five cards</strong> — Classes to Arrange, Class Hours to Replace, Pending, Approved and Rejected; they count what your filters currently show',
+                '<strong>COMPLETED</strong> — the switch hides classes whose replacement date has passed; turn it off to see them',
             ]
         ])
 

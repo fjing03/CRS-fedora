@@ -437,6 +437,23 @@
       .preview-heading .semester-chip { font-size: 12px; padding: 3px 8px; }
       .preview-controls .week-select { font-size: 12px; padding-left: 6px; padding-right: 24px; }
     }
+    /* 2026-11-15 (user): 48 x 48px touch targets on TOUCH-CAPABLE devices only —
+       capability, not width (same rule as the staff preview and
+       my-timetable-responsive-prompt.md §5). A mouse desktop keeps today's
+       compact 44px controls. Grow the real hit box, never invisible padding. */
+    @media (any-pointer: coarse) {
+      .preview-button,
+      .preview-icon-button { min-width: 48px; min-height: 48px; }
+      .preview-day { flex: 1 0 48px; min-width: 48px; }
+      .preview-controls .week-arrow { width: 48px; height: 48px; flex: 0 0 48px; }
+      .preview-controls .week-select { height: 48px; }
+      .preview-tablet-grid { grid-template-rows: 62px repeat(22, 48px); }
+      .summary-card-back .preview-summary-info { width: 48px; height: 48px; min-width: 48px; min-height: 48px; }
+      .preview-modal .modal-footer .btn-close-modal,
+      .preview-modal .modal-footer .btn-outline,
+      .preview-modal .modal-footer .btn-danger { min-height: 48px; }
+      button.preview-next-hint { min-height: 48px; }
+    }
     @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; } }
   </style>
 </head>

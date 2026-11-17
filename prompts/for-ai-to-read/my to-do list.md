@@ -304,13 +304,13 @@
 
 ## Tasks
 
-- [ ] **7. `filters-button`** — the filters behind one labelled button
+- [x] **7. `filters-button`** — the filters behind one labelled button
 
-  **Status: PROPOSAL FROZEN 2026-11-14 (4 review rounds) — stopped before design; carried to 15 Nov 2026.** Lane
-  `.sdd/changes/filters-button/` has `explore-brief.md` + `proposal.md` + `review-log.md` +
-  `sdd.yaml` only. The proposal **is frozen**; there is no `design.md`, no specs, no tasks and
-  **no code**. Nothing is lost: the lane folder records every
-  finding and every open decision.
+  **Status: DONE 2026-11-15 — applied, verified (PASS, 3 rounds) and archived to
+  `.sdd/archive/2026-11-15-filters-button/`.** That folder holds all four frozen batches
+  (`proposal.md`, `design.md`, `specs/filters-panel/spec.md`, `tasks.md` 23/23), the review log,
+  the apply log and the verify report. The code shipped in one commit (`19a51d0`, plus the docs
+  sync after it); the lane's own working folder is now empty of it, as an archived lane should be.
 
   - Landed so far: the measured case (on a phone the filters take up to **half** the first screen —
     My Replacements 265px bar + 120px chips ending 519px down; the student page only a quarter),
@@ -324,18 +324,53 @@
     width; (2) the week option reads **"All Weeks"**, deliberately reversing the 2026-11-10 "SLOT"
     ruling; (3) the **second week dropdown is IN on all three pages** — so this is no longer a
     layout-only lane, it carries one new filter per page (predicate, chip, reset, remembered state).
-  - **Three test files pin the strings this lane changes on purpose** and are amended in the same
-    commit: `status-tooltips-filter-chips.spec.ts` (`:380` week text, `:416` chips label, `:171/:206/:422`
-    chip text), `week-filter-preserved.spec.ts:141`, and the *whole* of
-    `StudentReplacementHistoryParityTest.php` (`:143/:144/:146/:148` + docblock — it pins the student
-    page as single-week).
-  - **First thing tomorrow:** `design.md` (the frame, the two-fields-per-panel layout, the move, the
-    focus/lock rules), then specs, then tasks. Apply still needs its own go-ahead — the brief was
-    explore + propose only. The proposal is committed (`07b57db`) and the lane is the record.
+  - **Four test files drive controls that moved behind the panel**, so they now open it first through
+    `tests/helpers/filters-panel-helper.ts` (Playwright cannot click a control inside a hidden
+    overlay): `status-tooltips-filter-chips`, `week-filter-preserved`, `request-completed-status` and
+    `summary-cards-button`, plus the two search tests in the legacy `e2e/full-suite.spec.js`. Their
+    pinned strings moved with the lane (`All Weeks`, `Completed hidden`, no `Active Filters:`), and
+    `StudentReplacementHistoryParityTest.php` was amended **precisely** — `:143` allLabel, `:146` the
+    now-false "no `Requested Slot Week:`" assertion, `:149` the predicate, the docblock — while
+    `:144` (the Original chip text) and `:156` (the toggle test) stay green, because they survive.
+  - **Built on 2026-11-15:** one shared partial holds the row (button · chips · count) and the panel
+    frame; `FiltersPanel` in `ui-common.js` **moves** each page's own toolbar into it (ids never
+    renamed, so the pages' own repaint and listeners keep working; the host and the panel body are
+    `wire:ignore` because both staff pages re-draw on Approve/Reject). Labels above every control;
+    Reset in the panel head on the two staff pages only; both week fields on all three pages, the
+    requested week derived from the replacement date (the student page's from its 1-based
+    `r.req.week`) — no backend change. `All Weeks`, `Completed hidden`, no `Active Filters:` prefix,
+    and the count pill shows at every width (the old 1500px hide rule is gone).
+  - **After you saw it live (same day, user review) four corrections landed:** the button, chips and
+    count now sit on **one row** at ≥769 with the chips keeping their tinted frame (the prototype's
+    look); a phone keeps the button + count on the first line and the chips below (all three cannot
+    fit — the count alone is ~130px); Request Approval's **sort-hint line is deleted**; and on the
+    student page the panel's × takes the right edge on its own, the **Hide COMPLETED** label sits
+    directly above its switch, and opening the panel focuses the first field/select rather than the
+    switch (whose tip used to pop on open).
+  - Evidence: `tests/filters-button.spec.ts` **21 passed / 2 skipped** on five runs (both skips are
+    data gaps that re-enable themselves), the four rewired specs 11/6/6/12, three stay-green specs
+    green. Measured at 390×844: first card **519→226** (My Replacements), **541→226** (Request
+    Approval, demo DB), **375→259** (Class Replacements); phone row 84px (114px on Request Approval,
+    three chips wrap) against 120–126px before.
 
-- [ ] **8. `my-timetable-responsive-prompt`** — carried to 15 Nov 2026 (not started today)
+- [x] **8. `my-timetable-responsive-prompt`** — carried to 15 Nov 2026 (not started today)
 
-  **Status:** Started, records only — **the lane now exists** (2026-11-14):
+  **Status: VERIFIED PASS 2026-11-15 (2 review rounds), then extended 2026-11-16** — 12
+  prototype-comparison follow-ups, the two bug fixes (TODAY lands on today; a holiday keeps its
+  classes), the "Proposed ⏳ replaces Cancelled" ruling, and the nine round-2 rulings; 42 receipts
+  green; committed `7809c1b`. **ARCHIVED 2026-11-16** — the lane now lives at
+  `.sdd/archive/2026-11-16-my-timetable-responsive-prompt/` (`status: archived`).
+  Built and receipted: the phone agenda + day strip, the tablet transposed window, the Week
+  summary sheet (SummarySheet gated off on these pages), both pages wired, the pin against the
+  pre-change baseline, 19 responsive receipts, and the three amended files. Four defects the
+  receipts found were fixed the same day (sheet painted only its range line; Enter/Space on a
+  card opened nothing; Tab escaped the sheet; `_dialogAbove()` was true on every page). Six
+  measured corrections the design did not predict are in the apply log. Next: `/sdd-verify`.
+
+  **Pre-apply record (kept as written): ALL FOUR BATCHES FROZEN 2026-11-15.**
+  `proposal.md` (4 review rounds), `design.md` (3), `specs/timetable-responsive/spec.md` (2) and
+  `tasks.md` (2, T0a–T19 in eight batches) are frozen; `implementation_approved: false`. The earlier
+  note below is the pre-freeze record and is kept as written.
   `.sdd/changes/my-timetable-responsive-prompt/`. The proposal has had **2 independent review rounds**
   (`review_rounds: 2`, `proposal_frozen: false`); the brief itself was iterated five times before it.
   `design.md`, specs and `tasks.md` are **not written yet**, and **no code** has been touched.
@@ -375,9 +410,10 @@
     need on top (the legend bar and the full semester range) — not a second sheet.
   - Why it sits before print: it restructures the timetable pages, and print has to attach to whatever structure exists.
 
-- [ ] **9. `timetable-print-v2`**
+- [x] **9. `timetable-print-v2`**
 
-  **Status:** Not started. 74 tasks, 0 done. The print button still shows *"Printing is coming soon."*
+  **Status:** Done — applied and verified 2026-11-16, amended twice (the Print dialog + its switch),
+  ARCHIVED 2026-11-17 (`.sdd/archive/2026-11-17-timetable-print-v2/verify-report.md`).
 
   - Real printing on the four timetable pages that already show the printer button.
   - Last on purpose: built after task 8, it is built once.
@@ -435,6 +471,13 @@
   - Two traps the lane must respect: the card is the click target and `data-request-id` is how the
     cancel flash finds it; and Request Approval's bulk-select flow (`toggleRowSelect`) must keep
     working when the card markup changes.
+  - **Touch sizing (2026-11-15, user):** 48 × 48px on **touch-capable devices only**, gated on
+    `@media (any-pointer: coarse)` — never on width, so a touch laptop or an iPad Pro at any width
+    still qualifies while a mouse-only desktop keeps today's compact sizes. Applies to the card, the
+    Approve / Reject / View buttons, Filters, chips, Clear all, pagination, summary info and inputs;
+    the chip's little "x" is the one approved exception (the 26px glyph inside the 48px chip).
+    Badges never inherit the floor. The three prototypes already carry the block — copy it, do not
+    invent a second one.
 
   **Not these cards (2026-11-15):** the timetable **class blocks** (My Timetable, Student My
   Timetable) are a separate component with their own three-tier rule (time + venue primary, code

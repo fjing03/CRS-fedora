@@ -32,7 +32,7 @@
    apply to you too).
 2. Read `.sdd/archive/replacement-merge-one-table/explore-brief.md` (the design authority)
    and `proposal.md` (the frozen scope) **in full**.
-3. Look at the picture: `../ui-prototype/replacement-merged-preview.html`. It is a
+3. Look at the picture: `ui-prototype/replacement-merged-preview.html`. It is a
    discussion instrument, **never staged, never shipped** — but it is what the user
    approved, down to the wording.
 4. Then `design.md`, `specs/…/spec.md` and `tasks.md` — **all frozen; read them, do not

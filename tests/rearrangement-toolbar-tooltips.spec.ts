@@ -99,11 +99,19 @@ test('arrival: a) the anchored slot tip carries the REAL facts; b) the week sele
   const visible2 = (await trigger.textContent()) || '';
   const pickedWeek = visible2.match(/^Week (\d+) ·/)?.[1];
   if (pickedWeek) expect(tip2).toContain(`Week ${pickedWeek}`);
-  // -- Batch 2 req 3b: the FIRST item's label = the Week spelling + the year + the cohort tag
-  const itemLabel = await page.locator('#slotPanel .slot-dd-item').first().locator('.slot-dd-item-label').textContent();
+  // -- Batch 2 req 3b, reshaped 2026-11-14 (user): the item is a STACK of glyph
+  //    rows — head (type + Week + date) / time / venue / cohorts. The venue is its
+  //    own row now, so `@ B` is gone; every other fact the old assertion held stays.
+  const firstItem = page.locator('#slotPanel .slot-dd-item').first();
+  const itemLabel = await firstItem.locator('.slot-dd-item-label').textContent();
   expect(itemLabel || '').toMatch(/Week \d+ · [A-Z][a-z]{2} \d{1,2}, \d{4}/);
-  expect(itemLabel || '').toContain('@ B');
-  await expect(page.locator('#slotPanel .slot-dd-item').first().locator('.slot-dd-item-cohort')).toHaveCount(1);
+  const itemRows = firstItem.locator('.slot-dd-item-label .slot-dd-row');
+  await expect(itemRows).toHaveCount(4);
+  await expect(itemRows.nth(0)).toHaveClass(/slot-dd-row--head/);
+  await expect(itemRows.nth(1)).toContainText(/\d{1,2}:\d{2} [AP]M ~ \d{1,2}:\d{2} [AP]M/);
+  await expect(itemRows.nth(2)).toContainText(/^B\d{3}$/);
+  await expect(itemRows.nth(3)).toHaveClass(/slot-dd-item-cohort/);
+  await expect(firstItem.locator('.slot-dd-item-cohort')).toHaveCount(1);
 
   // -- a-tap 3) the subject-commit path: with a zeroed store the guard does not
   //    fire (verify: no modal) → the change COMMITS and the NEW subject's

@@ -142,8 +142,14 @@ Stacked, content-sized, consistent padding — never a fixed equal height.
 - Tablet uses the same order one step down: time/venue 11px, code 10px, note 9.5px. A narrow tablet
   block (two lanes side by side) lets the venue fall to a second line on the right rail rather than
   shrink the time range.
-- All tap targets ≥ 44px. Body text ≥ 12px; the two lower tiers are deliberately smaller.
-  Never shrink text to force one line.
+- **Tap targets are 48 × 48px on touch-capable devices only** (2026-11-15, user): gate the rule
+  on capability, never on width — `@media (any-pointer: coarse)`. A touch laptop or an iPad Pro at
+  ≥1280px is still a touch device and gets 48px; a mouse desktop keeps the compact controls it
+  ships today, so the desktop look does not move. The two rules coexist: 44px stays the base
+  geometry and 48px is added on top under the capability query. Grow the real hit box
+  (`min-width` / `min-height` on the control), never an invisible overlapping padding — neighbouring
+  half-hour cells and day buttons must not steal each other's taps. Text stays ≥ 12px and never
+  shrinks to force one line.
 
 ---
 
@@ -303,6 +309,15 @@ empty component; only the next-class hint is an addition and it rides inside tha
 - Day strip buttons expose `aria-pressed` and `aria-current="date"` for today.
 - Summary and legend explanations are reachable by keyboard, not hover only.
 - Respect `prefers-reduced-motion`.
+- **Touch sizing is a capability rule, not a width rule** (2026-11-15, user — supersedes the
+  old "all tap targets ≥ 44px"). Under `@media (any-pointer: coarse)` every interactive control
+  is at least **48 × 48 CSS px**: page buttons, icon buttons, day chips, week arrows, the week
+  select, summary info buttons, sheet footer buttons, and the tablet grid's own half-hour rows.
+  A touch laptop or an iPad Pro at ≥1280px is still a touch device and gets 48px. **A mouse-only
+  device keeps exactly what it ships today** (44px controls, 44px rows, 32px arrows) — the desktop
+  look does not move. Grow the real hit box (`min-width` / `min-height`), never invisible
+  overlapping padding: neighbouring rows and day chips must not steal each other's taps. Type
+  sizes are untouched; a target size is not a text size.
 
 ---
 
@@ -329,6 +344,9 @@ empty component; only the next-class hint is an addition and it rides inside tha
 - [ ] Summary cards keep their current width and 96px height; hover/tap/keyboard flips both ways.
 - [ ] Each back fits three short lines plus an info button, including at 320px.
 - [ ] Info opens the full explanation without flipping; Back to summary restores the card.
+- [ ] **Touch device (any width, `any-pointer: coarse`): every control is ≥ 48 × 48px**, and the
+      tablet grid's half-hour rows are 48px. **Mouse-only device: the compact geometry is unchanged**
+      (44px controls, 44px rows). No control shrinks to fit; day chips scroll instead.
 - [ ] No hex/rgb in page CSS; no new dependency; changelog updated.
 - [ ] Week subtitle and semester progress bar are absent at every width.
 

@@ -300,6 +300,63 @@
                baseline instead of towering over it. */
         .slot-badge { vertical-align: -3px; }
 
+        /* 2026-11-15 (user): 48 x 48px touch targets on TOUCH-CAPABLE devices ONLY.
+           Capability, not width — `@media (any-pointer: coarse)`. A touch laptop or an
+           iPad Pro at any width still qualifies; a mouse-only desktop keeps exactly the
+           compact geometry this page ships today, so the desktop look does not move.
+           Grow the REAL hit box (min-width / min-height on the control), never an
+           invisible overlapping padding: neighbouring chips and action buttons must not
+           steal each other's taps. Text sizes are untouched — a target size is not a
+           type size. Badges are not buttons and never inherit this. */
+        @media (any-pointer: coarse) {
+            /* every real control in the page chrome, the filter bar and the cards */
+            button,
+            .btn,
+            .btn-sm,
+            .btn-icon,
+            .btn-pill,
+            .btn-action,
+            .btn-approve,
+            .btn-reject,
+            .btn-view,
+            .cl-filters-btn,
+            .filter-chip,
+            .filter-chip-clear-all,
+            .page-btn,
+            .summary-info,
+            .summary-card-back .preview-summary-info {
+                min-width: 48px;
+                min-height: 48px;
+            }
+            /* the approved exception, kept on purpose: the CHIP is the 48px target and
+               the little "x" stays a glyph inside it, so the status row never grows. */
+            .filter-chip-remove {
+                width: 26px;
+                height: 26px;
+                min-width: 0;
+                min-height: 0;
+            }
+            /* the card IS the target — it is already taller than 48px, this is the floor */
+            .upcoming-card,
+            .replacement-card,
+            .approval-card,
+            .replacement-home-row,
+            .request-card {
+                min-height: 48px;
+            }
+            /* form controls take the full target too */
+            select,
+            input[type="search"],
+            input[type="text"],
+            input[type="date"] {
+                min-height: 48px;
+            }
+            .col-checkbox {
+                width: 48px;
+                min-width: 48px;
+            }
+        }
+
 </style>
 </head>
 <body data-page="mr" data-page="myReplacements">
