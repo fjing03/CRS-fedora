@@ -1,3 +1,37 @@
+## 2026-11-17 — the empty Class Details column is gone, and the schedule takes its space
+
+At rest — no course, no slot — Class Details held a full `5fr` column (248px at 1440, 294 at 1280)
+to say one sentence, while the Replacement Schedule — the card whose content actually grows — was
+squeezed to 397px. A quarter of the top zone bought nothing at the moment the lecturer is deciding.
+
+Now the empty card is **hidden** at `>=1101px` and its neighbour **spans the vacated tracks**. Hiding
+alone is not enough and was measured: a hidden grid child leaves its track standing, so the survivors
+re-flow into the wrong columns (replacement into 248px, the Summary into 397px, the 280px column empty).
+One rule — `grid-column: 2 / 4` on `#classDetailsCard + section` — covers tracks 2–3 in both bands
+(`8/5/7` at 1101–1319 and `8/5/8/280` at `>=1320`) and in the `conflict-collapsed` variants for free.
+
+Measured at 1440, before → after: Class Details `248 → 0` · Replacement Schedule `397 → 657` ·
+Selection Summary `280` at the right edge, unmoved · `document.scrollWidth` unchanged at 1024 / 1101 /
+1280 / 1440. The track template is untouched: **no new grid template, and no JavaScript** — the card
+already carries `has-slot` from the existing refresh.
+
+The hint moved rather than disappeared. `#detailsEmpty` now lives under the Course field in the
+Conflict Schedule card, keeps its id (so the same refresh drives it), and is reworded because it
+promised a panel that is now invisible at rest: *"Class details appear once you pick a course and
+slot."* It hides exactly when the card appears.
+
+Deliberate, per the owner: the widened controls keep their full width (a menu 657px wide for
+"B103 — 35 seats" is loose, but capping it would add a rule and a ragged band for no function), and
+the uneven top row — 397 against 657 — is the intended shape. Below 1101px and on the phone day view
+nothing changes; the phone already hid this card when empty.
+
+Receipt: `tests/top-zone-round2.spec.ts` 14/15 — the empty state shows three visible panels, the card
+hidden, the hint visible from its new home, the schedule spanning `track2 + track3 + 12px` (>=600), and
+the `+ section` document order pinned so a markup reorder fails loudly; a picked slot brings the card
+back and retires the hint. The one red (`the 150px venue columns are scoped away from other pages`) is
+pre-existing: it fails identically with this change stashed. `selection-summary-collapse` and
+`session-arrival-pin-guard` 7/7.
+
 ## 2026-11-17 — the grid says when the week continues
 
 At 1440 the grid is 1976px wide inside a 1390px card: 586px of the week sat off to the right

@@ -8,6 +8,11 @@ import { test, expect, type Page } from '@playwright/test';
  * with the Summary on row 2; 1100 = one column. The Summary stays visible with
  * its empty state until slots are picked (user law 2026-11-13). Rail classes
  * are the only owner of the 56px tracks.
+ *
+ * 2026-11-17 (lane arrangement-class-details-collapse): at rest the Class Details
+ * card is hidden at >=1101px and the Replacement Schedule spans its vacated
+ * tracks, so the empty state shows TWO setup cards, not three. The track
+ * template is untouched — hiding moves content, it does not resize the grid.
  */
 test.use({ storageState: '.auth/staff-5770.json' });
 
@@ -46,14 +51,15 @@ async function chrome(card: ReturnType<Page['locator']>) {
   });
 }
 
-test('1360px, empty Summary: three setup cards at 8/5/8 plus the 280px summary', async ({ page }) => {
+test('1360px, empty Summary: Class Details hidden, the schedule spans its tracks, at 8/5/8 plus 280', async ({ page }) => {
   await page.setViewportSize({ width: 1360, height: 900 });
   await page.goto('/replacement-arrangement', { waitUntil: 'networkidle' });
   await page.waitForSelector('#subjectInfo', { timeout: 15_000 });
   await page.waitForTimeout(900);
 
   await expect(page.locator('#topZone')).not.toHaveClass(/has-summary/);
-  await expect(page.locator('#topZone > .ra-block:visible')).toHaveCount(4);
+  // the hidden card leaves three visible .ra-block children: Conflict, Replacement, Summary
+  await expect(page.locator('#topZone > .ra-block:visible')).toHaveCount(3);
   await expect(page.locator('#selSummary')).toBeVisible();
   await expect(page.locator('#summaryEmpty')).toBeVisible();
   await expect(page.locator('#summaryGrid')).toBeHidden();
@@ -69,7 +75,8 @@ test('1360px, empty Summary: three setup cards at 8/5/8 plus the 280px summary',
   const expected = [available * 8 / 21, available * 5 / 21, available * 8 / 21];
   widths.slice(0, 3).forEach((w, i) => expect(Math.abs(w - expected[i])).toBeLessThanOrEqual(1.1));
 
-  for (const selector of ['#subjectInfo', '#classDetailsCard', '#replacementHeading']) {
+  // #classDetailsCard is hidden at rest (2026-11-17); chrome() on it would pass vacuously
+  for (const selector of ['#subjectInfo', '#replacementHeading']) {
     const card = selector === '#replacementHeading'
       ? page.locator('#topZone > .ra-block').nth(2)
       : page.locator(selector);
@@ -80,9 +87,37 @@ test('1360px, empty Summary: three setup cards at 8/5/8 plus the 280px summary',
     expect(box.padding).toBe('12px 16px');
   }
 
-  await expect(page.locator('#classDetailsCard')).toBeVisible();
+  await expect(page.locator('#classDetailsCard')).toBeHidden();
+
+  // AC-1: the Replacement Schedule takes the vacated tracks (2 + 3 + the 12px gap)
+  const replacementBox = await page.locator('#topZone > .ra-block').nth(2).boundingBox();
+  expect(replacementBox).not.toBeNull();
+  const spanned = widths[1] + widths[2] + 12;
+  expect(Math.abs((replacementBox as any).width - spanned)).toBeLessThanOrEqual(1.5);
+  expect((replacementBox as any).width).toBeGreaterThan(600);
+
+  // AC-5: the hint survives because it MOVED into the Conflict Schedule card, reworded
   await expect(page.locator('#detailsEmpty')).toBeVisible();
+  await expect(page.locator('#detailsEmpty')).toHaveText(/Class details appear once you pick a course and slot/);
   await expect(page.locator('#detailsToggle')).toBeHidden();
+
+  // the span selector depends on document order: pin it so a markup reorder fails loudly
+  const adjacent = await page.evaluate(() => {
+    const card = document.getElementById('classDetailsCard');
+    const next = card?.nextElementSibling as HTMLElement | null;
+    return { tag: next?.tagName, id: next?.id, labelled: next?.getAttribute('aria-labelledby') };
+  });
+  expect(adjacent.tag).toBe('SECTION');
+  expect(adjacent.labelled).toBe('replacementHeading');
+});
+
+test('1360px, a picked slot brings Class Details back and retires the hint', async ({ page }) => {
+  await page.setViewportSize({ width: 1360, height: 900 });
+  await openPinned(page);
+  await selectFirstBlock(page);
+
+  await expect(page.locator('#classDetailsCard')).toBeVisible();
+  await expect(page.locator('#detailsEmpty')).toBeHidden();
 });
 
 test('1360px, Summary: 8/5/8 plus a 280px fourth card', async ({ page }) => {

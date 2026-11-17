@@ -1911,6 +1911,24 @@
         }
         .toolbar-restructure.ra-top-zone > .ra-block { min-width: 0; }
 
+        /* 2026-11-17 (user, lane arrangement-class-details-collapse): the Class Details
+           card held a full 5fr column while all it said was one sentence. At rest it now
+           occupies nothing, and the Replacement Schedule — the card whose content actually
+           grows — spans the vacated tracks. Hiding alone is not enough: a hidden grid child
+           leaves its track standing, so the survivors re-flow into the wrong columns
+           (measured: replacement into the 248px track, summary into 397px). The span is one
+           rule, correct in both bands: `2 / 4` covers tracks 2-3 whether the template is
+           8/5/7 (1101-1319) or 8/5/8/280 (>=1320), and it holds in the conflict-collapsed
+           variants for free. No new template, no JS. */
+        @media (min-width: 1101px) {
+            .toolbar-restructure.ra-top-zone:not(:has(.ra-class-details.has-slot)) #classDetailsCard {
+                display: none;
+            }
+            .toolbar-restructure.ra-top-zone:not(:has(.ra-class-details.has-slot)) #classDetailsCard + section {
+                grid-column: 2 / 4;
+            }
+        }
+
         @media (max-width: 1100px) {
             .toolbar-restructure.ra-top-zone { grid-template-columns: minmax(0, 1fr); }
         }
@@ -2530,6 +2548,9 @@
                         </div>
                     </div>
 
+                    <p class="ra-empty-guidance" id="detailsEmpty" hidden>
+                        Class details appear once you pick a course and slot.
+                    </p>
                 </div>
             </section>
 
@@ -2555,9 +2576,6 @@
 
                 <span id="detailsSummary" hidden></span>
 
-                <p class="ra-empty-guidance" id="detailsEmpty" hidden>
-                    Select a course and conflict slot to see the class details.
-                </p>
 
                 <div class="ra-details" id="details" hidden>
                     <div class="ra-details-body" id="detailsBody" hidden>

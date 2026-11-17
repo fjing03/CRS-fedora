@@ -1,11 +1,13 @@
 lane: arrangement-class-details-collapse
 title: Class Details stops holding a dead column
 surface: Replacement Arrangement
-status: parked          # held: off-topic (critique item "dead Class Details column", not P2)
+status: frozen          # reviewer rounds complete (round 3 PASS, 2026-11-17); awaiting the owner's explicit go
                         # nothing applied, no system code touched
-resume_at: confirming reviewer round (rev 2 resolves B-1 and B-2), then owner go
+resume_at: owner explicit go -> apply (one blade, one test file, one changelog block)
 created: 2026-11-17
-owner_decision: B   # hide when empty at every width; hint moves to Conflict Schedule empty state (2026-11-17)
+owner_decision: B   # hide when empty at every width; hint moves to Conflict Schedule empty state
+                    # confirmed by the owner 2026-11-17 after a parallel variant (fold to 56px rail) was rejected
+rejected_variant: "fold to a 56px vertical rail (2 review rounds PASS, still rejected: keeps 56px, needs JS, deletes a line that must stay)"
 files_expected:
   - resources/views/livewire/replacement-arrangement.blade.php
 files_forbidden:
@@ -14,7 +16,7 @@ files_forbidden:
 gate:
   - owner picked B (done, 2026-11-17)
   - reviewer round 1 done: 2 blockers, rev 2 resolves them
-  - confirming reviewer round — NOT RUN
+  - confirming reviewer round — PASS 2026-11-17 (the :56 count is confirmed to be 3)
   - owner explicit go — NOT GIVEN
   - then edit
 blocked_by: []
@@ -23,3 +25,25 @@ measures:
   - 1280: class-details 294x213 -> absent; replacement 411 -> 716
   - 1101: replacement 348 -> 609; 1024 single column unchanged; scrollWidth unchanged at all
   - conflict-collapsed variant: replacement 998 at 1440 / 1130 at 1280 / 951 at 1101 (measured)
+
+transferable_findings:  # from the rejected rail variant's two review rounds
+  - "TWO assertions break in the empty-state test: :83 toBeVisible -> toBeHidden AND :56 visible .ra-block count 4 -> 3 (round 2 corrected the first draft's claim of one)"
+  - "tracks() arithmetic unchanged: the spanning rule moves content, not the template (8/21, 5/21, 8/21, 4 entries)"
+  - "chrome() padding loop still passes (getComputedStyle reports 12px 16px on display:none)"
+  - "#detailsEmpty assertion :84 still passes because the element MOVES; so does arrangement-mobile.spec.ts:3692 - no dormant rot"
+missing_receipts: []   # closed by amended tasks 7 (AC-1, AC-5, :83, :56, chrome array) and 8 (+ section order)
+review_round2:
+  verdict: FAIL
+  blockers: 1
+  blocker: "section 10.1 under-counted the breaking assertions (2, not 1) - fixed in place; task 7 added"
+  confirmed: "B-1 and B-2 genuinely closed; tracks() arithmetic unchanged; #detailsEmpty and arrangement-mobile:3692 stay green; mechanism correct at both bands and in conflict-collapsed; + section adjacency verified in markup"
+  also_fixed: "AC count is eight not nine; the chrome() loop becomes vacuous (drop #classDetailsCard); session-arrival-pin-guard noted as verified safe"
+owner_rulings:
+  - "2026-11-17: controls keep full width when the schedule grows (no max-width cap); the uneven top row is intended"
+review_round3:
+  verdict: PASS
+  blockers: 0
+  confirmed: "empty-state visible .ra-block count is exactly 3 (:2483, :2580, :2615; the hidden card is :2536); both 'stays green' claims re-verified (:23/:58/:101 pinned arrivals, arrangement-mobile :3692/:3716)"
+  non_blockers: "yaml metadata refreshed at freeze; the 'collapse the Conflict card with no slot hides the hint' edge stays accepted"
+frozen_at: 2026-11-17
+implementation_approved: false

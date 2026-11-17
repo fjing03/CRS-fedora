@@ -155,3 +155,70 @@ that `remove('details-collapsed')` must be **kept**, with the exact sequence tha
 hint's lifecycle, wording and manual-collapse behaviour are decided in §4 rather than left open, AC-3/AC-4
 are restated for B (the A-only "rail" and "re-opening" checks are gone), and AC-1/AC-2 now carry the
 measured numbers instead of the hypothetical 493/493 split.
+
+## 10. Adoption and cross-lane findings (2026-11-17, later the same day)
+
+**Adopted.** The owner confirmed **B** (hide the empty card; the neighbouring schedule takes the space)
+over the alternative that had been researched in parallel — folding the card into a 56px vertical rail.
+The rail variant passed two review rounds and is **rejected**: it keeps 56px that B reclaims, needs a
+JavaScript change, and removes `remove('details-collapsed')`, which this lane proves must stay. Its review
+rounds nevertheless produced four findings that transfer, listed below. Nothing has been applied.
+
+### What transfers from the rejected variant's reviews
+
+1. **Two assertions break, both in the empty-state test** — corrected after review round 2 caught the
+   under-count (§10 as first written said one):
+   - `:83` — `await expect(page.locator('#classDetailsCard')).toBeVisible();` → `toBeHidden()`.
+   - `:56` — `await expect(page.locator('#topZone > .ra-block:visible')).toHaveCount(4);` → **3**, because
+     the hidden card is no longer a visible `.ra-block` child while empty.
+   Neither is in §6's task list and both must be added (drafted as the amended Task 7 below).
+2. **The `tracks()` arithmetic does NOT change.** The spanning rule moves content, not the template, so the
+   empty-state expectation stays `available * 8/21, 5/21, 8/21` with `toHaveLength(4)`. (The rejected
+   variant broke this; B does not.)
+3. **The `chrome()` padding loop still passes** (`:72–81`): `getComputedStyle` reports the specified
+   padding (`12px 16px`) on a `display: none` element. **But it becomes vacuous** — it now validates the
+   chrome of an invisible card. Drop `#classDetailsCard` from that selector array, or move its chrome
+   check to a has-slot context.
+4. **`expect(page.locator('#detailsEmpty')).toBeVisible()` (`:84`) still passes**, because the element is
+   **moved, not hidden** — the refresh keeps setting `detailsEmpty.hidden` from `hasSlot`, and with no slot
+   selected it is visible in the Conflict Schedule card. Same for
+   `tests/arrangement-mobile.spec.ts:3692`, which asserts the same thing after leaving the phone view:
+   **no dormant-spec rot**, unlike the rejected variant.
+
+**Correction, review round 2:** §5 holds **eight** criteria (AC-1…AC-8), not nine. Nothing is missing;
+the earlier "nine" was a miscount.
+
+**Also verified safe, worth naming:** `tests/session-arrival-pin-guard.spec.ts` reads
+`#classDetailsCard.innerText()` in three tests (`:23`, `:58`, `:101`); every one is a pinned arrival, so a
+slot exists, `has-slot` is present and the card renders. A future reader seeing `innerText()` on a card
+that can now be invisible needs that answer.
+
+### Owner ruling, 2026-11-17 (after seeing the change rendered at 1440)
+
+**The stretched controls stay stretched.** The Replacement Schedule grows from 397 to 657px and its venue
+and week dropdowns and the "Earliest bookable" button fill that width. Confirmed as intended, not to be
+capped: full width is what those controls already do, a maximum would add a rule and leave a ragged band on
+the card's right for no functional gain.
+
+Recorded consequence, not a defect: the top row is deliberately uneven (397 vs 657). If it later reads
+lopsided in the built page, the single-line remedy is a maximum width on the venue and week dropdowns —
+noted here so the option is on file, not re-litigated.
+
+### Amended tasks (folding in the receipts)
+
+7. Update the empty-state test in `tests/top-zone-round2.spec.ts`: `:83` → `toBeHidden()`, `:56` count
+   4 → 3, drop `#classDetailsCard` from the `:72` chrome array, and add the AC-1/AC-5 assertions
+   (measured widths at rest; the hint visible-then-hidden lifecycle).
+8. Pin the `+ section` order dependence with a test, so a future markup reorder fails loudly.
+
+### Two receipts this lane should add
+
+- a task asserting §5 AC-1 and AC-5 (the empty state's measured widths, and the hint's visible→hidden
+  lifecycle). Today no task names a test for either; the measurements in §4 were taken by hand.
+- a note that the `#classDetailsCard + section` selector depends on document order in the markup — §7 names
+  the risk; the test in the bullet above is what makes it fail loudly.
+
+### Gate state
+
+Owner decision: **confirmed**. Reviewer round 1 (B-1/B-2) resolved in rev 2; the confirming round §8 asks
+for is **running as of this section**. No code has been touched.
