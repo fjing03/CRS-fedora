@@ -1,73 +1,81 @@
 # Proposal — P2: say it without naming a gesture
 
-**Lane:** `hover-only-copy-touch` · **Surface:** Replacement Arrangement (legend + disabled-action reasons)
-**Status:** proposed, nothing applied. Needs one reviewer round, then the owner's explicit go.
+**Lane:** `hover-only-copy-touch` · **Surface:** Replacement Arrangement (legend copy + the disabled-action reason)
+**Status:** proposed, nothing applied, no system code touched. Reviewer round 1 raised 3 blockers; rev 2 resolves
+them (this file). Needs a confirming round, then the owner's explicit go.
 **Topic:** the critique's *"[P2] Load-bearing meanings live in hover, which touch is banned from."*
 
 ---
 
-## 1. The problem, and the part of it that is real
+## 1. The problem, and which part of it is real
 
-Measured on touch emulation (see `docs/ui-hover-only-2026-11-17.md`): the shared `data-tip` engine listens
-only to `mouseenter` / `mouseleave` / `mouseout` / `focusin` / `focusout` — no touch path. But tap-to-focus
-means **anything focusable already works on a touch screen**. Tested on a real blocked slot: 91 reason tips
-in the grid, all on `.cell-content` elements with `tabindex="0"`, all reachable by tap.
+Measured on touch emulation (`docs/ui-hover-only-2026-11-17.md`): the shared `data-tip` engine listens only
+to `mouseenter` / `mouseleave` / `mouseout` / `focusin` / `focusout` — no touch path. But tap-to-focus means
+**anything focusable already works on a touch screen**. Tested on a real blocked slot: 91 reason tips in the
+grid, all on `.cell-content[tabindex="0"]` (set in this blade, `:4123`, `:4176`, `:4216`), all tap-reachable.
 
-So the per-slot reasoning — the hard part — is fine. What is **not** fine is two things:
+So the per-slot reasoning — the hard part — is fine. Two things are not:
 
-**(a) The legend names a gesture two of three input modes cannot perform.** All four legend tips are read
-on a tablet, and two of them say, in capitals:
+**(a) The legend names a gesture that two of three input modes cannot perform.** Two of the four legend tips
+say, in capitals:
 
-> `resources/views/livewire/replacement-arrangement.blade.php:2710`
-> "…**HOVER the slot** to see whether it is YOURS …"
-> `:2714`
-> "CANNOT BOOK — the slot is taken by a scheduled class\n**HOVER the slot** to see WHY: your own class, a
-> VENUE CONFLICT …, or a COHORT CONFLICT …"
+> `resources/views/livewire/replacement-arrangement.blade.php:2710` — "…**HOVER the slot** to see whether it
+> is YOURS …"
+> `:2714` — "CANNOT BOOK — the slot is taken by a scheduled class\n**HOVER the slot** to see WHY: your own
+> class, a VENUE CONFLICT …, or a COHORT CONFLICT …"
 
-On touch the gesture is a **tap**; on keyboard it is **focus**. The sentence is correct on exactly one of
-the three. It is wrong today, on devices the app already runs on — independent of any engine change.
+On touch the gesture is a **tap**; on a keyboard it is **focus**. The sentence is correct on exactly one of
+the three, and wrong today on devices the app already runs on.
 
-**(b) Two explanations for an apparently broken control are hover-only.** `:2668` and `:2722`:
+**(b) The reason a dead button is dead is hover-only.** `:2668`:
 
 ```html
 <span class="btn-tip" id="submitTip" data-tip="Select a time slot first to enable submission">
-<span class="btn-tip" id="clearTip"  data-tip="Nothing to clear yet — select a time slot first">
 ```
 
-Both wrap a **disabled** button, and `.btn-tip .btn:disabled { pointer-events: none }` (`:500`) — so neither
-the button nor its wrapper can take focus. A touch user sees a dead button and no reason; a keyboard user
-sees the same, because a disabled control is not focusable. These are the only two carriers in this file
-that hold a *statement* (why the control is dead) rather than a detail.
+`.btn-tip .btn:disabled { pointer-events: none }` (`:500`) removes the only pointer target inside it, and a
+disabled button cannot take focus, so neither the button nor its wrapper is reachable by tap or Tab. A touch
+user — and a keyboard user — sees a dead button and no reason.
 
-## 2. Scope — copy and two carriers, no engine
+**Corrections from review round 1, now reflected here:**
 
-**In scope, this lane:**
+- It is **one** live carrier, not two. `#clearTip` (`:2722`) sits inside a Blade comment (`{{-- Clear ALL is
+  COMMENTED OUT … --}}`, since 2026-11-10, returning with multi-block selection). It is not in the DOM and is
+  out of scope; the existing `updateCounter` code already null-guards it.
+- `#submitTip`'s tip is **state-aware**: `updateCounter()` (`:3484`) rewrites it between *"Select a time slot
+  first to enable submission"* (empty) and *"Send your replacement request for approval"* (a slot is selected),
+  and the same call toggles `#submitRequestBtn.disabled` (`:3479`). So the wrapper only carries a *reason*
+  while the button is disabled; with a selection it carries an *action*.
 
-1. Rewrite the two `HOVER the slot` sentences so they name **no** gesture — true on pointer, touch and
-   keyboard alike: *"open the slot's tooltip"*. Keep the capitals, the `\n` line break (the engine renders
-   `pre-line`; the code comment above the block says so), and every word of meaning.
-2. Make the two `.btn-tip` wrappers focusable (`tabindex="0"`) and give each an `aria-label` equal to its
-   tip, so the reason is reachable by tap and by Tab — and actually announced, which `data-tip` alone never
-   is. Add a `:focus-visible` ring in this blade's own `<style>` block so the new stop is visible.
+## 2. Scope — copy, two attributes, one sync. No engine.
 
-**Deliberately out of scope:** the eight `<th>` column-header tips on My Replacements and the badge tips
-(`badge-holiday`, `status-rejected`, `badge-outline`). They carry real text and deserve the same treatment,
-but their carriers are created in **`ui-common.js`** (`th.setAttribute('data-tip', …)`, line 2135) and in
-`replacement-home.blade.php` (line 501) — the first is held by the in-flight Cohort/Venue port. They are
-recorded here as **phase 2**, to be done in that file once it is free, or in a follow-up lane.
+**In scope:**
 
-**Also out of scope:** any touch handler in the engine. Nothing found needs one — the focus parity already
-covers every focusable carrier. Adding one would create a dismissal problem for no measured gain.
+1. **Legend copy.** Rewrite the two `HOVER the slot` sentences to name no gesture: *"Open the slot's tooltip
+   to see …"*. Keep the capitals, the `\n` line break (the engine renders `pre-line` — the comment above the
+   block says so), and every word of meaning.
+2. **`#submitTip` becomes reachable.** Give the wrapper a `:focus-visible` ring (this blade's own `<style>`),
+   and make it focusable **only while its button is disabled** — `tabindex="0"` plus an `aria-label` set
+   inside `updateCounter()`, in both branches, so the announced reason tracks the visible tip and the tab stop
+   disappears the moment Submit becomes usable. That last clause matters: an always-focusable wrapper around
+   an *enabled* button is a dead tab stop (Enter on it does nothing).
 
-## 3. Why copy first
+**Out of scope, recorded as phase 2:** the eight `<th>` header tips on My Replacements, and the three badge
+tips (`badge-holiday`, `status-rejected`, `badge-outline`). They hold real text and deserve the same
+treatment, but their carriers are created in `ui-common.js` (`th.setAttribute('data-tip', …)`, `:2135`;
+`statusTip` `:4052`/`:4072`; `reasonTip` `:4169`) and in `replacement-home.blade.php:501` — and the first is
+held by the in-flight Cohort/Venue port.
 
-Three reasons, in order of weight:
+**Out of scope, on principle:** any touch handler in the engine. Nothing found needs one; the focus parity
+already serves every focusable carrier, and a touch path would introduce a dismissal problem for no measured
+gain.
 
-1. **The sentence is already wrong** for keyboard users, today, regardless of touch. A copy fix needs no
-   architecture and cannot conflict with the port.
-2. **It is one file, one `<style>` block, four strings.** Reversible by one revert.
-3. **It tests the hypothesis cheaply.** If gesture-neutral wording reads well, the remaining 13 carriers
-   become a mechanical follow-up; if it does not, the wording is where the mistake is, not the mechanism.
+## 3. Cost, restated after review
+
+One blade file. Two strings, one `tabindex` + `aria-label` pair maintained in `updateCounter()`, and about
+three lines of scoped CSS for the focus ring. **The earlier "four strings" estimate was wrong** — one of the
+two wrappers does not exist and the other needs a state sync, so this is slightly more than copy and slightly
+less than a component.
 
 ## 4. Proposed wording
 
@@ -76,42 +84,53 @@ Three reasons, in order of weight:
 | "…\n**HOVER the slot** to see whether it is YOURS …" | "…\n**Open the slot's tooltip** to see whether it is YOURS …" |
 | "…\n**HOVER the slot** to see WHY: your own class, …" | "…\n**Open the slot's tooltip** to see WHY: your own class, …" |
 
-"Open" rather than "Tap or focus": it is true on all three modes, it does not name a device, and it does not
-read as an instruction that only works on some screens. The alternative — switching the verb by pointer type,
-as `theme.css:2261` does with "Tap a colour" — needs a media query per string and still leaves keyboard
-users with a verb that does not apply to them.
+"Open" rather than "Tap or focus": true on all three modes, names no device, and does not read as an
+instruction that only works on some screens. Switching the verb by pointer type (as `theme.css:2261` does
+with "Tap a colour") needs a media query per string and still leaves keyboard users with a verb that does not
+apply to them. If the owner finds "tooltip" jargon-y, the fallback is the descriptive *"the slot's tooltip
+explains why"* — not a per-pointer variant.
 
 ## 5. Acceptance criteria
 
-- **AC-1** Neither sentence contains the word "hover"; both still explain what the tip reveals, including the
-  YOURS / another-staff distinction and the three conflict kinds.
-- **AC-2** The `\n` line break survives; both tips still render in the engine's multi-line mode
-  (`.data-tip-tooltip--multi`).
-- **AC-3** On a 1024 touch context, **tapping** `.btn-tip` shows its tip, and tapping elsewhere hides it.
-- **AC-4** By keyboard, Tab reaches both wrappers, shows the tip, and shows a visible focus ring; the
-  disabled buttons inside remain non-focusable (no new dead tab stops).
-- **AC-5** A screen reader gets the reason: each wrapper's accessible name is its tip text (not empty).
+- **AC-1** Neither legend sentence contains the word "hover" in any case; both still explain what the tip
+  reveals, including the YOURS / another-staff distinction and the three conflict kinds.
+- **AC-2** The `\n` survives; both tips render in the engine's multi-line mode (`.data-tip-tooltip--multi`).
+- **AC-3** At a 1024 touch context, **tapping** `#submitTip` while Submit is disabled shows its tip, and
+  tapping a target that is **not focusable** hides it (hiding works because focus drops to `body` — a
+  focusable neighbour would give a false pass).
+- **AC-4** By keyboard, Tab reaches the wrapper **while Submit is disabled** and shows the tip with a visible
+  focus ring; once a slot is selected the wrapper is **not** a tab stop (no dead stop in front of an enabled
+  button). `#clearTip` is absent from the DOM and is not tested.
+- **AC-5** The reason is announced, not just shown: the wrapper's accessible name equals its current tip text
+  **in both states** (empty: "Select a time slot first…"; selected: "Send your replacement request…").
 - **AC-6** No change to `ui-common.js`, `theme.css`, or any Livewire class; `scrollWidth` unchanged at
-  1024 / 1280 / 1440; the arrangement still arranges.
-- **AC-7** The `<th>` and badge carriers are untouched by this lane, and the follow-up is written down (§2).
+  1024 / 1280 / 1440; the arrangement still arranges and still submits.
+- **AC-7** Phase 2 carriers (8 `<th>` tips, 3 badge tips) are untouched by this lane and named in the receipt.
 
 ## 6. Tasks
 
-1. Rewrite the two legend strings (`:2710`, `:2714`).
-2. Add `tabindex="0"` and an `aria-label` to `#submitTip` and `#clearTip` (`:2668`, `:2722`).
-3. Add a `:focus-visible` ring for `.btn-tip` to this blade's `<style>`.
-4. Verify: 1024 touch tap, keyboard Tab, both themes, `scrollWidth`, and that the tooltip still renders
-   multi-line.
-5. Changelog entry + apply-log receipt; note the phase-2 carriers in the same receipt.
+1. ~~Decide the approach~~ — owner picked copy-first (2026-11-17); approval to apply was given, then withdrawn.
+2. Rewrite the two legend strings (`:2710`, `:2714`).
+3. `#submitTip`: `tabindex` + `aria-label` maintained inside `updateCounter()` for both branches, and removed
+   when Submit is enabled.
+4. `:focus-visible` ring for `.btn-tip` in this blade's `<style>`.
+5. Verify: 1024 touch tap (focusable and non-focusable dismissal targets), keyboard Tab in both states, both
+   themes, `scrollWidth`, multi-line tip, submit still works.
+6. Changelog entry + apply-log receipt naming the phase-2 carriers.
 
 ## 7. Risk
 
-Two strings and two attributes in one file, plus three lines of scoped CSS. No schema, no dependency, no
-shared file. The only real risk is the `aria-label` duplicating the visible tooltip (an acceptable double
-announcement) or the focus ring colliding with `.btn-tip`'s existing inline-flex layout — both caught by
-AC-4/AC-5.
+Two strings, two attributes maintained in one existing function, three lines of scoped CSS — one file, one
+revert. The real risk is the state sync: a `tabindex` or `aria-label` that only updates on selection but not
+on clear would leave a stale reason. AC-4/AC-5 test both transitions, and `updateCounter` is the single gate
+that already owns `disabled` (`:3479`) and the tip text (`:3484`), so there is one place to be right.
 
 ## 8. Gate
 
-Proposal only. **Nothing applied, no system code touched.** Needs: one reviewer round against this file,
-then the owner's explicit go. Not blocked by the Cohort/Venue port — this is not one of its files.
+Proposal + round 1 review complete (3 blockers, resolved in this revision). Needs: a confirming round, then the
+owner's explicit go.
+
+**Recorded open question** (`sdd.yaml`): whether phase 1 lands under the **small-change exemption** (no
+proposal needed) or inside this lane. This lane exists because the work turned out to be more than copy — a
+state-aware `tabindex`/`aria-label` pair is behaviour, not wording — so the lane is the honest home. If the
+owner prefers the exemption for the two strings alone, the carrier work still needs a lane, which is this one.
