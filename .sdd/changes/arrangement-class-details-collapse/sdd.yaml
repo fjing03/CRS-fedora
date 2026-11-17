@@ -3,7 +3,7 @@ title: Class Details stops holding a dead column
 surface: Replacement Arrangement
 status: proposed        # nothing applied
 created: 2026-11-17
-owner_decision: pending # options A / B / C in proposal.md §4
+owner_decision: B   # hide when empty at every width; hint moves to Conflict Schedule empty state (2026-11-17)
 files_expected:
   - resources/views/livewire/replacement-arrangement.blade.php
 files_forbidden:

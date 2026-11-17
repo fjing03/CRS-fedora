@@ -1,7 +1,7 @@
 # Proposal — Class Details stops holding a dead column
 
 **Lane:** `arrangement-class-details-collapse` · **Surface:** Replacement Arrangement (`replacement-arrangement.blade.php`)
-**Status:** proposed, not applied. Awaiting the owner's choice in §4.
+**Status:** proposed. Owner chose **B** (hide when empty, relocate the hint) 2026-11-17. Awaiting one reviewer round before the edit.
 
 ---
 
@@ -88,7 +88,7 @@ promise. C is a different task and should not be smuggled in here.
 
 ## 6. Tasks
 
-1. Decide §4 (owner).
+1. ~~Decide §4~~ — owner chose **B** (2026-11-17).
 2. Change the `!hasSlot` branch: stop forcing the card open; set the rest state for the chosen option.
 3. Keep or move the hint per AC-5; wire the rail tooltip if option A.
 4. Verify by measurement at 1024 / 1280 / 1440 / 768, both themes; keyboard pass on the rail or the
@@ -104,3 +104,48 @@ is the grid-template combinatorics (§3), which is why AC-7 exists.
 
 Proposal only — **nothing applied**. Needs: the owner's choice in §4, then one reviewer round against
 this proposal, then the edit. Not blocked by the Cohort/Venue port: this file is not held.
+
+---
+
+## 9. Amendment — what the experiment found before the edit
+
+**Owner chose B (2026-11-17).** B is not free. Measured on the live page by injecting
+`#classDetailsCard { display: none }` and nothing else:
+
+| 1440 | conflict | details | replacement | summary |
+|---|---|---|---|---|
+| resting | x41 w397 | x450 w248 | x727 | x1119 w280 |
+| card hidden, zone untouched | x41 w397 | — | **x467, in the 248px track** | **x710 w397 — the summary ate the third track** |
+
+At 1280 the same: hiding the card drops the Replacement Schedule into the 294px track. **`display: none`
+removes the child, and the grid then re-flows the remaining cards into the vacated tracks** — the
+replacement controls end up in the narrow column, which is worse than the dead space we set out to
+remove. A span hacks the summary back but leaves the replacement card at 248px.
+
+### The consequence for AC-7
+
+B therefore needs **one extra template per band**, keyed on a state it can already see:
+
+```css
+.toolbar-restructure.ra-top-zone:not(:has(.ra-class-details.has-slot)) { … }        /* ≥1101–1319: 8fr 7fr */
+.toolbar-restructure.ra-top-zone:not(:has(.ra-class-details.has-slot)) { … }        /* ≥1320: 8fr 8fr 280px */
+```
+
+`:has()` is already house style — 20 uses in `theme.css`, one in this very blade — so this costs **no
+JavaScript change at all**. `has-slot` is already toggled by the existing refresh.
+
+**AC-7 is restated:** at most **one** additional template per breakpoint band, never a new variant of
+the `conflict-collapsed` × `details-collapsed` matrix. Two bands, two rules, no combinations.
+
+### The hint
+
+The element moves — same `id="detailsEmpty"`, same class — from the Class Details card into the
+Conflict Schedule card's body. The existing refresh already sets `detailsEmpty.hidden` from `hasSlot`,
+so the sentence automatically shows while no slot is chosen and disappears when the Class Details card
+appears. One element, one home, no duplicate and no orphan, and no JS touched.
+
+### Not changed by this amendment
+
+Options A and C remain as described. AC-1's "56px rail" clause applies only to A; for B the assertion is
+that the card occupies **zero** width and the neighbours take the recovered space — which is what the
+table above now measures.
