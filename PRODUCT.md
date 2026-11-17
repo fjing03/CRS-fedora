@@ -112,8 +112,16 @@ identity are fixed.
 
 ## Accessibility & Inclusion
 
-48 × 48 minimum touch targets on capability-detected touch devices, visible keyboard focus, and no
-hover-dependent affordance on touch. Contrast is a requirement, not a preference: the app ships a
-light and a dark theme and both must be readable. *(Inferred from the repository's standing rulings;
-the user has not named a formal standard such as WCAG 2.2 AA — recorded here as an open question for
-them to confirm or correct.)*
+**Not a project goal.** This is a coursework system built for a viva demonstration; developing for
+people with disabilities — screen-reader support, keyboard-only audits, assistive-technology testing,
+a formal WCAG conformance pass — is **out of scope** and must not be claimed in this repository.
+
+Three practical rules are kept anyway, because they make the tool work on the cheap laptops and
+phones the faculty actually uses, not as a disability programme:
+
+- **48 × 48 minimum touch targets** on capability-detected touch devices;
+- **visible keyboard focus**, and no hover-dependent affordance on a touch screen;
+- **both themes readable**, light and dark, because the app ships both.
+
+**WCAG 2.2 AA is named as the yardstick** those three are checked against — a measuring stick, never
+a conformance claim. If a future task extends them, it extends them for usability first.
