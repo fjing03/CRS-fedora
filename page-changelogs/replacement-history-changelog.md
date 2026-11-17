@@ -1,3 +1,19 @@
+## 2026-11-17 — the details pop-up, one shape on three pages
+
+The pop-up on this page (and on My Replacements and Request Approval) now shares one layout:
+
+- **Four short tabs** — `Requested` · `Original` · `Class Info` · `Status` — with the full names
+  kept as each tab's section caption.
+- **A facts strip of one badge-led fact per row**: `Status` on top as the same badge the table
+  prints, `Conflict` at the bottom. The cohorts and students moved out of the strip into
+  **Class Info**, where the staff ID and the copy-email chip now live.
+- **`Days Left` is its own row** under `Day & Date`, in its usual colour, instead of riding
+  inside the date in brackets.
+- **One filled button, and it is never `Close`** — closing is not the thing to do.
+
+Nothing about the numbers, the words or the colours changed: the two colours, the working-day
+counts and the working-day maths are the same ones the table uses.
+
 ## 2026-11-17 — a count beside the filters, like the staff pages
 
 The Filters row now ends with **`10 of 10 match your filters`** — how many of your cohort's

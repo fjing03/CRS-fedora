@@ -146,12 +146,15 @@ test('cancel own pending request leaves it Cancelled and releases the slot', asy
   expect(flash.duration).toBe('0.5s');
   expect(flash.iterations).toBe('3');
 
-  // …and from the details pop-up: no Proposed tab, no Request ID, two tabs only
+  /* …and from the details pop-up: no Requested tab, no Request ID. Re-pointed
+     2026-11-17 (task 10): the labels are short now and Class Info is a third tab, so a
+     row with no proposal reads Original · Class Info · Status. */
   await row2.locator('.col-code').click();
   await expect(page.locator('#quickViewModal')).toBeVisible();
-  await expect(page.locator('#quickViewModal .modal-tab')).toHaveCount(2);
-  await expect(page.locator('#quickViewModal .modal-tab').first()).toHaveText(/Original Slot Schedule/);
-  await expect(page.locator('#quickViewModal .modal-tab').nth(1)).toHaveText(/Request Status \(Need to Arrange\)/);
+  await expect(page.locator('#quickViewModal .modal-tab')).toHaveCount(3);
+  await expect(page.locator('#quickViewModal .modal-tab').first()).toHaveText('Original');
+  await expect(page.locator('#quickViewModal .modal-tab').nth(1)).toHaveText('Class Info');
+  await expect(page.locator('#quickViewModal .modal-tab').nth(2)).toHaveText('Status');
   await expect(page.locator('#quickViewModal')).not.toContainText('Requested Slot Schedule');
   await expect(page.locator('#quickViewModal')).not.toContainText('Request ID');
   await page.locator('#quickViewModal .modal-close').click();

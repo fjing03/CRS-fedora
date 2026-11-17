@@ -1,0 +1,13 @@
+name: details-modal-consistency
+created: 2026-11-17
+status: active
+lane_shape: compact
+source: "prompts/pi-prompt-details-modal-consistency.md (the brief is the source of truth; its decisions 1-10 are accepted as written)"
+pages: ["/my-replacements", "/request-approval-ui", "/student-class-replacements"]
+reference_prototypes:
+  - ui-prototype/my-replacements.html
+  - ui-prototype/request-approval.html
+  - ui-prototype/student-class-replacements.html
+css_already_shipped: true
+open_questions:
+  - "D1: should the student's always-on 'Overdue' align with the staff rule (hidden once handled)? The brief leaves it to the user."

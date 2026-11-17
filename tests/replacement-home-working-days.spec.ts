@@ -147,7 +147,7 @@ test('the rendered countdowns use the new words', async ({ page }) => {
 /* 2026-11-07 (user): the countdown owns its OWN line under the date —
    date / urgency / time — and the pop-up reads it in BRACKETS. Same words,
    same colours, one calculation; only the placement changed. */
-test('the countdown sits on its own line, and the pop-up brackets it', async ({ page }) => {
+test('the countdown sits on its own line, and the pop-up gives it its own row', async ({ page }) => {
   const cell = await page.evaluate(() => {
     const block = document.querySelector('#tableBody .col-original .cell-class-block');
     if (!block) return null;
@@ -167,24 +167,35 @@ test('the countdown sits on its own line, and the pop-up brackets it', async ({ 
   // three lines: date / countdown / time (+ venue)
   expect(cell!.lines[1]).toMatch(/^(Today|Overdue \(\d+ Working Days? Ago\)|\d+ Working Days? Left)$/);
 
-  // the pop-up: `Date  9 Nov 2026 (1 Working Day Left)`
+  /* the pop-up: `Day & Date  9 Nov 2026` then its own `Days Left  1 Working Day Left`
+     row (2026-11-17, task 10 decision 7 — the brackets/em-dash placement this test
+     was written for is superseded for the three details pop-ups) */
   await page.locator('#tableBody tbody tr, #tableBody tr').first().click();
   await page.waitForTimeout(700);
   /* 2026-11-07 (user): the pop-up now OPENS on the Proposed tab when the row has
      one, so this receipt clicks Original explicitly — it is the class date whose
      countdown it asserts. */
-  const origTab = page.locator('#quickViewModal .modal-tab', { hasText: 'Original Slot Schedule' });
+  const origTab = page.locator('#quickViewModal .modal-tab', { hasText: /^Original$/ });
   if (await origTab.count()) { await origTab.first().click(); await page.waitForTimeout(300); }
   const modalDate = await page.evaluate(() => {
     const body = document.getElementById('qvBody');
     if (!body) return null;
     const lines = (body as HTMLElement).innerText.split('\n').map((s) => s.trim()).filter(Boolean);
-    const i = lines.indexOf('Date');
+    /* the label has been `Day & Date` since 3E-3; the bare `Date` lookup returned
+       null and the assertion read as a failure of the countdown rather than of the
+       lookup (found 2026-11-17 while porting task 10) */
+    const i = lines.findIndex((l) => l === 'Day & Date' || l === 'Date');
     return i >= 0 ? lines[i + 1] : null;
   });
   /* Brackets — except an OVERDUE label, which already carries its own brackets and
      therefore follows an em dash (user answer B, 2026-11-07). */
-  expect(modalDate, 'the modal prints the countdown in brackets, or after a dash when overdue').toMatch(
-    /^\d{1,2} \w{3} \d{4} (\((Today|\d+ Working Days? Left)\)|— Overdue \(\d+ Working Days? Ago\))$/,
+  expect(modalDate, '2026-11-17 (task 10, decision 7): the date row carries the date alone').toMatch(
+    /^(\w{3}, )?\d{1,2} \w{3} \d{4}$/,
+  );
+  /* …and the countdown is its own `Days Left` row, same words, same colours */
+  const modalDaysLeft = (await page.locator('#quickViewModal .detail-row')
+    .filter({ hasText: 'Days Left' }).locator('.detail-value').innerText()).trim();
+  expect(modalDaysLeft, 'the countdown moved, it did not disappear').toMatch(
+    /^(Today|\d+ Working Days? Left|Overdue \(\d+ Working Days? Ago\))$/,
   );
 });

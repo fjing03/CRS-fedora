@@ -441,7 +441,9 @@
                 <button class="btn-danger" id="rejectRequestBtn" onclick="openRejectModal(currentModalId)" style="display:none">✕ Reject</button>
             </div>
             <div class="modal-footer-right" style="gap: 8px">
-                <button class="btn-approve" id="approveRequestBtn" onclick="approveRequest(currentModalId)" style="display:none">✓ Approve</button>
+                {{-- 2026-11-17 (task 10, decision 8/10): Approve is the one filled primary;
+                     Reject stays the outline above it. Close never owns the fill. --}}
+                <button class="btn-approve is-primary" id="approveRequestBtn" onclick="approveRequest(currentModalId)" style="display:none">✓ Approve</button>
             </div>
         </div>
     </div>
@@ -1120,10 +1122,11 @@
             /* The facts strip — the four things a PL decides with. */
             var modalLec = lookupLecturer(r.lecturer);
             var staffFact = modalLec
-                ? '<span class="df-item df-item--full"><span class="df-label">Staff (Proposer)</span>' +
-                    modalLec.name + ' <span class="detail-value--muted">(' + modalLec.staffId + ')</span> ' +
-                    '<span class="lecturer-cell-email" onclick="copyEmail(\'' + modalLec.email + '\', event)" data-tip="Click to copy email">' +
-                    modalLec.email + ' <span class="copy-icon">📋</span></span></span>'
+                /* 2026-11-17 (task 10, decision 5): the strip carries the proposer's NAME
+                   only. The staff ID and the email chip moved into Class Info, so the strip
+                   stays one badge-led fact per row and the footer's copy-email affordance
+                   stopped living in a facts strip. */
+                ? '<span class="df-item df-item--full"><span class="df-label">Staff (Proposer)</span>' + modalLec.name + '</span>'
                 : '<span class="df-item df-item--full"><span class="df-label">Staff (Proposer)</span>' + (r.lecturer || '\u2014') + '</span>';
 
             /* the slot-validity badge: the strip shows it while the slot still
@@ -1132,16 +1135,19 @@
                 ((r.slotValidity === 'conflict' ? (r.conflictReason || 'Slot conflict') : 'Slot available').replace(/"/g, '&quot;')) + '">' +
                 (r.slotValidity === 'conflict' ? '⚠' : '✓') + '</span> ';
             var conflictFact = r.status === 'Pending'
-                ? '<span class="df-item df-item--full"><span class="df-label">Conflict</span>' +
+                ? '<span class="df-item df-item--full"><span class="df-label">Slot Validity</span>' +
                     slotBadgeInline + (r.slotValidity === 'conflict' ? 'This make-up slot is NO LONGER FREE' : 'Slot available') + '</span>'
                 : '';
 
+            /* one badge-led fact per row (decision 3): Staff (Proposer) · Status ·
+               Slot Validity. Cohorts and Students moved to Class Info; the last row is
+               Slot Validity, not Conflict — it is the slot's state, and the old label
+               claimed to be the conflict reason. */
             var factsHtml =
                 staffFact +
-                '<span class="df-item"><span class="df-label">Cohorts</span>' +
-                    ((r.cohorts || []).map(compactCohort).join(' + ') || '\u2014') + '</span>' +
-                '<span class="df-item"><span class="df-label">Students</span>' +
-                    (window.cohortBreakdown ? window.cohortBreakdown(r) : r.totalStudents) + '</span>' +
+                '<span class="df-item"><span class="df-label">Status</span>' +
+                    '<span class="badge ' + statusClass(r.status) + '"' + statusTipAttr(r) + '>' +
+                    r.requestStatusLabel + '</span></span>' +
                 conflictFact;
 
             // (the old "Request Information" tab is the facts strip above now)
@@ -1170,6 +1176,12 @@
             function durationWords(d) {
                 const n = Number(d);
                 return (n === 1 ? '1 hour' : n + ' hours');
+            }
+            /* the countdown's VALUE only — the row label says "Days Left", and the
+               words/colours come from the one shared pair (2026-11-17, task 10) */
+            function workingDaysSpan(iso) {
+                const d = workingDaysDiff(iso);
+                return '<span class="' + urgencyBandClass(d) + '">' + daysLeftLabel(d) + '</span>';
             }
             /* the Week row: semester start + 7×n — the payload carries no week key */
             function weekOfIso(iso) {
@@ -1235,6 +1247,11 @@
                 const repSection = DetailModal.section('Requested Slot Schedule',
                     DetailModal.row('Week', weekOfIso(r.replacementDate)) +
                     DetailModal.row('Day & Date', ModalFacts.dayDate(fullDay(r.replacementDate), fullDate(r.replacementDate)), { strong: true }) +
+                    /* 2026-11-17 (task 10, decision 7): this pop-up never had a countdown;
+                       it gets one as its own row, while the request is still pending */
+                    (r.status === 'Pending' || r.status === 'pending'
+                        ? DetailModal.row('Days Left', workingDaysSpan(r.replacementDate))
+                        : '') +
                     DetailModal.row('Time & Duration', ModalFacts.timeDuration(
                         repParts.length ? DateHelper.to12h(repParts[0]) : null,
                         repParts.length > 1 ? DateHelper.to12h(repParts[1]) : null,
@@ -1243,13 +1260,34 @@
                     DetailModal.row('Venue', venueText(r.replacementVenue, r.replacementVenueName)) +
                     DetailModal.row('Slot Validity', slotBadgeInline + validityText)
                 );
-                tabs.push({ key: 'replacement', label: 'Requested Slot Schedule', html: repSection });
+                tabs.push({ key: 'replacement', label: 'Requested', html: repSection });
             }
 
-            tabs.push({ key: 'original', label: 'Original Slot Schedule', html: origSection });
+            tabs.push({ key: 'original', label: 'Original', html: origSection });
 
             /* Tab 3 — the status, FAR RIGHT (3D): badge + ONE sentence, then the
                PL-only facts the old Request Info / Review tabs used to hold. */
+            /* 2026-11-17 (task 10, decision 4): Class Info, before Status. The PL's own
+               block carries the proposer, which the staff pop-up does not have. */
+            tabs.push({
+                key: 'class-info',
+                label: 'Class Info',
+                html: DetailModal.section('Class Info',
+                    /* decision 5: the ID and the email live HERE, in Class Info — the
+                       same lookup the strip used, so the chip keeps its copy-email tip */
+                    DetailModal.row('Staff (Proposer)',
+                        (modalLec ? modalLec.name : (r.lecturer || '')) +
+                        (modalLec && modalLec.staffId
+                            ? ' <span class="detail-value--muted">(' + modalLec.staffId + ')</span>'
+                            : '') +
+                        (modalLec && modalLec.email
+                            ? ' <span class="lecturer-cell-email" onclick="copyEmail(\'' + modalLec.email + '\', event)" data-tip="Click to copy email">' + modalLec.email + ' <span class="copy-icon">📋</span></span>'
+                            : '')) +
+                    DetailModal.row('Cohorts', (r.cohorts || []).map(compactCohort).join(' + ') || '\u2014') +
+                    DetailModal.row('Students', window.cohortBreakdown ? window.cohortBreakdown(r) : r.totalStudents)
+                )
+            });
+
             const statusHtml =
                 '<div class="detail-row"><span class="detail-label">Status</span><span class="detail-value">' +
                     '<span class="badge ' + statusClass(r.status) + '"' + statusTipAttr(r) + '>' + r.requestStatusLabel + '</span>' +
@@ -1262,7 +1300,7 @@
                 (r.reviewedAt ? DetailModal.row('Reviewed At', formatDateTime(r.reviewedAt)) : '');
             tabs.push({
                 key: 'status',
-                label: 'Request Status (' + r.requestStatusShort + ')',
+                label: 'Status',
                 html: DetailModal.section('Status', statusHtml)
             });
 

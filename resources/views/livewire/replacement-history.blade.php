@@ -734,19 +734,19 @@
                Replacement Details pop-up — same title, same subtitle shape, same
                strip, same tab order, same row builders (DetailModal.row + ModalFacts),
                so the two pages cannot drift apart in wording or order. */
-            const countdown = (iso) => {
+            const countdownValue = (iso) => {
                 const d = workingDaysDiff(iso);
-                const span = '<span class="' + urgencyBandClass(d) + '">' + daysLeftLabel(d) + '</span>';
-                /* the staff law: brackets normally; an em dash before an Overdue
-                   label, whose own brackets would otherwise double up */
-                return d < 0 ? ' \u2014 ' + span : ' (' + span + ')';
+                return '<span class="' + urgencyBandClass(d) + '">' + daysLeftLabel(d) + '</span>';
             };
 
             /* one slot tab — Class ID / Request ID lead, exactly as on the staff page */
             const slotTab = (heading, slot, idLabel, idValue, withCountdown) => DetailModal.section(heading,
                 DetailModal.row(idLabel, '#' + idValue, { strong: true }) +
                 DetailModal.row('Week', slot.week ? 'Week ' + slot.week : null) +
-                DetailModal.row('Day & Date', ModalFacts.dayDate(slot.day, formatDate(slot.date) + (withCountdown ? countdown(slot.date) : '')), { strong: true }) +
+                DetailModal.row('Day & Date', ModalFacts.dayDate(slot.day, formatDate(slot.date)), { strong: true }) +
+                /* 2026-11-17 (task 10, decision 7): the countdown is its own row now —
+                   same words, same colours, same maths, a new home */
+                (withCountdown ? DetailModal.row('Days Left', countdownValue(slot.date)) : '') +
                 DetailModal.row('Time & Duration', ModalFacts.timeDuration(to12h(slot.start), to12h(slot.end), slot.duration), { strong: true }) +
                 DetailModal.row('Venue', ModalFacts.venue(slot.venue))
             );
@@ -757,13 +757,13 @@
             if (r.req) {
                 tabs.push({
                     key: 'requested',
-                    label: 'Requested Slot Schedule',
+                    label: 'Requested',
                     html: slotTab('Requested Slot Schedule', r.req, 'Request ID', r.requestId, pending),
                 });
             }
             tabs.push({
                 key: 'original',
-                label: 'Original Slot Schedule',
+                label: 'Original',
                 html: slotTab('Original Slot Schedule', r.orig, 'Class ID', sessionId, true),
             });
             /* the Course tab is GONE (2026-11-11): the code/name/type live in the
@@ -779,7 +779,7 @@
             });
             tabs.push({
                 key: 'status',
-                label: 'Request Status' + (r.statusShort ? ' (' + r.statusShort + ')' : ''),
+                label: 'Status',
                 html: DetailModal.section('Status',
                     '<div class="detail-row"><span class="detail-label">Status</span><span class="detail-value">' + statusCell(r) + '</span></div>' +
                     (r.status === 'completed' ? DetailModal.row('Status Note', 'This replacement has already taken place.') : '') +
@@ -800,7 +800,10 @@
                 modalId: 'classModal',
                 title: 'Replacement Details',
                 subtitle: r.code + ' \u2014 ' + r.name + ' (' + UiLabels.classType(r.type, 'long') + ')',
-                factsHtml: '<span class="df-item df-item--full"><span class="df-label">Conflict</span>' +
+                /* one badge-led fact per row (decision 3): Status on top, Conflict last */
+                factsHtml:
+                    '<span class="df-item"><span class="df-label">Status</span>' + statusCell(r) + '</span>' +
+                    '<span class="df-item df-item--full"><span class="df-label">Conflict</span>' +
                     (r.conflictKind
                         ? '<span class="badge ' + (isHoliday ? 'badge-holiday' : 'badge-reason') + '">' + conflictFull + '</span>'
                         : '<span class="detail-value detail-value--muted">' + conflictFull + '</span>') +

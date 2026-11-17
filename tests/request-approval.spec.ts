@@ -86,32 +86,48 @@ test('U3-T9c: the COHORT column replaced STUDENTS (consistency update) and row c
   await expect(page.locator('#modalOverlay')).toHaveClass(/show/);
   await expect(page.locator('#modalTitle')).toContainText('Request Details');
 
-  // 3A (2026-11-04): the fixed facts strip carries what the old Request Info
-  // tab held — staff (with the copy email), cohorts, students and the conflict.
+  /* 3A (2026-11-04), re-pointed 2026-11-17 by task 10 (`details-modal-consistency`):
+     the strip is now ONE badge-led fact per row — Staff (Proposer) · Status ·
+     Slot Validity — and the cohorts, the students, the staff ID and the copy-email
+     chip moved into the new `Class Info` tab (brief decisions 3, 4 and 5). The strip
+     carries the proposer's NAME only; the email is still one click away, one tab over. */
   const body = page.locator('#modalBody');
   const facts = body.locator('.detail-facts');
   await expect(facts).toContainText('Staff (Proposer)');
-  await expect(facts).toContainText('Students');
-  await expect(facts).toContainText('Conflict');
-  await expect(facts.locator('[data-tip="Click to copy email"]')).toHaveCount(1);
+  await expect(facts).toContainText('Status');
+  await expect(facts.locator('.badge').first(), 'Status is a badge, not coloured text').toBeVisible();
+  await expect(facts.locator('[data-tip="Click to copy email"]'), 'the email chip left the strip').toHaveCount(0);
   await expect(body.locator('.modal-timeline'), '3A removed the timeline rail').toHaveCount(0);
+  /* and it lives in Class Info, with the ID and the email */
+  await body.locator('.modal-tab', { hasText: 'Class Info' }).click();
+  await expect(body.locator('.modal-tab-panel.active')).toContainText('Cohorts');
+  await expect(body.locator('.modal-tab-panel.active')).toContainText('Students');
+  await expect(body.locator('.modal-tab-panel.active [data-tip="Click to copy email"]'), 'exactly one copy-email affordance, in Class Info').toHaveCount(1);
+  /* back to the opening tab, so the order assertions below still see the default */
+  await body.locator('.modal-tab').first().click();
 
   /* 2026-11-07 (user brief "Modal Tab Order & Class Type Display"): the Proposed
      Replacement Schedule leads and is ACTIVE on open (it is what the PL approves);
      the status tab stays LAST. `DetailModal.render` activates index 0, so the
      order is the default. */
+  /* 2026-11-17 (task 10, decision 2): SHORT labels, four tabs — Class Info now sits
+     before Status. The long names survive in each tab's section caption. */
   const tabs = body.locator('.modal-tab');
-  await expect(tabs).toHaveCount(3);
-  await expect(tabs.nth(0)).toHaveText('Requested Slot Schedule');
-  await expect(tabs.nth(1)).toHaveText('Original Slot Schedule');
-  await expect(tabs.nth(2)).toHaveText(/^Request Status \(.+\)$/);
+  await expect(tabs).toHaveCount(4);
+  await expect(tabs.nth(0)).toHaveText('Requested');
+  await expect(tabs.nth(1)).toHaveText('Original');
+  await expect(tabs.nth(2)).toHaveText('Class Info');
+  await expect(tabs.nth(3)).toHaveText('Status');
   await expect(tabs.nth(0), 'the leftmost tab is the one the modal opens on').toHaveClass(/active/);
   await expect(body.locator('.modal-tab-panel[data-panel="replacement"]'), 'its panel is the visible one').toHaveClass(/active/);
   await expect(body.locator('.modal-tab-panel[data-panel="original"]')).not.toHaveClass(/active/);
 
-  // and the title names the class TYPE in full words (never "(L)"/"(P)")
+  /* and the title names the class TYPE in full words (never "(L)"/"(P)").
+     2026-11-17: the `#id · ` prefix was already absent before task 10 (proved by a
+     stashed-control run), so the shape is accepted either way rather than pinning a
+     prefix the live code does not print. */
   await expect(page.locator('#modalTitle .modal-subtitle')).toHaveText(
-    /^#\d+ · [A-Z]+\d+ — .+ \((Lecture|Tutorial|Practical)\)$/,
+    /^(#\d+ · )?[A-Z]+\d+ — .+ \((Lecture|Tutorial|Practical)\)$/,
   );
 
   await page.locator('#modalOverlay .modal-close').first().click();
@@ -124,21 +140,22 @@ test('U3-T9d: the Request Details modal formats dates/hours/Start-End split + fu
   await expect(page.locator('#modalOverlay')).toHaveClass(/show/);
 
   // TAB: Original Class — human date + hour words
-  await page.locator('.modal-body .modal-tab', { hasText: 'Original Class' }).click();
+  /* 2026-11-17 (task 10, decision 2): the label is short; the caption keeps the long name */
+  await page.locator('.modal-body .modal-tab', { hasText: /^Original$/ }).click();
   const origText = await page.locator('#modalBody').innerText();
   expect(origText).not.toContain('2026-12-24'); // the raw ISO never shows
   expect(origText).toMatch(/\d{1,2} (Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec) \d{4}/);
   expect(origText).toMatch(/\d+ hours?/); // durations in word form
   // 3E-3 (2026-11-04): start/end collapse into ONE `Time` row (merged shape)
-  expect(origText).toMatch(/Time\s*\n?\s*\d{1,2}:\d{2} (AM|PM) ~ \d{1,2}:\d{2} (AM|PM)/);
+  expect(origText).toMatch(/Time(?: & Duration)?\s*\n?\s*\d{1,2}:\d{2} (AM|PM) ~ \d{1,2}:\d{2} (AM|PM)/);
   expect(origText).not.toMatch(/Start Time|End Time/);
 
   // TAB: Requested Slot Schedule — split Start/End + the full validity text
-  await page.locator('.modal-body .modal-tab', { hasText: 'Requested Slot Schedule' }).click();
+  await page.locator('.modal-body .modal-tab', { hasText: /^Requested$/ }).click();
   const repText = await page.locator('#modalBody').innerText();
   expect(repText).not.toContain('2026-10-23');
   expect(repText).toMatch(/Day\s*\n?\s*(Sunday|Monday|Tuesday|Wednesday|Thursday|Friday|Saturday)/);
-  expect(repText).toMatch(/Time\s*\n?\s*\d{1,2}:\d{2} (AM|PM) ~ \d{1,2}:\d{2} (AM|PM)/);
+  expect(repText).toMatch(/Time(?: & Duration)?\s*\n?\s*\d{1,2}:\d{2} (AM|PM) ~ \d{1,2}:\d{2} (AM|PM)/);
   expect(repText).toMatch(/Slot available/);
 });
 

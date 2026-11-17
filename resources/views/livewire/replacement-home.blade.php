@@ -1142,17 +1142,18 @@
                User answer B (same night): an OVERDUE label already carries its own
                brackets ("Overdue (1 Working Day Ago)"), so doubling them read badly;
                that one follows an em dash instead — `6 Nov 2026 — Overdue (…)`. */
-            var detailCountdown = function (iso) {
+            /* 2026-11-17 (task 10, decision 7): the countdown is its OWN row. The words,
+               colours and working-day maths are unchanged — only the home moved, out of
+               the date row's brackets into `Days Left` under `Day & Date`. The 2026-11-07
+               bracket/em-dash placement is superseded for this pop-up. */
+            var detailCountdownValue = function (iso) {
                 var d = daysLeft(iso);
-                var span = '<span class="' + urgencyClass(d) + '">' + daysLeftLabel(d) + '</span>';
-
-                return d < 0 ? ' \u2014 ' + span : ' (' + span + ')';
+                return '<span class="' + urgencyClass(d) + '">' + daysLeftLabel(d) + '</span>';
             };
-            var origCountdown = countdownHidden(c) ? ' \u2014' : detailCountdown(c.date);
-            var replCountdown = '';
-            if (c.replacementDate && c.requestStatus === 'pending') {
-                replCountdown = detailCountdown(c.replacementDate);
-            }
+            var origDaysLeft = countdownHidden(c) ? null : detailCountdownValue(c.date);
+            var replDaysLeft = (c.replacementDate && c.requestStatus === 'pending')
+                ? detailCountdownValue(c.replacementDate)
+                : null;
 
             /* Tab 1 — the class as timetabled. */
             /* 2026-11-10 (user, modal consistency #4): Day & Date and Time & Duration
@@ -1160,7 +1161,8 @@
             var origHtml = DetailModal.section('Original Slot Schedule',
                 DetailModal.row('Class ID', '#' + c.sessionId, { strong: true }) +
                 DetailModal.row('Week', getWeekNumber(c.date) ? 'Week ' + getWeekNumber(c.date) : null) +
-                DetailModal.row('Day & Date', ModalFacts.dayDate(c.day, formatDate(c.date) + origCountdown), { strong: true }) +
+                DetailModal.row('Day & Date', ModalFacts.dayDate(c.day, formatDate(c.date)), { strong: true }) +
+                (origDaysLeft ? DetailModal.row('Days Left', origDaysLeft) : '') +
                 DetailModal.row('Time & Duration', ModalFacts.timeDuration(to12h(c.timeStart), to12h(c.timeEnd), c.duration), { strong: true }) +
                 /* the ONE place the room NAME is printed (M7) — plain text, no icon
                    (2026-11-11, user: match the Request Details row) */
@@ -1174,11 +1176,12 @@
             if (c.replacementDate) {
                 tabs.push({
                     key: 'replacement',
-                    label: 'Requested Slot Schedule',
+                    label: 'Requested',
                     html: DetailModal.section('Requested Slot Schedule',
                         DetailModal.row('Request ID', '#' + c.requestId, { strong: true }) +
                         DetailModal.row('Week', c.replacementWeek ? 'Week ' + c.replacementWeek : null) +
-                        DetailModal.row('Day & Date', ModalFacts.dayDate(c.replacementDay, formatDate(c.replacementDate) + replCountdown), { strong: true }) +
+                        DetailModal.row('Day & Date', ModalFacts.dayDate(c.replacementDay, formatDate(c.replacementDate)), { strong: true }) +
+                        (replDaysLeft ? DetailModal.row('Days Left', replDaysLeft) : '') +
                         DetailModal.row('Time & Duration', ModalFacts.timeDuration(
                             DateHelper.to12h((String(c.replacementTime || '').split(/\s*[–—-]\s*/)[0] || '')),
                             DateHelper.to12h((String(c.replacementTime || '').split(/\s*[–—-]\s*/)[1] || '')),
@@ -1190,9 +1193,20 @@
             }
 
             /* Tab 2 — the class as timetabled. */
-            tabs.push({ key: 'original', label: 'Original Slot Schedule', html: origHtml });
+            tabs.push({ key: 'original', label: 'Original', html: origHtml });
 
-            /* Tab 3 — the status: badge + ONE sentence + [reason] + [remark]. */
+            /* Tab 3 — Class Info (2026-11-17, decision 4): the people the class is for,
+               moved out of the strip so the strip can stay one badge-led fact per row. */
+            tabs.push({
+                key: 'class-info',
+                label: 'Class Info',
+                html: DetailModal.section('Class Info',
+                    DetailModal.row('Cohorts', (c.cohorts || []).join(', ') || '\u2014') +
+                    DetailModal.row('Students', window.cohortBreakdown ? window.cohortBreakdown(c) : c.totalStudents)
+                )
+            });
+
+            /* Tab 4 — the status: badge + ONE sentence + [reason] + [remark]. */
             var statusHtml = '<div class="detail-row"><span class="detail-label">Status</span><span class="detail-value">' +
                 statusCell(c) + '</span></div>' +
                 DetailModal.row('Status Description', statusDescOf(c)) +
@@ -1202,7 +1216,7 @@
                 (c.remarks ? DetailModal.row('Remark', c.remarks) : '');
             tabs.push({
                 key: 'status',
-                label: 'Request Status (' + statusShortOf(c) + ')',
+                label: 'Status',
                 html: DetailModal.section('Status', statusHtml)
             });
 
@@ -1213,9 +1227,11 @@
                    modal subtitle. This one joined the code and the name with a middle
                    dot, so the same subtitle shape read two ways across the four modals. */
                 subtitle: c.code + ' \u2014 ' + c.name + ' (' + typeLabel + ')',
+                /* The strip is one badge-led fact per row, in the agreed order (decision 3):
+                   Status on top, Conflict at the bottom. Cohorts and Students now live in
+                   the Class Info tab instead of here. */
                 factsHtml:
-                    '<span class="df-item"><span class="df-label">Cohorts</span>' + ((c.cohorts || []).join(', ') || '\u2014') + '</span>' +
-                    '<span class="df-item"><span class="df-label">Students</span>' + (window.cohortBreakdown ? window.cohortBreakdown(c) : c.totalStudents) + '</span>' +
+                    '<span class="df-item"><span class="df-label">Status</span>' + statusCell(c) + '</span>' +
                     /* the pop-up prints the FULL badge (see reasonBadgeFull) */
                     '<span class="df-item df-item--full"><span class="df-label">Conflict</span>' + reasonBadgeFull(c) + '</span>',
                 tabs: tabs
