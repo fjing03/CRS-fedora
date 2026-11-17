@@ -53,3 +53,11 @@ JUDGE:
 
 Report BLOCKERS first, then non-blocking notes, in the format your system prompt requires. If there are
 no blockers, say so plainly and do not invent issues to appear thorough.
+
+NOTE ON THE TREE: another session may be mid-edit in public/css/theme.css,
+public/js/ui-common.js and the cohort/venue blades while you read. Verify every claim by SELECTOR AND
+CONTENT, not by absolute line number, and say explicitly when a file looks mid-edit (syntax that does
+not parse, a rule that appears twice, line numbers that contradict the ones cited here) rather than
+reporting my citation as wrong. If theme.css looks mid-edit, judge the legend swap by the rules
+themselves — .legend-hint .hint-touch / .hint-hover and their @media condition — and say the line
+numbers could not be confirmed.

@@ -1,7 +1,10 @@
 lane: arrangement-class-details-collapse
 title: Class Details stops holding a dead column
 surface: Replacement Arrangement
-status: frozen          # reviewer rounds complete (round 3 PASS, 2026-11-17); awaiting the owner's explicit go
+status: superseded      # SHIPPED as 67cc84b by the other session (option B + the spanning rule)
+superseded_by: "67cc84b ui(arrangement): the empty Class Details column is gone, the schedule takes its space"
+note: "67cc84b also changed this status line from parked to frozen while shipping. Corrected here to what
+       happened: the code is in, from that commit, not from this lane's apply step."
                         # nothing applied, no system code touched
 resume_at: owner explicit go -> apply (one blade, one test file, one changelog block)
 created: 2026-11-17

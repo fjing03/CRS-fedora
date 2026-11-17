@@ -1,7 +1,7 @@
 # Proposal — Class Details stops holding a dead column
 
 **Lane:** `arrangement-class-details-collapse` · **Surface:** Replacement Arrangement (`replacement-arrangement.blade.php`)
-**Status: PARKED — not in flight, nothing applied.** Off the current topic (this is the critique's *dead Class Details column*, not P2's hover-only meanings). Reviewer round 1 raised two blockers (B-1 mechanism unnamed, B-2 pointed the implementer at deleting a line that must stay); rev 2 resolves both in the text. To resume: confirming reviewer round, then the owner's explicit go, then the edit. No system code has been touched.
+**Status: SUPERSEDED — shipped as `67cc84b`** by the other session, as option B with the spanning rule this lane measured. Kept as the record: the measurements, the reviewer's two blockers and their resolution. Nothing left to apply; the code that shipped is not this lane's.
 Reviewer round 1 raised two blockers (B-1 mechanism unnamed, B-2 pointed the implementer at deleting a line
 that must stay); both are resolved below. **Nothing applied.**
 
