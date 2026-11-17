@@ -1,0 +1,49 @@
+name: hover-only-copy-touch
+created: 2026-11-17
+status: proposed      # code held by the owner; nothing applied
+lane_shape: compact   # one artifact (proposal + decisions + ACs + tasks), one review round
+topic: "Critique P2 — load-bearing meanings live in hover, which touch is banned from"
+evidence: docs/ui-hover-only-2026-11-17.md
+
+# What the measurement established (touch emulation, tap probes)
+findings:
+  - "the shared data-tip engine listens only to mouseenter / mouseleave / mouseout / focusin / focusout — no touch path"
+  - "focus parity therefore covers every FOCUSABLE carrier on touch: tapping focuses, focusin shows the tip"
+  - "verified on a real blocked slot: 91 reason tips in the grid, all on .cell-content[tabindex=0], all tap-reachable"
+  - "unreachable carriers at >=1024: 8 My Replacements <th> tips, .result-count, badge-holiday, status-rejected, badge-outline, .btn-tip x2, .legend-item x4"
+  - "the legend names a gesture: 'HOVER the slot' is correct on pointer only — wrong on touch (tap) and keyboard (focus)"
+
+source_locations:
+  legend_copy: "resources/views/livewire/replacement-arrangement.blade.php:2710 and :2714"
+  disabled_action_reasons: "resources/views/livewire/replacement-arrangement.blade.php:2668, :2722, css :499-500"
+  phase2_headers: "public/js/ui-common.js:2135 (th.setAttribute('data-tip', col.tip)) — HELD by cohort-venue-responsive-port"
+  phase2_badges: "public/js/ui-common.js status/reason tip options; resources/views/livewire/replacement-home.blade.php:501"
+
+scope_phase1:
+  - "rewrite the two legend tips so they name no gesture ('Open the slot's tooltip to see …')"
+scope_phase2:
+  - "tabindex=0 + aria-label + focus ring on the carriers that hold a statement: #submitTip, #clearTip, and the two badges"
+  - "the <th> column-header tips and the badge tips — same file as the held port, do after it lands"
+
+reverted_attempt:
+  date: 2026-11-17
+  what: "the two phase-1 strings were applied, verified, and then reverted on the owner's instruction"
+  verified_while_applied:
+    - "rendered legend tips read 'Open the slot's tooltip to see …', no 'HOVER' left in the rendered legend"
+    - "both tips still render in the engine's multi-line mode (.data-tip-tooltip--multi)"
+    - "documentElement.scrollWidth unchanged at 1024"
+  state_after_revert: "replacement-arrangement.blade.php byte-identical to HEAD; nothing committed as code"
+
+owner_rulings:
+  - "2026-11-17: never edit system code without explicit approval — approval given, then withdrawn; change reverted"
+  - "2026-11-17: SDD cost cut to one artifact + one review round, with the small-change exemption for indivisible bits"
+  - "keep the arrangement-class-details-collapse lane parked; do not resume it under the P2 banner"
+
+open_questions:
+  - "does phase 1 land under the small-change exemption or inside this lane? (owner decision)"
+  - "does phase 2 travel with the <th>/badge work, or as its own lane once ui-common.js is free?"
+
+gate:
+  - reviewer round 1 — see review-log.md
+  - owner explicit go — not given
+  - then apply
