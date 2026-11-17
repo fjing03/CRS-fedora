@@ -1,0 +1,19 @@
+lane: arrangement-class-details-collapse
+title: Class Details stops holding a dead column
+surface: Replacement Arrangement
+status: proposed        # nothing applied
+created: 2026-11-17
+owner_decision: pending # options A / B / C in proposal.md §4
+files_expected:
+  - resources/views/livewire/replacement-arrangement.blade.php
+files_forbidden:
+  - public/css/theme.css        # not needed; held by cohort-venue-responsive-port
+  - public/js/ui-common.js      # not needed; held by cohort-venue-responsive-port
+gate:
+  - owner picks an option
+  - one reviewer round
+  - then edit
+blocked_by: []
+measures:
+  - 1440: class-details 248x316 -> rail 56px (A) or absent (B); live columns 397 -> 493
+  - 1280: class-details 294x213 -> rail 56px (A) or absent (B)
