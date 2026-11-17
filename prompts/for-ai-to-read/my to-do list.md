@@ -419,11 +419,19 @@
   - Last on purpose: built after task 8, it is built once.
   - Ask before starting: if you would rather bump this up, it is the only swap worth making.
 
-- [ ] **10. `details-modal-consistency`** — the details pop-up, one shape on three pages
+- [x] **10. `details-modal-consistency`** — the details pop-up, one shape on three pages
 
-  **Status:** Not started. The brief for PI is written —
-  `prompts/pi-prompt-details-modal-consistency.md` (SDD explore + propose only, nothing applied yet).
-  **Its own lane**, separate from tasks 6–9.
+  **Status:** DONE 2026-11-17 — applied and committed (`051ae2d`, plus `ab5e7a2` for the
+  countdown decision). Lane `.sdd/changes/details-modal-consistency/` (compact shape, one
+  review round). The three pop-ups now share `Requested` · `Original` · `Class Info` · `Status`,
+  a one-badge-led-fact strip (`Status` on top, `Conflict` last; the PL's last row is `Slot
+  Validity`), a `Days Left` row under `Day & Date`, and one filled primary that is never `Close`.
+  D1 was the user's call and is settled: an approved or completed row no longer reads `Overdue`
+  (`ab5e7a2`). Verification: measured live at 402 and 1440 — four tabs on one row (356px of 356),
+  strip order, `Days Left` in all four states; `replacement-home-working-days` 8/8 (2 red at HEAD,
+  green now). **Open:** `request-approval.spec.ts` is 4 passed / 6 failed **before and after** this
+  lane — the queue has no pending rows, so five cases have nothing to click and two assert a
+  pending row exists. Not archived yet; archive on the user's word.
 
   - Three pop-ups, not three features: My Replacements' Replacement Details, Request Approval's
     Request Details, and the student Replacement Details. One `DetailModal` renderer in
@@ -445,11 +453,18 @@
   filled primary, which reverses the earlier "Close fills when alone"). The two pop-ups now agree, so
   there is nothing to "fix" in either direction; the class pop-up's own lane is task 8.
 
-- [ ] **11. `cards-and-badges-responsive`** — the replacement cards, the tablet layout and the badge system
+- [x] **11. `cards-and-badges-responsive`** — the replacement cards, the tablet layout and the badge system
 
-  **Status:** Not started. The brief for PI is written —
-  `prompts/pi-prompt-cards-and-badges-responsive.md` (SDD explore + propose only, nothing applied
-  yet). **Its own lane**, separate from tasks 6–10.
+  **Status:** DONE 2026-11-17 — applied in four commits (`1e92ba2`, `57a3adf`, `33afe3a`,
+  `fd55f40`, `e08b457`). Lane `.sdd/changes/cards-and-badges-responsive/` (compact shape, one
+  review round). Shipped: the three card shapes (`ORIGINAL`/`REQUESTED` bands with week pills,
+  the PL's id · proposer · status head), one badge pill language at 22px, the **capability-gated**
+  48 × 48 touch floor (dropdown `<option>` values exempt by the user's 2026-11-17 ruling), the
+  PL's one-line band at ≥600, the student's `X of Y match your filters` pill, and the badge
+  consumer audit. **Recorded gaps:** the PL's pending card has never been seen with live data (no
+  pending rows exist), so its shape is verified against the drawing only; and the filter chip
+  stays 32px on touch because the `filters-button` lane's measured trade outranks this brief —
+  the conflict is written into `theme.css` so nobody "fixes" it by accident.
 
   - **Cards on all three pages.** Student and My Replacements: head band, slot band(s) with the
     `ORIGINAL` / `REQUESTED` label and the week pill, a 2×2 fact grid, a foot band (conflict badge +
