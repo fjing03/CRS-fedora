@@ -79,3 +79,50 @@ rendered pages, so they are checkable the same way.
 - Non-text contrast: borders, focus rings and the thin ownership hairline were **not** measured here.
   The 0.5px hairline is deliberate and decorative-but-meaningful; it is out of scope for the 4.5:1
   rule, but a separate non-text audit (3:1 against adjacent colour) would be honest work.
+
+---
+
+# Non-text contrast (same audit, 2026-11-17 — also HELD)
+
+Same measure, second rule: **WCAG 1.4.11**, which asks 3:1 for the boundary of a control *against the
+background behind it* — not against the control's own fill. The first pass compared border to fill and
+was wrong; these numbers are the corrected ones.
+
+## Real failures
+
+| Element | Light | Dark | Needs |
+|---|---|---|---|
+| `.search-input` (search field) | fill **1.10:1**, border **1.24:1** | ≈1.2–1.5:1 | 3:1 |
+| `#statusFilter` (status select) | fill **1.10:1**, border **1.24:1** | ≈1.2–1.5:1 | 3:1 |
+| `.rpp-select` (Rows select) | fill **1.11:1**, border **1.24:1** | ≈1.2–1.5:1 | 3:1 |
+| `.filters-btn` | border **1.24:1** | **1.44:1** | 3:1 |
+| `.week-select` (week picker) | border **1.24:1** | **1.44:1** | 3:1 |
+
+**One problem, not five:** the neutral fill (`--color-surface-variant`) and the hairline outline
+(`--color-outline`) are only ~1.1–1.5:1 away from the surface they sit on, so a field's *edge* is
+almost invisible — in both themes. A user with low vision can't see where the input begins; the
+label above it is doing all the work. The fix is a token decision: give **form controls** their own
+border token at `--color-outline-strong` or darker (which measures 1.9–2.3:1 — still short, so it
+needs a genuine new value), or rely on a filled control whose fill reaches 3:1 against the page.
+This is the one finding that needs a real colour decision, not an alias.
+
+## Checked and dismissed — with the reason
+
+- **`.page-btn`, `.summary-info`, `.filter-chip-remove` at 1:1** — these are *bare* controls with no
+  fill and no border; they are identified by their glyph and label, and 1.4.11 does not demand a
+  boundary when something else identifies the control. The `×` glyph itself measures 4.22:1 (see C9),
+  which is a text-level miss, not a boundary one.
+- **`.event-block` border at 2.98:1 against the cell** — ownership is carried by *weight* (3px vs a
+  0.5px hairline), not by colour, and the block is identified by its fill and its text. Watching
+  item, not a failure. The 0.5px hairline is deliberate and sits outside 1.4.11's scope.
+- **`.filter-chip` fill at 1.5:1 against the chip bar** — the chip is named by its own text, which
+  passes once C9 is fixed.
+
+## Known gap in this section
+
+**Icon glyph colour was not measured separately** except the `×` (4.22:1). Icon-only controls
+(`.summary-info`, the guide "?", week arrows, the theme toggle) carry meaning through their glyph, so
+they are non-text contrast subjects in their own right and belong in the re-run.
+
+**Still to do:** re-measure Cohort and Venue after the responsive port; re-measure all surfaces after
+the token fix; add icon glyphs. Nothing applied.
