@@ -51,9 +51,9 @@ hover:
 > the slot to see** whether …" · "CANNOT BOOK — the slot is taken by a scheduled class **HOVER the slot to
 > see WHY**…"
 
-The help text is written for a device the user may not have. And the thing it promises — *why* a slot
-cannot be booked — is itself hover-only, so a touch user is told to do something they cannot do, about
-information they cannot get.
+**Corrected in §5:** the reason itself is reachable on touch — the cells are focusable, so a tap summons
+it. What is wrong is the *instruction*: on a touch screen the gesture is a tap, and on a keyboard it is
+focus. The sentence names a gesture that two of the three input modes cannot perform.
 
 **c. Two tips are the only explanation for something that looks broken.**
 
@@ -94,3 +94,45 @@ its own copy to **"Tap a colour"** under a coarse pointer. The legend simply nev
   is also visible in a detail modal. Some of it is; that would shrink the list and is worth checking
   before fixing.
 - Touch on the phone cards is out of scope by design — they carry their own text.
+
+---
+
+## 5. Correction — tested on a real blocked slot (this section supersedes the alarm in §2b)
+
+The §2 inventory counted carriers; it did not prove the *consequence*. So it was tested the way a touch
+user would: pick a course, pick a conflict slot, then tap a cell that cannot be booked.
+
+**Result: the reason is reachable.** Every reason-carrying cell renders as
+`.cell-content.cell-too-soon` etc. with **`tabindex="0"`** — 91 reason tips were present in the grid, all
+on focusable cells. Tapping one focuses it, `focusin` fires, and the tip appears. No modal opens, nothing
+else is required.
+
+So the per-slot explanations — the hardest part of the arrangement workflow — **already work on touch**,
+because the focus parity from 2026-11-11 covers them. The same is true of every focusable control.
+
+### What that leaves, and it is much smaller
+
+**Reachable on touch (no work needed):** all 91 per-slot reasons · column sort tips on focusable controls ·
+icon buttons · the print dialog switch · the week nav.
+
+**Still unreachable on touch — 13 carriers that hold real text:** the 8 My Replacements column headers
+(`<th>`, no `tabindex`), `.result-count`, `.badge.badge-holiday` (holiday names), `.badge.status-rejected`,
+`.badge.badge-outline`, `.btn-tip` (why submit is disabled), and the 4 `.legend-item` descriptions.
+
+**Wrong for two input modes, not just touch:** the legend says **"HOVER the slot"**. On touch the gesture is
+a tap; on a keyboard it is focus. The instruction is correct on exactly one of the three.
+
+### Revised verdict on the fix
+
+**P2 is now a copy problem plus 13 small carriers — not an engine problem.** The engine, through focus
+parity, already serves touch wherever an element can take focus. So:
+
+- **C first, and mostly:** rewrite the legend's "HOVER the slot" to name no gesture ("the slot's tooltip
+  explains why" / "Tap or focus the slot to see why"), which is true on all three modes. `theme.css:2261`
+  already switches copy to "Tap a colour" under a coarse pointer — same idea, but naming no gesture is
+  cheaper and never wrong.
+- **Then A, selectively:** give `tabindex="0"` only to the carriers that hold a *statement* rather than a
+  detail — the two badges that explain an otherwise-bare state, and the disabled-submit reason. That is
+  about three elements, not thirteen tab stops.
+- **B is no longer needed for P2.** It would still be needed if the app ever adds a tip to a non-focusable
+  element that must stay non-focusable — no such case was found.
