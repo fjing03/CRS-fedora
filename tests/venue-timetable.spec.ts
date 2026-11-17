@@ -71,10 +71,13 @@ test.describe('Venue Timetable UI', () => {
     await expect(chip).toContainText('202605');
   });
 
-  test('TC05 — print button prints (not a toast any more)', async ({ page }) => {
-    /* REVISED 2026-11-16 by SDD `timetable-print-v2`. This case used to pin the
-       placeholder: every click showed the shared "Printing is coming soon" toast.
-       The button is real now — `window.print()` — so the receipt is the call itself.
+  test('TC05 — the print button opens the dialog, and only its Print prints', async ({ page }) => {
+    /* REVISED 2026-11-16 by SDD `timetable-print-v2`, then again by its amendment 1
+       (the Print dialog). This case has now pinned three truths in order: the
+       placeholder toast ("Printing is coming soon"), then a bare `window.print()` on
+       the click, and now the two-step entry — the header button OPENS the dialog
+       (partials/ui-print-modal) and `window.print()` runs from the dialog's own Print
+       button alone, so there is one code path to the paper.
        `window.print` is stubbed before the click (a real one would block the run on a
        native dialog); what the operator sees on paper is the separate print spec's
        job (tests/timetable-print.spec.ts). */
@@ -86,11 +89,18 @@ test.describe('Venue Timetable UI', () => {
 
     const btn = page.locator('.print-btn');
     await expect(btn).toBeVisible();
-    await expect(btn).toHaveAttribute('aria-label', 'Print this week');
+    await expect(btn).toHaveAttribute('aria-label', 'Print timetable');
 
     await btn.click();
+    await expect(page.locator('#printModal'), 'the click opens the dialog').toBeVisible();
     expect(await page.evaluate(() => (window as unknown as { __printCalls: number }).__printCalls),
-      'the button asks the browser to print').toBe(1);
+      'and prints nothing on its own').toBe(0);
+
+    await expect(page.locator('#printWeekSelect'), 'the dialog offers the semester and every week').toHaveValue(/\d+/);
+    await page.locator('#printModalPrint').click();
+    await expect(page.locator('#printModal'), 'the dialog closes on confirm').toBeHidden();
+    expect(await page.evaluate(() => (window as unknown as { __printCalls: number }).__printCalls),
+      'exactly one print per confirm').toBe(1);
     await expect(page.locator('#toastBar'), 'no placeholder toast any more').not.toContainText('Printing is coming soon');
   });
 

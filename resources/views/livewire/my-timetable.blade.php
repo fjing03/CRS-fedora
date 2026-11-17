@@ -64,7 +64,6 @@
                 'prevTip' => 'Previous week',
                 'nextTip' => 'Next week',
                 'selectTip' => 'Pick the week to display',
-                'showNormalToggle' => true,
             ])->render()
             . '</div>';
     @endphp
@@ -104,6 +103,7 @@
         'printContext' => $printMyContext,
     ])
     @include('partials.ui-print-sheet')
+    @include('partials.ui-print-modal')
         @include('partials.ui-empty-state', ['title' => 'No classes this week', 'text' => 'All classes for this week have been cancelled.'])
 
     <!-- ─── Legend Bar ─── -->
@@ -441,25 +441,43 @@
 
             function buildPrintSheet() {
                 PrintSheet.init({
-                    build: function (normal) {
+                    /* `state = {week, normal}`: week null is All Weeks, which is always
+                       the normal view (amendment 1 §A5). A single week is printed as the
+                       screen would show it, or normal-only with the switch on. */
+                    build: function (state) {
+                        var all = state.week === null;
+                        var wk = all ? currentWeek : state.week;
+                        var sem = MockData.semester.weeks;
                         return {
-                            events: normal
+                            events: all
                                 ? printSemesterSet(eventsData)
-                                : printRunSet(eventsData[currentWeek] || []),
-                            days: normal ? printNormalDays() : weekData[currentWeek].days,
+                                : printWeekSet(eventsData[wk] || [], state.normal),
+                            days: all ? printNormalDays() : weekData[wk].days,
                             sub: 'Weekly class schedule',
                             /* TWO PARTS, never one run-on string: the bold count, then
                                the quieter dates (contract ONE HEADER) */
-                            weekCount: normal
-                                ? 'Week 1 ~ ' + MockData.semester.weeks
-                                : 'Week ' + (currentWeek + 1) + ' of ' + MockData.semester.weeks,
-                            weekDates: normal ? '(Whole Semester)' : ' · ' + weekData[currentWeek].range,
-                            emptyTitle: normal ? 'No normal classes.' : 'No classes this week.',
-                            emptyText: normal
-                                ? 'This timetable carries no normal class in the semester.'
-                                : 'All classes for this week have been cancelled.',
+                            weekCount: all
+                                ? 'Week 1 ~ ' + sem
+                                : 'Week ' + (wk + 1) + ' of ' + sem,
+                            weekDates: all ? '(Whole Semester)' : ' · ' + weekData[wk].range,
+                            emptyTitle: all || state.normal ? 'No normal classes.' : 'No classes this week.',
+                            emptyText: all
+                                ? 'All ' + sem + ' weeks carry no normal class.'
+                                : (state.normal
+                                    ? 'Week ' + (wk + 1) + ' carries no normal class.'
+                                    : 'All classes for this week have been cancelled.'),
                         };
                     },
+                    /* the dialog's week list, from THIS page's own week data (A4), so
+                       every option carries the range the screen would show */
+                    weeks: function () {
+                        var out = [];
+                        (weekData || []).forEach(function (w, i) {
+                            out.push({ value: String(i), label: 'Week ' + (i + 1) + (w && w.range ? ' · ' + w.range : '') });
+                        });
+                        return out;
+                    },
+                    screenWeek: function () { return currentWeek; },
                     printShape: printBlockShape,
                     printClassFn: printBlockClass,
                 });

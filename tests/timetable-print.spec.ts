@@ -40,6 +40,20 @@ async function signIn(page: Page, login: string, id: string) {
   ]);
 }
 
+/**
+ * Print through the dialog (amendment 1, §A8): the header button OPENS the dialog and
+ * only its Print button prints. `week` is `'all'` or a 1-based week number; omitted
+ * means "leave whatever the dialog seeded" — the week on screen.
+ */
+async function printViaDialog(page: Page, week?: 'all' | number) {
+  await page.locator('.print-btn').click();
+  await expect(page.locator('#printModal')).toBeVisible();
+  if (week !== undefined) await page.selectOption('#printWeekSelect', String(week));
+  await page.locator('#printModalPrint').click();
+  await expect(page.locator('#printModal'), 'the dialog closes on confirm').toBeHidden();
+  await page.waitForTimeout(500);
+}
+
 const paper = (page: Page) => page.evaluate(() => {
   const body = document.getElementById('printTableBody');
   const blocks = body ? [...body.querySelectorAll('.print-block')] : [];
@@ -74,13 +88,21 @@ const paper = (page: Page) => page.evaluate(() => {
 });
 
 test.describe('the paper replaces the screen', () => {
-  test('PR-01/PR-05: the button prints, the paper exists, and only the paper prints', async ({ page }) => {
+  test('PR-01/PR-05: the button opens the dialog, the paper exists, and only the paper prints', async ({ page }) => {
     await page.goto('/my-timetable-ui', { waitUntil: 'networkidle' });
     await page.waitForTimeout(700);
 
+    /* PR-01 (amendment 1): the button is an OPENER, not the print itself — the label
+       stopped promising a single week the moment the dialog could choose several */
     const btn = page.locator('.print-btn');
-    await expect(btn).toHaveAttribute('aria-label', 'Print this week');
-    await expect(btn).toHaveAttribute('data-tip', 'Print this week');
+    await expect(btn).toHaveAttribute('aria-label', 'Print timetable');
+    await expect(btn).toHaveAttribute('data-tip', 'Print timetable');
+    await page.evaluate(() => { (window as unknown as { __prints: number }).__prints = 0; window.print = () => { (window as unknown as { __prints: number }).__prints += 1; }; });
+    await btn.click();
+    await expect(page.locator('#printModal'), 'a click opens the dialog').toBeVisible();
+    expect(await page.evaluate(() => (window as unknown as { __prints: number }).__prints), 'and prints nothing yet').toBe(0);
+    await page.locator('#printModalCancel').click();
+    await expect(page.locator('#printModal')).toBeHidden();
 
     /* on screen the paper is invisible AND off the viewport, but it is laid out —
        the fit measures it, so `display: none` would break the shrinking */
@@ -262,18 +284,18 @@ test.describe('the paper shows only what runs', () => {
 });
 
 test.describe('the normal view', () => {
-  test('PR-02/PR-16: the toggle prints the semester, and never touches the screen', async ({ page }) => {
+  test('PR-02/PR-16: All Weeks prints the semester, and never touches the screen', async ({ page }) => {
     await page.goto('/my-timetable-ui', { waitUntil: 'networkidle' });
     await page.waitForTimeout(700);
 
-    await expect(page.locator('#printNormalToggle'), 'the toggle is on the page').toHaveCount(1);
+    await expect(page.locator('#printNormalToggle'), 'the switch lives in the dialog').toHaveCount(1);
+    await expect(page.locator('.print-normal-toggle'), 'and nowhere else on the page').toHaveCount(0);
     const screenBefore = await page.evaluate(() => ({
       html: document.getElementById('timetable').outerHTML,
       blocks: document.querySelectorAll('#timetable .event-block').length,
     }));
 
-    await page.click('.print-normal-toggle');
-    await page.waitForTimeout(600);
+    await printViaDialog(page, 'all');
 
     const view = await page.evaluate(() => ({
       normalClass: document.getElementById('printSheet')?.classList.contains('normal-view'),
@@ -302,34 +324,138 @@ test.describe('the normal view', () => {
     expect(view.screenHtml, 'PR-16: the screen grid keeps every block, byte for byte').toBe(screenBefore.html);
     expect(view.screenBlocks).toBe(screenBefore.blocks);
 
-    /* and it is a reading mode, not a preference */
-    await page.click('.print-normal-toggle');
-    await page.waitForTimeout(400);
-    expect(await page.evaluate(() => getComputedStyle(document.getElementById('printKey')).display)).not.toBe('none');
+    /* and the key comes back the moment the paper spans one week instead */
+    await printViaDialog(page, 9);
+    expect(await page.evaluate(() => getComputedStyle(document.getElementById('printKey')).display), 'a single week shows its key').not.toBe('none');
   });
 
-  test('PR-02: the switch is a tablet-and-up control, on purpose', async ({ browser }) => {
-    /* The phone band's week row was tuned to the millimetre by task 8 — at 390 the
-       week label needs 144px and the box offers 143. A sixth control in that row
-       truncated the label, which that lane's receipt refuses, so the switch stands
-       down below 768 instead of shaving the label again. This case makes the scope a
-       decision with a receipt rather than a silent gap. */
-    for (const [width, expected] of [[390, 0], [768, 1], [1280, 1]] as const) {
+  test('PR-02: the dialog does not compete with the phone week row any more', async ({ browser }) => {
+    /* Amendment 1 §A1 withdrew the old "stand down below 768" rule: the switch left the
+       week row and lives in the dialog, so the row task 8 tuned to the millimetre
+       (T16d #3: 144px of label in a 143px box) keeps all of its width back.
+       Where the dialog can be reached follows the print button, which task 8's
+       `preview-desktop-only` ruling keeps off My/Student below 1280; on Cohort it is
+       there at every width, and so is the switch. */
+    const open = async (width: number, path: string) => {
       const ctx = await browser.newContext({
         baseURL: process.env.CRS_BASE ?? 'http://127.0.0.1:8030',
         viewport: { width, height: 900 },
+        storageState: '.auth/staff-5770.json',
       });
       const page = await ctx.newPage();
-      await page.goto('/my-timetable-ui', { waitUntil: 'networkidle' });
-      await page.waitForTimeout(500);
-      const toggle = page.locator('.print-normal-toggle');
-      if (expected === 1) {
-        await expect(toggle, `${width}px: the switch is offered`).toBeVisible();
-        await expect(page.locator('#printNormalToggle')).toHaveAttribute('aria-label', /normal timetable/);
-      } else {
-        await expect(toggle, `${width}px: and stands down in the phone band`).toBeHidden();
-      }
+      await page.goto(path, { waitUntil: 'networkidle' });
+      await page.waitForTimeout(700);
+      return { page, ctx };
+    };
+
+    for (const width of [390, 768, 1280]) {
+      const { page, ctx } = await open(width, '/my-timetable-ui');
+      await expect(page.locator('.print-normal-toggle'), `${width}px: no switch in the week row`).toHaveCount(0);
       await ctx.close();
     }
+
+    const { page, ctx } = await open(390, '/cohort-timetable');
+    await page.locator('.print-btn').click();
+    await expect(page.locator('#printModal')).toBeVisible();
+    await expect(page.locator('.print-modal__field--switch .toggle-wrapper'), '390px: the house toggle is in the dialog').toBeVisible();
+    await ctx.close();
+  });
+
+  test('PR-21: the dialog opens on the week on screen, and prints another week without moving it', async ({ page }) => {
+    await page.goto('/my-timetable-ui?week=6', { waitUntil: 'networkidle' });
+    await page.waitForTimeout(800);
+
+    const screenBefore = await page.evaluate(() => ({
+      html: document.getElementById('timetable').outerHTML,
+      week: (document.getElementById('weekSelect') as HTMLSelectElement).value,
+    }));
+
+    await page.locator('.print-btn').click();
+    await expect(page.locator('#printWeekSelect'), 'seeded from the week on screen').toHaveValue(screenBefore.week);
+    await page.selectOption('#printWeekSelect', '2');
+    await page.locator('#printModalPrint').click();
+    await page.waitForTimeout(600);
+
+    const after = await page.evaluate(() => ({
+      html: document.getElementById('timetable').outerHTML,
+      week: (document.getElementById('weekSelect') as HTMLSelectElement).value,
+      paperWeek: document.getElementById('printWeekCount')?.textContent?.trim(),
+      paperDates: document.getElementById('printWeekDates')?.textContent?.trim(),
+      key: getComputedStyle(document.getElementById('printKey')).display,
+    }));
+
+    expect(after.paperWeek, 'the paper follows the dialog, not the screen').toBe('Week 3 of 14');
+    expect(after.paperDates).toContain('~');
+    expect(after.key, 'PR-21: a single week keeps its key').not.toBe('none');
+    expect(after.html, 'and the screen grid is byte-identical').toBe(screenBefore.html);
+    expect(after.week, 'including the week picker').toBe(screenBefore.week);
+  });
+
+  test('PR-21: All Weeks disables the switch and reads ON', async ({ page }) => {
+    await page.goto('/my-timetable-ui', { waitUntil: 'networkidle' });
+    await page.waitForTimeout(700);
+    await page.locator('.print-btn').click();
+
+    /* user ruling 2026-11-16: "B&C, but disable the switch only" — disabled, never
+       hidden, and reading ON because that IS the paper All Weeks produces */
+    await page.selectOption('#printWeekSelect', 'all');
+    await expect(page.locator('#printNormalToggle'), 'disabled for All Weeks').toBeDisabled();
+    await expect(page.locator('#printNormalToggle'), 'and shown ON').toBeChecked();
+    await expect(page.locator('#printNormalHint'), 'with the reason in words').toBeVisible();
+
+    await page.selectOption('#printWeekSelect', '4');
+    await expect(page.locator('#printNormalToggle'), 'a single week hands it back').toBeEnabled();
+    await expect(page.locator('#printNormalToggle'), 'reading OFF').not.toBeChecked();
+    await expect(page.locator('#printNormalHint')).toBeHidden();
+  });
+
+  test('PR-21: a single week with the switch on prints only normal classes', async ({ page }) => {
+    await page.goto('/my-timetable-ui?week=9', { waitUntil: 'networkidle' });
+    await page.waitForTimeout(800);
+
+    await page.locator('.print-btn').click();
+    await page.selectOption('#printWeekSelect', '9');
+    /* amendment 2: the house input is 0x0 with pointer-events:none, so the LABEL is the
+       control to click (the same move the notification specs make) */
+    await page.locator('.print-modal__field--switch .toggle-wrapper').click();
+    await page.locator('#printModalPrint').click();
+    await page.waitForTimeout(600);
+
+    const classes = await page.evaluate(() => [...document.querySelectorAll('#printTableBody .print-block')].map(b => b.className));
+    expect(classes.length, 'the paper still holds this week').toBeGreaterThan(0);
+    for (const c of classes) expect(c, 'PR-21: normal classes only').not.toContain('print-replacement');
+  });
+
+  test('PR-21: an open dialog never prints', async ({ page }) => {
+    await page.goto('/my-timetable-ui', { waitUntil: 'networkidle' });
+    await page.waitForTimeout(700);
+    await page.locator('.print-btn').click();
+    await expect(page.locator('#printModal')).toBeVisible();
+
+    /* §A2: every print now happens with the dialog open, so the overlay must step aside
+       on paper — closing before window.print() is the second guard, not the only one */
+    const rules = await page.evaluate(() => {
+      const out: string[] = [];
+      for (const sheet of [...document.styleSheets]) {
+        let list: CSSRuleList;
+        try { list = sheet.cssRules; } catch { continue; }
+        for (const r of [...list]) {
+          if (r instanceof CSSMediaRule && r.conditionText.includes('print')) {
+            for (const inner of [...r.cssRules]) {
+              if (inner instanceof CSSStyleRule && inner.selectorText.includes('.print-modal-overlay')) {
+                out.push(inner.style.getPropertyValue('display'));
+              }
+            }
+          }
+        }
+      }
+      return out;
+    });
+    expect(rules.length, 'PR-21: the print stylesheet names the dialog overlay').toBeGreaterThan(0);
+    expect(rules.join(',')).toContain('none');
+
+    await page.emulateMedia({ media: 'print' });
+    await expect(page.locator('#printModal'), 'and it is gone on paper').toBeHidden();
+    await expect(page.locator('#printHeader')).toBeVisible();
   });
 });

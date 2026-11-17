@@ -396,7 +396,7 @@
                 <span class="badge badge-past" id="venueDescription" style="display:none;"></span>
             </div>
         </div>
-        @include('partials.ui-week-nav', ['prevOnclick' => 'prevWeek()', 'nextOnclick' => 'nextWeek()', 'selectId' => 'weekSelect', 'selectOnclick' => 'selectWeek(this.value)', 'selectTinted' => true, 'showPrint' => true, 'showNormalToggle' => true, 'showEarliestBtn' => true])
+        @include('partials.ui-week-nav', ['prevOnclick' => 'prevWeek()', 'nextOnclick' => 'nextWeek()', 'selectId' => 'weekSelect', 'selectOnclick' => 'selectWeek(this.value)', 'selectTinted' => true, 'showPrint' => true, 'showEarliestBtn' => true])
     </div>
 
     <!-- ─── Grid Wrapper ─── -->
@@ -425,6 +425,7 @@
         'printOwnership' => true,
     ])
     @include('partials.ui-print-sheet')
+    @include('partials.ui-print-modal')
         @include('partials.ui-empty-state', ['title' => 'No classes this week', 'text' => 'This venue is free all week.'])
 
     <!-- ─── Legend Bar ─── 5 items + ownership hint (venue-event-blocks-db design §2,
@@ -1632,26 +1633,47 @@
 
             function buildPrintSheet() {
                 PrintSheet.init({
-                    build: function (normal) {
-                        var weekEvents = (eventsData[currentWeek] || []);
+                    build: function (state) {
+                        /* AMENDMENT 1 §A6: the venue gains the semester union. Frozen
+                           design §3.3 gave it none ("one teaching week IS the semester's
+                           pattern") because its normal view printed the CURRENT week
+                           filtered — but a dropdown labelled All Weeks cannot print one
+                           week: that would be a lie in the heading. Frozen PR-16 already
+                           demanded a deduplicated union on the sheet, so the union is
+                           what the spec always wanted. A room's whole-semester occupancy
+                           is exactly what a room sheet is for; a class meeting on
+                           alternate weeks prints once. */
+                        var all = state.week === null;
+                        var wk = all ? currentWeek : state.week;
+                        var sem = MockData.semester.weeks;
+                        var weekEvents = (eventsData[wk] || []);
                         return {
-                            /* the venue page has no semester union: on a room sheet one
-                               teaching week IS the semester's pattern, so the normal view
-                               filters this week (design §3.3) */
-                            events: normal
-                                ? weekEvents.filter(function (e) { return e.status === 'normal'; })
-                                : printRunSet(weekEvents),
-                            days: normal ? printNormalDays() : weekData[currentWeek].days,
-                            weekCount: normal
-                                ? 'Week 1 ~ ' + MockData.semester.weeks
-                                : 'Week ' + (currentWeek + 1) + ' of ' + MockData.semester.weeks,
-                            weekDates: normal ? '(Whole Semester)' : ' · ' + weekData[currentWeek].range,
-                            emptyTitle: normal ? 'No normal classes.' : 'No classes this week.',
-                            emptyText: normal
+                            events: all
+                                ? printSemesterSet(eventsData)
+                                : printWeekSet(weekEvents, state.normal),
+                            days: all ? printNormalDays() : weekData[wk].days,
+                            weekCount: all
+                                ? 'Week 1 ~ ' + sem
+                                : 'Week ' + (wk + 1) + ' of ' + sem,
+                            weekDates: all ? '(Whole Semester)' : ' · ' + weekData[wk].range,
+                            emptyTitle: all || state.normal ? 'No normal classes.' : 'No classes this week.',
+                            emptyText: all
                                 ? 'This venue carries no normal class in the semester.'
-                                : 'This venue is free all week.',
+                                : (state.normal
+                                    ? 'Week ' + (wk + 1) + ' carries no normal class in this venue.'
+                                    : 'This venue is free all week.'),
                         };
                     },
+                    /* the dialog's week list, from THIS page's own week data (A4), so
+                       every option carries the range the screen would show */
+                    weeks: function () {
+                        var out = [];
+                        (weekData || []).forEach(function (w, i) {
+                            out.push({ value: String(i), label: 'Week ' + (i + 1) + (w && w.range ? ' · ' + w.range : '') });
+                        });
+                        return out;
+                    },
+                    screenWeek: function () { return currentWeek; },
                     printShape: printBlockShape,
                     printClassFn: printBlockClass,
                 });

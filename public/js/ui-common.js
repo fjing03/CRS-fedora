@@ -8482,6 +8482,14 @@ function printRunSet(events) {
  * @param {Array<Array>} eventsData - every week's events
  * @returns {Array}
  */
+/** One week's printable set. `normalOnly` is the dialog's switch for a single week
+ *  (amendment 1, A5): with it on, only `status === 'normal'` survives — the same rule
+ *  the semester union applies to a whole term. */
+function printWeekSet(weekEvents, normalOnly) {
+    var set = printRunSet(weekEvents);
+    if (!normalOnly) return set;
+    return set.filter(function (e) { return e.status === 'normal'; });
+}
 function printSemesterSet(eventsData) {
     var seen = {};
     var out = [];
@@ -8564,31 +8572,78 @@ function printNoteText(html) {
 }
 
 /**
- * PrintSheet — the paper's page-level owner (design §8.2).
+ * PrintSheet — the paper's page-level owner (design §8.2; amendment 1 §A5).
  *
- * A page calls `PrintSheet.init({ build, printShape, printClassFn })` from its own
- * `buildPrintSheet()`, once per grid rebuild. `build(normal)` returns exactly what the
- * paper needs for the current toggle state, so the paper can never disagree with the
- * page it belongs to.
+ * A page calls `PrintSheet.init({ build, weeks, printShape, printClassFn })` from its
+ * own `buildPrintSheet()`, once per grid rebuild. `build(state)` returns exactly what
+ * the paper needs for the state the PRINT DIALOG settled on — `{ week, normal }`, where
+ * `week` is `null` for All Weeks — so the paper can never disagree with the settings
+ * the reader chose.
  *
  * @typedef {object} PrintSheetCfg
- * @property {function(boolean): object} build
+ * @property {function({week: (number|null), normal: boolean}): object} build
+ * @property {function(): Array<{value: string, label: string}>} [weeks]
  * @property {function(object): object} [printShape]
  * @property {function(HTMLElement, object, boolean): void} [printClassFn]
  */
 const PrintSheet = {
     _cfg: null,
     _bound: false,
+    /* the dialog's settled choice. `_week` null = All Weeks. Remembered for the life
+       of the page (A10) and re-seeded from the week on screen by `init()` while the
+       reader has not chosen: `_chosen` is what tells those two apart. */
+    _week: null,
+    _chosen: false,
+    /* the reader's own switch preference, restored when they leave All Weeks */
+    _normalPref: false,
+    _lastFocus: null,
 
     init: function (cfg) {
         this._cfg = cfg || {};
         if (!this._bound) {
             this._bound = true;
             var self = this;
+
+            /* the dialog's own controls (amendment 1 §A3). No inline onclick anywhere:
+               a page script lives in a closure, so an inline handler would need an
+               export — the same reason the old toggle was bound here. */
+            var openBtn = document.getElementById('printModalPrint');
+            var cancelBtn = document.getElementById('printModalCancel');
+            var closeBtn = document.getElementById('printModalClose');
+            var overlay = document.getElementById('printModal');
+            var weekSel = document.getElementById('printWeekSelect');
             var toggle = document.getElementById('printNormalToggle');
-            /* the toggle has no inline onclick (design §8.2): a page script lives in a
-               closure, so an inline handler would need a window export */
-            if (toggle) toggle.addEventListener('change', function () { self.rebuild(); });
+
+            if (openBtn) openBtn.addEventListener('click', function () { self.print(); });
+            if (cancelBtn) cancelBtn.addEventListener('click', function () { self.close(); });
+            if (closeBtn) closeBtn.addEventListener('click', function () { self.close(); });
+            if (overlay) {
+                overlay.addEventListener('click', function (ev) {
+                    if (ev.target === overlay) self.close();   /* backdrop, not the card */
+                });
+            }
+            if (weekSel) {
+                weekSel.addEventListener('change', function () {
+                    self._chosen = true;
+                    self._week = weekSel.value === 'all' ? null : parseInt(weekSel.value, 10);
+                    self._syncSwitch();
+                });
+            }
+            if (toggle) {
+                /* the switch only edits the paper's state; the rebuild happens when
+                   Print is pressed, so a reader who changes their mind never pays for a
+                   rebuild of a sheet nobody will print. The preference is remembered so
+                   that leaving All Weeks hands the switch back as the reader left it. */
+                toggle.addEventListener('change', function () {
+                    if (!toggle.disabled) self._normalPref = toggle.checked;
+                });
+            }
+            document.addEventListener('keydown', function (ev) {
+                if (ev.key !== 'Escape') return;
+                var el = document.getElementById('printModal');
+                if (el && el.style.display !== 'none') self.close();
+            });
+
             /* a narrower window narrows the columns, so the fit is re-measured
                (debounced) instead of keeping a size that only suited the old width */
             var fitTimer = null;
@@ -8597,13 +8652,109 @@ const PrintSheet = {
                 fitTimer = setTimeout(function () { self.fit(); }, 120);
             });
         }
+        /* At rest the paper is the week on screen, as it always was: All Weeks is a
+           choice the reader makes in the dialog, never a default the page invents. */
+        this.seedWeek(this._cfg && this._cfg.screenWeek ? this._cfg.screenWeek() : null);
         this.rebuild();
     },
 
-    /** Is the Normal Class view on? Absent toggle = off, so a page without it is inert. */
+    /** The settled state, as the pages' `build()` wants it. */
+    state: function () {
+        var normal = this.isNormal();
+        /* All Weeks IS the normal view (user ruling 2026-11-16: B&C): the paper is the
+           semester union of normal classes whether or not the switch could be touched */
+        if (this._week === null) normal = true;
+        return { week: this._week, normal: normal };
+    },
+
+    /** Is the Normal Class view on? Absent switch = off, so a page without it is inert. */
     isNormal: function () {
         var t = document.getElementById('printNormalToggle');
+        /* All Weeks forces the normal view, and the switch reads ON there (A5) */
+        if (this._week === null) return true;
         return !!(t && t.checked);
+    },
+
+    /* ── the dialog (amendment 1 §A3/A4/A10) ── */
+
+    /** Build the week options from the page's own data, once. */
+    fillWeeks: function () {
+        var sel = document.getElementById('printWeekSelect');
+        if (!sel || sel.dataset.filled === '1') return;
+        var weeks = (this._cfg && this._cfg.weeks) ? (this._cfg.weeks() || []) : [];
+        for (var i = 0; i < weeks.length; i++) {
+            var opt = document.createElement('option');
+            opt.value = String(weeks[i].value);
+            opt.textContent = weeks[i].label;
+            sel.appendChild(opt);
+        }
+        sel.dataset.filled = '1';
+    },
+
+    /** Disabled + ON for All Weeks, editable otherwise. */
+    _syncSwitch: function () {
+        var t = document.getElementById('printNormalToggle');
+        var hint = document.getElementById('printNormalHint');
+        if (!t) return;
+        var all = this._week === null;
+        t.checked = all ? true : this._normalPref;
+        t.disabled = all;
+        if (hint) hint.style.display = all ? '' : 'none';
+    },
+
+    /**
+     * A page can veto printing (amendment 1 §A11): the Cohort page has nothing to print
+     * until a cohort is picked, and a disabled Print button is the honest way to say so.
+     * Applied on every open and whenever the page rebuilds the sheet.
+     */
+    _syncPrintButton: function () {
+        var btn = document.getElementById('printModalPrint');
+        if (!btn) return;
+        var cfg = this._cfg || {};
+        var ok = typeof cfg.canPrint === 'function' ? !!cfg.canPrint() : true;
+        btn.disabled = !ok;
+    },
+
+    /** Seed from the week on screen unless the reader has already chosen (A10). */
+    seedWeek: function (screenWeek) {
+        if (this._chosen) return;
+        this._week = (screenWeek === null || screenWeek === undefined) ? null : screenWeek;
+    },
+
+    open: function () {
+        var overlay = document.getElementById('printModal');
+        if (!overlay) return;                 /* a page with no paper keeps window.print() */
+        this.fillWeeks();
+        this.seedWeek(this._cfg && this._cfg.screenWeek ? this._cfg.screenWeek() : null);
+        var sel = document.getElementById('printWeekSelect');
+        if (sel) sel.value = this._week === null ? 'all' : String(this._week);
+        this._syncSwitch();
+        this._lastFocus = document.activeElement;
+        overlay.style.display = 'flex';
+        overlay.classList.add('show');
+        this._syncPrintButton();
+        if (sel) sel.focus();
+    },
+
+    close: function () {
+        var overlay = document.getElementById('printModal');
+        if (!overlay) return;
+        overlay.classList.remove('show');
+        overlay.style.display = 'none';
+        var back = this._lastFocus;
+        this._lastFocus = null;
+        if (back && back.focus) back.focus();
+    },
+
+    /** The ONE place `window.print()` is called (A8). Settle state, rebuild, print. */
+    print: function () {
+        var sel = document.getElementById('printWeekSelect');
+        if (sel) this._week = sel.value === 'all' ? null : parseInt(sel.value, 10);
+        var t = document.getElementById('printNormalToggle');
+        if (this._week === null && t) t.checked = true;
+        this.rebuild();
+        this.close();
+        window.print();
     },
 
     /** `undefined` means "leave whatever the blade served" (My/Student/Venue context). */
@@ -8680,23 +8831,34 @@ const PrintSheet = {
         var sheetEl = document.getElementById('printSheet');
         if (!cfg || !cfg.build || !sheetEl) return;
 
-        var normal = this.isNormal();
-        var data = cfg.build(normal) || {};
+        var st = this.state();
+        var normal = st.normal;
+        var allWeeks = st.week === null;
+        var data = cfg.build(st) || {};
 
         /* ── the header ── */
         var chip = document.getElementById('semesterChip');
         this._setText('printSemester', chip ? (chip.textContent || '').trim() : '');
         this._setText('printContext', data.context);
         this._setText('printSub', data.sub);
+        /* the dialog's subtitle names the same sheet the paper will carry (A3). Two
+           pages state it in the blade (Venue's `Venue occupancy`, Student's cohort
+           line) rather than in `build()`, so the header's own text is the fallback. */
+        var subEl = document.getElementById('printSub');
+        this._setText('printModalSub', data.sub !== undefined
+            ? data.sub
+            : (subEl ? (subEl.textContent || '').trim() : ''));
         this._setText('printWeekCount', data.weekCount);
         this._setText('printWeekDates', data.weekDates);
 
-        /* a key for a single status explains nothing, so the whole key goes */
+        /* The key explains ONE status, so it goes when the paper spans the semester:
+           All Weeks IS the normal view (A5), so that is the same condition — the key is
+           shown exactly for a single week, whatever the switch says. */
         var key = document.getElementById('printKey');
-        if (key) key.style.display = normal ? 'none' : '';
+        if (key) key.style.display = allWeeks ? 'none' : '';
 
         /* the sheet's own state classes */
-        sheetEl.classList.toggle('normal-view', normal);
+        sheetEl.classList.toggle('normal-view', allWeeks);
 
         /* ── dense: computed from what will PRINT, never from what is rendered ── */
         var events = data.events || [];
@@ -8722,12 +8884,15 @@ const PrintSheet = {
             onEventClick: function () { /* paper is not clickable */ }
         });
 
+        this._syncPrintButton();
+
         /* the fit pass measures this sheet at paper width */
         this.fit();
     }
 };
 window.PrintSheet = PrintSheet;
 window.printRunSet = printRunSet;
+window.printWeekSet = printWeekSet;
 window.printSemesterSet = printSemesterSet;
 window.printNormalDays = printNormalDays;
 window.printDays = printDays;

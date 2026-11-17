@@ -120,7 +120,7 @@
         <select id="cohortSelect" onchange="onCohortChange(this.value, { origin: 'user' })" disabled>
             <option value="">Select Cohort</option>
         </select>
-        @include('partials.ui-week-nav', ['prevOnclick' => 'prevWeek()', 'nextOnclick' => 'nextWeek()', 'selectId' => 'weekSelect', 'selectOnclick' => 'selectWeek(this.value)', 'selectTinted' => true, 'disabled' => $pinnedCohortId === null, 'showPrint' => true, 'showNormalToggle' => true])
+        @include('partials.ui-week-nav', ['prevOnclick' => 'prevWeek()', 'nextOnclick' => 'nextWeek()', 'selectId' => 'weekSelect', 'selectOnclick' => 'selectWeek(this.value)', 'selectTinted' => true, 'disabled' => $pinnedCohortId === null, 'showPrint' => true])
     </div>
 
     <!-- ─── Grid Wrapper ─── -->
@@ -138,6 +138,7 @@
         'printOwnership' => true,
     ])
     @include('partials.ui-print-sheet')
+    @include('partials.ui-print-modal')
 
     <!-- ─── Legend Bar ─── frozen 4-item block-class legend (the user's Replacement chip, 2026-10-25) + ownership hint (all-pages-design-parity) -->
     @include('partials.ui-legend-bar', [
@@ -484,6 +485,11 @@
                    decision 2026-10-13 — cards full of zeros are just noise) */
                 document.getElementById('summarySection').style.display = 'none';
                 updateWeekArrows(true, true);
+                /* AMENDMENT 1 §A11: this IS the funnel. Two user-reachable paths land
+                   here without ever reaching buildTimetable() — the faculty switch with
+                   no taught cohort, and clearing the cohort select — and neither used to
+                   touch the paper, so the previous cohort's sheet stayed printable. */
+                buildPrintSheet();
             }
 
             /* ════════ WEEK NAVIGATION ════════ */
@@ -566,28 +572,47 @@
 
             function buildPrintSheet() {
                 PrintSheet.init({
-                    build: function (normal) {
+                    build: function (state) {
                         var weeks = selectedCohortId ? (eventsByCohort[selectedCohortId] || []) : [];
-                        var weekEvents = weeks[currentWeek] || [];
+                        var all = state.week === null;
+                        var wk = all ? currentWeek : state.week;
+                        var sem = MockData.semester.weeks;
+                        var weekEvents = weeks[wk] || [];
                         return {
-                            events: normal ? printSemesterSet(weeks) : printRunSet(weekEvents),
-                            days: normal ? printNormalDays() : weekData[currentWeek].days,
+                            events: all
+                                ? printSemesterSet(weeks)
+                                : printWeekSet(weekEvents, state.normal),
+                            days: all ? printNormalDays() : weekData[wk].days,
                             context: printSelectedText('cohortSelect', 'Select a cohort'),
                             sub: selectedCohortId ? 'Faculty: ' + printSelectedText('facultySelect', '—') : '',
-                            weekCount: normal
-                                ? 'Week 1 ~ ' + MockData.semester.weeks
-                                : 'Week ' + (currentWeek + 1) + ' of ' + MockData.semester.weeks,
-                            weekDates: normal ? '(Whole Semester)' : ' · ' + weekData[currentWeek].range,
-                            emptyTitle: normal ? 'No normal classes.' : 'No classes this week.',
-                            emptyText: normal
+                            weekCount: all
+                                ? 'Week 1 ~ ' + sem
+                                : 'Week ' + (wk + 1) + ' of ' + sem,
+                            weekDates: all ? '(Whole Semester)' : ' · ' + weekData[wk].range,
+                            emptyTitle: all || state.normal ? 'No normal classes.' : 'No classes this week.',
+                            emptyText: all
                                 ? 'This cohort carries no normal class in the semester.'
                                 : (selectedCohortId
-                                    ? 'No classes scheduled for this cohort in the selected week.'
+                                    ? (state.normal
+                                        ? 'Week ' + (wk + 1) + ' carries no normal class for this cohort.'
+                                        : 'No classes scheduled for this cohort in the selected week.')
                                     : 'Select a cohort to print its timetable.'),
                         };
                     },
+                    /* the dialog's week list, from THIS page's own week data (A4), so
+                       every option carries the range the screen would show */
+                    weeks: function () {
+                        var out = [];
+                        (weekData || []).forEach(function (w, i) {
+                            out.push({ value: String(i), label: 'Week ' + (i + 1) + (w && w.range ? ' · ' + w.range : '') });
+                        });
+                        return out;
+                    },
+                    screenWeek: function () { return currentWeek; },
                     printShape: printBlockShape,
                     printClassFn: printBlockClass,
+                    /* nothing to print until a cohort is chosen (A11) */
+                    canPrint: function () { return !!selectedCohortId; },
                 });
             }
 
