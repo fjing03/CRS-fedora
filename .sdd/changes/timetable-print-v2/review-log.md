@@ -1234,3 +1234,39 @@ batch-ordered. One blocker, three should-fix — all folded in.
   `specs/`, frozen `tasks.md` (25 tasks, ~30h, five batches). **No code has been
   written.** Step 5 of the user's prompt — stop for approval before `/sdd-apply` —
   is where this session ends.
+
+---
+
+## 2026-11-16 — Amendment 1 (the Print modal) — review round 1
+
+Reviewer: `commandcode/z-ai/glm-5.3-flash`, read-only, against the frozen lane + the code.
+Verdict **not ready**: 8 × 🟡, 4 × 🔴.
+
+The four blockers, all in the amendment file itself:
+
+1. §3 rewrote **PR-18** (page breaks) instead of **PR-01** (the button) — applied literally
+   it would have deleted the page-break requirements while leaving PR-01's
+   "calls `window.print()`" standing against A8.
+2. PR-04 ("the two hidden print surfaces") and the stale supersession of `proposal.md`
+   #2 / AC14 / `design.md` §8.1, §8.2, §3.3 were not named anywhere.
+3. **Nothing hid the open dialog on paper** — and under A8 every print happens with it
+   open, so the overlay would have printed over the sheet.
+4. §4 missed the only receipt that pins the button (`venue-timetable.spec.ts` TC05) and
+   mis-attributed a button assertion to `timetable-responsive` T16a-6, which never clicks.
+
+Also taken: A9 now pins PR-11's two titles verbatim; A5 corrects "nothing stops working"
+(the venue's switch-on paper is row 3, not row 1); A6 cites frozen PR-16, which already
+demanded the union — so the applied venue code, not this amendment, was the deviation;
+A12/T30 retarget the switch's ~90 lines of CSS instead of deleting them; A11 became the
+`showGuidance()` funnel after the reviewer showed two user-reachable paths never reach
+the early returns, and its line numbers were corrected to the applied code.
+
+## 2026-11-16 — Amendment 1 — review round 2
+
+Verdict: **no outstanding blockers.** All four fixes verified against the frozen clauses
+and the applied code (including every line number), plus a check that the two round-1
+suggestions landed. Four one-clause notes folded in without another round: the overlay
+carries both classes, PR-04's pointer is `spec.md:71`, TC05's span starts at `:74`, and
+AC14's wording no longer reads as a fifth allowed change.
+
+**Amendment 1 is frozen.** Implementation may begin.
