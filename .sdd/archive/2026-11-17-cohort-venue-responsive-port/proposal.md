@@ -257,7 +257,9 @@ Final static receipts: `/tmp/cohort-venue-commit-lint.txt`,
 **Verdict: PASS — implementation and automated verification complete**, with the manual
 coverage limits above disclosed, not claimed as tested. Ready for local commit.
 
-**Git authority:** the user requested a commit once complete (2026-11-17). Commit only
-this lane's ten implementation/test/changelog/proposal paths. Unrelated `.gitignore`,
-user-added baseline files and other sessions' work remain excluded. Archive and push
-are **not** authorised; leave the compact artifact under `.sdd/changes/`.
+**Git authority:** the user requested a commit once complete (2026-11-17). Only this
+lane's ten implementation/test/changelog/proposal paths were committed (`e386106`).
+Unrelated `.gitignore`, user-added baseline files and other sessions' work remained
+excluded. The user then authorised archiving; this artifact now lives under
+`.sdd/archive/2026-11-17-cohort-venue-responsive-port/`. Push is still **not**
+authorised.
