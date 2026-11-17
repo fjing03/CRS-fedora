@@ -3025,6 +3025,9 @@ body.summary-sheet-open #summaryExplainModal {
 }
 .modal-tab:hover { color: var(--color-on-surface); }
 .modal-tab.active { color: var(--color-primary); border-bottom-color: var(--color-primary); }
+/* The selected word must stay readable on the dark modal, not just its underline.
+   Light-mode text and both themes' blue selection marker keep their existing tokens. */
+.dark .modal-tab.active { color: var(--color-on-primary-container); }
 /* 2026-11-11 (user, student-modal-staff-parity): on a phone the tab rail WRAPS
    instead of running off the edge. Measured: the student pop-up's four labels need
    402 px inside a 304 px rail at 390 px wide, so the fourth tab was simply
@@ -6986,6 +6989,18 @@ body.tt-sheet-open:has(.tt-responsive) {
       never an invisible overlapping padding: neighbouring rows must not steal
       each other's taps. Text sizes are untouched. The shared top bar sits OUTSIDE
       the page root and therefore keeps its shipped sizes (design §2). ── */
+/* Quiet exits in detail pop-ups share the touch floor, including the legacy
+   btn-close-modal twin. Match the narrow outline rule's specificity and come AFTER
+   it: otherwise its 40px minimum beats the list page's generic 48px floor.
+   Width, footer order and mouse geometry are deliberately unchanged. */
+@media (any-pointer: coarse) {
+    .modal--detail .modal-footer .btn-outline:not(.is-primary),
+    .modal--detail .modal-footer .btn-close-modal {
+        min-width: 48px;
+        min-height: 48px;
+    }
+}
+
 /* ── The list surfaces' touch floor (SDD cards-and-badges-responsive, task 11).
       Capability, not width: `any-pointer: coarse`, so a touch laptop or an iPad Pro at
       any breakpoint qualifies while a mouse-only desktop keeps today's compact

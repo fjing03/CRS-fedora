@@ -1,3 +1,15 @@
+## 2026-11-18 — the dark selected tab stays readable
+
+Shared `theme.css` now uses `--color-on-primary-container` for the active tab's
+text in dark mode only. The blue underline, light-mode text, inactive tabs and
+geometry are unchanged. This page has no footer Close, so the companion Close
+touch-floor fix does not alter its Reject/Approve controls.
+
+Compact SDD `modal-visual-rules`: one independent review, PASS. Browser inspection
+at 390 touch, 1440 touch and mouse, both themes; Request Details used a labelled
+client-only shell because the real pending queue is empty. No request was created.
+No Playwright suite rerun for this CSS-only change.
+
 ## 2026-11-17 — the table comes from the shared grid partial, so it gets the scroll cue
 
 This page hand-rolled its own `grid-wrapper > grid-scroll > table` markup instead of including

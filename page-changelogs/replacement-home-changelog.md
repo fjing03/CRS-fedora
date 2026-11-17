@@ -1,3 +1,17 @@
+## 2026-11-18 — readable dark tabs and a touch-sized quiet exit
+
+Shared `theme.css` now uses `--color-on-primary-container` for active-tab text in
+dark mode only; the blue underline and light-mode text stay unchanged. Quiet
+detail-footer exits (`btn-outline:not(.is-primary)` and `btn-close-modal`) honour
+48×48 under `any-pointer: coarse`, including wide touch windows. Each family's
+existing width, footer order and outline skin stay put; mouse geometry is untouched.
+Primary/destructive actions and their behaviour are not changed.
+
+Compact SDD `modal-visual-rules`: one independent review, PASS. Browser measurements
+cover 390 touch and 1440 touch/mouse in both themes; representative before/after
+values and source-cascade checks are in its combined artifact. No Playwright suite
+rerun for this CSS-only change; no database content writes.
+
 ## 2026-11-17 — an empty search is not an empty workload
 
 The existing empty-view renderer now says **No classes match your filters.** when the
