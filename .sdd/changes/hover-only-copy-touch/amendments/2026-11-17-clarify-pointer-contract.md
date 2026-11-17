@@ -59,6 +59,11 @@ report `hover: none` **and** `any-pointer: coarse` together, and desktop reports
 iOS Safari or iPadOS with a trackpad is **not** testable in this environment and is therefore not asserted
 here — if it matters, it needs a device, not an emulator.
 
+**What is measured, and what is not.** The hybrid behaviour above is measured in Chromium: touch contexts
+report `hover: none` **and** `any-pointer: coarse` together, and desktop reports neither. Behaviour on real
+iOS Safari or iPadOS with a trackpad is **not** testable in this environment and is therefore not asserted
+here — if it matters, it needs a device, not an emulator.
+
 ## 4. The contract, stated once
 
 1. **Hover keeps working.** Nothing about the pointer path changes.
