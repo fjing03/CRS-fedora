@@ -91,6 +91,12 @@ honest fix is to make the header a control (`tabindex`, Enter/Space, `aria-sort`
 same `render()` callback) — which then gives the tip focus parity for free through the existing engine.
 That is a behaviour change, not a copy change, so it needs its own go.
 
+**Owner ruling A, 2026-11-17 — done in `75a2c14`.** Sortable headers take `tabindex=0`, `aria-sort` on
+the `th` (implicit `columnheader`; `role=button` may not carry `aria-sort`), Enter and Space through the
+same toggle as the click, focus ring, and 48px under `(any-pointer: coarse)` — `height`, not
+`min-height`, because a `th` is `display: table-cell` and ignores it (measured: computed 48px, box 35).
+The two non-sortable headers keep no tab stop and send their explanation through `.sr-only` instead.
+
 ## 4. What was measured once the tree freed up
 
 Done, and the answers changed the plan: see §3a. `.badge` is still outside the 1024 block,
