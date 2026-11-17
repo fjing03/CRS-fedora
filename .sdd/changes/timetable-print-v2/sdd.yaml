@@ -37,5 +37,7 @@ notes: >-
   the paper is a SECOND TABLE built by the same buildTimetableGrid(), and the
   five-caller pin therefore moves in exactly one place — the venue time joiner, which
   the apply log proves by undoing it and reproducing the old capture byte for byte.
-  One scope decision made from a receipt: the Normal Class switch stands down below
-  768px because the phone week row has no room (task 8's own T16d #3 measures it).
+  One scope decision, put to the user and CONFIRMED 2026-11-16: the Normal Class
+  switch stands down below 768px because the phone week row has no room (task 8's own
+  T16d #3 measures it). The alternatives (own line on phones / inside the Week summary
+  sheet) were offered with their costs and declined.

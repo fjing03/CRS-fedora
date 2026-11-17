@@ -239,9 +239,11 @@ hover pill that happened to be on screen printed with the sheet.
   Synthetic and Cohort receipts untouched, both still byte-identical.
 - Four page changelogs.
 
-### One scope decision, made from a receipt
+### One scope decision, made from a receipt — and CONFIRMED BY THE USER (2026-11-16)
 
-The switch **stands down below 768 px**. Adding it to the phone week row truncated the
+The switch **stands down below 768 px**. Presented to the user with the three
+alternatives (leave it; give it its own line on phones; move it into the Week summary
+sheet) and their costs; **the user chose to leave it as it is.** Adding it to the phone week row truncated the
 week label, and task 8's own receipt (`T16d` item #3) refuses that: at 390 the widest
 label needs 144 px and the box offers 143. Shaving the label again for a reading mode
 was not worth it, so the switch is offered from 768 up and

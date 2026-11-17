@@ -128,9 +128,11 @@ No migration, no schema change, no new dependency, no database write, and no edi
 ## 6. What remains open (not blockers)
 
 1. **The four pre-existing reds** (§4) — each needs its own small change.
-2. **The switch is tablet-and-up.** If it must appear on a phone later, the week row
-   needs a layout decision first (task 8 tuned it to the millimetre); the receipt that
-   guards that box is `T16d` item #3.
+2. **The switch is tablet-and-up — the user's own call (2026-11-16).** Asked to
+   choose between leaving it, giving it a line of its own on phones, or moving it into
+   the Week summary sheet, the user left it as it is. If that is ever revisited, the
+   week row needs a layout decision first (task 8 tuned it to the millimetre); the
+   receipt that guards that box is `T16d` item #3.
 3. **Dense mode** has no shipped fixture above the threshold (the repo forbids
    fabricating demo rows), so its receipt proves the mechanism with a synthetic print
    set and the one-page export proves the resting case. A genuinely busy week's page
