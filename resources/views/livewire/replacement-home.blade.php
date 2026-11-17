@@ -885,6 +885,9 @@
             head.appendChild(tr);
 
             if (pageData.length === 0) {
+                document.getElementById('emptyTitle').textContent = visibleBaseRows().length > 0
+                    ? 'No classes match your filters.'
+                    : 'No classes currently need attention.';
                 document.getElementById('emptyState').style.display = 'flex';
             } else {
                 document.getElementById('emptyState').style.display = 'none';

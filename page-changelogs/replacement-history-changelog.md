@@ -1,3 +1,14 @@
+## 2026-11-17 — the heading uses the page's existing name
+
+The H1 now reads **Class Replacements**, matching the existing browser title and
+student navigation. Removed only the extra **Student** prefix; routes, cohort chip,
+cards and read-only behaviour stay unchanged.
+
+User-approved wording-only small-change exemption (A, proceed): a single header argument,
+no logic, reversible, no new pattern. Receipt: `tests/empty-search-copy-and-student-title.spec.ts`
+checks heading, tab title and navigation with a real student login at 390 and 1440.
+The two-task receipt passed 2/2 (5 including auth setup); lint and PHPStan passed.
+
 ## 2026-11-17 — the Course cell is one line, and Staff drops the ID
 
 Two trims, both of them facts the details pop-up already carries.

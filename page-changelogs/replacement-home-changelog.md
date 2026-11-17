@@ -1,3 +1,16 @@
+## 2026-11-17 — an empty search is not an empty workload
+
+The existing empty-view renderer now says **No classes match your filters.** when the
+unfiltered visible base still contains rows. When that base is truly empty, it keeps
+**No classes currently need attention.** The recovery hint is unchanged. No filtering,
+counts, sorting, pagination, actions or shared styles changed.
+
+User-approved wording-only small-change exemption (A, proceed): one page's existing
+render branch, display text only, no state-machine or backend change, no new reusable
+pattern, reversible in one commit. Receipt: `tests/empty-search-copy-and-student-title.spec.ts`
+2/2 (5 passed including auth setup), checking both messages and restoration at 390 touch
+and 1440. Genuinely empty data is simulated only in browser memory, never in the database.
+
 ## 2026-11-17 — the Course cell is one line, and Staff drops the ID
 
 Two trims, both of them facts the details pop-up already carries.
