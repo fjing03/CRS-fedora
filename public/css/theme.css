@@ -157,6 +157,29 @@ body {
     transition: background var(--transition), color var(--transition);
 }
 
+/* ───── Screen-reader-only text (P2 pointer contract, phase 2) ─────
+   A tooltip the app never lets a finger or a keyboard open is not copy, it is decoration.
+   Where the tip carries an explanation rather than the meaning itself, the explanation is
+   ALSO rendered here: in the DOM for assistive tech, invisible to the eye, and it costs no
+   layout and no tab stop. A sibling of the element the JS owns, never a child — page code
+   rewrites these counters with `textContent`, which would take a child with it.
+
+   Re-checked 2026-11-17: the Tailwind `sr-only` utility the Flux settings blades use does NOT
+   reach these pages (a probe span computed `position: static`, `width: auto`, 9x20 on
+   /my-replacements), so the house sheet has to define its own. Same technique, same class name
+   so the two agree where both load. */
+.sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+}
+
 /* ───── Top Navigation Bar ───── */
 .top-bar {
     position: fixed;

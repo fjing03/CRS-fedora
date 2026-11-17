@@ -6325,13 +6325,24 @@ const CancelClassModal = {
         }
 
         if (details.length === 1) {
-            return '<span class="cdl-cohort" data-tip="' + esc(details[0].full || details[0].label) + '">' +
-                esc(details[0].label) + '</span>';
+            /* 2026-11-17 (P2 pointer contract, phase 2): the full cohort name was reachable only by
+               hovering the code. It now rides along for assistive tech as well — the same pattern as
+               the count below, and skipped when the full name adds nothing. */
+            const fullName = details[0].full || details[0].label;
+            const fullHint = fullName && fullName !== details[0].label
+                ? '<span class="sr-only"> \u2014 ' + esc(fullName) + '</span>'
+                : '';
+            return '<span class="cdl-cohort" data-tip="' + esc(fullName) + '">' +
+                esc(details[0].label) + fullHint + '</span>';
         }
 
         const tip = details.map((d) => (d.full && d.full !== d.label ? d.label + ' \u2014 ' + d.full : d.label)).join('\n');
 
-        return '<span class="cdl-cohort" data-tip="' + esc(tip) + '">' + details.length + ' cohorts</span>';
+        /* the codes behind the number are the tip's whole point; the count alone says nothing
+           to a screen reader, so the codes travel with it */
+        const codes = details.map((d) => d.label).join(', ');
+        return '<span class="cdl-cohort" data-tip="' + esc(tip) + '">' + details.length + ' cohorts' +
+            '<span class="sr-only"> \u2014 ' + esc(codes) + '</span></span>';
     },
 
     _renderDayScope(others, makeUps) {
@@ -6352,7 +6363,8 @@ const CancelClassModal = {
         const makeupRows = pendingMakeUps.map((m) => {
             const cohorts = Array.isArray(m.cohorts) ? m.cohorts : [];
             const cohortCell = cohorts.length > 1
-                ? '<span class="cdl-cohort" data-tip="' + esc(cohorts.join('\n')) + '">' + cohorts.length + ' cohorts</span>'
+                ? '<span class="cdl-cohort" data-tip="' + esc(cohorts.join('\n')) + '">' + cohorts.length + ' cohorts' +
+                    '<span class="sr-only"> \u2014 ' + esc(cohorts.join(', ')) + '</span></span>'
                 : (cohorts[0] ? '<span class="cdl-cohort">' + esc(cohorts[0]) + '</span>' : '');
             return '<li><label class="cancel-day-row">' +
                 '<input type="checkbox" data-request="' + esc(m.requestId) + '">' +
@@ -6910,7 +6922,8 @@ const CancelClassModal = {
         const scheduleRow = (r) => {
             const cohorts = Array.isArray(r.cohorts) ? r.cohorts : [];
             const cohortCell = cohorts.length > 1
-                ? '<span class="cdl-cohort" data-tip="' + esc(cohorts.join('\n')) + '">' + cohorts.length + ' cohorts</span>'
+                ? '<span class="cdl-cohort" data-tip="' + esc(cohorts.join('\n')) + '">' + cohorts.length + ' cohorts' +
+                    '<span class="sr-only"> \u2014 ' + esc(cohorts.join(', ')) + '</span></span>'
                 : '<span class="cdl-cohort">' + esc(cohorts[0] || '\u2014') + '</span>';
             return '<li><span class="tick">\u2713</span>' +
                 '<span class="cdl-time">' + esc(to12h(r.start) + ' ~ ' + to12h(r.end)) + '</span>' +

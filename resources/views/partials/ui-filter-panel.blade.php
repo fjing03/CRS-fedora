@@ -37,7 +37,12 @@
     </button>
     <div class="filter-chips" id="filterChips"></div>
     @if($filtersCount)
+        {{-- 2026-11-17 (P2 pointer contract, phase 2): the tip explains what is being counted, which
+             the number cannot say, and it only ever appeared on a hover. The same sentence now sits
+             beside the counter for assistive tech. It is a SIBLING on purpose: updateResultCount()
+             rewrites #resultCount with textContent, so a child would be wiped on every filter change. --}}
         <span class="result-count" id="resultCount" data-tip="{{ $filtersCountTip }}"></span>
+        <span class="sr-only">{{ $filtersCountTip }}</span>
     @endif
 </div>
 
