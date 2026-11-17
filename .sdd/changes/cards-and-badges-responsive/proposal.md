@@ -156,7 +156,7 @@ own rule, ported with the card.
 | T11e | Verify: 48px measured under coarse pointer at 390/768; **unchanged at 1600px** with a mouse (the brief's regression numbers live at 1600 — Filters 34px, chip 22px, row 35px, not 1440); badge heights on three pages; the student count; keyboard open; `elementFromPoint` on neighbouring targets; card heights against the brief's §7 targets at 320/402/768/desktop; print unaffected | — |
 | T11f | Changelog + apply log; the survey report's I2/I3 rows closed | `page-changelogs/`, `docs/` |
 | T11g | **Owed:** the badge-consumer audit the brief demands — `.badge-sm` (10px, inherits the new 22px floor), `.badge-capacity` (own padding + `max-width: 120px`), and the stale "`.badge` base (4px 10px)" comment at `theme.css:5897` | `public/css/theme.css` |
-| T11h | **Blocked on the user:** the student count pill (T4, §7.1) — needs its count source and a ruling on the staff wording | `replacement-history.blade.php` |
+| T11h | **DONE 2026-11-17** (user: "yes, add student pill"): the student page now carries `#resultCount` via `ui-filter-panel` (`filtersCount => true`) and prints `X of Y match your filters` — the drawing's sentence — from the same `visible` set the table and cards render against the whole list. Staff pages keep the frozen `Showing X of Y …`. Verified at 1440 and 390 (touch): `10 of 10 match your filters`, and it follows a week filter down to `0 of 10` with the same zero cards. Tip: *How many of the whole list match your filters*. | `replacement-history.blade.php` |
 
 **Effort:** about half a session. **Risk:** low but shared — `theme.css` is read by every page, so
 T11a/T11b are scoped by selector (`any-pointer: coarse`, `.badge*`, `.slot-badge`) and verified
@@ -185,14 +185,15 @@ The reviewer raised four blockers against this artifact. Three are settled below
 (T4, the count pill) is now **the user's decision**, not the lane's. What was applied and then
 reverted is recorded too, because the review happened after the code.
 
-### 7.1 T4 — WITHDRAWN, put to the user
+### 7.1 T4 — WITHDRAWN, then re-scoped and SHIPPED as T11h
 
 Two facts killed it: the frozen `filters-button` ruling (2026-11-15) fixed the staff wording as
 `Showing X of Y classes` / `… results` **and** gave the student page no pill at all; and
 `updateResultCount` is *parameterised* (`cfg.label`), so "one shared string" was simply wrong.
-The change was applied and then **reverted** the same session. The student pill is **new work**
-with its own count source, not a wording tweak — it is not in this lane's scope until the user
-rules.
+The change was applied and then **reverted** the same session. The user then ruled on the same
+day — **"yes, add student pill"** — so the student page got the pill as its own work (T11h, done),
+while the two staff pages kept the frozen wording. That is the shape the drawing and the ruling
+can both live with.
 
 ### 7.2 The width-gated 40px badge block — removed `.badge` from it *(applied)*
 

@@ -230,7 +230,16 @@
             </div>
         </div>
 
-        @include('partials.ui-filter-panel', ['filtersCount' => false])
+        {{-- 2026-11-17 (task 11, T11h, user's word): this page gets the count pill the
+             two staff pages already carry. It says `X of Y match your filters` — the
+             sentence the student drawing prints — while the staff pages keep the
+             frozen `filters-button` wording (`Showing X of Y …`). One sentence per
+             surface, on purpose: the drawing the student page is measured against is
+             this one. --}}
+        @include('partials.ui-filter-panel', [
+            'filtersCount' => true,
+            'filtersCountTip' => 'How many of the whole list match your filters',
+        ])
 
         <!-- ─── Replacement list — desktop: shared table (JS renders rows); mobile: cards ─── -->
         @include('partials.ui-grid-table', ['wrapperId' => 'upcomingGridWrapper', 'tableId' => 'upcomingTable', 'headId' => 'upcomingHead', 'bodyId' => 'upcomingBody', 'tableClass' => 'timetable data-table'])
@@ -690,6 +699,14 @@
             /* the cards are in the DOM now: move the week into its pill and shorten
                the time range (the drawing's patchSlotRows) */
             patchSlotRows();
+
+            /* the count pill (T11h): the SAME visible set the table and cards just
+               rendered, against the whole list — never a second filter pass */
+            const countEl = document.getElementById('resultCount');
+            if (countEl) {
+                countEl.textContent = visible.length + ' of '
+                    + MockData.replacementHistory.length + ' match your filters';
+            }
             renderChips();
         }
 

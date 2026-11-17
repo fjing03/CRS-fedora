@@ -1,3 +1,12 @@
+## 2026-11-17 — a count beside the filters, like the staff pages
+
+The Filters row now ends with **`10 of 10 match your filters`** — how many of your cohort's
+conflicted classes the current filters leave, on a phone and on a desktop alike. It updates with
+the list, and its hover tip says what it counts.
+
+This page never had one; the two staff pages have carried it since the Filters button landed, and
+the student drawing has always shown it.
+
 ## 2026-11-17 — one badge shape, and a touch floor that is about touch
 
 Three changes to the shared badge rules and the list pages' controls:
