@@ -3,7 +3,7 @@
 > The always-read form of the user's coding rules for `CRS-fedora-backend`.
 > Distilled from `CodingMAIN.md §10` (Coding Conventions + UI Design Rules, user-mandated 2026-08-01)
 > and `AGENTS.md` standing rules. On any conflict, **CodingMAIN.md §10 wins** — and tell the user
-> this file has drifted so it can be re-synced. Last synced: 2026-11-16 (adds: a pending proposal replaces the `Cancelled` word; TODAY always lands on today's DAY; a public holiday keeps its classes; the phone band ends at 767 and a label must fit its control; **no hover effect on a touch screen — every page**).
+> this file has drifted so it can be re-synced. Last synced: **2026-11-17** (adds: the three replacement pop-ups' shared shape — short tabs, a badge-led strip, a `Days Left` row, one primary that is never `Close`; a list cell prints the code and the type but never the name; the 48×48 floor is a **capability** (`any-pointer: coarse`), not a width, with native `<option>` exempt; one badge geometry; and the **SDD cost cut** — one compact artifact + one review round). Previous sync 2026-11-16: a pending proposal replaces the `Cancelled` word; TODAY lands on today's DAY; a public holiday keeps its classes; the phone band ends at 767 and a label must fit its control; no hover effect on a touch screen.
 
 ## 1. UI Design Rules — non-negotiable, every page, every change
 
@@ -34,13 +34,26 @@
      prints. My Timetable and Student My Timetable split **Total Classes** and **Teaching Hours** into
      `finished +pending` (`9+1`, `12+1`) through `{ splitPending: true }`.
    - **One details-popup width: 680px** (2026-11-11/12). The student Class Replacements popup is the staff
-     Replacement Details popup (four tabs, static Close-left / Go-right footer, conflict strip above the tabs);
-     `.modal-tabs` wraps below 520px. Do not shave one page's modal narrower.
+     Replacement Details popup — same renderer, same shape: short tabs `Requested` · `Original` ·
+     `Class Info` · `Status` (long names stay as each tab's caption; the staff and student pop-ups have
+     three until a proposal exists), a facts strip of **one badge-led fact per row** (`Status` on top,
+     the reason/conflict at the bottom), the countdown on its own `Days Left` row, and **one filled
+     button at most — never `Close`**. `Class Info` holds the people (cohorts, students, and the
+     proposer's staff ID + copy-email chip on the PL pop-up). `.modal-tabs` wraps below 520px. Do not
+     shave one page's modal narrower.
    - **680 is a ceiling, not a fixed width** (2026-11-14). ONE shared `theme.css` rule sizes every pop-up — no
      page pins its own width. Above 600px: `width: fit-content`, 420px floor, `max-height: 85dvh`; at ≤600px: a
      full-width phone sheet. Variant ceilings: details 680 · guide 520 · summary 420 · Cancel Class 560 (588 at
      ≥1025). Close button 48×48; the phone footer stretches every button; header / scrolling body / footer are
      pinned separately. The grey facts strip never decides the width (`width: 0; min-width: 100%`).
+   - **A table cell prints the code and the type, never the name** (2026-11-17). The three list tables'
+     Course cell reads `AMSE2003 (L)` on one line; `cell-name` is gone. Request Approval's Staff cell is
+     the proposer's **name alone** — the `(staffId)` and the copy-email chip moved to the pop-up's
+     `Class Info`, and the column keeps its 600-weight wrapper and its `Staff (Proposer)` header.
+   - **Touch is a capability, not a width** (2026-11-17). The 48×48 floor is
+     `@media (any-pointer: coarse)`, never a breakpoint; native `<option>` values are exempt. Badges
+     speak **one geometry** — `.badge` `inline-flex`, 22px min-height, `3px 10px`, `.badge-sm` 18px —
+     and no colour lives in that rule.
    - **A list opened inside a pop-up is never clipped** (2026-11-14): `overflow: visible` while it is open; on
      phones it opens upward inside the sheet. One arrow language inside pop-ups — the `.week-select` chevron at
      a 12px inset, same stroke in both themes.
@@ -131,9 +144,12 @@ and Cohort keep the 0.5px hairline and their own legend line. The words are a re
 The band is chosen by `urgencyBandClass(days)` in `ui-common.js` — never by a page. Words:
 `Today` · `1 Working Day Left` · `N Working Days Left` · `Overdue (N Working Day Ago)`;
 working days = Mon–Fri minus the timetable's holidays. **Placement:** the countdown is its own
-line under the date (date / urgency / time) in the table columns, and sits in brackets in the
-details pop-up — an overdue label follows an em dash there instead. A pending request also shows
-the make-up countdown on the requested date; approved/completed print `—`.
+line under the date (date / urgency / time) in the table columns, and **its own `Days Left` row
+under `Day & Date`** in the three replacement pop-ups (2026-11-17, task 10 — this supersedes the
+bracketed `9 Nov 2026 (1 Working Day Left)` form for those three; the words and colours did not
+change, only their home). The student page hides that row once the row is approved or completed:
+a solved class is not late. A pending request also shows
+the make-up countdown on the requested date; approved/completed print `—` in the table.
 
 Adding a new status/legend item = **ONE row** in the relevant table above + **ONE class** in `theme.css`, then reuse it everywhere.
 
@@ -269,6 +285,11 @@ fills when it is alone" rule: delete any `is-primary` toggle on a Close, never r
        (that would trigger promote-on-3rd-duplication, which always needs a lane).
     5. **User says go** — the exemption is granted per change, not assumed.
     Everything else gets a lane. "It looked small" is not criterion 1.
+  - **SDD cost cut (user, 2026-11-17).** A lane may write **one compact artifact** — proposal +
+    decisions + acceptance criteria + tasks in a single file — and run **one review round** per task
+    instead of one per stage. Specs and tasks fold together when the design is already frozen; the
+    review is still a real reviewer round, never self-declared. Task 12 (`table-column-trims`) ran this
+    way: one combined `spec-and-tasks.md`, one round, three wording fixes.
 - **After a hunk-wise commit, diff the index against the worktree for every lane file** (2026-11-14).
   Staging selected hunks out of files that also hold another session's work is the right move, but a
   hunk filter keyed on a marker string silently drops the hunks that carry no marker — one lane's

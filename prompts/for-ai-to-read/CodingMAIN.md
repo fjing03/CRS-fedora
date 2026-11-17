@@ -534,7 +534,15 @@ These eleven rules are **non-negotiable** for every page and every future change
    - A status/legend label and its color are a **canonical pair defined once below**; every page must use that exact pair. Never give the same concept a different label or a different color on another page.
    - Identical component = identical class name across pages (`.badge`, `.legend-item`, `.summary-card`, `.filter-select`, `.cell-code`, `.empty-state`, etc.), defined once in `theme.css`.
    - **Read-only timetable blocks use the frozen two-axis language** (§3): block classes `event-mine`/`event-others`/`event-mine-pending`/`event-others-pending`/`event-conflict`/`event-public-holiday`; legends render block-class chips + the ownership hint ("thick border (3px) = your classes · thin border (0.5px) = others'"). Tooltips render `name · lecturer · status` via `data-name` + `data-tip2` (`lecturer · status`). **The arrangement grid is the exception:** since 2026-11-11 it has no ownership ring, and its legend is four rows (see B).
-   - **One details-popup width: 680px** (2026-11-11/12). The student Class Replacements popup is the staff Replacement Details popup — four tabs, static Close-left / Go-right footer, conflict strip above the tabs — and `.modal-tabs` wraps below 520px. Do not shave one page's modal narrower.
+   - **One details-popup width: 680px** (2026-11-11/12). The student Class Replacements popup is the staff
+     Replacement Details popup — same renderer, same shape. **The shape as it ships (2026-11-17, task 10):**
+     short tabs `Requested` · `Original` · `Class Info` · `Status` (the long names survive as each tab's
+     section caption), a facts strip that carries **one badge-led fact per row** with `Status` on top and
+     the conflict/reason at the bottom, the countdown on its own `Days Left` row under `Day & Date`, and
+     **at most one filled button, which is never `Close`**. The PL's Request Details has all four tabs;
+     the staff and student pop-ups have three (no `Requested` until a proposal exists). `Class Info` is
+     where the people live — cohorts and students, plus the proposer's staff ID and copy-email chip on
+     the PL pop-up. `.modal-tabs` wraps below 520px. Do not shave one page's modal narrower.
    - **680 is a CEILING, not a fixed width** (2026-11-14, lane `modal-responsive-width`). One shared rule in `theme.css` governs every pop-up; **no page pins its own width** (the page-local `max-width: 680px` on the quick view and on the Request Approval shell were deleted — on ID specificity they beat the shared rule). Above 600px a pop-up is `width: fit-content` with a **420px floor** and `max-height: 85dvh`; at **≤600px** it is a full-width phone sheet (`padding: 0` on the overlay). Variants keep their own ceiling: details **680**, guide **520**, summary **420**, Cancel Class **560** (588 at ≥1025). The close button is **48×48** and the phone footer stretches every button full width. A pop-up is three pinned regions — header, scrolling body, footer — so a long body never pushes the buttons off screen.
    - **`Close` is never the filled primary** (2026-11-15, user). A filled button reads as "the thing to
      do", and closing is never the thing to do. Five pop-ups are covered — the two timetable class
@@ -543,8 +551,28 @@ These eleven rules are **non-negotiable** for every page and every future change
      quiet outline `Close`; a footer with an action fills the action and leaves `Close` outlined. This
      reverses the 2026-11-14 "Close fills when it is alone" rule for both families — delete that
      toggle rather than re-adding it: `.modal--detail .modal-footer .btn-outline.is-primary` in
-     `theme.css` stays as the shared fill, but nothing should assign `is-primary` to a Close any more
-     (`replacement-history.blade.php` hard-codes it; `replacement-home.blade.php` toggles it).
+     `theme.css` stays as the shared fill, but nothing should assign `is-primary` to a Close any more.
+     **Corrected 2026-11-17 (task 10): neither blade ever assigned it** — the brief claimed
+     `replacement-history.blade.php` hard-coded it and `replacement-home.blade.php` toggled it, and a review
+     round proved both references gone (grep `is-primary` finds no hit in either blade). Only the PL's
+     `Approve` needed filling.
+   - **A list cell prints the code and the type, never the name** (2026-11-17, task 12). All three list
+     tables' Course cell reads `AMSE2003 (L)` on **one line** — code, then the type in the small grey
+     `cell-type-label` bracket — and `cell-name` is gone (it is `display: block`, so keeping it would put
+     the type on a second line). The missing-type guard prints the code alone, never `()`. Request
+     Approval's Staff cell prints the proposer's **name alone**: the `(staffId)` and the copy-email chip
+     live in the pop-up's `Class Info`, and `lecturer-cell-id` / `lecturer-cell-email` keep their rules
+     because the confirm card and Class Info still build them. The subject name's home is the pop-up
+     subtitle — a cell tooltip would reverse the 2026-11-09 ruling **and** flip `CourseColumnTipTest`.
+   - **One pill language, geometry only** (2026-11-17, task 11). Every `.badge` is `inline-flex`,
+     vertically centred, `border-box`, `min-height: 22px`, `padding: 3px 10px`, `line-height: 1.2`;
+     `.badge-sm` is the same shape at 18px, `.badge-capacity` inherits the base. Changing a badge's
+     geometry means changing the base, not one variant. No colour lives in that rule.
+   - **48 is a fingerprint rule, not a width rule** (2026-11-17, task 11, user). Touch targets are
+     `≥48 × 48` under `@media (any-pointer: coarse)` — **never** a `max-width` gate. A native
+     `<option>` is exempt (the OS draws its popup and we cannot style it); the `<select>` control
+     itself is not. The filter **chip stays 32px on touch** by the older measured `filters-button`
+     trade — the conflict is commented in `theme.css` so nobody "fixes" it by accident.
    - **Content never decides a pop-up's width** (2026-11-14). The grey facts strip (`.detail-facts`) is `width: 0; min-width: 100%`: it fills whatever the pop-up is and wraps. It must not widen it (measured 626 → 513 at the same height).
    - **A bookable cell is green, even in the last hour** (2026-11-14, lane `venue-evening-tail`). The venue grid's day now runs **08:00–18:30** (22 half-hours, real `time_slots` rows to 19:00) and its last served half-hours are **painted and counted like any other free cell** — never red, never silently dropped. A cell with no room left below it says **`Not Enough Slot`** in green and explains itself in the toast (`Not enough room below this class — pick a Free Cell.`); the red `Too Late to Book` day-end arm is retired. The tail exists only for days whose last served row is in the final hour, so a half-day room stays truthful. A class's duration is still judged only after it is picked (`#slotWarningOverlay`, shared 680 ceiling).
    - **A list opened inside a pop-up is never clipped** (2026-11-14). `.modal:has(.session-dd.open)` / `.modal-body:has(.session-dd.open)` go `overflow: visible` so the session picker floats outside the box; **at ≤600px it opens upward inside the sheet** (`top: auto; bottom: calc(100% + 4px)`, `max-height: 180px`) and the clipping stays. **One arrow language:** a select arrow inside a pop-up is the sanctioned `.week-select` chevron at a **12px inset** (13px from the outer edge), same stroke in dark and light (`%239EAAB8` / `%235A6978`).
@@ -629,8 +657,9 @@ These eleven rules are **non-negotiable** for every page and every future change
    (`--color-surface-variant` / `-on-surface-variant`), which is also the chip My Replacements
    already prints in its Reason column. `--color-error` belongs to **Public Holiday** and
    **Conflict** (`.badge-conflict` / `.badge-public-holiday`); a third meaning on red would blunt
-   the signal. `theme.css` still has **no** `.badge-cancelled` skin — adding it is owed work; do
-   not ship the transparent pill, and do not copy `.badge-conflict`'s tokens.
+   the signal. `.badge-cancelled` **now exists** (`theme.css:1369`, added 2026-11-15 by
+   `my-timetable-responsive-prompt`): the same token pair as `Cancelled` above, unscoped on purpose —
+   never copy `.badge-conflict`'s tokens and never ship a transparent pill for it.
 
 **A week filter names which weeks it means — and the two replacement pages mean different weeks
 (2026-11-07; labels re-worded to SLOT on 2026-11-10; "all" option shortened to `All Weeks` on
