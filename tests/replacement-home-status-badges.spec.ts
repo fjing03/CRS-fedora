@@ -61,7 +61,9 @@ async function rows(page: Page): Promise<Row[]> {
         badgeIsAnchor: badge?.tagName === 'A',
         iconClass: icon ? Array.from(icon.classList).find((c) => c.startsWith('btn-icon--')) ?? null : null,
         iconOnclick: icon ? icon.getAttribute('onclick') : null,
-        reason: (tr.querySelector('.col-reason')?.textContent || '').trim(),
+        /* reads the BADGE, not the whole cell: the cell now also carries an sr-only copy of the hover
+           detail (2026-11-17, P2 phase 2), and this receipt is about what the badge itself says */
+        reason: (tr.querySelector('.col-reason .badge')?.textContent || '').trim(),
       };
     });
   });

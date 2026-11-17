@@ -545,9 +545,14 @@
 
         function reasonBadge(c) {
             var detail = reasonDetail(c);
+            /* 2026-11-17 (P2 phase 2): the 2026-11-11 ruling stands — the cell and the phone card keep
+               the SHORT badge and the pop-up keeps the full text, because a badge is not a door (M6)
+               and the cell must not grow. What changes is that the detail the hover carried is now in
+               the DOM beside it, so assistive tech is not excluded by a ruling about layout. */
+            var forReader = detail ? '<span class="sr-only"> \u2014 ' + detail + '</span>' : '';
             return '<span class="badge ' + badgeClass(c.conflictReason) + '"'
                 + (detail ? ' data-tip="' + detail.replace(/"/g, '&quot;') + '"' : '')
-                + '>' + reasonText(c) + '</span>';
+                + '>' + reasonText(c) + '</span>' + forReader;
         }
 
         /* 2026-11-11 (user, follow-up ruling): the DETAILS POP-UP prints the badge
@@ -619,8 +624,11 @@
         function statusCell(c) {
             var key = c.requestStatus || 'none';
             var cls = c.requestStatus ? 'status-' + c.requestStatus : 'badge-outline status-none';
+            /* 2026-11-17 (P2 phase 2): same treatment — the badge keeps its shape and its words, and
+               the explanation it carried on hover follows it in the DOM. */
             return '<span class="badge ' + cls + '" data-tip="' + String(statusTipOf(c)).replace(/"/g, '&quot;') + '">' +
-                statusLabelOf(c) + '</span>';
+                statusLabelOf(c) + '</span>' +
+                '<span class="sr-only"> \u2014 ' + String(statusTipOf(c)) + '</span>';
         }
 
         /* 2026-11-10 (user, "UI Update — Action Icon Consistency"): the ACTION

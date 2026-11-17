@@ -4046,8 +4046,12 @@ class HtmlBuilder {
             /* generic badge text (displays PUBLIC HOLIDAY via the existing
                uppercase transform); the specific holiday name, when known,
                rides the shared data-tip hover tooltip */
+            /* 2026-11-17 (P2 phase 2): the holiday's own name was reachable by hover only. The day
+               column is a seventh of the grid, so the name cannot be printed there without breaking
+               the header it sits in — it travels beside the badge for assistive tech instead. */
             const tipAttr = day.holidayLabel ? ' data-tip="' + day.holidayLabel + '"' : '';
-            html += '<span class="holiday-badge"' + tipAttr + '>Public Holiday</span>';
+            const nameForReader = day.holidayLabel ? '<span class="sr-only">' + escHtml(day.holidayLabel) + ' </span>' : '';
+            html += nameForReader + '<span class="holiday-badge"' + tipAttr + '>Public Holiday</span>';
         }
         if (day.today) {
             html += '<span class="today-badge">Today</span>';
@@ -4603,10 +4607,15 @@ function requestAgeHtml(requestedAt, urgencyLabel) {
         label = diff + ' days ago';
     }
     const cls = diff <= 1 ? 'age-fresh' : diff <= 3 ? 'age-waiting' : 'age-stale';
+    const band = cls === 'age-fresh' ? 'recently submitted' : cls === 'age-waiting' ? '2–3 days old' : '4+ days old';
     const tip = urgencyLabel
         ? label + ' · Urgency: ' + urgencyLabel
-        : label + ' · ' + (cls === 'age-fresh' ? 'recently submitted' : cls === 'age-waiting' ? '2–3 days old' : '4+ days old');
-    return '<div class="request-age ' + cls + '" data-tip="' + tip + '">' + label + '</div>';
+        : label + ' · ' + band;
+    /* 2026-11-17 (P2 phase 2): the chip prints the count; the band it falls in (and the urgency, when
+       there is one) lived only in the tip. Same sibling pattern as the counters — the chip itself is
+       unchanged, so its geometry and its text stay exactly what the layout was tuned against. */
+    const bandForReader = '<span class="sr-only"> — ' + (urgencyLabel ? 'urgency ' + urgencyLabel : band) + '</span>';
+    return '<div class="request-age ' + cls + '" data-tip="' + tip + '">' + label + bandForReader + '</div>';
 }
 
 
@@ -6476,12 +6485,16 @@ const CancelClassModal = {
             ' \u00b7 week ' + esc(m.week) + ' \u00b7 ' + esc(to12h(m.start) + ' ~ ' + to12h(m.end)) +
             (m.venue ? ' \u00b7 ' + esc(m.venue) : '')).join('\n');
 
+        /* 2026-11-17 (P2 phase 2): the note says how many blocks; WHICH blocks was the tip's job and
+           the tip needed a pointer. The list now follows the sentence for assistive tech — `lines` is
+           already entity-escaped above, so it is safe to append, and the newlines become separators. */
+        const noteDetail = '<span class="sr-only"> \u2014 ' + lines.split('\n').filter(Boolean).join('; ') + '</span>';
         return '<p class="cancel-day-note" data-tip="' + esc(lines) + '">' +
             (makeUps.length === 1 ? '1 make-up block' : makeUps.length + ' make-up blocks') +
             ' that day ' +
             (makeUps.length === 1 ? 'belongs' : 'belong') +
             ' to another week \u2014 cancel ' + (makeUps.length === 1 ? 'it' : 'them') + ' from ' +
-            (makeUps.length === 1 ? 'its' : 'their') + ' own class.</p>';
+            (makeUps.length === 1 ? 'its' : 'their') + ' own class.' + noteDetail + '</p>';
     },
 
     _dayBoxes(scope) {
