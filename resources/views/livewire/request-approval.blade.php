@@ -335,14 +335,14 @@
     'filtersResetOnclick' => 'resetFilters()',
 ])
 
-<div class="grid-wrapper" id="gridWrapper">
-    <div class="grid-scroll">
-        <table class="timetable data-table" id="timetable">
-            <thead id="tableHead"></thead>
-            <tbody id="tableBody"></tbody>
-        </table>
-    </div>
-</div>
+{{-- 2026-11-17: this page used to hand-roll the grid markup, so it was the one grid with
+     no scroll cue — the shared partial is what carries it. Same ids as before
+     (wrapper #gridWrapper, table #timetable, #tableHead, #tableBody), so the page's
+     own scripts and the responsive table↔cards swap are untouched. --}}
+@include('partials.ui-grid-table', [
+    'wrapperId' => 'gridWrapper',
+    'tableClass' => 'timetable data-table',
+])
 
 <div class="requests-cards" id="requestsCards" style="display:none"></div>
 

@@ -1,3 +1,19 @@
+## 2026-11-17 — the table comes from the shared grid partial, so it gets the scroll cue
+
+This page hand-rolled its own `grid-wrapper > grid-scroll > table` markup instead of including
+`partials/ui-grid-table`, which made it the one grid on the site with no scroll cue. At 1440 a
+wide table here would have run past the card in silence, exactly as the arrangement grid did
+before `0d15c44`.
+
+It now includes the partial with `wrapperId: gridWrapper` and `tableClass: timetable data-table`,
+so every id the page's own scripts use (`#gridWrapper`, `#timetable`, `#tableHead`, `#tableBody`)
+is unchanged, and the table↔cards swap at 390 still happens by the same display toggle.
+
+Checked: 1440 renders with the cue element present (hidden at zero overflow), 390 swaps to cards
+with no sideways scroll, no console errors. `tests/grid-scroll-cue.spec.ts` 4/4;
+`filters-button.spec.ts` + `request-approval.spec.ts` 26 passed, 7 failed — all pre-existing
+(no pending rows in this dataset, and the count-pill case fails with this change stashed too).
+
 ## 2026-11-17 — the Course cell is one line, and Staff drops the ID
 
 Two trims, both of them facts the details pop-up already carries.
