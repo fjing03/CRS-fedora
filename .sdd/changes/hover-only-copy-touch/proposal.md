@@ -52,13 +52,17 @@ user — and a keyboard user — sees a dead button and no reason.
 **In scope:**
 
 1. **Legend copy.** Rewrite the two `HOVER the slot` sentences to name no gesture: *"Open the slot's tooltip
-   to see …"*. Keep the capitals, the `\n` line break (the engine renders `pre-line` — the comment above the
-   block says so), and every word of meaning.
+   to see …"*. **Keep the emphasis capital on the verb** — `OPEN` — because the rest of the tip capitalises
+   its load-bearing nouns (YOURS, CANNOT BOOK, VENUE CONFLICT) and the blade's own comment says "Capitals do
+   the emphasis". Keep the `\n` line break (the engine renders `pre-line`) and every word of meaning.
 2. **`#submitTip` becomes reachable.** Give the wrapper a `:focus-visible` ring (this blade's own `<style>`),
    and make it focusable **only while its button is disabled** — `tabindex="0"` plus an `aria-label` set
-   inside `updateCounter()`, in both branches, so the announced reason tracks the visible tip and the tab stop
-   disappears the moment Submit becomes usable. That last clause matters: an always-focusable wrapper around
-   an *enabled* button is a dead tab stop (Enter on it does nothing).
+   inside `updateCounter()`, **keyed off the button's actual `disabled` state — not off whether a slot is
+   selected**. That distinction is load-bearing: `:3479` disables Submit on `!has || mobileSubmissionInFlight`,
+   so a slot can be selected while Submit stays disabled (the T18 mobile-origin latch, released only by
+   `releaseMobileSubmissionLatch()`). Keying off `has` would strand exactly that state. The announced name
+   tracks the visible tip in every state, and the wrapper is a tab stop only while the button is genuinely
+   disabled — an always-focusable wrapper around an *enabled* button is a dead tab stop (Enter does nothing).
 
 **Out of scope, recorded as phase 2:** the eight `<th>` header tips on My Replacements, and the three badge
 tips (`badge-holiday`, `status-rejected`, `badge-outline`). They hold real text and deserve the same
@@ -81,8 +85,8 @@ less than a component.
 
 | Now | After |
 |---|---|
-| "…\n**HOVER the slot** to see whether it is YOURS …" | "…\n**Open the slot's tooltip** to see whether it is YOURS …" |
-| "…\n**HOVER the slot** to see WHY: your own class, …" | "…\n**Open the slot's tooltip** to see WHY: your own class, …" |
+| "…\n**HOVER the slot** to see whether it is YOURS …" | "…\n**OPEN the slot's tooltip** to see whether it is YOURS …" |
+| "…\n**HOVER the slot** to see WHY: your own class, …" | "…\n**OPEN the slot's tooltip** to see WHY: your own class, …" |
 
 "Open" rather than "Tap or focus": true on all three modes, names no device, and does not read as an
 instruction that only works on some screens. Switching the verb by pointer type (as `theme.css:2261` does
@@ -101,8 +105,9 @@ explains why"* — not a per-pointer variant.
 - **AC-4** By keyboard, Tab reaches the wrapper **while Submit is disabled** and shows the tip with a visible
   focus ring; once a slot is selected the wrapper is **not** a tab stop (no dead stop in front of an enabled
   button). `#clearTip` is absent from the DOM and is not tested.
-- **AC-5** The reason is announced, not just shown: the wrapper's accessible name equals its current tip text
-  **in both states** (empty: "Select a time slot first…"; selected: "Send your replacement request…").
+- **AC-5** The reason is announced, not just shown: the wrapper's accessible name equals its **current** tip
+  text in every state — empty ("Select a time slot first…"), selected ("Send your replacement request…"), and
+  **selected-but-latched**, where Submit is still disabled and the tip already reads the action string.
 - **AC-6** No change to `ui-common.js`, `theme.css`, or any Livewire class; `scrollWidth` unchanged at
   1024 / 1280 / 1440; the arrangement still arranges and still submits.
 - **AC-7** Phase 2 carriers (8 `<th>` tips, 3 badge tips) are untouched by this lane and named in the receipt.
@@ -111,8 +116,9 @@ explains why"* — not a per-pointer variant.
 
 1. ~~Decide the approach~~ — owner picked copy-first (2026-11-17); approval to apply was given, then withdrawn.
 2. Rewrite the two legend strings (`:2710`, `:2714`).
-3. `#submitTip`: `tabindex` + `aria-label` maintained inside `updateCounter()` for both branches, and removed
-   when Submit is enabled.
+3. `#submitTip`: `tabindex` + `aria-label` maintained inside `updateCounter()`, both branches, keyed off
+   `#submitRequestBtn.disabled` (so the mobile-origin latch state is covered); the tab stop is removed only
+   when the button is genuinely enabled.
 4. `:focus-visible` ring for `.btn-tip` in this blade's `<style>`.
 5. Verify: 1024 touch tap (focusable and non-focusable dismissal targets), keyboard Tab in both states, both
    themes, `scrollWidth`, multi-line tip, submit still works.
@@ -122,8 +128,9 @@ explains why"* — not a per-pointer variant.
 
 Two strings, two attributes maintained in one existing function, three lines of scoped CSS — one file, one
 revert. The real risk is the state sync: a `tabindex` or `aria-label` that only updates on selection but not
-on clear would leave a stale reason. AC-4/AC-5 test both transitions, and `updateCounter` is the single gate
-that already owns `disabled` (`:3479`) and the tip text (`:3484`), so there is one place to be right.
+on clear would leave a stale reason, and keying the sync off `has` instead of `btn.disabled` would strand the
+selected-but-latched state. AC-4/AC-5 test both transitions and that third state; `updateCounter` is the single
+gate that already owns `disabled` (`:3479`) and the tip text (`:3484`), so there is one place to be right.
 
 ## 8. Gate
 
