@@ -8,19 +8,15 @@ tree.
 ```blade
 {{-- The hint promises a tap on touch; without a focus stop that promise cannot be kept — the engine has
      no touch path, and a div with data-tip alone is unsummonable. tabindex makes the tip reachable by tap
-     (focus parity) and by Tab; aria-label makes it announced, which data-tip never is. --}}
-<div class="legend-item" tabindex="0" role="note"
+     (focus parity) and by Tab. role=img, not a roleless div: a generic computes a name in Chromium and
+     announces unevenly in real screen readers, which is a false pass. role=img makes the child spans
+     presentational, so the label must carry BOTH the colour name and the meaning. --}}
+<div class="legend-item" tabindex="0" role="img"
      @if(!empty($item['tip'])) data-tip="{{ $item['tip'] }}" aria-label="{{ $item['label'] }}: {{ $item['tip'] }}" @endif>
 ```
 
-Two decisions inside that snippet, both open to the owner:
-
-- `role="note"` — the reviewer asked whether a roleless focusable div gets its name announced. `note` is
-  the least-wrong generic; the alternative is no role and accepting uneven announcement.
-- the `aria-label` is `"Label: tip"` rather than the tip alone, so the colour name is not lost (the tip
-  text alone, e.g. "Scheduled class with no issues", does not name which colour).
-
-**Cost:** four new tab stops per legend, on every timetable page that renders one.
+**Cost:** four to five new tab stops per legend, on every page that renders one — and, because they are now
+controls, the 48px law applies to them (owner chose option A, 2026-11-17).
 
 ## 2. `resources/views/livewire/student-my-timetable.blade.php` (line 32)
 
@@ -34,10 +30,19 @@ Two decisions inside that snippet, both open to the owner:
 /* touch devices tap instead of hover (F-5, ui-legend-bar dual copy).
    `any-pointer: coarse`, not `hover: none`: on a hybrid (Surface, touch laptop, iPad + trackpad) a
    hovering pointer exists, so `hover: none` is false and the legend would keep saying "Hover a colour"
-   while a finger is on the glass. Capability, not width — the same law as the touch floor. */
+   while a finger is on the glass. Capability, not width — the same law as the touch floor.
+   NOTE: this re-key is a TRADE-OFF, not a bug fix (round 3): hover:none asks "can nothing hover?",
+   any-pointer:coarse asks "is a coarse pointer present?". Owner approved the exchange. */
 @media (any-pointer: coarse) {
     .legend-hint .hint-hover { display: none; }
     .legend-hint .hint-touch { display: inline; }
+}
+
+/* Owner decision 2026-11-17 (option A): the legend items are controls now, so they take the law's size
+   instead of an exemption. Measured before: 16px tall on all four pages that render a legend.
+   Consequence: the legend grows ~32px per row on touch devices only; a mouse device is untouched. */
+@media (any-pointer: coarse) {
+    .legend-item { min-height: 48px; min-width: 48px; }
 }
 
 /* The new tab stops need a visible indicator; the legend is a div, so it has none by default. */
@@ -60,8 +65,10 @@ different concern (hover *skins*, not copy) and are out of scope here.
    non-focusable target → tip hides.
 4. Keyboard: Tab reaches each legend item, focus ring visible, tip shows, `aria-label` announced.
 5. `scrollWidth` unchanged at 1024 / 1280 / 1440; the four legend meanings unchanged.
-6. `npx playwright test tests/timetable-responsive.spec.ts tests/status-tooltips-filter-chips.spec.ts
-   --reporter=line` — the legend is inside those pages.
+6. `npx playwright test tests/timetable-responsive.spec.ts tests/cohort-venue-responsive.spec.ts
+   tests/status-tooltips-filter-chips.spec.ts --reporter=line` — the first two *are* the 48×48 walks, and
+   they must report zero offenders at 390 and at the touch-laptop 1440 case. This is the AC that would
+   have caught the round-3 blocker.
 7. `/impeccable detect` on the two changed blade files (markup check), then hand to polish if it flags.
 
 ## 5. Risk
