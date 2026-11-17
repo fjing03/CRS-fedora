@@ -71,12 +71,34 @@ options, with what each costs:
 (where the tooltip is genuinely supplementary detail, not the meaning). That split is what the
 evidence supports; it is an owner call, not a reviewer call.
 
-## 4. What cannot be measured until the other chat finishes
+## 3a. Measured 2026-11-17, tree free after `summary-zero-pending` landed — the header row is not a copy problem
 
-- every browser number (tab order length, header height, phone column collapse) — the tree is moving;
-- whether `.badge` still sits outside the 1024 block after their sweep;
-- whether `.result-count` still renders on the pages that had it (the empty-state work may have
-  changed that).
+The seven `<th data-tip>` carriers are **sortable column headers on the request tables**, not timetable
+day headers, and five of them are sortable:
+
+| Fact | Value |
+|---|---|
+| carriers on `/my-replacements` | **7** (`Course`, `Cohort`, `Original Slot`, `Conflict Reason`, `Requested Slot`, `Request Status`, `Action`) |
+| sortable | **5** — each with `addEventListener('click')`, **no** `tabindex`, **no** `role`, **no** `aria-sort`, **no** key handler |
+| height | **35px** at 1440 and 1024 |
+| keyboard | clicking sorts; **no keyboard path exists**, so sorting is mouse/touch only |
+| phone (390) | the table header is **not rendered** (`th` 0×0, table `display: block`) — a 48px floor on a header can never bite there |
+| `.sr-only` from Tailwind | **does not reach these pages** — probe span computed `position: static`, 9×20 |
+
+So option A ("move the meaning into visible text, delete `col.tip`") is the wrong tool here: the tip is
+a column explanation, and deleting it fixes nothing while **the sort itself stays keyboard-dead**. The
+honest fix is to make the header a control (`tabindex`, Enter/Space, `aria-sort` kept in sync by the
+same `render()` callback) — which then gives the tip focus parity for free through the existing engine.
+That is a behaviour change, not a copy change, so it needs its own go.
+
+## 4. What was measured once the tree freed up
+
+Done, and the answers changed the plan: see §3a. `.badge` is still outside the 1024 block,
+`.result-count` still renders, and the phone layout hides the whole request table (so header geometry
+is a desktop-only concern).
+
+**Landed, `7b7b09b`:** `.sr-only` in `theme.css`, the result-count explanation as a sibling, and the
+four cohort carriers. **Waiting on a decision:** the sortable headers (§3a) and the badge copy (§5).
 
 ## 5. Decisions
 
