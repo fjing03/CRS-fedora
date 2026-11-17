@@ -181,3 +181,78 @@ edited, so there is nothing to un-edit.
 
 Batch B — the builder's `print` mode, the print-set derivations and the four pages'
 `buildPrintSheet()` wiring. Reported before Batch C starts, as agreed.
+
+---
+
+## Batch B — feed the sheet (2026-11-16)
+
+| Task | Change |
+|---|---|
+| T08 | `buildTimetableGrid()` gained one opt-in `print` flag: 12-hour hour axis, the `.print-*` block, no status word, no `tabindex`, per-page shape via `cfg.printShape` / `cfg.printClassFn`. Absent flag → today's bytes |
+| T09 | `printRunSet()`, `printSemesterSet()`, `printDays()`, `printSurname()`, `printNoteText()`, `printNormalDays()` in `ui-common.js` |
+| T10 | `PrintSheet` (`init` / `isNormal` / `rebuild` / `fit`): the header's context, subtitle, semester, two-part week line, the key, the printed empty panel and the density flag |
+| T11 | `buildPrintSheet()` on all four pages; Cohort rebuilds on **both** early returns |
+
+Receipted after the batch: 12-hour hours, six rows, per-page corners/centre, Venue's
+three cohorts one per line, no console errors, `#timetable` unchanged (pin: synthetic
++ Cohort byte-identical, venue differing only at the separator).
+
+## Batch C — the block layout and the fit (2026-11-16)
+
+Twelve-case CSS for the paper's block (corners absolute, measured band, note out of
+flow), the fit pass, dense mode, `normal-view` rules — then printing it for real
+found **four layout bugs**, each fixed at the cause:
+
+| Bug | Cause | Fix |
+|---|---|---|
+| the day column landed on the wrong side and the rest of the table vanished | the paper reused the screen's `.time-col`, which is `position: sticky; width 120px; z-index 15` — sticky cells in a printed table paint against the page box | the builder emits `.print-day` / `.print-cell` under the print flag (the design's own "own vocabulary" rule) |
+| the table collapsed to its narrowest content | `.app-container` is a flex container and the paper's `width: auto` made it shrink-to-fit | on paper the shell steps out of the way; the surfaces stretch |
+| the app's dark canvas showed through the paper | cells were transparent | the paper paints its own surface |
+| screen instructions printed | `.booking-hint-line`, `.lead-time-note`, `.summary-hint` | hidden on paper |
+
+Measured: sheet at **1062 px**, a three-line centre gets a measured band (12 px), a
+one-hour block takes the narrow sizes (9 px), every block `scrollHeight ≤ clientHeight`.
+
+## Batch D — the Normal Class view (2026-11-16)
+
+The switch in the shared week row (opt-in, default false), bound by `PrintSheet` (no
+inline handler), page-local and reset on reload. On: the sheet is rebuilt from the
+deduplicated semester union, `Week 1 ~ 14` + `(Whole Semester)`, dates dropped, days
+upper-cased, no holiday trace, the key hidden.
+
+**Measured on My Timetable:** before and after the toggle, `#timetable.outerHTML` is
+identical and it still holds 7 blocks. The screen did not move.
+
+Two paper bugs found by printing the normal view: the header's right column sized its
+items to content and ran past the page edge (`(Whole Semester)` was cut in half); a
+hover pill that happened to be on screen printed with the sheet.
+
+## Batch E — receipts, pin, changelogs (2026-11-16)
+
+- `tests/timetable-print.spec.ts` — **12 cases**, listed in the verify report.
+- `tests/venue-timetable.spec.ts` TC05 rewritten (it pinned the coming-soon toast).
+- `tests/timetable-responsive.spec.ts` T16a item 6 rewritten (it asserted the print
+  rules this lane withdrew).
+- The pin's **venue** receipt re-captured. Proven, not asserted: with the pin's own
+  `withoutToday()` normaliser, undoing just the time joiner in the new capture
+  reproduces the 2026-11-15 capture exactly (5 blocks, 5 separators, nothing else).
+  Synthetic and Cohort receipts untouched, both still byte-identical.
+- Four page changelogs.
+
+### One scope decision, made from a receipt
+
+The switch **stands down below 768 px**. Adding it to the phone week row truncated the
+week label, and task 8's own receipt (`T16d` item #3) refuses that: at 390 the widest
+label needs 144 px and the box offers 143. Shaving the label again for a reading mode
+was not worth it, so the switch is offered from 768 up and
+`tests/timetable-print.spec.ts` asserts that boundary at 390 / 768 / 1280 — a decision
+with a receipt rather than a silent gap. A phone still prints the week.
+
+Two layout fixes fell out of the same work: the switch's **input** is now the real hit
+box (48×48 on touch — a 1×1 visually-hidden input was refused by R7, rightly), and the
+venue bar's **five-column grid became six** (the sixth child had fallen into an
+implicit column and squeezed the venue dropdown).
+
+## Batch F — verification (2026-11-16)
+
+Twelve receipts, five PDFs, lint and PHPStan. Full table in `verify-report.md`.

@@ -1,14 +1,13 @@
 name: timetable-print-v2
 created: 2026-11-12
-status: proposed  # explored + proposed + designed + spec'd + tasked 2026-11-16; NO code written
-batch: "proposal / design / specs / tasks frozen — awaiting the user's apply approval"
+status: applied  # explored, proposed, designed, spec'd, tasked, APPLIED and VERIFIED 2026-11-16
+batch: "complete (0, A, B, C, D, E, F) — verified PASS; ready for /sdd-archive on the user's word"
 lane_shape: full
 brief: prompts/pi-prompt-timetable-print-v2.md
 task: "9 of the user's to-do list"
 reference_prototype: ui-prototype/timetable-print-preview.html  # its DESIGN CONTRACT block (lines 3-205) is the requirement set
 changes_scope: "my-timetable, student-my-timetable, cohort-timetable, venue-timetable"
 explore_brief: "rewritten 2026-11-16 against the frozen contract (the 2026-11-12 brief is superseded)"
-explore_brief_review: n/a  # explore briefs are the review baseline, not a reviewed batch
 proposal_review: passed
 proposal_frozen: true
 proposal_frozen_on: 2026-11-16
@@ -26,13 +25,17 @@ tasks_review: passed
 tasks_frozen: true
 tasks_frozen_on: 2026-11-16
 review_rounds_tasks: 1
-tasks_path: "tasks.md (T01-T24 + T03b, T19a/T19b — 25 tasks, ~30h, five batches)"
-implementation_approved: false
-implementation_approval: "NOT GIVEN. The lane stops at step 5 of the user's prompt: propose + review + design/specs/tasks are done, no code has been written."
+tasks_path: "tasks.md (T01-T24 + T03b, T19a/T19b)"
+implementation_approved: true
+implementation_approval: "approved 2026-11-16 ('yes' for batch A, then 'proceed until F'); applied in batches A-F and verified PASS"
+verify_report: verify-report.md
+verify_verdict: "PASS — 12 new print receipts, 4 existing suites unchanged or better, 5 PDFs at A4 landscape on one page, lint + phpstan clean. Four red suites proven pre-existing by a pre-lane checkout run."
 notes: >-
-  Rewritten 2026-11-16 against the prototype's DESIGN CONTRACT. The 2026-11-12/13
-  papers described the older shape and carried five statements that are now false
-  (proposal §6, design §11). Two decision-level corrections came out of the review
-  rounds and are recorded in review-log.md: the paper is a SECOND TABLE built by
-  the same buildTimetableGrid() (a print-CSS restyle cannot print the semester
-  union), and the pin moves in exactly one place (the venue time separator).
+  Rewritten 2026-11-16 against the prototype's DESIGN CONTRACT; the 12/13 Nov papers
+  carried five statements that are now false (proposal §6, design §11). Two
+  decision-level corrections came out of the review rounds (recorded in review-log.md):
+  the paper is a SECOND TABLE built by the same buildTimetableGrid(), and the
+  five-caller pin therefore moves in exactly one place — the venue time joiner, which
+  the apply log proves by undoing it and reproducing the old capture byte for byte.
+  One scope decision made from a receipt: the Normal Class switch stands down below
+  768px because the phone week row has no room (task 8's own T16d #3 measures it).
