@@ -1,3 +1,18 @@
+## 2026-11-17 — the grid says when the week continues
+
+At 1440 the grid is 1976px wide inside a 1390px card: 586px of the week sat off to the right
+behind a clipped `15:00 / 16:00` header, and Chromium's overlay scrollbars take no space, so
+nothing on screen said so. The user's ruling: **keep the density, make the hidden part obvious.**
+
+So the grid partial now ships a small chevron pill at the edge the content runs off, with a
+40px fade behind it. It appears only when there is something hidden on that side, flips to the
+other edge once you scroll, and disappears at the end — a fact about the grid, not decoration.
+It is `aria-hidden`, `pointer-events: none` (never a target) and hidden in print, along with the
+fade. No cell resized, no column removed, no new dependency, tokens only.
+
+Receipt: `tests/grid-scroll-cue.spec.ts` 4/4 — shows when it should, hides at the end, silent on
+a grid that fits, and absent in print.
+
 ## 2026-11-14 — the commented-out summary block is gone
 
 The page carried a `{{-- Summary Bar — commented out for now … --}}` copy of the five-card summary

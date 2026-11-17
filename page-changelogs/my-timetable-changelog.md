@@ -1,3 +1,11 @@
+## 2026-11-17 — the grid says when the week continues
+
+Same cue as the arrangement page, from the shared grid partial (`partials/ui-grid-table`): a
+chevron pill and an edge fade at the side the week runs off, shown only while something is
+actually hidden there. At 1440 this page's grid also hides 586px to the right.
+
+`aria-hidden`, never a target, hidden in print. Receipt: `tests/grid-scroll-cue.spec.ts` 4/4.
+
 ## 2026-11-17 — the printed page matches the prototype
 
 Three things were still reading as "the screen's table on paper". They now match

@@ -1073,12 +1073,60 @@ body {
 
 /* ───── Grid Wrapper ───── */
 .grid-wrapper {
+    position: relative;
     margin-top: 14px;
     background: var(--color-surface);
     border: 1px solid var(--color-outline);
     border-radius: var(--radius-md);
     box-shadow: 0 1px 3px rgba(0,0,0,0.06), 0 4px 12px rgba(0,0,0,0.08);
     overflow: hidden;
+}
+
+/* ───── Grid scroll cue (2026-11-17) ─────
+   The arrangement grid is 1976px wide inside a 1390px card at 1440, and Chromium's
+   overlay scrollbars take no space, so nothing on screen said "the week continues".
+   The density stays as it is: this only makes the hidden part visible. Rendered by the
+   grid partial, which toggles .is-more-right/.is-more-left from the scroll position. */
+.grid-scroll-cue {
+    position: absolute;
+    top: 50%;
+    z-index: 2;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    margin-top: -14px;
+    border: 1px solid var(--color-outline-strong);
+    border-radius: var(--radius-pill);
+    background: var(--color-surface);
+    color: var(--color-on-surface-variant);
+    box-shadow: var(--shadow-sm);
+    pointer-events: none;   /* a hint, never a thing to hit */
+}
+.grid-scroll-cue--right { right: 8px; }
+.grid-scroll-cue--left  { left: 8px; }
+.grid-wrapper.is-more-right .grid-scroll-cue--right,
+.grid-wrapper.is-more-left  .grid-scroll-cue--left { display: inline-flex; }
+
+/* the fade makes the cut column read as "continues" instead of "ends here" */
+.grid-wrapper::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    width: 40px;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.15s ease;
+    background: linear-gradient(to right, transparent, var(--color-surface));
+}
+.grid-wrapper.is-more-right::after { opacity: 1; }
+
+@media print {
+    .grid-scroll-cue,
+    .grid-wrapper::after { display: none !important; opacity: 0 !important; }
 }
 .grid-scroll {
     overflow-x: scroll;
