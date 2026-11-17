@@ -1,6 +1,7 @@
 name: hover-only-copy-touch
 created: 2026-11-17
-status: proposed      # code held by the owner; nothing applied
+status: unfrozen      # amendment 2026-11-17 (pointer contract) is decision-level; round 3 review required
+                      # code held by the owner; nothing applied
 lane_shape: compact   # one artifact (proposal + decisions + ACs + tasks), one review round
 topic: "Critique P2 — load-bearing meanings live in hover, which touch is banned from"
 evidence: docs/ui-hover-only-2026-11-17.md
@@ -45,6 +46,17 @@ owner_rulings:
   - "2026-11-17: never edit system code without explicit approval — approval given, then withdrawn; change reverted"
   - "2026-11-17: SDD cost cut to one artifact + one review round, with the small-change exemption for indivisible bits"
   - "keep the arrangement-class-details-collapse lane parked; do not resume it under the P2 banner"
+
+amendment_2026_11_17_pointer_contract:
+  trigger: "the P2 item asks to extend the pointer swap to the legend — new scope, not a wording tweak"
+  corrections:
+    - "the legend DOES swap: ui-legend-bar.blade.php:11 ships both strings, theme.css:2283 swaps on @media (hover: none); measured TAP copy on iPad and phone, HOVER copy on desktop"
+    - "the real defect is the broken promise: .legend-item has no tabindex and the engine has no touch path, so 'Tap a colour' does nothing"
+    - "second location: student-my-timetable.blade.php:32 help text says Hover with no swap"
+    - "the swap keys on (hover: none) while the house capability law is (any-pointer: coarse) — hybrids keep the HOVER copy while a finger is on the screen"
+  files_free: ["resources/views/partials/ui-legend-bar.blade.php", "resources/views/livewire/student-my-timetable.blade.php"]
+  files_blocked: ["public/css/theme.css — held by cohort-venue-responsive-port"]
+  gate: "round 3 review, then owner explicit go"
 
 open_questions:
   - "small-change exemption vs this lane: the legend strings alone would qualify for the exemption, but the #submitTip work is behaviour (a state-aware tab stop), so this lane is the honest home — owner decides"
