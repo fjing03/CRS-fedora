@@ -425,9 +425,8 @@
         'printTitle' => 'Venue Timetable',
         'printSub' => 'Venue occupancy',
         'printContext' => $printVenueContext,
-        'printOwnership' => true,
     ])
-    @include('partials.ui-print-sheet')
+    @include('partials.ui-print-sheet', ['printOwnership' => true])
     @include('partials.ui-print-modal')
         @include('partials.ui-empty-state', ['title' => 'No classes this week', 'text' => 'This venue is free all week.'])
 

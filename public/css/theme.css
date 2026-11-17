@@ -7068,14 +7068,19 @@ body.tt-sheet-open:has(.tt-responsive) {
 /* ── The paper's key: three chips on one line, the ownership hint hard left on the
       next. `Available` is screen-only and `Pending` never prints, so the paper key
       is its OWN markup rather than the screen's `.legend-bar`. ── */
+/* AT THE BOTTOM (user, 2026-11-17): the prototype puts the key under the table, where
+   a reader looks after reading the sheet, not above it between header and grid. The
+   swatch and hint sizes are the prototype's `.legend` / `.swatch` values, so the
+   block reads as the same key it always was, just moved. */
 .print-key {
     display: flex;
     flex-wrap: wrap;
     align-items: center;
-    gap: 3px 14px;
-    margin-top: 4px;
+    gap: 6px 14px;
+    padding-top: 2px;
+    margin: 4px 0 0;
     font-size: 9px;
-    color: var(--p-on-surface);
+    color: var(--p-on-surface-variant);
 }
 
 .print-key-item {
@@ -7086,10 +7091,11 @@ body.tt-sheet-open:has(.tt-responsive) {
 
 .print-swatch {
     display: inline-block;
-    width: 10px;
-    height: 10px;
+    width: 11px;
+    height: 11px;
     border-radius: 2px;
-    border: 1px solid var(--p-outline);
+    border: 2px solid var(--p-outline);   /* the prototype's `.swatch` */
+    flex-shrink: 0;
 }
 
 .print-swatch.print-normal { background: var(--p-normal-fill); border-color: var(--p-normal-border); }
@@ -7098,9 +7104,13 @@ body.tt-sheet-open:has(.tt-responsive) {
 
 .print-ownership {
     flex-basis: 100%;
-    font-size: 8.5px;
+    margin-left: 0;
+    font-size: 8px;
     color: var(--p-on-surface-variant);
+    white-space: nowrap;
 }
+
+.print-ownership:empty { display: none; }
 
 /* ── The Normal Class switch — RE-HOMED into the Print dialog (amendment 1, A1/A12)
       and now the HOUSE toggle (amendment 2, 2026-11-16): the dialog renders
@@ -7205,28 +7215,54 @@ body.tt-sheet-open:has(.tt-responsive) {
     color: var(--p-on-surface);
 }
 
+/* The header band and the day strip are quoted from the prototype's print CSS
+   (`ui-prototype/timetable-print-preview.html`, `.day-col` / `.hour-header`), which
+   is the picture this paper has to match: a TINTED band carrying the hour pair as a
+   bold start over a lighter end, a 78px day strip centred on its own surface, and a
+   8px header type. September's numbers were 68px / white band / 8.5px — they read as
+   the screen's table on paper, which is what the user rejected on 2026-11-17. */
 .print-table thead th {
-    padding: 3px 1px;
-    font-size: 8.5px;
-    font-weight: 600;
+    height: 24px;
+    padding: 2px 1px;
+    font-size: 8px;
+    font-weight: 700;
     text-align: center;
+    white-space: nowrap;
     border: 1px solid var(--p-outline);
-    /* the paper paints its OWN surface: a transparent cell would show the app's
-       dark canvas through it in either theme, and paper must be light in both */
-    background: var(--p-surface);
-    color: var(--p-on-surface);
+    background: var(--p-surface-variant);   /* the band, not the page */
+    color: var(--p-on-surface-variant);
 }
 
 /* the day column is a fixed strip, the half-hours share the rest evenly */
 .print-table thead th.time-header-col {
-    width: 68px;
-    font-size: 8.5px;
-    padding-left: 5px;
+    width: 78px;
+    padding-left: 7px;
+    font-size: 8px;
+    letter-spacing: 0.2px;
     text-align: left;
+    /* `.time-header-col` is the SCREEN's sticky corner (theme.css :3239 area). On paper
+       a sticky cell prints displaced — it shifted the whole table off the page edge
+       until this override (2026-11-17). */
+    position: static;
+    left: auto;
+    z-index: auto;
 }
 
-.print-table thead th .hour-top { display: block; font-size: 9px; font-weight: 600; }
-.print-table thead th .hour-bottom { display: block; font-size: 7.5px; font-weight: 400; opacity: 0.6; }
+/* start over end, the end lighter and smaller — sized in `em` so the band's 8px
+   header scales both (the prototype's own note) */
+.print-table thead th .hour-top {
+    display: block;
+    font-weight: 700;
+    line-height: 1.15;
+}
+
+.print-table thead th .hour-bottom {
+    display: block;
+    font-size: 0.82em;
+    font-weight: 500;
+    line-height: 1.15;
+    opacity: 0.6;
+}
 
 .print-table tbody td,
 .print-table tbody th {
@@ -7243,12 +7279,37 @@ body.tt-sheet-open:has(.tt-responsive) {
    `.time-col` is `position: sticky; width 120px; z-index 15` and `.hour-cell` carries
    offday fills; reusing them made the printed table paint against the page box. */
 .print-table tbody .print-day {
-    width: 68px;
-    padding: 3px 5px;
+    width: 78px;
+    padding: 4px 6px;
     text-align: center;
     vertical-align: middle;
-    font-weight: 600;
+    font-weight: 700;
     background: var(--p-surface-variant);
+    /* see the corner header: no sticky axis on paper */
+    position: static;
+    left: auto;
+}
+
+/* the exception says so in the key's own red, under the date, at note size — the
+   screen's pill would read as UI on paper */
+.print-table tbody .print-day.offday {
+    color: var(--p-on-surface-variant);
+}
+
+.print-table tbody .print-day .holiday-badge {
+    display: block;
+    margin-top: 3px;
+    padding: 0;
+    background: none;
+    border: 0;
+    font-size: 8px;
+    font-weight: 500;
+    line-height: 1.25;
+    letter-spacing: 0;
+    text-transform: none;
+    color: var(--p-error);
+    white-space: normal;
+    overflow-wrap: anywhere;
 }
 
 .print-table tbody .print-cell {
@@ -7267,13 +7328,17 @@ body.tt-sheet-open:has(.tt-responsive) {
 .print-table .day-label {
     display: block;
     font-size: 11px;
-    font-weight: 600;
+    line-height: 1.15;
 }
 
 .print-table .date-label {
     display: block;
+    margin-top: 1px;
     font-size: 8px;
+    font-weight: 500;
+    line-height: 1.15;
     color: var(--p-on-surface-variant);
+    white-space: nowrap;
 }
 
 /* the paper's empty panel — the shared builder shows this instead of the table when

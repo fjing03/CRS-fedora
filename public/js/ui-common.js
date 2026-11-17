@@ -1053,7 +1053,10 @@ function buildTimetableGrid(cfg) {
     const timeHeaderRow = document.createElement('tr');
     const cornerTh = document.createElement('th');
     cornerTh.className = 'time-header-col';
-    cornerTh.style.cssText = 'position: sticky; left: 0; z-index: 40;';
+    /* the screen's day column is sticky; the PAPER's must not be — a sticky cell in a
+       paginated table prints displaced (2026-11-17, the same trap Batch C hit on the
+       hour cells) */
+    if (!cfg.print) cornerTh.style.cssText = 'position: sticky; left: 0; z-index: 40;';
     cornerTh.innerHTML = '<span class="card-title">Day / Time</span>';
     timeHeaderRow.appendChild(cornerTh);
 
@@ -1301,11 +1304,14 @@ function buildTimetableGrid(cfg) {
             tr.dataset.dayIndex = di;
 
             const dayTd = document.createElement('td');
-            let dayColClass = 'time-col';
+            /* PRINT: the paper's own class (design §2.1). `.time-col` is the SCREEN's
+               sticky strip — reusing it printed the day column displaced and ~2x its
+               styled width (2026-11-17). */
+            let dayColClass = cfg.print ? 'print-day' : 'time-col';
             if (day.today) dayColClass += ' today';
             if (day.holiday || day.sunday) dayColClass += ' offday';
             dayTd.className = dayColClass;
-            dayTd.innerHTML = HtmlBuilder.dayHeader(day);
+            dayTd.innerHTML = HtmlBuilder.dayHeader(cfg.print ? printDayMeta(day) : day);
             /* "Bookings open" chip: the semester's earliest bookable day, when the
                page opts in (cfg.bookableBadge) — data-driven via generateWeekData's
                firstBookable flag, so it tracks the anchor and never hardcodes */
@@ -1382,7 +1388,7 @@ function buildTimetableGrid(cfg) {
             tr.dataset.laneRow = isBase ? 'base' : String(lane);
 
             const dayTd = document.createElement('td');
-            let dayColClass = 'time-col';
+            let dayColClass = cfg.print ? 'print-day' : 'time-col';
             if (day.today) dayColClass += ' today';
             if (day.holiday || day.sunday) dayColClass += ' offday';
             if (row === 0) {

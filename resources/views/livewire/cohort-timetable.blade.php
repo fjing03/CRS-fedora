@@ -135,9 +135,8 @@
         'printTitle' => 'Cohort Timetable',
         'printSub' => '',
         'printContext' => '',
-        'printOwnership' => true,
     ])
-    @include('partials.ui-print-sheet')
+    @include('partials.ui-print-sheet', ['printOwnership' => true])
     @include('partials.ui-print-modal')
 
     <!-- ─── Legend Bar ─── frozen 4-item block-class legend (the user's Replacement chip, 2026-10-25) + ownership hint (all-pages-design-parity) -->

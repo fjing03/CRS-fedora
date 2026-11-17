@@ -30,14 +30,7 @@
     /* the centre owns the identity: a person's name + ID, a cohort code, or
        `<venue code> — <venue name>`. An em dash, spaces either side (never `--`). */
     $printContext = $printContext ?? '';
-    $printOwnership = $printOwnership ?? false;
-    /* The paper key. Three chips, always — `Available` is screen-only (blank paper
-       also means held / too soon / holiday) and `Pending` never prints. */
-    $printKeyItems = $printKeyItems ?? [
-        ['cls' => 'normal', 'label' => 'Normal'],
-        ['cls' => 'replacement', 'label' => 'Replacement'],
-        ['cls' => 'conflict', 'label' => 'Conflict / Public Holiday'],
-    ];
+    /* the paper key moved to ui-print-sheet (under the table, 2026-11-17) */
 @endphp
 
 <div class="ui-print-header" id="printHeader" aria-hidden="true">
@@ -65,15 +58,6 @@
         </div>
     </div>
 
-    {{-- The key stacks: the chips on one line, the ownership hint hard left on the
-         next. As a space-between row the two halves were flung to opposite edges of
-         the page and read as unrelated (contract ruling, 2026-11-16). --}}
-    <div class="print-key" id="printKey">
-        @foreach($printKeyItems as $item)
-            <span class="print-key-item"><span class="print-swatch print-{{ $item['cls'] }}"></span>{{ $item['label'] }}</span>
-        @endforeach
-        @if($printOwnership)
-            <span class="print-ownership">thick border = your classes&nbsp;&nbsp;·&nbsp;&nbsp;thin border = others'</span>
-        @endif
-    </div>
+    {{-- The key does NOT live here any more (user, 2026-11-17): it prints UNDER the
+         table, as the prototype lays it out — see partials/ui-print-sheet. --}}
 </div>

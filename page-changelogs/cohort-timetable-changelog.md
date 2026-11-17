@@ -1,3 +1,21 @@
+## 2026-11-17 — the printed page matches the prototype
+
+Three things were still reading as "the screen's table on paper". They now match
+`ui-prototype/timetabel print/Timetable Print — Prototype.pdf`:
+
+- **The hour band** is tinted (`--p-surface-variant`) instead of white, 24px tall, 8px bold,
+  centred, with the start time over a lighter, smaller end time — the prototype's numbers,
+  not the old 8.5px on white.
+- **The day column** is a 78px strip (it was 68) on the same tint, centred, 700 weight, with
+  the date at 8px under the day. A public holiday prints its mark in the key's red at note
+  size, as a sentence rather than a screen pill. The strip also stopped printing *displaced*:
+  it was still the screen's sticky column, which pushed the whole table off the page edge.
+- **The key moved to the bottom** of the sheet, under the table, where a reader checks a
+  colour after reading the grid. Same three chips and the same ownership line, now with the
+  prototype's 11px swatches.
+
+Nothing about the screen changed, and the paper still prints one A4 landscape page.
+
 ## 2026-11-17 — the print switch says what it prints
 
 Hovering (or tabbing to) **Show normal class only** in the Print dialog now says what the paper will
