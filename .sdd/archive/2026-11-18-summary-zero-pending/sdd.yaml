@@ -1,0 +1,33 @@
+name: summary-zero-pending
+created: 2026-11-18
+status: archived
+lane_shape: small
+source: "pass-3 critique C3 — `+0` on four summary cards per page"
+pages: 4
+batch: archived
+proposal_review: passed (round 1, no blockers)
+proposal_frozen: true
+review_rounds_proposal: 1
+spec_artifact: proposal.md
+spec_review: covered by proposal_review (user's compact-lane ruling, 2026-11-17)
+specs_frozen: true
+tasks_folded_into_spec: true
+implementation_approved: true
+implementation_approval: "user, 2026-11-18: chose the zero-only scope and said \"proceed\""
+applied: true
+applied_on: 2026-11-18
+verified: passed
+verified_on: 2026-11-18
+verify_report: proposal.md (## Verification receipt)
+archived_on: 2026-11-18
+archive_note: "zero pending suffixes hidden in both writers; four read-only receipts red-then-green; 70-case focused+responsive run passed; 16 live captures, no zero-valued tails"
+decisions_taken:
+  - "2026-11-18 (user): hide the suffix only at zero; keep positive and fractional tails unchanged."
+  - "2026-11-18 (user): the toast/tooltip overlap finding is out of scope — it was a tooltip, not a toast."
+open_decisions: []
+outstanding_blockers: []
+outstanding_small: []
+notes:
+  - "Two writers exist on purpose: computeSummary() subtracts pending from full totals, Venue receives server-confirmed values. Only the tail rendering changed."
+  - "Writing lifecycle specs had nine zero-tail display literals updated but were not executed against the protected manual data."
+  - "The broader remaining-state critique keeps its unrelated priority issues; no snapshot was closed by this lane."
