@@ -329,13 +329,16 @@ test.describe('the normal view', () => {
     expect(await page.evaluate(() => getComputedStyle(document.getElementById('printKey')).display), 'a single week shows its key').not.toBe('none');
   });
 
-  test('PR-02: the dialog does not compete with the phone week row any more', async ({ browser }) => {
+  test('PR-02: Print is desktop-only, so nothing competes with the phone week row', async ({ browser }) => {
     /* Amendment 1 §A1 withdrew the old "stand down below 768" rule: the switch left the
        week row and lives in the dialog, so the row task 8 tuned to the millimetre
        (T16d #3: 144px of label in a 143px box) keeps all of its width back.
-       Where the dialog can be reached follows the print button, which task 8's
-       `preview-desktop-only` ruling keeps off My/Student below 1280; on Cohort it is
-       there at every width, and so is the switch. */
+       2026-11-17 (owner, P2): the print BUTTON is hidden below the desktop view on EVERY
+       page — cohort included — because printing from a phone is the browser's own menu
+       (theme.css `@media (max-width: 1279px) { .tt-responsive .print-btn { display: none } }`).
+       This test used to click the button at 390 on cohort, which contradicted that design;
+       it now asserts the design at the widths where the rule applies, and still proves the
+       dialog opens (with the house toggle) where the button is actually offered. */
     const open = async (width: number, path: string) => {
       const ctx = await browser.newContext({
         baseURL: process.env.CRS_BASE ?? 'http://127.0.0.1:8030',
@@ -348,16 +351,31 @@ test.describe('the normal view', () => {
       return { page, ctx };
     };
 
-    for (const width of [390, 768, 1280]) {
-      const { page, ctx } = await open(width, '/my-timetable-ui');
-      await expect(page.locator('.print-normal-toggle'), `${width}px: no switch in the week row`).toHaveCount(0);
+    const printBtn = (page: import('@playwright/test').Page) =>
+      page.locator('button.print-btn[aria-label="Print timetable"]');
+
+    // below 1280: no switch in the week row, and no print button anywhere
+    for (const [width, path] of [
+      [390, '/my-timetable-ui'],
+      [768, '/my-timetable-ui'],
+      [390, '/cohort-timetable'],
+      [768, '/cohort-timetable'],
+    ] as const) {
+      const { page, ctx } = await open(width, path);
+      await expect(page.locator('.print-normal-toggle'), `${path} @${width}px: no switch in the week row`).toHaveCount(0);
+      await expect(
+        printBtn(page),
+        `${path} @${width}px: Print is hidden below the desktop view, on every page`,
+      ).toBeHidden();
       await ctx.close();
     }
 
-    const { page, ctx } = await open(390, '/cohort-timetable');
-    await page.locator('.print-btn').click();
+    // at 1280 the button is offered, and it opens the dialog with the house toggle
+    const { page, ctx } = await open(1280, '/cohort-timetable');
+    await expect(printBtn(page), '1280px: Print is offered at the desktop view').toBeVisible();
+    await printBtn(page).click();
     await expect(page.locator('#printModal')).toBeVisible();
-    await expect(page.locator('.print-modal__field--switch .toggle-wrapper'), '390px: the house toggle is in the dialog').toBeVisible();
+    await expect(page.locator('.print-modal__field--switch .toggle-wrapper'), '1280px: the house toggle is in the dialog').toBeVisible();
     await ctx.close();
   });
 
