@@ -228,7 +228,7 @@
 
 @endsection
 
-<div class="lw-page">
+<div class="lw-page ui-cards-page">
     @include('partials.page-data-script', ['payload' => $payload])
 
         <!-- ─── Page Header ─── -->

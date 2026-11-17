@@ -155,6 +155,8 @@ own rule, ported with the card.
 | T11d | Request Approval's ≥600 flattening (T6, AC8) | `request-approval.blade.php` |
 | T11e | Verify: 48px measured under coarse pointer at 390/768; **unchanged at 1600px** with a mouse (the brief's regression numbers live at 1600 — Filters 34px, chip 22px, row 35px, not 1440); badge heights on three pages; the student count; keyboard open; `elementFromPoint` on neighbouring targets; card heights against the brief's §7 targets at 320/402/768/desktop; print unaffected | — |
 | T11f | Changelog + apply log; the survey report's I2/I3 rows closed | `page-changelogs/`, `docs/` |
+| T11g | **Owed:** the badge-consumer audit the brief demands — `.badge-sm` (10px, inherits the new 22px floor), `.badge-capacity` (own padding + `max-width: 120px`), and the stale "`.badge` base (4px 10px)" comment at `theme.css:5897` | `public/css/theme.css` |
+| T11h | **Blocked on the user:** the student count pill (T4, §7.1) — needs its count source and a ruling on the staff wording | `replacement-history.blade.php` |
 
 **Effort:** about half a session. **Risk:** low but shared — `theme.css` is read by every page, so
 T11a/T11b are scoped by selector (`any-pointer: coarse`, `.badge*`, `.slot-badge`) and verified
@@ -174,3 +176,53 @@ sentence wraps below 360px — confirm acceptable or propose better); carried to
 - The details pop-up's strip and tabs — task 10.
 - Removing table columns — task 12, which depends on task 10.
 - Any colour change, any type-size change, any new icon.
+
+---
+
+## 7. Amendment 1 — after review round 1 (2026-11-17)
+
+The reviewer raised four blockers against this artifact. Three are settled below; the fourth
+(T4, the count pill) is now **the user's decision**, not the lane's. What was applied and then
+reverted is recorded too, because the review happened after the code.
+
+### 7.1 T4 — WITHDRAWN, put to the user
+
+Two facts killed it: the frozen `filters-button` ruling (2026-11-15) fixed the staff wording as
+`Showing X of Y classes` / `… results` **and** gave the student page no pill at all; and
+`updateResultCount` is *parameterised* (`cfg.label`), so "one shared string" was simply wrong.
+The change was applied and then **reverted** the same session. The student pill is **new work**
+with its own count source, not a wording tweak — it is not in this lane's scope until the user
+rules.
+
+### 7.2 The width-gated 40px badge block — removed `.badge` from it *(applied)*
+
+`theme.css`'s `@media (max-width: 1024px)` block inflated every badge to 40px at any window
+width under 1025, mouse included. That is width-gating, which the 2026-11-15 law replaced with
+capability-gating, and it made AC4 impossible. `.badge` left the block; `.page-btn` stayed (it
+is a real control, floored to 48px on a coarse pointer by this lane's own block). Measured after:
+badges 22px at 1440 **and at 1024**, still 22px inside a card at 390 under touch.
+
+### 7.3 T11b — theme.css, but scoped (a recorded deviation from the brief's placement)
+
+The brief asks for the touch block in each blade's own `<style>`. The block was put in
+`theme.css` **once**, scoped to `.ui-cards-page` — the class now carried by the three pages'
+`.lw-page` roots — following the `.tt-responsive` precedent (`theme.css:6823`) rather than
+copying 60 lines three times. The reviewer's objection (unscoped selectors leaking to every
+page) does not apply to the applied form: nothing is unscoped, and no selector without the page
+root can match. Three copies of a shared law is how the badge sketch drifted in the first place.
+
+### 7.4 AC5 — one number, −2px *(applied)*
+
+The drawing contradicts itself: `.slot-badge { vertical-align: -3px }` in its polish block,
+`-2px` in its own card CSS, and the shipped card took −2px at higher specificity. `.slot-badge`
+in `theme.css` is now **−2px** as well, so the rule and the card agree — AC5 is measured as
+"shares the baseline", not as "equals −3px".
+
+### 7.5 Not taken from the review (with the reason)
+
+- **`.col-checkbox` / `input[type=text]` in the touch floor:** the brief's list names *form
+  controls (search, status select, date)*, not the bulk-select checkbox, whose 13px glyph is a
+  deliberate size inside a labelled row. Adding it would 48-px every row's checkbox for no
+  target the brief asked for.
+- **`.badge-sm` / `.badge-capacity` audits:** real, and still owed — the brief asks for a
+  consumer audit. Carried as T11g below rather than claimed as done.

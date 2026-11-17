@@ -1318,14 +1318,36 @@ html.dark .filter-select {
 }
 
 /* ───── Badge Base ───── */
+/* ── ONE pill language (SDD cards-and-badges-responsive, task 11, 2026-11-17).
+      Geometry, spacing and type only — no colour, background or border-colour is
+      declared here, so the palette below is untouched. Ported from the three
+      prototypes' `<style id="badge-polish">` sketch; the `.detail-facts` rules in
+      that sketch are STALE and belong to task 10, so they are deliberately not
+      carried over. Live before this: `display: inline-block` with no min-height and
+      no line-height, which is why a filled badge and an outlined one stood at
+      different heights and their text sat off-centre. ── */
 .badge {
-    display: inline-block;
-    padding: 4px 10px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    box-sizing: border-box;
+    min-height: 22px;
+    max-width: 100%;
+    padding: 3px 10px;
     border-radius: var(--radius-pill);
     font-size: 12px;
     font-weight: 600;
+    line-height: 1.2;
+    text-align: center;
     vertical-align: middle;
 }
+/* the outlined pill carries a 1px border and used to stand 2px taller than its
+   filled neighbours; border-box evens them out (task 11) */
+.badge-outline { box-sizing: border-box; }
+/* the ✓ / ⚠ slot marker shares the text baseline instead of towering over it.
+   −2px, not the drawing's −3px: the drawing contradicts itself (its badge-polish
+   says −3, its own card CSS says −2, and the shipped card took −2). One number. */
+.slot-badge { vertical-align: -2px; }
 .badge-normal { background: var(--color-success); color: var(--color-on-success); }
 .badge-replacement { background: var(--color-primary); color: var(--color-on-primary); }
 .badge-pending { background: var(--color-warning); color: var(--color-on-warning); }
@@ -5043,7 +5065,14 @@ body {
     scrollbar-width: thin;
 }
 
-/* ── Tablet: 40px minimum touch targets ── */
+/* ── Tablet: 40px minimum touch targets ──
+   2026-11-17 (task 11): `.badge` LEFT this block. It is width-gated, but the law of
+   2026-11-15 is capability-gated (`@media (any-pointer: coarse)`), and a status pill
+   is not a button anyway — the brief says it "stays compact at every width". With
+   `.badge` in here, a mouse-only window at 1024 inflated every pill to 40px and made
+   filled and outlined badges disagree with their own geometry. `.page-btn` stays: it
+   IS a control, it is floored to 48px on a coarse pointer by the task-11 block, and
+   this width gate is the desktop-mid-size rule that predates it. ── */
 @media (max-width: 1024px) {
     .nav-item,
     .legend-item,
@@ -5051,8 +5080,7 @@ body {
     .today-btn,
     .modal-close,
     .btn-close-modal,
-    .page-btn,
-    .badge {
+    .page-btn {
         min-height: 40px;
         min-width: 40px;
     }
@@ -5491,7 +5519,12 @@ body.filters-panel-open .filters-btn { position:relative; z-index:1300; }
     .filters-row .result-count { order:2; }
     .filters-row #filterChips { order:3; flex:1 1 100%; gap:4px 6px; }
     /* the app-wide 48px touch floor makes every chip ✕ a 48px square and the row
-       120px tall; the pill becomes the target instead (prototype's own trade) */
+       120px tall; the pill becomes the target instead (prototype's own trade)
+       ── 2026-11-17: task 11's brief asks for the FULL 48px chip, which would undo
+          this measured trade (chip row 32px -> ~48px, plus the "x" back to 48 too).
+          The filters-button lane's trade is the newer, measured decision, so it
+          stands until the user rules; the task-11 floor deliberately does NOT
+          out-specify it (that rule carries an id, so this one cannot win anyway). */
     .filters-row #filterChips .filter-chip { padding:2px 9px; font-size:11px; gap:4px; min-height:32px; }
     .filters-row #filterChips .filter-chip-remove { width:26px; height:26px;
         min-width:0; min-height:0; font-size:14px; }
@@ -6820,6 +6853,50 @@ body.tt-sheet-open:has(.tt-responsive) {
       never an invisible overlapping padding: neighbouring rows must not steal
       each other's taps. Text sizes are untouched. The shared top bar sits OUTSIDE
       the page root and therefore keeps its shipped sizes (design §2). ── */
+/* ── The list surfaces' touch floor (SDD cards-and-badges-responsive, task 11).
+      Capability, not width: `any-pointer: coarse`, so a touch laptop or an iPad Pro at
+      any breakpoint qualifies while a mouse-only desktop keeps today's compact
+      geometry (the brief's regression check: Filters 34px, chip 22px, row 35px at
+      1600px). Scoped to `.ui-cards-page`, the class the three list pages' root
+      carries — a bare `button` selector here would move every page in the app.
+
+      `<option>` values inside the selects are EXEMPT and untouched (user,
+      2026-11-17): they are native OS popup UI that CSS cannot size, so the floor
+      belongs to the `<select>` element, never to its options. ── */
+@media (any-pointer: coarse) {
+    .ui-cards-page .filters-btn,
+    .ui-cards-page .filter-chip,
+    .ui-cards-page .filter-chip-clear-all,
+    .ui-cards-page .page-btn,
+    .ui-cards-page .rpp-select,
+    .ui-cards-page .btn-approve,
+    .ui-cards-page .btn-reject,
+    .ui-cards-page .btn-view,
+    .ui-cards-page .btn-action,
+    .ui-cards-page .btn-outline,
+    .ui-cards-page .btn-icon,
+    .ui-cards-page .summary-info,
+    .ui-cards-page .search-input,
+    .ui-cards-page .filter-select,
+    /* the shared week-nav's select is `.week-select`, not `.filter-select` — it was
+       the one form control the floor missed (measured 268 x 36 on touch) */
+    .ui-cards-page .week-select,
+    .ui-cards-page .replacement-card,
+    .ui-cards-page .request-card,
+    .ui-cards-page .upcoming-card {
+        min-width: 48px;
+        min-height: 48px;
+    }
+    /* the approved exception, kept on purpose: the CHIP is the 48px target and the
+       little "x" stays a glyph inside it, so the status row never grows to 126px */
+    .ui-cards-page .filter-chip-remove {
+        width: 26px;
+        height: 26px;
+        min-width: 0;
+        min-height: 0;
+    }
+}
+
 @media (any-pointer: coarse) {
     /* no min-height here: the chip is already 52px tall at every width, and
        lowering it to 48 would shrink the approved target */

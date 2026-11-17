@@ -1,3 +1,20 @@
+## 2026-11-17 — one badge shape, and a touch floor that is about touch
+
+Three changes to the shared badge rules and the list pages' controls:
+
+- **One pill language.** Every text badge is now the same shape: centred flex, a 22px minimum
+  height, 3px × 10px padding, one line-height. Before this, a filled badge and an outlined one
+  stood at different heights and their text sat off-centre — the outline carried a border
+  without `border-box`.
+- **Badges stopped growing on a wide tablet.** A rule that inflated every badge to 40px at any
+  window narrower than 1025px is gone from the badge path; touch targets are now gated on the
+  device being touch-capable, not on the window being small, which is the law the app adopted on
+  2026-11-15.
+- **A real 48 × 48 floor on a touch device**: the card itself, Filters, Approve / Reject / View,
+  Clear all, pagination, the summary "i", the search box and the select controls. A mouse-only
+  desktop keeps exactly the sizes it has today (Filters 34px), so nothing on a desktop moves.
+  The dropdown *options* are not touched — they belong to the operating system's own popup.
+
 ## 2026-11-17 — the phone card compares the two slots
 
 Each card now puts **ORIGINAL** and **REQUESTED** side by side, one tiny label each with the

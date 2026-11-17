@@ -233,6 +233,15 @@
             .cl-rc-meta .cl-req-age.age-waiting { color: var(--color-warning); }
             .cl-rc-meta .cl-req-age.age-stale { color: var(--color-error); }
             @media (max-width: 360px) { .cl-rc-urg { white-space: normal; } }
+            /* ≥600: this card has ONE band, so the 2 × 2 becomes a single line with
+               the countdown keeping the right edge — the drawing's own rule for the
+               tablet width (task 11, T6/AC8) */
+            @media (min-width: 600px) {
+                .cl-rc-grid { display: flex; flex-wrap: wrap;
+                    align-items: baseline; gap: 2px 14px; }
+                .cl-rc-date, .cl-rc-time, .cl-rc-venue { flex: 0 0 auto; }
+                .cl-rc-urg { order: 9; margin-left: auto; }
+            }
             .requests-cards { display: grid !important; gap: 12px; padding: 12px; }
             .card-view { display: block; }
         }
@@ -246,7 +255,7 @@
      UNCHANGED below except the documented BRIDGE marks; PAGE_DATA.requests
      carries the mock's exact row shape derived from the real DB (PL scope).
      NO content section — the root rides top-level (my-request-history). --}}
-<div class="lw-page">
+<div class="lw-page ui-cards-page">
     @include('partials.page-data-script', ['payload' => $payload])
 
 @include('partials.ui-page-header', [

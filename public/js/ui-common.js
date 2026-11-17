@@ -2245,6 +2245,11 @@ function paginate(cfg) {
 
 function updateResultCount(cfg) {
     const count = document.getElementById(cfg.elId);
+    /* 2026-11-17 — the wording stays as the frozen `filters-button` ruling set it
+       (2026-11-15: `Showing X of Y classes` / `… results`, and the student page has
+       no pill at all). Task 11's brief grants `X of Y match your filters` to the
+       STUDENT page only; changing the two staff pages is a re-ruling, so it is put to
+       the user instead of being taken here. */
     count.textContent = 'Showing ' + cfg.data.length + ' of ' + cfg.total + ' ' + cfg.label;
 }
 
