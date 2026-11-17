@@ -1945,7 +1945,10 @@ html.dark .filter-select {
 .summary-points li::marker {
     color: var(--color-on-surface-variant);
 }
-.summary-points .summary-normal { color: var(--color-on-secondary-container); }
+/* 2026-11-17: was --color-on-secondary-container (crimson), so the legend printed the
+   word "Normal" in a colour that means something else everywhere else on the site.
+   The sibling bullets already use on-*-container tokens; this one now matches. */
+.summary-points .summary-normal { color: var(--color-on-success-container); }
 .summary-points .summary-replacement { color: var(--color-on-primary-container); }
 .summary-points .summary-pending { color: var(--color-on-tertiary-container); }
 .summary-points .summary-excluded { color: var(--color-on-error-container); }
