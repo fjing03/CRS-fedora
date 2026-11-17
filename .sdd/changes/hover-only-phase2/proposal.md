@@ -1,9 +1,15 @@
 # Phase 2 — the carriers the legend fix did not reach
 
-**Status: DRAFT — not frozen, no code written.** Prepared 2026-11-17 while another chat owned
-`ui-common.js`, `theme.css` and the replacement blades. Nothing here is measured against that tree;
-the inventory is read from source, and the browser numbers are quoted from the Phase 1 survey
-(`docs/ui-hover-only-2026-11-17.md`, committed `3bcac14` + correction `8be270c`).
+**Status: DRAFT — owner has chosen the approach, plan not frozen, no code written.** Prepared
+2026-11-17 while another chat owned `ui-common.js`, `theme.css` and the replacement blades. Nothing
+here is measured against that tree; the inventory is read from source, and the browser numbers are
+quoted from the Phase 1 survey (`docs/ui-hover-only-2026-11-17.md`, committed `3bcac14` + correction
+`8be270c`).
+
+**Owner decision, 2026-11-17 (recorded 2026-11-17): option A for the badges and the day headers,
+option B for the three cohort-count spans and `.result-count`. Option C rejected everywhere.**
+The gate now is the tree, not the decision: do not edit `ui-common.js`, `theme.css` or the replacement
+blades until the other chat finishes, and do not measure a layout that is still moving.
 
 ## 1. What Phase 1 actually fixed
 
@@ -72,11 +78,15 @@ evidence supports; it is an owner call, not a reviewer call.
 - whether `.result-count` still renders on the pages that had it (the empty-state work may have
   changed that).
 
-## 5. Decisions needed from the owner
+## 5. Decisions
 
-1. **A, B or C** for the badges and the day headers (the split in §3 is a suggestion, not a plan).
-2. If **A**: who writes the visible sentence — me, or is the reason text owned by the request card lane?
-3. Is the **print sheet** in scope (the day headers print; a tooltip does not)?
+1. **Settled 2026-11-17: A for badges + day headers, B for the count lines.** C rejected — eight tab
+   stops before the first class is worse than no tooltip, and a 48px badge reopens the task-11 ruling.
+2. **Open:** who writes the visible "why" sentence on the badge — this lane, or the request-card lane
+   that owns the row's copy? Ask before drafting, do not guess.
+3. **Open:** the print sheet is a consequence of A, not a separate decision — the day headers print, a
+   tooltip does not, so A improves the paper. To be confirmed against a real PDF after the edit, not
+   asserted now.
 
 ## 6. Explicitly out of scope
 
