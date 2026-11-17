@@ -1,0 +1,33 @@
+name: table-column-trims
+created: 2026-11-15
+status: active
+lane_shape: small
+source: "the prototypes' injected 'the 9' layer, items #8 and #9"
+reference_prototypes:
+  - ui-prototype/request-approval.html
+  - ui-prototype/my-replacements.html
+pages: 3
+batch: design
+proposal_review: passed (round 1 fixed; round 2 reviewer quota-blocked, author self-check logged)
+proposal_frozen: true
+review_rounds_proposal: 1
+design_review: passed (round 1, one blocking space fix)
+design_frozen: true
+specs_review: not-run
+specs_frozen: false
+tasks_review: not-run
+tasks_frozen: false
+implementation_approved: false
+implementation_approval: ""
+open_decisions:
+  - "course name's last home: pop-up only (recommend) vs a cell tooltip, which would reverse a ruling AND a passing test"
+  - "phone card + confirm card keep the staff ID: a standing decision with no owning lane, not a deferral"
+  - "no shared course-cell helper; the per-page reasons must be recorded in design.md for verify"
+decisions_taken:
+  - "2026-11-15 (user): the student page's Course column changes too — `AMSE2003 (L)` on one line."
+outstanding_blockers: []
+outstanding_small: []
+notes:
+  - "No theme.css and no new class: two elements removed, one line rewritten."
+  - "UiLabels.courseTip() is dead code (no caller) since the 2026-11-09 'no hover on the cell' ruling — do not revive it without the user's word."
+  - "The other seven items of 'the 9' are not in this lane; #4 is asked for by filters-button."

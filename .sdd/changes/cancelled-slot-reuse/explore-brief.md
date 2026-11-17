@@ -13,8 +13,8 @@ This reopens proposal and all downstream planning batches for real sequential re
 
 ## Evidence supplied by the user
 
-- `../ui-prototype/cancelled class.png`: staff 5425's classes on Thu, 19 Nov 2026, Week 9: AMSE2003(L), 09:00–11:00, B100; AMSE2003(T), 11:00–12:00, B100; BMSE2163(P), 12:00–13:00, B010. All are cancelled.
-- `../ui-prototype/all free.png`: AMSE1003(L) arrangement, DSF1 cohort, Week 9, venue B111. The Thursday morning cells are green.
+- `ui-prototype/cancelled class.png`: staff 5425's classes on Thu, 19 Nov 2026, Week 9: AMSE2003(L), 09:00–11:00, B100; AMSE2003(T), 11:00–12:00, B100; BMSE2163(P), 12:00–13:00, B010. All are cancelled.
+- `ui-prototype/all free.png`: AMSE1003(L) arrangement, DSF1 cohort, Week 9, venue B111. The Thursday morning cells are green.
 - These are DIFFERENT rooms. The user has not observed a real same-room double booking. Their concern is how a cancelled block and a new Pending block at the same date/time/room will be displayed.
 
 ## Final choices (supersede earlier choices in this conversation)

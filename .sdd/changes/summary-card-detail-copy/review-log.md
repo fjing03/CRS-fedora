@@ -286,7 +286,7 @@ T1–T8 all remain open.
   is **2261**.
 - The modal is a sibling of `.summary-section` because the section div **closes
   at line 82** and the modal opens at **84** (`ui-summary-bar.blade.php`).
-- The prototype lives at **`../ui-prototype/`** (repo parent), not
+- The prototype lives at **`ui-prototype/`** (repo parent), not
   `ui-prototype/`. Both the proposal and the design pointed at a path that does
   not exist inside `CRS-fedora-backend`.
 - `ThemeCssIntegrityTest` exists and does assert `.summary-card` plus brace

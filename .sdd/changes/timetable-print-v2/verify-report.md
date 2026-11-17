@@ -125,14 +125,36 @@ No migration, no schema change, no new dependency, no database write, and no edi
 
 ---
 
+## 5b. The two amendments (2026-11-16, same day)
+
+Both amendments were written, reviewed and frozen **before** their code, then applied.
+
+| | Receipt |
+|---|---|
+| **A1 — the Print dialog** | `timetable-print.spec.ts` **16/16**: the button opens the dialog and prints nothing (0 print calls); the dialog seeds from the week on screen; printing Week 3 from a page showing Week 9 puts `Week 3 of 14` on the paper and leaves `#timetable` **byte-identical**; All Weeks disables the switch, reads it ON and shows its hint; a single week with the switch on carries no replacement block; an open dialog never prints (the print stylesheet names `.print-modal-overlay` and it is hidden under print media) |
+| | Pin 6/6, responsive 36/36, parity 6/6, `venue-timetable` 57/58 (only the pre-existing TC40), `venue-db`/`venue-status-parity`/`venue-note-privacy` **identical** to the pre-lane run |
+| | PDFs: `Week 3 of 14 · 5 Oct 2026 ~ 11 Oct 2026` one page A4 landscape with its key; `Week 1 ~ 14 (Whole Semester)` one page without it |
+| | Cohort: clearing the select now clears the **paper** (0 blocks) and disables `Print` — the `showGuidance()` funnel (§A11), verified live |
+| **A2 — the house toggle** | 16/16 again; measured 36 × 20 track / 16 px thumb / 8 px gap / 13 px 500 label; both themes screenshotted; the All-Weeks state reads filled-but-dimmed |
+
+**One correction to amendment 1's own reasoning**, made when the code proved it: A1 promised the
+switch would be "reachable at every width". The switch is — but the *printer button* is hidden
+below 1280 on My Timetable and Student My Timetable by task 8's `preview-desktop-only` ruling
+(`theme.css:6163`), so on those two pages there is no print entry at that width at all, and the
+dialog cannot be reached regardless of the switch. Verified reachable at 390 on the Cohort page.
+The receipt asserts the real behaviour rather than the promise, and the claim is corrected in the
+apply log and in `PR-02`.
+
 ## 6. What remains open (not blockers)
 
 1. **The four pre-existing reds** (§4) — each needs its own small change.
-2. **The switch is tablet-and-up — the user's own call (2026-11-16).** Asked to
-   choose between leaving it, giving it a line of its own on phones, or moving it into
-   the Week summary sheet, the user left it as it is. If that is ever revisited, the
-   week row needs a layout decision first (task 8 tuned it to the millimetre); the
-   receipt that guards that box is `T16d` item #3.
+2. **The phone question is closed by the dialog, not by a layout change.** The switch left
+   the week row (amendment 1), so task 8's tuned row has its width back and `T16d` #3 is
+   untouched. What remains true and out of this lane's scope: the **printer button** is hidden
+   below 1280 on My Timetable and Student My Timetable (`theme.css:6163`, task 8's
+   `preview-desktop-only`), so those two pages offer no printing from a phone at all — a
+   pre-existing ruling. Reaching it from a phone would be that lane's decision to reverse, not
+   a print-format one.
 3. **Dense mode** has no shipped fixture above the threshold (the repo forbids
    fabricating demo rows), so its receipt proves the mechanism with a synthetic print
    set and the one-page export proves the resting case. A genuinely busy week's page

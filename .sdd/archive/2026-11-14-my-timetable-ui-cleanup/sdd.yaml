@@ -1,0 +1,12 @@
+name: my-timetable-ui-cleanup
+created: 2026-11-13
+status: archived
+archived: 2026-11-14
+applied: 2026-11-13
+records_reconciled: 2026-11-14
+pages: "My, Student, Cohort, Venue Timetable, My Replacements, Request Approval"
+tasks_done: 27
+tasks_total: 27
+verification: "2026-11-14 re-measured on all six pages; see apply-log.md"
+known_gap: "No frozen-gate or explicit approval line was ever recorded. The lane was proposed, reviewed, applied and verified in a single pass on 2026-11-13; review-log.md carries the evidence, but proposal/design/specs/tasks were never individually marked frozen and no implementation_approved entry exists. Recorded as-is rather than backfilled."
+note: "Records were stale until 2026-11-14: tasks showed 0/27 and no apply-log existed while all four changes were already live."

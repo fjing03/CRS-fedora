@@ -258,3 +258,47 @@ implicit column and squeezed the venue dropdown).
 ## Batch F — verification (2026-11-16)
 
 Twelve receipts, five PDFs, lint and PHPStan. Full table in `verify-report.md`.
+
+---
+
+## Amendment 1 — the Print dialog (2026-11-16, applied the same day)
+
+| Task | What landed |
+|---|---|
+| T27 | The switch left `ui-week-nav` (flag and markup) and the ≤768 rule was deleted; new `partials/ui-print-modal.blade.php`; included on the four pages; the button now opens it (`PrintSheet ? open() : window.print()`, so the replacement pages that share the partial keep the plain browser print) |
+| T28 | `PrintSheet` owns the dialog: `open`/`close`/`print`, the week list from `weeks()`, state `{week, normal}`, the disabled-and-ON rule, `Esc`/backdrop, focus in and back, `canPrint` veto, and the preference memory |
+| T29 | The four `build(normal)` → `build({week, normal})`; **the venue's All Weeks became the semester union** (§A6, which also repairs the frozen PR-16 that the applied code had deviated from); cohort's `showGuidance()` now rebuilds the paper (§A11) |
+| T30 | The dialog's field/switch CSS and **`.print-modal-overlay` in the `@media print` block** |
+| T31 | `timetable-print.spec.ts` 12 → **16 cases**; `venue-timetable` TC05 re-pointed |
+| T32 | PDFs: Week 3 chosen from a page showing Week 9, All Weeks, and the dialog itself |
+| T33 | This log, the verify report, four changelogs, `sdd.yaml` |
+
+**Two facts found while applying, both recorded rather than smoothed over:**
+
+1. **The old "the switch stands down below 768" decision is moot, and so is part of A1's
+   promise.** The switch left the week row, so the row that task 8 tuned now has all of its
+   width back. But the *print button itself* is hidden below 1280 on My Timetable and
+   Student My Timetable (`theme.css:6163`, task 8's `preview-desktop-only`: "printing from a
+   phone is the browser's own menu"). So A1's "the switch is reachable at every width" is
+   true only where the button is: verified reachable at 390 on the **Cohort** page, and
+   deliberately not on the two My pages, which have no print entry at that width at all —
+   a pre-existing ruling of that lane, not this amendment's doing. The receipt asserts
+   exactly that (`PR-02`, amended).
+2. **The resting paper is still the week on screen.** `PrintSheet.init()` seeds the dialog's
+   week from `screenWeek()` on every rebuild *until the reader chooses*, so nothing about the
+   page's at-rest paper changed; All Weeks only appears once asked for. The first draft had
+   `_week = null` until the dialog was opened, which made the resting paper the semester —
+   caught by the existing `PR-06` receipt before any of it was committed.
+
+## Amendment 2 — the dialog's switch wears the house toggle (2026-11-16)
+
+`.print-modal__switch` is **deleted**; the dialog renders the sanctioned
+`.toggle-wrapper` / `.toggle-track` / `.toggle-thumb` / `.toggle-label` that the replacement
+pages' filter bar and the notification rows use. Measured on the built page: track **36 × 20**,
+thumb 16 px, gap 8 px, label 13 px/500, wrapper 189 × 24 — the reference's numbers, to the pixel.
+
+Three rules were added, all scoped to the field: the All-Weeks disabled look (dimmed to .55 —
+the reference has no disabled state at all), `min-height: 24px` (the house row is 20 px tall and
+WCAG 2.5.8 asks for 24 × 24; A12's 48 px promise is superseded deliberately), and the hint's
+indent, which had been aligned to the deleted label. Two test lines moved, exactly as the
+amendment predicted: the scoped selector and a wrapper click (the house input is 0 × 0).

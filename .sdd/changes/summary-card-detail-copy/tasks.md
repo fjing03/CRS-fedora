@@ -35,7 +35,7 @@ This lane starts at T1.
 - [x] Comment the reserve: `38 + 8px padding = 46px, clear of the 44px button;
       39px is the last reserve that does not re-wrap a bullet, 40px re-wraps
       "Includes completed"`.
-- [x] Leave `../ui-prototype/summary-card-back-preview.html` as it is. Its
+- [x] Leave `ui-prototype/summary-card-back-preview.html` as it is. Its
       header, legend, bullet count ("four bullet edits, three distinct
       wordings") and the dropped Venue-reorder note are **already corrected** —
       verify rather than edit.

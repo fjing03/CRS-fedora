@@ -1,6 +1,6 @@
 name: modal-dropdown-fixes
 created: 2026-11-14
-status: frozen
+status: applied
 batch: tasks
 planning_complete: true
 proposal_review: passed
@@ -14,3 +14,5 @@ tasks_frozen: true
 implementation_approved: true
 implementation_approved_at: 2026-11-14
 implementation_approved_by: user (reported both defects, asked to fix)
+applied_at: 2026-11-14
+applied_commit: 85ce7a3 + 6f197de

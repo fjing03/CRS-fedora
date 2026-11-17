@@ -1,3 +1,20 @@
+## 2026-11-16 — the printer asks before it prints
+
+The printer button now opens a small **Print** dialog instead of printing straight away. Two
+settings live there, because they belong to printing and nothing else:
+
+- **Week** — `All Weeks (Whole Semester)`, or any single week (each option carries its dates).
+  `All Weeks` prints the whole semester's timetable; a week prints just that week, even if the
+  page is showing a different one — the screen does not move.
+- **Show normal class only** — one week's normal classes without replacements. On `All Weeks`
+  the switch is **disabled and switched on**, because that is what All Weeks prints: the
+  semester's normal timetable.
+
+The switch used to sit beside the printer in the week row; it moved into the dialog, so the row
+goes back to arrows, week, Today and Print. It is drawn with the same toggle the replacement
+pages use in their filter bar — same 36 × 20 track, colours, focus ring and label — rather than
+a control of its own, and `Cancel`, `Esc` or a click outside closes the dialog without printing.
+
 ## 2026-11-16 — the printer button prints a real sheet (and the time joiner changes)
 
 The button in the week row has shown *"Printing is coming soon"* since the mock era. It now opens the

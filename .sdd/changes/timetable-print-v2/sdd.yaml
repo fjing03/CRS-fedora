@@ -1,7 +1,20 @@
 name: timetable-print-v2
 created: 2026-11-12
 status: applied  # explored, proposed, designed, spec'd, tasked, APPLIED and VERIFIED 2026-11-16
-batch: "complete (0, A, B, C, D, E, F) — verified PASS; ready for /sdd-archive on the user's word"
+batch: "complete (0, A, B, C, D, E, F) — verified PASS; then amendments 1 and 2, both frozen, applied and verified; ready for /sdd-archive on the user's word"
+amendments:
+  - file: amendments/2026-11-16-print-modal.md
+    title: "the Print dialog — week choice + the switch moves in"
+    frozen_on: 2026-11-16
+    review_rounds: 2
+    applied: true
+    verified: true
+  - file: amendments/2026-11-16-print-modal-toggle.md
+    title: "the dialog's switch wears the house toggle"
+    frozen_on: 2026-11-16
+    review_rounds: 2
+    applied: true
+    verified: true
 lane_shape: full
 brief: prompts/pi-prompt-timetable-print-v2.md
 task: "9 of the user's to-do list"

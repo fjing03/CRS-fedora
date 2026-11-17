@@ -1,6 +1,6 @@
 name: tooltip-viewport-clamp
 created: 2026-11-14
-status: frozen
+status: applied
 batch: tasks
 planning_complete: true
 proposal_review: passed
@@ -14,3 +14,7 @@ tasks_frozen: true
 implementation_approved: true
 implementation_approved_at: 2026-11-14
 implementation_approved_by: user (reported the three symptoms)
+applied_at: 2026-11-14
+applied_commit: 65f1dc1
+open_items:
+  - "U2a-T18 written but not executed: the :8030 testing lane cannot authenticate (class_replacement_testing has 0 users)"

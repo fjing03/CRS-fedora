@@ -11,7 +11,7 @@ Later gates:
 
 - **G1 — code Apply:** user explicitly authorises implementation against this frozen chain. Recheck dirty files/other sessions first.
 - **G2 — demo cleanup:** separate approval for the exact fresh live plan, AFTER testing rehearsal and verified snapshot. G1 does not grant G2. Only class_replacement_fresh is eligible, never viva/demo twins.
-- **G3 — commit:** obtain commit authority and stage only task-owned hunks. Separate Part A / Part B commits; no push without explicit push instruction. Never blanket-stage docs/demo-db-data-changes.md or ../ui-prototype/.
+- **G3 — commit:** obtain commit authority and stage only task-owned hunks. Separate Part A / Part B commits; no push without explicit push instruction. Never blanket-stage docs/demo-db-data-changes.md or ui-prototype/.
 
 Each numbered task is one work unit of at most two hours, including its targeted test/check; stop and subdivide through the normal artifact process if a unit cannot fit. Estimates are planning bounds, not elapsed-time claims. Tests named below are proposed, not existing receipts.
 
