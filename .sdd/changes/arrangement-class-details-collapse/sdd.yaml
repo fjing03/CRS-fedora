@@ -1,7 +1,9 @@
 lane: arrangement-class-details-collapse
 title: Class Details stops holding a dead column
 surface: Replacement Arrangement
-status: proposed        # nothing applied
+status: parked          # held: off-topic (critique item "dead Class Details column", not P2)
+                        # nothing applied, no system code touched
+resume_at: confirming reviewer round (rev 2 resolves B-1 and B-2), then owner go
 created: 2026-11-17
 owner_decision: B   # hide when empty at every width; hint moves to Conflict Schedule empty state (2026-11-17)
 files_expected:
@@ -10,10 +12,14 @@ files_forbidden:
   - public/css/theme.css        # not needed; held by cohort-venue-responsive-port
   - public/js/ui-common.js      # not needed; held by cohort-venue-responsive-port
 gate:
-  - owner picks an option
-  - one reviewer round
+  - owner picked B (done, 2026-11-17)
+  - reviewer round 1 done: 2 blockers, rev 2 resolves them
+  - confirming reviewer round — NOT RUN
+  - owner explicit go — NOT GIVEN
   - then edit
 blocked_by: []
 measures:
-  - 1440: class-details 248x316 -> rail 56px (A) or absent (B); live columns 397 -> 493
-  - 1280: class-details 294x213 -> rail 56px (A) or absent (B)
+  - 1440: class-details 248x316 -> absent; replacement 397 -> 657; summary stays 280 at x1119
+  - 1280: class-details 294x213 -> absent; replacement 411 -> 716
+  - 1101: replacement 348 -> 609; 1024 single column unchanged; scrollWidth unchanged at all
+  - conflict-collapsed variant: replacement 998 at 1440 / 1130 at 1280 / 951 at 1101 (measured)
