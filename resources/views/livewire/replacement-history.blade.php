@@ -764,7 +764,14 @@
             tabs.push({
                 key: 'original',
                 label: 'Original',
-                html: slotTab('Original Slot Schedule', r.orig, 'Class ID', sessionId, true),
+                /* a countdown belongs to a class that is still WAITING to be sorted.
+                   2026-11-17 (task 10, D1 — the user's word: "a"): once the request is
+                   approved or the class has already happened, the original slot is no
+                   longer late, it is dealt with — the staff pop-up's own rule
+                   (`countdownHidden`). The date still prints; only the red countdown
+                   goes quiet. */
+                html: slotTab('Original Slot Schedule', r.orig, 'Class ID', sessionId,
+                    r.status !== 'approved' && r.status !== 'completed'),
             });
             /* the Course tab is GONE (2026-11-11): the code/name/type live in the
                subtitle, the lecturer here with the two facts the staff strip prints */

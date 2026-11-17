@@ -27,12 +27,18 @@ Three pop-ups, one shape. The CSS half already shipped; only the blades are behi
 
 ## 3. Decisions this artifact takes (the brief's open items)
 
-### D1 — The student's always-on `Overdue` is aligned to the staff rule *(needs the user's word — see §5)*
+### D1 — DONE 2026-11-17: the student's `Overdue` now goes quiet once the row is handled (user's word: "a")
 
-The student's `Original` tab prints `Overdue (n Working Days Ago)` even when the request is
-approved or completed; the staff pop-up hides the countdown once the row is handled
-(`countdownHidden`). The brief calls this the user's call. **Recommended: align it** — a completed
-row is not overdue — and it is one call to the existing flag. Held until the user answers.
+The student's `Original` tab printed `Overdue (n Working Days Ago)` even on an approved or
+completed row; the staff pop-up hides its countdown once handled (`countdownHidden`). It now
+follows the same rule: the countdown shows while the class is still waiting (`none` / `pending`)
+and disappears once it is `approved` or `completed`. The original **date still prints** — only the
+red countdown stops.
+
+Verified by driving the render through its four states (client-side status only, no data written):
+`none` → `Days Left` present, `pending` → present, `approved` → absent, `completed` → absent, the
+`Day & Date` row printing its date in every case. No live approved/completed row exists for the
+student demo account, so this is a render check rather than a data observation — said plainly.
 
 ### D2 — `Class Info` is written twice, not shared
 

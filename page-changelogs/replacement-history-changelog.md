@@ -1,3 +1,11 @@
+## 2026-11-17 — an approved replacement stops shouting "Overdue"
+
+On the Replacement Details pop-up, the Original slot used to keep a red *Overdue (9 Working Days
+Ago)* even after the request was approved or the class had already taken place. It now goes quiet
+once the row is handled — the same rule the staff pop-up follows — while the **original date still
+prints**, so nothing is hidden. A class that is still waiting shows its countdown exactly as
+before.
+
 ## 2026-11-17 — the details pop-up, one shape on three pages
 
 The pop-up on this page (and on My Replacements and Request Approval) now shares one layout:
