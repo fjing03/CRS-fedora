@@ -498,12 +498,18 @@
   Timetable) are a separate component with their own three-tier rule (time + venue primary, code
   grey, note line last) and they belong to task 8 — do not fold them into this lane.
 
-- [ ] **12. `table-column-trims`** — the three list tables stop printing what the pop-up already shows
+- [x] **12. `table-column-trims`** — the three list tables stop printing what the pop-up already shows
 
-  **Status:** Proposal **frozen** and design **frozen** 2026-11-15; no specs, no tasks, **no code**
-  written. Lane `.sdd/changes/table-column-trims/` holds `explore-brief.md`, `proposal.md`,
-  `design.md`, `review-log.md`, `sdd.yaml`. Opened as its own lane on your ruling — neither
-  `filters-button`, `details-modal-consistency` nor `cards-and-badges-responsive` owns a table cell.
+  **Status:** DONE 2026-11-17 — applied (`579bc1d`, plus `de24705` for two receipts that were red for
+  the wrong reason), verified **PASS** and **archived** to
+  `.sdd/archive/2026-11-17-table-column-trims/`. Specs and tasks were folded into one artifact and
+  reviewed once, per your cost ruling. Shipped: Request Approval's Staff cell is the name alone (the
+  ID and the copy-email line now live only in the pop-up's Class Info tab), and all three Course
+  cells read `AMSE2003 (L)` on one line — on Request Approval that cell *gains* the type.
+  `CourseColumnTipTest` 4/4 (17 assertions); measured at 1024 the Staff column went 188 → 146px,
+  Course 250 → 118px and the table 1451 → 1277px. The four DOM specs read 12 failed / 27 passed
+  **identically** before and after; two of those reds were repaired, the other ten belong to other
+  surfaces and are attributed in the lane's apply log and verify report.
 
   - **What it changes, two trims across three pages.** (1) Request Approval's Staff cell prints the
     proposer's **name only** — the `(staffId)` and the click-to-copy email leave the queue (they stay

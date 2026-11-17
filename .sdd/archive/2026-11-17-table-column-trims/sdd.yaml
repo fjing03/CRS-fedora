@@ -1,13 +1,13 @@
 name: table-column-trims
 created: 2026-11-15
-status: active
+status: archived
 lane_shape: small
 source: "the prototypes' injected 'the 9' layer, items #8 and #9"
 reference_prototypes:
   - ui-prototype/request-approval.html
   - ui-prototype/my-replacements.html
 pages: 3
-batch: applied
+batch: archived
 proposal_review: passed (round 1 fixed; round 2 reviewer quota-blocked, author self-check logged)
 proposal_frozen: true
 review_rounds_proposal: 1
@@ -23,8 +23,13 @@ tasks_frozen: true
 implementation_approved: true
 implementation_approval: "user, 2026-11-17: \"yes.\" to write the spec+tasks, review once, then apply"
 applied: true
+verified: passed
+verified_on: 2026-11-17
+verify_report: verify-report.md
 applied_on: 2026-11-17
 apply_log: apply-log.md
+archived_on: 2026-11-17
+archive_note: "the review round for the combined spec+tasks passed with three wording fixes; two DOM specs re-pointed because they were red for the wrong reason"
 open_decisions:
   - "phone card + confirm card keep the staff ID: a standing decision with no owning lane, not a deferral"
   - "no shared course-cell helper; the per-page reasons must be recorded in design.md for verify"
