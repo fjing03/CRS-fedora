@@ -82,17 +82,17 @@ test('venue B010 week 7 — the pending block keeps its date, its class ref and 
     total: document.getElementById('sumTotal')?.textContent,
     available: document.getElementById('sumAvailable')?.textContent,
     occupied: document.getElementById('sumOccupied')?.textContent,
-    tails: document.querySelectorAll('.summary-value .sum-pending').length,
+    tails: Array.from(document.querySelectorAll('.summary-value .sum-pending')).map(el => el.textContent),
   }));
   /* Calendar-proof (2026-11-03): the frozen numbers (118+2 / 56 / 24+2) were
      probe-verified for one specific week; after the calendar moved they are no
      longer valid. Assert the CARD LAW instead: Total and Occupied are `X+Y`
-     compositions, Available is plain, exactly four cards carry a tail, and the
-     confirmed parts add up to the venue's weekly slot count. */
+     compositions, Available is plain, only positive pending parts carry tails,
+     and the confirmed parts add up to the venue's weekly slot count. */
   expect(cards.total).toMatch(/^\d+\+\d+$/);
   expect(cards.available).toMatch(/^\d+$/);
   expect(cards.occupied).toMatch(/^\d+\+\d+$/);
-  expect(cards.tails).toBe(4);                 // Total + Occupied + the two My cards
+  for (const tail of cards.tails) expect(Number(tail)).toBeGreaterThan(0);
   const confirmed = (v?: string | null) => Number(String(v ?? '').split('+')[0]);
   expect(confirmed(cards.total)).toBeGreaterThanOrEqual(confirmed(cards.available) + confirmed(cards.occupied));
 });
@@ -136,7 +136,7 @@ test('venue B010 week 14 — the class carrying a proposal is not deleted', asyn
 
   // the derived block is counted again (it used to vanish from the card too)
   const occupied = await page.evaluate(() => document.getElementById('sumOccupied')?.textContent);
-  expect(occupied).toBe('24+0');
+  expect(occupied).toBe('24');
 });
 
 test('cohort page — Replace Now follows the served conflict fact, not a guess', async ({ page }) => {

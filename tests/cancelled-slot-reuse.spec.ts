@@ -256,8 +256,8 @@ test.describe('cancelled-slot-reuse A20 — approved/ending lifecycle on the tes
 
     /* the summary cards already read the honest zeros: cancelled = 0 classes,
        0 hours, 1 conflict (S22) */
-    expect((await summaryCard(page, 'sumTotal'))?.text).toBe('0+0');
-    expect((await summaryCard(page, 'sumHours'))?.text).toBe('0+0');
+    expect((await summaryCard(page, 'sumTotal'))?.text).toBe('0');
+    expect((await summaryCard(page, 'sumHours'))?.text).toBe('0');
     expect((await summaryCard(page, 'sumPending'))?.text).toBe('0');
     expect((await summaryCard(page, 'sumConflict'))?.text).toBe('1');
 
@@ -519,8 +519,8 @@ test.describe('cancelled-slot-reuse A20 — approved/ending lifecycle on the tes
     /* the cards after approval: 2 confirmed hours, cancelled still 0, the
        landing counted as the replacement, and the suppressed original no
        longer adds a cancelled conflict (S22) */
-    expect((await summaryCard(page2, 'sumTotal'))?.text).toBe('1+0');
-    expect((await summaryCard(page2, 'sumHours'))?.text).toBe('2+0');
+    expect((await summaryCard(page2, 'sumTotal'))?.text).toBe('1');
+    expect((await summaryCard(page2, 'sumHours'))?.text).toBe('2');
     expect((await summaryCard(page2, 'sumReplacement'))?.text).toBe('1');
     expect((await summaryCard(page2, 'sumPending'))?.text).toBe('0');
     expect((await summaryCard(page2, 'sumConflict'))?.text).toBe('0');
@@ -533,9 +533,9 @@ test.describe('cancelled-slot-reuse A20 — approved/ending lifecycle on the tes
     expect(new URL(page2.url()).pathname).toBe('/venue-timetable-ui');
     await page2.locator('#weekSelect').selectOption({ index: aw.week - 1 });
     await page2.waitForTimeout(1200);
-    expect((await summaryCard(page2, 'sumMyHours'))?.text).toBe('2+0');
-    expect((await summaryCard(page2, 'sumMyClasses'))?.text).toBe('1+0');
-    expect((await summaryCard(page2, 'sumOccupied'))?.text).toBe('4+0');
+    expect((await summaryCard(page2, 'sumMyHours'))?.text).toBe('2');
+    expect((await summaryCard(page2, 'sumMyClasses'))?.text).toBe('1');
+    expect((await summaryCard(page2, 'sumOccupied'))?.text).toBe('4');
 
     expect(errors2, 'no page errors').toEqual([]);
     await ctx2.close();
@@ -655,7 +655,7 @@ test.describe('cancelled-slot-reuse A20 — approved/ending lifecycle on the tes
     const blocks = await domBlocks(page2);
     expect(blocks.filter((b) => b.rid !== null && b.text.includes(F.marker.module))).toHaveLength(0);
     expect(blocks.filter((b) => b.cls.includes('event-conflict') && b.sid === String(sid))).toHaveLength(1);
-    expect((await summaryCard(page2, 'sumHours'))?.text).toBe('0+0');
+    expect((await summaryCard(page2, 'sumHours'))?.text).toBe('0');
     await ctx2.close();
     expect(errors2, 'no page errors').toEqual([]);
   });
@@ -709,7 +709,7 @@ test.describe('cancelled-slot-reuse A20 — approved/ending lifecycle on the tes
     const blocks = await domBlocks(page2);
     expect(blocks.filter((b) => b.rid !== null && b.text.includes(F.marker.module))).toHaveLength(0);
     expect(blocks.filter((b) => b.cls.includes('event-conflict') && b.sid === String(sid))).toHaveLength(1);
-    expect((await summaryCard(page2, 'sumHours'))?.text).toBe('0+0');
+    expect((await summaryCard(page2, 'sumHours'))?.text).toBe('0');
     await ctx2.close();
     expect(errors2, 'no page errors').toEqual([]);
   });

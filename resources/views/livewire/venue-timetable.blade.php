@@ -2733,22 +2733,21 @@
                     const el = document.getElementById(id);
                     if (el) el.textContent = String(v);
                 };
-                /* confirmed+pending split (summary-cards-confirmed-pending,
-                   2026-11-02): the `+Y` tail is the PENDING-held part — slots
-                   held by live make-up requests (Occupied) and YOUR pending
-                   make-ups landing in this venue (the My cards). Total Slots
-                   stays PLAIN: the split inside Occupied already tells it. */
+                /* confirmed+pending split: the `+Y` tail is the PENDING-held
+                   part — slots held by live make-up requests and YOUR pending
+                   make-ups landing in this venue (the My cards). Omit zero
+                   tails; keep the server's confirmed values unchanged. */
                 const split = function (id, confirmed, pending) {
                     const el = document.getElementById(id);
                     if (!el) return;
                     el.innerHTML = String(confirmed)
-                        + '<span class="sum-pending">+' + String(pending) + '</span>';
+                        + (Number(pending) > 0 ? '<span class="sum-pending">+' + String(pending) + '</span>' : '');
                 };
                 /* venue-status-parity T8 (bug #9, the user's `+` ruling): Total
                    Slots is the only composition card that was still plain — it
                    silently dropped the pending-held rows (118 of 120 on B010 w7).
-                   `X+Y` keeps both facts and matches the other cards' law (the
-                   tail ALWAYS renders, `+0` included). */
+                   `X+Y` keeps both facts when pending is positive; zero pending
+                   leaves the same confirmed number without a suffix. */
                 split('sumTotal', t.total, t.pending || 0);
                 /* the card shows ONLY bookable cells (the grid's too-soon rows
                    excluded; user accuracy 2026-10-19) — and it is already the

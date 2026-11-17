@@ -1548,8 +1548,8 @@ function computeSummary(events, days, opts) {
     /* confirmed+pending split (summary-cards-confirmed-pending, 2026-11-02):
        the `{ splitPending: true }` OPT-IN renders sumTotal / sumHours /
        sumMyClasses / sumMyHours as `X` + a tertiary `+Y` tail (Y = the pending
-       share). DEFAULT FROZEN: a caller that passes no opts keeps the exact
-       previous plain numbers — my-timetable + student-my-timetable never opt in. */
+       share), omitted when zero. A caller that passes no opts keeps the exact
+       previous plain numbers; staff/student/cohort pages opt in explicitly. */
     const splitPending = !!(opts && opts.splitPending);
     /* cancelled-blocks-stay-visible (the locked summary law): My Classes /
        My Hours exclude cancelled blocks (myTeachingStats gates them) while
@@ -1595,7 +1595,7 @@ function computeSummary(events, days, opts) {
             return;
         }
         el.innerHTML = fmt(full - pendingPart)
-            + '<span class="sum-pending">+' + fmt(pendingPart) + '</span>';
+            + (pendingPart > 0 ? '<span class="sum-pending">+' + fmt(pendingPart) + '</span>' : '');
     };
 
     setSplit('sumTotal', total, pending);

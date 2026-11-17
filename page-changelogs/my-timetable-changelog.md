@@ -1,3 +1,20 @@
+## 2026-11-18 — summary cards stop printing zero pending suffixes
+
+A zero pending part now renders as the confirmed number alone: `10`, not `10+0`.
+Positive tails, including fractional hours such as `+0.5`, retain their existing
+markup and formatting. This applies to the desktop cards and those same nodes in
+the phone Week summary sheet. Counts, formulas, colours and sheet relocation are
+unchanged; no tooltip/toast positioning changes.
+
+Implementation: shared `computeSummary()` and Venue's separate server-totals
+writer each append `.sum-pending` only for a positive pending component.
+Receipt: four focused read-only browser cases went red then green; combined
+responsive/focused run **70 passed** (including three auth setups).
+All four timetable consumers checked at 1440/390 touch in both themes (16 captures,
+zero zero-valued tails). Synthetic positive/transition tests use browser-only
+values, never database fixtures. Writing lifecycle receipts' display expectations
+were updated but were not executed on protected manual data.
+
 ## 2026-11-18 — readable dark tabs and a touch-sized quiet exit
 
 Shared `theme.css` now uses `--color-on-primary-container` for active-tab text in
