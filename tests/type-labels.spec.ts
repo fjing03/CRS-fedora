@@ -55,8 +55,11 @@ test('AMCS2093 type labels: P rows say "(P)"/Practical, L and T stay byte-identi
   await thu.click();
   await expect(page.locator('#quickViewModal')).toBeVisible();
   await expect(page.locator('#quickViewModal')).toContainText('Practical');
-  // scope to the modal — a second hidden .btn-close-modal (keyboard shortcuts) exists earlier in the DOM
-  await page.locator('#quickViewModal .btn-close-modal').click();
+  /* scope to the modal — a `.btn-close-modal` also exists for the keyboard-shortcuts dialog
+     earlier in the DOM. The quick-view footer's Close has been `.btn-outline` since the tabbed
+     modal landed (6856577), so this selector was stale and this case red long before task 12;
+     repaired here because it is the spec that pins the very cells the lane rewrites. */
+  await page.locator('#quickViewModal .modal-footer .btn-outline').click();
 
   // regression guard — L and T rows byte-identical to the old ternary output
   const lec = sessionRow(page, 'B110', '11:00 AM');

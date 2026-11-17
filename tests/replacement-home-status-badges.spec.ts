@@ -170,12 +170,14 @@ test('receipt 5 — the phone card opens the same pop-up', async ({ page }) => {
 
   await card.click();
   await expect(page.locator('#quickViewModal')).toBeVisible();
-  /* 2026-11-07 (user): the pop-up opens on the Requested Slot Schedule —
-     but only a row that HAS a proposal carries that tab; a needs-action row
-     still leads with Original Slot Schedule. */
+  /* 2026-11-07 (user): the pop-up opens on the Requested slot — but only a row that HAS a
+     proposal carries that tab; a needs-action row still leads with Original.
+     2026-11-17 (task 10): the tabs are SHORT now — `Requested` / `Original` / `Class Info` /
+     `Status` — and the long names survive as each tab's section caption, so this receipt
+     asserts the short label the page actually prints. */
   const modalLabels = await page.locator('#quickViewModal .modal-tab').allInnerTexts();
   expect(modalLabels[0]).toBe(
-    modalLabels.includes('Requested Slot Schedule') ? 'Requested Slot Schedule' : 'Original Slot Schedule',
+    modalLabels.includes('Requested') ? 'Requested' : 'Original',
   );
 });
 
