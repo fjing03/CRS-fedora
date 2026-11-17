@@ -1270,3 +1270,22 @@ carries both classes, PR-04's pointer is `spec.md:71`, TC05's span starts at `:7
 AC14's wording no longer reads as a fifth allowed change.
 
 **Amendment 1 is frozen.** Implementation may begin.
+
+## 2026-11-16 — Amendment 2 (the dialog's switch wears the house toggle) — round 1
+
+Verdict **not ready**: 7 × 🟡, 2 × 🔴. The decision itself (reuse `.toggle-wrapper`,
+delete the private BEM component, keep disabled+ON) was verified sound and in conflict
+with nothing frozen. What needed fixing in the amendment file:
+
+- **Blocking:** B5 promised "no test changes" while **two** lines break — the deleted
+  `.print-modal__switch` selector, and `.check()` on a `0 × 0` `pointer-events: none`
+  input (the repo documents that trap in `tests/helpers/filters-panel-helper.ts:10-11`).
+  Both are now named, with the wrapper-click fix, and the selector is scoped.
+- The reference table omitted `gap: 0` **and** `.filter-field--toggle .toggle-label
+  { display: none }` — which turned out to be the crux of a real design question the
+  amendment had not asked: the filter bar shows a caption and hides the label.
+- B3 claimed both fields "share their caption language", which was false against
+  `.print-modal__label`; resolved by copying neither the chip nor the caption, so the
+  switch keeps its own visible label exactly as the notification toggles do.
+- B4's WCAG reasoning was wrong (the row is 20 px tall, not 48) — it now records a
+  deliberate `min-height: 24px` as the one sizing addition instead of claiming a pass.
