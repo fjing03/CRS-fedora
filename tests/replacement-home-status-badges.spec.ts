@@ -153,13 +153,16 @@ test('receipt 5 — the phone card opens the same pop-up', async ({ page }) => {
 
   const card = page.locator('#cardView .replacement-card').first();
   /* 2026-11-11 (user): the badge names ONLY the kind and the detail rides the
-     hover — on the phone card too (reasonText + reasonTip hooks reach it). */
-  const headerBadges = (await card.locator('.rc-header .badge').allTextContents()).map((t) => t.trim());
+     hover — on the phone card too (reasonText + reasonTip hooks reach it).
+     2026-11-17 (survey finding B1): the card was rebuilt into the drawing's
+     four-band shape, so the badge now rides the FOOT band (`.cl-rc-foot`), not a
+     `.rc-header`. The contract is unchanged; only the band's name moved. */
+  const headerBadges = (await card.locator('.cl-rc-foot .badge').allTextContents()).map((t) => t.trim());
   expect(
     headerBadges.some((t) => /^(Public Holiday|Class Cancelled)$/.test(t)),
     'the card badge carries the short kind, never the raw reason: ' + headerBadges.join(' | '),
   ).toBe(true);
-  const cardReason = card.locator('.rc-header .badge-holiday, .rc-header .badge-reason').first();
+  const cardReason = card.locator('.cl-rc-foot .badge-holiday, .cl-rc-foot .badge-reason').first();
   expect(
     await cardReason.getAttribute('data-tip'),
     'the phone card carries the same detail tip as the table',

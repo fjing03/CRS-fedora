@@ -1,3 +1,15 @@
+## 2026-11-17 — the phone card says when the replacement is asked for
+
+A card on a phone now reads like the drawing: the code and its status on top, then an
+**ORIGINAL** band (week, date, countdown, time, room) and — when a proposal exists — a
+**REQUESTED** band with the same four facts for the new slot. A row with no proposal prints
+*Not requested* instead of leaving the space blank. The conflict badge and the cohorts share
+the foot, and from a tablet up the two bands sit side by side.
+
+Before this, a phone card showed one flat line of prose and **no requested slot at all**, so a
+pending card never said when the make-up class was being asked for. The desktop table is
+unchanged.
+
 
 ### Postscript — own-records page + My summary cards (2026-10-08)
 

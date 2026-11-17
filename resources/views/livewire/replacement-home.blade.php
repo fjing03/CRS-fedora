@@ -120,6 +120,71 @@
         .replacement-card:active {
             transform: scale(0.99);
         }
+        /* ══ the phone card wears the drawing's four-band shape (2026-11-17) ══
+           Ported from `ui-prototype/my-replacements.html` (`wrapHomeCard` + its
+           `.cl-rc-*` block): head band (code + status), then the labelled ORIGINAL
+           band and — when a proposal exists — the REQUESTED band, then a foot band
+           (conflict badge + cohorts). The drawing's own comment says it best: "same
+           data, same wording, same badges — only the arrangement changes".
+           The commit that brought this in is the one that closes survey finding B1:
+           before it, a phone card printed no requested slot at all, so a pending
+           card never said when the make-up class was being asked for. */
+        .cl-rc-head {
+            display: flex; align-items: center; gap: 8px;
+            padding-bottom: 8px; margin-bottom: 8px;
+            border-bottom: 1px solid var(--color-outline-strong);
+        }
+        .cl-rc-head .rc-code { flex: 1 1 auto; min-width: 0; }
+        /* two classes: `.cl-rc-slot` sets `display: grid` and is declared later */
+        .cl-rc-slot.cl-rc-slot--empty { display: none; }
+        .cl-rc-none { font-size: 12px; line-height: 1.35; color: var(--color-on-surface-variant); }
+        /* ≥600: the two bands sit side by side, exactly like the student card */
+        @media (min-width: 600px) {
+            .replacement-card .cl-rc-slots {
+                display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+                gap: 0 16px;
+            }
+            .replacement-card .cl-rc-slot { border-bottom: 0; margin-bottom: 0; padding-bottom: 0; }
+            .replacement-card .cl-rc-slot + .cl-rc-slot {
+                border-left: 1px solid var(--color-outline-strong);
+                padding-left: 16px;
+            }
+            .replacement-card .cl-rc-slot--empty { display: block; }
+        }
+        .cl-rc-slot {
+            display: grid; grid-template-columns: 72px minmax(0, 1fr);
+            column-gap: 8px; align-items: start; padding-bottom: 8px;
+            margin-bottom: 8px; border-bottom: 1px solid var(--color-outline-strong);
+        }
+        .cl-rc-label {
+            margin-top: 2px; font-size: 9px; line-height: 1.2;
+            letter-spacing: .06em; text-transform: uppercase;
+            color: var(--color-on-surface-variant);
+        }
+        .cl-rc-label .cl-week-pill {
+            display: inline-flex; margin-top: 3px; padding: 1px 7px;
+            border-radius: var(--radius-pill); background: var(--color-surface-variant);
+            color: var(--color-on-surface-variant); text-transform: none;
+            letter-spacing: 0; font-size: 9.5px; font-weight: 700; line-height: 1.5;
+            white-space: nowrap;
+        }
+        .cl-rc-grid {
+            display: grid; grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
+            column-gap: 6px; row-gap: 1px; align-items: baseline;
+        }
+        .cl-rc-date { grid-area: 1 / 1; font-size: 12px; font-weight: 600; line-height: 1.35; }
+        .cl-rc-urg { grid-area: 1 / 2; font-size: 9.5px; font-weight: 600; line-height: 1.3; text-align: right; }
+        .cl-rc-time { grid-area: 2 / 1; font-size: 11px; line-height: 1.35; }
+        .cl-rc-venue { grid-area: 2 / 2; justify-self: end; font-size: 11px; line-height: 1.35; }
+        .cl-rc-foot { display: flex; align-items: center; gap: 10px; }
+        .cl-rc-foot .badge { flex: 0 0 auto; }
+        .cl-rc-cohorts {
+            margin-left: auto; font-size: 11px; line-height: 1.25;
+            color: var(--color-on-surface-variant); text-align: right;
+        }
+        /* 320px: the urgency sentence no longer fits its column — let it wrap there
+           rather than bleed over the date (390 never wraps) */
+        @media (max-width: 360px) { .replacement-card .cl-rc-urg { white-space: normal; } }
         .rc-header {
             display: flex;
             align-items: center;
@@ -884,6 +949,103 @@
             syncSummarySection(filtered.length > 0);
         }
 
+        /* ══ the phone card, ported from the drawing (survey finding B1) ══════
+           `ui-prototype/my-replacements.html` carries this as a wrapper around the
+           shared `HtmlBuilder.replacementHomeCard`, "wrapped, not edited, so only
+           this page changes" — ported 2026-11-17 in the same spirit: this page
+           reassigns its OWN card renderer, and no other surface sees it. */
+        function shortRange(a, b) {
+            var m = /^(\d{1,2}:\d{2})\s*(AM|PM)$/i.exec(a);
+            var n = /^(\d{1,2}:\d{2})\s*(AM|PM)$/i.exec(b);
+            if (!m || !n) return a + ' \u2013 ' + b;
+            return m[2].toUpperCase() === n[2].toUpperCase()
+                ? m[1] + '\u2013' + n[1] + ' ' + m[2].toUpperCase()
+                : a + ' \u2013 ' + b;
+        }
+
+        /* the REQUESTED band, when the row has one — the fact this card used to lose */
+        function emptyBand() {
+            return '<div class="cl-rc-slot cl-rc-slot--empty">' +
+                '<div class="cl-rc-label">Requested</div>' +
+                '<div class="cl-rc-grid"><span class="cl-rc-none">Not requested</span></div>' +
+              '</div>';
+        }
+
+        function requestedBand(c) {
+            if (!c.replacementDate) return '';
+
+            var parts = String(c.replacementTime || '').split(/\s*[\u2013\u2014-]\s*/);
+            var time = parts.length > 1
+                ? shortRange(DateHelper.to12h(parts[0]), DateHelper.to12h(parts[1]))
+                : (c.replacementTime || '');
+            var pending = c.requestStatus === 'pending';
+            var days = pending ? daysLeft(c.replacementDate) : null;
+            var day = c.replacementDay ? dayAbbr(c.replacementDay) : '';
+            var week = c.replacementWeek || getWeekNumber(c.replacementDate);
+
+            return '<div class="cl-rc-slot cl-rc-slot--requested">' +
+                '<div class="cl-rc-label">Requested' +
+                  '<span class="cl-week-pill">Week ' + week + '</span></div>' +
+                '<div class="cl-rc-grid">' +
+                  '<span class="cl-rc-date">' + (day ? day + ', ' : '') +
+                    formatDate(c.replacementDate) + '</span>' +
+                  (pending
+                    ? '<span class="cl-rc-urg ' + urgencyClass(days) + '">' + daysLeftLabel(days) + '</span>'
+                    : '<span class="cl-rc-urg"></span>') +
+                  '<span class="cl-rc-time">' + time + '</span>' +
+                  '<span class="cl-rc-venue">' + (c.replacementVenue || '') + '</span>' +
+                '</div>' +
+              '</div>';
+        }
+
+        function wrapHomeCard() {
+            if (window.__clHomeCardWrap) return;
+            if (typeof HtmlBuilder === 'undefined' || !HtmlBuilder.replacementHomeCard) return;
+            window.__clHomeCardWrap = true;
+
+            HtmlBuilder.replacementHomeCard = function (c, opts) {
+                var typeLabel = UiLabels.classType(c.type, 'long');
+                var days = opts.daysLeft(c.date);
+                var urgencyCls = opts.urgencyClass(days);
+                var hideDays = opts.hideCountdown
+                    ? opts.hideCountdown(c)
+                    : (opts.isHandled && opts.isHandled(c));
+                var daysText = hideDays ? '\u2014' : daysLeftLabel(days);
+                var statusBadge = opts.statusBadge ? opts.statusBadge(c) : '';
+                var reason = opts.reasonText ? opts.reasonText(c) : c.conflictReason;
+                var tip = opts.reasonTip ? opts.reasonTip(c) : '';
+                var cohorts = Array.isArray(c.cohorts) ? c.cohorts : [];
+                var cohortText = cohorts.length > 1 ? cohorts.length + ' cohorts' : cohorts.join(', ');
+                var range = shortRange(DateHelper.to12h(c.timeStart), DateHelper.to12h(c.timeEnd));
+
+                return '<div class="cl-rc-head">' +
+                    '<span class="rc-code">' + c.code +
+                      ' <span class="cell-type-label">(' + typeLabel + ')</span></span>' +
+                    statusBadge +
+                  '</div>' +
+                  '<div class="cl-rc-slots">' +
+                    '<div class="cl-rc-slot">' +
+                      '<div class="cl-rc-label">Original' +
+                        '<span class="cl-week-pill">Week ' + getWeekNumber(c.date) + '</span></div>' +
+                      '<div class="cl-rc-grid">' +
+                        '<span class="cl-rc-date">' + String(c.day).slice(0, 3) + ', ' +
+                          formatDate(c.date) + '</span>' +
+                        '<span class="cl-rc-urg ' + urgencyCls + '">' + daysText + '</span>' +
+                        '<span class="cl-rc-time">' + range + '</span>' +
+                        '<span class="cl-rc-venue">' + c.venue + '</span>' +
+                      '</div>' +
+                    '</div>' +
+                    (requestedBand(c) || emptyBand()) +
+                  '</div>' +
+                  '<div class="cl-rc-foot">' +
+                    '<span class="badge ' + opts.badgeClass(c.conflictReason) + '"' +
+                      (tip ? ' data-tip="' + String(tip).replace(/"/g, '&quot;') + '"' : '') +
+                    '>' + reason + '</span>' +
+                    '<span class="cl-rc-cohorts">' + cohortText + '</span>' +
+                  '</div>';
+            };
+        }
+
         function renderCards() {
             var container = document.getElementById('cardView');
             if (!container) return;
@@ -1426,6 +1588,9 @@
             populateWeekDropdown();
             restoreFilters();
 
+            /* survey finding B1: the card renderer is reassigned ONCE, before the
+               first render, so the skeleton's first paint is already the new shape */
+            wrapHomeCard();
             SkeletonLoader.showSummary();
             SkeletonLoader.with(function () {
                 buildTable();
