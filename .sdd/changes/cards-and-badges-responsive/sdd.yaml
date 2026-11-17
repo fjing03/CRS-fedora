@@ -1,0 +1,18 @@
+name: cards-and-badges-responsive
+created: 2026-11-17
+status: active
+lane_shape: compact  # one artifact (proposal + decisions + ACs + tasks), one review round — user's instruction 2026-11-17 to cut the SDD cost
+source: "prompts/pi-prompt-cards-and-badges-responsive.md (the brief is the source of truth)"
+pages: ["/my-replacements", "/request-approval-ui", "/student-class-replacements"]
+reference_prototypes:
+  - ui-prototype/my-replacements.html
+  - ui-prototype/request-approval.html
+  - ui-prototype/student-class-replacements.html
+already_shipped:
+  - "1e92ba2 — My Replacements phone card (head / ORIGINAL / REQUESTED / foot)"
+  - "57a3adf — Request Approval card + Class Replacements card"
+user_rulings:
+  - "2026-11-17: the 48x48 touch floor applies to the <select> control; its <option> values are skipped (native, unstyleable)"
+  - "2026-11-17: SDD cost cut to one artifact + one review round per task, with the small-change exemption for indivisible bits"
+open_checks:
+  - "Request Approval's PENDING card has never been seen with live data (the queue holds no pending rows today); verified against the drawing only"
