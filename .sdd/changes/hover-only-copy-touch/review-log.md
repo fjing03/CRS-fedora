@@ -75,3 +75,46 @@ Two points accepted as risks rather than pre-decisions: AC-3's dismissal half de
 non-focusable target actually blurring the wrapper (testable, fails loudly); and a roleless focusable `<span>`
 with `aria-label` computes a name unevenly across screen readers — `role="note"` is the known fallback if the
 verify pass shows it.
+
+## amendment Round 3 — 2026-11-17
+
+Reviewer: separate read-only subprocess. Verdict: **not ready to apply**, two blockers.
+
+### 🔴 Fixed
+- **The tabindex work was not free.** `[tabindex]:not([tabindex="-1"])` is inside both 48×48 walks
+  (`timetable-responsive.spec.ts:260-276`, incl. the touch-laptop 1440 case at `:1382`;
+  `cohort-venue-responsive.spec.ts:398`, whose comment names `<option>` as the law's only allowance), and
+  the measured legend items are **16px tall**. Tabled as a decision (A/B/C), then **owner chose A** — a 48px
+  floor under `(any-pointer: coarse)` — recorded in §9.3a with its consequence.
+- **A-2's carrier.** Decided: `role="img"` + `aria-label` carrying label **and** meaning, with the false-pass
+  rationale written down (a roleless focusable div computes a Chromium name that Playwright passes and a
+  screen reader does not).
+
+### 🟡 Addressed
+- Stale citations refreshed (`theme.css:2283-2284` → `2333-2336`); duplicated paragraph removed.
+- The summary-hint row was wrong: there is no media-swapped summary hint — the plain card swaps by sheet
+  scope, the flip card says "Hover or tap" because tap is implemented.
+- A-3 marked a **wiring** test; A-5/A-6 marked as guards.
+- §2's central claim given the same measured-in-Chromium hedge §3 already carried.
+
+## amendment Round 4 — 2026-11-17
+
+### 🔴 Fixed
+- **The plan shipped half the lane.** `apply-plan.md` now carries the frozen proposal's own scope (the two
+  arrangement tips, the `#submitTip` state-aware sync keyed off `btn.disabled`, the blade-scoped focus ring),
+  and A-5 no longer forbids what the proposal itself does.
+- **Frozen AC-6 forbade `theme.css`.** Superseded explicitly in a new §6a rather than quietly broken:
+  `ui-common.js` and Livewire classes stay untouched; `theme.css` is in scope for exactly three rules.
+
+### 🟡 Addressed
+- `sdd.yaml`: `files_blocked` cleared (the port landed) and the gate restated — **option choice is not edit
+  permission**.
+- A-3 now has a step (CDP forced media, wiring only); the arrangement gets its own spec and phpunit run;
+  `status-tooltips-filter-chips` removed from the list with the reason.
+- §9.3a arithmetic corrected: flex-wrap means **per wrapped row**, so 1024 is one row (~+32px total), not
+  +32px × 4–5. The earlier figure overstated it ~4×.
+- 390 row added to the measured table: the legend lives in the week summary sheet below 1280, so the floor
+  costs nothing until the sheet opens.
+
+### 🔴 Outstanding
+- None. Awaiting the owner's explicit go for code.

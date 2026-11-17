@@ -1,7 +1,38 @@
-# Apply plan — the pointer contract (prepared while the port landed, NOT applied)
+# Apply plan — the whole lane (prepared while the port landed, NOT applied)
 
-Exact snippets, so the apply step is paste-and-verify rather than re-derivation. Nothing here is in the
-tree.
+Exact snippets, so the apply step is paste-and-verify rather than re-derivation. Nothing here is in the tree.
+
+**This plan covers BOTH halves of the lane.** Sections 0a and 0b are the frozen proposal's own work; sections
+1–3 are the pointer-contract amendment. An apply that runs only 1–3 ships half the lane (round 4, 🔴-1).
+
+## 0a. `resources/views/livewire/replacement-arrangement.blade.php` — the two legend tips (proposal task 2)
+
+`:2728` and `:2732`, the word `HOVER` → `OPEN` in both, capitals kept (the blade's own rule:
+
+> "Capitals do the emphasis: a data-tip is plain text").
+
+Also in this file, `:2724` includes the shared legend partial — so the amendment's section 1 change lands on
+this page too.
+
+## 0b. Same file — `#submitTip` (proposal tasks 3–4)
+
+In `updateCounter()` (~`:3484`), the wrapper's `tabindex` and `aria-label` are set **from `btn.disabled`**, not
+from `has`:
+
+```js
+/* keyed off the button's ACTUAL disabled state: a slot can be selected while Submit stays disabled
+   (the T18 mobile-origin latch), and that state must keep its reason reachable. */
+if (submitTip) {
+    const tip = has ? 'Send your replacement request for approval'
+                    : 'Select a time slot first to enable submission';
+    submitTip.setAttribute('data-tip', tip);
+    submitTip.setAttribute('aria-label', tip);
+    if (btn && btn.disabled) submitTip.setAttribute('tabindex', '0');
+    else submitTip.removeAttribute('tabindex');
+}
+```
+
+Plus the `:focus-visible` ring for `.btn-tip` in the blade's own `<style>` (proposal task 4).
 
 ## 1. `resources/views/partials/ui-legend-bar.blade.php` (line 14)
 
@@ -66,14 +97,23 @@ different concern (hover *skins*, not copy) and are out of scope here.
 4. Keyboard: Tab reaches each legend item, focus ring visible, tip shows, `aria-label` announced.
 5. `scrollWidth` unchanged at 1024 / 1280 / 1440; the four legend meanings unchanged.
 6. `npx playwright test tests/timetable-responsive.spec.ts tests/cohort-venue-responsive.spec.ts
-   tests/status-tooltips-filter-chips.spec.ts --reporter=line` — the first two *are* the 48×48 walks, and
-   they must report zero offenders at 390 and at the touch-laptop 1440 case. This is the AC that would
-   have caught the round-3 blocker.
-7. `/impeccable detect` on the two changed blade files (markup check), then hand to polish if it flags.
+   --reporter=line` — the two *are* the 48×48 walks, and they must report zero offenders at 390 and at the
+   touch-laptop 1440 case. This is the AC that would have caught the round-3 blocker.
+   (`status-tooltips-filter-chips.spec.ts` is **not** in this list: it asserts tooltip and chip behaviour and
+   touches neither the legend nor the pointer contract.)
+7. **Forced-hybrid wiring test (A-3).** Playwright cannot produce a real `hover: hover` + `any-pointer: coarse`
+   device, so force the media combination over CDP (`Emulation.setEmulatedMedia` with those two features) and
+   assert the hint reads "Tap a colour". This verifies the **swap wiring only** — say so in the receipt; it is
+   not a device test.
+8. **The arrangement page** gets both halves (new attributes *and* the tip rewrite), so run
+   `tests/arrangement-slot-ownership.spec.ts` (it asserts the legend rows and swatch classes) and
+   `phpunit --filter SlotBorderAndReasonBadgeTest`.
+9. `/impeccable detect` on the two changed blade files (markup check), then hand to polish if it flags.
+10. Print is covered indirectly: `timetable-responsive.spec.ts` R8 asserts the legend does not print
+    (`.legend-bar` is `display: none` on paper, `theme.css:7962`), so the 48px floor cannot reach paper.
 
 ## 5. Risk
 
-Four new tab stops on five pages is the real cost, and it is the opposite of the keyboard audit's finding
-that the nav already costs eight stops. If that trade is unwelcome, the alternative is a tap handler in
-the engine (the B option from the proposal) — one shared-JS change, no tab stops — which is why the
-choice deserves the owner's word rather than mine.
+**The A/B/C choice is made** (owner, 2026-11-17: option A, the 48px floor). The residual risk is the one that
+choice accepts: four to five new tab stops per legend, and 48px rows on touch devices. Both are covered by
+the walks in step 6 rather than assumed.

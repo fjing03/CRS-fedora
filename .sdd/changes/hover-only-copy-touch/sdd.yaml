@@ -57,14 +57,17 @@ amendment_2026_11_17_pointer_contract:
   - "tabindex on a legend item would fail the 48x48 walks (measured 16px tall); round 3 caught this"
   - "OWNER DECISION 2026-11-17: option A — 48px floor under (any-pointer: coarse), then tabindex"
   files_free: ["resources/views/partials/ui-legend-bar.blade.php", "resources/views/livewire/student-my-timetable.blade.php"]
-  files_blocked: ["public/css/theme.css — held by cohort-venue-responsive-port"]
-  gate: "round 3 review, then owner explicit go"
+  files_blocked: []   # theme.css freed when cohort-venue-responsive-port landed; now in scope by owner decision A
+  gate: "owner chose A (48px floor, 2026-11-17); rounds 3-4 reviews recorded; owner explicit go not given"
 
 open_questions:
   - "small-change exemption vs this lane: the legend strings alone would qualify for the exemption, but the #submitTip work is behaviour (a state-aware tab stop), so this lane is the honest home — owner decides"
   - "phase 2 is scoped to the <th>/badge work after ui-common.js is free; whether it becomes its own lane is open"
 
 gate:
-  - reviewer round 1 — see review-log.md
-  - owner explicit go — not given
+  - reviewer round 1 (2 blockers) — resolved, round 2 clean
+  - amendment (pointer contract) — round 3: 2 blockers; round 4: 2 documentation blockers
+  - both round-3 blockers resolved in text; both round-4 documentation conflicts fixed
+  - owner chose option A (48px floor) 2026-11-17
+  - owner explicit go for CODE — NOT GIVEN (option choice is not edit permission)
   - then apply

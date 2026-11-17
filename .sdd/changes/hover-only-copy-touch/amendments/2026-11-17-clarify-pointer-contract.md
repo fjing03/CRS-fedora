@@ -93,11 +93,27 @@ which use "OPEN the slot's tooltip" because `data-tip` strings cannot be swapped
 | swap `(hover: none)` → `(any-pointer: coarse)` for the legend hint only | `public/css/theme.css` | **free now — the port landed** |
 | summary hints | — | **nothing to do:** the plain card's touch sentence swaps by *sheet scope* (`#summarySheetBody …`, `theme.css:2244-2252`), not by media, and the flip variant keeps "Hover or tap" because tap is implemented (`ui-common.js:2396-2401`) |
 | help-text wording | `resources/views/livewire/student-my-timetable.blade.php` | **free** |
-| focus ring for the new tab stops | `theme.css` or a scoped block | **BLOCKED** with the swap |
+| focus ring for the new tab stops | `theme.css` | **free now** — travels with the 48px floor |
 
 Note the ordering trap: making the legend items focusable without the swap is safe, but making them focusable
 while the copy still says "Tap" on a hybrid is not the bug — the bug is that nothing happens. So the
 tabindex work fixes the promise, and the swap work makes the instruction exact.
+
+## 6a. Supersession of frozen AC-6 (required, or the apply contradicts itself)
+
+Frozen proposal **AC-6** reads: *"No change to `ui-common.js`, `theme.css`, or any Livewire class."* This
+amendment **edits `theme.css`** — the swap re-key, the 48px floor and the focus ring. Honouring AC-6
+literally would skip the floor and **reintroduce round-3's blocker B1**; ignoring it silently would make the
+verify pass contradict a frozen criterion.
+
+**AC-6 is therefore amended to:**
+
+> **AC-6 (amended)** `ui-common.js` and the Livewire classes remain untouched. `theme.css` is now in scope —
+> three rules only (the legend hint re-key, the `.legend-item` 48px floor under `any-pointer: coarse`, the
+> `:focus-visible` ring) — and nothing else in it changes.
+
+This is a decision-level change, already approved with option A (2026-11-17); it is recorded here so the
+frozen artifact is not contradicted by the work.
 
 ## 7. Acceptance criteria (amendment)
 
@@ -106,13 +122,18 @@ tabindex work fixes the promise, and the swap work makes the instruction exact.
   actually name: `role="img"` and an `aria-label` carrying **both** the visible word and the meaning
   ("Normal Class: Scheduled class with no issues"). A roleless focusable `<div>` gets a Chromium-computed
   name that Playwright would pass and a real screen reader would not — the false pass this AC exists to
-  prevent.
+  prevent. The arrangement's tips are multi-line (`\n`), so its label will contain the break — harmless for
+  screen readers, and the single-line example above is the timetables' case, not the only one.
 - **A-3** With the hybrid media combination *forced* (CDP `Emulation.setEmulatedMedia`), the hint names tap.
   This verifies the **swap wiring**, not real hardware: Playwright cannot produce a true `hover: hover` +
   `any-pointer: coarse` device, and this AC says so rather than posing as a device test.
 - **A-4** No hint names a gesture the code does not implement, in any context.
-- **A-5** *Guard, already true:* no copy change to the tip strings; the legend's four meanings are untouched.
-- **A-6** *Guard, already true:* no behaviour change to the timetable grid, the print sheet, or the arrangement.
+- **A-5** *Guard:* **this amendment** changes no tip string and does not alter the legend's four meanings.
+  The proposal's own `HOVER → OPEN` rewrite of the two **arrangement** legend tips is separate, earlier, and
+  not undone by this AC — the two must not be read as contradicting each other.
+- **A-6** *Guard:* no behaviour change to the timetable grid, the print sheet, or the arrangement — plus the
+  **AC-6 supersession below**, which is why this amendment may touch `theme.css` when the frozen proposal's
+  AC-6 said it could not.
 
 ## 8. Gate
 
@@ -142,6 +163,9 @@ Measured on the live pages, the legend items are **16px tall**:
 | `/venue-timetable-ui` | 5 | 77 × **16** | TAP |
 | `/replacement-arrangement` | 4 | 77 × **16** | TAP |
 | `/my-timetable` (real route) | 0 | — | no legend |
+| 390 phone | 0 visible | — | legend lives inside the week summary sheet below 1280 (`theme.css:6496-6511`); the floor costs nothing until the sheet is open, then 48px rows in a scrollable body |
+
+All boxes were measured at **1440** (and the phone row at 390); the measured height is the same 16px in both.
 
 So `tabindex="0"` alone would add four to five R7 offenders per page, at the very contexts the amendment
 cites as safe. My §6 claim that the tabindex work is "safe without the swap" was wrong, and this is the
@@ -151,7 +175,7 @@ second time this lane has been caught assuming a piece of work was free.
 
 | Option | What it means | Cost | Risk |
 |---|---|---|---|
-| **A. 48px floor on coarse pointers** | theme.css (free) gives `.legend-item` a 48×48 minimum under `any-pointer: coarse`; then tabindex is legal | the legend grows from ~16px to 48px per item on every touch device — roughly +32px of page height, four to five times per page | none to the law; the legend becomes visually heavy on iPad |
+| **A. 48px floor on coarse pointers** | theme.css (free) gives `.legend-item` a 48×48 minimum under `any-pointer: coarse`; then tabindex is legal | the legend grows from ~16px to 48px **per wrapped row** on touch devices only — `.legend-items` is a flex-wrap row, so at 1024 that is one row, about +32px of page height total (not +32px per item: an earlier draft of this table overstated it ~4×) | none to the law; the legend becomes visually heavy on iPad |
 | **B. Tap path in the engine** | the shared tip engine gets a `pointerup`-with-`touch` branch: tap shows, next tap / scroll / Escape hides | one shared-JS change; **no** tab stops, so no R7 impact and no size floor | touches a file every page uses; needs a dismissal rule; the lane's "no engine change" stance is reversed |
 | **C. Exempt the legend in both walks** | add a documented exception for `.legend-item` | none in layout | contradicts the law's own written allowance ("the only allowance is the native `<option>`") — the one thing this house does not do quietly |
 
@@ -193,5 +217,7 @@ keeps all three words.
 
 ### 9.4 Gate
 
-Round 3 raised two blockers; one (A-2's carrier) is now decided in the text, the other (9.1) needs the
-owner's choice between A, B and C before any code. Nothing applied; no system code touched.
+Round 3 raised two blockers: A-2's carrier is decided in the text (`role="img"`), and 9.1 is decided by the
+owner — **option A**, the 48px floor (§9.3a). Round 4 then found two documentation conflicts, both fixed:
+the apply plan now carries the frozen proposal's own scope, and AC-6 is superseded above rather than quietly
+broken. Nothing applied; no system code touched.
