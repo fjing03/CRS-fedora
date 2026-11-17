@@ -498,6 +498,13 @@
            inner button is disabled (disabled controls swallow mouse events) */
         .btn-tip { display: inline-flex; cursor: var(--cursor-cancel); }
         .btn-tip .btn:disabled { pointer-events: none; }
+        /* the wrapper is a focus stop only while its button is disabled (see updateCounter),
+           so it needs an indicator a div would otherwise never have */
+        .btn-tip:focus-visible {
+            outline: 2px solid var(--color-primary);
+            outline-offset: 2px;
+            border-radius: var(--radius-md);
+        }
 
         .btn-primary:disabled {
             opacity: 0.35;
@@ -2725,11 +2732,11 @@
             'items' => [
                 ['class' => 'cell-available', 'label' => 'Available', 'tip' => 'FREE SLOT — CLICK to select as the replacement (slots inside the 3-working-day window are read-only)'],
                 ['class' => 'event-selection', 'label' => 'Your Current Selection', 'tip' => 'The slot(s) you have SELECTED for the replacement'],
-                ['class' => 'cell-pending', 'label' => 'Pending', 'tip' => "A replacement request for this slot is WAITING for approval\nHOVER the slot to see whether it is YOURS (you can follow it up) or another staff member's (you CANNOT BOOK it)"],
+                ['class' => 'cell-pending', 'label' => 'Pending', 'tip' => "A replacement request for this slot is WAITING for approval\nOPEN the slot's tooltip to see whether it is YOURS (you can follow it up) or another staff member's (you CANNOT BOOK it)"],
                 /* 2026-11-11 (user): one Conflict row, drawn plain — your own
                    conflict looks the same as a venue/cohort conflict now; the
                    hover words name which one it is. */
-                ['class' => 'cell-occupied', 'label' => 'Conflict', 'tip' => "CANNOT BOOK — the slot is taken by a scheduled class\nHOVER the slot to see WHY: your own class, a VENUE CONFLICT (another class in this room), or a COHORT CONFLICT (the related cohorts have another class at that time)"],
+                ['class' => 'cell-occupied', 'label' => 'Conflict', 'tip' => "CANNOT BOOK — the slot is taken by a scheduled class\nOPEN the slot's tooltip to see WHY: your own class, a VENUE CONFLICT (another class in this room), or a COHORT CONFLICT (the related cohorts have another class at that time)"],
             ]
         ])
 
@@ -3498,11 +3505,24 @@
             const clearBtn = document.getElementById('clearAllBtn');
             if (clearBtn) clearBtn.disabled = !has;
             /* Footer button tooltips — state-aware (buttons render above via the shared
-               data-tip system; the wrapper span keeps hover alive while disabled) */
+               data-tip system; the wrapper span keeps hover alive while disabled).
+               2026-11-17 (P2, hover-only meanings): the wrapper is also the keyboard/touch path
+               to that reason — a disabled button takes no focus and swallows pointer events, so
+               without a focus stop the tip was unreachable on a touch screen and on the keyboard
+               alike. Keyed off the button's ACTUAL disabled state, not off `has`: a slot can be
+               selected while Submit stays disabled (the T18 mobile-origin latch), and that state
+               must keep its reason reachable. */
             const submitTip = document.getElementById('submitTip');
-            if (submitTip) submitTip.setAttribute('data-tip', has
-                ? 'Send your replacement request for approval'
-                : 'Select a time slot first to enable submission');
+            if (submitTip) {
+                const submitTipText = has
+                    ? 'Send your replacement request for approval'
+                    : 'Select a time slot first to enable submission';
+                submitTip.setAttribute('data-tip', submitTipText);
+                /* announced, not just shown: data-tip is never read by a screen reader */
+                submitTip.setAttribute('aria-label', submitTipText);
+                if (btn && btn.disabled) submitTip.setAttribute('tabindex', '0');
+                else submitTip.removeAttribute('tabindex');
+            }
             const clearTip = document.getElementById('clearTip');
             if (clearTip) clearTip.setAttribute('data-tip', has
                 ? 'Clear all your selected slots'

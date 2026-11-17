@@ -2329,10 +2329,32 @@ body.summary-sheet-open #summaryExplainModal {
 .legend-ownership-hint .osd-demo { width: 12px; height: 12px; border-radius: var(--radius-xs); background: var(--color-surface-variant); display: inline-block; box-sizing: border-box; flex-shrink: 0; }
 .legend-ownership-hint .osd-thick { border: 3px solid var(--color-on-surface-variant); }
 .legend-ownership-hint .osd-thin { border: 0.5px solid var(--color-on-surface-variant); }
-/* touch devices tap instead of hover (F-5, ui-legend-bar dual copy) */
-@media (hover: none) {
+/* touch devices tap instead of hover (F-5, ui-legend-bar dual copy).
+   `any-pointer: coarse`, not `hover: none`: on a hybrid (Surface, touch laptop, iPad + trackpad) a
+   hovering pointer exists, so `hover: none` is false and the legend would keep saying "Hover a colour"
+   while a finger is on the glass. Capability, not width — the same law as the touch floor.
+   NOTE: this re-key is a TRADE-OFF the owner approved (2026-11-17), not a bug fix: `hover: none` asks
+   "can nothing hover?", `any-pointer: coarse` asks "is a coarse pointer present?". */
+@media (any-pointer: coarse) {
     .legend-hint .hint-hover { display: none; }
     .legend-hint .hint-touch { display: inline; }
+
+    /* The legend items are focus stops now (ui-legend-bar), so they are controls and take the law's
+       size instead of an exemption: [tabindex] inside .tt-responsive is walked by
+       tests/timetable-responsive.spec.ts and tests/cohort-venue-responsive.spec.ts and must be
+       48x48. Measured before this rule: 16px tall on every page that renders a legend.
+       `.legend-items` is a flex-wrap row, so the cost is one wrapped row on touch devices only. */
+    .legend-item {
+        min-height: 48px;
+        min-width: 48px;
+    }
+}
+
+/* The new tab stops need a visible indicator; a div has none by default. */
+.legend-item:focus-visible {
+    outline: 2px solid var(--color-primary);
+    outline-offset: 2px;
+    border-radius: var(--radius-sm);
 }
 
 /* ── Summary card colors (macOS accent style) ────────────── */
@@ -5141,10 +5163,15 @@ body {
    `.badge` in here, a mouse-only window at 1024 inflated every pill to 40px and made
    filled and outlined badges disagree with their own geometry. `.page-btn` stays: it
    IS a control, it is floored to 48px on a coarse pointer by the task-11 block, and
-   this width gate is the desktop-mid-size rule that predates it. ── */
+   this width gate is the desktop-mid-size rule that predates it.
+   2026-11-17 (P2 pointer contract): `.legend-item` LEFT this block for the same reason,
+   and one more — it is a focus stop now, so on a coarse pointer it must be 48x48 (the
+   capability block at the legend section owns that). Leaving it here made a width gate
+   beat the capability floor by source order, and the touch walks caught it: legend items
+   came out 40px inside the week summary sheet at 390 and 744. On a fine pointer a legend
+   row needs no floor at all. ── */
 @media (max-width: 1024px) {
     .nav-item,
-    .legend-item,
     .week-arrow,
     .today-btn,
     .modal-close,

@@ -1,7 +1,6 @@
 name: hover-only-copy-touch
 created: 2026-11-17
-status: unfrozen      # amendment 2026-11-17 (pointer contract) is decision-level; round 3 review required
-                      # code held by the owner; nothing applied
+status: applied       # 2026-11-17 — five files of code, one test updated; see apply-log.md
 lane_shape: compact   # one artifact (proposal + decisions + ACs + tasks), one review round
 topic: "Critique P2 — load-bearing meanings live in hover, which touch is banned from"
 evidence: docs/ui-hover-only-2026-11-17.md
@@ -69,5 +68,5 @@ gate:
   - amendment (pointer contract) — round 3: 2 blockers; round 4: 2 documentation blockers
   - both round-3 blockers resolved in text; both round-4 documentation conflicts fixed
   - owner chose option A (48px floor) 2026-11-17
-  - owner explicit go for CODE — NOT GIVEN (option choice is not edit permission)
-  - then apply
+  - owner explicit go for CODE — GIVEN 2026-11-17
+  - APPLIED 2026-11-17 — receipts in apply-log.md

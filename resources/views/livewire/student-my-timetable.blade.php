@@ -29,7 +29,7 @@
         'guideGroups' => [
             ['Week', 'Use the arrows or the week list to move between weeks; <strong>Today</strong> jumps back to the current one.'],
             ['Class details', 'Click a class block to see its course, lecturer, venue and request status.'],
-            ['Colours', 'Normal Class, Replacement, Pending and Conflict / Public Holiday. Hover a colour in the legend to see what it means.'],
+            ['Colours', 'Normal Class, Replacement, Pending and Conflict / Public Holiday. Hover, tap or focus a colour in the legend to see what it means.'],
             ['The five numbers', 'They count the week you are looking at, not the whole semester.'],
             ['Read-only', 'You cannot request or cancel a class here. Your Programme Leader arranges replacements; <strong>Class Replacements</strong> shows where each one stands.'],
         ],

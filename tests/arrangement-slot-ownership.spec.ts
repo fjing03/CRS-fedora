@@ -858,7 +858,15 @@ test.describe('resolver precedence and the legend', () => {
     expect(tips[0]).toContain('FREE SLOT — CLICK');
     expect(tips[1]).toContain('SELECTED');
     expect(tips[2]).toContain('WAITING');
-    expect(tips[2]).toContain('HOVER');
+    /* 2026-11-17 (P2 pointer contract): the gesture verb left the copy. "HOVER the slot"
+       named one input mode where the app runs on three — the action is a hover, a tap or
+       a focus depending on the device, so the tips now say OPEN, which is true on all of
+       them. Asserted for the same reason the old HOVER was: the sentence must name a way
+       to actually see the reason. */
+    expect(tips[2]).toContain('OPEN');
+    expect(tips[2]).not.toMatch(/HOVER/i);
+    expect(tips[3]).toContain('OPEN');
+    expect(tips[3]).not.toMatch(/HOVER/i);
     expect(tips[3]).toContain('CANNOT BOOK');
     expect(tips[3]).toContain('VENUE CONFLICT');
     expect(tips[3]).toContain('COHORT CONFLICT');

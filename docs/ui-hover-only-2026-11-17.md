@@ -1,6 +1,7 @@
 # P2 — Load-bearing meanings that only hover reveals
 
-**Status: HELD.** Measured on real touch emulation; nothing applied.
+**Status: APPLIED 2026-11-17.** The legend contract and the arrangement tips are in; see
+`.sdd/changes/hover-only-copy-touch/apply-log.md` for receipts. Phase 2 (the `<th>` and badge carriers) is not.
 
 **Method.** `hasTouch: true` at 390 / 1024 / 1180 / 1440. Inventoried every rendered `[data-tip]`
 carrier, split them by whether the element is focusable, then actually **tapped** one of each kind and
