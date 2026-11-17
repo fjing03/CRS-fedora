@@ -345,12 +345,35 @@ test('venue panel uses 150px columns and stays 12px inside the viewport', async 
   expect((box as any).x + (box as any).width).toBeLessThanOrEqual(1360 - 12 + 1);
 });
 
-test('the 150px venue columns are scoped away from other pages', async ({ page }) => {
+test('the two 150px venue-column rules stay scoped to their own page', async ({ page }) => {
+  /* Both pages now draw 150px dropdown columns, each behind its own wrapper:
+     the arrangement behind `.ra-replacement-venue`, the venue page behind
+     `.semester-bar--venue` (added when that page was ported to its responsive
+     layout, commit e386106). The number is therefore no longer what separates
+     them — the scoping is, and that is what this asserts, in both directions. */
+  await page.setViewportSize({ width: 1360, height: 900 });
   await page.goto('/venue-timetable-ui?venue=B110', { waitUntil: 'networkidle' });
   await page.waitForTimeout(600);
   await page.locator('.venue-dd-trigger').first().click();
   const col = page.locator('.venue-dd-panel .venue-col.visible').first();
   await expect(col).toBeVisible();
-  const width = await col.evaluate((el) => el.getBoundingClientRect().width);
-  expect(Math.abs(width - 150)).toBeGreaterThan(10);
+  expect(await col.evaluate((el) => el.getBoundingClientRect().width)).toBeGreaterThan(0);
+
+  // the arrangement's wrapper is absent here, so its rule cannot match
+  expect(await page.locator('.ra-replacement-venue').count()).toBe(0);
+  expect(await page.locator('.ra-replacement-venue .venue-dd-panel .venue-col').count()).toBe(0);
+
+  // and the reverse: the venue page's wrapper never appears on the arrangement
+  await p_arrangement(page);
+  await page.locator('#buildingSelectorDropdown .venue-dd-trigger').click();
+  await expect(page.locator('#buildingSelectorDropdown .venue-dd-panel')).toBeVisible();
+  expect(await page.locator('.semester-bar--venue').count()).toBe(0);
+  expect(await page.locator('.semester-bar--venue .venue-dd-panel .venue-col').count()).toBe(0);
+  expect(await page.locator('.ra-replacement-venue .venue-dd-panel .venue-col.visible').count()).toBeGreaterThanOrEqual(1);
 });
+
+async function p_arrangement(page: Page): Promise<void> {
+  await page.goto('/replacement-arrangement', { waitUntil: 'networkidle' });
+  await page.waitForSelector('#buildingSelectorDropdown', { timeout: 15_000 });
+  await page.waitForTimeout(900);
+}

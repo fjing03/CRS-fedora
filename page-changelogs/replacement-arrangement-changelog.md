@@ -28,9 +28,14 @@ nothing changes; the phone already hid this card when empty.
 Receipt: `tests/top-zone-round2.spec.ts` 14/15 — the empty state shows three visible panels, the card
 hidden, the hint visible from its new home, the schedule spanning `track2 + track3 + 12px` (>=600), and
 the `+ section` document order pinned so a markup reorder fails loudly; a picked slot brings the card
-back and retires the hint. The one red (`the 150px venue columns are scoped away from other pages`) is
-pre-existing: it fails identically with this change stashed. `selection-summary-collapse` and
-`session-arrival-pin-guard` 7/7.
+back and retires the hint. **15/15.** `selection-summary-collapse` and `session-arrival-pin-guard` 7/7.
+
+That spec's last test was red before this lane and had gone stale rather than broken: it asserted the
+venue *timetable* page's dropdown columns were *not* 150px, but when that page was ported to its
+responsive layout (`e386106`) it adopted the same 150px columns behind its own wrapper
+`.semester-bar--venue`. Both pages now draw 150px, each scoped to its own page — so the test now
+asserts the scoping in both directions (each page's wrapper is absent on the other, and neither rule's
+selector matches there) instead of the number.
 
 ## 2026-11-17 — the grid says when the week continues
 
