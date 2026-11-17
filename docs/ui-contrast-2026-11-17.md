@@ -40,15 +40,17 @@ this audit on both once that lands.
 | C5 | same, **dark** | `.urgency-low` 13px/500 | green, e.g. *26 Working Days Left* | **2.98:1** | 4.5:1 |
 | C6 | summary cards, **light** | `.summary-value` 26px/700 | warning amber `#D4880F` on white | **2.87:1** | 3:1 |
 | C7 | summary cards, **light** | `.summary-label` 11px/600 | grey on a tinted card, e.g. *Total Classes* | **3.68:1** | 4.5:1 |
-| C8 | summary cards, **light** | `.sum-pending` | the `+0` suffix, amber on a green tint | **1.43:1** | 4.5:1 |
+| C8 | summary cards, **light** | `.sum-pending` | the `+0` suffix, amber on a green tint | **1.43:1** | 3:1 (large text) |
 | C9 | filter chips, **dark** | `.filter-chip` 12px, `.filter-chip-remove` 14px | primary-container text on its own fill | 4.04 / 4.22:1 | 4.5:1 |
 
 **Excluded, with the reason:**
 
 - **Login "Log in" at 1.38:1** — the button is `disabled` while the form is empty, at 0.75 opacity.
   WCAG 1.4.3 exempts inactive components. Not a defect.
-- **`+N` pink badge at 4.04:1** — this is the same `+0`/`+N` suffix that the critique's P3 already
-  calls noise; see §3, where removing it removes two of these failures.
+- **`+N` suffix at 4.04:1** — **reason corrected 2026-11-17.** It is not exempt as "noise": the span sits
+  inside `.summary-value`, which is **26px/700**, so it is large text and the threshold is **3:1**, which
+  4.04 clears. The old reason leaned on P3 deleting it, and P3 no longer deletes it (see the C8 note
+  below), so the exemption had to rest on the measurement instead. Excluded, correctly this time.
 
 ## 2. The pattern
 
@@ -74,7 +76,12 @@ of the same family:
 3. **Fix `.summary-label` in light** (C7) with the muted text token already in the palette
    (`--color-on-surface-variant` on the tinted card reads 4.58:1 — verify on the real card fill,
    which is the part that measured 3.68).
-4. **C8 disappears** when the `+0` suffix stops printing (critique P3) — one change, two failures
+4. **C8's zero case disappears** with the `summary-zero-pending` lane (2026-11-17, another session) —
+   but note what that lane does **not** do: it *preserves* positive suffixes, and `.sum-pending` is
+   `--color-tertiary` (amber) in **both** themes. So a positive `+N` in the light theme still paints
+   amber on the card and still fails (1.43:1 measured; large text needs 3:1). C8 is therefore **halved,
+   not closed**, and the remaining half is a colour decision on a text-safe pending token — the same
+   decision §3 already owes for light-theme amber. Do not let the lane's green receipt bury this.
    gone.
 
 **One gap that needs a decision, not a guess:** the **light** amber family has no text-safe value
