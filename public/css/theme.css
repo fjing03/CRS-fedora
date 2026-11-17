@@ -3358,23 +3358,39 @@ html.dark .semester-bar select:not(.week-select) {
     color: var(--color-on-error-container);
     border: 3px solid var(--color-error);
 }
-/* ── Cohort / venue: own vs others — colour = status, border = ownership ── */
-.timetable .event-mine {
+/* ── Cohort / venue: own vs others — colour = status, border = ownership ──
+   2026-11-17 (user report, venue-ONLY fix): the ownership rules above matched
+   `.timetable` — the desktop table — so Venue's responsive window cards
+   (`.tt-card` in #ttWindowGrid, the SAME class/status/ownership vocabulary from
+   the page's cfg.statusClassFn) fell through to the generic .event-block grey.
+   Each rule below is GROUPED with the venue window-band selector only:
+   `.tt-responsive[data-tt-page="venue"][data-tt-mode="window"]` covers the
+   phone (1-day), tablet (2-day) and interior (3-day) bands automatically; at
+   ≥1280 the venue page is 'full' and renders the desktop `.timetable` blocks as
+   before. The declarations are the SAME tokens, byte-identical per variant; the
+   desktop selectors, Cohort and the My/Student pages are untouched, conflict /
+   cancelled / holiday styling already works globally, and the ownership borders
+   (3px mine / 0.5px hairline others') stand. */
+.timetable .event-mine,
+.tt-responsive[data-tt-page="venue"][data-tt-mode="window"] .tt-card.event-mine {
     background: var(--color-success-container);
     color: var(--color-on-success-container);
     border: 3px solid var(--color-success);
 }
-.timetable .event-others {
+.timetable .event-others,
+.tt-responsive[data-tt-page="venue"][data-tt-mode="window"] .tt-card.event-others {
     background: var(--color-success-container);
     color: var(--color-on-success-container);
     border: 0.5px solid var(--color-outline-strong);
 }
-.timetable .event-others-pending {
+.timetable .event-others-pending,
+.tt-responsive[data-tt-page="venue"][data-tt-mode="window"] .tt-card.event-others-pending {
     background: var(--color-tertiary-container);
     color: var(--color-on-tertiary-container);
     border: 0.5px solid var(--color-outline-strong);
 }
-.timetable .event-mine-pending {
+.timetable .event-mine-pending,
+.tt-responsive[data-tt-page="venue"][data-tt-mode="window"] .tt-card.event-mine-pending {
     background: var(--color-tertiary-container);
     color: var(--color-on-tertiary-container);
     border: 3px solid var(--color-tertiary);
@@ -3383,12 +3399,14 @@ html.dark .semester-bar select:not(.week-select) {
    replacement's block carries the my-timetable page's own
    .event-replacement hue — the same blue family on every timetable page;
    the two-axis rule's ownership borders stand: mine = 3px, others = 0.5px. ── */
-.timetable .event-mine-replacement {
+.timetable .event-mine-replacement,
+.tt-responsive[data-tt-page="venue"][data-tt-mode="window"] .tt-card.event-mine-replacement {
     background: var(--color-primary-container);
     color: var(--color-on-primary-container);
     border: 3px solid var(--color-primary);
 }
-.timetable .event-others-replacement {
+.timetable .event-others-replacement,
+.tt-responsive[data-tt-page="venue"][data-tt-mode="window"] .tt-card.event-others-replacement {
     background: var(--color-primary-container);
     color: var(--color-on-primary-container);
     border: 0.5px solid var(--color-outline-strong);
@@ -6193,6 +6211,20 @@ body.filters-panel-open .filters-btn { position:relative; z-index:1300; }
         min-width: 0;
         height: 44px;
     }
+    /* cohort-venue-responsive-port (phase 1): the OPT-OUT. cfg.sticky:false (Cohort's
+       toolbar is in normal page flow, per its prototype round 5) sets
+       `data-tt-sticky="0"` on the root, and this rule returns the row to the page
+       flow — background, border and negative margins included. Every page that
+       leaves the cfg unset keeps the sticky row above. */
+    .tt-responsive[data-tt-sticky="0"] .tt-sticky {
+        position: static;
+        top: auto;
+        z-index: auto;
+        margin: 0;
+        padding: 0;
+        background: transparent;
+        border-bottom: 0;
+    }
     /* the preview's PHONE week label (`Week 9 · 16 Nov ~ 22 Nov`, no year): at
        390 the select's own 12/32px padding left a 79px text box, so the label
        clipped to "Week 8 · 9 N" even though the row had the room. Same font and
@@ -6248,6 +6280,12 @@ body.filters-panel-open .filters-btn { position:relative; z-index:1300; }
     }
     .tt-responsive .tt-day.is-today::after {
         background: var(--color-primary);
+    }
+    /* cohort-venue-responsive-port (phase 1): the opt-in EARLIEST-DAY dot (Venue
+       phase 2) — same slot in the chip as the today dot, in the success green. A
+       page that passes no cfg.earliestDay never gets the class. */
+    .tt-responsive .tt-day.is-earliest::after {
+        background: var(--color-success);
     }
     .tt-responsive .tt-day.is-holiday {
         color: var(--color-error);
@@ -6582,12 +6620,21 @@ body.filters-panel-open .filters-btn { position:relative; z-index:1300; }
     border-left-width: 6px;
 }
 
-/* ── Window mode, 768–1279 (R3b): the module renders a TRANSPOSED grid into
-      #ttWindowGrid — time down the left axis, one column per visible day, N = 2
-      at 768–1023 and 3 at 1024–1279 (--tt-day-count is set inline by T7). The
-      legacy #timetable stays hidden in this mode (the rule at the top). ── */
-@media (min-width: 768px) and (max-width: 1279px) {
-    .tt-responsive .tt-window-grid {
+/* ── Window mode (R3b): the module renders a TRANSPOSED grid into #ttWindowGrid —
+      time down the left axis, one column per visible day, N = 2 at 768–1023,
+      3 at 1024–1279 and 1 in Venue's phone band (bands.phoneMode 'window' —
+      the cohort-venue-responsive-port followup, 2026-11-17). The media is now the
+      ≤1279 half of the old 768–1279 band: the grid surface itself is guarded on
+      data-tt-mode="window", and in an agenda phone band the module keeps
+      #ttWindowGrid hidden, so My/Student/Cohort's card agenda can never see these
+      rules. The legacy #timetable stays hidden in this mode (the rule at the top).
+      This also styles Cohort's own 744–767 window band, which the old
+      min-width:768 media left unstyled (phase 1's 744 edge predated it). ── */
+@media (max-width: 1279px) {
+    /* :where() keeps this rule at the .tt-responsive .tt-window-grid specificity it
+       always had — the later `(any-pointer: coarse)` 48px-rows rule must still win
+       on touch, exactly as it did inside the old 768-wide media. */
+    .tt-responsive:where([data-tt-mode="window"]) .tt-window-grid {
         display: grid;
         grid-template-columns: 50px repeat(var(--tt-day-count, 2), minmax(0, 1fr));
         grid-template-rows: 62px repeat(22, 44px);
@@ -6989,6 +7036,256 @@ body.tt-sheet-open:has(.tt-responsive) {
         padding-left: 4px;
         padding-right: 18px;
         text-overflow: ellipsis;
+    }
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   THE WIDE-TOUCH WINDOW BAND (cohort-venue-responsive-port, phase 1)
+   ≥1280px + `any-pointer: coarse` + `data-tt-mode="window"` — the four-day
+   vertical timeline an iPad Pro gets instead of the mouse desktop grid.
+
+   THIS BAND IS OPT-IN AND UNREACHABLE FOR THE DEFAULT PROFILES: `_mode()` returns
+   'full' at ≥1280 unless the page passed `bands.wideTouchDays > 0` (Cohort: 4), so
+   My/Student can never carry `data-tt-mode="window"` at this width and no rule
+   below can fire on them. The rules repeat the ≤1279 window-band shapes at this
+   width, scoped to the mode attribute — the one way the module marks the band.
+   Colours are tokens only; the 48px touch floors come from the existing
+   `(any-pointer: coarse)` block (it is not width-gated).
+   ───────────────────────────────────────────────────────────────────────────── */
+@media (min-width: 1280px) and (any-pointer: coarse) {
+    /* the strip, tools and window grid render in this band; the legacy table and
+       its wrapper frame do not (the wrapper keeps its 1px frame when only the table
+       inside is hidden — the same stray-hairline trap the ≤1279 block avoids) */
+    .tt-responsive[data-tt-mode="window"] .tt-days {
+        display: flex;
+        gap: 5px;
+        overflow-x: auto;
+        padding: 10px 1px 2px;
+        padding-inline-end: 2px;
+        -webkit-overflow-scrolling: touch;
+    }
+    .tt-responsive[data-tt-mode="window"] .tt-day {
+        min-width: 44px;
+        min-height: 52px;
+        flex: 1 0 44px;
+        padding: 4px;
+        border: 1px solid var(--color-outline);
+        border-radius: var(--radius-md);
+        background: var(--color-surface);
+        color: var(--color-on-surface-variant);
+        font-family: inherit;
+        font-size: 11px;
+        cursor: pointer;
+    }
+    .tt-responsive[data-tt-mode="window"] .tt-day strong {
+        display: block;
+        font-size: 14px;
+        color: var(--color-on-surface);
+    }
+    .tt-responsive[data-tt-mode="window"] .tt-day[aria-pressed="true"] {
+        border: 2px solid var(--color-primary);
+        background: var(--color-primary-container);
+        color: var(--color-on-primary-container);
+    }
+    .tt-responsive[data-tt-mode="window"] .tt-day::after {
+        content: '';
+        display: block;
+        width: 4px;
+        height: 4px;
+        margin: 3px auto 0;
+        border-radius: 50%;
+    }
+    .tt-responsive[data-tt-mode="window"] .tt-day.is-today::after {
+        background: var(--color-primary);
+    }
+    .tt-responsive[data-tt-mode="window"] .tt-day.is-earliest::after {
+        background: var(--color-success);
+    }
+    .tt-responsive[data-tt-mode="window"] .tt-day.is-holiday {
+        color: var(--color-error);
+    }
+    .tt-responsive[data-tt-mode="window"] .tt-tools {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        margin: 10px 0 14px;
+    }
+    .tt-responsive[data-tt-mode="window"] .tt-day-heading {
+        margin: 0;
+        font-size: 15px;
+        font-weight: 600;
+    }
+    .tt-responsive[data-tt-mode="window"] .tt-day-count {
+        display: block;
+        margin-top: 4px;
+        font-size: 12px;
+        color: var(--color-on-surface-variant);
+    }
+    .tt-responsive[data-tt-mode="window"] .tt-summary-btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 7px;
+        min-width: 44px;
+        height: 44px;
+        padding: 0 12px;
+        border: 1px solid var(--color-outline);
+        border-radius: var(--radius-md);
+        background: var(--color-surface);
+        color: var(--color-on-surface);
+        font: inherit;
+        font-size: 12px;
+        font-weight: 600;
+        cursor: pointer;
+    }
+    /* Proposal §2: the summary cards stay IN PAGE at ≥1280, even on the wide-touch
+       timeline — so the sheet's opener steps aside and the sheet stays closed (the
+       module closes it in sync()). */
+    .tt-responsive[data-tt-mode="window"] #ttSummaryButton {
+        display: none;
+    }
+    /* Proposal §2 (R7 of the Cohort prototype): Print is a desktop-only control.
+       A wide-touch 4-day window hides it; only the mouse full-week desktop shows it. */
+    .tt-responsive[data-tt-mode="window"] .print-btn {
+        display: none;
+    }
+    .tt-responsive[data-tt-mode="window"] .grid-wrapper {
+        display: none;
+    }
+    /* the transposed grid itself — same geometry as the ≤1279 band, with the
+       touch-floor ROWS stated HERE: this block's 3-specificity selector is inside
+       the coarse media and outranks the global coarse 48px rule (final fix
+       2026-11-17: rows were 44px, below the prototype's ≥48px touch law). */
+    .tt-responsive[data-tt-mode="window"] .tt-window-grid {
+        display: grid;
+        grid-template-columns: 50px repeat(var(--tt-day-count, 4), minmax(0, 1fr));
+        grid-template-rows: 62px repeat(22, 48px);
+        border: 1px solid var(--color-outline);
+        border-radius: var(--radius-md);
+        overflow: hidden;
+        background: var(--color-surface);
+    }
+    .tt-responsive[data-tt-mode="window"] .tt-whead {
+        padding: 10px 6px;
+        text-align: center;
+        font-size: 13px;
+        font-weight: 600;
+        border-bottom: 1px solid var(--color-outline);
+        background: var(--color-surface-variant);
+    }
+    .tt-responsive[data-tt-mode="window"] .tt-whead small {
+        display: block;
+        font-size: 11px;
+        font-weight: 400;
+    }
+    .tt-responsive[data-tt-mode="window"] .tt-axis {
+        padding: 5px 4px;
+        font-size: 10px;
+        color: var(--color-on-surface-variant);
+        border-bottom: 1px solid var(--color-outline);
+    }
+    .tt-responsive[data-tt-mode="window"] .tt-gcell {
+        border-left: 1px solid var(--color-outline);
+        border-bottom: 1px solid var(--color-outline);
+    }
+    .tt-responsive[data-tt-mode="window"] .tt-window-grid .tt-card {
+        z-index: 1;
+        min-height: 0;
+        width: auto;
+        margin: 2px;
+        padding: 6px;
+        gap: 2px;
+        border-radius: 0;
+        overflow-y: auto;
+    }
+    .tt-responsive[data-tt-mode="window"] .tt-window-grid .tt-card-top {
+        flex-wrap: wrap;
+        gap: 2px 8px;
+    }
+    .tt-responsive[data-tt-mode="window"] .tt-window-grid .tt-venue {
+        margin-left: auto;
+    }
+    .tt-responsive[data-tt-mode="window"] .tt-window-grid .tt-time,
+    .tt-responsive[data-tt-mode="window"] .tt-window-grid .tt-venue {
+        font-size: 11px;
+    }
+    .tt-responsive[data-tt-mode="window"] .tt-window-grid .tt-course {
+        font-size: 10px;
+    }
+    .tt-responsive[data-tt-mode="window"] .tt-window-grid .tt-note,
+    .tt-responsive[data-tt-mode="window"] .tt-window-grid .tt-note .ev-note,
+    .tt-responsive[data-tt-mode="window"] .tt-window-grid .tt-status {
+        font-size: 9.5px;
+    }
+    /* the empty/holiday panels render in the agenda mount, which is display:none
+       outside the ≤1279 media — this band never shows one (the window grid with its
+       holiday header IS the day's notice), but the mount must not paint leftovers */
+    .tt-responsive[data-tt-mode="window"] .tt-agenda {
+        display: none;
+    }
+}
+
+/* ── cohort-venue-responsive-port FOLLOWUP (2026-11-17): no-hover outside the root.
+   The fixed top bar, the nav drawer and the modals sit OUTSIDE `.lw-page`, so the
+   blades' in-page `@media (hover: none)` neutralisers can never reach them. Same
+   recipe, keyed on THIS lane's two pages only via body:has() — My/Student
+   (data-tt-page "staff"/"student") keep today's hover skins, and a mouse device
+   is untouched (capability, not width). Every rule restores the component's
+   shipped RESTING token colours (prototype §11, cohort preview's own hover:none
+   block); focus is not hover and stays exactly as shipped. ── */
+@media (hover: none) {
+    body:has(.tt-responsive:is([data-tt-page="cohort"], [data-tt-page="venue"])) .nav-item:hover {
+        opacity: 0.75;
+        background: transparent;
+    }
+    body:has(.tt-responsive:is([data-tt-page="cohort"], [data-tt-page="venue"])) .nav-item.active:hover {
+        opacity: 1;
+        background: var(--color-primary);
+    }
+    body:has(.tt-responsive:is([data-tt-page="cohort"], [data-tt-page="venue"])) .nav-hamburger:hover {
+        background: transparent;
+    }
+    body:has(.tt-responsive:is([data-tt-page="cohort"], [data-tt-page="venue"])) .nav-drawer-item:hover {
+        background: transparent;
+        color: var(--color-on-surface-variant);
+    }
+    body:has(.tt-responsive:is([data-tt-page="cohort"], [data-tt-page="venue"])) .nav-drawer-item.active:hover {
+        background: var(--color-primary-container);
+        color: var(--color-on-primary-container);
+    }
+    body:has(.tt-responsive:is([data-tt-page="cohort"], [data-tt-page="venue"])) .nav-drawer-close:hover,
+    body:has(.tt-responsive:is([data-tt-page="cohort"], [data-tt-page="venue"])) .modal-close:hover {
+        background: transparent;
+        color: var(--color-on-surface-variant);
+        border-color: var(--color-outline);
+    }
+    body:has(.tt-responsive:is([data-tt-page="cohort"], [data-tt-page="venue"])) .btn-close-modal:hover,
+    body:has(.tt-responsive:is([data-tt-page="cohort"], [data-tt-page="venue"])) .btn-outline:hover {
+        background: transparent;
+        color: var(--color-on-surface);
+    }
+    body:has(.tt-responsive:is([data-tt-page="cohort"], [data-tt-page="venue"])) .btn-action:hover {
+        background: var(--color-primary);
+        filter: none;
+        box-shadow: none;
+    }
+    body:has(.tt-responsive:is([data-tt-page="cohort"], [data-tt-page="venue"])) .btn-danger:hover {
+        background: var(--color-error);
+        color: var(--color-on-error);
+        filter: none;
+    }
+    body:has(.tt-responsive:is([data-tt-page="cohort"], [data-tt-page="venue"])) .btn-replace-now:hover,
+    body:has(.tt-responsive:is([data-tt-page="cohort"], [data-tt-page="venue"])) .btn-confirm:hover {
+        opacity: 1;
+        transform: none;
+        filter: none;
+    }
+    body:has(.tt-responsive:is([data-tt-page="cohort"], [data-tt-page="venue"])) .theme-toggle:hover,
+    body:has(.tt-responsive:is([data-tt-page="cohort"], [data-tt-page="venue"])) .notif-btn:hover {
+        opacity: 1;
+        transform: none;
+        filter: none;
     }
 }
 

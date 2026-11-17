@@ -3,11 +3,27 @@
      engine in cellRender mode — the frozen two-axis block language (colour =
      status, border = ownership). READ-only v1 (booking = Slice B). Legacy mock
      template untouched for the D10 fallback. Week nav is client-side (Slice A
-     pattern); venue switching navigates `?venue=` (full render, scripts re-run). --}}
+     pattern); venue switching navigates `?venue=` (full render, scripts re-run).
+
+     cohort-venue-responsive-port PHASE 2 — dated 2026-11-17 — the page root carries the
+     shared `.tt-responsive` scope with pageKey "venue", so TimetableResponsive
+     (public/js/ui-common.js) owns the narrower bands — one-day window below
+     768, two-day window 768–1023, three-day window 1024–1279 (bands.phoneMode
+     'window': the SAME shared _buildWindow renders the bookable grid at every
+     responsive width), and the existing full-week desktop at ≥1280 on BOTH
+     pointers (no wide-touch band on this page). The Week summary sheet holds
+     the legend + the five cards below 1280 (partials/ui-tt-chrome); the room
+     row sits OUTSIDE the chrome's sticky block so it scrolls away while the
+     week/day controls stay pinned. The free cells are rendered by the SAME
+     live state closures the desktop cellRender uses (roomCellState /
+     isServedTail / roomBeforeNextEvent / cellBlockedByLive / isSlotTooSoon),
+     and booking still goes through the live available-tooltip → Select a
+     Session modal → arrangement handoff — the prototype's mock preview and its
+     session-sheet restyle are NOT ported (approved proposal §3 exception). --}}
 
 @section('title', 'Venue Timetable')
 
-<div class="lw-page">
+<div class="lw-page tt-responsive" data-tt-page="venue">
 
     <style>
         /* Page styles: available-cell tooltip (U2a — frozen template :178–212,
@@ -107,34 +123,113 @@
             font-size: 12px;
             color: var(--color-on-surface-variant);
         }
-        /* 2026-11-10 (user): the week cluster — arrows + week picker + Today +
-           Earliest bookable — sits in the MIDDLE of the semester bar, and really
-           centred, not "as centred as the venue box allows": the two flexible
-           columns on either side are equal (minmax(0,1fr)), so the middle three
-           land on the bar's own centre line. The venue box keeps the left edge,
-           the print button the right edge. Five columns = the five children the
-           bar has on this page.
-           Below 900px there is no room to centre a ~600px cluster, so the bar
-           keeps today's wrapping flex row (theme.css .semester-bar). */
-        @media (min-width: 900px) {
-            .semester-bar--venue {
+        /* ───── cohort-venue-responsive-port PHASE 2: the toolbar bands ─────
+           dated 2026-11-17.
+           The prototype's `.venue-toolbar` shape: the room row and the week
+           controls are SEPARATE rows below 1280 (the room row scrolls away, the
+           week/day row stays pinned by the chrome's sticky block), and ≥1280 the
+           ONE desktop bar is reassembled — the wrapper takes the shipped
+           .semester-bar card skin and both rows dissolve with `display:
+           contents`, so their children auto-place into the same FIVE columns
+           (2026-11-17 ruling: venue wrap | week nav | Today | Earliest | print,
+           print pinned to the right edge). The chrome's #ttSticky carries the
+           week controls + the day strip at every width; at ≥1280 the strip is
+           display:none (theme base rule) and nothing of the responsive lane
+           renders. The wrapper carries the surface the old .semester-bar--venue
+           had (padding 12px 16px, surface card, gap 8) — desktop pixels
+           unchanged. */
+        .tt-venue-bar .semester-bar--venue {
+            margin: 0;
+        }
+        @media (min-width: 1280px) {
+            .tt-responsive[data-tt-page="venue"] .tt-venue-bar {
                 display: grid;
-                /* FIVE columns, and that is final (2026-11-17): the 2026-11-16 lane
-                   added a sixth for its Normal Class switch, but the switch moved into
-                   the Print dialog, so the sixth cell became an empty spacer — the
-                   print button stopped 377px short of the right edge and floated in
-                   the middle of the bar. Five columns with the print button in the last
-                   one (`justify-self: end`) pins it to the edge, which is where a
-                   printer icon belongs on every page. */
                 grid-template-columns: minmax(0, 1fr) auto auto auto minmax(0, 1fr);
                 align-items: center;
                 gap: 8px;
+                padding: 12px 16px;
+                background: var(--color-surface);
+                border: 1px solid var(--color-outline);
+                border-radius: var(--radius-lg);
+                box-shadow: var(--shadow-sm);
             }
-            .semester-bar--venue > .venue-dropdown-wrap {
+            .tt-responsive[data-tt-page="venue"] .tt-venue-bar .venue-room-row,
+            .tt-responsive[data-tt-page="venue"] .tt-venue-bar .tt-sticky,
+            .tt-responsive[data-tt-page="venue"] .tt-venue-bar .venue-controls-bar {
+                display: contents;
+            }
+            .tt-responsive[data-tt-page="venue"] .tt-venue-bar .venue-dropdown-wrap {
                 justify-self: start;
             }
-            .semester-bar--venue > .print-btn {
+            .tt-responsive[data-tt-page="venue"] .tt-venue-bar .print-btn {
                 justify-self: end;
+            }
+        }
+        /* Below 1280 the room row is a plain block (the prototype's
+           .venue-preview-room: no card, the trigger fills the row) and the
+           controls bar wraps — the week row takes its own line, Today / Earliest
+           / Print share the next one. */
+        @media (max-width: 1279px) {
+            .tt-responsive[data-tt-page="venue"] .venue-room-row {
+                background: transparent;
+                border: 0;
+                box-shadow: none;
+                border-radius: 0;
+                padding: 0;
+                margin: 0 0 8px;
+                flex-wrap: wrap;
+                gap: 8px;
+            }
+            .tt-responsive[data-tt-page="venue"] .venue-room-row .venue-dropdown-wrap {
+                flex: 1;
+                min-width: 0;
+            }
+            /* the dropdown fills the free row width; the capacity/description
+               chips keep their own content width beside it (prototype row) */
+            .tt-responsive[data-tt-page="venue"] .venue-room-row .venue-dd {
+                flex: 1;
+                min-width: 0;
+            }
+            .tt-responsive[data-tt-page="venue"] .venue-room-row .venue-dd-trigger {
+                width: 100%;
+                min-height: 44px;
+                display: flex;
+                gap: 16px;
+                align-items: center;
+                justify-content: space-between;
+            }
+            .tt-responsive[data-tt-page="venue"] .venue-room-row #venueLabel {
+                overflow: hidden;
+                text-overflow: ellipsis;
+                white-space: nowrap;
+            }
+            .tt-responsive[data-tt-page="venue"] .tt-sticky .venue-controls-bar {
+                flex-wrap: wrap;
+                row-gap: 6px;
+            }
+            .tt-responsive[data-tt-page="venue"] .tt-sticky .venue-controls-bar .week-nav {
+                flex: 1 1 100%;
+            }
+        }
+        /* Venue keeps Print at 768–1279 (proposal §2: hide it below 768
+           ONLY — the shared ≤1279 rule hides it for the personal pages).
+           Page-scoped so the shared rule's intent stays untouched. */
+        @media (min-width: 768px) and (max-width: 1279px) {
+            .tt-responsive[data-tt-page="venue"] .tt-sticky .print-btn {
+                display: inline-flex;
+                margin-left: auto;
+            }
+        }
+        /* the desktop booking-hint line: the count row carries the suggestion
+           below 1280, so the line would be a second one */
+        @media (max-width: 1279px) {
+            .tt-responsive[data-tt-page="venue"] .booking-hint-line {
+                display: none;
+            }
+        }
+        @media (max-width: 767px) {
+            .tt-responsive[data-tt-page="venue"] .tt-sticky .print-btn {
+                display: none;   /* phone only: the browser's own print menu */
             }
         }
         /* Session-choice modal: dropdowns fill their detail-row value column */
@@ -355,6 +450,185 @@
             .semester-bar--venue .venue-dd-panel { display: none !important; }
             .semester-bar--venue .venue-dd-trigger { max-width: 100%; }
         }
+
+        /* ───── PHASE 2, dated 2026-11-17: the responsive free cells (window band) ─────
+           The SAME live cell-state vocabulary the desktop cellRender paints, in
+           the prototype's `.venue-slot` shapes. Every class reuses the shipped
+           vocabulary — `.cell-content` / `.cell-available` / `.cell-no-room` /
+           `.cell-held` / `.cell-too-soon` (their hover-label rules in this
+           page's own styles and in theme.css apply unchanged) — with three
+           page-scoped additions: the 18:30 tail (`Not Enough Slots`, plural, on
+           hover AND focus, activation blocked), the base-availability offer
+           under cancelled history (S20's timeline answer), and the shipped red
+           off-day column. Tokens only. */
+        /* the free cells fill their background cell (the desktop .cell-content
+           positioning needs a positioned ancestor — the module's grid cell) */
+        .tt-responsive[data-tt-page="venue"] .tt-gcell {
+            position: relative;
+        }
+        /* Sunday / public-holiday empties: the shipped red day column
+           (prototype `.venue-slot.off-day`), never bookable, never relabelled. */
+        .tt-responsive[data-tt-page="venue"] .v-off {
+            background: var(--color-error-container);
+            color: var(--color-on-error-container);
+            cursor: var(--cursor-cancel);
+            pointer-events: none;
+        }
+        .tt-responsive[data-tt-page="venue"] .v-off-label {
+            font-size: 10px;
+            font-weight: 700;
+            letter-spacing: 0.3px;
+        }
+        /* The 18:30 half-hour (proposal §3): green but it cannot START a
+           booking — 'Not Enough Slots' (plural, prototype words) on hover AND
+           focus, aria-disabled in the markup, activation blocked in JS. The
+           desktop's mid-day `.cell-no-room` law (green + cursor + hover words
+           only) is untouched — this arm is the tail only. */
+        .tt-responsive[data-tt-page="venue"] .v-tail {
+            --hover-label: 'Not Enough\A Slots';
+            white-space: pre-line;
+            cursor: not-allowed;
+        }
+        .tt-responsive[data-tt-page="venue"] .v-tail:hover { filter: none; }
+        .tt-responsive[data-tt-page="venue"] .v-tail:focus-visible { filter: none; }
+        /* the hover label also answers the keyboard (prototype: hover/focus) */
+        .tt-responsive[data-tt-page="venue"] .cell-available:focus-visible::after,
+        .tt-responsive[data-tt-page="venue"] .v-tail:focus-visible::after,
+        .tt-responsive[data-tt-page="venue"] .cell-too-soon:focus-visible::after {
+            opacity: 1;
+        }
+        /* cancelled-slot-reuse S20 in the timeline (followup F): a free cell
+           under cancelled history paints in the module's RESERVED SIDE LANE
+           (tt-base-lane) — the node's own left/right inline geometry puts it
+           beside, never over, the history card. The page styles only the
+           offer's time label here. */
+        .tt-responsive[data-tt-page="venue"] .v-base-offer .cell-time-label {
+            display: block;
+            font-size: 11px;
+            font-weight: 600;
+            line-height: 1.2;
+            text-align: center;
+            padding: 2px;
+            overflow: hidden;
+        }
+        /* No hover on a touch screen (standing rule): the reused hover skins
+           stop listening to the pointer; focus keeps the same words. The
+           chrome's hover skins are theme.css shared rules, so their
+           neutralisers ride this page (same recipe as the Cohort port) — the
+           resting states keep their colours, nothing goes transparent. */
+        @media (hover: none) {
+            .tt-responsive[data-tt-page="venue"] .cell-available:hover {
+                filter: none;
+                z-index: auto;
+            }
+            .tt-responsive[data-tt-page="venue"] .cell-available:hover::after,
+            .tt-responsive[data-tt-page="venue"] .cell-too-soon:hover::after {
+                opacity: 0;
+            }
+            .tt-responsive[data-tt-page="venue"] .cell-available:active {
+                transform: none;
+            }
+            .tt-responsive[data-tt-page="venue"] .tt-summary-btn:hover { background: var(--color-surface); }
+            .tt-responsive[data-tt-page="venue"] .week-arrow:hover { background: transparent; color: var(--color-on-surface-variant); }
+            .tt-responsive[data-tt-page="venue"] .today-btn:hover,
+            .tt-responsive[data-tt-page="venue"] .print-btn:hover { opacity: 1; transform: none; filter: none; background: transparent; color: var(--color-on-surface-variant); }
+            .tt-responsive[data-tt-page="venue"] .timetable tbody td:hover,
+            .tt-responsive[data-tt-page="venue"] .timetable td.hour-cell:hover { background: transparent; }
+            .tt-responsive[data-tt-page="venue"] .event-block:hover { filter: none; box-shadow: none; }
+            .tt-responsive[data-tt-page="venue"] .summary-card:hover .summary-card-inner { transform: none; }
+            .tt-responsive[data-tt-page="venue"] .legend-item:hover { background: transparent; }
+        }
+
+        /* ───── 48 × 48 on touch, capability not width (the ONE gap the touch
+           walk found): the room picker trigger is 36px by the shared skin and
+           44px by this page's ≤1279 row rule — on a coarse pointer it grows to
+           the floor at EVERY width, wide tablets included, while a mouse
+           desktop keeps today's compact 36px. The picker sheet's own controls
+           (close, search, group headers, venue rows) take the same floor. */
+        @media (any-pointer: coarse) {
+            .tt-responsive[data-tt-page="venue"] .venue-room-row .venue-dd-trigger,
+            .tt-responsive[data-tt-page="venue"] .tt-venue-bar .venue-dd-trigger {
+                min-height: 48px;
+                height: 48px;
+            }
+            dialog#venueTimetablePicker button {
+                box-sizing: border-box;
+                min-width: 48px;
+                min-height: 48px;
+            }
+            /* the search field outranks the generic input rule on specificity,
+               so it carries the floor under its own selector */
+            dialog#venueTimetablePicker .venue-picker-search input {
+                min-width: 48px;
+                min-height: 48px;
+            }
+        }
+
+        /* ───── The 19:00 boundary row (proposal §3: exactly 22 half-hours) ───── */
+        .tt-responsive[data-tt-page="venue"] .v-end-row { display: contents; }
+        .tt-responsive[data-tt-page="venue"] .v-end-time {
+            border-bottom: 0;
+            color: var(--color-on-surface-variant);
+        }
+        .tt-responsive[data-tt-page="venue"] .v-end-line { background: var(--color-surface); }
+        /* the extra 24px footer row + the prototype's 12px axis — the phone
+           band is the SAME window grid now, so one rule covers all bands */
+        @media (max-width: 1279px) {
+            .tt-responsive[data-tt-page="venue"] .tt-window-grid {
+                grid-template-rows: 62px repeat(22, 44px) 24px;
+            }
+            .tt-responsive[data-tt-page="venue"] .tt-axis { font-size: 12px; }
+        }
+        @media (any-pointer: coarse) {
+            .tt-responsive[data-tt-page="venue"] .tt-window-grid {
+                grid-template-rows: 62px repeat(22, 48px) 24px;
+            }
+        }
+
+        /* the window header's day-state badges (followup D): the shipped
+           badge family under the date, centred like the prototype's */
+        @media (max-width: 1279px) {
+            .tt-responsive .tt-window-grid .tt-whead .v-daybadges {
+                display: block;
+            }
+            .tt-responsive .tt-window-grid .tt-whead .today-badge,
+            .tt-responsive .tt-window-grid .tt-whead .off-badge,
+            .tt-responsive .tt-window-grid .tt-whead .bookable-badge {
+                margin-top: 4px;
+                margin-left: auto;
+                margin-right: auto;
+                max-width: 90%;
+                line-height: 1.3;
+            }
+        }
+
+        /* the tools row: count + Summary only — the selected date / window range is
+           NEVER repeated above the grid at ANY responsive width (the strip and the
+           grid headers already name the days; the count line speaks the window).
+           Prototype contract (venue-timetable-responsive-preview.html lines 20–28).
+           The module still writes its window heading; the page hides it below 1280
+           with CSS, so no JS fixups are needed. (Was phone-only 767 before the
+           contract-finish check caught the tablet windows repeating the range.) */
+        @media (max-width: 1279px) {
+            .tt-responsive[data-tt-page="venue"] .tt-day-heading {
+                display: none;
+            }
+        }
+
+        /* ───── The whole-day pulse (Earliest bookable green / Today blue) ─────
+           The shipped mechanic: `flashRowPulse`'s .bookable-flash classes over
+           the theme.css keyframes. The desktop rows already pulse through the
+           shared rules; the responsive day columns take the same classes on the
+           tagged background cells (.tt-gcell[data-v-day]) and their green cells. */
+        .tt-responsive[data-tt-page="venue"] .tt-gcell.bookable-flash {
+            animation: bookable-pulse 0.5s ease-in-out 3;
+        }
+        .tt-responsive[data-tt-page="venue"] .tt-gcell.bookable-flash--today {
+            animation: bookable-pulse-primary 0.5s ease-in-out 3;
+        }
+        .tt-responsive[data-tt-page="venue"] .cell-content.bookable-flash--today {
+            animation: bookable-pulse-primary 0.5s ease-in-out 3;
+        }
     </style>
 
     <!-- ─── Page Header ─── -->
@@ -378,28 +652,52 @@
          page's first update). Venue switching is ?venue= full render, so the
          server never needs to update inside this block. ─── -->
     <div wire:ignore>
-    <!-- ─── Semester Bar ─── venue + week selectors on ONE row (frozen fjing
-         layout, f8b35a2; matches the cohort-timetable pattern). The 2026-10-09
-         DB wiring (adc95bb) had split them into two bars — unauthorised drift,
-         fixed in venue-toolbar-row-parity. Print stub restored via showPrint;
-         fav-star ☆ stays dropped (documented divergence — mock localStorage),
-         the capacity span stands where fjing's fav-btn sits. -->
-    <div class="semester-bar semester-bar--venue">
-        <div class="venue-dropdown-wrap">
-            @include('partials.ui-venue-dropdown', ['selectId' => 'venueSelect'])
-            {{-- venue-side-chips: the capacity badge (icon + number + tip) AND,
-                 2026-11-10 (user), the room DESCRIPTION — which used to be a plain
-                 grey line under the dropdown and is now the same info-icon chip the
-                 arrangement page wears (`#arrVenueDescription`): `.badge badge-past`
-                 + info glyph, the description in the hover tip. Same group, same
-                 4px gap, same 12px glyph on both pages. Each chip stays hidden until
-                 the payload fills it — no empty stubs. --}}
-            <div class="venue-side-chips">
-                <span class="badge badge-capacity" id="venueCapacity" style="display:none;"></span>
-                <span class="badge badge-past" id="venueDescription" style="display:none;"></span>
+    <!-- ─── Responsive chrome + toolbar (cohort-venue-responsive-port PHASE 2,
+         dated 2026-11-17) ───
+         The prototype's `.venue-toolbar` shape: the room row and the week
+         controls are separate rows below 1280 (the room row scrolls away, the
+         week/day row stays pinned inside the chrome's sticky block), and ≥1280
+         the wrapper reassembles the ONE desktop bar via display:contents —
+         same FIVE columns, same card skin (the page styles own the swap). The
+         week row is RENDERED to a string and handed to partials/ui-tt-chrome
+         (a static wrap in the blade, never a runtime move; ui-week-nav itself
+         is never edited — same pattern as My Timetable and Cohort). Every
+         control in the chrome is bound by TimetableResponsive; no inline
+         onclick is added. -->
+    @php
+        $ttWeekNav = '<div class="semester-bar venue-controls-bar">'
+            . view('partials.ui-week-nav', [
+                'prevOnclick' => 'prevWeek()',
+                'nextOnclick' => 'nextWeek()',
+                'selectId' => 'weekSelect',
+                'selectOnclick' => 'selectWeek(this.value)',
+                'selectTinted' => true,
+                'showPrint' => true,
+                'showEarliestBtn' => true,
+            ])->render()
+            . '</div>';
+    @endphp
+    <div class="tt-venue-bar">
+        {{-- The ROOM ROW — the part that scrolls away below 1280. Same
+             includes and chips as before; the week nav moved into the chrome
+             above, the desktop grid reassembles the bar. --}}
+        <div class="semester-bar semester-bar--venue venue-room-row">
+            <div class="venue-dropdown-wrap">
+                @include('partials.ui-venue-dropdown', ['selectId' => 'venueSelect'])
+                {{-- venue-side-chips: the capacity badge (icon + number + tip) AND,
+                     2026-11-10 (user), the room DESCRIPTION — which used to be a plain
+                     grey line under the dropdown and is now the same info-icon chip the
+                     arrangement page wears (`#arrVenueDescription`): `.badge badge-past`
+                     + info glyph, the description in the hover tip. Same group, same
+                     4px gap, same 12px glyph on both pages. Each chip stays hidden until
+                     the payload fills it — no empty stubs. --}}
+                <div class="venue-side-chips">
+                    <span class="badge badge-capacity" id="venueCapacity" style="display:none;"></span>
+                    <span class="badge badge-past" id="venueDescription" style="display:none;"></span>
+                </div>
             </div>
         </div>
-        @include('partials.ui-week-nav', ['prevOnclick' => 'prevWeek()', 'nextOnclick' => 'nextWeek()', 'selectId' => 'weekSelect', 'selectOnclick' => 'selectWeek(this.value)', 'selectTinted' => true, 'showPrint' => true, 'showEarliestBtn' => true])
+        @include('partials.ui-tt-chrome', ['ttWeekNav' => $ttWeekNav, 'ttReadonly' => false])
     </div>
 
     <!-- ─── Grid Wrapper ─── -->
@@ -594,6 +892,13 @@
             let currentWeek = window.currentWeek;
             window.currentModalEvent = null;
             let countedAvailable = 0;   /* the render's own bookable-cell count — the AVAILABLE card reads it (user accuracy 2026-10-19) */
+            /* PHASE 2 (cohort-venue-responsive-port): ONE set of per-render facts
+               shared by the desktop grid AND the responsive chrome — the base-
+               availability days (cancelled-slot-reuse S20) and the ROOM-AWARE
+               earliest bookable day. Recomputed in buildTimetable(), read by the
+               module hooks and the buttons; never a second availability logic. */
+            let desktopBaseRowDays = [];
+            let responsiveEarliest = null;
 
             /* week-memory-until-logout (T4): the session-scoped mode — the
                per-login stamp binds this page's week memory to the login
@@ -837,9 +1142,26 @@
                 });
             }
 
+            /* PHASE 2 (proposal §2): the picker follows the CURRENT behaviour —
+               the searchable sheet on a TOUCH-capable device at ANY width (the
+               iPad Pro never requires hover) or at ≤768px, and the anchored
+               four-column cascade for a mouse. Input capability, not width
+               alone: `any-pointer: coarse` / `hover: none` decide, exactly like
+               the prototype's useVenueSheet(). */
+            const venueCoarseQuery = window.matchMedia('(any-pointer: coarse)');
+            const venueNoHoverQuery = window.matchMedia('(hover: none)');
+            function useVenueSheet() {
+                return window.innerWidth <= 768 || venueCoarseQuery.matches || venueNoHoverQuery.matches;
+            }
+            function syncVenuePickerMode() {
+                const trigger = document.querySelector('#venueSelectDropdown .venue-dd-trigger');
+                if (trigger) trigger.setAttribute('aria-haspopup', useVenueSheet() ? 'dialog' : 'true');
+            }
+            syncVenuePickerMode();
+
             function openVenuePicker() {
                 const dialog = document.getElementById('venueTimetablePicker');
-                if (!dialog || window.innerWidth > 768) return;
+                if (!dialog || !useVenueSheet()) return;
                 if (venueDropdown && typeof venueDropdown._close === 'function') venueDropdown._close();
                 const search = dialog.querySelector('[data-venue-picker-search]');
                 if (search) search.value = '';
@@ -872,9 +1194,10 @@
                 });
 
                 /* Capture phase runs before VenueDropdown's own trigger
-                   listener, so a phone tap never opens the desktop cascade. */
+                   listener, so a phone/touch tap never opens the desktop
+                   cascade — and a WIDE touch device gets the sheet too. */
                 document.addEventListener('click', function (event) {
-                    if (window.innerWidth > 768) return;
+                    if (!useVenueSheet()) return;
                     const target = event.target;
                     const trigger = target && target.closest
                         ? target.closest('#venueSelectDropdown .venue-dd-trigger')
@@ -886,8 +1209,17 @@
                     openVenuePicker();
                 }, true);
 
-                window.addEventListener('resize', function () {
-                    if (window.innerWidth > 768) closeVenuePicker();
+                /* leaving the sheet mode (touch removed / grown past 768 on a
+                   mouse) closes the dialog and hands back the cascade — the
+                   same mode sync the prototype runs on resize + query change */
+                const venueSheetStops = function () {
+                    if (window.innerWidth > 768 && !venueCoarseQuery.matches && !venueNoHoverQuery.matches) closeVenuePicker();
+                    syncVenuePickerMode();
+                };
+                window.addEventListener('resize', venueSheetStops);
+                [venueCoarseQuery, venueNoHoverQuery].forEach(function (q) {
+                    if (q.addEventListener) q.addEventListener('change', venueSheetStops);
+                    else if (q.addListener) q.addListener(venueSheetStops);
                 });
             })();
 
@@ -1028,8 +1360,12 @@
                included); missing = no offer row. Fail closed: the green /
                bookable decisions below consult it, because event geometry
                alone cannot see a raw occupied cell. */
-            function roomCellState(di, hi) {
-                const week = roomCellStatesByWeek[currentWeek];
+            function roomCellState(di, hi, weekIdx) {
+                /* PHASE 2 (room-aware earliest): the optional week index lets the
+                   Earliest-bookable lookup scan the WHOLE semester without
+                   mutating the viewed week; every existing caller omits it and
+                   reads the current week exactly as before. */
+                const week = roomCellStatesByWeek[weekIdx === undefined ? currentWeek : weekIdx];
                 if (!week) return 'nooffer';
                 const state = week[di + ':' + hi];
                 return state === undefined ? 'nooffer' : state;
@@ -1044,10 +1380,10 @@
                and are no longer treated as a blocker, which is what puts
                17:30–18:00 back to a plain green cell. A hole INSIDE the served
                range still ends the run (A21 preserved). */
-            function nextActualBlockAfter(di, hi) {
-                const last = lastOfferIndex(di);
+            function nextActualBlockAfter(di, hi, weekIdx) {
+                const last = lastOfferIndex(di, weekIdx);
                 for (let k = hi + 1; k <= last; k++) {
-                    if (roomCellState(di, k) !== 'free') return k;
+                    if (roomCellState(di, k, weekIdx) !== 'free') return k;
                 }
                 return Infinity;
             }
@@ -1056,8 +1392,8 @@
                (held) row counts as served on purpose: it is a real row, just not
                free, so it must end a run and must not extend the tail. -1 = the
                day offers nothing at all. */
-            function lastOfferIndex(di) {
-                const week = roomCellStatesByWeek[currentWeek];
+            function lastOfferIndex(di, weekIdx) {
+                const week = roomCellStatesByWeek[weekIdx === undefined ? currentWeek : weekIdx];
                 if (!week) return -1;
                 let last = -1;
                 for (let k = 0; k < hours.length; k++) {
@@ -1073,13 +1409,13 @@
                only a day whose last served row sits in the grid's FINAL hour gets
                them, so a room that closes at midday is never painted green to the
                evening. */
-            function isServedTail(di, hi) {
-                const last = lastOfferIndex(di);
+            function isServedTail(di, hi, weekIdx) {
+                const last = lastOfferIndex(di, weekIdx);
                 return last >= hours.length - 3 && hi > last;
             }
 
-            function nextEventStartAfter(di, hi) {
-                const dayEvents = eventsData[currentWeek] || [];
+            function nextEventStartAfter(di, hi, weekIdx) {
+                const dayEvents = eventsData[weekIdx === undefined ? currentWeek : weekIdx] || [];
                 let next = Infinity;
                 dayEvents.forEach(function (ev) {
                     if (ev.di !== di || isHistoryEvent(ev) || ev.start <= hi) return;
@@ -1093,12 +1429,13 @@
                class is picked) can never disagree. Cancelled history never
                blocks a span (S20); the room matrix does (A21) — a held row or
                a missing offer ends the span even with no event over it. */
-            function spanBlocked(di, hi, spanSlots) {
+            function spanBlocked(di, hi, spanSlots, weekIdx) {
+                const wk = weekIdx === undefined ? currentWeek : weekIdx;
                 const spanTo = Math.min(hi + spanSlots, hours.length);
                 for (let k = hi; k < spanTo; k++) {
-                    if (roomCellState(di, k) !== 'free') return true;
+                    if (roomCellState(di, k, wk) !== 'free') return true;
                 }
-                return (eventsData[currentWeek] || []).some(function (ev) {
+                return (eventsData[wk] || []).some(function (ev) {
                     return ev.di === di && !isHistoryEvent(ev)
                         && (hi < ev.end + 1) && (spanTo - 1 >= ev.start);
                 });
@@ -1107,8 +1444,8 @@
             /* Does a LIVE (non-cancelled) event occupy one cell? Real room
                occupancy — pending and occupied still block; cancelled history
                never does (S20). */
-            function cellBlockedByLive(di, hi) {
-                return (eventsData[currentWeek] || []).some(function (ev) {
+            function cellBlockedByLive(di, hi, weekIdx) {
+                return (eventsData[weekIdx === undefined ? currentWeek : weekIdx] || []).some(function (ev) {
                     return ev.di === di && !isHistoryEvent(ev)
                         && hi >= ev.start && hi <= ev.end;
                 });
@@ -1142,8 +1479,8 @@
                geometry still ends the run — and never later than the grid's own
                end (2026-11-14, venue-evening-tail): the unoffered tail is not a
                blocker, so the answer is always finite (`hours.length - hi`). */
-            function roomBeforeNextEvent(di, hi) {
-                const next = Math.min(nextEventStartAfter(di, hi), nextActualBlockAfter(di, hi), hours.length);
+            function roomBeforeNextEvent(di, hi, weekIdx) {
+                const next = Math.min(nextEventStartAfter(di, hi, weekIdx), nextActualBlockAfter(di, hi, weekIdx), hours.length);
                 return next - hi;
             }
 
@@ -1598,6 +1935,414 @@
                 }
             });
 
+            /* ═══ cohort-venue-responsive-port PHASE 2 (dated 2026-11-17) — the responsive
+               bands ═══
+               The module (TimetableResponsive, ui-common.js) owns the chrome;
+               this page supplies the opt-in profile and the LIVE cell-state
+               hooks. The state closures are the DESKTOP ones — roomCellState /
+               isServedTail / roomBeforeNextEvent / cellBlockedByLive /
+               isSlotTooSoon / dayNeedsBaseRow — never a second calculation, so
+               the green cells and the Available card can never disagree.
+               Booking still goes through the live available-tooltip →
+               Select a Session modal → arrangement handoff (the approved
+               proposal keeps the shipped modal; the prototype's mock preview
+               and session-sheet restyle are NOT ported). */
+
+            /* The too-soon hover words — one composition, two consumers (the
+               desktop paint loop above and the responsive cells). */
+            function tooSoonTipText() {
+                const cutoff = leadTimeCutoff(weekData);
+                const days = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+                const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+                return 'Rule : Only bookable at least 3 working days from today.'
+                    + '\nEarliest Bookable : ' + days[cutoff.getDay()] + ', '
+                    + cutoff.getDate() + ' ' + months[cutoff.getMonth()] + ' ' + cutoff.getFullYear();
+            }
+
+            /* ── The ROOM-AWARE earliest bookable lookup (PHASE 2) ──
+               firstBookableDay(weekData) is the LEAD-TIME cutoff only (ui-common
+               :160–205) — it cannot see the room, so it can name a day whose
+               room is fully held: the green dot would sit on a day with nothing
+               to book and the jump would land on a full day. The prototype and
+               the approved plan demand ONE genuinely free slot lookup for the
+               dot AND the button. This lookup reuses the page's own live
+               closures — roomCellState / isServedTail / cellBlockedByLive /
+               spanBlocked / isSlotTooSoon, with their new optional week index —
+               never a second availability calculation. No backend rule changes;
+               the room matrix and event payload stay the page's truth. */
+            function firstBookableSlotInWeek(weekIdx) {
+                for (var di = 0; di < 7; di++) {
+                    var day = (weekData[weekIdx] && weekData[weekIdx].days[di]) || null;
+                    if (!day || day.sunday || day.holiday) continue;
+                    if (isSlotTooSoon(weekData, weekIdx, di)) continue;
+                    for (var slot = 0; slot < hours.length; slot++) {
+                        var state = roomCellState(di, slot, weekIdx);
+                        /* the same two green states the cells paint: a real free
+                           offer, or the evening tail (isServedTail) */
+                        var bookable = state === 'free'
+                            || (state === 'nooffer' && isServedTail(di, slot, weekIdx));
+                        if (!bookable) continue;
+                        if (cellBlockedByLive(di, slot, weekIdx)) continue;
+                        /* the slot must host the MINIMUM booking the page offers
+                           (the hover floor): 60 continuous minutes of free room,
+                           judged by the SAME span check the pop-up's Arrange
+                           press runs (cancelled history never blocks, S20) */
+                        if (spanBlocked(di, slot, MIN_BOOK_SLOTS, weekIdx)) continue;
+                        return { di: di, slot: slot };
+                    }
+                }
+                return null;
+            }
+            function venueEarliestBookable() {
+                for (var week = 0; week < (weekData || []).length; week++) {
+                    var found = firstBookableSlotInWeek(week);
+                    if (found) return { week: week, day: found.di, slot: found.slot };
+                }
+                return null;
+            }
+
+            /* ── The responsive free cell — ONE state machine, two surfaces ──
+               The window-band hook (cfg.freeCell) and the phone timeline both
+               render through this. Mirrors the desktop cellRender's available
+               branches arm for arm; a class reuses the shipped vocabulary so
+               the page's own hover-label rules and theme.css apply unchanged:
+                 free + room  → .cell-content .cell-available (+ .cell-no-room
+                                when roomBeforeNextEvent < MIN_BOOK_SLOTS — the
+                                current live law: green, cursor + hover words)
+                 18:30 tail   → .v-tail: green, 'Not Enough Slots' (plural, the
+                                prototype's words) on hover AND focus, marked
+                                aria-disabled, activation blocked (proposal §3)
+                 too soon     → .cell-too-soon + the shared rule words
+                 Sunday / PH  → .v-off: the shipped red day column ('OFF'/'PH')
+                 held (A21)   → .cell-content .cell-held (neutral, never fake
+                                green for a raw occupied row)
+                 no offer row → nothing (the bare background cell)
+               A live event's cell → nothing: its card covers the column there,
+               exactly like the desktop lane-0 branch.
+               The AVAILABLE count is NOT touched here: countedAvailable stays
+               the desktop paint loop's single counting point (user accuracy
+               2026-10-19), so the card can never disagree with the screen. */
+            function venueSlotNode(di, slot, day, opts) {
+                opts = opts || {};
+                if (!day) return null;
+                if (day.sunday || day.holiday) {
+                    var off = document.createElement('div');
+                    off.className = 'cell-content v-off';
+                    var offLabel = document.createElement('span');
+                    offLabel.className = 'v-off-label';
+                    offLabel.textContent = day.holiday ? 'PH' : 'OFF';
+                    off.appendChild(offLabel);
+                    return off;
+                }
+                if (isSlotTooSoon(weekData, currentWeek, di)) {
+                    var soon = document.createElement('div');
+                    soon.className = 'cell-content cell-too-soon';
+                    soon.setAttribute('data-tip', tooSoonTipText());
+                    return soon;
+                }
+                var cellState = roomCellState(di, slot);
+                var tail = cellState === 'nooffer' && isServedTail(di, slot);
+                if (cellState !== 'free' && !tail) {
+                    if (cellState === 'blocked') {
+                        var held = document.createElement('div');
+                        held.className = 'cell-content cell-held';
+                        return held;
+                    }
+                    return null;
+                }
+                if (cellBlockedByLive(di, slot)) return null;   /* its card covers it */
+
+                var node = document.createElement('div');
+                node.className = 'cell-content cell-available';
+                var isTailSlot = slot === hours.length - 1;
+                if (isTailSlot) {
+                    node.classList.add('v-tail');
+                    node.setAttribute('aria-disabled', 'true');
+                } else if (roomBeforeNextEvent(di, slot) < MIN_BOOK_SLOTS) {
+                    node.classList.add('cell-no-room');   /* green, words-only — the 2026-11-05 law */
+                }
+                /* Followup F: a free cell under cancelled history paints in the
+                   RESERVED SIDE LANE the module marks on the gcell (tt-base-lane
+                   + data-tt-base=1). The gcell's shared paddingLeft inset is
+                   ignored by an absolute inset-0 fill, so the node takes the
+                   lane's own geometry — from the lane edge to the cell's right
+                   edge — so the history card (in the remaining sub-lanes) and
+                   the green offer are BOTH visible and BOTH reachable. The
+                   offer keeps the desktop base-row's time label. */
+                if (opts && opts.base) {
+                    node.classList.add('v-base-offer');
+                    var laneCount = Math.max(1, (opts.laneCount !== undefined ? opts.laneCount : ((opts.lanes || 0) + 1)));
+                    var lane = (opts.lane !== undefined) ? opts.lane : (opts.lanes || 0);
+                    node.style.left = 'calc(100% * ' + lane + ' / ' + laneCount + ')';
+                    node.style.right = '0';
+                    var baseTime = document.createElement('span');
+                    baseTime.className = 'cell-time-label';
+                    baseTime.textContent = to12h(hours[slot]) + ' ~ ' + to12h(hours[slot + 1] || add30min(hours[slot]));
+                    node.appendChild(baseTime);
+                }
+                node.tabIndex = 0;
+                /* BOTH coordinate contracts: the desktop page's data-day/
+                   data-hour pair and the prototype/tests' data-free-day/
+                   data-free-slot pair (tests/cohort-venue-responsive.spec.ts SEAM). */
+                node.dataset.day = String(di);
+                node.dataset.hour = String(slot);
+                node.dataset.freeDay = String(di);
+                node.dataset.freeSlot = String(slot);
+                node.setAttribute('role', 'button');
+                node.setAttribute('aria-label', 'Available slot: ' + day.abbr + ' ' + hours[slot]
+                    + (isTailSlot ? ' — Not Enough Slots' : ''));
+                node.addEventListener('focus', function () { focusedCell = node; });
+                if (isTailSlot) {
+                    /* activation blocked: no toast, no modal, no session picker */
+                    node.addEventListener('click', function (ev) { ev.preventDefault(); });
+                } else {
+                    node.addEventListener('click', function (ev) {
+                        focusedCell = node;
+                        showAvailableTooltip(ev, di, slot, node);
+                    });
+                }
+                return node;
+            }
+
+            /* ── The 19:00 boundary row (exactly 22 half-hours before it) ──
+               One display:contents wrapper so its two children become the
+               footer grid row's cells on BOTH surfaces. */
+            function venueEndRow() {
+                var wrap = document.createElement('div');
+                wrap.className = 'v-end-row';
+                var axis = document.createElement('div');
+                axis.className = 'tt-axis v-end-time';
+                axis.style.gridColumn = '1';
+                axis.style.gridRow = String(hours.length + 2);
+                axis.textContent = '19:00';
+                var line = document.createElement('div');
+                line.className = 'v-end-line';
+                line.style.gridColumn = '2 / -1';
+                line.style.gridRow = String(hours.length + 2);
+                line.setAttribute('aria-hidden', 'true');
+                wrap.appendChild(axis);
+                wrap.appendChild(line);
+                return wrap;
+            }
+
+            /* ── The card voice — the SAME ownership/status/tip law as the
+               desktop blocks (§10.0 two-axis language + the privacy gates) ── */
+            function venueStatusClassFor(div, e, isHoliday) {
+                if (isHoliday) {
+                    /* PH day: the viewer's OWN class stays loud red, others'
+                       hairline — the desktop cellRender's T21 branch */
+                    div.classList.add(e.mine ? 'event-conflict' : 'event-public-holiday');
+                } else if (e.status === 'replacement') {
+                    div.classList.add(e.mine ? 'event-mine-replacement' : 'event-others-replacement');
+                } else if (e.status === 'pending') {
+                    div.classList.add(e.mine ? 'event-mine-pending' : 'event-others-pending');
+                } else if (e.status === 'conflict' || e.status === 'cancelled') {
+                    div.classList.add(e.mine ? 'event-conflict' : 'event-public-holiday');
+                } else {
+                    div.classList.add(e.mine ? 'event-mine' : 'event-others');
+                }
+            }
+            function venueTipLecturer(e) {
+                return (e.mine === true || e.lecturer === MockData.currentUser.name) ? 'YOU' : (e.lecturer || '—');
+            }
+            function venueTooltipExtra(e) {
+                return (e.cohorts && e.cohorts.length) ? e.cohorts.join(' + ') : (e.cohort || '');
+            }
+            function venueReplacementNote(e) {
+                return buildReplacementNote(e, {
+                    checkOwnership: function (ev) {
+                        return ev.mine === true || ev.lecturer === MockData.currentUser.name;
+                    }
+                });
+            }
+
+            /* ── The window header's day-state badge (followup D) ──
+               cfg.dayBadgeFn(day, di) feeds the module's transposed header; the
+               page supplies the SHIPPED badge family under the date. The holiday
+               small is the module's own — no duplicate PH text here. TODAY comes
+               from the strip's aria-current="date" (the module's own truth, set
+               only on the real today); BOOKINGS OPEN comes from the page's ONE
+               room-aware earliest lookup (the same answer the strip's green dot
+               and the Earliest bookable button use). */
+            function venueDayBadge(day, di) {
+                var wrap = document.createElement('span');
+                wrap.className = 'v-daybadges';
+                var week = window.currentWeek;
+                var isEarliest = !!(responsiveEarliest
+                    && responsiveEarliest.week === week
+                    && responsiveEarliest.day === di);
+                var todayChip = document.querySelector('#ttDayStrip .tt-day[data-day="' + di + '"][aria-current="date"]');
+                if (todayChip) {
+                    var b = document.createElement('span');
+                    b.className = 'today-badge';
+                    b.textContent = 'Today';
+                    wrap.appendChild(b);
+                } else if (day && day.sunday) {
+                    var o = document.createElement('span');
+                    o.className = 'off-badge';
+                    o.textContent = 'OFF';
+                    wrap.appendChild(o);
+                }
+                if (isEarliest) {
+                    var e = document.createElement('span');
+                    e.className = 'bookable-badge';
+                    e.textContent = 'Bookings open';
+                    wrap.appendChild(e);
+                }
+                return wrap.childNodes.length ? wrap : null;
+            }
+
+            /* ── The tools row words (followup C) ──
+               cfg.countLine(mode, size) runs on EVERY _syncTools — sync, day
+               tap, resize — so the count can never be overwritten by the
+               module's fallback. The prototype keeps the CLASS count of the
+               visible window next to the Summary button, and on an empty-but-
+               bookable window the booking suggestion, decided from the SAME
+               state closures — never suggested on a Sunday, holiday or too-soon
+               window. The selected date is never repeated above the grid (the
+               strip and the grid header name it) — the heading's suppression is
+               the page CSS's, phone band only. */
+            function venueSelectedDay() {
+                var chip = document.querySelector('#ttDayStrip .tt-day[aria-pressed="true"]');
+                var d = chip ? parseInt(chip.getAttribute('data-day'), 10) : 0;
+                return isNaN(d) ? 0 : d;
+            }
+            function venueVisibleBookable(visibleDays) {
+                for (var i = 0; i < visibleDays.length; i++) {
+                    var di = visibleDays[i];
+                    var day = (weekData[currentWeek] && weekData[currentWeek].days[di]) || null;
+                    if (!day || day.sunday || day.holiday) continue;
+                    if (isSlotTooSoon(weekData, currentWeek, di)) continue;
+                    for (var slot = 0; slot < hours.length; slot++) {
+                        var state = roomCellState(di, slot);
+                        if ((state === 'free' || (state === 'nooffer' && isServedTail(di, slot)))
+                            && !cellBlockedByLive(di, slot)) return true;
+                    }
+                }
+                return false;
+            }
+            function venueCountLine(mode, size) {
+                if (!size || size >= 7) return null;   /* full week: the tools row is hidden */
+                var start = Math.min(venueSelectedDay(), 7 - size);
+                var visible = [];
+                for (var i = 0; i < size; i++) visible.push(start + i);
+                var events = eventsData[currentWeek] || [];
+                var classCount = events.filter(function (e) { return e && visible.indexOf(Number(e.di)) !== -1; }).length;
+                if (classCount) return classCount + (classCount === 1 ? ' class' : ' classes');
+                return venueVisibleBookable(visible)
+                    ? 'No classes · tap a green slot to arrange'
+                    : 'No classes · no bookable slots';
+            }
+
+            /* ── The whole-day pulse (prototype §flash contract) ──
+               Earliest bookable = green, Today = blue; the WHOLE day pulses in
+               the responsive band (the desktop rows keep the shared
+               flashRowPulse pulses). Same class vocabulary (flashRowPulse's
+               .bookable-flash + the today arm), same 3 × 0.5s run, reflow
+               restart on repeats. */
+            var VENUE_PULSE_MS = 1650;   /* 3 × 0.5s + slack — flashRowPulse's own cap */
+            function pulseNodes(nodes, tone) {
+                nodes.forEach(function (el) {
+                    el.classList.remove('bookable-flash', 'bookable-flash--today');
+                    void el.offsetWidth;
+                    el.classList.add('bookable-flash');
+                    if (tone === 'today') el.classList.add('bookable-flash--today');
+                });
+                setTimeout(function () {
+                    nodes.forEach(function (el) {
+                        el.classList.remove('bookable-flash', 'bookable-flash--today');
+                    });
+                }, VENUE_PULSE_MS);
+            }
+            function flashResponsiveDay(di, tone, week) {
+                if (typeof week === 'number' && window.currentWeek !== week) return null;
+                var root = document.querySelector('.tt-responsive');
+                if (!root || root.getAttribute('data-tt-mode') === 'full') return null;
+                var sel = '[data-v-day="' + di + '"]';
+                var nodes = Array.prototype.slice.call(
+                    document.querySelectorAll('#ttWindowGrid ' + sel));
+                var withCells = nodes.slice();
+                nodes.forEach(function (cell) {
+                    Array.prototype.push.apply(withCells,
+                        Array.prototype.slice.call(cell.querySelectorAll('.cell-available')));
+                });
+                if (withCells.length) pulseNodes(withCells, tone);
+                return withCells;
+            }
+            function focusResponsiveDayCell(di, slot) {
+                var host = document.getElementById('ttWindowGrid');
+                if (!host) return;
+                var cell = (slot !== undefined && slot !== null)
+                    ? (host.querySelector('[data-free-day="' + di + '"][data-free-slot="' + slot + '"]')
+                        || host.querySelector('[data-free-day="' + di + '"]'))
+                    : host.querySelector('[data-free-day="' + di + '"]');
+                if (cell) {
+                    cell.scrollIntoView({ block: 'center', behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'instant' : 'smooth' });
+                    try { cell.focus({ preventScroll: true }); } catch (e) {}
+                } else {
+                    host.scrollIntoView({ block: 'start', behavior: 'instant' });
+                }
+            }
+
+            /* ── THE init — one cfg, idempotent, one week source ──
+               Called from buildTimetable() after the desktop grid drew, so the
+               module's closures hand back the SAME week. The phone band IS the
+               shared _buildWindow now (bands.phoneMode 'window' — the shared
+               followup): the same transposed bookable grid at width 1, no page
+               renderer. sticky keeps the default (the week/day controls stay
+               pinned; the room row sits OUTSIDE the chrome and scrolls away).
+               emptyWeekPanel:false keeps the room's timeline and the desktop
+               grid painting even on a week with zero class events (a free room
+               is a bookable surface, not an empty state). */
+            function syncResponsive() {
+                if (!window.TimetableResponsive) return;
+                TimetableResponsive.init({
+                    scope: 'tt-responsive',
+                    pageKey: 'venue',
+                    sticky: true,
+                    bands: { phoneMax: 767, tablet2Max: 1023, desktopMin: 1280, wideTouchDays: 0, phoneMode: 'window' },
+                    emptyWeekPanel: false,
+                    onEventClick: function (e) { openModal(e); },
+                    events: function () { return eventsData[currentWeek] || []; },
+                    days: function () { return (weekData[currentWeek] && weekData[currentWeek].days) || []; },
+                    /* ONE eligibility lookup for the green dot AND the Earliest
+                       bookable button — the ROOM-AWARE one computed in
+                       buildTimetable() (the lead-time helper cannot see the
+                       room). */
+                    earliestDay: function () { return responsiveEarliest; },
+                    statusClassFn: venueStatusClassFor,
+                    tipLecturerFn: venueTipLecturer,
+                    tooltipExtra: venueTooltipExtra,
+                    replacementNoteFn: venueReplacementNote,
+                    countLine: venueCountLine,
+                    dayBadgeFn: venueDayBadge,
+                    /* contract finish (2026-11-17): the strip chip's data-tip is ONLY
+                       for the useful chips — Today, the room-aware Earliest bookable
+                       day, and a holiday's name; an ordinary day names NO tooltip
+                       (prototype lines 20–28). The aria-label is the module's own
+                       and stays byte-identical. TODAY/earliest flags come from the
+                       module's state; the holiday from the day payload — so a chip
+                       that is Today AND earliest AND a holiday joins all three. */
+                    dayTip: function (day, di, state) {
+                        var parts = [];
+                        if (state && state.today) parts.push('Today');
+                        if (state && state.earliest) parts.push('Earliest bookable day for this venue');
+                        if (day && day.holiday) parts.push(day.holidayLabel || 'Public Holiday');
+                        return parts.join(' · ');
+                    },
+                    /* the desktop S20 base days — the module reserves the side
+                       lane beside the cancelled history there */
+                    baseRowDays: function () { return desktopBaseRowDays; },
+                    freeCell: function (di, slot, day, gcell, ctx) {
+                        /* the tag rides EVERY background cell, so the whole-day
+                           pulse reaches the occupied cells' columns too */
+                        if (gcell && gcell.dataset) gcell.dataset.vDay = String(di);
+                        return venueSlotNode(di, slot, day, ctx || {});
+                    },
+                    windowFooter: venueEndRow
+                });
+            }
+
             /* ═══ The paper (SDD timetable-print-v2, 2026-11-16) ═══
                The sheet is its own table, built by the SAME builder (design §1). It is
                built on the DEFAULT path — no `cellRender`, no `laneLayout`, no
@@ -1689,22 +2434,37 @@
                    the arrangement page uses. The date is NOT hard-coded: it is
                    the SHARED leadTimeCutoff() that already decides which cells
                    are too soon, so the words can never drift from the rule.
-                   Computed once per render, not once per cell. */
-                const tooSoonTip = (function () {
-                    const cutoff = leadTimeCutoff(weekData);
-                    const days = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
-                    const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-                    return 'Rule : Only bookable at least 3 working days from today.'
-                        + '\nEarliest Bookable : ' + days[cutoff.getDay()] + ', '
-                        + cutoff.getDate() + ' ' + months[cutoff.getMonth()] + ' ' + cutoff.getFullYear();
-                })();
+                   Computed once per render, not once per cell. PHASE 2: the
+                   composition moved into tooSoonTipText() so the responsive
+                   cells speak the same words from one source. */
+                const tooSoonTip = tooSoonTipText();
+                /* ── PHASE 2: the ROOM-AWARE earliest bookable day ──
+                   firstBookableDay() (ui-common) is the LEAD-TIME cutoff only —
+                   it can name a day whose room is fully held, so the green dot,
+                   the "Bookings open" chip and the Earliest button would point
+                   at a day with nothing to book. The prototype's rule: ONE
+                   genuinely free slot lookup for all three. venueEarliest
+                   Bookable() below reuses the page's own live closures (room
+                   matrix, isServedTail, live blockers, the 60-minute minimum
+                   span) — no backend rule change, no second availability logic.
+                   The payload's lead-time flag is the NECESSARY half; the page
+                   re-marks the flag with the room-aware answer so the desktop
+                   chip, the dot and the jump can never disagree. */
+                responsiveEarliest = venueEarliestBookable();
+                (weekData || []).forEach(function (w) {
+                    (w.days || []).forEach(function (d) { d.firstBookable = false; });
+                });
+                if (responsiveEarliest && weekData[responsiveEarliest.week]
+                    && weekData[responsiveEarliest.week].days[responsiveEarliest.day]) {
+                    weekData[responsiveEarliest.week].days[responsiveEarliest.day].firstBookable = true;
+                }
                 /* cancelled-slot-reuse S20: the base availability row is
                    offered ONLY where history would otherwise cover a
                    selectable free cell — decided from the real payload's
                    live statuses, never from the cancelled geometry alone. */
-                const baseRowDays = [];
+                desktopBaseRowDays = [];
                 (weekData[currentWeek].days || []).forEach(function (_, di) {
-                    if (dayNeedsBaseRow(di)) baseRowDays.push(di);
+                    if (dayNeedsBaseRow(di)) desktopBaseRowDays.push(di);
                 });
                 buildTimetableGrid({
                     events: eventsData[currentWeek] || [],
@@ -1718,7 +2478,7 @@
                        active records it overlaps; the arrangement grid is
                        NOT stacked (it never passes laneLayout). */
                     laneLayout: true,
-                    baseRowDays: baseRowDays,
+                    baseRowDays: desktopBaseRowDays,
                     /* Page paints every cell (venue-event-blocks-db design §1):
                        cellRender mode = the frozen two-axis block language.
                        PH/Sunday empties get offday cells; too-soon renders
@@ -1957,6 +2717,12 @@
                     }
                 });
                 updateSummary();
+                /* cohort-venue-responsive-port PHASE 2: the chrome re-renders for
+                   the week that just landed — after the desktop build, so the
+                   closures (events/days/state) hand the module the SAME week the
+                   grid just drew. init() is idempotent (cfg replaced, listeners
+                   bound once), so every week change re-enters safely. */
+                syncResponsive();
             }
 
             function updateSummary() {
@@ -2021,6 +2787,13 @@
 
             weekNav.load();
             currentWeek = weekNav.currentWeek;
+            /* Contract finish 2026-11-17 (parent-confirmed V9 bug): the recalled week
+               (selector says 6) must ALSO bridge to the shared responsive renderer
+               through window.currentWeek — the module's cfg closures read THAT bridge
+               on a URL room switch, so a stale bridge rendered week 8's dates under a
+               week-6 selector. The selection callbacks already update both; only the
+               bootstrap path missed the sync. One line, before buildTimetable(). */
+            window.currentWeek = currentWeek;
             document.getElementById('semesterChip').textContent = MockData.semester.chipText;
             populateWeekSelect('weekSelect', { ranges: false, selected: currentWeek });
 
@@ -2031,19 +2804,44 @@
             weekNav.initTodayBtn();
             initWeekKeyboardShortcuts();
 
+            /* PHASE 2: Today pulses the WHOLE visible day blue in the responsive
+               bands (the desktop's shared jumpToToday already flashes the
+               today-cell column). The day index is read from the module's strip
+               truth (aria-current="date" — set only on the real today), after a
+               deferred settle, because the shared jump may land its week a beat
+               later. Bound once, page-owned. */
+            (function initResponsiveTodayFlash() {
+                const btn = document.getElementById('todayBtn');
+                if (!btn) return;
+                let tries = 0;
+                btn.addEventListener('click', function () {
+                    (function settleToday() {
+                        const chip = document.querySelector('#ttDayStrip .tt-day[aria-current="date"]');
+                        if (!chip) {
+                            if (tries++ < 12) setTimeout(settleToday, 80);
+                            return;
+                        }
+                        const di = parseInt(chip.getAttribute('data-day'), 10);
+                        if (!isNaN(di)) flashResponsiveDay(di, 'today', window.currentWeek);
+                    })();
+                });
+            })();
+
             /* venue-timetable-bookable-cells §6.2 — the "Earliest bookable" action.
                NOT weekNav.jumpToEarliestBookable(): that resolves its destination
                with firstVisibleWeek(), and this page passes NO week filter (it is a
                browsing page that keeps every week — ui-common.js), so the shared
-               method would jump to week 0. Compose the same two shared pieces the
-               arrangement page's button ends up using instead:
-                 firstBookableDay() → selectWeek() → flashEarliestBookableDay().
-               The tooltip is computed, never hardcoded (the shared sentence). */
+               method would jump to week 0. PHASE 2: the destination is the page's
+               ROOM-AWARE lookup (venueEarliestBookable) — the SAME answer the
+               strip's green dot and the window header's "Bookings open" badge
+               read — because the shared lead-time helper cannot see the room and
+               would name a day whose room is fully held. The tooltip is computed,
+               never hardcoded (the shared sentence). */
             (function initEarliestBookable() {
                 const btn = document.getElementById('earliestBtn');
                 if (!btn) return;
                 const paintTip = function () {
-                    const target = firstBookableDay(weekData);
+                    const target = responsiveEarliest || venueEarliestBookable();
                     if (!target) return;
                     /* 2026-11-11: `target.day` is MONDAY-based (weekData.days runs
                        Mon→Sun), so indexing a Sunday-first name list with it named the
@@ -2056,10 +2854,26 @@
                 };
                 paintTip();
                 btn.addEventListener('click', function () {
-                    const target = firstBookableDay(weekData);
+                    const target = venueEarliestBookable();
                     if (!target) return;                 /* nothing bookable — silent */
                     selectWeek(target.week);
-                    flashEarliestBookableDay(weekData, target.week);
+                    /* PHASE 2: the desktop pulse goes to the TARGET day's OWN rows.
+                       flashEarliestBookableDay() re-derives the lead-time day, which
+                       can be a different (room-full) day — the whole-day pulse must
+                       land where the jump did. Same flashRowPulse mechanic. */
+                    document.querySelectorAll('#tableBody tr[data-day-index="' + target.day + '"]')
+                        .forEach(function (row) { flashRowPulse(row); });
+                    /* the responsive bands: move the window to the jumped day (the
+                       prototype sets state.day = di), pulse the whole day column
+                       green, and focus/scroll the exact free slot. No-op at ≥1280. */
+                    const root = document.querySelector('.tt-responsive');
+                    if (root && root.getAttribute('data-tt-mode') !== 'full'
+                        && window.TimetableResponsive) {
+                        TimetableResponsive.setDay(target.day);
+                        if (flashResponsiveDay(target.day, 'bookable', target.week) !== null) {
+                            focusResponsiveDayCell(target.day, target.slot);
+                        }
+                    }
                 });
             })();
 

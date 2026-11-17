@@ -1557,7 +1557,11 @@ test.describe('T16d — the round-2 rulings', () => {
       await page.keyboard.press('Escape');
 
       await page.goto(BASE + '/venue-timetable-ui', { waitUntil: 'networkidle' });
-      await expect(page.locator('.tt-responsive')).toHaveCount(0);
+      /* stale guard corrected (cohort-venue-responsive-port, approved): the Venue
+         page NOW opts into the TimetableResponsive chrome like Cohort — one root
+         carrying data-tt-page="venue". The guide partial itself is untouched; the
+         item-#12 assertions below (optIn false, centred title) stay as written. */
+      await expect(page.locator('.tt-responsive')).toHaveAttribute('data-tt-page', 'venue');
       await page.locator('[aria-label="How to use this page"]').first().click();
       await expect(page.locator('.modal--guide')).toBeVisible();
       const other = await page.evaluate(() => {

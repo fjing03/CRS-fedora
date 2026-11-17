@@ -1,3 +1,131 @@
+## 2026-11-17 — the wide-touch window's rows reach the 48px touch floor (cohort-venue-responsive-port, final fix)
+
+The parent's verification caught the last prototype-contract miss: on the Cohort ≥1280
+coarse-pointer band the window grid's 22 half-hour rows measured **44px** instead of the
+prototype's ≥48px touch law. Root cause: the global `(any-pointer: coarse)` rule sets
+`repeat(22, 48px)` at specificity (0,2,0), but the later wide-touch block's
+`.tt-responsive[data-tt-mode="window"] .tt-window-grid` is (0,3,0) INSIDE the same coarse
+media, so its `repeat(22, 44px)` won. The fix is the ONE value: that rule's
+`grid-template-rows` is now `62px repeat(22, 48px)` (public/css/theme.css, wide-touch block
+only; the ≤1279 mouse/tablet band keeps its 44px rows and the coarse rule keeps winning
+there through the `:where()` guard).
+
+Measured before/after with a read-only geometry probe (reused `.auth/staff-5425.json`, no
+login, no writes; viewport 1366, `hasTouch: true`, `isMobile: false`, route
+/cohort-timetable):
+
+- BEFORE: header 62 + 22 rows of **44** (`rows [62,44,44]`, overflow 0).
+- AFTER: header 62 + all 22 rows of **48** (`rows [62,48,48]`), `--tt-day-count: 4`, mode
+  `window`, zero horizontal overflow. Screenshots: `/tmp/cohort-widetouch-before-light.png`
+  / `-dark.png` / `-after-light.png` / `-after-dark.png` (viewport-only; NOT fullPage,
+  per the Chromium coarse-emulation reset caveat).
+- Cohort mouse 1440 unchanged: mode `full`, desktop table shown, window grid hidden.
+- Venue 1024 touch unchanged: header 62, all 22 slot rows 48, its own 24px 19:00 footer
+  row intact. The venue-only ownership-colour selector groups near :3360 are untouched
+  (7 scoped groups verified present). No other value, selector, palette, hierarchy or JS
+  changed; the ≤1279 band, day chips, header 62px and the 4-day count are untouched.
+
+Chromium touch emulation is not physical-device evidence (honest gap); no suite was re-run
+per the pure-CSS ruling — geometry was measured by computed style only.
+
+## 2026-11-17 — responsive prototype port, phase 1 (SDD cohort-venue-responsive-port)
+
+(Date corrected 2026-11-17 — the entry below was first stamped 2026-11-18; that was
+written a day early, the real local day is Sunday 2026-11-17.)
+
+The Cohort page opted into the shared `TimetableResponsive` chrome (the module My Timetable and
+Student My Timetable already run), with the page's OWN band profile instead of a fork:
+
+| Width / input | View |
+|---|---|
+| below 744 | one selected day's class cards (agenda) |
+| 744–1023 | two-day vertical timeline |
+| 1024–1279 | three-day vertical timeline |
+| ≥1280 with a coarse pointer (touch) | four-day vertical timeline — summary cards stay IN PAGE, Print hidden |
+| ≥1280 mouse-only | the existing full-week desktop grid — byte-identical, Print visible |
+
+What the port carried:
+
+- The toolbar — faculty/cohort selects (taught ✓ marks and disabled states untouched), week nav,
+  Today, Print and the day strip — is now ONE card in normal page flow (prototype round 5: the
+  live `.semester-bar` is not sticky). The selects moved verbatim into the new partial
+  `partials/ui-cohort-selects` so `partials/ui-tt-chrome` can wrap the whole toolbar; nothing in
+  the popup or the wiring changed.
+- Week/day survive cohort switches and resizes; Today puts the selected day back on today's
+  weekday (the shared module's existing behaviour).
+- The Week summary stays the WHOLE selected week; below 1280 the legend and the five cards live
+  in the shared sheet (one owner, same nodes moved, no duplicated IDs); ≥1280 they stay in page
+  even on the wide-touch timeline.
+- Class cards and timeline cells open the existing class-details modal, with the existing
+  Arrange/Cancel permissions; ownership borders, overlap strip + `Overlaps …` lines, the
+  `(Proposed ⏳)` word stand-down and holiday/additive notices all come from the shared module.
+- Print is hidden outside the mouse desktop (prototype R7); hiding a control never changes the
+  timetable-print-v2 paper, which keeps its own surfaces and builder.
+- Shared-module opt-ins (no default change for My/Student): configurable bands (`bands.phoneMax
+  743`, `wideTouchDays: 4` with an `(any-pointer: coarse)` listener), `sticky: false`
+  (`data-tt-sticky="0"`), a width-based sheet guard (sheet closes at ≥1280), the earliest-day
+  strip hook, the window free-cell/footer hooks and the phone `timeline` mode seam (Venue, phase 2).
+
+Checked read-only on the manual :8030 lane (class_replacement_testing): 29 viewport/interaction
+receipts — bands at 320/390/600/743/744/800/1024/1279/1280/1440 (touch and mouse), zero
+page-level sideways overflow, sheet open/Escape, day taps, card → details modal, 48px touch
+floors, SelectDd rows with taught marks, week kept across entity changes, resize survival,
+Today's weekday, holiday notice + additive cards (Week 8 Monday, Deepavali), print modal at
+1440, and My Timetable (900/1280/1440) + Student My Timetable (900) regressions. Chromium
+touch emulation is not physical-device evidence.
+
+## 2026-11-17 — shared followup (Venue items A–F) + Cohort desktop parity (SDD cohort-venue-responsive-port)
+
+Followup to the phase 1 entry above, SAME lane. The shared changes serve Venue phase 2
+(requests A–F in /tmp/venue-responsive-api-requests.md; exact API for the venue agent:
+/tmp/cohort-venue-shared-followup-handoff.md). Every default (My/Student) behaviour is
+unchanged — absent cfg fields take today's paths.
+
+Shared (`public/js/ui-common.js`, `public/css/theme.css`):
+
+- `bands.phoneMode: 'window'` — Venue's phone band reuses the SAME transposed window
+  renderer at width 1 (no duplicated phone renderer). The interim `timeline` mode and the
+  `buildTimeline` indirection are REMOVED (no view ever referenced them; a stale
+  `phoneMode: 'timeline'` cfg maps onto `'window'`). The semester chip's short form now
+  keys on the PHONE BAND, so Venue's phone window still prints `202605 Semester`.
+- The window-grid CSS media widened from 768–1279 to ≤1279, guarded on
+  `data-tt-mode="window"` with `:where()` (the coarse 48px-rows rule keeps winning).
+  BONUS FIX: this styles Cohort's own 744–767 window band, which the old 768-min media
+  left unstyled (a phase-1 gap found while landing item A).
+- `emptyWeekPanel: false` — a zero-event week still paints Venue's bookable timeline and
+  desktop room grid; the default pages keep the whole-week panel.
+- `countLine(mode, size)` — the page's own `#ttDayCount` words, applied inside
+  `_syncTools()` so day-chip taps cannot overwrite them; module words remain the fallback.
+- `dayBadgeFn(day, di)` — the page's node(s) under the window header date (TODAY / OFF /
+  BOOKINGS OPEN / holiday family), fed by the page's own earliestDay lookup.
+- `baseRowDays` (array or fn) + a 5th `ctx` arg on `freeCell`/`onFreeCell` — days whose
+  cancelled history covers genuinely free cells get a reserved narrow SIDE LANE beside the
+  history, not an extra time-less row and not a z-index overlay: cards size into the
+  remaining sub-lanes (same `layoutTimetableDay` planner), free offers paint in the lane
+  via an inset content box, `.tt-base-lane` + `data-tt-base="1"` + `ctx.base` carry the
+  page styling hooks. Time-axis geometry, clickability and the 48px touch rows untouched.
+- `populateWeekSelect` gains `cfg.mobileMax` — Cohort passes 743, so 744–767 print the FULL
+  dated week range (prototype contract); My/Student keep the 767 edge.
+- Cohort init gains `holidayNoticeDate: false` — the holiday notice prints
+  `Public Holiday · <name>` with NO repeated date line (prototype R3); My/Student keep
+  their date line.
+- No-hover neutralisers now also reach the fixed top bar, nav drawer and modals, which sit
+  OUTSIDE `.lw-page`: scoped `body:has(.tt-responsive[data-tt-page…])` to the two lane
+  pages (cohort/venue) under `@media (hover: none)`. My/Student and every mouse device are
+  untouched; resting token colours kept, focus untouched.
+- Desktop mouse ≥1280 on this page: the toolbar card keeps the LIVE `.semester-bar`
+  geometry — padding 12px 16px, no extra bottom margin (the grid wrapper's own 14px top
+  margin is the baseline gap below the bar). The 10px wrapped card stays the ≤1279 /
+  coarse-pointer shape only.
+- Two neutraliser corrections against the prototype's own `hover: none` block: Today keeps
+  its blue on touch (it was merged into a transparent rule), and `.btn-replace-now` keeps
+  its primary fill (it was merged into the danger rule).
+
+Checks: `node --check` and `php -l` pass; theme.css brace/paren balance verified; no
+`[data-tt-mode="timeline"]` rule or `buildTimeline` reference remains. Read-only browser
+re-checks happen after Venue phase 2 lands its blade; physical iPad/Safari/gesture
+evidence remains a manual user step (honest gap, unchanged).
+
 ## 2026-11-11 — every summary card now explains its formula
 
 User ruling (2026-11-11): every summary card must **say how its number is made**, in plain words.

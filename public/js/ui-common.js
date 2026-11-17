@@ -4604,7 +4604,14 @@ function getWeekNumber(iso) {
 /**
  * Populate a week <select> with options from weekRanges or weekData.
  * @param {string} selectId - ID of the <select> element
- * @param {object} cfg - { includeAll:bool, ranges:bool, selected:value, labelFn }
+ * @param {object} cfg - { includeAll:bool, ranges:bool, selected:value, labelFn,
+ *                        mobileMax }
+ *
+ * cohort-venue-responsive-port followup (2026-11-17): `cfg.mobileMax` moves THIS
+ * select's compact-label edge off the shared 767 default — Cohort's phone band
+ * ends at 743 (iPad Mini), so its week labels must be the FULL dated range at
+ * 744–767 while staff/student keep the 767 edge. Absent = today's behaviour,
+ * byte for byte (the resize re-run keys on the same per-select edge).
  */
 function populateWeekSelect(selectId, cfg) {
     const sel = document.getElementById(selectId);
@@ -4612,8 +4619,11 @@ function populateWeekSelect(selectId, cfg) {
     cfg = cfg || {};
     /* 2026-11-16 (user, item #2): the phone band ends at 767, so 768 itself is a
        tablet and takes the dated label. `<= 768` put the boundary one pixel inside
-       the tablet band, which is why the year disappeared at exactly 768. */
-    const isMobile = window.innerWidth < 768;
+       the tablet band, which is why the year disappeared at exactly 768.
+       mobileMax (see the doc block): a page's OWN edge — the select is compact
+       only at ≤ mobileMax; 767 keeps every existing caller identical. */
+    const mobileEdge = (typeof cfg.mobileMax === 'number') ? cfg.mobileMax + 1 : 768;
+    const isMobile = window.innerWidth < mobileEdge;
     const useRanges = cfg.ranges !== false; // default: weekRanges (string "1".."14")
     const source = useRanges ? weekRanges : weekData;
 
@@ -4630,10 +4640,15 @@ function populateWeekSelect(selectId, cfg) {
         window.addEventListener('resize', function() {
             clearTimeout(_pwTimer);
             _pwTimer = setTimeout(function() {
-                var mobileNow = window.innerWidth < 768;
                 Object.keys(populateWeekSelect._registry).forEach(function(id) {
                     var el = document.getElementById(id);
-                    if (!el || populateWeekSelect._mobileState[id] === mobileNow) return;
+                    if (!el) return;
+                    /* the edge is PER SELECT now: a 744 profile re-formats at its own
+                       boundary, the default callers keep the 767 one */
+                    var regCfg = populateWeekSelect._registry[id] || {};
+                    var regEdge = (typeof regCfg.mobileMax === 'number') ? regCfg.mobileMax + 1 : 768;
+                    var mobileNow = window.innerWidth < regEdge;
+                    if (populateWeekSelect._mobileState[id] === mobileNow) return;
                     var preserve = el.value;
                     populateWeekSelect(id, populateWeekSelect._registry[id]);
                     el.value = preserve; /* cfg.selected may be stale after re-populate */
@@ -7113,9 +7128,59 @@ window.LastVisit = LastVisit;
 const TimetableResponsive = {
     /* The page's config as passed by init() (design §6): { scope, pageKey, readonly,
        onEventClick, events(), days(), findNextClass(fromWeek, fromDay) }. Replaced on
-       every init(), so a week change hands in the week the grid just drew. */
+       every init(), so a week change hands in the week the grid just drew.
+
+    ── cohort-venue-responsive-port (phase 1, 2026-11-17) — the OPT-IN page profiles ──
+    Every field below is OPTIONAL and absent on the My/Student pages, so their bands,
+    listeners and semantics stay byte-identical (proposal §5: new configuration must
+    default to the current My/Student behaviour).
+
+      bands: {
+          phoneMax:    767,   // ≤ this width = the phone band (agenda, or `phoneMode`)
+          tablet2Max: 1023,   // ≤ this width = the 2-day window
+          desktopMin: 1280,   // ≥ this width = the full desktop (unless wideTouchDays)
+          wideTouchDays: 0,   // > 0: at ≥ desktopMin WITH a coarse pointer, a window of
+                              // this many days (Cohort passes 4); 0 = desktop always full
+          phoneMode: 'agenda' // 'agenda' (cards) or 'window' — Venue's phone band is the
+                              // SAME transposed bookable grid as its tablet bands, one
+                              // day wide (no duplicated phone renderer). The interim
+                              // 'timeline' value maps onto 'window', its final surface.
+      },                      // Cohort: { phoneMax: 743, tablet2Max: 1023, desktopMin: 1280,
+                              //          wideTouchDays: 4 } — 744, not 768 (iPad Mini)
+      sticky: true,           // false = the chrome's #ttSticky row stays IN FLOW
+                              // (Cohort's toolbar is not sticky); sets data-tt-sticky="0"
+      earliestDay(),          // → { week, day } | null: the strip marks that day's chip
+                              // with `.is-earliest` + the green dot when it is THIS week
+                              // (Venue phase 2; one lookup shared with the jump button)
+      freeCell(di, slot, day, cell, ctx), // window-band empty-cell renderer: return a NODE
+                              // to append into the grid cell (Venue's green bookable
+                              // cell). Absent → the bare .tt-gcell, as today. ctx (5th
+                              // arg, backwards compatible): { base, lanes, laneCount }.
+      onFreeCell(node, di, slot, day, cell, ctx), // activation seam after the node lands
+      windowFooter(),         // node appended after the last grid row (Venue's 19:00 marker)
+      emptyWeekPanel: true,   // false = data-tt-empty-week is NEVER set and the whole-week
+                              // panel swap never runs (Venue: an empty week still paints
+                              // the full bookable timeline and the desktop room grid)
+      countLine(mode, size),  // → string for #ttDayCount (fallback = the module's words);
+                              // runs on EVERY _syncTools — sync, setDay, resize
+      dayBadgeFn(day, di),    // → node appended under the window header's date (Venue's
+                              // TODAY / OFF / BOOKINGS OPEN / holiday family)
+      baseRowDays: [di, ...], // window band: days whose cancelled history covers genuinely
+                              // free cells get a reserved narrow SIDE LANE beside the
+                              // history (array OR () => array; freeCell's ctx.base=true)
+      dayTip(day, di, state), // → string for the strip chip's data-tip (state =
+                              // { today, earliest }); non-empty = data-tip, ''/null =
+                              // none. Default pages never pass it — no attrs at all.
+      findNextClass(fromWeek, fromDay)    // may return { none: true } to suppress the hint
+                              // entirely (Cohort's no-cohort guidance prints no hint)
+
+    The `(any-pointer: coarse)` media listener is added ONLY when bands.wideTouchDays > 0,
+    so the default pages keep exactly the three width listeners they ship today. */
     _cfg: null,
     _bound: false,
+    /* the touch-capability query — created only for profiles that opt into a wide-touch
+       band (cfg.bands.wideTouchDays > 0); null keeps the default pages untouched. */
+    _coarse: null,
     /* T11's extra behaviour, decided 2026-11-15: the FIRST init() opens the week on
        TODAY's index when this week contains today, else Monday. Set here (not in a
        blade) and only once, so a week change never yanks the reader off the day they
@@ -7147,16 +7212,29 @@ const TimetableResponsive = {
            idempotent: the cfg is replaced, the listeners are bound exactly once. */
         if (!this._bound) {
             this._bound = true;
+            /* The three width queries are built from the page's OWN band edges, so a
+               profile like Cohort's 744 phone edge re-expresses the same three-band
+               shape without a second code path. Defaults = today's exact queries. */
+            var bands = this._bands();
             this._mq = [
-                window.matchMedia('(max-width: 767px)'),
-                window.matchMedia('(min-width: 768px) and (max-width: 1023px)'),
-                window.matchMedia('(min-width: 1024px) and (max-width: 1279px)'),
+                window.matchMedia('(max-width: ' + bands.phoneMax + 'px)'),
+                window.matchMedia('(min-width: ' + (bands.phoneMax + 1) + 'px) and (max-width: ' + bands.tablet2Max + 'px)'),
+                window.matchMedia('(min-width: ' + (bands.tablet2Max + 1) + 'px) and (max-width: ' + (bands.desktopMin - 1) + 'px)'),
             ];
             var self = this;
             var onChange = function () { self.sync(); };
             for (var i = 0; i < this._mq.length; i++) {
                 if (this._mq[i].addEventListener) this._mq[i].addEventListener('change', onChange);
                 else if (this._mq[i].addListener) this._mq[i].addListener(onChange);
+            }
+            /* The touch-capability listener beside the width listeners — added ONLY for
+               a profile that opts into a wide-touch window (proposal §5: 'a
+               touch-capability media-query listener beside the existing width
+               listeners'). The default pages never create it and never re-render for it. */
+            if (bands.wideTouchDays > 0) {
+                this._coarse = window.matchMedia('(any-pointer: coarse)');
+                if (this._coarse.addEventListener) this._coarse.addEventListener('change', onChange);
+                else if (this._coarse.addListener) this._coarse.addListener(onChange);
             }
 
             /* R8: printing can never capture the sheet. The two moved nodes go back
@@ -7186,11 +7264,35 @@ const TimetableResponsive = {
         this.sync();
     },
 
-    /* Which band are we in? Checked in width order, first match wins. */
+    /* The page's band profile — the frozen My/Student shape unless init() was handed
+       cfg.bands. Everything downstream (the queries, _mode, _windowSize) reads this
+       one object, so a page profile never forks the module. */
+    _bands: function () {
+        var b = (this._cfg && this._cfg.bands) || {};
+        return {
+            phoneMax: (typeof b.phoneMax === 'number') ? b.phoneMax : 767,
+            tablet2Max: (typeof b.tablet2Max === 'number') ? b.tablet2Max : 1023,
+            desktopMin: (typeof b.desktopMin === 'number') ? b.desktopMin : 1280,
+            wideTouchDays: (typeof b.wideTouchDays === 'number') ? b.wideTouchDays : 0,
+            /* 'window' = the phone band reuses the tablet bands' transposed grid at
+               width 1 (Venue). The interim 'timeline' value — what the venue blade was
+               written against before this followup landed — maps onto 'window', its
+               final surface, so a stale cfg can never fall back to agenda cards.
+               Everything else (including undefined) is the default agenda. */
+            phoneMode: (b.phoneMode === 'window' || b.phoneMode === 'timeline')
+                ? 'window' : 'agenda',
+        };
+    },
+
+    /* Which band are we in? Checked in width order, first match wins. The wide-touch
+       window exists ONLY where a profile opted in (wideTouchDays > 0) AND the primary
+       pointer is coarse — a mouse desktop at the same width stays 'full'. */
     _mode: function () {
-        if (this._mq[0] && this._mq[0].matches) return 'agenda';
+        var bands = this._bands();
+        if (this._mq[0] && this._mq[0].matches) return bands.phoneMode;
         if (this._mq[1] && this._mq[1].matches) return 'window';
         if (this._mq[2] && this._mq[2].matches) return 'window';
+        if (bands.wideTouchDays > 0 && this._coarse && this._coarse.matches) return 'window';
         return 'full';
     },
 
@@ -7215,13 +7317,25 @@ const TimetableResponsive = {
            blade and the module cannot disagree. */
         root.setAttribute('data-tt-mode', mode);
         if (this._cfg && this._cfg.pageKey) root.setAttribute('data-tt-page', this._cfg.pageKey);
+        /* The pinned-chrome switch (cohort-venue-responsive-port): '1' is the default
+           sticky row every tt page has today; '0' keeps #ttSticky IN FLOW (Cohort's
+           toolbar). The attribute is the seam the CSS keys on — theme.css's sticky
+           rules keep their width gate, and the opt-out rule is additive. */
+        root.setAttribute('data-tt-sticky', (this._cfg && this._cfg.sticky === false) ? '0' : '1');
 
         /* 2026-11-16 (user, item #11): a WHOLE WEEK with no classes is its own state in
            the prototype — one panel, `No classes this week` / `All classes for this
            week have been cancelled.`, instead of seven empty days or an empty grid.
            The flag rides the root so the CSS can swap the surfaces in every band
            (including the desktop table, which this module does not build). */
-        var emptyWeek = this._events().length === 0 && this._days().length > 0;
+        /* cfg.emptyWeekPanel === false (Venue): a week with no class EVENTS is not an
+           empty state there — the desktop room grid paints its rows with zero events,
+           and the window band is a bookable timeline of green cells — so the
+           attribute is never set and the whole-week panel swap never runs. Default
+           (staff/student/cohort) keeps the panel. */
+        var emptyWeek = (this._cfg && this._cfg.emptyWeekPanel === false)
+            ? false
+            : (this._events().length === 0 && this._days().length > 0);
         if (emptyWeek) root.setAttribute('data-tt-empty-week', '1');
         else root.removeAttribute('data-tt-empty-week');
 
@@ -7239,7 +7353,7 @@ const TimetableResponsive = {
         /* The semester chip is the prototype's: `202605 Semester` on the phone and the
            dated range from 768 up (user, 2026-11-15, item #5). The chip belongs to the
            shared page header, so this only runs on a page carrying the scope class. */
-        this._syncSemesterChip(mode);
+        this._syncSemesterChip();
 
         /* ≥1280 is today's page: nothing of this lane renders there. The window grid
            is a plain div outside its media block, so it is hidden by hand — unlike
@@ -7248,14 +7362,29 @@ const TimetableResponsive = {
 
         /* R6: below 1280 the sheet holds the legend + the cards, so its opener is
            offered; at >=1280 the sheet does not exist (proposal §9c) — this closes it
-           and puts the two moved nodes back before the early return. */
+           and puts the two moved nodes back before the early return.
+           cohort-venue-responsive-port: the sheet is a BELOW-1280 surface by WIDTH,
+           not only by mode — Cohort's wide-touch window (≥1280 + coarse pointer) also
+           keeps the legend and the five cards IN PAGE (proposal §2), so the sheet
+           closes there too. For the default profiles mode!=='full' already implies
+           width < 1280, so this width guard can never change their behaviour. */
         this._syncSheet(mode);
 
-        if (mode === 'full') {
-            if (winGrid) winGrid.hidden = true;
-                /* the page's own `#emptyState` speaks for an empty week, at every width */
+        if (mode === 'full' || window.innerWidth >= 1280) {
+            /* full: nothing of this lane renders. Wide-touch window: the grid and the
+               strip render, the table does not, and an empty week still hides the
+               grid (the page's own #emptyState speaks for it). */
+            if (winGrid) winGrid.hidden = (mode === 'full') || emptyWeek;
+            /* the page's own `#emptyState` speaks for an empty week, at every width */
             var agendaFull = document.getElementById('ttAgenda');
             if (agendaFull) agendaFull.innerHTML = '';
+            if (mode !== 'full') {
+                /* the wide-touch window is a real responsive band: the strip and the
+                   transposed grid render at this width, exactly as they do below 1280 */
+                this.buildStrip();
+                if (!emptyWeek) this._buildWindow();
+                this._syncTools();
+            }
             this._syncEmptyWeek(emptyWeek);
             return;
         }
@@ -7639,15 +7768,20 @@ const TimetableResponsive = {
         });
     },
 
-    /* `202605 Semester` in agenda mode, the dated range otherwise — read from the same
-       MockData the page's own boot writes, so the two can never disagree. */
-    _syncSemesterChip: function (mode) {
+    /* `202605 Semester` on the PHONE BAND, the dated range otherwise — read from the
+       same MockData the page's own boot writes, so the two can never disagree.
+       Keyed on the band, not the mode (followup A): Venue's phone band is a one-day
+       WINDOW (bands.phoneMode 'window') and must still print the short chip
+       (proposal §2). For the default pages the phone band is the agenda band, so
+       keying on the band alone is behaviour-identical there. */
+    _syncSemesterChip: function () {
         var chip = document.getElementById('semesterChip');
         if (!chip) return;
         var sem = null;
         try { sem = (window.MockData && window.MockData.semester) || null; } catch (err) { sem = null; }
         if (!sem) return;
-        var text = (mode === 'agenda')
+        var phoneBand = !!(this._mq[0] && this._mq[0].matches);
+        var text = phoneBand
             ? this._semesterShort()
             : (sem.chipText || this._semesterShort());
         if (text && chip.textContent !== text) chip.textContent = text;
@@ -7660,15 +7794,28 @@ const TimetableResponsive = {
         var events = this._events();
         var selected = this._state.day;
         var self = this;
+        /* cohort-venue-responsive-port: the opt-in EARLIEST-DAY seam (Venue phase 2).
+           cfg.earliestDay() is the page's ONE eligibility lookup — the same answer the
+           Earliest bookable button uses — so the green dot can never name a different
+           day than the jump lands on. The dot shows only when that day is in the week
+           on screen. No hook → no dot, exactly as every page renders today. */
+        var earliest = null;
+        if (typeof this._cfg === 'object' && this._cfg && typeof this._cfg.earliestDay === 'function') {
+            try { earliest = this._cfg.earliestDay() || null; } catch (err) { earliest = null; }
+        }
+        var earliestHere = (earliest && !isNaN(parseInt(earliest.week, 10)))
+            ? { week: parseInt(earliest.week, 10), day: parseInt(earliest.day, 10) } : null;
 
         strip.innerHTML = '';
         days.forEach(function (d, di) {
             var count = events.filter(function (e) { return e && Number(e.di) === di; }).length;
             var isToday = self._isToday(d);
+            var isEarliest = !!(earliestHere && earliestHere.week === self._currentWeek() && earliestHere.day === di);
             var btn = document.createElement('button');
             btn.type = 'button';
             btn.className = 'tt-day'
                 + (isToday ? ' is-today' : '')
+                + (isEarliest ? ' is-earliest' : '')
                 + (d && d.holiday ? ' is-holiday' : '');
             /* no `is-ahead` any more: the user reversed the dimming on 2026-11-15
                (a chip after today read grey and looked disabled). */
@@ -7693,12 +7840,30 @@ const TimetableResponsive = {
             if (d && d.date) name += ', ' + d.date;
             name += ', ' + count + ' ' + (count === 1 ? 'class' : 'classes');
             if (isToday) name += ', Today';
+            if (isEarliest) name += ', Earliest bookable';
             if (d && d.holiday) name += ', ' + (d.holidayLabel || 'public holiday');
             btn.setAttribute('aria-label', name);
             /* the same facts as attributes, so a receipt never has to parse prose */
             btn.dataset.count = String(count);
             btn.dataset.holiday = d && d.holiday ? '1' : '0';
             btn.dataset.today = isToday ? '1' : '0';
+            btn.dataset.earliest = isEarliest ? '1' : '0';
+            /* cohort-venue-responsive-port contract finish (2026-11-17): the opt-in
+               chip TOOLTIP seam. The venue prototype gives data-tip ONLY to the
+               useful chips (Today / Earliest bookable / holiday) — an ordinary day
+               names NO tooltip. cfg.dayTip(day, di, state) is the page's decision:
+               state = { today, earliest }; a non-empty return becomes
+               btn.dataset.tip and rides the EXISTING shared data-tip delegation (no
+               new tooltip engine, no post-render observer). '' / null / a throw =
+               no attribute. The aria-label is untouched, so keyboard and screen
+               readers keep today's exact names; the default pages never pass the
+               hook and never grow a data-tip. */
+            if (self._cfg && typeof self._cfg.dayTip === 'function') {
+                try {
+                    var tip = self._cfg.dayTip(d, di, { today: isToday, earliest: isEarliest });
+                    if (typeof tip === 'string' && tip) btn.dataset.tip = tip;
+                } catch (err) { /* a broken hook never blanks the strip */ }
+            }
 
             /* The chip is the PREVIEW's, not an inversion of it: the abbreviation
                is the small line and the DAY OF THE MONTH is the bold one
@@ -7735,6 +7900,7 @@ const TimetableResponsive = {
     buildAgenda: function () {
         var host = document.getElementById('ttAgenda');
         if (!host) return;
+        var cfg = this._cfg || {};
         var days = this._days();
         var events = this._events();
         var di = this._state.day;
@@ -7801,8 +7967,13 @@ const TimetableResponsive = {
         panel.appendChild(title);
 
         /* the preview prints the date line on the HOLIDAY panel only — an empty
-           weekday already says which day it is in its own title */
-        if (isHoliday) {
+           weekday already says which day it is in its own title.
+           cohort-venue-responsive-port followup (2026-11-17): the COHORT prototype's
+           holiday notice is `Public Holiday · <name>` with NO date line (the date
+           is already in the window header / the chip), so a page may suppress it
+           with cfg.holidayNoticeDate === false. My/Student keep the date — absent
+           config is today's panel, byte for byte. */
+        if (isHoliday && !(this._cfg && this._cfg.holidayNoticeDate === false)) {
             var dateLine = document.createElement('p');
             dateLine.className = 'empty-text';
             dateLine.textContent = this._fullDayName(day) + ', ' + ((day && day.date) || '');
@@ -7871,6 +8042,12 @@ const TimetableResponsive = {
             try { res = cfg.findNextClass(this._currentWeek(), day); } catch (e) { res = null; }
         }
         if (!res || res.week == null || res.day == null) {
+            /* cohort-venue-responsive-port: `{ none: true }` is the page's explicit
+               "no hint here" — Cohort's no-cohort guidance must not print
+               `No more classes this semester.` under `Select a faculty first`.
+               Every existing page keeps the fallback paragraph (returns a result or
+               nothing at all, never this sentinel). */
+            if (res && res.none) return null;
             var none = document.createElement('p');
             none.className = 'tt-next-hint';
             none.textContent = 'No more classes this semester.';
@@ -7960,11 +8137,25 @@ const TimetableResponsive = {
        them for the surface it just drew). Same words the approved preview uses. */
     _syncTools: function () {
         var self = this;
+        var cfg = this._cfg || {};
         var days = this._days();
         var events = this._events();
         var heading = document.getElementById('ttDayHeading');
         var countEl = document.getElementById('ttDayCount');
         var di = this._state.day;
+        /* cfg.countLine(mode, size) — the page's own count words (Venue: the CLASS
+           count of the visible window; on an empty-but-bookable window the
+           bookable-slot hint). Runs on EVERY _syncTools — sync(), buildAgenda(),
+           _buildWindow() and setDay() all funnel here — so a day-chip tap can never
+           overwrite the page's words with the module's. '' / null / a throw falls
+           back to the module's words. */
+        var countLine = (typeof cfg.countLine === 'function') ? cfg.countLine : null;
+        function useCount(mode, size, fallback) {
+            if (!countEl) return;
+            var s = null;
+            if (countLine) { try { s = countLine(mode, size); } catch (err) { s = null; } }
+            countEl.textContent = (typeof s === 'string' && s) ? s : fallback;
+        }
         if (this._state.mode === 'agenda') {
             var n = events.filter(function (e) { return e && Number(e.di) === di; }).length;
             /* `Monday, 9 Nov 2026` — the prototype names the day AND its date, so the
@@ -7976,7 +8167,7 @@ const TimetableResponsive = {
                 if (day0 && day0.date) label += ', ' + day0.date;
                 heading.textContent = label;
             }
-            if (countEl) countEl.textContent = n + (n === 1 ? ' class this day' : ' classes this day');
+            useCount('agenda', 1, n + (n === 1 ? ' class this day' : ' classes this day'));
             return;
         }
         var size = this._windowSize();
@@ -7994,7 +8185,9 @@ const TimetableResponsive = {
             };
             heading.textContent = label(first) + (last && last !== first ? ' ~ ' + label(last) : '');
         }
-        if (countEl) countEl.textContent = size + ' days visible';
+        /* the module's words remain the fallback; size 1 (Venue's phone window) is
+           unreachable on the default pages, whose smallest window is 2 days */
+        useCount(this._state.mode, size, size + (size === 1 ? ' day visible' : ' days visible'));
     },
 
     /* ── T7 — the transposed window grid (768–1279) ──
@@ -8004,9 +8197,23 @@ const TimetableResponsive = {
        has days as ROWS and 22 half-hour columns, so hiding rows could never look like
        the approved transposed grid (design §5). */
     _windowSize: function () {
+        var bands = this._bands();
+        /* the phone band (followup A): Venue's 'window' profile is a ONE-day window;
+           the default agenda profile never consumes the size there (its surface is
+           buildAgenda), so the historical 2 keeps today's behaviour byte-identical. */
+        if (this._mq[0] && this._mq[0].matches) {
+            return bands.phoneMode === 'window' ? 1 : 2;
+        }
         if (this._mq[2] && this._mq[2].matches) return 3;
         if (this._mq[1] && this._mq[1].matches) return 2;
-        return window.innerWidth >= 1024 ? 3 : 2;
+        /* ≥ desktopMin: a wide-touch profile draws its opted-in day count; every
+           other page is 'full' there (the whole week — the legacy table, not this
+           grid), so the size is never consumed. */
+        if (window.innerWidth >= bands.desktopMin) {
+            return (bands.wideTouchDays > 0 && this._coarse && this._coarse.matches)
+                ? bands.wideTouchDays : 7;
+        }
+        return window.innerWidth >= bands.tablet2Max + 1 ? 3 : 2;
     },
 
     _windowStart: function (size) {
@@ -8016,11 +8223,43 @@ const TimetableResponsive = {
     _buildWindow: function () {
         var grid = document.getElementById('ttWindowGrid');
         if (!grid) return;
+        var cfg = this._cfg || {};
         var days = this._days();
         var events = this._events();
         var size = this._windowSize();
         var start = this._windowStart(size);
         var self = this;
+
+        /* ── cohort-venue-responsive-port FOLLOWUP (F, 2026-11-17): cfg.baseRowDays ──
+           Days whose CANCELLED history covers genuinely free cells. The desktop
+           stacked path (S20) gives each such day an extra base ROW under the lanes;
+           here that would misrepresent the time (a row after the 22 half-hour rows
+           has no slot), so each such day column instead reserves a narrow SIDE LANE
+           beside the history: cards size into the remaining sub-lanes, and the free
+           offers the page's cfg.freeCell returns are appended into the reserved
+           lane. layoutTimetableDay() is the SAME planner the desktop rows and this
+           grid already share — one geometry, no duplicate availability logic (what
+           is genuinely free stays the PAGE's decision, through its own closures).
+           Accepted as an array OR a function returning one (the page recomputes it
+           per week, as the desktop blade does). */
+        var baseDays = null;
+        if (typeof cfg.baseRowDays === 'function') {
+            try { baseDays = cfg.baseRowDays() || null; } catch (err) { baseDays = null; }
+        } else if (Array.isArray(cfg.baseRowDays)) {
+            baseDays = cfg.baseRowDays;
+        }
+        /* one pass over the visible columns: the layout facts the base lane, the
+           free-cell seams and the cards below all read, computed exactly once */
+        var cols = [];
+        for (var c0 = 0; c0 < size; c0++) {
+            var di0 = start + c0;
+            var list0 = events.filter(function (e) { return e && Number(e.di) === di0; });
+            var lay0 = layoutTimetableDay(list0).days[String(di0)] || { placed: [], lanes: 1 };
+            var lanes0 = Math.max(1, lay0.lanes || 1);
+            var base0 = !!(baseDays && baseDays.indexOf(di0) >= 0);
+            cols.push({ di: di0, day: days[di0] || null, list: list0, lay: lay0,
+                        lanes: lanes0, base: base0, total: lanes0 + (base0 ? 1 : 0) });
+        }
 
         grid.hidden = false;
         /* the ONE custom property the CSS template reads (theme.css §window mode) */
@@ -8051,34 +8290,80 @@ const TimetableResponsive = {
                 hol.textContent = 'Public Holiday';
                 head.appendChild(hol);
             }
+            /* FOLLOWUP (D): cfg.dayBadgeFn(day, di) — the page's own day-state
+               badge(s) under the header date (Venue's TODAY / OFF / BOOKINGS OPEN /
+               holiday family). The BOOKINGS OPEN badge is fed by the page's SAME
+               earliestDay lookup as the strip's green dot, so the page can never
+               name a bookable day the dot does not. No hook → the header ends at
+               the holiday small, exactly as every page renders today. */
+            if (typeof cfg.dayBadgeFn === 'function') {
+                try {
+                    var badge = cfg.dayBadgeFn(d, start + i);
+                    if (badge) head.appendChild(badge);
+                } catch (err) { /* a broken hook never blanks the header */ }
+            }
         }
 
         /* the time axis down the left: the same 22 half-hour rows the grid uses, so
            each of the 11 hours is two rows (design §5) */
         for (var slot = 0; slot < hours.length; slot++) {
             addCell('tt-axis', 1, slot + 2, hours[slot]);
-            for (var c = 0; c < size; c++) addCell('tt-gcell', c + 2, slot + 2);
+            for (var c = 0; c < size; c++) {
+                var gcell = addCell('tt-gcell', c + 2, slot + 2);
+                /* the opt-in FREE-CELL seam (Venue phase 2): cfg.freeCell fills the
+                   empty window cell itself (the bookable green slot with its live
+                   state) and cfg.onFreeCell is the activation seam after the node
+                   lands. No hook → the bare .tt-gcell, exactly as every page renders
+                   today. ctx (5th/6th arg, backwards compatible) carries the base
+                   lane facts from the cols pass above. */
+                var col = cols[c];
+                var di0 = col.di;
+                var ctx = { base: col.base, lane: col.base ? col.lanes : 0,
+                            lanes: col.lanes, laneCount: col.total };
+                if (col.base) {
+                    /* the reserved SIDE LANE: the cell keeps its grid geometry and
+                       borders (the axis lines never move); its CONTENT box is inset
+                       to the lane so the page's free offer paints BESIDE — never
+                       over or under — the history card in the remaining column.
+                       `tt-base-lane` + data-tt-base="1" let the page style the lane
+                       (its own hairline, its own time-label form). */
+                    gcell.classList.add('tt-base-lane');
+                    gcell.setAttribute('data-tt-base', '1');
+                    gcell.style.paddingLeft =
+                        'calc(100% * ' + col.lanes + ' / ' + col.total + ')';
+                }
+                if (typeof cfg.freeCell === 'function') {
+                    try {
+                        var freeNode = cfg.freeCell(di0, slot, col.day, gcell, ctx);
+                        if (freeNode) {
+                            gcell.appendChild(freeNode);
+                            if (typeof cfg.onFreeCell === 'function') {
+                                cfg.onFreeCell(freeNode, di0, slot, col.day, gcell, ctx);
+                            }
+                        }
+                    } catch (err) { /* a broken hook never blanks the grid */ }
+                }
+            }
         }
 
         /* one cell per event, placed by day index and half-hour span. The shared
            lane planner decides the side-by-side split (cancelled history stacks
            above the live class it overlaps, exactly as on the desktop grid) — two
-           classes sharing time must never be drawn on top of each other. */
-        for (var col = 0; col < size; col++) {
-            var di = start + col;
-            var day = days[di] || null;
-            var list = events.filter(function (e) { return e && Number(e.di) === di; });
-            var lay = layoutTimetableDay(list).days[String(di)] || { placed: [], lanes: 1 };
-            var lanes = Math.max(1, lay.lanes || 1);
-            lay.placed.forEach(function (p) {
+           classes sharing time must never be drawn on top of each other. On a
+           base day (followup F) the cards share the column with the reserved side
+           lane, so the width maths divides by the TOTAL sub-lanes (cards + base
+           lane): the cards shrink into the remaining column, the lane stays free. */
+        for (var colIdx = 0; colIdx < size; colIdx++) {
+            var col = cols[colIdx];
+            col.lay.placed.forEach(function (p) {
                 var e = p.event;
-                var card = self._card(e, day, list);
+                var card = self._card(e, col.day, col.list);
                 var span = Math.max(1, p.span || (e.end - e.start + 1));
-                var geom = 'grid-column:' + (col + 2)
+                var geom = 'grid-column:' + (colIdx + 2)
                     + ';grid-row:' + (e.start + 2) + ' / span ' + span;
-                if (lanes > 1) {
-                    geom += ';justify-self:start;width:calc(100% / ' + lanes + ' - 4px)'
-                        + ';margin-left:calc(100% * ' + (p.lane || 0) + ' / ' + lanes + ')';
+                if (col.total > 1) {
+                    geom += ';justify-self:start;width:calc(100% / ' + col.total + ' - 4px)'
+                        + ';margin-left:calc(100% * ' + (p.lane || 0) + ' / ' + col.total + ')';
                 }
                 card.setAttribute('style', geom);
                 grid.appendChild(card);
@@ -8086,6 +8371,15 @@ const TimetableResponsive = {
         }
 
         this._syncTools();
+        /* cohort-venue-responsive-port: the opt-in grid FOOTER seam (Venue phase 2) —
+           the page appends its own boundary row (the non-interactive 19:00 marker)
+           after the last half-hour row. No hook → the grid ends at 18:30, as today. */
+        if (typeof cfg.windowFooter === 'function') {
+            try {
+                var foot = cfg.windowFooter();
+                if (foot) grid.appendChild(foot);
+            } catch (err) { /* a broken hook never blanks the grid */ }
+        }
         this._buildNextHint();
     },
 
@@ -8214,9 +8508,14 @@ const TimetableResponsive = {
         this._bindSheetControls();
 
         if (!this._legendNode() || !this._summaryNode()) { if (btn) btn.hidden = true; return; }
-        if (btn) btn.hidden = false;
+        /* The sheet is a BELOW-1280 surface by width, not only by mode (proposal §2):
+           Cohort's wide-touch window (≥1280 + coarse pointer) keeps the legend and the
+           five cards IN PAGE, so the opener steps aside and the sheet closes there.
+           For the default profiles mode!=='full' already implies width < 1280, so the
+           width guard can never change their behaviour. */
+        if (btn) btn.hidden = window.innerWidth >= 1280;
 
-        if (mode === 'full') this.closeSheet(false);
+        if (mode === 'full' || window.innerWidth >= 1280) this.closeSheet(false);
     },
 
     /* The shell ships the three controls and binds none of them (no inline onclick is

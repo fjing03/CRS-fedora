@@ -1,3 +1,135 @@
+## 2026-11-17 — the venue page goes responsive (cohort-venue-responsive-port, PHASE 2)
+
+The approved compact lane's venue half: below 1280 the room week is the prototype's transposed
+TIMELINE — one day below 768, two days 768–1023, three days 1024–1279 — and ≥1280 stays today's
+full-week desktop grid on BOTH pointers (this page deliberately has no wide-touch band).
+Everything narrower is the shared `TimetableResponsive` module (opt-in `bands.phoneMode:
+'window'`, `emptyWeekPanel: false`), so the phone band renders the SAME `_buildWindow` grid as
+the tablet bands — one day wide, no copied renderer, no page fork.
+
+What changed on the page:
+
+- **Toolbar bands** — the room row and the week/day controls are separate rows below 1280: the
+  room row scrolls away, the week row and the seven-day strip stay pinned under the nav (the
+  chrome's sticky block). At ≥1280 the wrapper reassembles the ONE desktop bar with
+  `display: contents` — same five columns (venue · week · Today · Earliest · print pinned right),
+  same card skin, unchanged pixels. **Print hides below 768 only** (the shared ≤1279 rule hides
+  it for the personal pages; a page-scoped rule re-shows it at 768–1279). The semester chip
+  speaks the short form (`202605 Semester`) on the phone and the dated range from 768 up.
+- **Free cells live** — the responsive green cells are the SAME state machine as the desktop
+  paint loop: `roomCellState` / `isServedTail` / `roomBeforeNextEvent` / `cellBlockedByLive` /
+  `isSlotTooSoon` (extended with an optional week index; every existing caller unchanged). The
+  Available card still counts from the desktop loop only, so cells and card cannot disagree.
+  **18:30–19:00** stays a green cell but carries `aria-disabled="true"`, says **Not Enough
+  Slots** (plural, the prototype's words) on hover AND focus, and blocks activation — no toast,
+  no modal, no session picker. **19:00** is the non-interactive boundary row (exactly 22
+  half-hour slots before it). The mid-day no-room law is untouched (green, cursor + hover words
+  only); the retired red `.cell-no-fit` stays retired.
+- **Booking handoff unchanged** — a free cell opens the live `availableTooltip` ("Arrange a
+  replacement in …"), its Arrange opens the shipped **Select a Session** modal, and the
+  arrangement handoff URL is unchanged. The prototype's mock preview and its session-sheet
+  restyle are NOT ported (the approved proposal's explicit exception).
+- **Class blocks** — the module's shared card builder renders the day's blocks with the page's
+  own ownership/status ladder (two-axis colours, YOU/lecturer tips, the privacy-gated notes) and
+  they open the existing Slot Details modal. Cancelled history keeps its card, and where it
+  covers a genuinely free cell the shared base-lane reserves a side lane beside it (the page's
+  free-cell hook receives `ctx.base` and paints its offer inside that lane with the desktop
+  base-row's time label) — history and offer both visible, both reachable.
+- **Earliest bookable is room-aware** — the shared `firstBookableDay()` is the LEAD-TIME cutoff
+  only and can name a day whose room is fully held. The page now computes ONE genuinely-free
+  slot lookup (`venueEarliestBookable()`, the same live closures, minimum 60-minute continuous
+  span) and feeds it to the strip's green dot, the window header's **Bookings open** badge and
+  the Earliest button, so dot, badge and jump can never disagree. The desktop "Bookings open"
+  chip rides the same re-marked flag; the desktop pulse goes to the TARGET day's own rows (the
+  lead-time helper could have pulsed a different, room-full day). No backend rule changes.
+- **Whole-day pulses** — Earliest (green) and Today (blue) pulse the whole day column in the
+  responsive bands, the shipped `.bookable-flash` classes over the theme keyframes; the
+  jumped day becomes the window's first column and its first free slot takes focus/scroll.
+- **Summary below 1280** — the legend + the five cards live in the Week summary sheet (the
+  chrome's own relocation); ≥1280 they stay in page. The count row speaks the class count of
+  the visible window (`cfg.countLine`), with the booking suggestion only where a green cell
+  genuinely exists — never on a Sunday, holiday or too-soon window. The selected date / window
+  range is NEVER repeated above the grid at ANY responsive width: the heading is hidden below
+  1280 (contract-finish correction 2026-11-17 — it was phone-only at first, which let the
+  tablet windows repeat the range; the strip and the grid headers name the days). The strip's
+  chips name a data-tip ONLY where it is useful (contract finish 2026-11-17): Today, the
+  room-aware Earliest bookable day, and a holiday's own name — joined when one chip is
+  several; an ordinary day carries NO tooltip, and the accessible labels are unchanged
+  (`cfg.dayTip`, shared opt-in).
+- **Venue picker** — the searchable sheet now opens on a TOUCH-capable device at ANY width
+  (`any-pointer: coarse` / `hover: none`), not only ≤768px, matching the prototype's
+  capability law; a mouse keeps the anchored four-column cascade, and leaving touch mode
+  closes the sheet. On a coarse pointer the trigger grows to the **48px** floor at every width
+  (wide tablets included) while a mouse desktop keeps its 36px trigger, and the picker sheet's
+  close / search / group headers / venue rows take the same floor (native `<option>` values
+  stay exempt). Hover skins stop listening to the pointer on touch (`hover: none`
+  neutralisers, page-scoped); resting states keep their colours.
+
+Read-only evidence (staff 5425, `:8030`, manual testing DB, zero writes): bands at
+320–1600 incl. the 767/768/1023/1024/1279/1280 boundaries, mouse AND touch contexts, zero
+horizontal overflow everywhere; 22 slots + the 19:00 marker; the 18:30 tail green,
+`aria-disabled`, labelled, activation blocked; free cell → tooltip → Select a Session →
+cancel closes with the URL unchanged; class card → existing `#classModal`; week summary sheet
+open/Escape with legend + 5 cards; the earliest dot, header badge and jump land on the same
+day; touch picker opens the sheet at 390/1024/1366 with every control ≥48px and the mouse
+cascade at 1440; trigger measured 271×48 / 340×48 / 192×48 touch vs 192×36 mouse. The desktop
+suite and the paper builder are untouched (`buildPrintSheet` byte-identical); the pre-existing
+dead `.cell-no-fit` CSS is untouched (kept only because older cached views reference it).
+Honest gaps: the cancelled-history base-lane case has no fixture week in the current DB (the
+mechanism is code-verified, not exercised live); Chromium touch emulation is not physical-
+device evidence; no print PDF was captured here (the paper surfaces are untouched).
+
+**Contract finish (2026-11-17, parent verification followup — same approved lane):**
+
+- **Heading hide widened to every responsive width** — the `.tt-day-heading` (selected date /
+  window range) is now hidden below **1280** on this page, not only on the phone band; the
+  strip and the grid headers already name the days (prototype contract lines 20–28). Count +
+  Summary row retained; pure CSS, page-scoped.
+- **Strip chip tooltips are special-only** (`cfg.dayTip`, shared opt-in seam): Today, the
+  room-aware Earliest bookable day and a holiday's own name — joined when one chip is
+  several; an ordinary day carries NO data-tip and the accessible labels are unchanged.
+- **Week bridge fixed at boot** — one line: after `weekNav.load()` recalls the saved week,
+  `window.currentWeek = currentWeek` now runs BEFORE `buildTimetable()`, so the shared
+  responsive renderer reads the SAME week the selector recalls (parent-confirmed V9 bug: a
+  URL room switch recalled week 6 in the selector while the stale bridge made the renderer
+  draw week 8's dates; V9 re-run passes 4.8s — selector 6 AND bridge 6). The selection
+  callbacks already kept both in sync; only the bootstrap path missed the line.
+
+## 2026-11-17 — the responsive event blocks get their colours back (user report)
+
+The user's screenshots showed Venue's non-desktop **normal / pending / replacement** event
+blocks colourless (grey) while the SAME events on the desktop grid were green / amber / blue
+— Venue only; Cohort, My/Student and ≥1280 desktop were confirmed correct.
+
+**Root cause:** the six ownership colour rules in `theme.css` (`event-mine` / `event-others` /
+`-pending` / `-replacement`, §10.0's two-axis language) matched `.timetable` — the desktop
+table — only. Venue's responsive window cards (`#ttWindowGrid .tt-card`, the SAME class /
+status / ownership vocabulary from the page's `cfg.statusClassFn`) fell through to the generic
+`.event-block` grey. Conflict / cancelled / holiday styling already worked (their rules are
+global).
+
+**Fix (six selector groups, declarations byte-identical):** each existing
+`.timetable .event-*` rule is GROUPED with the Venue window-band selector
+`.tt-responsive[data-tt-page="venue"][data-tt-mode="window"] .tt-card.event-*` — the same
+token declarations, no duplicated palette, no new hex values. All six variants (normal
+mine/others, pending mine/others, replacement mine/others). Desktop selectors, declarations,
+ownership borders (3px mine / 0.5px hairline others') and the default status hooks are
+unchanged; the rule covers all three Venue window bands automatically (the phone band carries
+the same `data-tt-mode="window"`), and ≥1280 Venue stays the desktop grid it already was.
+
+**Regression (red → green, `tests/cohort-venue-responsive.spec.ts` V12):** a focused
+computed-colour case that builds the responsive card by the REAL shared render path
+(`TimetableResponsive._card` with the page's own cfg, from a browser-local clone of a REAL
+served event, attached into the real grid) and compares it per variant against a desktop
+reference node with the SAME class under the real `.timetable` — background, text colour,
+border colour AND border width, exact parity per variant, both themes, at 390/768/1024/1279.
+Where the served DB carries only `normal` events, the pending/replacement variants are
+explicitly labelled browser-local synthetic-class variants (the shipped classes the desktop
+rules already own) — no backend fixtures. RED log (pre-fix selectors restored for the run):
+`bg=rgb(107, 107, 107) vs rgba(46, 125, 90, 0.35)` per the user's own repro; GREEN log:
+2 passed, and the user's own repro (`node /tmp/crs-venue-colour-repro.mjs`) went exit 1 →
+exit 0 with every entry `match: true`.
+
 ## 2026-11-17 — pills that agree with each other
 
 Three small corrections to the shared badge rules, all found by auditing the consumers of the

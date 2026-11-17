@@ -1,11 +1,22 @@
 {{-- Livewire full-page view (SDD wire-backend-into-refactored-ui). All roles;
      students receive only their own cohort's events server-side (FR 1.2).
      Faculty/cohort selects are JS-owned and switch client-side over the
-     preloaded eventsByCohort payload — no server roundtrip needed. --}}
+     preloaded eventsByCohort payload — no server roundtrip needed.
+
+     cohort-venue-responsive-port (phase 1, 2026-11-17): the page root carries the
+     shared `.tt-responsive` scope with pageKey "cohort", so TimetableResponsive
+     (public/js/ui-common.js) owns the narrower bands — agenda below 744, two-day
+     window 744–1023, three-day 1024–1279, four-day ≥1280 on a coarse pointer, and
+     the existing full-week desktop only on a mouse — while the Week summary sheet
+     holds the legend + the five cards below 1280 (partials/ui-tt-chrome). The
+     toolbar (selects + week row + Today + Print + day strip) is ONE card in normal
+     page flow. ≥1280 mouse-only stays the byte-identical desktop. The
+     Select-a-Session popup is NOT part of this lane; the arrangement grid is
+     explicitly excluded. --}}
 
 @section('title', 'Cohort Timetable — Class Replacement System')
 
-<div class="lw-page">
+<div class="lw-page tt-responsive" data-tt-page="cohort">
 
     <style>
         /* ───── Page styles (D2) ───── */
@@ -94,6 +105,125 @@
             font-weight: 700;
             color: var(--color-primary);
         }
+
+        /* ───── cohort-venue-responsive-port (phase 1): the ONE toolbar card ─────
+           The chrome's #ttSticky row carries the whole toolbar — selects row, week
+           row, Today + Print row and the day strip — as ONE card in normal page
+           flow at every width (prototype round 5: "the live .semester-bar is in
+           flow, so this clone is too"). cfg.sticky:false sets data-tt-sticky="0",
+           which keeps theme.css's sticky rule off; here the wrapper becomes the
+           card and the semester-bar inside it dissolves, so ≥1280 mouse reads the
+           same one-card row it has always had. */
+        .tt-responsive[data-tt-page="cohort"] .tt-sticky {
+            display: block;
+            background: var(--color-surface);
+            border: 1px solid var(--color-outline);
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-sm);
+            padding: 10px;
+            margin-bottom: 12px;
+        }
+        /* Followup (2026-11-17): ≥1280 MOUSE keeps the LIVE desktop bar's exact
+           geometry (baseline crs-cohort-venue-baseline, desktop 1440) — padding
+           12px 16px like the shipped `.semester-bar`, and NO extra bottom margin
+           (the grid wrapper's own 14px top margin is the baseline gap below the
+           bar). The 10px wrapped card is the ≤1279 / coarse-pointer shape only,
+           exactly the prototype's `(max-width:1279px), (any-pointer:coarse)`
+           split; a wide-touch ≥1280 device keeps the 10px card and its strip. */
+        @media (min-width: 1280px) and (any-pointer: fine) {
+            .tt-responsive[data-tt-page="cohort"] .tt-sticky {
+                padding: 12px 16px;
+                margin-bottom: 0;
+            }
+        }
+        .tt-responsive[data-tt-page="cohort"] .tt-sticky .semester-bar {
+            background: transparent;
+            border: 0;
+            box-shadow: none;
+            border-radius: 0;
+            padding: 0;
+            margin: 0;
+            gap: 8px;
+        }
+        /* Below 1280 the card stacks as the live page does: selects row → full
+           width week row → Today (left) + Print (right) row → day strip. */
+        @media (max-width: 1279px) {
+            .tt-responsive[data-tt-page="cohort"] .tt-sticky .semester-bar {
+                flex-wrap: wrap;
+                row-gap: 8px;
+            }
+            .tt-responsive[data-tt-page="cohort"] .tt-sticky .semester-bar select:not(.week-select) {
+                min-width: 0;
+                flex: 1 1 0;
+                width: auto;
+            }
+            .tt-responsive[data-tt-page="cohort"] .tt-sticky .week-nav {
+                flex: 1 1 100%;
+                width: 100%;
+            }
+            .tt-responsive[data-tt-page="cohort"] .tt-sticky .today-btn {
+                margin-right: auto;
+            }
+        }
+        /* Below 375 the fourteen week labels need the full arrow row — Today wraps
+           rather than clipping a date or shrinking a real touch target. */
+        @media (max-width: 374px) {
+            .tt-responsive[data-tt-page="cohort"] .tt-sticky .semester-bar select:not(.week-select) {
+                flex: 1 1 100%;
+            }
+        }
+
+        /* ───── No hover effect on a touch screen (standing rule 2026-11-16) ─────
+           The chrome's hover skins are theme.css shared rules, so the neutralisers
+           ride THIS page until they are promoted deliberately (the prototype's
+           porting recipe: theme.css stays read-only for the port). Focus styles are
+           not hover and stay exactly as they are. */
+        @media (hover: none) {
+            .tt-responsive[data-tt-page="cohort"] .tt-summary-btn:hover { background: var(--color-surface); }
+            .tt-responsive[data-tt-page="cohort"] button.tt-next-hint:hover .tt-next-details { color: inherit; }
+            .tt-responsive[data-tt-page="cohort"] .tt-sheet-foot button:hover { background: var(--color-surface-variant); border-color: var(--color-outline); }
+            .tt-responsive[data-tt-page="cohort"] .select-dd-item:hover { background: transparent; }
+            .tt-responsive[data-tt-page="cohort"] .week-arrow:hover { background: transparent; color: var(--color-on-surface-variant); }
+            /* Followup (2026-11-17): Today keeps its BLUE resting tokens on touch —
+               only the opacity/scale reset is neutralised (prototype §11: the
+               shipped bullseye button stays blue). Print keeps its transparent
+               resting skin. The two were wrongly merged into one rule before. */
+            .tt-responsive[data-tt-page="cohort"] .print-btn:hover { background: transparent; color: var(--color-on-surface-variant); }
+            .tt-responsive[data-tt-page="cohort"] .today-btn:hover { opacity: 1; transform: none; filter: none; }
+            .tt-responsive[data-tt-page="cohort"] .btn-close-modal:hover,
+            .tt-responsive[data-tt-page="cohort"] .btn-outline:hover { background: transparent; color: var(--color-on-surface); }
+            .tt-responsive[data-tt-page="cohort"] .btn-action:hover { background: var(--color-primary); filter: none; box-shadow: none; }
+            /* Followup (2026-11-17): the prototype keeps the FILLED error hover for
+               .btn-danger on touch, but .btn-replace-now's shipped hover is only a
+               brightness filter on its primary fill — it must not turn red. The
+               two were wrongly merged into one rule before. */
+            .tt-responsive[data-tt-page="cohort"] .btn-danger:hover { background: var(--color-error); color: var(--color-on-error); filter: none; }
+            .tt-responsive[data-tt-page="cohort"] .btn-replace-now:hover { opacity: 1; transform: none; filter: none; }
+            .tt-responsive[data-tt-page="cohort"] .timetable tbody td:hover,
+            .tt-responsive[data-tt-page="cohort"] .timetable td.hour-cell:hover { background: transparent; }
+            .tt-responsive[data-tt-page="cohort"] .event-block:hover { filter: none; box-shadow: none; }
+            .tt-responsive[data-tt-page="cohort"] .summary-card:hover .summary-card-inner { transform: none; }
+            .tt-responsive[data-tt-page="cohort"] .legend-item:hover { background: transparent; }
+        }
+        /* 48 × 48 on touch-capable devices only (capability, not width) — the
+           SelectDd rows are this page's own popup, so the floor lives here; the
+           chrome's floors are theme.css's `(any-pointer: coarse)` block. Native
+           <option> values stay exempt (user ruling 2026-11-17). */
+        @media (any-pointer: coarse) {
+            .tt-responsive[data-tt-page="cohort"] .select-dd-item { min-height: 48px; }
+            .tt-responsive[data-tt-page="cohort"] .semester-bar select { min-height: 48px; }
+        }
+
+        /* ───── The cards' ownership axis (two-axis language, §10.0) ─────
+           The status classes the cards use (event-normal / -replacement /
+           -pending / -conflict / -public-holiday) are the unscoped theme.css
+           blocks and already carry the status colours + the 3px "yours" border;
+           `.cohort-others` is the one hairline override, exactly like the
+           prototype's `.preview-class.cohort-others`. */
+        .tt-responsive[data-tt-page="cohort"] .tt-card.cohort-others {
+            border-width: 0.5px;
+            border-color: var(--color-outline-strong);
+        }
     </style>
 
     <!-- ─── Page Header ─── -->
@@ -112,16 +242,28 @@
         ]
     ])
 
-    <!-- ─── Semester Bar ─── -->
-    <div class="semester-bar">
-        <select id="facultySelect" onchange="onFacultyChange(this.value, { origin: 'user' })" @if($isStudent) disabled @endif>
-            <option value="">Select Faculty</option>
-        </select>
-        <select id="cohortSelect" onchange="onCohortChange(this.value, { origin: 'user' })" disabled>
-            <option value="">Select Cohort</option>
-        </select>
-        @include('partials.ui-week-nav', ['prevOnclick' => 'prevWeek()', 'nextOnclick' => 'nextWeek()', 'selectId' => 'weekSelect', 'selectOnclick' => 'selectWeek(this.value)', 'selectTinted' => true, 'disabled' => $pinnedCohortId === null, 'showPrint' => true])
-    </div>
+    <!-- ─── Responsive chrome + toolbar (cohort-venue-responsive-port phase 1) ───
+         The WHOLE toolbar — faculty/cohort selects, week nav, Today, Print — is
+         rendered to a string and handed to partials/ui-tt-chrome, which wraps it in
+         its #ttSticky row together with the day strip (same pattern as My Timetable:
+         a static wrap in the blade, never a runtime move). The wrapper is this
+         page's ONE toolbar card, in normal page flow; the day strip renders below
+         the week row inside it. ui-week-nav itself is never edited. -->
+    @php
+        $ttWeekNav = '<div class="semester-bar">'
+            . view('partials.ui-cohort-selects', ['isStudent' => $isStudent])->render()
+            . view('partials.ui-week-nav', [
+                'prevOnclick' => 'prevWeek()',
+                'nextOnclick' => 'nextWeek()',
+                'selectId' => 'weekSelect',
+                'selectOnclick' => 'selectWeek(this.value)',
+                'selectTinted' => true,
+                'disabled' => $pinnedCohortId === null,
+                'showPrint' => true,
+            ])->render()
+            . '</div>';
+    @endphp
+    @include('partials.ui-tt-chrome', ['ttWeekNav' => $ttWeekNav, 'ttReadonly' => false])
 
     <!-- ─── Grid Wrapper ─── -->
     @include('partials.ui-grid-table')
@@ -484,11 +626,108 @@
                    decision 2026-10-13 — cards full of zeros are just noise) */
                 document.getElementById('summarySection').style.display = 'none';
                 updateWeekArrows(true, true);
+                /* cohort-venue-responsive-port (phase 1): the chrome re-renders for the
+                   guidance state too — the strip hides (no cohort), the summary opener
+                   hides, and the strip's chips stop naming the previous cohort's week.
+                   findNextClass answers { none: true }, so the guidance panel carries
+                   no next-class hint. The guidance text is written AFTER the module's
+                   own _syncTools, which would otherwise overwrite it with a count. */
+                syncChromeVisibility();
+                syncResponsive();
+                const dayCount = document.getElementById('ttDayCount');
+                if (dayCount) dayCount.textContent = 'Choose a cohort to view its timetable';
+                const dayHeading = document.getElementById('ttDayHeading');
+                if (dayHeading) dayHeading.textContent = '';
                 /* AMENDMENT 1 §A11: this IS the funnel. Two user-reachable paths land
                    here without ever reaching buildTimetable() — the faculty switch with
                    no taught cohort, and clearing the cohort select — and neither used to
                    touch the paper, so the previous cohort's sheet stayed printable. */
                 buildPrintSheet();
+            }
+
+            /* ════════ RESPONSIVE CHROME (cohort-venue-responsive-port, phase 1) ════════
+               The ≤1279 bands + the ≥1280 wide-touch window read the SAME week the
+               grid just drew — one set of closures handed to both the shared grid
+               builder and TimetableResponsive. init() is idempotent (the cfg is
+               replaced, the listeners bind once), so calling it from
+               buildTimetable()/showGuidance() never double-binds.
+               bands: the prototype's 744 phone edge (iPad Mini), 2/3 tablet days,
+               and a FOUR-day window at ≥1280 only on a coarse pointer — a mouse
+               desktop at the same width stays the existing full-week grid. The
+               toolbar is in flow (sticky: false) per the prototype's round 5. */
+            function syncResponsive() {
+                if (!window.TimetableResponsive) return;
+                TimetableResponsive.init({
+                    scope: 'tt-responsive',
+                    pageKey: 'cohort',
+                    sticky: false,
+                    bands: { phoneMax: 743, tablet2Max: 1023, desktopMin: 1280, wideTouchDays: 4 },
+                    onEventClick: function (e, di) { openModal(e, di !== undefined ? di : e.di); },
+                    events: function () {
+                        return selectedCohortId ? ((eventsByCohort[selectedCohortId] || [])[currentWeek] || []) : [];
+                    },
+                    days: function () { return weekData[currentWeek].days; },
+                    tipLecturerFn: tipLecturerFor,
+                    statusClassFn: statusClassForCards,
+                    replacementNoteFn: replacementNoteFor,
+                    /* followup (2026-11-17): the Cohort prototype's holiday notice is
+                       `Public Holiday · <name>` with NO repeated date line (the date
+                       is already on the chip and the window header). Default
+                       My/Student keep their date line. */
+                    holidayNoticeDate: false,
+                    findNextClass: findNextClass
+                });
+            }
+
+            /* The chrome's strip and Week summary opener only belong to a page that
+               has a cohort to show (prototype: `previewDays` hidden while guidance
+               owns the panel). Manual inline display — the module never touches it. */
+            function syncChromeVisibility() {
+                const strip = document.getElementById('ttDayStrip');
+                if (strip) strip.style.display = selectedCohortId ? '' : 'none';
+                const sumBtn = document.getElementById('ttSummaryButton');
+                if (sumBtn) sumBtn.style.display = selectedCohortId ? '' : 'none';
+            }
+
+            /* T6 parity — the next-class hint's cross-week source. Scans the SELECTED
+               cohort's own payload (no second data shape): the rest of this week from
+               the selected day, then the weeks after it. The hint names a class that
+               will RUN — cancelled history, a pending proposal and holiday days are
+               not it (the prototype's own nextClass rule). During guidance (no
+               cohort) the `{ none: true }` sentinel suppresses the hint entirely —
+               `Select a faculty first` must not print `No more classes this
+               semester.` under it. */
+            function findNextClass(fromWeek, fromDay) {
+                if (!selectedCohortId) return { none: true };
+                var week = parseInt(fromWeek, 10);
+                var day = parseInt(fromDay, 10);
+                if (isNaN(week)) week = currentWeek;
+                if (isNaN(day)) day = 0;
+                if (typeof currentWeek === 'number' && !isNaN(currentWeek)) week = currentWeek;
+                var weeks = eventsByCohort[selectedCohortId] || [];
+                for (var wk = week; wk < weekData.length; wk++) {
+                    var list = weeks[wk] || [];
+                    if (!list.length) continue;
+                    for (var di = (wk === week ? day + 1 : 0); di < 7; di++) {
+                        var dayMeta = (weekData[wk] && weekData[wk].days && weekData[wk].days[di]) || null;
+                        if (!dayMeta || dayMeta.holiday) continue;
+                        var best = null;
+                        for (var i = 0; i < list.length; i++) {
+                            var e = list[i];
+                            if (!e || Number(e.di) !== di) continue;
+                            if (e.status === 'cancelled' || e.status === 'conflict' || e.status === 'pending') continue;
+                            if (!best || e.start < best.start
+                                || (e.start === best.start && String(e.code || '') < String(best.code || ''))) {
+                                best = e;
+                            }
+                        }
+                        if (best) {
+                            return { week: wk, day: di, event: best,
+                                date: dayMeta.date || '', abbr: dayMeta.abbr || '' };
+                        }
+                    }
+                }
+                return null;
             }
 
             /* ════════ WEEK NAVIGATION ════════ */
@@ -615,6 +854,81 @@
                 });
             }
 
+            /* ═══ The shared closures — ONE set for both consumers ═══
+               The grid's blocks and the responsive chrome's cards must speak exactly
+               the same voice and colour ladder, so the three page closures are named
+               here and handed to buildTimetableGrid() AND TimetableResponsive.init(). */
+            function tipLecturerFor(e) {
+                return (e.lecturer === MockData.currentUser.name) ? 'YOU' : (e.lecturer || '—');
+            }
+
+            function statusClassFor(div, e, isConflict) {
+                var isMine = e.lecturer === MockData.currentUser.name;
+                /* §10.0 two-axis language: colour = status (same fill for
+                   everyone), border weight = ownership — own conflict/PH
+                   gets the loud 3px error border; everyone else's is the
+                   same red with a 0.5px hairline. (all-pages-design-parity
+                   C4/C5: frozen idiom — the old e.isMine test read a field
+                   no payload ever set, so everything rendered as others'.) */
+                if (e.status === 'cancelled') {
+                    /* cancelled-blocks-stay-visible (law ①): the cancelled
+                       block rides the EXISTING conflict family — same red
+                       for everyone, ownership borders kept (3px mine /
+                       0.5px others'). FIRST so a cancelled-on-holiday-day
+                       stays red (isConflict loses the precedence race). */
+                    div.classList.add(isMine ? 'event-conflict' : 'event-public-holiday');
+                } else if ((isConflict || e.status === 'conflict') && isMine) {
+                    div.classList.add('event-conflict');
+                } else if (isConflict || e.status === 'conflict') {
+                    div.classList.add('event-public-holiday');   // same error red, hairline border (not yours)
+                } else if (e.status === 'replacement') {
+                    // USER 2026-10-19: the approved replacement carries the
+                    // REPLACEMENT blue on this page (my-timetable's own
+                    // event-replacement class) — ownership borders stay
+                    // (3px mine / 0.5px others') per §10.0's two-axis rule.
+                    div.classList.add(isMine ? 'event-mine-replacement' : 'event-others-replacement');
+                } else if (e.status === 'pending') {
+                    div.classList.add(isMine ? 'event-mine-pending' : 'event-others-pending');
+                } else {
+                    div.classList.add(isMine ? 'event-mine' : 'event-others');
+                }
+            }
+
+            function replacementNoteFor(e) {
+                return buildReplacementNote(e, {
+                    checkOwnership: function (ev) { return ev.lecturer === MockData.currentUser.name; }
+                });
+            }
+
+            /* The CARDS' colour ladder — the same two-axis language as the desktop grid
+               (colour = status, border weight = ownership), expressed with the UNSCOPED
+               block classes, because `.timetable .event-mine/.event-others` only paint
+               inside the desktop table and a card outside it would render unstyled grey
+               (found on the wide-touch window receipt). Ownership still rides the border:
+               the class defaults are 3px, and `.cohort-others` (page CSS) drops it to the
+               0.5px hairline — exactly the prototype's own pair. */
+            function statusClassForCards(div, e, isConflict) {
+                var isMine = e.lecturer === MockData.currentUser.name;
+                if (e.status === 'cancelled') {
+                    /* cancelled-blocks-stay-visible (law ①): the EXISTING conflict
+                       family — mine loud 3px red, others' the red hairline. */
+                    div.classList.add(isMine ? 'event-conflict' : 'event-public-holiday');
+                } else if ((isConflict || e.status === 'conflict') && isMine) {
+                    div.classList.add('event-conflict');
+                } else if (isConflict || e.status === 'conflict') {
+                    div.classList.add('event-public-holiday');
+                } else if (e.status === 'replacement') {
+                    /* USER 2026-10-19: the approved replacement carries the blue on
+                       this page too; ownership borders stay on the axis below. */
+                    div.classList.add('event-replacement');
+                } else if (e.status === 'pending') {
+                    div.classList.add('event-pending');
+                } else {
+                    div.classList.add('event-normal');
+                }
+                div.classList.add(isMine ? 'cohort-mine' : 'cohort-others');
+            }
+
             function buildTimetable() {
                 /* class-modal-affordances T2: the cancel machinery's twin
                    store follows the SELECTED cohort (resolveMatches reads
@@ -622,6 +936,12 @@
                    need the rows of the cohort the modal serves). */
                 MockData.myTimetable = { eventsByWeek: eventsByCohort[selectedCohortId] || Array.from({ length: (window.weekData || []).length || 14 }, function () { return []; }) };
                 currentWeek = weekNav.currentWeek;
+                /* cohort-venue-responsive-port (phase 1): the chrome re-renders for the
+                   week that just landed — BEFORE the early returns, so an empty week
+                   or a guidance exit still redraws the strip/agenda/window and never
+                   leaves a stale surface from the previous cohort. */
+                syncChromeVisibility();
+                syncResponsive();
                 if (!selectedCohortId) {
                     showGuidance();
                     /* design §3.3: this exit is BEFORE the grid build, so the paper has
@@ -657,46 +977,12 @@
                        viewer's own classes read YOU instead of the staff
                        name (2026-11-05: was ME) — SAME ownership rule the
                        block border uses (statusClassFn's isMine), so voice
-                       and border can never disagree. */
-                    tipLecturerFn: function (e) {
-                        return (e.lecturer === MockData.currentUser.name) ? 'YOU' : (e.lecturer || '—');
-                    },
-                    statusClassFn: function (div, e, isConflict) {
-                        var isMine = e.lecturer === MockData.currentUser.name;
-                        /* §10.0 two-axis language: colour = status (same fill for
-                           everyone), border weight = ownership — own conflict/PH
-                           gets the loud 3px error border; everyone else's is the
-                           same red with a 0.5px hairline. (all-pages-design-parity
-                           C4/C5: frozen idiom — the old e.isMine test read a field
-                           no payload ever set, so everything rendered as others'.) */
-                        if (e.status === 'cancelled') {
-                            /* cancelled-blocks-stay-visible (law ①): the cancelled
-                               block rides the EXISTING conflict family — same red
-                               for everyone, ownership borders kept (3px mine /
-                               0.5px others'). FIRST so a cancelled-on-holiday-day
-                               stays red (isConflict loses the precedence race). */
-                            div.classList.add(isMine ? 'event-conflict' : 'event-public-holiday');
-                        } else if ((isConflict || e.status === 'conflict') && isMine) {
-                            div.classList.add('event-conflict');
-                        } else if (isConflict || e.status === 'conflict') {
-                            div.classList.add('event-public-holiday');   // same error red, hairline border (not yours)
-                        } else if (e.status === 'replacement') {
-                            // USER 2026-10-19: the approved replacement carries the
-                            // REPLACEMENT blue on this page (my-timetable's own
-                            // event-replacement class) — ownership borders stay
-                            // (3px mine / 0.5px others') per §10.0's two-axis rule.
-                            div.classList.add(isMine ? 'event-mine-replacement' : 'event-others-replacement');
-                        } else if (e.status === 'pending') {
-                            div.classList.add(isMine ? 'event-mine-pending' : 'event-others-pending');
-                        } else {
-                            div.classList.add(isMine ? 'event-mine' : 'event-others');
-                        }
-                    },
-                    replacementNoteFn: function (e) {
-                        return buildReplacementNote(e, {
-                            checkOwnership: function (ev) { return ev.lecturer === MockData.currentUser.name; }
-                        });
-                    }
+                       and border can never disagree. The closure is named
+                       once (tipLecturerFor) because the responsive chrome's
+                       cards must speak the exact same voice. */
+                    tipLecturerFn: tipLecturerFor,
+                    statusClassFn: statusClassFor,
+                    replacementNoteFn: replacementNoteFor
                 });
                 /* cancelled-blocks-stay-visible: the filter is REMOVED (the
                    full array reaches computeSummary; consistent with the
@@ -800,7 +1086,13 @@
             /* ════════ INIT ════════ */
 
             document.getElementById('semesterChip').textContent = MockData.semester.chipText;
-            populateWeekSelect('weekSelect', { ranges: false, selected: currentWeek });
+            populateWeekSelect('weekSelect', { ranges: false, selected: currentWeek,
+                /* cohort-venue-responsive-port followup (2026-11-17): this page's
+                   phone band ends at 743 (iPad Mini), so the compact no-year week
+                   label must end there too — 744–767 print the FULL dated range,
+                   exactly as the prototype's week-select contract says. The shared
+                   helper's default 767 edge is untouched for My/Student. */
+                mobileMax: 743 });
             populateFaculties();
 
             if (selectedCohortId) {
