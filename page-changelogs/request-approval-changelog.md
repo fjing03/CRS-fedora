@@ -1,3 +1,15 @@
+## 2026-11-17 — pills that agree with each other
+
+Three small corrections to the shared badge rules, all found by auditing the consumers of the
+new pill shape:
+
+- the **small** status pill keeps its small look (it now states its own 18px floor instead of
+  silently growing to the default pill's height);
+- the **venue capacity chip** stopped adding one pixel of padding of its own, so it stands level
+  with the description chip beside it and with every status pill (measured 22px each);
+- a comment that quoted the old padding was corrected, so the next reader is not sent to a
+  number that no longer exists.
+
 ## 2026-11-17 — one badge shape, and a touch floor that is about touch
 
 Three changes to the shared badge rules and the list pages' controls:

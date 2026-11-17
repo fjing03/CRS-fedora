@@ -5628,9 +5628,14 @@ body.filters-panel-open .filters-btn { position:relative; z-index:1300; }
 }
 
 /* ── Badge Small (modifier) ─────────────────────────────────── */
+/* A "sm" pill stays small on purpose: the base's 22px floor is the *default* pill's
+   height, so without this line the small variant would grow to it and lose the only
+   thing that makes it a variant (2026-11-17, badge-consumer audit for task 11).
+   Its own consumers: the design template's status cell; no live blade uses it. */
 .badge-sm {
     font-size: 10px;
     padding: 2px 6px;
+    min-height: 18px;
 }
 
 /* ── Info Label (field overline) ────────────────────────────── */
@@ -5927,10 +5932,11 @@ body.filters-panel-open .filters-btn { position:relative; z-index:1300; }
     display: inline-flex;
     align-items: center;
     gap: 4px;
-    /* NO padding override here — the .badge base (4px 10px) and
-       .badge-capacity (4px 10px) must win everywhere or the venue page's
-       chip and the arrangement's chip paint different sizes (the
-       specificity trap caught 2026-10-23). */
+    /* NO padding override here — the .badge base is the single source now
+       (3px 10px since the 2026-11-17 pill audit; it read 4px 10px before, and this
+       comment quoted that number), .badge-capacity inherits it, and the two must
+       agree or the venue page's chip and the arrangement's chip paint different
+       sizes (the specificity trap caught 2026-10-23). */
     font-weight: 700;
     cursor: help;
     white-space: nowrap;
@@ -5949,8 +5955,10 @@ body.filters-panel-open .filters-btn { position:relative; z-index:1300; }
 .badge-capacity {
     background: var(--color-primary-container);
     color: var(--color-on-primary-container);
-    border-radius: 999px;
-    padding: 4px 10px;
+    border-radius: var(--radius-pill);
+    /* NO padding override (audit, 2026-11-17): it used to restate 4px 10px, one pixel
+       prouder than every other pill beside it. It now inherits the base's 3px 10px and
+       the shared 22px floor, so the venue chip and a status pill stand level. */
     max-width: 120px;
     overflow: hidden;
 }
