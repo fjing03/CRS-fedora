@@ -3,6 +3,20 @@
 **Status: HELD.** Findings measured and recorded; nothing applied. The token fix waits until the
 Cohort/Venue responsive port (survey P1 #2) lands, because it touches `theme.css`.
 
+**2026-11-17, later — the stated hold reason has expired.** That port landed (`e386106`, receipt
+33 passed), so nothing now blocks §3 except the one owner decision in it (light amber has no
+text-safe value). Two amendments while re-reading:
+
+- **`.modal-tab.active` in dark is C1, not a tenth finding.** Measured rgb(0,77,152) on
+  rgb(27,40,56) — i.e. `--color-primary` `#004D98` on `--color-surface` `#1B2838`, C1's exact pair at
+  **1.79:1**. `theme.css:3005` sends the label to `--color-primary`, where C1 sends `.summary-value`
+  to the same token. It joins the same fix (step 2 gains a fourth consumer); do not patch the tab alone.
+- **C8 is the critique's `+0`** (`docs/critique-ledger-2026-11-17.md` already pairs them) — one change
+  retires both the noise and the 1.43:1 failure.
+
+The re-run this audit asked for — Cohort and Venue, which it excluded as "in flight" — is now
+unblocked, and remains outstanding.
+
 **Method.** Rendered, not eyeballed. Playwright walked every text node on seven surfaces in both
 themes, resolved each element's effective background by compositing its ancestor stack, and computed
 WCAG 2.1 contrast. Thresholds: 4.5:1 for normal text, 3:1 for large (≥24px, or ≥18.66px bold).
