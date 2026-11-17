@@ -785,16 +785,28 @@
             /* 1d: the table prints the REAL request id — the header says Request ID */
             html += '<td class="col-request-id">#' + r.id + '</td>';
             html += '<td>' + formatDateTime(r.requestedAt) + requestAgeHtml(r.requestedAt) + '</td>';
+            /* the name alone (task 12, 2026-11-17): the staff ID and the copy-email line left the
+               CELL, not just the paint — a CSS hide would keep both reachable by select-all and by
+               a screen reader. The pop-up's Class Info tab prints the ID and the email chip, one
+               click away, and `lecturer-cell-id` / `lecturer-cell-email` still have live callers
+               (the confirm card and that same Class Info row), so their rules stay in the <style>.
+               The wrapper stays with the name: it is the only consumer of the 600-weight rule. */
             var lec = lookupLecturer(r.lecturer);
             if (lec) {
-                html += '<td><div class="lecturer-cell-name">' + lec.name + ' <span class="lecturer-cell-id">(' + lec.staffId + ')</span></div>';
-                html += '<div class="lecturer-cell-email" onclick="copyEmail(\'' + lec.email + '\', event)" data-tip="Click to copy email">' + lec.email + ' <span class="copy-icon">📋</span></div></td>';
+                html += '<td><div class="lecturer-cell-name">' + lec.name + '</div></td>';
             } else {
                 html += '<td>' + r.lecturer + '</td>';
             }
             /* 2026-11-09 (user, same day, second look): the CELL carries no hover
-               text — the column is explained once, on its header. */
-            html += '<td><div class="cell-code">' + r.courseCode + '</div><div class="cell-name">' + r.courseName + '</div></td>';
+               text — the column is explained once, on its header.
+               Task 12 (2026-11-17): one line, `CODE (TYPE)`. This cell GAINS the type — it
+               printed none before — while every other cell in the lane loses something. The
+               name lives in the pop-up's subtitle and is still searchable by the data array.
+               CourseColumnTipTest matches the start of the next statement as text, so the
+               `cell-code` div is opened inline with `r.courseCode` — do not hoist it. */
+            html += '<td><div class="cell-code">' + r.courseCode
+                + (r.classType ? ' (' + UiLabels.classType(r.classType, 'code') + ')' : '')
+                + '</div></td>';
             /* 1b: one compact cohort code per line (`RSD3(S1)G2`), never a joined blob —
                the modal prints the same codes joined with ' + '. */
             var cohortCodes = (r.cohorts || []).map(compactCohort);

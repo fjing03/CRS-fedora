@@ -4096,8 +4096,13 @@ class HtmlBuilder {
         if (opts.merged) {
             return [
                 {
+                    /* task 12 (2026-11-17): one line, `CODE (TYPE)` — the name was the
+                       pop-up's subtitle all along. The leading space matters: both spans are
+                       inline with no margin, so without it the cell reads `AMSE2003(L)`.
+                       `html:` stays before `cls:` on its own line — CourseColumnTipTest pins
+                       that shape and reformatting it onto one line turns a green test red. */
                     html: '<span class="cell-code">' + c.code + '</span>' +
-                        '<span class="cell-name">' + c.name + ' <span class="cell-type-label">(' + typeLabel + ')</span></span>',
+                        (c.type ? ' <span class="cell-type-label">(' + c.type + ')</span>' : ''),
                     cls: 'col-code'
                 },
                 { html: opts.cohortsCell ? opts.cohortsCell(c) : c.cohorts.join('<br>'), cls: 'col-cohort' },

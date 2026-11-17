@@ -1,3 +1,20 @@
+## 2026-11-17 — the Course cell is one line, and Staff drops the ID
+
+Two trims, both of them facts the details pop-up already carries.
+
+- **Course** now reads `AMSE2003 (L)` on **one line**: the code, then the class type in the same
+  small grey brackets the other tables use. The subject name is gone from the cell — it is still the
+  pop-up's subtitle, and typing it in the search box still finds the row. On this page the cell
+  **gained** the type: it printed none before, so this one is an addition rather than a trim.
+- **Staff (Proposer)** now reads the proposer's name alone. The staff ID and the copy-email line
+  left the cell because the pop-up's **Class Info** tab already shows both, one click away. The
+  column header, its bold name style and its sort are unchanged.
+
+Nothing else moved: same classes, same colours, no new style, and the row still opens its pop-up.
+
+
+**My Replacements:** its Course cell is built by the shared row builder, so it changed with the same
+rule — `BMIT2013 (L)` on one line, no name. The column's width share did not change.
 ## 2026-11-17 — the details pop-up, one shape on three pages
 
 The pop-up on this page (and on My Replacements and Request Approval) now shares one layout:

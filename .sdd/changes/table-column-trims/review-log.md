@@ -124,3 +124,33 @@ proposal + explore brief.
 
 ### 🔴 Outstanding
 - — None.
+
+---
+
+## Spec+tasks — round 1 (2026-11-17)
+
+One review round for the combined artifact (`spec-and-tasks.md`), per the user's cost ruling.
+Reviewer verdict: **no critical, no blocking** — three wording fixes, all applied.
+
+### 🟡 Fixed
+- **TR-01's evidence had expired, and this lane caused it.** It said the details strip still builds
+  `lecturer-cell-id` / `lecturer-cell-email`. Since task 10 moved the ID and the email chip into the
+  **Class Info** tab (`request-approval.blade.php:1129` prints the name alone), that sentence was
+  false. Corrected to name the two real callers — the confirm card (`:620`) and Class Info (`:1284`)
+  — so the conclusion (keep both rules) still holds but the check an implementer would run is now
+  the right one. S3 carried the same drift and now says which row holds which fact.
+- **T12d contradicted the artifact's own scope**: it asked for "four product files" while §0, §3 and
+  proposal §9 all say three (replacement-home is explicitly "nothing"). Now three, and it says why
+  `replacement-home.blade.php` must not appear in the diff.
+- **TR-08 undercounted the pinned test.** `CourseColumnTipTest.php` has four **methods** and about a
+  dozen assertions, not "four assertions". Rewritten: the four lane-relevant assertions are named,
+  and the whole file must stay green.
+
+### 💡 Taken
+- `sdd.yaml`'s `open_decisions` still listed the course-tooltip question as open when proposal §4b
+  and design §5 both call it forced. Removed from the open list.
+- Design 2c printing raw `c.type` while 2b/2d route through `classType` is now explained in the
+  artifact rather than left for verify to flag.
+
+### 🔴 Outstanding
+- None.

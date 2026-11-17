@@ -398,11 +398,15 @@
                 '<br>' + venueLine(slot.venue) + '</div>';
         }
 
-        /* The staff two-line COURSE cell: code on its own line, then the full
-           name with the class type in small type. No hover text (user ruling). */
+        /* The COURSE cell: the code, then the class type in small grey brackets — one line.
+           No name, no hover text (user rulings 2026-11-09 "no hover on the cell" and
+           2026-11-15 "AMSE2003 (L) on one line"). The name lives in the pop-up's subtitle and
+           the search reads the data array, so nothing is lost by not printing it here. */
         function courseCell(r) {
+            /* the leading space is load-bearing: `.cell-code` and `.cell-type-label` are both
+               inline with no margin, so without it the cell reads `AMSE2003(L)` */
             return '<span class="cell-code">' + r.code + '</span>' +
-                '<span class="cell-name">' + r.name + ' <span class="cell-type-label">(' + r.type + ')</span></span>';
+                (r.type ? ' <span class="cell-type-label">(' + UiLabels.classType(r.type, 'code') + ')</span>' : '');
         }
 
         /* CONFLICT REASON — the CLASS's own cause. A calendar holiday keeps its

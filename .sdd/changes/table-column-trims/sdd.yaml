@@ -7,20 +7,25 @@ reference_prototypes:
   - ui-prototype/request-approval.html
   - ui-prototype/my-replacements.html
 pages: 3
-batch: design
+batch: applied
 proposal_review: passed (round 1 fixed; round 2 reviewer quota-blocked, author self-check logged)
 proposal_frozen: true
 review_rounds_proposal: 1
 design_review: passed (round 1, one blocking space fix)
 design_frozen: true
-specs_review: not-run
-specs_frozen: false
-tasks_review: not-run
-tasks_frozen: false
-implementation_approved: false
-implementation_approval: ""
+# 2026-11-17 (user): specs and tasks folded into ONE artifact, reviewed once
+spec_artifact: spec-and-tasks.md
+spec_review: passed (round 1, three wording fixes applied)
+specs_frozen: true
+tasks_folded_into_spec: true
+tasks_review: covered by spec_review
+tasks_frozen: true
+implementation_approved: true
+implementation_approval: "user, 2026-11-17: \"yes.\" to write the spec+tasks, review once, then apply"
+applied: true
+applied_on: 2026-11-17
+apply_log: apply-log.md
 open_decisions:
-  - "course name's last home: pop-up only (recommend) vs a cell tooltip, which would reverse a ruling AND a passing test"
   - "phone card + confirm card keep the staff ID: a standing decision with no owning lane, not a deferral"
   - "no shared course-cell helper; the per-page reasons must be recorded in design.md for verify"
 decisions_taken:
