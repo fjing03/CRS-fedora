@@ -43,7 +43,11 @@
                  `filter-label` carry the words, which is that panel's voice, not this
                  dialog's. --}}
             <div class="print-modal__field print-modal__field--switch">
-                <label class="toggle-wrapper" id="printNormalSwitch">
+                {{-- the tip names what prints in the CURRENT state; PrintSheet._syncSwitchTip
+                     rewrites it when the week or the switch changes and keeps this OFF text
+                     as the resting value --}}
+                <label class="toggle-wrapper" id="printNormalSwitch"
+                       data-tip="Prints: Normal · Replacement · Conflict / Public Holiday&#10;Cancelled and pending classes are never printed">
                     <input type="checkbox" id="printNormalToggle" aria-label="Show normal class only" aria-describedby="printNormalHint">
                     <span class="toggle-track"><span class="toggle-thumb"></span></span>
                     <span class="toggle-label">Show normal class only</span>

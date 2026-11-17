@@ -1,3 +1,15 @@
+## 2026-11-17 — the print switch says what it prints
+
+Hovering (or tabbing to) **Show normal class only** in the Print dialog now says what the paper will
+contain, in each state:
+
+- **Off** — *Prints: Normal · Replacement · Conflict / Public Holiday* / *Cancelled and pending classes are never printed*
+- **On** — *Prints Normal classes only*
+- **All Weeks** — *All Weeks always prints Normal classes only* (it is disabled there, and the tip says why)
+
+It is the same hover tip the rest of the site uses, and it changes the moment the switch or the week
+changes instead of showing the state you just left.
+
 ## 2026-11-16 — the printer asks before it prints
 
 The printer button now opens a small **Print** dialog instead of printing straight away. Two

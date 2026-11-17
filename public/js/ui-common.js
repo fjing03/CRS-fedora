@@ -4886,12 +4886,19 @@ function initDataTipTooltips() {
         if (!node) return null;
         return node.closest ? node.closest('[data-tip]') : null;
     }
+    /* which element owns the tip that is currently on screen — the print dialog's
+       switch rewrites its own `data-tip` mid-hover, and without this the reader would
+       read the state they just left (2026-11-17) */
+    var shownEl = null;
+
     function hide() {
         tip.style.opacity = '0';
         tip.style.visibility = 'hidden';
+        shownEl = null;
     }
 
     function show(el) {
+        shownEl = el;
         var r = el.getBoundingClientRect();
         var tipText = el.getAttribute('data-tip') || '';
         if (!tipText) { hide(); return; }
@@ -4933,6 +4940,13 @@ function initDataTipTooltips() {
         tip.style.opacity = '1';
         tip.style.visibility = 'visible';
     }
+
+    /* A control whose tip TEXT depends on its own state calls this right after it
+       changes that state (`PrintSheet._syncSwitchTip` is the one caller today). No-op
+       unless a tip is open, so every existing tip keeps its exact behaviour. */
+    window.refreshDataTip = function () {
+        if (shownEl && document.contains(shownEl)) show(shownEl);
+    };
 
     document.addEventListener('mouseenter', function(e) {
         var el = findTip(e.target);
@@ -8636,6 +8650,9 @@ const PrintSheet = {
                    that leaving All Weeks hands the switch back as the reader left it. */
                 toggle.addEventListener('change', function () {
                     if (!toggle.disabled) self._normalPref = toggle.checked;
+                    /* the tip names what the CURRENT state prints, so it follows the
+                       switch (the week's own change goes through _syncSwitch) */
+                    self._syncSwitchTip();
                 });
             }
             document.addEventListener('keydown', function (ev) {
@@ -8700,6 +8717,38 @@ const PrintSheet = {
         t.checked = all ? true : this._normalPref;
         t.disabled = all;
         if (hint) hint.style.display = all ? '' : 'none';
+        this._syncSwitchTip();
+    },
+
+    /**
+     * The switch's hover tip names WHAT WILL PRINT in each state (user, 2026-11-17) —
+     * the same shared `data-tip` pill every other control on the site shows, so it reads
+     * in the house voice and is read live on hover (the tip engine re-reads the
+     * attribute every time, so no re-init is needed after this).
+     *
+     * Unless it says which statuses it drops, a reader has no way to know that the paper
+     * is a subset of the screen — the exact confusion that produced the 2026-11-17 bug
+     * report. So OFF names all three printable statuses and the two that never print;
+     * ON names the one that survives; All Weeks says why it cannot be touched.
+     */
+    _syncSwitchTip: function () {
+        var wrap = document.getElementById('printNormalSwitch');
+        if (!wrap) return;
+        var tip;
+        if (this._week === null) {
+            tip = 'All Weeks always prints Normal classes only';
+        } else if (this.isNormal()) {
+            tip = 'Prints Normal classes only';
+        } else {
+            /* two lines, which is the house shape for a tip that needs a second
+               thought (`\n` makes the engine render it pre-line) — one long line would
+               run most of the window wide */
+            tip = 'Prints: Normal · Replacement · Conflict / Public Holiday\nCancelled and pending classes are never printed';
+        }
+        wrap.setAttribute('data-tip', tip);
+        /* the pointer is usually still on the switch when it changes (a click IS a
+           hover), so an open tip is re-rendered rather than left showing the old state */
+        if (typeof window.refreshDataTip === 'function') window.refreshDataTip();
     },
 
     /**
