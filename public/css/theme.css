@@ -3157,6 +3157,7 @@ body.summary-sheet-open #summaryExplainModal {
 }
 .guide-prose th { background: var(--color-surface-variant); }
 .guide-prose th:first-child { width: 34%; }
+.guide-prose .guide-module-exceptions th:first-child { width: 55%; }
 .modal--guide-tabs :is(.modal-tab, .modal-body):focus-visible {
     outline: 2px solid var(--color-on-primary-container);
     outline-offset: -2px;

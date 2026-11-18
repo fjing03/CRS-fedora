@@ -13,7 +13,7 @@
     $guideSubtitle = $guideSubtitle ?? null;
     $guideGroups = $guideGroups ?? [];
     $guideContentView = $guideContentView ?? null;
-    $guideTabs = ['start' => 'Getting started', 'reference' => 'Full reference'];
+    $guideTabs = ['start' => 'Getting started', 'reference' => 'Full reference'] + ($guideExtraTabs ?? []);
     if ($guideHasShortcuts ?? false) {
         $guideTabs['shortcuts'] = 'Shortcuts';
     }

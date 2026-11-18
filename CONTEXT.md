@@ -96,6 +96,17 @@ A request attempt the server refuses before it exists (slot taken, too late, not
 Not an error, and not a rejection — nothing was created.
 _Avoid_: Failed, invalid
 
+## Venue rules
+
+**Default session type**:
+A type of session a room normally permits. For example, a lab normally permits Practicals.
+
+**Module exception**:
+Permission for a specific module and session type to use a room that does not normally permit that type. An exception for a Tutorial does not apply to a Lecture for the same module.
+
+**Room-wide restriction**:
+A condition that applies to every session type in a room, including defaults and module exceptions. It is separate from room availability and whether the class fits.
+
 ## The screens
 
 **Surface**:

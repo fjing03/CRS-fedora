@@ -637,6 +637,7 @@
     @include('partials.ui-guide-modal', [
         'guideSubtitle' => 'Venue Timetable',
         'guideContentView' => 'partials.guides.venue-timetable',
+        'guideExtraTabs' => ['venue-rules' => 'Venue rules'],
         'guideHasShortcuts' => true,
     ])
 

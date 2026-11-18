@@ -32,7 +32,8 @@ for (const { name, viewport, touch } of [
           await opener[activate]();
           const shortcut = dialog.getByRole('tab', { name: 'Shortcuts' });
           const hasShortcuts = viewport.width > 768;
-          await expect(dialog.getByRole('tab')).toHaveCount(hasShortcuts ? 3 : 2);
+          const roomRules = guide.page === 'Venue Timetable' ? 1 : 0;
+          await expect(dialog.getByRole('tab')).toHaveCount((hasShortcuts ? 3 : 2) + roomRules);
           await expect(dialog.locator('.modal-subtitle')).toHaveText(guide.page);
           await expect(start).toHaveAttribute('aria-selected', 'true');
           await expect(dialog.getByRole('heading', { name: guide.start })).toBeVisible();
@@ -129,7 +130,8 @@ for (const guide of guides) {
     await expect(start).toBeFocused();
     await expect(start).toHaveAttribute('aria-selected', 'true');
     await start.press('ArrowLeft');
-    await expect(page.getByRole('tab', { name: 'Full reference' })).toBeFocused();
+    const lastVisible = guide.page === 'Venue Timetable' ? 'Venue rules' : 'Full reference';
+    await expect(page.getByRole('tab', { name: lastVisible })).toBeFocused();
   });
 }
 

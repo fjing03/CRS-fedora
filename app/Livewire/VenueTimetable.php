@@ -12,6 +12,7 @@ use App\Models\Venue;
 use App\Services\LectureSessionCatalog;
 use App\Services\ReplacementRequestMapper;
 use App\Services\TimetableEventIdentity;
+use App\Services\VenueGuideRules;
 use App\Support\ReasonLabel;
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\Collection;
@@ -869,6 +870,12 @@ class VenueTimetable extends Component
         return view('livewire.venue-timetable', [
             'venuesJs' => $venuesJs,
             'venue' => $venue,
+            'venueGuideRules' => app(VenueGuideRules::class)->forViewer(
+                $venue['rawRoomType'],
+                $venue['code'],
+                auth()->user(),
+                $this->timelineSemester()?->id,
+            ),
             'eventsByWeek' => $eventsByWeek,
             'totalsByWeek' => $totalsByWeek,
             'roomCellStatesByWeek' => $roomCellStatesByWeek,

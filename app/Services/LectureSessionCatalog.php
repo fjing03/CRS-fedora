@@ -248,6 +248,11 @@ final class LectureSessionCatalog
             ->all();
     }
 
+    public static function roomSupportsModuleExceptions(string $rawRoomType, string $venueCode, string $exceptionVenueCode): bool
+    {
+        return in_array($rawRoomType, ['lab', 'cisco_lab'], true) || $venueCode === $exceptionVenueCode;
+    }
+
     /**
      * Is this session admissible for a venue of $rawRoomType? THE one matrix
      * read (SDD venue-restrictions-enforcement design D2): ONE boolean
@@ -286,11 +291,9 @@ final class LectureSessionCatalog
         // only seeded lab session is a T gains nothing. An unknown module, or an
         // unloaded relation, yields [] → no widening (the old fail-closed guard).
         $moduleLabTypes = $inWidenRows ? ($rule['lab_access'][$moduleCode] ?? []) : [];
-        $labsAdditive = in_array($sessionType, $moduleLabTypes, true)
-            && in_array($rawRoomType, ['lab', 'cisco_lab'], true);
-        $b006Widen = $venueCode === $rule['b006_venue_code']
-            && in_array($sessionType, $moduleLabTypes, true);
-        if (! ($baseRow || $labsAdditive || $b006Widen)) {
+        $moduleException = in_array($sessionType, $moduleLabTypes, true)
+            && self::roomSupportsModuleExceptions($rawRoomType, $venueCode, $rule['b006_venue_code']);
+        if (! ($baseRow || $moduleException)) {
             return false;
         }
 

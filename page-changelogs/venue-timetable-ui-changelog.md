@@ -1,3 +1,7 @@
+## 2026-11-18 — read the selected room’s rules in the guide
+
+**How to use this page → Venue rules** lists the selected room’s default session types, any programme restriction, and module exceptions by session type. Programme Leaders see the full exception list; other lecturers see matching module and session types they teach this semester. The tab is available on phones and does not check time availability or change any booking rules.
+
 ## 2026-11-18 — guide Shortcuts tab
 
 On desktop, **Shortcuts** lists the week keys and how to show actions for a focused Available slot without making a booking.

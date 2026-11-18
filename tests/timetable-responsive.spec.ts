@@ -1543,7 +1543,7 @@ test.describe('T16d — the round-2 rulings', () => {
         await expect(guide).toBeVisible();
         await expect(guide.locator('.modal-title')).toHaveCSS('text-align', 'left');
         await expect(guide.locator('.modal-subtitle')).toHaveText(title);
-        await expect(guide.getByRole('tab')).toHaveCount(2);
+        await expect(guide.getByRole('tab')).toHaveCount(title === 'Venue Timetable' ? 3 : 2);
         await expect(guide.getByRole('tab', { name: 'Getting started' })).toHaveAttribute('aria-selected', 'true');
         await page.keyboard.press('Escape');
       }
