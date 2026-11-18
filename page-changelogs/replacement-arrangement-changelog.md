@@ -1,3 +1,7 @@
+## 2026-11-18 — guide layout on short screens
+
+The title, tabs, reading pane and Close now share one horizontal inset. The note after submission has more separation from step 4. On short phones and in landscape, the guide uses more of the available height and tighter padding so more text fits without shrinking the controls. Wording and behavior are unchanged.
+
 ## 2026-11-18 — shorter Getting started guide
 
 The default tab now gives four short steps, with the three-working-day notice and three-working-hour approval deadline still in view as part of the guide. Booking details and troubleshooting are grouped in **Full reference**. The modal controls, Shortcuts tab and booking behavior are unchanged.

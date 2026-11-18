@@ -3091,11 +3091,15 @@ body.summary-sheet-open #summaryExplainModal {
     max-height: 100dvh;
 }
 .modal.modal--guide.modal--guide-tabs {
+    --guide-gutter: 22px;
     max-width: 600px;
+}
+.modal--guide-tabs :is(.modal-header, .modal-body, .modal-footer) {
+    padding-inline: var(--guide-gutter);
 }
 .modal--guide-tabs .guide-tabs {
     flex: 0 0 auto;
-    margin: 8px 22px 0;
+    margin: 8px var(--guide-gutter) 0;
 }
 .modal--guide-tabs .guide-tabs .modal-tab {
     font-size: 14px;
@@ -3117,6 +3121,7 @@ body.summary-sheet-open #summaryExplainModal {
 }
 .guide-prose > :first-child { margin-top: 0; }
 .guide-prose > :last-child { margin-bottom: 0; }
+#guidePanel-start > p:last-child { margin-top: 16px; }
 .guide-prose p,
 .guide-prose ul { margin: 0 0 8px; }
 .guide-prose ul { padding-inline-start: 18px; list-style: disc; }
@@ -3141,8 +3146,22 @@ body.summary-sheet-open #summaryExplainModal {
     outline-offset: -2px;
 }
 @media (max-width: 600px) {
-    .modal--guide-tabs .guide-tabs { margin-inline: 16px; }
+    .modal.modal--guide.modal--guide-tabs { --guide-gutter: 16px; }
     .modal--guide-tabs .guide-tabs .modal-tab { padding-inline: 6px; }
+}
+@media (max-height: 640px) {
+    .modal.modal--guide.modal--guide-tabs {
+        max-height: min(94dvh, calc(100dvh - 40px));
+    }
+    .modal--guide-tabs .modal-header { padding-top: 8px; }
+    .modal--guide-tabs .guide-tabs { margin-top: 4px; }
+    .modal--guide-tabs .modal-body { padding-block: 12px; }
+    .modal--guide-tabs .modal-footer {
+        padding-block: 8px calc(8px + env(safe-area-inset-bottom));
+    }
+}
+@media (max-width: 600px) and (max-height: 640px) {
+    .modal.modal--guide.modal--guide-tabs { max-height: 94dvh; }
 }
 /* Match ArrangementMobile's breakpoint: this view has no grid shortcuts. */
 @media (max-width: 768px) {
