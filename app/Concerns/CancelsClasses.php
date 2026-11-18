@@ -7,7 +7,6 @@ use App\Actions\CancelClassBatch;
 use App\Actions\CancelPendingRequest;
 use App\Actions\OriginalOccurrenceReleaseException;
 use App\Exceptions\OccurrenceWriteLockContended;
-use App\Models\ClassException;
 use App\Models\ClassSession;
 use App\Models\ReplacementRequest;
 use App\Models\Semester;
@@ -68,17 +67,12 @@ trait CancelsClasses
             return ['ok' => false, 'hint' => 'Please select a cancellation reason.'];
         }
 
-        $cancelled = (new CancelClass)(auth()->user(), $session, $weekNumber, $reason, $otherDetail);
-        if (! $cancelled) {
+        $exceptionId = (new CancelClass)->cancelWithReceipt(auth()->user(), $session, $weekNumber, $reason, $otherDetail);
+        if ($exceptionId === null) {
             return ['ok' => false, 'hint' => 'This class is already cancelled.'];
         }
 
-        $exception = ClassException::query()
-            ->where('class_session_id', $session->id)
-            ->where('week_number', (int) $weekNumber)
-            ->first();
-
-        return ['ok' => true, 'exceptionId' => (int) $exception->id];
+        return ['ok' => true, 'exceptionId' => $exceptionId];
     }
 
     /**

@@ -39,12 +39,18 @@ final class CancelClass
      */
     public function __invoke(User $user, ClassSession $session, int $weekNumber, string $reason, ?string $otherDetail = null): bool
     {
+        return $this->cancelWithReceipt($user, $session, $weekNumber, $reason, $otherDetail) !== null;
+    }
+
+    /** Return the written class exception ID, or null if the cancellation was refused. */
+    public function cancelWithReceipt(User $user, ClassSession $session, int $weekNumber, string $reason, ?string $otherDetail = null): ?int
+    {
         if ((int) $session->lecturer_id !== (int) $user->id) {
-            return false;
+            return null;
         }
 
         if ($weekNumber < 1 || $weekNumber > 14 || ! in_array($reason, self::REASONS, true)) {
-            return false;
+            return null;
         }
 
         /* 2026-11-11 (SDD cancel-whole-day, T2): the ONE cancel path for both
@@ -60,6 +66,13 @@ final class CancelClass
             enforceWindow: false,   // the page's own S5 guard owns this for one class
         );
 
-        return $result['ok'];
+        if (! $result['ok']) {
+            return null;
+        }
+
+        $exceptionId = $result['cancelled'][0]['exception_id'];
+        assert(is_int($exceptionId));
+
+        return $exceptionId;
     }
 }
