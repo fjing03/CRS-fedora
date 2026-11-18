@@ -2768,10 +2768,8 @@ body.summary-sheet-open #summaryExplainModal {
 }
 
 /* ── 2026-11-14 (mobile-modal-top3): ONE primary action per details pop-up ──
-   The ruling, repeated so nobody re-derives it: a details pop-up keeps exactly
-   one filled action; a second action is the smaller outline button ABOVE it.
-   Before this block the phone footer stacked two equal full-width buttons and
-   spent 120px of a 589px sheet on them.
+   A details pop-up keeps at most one filled action. On narrow phones, outline
+   actions share a compact row and any primary takes the full line below.
 
    Scoped to `.modal--detail` on purpose — the confirm dialogs (Cancel / Confirm
    Reject / Approve notes) keep their own Cancel-left, Confirm-right pattern.
@@ -2805,29 +2803,35 @@ body.summary-sheet-open #summaryExplainModal {
     filter: brightness(1.08);
 }
 @media (max-width: 520px) {
-    .modal--detail .modal-footer { gap: 8px; }
-    /* the secondary: outline, never full width, never the bottom-most target.
-       Both families are covered because the second action is Close on one page
-       (`.btn-outline`) and Cancel/Reject on the others (`.btn-danger`). */
+    /* Keep outline actions on the left/right rails and the primary below them. */
+    .modal--detail .modal-footer {
+        flex-direction: row;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+    }
+    /* the wrappers dissolve so their buttons rank as the footer's own children */
+    .modal--detail .modal-footer-left,
+    .modal--detail .modal-footer-right { display: contents; }
+    /* The sheet supplies the base height; coarse pointers get 48px below. */
     .modal--detail .modal-footer .btn-danger,
+    .modal--detail .modal-footer .btn-close-modal,
     .modal--detail .modal-footer .btn-outline:not(.is-primary) {
         order: 1;
-        align-self: center;
         width: auto;
-        min-height: 40px;
-    }
-    /* the rails are block by default, so `align-items` alone would not centre */
-    .modal--detail .modal-footer-left,
-    .modal--detail .modal-footer-right {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        width: 100%;
+        align-self: auto;
     }
     /* the primary owns the full width and the thumb — whichever family it is */
     .modal--detail .modal-footer .is-primary,
     .modal--detail .modal-footer .btn-action,
-    .modal--detail .modal-footer .btn-approve { order: 2; width: 100%; }
+    .modal--detail .modal-footer .btn-approve,
+    .modal--detail .modal-footer .btn-confirm,
+    .modal--detail .modal-footer .btn-replace-now {
+        order: 2;
+        flex: 0 0 100%;
+        width: 100%;
+    }
 }
 
 /* ── 2026-11-14 (mobile-modal-top3): the Status fact in the strip ──
@@ -7034,6 +7038,13 @@ body.tt-sheet-open:has(.tt-responsive) {
 @media (any-pointer: coarse) {
     .modal--detail .modal-footer .btn-outline:not(.is-primary),
     .modal--detail .modal-footer .btn-close-modal {
+        min-width: 48px;
+        min-height: 48px;
+    }
+}
+
+@media (max-width: 520px) and (any-pointer: coarse) {
+    .modal--detail .modal-footer :is(button, a) {
         min-width: 48px;
         min-height: 48px;
     }

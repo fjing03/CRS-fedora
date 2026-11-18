@@ -1,3 +1,13 @@
+## 2026-11-18 — the phone detail footer is one row again
+
+At ≤520 the details pop-up footer used to stack a full-width Close bar above a lone
+centred pill — three blocks rather than a footer. The wrappers now dissolve and the
+footer is a single row: Close (or Cancel/Reject) sits at the left, the action at the
+right, and a primary that cannot share the row takes a full-width line underneath.
+Every footer target is at least 44px tall, 48 on touch — the 40px Cancel Class?
+exception is gone. Above 520 nothing changes: same one row, same compact 34px buttons,
+same order and focus order.
+
 ## 2026-11-18 — summary cards stop printing zero pending suffixes
 
 A zero pending part now renders as the confirmed number alone: `10`, not `10+0`.

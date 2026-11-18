@@ -8,6 +8,16 @@ card past the right gutter, the existing clamp wins rather than an overflow. The
 never shifts and gains no horizontal scroll because of the panel. Below 769 the docked
 sheet is untouched. A leading checkbox column does not count as the labelled column.
 
+## 2026-11-18 — the phone detail footer is one row again
+
+At ≤520 the details pop-up footer used to stack a full-width Close bar above a lone
+centred pill — three blocks rather than a footer. The wrappers now dissolve and the
+footer is a single row: Close (or Cancel/Reject) sits at the left, the action at the
+right, and a primary that cannot share the row takes a full-width line underneath.
+Every footer target is at least 44px tall, 48 on touch — the 40px Cancel Class?
+exception is gone. Above 520 nothing changes: same one row, same compact 34px buttons,
+same order and focus order.
+
 ## 2026-11-18 — readable dark tabs and a touch-sized quiet exit
 
 Shared `theme.css` now uses `--color-on-primary-container` for active-tab text in

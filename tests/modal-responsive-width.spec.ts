@@ -6,7 +6,7 @@ import { isSanctionedTestingTarget, GUARD_INVOCATION } from './helpers/receipt-t
  *
  * R1 dialog shrinks to content (floor 420, ceiling per variant, never wider than
  *    before) · R2 the bottom sheet is phones only (<= 600, 768 is a dialog) ·
- * R3 the stacked phone footer fills the sheet · R4 the sheet docks flush ·
+ * R3 the phone footer aligns its outline actions · R4 the sheet docks flush ·
  * R5 the × is 48×48 in the sheet range · R6 header/footer pinned, body scrolls.
  *
  * Plus §4.3: the two pages whose page-local 680px pins were removed — My
@@ -42,9 +42,6 @@ interface Geom {
   closeH: number;
   overlayPadding: string;
   footerDir: string;
-  footerClient: number;
-  footerPadX: number;
-  btns: number[];
   bodyClient: number;
   bodyScroll: number;
   modalClient: number;
@@ -83,12 +80,6 @@ async function measure(page: Page, sel: string): Promise<Geom> {
       closeH: cb ? Math.round(cb.height) : 0,
       overlayPadding: getComputedStyle(overlay).padding,
       footerDir: getComputedStyle(footer).flexDirection,
-      footerClient: footer.clientWidth,
-      footerPadX:
-        parseFloat(getComputedStyle(footer).paddingLeft) + parseFloat(getComputedStyle(footer).paddingRight),
-      btns: [...footer.querySelectorAll('button')]
-        .filter((b) => (b as HTMLElement).offsetParent !== null)
-        .map((b) => Math.round(b.getBoundingClientRect().width)),
       bodyClient: body.clientHeight,
       bodyScroll: body.scrollHeight,
       modalClient: m.clientHeight,
@@ -182,17 +173,18 @@ test('R5 — the × is a 48×48 target in the sheet range and smaller above it',
   }
 });
 
-test('R3 — the stacked phone footer buttons fill the sheet', async ({ page }) => {
-  await openClassDetails(page);
+test('R3 — a narrow phone detail sheet aligns Close left', async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto('/my-timetable-ui', { waitUntil: 'networkidle' });
+  await page.locator('.event-block:visible').first().click();
+  const footer = page.locator('#classModal .modal-footer');
+  await expect(footer).toBeVisible();
   await resize(page, 390);
-  const g = await measure(page, '#classModal .modal');
-  expect(g.btns.length, 'both footer actions are visible').toBeGreaterThanOrEqual(2);
-  const [close, cancel] = g.btns;
-  expect(close, 'Close and Cancel are the same width').toBe(cancel);
-  // The pages keep their own footer padding (my-timetable uses 24px), so the
-  // honest invariant is "fills the footer's content box", not "fills the viewport".
-  expect(close, 'the buttons fill the footer content box').toBeGreaterThanOrEqual(g.footerClient - g.footerPadX - 2);
-  expect(g.footerDir, 'the phone footer stacks').toBe('column');
+  await expect(footer).toHaveCSS('flex-direction', 'row');
+  const left = await footer.evaluate((el) => el.getBoundingClientRect().left + parseFloat(getComputedStyle(el).paddingLeft));
+  const close = (await footer.locator('.btn-close-modal').boundingBox())!;
+  expect(Math.abs(close.x - left)).toBeLessThanOrEqual(2);
+  expect(close.height).toBeGreaterThanOrEqual(44);
 });
 
 test('R6 — 390×420 with tall content: body scrolls, header and footer stay pinned', async ({ page }) => {
