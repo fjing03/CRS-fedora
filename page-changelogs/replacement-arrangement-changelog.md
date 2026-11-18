@@ -1,3 +1,7 @@
+## 2026-11-18 — guide typography
+
+The guide keeps the system typeface. Its title leads more clearly, prose is 15px at default text size, and inline emphasis is lighter than the numbered and reference headings. Tables stay compact at 14px, with shortcut keys in the same family. Text wraps within the existing reading pane, and wording and controls are unchanged.
+
 ## 2026-11-18 — guide layout on short screens
 
 The title, tabs, reading pane and Close now share one horizontal inset. The note after submission has more separation from step 4. On short phones and in landscape, the guide uses more of the available height and tighter padding so more text fits without shrinking the controls. Wording and behavior are unchanged.

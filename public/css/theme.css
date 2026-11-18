@@ -3101,24 +3101,37 @@ body.summary-sheet-open #summaryExplainModal {
     flex: 0 0 auto;
     margin: 8px var(--guide-gutter) 0;
 }
+.modal--guide-tabs .modal-title {
+    font-size: 1.125rem;
+    font-weight: 700;
+    line-height: 1.25;
+    text-wrap: balance;
+}
+.modal--guide-tabs .modal-subtitle {
+    font-size: 0.8125rem;
+}
 .modal--guide-tabs .guide-tabs .modal-tab {
-    font-size: 14px;
+    font-size: 0.875rem;
     -webkit-tap-highlight-color: transparent;
 }
 .modal--guide-tabs .guide-tabs .modal-tab.active { border-bottom-color: currentColor; }
 .modal--guide-tabs .modal-footer { border-top: 1px solid var(--color-outline); }
 .modal--guide-tabs .guide-prose {
+    max-inline-size: 70ch;
     color: var(--color-on-surface);
-    font-size: 14px;
-    line-height: 1.55;
+    font-size: 0.9375rem;
+    line-height: 1.5;
     overflow-wrap: anywhere;
 }
 .guide-prose h4 {
     margin: 18px 0 6px;
-    font-size: 15px;
+    font-size: inherit;
     font-weight: 700;
-    line-height: 1.4;
+    line-height: 1.35;
+    text-wrap: balance;
 }
+.guide-prose :is(p, li) { text-wrap: pretty; }
+.guide-prose p strong { font-weight: 600; }
 .guide-prose > :first-child { margin-top: 0; }
 .guide-prose > :last-child { margin-bottom: 0; }
 #guidePanel-start > p:last-child { margin-top: 16px; }
@@ -3131,7 +3144,10 @@ body.summary-sheet-open #summaryExplainModal {
     table-layout: fixed;
     border-collapse: collapse;
     margin: 8px 0;
+    font-size: 0.875rem;
+    line-height: 1.45;
 }
+.guide-prose kbd { font: inherit; font-weight: 600; }
 .guide-prose th,
 .guide-prose td {
     padding: 8px;
