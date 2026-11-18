@@ -1,3 +1,7 @@
+## 2026-11-18 — shorter Getting started guide
+
+The default tab now gives four short steps, with the three-working-day notice and three-working-hour approval deadline still in view as part of the guide. Booking details and troubleshooting are grouped in **Full reference**. The modal controls, Shortcuts tab and booking behavior are unchanged.
+
 ## 2026-11-18 — mobile guide shows only the two reading tabs
 
 **Shortcuts** is hidden in the mobile timetable, where the grid keys do not run. It remains available in desktop view, including on a touch-capable laptop. If the window narrows while Shortcuts is open, the guide switches to **Getting started**.
