@@ -3162,8 +3162,27 @@ body.summary-sheet-open #summaryExplainModal {
     outline-offset: -2px;
 }
 @media (max-width: 600px) {
-    .modal.modal--guide.modal--guide-tabs { --guide-gutter: 16px; }
-    .modal--guide-tabs .guide-tabs .modal-tab { padding-inline: 6px; }
+    .modal.modal--guide.modal--guide-tabs {
+        --guide-gutter: 16px;
+        padding-bottom: 0; /* The pinned footer already owns the safe-area inset. */
+    }
+    .modal--guide-tabs .guide-tabs .modal-tab {
+        flex: 1 1 0;
+        padding-inline: 8px;
+        white-space: normal;
+        overflow-wrap: anywhere;
+    }
+    .modal--guide-tabs .guide-prose { font-size: 1rem; }
+}
+@media (max-width: 600px) and (pointer: coarse) and (hover: none) {
+    .page-header:has(+ #guideModal .modal--guide-tabs) .guide-toggle-icon,
+    .modal--guide-tabs :is(.modal-close, .btn-close-modal) {
+        -webkit-tap-highlight-color: transparent;
+    }
+    /* Opening the sheet focuses its header Close; don't cover it with its own tip. */
+    body:has(#guideModal .modal--guide-tabs .modal-close:focus) > .data-tip-tooltip {
+        display: none;
+    }
 }
 @media (max-height: 640px) {
     .modal.modal--guide.modal--guide-tabs {

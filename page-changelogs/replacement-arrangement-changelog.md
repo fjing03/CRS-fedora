@@ -1,3 +1,7 @@
+## 2026-11-18 — phone guide touch and reading layout
+
+The two tabs fill the phone sheet’s width with equal tap areas. Guide prose is 16px at default size, and longer tab labels can wrap. The pinned footer handles the home-indicator inset once, and the automatically focused header Close no longer shows a tooltip on touch-first phones. Desktop and legacy guides are unchanged.
+
 ## 2026-11-18 — clearer getting-started instructions
 
 The four steps now tell the lecturer to check the original date, count weekdays that aren’t public holidays, look for the full selected block, and distinguish **Submit Request** (review) from **Yes, Submit Request** (send). The approval deadline, other tabs and booking behavior are unchanged.
