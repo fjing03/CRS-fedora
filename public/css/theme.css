@@ -3179,10 +3179,10 @@ body.summary-sheet-open #summaryExplainModal {
     .modal--guide-tabs :is(.modal-close, .btn-close-modal) {
         -webkit-tap-highlight-color: transparent;
     }
-    /* Opening the sheet focuses its header Close; don't cover it with its own tip. */
-    body:has(#guideModal .modal--guide-tabs .modal-close:focus) > .data-tip-tooltip {
-        display: none;
-    }
+}
+@media (prefers-reduced-motion: reduce) {
+    .modal.modal--guide.modal--guide-tabs { animation: none; }
+    .modal--guide-tabs :is(.modal-tab, .modal-close, .btn-close-modal) { transition: none; }
 }
 @media (max-height: 640px) {
     .modal.modal--guide.modal--guide-tabs {

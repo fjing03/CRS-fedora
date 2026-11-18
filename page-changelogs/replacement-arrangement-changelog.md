@@ -1,3 +1,7 @@
+## 2026-11-18 — final guide polish
+
+The tabbed guide uses a consistent stroked Close icon. Its redundant tooltip no longer covers the icon when the guide opens. The entrance and control transitions are skipped when the device requests reduced motion. Guide wording, controls and legacy guide behavior are unchanged.
+
 ## 2026-11-18 — phone guide touch and reading layout
 
 The two tabs fill the phone sheet’s width with equal tap areas. Guide prose is 16px at default size, and longer tab labels can wrap. The pinned footer handles the home-indicator inset once, and the automatically focused header Close no longer shows a tooltip on touch-first phones. Desktop and legacy guides are unchanged.

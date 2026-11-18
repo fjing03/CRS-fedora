@@ -28,8 +28,17 @@
         <div class="modal-header">
             <h3 class="modal-title" id="guideModalTitle">{{ $guideTitle }}@if($guideSubtitle)<span
                     class="modal-subtitle">{{ $guideSubtitle }}</span>@endif</h3>
-            <button type="button" class="modal-close" data-tip="Close"
-                    aria-label="Close" onclick="GuideModal.close()">✕</button>
+            <button type="button" class="modal-close" @unless($guideContentView) data-tip="Close" @endunless
+                    aria-label="Close" onclick="GuideModal.close()">
+                @if($guideContentView)
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                         stroke-width="2" stroke-linecap="round" aria-hidden="true">
+                        <path d="M18 6 6 18M6 6l12 12"/>
+                    </svg>
+                @else
+                    ✕
+                @endif
+            </button>
         </div>
         @if($guideContentView)
             <div class="modal-tabs guide-tabs" role="tablist" aria-label="Guide sections">
