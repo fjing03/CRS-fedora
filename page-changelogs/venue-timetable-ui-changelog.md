@@ -1,3 +1,7 @@
+## 2026-11-18 — two-tab Venue Timetable guide
+
+**Getting started** follows the room-first path from **Venue** and **Earliest bookable** to **Select a Session** and Replacement Arrangement. **Full reference** explains slot states, room fit and printing. Opening the guide does not affect the selected week or the booking flow.
+
 ## 2026-11-18 — a cancelled class reads `✕ Cancelled`, not `(Cancelled)`
 
 User, 2026-11-18, with a screenshot of My Timetable: *"make all timetable pages 'Cancelled'"*,

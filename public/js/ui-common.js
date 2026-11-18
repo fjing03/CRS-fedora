@@ -3126,8 +3126,13 @@ var GuideModal = {
     },
 
     handleKey: function (event, dialog) {
+        // Keep page-level shortcuts out of the guide without swallowing native defaults.
+        event.stopPropagation();
         const key = event.key;
-        if (key === 'Tab') {
+        if (key === 'Escape') {
+            event.preventDefault();
+            this.close();
+        } else if (key === 'Tab') {
             const controls = dialog.querySelectorAll('button:not([tabindex="-1"]), .modal-body');
             const first = controls[0];
             const last = controls[controls.length - 1];

@@ -60,7 +60,7 @@ test.describe('Venue Timetable UI', () => {
     await expect(page.locator('.page-header .page-desc')).toHaveCount(0);
     await page.locator('.guide-toggle-icon').click();
     await expect(page.locator('#guideModal')).toBeVisible();
-    await expect(page.locator('#guideModal .page-desc')).toContainText("Inspect any venue's weekly occupancy");
+    await expect(page.locator('#guideModal').getByRole('tabpanel')).toContainText('see what is scheduled in a room');
   });
 
   test('TC04 — semester chip displays semester info', async ({ page }) => {

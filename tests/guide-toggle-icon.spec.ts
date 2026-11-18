@@ -7,9 +7,8 @@ import { test, expect, type Page } from '@playwright/test';
 
 const LECTURER_PAGES = [
   { path: '/my-timetable-ui', desc: 'View your weekly class schedule' },
-  { path: '/venue-timetable-ui', desc: "Inspect any venue's weekly occupancy" },
   { path: '/cohort-timetable', desc: 'View the weekly timetable' },
-  { path: '/replacement-home-ui', desc: 'Every class that needs a replacement' },
+  // Venue Timetable and My Replacements are covered in workflow-page-guides.spec.ts.
   // Arrangement's two-tab guide is covered in replacement-arrangement-guide.spec.ts.
 ];
 
@@ -102,18 +101,7 @@ test.describe('staff lecturer pages', () => {
   }
 });
 
-test.describe('staff PL page', () => {
-  test.use({ storageState: '.auth/staff-5425.json' });
-
-  test('/request-approval-ui: one icon and the description inside', async ({ page }) => {
-    await page.goto('/request-approval-ui', { waitUntil: 'domcontentloaded' });
-    await waitForGuide(page);
-    await expect(page.locator('.guide-toggle')).toHaveCount(0);
-    await expect(page.locator('.page-desc')).toHaveCount(0);
-    await page.locator('.guide-toggle-icon').click();
-    await expect(page.locator('#guideBlock .guide-description')).toContainText('Review and manage replacement requests');
-  });
-});
+// Request Approval is covered in workflow-page-guides.spec.ts.
 
 test('student pages: description-only guides, no empty list', async ({ page }) => {
   await page.goto('/login/student');

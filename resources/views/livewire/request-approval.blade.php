@@ -266,19 +266,8 @@
 ])
 
 @include('partials.ui-guide-modal', [
-    'guideTitle' => 'How to use this page',
-    'guideDescriptionHtml' => 'Review and manage <span class="info-keyword">replacement requests</span> from <span class="info-keyword">lecturers in your program</span>.',
-    'guideItems' => [
-        '<strong>Sort</strong> — click any column header to sort ascending/descending',
-        '<strong>Search</strong> — type in the search box to filter by course, lecturer, or keywords',
-        '<strong>Filter</strong> — use the status dropdown or the week filter to narrow results',
-        '<strong>Hover headers</strong> — hover a column name to see what it means',
-        '<strong>Bulk action</strong> — tick checkboxes then approve/reject multiple requests at once',
-        '<strong>Quick action</strong> — use the approve/reject buttons on individual rows',
-        '<strong>The five cards</strong> — Total Requests, Pending, Approved, Rejected and Total Reviewed; they count what your filters currently show',
-        '<strong>COMPLETED</strong> — the switch hides requests whose replacement date has passed; turn it off to see them',
-        '<strong>Request age</strong> — colour indicates how long ago it was submitted: <span style="color:var(--color-primary)">● ≤1 day</span> <span style="color:var(--color-tertiary)">● 2–3 days</span> <span style="color:var(--color-error)">● 4+ days</span>',
-    ]
+    'guideSubtitle' => 'Request Approval',
+    'guideContentView' => 'partials.guides.request-approval',
 ])
 
 <!-- ─── Toolbar (filters-button: the host + placeholder keep the toolbar's seat,
@@ -1654,6 +1643,9 @@
                     }
                     return;
                 }
+
+                // Let Enter activate the help button without also opening the highlighted row.
+                if (e.key === 'Enter' && e.target.matches('.guide-toggle-icon[aria-controls="guideModal"]')) return;
 
                 // Pause keyboard nav when modal is open
                 if (document.querySelector('.modal-overlay.show')) return;

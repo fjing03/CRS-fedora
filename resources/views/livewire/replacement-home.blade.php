@@ -235,17 +235,8 @@
         @include('partials.ui-page-header', ['title' => 'My Replacements', 'guideToggle' => true, 'guideModal' => true, 'summaryButton' => true])
 
         @include('partials.ui-guide-modal', [
-            'guideTitle' => 'How to use this page',
-            'guideDescriptionHtml' => 'Every <span class="info-keyword">class</span> that needs a replacement, and every <span class="info-keyword">request</span> you have made for it — in <span class="info-keyword">one list</span>.',
-            'guideItems' => [
-                '<strong>Sort</strong> — click a sortable column header to sort ascending/descending; the arrow shows which one is active',
-                '<strong>Search</strong> — type to filter by course code, course name or cohort code',
-                '<strong>Hover headers</strong> — hover a column name to see what it means',
-                '<strong>Track progress</strong> — the Action icon tells you what you can do: rotate to arrange, ban to cancel a pending request, eye to view the details',
-                '<strong>Week filter</strong> — use the week navigator to view conflicts for a specific week',
-                '<strong>The five cards</strong> — Classes to Arrange, Class Hours to Replace, Pending, Approved and Rejected; they count what your filters currently show',
-                '<strong>COMPLETED</strong> — the switch hides classes whose replacement date has passed; turn it off to see them',
-            ]
+            'guideSubtitle' => 'My Replacements',
+            'guideContentView' => 'partials.guides.my-replacements',
         ])
 
         <!-- ─── Toolbar (moved from My Requests: one filter bar, M17).

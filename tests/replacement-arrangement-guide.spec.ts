@@ -172,7 +172,7 @@ test('desktop guide owns keyboard actions without changing the grid or week', as
 });
 
 for (const { path, content } of [
-  { path: '/venue-timetable-ui', content: '.guide-list li' },
+  { path: '/cohort-timetable', content: '.guide-list li' },
   { path: '/my-timetable-ui', content: '.detail-group' },
 ]) {
   test(`${path}: legacy guide keeps its content without tabs`, async ({ page }) => {

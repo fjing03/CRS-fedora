@@ -635,14 +635,8 @@
     @include('partials.ui-page-header', ['title' => 'Venue Timetable', 'guideToggle' => true, 'guideModal' => true, 'summaryButton' => true])
 
     @include('partials.ui-guide-modal', [
-        'guideTitle' => 'How to use this page',
-        'guideDescriptionHtml' => 'Inspect any <span class="info-keyword">venue\'s weekly occupancy</span> — <span class="info-keyword">real slot states</span> from the timetable database.',
-        'guideItems' => [
-            '<strong>Venue selection</strong> — pick a venue from the dropdown; the grid shows its full semester',
-            '<strong>Week navigation</strong> — use arrows, the dropdown or Today button to browse weeks',
-            '<strong>Slot colours</strong> — colour = status (green = class, amber = pending, red = conflict / public holiday), border = ownership (thick = yours, hairline = others\'); your own classes on holidays show loud red — they won\'t run',
-            '<strong>View details</strong> — click an occupied slot to see module, lecturer and cohorts',
-        ]
+        'guideSubtitle' => 'Venue Timetable',
+        'guideContentView' => 'partials.guides.venue-timetable',
     ])
 
     <!-- ─── JS-owned surface (wire:ignore): the grid cells, week navigation,

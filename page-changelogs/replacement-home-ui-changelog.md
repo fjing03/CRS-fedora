@@ -1,3 +1,7 @@
+## 2026-11-18 — two-tab My Replacements guide
+
+**Getting started** explains how to find a class, open its details and follow a request. **Full reference** covers original and requested weeks, status actions, filters and approval timing. The guide opens on Getting started each time. Request and filter behavior is unchanged.
+
 ## 2026-11-17 — the phone card says when the replacement is asked for
 
 A card on a phone now reads like the drawing: the code and its status on top, then an
